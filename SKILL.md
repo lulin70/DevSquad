@@ -61,6 +61,11 @@ AI（中文）: "📋 已接收任务，开始代码审查..."
 4. **共识机制**: 组织多角色评审和决策
 5. **自动继续**: 思考次数超限后自动保存进度并继续执行
 6. **任务管理**: 完整的任务生命周期管理和进度追踪
+7. **代码map生成**: 自动生成项目代码结构映射，帮助架构师和开发者了解项目整体结构
+8. **项目理解**: 快速读取项目文档和代码，为各角色生成项目理解文档，作为工作初始化上下文
+9. **规范驱动开发**: 基于项目规范和文档进行开发，确保项目一致性
+10. **规范分析工具**: 分析规范的完整性、一致性和可行性
+11. **智能体角色增强**: 为各角色添加规范相关职责
 
 ## 文档规范与目录结构
 
@@ -69,6 +74,23 @@ AI（中文）: "📋 已接收任务，开始代码审查..."
 
 ```
 docs/
+├── project-understanding/  # 项目理解文档目录
+│   ├── project_understanding.json     # 整体项目信息
+│   └── roles/                        # 各角色理解文档
+│       ├── architect_understanding.md     # 架构师理解
+│       ├── product_manager_understanding.md  # 产品经理理解
+│       ├── test_expert_understanding.md     # 测试专家理解
+│       └── solo_coder_understanding.md      # 独立开发者理解
+├── spec/               # 规范驱动开发文档目录
+│   ├── CONSTITUTION.md       # 项目宪法
+│   ├── SPEC.md               # 项目规范
+│   ├── SPEC_ANALYSIS.md      # 规范分析报告
+│   ├── PROJECT_STRUCTURE.md  # 项目结构与代码map
+│   └── templates/            # 规范模板
+│       ├── CONSTITUTION_TEMPLATE.md
+│       ├── SPEC_TEMPLATE.md
+│       ├── SPEC_ANALYSIS_TEMPLATE.md
+│       └── PROJECT_STRUCTURE_TEMPLATE.md
 ├── architect/          # 架构师文档目录
 │   ├── ARCHITECTURE_DESIGN.md      # 当前项目架构设计文档
 │   ├── ARCHITECTURE_DESIGN_TEMPLATE.md  # 架构设计模板
@@ -527,7 +549,7 @@ Step 3: 自动继续执行
 
 ### 1. 架构师 (Architect)
 
-**职责**: 设计系统性、前瞻性、可落地、可验证的架构，确保代码质量、安全性和架构一致性。拥抱云原生、可观测性和自动化。
+**职责**: 设计系统性、前瞻性、可落地、可验证的架构，确保代码质量、安全性和架构一致性。拥抱云原生、可观测性和自动化。负责生成和维护项目代码map，确保架构一致性和模块间的合理依赖。负责规范一致性审查，确保架构设计符合 SPEC 要求，集成规范分析工具，自动检查架构与规范的一致性。
 
 **触发关键词**:
 - "设计架构"、"系统架构"、"技术选型"
@@ -535,6 +557,7 @@ Step 3: 自动继续执行
 - "性能瓶颈"、"技术难题"、"架构优化"
 - "模块划分"、"接口设计"、"部署方案"
 - "代码规范"、"安全检查"、"性能优化"
+- "code map"、"代码map"、"项目结构"、"代码结构"
 
 **典型任务**:
 - 项目启动阶段的架构设计
@@ -542,6 +565,11 @@ Step 3: 自动继续执行
 - 技术难题攻关和性能优化
 - 技术选型和风险评估
 - 代码规范和安全检查
+- 项目代码map的生成和维护
+- 架构一致性检查和模块依赖分析
+- 规范一致性审查和分析
+- 确保架构设计符合 SPEC 要求
+- 集成规范分析工具，自动检查架构与规范的一致性
 
 **完整 Prompt**:
 ```markdown
@@ -609,6 +637,11 @@ Step 3: 自动继续执行
 3. **架构决策记录 (ARCHITECTURE_DECISIONS.md)**
    - 所有重大技术决策必须记录
    - 包含决策背景、方案对比、决策理由、影响评估
+
+4. **项目结构文档 (PROJECT_STRUCTURE.md)**
+   - 使用工具：`scripts/code_map_generator.py`
+   - 必须包含：项目概览、目录结构、核心组件、入口文件、模块依赖
+   - 每次架构变更后必须更新
 
 ### 5.2 文档更新流程
 ```
@@ -777,7 +810,7 @@ String result = client.get().uri("https://api.example.com").retrieve().body(Stri
 
 ### 2. 产品经理 (Product Manager)
 
-**职责**: 定义用户价值清晰、需求明确、可落地、可验收的产品。擅长数据驱动和 AI 辅助设计。
+**职责**: 定义用户价值清晰、需求明确、可落地、可验收的产品。擅长数据驱动和 AI 辅助设计。参与制定项目宪法，确保需求符合不可协商项，使用规范模板编写规范，确保需求描述的准确性。
 
 **触发关键词**:
 - "定义需求"、"产品需求"、"PRD"
@@ -790,6 +823,8 @@ String result = client.get().uri("https://api.example.com").retrieve().body(Stri
 - 需求评审和可行性评估
 - 竞品分析和市场调研
 - 用户验收测试组织
+- 参与制定项目宪法，确保需求符合不可协商项
+- 使用规范模板编写规范，确保需求描述的准确性
 
 **完整 Prompt**:
 ```markdown
@@ -858,7 +893,7 @@ Layer 3: 本质需求 (用户为什么)
 
 ### 3. 测试专家 (Test Expert)
 
-**职责**: 确保全面、深入、自动化、可量化的质量保障。引入契约测试、混沌工程和可观测性验证。
+**职责**: 确保全面、深入、自动化、可量化的质量保障。引入契约测试、混沌工程和可观测性验证。负责规范验证测试，确保实现符合 SPEC 要求，基于 SPEC 自动生成测试用例，提高测试覆盖率。
 
 **触发关键词**:
 - "测试策略"、"测试用例"、"测试计划"
@@ -871,6 +906,8 @@ Layer 3: 本质需求 (用户为什么)
 - 自动化测试开发和执行
 - 性能测试和基准建立
 - 质量评审和发布建议
+- 规范验证测试，确保实现符合 SPEC 要求
+- 基于 SPEC 自动生成测试用例，提高测试覆盖率
 
 **完整 Prompt**:
 ```markdown
@@ -922,7 +959,7 @@ Layer 3: 本质需求 (用户为什么)
 
 ### 4. Solo Coder (独立开发者)
 
-**职责**: 编写完整、高质量、可维护、可测试的代码。遵循 Modern Java 和 Spring Boot 3 最佳实践。
+**职责**: 编写完整、高质量、可维护、可测试的代码。遵循 Modern Java 和 Spring Boot 3 最佳实践。严格按照 SPEC 实现代码，确保规范一致性，使用规范辅助编码，提高代码质量。
 
 **触发关键词**:
 - "实现功能"、"开发功能"、"编写代码"
@@ -935,6 +972,8 @@ Layer 3: 本质需求 (用户为什么)
 - Bug 修复和问题解决
 - 代码优化和重构
 - 单元测试编写和文档
+- 严格按照 SPEC 实现代码，确保规范一致性
+- 使用规范辅助编码，提高代码质量
 
 **完整 Prompt**:
 ```markdown
@@ -1012,6 +1051,13 @@ elif 任务包含 "测试" OR "质量" OR "验收":
     dispatch to "test_expert"
 elif 任务包含 "实现" OR "开发" OR "代码":
     dispatch to "solo_coder"
+elif 任务包含 "规范" OR "spec" OR "宪法" OR "constitution":
+    # 规范相关任务，根据具体内容分配角色
+    if 任务包含 "分析" OR "审查":
+        dispatch to "architect"
+    elif 任务包含 "编写" OR "制定":
+        # 多角色协作
+        organize_consensus(agents=["architect", "product_manager", "test_expert", "solo_coder"])
 ```
 
 **示例**:
@@ -1159,7 +1205,20 @@ python3 scripts/trae_agent_dispatch.py \
 
 ### 高级用法
 
-#### 4. 项目启动（完整流程）
+#### 4. 项目理解（初始化）
+```bash
+# 生成项目理解文档
+python3 scripts/project_understanding.py /path/to/project
+
+# 输出：
+# - 整体项目信息：docs/project-understanding/project_understanding.json
+# - 架构师理解：docs/project-understanding/roles/architect_understanding.md
+# - 产品经理理解：docs/project-understanding/roles/product_manager_understanding.md
+# - 测试专家理解：docs/project-understanding/roles/test_expert_understanding.md
+# - 独立开发者理解：docs/project-understanding/roles/solo_coder_understanding.md
+```
+
+#### 5. 项目启动（完整流程）
 ```bash
 # 启动完整项目流程
 python3 scripts/trae_agent_dispatch.py \
@@ -1167,14 +1226,15 @@ python3 scripts/trae_agent_dispatch.py \
     --project-full-lifecycle
 
 # 自动执行以下步骤：
-# 1. product_manager: 定义需求
-# 2. architect: 设计架构
-# 3. test_expert: 制定测试策略
-# 4. 需求评审（多角色共识）
-# 5. solo_coder: 功能开发
-# 6. test_expert: 执行测试
-# 7. 质量评审（多角色共识）
-# 8. solo_coder: 发布部署
+# 1. 项目理解：生成各角色项目理解文档
+# 2. product_manager: 定义需求
+# 3. architect: 设计架构
+# 4. test_expert: 制定测试策略
+# 5. 需求评审（多角色共识）
+# 6. solo_coder: 功能开发
+# 7. test_expert: 执行测试
+# 8. 质量评审（多角色共识）
+# 9. solo_coder: 发布部署
 ```
 
 #### 5. 紧急 Bug 修复
@@ -1205,6 +1265,33 @@ python3 scripts/trae_agent_dispatch.py \
 # 2. test_expert: 测试覆盖率检查
 # 3. solo_coder: 代码质量检查
 # 4. 生成审查报告和问题清单
+```
+
+#### 7. 规范驱动开发
+```bash
+# 初始化规范环境
+python3 scripts/spec_tools.py init
+
+# 分析规范
+python3 scripts/spec_tools.py analyze
+
+# 更新规范文档
+python3 scripts/spec_tools.py update --spec-file SPEC.md
+
+# 规范驱动的项目启动
+python3 scripts/trae_agent_dispatch.py \
+    --task "启动规范驱动项目：电商系统" \
+    --spec-driven
+
+# 自动执行以下步骤：
+# 1. 初始化规范环境
+# 2. 多角色共识：制定项目宪法
+# 3. product_manager: 编写需求规范
+# 4. architect: 编写技术规范
+# 5. 规范评审（多角色共识）
+# 6. 基于规范分解任务
+# 7. 各角色执行任务
+# 8. 规范验证和质量评审
 ```
 
 ## 调度脚本实现
