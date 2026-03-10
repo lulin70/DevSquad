@@ -63,6 +63,29 @@
    - 从需求到部署全流程
    - 质量门禁和评审机制
 
+5. **规范驱动开发** 📋
+   - 完整的规范工具链
+   - 统一的文档管理体系
+   - 规范一致性检查
+   - 多角色共识制定规范
+
+6. **代码地图生成** 🗺️
+   - 自动生成项目代码结构映射
+   - 支持 JSON 和 Markdown 格式输出
+   - 识别核心组件和模块依赖
+   - 可视化项目结构文档
+
+7. **项目理解** 📚
+   - 快速读取项目文档和代码
+   - 为各角色生成定制化理解文档
+   - 提供项目概览和技术栈分析
+   - 作为工作初始化上下文
+
+8. **跨平台兼容性** 🌍
+   - 支持 Windows、Mac 和 Linux
+   - 统一的路径处理和字符编码
+   - 跨平台脚本执行
+
 ### 角色 Prompt 系统
 
 每个角色都配备完整的工作规则和质量标准：
@@ -125,6 +148,17 @@ python3 scripts/trae_agent_dispatch.py \
 python3 scripts/trae_agent_dispatch.py \
     --task "安全浏览器广告拦截功能" \
     --project-full-lifecycle
+
+# 规范驱动开发
+python3 scripts/spec_tools.py init
+python3 scripts/spec_tools.py analyze
+python3 scripts/spec_tools.py update --spec-file SPEC.md
+
+# 代码地图生成
+python3 scripts/code_map_generator.py /path/to/project
+
+# 项目理解
+python3 scripts/project_understanding.py /path/to/project
 ```
 
 ## 🎭 角色介绍
@@ -260,6 +294,72 @@ python3 scripts/trae_agent_dispatch.py \
 #   - 跳过常规流程
 #   - 直接调度资深开发者
 #   - 实时进度同步
+```
+
+### 场景 5: 规范驱动开发
+
+```bash
+# 初始化规范环境
+python3 scripts/spec_tools.py init
+
+# 分析规范
+python3 scripts/spec_tools.py analyze
+
+# 更新规范文档
+python3 scripts/spec_tools.py update --spec-file SPEC.md
+
+# 规范驱动的项目启动
+python3 scripts/trae_agent_dispatch.py \
+    --task "启动规范驱动项目：电商系统" \
+    --spec-driven
+
+# 自动执行：
+#   1. 初始化规范环境
+#   2. 多角色共识：制定项目宪法
+#   3. 产品经理：编写需求规范
+#   4. 架构师：编写技术规范
+#   5. 规范评审（多角色共识）
+#   6. 基于规范分解任务
+#   7. 各角色执行任务
+#   8. 规范验证和质量评审
+```
+
+### 场景 6: 代码地图生成
+
+```bash
+# 生成代码地图
+python3 scripts/code_map_generator.py /path/to/project
+
+# 输出：
+# - JSON格式：code_map.json
+# - Markdown格式：PROJECT_STRUCTURE.md
+
+# 生成的内容包括：
+#   - 项目概览和统计信息
+#   - 目录结构树
+#   - 核心组件和入口文件
+#   - 模块依赖关系
+#   - 技术栈分析
+```
+
+### 场景 7: 项目理解
+
+```bash
+# 生成项目理解文档
+python3 scripts/project_understanding.py /path/to/project
+
+# 输出：
+# - 整体项目信息：project_understanding.json
+# - 架构师理解：architect_understanding.md
+# - 产品经理理解：product_manager_understanding.md
+# - 测试专家理解：test_expert_understanding.md
+# - 独立开发者理解：solo_coder_understanding.md
+
+# 文档内容包括：
+#   - 项目概览和技术栈
+#   - 代码结构分析
+#   - 文档和依赖分析
+#   - 角色特定的见解和建议
 ```
 
 ## 📦 安装说明

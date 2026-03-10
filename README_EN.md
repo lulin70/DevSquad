@@ -51,6 +51,29 @@
    - Full process from requirements to deployment
    - Quality gates and review mechanisms
 
+5. **Specification-Driven Development** 📋
+   - Complete specification toolchain
+   - Unified document management system
+   - Specification consistency check
+   - Multi-agent consensus for specification development
+
+6. **Code Map Generation** 🗺️
+   - Automatically generates project code structure map
+   - Supports JSON and Markdown format output
+   - Identifies core components and module dependencies
+   - Visual project structure documentation
+
+7. **Project Understanding** 📚
+   - Quickly reads project documents and code
+   - Generates role-specific understanding documents
+   - Provides project overview and technology stack analysis
+   - Serves as work initialization context
+
+8. **Cross-Platform Compatibility** 🌍
+   - Supports Windows, Mac, and Linux
+   - Unified path handling and character encoding
+   - Cross-platform script execution
+
 ### Agent Prompt System / 角色 Prompt 系统
 
 Each role is equipped with complete work rules and quality standards:
@@ -113,6 +136,17 @@ python3 scripts/trae_agent_dispatch.py \
 python3 scripts/trae_agent_dispatch.py \
     --task "安全浏览器广告拦截功能" \
     --project-full-lifecycle
+
+# Specification-driven development
+python3 scripts/spec_tools.py init
+python3 scripts/spec_tools.py analyze
+python3 scripts/spec_tools.py update --spec-file SPEC.md
+
+# Code map generation
+python3 scripts/code_map_generator.py /path/to/project
+
+# Project understanding
+python3 scripts/project_understanding.py /path/to/project
 ```
 
 ## 🎭 Agent Roles / 角色介绍
@@ -248,6 +282,72 @@ python3 scripts/trae_agent_dispatch.py \
 #   - Skip regular process
 #   - Directly dispatch senior developer
 #   - Real-time progress synchronization
+```
+
+### Scenario 5: Specification-Driven Development / 场景 5: 规范驱动开发
+
+```bash
+# Initialize specification environment
+python3 scripts/spec_tools.py init
+
+# Analyze specifications
+python3 scripts/spec_tools.py analyze
+
+# Update specification documents
+python3 scripts/spec_tools.py update --spec-file SPEC.md
+
+# Specification-driven project startup
+python3 scripts/trae_agent_dispatch.py \
+    --task "启动规范驱动项目：电商系统" \
+    --spec-driven
+
+# Automatic execution:
+#   1. Initialize specification environment
+#   2. Multi-agent consensus: Formulate project constitution
+#   3. Product Manager: Write requirements specification
+#   4. Architect: Write technical specification
+#   5. Specification review (multi-agent consensus)
+#   6. Task breakdown based on specifications
+#   7. Each role executes tasks
+#   8. Specification verification and quality review
+```
+
+### Scenario 6: Code Map Generation / 场景 6: 代码地图生成
+
+```bash
+# Generate code map
+python3 scripts/code_map_generator.py /path/to/project
+
+# Output:
+# - JSON format: code_map.json
+# - Markdown format: PROJECT_STRUCTURE.md
+
+# Generated content includes:
+#   - Project overview and statistics
+#   - Directory structure tree
+#   - Core components and entry points
+#   - Module dependency relationships
+#   - Technology stack analysis
+```
+
+### Scenario 7: Project Understanding / 场景 7: 项目理解
+
+```bash
+# Generate project understanding documents
+python3 scripts/project_understanding.py /path/to/project
+
+# Output:
+# - Overall project information: project_understanding.json
+# - Architect understanding: architect_understanding.md
+# - Product Manager understanding: product_manager_understanding.md
+# - Test Expert understanding: test_expert_understanding.md
+# - Solo Coder understanding: solo_coder_understanding.md
+
+# Document content includes:
+#   - Project overview and technology stack
+#   - Code structure analysis
+#   - Document and dependency analysis
+#   - Role-specific insights and recommendations
 ```
 
 ## 📦 Installation / 安装说明
