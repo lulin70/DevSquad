@@ -53,20 +53,20 @@
 
 ### 2.1 架构目标
 - **业务目标**: 架构需要支撑的业务目标
-- **技术目标**: 架构需要达成的技术指标
-- **质量目标**: 架构需要满足的质量属性
+- **技术目标**: 架构需要达成的技术指标 (如高可用、高性能)
+- **质量目标**: 架构需要满足的质量属性 (如可维护性、可测试性)
 
 ### 2.2 架构原则
 - **高内聚低耦合**: 模块职责清晰，依赖关系合理
-- **可扩展性**: 支持业务快速发展和功能扩展
-- **可维护性**: 代码结构清晰，易于理解和维护
-- **安全性**: 安全设计贯穿整个架构
-- **性能**: 满足业务性能需求
+- **云原生优先**: 充分利用云原生能力 (K8s, Istio, Observability)
+- **安全左移**: 安全设计贯穿开发全生命周期
+- **可观测性**: 系统状态透明，故障快速定位
+- **技术前瞻性**: 采用主流且稳定的技术栈 (Spring Boot 3, Java 21)
 
 ### 2.3 技术约束
 - **技术栈约束**: 必须使用的技术栈
 - **集成约束**: 必须集成的现有系统
-- **合规约束**: 必须满足的合规要求
+- **合规约束**: 必须满足的合规要求 (如 GDPR, 等保)
 
 ---
 
@@ -82,34 +82,45 @@ graph TB
         B[第三方服务]
     end
     
-    subgraph 应用层
-        C[API Gateway]
-        D[服务A]
-        E[服务B]
+    subgraph 接入层
+        C[API Gateway / Ingress]
+    end
+    
+    subgraph 业务服务层
+        D[服务A (Spring Boot 3)]
+        E[服务B (Spring Boot 3)]
     end
     
     subgraph 数据层
-        F[数据库]
-        G[缓存]
-        H[消息队列]
+        F[MySQL 8.0]
+        G[Redis 7.x]
+        H[Kafka / RabbitMQ]
+    end
+    
+    subgraph 可观测性
+        I[Prometheus]
+        J[Grafana]
+        K[Zipkin / Jaeger]
     end
     
     A --> C
+    B --> C
     C --> D
     C --> E
     D --> F
     D --> G
     E --> H
-    B --> C
+    D -.-> I
+    E -.-> I
 ```
 
 #### 3.1.2 架构分层
 | 层级 | 职责 | 技术组件 | 部署位置 |
 |------|------|----------|----------|
-| 接入层 | 流量接入和安全防护 | Nginx/WAF | 公网区 |
-| 应用层 | 业务逻辑处理 | Spring Boot/Node.js | 应用区 |
-| 服务层 | 领域服务实现 | 微服务框架 | 应用区 |
-| 数据层 | 数据存储和访问 | MySQL/Redis | 数据区 |
+| 接入层 | 流量接入、认证鉴权、限流熔断 | Spring Cloud Gateway / APISIX | 公网区 |
+| 应用层 | 业务逻辑处理、聚合服务 | Spring Boot 3 (Java 21) | 应用区 |
+| 服务层 | 领域服务实现、微服务 | Spring Boot 3 (Java 21) | 应用区 |
+| 数据层 | 数据存储和访问 | MySQL 8.0, Redis 7.x | 数据区 |
 
 ### 3.2 模块设计
 
@@ -126,7 +137,7 @@ sequenceDiagram
     participant B as 模块B
     participant C as 模块C
     
-    A->>B: 请求数据
+    A->>B: 请求数据 (REST / gRPC)
     B->>C: 查询数据
     C-->>B: 返回数据
     B-->>A: 处理结果
@@ -137,14 +148,14 @@ sequenceDiagram
 #### 3.3.1 外部接口
 | 接口名称 | 接口类型 | 协议 | 输入 | 输出 | 异常处理 |
 |----------|----------|------|------|------|----------|
-| 接口A | REST API | HTTP/JSON | Request DTO | Response DTO | 错误码定义 |
+| 接口A | REST API | HTTP/JSON | Request Record | Response Record | ProblemDetails |
 | 接口B | RPC | gRPC | Proto Message | Proto Message | 异常定义 |
 
 #### 3.3.2 内部接口
 | 接口名称 | 调用方 | 被调用方 | 调用方式 | 数据格式 |
 |----------|--------|----------|----------|----------|
-| 接口A | 服务A | 服务B | 同步调用 | JSON |
-| 接口B | 服务B | 服务C | 异步消息 | Protobuf |
+| 接口A | 服务A | 服务B | 同步调用 (RestClient) | JSON |
+| 接口B | 服务B | 服务C | 异步消息 (Spring Cloud Stream) | Protobuf / JSON |
 
 ### 3.4 数据架构
 
@@ -153,16 +164,16 @@ sequenceDiagram
 erDiagram
     USER ||--o{ ORDER : places
     USER {
-        int id PK
-        string username
-        string email
+        bigint id PK
+        varchar username
+        varchar email
         datetime created_at
     }
     ORDER {
-        int id PK
-        int user_id FK
+        bigint id PK
+        bigint user_id FK
         decimal total_amount
-        string status
+        varchar status
         datetime created_at
     }
 ```
@@ -170,10 +181,9 @@ erDiagram
 #### 3.4.2 数据流转
 ```mermaid
 flowchart LR
-    A[数据源A] -->|ETL| B[数据仓库]
-    C[数据源B] -->|实时同步| D[数据湖]
-    B --> E[数据分析]
-    D --> E
+    A[数据源A] -->|CDC| B[Kafka]
+    B -->|Sink| C[数据仓库]
+    C --> D[数据分析]
 ```
 
 ---
@@ -185,52 +195,47 @@ flowchart LR
 #### 4.1.1 前端技术栈
 | 技术领域 | 选型 | 版本 | 选型理由 |
 |----------|------|------|----------|
-| 框架 | React/Vue | v18/v3 | 生态完善 |
-| 状态管理 | Redux/Pinia | latest | 社区活跃 |
-| UI组件库 | Ant Design/Element Plus | latest | 企业级组件 |
+| 框架 | React / Vue | v18 / v3 | 生态完善 |
+| 状态管理 | Redux Toolkit / Pinia | latest | 社区活跃 |
+| UI组件库 | Ant Design / Element Plus | latest | 企业级组件 |
 
 #### 4.1.2 后端技术栈
 | 技术领域 | 选型 | 版本 | 选型理由 |
 |----------|------|------|----------|
-| 语言 | Java/Go/Python | 17/1.20/3.11 | 团队熟悉 |
-| 框架 | Spring Boot/Gin/FastAPI | 3.x/latest/latest | 性能优秀 |
-| 数据库 | MySQL/PostgreSQL | 8.0/15 | 稳定可靠 |
+| 语言 | Java | 21 (LTS) | 虚拟线程、Record、Switch表达式 |
+| 框架 | Spring Boot | 3.2+ | 原生镜像支持、可观测性增强 |
+| 数据库 | MySQL / PostgreSQL | 8.0 / 16 | 稳定可靠 |
 | 缓存 | Redis | 7.x | 高性能 |
-| 消息队列 | Kafka/RabbitMQ | latest | 高吞吐 |
+| 消息队列 | Kafka / RocketMQ | latest | 高吞吐 |
 
-#### 4.1.3 基础设施
+#### 4.1.3 基础设施 & 可观测性
 | 技术领域 | 选型 | 版本 | 选型理由 |
 |----------|------|------|----------|
-| 容器化 | Docker/Kubernetes | latest | 云原生标准 |
-| 服务网格 | Istio/Linkerd | latest | 微服务治理 |
-| 监控 | Prometheus/Grafana | latest | 开源生态 |
-| 日志 | ELK/Loki | latest | 可观测性 |
+| 容器化 | Docker / Kubernetes | latest | 云原生标准 |
+| 监控 | Prometheus + Grafana | latest | 开源生态标准 |
+| 链路追踪 | Micrometer Tracing / Zipkin | latest | Spring Boot 3 原生支持 |
+| 日志 | ELK / Loki | latest | 集中式日志管理 |
 
 ### 4.2 部署架构
 
 #### 4.2.1 部署拓扑
 ```mermaid
 graph TB
-    subgraph 生产环境
-        A[负载均衡] --> B[应用集群]
-        B --> C[数据库主从]
-        B --> D[Redis集群]
-    end
-    
-    subgraph 灾备环境
-        E[负载均衡] --> F[应用集群]
-        F --> G[数据库从库]
-        F --> H[Redis从库]
+    subgraph 生产环境 (K8s Cluster)
+        A[Ingress Controller] --> B[Service A Pods]
+        A --> C[Service B Pods]
+        B --> D[DB Cluster]
+        C --> E[Redis Cluster]
     end
 ```
 
 #### 4.2.2 环境规划
 | 环境 | 用途 | 配置 | 数据 |
 |------|------|------|------|
-| 开发环境 | 日常开发 | 2C4G | 模拟数据 |
-| 测试环境 | 功能测试 | 4C8G | 测试数据 |
-| 预发环境 | 上线前验证 | 8C16G | 生产脱敏数据 |
-| 生产环境 | 正式服务 | 16C32G | 生产数据 |
+| 开发环境 (Dev) | 日常开发 | 2C4G | 模拟数据 |
+| 测试环境 (Test) | 功能测试 | 4C8G | 测试数据 |
+| 预发环境 (Staging) | 上线前验证 | 8C16G | 生产脱敏数据 |
+| 生产环境 (Prod) | 正式服务 | 弹性伸缩 | 生产数据 |
 
 ---
 
@@ -241,15 +246,15 @@ graph TB
 #### 5.1.1 性能指标
 | 指标项 | 目标值 | 测试方法 | 优化策略 |
 |--------|--------|----------|----------|
-| 响应时间 | P99 < 200ms | 压力测试 | 缓存+异步 |
+| 响应时间 | P99 < 200ms | 压力测试 (K6/JMeter) | 缓存+异步+虚拟线程 |
 | 吞吐量 | QPS > 1000 | 负载测试 | 水平扩展 |
 | 并发数 | 支持1000并发 | 并发测试 | 连接池优化 |
 
 #### 5.1.2 性能优化策略
-- **缓存策略**: 多级缓存设计（本地缓存+分布式缓存）
+- **Java 21**: 启用虚拟线程 (Virtual Threads) 提升高并发吞吐
+- **缓存策略**: 多级缓存设计（Caffeine + Redis）
 - **数据库优化**: 索引优化、分库分表、读写分离
-- **异步处理**: 消息队列解耦、异步任务处理
-- **CDN加速**: 静态资源CDN分发
+- **异步处理**: 消息队列解耦、Spring @Async
 
 ### 5.2 可用性设计
 
@@ -261,40 +266,35 @@ graph TB
 | MTBF | > 720小时 | 高可用设计 |
 
 #### 5.2.2 容灾设计
-- **同城双活**: 同城两个数据中心同时提供服务
-- **异地灾备**: 异地数据中心数据同步
-- **故障转移**: 自动故障检测和流量切换
+- **多可用区部署**: 跨 AZ 部署应用和数据
+- **故障转移**: 自动故障检测和流量切换 (Liveness/Readiness Probe)
+- **限流熔断**: Resilience4j 集成
 
 ### 5.3 安全性设计
 
 #### 5.3.1 安全架构
 ```mermaid
 graph TB
-    A[WAF] --> B[API Gateway]
-    B --> C[认证中心]
+    A[WAF] --> B[API Gateway (OAuth2 Resource Server)]
+    B --> C[Identity Provider (Keycloak/Auth0)]
     B --> D[应用服务]
-    D --> E[数据加密]
+    D --> E[数据加密 (Vault)]
     E --> F[数据库]
 ```
 
 #### 5.3.2 安全措施
 | 安全领域 | 措施 | 实现方式 |
 |----------|------|----------|
-| 传输安全 | HTTPS/TLS | 全链路加密 |
-| 认证授权 | OAuth2/JWT | 统一认证中心 |
-| 数据安全 | 加密存储 | AES/RSA加密 |
-| 访问控制 | RBAC | 角色权限控制 |
+| 传输安全 | HTTPS/TLS 1.3 | 全链路加密 |
+| 认证授权 | OAuth2 / OIDC | Spring Security 6 |
+| 数据安全 | 加密存储 | AES-256 / 敏感字段脱敏 |
+| 依赖安全 | SCA 扫描 | Dependency Check / Snyk |
 
 ### 5.4 可扩展性设计
 
 #### 5.4.1 水平扩展
-- **无状态设计**: 应用服务无状态，支持水平扩展
-- **数据分片**: 数据库分库分表，支持数据水平扩展
-- **服务拆分**: 微服务架构，独立部署和扩展
-
-#### 5.4.2 垂直扩展
-- **模块化设计**: 功能模块化，支持独立升级
-- **插件化架构**: 支持功能插件动态加载
+- **无状态设计**: 应用服务无状态，支持 K8s HPA
+- **数据分片**: 数据库分库分表 (ShardingSphere)
 
 ---
 
@@ -305,46 +305,10 @@ graph TB
 #### 6.1.1 任务清单
 | 任务ID | 任务名称 | 任务描述 | 依赖任务 | 预估工时 | 负责人 | 状态 |
 |--------|----------|----------|----------|----------|--------|------|
-| ARCH-001 | 基础架构搭建 | 搭建项目基础架构 | 无 | 3天 | 架构师 | 待开始 |
-| ARCH-002 | 核心模块开发 | 开发核心业务模块 | ARCH-001 | 5天 | 开发团队 | 待开始 |
-| ARCH-003 | 接口定义 | 定义系统内外部接口 | ARCH-001 | 2天 | 架构师 | 待开始 |
-| ARCH-004 | 数据库设计 | 设计数据模型和表结构 | ARCH-001 | 2天 | 架构师 | 待开始 |
-| ARCH-005 | 性能优化 | 性能测试和优化 | ARCH-002 | 3天 | 架构师 | 待开始 |
-| ARCH-006 | 安全加固 | 安全审查和加固 | ARCH-002 | 2天 | 架构师 | 待开始 |
-
-#### 6.1.2 任务依赖图
-```mermaid
-gantt
-    title 架构实施计划
-    dateFormat  YYYY-MM-DD
-    section 基础阶段
-    基础架构搭建    :a1, 2024-01-01, 3d
-    接口定义        :a2, after a1, 2d
-    数据库设计      :a3, after a1, 2d
-    section 开发阶段
-    核心模块开发    :a4, after a2, 5d
-    section 优化阶段
-    性能优化        :a5, after a4, 3d
-    安全加固        :a6, after a4, 2d
-```
-
-### 6.2 进度检查清单
-
-#### 6.2.1 阶段检查点
-| 阶段 | 检查项 | 完成标准 | 检查方式 | 负责人 |
-|------|--------|----------|----------|--------|
-| 设计完成 | 架构文档 | 文档评审通过 | 评审会议 | 架构师 |
-| 开发完成 | 代码实现 | 代码审查通过 | 代码审查 | 技术负责人 |
-| 测试完成 | 测试报告 | 测试用例100%通过 | 测试报告 | 测试专家 |
-| 上线完成 | 上线检查 | 生产环境验证通过 | 上线检查表 | 运维负责人 |
-
-#### 6.2.2 质量门禁
-| 门禁项 | 标准 | 检查工具 | 阻断发布 |
-|--------|------|----------|----------|
-| 代码覆盖率 | > 80% | SonarQube | 是 |
-| 安全漏洞 | 高危=0 | SonarQube | 是 |
-| 性能指标 | 满足SLA | 性能测试 | 是 |
-| 接口契约 | 100%匹配 | 契约测试 | 是 |
+| ARCH-001 | 基础架构脚手架 | 基于 Spring Boot 3 搭建脚手架 (含 checkstyle, spotless) | 无 | 3天 | 架构师 | 待开始 |
+| ARCH-002 | CI/CD 流水线 | 配置 Jenkins/GitLab CI 及 SonarQube | ARCH-001 | 2天 | DevOps | 待开始 |
+| ARCH-003 | 核心模块开发 | 开发核心业务模块 | ARCH-001 | 5天 | 开发团队 | 待开始 |
+| ARCH-004 | 接口定义 | 定义 Open API 规范 | ARCH-001 | 2天 | 架构师 | 待开始 |
 
 ---
 
@@ -353,44 +317,17 @@ gantt
 ### 7.1 技术风险
 | 风险项 | 风险等级 | 影响范围 | 缓解措施 | 负责人 |
 |--------|----------|----------|----------|--------|
-| 技术选型风险 | 中 | 整体架构 | 技术预研+POC验证 | 架构师 |
-| 性能风险 | 高 | 用户体验 | 性能测试+优化 | 架构师 |
-| 集成风险 | 中 | 系统对接 | 接口契约+联调 | 架构师 |
-
-### 7.2 实施风险
-| 风险项 | 风险等级 | 影响范围 | 缓解措施 | 负责人 |
-|--------|----------|----------|--------|--------|
-| 进度风险 | 中 | 项目交付 | 里程碑检查+缓冲时间 | 项目经理 |
-| 人员风险 | 低 | 开发质量 | 代码审查+知识分享 | 技术负责人 |
+| Java 21 升级兼容性 | 中 | 依赖库 | 提前进行依赖兼容性测试 | 架构师 |
+| 性能未达标 | 高 | 用户体验 | 压测左移，尽早发现瓶颈 | 架构师 |
 
 ---
 
 ## 8. 附录
 
-### 8.1 术语表
-| 术语 | 定义 | 说明 |
-|------|------|------|
-| 术语A | 定义描述 | 补充说明 |
-| 术语B | 定义描述 | 补充说明 |
-
-### 8.2 参考资料
-- [参考文档1](链接)
-- [参考文档2](链接)
-- [技术规范](链接)
-
-### 8.3 相关文档
-- [需求文档](../product-manager/PRD_<项目名称>.md)
-- [测试计划](../test-expert/TEST_PLAN_<项目名称>.md)
-- [接口文档](./API_SPEC_<项目名称>.md)
-
----
-
-## 9. 审核记录
-
-| 审核轮次 | 审核日期 | 审核人 | 审核意见 | 处理结果 |
-|----------|----------|--------|----------|----------|
-| 第一轮 | YYYY-MM-DD | 审核人 | 审核意见描述 | 已处理 |
-| 第二轮 | YYYY-MM-DD | 审核人 | 审核意见描述 | 已处理 |
+### 8.1 参考资料
+- [Spring Boot 3.x Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/)
+- [Java 21 Features](https://openjdk.org/projects/jdk/21/)
+- [12-Factor App](https://12factor.net/)
 
 ---
 

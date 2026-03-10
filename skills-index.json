@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "name": "trae-multi-agent",
-  "description": "多角色智能体调度器 - 基于任务类型自动调度到架构师、产品经理、测试专家或 Solo Coder",
+  "description": "多角色智能体调度器 - 基于任务类型自动调度到架构师、产品经理、测试专家或 Solo Coder。全面支持 Spring Boot 3、Java 21、AI 辅助设计及现代云原生测试架构。",
   "author": "Claw Team",
   "license": "MIT",
   "enabled": true,
@@ -14,7 +14,12 @@
     "Solo Coder",
     "多角色",
     "智能调度",
-    "共识机制"
+    "共识机制",
+    "Spring Boot 3",
+    "Java 21",
+    "Code Review",
+    "AI",
+    "自动化测试"
   ],
   "triggers": {
     "automatic": {
@@ -30,7 +35,9 @@
         "测试用例",
         "实现.*功能",
         "开发.*功能",
-        "编写.*代码"
+        "编写.*代码",
+        "代码审查",
+        "Code Review"
       ]
     },
     "manual": {
@@ -41,26 +48,26 @@
   "roles": {
     "architect": {
       "name": "架构师",
-      "description": "设计系统性、前瞻性、可落地、可验证的架构",
-      "keywords": ["架构", "设计", "选型", "审查", "性能", "瓶颈", "模块", "接口", "部署"],
+      "description": "设计系统性、前瞻性、可落地、可验证的架构。专注于 Spring Boot 3/Java 21 最佳实践、云原生架构及安全合规。",
+      "keywords": ["架构", "设计", "选型", "审查", "性能", "瓶颈", "模块", "接口", "部署", "Spring Boot", "微服务"],
       "priority": 1
     },
     "product_manager": {
       "name": "产品经理",
-      "description": "定义用户价值清晰、需求明确、可落地、可验收的产品",
-      "keywords": ["需求", "PRD", "用户故事", "竞品", "市场", "调研", "验收", "UAT", "体验"],
+      "description": "定义用户价值清晰、需求明确、可落地、可验收的产品。采用数据驱动决策及 AI 辅助设计。",
+      "keywords": ["需求", "PRD", "用户故事", "竞品", "市场", "调研", "验收", "UAT", "体验", "数据驱动", "AI"],
       "priority": 2
     },
     "test_expert": {
       "name": "测试专家",
-      "description": "确保全面、深入、自动化、可量化的质量保障",
-      "keywords": ["测试", "质量", "验收", "自动化", "性能测试", "缺陷", "评审", "门禁"],
+      "description": "确保全面、深入、自动化、可量化的质量保障。推广测试金字塔、契约测试及混沌工程。",
+      "keywords": ["测试", "质量", "验收", "自动化", "性能测试", "缺陷", "评审", "门禁", "Testcontainers", "混沌工程"],
       "priority": 3
     },
     "solo_coder": {
       "name": "Solo Coder",
-      "description": "编写完整、高质量、可维护、可测试的代码",
-      "keywords": ["实现", "开发", "代码", "修复", "优化", "重构", "单元测试", "文档"],
+      "description": "编写完整、高质量、可维护、可测试的代码。严格遵循 Java 21/Spring Boot 3 现代编码规范。",
+      "keywords": ["实现", "开发", "代码", "修复", "优化", "重构", "单元测试", "文档", "Java 21", "Clean Code"],
       "priority": 4
     }
   },
