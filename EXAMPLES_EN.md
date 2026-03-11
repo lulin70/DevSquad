@@ -522,6 +522,216 @@ Monitoring Metrics:
 
 ---
 
+### Example 8: Specification-Driven Development
+
+**Input**:
+```
+Start specification-driven project: E-commerce System
+- Initialize specification environment
+- Develop project constitution
+- Write requirements and technical specifications
+```
+
+**Expected Output**:
+```bash
+# Step 1: Initialize specification environment
+python3 scripts/spec_tools.py init
+
+# Output:
+✅ Specification environment initialized
+📁 Created docs/spec/ directory
+📄 Created CONSTITUTION.md (Project Constitution)
+📄 Created SPEC.md (Project Specification)
+📄 Created SPEC_ANALYSIS.md (Specification Analysis)
+📄 Created PROJECT_STRUCTURE.md (Project Structure)
+
+# Step 2: Analyze specification
+python3 scripts/spec_tools.py analyze
+
+# Output:
+📊 Specification completeness analysis
+  ✓ Project Constitution: Created
+  ✓ Project Specification: Created
+  ✓ Specification Analysis: Created
+  ⚠ Requirements Specification: To be improved
+  ⚠ Technical Specification: To be improved
+  ⚠ Test Specification: To be improved
+
+# Step 3: Multi-agent consensus for specification development
+python3 scripts/trae_agent_dispatch.py \
+    --task "Develop e-commerce system constitution and specifications" \
+    --consensus true
+
+# Participating roles:
+#   1. Product Manager - Requirements specification
+#   2. Architect - Technical specification
+#   3. Test Expert - Test specification
+#   4. Solo Coder - Development specification
+
+# Step 4: Update specification documents
+python3 scripts/spec_tools.py update --spec-file SPEC.md
+
+# Output:
+✅ Specification documents updated
+📝 Requirements specification: Updated
+📝 Technical specification: Updated
+📝 Test specification: Updated
+
+# Step 5: Validate specification
+python3 scripts/spec_tools.py validate
+
+# Output:
+✅ Specification validation passed
+  ✓ Requirements specification complete
+  ✓ Technical specification complete
+  ✓ Test specification complete
+  ✓ Specification consistency check passed
+```
+
+---
+
+### Example 9: Code Map Generation
+
+**Input**:
+```
+Generate project code map
+- Analyze code structure
+- Identify core components
+- Generate technology stack report
+```
+
+**Expected Output**:
+```bash
+# Generate code map
+python3 scripts/code_map_generator.py /path/to/project
+
+# Output:
+🗺️ Code Map Generator
+📊 Scanning project: /path/to/project
+📁 Files found: 1,234
+📝 Code files: 856
+📦 Modules: 45
+
+✅ Generation complete:
+  📄 code_map.json (JSON format)
+  📄 PROJECT_STRUCTURE.md (Markdown format)
+
+# View code map content:
+cat PROJECT_STRUCTURE.md
+
+# Output content:
+# Project Structure Overview
+
+## Statistics
+- Total files: 1,234
+- Code files: 856
+- Documentation files: 123
+- Configuration files: 45
+- Total code lines: 125,678
+
+## Directory Structure
+project/
+├── src/
+│   ├── main/          # Main entry point
+│   ├── core/          # Core module
+│   ├── api/           # API layer
+│   ├── service/       # Business logic layer
+│   └── dao/           # Data access layer
+├── tests/
+│   ├── unit/          # Unit tests
+│   └── integration/   # Integration tests
+└── docs/              # Documentation directory
+
+## Core Components
+1. MainApplication - Main entry point
+2. CoreEngine - Core engine
+3. APIGateway - API gateway
+4. ServiceManager - Service manager
+
+## Technology Stack
+- Programming Language: Java 21
+- Framework: Spring Boot 3.2
+- Database: MySQL 8.0
+- Cache: Redis 7.0
+```
+
+---
+
+### Example 10: Project Understanding
+
+**Input**:
+```
+Generate project understanding documents
+- Quickly understand project
+- Generate role-specific understanding documents
+- Use as work initialization context
+```
+
+**Expected Output**:
+```bash
+# Generate project understanding documents
+python3 scripts/project_understanding.py /path/to/project
+
+# Output:
+📚 Project Understanding Generator
+📊 Scanning project: /path/to/project
+📖 Reading documents: README.md, docs/*
+📝 Analyzing code: src/**/*
+🔍 Identifying technology stack: Java, Spring Boot, MySQL
+
+✅ Generation complete:
+  📄 project_understanding.json (Overall project info)
+  📄 architect_understanding.md (Architect understanding)
+  📄 product_manager_understanding.md (Product Manager understanding)
+  📄 test_expert_understanding.md (Test Expert understanding)
+  📄 solo_coder_understanding.md (Solo Coder understanding)
+
+# View architect understanding document:
+cat docs/project-understanding/architect_understanding.md
+
+# Output content:
+# Architect Project Understanding
+
+## Project Overview
+- Project Name: E-commerce System
+- Project Type: Microservices Architecture
+- Development Language: Java 21
+- Core Framework: Spring Boot 3.2
+
+## Technology Stack
+### Backend
+- Spring Boot 3.2 - Application Framework
+- Spring Cloud - Microservices Framework
+- MySQL 8.0 - Relational Database
+- Redis 7.0 - Cache
+- Kafka 3.0 - Message Queue
+
+### Frontend
+- React 18 - UI Framework
+- TypeScript 5.0 - Type System
+- Ant Design - UI Component Library
+
+## Architecture Patterns
+- Microservices Architecture
+- RESTful API
+- Event-Driven
+- CQRS Pattern
+
+## Deployment Structure
+- Kubernetes Cluster
+- Docker Containerization
+- CI/CD Pipeline
+- Multi-environment Deployment (dev/test/prod)
+
+## Architecture Recommendations
+1. Maintain clear service boundaries
+2. Use unified service discovery
+3. Implement circuit breaker and fallback
+4. Improve monitoring and logging
+```
+
+---
+
 ## 💡 Best Practices
 
 ### 1. Clear Task Description

@@ -1,6 +1,15 @@
 # Trae Multi-Agent Skill
 
-🎭 Dynamically dispatches to appropriate agent roles (Architect, Product Manager, Test Expert, Solo Coder) based on task type. Supports multi-agent collaboration, consensus mechanism, and complete project lifecycle management. Supports Chinese-English bilingual.
+🎭 Dynamically dispatches to appropriate agent roles (Architect, Product Manager, Test Expert, Solo Coder) based on task type. Supports multi-agent collaboration, consensus mechanism, complete project lifecycle management, specification-driven development, code map generation, and project understanding. Supports Chinese-English bilingual.
+
+## 🎉 March 2026 Latest Updates
+
+- ✅ **Specification-Driven Development** - Complete specification toolchain, unified document management system, multi-agent consensus for specification development
+- ✅ **Code Map Generation** - Automatically generates project code structure map, supports JSON and Markdown formats, identifies core components and module dependencies
+- ✅ **Project Understanding** - Quickly reads project documents and code, generates role-specific understanding documents, provides project overview and technology stack analysis
+- ✅ **7-Stage Standard Workflow** - Requirements Analysis → Architecture Design → Test Design → Task Breakdown → Development Implementation → Test Verification → Release Review
+- ✅ **Cross-Role Design Review Mechanism** - PRD review, architecture review, test plan review, development plan review
+- ✅ **Document-Based Task Breakdown** - All roles break down tasks based on documents, ensuring document-driven development
 
 ## 🌍 Multi-Language Support / Multi-Language Support
 
@@ -52,24 +61,37 @@
    - Quality gates and review mechanisms
 
 5. **Specification-Driven Development** 📋
-   - Complete specification toolchain
-   - Unified document management system
-   - Specification consistency check
+   - Complete specification toolchain (spec_tools.py)
+   - Project Constitution (CONSTITUTION.md) development
+   - Project Specification (SPEC.md) automatic generation
+   - Specification Analysis Report (SPEC_ANALYSIS.md)
+   - Specification consistency check and validation
    - Multi-agent consensus for specification development
 
 6. **Code Map Generation** 🗺️
-   - Automatically generates project code structure map
+   - Automatically generates project code structure map (code_map_generator.py)
    - Supports JSON and Markdown format output
    - Identifies core components and module dependencies
    - Visual project structure documentation
+   - Technology stack analysis and statistics
 
 7. **Project Understanding** 📚
-   - Quickly reads project documents and code
+   - Quickly reads project documents and code (project_understanding.py)
    - Generates role-specific understanding documents
    - Provides project overview and technology stack analysis
    - Serves as work initialization context
+   - Role-specific insights and recommendations
 
-8. **Cross-Platform Compatibility** 🌍
+8. **7-Stage Standard Workflow** 📊
+   - Stage 1: Requirements Analysis (Product Manager)
+   - Stage 2: Architecture Design (Architect)
+   - Stage 3: Test Design (Test Expert)
+   - Stage 4: Task Breakdown (Solo Coder)
+   - Stage 5: Development Implementation (Solo Coder)
+   - Stage 6: Test Verification (Test Expert)
+   - Stage 7: Release Review (Multi-Agent)
+
+9. **Cross-Platform Compatibility** 🌍
    - Supports Windows, Mac, and Linux
    - Unified path handling and character encoding
    - Cross-platform script execution

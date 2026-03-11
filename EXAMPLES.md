@@ -522,6 +522,216 @@ python3 scripts/trae_agent_dispatch.py \
 
 ---
 
+### 示例 8: 规范驱动开发
+
+**输入**:
+```
+启动规范驱动项目：电商系统
+- 初始化规范环境
+- 制定项目宪法
+- 编写需求和技术规范
+```
+
+**预期输出**:
+```bash
+# 步骤 1: 初始化规范环境
+python3 scripts/spec_tools.py init
+
+# 输出:
+✅ 规范环境初始化完成
+📁 创建 docs/spec/ 目录
+📄 创建 CONSTITUTION.md (项目宪法)
+📄 创建 SPEC.md (项目规范)
+📄 创建 SPEC_ANALYSIS.md (规范分析)
+📄 创建 PROJECT_STRUCTURE.md (项目结构)
+
+# 步骤 2: 分析规范
+python3 scripts/spec_tools.py analyze
+
+# 输出:
+📊 规范完整性分析
+  ✓ 项目宪法：已创建
+  ✓ 项目规范：已创建
+  ✓ 规范分析：已创建
+  ⚠ 需求规范：待完善
+  ⚠ 技术规范：待完善
+  ⚠ 测试规范：待完善
+
+# 步骤 3: 多角色共识制定规范
+python3 scripts/trae_agent_dispatch.py \
+    --task "制定电商系统项目宪法和规范" \
+    --consensus true
+
+# 参与角色:
+#   1. 产品经理 - 需求规范
+#   2. 架构师 - 技术规范
+#   3. 测试专家 - 测试规范
+#   4. 独立开发者 - 开发规范
+
+# 步骤 4: 更新规范文档
+python3 scripts/spec_tools.py update --spec-file SPEC.md
+
+# 输出:
+✅ 规范文档更新完成
+📝 需求规范：已更新
+📝 技术规范：已更新
+📝 测试规范：已更新
+
+# 步骤 5: 验证规范
+python3 scripts/spec_tools.py validate
+
+# 输出:
+✅ 规范验证通过
+  ✓ 需求规范完整
+  ✓ 技术规范完整
+  ✓ 测试规范完整
+  ✓ 规范一致性检查通过
+```
+
+---
+
+### 示例 9: 代码地图生成
+
+**输入**:
+```
+生成项目代码地图
+- 分析代码结构
+- 识别核心组件
+- 生成技术栈报告
+```
+
+**预期输出**:
+```bash
+# 生成代码地图
+python3 scripts/code_map_generator.py /path/to/project
+
+# 输出:
+🗺️ 代码地图生成器
+📊 扫描项目：/path/to/project
+📁 发现文件：1,234 个
+📝 代码文件：856 个
+📦 模块数量：45 个
+
+✅ 生成完成:
+  📄 code_map.json (JSON 格式)
+  📄 PROJECT_STRUCTURE.md (Markdown 格式)
+
+# 查看代码地图内容:
+cat PROJECT_STRUCTURE.md
+
+# 输出内容:
+# 项目结构概览
+
+## 统计信息
+- 总文件数：1,234
+- 代码文件：856
+- 文档文件：123
+- 配置文件：45
+- 总代码行数：125,678
+
+## 目录结构
+project/
+├── src/
+│   ├── main/          # 主程序入口
+│   ├── core/          # 核心模块
+│   ├── api/           # API 接口层
+│   ├── service/       # 业务逻辑层
+│   └── dao/           # 数据访问层
+├── tests/
+│   ├── unit/          # 单元测试
+│   └── integration/   # 集成测试
+└── docs/              # 文档目录
+
+## 核心组件
+1. MainApplication - 主程序入口
+2. CoreEngine - 核心引擎
+3. APIGateway - API 网关
+4. ServiceManager - 服务管理器
+
+## 技术栈
+- 编程语言：Java 21
+- 框架：Spring Boot 3.2
+- 数据库：MySQL 8.0
+- 缓存：Redis 7.0
+```
+
+---
+
+### 示例 10: 项目理解
+
+**输入**:
+```
+生成项目理解文档
+- 快速了解项目
+- 为各角色生成理解文档
+- 作为工作初始化上下文
+```
+
+**预期输出**:
+```bash
+# 生成项目理解文档
+python3 scripts/project_understanding.py /path/to/project
+
+# 输出:
+📚 项目理解生成器
+📊 扫描项目：/path/to/project
+📖 读取文档：README.md, docs/*
+📝 分析代码：src/**/*
+🔍 识别技术栈：Java, Spring Boot, MySQL
+
+✅ 生成完成:
+  📄 project_understanding.json (整体项目信息)
+  📄 architect_understanding.md (架构师理解)
+  📄 product_manager_understanding.md (产品经理理解)
+  📄 test_expert_understanding.md (测试专家理解)
+  📄 solo_coder_understanding.md (独立开发者理解)
+
+# 查看架构师理解文档:
+cat docs/project-understanding/architect_understanding.md
+
+# 输出内容:
+# 架构师项目理解
+
+## 项目概览
+- 项目名称：电商系统
+- 项目类型：微服务架构
+- 开发语言：Java 21
+- 核心框架：Spring Boot 3.2
+
+## 技术栈
+### 后端
+- Spring Boot 3.2 - 应用框架
+- Spring Cloud - 微服务框架
+- MySQL 8.0 - 关系数据库
+- Redis 7.0 - 缓存
+- Kafka 3.0 - 消息队列
+
+### 前端
+- React 18 - UI 框架
+- TypeScript 5.0 - 类型系统
+- Ant Design - UI 组件库
+
+## 架构模式
+- 微服务架构
+- RESTful API
+- 事件驱动
+- CQRS 模式
+
+## 部署结构
+- Kubernetes 集群
+- Docker 容器化
+- CI/CD 流水线
+- 多环境部署（dev/test/prod）
+
+## 架构建议
+1. 保持服务边界清晰
+2. 使用统一的服务发现
+3. 实现熔断和降级
+4. 完善监控和日志
+```
+
+---
+
 ## 💡 最佳实践
 
 ### 1. 明确任务描述
