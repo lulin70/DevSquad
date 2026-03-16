@@ -274,15 +274,18 @@ def main():
         log(f'❌ 项目根目录不存在: {project_root}', 'ERROR')
         sys.exit(1)
     
-    log(f'📁 项目根目录: {project_root}', 'INFO')
+    log(f'📁 项目根目录：{project_root}', 'INFO')
     
     # 检查任务文件
-    task_file = project_root / args.task_file
-    if not task_file.exists():
-        log(f'❌ 任务文件不存在: {task_file}', 'ERROR')
-        sys.exit(1)
-    
-    log(f'📄 任务文件: {task_file}', 'INFO')
+    if args.task_file:
+        task_file = project_root / args.task_file
+        if not task_file.exists():
+            log(f'❌ 任务文件不存在：{task_file}', 'ERROR')
+            sys.exit(1)
+        log(f'📄 任务文件：{task_file}', 'INFO')
+    else:
+        task_file = None
+        log('📝 使用命令行任务描述', 'INFO')
     
     # 模拟模式
     if args.dry_run:
