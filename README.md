@@ -43,6 +43,10 @@
 - [角色介绍](#-角色介绍)
 - [使用方法](#-使用方法)
 - [安装说明](#-安装说明)
+  - [方法 1: 直接使用包装脚本](#方法 -1-直接使用包装脚本)
+  - [方法 2: 设置环境变量](#方法 -2-设置环境变量)
+  - [方法 3: 创建符号链接](#方法 -3-创建符号链接)
+  - [自动安装](#自动安装)
 - [配置说明](#-配置说明)
 - [示例场景](#-示例场景)
 - [技术架构](#-技术架构)
@@ -416,54 +420,123 @@ python3 scripts/project_understanding.py /path/to/project
 
 ## 📦 安装说明
 
-### 方式一：全局安装（推荐）
+### 快速使用（无需安装）
+
+**最简单的方式** - 直接使用包装脚本，可以从任何位置调用：
 
 ```bash
-# 运行安装脚本
-cd /path/to/claw/.trae/skills
-./install-global.sh
-
-# 验证安装
-ls -lh ~/.trae/skills/trae-multi-agent/
-
-# 重启 Trae 应用
+# 在任何项目目录下直接调用
+/Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent \
+  --task "你的任务描述" \
+  --agent architect
 ```
 
-### 方式二：项目级安装
+### 方法 1: 直接使用包装脚本
 
-技能已包含在项目目录中，Trae 会自动加载：
-
-```
-项目目录/.trae/skills/trae-multi-agent/
-```
-
-### 方式三：手动安装
+包装脚本会自动定位 skill 位置并调用，无需任何配置：
 
 ```bash
-# 1. 创建技能目录
-mkdir -p ~/.trae/skills/trae-multi-agent
+# 方式 1: 使用完整路径
+/Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent \
+  --task "设计系统架构" --agent architect
 
-# 2. 复制技能文件
-cp -r /path/to/claw/.trae/skills/trae-multi-agent/* \
-      ~/.trae/skills/trae-multi-agent/
-
-# 3. 验证安装
-ls -lh ~/.trae/skills/trae-multi-agent/SKILL.md
-
-# 4. 重启 Trae
+# 方式 2: 在项目中使用相对路径（如果 skill 在项目 .trae/skills 下）
+./.trae/skills/trae-multi-agent/trae-agent \
+  --task "制定测试策略" --agent test-expert
 ```
+
+**优点**：
+- ✅ 无需安装
+- ✅ 无需配置
+- ✅ 即开即用
+- ✅ 自动定位 skill
+
+### 方法 2: 设置环境变量
+
+将 skill 添加到 PATH，便于全局访问：
+
+```bash
+# 添加到 ~/.zshrc 或 ~/.bashrc
+export TRAE_MULTI_AGENT_SKILL_PATH="$HOME/claw/.trae/skills/trae-multi-agent"
+export PATH="$TRAE_MULTI_AGENT_SKILL_PATH:$PATH"
+
+# 重新加载配置
+source ~/.zshrc  # 或 source ~/.bashrc
+
+# 使用
+trae-agent --task "设计系统架构" --agent architect
+```
+
+**优点**：
+- ✅ 全局可用
+- ✅ 简短命令
+- ✅ 易于管理
+
+### 方法 3: 创建符号链接
+
+创建全局可执行命令：
+
+```bash
+# 需要 sudo 权限
+sudo ln -s /Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent \
+           /usr/local/bin/trae-agent
+
+# 使用
+trae-agent --task "设计系统架构" --agent architect
+```
+
+**优点**：
+- ✅ 系统级命令
+- ✅ 任何终端可用
+- ✅ 与系统命令集成
+
+### 自动安装
+
+运行自动安装脚本（推荐新手）：
+
+```bash
+cd /Users/wangwei/claw/.trae/skills/trae-multi-agent
+./install.sh
+```
+
+安装脚本会：
+- 🔧 自动检测 Shell 类型
+- 🔧 创建符号链接（需要 sudo）
+- 🔧 设置环境变量
+- 🔧 创建便捷别名
+- 🔧 设置执行权限
 
 ### 验证安装
 
 ```bash
-# 检查技能文件
-ls -lh ~/.trae/skills/trae-multi-agent/SKILL.md
-# 应显示：34K SKILL.md
+# 检查是否能找到 skill
+trae-agent --help
 
-# 测试调度脚本
-python3 scripts/trae_agent_dispatch.py --task "设计系统架构"
-# 应显示：🎯 自动识别为：架构师
+# 测试调用
+trae-agent --task "测试" --agent architect --dry-run
+
+# 检查版本
+ls -lh /Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent
 ```
+
+### 故障排查
+
+**问题**: 提示 "找不到 trae-multi-agent skill"
+
+**解决方案**:
+1. 检查环境变量：`echo $TRAE_MULTI_AGENT_SKILL_PATH`
+2. 检查路径是否存在：`ls -la $TRAE_MULTI_AGENT_SKILL_PATH`
+3. 重新加载配置：`source ~/.zshrc`
+
+**问题**: 权限错误
+
+**解决方案**:
+```bash
+chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent
+chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/scripts/*.py
+```
+
+📖 详细安装文档请查看：[INSTALL.md](INSTALL.md)
 
 ## ⚙️ 配置说明
 
