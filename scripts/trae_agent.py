@@ -60,8 +60,12 @@ def main():
         print("  3. 在项目目录下使用：./.trae/skills/trae-multi-agent", file=sys.stderr)
         sys.exit(1)
     
-    # 定位实际的调度脚本
-    dispatch_script = skill_root / 'scripts' / 'trae_agent_dispatch.py'
+    # 定位实际的调度脚本（优先使用 v2 版本）
+    dispatch_script = skill_root / 'scripts' / 'trae_agent_dispatch_v2.py'
+    
+    if not dispatch_script.exists():
+        # 降级到旧版本
+        dispatch_script = skill_root / 'scripts' / 'trae_agent_dispatch.py'
     
     if not dispatch_script.exists():
         print(f"❌ 错误：找不到调度脚本：{dispatch_script}", file=sys.stderr)

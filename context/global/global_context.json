@@ -1,0 +1,179 @@
+{
+  "version": 12,
+  "user_profile": {
+    "user_id": "test-user",
+    "identity": "架构师",
+    "preferences": {
+      "language": "zh",
+      "detail_level": "high"
+    },
+    "habits": {},
+    "expertise": [
+      "Java",
+      "Spring Boot",
+      "微服务"
+    ],
+    "created_at": "2026-03-17T22:29:47.559022",
+    "updated_at": "2026-03-17T22:29:47.563692"
+  },
+  "knowledge_base": {
+    "know-TEST-001-arch": {
+      "id": "know-TEST-001-arch",
+      "category": "architecture",
+      "title": "架构设计知识 - TEST-001",
+      "content": {
+        "style": "微服务",
+        "components": [
+          "API Gateway",
+          "Service Registry",
+          "Config Server"
+        ]
+      },
+      "tags": [
+        "architecture",
+        "design"
+      ],
+      "source": "TEST-001",
+      "confidence": 1.0,
+      "usage_count": 0,
+      "created_at": "2026-03-17T22:29:47.561636",
+      "updated_at": "2026-03-17T22:29:47.561638"
+    }
+  },
+  "experience_db": {
+    "exp-TEST-001": {
+      "id": "exp-TEST-001",
+      "task_id": "TEST-001",
+      "task_type": "general",
+      "success": true,
+      "description": "任务：设计微服务架构",
+      "lessons_learned": [],
+      "best_practices": [],
+      "patterns": [],
+      "created_at": "2026-03-17T22:29:47.561432"
+    },
+    "exp-TEST-002": {
+      "id": "exp-TEST-002",
+      "task_id": "TEST-002",
+      "task_type": "general",
+      "success": true,
+      "description": "任务：实现用户服务",
+      "lessons_learned": [],
+      "best_practices": [],
+      "patterns": [],
+      "created_at": "2026-03-17T22:29:47.563420"
+    }
+  },
+  "collaboration_net": {},
+  "capability_models": {},
+  "version_history": [
+    {
+      "version": 1,
+      "timestamp": "2026-03-17T22:21:59.044207",
+      "stats": {
+        "knowledge_count": 0,
+        "experience_count": 0,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 2,
+      "timestamp": "2026-03-17T22:21:59.045693",
+      "stats": {
+        "knowledge_count": 0,
+        "experience_count": 1,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 3,
+      "timestamp": "2026-03-17T22:21:59.045874",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 1,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 4,
+      "timestamp": "2026-03-17T22:21:59.046044",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 1,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 5,
+      "timestamp": "2026-03-17T22:21:59.046831",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 6,
+      "timestamp": "2026-03-17T22:21:59.047067",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 7,
+      "timestamp": "2026-03-17T22:29:47.559039",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 8,
+      "timestamp": "2026-03-17T22:29:47.561437",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 9,
+      "timestamp": "2026-03-17T22:29:47.561642",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 10,
+      "timestamp": "2026-03-17T22:29:47.561885",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 11,
+      "timestamp": "2026-03-17T22:29:47.563427",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 12,
+      "timestamp": "2026-03-17T22:29:47.563696",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 2,
+        "collaboration_count": 0
+      }
+    }
+  ]
+}

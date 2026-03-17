@@ -1,0 +1,675 @@
+# skill-manifest.yaml 示例文件
+
+# 这是根据 SimpleSkill 规范设计的技能清单示例
+# 用于定义 trae-multi-agent skill 的元数据、能力、角色和工作流
+
+skill:
+  # 基本信息
+  name: "trae-multi-agent"
+  version: "2.0.0"
+  description: "基于任务类型动态调度到合适的智能体角色，支持多智能体协作、共识机制和完整项目生命周期管理"
+  
+  # 作者信息
+  author:
+    name: "Trae Team"
+    email: "team@trae.com"
+    url: "https://github.com/trae/trae-multi-agent"
+  
+  # 许可证
+  license: "MIT"
+  
+  # 技能能力定义
+  capabilities:
+    # 能力 1: 角色调度
+    - id: "role-dispatch"
+      name: "角色调度"
+      description: "根据任务描述自动识别并调度合适的角色"
+      input:
+        type: "object"
+        properties:
+          task:
+            type: "string"
+            description: "任务描述"
+            required: true
+          context:
+            type: "object"
+            description: "上下文信息"
+            required: false
+          explicit_agent:
+            type: "string"
+            description: "明确指定的角色 ID"
+            required: false
+      output:
+        type: "object"
+        properties:
+          agent:
+            type: "string"
+            description: "推荐的角色 ID"
+          confidence:
+            type: "number"
+            description: "置信度 (0-1)"
+          reasoning:
+            type: "string"
+            description: "匹配推理"
+          alternatives:
+            type: "array"
+            items:
+              type: "string"
+            description: "备选角色列表"
+    
+    # 能力 2: 共识构建
+    - id: "consensus-building"
+      name: "共识构建"
+      description: "组织多角色评审和决策"
+      input:
+        type: "object"
+        properties:
+          topic:
+            type: "string"
+            description: "讨论主题"
+            required: true
+          participants:
+            type: "array"
+            items:
+              type: "string"
+            description: "参与角色列表"
+            required: true
+          artifacts:
+            type: "array"
+            items:
+              type: "string"
+            description: "待评审工件列表"
+            required: false
+      output:
+        type: "object"
+        properties:
+          decision:
+            type: "string"
+            description: "决策结果"
+          votes:
+            type: "object"
+            description: "投票结果"
+          rationale:
+            type: "string"
+            description: "决策理由"
+          dissenting_opinions:
+            type: "array"
+            items:
+              type: "string"
+            description: "反对意见"
+    
+    # 能力 3: 规范管理
+    - id: "spec-management"
+      name: "规范管理"
+      description: "规范初始化、分析和更新"
+      input:
+        type: "object"
+        properties:
+          action:
+            type: "string"
+            enum: ["init", "analyze", "update", "validate"]
+            description: "操作类型"
+            required: true
+          spec_type:
+            type: "string"
+            enum: ["constitution", "spec", "analysis", "structure"]
+            description: "规范类型"
+            required: false
+          spec_file:
+            type: "string"
+            description: "规范文件路径"
+            required: false
+      output:
+        type: "object"
+        properties:
+          status:
+            type: "string"
+            enum: ["success", "failure"]
+          files:
+            type: "array"
+            items:
+              type: "string"
+            description: "生成的文件列表"
+          issues:
+            type: "array"
+            items:
+              type: "object"
+            description: "发现的问题"
+    
+    # 能力 4: 任务管理
+    - id: "task-management"
+      name: "任务管理"
+      description: "任务分解、分配和进度追踪"
+      input:
+        type: "object"
+        properties:
+          action:
+            type: "string"
+            enum: ["breakdown", "assign", "track", "complete"]
+            description: "操作类型"
+            required: true
+          task_file:
+            type: "string"
+            description: "任务文件路径"
+            required: false
+          task_id:
+            type: "string"
+            description: "任务 ID"
+            required: false
+      output:
+        type: "object"
+        properties:
+          tasks:
+            type: "array"
+            items:
+              type: "object"
+            description: "任务列表"
+          completion_rate:
+            type: "number"
+            description: "完成率"
+          pending_tasks:
+            type: "array"
+            items:
+              type: "object"
+            description: "待完成任务"
+    
+    # 能力 5: 上下文管理
+    - id: "context-management"
+      name: "上下文管理"
+      description: "上下文存储、检索和版本控制"
+      input:
+        type: "object"
+        properties:
+          action:
+            type: "string"
+            enum: ["save", "load", "snapshot", "restore", "query"]
+            description: "操作类型"
+            required: true
+          key:
+            type: "string"
+            description: "上下文键"
+            required: false
+          value:
+            type: "object"
+            description: "上下文值"
+            required: false
+          snapshot_id:
+            type: "string"
+            description: "快照 ID"
+            required: false
+      output:
+        type: "object"
+        properties:
+          data:
+            type: "object"
+            description: "上下文数据"
+          version:
+            type: "string"
+            description: "版本号"
+          snapshots:
+            type: "array"
+            items:
+              type: "object"
+            description: "快照列表"
+    
+    # 能力 6: 工作流编排
+    - id: "workflow-orchestration"
+      name: "工作流编排"
+      description: "工作流定义、执行和监控"
+      input:
+        type: "object"
+        properties:
+          workflow_id:
+            type: "string"
+            description: "工作流 ID"
+            required: true
+          action:
+            type: "string"
+            enum: ["start", "execute", "pause", "resume", "abort"]
+            description: "操作类型"
+            required: true
+          parameters:
+            type: "object"
+            description: "工作流参数"
+            required: false
+      output:
+        type: "object"
+        properties:
+          instance_id:
+            type: "string"
+            description: "实例 ID"
+          status:
+            type: "string"
+            enum: ["running", "completed", "failed", "paused"]
+          current_step:
+            type: "integer"
+            description: "当前步骤"
+          result:
+            type: "object"
+            description: "执行结果"
+    
+    # 能力 7: 代码地图生成
+    - id: "code-map-generation"
+      name: "代码地图生成"
+      description: "自动生成项目代码结构映射"
+      input:
+        type: "object"
+        properties:
+          project_path:
+            type: "string"
+            description: "项目路径"
+            required: true
+          output_format:
+            type: "string"
+            enum: ["json", "markdown"]
+            description: "输出格式"
+            required: false
+          max_depth:
+            type: "integer"
+            description: "最大深度"
+            required: false
+      output:
+        type: "object"
+        properties:
+          map:
+            type: "object"
+            description: "代码地图数据"
+          stats:
+            type: "object"
+            description: "统计信息"
+          dependencies:
+            type: "array"
+            items:
+              type: "object"
+            description: "依赖关系"
+    
+    # 能力 8: 项目理解
+    - id: "project-understanding"
+      name: "项目理解"
+      description: "快速读取项目文档和代码，生成理解文档"
+      input:
+        type: "object"
+        properties:
+          project_path:
+            type: "string"
+            description: "项目路径"
+            required: true
+          role:
+            type: "string"
+            description: "角色 ID（生成特定角色的理解）"
+            required: false
+          depth:
+            type: "string"
+            enum: ["shallow", "medium", "deep"]
+            description: "理解深度"
+            required: false
+      output:
+        type: "object"
+        properties:
+          overview:
+            type: "string"
+            description: "项目概览"
+          tech_stack:
+            type: "object"
+            description: "技术栈分析"
+          insights:
+            type: "array"
+            items:
+              type: "object"
+            description: "角色特定见解"
+  
+  # 角色定义
+  roles:
+    # 角色 1: 架构师
+    - id: "architect"
+      name: "架构师"
+      description: "设计系统性、前瞻性、可落地、可验证的架构"
+      prompt_template: "docs/roles/architect/ARCHITECT_PROMPT.md"
+      output_template: "docs/roles/architect/ARCHITECTURE_DESIGN_TEMPLATE.md"
+      responsibilities:
+        - "系统架构设计"
+        - "技术选型"
+        - "架构评审"
+        - "性能优化"
+      trigger_keywords:
+        primary: ["架构", "设计", "选型", "模块", "接口", "部署", "性能", "瓶颈", "扩展", "微服务"]
+        secondary: ["技术栈", "框架", "数据库", "中间件", "云原生", "容器化"]
+    
+    # 角色 2: 产品经理
+    - id: "product-manager"
+      name: "产品经理"
+      description: "定义用户价值清晰、需求明确、可落地、可验收的产品"
+      prompt_template: "docs/roles/pm/PM_PROMPT.md"
+      output_template: "docs/roles/product-manager/PRD_TEMPLATE.md"
+      responsibilities:
+        - "需求分析"
+        - "PRD 编写"
+        - "用户故事定义"
+        - "验收标准制定"
+      trigger_keywords:
+        primary: ["需求", "PRD", "用户故事", "竞品", "市场", "调研", "验收", "UAT", "体验"]
+        secondary: ["功能", "流程", "原型", "交互", "业务", "价值", "场景"]
+    
+    # 角色 3: 测试专家
+    - id: "test-expert"
+      name: "测试专家"
+      description: "确保全面、深入、自动化、可量化的质量保障"
+      prompt_template: "docs/roles/test/TEST_PROMPT.md"
+      output_template: "docs/roles/test-expert/TEST_PLAN_TEMPLATE.md"
+      responsibilities:
+        - "测试策略制定"
+        - "测试用例设计"
+        - "自动化测试"
+        - "质量评估"
+      trigger_keywords:
+        primary: ["测试", "质量", "验收", "自动化", "性能测试", "缺陷", "评审", "门禁"]
+        secondary: ["用例", "覆盖", "回归", "集成测试", "单元测试", "E2E"]
+    
+    # 角色 4: 独立开发者
+    - id: "solo-coder"
+      name: "独立开发者"
+      description: "编写完整、高质量、可维护、可测试的代码"
+      prompt_template: "docs/roles/coder/CODER_PROMPT.md"
+      output_template: "docs/roles/solo-coder/DEVELOPMENT_TEMPLATE.md"
+      responsibilities:
+        - "功能实现"
+        - "单元测试编写"
+        - "代码重构"
+        - "开发文档"
+      trigger_keywords:
+        primary: ["实现", "开发", "代码", "修复", "优化", "重构", "单元测试", "文档"]
+        secondary: ["功能", "模块", "接口", "API", "Bug", "Issue"]
+    
+    # 角色 5: UI 设计师
+    - id: "ui-designer"
+      name: "UI 设计师"
+      description: "创建独特、生产级的 UI 界面，避免通用的 AI 'slop' 美学"
+      prompt_template: "docs/roles/ui/UI_PROMPT.md"
+      output_template: "docs/roles/ui-designer/UI_DESIGN_TEMPLATE.md"
+      responsibilities:
+        - "UI 设计"
+        - "界面原型"
+        - "设计系统"
+        - "视觉优化"
+      trigger_keywords:
+        primary: ["UI 设计", "界面设计", "前端设计", "视觉设计", "UI/UX", "UI 原型", "界面美化"]
+        secondary: ["CSS", "样式", "布局", "配色", "字体", "动画", "交互", "响应式"]
+  
+  # 依赖项
+  dependencies:
+    - name: "python"
+      version: ">=3.8"
+      required: true
+    - name: "trae-ide"
+      version: ">=1.0.0"
+      required: true
+    - name: "pyyaml"
+      version: ">=5.4"
+      required: false
+    - name: "markdown"
+      version: ">=3.3"
+      required: false
+  
+  # 工作流定义
+  workflows:
+    # 工作流 1: 完整项目生命周期
+    - id: "full-lifecycle"
+      name: "完整项目生命周期"
+      description: "执行从需求到发布的完整 8 阶段流程"
+      version: "1.0.0"
+      steps:
+        - step: 1
+          role: "product-manager"
+          action: "requirements-analysis"
+          input: ""
+          output: "PRD"
+          description: "需求分析，生成产品需求文档"
+        
+        - step: 2
+          role: "architect"
+          action: "architecture-design"
+          input: "PRD"
+          output: "ARCHITECTURE"
+          description: "架构设计，生成系统架构文档"
+        
+        - step: 3
+          role: "ui-designer"
+          action: "ui-design"
+          input: "PRD"
+          output: "UI_DESIGN"
+          description: "UI 设计，生成界面设计稿"
+        
+        - step: 4
+          role: "test-expert"
+          action: "test-planning"
+          input: "PRD,ARCHITECTURE"
+          output: "TEST_PLAN"
+          description: "测试计划，生成测试策略和用例"
+        
+        - step: 5
+          role: "solo-coder"
+          action: "task-breakdown"
+          input: "PRD,ARCHITECTURE,UI_DESIGN"
+          output: "TASKS"
+          description: "任务分解，生成开发任务列表"
+        
+        - step: 6
+          role: "solo-coder"
+          action: "implementation"
+          input: "TASKS"
+          output: "CODE"
+          description: "代码实现，完成功能开发"
+        
+        - step: 7
+          role: "test-expert"
+          action: "testing"
+          input: "CODE,TEST_PLAN"
+          output: "TEST_REPORT"
+          description: "测试验证，生成测试报告"
+        
+        - step: 8
+          role: "all"
+          action: "review"
+          input: "ALL_ARTIFACTS"
+          output: "REVIEW_REPORT"
+          description: "发布评审，多角色共同评审"
+    
+    # 工作流 2: 快速原型开发
+    - id: "rapid-prototype"
+      name: "快速原型开发"
+      description: "快速实现功能原型，跳过详细设计"
+      version: "1.0.0"
+      steps:
+        - step: 1
+          role: "product-manager"
+          action: "requirements-analysis"
+          input: ""
+          output: "PRD_LITE"
+          description: "简化需求分析"
+        
+        - step: 2
+          role: "solo-coder"
+          action: "task-breakdown"
+          input: "PRD_LITE"
+          output: "TASKS"
+          description: "快速任务分解"
+        
+        - step: 3
+          role: "solo-coder"
+          action: "implementation"
+          input: "TASKS"
+          output: "PROTOTYPE"
+          description: "原型实现"
+        
+        - step: 4
+          role: "test-expert"
+          action: "testing"
+          input: "PROTOTYPE"
+          output: "FEEDBACK"
+          description: "快速测试反馈"
+    
+    # 工作流 3: 架构评审
+    - id: "architecture-review"
+      name: "架构评审"
+      description: "多角色参与的架构评审流程"
+      version: "1.0.0"
+      steps:
+        - step: 1
+          role: "architect"
+          action: "present-architecture"
+          input: "ARCHITECTURE"
+          output: "PRESENTATION"
+          description: "架构师展示架构设计"
+        
+        - step: 2
+          role: "product-manager"
+          action: "review-business-alignment"
+          input: "PRESENTATION,PRD"
+          output: "BUSINESS_FEEDBACK"
+          description: "产品经理评审业务对齐度"
+        
+        - step: 3
+          role: "test-expert"
+          action: "review-testability"
+          input: "PRESENTATION"
+          output: "TESTABILITY_FEEDBACK"
+          description: "测试专家评审可测试性"
+        
+        - step: 4
+          role: "solo-coder"
+          action: "review-implementability"
+          input: "PRESENTATION"
+          output: "IMPLEMENTATION_FEEDBACK"
+          description: "开发者评审可实现性"
+        
+        - step: 5
+          role: "all"
+          action: "consensus"
+          input: "ALL_FEEDBACK"
+          output: "REVIEW_DECISION"
+          description: "多角色共识决策"
+    
+    # 工作流 4: 代码重构
+    - id: "code-refactoring"
+      name: "代码重构"
+      description: "系统性的代码重构流程"
+      version: "1.0.0"
+      steps:
+        - step: 1
+          role: "architect"
+          action: "analyze-technical-debt"
+          input: "CODE"
+          output: "TECH_DEBT_REPORT"
+          description: "分析技术债务"
+        
+        - step: 2
+          role: "architect"
+          action: "design-refactoring"
+          input: "TECH_DEBT_REPORT"
+          output: "REFACTORING_PLAN"
+          description: "设计重构方案"
+        
+        - step: 3
+          role: "test-expert"
+          action: "ensure-test-coverage"
+          input: "CODE"
+          output: "TEST_COVERAGE_REPORT"
+          description: "确保测试覆盖"
+        
+        - step: 4
+          role: "solo-coder"
+          action: "execute-refactoring"
+          input: "REFACTORING_PLAN"
+          output: "REFACTORED_CODE"
+          description: "执行重构"
+        
+        - step: 5
+          role: "test-expert"
+          action: "verify-refactoring"
+          input: "REFACTORED_CODE"
+          output: "VERIFICATION_REPORT"
+          description: "验证重构结果"
+  
+  # 配置项
+  config:
+    # Agent Loop 配置
+    max_iterations: 100
+    no_progress_threshold: 3
+    auto_continue: true
+    
+    # 上下文管理配置
+    context_retention: true
+    snapshot_interval: 5
+    max_snapshots: 20
+    
+    # 角色调度配置
+    role_matching_threshold: 0.3
+    multi_role_suggestion_count: 3
+    
+    # 工作流配置
+    workflow_timeout: 3600  # 秒
+    step_retry_count: 3
+    
+    # 验证配置
+    validation_enabled: true
+    quality_gates:
+      - name: "代码审查"
+        required: true
+      - name: "测试覆盖"
+        required: true
+      - name: "规范一致性"
+        required: false
+    
+    # 日志配置
+    log_level: "INFO"
+    log_format: "json"
+    log_output: "file"
+  
+  # 质量门禁
+  quality_gates:
+    - id: "code-review"
+      name: "代码审查"
+      description: "所有代码必须经过审查"
+      required: true
+      checker: "code_review_checker"
+    
+    - id: "test-coverage"
+      name: "测试覆盖"
+      description: "测试覆盖率必须达到要求"
+      required: true
+      checker: "test_coverage_checker"
+      threshold: 0.8
+    
+    - id: "spec-compliance"
+      name: "规范一致性"
+      description: "代码必须符合项目规范"
+      required: true
+      checker: "spec_compliance_checker"
+    
+    - id: "security-scan"
+      name: "安全检查"
+      description: "代码必须通过安全扫描"
+      required: true
+      checker: "security_scanner"
+  
+  # 扩展点
+  extensions:
+    - id: "custom-role"
+      name: "自定义角色"
+      description: "支持用户自定义角色"
+      enabled: true
+    
+    - id: "custom-workflow"
+      name: "自定义工作流"
+      description: "支持用户自定义工作流"
+      enabled: true
+    
+    - id: "external-tools"
+      name: "外部工具集成"
+      description: "支持集成外部工具"
+      enabled: false
+    
+    - id: "plugin-system"
+      name: "插件系统"
+      description: "支持插件扩展"
+      enabled: false

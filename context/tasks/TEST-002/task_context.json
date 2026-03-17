@@ -1,0 +1,62 @@
+{
+  "task_id": "TEST-002",
+  "definition": {
+    "task_id": "TEST-002",
+    "title": "实现用户服务",
+    "description": "实现用户管理微服务",
+    "goals": [
+      "用户 CRUD",
+      "权限管理"
+    ],
+    "constraints": [],
+    "requirements": [],
+    "priority": "medium",
+    "estimated_effort": "",
+    "created_at": "2026-03-17T22:29:47.562086"
+  },
+  "status": {
+    "task_id": "TEST-002",
+    "status": "completed",
+    "progress": 0.0,
+    "current_step": "",
+    "risks": [],
+    "blockers": [],
+    "started_at": null,
+    "completed_at": null,
+    "updated_at": "2026-03-17T22:29:47.563241"
+  },
+  "working_memory": {},
+  "artifacts": {},
+  "thoughts": [],
+  "references": {
+    "knowledge": [],
+    "experience": [
+      {
+        "id": "exp-TEST-001",
+        "task_id": "TEST-001",
+        "task_type": "general",
+        "success": true,
+        "description": "任务：设计微服务架构",
+        "lessons_learned": [],
+        "best_practices": [],
+        "patterns": [],
+        "created_at": "2026-03-17T22:29:47.561432"
+      },
+      {
+        "id": "exp-TEST-002",
+        "task_id": "TEST-002",
+        "task_type": "general",
+        "success": true,
+        "description": "任务：实现用户服务",
+        "lessons_learned": [],
+        "best_practices": [],
+        "patterns": [],
+        "created_at": "2026-03-17T22:21:59.046827"
+      }
+    ]
+  },
+  "user_preferences": {
+    "language": "zh",
+    "detail_level": "high"
+  }
+}

@@ -1,12 +1,18 @@
 ---
 name: multi-agent-team
 slug: multi-agent-team
-description: 基于任务类型动态调度到合适的智能体角色（架构师、产品经理、测试专家、独立开发者、UI设计师）。支持多智能体协作、共识机制和完整项目生命周期管理。支持中英文双语。
+description: 基于任务类型动态调度到合适的智能体角色（架构师、产品经理、测试专家、独立开发者、UI 设计师）。支持多智能体协作、共识机制和完整项目生命周期管理。支持中英文双语。v2.1 新增 AI 语义理解驱动的智能角色匹配。
 ---
 
-# Multi-Agent Team Dispatcher   
+# Multi-Agent Team Dispatcher (AI-Enhanced)
 
 基于任务类型和上下文，自动调度到最合适的智能体角色（架构师、产品经理、测试专家、Solo Coder、UI 设计师）。
+
+**v2.1 新增**: 
+- 🚀 AI 语义理解驱动的智能角色匹配
+- 🧠 大模型 AI 助手深度集成
+- 📊 可解释的匹配结果和置信度评分
+- ⚡ 性能优化和缓存机制
 
 ## 多语言支持 (Multi-Language Support)
 
@@ -44,6 +50,15 @@ AI (English): "📋 Task received, starting analysis..."
 
 ## 核心能力
 
+### AI 增强能力 (v2.1 新增)
+
+1. **AI 语义理解驱动的角色匹配**: 使用大模型理解任务的深层语义，而非简单关键词匹配
+2. **可解释的智能决策**: 提供匹配原因和置信度评分，决策过程透明可解释
+3. **上下文感知的智能推理**: 基于历史经验和领域知识进行智能推理
+4. **自然语言交互界面**: 支持自然语言对话，理解用户意图
+
+### 基础能力
+
 1. **智能角色调度**: 根据任务描述自动识别需要的角色
 2. **多角色协同**: 组织多个角色共同完成复杂任务
 3. **上下文感知**: 根据项目阶段和历史上下文选择角色
@@ -77,11 +92,97 @@ python3 scripts/trae_agent_dispatch.py \
 
 ### 完整项目流程
 ```bash
-# 启动完整项目（自动执行7个阶段）
+# 启动完整项目（自动执行 7 个阶段）
 python3 scripts/trae_agent_dispatch.py \
     --task "启动项目：安全浏览器广告拦截功能" \
     --project-full-lifecycle
 ```
+
+### AI 增强模式 (v2.1 新增)
+```bash
+# 使用 AI 语义匹配（默认）
+python3 scripts/trae_agent_dispatch.py \
+    --task "设计微服务架构，支持高并发和弹性扩展" \
+    --agent auto  # AI 会自动匹配最合适的角色
+
+# 查看 AI 匹配结果和解释
+python3 scripts/trae_agent_dispatch.py \
+    --task "实现用户认证和权限管理" \
+    --agent auto \
+    --explain  # 显示 AI 匹配原因和置信度
+
+# 使用传统关键词匹配（向后兼容）
+python3 scripts/trae_agent_dispatch.py \
+    --task "编写单元测试" \
+    --agent test_expert \
+    --match-strategy keyword
+```
+
+## AI 集成说明 (v2.1)
+
+### AI 能力
+
+#### 1. 语义理解
+- **深层语义分析**: 理解任务的真实意图，而非表面关键词
+- **上下文感知**: 基于历史经验和领域知识理解任务
+- **多义词消歧**: 准确理解多义词在特定上下文中的含义
+
+**示例**:
+```
+任务："设计一个高可用的系统"
+AI 理解：
+- "高可用" → 需要冗余设计、故障转移、负载均衡
+- "系统" → 可能是分布式系统、微服务架构
+推荐角色：架构师 (置信度：92%)
+```
+
+#### 2. 智能匹配
+- **多维度评分**: 能力匹配 (50%) + 技能匹配 (30%) + 语义相关 (20%)
+- **可解释结果**: 提供详细的匹配原因和推理过程
+- **置信度评估**: 0-1 的置信度评分，辅助决策
+
+**匹配策略**:
+- `ai_enhanced`: AI 增强混合匹配（推荐，默认）
+- `semantic`: 纯 AI 语义匹配
+- `keyword`: 传统关键词匹配
+- `hybrid`: 传统混合匹配
+
+#### 3. 代码审查
+- **质量评估**: 代码结构、可读性、可维护性
+- **性能分析**: 性能瓶颈、优化建议
+- **安全检查**: 常见安全漏洞检测
+- **最佳实践**: 行业标准和最佳实践建议
+
+#### 4. 知识问答
+- **技术咨询**: 解答技术问题
+- **架构建议**: 提供架构设计建议
+- **工具推荐**: 推荐合适的工具和库
+
+### AI 配置
+
+在 `skill-manifest.yaml` 中配置 AI 参数：
+
+```yaml
+ai_integration:
+  enabled: true
+  provider: trae_ai_assistant
+  features:
+    - semantic_matching
+    - intelligent_reasoning
+    - context_understanding
+  config:
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 0.9
+    use_cache: true
+    fallback_to_keyword: true
+```
+
+### 性能优化
+
+- **缓存机制**: 相同请求直接返回缓存结果
+- **降级策略**: AI 不可用时自动降级到关键词匹配
+- **批量处理**: 支持批量请求，减少 API 调用次数
 
 ## 角色介绍
 

@@ -1,0 +1,464 @@
+name: trae-multi-agent
+version: 2.1.0
+description: |
+  Trae 多智能体协作技能（AI 增强版）
+  
+  基于双层动态上下文管理架构和大模型 AI 助手能力，实现智能体之间的高效协作。
+  支持产品、架构、开发、测试等多种角色的智能调度和工作流编排。
+  
+  核心特性：
+  - 双层动态上下文管理（长期记忆 + 工作记忆）
+  - AI 语义理解驱动的智能角色匹配
+  - 灵活的工作流编排引擎
+  - 完整的技能注册和发现机制
+  - 经验沉淀和知识积累
+  - 大模型 AI 助手深度集成
+
+author: Trae Team
+status: active
+ai_enhanced: true
+ai_capabilities:
+  semantic_matching: true
+  intelligent_reasoning: true
+  context_understanding: true
+  natural_language_interface: true
+
+capabilities:
+  - name: product-manager
+    description: |
+      产品经理角色，负责需求分析和 PRD 编写
+      
+      核心能力：
+      - 需求挖掘和分析
+      - PRD 文档编写
+      - 用户研究
+      - 竞品分析
+      - 产品规划
+    input_schema:
+      type: object
+      properties:
+        requirements:
+          type: string
+          description: 需求描述
+        detail_level:
+          type: string
+          enum: [low, medium, high]
+          description: 详细程度
+        user_personas:
+          type: array
+          items:
+            type: string
+          description: 用户画像列表
+    output_schema:
+      type: object
+      properties:
+        prd:
+          type: object
+          description: PRD 文档
+        user_stories:
+          type: array
+          items:
+            type: string
+          description: 用户故事列表
+        acceptance_criteria:
+          type: array
+          items:
+            type: string
+          description: 验收标准
+
+  - name: architect
+    description: |
+      架构师角色，负责系统架构设计和技术选型
+      
+      核心能力：
+      - 系统架构设计
+      - 技术选型和评估
+      - 架构评审
+      - 性能优化设计
+      - 安全架构设计
+    input_schema:
+      type: object
+      properties:
+        requirements:
+          type: object
+          description: 需求文档（PRD）
+        constraints:
+          type: array
+          items:
+            type: string
+          description: 技术约束
+        scalability_requirements:
+          type: string
+          description: 可扩展性要求
+    output_schema:
+      type: object
+      properties:
+        architecture:
+          type: object
+          description: 架构设计文档
+        technology_stack:
+          type: array
+          items:
+            type: string
+          description: 技术栈选择
+        component_design:
+          type: object
+          description: 组件设计
+
+  - name: developer
+    description: |
+      开发工程师角色，负责代码实现和功能开发
+      
+      核心能力：
+      - 代码实现
+      - 功能开发
+      - 代码优化
+      - Bug 修复
+      - 单元测试编写
+    input_schema:
+      type: object
+      properties:
+        design:
+          type: object
+          description: 设计文档
+        requirements:
+          type: object
+          description: 需求文档
+        coding_standards:
+          type: object
+          description: 编码规范
+    output_schema:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 源代码
+        unit_tests:
+          type: array
+          items:
+            type: string
+          description: 单元测试代码
+        documentation:
+          type: string
+          description: 代码文档
+
+  - name: tester
+    description: |
+      测试工程师角色，负责测试用例设计和执行
+      
+      核心能力：
+      - 测试用例设计
+      - 测试执行
+      - Bug 跟踪和分析
+      - 质量保障
+      - 自动化测试
+    input_schema:
+      type: object
+      properties:
+        requirements:
+          type: object
+          description: 需求文档
+        code:
+          type: string
+          description: 待测试代码
+        test_strategy:
+          type: string
+          description: 测试策略
+    output_schema:
+      type: object
+      properties:
+        test_cases:
+          type: array
+          items:
+            type: object
+          description: 测试用例
+        test_results:
+          type: array
+          items:
+            type: object
+          description: 测试结果
+        bug_reports:
+          type: array
+          items:
+            type: object
+          description: Bug 报告
+
+  - name: ui-designer
+    description: |
+      UI 设计师角色，负责用户界面设计
+      
+      核心能力：
+      - 界面设计
+      - 交互设计
+      - 视觉设计
+      - 原型设计
+      - 设计系统建设
+    input_schema:
+      type: object
+      properties:
+        requirements:
+          type: object
+          description: 需求文档
+        brand_guidelines:
+          type: object
+          description: 品牌规范
+        user_flows:
+          type: array
+          items:
+            type: string
+          description: 用户流程
+    output_schema:
+      type: object
+      properties:
+        designs:
+          type: array
+          items:
+            type: object
+          description: 设计稿
+        prototypes:
+          type: array
+          items:
+            type: string
+          description: 原型
+        design_system:
+          type: object
+          description: 设计系统组件
+
+  - name: devops
+    description: |
+      DevOps 工程师角色，负责部署和运维
+      
+      核心能力：
+      - 持续集成/持续部署（CI/CD）
+      - 监控告警
+      - 性能调优
+      - 安全管理
+      - 容器化部署
+    input_schema:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 源代码
+        environment:
+          type: string
+          description: 部署环境
+        monitoring_requirements:
+          type: object
+          description: 监控需求
+    output_schema:
+      type: object
+      properties:
+        deployment:
+          type: object
+          description: 部署配置
+        ci_cd_pipeline:
+          type: object
+          description: CI/CD 流水线
+        monitoring_config:
+          type: object
+          description: 监控配置
+
+  - name: ai-assistant
+    description: |
+      AI 助手角色，提供大模型语义理解和智能推理能力
+      
+      核心能力：
+      - 语义理解和匹配
+      - 智能推理和决策
+      - 上下文感知
+      - 自然语言交互
+      - 知识问答
+      - 代码审查和建议
+    input_schema:
+      type: object
+      properties:
+        task:
+          type: string
+          description: 任务描述
+        context:
+          type: object
+          description: 上下文信息
+        mode:
+          type: string
+          enum: [matching, reasoning, reviewing, assisting]
+          description: AI 工作模式
+    output_schema:
+      type: object
+      properties:
+        response:
+          type: string
+          description: AI 响应
+        confidence:
+          type: number
+          description: 置信度
+        reasoning:
+          type: string
+          description: 推理过程
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: 建议列表
+
+dependencies: []
+
+ai_integration:
+  enabled: true
+  provider: trae_ai_assistant
+  features:
+    - semantic_matching
+    - intelligent_reasoning
+    - context_understanding
+    - natural_language_processing
+    - code_analysis
+  config:
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 0.9
+    use_cache: true
+    fallback_to_keyword: true
+
+workflows:
+  - workflow_id: standard-dev-workflow
+    name: 标准开发工作流
+    description: 产品 → 架构 → 开发 → 测试的完整流程
+    steps:
+      - step_id: prd
+        name: 需求分析
+        role: product-manager
+        action: analyze_requirements
+      
+      - step_id: architecture
+        name: 架构设计
+        role: architect
+        action: design_architecture
+      
+      - step_id: development
+        name: 代码开发
+        role: developer
+        action: implement_code
+      
+      - step_id: testing
+        name: 测试验证
+        role: tester
+        action: execute_tests
+
+  - workflow_id: rapid-prototype-workflow
+    name: 快速原型工作流
+    description: 快速验证想法的简化流程
+    steps:
+      - step_id: quick-design
+        name: 快速设计
+        role: developer
+        action: rapid_implementation
+
+  - workflow_id: bug-fix-workflow
+    name: Bug 修复工作流
+    description: Bug 分析和修复流程
+    steps:
+      - step_id: analysis
+        name: Bug 分析
+        role: tester
+        action: analyze_bug
+      
+      - step_id: fix
+        name: Bug 修复
+        role: developer
+        action: fix_bug
+      
+      - step_id: verification
+        name: 验证
+        role: tester
+        action: verify_fix
+
+context_management:
+  type: dual-layer
+  
+  global_context:
+    description: 全局上下文层（长期记忆）
+    components:
+      - user_profile: 用户画像
+      - knowledge_base: 领域知识库
+      - experience_db: 历史经验库
+      - collaboration_net: 协作网络
+      - capability_models: 能力模型
+    
+    persistence: true
+    version_control: true
+  
+  task_context:
+    description: 任务上下文层（工作记忆）
+    components:
+      - task_definition: 任务定义
+      - task_status: 任务状态
+      - working_memory: 工作记忆
+      - artifacts: 中间结果
+      - thought_history: 思考历史
+    
+    persistence: true
+    cleanup_on_complete: false
+  
+  synchronization:
+    task_to_global:
+      - experience_extraction: 提取经验教训
+      - knowledge_extraction: 提取新知识
+      - preference_update: 更新用户偏好
+      - collaboration_record: 记录协作效果
+    
+    global_to_task:
+      - knowledge_injection: 注入相关知识
+      - experience_injection: 注入历史经验
+      - preference_application: 应用用户偏好
+      - capability_reference: 参考能力模型
+
+role_scheduling:
+  strategy: intelligent-matching
+  
+  matcher:
+    type: hybrid
+    components:
+      - keyword_matching: 关键词匹配（权重 0.7）
+      - semantic_matching: 语义匹配（权重 0.3）
+    
+    scoring:
+      capability_match: 0.5
+      skill_match: 0.3
+      keyword_overlap: 0.2
+    
+    learning:
+      enabled: true
+      feedback_loop: true
+
+metadata:
+  category: productivity
+  tags:
+    - ai
+    - agent
+    - collaboration
+    - workflow
+    - context-management
+  
+  license: MIT
+  repository: https://github.com/weiransoft/zeroclaw
+  documentation: https://github.com/weiransoft/zeroclaw/tree/main/.trae/skills/trae-multi-agent
+  
+  version_history:
+    - version: 2.0.0
+      date: "2026-03-17"
+      changes:
+        - 实现双层动态上下文管理
+        - 新增技能注册中心
+        - 新增智能角色匹配器
+        - 新增工作流编排引擎
+        - 完整的经验沉淀机制
+    
+    - version: 1.0.0
+      date: "2026-03-16"
+      changes:
+        - 初始版本
+        - 基础的多角色协作
+        - 简单的上下文管理
+
+created_at: "2026-03-16T00:00:00"
+updated_at: "2026-03-17T00:00:00"
