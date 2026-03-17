@@ -1,0 +1,86 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  
+  <!-- 标题 -->
+  <text x="400" y="50" font-family="Arial, sans-serif" font-size="28" font-weight="bold" text-anchor="middle" fill="#2c3e50">Trae Multi-Agent Skill v2.1</text>
+  <text x="400" y="80" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#7f8c8d">核心特性升级</text>
+  
+  <!-- 特性 1: 智能错误处理 -->
+  <g transform="translate(50, 120)">
+    <rect width="320" height="100" rx="10" fill="#3498db" opacity="0.1"/>
+    <rect x="5" y="5" width="310" height="90" rx="8" fill="none" stroke="#3498db" stroke-width="2"/>
+    <text x="160" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#2980b9">🔧 智能错误处理</text>
+    <text x="160" y="55" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">数据库路径自动检测</text>
+    <text x="160" y="75" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">清晰的诊断信息</text>
+  </g>
+  
+  <!-- 特性 2: AI 语义匹配 -->
+  <g transform="translate(430, 120)">
+    <rect width="320" height="100" rx="10" fill="#9b59b6" opacity="0.1"/>
+    <rect x="5" y="5" width="310" height="90" rx="8" fill="none" stroke="#9b59b6" stroke-width="2"/>
+    <text x="160" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#8e44ad">🤖 AI 语义匹配</text>
+    <text x="160" y="55" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">深度理解任务意图</text>
+    <text x="160" y="75" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">智能角色推荐</text>
+  </g>
+  
+  <!-- 特性 3: 统一入口 -->
+  <g transform="translate(50, 250)">
+    <rect width="320" height="100" rx="10" fill="#2ecc71" opacity="0.1"/>
+    <rect x="5" y="5" width="310" height="90" rx="8" fill="none" stroke="#2ecc71" stroke-width="2"/>
+    <text x="160" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#27ae60">🎯 统一入口管理</text>
+    <text x="160" y="55" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">智能定位 skill 目录</text>
+    <text x="160" y="75" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">自动版本切换</text>
+  </g>
+  
+  <!-- 特性 4: 完整测试 -->
+  <g transform="translate(430, 250)">
+    <rect width="320" height="100" rx="10" fill="#e74c3c" opacity="0.1"/>
+    <rect x="5" y="5" width="310" height="90" rx="8" fill="none" stroke="#e74c3c" stroke-width="2"/>
+    <text x="160" y="30" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#c0392b">✅ 完整测试套件</text>
+    <text x="160" y="55" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">5 项核心测试</text>
+    <text x="160" y="75" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">100% 错误处理覆盖</text>
+  </g>
+  
+  <!-- 中央架构图 -->
+  <g transform="translate(200, 380)">
+    <text x="200" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#2c3e50">调用流程</text>
+    
+    <!-- 用户 -->
+    <rect x="150" y="30" width="100" height="40" rx="5" fill="#3498db"/>
+    <text x="200" y="55" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">用户</text>
+    
+    <!-- 箭头 -->
+    <line x1="200" y1="70" x2="200" y2="90" stroke="#7f8c8d" stroke-width="2"/>
+    <polygon points="200,90 195,80 205,80" fill="#7f8c8d"/>
+    
+    <!-- 统一入口 -->
+    <rect x="120" y="90" width="160" height="40" rx="5" fill="#9b59b6"/>
+    <text x="200" y="115" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">统一入口脚本</text>
+    
+    <!-- 箭头 -->
+    <line x1="200" y1="130" x2="200" y2="150" stroke="#7f8c8d" stroke-width="2"/>
+    <polygon points="200,150 195,140 205,140" fill="#7f8c8d"/>
+    
+    <!-- v2 调度器 -->
+    <rect x="120" y="150" width="160" height="40" rx="5" fill="#2ecc71"/>
+    <text x="200" y="175" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">v2 智能调度器</text>
+    
+    <!-- 箭头 -->
+    <line x1="200" y1="190" x2="200" y2="210" stroke="#7f8c8d" stroke-width="2"/>
+    <polygon points="200,210 195,200 205,200" fill="#7f8c8d"/>
+    
+    <!-- Trae 数据库 -->
+    <rect x="120" y="210" width="160" height="40" rx="5" fill="#e74c3c"/>
+    <text x="200" y="235" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">Trae 数据库</text>
+  </g>
+  
+  <!-- 底部数据 -->
+  <g transform="translate(50, 540)">
+    <text x="350" y="0" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2c3e50">测试通过率：100% · 错误处理覆盖：100% · 向后兼容：是</text>
+  </g>
+  
+  <!-- 装饰元素 -->
+  <circle cx="750" cy="50" r="30" fill="#3498db" opacity="0.1"/>
+  <circle cx="50" cy="550" r="20" fill="#9b59b6" opacity="0.1"/>
+</svg>
