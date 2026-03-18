@@ -208,6 +208,12 @@ python3 scripts/trae_agent_dispatch.py \
     --task "安全浏览器广告拦截功能" \
     --project-full-lifecycle
 
+# 项目全生命周期模式（8 阶段标准工作流程）
+python3 scripts/trae_agent_dispatch.py \
+    --task "实现电商系统用户登录功能" \
+    --project-full-lifecycle
+# 自动执行：需求分析→架构设计→UI 设计→测试设计→任务分解→开发实现→测试验证→发布评审
+
 # 规范驱动开发
 python3 scripts/spec_tools.py init
 python3 scripts/spec_tools.py analyze
@@ -559,6 +565,126 @@ chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/scripts/*.py
 ```
 
 📖 详细安装文档请查看：[INSTALL.md](INSTALL.md)
+
+## ⚙️ 命令行参数说明
+
+### 基本参数
+
+```bash
+python3 scripts/trae_agent_dispatch.py [参数]
+```
+
+| 参数 | 类型 | 必需 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `--task` | string | ✅ | - | 任务描述 |
+| `--agent` | string | ❌ | auto | 指定角色：architect, product-manager, tester, developer, ui-designer, devops, auto |
+| `--project-root` | string | ❌ | . | 项目根目录路径 |
+| `--task-file` | string | ❌ | - | 任务文件路径（从文件读取任务） |
+| `--output` | string | ❌ | - | 输出文件路径 |
+| `--verbose` | flag | ❌ | false | 启用详细输出模式 |
+| `--dry-run` | flag | ❌ | false | 仅模拟执行，不实际调用智能体 |
+| `--use-v1` | flag | ❌ | false | 使用 v1.0 版本逻辑 |
+| `--project-full-lifecycle` | flag | ❌ | false | 启用项目全生命周期模式（8 阶段标准工作流程） |
+
+### 角色选项
+
+`--agent` 参数支持以下角色：
+
+- `architect`: 架构师 - 负责系统架构设计、技术选型
+- `product-manager`: 产品经理 - 负责需求分析、产品规划
+- `tester`: 测试专家 - 负责测试策略、质量保障
+- `developer`: 开发工程师 - 负责功能开发、代码实现
+- `ui-designer`: UI 设计师 - 负责界面设计、用户体验
+- `devops`: DevOps 工程师 - 负责部署、运维
+- `auto`: 自动匹配 - 根据任务内容自动识别最适合的角色（默认）
+
+### 使用示例
+
+#### 1. 自动识别角色
+```bash
+python3 scripts/trae_agent_dispatch.py \
+    --task "设计微服务系统架构"
+```
+
+#### 2. 指定角色
+```bash
+python3 scripts/trae_agent_dispatch.py \
+    --task "实现用户登录功能" \
+    --agent developer
+```
+
+#### 3. 项目全生命周期模式（8 阶段）
+```bash
+python3 scripts/trae_agent_dispatch.py \
+    --task "实现电商系统用户登录功能" \
+    --project-full-lifecycle
+# 自动执行：需求分析→架构设计→UI 设计→测试设计→任务分解→开发实现→测试验证→发布评审
+```
+
+#### 4. 从文件读取任务
+```bash
+python3 scripts/trae_agent_dispatch.py \
+    --task-file task.txt \
+    --agent architect
+```
+
+#### 5. 详细输出模式
+```bash
+python3 scripts/trae_agent_dispatch.py \
+    --task "设计系统架构" \
+    --verbose
+```
+
+#### 6. 模拟执行（不实际调用）
+```bash
+python3 scripts/trae_agent_dispatch.py \
+    --task "实现功能" \
+    --dry-run
+```
+
+### 项目全生命周期模式详解
+
+使用 `--project-full-lifecycle` 参数后，系统自动执行 8 个阶段：
+
+1. **需求分析**（产品经理）
+   - 需求三层挖掘
+   - 用户故事地图
+   - SMART 验收标准
+
+2. **架构设计**（架构师）
+   - 系统架构设计
+   - 技术选型
+   - 模块职责划分
+
+3. **UI 设计**（UI 设计师）
+   - 界面原型设计
+   - 交互流程
+   - 视觉风格指南
+
+4. **测试设计**（测试专家）
+   - 测试策略
+   - 测试用例设计
+   - 自动化测试方案
+
+5. **任务分解**（开发工程师）
+   - 任务拆分
+   - 工作量评估
+   - 优先级排序
+
+6. **开发实现**（开发工程师）
+   - 代码编写
+   - 单元测试
+   - 代码审查
+
+7. **测试验证**（测试专家）
+   - 集成测试
+   - 性能测试
+   - 缺陷修复验证
+
+8. **发布评审**（架构师 + 产品经理）
+   - 代码审查
+   - 验收测试
+   - 发布准备
 
 ## ⚙️ 配置说明
 
