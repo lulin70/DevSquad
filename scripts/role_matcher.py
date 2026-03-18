@@ -595,46 +595,59 @@ class RoleMatcher:
         )
     
     def _hybrid_match(self, requirement: TaskRequirement,
-                     role: RoleDefinition) -> MatchResult:
+                     top_k: int = 3) -> List[MatchResult]:
         """
         混合匹配（关键词 + 语义）
         
         Args:
             requirement: 任务需求
-            role: 角色定义
+            top_k: 返回前 K 个匹配结果
             
         Returns:
-            MatchResult: 匹配结果
+            List[MatchResult]: 匹配结果列表
         """
-        # 关键词匹配
-        keyword_result = self._keyword_match(requirement, role)
+        results = []
         
-        # 语义匹配
-        semantic_result = self._semantic_match(requirement, role)
+        # 遍历所有角色进行匹配
+        for role_id, role in self.roles.items():
+            # 关键词匹配
+            keyword_result = self._keyword_match(requirement, role)
+            
+            # 语义匹配
+            semantic_result = self._semantic_match(requirement, role)
+            
+            # 加权平均
+            hybrid_confidence = (
+                keyword_result.confidence * 0.7 +
+                semantic_result.confidence * 0.3
+            )
+            
+            # 合并原因
+            reasons = keyword_result.reasons + semantic_result.reasons
+            
+            # 合并评分分解
+            score_breakdown = {**keyword_result.score_breakdown, 
+                              **semantic_result.score_breakdown}
+            
+            result = MatchResult(
+                role_id=role.role_id,
+                role_name=role.name,
+                confidence=hybrid_confidence,
+                matched_capabilities=keyword_result.matched_capabilities,
+                matched_skills=keyword_result.matched_skills,
+                missing_capabilities=keyword_result.missing_capabilities,
+                reasons=reasons,
+                score_breakdown=score_breakdown
+            )
+            
+            # 只添加置信度大于阈值的结果
+            if hybrid_confidence > 0.3:
+                results.append(result)
         
-        # 加权平均
-        hybrid_confidence = (
-            keyword_result.confidence * 0.7 +
-            semantic_result.confidence * 0.3
-        )
+        # 按置信度排序
+        results.sort(key=lambda r: r.confidence, reverse=True)
         
-        # 合并原因
-        reasons = keyword_result.reasons + semantic_result.reasons
-        
-        # 合并评分分解
-        score_breakdown = {**keyword_result.score_breakdown, 
-                          **semantic_result.score_breakdown}
-        
-        return MatchResult(
-            role_id=role.role_id,
-            role_name=role.name,
-            confidence=hybrid_confidence,
-            matched_capabilities=keyword_result.matched_capabilities,
-            matched_skills=keyword_result.matched_skills,
-            missing_capabilities=keyword_result.missing_capabilities,
-            reasons=reasons,
-            score_breakdown=score_breakdown
-        )
+        return results[:top_k]
     
     def _extract_keywords(self, requirement: TaskRequirement) -> List[str]:
         """
