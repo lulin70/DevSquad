@@ -48,20 +48,28 @@ trae-agent --task "设计系统架构" --agent architect
 trae-agent --task "分析需求" --agent product-manager
 
 # 调用测试专家
-trae-agent --task "制定测试策略" --agent test-expert
+trae-agent --task "制定测试策略" --agent tester
 
-# 调用独立开发者
-trae-agent --task "实现功能" --agent solo-coder
+# 调用开发工程师
+trae-agent --task "实现功能" --agent developer
+
+# 调用 UI 设计师
+trae-agent --task "设计登录页面" --agent ui-designer
+
+# 调用 DevOps 工程师
+trae-agent --task "配置 CI/CD" --agent devops
 ```
 
 ## 命令行参数
 
 - `--task`: 任务描述（必需）
-- `--agent`: 智能体角色（可选，默认：solo-coder）
+- `--agent`: 智能体角色（可选，默认：auto）
   - `architect` - 架构师
   - `product-manager` - 产品经理
-  - `test-expert` - 测试专家
-  - `solo-coder` - 独立开发者
+  - `tester` - 测试专家
+  - `developer` - 开发工程师
+  - `ui-designer` - UI 设计师
+  - `devops` - DevOps 工程师
 - `--project-root`: 项目根目录（可选，默认：当前目录）
 - `--task-file`: 任务文件路径（可选）
 - `--output`: 输出文件路径（可选）

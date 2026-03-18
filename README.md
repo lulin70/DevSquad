@@ -464,7 +464,7 @@ python3 scripts/project_understanding.py /path/to/project
 
 # 方式 2: 在项目中使用相对路径（如果 skill 在项目 .trae/skills 下）
 ./.trae/skills/trae-multi-agent/trae-agent \
-  --task "制定测试策略" --agent test-expert
+  --task "制定测试策略" --agent tester
 ```
 
 **优点**：

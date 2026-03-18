@@ -64,7 +64,10 @@
 │   ├── spec/            # 规范文档
 │   ├── architect/       # 架构师文档
 │   ├── product-manager/ # 产品经理文档
-│   └── test-expert/     # 测试专家文档
+│   ├── tester/          # 测试专家文档
+│   ├── developer/       # 开发工程师文档
+│   ├── ui-designer/     # UI 设计师文档
+│   └── devops/          # DevOps 工程师文档
 ├── scripts/             # 脚本目录
 ├── config/              # 配置文件
 ├── target/              # 构建输出

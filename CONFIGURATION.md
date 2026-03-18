@@ -81,8 +81,8 @@ trae-agent --task "美化登录界面" --agent auto
 # 指定角色
 ./trae_agent_dispatch.sh --task "设计系统架构" --agent architect
 ./trae_agent_dispatch.sh --task "编写 PRD" --agent product-manager
-./trae_agent_dispatch.sh --task "编写测试用例" --agent test-expert
-./trae_agent_dispatch.sh --task "实现功能代码" --agent solo-coder
+./trae_agent_dispatch.sh --task "编写测试用例" --agent tester
+./trae_agent_dispatch.sh --task "实现功能代码" --agent developer
 ```
 
 ### 可用参数
@@ -91,8 +91,10 @@ trae-agent --task "美化登录界面" --agent auto
 - `--agent`: 指定角色（可选，默认：auto）
   - `architect`: 架构师
   - `product-manager`: 产品经理
-  - `test-expert`: 测试专家
-  - `solo-coder`: 独立开发者
+  - `tester`: 测试专家
+  - `developer`: 开发工程师
+  - `ui-designer`: UI 设计师
+  - `devops`: DevOps 工程师
   - `auto`: 自动匹配（默认）
 - `--project-root`: 项目根目录（可选，默认：当前目录）
 - `--verbose`: 启用详细输出模式
@@ -111,10 +113,16 @@ trae-agent --task "美化登录界面" --agent auto
 ./trae_agent_dispatch.sh --task "为电商系统编写产品需求文档" --agent product-manager
 
 # 指定测试专家编写测试
-./trae_agent_dispatch.sh --task "为用户服务编写单元测试和集成测试" --agent test-expert
+./trae_agent_dispatch.sh --task "为用户服务编写单元测试和集成测试" --agent tester
 
-# 指定独立开发者编写代码
-./trae_agent_dispatch.sh --task "实现 RESTful API 端点" --agent solo-coder
+# 指定开发工程师编写代码
+./trae_agent_dispatch.sh --task "实现 RESTful API 端点" --agent developer
+
+# 指定 UI 设计师设计界面
+./trae_agent_dispatch.sh --task "设计现代化的登录页面" --agent ui-designer
+
+# 指定 DevOps 工程师配置 CI/CD
+./trae_agent_dispatch.sh --task "配置 GitHub Actions 自动部署" --agent devops
 
 # 启用详细模式
 ./trae_agent_dispatch.sh --task "实现功能" --verbose
