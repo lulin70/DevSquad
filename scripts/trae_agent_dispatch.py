@@ -24,6 +24,17 @@ script_dir = Path(__file__).parent.resolve()
 if str(script_dir) not in sys.path:
     sys.path.insert(0, str(script_dir))
 
+# 导入任务进度管理函数（供 trae_agent_dispatch_v2.py 使用）
+try:
+    from task_completion_checker import load_task_progress, update_task_status
+except ImportError as e:
+    # 如果无法导入，提供空实现以避免崩溃
+    def load_task_progress(project_root):
+        return {}
+    
+    def update_task_status(progress, task_id, status, description, project_root):
+        pass
+
 # 导入 v2 版本的调度器
 try:
     from trae_agent_dispatch_v2 import main
