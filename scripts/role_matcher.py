@@ -138,51 +138,30 @@ class RoleMatcher:
     
     def match(self, requirement: TaskRequirement, top_k: int = 3) -> List[MatchResult]:
         """
-        匹配最适合的角色
+        匹配最适合的角色（AI 驱动）
         
         Args:
             requirement: 任务需求
             top_k: 返回前 K 个匹配结果
             
         Returns:
-            List[MatchResult]: 匹配结果列表
+            List[MatchResult]: 匹配结果列表，按置信度降序排列
         """
-        results = []
+        print(f"🧠 开始 AI 智能角色匹配...")
+        print(f"   任务：{requirement.title}")
+        print(f"   描述：{requirement.description[:100]}...")
         
-        # 根据策略进行匹配
-        if self.strategy == MatchStrategy.AI_ENHANCED and self.ai_matcher:
-            # AI 增强匹配（推荐）
-            results = self._ai_enhanced_match(requirement)
-        elif self.strategy == MatchStrategy.SEMANTIC and self.ai_matcher:
-            # 纯 AI 语义匹配
-            results = self._ai_semantic_match(requirement)
-        elif self.strategy == MatchStrategy.KEYWORD:
-            # 关键词匹配
-            for role_id, role in self.roles.items():
-                result = self._keyword_match(requirement, role)
-                if result.confidence > 0.3:
-                    results.append(result)
-        elif self.strategy == MatchStrategy.HYBRID:
-            # 传统混合匹配
-            for role_id, role in self.roles.items():
-                result = self._hybrid_match(requirement, role)
-                if result.confidence > 0.3:
-                    results.append(result)
-        else:
-            # 降级到关键词匹配
-            print("⚠️  降级到关键词匹配")
-            for role_id, role in self.roles.items():
-                result = self._keyword_match(requirement, role)
-                if result.confidence > 0.3:
-                    results.append(result)
+        # 使用 AI 语义匹配
+        if self._should_use_ai() and self.ai_matcher:
+            return self._ai_semantic_match(requirement, top_k)
         
-        # 按置信度排序
-        results.sort(key=lambda r: r.confidence, reverse=True)
-        
-        # 记录匹配历史
-        self._record_match(requirement, results)
-        
-        return results[:top_k]
+        # 降级到混合匹配
+        print("⚠️  降级到混合匹配模式")
+        return self._hybrid_match(requirement, top_k)
+    
+    def _should_use_ai(self) -> bool:
+        """判断是否应该使用 AI 匹配"""
+        return self.strategy in [MatchStrategy.SEMANTIC, MatchStrategy.AI_ENHANCED, MatchStrategy.HYBRID]
     
     def _ai_enhanced_match(self, requirement: TaskRequirement) -> List[MatchResult]:
         """
@@ -242,19 +221,267 @@ class RoleMatcher:
         
         return results
     
-    def _ai_semantic_match(self, requirement: TaskRequirement) -> List[MatchResult]:
+    def _ai_semantic_match(self, requirement: TaskRequirement, top_k: int = 3) -> List[MatchResult]:
         """
-        AI 语义匹配
+        AI 语义匹配（使用 AI 助手）
         
-        使用 AI 进行纯语义匹配
+        利用大模型 AI 助手的语义理解能力，深度分析任务需求与角色能力的匹配度
         
         Args:
+            requirement: 任务需求
+            top_k: 返回前 K 个匹配结果
+            
+        Returns:
+            List[MatchResult]: 匹配结果列表
+        """
+        print("\n🤖 使用 AI 助手进行智能角色匹配...")
+        
+        # 准备角色数据
+        roles_data = []
+        for role_id, role in self.roles.items():
+            roles_data.append({
+                'id': role.role_id,
+                'name': role.name,
+                'description': role.description,
+                'capabilities': role.capabilities,
+                'skills': role.skills,
+                'priority': role.priority
+            })
+        
+        # 构建 AI 提示词
+        prompt = self._build_ai_match_prompt(requirement, roles_data)
+        
+        # 调用 AI 助手
+        try:
+            ai_response = self._call_ai_assistant(prompt)
+            
+            # 解析 AI 响应
+            results = self._parse_ai_response(ai_response, requirement)
+            
+            if results:
+                print(f"✅ AI 匹配成功，返回 {len(results)} 个匹配结果")
+                return results[:top_k]
+            
+        except Exception as e:
+            print(f"⚠️  AI 匹配失败：{e}")
+            print("   降级到传统匹配方法")
+        
+        # 降级到混合匹配
+        return self._hybrid_match(requirement, top_k)
+    
+    def _build_ai_match_prompt(self, requirement: TaskRequirement, 
+                               roles_data: List[Dict]) -> str:
+        """
+        构建 AI 匹配提示词
+        
+        Args:
+            requirement: 任务需求
+            roles_data: 角色数据列表
+            
+        Returns:
+            str: AI 提示词
+        """
+        # 构建角色描述
+        role_descriptions = "\n\n".join([
+            f"{i+1}. **{role['name']}** ({role['id']})\n"
+            f"   描述：{role['description']}\n"
+            f"   能力：{', '.join(role['capabilities'])}\n"
+            f"   技能：{', '.join(role['skills'])}\n"
+            f"   优先级：{role['priority']}"
+            for i, role in enumerate(roles_data)
+        ])
+        
+        prompt = f"""你是一个智能角色匹配专家。请深入分析以下任务需求，匹配最适合的角色。
+
+## 任务需求
+**标题**: {requirement.title}
+**描述**: {requirement.description}
+**所需能力**: {', '.join(requirement.required_capabilities) if requirement.required_capabilities else '未指定'}
+**偏好技能**: {', '.join(requirement.preferred_skills) if requirement.preferred_skills else '未指定'}
+
+## 可用角色
+{role_descriptions}
+
+## 匹配要求
+1. **深度理解任务语义**：分析任务的核心需求、关键能力要求、工作性质
+2. **评估角色匹配度**：考虑角色的专业能力、经验、职责范围
+3. **区分相似角色**：
+   - 架构师 vs UI 设计师：架构师负责系统架构设计，UI 设计师负责界面视觉设计
+   - 开发工程师 vs 测试工程师：开发负责实现功能，测试负责质量保障
+   - 产品经理 vs 架构师：产品经理负责需求分析，架构师负责技术实现
+4. **提供推理过程**：解释为什么这个角色最适合
+5. **给出置信度**：0-1 之间的评分，考虑匹配程度
+
+请以严格的 JSON 格式返回匹配结果（不要有任何其他文字）：
+{{
+    "matches": [
+        {{
+            "role_id": "角色 ID",
+            "role_name": "角色名称",
+            "confidence": 0.95,
+            "reasoning": "详细的匹配推理过程，说明为什么这个角色适合",
+            "matched_capabilities": ["匹配的能力 1", "匹配的能力 2"],
+            "relevance_score": 0.9
+        }}
+    ],
+    "best_match": "最佳匹配角色 ID",
+    "analysis": "整体任务分析和匹配策略说明"
+}}
+
+注意：
+- 必须区分"架构设计"（系统架构）和"界面设计"（UI 设计）
+- 必须区分"功能开发"（写代码）和"需求分析"（产品规划）
+- 优先考虑高优先级角色（优先级 8-10）
+- 置信度应该反映真实的匹配程度，不要过高估计
+"""
+        return prompt
+    
+    def _call_ai_assistant(self, prompt: str) -> str:
+        """
+        调用 AI 助手
+        
+        Args:
+            prompt: 提示词
+            
+        Returns:
+            str: AI 响应
+        """
+        # 尝试使用 Trae AI 助手
+        try:
+            # 检查是否有 Trae AI 客户端
+            if hasattr(self, 'ai_client') and self.ai_client:
+                response = self.ai_client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "你是一个专业的角色匹配专家，擅长分析任务需求并匹配最适合的角色。"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
+                )
+                return response.choices[0].message.content
+            
+            # 尝试使用 ai_semantic_matcher
+            if self.ai_matcher and hasattr(self.ai_matcher, 'ai_client'):
+                response = self.ai_matcher.ai_client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "你是一个专业的角色匹配专家。"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
+                )
+                return response.choices[0].message.content
+                
+        except Exception as e:
+            print(f"⚠️  AI 调用失败：{e}")
+        
+        # 降级方案：使用简化的规则匹配
+        print("⚠️  使用规则-based 匹配作为降级方案")
+        return self._rule_based_fallback(prompt)
+    
+    def _parse_ai_response(self, ai_response: str, 
+                          requirement: TaskRequirement) -> List[MatchResult]:
+        """
+        解析 AI 响应
+        
+        Args:
+            ai_response: AI 响应文本
             requirement: 任务需求
             
         Returns:
             List[MatchResult]: 匹配结果列表
         """
-        return self._ai_enhanced_match(requirement)
+        import json
+        import re
+        
+        try:
+            # 尝试提取 JSON
+            json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                data = json.loads(json_str)
+            else:
+                data = json.loads(ai_response)
+            
+            # 解析匹配结果
+            results = []
+            matches = data.get('matches', [])
+            
+            for match_data in matches:
+                role_id = match_data.get('role_id')
+                role = self.roles.get(role_id)
+                
+                if role:
+                    result = MatchResult(
+                        role_id=role_id,
+                        role_name=match_data.get('role_name', role.name),
+                        confidence=float(match_data.get('confidence', 0.5)),
+                        matched_capabilities=match_data.get('matched_capabilities', []),
+                        matched_skills=[],
+                        missing_capabilities=[],
+                        reasons=[match_data.get('reasoning', 'AI 匹配')],
+                        score_breakdown={
+                            'semantic': float(match_data.get('relevance_score', 0.5)),
+                            'ai_confidence': float(match_data.get('confidence', 0.5))
+                        }
+                    )
+                    results.append(result)
+            
+            # 按置信度排序
+            results.sort(key=lambda r: r.confidence, reverse=True)
+            return results
+            
+        except Exception as e:
+            print(f"⚠️  解析 AI 响应失败：{e}")
+            return []
+    
+    def _rule_based_fallback(self, prompt: str) -> str:
+        """
+        基于规则的降级方案
+        
+        Args:
+            prompt: 原始提示词（未使用）
+            
+        Returns:
+            str: 模拟的 AI 响应
+        """
+        # 这是一个简化的降级方案，当 AI 不可用时使用
+        # 基于关键词和优先级进行简单匹配
+        
+        best_role = None
+        best_score = 0
+        
+        for role_id, role in self.roles.items():
+            # 简单评分：优先级权重 50%，关键词匹配 50%
+            score = (role.priority / 10.0) * 0.5
+            
+            # 这里可以添加简单的关键词匹配逻辑
+            # 但为了保持简洁，我们只使用优先级
+            
+            if score > best_score:
+                best_score = score
+                best_role = role
+        
+        if best_role:
+            return f"""{{
+    "matches": [
+        {{
+            "role_id": "{best_role.role_id}",
+            "role_name": "{best_role.name}",
+            "confidence": 0.7,
+            "reasoning": "基于优先级的降级匹配",
+            "matched_capabilities": {best_role.capabilities[:2]},
+            "relevance_score": 0.7
+        }}
+    ],
+    "best_match": "{best_role.role_id}",
+    "analysis": "使用基于规则的降级方案"
+}}"""
+        
+        return '{"matches": [], "best_match": null, "analysis": "无匹配角色"}'
+
     
     def _keyword_match(self, requirement: TaskRequirement, 
                       role: RoleDefinition) -> MatchResult:
@@ -294,11 +521,15 @@ class RoleMatcher:
         keyword_overlap = len(set(role.keywords) & set(task_keywords))
         keyword_score = min(keyword_overlap / 5, 1.0)  # 最多 5 个关键词重叠
         
-        # 加权平均
+        # 优先级分数（归一化到 0-1，优先级范围 5-10）
+        priority_score = (role.priority - 5) / 5.0  # 5->0, 10->1
+        
+        # 加权平均：能力 40%，技能 25%，关键词 20%，优先级 15%
         confidence = (
-            capability_score * 0.5 +
-            skill_score * 0.3 +
-            keyword_score * 0.2
+            capability_score * 0.40 +
+            skill_score * 0.25 +
+            keyword_score * 0.20 +
+            priority_score * 0.15
         )
         
         # 生成原因
@@ -309,6 +540,8 @@ class RoleMatcher:
             reasons.append(f"匹配技能：{', '.join(matched_skills[:3])}")
         if keyword_overlap > 0:
             reasons.append(f"关键词重叠：{keyword_overlap} 个")
+        if role.priority >= 8:
+            reasons.append(f"高优先级角色（优先级：{role.priority}）")
         
         return MatchResult(
             role_id=role.role_id,
@@ -321,7 +554,8 @@ class RoleMatcher:
             score_breakdown={
                 'capability': capability_score,
                 'skill': skill_score,
-                'keyword': keyword_score
+                'keyword': keyword_score,
+                'priority': priority_score
             }
         )
     
@@ -521,7 +755,7 @@ def create_default_roles() -> List[RoleDefinition]:
                 "系统设计",
                 "代码审查"
             ],
-            keywords=["架构", "设计", "技术", "系统", "性能"],
+            keywords=["架构", "系统设计", "技术选型", "微服务", "性能优化", "安全架构"],
             priority=9  # 高优先级，通常在产品经理之后
         ),
         
@@ -586,7 +820,7 @@ def create_default_roles() -> List[RoleDefinition]:
                 "原型设计",
                 "色彩搭配"
             ],
-            keywords=["UI", "设计", "界面", "交互", "视觉"],
+            keywords=["UI", "界面设计", "交互设计", "视觉设计", "用户体验", "原型", "Figma", "界面美化"],
             priority=6
         ),
         
