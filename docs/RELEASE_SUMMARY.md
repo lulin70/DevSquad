@@ -1,6 +1,45 @@
-# Trae Multi-Agent Skill v2.0-v2.1 发布总结
+# Trae Multi-Agent Skill v2.0-v2.2 发布总结
 
 ## 📦 核心特性
+
+### v2.2 - 长程 Agent 支持 (2026-03-21)
+
+基于 Anthropic 文章《Effective Harnesses for Long-Running Agents》的核心思想：
+
+#### 1. Checkpoint 检查点机制 💾
+- 定期保存任务状态（像人类工程师 git commit）
+- 支持从任意断点恢复
+- 数据完整性校验（SHA256 哈希）
+- 自动过期清理机制
+- 核心类：`Checkpoint`, `HandoffDocument`
+
+#### 2. Handoff 交接班协议 🔄
+- 标准化交接文档（JSON + Markdown）
+- 交接原因记录和信心度评估
+- 重要注意事项传递
+- 支持双智能体架构（Planner + Executor）
+- 交接历史追踪
+
+#### 3. TaskList 任务清单 📋
+- 像人类工程师维护 TODO.md 一样管理任务
+- 4 级优先级（CRITICAL/HIGH/MEDIUM/LOW）
+- 依赖关系管理（is_ready 检查）
+- 进度跟踪和工时估算
+- Markdown 导出功能
+
+#### 4. WorkflowEngineV2 增强版 ⚙️
+- 集成 Checkpoint + TaskList + Handoff
+- 智能任务拆分（基于关键词识别）
+- 定期自动保存检查点
+- 支持 Agent 交接班
+- 断点恢复机制
+
+#### 5. 完整测试套件 ✅
+- 24 个测试全部通过
+- CheckpointManager: 7 个测试
+- HandoffDocument: 3 个测试
+- TaskListManager: 9 个测试
+- WorkflowEngineV2: 5 个测试
 
 ### v2.0 - SimpleSkill 规范实现
 
@@ -67,6 +106,13 @@
 
 ## 🎯 技术亮点
 
+### 长程 Agent (v2.2 新增)
+- Checkpoint 机制：定期保存 + 断点恢复
+- Handoff 协议：标准化交接 + 双智能体架构
+- TaskList 管理：像人类工程师一样管理任务
+- 数据完整性：SHA256 哈希校验
+- 可靠性保障：避免长程任务"断片"问题
+
 ### 架构设计
 - 基于 SimpleSkill 规范
 - 技能原子化设计
@@ -93,10 +139,11 @@
 
 ## 📊 关键数据
 
-- **测试通过率**: 100% (5/5)
+- **测试通过率**: 100% (24/24) ✅
+- **新增测试**: 24 个测试（v2.2 新增）
 - **错误处理覆盖**: 100%
 - **向后兼容**: 是
-- **文件变更**: 46 个文件
+- **文件变更**: 50+ 个文件
 - **代码质量**: 显著提升
 - **AI 增强**: 是
 - **双层上下文**: 是

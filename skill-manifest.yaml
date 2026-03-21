@@ -1,7 +1,7 @@
 name: trae-multi-agent
-version: 2.1.0
+version: 2.2.0
 description: |
-  Trae 多智能体协作技能（AI 增强版）
+  Trae 多智能体协作技能（AI 增强版 + 长程 Agent 支持）
   
   基于双层动态上下文管理架构和大模型 AI 助手能力，实现智能体之间的高效协作。
   支持产品、架构、开发、测试等多种角色的智能调度和工作流编排。
@@ -13,6 +13,7 @@ description: |
   - 完整的技能注册和发现机制
   - 经验沉淀和知识积累
   - 大模型 AI 助手深度集成
+  - 长程 Agent 支持（Checkpoint + Handoff + TaskList）
 
 author: Trae Team
 status: active
@@ -22,6 +23,7 @@ ai_capabilities:
   intelligent_reasoning: true
   context_understanding: true
   natural_language_interface: true
+  long_running_agent: true
 
 capabilities:
   - name: product-manager

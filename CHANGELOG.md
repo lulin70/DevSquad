@@ -5,6 +5,66 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.2.0] - 2026-03-21
+
+### Added
+
+#### 长程 Agent 支持 (基于 Anthropic《Effective Harnesses for Long-Running Agents》)
+
+##### Checkpoint 检查点管理器
+- ✅ `CheckpointManager` 类 (`scripts/checkpoint_manager.py`)
+  - 定期保存任务状态（像人类工程师 git commit）
+  - 支持从任意断点恢复
+  - 数据完整性校验（SHA256 哈希）
+  - 自动过期清理机制
+  - 交接文档生成
+
+##### Handoff 交接班协议
+- ✅ `HandoffDocument` 类
+  - 标准化交接文档（JSON + Markdown）
+  - 交接原因记录和信心度评估
+  - 重要注意事项传递
+  - 支持双智能体架构（Planner + Executor）
+  - 交接历史追踪
+
+##### TaskList 任务清单管理器
+- ✅ `TaskListManager` 类 (`scripts/task_list_manager.py`)
+  - 4 级优先级（CRITICAL/HIGH/MEDIUM/LOW）
+  - 5 种状态（PENDING/IN_PROGRESS/COMPLETED/BLOCKED/CANCELLED）
+  - 依赖关系管理（is_ready 检查）
+  - 进度跟踪和工时估算
+  - Markdown 导出功能
+
+##### WorkflowEngineV2 增强版
+- ✅ `WorkflowEngineV2` 类 (`scripts/workflow_engine_v2.py`)
+  - 集成 Checkpoint + TaskList + Handoff
+  - 智能任务拆分（基于关键词识别）
+  - 定期自动保存检查点
+  - 支持 Agent 交接班
+  - 断点恢复机制
+
+##### 完整测试套件
+- ✅ 24 个测试全部通过
+  - `TestCheckpointManager`: 7 个测试
+  - `TestHandoffDocument`: 3 个测试
+  - `TestTaskListManager`: 9 个测试
+  - `TestWorkflowEngineV2`: 5 个测试
+
+### Fixed
+
+#### 角色匹配问题
+- ✅ 修复角色匹配总是匹配到 UI 设计师的问题
+  - 优化关键词区分度
+  - 添加 AI 语义匹配
+  - 增强优先级权重
+
+#### JSON 序列化问题
+- ✅ 修复枚举类型 JSON 序列化错误
+  - Checkpoint 状态枚举转换
+  - TaskList 状态和优先级枚举转换
+  - WorkflowEngine 步骤状态枚举转换
+  - 数据完整性哈希校验
+
 ## [1.3.0] - 2026-03-12
 
 ### Fixed

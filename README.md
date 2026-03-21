@@ -4,6 +4,7 @@
 
 ## 🎉 2026 年 3 月最新更新
 
+- ✅ **长程 Agent 支持 (v2.2)** - 基于 Anthropic《Effective Harnesses for Long-Running Agents》核心思想，支持 Checkpoint 检查点、Handoff 交接班、TaskList 任务清单
 - ✅ **AI 语义理解驱动的角色匹配 (v2.1)** - 使用大模型理解任务深层语义，提供可解释的匹配结果和置信度评分
 - ✅ **AI 助手深度集成 (v2.1)** - 集成大模型 AI 助手能力，支持代码审查、知识问答、文本分析等功能
 - ✅ **智能缓存和降级策略 (v2.1)** - 性能优化，AI 不可用时自动降级到关键词匹配
@@ -77,6 +78,52 @@
    - 智能缓存机制（减少 40-60% API 调用）
    - 自动降级策略（AI 不可用时使用关键词匹配）
    - 批量处理和异步请求支持
+
+### 长程 Agent 支持 (v2.2 新增)
+
+基于 Anthropic 文章《Effective Harnesses for Long-Running Agents》的核心思想，解决长程任务中的"断片"问题：
+
+1. **Checkpoint 检查点机制** 💾
+   - 定期保存任务状态（像人类工程师 git commit）
+   - 支持从任意断点恢复
+   - 数据完整性校验（SHA256 哈希）
+   - 自动过期清理
+   - 核心文件：`scripts/checkpoint_manager.py`
+
+2. **Handoff 交接班协议** 🔄
+   - 标准化交接文档（JSON + Markdown）
+   - 交接原因记录
+   - 信心度评估
+   - 重要注意事项传递
+   - 支持双智能体架构（Planner + Executor）
+
+3. **TaskList 任务清单** 📋
+   - 像人类工程师维护 TODO.md 一样管理任务
+   - 任务拆解和优先级排序
+   - 依赖关系管理
+   - 进度跟踪
+   - Markdown 导出
+   - 核心文件：`scripts/task_list_manager.py`
+
+4. **WorkflowEngineV2 增强版工作流** ⚙️
+   - 集成 Checkpoint + TaskList + Handoff
+   - 智能任务拆分
+   - 定期自动保存检查点
+   - 支持 Agent 交接班
+   - 断点恢复机制
+   - 核心文件：`scripts/workflow_engine_v2.py`
+
+**使用示例**:
+```bash
+# 创建带长程支持的工作流
+python3 scripts/workflow_engine_v2_demo.py \
+    --task "实现完整电商系统"
+
+# 运行测试
+python3 scripts/tests/run_tests.py
+```
+
+**测试结果**: 24 个测试全部通过 ✅
 
 ### 核心能力
 

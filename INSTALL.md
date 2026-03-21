@@ -114,7 +114,39 @@ trae-agent --task "测试" --agent architect --dry-run
 ```bash
 chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/scripts/trae_agent.py
 chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/scripts/trae_agent_dispatch.py
+chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/scripts/trae_agent_dispatch_v2.py
 ```
+
+## 长程 Agent 功能 (v2.2)
+
+本版本新增基于 Anthropic《Effective Harnesses for Long-Running Agents》思想的长程 Agent 支持：
+
+### 新增组件
+
+1. **CheckpointManager** (`scripts/checkpoint_manager.py`)
+   - 检查点保存和恢复
+   - 数据完整性校验
+   - 交接文档生成
+
+2. **TaskListManager** (`scripts/task_list_manager.py`)
+   - 任务清单管理
+   - 优先级排序
+   - Markdown 导出
+
+3. **WorkflowEngineV2** (`scripts/workflow_engine_v2.py`)
+   - 增强版工作流引擎
+   - 自动检查点保存
+   - Agent 交接班支持
+
+### 运行测试
+
+```bash
+# 运行长程 Agent 功能测试
+cd /Users/wangwei/claw/.trae/skills/trae-multi-agent
+python3 scripts/tests/run_tests.py
+```
+
+**预期输出**: 24 个测试全部通过 ✅
 
 ## 卸载
 
