@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 14,
   "user_profile": {
     "user_id": "test-user",
     "identity": "架构师",
@@ -14,7 +14,7 @@
       "微服务"
     ],
     "created_at": "2026-03-17T22:29:47.559022",
-    "updated_at": "2026-03-17T22:29:47.563692"
+    "updated_at": "2026-03-23T12:17:22.755591"
   },
   "knowledge_base": {
     "know-TEST-001-arch": {
@@ -62,6 +62,17 @@
       "best_practices": [],
       "patterns": [],
       "created_at": "2026-03-17T22:29:47.563420"
+    },
+    "exp-为生物医学翻译系统添加文本翻译功能，包括文本输入页面、自动语言检测、中英互译、中匈牙利语互译、术语库集成、实时LLM翻译、质量检查和友好的用户界面": {
+      "id": "exp-为生物医学翻译系统添加文本翻译功能，包括文本输入页面、自动语言检测、中英互译、中匈牙利语互译、术语库集成、实时LLM翻译、质量检查和友好的用户界面",
+      "task_id": "为生物医学翻译系统添加文本翻译功能，包括文本输入页面、自动语言检测、中英互译、中匈牙利语互译、术语库集成、实时LLM翻译、质量检查和友好的用户界面",
+      "task_type": "general",
+      "success": true,
+      "description": "任务：为生物医学翻译系统添加文本翻译功能，包括文本输入页面、自动语言检测、中英互译、中匈牙利语互译、术语库集成、实时LLM翻译、质量检查和友好的用户界面",
+      "lessons_learned": [],
+      "best_practices": [],
+      "patterns": [],
+      "created_at": "2026-03-23T12:17:22.755080"
     }
   },
   "collaboration_net": {},
@@ -172,6 +183,24 @@
       "stats": {
         "knowledge_count": 1,
         "experience_count": 2,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 13,
+      "timestamp": "2026-03-23T12:17:22.755084",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 3,
+        "collaboration_count": 0
+      }
+    },
+    {
+      "version": 14,
+      "timestamp": "2026-03-23T12:17:22.755595",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 3,
         "collaboration_count": 0
       }
     }

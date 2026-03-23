@@ -440,46 +440,48 @@ class RoleMatcher:
     def _rule_based_fallback(self, prompt: str) -> str:
         """
         基于规则的降级方案
-        
+
         Args:
             prompt: 原始提示词（未使用）
-            
+
         Returns:
             str: 模拟的 AI 响应
         """
         # 这是一个简化的降级方案，当 AI 不可用时使用
         # 基于关键词和优先级进行简单匹配
-        
+
         best_role = None
         best_score = 0
-        
+
         for role_id, role in self.roles.items():
             # 简单评分：优先级权重 50%，关键词匹配 50%
             score = (role.priority / 10.0) * 0.5
-            
+
             # 这里可以添加简单的关键词匹配逻辑
             # 但为了保持简洁，我们只使用优先级
-            
+
             if score > best_score:
                 best_score = score
                 best_role = role
-        
+
         if best_role:
-            return f"""{{
+            return '''
+{
     "matches": [
-        {{
-            "role_id": "{best_role.role_id}",
-            "role_name": "{best_role.name}",
+        {
+            "role_id": "%s",
+            "role_name": "%s",
             "confidence": 0.7,
             "reasoning": "基于优先级的降级匹配",
-            "matched_capabilities": {best_role.capabilities[:2]},
+            "matched_capabilities": ["%s"],
             "relevance_score": 0.7
-        }}
+        }
     ],
-    "best_match": "{best_role.role_id}",
+    "best_match": "%s",
     "analysis": "使用基于规则的降级方案"
-}}"""
-        
+}
+''' % (best_role.role_id, best_role.name, best_role.capabilities[0], best_role.role_id)
+
         return '{"matches": [], "best_match": null, "analysis": "无匹配角色"}'
 
     

@@ -1,0 +1,106 @@
+<svg width="1000" height="800" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="1000" height="800" fill="#f8f9fa"/>
+  
+  <!-- 标题 -->
+  <text x="500" y="40" font-family="Arial, sans-serif" font-size="30" font-weight="bold" text-anchor="middle" fill="#2c3e50">Trae Multi-Agent v2.2 长程 Agent 架构</text>
+  <text x="500" y="70" font-family="Arial, sans-serif" font-size="22" text-anchor="middle" fill="#7f8c8d">老程序员的经验分享</text>
+  
+  <!-- 工作流引擎 -->
+  <rect x="350" y="100" width="300" height="100" rx="10" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2"/>
+  <text x="500" y="130" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#6a0080">WorkflowEngineV2</text>
+  <text x="500" y="155" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#6a0080">增强版工作流引擎</text>
+  
+  <!-- 调度机制 -->
+  <rect x="350" y="220" width="300" height="80" rx="6" fill="#e8f5e8" stroke="#388e3c" stroke-width="2"/>
+  <text x="500" y="250" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#1b5e20">调度机制</text>
+  <text x="500" y="270" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#1b5e20">任务分析 • 角色匹配 • 智能交接</text>
+  
+  <!-- 第一行：Planner -->
+  <rect x="150" y="320" width="150" height="100" rx="8" fill="#b3e5fc" stroke="#03a9f4" stroke-width="2"/>
+  <text x="225" y="350" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#0277bd">Planner</text>
+  <text x="225" y="375" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#0277bd">规划者</text>
+  <text x="225" y="400" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#0277bd">• 任务拆解</text>
+  <text x="225" y="415" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#0277bd">• 制定计划</text>
+  
+  <!-- 第一行：TaskList -->
+  <rect x="350" y="320" width="150" height="100" rx="8" fill="#c8e6c9" stroke="#4caf50" stroke-width="2"/>
+  <text x="425" y="350" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#2e7d32">TaskList</text>
+  <text x="425" y="375" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#2e7d32">任务清单</text>
+  
+  <!-- 第一行：Executor -->
+  <rect x="550" y="320" width="150" height="100" rx="8" fill="#ffcc80" stroke="#ff9800" stroke-width="2"/>
+  <text x="625" y="350" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#e65100">Executor</text>
+  <text x="625" y="375" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#e65100">执行者</text>
+  <text x="625" y="400" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#e65100">• 执行任务</text>
+  <text x="625" y="415" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#e65100">• 测试验证</text>
+  
+  <!-- 专业角色 -->
+  <rect x="750" y="320" width="150" height="100" rx="8" fill="#e1bee7" stroke="#9c27b0" stroke-width="2"/>
+  <text x="825" y="350" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#6a0080">专业角色</text>
+  <text x="825" y="375" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#6a0080">• 架构师</text>
+  <text x="825" y="390" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#6a0080">• 产品经理</text>
+  <text x="825" y="405" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#6a0080">• 测试专家</text>
+  
+  <!-- 第二行：Checkpoint -->
+  <rect x="200" y="450" width="180" height="80" rx="6" fill="#ffecb3" stroke="#ffc107" stroke-width="2"/>
+  <text x="290" y="480" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#e65100">Checkpoint</text>
+  <text x="290" y="500" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#e65100">检查点机制</text>
+  
+  <!-- 第二行：Handoff -->
+  <rect x="620" y="450" width="180" height="80" rx="6" fill="#ffcdd2" stroke="#f44336" stroke-width="2"/>
+  <text x="710" y="480" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#c62828">Handoff</text>
+  <text x="710" y="500" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#c62828">交接班协议</text>
+  
+  <!-- 箭头：工作流引擎 -> 调度机制 -->
+  <path d="M500 200 L500 220" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="500,220 495,210 505,210" fill="#666666"/>
+  
+  <!-- 箭头：调度机制 -> Planner -->
+  <path d="M350 260 L225 320" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="225,320 235,315 230,305" fill="#666666"/>
+  <text x="287" y="290" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666666">角色分配</text>
+  
+  <!-- 箭头：Planner -> TaskList -->
+  <path d="M300 370 L350 370" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="350,370 340,365 340,375" fill="#666666"/>
+  <text x="325" y="360" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666666">生成任务</text>
+  
+  <!-- 箭头：TaskList -> Executor -->
+  <path d="M500 370 L550 370" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="550,370 540,365 540,375" fill="#666666"/>
+  <text x="525" y="360" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666666">分配任务</text>
+  
+  <!-- 箭头：Executor -> 专业角色 -->
+  <path d="M700 370 L750 370" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="750,370 740,365 740,375" fill="#666666"/>
+  <text x="725" y="360" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666666">专业支持</text>
+  
+  <!-- 箭头：专业角色 -> Executor -->
+  <path d="M825 420 L625 420" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="625,420 635,415 635,425" fill="#666666"/>
+  <text x="725" y="410" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666666">返回结果</text>
+  
+  <!-- 箭头：Executor -> 工作流引擎 -->
+  <path d="M625 320 L500 200" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="500,200 510,205 505,215" fill="#666666"/>
+  <text x="562" y="260" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666666" transform="rotate(-45, 562, 260)">任务完成</text>
+  
+  <!-- 箭头：工作流引擎 -> Checkpoint -->
+  <path d="M350 150 L290 450" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="290,450 300,445 295,435" fill="#666666"/>
+  
+  <!-- 箭头：工作流引擎 -> Handoff -->
+  <path d="M575 150 L710 450" stroke="#666666" stroke-width="2" stroke-linecap="round"/>
+  <polygon points="710,450 700,445 705,435" fill="#666666"/>
+  
+  <!-- 底部说明 -->
+  <rect x="100" y="550" width="800" height="120" rx="10" fill="#f5f5f5" stroke="#757575" stroke-width="1"/>
+  <text x="500" y="580" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="#212121">核心优势：让 AI 像人类工程师一样工作</text>
+  <text x="500" y="605" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#616161">定期保存进度 • 标准化交接 • 任务清单管理 • 断点恢复 • 智能角色调度</text>
+  <text x="500" y="630" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#616161">长程 Agent 与现有专业角色协同工作，提升整体效率</text>
+  <text x="500" y="655" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#616161">工作流程：任务分析 → 规划 → 任务分配 → 执行 → 专业支持 → 完成 → 检查点保存</text>
+  
+  <!-- 签名 -->
+  <text x="500" y="780" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#9e9e9e">Trae Multi-Agent v2.2 | 老程序员的经验分享</text>
+</svg>
