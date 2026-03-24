@@ -1072,6 +1072,28 @@ class DualLayerContextManager:
         
         # 当前任务
         self.current_task_id: Optional[str] = None
+        
+        # 初始化项目结构（如果不存在）
+        self._ensure_project_structure()
+    
+    def _ensure_project_structure(self):
+        """确保项目目录结构存在"""
+        # 角色目录映射
+        role_dirs = [
+            'docs/roles/architect',
+            'docs/roles/product-manager',
+            'docs/roles/solo-coder',
+            'docs/roles/test-expert',
+            'docs/roles/ui-designer',
+            'docs/roles/devops'
+        ]
+        
+        for role_dir in role_dirs:
+            full_path = self.project_root / role_dir
+            full_path.mkdir(parents=True, exist_ok=True)
+        
+        # 创建 docs/spec 目录
+        (self.project_root / 'docs/spec').mkdir(parents=True, exist_ok=True)
     
     def start_task(self, task_definition: TaskDefinition) -> TaskContext:
         """
