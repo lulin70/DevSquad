@@ -4,9 +4,11 @@
 
 ## 🎉 2026 年 3 月最新更新
 
+- ✅ **多角色代码走读 (v2.3)** - 架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析代码，生成对齐后的统一代码地图
+- ✅ **代码地图 Workspace 支持 (v2.3)** - 支持一个 workspace 包含多个项目的场景，明确项目标识
 - ✅ **长程 Agent 支持 (v2.2)** - 基于 Anthropic《Effective Harnesses for Long-Running Agents》核心思想，支持 Checkpoint 检查点、Handoff 交接班、TaskList 任务清单
 - ✅ **AI 语义理解驱动的角色匹配 (v2.1)** - 使用大模型理解任务深层语义，提供可解释的匹配结果和置信度评分
-- ✅ **AI 助手深度集成 (v2.1)** - 集成大模型 AI 助手能力，支持代码审查、知识问答、文本分析等功能
+- ✅ **AI 助手深度集成 (v2.1)** - 集成大模型 AI 助手能力，支持代码审查，知识问答、文本分析等功能
 - ✅ **智能缓存和降级策略 (v2.1)** - 性能优化，AI 不可用时自动降级到关键词匹配
 - ✅ **UI 设计师角色** - 添加 UI 设计师角色，创建独特、生产级的 UI 界面，避免通用的 AI "slop" 美学
 - ✅ **Agent Loop 思考循环修复** - 修复 is_all_tasks_completed 方法，增加连续无进展检测保护机制
@@ -14,7 +16,7 @@
 - ✅ **代码地图生成** - 自动生成项目代码结构映射，支持 JSON 和 Markdown 格式，识别核心组件和模块依赖
 - ✅ **项目理解** - 快速读取项目文档和代码，为各角色生成定制化理解文档，提供项目概览和技术栈分析
 - ✅ **八阶段标准工作流程** - 需求分析→架构设计→UI 设计→测试设计→任务分解→开发实现→测试验证→发布评审
-- ✅ **跨角色设计评审机制** - PRD 评审、架构评审、UI 设计评审、测试计划评审、开发计划评审
+- ✅ **跨角色设计评审机制** - PRD 评审、架构评审、UI 设计评审、测试计划评审，开发计划评审
 - ✅ **基于文档的任务分解** - 所有角色基于文档进行任务分解，确保文档驱动开发
 
 ## 🌍 多语言支持 / Multi-Language Support
@@ -156,11 +158,15 @@ python3 scripts/tests/run_tests.py
    - 多角色共识制定规范
 
 6. **代码地图生成** 🗺️
-   - 自动生成项目代码结构映射（code_map_generator.py）
+   - 自动生成项目代码结构映射（code_map_generator_v2.py）
    - 支持 JSON 和 Markdown 格式输出
    - 识别核心组件和模块依赖
    - 可视化项目结构文档
    - 技术栈分析和统计
+   - **多项目 Workspace 支持**（v2.3 新增）- 自动识别项目所属 workspace
+   - **多角色代码走读**（v2.3 新增）- 架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析
+   - **文档对齐机制**（v2.3 新增）- 多角色分析结果对齐，生成统一代码地图
+   - 核心文件：`scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`
 
 8. **项目理解** 📚
    - 快速读取项目文档和代码（project_understanding.py）
@@ -267,7 +273,10 @@ python3 scripts/spec_tools.py analyze
 python3 scripts/spec_tools.py update --spec-file SPEC.md
 
 # 代码地图生成
-python3 scripts/code_map_generator.py /path/to/project
+python3 scripts/code_map_generator_v2.py /path/to/project --workspace /workspace
+
+# 多角色代码走读
+python3 scripts/multi_role_code_walkthrough.py /path/to/project --workspace /workspace
 
 # 项目理解
 python3 scripts/project_understanding.py /path/to/project
@@ -458,19 +467,25 @@ python3 scripts/trae_agent_dispatch.py \
 ### 场景 6: 代码地图生成
 
 ```bash
-# 生成代码地图
-python3 scripts/code_map_generator.py /path/to/project
+# 生成代码地图（支持 workspace）
+python3 scripts/code_map_generator_v2.py /path/to/project --workspace /workspace
 
 # 输出：
-# - JSON格式：code_map.json
-# - Markdown格式：PROJECT_STRUCTURE.md
+# - Markdown 格式：<project>-CODE_MAP.md
+
+# 多角色代码走读
+python3 scripts/multi_role_code_walkthrough.py /path/to/project --workspace /workspace
+
+# 输出：
+# - 统一代码地图：<project>-ALIGNED-CODE-MAP.md
 
 # 生成的内容包括：
 #   - 项目概览和统计信息
-#   - 目录结构树
-#   - 核心组件和入口文件
-#   - 模块依赖关系
-#   - 技术栈分析
+#   - 架构分层和模块
+#   - 核心组件（类、函数）
+#   - 多角色视角
+#   - 文档对齐结果
+#   - 快速参考指南
 ```
 
 ### 场景 7: 项目理解

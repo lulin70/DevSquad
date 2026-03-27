@@ -1,5 +1,5 @@
 name: trae-multi-agent
-version: 2.2.0
+version: 2.3.0
 description: |
   Trae 多智能体协作技能（AI 增强版 + 长程 Agent 支持）
   
@@ -483,6 +483,20 @@ metadata:
   documentation: https://github.com/weiransoft/zeroclaw/tree/main/.trae/skills/trae-multi-agent
   
   version_history:
+    - version: 2.3.0
+      date: "2026-03-28"
+      changes:
+        - 多角色代码走读：架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析
+        - 代码地图 Workspace 支持：支持一个 workspace 包含多个项目
+        - 文档对齐机制：多角色分析结果对齐，生成统一代码地图
+        - 代码地图生成器 v2.1：多语言分析、架构分层检测、调用关系追踪
+
+    - version: 2.2.0
+      date: "2026-03-21"
+      changes:
+        - 长程 Agent 支持（Checkpoint + Handoff + TaskList）
+        - 基于 Anthropic《Effective Harnesses for Long-Running Agents》
+
     - version: 2.0.0
       date: "2026-03-17"
       changes:
@@ -491,7 +505,7 @@ metadata:
         - 新增智能角色匹配器
         - 新增工作流编排引擎
         - 完整的经验沉淀机制
-    
+
     - version: 1.0.0
       date: "2026-03-16"
       changes:

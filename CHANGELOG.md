@@ -5,6 +5,40 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.3.0] - 2026-03-28
+
+### Added
+
+#### 代码地图增强 (v2.3)
+
+##### 多项目 Workspace 支持
+- ✅ 支持一个 workspace 包含多个项目的场景
+- ✅ 自动识别项目所属 workspace
+- ✅ 明确项目标识（项目名称、工作空间、相对路径）
+
+##### 多角色代码走读
+- ✅ `MultiRoleCodeWalkthrough` 类 (`scripts/multi_role_code_walkthrough.py`)
+- ✅ 支持 5 种角色分析：架构师、产品经理、独立开发者、UI 设计师、测试专家
+- ✅ 角色专属代码分析 prompt 模板
+- ✅ 文档对齐机制，合并多角色分析结果
+- ✅ 生成统一代码地图
+
+##### 角色专属 Prompt 模板
+- ✅ 架构师代码分析模板 (`docs/spec/role-prompts/architect-code-analysis.md`)
+- ✅ 产品经理代码分析模板 (`docs/spec/role-prompts/pm-code-analysis.md`)
+- ✅ 独立开发者代码分析模板 (`docs/spec/role-prompts/coder-code-analysis.md`)
+- ✅ UI 设计师代码分析模板 (`docs/spec/role-prompts/ui-code-analysis.md`)
+- ✅ 测试专家代码分析模板 (`docs/spec/role-prompts/test-code-analysis.md`)
+
+##### 代码地图生成器 v2.1
+- ✅ `CodeMapGenerator` 类增强 (`scripts/code_map_generator_v2.py`)
+- ✅ 支持多语言分析：Python, Java, JavaScript/TypeScript, Go 等
+- ✅ 架构分层检测（API Layer, Service Layer, Data Layer 等）
+- ✅ 函数和类详细信息提取
+- ✅ 调用关系追踪
+- ✅ 复杂度评估
+- ✅ md 格式输出
+
 ## [2.2.0] - 2026-03-21
 
 ### Added

@@ -4,11 +4,19 @@
 
 ## 🎉 March 2026 Latest Updates
 
-- ✅ **Specification-Driven Development** - Complete specification toolchain, unified document management system, multi-agent consensus for specification development
-- ✅ **Code Map Generation** - Automatically generates project code structure map, supports JSON and Markdown formats, identifies core components and module dependencies
-- ✅ **Project Understanding** - Quickly reads project documents and code, generates role-specific understanding documents, provides project overview and technology stack analysis
-- ✅ **7-Stage Standard Workflow** - Requirements Analysis → Architecture Design → Test Design → Task Breakdown → Development Implementation → Test Verification → Release Review
-- ✅ **Cross-Role Design Review Mechanism** - PRD review, architecture review, test plan review, development plan review
+- ✅ **Multi-Role Code Walkthrough (v2.3)** - Architect, PM, Solo Coder, UI Designer, Test Expert analyze code from multiple perspectives, generate aligned unified code map
+- ✅ **Code Map Workspace Support (v2.3)** - Supports single workspace with multiple projects, clear project identification
+- ✅ **Long-Running Agent Support (v2.2)** - Based on Anthropic's "Effective Harnesses for Long-Running Agents", supports Checkpoint, Handoff, and TaskList
+- ✅ **AI Semantic Role Matching (v2.1)** - Uses LLM to understand task deep semantics, provides explainable matching results and confidence scores
+- ✅ **AI Assistant Deep Integration (v2.1)** - Integrated LLM capabilities, supports code review, knowledge Q&A, text analysis
+- ✅ **Smart Cache and Fallback Strategy (v2.1)** - Performance optimization, auto-fallback to keyword matching when AI unavailable
+- ✅ **UI Designer Role** - Creates unique, production-grade UI interfaces, avoids generic AI "slop" aesthetics
+- ✅ **Agent Loop Fix** - Fixed is_all_tasks_completed method, added continuous no-progress detection
+- ✅ **Specification-Driven Development** - Complete specification toolchain, unified document management, multi-agent consensus
+- ✅ **Code Map Generation** - Auto-generates project code structure map, supports JSON and Markdown, identifies core components
+- ✅ **Project Understanding** - Quickly reads project docs and code, generates role-specific understanding documents
+- ✅ **8-Stage Standard Workflow** - Requirements → Architecture → UI Design → Test Design → Task Breakdown → Development → Test → Release
+- ✅ **Cross-Role Design Review** - PRD review, architecture review, UI review, test plan review, dev plan review
 - ✅ **Document-Based Task Breakdown** - All roles break down tasks based on documents, ensuring document-driven development
 
 ## 🌍 Multi-Language Support / Multi-Language Support
@@ -69,11 +77,15 @@
    - Multi-agent consensus for specification development
 
 6. **Code Map Generation** 🗺️
-   - Automatically generates project code structure map (code_map_generator.py)
+   - Automatically generates project code structure map (code_map_generator_v2.py)
    - Supports JSON and Markdown format output
    - Identifies core components and module dependencies
    - Visual project structure documentation
    - Technology stack analysis and statistics
+   - **Multi-Project Workspace Support** (v2.3) - Auto-detects project workspace
+   - **Multi-Role Code Walkthrough** (v2.3) - Architect, PM, Solo Coder, UI Designer, Test Expert analyze from multiple perspectives
+   - **Document Alignment Mechanism** (v2.3) - Aligns multi-role analysis results, generates unified code map
+   - Core files: `scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`
 
 7. **Project Understanding** 📚
    - Quickly reads project documents and code (project_understanding.py)
@@ -165,7 +177,10 @@ python3 scripts/spec_tools.py analyze
 python3 scripts/spec_tools.py update --spec-file SPEC.md
 
 # Code map generation
-python3 scripts/code_map_generator.py /path/to/project
+python3 scripts/code_map_generator_v2.py /path/to/project --workspace /workspace
+
+# Multi-role code walkthrough
+python3 scripts/multi_role_code_walkthrough.py /path/to/project --workspace /workspace
 
 # Project understanding
 python3 scripts/project_understanding.py /path/to/project
@@ -337,19 +352,25 @@ python3 scripts/trae_agent_dispatch.py \
 ### Scenario 6: Code Map Generation / 场景 6: 代码地图生成
 
 ```bash
-# Generate code map
-python3 scripts/code_map_generator.py /path/to/project
+# Generate code map (with workspace support)
+python3 scripts/code_map_generator_v2.py /path/to/project --workspace /workspace
 
 # Output:
-# - JSON format: code_map.json
-# - Markdown format: PROJECT_STRUCTURE.md
+# - Markdown format: <project>-CODE_MAP.md
+
+# Multi-role code walkthrough
+python3 scripts/multi_role_code_walkthrough.py /path/to/project --workspace /workspace
+
+# Output:
+# - Unified code map: <project>-ALIGNED-CODE-MAP.md
 
 # Generated content includes:
 #   - Project overview and statistics
-#   - Directory structure tree
-#   - Core components and entry points
-#   - Module dependency relationships
-#   - Technology stack analysis
+#   - Architecture layers and modules
+#   - Core components (classes, functions)
+#   - Multi-role perspectives
+#   - Document alignment results
+#   - Quick reference guide
 ```
 
 ### Scenario 7: Project Understanding / 场景 7: 项目理解
