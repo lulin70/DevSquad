@@ -92,8 +92,236 @@ class FileInfo:
     classes: List[ClassInfo] = field(default_factory=list)
     imports: List[str] = field(default_factory=list)
     exports: List[str] = field(default_factory=list)
-    complexity: str = "low"
-    tags: List[str] = field(default_factory=list)
+
+
+class AICallRelationAnalyzer:
+    """AI 调用关系分析器
+
+    使用 AI 深度分析代码文件间的隐式调用关系，弥补静态分析的不足。
+    AI 可以识别：
+    - 依赖注入的调用
+    - 反射/动态调用
+    - 回调和事件处理
+    - 配置驱动的调用
+    - 隐式的服务间调用
+    """
+
+    def __init__(self, api_base: str = "http://localhost:11434", model: str = "qwen2.5"):
+        self.api_base = api_base
+        self.model = model
+
+    def analyze_file_relations(self, file_path: str, file_content: str,
+                               project_files: List[FileInfo]) -> Dict[str, List[str]]:
+        """分析单个文件的调用关系
+
+        Args:
+            file_path: 文件路径
+            file_content: 文件内容
+            project_files: 项目所有文件信息
+
+        Returns:
+            Dict[str, List[str]]: 文件ID -> 调用文件ID列表 的映射
+        """
+        # 构建项目文件摘要供 AI 参考
+        file_summaries = []
+        for pf in project_files[:50]:  # 限制数量避免上下文过长
+            summary = f"- {pf.relative_path}"
+            if pf.classes:
+                summary += f" (classes: {', '.join(c.name for c in pf.classes)})"
+            if pf.functions:
+                summary += f" (functions: {', '.join(f.name for f in pf.functions[:5])}...)"
+            file_summaries.append(summary)
+
+        prompt = f"""你是一个代码分析专家。请分析以下代码文件的调用关系。
+
+文件路径: {file_path}
+
+文件内容:
+```{self._get_language(file_path)}
+{file_content[:3000]}  # 限制长度
+```
+
+项目中的关键文件:
+{chr(10).join(file_summaries)}
+
+请分析这个文件调用了哪些其他文件/模块的哪些具体函数或类方法。
+注意识别:
+1. 显式的 import 调用
+2. 依赖注入的调用 (如 service.xxx, self.xxx)
+3. 回调和事件处理
+4. 配置驱动的动态调用
+5. 隐式的服务间调用
+
+以 JSON 格式返回分析结果:
+{{
+  "calls": [
+    {{
+      "target_file": "文件路径",
+      "target_function": "函数/方法名",
+      "call_type": "direct|dynamic|di|event|config",
+      "confidence": "high|medium|low"
+    }}
+  ]
+}}
+
+只返回 JSON，不要有其他文字。"""
+
+        try:
+            result = self._call_ollama(prompt)
+            return self._parse_ai_result(result, project_files)
+        except Exception as e:
+            print(f"  AI 分析失败: {e}")
+            return {}
+
+    def analyze_method_relations(self, class_name: str, method_name: str,
+                                  method_body: str,
+                                  all_classes: List[ClassInfo]) -> List[Dict]:
+        """分析方法内部的具体调用关系
+
+        Args:
+            class_name: 类名
+            method_name: 方法名
+            method_body: 方法体内容
+            all_classes: 项目中所有类信息
+
+        Returns:
+            List[Dict]: 调用关系列表
+        """
+        prompt = f"""分析以下方法内部调用了哪些其他方法。
+
+类名: {class_name}
+方法名: {method_name}
+
+方法体:
+{method_body[:2000]}
+
+项目中的类和方法:
+{chr(10).join([f"- {c.name}: {', '.join(m.name for m in c.methods)}" for c in all_classes[:20]])}
+
+返回 JSON 格式的调用关系:
+{{
+  "method_calls": [
+    {{
+      "called_class": "类名或null",
+      "called_method": "方法名",
+      "call_type": "self|internal|external|async",
+      "line_context": "调用所在行的上下文"
+    }}
+  ]
+}}
+
+只返回 JSON。"""
+
+        try:
+            result = self._call_ollama(prompt)
+            return self._parse_method_result(result)
+        except Exception as e:
+            print(f"  AI 方法分析失败: {e}")
+            return []
+
+    def _call_ollama(self, prompt: str) -> str:
+        """调用 Ollama API"""
+        import urllib.request
+        import urllib.error
+
+        url = f"{self.api_base}/api/generate"
+
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+                "num_predict": 2048
+            }
+        }
+
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+
+        with urllib.request.urlopen(req, timeout=60) as response:
+            result = json.loads(response.read().decode('utf-8'))
+            return result.get('response', '')
+
+    def _parse_ai_result(self, result: str, project_files: List[FileInfo]) -> Dict[str, List[str]]:
+        """解析 AI 返回结果"""
+        try:
+            # 提取 JSON
+            json_match = re.search(r'\{[\s\S]*\}', result)
+            if not json_match:
+                return {}
+
+            data = json.loads(json_match.group())
+            calls = data.get('calls', [])
+
+            # 建立调用关系
+            relations = defaultdict(list)
+
+            for call in calls:
+                target_file = call.get('target_file', '')
+                target_func = call.get('target_function', '')
+
+                # 匹配目标文件
+                for pf in project_files:
+                    if target_file in pf.relative_path or pf.relative_path.endswith(target_file):
+                        node_id = f"file:{pf.relative_path}"
+                        if node_id not in relations.get('matched', []):
+                            relations['matched'].append(node_id)
+
+                        # 如果有关联的方法/类，也添加
+                        if target_func:
+                            # 尝试匹配类
+                            for cls in pf.classes:
+                                if target_func.lower() in cls.name.lower():
+                                    relations['matched'].append(f"class:{pf.relative_path}:{cls.name}")
+                                    break
+                            # 尝试匹配函数
+                            for func in pf.functions:
+                                if target_func.lower() in func.name.lower():
+                                    relations['matched'].append(f"func:{pf.relative_path}:{func.name}")
+                                    break
+
+            # 移除临时键
+            if 'matched' in relations:
+                del relations['matched']
+
+            return dict(relations)
+        except Exception as e:
+            print(f"  解析 AI 结果失败: {e}")
+            return {}
+
+    def _parse_method_result(self, result: str) -> List[Dict]:
+        """解析方法调用分析结果"""
+        try:
+            json_match = re.search(r'\{[\s\S]*\}', result)
+            if not json_match:
+                return []
+            data = json.loads(json_match.group())
+            return data.get('method_calls', [])
+        except:
+            return []
+
+    def _get_language(self, file_path: str) -> str:
+        """根据文件扩展名获取语言"""
+        ext = Path(file_path).suffix.lower()
+        lang_map = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.ts': 'typescript',
+            '.tsx': 'typescript',
+            '.jsx': 'javascript',
+            '.java': 'java',
+            '.go': 'go',
+            '.rs': 'rust',
+            '.cpp': 'cpp',
+            '.c': 'c',
+            '.cs': 'csharp',
+            '.rb': 'ruby',
+            '.php': 'php',
+            '.swift': 'swift',
+            '.kt': 'kotlin',
+        }
+        return lang_map.get(ext, 'text')
 
 
 @dataclass
@@ -1405,8 +1633,13 @@ class CodeMapGenerator:
 *最后更新: {timestamp}*
 """
 
-    def generate_visualization_json(self, output_path: Optional[str] = None) -> Dict[str, Any]:
+    def generate_visualization_json(self, output_path: Optional[str] = None,
+                                     ai_analyzer: Optional[AICallRelationAnalyzer] = None) -> Dict[str, Any]:
         """生成用于 3D 可视化的 JSON 数据结构（新版）
+
+        Args:
+            output_path: 输出文件路径
+            ai_analyzer: AI 调用关系分析器（可选），如果有则进行深度 AI 分析
 
         返回的 JSON 结构:
         {
@@ -1750,7 +1983,73 @@ class CodeMapGenerator:
                                             edges.append(edge)
                                             edge_id_set.add(edge_id)
 
-        # 6. 生成层级间的调用关系（基于架构模式的典型调用链）
+        # 6. AI 深度分析调用关系（如果提供了 AI 分析器）
+        if ai_analyzer:
+            print("\n🤖 正在进行 AI 深度分析关键文件的调用关系...")
+            ai_call_count = 0
+
+            # 选择关键文件进行分析（通常是 service、api、controller 层的文件）
+            key_files = []
+            for file_info in self.files:
+                layer_id, _ = self._detect_file_layer_and_side(file_info.relative_path)
+                if layer_id in ['api', 'service', 'frontend-service']:
+                    key_files.append(file_info)
+
+            # 限制 AI 分析的文件数量
+            max_ai_analysis = min(20, len(key_files))
+
+            for i, file_info in enumerate(key_files[:max_ai_analysis]):
+                print(f"  [{i+1}/{max_ai_analysis}] AI 分析: {file_info.relative_path}")
+
+                # 读取文件内容
+                try:
+                    with open(file_info.path, 'r', encoding='utf-8', errors='ignore') as f:
+                        file_content = f.read()
+                except:
+                    continue
+
+                # 调用 AI 分析
+                ai_relations = ai_analyzer.analyze_file_relations(
+                    file_info.relative_path,
+                    file_content,
+                    self.files
+                )
+
+                # 将 AI 分析结果转换为边
+                source_id = f"file:{file_info.relative_path}"
+                for target_id in ai_relations.get('matched', []):
+                    edge_id = f"edge:ai:{source_id}->{target_id}"
+                    if edge_id not in edge_id_set:
+                        source_layer_id, _ = self._detect_file_layer_and_side(file_info.relative_path)
+
+                        # 尝试获取目标文件的层级
+                        target_layer_id = source_layer_id
+                        if ':' in target_id:
+                            target_file_path = target_id.split(':', 1)[1].split(':')[0]
+                            target_layer_id, _ = self._detect_file_layer_and_side(target_file_path)
+
+                        edge = {
+                            "id": edge_id,
+                            "source": source_id,
+                            "target": target_id,
+                            "type": "ai-calls",
+                            "protocol": "local",
+                            "layer": f"{source_layer_id}->{target_layer_id}",
+                            "ai_analyzed": True
+                        }
+                        edges.append(edge)
+                        edge_id_set.add(edge_id)
+                        ai_call_count += 1
+
+                        # 更新节点的调用关系
+                        if source_id in node_id_map and target_id not in node_id_map[source_id].get("calls", []):
+                            node_id_map[source_id]["calls"].append(target_id)
+                        if target_id in node_id_map and source_id not in node_id_map[target_id].get("calledBy", []):
+                            node_id_map[target_id]["calledBy"].append(source_id)
+
+            print(f"  ✅ AI 分析完成，发现 {ai_call_count} 条额外调用关系")
+
+        # 7. 生成层级间的调用关系（基于架构模式的典型调用链）
         # 按新的层级 ID 分组文件
         layers_group: Dict[str, List[FileInfo]] = defaultdict(list)
         for file_info in self.files:
@@ -2024,6 +2323,9 @@ def main():
     parser.add_argument("--output", "-o", default=None, help="输出文件路径 (默认: <project_root>/CODE_MAP.md)")
     parser.add_argument("--scope", "-s", default=None, help="分析范围 (子目录路径)")
     parser.add_argument("--visual", "-v", action="store_true", help="生成 3D 可视化 JSON 数据")
+    parser.add_argument("--ai", "-a", action="store_true", help="使用 AI 深度分析调用关系 (需要 Ollama)")
+    parser.add_argument("--ai-model", default="qwen2.5", help="AI 模型名称 (默认: qwen2.5)")
+    parser.add_argument("--ai-api", default="http://localhost:11434", help="AI API 地址 (默认: http://localhost:11434)")
 
     args = parser.parse_args()
 
@@ -2048,7 +2350,16 @@ def main():
         # 生成可视化 JSON
         project_name = os.path.basename(args.project_root)
         visual_output_path = os.path.join(args.project_root, f"{project_name}-VISUAL-MAP.json")
-        generator.generate_visualization_json(visual_output_path)
+
+        if args.ai:
+            print("\n🤖 启用 AI 深度分析调用关系...")
+            ai_analyzer = AICallRelationAnalyzer(
+                api_base=args.ai_api,
+                model=args.ai_model
+            )
+            generator.generate_visualization_json(visual_output_path, ai_analyzer=ai_analyzer)
+        else:
+            generator.generate_visualization_json(visual_output_path)
     else:
         # 生成 Markdown 代码地图
         output_path = args.output
