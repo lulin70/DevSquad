@@ -160,11 +160,16 @@ class ProjectScanner:
         ".xml", ".properties", ".conf", ".cfg"
     }
 
+    DOC_EXTENSIONS = {
+        ".md", ".txt", ".rst", ".adoc"
+    }
+
     def __init__(self, project_root: str, workspace_root: Optional[str] = None):
         self.project_root = Path(project_root)
         self.workspace_root = Path(workspace_root) if workspace_root else self.project_root.parent
         self.source_files: List[Path] = []
         self.config_files: List[Path] = []
+        self.doc_files: List[Path] = []
         self.project_info: Dict[str, Any] = {}
 
     def scan(self) -> Dict[str, Any]:
@@ -182,13 +187,16 @@ class ProjectScanner:
                     self.source_files.append(file_path)
                 elif file_path.suffix in self.CONFIG_EXTENSIONS or self._is_config_file(file_name):
                     self.config_files.append(file_path)
+                elif file_path.suffix in self.DOC_EXTENSIONS or self._is_doc_file(file_name):
+                    self.doc_files.append(file_path)
 
         self._gather_project_info()
 
         return {
             "project_info": self.project_info,
             "source_files": [str(f) for f in self.source_files],
-            "config_files": [str(f) for f in self.config_files]
+            "config_files": [str(f) for f in self.config_files],
+            "doc_files": [str(f) for f in self.doc_files]
         }
 
     def _should_keep_dir(self, dir_name: str) -> bool:
@@ -212,6 +220,15 @@ class ProjectScanner:
         }
         return file_name in config_names
 
+    def _is_doc_file(self, file_name: str) -> bool:
+        """判断是否为文档文件"""
+        doc_names = {
+            'README.md', 'README.txt', 'README.rst', 'README.adoc',
+            'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE', 'TODO.md',
+            'ARCHITECTURE.md', 'DESIGN.md', 'API.md', 'DOC.md'
+        }
+        return file_name in doc_names
+
     def _gather_project_info(self):
         """收集项目信息"""
         try:
@@ -227,6 +244,7 @@ class ProjectScanner:
             "relative_path": str(relative_path),
             "source_file_count": len(self.source_files),
             "config_file_count": len(self.config_files),
+            "doc_file_count": len(self.doc_files),
             "languages": self._detect_languages(),
             "frameworks": self._detect_frameworks()
         }
@@ -1085,6 +1103,7 @@ class CodeReviewReportGenerator:
         md_content += self._generate_architecture_review()
         md_content += self._generate_code_quality_assessment()
         md_content += self._generate_multi_role_consensus()
+        md_content += self._generate_doc_code_consistency_check()
         md_content += self._generate_recommendations()
         md_content += self._generate_appendix()
         md_content += self._generate_footer()
@@ -1277,9 +1296,195 @@ class CodeReviewReportGenerator:
 
         return md
 
+    def _generate_doc_code_consistency_check(self) -> str:
+        """生成文档与代码一致性检查清单"""
+        md = "## 5. 文档与代码一致性检查\n\n"
+
+        doc_files = self.project_info.get('doc_files', [])
+        doc_file_count = self.project_info.get('doc_file_count', 0)
+
+        md += "### 5.1 文档覆盖概览\n\n"
+        md += f"- **文档文件数**: {doc_file_count} 个\n"
+        md += f"- **源码文件数**: {self.project_info.get('source_file_count', 0)} 个\n"
+
+        if doc_file_count > 0:
+            md += f"- **文档覆盖率**: {min(100, int(doc_file_count / self.project_info.get('source_file_count', 1) * 100))}%\n"
+        else:
+            md += "- **文档覆盖率**: 0% (警告: 项目缺乏文档)\n"
+        md += "\n"
+
+        md += "### 5.2 文档与代码差异检查清单\n\n"
+
+        inconsistencies = self._check_doc_code_consistency()
+
+        if inconsistencies:
+            md += "| 检查项 | 状态 | 说明 |\n"
+            md += "|--------|------|------|\n"
+            for item in inconsistencies:
+                status_icon = "❌" if item["status"] == "不一致" else "⚠️" if item["status"] == "待核实" else "✅"
+                md += f"| {item['check_item']} | {status_icon} {item['status']} | {item['description']} |\n"
+        else:
+            md += "未发现明显不一致问题\n"
+        md += "\n"
+
+        md += "### 5.3 详细差异分析\n\n"
+
+        critical_issues = [i for i in inconsistencies if i.get("severity") == "high"]
+        if critical_issues:
+            md += "#### 严重差异 (需立即处理)\n\n"
+            for issue in critical_issues:
+                md += f"**{issue['check_item']}**\n"
+                md += f"- 问题: {issue['description']}\n"
+                md += f"- 位置: {issue.get('location', 'N/A')}\n"
+                md += f"- 建议: {issue.get('suggestion', '请更新文档或代码以保持一致')}\n\n"
+        else:
+            md += "#### 严重差异: 无\n\n"
+
+        medium_issues = [i for i in inconsistencies if i.get("severity") == "medium"]
+        if medium_issues:
+            md += "#### 中等差异 (建议处理)\n\n"
+            for issue in medium_issues:
+                md += f"**{issue['check_item']}**\n"
+                md += f"- 问题: {issue['description']}\n"
+                md += f"- 位置: {issue.get('location', 'N/A')}\n\n"
+        else:
+            md += "#### 中等差异: 无\n\n"
+
+        low_issues = [i for i in inconsistencies if i.get("severity") == "low"]
+        if low_issues:
+            md += "#### 轻微差异 (可选处理)\n\n"
+            for issue in low_issues:
+                md += f"- {issue['check_item']}: {issue['description']}\n"
+        else:
+            md += "#### 轻微差异: 无\n"
+
+        md += "\n"
+
+        md += "### 5.4 检查总结\n\n"
+
+        total_issues = len(inconsistencies)
+        high_count = len(critical_issues)
+        medium_count = len(medium_issues)
+        low_count = len(low_issues)
+
+        md += f"| 类别 | 数量 |\n"
+        md += f"|------|------|\n"
+        md += f"| 严重差异 | {high_count} |\n"
+        md += f"| 中等差异 | {medium_count} |\n"
+        md += f"| 轻微差异 | {low_count} |\n"
+        md += f"| **总计** | **{total_issues}** |\n\n"
+
+        if high_count > 0:
+            md += "> ⚠️ **警告**: 发现严重差异，建议立即处理以确保文档准确性\n"
+        elif medium_count > 0:
+            md += "> ℹ️ **提示**: 发现中等差异，建议在后续迭代中处理\n"
+        else:
+            md += "> ✅ **良好**: 文档与代码基本一致\n"
+
+        md += "\n"
+        return md
+
+    def _check_doc_code_consistency(self) -> List[Dict[str, Any]]:
+        """检查文档与代码的一致性"""
+        inconsistencies = []
+        doc_files = self.project_info.get('doc_files', [])
+
+        if not doc_files:
+            inconsistencies.append({
+                "check_item": "项目文档缺失",
+                "status": "不一致",
+                "severity": "high",
+                "description": "项目中未找到任何文档文件 (README.md, ARCHITECTURE.md 等)",
+                "location": self.project_info.get('project_path', 'N/A'),
+                "suggestion": "建议添加 README.md, ARCHITECTURE.md 等核心文档"
+            })
+            return inconsistencies
+
+        doc_file_names = [Path(f).name for f in doc_files]
+
+        if 'README.md' not in doc_file_names and 'README.txt' not in doc_file_names:
+            inconsistencies.append({
+                "check_item": "README 文档缺失",
+                "status": "不一致",
+                "severity": "high",
+                "description": "项目根目录缺少 README 文档",
+                "location": "项目根目录",
+                "suggestion": "添加 README.md 文件，说明项目概述、安装、使用方法"
+            })
+
+        inconsistencies.extend(self._check_api_documentation(doc_files))
+        inconsistencies.extend(self._check_config_documentation(doc_files))
+        inconsistencies.extend(self._check_architecture_documentation(doc_files))
+
+        return inconsistencies
+
+    def _check_api_documentation(self, doc_files: List[str]) -> List[Dict[str, Any]]:
+        """检查 API 文档与代码的一致性"""
+        inconsistencies = []
+
+        has_api_doc = any('API' in f.upper() or 'SWAGGER' in f.upper() or 'OPENAPI' in f.upper() for f in doc_files)
+
+        has_api_controllers = False
+        for analysis in self.analyses:
+            for cls in analysis.classes:
+                class_name = cls.get('name', '').lower()
+                if 'controller' in class_name or 'api' in class_name or 'endpoint' in class_name:
+                    has_api_controllers = True
+                    break
+
+        if has_api_controllers and not has_api_doc:
+            inconsistencies.append({
+                "check_item": "API 文档缺失",
+                "status": "待核实",
+                "severity": "medium",
+                "description": "项目包含 API 控制器但缺少 API 文档",
+                "location": "doc_files",
+                "suggestion": "建议添加 API.md 或使用 Swagger/OpenAPI 自动生成文档"
+            })
+
+        return inconsistencies
+
+    def _check_config_documentation(self, doc_files: List[str]) -> List[Dict[str, Any]]:
+        """检查配置文档与代码的一致性"""
+        inconsistencies = []
+
+        has_config_docs = any('CONFIG' in f.upper() or 'SETUP' in f.upper() or 'DEPLOY' in f.upper() for f in doc_files)
+        has_config_files = self.project_info.get('config_file_count', 0) > 0
+
+        if has_config_files and not has_config_docs:
+            inconsistencies.append({
+                "check_item": "配置文档缺失",
+                "status": "待核实",
+                "severity": "low",
+                "description": "项目包含配置文件但缺少配置说明文档",
+                "location": "config files",
+                "suggestion": "建议添加 CONFIG.md 或在 README 中说明配置方法"
+            })
+
+        return inconsistencies
+
+    def _check_architecture_documentation(self, doc_files: List[str]) -> List[Dict[str, Any]]:
+        """检查架构文档与代码的一致性"""
+        inconsistencies = []
+
+        has_arch_doc = any('ARCHITECTURE' in f.upper() or 'DESIGN' in f.upper() for f in doc_files)
+        module_count = len(self.aligned.get('modules', []))
+
+        if module_count > 5 and not has_arch_doc:
+            inconsistencies.append({
+                "check_item": "架构文档缺失",
+                "status": "待核实",
+                "severity": "medium",
+                "description": f"项目包含 {module_count} 个模块但缺少架构文档",
+                "location": "modules",
+                "suggestion": "建议添加 ARCHITECTURE.md 说明系统架构设计"
+            })
+
+        return inconsistencies
+
     def _generate_recommendations(self) -> str:
         """生成改进建议"""
-        md = "## 5. 改进建议\n\n"
+        md = "## 6. 改进建议\n\n"
 
         all_recommendations = []
         for analysis in self.analyses:
@@ -1292,7 +1497,7 @@ class CodeReviewReportGenerator:
 
         all_recommendations.sort(key=lambda x: {"high": 0, "medium": 1, "low": 2}.get(x["priority"], 3))
 
-        md += "### 5.1 高优先级改进项\n\n"
+        md += "### 6.1 高优先级改进项\n\n"
         high_priority = [r for r in all_recommendations if r["priority"] == "high"]
         if high_priority:
             for r in high_priority:
@@ -1301,7 +1506,7 @@ class CodeReviewReportGenerator:
             md += "无高优先级改进项\n"
         md += "\n"
 
-        md += "### 5.2 中优先级改进项\n\n"
+        md += "### 6.2 中优先级改进项\n\n"
         medium_priority = [r for r in all_recommendations if r["priority"] == "medium"]
         if medium_priority:
             for r in medium_priority[:5]:
@@ -1310,7 +1515,7 @@ class CodeReviewReportGenerator:
             md += "无中优先级改进项\n"
         md += "\n"
 
-        md += "### 5.3 低优先级改进项\n\n"
+        md += "### 6.3 低优先级改进项\n\n"
         low_priority = [r for r in all_recommendations if r["priority"] == "low"]
         if low_priority:
             for r in low_priority[:5]:
@@ -1338,9 +1543,9 @@ class CodeReviewReportGenerator:
 
     def _generate_appendix(self) -> str:
         """生成附录"""
-        md = "## 6. 附录\n\n"
+        md = "## 7. 附录\n\n"
 
-        md += "### 6.1 代码地图摘要\n\n"
+        md += "### 7.1 代码地图摘要\n\n"
         summary = self.aligned["project_summary"]
         md += f"- **项目**: {summary['project_name']}\n"
         md += f"- **语言**: {', '.join(summary['languages'])}\n"
@@ -1349,7 +1554,7 @@ class CodeReviewReportGenerator:
         md += f"- **函数**: {summary['total_functions']} 个\n"
         md += f"- **类**: {summary['total_classes']} 个\n\n"
 
-        md += "### 6.2 关键文件列表\n\n"
+        md += "### 7.2 关键文件列表\n\n"
 
         code_elements = self.aligned.get("code_elements", [])
         key_elements = code_elements[:15] if code_elements else []
