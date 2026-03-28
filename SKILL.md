@@ -325,8 +325,8 @@ python3 scripts/multi_role_code_walkthrough.py /path/to/project --workspace /wor
 ### 3D 代码地图可视化 (v2.3)
 
 ```bash
-# 打开可视化页面
-docs/code-map-visualizer.html
+# 全局 skill 安装后，在 workspace 中使用
+~/.trae/skills/docs/code-map-visualizer.html
 ```
 
 **功能特性**:
@@ -342,25 +342,31 @@ docs/code-map-visualizer.html
 - 搜索过滤节点
 - 调用链路面板展示关键流程
 
+**Workspace 安装说明**:
+安装 skill 后，可视化文件会自动符号链接到 `~/.trae/skills/docs/` 目录，在任意 workspace 中都可直接打开使用。
+
 ### 任务可视化页面 (v2.3)
 
 ```bash
-# 打开任务可视化页面
-docs/task-visualizer.html
+# 全局 skill 安装后，在 workspace 中使用
+~/.trae/skills/docs/task-visualizer.html
 ```
 
 **功能特性**:
 - **概览统计面板**：总任务数、待开始、进行中、已完成、被阻塞
-- **角色任务卡片**：每个角色的任务列表、状态、进度
+- **角色任务卡片**：任务列表、状态、进度
 - **任务依赖关系**：显示任务间的依赖和阻塞关系
-- **任务交接时间线**：记录角色间的任务交接过程
-- **协同关系图**：Canvas 绘制的角色协作网络
-- **定时刷新**：自动从 JSON 文件加载最新任务数据
+- **任务交接记录时间线**：记录角色间的任务交接过程
+- **Canvas 绘制协同关系图**：展示角色间的协作网络
+- **定时刷新机制**：自动从 JSON 文件加载最新任务数据（默认30秒）
 
 **交互功能**:
 - 点击任务卡片查看详情
 - 查看任务依赖和交接记录
 - 实时更新任务状态
+
+**Workspace 安装说明**:
+安装 skill 后，可视化文件会自动符号链接到 `~/.trae/skills/docs/` 目录，在任意 workspace 中都可直接打开使用。
 
 ### 代码地图生成
 

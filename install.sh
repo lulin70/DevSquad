@@ -73,6 +73,53 @@ chmod +x "$SCRIPT_DIR/scripts/trae_agent_dispatch.py"
 echo "   ✅ 权限已设置"
 echo ""
 
+# 方法 4: 在 workspace 中创建可视化文件符号链接
+echo "📦 方法 4: 在 workspace 中创建可视化文件符号链接"
+WORKSPACE_DIR="$HOME/.trae/skills"
+
+if [[ -d "$WORKSPACE_DIR" ]]; then
+    # 创建 trae-multi-agent-scripts 符号链接
+    if [[ -L "$WORKSPACE_DIR/trae-multi-agent-scripts" ]]; then
+        echo "   ⚠️  trae-multi-agent-scripts 符号链接已存在，正在更新..."
+        rm -f "$WORKSPACE_DIR/trae-multi-agent-scripts"
+    fi
+    ln -sf "$SCRIPT_DIR/scripts" "$WORKSPACE_DIR/trae-multi-agent-scripts"
+    echo "   ✅ 已创建符号链接：$WORKSPACE_DIR/trae-multi-agent-scripts"
+
+    # 在 workspace 中创建可视化 HTML 文件的符号链接（如果 workspace 有 docs 目录）
+    WORKSPACE_DOCS_DIR="$WORKSPACE_DIR/docs"
+    if [[ ! -d "$WORKSPACE_DOCS_DIR" ]]; then
+        mkdir -p "$WORKSPACE_DOCS_DIR"
+        echo "   📁 已创建目录：$WORKSPACE_DOCS_DIR"
+    fi
+
+    # code-map-visualizer.html
+    if [[ -f "$SCRIPT_DIR/docs/code-map-visualizer.html" ]]; then
+        if [[ -L "$WORKSPACE_DOCS_DIR/code-map-visualizer.html" ]]; then
+            rm -f "$WORKSPACE_DOCS_DIR/code-map-visualizer.html"
+        fi
+        ln -sf "$SCRIPT_DIR/docs/code-map-visualizer.html" "$WORKSPACE_DOCS_DIR/code-map-visualizer.html"
+        echo "   ✅ 已创建符号链接：$WORKSPACE_DOCS_DIR/code-map-visualizer.html"
+    fi
+
+    # task-visualizer.html
+    if [[ -f "$SCRIPT_DIR/docs/task-visualizer.html" ]]; then
+        if [[ -L "$WORKSPACE_DOCS_DIR/task-visualizer.html" ]]; then
+            rm -f "$WORKSPACE_DOCS_DIR/task-visualizer.html"
+        fi
+        ln -sf "$SCRIPT_DIR/docs/task-visualizer.html" "$WORKSPACE_DOCS_DIR/task-visualizer.html"
+        echo "   ✅ 已创建符号链接：$WORKSPACE_DOCS_DIR/task-visualizer.html"
+    fi
+
+    echo ""
+    echo "   📂 Workspace 可视化文件："
+    echo "      • $WORKSPACE_DOCS_DIR/code-map-visualizer.html"
+    echo "      • $WORKSPACE_DOCS_DIR/task-visualizer.html"
+else
+    echo "   ⚠️  Workspace 目录不存在，跳过此方法"
+fi
+echo ""
+
 # 验证安装
 echo "✅ 安装完成！"
 echo ""
