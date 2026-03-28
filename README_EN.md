@@ -6,6 +6,9 @@
 
 - ✅ **Multi-Role Code Walkthrough (v2.3)** - Architect, PM, Solo Coder, UI Designer, Test Expert analyze code from multiple perspectives, generate aligned unified code map
 - ✅ **Code Map Workspace Support (v2.3)** - Supports single workspace with multiple projects, clear project identification
+- ✅ **3D Code Map Visualization (v2.3)** - Three.js interactive visualization with flowing animations and theme switching
+- ✅ **Task Visualization Page (v2.3)** - Real-time display of role task status, progress, dependencies, handoffs, collaboration graph
+- ✅ **Doc-Code Consistency Check (v2.3)** - New document and code consistency checklist in code review report
 - ✅ **Long-Running Agent Support (v2.2)** - Based on Anthropic's "Effective Harnesses for Long-Running Agents", supports Checkpoint, Handoff, and TaskList
 - ✅ **AI Semantic Role Matching (v2.1)** - Uses LLM to understand task deep semantics, provides explainable matching results and confidence scores
 - ✅ **AI Assistant Deep Integration (v2.1)** - Integrated LLM capabilities, supports code review, knowledge Q&A, text analysis

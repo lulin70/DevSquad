@@ -6,6 +6,9 @@
 
 - ✅ **多角色代码走读 (v2.3)** - 架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析代码，生成对齐后的统一代码地图
 - ✅ **代码地图 Workspace 支持 (v2.3)** - 支持一个 workspace 包含多个项目的场景，明确项目标识
+- ✅ **3D 代码地图可视化 (v2.3)** - 基于 Three.js 的交互式代码结构可视化，动态流动效果，深色/浅色主题切换
+- ✅ **任务可视化页面 (v2.3)** - 实时展现各角色任务状态、进度、依赖关系、交接过程、协同关系图
+- ✅ **文档与代码一致性检查 (v2.3)** - 代码走读审查报告中新增文档与代码差异检查清单
 - ✅ **长程 Agent 支持 (v2.2)** - 基于 Anthropic《Effective Harnesses for Long-Running Agents》核心思想，支持 Checkpoint 检查点、Handoff 交接班、TaskList 任务清单
 - ✅ **AI 语义理解驱动的角色匹配 (v2.1)** - 使用大模型理解任务深层语义，提供可解释的匹配结果和置信度评分
 - ✅ **AI 助手深度集成 (v2.1)** - 集成大模型 AI 助手能力，支持代码审查，知识问答、文本分析等功能
@@ -166,7 +169,9 @@ python3 scripts/tests/run_tests.py
    - **多项目 Workspace 支持**（v2.3 新增）- 自动识别项目所属 workspace
    - **多角色代码走读**（v2.3 新增）- 架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析
    - **文档对齐机制**（v2.3 新增）- 多角色分析结果对齐，生成统一代码地图
-   - 核心文件：`scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`
+   - **3D 代码地图可视化**（v2.3 新增）- Three.js 交互式可视化，动态流动效果，主题切换
+   - **任务可视化页面**（v2.3 新增）- 各角色任务状态、进度、依赖关系、交接过程
+   - 核心文件：`scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`, `docs/code-map-visualizer.html`, `docs/task-visualizer.html`
 
 8. **项目理解** 📚
    - 快速读取项目文档和代码（project_understanding.py）

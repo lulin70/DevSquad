@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多角色任务协同可视化</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #1a1f2e;
+            --bg-tertiary: #252b3d;
+            --bg-card: rgba(26, 31, 46, 0.95);
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d97706;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --border-color: #30363d;
+            --panel-border: #252b3d;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e2e8f0;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --accent-blue: #3182ce;
+            --accent-green: #38a169;
+            --accent-purple: #805ad5;
+            --accent-orange: #dd6b20;
+            --accent-red: #e53e3e;
+            --accent-cyan: #00b5d8;
+            --border-color: #cbd5e0;
+            --panel-border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 16px 24px;
+            backdrop-filter: blur(10px);
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title::before {
+            content: "";
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .refresh-info {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .refresh-btn {
+            padding: 8px 16px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 12px var(--accent-blue);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .theme-switch::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        [data-theme="light"] .theme-switch::after {
+            transform: translateX(20px);
+            background: var(--accent-orange);
+        }
+
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .overview-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .stat-icon.total { background: rgba(88, 166, 255, 0.2); }
+        .stat-icon.pending { background: rgba(217, 119, 6, 0.2); }
+        .stat-icon.progress { background: rgba(163, 113, 247, 0.2); }
+        .stat-icon.completed { background: rgba(63, 185, 80, 0.2); }
+        .stat-icon.blocked { background: rgba(248, 81, 73, 0.2); }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: "";
+            width: 3px;
+            height: 18px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .role-card {
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .role-card:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .role-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .role-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .role-avatar.architect { background: linear-gradient(135deg, #58a6ff, #a371f7); }
+        .role-avatar.pm { background: linear-gradient(135deg, #3fb950, #39c5cf); }
+        .role-avatar.coder { background: linear-gradient(135deg, #d97706, #f85149); }
+        .role-avatar.ui { background: linear-gradient(135deg, #a371f7, #f85149); }
+        .role-avatar.test { background: linear-gradient(135deg, #39c5cf, #58a6ff); }
+
+        .role-info {
+            flex: 1;
+        }
+
+        .role-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .role-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active { background: var(--accent-green); }
+        .status-dot.idle { background: var(--text-secondary); animation: none; }
+        .status-dot.blocked { background: var(--accent-red); animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+
+        .role-status-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .role-progress {
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+        }
+
+        .progress-bar-container {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-bar.architect { background: linear-gradient(90deg, #58a6ff, #a371f7); }
+        .progress-bar.pm { background: linear-gradient(90deg, #3fb950, #39c5cf); }
+        .progress-bar.coder { background: linear-gradient(90deg, #d97706, #f85149); }
+        .progress-bar.ui { background: linear-gradient(90deg, #a371f7, #f85149); }
+        .progress-bar.test { background: linear-gradient(90deg, #39c5cf, #58a6ff); }
+
+        .progress-text {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        .role-tasks {
+            padding: 16px 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .task-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .task-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .task-item.pending { border-left-color: var(--accent-orange); }
+        .task-item.in-progress { border-left-color: var(--accent-blue); }
+        .task-item.completed { border-left-color: var(--accent-green); }
+        .task-item.blocked { border-left-color: var(--accent-red); }
+
+        .task-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .task-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .task-status-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .task-status-badge.pending { background: rgba(217, 119, 6, 0.2); color: var(--accent-orange); }
+        .task-status-badge.in-progress { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+        .task-status-badge.completed { background: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
+        .task-status-badge.blocked { background: rgba(248, 81, 73, 0.2); color: var(--accent-red); }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .task-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-dependencies {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--panel-border);
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .task-dependencies-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .dependency-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            margin-right: 4px;
+            font-size: 10px;
+        }
+
+        .handoffs-section {
+            margin-bottom: 32px;
+        }
+
+        .handoff-timeline {
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: "";
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple), var(--accent-green));
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 24px;
+        }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -26px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            border: 2px solid var(--bg-primary);
+        }
+
+        .timeline-dot.completed { background: var(--accent-green); }
+        .timeline-dot.in-progress { background: var(--accent-blue); animation: pulse 1.5s infinite; }
+        .timeline-dot.pending { background: var(--accent-orange); }
+
+        .timeline-content {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .timeline-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .handoff-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .handoff-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .handoff-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .handoff-role {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .handoff-role.from { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+        .handoff-role.to { background: rgba(163, 113, 247, 0.2); color: var(--accent-purple); }
+
+        .handoff-arrow {
+            color: var(--text-secondary);
+        }
+
+        .handoff-task {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .handoff-note {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .collaboration-graph {
+            margin-bottom: 32px;
+        }
+
+        .graph-container {
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 20px;
+            min-height: 400px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .graph-canvas {
+            width: 100%;
+            height: 350px;
+        }
+
+        .graph-legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-line {
+            width: 24px;
+            height: 2px;
+            border-radius: 1px;
+        }
+
+        .legend-line.active { background: var(--accent-blue); }
+        .legend-line.waiting { background: var(--accent-orange); }
+        .legend-line.completed { background: var(--accent-green); }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--bg-tertiary);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .task-detail-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .task-detail-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .task-detail-modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--accent-red);
+            color: #fff;
+        }
+
+        .modal-section {
+            margin-bottom: 16px;
+        }
+
+        .modal-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .modal-section-content {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在加载任务数据...</div>
+    </div>
+
+    <div class="task-detail-modal" id="task-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title">任务详情</div>
+                <button class="modal-close" onclick="closeTaskModal()">✕</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <header class="header">
+        <div class="header-content">
+            <div class="header-title">多角色任务协同可视化</div>
+            <div class="header-actions">
+                <div class="refresh-info" id="refresh-info">最后更新: --</div>
+                <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()">
+                    🔄 刷新
+                </button>
+                <div class="theme-toggle">
+                    <div class="theme-switch" onclick="toggleTheme()"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <section class="overview-panel" id="overview-panel"></section>
+
+        <section class="roles-section">
+            <h2 class="section-title">角色任务状态</h2>
+            <div class="roles-grid" id="roles-grid"></div>
+        </section>
+
+        <section class="handoffs-section">
+            <h2 class="section-title">任务交接记录</h2>
+            <div class="handoff-timeline" id="handoff-timeline"></div>
+        </section>
+
+        <section class="collaboration-graph">
+            <h2 class="section-title">协同关系图</h2>
+            <div class="graph-container">
+                <canvas id="graph-canvas" class="graph-canvas"></canvas>
+                <div class="graph-legend">
+                    <div class="legend-item">
+                        <div class="legend-line active"></div>
+                        <span>进行中</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line waiting"></div>
+                        <span>等待中</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line completed"></div>
+                        <span>已完成</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 任务数据 - 可从外部 JSON 文件加载
+        const TASK_DATA = {
+            "last_updated": new Date().toISOString(),
+            "roles": [
+                {
+                    "id": "architect",
+                    "name": "架构师",
+                    "icon": "🏗️",
+                    "status": "active",
+                    "progress": 75,
+                    "tasks": [
+                        {
+                            "id": "T001",
+                            "name": "系统架构设计",
+                            "status": "completed",
+                            "priority": "high",
+                            "start_time": "10:00",
+                            "end_time": "11:30",
+                            "dependencies": [],
+                            "handover_to": "coder"
+                        },
+                        {
+                            "id": "T002",
+                            "name": "数据库方案评审",
+                            "status": "in-progress",
+                            "priority": "high",
+                            "start_time": "11:30",
+                            "dependencies": [],
+                            "handover_to": null
+                        },
+                        {
+                            "id": "T003",
+                            "name": "技术选型报告",
+                            "status": "pending",
+                            "priority": "medium",
+                            "start_time": "14:00",
+                            "dependencies": ["T002"],
+                            "handover_to": null
+                        }
+                    ]
+                },
+                {
+                    "id": "pm",
+                    "name": "产品经理",
+                    "icon": "📋",
+                    "status": "active",
+                    "progress": 60,
+                    "tasks": [
+                        {
+                            "id": "T004",
+                            "name": "需求文档编写",
+                            "status": "completed",
+                            "priority": "high",
+                            "start_time": "09:00",
+                            "end_time": "10:30",
+                            "dependencies": [],
+                            "handover_to": "architect"
+                        },
+                        {
+                            "id": "T005",
+                            "name": "用户故事梳理",
+                            "status": "in-progress",
+                            "priority": "high",
+                            "start_time": "10:30",
+                            "dependencies": [],
+                            "handover_to": null
+                        },
+                        {
+                            "id": "T006",
+                            "name": "里程碑规划",
+                            "status": "pending",
+                            "priority": "medium",
+                            "start_time": "15:00",
+                            "dependencies": ["T005"],
+                            "handover_to": null
+                        }
+                    ]
+                },
+                {
+                    "id": "coder",
+                    "name": "独立开发者",
+                    "icon": "💻",
+                    "status": "active",
+                    "progress": 45,
+                    "tasks": [
+                        {
+                            "id": "T007",
+                            "name": "基础框架搭建",
+                            "status": "completed",
+                            "priority": "high",
+                            "start_time": "11:30",
+                            "end_time": "13:00",
+                            "dependencies": ["T001"],
+                            "handover_to": null
+                        },
+                        {
+                            "id": "T008",
+                            "name": "核心业务逻辑实现",
+                            "status": "in-progress",
+                            "priority": "high",
+                            "start_time": "13:00",
+                            "dependencies": ["T007"],
+                            "handover_to": null
+                        },
+                        {
+                            "id": "T009",
+                            "name": "API 接口开发",
+                            "status": "blocked",
+                            "priority": "high",
+                            "start_time": "14:30",
+                            "dependencies": ["T002"],
+                            "handover_to": null
+                        }
+                    ]
+                },
+                {
+                    "id": "ui",
+                    "name": "UI 设计师",
+                    "icon": "🎨",
+                    "status": "idle",
+                    "progress": 30,
+                    "tasks": [
+                        {
+                            "id": "T010",
+                            "name": "界面原型设计",
+                            "status": "completed",
+                            "priority": "medium",
+                            "start_time": "10:00",
+                            "end_time": "12:00",
+                            "dependencies": ["T004"],
+                            "handover_to": null
+                        },
+                        {
+                            "id": "T011",
+                            "name": "交互流程设计",
+                            "status": "pending",
+                            "priority": "medium",
+                            "start_time": "14:00",
+                            "dependencies": ["T010"],
+                            "handover_to": null
+                        }
+                    ]
+                },
+                {
+                    "id": "test",
+                    "name": "测试专家",
+                    "icon": "🧪",
+                    "status": "idle",
+                    "progress": 15,
+                    "tasks": [
+                        {
+                            "id": "T012",
+                            "name": "测试计划制定",
+                            "status": "completed",
+                            "priority": "medium",
+                            "start_time": "09:30",
+                            "end_time": "10:30",
+                            "dependencies": [],
+                            "handover_to": null
+                        },
+                        {
+                            "id": "T013",
+                            "name": "测试用例编写",
+                            "status": "pending",
+                            "priority": "high",
+                            "start_time": "16:00",
+                            "dependencies": ["T008"],
+                            "handover_to": null
+                        }
+                    ]
+                }
+            ],
+            "handoffs": [
+                {
+                    "id": "H001",
+                    "from_role": "pm",
+                    "to_role": "architect",
+                    "task_name": "需求文档",
+                    "time": "10:30",
+                    "status": "completed",
+                    "note": "已完成需求评审，进入架构设计阶段"
+                },
+                {
+                    "id": "H002",
+                    "from_role": "architect",
+                    "to_role": "coder",
+                    "task_name": "系统架构设计",
+                    "time": "11:30",
+                    "status": "completed",
+                    "note": "架构方案已确定，开始搭建基础框架"
+                },
+                {
+                    "id": "H003",
+                    "from_role": "pm",
+                    "to_role": "ui",
+                    "task_name": "需求文档",
+                    "time": "10:30",
+                    "status": "completed",
+                    "note": "提供 UI 设计所需的需求说明"
+                },
+                {
+                    "id": "H004",
+                    "from_role": "architect",
+                    "to_role": "coder",
+                    "task_name": "数据库方案",
+                    "time": "12:00",
+                    "status": "in-progress",
+                    "note": "数据库选型已确认，等待实施"
+                }
+            ],
+            "collaborations": [
+                { "from": "architect", "to": "coder", "type": "active" },
+                { "from": "pm", "to": "architect", "type": "completed" },
+                { "from": "pm", "to": "ui", "type": "completed" },
+                { "from": "architect", "to": "test", "type": "waiting" },
+                { "from": "coder", "to": "test", "type": "waiting" },
+                { "from": "ui", "to": "test", "type": "waiting" }
+            ]
+        };
+
+        let currentTheme = 'dark';
+        let refreshInterval = 30000; // 30秒刷新一次
+
+        // 切换主题
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', currentTheme === 'light' ? 'light' : '');
+            drawCollaborationGraph();
+        }
+
+        // 生成角色卡片
+        function renderRolesGrid() {
+            const grid = document.getElementById('roles-grid');
+            grid.innerHTML = '';
+
+            TASK_DATA.roles.forEach(role => {
+                const card = document.createElement('div');
+                card.className = 'role-card';
+                card.innerHTML = `
+                    <div class="role-header">
+                        <div class="role-avatar ${role.id}">${role.icon}</div>
+                        <div class="role-info">
+                            <div class="role-name">${role.name}</div>
+                            <div class="role-status">
+                                <span class="status-dot ${role.status}"></span>
+                                <span class="role-status-text">${getStatusText(role.status)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="role-progress">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar ${role.id}" style="width: ${role.progress}%"></div>
+                        </div>
+                        <div class="progress-text">${role.progress}% 完成</div>
+                    </div>
+                    <div class="role-tasks">
+                        ${role.tasks.map(task => renderTaskItem(task, role.id)).join('')}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderTaskItem(task, roleId) {
+            const depTags = task.dependencies.map(dep =>
+                `<span class="dependency-tag">${dep}</span>`
+            ).join('');
+
+            return `
+                <div class="task-item ${task.status}" onclick="showTaskDetail('${task.id}', '${roleId}')">
+                    <div class="task-header">
+                        <span class="task-name">${task.name}</span>
+                        <span class="task-status-badge ${task.status}">${getTaskStatusText(task.status)}</span>
+                    </div>
+                    <div class="task-meta">
+                        <span class="task-meta-item">
+                            🕐 ${task.start_time}${task.end_time ? ' - ' + task.end_time : ''}
+                        </span>
+                        <span class="task-meta-item">
+                            📊 ${getPriorityText(task.priority)}
+                        </span>
+                    </div>
+                    ${depTags ? `
+                        <div class="task-dependencies">
+                            <div class="task-dependencies-title">依赖:</div>
+                            ${depTags}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'active': '进行中',
+                'idle': '空闲',
+                'blocked': '阻塞'
+            };
+            return map[status] || status;
+        }
+
+        function getTaskStatusText(status) {
+            const map = {
+                'pending': '待开始',
+                'in-progress': '进行中',
+                'completed': '已完成',
+                'blocked': '阻塞'
+            };
+            return map[status] || status;
+        }
+
+        function getPriorityText(priority) {
+            const map = {
+                'high': '高优先',
+                'medium': '中优先',
+                'low': '低优先'
+            };
+            return map[priority] || priority;
+        }
+
+        // 渲染概览统计
+        function renderOverviewPanel() {
+            const panel = document.getElementById('overview-panel');
+            let totalTasks = 0;
+            let pendingTasks = 0;
+            let inProgressTasks = 0;
+            let completedTasks = 0;
+            let blockedTasks = 0;
+
+            TASK_DATA.roles.forEach(role => {
+                role.tasks.forEach(task => {
+                    totalTasks++;
+                    if (task.status === 'pending') pendingTasks++;
+                    if (task.status === 'in-progress') inProgressTasks++;
+                    if (task.status === 'completed') completedTasks++;
+                    if (task.status === 'blocked') blockedTasks++;
+                });
+            });
+
+            const stats = [
+                { icon: '📋', label: '总任务数', value: totalTasks, class: 'total' },
+                { icon: '⏳', label: '待开始', value: pendingTasks, class: 'pending' },
+                { icon: '🔄', label: '进行中', value: inProgressTasks, class: 'progress' },
+                { icon: '✅', label: '已完成', value: completedTasks, class: 'completed' },
+                { icon: '🚫', label: '被阻塞', value: blockedTasks, class: 'blocked' }
+            ];
+
+            panel.innerHTML = stats.map(stat => `
+                <div class="stat-card">
+                    <div class="stat-icon ${stat.class}">${stat.icon}</div>
+                    <div class="stat-value">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                </div>
+            `).join('');
+        }
+
+        // 渲染交接记录时间线
+        function renderHandoffTimeline() {
+            const timeline = document.getElementById('handoff-timeline');
+
+            if (TASK_DATA.handoffs.length === 0) {
+                timeline.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">暂无任务交接记录</div>
+                    </div>
+                `;
+                return;
+            }
+
+            timeline.innerHTML = `
+                <div class="timeline">
+                    ${TASK_DATA.handoffs.map(handoff => `
+                        <div class="timeline-item">
+                            <div class="timeline-dot ${handoff.status}"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <span class="handoff-title">${handoff.task_name}</span>
+                                    <span class="handoff-time">🕐 ${handoff.time}</span>
+                                </div>
+                                <div class="handoff-flow">
+                                    <span class="handoff-role from">${getRoleName(handoff.from_role)}</span>
+                                    <span class="handoff-arrow">→</span>
+                                    <span class="handoff-role to">${getRoleName(handoff.to_role)}</span>
+                                </div>
+                                ${handoff.note ? `<div class="handoff-note">"${handoff.note}"</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function getRoleName(roleId) {
+            const role = TASK_DATA.roles.find(r => r.id === roleId);
+            return role ? role.name : roleId;
+        }
+
+        // 绘制协同关系图
+        function drawCollaborationGraph() {
+            const canvas = document.getElementById('graph-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // 设置 canvas 尺寸
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+
+            // 清除画布
+            ctx.clearRect(0, 0, width, height);
+
+            // 定义节点位置
+            const rolePositions = {};
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) * 0.35;
+
+            TASK_DATA.roles.forEach((role, index) => {
+                const angle = (index / TASK_DATA.roles.length) * 2 * Math.PI - Math.PI / 2;
+                rolePositions[role.id] = {
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle),
+                    role: role
+                };
+            });
+
+            // 绘制连接线
+            TASK_DATA.collaborations.forEach(collab => {
+                const from = rolePositions[collab.from];
+                const to = rolePositions[collab.to];
+
+                if (from && to) {
+                    ctx.beginPath();
+                    ctx.moveTo(from.x, from.y);
+
+                    // 绘制曲线
+                    const midX = (from.x + to.x) / 2;
+                    const midY = (from.y + to.y) / 2;
+                    const controlOffset = 30;
+                    const cpX = midX + (to.y - from.y) * 0.1;
+                    const cpY = midY - (to.x - from.x) * 0.1;
+
+                    ctx.quadraticCurveTo(cpX, cpY, to.x, to.y);
+
+                    // 设置线条样式
+                    ctx.lineWidth = 2;
+                    if (collab.type === 'completed') {
+                        ctx.strokeStyle = currentTheme === 'dark' ? '#3fb950' : '#38a169';
+                    } else if (collab.type === 'active') {
+                        ctx.strokeStyle = currentTheme === 'dark' ? '#58a6ff' : '#3182ce';
+                    } else {
+                        ctx.strokeStyle = currentTheme === 'dark' ? '#d97706' : '#dd6b20';
+                    }
+
+                    ctx.stroke();
+
+                    // 绘制箭头
+                    drawArrow(ctx, cpX, cpY, to.x, to.y, collab.type);
+                }
+            });
+
+            // 绘制节点
+            Object.entries(rolePositions).forEach(([id, pos]) => {
+                const role = pos.role;
+
+                // 绘制圆形背景
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 40, 0, 2 * Math.PI);
+                ctx.fillStyle = currentTheme === 'dark' ? '#1a1f2e' : '#ffffff';
+                ctx.fill();
+                ctx.strokeStyle = getRoleColor(role.id);
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // 绘制图标
+                ctx.font = '28px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(role.icon, pos.x, pos.y - 5);
+
+                // 绘制名称
+                ctx.font = '12px "Segoe UI", sans-serif';
+                ctx.fillStyle = currentTheme === 'dark' ? '#e6edf3' : '#1a202c';
+                ctx.fillText(role.name, pos.x, pos.y + 25);
+
+                // 绘制进度
+                ctx.font = '10px "Segoe UI", sans-serif';
+                ctx.fillStyle = currentTheme === 'dark' ? '#8b949e' : '#4a5568';
+                ctx.fillText(`${role.progress}%`, pos.x, pos.y + 38);
+
+                // 如果角色处于阻塞状态，显示警告
+                if (role.status === 'blocked') {
+                    ctx.font = '16px serif';
+                    ctx.fillText('🚫', pos.x + 30, pos.y - 30);
+                }
+            });
+        }
+
+        function getRoleColor(roleId) {
+            const colors = {
+                'architect': currentTheme === 'dark' ? '#58a6ff' : '#3182ce',
+                'pm': currentTheme === 'dark' ? '#3fb950' : '#38a169',
+                'coder': currentTheme === 'dark' ? '#d97706' : '#dd6b20',
+                'ui': currentTheme === 'dark' ? '#a371f7' : '#805ad5',
+                'test': currentTheme === 'dark' ? '#39c5cf' : '#00b5d8'
+            };
+            return colors[roleId] || '#58a6ff';
+        }
+
+        function drawArrow(ctx, fromX, fromY, toX, toY, type) {
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            const headLength = 10;
+
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+
+        // 显示任务详情
+        function showTaskDetail(taskId, roleId) {
+            const role = TASK_DATA.roles.find(r => r.id === roleId);
+            const task = role?.tasks.find(t => t.id === taskId);
+
+            if (!task || !role) return;
+
+            const modal = document.getElementById('task-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+
+            modalTitle.textContent = task.name;
+
+            const depNames = task.dependencies.map(dep => {
+                let depTask = null;
+                let depRole = null;
+                for (const r of TASK_DATA.roles) {
+                    const t = r.tasks.find(t => t.id === dep);
+                    if (t) {
+                        depTask = t;
+                        depRole = r;
+                        break;
+                    }
+                }
+                return depTask ? `${depRole.icon} ${depRole.name}: ${depTask.name}` : dep;
+            });
+
+            modalBody.innerHTML = `
+                <div class="modal-section">
+                    <div class="modal-section-title">基本信息</div>
+                    <div class="modal-section-content">
+                        <p>任务ID: ${task.id}</p>
+                        <p>负责人: ${role.icon} ${role.name}</p>
+                        <p>状态: <span class="task-status-badge ${task.status}">${getTaskStatusText(task.status)}</span></p>
+                        <p>优先级: ${getPriorityText(task.priority)}</p>
+                        <p>计划时间: ${task.start_time}${task.end_time ? ' - ' + task.end_time : ''}</p>
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-title">依赖任务</div>
+                    <div class="modal-section-content">
+                        ${depNames.length > 0 ? depNames.map(d => `<p>• ${d}</p>`).join('') : '<p>无依赖任务</p>'}
+                    </div>
+                </div>
+                ${task.handover_to ? `
+                    <div class="modal-section">
+                        <div class="modal-section-title">交接给</div>
+                        <div class="modal-section-content">
+                            <p>${getRoleName(task.handover_to)}</p>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('task-modal').classList.remove('active');
+        }
+
+        // 刷新数据
+        async function loadTaskData() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const refreshInfo = document.getElementById('refresh-info');
+
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '加载中...';
+
+            try {
+                // 实际使用时，这里应该从服务器或文件加载 JSON 数据
+                // const response = await fetch('tasks.json');
+                // TASK_DATA = await response.json();
+
+                // 更新 UI
+                renderOverviewPanel();
+                renderRolesGrid();
+                renderHandoffTimeline();
+                drawCollaborationGraph();
+
+                // 更新时间戳
+                const now = new Date();
+                refreshInfo.textContent = `最后更新: ${now.toLocaleTimeString()}`;
+            } catch (error) {
+                console.error('加载任务数据失败:', error);
+                refreshInfo.textContent = '加载失败';
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 刷新';
+            }
+        }
+
+        function manualRefresh() {
+            loadTaskData();
+        }
+
+        // 初始化
+        function init() {
+            // 隐藏加载动画
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 800);
+
+            // 加载数据
+            loadTaskData();
+
+            // 设置定时刷新
+            setInterval(loadTaskData, refreshInterval);
+
+            // 窗口大小改变时重绘图形
+            window.addEventListener('resize', () => {
+                drawCollaborationGraph();
+            });
+
+            // 点击模态框外部关闭
+            document.getElementById('task-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'task-modal') {
+                    closeTaskModal();
+                }
+            });
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>
