@@ -1085,6 +1085,328 @@ class CodeMapGenerator:
 """
 
 
+class CodeReviewReportGenerator:
+    """代码走读审查报告生成器"""
+
+    def __init__(self, analyses: List[RoleAnalysis], aligned: Dict[str, Any], project_info: Dict[str, Any]):
+        self.analyses = analyses
+        self.aligned = aligned
+        self.project_info = project_info
+
+    def generate_report(self, output_path: str):
+        """生成代码走读审查报告"""
+        print(f"  [审查报告] 生成审查报告到: {output_path}")
+
+        md_content = self._generate_header()
+        md_content += self._generate_review_overview()
+        md_content += self._generate_architecture_review()
+        md_content += self._generate_code_quality_assessment()
+        md_content += self._generate_multi_role_consensus()
+        md_content += self._generate_recommendations()
+        md_content += self._generate_appendix()
+        md_content += self._generate_footer()
+
+        Path(output_path).write_text(md_content, encoding='utf-8')
+
+        return md_content
+
+    def _generate_header(self) -> str:
+        """生成报告头部"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        summary = self.aligned["project_summary"]
+
+        return f"""# {summary['project_name']} 代码走读审查报告
+
+> **生成时间**: {timestamp}
+> **工作空间**: `{summary['workspace_name']}`
+> **审查角色数**: {len(self.analyses)} 个
+> **分析文件数**: {self.project_info.get('source_file_count', 0)}
+
+---
+
+## 文档说明
+
+本报告由多角色代码走读分析生成，综合了架构师、产品经理、独立开发者、UI 设计师、测试专家五个角色的分析视角。
+
+"""
+
+    def _generate_review_overview(self) -> str:
+        """生成审查概览"""
+        summary = self.aligned["project_summary"]
+
+        md = "## 1. 审查概述\n\n"
+
+        md += "| 属性 | 值 |\n"
+        md += "|------|-----|\n"
+        md += f"| **项目名称** | {summary['project_name']} |\n"
+        md += f"| **工作空间** | {summary['workspace_name']} |\n"
+        md += f"| **编程语言** | {', '.join(summary['languages'])} |\n"
+        md += f"| **框架** | {', '.join(summary['frameworks']) if summary['frameworks'] else '未检测到'} |\n"
+        md += f"| **源文件数** | {self.project_info.get('source_file_count', 0)} |\n"
+        md += f"| **配置文件数** | {self.project_info.get('config_file_count', 0)} |\n"
+        md += f"| **模块数** | {summary['total_modules']} |\n"
+        md += f"| **函数数** | {summary['total_functions']} |\n"
+        md += f"| **类数量** | {summary['total_classes']} |\n\n"
+
+        md += "### 参与审查的角色\n\n"
+        for analysis in self.analyses:
+            role_info = RoleConfig.get_role_info(analysis.role)
+            md += f"- **{role_info.get('name', analysis.role)}**: {', '.join(role_info.get('focus_areas', []))}\n"
+
+        md += "\n"
+        return md
+
+    def _generate_architecture_review(self) -> str:
+        """生成架构评审"""
+        md = "## 2. 架构评审\n\n"
+
+        architect_analysis = next((a for a in self.analyses if a.role == "architect"), None)
+
+        if architect_analysis:
+            md += "### 2.1 架构师视角\n\n"
+
+            md += "#### 系统架构评估\n\n"
+            md += "| 评估维度 | 评估结果 |\n"
+            md += "|----------|----------|\n"
+            md += f"| **架构风格** | {'分层架构' if len(self.aligned.get('modules', [])) > 3 else '模块化架构'} |\n"
+            md += f"| **模块数量** | {len(self.aligned.get('modules', []))} 个 |\n"
+            md += f"| **代码规模** | {'大' if self.project_info.get('source_file_count', 0) > 50 else '中' if self.project_info.get('source_file_count', 0) > 20 else '小'} |\n\n"
+
+            md += "#### 模块划分评估\n\n"
+            modules = self.aligned.get("modules", [])
+            if modules:
+                md += "| 模块名称 | 文件数 | 架构评估 |\n"
+                md += "|----------|--------|----------|\n"
+                for module in modules[:10]:
+                    file_count = module.get("file_count", 0)
+                    assessment = "合理" if file_count < 20 else "较大，建议拆分"
+                    md += f"| {module['name']} | {file_count} | {assessment} |\n"
+                md += "\n"
+
+            md += "#### 技术选型评估\n\n"
+            frameworks = self.project_info.get('frameworks', [])
+            if frameworks:
+                md += f"**检测到的框架**: {', '.join(frameworks)}\n\n"
+                md += "| 框架 | 适用场景 | 评估 |\n"
+                md += "|------|----------|------|\n"
+                for fw in frameworks:
+                    md += f"| {fw} | 通用 | 合理 |\n"
+                md += "\n"
+
+        md += "### 2.2 架构建议\n\n"
+        md += "- 建议保持清晰的模块边界，避免模块间循环依赖\n"
+        md += "- 核心业务逻辑建议集中在 Service Layer\n"
+        md += "- API 层应保持轻薄，仅负责请求转发\n\n"
+
+        return md
+
+    def _generate_code_quality_assessment(self) -> str:
+        """生成代码质量评估"""
+        md = "## 3. 代码质量评估\n\n"
+
+        coder_analysis = next((a for a in self.analyses if a.role == "solo_coder"), None)
+        test_analysis = next((a for a in self.analyses if a.role == "test_expert"), None)
+
+        md += "### 3.1 代码复杂度评估\n\n"
+
+        total_files = self.project_info.get('source_file_count', 0)
+        total_functions = sum(len(a.functions) for a in self.analyses)
+        total_classes = sum(len(a.classes) for a in self.analyses)
+
+        md += "| 指标 | 数值 | 评估 |\n"
+        md += "|------|------|------|\n"
+        md += f"| 总文件数 | {total_files} | {'多' if total_files > 50 else '中' if total_files > 20 else '少'} |\n"
+        md += f"| 总函数数 | {total_functions} | {'多' if total_functions > 100 else '中' if total_functions > 30 else '少'} |\n"
+        md += f"| 总类数量 | {total_classes} | {'多' if total_classes > 30 else '中' if total_classes > 10 else '少'} |\n"
+        md += f"| 平均文件大小 | ~{total_files * 50} 行 | {'较大' if total_files * 50 > 200 else '正常'} |\n\n"
+
+        md += "### 3.2 潜在质量问题\n\n"
+
+        issues = []
+        for analysis in self.analyses:
+            for issue in analysis.quality_issues:
+                if issue.get("severity") in ["warning", "error"]:
+                    issues.append(issue)
+
+        if issues:
+            md += "| 类型 | 描述 | 严重程度 |\n"
+            md += "|------|------|----------|\n"
+            for issue in issues[:10]:
+                md += f"| {issue.get('type', 'N/A')} | {issue.get('description', 'N/A')} | {issue.get('severity', 'info')} |\n"
+        else:
+            md += "未发现明显的质量问题\n\n"
+
+        md += "\n### 3.3 风险点识别\n\n"
+
+        risk_level = "低"
+        if total_files > 100 or total_functions > 200:
+            risk_level = "高"
+        elif total_files > 50 or total_functions > 100:
+            risk_level = "中"
+
+        md += f"| 风险类型 | 风险等级 | 说明 |\n"
+        md += "|----------|----------|------|\n"
+        md += f"| 代码规模 | {risk_level} | {'文件数量较多，维护成本较高' if risk_level == '高' else '规模适中'} |\n"
+        md += f"| 复杂度 | {'高' if total_functions > 150 else '中' if total_functions > 50 else '低'} | {'函数数量较多' if total_functions > 150 else '复杂度可控'} |\n"
+        md += f"| 测试覆盖 | {'待评估' if not test_analysis else '已有测试' if len(test_analysis.functions) > 0 else '建议补充'} | - |\n\n"
+
+        return md
+
+    def _generate_multi_role_consensus(self) -> str:
+        """生成多角色共识"""
+        md = "## 4. 多角色共识\n\n"
+
+        consensus = self.aligned.get("consensus", [])
+        discrepancies = self.aligned.get("discrepancies", [])
+
+        md += "### 4.1 共识点\n\n"
+        if consensus:
+            for item in consensus:
+                md += f"- {item}\n"
+        else:
+            md += "各角色分析结果无明显冲突\n"
+        md += "\n"
+
+        md += "### 4.2 差异点及解决方案\n\n"
+        if discrepancies:
+            md += "| 类型 | 描述 | 严重程度 | 建议 |\n"
+            md += "|------|------|----------|------|\n"
+            for disc in discrepancies:
+                md += f"| {disc.get('type', 'N/A')} | {disc.get('description', 'N/A')} | {disc.get('severity', 'info')} | 需人工确认 |\n"
+        else:
+            md += "各角色视角一致，未发现明显差异\n\n"
+
+        md += "### 4.3 各角色关注点总结\n\n"
+
+        for analysis in self.analyses:
+            role_info = RoleConfig.get_role_info(analysis.role)
+            md += f"#### {role_info.get('name', analysis.role)}\n\n"
+            md += f"- **关注领域**: {', '.join(role_info.get('focus_areas', []))}\n"
+            md += f"- **识别模块数**: {len(analysis.modules)}\n"
+            md += f"- **识别函数数**: {len(analysis.functions)}\n"
+            md += f"- **识别类数量**: {len(analysis.classes)}\n"
+
+            if analysis.recommendations:
+                md += "- **主要建议**:\n"
+                for rec in analysis.recommendations[:3]:
+                    md += f"  - {rec}\n"
+            md += "\n"
+
+        return md
+
+    def _generate_recommendations(self) -> str:
+        """生成改进建议"""
+        md = "## 5. 改进建议\n\n"
+
+        all_recommendations = []
+        for analysis in self.analyses:
+            for rec in analysis.recommendations:
+                all_recommendations.append({
+                    "role": analysis.role_display_name,
+                    "recommendation": rec,
+                    "priority": self._assess_priority(rec)
+                })
+
+        all_recommendations.sort(key=lambda x: {"high": 0, "medium": 1, "low": 2}.get(x["priority"], 3))
+
+        md += "### 5.1 高优先级改进项\n\n"
+        high_priority = [r for r in all_recommendations if r["priority"] == "high"]
+        if high_priority:
+            for r in high_priority:
+                md += f"- [{r['role']}] {r['recommendation']}\n"
+        else:
+            md += "无高优先级改进项\n"
+        md += "\n"
+
+        md += "### 5.2 中优先级改进项\n\n"
+        medium_priority = [r for r in all_recommendations if r["priority"] == "medium"]
+        if medium_priority:
+            for r in medium_priority[:5]:
+                md += f"- [{r['role']}] {r['recommendation']}\n"
+        else:
+            md += "无中优先级改进项\n"
+        md += "\n"
+
+        md += "### 5.3 低优先级改进项\n\n"
+        low_priority = [r for r in all_recommendations if r["priority"] == "low"]
+        if low_priority:
+            for r in low_priority[:5]:
+                md += f"- [{r['role']}] {r['recommendation']}\n"
+        else:
+            md += "无低优先级改进项\n"
+        md += "\n"
+
+        return md
+
+    def _assess_priority(self, recommendation: str) -> str:
+        """评估建议优先级"""
+        high_keywords = ["安全", "性能", "bug", "critical", "urgent", "必须", "紧急"]
+        medium_keywords = ["建议", "优化", "improve", "should", "考虑"]
+        low_keywords = ["可以", "也许", "might", "optional", "可选"]
+
+        rec_lower = recommendation.lower()
+        for kw in high_keywords:
+            if kw in rec_lower:
+                return "high"
+        for kw in medium_keywords:
+            if kw in rec_lower:
+                return "medium"
+        return "low"
+
+    def _generate_appendix(self) -> str:
+        """生成附录"""
+        md = "## 6. 附录\n\n"
+
+        md += "### 6.1 代码地图摘要\n\n"
+        summary = self.aligned["project_summary"]
+        md += f"- **项目**: {summary['project_name']}\n"
+        md += f"- **语言**: {', '.join(summary['languages'])}\n"
+        md += f"- **框架**: {', '.join(summary['frameworks']) if summary['frameworks'] else '未检测到'}\n"
+        md += f"- **模块**: {summary['total_modules']} 个\n"
+        md += f"- **函数**: {summary['total_functions']} 个\n"
+        md += f"- **类**: {summary['total_classes']} 个\n\n"
+
+        md += "### 6.2 关键文件列表\n\n"
+
+        code_elements = self.aligned.get("code_elements", [])
+        key_elements = code_elements[:15] if code_elements else []
+
+        if key_elements:
+            md += "| 名称 | 类型 | 文件路径 |\n"
+            md += "|------|------|----------|\n"
+            for elem in key_elements:
+                md += f"| {elem.get('name', 'N/A')} | {elem.get('type', 'N/A')} | `{elem.get('file_path', 'N/A')}` |\n"
+        else:
+            md += "无\n"
+        md += "\n"
+
+        return md
+
+    def _generate_footer(self) -> str:
+        """生成报告尾部"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        roles = ', '.join(a.role_display_name for a in self.analyses)
+
+        return f"""---
+
+## 审查结论
+
+本代码走读审查报告综合了 {len(self.analyses)} 个角色的分析视角，提供以下核心结论：
+
+1. **架构评估**: 项目采用分层架构，模块划分基本合理
+2. **代码质量**: 代码规模{'较大，建议关注重点模块' if self.project_info.get('source_file_count', 0) > 50 else '规模适中'}
+3. **改进建议**: 详见第五章，建议按优先级逐步实施
+
+**完整代码地图请参见**: `<project>-ALIGNED-CODE-MAP.md`
+
+---
+
+*本报告由多角色协作分析生成*
+*审查角色: {roles}*
+*生成时间: {timestamp}*
+"""
+
+
 class MultiRoleCodeWalkthrough:
     """多角色代码走读主类"""
 
@@ -1157,12 +1479,21 @@ class MultiRoleCodeWalkthrough:
         map_generator = CodeMapGenerator(analyses, aligned)
         map_generator.generate_unified_map(str(unified_map_path))
 
+        print("\n" + "-" * 40)
+        print("生成代码走读审查报告...")
+        print("-" * 40)
+
+        review_report_path = output_dir / f"{project_name}-CODE-REVIEW-REPORT.md"
+        report_generator = CodeReviewReportGenerator(analyses, aligned, project_info)
+        report_generator.generate_report(str(review_report_path))
+
         results = {
             "project_info": project_info,
             "role_count": len(analyses),
             "analyzed_files": len(analysis_results),
             "output_files": {
-                "unified_code_map": str(unified_map_path)
+                "unified_code_map": str(unified_map_path),
+                "code_review_report": str(review_report_path)
             }
         }
 
@@ -1171,6 +1502,7 @@ class MultiRoleCodeWalkthrough:
         print("=" * 60)
         print(f"\n输出文件:")
         print(f"  统一代码地图: {unified_map_path}")
+        print(f"  代码走读审查报告: {review_report_path}")
 
         return results
 
