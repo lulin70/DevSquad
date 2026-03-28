@@ -88,7 +88,9 @@
    - **Multi-Project Workspace Support** (v2.3) - Auto-detects project workspace
    - **Multi-Role Code Walkthrough** (v2.3) - Architect, PM, Solo Coder, UI Designer, Test Expert analyze from multiple perspectives
    - **Document Alignment Mechanism** (v2.3) - Aligns multi-role analysis results, generates unified code map
-   - Core files: `scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`
+   - **3D Code Map Visualization** (v2.3) - Three.js interactive visualization with flowing animations, theme switching
+   - **Task Visualization Page** (v2.3) - Role task status, progress, dependencies, handoff process
+   - Core files: `scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`, `docs/code-map-visualizer.html`, `docs/task-visualizer.html`
 
 7. **Project Understanding** 📚
    - Quickly reads project documents and code (project_understanding.py)
