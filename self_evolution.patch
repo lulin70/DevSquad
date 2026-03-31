@@ -1,0 +1,54 @@
+diff --git a/SKILL.md b/SKILL.md
+index 374c607..dd166a1 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -61,6 +61,7 @@ AI（中文）: "📋 已接收任务，开始代码审查..."
+ 4. **共识机制**: 组织多角色评审和决策
+ 5. **自动继续**: 思考次数超限后自动保存进度并继续执行
+ 6. **任务管理**: 完整的任务生命周期管理和进度追踪
++7. **自我进化**: 从任务执行中学习、记录错误和改进，持续优化自身性能
+ 
+ ## 文档规范与目录结构
+ 
+@@ -3546,6 +3547,33 @@ python3 scripts/trae_agent_dispatch.py \
+ ### 集成外部工具
+ 可以通过 `context` 参数传递外部工具的输出结果。
+ 
++### 规则 6: 自我进化触发
++**判断逻辑**:
++```python
++if 任务完成（成功或失败）:
++    触发自我进化学习
++if 成功率 < 80% OR 连续 3 次失败:
++    触发性能分析和改进建议
++if 每完成 10 个任务:
++    触发性能报告生成
++```
++
++**示例**:
++```bash
++# 任务完成后自动学习
++python3 /Users/lin/Documents/trae_projects/trae_self_improvement/self_improving_agent.py \
++    --action learn_from_task \
++    --task_type "code_review" \
++    --success true \
++    --context "Reviewed PR #123" \
++    --skills "python,testing" \
++    --lesson "Effective code review process"
++
++# 性能分析
++python3 /Users/lin/Documents/trae_projects/trae_self_improvement/self_improving_agent.py \
++    --action get_status
++```
++
+ ## 总结
+ 
+ Trae Multi-Agent Dispatcher 提供了：
+@@ -3554,5 +3582,6 @@ Trae Multi-Agent Dispatcher 提供了：
+ - ✅ 上下文感知
+ - ✅ 完整项目流程
+ - ✅ 紧急任务处理
++- ✅ 自我进化能力
+ 
+ 通过智能调度，减少用户干预，提升协作效率！
+\ No newline at end of file

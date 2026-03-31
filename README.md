@@ -4,6 +4,10 @@
 
 ## 🎉 2026 年 3 月最新更新
 
+- ✅ **Vibe Coding 集成 (v2.4)** - 规划驱动开发理念，包括规划引擎、提示词进化系统、增强上下文管理器
+- ✅ **/mas 命令系统 (v2.4)** - 统一的命令接口，支持 Vibe Coding 功能、智能体调度、工作流执行、知识管理等
+- ✅ **知识提取与管理系统 (v2.4)** - 从对话、代码、文档中自动提取知识，支持分类、搜索、推荐
+- ✅ **自然语言触发机制 (v2.4)** - 通过自然语言指令触发 Vibe Coding 功能
 - ✅ **多角色代码走读 (v2.3)** - 架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析代码，生成对齐后的统一代码地图
 - ✅ **代码地图 Workspace 支持 (v2.3)** - 支持一个 workspace 包含多个项目的场景，明确项目标识
 - ✅ **3D 代码地图可视化 (v2.3)** - 基于 Three.js 的交互式代码结构可视化，动态流动效果，深色/浅色主题切换
@@ -173,21 +177,55 @@ python3 scripts/tests/run_tests.py
    - **任务可视化页面**（v2.3 新增）- 各角色任务状态、进度、依赖关系、交接过程
    - 核心文件：`scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`, `docs/code-map-visualizer.html`, `docs/task-visualizer.html`
 
-8. **项目理解** 📚
-   - 快速读取项目文档和代码（project_understanding.py）
-   - 为各角色生成定制化理解文档
-   - 提供项目概览和技术栈分析
-   - 作为工作初始化上下文
-   - 角色特定见解和建议
+7. **Vibe Coding 集成** 🚀
+   - **规划引擎** - 生成详细的项目计划和任务分解
+   - **提示词进化** - 自动生成和优化提示词
+   - **上下文管理** - 语义记忆和多模型协作
+   - **模块化设计** - 项目模块化分解和依赖分析
+   - **多模态处理** - 支持文本、图像、语音输入
+   - **智能代码生成** - 基于自然语言描述生成代码
+   - 核心文件：`scripts/vibe_coding/planning_engine.py`, `scripts/vibe_coding/prompt_evolution.py`, `scripts/dual_layer_context_manager.py`
 
-9. **UI 设计** 🎨
-   - 创建独特、生产级的 UI 界面（UI_DESIGNER_PROMPT.md）
-   - 避免通用的 AI "slop" 美学
-   - 详细的设计美学指南（字体、色彩、动画、布局）
-   - 完整的设计系统和风格指南
-   - 高保真原型创建
+8. **/mas 命令系统** ⌨️
+   - **Vibe Coding 功能** - plan, optimize, extract, search, recommend
+   - **智能体调度** - agent 命令调度特定智能体
+   - **工作流执行** - workflow 命令执行工作流
+   - **知识管理** - knowledge 命令管理知识
+   - **项目管理** - project 命令管理项目
+   - **工具** - code 和 doc 命令生成和分析代码/文档
+   - **系统** - status, stats, version, config, logs 命令
+   - 核心文件：`scripts/trae_agent_dispatch_v2.py`
 
-10. **八阶段标准工作流程** 📊
+9. **知识提取与管理系统** 📚
+   - **自动知识提取** - 从对话、代码、文档中提取知识
+   - **知识分类** - 自动对知识进行分类和标签化
+   - **知识搜索** - 基于关键词和语义的搜索
+   - **知识推荐** - 基于上下文的推荐
+   - **知识库管理** - 导入、导出、删除知识
+   - 核心文件：`scripts/dual_layer_context_manager.py`（KnowledgeExtractor 和 KnowledgeManager 类）
+
+10. **自然语言触发机制** 🗣️
+    - **命令识别** - 识别 /mas 命令
+    - **意图识别** - 识别自然语言意图
+    - **上下文感知** - 基于对话上下文提供智能推荐
+    - **多语言支持** - 支持中英文自然语言指令
+    - 核心文件：`scripts/user_intent_recognition.py`
+
+11. **项目理解** 📚
+    - 快速读取项目文档和代码（project_understanding.py）
+    - 为各角色生成定制化理解文档
+    - 提供项目概览和技术栈分析
+    - 作为工作初始化上下文
+    - 角色特定见解和建议
+
+12. **UI 设计** 🎨
+    - 创建独特、生产级的 UI 界面（UI_DESIGNER_PROMPT.md）
+    - 避免通用的 AI "slop" 美学
+    - 详细的设计美学指南（字体、色彩、动画、布局）
+    - 完整的设计系统和风格指南
+    - 高保真原型创建
+
+13. **八阶段标准工作流程** 📊
     - 阶段 1: 需求分析（产品经理）
     - 阶段 2: 架构设计（架构师）
     - 阶段 3: UI 设计（UI 设计师）
@@ -197,10 +235,10 @@ python3 scripts/tests/run_tests.py
     - 阶段 7: 测试验证（测试专家）
     - 阶段 8: 发布评审（多角色）
 
-9. **跨平台兼容性** 🌍
-   - 支持 Windows、Mac 和 Linux
-   - 统一的路径处理和字符编码
-   - 跨平台脚本执行
+14. **跨平台兼容性** 🌍
+    - 支持 Windows、Mac 和 Linux
+    - 统一的路径处理和字符编码
+    - 跨平台脚本执行
 
 ### 角色 Prompt 系统
 
@@ -241,6 +279,54 @@ python3 scripts/tests/run_tests.py
 ```
 
 智能体会自动识别任务类型并调用对应角色！
+
+### 使用 /mas 命令系统
+
+在 Trae 中使用 /mas 命令系统：
+
+```
+# 查看帮助
+/mas help
+
+# Vibe Coding 功能
+/mas plan 实现一个 Python web 应用
+/mas optimize 帮我写一个 Python 函数
+/mas extract Python 是一种解释型语言，广泛用于 web 开发
+/mas search Python 设计模式
+/mas recommend 我需要学习 Python web 开发
+
+# 智能体调度
+/mas agent architect 设计系统架构
+/mas agent solo-coder 实现用户登录功能
+
+# 工作流执行
+/mas workflow standard-dev 实现电商系统
+/mas workflow vibe-coding 开发新功能
+
+# 知识管理
+/mas knowledge list
+/mas knowledge export
+/mas knowledge import knowledge.json
+/mas knowledge delete know-123
+
+# 项目管理
+/mas project init 新项目
+/mas project config language Python
+/mas project status
+
+# 工具
+/mas code generate 实现一个排序算法
+/mas code analyze src/main.py
+/mas doc generate 项目文档
+/mas doc analyze README.md
+
+# 系统
+/mas status
+/mas stats
+/mas version
+/mas config debug true
+/mas logs
+```
 
 ### 高级使用
 
@@ -1237,4 +1323,4 @@ SOFTWARE.
 
 ---
 
-**Made with ❤️ by Weiransoft**
+基于 [https://github.com/weiransoft/TraeMultiAgentSkill/](https://github.com/weiransoft/TraeMultiAgentSkill/)，并使用 [https://github.com/2025Emma/vibe-coding-cn](https://github.com/2025Emma/vibe-coding-cn) 的理念进行了优化

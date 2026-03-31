@@ -4,6 +4,10 @@
 
 ## 🎉 March 2026 Latest Updates
 
+- ✅ **Vibe Coding Integration (v2.4)** - Planning-driven development philosophy, including planning engine, prompt evolution system, enhanced context manager
+- ✅ **/mas Command System (v2.4)** - Unified command interface supporting Vibe Coding features, agent dispatch, workflow execution, knowledge management, etc.
+- ✅ **Knowledge Extraction and Management System (v2.4)** - Automatically extracts knowledge from dialogues, code, and documents, supports classification, search, and recommendation
+- ✅ **Natural Language Triggering Mechanism (v2.4)** - Triggers Vibe Coding features through natural language commands
 - ✅ **Multi-Role Code Walkthrough (v2.3)** - Architect, PM, Solo Coder, UI Designer, Test Expert analyze code from multiple perspectives, generate aligned unified code map
 - ✅ **Code Map Workspace Support (v2.3)** - Supports single workspace with multiple projects, clear project identification
 - ✅ **3D Code Map Visualization (v2.3)** - Three.js interactive visualization with flowing animations and theme switching
@@ -92,26 +96,61 @@
    - **Task Visualization Page** (v2.3) - Role task status, progress, dependencies, handoff process
    - Core files: `scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`, `docs/code-map-visualizer.html`, `docs/task-visualizer.html`
 
-7. **Project Understanding** 📚
-   - Quickly reads project documents and code (project_understanding.py)
-   - Generates role-specific understanding documents
-   - Provides project overview and technology stack analysis
-   - Serves as work initialization context
-   - Role-specific insights and recommendations
+7. **Vibe Coding Integration** 🚀
+   - **Planning Engine** - Generates detailed project plans and task breakdowns
+   - **Prompt Evolution** - Automatically generates and optimizes prompts
+   - **Context Management** - Semantic memory and multi-model collaboration
+   - **Modular Design** - Project modular decomposition and dependency analysis
+   - **Multi-Modal Processing** - Supports text, image, and voice input
+   - **Intelligent Code Generation** - Generates code based on natural language descriptions
+   - Core files: `scripts/vibe_coding/planning_engine.py`, `scripts/vibe_coding/prompt_evolution.py`, `scripts/dual_layer_context_manager.py`
 
-8. **7-Stage Standard Workflow** 📊
-   - Stage 1: Requirements Analysis (Product Manager)
-   - Stage 2: Architecture Design (Architect)
-   - Stage 3: Test Design (Test Expert)
-   - Stage 4: Task Breakdown (Solo Coder)
-   - Stage 5: Development Implementation (Solo Coder)
-   - Stage 6: Test Verification (Test Expert)
-   - Stage 7: Release Review (Multi-Agent)
+8. **/mas Command System** ⌨️
+   - **Vibe Coding Features** - plan, optimize, extract, search, recommend
+   - **Agent Dispatch** - agent command to dispatch specific agents
+   - **Workflow Execution** - workflow command to execute workflows
+   - **Knowledge Management** - knowledge command to manage knowledge
+   - **Project Management** - project command to manage projects
+   - **Tools** - code and doc commands to generate and analyze code/documents
+   - **System** - status, stats, version, config, logs commands
+   - Core files: `scripts/trae_agent_dispatch_v2.py`
 
-9. **Cross-Platform Compatibility** 🌍
-   - Supports Windows, Mac, and Linux
-   - Unified path handling and character encoding
-   - Cross-platform script execution
+9. **Knowledge Extraction and Management System** 📚
+   - **Automatic Knowledge Extraction** - Extracts knowledge from dialogues, code, and documents
+   - **Knowledge Classification** - Automatically classifies and tags knowledge
+   - **Knowledge Search** - Keyword and semantic-based search
+   - **Knowledge Recommendation** - Context-based recommendations
+   - **Knowledge Base Management** - Import, export, delete knowledge
+   - Core files: `scripts/dual_layer_context_manager.py` (KnowledgeExtractor and KnowledgeManager classes)
+
+10. **Natural Language Triggering Mechanism** 🗣️
+    - **Command Recognition** - Recognizes /mas commands
+    - **Intent Recognition** - Recognizes natural language intents
+    - **Context Awareness** - Provides intelligent recommendations based on dialogue context
+    - **Multi-Language Support** - Supports Chinese and English natural language commands
+    - Core files: `scripts/user_intent_recognition.py`
+
+11. **Project Understanding** 📚
+    - Quickly reads project documents and code (project_understanding.py)
+    - Generates role-specific understanding documents
+    - Provides project overview and technology stack analysis
+    - Serves as work initialization context
+    - Role-specific insights and recommendations
+
+12. **8-Stage Standard Workflow** 📊
+    - Stage 1: Requirements Analysis (Product Manager)
+    - Stage 2: Architecture Design (Architect)
+    - Stage 3: UI Design (UI Designer)
+    - Stage 4: Test Design (Test Expert)
+    - Stage 5: Task Breakdown (Solo Coder)
+    - Stage 6: Development Implementation (Solo Coder)
+    - Stage 7: Test Verification (Test Expert)
+    - Stage 8: Release Review (Multi-Agent)
+
+13. **Cross-Platform Compatibility** 🌍
+    - Supports Windows, Mac, and Linux
+    - Unified path handling and character encoding
+    - Cross-platform script execution
 
 ### Agent Prompt System / 角色 Prompt 系统
 
@@ -151,6 +190,54 @@ Use directly in Trae without additional commands:
 ```
 
 The agent will automatically identify the task type and dispatch the corresponding role!
+
+### Using /mas Command System / 使用 /mas 命令系统
+
+Use the /mas command system in Trae:
+
+```
+# View help
+/mas help
+
+# Vibe Coding features
+/mas plan Implement a Python web application
+/mas optimize Help me write a Python function
+/mas extract Python is an interpreted language widely used for web development
+/mas search Python design patterns
+/mas recommend I need to learn Python web development
+
+# Agent dispatch
+/mas agent architect Design system architecture
+/mas agent solo-coder Implement user login functionality
+
+# Workflow execution
+/mas workflow standard-dev Implement e-commerce system
+/mas workflow vibe-coding Develop new feature
+
+# Knowledge management
+/mas knowledge list
+/mas knowledge export
+/mas knowledge import knowledge.json
+/mas knowledge delete know-123
+
+# Project management
+/mas project init New project
+/mas project config language Python
+/mas project status
+
+# Tools
+/mas code generate Implement a sorting algorithm
+/mas code analyze src/main.py
+/mas doc generate Project documentation
+/mas doc analyze README.md
+
+# System
+/mas status
+/mas stats
+/mas version
+/mas config debug true
+/mas logs
+```
 
 ### Advanced Usage / 高级使用
 
@@ -246,7 +333,26 @@ python3 scripts/project_understanding.py /path/to/project
 
 **Trigger Keywords**: 测试、质量、验收、自动化、性能测试、缺陷、评审、门禁
 
-### 4. Solo Coder / 独立开发者
+### 4. UI Designer / UI 设计师
+
+**Responsibilities**: Create unique, production-grade UI interfaces with high design quality, avoiding generic AI "slop" aesthetics
+
+**Core Principles**:
+- ✅ Design Thinking Rules - Answer 4 key questions before designing
+- ✅ UI Design Aesthetic Guide - Typography, color, animation, layout
+- ✅ Zero Tolerance Checklist - Prohibits generic fonts, outdated color schemes, AI slop
+- ✅ Verification-Driven Design - Complete acceptance criteria
+- ✅ Completeness Check - Multi-dimensional checklists
+
+**Typical Outputs**:
+- Design philosophy document
+- Style guide
+- High-fidelity prototype
+- UI design document
+
+**Trigger Keywords**: UI design, interface design, frontend design, visual design, UI/UX, UI prototype, interface beautification, UI optimization, UI refactoring
+
+### 5. Solo Coder / 独立开发者
 
 **Responsibilities**: Write complete, high-quality, maintainable, and testable code
 
@@ -929,8 +1035,8 @@ SOFTWARE.
 
 ## 🙏 Acknowledgments / 致谢
 
-感谢所有贡献者和用户的支持！
+Thank you to all contributors and users for your support!
 
 ---
 
-**Made with ❤️ by Weiransoft**
+Based on [https://github.com/weiransoft/TraeMultiAgentSkill/](https://github.com/weiransoft/TraeMultiAgentSkill/) with optimizations inspired by [https://github.com/2025Emma/vibe-coding-cn](https://github.com/2025Emma/vibe-coding-cn)

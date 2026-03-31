@@ -16,11 +16,12 @@ import os
 import json
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Set
+from typing import Dict, List, Any, Optional, Set, Tuple
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
 from enum import Enum
 import copy
+import re
 
 
 class ContextLevel(Enum):
@@ -58,6 +59,8 @@ class KnowledgeItem:
     source: str = ""  # 来源（任务 ID 或手动添加）
     confidence: float = 1.0  # 置信度
     usage_count: int = 0  # 使用次数
+    relevance_score: float = 0.0  # 相关性评分
+    extracted_from: str = ""  # 提取自（对话 ID、文件路径等）
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -1048,6 +1051,354 @@ class TaskContext:
         return None
 
 
+class KnowledgeExtractor:
+    """
+    知识提取器
+    
+    负责从对话内容、代码、文档中自动提取知识
+    """
+    
+    def __init__(self):
+        """初始化知识提取器"""
+        # 知识类别映射
+        self.category_mappings = {
+            "技术栈": ["技术", "框架", "库", "语言", "工具"],
+            "设计模式": ["设计", "模式", "架构", "结构"],
+            "最佳实践": ["最佳", "实践", "建议", "指南"],
+            "问题解决方案": ["问题", "解决", "方案", "修复"],
+            "领域知识": ["领域", "业务", "行业", "专业"]
+        }
+        
+        # 关键词提取模式
+        self.keyword_patterns = {
+            "技术栈": r'(Python|Java|JavaScript|React|Vue|Angular|Spring|Django|Flask|Node\\.js|Docker|Kubernetes|AWS|Azure|GCP)',
+            "设计模式": r'(单例|工厂|适配器|装饰器|观察者|策略|模板|命令|责任链|原型)',
+            "最佳实践": r'(最佳实践|推荐做法|建议|指南|规范)'
+        }
+    
+    def extract_from_dialogue(self, dialogue_content: str, dialogue_id: str = "") -> List[KnowledgeItem]:
+        """
+        从对话内容中提取知识
+        
+        Args:
+            dialogue_content: 对话内容
+            dialogue_id: 对话 ID
+            
+        Returns:
+            List[KnowledgeItem]: 提取的知识项列表
+        """
+        knowledge_items = []
+        
+        # 提取技术相关知识
+        tech_patterns = [
+            r'(\w+)框架',
+            r'(\w+)库',
+            r'(\w+)语言',
+            r'(\w+)工具',
+            r'使用(\w+)',
+            r'基于(\w+)'
+        ]
+        
+        for pattern in tech_patterns:
+            matches = re.findall(pattern, dialogue_content)
+            for match in matches:
+                tech_name = match.strip()
+                if tech_name and len(tech_name) > 1:
+                    knowledge = KnowledgeItem(
+                        id=f"know-dialogue-{hashlib.md5((dialogue_id + tech_name).encode()).hexdigest()[:8]}",
+                        category="技术栈",
+                        title=f"{tech_name} 技术",
+                        content={"description": f"从对话中提取的 {tech_name} 相关知识", "source": dialogue_content[:200]},
+                        tags=[tech_name, "技术栈"],
+                        source=dialogue_id,
+                        extracted_from=dialogue_id
+                    )
+                    knowledge_items.append(knowledge)
+        
+        # 提取问题解决方案
+        solution_patterns = [
+            r'解决(\w+)问题',
+            r'(\w+)问题的解决方案',
+            r'如何(\w+)',
+            r'(\w+)的方法'
+        ]
+        
+        for pattern in solution_patterns:
+            matches = re.findall(pattern, dialogue_content)
+            for match in matches:
+                problem = match.strip()
+                if problem and len(problem) > 1:
+                    knowledge = KnowledgeItem(
+                        id=f"know-solution-{hashlib.md5((dialogue_id + problem).encode()).hexdigest()[:8]}",
+                        category="问题解决方案",
+                        title=f"{problem} 解决方案",
+                        content={"description": f"从对话中提取的 {problem} 解决方案", "source": dialogue_content[:200]},
+                        tags=[problem, "解决方案"],
+                        source=dialogue_id,
+                        extracted_from=dialogue_id
+                    )
+                    knowledge_items.append(knowledge)
+        
+        return knowledge_items
+    
+    def extract_from_code(self, code_content: str, file_path: str = "") -> List[KnowledgeItem]:
+        """
+        从代码中提取知识
+        
+        Args:
+            code_content: 代码内容
+            file_path: 文件路径
+            
+        Returns:
+            List[KnowledgeItem]: 提取的知识项列表
+        """
+        knowledge_items = []
+        
+        # 提取函数和类定义
+        function_patterns = [
+            r'def\s+(\w+)\s*\(',
+            r'class\s+(\w+)\s*\(',
+            r'function\s+(\w+)\s*\(',
+            r'const\s+(\w+)\s*=\s*function'
+        ]
+        
+        for pattern in function_patterns:
+            matches = re.findall(pattern, code_content)
+            for match in matches:
+                name = match.strip()
+                if name and len(name) > 1:
+                    knowledge = KnowledgeItem(
+                        id=f"know-code-{hashlib.md5((file_path + name).encode()).hexdigest()[:8]}",
+                        category="技术栈",
+                        title=f"{name} 实现",
+                        content={"description": f"从代码中提取的 {name} 实现", "source": code_content[:200]},
+                        tags=[name, "代码"],
+                        source=file_path,
+                        extracted_from=file_path
+                    )
+                    knowledge_items.append(knowledge)
+        
+        return knowledge_items
+    
+    def extract_from_document(self, doc_content: str, doc_path: str = "") -> List[KnowledgeItem]:
+        """
+        从文档中提取知识
+        
+        Args:
+            doc_content: 文档内容
+            doc_path: 文档路径
+            
+        Returns:
+            List[KnowledgeItem]: 提取的知识项列表
+        """
+        knowledge_items = []
+        
+        # 提取标题和章节
+        heading_patterns = [
+            r'#\s+(.*?)\n',
+            r'##\s+(.*?)\n',
+            r'###\s+(.*?)\n'
+        ]
+        
+        for pattern in heading_patterns:
+            matches = re.findall(pattern, doc_content)
+            for match in matches:
+                heading = match.strip()
+                if heading and len(heading) > 1:
+                    knowledge = KnowledgeItem(
+                        id=f"know-doc-{hashlib.md5((doc_path + heading).encode()).hexdigest()[:8]}",
+                        category="领域知识",
+                        title=heading,
+                        content={"description": f"从文档中提取的 {heading} 相关知识", "source": doc_content[:200]},
+                        tags=[heading, "文档"],
+                        source=doc_path,
+                        extracted_from=doc_path
+                    )
+                    knowledge_items.append(knowledge)
+        
+        return knowledge_items
+    
+    def classify_knowledge(self, knowledge: KnowledgeItem) -> str:
+        """
+        对知识进行分类
+        
+        Args:
+            knowledge: 知识项
+            
+        Returns:
+            str: 分类结果
+        """
+        # 基于标题和标签进行分类
+        text = f"{knowledge.title} {' '.join(knowledge.tags)}"
+        
+        for category, keywords in self.category_mappings.items():
+            for keyword in keywords:
+                if keyword in text:
+                    return category
+        
+        return "其他"
+
+
+class KnowledgeManager:
+    """
+    知识管理器
+    
+    负责知识的存储、检索、推荐和管理
+    """
+    
+    def __init__(self, global_context: GlobalContext):
+        """
+        初始化知识管理器
+        
+        Args:
+            global_context: 全局上下文
+        """
+        self.global_context = global_context
+        self.extractor = KnowledgeExtractor()
+    
+    def add_knowledge(self, knowledge: KnowledgeItem):
+        """
+        添加知识
+        
+        Args:
+            knowledge: 知识项
+        """
+        # 自动分类
+        if not knowledge.category or knowledge.category == "其他":
+            knowledge.category = self.extractor.classify_knowledge(knowledge)
+        
+        # 添加到全局上下文
+        self.global_context.add_knowledge(knowledge)
+    
+    def search_knowledge(self, query: str, limit: int = 10) -> List[KnowledgeItem]:
+        """
+        搜索知识
+        
+        Args:
+            query: 搜索查询
+            limit: 限制返回数量
+            
+        Returns:
+            List[KnowledgeItem]: 搜索结果
+        """
+        # 提取关键词
+        keywords = self._extract_keywords(query)
+        
+        # 搜索知识库
+        results = self.global_context.search_knowledge(keywords, limit)
+        
+        # 计算相关性评分
+        for knowledge in results:
+            knowledge.relevance_score = self._calculate_relevance(knowledge, query)
+        
+        # 按相关性排序
+        results.sort(key=lambda k: k.relevance_score, reverse=True)
+        
+        return results
+    
+    def recommend_knowledge(self, context: str, limit: int = 5) -> List[KnowledgeItem]:
+        """
+        推荐知识
+        
+        Args:
+            context: 上下文
+            limit: 限制返回数量
+            
+        Returns:
+            List[KnowledgeItem]: 推荐结果
+        """
+        # 提取关键词
+        keywords = self._extract_keywords(context)
+        
+        # 搜索相关知识
+        results = self.global_context.search_knowledge(keywords, limit * 2)
+        
+        # 计算相关性并排序
+        for knowledge in results:
+            knowledge.relevance_score = self._calculate_relevance(knowledge, context)
+        
+        results.sort(key=lambda k: (k.relevance_score, k.usage_count), reverse=True)
+        
+        return results[:limit]
+    
+    def extract_and_add(self, content: str, source: str = "", content_type: str = "dialogue"):
+        """
+        提取并添加知识
+        
+        Args:
+            content: 内容
+            source: 来源
+            content_type: 内容类型 (dialogue, code, document)
+        """
+        if content_type == "dialogue":
+            knowledge_items = self.extractor.extract_from_dialogue(content, source)
+        elif content_type == "code":
+            knowledge_items = self.extractor.extract_from_code(content, source)
+        elif content_type == "document":
+            knowledge_items = self.extractor.extract_from_document(content, source)
+        else:
+            knowledge_items = []
+        
+        for knowledge in knowledge_items:
+            self.add_knowledge(knowledge)
+        
+        return knowledge_items
+    
+    def _extract_keywords(self, text: str) -> List[str]:
+        """
+        提取关键词
+        
+        Args:
+            text: 文本
+            
+        Returns:
+            List[str]: 关键词列表
+        """
+        # 简单关键词提取
+        stop_words = set(["的", "了", "是", "在", "我", "有", "和", "就", "不", "人", "都", "一", "一个", "上", "也", "很", "到", "说", "要", "去", "你", "会", "着", "没有", "看", "好", "自己", "这"])
+        
+        # 分词（简单实现）
+        words = re.findall(r'\b\w+\b', text)
+        keywords = [word for word in words if word not in stop_words and len(word) > 1]
+        
+        return keywords[:10]  # 最多返回 10 个关键词
+    
+    def _calculate_relevance(self, knowledge: KnowledgeItem, query: str) -> float:
+        """
+        计算知识与查询的相关性
+        
+        Args:
+            knowledge: 知识项
+            query: 查询
+            
+        Returns:
+            float: 相关性评分
+        """
+        # 提取查询关键词
+        query_keywords = self._extract_keywords(query)
+        
+        # 提取知识关键词
+        knowledge_text = f"{knowledge.title} {knowledge.category} {' '.join(knowledge.tags)}"
+        knowledge_keywords = self._extract_keywords(knowledge_text)
+        
+        # 计算匹配度
+        match_count = 0
+        for keyword in query_keywords:
+            if keyword in knowledge_keywords:
+                match_count += 1
+        
+        # 计算相关性评分
+        if not query_keywords:
+            return 0.0
+        
+        relevance = match_count / len(query_keywords)
+        
+        # 考虑使用次数
+        usage_factor = min(knowledge.usage_count / 10, 0.5)  # 最多增加 0.5 的评分
+        
+        return relevance + usage_factor
+
+
 class DualLayerContextManager:
     """
     双层上下文管理器
@@ -1072,6 +1423,9 @@ class DualLayerContextManager:
         
         # 同步器
         self.synchronizer = ContextSynchronizer()
+        
+        # 知识管理器
+        self.knowledge_manager = KnowledgeManager(self.global_context)
         
         # 当前任务
         self.current_task_id: Optional[str] = None
@@ -1181,6 +1535,93 @@ class DualLayerContextManager:
             'task_contexts': len(self.task_contexts),
             'current_task': self.current_task_id,
             'sync_history_count': len(self.synchronizer.sync_history)
+        }
+    
+    def extract_knowledge_from_dialogue(self, dialogue_content: str, dialogue_id: str = "") -> List[KnowledgeItem]:
+        """
+        从对话内容中提取知识
+        
+        Args:
+            dialogue_content: 对话内容
+            dialogue_id: 对话 ID
+            
+        Returns:
+            List[KnowledgeItem]: 提取的知识项列表
+        """
+        return self.knowledge_manager.extract_and_add(dialogue_content, dialogue_id, "dialogue")
+    
+    def search_knowledge(self, query: str, limit: int = 10) -> List[KnowledgeItem]:
+        """
+        搜索知识
+        
+        Args:
+            query: 搜索查询
+            limit: 限制返回数量
+            
+        Returns:
+            List[KnowledgeItem]: 搜索结果
+        """
+        return self.knowledge_manager.search_knowledge(query, limit)
+    
+    def recommend_knowledge(self, context: str, limit: int = 5) -> List[KnowledgeItem]:
+        """
+        推荐知识
+        
+        Args:
+            context: 上下文
+            limit: 限制返回数量
+            
+        Returns:
+            List[KnowledgeItem]: 推荐结果
+        """
+        return self.knowledge_manager.recommend_knowledge(context, limit)
+    
+    def add_knowledge(self, knowledge: KnowledgeItem):
+        """
+        添加知识
+        
+        Args:
+            knowledge: 知识项
+        """
+        self.knowledge_manager.add_knowledge(knowledge)
+    
+    def get_knowledge_by_id(self, knowledge_id: str) -> Optional[KnowledgeItem]:
+        """
+        根据 ID 获取知识
+        
+        Args:
+            knowledge_id: 知识 ID
+            
+        Returns:
+            Optional[KnowledgeItem]: 知识项
+        """
+        return self.global_context.get_knowledge(knowledge_id)
+    
+    def get_knowledge_statistics(self) -> Dict[str, Any]:
+        """
+        获取知识统计信息
+        
+        Returns:
+            Dict[str, Any]: 统计信息
+        """
+        knowledge_base = self.global_context.knowledge_base
+        
+        # 按类别统计
+        category_stats = {}
+        for knowledge in knowledge_base.values():
+            category = knowledge.category
+            if category not in category_stats:
+                category_stats[category] = 0
+            category_stats[category] += 1
+        
+        # 计算总使用次数
+        total_usage = sum(knowledge.usage_count for knowledge in knowledge_base.values())
+        
+        return {
+            'total_knowledge': len(knowledge_base),
+            'category_stats': category_stats,
+            'total_usage': total_usage,
+            'average_usage': total_usage / len(knowledge_base) if knowledge_base else 0
         }
 
 

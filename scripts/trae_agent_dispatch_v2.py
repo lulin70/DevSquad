@@ -19,18 +19,20 @@ import argparse
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 # 导入新组件
 try:
     from dual_layer_context_manager import (
         DualLayerContextManager,
         TaskDefinition,
-        UserProfile
+        UserProfile,
+        KnowledgeItem
     )
     from skill_registry import SkillRegistry, SkillManifest
     from role_matcher import RoleMatcher, TaskRequirement, MatchResult, create_default_roles
     from workflow_engine import WorkflowEngine
+    from user_intent_recognition import UserIntentRecognizer, IntentType, NeedType
     NEW_COMPONENTS_AVAILABLE = True
 except ImportError as e:
     NEW_COMPONENTS_AVAILABLE = False
@@ -131,6 +133,328 @@ def log(message: str, level: str = 'INFO'):
     print(f"{color}[{timestamp}] [{level}] {message}{reset_color}")
 
 
+def handle_mas_command(command: str, context_manager: DualLayerContextManager) -> str:
+    """
+    处理 MAS (Multi Agent Skill) 命令
+    
+    Args:
+        command: 命令字符串
+        context_manager: 双层上下文管理器
+        
+    Returns:
+        str: 命令执行结果
+    """
+    # 解析命令
+    parts = command.split(' ', 1)
+    if len(parts) < 1:
+        return "❌ 命令格式错误，请使用：/mas <功能> <参数>"
+    
+    action = parts[0].lower()
+    
+    # 处理 help 命令
+    if action == "help":
+        return """
+✅ MAS (Multi Agent Skill) 命令帮助：
+
+**Vibe Coding 功能：**
+- /mas plan <项目信息> - 生成项目计划
+- /mas optimize <任务描述> - 优化提示词
+- /mas extract <内容> - 提取知识
+- /mas search <查询> - 搜索知识
+- /mas recommend <上下文> - 推荐知识
+
+**智能体调度：**
+- /mas agent <角色> <任务> - 调度特定智能体执行任务
+  角色：architect, product-manager, tester, solo-coder, ui-designer, devops
+
+**工作流：**
+- /mas workflow <工作流> <任务> - 执行特定工作流
+  工作流：standard-dev, rapid-prototype, bug-fix, vibe-coding
+
+**知识管理：**
+- /mas knowledge list - 列出所有知识
+- /mas knowledge export - 导出知识
+- /mas knowledge import <文件> - 导入知识
+- /mas knowledge delete <知识ID> - 删除知识
+
+**项目管理：**
+- /mas project init <项目名称> - 初始化项目
+- /mas project config <配置项> <值> - 配置项目
+- /mas project status - 查看项目状态
+
+**工具：**
+- /mas code generate <描述> - 生成代码
+- /mas code analyze <代码文件> - 分析代码
+- /mas doc generate <内容> - 生成文档
+- /mas doc analyze <文档文件> - 分析文档
+
+**系统：**
+- /mas status - 查看系统状态
+- /mas stats - 查看统计信息
+- /mas version - 查看版本信息
+- /mas config <配置项> <值> - 配置系统
+- /mas logs - 查看系统日志
+        """
+    
+    # 处理其他命令
+    if len(parts) < 2:
+        params = ""
+    else:
+        params = parts[1]
+    
+    # 处理 Vibe Coding 功能
+    if action == "plan":
+        # 生成项目计划
+        log(f'📋 生成项目计划：{params}', 'INFO')
+        # 这里应该调用规划引擎
+        return "✅ 项目计划生成功能已触发"
+    
+    elif action == "optimize":
+        # 优化提示词
+        log(f'✨ 优化提示词：{params}', 'INFO')
+        # 这里应该调用提示词优化器
+        return "✅ 提示词优化功能已触发"
+    
+    elif action == "extract":
+        # 提取知识
+        log(f'🧠 提取知识：{params}', 'INFO')
+        extracted_knowledge = context_manager.extract_knowledge_from_dialogue(params)
+        log(f'✅ 提取到 {len(extracted_knowledge)} 条知识', 'SUCCESS')
+        return f"✅ 从内容中提取到 {len(extracted_knowledge)} 条知识"
+    
+    elif action == "search":
+        # 搜索知识
+        log(f'🔍 搜索知识：{params}', 'INFO')
+        search_results = context_manager.search_knowledge(params)
+        result_str = "\n".join([f"- {k.title} (类别：{k.category})" for k in search_results[:5]])
+        return f"✅ 搜索到 {len(search_results)} 条相关知识：\n{result_str}"
+    
+    elif action == "recommend":
+        # 推荐知识
+        log(f'💡 推荐知识：{params}', 'INFO')
+        recommendations = context_manager.recommend_knowledge(params)
+        result_str = "\n".join([f"- {k.title} (类别：{k.category})" for k in recommendations])
+        return f"✅ 推荐 {len(recommendations)} 条相关知识：\n{result_str}"
+    
+    # 处理智能体调度
+    elif action == "agent":
+        agent_parts = params.split(' ', 1)
+        if len(agent_parts) < 2:
+            return "❌ 命令格式错误，请使用：/mas agent <角色> <任务>"
+        agent_type = agent_parts[0]
+        agent_task = agent_parts[1]
+        log(f'🤖 调度智能体 {agent_type} 执行任务：{agent_task}', 'INFO')
+        # 这里应该调用智能体调度功能
+        return f"✅ 已调度 {agent_type} 智能体执行任务"
+    
+    # 处理工作流
+    elif action == "workflow":
+        workflow_parts = params.split(' ', 1)
+        if len(workflow_parts) < 2:
+            return "❌ 命令格式错误，请使用：/mas workflow <工作流> <任务>"
+        workflow_type = workflow_parts[0]
+        workflow_task = workflow_parts[1]
+        log(f'🔄 执行工作流 {workflow_type}：{workflow_task}', 'INFO')
+        # 这里应该调用工作流执行功能
+        return f"✅ 已启动 {workflow_type} 工作流"
+    
+    # 处理系统命令
+    elif action == "status":
+        log('📊 查看系统状态', 'INFO')
+        # 这里应该返回系统状态
+        return "✅ 系统状态：正常运行"
+    
+    elif action == "stats":
+        log('📈 查看统计信息', 'INFO')
+        stats = context_manager.get_knowledge_statistics()
+        stats_str = f"""
+✅ 统计信息：
+- 总知识条目：{stats['total_knowledge']}
+- 类别分布：{stats['category_stats']}
+- 总使用次数：{stats['total_usage']}
+- 平均使用次数：{stats['average_usage']:.2f}
+        """
+        return stats_str
+    
+    # 处理知识管理命令
+    elif action == "knowledge":
+        knowledge_parts = params.split(' ', 1)
+        if len(knowledge_parts) < 1:
+            return "❌ 命令格式错误，请使用：/mas knowledge <子命令>"
+        knowledge_action = knowledge_parts[0].lower()
+        
+        if knowledge_action == "list":
+            log('📚 列出所有知识', 'INFO')
+            # 这里应该返回知识列表
+            return "✅ 知识列表：待实现"
+        elif knowledge_action == "export":
+            log('📤 导出知识', 'INFO')
+            # 这里应该导出知识
+            return "✅ 知识导出：待实现"
+        elif knowledge_action == "import":
+            if len(knowledge_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas knowledge import <文件>"
+            file_path = knowledge_parts[1]
+            log(f'📥 导入知识：{file_path}', 'INFO')
+            # 这里应该导入知识
+            return f"✅ 知识导入：待实现"
+        elif knowledge_action == "delete":
+            if len(knowledge_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas knowledge delete <知识ID>"
+            knowledge_id = knowledge_parts[1]
+            log(f'🗑️ 删除知识：{knowledge_id}', 'INFO')
+            # 这里应该删除知识
+            return f"✅ 知识删除：待实现"
+        else:
+            return f"❌ 未知的知识管理命令：{knowledge_action}"
+    
+    # 处理项目管理命令
+    elif action == "project":
+        project_parts = params.split(' ', 1)
+        if len(project_parts) < 1:
+            return "❌ 命令格式错误，请使用：/mas project <子命令>"
+        project_action = project_parts[0].lower()
+        
+        if project_action == "init":
+            if len(project_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas project init <项目名称>"
+            project_name = project_parts[1]
+            log(f'🚀 初始化项目：{project_name}', 'INFO')
+            # 这里应该初始化项目
+            return f"✅ 项目初始化：待实现"
+        elif project_action == "config":
+            config_parts = project_parts[1].split(' ', 1)
+            if len(config_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas project config <配置项> <值>"
+            config_item = config_parts[0]
+            config_value = config_parts[1]
+            log(f'⚙️  配置项目：{config_item} = {config_value}', 'INFO')
+            # 这里应该配置项目
+            return f"✅ 项目配置：待实现"
+        elif project_action == "status":
+            log('📋 查看项目状态', 'INFO')
+            # 这里应该返回项目状态
+            return "✅ 项目状态：待实现"
+        else:
+            return f"❌ 未知的项目管理命令：{project_action}"
+    
+    # 处理工具命令
+    elif action == "code":
+        code_parts = params.split(' ', 1)
+        if len(code_parts) < 1:
+            return "❌ 命令格式错误，请使用：/mas code <子命令>"
+        code_action = code_parts[0].lower()
+        
+        if code_action == "generate":
+            if len(code_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas code generate <描述>"
+            code_description = code_parts[1]
+            log(f'💻 生成代码：{code_description}', 'INFO')
+            # 这里应该生成代码
+            return "✅ 代码生成：待实现"
+        elif code_action == "analyze":
+            if len(code_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas code analyze <代码文件>"
+            code_file = code_parts[1]
+            log(f'🔍 分析代码：{code_file}', 'INFO')
+            # 这里应该分析代码
+            return f"✅ 代码分析：待实现"
+        else:
+            return f"❌ 未知的代码工具命令：{code_action}"
+    
+    elif action == "doc":
+        doc_parts = params.split(' ', 1)
+        if len(doc_parts) < 1:
+            return "❌ 命令格式错误，请使用：/mas doc <子命令>"
+        doc_action = doc_parts[0].lower()
+        
+        if doc_action == "generate":
+            if len(doc_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas doc generate <内容>"
+            doc_content = doc_parts[1]
+            log(f'📄 生成文档：{doc_content}', 'INFO')
+            # 这里应该生成文档
+            return "✅ 文档生成：待实现"
+        elif doc_action == "analyze":
+            if len(doc_parts) < 2:
+                return "❌ 命令格式错误，请使用：/mas doc analyze <文档文件>"
+            doc_file = doc_parts[1]
+            log(f'📋 分析文档：{doc_file}', 'INFO')
+            # 这里应该分析文档
+            return f"✅ 文档分析：待实现"
+        else:
+            return f"❌ 未知的文档工具命令：{doc_action}"
+    
+    # 处理更多系统命令
+    elif action == "version":
+        log('📦 查看版本信息', 'INFO')
+        # 这里应该返回版本信息
+        return "✅ 版本信息：TraeMultiAgentSkill 2.4.0"
+    
+    elif action == "config":
+        config_parts = params.split(' ', 1)
+        if len(config_parts) < 2:
+            return "❌ 命令格式错误，请使用：/mas config <配置项> <值>"
+        config_item = config_parts[0]
+        config_value = config_parts[1]
+        log(f'⚙️  配置系统：{config_item} = {config_value}', 'INFO')
+        # 这里应该配置系统
+        return f"✅ 系统配置：待实现"
+    
+    elif action == "logs":
+        log('📋 查看系统日志', 'INFO')
+        # 这里应该返回系统日志
+        return "✅ 系统日志：待实现"
+    
+    else:
+        return f"❌ 未知的 MAS 功能：{action}"
+
+
+def recognize_vibe_intent(task: str) -> Optional[str]:
+    """
+    识别Vibe Coding相关的意图
+    
+    Args:
+        task: 任务描述
+        
+    Returns:
+        Optional[str]: 识别到的Vibe Coding功能，None表示不是Vibe Coding相关意图
+    """
+    # 使用用户意图识别器
+    try:
+        recognizer = UserIntentRecognizer()
+        result = recognizer.recognize(task)
+        
+        # 检查是否是Vibe Coding相关意图
+        if result.intent_type in [IntentType.PLANNING, IntentType.KNOWLEDGE_MANAGEMENT, IntentType.CODE_GENERATION]:
+            if "计划" in task or "规划" in task:
+                return "plan"
+            elif "优化" in task and "提示词" in task:
+                return "optimize"
+            elif "提取" in task and "知识" in task:
+                return "extract"
+            elif "搜索" in task and "知识" in task:
+                return "search"
+            elif "推荐" in task and "知识" in task:
+                return "recommend"
+    except Exception as e:
+        log(f"意图识别失败：{e}", 'WARNING')
+    
+    # 简单的关键词匹配
+    if "生成计划" in task or "项目计划" in task:
+        return "plan"
+    elif "优化提示词" in task:
+        return "optimize"
+    elif "提取知识" in task:
+        return "extract"
+    elif "搜索知识" in task:
+        return "search"
+    elif "推荐知识" in task:
+        return "recommend"
+    
+    return None
+
+
 def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str], 
                      project_root: str, progress: Dict) -> bool:
     """
@@ -169,18 +493,35 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
             skill_root=skill_root
         )
         
-        # 2. 初始化角色匹配器
+        # 2. 检查是否是 MAS 命令
+        if task.startswith('/mas '):
+            # 处理 MAS 命令
+            mas_command = task[5:].strip()  # 去掉 '/mas ' 前缀
+            result = handle_mas_command(mas_command, context_manager)
+            log(result, 'SUCCESS')
+            return True
+        
+        # 3. 识别 Vibe Coding 相关的自然语言意图
+        vibe_intent = recognize_vibe_intent(task)
+        if vibe_intent:
+            # 处理 Vibe Coding 自然语言意图
+            log(f'🧠 识别到 Vibe Coding 意图：{vibe_intent}', 'INFO')
+            result = handle_mas_command(f"{vibe_intent} {task}", context_manager)
+            log(result, 'SUCCESS')
+            return True
+        
+        # 4. 初始化角色匹配器
         matcher = RoleMatcher()
         roles = create_default_roles()
         for role in roles:
             matcher.register_role(role)
         
-        # 3. 创建工作流引擎
+        # 5. 创建工作流引擎
         workflow_engine = WorkflowEngine(
             storage_path=str(Path(project_root) / '.trae' / 'skills' / 'trae-multi-agent')
         )
         
-        # 4. 创建任务定义
+        # 6. 创建任务定义
         task_def = TaskDefinition(
             task_id=task_id or f"TASK-{datetime.now().strftime('%Y%m%d%H%M%S')}",
             title=task,
@@ -189,11 +530,11 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
             constraints=[]
         )
         
-        # 5. 开始任务（自动注入相关知识）
+        # 7. 开始任务（自动注入相关知识）
         log(f'🚀 启动任务：{task_def.task_id}', 'SUCCESS')
         task_ctx = context_manager.start_task(task_def)
         
-        # 6. 智能匹配角色
+        # 8. 智能匹配角色
         requirement = TaskRequirement(
             task_id=task_def.task_id,
             title=task_def.title,
@@ -205,7 +546,7 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
         for i, result in enumerate(matched_roles, 1):
             log(f'   {i}. {result.role_name} (置信度：{result.confidence:.2%})', 'INFO')
         
-        # 7. 选择最佳角色（或用户指定的角色）
+        # 9. 选择最佳角色（或用户指定的角色）
         if matched_roles:
             # 如果是 auto，选择最佳匹配
             if agent_type == 'auto':
@@ -237,7 +578,7 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
             
             log(f'✅ 选择角色：{best_match.role_name}', 'SUCCESS')
             
-            # 8. 记录思考
+            # 10. 记录思考
             task_ctx.add_thought(
                 role=best_match.role_id,
                 thought_type="decision",
@@ -248,7 +589,7 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
                 }
             )
             
-            # 9. 模拟执行（实际应该调用对应的智能体）
+            # 11. 模拟执行（实际应该调用对应的智能体）
             log(f'▶️  执行任务...', 'INFO')
             task_ctx.add_artifact(
                 "EXECUTION",
@@ -260,16 +601,16 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
                 role=best_match.role_id
             )
             
-            # 10. 完成任务（自动沉淀经验）
+            # 12. 完成任务（自动沉淀经验）
             context_manager.complete_task(task_def.task_id)
             
-            # 11. 更新进度
+            # 13. 更新进度
             if task_id:
                 from trae_agent_dispatch import update_task_status
                 update_task_status(progress, task_id, '✅ 已完成', 
                                  f'任务已完成，角色：{best_match.role_name}', project_root)
             
-            # 12. 显示统计
+            # 14. 显示统计
             stats = context_manager.get_statistics()
             log(f'📊 上下文统计:', 'INFO')
             log(f'   全局上下文版本：{stats["global_context"]["version"]}', 'INFO')

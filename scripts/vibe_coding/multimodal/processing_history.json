@@ -1,0 +1,14 @@
+[
+  {
+    "type": "text",
+    "input": "创建一个函数，计算列表中所有元素的平均值",
+    "result": "text_to_code_result_1774929028",
+    "timestamp": "2026-03-31T11:50:28.789922"
+  },
+  {
+    "type": "text",
+    "input": "创建一个函数，检查字符串是否为回文",
+    "result": "text_to_code_result_1774929028",
+    "timestamp": "2026-03-31T11:50:28.790380"
+  }
+]

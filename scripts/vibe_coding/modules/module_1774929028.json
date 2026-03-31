@@ -1,0 +1,60 @@
+{
+  "module_id": "module_1774929028",
+  "name": "Vibe Coding 集成模块",
+  "description": "负责 Vibe Coding 与 TraeMultiAgentSkill 的集成",
+  "module_type": "service",
+  "status": "developing",
+  "version": "1.0.0",
+  "dependencies": [
+    {
+      "module_id": "planning_engine",
+      "version": "1.0.0",
+      "dependency_type": "runtime",
+      "optional": false
+    },
+    {
+      "module_id": "prompt_evolution",
+      "version": "1.0.0",
+      "dependency_type": "runtime",
+      "optional": false
+    },
+    {
+      "module_id": "context_manager",
+      "version": "1.0.0",
+      "dependency_type": "runtime",
+      "optional": false
+    }
+  ],
+  "interfaces": [
+    {
+      "interface_id": "get_vibe_coding_config",
+      "name": "获取 Vibe Coding 配置",
+      "description": "获取 Vibe Coding 的配置信息",
+      "inputs": {},
+      "outputs": {
+        "config": "object"
+      },
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "interface_id": "execute_vibe_task",
+      "name": "执行 Vibe Coding 任务",
+      "description": "执行 Vibe Coding 任务并返回结果",
+      "inputs": {
+        "task": "object"
+      },
+      "outputs": {
+        "result": "object"
+      },
+      "methods": [
+        "POST"
+      ]
+    }
+  ],
+  "files": [],
+  "author": "Vibe Coding Team",
+  "created_at": "2026-03-31T11:50:28.788508",
+  "updated_at": "2026-03-31T11:50:28.789421"
+}

@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-03-31T11:36:40.178641",
+  "total_tests": 5,
+  "passed_tests": 5,
+  "failed_tests": 0,
+  "success_rate": 100.0,
+  "results": [
+    {
+      "name": "规划引擎测试",
+      "status": "passed",
+      "message": "测试通过"
+    },
+    {
+      "name": "提示词进化系统测试",
+      "status": "passed",
+      "message": "测试通过"
+    },
+    {
+      "name": "增强上下文管理器测试",
+      "status": "passed",
+      "message": "测试通过"
+    },
+    {
+      "name": "模块管理器测试",
+      "status": "passed",
+      "message": "测试通过"
+    },
+    {
+      "name": "多模态处理器测试",
+      "status": "passed",
+      "message": "测试通过"
+    }
+  ]
+}

@@ -1,10 +1,11 @@
 name: trae-multi-agent
-version: 2.3.0
+version: 2.4.0
 description: |
-  Trae 多智能体协作技能（AI 增强版 + 长程 Agent 支持）
+  Trae 多智能体协作技能（AI 增强版 + Vibe Coding 集成 + 长程 Agent 支持）
   
   基于双层动态上下文管理架构和大模型 AI 助手能力，实现智能体之间的高效协作。
   支持产品、架构、开发、测试等多种角色的智能调度和工作流编排。
+  集成 Vibe Coding 规划驱动开发理念，提供更智能的开发体验。
   
   核心特性：
   - 双层动态上下文管理（长期记忆 + 工作记忆）
@@ -14,6 +15,7 @@ description: |
   - 经验沉淀和知识积累
   - 大模型 AI 助手深度集成
   - 长程 Agent 支持（Checkpoint + Handoff + TaskList）
+  - Vibe Coding 规划驱动开发（规划引擎 + 提示词进化 + 多模型协作）
 
 author: Trae Team
 status: active
@@ -340,6 +342,56 @@ capabilities:
             type: string
           description: 建议列表
 
+  - name: vibe-coding
+    description: |
+      Vibe Coding 规划驱动开发助手
+      
+      核心能力：
+      - 规划引擎：生成详细的项目计划和任务分解
+      - 提示词进化：自动生成和优化提示词
+      - 上下文管理：语义记忆和多模型协作
+      - 模块化设计：项目模块化分解和依赖分析
+      - 多模态处理：支持文本、图像、语音输入
+      - 智能代码生成：基于自然语言描述生成代码
+    input_schema:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [plan, optimize_prompt, manage_context, design_module, process_multimodal]
+          description: Vibe Coding 功能类型
+        project_info:
+          type: object
+          description: 项目信息（用于规划）
+        task_description:
+          type: string
+          description: 任务描述（用于提示词生成）
+        text_input:
+          type: string
+          description: 文本输入（用于代码生成）
+        language:
+          type: string
+          enum: [python, javascript, typescript, java, go, rust]
+          description: 目标编程语言
+    output_schema:
+      type: object
+      properties:
+        plan:
+          type: object
+          description: 生成的项目计划
+        prompt:
+          type: string
+          description: 优化后的提示词
+        code:
+          type: string
+          description: 生成的代码
+        module_structure:
+          type: object
+          description: 模块结构
+        context_info:
+          type: object
+          description: 上下文信息
+
 dependencies: []
 
 ai_integration:
@@ -410,6 +462,35 @@ workflows:
         name: 验证
         role: tester
         action: verify_fix
+
+  - workflow_id: vibe-coding-workflow
+    name: Vibe Coding 规划驱动工作流
+    description: 基于 Vibe Coding 理念的规划驱动开发流程
+    steps:
+      - step_id: planning
+        name: 项目规划
+        role: vibe-coding
+        action: plan
+
+      - step_id: prompt_optimization
+        name: 提示词优化
+        role: vibe-coding
+        action: optimize_prompt
+
+      - step_id: context_management
+        name: 上下文管理
+        role: vibe-coding
+        action: manage_context
+
+      - step_id: module_design
+        name: 模块化设计
+        role: vibe-coding
+        action: design_module
+
+      - step_id: code_generation
+        name: 智能代码生成
+        role: vibe-coding
+        action: process_multimodal
 
 context_management:
   type: dual-layer
@@ -483,6 +564,15 @@ metadata:
   documentation: https://github.com/weiransoft/zeroclaw/tree/main/.trae/skills/trae-multi-agent
   
   version_history:
+    - version: 2.4.0
+      date: "2026-03-31"
+      changes:
+        - Vibe Coding 集成：规划引擎、提示词进化系统、增强上下文管理器
+        - 模块化设计工具：项目模块化分解、依赖分析、接口管理
+        - 多模态处理器：支持文本、图像、语音输入的智能处理
+        - 多模型协作系统：智能模型分配和任务调度
+        - Vibe Coding 工作流：规划驱动开发流程
+
     - version: 2.3.0
       date: "2026-03-28"
       changes:

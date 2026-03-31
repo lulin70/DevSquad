@@ -1,0 +1,37 @@
+{
+  "module_id": "module_1774928575",
+  "name": "测试API模块",
+  "description": "测试模块管理器功能",
+  "module_type": "api",
+  "status": "developing",
+  "version": "1.0.0",
+  "dependencies": [
+    {
+      "module_id": "module_test_service",
+      "version": "1.0.0",
+      "dependency_type": "runtime",
+      "optional": false
+    }
+  ],
+  "interfaces": [
+    {
+      "interface_id": "test_api_interface",
+      "name": "测试API接口",
+      "description": "测试API接口功能",
+      "inputs": {
+        "test": "string"
+      },
+      "outputs": {
+        "result": "boolean"
+      },
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    }
+  ],
+  "files": [],
+  "author": "Test Team",
+  "created_at": "2026-03-31T11:42:55.234521",
+  "updated_at": "2026-03-31T11:42:55.235040"
+}

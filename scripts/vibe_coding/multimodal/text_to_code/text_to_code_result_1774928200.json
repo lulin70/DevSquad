@@ -1,0 +1,8 @@
+{
+  "result_id": "text_to_code_result_1774928200",
+  "input_text": "创建一个函数，处理用户列表，打印每个用户的姓名、邮箱和电话",
+  "code": "// 生成的JavaScript代码\n\nfunction processUserList(users) {\n    // 处理用户列表\n    users.forEach(user => {\n        console.log(`Name: ${user.name}, Email: ${user.email}, Phone: ${user.phone}`);\n    });\n}\n\n// 示例用法\nconst users = [\n    {name: 'John Doe', email: 'john@example.com', phone: '123-456-7890'},\n    {name: 'Jane Smith', email: 'jane@example.com', phone: '987-654-3210'}\n];\n\nprocessUserList(users);\n",
+  "language": "javascript",
+  "confidence": 0.9,
+  "created_at": "2026-03-31T11:36:40.178279"
+}

@@ -1,0 +1,14 @@
+# 生成的Python代码
+
+def process_user_list(users):
+    # 处理用户列表
+    for user in users:
+        print(f"Name: {user['name']}, Email: {user['email']}, Phone: {user['phone']}")
+
+# 示例用法
+users = [
+    {'name': 'John Doe', 'email': 'john@example.com', 'phone': '123-456-7890'},
+    {'name': 'Jane Smith', 'email': 'jane@example.com', 'phone': '987-654-3210'}
+]
+
+process_user_list(users)

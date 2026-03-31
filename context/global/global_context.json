@@ -1,5 +1,5 @@
 {
-  "version": 28,
+  "version": 34,
   "user_profile": {
     "user_id": "test-user",
     "identity": "架构师",
@@ -154,6 +154,46 @@
   },
   "collaboration_net": {},
   "capability_models": {},
+  "semantic_memory": {},
+  "models": {
+    "gpt-4": {
+      "model_type": "general",
+      "name": "GPT-4",
+      "capabilities": [
+        "natural_language",
+        "planning",
+        "problem_solving",
+        "code_generation"
+      ],
+      "parameters": {},
+      "performance": {},
+      "usage_count": 0
+    },
+    "claude-3": {
+      "model_type": "general",
+      "name": "Claude 3",
+      "capabilities": [
+        "natural_language",
+        "problem_solving",
+        "code_analysis"
+      ],
+      "parameters": {},
+      "performance": {},
+      "usage_count": 0
+    },
+    "code-assistant": {
+      "model_type": "code",
+      "name": "Code Assistant",
+      "capabilities": [
+        "code_generation",
+        "code_analysis"
+      ],
+      "parameters": {},
+      "performance": {},
+      "usage_count": 0
+    }
+  },
+  "model_assignments": {},
   "version_history": [
     {
       "version": 1,
@@ -405,6 +445,66 @@
         "knowledge_count": 1,
         "experience_count": 10,
         "collaboration_count": 0
+      }
+    },
+    {
+      "version": 29,
+      "timestamp": "2026-03-31T12:14:35.682569",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 10,
+        "collaboration_count": 0,
+        "model_count": 1
+      }
+    },
+    {
+      "version": 30,
+      "timestamp": "2026-03-31T12:14:35.683554",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 10,
+        "collaboration_count": 0,
+        "model_count": 2
+      }
+    },
+    {
+      "version": 31,
+      "timestamp": "2026-03-31T12:14:35.684242",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 10,
+        "collaboration_count": 0,
+        "model_count": 3
+      }
+    },
+    {
+      "version": 32,
+      "timestamp": "2026-03-31T12:25:27.912358",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 10,
+        "collaboration_count": 0,
+        "model_count": 1
+      }
+    },
+    {
+      "version": 33,
+      "timestamp": "2026-03-31T12:25:27.913590",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 10,
+        "collaboration_count": 0,
+        "model_count": 2
+      }
+    },
+    {
+      "version": 34,
+      "timestamp": "2026-03-31T12:25:27.914315",
+      "stats": {
+        "knowledge_count": 1,
+        "experience_count": 10,
+        "collaboration_count": 0,
+        "model_count": 3
       }
     }
   ]
