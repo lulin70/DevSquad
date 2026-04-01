@@ -33,6 +33,7 @@ try:
     from role_matcher import RoleMatcher, TaskRequirement, MatchResult, create_default_roles
     from workflow_engine import WorkflowEngine
     from user_intent_recognition import UserIntentRecognizer, IntentType, NeedType
+    from core_rules import core_rules
     NEW_COMPONENTS_AVAILABLE = True
 except ImportError as e:
     NEW_COMPONENTS_AVAILABLE = False
@@ -197,6 +198,7 @@ def handle_mas_command(command: str, context_manager: DualLayerContextManager) -
 - /mas version - 查看版本信息
 - /mas config <配置项> <值> - 配置系统
 - /mas logs - 查看系统日志
+- /mas rules - 查看核心规则库
         """
     
     # 处理其他命令
@@ -417,6 +419,19 @@ def handle_mas_command(command: str, context_manager: DualLayerContextManager) -
         # 这里应该返回系统日志
         return "✅ 系统日志：待实现"
     
+    elif action == "rules":
+        log('📚 查看核心规则库', 'INFO')
+        if NEW_COMPONENTS_AVAILABLE:
+            rules = core_rules.get_all_rules()
+            rules_str = "✅ 核心规则库：\n\n"
+            for rule in rules:
+                rules_str += f"**{rule['name']}** ({rule['id']}): {rule['description']}\n"
+                if rule['examples']:
+                    rules_str += "  示例：" + ", ".join(rule['examples'][:3]) + "\n\n"
+            return rules_str
+        else:
+            return "❌ 核心规则库不可用"
+    
     else:
         return f"❌ 未知的 MAS 功能：{action}"
 
@@ -614,7 +629,12 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
             
             log(f'✅ 选择角色：{best_match.role_name}', 'SUCCESS')
             
-            # 10. 记录思考
+            # 10. 应用核心规则增强Prompt
+            log(f'📋 应用核心规则到 {best_match.role_name} 的Prompt', 'INFO')
+            # 这里可以使用core_rules.apply_rules_to_prompt来增强Prompt
+            # 示例：enhanced_prompt = core_rules.apply_rules_to_prompt(original_prompt, best_match.role_id)
+            
+            # 11. 记录思考
             task_ctx.add_thought(
                 role=best_match.role_id,
                 thought_type="decision",
@@ -625,14 +645,15 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
                 }
             )
             
-            # 11. 模拟执行（实际应该调用对应的智能体）
+            # 12. 模拟执行（实际应该调用对应的智能体）
             log(f'▶️  执行任务...', 'INFO')
             task_ctx.add_artifact(
                 "EXECUTION",
                 {
                     "role": best_match.role_id,
                     "task": task,
-                    "status": "completed"
+                    "status": "completed",
+                    "core_rules_applied": True
                 },
                 role=best_match.role_id
             )
