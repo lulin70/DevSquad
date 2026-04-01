@@ -2,7 +2,15 @@
 
 🎭 Dynamically dispatches to appropriate agent roles (Architect, Product Manager, Test Expert, Solo Coder) based on task type. Supports multi-agent collaboration, consensus mechanism, complete project lifecycle management, specification-driven development, code map generation, and project understanding. Supports Chinese-English bilingual.
 
-## 🎉 March 2026 Latest Updates
+## 🎉 April 2026 Latest Updates
+
+- ✅ **Core Rules Integration (v2.4.1)** - Integrated Claude Code's 14 core prompt rules into Vibe Coding prompt optimization system, improving prompt quality
+- ✅ **Project Full Lifecycle Command (v2.4.1)** - Added /mas lifecycle command to start complete project lifecycle with one click
+- ✅ **Core Rules Query (v2.4.1)** - Added /mas rules command to view integrated core rules library
+- ✅ **Critical Review Report (v2.4.1)** - Completed multi-role (PM, Architect, UI Designer, Developer, Test Manager) critical review, identifying improvement directions
+- ✅ **Repository Structure Optimization (v2.4.1)** - Cleaned up unnecessary files, optimized directory structure, improved maintainability
+
+## 🎉 March 2026 Updates
 
 - ✅ **Vibe Coding Integration (v2.4)** - Planning-driven development philosophy, including planning engine, prompt evolution system, enhanced context manager
 - ✅ **/mas Command System (v2.4)** - Unified command interface supporting Vibe Coding features, agent dispatch, workflow execution, knowledge management, etc.
@@ -111,11 +119,20 @@
    - **Workflow Execution** - workflow command to execute workflows
    - **Knowledge Management** - knowledge command to manage knowledge
    - **Project Management** - project command to manage projects
+   - **Project Full Lifecycle** (v2.4.1) - lifecycle command to start complete project lifecycle with one click
+   - **Core Rules Query** (v2.4.1) - rules command to view integrated core rules library
    - **Tools** - code and doc commands to generate and analyze code/documents
    - **System** - status, stats, version, config, logs commands
    - Core files: `scripts/trae_agent_dispatch_v2.py`
 
-9. **Knowledge Extraction and Management System** 📚
+9. **Core Rules System** (v2.4.1) 📋
+   - **Claude Code Core Rules Integration** - 14 core prompt rules
+   - **Rule Application** - Automatically applies core rules during prompt generation and optimization
+   - **Rule Query** - View all core rules via /mas rules command
+   - **Rule Classification** - Universal rules and role-specific rules
+   - Core files: `scripts/vibe_coding/prompt_evolution.py`
+
+10. **Knowledge Extraction and Management System** 📚
    - **Automatic Knowledge Extraction** - Extracts knowledge from dialogues, code, and documents
    - **Knowledge Classification** - Automatically classifies and tags knowledge
    - **Knowledge Search** - Keyword and semantic-based search

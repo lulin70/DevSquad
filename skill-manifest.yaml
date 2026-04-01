@@ -1,11 +1,12 @@
 name: trae-multi-agent
-version: 2.4.0
+version: 2.4.1
 description: |
-  Trae 多智能体协作技能（AI 增强版 + Vibe Coding 集成 + 长程 Agent 支持）
+  Trae 多智能体协作技能（AI 增强版 + Vibe Coding 集成 + 长程 Agent 支持 + 核心规则系统）
   
   基于双层动态上下文管理架构和大模型 AI 助手能力，实现智能体之间的高效协作。
   支持产品、架构、开发、测试等多种角色的智能调度和工作流编排。
   集成 Vibe Coding 规划驱动开发理念，提供更智能的开发体验。
+  集成 Claude Code 的 14 条核心规则，提升提示词质量和执行效果。
   
   核心特性：
   - 双层动态上下文管理（长期记忆 + 工作记忆）
@@ -16,6 +17,7 @@ description: |
   - 大模型 AI 助手深度集成
   - 长程 Agent 支持（Checkpoint + Handoff + TaskList）
   - Vibe Coding 规划驱动开发（规划引擎 + 提示词进化 + 多模型协作）
+  - 核心规则系统（Claude Code 14 条核心规则集成）
 
 author: Trae Team
 status: active
@@ -564,6 +566,15 @@ metadata:
   documentation: https://github.com/weiransoft/zeroclaw/tree/main/.trae/skills/trae-multi-agent
   
   version_history:
+    - version: 2.4.1
+      date: "2026-04-01"
+      changes:
+        - 核心规则集成：集成 Claude Code 的 14 条提示词核心规则到 Vibe Coding 提示词优化系统
+        - 项目全生命周期命令：新增 /mas lifecycle 命令，一键启动完整项目生命周期
+        - 核心规则查询：新增 /mas rules 命令，查看系统集成的核心规则库
+        - 批判性审核报告：完成多角色批判性审核，识别改进方向
+        - 仓库结构优化：清理不必要的文件，优化目录结构
+
     - version: 2.4.0
       date: "2026-03-31"
       changes:
@@ -606,4 +617,4 @@ metadata:
         - 简单的上下文管理
 
 created_at: "2026-03-16T00:00:00"
-updated_at: "2026-03-17T00:00:00"
+updated_at: "2026-04-01T00:00:00"
