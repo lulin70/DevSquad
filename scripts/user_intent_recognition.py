@@ -40,6 +40,9 @@ class IntentType(Enum):
     BUG_REPORT = "bug_report"  # Bug 报告
     QUESTION = "question"  # 问题咨询
     GENERAL = "general"  # 通用意图
+    PROJECT_LIFECYCLE = "project_lifecycle"  # 项目全生命周期
+    PLANNING = "planning"  # 规划
+    KNOWLEDGE_MANAGEMENT = "knowledge_management"  # 知识管理
     UNKNOWN = "unknown"  # 未知意图
 
 
@@ -113,12 +116,6 @@ class UserIntentRecognizer:
             print("⚠️  AI 语义匹配器未初始化，使用规则匹配")
 
     def _load_intent_patterns(self) -> Dict[IntentType, List[str]]:
-        """
-        加载意图模式
-        
-        Returns:
-            Dict[IntentType, List[str]]: 意图类型到关键词模式的映射
-        """
         return {
             IntentType.CODE_ANALYSIS: [
                 r'分析代码', r'代码审查', r'代码质量', r'代码走读',
@@ -147,6 +144,22 @@ class UserIntentRecognizer:
             IntentType.GENERAL: [
                 r'你好', r'问候', r'帮助', r'支持',
                 r'hello', r'greeting', r'help', r'support'
+            ],
+            IntentType.PROJECT_LIFECYCLE: [
+                r'项目生命周期', r'全生命周期', r'完整流程', r'标准流程',
+                r'启动项目', r'新项目', r'从头开始', r'完整开发',
+                r'需求分析.*架构.*开发', r'需求.*设计.*实现.*测试',
+                r'project lifecycle', r'full lifecycle', r'complete flow',
+                r'start project', r'new project', r'from scratch',
+                r'完整功能', r'端到端', r'end.to.end', r'全流程'
+            ],
+            IntentType.PLANNING: [
+                r'生成计划', r'项目计划', r'规划', r'制定计划',
+                r'generate plan', r'project plan', r'planning'
+            ],
+            IntentType.KNOWLEDGE_MANAGEMENT: [
+                r'提取知识', r'搜索知识', r'推荐知识', r'知识管理',
+                r'extract knowledge', r'search knowledge', r'recommend knowledge'
             ]
         }
 
@@ -375,20 +388,8 @@ class UserIntentRecognizer:
     def _generate_recommendations(self, intent_type: IntentType, 
                                 need_type: NeedType, 
                                 context: DialogueContext) -> List[str]:
-        """
-        生成建议
-        
-        Args:
-            intent_type: 意图类型
-            need_type: 需求类型
-            context: 对话上下文
-            
-        Returns:
-            List[str]: 建议列表
-        """
         recommendations = []
 
-        # 基于意图和需求类型生成建议
         if intent_type == IntentType.CODE_ANALYSIS:
             if need_type == NeedType.IMPROVEMENT:
                 recommendations.append("您可以使用代码走读功能分析代码质量，然后根据报告进行优化")
@@ -400,8 +401,14 @@ class UserIntentRecognizer:
             recommendations.append("您可以使用架构师角色进行系统设计和技术选型")
         elif intent_type == IntentType.FEATURE_REQUEST:
             recommendations.append("您可以通过产品经理角色分析需求，然后由开发工程师实现")
+        elif intent_type == IntentType.PROJECT_LIFECYCLE:
+            recommendations.append("建议使用项目全生命周期模式：需求分析→架构设计→UI设计→测试设计→任务分解→开发实现→测试验证→发布评审")
+            recommendations.append("使用命令 /mas lifecycle <任务> 启动完整项目流程")
+        elif intent_type == IntentType.PLANNING:
+            recommendations.append("使用命令 /mas plan <项目信息> 生成项目计划")
+        elif intent_type == IntentType.KNOWLEDGE_MANAGEMENT:
+            recommendations.append("使用命令 /mas extract/search/recommend 进行知识管理")
         elif intent_type == IntentType.QUESTION:
-            # 检查是否是常见问题
             pattern_result = self.recognize_pattern(context.current_message)
             if pattern_result and pattern_result.solution:
                 recommendations.append(pattern_result.solution)
@@ -446,18 +453,8 @@ class UserIntentRecognizer:
         return best_match if best_match and best_match.confidence > 0.3 else None
 
     def suggest_dialogue_flow(self, intent_result: IntentRecognitionResult) -> List[str]:
-        """
-        建议对话流程
-        
-        Args:
-            intent_result: 意图识别结果
-            
-        Returns:
-            List[str]: 对话流程步骤
-        """
         flow = []
 
-        # 基于意图和需求类型生成对话流程
         if intent_result.intent_type == IntentType.CODE_ANALYSIS:
             flow.extend([
                 "确认分析范围",
@@ -485,6 +482,31 @@ class UserIntentRecognizer:
                 "制定实现计划",
                 "执行功能开发",
                 "进行功能测试"
+            ])
+        elif intent_result.intent_type == IntentType.PROJECT_LIFECYCLE:
+            flow.extend([
+                "阶段1: 需求分析（产品经理）",
+                "阶段2: 架构设计（架构师）",
+                "阶段3: UI 设计（UI 设计师）",
+                "阶段4: 测试设计（测试专家）",
+                "阶段5: 任务分解（独立开发者）",
+                "阶段6: 开发实现（独立开发者）",
+                "阶段7: 测试验证（测试专家）",
+                "阶段8: 发布评审（多角色）"
+            ])
+        elif intent_result.intent_type == IntentType.PLANNING:
+            flow.extend([
+                "收集项目信息",
+                "分析项目需求",
+                "生成项目计划",
+                "分解任务清单"
+            ])
+        elif intent_result.intent_type == IntentType.KNOWLEDGE_MANAGEMENT:
+            flow.extend([
+                "识别知识类型",
+                "执行知识操作",
+                "更新知识库",
+                "提供知识推荐"
             ])
         elif intent_result.intent_type == IntentType.QUESTION:
             flow.extend([

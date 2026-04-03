@@ -446,13 +446,12 @@ def recognize_vibe_intent(task: str) -> Optional[str]:
     Returns:
         Optional[str]: 识别到的Vibe Coding功能，None表示不是Vibe Coding相关意图
     """
-    # 使用用户意图识别器
     try:
         recognizer = UserIntentRecognizer()
-        result = recognizer.recognize(task)
+        result_data = recognizer.handle_natural_language(task)
         
-        # 检查是否是Vibe Coding相关意图
-        if result.intent_type in [IntentType.PLANNING, IntentType.KNOWLEDGE_MANAGEMENT, IntentType.CODE_GENERATION]:
+        intent_type_str = result_data.get('intent', {}).get('type', '')
+        if intent_type_str in ['planning', 'knowledge_management', 'code_generation']:
             if "计划" in task or "规划" in task:
                 return "plan"
             elif "优化" in task and "提示词" in task:
@@ -463,10 +462,21 @@ def recognize_vibe_intent(task: str) -> Optional[str]:
                 return "search"
             elif "推荐" in task and "知识" in task:
                 return "recommend"
+        
+        if intent_type_str == 'project_lifecycle':
+            return "lifecycle"
     except Exception as e:
         log(f"意图识别失败：{e}", 'WARNING')
     
-    # 简单的关键词匹配
+    lifecycle_keywords = [
+        '项目生命周期', '全生命周期', '完整流程', '标准流程',
+        '启动项目', '新项目', '从头开始', '完整开发',
+        '完整功能', '端到端', '全流程', '完整项目'
+    ]
+    for keyword in lifecycle_keywords:
+        if keyword in task:
+            return "lifecycle"
+    
     if "生成计划" in task or "项目计划" in task:
         return "plan"
     elif "优化提示词" in task:
@@ -555,11 +565,28 @@ def dispatch_agent_v2(agent_type: str, task: str, task_id: Optional[str],
         # 3. 识别 Vibe Coding 相关的自然语言意图
         vibe_intent = recognize_vibe_intent(task)
         if vibe_intent:
-            # 处理 Vibe Coding 自然语言意图
             log(f'🧠 识别到 Vibe Coding 意图：{vibe_intent}', 'INFO')
-            result = handle_mas_command(f"{vibe_intent} {task}", context_manager)
-            log(result, 'SUCCESS')
-            return True
+            
+            if vibe_intent == "lifecycle":
+                log(f'📋 自动触发项目全生命周期模式', 'INFO')
+                stages = [
+                    "需求分析（产品经理）",
+                    "架构设计（架构师）",
+                    "UI 设计（UI 设计师）",
+                    "测试设计（测试专家）",
+                    "任务分解（独立开发者）",
+                    "开发实现（独立开发者）",
+                    "测试验证（测试专家）",
+                    "发布评审（多角色）"
+                ]
+                result = "✅ 已自动启动项目全生命周期模式\n\n" + "将执行以下阶段：\n" + "\n".join([f"  {i+1}. {stage}" for i, stage in enumerate(stages)])
+                result += f"\n\n任务：{task}"
+                log(result, 'SUCCESS')
+                return True
+            else:
+                result = handle_mas_command(f"{vibe_intent} {task}", context_manager)
+                log(result, 'SUCCESS')
+                return True
         
         # 4. 初始化角色匹配器
         matcher = RoleMatcher()

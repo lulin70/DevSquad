@@ -1,12 +1,13 @@
 name: trae-multi-agent
-version: 2.4.1
+version: 2.4.2
 description: |
-  Trae 多智能体协作技能（AI 增强版 + Vibe Coding 集成 + 长程 Agent 支持 + 核心规则系统）
+  Trae 多智能体协作技能（AI 增强版 + Vibe Coding 集成 + 长程 Agent 支持 + 核心规则系统 + 智能生命周期识别）
   
   基于双层动态上下文管理架构和大模型 AI 助手能力，实现智能体之间的高效协作。
   支持产品、架构、开发、测试等多种角色的智能调度和工作流编排。
   集成 Vibe Coding 规划驱动开发理念，提供更智能的开发体验。
   集成 Claude Code 的 14 条核心规则，提升提示词质量和执行效果。
+  新增智能生命周期识别，自动检测需要完整项目流程的任务。
   
   核心特性：
   - 双层动态上下文管理（长期记忆 + 工作记忆）
@@ -18,6 +19,7 @@ description: |
   - 长程 Agent 支持（Checkpoint + Handoff + TaskList）
   - Vibe Coding 规划驱动开发（规划引擎 + 提示词进化 + 多模型协作）
   - 核心规则系统（Claude Code 14 条核心规则集成）
+  - 智能生命周期识别（自动检测并启动项目全生命周期模式）
 
 author: Trae Team
 status: active
@@ -566,6 +568,14 @@ metadata:
   documentation: https://github.com/weiransoft/zeroclaw/tree/main/.trae/skills/trae-multi-agent
   
   version_history:
+    - version: 2.4.2
+      date: "2026-04-03"
+      changes:
+        - 智能生命周期识别：自动检测需要完整项目流程的任务，无需手动指定 --project-full-lifecycle
+        - 新增 IntentType.PROJECT_LIFECYCLE 意图类型
+        - 扩展触发关键词：项目生命周期、全生命周期、完整流程、启动项目、新项目等
+        - SKILL.md 新增自动触发规则说明
+
     - version: 2.4.1
       date: "2026-04-01"
       changes:
