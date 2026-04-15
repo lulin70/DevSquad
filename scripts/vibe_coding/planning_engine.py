@@ -23,7 +23,7 @@ class PlanningEngine:
         """
         self.memory_bank_path = memory_bank_path or os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            'memory-bank'
+            'data', 'memory-bank'
         )
         self.plans_dir = os.path.join(self.memory_bank_path, 'plans')
         os.makedirs(self.plans_dir, exist_ok=True)

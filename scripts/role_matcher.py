@@ -730,136 +730,91 @@ class RoleMatcher:
 
 
 def create_default_roles() -> List[RoleDefinition]:
-    """创建默认角色"""
+    """创建默认角色（优先从 PromptRegistry 加载，降级到硬编码）"""
+    try:
+        from pathlib import Path as _Path
+        _scripts_dir = _Path(__file__).parent.resolve()
+        _project_root = _scripts_dir.parent
+        _prompts_dir = _project_root / "prompts"
+        if _prompts_dir.exists():
+            import sys
+            if str(_project_root) not in sys.path:
+                sys.path.insert(0, str(_project_root))
+            from prompts.registry import PromptRegistry
+            registry = PromptRegistry(str(_prompts_dir))
+            role_defs = registry.get_role_definitions_for_matcher()
+            if role_defs:
+                roles = []
+                for rd in role_defs:
+                    roles.append(RoleDefinition(
+                        role_id=rd["role_id"],
+                        name=rd["name"],
+                        description=rd["description"],
+                        capabilities=rd["capabilities"],
+                        skills=rd["skills"],
+                        keywords=rd["keywords"],
+                        priority=rd["priority"],
+                    ))
+                print(f"✅ 从 PromptRegistry 加载了 {len(roles)} 个角色定义")
+                return roles
+    except Exception as e:
+        print(f"⚠️  从 PromptRegistry 加载角色失败，使用硬编码：{e}")
+
     return [
         RoleDefinition(
             role_id="product-manager",
             name="产品经理",
             description="负责需求分析、PRD 编写和产品规划",
-            capabilities=[
-                "需求分析",
-                "PRD 编写",
-                "用户研究",
-                "竞品分析",
-                "产品规划"
-            ],
-            skills=[
-                "需求挖掘",
-                "文档编写",
-                "沟通协调",
-                "数据分析"
-            ],
+            capabilities=["需求分析", "PRD 编写", "用户研究", "竞品分析", "产品规划"],
+            skills=["需求挖掘", "文档编写", "沟通协调", "数据分析"],
             keywords=["需求", "产品", "PRD", "用户", "功能"],
-            priority=10  # 高优先级，通常是第一个角色
+            priority=10
         ),
-        
         RoleDefinition(
             role_id="architect",
             name="架构师",
             description="负责系统架构设计和技术选型",
-            capabilities=[
-                "系统架构设计",
-                "技术选型",
-                "架构评审",
-                "性能优化",
-                "安全设计"
-            ],
-            skills=[
-                "架构设计",
-                "技术评估",
-                "系统设计",
-                "代码审查"
-            ],
+            capabilities=["系统架构设计", "技术选型", "架构评审", "性能优化", "安全设计"],
+            skills=["架构设计", "技术评估", "系统设计", "代码审查"],
             keywords=["架构", "系统设计", "技术选型", "微服务", "性能优化", "安全架构"],
-            priority=9  # 高优先级，通常在产品经理之后
+            priority=9
         ),
-        
         RoleDefinition(
             role_id="solo-coder",
             name="独立开发者",
             description="负责代码实现和功能开发",
-            capabilities=[
-                "代码实现",
-                "功能开发",
-                "代码优化",
-                "Bug 修复",
-                "单元测试"
-            ],
-            skills=[
-                "Java",
-                "Python",
-                "Spring Boot",
-                "数据库",
-                "Git"
-            ],
+            capabilities=["代码实现", "功能开发", "代码优化", "Bug 修复", "单元测试"],
+            skills=["Java", "Python", "Spring Boot", "数据库", "Git"],
             keywords=["开发", "代码", "实现", "功能", "编程"],
-            priority=8  # 中优先级，在架构师之后
+            priority=8
         ),
-        
         RoleDefinition(
             role_id="tester",
             name="测试工程师",
             description="负责测试用例设计和执行",
-            capabilities=[
-                "测试用例设计",
-                "测试执行",
-                "Bug 跟踪",
-                "质量保障",
-                "自动化测试"
-            ],
-            skills=[
-                "测试设计",
-                "测试工具",
-                "Bug 分析",
-                "质量评估"
-            ],
+            capabilities=["测试用例设计", "测试执行", "Bug 跟踪", "质量保障", "自动化测试"],
+            skills=["测试设计", "测试工具", "Bug 分析", "质量评估"],
             keywords=["测试", "质量", "Bug", "验证", "用例"],
-            priority=7  # 中优先级，在开发之后
+            priority=7
         ),
-        
         RoleDefinition(
             role_id="ui-designer",
             name="UI 设计师",
             description="负责用户界面设计",
-            capabilities=[
-                "界面设计",
-                "交互设计",
-                "视觉设计",
-                "原型设计",
-                "设计系统"
-            ],
-            skills=[
-                "Figma",
-                "Sketch",
-                "Photoshop",
-                "原型设计",
-                "色彩搭配"
-            ],
+            capabilities=["界面设计", "交互设计", "视觉设计", "原型设计", "设计系统"],
+            skills=["Figma", "Sketch", "Photoshop", "原型设计", "色彩搭配"],
             keywords=["UI", "界面设计", "交互设计", "视觉设计", "用户体验", "原型", "Figma", "界面美化"],
             priority=6
         ),
-        
         RoleDefinition(
             role_id="devops",
             name="DevOps 工程师",
             description="负责部署和运维",
-            capabilities=[
-                "持续集成",
-                "持续部署",
-                "监控告警",
-                "性能调优",
-                "安全管理"
-            ],
-            skills=[
-                "Docker",
-                "Kubernetes",
-                "CI/CD",
-                "Linux",
-                "监控工具"
-            ],
+            capabilities=["持续集成", "持续部署", "监控告警", "性能调优", "安全管理"],
+            skills=["Docker", "Kubernetes", "CI/CD", "Linux", "监控工具"],
             keywords=["部署", "运维", "CI/CD", "监控", "容器"],
             priority=5
-        )
+        ),
     ]
 
 
