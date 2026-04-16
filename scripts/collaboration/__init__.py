@@ -122,6 +122,21 @@ from .dispatcher import (
     quick_collaborate,
     ROLE_TEMPLATES,
 )
+from .test_quality_guard import (
+    TestQualityGuard,
+    TestQualityReport,
+    QualityIssue,
+    Severity,
+    QualityScore,
+    TestDimension,
+    TestFunctionMeta,
+    APISignature,
+    APISignatureValidator,
+    AntiPatternDetector,
+    TestPurposeParser,
+    quick_audit,
+    project_audit,
+)
 
 __all__ = [
     "Scratchpad",
@@ -204,4 +219,17 @@ __all__ = [
     "create_dispatcher",
     "quick_collaborate",
     "ROLE_TEMPLATES",
+    "TestQualityGuard",
+    "TestQualityReport",
+    "QualityIssue",
+    "Severity",
+    "QualityScore",
+    "TestDimension",
+    "TestFunctionMeta",
+    "APISignature",
+    "APISignatureValidator",
+    "AntiPatternDetector",
+    "TestPurposeParser",
+    "quick_audit",
+    "project_audit",
 ]
