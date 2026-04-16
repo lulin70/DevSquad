@@ -693,6 +693,21 @@ class MemoryBridge:
         self._inner_lock = threading.RLock()
 
     def recall(self, query: MemoryQuery) -> MemoryRecallResult:
+        """
+        [MCE 集成点 Phase B] 跨会话记忆召回
+
+        当前行为: TF-IDF 全文检索 → 按相关性排序返回
+        MCE 就绪后:
+            1. 先用 MCE 对 query.query_text 做意图分类
+               → 确定用户要找什么类型的记忆 (user_preference/decision/correction)
+            2. 用分类结果设置 MemoryQuery.memory_type 过滤
+            3. 精确召回，噪声过滤率提升 60%+
+            4. 示例: recall("用户偏好") → MCE 分类为 user_preference
+               → 只搜索 memory_type=FEEDBACK 的记忆
+
+        接口预留: mce_engine 参数 (Optional[MemoryClassificationEngine])
+                     enable_mce_recall_filter: bool = False
+        """
         start = time.perf_counter()
         self._stats.total_recalls += 1
         if not self.config.enabled or not query.query_text.strip():
@@ -732,6 +747,21 @@ class MemoryBridge:
 
     def capture_execution(self, execution_record=None,
                           scratchpad_entries=None) -> Optional[str]:
+        """
+        [MCE 集成点 Phase A] Worker 执行结果 → 记忆沉淀
+
+        当前行为: 手动判断 entry_type=="FINDING" → 存为 EPISODIC 类型
+        MCE 就绪后:
+            1. 将 scratchpad_entry.content 传入 MCE.process_message()
+            2. 用返回的 type/correction/preference/decision 标签替代手动类型推断
+            3. 用 MCE 的 confidence 替代默认 0.8
+            4. 示例: "我选择了方案B因为A太复杂了"
+               → MCE 返回 {type: correction, conf: 0.89, tier: episodic}
+               → MemoryBridge 直接用此分类写入，无需 AI 猜测
+
+        接口预留: mce_engine 参数 (Optional[MemoryClassificationEngine])
+                     enable_mce_classify: bool = False (配置开关)
+        """
         if not self.config.auto_capture or scratchpad_entries is None:
             return None
         captured_id = None
@@ -763,6 +793,16 @@ class MemoryBridge:
         return captured_id
 
     def record_feedback(self, feedback: UserFeedback) -> str:
+        """
+        [MCE 集成点 Phase A] 用户反馈记录
+
+        当前行为: 直接写入 FEEDBACK 类型
+        MCE 就绪后: 对 feedback.content 做 sentiment + intent 分类
+            → 自动标记正面/负面/中性情绪
+            → 关联到相关 decision/correction 记忆
+
+        接口预留: mce_engine 参数
+        """
         if feedback.id == "":
             feedback.id = f"fb_{uuid.uuid4().hex[:12]}_{int(time.time())}"
         if not feedback.created_at:
@@ -770,6 +810,17 @@ class MemoryBridge:
         return self.writer.write_feedback(feedback)
 
     def persist_pattern(self, pattern) -> Optional[str]:
+        """
+        [MCE 集成点 Phase D] Skillifier 生成的 Skill 模式持久化
+
+        当前行为: 直接写入 PATTERN 类型
+        MCE 就绪后: 对 pattern.name + steps_template 做 decision 分类
+            → 标记哪些步骤是关键决策点
+            → 关联到历史 correction/decision 记忆
+            → Skillifier 学习素材增强: 用 MCE 标记提取"什么导致了成功"
+
+        接口预留: mce_engine 参数
+        """
         if not hasattr(pattern, 'name') or not hasattr(pattern, 'steps_template'):
             return None
         quality = getattr(pattern, 'confidence', 0) or 0

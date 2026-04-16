@@ -550,6 +550,17 @@ class MultiAgentDispatcher:
                 except Exception as mem_err:
                     errors.append(f"MemoryBridge error: {mem_err}")
 
+            # [MCE 集成点 Phase B] Dispatcher → MemoryBridge 调用链
+            # 当前: dispatch() 完成后手动调用 capture_execution()
+            # MCE 就绪后: 在此插入 MCE.classify(scratchpad_summary) 步骤
+            #   → 自动识别 scratchpad 中的 decision/correction/preference
+            #   → 将分类结果作为 metadata 传入 MemoryBridge
+            #   → Worker 下次执行时通过 recall() 精准获取历史决策
+            #
+            # 接口预留:
+            #   MultiAgentDispatcher(mce_engine=Optional[MCE], enable_mce=True)
+            #   内部逻辑: scratchpad → MCE.process_message() → typed_metadata → MemoryBridge
+
             step12_time = time.time()
 
             skill_proposals = []

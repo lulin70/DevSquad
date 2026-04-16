@@ -474,6 +474,47 @@ class WarmupManager:
 
 **实际产出**：`memory_bridge.py`，共 **96 个测试用例**
 
+### Phase 5：MCE 记忆分类引擎集成 🔄 规划中（待 MCE 稳定）
+
+> **前置条件**: [memory-classification-engine](https://github.com/xxx/memory-classification-engine) 项目达到稳定版（可 pip install）
+
+**集成架构**: MCE（分类器）→ MemoryBridge（存储+检索）→ Dispatcher/Coordinator（消费者）
+
+| 阶段 | 集成点 | 改动范围 | 效果 |
+|------|--------|---------|------|
+| **Phase A** | `MemoryBridge.capture_execution()` | +50行 | Worker 输出自动分类为 decision/correction/preference |
+| **Phase B** | `Dispatcher.dispatch()` + `MemoryBridge.recall()` | +100行 | 召回时按 MCE 分类过滤，噪声↓60% |
+| **Phase C** | `Scratchpad.write()` | +80行 | 共享黑板条目带类型标注 |
+| **Phase D** | `ConsensusEngine` + 历史决策参考 | +120行 | 投票时引入历史智慧 |
+
+**代码预留状态** (已完成的文档注释):
+- ✅ `memory_bridge.py`: `capture_execution()`, `recall()`, `record_feedback()`, `persist_pattern()` — 4处
+- ✅ `dispatcher.py`: dispatch() 内存沉淀步骤 — 1处
+- ✅ `scratchpad.py`: write() 方法 — 1处
+
+**接口设计草案**:
+```python
+# MemoryBridge 构造函数扩展
+MemoryBridge(
+    base_dir="...",
+    mce_engine=Optional[MemoryClassificationEngine],  # 可选注入
+    enable_mce_classify=False,                       # 配置开关
+    enable_mce_recall_filter=False,                  # 召回过滤开关
+)
+
+# Dispatcher 扩展
+MultiAgentDispatcher(
+    mce_engine=Optional[MCE],                        # 可选注入
+    enable_mce=True,                                 # 全局开关
+)
+```
+
+**风险控制**:
+- MCE 作为**可选依赖**（不安装时降级为当前行为）
+- 通过抽象接口隔离，不直接 import mce 模块
+- 只在写入路径调用（非热路径），延迟开销可控
+- 异步批处理模式：积累一批消息后统一分类
+
 ---
 
 ## 4. 风险与缓解

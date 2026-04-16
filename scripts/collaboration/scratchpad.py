@@ -46,6 +46,19 @@ class Scratchpad:
             self._load_from_disk()
 
     def write(self, entry: ScratchpadEntry) -> str:
+        """
+        [MCE 集成点 Phase C] Worker 写入共享黑板
+
+        当前行为: 直接存储原始 ScratchpadEntry (type/content/confidence)
+        MCE 就绪后: 每个 entry 写入前经过 MCE 分类标注
+            → [decision] "我们决定用微服务架构"
+            → [correction] "数据库从Mongo改为PostgreSQL"
+            → [user_pref] "团队习惯TDD开发模式"
+            → [relationship] "Alice负责后端API"
+        后续 Worker 读取时看到带类型的结构化发现，而非纯文本
+
+        接口预留: mce_engine 参数, enable_mce_annotate: bool
+        """
         with self._lock:
             if len(self._entries) >= self._max_entries:
                 self._evict_oldest(count=len(self._entries) - self._max_entries + 1)
