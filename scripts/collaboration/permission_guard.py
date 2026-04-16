@@ -278,7 +278,39 @@ _SENSITIVE_KEYWORDS = [
 
 
 class PermissionGuard:
-    """4-Level Permission Guard System"""
+    """
+    4级权限守卫系统 - 多 Agent 协作的安全操作检查核心
+
+    安全级别（由低到高）:
+        PLAN (0): 只读模式，所有写操作被拒绝
+        DEFAULT (1): 危险操作需用户确认
+        AUTO (2): AI 分类器自动判断 + 白名单放行
+        BYPASS (3): 跳过所有检查（最高信任，仅限受控环境）
+
+    核心能力:
+    - check(): 对 ProposedAction 进行权限决策（ALLOWED/DENIED/PROMPT/ESCALATED）
+    - auto_classify(): 5维风险评分模型（目标敏感性/破坏性/范围/来源可信度/上下文合理性）
+    - 规则引擎: 30条默认规则覆盖 9种操作类型，支持 glob/前缀/regex 模式匹配
+    - 审计日志: 完整的决策链路记录，支持多维度过滤查询
+
+    决策流程:
+        BYPASS → 直接放行
+        PLAN → 只读放行/写入拒绝
+        DEFAULT/AUTO → 白名单 → 规则匹配 → 风险评估 → 允许/提示/拒绝
+
+    使用示例:
+        guard = PermissionGuard(current_level=PermissionLevel.DEFAULT)
+        action = ProposedAction(
+            action_type=ActionType.FILE_CREATE,
+            target="/path/to/file.py",
+            description="创建新模块",
+            source_worker_id="arch-abc",
+            source_role_id="architect",
+        )
+        decision = guard.check(action)
+        if decision.outcome == DecisionOutcome.PROMPT:
+            print(f"需用户确认: {decision.reason}")
+    """
 
     LEVEL_ORDER = {
         PermissionLevel.PLAN: 0,
@@ -292,6 +324,15 @@ class PermissionGuard:
                  rules: Optional[List[PermissionRule]] = None,
                  audit_log: bool = True,
                  session_id: Optional[str] = None):
+        """
+        初始化权限守卫
+
+        Args:
+            current_level: 当前安全级别（默认 DEFAULT）
+            rules: 自定义规则列表（为空则使用 30 条内置默认规则）
+            audit_log: 是否启用审计日志记录
+            session_id: 会话标识（用于审计追踪，自动生成如未提供）
+        """
         self.current_level = current_level
         self.rules: List[PermissionRule] = rules or _build_default_rules()
         self._rule_index: Dict[str, int] = {
@@ -307,6 +348,33 @@ class PermissionGuard:
         self.session_id = session_id or f"sess-{uuid.uuid4().hex[:8]}"
 
     def check(self, action: ProposedAction) -> PermissionDecision:
+        """
+        核心权限检查方法 - 对操作提案进行安全决策
+
+        决策流程（按优先级）:
+        1. BYPASS 级别 → 直接 ALLOWED
+        2. PLAN 级别 → 只读允许 / 写入 DENIED
+        3. 白名单匹配 → 直接 ALLOWED
+        4. 规则匹配 → 结合风险评分决策:
+           - 风险 < 0.3 且级别充足 → ALLOWED
+           - 风险 0.3~0.7 或 AUTO 模式 → 调用 auto_classify() 综合判断
+           - 风险 > 0.7 → PROMPT (需用户确认)
+        5. 无匹配规则 → 低风险允许 / 高风险 PROMPT
+
+        所有决策都会记录到审计日志。
+
+        Args:
+            action: 操作提案，包含类型、目标路径、描述、来源信息等
+
+        Returns:
+            PermissionDecision: 权限决策结果，包含:
+                - outcome: 最终裁决 (ALLOWED/DENIED/PROMPT/ESCALATED)
+                - reason: 决策原因说明
+                - matched_rule: 匹配到的规则（如有）
+                - requires_confirmation: 是否需要用户确认
+                - confidence: 决策置信度 [0.1, 1.0]
+                - risk_score: 计算后的风险评分 [0.0, 1.0]
+        """
         with self._lock:
             start = time.perf_counter()
 
@@ -413,6 +481,26 @@ class PermissionGuard:
             return decision
 
     def auto_classify(self, action: ProposedAction) -> float:
+        """
+        AI 风险分类器 - 5维加权评分模型
+
+        对操作提案进行多维度风险评估，返回 [0.0, 1.0] 的风险分数。
+        各维度及权重:
+            - 目标敏感性 (30%): 路径是否包含敏感关键词/敏感路径模式
+            - 破坏性 (25%): 是否包含删除/覆盖/强制等破坏性关键词
+            - 作用范围 (20%): 通配符/超长目标路径
+            - 来源可信度 (15%): Worker 角色是否在已知信任列表
+            - 上下文合理性 (10%): 操作是否与任务相关、描述是否充分
+
+        Args:
+            action: 待评估的操作提案
+
+        Returns:
+            float: 风险评分 [0.0, 1.0]，越高越危险
+                - < 0.3: 低风险，可自动放行
+                - 0.3~0.7: 中等风险，需综合判断
+                - > 0.7: 高风险，建议用户确认
+        """
         score = 0.0
         target_lower = (action.target or "").lower()
 
@@ -549,6 +637,15 @@ class PermissionGuard:
             self._audit_log = self._audit_log[-5000:]
 
     def add_rule(self, rule: PermissionRule) -> None:
+        """
+        添加或更新权限规则
+
+        如规则 ID 已存在则更新（替换原规则），否则追加到规则列表。
+        同时维护按操作类型分组的索引以加速匹配。
+
+        Args:
+            rule: 要添加的权限规则（含 rule_id, action_type, pattern 等）
+        """
         with self._lock:
             if rule.rule_id in self._rule_index:
                 idx = self._rule_index[rule.rule_id]
@@ -565,6 +662,15 @@ class PermissionGuard:
                 self._rules_by_type.setdefault(rule.action_type, []).append(rule)
 
     def remove_rule(self, rule_id: str) -> bool:
+        """
+        按ID移除权限规则
+
+        Args:
+            rule_id: 要移除的规则标识符
+
+        Returns:
+            bool: 是否成功移除（False 表示规则不存在）
+        """
         with self._lock:
             if rule_id not in self._rule_index:
                 return False
@@ -577,6 +683,15 @@ class PermissionGuard:
             return True
 
     def set_level(self, level: PermissionLevel) -> None:
+        """
+        动态切换安全级别
+
+        可在运行时提升/降低安全级别，无需重新创建实例。
+        典型场景：进入 Plan Mode 时切换为 PLAN 级别。
+
+        Args:
+            level: 目标安全级别
+        """
         self.current_level = level
 
     def get_audit_log(self,
@@ -586,6 +701,20 @@ class PermissionGuard:
                       outcome: Optional[DecisionOutcome] = None,
                       worker_id: Optional[str] = None,
                       limit: Optional[int] = None) -> List[AuditEntry]:
+        """
+        查询审计日志（支持多维度过滤）
+
+        Args:
+            since: 起始时间（含）
+            until: 截止时间（含）
+            action_type: 按操作类型过滤
+            outcome: 按决策结果过滤
+            worker_id: 按 Worker ID 过滤
+            limit: 最大返回条数
+
+        Returns:
+            List[AuditEntry]: 匹配的审计条目列表
+        """
         results = self._audit_log
         if since:
             results = [e for e in results if e.timestamp >= since]
@@ -605,6 +734,18 @@ class PermissionGuard:
         return list(results)
 
     def get_security_report(self) -> Dict[str, Any]:
+        """
+        生成安全报告摘要
+
+        聚合所有审计日志数据，计算统计指标:
+        - 各决策结果的计数和占比
+        - 平均风险评分
+        - 最常被拒绝的操作目标 (Top 5)
+        - 当前规则数和白名单数
+
+        Returns:
+            Dict[str, Any]: 安全报告字典
+        """
         total = len(self._audit_log)
         allowed = sum(1 for e in self._audit_log
                      if e.decision and e.decision.outcome == DecisionOutcome.ALLOWED)
@@ -641,18 +782,43 @@ class PermissionGuard:
         }
 
     def add_whitelist(self, pattern: str) -> None:
+        """将模式加入白名单（匹配时直接放行，跳过规则检查）"""
         self._whitelist.add(pattern)
 
     def remove_whitelist(self, pattern: str) -> None:
+        """从白名单中移除指定模式"""
         self._whitelist.discard(pattern)
 
     def get_whitelist(self) -> Set[str]:
+        """
+        获取当前白名单集合
+
+        Returns:
+            Set[str]: 白名单模式集合的副本
+        """
         return set(self._whitelist)
 
     def export_rules(self) -> List[Dict]:
+        """
+        导出所有启用的规则为字典列表
+
+        Returns:
+            List[Dict]: 每条规则的 to_dict() 序列化结果
+        """
         return [r.to_dict() for r in self.rules if r.enabled]
 
     def import_rules(self, rules_data: List[Dict]) -> int:
+        """
+        从字典列表批量导入规则
+
+        跳过格式无效的条目，返回成功导入的数量。
+
+        Args:
+            rules_data: 规则字典列表（每项需含 rule_id, action_type, pattern, required_level）
+
+        Returns:
+            int: 成功导入的规则数量
+        """
         count = 0
         for rd in rules_data:
             try:
@@ -664,6 +830,15 @@ class PermissionGuard:
         return count
 
     def export_state(self) -> Dict:
+        """
+        导出完整状态快照
+
+        包含当前级别、所有规则、白名单、会话ID和审计计数。
+        可用于持久化或跨实例迁移。
+
+        Returns:
+            Dict: 完整状态字典
+        """
         with self._lock:
             return {
                 "current_level": self.current_level.value,
@@ -674,6 +849,12 @@ class PermissionGuard:
             }
 
     def clear_audit_log(self) -> int:
+        """
+        清空审计日志
+
+        Returns:
+            int: 清空前日志中的条目数
+        """
         with self._lock:
             count = len(self._audit_log)
             self._audit_log.clear()

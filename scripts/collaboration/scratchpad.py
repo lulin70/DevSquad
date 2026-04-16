@@ -31,7 +31,40 @@ MAX_ENTRIES_DEFAULT = 1000
 
 
 class Scratchpad:
+    """
+    共享黑板 - 多 Worker 协作的信息交换中心
+
+    所有 Worker 通过 Scratchpad 共享发现、决策、问题和冲突。
+    采用 LWW (Last-Writer-Wins) 并发策略 + 版本号机制处理并发写入。
+
+    核心能力:
+    - write(): 写入条目（自动版本递增、容量管理、持久化）
+    - read(): 多维查询（关键词/类型/状态/Worker/标签/时间）
+    - resolve(): 标记冲突/问题为已解决
+    - get_summary(): 生成 Markdown 格式的全局摘要
+
+    设计特点:
+    - 容量上限: 默认 1000 条，LRU 淘汰最旧的非 RESOLVED 条目
+    - 持久化: JSONL 追加写模式，支持断点恢复
+    - 线程安全: RLock 保护所有读写操作
+
+    使用示例:
+        sp = Scratchpad(persist_dir="/tmp/sp_data")
+        entry = ScratchpadEntry(worker_id="w1", role_id="architect",
+                                entry_type=EntryType.FINDING,
+                                content="建议使用微服务架构")
+        sp.write(entry)
+        findings = sp.read(entry_type=EntryType.FINDING)
+    """
+
     def __init__(self, scratchpad_id: Optional[str] = None, persist_dir: Optional[str] = None):
+        """
+        初始化共享黑板
+
+        Args:
+            scratchpad_id: 黑板唯一标识（自动生成时间戳ID如未提供）
+            persist_dir: 持久化目录路径（为空则不持久化，纯内存模式）
+        """
         self.scratchpad_id = scratchpad_id or f"scratchpad-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         self.persist_dir = persist_dir
 
@@ -78,6 +111,24 @@ class Scratchpad:
              worker_id: Optional[str] = None,
              tags: Optional[List[str]] = None,
              limit: int = 50) -> List[ScratchpadEntry]:
+        """
+        多维查询黑板条目
+
+        支持按关键词、时间、类型、状态、Worker、标签等多维度组合过滤。
+        返回结果按时间倒序（最新的在前）。
+
+        Args:
+            query: 关键词模糊匹配（在 content 和 tags 中搜索）
+            since: 起始时间（只返回此之后的条目）
+            entry_type: 按条目类型过滤 (FINDING/QUESTION/DECISION/CONFLICT)
+            status: 按状态过滤 (ACTIVE/RESOLVED)
+            worker_id: 按 Worker ID 过滤
+            tags: 标签列表（任一匹配即返回）
+            limit: 最大返回条数
+
+        Returns:
+            List[ScratchpadEntry]: 匹配的条目列表（时间倒序）
+        """
         with self._lock:
             results = []
             for entry in reversed(self._entries.values()):
@@ -103,6 +154,16 @@ class Scratchpad:
             return list(reversed(results))
 
     def resolve(self, entry_id: str, resolution: str = ""):
+        """
+        将条目标记为已解决
+
+        修改条目状态为 RESOLVED，并可选地附加解决方案说明。
+        解决方案会追加到原内容末尾。
+
+        Args:
+            entry_id: 要解决的条目 ID
+            resolution: 解决方案描述（追加到原内容后）
+        """
         with self._lock:
             entry = self._entries.get(entry_id)
             if entry:
@@ -113,6 +174,14 @@ class Scratchpad:
                 self._persist_entry(entry)
 
     def get_conflicts(self) -> List[ScratchpadEntry]:
+        """
+        获取所有活跃冲突
+
+        快捷方法，等价于 read(entry_type=CONFLICT, status=ACTIVE)
+
+        Returns:
+            List[ScratchpadEntry]: 当前未解决的冲突列表
+        """
         return self.read(
             entry_type=EntryType.CONFLICT,
             status=EntryStatus.ACTIVE,
@@ -120,6 +189,18 @@ class Scratchpad:
 
     def get_summary(self, for_role: Optional[str] = None,
                      max_entries: int = 20) -> str:
+        """
+        生成黑板全局摘要（Markdown格式）
+
+        包含: 总览统计、活跃冲突列表、最近决策、关键发现。
+
+        Args:
+            for_role: 为指定角色定制摘要（预留参数）
+            max_entries: 各类别的最大展示条数
+
+        Returns:
+            str: Markdown 格式的摘要文本
+        """
         active_findings = self.read(
             entry_type=EntryType.FINDING,
             status=EntryStatus.ACTIVE,
@@ -162,6 +243,19 @@ class Scratchpad:
         return "\n".join(lines)
 
     def get_stats(self) -> Dict[str, Any]:
+        """
+        获取黑板详细统计信息
+
+        Returns:
+            Dict[str, Any]: 统计字典，包含:
+                - scratchpad_id: 黑板标识
+                - total_entries: 总条目数
+                - by_type: 按类型分布
+                - by_status: 按状态分布
+                - by_worker: 按 Worker 分布
+                - write_count/read_count: 读写计数
+                - max_entries: 容量上限
+        """
         with self._lock:
             by_type = {}
             by_status = {}
@@ -223,10 +317,17 @@ class Scratchpad:
             pass
 
     def clear(self):
+        """清空所有黑板条目（仅内存，不影响已持久化的文件）"""
         with self._lock:
             self._entries.clear()
 
     def export_json(self) -> str:
+        """
+        导出所有条目为 JSON 字符串
+
+        Returns:
+            str: JSON 格式的完整数据快照
+        """
         with self._lock:
             entries = [e.to_dict() for e in self._entries.values()]
             return json.dumps(entries, ensure_ascii=False, indent=2)

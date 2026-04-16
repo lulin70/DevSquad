@@ -25,6 +25,7 @@ description: |
 
 | # | 模块 | 文件 | 职责 |
 |---|------|------|------|
+| 0 | **MultiAgentDispatcher** | `dispatcher.py` | 统一调度入口，一键完成全流程协作（集成所有模块） |
 | 1 | **Coordinator** | `coordinator.py` | 全局编排者，分解任务、分配Worker、收集结果、解决冲突 |
 | 2 | **Scratchpad** | `scratchpad.py` | 共享黑板，Worker间实时交换发现/决策/冲突 |
 | 3 | **Worker** | `worker.py` | 工作者，每个角色一个实例，独立执行并写入Scratchpad |
@@ -35,6 +36,7 @@ description: |
 | 8 | **Skillifier** | `skillifier.py` | 从成功操作模式中自动生成新Skill |
 | 9 | **WarmupManager** | `warmup_manager.py` | 3层启动预热(EAGER/ASYNC/LAZY) + 进程级缓存 |
 | 10 | **MemoryBridge** | `memory_bridge.py` | 7类型记忆桥接 + 倒排索引 + TF-IDF + 遗忘曲线 |
+| 11 | **TestQualityGuard** | `test_quality_guard.py` | 测试质量审计(API校验/反模式检测/维度覆盖) |
 
 ---
 

@@ -1,0 +1,19 @@
+{
+  "id": "feedback_1774949773",
+  "user_id": "integration_test",
+  "type": "suggestion",
+  "content": "这个功能很有用，希望能增加更多计算类型",
+  "rating": null,
+  "context": {},
+  "created_at": "2026-03-31T17:36:13.476439",
+  "status": "analyzed",
+  "analysis": {
+    "category": "general_suggestion",
+    "sentiment": "neutral",
+    "priority": "low",
+    "suggestions": [
+      "评估建议的可行性和价值",
+      "考虑将建议纳入产品规划"
+    ]
+  }
+}

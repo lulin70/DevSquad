@@ -1,0 +1,113 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-03-23T12:00:00.000000",
+  "definitions": {
+    "standard-dev-workflow": {
+      "workflow_id": "standard-dev-workflow",
+      "name": "标准开发工作流",
+      "description": "产品 → 架构 → 开发 → 测试的完整流程",
+      "steps": [
+        {
+          "step_id": "prd",
+          "name": "需求分析",
+          "description": "分析需求，编写 PRD",
+          "role_id": "product-manager",
+          "action": "analyze_requirements",
+          "inputs": {
+            "detail_level": "high"
+          },
+          "outputs": {
+            "prd": null
+          },
+          "conditions": {},
+          "timeout": 3600,
+          "retry_count": 3,
+          "status": "pending"
+        },
+        {
+          "step_id": "architecture",
+          "name": "架构设计",
+          "description": "设计系统架构",
+          "role_id": "architect",
+          "action": "design_architecture",
+          "inputs": {
+            "requirements": "${prd}"
+          },
+          "outputs": {
+            "architecture": null
+          },
+          "conditions": {},
+          "timeout": 3600,
+          "retry_count": 3,
+          "status": "pending"
+        },
+        {
+          "step_id": "development",
+          "name": "代码开发",
+          "description": "实现功能代码",
+          "role_id": "solo-coder",
+          "action": "implement_code",
+          "inputs": {
+            "design": "${architecture}"
+          },
+          "outputs": {
+            "code": null
+          },
+          "conditions": {},
+          "timeout": 3600,
+          "retry_count": 3,
+          "status": "pending"
+        },
+        {
+          "step_id": "testing",
+          "name": "测试验证",
+          "description": "执行测试用例",
+          "role_id": "tester",
+          "action": "execute_tests",
+          "inputs": {
+            "code": "${code}"
+          },
+          "outputs": {
+            "test_results": null
+          },
+          "conditions": {},
+          "timeout": 3600,
+          "retry_count": 3,
+          "status": "pending"
+        }
+      ],
+      "variables": {},
+      "conditions": {},
+      "metadata": {},
+      "created_at": "2026-03-23T12:00:00.000000"
+    },
+    "rapid-prototype-workflow": {
+      "workflow_id": "rapid-prototype-workflow",
+      "name": "快速原型工作流",
+      "description": "快速验证想法的简化流程",
+      "steps": [
+        {
+          "step_id": "quick-design",
+          "name": "快速设计",
+          "description": "快速设计和实现",
+          "role_id": "solo-coder",
+          "action": "rapid_implementation",
+          "inputs": {
+            "approach": "prototype"
+          },
+          "outputs": {
+            "prototype": null
+          },
+          "conditions": {},
+          "timeout": 3600,
+          "retry_count": 3,
+          "status": "pending"
+        }
+      ],
+      "variables": {},
+      "conditions": {},
+      "metadata": {},
+      "created_at": "2026-03-23T12:00:00.000000"
+    }
+  }
+}

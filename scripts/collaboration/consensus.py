@@ -26,13 +26,59 @@ from .models import (
 
 
 class ConsensusEngine:
+    """
+    共识决策引擎 - 多 Agent 协作中的冲突解决核心
+
+    实现加权投票共识机制，支持:
+    - 权重投票: 架构师 1.5x, 产品经理 1.2x, 其他 1.0x
+    - 否决权: weight < 0 的投票触发升级 (ESCALATED)
+    - 多级通过门槛: 全票(1.0) > 绝对多数(0.75) > 简单多数(0.51)
+    - 分裂检测: 赞成率在 40%~60% 时标记为 SPLIT
+
+    决策结果类型:
+        APPROVED: 通过
+        REJECTED: 未达门槛
+        SPLIT: 意见分裂，需进一步讨论
+        ESCALATED: 存在否决票，升级人工
+        TIMEOUT: 无投票记录
+
+    使用示例:
+        engine = ConsensusEngine()
+        proposal = engine.create_proposal(
+            topic="技术方案选择",
+            proposer_id="coord-001",
+            content="建议采用微服务架构",
+            options=["方案A-微服务", "方案B-单体", "合并", "升级人工"],
+        )
+        # 各 Worker 投票...
+        record = engine.reach_consensus(proposal.proposal_id)
+        print(f"决策结果: {record.outcome.value}")
+    """
+
     def __init__(self):
+        """初始化共识引擎（空提案和空记录集合）"""
         self._records: Dict[str, ConsensusRecord] = {}
         self._proposals: Dict[str, DecisionProposal] = {}
 
     def create_proposal(self, topic: str, proposer_id: str,
                          content: str, options: Optional[List[str]] = None,
                          deadline: Optional[datetime] = None) -> DecisionProposal:
+        """
+        创建新的决策提案
+
+        Args:
+            topic: 提案主题/标题
+            proposer_id: 提案发起者 ID（通常是 Coordinator）
+            content: 提案详细内容
+            options: 投票选项列表（默认 ["approve", "reject"]）
+            deadline: 截止时间（预留参数）
+
+        Returns:
+            DecisionProposal: 新创建的提案对象（含自动生成的 proposal_id）
+
+        Raises:
+            无（始终成功创建）
+        """
         proposal = DecisionProposal(
             topic=topic,
             proposer_id=proposer_id,
@@ -44,6 +90,19 @@ class ConsensusEngine:
         return proposal
 
     def cast_vote(self, proposal_id: str, vote: Vote) -> DecisionProposal:
+        """
+        为提案投出一票
+
+        Args:
+            proposal_id: 目标提案 ID
+            vote: Vote 对象，包含 voter_id、decision (bool)、reason、weight
+
+        Returns:
+            DecisionProposal: 投票后的更新后提案
+
+        Raises:
+            ValueError: 提案不存在或已关闭
+        """
         proposal = self._proposals.get(proposal_id)
         if not proposal:
             raise ValueError(f"Proposal {proposal_id} not found")
@@ -53,6 +112,30 @@ class ConsensusEngine:
         return proposal
 
     def reach_consensus(self, proposal_id: str) -> ConsensusRecord:
+        """
+        对提案进行共识裁决
+
+        汇总所有已投票，计算加权赞成/反对比例，
+        根据阈值判定最终结果。裁决后提案自动关闭。
+
+        判定逻辑:
+        1. 存在否决票(weight < 0) → ESCALATED
+        2. 无投票 → TIMEOUT
+        3. 权重比 >= 全票门槛(1.0) → APPROVED
+        4. 权重比 >= 绝对多数(0.75) → APPROVED
+        5. 权重比 >= 简单多数(0.51) → APPROVED
+        6. 计数比在 40%~60% → SPLIT
+        7. 其他 → REJECTED
+
+        Args:
+            proposal_id: 要裁决的提案 ID
+
+        Returns:
+            ConsensusRecord: 共识记录，包含 outcome、票数统计、参与者等
+
+        Raises:
+            ValueError: 提案不存在
+        """
         proposal = self._proposals.get(proposal_id)
         if not proposal:
             raise ValueError(f"Proposal {proposal_id} not found")
@@ -140,7 +223,22 @@ class ConsensusEngine:
             )
 
     def get_record(self, record_id: str) -> Optional[ConsensusRecord]:
+        """
+        按 ID 查询单条共识记录
+
+        Args:
+            record_id: 共识记录 ID
+
+        Returns:
+            Optional[ConsensusRecord]: 记录对象，不存在则返回 None
+        """
         return self._records.get(record_id)
 
     def get_all_records(self) -> List[ConsensusRecord]:
+        """
+        获取所有共识记录
+
+        Returns:
+            List[ConsensusRecord]: 所有已完成的共识裁决记录
+        """
         return list(self._records.values())

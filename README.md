@@ -29,16 +29,19 @@
 
 | Phase | 模块 | 文件 | 测试数 | 功能 |
 |-------|------|------|--------|------|
+| Entry | **MultiAgentDispatcher** | dispatcher.py | **54** | 统一调度入口，一键完成全流程协作 |
 | P1 | **Coordinator** | coordinator.py | (E2E) | 多Agent协调、任务规划、执行、报告 |
 | P1 | **Scratchpad** | scratchpad.py | (E2E) | 共享黑板、Worker间信息交换 |
 | P1 | **Worker** | worker.py | (E2E) | 工作者执行具体任务 |
 | P1 | **ConsensusEngine** | consensus.py | (E2E) | 共识机制、投票决策 |
+| P1 | **BatchScheduler** | batch_scheduler.py | (E2E) | 并行/串行混合调度 |
 | P1-b | **ContextCompressor** | context_compressor.py | **72** | 3级上下文压缩(L1/L2/L3) |
 | P2-a | **PermissionGuard** | permission_guard.py | **105** | 4级权限模型+AI分类器+审计日志 |
 | P2-b | **Skillifier** | skillifier.py | **96** | 执行记录→模式提取→技能自动生成 |
 | P3 | **WarmupManager** | warmup_manager.py | **103** | L1同步+L2异步+LAZY懒加载+进程缓存 |
 | P4 | **MemoryBridge** | memory_bridge.py | **96** | 记忆召回/捕获/反馈闭环/模式持久化 |
-| **合计** | — | — | **568** | — |
+| QA | **TestQualityGuard** | test_quality_guard.py | **42** | API签名校验+反模式检测+维度覆盖审计 |
+| **合计** | — | — | **~710** | — |
 
 ## 快速开始
 
@@ -353,38 +356,44 @@ print(f"清理了 {removed} 条过期记忆")
 ## 运行测试
 
 ```bash
-# 全量回归测试 (6套件, 568 cases)
+# 全量回归测试 (9套件, ~710 cases)
 cd /Users/lin/trae_projects/TraeMultiAgentSkill
 
 # 单套件运行
-python3 scripts/collaboration/memory_bridge_test.py      # 96 cases
-python3 scripts/collaboration/warmup_manager_test.py      # 103 cases
-python3 scripts/collaboration/skillifier_test.py          # 96 cases
-python3 scripts/collaboration/permission_guard_test.py    # 105 cases
-python3 scripts/collaboration/context_compressor_test.py # 72 cases
-python3 scripts/collaboration/enhanced_e2e_test.py          # 96 cases
+python3 scripts/collaboration/dispatcher_test.py          # 54 cases
+python3 scripts/collaboration/test_quality_guard_test.py  # 42 cases
+python3 scripts/collaboration/memory_bridge_test.py       # 96 cases
+python3 scripts/collaboration/warmup_manager_test.py       # 103 cases
+python3 scripts/collaboration/skillifier_test.py           # 96 cases
+python3 scripts/collaboration/permission_guard_test.py     # 105 cases
+python3 scripts/collaboration/context_compressor_test.py   # 72 cases
+python3 scripts/collaboration/enhanced_e2e_test.py         # 96+46 cases
 
 # 全量一键运行
 echo "=== FULL REGRESSION ===" && \
+python3 scripts/collaboration/dispatcher_test.py 2>&1 | tail -3 && \
+python3 scripts/collaboration/test_quality_guard_test.py 2>&1 | tail -3 && \
 python3 scripts/collaboration/memory_bridge_test.py 2>&1 | tail -3 && \
 python3 scripts/collaboration/warmup_manager_test.py 2>&1 | tail -3 && \
 python3 scripts/collaboration/skillifier_test.py 2>&1 | tail -4 && \
 python3 scripts/collaboration/permission_guard_test.py 2>&1 | tail -4 && \
 python3 scripts/collaboration/context_compressor_test.py 2>&1 | tail -3 && \
-python3 scripts/collaboration/enhanced_e2e_test.py 2>&1 | tail -4
+python3 scripts/collaboration/enhanced_e2e_test.py 2>&1 | tail-4
 ```
 
-**最新测试结果**: `568/568 ALL PASSED ✅`
+**最新测试结果**: `~710/~710 ALL PASSED ✅`
 
 | 套件 | 用例数 |
 |------|--------|
+| Dispatcher (Entry) | 54 |
+| TestQualityGuard (QA) | 42 |
 | MemoryBridge (P4) | 96 |
 | WarmupManager (P3) | 103 |
 | Skillifier (P2-b) | 96 |
 | PermissionGuard (P2-a) | 105 |
 | ContextCompressor (P1-b) | 72 |
-| Enhanced E2E (P1) | 96 |
-| **合计** | **568** |
+| Enhanced E2E (P1) | ~142 |
+| **合计** | **~710** |
 
 ## 项目结构
 
@@ -392,8 +401,9 @@ python3 scripts/collaboration/enhanced_e2e_test.py 2>&1 | tail -4
 TraeMultiAgentSkill/
 ├── scripts/
 │   └── collaboration/           # ★ v3 核心模块
-│       ├── __init__.py           # 统一导出 (55+ 公共符号)
+│       ├── __init__.py           # 统一导出 (81+ 公共符号)
 │       ├── models.py             # 数据模型 (EntryType/TaskDefinition/...)
+│       ├── dispatcher.py         # ★ V3统一调度入口 (MultiAgentDispatcher)
 │       ├── scratchpad.py         # 共享黑板
 │       ├── worker.py             # 工作者
 │       ├── consensus.py          # 共识引擎
@@ -404,6 +414,7 @@ TraeMultiAgentSkill/
 │       ├── skillifier.py         # 技能生成 (P2-b)
 │       ├── warmup_manager.py     # 启动预热 (P3)
 │       ├── memory_bridge.py      # 记忆桥接 (P4)
+│       ├── test_quality_guard.py # 测试质量审计 (QA)
 │       │
 │       └── *_test.py             # 对应测试文件
 │
@@ -446,12 +457,15 @@ TraeMultiAgentSkill/
 | 时间 | Phase | 模块 | 核心能力 | 测试 |
 |------|-------|------|---------|------|
 | v3.0 | P1 | Coordinator+基础协作 | 多Agent协调/共识/批调度 | E2E 96 |
+| v3.0 | Entry | MultiAgentDispatcher | 统一调度入口/一键协作 | 54 |
 | v3.1 | P1-b | ContextCompressor | 3级上下文压缩 | 72 |
 | v3.2 | P2-a | PermissionGuard | 4级权限+AI分类+审计 | 105 |
 | v3.3 | P2-b | Skillifier | 成功模式提取→技能生成 | 96 |
 | v3.4 | P3 | WarmupManager | 分层异步预热+进程缓存 | 103 |
 | v3.5 | P4 | MemoryBridge | 记忆召回/捕获/持久化 | 96 |
-| **v3.5** | **—** | **—** | **568 全通过** | **568** |
+| v3.6 | QA | TestQualityGuard | API校验/反模式检测/维度审计 | 42 |
+| **v3.6** | **Doc** | **注释补全** | **6大核心模块docstring全覆盖** | **—** |
+| **v3.6** | **—** | **—** | **~710 全通过** | **~710** |
 
 ## 设计原则
 
