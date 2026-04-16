@@ -85,6 +85,17 @@ from .skillifier import (
     ProposalStatus,
     SkillCategory,
 )
+from .warmup_manager import (
+    WarmupManager,
+    WarmupConfig,
+    WarmupTask,
+    WarmupResult,
+    WarmupReport,
+    CacheEntry,
+    WarmupMetrics,
+    WarmupLayer,
+    WarmupStatus,
+)
 
 __all__ = [
     "Scratchpad",
@@ -118,6 +129,15 @@ __all__ = [
     "SkillValidationResult",
     "ProposalStatus",
     "SkillCategory",
+    "WarmupManager",
+    "WarmupConfig",
+    "WarmupTask",
+    "WarmupResult",
+    "WarmupReport",
+    "CacheEntry",
+    "WarmupMetrics",
+    "WarmupLayer",
+    "WarmupStatus",
     "EntryType",
     "EntryStatus",
     "ReferenceType",
