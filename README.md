@@ -1,1347 +1,473 @@
-# Trae Multi-Agent Skill
+# TraeMultiAgentSkill v3
 
-🎭 基于任务类型动态调度到合适的智能体角色（架构师、产品经理、测试专家、独立开发者、UI 设计师）。支持多智能体协作、共识机制、完整项目生命周期管理、规范驱动开发、代码地图生成、项目理解能力和 UI 设计能力。支持中英文双语。
+基于 Claude Code Coordinator 模式的 **多 Agent 协作平台**，从单分发工具演进为有记忆的学习型协作系统。
 
-## 🎉 2026 年 4 月最新更新
-
-- ✅ **Memory Classification Engine 集成 (v2.5.0)** - 深度集成 Memory Classification Engine，实现 7 种记忆类型分类和 4 层存储架构
-- ✅ **智能记忆管理 (v2.5.0)** - 新增记忆适配器模块，支持用户偏好、纠正信号、事实声明、决策记录、关系信息、任务模式、情感标记等 7 种记忆类型
-- ✅ **遗忘机制 (v2.5.0)** - 基于加权衰减的智能遗忘，自动清理低价值记忆
-- ✅ **智能生命周期识别 (v2.4.2)** - 自动检测需要完整项目流程的任务，无需手动指定参数
-- ✅ **核心规则集成 (v2.4.1)** - 集成 Claude Code 的 14 条提示词核心规则到 Vibe Coding 提示词优化系统，提升提示词质量
-- ✅ **项目全生命周期命令 (v2.4.1)** - 新增 /mas lifecycle 命令，支持一键启动完整项目生命周期
-- ✅ **核心规则查询 (v2.4.1)** - 新增 /mas rules 命令，查看系统集成的核心规则库
-- ✅ **批判性审核报告 (v2.4.1)** - 完成多角色（产品经理、架构师、UI设计师、独立开发者、测试经理）批判性审核，识别改进方向
-- ✅ **仓库结构优化 (v2.4.1)** - 清理不必要的文件，优化目录结构，提升项目可维护性
-
-## 🎉 2026 年 3 月更新
-
-- ✅ **Vibe Coding 集成 (v2.4)** - 规划驱动开发理念，包括规划引擎、提示词进化系统、增强上下文管理器
-- ✅ **/mas 命令系统 (v2.4)** - 统一的命令接口，支持 Vibe Coding 功能、智能体调度、工作流执行、知识管理等
-- ✅ **知识提取与管理系统 (v2.4)** - 从对话、代码、文档中自动提取知识，支持分类、搜索、推荐
-- ✅ **自然语言触发机制 (v2.4)** - 通过自然语言指令触发 Vibe Coding 功能
-- ✅ **多角色代码走读 (v2.3)** - 架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析代码，生成对齐后的统一代码地图
-- ✅ **代码地图 Workspace 支持 (v2.3)** - 支持一个 workspace 包含多个项目的场景，明确项目标识
-- ✅ **3D 代码地图可视化 (v2.3)** - 基于 Three.js 的交互式代码结构可视化，动态流动效果，深色/浅色主题切换
-- ✅ **任务可视化页面 (v2.3)** - 实时展现各角色任务状态、进度、依赖关系、交接过程、协同关系图
-- ✅ **文档与代码一致性检查 (v2.3)** - 代码走读审查报告中新增文档与代码差异检查清单
-- ✅ **长程 Agent 支持 (v2.2)** - 基于 Anthropic《Effective Harnesses for Long-Running Agents》核心思想，支持 Checkpoint 检查点、Handoff 交接班、TaskList 任务清单
-- ✅ **AI 语义理解驱动的角色匹配 (v2.1)** - 使用大模型理解任务深层语义，提供可解释的匹配结果和置信度评分
-- ✅ **AI 助手深度集成 (v2.1)** - 集成大模型 AI 助手能力，支持代码审查，知识问答、文本分析等功能
-- ✅ **智能缓存和降级策略 (v2.1)** - 性能优化，AI 不可用时自动降级到关键词匹配
-- ✅ **UI 设计师角色** - 添加 UI 设计师角色，创建独特、生产级的 UI 界面，避免通用的 AI "slop" 美学
-- ✅ **Agent Loop 思考循环修复** - 修复 is_all_tasks_completed 方法，增加连续无进展检测保护机制
-- ✅ **规范驱动开发** - 完整的规范工具链，统一的文档管理体系，多角色共识制定规范
-- ✅ **代码地图生成** - 自动生成项目代码结构映射，支持 JSON 和 Markdown 格式，识别核心组件和模块依赖
-- ✅ **项目理解** - 快速读取项目文档和代码，为各角色生成定制化理解文档，提供项目概览和技术栈分析
-- ✅ **八阶段标准工作流程** - 需求分析→架构设计→UI 设计→测试设计→任务分解→开发实现→测试验证→发布评审
-- ✅ **跨角色设计评审机制** - PRD 评审、架构评审、UI 设计评审、测试计划评审，开发计划评审
-- ✅ **基于文档的任务分解** - 所有角色基于文档进行任务分解，确保文档驱动开发
-
-## 🌍 多语言支持 / Multi-Language Support
-
-本技能支持中英文双语自动切换 / This skill supports automatic Chinese-English language switching:
-
-- **自动识别** / **Auto-detection**: 根据用户语言自动切换响应语言
-- **完全覆盖** / **Full Coverage**: 所有输出内容都支持多语言
-- **智能匹配** / **Smart Matching**: 代码注释自动匹配现有语言
-- **灵活切换** / **Flexible Switching**: 支持会话中切换语言
-
-📄 详细文档 / Detailed documentation:
-
-- **中文文档** / **Chinese Documentation**: [README.md](README.md)
-- **English Documentation**: [README_EN.md](README_EN.md)
-
-### 📚 完整文档索引 / Complete Documentation Index
-
-| 文档 / Document | 中文 / Chinese | English |
-|----------------|---------------|---------|
-| 主文档 / Main | [README.md](README.md) | [README_EN.md](README_EN.md) |
-| 使用示例 / Examples | [EXAMPLES.md](EXAMPLES.md) | [EXAMPLES_EN.md](EXAMPLES_EN.md) |
-| 进度追踪 / Progress | [progress.template.md](progress.template.md) | [progress_EN.md](progress_EN.md) |
-| 依赖说明 / Dependencies | [requirements.txt](requirements.txt) | [requirements_EN.txt](requirements_EN.txt) |
-
-## 📖 目录 / Table of Contents
-
-- [功能特性](#-功能特性)
-- [快速开始](#-快速开始)
-- [角色介绍](#-角色介绍)
-- [使用方法](#-使用方法)
-- [安装说明](#-安装说明)
-  - [方法 1: 直接使用包装脚本](#方法 -1-直接使用包装脚本)
-  - [方法 2: 设置环境变量](#方法 -2-设置环境变量)
-  - [方法 3: 创建符号链接](#方法 -3-创建符号链接)
-  - [自动安装](#自动安装)
-- [配置说明](#-配置说明)
-- [示例场景](#-示例场景)
-- [技术架构](#-技术架构)
-- [贡献指南](#-贡献指南)
-- [常见问题](#-常见问题)
-- [许可证](#-许可证)
-
-## ✨ 功能特性
-
-### AI 增强能力 (v2.1 新增)
-
-1. **AI 语义理解驱动的角色匹配** 🧠
-   - 使用大模型理解任务的深层语义
-   - 提供可解释的匹配结果和置信度评分
-   - 支持多种匹配策略（AI 增强、语义、关键词、混合）
-   - 智能缓存和降级策略
-
-2. **AI 助手深度集成** 🤖
-   - 代码审查和建议（ai_assistant.py）
-   - 知识问答和技术咨询
-   - 文本分析和摘要
-   - 自然语言交互界面
-
-3. **性能优化** ⚡
-   - 智能缓存机制（减少 40-60% API 调用）
-   - 自动降级策略（AI 不可用时使用关键词匹配）
-   - 批量处理和异步请求支持
-
-### 长程 Agent 支持 (v2.2 新增)
-
-基于 Anthropic 文章《Effective Harnesses for Long-Running Agents》的核心思想，解决长程任务中的"断片"问题：
-
-1. **Checkpoint 检查点机制** 💾
-   - 定期保存任务状态（像人类工程师 git commit）
-   - 支持从任意断点恢复
-   - 数据完整性校验（SHA256 哈希）
-   - 自动过期清理
-   - 核心文件：`scripts/checkpoint_manager.py`
-
-2. **Handoff 交接班协议** 🔄
-   - 标准化交接文档（JSON + Markdown）
-   - 交接原因记录
-   - 信心度评估
-   - 重要注意事项传递
-   - 支持双智能体架构（Planner + Executor）
-
-3. **TaskList 任务清单** 📋
-   - 像人类工程师维护 TODO.md 一样管理任务
-   - 任务拆解和优先级排序
-   - 依赖关系管理
-   - 进度跟踪
-   - Markdown 导出
-   - 核心文件：`scripts/task_list_manager.py`
-
-4. **WorkflowEngineV2 增强版工作流** ⚙️
-   - 集成 Checkpoint + TaskList + Handoff
-   - 智能任务拆分
-   - 定期自动保存检查点
-   - 支持 Agent 交接班
-   - 断点恢复机制
-   - 核心文件：`scripts/workflow_engine_v2.py`
-
-**使用示例**:
-```bash
-# 创建带长程支持的工作流
-python3 scripts/workflow_engine_v2_demo.py \
-    --task "实现完整电商系统"
-
-# 运行测试
-python3 scripts/tests/run_tests.py
-```
-
-**测试结果**: 24 个测试全部通过 ✅
-
-### 核心能力
-
-1. **智能角色调度** 🎯
-   - 根据任务描述自动识别需要的角色
-   - 基于关键词匹配和位置权重算法
-   - 置信度评估和最佳角色选择
-
-2. **多角色协同** 🤝
-   - 组织多个角色共同完成复杂任务
-   - 共识机制确保决策质量
-   - 角色间上下文共享
-
-3. **上下文感知** 🧠
-   - 根据项目阶段选择角色
-   - 历史上下文智能继承
-   - 任务链自动关联
-
-4. **完整项目生命周期** 📊
-   - 8 阶段项目流程支持
-   - 从需求到部署全流程
-   - 质量门禁和评审机制
-
-5. **规范驱动开发** 📋
-   - 完整的规范工具链（spec_tools.py）
-   - 项目宪法（CONSTITUTION.md）制定
-   - 项目规范（SPEC.md）自动生成
-   - 规范分析报告（SPEC_ANALYSIS.md）
-   - 规范一致性检查和验证
-   - 多角色共识制定规范
-
-6. **代码地图生成** 🗺️
-   - 自动生成项目代码结构映射（code_map_generator_v2.py）
-   - 支持 JSON 和 Markdown 格式输出
-   - 识别核心组件和模块依赖
-   - 可视化项目结构文档
-   - 技术栈分析和统计
-   - **多项目 Workspace 支持**（v2.3 新增）- 自动识别项目所属 workspace
-   - **多角色代码走读**（v2.3 新增）- 架构师、产品经理、独立开发者、UI 设计师、测试专家多视角分析
-   - **文档对齐机制**（v2.3 新增）- 多角色分析结果对齐，生成统一代码地图
-   - **3D 代码地图可视化**（v2.3 新增）- Three.js 交互式可视化，动态流动效果，主题切换
-   - **任务可视化页面**（v2.3 新增）- 各角色任务状态、进度、依赖关系、交接过程
-   - 核心文件：`scripts/code_map_generator_v2.py`, `scripts/multi_role_code_walkthrough.py`, `docs/code-map-visualizer.html`, `docs/task-visualizer.html`
-
-7. **Vibe Coding 集成** 🚀
-   - **规划引擎** - 生成详细的项目计划和任务分解
-   - **提示词进化** - 自动生成和优化提示词
-   - **上下文管理** - 语义记忆和多模型协作
-   - **模块化设计** - 项目模块化分解和依赖分析
-   - **多模态处理** - 支持文本、图像、语音输入
-   - **智能代码生成** - 基于自然语言描述生成代码
-   - 核心文件：`scripts/vibe_coding/planning_engine.py`, `scripts/vibe_coding/prompt_evolution.py`, `scripts/dual_layer_context_manager.py`
-
-8. **/mas 命令系统** ⌨️
-   - **Vibe Coding 功能** - plan, optimize, extract, search, recommend
-   - **智能体调度** - agent 命令调度特定智能体
-   - **工作流执行** - workflow 命令执行工作流
-   - **知识管理** - knowledge 命令管理知识
-   - **项目管理** - project 命令管理项目
-   - **项目全生命周期**（v2.4.1 新增）- lifecycle 命令一键启动完整项目生命周期
-   - **核心规则查询**（v2.4.1 新增）- rules 命令查看系统集成的核心规则库
-   - **工具** - code 和 doc 命令生成和分析代码/文档
-   - **系统** - status, stats, version, config, logs 命令
-   - 核心文件：`scripts/trae_agent_dispatch_v2.py`
-
-9. **核心规则系统**（v2.4.1 新增）📋
-   - **Claude Code 核心规则集成** - 14 条提示词核心规则
-   - **规则应用** - 在提示词生成和优化时自动应用核心规则
-   - **规则查询** - 通过 /mas rules 命令查看所有核心规则
-   - **规则分类** - 通用规则和角色特定规则
-   - 核心文件：`scripts/vibe_coding/prompt_evolution.py`
-
-10. **知识提取与管理系统** 📚
-   - **自动知识提取** - 从对话、代码、文档中提取知识
-   - **知识分类** - 自动对知识进行分类和标签化
-   - **知识搜索** - 基于关键词和语义的搜索
-   - **知识推荐** - 基于上下文的推荐
-   - **知识库管理** - 导入、导出、删除知识
-   - 核心文件：`scripts/dual_layer_context_manager.py`（KnowledgeExtractor 和 KnowledgeManager 类）
-
-11. **自然语言触发机制** 🗣️
-    - **命令识别** - 识别 /mas 命令
-    - **意图识别** - 识别自然语言意图
-    - **上下文感知** - 基于对话上下文提供智能推荐
-    - **多语言支持** - 支持中英文自然语言指令
-    - 核心文件：`scripts/user_intent_recognition.py`
-
-12. **项目理解** 📚
-    - 快速读取项目文档和代码（project_understanding.py）
-    - 为各角色生成定制化理解文档
-    - 提供项目概览和技术栈分析
-    - 作为工作初始化上下文
-    - 角色特定见解和建议
-
-12. **UI 设计** 🎨
-    - 创建独特、生产级的 UI 界面（UI_DESIGNER_PROMPT.md）
-    - 避免通用的 AI "slop" 美学
-    - 详细的设计美学指南（字体、色彩、动画、布局）
-    - 完整的设计系统和风格指南
-    - 高保真原型创建
-
-13. **八阶段标准工作流程** 📊
-    - 阶段 1: 需求分析（产品经理）
-    - 阶段 2: 架构设计（架构师）
-    - 阶段 3: UI 设计（UI 设计师）
-    - 阶段 4: 测试设计（测试专家）
-    - 阶段 5: 任务分解（独立开发者）
-    - 阶段 6: 开发实现（独立开发者）
-    - 阶段 7: 测试验证（测试专家）
-    - 阶段 8: 发布评审（多角色）
-
-14. **跨平台兼容性** 🌍
-    - 支持 Windows、Mac 和 Linux
-    - 统一的路径处理和字符编码
-    - 跨平台脚本执行
-
-### 角色 Prompt 系统
-
-每个角色都配备完整的工作规则和质量标准：
-
-- ✅ **系统性思维规则** - 确保设计完整性
-- ✅ **深度思考规则** - 5-Why 分析法找根因
-- ✅ **零容忍清单** - 禁止 mock、硬编码、简化
-- ✅ **验证驱动设计** - 完整验收标准
-- ✅ **完整性检查** - 多维度检查清单
-- ✅ **自测规则** - 3 层测试验证
-- ✅ **UI 设计美学** - 避免 AI slop，创建独特设计
-
-## 🚀 快速开始
-
-### 前置要求
-
-- Python 3.8+
-- Trae IDE
-- 基础命令行知识
-
-### 基础使用
-
-在 Trae 中直接使用，无需额外命令：
+## v3 核心架构总览
 
 ```
-# 架构设计任务
-设计系统架构：包括模块划分、技术选型、部署方案
-
-# 产品需求定义
-定义产品需求：广告拦截功能，需要明确的验收标准
-
-# 测试策略制定
-制定测试策略：覆盖正常、异常、边界、性能场景
-
-# 功能开发
-实现广告拦截功能：完整代码，包含单元测试
+┌─────────────────────────────────────────────────────────────────────┐
+│                    TraeMultiAgentSkill v3                          │
+│                                                                     │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────┐ │
+│  │Coordinator│←→│Compressor│←→│   Guard  │←→│ Skillify │←→│Warmup │ │
+│  │ 协调器    │  │ 压缩器    │  │ 权限守卫  │  │ 技能生成  │  │预热   │ │
+│  └────┬─────┘  └──────────┘  └──────────┘  └────┬─────┘  └───┬───┘ │
+│       │                                      │            │       │
+│       ▼                                      ▼            ▼       │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                  MemoryBridge (记忆桥接)                      │   │
+│  │  recall() ← capture() ← persist() ← search()             │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │              PromptRegistry (提示词注册表)                     │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-智能体会自动识别任务类型并调用对应角色！
-
-### 使用 /mas 命令系统
-
-在 Trae 中使用 /mas 命令系统：
-
-```
-# 查看帮助
-/mas help
-
-# Vibe Coding 功能
-/mas plan 实现一个 Python web 应用
-/mas optimize 帮我写一个 Python 函数
-/mas extract Python 是一种解释型语言，广泛用于 web 开发
-/mas search Python 设计模式
-/mas recommend 我需要学习 Python web 开发
-
-# 智能体调度
-/mas agent architect 设计系统架构
-/mas agent solo-coder 实现用户登录功能
-
-# 工作流执行
-/mas workflow standard-dev 实现电商系统
-/mas workflow vibe-coding 开发新功能
-
-# 知识管理
-/mas knowledge list
-/mas knowledge export
-/mas knowledge import knowledge.json
-/mas knowledge delete know-123
-
-# 项目管理
-/mas project init 新项目
-/mas project config language Python
-/mas project status
-
-# 工具
-/mas code generate 实现一个排序算法
-/mas code analyze src/main.py
-/mas doc generate 项目文档
-/mas doc analyze README.md
-
-# 系统
-/mas status
-/mas stats
-/mas version
-/mas config debug true
-/mas logs
-```
-
-### 高级使用
-
-使用调度脚本进行更精细的控制：
-
-```bash
-# 自动识别角色
-python3 scripts/trae_agent_dispatch.py \
-    --task "设计系统架构"
-
-# 指定角色
-python3 scripts/trae_agent_dispatch.py \
-    --task "实现功能" \
-    --agent solo_coder
-
-# 多角色共识
-python3 scripts/trae_agent_dispatch.py \
-    --task "启动新项目：安全浏览器" \
-    --consensus true
-
-# 完整项目流程
-python3 scripts/trae_agent_dispatch.py \
-    --task "安全浏览器广告拦截功能" \
-    --project-full-lifecycle
-
-# 项目全生命周期模式（8 阶段标准工作流程）
-python3 scripts/trae_agent_dispatch.py \
-    --task "实现电商系统用户登录功能" \
-    --project-full-lifecycle
-# 自动执行：需求分析→架构设计→UI 设计→测试设计→任务分解→开发实现→测试验证→发布评审
-
-# 规范驱动开发
-python3 scripts/spec_tools.py init
-python3 scripts/spec_tools.py analyze
-python3 scripts/spec_tools.py update --spec-file SPEC.md
-
-# 代码地图生成
-python3 scripts/code_map_generator_v2.py /path/to/project --workspace /workspace
-
-# 多角色代码走读
-python3 scripts/multi_role_code_walkthrough.py /path/to/project --workspace /workspace
-
-# 项目理解
-python3 scripts/project_understanding.py /path/to/project
-```
-
-## 🎭 角色介绍
-
-### 1. 架构师 (Architect)
-
-**职责**: 设计系统性、前瞻性、可落地、可验证的架构
-
-**核心原则**:
-- ✅ 系统性思维 - 设计前回答 4 个关键问题
-- ✅ 5-Why 分析法 - 连续追问找到根因
-- ✅ 零容忍清单 - 禁止 mock、硬编码、简化
-- ✅ 验证驱动设计 - 完整验收标准
-
-**典型输出**:
-- 系统架构图（Mermaid）
-- 模块职责清单
-- 接口定义（输入/输出/异常）
-- 数据模型设计
-- 部署架构说明
-
-**触发关键词**: 架构、设计、选型、审查、性能、瓶颈、模块、接口、部署
-
-### 2. 产品经理 (Product Manager)
-
-**职责**: 定义用户价值清晰、需求明确、可落地、可验收的产品
-
-**核心原则**:
-- ✅ 需求三层挖掘 - 表面→真实→本质
-- ✅ SMART 验收标准 - 具体、可衡量、可实现
-- ✅ 竞品分析规则 - 至少 5 个竞品对比
-
-**典型输出**:
-- 产品需求文档（PRD）
-- 用户故事地图
-- 验收标准（SMART）
-- 竞品分析报告
-
-**触发关键词**: 需求、PRD、用户故事、竞品、市场、调研、验收、UAT、体验
-
-### 3. 测试专家 (Test Expert)
-
-**职责**: 确保全面、深入、自动化、可量化的质量保障
-
-**核心原则**:
-- ✅ 测试金字塔 - 70% 单元 +20% 集成 +10%E2E
-- ✅ 正交分析法 - 5 类场景全覆盖
-- ✅ 真机测试规则 - 真实环境验证
-
-**典型输出**:
-- 测试策略文档
-- 测试用例（正常/异常/边界/性能/安全）
-- 自动化测试脚本
-- 质量评估报告
-
-**触发关键词**: 测试、质量、验收、自动化、性能测试、缺陷、评审、门禁
-
-### 5. UI 设计师 (UI Designer)
-
-**职责**: 创建独特、生产级的 UI 界面，具有高设计质量，避免通用的 AI "slop" 美学
-
-**核心原则**:
-- ✅ 设计思维规则 - 设计前回答 4 个关键问题
-- ✅ UI 设计美学指南 - 字体、色彩、动画、布局
-- ✅ 零容忍清单 - 禁止通用字体、陈旧配色、AI slop
-- ✅ 验证驱动设计 - 完整验收标准
-- ✅ 完整性检查 - 多维度检查清单
-
-**典型输出**:
-- 设计哲学文档
-- 风格指南
-- 高保真原型
-- UI 设计文档
-
-**触发关键词**: UI设计、界面设计、前端设计、视觉设计、UI/UX、UI原型、界面美化、UI优化、UI重构
-
-### 4. 独立开发者 (Solo Coder)
-
-**职责**: 编写完整、高质量、可维护、可测试的代码
-
-**核心原则**:
-- ✅ 零容忍清单 - 10 项绝对禁止
-- ✅ 完整性检查 - 4 维度检查清单
-- ✅ 自测规则 - 3 层测试验证
-
-**典型输出**:
-- 完整功能代码
-- 单元测试（覆盖率>80%）
-- 集成测试
-- 技术文档
-
-**触发关键词**: 实现、开发、代码、修复、优化、重构、单元测试、文档
-
-## 💡 使用方法
-
-### 场景 1: 项目启动
-
-```bash
-# 完整项目启动（多角色共识）
-python3 scripts/trae_agent_dispatch.py \
-    --task "启动新项目：安全浏览器广告拦截功能" \
-    --consensus true \
-    --priority high
-
-# 自动组织：
-#   1. 产品经理 - 需求定义
-#   2. 架构师 - 架构设计
-#   3. 测试专家 - 测试策略
-#   4. 独立开发者 - 开发计划
-```
-
-### 场景 2: 功能开发
-
-```bash
-# 单角色调度（快速开发）
-python3 scripts/trae_agent_dispatch.py \
-    --task "实现广告拦截核心模块" \
-    --agent solo_coder \
-    --context "基于架构设计文档 v2.0"
-
-# 自动包含：
-#   - 架构设计文档作为上下文
-#   - 完整性检查清单
-#   - 自测要求
-```
-
-### 场景 3: 代码审查
-
-```bash
-# 多角色代码审查
-python3 scripts/trae_agent_dispatch.py \
-    --task "审查广告拦截核心模块" \
-    --code-review \
-    --files src/adblock/ tests/
-
-# 参与角色：
-#   - 架构师（架构合规性）
-#   - 测试专家（测试覆盖率）
-#   - 独立开发者（代码质量）
-```
-
-### 场景 4: 紧急 Bug 修复
-
-```bash
-# 紧急修复（快速通道）
-python3 scripts/trae_agent_dispatch.py \
-    --task "紧急修复：生产环境崩溃" \
-    --priority critical \
-    --fast-track
-
-# 自动处理：
-#   - 跳过常规流程
-#   - 直接调度资深开发者
-#   - 实时进度同步
-```
-
-### 场景 5: 规范驱动开发
-
-```bash
-# 初始化规范环境
-python3 scripts/spec_tools.py init
-
-# 分析规范
-python3 scripts/spec_tools.py analyze
-
-# 更新规范文档
-python3 scripts/spec_tools.py update --spec-file SPEC.md
-
-# 规范驱动的项目启动
-python3 scripts/trae_agent_dispatch.py \
-    --task "启动规范驱动项目：电商系统" \
-    --spec-driven
-
-# 自动执行：
-#   1. 初始化规范环境
-#   2. 多角色共识：制定项目宪法
-#   3. 产品经理：编写需求规范
-#   4. 架构师：编写技术规范
-#   5. 规范评审（多角色共识）
-#   6. 基于规范分解任务
-#   7. 各角色执行任务
-#   8. 规范验证和质量评审
-```
-
-### 场景 6: 代码地图生成与代码走读
-
-```bash
-# 生成代码地图（支持 workspace）
-python3 scripts/code_map_generator_v2.py /path/to/project --workspace /workspace
-
-# 输出：
-# - Markdown 格式：<project>-CODE_MAP.md
-
-# 真正的多角色协作代码走读（使用 Trae Agent 调度）
-python3 scripts/multi_role_collaborative_analyzer.py /path/to/project --workspace /workspace
-
-# 输出：
-# - 统一代码地图：<project>-ALIGNED-CODE-MAP.md
-# - 代码走读审查报告：<project>-CODE-REVIEW-REPORT.md
-
-# 简化的多角色代码走读
-python3 scripts/multi_role_code_walkthrough.py /path/to/project --workspace /workspace
-
-# 生成的内容包括：
-#   - 统一代码地图：项目概览、架构分层、多角色分析结果、对齐结果
-#   - 审查报告：审查概述、架构评审、代码质量评估、风险点、改进建议
-```
-
-### 场景 7: 项目理解
-
-```bash
-# 生成项目理解文档
-python3 scripts/project_understanding.py /path/to/project
-
-# 输出：
-# - 整体项目信息：project_understanding.json
-# - 架构师理解：architect_understanding.md
-# - 产品经理理解：product_manager_understanding.md
-# - 测试专家理解：test_expert_understanding.md
-# - 独立开发者理解：solo_coder_understanding.md
-
-# 文档内容包括：
-#   - 项目概览和技术栈
-#   - 代码结构分析
-#   - 文档和依赖分析
-#   - 角色特定的见解和建议
-```
-
-## 📦 安装说明
-
-### 快速使用（无需安装）
-
-**最简单的方式** - 直接使用包装脚本，可以从任何位置调用：
-
-```bash
-# 在任何项目目录下直接调用
-/Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent \
-  --task "你的任务描述" \
-  --agent architect
-```
-
-### 方法 1: 直接使用包装脚本
-
-包装脚本会自动定位 skill 位置并调用，无需任何配置：
-
-```bash
-# 方式 1: 使用完整路径
-/Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent \
-  --task "设计系统架构" --agent architect
-
-# 方式 2: 在项目中使用相对路径（如果 skill 在项目 .trae/skills 下）
-./.trae/skills/trae-multi-agent/trae-agent \
-  --task "制定测试策略" --agent tester
-```
-
-**优点**：
-- ✅ 无需安装
-- ✅ 无需配置
-- ✅ 即开即用
-- ✅ 自动定位 skill
-
-### 方法 2: 设置环境变量
-
-将 skill 添加到 PATH，便于全局访问：
-
-```bash
-# 添加到 ~/.zshrc 或 ~/.bashrc
-export TRAE_MULTI_AGENT_SKILL_PATH="$HOME/claw/.trae/skills/trae-multi-agent"
-export PATH="$TRAE_MULTI_AGENT_SKILL_PATH:$PATH"
-
-# 重新加载配置
-source ~/.zshrc  # 或 source ~/.bashrc
-
-# 使用
-trae-agent --task "设计系统架构" --agent architect
-```
-
-**优点**：
-- ✅ 全局可用
-- ✅ 简短命令
-- ✅ 易于管理
-
-### 方法 3: 创建符号链接
-
-创建全局可执行命令：
-
-```bash
-# 需要 sudo 权限
-sudo ln -s /Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent \
-           /usr/local/bin/trae-agent
-
-# 使用
-trae-agent --task "设计系统架构" --agent architect
-```
-
-**优点**：
-- ✅ 系统级命令
-- ✅ 任何终端可用
-- ✅ 与系统命令集成
-
-### 自动安装
-
-运行自动安装脚本（推荐新手）：
-
-```bash
-cd /Users/wangwei/claw/.trae/skills/trae-multi-agent
-./install.sh
-```
-
-安装脚本会：
-- 🔧 自动检测 Shell 类型
-- 🔧 创建符号链接（需要 sudo）
-- 🔧 设置环境变量
-- 🔧 创建便捷别名
-- 🔧 设置执行权限
-
-### 验证安装
-
-```bash
-# 检查是否能找到 skill
-trae-agent --help
-
-# 测试调用
-trae-agent --task "测试" --agent architect --dry-run
-
-# 检查版本
-ls -lh /Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent
-```
-
-### 故障排查
-
-**问题**: 提示 "找不到 trae-multi-agent skill"
-
-**解决方案**:
-1. 检查环境变量：`echo $TRAE_MULTI_AGENT_SKILL_PATH`
-2. 检查路径是否存在：`ls -la $TRAE_MULTI_AGENT_SKILL_PATH`
-3. 重新加载配置：`source ~/.zshrc`
-
-**问题**: 权限错误
-
-**解决方案**:
-```bash
-chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/trae-agent
-chmod +x /Users/wangwei/claw/.trae/skills/trae-multi-agent/scripts/*.py
-```
-
-📖 详细安装文档请查看：[INSTALL.md](INSTALL.md)
-
-## ⚙️ 命令行参数说明
-
-### 基本参数
-
-```bash
-python3 scripts/trae_agent_dispatch.py [参数]
-```
-
-| 参数 | 类型 | 必需 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| `--task` | string | ✅ | - | 任务描述 |
-| `--agent` | string | ❌ | auto | 指定角色：architect, product-manager, tester, solo-coder, ui-designer, devops, auto |
-| `--project-root` | string | ❌ | . | 项目根目录路径 |
-| `--task-file` | string | ❌ | - | 任务文件路径（从文件读取任务） |
-| `--output` | string | ❌ | - | 输出文件路径 |
-| `--verbose` | flag | ❌ | false | 启用详细输出模式 |
-| `--dry-run` | flag | ❌ | false | 仅模拟执行，不实际调用智能体 |
-| `--use-v1` | flag | ❌ | false | 使用 v1.0 版本逻辑 |
-| `--project-full-lifecycle` | flag | ❌ | false | 启用项目全生命周期模式（8 阶段标准工作流程） |
-
-### 角色选项
-
-`--agent` 参数支持以下角色：
-
-- `architect`: 架构师 - 负责系统架构设计、技术选型
-- `product-manager`: 产品经理 - 负责需求分析、产品规划
-- `tester`: 测试专家 - 负责测试策略、质量保障
-- `solo-coder`: 独立开发者 - 负责功能开发、代码实现
-- `ui-designer`: UI 设计师 - 负责界面设计、用户体验
-- `devops`: DevOps 工程师 - 负责部署、运维
-- `auto`: 自动匹配 - 根据任务内容自动识别最适合的角色（默认）
-
-### 使用示例
-
-#### 1. 自动识别角色
-```bash
-python3 scripts/trae_agent_dispatch.py \
-    --task "设计微服务系统架构"
-```
-
-#### 2. 指定角色
-```bash
-python3 scripts/trae_agent_dispatch.py \
-    --task "实现用户登录功能" \
-    --agent solo-coder
-```
-
-#### 3. 项目全生命周期模式（8 阶段）
-```bash
-python3 scripts/trae_agent_dispatch.py \
-    --task "实现电商系统用户登录功能" \
-    --project-full-lifecycle
-# 自动执行：需求分析→架构设计→UI 设计→测试设计→任务分解→开发实现→测试验证→发布评审
-```
-
-#### 4. 从文件读取任务
-```bash
-python3 scripts/trae_agent_dispatch.py \
-    --task-file task.txt \
-    --agent architect
-```
-
-#### 5. 详细输出模式
-```bash
-python3 scripts/trae_agent_dispatch.py \
-    --task "设计系统架构" \
-    --verbose
-```
-
-#### 6. 模拟执行（不实际调用）
-```bash
-python3 scripts/trae_agent_dispatch.py \
-    --task "实现功能" \
-    --dry-run
-```
-
-### 项目全生命周期模式详解
-
-使用 `--project-full-lifecycle` 参数后，系统自动执行 8 个阶段：
-
-1. **需求分析**（产品经理）
-   - 需求三层挖掘
-   - 用户故事地图
-   - SMART 验收标准
-
-2. **架构设计**（架构师）
-   - 系统架构设计
-   - 技术选型
-   - 模块职责划分
-
-3. **UI 设计**（UI 设计师）
-   - 界面原型设计
-   - 交互流程
-   - 视觉风格指南
-
-4. **测试设计**（测试专家）
-   - 测试策略
-   - 测试用例设计
-   - 自动化测试方案
-
-5. **任务分解**（开发工程师）
-   - 任务拆分
-   - 工作量评估
-   - 优先级排序
-
-6. **开发实现**（开发工程师）
-   - 代码编写
-   - 单元测试
-   - 代码审查
-
-7. **测试验证**（测试专家）
-   - 集成测试
-   - 性能测试
-   - 缺陷修复验证
-
-8. **发布评审**（架构师 + 产品经理）
-   - 代码审查
-   - 验收测试
-   - 发布准备
-
-## ⚙️ 配置说明
-
-### 技能配置 (skills-index.json)
-
-```json
-{
-  "version": "1.0.0",
-  "name": "trae-multi-agent",
-  "enabled": true,
-  "global": true,
-  "autoInvoke": true,
-  "roles": {
-    "architect": { "priority": 1 },
-    "product_manager": { "priority": 2 },
-    "test_expert": { "priority": 3 },
-    "solo_coder": { "priority": 4 }
-  }
-}
-```
-
-### 角色识别算法
+## v3 模块一览
+
+| Phase | 模块 | 文件 | 测试数 | 功能 |
+|-------|------|------|--------|------|
+| P1 | **Coordinator** | coordinator.py | (E2E) | 多Agent协调、任务规划、执行、报告 |
+| P1 | **Scratchpad** | scratchpad.py | (E2E) | 共享黑板、Worker间信息交换 |
+| P1 | **Worker** | worker.py | (E2E) | 工作者执行具体任务 |
+| P1 | **ConsensusEngine** | consensus.py | (E2E) | 共识机制、投票决策 |
+| P1-b | **ContextCompressor** | context_compressor.py | **72** | 3级上下文压缩(L1/L2/L3) |
+| P2-a | **PermissionGuard** | permission_guard.py | **105** | 4级权限模型+AI分类器+审计日志 |
+| P2-b | **Skillifier** | skillifier.py | **96** | 执行记录→模式提取→技能自动生成 |
+| P3 | **WarmupManager** | warmup_manager.py | **103** | L1同步+L2异步+LAZY懒加载+进程缓存 |
+| P4 | **MemoryBridge** | memory_bridge.py | **96** | 记忆召回/捕获/反馈闭环/模式持久化 |
+| **合计** | — | — | **568** | — |
+
+## 快速开始
+
+### 基础导入
 
 ```python
-def analyze_task(task: str):
-    """
-    分析任务，识别需要的角色
-    
-    Args:
-        task: 任务描述
-        
-    Returns:
-        (最佳角色，置信度，所有匹配的角色列表)
-    """
-    scores = {}
-    matched_roles = []
-    
-    # 关键词匹配 + 位置权重
-    for role, config in ROLES.items():
-        score = 0.0
-        for keyword in config["keywords"]:
-            if keyword in task:
-                score += 1.0
-        
-        # 位置权重：越靠前权重越高
-        words = task.split()
-        for i, word in enumerate(words):
-            for keyword in config["keywords"]:
-                if keyword in word:
-                    score += 1.0 / (i + 1)
-        
-        scores[role] = score
-    
-    # 选择最佳角色
-    best_role = max(scores, key=scores.get)
-    confidence = min(scores[best_role] / len(keywords), 1.0)
-    
-    return best_role, confidence, matched_roles
+from scripts.collaboration import (
+    # 核心协作组件
+    Coordinator, Scratchpad, Worker,
+    ConsensusEngine, BatchScheduler,
+
+    # Phase 1-b: 上下文压缩
+    ContextCompressor, CompressionLevel,
+
+    # Phase 2-a: 权限守卫
+    PermissionGuard, ProposedAction, PermissionLevel,
+
+    # Phase 2-b: 技能生成
+    Skillifier, ExecutionRecord, SuccessPattern,
+
+    # Phase 3: 启动优化
+    WarmupManager, WarmupConfig,
+
+    # Phase 4: 记忆桥接
+    MemoryBridge, MemoryConfig as MemCfg, MemoryType,
+)
+
+# 创建协作系统
+scratchpad = Scratchpad()
+coordinator = Coordinator(scratchpad=scratchpad)
+
+# 规划任务（多角色）
+plan = coordinator.plan_task(
+    "设计用户认证系统",
+    [{"role_id": "architect"}, {"role_id": "product-manager"}]
+)
+print(f"任务数: {plan.total_tasks}")
+
+# 启动预热（加速后续操作）
+wm = WarmupManager.instance(WarmupConfig.default())
+report = wm.warmup()
+print(f"预热完成: {report.completed}/{report.total_tasks} 任务")
+
+# 权限检查
+guard = PermissionGuard()
+action = ProposedAction(
+    action_type=ActionType.FILE_WRITE,
+    target="/etc/config",
+    description="修改系统配置"
+)
+decision = guard.check(action)
+print(f"权限决定: {decision.outcome}")
+
+# 技能学习
+skillifier = Skillifier()
+record = ExecutionRecord(
+    task_description="实现CRUD接口",
+    success=True,
+    worker_id="dev-worker",
+    steps=[],
+)
+skillifier.record_execution(record)
+patterns = skillifier.analyze_history()
+print(f"发现模式: {len(patterns)} 个")
+
+# 记忆桥接
+bridge = MemoryBridge()
+result = bridge.recall(MemoryQuery(query_text="微服务架构"))
+print(f"召回记忆: {result.total_found} 条")
 ```
 
-### 共识触发条件
+### 环境变量配置
+
+```bash
+# WarmupManager 预热模式
+export WARMUP_MODE=FAST        # 最小预热 (~20ms)
+export WARMUP_MODE=FULL        # 全量预热
+export WARMUP_MODE=DISABLED     # 禁用预热
+```
+
+## 各模块详细用法
+
+### 1. Coordinator 多 Agent 协调
 
 ```python
-def _needs_consensus(task, confidence, matched_roles):
-    """判断是否需要多角色共识"""
-    
-    # 1. 置信度低于阈值
-    if confidence < 0.6:
-        return True
-    
-    # 2. 涉及多个专业领域
-    if len(matched_roles) >= 2:
-        return True
-    
-    # 3. 任务描述很长
-    if len(task) > 200:
-        return True
-    
-    # 4. 包含明确的共识请求
-    if any(kw in task for kw in ["共识", "评审", "讨论"]):
-        return True
-    
-    return False
+from scripts.collaboration import Coordinator, Scratchpad
+
+scratchpad = Scratchpad()
+coord = Coordinator(scratchpad=scratchpad)
+
+# 规划任务
+plan = coord.plan_task("开发REST API", [
+    {"role_id": "architect"},
+    {"role_id": "solo-coder"},
+])
+
+# 生成执行计划
+workers = coord.spawn_workers(plan)
+result = coord.execute_plan(plan)
+report = coord.generate_report()
 ```
 
-## 📋 新功能/功能变更标准工作流程
-
-### 核心原则：先设计、先写文档、再开发
-
-**必须遵循的工作流程**：
-
-```
-阶段 1: 需求分析（产品经理）
-    ↓ 评审通过
-阶段 2: 架构设计（架构师）
-    ↓ 评审通过
-阶段 3: 测试设计（测试专家）
-    ↓ 评审通过
-阶段 4: 任务分解（独立开发者）
-    ↓
-阶段 5: 开发实现（独立开发者）
-    ↓
-阶段 6: 测试验证（测试专家）
-    ↓
-阶段 7: 发布评审（多角色）
-```
-
-**绝对禁止**：
-❌ 未经过设计阶段直接开始编码
-❌ 文档未编写或未完成就开始开发
-❌ 未经过设计评审直接实施
-
-**文档依赖关系**：
-```
-PRD 文档（产品经理）
-    ↓ [依赖: PRD 评审通过]
-架构设计文档（架构师）
-    ↓ [依赖: 架构评审通过]
-测试计划文档（测试专家）
-    ↓ [依赖: 测试计划评审通过]
-开发任务列表（开发者）
-    ↓ [依赖: 开发完成]
-测试报告（测试专家）
-    ↓ [依赖: 测试通过]
-发布决策（多角色）
-```
-
-详细流程说明：[SKILL.md](SKILL.md) - 新功能/功能变更标准工作流程
-
-## 📚 示例场景
-
-### 示例 1: 完整项目启动
-
-**输入**:
-```
-启动新项目：安全浏览器广告拦截功能
-- 支持拦截恶意广告和钓鱼网站
-- 性能要求：页面加载延迟<100ms
-- 需要完整的测试覆盖
-```
-
-**自动流程**:
-```
-🎯 识别为：多角色共识任务
-
-📋 阶段 1: 需求定义 (产品经理)
-   - 用户故事地图
-   - 验收标准 (SMART)
-   - 竞品分析
-
-📋 阶段 2: 架构设计 (架构师)
-   - 系统架构图
-   - 技术选型
-   - 部署方案
-
-📋 阶段 3: 测试策略 (测试专家)
-   - 测试金字塔
-   - 自动化方案
-   - 质量门禁
-
-📋 阶段 4: 开发计划 (独立开发者)
-   - 任务分解
-   - 时间估算
-   - 风险评估
-```
-
-### 示例 2: 功能开发
-
-**输入**:
-```
-实现广告拦截核心模块
-- 基于架构设计文档 v2.0
-- 使用 SQLite 存储规则
-- 需要完整单元测试
-```
-
-**自动处理**:
-```
-🎯 识别为：独立开发者任务
-📊 置信度：0.85
-
-✅ 加载上下文：架构设计文档 v2.0
-
-📋 开发流程:
-   1. 需求理解确认
-   2. 技术方案设计
-   3. 代码实现
-      - 核心功能
-      - 错误处理
-      - 日志记录
-   4. 单元测试
-      - 覆盖率>80%
-      - 边界条件
-      - 异常场景
-   5. 自测验证
-```
-
-### 示例 3: 架构审查
-
-**输入**:
-```
-审查当前系统架构
-- 评估性能瓶颈
-- 识别技术债务
-- 提出优化建议
-```
-
-**自动处理**:
-```
-🎯 识别为：架构师任务
-📊 置信度：0.92
-
-📋 审查清单:
-   ✓ 系统边界清晰度
-   ✓ 模块职责单一性
-   ✓ 接口定义完整性
-   ✓ 异常处理覆盖
-   ✓ 性能瓶颈分析
-   ✓ 安全风险评估
-   ✓ 扩展点预留
-   ✓ 监控方案
-
-📋 输出:
-   - 审查报告
-   - 问题清单
-   - 优化建议
-   - 优先级排序
-```
-
-## 🏗️ 技术架构
-
-### 系统架构
-
-```
-┌─────────────────────────────────────────┐
-│         Trae Multi-Agent Skill          │
-├─────────────────────────────────────────┤
-│  用户界面层 (Trae IDE)                   │
-│  - 自然语言输入                          │
-│  - 智能响应输出                          │
-├─────────────────────────────────────────┤
-│  调度层 (Dispatcher)                     │
-│  - 任务分析                              │
-│  - 角色识别                              │
-│  - 共识组织                              │
-├─────────────────────────────────────────┤
-│  角色层 (Agent Roles)                    │
-│  - 架构师 (Architect)                    │
-│  - 产品经理 (Product Manager)            │
-│  - 测试专家 (Test Expert)                │
-│  - 独立开发者 (Solo Coder)               │
-├─────────────────────────────────────────┤
-│  执行层 (Executor)                       │
-│  - 任务执行                              │
-│  - 上下文管理                            │
-│  - 结果验证                              │
-└─────────────────────────────────────────┘
-```
-
-### 数据流
-
-```
-用户输入
-  ↓
-任务分析 (关键词匹配 + 位置权重)
-  ↓
-角色识别 (置信度评估)
-  ↓
-单角色任务 → 直接调度
-多角色任务 → 组织共识
-  ↓
-任务执行 (带完整 Prompt)
-  ↓
-结果验证 (检查清单)
-  ↓
-输出响应
-```
-
-### 核心算法
-
-#### 1. 角色识别算法
+### 2. ContextCompressor 上下文压缩
 
 ```python
-def analyze_task(task: str) -> Tuple[str, float, List[str]]:
-    """
-    分析任务，识别需要的角色
-    
-    算法:
-    1. 关键词匹配
-    2. 位置权重计算
-    3. 分数累加
-    4. 置信度评估
-    """
-    scores = {}
-    matched_roles = []
-    
-    for role, config in ROLES.items():
-        score = 0.0
-        matched_keywords = []
-        
-        # 关键词匹配
-        for keyword in config["keywords"]:
-            if keyword in task:
-                score += 1.0
-                matched_keywords.append(keyword)
-        
-        # 位置权重
-        words = task.split()
-        for i, word in enumerate(words):
-            for keyword in config["keywords"]:
-                if keyword in word:
-                    score += 1.0 / (i + 1)
-        
-        if score > 0:
-            matched_roles.append(role)
-        
-        scores[role] = score
-    
-    # 选择最佳角色
-    best_role = max(scores, key=scores.get)
-    max_score = scores[best_role]
-    
-    # 计算置信度
-    confidence = min(max_score / len(ROLES[best_role]["keywords"]), 1.0) \
-                 if max_score > 0 else 0.0
-    
-    return best_role, confidence, matched_roles
+from scripts.collaboration import ContextCompressor, CompressionLevel
+
+compressor = ContextCompressor()
+
+# L1 轻度压缩（去重+摘要）
+compressed_l1 = compressor.compress(messages, level=CompressionLevel.L1)
+
+# L2 中度压缩（结构化+关键保留）
+compressed_l2 = compressor.compress(messages, level=CompressionLevel.L2)
+
+# L3 深度压缩（语义+核心要点）
+compressed_l3 = compressor.compress(messages, level=CompressionLevel.L3)
 ```
 
-#### 2. 共识决策算法
+### 3. PermissionGuard 权限守卫
 
 ```python
-def organize_consensus(task: str, agents: List[str]) -> Dict:
-    """
-    组织多角色共识
-    
-    流程:
-    1. 确定主导角色
-    2. 收集各角色意见
-    3. 冲突检测
-    4. 达成共识
-    5. 生成决议
-    """
-    # 确定主导角色
-    lead_role = determine_lead_role(task)
-    
-    # 收集意见
-    opinions = {}
-    for agent in agents:
-        opinion = agent.analyze(task)
-        opinions[agent.role] = opinion
-    
-    # 冲突检测
-    conflicts = detect_conflicts(opinions)
-    
-    # 解决冲突
-    if conflicts:
-        resolved = resolve_conflicts(conflicts, opinions)
-    
-    # 生成决议
-    consensus = generate_consensus(opinions)
-    
-    return consensus
+from scripts.collaboration import (
+    PermissionGuard, ProposedAction, ActionType, PermissionLevel
+)
+
+guard = PermissionGuard()
+
+# 设置权限级别
+guard.set_level(PermissionLevel.AUTO)  # PLAN / DEFAULT / AUTO / BYPASS
+
+# 添加自定义规则
+from scripts.collaboration import PermissionRule
+guard.add_rule(PermissionRule(
+    rule_id="allow-test-dir",
+    pattern="glob:/tmp/**",
+    action_types=[ActionType.FILE_WRITE, ActionType.FILE_READ],
+    effect="ALLOW",
+))
+
+# 检查操作
+action = ProposedAction(
+    action_type=ActionType.SHELL_EXECUTE,
+    target="rm -rf /important",
+    description="危险删除操作"
+)
+decision = guard.check(action)
+print(f"结果: {decision.outcome}, 风险分: {decision.risk_score:.2f}")
+
+# 审计日志
+log = guard.get_audit_log()
+report = guard.get_security_report()
+print(f"安全报告: {report}")
 ```
 
-## 🤝 贡献指南
+### 4. Skillifier 技能自动生成
 
-### 开发环境设置
+```python
+from scripts.collaboration import Skillifier, ExecutionRecord, ExecutionStep
+
+skillifier = Skillifier()
+
+# 记录成功执行
+record = ExecutionRecord(
+    task_description="实现用户登录API",
+    success=True,
+    worker_id="backend-dev",
+    role_id="solo-coder",
+    steps=[
+        ExecutionStep(step_order=1, action_type="design", target="auth/models.py",
+                        outcome="completed", duration_ms=500),
+        ExecutionStep(step_order=2, action_type="implement", target="auth/views.py",
+                        outcome="completed", duration_ms=1200),
+        ExecutionStep(step_order=3, action_type="test", target="tests/test_auth.py",
+                        outcome="completed", duration_ms=800),
+    ],
+    artifacts=["models.py", "views.py", "test_auth.py"],
+)
+skillifier.record_execution(record)
+
+# 分析历史 → 提取模式
+patterns = skillifier.analyze_history()
+for p in patterns:
+    print(f"模式: {p.name}, 置信度: {p.confidence:.2f}, 频率: {p.frequency}")
+
+# 生成技能提案
+if patterns:
+    proposal = skillifier.generate_skill(patterns[0])
+    print(f"技能提案: {proposal.name}, 质量分: {proposal.quality_score}")
+    
+    # 质量验证
+    validation = skillifier.validate_skill(proposal)
+    print(f"验证等级: {validation.grade}, 分数: {validation.score:.1f}")
+```
+
+### 5. WarmupManager 启动优化
+
+```python
+from scripts.collaboration import WarmupManager, WarmupConfig, WarmupLayer
+
+# 三种配置模式
+config_fast = WarmupConfig.fast()      # 最小预热
+config_default = WarmupConfig.default()  # 平衡模式
+config_full = WarmupConfig.full()     # 全量预热
+
+wm = WarmupManager.instance(config_default)
+
+# 分层预热
+report = wm.warmup(layers=[WarmupLayer.EAGER])  # 仅 L1 同步 (~15ms)
+# 或全量预热
+full_report = wm.warmup()                   # L1 + L2 + LAZY
+
+# 缓存操作
+wm.set_cache("my_key", {"data": "value"})
+value = wm.get("my_key")
+
+# 懒加载
+result = wm.get_or_load("expensive_key", lambda: heavy_computation())
+
+# 性能诊断
+print(wm.print_diagnostics())
+metrics = wm.get_metrics()
+print(f"启动耗时: {metrics.startup_time_ms:.1f}ms")
+
+# 基准测试
+bench = wm.benchmark(iterations=5)
+print(f"P95延迟: {bench['p95_ms']:.1f}ms")
+```
+
+### 6. MemoryBridge 记忆桥接
+
+```python
+from scripts.collaboration import (
+    MemoryBridge, MemoryConfig, MemoryQuery, MemoryType,
+    KnowledgeItem, UserFeedback, EpisodicMemory, ErrorContext
+)
+
+bridge = MemoryBridge(config=MemoryConfig.default())
+
+# === 写入 ===
+
+# 1. 写入知识
+bridge.writer.write_knowledge(KnowledgeItem(
+    id="kw-redis", domain="缓存", title="Redis缓存策略",
+    content="缓存穿透：布隆过滤器\n击穿：互斥锁重构\n雪崩：随机过期时间",
+    tags=["Redis", "缓存", "分布式"],
+))
+
+# 2. 记录执行洞察（从 Scratchpad FINDING 自动捕获）
+class FakeFinding:
+    entry_type = "FINDING"
+    content = "发现N+1查询问题，建议引入缓存层"
+    confidence = 0.9
+
+record = type('obj', (object,), {
+    'task_description': '性能优化', 'worker_id': 'architect'
+})()
+bridge.capture_execution(record, [FakeFinding()])
+
+# 3. 记录用户反馈
+fb = UserFeedback(id="fb1", feedback_type="suggestion",
+                 content="希望增加更多计算类型支持", rating=5)
+bridge.record_feedback(fb)
+
+# 4. 从错误中学习
+ctx = ErrorContext(error_message="ConnectionTimeoutError: DB连接超时",
+                    task_description="批量导入数据")
+bridge.learn_from_mistake(ctx)
+
+# 5. 持久化 Skillifier 模式
+class GoodPattern:
+    name = "CRUD Generator"
+    steps_template = [{"step": 1, "action": "analyze"}]
+    trigger_keywords = ["CRUD", "增删改查"]
+    confidence = 0.88
+    quality_score = 90
+
+bridge.persist_pattern(GoodPattern())
+
+# === 读取 ===
+
+# 召回相关记忆
+result = bridge.recall(MemoryQuery(
+    query_text="微服务架构设计",
+    limit=5,
+    min_relevance=0.3
+))
+for mem in result.memories:
+    print(f"[{mem.memory_type.value}] {mem.title}: {mem.content[:60]}...")
+    print(f"  相关度: {mem.relevance_score:.2f}")
+
+# 关键词搜索知识库
+items = bridge.search_knowledge(["Redis", "缓存"])
+for item in items:
+    print(f"[{item.domain}] {item.title}: {item.content[:50]}...")
+
+# 统计面板
+stats = bridge.get_statistics()
+print(f"总记忆数: {stats.total_memories}")
+print(f"按类型: {stats.by_type_counts}")
+print(bridge.print_diagnostics())
+
+# 生命周期管理
+print(f"遗忘权重(7天): {bridge.forgetting_weight(new_memory):.2f}")
+print(f"遗忘权重(60天): {bridge.forgetting_weight(old_memory):.2f}")
+
+# 清理过期记忆
+removed = bridge.cleanup_expired_memories()
+print(f"清理了 {removed} 条过期记忆")
+```
+
+## 运行测试
 
 ```bash
-# 1. 克隆项目
-git clone https://github.com/your-org/trae-multi-agent.git
-cd trae-multi-agent
+# 全量回归测试 (6套件, 568 cases)
+cd /Users/lin/trae_projects/TraeMultiAgentSkill
 
-# 2. 创建虚拟环境
-python3 -m venv venv
-source venv/bin/activate
+# 单套件运行
+python3 scripts/collaboration/memory_bridge_test.py      # 96 cases
+python3 scripts/collaboration/warmup_manager_test.py      # 103 cases
+python3 scripts/collaboration/skillifier_test.py          # 96 cases
+python3 scripts/collaboration/permission_guard_test.py    # 105 cases
+python3 scripts/collaboration/context_compressor_test.py # 72 cases
+python3 scripts/collaboration/enhanced_e2e_test.py          # 96 cases
 
-# 3. 安装依赖
-pip install -r requirements.txt
-
-# 4. 运行测试
-pytest tests/
+# 全量一键运行
+echo "=== FULL REGRESSION ===" && \
+python3 scripts/collaboration/memory_bridge_test.py 2>&1 | tail -3 && \
+python3 scripts/collaboration/warmup_manager_test.py 2>&1 | tail -3 && \
+python3 scripts/collaboration/skillifier_test.py 2>&1 | tail -4 && \
+python3 scripts/collaboration/permission_guard_test.py 2>&1 | tail -4 && \
+python3 scripts/collaboration/context_compressor_test.py 2>&1 | tail -3 && \
+python3 scripts/collaboration/enhanced_e2e_test.py 2>&1 | tail -4
 ```
 
-### 提交流程
+**最新测试结果**: `568/568 ALL PASSED ✅`
 
-1. **Fork 项目**
-2. **创建特性分支** (`git checkout -b feature/AmazingFeature`)
-3. **提交更改** (`git commit -m 'Add some AmazingFeature'`)
-4. **推送到分支** (`git push origin feature/AmazingFeature`)
-5. **开启 Pull Request**
+| 套件 | 用例数 |
+|------|--------|
+| MemoryBridge (P4) | 96 |
+| WarmupManager (P3) | 103 |
+| Skillifier (P2-b) | 96 |
+| PermissionGuard (P2-a) | 105 |
+| ContextCompressor (P1-b) | 72 |
+| Enhanced E2E (P1) | 96 |
+| **合计** | **568** |
 
-### 代码规范
+## 项目结构
 
-- 遵循 PEP 8 规范
-- 使用类型注解
-- 编写单元测试
-- 添加中文注释
-
-### 测试要求
-
-```bash
-# 运行所有测试
-pytest tests/ -v
-
-# 测试覆盖率
-pytest tests/ --cov=src --cov-report=html
-
-# 覆盖率要求
-# - 代码覆盖率 > 80%
-# - 分支覆盖率 > 70%
+```
+TraeMultiAgentSkill/
+├── scripts/
+│   └── collaboration/           # ★ v3 核心模块
+│       ├── __init__.py           # 统一导出 (55+ 公共符号)
+│       ├── models.py             # 数据模型 (EntryType/TaskDefinition/...)
+│       ├── scratchpad.py         # 共享黑板
+│       ├── worker.py             # 工作者
+│       ├── consensus.py          # 共识引擎
+│       ├── coordinator.py        # 协调器
+│       ├── batch_scheduler.py    # 批处理调度
+│       ├── context_compressor.py # 上下文压缩 (P1-b)
+│       ├── permission_guard.py   # 权限守卫 (P2-a)
+│       ├── skillifier.py         # 技能生成 (P2-b)
+│       ├── warmup_manager.py     # 启动预热 (P3)
+│       ├── memory_bridge.py      # 记忆桥接 (P4)
+│       │
+│       └── *_test.py             # 对应测试文件
+│
+├── prompts/
+│   └── registry.py             # PromptRegistry 提示词注册表
+│
+├── data/
+│   └── memory-bank/            # 持久化记忆存储
+│       ├── knowledge_base/     # 领域知识库
+│       ├── analysis_cases/     # 分析案例 (5-Why)
+│       ├── user_experience/    # 用户反馈
+│       ├── prompt_evolution/   # 提示词进化
+│       └── persisted_patterns/ # 已持久化的技能模式
+│
+├── docs/
+│   ├── architecture/           # 架构设计文档
+│   │   ├── v3-upgrade-proposal.md      # v3 升级路线图
+│   │   ├── v3-phase2-permission-design.md   # P2-a 设计
+│   │   ├── v3-phase2-skillify-design.md     # P2-b 设计
+│   │   ├── v3-phase3-warmup-design.md        # P3 设计
+│   │   └── v3-phase4-memorybridge-design.md  # P4 设计
+│   │
+│   ├── product-manager/        # PM 用户故事
+│   │   ├── USER_STORIES_P2.md     # P2 用户故事
+│   │   ├── USER_STORIES_P2b.md    # P2-b 用户故事
+│   │   ├── USER_STORIES_P3.md     # P3 用户故事
+│   │   └── USER_STORIES_P4.md     # P4 用户故事
+│   │
+│   └── test-expert/            # Tester 测试计划
+│       ├── TEST_PLAN_P2.md       # P2 测试计划
+│       ├── TEST_PLAN_P2b.md      # P2-b 测试计划
+│       ├── TEST_PLAN_P3.md       # P3 测试计划
+│       └── TEST_PLAN_P4.md       # P4 测试计划
+│
+└── README.md                    # 本文件
 ```
 
-## ❓ 常见问题
+## v3 开发历程
 
-### Q1: 技能未生效？
+| 时间 | Phase | 模块 | 核心能力 | 测试 |
+|------|-------|------|---------|------|
+| v3.0 | P1 | Coordinator+基础协作 | 多Agent协调/共识/批调度 | E2E 96 |
+| v3.1 | P1-b | ContextCompressor | 3级上下文压缩 | 72 |
+| v3.2 | P2-a | PermissionGuard | 4级权限+AI分类+审计 | 105 |
+| v3.3 | P2-b | Skillifier | 成功模式提取→技能生成 | 96 |
+| v3.4 | P3 | WarmupManager | 分层异步预热+进程缓存 | 103 |
+| v3.5 | P4 | MemoryBridge | 记忆召回/捕获/持久化 | 96 |
+| **v3.5** | **—** | **—** | **568 全通过** | **568** |
 
-**A**: 检查以下几点：
-1. 技能文件是否在正确目录
-2. 文件权限是否正确（可读）
-3. 重启 Trae 应用
-4. 检查 Trae 设置中是否启用了技能功能
+## 设计原则
 
-### Q2: 角色识别不准确？
+本项目遵循 **文档先行** 的开发流程：
 
-**A**: 可以尝试：
-1. 使用更明确的任务描述
-2. 使用 `--agent` 参数手动指定角色
-3. 使用 `--consensus true` 组织多角色共识
+1. **需求分析** → 设计文档 (9章架构设计)
+2. **PM 角色** → 用户故事 (12~13 故事, 54~68 AC)
+3. **Tester 角色** → 测试计划 (~91~108 用例)
+4. **达成共识** → 用户审批
+5. **实现** → 核心代码 (~480~620 行/模块)
+6. **测试** → 测试用例 (~96~105 cases/模块)
+7. **集成** → __init__.py + 全量回归
+8. **推送** → Git commit + push
 
-### Q3: Python3 未找到？
-
-**A**: 安装 Python3：
-```bash
-brew install python@3.11
-```
-
-### Q4: 如何更新技能？
-
-**A**: 重新运行安装脚本：
-```bash
-~/.trae/skills/install-global.sh
-```
-
-### Q5: 如何自定义角色 Prompt？
-
-**A**: 编辑 `SKILL.md` 文件中的角色 Prompt 部分，然后重启 Trae。
-
-## 📄 许可证
+## License
 
 MIT License
 
 Copyright (c) 2026 Weiransoft
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-## 📞 联系方式
-
-- **项目主页**: https://github.com/weiransoft/TraeMultiAgentSkill.git
-- **问题反馈**: https://github.com/weiransoft/TraeMultiAgentSkill.git/issues
-- **文档**: https://weiransoft.github.io/TraeMultiAgentSkill/
-
-## 🙏 致谢
-
-感谢所有贡献者和用户的支持！
-
----
-
-基于 [https://github.com/weiransoft/TraeMultiAgentSkill/](https://github.com/weiransoft/TraeMultiAgentSkill/)，并使用 [https://github.com/2025Emma/vibe-coding-cn](https://github.com/2025Emma/vibe-coding-cn) 的理念进行了优化
