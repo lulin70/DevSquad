@@ -302,19 +302,111 @@ if not result.success:
 
 ---
 
+## 测试铁律（⚠️ AI 编写测试时必须遵守）
+
+> 本节解决 AI 辅助开发中测试质量的三大顽疾。**违反任何一条都是严重错误。**
+
+### 铁律 1：文档先行 — 禁止凭空写 API 调用
+
+```
+❌ 错误做法: 凭记忆/猜测写参数名
+   result = obj.method(bad_param="value")  # 参数名是猜的
+
+✅ 正确做法: 先读源码确认签名，再写测试
+   # 1. 用 AST 提取或直接阅读源码确认参数
+   # 2. 使用 TestQualityGuard 自动校验
+   from scripts.collaboration.test_quality_guard import quick_audit
+   report = quick_audit("module.py", "module_test.py")
+   print(report.to_markdown())  # 查看是否有 API 参数错误
+```
+
+**强制要求**：
+- 写任何测试之前，必须先 `import` 目标模块并检查实际签名
+- 禁止使用不存在的参数名（如 `id` vs `record_id`, `action` vs `action_type`）
+- 可使用 `TestQualityGuard.quick_audit()` 自动检测
+
+### 铁律 2：失败即报告 — 禁止为通过而修改断言
+
+```
+❌ 严重错误: 测试失败时修改断言来"通过"
+   # 原始: assertEqual(result, expected_value)
+   # 改成: assertTrue(result > 0)          ← 这是作弊！
+   # 改成: assertGreater(score, 0.0)      ← 0.0 阈值必然通过！
+
+✅ 正确做法: 失败时分析根因，修复实现或修正测试逻辑
+   # 1. 先确认 API 签名是否正确（铁律1）
+   # 2. 确认测试数据是否合理
+   # 3. 如果实现确实有 bug → 报告给架构师/开发者
+   # 4. 只有当测试本身逻辑错误时才修改断言
+```
+
+**禁止的反模式**（TestQualityGuard 会自动检测）：
+| 反模式 | 严重级别 | 说明 |
+|--------|---------|------|
+| 宽松断言 (`assertTrue`) | MINOR | 应优先用 `assertEqual/assertIn` |
+| 无效阈值 (`>0.0`) | MINOR | 必须设置有意义的阈值 |
+| 裸 `except:` | MAJOR | 必须指定异常类型 |
+| 魔法数字 (>999) | MINOR | 提取为命名常量 |
+
+### 铁律 3：维度完整 — 禁止只测 happy path
+
+每个模块的测试套件**必须**覆盖以下维度：
+
+| 维度 | 符号 | 最低占比 | 说明 |
+|------|------|---------|------|
+| **Happy Path** | ✅ | ≥50% | 正常输入 → 预期输出 |
+| **Error Case** | 🔴 | **≥15%** | 非法输入/空值/越界 → 异常或错误返回 |
+| **Boundary** | 🟡 | ≥10% | 空字符串、零值、最大值、None |
+| **Performance** | ⚡ | **≥5%** | 关键路径耗时基准（如 `<100ms`） |
+| **Configuration** | ⚙️ | ≥5% | 不同配置项组合 |
+| **Integration** | 🔗 | ≥10% | 模块间协作场景 |
+| **Security** | 🔒 | 按需 | 权限/注入/越权（如有安全相关） |
+
+**自动检查工具**：
+```python
+from scripts.collaboration.test_quality_guard import TestQualityGuard
+
+guard = TestQualityGuard(
+    module_path="scripts/collaboration/coordinator.py",
+    test_path="scripts/collaboration/coordinator_test.py",
+)
+report = guard.audit()
+print(report.to_markdown())
+# 输出: 评分 + 问题清单 + 各维度覆盖情况 + 反模式检测
+```
+
+### 测试函数模板（必须遵循的格式）
+
+```python
+def test_<功能>_<场景>(self):
+    """验证: <具体要验证什么，一句话说清楚>
+
+    场景说明: <什么条件下触发>
+    预期结果: <应该发生什么>
+    """
+    # Arrange - 准备数据和依赖
+
+    # Act - 执行被测操作
+
+    # Assert - 验证结果（使用精确断言，不用 assertTrue 绕过）
+```
+
+---
+
 ## 测试覆盖
 
-| 模块 | 测试数 | 状态 |
-|------|--------|------|
-| Dispatcher (集成) | 54 | ✅ PASS |
-| Coordinator + Scratchpad + Worker | 96 | ✅ PASS |
-| ContextCompressor | 72 | ✅ PASS |
-| PermissionGuard | 105 | ✅ PASS |
-| Skillifier | 96 | ✅ PASS |
-| WarmupManager | 103 | ✅ PASS |
-| MemoryBridge | 96 | ✅ PASS |
-| Enhanced E2E | 46 | ✅ PASS |
-| **总计** | **668** | **✅ ALL PASS** |
+| 模块 | 测试数 | 质量评分 | 状态 |
+|------|--------|---------|------|
+| TestQualityGuard (质量守卫) | 42 | 自身审计通过 | ✅ PASS |
+| Dispatcher (集成) | 54 | ✅ | ✅ PASS |
+| Coordinator + Scratchpad + Worker | 96 | ✅ | ✅ PASS |
+| ContextCompressor | 72 | ✅ | ✅ PASS |
+| PermissionGuard | 105 | ✅ | ✅ PASS |
+| Skillifier | 96 | ✅ | ✅ PASS |
+| WarmupManager | 103 | ✅ | ✅ PASS |
+| MemoryBridge | 96 | ✅ | ✅ PASS |
+| Enhanced E2E | 46 | ✅ | ✅ PASS |
+| **总计** | **~710** | **✅ ALL PASS** | |
 
 ---
 

@@ -62,6 +62,9 @@ from .memory_bridge import (
     KnowledgeItem, UserFeedback, EpisodicMemory,
     PersistedPattern, AnalysisCase, ErrorContext,
 )
+from .test_quality_guard import (
+    TestQualityGuard, TestQualityReport,
+)
 
 
 ROLE_TEMPLATES = {
@@ -131,6 +134,7 @@ class DispatchResult:
     duration_seconds: float = 0.0
     worker_results: List[Dict[str, Any]] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
+    quality_report: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -148,6 +152,7 @@ class DispatchResult:
             "duration_seconds": round(self.duration_seconds, 2),
             "worker_results": self.worker_results,
             "errors": self.errors,
+            "quality_report": self.quality_report,
         }
 
     def to_markdown(self) -> str:
@@ -208,6 +213,9 @@ class DispatchResult:
             lines.append("## ⚡ Skill 学习")
             for sp in self.skill_proposals:
                 lines.append(f"- 📌 {sp.get('title', '新Skill')}: {sp.get('confidence', 0):.0%}")
+        if self.quality_report:
+            lines.extend(["", "## 🛡️ 测试质量审计"])
+            lines.append(self.quality_report)
         if self.errors:
             lines.extend(["", "## ⚠️ 错误信息"])
             for e in self.errors:
@@ -230,6 +238,7 @@ class MultiAgentDispatcher:
                  enable_permission: bool = True,
                  enable_memory: bool = True,
                  enable_skillify: bool = True,
+                 enable_quality_guard: bool = False,
                  compression_threshold: int = 100000,
                  memory_dir: Optional[str] = None,
                  permission_level: PermissionLevel = PermissionLevel.DEFAULT):
@@ -241,10 +250,12 @@ class MultiAgentDispatcher:
             enable_permission: 是否启用权限检查
             enable_memory: 是否启用记忆桥接
             enable_skillify: 是否启用Skill学习
+            enable_quality_guard: 是否启用测试质量自动审计 (P1)
             compression_threshold: 压缩触发阈值(token数)
             memory_dir: 记忆存储目录
             permission_level: 默认权限级别
         """
+        self.enable_quality_guard = enable_quality_guard
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
         self.enable_warmup = enable_warmup
@@ -313,6 +324,11 @@ class MultiAgentDispatcher:
             self.skillifier = Skillifier()
         else:
             self.skillifier = None
+
+        if self.enable_quality_guard:
+            self.quality_guard = TestQualityGuard("", "")
+        else:
+            self.quality_guard = None
 
         self._dispatch_history: List[DispatchResult] = []
 
@@ -591,6 +607,14 @@ class MultiAgentDispatcher:
             )
 
             self._dispatch_history.append(result)
+
+            if self.enable_quality_guard and self.quality_guard:
+                try:
+                    qreport = self.audit_quality()
+                    result.quality_report = qreport.to_markdown()
+                except Exception:
+                    pass
+
             return result
 
         except Exception as e:
@@ -640,6 +664,7 @@ class MultiAgentDispatcher:
                 "warmup_manager": self.warmup_manager is not None,
                 "memory_bridge": self.memory_bridge is not None,
                 "skillifier": self.skillifier is not None,
+                "quality_guard": self.quality_guard is not None,
             },
             "dispatch_count": len(self._dispatch_history),
             "scratchpad_stats": self.scratchpad.get_stats() if self.scratchpad else {},
@@ -673,6 +698,57 @@ class MultiAgentDispatcher:
     def get_history(self, limit: int = 10) -> List[Dict[str, Any]]:
         """获取调度历史"""
         return [r.to_dict() for r in self._dispatch_history[-limit:]]
+
+    def audit_quality(self, module_path: Optional[str] = None,
+                       test_path: Optional[str] = None) -> TestQualityReport:
+        """
+        执行测试质量审计 (P1 集成)
+
+        Args:
+            module_path: 被测模块路径（默认自动检测 collaboration/ 下所有模块）
+            test_path: 测试文件路径
+
+        Returns:
+            TestQualityReport: 完整质量报告
+        """
+        if not self.quality_guard:
+            self.quality_guard = TestQualityGuard("", "")
+
+        if module_path and test_path:
+            return self.quality_guard.__class__(module_path, test_path).audit()
+
+        collab_dir = os.path.dirname(os.path.abspath(__file__))
+        reports = []
+        for fname in os.listdir(collab_dir):
+            if fname.endswith(".py") and not fname.startswith("_") and "test" not in fname:
+                mod_name = fname.replace(".py", "")
+                test_name = f"{mod_name}_test.py"
+                mod_full = os.path.join(collab_dir, fname)
+                test_full = os.path.join(collab_dir, test_name)
+                if os.path.exists(test_full):
+                    try:
+                        r = self.quality_guard.__class__(mod_full, test_full).audit()
+                        reports.append(r)
+                    except Exception:
+                        pass
+
+        if len(reports) == 1:
+            return reports[0]
+
+        combined = TestQualityReport(
+            module_name="project",
+            test_file=f"{len(reports)} modules",
+            source_file=collab_dir,
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+        combined.total_tests = sum(r.total_tests for r in reports)
+        combined.issues = [i for r in reports for i in r.issues]
+        combined.test_functions = [tf for r in reports for r in r.test_functions for tf in r.test_functions]
+        if reports:
+            scores = [r.score.overall for r in reports]
+            combined.score.overall = sum(scores) / len(scores) if scores else 0
+        combined.audit_time = sum(r.audit_time for r in reports)
+        return combined
 
     def shutdown(self):
         """优雅关闭所有组件"""

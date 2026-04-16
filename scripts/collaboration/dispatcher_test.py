@@ -323,6 +323,7 @@ class TestT4_ComponentIntegration(unittest.TestCase):
             enable_permission=True,
             enable_memory=True,
             enable_skillify=True,
+            enable_quality_guard=True,
         )
         status = disp.get_status()
         for comp_name, active in status["components"].items():
