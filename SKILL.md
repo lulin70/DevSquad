@@ -418,8 +418,39 @@ def test_<功能>_<场景>(self):
 | **2. 测试验证** | 新增测试 + 全量回归 | 0 failure, 0 error, 100% pass |
 | **3. 代码走读** | 逐文件阅读新增/修改的每一行 | 理解每个方法的输入输出和边界行为 |
 | **4. 注释补全** | 公共方法 docstring (Args/Returns) + 关键逻辑行内注释 | 无"裸方法"(无docstring的public method) |
-| **5. 文档更新** | SKILL.md + README.md + v3-upgrade-proposal.md 同步更新 | 版本号、模块数、测试数三者一致 |
-| **6. Git 推送** | commit message 含版本号+变更摘要+测试数 | push 成功，remote 可见 |
+| **5. 文档更新** | **全量相关文档同步**（见下方「文档覆盖清单」） | 所有文档版本号/模块数/测试数一致，无过时内容 |
+| **6. 清理收尾** | 删除过程文档/临时文档/临时代码 | 无残留的 `_tmp`/`_draft`/`_old` 文件 |
+| **7. Git 推送** | commit message 含版本号+变更摘要+测试数 | push 成功，remote 可见 |
+
+### 铁律：文档覆盖清单（⚠️ 步骤 5 必须检查以下全部类别）
+
+> **原则：与变更相关的需求/设计/测试/API/安装依赖/SKILL 各类文档，只要相关都要更新。**
+
+| 文档类别 | 检查项 | 本次变更是否涉及 |
+|----------|--------|-----------------|
+| **需求文档** | `docs/spec/*.md` — 规格说明书状态更新 (待评审→实现中→已实现) | ✅ 必查 |
+| **设计文档** | `docs/architecture/*.md` — 架构演进记录、Phase 追加 | ✅ 必查 |
+| **规划文档** | `docs/planning/*.md` — 共识决议 action items 勾选、扩展说明 | ✅ 必查 |
+| **SKILL 文档** | `SKILL.md` — 模块表、测试表、版本历史、规则 | ✅ 必查 |
+| **项目概览** | `README.md` / `README_EN.md` / `README-CN.md` — 版本号、模块表、时间线 | ✅ 必查 |
+| **变更日志** | `CHANGELOG.md` — 新版本条目 (Added/Changed/Fixed) | ✅ 必查 |
+| **状态文档** | `IMPLEMENTATION_STATUS.md` — 当前版本、模块清单、测试汇总 | ✅ 必查 |
+| **配置文档** | `CONFIGURATION.md` — 新增外部集成配置选项 | 🔍 有集成时必更 |
+| **API 文档** | 如有 API 变更则更新对应接口文档 | 🔍 有 API 变更时必更 |
+| **安装依赖** | `INSTALL.md` / `requirements.txt` — 有新依赖时更新 | 🔍 有新依赖时必更 |
+| **测试计划** | 测试用例文档反映新增测试覆盖范围 | 🔍 大幅变更时建议更新 |
+
+### 铁律：清理收尾规则（⚠️ 步骤 6）
+
+> **原则：过程文档和临时产物不应留在代码库中。**
+
+| 清理类别 | 处理方式 | 示例 |
+|----------|---------|------|
+| 过程性分析脚本 | 保留有价值的，删除一次性用途的 | `*_review.py`, `*_analysis.py` → 评估后决定 |
+| 临时调试文件 | **必须删除** | `test_*.py.tmp`, `debug_*.py`, `*_bak.*` |
+| 草稿/废弃文档 | **必须删除** | `*_DRAFT.md`, `*_old.md`, `*_tmp.md` |
+| 未使用的占位代码 | **必须删除** 或替换为真实实现 | `pass # TODO`, `raise NotImplementedError` |
+| 重复/冗余文件 | 合并或删除 | 多个版本的同一文档只保留最新版 |
 
 **Annotation Standards (Language Separation)**:
 - **Documentation (SKILL.md / README.md)**: Use **English**
