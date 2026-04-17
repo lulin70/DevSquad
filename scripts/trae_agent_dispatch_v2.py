@@ -402,7 +402,7 @@ def handle_mas_command(command: str, context_manager: DualLayerContextManager) -
     elif action == "version":
         log('📦 查看版本信息', 'INFO')
         # 这里应该返回版本信息
-        return "✅ 版本信息：TraeMultiAgentSkill 2.4.0"
+        return "✅ 版本信息：MultiAgentSkill 2.4.0"
     
     elif action == "config":
         config_parts = params.split(' ', 1)

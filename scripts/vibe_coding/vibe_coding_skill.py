@@ -3,7 +3,7 @@
 """
 Vibe Coding Skill 入口
 
-为 TraeMultiAgentSkill 提供 Vibe Coding 功能的统一接口
+为 MultiAgentSkill 提供 Vibe Coding 功能的统一接口
 """
 
 import sys

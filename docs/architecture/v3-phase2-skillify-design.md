@@ -11,7 +11,7 @@
 
 ### 1.1 现状分析
 
-当前 TraeMultiAgentSkill 已具备：
+当前 MultiAgentSkill 已具备：
 - ✅ **SkillRegistry**: 技能注册/发现/版本管理（手动注册）
 - ✅ **Coordinator + Workers**: 多 Agent 协作执行框架
 - ✅ **PermissionGuard**: 操作权限控制

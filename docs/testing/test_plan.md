@@ -1,4 +1,4 @@
-# TraeMultiAgentSkill 测试计划
+# MultiAgentSkill 测试计划
 
 ## 1. 测试目标
 
@@ -166,7 +166,7 @@
 - 操作系统: macOS 10.15 或更高
 - Python: 3.8 或更高
 - TRAE: 最新版本
-- TraeMultiAgentSkill: 最新版本
+- MultiAgentSkill: 最新版本
 
 ### 5.3 测试工具
 
@@ -268,4 +268,4 @@
 
 ## 9. 结论
 
-通过本测试计划，我们将全面测试 TraeMultiAgentSkill 的 Vibe Coding 功能，确保其在 TRAE 对话中能够无缝触发，并且与现有系统集成良好。测试将涵盖功能、性能和集成等多个方面，确保系统的质量和可靠性。
+通过本测试计划，我们将全面测试 MultiAgentSkill 的 Vibe Coding 功能，确保其在 TRAE 对话中能够无缝触发，并且与现有系统集成良好。测试将涵盖功能、性能和集成等多个方面，确保系统的质量和可靠性。

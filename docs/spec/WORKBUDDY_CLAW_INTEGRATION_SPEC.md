@@ -3,7 +3,7 @@
 > **Document Version**: v1.0
 > **Created**: 2026-04-14
 > **Status**: ✅ **IMPLEMENTED** (2026-04-17)
-> **Target Project**: TraeMultiAgentSkill V3.3
+> **Target Project**: MultiAgentSkill V3.3
 > **Change Scope**: `scripts/collaboration/memory_bridge.py` (+~434 lines), `dispatcher.py` (+29 lines)
 > **External Data Source**: `/Users/lin/WorkBuddy/Claw` (read-only, never modified)
 
@@ -17,7 +17,7 @@ TRAE 本地环境当前存在**信息孤岛**问题：
 
 | 系统 | 拥有的信息 | TRAE 能否访问 |
 |------|-----------|--------------|
-| TraeMultiAgentSkill | 协作记忆、技能模式、执行历史 | ✅ 自身可访问 |
+| MultiAgentSkill | 协作记忆、技能模式、执行历史 | ✅ 自身可访问 |
 | Memory Classification Engine | 分类后的结构化记忆 | ✅ 通过 MCP 可访问 |
 | **WorkBuddy (Claw)** | 用户画像、人格矩阵、30+天工作记忆、每日AI新闻推送 | ❌ **完全无法访问** |
 
@@ -724,7 +724,7 @@ if _should_inject_news(user_task) and bridge:
 
 ```bash
 # Step 1: 进入项目目录
-cd /Users/lin/trae_projects/TraeMultiAgentSkill
+cd /Users/lin/trae_projects/MultiAgentSkill
 
 # Step 2: 验证 Claw 源可用
 python3 -c "

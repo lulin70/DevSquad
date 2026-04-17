@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-记忆适配器 - 连接 Memory Classification Engine 与 TraeMultiAgentSkill
+记忆适配器 - 连接 Memory Classification Engine 与 MultiAgentSkill
 
 将 Memory Classification Engine 的 7 种记忆类型和 4 层存储架构
-集成到 TraeMultiAgentSkill 的双层上下文管理系统中。
+集成到 MultiAgentSkill 的双层上下文管理系统中。
 
 记忆类型映射：
 - user_preference → UserProfile.preferences

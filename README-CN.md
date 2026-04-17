@@ -1,4 +1,4 @@
-# TraeMultiAgentSkill v3
+# MultiAgentSkill v3
 
 基于 Claude Code Coordinator 模式的 **多 Agent 协作平台**，从单分发工具演进为有记忆的学习型协作系统。
 
@@ -6,7 +6,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    TraeMultiAgentSkill v3                          │
+│                    MultiAgentSkill v3                          │
 │                                                                     │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────┐ │
 │  │Coordinator│←→│Compressor│←→│   Guard  │←→│ Skillify │←→│Warmup │ │
@@ -363,7 +363,7 @@ print(f"清理了 {removed} 条过期记忆")
 
 ```bash
 # 全量回归测试 (9套件, ~710 cases)
-cd /Users/lin/trae_projects/TraeMultiAgentSkill
+cd /Users/lin/trae_projects/MultiAgentSkill
 
 # 单套件运行
 python3 scripts/collaboration/dispatcher_test.py          # 54 cases
@@ -406,7 +406,7 @@ python3 scripts/collaboration/enhanced_e2e_test.py 2>&1 | tail-4
 ## 项目结构
 
 ```
-TraeMultiAgentSkill/
+MultiAgentSkill/
 ├── scripts/
 │   └── collaboration/           # ★ v3 核心模块
 │       ├── __init__.py           # 统一导出 (81+ 公共符号)

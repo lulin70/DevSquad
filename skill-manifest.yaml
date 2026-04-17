@@ -185,7 +185,7 @@ metadata:
     - v3
 
   license: MIT
-  repository: https://github.com/lulin70/TraeMultiAgentSkill
+  repository: https://github.com/lulin70/MultiAgentSkill
 
   version_history:
     - version: 3.0.0

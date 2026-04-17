@@ -3,7 +3,7 @@
 """
 MCEAdapter — Memory Classification Engine Adapter
 
-V3.2 MVP Line-B: Integrates local MCE (memory-classification-engine) into TraeMultiAgentSkill.
+V3.2 MVP Line-B: Integrates local MCE (memory-classification-engine) into MultiAgentSkill.
 Updated for MCE v0.4 with tenant management and permission checking support.
 
 Design Principles:

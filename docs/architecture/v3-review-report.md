@@ -361,4 +361,4 @@
 ---
 
 *本报告由多角色 AI Agent 协作评审生成*
-*遵循 TraeMultiAgentSkill v2.5 全生命周期开发规范*
+*遵循 MultiAgentSkill v2.5 全生命周期开发规范*

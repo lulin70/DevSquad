@@ -68,7 +68,7 @@ python3 scripts/trae_agent_dispatch.py --task "启动项目" --project-full-life
 ## GitHub 仓库
 
 访问我们的 GitHub 仓库获取更多信息：
-https://github.com/weiransoft/TraeMultiAgentSkill
+https://github.com/weiransoft/MultiAgentSkill
 
 ## 许可证
 

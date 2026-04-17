@@ -7,11 +7,11 @@
 
 ## 1. 架构概述
 
-Memory Classification Engine 与 TraeMultiAgentSkill 的深度集成架构。
+Memory Classification Engine 与 MultiAgentSkill 的深度集成架构。
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    TraeMultiAgentSkill                          │
+│                    MultiAgentSkill                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
@@ -214,7 +214,7 @@ else:
 ## 7. 文件结构
 
 ```
-TraeMultiAgentSkill/
+MultiAgentSkill/
 ├── scripts/
 │   ├── memory_adapter.py          # 记忆适配器 (新增)
 │   ├── dual_layer_context_manager.py  # 上下文管理器 (更新)

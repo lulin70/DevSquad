@@ -2,7 +2,7 @@
 
 ## 1. 项目概述
 
-本项目是 TraeMultiAgentSkill 的 Vibe Coding 增强版本，旨在通过集成 Vibe Coding 范式，提升 AI 辅助开发的效率和质量。
+本项目是 MultiAgentSkill 的 Vibe Coding 增强版本，旨在通过集成 Vibe Coding 范式，提升 AI 辅助开发的效率和质量。
 
 ## 2. 系统架构
 

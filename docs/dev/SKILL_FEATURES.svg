@@ -222,6 +222,6 @@
   <!-- 底部装饰 -->
   <rect x="0" y="725" width="1200" height="25" fill="rgba(255,255,255,0.1)"/>
   <text x="600" y="743" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.8)" text-anchor="middle">
-    https://github.com/weiransoft/TraeMultiAgentSkill
+    https://github.com/weiransoft/MultiAgentSkill
   </text>
 </svg>

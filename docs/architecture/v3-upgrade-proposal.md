@@ -1,4 +1,4 @@
-# TraeMultiAgentSkill v3.0 架构升级方案
+# MultiAgentSkill v3.0 架构升级方案
 
 ## 基于 Claude Code 架构原理深度解析的改进提案
 
@@ -13,7 +13,7 @@
 
 ### 1.1 现状总结
 
-TraeMultiAgentSkill v2.5 已完成以下工作：
+MultiAgentSkill v2.5 已完成以下工作：
 - ✅ 提示词统一管理体系（PromptRegistry）
 - ✅ 8阶段全生命周期提示词（角色+阶段+门禁）
 - ✅ 项目目录结构规范模板
@@ -35,7 +35,7 @@ TraeMultiAgentSkill v2.5 已完成以下工作：
 
 ### 1.3 目标
 
-将 TraeMultiAgentSkill 从 **"单次调度工具"** 升级为 **"持续协作平台"**，使多角色 Agent 能够像真正的开发团队一样并行工作、共享知识、达成共识。
+将 MultiAgentSkill 从 **"单次调度工具"** 升级为 **"持续协作平台"**，使多角色 Agent 能够像真正的开发团队一样并行工作、共享知识、达成共识。
 
 ---
 

@@ -36,7 +36,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    TraeMultiAgentSkill v3                          │
+│                    MultiAgentSkill v3                          │
 │                                                                     │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────┐ │
 │  │Coordinator│←→│Compressor│←→│   Guard  │←→│ Skillify │←→│Warmup │ │
@@ -136,7 +136,7 @@ Total:                   ~828    ✅ ALL PASS
 ## 📁 プロジェクト構造
 
 ```
-TraeMultiAgentSkill/
+MultiAgentSkill/
 ├── SKILL.md                          # スキル定義（EN）
 ├── README.md                         # プロジェクト概要（EN）← デフォルト
 ├── README-CN.md                      # プロジェクト概要（中文）

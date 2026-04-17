@@ -8,7 +8,7 @@
 
 ## 1. 测试概述
 
-本次测试验证 Memory Classification Engine 与 TraeMultiAgentSkill 的深度集成效果。
+本次测试验证 Memory Classification Engine 与 MultiAgentSkill 的深度集成效果。
 
 ### 1.1 测试范围
 
@@ -135,7 +135,7 @@ sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in
 | 层级映射准确率 | 100% |
 | 集成测试 | 通过 |
 
-**结论**: Memory Classification Engine 与 TraeMultiAgentSkill 的深度集成测试全部通过，可以发布 v2.5.0 版本。
+**结论**: Memory Classification Engine 与 MultiAgentSkill 的深度集成测试全部通过，可以发布 v2.5.0 版本。
 
 ---
 
@@ -143,7 +143,7 @@ sqlite3.ProgrammingError: SQLite objects created in a thread can only be used in
 
 ```bash
 # 运行完整测试
-cd /Users/lin/Documents/trae_projects/TraeMultiAgentSkill_Clean/TraeMultiAgentSkill/scripts
+cd /Users/lin/Documents/trae_projects/MultiAgentSkill_Clean/MultiAgentSkill/scripts
 python3 test_memory_adapter.py
 ```
 

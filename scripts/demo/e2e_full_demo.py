@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-E2E Full Demo — TraeMultiAgentSkill 完整端到端演示
+E2E Full Demo — MultiAgentSkill 完整端到端演示
 
 v3.2 MVP Line-A: 可运行的完整多角色协作演示脚本
 
@@ -353,7 +353,7 @@ def run_demo(task: str = DEFAULT_TASK,
 
     # ---- Step 1: Init ----
     print("\n" + "=" * 70)
-    print("  🚀 TraeMultiAgentSkill E2E Full Demo")
+    print("  🚀 MultiAgentSkill E2E Full Demo")
     print("=" * 70)
 
     print("\n📦 Step 1/10: 初始化协作组件...")
@@ -611,7 +611,7 @@ def format_final_report(task: str, roles: List[str],
 
     lines = []
     lines.append("")
-    lines.append("# 🚀 TraeMultiAgentSkill E2E Full Demo — 执行报告")
+    lines.append("# 🚀 MultiAgentSkill E2E Full Demo — 执行报告")
     lines.append("")
     lines.append(f"> **时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append(f"> **耗时**: {elapsed:.2f}s")
@@ -692,7 +692,7 @@ def main():
     Returns:
         int: 0 表示成功执行
     """
-    parser = argparse.ArgumentParser(description="TraeMultiAgentSkill E2E Full Demo")
+    parser = argparse.ArgumentParser(description="MultiAgentSkill E2E Full Demo")
     parser.add_argument("--task", type=str, default=None,
                         help="自定义任务描述")
     parser.add_argument("--roles", nargs="+", default=None,

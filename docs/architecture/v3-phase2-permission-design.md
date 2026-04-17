@@ -11,7 +11,7 @@
 
 ### 1.1 现状分析
 
-当前 TraeMultiAgentSkill 的多 Agent 协作系统（Phase 1 已完成）具备以下能力：
+当前 MultiAgentSkill 的多 Agent 协作系统（Phase 1 已完成）具备以下能力：
 - ✅ **Coordinator + Worker + Scratchpad** 协作框架
 - ✅ **ConsensusEngine** 共识投票机制
 - ✅ **BatchScheduler** 并行/串行混合调度

@@ -15,7 +15,7 @@
 - 需要灵活配置权限策略
 
 ### 用户B: 开发者/使用者
-- 使用 TraeMultiAgentSkill 执行开发任务
+- 使用 MultiAgentSkill 执行开发任务
 - 希望正常工作流不被过度打断
 - 偶尔需要执行敏感操作（如 git push）
 

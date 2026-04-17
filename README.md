@@ -1074,9 +1074,9 @@ SOFTWARE.
 
 ## 📞 Contact / 联系方式
 
-- **Project Homepage**: https://github.com/weiransoft/TraeMultiAgentSkill.git
-- **Issue Feedback**: https://github.com/weiransoft/TraeMultiAgentSkill.git/issues
-- **Documentation**: https://weiransoft.github.io/TraeMultiAgentSkill/
+- **Project Homepage**: https://github.com/weiransoft/MultiAgentSkill.git
+- **Issue Feedback**: https://github.com/weiransoft/MultiAgentSkill.git/issues
+- **Documentation**: https://weiransoft.github.io/MultiAgentSkill/
 
 ## 🙏 Acknowledgments / 致谢
 
@@ -1084,4 +1084,4 @@ Thank you to all contributors and users for your support!
 
 ---
 
-Based on [https://github.com/weiransoft/TraeMultiAgentSkill/](https://github.com/weiransoft/TraeMultiAgentSkill/) with optimizations inspired by [https://github.com/2025Emma/vibe-coding-cn](https://github.com/2025Emma/vibe-coding-cn)
+Based on [https://github.com/weiransoft/MultiAgentSkill/](https://github.com/weiransoft/MultiAgentSkill/) with optimizations inspired by [https://github.com/2025Emma/vibe-coding-cn](https://github.com/2025Emma/vibe-coding-cn)

@@ -11,7 +11,7 @@
 ## 一、产品概述
 
 ### 1.1 产品定位
-TraeMultiAgentSkill 协作系统是一个基于 **Coordinator + Scratchpad + Worker** 模式的多 Agent 协作框架，灵感来源于 Claude Code 的 Coordinator 架构。它让多个 AI 角色像真实团队一样协作完成复杂任务。
+MultiAgentSkill 协作系统是一个基于 **Coordinator + Scratchpad + Worker** 模式的多 Agent 协作框架，灵感来源于 Claude Code 的 Coordinator 架构。它让多个 AI 角色像真实团队一样协作完成复杂任务。
 
 ### 1.2 核心价值主张
 - **信息透明**: 所有 Worker 通过共享 Scratchpad 实时交换发现、决策、冲突

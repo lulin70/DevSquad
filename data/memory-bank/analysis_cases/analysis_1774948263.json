@@ -3,7 +3,7 @@
   "created_at": "2026-03-31T17:11:03.424850",
   "problem": "系统启动时间过长",
   "context": {
-    "系统": "TraeMultiAgentSkill",
+    "系统": "MultiAgentSkill",
     "环境": "开发环境",
     "症状": "启动时间超过10秒"
   },

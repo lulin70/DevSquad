@@ -11,7 +11,7 @@
 ## 一、测试概述
 
 ### 1.1 测试范围
-本测试计划覆盖 **TraeMultiAgentSkill v3.0 Phase 1** 的协作系统全部 5 个核心模块：
+本测试计划覆盖 **MultiAgentSkill v3.0 Phase 1** 的协作系统全部 5 个核心模块：
 - Scratchpad（共享黑板）
 - Worker（工作者）
 - ConsensusEngine（共识引擎）

@@ -3,7 +3,7 @@
 """
 Memory Adapter 测试脚本
 
-测试 Memory Classification Engine 与 TraeMultiAgentSkill 的集成
+测试 Memory Classification Engine 与 MultiAgentSkill 的集成
 """
 
 import sys

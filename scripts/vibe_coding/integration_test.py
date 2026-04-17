@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Vibe Coding 集成测试脚本
-测试 Vibe Coding 与 TraeMultiAgentSkill 的集成效果
+测试 Vibe Coding 与 MultiAgentSkill 的集成效果
 """
 
 import sys
@@ -54,10 +54,10 @@ def test_vibe_coding_integration():
         
         # 创建一个实际项目计划
         project_info = {
-            'name': "TraeMultiAgentSkill 增强",
-            'description': "使用 Vibe Coding 增强 TraeMultiAgentSkill 的功能",
+            'name': "MultiAgentSkill 增强",
+            'description': "使用 Vibe Coding 增强 MultiAgentSkill 的功能",
             'goals': ["集成 Vibe Coding 概念", "实现核心功能", "测试系统性能"],
-            'scope': "TraeMultiAgentSkill 增强"
+            'scope': "MultiAgentSkill 增强"
         }
         
         plan = planner.generate_plan(project_info)
@@ -164,8 +164,8 @@ def test_vibe_coding_integration():
         task_id = "INTEGRATION-TASK-001"
         task_def = TaskDefinition(
             task_id=task_id,
-            title="开发 Vibe Coding 与 TraeMultiAgentSkill 的集成接口",
-            description="实现 Vibe Coding 与 TraeMultiAgentSkill 的无缝集成",
+            title="开发 Vibe Coding 与 MultiAgentSkill 的集成接口",
+            description="实现 Vibe Coding 与 MultiAgentSkill 的无缝集成",
             goals=["无缝集成", "性能优化", "易用性"],
             constraints=["Python 3.7+", "兼容现有功能"]
         )
@@ -196,7 +196,7 @@ def test_vibe_coding_integration():
         knowledge2 = KnowledgeItem(
             id="trae_multi_agent",
             category="skill",
-            title="TraeMultiAgentSkill",
+            title="MultiAgentSkill",
             content={"description": "多智能体协作技能，支持项目生命周期管理"},
             tags=["AI", "multi-agent", "project management"]
         )
@@ -232,7 +232,7 @@ def test_vibe_coding_integration():
         # 创建模块
         module_data = {
             'name': "Vibe Coding 集成模块",
-            'description': "负责 Vibe Coding 与 TraeMultiAgentSkill 的集成",
+            'description': "负责 Vibe Coding 与 MultiAgentSkill 的集成",
             'module_type': 'service',
             'status': 'planning',
             'version': '1.0.0',
@@ -352,8 +352,8 @@ def test_vibe_coding_integration():
     print("-" * 40)
     
     try:
-        # 模拟 TraeMultiAgentSkill 调用 Vibe Coding
-        print("✅ 模拟 TraeMultiAgentSkill 集成调用")
+        # 模拟 MultiAgentSkill 调用 Vibe Coding
+        print("✅ 模拟 MultiAgentSkill 集成调用")
         print("   1. 接收用户任务")
         print("   2. 使用规划引擎生成计划")
         print("   3. 使用提示词进化系统优化提示词")
@@ -367,7 +367,7 @@ def test_vibe_coding_integration():
     
     print("\n" + "=" * 60)
     print("🎉 所有集成测试通过！")
-    print("Vibe Coding 已成功集成到 TraeMultiAgentSkill")
+    print("Vibe Coding 已成功集成到 MultiAgentSkill")
     print("核心功能均正常工作，可以开始使用")
     return True
 

@@ -1,10 +1,10 @@
-# TraeMultiAgentSkill 架构与集成方案
+# MultiAgentSkill 架构与集成方案
 
 ## 1. 架构概述
 
 ### 1.1 现有架构
 
-TraeMultiAgentSkill 基于双层动态上下文管理架构，主要包含以下组件：
+MultiAgentSkill 基于双层动态上下文管理架构，主要包含以下组件：
 
 - **双层上下文管理器**：全局上下文（长期记忆）和任务上下文（工作记忆）
 - **智能角色匹配器**：基于关键词和语义匹配的角色调度
@@ -150,7 +150,7 @@ TraeMultiAgentSkill 基于双层动态上下文管理架构，主要包含以下
 
 ### 5.1 安装步骤
 
-1. **更新技能**：更新TraeMultiAgentSkill到最新版本
+1. **更新技能**：更新MultiAgentSkill到最新版本
 2. **配置环境变量**：设置必要的环境变量
 3. **重启TRAE**：重启TRAE应用以加载新功能
 
@@ -178,4 +178,4 @@ TraeMultiAgentSkill 基于双层动态上下文管理架构，主要包含以下
 
 ## 7. 结论
 
-通过以上架构与集成方案，TraeMultiAgentSkill将能够在TRAE对话中无缝触发Vibe Coding功能，包括知识提取与管理、规划驱动开发、提示词进化等。这些功能将增强TraeMultiAgentSkill的能力，为用户提供更智能、更高效的开发体验。
+通过以上架构与集成方案，MultiAgentSkill将能够在TRAE对话中无缝触发Vibe Coding功能，包括知识提取与管理、规划驱动开发、提示词进化等。这些功能将增强MultiAgentSkill的能力，为用户提供更智能、更高效的开发体验。

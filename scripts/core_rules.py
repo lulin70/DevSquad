@@ -3,7 +3,7 @@
 """
 核心规则库
 
-整合了Claude Code的14条提示词核心规则和TraeMultiAgentSkill的现有规则
+整合了Claude Code的14条提示词核心规则和MultiAgentSkill的现有规则
 提供统一的规则管理和应用接口
 """
 

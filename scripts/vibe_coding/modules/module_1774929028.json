@@ -1,7 +1,7 @@
 {
   "module_id": "module_1774929028",
   "name": "Vibe Coding 集成模块",
-  "description": "负责 Vibe Coding 与 TraeMultiAgentSkill 的集成",
+  "description": "负责 Vibe Coding 与 MultiAgentSkill 的集成",
   "module_type": "service",
   "status": "developing",
   "version": "1.0.0",
