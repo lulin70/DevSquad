@@ -71,6 +71,7 @@ class Worker:
         self.scratchpad = scratchpad
         self._notifications_outbox: List[TaskNotification] = []
         self._entries_written_count = 0
+        self._last_assembled_prompt = None
 
     def execute(self, task: TaskDefinition) -> WorkerResult:
         """
@@ -268,6 +269,18 @@ class Worker:
         self._notifications_outbox.clear()
         return notifications
 
+    def get_last_prompt(self) -> Optional[Any]:
+        """
+        获取最近一次 _do_work() 的提示词组装结果
+
+        由 PromptAssembler 生成，包含复杂度/变体/token估算等元数据。
+        可用于 Skillify 闭环：将成功的 prompt 变体反馈回系统。
+
+        Returns:
+            Optional[AssembledPrompt]: 最近一次组装结果，未执行过则返回 None
+        """
+        return self._last_assembled_prompt
+
     def vote_on_proposal(self, proposal_id: str, decision: bool,
                           reason: str = "", weight: float = None) -> Dict[str, Any]:
         """
@@ -298,41 +311,65 @@ class Worker:
         )
         return {"proposal_id": proposal_id, "vote": vote}
 
-    def _build_execution_context(self, task: TaskDefinition) -> Dict[str, Any]:
+    def _build_execution_context(self, task: TaskDefinition,
+                                   compression_level=None) -> Dict[str, Any]:
+        """
+        构建执行上下文（含提示词组装）
+
+        读取 Scratchpad 中与任务相关的发现，并通过 PromptAssembler
+        进行动态提示词裁剪（按任务复杂度和压缩级别）。
+
+        Args:
+            task: 任务定义
+            compression_level: ContextCompressor 压缩级别（可选，影响 prompt 风格）
+
+        Returns:
+            Dict[str, Any]: 执行上下文，包含 task/role_prompt/related_findings/
+                             worker_id/compression_level
+        """
         related = self.read_scratchpad(
             query=task.description[:50], limit=10,
         )
         return {
             "task": task,
             "role_prompt": self.role_prompt,
-            "related_findings": [f.content for f in related[:5]],
+            "related_findings": [f.content for f in related[:8]],
             "worker_id": self.worker_id,
+            "compression_level": compression_level,
         }
 
     def _do_work(self, context: Dict[str, Any]) -> str:
+        """
+        执行核心工作 - 通过 PromptAssembler 动态组装提示词
+
+        组装流程:
+        1. 从 context 提取任务描述、相关发现、压缩级别
+        2. 通过 PromptAssembler.detect_complexity() 自动判断复杂度
+        3. 按复杂度选择模板变体 (compact/standard/enhanced)
+        4. 应用压缩级别覆盖（如有）
+        5. 输出最终工作指令
+
+        Args:
+            context: 由 _build_execution_context() 构建的执行上下文
+
+        Returns:
+            str: 组装后的工作指令文本
+        """
+        from .prompt_assembler import PromptAssembler
+
         task = context["task"]
-        prompt = context["role_prompt"]
-        related = context.get("related_findings", [])
+        assembler = PromptAssembler(role_id=self.role_id,
+                                    base_prompt=context["role_prompt"])
 
-        work_instruction = (
-            f"=== 任务 ===\n"
-            f"任务ID: {task.task_id}\n"
-            f"描述: {task.description}\n"
-            f"角色: {context['role_prompt'][:200]}...\n\n"
+        result = assembler.assemble(
+            task_description=task.description,
+            related_findings=context.get("related_findings", []),
+            task_id=task.task_id,
+            compression_level=context.get("compression_level"),
         )
 
-        if related:
-            work_instruction += (
-                f"=== 相关发现（来自其他Worker） ===\n" +
-                "\n".join(f"- {r[:150]}" for r in related) +
-                "\n\n"
-            )
-
-        work_instruction += (
-            f"请基于以上信息完成你的工作。\n"
-            f"输出你的核心发现（1-3条关键结论）。"
-        )
-        return work_instruction
+        self._last_assembled_prompt = result
+        return result.instruction
 
 
 class WorkerFactory:

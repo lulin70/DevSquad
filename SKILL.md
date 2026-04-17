@@ -400,7 +400,7 @@ def test_<功能>_<场景>(self):
 | 模块 | 测试数 | 质量评分 | 状态 |
 |------|--------|---------|------|
 | TestQualityGuard (质量守卫) | 42 | 自身审计通过 | ✅ PASS |
-| Dispatcher (集成) | 54 | ✅ | ✅ PASS |
+| Dispatcher (统一调度) | 54 | ✅ | ✅ PASS |
 | Coordinator + Scratchpad + Worker | 96 | ✅ | ✅ PASS |
 | ContextCompressor | 72 | ✅ | ✅ PASS |
 | PermissionGuard | 105 | ✅ | ✅ PASS |
@@ -414,7 +414,8 @@ def test_<功能>_<场景>(self):
 
 ## 版本历史
 
-- **v3.0** (2026-04-16): 完整重构为 Coordinator/Worker/Scratchpad 协作架构，10大模块，668测试全通过
+- **v3.0.1** (2026-04-16): 代码注释全面补全(6大核心模块docstring 100%覆盖) + TestQualityGuard测试质量审计系统集成
+- **v3.0** (2026-04-16): 完整重构为 Coordinator/Worker/Scratchpad 协作架构，11大模块（含Dispatcher+TestQualityGuard），~710测试全通过
 - **v2.5** (2026-04-06): Memory Classification Engine 集成
 - **v2.4** (2026-04-01~03): Vibe Coding + 核心规则 + 生命周期识别
 - **v2.3** (2026-03-28): 多角色代码走读 + 3D可视化

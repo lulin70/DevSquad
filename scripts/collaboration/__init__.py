@@ -137,6 +137,16 @@ from .test_quality_guard import (
     quick_audit,
     project_audit,
 )
+from .prompt_assembler import (
+    PromptAssembler,
+    AssembledPrompt,
+    TaskComplexity,
+)
+from .prompt_variant_generator import (
+    PromptVariantGenerator,
+    PromptVariant,
+    VariantGenerationResult,
+)
 
 __all__ = [
     "Scratchpad",
@@ -232,4 +242,10 @@ __all__ = [
     "TestPurposeParser",
     "quick_audit",
     "project_audit",
+    "PromptAssembler",
+    "AssembledPrompt",
+    "TaskComplexity",
+    "PromptVariantGenerator",
+    "PromptVariant",
+    "VariantGenerationResult",
 ]
