@@ -37,6 +37,8 @@ description: |
 | 9 | **WarmupManager** | `warmup_manager.py` | 3层启动预热(EAGER/ASYNC/LAZY) + 进程级缓存 |
 | 10 | **MemoryBridge** | `memory_bridge.py` | 7类型记忆桥接 + 倒排索引 + TF-IDF + 遗忘曲线 |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | 测试质量审计(API校验/反模式检测/维度覆盖) |
+| 12 | **PromptAssembler** | `prompt_assembler.py` | 动态提示词组装(复杂度检测/3级变体/5种风格/压缩感知) |
+| 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify闭环反哺(模式→变体/A/B测试/自动晋升淘汰) |
 
 ---
 
@@ -399,6 +401,7 @@ def test_<功能>_<场景>(self):
 
 | 模块 | 测试数 | 质量评分 | 状态 |
 |------|--------|---------|------|
+| PromptOptimization (提示词优化) | 59 | ✅ | ✅ PASS |
 | TestQualityGuard (质量守卫) | 42 | 自身审计通过 | ✅ PASS |
 | Dispatcher (统一调度) | 54 | ✅ | ✅ PASS |
 | Coordinator + Scratchpad + Worker | 96 | ✅ | ✅ PASS |
@@ -408,12 +411,13 @@ def test_<功能>_<场景>(self):
 | WarmupManager | 103 | ✅ | ✅ PASS |
 | MemoryBridge | 96 | ✅ | ✅ PASS |
 | Enhanced E2E | 46 | ✅ | ✅ PASS |
-| **总计** | **~710** | **✅ ALL PASS** | |
+| **总计** | **~782** | **✅ ALL PASS** | |
 
 ---
 
 ## 版本历史
 
+- **v3.1** (2026-04-16): 提示词优化系统 - 动态Prompt裁剪(3级变体) + Skillify闭环反哺(A/B晋升) + 压缩感知适配
 - **v3.0.1** (2026-04-16): 代码注释全面补全(6大核心模块docstring 100%覆盖) + TestQualityGuard测试质量审计系统集成
 - **v3.0** (2026-04-16): 完整重构为 Coordinator/Worker/Scratchpad 协作架构，11大模块（含Dispatcher+TestQualityGuard），~710测试全通过
 - **v2.5** (2026-04-06): Memory Classification Engine 集成

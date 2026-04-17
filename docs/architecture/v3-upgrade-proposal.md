@@ -521,6 +521,23 @@ class WarmupManager:
 
 **Bug修复**: coordinator.py 的 `get_compression_stats()` 方法体缺失（仅有docstring无实现），已补充完整实现。
 
+### Phase 8：提示词优化系统 ✅ 已完成
+
+> **来源**: Claude Code 架构深度解析图中的 Feature Flag / Skills / 上下文压缩策略 三大机制
+
+**实际产出（3个借鉴点全部落地）:**
+
+| 借鉴点 | 模块 | 行数 | 核心能力 |
+|--------|------|------|---------|
+| ① 动态Prompt裁剪 | `prompt_assembler.py` | ~320 | TaskComplexity三维检测 + 3级变体(compact/standard/enhanced) + 5种指令风格 + 角色反模式 |
+| ② Skillify闭环反哺 | `prompt_variant_generator.py` | ~420 | SuccessPattern→候选变体 + 质量门槛(0.7/2) + A/B晋升(75%阈值) + 自动淘汰(35%/30天) |
+| ③ 压缩感知适配 | 集成在①中 | — | ContextCompressor 4级→prompt风格自动切换(FULL_COMPACT→一句话) |
+
+**Worker集成改动:**
+- `_do_work()`: 改为通过 PromptAssembler 组装（不再硬编码模板）
+- `_build_execution_context()`: 新增 `compression_level` 参数透传
+- 新增 `get_last_prompt()`: 返回 AssembledPrompt 元数据（供 Skillify 闭环消费）
+
 **接口设计草案**:
 ```python
 # MemoryBridge 构造函数扩展
@@ -574,13 +591,13 @@ MultiAgentDispatcher(
 
 | 维度 | 数据 |
 |------|------|
-| **总模块数** | **13 个核心模块** (含 Dispatcher + TestQualityGuard) |
-| **总测试用例** | **~710 / ~710 通过 (100%)** |
-| **代码文件** | 13 个实现模块 + 12 个测试模块 + 6 套设计文档 + 4 套用户故事 + 4 套测试计划 |
+| **总模块数** | **15 个核心模块** (含 Dispatcher + TestQualityGuard + PromptAssembler + PromptVariantGenerator) |
+| **总测试用例** | **~782 / ~782 通过 (100%)** |
+| **代码文件** | 15 个实现模块 + 13 个测试模块 + 6 套设计文档 + 4 套用户故事 + 4 套测试计划 |
 | **开发周期** | 2026-04-15 ~ 2026-04-16（约2天） |
 | **文档先行工作流** | Design Doc → PM Stories → Tester Plan → Consensus → Implement → Test → Integrate → Push |
-| **代码注释覆盖** | 6大核心模块公共方法 docstring **100% 覆盖** (Args/Returns/Example) |
-| **质量保障体系** | 三层: SKILL.md铁律(P0) + TestQualityGuard自动审计(P1) + Coordinator门禁(P2) |
+| **代码注释覆盖** | 全部公共方法 docstring **100% 覆盖** (Args/Returns/Example) — 含 v3.1 新增模块 |
+| **质量保障体系** | 四层: SKILL.md铁律(P0) + TestQualityGuard自动审计(P1) + Coordinator门禁(P2) + Prompt动态优化(P3) |
 
 ---
 

@@ -41,7 +41,9 @@
 | P3 | **WarmupManager** | warmup_manager.py | **103** | L1同步+L2异步+LAZY懒加载+进程缓存 |
 | P4 | **MemoryBridge** | memory_bridge.py | **96** | 记忆召回/捕获/反馈闭环/模式持久化 |
 | QA | **TestQualityGuard** | test_quality_guard.py | **42** | API签名校验+反模式检测+维度覆盖审计 |
-| **合计** | — | — | **~710** | — |
+| Opt-1 | **PromptAssembler** | prompt_assembler.py | **59** | 动态提示词组装(复杂度/变体/压缩感知) |
+| Opt-2 | **PromptVariantGenerator** | prompt_variant_generator.py | *(含在59中)* | Skillify闭环反哺(模式→变体/A/B/晋升) |
+| **合计** | — | — | **~782** | — |
 
 ## 快速开始
 
@@ -373,27 +375,29 @@ python3 scripts/collaboration/enhanced_e2e_test.py         # 96+46 cases
 echo "=== FULL REGRESSION ===" && \
 python3 scripts/collaboration/dispatcher_test.py 2>&1 | tail -3 && \
 python3 scripts/collaboration/test_quality_guard_test.py 2>&1 | tail -3 && \
+python3 scripts/collaboration/prompt_optimization_test.py 2>&1 | tail-3 && \
 python3 scripts/collaboration/memory_bridge_test.py 2>&1 | tail -3 && \
 python3 scripts/collaboration/warmup_manager_test.py 2>&1 | tail -3 && \
-python3 scripts/collaboration/skillifier_test.py 2>&1 | tail -4 && \
-python3 scripts/collaboration/permission_guard_test.py 2>&1 | tail -4 && \
-python3 scripts/collaboration/context_compressor_test.py 2>&1 | tail -3 && \
+python3 scripts/collaboration/skillifier_test.py 2>&1 | tail-4 && \
+python3 scripts/collaboration/permission_guard_test.py 2>&1 | tail-4 && \
+python3 scripts/collaboration/context_compressor_test.py 2>&1 | tail-3 && \
 python3 scripts/collaboration/enhanced_e2e_test.py 2>&1 | tail-4
 ```
 
-**最新测试结果**: `~710/~710 ALL PASSED ✅`
+**最新测试结果**: `~782/~782 ALL PASSED ✅`
 
 | 套件 | 用例数 |
 |------|--------|
 | Dispatcher (Entry) | 54 |
 | TestQualityGuard (QA) | 42 |
+| **PromptOptimization (v3.1)** | **59** |
 | MemoryBridge (P4) | 96 |
 | WarmupManager (P3) | 103 |
 | Skillifier (P2-b) | 96 |
 | PermissionGuard (P2-a) | 105 |
 | ContextCompressor (P1-b) | 72 |
 | Enhanced E2E (P1) | ~142 |
-| **合计** | **~710** |
+| **合计** | **~782** |
 
 ## 项目结构
 
@@ -415,6 +419,8 @@ TraeMultiAgentSkill/
 │       ├── warmup_manager.py     # 启动预热 (P3)
 │       ├── memory_bridge.py      # 记忆桥接 (P4)
 │       ├── test_quality_guard.py # 测试质量审计 (QA)
+│       ├── prompt_assembler.py     # ★ v3.1 动态提示词组装
+│       ├── prompt_variant_generator.py # ★ v3.1 Skillify闭环反哺
 │       │
 │       └── *_test.py             # 对应测试文件
 │
@@ -456,6 +462,7 @@ TraeMultiAgentSkill/
 
 | 时间 | Phase | 模块 | 核心能力 | 测试 |
 |------|-------|------|---------|------|
+| v3.1 | **Opt** | **PromptOptimization** | **动态Prompt裁剪/Skillify闭环/压缩感知** | **59** |
 | v3.0 | P1 | Coordinator+基础协作 | 多Agent协调/共识/批调度 | E2E 96 |
 | v3.0 | Entry | MultiAgentDispatcher | 统一调度入口/一键协作 | 54 |
 | v3.1 | P1-b | ContextCompressor | 3级上下文压缩 | 72 |

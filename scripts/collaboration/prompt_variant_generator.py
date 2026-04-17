@@ -80,6 +80,13 @@ class PromptVariant:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict:
+        """
+        序列化为字典（用于持久化或API返回）
+
+        Returns:
+            Dict: 包含 variant_id/role_id/status/quality_score/
+                 usage_count/feedback_ratio/created_at 的字典
+        """
         return {
             "variant_id": self.variant_id,
             "role_id": self.role_id,
@@ -102,7 +109,14 @@ class PromptVariant:
 
 @dataclass
 class VariantGenerationResult:
-    """变体生成结果"""
+    """
+    变体生成结果
+
+    Attributes:
+        success: 是否成功生成变体
+        variant: 生成的 PromptVariant 对象（失败时为 None）
+        reason: 失败原因说明（成功时为空字符串）
+    """
     success: bool
     variant: Optional[PromptVariant] = None
     reason: str = ""
