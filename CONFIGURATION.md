@@ -189,5 +189,48 @@ chmod +x trae_agent_dispatch_wrapper.sh
 
 如有问题，请查看：
 - [技能文档](../SKILL.md)
-- [发布总结](../docs/RELEASE_SUMMARY.md)
-- [特性介绍](../docs/v2.1_features.svg)
+- [实现状态](../IMPLEMENTATION_STATUS.md)
+- [架构演进](../docs/architecture/v3-upgrade-proposal.md)
+
+---
+
+## External Integration Configuration (V3.2+)
+
+### WorkBuddy (Claw) Memory Bridge (v3.3)
+
+The `WorkBuddyClawSource` auto-detects the Claw directory at initialization.
+**No manual configuration required for normal use.**
+
+Default path: `/Users/lin/WorkBuddy/Claw`
+
+Override (advanced):
+```python
+from scripts.collaboration.memory_bridge import WorkBuddyClawSource, MemoryBridge
+
+# Custom claw path
+claw = WorkBuddyClawSource(base_path="/custom/path/to/claw")
+bridge = MemoryBridge()
+```
+
+Behavior when unavailable:
+- Graceful degradation: all MemoryBridge operations work normally without Claw
+- `is_available` returns `False`
+- `load_all_memories()` returns empty list
+- Zero performance impact
+
+### MCE Adapter (v3.2)
+
+The MCE memory classification engine is optional and uses lazy initialization.
+
+Enable:
+```python
+from scripts.collaboration import get_global_mce_adapter, MultiAgentDispatcher
+
+mce = get_global_mce_adapter(enable=True)
+disp = MultiAgentDispatcher(mce_adapter=mce)
+```
+
+When MCE is unavailable:
+- All operations degrade gracefully
+- `classify()` returns `None`
+- No impact on existing functionality

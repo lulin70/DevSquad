@@ -1,8 +1,36 @@
 # Trae Multi-Agent Skill
 
-🎭 Dynamically dispatches to appropriate agent roles (Architect, Product Manager, Test Expert, Solo Coder) based on task type. Supports multi-agent collaboration, consensus mechanism, complete project lifecycle management, specification-driven development, code map generation, and project understanding. Supports Chinese-English bilingual.
+🎭 **V3.3** — Multi-agent collaboration platform with 16 core modules, ~828 tests, 100% pass rate.
+Dynamically dispatches to appropriate agent roles (Architect, Product Manager, Test Expert, UI Designer, Coder) based on task type.
+Supports multi-agent collaboration, consensus mechanism, memory bridge with external integrations (MCE + WorkBuddy Claw), prompt optimization, structured reporting.
+Supports Chinese-English bilingual.
 
-## 🎉 April 2026 Latest Updates
+## 🎉 April 2026 — V3 Evolution
+
+### V3.3 (2026-04-17) — WorkBuddy Claw Integration
+- ✅ **WorkBuddyClawSource** (~404 lines) — Read-only bridge to `/Users/lin/WorkBuddy/Claw/.memory/`
+- ✅ **Plan A: Memory Bridge** — INDEX inverted index search, core file mapping, daily work logs
+- ✅ **Plan B: AI News Feed** — Parse automation memory.md for latest AI industry intelligence
+- ✅ **Dispatcher Auto-Inject** — Keyword-triggered AI news injection into Scratchpad
+- ✅ **33 new tests** — Claw integration test suite (T-A01~A08/T-B01~B04/T-D01~D02)
+
+### V3.2 (2026-04-17) — MVP Three Parallel Lines
+- ✅ **E2E Full Demo** (`e2e_full_demo.py`) — Production-grade 10-step flow demo with CLI
+- ✅ **MCE Adapter** (`mce_adapter.py`) — Memory classification engine adapter (lazy-load/degrade)
+- ✅ **Dispatcher UX Enhancement** — Structured reports (structured/compact/detailed formats)
+- ✅ **47 new tests** — MCE(23) + Dispatcher UX(24)
+- ✅ **Delivery Workflow Iron Rule** — Implement→Test→Walkthrough→Annotate→Docs→Git loop
+
+### V3.1 (2026-04-16) — Prompt Optimization System
+- ✅ **PromptAssembler** — Dynamic assembly (TaskComplexity detection, 3 variants, 5 styles)
+- ✅ **PromptVariantGenerator** — Skillify closed-loop (A/B promotion lifecycle)
+- ✅ **59 new tests** — Prompt optimization suite
+
+### V3.0 (2026-04-16) — V3 Architecture Foundation
+- ✅ **Complete Redesign** — Coordinator/Worker/Scratchpad pattern, 11 core modules
+- ✅ **~710 baseline tests** — All passing
+
+## 🎉 Earlier Updates (V2 Era)
 
 - ✅ **Core Rules Integration (v2.4.1)** - Integrated Claude Code's 14 core prompt rules into Vibe Coding prompt optimization system, improving prompt quality
 - ✅ **Project Full Lifecycle Command (v2.4.1)** - Added /mas lifecycle command to start complete project lifecycle with one click

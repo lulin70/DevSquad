@@ -1,9 +1,163 @@
-# 变更日志
+# Changelog
 
-本文档记录 Trae Multi-Agent Skill 的所有重要变更。
+This document records all significant changes to Trae Multi-Agent Skill.
 
-格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
-版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+versioning follows [Semantic Versioning](https://semver.org/).
+
+## [3.3] - 2026-04-17
+
+### Added
+
+#### WorkBuddy (Claw) Memory Bridge Integration
+
+Per `docs/spec/WORKBUDDY_CLAW_INTEGRATION_SPEC.md` (CHG-01 ~ CHG-10):
+
+- ✅ New `WorkBuddyClawSource` class (~404 lines) in `memory_bridge.py`
+  - Read-only bridge to `/Users/lin/WorkBuddy/Claw/.memory/` and `.workbuddy/memory/`
+  - INDEX.md inverted index search with fallback full-text scan (O(1) hit)
+  - Core file mapping: SOUL→SEMANTIC, USER→KNOWLEDGE, MEMORY→KNOWLEDGE, etc.
+  - Daily work log loading (up to 30 recent `.md` files from `.workbuddy/memory/`)
+  - Plan B: AI news feed from `.codebuddy/automations/ai/memory.md`
+  - `_parse_automation_log()` for structured news extraction by date blocks
+
+- ✅ `MemoryBridge` integration (+30 lines)
+  - `__init__()`: auto-register WorkBuddyClawSource with graceful degradation
+  - `recall()`: merge claw_items into results (half limit, sort by relevance_score)
+  - `MemoryStats`: +`claw_enabled`, +`claw_item_count` fields
+  - `get_statistics()`: populate claw stats
+  - `print_diagnostics()`: add "WorkBuddy (Claw) Bridge" diagnostic section
+  - `get_workbuddy_ai_news(days=7)`: public API for Plan B news feed
+
+- ✅ Dispatcher AI News auto-injection (+29 lines in `dispatcher.py`)
+  - Keyword-triggered injection into Scratchpad when task matches AI/trend/news keywords
+  - Zero LLM calls, zero network requests for industry intelligence
+  - 15 trigger keywords (CN+EN): ai新闻, industry trend, llm, claude, cursor, etc.
+
+- ✅ New test suite: `claw_integration_test.py` (33 cases)
+  - T-A01~T-A08: Source availability, core/daily memories, index search, recall fusion
+  - T-B01~T-B04: News parsing, date filtering, missing file, bridge API
+  - T-D01~T-D02: Diagnostics output, statistics fields
+  - Utility tests: extract_tags, extract_section, parse_automation_log, load_all
+
+#### Annotation Standards Update
+
+- ✅ Documentation (SKILL.md / README.md): English
+- ✅ Code docstring: English (Args / Returns / Example)
+- ✅ Inline comments: English (business logic)
+- ✅ README-CN.md: Chinese (中文版文档)
+
+### Changed
+
+- ✅ SKILL.md: v3.2→v3.3, 15→16 modules, ~795→~828 tests
+- ✅ README.md: added v3.3 Claw row, ~795→~828 tests
+- ✅ `__init__.py`: export `WorkBuddyClawSource`
+- ✅ `v3-upgrade-proposal.md`: added Phase 11 record
+
+### Test Results
+
+```
+MemoryBridge Test:        96/96   ✅
+Dispatcher Test:          54/54   ✅
+MCE Adapter Test:         23/23   ✅
+Dispatcher UX Test:       24/24   ✅
+Claw Integration Test:    33/33   ✅
+─────────────────────────────────
+Total:                   230/230  ✅
+```
+
+---
+
+## [3.2] - 2026-04-17
+
+### Added
+
+#### MVP Three Parallel Lines (per v3.2 Final Consensus)
+
+##### Line A: E2E Full Demo
+- ✅ New `scripts/demo/e2e_full_demo.py` (~350 lines)
+  - CLI interface (--task/--roles/--json args)
+  - RoleOutputSimulator: 5-role realistic output simulation
+  - 10-step complete flow: Init→Analyze→Plan→Schedule→Execute→Share→Conflict→Report→Memory→Output
+
+##### Line B: MCE Adapter
+- ✅ New `scripts/collaboration/mce_adapter.py` (~290 lines)
+  - MCEAdapter: lazy init, graceful degrade, thread-safe
+  - MCEResult / MCEStatus data models
+  - get_global_mce_adapter() process-level singleton
+  - Integration points: MemoryBridge (capture/recall/shutdown), Dispatcher (classify)
+
+##### Line C: Dispatcher UX Enhancement
+- ✅ Enhanced `dispatcher.py` quick_dispatch() (+360 lines)
+  - 3 output formats: structured (default) / compact / detailed
+  - Structured report hierarchy: summary card → role table → findings → conflicts → action items
+  - _extract_findings(): numbered/bulleted/semicolon/sentence splitting
+  - _generate_action_items(): H/M/L priority auto-generation based on result analysis
+
+- ✅ New test suites:
+  - mce_adapter_test.py: 23 cases (init/classify/batch/store/retrieve/lifecycle/thread-safety/normalize)
+  - dispatcher_ux_test.py: 24 cases (structured/compact/detailed reports, extraction, action items)
+
+### Changed
+
+- ✅ memory_bridge.py: __init__(mce_adapter), capture_execution(MCE classify), recall(MCE filter), shutdown(MCE联动)
+- ✅ dispatcher.py: __init__(mce_adapter), dispatch(MCE classify step)
+- ✅ __init__.py: export MCEAdapter/MCEResult/MCEStatus/get_global_mce_adapter
+- ✅ SKILL.md / README.md / v3-upgrade-proposal.md: v3.2 entries
+
+---
+
+## [3.1] - 2026-04-16
+
+### Added
+
+#### Prompt Optimization System (borrowed from Claude Code architecture)
+
+##### PromptAssembler (~320 lines)
+- TaskComplexity detection (3D model: length + keywords + structure)
+- 3 template variants: compact / standard / enhanced
+- 5 instruction styles per role type
+- Role-specific anti-pattern warnings
+- Compression-level override support
+
+##### PromptVariantGenerator (~420 lines)
+- SuccessPattern → PromptVariant closed-loop pipeline
+- Quality scoring (5-dimension: relevance/freshness/actionability/uniqueness/clarity)
+- Threshold-based filtering (confidence ≥ 0.7, frequency ≥ 2)
+- A/B promotion lifecycle (promote at ≥75% positive, deprecate at ≤35%)
+- Auto-deprecation of underperforming variants
+
+- ✅ New test: prompt_optimization_test.py (59 cases)
+
+---
+
+## [3.0] - 2026-04-16
+
+### Added
+
+#### Complete V3 Architecture Redesign
+
+Based on Coordinator/Worker/Scratchpad collaboration pattern:
+
+- ✅ 11 Core Modules (later expanded to 13 in v3.1, 16 in v3.3):
+  0. MultiAgentDispatcher (unified entry point)
+  1. Coordinator (global orchestrator)
+  2. Scratchpad (shared blackboard)
+  3. Worker (role executor)
+  4. ConsensusEngine (weighted voting + veto)
+  5. BatchScheduler (parallel/sequential hybrid)
+  6. ContextCompressor (4 compression levels)
+  7. PermissionGuard (4 permission levels)
+  8. Skillifier (skill learning from patterns)
+  9. WarmupManager (3-layer startup warmup)
+  10. MemoryBridge (7-type memory bridge + TF-IDF + forgetting curve)
+  11. TestQualityGuard (3-layer testing quality enforcement)
+
+- ✅ ~710 baseline tests (all passing)
+- ✅ E2E test: e2e_test.py (26 cases)
+- ✅ Enhanced E2E test: enhanced_e2e_test.py (46 cases)
+
+---
 
 ## [2.5.0] - 2026-04-06
 

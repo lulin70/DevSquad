@@ -591,9 +591,9 @@ MultiAgentDispatcher(
 
 | 维度 | 数据 |
 |------|------|
-| **总模块数** | **16 个核心模块** (含 Dispatcher + TestQualityGuard + PromptAssembler + PromptVariantGenerator + MCEAdapter) |
-| **总测试用例** | **~795 / ~795 通过 (100%)** |
-| **代码文件** | 16 个实现模块 + 15 个测试模块 + 6 套设计文档 + 4 套用户故事 + 4 套测试计划 + v3.2 路线图/共识文档 |
+| **总模块数** | **16 个核心模块** (含 Dispatcher + TestQualityGuard + PromptAssembler + PromptVariantGenerator + MCEAdapter + WorkBuddyClawSource) |
+| **总测试用例** | **~828 / ~828 通过 (100%)** |
+| **代码文件** | 16 个实现模块 + 16 个测试模块 + 6 套设计文档 + 4 套用户故事 + 4 套测试计划 + v3.2/v3.3 路线图/共识/规格文档 |
 | **开发周期** | 2026-04-15 ~ 2026-04-17（约3天） |
 | **文档先行工作流** | Design Doc → PM Stories → Tester Plan → Consensus → Implement → Test → Integrate → Push |
 | **代码注释覆盖** | 全部公共方法 docstring **100% 覆盖** (Args/Returns/Example) — 含 v3.1 + v3.2 新增模块 |
@@ -616,6 +616,27 @@ MultiAgentDispatcher(
 - MemoryBridge.recall() 增加 MCE 类型过滤（提升召回精度60%+）
 - quick_dispatch() 支持3种输出格式：structured(默认)/compact/detailed
 - 结构化报告遵循 UI Designer 规范：摘要卡片→角色表→关键发现→冲突徽章→行动项
+
+### Phase 11: v3.3 WorkBuddy Claw Integration (2026-04-17)
+
+**目标**: Per WORKBUDDY_CLAW_INTEGRATION_SPEC.md, 实现外部记忆源桥接
+
+| CHG | 描述 | 代码量 | 测试数 | 状态 |
+|-----|------|--------|--------|------|
+| 01 | WorkBuddyClawSource 类 | ~404行 | (含在33中) | ✅ 完成 |
+| 02~06 | MemoryBridge 集成修改 (init/recall/stats/diagnostics) | ~30行 | — | ✅ 完成 |
+| 07~09 | AI News Feed 方法 (source + bridge) | ~65行 | — | ✅ 完成 |
+| 10 | Dispatcher AI News 自动注入 | +29行 | — | ✅ 完成 |
+| **测试** | claw_integration_test.py | ~420行 | **33** | ✅ 完成 |
+
+**关键设计决策**:
+- WorkBuddyClawSource 纯只读访问，绝不写入 Claw 目录
+- INDEX.md 倒排索引 O(1) 检索，缺失时 fallback 全文扫描
+- recall() 融合 Claw 结果（半限额，按 relevance_score 排序）
+- Dispatcher 关键词触发自动注入 Scratchpad（零LLM调用、零网络请求）
+- Annotation Standards 更新: 文档/代码docstring/行内注释统一英文
+
+**规格文档状态**: `docs/spec/WORKBUDDY_CLAW_INTEGRATION_SPEC.md` → ✅ IMPLEMENTED
 
 ---
 

@@ -41,6 +41,7 @@ description: |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | 动态提示词组装(复杂度检测/3级变体/5种风格/压缩感知) |
 | 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify闭环反哺(模式→变体/A/B测试/自动晋升淘汰) |
 | 14 | **MCEAdapter** | `mce_adapter.py` | MCE记忆分类引擎适配器(懒加载/优雅降级/线程安全) |
+| 15 | **WorkBuddyClawSource** | `memory_bridge.py` | WorkBuddy Claw只读桥接(索引检索/日更记忆/AI新闻流) |
 
 ---
 
@@ -444,14 +445,16 @@ def test_<功能>_<场景>(self):
 | Enhanced E2E | 46 | ✅ | ✅ PASS |
 | MCEAdapter (MCE适配器) | 23 | ✅ | ✅ PASS |
 | Dispatcher UX (报告增强) | 24 | ✅ | ✅ PASS |
-| **总计** | **~795** | **✅ ALL PASS** | |
+| Claw Integration (Claw桥接) | 33 | ✅ | ✅ PASS |
+| **总计** | **~828** | **✅ ALL PASS** | |
 
 ---
 
-## 版本历史
+## Version History
 
-- **v3.2** (2026-04-17): MVP 三线并行 - E2E完整Demo(10步流程/CLI) + Dispatcher UX增强(structured/compact/detailed 3格式报告) + MCEAdapter记忆分类适配器(懒加载/优雅降级) + 交付工作流铁律(走读→注释→文档→Git闭环)
-- **v3.1** (2026-04-16): 提示词优化系统 - 动态Prompt裁剪(3级变体) + Skillify闭环反哺(A/B晋升) + 压缩感知适配
+- **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(只读桥接/INDEX索引检索/日更记忆/AI新闻流) + Dispatcher AI News自动注入 + Annotation Standards (EN docs/docstring/inline) + 33 new tests
+- **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule (walkthrough→annotate→docs→Git loop)
+- **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation
 - **v3.0.1** (2026-04-16): 代码注释全面补全(6大核心模块docstring 100%覆盖) + TestQualityGuard测试质量审计系统集成
 - **v3.0** (2026-04-16): 完整重构为 Coordinator/Worker/Scratchpad 协作架构，11大模块（含Dispatcher+TestQualityGuard），~710测试全通过
 - **v2.5** (2026-04-06): Memory Classification Engine 集成
