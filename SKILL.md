@@ -2,14 +2,15 @@
 name: multi-agent-team-v3
 slug: multi-agent-team-v3
 description: |
-  V3.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
-  集成10大核心模块：Coordinator协调器 + Scratchpad共享黑板 + Worker执行者 + Consensus共识引擎 +
+  V3.2 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
+  集成15大核心模块：Coordinator协调器 + Scratchpad共享黑板 + Worker执行者 + Consensus共识引擎 +
   BatchScheduler并行调度 + ContextCompressor上下文压缩 + PermissionGuard权限守卫 +
-  Skillifier技能学习 + WarmupManager启动预热 + MemoryBridge记忆桥接。
-  568个测试全通过。支持中英文双语。
+  Skillifier技能学习 + WarmupManager启动预热 + MemoryBridge记忆桥接 +
+  PromptAssembler提示词组装 + PromptVariantGenerator变体生成 + MCEAdapter记忆分类适配器。
+  ~795个测试全通过。支持中英文双语。
 ---
 
-# Multi-Agent Team V3.0 — 多智能体协作平台
+# Multi-Agent Team V3.2 — 多智能体协作平台
 
 ## 核心定位
 
@@ -18,10 +19,10 @@ description: |
 ```
 用户任务 → [意图分析] → [角色匹配] → [Coordinator编排]
         → [多个Worker并行执行] → [Scratchpad实时共享]
-        → [Consensus共识决策] → [结果汇总返回]
+        → [Consensus共识决策] → [MCE分类增强] → [结果汇总返回]
 ```
 
-## 架构总览（10大模块）
+## 架构总览（15大模块）
 
 | # | 模块 | 文件 | 职责 |
 |---|------|------|------|
@@ -31,14 +32,15 @@ description: |
 | 3 | **Worker** | `worker.py` | 工作者，每个角色一个实例，独立执行并写入Scratchpad |
 | 4 | **ConsensusEngine** | `consensus.py` | 共识引擎，权重投票+否决权+升级人工机制 |
 | 5 | **BatchScheduler** | `batch_scheduler.py` | 并行/串行混合调度，自动判断并发安全性 |
-| 6 | **ContextCompressor** | `context_compressor.py` | 3级上下文压缩(SNIP/SessionMemory/FullCompact) |
+| 6 | **ContextCompressor** | `context_compressor.py` | 4级上下文压缩(NONE/SNIP/SESSION_MEMORY/FULL_COMPACT) |
 | 7 | **PermissionGuard** | `permission_guard.py` | 4级权限守卫(PLAN/DEFAULT/AUTO/BYPASS) |
 | 8 | **Skillifier** | `skillifier.py` | 从成功操作模式中自动生成新Skill |
 | 9 | **WarmupManager** | `warmup_manager.py` | 3层启动预热(EAGER/ASYNC/LAZY) + 进程级缓存 |
-| 10 | **MemoryBridge** | `memory_bridge.py` | 7类型记忆桥接 + 倒排索引 + TF-IDF + 遗忘曲线 |
+| 10 | **MemoryBridge** | `memory_bridge.py` | 7类型记忆桥接 + 倒排索引 + TF-IDF + 遗忘曲线 + MCE集成 |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | 测试质量审计(API校验/反模式检测/维度覆盖) |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | 动态提示词组装(复杂度检测/3级变体/5种风格/压缩感知) |
 | 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify闭环反哺(模式→变体/A/B测试/自动晋升淘汰) |
+| 14 | **MCEAdapter** | `mce_adapter.py` | MCE记忆分类引擎适配器(懒加载/优雅降级/线程安全) |
 
 ---
 

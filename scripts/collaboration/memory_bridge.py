@@ -680,7 +680,16 @@ class MemoryReader:
 
 class MemoryBridge:
     def __init__(self, base_dir: Optional[str] = None,
-                 config: Optional[MemoryConfig] = None):
+                 config: Optional[MemoryConfig] = None,
+                 mce_adapter=None):
+        """
+        初始化记忆桥接器
+
+        Args:
+            base_dir: 记忆存储根目录
+            config: 记忆配置
+            mce_adapter: MCE 记忆分类引擎适配器 (可选, v3.2 集成)
+        """
         self.config = config or MemoryConfig.default()
         if base_dir is None:
             base_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'memory-bank')
@@ -691,6 +700,9 @@ class MemoryBridge:
         self.reader: MemoryReader = MemoryReader(self.store)
         self._stats = MemoryStats(total_captures=0, total_recalls=0)
         self._inner_lock = threading.RLock()
+
+        self._mce_adapter = mce_adapter
+        self._mce_enabled = mce_adapter is not None and getattr(mce_adapter, 'is_available', False)
 
     def recall(self, query: MemoryQuery) -> MemoryRecallResult:
         """
@@ -714,9 +726,29 @@ class MemoryBridge:
             return MemoryRecallResult(
                 query_time_ms=(time.perf_counter() - start) * 1000,
             )
+
+        effective_type_filter = query.memory_type
+
+        if self._mce_enabled and self._mce_adapter and not query.memory_type:
+            try:
+                mce_result = self._mce_adapter.classify(query.query_text, timeout_ms=300)
+                if mce_result and mce_result.memory_type:
+                    type_mapping = {
+                        "preference": "FEEDBACK",
+                        "decision": "EPISODIC",
+                        "correction": "EPISODIC",
+                        "fact": "KNOWLEDGE",
+                        "task": "EPISODIC",
+                    }
+                    mapped_type = type_mapping.get(mce_result.memory_type.lower())
+                    if mapped_type:
+                        effective_type_filter = mapped_type
+            except Exception:
+                pass
+
         search_results = self.indexer.search(
             query.query_text,
-            type_filter=query.memory_type,
+            type_filter=effective_type_filter,
             domain_filter=query.domain,
             limit=query.limit * 3,
         )
@@ -778,15 +810,60 @@ class MemoryBridge:
                 content = content[:5000] + "...[TRUNCATED]"
             task_desc = getattr(execution_record, 'task_description', '') or ''
             worker_id = getattr(execution_record, 'worker_id', '') or ''
+
+            mce_memory_type = None
+            mce_confidence = confidence
+            if self._mce_enabled and self._mce_adapter and content:
+                try:
+                    mce_result = self._mce_adapter.classify(content, timeout_ms=500)
+                    if mce_result:
+                        mce_confidence = max(confidence, mce_result.confidence)
+                        if mce_result.memory_type:
+                            type_hint_map = {
+                                "preference": "FEEDBACK",
+                                "decision": "EPISODIC",
+                                "correction": "EPISODIC",
+                                "fact": "KNOWLEDGE",
+                            }
+                            mce_memory_type = type_hint_map.get(mce_result.memory_type.lower())
+                except Exception:
+                    pass
+
             tags = self._extract_tags(task_desc + " " + content)
-            episodic = EpisodicMemory(
-                id=f"epi_{uuid.uuid4().hex[:12]}_{int(time.time())}",
-                task_description=task_desc[:200],
-                finding=content,
-                worker_id=worker_id,
-                confidence=confidence,
-                tags=tags,
-                created_at=datetime.now().isoformat(),
+
+            if mce_memory_type == "KNOWLEDGE":
+                knowledge = KnowledgeMemory(
+                    id=f"know_{uuid.uuid4().hex[:12]}_{int(time.time())}",
+                    domain=task_desc[:100] if task_desc else "general",
+                    fact=content,
+                    source=worker_id or "multi-agent",
+                    confidence=mce_confidence,
+                    tags=tags,
+                    created_at=datetime.now().isoformat(),
+                )
+                self.writer.write_knowledge(knowledge)
+                captured_id = knowledge.id
+            elif mce_memory_type == "FEEDBACK":
+                feedback = FeedbackMemory(
+                    id=f"feed_{uuid.uuid4().hex[:12]}_{int(time.time())}",
+                    category="preference",
+                    content=content,
+                    source=worker_id or "user",
+                    severity="info",
+                    tags=tags,
+                    created_at=datetime.now().isoformat(),
+                )
+                self.writer.write_feedback(feedback)
+                captured_id = feedback.id
+            else:
+                episodic = EpisodicMemory(
+                    id=f"epi_{uuid.uuid4().hex[:12]}_{int(time.time())}",
+                    task_description=task_desc[:200],
+                    finding=content,
+                    worker_id=worker_id,
+                    confidence=mce_confidence,
+                    tags=tags,
+                    created_at=datetime.now().isoformat(),
             )
             captured_id = self.writer.write_episodic(episodic)
             self._stats.total_captures += 1
@@ -1045,4 +1122,8 @@ class MemoryBridge:
         return list(set(words))[:10]
 
     def shutdown(self) -> None:
-        pass
+        if self._mce_adapter:
+            try:
+                self._mce_adapter.shutdown()
+            except Exception:
+                pass

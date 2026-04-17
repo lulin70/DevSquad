@@ -147,6 +147,12 @@ from .prompt_variant_generator import (
     PromptVariant,
     VariantGenerationResult,
 )
+from .mce_adapter import (
+    MCEAdapter,
+    MCEResult,
+    MCEStatus,
+    get_global_mce_adapter,
+)
 
 __all__ = [
     "Scratchpad",
@@ -248,4 +254,8 @@ __all__ = [
     "PromptVariantGenerator",
     "PromptVariant",
     "VariantGenerationResult",
+    "MCEAdapter",
+    "MCEResult",
+    "MCEStatus",
+    "get_global_mce_adapter",
 ]

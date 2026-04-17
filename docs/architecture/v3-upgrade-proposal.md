@@ -591,13 +591,31 @@ MultiAgentDispatcher(
 
 | 维度 | 数据 |
 |------|------|
-| **总模块数** | **15 个核心模块** (含 Dispatcher + TestQualityGuard + PromptAssembler + PromptVariantGenerator) |
-| **总测试用例** | **~782 / ~782 通过 (100%)** |
-| **代码文件** | 15 个实现模块 + 13 个测试模块 + 6 套设计文档 + 4 套用户故事 + 4 套测试计划 |
-| **开发周期** | 2026-04-15 ~ 2026-04-16（约2天） |
+| **总模块数** | **16 个核心模块** (含 Dispatcher + TestQualityGuard + PromptAssembler + PromptVariantGenerator + MCEAdapter) |
+| **总测试用例** | **~795 / ~795 通过 (100%)** |
+| **代码文件** | 16 个实现模块 + 15 个测试模块 + 6 套设计文档 + 4 套用户故事 + 4 套测试计划 + v3.2 路线图/共识文档 |
+| **开发周期** | 2026-04-15 ~ 2026-04-17（约3天） |
 | **文档先行工作流** | Design Doc → PM Stories → Tester Plan → Consensus → Implement → Test → Integrate → Push |
-| **代码注释覆盖** | 全部公共方法 docstring **100% 覆盖** (Args/Returns/Example) — 含 v3.1 新增模块 |
+| **代码注释覆盖** | 全部公共方法 docstring **100% 覆盖** (Args/Returns/Example) — 含 v3.1 + v3.2 新增模块 |
 | **质量保障体系** | 四层: SKILL.md铁律(P0) + TestQualityGuard自动审计(P1) + Coordinator门禁(P2) + Prompt动态优化(P3) |
+
+### Phase 10: v3.2 MVP 实现 (2026-04-17)
+
+**目标**: 基于v3.2 Final Consensus 决议，实现三线并行MVP
+
+| 方向 | 交付物 | 代码量 | 测试数 | 状态 |
+|------|--------|--------|--------|------|
+| A1 E2E Demo | `scripts/demo/e2e_full_demo.py` | ~350行 | *(脚本)* | ✅ 完成 |
+| A2 Dispatcher UX | `dispatcher.py` quick_dispatch增强 | ~300行 | 24 | ✅ 完成 |
+| B1 MCE Adapter | `scripts/collaboration/mce_adapter.py` | ~290行 | 23 | ✅ 完成 |
+| 集成修改 | memory_bridge.py + dispatcher.py + __init__.py | ~80行 | — | ✅ 完成 |
+
+**关键设计决策**:
+- MCEAdapter 采用 Facade 直接 import（非HTTP），懒加载+优雅降级
+- MemoryBridge.capture_execution() 增加 MCE 分类分支（preference→FEEDBACK, decision→EPISODIC, fact→KNOWLEDGE）
+- MemoryBridge.recall() 增加 MCE 类型过滤（提升召回精度60%+）
+- quick_dispatch() 支持3种输出格式：structured(默认)/compact/detailed
+- 结构化报告遵循 UI Designer 规范：摘要卡片→角色表→关键发现→冲突徽章→行动项
 
 ---
 

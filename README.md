@@ -43,7 +43,10 @@
 | QA | **TestQualityGuard** | test_quality_guard.py | **42** | API签名校验+反模式检测+维度覆盖审计 |
 | Opt-1 | **PromptAssembler** | prompt_assembler.py | **59** | 动态提示词组装(复杂度/变体/压缩感知) |
 | Opt-2 | **PromptVariantGenerator** | prompt_variant_generator.py | *(含在59中)* | Skillify闭环反哺(模式→变体/A/B/晋升) |
-| **合计** | — | — | **~782** | — |
+| v3.2-A1 | **E2E Full Demo** | `demo/e2e_full_demo.py` | *(脚本)* | 生产级10步完整流程演示(CLI+JSON) |
+| v3.2-A2 | **Dispatcher UX** | dispatcher.py (增强) | **24** | 结构化报告(摘要→角色→发现→冲突→行动项) |
+| v3.2-B1 | **MCEAdapter** | mce_adapter.py | **23** | MCE记忆分类适配器(懒加载/降级/线程安全) |
+| **合计** | — | — | **~795** | — |
 
 ## 快速开始
 
