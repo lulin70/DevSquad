@@ -1,500 +1,327 @@
-# DevSquad v3
+# DevSquad — 多智能体软件开发团队
 
-基于 Claude Code Coordinator 模式的 **多 Agent 协作平台**，从单分发工具演进为有记忆的学习型协作系统。
+<p align="center">
+  <strong>按需组建 AI 驱动的专业开发团队。</strong>
+</p>
 
-## v3 核心架构总览
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-41%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.3-2026--04--17-orange" />
+</p>
+
+---
+
+## DevSquad 是什么？
+
+DevSquad 将**单个 AI 编程助手转化为多角色专业开发团队**。不再是单个 AI 处理你的全部任务，而是自动调度到最合适的专家角色组合——架构师、产品经理、编码员、测试工程师、安全审查员等——然后通过共享工作区编排它们的并行协作，通过共识投票解决冲突，最终交付统一的结构化报告。
+
+**把它想象成按需组建的虚拟开发团队，由像真实工程师一样协作的 AI 智能体驱动。**
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    DevSquad v3                          │
-│                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────┐ │
-│  │Coordinator│←→│Compressor│←→│   Guard  │←→│ Skillify │←→│Warmup │ │
-│  │ 协调器    │  │ 压缩器    │  │ 权限守卫  │  │ 技能生成  │  │预热   │ │
-│  └────┬─────┘  └──────────┘  └──────────┘  └────┬─────┘  └───┬───┘ │
-│       │                                      │            │       │
-│       ▼                                      ▼            ▼       │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                  MemoryBridge (记忆桥接)                      │   │
-│  │  recall() ← capture() ← persist() ← search()             │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │              PromptRegistry (提示词注册表)                     │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
+你: "设计一个微服务电商后端"
+         │
+         ▼
+┌─────────────────┐
+│  意图分析 ──→ 自动匹配: 架构师 + 运维 + 安全
+└────────┬────────┘
+         ▼
+┌──────────┬──────────┬──────────┐
+│  架构师   │   运维    │  安全专家 │
+│ (系统设计) │(基础设施) │(威胁建模) │
+└────┬──────┴────┬─────┴────┬────┘
+     └────────────┼───────────┘
+                  ▼
+      ┌──────────────────┐
+      │    共享工作板      │ ← 实时同步的黑板
+      │  (Scratchpad)     │
+      └────────┬─────────┘
+               ▼
+      ┌──────────────────┐
+      │   共识引擎        │ ← 加权投票 + 否决权
+      └────────┬─────────┘
+               ▼
+      ┌──────────────────┐
+      │  结构化报告       │ ← 发现 + 行动项 (高/中/低)
+      └──────────────────┘
 ```
-
-## v3 模块一览
-
-| Phase | 模块 | 文件 | 测试数 | 功能 |
-|-------|------|------|--------|------|
-| Entry | **MultiAgentDispatcher** | dispatcher.py | **54** | 统一调度入口，一键完成全流程协作 |
-| P1 | **Coordinator** | coordinator.py | (E2E) | 多Agent协调、任务规划、执行、报告 |
-| P1 | **Scratchpad** | scratchpad.py | (E2E) | 共享黑板、Worker间信息交换 |
-| P1 | **Worker** | worker.py | (E2E) | 工作者执行具体任务 |
-| P1 | **ConsensusEngine** | consensus.py | (E2E) | 共识机制、投票决策 |
-| P1 | **BatchScheduler** | batch_scheduler.py | (E2E) | 并行/串行混合调度 |
-| P1-b | **ContextCompressor** | context_compressor.py | **72** | 3级上下文压缩(L1/L2/L3) |
-| P2-a | **PermissionGuard** | permission_guard.py | **105** | 4级权限模型+AI分类器+审计日志 |
-| P2-b | **Skillifier** | skillifier.py | **96** | 执行记录→模式提取→技能自动生成 |
-| P3 | **WarmupManager** | warmup_manager.py | **103** | L1同步+L2异步+LAZY懒加载+进程缓存 |
-| P4 | **MemoryBridge** | memory_bridge.py | **96** | 记忆召回/捕获/反馈闭环/模式持久化 |
-| QA | **TestQualityGuard** | test_quality_guard.py | **42** | API签名校验+反模式检测+维度覆盖审计 |
-| Opt-1 | **PromptAssembler** | prompt_assembler.py | **59** | 动态提示词组装(复杂度/变体/压缩感知) |
-| Opt-2 | **PromptVariantGenerator** | prompt_variant_generator.py | *(含在59中)* | Skillify闭环反哺(模式→变体/A/B/晋升) |
-| v3.2-A1 | **E2E Full Demo** | `demo/e2e_full_demo.py` | *(脚本)* | 生产级10步完整流程演示(CLI+JSON) |
-| v3.2-A2 | **Dispatcher UX** | dispatcher.py (增强) | **24** | 结构化报告(摘要→角色→发现→冲突→行动项) |
-| v3.2-B1 | **MCEAdapter** | mce_adapter.py | **23** | MCE记忆分类适配器(懒加载/降级/线程安全) |
-| v3.3-A1 | **WorkBuddyClawSource** | memory_bridge.py | **33** | WorkBuddy Claw只读桥接(索引检索/日更/AI新闻) |
-| **合计** | — | — | **~828** | — |
 
 ## 快速开始
 
-### 基础导入
+### 前置要求
+
+- **Python 3.9+**（纯 Python，无编译依赖）
+- **操作系统**: macOS / Linux / **Windows 10+**
+- 无需外部依赖（所有集成均使用优雅降级）
+
+详细安装说明（含 Windows）请参见 [**INSTALL.md**](INSTALL.md)
+
+### 三种使用方式
+
+**方式一：CLI 命令行（推荐）**
+
+```bash
+git clone https://github.com/lulin70/DevSquad.git
+cd DevSquad
+
+python3 scripts/cli.py dispatch -t "设计用户认证系统"
+python3 scripts/cli.py status
+python3 scripts/cli.py roles
+```
+
+**方式二：Python API**
+
+```python
+import sys
+sys.path.insert(0, '/path/to/DevSquad')
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+disp = MultiAgentDispatcher()
+result = disp.dispatch("设计 RESTful 用户管理接口")
+print(result.to_markdown())
+disp.shutdown()
+```
+
+**方式三：快速调度（3 种输出格式）**
+
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+disp = MultiAgentDispatcher()
+
+# 结构化报告（默认表格格式）
+result = disp.quick_dispatch(task, output_format="structured")
+
+# 紧凑模式（每角色一行）
+result = disp.quick_dispatch(task, output_format="compact")
+
+# 详细模式（完整发现 + 行动项）
+result = disp.quick_dispatch(task, output_format="detailed",
+                              include_action_items=True)
+
+disp.shutdown()
+```
+
+## 10 个内置角色
+
+| 角色 | 适用场景 |
+|------|---------|
+| `architect` | 系统设计、技术选型、API 设计 |
+| `pm` | 需求分析、用户故事、验收标准 |
+| `coder` | 功能实现、代码生成、重构 |
+| `tester` | 测试策略、边界情况、覆盖率 |
+| `ui` | UX 流程、交互设计、无障碍性 |
+| `devops` | CI/CD 流水线、部署、监控 |
+| `security` | 威胁建模、漏洞审计 |
+| `data` | 数据建模、分析、迁移 |
+| `reviewer` | 代码审查、最佳实践 |
+| `optimizer` | 性能优化、缓存策略 |
+
+**自动匹配**: 未指定角色时，调度器根据任务意图自动匹配。
+
+## 16 个核心模块
+
+| 模块 | 用途 |
+|------|------|
+| **MultiAgentDispatcher** | 统一入口——一次调用完成所有操作 |
+| **Coordinator** | 全局编排：分解 → 分配 → 收集 → 决策 |
+| **Scratchpad** | 共享黑板，Worker 间实时通信 |
+| **Worker** | 角色执行器——每个角色独立实例 |
+| **ConsensusEngine** | 加权投票 + 否决权 + 人工升级 |
+| **BatchScheduler** | 并行/串行混合调度，自动安全检测 |
+| **ContextCompressor** | 4 级压缩防止上下文溢出 |
+| **PermissionGuard** | 4 级安全门禁（PLAN → DEFAULT → AUTO → BYPASS） |
+| **Skillifier** | 从成功模式中学习，自动生成新技能 |
+| **WarmupManager** | 3 层启动预加载（冷启动 < 300ms） |
+| **MemoryBridge** | 跨会话记忆（7 种类型、TF-IDF、遗忘曲线） |
+| **MCEAdapter** | 记忆分类引擎集成（v0.4，支持多租户） |
+| **WorkBuddyClawSource** | 外部知识桥接（倒排索引搜索、AI 新闻流） |
+| **PromptAssembler** | 动态提示词构建（3 变体 × 5 风格） |
+| **PromptVariantGenerator** | A/B 测试闭环提示词优化 |
+| **TestQualityGuard** | 自动化测试质量审计 |
+
+## 跨平台兼容性
+
+DevSquad 原生支持多种 AI 编程环境：
+
+| 平台 | 集成方式 | 状态 |
+|------|---------|------|
+| **Trae IDE** | `skill-manifest.yaml` 原生 Skill | ✅ 主要平台 |
+| **Claude Code** | `CLAUDE.md` + `.claude/skills/` 自定义 Skill | ✅ 支持 |
+| **OpenClaw** | MCP Server (`scripts/mcp_server.py`，6 个工具) | ✅ 支持 |
+| **终端 / 任意 IDE** | CLI (`scripts/cli.py`) 或 Python 导入 | ✅ 通用 |
+
+### MCP Server（适用于 OpenClaw / Cursor / 任何 MCP 客户端）
+
+```bash
+pip install mcp          # 可选
+python3 scripts/mcp_server.py              # stdio 模式
+python3 scripts/mcp_server.py --port 8080  # SSE 模式
+```
+
+暴露 6 个工具：`multiagent_dispatch`、`multiagent_quick`、`multiagent_roles`、
+`multiagent_status`、`multiagent_analyze`、`multiagent_shutdown`。
+
+## 外部集成
+
+| 组件 | 状态 | 降级方案 |
+|------|------|---------|
+| **MCE v0.4**（记忆分类引擎） | 可选的多租户/权限支持 | 不可用时优雅降级 |
+| **WorkBuddy Claw** | 外部知识库只读桥接 | 路径不存在时跳过 |
+
+所有集成都可选——DevSquad 可完全独立运行。
+
+## 运行测试
+
+```bash
+cd /path/to/DevSquad
+
+# 核心协作测试
+python3 -m pytest scripts/collaboration/ -v
+# 预期: ~41 个测试用例，全部通过
+
+# 快速状态检查
+python3 scripts/cli.py status
+# 预期: {"name": "DevSquad", "status": "ready", ...}
+
+# 干跑验证
+python3 scripts/cli.py dispatch -t "测试任务" --dry-run
+```
+
+## 使用示例
+
+### 场景一：架构设计会话
+
+```
+用户: "设计一个微服务电商后端"
+→ DevSquad 自动匹配: 架构师 + 运维 + 安全
+→ 输出: 技术栈建议 + 服务边界划分 + 安全模型
+```
+
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+disp = MultiAgentDispatcher()
+result = disp.dispatch("设计一个微服务电商后端")
+print(result.to_markdown())
+# → 结构化报告，含发现、冲突和高/中/低优先级行动项
+disp.shutdown()
+```
+
+### 场景二：安全聚焦代码审查
+
+```python
+# 指定特定角色进行聚焦审查
+result = disp.quick_dispatch(
+    "审查 auth.py 的安全漏洞",
+    output_format="detailed",
+    include_action_items=True,
+)
+# → 安全发现 + 测试缺口 + 改进建议
+```
+
+### 场景三：全栈分析
+
+```python
+# 自动匹配模式 —— 让 DevSquad 选择合适的团队
+result = disp.dispatch("评估项目的生产就绪状态")
+# → 多角色评估 + 共识决策结果
+```
+
+### 场景四：紧凑输出（终端/管道）
+
+```bash
+python3 scripts/cli.py quick -t "优化数据库查询性能" -f compact
+# → 每角色一行摘要，机器友好格式
+```
+
+### 场景五：JSON 输出（集成对接）
+
+```bash
+python3 scripts/cli.py dispatch -t "分析 API 接口面" -f json
+# → 可被下游工具、CI/CD 流水线或仪表盘解析
+```
+
+### 场景六：高级编程用法
 
 ```python
 from scripts.collaboration import (
-    # 核心协作组件
-    Coordinator, Scratchpad, Worker,
-    ConsensusEngine, BatchScheduler,
-
-    # Phase 1-b: 上下文压缩
-    ContextCompressor, CompressionLevel,
-
-    # Phase 2-a: 权限守卫
-    PermissionGuard, ProposedAction, PermissionLevel,
-
-    # Phase 2-b: 技能生成
-    Skillifier, ExecutionRecord, SuccessPattern,
-
-    # Phase 3: 启动优化
-    WarmupManager, WarmupConfig,
-
-    # Phase 4: 记忆桥接
-    MemoryBridge, MemoryConfig as MemCfg, MemoryType,
+    Coordinator, Scratchpad, Worker, ConsensusEngine,
+    MemoryBridge, MemoryType,
 )
 
 # 创建协作系统
 scratchpad = Scratchpad()
 coordinator = Coordinator(scratchpad=scratchpad)
 
-# 规划任务（多角色）
+# 规划多角色任务
 plan = coordinator.plan_task(
     "设计用户认证系统",
     [{"role_id": "architect"}, {"role_id": "product-manager"}]
 )
 print(f"任务数: {plan.total_tasks}")
 
-# 启动预热（加速后续操作）
-wm = WarmupManager.instance(WarmupConfig.default())
-report = wm.warmup()
-print(f"预热完成: {report.completed}/{report.total_tasks} 任务")
-
-# 权限检查
-guard = PermissionGuard()
-action = ProposedAction(
-    action_type=ActionType.FILE_WRITE,
-    target="/etc/config",
-    description="修改系统配置"
-)
-decision = guard.check(action)
-print(f"权限决定: {decision.outcome}")
-
-# 技能学习
-skillifier = Skillifier()
-record = ExecutionRecord(
-    task_description="实现CRUD接口",
-    success=True,
-    worker_id="dev-worker",
-    steps=[],
-)
-skillifier.record_execution(record)
-patterns = skillifier.analyze_history()
-print(f"发现模式: {len(patterns)} 个")
-
-# 记忆桥接
+# 记忆桥接查询
 bridge = MemoryBridge()
 result = bridge.recall(MemoryQuery(query_text="微服务架构"))
 print(f"召回记忆: {result.total_found} 条")
 ```
-
-### 环境变量配置
-
-```bash
-# WarmupManager 预热模式
-export WARMUP_MODE=FAST        # 最小预热 (~20ms)
-export WARMUP_MODE=FULL        # 全量预热
-export WARMUP_MODE=DISABLED     # 禁用预热
-```
-
-## 各模块详细用法
-
-### 1. Coordinator 多 Agent 协调
-
-```python
-from scripts.collaboration import Coordinator, Scratchpad
-
-scratchpad = Scratchpad()
-coord = Coordinator(scratchpad=scratchpad)
-
-# 规划任务
-plan = coord.plan_task("开发REST API", [
-    {"role_id": "architect"},
-    {"role_id": "solo-coder"},
-])
-
-# 生成执行计划
-workers = coord.spawn_workers(plan)
-result = coord.execute_plan(plan)
-report = coord.generate_report()
-```
-
-### 2. ContextCompressor 上下文压缩
-
-```python
-from scripts.collaboration import ContextCompressor, CompressionLevel
-
-compressor = ContextCompressor()
-
-# L1 轻度压缩（去重+摘要）
-compressed_l1 = compressor.compress(messages, level=CompressionLevel.L1)
-
-# L2 中度压缩（结构化+关键保留）
-compressed_l2 = compressor.compress(messages, level=CompressionLevel.L2)
-
-# L3 深度压缩（语义+核心要点）
-compressed_l3 = compressor.compress(messages, level=CompressionLevel.L3)
-```
-
-### 3. PermissionGuard 权限守卫
-
-```python
-from scripts.collaboration import (
-    PermissionGuard, ProposedAction, ActionType, PermissionLevel
-)
-
-guard = PermissionGuard()
-
-# 设置权限级别
-guard.set_level(PermissionLevel.AUTO)  # PLAN / DEFAULT / AUTO / BYPASS
-
-# 添加自定义规则
-from scripts.collaboration import PermissionRule
-guard.add_rule(PermissionRule(
-    rule_id="allow-test-dir",
-    pattern="glob:/tmp/**",
-    action_types=[ActionType.FILE_WRITE, ActionType.FILE_READ],
-    effect="ALLOW",
-))
-
-# 检查操作
-action = ProposedAction(
-    action_type=ActionType.SHELL_EXECUTE,
-    target="rm -rf /important",
-    description="危险删除操作"
-)
-decision = guard.check(action)
-print(f"结果: {decision.outcome}, 风险分: {decision.risk_score:.2f}")
-
-# 审计日志
-log = guard.get_audit_log()
-report = guard.get_security_report()
-print(f"安全报告: {report}")
-```
-
-### 4. Skillifier 技能自动生成
-
-```python
-from scripts.collaboration import Skillifier, ExecutionRecord, ExecutionStep
-
-skillifier = Skillifier()
-
-# 记录成功执行
-record = ExecutionRecord(
-    task_description="实现用户登录API",
-    success=True,
-    worker_id="backend-dev",
-    role_id="solo-coder",
-    steps=[
-        ExecutionStep(step_order=1, action_type="design", target="auth/models.py",
-                        outcome="completed", duration_ms=500),
-        ExecutionStep(step_order=2, action_type="implement", target="auth/views.py",
-                        outcome="completed", duration_ms=1200),
-        ExecutionStep(step_order=3, action_type="test", target="tests/test_auth.py",
-                        outcome="completed", duration_ms=800),
-    ],
-    artifacts=["models.py", "views.py", "test_auth.py"],
-)
-skillifier.record_execution(record)
-
-# 分析历史 → 提取模式
-patterns = skillifier.analyze_history()
-for p in patterns:
-    print(f"模式: {p.name}, 置信度: {p.confidence:.2f}, 频率: {p.frequency}")
-
-# 生成技能提案
-if patterns:
-    proposal = skillifier.generate_skill(patterns[0])
-    print(f"技能提案: {proposal.name}, 质量分: {proposal.quality_score}")
-    
-    # 质量验证
-    validation = skillifier.validate_skill(proposal)
-    print(f"验证等级: {validation.grade}, 分数: {validation.score:.1f}")
-```
-
-### 5. WarmupManager 启动优化
-
-```python
-from scripts.collaboration import WarmupManager, WarmupConfig, WarmupLayer
-
-# 三种配置模式
-config_fast = WarmupConfig.fast()      # 最小预热
-config_default = WarmupConfig.default()  # 平衡模式
-config_full = WarmupConfig.full()     # 全量预热
-
-wm = WarmupManager.instance(config_default)
-
-# 分层预热
-report = wm.warmup(layers=[WarmupLayer.EAGER])  # 仅 L1 同步 (~15ms)
-# 或全量预热
-full_report = wm.warmup()                   # L1 + L2 + LAZY
-
-# 缓存操作
-wm.set_cache("my_key", {"data": "value"})
-value = wm.get("my_key")
-
-# 懒加载
-result = wm.get_or_load("expensive_key", lambda: heavy_computation())
-
-# 性能诊断
-print(wm.print_diagnostics())
-metrics = wm.get_metrics()
-print(f"启动耗时: {metrics.startup_time_ms:.1f}ms")
-
-# 基准测试
-bench = wm.benchmark(iterations=5)
-print(f"P95延迟: {bench['p95_ms']:.1f}ms")
-```
-
-### 6. MemoryBridge 记忆桥接
-
-```python
-from scripts.collaboration import (
-    MemoryBridge, MemoryConfig, MemoryQuery, MemoryType,
-    KnowledgeItem, UserFeedback, EpisodicMemory, ErrorContext
-)
-
-bridge = MemoryBridge(config=MemoryConfig.default())
-
-# === 写入 ===
-
-# 1. 写入知识
-bridge.writer.write_knowledge(KnowledgeItem(
-    id="kw-redis", domain="缓存", title="Redis缓存策略",
-    content="缓存穿透：布隆过滤器\n击穿：互斥锁重构\n雪崩：随机过期时间",
-    tags=["Redis", "缓存", "分布式"],
-))
-
-# 2. 记录执行洞察（从 Scratchpad FINDING 自动捕获）
-class FakeFinding:
-    entry_type = "FINDING"
-    content = "发现N+1查询问题，建议引入缓存层"
-    confidence = 0.9
-
-record = type('obj', (object,), {
-    'task_description': '性能优化', 'worker_id': 'architect'
-})()
-bridge.capture_execution(record, [FakeFinding()])
-
-# 3. 记录用户反馈
-fb = UserFeedback(id="fb1", feedback_type="suggestion",
-                 content="希望增加更多计算类型支持", rating=5)
-bridge.record_feedback(fb)
-
-# 4. 从错误中学习
-ctx = ErrorContext(error_message="ConnectionTimeoutError: DB连接超时",
-                    task_description="批量导入数据")
-bridge.learn_from_mistake(ctx)
-
-# 5. 持久化 Skillifier 模式
-class GoodPattern:
-    name = "CRUD Generator"
-    steps_template = [{"step": 1, "action": "analyze"}]
-    trigger_keywords = ["CRUD", "增删改查"]
-    confidence = 0.88
-    quality_score = 90
-
-bridge.persist_pattern(GoodPattern())
-
-# === 读取 ===
-
-# 召回相关记忆
-result = bridge.recall(MemoryQuery(
-    query_text="微服务架构设计",
-    limit=5,
-    min_relevance=0.3
-))
-for mem in result.memories:
-    print(f"[{mem.memory_type.value}] {mem.title}: {mem.content[:60]}...")
-    print(f"  相关度: {mem.relevance_score:.2f}")
-
-# 关键词搜索知识库
-items = bridge.search_knowledge(["Redis", "缓存"])
-for item in items:
-    print(f"[{item.domain}] {item.title}: {item.content[:50]}...")
-
-# 统计面板
-stats = bridge.get_statistics()
-print(f"总记忆数: {stats.total_memories}")
-print(f"按类型: {stats.by_type_counts}")
-print(bridge.print_diagnostics())
-
-# 生命周期管理
-print(f"遗忘权重(7天): {bridge.forgetting_weight(new_memory):.2f}")
-print(f"遗忘权重(60天): {bridge.forgetting_weight(old_memory):.2f}")
-
-# 清理过期记忆
-removed = bridge.cleanup_expired_memories()
-print(f"清理了 {removed} 条过期记忆")
-```
-
-## 运行测试
-
-```bash
-# 全量回归测试 (9套件, ~710 cases)
-cd /Users/lin/trae_projects/DevSquad
-
-# 单套件运行
-python3 scripts/collaboration/dispatcher_test.py          # 54 cases
-python3 scripts/collaboration/test_quality_guard_test.py  # 42 cases
-python3 scripts/collaboration/memory_bridge_test.py       # 96 cases
-python3 scripts/collaboration/warmup_manager_test.py       # 103 cases
-python3 scripts/collaboration/skillifier_test.py           # 96 cases
-python3 scripts/collaboration/permission_guard_test.py     # 105 cases
-python3 scripts/collaboration/context_compressor_test.py   # 72 cases
-python3 scripts/collaboration/enhanced_e2e_test.py         # 96+46 cases
-
-# 全量一键运行
-echo "=== FULL REGRESSION ===" && \
-python3 scripts/collaboration/dispatcher_test.py 2>&1 | tail -3 && \
-python3 scripts/collaboration/test_quality_guard_test.py 2>&1 | tail -3 && \
-python3 scripts/collaboration/prompt_optimization_test.py 2>&1 | tail-3 && \
-python3 scripts/collaboration/memory_bridge_test.py 2>&1 | tail -3 && \
-python3 scripts/collaboration/warmup_manager_test.py 2>&1 | tail -3 && \
-python3 scripts/collaboration/skillifier_test.py 2>&1 | tail-4 && \
-python3 scripts/collaboration/permission_guard_test.py 2>&1 | tail-4 && \
-python3 scripts/collaboration/context_compressor_test.py 2>&1 | tail-3 && \
-python3 scripts/collaboration/enhanced_e2e_test.py 2>&1 | tail-4
-```
-
-**最新测试结果**: `~782/~782 ALL PASSED ✅`
-
-| 套件 | 用例数 |
-|------|--------|
-| Dispatcher (Entry) | 54 |
-| TestQualityGuard (QA) | 42 |
-| **PromptOptimization (v3.1)** | **59** |
-| MemoryBridge (P4) | 96 |
-| WarmupManager (P3) | 103 |
-| Skillifier (P2-b) | 96 |
-| PermissionGuard (P2-a) | 105 |
-| ContextCompressor (P1-b) | 72 |
-| Enhanced E2E (P1) | ~142 |
-| **合计** | **~782** |
 
 ## 项目结构
 
 ```
 DevSquad/
 ├── scripts/
-│   └── collaboration/           # ★ v3 核心模块
-│       ├── __init__.py           # 统一导出 (81+ 公共符号)
-│       ├── models.py             # 数据模型 (EntryType/TaskDefinition/...)
-│       ├── dispatcher.py         # ★ V3统一调度入口 (MultiAgentDispatcher)
-│       ├── scratchpad.py         # 共享黑板
-│       ├── worker.py             # 工作者
-│       ├── consensus.py          # 共识引擎
-│       ├── coordinator.py        # 协调器
-│       ├── batch_scheduler.py    # 批处理调度
-│       ├── context_compressor.py # 上下文压缩 (P1-b)
-│       ├── permission_guard.py   # 权限守卫 (P2-a)
-│       ├── skillifier.py         # 技能生成 (P2-b)
-│       ├── warmup_manager.py     # 启动预热 (P3)
-│       ├── memory_bridge.py      # 记忆桥接 (P4)
-│       ├── test_quality_guard.py # 测试质量审计 (QA)
-│       ├── prompt_assembler.py     # ★ v3.1 动态提示词组装
-│       ├── prompt_variant_generator.py # ★ v3.1 Skillify闭环反哺
-│       │
-│       └── *_test.py             # 对应测试文件
-│
-├── prompts/
-│   └── registry.py             # PromptRegistry 提示词注册表
-│
-├── data/
-│   └── memory-bank/            # 持久化记忆存储
-│       ├── knowledge_base/     # 领域知识库
-│       ├── analysis_cases/     # 分析案例 (5-Why)
-│       ├── user_experience/    # 用户反馈
-│       ├── prompt_evolution/   # 提示词进化
-│       └── persisted_patterns/ # 已持久化的技能模式
-│
-├── docs/
-│   ├── architecture/           # 架构设计文档
-│   │   ├── v3-upgrade-proposal.md      # v3 升级路线图
-│   │   ├── v3-phase2-permission-design.md   # P2-a 设计
-│   │   ├── v3-phase2-skillify-design.md     # P2-b 设计
-│   │   ├── v3-phase3-warmup-design.md        # P3 设计
-│   │   └── v3-phase4-memorybridge-design.md  # P4 设计
-│   │
-│   ├── product-manager/        # PM 用户故事
-│   │   ├── USER_STORIES_P2.md     # P2 用户故事
-│   │   ├── USER_STORIES_P2b.md    # P2-b 用户故事
-│   │   ├── USER_STORIES_P3.md     # P3 用户故事
-│   │   └── USER_STORIES_P4.md     # P4 用户故事
-│   │
-│   └── test-expert/            # Tester 测试计划
-│       ├── TEST_PLAN_P2.md       # P2 测试计划
-│       ├── TEST_PLAN_P2b.md      # P2-b 测试计划
-│       ├── TEST_PLAN_P3.md       # P3 测试计划
-│       └── TEST_PLAN_P4.md       # P4 测试计划
-│
-└── README.md                    # 本文件
+│   ├── cli.py                    # 主 CLI 入口
+│   ├── mcp_server.py             # MCP Server (OpenClaw/Cursor)
+│   ├── trae_agent.py             # 传统包装器 (/dss 命令)
+│   ├── trae_agent_dispatch_v2.py # 核心调度器（传统）
+│   └── collaboration/            # ★ 16 个核心模块
+│       ├── dispatcher.py         # MultiAgentDispatcher
+│       ├── coordinator.py        # 全局编排器
+│       ├── scratchpad.py         # 共享工作板
+│       ├── worker.py             # 角色执行器
+│       ├── consensus.py          # 加权投票 + 否决
+│       ├── memory_bridge.py      # 跨会话记忆
+│       ├── mce_adapter.py        # MCE v0.4 适配器
+│       └── *_test.py             # 测试套件 (~41 用例)
+├── SKILL.md                      # 英文 Skill 手册
+├── SKILL-CN.md                   # 中文 Skill 手册
+├── SKILL-JP.md                   # 日文 Skill 手册
+├── CLAUDE.md                     # Claude Code 项目指令
+├── INSTALL.md                    # 安装指南（Unix + Windows）
+├── CHANGELOG.md                  # 完整版本历史
+└── docs/                         # 架构规范、计划文档
 ```
 
-## v3 开发历程
+## 核心理念
 
-| 时间 | Phase | 模块 | 核心能力 | 测试 |
-|------|-------|------|---------|------|
-| **v3.3** | **Claw** | **WorkBuddyClawSource / AI News Inject** | **Claw只读桥接/AI新闻自动注入** | **33** |
-| v3.2 | **MVP** | **E2E Demo / UX / MCEAdapter** | **10步完整流程/结构化报告(3格式)/MCE分类适配器** | **47+** |
-| v3.1 | **Opt** | **PromptOptimization** | **动态Prompt裁剪/Skillify闭环/压缩感知** | **59** |
-| v3.0 | P1 | Coordinator+基础协作 | 多Agent协调/共识/批调度 | E2E 96 |
-| v3.0 | Entry | MultiAgentDispatcher | 统一调度入口/一键协作 | 54 |
-| v3.1 | P1-b | ContextCompressor | 3级上下文压缩 | 72 |
-| v3.2 | P2-a | PermissionGuard | 4级权限+AI分类+审计 | 105 |
-| v3.3 | P2-b | Skillifier | 成功模式提取→技能生成 | 96 |
-| v3.4 | P3 | WarmupManager | 分层异步预热+进程缓存 | 103 |
-| v3.5 | P4 | MemoryBridge | 记忆召回/捕获/持久化 | 96 |
-| v3.6 | QA | TestQualityGuard | API校验/反模式检测/维度审计 | 42 |
-| **v3.6** | **Doc** | **注释补全** | **6大核心模块docstring全覆盖** | **—** |
-| **v3.6** | **—** | **—** | **~710 全通过** | **~710** |
+> **"一个 AI 是工具，十个 AI 协作者是团队。"**
 
-## 设计原则
+软件开发本质上是多学科的。没有任何单一视角能媲美一支协调良好、各具专长的团队的质量。DevSquad 让这样的团队按需可用，在数秒内为任何软件任务组建。
 
-本项目遵循 **文档先行** 的开发流程：
+## 版本历史
 
-1. **需求分析** → 设计文档 (9章架构设计)
-2. **PM 角色** → 用户故事 (12~13 故事, 54~68 AC)
-3. **Tester 角色** → 测试计划 (~91~108 用例)
-4. **达成共识** → 用户审批
-5. **实现** → 核心代码 (~480~620 行/模块)
-6. **测试** → 测试用例 (~96~105 cases/模块)
-7. **集成** → __init__.py + 全量回归
-8. **推送** → Git commit + push
+| 日期 | 版本 | 要点 |
+|------|------|------|
+| 2026-04-17 | **V3.3** | 品牌重塑 → DevSquad、WorkBuddy Claw 集成、跨平台（CLI/MCP/ClaudeCode）、MAS→DSS |
+| 2026-04-17 | V3.2 | E2E Demo、MCE 适配器、调度器 UX 增强、交付工作流铁律 |
+| 2026-04-16 | V3.1 | 提示词优化系统（A/B 变体测试） |
+| 2026-04-16 | V3.0 | 完全重构 —— Coordinator/Worker/Scratchpad 架构 |
+| 2026年3月 | V2.x | 双层上下文、Vibe Coding、MCE 集成、代码地图可视化 |
 
-## License
+## 许可证
 
-MIT License
+MIT License — 详见 [LICENSE](LICENSE)
 
-Copyright (c) 2026 Weiransoft
+## 链接
+
+| 链接 | URL |
+|------|-----|
+| **GitHub（本仓库）** | https://github.com/lulin70/DevSquad |
+| **原始 / 上游仓库** | https://github.com/weiransoft/DevSquad |
+| **安装指南** | [INSTALL.md](INSTALL.md) |
+| **Skill 手册** | [SKILL.md](SKILL.md) / [SKILL-CN.md](SKILL-CN.md) / [SKILL-JP.md](SKILL-JP.md) |
+| **英文 Readme** | [README.md](README.md) |
+| **日文 Readme** | [README-JP.md](README-JP.md) |

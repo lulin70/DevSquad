@@ -1,204 +1,295 @@
-# Trae Multi-Agent Skill
+# DevSquad — マルチエージェントソフトウェア開発チーム
 
-🎭 **V3.3** — 16のコアモジュール、約828のテスト、100%合格率を持つマルチエージェントコラボレーションプラットフォーム。
-タスクタイプに基づき、適切なエージェントロール（アーキテクト、プロダクトマネージャー、テストエキスパート、UIデザイナー、コーダー）に動的にディスパッチします。
-マルチエージェントコラボレーション、コンセンサスメカニズム、外部統合（MCE + WorkBuddy Claw）付きメモリブリッジ、プロンプト最適化、構造化レポートをサポートします。
-中日英3ヶ国語対応。
+<p align="center">
+  <strong>AI駆動の専門開発チームをオンデマンドで編成。</strong>
+</p>
 
-## 🎉 2026年4月 — V3 進化履歴
-
-### V3.3 (2026-04-17) — WorkBuddy Claw 統合
-- ✅ **WorkBuddyClawSource**（約404行）— `/Users/lin/WorkBuddy/Claw/.memory/` への読み取り専用ブリッジ
-- ✅ **Plan A: メモリブリッジ** — INDEX転置インデックス検索、コアファイルマッピング、日次ログ
-- ✅ **Plan B: AIニュースフィード** — automation memory.md 解析による最新AI業界情報
-- ✅ **Dispatcher 自動注入** — キーワードトリガーで Scratchpad へAIニュース自動注入
-- ✅ **33件の新テスト** — Claw 統合テストスイート（T-A01~A08 / T-B01~B04 / T-D01~D02）
-
-### V3.2 (2026-04-17) — MVP 並行3ライン
-- ✅ **E2E 完全デモ**（`e2e_full_demo.py`）— CLI付き本番級10ステップフローデモ
-- ✅ **MCE アダプター**（`mce_adapter.py`）— メモリ分類エンジンアダプター（遅延ロード/グレースフルデグラデ）
-- ✅ **Dispatcher UX 強化** — 構造化レポート（structured / compact / detailed フォーマット）
-- ✅ **47件の新テスト** — MCE(23) + Dispatcher UX(24)
-- ✅ **デリバリーワークフロー鉄則** — 実装→テスト→ウォークスルー→注釈→ドキュメント→Git ループ
-
-### V3.1 (2026-04-16) — プロンプト最適化システム
-- ✅ **PromptAssembler** — 動的アセンブル（TaskComplexity検出、3バリアント、5スタイル）
-- ✅ **PromptVariantGenerator** — Skillifyクローズドループ（A/B プロモーションライフサイクル）
-- ✅ **59件の新テスト** — プロンプト最適化スイート
-
-### V3.0 (2026-04-16) — V3 アーキテクチャ基盤
-- ✅ **完全再設計** — Coordinator/Worker/Scratchpad パターン、11コアモジュール
-- ✅ **約710ベースラインテスト** — 全て合格
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-41%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.3-2026--04--17-orange" />
+</p>
 
 ---
 
-## 🏗️ アーキテクチャ概要
+## DevSquad とは？
+
+DevSquad は**単一の AI コーディングアシスタントを、多ロールの専門開発チームへと変換**します。1 つの AI ですべてのタスクを処理するのではなく、最適な専門家ロールの組み合わせ（アーキテクト、プロダクトマネージャー、コーダー、テスター、セキュリティレビュアーなど）に自動ディスパッチし、共有ワークスペースを通じて並行コラボレーションを調整し、コンセンサス投票で競合を解決し、統一的な構造化レポートを届けます。
+
+**まるで本物のエンジニアのように協力する AI エージェントによって駆動される、オンデマンドの仮想開発チームを想像してください。**
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    DevSquad v3                          │
-│                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────┐ │
-│  │Coordinator│←→│Compressor│←→│   Guard  │←→│ Skillify │←→│Warmup │ │
-│  │ コーディネータ│  │ 圧縮器    │  │ 権限ガード │  │ スキル生成  │  │予熱   │ │
-│  └────┬─────┘  └──────────┘  └──────────┘  └────┬─────┘  └───┬───┘ │
-│       │                                      │            │       │
-│       ▼                                      ▼            ▼       │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │              MemoryBridge (メモリブリッジ)                   │   │
-│  │  MCE + WorkBuddy Claw 外部統合                               │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
+あなた: "マイクロサービス型 EC サイトのバックエンドを設計して"
+           │
+           ▼
+┌─────────────────┐
+│  意図分析 ──→ 自動マッチ: アーキテクト + DevOps + セキュリティ
+└────────┬────────┘
+           ▼
+┌──────────┬──────────┬──────────┐
+│ アーキテクト │   DevOps  │ セキュリティ │
+│(システム設計)│(インフラ)  │(脅威モデル)│
+└────┬──────┴────┬─────┴────┬────┘
+     └────────────┼───────────┘
+                  ▼
+      ┌──────────────────┐
+      │    スクラッチパッド  │ ← リアルタイム同期黒板
+      │  (Scratchpad)     │
+      └────────┬─────────┘
+               ▼
+      ┌──────────────────┐
+      │   コンセンサスエンジン│ ← 加重投票 + 拒否権
+      └────────┬─────────┘
+               ▼
+      ┌──────────────────┐
+      │  構造化レポート     │ ← 発見 + アクション項目 (高/中/低)
+      └──────────────────┘
 ```
 
-## 📦 モジュール一覧（16コアモジュール）
+## クイックスタート
 
-| # | モジュール | ファイル | テスト数 | 説明 |
-|---|-----------|---------|----------|------|
-| 0 | **MultiAgentDispatcher** | `dispatcher.py` | 54+24 | 統一ディスパッチ入口 |
-| 1 | **Coordinator** | `coordinator.py` | (E2E) | マルチエージェント調整 |
-| 2 | **Scratchpad** | `scratchpad.py` | (E2E) | 共有ブラックボード |
-| 3 | **Worker** | `worker.py` | (E2E) | ロール実行者 |
-| 4 | **ConsensusEngine** | `consensus.py` | (E2E) | 重み付け投票+拒否権 |
-| 5 | **BatchScheduler** | `batch_scheduler.py` | (E2E) | 並列/直列ハイブリッド |
-| 6 | **ContextCompressor** | `context_compressor.py` | 72 | 4段階圧縮 |
-| 7 | **PermissionGuard** | `permission_guard.py` | 105 | 4レベル権限モデル |
-| 8 | **Skillifier** | `skillifier.py` | 96 | パターン→スキル自動生成 |
-| 9 | **WarmupManager** | `warmup_manager.py` | 103 | 3層起動予熱 |
-| 10 | **MemoryBridge** | `memory_bridge.py` | 96+33 | 7タイプ記憶+外部統合 |
-| 11 | **TestQualityGuard** | `test_quality_guard.py` | 42 | 3層品質保証 |
-| 12 | **PromptAssembler** | `prompt_assembler.py` | 59 | 動的プロンプトアセンブル |
-| 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | - | A/Bプロモーション |
-| 14 | **MCEAdapter** | `mce_adapter.py` | 23 | MCE分類エンジンアダプター |
-| 15 | **WorkBuddyClawSource** | `memory_bridge.py`(class) | 33 | Claw読み取り専用ブリッジ |
-| **合計** | — | — | **~828** | |
+### 前提条件
 
-## 🚀 クイックスタート
+- **Python 3.9+**（純 Python、コンパイル依存なし）
+- **OS**: macOS / Linux / **Windows 10+**
+- 外部依存不要（すべての統合はグレースフルデグラデーション）
 
-### 基本インポート
+詳細なインストール手順（Windows 含む）は [**INSTALL.md**](INSTALL.md) を参照
 
-```python
-from scripts.collaboration import (
-    MultiAgentDispatcher,
-    Coordinator, Scratchpad, Worker,
-    ConsensusEngine, BatchScheduler,
-)
+### 3 つの使用方法
 
-# 一発ディスパッチ（推奨）
-dispatcher = MultiAgentDispatcher()
-result = dispatcher.quick_dispatch(
-    "ユーザー認証システムを設計してください",
-    output_format="structured",
-)
-print(result)
-```
-
-### E2E デモ実行
+**方法 1: CLI（推奨）**
 
 ```bash
-python3 scripts/demo/e2e_full_demo.py \
-    --task "マイクロサービスアーキテクチャの設計" \
-    --roles architect product_manager coder tester ui-designer \
-    --json
+git clone https://github.com/lulin70/DevSquad.git
+cd DevSquad
+
+python3 scripts/cli.py dispatch -t "ユーザ認証システムを設計"
+python3 scripts/cli.py status
+python3 scripts/cli.py roles
 ```
 
-## 🎭 サポートするエージェントロール
+**方法 2: Python API**
 
-| ロールID | 名前 | 主な責任 |
-|----------|------|-----------|
-| `architect` | アーキテクト | システム設計、技術選定、インターフェース定義 |
-| `product_manager` | PM | 要件分析、ユーザーストーリー、優先順位決定 |
-| `solo-coder` | 開発者 | 実装、コードレビュー、技術的詳細 |
-| `tester` | テスター | テスト戦略、品質保証、エッジケース |
-| `ui-designer` | UIデザイナー | インタラクションデザイン、UXフロー |
+```python
+import sys
+sys.path.insert(0, '/path/to/DevSquad')
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-## 🔌 外部統合
-
-| 統合 | タイプ | パス | ステータス |
-|-------|--------|------|----------|
-| **MCE (Memory Classification Engine)** | オプションアダプター | `/Users/lin/trae_projects/memory-classification-engine` | ✅ 統合済（遅延ロード） |
-| **WorkBuddy (Claw)** | 読み取り専用ブリッジ | `/Users/lin/WorkBuddy/Claw` | ✅ 統合済（自動検出） |
-
-## 📊 テスト結果
-
-```
-MemoryBridge Test:        96/96   ✅
-Dispatcher Test:          54/54   ✅
-MCE Adapter Test:         23/23   ✅
-Dispatcher UX Test:       24/24   ✅
-Claw Integration Test:    33/33   ✅
-Prompt Optimization:       59/59   ✅
-Enhanced E2E:             46/46   ✅
-─────────────────────────────────
-Total:                   ~828    ✅ ALL PASS
+disp = MultiAgentDispatcher()
+result = disp.dispatch("RESTful ユーザ管理 API を設計")
+print(result.to_markdown())
+disp.shutdown()
 ```
 
-## 📁 プロジェクト構造
+**方法 3: クイックディスパッチ（3 出力フォーマット）**
+
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+disp = MultiAgentDispatcher()
+
+# 構造化レポート（デフォルト表形式）
+result = disp.quick_dispatch(task, output_format="structured")
+
+# コンパクト（各ロール 1 行）
+result = disp.quick_dispatch(task, output_format="compact")
+
+# 詳細（完全な発見 + アクション項目）
+result = disp.quick_dispatch(task, output_format="detailed",
+                              include_action_items=True)
+
+disp.shutdown()
+```
+
+## 10 のビルドインロール
+
+| ロール | 最適な用途 |
+|------|-----------|
+| `architect` | システム設計、技術スタック、API 設計 |
+| `pm` | 要件分析、ユーザストーリー、受諾基準 |
+| `coder` | 実装、コード生成、リファクタリング |
+| `tester` | テスト戦略、エッジケース、カバレッジ |
+| `ui` | UX フロー、インタラクション設計 |
+| `devops` | CI/CD パイプライン、デプロイ、モニタリング |
+| `security` | 脅威モデル、脆弱性監査 |
+| `data` | データモデリング、分析、移行 |
+| `reviewer` | コードレビュー、ベストプラクティス |
+| `optimizer` | パフォーマンス最適化、キャッシュ |
+
+**自動マッチ**: ロール未指定時、ディスパッチャがタスク意図に基づき自動マッチング。
+
+## 16 のコアモジュール
+
+| モジュール | 用途 |
+|-----------|------|
+| **MultiAgentDispatcher** | 統一エントリポイント — 1 回の呼び出しで全完了 |
+| **Coordinator** | グローバルオーケストレーション: 分解 → 割当 → 収集 → 決定 |
+| **Scratchpad** | 共有ブラドボード、Worker 間リアルタイム通信 |
+| **Worker** | ロール実行エージェント — 各ロール独立インスタンス |
+| **ConsensusEngine** | 加重投票 + 拒否権 + 人間エスカレーション |
+| **BatchScheduler** | 並列/直列ハイブリッド、自動安全検知 |
+| **ContextCompressor** | 4 レベル圧縮でコンテキストオーバーフロー防止 |
+| **PermissionGuard** | 4 レベル安全ゲート (PLAN → DEFAULT → AUTO → BYPASS) |
+| **Skillifier** | 成功パターンから学習、新スキル自動生成 |
+| **WarmupManager** | 3 層起動プリロード (コールドスタート < 300ms) |
+| **MemoryBridge** | セッション横断メモリ (7 種類、TF-IDF、忘却曲線) |
+| **MCEAdapter** | メモリ分類エンジン統合 (v0.4、テナント対応) |
+| **WorkBuddyClawSource** | 外部知識ブリッジ (転置インデックス検索、AI ニースフィード) |
+| **PromptAssembler** | 動的プロンプト構築 (3 バリアント × 5 スタイル) |
+| **PromptVariantGenerator** | A/B テストクローズドループプロンプト最適化 |
+| **TestQualityGuard** | 自動テスト品質監査 |
+
+## クロスプラットフォーム互換性
+
+DevSquad は複数の AI コーディング環境でネイティブ動作:
+
+| プラットフォーム | 統合方式 | ステータス |
+|---------------|----------|----------|
+| **Trae IDE** | `skill-manifest.yaml` ネイティブスキル | ✅ メイン |
+| **Claude Code** | `CLAUDE.md` + `.claude/skills/` カスタムスキル | ✅ 対応 |
+| **OpenClaw** | MCP Server (`scripts/mcp_server.py`, 6 ツール) | ✅ 対応 |
+| **端末 / 任意 IDE** | CLI (`scripts/cli.py`) または Python インポート | ✅ 汎用 |
+
+### MCP Server (OpenClaw / Cursor / MCP クライアント用)
+
+```bash
+pip install mcp          # オプション
+python3 scripts/mcp_server.py              # stdio モード
+python3 scripts/mcp_server.py --port 8080  # SSE モード
+```
+
+6 ツール公開: `multiagent_dispatch`、`multiagent_quick`、`multiagent_roles`、
+`multiagent_status`、`multiagent_analyze`、`multiagent_shutdown`
+
+## 外部統合
+
+| コンポーネント | ステータス | フォールバック |
+|---------------|----------|-------------|
+| **MCE v0.4** (メモリ分類エンジン) | オプション: テナント/権限対応 | 利用不可時グレースフルデグラデ |
+| **WorkBuddy Claw** | 外部知識ベース読取専用ブリッジ | パス不存在時スキップ |
+
+すべての統合はオプション — DevSquad は単独でも完全に動作可能です。
+
+## テスト実行
+
+```bash
+cd /path/to/DevSquad
+
+# コアコラボレーションテスト
+python3 -m pytest scripts/collaboration/ -v
+# 期待値: ~41 テストケース、全て通過
+
+# クイックステータスチェック
+python3 scripts/cli.py status
+# 期待値: {"name": "DevSquad", "status": "ready", ...}
+
+# ドラン検証
+python3 scripts/cli.py dispatch -t "テスト" --dry-run
+```
+
+## 使用例
+
+### シナリオ 1: 設計セッション
+
+```
+ユーザ: "マイクロサービス型 EC サイトのバックエンドを設計"
+→ DevSquad 自動マッチ: アーキテクト + DevOps + セキュリティ
+→ 出力: 技術スタック推奨 + サービス境界 + セキュリティモデル
+```
+
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+disp = MultiAgentDispatcher()
+result = disp.dispatch("マイクロサービス型 EC サイトのバックエンドを設計")
+print(result.to_markdown())
+disp.shutdown()
+```
+
+### シナリオ 2: セキュリティフォーカスのコードレビュー
+
+```python
+result = disp.quick_dispatch(
+    "auth.py のセキュリティ脆弱性をレビュー",
+    output_format="detailed",
+    include_action_items=True,
+)
+```
+
+### シナリオ 3: フルスタック分析
+
+```python
+result = disp.dispatch("プロジェクトの本番環境準備状況を評価")
+```
+
+### シナリオ 4: コンパクト出力 (端末/パイプ)
+
+```bash
+python3 scripts/cli.py quick -t "DB クエリ最適化" -f compact
+```
+
+### シナリオ 5: JSON 出力 (連携用)
+
+```bash
+python3 scripts/cli.py dispatch -t "API インターフェース分析" -f json
+```
+
+## プロジェクト構造
 
 ```
 DevSquad/
-├── SKILL.md                          # スキル定義（EN）
-├── README.md                         # プロジェクト概要（EN）← デフォルト
-├── README-CN.md                      # プロジェクト概要（中文）
-├── README-JP.md                      # プロジェクト概要（日本語）
-├── CHANGELOG.md                      # バージョン履歴
-├── IMPLEMENTATION_STATUS.md         # 実装ステータス
-├── CONFIGURATION.md                  # 設定ガイド
 ├── scripts/
-│   ├── collaboration/               # コアモジュール（16ファイル）
-│   │   ├── dispatcher.py            # 統一エントリポイント
-│   │   ├── coordinator.py           # グローバルオーケストレーター
-│   │   ├── scratchpad.py            # 共有ブラックボード
-│   │   ├── worker.py                # ロール実行者
-│   │   ├── consensus.py             # コンセンサスエンジン
-│   │   ├── batch_scheduler.py       # ハイブリッドスケジューラ
-│   │   ├── context_compressor.py    # コンテキスト圧縮
-│   │   ├── permission_guard.py      # 権限ガード
-│   │   ├── skillifier.py            # スキル学習
-│   │   ├── warmup_manager.py        # 起動予熱マネージャ
-│   │   ├── memory_bridge.py         # 記憶ブリッジ (+ WorkBuddyClawSource)
-│   │   ├── prompt_assembler.py      # プロンプトアセンブラ
-│   │   ├── prompt_variant_generator.py # プロンプトバリアント
-│   │   ├── mce_adapter.py           # MCEアダプター
-│   │   └── *_test.py                # 各モジュールのテスト
-│   └── demo/
-│       └── e2e_full_demo.py         # 本番級E2Eデモ
-├── docs/
-│   ├── architecture/                # アーキテクチャ文書
-│   ├── spec/                       # 仕様書
-│   └── planning/                   # 計画文書
-└── data/                           # ランタイムデータ
+│   ├── cli.py                    # メイン CLI エントリ
+│   ├── mcp_server.py             # MCP Server (OpenClaw/Cursor)
+│   ├── trae_agent.py             # レガシーラッパー (/dss コマンド)
+│   ├── trae_agent_dispatch_v2.py # コアディスパッチャ (レガシー)
+│   └── collaboration/            # ★ 16 コアモジュール
+│       ├── dispatcher.py         # MultiAgentDispatcher
+│       ├── coordinator.py        # グローバルオーケストレーター
+│       ├── scratchpad.py         # 共有ブラドボード
+│       ├── worker.py             # ロール実行エージェント
+│       ├── consensus.py          # 加权投票 + 拒否
+│       ├── memory_bridge.py      # セッション横断メモリ
+│       ├── mce_adapter.py        # MCE v0.4 アダプタ
+│       └── *_test.py             # テストスイート (~41 ケース)
+├── SKILL.md                      # 英語スキルマニュアル
+├── SKILL-CN.md                   # 中国語スキルマニュアル
+├── SKILL-JP.md                   # 日本語スキルマニュアル
+├── CLAUDE.md                     # Claude Code プロジェクト指示
+├── INSTALL.md                    # インストールガイド (Unix + Windows)
+├── CHANGELOG.md                  # 完全なバージョン履歴
+└── docs/                         # アーキテクチャ仕様書、計画
 ```
 
-## 🌍 多言語サポート
+## フィロソフィー
 
-このスキルは中日英3ヶ国語対応です：
+> **「AI 1 つはツール。AI 協作者 10 つはチーム。」**
 
-- **README.md** — English (デフォルト)
-- **README-CN.md** — 中文（簡体字）
-- **README-JP.md** — 日本語（本ファイル）
+ソフトウェア開発は本質的に学際的です。いかなる単一視点も、調整の取れた多様な専門知識を持つチームの品質には及びません。DevSquad はそのようなチームをオンデマンドで、数秒で、あらゆるソフトウェアタスクのために利用可能にします。
 
-## 📄 関連ドキュメント
+## バージョン履歴
 
-| ドキュメント | パス | 用途 |
-|------------|------|------|
-| スキル定義 | `SKILL.md` | スキルルールと鉄則 |
-| 変更ログ | `CHANGELOG.md` | V3.0~V3.3 完全履歴 |
-| 実装ステータス | `IMPLEMENTATION_STATUS.md` | モバージョン・モジュール・テスト |
-| アーキテクチャ | `docs/architecture/v3-upgrade-proposal.md` | 進化計画 |
-| Claw仕様 | `docs/spec/WORKBUDDY_CLAW_INTEGRATION_SPEC.md` | Claw統合仕様（実装済） |
-| 設定ガイド | `CONFIGURATION.md` | 外部統合設定 |
+| 日付 | バージョン | 要点 |
+|------|-----------|------|
+| 2026-04-17 | **V3.3** | ブランド変更 → DevSquad、WorkBuddy Claw 統合、クロスプラットフォーム (CLI/MCP/ClaudeCode)、MAS→DSS |
+| 2026-04-17 | V3.2 | E2E デモ、MCE アダプター、ディスパッチャ UX 強化 |
+| 2026-04-16 | V3.1 | プロンプト最適化システム (A/B バリアントテスト) |
+| 2026-04-16 | V3.0 | 完全再設計 — Coordinator/Worker/Scratchpad アーキテクチャ |
+| 2026年3月 | V2.x | 双層コンテキスト、Vibe Coding、MCE 統合 |
 
-## 📝 Annotation Standards (v3.3)
+## ライセンス
 
-| カテゴリ | 言語 |
-|----------|------|
-| ドキュメント (SKILL.md / README.md) | **English** |
-| README-CN.md | **中文（簡体字）** |
-| README-JP.md | **日本語** |
-| コード docstring | **English** (Args / Returns / Example) |
-| 行内コメント | **English** (ビジネスロジック説明) |
+MIT License — [LICENSE](LICENSE) を参照
 
-## 📜 License
+## リンク
 
-MIT License — 詳細は LICENSE ファイルを参照してください。
+| リンク | URL |
+|--------|-----|
+| **GitHub (本リポ)** | https://github.com/lulin70/DevSquad |
+| **オリジナル / 上流** | https://github.com/weiransoft/DevSquad |
+| **インストール** | [INSTALL.md](INSTALL.md) |
+| **スキルマニュアル** | [SKILL.md](SKILL.md) / [SKILL-CN.md](SKILL-CN.md) / [SKILL-JP.md](SKILL-JP.md) |
+| **英語 Readme** | [README.md](README.md) |
+| **中国語 Readme** | [README-CN.md](README-CN.md) |
