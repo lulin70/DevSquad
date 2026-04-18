@@ -1,45 +1,49 @@
-# 视频项目目录
-video/
+# === DevSquad V3.3 Git Ignore ===
 
-# 视频输出文件
-video/out/*.mp4
-video/out/*.mov
-video/out/*.avi
-
-# 视频构建产物
-video/node_modules/
-video/package-lock.json
-video/dist/
-video/.next/
-video/.cache/
-
-# 视频临时文件
-video/*.tmp
-video/*.log
-#本地目录
-/content/
-/examples/
-/test/
-# 视频公共资源（可选，根据需要）
-# video/public/
-
-# IDE 和编辑器文件
+# --- IDE & Editor ---
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 .trae/
-# OS 文件
+
+# --- OS ---
 .DS_Store
 Thumbs.db
 
-# 临时文件
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# --- Test ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Runtime Data (SQLite) ---
+*.db
+*.db-shm
+*.db-wal
+
+# --- Runtime Context (auto-generated) ---
+context/
+data/context/
+
+# --- Temp ---
 tmp/
 temp/
 *.tmp
+*.bak
+*.patch
 
-# 本地运行时生成的上下文目录
-context/
-.trae/
-
+# --- Legacy / Unused (V2 remnants) ---
+memory-bank/
+prompts/
+prompt_evolution/
+plans/
+install.sh
