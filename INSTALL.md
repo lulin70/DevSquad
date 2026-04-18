@@ -248,4 +248,153 @@ DevSquad/
 ├── CLAUDE.md                     # Claude Code instructions
 ├── ABOUT.md                      # Project overview
 └── INSTALL.md                    # This file
+
+---
+
+## Windows Support
+
+DevSquad is pure Python and fully compatible with Windows (10/11). Below are
+Windows-specific instructions.
+
+### Prerequisites on Windows
+
+- **Python 3.9+** — Download from [python.org](https://python.org) or install via `winget`
+- **PowerShell** or **CMD** — Both work; PowerShell recommended
+- **Git for Windows** — For cloning the repo: [git-scm.com](https://git-scm.com)
+
+```powershell
+# Quick check (PowerShell)
+python --version    # Should show Python 3.9+
+git --version       # Should show git version
+```
+
+### Installation (Windows)
+
+#### Option A: PowerShell (Recommended)
+
+```powershell
+# 1. Clone the repo
+git clone https://github.com/lulin70/DevSquad.git C:\DevSquad
+cd C:\DevSquad
+
+# 2. Run a task immediately
+python scripts\cli.py dispatch -t "Design user authentication system" -r architect coder tester
+
+# 3. Check status
+python scripts\cli.py status
+
+# 4. List roles
+python scripts\cli.py roles
+```
+
+> **Note**: On Windows, use `\` (backslash) as path separator in PowerShell/CMD,
+> or use `/` (forward slash) — Python handles both correctly.
+
+#### Option B: Set Environment Variable (Persistent)
+
+**PowerShell** (persists across sessions):
+
+```powershell
+# Add to your PowerShell profile ($PROFILE)
+[System.Environment]::SetEnvironmentVariable("DSS_SKILL_PATH", "C:\DevSquad", "User")
+
+# Verify
+echo $env:DSS_SKILL_PATH
+```
+
+**CMD** (add to System Properties → Environment Variables):
+
+```cmd
+setx DSS_SKILL_PATH "C:\DevSquad"
+```
+
+Then use from any directory:
+
+```powershell
+python %DSS_SKILL_PATH%\scripts\trae_agent.py --task "Analyze requirements" --agent architect
+```
+
+#### Option C: Python Import
+
+```python
+import sys, os
+sys.path.insert(0, r'C:\DevSquad')
+
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+disp = MultiAgentDispatcher()
+result = disp.dispatch("Design REST API for user management")
+print(result.to_markdown())
+disp.shutdown()
+```
+
+### Windows-Specific Notes
+
+| Topic | Details |
+|-------|---------|
+| **Path separators** | Use `\\` in shell commands, but `/` also works in Python |
+| **`.trae/` directory** | Works on Windows (visible folder, not hidden like Unix) |
+| **`chmod +x`** | Not needed on Windows (no execute permission concept) |
+| **Symlinks (`ln -s`)** | Requires Developer Mode on Windows 10/11. Not recommended — just set env var instead |
+| **MCE Adapter** | Works if MCE installed in same Python environment. Graceful degradation otherwise |
+| **WorkBuddy Claw** | Path defaults to Unix-style. Override via config if running on Windows |
+| **Encoding** | All files use UTF-8. If you see encoding errors: `set PYTHONIOENCODING=utf-8` |
+
+### Troubleshooting on Windows
+
+#### `'python' is not recognized`
+
+Python may be installed as `py` or `python3`:
+
+```powershell
+# Try these alternatives
+py scripts\cli.py status
+python3 scripts\cli.py status
+```
+
+Or add Python to PATH during installation (check "Add to PATH" in installer).
+
+#### PermissionError / Access Denied
+
+Windows may block scripts in some directories. Run as admin, or move to user directory:
+
+```powershell
+# Move to user home instead of C:\
+move C:\DevSquad $HOME\DevSquad
+```
+
+#### ModuleNotFoundError
+
+On Windows, current directory is not automatically in sys.path:
+
+```powershell
+# Option A: cd first
+cd C:\DevSquad
+python scripts\cli.py ...
+
+# Option B: set PYTHONPATH
+$env:PYTHONPATH="C:\DevSquad"
+python scripts\cli.py ...
+```
+
+### Verification on Windows
+
+```powershell
+cd C:\DevSquad
+
+# 1. Status check
+python scripts\cli.py status
+# Expected: {"name": "DevSquad", "status": "ready", ...}
+
+# 2. Role listing
+python scripts\cli.py roles
+# Expected: 10 roles listed
+
+# 3. Dry-run test
+python scripts\cli.py dispatch -t "test" -r architect --dry-run
+# Expected: [DRY RUN] message
+
+# 4. Core tests
+python -m pytest scripts\collaboration\ -q
+# Expected: ~176 passed (core), ~828 total
 ```

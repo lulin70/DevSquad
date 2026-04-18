@@ -158,9 +158,11 @@ def test_integration_with_context_manager():
     try:
         from dual_layer_context_manager import DualLayerContextManager, TaskDefinition
         
+        import tempfile
+        _tmp = tempfile.gettempdir()
         manager = DualLayerContextManager(
-            project_root="/tmp/test_trae_project",
-            skill_root="/tmp/test_trae_skill"
+            project_root=os.path.join(_tmp, "test_trae_project"),
+            skill_root=os.path.join(_tmp, "test_trae_skill")
         )
         
         print(f"  Memory Adapter 集成状态: {manager._use_memory_adapter}")
