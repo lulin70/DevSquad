@@ -13,8 +13,11 @@
 ## Prerequisites
 
 - **Python 3.9+** (pure Python, no compiled dependencies)
+- **OS**: macOS / Linux / **Windows 10+** (fully cross-platform)
 - **Any AI coding environment**: Trae IDE / Claude Code / OpenClaw / Terminal
 - **No external dependencies required** (all integrations use graceful degradation)
+
+See [**Windows Support**](#windows-support) below for Windows-specific instructions.
 
 ## Quick Start (3 Methods)
 
@@ -50,6 +53,9 @@ Then use from anywhere:
 ```bash
 python3 $DSS_SKILL_PATH/scripts/trae_agent.py --task "Analyze requirements" --agent architect
 ```
+
+> **Note**: `trae_agent.py` uses legacy role names (`product-manager`, `solo-coder`, `ui-designer`).
+> For the modern 10-role system, use `scripts/cli.py` (Method 1) instead.
 
 ### Method 3: Python Import
 
@@ -90,6 +96,8 @@ Dispatch Options:
   --skip-permission      Skip permission checks
   --no-memory           Disable memory bridge
   --permission-level    PLAN/DEFAULT/AUTO/BYPASS
+  --persist-dir        Custom scratchpad directory
+  --no-skillify         Disable skill learning
 ```
 
 ### Usage Examples
@@ -182,7 +190,7 @@ python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python3 -m pytest scripts/collaboration/ -v
-# Expected: ~176 passed (core), ~828 total
+# Expected: ~41 test cases (all passing)
 ```
 
 ## Troubleshooting
@@ -241,7 +249,7 @@ DevSquad/
 │       ├── consensus.py          # Weighted voting + veto
 │       ├── memory_bridge.py      # Cross-session memory
 │       ├── mce_adapter.py        # MCE v0.4 adapter
-│       └── *_test.py             # Test suites (~828 cases)
+│       └── *_test.py             # Test suites (~41 cases)
 ├── SKILL.md                      # English skill manual
 ├── SKILL-CN.md                   # Chinese skill manual
 ├── README.md                     # English readme
@@ -311,8 +319,11 @@ setx DSS_SKILL_PATH "C:\DevSquad"
 Then use from any directory:
 
 ```powershell
-python %DSS_SKILL_PATH%\scripts\trae_agent.py --task "Analyze requirements" --agent architect
+python $env:DSS_SKILL_PATH\scripts\trae_agent.py --task "Analyze requirements" --agent architect
 ```
+
+> **Note**: `trae_agent.py` uses legacy role names. For the modern 10-role system,
+> use `scripts\cli.py` (Option A above) instead.
 
 #### Option C: Python Import
 
@@ -396,5 +407,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest scripts\collaboration\ -q
-# Expected: ~176 passed (core), ~828 total
+# Expected: ~41 test cases (all passing)
 ```
