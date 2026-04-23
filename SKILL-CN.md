@@ -3,7 +3,7 @@ name: devsquad
 slug: devsquad
 description: |
   V3.3 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
-  集成15大核心模块：Coordinator协调器 + Scratchpad共享黑板 + Worker执行者 + Consensus共识引擎 +
+  集成16大核心模块：Coordinator协调器 + Scratchpad共享黑板 + Worker执行者 + Consensus共识引擎 +
   BatchScheduler并行调度 + ContextCompressor上下文压缩 + PermissionGuard权限守卫 +
   Skillifier技能学习 + WarmupManager启动预热 + MemoryBridge记忆桥接 +
   PromptAssembler提示词组装 + PromptVariantGenerator变体生成 + MCEAdapter记忆分类适配器。

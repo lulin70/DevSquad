@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**DevSquad** is a **V3.3 Multi-Agent Software Development Team** platform. It transforms a single AI assistant into a specialized development squad with 10 roles (architect/pm/coder/tester/ui/devops/security/data/reviewer/optimizer). Based on the Coordinator/Worker/Scratchpad pattern for parallel agent collaboration.
+**DevSquad** is a **V3.3 Multi-Agent Orchestration Engine** for software development. It transforms a single AI assistant into a specialized development squad with 5 core roles + 5 planned roles. Based on the Coordinator/Worker/Scratchpad pattern for parallel agent collaboration.
 
 **16 Core Modules**: Coordinator, Scratchpad, Worker, ConsensusEngine, BatchScheduler, ContextCompressor (4-level), PermissionGuard (4-level), Skillifier, WarmupManager (3-layer), MemoryBridge (MCE+Claw), TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource.
 
