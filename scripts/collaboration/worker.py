@@ -55,7 +55,7 @@ class Worker:
     """
 
     def __init__(self, worker_id: str, role_id: str, role_prompt: str,
-                 scratchpad: Scratchpad):
+                 scratchpad: Scratchpad, llm_backend=None):
         """
         初始化 Worker 实例
 
@@ -64,11 +64,13 @@ class Worker:
             role_id: 角色标识（如 "architect", "tester", "solo-coder"）
             role_prompt: 角色的系统提示词/指令模板
             scratchpad: 关联的共享黑板实例
+            llm_backend: LLM执行后端（None=MockBackend，返回组装的prompt）
         """
         self.worker_id = worker_id
         self.role_id = role_id
         self.role_prompt = role_prompt
         self.scratchpad = scratchpad
+        self.llm_backend = llm_backend
         self._notifications_outbox: List[TaskNotification] = []
         self._entries_written_count = 0
         self._last_assembled_prompt = None
@@ -340,7 +342,7 @@ class Worker:
 
     def _do_work(self, context: Dict[str, Any]) -> str:
         """
-        执行核心工作 - 通过 PromptAssembler 动态组装提示词
+        执行核心工作 - 通过 PromptAssembler 动态组装提示词，然后通过 LLMBackend 执行
 
         组装流程:
         1. 从 context 提取任务描述、相关发现、压缩级别
@@ -348,14 +350,16 @@ class Worker:
         3. 按复杂度选择模板变体 (compact/standard/enhanced)
         4. 应用压缩级别覆盖（如有）
         5. 输出最终工作指令
+        6. 如果配置了 LLMBackend，调用 LLM 执行；否则返回组装的指令
 
         Args:
             context: 由 _build_execution_context() 构建的执行上下文
 
         Returns:
-            str: 组装后的工作指令文本
+            str: LLM 响应文本（有后端时）或组装后的工作指令文本（无后端时）
         """
         from .prompt_assembler import PromptAssembler
+        from .llm_backend import MockBackend
 
         task = context["task"]
         assembler = PromptAssembler(role_id=self.role_id,
@@ -369,7 +373,12 @@ class Worker:
         )
 
         self._last_assembled_prompt = result
-        return result.instruction
+
+        backend = self.llm_backend or MockBackend()
+        if isinstance(backend, MockBackend):
+            return result.instruction
+
+        return backend.generate(result.instruction)
 
 
 class WorkerFactory:
@@ -389,7 +398,7 @@ class WorkerFactory:
 
     @staticmethod
     def create(worker_id: str, role_id: str, role_prompt: str,
-               scratchpad: Scratchpad) -> Worker:
+               scratchpad: Scratchpad, llm_backend=None) -> Worker:
         """
         创建单个 Worker 实例
 
@@ -402,11 +411,11 @@ class WorkerFactory:
         Returns:
             Worker: 新创建的 Worker 实例
         """
-        return Worker(worker_id, role_id, role_prompt, scratchpad)
+        return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend)
 
     @staticmethod
     def create_batch(workers_config: List[Dict[str, str]],
-                     scratchpad: Scratchpad) -> List[Worker]:
+                     scratchpad: Scratchpad, llm_backend=None) -> List[Worker]:
         """
         批量创建 Worker 实例
 
@@ -430,6 +439,7 @@ class WorkerFactory:
                 role_id=cfg["role_id"],
                 role_prompt=cfg.get("role_prompt", ""),
                 scratchpad=scratchpad,
+                llm_backend=llm_backend,
             )
             workers.append(w)
         return workers
