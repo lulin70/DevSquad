@@ -189,7 +189,7 @@ def create_mcp_server() -> "FastMCP":
                 "version": "3.3.0",
                 "status": "ready",
                 "modules": 16,
-                "tests": "~828",
+                "tests": "~825+",
                 "roles": 10,
                 "modes": ["auto", "parallel", "sequential", "consensus"],
                 "features": {

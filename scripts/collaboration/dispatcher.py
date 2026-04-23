@@ -118,6 +118,52 @@ ROLE_TEMPLATES = {
     },
 }
 
+ROLE_ALIASES = {
+    "pm": "product-manager",
+    "coder": "solo-coder",
+    "ui": "ui-designer",
+    "dev": "solo-coder",
+    "arch": "architect",
+    "test": "tester",
+    "qa": "tester",
+}
+
+PLANNED_ROLES = {
+    "devops": {
+        "name": "DevOps工程师",
+        "status": "planned",
+        "description": "CI/CD pipeline, deployment, monitoring, infrastructure",
+    },
+    "security": {
+        "name": "安全专家",
+        "status": "planned",
+        "description": "Threat modeling, vulnerability audit, security review",
+    },
+    "data": {
+        "name": "数据工程师",
+        "status": "planned",
+        "description": "Data modeling, analytics, migrations, ETL",
+    },
+    "reviewer": {
+        "name": "代码审查员",
+        "status": "planned",
+        "description": "Code review, best practices, style consistency",
+    },
+    "optimizer": {
+        "name": "性能优化师",
+        "status": "planned",
+        "description": "Performance optimization, caching, profiling",
+    },
+}
+
+
+def resolve_role_id(role_id: str) -> str:
+    if role_id in ROLE_TEMPLATES:
+        return role_id
+    if role_id in ROLE_ALIASES:
+        return ROLE_ALIASES[role_id]
+    return role_id
+
 
 @dataclass
 class DispatchResult:
@@ -407,17 +453,23 @@ class MultiAgentDispatcher:
             matched_roles = self.analyze_task(task_description)
 
             if roles:
-                role_ids_set = set(roles)
+                resolved_roles = [resolve_role_id(r) for r in roles]
+                role_ids_set = set(resolved_roles)
                 matched_roles = [r for r in matched_roles if r["role_id"] in role_ids_set]
-                for rid in roles:
+                for rid, original_rid in zip(resolved_roles, roles):
                     if not any(r["role_id"] == rid for r in matched_roles):
                         template = ROLE_TEMPLATES.get(rid, {"name": rid, "prompt": ""})
+                        planned = PLANNED_ROLES.get(rid)
+                        if planned:
+                            reason = f"用户指定（{planned['name']} - 规划中角色，暂无完整模板）"
+                        else:
+                            reason = "用户指定"
                         matched_roles.append({
                             "role_id": rid,
                             "name": template.get("name", rid),
                             "confidence": 1.0,
                             "matched_keywords": [],
-                            "reason": "用户指定",
+                            "reason": reason,
                         })
 
             role_ids = [r["role_id"] for r in matched_roles]
@@ -1062,7 +1114,7 @@ class MultiAgentDispatcher:
     def get_status(self) -> Dict[str, Any]:
         """获取系统状态"""
         status = {
-            "version": "3.0",
+            "version": "3.3.0",
             "persist_dir": self.persist_dir,
             "components": {
                 "coordinator": self.coordinator is not None,

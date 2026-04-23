@@ -1,6 +1,6 @@
 # Changelog
 
-This document records all significant changes to Trae Multi-Agent Skill.
+This document records all significant changes to DevSquad.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/).

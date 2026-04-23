@@ -5,7 +5,7 @@ description: |
   V3.3 DevSquad — Multi-Agent Software Development Team.
   Transforms a single AI assistant into a specialized dev squad (architect/pm/coder/tester/...)
   based on Coordinator/Worker/Scratchpad pattern.
-  16 core modules, ~828 tests, all passing. Cross-platform (Trae/ClaudeCode/OpenClaw).
+  16 core modules, ~825+ tests, all passing. Cross-platform (Trae/ClaudeCode/OpenClaw).
 ---
 
 # DevSquad V3.3 — Multi-Agent Software Development Team
@@ -476,7 +476,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | MCEAdapter | 23 | ✅ | ✅ PASS |
 | Dispatcher UX | 24 | ✅ | ✅ PASS |
 | Claw Integration | 33 | ✅ | ✅ PASS |
-| **Total** | **~828** | **✅ ALL PASS** | |
+| **Total** | **~825+** | **✅ ALL PASS** | |
 
 ---
 

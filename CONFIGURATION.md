@@ -1,4 +1,4 @@
-# Trae Multi-Agent Skill 配置指南
+# DevSquad 配置指南
 
 ## 问题说明
 

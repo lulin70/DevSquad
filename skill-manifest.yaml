@@ -1,23 +1,12 @@
 name: devsquad
-version: 3.0.0
+version: 3.3.0
 description: |
-  V3.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
+  DevSquad — Multi-Agent Orchestration Engine for Software Development.
 
-  核心架构：用户任务 → MultiAgentDispatcher → Coordinator编排 → 多Worker并行执行 → Scratchpad共享 → Consensus决策 → 结果返回
+  Core: One task → Multi-role AI collaboration → One conclusion.
+  Architecture: Coordinator/Worker/Scratchpad with Consensus voting.
 
-  10大核心模块（668测试全通过）：
-  1. Coordinator 协调器 - 全局任务编排与Worker管理
-  2. Scratchpad 共享黑板 - Worker间实时信息交换
-  3. Worker 执行者 - 角色实例化与任务执行
-  4. ConsensusEngine 共识引擎 - 权重投票+否决权+升级人工
-  5. BatchScheduler 并行调度 - 自动并发安全性判断
-  6. ContextCompressor 上下文压缩 - 3级压缩防溢出(SNIP/SessionMemory/FullCompact)
-  7. PermissionGuard 权限守卫 - 4级安全分级(PLAN/DEFAULT/AUTO/BYPASS)
-  8. Skillifier 技能学习 - 从成功操作自动生成新Skill
-  9. WarmupManager 启动预热 - 3层预加载(EAGER/ASYNC/LAZY) + 进程级缓存
-  10. MemoryBridge 记忆桥接 - 7类型记忆 + 倒排索引 + TF-IDF + 遗忘曲线
-
-author: Trae Team
+  5 core roles + 5 planned, 16 modules (~825+ tests passing).
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -188,6 +177,14 @@ metadata:
   repository: https://github.com/lulin70/DevSquad
 
   version_history:
+    - version: 3.3.0
+      date: "2026-04-18"
+      changes:
+        - Brand unification: TraeMultiAgentSkill → DevSquad
+        - Role system: 5 core + 5 planned roles with alias mapping
+        - Cross-platform: Trae/ClaudeCode/OpenClaw(MCP)/CLI
+        - 16 modules, ~825+ tests passing
+
     - version: 3.0.0
       date: "2026-04-16"
       changes:

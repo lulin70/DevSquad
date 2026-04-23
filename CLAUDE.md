@@ -6,7 +6,7 @@
 
 **16 Core Modules**: Coordinator, Scratchpad, Worker, ConsensusEngine, BatchScheduler, ContextCompressor (4-level), PermissionGuard (4-level), Skillifier, WarmupManager (3-layer), MemoryBridge (MCE+Claw), TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource.
 
-**Test Coverage**: ~828 tests, all passing.
+**Test Coverage**: ~825+ tests, all passing.
 **Cross-Platform**: Trae IDE / ClaudeCode / OpenClaw / Any MCP-compatible client.
 
 ## Architecture
@@ -80,7 +80,7 @@ DevSquad/
 - **Testing**: pytest-based, 176 core collaboration tests
 - **Style**: PEP 8, dataclasses for models, type hints throughout
 
-## Role System (10 Built-in Roles)
+## Role System (5 Core + 5 Planned)
 
 | Role | Responsibility |
 |---------------------|

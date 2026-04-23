@@ -1,6 +1,6 @@
 # Usage Examples
 
-This document provides practical usage examples for Trae Multi-Agent Skill.
+This document provides practical usage examples for DevSquad.
 
 ## 📖 Table of Contents
 

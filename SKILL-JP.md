@@ -8,7 +8,7 @@ description: |
   BatchScheduler + ContextCompressor + PermissionGuard +
   Skillifier + WarmupManager + MemoryBridge (MCE+Claw) +
   PromptAssembler + PromptVariantGenerator + MCEAdapter + WorkBuddyClawSource。
-  ~828テスト全合格。中日英3ヶ国語対応。
+  ~825+テスト全合格。中日英3ヶ国語対応。
 ---
 
 # Multi-Agent Team V3.3 — マルチエージェントコラボレーションプラットフォーム
@@ -132,7 +132,7 @@ result = quick_collaborate("マイクロサービス設計を手伝って")
 
 | モジュール | テスト数 | ステータス |
 |-----------|---------|----------|
-| 全16モジュール | **~828** | **✅ ALL PASS** |
+| 全16モジュール | **~825+** | **✅ ALL PASS** |
 
 ---
 

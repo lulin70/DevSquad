@@ -1,6 +1,6 @@
 # 使用示例
 
-本文档提供 Trae Multi-Agent Skill 的实际使用示例。
+本文档提供 DevSquad 的实际使用示例。
 
 ## 📖 目录
 

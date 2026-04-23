@@ -7,7 +7,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-41%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-825%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.3-2026--04--17-orange" />
 </p>
 
@@ -103,20 +103,20 @@ result = disp.quick_dispatch(task, output_format="detailed",
 disp.shutdown()
 ```
 
-## 10 Built-in Roles
+## 5 Core Roles + 5 Planned Roles
 
-| Role | Best For |
-|------|----------|
-| `architect` | System design, tech stack, API design |
-| `pm` | Requirements, user stories, acceptance criteria |
-| `coder` | Implementation, code generation, refactoring |
-| `tester` | Test strategy, edge cases, coverage gaps |
-| `ui` | UX flow, interaction design, accessibility |
-| `devops` | CI/CD pipeline, deployment, monitoring |
-| `security` | Threat modeling, vulnerability audit |
-| `data` | Data modeling, analytics, migrations |
-| `reviewer` | Code review, best practices |
-| `optimizer` | Performance optimization, caching |
+| Role | ID | Best For | Status |
+|------|----|----------|--------|
+| Architect | `architect` / `arch` | System design, tech stack, API design | ✅ Core |
+| Product Manager | `product-manager` / `pm` | Requirements, user stories, acceptance criteria | ✅ Core |
+| Coder | `solo-coder` / `coder` / `dev` | Implementation, code generation, refactoring | ✅ Core |
+| Tester | `tester` / `test` / `qa` | Test strategy, edge cases, coverage gaps | ✅ Core |
+| UI Designer | `ui-designer` / `ui` | UX flow, interaction design, accessibility | ✅ Core |
+| DevOps | `devops` | CI/CD pipeline, deployment, monitoring | 🔜 Planned |
+| Security | `security` | Threat modeling, vulnerability audit | 🔜 Planned |
+| Data Engineer | `data` | Data modeling, analytics, migrations | 🔜 Planned |
+| Reviewer | `reviewer` | Code review, best practices | 🔜 Planned |
+| Optimizer | `optimizer` | Performance optimization, caching | 🔜 Planned |
 
 **Auto-match**: If no roles specified, the dispatcher automatically matches based on task intent.
 
@@ -179,7 +179,7 @@ cd /path/to/DevSquad
 
 # Core collaboration tests
 python3 -m pytest scripts/collaboration/ -v
-# Expected: ~41 test cases, all passing
+# Expected: ~825+ test cases, all passing
 
 # Quick status check
 python3 scripts/cli.py status

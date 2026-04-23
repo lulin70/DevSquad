@@ -190,7 +190,7 @@ python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python3 -m pytest scripts/collaboration/ -v
-# Expected: ~41 test cases (all passing)
+# Expected: ~825+ test cases (all passing)
 ```
 
 ## Troubleshooting
@@ -249,7 +249,7 @@ DevSquad/
 │       ├── consensus.py          # Weighted voting + veto
 │       ├── memory_bridge.py      # Cross-session memory
 │       ├── mce_adapter.py        # MCE v0.4 adapter
-│       └── *_test.py             # Test suites (~41 cases)
+│       └── *_test.py             # Test suites (~825+ cases)
 ├── SKILL.md                      # English skill manual
 ├── SKILL-CN.md                   # Chinese skill manual
 ├── README.md                     # English readme
@@ -407,5 +407,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest scripts\collaboration\ -q
-# Expected: ~41 test cases (all passing)
+# Expected: ~825+ test cases (all passing)
 ```

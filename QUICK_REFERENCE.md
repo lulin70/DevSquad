@@ -1,4 +1,4 @@
-# Trae Multi-Agent 多语言快速参考
+# DevSquad 多语言快速参考
 
 ## 语言切换
 

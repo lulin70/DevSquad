@@ -1,16 +1,16 @@
 ---
-name: multi-agent-team-v3
-slug: multi-agent-team-v3
+name: devsquad
+slug: devsquad
 description: |
-  V3.2 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
+  V3.3 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
   集成15大核心模块：Coordinator协调器 + Scratchpad共享黑板 + Worker执行者 + Consensus共识引擎 +
   BatchScheduler并行调度 + ContextCompressor上下文压缩 + PermissionGuard权限守卫 +
   Skillifier技能学习 + WarmupManager启动预热 + MemoryBridge记忆桥接 +
   PromptAssembler提示词组装 + PromptVariantGenerator变体生成 + MCEAdapter记忆分类适配器。
-  ~828个测试全通过。支持中英文双语。
+  ~825+个测试全通过。支持中英文双语。
 ---
 
-# Multi-Agent Team V3.2 — 多智能体协作平台
+# Multi-Agent Team V3.3 — 多智能体协作平台
 
 ## 核心定位
 
@@ -478,7 +478,7 @@ def test_<功能>_<场景>(self):
 | MCEAdapter (MCE适配器) | 23 | ✅ | ✅ PASS |
 | Dispatcher UX (报告增强) | 24 | ✅ | ✅ PASS |
 | Claw Integration (Claw桥接) | 33 | ✅ | ✅ PASS |
-| **总计** | **~828** | **✅ ALL PASS** | |
+| **总计** | **~825+** | **✅ ALL PASS** | |
 
 ---
 
