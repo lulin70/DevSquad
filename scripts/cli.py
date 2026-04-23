@@ -17,11 +17,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.permission_guard import PermissionLevel
+from scripts.collaboration.models import ROLE_REGISTRY, get_cli_role_list
 
-ROLES = [
-    "architect", "pm", "coder", "tester", "ui",
-    "devops", "security", "data", "reviewer", "optimizer"
-]
+ROLES = get_cli_role_list()
 
 MODES = ["auto", "parallel", "sequential", "consensus"]
 FORMATS = ["markdown", "json", "compact", "structured", "detailed"]
@@ -98,18 +96,11 @@ def cmd_status(args):
 
 def cmd_roles(args):
     """List all available roles with descriptions."""
-    role_descriptions = {
-        "architect": "System design, tech stack decisions, API design",
-        "pm": "Requirements analysis, user stories, acceptance criteria",
-        "coder": "Implementation, code generation, refactoring",
-        "tester": "Test strategy, quality assurance, edge cases",
-        "ui": "UX design, interaction logic, accessibility",
-        "devops": "CI/CD, deployment, infrastructure",
-        "security": "Security audit, vulnerability assessment",
-        "data": "Data modeling, analytics, migrations",
-        "reviewer": "Code review, best practices, standards",
-        "optimizer": "Performance optimization, caching, profiling",
-    }
+    role_descriptions = {}
+    for rid, rdef in ROLE_REGISTRY.items():
+        display_id = rdef.aliases[0] if rdef.aliases else rid
+        status_tag = " [planned]" if rdef.status == "planned" else ""
+        role_descriptions[display_id] = f"{rdef.description}{status_tag}"
     if args.format == "json":
         print(json.dumps(role_descriptions, ensure_ascii=False, indent=2))
     else:

@@ -250,6 +250,158 @@ ROLE_WEIGHTS = {
     "ui-designer": 0.9,
 }
 
+
+@dataclass
+class RoleDefinition:
+    role_id: str
+    name: str
+    aliases: List[str]
+    prompt: str
+    keywords: List[str]
+    weight: float
+    description: str
+    status: str = "core"
+
+
+ROLE_REGISTRY: Dict[str, RoleDefinition] = {
+    "architect": RoleDefinition(
+        role_id="architect",
+        name="架构师",
+        aliases=["arch"],
+        prompt="你是系统架构师。负责：\n1. 系统架构设计（分层、模块化、接口定义）\n2. 技术选型和评估\n3. 性能、安全、可扩展性设计\n4. 输出：架构文档、技术方案、模块设计",
+        keywords=["架构", "设计", "选型", "性能", "模块", "接口", "部署", "微服务"],
+        weight=1.5,
+        description="System design, tech stack decisions, API design",
+        status="core",
+    ),
+    "product-manager": RoleDefinition(
+        role_id="product-manager",
+        name="产品经理",
+        aliases=["pm"],
+        prompt="你是产品经理。负责：\n1. 需求分析和PRD编写\n2. 用户故事和验收标准\n3. 竞品分析\n4. 输出：需求文档、用户故事、功能规格",
+        keywords=["需求", "PRD", "用户故事", "竞品", "验收", "体验", "功能"],
+        weight=1.2,
+        description="Requirements analysis, user stories, acceptance criteria",
+        status="core",
+    ),
+    "tester": RoleDefinition(
+        role_id="tester",
+        name="测试专家",
+        aliases=["test", "qa"],
+        prompt="你是测试专家。负责：\n1. 测试策略和用例设计\n2. 自动化测试方案\n3. 质量评估和缺陷追踪\n4. 输出：测试计划、测试用例、质量报告",
+        keywords=["测试", "质量", "验收", "自动化", "性能测试", "缺陷", "门禁"],
+        weight=1.0,
+        description="Test strategy, quality assurance, edge cases",
+        status="core",
+    ),
+    "solo-coder": RoleDefinition(
+        role_id="solo-coder",
+        name="独立开发者",
+        aliases=["coder", "dev"],
+        prompt="你是全栈开发者。负责：\n1. 功能实现和代码编写\n2. 单元测试和文档\n3. 代码重构和优化\n4. Bug修复\n5. 输出：源代码、测试、技术文档",
+        keywords=["实现", "开发", "代码", "修复", "优化", "重构", "单元测试"],
+        weight=1.0,
+        description="Implementation, code generation, refactoring",
+        status="core",
+    ),
+    "ui-designer": RoleDefinition(
+        role_id="ui-designer",
+        name="UI设计师",
+        aliases=["ui"],
+        prompt="你是UI/UX设计师。负责：\n1. 界面设计和交互原型\n2. 设计系统和组件规范\n3. 视觉稿和设计交付\n4. 输出：设计稿、原型、设计规范",
+        keywords=["UI", "界面", "前端", "视觉", "交互", "原型", "设计"],
+        weight=0.9,
+        description="UX design, interaction logic, accessibility",
+        status="core",
+    ),
+    "devops": RoleDefinition(
+        role_id="devops",
+        name="DevOps工程师",
+        aliases=[],
+        prompt="",
+        keywords=["CI/CD", "部署", "监控", "运维", "Docker", "Kubernetes", "基础设施"],
+        weight=1.0,
+        description="CI/CD, deployment, infrastructure",
+        status="planned",
+    ),
+    "security": RoleDefinition(
+        role_id="security",
+        name="安全专家",
+        aliases=[],
+        prompt="",
+        keywords=["安全", "漏洞", "审计", "威胁", "加密", "认证", "授权"],
+        weight=1.1,
+        description="Security audit, vulnerability assessment",
+        status="planned",
+    ),
+    "data": RoleDefinition(
+        role_id="data",
+        name="数据工程师",
+        aliases=[],
+        prompt="",
+        keywords=["数据", "ETL", "分析", "建模", "迁移", "SQL", "数据仓库"],
+        weight=0.9,
+        description="Data modeling, analytics, migrations",
+        status="planned",
+    ),
+    "reviewer": RoleDefinition(
+        role_id="reviewer",
+        name="代码审查员",
+        aliases=[],
+        prompt="",
+        keywords=["审查", "规范", "最佳实践", "代码质量", "重构", "风格"],
+        weight=1.0,
+        description="Code review, best practices, standards",
+        status="planned",
+    ),
+    "optimizer": RoleDefinition(
+        role_id="optimizer",
+        name="性能优化师",
+        aliases=[],
+        prompt="",
+        keywords=["性能", "优化", "缓存", "延迟", "吞吐", "瓶颈", "分析"],
+        weight=1.0,
+        description="Performance optimization, caching, profiling",
+        status="planned",
+    ),
+}
+
+
+def _build_role_aliases() -> Dict[str, str]:
+    aliases = {}
+    for rid, rdef in ROLE_REGISTRY.items():
+        for alias in rdef.aliases:
+            aliases[alias] = rid
+    return aliases
+
+
+ROLE_ALIASES: Dict[str, str] = _build_role_aliases()
+
+
+def resolve_role_id(role_id: str) -> str:
+    if role_id in ROLE_REGISTRY:
+        return role_id
+    return ROLE_ALIASES.get(role_id, role_id)
+
+
+def get_core_roles() -> Dict[str, RoleDefinition]:
+    return {rid: rdef for rid, rdef in ROLE_REGISTRY.items() if rdef.status == "core"}
+
+
+def get_planned_roles() -> Dict[str, RoleDefinition]:
+    return {rid: rdef for rid, rdef in ROLE_REGISTRY.items() if rdef.status == "planned"}
+
+
+def get_all_role_ids() -> List[str]:
+    return list(ROLE_REGISTRY.keys())
+
+
+def get_cli_role_list() -> List[str]:
+    result = []
+    for rid, rdef in ROLE_REGISTRY.items():
+        result.append(rdef.aliases[0] if rdef.aliases else rid)
+    return result
+
 CONSENSUS_THRESHOLDS = {
     "simple_majority": 0.51,
     "super_majority": 0.67,

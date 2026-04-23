@@ -45,6 +45,8 @@ from .models import (
     EntryType, EntryStatus, TaskDefinition, ExecutionPlan,
     TaskBatch, BatchMode, ScheduleResult, WorkerResult,
     ConsensusRecord, DecisionOutcome, ROLE_WEIGHTS,
+    ROLE_REGISTRY, ROLE_ALIASES, resolve_role_id, get_core_roles, get_planned_roles,
+    get_all_role_ids, get_cli_role_list, RoleDefinition,
 )
 from .scratchpad import Scratchpad
 from .worker import Worker, WorkerFactory
@@ -69,100 +71,9 @@ from .test_quality_guard import (
 )
 
 
-ROLE_TEMPLATES = {
-    "architect": {
-        "name": "架构师",
-        "prompt": """你是系统架构师。负责：
-1. 系统架构设计（分层、模块化、接口定义）
-2. 技术选型和评估
-3. 性能、安全、可扩展性设计
-4. 输出：架构文档、技术方案、模块设计""",
-        "keywords": ["架构", "设计", "选型", "性能", "模块", "接口", "部署", "微服务"],
-    },
-    "product-manager": {
-        "name": "产品经理",
-        "prompt": """你是产品经理。负责：
-1. 需求分析和PRD编写
-2. 用户故事和验收标准
-3. 竞品分析
-4. 输出：需求文档、用户故事、功能规格""",
-        "keywords": ["需求", "PRD", "用户故事", "竞品", "验收", "体验", "功能"],
-    },
-    "tester": {
-        "name": "测试专家",
-        "prompt": """你是测试专家。负责：
-1. 测试策略和用例设计
-2. 自动化测试方案
-3. 质量评估和缺陷追踪
-4. 输出：测试计划、测试用例、质量报告""",
-        "keywords": ["测试", "质量", "验收", "自动化", "性能测试", "缺陷", "门禁"],
-    },
-    "solo-coder": {
-        "name": "独立开发者",
-        "prompt": """你是全栈开发者。负责：
-1. 功能实现和代码编写
-2. 单元测试和文档
-3. 代码重构和优化
-4. Bug修复
-5. 输出：源代码、测试、技术文档""",
-        "keywords": ["实现", "开发", "代码", "修复", "优化", "重构", "单元测试"],
-    },
-    "ui-designer": {
-        "name": "UI设计师",
-        "prompt": """你是UI/UX设计师。负责：
-1. 界面设计和交互原型
-2. 设计系统和组件规范
-3. 视觉稿和设计交付
-4. 输出：设计稿、原型、设计规范""",
-        "keywords": ["UI", "界面", "前端", "视觉", "交互", "原型", "设计"],
-    },
-}
-
-ROLE_ALIASES = {
-    "pm": "product-manager",
-    "coder": "solo-coder",
-    "ui": "ui-designer",
-    "dev": "solo-coder",
-    "arch": "architect",
-    "test": "tester",
-    "qa": "tester",
-}
-
-PLANNED_ROLES = {
-    "devops": {
-        "name": "DevOps工程师",
-        "status": "planned",
-        "description": "CI/CD pipeline, deployment, monitoring, infrastructure",
-    },
-    "security": {
-        "name": "安全专家",
-        "status": "planned",
-        "description": "Threat modeling, vulnerability audit, security review",
-    },
-    "data": {
-        "name": "数据工程师",
-        "status": "planned",
-        "description": "Data modeling, analytics, migrations, ETL",
-    },
-    "reviewer": {
-        "name": "代码审查员",
-        "status": "planned",
-        "description": "Code review, best practices, style consistency",
-    },
-    "optimizer": {
-        "name": "性能优化师",
-        "status": "planned",
-        "description": "Performance optimization, caching, profiling",
-    },
-}
-
-
-def resolve_role_id(role_id: str) -> str:
-    if role_id in ROLE_TEMPLATES:
-        return role_id
-    if role_id in ROLE_ALIASES:
-        return ROLE_ALIASES[role_id]
-    return role_id
+# Backward-compatible aliases from models SSOT
+ROLE_TEMPLATES = {rid: {"name": rdef.name, "prompt": rdef.prompt, "keywords": rdef.keywords} for rid, rdef in ROLE_REGISTRY.items()}
+PLANNED_ROLES = {rid: {"name": rdef.name, "status": rdef.status, "description": rdef.description} for rid, rdef in get_planned_roles().items()}
 
 
 @dataclass

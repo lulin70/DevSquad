@@ -39,6 +39,7 @@ except ImportError:
 
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.permission_guard import PermissionLevel
+from scripts.collaboration.models import ROLE_REGISTRY
 
 
 class DevSquadMCPServer:
@@ -156,18 +157,11 @@ def create_mcp_server() -> "FastMCP":
         Returns:
             Role list with descriptions showing expertise areas.
         """
-        roles = {
-            "architect": "System design, tech stack decisions, API design",
-            "pm": "Requirements analysis, user stories, acceptance criteria",
-            "coder": "Implementation, code generation, refactoring",
-            "tester": "Test strategy, quality assurance, edge cases",
-            "ui": "UX design, interaction logic, accessibility",
-            "devops": "CI/CD, deployment, infrastructure",
-            "security": "Security audit, vulnerability assessment",
-            "data": "Data modeling, analytics, migrations",
-            "reviewer": "Code review, best practices, standards",
-            "optimizer": "Performance optimization, caching, profiling",
-        }
+        roles = {}
+        for rid, rdef in ROLE_REGISTRY.items():
+            display_id = rdef.aliases[0] if rdef.aliases else rid
+            status_tag = " [planned]" if rdef.status == "planned" else ""
+            roles[display_id] = f"{rdef.description}{status_tag}"
         if format == "json":
             return json.dumps(roles, ensure_ascii=False, indent=2)
         lines = [f"**{role}** — {desc}" for role, desc in roles.items()]
