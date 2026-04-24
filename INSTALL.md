@@ -113,7 +113,7 @@ disp.shutdown()
 ## CLI Reference (`scripts/cli.py`)
 
 ```
-Usage: cli.py {dispatch, status,roles} [options]
+Usage: cli.py {dispatch, status, roles} [options]
 
 Commands:
   dispatch (run, d)   Execute a multi-agent collaboration task
@@ -122,10 +122,12 @@ Commands:
 
 Dispatch Options:
   --task, -t TEXT       Task description (required)
-  --roles, -r LIST      Roles: architect/pm/coder/tester/ui/devops/
-                         security/data/reviewer/optimizer (default: auto-match)
+  --roles, -r LIST      Roles: arch/pm/test/coder/ui/infra/sec (default: auto-match)
   --mode, -m MODE       Execution mode: auto/parallel/sequential/consensus
   --format, -f FORMAT   Output: markdown/json/compact/structured/detailed
+  --backend, -b TYPE    LLM backend: mock/trae/openai/anthropic (default: mock)
+  --base-url URL        Custom API base URL (or OPENAI_BASE_URL env)
+  --model NAME          Model name (or OPENAI_MODEL/ANTHROPIC_MODEL env)
   --dry-run             Simulate without execution
   --quick, -q           Use quick_dispatch (3 format variants)
   --action-items        Include H/M/L priority action items

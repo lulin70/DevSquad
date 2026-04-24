@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.permission_guard import PermissionLevel
 from scripts.collaboration.models import ROLE_REGISTRY, get_cli_role_list
+from scripts.collaboration.input_validator import InputValidator
 
 ROLES = get_cli_role_list()
 MODES = ["auto", "parallel", "sequential", "consensus"]
@@ -58,6 +59,31 @@ def _create_backend(backend_type: str,
 
 
 def cmd_dispatch(args):
+    # 输入验证
+    validator = InputValidator()
+    
+    # 验证任务描述
+    task_result = validator.validate_task(args.task)
+    if not task_result.valid:
+        print(f"Error: Invalid task - {task_result.reason}", file=sys.stderr)
+        return 1
+    
+    # 使用清理后的任务描述
+    task = task_result.sanitized_input or args.task
+    
+    # 验证角色列表（如果提供）
+    if args.roles:
+        roles_result = validator.validate_roles(args.roles)
+        if not roles_result.valid:
+            print(f"Error: Invalid roles - {roles_result.reason}", file=sys.stderr)
+            return 1
+    
+    # 检查可疑模式（警告但不阻止）
+    warnings = validator.check_suspicious_patterns(task)
+    if warnings:
+        print(f"Warning: Suspicious patterns detected: {', '.join(warnings)}", file=sys.stderr)
+        print("Proceeding anyway...", file=sys.stderr)
+    
     kwargs = {
         "persist_dir": args.persist_dir,
         "enable_warmup": not args.no_warmup,
@@ -78,14 +104,14 @@ def cmd_dispatch(args):
     try:
         if args.quick:
             result = disp.quick_dispatch(
-                args.task,
+                task,  # 使用验证后的任务
                 output_format=args.format if args.format in ("structured", "compact", "detailed") else "structured",
                 include_action_items=args.action_items,
                 include_timing=args.timing,
             )
         else:
             result = disp.dispatch(
-                args.task,
+                task,  # 使用验证后的任务
                 roles=args.roles,
                 mode=args.mode,
                 dry_run=args.dry_run,

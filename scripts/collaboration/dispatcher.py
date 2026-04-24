@@ -665,9 +665,9 @@ class MultiAgentDispatcher:
     def quick_dispatch(self, task: str,
                        output_format: str = "structured",
                        include_action_items: bool = True,
-                       include_timing: bool = False) -> str:
+                       include_timing: bool = False) -> 'DispatchResult':
         """
-        快速调度 - 返回结构化 Markdown 报告
+        快速调度 - 返回 DispatchResult，summary 包含格式化报告
 
         Args:
             task: 任务描述
@@ -679,18 +679,18 @@ class MultiAgentDispatcher:
             include_timing: 是否包含各步骤耗时分析
 
         Returns:
-            str: 格式化的 Markdown 报告
+            DispatchResult: 调度结果，summary 字段包含格式化报告
         """
         result = self.dispatch(task)
 
         if output_format == "structured":
-            return self._format_structured_report(result, include_action_items, include_timing)
+            result.summary = self._format_structured_report(result, include_action_items, include_timing)
         elif output_format == "compact":
-            return self._format_compact_report(result)
-        elif output_format == "detailed":
-            return result.to_markdown()
+            result.summary = self._format_compact_report(result)
         else:
-            return result.to_markdown()
+            result.summary = result.to_markdown()
+
+        return result
 
     def _format_structured_report(self, result: 'DispatchResult',
                                    include_action_items: bool = True,

@@ -349,7 +349,7 @@ class TestT5_StatusAndHistory(unittest.TestCase):
 
     def test_01_get_status_basic(self):
         status = self.disp.get_status()
-        self.assertEqual(status["version"], "3.0")
+        self.assertEqual(status["version"], "3.3.0")
         self.assertIn("components", status)
         self.assertIn("dispatch_count", status)
 
