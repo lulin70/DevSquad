@@ -65,7 +65,16 @@ See [**INSTALL.md**](INSTALL.md) for detailed setup instructions including Windo
 git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
 
+# Mock mode (default) — no API key needed
 python3 scripts/cli.py dispatch -t "Design user authentication system"
+
+# Real AI output — set environment variables first
+export OPENAI_API_KEY="sk-..."
+python3 scripts/cli.py dispatch -t "Design user authentication system" --backend openai
+
+# Specify roles (short IDs: arch/pm/test/coder/ui/infra/sec)
+python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend openai
+
 python3 scripts/cli.py status
 python3 scripts/cli.py roles
 ```
@@ -223,7 +232,7 @@ Software development is inherently multi-disciplinary. No single perspective can
 
 | Date | Version | Highlights |
 |------|---------|-----------|
-| 2026-04-17 | **V3.3** | Rebrand → DevSquad, WorkBuddy Claw, cross-platform (CLI/MCP/ClaudeCode), MAS→DSS |
+| 2026-04-24 | **V3.3.0** | Real LLM backend (OpenAI/Anthropic), env-var-only API keys, 7 core roles (security+devops promoted), TaskDefinition.role_prompt fix, verified real AI output |
 | 2026-04-17 | V3.2 | E2E Demo, MCE Adapter, Dispatcher UX, Delivery Workflow Iron Rule |
 | 2026-04-16 | V3.1 | Prompt Optimization System (A/B variant testing) |
 | 2026-04-16 | V3.0 | Complete redesign — Coordinator/Worker/Scratchpad architecture |

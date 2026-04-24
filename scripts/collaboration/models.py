@@ -141,6 +141,7 @@ class TaskDefinition:
     task_id: str = field(default_factory=lambda: f"task-{uuid.uuid4().hex[:8]}")
     description: str = ""
     role_id: str = ""
+    role_prompt: str = ""
     stage_id: Optional[str] = None
     input_data: Dict[str, Any] = field(default_factory=dict)
     dependencies: List[str] = field(default_factory=list)

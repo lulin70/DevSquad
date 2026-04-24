@@ -114,6 +114,7 @@ class Coordinator:
             task = TaskDefinition(
                 description=task_description,
                 role_id=role_cfg["role_id"],
+                role_prompt=role_cfg.get("role_prompt", ""),
                 stage_id=stage_id,
                 is_read_only=True,
             )
@@ -155,8 +156,8 @@ class Coordinator:
 
         for task in all_tasks:
             worker_id = f"{task.role_id}-{uuid.uuid4().hex[:6]}"
-            role_prompt = ""
-            if registry:
+            role_prompt = task.role_prompt or ""
+            if not role_prompt and registry:
                 from prompts.registry import PromptRegistry
                 if isinstance(registry, PromptRegistry):
                     info = registry.get_role_prompt(task.role_id)
