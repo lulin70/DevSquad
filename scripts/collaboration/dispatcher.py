@@ -201,7 +201,8 @@ class MultiAgentDispatcher:
                  compression_threshold: int = 100000,
                  memory_dir: Optional[str] = None,
                  permission_level: PermissionLevel = PermissionLevel.DEFAULT,
-                 mce_adapter=None):
+                 mce_adapter=None,
+                 llm_backend=None):
         """
         Args:
             persist_dir: Scratchpad persistence directory
@@ -215,6 +216,7 @@ class MultiAgentDispatcher:
             memory_dir: Memory storage directory
             permission_level: Default permission level
             mce_adapter: MCE memory classification engine adapter (optional, v3.2)
+            llm_backend: LLM execution backend (None=MockBackend, returns prompt as-is)
         """
         self.enable_quality_guard = enable_quality_guard
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
@@ -226,6 +228,7 @@ class MultiAgentDispatcher:
         self.enable_skillify = enable_skillify
         self.compression_threshold = compression_threshold
         self.permission_level = permission_level
+        self.llm_backend = llm_backend
 
         os.makedirs(self.persist_dir, exist_ok=True)
         os.makedirs(self.memory_dir, exist_ok=True)
@@ -242,6 +245,7 @@ class MultiAgentDispatcher:
             persist_dir=self.persist_dir,
             enable_compression=self.enable_compression,
             compression_threshold=self.compression_threshold,
+            llm_backend=self.llm_backend,
         )
 
         self.batch_scheduler = BatchScheduler()

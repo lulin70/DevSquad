@@ -61,7 +61,8 @@ class Coordinator:
     def __init__(self, scratchpad: Optional[Scratchpad] = None,
                  persist_dir: Optional[str] = None,
                  enable_compression: bool = True,
-                 compression_threshold: int = 100000):
+                 compression_threshold: int = 100000,
+                 llm_backend=None):
         """
         初始化协调者
 
@@ -70,6 +71,7 @@ class Coordinator:
             persist_dir: Scratchpad 持久化目录
             enable_compression: 是否启用上下文压缩（长任务防溢出）
             compression_threshold: 压缩触发阈值（token数），默认100000
+            llm_backend: LLM执行后端（None=MockBackend，返回prompt文本）
         """
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
@@ -79,6 +81,7 @@ class Coordinator:
         self.enable_compression = enable_compression
         self.compressor = ContextCompressor(token_threshold=compression_threshold) if enable_compression else None
         self._message_buffer: List[Message] = []
+        self.llm_backend = llm_backend
 
     def plan_task(self, task_description: str,
                   available_roles: List[Dict[str, str]],
@@ -165,6 +168,7 @@ class Coordinator:
                 role_id=task.role_id,
                 role_prompt=role_prompt,
                 scratchpad=self.scratchpad,
+                llm_backend=self.llm_backend,
             )
             self.workers[worker_id] = worker
         return list(self.workers.values())

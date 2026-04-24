@@ -1,4 +1,4 @@
-# Trae Multi-Agent Skill 依赖
+# DevSquad Dependencies
 
 # 核心依赖
 python>=3.8

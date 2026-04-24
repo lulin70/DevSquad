@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-DevSquad CLI Entry Point — Cross-platform interface for ClaudeCode, OpenClaw, and any AI coding assistant.
+DevSquad CLI Entry Point — Cross-platform interface for any AI coding assistant.
 
 Usage:
-    python -m scripts.cli --task "design user auth system" --roles architect coder tester
-    python -m scripts.cli --task "review code" --format json --mode consensus
-    python -m scripts.cli --status          # Show dispatcher status
-    python -m scripts.cli --roles           # List available roles
+    python3 scripts/cli.py dispatch -t "design user auth system" -r architect coder tester
+    python3 scripts/cli.py dispatch -t "review code" -f json --mode consensus --backend openai
+    python3 scripts/cli.py status
+    python3 scripts/cli.py roles
+    python3 scripts/cli.py --version
 """
 import argparse
 import json
@@ -20,13 +21,27 @@ from scripts.collaboration.permission_guard import PermissionLevel
 from scripts.collaboration.models import ROLE_REGISTRY, get_cli_role_list
 
 ROLES = get_cli_role_list()
-
 MODES = ["auto", "parallel", "sequential", "consensus"]
 FORMATS = ["markdown", "json", "compact", "structured", "detailed"]
+BACKENDS = ["mock", "trae", "openai", "anthropic"]
+VERSION = "3.3.0"
+
+
+def _create_backend(backend_type: str, api_key: str = None):
+    if backend_type == "mock" or backend_type is None:
+        return None
+    from scripts.collaboration.llm_backend import create_backend
+    kwargs = {}
+    if api_key:
+        kwargs["api_key"] = api_key
+    if backend_type == "openai":
+        kwargs.setdefault("api_key", os.environ.get("OPENAI_API_KEY"))
+    elif backend_type == "anthropic":
+        kwargs.setdefault("api_key", os.environ.get("ANTHROPIC_API_KEY"))
+    return create_backend(backend_type, **kwargs)
 
 
 def cmd_dispatch(args):
-    """Execute a multi-agent collaboration task."""
     kwargs = {
         "persist_dir": args.persist_dir,
         "enable_warmup": not args.no_warmup,
@@ -38,13 +53,17 @@ def cmd_dispatch(args):
     if args.permission_level:
         kwargs["permission_level"] = PermissionLevel(args.permission_level.upper())
 
+    backend = _create_backend(args.backend, args.api_key)
+    if backend is not None:
+        kwargs["llm_backend"] = backend
+
     disp = MultiAgentDispatcher(**kwargs)
 
     try:
         if args.quick:
             result = disp.quick_dispatch(
                 args.task,
-                output_format=args.format if args.formats in ("structured", "compact", "detailed") else "structured",
+                output_format=args.format if args.format in ("structured", "compact", "detailed") else "structured",
                 include_action_items=args.action_items,
                 include_timing=args.timing,
             )
@@ -76,13 +95,12 @@ def cmd_dispatch(args):
 
 
 def cmd_status(args):
-    """Show system status and available capabilities."""
     disp = MultiAgentDispatcher(enable_warmup=False)
     try:
         stats = disp.get_statistics() if hasattr(disp, 'get_statistics') else {}
         status = {
             "name": "DevSquad",
-            "version": "3.3.0",
+            "version": VERSION,
             "status": "ready",
             "available_roles": ROLES,
             "available_modes": MODES,
@@ -95,7 +113,6 @@ def cmd_status(args):
 
 
 def cmd_roles(args):
-    """List all available roles with descriptions."""
     role_descriptions = {}
     for rid, rdef in ROLE_REGISTRY.items():
         display_id = rdef.aliases[0] if rdef.aliases else rid
@@ -111,25 +128,36 @@ def cmd_roles(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="DevSquad V3.3 — Multi-Agent Software Development Team CLI",
+        description="DevSquad V3.3 — Multi-Agent Orchestration Engine for Software Development",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s --task "Design user auth system" --roles architect coder tester
-  %(prog)s --task "Review codebase" --mode consensus --format json
-  %(prog)s --quick --task "Analyze API" --format compact
-  %(prog)s --roles
-  %(prog)s --status
+  %(prog)s dispatch -t "Design user auth system" -r architect pm tester
+  %(prog)s dispatch -t "Review codebase" --mode consensus --format json
+  %(prog)s dispatch -t "Analyze API" --quick --format compact
+  %(prog)s dispatch -t "Security audit" -r security --backend openai
+  %(prog)s roles
+  %(prog)s status
+  %(prog)s --version
+
+Environment Variables:
+  DEVSQUAD_LLM_BACKEND   Default LLM backend (mock/openai/anthropic)
+  OPENAI_API_KEY         OpenAI API key (for --backend openai)
+  ANTHROPIC_API_KEY      Anthropic API key (for --backend anthropic)
         """,
     )
+    parser.add_argument("--version", action="version", version=f"DevSquad {VERSION}")
+
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # Dispatch command
     p_dispatch = subparsers.add_parser("dispatch", aliases=["run", "d"], help="Execute a multi-agent task")
     p_dispatch.add_argument("--task", "-t", required=True, help="Task description")
     p_dispatch.add_argument("--roles", "-r", nargs="+", choices=ROLES, help="Roles to involve (default: auto-match)")
     p_dispatch.add_argument("--mode", "-m", choices=MODES, default="auto", help="Execution mode (default: auto)")
     p_dispatch.add_argument("--format", "-f", choices=FORMATS, default="markdown", help="Output format")
+    p_dispatch.add_argument("--backend", "-b", choices=BACKENDS, default=os.environ.get("DEVSQUAD_LLM_BACKEND", "mock"),
+                            help="LLM backend (default: mock, or DEVSQUAD_LLM_BACKEND env)")
+    p_dispatch.add_argument("--api-key", help="API key for LLM backend (or use OPENAI_API_KEY/ANTHROPIC_API_KEY env)")
     p_dispatch.add_argument("--dry-run", action="store_true", help="Simulate without execution")
     p_dispatch.add_argument("--quick", "-q", action="store_true", help="Use quick_dispatch (3 formats)")
     p_dispatch.add_argument("--action-items", action="store_true", help="Include H/M/L action items")
@@ -142,10 +170,8 @@ Examples:
     p_dispatch.add_argument("--no-skillify", action="store_true", help="Disable skill learning")
     p_dispatch.add_argument("--permission-level", choices=["PLAN", "DEFAULT", "AUTO", "BYPASS"], help="Permission level")
 
-    # Status command
     subparsers.add_parser("status", aliases=["s"], help="Show system status")
 
-    # Roles command
     p_roles = subparsers.add_parser("roles", aliases=["ls"], help="List available roles")
     p_roles.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
 

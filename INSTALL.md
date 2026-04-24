@@ -40,6 +40,38 @@ python3 scripts/cli.py roles
 
 That's it. No environment variables, no installation steps.
 
+### LLM Backend Configuration (Optional — for real AI output)
+
+By default, DevSquad runs in **mock mode** — Workers return assembled prompts without calling an LLM. To get real AI analysis output, configure a backend:
+
+```bash
+# Option A: OpenAI (GPT-4)
+export OPENAI_API_KEY="sk-..."
+python3 scripts/cli.py dispatch -t "Design auth system" -r architect --backend openai
+
+# Option B: Anthropic (Claude)
+export ANTHROPIC_API_KEY="sk-ant-..."
+python3 scripts/cli.py dispatch -t "Design auth system" -r architect --backend anthropic
+
+# Option C: Set default backend via environment variable
+export DEVSQUAD_LLM_BACKEND=openai
+python3 scripts/cli.py dispatch -t "Design auth system" -r architect
+# Uses OpenAI automatically (no --backend flag needed)
+
+# Option D: Pass API key directly (not recommended for shared machines)
+python3 scripts/cli.py dispatch -t "Design auth system" --backend openai --api-key "sk-..."
+```
+
+**Install optional dependencies:**
+
+```bash
+# For OpenAI backend
+pip install openai
+
+# For Anthropic backend
+pip install anthropic
+```
+
 ### Method 2: Environment Variable + Wrapper Script
 
 Add to your `~/.zshrc` or `~/.bashrc`:

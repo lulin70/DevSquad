@@ -1,0 +1,17 @@
+# DevSquad Development Dependencies
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=3.0.0
+
+# LLM Backends (optional — install only what you need)
+openai>=1.0.0
+anthropic>=0.20.0
+
+# MCP Server (optional — for OpenClaw/Cursor integration)
+mcp>=0.9.0
+
+# Code Quality
+black>=22.0.0
+flake8>=4.0.0
+mypy>=0.950
