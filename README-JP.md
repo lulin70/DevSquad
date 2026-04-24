@@ -7,8 +7,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-41%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.3-2026--04--17-orange" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-825%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.3.0-2026--04--24-orange" />
 </p>
 
 ---
@@ -103,20 +103,17 @@ result = disp.quick_dispatch(task, output_format="detailed",
 disp.shutdown()
 ```
 
-## 10 のビルドインロール
+## 7 のコアロール
 
-| ロール | 最適な用途 |
-|------|-----------|
-| `architect` | システム設計、技術スタック、API 設計 |
-| `pm` | 要件分析、ユーザストーリー、受諾基準 |
-| `coder` | 実装、コード生成、リファクタリング |
-| `tester` | テスト戦略、エッジケース、カバレッジ |
-| `ui` | UX フロー、インタラクション設計 |
-| `devops` | CI/CD パイプライン、デプロイ、モニタリング |
-| `security` | 脅威モデル、脆弱性監査 |
-| `data` | データモデリング、分析、移行 |
-| `reviewer` | コードレビュー、ベストプラクティス |
-| `optimizer` | パフォーマンス最適化、キャッシュ |
+| ロール | CLI ID | 最適な用途 |
+|------|--------|-----------|
+| アーキテクト | `arch` | システム設計、技術スタック、パフォーマンス/セキュリティ/データアーキテクチャ |
+| PM | `pm` | 要件分析、ユーザストーリー、受諾基準 |
+| セキュリティ専門家 | `sec` | 脅威モデル、脆弱性監査、コンプライアンス |
+| テスト専門家 | `test` | テスト戦略、エッジケース、品質保証 |
+| コーダー | `coder` | 実装、コードレビュー、パフォーマンス最適化、リファクタリング |
+| DevOps | `infra` | CI/CD パイプライン、コンテナ化、モニタリング、インフラ |
+| UIデザイナー | `ui` | UX フロー、インタラクション設計、アクセシビリティ |
 
 **自動マッチ**: ロール未指定時、ディスパッチャがタスク意図に基づき自動マッチング。
 

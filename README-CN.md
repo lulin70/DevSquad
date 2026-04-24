@@ -7,8 +7,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-41%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.3-2026--04--17-orange" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-825%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.3.0-2026--04--24-orange" />
 </p>
 
 ---
@@ -103,20 +103,17 @@ result = disp.quick_dispatch(task, output_format="detailed",
 disp.shutdown()
 ```
 
-## 10 个内置角色
+## 7 个核心角色
 
-| 角色 | 适用场景 |
-|------|---------|
-| `architect` | 系统设计、技术选型、API 设计 |
-| `pm` | 需求分析、用户故事、验收标准 |
-| `coder` | 功能实现、代码生成、重构 |
-| `tester` | 测试策略、边界情况、覆盖率 |
-| `ui` | UX 流程、交互设计、无障碍性 |
-| `devops` | CI/CD 流水线、部署、监控 |
-| `security` | 威胁建模、漏洞审计 |
-| `data` | 数据建模、分析、迁移 |
-| `reviewer` | 代码审查、最佳实践 |
-| `optimizer` | 性能优化、缓存策略 |
+| 角色 | CLI ID | 适用场景 |
+|------|--------|---------|
+| 架构师 | `arch` | 系统设计、技术选型、性能/安全/数据架构 |
+| 产品经理 | `pm` | 需求分析、用户故事、验收标准 |
+| 安全专家 | `sec` | 威胁建模、漏洞审计、合规评估 |
+| 测试专家 | `test` | 测试策略、边界情况、质量保障 |
+| 开发者 | `coder` | 功能实现、代码审查、性能优化、重构 |
+| DevOps | `infra` | CI/CD 流水线、容器化、监控、基础设施 |
+| UI 设计师 | `ui` | UX 流程、交互设计、无障碍性 |
 
 **自动匹配**: 未指定角色时，调度器根据任务意图自动匹配。
 

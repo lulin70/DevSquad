@@ -2,15 +2,13 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.3 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
-  集成16大核心模块：Coordinator协调器 + Scratchpad共享黑板 + Worker执行者 + Consensus共识引擎 +
-  BatchScheduler并行调度 + ContextCompressor上下文压缩 + PermissionGuard权限守卫 +
-  Skillifier技能学习 + WarmupManager启动预热 + MemoryBridge记忆桥接 +
-  PromptAssembler提示词组装 + PromptVariantGenerator变体生成 + MCEAdapter记忆分类适配器。
-  ~825+个测试全通过。支持中英文双语。
+  V3.3.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
+  7个核心角色（架构师/产品经理/安全专家/测试专家/开发者/DevOps/UI设计师），
+  支持真实LLM后端（OpenAI/Anthropic），CLI + MCP + Python API。
+  ~825+个测试全通过。支持中英日三语。
 ---
 
-# Multi-Agent Team V3.3 — 多智能体协作平台
+# DevSquad V3.3.0 — 多智能体协作平台
 
 ## 核心定位
 
@@ -93,15 +91,19 @@ print(result.to_markdown())
 
 ---
 
-## 角色系统（5个内置角色）
+## 角色系统（7个核心角色）
 
 | Role ID | 名称 | 触发关键词 | 核心职责 |
 |---------|------|-----------|---------|
-| `architect` | 架构师 | 架构、设计、选型、性能、模块、接口、部署 | 系统架构设计、技术选型、性能优化 |
+| `architect` | 架构师 | 架构、设计、选型、性能、模块、接口、数据架构 | 系统架构设计、技术选型、性能/安全/数据架构 |
 | `product-manager` | 产品经理 | 需求、PRD、用户故事、竞品、验收 | 需求分析、PRD编写、产品规划 |
+| `security` | 安全专家 | 安全、漏洞、审计、威胁、加密、OWASP | 威胁建模、漏洞审计、合规评估、安全审查 |
 | `tester` | 测试专家 | 测试、质量、验收、自动化、缺陷 | 测试策略、用例设计、质量保障 |
-| `solo-coder` | 独立开发者 | 实现、开发、代码、修复、优化 | 功能开发、编码实现、单元测试 |
-| `ui-designer` | UI设计师 | UI、界面、前端、视觉、原型 | UI设计、交互设计、原型制作 |
+| `solo-coder` | 开发者 | 实现、开发、代码、修复、优化、重构 | 功能开发、代码审查、性能优化、重构 |
+| `devops` | DevOps工程师 | CI/CD、部署、监控、Docker、K8s、基础设施 | CI/CD流水线、容器化、监控、基础设施 |
+| `ui-designer` | UI设计师 | UI、界面、前端、视觉、原型、无障碍 | UI设计、交互设计、原型制作、无障碍 |
+
+**CLI短ID**: `arch`, `pm`, `sec`, `test`, `coder`, `infra`, `ui`
 
 **自动匹配规则**：不指定roles时，系统根据任务关键词自动匹配最合适的角色组合。
 
@@ -484,7 +486,8 @@ def test_<功能>_<场景>(self):
 
 ## Version History
 
-- **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(只读桥接/INDEX索引检索/日更记忆/AI新闻流) + Dispatcher AI News自动注入 + Annotation Standards (EN docs/docstring/inline) + 33 new tests
+- **v3.3.0** (2026-04-24): 真实LLM后端(OpenAI/Anthropic) + 7核心角色(security+devops提升为核心，data/reviewer/optimizer合并/移除) + RoleRegistry SSOT + TaskDefinition.role_prompt修复 + 环境变量唯一API key入口 + InputValidator输入验证 + 3个真实场景验证通过
+- **v3.3** (2026-04-17): WorkBuddy Claw集成 + MCE v0.4支持 + 注释EN化 + 多语言README
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule (walkthrough→annotate→docs→Git loop)
 - **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation
 - **v3.0.1** (2026-04-16): 代码注释全面补全(6大核心模块docstring 100%覆盖) + TestQualityGuard测试质量审计系统集成

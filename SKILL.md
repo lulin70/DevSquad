@@ -2,13 +2,13 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.3 DevSquad — Multi-Agent Software Development Team.
-  Transforms a single AI assistant into a specialized dev squad (architect/pm/coder/tester/...)
-  based on Coordinator/Worker/Scratchpad pattern.
-  16 core modules, ~825+ tests, all passing. Cross-platform (Trae/ClaudeCode/OpenClaw).
+  V3.3.0 DevSquad — Multi-Role AI Task Orchestrator.
+  One task in, multi-role AI collaboration, one conclusion out.
+  7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
+  (OpenAI/Anthropic), CLI + MCP + Python API. ~825+ tests, all passing.
 ---
 
-# DevSquad V3.3 — Multi-Agent Software Development Team
+# DevSquad V3.3.0 — Multi-Role AI Task Orchestrator
 
 ## Core Positioning
 
@@ -50,10 +50,36 @@ User Task → [Intent Analysis] → [Role Matching] → [Coordinator Orchestrati
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
+# Mock mode (default) — returns assembled prompts, no API key needed
 disp = MultiAgentDispatcher()
 result = disp.dispatch("User's described task")
 print(result.to_markdown())
 disp.shutdown()
+```
+
+### Method 1b: Real AI Output (with LLM Backend)
+
+```python
+import os
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+from scripts.collaboration.llm_backend import create_backend
+
+backend = create_backend(
+    "openai",
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url=os.environ.get("OPENAI_BASE_URL"),
+    model=os.environ.get("OPENAI_MODEL", "gpt-4"),
+)
+disp = MultiAgentDispatcher(llm_backend=backend)
+result = disp.dispatch("Design user authentication system", roles=["architect", "security"])
+print(result.to_markdown())
+disp.shutdown()
+```
+
+**CLI equivalent**:
+```bash
+export OPENAI_API_KEY="sk-..."
+python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend openai
 ```
 
 **When to use Method 1**:
@@ -88,15 +114,19 @@ print(result.to_markdown())
 
 ---
 
-## Role System (5 Built-in Roles)
+## Role System (7 Core Roles)
 
 | Role ID | Name | Trigger Keywords | Core Responsibility |
 |---------|------|------------------|---------------------|
-| `architect` | Architect | architecture, design, selection, performance, module, interface, deploy | System architecture, tech selection, performance optimization |
+| `architect` | Architect | architecture, design, selection, performance, module, interface, data architecture | System architecture, tech selection, performance/security/data architecture |
 | `product-manager` | Product Manager | requirements, PRD, user story, competitor, acceptance | Requirements analysis, PRD writing, product planning |
+| `security` | Security Expert | security, vulnerability, audit, threat, encryption, OWASP | Threat modeling, vulnerability audit, compliance, security review |
 | `tester` | Test Expert | test, quality, acceptance, automation, defect | Test strategy, case design, quality assurance |
-| `solo-coder` | Solo Coder | implementation, development, code, fix, optimize | Feature dev, coding impl, unit testing |
-| `ui-designer` | UI Designer | UI, interface, frontend, visual, prototype | UI design, interaction design, prototyping |
+| `solo-coder` | Coder | implementation, development, code, fix, optimize, refactor | Feature dev, code review, performance optimization, refactoring |
+| `devops` | DevOps Engineer | CI/CD, deploy, monitor, Docker, Kubernetes, infrastructure | CI/CD pipeline, containerization, monitoring, infrastructure |
+| `ui-designer` | UI Designer | UI, interface, frontend, visual, prototype, accessibility | UI design, interaction design, prototyping, accessibility |
+
+**CLI short IDs**: `arch`, `pm`, `sec`, `test`, `coder`, `infra`, `ui`
 
 **Auto-match rule**: When roles are not specified, the system automatically matches the best role combination based on task keywords.
 
@@ -482,6 +512,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 ## Version History
 
+- **v3.3.0** (2026-04-24): Real LLM Backend (OpenAI/Anthropic) + 7 core roles (security+devops promoted, data/reviewer/optimizer merged/dropped) + RoleRegistry SSOT + TaskDefinition.role_prompt fix + env-var-only API keys + InputValidator + verified real AI output (3 scenarios)
 - **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(read-only bridge/INDEX search/daily logs/AI news feed) + Dispatcher AI News auto-inject + Annotation Standards (EN docs/docstring/inline) + Code comment audit (all EN) + MCE v0.4 support (tenant/permission) + Multi-language README (EN/CN/JP) + 33 new tests
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule
 - **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation

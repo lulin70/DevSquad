@@ -1,17 +1,15 @@
 ---
-name: multi-agent-team-v3
-slug: multi-agent-team-v3
+name: devsquad
+slug: devsquad
 description: |
-  V3.3 マルチエージェントコラボレーションプラットフォーム — Coordinator/Worker/Scratchpad
+  V3.3.0 マルチエージェントコラボレーションプラットフォーム — Coordinator/Worker/Scratchpad
   パターンに基づく完全なマルチエージェントコラボレーションシステム。
-  16のコアモジュール：Coordinator + Scratchpad + Worker + ConsensusEngine +
-  BatchScheduler + ContextCompressor + PermissionGuard +
-  Skillifier + WarmupManager + MemoryBridge (MCE+Claw) +
-  PromptAssembler + PromptVariantGenerator + MCEAdapter + WorkBuddyClawSource。
+  7コアロール（アーキテクト/PM/セキュリティ/テスター/コーダー/DevOps/UIデザイナー）、
+  リアルLLMバックエンド（OpenAI/Anthropic）、CLI + MCP + Python API対応。
   ~825+テスト全合格。中日英3ヶ国語対応。
 ---
 
-# Multi-Agent Team V3.3 — マルチエージェントコラボレーションプラットフォーム
+# DevSquad V3.3.0 — マルチエージェントコラボレーションプラットフォーム
 
 ## コアポジショニング
 
@@ -80,15 +78,19 @@ result = quick_collaborate("マイクロサービス設計を手伝って")
 
 ---
 
-## ロールシステム（5ビルトインロール）
+## ロールシステム（7コアロール）
 
 | ロールID | 名前 | キーワード | 主な責任 |
 |----------|------|-----------|---------|
-| `architect` | アーキテクト | 設計,選定,性能 | システム設計,技術選定 |
-| `product-manager` | PM | 要求,PRD | 要件分析,製品企画 |
-| `tester` | テスト専門家 | テスト,品質 | テスト戦略,品質保証 |
-| `solo-coder` | 開発者 | 実装,開発 | 機能開発,コーディング |
-| `ui-designer` | UIデザイナー | UI,画面 | UI/UX設計 |
+| `architect` | アーキテクト | 設計,選定,性能,データアーキテクチャ | システム設計,技術選定,パフォーマンス/セキュリティ/データアーキテクチャ |
+| `product-manager` | PM | 要求,PRD,ユーザーストーリー | 要件分析,製品企画 |
+| `security` | セキュリティ専門家 | セキュリティ,脆弱性,監査,脅威,OWASP | 脅威モデリング,脆弱性監査,コンプライアンス |
+| `tester` | テスト専門家 | テスト,品質,自動化 | テスト戦略,品質保証 |
+| `solo-coder` | コーダー | 実装,開発,コードレビュー,リファクタリング | 機能開発,コードレビュー,パフォーマンス最適化 |
+| `devops` | DevOpsエンジニア | CI/CD,デプロイ,モニタリング,Docker,K8s | CI/CDパイプライン,コンテナ化,インフラ |
+| `ui-designer` | UIデザイナー | UI,画面,アクセシビリティ | UI/UX設計,アクセシビリティ |
+
+**CLIショートID**: `arch`, `pm`, `sec`, `test`, `coder`, `infra`, `ui`
 
 ---
 
@@ -138,6 +140,7 @@ result = quick_collaborate("マイクロサービス設計を手伝って")
 
 ## バージョン履歴
 
+- **v3.3.0** (2026-04-24): リアルLLMバックエンド(OpenAI/Anthropic) + 7コアロール(security+devopsをコアに昇格、data/reviewer/optimizerを統合/削除) + RoleRegistry SSOT + TaskDefinition.role_prompt修正 + 環境変数のみAPI key入力 + InputValidator入力検証 + 3シナリオ検証完了
 - **v3.3** (2026-04-17): WorkBuddy Claw統合 + MCE v0.4サポート + アノテーションEN化 + 多言語README
 - **v3.2** (2026-04-17): MVP 3並行ライン (E2E Demo + Dispatcher UX + MCE Adapter)
 - **v3.1** (2026-04-16): プロンプト最適化システム

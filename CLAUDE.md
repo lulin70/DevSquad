@@ -84,16 +84,13 @@ DevSquad/
 
 | Role | Responsibility |
 |---------------------|
-| architect | System design, tech stack decisions |
+| architect | System design, tech stack, performance/security/data architecture |
 | pm | Requirements analysis, user stories |
-| coder | Implementation, code generation |
+| security | Threat modeling, vulnerability audit, compliance |
 | tester | Test strategy, quality assurance |
-| ui | UX design, interaction logic |
-| devops | CI/CD, deployment, infrastructure |
-| security | Security audit, vulnerability scan |
-| data | Data modeling, analytics |
-| reviewer | Code review, best practices |
-| optimizer | Performance optimization |
+| coder | Implementation, code review, performance optimization |
+| devops | CI/CD, containerization, monitoring, infrastructure |
+| ui | UX design, interaction logic, accessibility |
 
 ## External Integrations
 
@@ -101,7 +98,7 @@ DevSquad/
 |-----------|------|--------|
 | MCE (Memory Classification Engine) | Local pip package | v0.4.0 integrated |
 | WorkBuddy Claw | `/Users/lin/WorkBuddy/Claw` | Read-only bridge |
-| GitHub Remote | `github.com/lulin70/TraeDevSquad` | Active |
+| GitHub Remote | `github.com/lulin70/DevSquad` | Active |
 
 ## Running Tests
 
