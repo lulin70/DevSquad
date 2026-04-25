@@ -129,11 +129,23 @@ class DispatchResult:
         if self.worker_results:
             lines.append("")
             lines.append("## 👥 各角色产出")
+            role_icons = {
+                "architect": "🏗️", "product-manager": "📋", "security": "🔒",
+                "tester": "🧪", "solo-coder": "💻", "devops": "⚙️", "ui-designer": "🎨",
+            }
             for wr in self.worker_results:
-                role_name = wr.get('role', 'unknown')
+                role_id = wr.get('role_id', wr.get('role', 'unknown'))
+                role_name = wr.get('role_name', wr.get('role', 'unknown'))
                 status_icon = '✅' if wr.get('success') else '❌'
-                output_preview = (wr.get('output', '') or '')[:300]
-                lines.append(f"- [{status_icon}] **{role_name}**: {output_preview}")
+                icon = role_icons.get(role_id, '🤖')
+                output = wr.get('output', '') or ''
+                lines.append(f"")
+                lines.append(f"### {icon} {role_name} [{status_icon}]")
+                lines.append(f"---")
+                if output:
+                    lines.append(output)
+                else:
+                    lines.append("*(no output)*")
         if self.scratchpad_summary:
             lines.extend(["", "## 📝 Scratchpad 共享区", self.scratchpad_summary])
         if self.consensus_records:
@@ -438,12 +450,17 @@ class MultiAgentDispatcher:
 
             worker_results = []
             for r in exec_result.results:
+                role_id = r.worker_id.split("-")[0] if "-" in r.worker_id else r.worker_id
+                from .models import ROLE_REGISTRY
+                rdef = ROLE_REGISTRY.get(role_id)
+                role_name = rdef.name if rdef else role_id
                 worker_results.append({
                     "worker_id": r.worker_id,
-                    "role": r.worker_id.split("-")[0] if "-" in r.worker_id else r.worker_id,
+                    "role_id": role_id,
+                    "role_name": role_name,
                     "task_id": r.task_id,
                     "success": r.success,
-                    "output": str(r.output)[:500] if r.output else None,
+                    "output": (r.output.get("finding_summary", "") if isinstance(r.output, dict) else str(r.output)) if r.output else None,
                     "error": r.error,
                 })
 

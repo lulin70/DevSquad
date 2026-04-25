@@ -121,7 +121,7 @@ class Worker:
                 "worker_id": self.worker_id,
                 "role_id": self.role_id,
                 "task_id": task.task_id,
-                "finding_summary": finding[:500] if finding else "",
+                "finding_summary": finding,
             }
 
             return WorkerResult(
@@ -134,10 +134,13 @@ class Worker:
                 duration_seconds=time.time() - start_time,
             )
         except Exception as e:
+            print(f"  [Worker {self.worker_id}] Error: {e}", file=sys.stderr)
             return WorkerResult(
                 worker_id=self.worker_id,
                 task_id=task.task_id,
                 success=False,
+                output={"worker_id": self.worker_id, "role_id": self.role_id,
+                        "task_id": task.task_id, "error_detail": str(e)},
                 error=str(e),
                 duration_seconds=time.time() - start_time,
             )
@@ -376,9 +379,26 @@ class Worker:
 
         backend = self.llm_backend or MockBackend()
         if isinstance(backend, MockBackend):
-            return result.instruction
+            from .models import ROLE_REGISTRY
+            rdef = ROLE_REGISTRY.get(self.role_id)
+            role_name = rdef.name if rdef else self.role_id
+            return backend.generate(
+                result.instruction,
+                role_name=role_name,
+                task_description=task.description,
+            )
 
-        return backend.generate(result.instruction)
+        from .models import ROLE_REGISTRY as _RR
+        _rdef = _RR.get(self.role_id)
+        _rname = _rdef.name if _rdef else self.role_id
+        print(f"  [{_rname}] Calling LLM backend...", file=sys.stderr)
+        try:
+            response = backend.generate(result.instruction)
+            print(f"  [{_rname}] Response received.", file=sys.stderr)
+            return response
+        except Exception as e:
+            print(f"  [{_rname}] LLM call failed: {e}", file=sys.stderr)
+            raise
 
 
 class WorkerFactory:

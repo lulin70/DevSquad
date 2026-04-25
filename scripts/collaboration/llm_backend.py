@@ -46,14 +46,31 @@ class LLMBackend(ABC):
 
 class MockBackend(LLMBackend):
     """
-    Default backend that returns the prompt as-is (dry-run mode).
+    Default backend that generates a formatted mock analysis.
 
-    This preserves the existing behavior where Worker._do_work() returns
-    the assembled instruction without calling any LLM.
+    Instead of returning raw prompt text, MockBackend produces a readable
+    mock analysis with [MOCK MODE] markers so users can distinguish it
+    from real LLM output.
     """
 
     def generate(self, prompt: str, **kwargs) -> str:
-        return prompt
+        role_name = kwargs.get("role_name", "AI Assistant")
+        task_desc = kwargs.get("task_description", "")
+        lines = [
+            f"[MOCK MODE] {role_name} Analysis",
+            "=" * 50,
+            "",
+            f"Task: {task_desc}" if task_desc else "Task: (auto-detected)",
+            "",
+            "This is a mock response. To get real AI analysis,",
+            "set --backend openai (or anthropic) with a valid API key.",
+            "",
+            "--- Assembled Prompt Preview ---",
+            prompt[:800],
+        ]
+        if len(prompt) > 800:
+            lines.append(f"... ({len(prompt) - 800} more characters)")
+        return "\n".join(lines)
 
     def is_available(self) -> bool:
         return True
@@ -81,6 +98,8 @@ class OpenAIBackend(LLMBackend):
     Requires the 'openai' package: pip install openai
     """
 
+    DEFAULT_TIMEOUT = 120
+
     def __init__(
         self,
         api_key: Optional[str] = None,
@@ -88,19 +107,21 @@ class OpenAIBackend(LLMBackend):
         base_url: Optional[str] = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
+        timeout: Optional[int] = None,
     ):
         self.api_key = api_key
         self.model = model
         self.base_url = base_url
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.timeout = timeout or self.DEFAULT_TIMEOUT
         self._client = None
 
     def _get_client(self):
         if self._client is None:
             try:
                 from openai import OpenAI
-                kwargs = {"api_key": self.api_key}
+                kwargs = {"api_key": self.api_key, "timeout": self.timeout}
                 if self.base_url:
                     kwargs["base_url"] = self.base_url
                 self._client = OpenAI(**kwargs)
@@ -133,22 +154,26 @@ class AnthropicBackend(LLMBackend):
     Requires the 'anthropic' package: pip install anthropic
     """
 
+    DEFAULT_TIMEOUT = 120
+
     def __init__(
         self,
         api_key: Optional[str] = None,
         model: str = "claude-sonnet-4-20250514",
         max_tokens: int = 4096,
+        timeout: Optional[int] = None,
     ):
         self.api_key = api_key
         self.model = model
         self.max_tokens = max_tokens
+        self.timeout = timeout or self.DEFAULT_TIMEOUT
         self._client = None
 
     def _get_client(self):
         if self._client is None:
             try:
                 from anthropic import Anthropic
-                self._client = Anthropic(api_key=self.api_key)
+                self._client = Anthropic(api_key=self.api_key, timeout=self.timeout)
             except ImportError:
                 raise ImportError("anthropic package required: pip install anthropic")
         return self._client

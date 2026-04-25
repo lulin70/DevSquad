@@ -96,6 +96,11 @@ def cmd_dispatch(args):
         kwargs["permission_level"] = PermissionLevel(args.permission_level.upper())
 
     backend = _create_backend(args.backend, args.base_url, args.model)
+    if backend is None and args.backend not in ("mock", None):
+        print(f"\nError: Failed to create '{args.backend}' backend.", file=sys.stderr)
+        print("Falling back to mock mode is NOT allowed when a backend is explicitly specified.", file=sys.stderr)
+        print("Please check your API key and configuration.", file=sys.stderr)
+        return 1
     if backend is not None:
         kwargs["llm_backend"] = backend
 
