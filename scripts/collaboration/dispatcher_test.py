@@ -242,85 +242,86 @@ class TestT3_FullDispatch:
         assert isinstance(result, DispatchResult)
 
 
-class TestT4_ComponentIntegration(unittest.TestCase):
+class TestT4_ComponentIntegration:
     """T4: 各组件集成验证"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="mas_test_t4_")
+    @pytest.fixture
+    def tmp_dir(self):
+        """临时目录 fixture"""
+        tmp = tempfile.mkdtemp(prefix="mas_test_t4_")
+        yield tmp
+        shutil.rmtree(tmp, ignore_errors=True)
 
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
-
-    def test_01_warmup_enabled(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=True)
+    def test_01_warmup_enabled(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=True)
         status = disp.get_status()
-        self.assertTrue(status["components"]["warmup_manager"])
+        assert status["components"]["warmup_manager"]
         metrics = status.get("warmup_metrics")
-        self.assertIsNotNone(metrics)
+        assert metrics is not None
         disp.shutdown()
 
-    def test_02_warmup_disabled(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=False)
+    def test_02_warmup_disabled(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=False)
         status = disp.get_status()
-        self.assertIsNone(status.get("warmup_metrics"))
+        assert status.get("warmup_metrics") is None
         disp.shutdown()
 
-    def test_03_compression_enabled(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_compression=True)
+    def test_03_compression_enabled(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_compression=True)
         result = disp.dispatch("压缩测试任务" * 10)
         if result.compression_info:
-            self.assertIsInstance(result.compression_info, dict)
+            assert isinstance(result.compression_info, dict)
         disp.shutdown()
 
-    def test_04_compression_disabled(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_compression=False)
+    def test_04_compression_disabled(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_compression=False)
         result = disp.dispatch("无压缩任务")
-        self.assertIsNone(result.compression_info)
+        assert result.compression_info is None
         disp.shutdown()
 
-    def test_05_permission_checks_present(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_permission=True)
+    def test_05_permission_checks_present(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_permission=True)
         result = disp.dispatch("权限检查任务")
-        self.assertIsInstance(result.permission_checks, list)
+        assert isinstance(result.permission_checks, list)
         if result.permission_checks:
             pc = result.permission_checks[0]
-            self.assertIn("action", pc)
-            self.assertIn("allowed", pc)
+            assert "action" in pc
+            assert "allowed" in pc
         disp.shutdown()
 
-    def test_06_permission_disabled(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_permission=False)
+    def test_06_permission_disabled(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_permission=False)
         result = disp.dispatch("无权限任务")
-        self.assertEqual(len(result.permission_checks), 0)
+        assert len(result.permission_checks) == 0
         disp.shutdown()
 
-    def test_07_memory_bridge_stats(self):
-        mem_dir = os.path.join(self.tmp, "mem_store")
+    def test_07_memory_bridge_stats(self, tmp_dir):
+        mem_dir = os.path.join(tmp_dir, "mem_store")
         disp = MultiAgentDispatcher(
-            persist_dir=self.tmp,
+            persist_dir=tmp_dir,
             memory_dir=mem_dir,
             enable_memory=True,
         )
         result = disp.dispatch("记忆桥接测试")
         if result.memory_stats:
-            self.assertIn("total_memories", result.memory_stats)
+            assert "total_memories" in result.memory_stats
         disp.shutdown()
 
-    def test_08_memory_disabled(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_memory=False)
+    def test_08_memory_disabled(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_memory=False)
         result = disp.dispatch("无记忆任务")
-        self.assertIsNone(result.memory_stats)
+        assert result.memory_stats is None
         disp.shutdown()
 
-    def test_09_skillify_proposals(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_skillify=True)
+    def test_09_skillify_proposals(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_skillify=True)
         result = disp.dispatch("Skill学习测试 - 实现功能并测试")
-        self.assertIsInstance(result.skill_proposals, list)
+        assert isinstance(result.skill_proposals, list)
         disp.shutdown()
 
-    def test_10_all_components_active(self):
+    def test_10_all_components_active(self, tmp_dir):
         disp = MultiAgentDispatcher(
-            persist_dir=self.tmp,
+            persist_dir=tmp_dir,
             enable_warmup=True,
             enable_compression=True,
             enable_permission=True,
@@ -330,78 +331,81 @@ class TestT4_ComponentIntegration(unittest.TestCase):
         )
         status = disp.get_status()
         for comp_name, active in status["components"].items():
-            self.assertTrue(active, f"Component {comp_name} should be active")
+            assert active, f"Component {comp_name} should be active"
         disp.shutdown()
 
 
-class TestT5_StatusAndHistory(unittest.TestCase):
+class TestT5_StatusAndHistory:
     """T5: 状态查询和历史记录"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="mas_test_t5_")
-        self.disp = MultiAgentDispatcher(
-            persist_dir=self.tmp,
+    @pytest.fixture
+    def dispatcher(self):
+        """创建测试用的 dispatcher fixture"""
+        tmp = tempfile.mkdtemp(prefix="mas_test_t5_")
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp,
             enable_warmup=False,
             enable_memory=False,
             enable_skillify=False,
         )
+        yield disp
+        disp.shutdown()
+        shutil.rmtree(tmp, ignore_errors=True)
 
-    def tearDown(self):
-        self.disp.shutdown()
-        shutil.rmtree(self.tmp, ignore_errors=True)
+    def test_01_get_status_basic(self, dispatcher):
+        status = dispatcher.get_status()
+        assert status["version"] == "3.3.0"
+        assert "components" in status
+        assert "dispatch_count" in status
 
-    def test_01_get_status_basic(self):
-        status = self.disp.get_status()
-        self.assertEqual(status["version"], "3.3.0")
-        self.assertIn("components", status)
-        self.assertIn("dispatch_count", status)
+    def test_02_get_status_has_scratchpad_stats(self, dispatcher):
+        status = dispatcher.get_status()
+        assert "scratchpad_stats" in status
 
-    def test_02_get_status_has_scratchpad_stats(self):
-        status = self.disp.get_status()
-        self.assertIn("scratchpad_stats", status)
+    def test_03_history_starts_empty(self, dispatcher):
+        history = dispatcher.get_history()
+        assert len(history) == 0
 
-    def test_03_history_starts_empty(self):
-        history = self.disp.get_history()
-        self.assertEqual(len(history), 0)
+    def test_04_history_grows_with_dispatches(self, dispatcher):
+        dispatcher.dispatch("任务1")
+        dispatcher.dispatch("任务2")
+        history = dispatcher.get_history()
+        assert len(history) == 2
 
-    def test_04_history_grows_with_dispatches(self):
-        self.disp.dispatch("任务1")
-        self.disp.dispatch("任务2")
-        history = self.disp.get_history()
-        self.assertEqual(len(history), 2)
-
-    def test_05_history_limit(self):
+    def test_05_history_limit(self, dispatcher):
         for i in range(15):
-            self.disp.dispatch(f"任务{i}")
-        history = self.disp.get_history(limit=10)
-        self.assertLessEqual(len(history), 10)
+            dispatcher.dispatch(f"任务{i}")
+        history = dispatcher.get_history(limit=10)
+        assert len(history) <= 10
 
-    def test_06_quick_dispatch_returns_result(self):
-        result = self.disp.quick_dispatch("快速报告测试")
-        self.assertIsInstance(result, DispatchResult)
-        self.assertIsInstance(result.summary, str)
-        self.assertIn("#", result.summary)
+    def test_06_quick_dispatch_returns_result(self, dispatcher):
+        result = dispatcher.quick_dispatch("快速报告测试")
+        assert isinstance(result, DispatchResult)
+        assert isinstance(result.summary, str)
+        assert "#" in result.summary
 
-    def test_07_shutdown_no_error(self):
+    def test_07_shutdown_no_error(self, dispatcher):
+        # 使用 fixture 提供的 dispatcher 的 persist_dir
+        tmp = dispatcher.persist_dir
         disp = MultiAgentDispatcher(
-            persist_dir=self.tmp,
+            persist_dir=tmp,
             enable_warmup=True,
             enable_memory=True,
         )
         try:
             disp.shutdown()
         except Exception as e:
-            self.fail(f"shutdown raised exception: {e}")
+            pytest.fail(f"shutdown raised exception: {e}")
 
 
-class TestT6_FactoryAndConvenience(unittest.TestCase):
+class TestT6_FactoryAndConvenience:
     """T6: 工厂函数和便捷方法"""
 
     def test_01_create_dispatcher_factory(self):
         tmp = tempfile.mkdtemp(prefix="mas_test_t6_")
         try:
             disp = create_dispatcher(persist_dir=tmp)
-            self.assertIsInstance(disp, MultiAgentDispatcher)
+            assert isinstance(disp, MultiAgentDispatcher)
             disp.shutdown()
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
@@ -410,7 +414,7 @@ class TestT6_FactoryAndConvenience(unittest.TestCase):
         tmp = tempfile.mkdtemp(prefix="mas_test_t6_")
         try:
             result = quick_collaborate("便捷协作测试", persist_dir=tmp)
-            self.assertIsInstance(result, DispatchResult)
+            assert isinstance(result, DispatchResult)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
@@ -422,7 +426,7 @@ class TestT6_FactoryAndConvenience(unittest.TestCase):
             d2 = MultiAgentDispatcher(persist_dir=tmp2)
             r1 = d1.dispatch("D1任务")
             r2 = d2.dispatch("D2任务")
-            self.assertNotEqual(r1.task_description, r2.task_description)
+            assert r1.task_description != r2.task_description
             d1.shutdown()
             d2.shutdown()
         finally:
@@ -430,76 +434,77 @@ class TestT6_FactoryAndConvenience(unittest.TestCase):
             shutil.rmtree(tmp2, ignore_errors=True)
 
 
-class TestT7_EdgeCases(unittest.TestCase):
+class TestT7_EdgeCases:
     """T7: 边界条件和异常处理"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="mas_test_t7_")
+    @pytest.fixture
+    def tmp_dir(self):
+        """临时目录 fixture"""
+        tmp = tempfile.mkdtemp(prefix="mas_test_t7_")
+        yield tmp
+        shutil.rmtree(tmp, ignore_errors=True)
 
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
-
-    def test_01_empty_task(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=False,
+    def test_01_empty_task(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=False,
                                      enable_memory=False, enable_skillify=False)
         result = disp.dispatch("")
-        self.assertIsInstance(result, DispatchResult)
+        assert isinstance(result, DispatchResult)
         disp.shutdown()
 
-    def test_02_very_long_task(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=False,
+    def test_02_very_long_task(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=False,
                                      enable_memory=False, enable_skillify=False)
         long_text = "测试" * 1000
         result = disp.dispatch(long_text)
-        self.assertIsInstance(result, DispatchResult)
+        assert isinstance(result, DispatchResult)
         disp.shutdown()
 
-    def test_03_special_characters_task(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=False,
+    def test_03_special_characters_task(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=False,
                                      enable_memory=False, enable_skillify=False)
         result = disp.dispatch("测试特殊字符: <>&\"'中文🎉emoji")
-        self.assertIsInstance(result, DispatchResult)
+        assert isinstance(result, DispatchResult)
         disp.shutdown()
 
-    def test_04_all_roles_specified(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=False,
+    def test_04_all_roles_specified(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=False,
                                      enable_memory=False, enable_skillify=False)
         all_roles = list(ROLE_TEMPLATES.keys())
         result = disp.dispatch("全角色任务", roles=all_roles)
-        self.assertEqual(set(result.matched_roles), set(all_roles))
+        assert set(result.matched_roles) == set(all_roles)
         disp.shutdown()
 
-    def test_05_invalid_role_fallback(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=False,
+    def test_05_invalid_role_fallback(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=False,
                                      enable_memory=False, enable_skillify=False)
         result = disp.dispatch("测试", roles=["nonexistent-role"])
-        self.assertIsInstance(result, DispatchResult)
+        assert isinstance(result, DispatchResult)
         disp.shutdown()
 
-    def test_06_rapid_sequential_dispatches(self):
-        disp = MultiAgentDispatcher(persist_dir=self.tmp, enable_warmup=False,
+    def test_06_rapid_sequential_dispatches(self, tmp_dir):
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_warmup=False,
                                      enable_memory=False, enable_skillify=False)
         results = []
         for i in range(5):
             r = disp.dispatch(f"快速任务{i}")
             results.append(r)
-        self.assertEqual(len(results), 5)
+        assert len(results) == 5
         for r in results:
-            self.assertIsInstance(r, DispatchResult)
+            assert isinstance(r, DispatchResult)
         disp.shutdown()
 
-    def test_07_custom_persist_dir_created(self):
-        custom_dir = os.path.join(self.tmp, "custom_persist")
+    def test_07_custom_persist_dir_created(self, tmp_dir):
+        custom_dir = os.path.join(tmp_dir, "custom_persist")
         disp = MultiAgentDispatcher(persist_dir=custom_dir, enable_warmup=False,
                                      enable_memory=False, enable_skillify=False)
-        self.assertTrue(os.path.exists(custom_dir))
+        assert os.path.exists(custom_dir)
         disp.dispatch("目录测试")
         disp.shutdown()
 
     def test_08_auto_persist_dir_created(self):
         disp = MultiAgentDispatcher(enable_warmup=False, enable_memory=False,
                                      enable_skillify=False)
-        self.assertTrue(os.path.exists(disp.persist_dir))
+        assert os.path.exists(disp.persist_dir)
         disp.shutdown()
 
 
