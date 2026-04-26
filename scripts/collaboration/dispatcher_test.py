@@ -13,6 +13,7 @@ V3 Dispatcher 集成测试
 
 import os
 import sys
+import pytest
 import unittest
 import tempfile
 import shutil
@@ -30,16 +31,16 @@ from scripts.collaboration.dispatcher import (
 )
 
 
-class TestT1_DispatcherDataModels(unittest.TestCase):
+class TestT1_DispatcherDataModels:
     """T1: 数据模型测试"""
 
     def test_01_dispatch_result_default(self):
         r = DispatchResult(success=True, task_description="test")
-        self.assertTrue(r.success)
-        self.assertEqual(r.task_description, "test")
-        self.assertEqual(r.matched_roles, [])
-        self.assertEqual(r.duration_seconds, 0.0)
-        self.assertIsInstance(r.errors, list)
+        assert r.success
+        assert r.task_description == "test"
+        assert r.matched_roles == []
+        assert r.duration_seconds == 0.0
+        assert isinstance(r.errors, list)
 
     def test_02_dispatch_result_to_dict(self):
         r = DispatchResult(
@@ -51,10 +52,10 @@ class TestT1_DispatcherDataModels(unittest.TestCase):
             errors=["warn1"],
         )
         d = r.to_dict()
-        self.assertEqual(d["success"], True)
-        self.assertEqual(d["task_description"], "test task")
-        self.assertEqual(d["matched_roles"], ["architect", "tester"])
-        self.assertIn("warn1", d["errors"])
+        assert d["success"] == True
+        assert d["task_description"] == "test task"
+        assert d["matched_roles"] == ["architect", "tester"]
+        assert "warn1" in d["errors"]
 
     def test_03_dispatch_result_to_markdown(self):
         r = DispatchResult(
@@ -66,10 +67,10 @@ class TestT1_DispatcherDataModels(unittest.TestCase):
             worker_results=[{"role": "architect", "success": True, "output": "架构文档"}],
         )
         md = r.to_markdown()
-        self.assertIn("Multi-Agent", md)
-        self.assertIn("设计系统", md)
-        self.assertIn("✅ 成功", md)
-        self.assertIn("architect", md)
+        assert "Multi-Agent" in md
+        assert "设计系统" in md
+        assert "✅ 成功" in md
+        assert "architect" in md
 
     def test_04_dispatch_result_to_markdown_failure(self):
         r = DispatchResult(
@@ -78,20 +79,20 @@ class TestT1_DispatcherDataModels(unittest.TestCase):
             errors=["error1", "error2"],
         )
         md = r.to_markdown()
-        self.assertIn("❌ 失败", md)
-        self.assertIn("error1", md)
+        assert "❌ 失败" in md
+        assert "error1" in md
 
     def test_05_role_templates_complete(self):
         expected_roles = ["architect", "product-manager", "tester", "solo-coder", "ui-designer"]
         for rid in expected_roles:
-            self.assertIn(rid, ROLE_TEMPLATES)
-            self.assertIn("name", ROLE_TEMPLATES[rid])
-            self.assertIn("prompt", ROLE_TEMPLATES[rid])
-            self.assertIn("keywords", ROLE_TEMPLATES[rid])
+            assert rid in ROLE_TEMPLATES
+            assert "name" in ROLE_TEMPLATES[rid]
+            assert "prompt" in ROLE_TEMPLATES[rid]
+            assert "keywords" in ROLE_TEMPLATES[rid]
 
     def test_06_role_keywords_non_empty(self):
         for rid, info in ROLE_TEMPLATES.items():
-            self.assertGreater(len(info["keywords"]), 0, f"{rid} has no keywords")
+            assert len(info["keywords"]) > 0, f"{rid} has no keywords"
 
 
 class TestT2_TaskAnalysis(unittest.TestCase):
