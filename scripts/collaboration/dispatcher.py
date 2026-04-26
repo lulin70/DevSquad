@@ -69,6 +69,7 @@ from .memory_bridge import (
 from .test_quality_guard import (
     TestQualityGuard, TestQualityReport,
 )
+from .usage_tracker import track_usage
 
 
 # Backward-compatible aliases from models SSOT
@@ -320,6 +321,7 @@ class MultiAgentDispatcher:
         Returns:
             匹配到的角色列表 [{"role_id": "...", "name": "...", "reason": "..."}]
         """
+        track_usage("dispatcher.analyze_task")
         task_lower = task_description.lower()
         matched = []
 
@@ -371,6 +373,7 @@ class MultiAgentDispatcher:
         Returns:
             DispatchResult: 完整的调度结果
         """
+        track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
         errors = []
 
