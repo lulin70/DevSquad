@@ -373,10 +373,11 @@ class TestT5_StatusAndHistory(unittest.TestCase):
         history = self.disp.get_history(limit=10)
         self.assertLessEqual(len(history), 10)
 
-    def test_06_quick_dispatch_returns_str(self):
-        result_str = self.disp.quick_dispatch("快速报告测试")
-        self.assertIsInstance(result_str, str)
-        self.assertIn("#", result_str)
+    def test_06_quick_dispatch_returns_result(self):
+        result = self.disp.quick_dispatch("快速报告测试")
+        self.assertIsInstance(result, DispatchResult)
+        self.assertIsInstance(result.summary, str)
+        self.assertIn("#", result.summary)
 
     def test_07_shutdown_no_error(self):
         disp = MultiAgentDispatcher(

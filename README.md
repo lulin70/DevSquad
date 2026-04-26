@@ -47,6 +47,16 @@ You: "Design a microservices e-commerce backend"
       └──────────────────┘
 ```
 
+## 📚 Documentation
+
+**New to DevSquad?** Start here: [Documentation Index](docs/INDEX.md)
+
+- 📖 [Installation Guide](INSTALL.md) - Setup and configuration
+- 💡 [Usage Examples](EXAMPLES.md) - Real-world scenarios
+- 🏗️ [Architecture](docs/architecture/ARCHITECTURE.md) - System design
+- 📊 [Project Status](docs/PROJECT_STATUS.md) - Current state and roadmap
+- 🎯 [Optimization Plan](docs/OPTIMIZATION_PLAN_KARPATHY.md) - Improvement roadmap
+
 ## Quick Start
 
 ### Prerequisites
