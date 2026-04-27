@@ -138,10 +138,10 @@
 - [x] P0-5: __init__.py 版本号
 
 ### Phase 2: 安全+质量（2-3天）
-- [ ] P1-1: InputValidator 集成到 dispatch 入口
-- [ ] P1-2: 核心模块单元测试
-- [ ] P1-3: Dispatcher 拆分
-- [ ] P1-4: 静默异常修复
+- [x] P1-1: InputValidator 集成到 dispatch 入口
+- [x] P1-2: 核心模块单元测试 (39 tests: Scratchpad/Consensus/Worker/Coordinator/InputValidator)
+- [x] P1-3: Dispatcher 拆分 (RoleMatcher 92行 + ReportFormatter 314行, Dispatcher 1208→832行)
+- [x] P1-4: 静默异常修复 (dispatcher/scratchpad/llm_cache 共10处)
 
 ### Phase 3: 上游功能采纳（3-5天）
 - [ ] P1-5: AI 语义匹配
