@@ -253,7 +253,7 @@ python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python3 -m pytest scripts/collaboration/ -v
-# Expected: ~825+ test cases (all passing)
+# Expected: 99+ unit tests (all passing)
 ```
 
 ## Troubleshooting
@@ -302,22 +302,41 @@ DevSquad/
 ├── scripts/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
-│   ├── trae_agent.py             # Legacy wrapper script
-│   ├── trae_agent_dispatch_v2.py # Core dispatcher (legacy)
-│   └── collaboration/            # ★ 16 core modules
+│   └── collaboration/            # ★ 27 core modules
+│       ├── _version.py           # Version SSOT (3.3.0)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard
-│       ├── worker.py             # Role executor
+│       ├── worker.py             # Role executor (with streaming)
 │       ├── consensus.py          # Weighted voting + veto
+│       ├── llm_backend.py        # Mock/OpenAI/Anthropic + streaming
+│       ├── role_matcher.py       # Keyword-based role matching
+│       ├── report_formatter.py   # Structured/compact/detailed reports
+│       ├── input_validator.py    # Security + prompt injection detection
+│       ├── ai_semantic_matcher.py # LLM-powered semantic matching
+│       ├── checkpoint_manager.py  # State persistence + handoff
+│       ├── workflow_engine.py     # Task-to-workflow auto-split
+│       ├── task_completion_checker.py # Completion tracking
+│       ├── code_map_generator.py  # AST-based code analysis
+│       ├── dual_layer_context.py  # Project + task context with TTL
+│       ├── skill_registry.py     # Skill registration + discovery
+│       ├── config_loader.py      # YAML config + env var overrides
 │       ├── memory_bridge.py      # Cross-session memory
 │       ├── mce_adapter.py        # MCE v0.4 adapter
-│       └── *_test.py             # Test suites (~825+ cases)
+│       └── *_test.py             # Test suites (99 unit tests)
+├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
+├── Dockerfile                    # Docker support
+├── pyproject.toml                # pip-installable package
 ├── SKILL.md                      # English skill manual
 ├── SKILL-CN.md                   # Chinese skill manual
+├── SKILL-JP.md                   # Japanese skill manual
 ├── README.md                     # English readme
+├── README-CN.md                  # Chinese readme
+├── README-JP.md                  # Japanese readme
+├── EXAMPLES.md                   # Usage examples (Chinese)
+├── EXAMPLES_EN.md                # Usage examples (English)
 ├── CLAUDE.md                     # Claude Code instructions
-├── EXAMPLES.md                   # Usage examples
+├── CHANGELOG.md                  # Version history
 └── INSTALL.md                    # This file
 
 ---
@@ -470,5 +489,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest scripts\collaboration\ -q
-# Expected: ~825+ test cases (all passing)
+# Expected: 99+ unit tests (all passing)
 ```

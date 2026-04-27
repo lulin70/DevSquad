@@ -5,7 +5,7 @@ description: |
   V3.3.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
   7个核心角色（架构师/产品经理/安全专家/测试专家/开发者/DevOps/UI设计师），
   支持真实LLM后端（OpenAI/Anthropic），CLI + MCP + Python API。
-  ~825+个测试全通过。支持中英日三语。
+  99个单元测试全通过。支持中英日三语。
 ---
 
 # DevSquad V3.3.0 — 多智能体协作平台
@@ -15,31 +15,43 @@ description: |
 本 Skill 将 Trae 从「单AI助手」升级为「多AI团队」。当用户提出任务时，不再由单一角色处理，而是：
 
 ```
-用户任务 → [意图分析] → [角色匹配] → [Coordinator编排]
-        → [多个Worker并行执行] → [Scratchpad实时共享]
-        → [Consensus共识决策] → [MCE分类增强] → [结果汇总返回]
+用户任务 → [输入验证] → [角色匹配] → [Coordinator编排]
+        → [ThreadPoolExecutor并行Worker] → [Scratchpad实时共享]
+        → [ConsensusEngine共识] → [报告格式化] → [结构化报告]
 ```
 
-## 架构总览（15大模块）
+## 架构总览（27大模块）
 
 | # | 模块 | 文件 | 职责 |
 |---|------|------|------|
 | 0 | **MultiAgentDispatcher** | `dispatcher.py` | 统一调度入口，一键完成全流程协作（集成所有模块） |
 | 1 | **Coordinator** | `coordinator.py` | 全局编排者，分解任务、分配Worker、收集结果、解决冲突 |
 | 2 | **Scratchpad** | `scratchpad.py` | 共享黑板，Worker间实时交换发现/决策/冲突 |
-| 3 | **Worker** | `worker.py` | 工作者，每个角色一个实例，独立执行并写入Scratchpad |
+| 3 | **Worker** | `worker.py` | 工作者，每个角色一个实例，独立执行并写入Scratchpad（支持流式输出） |
 | 4 | **ConsensusEngine** | `consensus.py` | 共识引擎，权重投票+否决权+升级人工机制 |
 | 5 | **BatchScheduler** | `batch_scheduler.py` | 并行/串行混合调度，自动判断并发安全性 |
 | 6 | **ContextCompressor** | `context_compressor.py` | 4级上下文压缩(NONE/SNIP/SESSION_MEMORY/FULL_COMPACT) |
 | 7 | **PermissionGuard** | `permission_guard.py` | 4级权限守卫(PLAN/DEFAULT/AUTO/BYPASS) |
 | 8 | **Skillifier** | `skillifier.py` | 从成功操作模式中自动生成新Skill |
 | 9 | **WarmupManager** | `warmup_manager.py` | 3层启动预热(EAGER/ASYNC/LAZY) + 进程级缓存 |
-| 10 | **MemoryBridge** | `memory_bridge.py` | 7类型记忆桥接 + 倒排索引 + TF-IDF + 遗忘曲线 + MCE集成 |
+| 10 | **MemoryBridge** | `memory_bridge.py` | 7类型记忆桥接 + 倒排索引 + TF-IDF + 遗忘曲线 + MCE+Claw集成 |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | 测试质量审计(API校验/反模式检测/维度覆盖) |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | 动态提示词组装(复杂度检测/3级变体/5种风格/压缩感知) |
 | 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify闭环反哺(模式→变体/A/B测试/自动晋升淘汰) |
 | 14 | **MCEAdapter** | `mce_adapter.py` | MCE记忆分类引擎适配器(懒加载/优雅降级/线程安全) |
-| 15 | **WorkBuddyClawSource** | `memory_bridge.py` | WorkBuddy Claw只读桥接(索引检索/日更记忆/AI新闻流) |
+| 15 | **WorkBuddyClawSource** | `memory_bridge.py` (class) | WorkBuddy Claw只读桥接(索引检索/日更记忆/AI新闻流) |
+| 16 | **RoleMatcher** | `role_matcher.py` | 基于关键词的角色匹配+别名解析（从Dispatcher提取） |
+| 17 | **ReportFormatter** | `report_formatter.py` | 结构化/紧凑/详细报告生成（从Dispatcher提取） |
+| 18 | **InputValidator** | `input_validator.py` | 安全验证 + 16种Prompt注入模式检测 |
+| 19 | **AISemanticMatcher** | `ai_semantic_matcher.py` | LLM驱动的语义角色匹配 + 中英双语关键词回退 |
+| 20 | **CheckpointManager** | `checkpoint_manager.py` | SHA256完整性校验、交接文档、自动清理 |
+| 21 | **WorkflowEngine** | `workflow_engine.py` | 任务→工作流自动拆分、步骤执行、断点恢复 |
+| 22 | **TaskCompletionChecker** | `task_completion_checker.py` | DispatchResult/ScheduleResult完成度跟踪 |
+| 23 | **CodeMapGenerator** | `code_map_generator.py` | Python AST代码结构分析 + 依赖图 |
+| 24 | **DualLayerContext** | `dual_layer_context.py` | 项目级+任务级上下文管理（带TTL） |
+| 25 | **SkillRegistry** | `skill_registry.py` | 可复用技能注册+发现+持久化 |
+| 26 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + 流式输出 + 120s超时 |
+| 27 | **ConfigManager** | `config_loader.py` | YAML配置 + 环境变量覆盖（16个参数） |
 
 ---
 
@@ -467,26 +479,17 @@ def test_<功能>_<场景>(self):
 
 | 模块 | 测试数 | 质量评分 | 状态 |
 |------|--------|---------|------|
-| PromptOptimization (提示词优化) | 59 | ✅ | ✅ PASS |
-| TestQualityGuard (质量守卫) | 42 | 自身审计通过 | ✅ PASS |
-| Dispatcher (统一调度) | 54 | ✅ | ✅ PASS |
-| Coordinator + Scratchpad + Worker | 96 | ✅ | ✅ PASS |
-| ContextCompressor | 72 | ✅ | ✅ PASS |
-| PermissionGuard | 105 | ✅ | ✅ PASS |
-| Skillifier | 96 | ✅ | ✅ PASS |
-| WarmupManager | 103 | ✅ | ✅ PASS |
-| MemoryBridge | 96 | ✅ | ✅ PASS |
-| Enhanced E2E | 46 | ✅ | ✅ PASS |
-| MCEAdapter (MCE适配器) | 23 | ✅ | ✅ PASS |
-| Dispatcher UX (报告增强) | 24 | ✅ | ✅ PASS |
-| Claw Integration (Claw桥接) | 33 | ✅ | ✅ PASS |
-| **总计** | **~825+** | **✅ ALL PASS** | |
+| Core Tests (Dispatcher+Coordinator+Worker+Scratchpad+Consensus) | 39 | ✅ | ✅ PASS |
+| Role Mapping (RoleMatcher+别名解析) | 25 | ✅ | ✅ PASS |
+| Upstream (Checkpoint+SemanticMatcher+Workflow+CompletionChecker) | 35 | ✅ | ✅ PASS |
+| **总计** | **99** | **✅ ALL PASS** | |
 
 ---
 
 ## Version History
 
-- **v3.3.0** (2026-04-24): 真实LLM后端(OpenAI/Anthropic) + 7核心角色(security+devops提升为核心，data/reviewer/optimizer合并/移除) + RoleRegistry SSOT + TaskDefinition.role_prompt修复 + 环境变量唯一API key入口 + InputValidator输入验证 + 3个真实场景验证通过
+- **v3.3.0** (2026-04-27): 真实LLM后端(OpenAI/Anthropic/Mock) + ThreadPoolExecutor并行执行 + InputValidator+16种Prompt注入防护 + RoleMatcher/ReportFormatter提取 + AISemanticMatcher双语匹配 + CheckpointManager SHA256完整性 + WorkflowEngine任务拆分+断点恢复 + TaskCompletionChecker完成度跟踪 + CodeMapGenerator AST分析 + DualLayerContext双层上下文 + SkillRegistry技能注册 + ConfigManager YAML配置 + LLMBackend流式输出 + Docker + GitHub Actions CI + pip可安装 + 99单元测试
+- **v3.3** (2026-04-24): 7核心角色(security+devops提升为核心) + RoleRegistry SSOT + TaskDefinition.role_prompt修复 + 环境变量唯一API key入口 + InputValidator输入验证 + 3个真实场景验证通过
 - **v3.3** (2026-04-17): WorkBuddy Claw集成 + MCE v0.4支持 + 注释EN化 + 多语言README
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule (walkthrough→annotate→docs→Git loop)
 - **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation

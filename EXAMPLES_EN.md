@@ -1,6 +1,6 @@
 # DevSquad Usage Examples
 
-> Last verified: 2026-04-24 with DevSquad V3.3, backend=openai, model=moka/claude-sonnet-4-6
+> Last verified: 2026-04-27 with DevSquad V3.3.0, backend=openai, model=moka/claude-sonnet-4-6
 
 ## Quick Start
 
@@ -16,6 +16,9 @@ python3 scripts/cli.py dispatch -t "Design a user authentication system" --backe
 
 # Specify roles explicitly (use short IDs: arch/pm/test/coder/ui/infra/sec)
 python3 scripts/cli.py dispatch -t "Design a user authentication system" -r arch pm test --backend openai
+
+# Stream output in real-time (V3.3.0)
+python3 scripts/cli.py dispatch -t "Design a user authentication system" -r arch --backend openai --stream
 
 # Dry-run (simulate without execution)
 python3 scripts/cli.py dispatch -t "Design a user authentication system" --dry-run
@@ -81,7 +84,18 @@ payments and personal data. Since I don't have access to your actual
 codebase, I'll provide an executable audit framework with...
 ```
 
-### Example 4: Consensus Mode
+### Example 4: Streaming Output (V3.3.0 New)
+
+```bash
+python3 scripts/cli.py dispatch \
+    -t "Design microservices e-commerce backend" \
+    -r arch --backend openai --stream
+```
+
+In streaming mode, LLM responses are output chunk-by-chunk in real-time.
+Ideal for long-running generations where you want to see results as they come.
+
+### Example 5: Consensus Mode
 
 ```bash
 python3 scripts/cli.py dispatch \
@@ -90,9 +104,10 @@ python3 scripts/cli.py dispatch \
     --mode consensus
 ```
 
-Consensus mode forces a vote when roles disagree. Each role casts a weighted vote, veto power is respected, and human escalation is available for deadlocks.
+Consensus mode forces a vote when roles disagree. Each role casts a weighted vote,
+veto power is respected, and human escalation is available for deadlocks.
 
-### Example 5: JSON Output for Automation
+### Example 6: JSON Output for Automation
 
 ```bash
 python3 scripts/cli.py dispatch \
@@ -102,6 +117,47 @@ python3 scripts/cli.py dispatch \
 ```
 
 JSON output is machine-readable, suitable for CI/CD pipelines or further processing.
+
+## Docker Usage
+
+```bash
+# Build image
+docker build -t devsquad .
+
+# Run in mock mode
+docker run devsquad dispatch -t "Design auth system"
+
+# Run with API key
+docker run -e OPENAI_API_KEY="sk-..." devsquad dispatch -t "Design auth system" --backend openai
+
+# Interactive shell
+docker run -it devsquad /bin/bash
+```
+
+## Configuration File
+
+Create `~/.devsquad.yaml`:
+
+```yaml
+devsquad:
+  backend: openai
+  base_url: https://api.openai.com/v1
+  model: gpt-4
+  timeout: 120
+  output_format: structured
+  strict_validation: false
+  checkpoint_enabled: true
+  cache_enabled: true
+  log_level: WARNING
+```
+
+Priority: environment variables > config file > defaults
+
+```bash
+# After setting config file, no need to specify --backend each time
+python3 scripts/cli.py dispatch -t "Design auth system"
+# Automatically uses openai backend from config
+```
 
 ## System Commands
 
@@ -116,7 +172,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles --format json
 
 # Show version
-python3 scripts/cli.py --version
+python3 scripts/cli.py --version    # 3.3.0
 ```
 
 ## Python API Examples
@@ -162,6 +218,54 @@ print(result.summary)
 disp.shutdown()
 ```
 
+### Streaming Output (Python API)
+
+```python
+import os
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+from scripts.collaboration.llm_backend import create_backend
+
+backend = create_backend("openai", api_key=os.environ["OPENAI_API_KEY"])
+disp = MultiAgentDispatcher(llm_backend=backend)
+
+# Use streaming Worker
+from scripts.collaboration.worker import Worker
+worker = Worker(role="architect", backend=backend, stream=True)
+# Worker prints LLM response chunks in real-time
+
+result = disp.dispatch("Design auth system", roles=["architect"])
+disp.shutdown()
+```
+
+### Using ConfigManager
+
+```python
+from scripts.collaboration.config_loader import ConfigManager
+
+config_mgr = ConfigManager()
+config = config_mgr.load()
+print(f"Backend: {config.backend}")
+print(f"Model: {config.model}")
+print(f"Timeout: {config.timeout}")
+```
+
+### Using CheckpointManager
+
+```python
+from scripts.collaboration.checkpoint_manager import CheckpointManager
+
+ckpt_mgr = CheckpointManager(storage_dir="/tmp/checkpoints")
+
+# Create checkpoint from dispatch result
+checkpoint = ckpt_mgr.create_checkpoint_from_dispatch(dispatch_result)
+
+# List all checkpoints
+checkpoints = ckpt_mgr.list_checkpoints()
+
+# Restore from checkpoint
+restored = ckpt_mgr.load_checkpoint(checkpoint.checkpoint_id)
+```
+
 ## Role Reference
 
 | Role | CLI ID | Aliases | Best For |
@@ -184,6 +288,7 @@ disp.shutdown()
 | `--backend`, `-b` | enum | mock | LLM backend: mock/trae/openai/anthropic |
 | `--base-url` | string | env | Custom API base URL (or OPENAI_BASE_URL env) |
 | `--model` | string | env | Model name (or OPENAI_MODEL/ANTHROPIC_MODEL env) |
+| `--stream` | flag | false | Stream LLM output in real-time (requires --backend) |
 | `--format`, `-f` | enum | markdown | Output: markdown/json/compact/structured/detailed |
 | `--dry-run` | flag | false | Simulate without execution |
 | `--quick`, `-q` | flag | false | Use quick_dispatch (3 formats) |
@@ -207,6 +312,7 @@ disp.shutdown()
 | `ANTHROPIC_API_KEY` | API key for Anthropic Claude | For `--backend anthropic` |
 | `ANTHROPIC_MODEL` | Model name (e.g., `claude-sonnet-4-20250514`) | Optional |
 | `DEVSQUAD_LLM_BACKEND` | Default backend (mock/openai/anthropic) | Optional |
+| `DEVSQUAD_LOG_LEVEL` | Logging level | Optional |
 
 ## MCP Server (for OpenClaw / Cursor)
 
@@ -221,4 +327,5 @@ python3 scripts/mcp_server.py
 python3 scripts/mcp_server.py --port 8080
 ```
 
-6 tools exposed: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`, `multiagent_status`, `multiagent_analyze`, `multiagent_shutdown`.
+6 tools exposed: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
+`multiagent_status`, `multiagent_analyze`, `multiagent_shutdown`.

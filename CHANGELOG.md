@@ -5,6 +5,120 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [3.3.0] - 2026-04-27
+
+### Added
+
+#### Real LLM Backend Integration
+
+- **LLMBackend** (`scripts/collaboration/llm_backend.py`): Unified LLM interface with Mock/OpenAI/Anthropic backends
+  - `create_backend()` factory function for easy instantiation
+  - OpenAI backend: `openai>=1.0` with configurable base_url and model
+  - Anthropic backend: `anthropic>=0.18` with configurable model
+  - Mock backend: Zero-dependency, returns assembled prompts (default)
+  - Streaming support: `generate_stream()` method for real-time chunk-by-chunk output
+  - 120s default timeout with configurable override
+  - API keys via environment variables only (no `--api-key` CLI flag)
+
+- **Worker streaming** (`scripts/collaboration/worker.py`): `stream=True` parameter
+  - Real-time LLM output via `--stream` CLI flag
+  - Chunk-by-chunk printing to stderr
+
+- **CLI `--stream` flag** (`scripts/cli.py`): Stream LLM output in real-time
+
+#### Security Enhancements
+
+- **InputValidator** (`scripts/collaboration/input_validator.py`): Prompt injection detection
+  - 16 regex patterns: ignore previous instructions, jailbreak, DAN mode, system prompt extraction, etc.
+  - `check_prompt_injection()` public method
+  - Strict mode (blocks) vs normal mode (warns)
+  - Integrated into Dispatcher pipeline
+
+- **API Key Safety**: Removed `--api-key` CLI flag entirely
+  - Environment variables only: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+  - Never logged or exposed in process listings
+
+#### Parallel Execution
+
+- **ThreadPoolExecutor**: Real parallel execution replacing pseudo-parallel loop
+  - `concurrent.futures.ThreadPoolExecutor` in Dispatcher
+  - True concurrent multi-role dispatch
+
+#### Upstream Module Adoption (from TraeMultiAgentSkill V2.3.0)
+
+- **AISemanticMatcher** (`scripts/collaboration/ai_semantic_matcher.py`): LLM-powered semantic role matching
+  - Bilingual keyword matching (Chinese + English)
+  - `EN_KEYWORD_MAP` for English task descriptions
+  - Falls back to keyword matching when no LLM backend available
+
+- **CheckpointManager** (`scripts/collaboration/checkpoint_manager.py`): State persistence
+  - SHA256 integrity verification
+  - `HandoffDocument` for agent handoff
+  - Auto-cleanup with configurable max checkpoints
+  - `create_checkpoint_from_dispatch()` convenience method
+
+- **WorkflowEngine** (`scripts/collaboration/workflow_engine.py`): Task-to-workflow orchestration
+  - `create_workflow_from_task()` auto-split
+  - Step execution with checkpointing
+  - `resume_from_checkpoint()` recovery
+  - `handoff()` for agent transitions
+
+- **TaskCompletionChecker** (`scripts/collaboration/task_completion_checker.py`): Completion tracking
+  - `check_dispatch_result()` and `check_schedule_result()`
+  - Progress persistence to JSON
+  - `get_completion_summary()` and `is_task_completed()`
+
+#### Developer Experience
+
+- **CodeMapGenerator** (`scripts/collaboration/code_map_generator.py`): AST-based Python code analysis
+  - Function/class extraction, dependency graph
+  - Output: dict, markdown, JSON
+
+- **DualLayerContextManager** (`scripts/collaboration/dual_layer_context.py`): Context management
+  - Project-level + task-level context with TTL
+  - `build_prompt_context()`, `cleanup_expired()`, eviction
+
+- **SkillRegistry** (`scripts/collaboration/skill_registry.py`): Reusable skill management
+  - `register()`, `search()`, `execute()`, `propose_from_result()`
+  - JSON persistence
+
+- **ConfigManager** (`scripts/collaboration/config_loader.py`): Configuration system
+  - `~/.devsquad.yaml` config file with 16 parameters
+  - Environment variable overrides (priority: env > file > defaults)
+  - `DevSquadConfig` dataclass with type conversion
+
+- **Docker support**: `Dockerfile` + `.dockerignore`
+  - Python 3.11-slim base image
+  - ENTRYPOINT `cli.py`
+
+- **GitHub Actions CI** (`.github/workflows/test.yml`):
+  - Python 3.9-3.12 matrix testing
+  - Lint job: flake8 + mypy
+
+- **pip installable**: `pyproject.toml` with optional dependencies
+  - `pip install -e ".[openai,anthropic,dev]"`
+  - `devsquad` console script entry point
+
+- **_version.py**: Single source of truth for version (`3.3.0`)
+
+### Changed
+
+- **RoleMatcher** (`scripts/collaboration/role_matcher.py`): Extracted from Dispatcher (92 lines)
+- **ReportFormatter** (`scripts/collaboration/report_formatter.py`): Extracted from Dispatcher (314 lines)
+- **Dispatcher**: Integrated InputValidator + ThreadPoolExecutor + prompt injection check
+- **Worker**: Added `stream` parameter for real-time output
+- **LLMBackend**: Added `generate_stream()` method (base + OpenAI + Anthropic)
+- **99 unit tests** all passing (core_test 39 + role_mapping_test 25 + upstream_test 35)
+
+### Documentation
+
+- README.md: Complete rewrite with architecture diagram, 27 modules, quick start
+- README-CN.md: Full Chinese translation
+- README-JP.md: Full Japanese translation
+- INSTALL.md: Added pip install, Docker, config file, streaming
+- SKILL.md: Updated to 27 modules, new architecture flow
+- CLAUDE.md: Updated overview, architecture, entry points
+
 ## [3.4] - 2026-04-26
 
 ### Added

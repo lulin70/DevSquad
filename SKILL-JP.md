@@ -6,7 +6,7 @@ description: |
   パターンに基づく完全なマルチエージェントコラボレーションシステム。
   7コアロール（アーキテクト/PM/セキュリティ/テスター/コーダー/DevOps/UIデザイナー）、
   リアルLLMバックエンド（OpenAI/Anthropic）、CLI + MCP + Python API対応。
-  ~825+テスト全合格。中日英3ヶ国語対応。
+  99ユニットテスト全合格。中日英3ヶ国語対応。
 ---
 
 # DevSquad V3.3.0 — マルチエージェントコラボレーションプラットフォーム
@@ -17,19 +17,19 @@ description: |
 タスクが提出されると、単一ロールで処理されるのではなく：
 
 ```
-ユーザータスク → [意図分析] → [ロールマッチング] → [Coordinatorオーケストレーション]
-             → [Worker並列実行] → [Scratchpadリアルタイム共有]
-             → [コンセンサス決定] → [MCE分類強化] → [結果集約]
+ユーザータスク → [入力検証] → [ロールマッチング] → [Coordinatorオーケストレーション]
+             → [ThreadPoolExecutor並列Worker] → [Scratchpadリアルタイム共有]
+             → [コンセンサス決定] → [レポート整形] → [構造化レポート]
 ```
 
-## アーキテクチャ概要（16コアモジュール）
+## アーキテクチャ概要（27コアモジュール）
 
 | # | モジュール | ファイル | 責任 |
 |---|-----------|--------|------|
 | 0 | **MultiAgentDispatcher** | `dispatcher.py` | 統一ディスパッチ入口（全モジュール統合） |
 | 1 | **Coordinator** | `coordinator.py` | グローバルオーケストレーター：タスク分解、Worker割り当て、結果収集、競合解決 |
 | 2 | **Scratchpad** | `scratchpad.py` | 共有ブラックボード、Worker間リアルタイム情報交換 |
-| 3 | **Worker** | `worker.py` | 実行者：各ロール1インスタンス、独立実行+Scratchpad書き込み |
+| 3 | **Worker** | `worker.py` | 実行者：各ロール1インスタンス、ストリーミング対応 |
 | 4 | **ConsensusEngine** | `consensus.py` | コンセンサスエンジン：重み付け投票+拒否権+エスカレーション |
 | 5 | **BatchScheduler** | `batch_scheduler.py` | 並列/直列ハイブリッドスケジューリング |
 | 6 | **ContextCompressor** | `context_compressor.py` | 4段階コンテキスト圧縮 |
@@ -42,6 +42,18 @@ description: |
 | 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillifyクローズドループ |
 | 14 | **MCEAdapter** | `mce_adapter.py` | MCE分類エンジンアダプター（v0.4対応） |
 | 15 | **WorkBuddyClawSource** | `memory_bridge.py`(class) | Claw読み取り専用ブリッジ |
+| 16 | **RoleMatcher** | `role_matcher.py` | キーワードベースロールマッチング+エイリアス解決 |
+| 17 | **ReportFormatter** | `report_formatter.py` | 構造化/コンパクト/詳細レポート生成 |
+| 18 | **InputValidator** | `input_validator.py` | セキュリティ検証+16パターンPrompt注入検出 |
+| 19 | **AISemanticMatcher** | `ai_semantic_matcher.py` | LLM駆動セマンティックマッチング+バイリンガルフォールバック |
+| 20 | **CheckpointManager** | `checkpoint_manager.py` | SHA256整合性、ハンドオフ文書、自動クリーンアップ |
+| 21 | **WorkflowEngine** | `workflow_engine.py` | タスク→ワークフロー自動分割、ステップ実行、チェックポイント復元 |
+| 22 | **TaskCompletionChecker** | `task_completion_checker.py` | 完了追跡+進捗永続化 |
+| 23 | **CodeMapGenerator** | `code_map_generator.py` | Python ASTベースコード分析+依存グラフ |
+| 24 | **DualLayerContext** | `dual_layer_context.py` | プロジェクト+タスクレベルコンテキスト（TTL付き） |
+| 25 | **SkillRegistry** | `skill_registry.py` | スキル登録+発見+永続化 |
+| 26 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + ストリーミング + 120sタイムアウト |
+| 27 | **ConfigManager** | `config_loader.py` | YAML設定+環境変数オーバーライド（16パラメータ） |
 
 ---
 
@@ -134,13 +146,17 @@ result = quick_collaborate("マイクロサービス設計を手伝って")
 
 | モジュール | テスト数 | ステータス |
 |-----------|---------|----------|
-| 全16モジュール | **~825+** | **✅ ALL PASS** |
+| Core Tests (Dispatcher+Coordinator+Worker+Scratchpad+Consensus) | 39 | ✅ PASS |
+| Role Mapping (RoleMatcher+エイリアス解決) | 25 | ✅ PASS |
+| Upstream (Checkpoint+SemanticMatcher+Workflow+CompletionChecker) | 35 | ✅ PASS |
+| **合計** | **99** | **✅ ALL PASS** |
 
 ---
 
 ## バージョン履歴
 
-- **v3.3.0** (2026-04-24): リアルLLMバックエンド(OpenAI/Anthropic) + 7コアロール(security+devopsをコアに昇格、data/reviewer/optimizerを統合/削除) + RoleRegistry SSOT + TaskDefinition.role_prompt修正 + 環境変数のみAPI key入力 + InputValidator入力検証 + 3シナリオ検証完了
+- **v3.3.0** (2026-04-27): リアルLLMバックエンド(OpenAI/Anthropic/Mock) + ThreadPoolExecutor並列実行 + InputValidator+16パターンPrompt注入検出 + RoleMatcher/ReportFormatter抽出 + AISemanticMatcherバイリンガルマッチング + CheckpointManager SHA256整合性 + WorkflowEngineタスク分割+チェックポイント復元 + TaskCompletionChecker完了追跡 + CodeMapGenerator AST分析 + DualLayerContext二層コンテキスト + SkillRegistryスキル登録 + ConfigManager YAML設定 + LLMBackendストリーミング + Docker + GitHub Actions CI + pipインストール対応 + 99ユニットテスト
+- **v3.3** (2026-04-24): 7コアロール(security+devopsをコアに昇格) + RoleRegistry SSOT + TaskDefinition.role_prompt修正 + 環境変数のみAPI key入力 + InputValidator入力検証 + 3シナリオ検証完了
 - **v3.3** (2026-04-17): WorkBuddy Claw統合 + MCE v0.4サポート + アノテーションEN化 + 多言語README
 - **v3.2** (2026-04-17): MVP 3並行ライン (E2E Demo + Dispatcher UX + MCE Adapter)
 - **v3.1** (2026-04-16): プロンプト最適化システム

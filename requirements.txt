@@ -1,25 +1,36 @@
 # DevSquad Dependencies
 
-# 核心依赖
-python>=3.8
+# Core (zero external dependencies — pure Python stdlib)
+python>=3.9
 
-# 标准库（无需额外安装）
-# - sqlite3 (数据库操作)
-# - json (数据处理)
-# - pathlib (路径处理)
-# - typing (类型注解)
-# - logging (日志记录)
-# - argparse (命令行参数)
-# - re (正则表达式)
-# - datetime (日期时间)
+# Standard library modules used (no install needed):
+# - concurrent.futures (parallel execution)
+# - dataclasses (data models)
+# - json (data processing)
+# - pathlib (path handling)
+# - typing (type annotations)
+# - logging (logging)
+# - argparse (CLI arguments)
+# - re (regex patterns)
+# - hashlib (SHA256 integrity)
+# - ast (code analysis)
+# - datetime (timestamps)
+# - sqlite3 (database)
+# - tempfile (temp directories)
+# - yaml (optional — for config file support)
 
-# 开发依赖（可选）
-# pytest>=7.0.0          # 测试框架
-# pytest-cov>=3.0.0      # 测试覆盖率
-# black>=22.0.0          # 代码格式化
-# flake8>=4.0.0          # 代码检查
-# mypy>=0.950            # 类型检查
+# Optional LLM Backends (install only what you need)
+# openai>=1.0          # OpenAI backend (pip install devsquad[openai])
+# anthropic>=0.18       # Anthropic backend (pip install devsquad[anthropic])
 
-# 注意：
-# 本技能主要使用 Python 标准库，无需安装额外的第三方包
-# 只需确保 Python 版本 >= 3.8 即可
+# Optional MCP Server
+# mcp>=0.9             # MCP protocol (pip install devsquad[mcp])
+
+# Development (pip install devsquad[dev])
+# pytest>=7.0
+# pytest-asyncio>=0.21
+# black>=23.0
+# flake8>=6.0
+# mypy>=1.0
+
+# Install all optional: pip install devsquad[openai,anthropic,mcp,dev]

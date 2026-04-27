@@ -47,13 +47,26 @@ python3 scripts/collaboration/memory_bridge_test.py
 ```
 DevSquad/
 ├── scripts/
-│   ├── collaboration/          # Core modules (16)
+│   ├── collaboration/          # Core modules (27)
+│   │   ├── _version.py         # Version SSOT (3.3.0)
 │   │   ├── models.py           # Data models (zero dependencies)
-│   │   ├── scratchpad.py       # Shared blackboard
-│   │   ├── consensus.py        # Consensus engine
-│   │   ├── worker.py           # Role executor
-│   │   ├── coordinator.py      # Global orchestrator
 │   │   ├── dispatcher.py       # Unified entry point
+│   │   ├── coordinator.py      # Global orchestrator
+│   │   ├── scratchpad.py       # Shared blackboard
+│   │   ├── worker.py           # Role executor (with streaming)
+│   │   ├── consensus.py        # Consensus engine
+│   │   ├── llm_backend.py      # Mock/OpenAI/Anthropic + streaming
+│   │   ├── role_matcher.py     # Keyword-based role matching
+│   │   ├── report_formatter.py # Structured/compact/detailed reports
+│   │   ├── input_validator.py  # Security + prompt injection detection
+│   │   ├── ai_semantic_matcher.py # LLM-powered semantic matching
+│   │   ├── checkpoint_manager.py  # State persistence + handoff
+│   │   ├── workflow_engine.py     # Task-to-workflow auto-split
+│   │   ├── task_completion_checker.py # Completion tracking
+│   │   ├── code_map_generator.py  # AST-based code analysis
+│   │   ├── dual_layer_context.py  # Project + task context with TTL
+│   │   ├── skill_registry.py     # Skill registration + discovery
+│   │   ├── config_loader.py      # YAML config + env var overrides
 │   │   ├── context_compressor.py
 │   │   ├── permission_guard.py
 │   │   ├── skillifier.py
@@ -69,11 +82,17 @@ DevSquad/
 │   ├── vibe_coding/            # Vibe coding module
 │   ├── cli.py                  # CLI entry point
 │   └── mcp_server.py           # MCP Server for OpenClaw
+├── .github/workflows/          # CI (Python 3.9-3.12 matrix)
 ├── data/                       # Runtime data (gitignored)
 ├── docs/                       # Documentation
+├── Dockerfile                  # Docker support
+├── pyproject.toml              # pip-installable package
 ├── skill-manifest.yaml         # Trae IDE skill manifest
 ├── CLAUDE.md                   # Claude Code integration
-└── SKILL.md                    # Operational manual
+├── SKILL.md                    # Operational manual (EN)
+├── SKILL-CN.md                 # Operational manual (CN)
+├── SKILL-JP.md                 # Operational manual (JP)
+└── README.md                   # Project readme
 ```
 
 ## Role System

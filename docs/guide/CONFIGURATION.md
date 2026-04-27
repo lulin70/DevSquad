@@ -1,236 +1,198 @@
-# DevSquad 配置指南
+# DevSquad Configuration Guide (V3.3.0)
 
-## 问题说明
+## Configuration Methods
 
-当你尝试运行 `python3 scripts/trae_agent_dispatch.py` 时出现以下错误：
+DevSquad supports 3 configuration methods with clear priority:
 
-```
-can't open file '/Users/xxx/your-project/scripts/trae_agent_dispatch.py': [Errno 2] No such file or directory
-```
+**Priority: Environment Variables > Config File > Defaults**
 
-这是因为 `trae_agent_dispatch.py` 脚本位于 skill 目录中，而不是你的项目目录中。
-
-## 解决方案
-
-### 方案 1：使用包装脚本（推荐）
-
-1. **复制包装脚本到你的项目**
-
-   ```bash
-   cp ~/DevSquad/scripts/trae_agent_dispatch_wrapper.sh /your/project/path/
-   ```
-
-2. **编辑包装脚本**
-
-   打开 `trae_agent_dispatch_wrapper.sh`，修改 `SKILL_DIR` 为你的 skill 实际路径：
-
-   ```bash
-   SKILL_DIR="/Users/your-username/.trae/skills/trae-multi-agent"
-   ```
-
-3. **添加执行权限**
-
-   ```bash
-   chmod +x trae_agent_dispatch_wrapper.sh
-   ```
-
-4. **使用包装脚本调用 skill**
-
-   ```bash
-   ./trae_agent_dispatch_wrapper.sh --task "美化登录界面，创建现代化的登录页面" --agent auto
-   ```
-
-### 方案 2：使用绝对路径
-
-直接调用 skill 脚本：
+## Method 1: Environment Variables (Highest Priority)
 
 ```bash
-python3 ~/DevSquad/scripts/trae_agent_dispatch.py \
-  --task "美化登录界面，创建现代化的登录页面" \
-  --agent auto
+# LLM Backend
+export OPENAI_API_KEY="sk-..."              # Required for OpenAI backend
+export OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional: custom endpoint
+export OPENAI_MODEL="gpt-4"                 # Optional: model name
+
+export ANTHROPIC_API_KEY="sk-ant-..."       # Required for Anthropic backend
+export ANTHROPIC_MODEL="claude-sonnet-4-20250514"  # Optional: model name
+
+# DevSquad Settings
+export DEVSQUAD_LLM_BACKEND=openai          # Default backend: mock/openai/anthropic
+export DEVSQUAD_LOG_LEVEL=WARNING           # Logging level
 ```
 
-### 方案 3：创建别名（推荐用于频繁使用）
+> **Security**: API keys are read from environment variables only. There is no `--api-key` CLI flag.
+> This prevents keys from appearing in shell history or process listings.
 
-在你的 `~/.zshrc` 或 `~/.bashrc` 中添加：
+### Persistent Environment Variables
+
+Add to `~/.zshrc` or `~/.bashrc`:
 
 ```bash
-alias dss='python3 ~/DevSquad/scripts/trae_agent_dispatch.py'
+# Add these lines to your shell config
+export OPENAI_API_KEY="sk-..."
+export OPENAI_BASE_URL="https://api.openai.com/v1"
+export OPENAI_MODEL="gpt-4"
+export DEVSQUAD_LLM_BACKEND=openai
 ```
 
-然后重新加载配置：
+Then reload: `source ~/.zshrc`
+
+## Method 2: Configuration File (~/.devsquad.yaml)
+
+Create `~/.devsquad.yaml`:
+
+```yaml
+devsquad:
+  # LLM Backend
+  backend: openai                    # mock/openai/anthropic
+  base_url: https://api.openai.com/v1
+  model: gpt-4
+  timeout: 120                       # Request timeout in seconds
+
+  # Output
+  output_format: structured          # markdown/json/compact/structured/detailed
+
+  # Validation
+  strict_validation: false           # True = block on prompt injection
+
+  # Infrastructure
+  checkpoint_enabled: true           # Enable CheckpointManager
+  cache_enabled: true                # Enable LLM cache
+  log_level: WARNING                 # DEBUG/INFO/WARNING/ERROR
+
+  # Advanced
+  max_retries: 3                     # LLM retry count
+  cache_ttl: 86400                   # Cache TTL in seconds (default: 24h)
+  max_cache_entries: 1000            # Max LRU cache entries
+```
+
+### Config File Location
+
+Default: `~/.devsquad.yaml`
+
+Override via environment variable:
+```bash
+export DEVSQUAD_CONFIG_PATH=/custom/path/to/config.yaml
+```
+
+## Method 3: Defaults (Lowest Priority)
+
+When no environment variables or config file values are set, DevSquad uses these defaults:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `backend` | `mock` | Mock backend returns assembled prompts |
+| `model` | `gpt-4` (OpenAI) / `claude-sonnet-4-20250514` (Anthropic) | Default model per backend |
+| `timeout` | `120` | Request timeout in seconds |
+| `output_format` | `markdown` | Default output format |
+| `strict_validation` | `false` | Warn on prompt injection (don't block) |
+| `checkpoint_enabled` | `true` | CheckpointManager enabled |
+| `cache_enabled` | `true` | LLM cache enabled |
+| `log_level` | `WARNING` | Logging level |
+
+## CLI Flags (Override Everything)
+
+CLI flags override both environment variables and config file:
 
 ```bash
-source ~/.zshrc
+# Override backend
+python3 scripts/cli.py dispatch -t "task" --backend openai
+
+# Override model
+python3 scripts/cli.py dispatch -t "task" --model gpt-4-turbo
+
+# Override base URL
+python3 scripts/cli.py dispatch -t "task" --base-url https://custom.api.com/v1
+
+# Enable streaming
+python3 scripts/cli.py dispatch -t "task" --stream
 ```
 
-之后可以在任何项目中使用：
+## Using ConfigManager (Python API)
 
-```bash
-trae-agent --task "美化登录界面" --agent auto
-```
-
-## 使用方法
-
-### 基本用法
-
-```bash
-# 自动选择角色
-./trae_agent_dispatch.sh --task "实现用户登录功能" --agent auto
-
-# 指定角色
-./trae_agent_dispatch.sh --task "设计系统架构" --agent architect
-./trae_agent_dispatch.sh --task "编写 PRD" --agent product-manager
-./trae_agent_dispatch.sh --task "编写测试用例" --agent tester
-./trae_agent_dispatch.sh --task "实现功能代码" --agent solo-coder
-```
-
-### 可用参数
-
-- `--task`: 任务描述（必需）
-- `--agent`: 指定角色（可选，默认：auto）
-  - `architect`: 架构师
-  - `product-manager`: 产品经理
-  - `tester`: 测试专家
-  - `solo-coder`: 独立开发者
-  - `ui-designer`: UI 设计师
-  - `devops`: DevOps 工程师
-  - `auto`: 自动匹配（默认）
-- `--project-root`: 项目根目录（可选，默认：当前目录）
-- `--verbose`: 启用详细输出模式
-- `--dry-run`: 仅模拟执行，不实际调用智能体
-
-### 示例
-
-```bash
-# 自动选择角色实现功能
-./trae_agent_dispatch.sh --task "实现用户注册和登录功能" --agent auto
-
-# 指定架构师设计架构
-./trae_agent_dispatch.sh --task "设计微服务架构，使用 Spring Boot 和 Docker" --agent architect
-
-# 指定产品经理编写 PRD
-./trae_agent_dispatch.sh --task "为电商系统编写产品需求文档" --agent product-manager
-
-# 指定测试专家编写测试
-./trae_agent_dispatch.sh --task "为用户服务编写单元测试和集成测试" --agent tester
-
-# 指定独立开发者编写代码
-./trae_agent_dispatch.sh --task "实现 RESTful API 端点" --agent solo-coder
-
-# 指定 UI 设计师设计界面
-./trae_agent_dispatch.sh --task "设计现代化的登录页面" --agent ui-designer
-
-# 指定 DevOps 工程师配置 CI/CD
-./trae_agent_dispatch.sh --task "配置 GitHub Actions 自动部署" --agent devops
-
-# 启用详细模式
-./trae_agent_dispatch.sh --task "实现功能" --verbose
-```
-
-## 故障排除
-
-### 问题 1：找不到脚本
-
-**错误**: `can't open file '.../trae_agent_dispatch.py': [Errno 2] No such file or directory`
-
-**解决**: 确保 `SKILL_DIR` 配置正确，指向 skill 的实际路径。
-
-### 问题 2：权限错误
-
-**错误**: `Permission denied`
-
-**解决**: 
-```bash
-chmod +x trae_agent_dispatch_wrapper.sh
-```
-
-### 问题 3：Python 模块导入错误
-
-**错误**: `ModuleNotFoundError: No module named 'xxx'`
-
-**解决**: 确保已更新 `trae_agent_dispatch.py`，它会自动将 skill 目录添加到 Python 路径。
-
-## 技术说明
-
-### 路径处理机制
-
-`trae_agent_dispatch.py` 脚本会自动：
-
-1. 获取脚本所在的绝对路径
-2. 将该路径添加到 Python 的 `sys.path` 中
-3. 导入 skill 的其他模块
-
-这样确保无论从哪个目录调用，都能正确找到 skill 的模块。
-
-### 核心组件
-
-- `trae_agent_dispatch.py`: 主调度脚本（包装器）
-- `trae_agent_dispatch_v2.py`: v2.0 实现（包含所有新功能）
-- `dual_layer_context_manager.py`: 双层上下文管理器
-- `skill_registry.py`: 技能注册和发现
-- `role_matcher.py`: AI 增强的角色匹配器
-- `workflow_engine.py`: 工作流编排引擎
-
-## 更新日志
-
-### v2.1.0
-- ✅ 修复路径问题，支持从任何目录调用
-- ✅ 添加包装脚本，简化配置
-- ✅ 改进错误处理和诊断信息
-
-### v2.0.0
-- ✅ 双层动态上下文管理
-- ✅ AI 语义匹配
-- ✅ 工作流编排引擎
-- ✅ 技能注册和发现
-
-## 支持
-
-如有问题，请查看：
-- [技能文档](../SKILL.md)
-- [实现状态](../IMPLEMENTATION_STATUS.md)
-- [架构演进](../docs/architecture/v3-upgrade-proposal.md)
-
----
-
-## External Integration Configuration (V3.2+)
-
-### WorkBuddy (Claw) Memory Bridge (v3.3)
-
-The `WorkBuddyClawSource` auto-detects the Claw directory at initialization.
-**No manual configuration required for normal use.**
-
-Default path: `/Users/lin/WorkBuddy/Claw`
-
-Override (advanced):
 ```python
-from scripts.collaboration.memory_bridge import WorkBuddyClawSource, MemoryBridge
+from scripts.collaboration.config_loader import ConfigManager
 
-# Custom claw path
-claw = WorkBuddyClawSource(base_path="/custom/path/to/claw")
-bridge = MemoryBridge()
+# Load config (env > file > defaults)
+config_mgr = ConfigManager()
+config = config_mgr.load()
+
+# Access config values
+print(f"Backend: {config.backend}")
+print(f"Model: {config.model}")
+print(f"Timeout: {config.timeout}")
+print(f"Strict validation: {config.strict_validation}")
+
+# Save current config to file
+config_mgr.save(config)
 ```
 
-Behavior when unavailable:
-- Graceful degradation: all MemoryBridge operations work normally without Claw
-- `is_available` returns `False`
-- `load_all_memories()` returns empty list
-- Zero performance impact
+## Docker Configuration
 
-### MCE Adapter (v3.2)
+Pass environment variables to Docker container:
 
-The MCE memory classification engine is optional and uses lazy initialization.
+```bash
+# Single env var
+docker run -e OPENAI_API_KEY="sk-..." devsquad dispatch -t "task" --backend openai
 
-Enable:
-```python
-from scripts.collaboration import get_global_mce_adapter, MultiAgentDispatcher
+# Multiple env vars via env-file
+cat > .env << EOF
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4
+DEVSQUAD_LLM_BACKEND=openai
+EOF
 
-mce = get_global_mce_adapter(enable=True)
-disp = MultiAgentDispatcher(mce_adapter=mce)
+docker run --env-file .env devsquad dispatch -t "task"
 ```
 
-When MCE is unavailable:
-- All operations degrade gracefully
-- `classify()` returns `None`
-- No impact on existing functionality
+## Environment Variable Reference
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `OPENAI_API_KEY` | OpenAI API key | None (required for OpenAI) |
+| `OPENAI_BASE_URL` | OpenAI-compatible base URL | None |
+| `OPENAI_MODEL` | Model name for OpenAI | `gpt-4` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | None (required for Anthropic) |
+| `ANTHROPIC_MODEL` | Model name for Anthropic | `claude-sonnet-4-20250514` |
+| `DEVSQUAD_LLM_BACKEND` | Default backend type | `mock` |
+| `DEVSQUAD_BASE_URL` | Default base URL | None |
+| `DEVSQUAD_MODEL` | Default model name | None |
+| `DEVSQUAD_TIMEOUT` | Request timeout | `120` |
+| `DEVSQUAD_LOG_LEVEL` | Logging level | `WARNING` |
+| `DEVSQUAD_CONFIG_PATH` | Custom config file path | `~/.devsquad.yaml` |
+| `DEVSQUAD_STRICT_VALIDATION` | Block on prompt injection | `false` |
+| `DEVSQUAD_CHECKPOINT_ENABLED` | Enable checkpoints | `true` |
+| `DEVSQUAD_CACHE_ENABLED` | Enable LLM cache | `true` |
+
+## Troubleshooting
+
+### Config file not loaded
+
+```bash
+# Check if config file exists
+ls -la ~/.devsquad.yaml
+
+# Verify config is being read
+python3 -c "from scripts.collaboration.config_loader import ConfigManager; c=ConfigManager(); print(c.load())"
+```
+
+### Environment variable not taking effect
+
+```bash
+# Verify env var is set
+echo $OPENAI_API_KEY
+echo $DEVSQUAD_LLM_BACKEND
+
+# Check if it's exported (not just set)
+export OPENAI_API_KEY="sk-..."  # Must use 'export'
+```
+
+### API key security
+
+DevSquad never logs or exposes API keys:
+- No `--api-key` CLI flag
+- Keys are masked in any debug output
+- Environment variables only
