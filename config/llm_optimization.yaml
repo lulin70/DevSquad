@@ -1,0 +1,33 @@
+cache:
+  enabled: true
+  cache_dir: data/llm_cache
+  ttl_seconds: 86400
+  max_memory_entries: 1000
+  disk_cache_enabled: true
+retry:
+  enabled: true
+  max_retries: 3
+  initial_delay: 1.0
+  max_delay: 60.0
+  exponential_base: 2.0
+  jitter: true
+circuit_breaker:
+  enabled: true
+  failure_threshold: 5
+  timeout_seconds: 60
+  half_open_max_calls: 3
+performance:
+  monitoring_enabled: true
+  max_history: 10000
+  bottleneck_threshold_ms: 1000.0
+  export_interval_seconds: 300
+backends:
+  primary: openai
+  fallback_order:
+  - anthropic
+  - cohere
+  timeout_seconds: 30
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: null

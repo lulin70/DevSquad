@@ -34,12 +34,15 @@ import time
 import uuid
 import json
 import re
+import logging
 import tempfile
 import threading
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     EntryType, EntryStatus, TaskDefinition, ExecutionPlan,
@@ -70,6 +73,7 @@ from .test_quality_guard import (
     TestQualityGuard, TestQualityReport,
 )
 from .usage_tracker import track_usage
+from .input_validator import InputValidator
 
 
 # Backward-compatible aliases from models SSOT
@@ -289,8 +293,8 @@ class MultiAgentDispatcher:
             self.warmup_manager = WarmupManager(config=warmup_cfg)
             try:
                 self.warmup_manager.warmup()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Warmup failed: %s", e)
         else:
             self.warmup_manager = None
 
@@ -376,6 +380,35 @@ class MultiAgentDispatcher:
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
         errors = []
+
+        validator = InputValidator()
+        task_result = validator.validate_task(task_description)
+        if not task_result.valid:
+            return DispatchResult(
+                success=False,
+                task_description=task_description,
+                matched_roles=[],
+                worker_results=[],
+                summary=f"Input validation failed: {task_result.reason}",
+                errors=[task_result.reason],
+            )
+        task_description = task_result.sanitized_input or task_description
+
+        if roles:
+            roles_result = validator.validate_roles(roles)
+            if not roles_result.valid:
+                return DispatchResult(
+                    success=False,
+                    task_description=task_description,
+                    matched_roles=[],
+                    worker_results=[],
+                    summary=f"Role validation failed: {roles_result.reason}",
+                    errors=[roles_result.reason],
+                )
+
+        warnings = validator.check_suspicious_patterns(task_description)
+        if warnings:
+            logger.warning("Suspicious patterns in task: %s", ", ".join(warnings))
 
         try:
             step1_time = time.time()
@@ -650,8 +683,8 @@ class MultiAgentDispatcher:
                 try:
                     qreport = self.audit_quality()
                     result.quality_report = qreport.to_markdown()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Quality audit failed: %s", e)
 
             return result
 
@@ -1126,8 +1159,8 @@ class MultiAgentDispatcher:
                     try:
                         r = self.quality_guard.__class__(mod_full, test_full).audit()
                         reports.append(r)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("Quality guard audit failed for %s: %s", mod_name, e)
 
         if len(reports) == 1:
             return reports[0]
@@ -1152,14 +1185,14 @@ class MultiAgentDispatcher:
         if self.warmup_manager:
             try:
                 self.warmup_manager.shutdown()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Warmup shutdown failed: %s", e)
 
         if self.memory_bridge:
             try:
                 self.memory_bridge.cleanup_expired_memories()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Memory cleanup failed: %s", e)
 
 
 def create_dispatcher(**kwargs) -> MultiAgentDispatcher:

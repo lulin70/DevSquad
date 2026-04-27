@@ -13,10 +13,13 @@ Scratchpad - 共享黑板实现
 
 import os
 import json
+import logging
 import threading
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     ScratchpadEntry,
@@ -304,7 +307,7 @@ class Scratchpad:
             with open(filepath, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry.to_dict(), ensure_ascii=False) + "\n")
         except Exception as e:
-            pass
+            logger.warning("Failed to persist scratchpad entry %s: %s", entry.entry_id, e)
 
     def _load_from_disk(self):
         if not self.persist_dir:
@@ -322,7 +325,7 @@ class Scratchpad:
                     entry = ScratchpadEntry.from_dict(data)
                     self._entries[entry.entry_id] = entry
         except Exception as e:
-            pass
+            logger.warning("Failed to load scratchpad from %s: %s", filepath, e)
 
     def clear(self):
         """清空所有黑板条目（仅内存，不影响已持久化的文件）"""
