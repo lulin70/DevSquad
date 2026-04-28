@@ -1,5 +1,8 @@
 # Karpathy 四大核心原则对 DevSquad 的启发
 
+> ⚠️ **此文档中的数据已过时** — 引用的 "825 tests, 16 modules" 已不再准确。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md / SKILL.md 为准。
+
 **日期**: 2026-04-26  
 **项目**: DevSquad v3.3.0  
 **参考**: Andrej Karpathy 的编程智慧

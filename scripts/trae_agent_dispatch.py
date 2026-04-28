@@ -3,6 +3,8 @@
 """
 Trae Multi-Agent Dispatcher (包装脚本)
 
+⚠️ 已弃用：此脚本为 V2 遗留，V3 请使用 `python3 scripts/cli.py dispatch` 或 `devsquad dispatch`
+
 这个脚本是为了向后兼容，实际调用的是 trae_agent_dispatch_v2.py
 
 使用方法:

@@ -1,5 +1,8 @@
 # DevSquad Optimization Consensus Report
 
+> ⚠️ **此文档已过时** — 生成于 2026-04-18，引用的 "16 modules, ~825+ tests, 10 roles" 已不再准确。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md 为准。
+
 > Generated: 2026-04-18 | Participants: Product Manager, Architect, Test Expert, Solo Developer, UI Designer
 
 ---

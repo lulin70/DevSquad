@@ -17,8 +17,11 @@
 ```
 请生成项目代码地图：
 ```
-python /path/to/DevSquad/scripts/code_map_generator_v2.py <项目路径>
+python3 /path/to/DevSquad/scripts/cli.py dispatch -t "Generate code map for this project" -r architect
 ```
+
+> 注意：也可以使用独立的代码地图生成器：
+> `python3 /path/to/DevSquad/scripts/code_map_generator_v2.py <项目路径>`
 
 2. **阅读代码地图**
 读取生成的 CODE_MAP.md 文件，分析以下内容：
@@ -62,7 +65,7 @@ python /path/to/DevSquad/scripts/code_map_generator_v2.py <项目路径>
 
 1. **生成/更新代码地图**（如果已有可跳过）
 ```
-python /path/to/DevSquad/scripts/code_map_generator_v2.py <项目路径>
+python3 /path/to/DevSquad/scripts/code_map_generator_v2.py <项目路径>
 ```
 
 2. **搜索相关代码**

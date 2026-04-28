@@ -1,5 +1,8 @@
 # DevSquad 项目综合评估报告
 
+> ⚠️ **此文档已过时** — 评估于 2026-04-26，引用的 "~825 tests, 16 modules" 已不再准确。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md 为准。
+
 **评估日期**: 2026-04-26  
 **项目版本**: 3.3.0  
 **评估者**: Claude  

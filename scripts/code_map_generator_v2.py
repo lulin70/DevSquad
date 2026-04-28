@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 代码地图生成器 v2.1
+
+⚠️ 已弃用：此脚本为 V2 遗留，V3 推荐使用 `python3 scripts/cli.py dispatch -t "Generate code map"` 或 `devsquad dispatch -t "Generate code map"`
+
 用于生成超大型系统代码结构的 md 格式代码地图，帮助 agent 快速定位和理解代码
 
 核心功能:

@@ -504,28 +504,18 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 ## Test Coverage
 
-| Module | Tests | Quality Score | Status |
-|--------|-------|--------------|--------|
-| PromptOptimization | 59 | ✅ | ✅ PASS |
-| TestQualityGuard | 42 | Self-audit passed | ✅ PASS |
-| Dispatcher | 54 | ✅ | ✅ PASS |
-| Coordinator + Scratchpad + Worker | 96 | ✅ | ✅ PASS |
-| ContextCompressor | 72 | ✅ | ✅ PASS |
-| PermissionGuard | 105 | ✅ | ✅ PASS |
-| Skillifier | 96 | ✅ | ✅ PASS |
-| WarmupManager | 103 | ✅ | ✅ PASS |
-| MemoryBridge | 96 | ✅ | ✅ PASS |
-| Enhanced E2E | 46 | ✅ | ✅ PASS |
-| MCEAdapter | 23 | ✅ | ✅ PASS |
-| Dispatcher UX | 24 | ✅ | ✅ PASS |
-| Claw Integration | 33 | ✅ | ✅ PASS |
-| **Total** | **~825+** | **✅ ALL PASS** | |
+| Module | Tests | Status |
+|--------|-------|--------|
+| Core (Dispatcher+Coordinator+Worker+Scratchpad+Consensus) | 39 | ✅ PASS |
+| Role Mapping (RoleMatcher+alias resolution+bilingual keywords) | 25 | ✅ PASS |
+| Upstream (Checkpoint+SemanticMatcher+Workflow+CompletionChecker) | 35 | ✅ PASS |
+| **Total** | **99** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
-- **v3.3.0** (2026-04-24): Real LLM Backend (OpenAI/Anthropic) + 7 core roles (security+devops promoted, data/reviewer/optimizer merged/dropped) + RoleRegistry SSOT + TaskDefinition.role_prompt fix + env-var-only API keys + InputValidator + verified real AI output (3 scenarios)
+- **v3.3.0** (2026-04-27): Real LLM Backend (OpenAI/Anthropic/Mock) + ThreadPoolExecutor parallel + InputValidator + 16-pattern prompt injection + RoleMatcher/ReportFormatter extracted + AISemanticMatcher bilingual + CheckpointManager SHA256 + WorkflowEngine + TaskCompletionChecker + CodeMapGenerator + DualLayerContext + SkillRegistry + ConfigManager YAML + LLMBackend streaming + Docker + GitHub Actions CI + pip installable + i18n (zh/en/ja) + 27 modules + 99 unit tests
 - **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(read-only bridge/INDEX search/daily logs/AI news feed) + Dispatcher AI News auto-inject + Annotation Standards (EN docs/docstring/inline) + Code comment audit (all EN) + MCE v0.4 support (tenant/permission) + Multi-language README (EN/CN/JP) + 33 new tests
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule
 - **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation

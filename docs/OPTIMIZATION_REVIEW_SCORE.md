@@ -1,5 +1,8 @@
 # DevSquad 优化工作评估报告
 
+> ⚠️ **此文档为历史记录** — 评估基于 2026-04-26 的项目状态，部分数据已过时。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md / SKILL.md 为准。
+
 **评估日期**: 2026-04-26  
 **评估范围**: DevSquad 项目优化实施
 

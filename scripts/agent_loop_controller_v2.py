@@ -3,6 +3,8 @@
 """
 智能体循环控制器 v2.0（双层上下文增强版）
 
+⚠️ 已弃用：此脚本为 V2 遗留，V3 请使用 `python3 scripts/cli.py dispatch` 或 `devsquad dispatch`
+
 用于控制 devsquad 的 agent loop，确保所有任务都完成后再退出
 支持自动检查、续传、进度跟踪和任务完成验证
 

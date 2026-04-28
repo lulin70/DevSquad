@@ -1,57 +1,60 @@
-# DevSquad 多语言快速参考
+# DevSquad 快速参考
 
-## 语言切换
-
-| 用户语言 | AI 响应 |
-|---------|--------|
-| 中文 | 中文 |
-| English | English |
-| 混合 | 首次使用的语言 |
-| 明确要求 | 指定语言 |
+> **版本**: V3.3.0 | **最后更新**: 2026-04-28
 
 ## 角色映射
 
-| 中文 | English |
-|------|---------|
-| 架构师 | Architect |
-| 产品经理 | Product Manager |
-| 测试专家 | Test Expert |
-| 独立开发者 | Solo Coder |
+| 角色 | CLI ID | 别名 |
+|------|--------|------|
+| 架构师 | `architect` | `arch` |
+| 产品经理 | `pm` | `product-manager` |
+| 安全专家 | `security` | `sec` |
+| 测试专家 | `tester` | `test` |
+| 开发者 | `coder` | `solo-coder`, `dev` |
+| DevOps | `devops` | `infra` |
+| UI 设计师 | `ui` | `ui-designer` |
 
-## 常用短语
+## CLI 命令
 
-| 中文 | English |
-|------|---------|
-| 已接收任务 | Task received |
-| 开始分析 | Starting analysis |
-| 进度 | Progress |
-| 已完成 | Completed |
-| 进行中 | In progress |
-| 待处理 | Pending |
-| 被阻塞 | Blocked |
-
-## 示例
-
-### 中文
-```
-用户：设计系统架构
-AI: 📋 已接收任务，开始分析...
+```bash
+python3 scripts/cli.py dispatch -t "task"              # 自动匹配
+python3 scripts/cli.py dispatch -t "task" -r architect  # 指定角色
+python3 scripts/cli.py dispatch -t "task" --mode consensus  # 共识模式
+python3 scripts/cli.py dispatch -t "task" --backend openai   # OpenAI
+python3 scripts/cli.py dispatch -t "task" --stream           # 流式输出
+python3 scripts/cli.py dispatch -t "task" --lang zh          # 中文输出
+python3 scripts/cli.py status                             # 状态
+python3 scripts/cli.py roles                              # 列出角色
+python3 scripts/cli.py --version                          # 版本
 ```
 
-### English
-```
-User: Design system architecture
-AI: 📋 Task received, starting analysis...
-```
+## 输出格式
 
-## 代码注释
+| 格式 | 说明 |
+|------|------|
+| `markdown` | Markdown（默认） |
+| `json` | JSON 结构化 |
+| `compact` | 精简版 |
+| `structured` | 结构化报告 |
+| `detailed` | 详细报告 |
 
-- 中文注释代码 → 新增中文注释
-- English comments → New English comments
-- 无明确偏好 → 默认英文
+## LLM 后端
 
-## 文档
+| 后端 | 环境变量 | 默认模型 |
+|------|---------|---------|
+| mock | 无需配置 | - |
+| openai | `OPENAI_API_KEY` | gpt-4 |
+| anthropic | `ANTHROPIC_API_KEY` | claude-sonnet-4-20250514 |
 
-- 📄 [MULTILINGUAL_GUIDE.md](MULTILINGUAL_GUIDE.md) - 详细使用指南
-- 📄 [ENGLISH_PROMPTS.md](ENGLISH_PROMPTS.md) - 英文 Prompt 文档
-- 📄 [MULTILINGUAL_UPDATE_SUMMARY.md](MULTILINGUAL_UPDATE_SUMMARY.md) - 更新总结
+## 多语言
+
+| `--lang` | 输出语言 |
+|----------|---------|
+| `zh` | 中文 |
+| `en` | English |
+| `ja` | 日本語 |
+| (不指定) | 自动检测 |
+
+## 配置优先级
+
+环境变量 > `~/.devsquad.yaml` > 默认值

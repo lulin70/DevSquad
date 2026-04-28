@@ -1,5 +1,8 @@
 # DevSquad 下一步重点共识
 
+> ⚠️ **此文档为历史记录** — 部分数据（如 "5 real vs 10 claimed"）已过时。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md / SKILL.md 为准。
+
 > 日期: 2026-04-18 | 基于: DEVSQUAD_OPTIMIZATION_REVIEW.md + 实用价值分析.md + 当前代码状态
 
 ---

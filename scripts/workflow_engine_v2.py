@@ -3,6 +3,8 @@
 """
 WorkflowEngineV2 - 增强版工作流引擎
 
+⚠️ 已弃用：此脚本为 V2 遗留，V3 的工作流功能已集成到 `python3 scripts/cli.py dispatch` 中
+
 基于 Anthropic 文章《Effective Harnesses for Long-Running Agents》的核心思想：
 - 双智能体架构（初始化 Agent + 执行 Agent）
 - 像人类工程师一样定期保存进度（Checkpoint）

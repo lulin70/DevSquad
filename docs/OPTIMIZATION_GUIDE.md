@@ -1,5 +1,8 @@
 # DevSquad 优化指南
 
+> ⚠️ **此文档为历史记录** — 部分内容可能已过时。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md / SKILL.md 为准。
+
 本指南介绍如何使用 DevSquad 的性能优化模块来提升系统效率和可靠性。
 
 ## 目录

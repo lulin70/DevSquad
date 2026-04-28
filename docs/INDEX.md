@@ -1,6 +1,6 @@
 # DevSquad 文档索引
 
-**最后更新**: 2026-04-26  
+**最后更新**: 2026-04-28  
 **版本**: v3.3.0
 
 ---
@@ -15,22 +15,20 @@
    - 核心特性
 
 2. **[INSTALL.md](../INSTALL.md)** - 安装和配置指南
-   - 环境要求
+   - 环境要求（Python 3.9+）
    - 安装步骤
    - 配置 LLM Backend
 
-3. **[EXAMPLES.md](../EXAMPLES.md)** - 真实使用示例
-   - 架构设计场景
-   - 多角色协作场景
-   - 安全审计场景
+3. **[docs/guide/USAGE.md](guide/USAGE.md)** - 使用说明
+   - CLI 命令参考
+   - 7 个核心角色
+   - 使用场景
 
-**预计阅读时间**: 15-20 分钟
+**预计阅读时间**: 10-15 分钟
 
 ---
 
 ## 👨‍💻 开发者文档
-
-如果你想贡献代码或深入了解 DevSquad：
 
 ### 核心文档
 
@@ -39,26 +37,33 @@
    - 代码规范
    - 测试要求
 
-2. **[architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)** - 架构设计
-   - Coordinator/Worker/Scratchpad 模式
-   - LLM Backend 抽象层
-   - 组件交互图
-
-3. **[SKILL.md](../SKILL.md)** - Skill 集成说明
-   - 如何在 Trae/Cline 中使用
+2. **[SKILL.md](../SKILL.md)** - Skill 集成说明
+   - 如何在 Trae/Claude Code 中使用
    - Skill 配置
    - MCP 集成
 
+3. **[CLAUDE.md](../CLAUDE.md)** - Claude Code 集成
+   - 项目结构
+   - 开发命令
+   - 架构说明
+
+### 配置指南
+
+4. **[docs/guide/CONFIGURATION.md](guide/CONFIGURATION.md)** - 配置指南
+   - 环境变量配置
+   - 配置文件 (~/.devsquad.yaml)
+   - Docker 配置
+
 ### 角色系统
 
-4. **[roles/](roles/)** - 角色定义和能力
+5. **[docs/roles/](roles/)** - 角色定义和模板
    - 7 个核心角色
    - 角色别名映射
-   - 角色能力矩阵
+   - Prompt 模板
 
 ### 技术规范
 
-5. **[spec/](spec/)** - 技术规范文档
+6. **[docs/spec/](spec/)** - 技术规范文档
    - API 规范
    - 数据模型
    - 协议定义
@@ -67,57 +72,19 @@
 
 ## 📊 项目管理
 
-如果你想了解项目状态和规划：
+### 版本历史
 
-### 当前状态
-
-1. **[PROJECT_REVIEW_2026-04-26.md](PROJECT_REVIEW_2026-04-26.md)** - 最新项目评估
-   - 项目健康度: 9.0/10
-   - 核心功能状态
-   - 优化建议
-
-2. **[TEAM_CONSENSUS_OPTIMIZATION.md](TEAM_CONSENSUS_OPTIMIZATION.md)** - 团队优化共识
-   - 优先级调整
-   - 执行计划
-   - 资源分配
-
-### 发展路线
-
-3. **[CHANGELOG.md](../CHANGELOG.md)** - 版本变更记录
+1. **[CHANGELOG.md](../CHANGELOG.md)** - 版本变更记录
    - v3.3.0 新特性
    - 历史版本
    - 破坏性变更
 
-4. **[OPTIMIZATION_PLAN_KARPATHY.md](OPTIMIZATION_PLAN_KARPATHY.md)** - 优化方案
-   - 基于 Karpathy 四大原则
-   - 3 阶段优化计划
-   - 预期成果
-
-### 设计理念
-
-5. **[KARPATHY_PRINCIPLES_INSIGHTS.md](KARPATHY_PRINCIPLES_INSIGHTS.md)** - 设计哲学
-   - Think Before Coding
-   - Simplicity First
-   - Surgical Changes
-   - Goal-Driven Execution
-
----
-
-## 📚 参考资料
-
-### 指南文档
-
-- **[guide/](guide/)** - 使用指南和最佳实践
-  - 如何设计好的任务描述
-  - 如何选择合适的角色
-  - 如何解读输出结果
-
 ### 归档文档
 
-- **[archive/](archive/)** - 历史文档归档
-  - 旧版本文档
-  - 已废弃的设计
-  - 历史决策记录
+2. **[docs/archive/](archive/)** - 历史文档归档
+   - V2 时代文档
+   - 已废弃的设计
+   - 历史决策记录
 
 ---
 
@@ -129,24 +96,20 @@
 |------|------|------|
 | **快速开始** | [README.md](../README.md) | 5 分钟上手 |
 | **安装配置** | [INSTALL.md](../INSTALL.md) | 环境配置 |
-| **使用示例** | [EXAMPLES.md](../EXAMPLES.md) | 真实场景 |
-| **架构设计** | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) | 系统架构 |
+| **使用说明** | [docs/guide/USAGE.md](guide/USAGE.md) | CLI 命令和场景 |
+| **配置指南** | [docs/guide/CONFIGURATION.md](guide/CONFIGURATION.md) | 环境变量/配置文件 |
 | **贡献代码** | [CONTRIBUTING.md](../CONTRIBUTING.md) | 开发指南 |
-| **角色系统** | [roles/](roles/) | 角色定义 |
-| **Skill 集成** | [SKILL.md](../SKILL.md) | Trae/Cline 集成 |
-| **项目状态** | [PROJECT_REVIEW_2026-04-26.md](PROJECT_REVIEW_2026-04-26.md) | 最新评估 |
-| **优化计划** | [TEAM_CONSENSUS_OPTIMIZATION.md](TEAM_CONSENSUS_OPTIMIZATION.md) | 执行计划 |
+| **角色系统** | [docs/roles/](roles/) | 角色定义 |
+| **Skill 集成** | [SKILL.md](../SKILL.md) | Trae/Claude Code 集成 |
 | **版本历史** | [CHANGELOG.md](../CHANGELOG.md) | 变更记录 |
 
 ### 按角色查找
 
 | 角色 | 推荐文档 |
 |------|---------|
-| **新用户** | README → INSTALL → EXAMPLES |
-| **开发者** | CONTRIBUTING → ARCHITECTURE → SKILL |
-| **产品经理** | PROJECT_REVIEW → TEAM_CS |
-| **架构师** | ARCHITECTURE → OPTIMIZATION_PLAN → KARPATHY_PRINCIPLES |
-| **测试工程师** | CONTRIBUTING → spec/ |
+| **新用户** | README → INSTALL → USAGE |
+| **开发者** | CONTRIBUTING → SKILL → CLAUDE |
+| **运维** | CONFIGURATION → INSTALL |
 
 ---
 
@@ -154,21 +117,26 @@
 
 ### 文档状态
 
-| 文档 | 状态 | 最后更新 | 维护者 |
-|------|------|---------|--------|
-| README.md | ✅ 最新 | 2026-04-24 | PM |
-| INSTALL.md | ✅ 最新 | 2026-04-24 | Arch |
-| EXAMPLES.md | ✅ 最新 | 2026-04-24 | PM |
-| ARCHITECTURE.md | ✅ 最新 | 2026-04-24 | Arch |
-| PROJECT_REVIEW | ✅ 最新 | 2026-04-26 | All |
-| TEAM_CONSENSUS | ✅ 最新 | 2026-04-26 | All |
+| 文档 | 状态 | 最后更新 |
+|------|------|---------|
+| README.md | ✅ V3.3.0 | 2026-04-27 |
+| INSTALL.md | ✅ V3.3.0 | 2026-04-27 |
+| SKILL.md | ✅ V3.3.0 | 2026-04-27 |
+| CLAUDE.md | ✅ V3.3.0 | 2026-04-27 |
+| USAGE.md | ✅ V3.3.0 | 2026-04-28 |
+| CONFIGURATION.md | ✅ V3.3.0 | 2026-04-27 |
 
-### 文档更新规则
+### 归档文档说明
 
-1. **核心文档**（README, INSTALL, EXAMPLES）: 每次发布前必须更新
-2. **技术文档**（ARCHITECTURE, SKILL）: 架构变更时更新
-3. **项目管理文档**（PROJECT_REVIEW, TEAM_CONSENSUS）: 每月更新
-4. **归档文档**: 6 个月未更新的文档移到 archive/
+以下文档已归档至 `docs/archive/`，内容为历史记录，不代表当前状态：
+
+- PROJECT_REVIEW_2026-04-26.md — 项目评估（引用的 825 tests/16 modules 已过时）
+- OPTIMIZATION_CONSENSUS_REPORT.md — 优化共识（引用的 16 modules/10 roles 已过时）
+- RELEASE_SUMMARY.md — V2 发布总结（v2.0-v2.2 时代）
+- KARPATHY_PRINCIPLES_INSIGHTS.md — 设计哲学分析（引用的 825 tests 已过时）
+- OPTIMIZATION_PLAN_KARPATHY.md — 优化方案（引用的 825 tests/16 modules 已过时）
+- TEAM_CONSENSUS_OPTIMIZATION.md — 团队优化共识
+- OPTIMIZATION_PROGRESS.md — 优化进度追踪
 
 ---
 
@@ -178,28 +146,23 @@
 
 1. **找不到需要的文档？**
    - 使用本页面的"快速查找"表格
-   - 搜索 docs/ 目录
    - 查看 archive/ 中的历史文档
 
 2. **文档过时了？**
-   - 提交 Issue 或 PR
-   - 联系文档维护者
+   - 以 README.md / SKILL.md / CLAUDE.md 为准
    - 查看 CHANGELOG 了解最新变更
 
 3. **想贡献文档？**
    - 阅读 [CONTRIBUTING.md](../CONTRIBUTING.md)
-   - 遵循文档规范
    - 提交 PR
 
-### 联系方式
+### GitHub
 
-- **GitHub Issues**: https://github.com/your-org/DevSquad/issues
-- **讨论区**: https://github.com/your-org/DevSquad/discussions
-- **邮件**: devsquad@example.com
+- **仓库**: https://github.com/lulin70/DevSquad
+- **Issues**: https://github.com/lulin70/DevSquad/issues
 
 ---
 
-**提示**: 如果你是第一次使用 DevSquad，建议从"新用户必读"部分开始，按顺序阅读 3 个核心文档，大约需要 15-20 分钟。
+**提示**: 如果你是第一次使用 DevSquad，建议从"新用户必读"部分开始，按顺序阅读 3 个核心文档，大约需要 10-15 分钟。
 
-**最后更新**: 2026-04-26 by 优化团队  
-**下次审视**: 2026-05-26
+**最后更新**: 2026-04-28

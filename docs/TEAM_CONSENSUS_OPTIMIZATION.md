@@ -1,5 +1,8 @@
 # DevSquad 优化方案团队共识文档
 
+> ⚠️ **此文档中的数据已过时** — 引用的 "825 tests" 已不再准确。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md / SKILL.md 为准。
+
 **会议日期**: 2026-04-26  
 **参与角色**: 产品经理 (PM)、架构师 (Architect)、测试经理 (QA Lead)  
 **议题**: Review OPTIMIZATION_PLAN_KARPATHY.md 并达成执行共识  

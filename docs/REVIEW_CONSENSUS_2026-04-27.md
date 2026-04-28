@@ -1,5 +1,8 @@
 # DevSquad V3.3.0 评审共识报告
 
+> ⚠️ **此文档为历史评审记录** — 部分数据（如 workflow_engine_v2.py 缺失状态）已过时。
+> 当前状态：27 modules, 7 core roles, 99 unit tests。请以 README.md / SKILL.md 为准。
+
 > 评审日期: 2026-04-27
 > 评审角色: 产品经理 / 架构师 / 测试专家 / 安全专家 / CI专员
 > 上游对比: TraeMultiAgentSkill V2.3.0

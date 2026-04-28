@@ -3,6 +3,8 @@
 """
 真正的多角色协作代码走读分析器 v2.0
 
+⚠️ 已弃用：此脚本为 V2 遗留，V3 请使用 `python3 scripts/cli.py dispatch --mode consensus` 或 `devsquad dispatch --mode consensus`
+
 本工具通过真正调用 Trae Agent 的多角色调度机制，实现：
 1. 各角色使用专属 prompt 模板进行真实分析
 2. 通过 Trae Agent 调度系统分配任务到各角色

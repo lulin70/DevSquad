@@ -1,5 +1,9 @@
 # Trae Multi-Agent Skill v2.0-v2.2 发布总结
 
+> ⚠️ **此文档已过时** — 这是 V2 时代的发布总结（v2.0-v2.2），当前版本为 V3.3.0 (2026-04-27)。
+> V3.3.0 使用 `python3 scripts/cli.py dispatch` 命令，7 个核心角色，99 个单元测试。
+> 请以 README.md / SKILL.md / CLAUDE.md 为准。此文档仅作历史参考。
+
 ## 📦 核心特性
 
 ### v2.2 - 长程 Agent 支持 (2026-03-21)

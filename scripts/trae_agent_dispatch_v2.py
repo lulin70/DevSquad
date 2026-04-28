@@ -3,6 +3,8 @@
 """
 Trae Agent 调度脚本（v2.0 - 双层上下文增强版）
 
+⚠️ 已弃用：此脚本为 V2 遗留，V3 请使用 `python3 scripts/cli.py dispatch` 或 `devsquad dispatch`
+
 用于调度不同的智能体角色（架构师、产品经理、测试专家、独立开发者）来实现任务
 支持命令行参数配置，方便集成到自动化流程中
 
