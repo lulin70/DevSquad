@@ -55,3 +55,4 @@ prompts/
 prompt_evolution/
 plans/
 install.sh
+.git_disabled/
