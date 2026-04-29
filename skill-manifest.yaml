@@ -4,7 +4,7 @@ description: |
   DevSquad V3.3.0 — Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
-  (OpenAI/Anthropic), CLI + MCP + Python API. 99 unit tests, all passing.
+  (OpenAI/Anthropic), CLI + MCP + Python API. 129 unit tests, all passing.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
 status: active
 ai_enhanced: true
@@ -200,7 +200,7 @@ metadata:
         - CodeMapGenerator, DualLayerContext, SkillRegistry, ConfigManager
         - Docker + GitHub Actions CI + pip installable
         - i18n support (zh/en/ja)
-        - 27 modules, 99 unit tests all passing
+        - 27 modules, 129 unit tests all passing
 
     - version: 3.0.0
       date: "2026-04-16"

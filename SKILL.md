@@ -5,7 +5,7 @@ description: |
   V3.3.0 DevSquad — Multi-Role AI Task Orchestrator.
   One task in, multi-role AI collaboration, one conclusion out.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
-  (OpenAI/Anthropic), CLI + MCP + Python API. 99 unit tests, all passing.
+  (OpenAI/Anthropic), CLI + MCP + Python API. 129 unit tests, all passing.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
 ---
 
@@ -39,7 +39,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | Test quality audit (API validation / anti-pattern detection / dimension coverage) |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | Dynamic prompt assembly (complexity detection / 3 variants / 5 styles / compression-aware) |
 | 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify closed-loop feedback (pattern→variant / A-B test / auto promote-deprecate) |
-| 14 | **MCEAdapter** | `mce_adapter.py` | MCE memory classification engine adapter (lazy-load / graceful-degrade / thread-safe / v0.4 tenant support) |
+| 14 | **MCEAdapter** | `mce_adapter.py` | CarryMem integration adapter (lazy-load / graceful-degrade / thread-safe / type mapping) |
 | 15 | **WorkBuddyClawSource** | `memory_bridge.py` (class) | WorkBuddy Claw read-only bridge (INDEX search / daily logs / AI news feed) |
 | 16 | **RoleMatcher** | `role_matcher.py` | Keyword-based role matching with alias resolution (extracted from Dispatcher) |
 | 17 | **ReportFormatter** | `report_formatter.py` | Structured/compact/detailed report generation (extracted from Dispatcher) |
@@ -509,13 +509,14 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | Core (Dispatcher+Coordinator+Worker+Scratchpad+Consensus) | 39 | ✅ PASS |
 | Role Mapping (RoleMatcher+alias resolution+bilingual keywords) | 25 | ✅ PASS |
 | Upstream (Checkpoint+SemanticMatcher+Workflow+CompletionChecker) | 35 | ✅ PASS |
-| **Total** | **99** | **✅ ALL PASS** |
+| MCEAdapter (CarryMem integration+type mapping+graceful degrade) | 30 | ✅ PASS |
+| **Total** | **129** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
-- **v3.3.0** (2026-04-27): Real LLM Backend (OpenAI/Anthropic/Mock) + ThreadPoolExecutor parallel + InputValidator + 16-pattern prompt injection + RoleMatcher/ReportFormatter extracted + AISemanticMatcher bilingual + CheckpointManager SHA256 + WorkflowEngine + TaskCompletionChecker + CodeMapGenerator + DualLayerContext + SkillRegistry + ConfigManager YAML + LLMBackend streaming + Docker + GitHub Actions CI + pip installable + i18n (zh/en/ja) + 27 modules + 99 unit tests
+- **v3.3.0** (2026-04-27): Real LLM Backend (OpenAI/Anthropic/Mock) + ThreadPoolExecutor parallel + InputValidator + 16-pattern prompt injection + RoleMatcher/ReportFormatter extracted + AISemanticMatcher bilingual + CheckpointManager SHA256 + WorkflowEngine + TaskCompletionChecker + CodeMapGenerator + DualLayerContext + SkillRegistry + ConfigManager YAML + LLMBackend streaming + Docker + GitHub Actions CI + pip installable + i18n (zh/en/ja) + 27 modules + 129 unit tests
 - **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(read-only bridge/INDEX search/daily logs/AI news feed) + Dispatcher AI News auto-inject + Annotation Standards (EN docs/docstring/inline) + Code comment audit (all EN) + MCE v0.4 support (tenant/permission) + Multi-language README (EN/CN/JP) + 33 new tests
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule
 - **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation

@@ -7,7 +7,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-99%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-129%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.3.0-2026--04--27-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
@@ -97,7 +97,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
 
 | 日付 | バージョン | ハイライト |
 |------|-----------|-----------|
-| 2026-04-27 | **V3.3.0** | リアルLLMバックエンド、並列実行、セキュリティ強化、チェックポイント、ワークフロー、ストリーミング、Docker、CI、99テスト |
+| 2026-04-27 | **V3.3.0** | リアルLLMバックエンド、並列実行、セキュリティ強化、チェックポイント、ワークフロー、ストリーミング、Docker、CI、CarryMem統合、129テスト |
 
 ## ライセンス
 

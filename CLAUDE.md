@@ -6,7 +6,7 @@
 
 **27 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContext, SkillRegistry, LLMBackend, ConfigManager.
 
-**Test Coverage**: 99 unit tests, all passing.
+**Test Coverage**: 129 unit tests, all passing.
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker.
 
 ## Architecture
@@ -80,8 +80,8 @@ DevSquad/
 │   │   ├── skill_registry.py     # Skill registration + discovery
 │   │   ├── config_loader.py      # YAML config + env var overrides
 │   │   ├── memory_bridge.py    # MemoryBridge + WorkBuddyClawSource
-│   │   ├── mce_adapter.py      # MCE v0.4 adapter (tenant/permission)
-│   │   └── *_test.py           # Test files (99 unit tests)
+│   │   ├── mce_adapter.py      # CarryMem integration adapter
+│   │   └── *_test.py           # Test files (129 unit tests)
 │   ├── demo/
 │   │   └── e2e_full_demo.py    # E2E demo with CLI interface
 │   └── vibe_coding/            # Vibe Coding subsystem
@@ -107,7 +107,7 @@ DevSquad/
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
 - **Documentation**: EN (README.md/SKILL.md) + CN (README-CN.md/SKILL-CN.md) + JP variants
-- **Testing**: pytest-based, 99 unit tests
+- **Testing**: pytest-based, 129 unit tests
 - **Style**: PEP 8, dataclasses for models, type hints throughout
 - **Version**: Single source of truth in `_version.py` (`3.3.0`)
 

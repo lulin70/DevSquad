@@ -5,7 +5,7 @@ description: |
   V3.3.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
   7个核心角色（架构师/产品经理/安全专家/测试专家/开发者/DevOps/UI设计师），
   支持真实LLM后端（OpenAI/Anthropic），CLI + MCP + Python API。
-  99个单元测试全通过。支持中英日三语。
+  129个单元测试全通过。支持中英日三语。
 ---
 
 # DevSquad V3.3.0 — 多智能体协作平台
@@ -38,7 +38,7 @@ description: |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | 测试质量审计(API校验/反模式检测/维度覆盖) |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | 动态提示词组装(复杂度检测/3级变体/5种风格/压缩感知) |
 | 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify闭环反哺(模式→变体/A/B测试/自动晋升淘汰) |
-| 14 | **MCEAdapter** | `mce_adapter.py` | MCE记忆分类引擎适配器(懒加载/优雅降级/线程安全) |
+| 14 | **MCEAdapter** | `mce_adapter.py` | CarryMem集成适配器(懒加载/优雅降级/线程安全/类型映射) |
 | 15 | **WorkBuddyClawSource** | `memory_bridge.py` (class) | WorkBuddy Claw只读桥接(索引检索/日更记忆/AI新闻流) |
 | 16 | **RoleMatcher** | `role_matcher.py` | 基于关键词的角色匹配+别名解析（从Dispatcher提取） |
 | 17 | **ReportFormatter** | `report_formatter.py` | 结构化/紧凑/详细报告生成（从Dispatcher提取） |
@@ -482,13 +482,14 @@ def test_<功能>_<场景>(self):
 | Core Tests (Dispatcher+Coordinator+Worker+Scratchpad+Consensus) | 39 | ✅ | ✅ PASS |
 | Role Mapping (RoleMatcher+别名解析) | 25 | ✅ | ✅ PASS |
 | Upstream (Checkpoint+SemanticMatcher+Workflow+CompletionChecker) | 35 | ✅ | ✅ PASS |
-| **总计** | **99** | **✅ ALL PASS** | |
+| MCEAdapter (CarryMem集成+类型映射+优雅降级) | 30 | ✅ | ✅ PASS |
+| **总计** | **129** | **✅ ALL PASS** | |
 
 ---
 
 ## Version History
 
-- **v3.3.0** (2026-04-27): 真实LLM后端(OpenAI/Anthropic/Mock) + ThreadPoolExecutor并行执行 + InputValidator+16种Prompt注入防护 + RoleMatcher/ReportFormatter提取 + AISemanticMatcher双语匹配 + CheckpointManager SHA256完整性 + WorkflowEngine任务拆分+断点恢复 + TaskCompletionChecker完成度跟踪 + CodeMapGenerator AST分析 + DualLayerContext双层上下文 + SkillRegistry技能注册 + ConfigManager YAML配置 + LLMBackend流式输出 + Docker + GitHub Actions CI + pip可安装 + 99单元测试
+- **v3.3.0** (2026-04-27): 真实LLM后端(OpenAI/Anthropic/Mock) + ThreadPoolExecutor并行执行 + InputValidator+16种Prompt注入防护 + RoleMatcher/ReportFormatter提取 + AISemanticMatcher双语匹配 + CheckpointManager SHA256完整性 + WorkflowEngine任务拆分+断点恢复 + TaskCompletionChecker完成度跟踪 + CodeMapGenerator AST分析 + DualLayerContext双层上下文 + SkillRegistry技能注册 + ConfigManager YAML配置 + LLMBackend流式输出 + Docker + GitHub Actions CI + pip可安装 + CarryMem集成 + 129单元测试
 - **v3.3** (2026-04-24): 7核心角色(security+devops提升为核心) + RoleRegistry SSOT + TaskDefinition.role_prompt修复 + 环境变量唯一API key入口 + InputValidator输入验证 + 3个真实场景验证通过
 - **v3.3** (2026-04-17): WorkBuddy Claw集成 + MCE v0.4支持 + 注释EN化 + 多语言README
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule (walkthrough→annotate→docs→Git loop)

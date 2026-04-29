@@ -7,7 +7,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-99%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-129%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.3.0-2026--04--27-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
@@ -186,7 +186,7 @@ export OPENAI_API_KEY=sk-...
 ## 运行测试
 
 ```bash
-# 核心测试（99 个）
+# 核心测试（129 个）
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py -v
@@ -211,7 +211,7 @@ python3 scripts/cli.py roles        # 列出 7 个角色
 
 | 日期 | 版本 | 亮点 |
 |------|------|------|
-| 2026-04-27 | **V3.3.0** | 真实 LLM 后端、ThreadPoolExecutor 并行、输入验证+Prompt注入防护、检查点管理、工作流引擎、流式输出、Docker、CI、配置文件、99 单元测试 |
+| 2026-04-27 | **V3.3.0** | 真实 LLM 后端、ThreadPoolExecutor 并行、输入验证+Prompt注入防护、检查点管理、工作流引擎、流式输出、Docker、CI、配置文件、CarryMem集成、129 单元测试 |
 | 2026-04-17 | V3.2 | E2E Demo、MCE 适配器 |
 | 2026-04-16 | V3.0 | 完整重设计 — Coordinator/Worker/Scratchpad 架构 |
 

@@ -23,6 +23,9 @@ python>=3.9
 # openai>=1.0          # OpenAI backend (pip install devsquad[openai])
 # anthropic>=0.18       # Anthropic backend (pip install devsquad[anthropic])
 
+# Optional Memory Layer
+# carrymem>=0.8        # CarryMem portable AI memory (pip install devsquad[carrymem])
+
 # Optional MCP Server
 # mcp>=0.9             # MCP protocol (pip install devsquad[mcp])
 

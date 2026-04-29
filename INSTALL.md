@@ -322,8 +322,8 @@ DevSquad/
 │       ├── skill_registry.py     # Skill registration + discovery
 │       ├── config_loader.py      # YAML config + env var overrides
 │       ├── memory_bridge.py      # Cross-session memory
-│       ├── mce_adapter.py        # MCE v0.4 adapter
-│       └── *_test.py             # Test suites (99 unit tests)
+│       ├── mce_adapter.py        # CarryMem integration adapter
+│       └── *_test.py             # Test suites (129 unit tests)
 ├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
 ├── Dockerfile                    # Docker support
 ├── pyproject.toml                # pip-installable package

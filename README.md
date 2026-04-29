@@ -7,7 +7,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-99%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-129%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.3.0-2026--04--27-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
@@ -291,7 +291,7 @@ python3 scripts/cli.py roles        # List 7 roles
 
 | Date | Version | Highlights |
 |------|---------|-----------|
-| 2026-04-27 | **V3.3.0** | Real LLM backend (OpenAI/Anthropic/Mock), ThreadPoolExecutor parallel execution, InputValidator + prompt injection protection, CheckpointManager, WorkflowEngine, TaskCompletionChecker, AISemanticMatcher, streaming output, Docker, GitHub Actions CI, config file, CodeMapGenerator, DualLayerContext, SkillRegistry, 99 unit tests |
+| 2026-04-27 | **V3.3.0** | Real LLM backend (OpenAI/Anthropic/Mock), ThreadPoolExecutor parallel execution, InputValidator + prompt injection protection, CheckpointManager, WorkflowEngine, TaskCompletionChecker, AISemanticMatcher, streaming output, Docker, GitHub Actions CI, config file, CodeMapGenerator, DualLayerContext, SkillRegistry, CarryMem integration, 129 unit tests |
 | 2026-04-17 | V3.2 | E2E Demo, MCE Adapter, Dispatcher UX |
 | 2026-04-16 | V3.0 | Complete redesign — Coordinator/Worker/Scratchpad architecture |
 

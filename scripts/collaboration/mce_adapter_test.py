@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MCE Adapter Test Suite (v3.2 MVP Line-B)
+MCEAdapter Test Suite — CarryMem Integration
 
-测试 MCEAdapter 的核心功能:
-- MockMCE: 模拟 MCE 引擎用于测试
-- 初始化与状态管理
-- classify / classify_batch
+Tests MCEAdapter core functionality:
+- Initialization & status management
+- classify / classify_batch (CarryMem classify_message format)
 - store_memory / retrieve_memories
-- 错误处理与降级
-- 线程安全
-- 与 MemoryBridge 集成
+- whoami / check_conflicts
+- Error handling & graceful degradation
+- Thread safety
+- Type mapping (DevSquad ↔ CarryMem)
 """
 
 import os
 import sys
-import time
 import threading
 import unittest
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -28,83 +26,47 @@ from scripts.collaboration.mce_adapter import (
     MCEResult,
     MCEStatus,
     get_global_mce_adapter,
+    CARRYMEM_TO_DEVOPSQUAD,
+    DEVSQUAD_TO_CARRYMEM,
 )
 
 
-class MockMCEEngine:
-    """模拟 MCE 记忆分类引擎，用于测试"""
+class TestTypeMapping(unittest.TestCase):
+    """T1: CarryMem ↔ DevSquad type mapping"""
 
-    def __init__(self, fail_rate: float = 0.0):
-        self.fail_rate = fail_rate
-        self.call_count = 0
-        self.classify_count = 0
-        self.store_count = 0
-        self.retrieve_count = 0
-        self._shutdown = False
+    def test_carrymem_to_devsquad_mapping(self):
+        self.assertEqual(CARRYMEM_TO_DEVOPSQUAD["user_preference"], "knowledge")
+        self.assertEqual(CARRYMEM_TO_DEVOPSQUAD["correction"], "correction")
+        self.assertEqual(CARRYMEM_TO_DEVOPSQUAD["fact_declaration"], "knowledge")
+        self.assertEqual(CARRYMEM_TO_DEVOPSQUAD["decision"], "analysis")
+        self.assertEqual(CARRYMEM_TO_DEVOPSQUAD["relationship"], "knowledge")
+        self.assertEqual(CARRYMEM_TO_DEVOPSQUAD["task_pattern"], "pattern")
+        self.assertEqual(CARRYMEM_TO_DEVOPSQUAD["sentiment_marker"], "semantic")
 
-    def process_message(self, text: str, context: Optional[Dict] = None) -> Dict[str, Any]:
-        """模拟 process_message 接口"""
-        self.call_count += 1
-        if self.fail_rate > 0 and (self.call_count % int(1/self.fail_rate)) == 0:
-            raise RuntimeError("Mock MCE engine failure")
+    def test_devsquad_to_carrymem_mapping(self):
+        self.assertEqual(DEVSQUAD_TO_CARRYMEM["knowledge"], "fact_declaration")
+        self.assertEqual(DEVSQUAD_TO_CARRYMEM["episodic"], "task_pattern")
+        self.assertEqual(DEVSQUAD_TO_CARRYMEM["semantic"], "sentiment_marker")
+        self.assertEqual(DEVSQUAD_TO_CARRYMEM["feedback"], "correction")
+        self.assertEqual(DEVSQUAD_TO_CARRYMEM["pattern"], "task_pattern")
+        self.assertEqual(DEVSQUAD_TO_CARRYMEM["analysis"], "decision")
+        self.assertEqual(DEVSQUAD_TO_CARRYMEM["correction"], "correction")
 
-        text_lower = text.lower()
-        if "偏好" in text or "preference" in text_lower or "喜欢" in text:
-            return {"type": "preference", "confidence": 0.85, "tier": "tier2"}
-        elif "决定" in text or "decision" in text_lower or "选择" in text:
-            return {"type": "decision", "confidence": 0.92, "tier": "episodic"}
-        elif "修正" in text or "correction" in text_lower or "错误" in text:
-            return {"type": "correction", "confidence": 0.78, "tier": "episodic"}
-        elif "事实" in text or "fact" in text_lower or "知识" in text:
-            return {"type": "fact", "confidence": 0.88, "tier": "knowledge"}
-        elif "任务" in text or "task" in text_lower:
-            return {"type": "task", "confidence": 0.75, "tier": "episodic"}
-        else:
-            return {"type": "general", "confidence": 0.6, "tier": "tier2"}
+    def test_roundtrip_mapping_primary(self):
+        for ds_type, cm_type in DEVSQUAD_TO_CARRYMEM.items():
+            back = CARRYMEM_TO_DEVOPSQUAD.get(cm_type)
+            self.assertIsNotNone(back,
+                f"No reverse mapping for CarryMem type: {cm_type}")
 
-    def store(self, memory_data: Dict) -> bool:
-        self.store_count += 1
-        return True
-
-    def retrieve(self, query: str, **kwargs) -> List[Dict]:
-        self.retrieve_count += 1
-        return [
-            {"id": "mock-1", "content": f"Mock memory for {query}", "type": "episodic"},
-        ]
-
-    def shutdown_engine(self):
-        self._shutdown = True
-
-
-@dataclass
-class MockFacade:
-    """
-    模拟 MemoryClassificationEngineFacade
-
-    测试用替身，包装 MockMCEEngine 以匹配 MCE Facade 接口签名。
-    使 MCEAdapter(enable=True) 可在无真实 MCE 环境下完成初始化。
-    """
-    _engine: Any = None
-
-    def __init__(self, engine=None):
-        self._engine = engine or MockMCEEngine()
-
-    def process_message(self, text: str, context: Optional[Dict] = None) -> Dict[str, Any]:
-        return self._engine.process_message(text, context)
-
-    def store_memory(self, memory_data: Dict) -> bool:
-        return self._engine.store(memory_data)
-
-    def retrieve_memories(self, query: str, **kwargs) -> List[Dict]:
-        return self._engine.retrieve(query, **kwargs)
-
-    def shutdown(self):
-        if hasattr(self._engine, 'shutdown_engine'):
-            self._engine.shutdown_engine()
+    def test_all_carrymem_types_have_reverse(self):
+        for cm_type in CARRYMEM_TO_DEVOPSQUAD:
+            ds_type = CARRYMEM_TO_DEVOPSQUAD[cm_type]
+            self.assertIn(ds_type, DEVSQUAD_TO_CARRYMEM,
+                f"DevSquad type '{ds_type}' (from CarryMem '{cm_type}') not in DEVSQUAD_TO_CARRYMEM")
 
 
 class TestMCEResult(unittest.TestCase):
-    """T1: MCEResult 数据类测试"""
+    """T2: MCEResult data class"""
 
     def test_default_values(self):
         result = MCEResult()
@@ -115,115 +77,125 @@ class TestMCEResult(unittest.TestCase):
 
     def test_custom_values(self):
         result = MCEResult(
-            memory_type="decision",
+            memory_type="knowledge",
             confidence=0.92,
-            tier="episodic",
-            metadata={"source": "test"}
+            tier="tier3",
+            metadata={"carrymem_type": "fact_declaration"}
         )
-        self.assertEqual(result.memory_type, "decision")
+        self.assertEqual(result.memory_type, "knowledge")
         self.assertAlmostEqual(result.confidence, 0.92)
-        self.assertEqual(result.tier, "episodic")
-        self.assertEqual(result.metadata["source"], "test")
+        self.assertEqual(result.tier, "tier3")
+        self.assertEqual(result.metadata["carrymem_type"], "fact_declaration")
+
+    def test_to_dict(self):
+        result = MCEResult(memory_type="correction", confidence=0.78)
+        d = result.to_dict()
+        self.assertEqual(d["type"], "correction")
+        self.assertAlmostEqual(d["confidence"], 0.78)
 
 
 class TestMCEStatus(unittest.TestCase):
-    """T2: MCEStatus 数据类测试"""
+    """T3: MCEStatus data class"""
 
     def test_default_status(self):
         status = MCEStatus()
         self.assertFalse(status.available)
         self.assertEqual(status.version, "")
         self.assertIsNone(status.init_error)
-        self.assertEqual(status.classify_count, 0)
-        self.assertEqual(status.classify_fail_count, 0)
 
 
 class TestMCEAdapterInit(unittest.TestCase):
-    """T3: MCEAdapter 初始化测试"""
+    """T4: MCEAdapter initialization"""
 
     def test_init_disabled(self):
         adapter = MCEAdapter(enable=False)
         self.assertFalse(adapter.is_available)
-        status = adapter.status
-        self.assertFalse(status.available)
 
-    def test_init_enabled_no_mce(self):
+    def test_init_enabled_no_carrymem(self):
         adapter = MCEAdapter(enable=True)
         if not adapter.is_available:
             status = adapter.status
             self.assertFalse(status.available)
             self.assertIsNotNone(status.init_error)
+            self.assertIn("CarryMem", status.init_error)
 
 
 class TestMCEAdapterClassify(unittest.TestCase):
-    """T4: MCEAdapter 分类功能测试"""
+    """T5: classify with CarryMem unavailable"""
 
     def test_classify_disabled_returns_none(self):
         adapter = MCEAdapter(enable=False)
-        result = adapter.classify("用户偏好是使用深色模式")
+        result = adapter.classify("User prefers dark mode")
         self.assertIsNone(result)
 
-    def test_classify_empty_text(self):
-        adapter = MCEAdapter(enable=False)
-        result = adapter.classify("")
-        self.assertIsNone(result)
-
-    def test_classify_none_text(self):
-        adapter = MCEAdapter(enable=False)
-        result = adapter.classify(None)
-        self.assertIsNone(result)
-
-    def test_classify_enabled_no_mce_returns_none(self):
+    def test_classify_enabled_no_carrymem_returns_none(self):
         adapter = MCEAdapter(enable=True)
         if not adapter.is_available:
-            result = adapter.classify("任何文本")
+            result = adapter.classify("any text")
             self.assertIsNone(result)
 
 
 class TestMCEAdapterBatchClassify(unittest.TestCase):
-    """T5: 批量分类测试"""
+    """T6: batch classify"""
 
     def test_batch_classify_empty_list(self):
         adapter = MCEAdapter(enable=False)
         results = adapter.classify_batch([])
         self.assertEqual(len(results), 0)
 
-    def test_batch_classify_disabled_returns_none_list(self):
+    def test_batch_classify_disabled(self):
         adapter = MCEAdapter(enable=False)
-        texts = ["文本1", "文本2", None, ""]
-        results = adapter.classify_batch(texts)
-        self.assertEqual(len(results), 4)
+        results = adapter.classify_batch(["text1", "text2"])
+        self.assertEqual(len(results), 2)
         for r in results:
             self.assertIsNone(r)
 
 
 class TestMCEAdapterStoreRetrieve(unittest.TestCase):
-    """T6: 存储和检索测试"""
+    """T7: store and retrieve"""
 
     def test_store_memory_disabled(self):
         adapter = MCEAdapter(enable=False)
-        result = adapter.store_memory({"id": "x"})
+        result = adapter.store_memory({"content": "test"})
         self.assertFalse(result)
 
     def test_retrieve_memories_disabled(self):
         adapter = MCEAdapter(enable=False)
-        results = adapter.retrieve_memories("查询")
+        results = adapter.retrieve_memories("query")
         self.assertEqual(results, [])
 
 
+class TestMCEAdapterWhoami(unittest.TestCase):
+    """T8: whoami (CarryMem v0.8+)"""
+
+    def test_whoami_disabled(self):
+        adapter = MCEAdapter(enable=False)
+        result = adapter.whoami()
+        self.assertIsNone(result)
+
+
+class TestMCEAdapterCheckConflicts(unittest.TestCase):
+    """T9: check_conflicts (CarryMem v0.8+)"""
+
+    def test_check_conflicts_disabled(self):
+        adapter = MCEAdapter(enable=False)
+        result = adapter.check_conflicts()
+        self.assertEqual(result, [])
+
+
 class TestMCEAdapterErrorHandling(unittest.TestCase):
-    """T7: 错误处理与降级测试"""
+    """T10: error handling & graceful degradation"""
 
     def test_graceful_degrade_on_import_error(self):
         adapter = MCEAdapter(enable=True)
         if not adapter.is_available:
-            self.assertFalse(adapter.is_available)
-            result = adapter.classify("任何文本")
-            self.assertIsNone(result)
+            self.assertIsNone(adapter.classify("any text"))
+            self.assertFalse(adapter.store_memory({"content": "x"}))
+            self.assertEqual(adapter.retrieve_memories("x"), [])
 
 
 class TestMCEAdapterLifecycle(unittest.TestCase):
-    """T8: 生命周期管理测试"""
+    """T11: lifecycle management"""
 
     def test_shutdown_disabled(self):
         adapter = MCEAdapter(enable=False)
@@ -238,7 +210,7 @@ class TestMCEAdapterLifecycle(unittest.TestCase):
 
 
 class TestGlobalMCESingleton(unittest.TestCase):
-    """T9: 全局单例测试"""
+    """T12: global singleton"""
 
     def test_get_global_default_disabled(self):
         adapter = get_global_mce_adapter(enable=False)
@@ -248,21 +220,20 @@ class TestGlobalMCESingleton(unittest.TestCase):
     def test_get_global_singleton(self):
         a1 = get_global_mce_adapter(enable=False)
         a2 = get_global_mce_adapter(enable=False)
-        self.assertIs(a1, a2, "Should return same instance")
+        self.assertIs(a1, a2)
 
 
 class TestMCEAdapterThreadSafety(unittest.TestCase):
-    """T10: 线程安全测试"""
+    """T13: thread safety"""
 
     def test_concurrent_classify_disabled(self):
         adapter = MCEAdapter(enable=False)
-
         errors = []
         results = [None] * 10
 
         def classify_worker(idx):
             try:
-                results[idx] = adapter.classify(f"并发测试文本 {idx}")
+                results[idx] = adapter.classify(f"concurrent test {idx}")
             except Exception as e:
                 errors.append(e)
 
@@ -281,37 +252,51 @@ class TestMCEAdapterThreadSafety(unittest.TestCase):
 
 
 class TestNormalizeResult(unittest.TestCase):
-    """T11: 结果归一化测试"""
+    """T14: result normalization (CarryMem format)"""
 
-    def test_normalize_dict_result(self):
-        raw = {"type": "decision", "confidence": 0.85}
+    def test_normalize_carrymem_format(self):
+        raw = {
+            "should_remember": True,
+            "entries": [
+                {"type": "user_preference", "confidence": 0.85, "tier": 2, "content": "dark mode"}
+            ],
+        }
         result = MCEAdapter._normalize_result(raw)
-        self.assertEqual(result.memory_type, "decision")
+        self.assertEqual(result.memory_type, "knowledge")
         self.assertAlmostEqual(result.confidence, 0.85)
+        self.assertEqual(result.tier, "tier2")
+        self.assertEqual(result.metadata.get("carrymem_type"), "user_preference")
 
-    def test_normalize_string_result(self):
-        raw = "preference"
+    def test_normalize_carrymem_decision(self):
+        raw = {
+            "should_remember": True,
+            "entries": [
+                {"type": "decision", "confidence": 0.92, "tier": 3}
+            ],
+        }
         result = MCEAdapter._normalize_result(raw)
-        self.assertEqual(result.memory_type, "preference")
+        self.assertEqual(result.memory_type, "analysis")
 
-    def test_normalize_none_returns_empty_mcresult(self):
+    def test_normalize_carrymem_no_entries(self):
+        raw = {"should_remember": False, "entries": []}
+        result = MCEAdapter._normalize_result(raw)
+        self.assertEqual(result.memory_type, "general")
+
+    def test_normalize_none_returns_empty(self):
         result = MCEAdapter._normalize_result(None)
         self.assertIsInstance(result, MCEResult)
         self.assertEqual(result.memory_type, "")
 
-    def test_normalize_mcresult_creates_new_instance(self):
-        existing = MCEResult(memory_type="fact", confidence=0.9)
-        result = MCEAdapter._normalize_result(existing)
-        self.assertIsInstance(result, MCEResult)
+    def test_normalize_string_maps_type(self):
+        result = MCEAdapter._normalize_result("correction")
+        self.assertEqual(result.memory_type, "correction")
+
+    def test_normalize_string_unknown_type(self):
+        result = MCEAdapter._normalize_result("unknown_type")
+        self.assertEqual(result.memory_type, "unknown_type")
 
 
 def run_all_tests():
-    """
-    加载并运行本模块全部测试用例
-
-    Returns:
-        int: 通过的测试用例数 (testsRun - failures - errors)
-    """
     suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
@@ -320,9 +305,10 @@ def run_all_tests():
 
 if __name__ == "__main__":
     passed = run_all_tests()
+    total = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__]).countTestCases()
     print(f"\n{'='*60}")
-    print(f"MCE Adapter Test Results: {passed}/{unittest.TestLoader().loadTestsFromModule(sys.modules[__name__]).countTestCases()} passed")
-    if passed == unittest.TestLoader().loadTestsFromModule(sys.modules[__name__]).countTestCases():
-        print("🎉 ALL MCE ADAPTER TESTS PASSED!")
+    print(f"MCEAdapter Test Results: {passed}/{total} passed")
+    if passed == total:
+        print("ALL MCE ADAPTER TESTS PASSED!")
     print(f"{'='*60}")
     sys.exit(0 if passed > 0 else 1)

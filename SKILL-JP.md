@@ -6,7 +6,7 @@ description: |
   パターンに基づく完全なマルチエージェントコラボレーションシステム。
   7コアロール（アーキテクト/PM/セキュリティ/テスター/コーダー/DevOps/UIデザイナー）、
   リアルLLMバックエンド（OpenAI/Anthropic）、CLI + MCP + Python API対応。
-  99ユニットテスト全合格。中日英3ヶ国語対応。
+  129ユニットテスト全合格。中日英3ヶ国語対応。
 ---
 
 # DevSquad V3.3.0 — マルチエージェントコラボレーションプラットフォーム
@@ -40,7 +40,7 @@ description: |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | テスト品質監査 |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | 動的プロンプトアセンブル |
 | 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillifyクローズドループ |
-| 14 | **MCEAdapter** | `mce_adapter.py` | MCE分類エンジンアダプター（v0.4対応） |
+| 14 | **MCEAdapter** | `mce_adapter.py` | CarryMem統合アダプター（遅延ロード/グレースフルデグラデーション/タイプマッピング） |
 | 15 | **WorkBuddyClawSource** | `memory_bridge.py`(class) | Claw読み取り専用ブリッジ |
 | 16 | **RoleMatcher** | `role_matcher.py` | キーワードベースロールマッチング+エイリアス解決 |
 | 17 | **ReportFormatter** | `report_formatter.py` | 構造化/コンパクト/詳細レポート生成 |
@@ -149,13 +149,14 @@ result = quick_collaborate("マイクロサービス設計を手伝って")
 | Core Tests (Dispatcher+Coordinator+Worker+Scratchpad+Consensus) | 39 | ✅ PASS |
 | Role Mapping (RoleMatcher+エイリアス解決) | 25 | ✅ PASS |
 | Upstream (Checkpoint+SemanticMatcher+Workflow+CompletionChecker) | 35 | ✅ PASS |
-| **合計** | **99** | **✅ ALL PASS** |
+| MCEAdapter (CarryMem統合+タイプマッピング+グレースフルデグラデーション) | 30 | ✅ PASS |
+| **合計** | **129** | **✅ ALL PASS** |
 
 ---
 
 ## バージョン履歴
 
-- **v3.3.0** (2026-04-27): リアルLLMバックエンド(OpenAI/Anthropic/Mock) + ThreadPoolExecutor並列実行 + InputValidator+16パターンPrompt注入検出 + RoleMatcher/ReportFormatter抽出 + AISemanticMatcherバイリンガルマッチング + CheckpointManager SHA256整合性 + WorkflowEngineタスク分割+チェックポイント復元 + TaskCompletionChecker完了追跡 + CodeMapGenerator AST分析 + DualLayerContext二層コンテキスト + SkillRegistryスキル登録 + ConfigManager YAML設定 + LLMBackendストリーミング + Docker + GitHub Actions CI + pipインストール対応 + 99ユニットテスト
+- **v3.3.0** (2026-04-27): リアルLLMバックエンド(OpenAI/Anthropic/Mock) + ThreadPoolExecutor並列実行 + InputValidator+16パターンPrompt注入検出 + RoleMatcher/ReportFormatter抽出 + AISemanticMatcherバイリンガルマッチング + CheckpointManager SHA256整合性 + WorkflowEngineタスク分割+チェックポイント復元 + TaskCompletionChecker完了追跡 + CodeMapGenerator AST分析 + DualLayerContext二層コンテキスト + SkillRegistryスキル登録 + ConfigManager YAML設定 + LLMBackendストリーミング + Docker + GitHub Actions CI + pipインストール対応 + CarryMem統合 + 129ユニットテスト
 - **v3.3** (2026-04-24): 7コアロール(security+devopsをコアに昇格) + RoleRegistry SSOT + TaskDefinition.role_prompt修正 + 環境変数のみAPI key入力 + InputValidator入力検証 + 3シナリオ検証完了
 - **v3.3** (2026-04-17): WorkBuddy Claw統合 + MCE v0.4サポート + アノテーションEN化 + 多言語README
 - **v3.2** (2026-04-17): MVP 3並行ライン (E2E Demo + Dispatcher UX + MCE Adapter)

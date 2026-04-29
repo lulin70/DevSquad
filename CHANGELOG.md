@@ -108,7 +108,7 @@ versioning follows [Semantic Versioning](https://semver.org/).
 - **Dispatcher**: Integrated InputValidator + ThreadPoolExecutor + prompt injection check
 - **Worker**: Added `stream` parameter for real-time output
 - **LLMBackend**: Added `generate_stream()` method (base + OpenAI + Anthropic)
-- **99 unit tests** all passing (core_test 39 + role_mapping_test 25 + upstream_test 35)
+- **129 unit tests** all passing (core_test 39 + role_mapping_test 25 + upstream_test 35 + mce_adapter_test 30)
 
 ### Documentation
 
