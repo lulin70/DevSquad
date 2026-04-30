@@ -173,7 +173,7 @@ Dispatch Options:
 python3 scripts/cli.py dispatch -t "Design microservices e-commerce backend"
 
 # Specify roles explicitly
-python3 scripts/cli.py dispatch -t "Review auth module" -r reviewer security tester
+python3 scripts/cli.py dispatch -t "Review auth module" -r sec test
 
 # JSON output for piping
 python3 scripts/cli.py dispatch -t "Optimize database queries" -f json
@@ -253,7 +253,7 @@ python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python3 -m pytest scripts/collaboration/ -v
-# Expected: 99+ unit tests (all passing)
+# Expected: 129+ unit tests (all passing)
 ```
 
 ## Troubleshooting
@@ -270,11 +270,11 @@ cd /path/to/DevSquad && python3 scripts/cli.py ...
 PYTHONPATH=/path/to/DevSquad python3 scripts/cli.py ...
 ```
 
-### MCE warnings on startup
+### CarryMem warnings on startup
 
-The Memory Classification Engine (MCE) adapter uses lazy loading.
+The CarryMem adapter uses lazy loading.
 Warning messages about model/connection are normal — DevSquad degrades gracefully
-when MCE is unavailable. No action needed.
+when CarryMem is unavailable. No action needed.
 
 ### Permission denied
 
@@ -426,7 +426,7 @@ disp.shutdown()
 | **`.trae/` directory** | Works on Windows (visible folder, not hidden like Unix) |
 | **`chmod +x`** | Not needed on Windows (no execute permission concept) |
 | **Symlinks (`ln -s`)** | Requires Developer Mode on Windows 10/11. Not recommended — just set env var instead |
-| **MCE Adapter** | Works if MCE installed in same Python environment. Graceful degradation otherwise |
+| **CarryMem** | Works if CarryMem installed in same Python environment. Graceful degradation otherwise |
 | **WorkBuddy Claw** | Path defaults to Unix-style. Override via config if running on Windows |
 | **Encoding** | All files use UTF-8. If you see encoding errors: `set PYTHONIOENCODING=utf-8` |
 
@@ -486,5 +486,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest scripts\collaboration\ -q
-# Expected: 99+ unit tests (all passing)
+# Expected: 129+ unit tests (all passing)
 ```

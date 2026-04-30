@@ -305,7 +305,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.3",
+#   "version": "3.3.0",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
@@ -472,7 +472,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **SKILL Docs** | `SKILL.md` — Module table, test table, version history, rules | ✅ Must check |
 | **Project Overview** | `README.md` (EN) / `README-CN.md` (CN) / `README-JP.md` (JP) — Version, modules, timeline | ✅ Must check |
 | **Changelog** | `CHANGELOG.md` — New version entries (Added/Changed/Fixed) | ✅ Must check |
-| **Status Doc** | `IMPLEMENTATION_STATUS.md` — Current version, module list, test summary | ✅ Must check |
+| **Status Doc** | `docs/PROJECT_STATUS.md` — Current version, module list, test summary | ✅ Must check |
 | **Config** | `CONFIGURATION.md` — New external integration config options | 🔍 If has integrations |
 | **API Docs** | Update interface docs if API changes | 🔍 If API changed |
 | **Install Deps** | `INSTALL.md` / `requirements.txt` — Update if new deps | 🔍 If new deps |

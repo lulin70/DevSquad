@@ -254,10 +254,11 @@ export OPENAI_API_KEY=sk-...
 ## Running Tests
 
 ```bash
-# Core tests (99 tests)
+# Core tests (129 tests)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
-  scripts/collaboration/upstream_test.py -v
+  scripts/collaboration/upstream_test.py \
+  scripts/collaboration/mce_adapter_test.py -v
 
 # Quick smoke test
 python3 scripts/cli.py --version    # 3.3.0

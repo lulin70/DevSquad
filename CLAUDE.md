@@ -129,7 +129,7 @@ DevSquad/
 
 | Component | Path | Status |
 |-----------|------|--------|
-| MCE (Memory Classification Engine) | Local pip package | v0.4.0 integrated |
+| CarryMem | Local pip package | v0.1.2 integrated |
 | WorkBuddy Claw | `/Users/lin/WorkBuddy/Claw` | Read-only bridge |
 | GitHub Remote | `github.com/lulin70/DevSquad` | Active |
 
@@ -138,10 +138,11 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Core unit tests (99 tests)
+# Core unit tests (129 tests)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
-  scripts/collaboration/upstream_test.py -v
+  scripts/collaboration/upstream_test.py \
+  scripts/collaboration/mce_adapter_test.py -v
 
 # Quick smoke test
 python3 scripts/cli.py --version    # 3.3.0

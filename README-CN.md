@@ -177,7 +177,7 @@ devsquad:
 或使用环境变量（优先级更高）：
 
 ```bash
-export DEVSQUAD_BACKEND=openai
+export DEVSQUAD_LLM_BACKEND=openai
 export DEVSQUAD_BASE_URL=https://api.openai.com/v1
 export DEVSQUAD_MODEL=gpt-4
 export OPENAI_API_KEY=sk-...
@@ -189,7 +189,8 @@ export OPENAI_API_KEY=sk-...
 # 核心测试（129 个）
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
-  scripts/collaboration/upstream_test.py -v
+  scripts/collaboration/upstream_test.py \
+  scripts/collaboration/mce_adapter_test.py -v
 
 # 快速冒烟测试
 python3 scripts/cli.py --version    # 3.3.0
