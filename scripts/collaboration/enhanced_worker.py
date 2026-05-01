@@ -227,7 +227,53 @@ class EnhancedWorker(Worker):
             except Exception as e:
                 logger.warning("Confidence scoring failed: %s", e)
 
+        if self._injected_rules and result.success and result.output:
+            violations = self._check_forbid_violations(result)
+            if violations:
+                if isinstance(result.output, dict):
+                    result.output["rule_violations"] = violations
+
         return result
+
+    def _check_forbid_violations(self, result: WorkerResult) -> List[Dict[str, str]]:
+        """
+        Post-processing check: verify forbid rules were not violated in output.
+
+        Short-term: annotate violations as warnings (no auto-retry).
+        Mid-term: auto-retry with enhanced prompt on forbid violation.
+
+        Args:
+            result: Worker execution result
+
+        Returns:
+            List of violation dicts with rule_id and description
+        """
+        violations = []
+        forbid_rules = [r for r in self._injected_rules
+                        if isinstance(r, dict) and r.get("rule_type") == "forbid"]
+
+        if not forbid_rules or not result.output:
+            return violations
+
+        output_text = result.output if isinstance(result.output, str) else str(result.output)
+        output_lower = output_text.lower()
+
+        for rule in forbid_rules:
+            trigger = rule.get("trigger", "").lower()
+            action = rule.get("action", "").lower()
+            rule_id = rule.get("rule_id", "unknown")
+
+            if trigger and trigger in output_lower:
+                violations.append({
+                    "rule_id": rule_id,
+                    "trigger": trigger,
+                    "action": action,
+                    "severity": "high" if rule.get("override") else "medium",
+                    "message": f"Output may violate forbid rule '{rule_id}': "
+                               f"trigger '{trigger}' found in output",
+                })
+
+        return violations
 
     def get_briefing_summary(self) -> Dict[str, Any]:
         """

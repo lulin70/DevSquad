@@ -20,7 +20,7 @@ description: |
         → [ConsensusEngine共识] → [报告格式化] → [结构化报告]
 ```
 
-## 架构总览（33大模块）
+## 架构总览（34大模块）
 
 | # | 模块 | 文件 | 职责 |
 |---|------|------|------|
@@ -58,6 +58,7 @@ description: |
 | 31 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99响应时间/CPU/内存追踪/瓶颈检测/Markdown报告 |
 | 32 | **AgentBriefing** | `agent_briefing.py` | 上下文感知简报生成 + 优先级过滤 + 持久化 |
 | 33 | **ConfidenceScorer** | `confidence_score.py` | 5因子置信度评分(完整性/确定性/具体性/一致性/模型质量) |
+| 34 | **RoleTemplateMarket** | `role_template_market.py` | 角色模板市场(发布/搜索/安装/评分/导出/导入) |
 
 ---
 

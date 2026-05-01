@@ -112,11 +112,11 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Documentation
 
-- README.md: Complete rewrite with architecture diagram, 33 modules, quick start
+- README.md: Complete rewrite with architecture diagram, 34 modules, quick start
 - README-CN.md: Full Chinese translation
 - README-JP.md: Full Japanese translation
 - INSTALL.md: Added pip install, Docker, config file, streaming
-- SKILL.md: Updated to 33 modules, new architecture flow
+- SKILL.md: Updated to 34 modules, new architecture flow
 - CLAUDE.md: Updated overview, architecture, entry points
 
 ## [3.4] - 2026-04-26

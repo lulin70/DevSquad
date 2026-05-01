@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Coordinator - 全局协调者
+Coordinator - Global Orchestrator
 
-管理多 Worker 协作的核心组件：
-1. 任务分解为可并行的 Worker 计划
-2. 创建和调度 Workers
-3. 收集结果和共享状态
-4. 解决冲突和达成共识
-5. 生成最终协作报告
+Core component for multi-Worker collaboration:
+1. Decompose tasks into parallel Worker plans
+2. Create and schedule Workers
+3. Collect results and shared state
+4. Resolve conflicts and reach consensus
+5. Generate final collaboration report
+6. Inter-Agent briefing handoff (latent-briefing pattern)
+7. Rule pre-check via MemoryProvider (optional)
 """
 
 import time
@@ -64,16 +66,20 @@ class Coordinator:
                  enable_compression: bool = True,
                  compression_threshold: int = 100000,
                  llm_backend=None,
-                 stream: bool = False):
+                 stream: bool = False,
+                 memory_provider=None,
+                 briefing_mode: bool = True):
         """
-        初始化协调者
+        Initialize Coordinator.
 
         Args:
-            scratchpad: 共享黑板实例，如不提供则自动创建
-            persist_dir: Scratchpad 持久化目录
-            enable_compression: 是否启用上下文压缩（长任务防溢出）
-            compression_threshold: 压缩触发阈值（token数），默认100000
-            llm_backend: LLM执行后端（None=MockBackend，返回prompt文本）
+            scratchpad: Shared scratchpad instance (auto-created if not provided)
+            persist_dir: Scratchpad persistence directory
+            enable_compression: Enable context compression (prevent overflow in long tasks)
+            compression_threshold: Compression trigger threshold (token count), default 100000
+            llm_backend: LLM execution backend (None=MockBackend, returns prompt text)
+            memory_provider: MemoryProvider implementation (optional, for rule pre-check)
+            briefing_mode: Enable inter-Agent briefing handoff (default True)
         """
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
@@ -85,6 +91,9 @@ class Coordinator:
         self._message_buffer: List[Message] = []
         self.llm_backend = llm_backend
         self.stream = stream
+        self.memory_provider = memory_provider
+        self.briefing_mode = briefing_mode
+        self._briefing_chain: List[Any] = []
 
     def plan_task(self, task_description: str,
                   available_roles: List[Dict[str, str]],
@@ -340,8 +349,12 @@ class Coordinator:
                 try:
                     worker = self._get_worker_for_task(task)
                     if worker:
+                        if self.briefing_mode and self._briefing_chain:
+                            self._inject_briefing_to_worker(worker)
                         r = worker.execute(task)
                         results.append(r)
+                        if self.briefing_mode:
+                            self._collect_briefing_from_worker(worker)
                 except Exception as e:
                     errors.append(f"Task {task.task_id} failed: {e}")
 
@@ -371,6 +384,87 @@ class Coordinator:
                         error=str(e),
                     ))
         return results
+
+    def _inject_briefing_to_worker(self, worker):
+        """Inject compressed briefing from preceding Agents into the next Worker."""
+        try:
+            from .enhanced_worker import EnhancedWorker, AgentBriefingOutput
+            if isinstance(worker, EnhancedWorker) and self._briefing_chain:
+                merged = self._merge_briefings(self._briefing_chain)
+                worker.receive_briefing(merged)
+        except Exception:
+            pass
+
+    def _collect_briefing_from_worker(self, worker):
+        """Collect compressed briefing from a Worker after execution."""
+        try:
+            from .enhanced_worker import EnhancedWorker
+            if isinstance(worker, EnhancedWorker):
+                briefing = worker.compress_to_briefing()
+                if briefing and briefing.result_summary:
+                    self._briefing_chain.append(briefing)
+        except Exception:
+            pass
+
+    def _merge_briefings(self, briefings: List[Any]) -> Any:
+        """Merge multiple Agent briefings into a single composite briefing."""
+        from .enhanced_worker import AgentBriefingOutput
+        if not briefings:
+            return AgentBriefingOutput()
+
+        all_decisions = []
+        all_pending = []
+        all_rules = []
+        summaries = []
+        min_confidence = 1.0
+
+        for b in briefings:
+            all_decisions.extend(b.key_decisions[:3])
+            all_pending.extend(b.pending_items[:3])
+            all_rules.extend(b.rules_applied[:5])
+            if b.result_summary:
+                summaries.append(f"[{b.task_summary}] {b.result_summary}")
+            min_confidence = min(min_confidence, b.confidence)
+
+        return AgentBriefingOutput(
+            task_summary="; ".join(summaries[:3]),
+            key_decisions=all_decisions[:5],
+            pending_items=all_pending[:5],
+            rules_applied=list(set(all_rules))[:5],
+            result_summary=" | ".join(summaries[:3]),
+            confidence=min_confidence,
+        )
+
+    def preload_rules(self, task_description: str, user_id: str = "default") -> Dict[str, List[dict]]:
+        """
+        Pre-load rules from MemoryProvider for all active Workers.
+
+        Called before execute_plan() to pre-check rules at the orchestrator level,
+        avoiding repeated queries from individual Agents.
+
+        Args:
+            task_description: Task description for rule matching
+            user_id: User identifier for rule lookup
+
+        Returns:
+            Dict mapping role_id -> list of matched rules
+        """
+        if not self.memory_provider or not self.memory_provider.is_available():
+            return {}
+
+        role_rules: Dict[str, List[dict]] = {}
+        for wid, worker in self.workers.items():
+            try:
+                rules = self.memory_provider.get_rules(
+                    user_id=user_id,
+                    context={"task": task_description, "role": worker.role_id}
+                )
+                if rules:
+                    role_rules[worker.role_id] = rules if isinstance(rules, list) else []
+            except Exception:
+                continue
+
+        return role_rules
 
     def _get_worker_for_task(self, task: TaskDefinition) -> Optional[Worker]:
         for wid, w in self.workers.items():

@@ -4,7 +4,7 @@
 
 **DevSquad** is a **V3.5.0 Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
 
-**33 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContext, SkillRegistry, LLMBackend, ConfigManager.
+**34 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContext, SkillRegistry, LLMBackend, ConfigManager.
 
 **Test Coverage**: 258 unit tests, all passing.
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker.
@@ -85,6 +85,7 @@ DevSquad/
 │   │   ├── performance_monitor.py # P95/P99 + bottleneck detection
 │   │   ├── agent_briefing.py    # Context-aware briefing generation
 │   │   ├── confidence_score.py  # 5-factor confidence scoring
+│   │   ├── role_template_market.py # Role template marketplace
 │   │   ├── memory_bridge.py    # MemoryBridge + WorkBuddyClawSource
 │   │   ├── mce_adapter.py      # CarryMem integration adapter
 │   │   └── *_test.py           # Test files (258 unit tests)

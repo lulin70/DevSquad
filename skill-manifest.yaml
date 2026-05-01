@@ -200,7 +200,7 @@ metadata:
         - CodeMapGenerator, DualLayerContext, SkillRegistry, ConfigManager
         - Docker + GitHub Actions CI + pip installable
         - i18n support (zh/en/ja)
-        - 33 modules, 258 unit tests all passing
+        - 34 modules, 258 unit tests all passing
 
     - version: 3.0.0
       date: "2026-04-16"

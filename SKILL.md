@@ -21,7 +21,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
-## Architecture Overview (33 Core Modules)
+## Architecture Overview (34 Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -59,6 +59,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | 31 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99 response time, CPU/memory tracking, bottleneck detection, Markdown reports |
 | 32 | **AgentBriefing** | `agent_briefing.py` | Context-aware briefing generation with priority filtering + persistence |
 | 33 | **ConfidenceScorer** | `confidence_score.py` | 5-factor confidence scoring (completeness/certainty/specificity/consistency/model quality) |
+| 34 | **RoleTemplateMarket** | `role_template_market.py` | Role template marketplace (publish/search/install/rate/export/import) |
 
 ---
 
@@ -522,7 +523,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 ## Version History
 
-- **v3.5.0** (2026-04-27): Real LLM Backend (OpenAI/Anthropic/Mock) + ThreadPoolExecutor parallel + InputValidator + 16-pattern prompt injection + RoleMatcher/ReportFormatter extracted + AISemanticMatcher bilingual + CheckpointManager SHA256 + WorkflowEngine + TaskCompletionChecker + CodeMapGenerator + DualLayerContext + SkillRegistry + ConfigManager YAML + LLMBackend streaming + Docker + GitHub Actions CI + pip installable + i18n (zh/en/ja) + 33 modules + 258 unit tests
+- **v3.5.0** (2026-04-27): Real LLM Backend (OpenAI/Anthropic/Mock) + ThreadPoolExecutor parallel + InputValidator + 16-pattern prompt injection + RoleMatcher/ReportFormatter extracted + AISemanticMatcher bilingual + CheckpointManager SHA256 + WorkflowEngine + TaskCompletionChecker + CodeMapGenerator + DualLayerContext + SkillRegistry + ConfigManager YAML + LLMBackend streaming + Docker + GitHub Actions CI + pip installable + i18n (zh/en/ja) + 34 modules + 258 unit tests
 - **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(read-only bridge/INDEX search/daily logs/AI news feed) + Dispatcher AI News auto-inject + Annotation Standards (EN docs/docstring/inline) + Code comment audit (all EN) + MCE v0.4 support (tenant/permission) + Multi-language README (EN/CN/JP) + 33 new tests
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule
 - **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation

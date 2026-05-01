@@ -22,7 +22,7 @@ description: |
              → [コンセンサス決定] → [レポート整形] → [構造化レポート]
 ```
 
-## アーキテクチャ概要（33コアモジュール）
+## アーキテクチャ概要（34コアモジュール）
 
 | # | モジュール | ファイル | 責任 |
 |---|-----------|--------|------|
@@ -60,6 +60,7 @@ description: |
 | 31 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99応答時間/CPU/メモリ追跡/ボトルネック検出/Markdownレポート |
 | 32 | **AgentBriefing** | `agent_briefing.py` | コンテキスト認識ブリーフィング生成 + 優先度フィルタリング + 永続化 |
 | 33 | **ConfidenceScorer** | `confidence_score.py` | 5因子信頼度スコア(完全性/確実性/具体性/一貫性/モデル品質) |
+| 34 | **RoleTemplateMarket** | `role_template_market.py` | ロールテンプレートマーケット(公開/検索/インストール/評価/エクスポート/インポート) |
 
 ---
 

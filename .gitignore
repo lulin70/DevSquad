@@ -46,6 +46,7 @@ data/progress/agent_loop.json
 benchmarks/
 registry/
 workflows/
+data/role_templates/
 
 # --- Vibe Coding Runtime Data ---
 scripts/vibe_coding/modules/*.json
