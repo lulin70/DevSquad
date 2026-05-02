@@ -7,7 +7,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-370%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-560%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.4.0-2026--05--02-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
@@ -136,7 +136,7 @@ Exposes 6 tools: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
 
 **Auto-match**: If no roles specified, the dispatcher automatically matches based on task keywords.
 
-## Architecture Overview (44 Core Modules)
+## Architecture Overview (45 Core Modules)
 
 DevSquad is built on a layered architecture with clear separation of concerns:
 
@@ -148,6 +148,9 @@ DevSquad is built on a layered architecture with clear separation of concerns:
 │  ┌────────────┬──────────────┬────────────────┐ │
 │  │RoleMatcher │ReportFormatter│InputValidator  │ │  Extracted Components
 │  └────────────┴──────────────┴────────────────┘ │
+│  ┌────────────────────────────────────────────┐ │
+│  │ RuleCollector (NL Rule Intercept)          │ │  Rule Collection
+│  └────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────┤
 │                 Coordinator                      │  Task Planning
 │  ┌──────────┬───────────┬────────────────────┐  │
@@ -241,6 +244,33 @@ print(f"Confidence: {result.output['confidence_score']}")
 - Smart retry mechanism (low confidence)
 - Quality gates
 - Auto-flagging for review
+
+### Natural Language Rule Collection
+Automatically detect and store user rules from natural language input:
+
+```python
+# User says: "记住规则：写代码时必须加注释"
+# DevSquad automatically:
+# 1. Detects rule-storing intent
+# 2. Extracts: trigger="写代码时", action="必须加注释", type="always"
+# 3. Sanitizes content (removes dangerous patterns)
+# 4. Stores via CarryMem or local JSON fallback
+
+# List stored rules
+# User says: "列出规则" → Returns all stored rules
+
+# Delete a rule
+# User says: "删除规则 RULE-LOCAL-abc123"
+```
+
+**Pipeline**: User Input → IntentDetector → RuleExtractor → RuleSanitizer → RuleStorage (CarryMem + local JSON)
+
+**Features**:
+- 11 intent patterns (Chinese + English)
+- 4 rule types: always / avoid / prefer / forbid
+- Prompt injection protection in rule content
+- CarryMem primary + local JSON fallback storage
+- Automatic rule injection into Worker prompts
 
 See [Integration Guide](docs/guides/agent_briefing_confidence_integration.md) for detailed usage.
 
@@ -399,7 +429,7 @@ export OPENAI_API_KEY=sk-...
 ## Running Tests
 
 ```bash
-# Core tests (129 unit + 234 contract + 7 integration = 370 total)
+# Core tests (560+ tests all passing)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \

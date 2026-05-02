@@ -45,6 +45,7 @@ Example Usage:
         print("CarryMem unavailable, using default classification")
 """
 
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 import re as _re
@@ -376,6 +377,31 @@ class MCEAdapter:
             except Exception as e:
                 logger.warning("CarryMem format_rules_as_prompt failed: %s", e)
                 return self._format_rules_fallback(rules)
+
+    def add_rule(self, trigger: str, action: str, rule_type: str = "always",
+                 confidence: float = 0.8) -> Optional[Dict[str, Any]]:
+        """Add a rule to CarryMem or local storage.
+
+        Uses DevSquadAdapter.add_rule() when available (CarryMem v0.2.8+).
+        Falls back to local storage when CarryMem is unavailable.
+        """
+        if rule_type not in ("always", "avoid", "prefer", "forbid"):
+            rule_type = "always"
+
+        if self.is_available and self._carrymem:
+            with self._lock:
+                try:
+                    if hasattr(self._carrymem, 'add_rule'):
+                        return self._carrymem.add_rule(
+                            trigger=trigger, action=action,
+                            rule_type=rule_type, confidence=confidence,
+                        )
+                except Exception as e:
+                    logger.warning("CarryMem add_rule failed: %s", e)
+
+        logger.info("CarryMem add_rule unavailable, rule will be stored locally only")
+        return {"rule_id": f"RULE-LOCAL-{uuid.uuid4().hex[:6]}",
+                "storage": "local_fallback", "type": rule_type}
 
     def _keyword_fallback_match(self, task_description: str, user_id: str,
                                  role: Optional[str] = None,

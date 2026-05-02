@@ -259,7 +259,7 @@ python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python3 -m pytest scripts/collaboration/ tests/ test_v35_integration.py -v
-# Expected: 370 tests (129 unit + 234 contract + 7 integration) all passing
+# Expected: 560+ tests all passing
 ```
 
 ## Troubleshooting
@@ -308,7 +308,7 @@ DevSquad/
 ├── scripts/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
-│   └── collaboration/            # ★ 44 core modules
+│   └── collaboration/            # ★ 45 core modules
 │       ├── _version.py           # Version SSOT (3.4.0)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
@@ -337,7 +337,7 @@ DevSquad/
 │       ├── null_providers.py     # Graceful degradation providers
 │       ├── prompt_assembler.py   # Dynamic prompt assembly + QC injection
 │       ├── role_template_market.py # Role template marketplace
-│       └── *_test.py             # Test suites (370 tests)
+│       └── *_test.py             # Test suites (560+ tests)
 ├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
 ├── Dockerfile                    # Docker support
 ├── pyproject.toml                # pip-installable package
@@ -503,5 +503,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest scripts\collaboration\ tests\ test_v35_integration.py -q
-# Expected: 370 tests (129 unit + 234 contract + 7 integration) all passing
+# Expected: 560+ tests all passing
 ```

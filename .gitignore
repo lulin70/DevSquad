@@ -73,6 +73,9 @@ add_personal_rule.py
 add_rule_native.py
 rule_manager.py
 data/personal_rules*.json
+data/rules/
+modules/
+multimodal/
 
 # --- Legacy V2 Scripts (superseded by scripts/collaboration/) ---
 scripts/agent_loop_controller_v2.py

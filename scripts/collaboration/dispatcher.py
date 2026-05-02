@@ -468,6 +468,27 @@ class MultiAgentDispatcher:
             )
         task_description = task_result.sanitized_input or task_description
 
+        rule_collection = None
+        try:
+            from scripts.collaboration.rule_collector import RuleCollector
+            if not hasattr(self, '_rule_collector'):
+                self._rule_collector = RuleCollector()
+            rule_collection = self._rule_collector.process(task_description, lang)
+            if rule_collection.rule_detected and not rule_collection.remaining_task:
+                return DispatchResult(
+                    success=True,
+                    task_description=task_description,
+                    matched_roles=[],
+                    worker_results=[],
+                    summary=rule_collection.message,
+                    errors=[],
+                    lang=lang,
+                )
+            if rule_collection.rule_detected:
+                task_description = rule_collection.remaining_task
+        except Exception as e:
+            logger.debug("RuleCollector not available: %s", e)
+
         if roles:
             roles_result = validator.validate_roles(roles)
             if not roles_result.valid:

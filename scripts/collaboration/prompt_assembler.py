@@ -96,19 +96,28 @@ class PromptAssembler:
             "positive": ["write a", "create", "add", "fix bug",
                         "change a", "simple", "quick", "single function", "one line of code",
                         "small change", "complete", "format", "rename", "hello",
-                        "utility class", "minor bug", "sort function", "logging"],
+                        "utility class", "minor bug", "sort function", "logging",
+                        "写个", "快速", "简单", "小修改", "修复", "添加", "工具函数",
+                        "排序函数", "日志", "格式化", "重命名"],
             "negative": ["architecture", "system design", "distributed", "refactor", "migration",
                         "multi-module", "full-stack", "end-to-end", "complete solution",
-                        "high availability", "disaster recovery", "microservice architecture"],
+                        "high availability", "disaster recovery", "microservice architecture",
+                        "架构", "分布式", "重构", "迁移", "微服务", "高可用", "容灾",
+                        "全链路", "端到端", "完整方案"],
         },
         TaskComplexity.COMPLEX: {
             "positive": ["architecture", "design pattern", "microservice", "distributed",
                         "refactor", "migration", "security audit", "performance optimization",
                         "complete solution", "system design", "tech selection",
                         "end-to-end", "full pipeline", "high availability", "disaster recovery",
-                        "CI/CD", "pipeline", "comprehensive optimization"],
+                        "CI/CD", "pipeline", "comprehensive optimization",
+                        "架构", "设计模式", "微服务", "分布式", "重构", "迁移",
+                        "安全审计", "性能优化", "完整方案", "系统设计", "技术选型",
+                        "端到端", "流水线", "高可用", "容灾", "负载均衡",
+                        "服务发现", "全面优化", "全链路", "监控告警"],
             "negative": ["write a function", "simple modification", "minor adjustment", "add a test",
-                        "quick fix", "hello world"],
+                        "quick fix", "hello world",
+                        "写个函数", "简单修改", "小调整", "添加测试", "快速修复"],
         },
     }
 
@@ -547,17 +556,22 @@ class PromptAssembler:
             parts = [f"[{self.role_id}] Task: {task_description}"]
             if findings:
                 parts.append(f"Reference: {findings[0][:50]}")
+            user_rules = self._get_user_rules_injection(task_description)
+            if user_rules:
+                parts.append(f"Rules: {user_rules[:100]}")
             parts.append("Output key conclusion.")
             base = "\n".join(parts)
             return base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
 
         if style == "direct":
+            user_rules = self._get_user_rules_injection(task_description)
             base = (
                 f"=== Task ===\n"
                 f"Description: {task_description}\n"
                 f"Role: {role_display}...\n\n"
                 + (f"=== Related Findings ===\n" +
                    "\n".join(f"- {f}" for f in findings) + "\n\n" if findings else "") +
+                (f"=== User Rules ===\n{user_rules}\n\n" if user_rules else "") +
                 "Complete your work, output core conclusion."
             )
             return base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
@@ -596,10 +610,60 @@ class PromptAssembler:
         else:
             parts.append("Output your core findings (1-3 key conclusions).")
 
+        user_rules = self._get_user_rules_injection(task_description)
+        if user_rules:
+            parts.append("")
+            parts.append("=== User Rules (from natural language collection) ===")
+            parts.append(user_rules)
+
         if self.qc_enabled and self._qc_injection:
             parts.append(self._qc_injection)
 
         return "\n".join(parts)
+
+    def _get_user_rules_injection(self, task_description: str) -> str:
+        """Query user rules from RuleCollector storage and format as prompt text."""
+        try:
+            from scripts.collaboration.rule_collector import RuleStorage
+            if not hasattr(self, '_rule_storage'):
+                self._rule_storage = RuleStorage()
+            keywords = self._extract_keywords(task_description)
+            rules = self._rule_storage.query(
+                trigger_keywords=keywords, min_confidence=0.5
+            )
+            if not rules:
+                return ""
+            lines = []
+            for r in rules[:10]:
+                rtype = r.get("type", "always")
+                trigger = r.get("trigger", "")
+                action = r.get("action", "")
+                if rtype == "forbid":
+                    lines.append(f"FORBIDDEN: {trigger + ' -> ' if trigger else ''}{action}")
+                elif rtype == "avoid":
+                    lines.append(f"AVOID: {trigger + ' -> ' if trigger else ''}{action}")
+                elif rtype == "always":
+                    lines.append(f"ALWAYS: {trigger + ' -> ' if trigger else ''}{action}")
+                elif rtype == "prefer":
+                    lines.append(f"PREFER: {trigger + ' -> ' if trigger else ''}{action}")
+            return "\n".join(lines)
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _extract_keywords(text: str, max_keywords: int = 5) -> List[str]:
+        """Extract keywords from text, supporting both CJK and Latin scripts."""
+        keywords = []
+        for w in text.split():
+            if len(w) > 1:
+                keywords.append(w)
+        has_cjk = any('\u4e00' <= ch <= '\u9fff' for ch in text)
+        if has_cjk:
+            cjk_segments = re.findall(r'[\u4e00-\u9fff]{2,}', text)
+            for seg in cjk_segments:
+                for i in range(0, len(seg) - 1, 2):
+                    keywords.append(seg[i:i + 3])
+        return keywords[:max_keywords]
 
     def _get_role_anti_patterns(self) -> List[str]:
         """
