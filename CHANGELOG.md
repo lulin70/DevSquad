@@ -5,7 +5,7 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
-## [3.5.0] - 2026-04-27
+## [3.4.0] - 2026-04-27
 
 ### Added
 
@@ -99,7 +99,7 @@ versioning follows [Semantic Versioning](https://semver.org/).
   - `pip install -e ".[openai,anthropic,dev]"`
   - `devsquad` console script entry point
 
-- **_version.py**: Single source of truth for version (`3.5.0`)
+- **_version.py**: Single source of truth for version (`3.4.0`)
 
 ### Changed
 

@@ -507,5 +507,5 @@ The EnhancedWorker provides a zero-impact integration path, making it easy to ad
 ---
 
 **Last Updated**: 2026-05-01  
-**Version**: 3.5.0  
+**Version**: 3.4.0  
 **Author**: DevSquad Team

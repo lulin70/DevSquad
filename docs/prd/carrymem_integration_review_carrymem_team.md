@@ -1,7 +1,7 @@
 # CarryMem × DevSquad 集成需求评审报告
 
 **评审日期**: 2026-05-01
-**需求来源**: DevSquad V3.5.0 — `/docs/prd/carrymem_integration_requirements.md`
+**需求来源**: DevSquad V3.4.0 — `/docs/prd/carrymem_integration_requirements.md`
 **评审方式**: CarryMem 7角色共识评审（PM/架构师/安全专家/测试专家/开发者/DevOps/UI设计师）
 **结论**: ✅ 有条件接受 — 需求整体方向一致，但存在3个核心冲突需协商调整
 

@@ -1,6 +1,6 @@
 # DevSquad Usage Examples
 
-> Last verified: 2026-04-27 with DevSquad V3.5.0, backend=openai, model=moka/claude-sonnet-4-6
+> Last verified: 2026-04-27 with DevSquad V3.4.0, backend=openai, model=moka/claude-sonnet-4-6
 
 ## Quick Start
 
@@ -17,7 +17,7 @@ python3 scripts/cli.py dispatch -t "Design a user authentication system" --backe
 # Specify roles explicitly (use short IDs: arch/pm/test/coder/ui/infra/sec)
 python3 scripts/cli.py dispatch -t "Design a user authentication system" -r arch pm test --backend openai
 
-# Stream output in real-time (V3.5.0)
+# Stream output in real-time (V3.4.0)
 python3 scripts/cli.py dispatch -t "Design a user authentication system" -r arch --backend openai --stream
 
 # Dry-run (simulate without execution)
@@ -84,7 +84,7 @@ payments and personal data. Since I don't have access to your actual
 codebase, I'll provide an executable audit framework with...
 ```
 
-### Example 4: Streaming Output (V3.5.0 New)
+### Example 4: Streaming Output (V3.4.0 New)
 
 ```bash
 python3 scripts/cli.py dispatch \
@@ -172,7 +172,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles --format json
 
 # Show version
-python3 scripts/cli.py --version    # 3.5.0
+python3 scripts/cli.py --version    # 3.4.0
 ```
 
 ## Python API Examples

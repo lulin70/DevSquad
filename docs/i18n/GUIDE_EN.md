@@ -1,6 +1,6 @@
 # DevSquad User Guide
 
-> **Version**: V3.5.0 | **Updated**: 2026-05-02
+> **Version**: V3.4.0 | **Updated**: 2026-05-02
 >
 > This document is the complete feature manual for DevSquad, covering all user-facing functionality.
 
@@ -38,7 +38,7 @@ cd DevSquad
 pip install pyyaml                    # Core dependency
 pip install carrymem[devsquad]>=0.2.8  # Optional: rule injection
 
-python3 scripts/cli.py --version      # Verify: 3.5.0
+python3 scripts/cli.py --version      # Verify: 3.4.0
 python3 scripts/cli.py status         # Verify: ready
 ```
 
@@ -1077,4 +1077,4 @@ Security mechanisms: Two-layer defense (InputValidator + length limit ≤500 cha
 
 ---
 
-*DevSquad V3.5.0 — 2026-05-02*
+*DevSquad V3.4.0 — 2026-05-02*

@@ -1,6 +1,6 @@
 # DevSquad 使用指南
 
-> **版本**: V3.5.0 | **更新日期**: 2026-05-02
+> **版本**: V3.4.0 | **更新日期**: 2026-05-02
 >
 > 本文档是 DevSquad 的完整功能手册，覆盖所有用户可感知的功能。
 
@@ -38,7 +38,7 @@ cd DevSquad
 pip install pyyaml                    # 核心依赖
 pip install carrymem[devsquad]>=0.2.8  # 可选：规则注入
 
-python3 scripts/cli.py --version      # 验证: 3.5.0
+python3 scripts/cli.py --version      # 验证: 3.4.0
 python3 scripts/cli.py status         # 验证: ready
 ```
 
@@ -1077,4 +1077,4 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 
 ---
 
-*DevSquad V3.5.0 — 2026-05-02*
+*DevSquad V3.4.0 — 2026-05-02*

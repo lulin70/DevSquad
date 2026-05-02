@@ -258,7 +258,7 @@ carrymem_integration:
   # Relevance filtering
   relevance_threshold: 0.3           # Minimum relevance score to include a rule
 
-# ===== Enhanced Worker Configuration (V3.5.0 Features) =====
+# ===== Enhanced Worker Configuration (V3.4.0 Features) =====
 enhanced_worker:
   enabled: true
   

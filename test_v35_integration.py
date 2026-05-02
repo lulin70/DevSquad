@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DevSquad V3.5.0 Integration Verification Script
+DevSquad V3.4.0 Integration Verification Script
 
-Verifies that our QC injection system works seamlessly with new V3.5.0 features:
+Verifies that our QC injection system works seamlessly with new V3.4.0 features:
 1. Protocol interfaces (MemoryProvider, CacheProvider, etc.)
 2. AgentBriefing system
 3. ConfidenceScorer
@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def test_qc_compatibility():
-    """Test 1: Our QC system still works with V3.5.0"""
+    """Test 1: Our QC system still works with V3.4.0"""
     print("=" * 60)
     print("TEST 1: QC Injection System Compatibility")
     print("=" * 60)
@@ -56,7 +56,7 @@ def test_qc_compatibility():
 
 
 def test_protocol_interfaces():
-    """Test 2: V3.5.0 Protocol interfaces are available"""
+    """Test 2: V3.4.0 Protocol interfaces are available"""
     print("\\n" + "=" * 60)
     print("TEST 2: Protocol Interfaces Availability")
     print("=" * 60)
@@ -273,7 +273,7 @@ def test_mce_adapter():
 def test_integration_scenario():
     """Test 7: Full integration scenario"""
     print("\\n" + "=" * 60)
-    print("TEST 7: Full Integration Scenario (QC + V3.5.0)")
+    print("TEST 7: Full Integration Scenario (QC + V3.4.0)")
     print("=" * 60)
     
     try:
@@ -353,7 +353,7 @@ def test_integration_scenario():
 def main():
     """Run all verification tests"""
     print("\\n" + "=" * 60)
-    print("DevSquad V3.5.0 + QC Injection Integration Test Suite")
+    print("DevSquad V3.4.0 + QC Injection Integration Test Suite")
     print("=" * 60)
     print(f"Working directory: {os.getcwd()}")
     
@@ -385,7 +385,7 @@ def main():
     if passed == total:
         print("\\n" + "🎉" * 3)
         print("ALL TESTS PASSED!")
-        print("\\n✅ Your QC injection system is FULLY COMPATIBLE with DevSquad V3.5.0")
+        print("\\n✅ Your QC injection system is FULLY COMPATIBLE with DevSquad V3.4.0")
         print("✅ All new features (Protocols, Briefing, Confidence) work together")
         print("✅ Ready to use: QC rules + optional CarryMem integration")
         print("\\n" + "🎉" * 3)

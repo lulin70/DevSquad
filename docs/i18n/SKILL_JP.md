@@ -2,14 +2,14 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.5.0 マルチエージェントコラボレーションプラットフォーム — Coordinator/Worker/Scratchpad
+  V3.4.0 マルチエージェントコラボレーションプラットフォーム — Coordinator/Worker/Scratchpad
   パターンに基づく完全なマルチエージェントコラボレーションシステム。
   7コアロール（アーキテクト/PM/セキュリティ/テスター/コーダー/DevOps/UIデザイナー）、
   リアルLLMバックエンド（OpenAI/Anthropic）、CLI + MCP + Python API対応。
   370テスト（129ユニット+234契約+7統合）全合格。中日英3ヶ国語対応。
 ---
 
-# DevSquad V3.5.0 — マルチエージェントコラボレーションプラットフォーム
+# DevSquad V3.4.0 — マルチエージェントコラボレーションプラットフォーム
 
 ## コアポジショニング
 
@@ -227,7 +227,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 
 ## バージョン履歴
 
-- **v3.5.0** (2026-05-02): 11フェーズプロジェクトライフサイクル（full/backend/frontend/internal_tool/minimalテンプレート）+ 要件変更管理 + ゲートメカニズム+ギャップレポート + WorkflowEngineライフサイクル対応 + 370テスト合格
+- **v3.4.0** (2026-05-02): 11フェーズプロジェクトライフサイクル（full/backend/frontend/internal_tool/minimalテンプレート）+ 要件変更管理 + ゲートメカニズム+ギャップレポート + WorkflowEngineライフサイクル対応 + 370テスト合格
 - **v3.3** (2026-04-24): 7コアロール(security+devopsをコアに昇格) + RoleRegistry SSOT + TaskDefinition.role_prompt修正 + 環境変数のみAPI key入力 + InputValidator入力検証 + 3シナリオ検証完了
 - **v3.3** (2026-04-17): WorkBuddy Claw統合 + MCE v0.4サポート + アノテーションEN化 + 多言語README
 - **v3.2** (2026-04-17): MVP 3並行ライン (E2E Demo + Dispatcher UX + MCE Adapter)

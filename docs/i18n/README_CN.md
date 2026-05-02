@@ -8,7 +8,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-370%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-2026--05--02-orange" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.4.0-2026--05--02-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -86,7 +86,7 @@ python3 scripts/cli.py dispatch -t "设计认证系统" -r arch --backend openai
 # 其他命令
 python3 scripts/cli.py status          # 系统状态
 python3 scripts/cli.py roles           # 列出可用角色
-python3 scripts/cli.py --version       # 显示版本 (3.5.0)
+python3 scripts/cli.py --version       # 显示版本 (3.4.0)
 ```
 
 **2. Python API**
@@ -231,7 +231,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/ test_v35_integration.py -v
 
 # 快速冒烟测试
-python3 scripts/cli.py --version    # 3.5.0
+python3 scripts/cli.py --version    # 3.4.0
 python3 scripts/cli.py status       # 系统就绪
 python3 scripts/cli.py roles        # 列出 7 个角色
 ```
@@ -255,8 +255,8 @@ python3 scripts/cli.py roles        # 列出 7 个角色
 
 | 日期 | 版本 | 亮点 |
 |------|------|------|
-| 2026-05-02 | **V3.5.0** | 🆕 11阶段项目全生命周期（full/backend/frontend/internal_tool/minimal模板）、需求变更管理、门禁机制+差距报告、370测试通过 |
-| 2026-04-27 | V3.5.0 | 真实 LLM 后端、ThreadPoolExecutor 并行、输入验证+Prompt注入防护、检查点管理、工作流引擎、流式输出、Docker、CI、配置文件、CarryMem集成 |
+| 2026-05-02 | **V3.4.0** | 🆕 11阶段项目全生命周期（full/backend/frontend/internal_tool/minimal模板）、需求变更管理、门禁机制+差距报告、370测试通过 |
+| 2026-04-27 | V3.4.0 | 真实 LLM 后端、ThreadPoolExecutor 并行、输入验证+Prompt注入防护、检查点管理、工作流引擎、流式输出、Docker、CI、配置文件、CarryMem集成 |
 | 2026-04-17 | V3.2 | E2E Demo、MCE 适配器 |
 | 2026-04-16 | V3.0 | 完整重设计 — Coordinator/Worker/Scratchpad 架构 |
 

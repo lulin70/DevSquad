@@ -42,7 +42,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.5.0
+python3 scripts/cli.py --version   # 3.4.0
 ```
 
 ### LLM Backend Configuration (Optional — for real AI output)
@@ -309,7 +309,7 @@ DevSquad/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
 │   └── collaboration/            # ★ 44 core modules
-│       ├── _version.py           # Version SSOT (3.5.0)
+│       ├── _version.py           # Version SSOT (3.4.0)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard

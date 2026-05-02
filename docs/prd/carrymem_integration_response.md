@@ -3,7 +3,7 @@
 > **From**: CarryMem Team
 > **To**: DevSquad Team
 > **Date**: 2026-05-01
-> **Re**: CarryMem Integration Requirements (V3.5.0)
+> **Re**: CarryMem Integration Requirements (V3.4.0)
 > **Status**: 正式回复 — 逐项决策
 
 ---

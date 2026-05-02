@@ -1,6 +1,6 @@
 # DevSquad ユーザーガイド
 
-> **バージョン**: V3.5.0 | **更新日**: 2026-05-02
+> **バージョン**: V3.4.0 | **更新日**: 2026-05-02
 >
 > 本ドキュメントはDevSquadの完全な機能マニュアルであり、ユーザーが利用可能な全機能を網羅しています。
 
@@ -38,7 +38,7 @@ cd DevSquad
 pip install pyyaml                    # コア依存パッケージ
 pip install carrymem[devsquad]>=0.2.8  # オプション：ルール注入
 
-python3 scripts/cli.py --version      # 確認: 3.5.0
+python3 scripts/cli.py --version      # 確認: 3.4.0
 python3 scripts/cli.py status         # 確認: ready
 ```
 
@@ -1077,4 +1077,4 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 
 ---
 
-*DevSquad V3.5.0 — 2026-05-02*
+*DevSquad V3.4.0 — 2026-05-02*

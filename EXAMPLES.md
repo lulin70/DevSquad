@@ -1,6 +1,6 @@
 # DevSquad 使用示例
 
-> 最后验证: 2026-04-27, DevSquad V3.5.0, backend=openai, model=moka/claude-sonnet-4-6
+> 最后验证: 2026-04-27, DevSquad V3.4.0, backend=openai, model=moka/claude-sonnet-4-6
 
 ## 快速开始
 
@@ -80,7 +80,7 @@ payments and personal data. Since I don't have access to your actual
 codebase, I'll provide an executable audit framework with...
 ```
 
-### 示例 4：流式输出（V3.5.0 新增）
+### 示例 4：流式输出（V3.4.0 新增）
 
 ```bash
 python3 scripts/cli.py dispatch \
@@ -168,7 +168,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles --format json
 
 # 显示版本
-python3 scripts/cli.py --version    # 3.5.0
+python3 scripts/cli.py --version    # 3.4.0
 ```
 
 ## Python API 示例

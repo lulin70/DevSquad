@@ -3,7 +3,7 @@
 > **From**: DevSquad Team
 > **To**: CarryMem Team
 > **Date**: 2026-05-01
-> **Version**: V3.5.0
+> **Version**: V3.4.0
 > **Status**: Requirements for CarryMem-side implementation
 
 ---

@@ -8,7 +8,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-370%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-2026--05--02-orange" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.4.0-2026--05--02-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -88,7 +88,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch --backend openai
 # Other commands
 python3 scripts/cli.py status          # System status
 python3 scripts/cli.py roles           # List available roles
-python3 scripts/cli.py --version       # Show version (3.5.0)
+python3 scripts/cli.py --version       # Show version (3.4.0)
 ```
 
 **2. Python API**
@@ -165,7 +165,7 @@ DevSquad is built on a layered architecture with clear separation of concerns:
 └─────────────────────────────────────────────────┘
 ```
 
-## What's New in V3.5.0 🆕
+## What's New in V3.4.0 🆕
 
 ### AgentBriefing System
 Context-aware task briefing that helps agents understand project history and make informed decisions:
@@ -407,7 +407,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/ test_v35_integration.py -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.5.0
+python3 scripts/cli.py --version    # 3.4.0
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 ```
@@ -441,9 +441,9 @@ python3 scripts/cli.py roles        # List 7 roles
 
 | Date | Version | Highlights |
 |------|---------|-----------|
-| 2026-05-02 | **V3.5.0** | 🆕 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates), requirement change management, gate mechanism with gap reporting, 370 tests passing, WorkflowEngine lifecycle support |
-| 2026-05-01 | V3.5.0 | AgentBriefing (context-aware task briefing), ConfidenceScore (5-factor quality assessment), EnhancedWorker (auto quality assurance with retry + memory_provider rule injection), Protocol interface system (match_rules/format_rules_as_prompt), CarryMem v0.2.8+ integration, comprehensive documentation |
-| 2026-04-27 | V3.5.0 | Real LLM backend (OpenAI/Anthropic/Mock), ThreadPoolExecutor parallel execution, InputValidator + prompt injection protection, CheckpointManager, WorkflowEngine, TaskCompletionChecker, AISemanticMatcher, streaming output, Docker, GitHub Actions CI, config file, CodeMapGenerator, DualLayerContext, SkillRegistry, CarryMem integration, 234 unit tests |
+| 2026-05-02 | **V3.4.0** | 🆕 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates), requirement change management, gate mechanism with gap reporting, 370 tests passing, WorkflowEngine lifecycle support |
+| 2026-05-01 | V3.4.0 | AgentBriefing (context-aware task briefing), ConfidenceScore (5-factor quality assessment), EnhancedWorker (auto quality assurance with retry + memory_provider rule injection), Protocol interface system (match_rules/format_rules_as_prompt), CarryMem v0.2.8+ integration, comprehensive documentation |
+| 2026-04-27 | V3.4.0 | Real LLM backend (OpenAI/Anthropic/Mock), ThreadPoolExecutor parallel execution, InputValidator + prompt injection protection, CheckpointManager, WorkflowEngine, TaskCompletionChecker, AISemanticMatcher, streaming output, Docker, GitHub Actions CI, config file, CodeMapGenerator, DualLayerContext, SkillRegistry, CarryMem integration, 234 unit tests |
 | 2026-04-17 | V3.2 | E2E Demo, MCE Adapter, Dispatcher UX |
 | 2026-04-16 | V3.0 | Complete redesign — Coordinator/Worker/Scratchpad architecture |
 

@@ -8,7 +8,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-370%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-2026--05--02-orange" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.4.0-2026--05--02-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -161,8 +161,8 @@ python3 -m pytest scripts/collaboration/core_test.py \
 
 | 日付 | バージョン | ハイライト |
 |------|-----------|-----------|
-| 2026-05-02 | **V3.5.0** | 🆕 11フェーズプロジェクトライフサイクル（full/backend/frontend/internal_tool/minimalテンプレート）、要件変更管理、ゲートメカニズム+ギャップレポート、370テスト合格 |
-| 2026-04-27 | V3.5.0 | リアルLLMバックエンド、並列実行、セキュリティ強化、チェックポイント、ワークフロー、ストリーミング、Docker、CI、CarryMem統合 |
+| 2026-05-02 | **V3.4.0** | 🆕 11フェーズプロジェクトライフサイクル（full/backend/frontend/internal_tool/minimalテンプレート）、要件変更管理、ゲートメカニズム+ギャップレポート、370テスト合格 |
+| 2026-04-27 | V3.4.0 | リアルLLMバックエンド、並列実行、セキュリティ強化、チェックポイント、ワークフロー、ストリーミング、Docker、CI、CarryMem統合 |
 
 ## ライセンス
 

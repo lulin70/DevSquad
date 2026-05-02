@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devsquad"
-version = "3.5.0"
+version = "3.4.0"
 description = "Multi-Role AI Task Orchestrator — one task in, multi-role AI collaboration, one conclusion out"
 readme = "README.md"
 license = {text = "MIT"}

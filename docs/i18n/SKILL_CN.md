@@ -2,13 +2,13 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.5.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
+  V3.4.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
   7个核心角色（架构师/产品经理/安全专家/测试专家/开发者/DevOps/UI设计师），
   支持真实LLM后端（OpenAI/Anthropic），CLI + MCP + Python API。
   370个测试（129单元+234契约+7集成）全通过。支持中英日三语。
 ---
 
-# DevSquad V3.5.0 — 多智能体协作平台
+# DevSquad V3.4.0 — 多智能体协作平台
 
 ## 核心定位
 
@@ -352,7 +352,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 status = disp.get_status()
 # 返回：
 # {
-#   "version": "3.5.0",
+#   "version": "3.4.0",
 #   "components": {...},       # 各组件启用状态
 #   "dispatch_count": N,        # 已执行调度次数
 #   "scratchpad_stats": {...},  # 黑板统计
@@ -560,7 +560,7 @@ def test_<功能>_<场景>(self):
 
 ## Version History
 
-- **v3.5.0** (2026-05-02): 11阶段项目全生命周期（full/backend/frontend/internal_tool/minimal模板）+ 需求变更管理 + 门禁机制+差距报告 + WorkflowEngine生命周期支持 + 370测试通过
+- **v3.4.0** (2026-05-02): 11阶段项目全生命周期（full/backend/frontend/internal_tool/minimal模板）+ 需求变更管理 + 门禁机制+差距报告 + WorkflowEngine生命周期支持 + 370测试通过
 - **v3.3** (2026-04-24): 7核心角色(security+devops提升为核心) + RoleRegistry SSOT + TaskDefinition.role_prompt修复 + 环境变量唯一API key入口 + InputValidator输入验证 + 3个真实场景验证通过
 - **v3.3** (2026-04-17): WorkBuddy Claw集成 + MCE v0.4支持 + 注释EN化 + 多语言README
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule (walkthrough→annotate→docs→Git loop)
