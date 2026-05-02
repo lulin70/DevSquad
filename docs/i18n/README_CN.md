@@ -151,6 +151,34 @@ python3 scripts/mcp_server.py --port 8080  # SSE 模式
 - **任务完成检查器**：DispatchResult/ScheduleResult 完成度跟踪
 - **共识引擎**：加权投票 + 否决权 + 人工升级
 
+### 自然语言规则收集
+
+自动从用户自然语言输入中检测并存储规则，无需手动编辑配置文件：
+
+```python
+# 用户说："记住规则：写代码时必须加注释"
+# DevSquad 自动：
+# 1. 检测规则存储意图
+# 2. 提取：trigger="写代码时", action="必须加注释", type="always"
+# 3. 安全清洗（移除危险模式 + prompt注入防护）
+# 4. 存储（CarryMem优先 + 本地JSON备）
+
+# 查看规则
+# 用户说："列出规则" → 返回所有已存储规则
+
+# 删除规则
+# 用户说："删除规则 RULE-LOCAL-abc123"
+```
+
+**管线**：用户输入 → IntentDetector → RuleExtractor → RuleSanitizer → RuleStorage (CarryMem + 本地JSON)
+
+**特性**：
+- 11种意图模式（中英文）
+- 4种规则类型：always / avoid / prefer / forbid
+- 规则内容prompt注入防护（14种模式）
+- CarryMem优先 + 本地JSON备存储
+- 规则自动注入到Worker提示词
+
 ### 项目全生命周期（11阶段模型）
 
 DevSquad V3.4.0 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的角色、依赖和门禁条件：
