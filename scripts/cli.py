@@ -272,22 +272,123 @@ def cmd_lifecycle(args):
 
     task = task_result.sanitized_input or task_text
 
+    # Check for visual mode
+    use_visual = getattr(args, 'visual', False)
+    use_verbose = getattr(args, 'verbose', False)
+
     # Show view layer mapping information (Plan C: CLI as View Layer)
     try:
         from scripts.collaboration.lifecycle_protocol import VIEW_MAPPINGS, get_shared_protocol
         mapping = VIEW_MAPPINGS.get(command)
 
-        print(f"\n{'='*60}")
-        print(f"🔄 DevSquad Lifecycle [View Layer Mode]")
-        print(f"{'='*60}")
-        print(f"📌 Command: {command.upper()}")
-        if mapping:
-            print(f"📋 Maps to Phases: {', '.join(mapping.phases)}")
-            print(f"🎯 Mode: SHORTCUT (simplified view of 11-phase lifecycle)")
-        print(f"📝 Description: {preset['description']}")
-        print(f"👥 Roles: {', '.join(preset['required_roles'])}")
-        print(f"🚧 Gate: {preset['gate']}")
-        print(f"\n{preset['pre_dispatch_message']}\n")
+        if use_visual:
+            # Use enhanced visual output
+            import sys as _sys
+            import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), 'cli'))
+            
+            try:
+                from cli_visual import VisualFormatter, get_visual_formatter, Colors, Icons
+                
+                vf = get_visual_formatter(use_color=True)
+                
+                vf.print_lifecycle_header(command, mapping, preset)
+                
+                # Show resolved phases with details
+                protocol = get_shared_protocol()
+                if mapping:
+                    phases = protocol.resolve_command_to_phases(command)
+                    if phases:
+                        vf.print_phase_list(phases)
+                        
+                        # Show progress overview
+                        completed_count = len([p for p in phases if p.phase_id in (protocol._completed_phases or [])])
+                        vf.print_progress_overview(
+                            completed_count,
+                            len(phases),
+                            f"Command '{command}' Coverage"
+                        )
+                
+                # Show gate status
+                gate_name = preset.get('gate', 'Unknown')
+                vf.print_gate_status(None, gate_name)
+                
+                # Verbose mode: show additional info
+                if use_verbose:
+                    status = protocol.get_status()
+                    vf.print_status_summary(status)
+                    
+                    # Show all available phases info
+                    all_phases = protocol.get_all_phases()
+                    vf.print_info_box(
+                        "All Available Phases",
+                        [f"{p.phase_id}: {p.name} ({p.role_id})" for p in all_phases[:8]],
+                        icon="📋",
+                        color=Colors.BLUE,
+                    )
+                
+                # Print action prompt
+                vf.print_info_box(
+                    "Ready to Execute",
+                    [
+                        f"Task: {task[:60]}{'...' if len(task) > 60 else ''}",
+                        f"Command: {command.upper()}",
+                        f"Next step: Run dispatch or view examples",
+                    ],
+                    icon=Icons.ROCKET,
+                    color=Colors.GREEN,
+                )
+                
+                vf.print_footer()
+                
+            except ImportError as ve:
+                print(f"\n⚠️  Visual module not available: {ve}")
+                print("Falling back to standard output...\n")
+                use_visual = False  # Fall back to standard output
+        
+        elif use_verbose:
+            # Verbose text output (no colors but detailed)
+            print(f"\n{'='*60}")
+            print(f"🔄 DevSquad Lifecycle [Verbose Mode]")
+            print(f"{'='*60}")
+            print(f"📌 Command: {command.upper()}")
+            if mapping:
+                print(f"📋 Maps to Phases: {', '.join(mapping.phases)}")
+                print(f"🎯 Mode: SHORTCUT (simplified view of 11-phase lifecycle)")
+                
+                # Show phase details
+                protocol = get_shared_protocol()
+                phases = protocol.resolve_command_to_phases(command)
+                if phases:
+                    print(f"\n📝 Phase Details:")
+                    for p in phases:
+                        print(f"   • {p.phase_id}: {p.name}")
+                        print(f"     Role: {p.role_id}")
+                        if p.dependencies:
+                            print(f"     Dependencies: {', '.join(p.dependencies)}")
+            
+            print(f"\n📝 Description: {preset['description']}")
+            print(f"👥 Roles: {', '.join(preset['required_roles'])}")
+            print(f"⚙️  Mode: {preset['mode']}")
+            print(f"🚧 Gate: {preset['gate']}")
+            print(f"\n{preset['pre_dispatch_message']}\n")
+            print(f"{'='*60}\n")
+        
+        else:
+            # Original simple output (backward compatible)
+            print(f"\n{'='*60}")
+            print(f"🔄 DevSquad Lifecycle [View Layer Mode]")
+            print(f"{'='*60}")
+            print(f"📌 Command: {command.upper()}")
+            if mapping:
+                print(f"📋 Maps to Phases: {', '.join(mapping.phases)}")
+                print(f"🎯 Mode: SHORTCUT (simplified view of 11-phase lifecycle)")
+            print(f"📝 Description: {preset['description']}")
+            print(f"👥 Roles: {', '.join(preset['required_roles'])}")
+            print(f"🚧 Gate: {preset['gate']}")
+            print(f"\n{preset['pre_dispatch_message']}\n")
+            print(f"💡 Tip: Use --visual for enhanced output, --verbose for details\n")
+
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"🔄 DevSquad Lifecycle: {command.upper()}")
@@ -295,10 +396,6 @@ def cmd_lifecycle(args):
         print(f"📌 Description: {preset['description']}")
         print(f"👥 Roles: {', '.join(preset['required_roles'])}")
         print(f"(View mapping info unavailable: {e})\n")
-    print(f"⚙️  Mode: {preset['mode']}")
-    print(f"🚧 Gate: {preset['gate']}")
-    print(f"\n{preset['pre_dispatch_message']}\n")
-    print(f"{'='*60}\n")
 
     kwargs = {
         "persist_dir": args.persist_dir,
@@ -432,6 +529,10 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_lifecycle.add_argument("--skip-permission", action="store_true", help="Skip permission checks")
     p_lifecycle.add_argument("--no-memory", action="store_true", help="Disable memory bridge")
     p_lifecycle.add_argument("--no-skillify", action="store_true", help="Disable skill learning")
+    p_lifecycle.add_argument("--visual", "-v", action="store_true",
+                              help="Enable enhanced visual output (colored progress, icons, formatted tables)")
+    p_lifecycle.add_argument("--verbose", action="store_true",
+                              help="Show detailed phase information and gate status")
 
     for cmd_name in LIFECYCLE_COMMANDS:
         cmd_help = LIFECYCLE_PRESETS[cmd_name]["description"]

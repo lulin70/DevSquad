@@ -7,10 +7,18 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-700%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-755%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.5.0--C-2026--05--03-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Plan_C_Layered-blueviolet" />
+</p>
+
+<p align="center">
+  <img alt="Dashboard" src="https://img.shields.io/badge/Dashboard-Streamlit-red?logo=streamlit" />
+  <img alt="Tutorial" src="https://img.shields.io/badge/Tutorial-Jupyter-orange?logo=jupyter" />
+  <img alt="Visualization" src="https://img.shields.io/badge/Visualization-CLI%2BWeb-green" />
+  <img alt="Lifecycle" src="https://img.shields.io/badge/Lifecycle-11_Phases-blue" />
+  <img alt="Gates" src="https://img.shields.io/badge/Gates-Unified_Engine-yellow" />
 </p>
 
 ---
@@ -37,9 +45,57 @@ CLI View Layer (6 commands)          Core Engine (11 phases)
 **Key Components:**
 - ✅ **LifecycleProtocol** - Abstract interface for unified lifecycle management
 - ✅ **UnifiedGateEngine** - Integrates VerificationGate + Phase transition gates
-- ✅ **ShortcutLifecycleAdapter** - Maps CLI commands to 11-phase segments
+- ✅ **FullLifecycleAdapter** - Complete 11-phase lifecycle with dependency resolution
 - ✅ **Enhanced CheckpointManager** - Auto save/restore lifecycle state across sessions
-- ✅ **27 new tests** - All passing (Plan C architecture validation)
+- ✅ **CLI Visualization Module** - Rich terminal output with progress bars and status icons
+- ✅ **Streamlit Dashboard** - Interactive web dashboard for real-time monitoring
+- ✅ **Jupyter Notebook Tutorial** - Interactive step-by-step learning guide
+- ✅ **Benchmark Report Generator** - HTML/JSON performance and quality reports
+- ✅ **755+ tests** - All passing (Plan C architecture validation)
+
+### 🎨 New in V3.5.0-C: Visualization & Monitoring
+
+#### Interactive Dashboard (Streamlit)
+```bash
+# Launch web dashboard
+streamlit run scripts/dashboard.py
+```
+Features:
+- 📊 Real-time lifecycle phase status monitoring
+- 🔗 CLI command mapping visualization
+- 🚧 Gate status tracking
+- 📈 Performance metrics display
+- 🎮 Interactive control panel
+
+#### CLI Enhanced Output
+```bash
+# Use visual mode for rich terminal output
+python scripts/cli.py lifecycle build --visual --verbose
+```
+Features:
+- 🎨 Colored progress bars and phase status icons
+- 📋 Formatted tables with alignment
+- ⏱️ Percentage completion indicators
+- 🔒 Gate status visualization
+
+#### Jupyter Notebook Tutorial
+```bash
+# Open interactive tutorial
+jupyter notebook examples/tutorial.ipynb
+```
+Covers:
+- Core concepts and architecture
+- CLI command to 11-phase mapping
+- Gate checking mechanism
+- Performance benchmarking
+- Real-world usage scenarios
+
+#### Benchmark Reports
+```bash
+# Generate performance report
+python scripts/generate_benchmark_report.py --format html --open
+```
+Output: `reports/benchmark_YYYYMMDD_HHMMSS.html`
 
 ---
 
