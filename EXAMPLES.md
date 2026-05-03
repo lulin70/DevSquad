@@ -1,8 +1,12 @@
 # DevSquad 使用示例
 
-> 最后验证: 2026-04-27, DevSquad V3.4.0, backend=openai, model=moka/claude-sonnet-4-6
+> 最后验证: 2026-05-03, DevSquad V3.6.0-Prod, backend=openai, model=gpt-4
+>
+> **Production Ready**: Authentication ✅ | REST API ✅ | Alert System ✅ | Historical Data ✅
 
-## 快速开始
+## 快速开始 (3种方式)
+
+### 方式1: CLI命令行 (传统方式)
 
 ```bash
 # Mock 模式（默认）— 无需 API Key
@@ -11,7 +15,7 @@ python3 scripts/cli.py dispatch -t "设计用户认证系统"
 # 真实 AI 输出 — 先设置环境变量
 export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="https://api.moka-ai.com/v1"
-export OPENAI_MODEL="moka/claude-sonnet-4-6"
+export OPENAI_MODEL="gpt-4"
 python3 scripts/cli.py dispatch -t "设计用户认证系统" --backend openai
 
 # 指定角色（短 ID: arch/pm/test/coder/ui/infra/sec）
@@ -24,7 +28,63 @@ python3 scripts/cli.py dispatch -t "设计用户认证系统" -r arch --backend 
 python3 scripts/cli.py dispatch -t "设计用户认证系统" --dry-run
 ```
 
-## 真实输出示例
+### 方式2: Web仪表板 (V3.6.0 NEW) 🎨
+
+```bash
+# 启动Streamlit Dashboard (带认证)
+streamlit run scripts/dashboard.py
+
+# 打开 http://localhost:8501
+# 登录:
+#   用户名: admin      密码: admin123    (管理员 - 全部权限)
+#   用户名: operator   密码: operator123 (操作者 - 执行权限)
+#   用户名: viewer     密码: viewer123   (查看者 - 只读权限)
+```
+
+**Dashboard功能**:
+- 📊 实时生命周期阶段监控
+- 🔗 CLI命令到11阶段映射可视化
+- 🚧 Gate状态追踪与显示
+- 📈 性能指标展示（响应时间、成功率等）
+- 👥 多用户登录与会话管理
+
+### 方式3: REST API (V3.6.0 NEW) 🌐
+
+```bash
+# 安装API依赖
+pip install -e ".[api]"
+
+# 启动FastAPI服务器
+uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
+
+# 访问Swagger文档: http://localhost:8000/docs
+```
+
+**API使用示例**:
+
+```bash
+# 获取所有生命周期阶段
+curl http://localhost:8000/api/v1/lifecycle/phases | jq '.[] | {phase_id, name, status}'
+
+# 获取当前状态
+curl http://localhost:8000/api/v1/lifecycle/status | jq
+
+# 执行阶段操作
+curl -X POST http://localhost:8000/api/v1/lifecycle/actions \
+  -H "Content-Type: application/json" \
+  -d '{"phase_id": "P8", "action": "advance"}'
+
+# 获取实时指标
+curl http://localhost:8000/api/v1/metrics/current | jq
+
+# 检查所有Gate状态
+curl http://localhost:8000/api/v1/gates/status | jq '{total, passing, failing}'
+
+# 健康检查
+curl http://localhost:8000/api/v1/health | jq '{status, version, uptime_seconds}'
+```
+
+---
 
 ### 示例 1：架构设计（单角色）
 

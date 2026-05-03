@@ -2,15 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.5.0-C DevSquad — Multi-Role AI Task Orchestrator with Plan C Layered Architecture.
+  V3.6.0-Prod DevSquad — Production-Ready Multi-Role AI Task Orchestrator.
   One task in, multi-role AI collaboration, one conclusion out.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
-  (OpenAI/Anthropic), CLI + MCP + Python API. 700+ tests all passing.
+  (OpenAI/Anthropic), CLI + REST API + Dashboard + MCP + Python API.
+  777+ tests all passing (99.34%).
+  NEW in V3.6.0: Authentication (RBAC), FastAPI REST Server, Alert System,
+  Historical Data Storage (SQLite), Streamlit Dashboard with login.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW: Unified lifecycle architecture (Plan C) with CLI view layer over 11-phase model.
 ---
 
-# DevSquad V3.5.0-C — Multi-Role AI Task Orchestrator (Plan C Layered Architecture)
+# DevSquad V3.6.0-Prod — Multi-Role AI Task Orchestrator (Production Ready)
 
 ## Core Positioning
 
@@ -84,10 +86,18 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | 55 | **UnifiedGateEngine** | `unified_gate_engine.py` | Unified gate engine integrating VerificationGate + LifecycleProtocol gates with pluggable checkers |
 | 56 | **CheckpointManager (Enhanced)** | `checkpoint_manager.py` | Extended with lifecycle state persistence: save/restore/list/delete lifecycle states across sessions |
 | 57 | **ShortcutLifecycleAdapter** | `lifecycle_protocol.py` (class) | Plan C adapter implementing LifecycleProtocol using CLI 6-command shortcuts with auto state persistence |
+| 58 | **AuthManager** | `auth.py` | Authentication & Authorization: Multi-user RBAC, SHA-256 password hashing, Streamlit login UI, OAuth2 support |
+| 59 | **APIServer** | `api_server.py` | FastAPI REST API server: OpenAPI/Swagger docs, CORS middleware, request timing, 10+ endpoints |
+| 60 | **APIDataModels** | `api/models.py` | Pydantic validation models: LifecyclePhase, GateResult, MetricsSnapshot, PhaseActionRequest/Result |
+| 61 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API endpoints: phases list/detail, status, actions execution, command mappings |
+| 62 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API endpoints: current/historical metrics, gate status/check, health check |
+| 63 | **AlertManager** | `alert_manager.py` | Multi-channel alerting: Console/Slack/Email/Webhook, rate limiting, deduplication, severity levels |
+| 64 | **HistoryManager** | `history_manager.py` | SQLite time-series storage: metrics snapshots, alert history, API logs, lifecycle events |
+| 65 | **StreamlitDashboard** | `dashboard.py` | Interactive web dashboard with authentication, real-time monitoring, phase visualization |
 
 ---
 
-## Architecture Overview (57 Core Modules)
+## Architecture Overview (65 Core Modules)
 
 ## Quick Start (Must Follow)
 
@@ -132,6 +142,59 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend op
 - User requests like "Design XX", "Implement XX", "Analyze XX"
 - Need quick multi-role collaboration results
 - No need for fine-grained role control
+
+### Method 3: Interactive Web Dashboard (V3.6.0 NEW)
+
+```bash
+# Start Streamlit dashboard with authentication
+streamlit run scripts/dashboard.py
+
+# Open http://localhost:8501
+# Login with: admin / admin123
+```
+
+**Features**:
+- Real-time lifecycle phase monitoring
+- CLI command mapping visualization
+- Gate status tracking
+- Performance metrics display
+- Role-based access control (Admin/Operator/Viewer)
+
+**When to use Method 3**:
+- Visual monitoring and management needed
+- Team collaboration with multiple users
+- Non-technical stakeholders need access
+
+### Method 4: REST API Server (V3.6.0 NEW)
+
+```bash
+# Install API dependencies
+pip install -e ".[api]"
+
+# Start FastAPI server
+uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
+
+# Access Swagger UI: http://localhost:8000/docs
+```
+
+**Key Endpoints**:
+```bash
+# Lifecycle management
+curl http://localhost:8000/api/v1/lifecycle/phases | jq
+curl http://localhost:8000/api/v1/lifecycle/status | jq
+
+# Metrics & monitoring
+curl http://localhost:8000/api/v1/metrics/current | jq
+curl http://localhost:8000/api/v1/gates/status | jq
+
+# Health check
+curl http://localhost:8000/api/v1/health | jq
+```
+
+**When to use Method 4**:
+- Integration with external systems (CI/CD, monitoring)
+- Programmatic access to DevSquad capabilities
+- Building custom UIs on top of DevSquad
 
 ### Method 2: Specify Roles
 

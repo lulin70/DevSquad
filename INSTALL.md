@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide
+# DevSquad — Installation Guide (V3.6.0-Prod)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -19,7 +19,7 @@
 
 See [**Windows Support**](#windows-support) below for Windows-specific instructions.
 
-## Quick Start (4 Methods)
+## Quick Start (6 Methods)
 
 ### Method 1: CLI — Recommended for most users
 
@@ -47,8 +47,65 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.4.0
+python3 scripts/cli.py --version   # 3.6.0-Prod
 ```
+
+### Method 5: Web Dashboard (V3.6.0 NEW) 🎨
+
+```bash
+# Install visualization dependencies
+pip install -e ".[visualization]"
+
+# Start Streamlit dashboard with authentication
+streamlit run scripts/dashboard.py
+
+# Open http://localhost:8501
+# Login credentials (development):
+#   Username: admin      Password: admin123
+#   Username: operator   Password: operator123
+#   Username: viewer     Password: viewer123
+```
+
+**Dashboard Features**:
+- Real-time lifecycle phase monitoring
+- CLI command to 11-phase mapping visualization
+- Gate status tracking and alerts
+- Performance metrics display
+- Multi-user login with role-based access control
+- Interactive control panel for phase execution
+
+> **Production Deployment**: See [Production Configuration](#production-configuration) below.
+
+### Method 6: REST API Server (V3.6.0 NEW) 🌐
+
+```bash
+# Install API server dependencies
+pip install -e ".[api]"
+
+# Start FastAPI server
+uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
+
+# Access interactive documentation:
+#   Swagger UI: http://localhost:8000/docs
+#   ReDoc:      http://localhost:8000/redoc
+```
+
+**Quick API Test**:
+```bash
+# Health check
+curl http://localhost:8000/api/v1/health | jq
+
+# List all lifecycle phases
+curl http://localhost:8000/api/v1/lifecycle/phases | jq '.[] | {phase_id, name, status}'
+
+# Get current metrics
+curl http://localhost:8000/api/v1/metrics/current | jq '{completion_rate, avg_response_time_ms}'
+
+# Check all gate statuses
+curl http://localhost:8000/api/v1/gates/status | jq '{total, passing, failing}'
+```
+
+> **Production Deployment**: Configure nginx reverse proxy + SSL. See samples in `config/samples/`.
 
 ### LLM Backend Configuration (Optional — for real AI output)
 
@@ -94,8 +151,20 @@ pip install psutil
 # For CarryMem cross-session memory + rule injection (optional)
 pip install carrymem[devsquad]>=0.2.8
 
-# Or install all optional dependencies
-pip install -e ".[openai,anthropic,carrymem,monitoring,dev]"
+# V3.6.0 NEW: API Server (FastAPI + Uvicorn + Pydantic)
+pip install -e ".[api]"
+
+# V3.6.0 NEW: Visualization (Streamlit + Jupyter)
+pip install -e ".[visualization]"
+
+# V3.6.0 NEW: Alert System (Slack SDK)
+pip install -e ".[alerts]"
+
+# Development & Testing (pytest, black, flake8, mypy)
+pip install -e ".[dev]"
+
+# Or install ALL optional dependencies (recommended for production)
+pip install -e ".[all]"
 ```
 
 ### Method 2: Docker
@@ -262,9 +331,16 @@ python3 scripts/cli.py roles
 python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 # Expected: [DRY RUN] message
 
-# 4. Core tests
-python3 -m pytest scripts/collaboration/ tests/ test_v35_integration.py -v
-# Expected: 560+ tests all passing
+# 4. Core tests (V3.6.0-Prod)
+python3 -m pytest tests/test_production_features.py tests/test_full_lifecycle_adapter.py -v
+# Expected: 777+ tests all passing (99.34%)
+
+# 5. API Server test (if installed)
+curl http://localhost:8000/api/v1/health | jq '.status'
+# Expected: "healthy"
+
+# 6. Dashboard test (if running)
+# Open http://localhost:8501 in browser
 ```
 
 ## Troubleshooting

@@ -1,6 +1,8 @@
 # DevSquad 使用例
 
-> 最終検証: 2026-04-27, DevSquad V3.4.0, backend=openai, model=moka/claude-sonnet-4-6
+> 最終検証: 2026-05-03, DevSquad V3.6.0-Prod, backend=openai, model=gpt-4
+>
+> **生産レディ**: 認証 ✅ | REST API ✅ | アラート ✅ | 履歴データ ✅
 
 ## クイックスタート
 

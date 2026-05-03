@@ -1,0 +1,76 @@
+# Systemd Service File for DevSquad API Server
+# =================================================
+#
+# Description:
+#   Systemd unit file for running DevSquad FastAPI REST API server as a background service.
+#
+# Installation:
+#   sudo cp devsquad-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable devsquad-api
+#   sudo systemctl start devsquad-api
+#
+# Management Commands:
+#   sudo systemctl status devsquad-api     # Check status
+#   sudo systemctl restart devsquad-api    # Restart service
+#   sudo systemctl stop devsquad-api       # Stop service
+#   journalctl -u devsquad-api -f          # View logs (follow)
+#   journalctl -u devsquad-api --since "1 hour ago"  # Recent logs
+#
+# Configuration:
+#   - Edit User/Group to run service as non-root user
+#   - Edit WorkingDirectory to your DevSquad installation path
+#   - Edit EnvironmentFile path if using custom env file
+#   - Edit ExecStart options (host, port, workers, etc.)
+#
+
+[Unit]
+Description=DevSquad REST API Server (FastAPI)
+Documentation=https://github.com/your-org/DevSquad/docs/USAGE_GUIDE.md
+After=network.target
+
+[Service]
+Type=simple
+User=devsquad
+Group=devsquad
+
+# DevSquad installation directory
+WorkingDirectory=/opt/devsquad
+
+# Virtual environment path (if using venv)
+# Environment="PATH=/opt/devsquad/venv/bin"
+
+# Environment variables file (optional)
+EnvironmentFile=/opt/devsquad/.env.production
+
+# Start command with Uvicorn
+ExecStart=/usr/bin/python3 -m uvicorn scripts.api_server:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 4 \
+    --log-level info \
+    --access-log /var/log/devsquad/api-access.log \
+    --error-log /var/log/devsquad/api-error.log
+
+# Restart configuration
+Restart=always
+RestartSec=5
+
+# Resource limits
+LimitNOFILE=65535
+MemoryMax=2G
+CPUQuota=200%
+
+# Security settings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=devsquad-api
+
+[Install]
+WantedBy=multi-user.target

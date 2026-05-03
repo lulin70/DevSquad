@@ -7,8 +7,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-560%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0-2026--05--02-orange" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-777%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0--Prod-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 

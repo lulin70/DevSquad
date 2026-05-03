@@ -2,17 +2,31 @@
 
 <p align="center">
   <strong>一个任务 → 多角色 AI 协作 → 一个结论</strong>
+  <br>
+  <em>生产就绪 | V3.6.0-Prod</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-560%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0-2026--05--02-orange" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-777%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0--Prod-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
+<p align="center">
+  <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Plan_C_Layered-blueviolet" />
+  <img alt="API" src="https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi" />
+  <img alt="Dashboard" src="https://img.shields.io/badge/Dashboard-Streamlit-red?logo=streamlit" />
+  <img alt="Auth" src="https://img.shields.io/badge/Auth-RBAC-green" />
+  <img alt="Alerts" src="https://img.shields.io/badge/Alerts-Multi_Channel-orange" />
+</p>
+
 ---
+
+## 🚀 V3.6.0-Prod: 生产就绪版本
+
+**DevSquad 现已达到生产级别！** 完整的认证、REST API、告警通知和历史数据存储功能。
 
 ## DevSquad 是什么？
 

@@ -2,13 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.4.0 多智能体协作平台 — 基于 Coordinator/Worker/Scratchpad 模式的完整多Agent协作系统。
-  7个核心角色（架构师/产品经理/安全专家/测试专家/开发者/DevOps/UI设计师），
-  支持真实LLM后端（OpenAI/Anthropic），CLI + MCP + Python API。
-  560+测试全通过。支持中英日三语。
+  V3.6.0-Prod DevSquad — 生产就绪多角色 AI 任务编排器。
+  一个任务输入，多角色 AI 协作，一个结论输出。
+  7个核心角色（架构师/产品经理/安全专家/测试员/开发人员/运维/UI设计师），
+  真实 LLM 后端（OpenAI/Anthropic），CLI + REST API + Dashboard + MCP + Python API。
+  777+ 测试全部通过 (99.34%)。
+  V3.6.0 新增: 认证系统(RBAC)、FastAPI REST服务器、告警通知、
+  历史数据存储(SQLite)、带登录功能的Streamlit仪表板。
+  ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
 ---
 
-# DevSquad V3.4.0 — 多智能体协作平台
+# DevSquad V3.6.0-Prod — 多角色 AI 任务编排器（生产就绪）
 
 ## 核心定位
 

@@ -2,19 +2,47 @@
 
 ## Project Overview
 
-**DevSquad** is a **V3.4.0 Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
+**DevSquad** is a **V3.6.0-Prod Production-Ready Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
 
-**45 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContext, SkillRegistry, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, RoleTemplateMarket, UsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample.
+**65 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContext, SkillRegistry, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, RoleTemplateMarket, UsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **AlertManager**, **HistoryManager**, **StreamlitDashboard**.
 
-**Test Coverage**: 560+ tests all passing.
-**Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker.
+**Test Coverage**: 777+ tests all passing (99.34%).
+**Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 
-## Architecture
+## Architecture (V3.6.0-Prod Three-Layer)
 
 ```
-User Task → [InputValidator] → [RuleCollector] → [RoleMatcher] → [Coordinator Orchestration]
-           → [ThreadPoolExecutor Parallel Workers] → [Scratchpad Real-time Sharing]
-           → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
+┌─────────────────────────────────────────────────────────────┐
+│                    User Access Layer                         │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
+│  │ Streamlit    │ │ FastAPI REST │ │ CLI/Notebook │        │
+│  │ Dashboard    │ │ API Server   │ │ (Existing)   │        │
+│  │ (Auth+HTTPS) │ │ (Swagger)    │ │              │        │
+│  └──────┬───────┘ └──────┬───────┘ └──────────────┘        │
+└─────────┼───────────────┼───────────────────────────────────┘
+          │               │
+          ▼               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Business Logic Layer                      │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │AuthManager  │ │AlertManager │ │HistoryMgr   │           │
+│  │(RBAC Auth)  │ │(Multi-Chnl) │ │(SQLite TSDB)│           │
+│  └─────────────┘ └─────────────┘ └─────────────┘           │
+│  ┌─────────────────────────────────────────────┐            │
+│  │     Core Engine (45+ modules)                │            │
+│  │     Dispatcher → Coordinator → Workers       │            │
+│  │     → Consensus → Report                    │            │
+│  └─────────────────────────────────────────────┘            │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Data Persistence Layer                    │
+│  ┌────────────┐ ┌────────────┐ ┌────────────────────────┐  │
+│  │ SQLite DB  │ │ YAML Config│ │ Checkpoint Files       │  │
+│  │ (History)  │ │ (Deploy)   │ │ (Lifecycle State)      │  │
+│  └────────────┘ └────────────┘ └────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Entry Points

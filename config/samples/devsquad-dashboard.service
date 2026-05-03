@@ -1,0 +1,76 @@
+# Systemd Service File for DevSquad Streamlit Dashboard
+# ============================================================
+#
+# Description:
+#   Systemd unit file for running DevSquad Streamlit Dashboard as a background service.
+#
+# Installation:
+#   sudo cp devsquad-dashboard.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable devsquad-dashboard
+#   sudo systemctl start devsquad-dashboard
+#
+# Management Commands:
+#   sudo systemctl status devsquad-dashboard     # Check status
+#   sudo systemctl restart devsquad-dashboard    # Restart service
+#   sudo systemctl stop devsquad-dashboard       # Stop service
+#   journalctl -u devsquad-dashboard -f          # View logs (follow)
+#
+# Configuration:
+#   - Edit User/Group to run service as non-root user
+#   - Edit WorkingDirectory to your DevSquad installation path
+#   - Edit EnvironmentFile path if using custom env file
+#   - Edit ExecStart options (port, server.headless, etc.)
+#
+
+[Unit]
+Description=DevSquad Dashboard (Streamlit)
+Documentation=https://github.com/your-org/DevSquad/docs/USAGE_GUIDE.md
+After=network.target
+
+[Service]
+Type=simple
+User=devsquad
+Group=devsquad
+
+# DevSquad installation directory
+WorkingDirectory=/opt/devsquad
+
+# Virtual environment path (if using venv)
+# Environment="PATH=/opt/devsquad/venv/bin"
+
+# Environment variables file (optional)
+EnvironmentFile=/opt/devsquad/.env.production
+
+# Start command with Streamlit
+ExecStart=/usr/bin/streamlit run scripts/dashboard.py \
+    --server.port 8501 \
+    --server.address 0.0.0.0 \
+    --server.headless true \
+    --browser.gatherUsageStats false \
+    --logger.level info \
+    --server.enableCORS false \
+    --server.enableXsrfProtection true
+
+# Restart configuration
+Restart=always
+RestartSec=5
+
+# Resource limits
+LimitNOFILE=65535
+MemoryMax=1G
+CPUQuota=100%
+
+# Security settings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=devsquad-dashboard
+
+[Install]
+WantedBy=multi-user.target

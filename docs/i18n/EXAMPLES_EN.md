@@ -1,6 +1,8 @@
 # DevSquad Usage Examples
 
-> Last verified: 2026-04-27 with DevSquad V3.4.0, backend=openai, model=moka/claude-sonnet-4-6
+> Last verified: 2026-05-03 with DevSquad V3.6.0-Prod, backend=openai, model=gpt-4
+>
+> **Production Ready**: Authentication ✅ | REST API ✅ | Alert System ✅ | Historical Data ✅
 
 ## Quick Start
 
