@@ -70,6 +70,10 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | 42 | **LLMRetryAsync** | `llm_retry_async.py` | Async LLM retry with backoff |
 | 43 | **IntegrationExample** | `integration_example.py` | DevSquad integration example code |
 | 44 | **AsyncIntegrationExample** | `async_integration_example.py` | Async DevSquad integration example |
+| 45 | **AntiRationalizationEngine** | `anti_rationalization.py` | Per-role excuse→rebuttal tables (8 universal + 6-7 role-specific) injected via PromptAssembler to prevent quality shortcuts |
+| 46 | **VerificationGate** | `verification_gate.py` | Mandatory evidence requirements + 7 Red Flags detection + Prove-It Pattern for completion claims |
+| 47 | **IntentWorkflowMapper** | `intent_workflow_mapper.py` | User intent → workflow chain mapping (6 intents × 3 languages) with gate requirements and anti-skip messages |
+| 48 | **CLI Lifecycle Commands** | `cli.py` | 6 lifecycle shortcuts (spec/plan/build/test/review/ship) with preset roles/modes/gates inspired by Agent Skills |
 
 ---
 
@@ -507,6 +511,52 @@ Change Request(pm/user) → Impact Analysis(arch+sec+test) → Change Review(all
 
 ---
 
+## Meta Iron Rule: Documentation First, Trace Everything (⚠️ Supreme Law)
+
+> **文档先行，万事留痕** — This is the supreme iron rule that governs all other rules.
+> **Violating this rule is a critical error that invalidates all work done.**
+
+### Core Principle
+
+```
+Before any code is written → Plan/Spec document must exist
+Before any change is made → Impact analysis must be documented
+After any work is done → Results must be recorded in docs
+After any decision is made → Rationale must be traceable
+```
+
+### Mandatory Requirements
+
+| Phase | Requirement | Verification |
+|-------|-------------|--------------|
+| **Pre-work** | No code without a spec/plan document | `docs/spec/` or `docs/prd/` has corresponding doc |
+| **During work** | All decisions logged with rationale | Commit messages, ADRs, or inline comments explain WHY |
+| **Post-work** | All affected docs updated synchronously | Version/module count/test count consistent across all docs |
+| **Always** | No orphaned code without documentation origin traceable | Every file's purpose documented in at least one doc |
+
+### What "Documentation First" Means
+
+1. **Spec before implementation**: If there's no SPEC or PRD, write one first. Even a one-paragraph spec beats no spec.
+2. **Design before coding**: Architecture decisions recorded before code written.
+3. **Test plan before tests**: What to test and why, before writing test code.
+4. **Change log before merge**: What changed and why, before pushing.
+
+### What "Trace Everything" Means
+
+1. **Every decision has a why**: Code comments, commit messages, ADRs — pick at least one.
+2. **Every file has an owner/purpose**: Why does this file exist? Document it.
+3. **Every change has a trail**: Git history + doc updates = full audit trail.
+4. **No stealth changes**: Nothing committed without a corresponding doc update.
+
+### Enforcement
+
+- CI check: `docs/` directory must have updated files matching code changes
+- Review gate: PR reviewer checks doc sync status
+- Consensus: Coordinator verifies documentation completeness before approval
+- Retroactively: Work done without prior docs must be backfilled immediately
+
+---
+
 ## Delivery Workflow Iron Rules (⚠️ Must Execute After Every Push)
 
 > This section defines the standard closed-loop workflow: Implement→Test→Walkthrough→Annotate→Docs→Git.
@@ -582,12 +632,17 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | MCEAdapter (CarryMem integration+type mapping+graceful degrade) | 30 | ✅ PASS |
 | Contract Tests (Protocols+NullProviders+Cache+Monitor+Security) | 234 | ✅ PASS |
 | V3.5 Integration (Lifecycle+ChangeRequest+Templates) | 7 | ✅ PASS |
-**Total** | **560+** | **✅ ALL PASS** |
+| **P0-1 AntiRationalizationEngine** | **39** | **✅ PASS** |
+| **P0-2 VerificationGate** | **42** | **✅ PASS** |
+| **P0-3 IntentWorkflowMapper** | **58** | **✅ PASS** |
+| **P0-4 CLI Lifecycle Commands** | **28** | **✅ PASS** |
+**Total** | **537+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v3.4.1** (2026-05-03): Agent Skills Quality Framework (P0) - AntiRationalizationEngine(39 tests) + VerificationGate(42 tests) + IntentWorkflowMapper(58 tests) + CLI Lifecycle Commands(28 tests) + 167 new tests + Google Agent Skills integration + 49 core modules
 - **v3.4.0** (2026-05-02): 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates) + requirement change management + gate mechanism with gap reporting + WorkflowEngine lifecycle support + Natural Language Rule Collection (RuleCollector) + 560+ tests passing
 - **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(read-only bridge/INDEX search/daily logs/AI news feed) + Dispatcher AI News auto-inject + Annotation Standards (EN docs/docstring/inline) + Code comment audit (all EN) + MCE v0.4 support (tenant/permission) + Multi-language README (EN/CN/JP) + 33 new tests
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule

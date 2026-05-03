@@ -58,12 +58,16 @@ git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
 
 # Option A: Run directly (no install needed)
+# Zero dependencies, ready to use, config file features degraded
 python3 scripts/cli.py dispatch -t "Design user authentication system"
 
-# Option B: pip install
+# Option B: pip install (Recommended)
+# Full functionality, including config file support (pyyaml auto-installed)
 pip install -e .
 devsquad dispatch -t "Design user authentication system"
 ```
+
+> **Which option?** Option A is for quick trials — no dependencies needed, but `~/.devsquad.yaml` config files won't be loaded. Option B installs DevSquad as a package with all features enabled, including YAML config, `devsquad` CLI command, and optional integrations (CarryMem, OpenAI, Anthropic).
 
 ### 3 Ways to Use
 
@@ -429,17 +433,28 @@ export OPENAI_API_KEY=sk-...
 ## Running Tests
 
 ```bash
-# Core tests (560+ tests all passing)
+# Core tests (537+ tests all passing)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \
   scripts/collaboration/mce_adapter_test.py \
-  tests/ test_v35_integration.py -v
+  tests/ test_v35_integration.py \
+  tests/test_anti_rationalization.py \
+  tests/test_verification_gate.py \
+  tests/test_intent_workflow_mapper.py \
+  tests/test_cli_lifecycle.py -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.4.0
+python3 scripts/cli.py --version    # 3.4.1
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
+
+# Lifecycle commands (NEW in v3.4.1)
+python3 scripts/cli.py spec -t "User authentication system"
+python3 scripts/cli.py build -t "Implement login API"
+python3 scripts/cli.py test -t "Run all unit tests"
+python3 scripts/cli.py review -t "Check PR #123"
+python3 scripts/cli.py ship -t "Deploy to production"
 ```
 
 ## Documentation
@@ -471,6 +486,7 @@ python3 scripts/cli.py roles        # List 7 roles
 
 | Date | Version | Highlights |
 |------|---------|-----------|
+| 2026-05-03 | **V3.4.1** | 🚀 Agent Skills Quality Framework (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI Lifecycle Commands (spec/plan/build/test/review/ship) + 167 new tests + Google Agent Skills integration + 49 core modules |
 | 2026-05-02 | **V3.4.0** | 🆕 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates), requirement change management, gate mechanism with gap reporting, 560+ tests passing, WorkflowEngine lifecycle support |
 | 2026-05-01 | V3.4.0 | AgentBriefing (context-aware task briefing), ConfidenceScore (5-factor quality assessment), EnhancedWorker (auto quality assurance with retry + memory_provider rule injection), Protocol interface system (match_rules/format_rules_as_prompt), CarryMem v0.2.8+ integration, comprehensive documentation |
 | 2026-04-27 | V3.4.0 | Real LLM backend (OpenAI/Anthropic/Mock), ThreadPoolExecutor parallel execution, InputValidator + prompt injection protection, CheckpointManager, WorkflowEngine, TaskCompletionChecker, AISemanticMatcher, streaming output, Docker, GitHub Actions CI, config file, CodeMapGenerator, DualLayerContext, SkillRegistry, CarryMem integration, 234 unit tests |

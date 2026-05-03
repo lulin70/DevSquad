@@ -35,12 +35,18 @@
 ```bash
 git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
-pip install pyyaml                    # コア依存パッケージ
-pip install carrymem[devsquad]>=0.2.8  # オプション：ルール注入
 
-python3 scripts/cli.py --version      # 確認: 3.4.0
-python3 scripts/cli.py status         # 確認: ready
+# 方法 A: 直接実行（インストール不要）
+# 依存関係なし、即時使用可能、設定ファイル機能は制限されます
+python3 scripts/cli.py dispatch -t "ユーザー認証システムを設計する"
+
+# 方法 B: pip インストール（推奨）
+# 全機能、設定ファイルサポートあり（pyyaml自動インストール）
+pip install -e .
+devsquad dispatch -t "ユーザー認証システムを設計する"
 ```
+
+> **どちらを選ぶ？** 方法 A はお試し向け — 依存関係なしですぐ使えますが、`~/.devsquad.yaml` 設定ファイルは読み込まれません。方法 B は全機能を有効にするパッケージインストールで、YAML設定、`devsquad` CLIコマンド、オプション連携（CarryMem、OpenAI、Anthropic）が利用可能です。
 
 ### 1.2 初回ディスパッチ
 
@@ -1012,7 +1018,155 @@ docker run -e OPENAI_API_KEY=sk-... devsquad dispatch -t "Design auth system"
 
 ---
 
-## 15. よくある質問
+## 15. エージェントスキル品質フレームワーク（v3.4.1新機能）
+
+> **利用シーン**: Google Agent Skillsレベルの品質管理をマルチAIチームに適用したい場合。テストスキップ、「見た感じ大丈夫」という証拠なしの完了受け入れ、タスクタイプに合わないワークフローの選択といった一般的なAIのショートカットを防止します。
+
+### 15.1 反合理化エンジン
+
+> **利用シーン**: ワーカーが「これは簡単」「後でテストする」「AI生成コードは多分大丈夫」というもっともらしい言い訳で品質ステップをスキップしようとする場合。このエンジンは各ワーカーのプロンプトに反論を注入します。
+
+```python
+from scripts.collaboration.anti_rationalization import get_shared_engine
+
+engine = get_shared_engine()
+
+# 特定ロール向けの反合理化コンテンツを取得
+content = engine.format_for_prompt("solo-coder")
+# 言い訳→現実のペアのマークダウンテーブルを返す
+
+# 利用可能なロール一覧
+roles = engine.list_all_roles()
+# ['architect', 'solo-coder', 'tester', 'security', ...]
+```
+
+**主な機能:**
+- 8つのユニバーサル・アンチパターン（全ロールに適用）
+- ロールごとに6-7つの固有パターン（例：コーダーは「AIコードはより厳密なレビューが必要」）
+- QC有効時にPromptAssembler経由で自動注入
+- シングルトンパターン＋キャッシュ
+
+**ブロックされる一般的な言い訳:**
+
+| 言い訳（ブロック対象） | 現実（強制事項） |
+|----------------------|------------------|
+| 「これは小さな変更だ」 | 小さな変更が積み重なる。今品質をスキップすれば、後で技術的負債を返済することになる |
+| 「後でテストを書く」 | 書かない。事後テストは実装をテストするもので、振る舞いをテストするものではない |
+| 「簡単すぎてテスト不要」 | 簡単なコードは複雑になる。テストは期待される動作を文書化する |
+| 「AI生成コードは多分大丈夫」 | AIコードはより厳密なレビューが必要で、緩やかなレビューではない |
+
+### 15.2 検証ゲート
+
+> **利用シーン**: 作業を「完了」として受け入れる前に強制的な証拠が必要な場合。「見た感じ大丈夫」では不十分であることを防ぎます。
+
+```python
+from scripts.collaboration.verification_gate import get_shared_gate
+
+gate = get_shared_gate()
+
+# ワーカー結果からコンテキストを構築
+ctx = gate.build_context_from_worker_result(worker_result)
+# ctx.has_code_changes → True/False
+# ctx.has_test_changes → True/False
+# ctx.is_bug_fix → True/False
+
+# ゲートに対してチェック
+result = gate.check(ctx)
+# result.passed → True/False
+# result.verdict → "APPROVE" / "CONDITIONAL" / "REJECT"
+# result.red_flags → [トリガーされたレッドフラグのリスト]
+# result.missing_evidence → [欠落している証拠項目のリスト]
+```
+
+**検出されるレッドフラグ（7種類）:**
+
+| レッドフラグ | 重要度 | 検出ロジック |
+|------------|--------|-------------|
+| 新規動作のテストなし | 致命的 | コード変更にテスト変更がない |
+| バグ修正の回帰テストなし | 致命的 | 失敗する再現テストがないバグ修正 |
+| セキュリティ変更のレビューなし | 致命的 | セキュリティ関連コードにセキュリティレビューがない |
+| 大規模な変更セット | 警告 | 変更量が閾値を超える |
+| ビルド検証なし | 必須 | ビルドステータスが提供されていない |
+| 差分サマリーなし | 必須 | 変更範囲が文書化されていない |
+| 低信頼度スコア | 警告 | 信頼度が閾値未満 |
+
+**必須証拠（3項目）:**
+
+| 証拠 | 対象ロール | 形式 |
+|------|----------|------|
+| `test_results` | 全ロール | `pytest: 142 passed, 0 failed` |
+| `build_status` | アーキテクト、コーダー | `Build succeeded in 1.2s` |
+| `diff_summary` | 全ロール | `Modified: dispatcher.py (+23/-5)` |
+
+### 15.3 イントント→ワークフローマッパー
+
+> **利用シーン**: ユーザーが「バグ修正」と言ったとき、システムが自動的にデバッグワークフローをトリガーし、汎用的なコーディングを行わないようにする場合。自然言語のインテントを構造化されたワークフローチェーンにマッピングします。
+
+```python
+from scripts.collaboration.intent_workflow_mapper import get_shared_mapper
+
+mapper = get_shared_mapper()
+
+# タスク説明からインテントを検出
+match = mapper.detect_intent("Fix login page crash", lang="en")
+if match:
+    print(f"Intent: {match.intent_type}")           # "bug_fix"
+    print(f"Confidence: {match.confidence:.2f}")     # 0.85
+    print(f"Workflow: {match.workflow_chain}")        # ["debugging_and_error_recovery", "test_driven_development"]
+    print(f"Roles: {match.required_roles}")           # ["solo-coder", "tester"]
+    print(f"Gate: {match.gate}")                      # "prove_it_pattern"
+    print(f"Message: {match.anti_skip_message}")      # "Do NOT implement fix first..."
+```
+
+**サポートされるインテント（6種類 × 3言語）:**
+
+| イントント | トリガーキーワード（EN） | ワークフローチェーン | 必須ロール | ゲート |
+|-----------|----------------------|-------------------|-----------|-------|
+| `bug_fix` | fix, bug, error, crash, fail | デバッグ + TDD | コーダー、テスター | prove_it_pattern |
+| `new_feature` | implement, develop, add, create, feature | 仕様 + 計画 + 実装 + TDD | アーキテクト、コーダー、テスター、PM | spec_first |
+| `security_review` | security, vulnerability, audit, OWASP | セキュリティ + レビュー | アーキテクト、セキュリティ | owasp_checklist |
+| `code_review` | review, refactor, optimize, simplify | レビュー + 品質 | コーダー、セキュリティ、テスター、アーキテクト | change_size_limit |
+| `performance_optimization` | performance, slow, optimize, bottleneck | 最適化 + レビュー | アーキテクト、DevOps | measure_first |
+| `deployment` | deploy, release, ship, launch, CI/CD | CI/CD + リリース | DevOps、セキュリティ、アーキテクト | pre_launch_checklist |
+
+### 15.4 CLI ライフサイクルコマンド
+
+> **利用シーン**: 標準的なライフサイクルワークフローへのワンコマンドアクセスが必要な場合。認知的負荷を軽減し、一貫したプロセス遵守を確保します。
+
+```bash
+# 要件定義・仕様化
+devsquad spec -t "User authentication system"
+
+# 仕様を原子タスクに分解
+devsquad plan -t "Implement OAuth2 login flow"
+
+# TDD規律での実装
+devsquad build -t "Add password reset feature"
+
+# 証拠要件付きテスト実行
+devsquad test -t "Run all unit and integration tests"
+
+# 5軸コードレビュー
+devsquad review -t "Review PR #123 for merge"
+
+# 事前起動チェックリスト + デプロイ準備
+devsquad ship -t "Deploy v2.0 to production"
+```
+
+**コマンド参照表:**
+
+| コマンド | ロール | モード | ゲート | 説明 |
+|---------|--------|-------|--------|------|
+| `spec` | アーキテクト + PM | 順次 | spec_first | コード前にPRDを生成 |
+| `plan` | アーキテクト + PM | 自動 | task_breakdown_complete | 検証可能なタスクに分解 |
+| `build` | アーキテクト + コーダー + テスター | 並列 | incremental_verification | ~100行スライスのTDD |
+| `test` | テスター + コーダー | 合意形成 | evidence_required | 必須テスト/ビルド/差分証拠 |
+| `review` | コーダー + セキュリティ + テスター + アーキテクト | 合意形成 | change_size_limit | 多次元コードレビュー |
+| `ship` | DevOps + セキュリティ + アーキテクト | 順次 | pre_launch_checklist | 6次元事前起動チェック |
+
+---
+
+## 16. よくある質問
 
 **Q: API Keyなしで使用できますか？**
 はい。MockモードはAPI Keyなしで動作し、ロールテンプレートに基づく構造化出力を生成します。

@@ -86,13 +86,40 @@ class TaskCompletionChecker:
 
         details = []
         for wr in worker_results:
-            details.append({
+            wr_detail = {
                 'role': wr.get('role_id', wr.get('role', 'unknown')),
                 'role_name': wr.get('role_name', wr.get('role', 'unknown')),
                 'success': wr.get('success', False),
                 'error': wr.get('error'),
                 'output_preview': (str(wr.get('output', ''))[:100] if wr.get('output') else None),
-            })
+            }
+
+            # P0-2: Apply VerificationGate (P0-2)
+            try:
+                from scripts.collaboration.verification_gate import get_shared_gate
+                if not hasattr(self, '_vgate'):
+                    self._vgate = get_shared_gate()
+                ctx = self._vgate.build_context_from_worker_result(wr)
+                gate_result = self._vgate.check(ctx)
+                if not gate_result.passed:
+                    wr_detail['verification'] = {
+                        'passed': False,
+                        'verdict': gate_result.verdict,
+                        'red_flags': [rf.description for rf in gate_result.red_flags],
+                        'missing_evidence': [e.description for e in gate_result.missing_evidence],
+                    }
+                    # Track blocked workers for consensus awareness
+                    if not hasattr(self, '_blocked_workers'):
+                        self._blocked_workers = set()
+                    self._blocked_workers.add(
+                        wr.get('role_id', wr.get('role', 'unknown'))
+                    )
+                else:
+                    wr_detail['verification'] = {'passed': True, 'verdict': 'APPROVE'}
+            except Exception as ve:
+                logger.debug("VerificationGate error: %s", ve)
+
+            details.append(wr_detail)
 
         summary_parts = []
         if is_completed:

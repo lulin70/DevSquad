@@ -35,12 +35,18 @@
 ```bash
 git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
-pip install pyyaml                    # Core dependency
-pip install carrymem[devsquad]>=0.2.8  # Optional: rule injection
 
-python3 scripts/cli.py --version      # Verify: 3.4.0
-python3 scripts/cli.py status         # Verify: ready
+# Option A: Run directly (no install needed)
+# Zero dependencies, ready to use, config file features degraded
+python3 scripts/cli.py dispatch -t "Design user authentication system"
+
+# Option B: pip install (Recommended)
+# Full functionality, including config file support (pyyaml auto-installed)
+pip install -e .
+devsquad dispatch -t "Design user authentication system"
 ```
+
+> **Which option?** Option A is for quick trials — no dependencies needed, but `~/.devsquad.yaml` config files won't be loaded. Option B installs DevSquad as a package with all features enabled, including YAML config, `devsquad` CLI command, and optional integrations (CarryMem, OpenAI, Anthropic).
 
 ### 1.2 First Dispatch
 
@@ -1012,7 +1018,156 @@ docker run -e OPENAI_API_KEY=sk-... devsquad dispatch -t "Design auth system"
 
 ---
 
-## 15. FAQ
+## 15. Agent Skills Quality Framework (NEW in v3.4.1)
+
+> **When to use**: When you want Google Agent Skills-level quality control for your multi-AI team, preventing common AI shortcuts like skipping tests, accepting "looks fine" without evidence, or missing the right workflow for the task type.
+
+### 15.1 Anti-Rationalization Engine
+
+> **When to use**: When Workers try to skip quality steps with plausible excuses ("this is simple", "I'll test later", "AI code is probably fine"). This engine injects counter-arguments into every Worker's prompt.
+
+```python
+from scripts.collaboration.anti_rationalization import get_shared_engine
+
+engine = get_shared_engine()
+
+# Get anti-rationalization content for a specific role
+content = engine.format_for_prompt("solo-coder")
+# Returns markdown table with excuse → rebuttal pairs
+# Example: "This is a small change" → "Small changes compound..."
+
+# Available roles
+roles = engine.list_all_roles()
+# ['architect', 'solo-coder', 'tester', 'security', ...]
+```
+
+**Key Features:**
+- 8 universal anti-patterns (applicable to all roles)
+- 6-7 role-specific patterns per role (e.g., coder gets "AI code needs MORE scrutiny")
+- Auto-injected via PromptAssembler when QC enabled
+- Singleton pattern with caching
+
+**Common Excuses Blocked:**
+
+| Excuse (Blocked) | Reality (Enforced) |
+|------------------|-------------------|
+| "This is a small change" | Small changes compound. Skip quality now, pay debt later |
+| "I'll write tests after" | You won't. Post-hoc tests test implementation, not behavior |
+| "Too simple to test" | Simple code gets complicated. Tests document expected behavior |
+| "AI-generated code is probably fine" | AI code needs MORE scrutiny, not less |
+
+### 15.2 Verification Gate
+
+> **When to use**: When you need mandatory evidence before accepting work as "done". Prevents "seems right" from being sufficient.
+
+```python
+from scripts.collaboration.verification_gate import get_shared_gate
+
+gate = get_shared_gate()
+
+# Build context from worker result
+ctx = gate.build_context_from_worker_result(worker_result)
+# ctx.has_code_changes → True/False
+# ctx.has_test_changes → True/False
+# ctx.is_bug_fix → True/False
+
+# Check against gate
+result = gate.check(ctx)
+# result.passed → True/False
+# result.verdict → "APPROVE" / "CONDITIONAL" / "REJECT"
+# result.red_flags → [list of triggered red flags]
+# result.missing_evidence → [list of missing evidence items]
+```
+
+**Red Flags Detected (7 total):**
+
+| Red Flag | Severity | Detection Logic |
+|----------|----------|-----------------|
+| No test for new behavior | Critical | Code changes without test changes |
+| No regression test for bugfix | Critical | Bug fix without failing repro test |
+| Security changes without review | Critical | Security-related code without security review |
+| Large changeset | Warning | Changes exceed threshold |
+| No build verification | Required | Build status not provided |
+| No diff summary | Required | Change scope not documented |
+| Low confidence score | Warning | Confidence below threshold |
+
+**Mandatory Evidence (3 items):**
+
+| Evidence | Required For | Format |
+|----------|-------------|--------|
+| `test_results` | All roles | `pytest: 142 passed, 0 failed` |
+| `build_status` | Architect, Coder | `Build succeeded in 1.2s` |
+| `diff_summary` | All roles | `Modified: dispatcher.py (+23/-5)` |
+
+### 15.3 Intent→Workflow Mapper
+
+> **When to use**: When user says "fix bug" but system should automatically trigger debugging workflow, not generic coding. Maps natural language intent to structured workflow chains.
+
+```python
+from scripts.collaboration.intent_workflow_mapper import get_shared_mapper
+
+mapper = get_shared_mapper()
+
+# Detect intent from task description
+match = mapper.detect_intent("Fix login page crash", lang="en")
+if match:
+    print(f"Intent: {match.intent_type}")           # "bug_fix"
+    print(f"Confidence: {match.confidence:.2f}")     # 0.85
+    print(f"Workflow: {match.workflow_chain}")        # ["debugging_and_error_recovery", "test_driven_development"]
+    print(f"Roles: {match.required_roles}")           # ["solo-coder", "tester"]
+    print(f"Gate: {match.gate}")                      # "prove_it_pattern"
+    print(f"Message: {match.anti_skip_message}")      # "Do NOT implement fix first..."
+```
+
+**Supported Intents (6 types × 3 languages):**
+
+| Intent | Trigger Keywords (EN) | Workflow Chain | Required Roles | Gate |
+|--------|----------------------|----------------|----------------|------|
+| `bug_fix` | fix, bug, error, crash, fail | debugging + TDD | coder, tester | prove_it_pattern |
+| `new_feature` | implement, develop, add, create, feature | spec + plan + impl + TDD | architect, coder, tester, pm | spec_first |
+| `security_review` | security, vulnerability, audit, OWASP | security + review | architect, security | owasp_checklist |
+| `code_review` | review, refactor, optimize, simplify | review + quality | coder, security, tester, architect | change_size_limit |
+| `performance_optimization` | performance, slow, optimize, bottleneck | optimization + review | architect, devops | measure_first |
+| `deployment` | deploy, release, ship, launch, CI/CD | CI/CD + launch | devops, security, architect | pre_launch_checklist |
+
+### 15.4 CLI Lifecycle Commands
+
+> **When to use**: When you want one-command access to standard lifecycle workflows, reducing cognitive load and ensuring consistent process adherence.
+
+```bash
+# Define/refine requirements into specification
+devsquad spec -t "User authentication system"
+
+# Break down spec into atomic tasks
+devsquad plan -t "Implement OAuth2 login flow"
+
+# Implement with TDD discipline
+devsquad build -t "Add password reset feature"
+
+# Run tests with evidence requirements
+devsquad test -t "Run all unit and integration tests"
+
+# Five-axis code review
+devsquad review -t "Review PR #123 for merge"
+
+# Pre-launch checklist + deployment prep
+devsquad ship -t "Deploy v2.0 to production"
+```
+
+**Command Reference:**
+
+| Command | Roles | Mode | Gate | Description |
+|---------|-------|------|------|-------------|
+| `spec` | architect + pm | sequential | spec_first | Generate PRD before any code |
+| `plan` | architect + pm | auto | task_breakdown_complete | Decompose into verifiable tasks |
+| `build` | architect + coder + tester | parallel | incremental_verification | TDD with ~100 line slices |
+| `test` | tester + coder | consensus | evidence_required | Mandatory test/build/diff evidence |
+| `review` | coder + security + tester + architect | consensus | change_size_limit | Multi-dimensional code review |
+| `ship` | devops + security + architect | sequential | pre_launch_checklist | 6-dimension pre-launch checks |
+
+---
+
+## 16. FAQ
 
 **Q: Can I use DevSquad without an API Key?**
 Yes. Mock mode works without any API Key, generating structured output based on role templates.

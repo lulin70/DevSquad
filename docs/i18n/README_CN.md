@@ -58,12 +58,16 @@ git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
 
 # 方式 A: 直接运行（无需安装）
+# 零依赖，开箱即用，配置文件功能降级
 python3 scripts/cli.py dispatch -t "设计用户认证系统"
 
-# 方式 B: pip 安装
+# 方式 B: pip 安装（推荐）
+# 完整功能，含配置文件支持（pyyaml 自动安装）
 pip install -e .
 devsquad dispatch -t "设计用户认证系统"
 ```
+
+> **选哪种？** 方式 A 适合快速体验——无需任何依赖，但无法加载 `~/.devsquad.yaml` 配置文件。方式 B 将 DevSquad 安装为完整包，启用所有功能，包括 YAML 配置、`devsquad` 命令行工具和可选集成（CarryMem、OpenAI、Anthropic）。
 
 ### 3 种使用方式
 

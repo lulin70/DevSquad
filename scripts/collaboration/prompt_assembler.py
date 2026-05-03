@@ -624,6 +624,10 @@ class PromptAssembler:
         if self.qc_enabled and self._qc_injection:
             parts.append(self._qc_injection)
 
+        ar_content = self._get_anti_rationalization_injection()
+        if ar_content:
+            parts.append(ar_content)
+
         return "\n".join(parts)
 
     def _get_user_rules_injection(self, task_description: str) -> str:
@@ -716,6 +720,25 @@ class PromptAssembler:
             ],
         }
         return patterns.get(self.role_id, [])
+
+    def _get_anti_rationalization_injection(self) -> str:
+        """
+        Inject AntiRationalizationEngine content into prompt (P0-1).
+
+        Loads per-role excuse->rebuttal table and formats as markdown.
+        This is the primary defense against Workers skipping quality steps.
+
+        Returns:
+            str: Formatted AR table, or empty string if unavailable
+        """
+        try:
+            from scripts.collaboration.anti_rationalization import get_shared_engine
+            if not hasattr(self, '_ar_engine'):
+                self._ar_engine = get_shared_engine()
+            return self._ar_engine.format_for_prompt(self.role_id)
+        except Exception as e:
+            logger.debug("AntiRationalizationEngine not available: %s", e)
+            return ""
 
     @staticmethod
     def estimate_tokens(text: str) -> int:

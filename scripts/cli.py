@@ -31,8 +31,71 @@ ALL_ROLE_IDS = sorted(set(ALL_ROLE_IDS))
 MODES = ["auto", "parallel", "sequential", "consensus"]
 FORMATS = ["markdown", "json", "compact", "structured", "detailed"]
 BACKENDS = ["mock", "trae", "openai", "anthropic"]
+LIFECYCLE_COMMANDS = ["spec", "plan", "build", "test", "review", "ship"]
 from scripts.collaboration._version import __version__
 VERSION = __version__
+
+LIFECYCLE_PRESETS = {
+    "spec": {
+        "description": "Define and refine requirements before implementation",
+        "required_roles": ["architect", "product-manager"],
+        "mode": "sequential",
+        "gate": "spec_first",
+        "pre_dispatch_message": (
+            "📋 Generating specification before any code. "
+            "Output will include objectives, commands, structure, testing plan, and boundaries."
+        ),
+    },
+    "plan": {
+        "description": "Break down work into small, verifiable tasks",
+        "required_roles": ["architect", "product-manager"],
+        "mode": "auto",
+        "gate": "task_breakdown_complete",
+        "pre_dispatch_message": (
+            "📝 Decomposing into atomic tasks with acceptance criteria and dependency ordering."
+        ),
+    },
+    "build": {
+        "description": "Implement incrementally with TDD discipline",
+        "required_roles": ["architect", "solo-coder", "tester"],
+        "mode": "parallel",
+        "gate": "incremental_verification",
+        "pre_dispatch_message": (
+            "🔨 Building in thin vertical slices. Each slice: implement → test → verify → commit. "
+            "~100 lines per slice maximum."
+        ),
+    },
+    "test": {
+        "description": "Run tests with mandatory evidence requirements",
+        "required_roles": ["tester", "solo-coder"],
+        "mode": "consensus",
+        "gate": "evidence_required",
+        "pre_dispatch_message": (
+            "🧪 Running tests with verification gate. Evidence required: test output, build status, diff summary. "
+            "'Seems right' is NOT sufficient."
+        ),
+    },
+    "review": {
+        "description": "Five-axis code review (correctness/readability/arch/security/performance)",
+        "required_roles": ["solo-coder", "security", "tester", "architect"],
+        "mode": "consensus",
+        "gate": "change_size_limit",
+        "pre_dispatch_message": (
+            "🔍 Conducting multi-dimensional code review. Change size target: ~100 lines. "
+            "Severity labels: Critical (blocks merge) / Required / Nit (optional)."
+        ),
+    },
+    "ship": {
+        "description": "Pre-launch verification and deployment preparation",
+        "required_roles": ["devops", "security", "architect"],
+        "mode": "sequential",
+        "gate": "pre_launch_checklist",
+        "pre_dispatch_message": (
+            "🚀 Running pre-launch checklist across 6 dimensions: Code Quality, Security, Performance, "
+            "Accessibility, Infrastructure, Documentation. Rollback plan required."
+        ),
+    },
+}
 
 
 def _create_backend(backend_type: str,
@@ -185,9 +248,88 @@ def cmd_roles(args):
     return 0
 
 
+def cmd_lifecycle(args):
+    """Handle lifecycle commands (spec/plan/build/test/review/ship)."""
+    command = args.lifecycle_command
+    preset = LIFECYCLE_PRESETS.get(command)
+
+    if not preset:
+        print(f"Error: Unknown lifecycle command '{command}'", file=sys.stderr)
+        print(f"Available: {', '.join(LIFECYCLE_COMMANDS)}", file=sys.stderr)
+        return 1
+
+    task_text = args.task if args.task is not None else args.task_positional
+    if not task_text:
+        print(f"Error: Task description required for '{command}' command.", file=sys.stderr)
+        print(f"Usage: devsquad {command} \"your task\"", file=sys.stderr)
+        return 1
+
+    validator = InputValidator()
+    task_result = validator.validate_task(task_text)
+    if not task_result.valid:
+        print(f"Error: Invalid task - {task_result.reason}", file=sys.stderr)
+        return 1
+
+    task = task_result.sanitized_input or task_text
+
+    print(f"\n{'='*60}")
+    print(f"🔄 DevSquad Lifecycle: {command.upper()}")
+    print(f"{'='*60}")
+    print(f"📌 Description: {preset['description']}")
+    print(f"👥 Roles: {', '.join(preset['required_roles'])}")
+    print(f"⚙️  Mode: {preset['mode']}")
+    print(f"🚧 Gate: {preset['gate']}")
+    print(f"\n{preset['pre_dispatch_message']}\n")
+    print(f"{'='*60}\n")
+
+    kwargs = {
+        "persist_dir": args.persist_dir,
+        "enable_warmup": not args.no_warmup,
+        "enable_compression": not args.no_compression,
+        "enable_permission": not args.skip_permission,
+        "enable_memory": not args.no_memory,
+        "enable_skillify": not args.no_skillify,
+        "stream": getattr(args, 'stream', False),
+        "lang": getattr(args, 'lang', 'auto'),
+    }
+
+    backend = _create_backend(args.backend, args.base_url, args.model)
+    if backend is not None:
+        kwargs["llm_backend"] = backend
+
+    disp = MultiAgentDispatcher(**kwargs)
+
+    try:
+        result = disp.dispatch(
+            task,
+            roles=preset["required_roles"],
+            mode=preset["mode"],
+            dry_run=args.dry_run,
+        )
+
+        if args.format == "json":
+            output = {
+                "lifecycle_command": command,
+                "gate": preset["gate"],
+                "success": result.success,
+                "matched_roles": getattr(result, 'matched_roles', None),
+                "summary": result.summary,
+                "report": result.to_markdown(),
+            }
+            print(json.dumps(output, ensure_ascii=False, indent=2))
+        elif args.format == "compact":
+            print(result.summary)
+        else:
+            print(result.to_markdown())
+
+        return 0 if result.success else 1
+    finally:
+        disp.shutdown()
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="DevSquad V3.3 — Multi-Agent Orchestration Engine for Software Development",
+        description="DevSquad V3.4 — Multi-Agent Orchestration Engine for Software Development",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -195,9 +337,22 @@ Examples:
   %(prog)s dispatch -t "Review codebase" --mode consensus --format json
   %(prog)s dispatch -t "Analyze API" --quick --format compact
   %(prog)s dispatch -t "Security audit" -r security --backend openai
+  %(prog)s spec -t "User authentication system"
+  %(prog)s build -t "Implement login API"
+  %(prog)s test -t "Run all unit tests"
+  %(prog)s review -t "Check PR #123"
+  %(prog)s ship -t "Deploy v2.0 to production"
   %(prog)s roles
   %(prog)s status
   %(prog)s --version
+
+Lifecycle Commands (P0-4 Agent Skills Integration):
+  spec      Define/refine requirements into specification (architect + pm)
+  plan      Break down spec into atomic tasks (architect + pm)
+  build     Implement with TDD discipline (architect + coder + tester)
+  test      Run tests with evidence requirements (tester + coder)
+  review    Five-axis code review (coder + security + tester + architect)
+  ship      Pre-launch checklist + deployment prep (devops + security + architect)
 
 Environment Variables (API keys are read from env vars only, never command line):
   DEVSQUAD_LLM_BACKEND   Default LLM backend (mock/openai/anthropic)
@@ -241,6 +396,45 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_roles = subparsers.add_parser("roles", aliases=["ls"], help="List available roles")
     p_roles.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
 
+    p_lifecycle = subparsers.add_parser("lifecycle", aliases=["lc"], help="Execute lifecycle workflow command")
+    p_lifecycle.add_argument("lifecycle_command", choices=LIFECYCLE_COMMANDS, help="Lifecycle command to execute")
+    p_lifecycle.add_argument("task_positional", nargs="?", default=None, help="Task description (positional)")
+    p_lifecycle.add_argument("--task", "-t", help="Task description (alternative to positional)")
+    p_lifecycle.add_argument("--format", "-f", choices=FORMATS, default="markdown", help="Output format")
+    p_lifecycle.add_argument("--backend", "-b", choices=BACKENDS, default=os.environ.get("DEVSQUAD_LLM_BACKEND", "mock"),
+                              help="LLM backend (default: mock, or DEVSQUAD_LLM_BACKEND env)")
+    p_lifecycle.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
+    p_lifecycle.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
+    p_lifecycle.add_argument("--dry-run", action="store_true", help="Simulate without execution")
+    p_lifecycle.add_argument("--persist-dir", help="Custom scratchpad directory")
+    p_lifecycle.add_argument("--no-warmup", action="store_true", help="Disable startup warmup")
+    p_lifecycle.add_argument("--no-compression", action="store_true", help="Disable context compression")
+    p_lifecycle.add_argument("--stream", action="store_true", help="Stream LLM output in real-time (requires --backend)")
+    p_lifecycle.add_argument("--lang", choices=["auto", "en", "zh", "ja"], default="auto", help="Output language (default: auto-detect)")
+    p_lifecycle.add_argument("--skip-permission", action="store_true", help="Skip permission checks")
+    p_lifecycle.add_argument("--no-memory", action="store_true", help="Disable memory bridge")
+    p_lifecycle.add_argument("--no-skillify", action="store_true", help="Disable skill learning")
+
+    for cmd_name in LIFECYCLE_COMMANDS:
+        cmd_help = LIFECYCLE_PRESETS[cmd_name]["description"]
+        p_cmd = subparsers.add_parser(cmd_name, help=cmd_help)
+        p_cmd.add_argument("task_positional", nargs="?", default=None, help="Task description (positional)")
+        p_cmd.add_argument("--task", "-t", help="Task description (alternative to positional)")
+        p_cmd.add_argument("--format", "-f", choices=FORMATS, default="markdown", help="Output format")
+        p_cmd.add_argument("--backend", "-b", choices=BACKENDS, default=os.environ.get("DEVSQUAD_LLM_BACKEND", "mock"),
+                            help="LLM backend (default: mock, or DEVSQUAD_LLM_BACKEND env)")
+        p_cmd.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
+        p_cmd.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
+        p_cmd.add_argument("--dry-run", action="store_true", help="Simulate without execution")
+        p_cmd.add_argument("--persist-dir", help="Custom scratchpad directory")
+        p_cmd.add_argument("--no-warmup", action="store_true", help="Disable startup warmup")
+        p_cmd.add_argument("--no-compression", action="store_true", help="Disable context compression")
+        p_cmd.add_argument("--stream", action="store_true", help="Stream LLM output in real-time (requires --backend)")
+        p_cmd.add_argument("--lang", choices=["auto", "en", "zh", "ja"], default="auto", help="Output language (default: auto-detect)")
+        p_cmd.add_argument("--skip-permission", action="store_true", help="Skip permission checks")
+        p_cmd.add_argument("--no-memory", action="store_true", help="Disable memory bridge")
+        p_cmd.add_argument("--no-skillify", action="store_true", help="Disable skill learning")
+
     args = parser.parse_args()
 
     if args.command in ("dispatch", "run", "d"):
@@ -249,6 +443,10 @@ Environment Variables (API keys are read from env vars only, never command line)
         return cmd_status(args)
     elif args.command in ("roles", "ls"):
         return cmd_roles(args)
+    elif args.command in ("lifecycle", "lc") or args.command in LIFECYCLE_COMMANDS:
+        if args.command in LIFECYCLE_COMMANDS:
+            args.lifecycle_command = args.command
+        return cmd_lifecycle(args)
     else:
         parser.print_help()
         return 0

@@ -28,14 +28,19 @@ See [**Windows Support**](#windows-support) below for Windows-specific instructi
 git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
 
-# Run a task immediately (mock mode, no API key needed)
+# Option A: Run directly (no install needed)
+# Zero dependencies, ready to use, config file features degraded
 python3 scripts/cli.py dispatch -t "Design user authentication system"
 
-# Or install as a package
+# Option B: pip install (Recommended)
+# Full functionality, including config file support (pyyaml auto-installed)
 pip install -e .
 devsquad dispatch -t "Design user authentication system"
+```
 
-# Check status
+> **Which option?** Option A is for quick trials — no dependencies needed, but `~/.devsquad.yaml` config files won't be loaded. Option B installs DevSquad as a package with all features enabled, including YAML config, `devsquad` CLI command, and optional integrations (CarryMem, OpenAI, Anthropic).
+
+```bash
 python3 scripts/cli.py status
 
 # List available roles

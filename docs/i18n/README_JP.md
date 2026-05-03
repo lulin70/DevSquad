@@ -20,17 +20,23 @@ DevSquadは、**単一のAIタスクをマルチロールAIコラボレーショ
 
 ## クイックスタート
 
+### インストール
+
 ```bash
 git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
 
-# モックモード（デフォルト）— APIキー不要
+# 方法 A: 直接実行（インストール不要）
+# 依存関係なし、即時使用可能、設定ファイル機能は制限されます
 python3 scripts/cli.py dispatch -t "ユーザー認証システムを設計"
 
-# pip インストール
+# 方法 B: pip インストール（推奨）
+# 全機能、設定ファイルサポートあり（pyyaml自動インストール）
 pip install -e .
 devsquad dispatch -t "ユーザー認証システムを設計"
 ```
+
+> **どちらを選ぶ？** 方法 A はお試し向け — 依存関係なしですぐ使えますが、`~/.devsquad.yaml` 設定ファイルは読み込まれません。方法 B は全機能を有効にするパッケージインストールで、YAML設定、`devsquad` CLIコマンド、オプション連携（CarryMem、OpenAI、Anthropic）が利用可能です。
 
 ### リアルAI出力
 
