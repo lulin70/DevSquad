@@ -7,10 +7,39 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-560%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0-2026--05--02-orange" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-700%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.5.0--C-2026--05--03-orange" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
+  <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Plan_C_Layered-blueviolet" />
 </p>
+
+---
+
+## 🎯 What's New in V3.5.0-C (Plan C Layered Architecture)
+
+**Unified Lifecycle Architecture** - Resolves CLI 6 commands vs 11-phase lifecycle conflict:
+
+```
+CLI View Layer (6 commands)          Core Engine (11 phases)
+┌─────────────────────┐            ┌──────────────────────────┐
+│ spec → P1, P2       │───View ──→│ P1: Requirements         │
+│ plan → P7           │   Mapping │ P2: Architecture         │
+│ build → P8          │            │ P3: Technical Design     │
+│ test → P9           │            │ ...                      │
+│ review → P8,P6      │            │ P10: Deployment          │
+│ ship → P10          │            │ P11: Operations          │
+└─────────────────────┘            └──────────────────────────┘
+        ↓                                    ↓
+  UnifiedGateEngine                   CheckpointManager
+  (Phase + Worker gates)              (Lifecycle state persistence)
+```
+
+**Key Components:**
+- ✅ **LifecycleProtocol** - Abstract interface for unified lifecycle management
+- ✅ **UnifiedGateEngine** - Integrates VerificationGate + Phase transition gates
+- ✅ **ShortcutLifecycleAdapter** - Maps CLI commands to 11-phase segments
+- ✅ **Enhanced CheckpointManager** - Auto save/restore lifecycle state across sessions
+- ✅ **27 new tests** - All passing (Plan C architecture validation)
 
 ---
 

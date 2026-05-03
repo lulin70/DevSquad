@@ -332,3 +332,225 @@ class CheckpointManager:
         )
         self.save_checkpoint(checkpoint)
         return checkpoint
+
+    # ========== Lifecycle State Management (Plan C Integration) ==========
+
+    def save_lifecycle_state(
+        self,
+        task_id: str,
+        current_phase: Optional[str],
+        phase_states: Dict[str, str],
+        completed_phases: List[str],
+        mode: str = "shortcut",
+        gate_results: Dict[str, Dict] = None,
+        metadata: Dict[str, Any] = None,
+    ) -> bool:
+        """
+        Save lifecycle state for Plan C unified architecture.
+
+        Integrates with LifecycleProtocol and UnifiedGateEngine to persist
+        lifecycle progress across sessions.
+
+        Args:
+            task_id: Unique task identifier
+            current_phase: Current active phase ID (e.g., "P8")
+            phase_states: Dict mapping phase_id → state string
+            completed_phases: List of completed phase IDs
+            mode: Lifecycle mode (shortcut/full/custom)
+            gate_results: Optional dict of recent gate check results
+            metadata: Additional metadata
+
+        Returns:
+            True if saved successfully
+        """
+        try:
+            lifecycle_dir = self.storage_path / "lifecycle"
+            lifecycle_dir.mkdir(parents=True, exist_ok=True)
+
+            state_data = {
+                "task_id": task_id,
+                "current_phase": current_phase,
+                "phase_states": phase_states,
+                "completed_phases": completed_phases,
+                "mode": mode,
+                "gate_results": gate_results or {},
+                "metadata": metadata or {},
+                "saved_at": datetime.now().isoformat(),
+                "version": "3.5-c",
+            }
+
+            state_path = lifecycle_dir / f"{task_id}_lifecycle.json"
+            with open(state_path, 'w', encoding='utf-8') as f:
+                json.dump(state_data, f, indent=2, ensure_ascii=False)
+
+            logger.info(
+                "Lifecycle state saved: %s (phase=%s, mode=%s)",
+                task_id, current_phase, mode,
+            )
+            return True
+
+        except Exception as e:
+            logger.warning("Failed to save lifecycle state: %s", e)
+            return False
+
+    def load_lifecycle_state(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Load lifecycle state for a task.
+
+        Args:
+            task_id: Unique task identifier
+
+        Returns:
+            Lifecycle state dict or None if not found
+        """
+        try:
+            lifecycle_dir = self.storage_path / "lifecycle"
+            state_path = lifecycle_dir / f"{task_id}_lifecycle.json"
+
+            if not state_path.exists():
+                logger.debug("Lifecycle state not found: %s", task_id)
+                return None
+
+            with open(state_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            logger.info("Lifecycle state loaded: %s", task_id)
+            return data
+
+        except Exception as e:
+            logger.warning("Failed to load lifecycle state: %s", e)
+            return None
+
+    def list_lifecycle_states(self) -> List[Dict[str, Any]]:
+        """
+        List all saved lifecycle states.
+
+        Returns:
+            List of lifecycle state summaries
+        """
+        try:
+            lifecycle_dir = self.storage_path / "lifecycle"
+            if not lifecycle_dir.exists():
+                return []
+
+            states = []
+            for state_file in lifecycle_dir.glob("*_lifecycle.json"):
+                try:
+                    with open(state_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    states.append({
+                        "task_id": data.get("task_id"),
+                        "current_phase": data.get("current_phase"),
+                        "mode": data.get("mode"),
+                        "completed_count": len(data.get("completed_phases", [])),
+                        "saved_at": data.get("saved_at"),
+                    })
+                except Exception as e:
+                    logger.debug("Error reading %s: %e", state_file, e)
+
+            states.sort(key=lambda x: x.get("saved_at", ""), reverse=True)
+            return states
+
+        except Exception as e:
+            logger.warning("Failed to list lifecycle states: %s", e)
+            return []
+
+    def delete_lifecycle_state(self, task_id: str) -> bool:
+        """
+        Delete lifecycle state for a task.
+
+        Args:
+            task_id: Unique task identifier
+
+        Returns:
+            True if deleted successfully
+        """
+        try:
+            lifecycle_dir = self.storage_path / "lifecycle"
+            state_path = lifecycle_dir / f"{task_id}_lifecycle.json"
+
+            if state_path.exists():
+                state_path.unlink()
+                logger.info("Lifecycle state deleted: %s", task_id)
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.warning("Failed to delete lifecycle state: %s", e)
+            return False
+
+    def create_checkpoint_from_lifecycle(
+        self,
+        task_id: str,
+        protocol=None,
+    ) -> Optional[Checkpoint]:
+        """
+        Create a checkpoint from current lifecycle protocol state.
+
+        This bridges the gap between LifecycleProtocol and CheckpointManager,
+        allowing lifecycle state to be persisted as checkpoints.
+
+        Args:
+            task_id: Unique task identifier
+            protocol: Optional LifecycleProtocol instance to extract state from
+
+        Returns:
+            Created Checkpoint or None on failure
+        """
+        try:
+            if protocol:
+                status = protocol.get_status()
+                phase_states = {}
+                for phase in protocol.get_all_phases():
+                    state = protocol._phase_states.get(
+                        phase.phase_id, "pending"
+                    )
+                    phase_states[phase.phase_id] = (
+                        state.value if hasattr(state, 'value') else str(state)
+                    )
+
+                # Save lifecycle state first
+                self.save_lifecycle_state(
+                    task_id=task_id,
+                    current_phase=status.current_phase,
+                    phase_states=phase_states,
+                    completed_phases=status.completed_phases,
+                    mode=status.mode.value if hasattr(status.mode, 'value') else str(status.mode),
+                )
+
+                # Create checkpoint
+                checkpoint = Checkpoint(
+                    task_id=task_id,
+                    step_id=f"phase-{status.current_phase or 'init'}",
+                    step_name=f"Lifecycle {status.mode.value.upper()}",
+                    agent_id="lifecycle-protocol",
+                    status=CheckpointStatus.ACTIVE,
+                    completed_steps=status.completed_phases,
+                    remaining_steps=[
+                        p.phase_id
+                        for p in protocol.get_all_phases()
+                        if p.phase_id not in status.completed_phases
+                    ],
+                    progress_percentage=status.progress_percent,
+                    context_snapshot={
+                        "mode": status.mode.value,
+                        "can_advance": status.can_advance,
+                        "next_phase": status.next_phase,
+                    },
+                    outputs={"lifecycle_status": status.to_summary()},
+                )
+
+                self.save_checkpoint(checkpoint)
+                logger.info(
+                    "Created checkpoint from lifecycle: %s (%.1f%%)",
+                    checkpoint.checkpoint_id,
+                    checkpoint.progress_percentage,
+                )
+                return checkpoint
+
+            return None
+
+        except Exception as e:
+            logger.warning("Failed to create checkpoint from lifecycle: %s", e)
+            return None

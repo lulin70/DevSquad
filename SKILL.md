@@ -2,14 +2,15 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.4.0 DevSquad — Multi-Role AI Task Orchestrator.
+  V3.5.0-C DevSquad — Multi-Role AI Task Orchestrator with Plan C Layered Architecture.
   One task in, multi-role AI collaboration, one conclusion out.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
-  (OpenAI/Anthropic), CLI + MCP + Python API. 560+ tests all passing.
+  (OpenAI/Anthropic), CLI + MCP + Python API. 700+ tests all passing.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
+  NEW: Unified lifecycle architecture (Plan C) with CLI view layer over 11-phase model.
 ---
 
-# DevSquad V3.4.0 — Multi-Role AI Task Orchestrator
+# DevSquad V3.5.0-C — Multi-Role AI Task Orchestrator (Plan C Layered Architecture)
 
 ## Core Positioning
 
@@ -74,8 +75,19 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | 46 | **VerificationGate** | `verification_gate.py` | Mandatory evidence requirements + 7 Red Flags detection + Prove-It Pattern for completion claims |
 | 47 | **IntentWorkflowMapper** | `intent_workflow_mapper.py` | User intent → workflow chain mapping (6 intents × 3 languages) with gate requirements and anti-skip messages |
 | 48 | **CLI Lifecycle Commands** | `cli.py` | 6 lifecycle shortcuts (spec/plan/build/test/review/ship) with preset roles/modes/gates inspired by Agent Skills |
+| 49 | **StandardizedRoleTemplate** | `standardized_role_template.py` | V2 template format with SKILL.md anatomy: overview, when_to_use, process_steps, rationalizations, red_flags, verification_requirements |
+| 50 | **OperationClassifier** | `operation_classifier.py` | Three-tier operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) with 20+ predefined operations and custom overrides |
+| 51 | **OutputSlicer** | `output_slicer.py` | Incremental output slicing for large responses: configurable slice size, headers, scratchpad integration |
+| 52 | **FiveAxisConsensusEngine** | `five_axis_consensus.py` | Five-axis review consensus (correctness/readability/architecture/security/performance) with weighted voting and strict mode |
+| 53 | **CIFeedbackAdapter** | `ci_feedback_adapter.py` | CI results parser (pytest/coverage/lint/build) + context generator + prompt injection for dispatch pipeline |
+| 54 | **LifecycleProtocol** | `lifecycle_protocol.py` | Abstract interface for unified lifecycle management (SHORTCUT/FULL/CUSTOM modes) with 11-phase support |
+| 55 | **UnifiedGateEngine** | `unified_gate_engine.py` | Unified gate engine integrating VerificationGate + LifecycleProtocol gates with pluggable checkers |
+| 56 | **CheckpointManager (Enhanced)** | `checkpoint_manager.py` | Extended with lifecycle state persistence: save/restore/list/delete lifecycle states across sessions |
+| 57 | **ShortcutLifecycleAdapter** | `lifecycle_protocol.py` (class) | Plan C adapter implementing LifecycleProtocol using CLI 6-command shortcuts with auto state persistence |
 
 ---
+
+## Architecture Overview (57 Core Modules)
 
 ## Quick Start (Must Follow)
 
@@ -636,12 +648,18 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **P0-2 VerificationGate** | **42** | **✅ PASS** |
 | **P0-3 IntentWorkflowMapper** | **58** | **✅ PASS** |
 | **P0-4 CLI Lifecycle Commands** | **28** | **✅ PASS** |
-**Total** | **537+** | **✅ ALL PASS** |
+| **P1-1 StandardizedRoleTemplate** | **27** | **✅ PASS** |
+| **P1-2 OperationClassifier** | **29** | **✅ PASS** |
+| **P1-3 OutputSlicer** | **26** | **✅ PASS** |
+| **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
+| **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
+**Total** | **698+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v3.4.2** (2026-05-03): P1 Enhancement Complete - RoleTemplateMarket V2(27 tests) + OperationClassifier(29 tests) + OutputSlicer(26 tests) + FiveAxisConsensusEngine(29 tests) + CIFeedbackAdapter(22 tests) + 166 new tests + 53 core modules
 - **v3.4.1** (2026-05-03): Agent Skills Quality Framework (P0) - AntiRationalizationEngine(39 tests) + VerificationGate(42 tests) + IntentWorkflowMapper(58 tests) + CLI Lifecycle Commands(28 tests) + 167 new tests + Google Agent Skills integration + 49 core modules
 - **v3.4.0** (2026-05-02): 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates) + requirement change management + gate mechanism with gap reporting + WorkflowEngine lifecycle support + Natural Language Rule Collection (RuleCollector) + 560+ tests passing
 - **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(read-only bridge/INDEX search/daily logs/AI news feed) + Dispatcher AI News auto-inject + Annotation Standards (EN docs/docstring/inline) + Code comment audit (all EN) + MCE v0.4 support (tenant/permission) + Multi-language README (EN/CN/JP) + 33 new tests

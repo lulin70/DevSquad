@@ -249,7 +249,7 @@ def cmd_roles(args):
 
 
 def cmd_lifecycle(args):
-    """Handle lifecycle commands (spec/plan/build/test/review/ship)."""
+    """Handle lifecycle commands (spec/plan/build/test/review/ship) as View Layer over 11-phase lifecycle."""
     command = args.lifecycle_command
     preset = LIFECYCLE_PRESETS.get(command)
 
@@ -272,11 +272,29 @@ def cmd_lifecycle(args):
 
     task = task_result.sanitized_input or task_text
 
-    print(f"\n{'='*60}")
-    print(f"🔄 DevSquad Lifecycle: {command.upper()}")
-    print(f"{'='*60}")
-    print(f"📌 Description: {preset['description']}")
-    print(f"👥 Roles: {', '.join(preset['required_roles'])}")
+    # Show view layer mapping information (Plan C: CLI as View Layer)
+    try:
+        from scripts.collaboration.lifecycle_protocol import VIEW_MAPPINGS, get_shared_protocol
+        mapping = VIEW_MAPPINGS.get(command)
+
+        print(f"\n{'='*60}")
+        print(f"🔄 DevSquad Lifecycle [View Layer Mode]")
+        print(f"{'='*60}")
+        print(f"📌 Command: {command.upper()}")
+        if mapping:
+            print(f"📋 Maps to Phases: {', '.join(mapping.phases)}")
+            print(f"🎯 Mode: SHORTCUT (simplified view of 11-phase lifecycle)")
+        print(f"📝 Description: {preset['description']}")
+        print(f"👥 Roles: {', '.join(preset['required_roles'])}")
+        print(f"🚧 Gate: {preset['gate']}")
+        print(f"\n{preset['pre_dispatch_message']}\n")
+    except Exception as e:
+        print(f"\n{'='*60}")
+        print(f"🔄 DevSquad Lifecycle: {command.upper()}")
+        print(f"{'='*60}")
+        print(f"📌 Description: {preset['description']}")
+        print(f"👥 Roles: {', '.join(preset['required_roles'])}")
+        print(f"(View mapping info unavailable: {e})\n")
     print(f"⚙️  Mode: {preset['mode']}")
     print(f"🚧 Gate: {preset['gate']}")
     print(f"\n{preset['pre_dispatch_message']}\n")

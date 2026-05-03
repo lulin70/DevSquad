@@ -5,7 +5,69 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
-## [3.4.0] - 2026-04-27
+## [3.5.0-C] - 2026-05-03 (Plan C Layered Architecture)
+
+### Added
+
+#### Unified Lifecycle Architecture (Plan C Implementation)
+
+- **LifecycleProtocol** (`scripts/collaboration/lifecycle_protocol.py`): Abstract interface for unified lifecycle management
+  - `LifecycleMode` enum: SHORTCUT / FULL / CUSTOM modes
+  - `PhaseDefinition`: Unified phase structure with dependencies and gates
+  - `ViewMapping`: CLI command → 11-phase mapping definitions
+  - Complete protocol interface with 12 abstract methods
+
+- **UnifiedGateEngine** (`scripts/collaboration/unified_gate_engine.py`): Unified gate engine
+  - Integrates VerificationGate (worker output) + LifecycleProtocol (phase transition)
+  - `GateType` enum: PHASE_TRANSITION / WORKER_OUTPUT / SECURITY_CHECK / etc.
+  - Pluggable checker architecture with custom checker registration
+  - Comprehensive result reporting with statistics tracking
+  - Configurable strictness levels (UnifiedGateConfig)
+
+- **ShortcutLifecycleAdapter** (`lifecycle_protocol.py` class`): Plan C adapter
+  - Implements LifecycleProtocol using CLI 6-command shortcuts
+  - Automatic UnifiedGateEngine integration (with fallback to basic checks)
+  - CheckpointManager integration with auto state save/restore
+  - Support for lifecycle state persistence across sessions
+
+#### Enhanced CheckpointManager
+
+- **Lifecycle State Management** (`scripts/collaboration/checkpoint_manager.py`):
+  - `save_lifecycle_state()`: Persist lifecycle progress to JSON
+  - `load_lifecycle_state()`: Restore lifecycle state from disk
+  - `list_lifecycle_states()`: List all saved lifecycle states
+  - `delete_lifecycle_state()`: Clean up saved states
+  - `create_checkpoint_from_lifecycle()`: Bridge LifecycleProtocol → Checkpoint
+
+#### CLI View Layer Integration
+
+- **CLI Refactored** (`scripts/cli.py`):
+  - Lifecycle commands now display view layer mapping information
+  - Shows which 11-phase segments each CLI command covers
+  - Displays "View Layer Mode" header for clarity
+  - Backward compatible with fallback output
+
+### Tests
+
+- **New Test Suite**: `tests/test_plan_c_unified_architecture.py`
+  - 27 comprehensive tests for Plan C architecture
+  - UnifiedGateEngine tests (11 tests)
+  - CheckpointManager lifecycle integration (7 tests)
+  - ShortcutLifecycleAdapter with unified gate (6 tests)
+  - End-to-end integration tests (3 tests)
+  - **All 27 tests passing**
+
+### Architecture Improvements
+
+- Resolved CLI 6 commands vs 11-phase lifecycle conflict via layered architecture
+- Single entry point for all gate checks (UnifiedGateEngine)
+- Decoupled view layer (CLI) from core engine (WorkflowEngine)
+- State persistence enables session recovery and long-running task support
+- Backward compatible: existing code continues to work without changes
+
+---
+
+## [3.4.1] - 2026-05-02
 
 ### Added
 
