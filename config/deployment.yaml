@@ -1,0 +1,164 @@
+# DevSquad V3.6.0-Prod Deployment Configuration
+# ==============================================
+
+# Authentication Settings
+authentication:
+  enabled: true
+  method: "basic"  # basic | oauth2 | ldap
+  
+  # Basic Auth Credentials (for development/demo)
+  # In production, use environment variables or secrets manager
+  credentials:
+    usernames:
+      admin:
+        email: "admin@devsquad.local"
+        name: "Administrator"
+        password: "$2b$12$hashed_password_here"  # Use: python -c "import hashlib; print(hashlib.sha256('your_password'.encode()).hexdigest())"
+        role: "admin"
+      viewer:
+        email: "viewer@devsquad.local"
+        name: "Viewer"
+        password: "$2b$12$hashed_password_here"
+        role: "viewer"
+      operator:
+        email: "operator@devsquad.local"
+        name: "Operator"
+        password: "$2b$12$hashed_password_here"
+        role: "operator"
+
+  # Cookie settings
+  cookie:
+    expiry_days: 30
+    key: "devsquad_session_key_change_in_production"  # Change in production!
+    name: "devsquad_auth_cookie"
+
+  # OAuth2 Settings (optional, for enterprise)
+  oauth2:
+    enabled: false
+    provider: "google"  # google | github | azure
+    client_id: ""
+    client_secret: ""
+    redirect_uri: ""
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8501
+  enable_cors: true
+  enable_xsf_protection: true
+
+  # SSL/HTTPS Configuration
+  ssl:
+    enabled: false  # Set to true for production
+    cert_file: "/path/to/cert.pem"
+    key_file: "/path/to/key.pem"
+
+  # Rate Limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    burst_size: 10
+
+# Dashboard Settings
+dashboard:
+  title: "DevSquad Lifecycle Dashboard"
+  layout: "wide"
+  theme: "light"  # light | dark
+  
+  # Auto-refresh settings
+  auto_refresh:
+    enabled: false
+    interval_seconds: 30
+
+  # Feature flags
+  features:
+    show_metrics: true
+    show_gates: true
+    show_performance: true
+    allow_phase_control: true  # Allow executing phases from UI
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG | INFO | WARNING | ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  file:
+    enabled: true
+    path: "logs/dashboard.log"
+    max_size_mb: 10
+    backup_count: 5
+
+  # External logging (optional)
+  external:
+    enabled: false
+    provider: ""  # cloudwatch | datadog | elk
+    endpoint: ""
+
+# Security Headers
+security_headers:
+  x_frame_options: "DENY"
+  x_content_type_options: "nosniff"
+  x_xss_protection: "1; mode=block"
+  content_security_policy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+  strict_transport_security: "max-age=31536000; includeSubDomains"
+
+# Backup & Recovery
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM (cron format)
+  retention_days: 30
+  location: "./backups"
+
+# Monitoring & Health Checks
+monitoring:
+  health_check:
+    enabled: true
+    endpoint: "/health"
+    interval_seconds: 60
+  
+  metrics:
+    enabled: true
+    endpoint: "/metrics"
+    
+  # Error tracking
+  error_tracking:
+    enabled: false
+    provider: ""  # sentry | rollbar
+    dsn: ""
+
+# Environment-specific overrides
+environments:
+  development:
+    authentication:
+      enabled: false  # Disable auth in dev
+    server:
+      port: 8501
+    logging:
+      level: "DEBUG"
+
+  staging:
+    authentication:
+      enabled: true
+    server:
+      port: 8501
+      ssl:
+        enabled: true
+    logging:
+      level: "INFO"
+
+  production:
+    authentication:
+      enabled: true
+      method: "oauth2"
+    server:
+      host: "0.0.0.0"
+      port: 443
+      ssl:
+        enabled: true
+      rate_limiting:
+        requests_per_minute: 120
+    logging:
+      level: "WARNING"
+    monitoring:
+      error_tracking:
+        enabled: true

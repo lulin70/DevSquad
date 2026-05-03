@@ -28,6 +28,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
 
+from scripts.auth import AuthManager, User
+
 
 class DashboardConfig:
     """Dashboard configuration and styling."""
@@ -130,13 +132,15 @@ def apply_custom_css():
     """, unsafe_allow_html=True)
 
 
-def render_header():
+def render_header(current_user: Optional[User] = None):
     """Render the main dashboard header."""
     st.markdown('<div class="main-header">🔄 DevSquad Lifecycle Dashboard</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
         st.markdown("**Plan C Architecture** | CLI View Layer over 11-Phase Lifecycle")
+        if current_user:
+            st.caption(f"👤 {current_user.name} ({current_user.role.value})")
     with col2:
         st.markdown(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     with col3:
@@ -432,7 +436,7 @@ def render_action_panel(protocol_data):
             st.success("Generating benchmark report...")
 
 
-def render_sidebar():
+def render_sidebar(auth: AuthManager, current_user: Optional[User] = None):
     """Render sidebar navigation and controls."""
     with st.sidebar:
         st.header("Navigation")
@@ -451,11 +455,14 @@ def render_sidebar():
         
         st.divider()
         
+        # User info and logout
+        if current_user:
+            auth.get_login_button()
+        
         st.header("Settings")
         
         auto_refresh = st.checkbox("Auto Refresh (30s)", value=False)
         show_details = st.checkbox("Show Details", value=True)
-        dark_mode = st.checkbox("Dark Mode", value=False)
         
         st.divider()
         
@@ -467,7 +474,38 @@ def render_sidebar():
         if st.button("📥 Export Status", use_container_width=True):
             st.success("Status exported!")
         
+        # Admin-only settings
+        if current_user and current_user.role.value == "admin":
+            st.divider()
+            st.header("⚙️ Admin")
+            
+            if st.button("👥 Manage Users", use_container_width=True):
+                st.session_state.page = "admin_users"
+            
+            if st.button("⚙️ System Config", use_container_width=True):
+                st.session_state.page = "system_config"
+        
         return page
+
+
+def render_footer(current_user: Optional[User] = None):
+    """Render dashboard footer with version and session info."""
+    st.markdown("---")
+    
+    col1, col2, col3 = st.columns([2, 1, 1])
+    
+    with col1:
+        st.markdown(
+            "<center>**DevSquad V3.6.0-Prod** | Plan C | Production Ready</center>",
+            unsafe_allow_html=True
+        )
+    
+    with col2:
+        if current_user:
+            st.caption(f"Session: {current_user.session_id[:8]}...")
+    
+    with col3:
+        st.caption(f"© {datetime.now().year} DevSquad Team")
 
 
 def main():
@@ -475,16 +513,35 @@ def main():
     set_page_config()
     apply_custom_css()
     
-    page = render_sidebar()
+    # Initialize authentication
+    auth = AuthManager(config_path=os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "config",
+        "deployment.yaml"
+    ))
     
-    render_header()
+    # Authenticate user (will show login form if not authenticated)
+    auth.authenticate_streamlit()
+    
+    # Get current user info
+    current_user = auth.get_current_user()
+    
+    page = render_sidebar(auth, current_user)
+    
+    render_header(current_user)
     
     protocol_data = load_lifecycle_protocol()
+    
+    # Check permissions for sensitive operations
+    can_execute = current_user.can_execute_phases() if current_user else False
     
     if page == "Overview":
         render_metrics_overview(protocol_data)
         st.divider()
-        render_action_panel(protocol_data)
+        if can_execute:
+            render_action_panel(protocol_data)
+        else:
+            st.info("🔒 Phase execution requires Operator or Admin role")
         
     elif page == "Phases":
         render_phase_timeline(protocol_data)
@@ -500,12 +557,7 @@ def main():
     
     st.divider()
     
-    st.markdown("---")
-    st.markdown(
-        "<center>**DevSquad V3.5.0-C** | Plan C Architecture | "
-        "<https://github.com/your-repo/devsquad></center>",
-        unsafe_allow_html=True
-    )
+    render_footer(current_user)
 
 
 if __name__ == "__main__":

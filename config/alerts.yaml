@@ -1,0 +1,141 @@
+# DevSquad Alert Configuration
+# =============================
+
+# Global alert settings
+defaults:
+  # Default channels by severity level
+  channels_by_severity:
+    critical:
+      - slack
+      - email
+    error:
+      - slack
+      - console
+    warning:
+      - console
+    info:
+      - console
+  
+  # Rate limiting (prevent alert spam)
+  rate_limit:
+    window_seconds: 60  # Time window for rate limiting
+    max_alerts: 10       # Max alerts per window
+  
+  # Deduplication settings
+  deduplication:
+    enabled: true
+    window_minutes: 5    # Suppress duplicate alerts within this window
+
+# Channel-specific configurations
+channels:
+
+  # Console logging (always active)
+  console:
+    enabled: true
+    format: "[{severity}] {title}: {message}"
+    include_timestamp: true
+
+  # Slack webhook integration
+  slack:
+    enabled: false  # Set to true and configure below to enable
+    
+    # Slack incoming webhook URL
+    # Get from: https://api.slack.com/apps → Create App → Incoming Webhooks
+    webhook_url: "${SLACK_WEBHOOK_URL}"  # Use environment variable in production
+    
+    # Optional: Override default channel/username
+    channel: "#devsquad-alerts"
+    username: "DevSquad Bot"
+    icon_emoji: ":warning:"
+    
+    # Message formatting
+    include_footer: true
+    footer_text: "DevSquad Alert System"
+
+  # Email notifications (SMTP)
+  email:
+    enabled: false  # Set to true and configure below to enable
+    
+    # SMTP server configuration
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    use_tls: true
+    
+    # Authentication
+    sender: "devsquad-alerts@yourdomain.com"
+    username: "${SMTP_USERNAME}"  # Environment variable
+    password: "${SMTP_PASSWORD}"  # Environment variable (use app password for Gmail)
+    
+    # Recipients
+    recipients:
+      - "oncall-team@yourdomain.com"
+      - "devops@yourdomain.com"
+    
+    # Optional: Only send certain severities via email
+    min_severity: "error"  # error | warning | info
+
+  # Generic webhook (for custom integrations)
+  webhook:
+    enabled: false
+    url: "${WEBHOOK_URL}"
+    method: "POST"
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer ${WEBHOOK_TOKEN}"
+
+# Alert rules (automated alerts based on conditions)
+alert_rules:
+
+  # Gate check failures
+  gate_failure:
+    enabled: true
+    severity: "error"
+    title_template: "Gate Check Failed: {command}"
+    message_template: "Gate check failed for command '{command}'\nVerdict: {verdict}\nRed Flags: {red_flags_count}"
+    channels: ["slack", "email"]
+    
+  # Phase execution errors
+  phase_error:
+    enabled: true
+    severity: "error"
+    title_template: "Phase Execution Error: {phase_id}"
+    message_template: "Error executing phase {phase_id}: {error_message}"
+    channels: ["slack", "console"]
+    
+  # High CPU usage
+  high_cpu:
+    enabled: true
+    severity: "warning"
+    title_template: "High CPU Usage: {cpu_percent}%"
+    message_template: "CPU usage exceeded threshold: {cpu_percent}%"
+    condition: "cpu_percent > 80"
+    cooldown_minutes: 30  # Don't repeat more often than this
+    
+  # Low completion rate (stalled project)
+  stalled_project:
+    enabled: true
+    severity: "warning"
+    title_template: "Project Progress Stalled"
+    message_template: "No progress in the last {hours_stalled} hours\nCompletion rate: {completion_rate}%"
+    condition: "hours_since_last_update > 24"
+    channels: ["email"]
+
+# Quiet hours (suppress non-critical alerts)
+quiet_hours:
+  enabled: false
+  start_time: "22:00"   # 10 PM
+  end_time: "07:00"     # 7 AM
+  timezone: "UTC"       # Timezone for quiet hours
+  allow_critical: true  # Always allow critical alerts
+
+# Alert acknowledgment settings
+acknowledgment:
+  enabled: true
+  auto_resolve_hours: 24  # Auto-resolve after N hours if not updated
+  require_comment: false   # Require comment when acknowledging
+
+# History retention
+retention:
+  alert_history_days: 30     # Keep alert history for 30 days
+  metrics_snapshot_days: 90  # Keep metrics for 90 days
+  api_logs_days: 7           # Keep API logs for 7 days
