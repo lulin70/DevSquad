@@ -5,6 +5,115 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [3.6.0] - 2026-05-03 (Production Ready)
+
+### 🎯 Major Production Features
+
+#### Authentication & Authorization System
+- **AuthManager** (`scripts/auth.py`): Complete authentication module
+  - Multi-user support with role-based access control (RBAC)
+  - Three roles: Admin, Operator, Viewer
+  - SHA-256 password hashing with secure session management
+  - Streamlit dashboard integration with login UI
+  - OAuth2 support (optional, for enterprise)
+  
+- **Deployment Configuration** (`config/deployment.yaml`):
+  - Comprehensive deployment settings
+  - SSL/HTTPS configuration templates
+  - Rate limiting and security headers
+  - Environment-specific overrides (dev/staging/prod)
+
+#### REST API Server (FastAPI)
+- **API Server** (`scripts/api_server.py`): Production-ready REST API
+  - FastAPI framework with automatic OpenAPI/Swagger documentation
+  - CORS middleware support for cross-origin requests
+  - Request timing and comprehensive logging
+  - Global exception handling with standardized error responses
+  
+- **Data Models** (`scripts/api/models.py`): Pydantic validation models
+  - LifecyclePhase, GateResult, MetricsSnapshot
+  - PhaseActionRequest, PhaseActionResult
+  - HealthCheck, PaginatedResponse
+  
+- **Lifecycle API Endpoints** (`scripts/api/routes/lifecycle.py`):
+  - `GET /api/v1/lifecycle/phases` - List all 11 phases
+  - `GET /api/v1/lifecycle/phases/{id}` - Get phase details
+  - `POST /api/v1/lifecycle/actions` - Execute phase actions
+  - `GET /api/v1/lifecycle/mappings` - CLI command mappings
+  - `GET /api/v1/lifecycle/status` - Current execution status
+  
+- **Metrics & Gates API** (`scripts/api/routes/metrics_gates.py`):
+  - `GET /api/v1/metrics/current` - Real-time metrics snapshot
+  - `GET /api/v1/metrics/history` - Historical data queries
+  - `GET /api/v1/gates/status` - All gate statuses
+  - `POST /api/v1/gates/check` - Check specific gate
+  - `GET /api/v1/health` - Service health check
+
+#### Alert Notification System
+- **AlertManager** (`scripts/alert_manager.py`): Multi-channel alerting
+  - Four severity levels: INFO, WARNING, ERROR, CRITICAL
+  - Multiple channels: Console, Slack, Email, Webhook
+  - Rate limiting to prevent alert spam
+  - Alert deduplication within configurable time window
+  - Alert history tracking and statistics
+  - Quick helper functions: `alert_info()`, `alert_error()`, etc.
+  
+- **Alert Configuration** (`config/alerts.yaml`):
+  - Channel-specific settings (Slack webhook, SMTP email)
+  - Alert rules based on conditions
+  - Quiet hours configuration
+  - Retention policies
+
+#### Historical Data Storage
+- **HistoryManager** (`scripts/history_manager.py`): SQLite time-series database
+  - Metrics snapshots table with time-range queries
+  - Alert history table with acknowledgment tracking
+  - API request logs table with performance metrics
+  - Lifecycle events table for state change audit
+  - Automatic data retention and cleanup
+  - Database size monitoring
+
+### 📊 Visualization & Monitoring Enhancements
+
+#### Streamlit Dashboard Updates
+- **Dashboard** (`scripts/dashboard.py`):
+  - Integrated authentication with user session display
+  - Role-based feature access control
+  - Admin-only settings panel
+  - Enhanced footer with version and session info
+  - Production-ready UI with security indicators
+
+#### CLI Visual Enhancement
+- **CLI Visual Module** (`scripts/cli/cli_visual.py`):
+  - Colored progress bars and status icons
+  - Formatted tables with alignment
+  - Percentage completion indicators
+  - Gate status visualization
+
+#### Jupyter Notebook Tutorial
+- **Interactive Tutorial** (`examples/tutorial.ipynb`):
+  - 10-section step-by-step learning guide
+  - Core concepts and architecture explanation
+  - CLI command to 11-phase mapping demos
+  - Performance benchmarking examples
+
+### ✅ Testing & Quality
+- **New Test Suite** (`tests/test_production_features.py`): 21 new tests
+  - TestAuthentication (5 tests) - Auth system validation
+  - TestAlertManager (5 tests) - Alert functionality
+  - TestHistoryManager (6 tests) - Data persistence
+  - TestAPIDataModels (4 tests) - Model validation
+  - All 21 tests passing ✅
+
+- **Total Test Coverage**: 776+ tests (99.34% pass rate)
+
+### 📝 Documentation Updates
+- Updated README.md with production features documentation
+- Enhanced USAGE_GUIDE.md with visualization and monitoring guides
+- Added deployment and API usage examples
+
+---
+
 ## [3.5.0-C] - 2026-05-03 (Plan C Layered Architecture)
 
 ### Added

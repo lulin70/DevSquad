@@ -2,30 +2,164 @@
 
 <p align="center">
   <strong>One task → Multi-role AI collaboration → One conclusion</strong>
+  <br>
+  <em>Production Ready | V3.6.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-755%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.5.0--C-2026--05--03-orange" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-776%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0--Prod-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
-  <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Plan_C_Layered-blueviolet" />
 </p>
 
 <p align="center">
+  <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Plan_C_Layered-blueviolet" />
+  <img alt="API" src="https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi" />
   <img alt="Dashboard" src="https://img.shields.io/badge/Dashboard-Streamlit-red?logo=streamlit" />
-  <img alt="Tutorial" src="https://img.shields.io/badge/Tutorial-Jupyter-orange?logo=jupyter" />
-  <img alt="Visualization" src="https://img.shields.io/badge/Visualization-CLI%2BWeb-green" />
-  <img alt="Lifecycle" src="https://img.shields.io/badge/Lifecycle-11_Phases-blue" />
-  <img alt="Gates" src="https://img.shields.io/badge/Gates-Unified_Engine-yellow" />
+  <img alt="Auth" src="https://img.shields.io/badge/Auth-RBAC-green" />
+  <img alt="Alerts" src="https://img.shields.io/badge/Alerts-Multi_Channel-orange" />
+  <img alt="Database" src="https://img.shields.io/badge/Database-SQLite-blue" />
 </p>
 
 ---
 
-## 🎯 What's New in V3.5.0-C (Plan C Layered Architecture)
+## 🚀 V3.6.0-Prod: Production-Ready Release
 
-**Unified Lifecycle Architecture** - Resolves CLI 6 commands vs 11-phase lifecycle conflict:
+**DevSquad is now production-ready!** Complete with authentication, REST API, alerting, and historical data storage.
+
+### 🎯 Quick Start (3 Ways to Use DevSquad)
+
+#### 1️⃣ Interactive Web Dashboard (Recommended)
+```bash
+# Start Streamlit dashboard with authentication
+streamlit run scripts/dashboard.py
+
+# Open http://localhost:8501
+# Login with: admin / admin123
+```
+
+#### 2️⃣ REST API Server
+```bash
+# Install dependencies
+pip install fastapi uvicorn
+
+# Start API server
+uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
+
+# Access Swagger UI: http://localhost:8000/docs
+# Access ReDoc:      http://localhost:8000/redoc
+```
+
+#### 3️⃣ Command Line Interface
+```bash
+# Standard CLI usage
+python scripts/cli.py lifecycle build
+
+# Enhanced visual output
+python scripts/cli.py lifecycle build --visual --verbose
+```
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    User Access Layer                         │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
+│  │ Streamlit    │ │ FastAPI REST │ │ CLI/Notebook │        │
+│  │ Dashboard    │ │ API Server   │ │ (Existing)   │        │
+│  │ (Auth+HTTPS) │ │ (Swagger)    │ │              │        │
+│  └──────┬───────┘ └──────┬───────┘ └──────────────┘        │
+└─────────┼───────────────┼───────────────────────────────────┘
+          │               │
+          ▼               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Business Logic Layer                      │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │AuthManager  │ │AlertManager │ │HistoryMgr   │           │
+│  │(RBAC Auth)  │ │(Multi-Chnl) │ │(SQLite TSDB)│           │
+│  └─────────────┘ └─────────────┘ └─────────────┘           │
+│  ┌─────────────────────────────────────────────┐            │
+│  │     LifecycleProtocol (11-Phase Engine)       │            │
+│  │     UnifiedGateEngine + CheckpointManager     │            │
+│  └─────────────────────────────────────────────┘            │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Data Persistence Layer                    │
+│  ┌────────────┐ ┌────────────┐ ┌────────────────────────┐  │
+│  │ SQLite DB  │ │ YAML Config│ │ Checkpoint Files       │  │
+│  │ (History)  │ │ (Deploy)   │ │ (Lifecycle State)      │  │
+│  └────────────┘ └────────────┘ └────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## ✨ Key Features (V3.6.0-Prod)
+
+### 🔐 Authentication & Authorization
+- **Multi-user support** with role-based access control (RBAC)
+- **Three roles**: Admin (full access), Operator (execute), Viewer (read-only)
+- **Secure password hashing** with SHA-256
+- **Session management** for Streamlit dashboard
+- **OAuth2 support** (optional, for enterprise deployments)
+
+### 🌐 REST API (FastAPI)
+- **10+ endpoints** for complete lifecycle management
+- **Automatic OpenAPI/Swagger** documentation at `/docs`
+- **CORS middleware** for cross-origin requests
+- **Request timing** and comprehensive logging
+- **Standardized error responses**
+
+**Key Endpoints:**
+```
+Lifecycle:
+  GET    /api/v1/lifecycle/phases          → List all 11 phases
+  POST   /api/v1/lifecycle/actions         → Execute phase actions
+  GET    /api/v1/lifecycle/status          → Current status
+
+Metrics:
+  GET    /api/v1/metrics/current          → Real-time metrics
+  GET    /api/v1/metrics/history          → Historical data
+
+Gates:
+  GET    /api/v1/gates/status             → All gate statuses
+  POST   /api/v1/gates/check              → Check specific gate
+
+System:
+  GET    /api/v1/health                   → Health check
+```
+
+### 🔔 Alert Notification System
+- **4 severity levels**: INFO, WARNING, ERROR, CRITICAL
+- **Multiple channels**: Console, Slack, Email, Webhook
+- **Rate limiting** to prevent alert spam (configurable)
+- **Deduplication** within time window
+- **Alert history** tracking and statistics
+
+### 📊 Historical Data Storage (SQLite)
+- **Metrics snapshots** with time-range queries
+- **Alert history** with acknowledgment tracking
+- **API request logs** with performance metrics
+- **Lifecycle events** audit trail
+- **Automatic cleanup** with configurable retention
+
+### 📈 Visualization & Monitoring
+- **Streamlit Dashboard**: Real-time monitoring with authentication
+- **CLI Visual Module**: Rich terminal output with colors and icons
+- **Jupyter Notebook**: Interactive 10-section tutorial
+- **Benchmark Reports**: HTML/JSON performance reports
+
+---
+
+## 📋 Plan C Architecture (Core Engine)
+
+**Unified Lifecycle Architecture** - Resolves CLI 6 commands vs 11-phase lifecycle:
 
 ```
 CLI View Layer (6 commands)          Core Engine (11 phases)
@@ -42,62 +176,11 @@ CLI View Layer (6 commands)          Core Engine (11 phases)
   (Phase + Worker gates)              (Lifecycle state persistence)
 ```
 
-**Key Components:**
+**Core Components:**
 - ✅ **LifecycleProtocol** - Abstract interface for unified lifecycle management
 - ✅ **UnifiedGateEngine** - Integrates VerificationGate + Phase transition gates
 - ✅ **FullLifecycleAdapter** - Complete 11-phase lifecycle with dependency resolution
 - ✅ **Enhanced CheckpointManager** - Auto save/restore lifecycle state across sessions
-- ✅ **CLI Visualization Module** - Rich terminal output with progress bars and status icons
-- ✅ **Streamlit Dashboard** - Interactive web dashboard for real-time monitoring
-- ✅ **Jupyter Notebook Tutorial** - Interactive step-by-step learning guide
-- ✅ **Benchmark Report Generator** - HTML/JSON performance and quality reports
-- ✅ **755+ tests** - All passing (Plan C architecture validation)
-
-### 🎨 New in V3.5.0-C: Visualization & Monitoring
-
-#### Interactive Dashboard (Streamlit)
-```bash
-# Launch web dashboard
-streamlit run scripts/dashboard.py
-```
-Features:
-- 📊 Real-time lifecycle phase status monitoring
-- 🔗 CLI command mapping visualization
-- 🚧 Gate status tracking
-- 📈 Performance metrics display
-- 🎮 Interactive control panel
-
-#### CLI Enhanced Output
-```bash
-# Use visual mode for rich terminal output
-python scripts/cli.py lifecycle build --visual --verbose
-```
-Features:
-- 🎨 Colored progress bars and phase status icons
-- 📋 Formatted tables with alignment
-- ⏱️ Percentage completion indicators
-- 🔒 Gate status visualization
-
-#### Jupyter Notebook Tutorial
-```bash
-# Open interactive tutorial
-jupyter notebook examples/tutorial.ipynb
-```
-Covers:
-- Core concepts and architecture
-- CLI command to 11-phase mapping
-- Gate checking mechanism
-- Performance benchmarking
-- Real-world usage scenarios
-
-#### Benchmark Reports
-```bash
-# Generate performance report
-python scripts/generate_benchmark_report.py --format html --open
-```
-Output: `reports/benchmark_YYYYMMDD_HHMMSS.html`
-
----
 
 ## What is DevSquad?
 
@@ -134,25 +217,65 @@ You: "Design a microservices e-commerce backend"
       └──────────────────┘
 ```
 
-## Quick Start
+## 📦 Installation
 
-### Install
+### Prerequisites
+- **Python 3.9+** (3.9, 3.10, 3.11, 3.12 supported)
+- **pip** or **pipenv** for package management
 
+### Option A: Core Installation (CLI + Dashboard)
 ```bash
-git clone https://github.com/lulin70/DevSquad.git
+git clone https://github.com/your-org/DevSquad.git
 cd DevSquad
 
-# Option A: Run directly (no install needed)
-# Zero dependencies, ready to use, config file features degraded
-python3 scripts/cli.py dispatch -t "Design user authentication system"
-
-# Option B: pip install (Recommended)
-# Full functionality, including config file support (pyyaml auto-installed)
+# Install core package (minimal dependencies)
 pip install -e .
+
+# Ready to use!
 devsquad dispatch -t "Design user authentication system"
 ```
 
-> **Which option?** Option A is for quick trials — no dependencies needed, but `~/.devsquad.yaml` config files won't be loaded. Option B installs DevSquad as a package with all features enabled, including YAML config, `devsquad` CLI command, and optional integrations (CarryMem, OpenAI, Anthropic).
+### Option B: Full Production Stack (Recommended)
+```bash
+# Clone and install with all production features
+git clone https://github.com/your-org/DevSquad.git
+cd DevSquad
+
+# Install with API server dependencies
+pip install -e ".[api]"
+
+# Or install all optional features
+pip install -e ".[all]"
+```
+
+**Optional Feature Groups:**
+```bash
+# API Server (FastAPI + Uvicorn)
+pip install -e ".[api]"
+
+# Visualization (Streamlit + Jupyter)
+pip install -e ".[visualization]"
+
+# Alerting (Slack SDK)
+pip install -e ".[alerts]"
+
+# Development & Testing
+pip install -e ".[dev]"
+
+# Everything combined
+pip install -e ".[all]"
+```
+
+### Verify Installation
+```bash
+# Check version
+devsquad --version
+# Expected: devsquad 3.6.0
+
+# Run tests
+pytest tests/ -v --tb=short
+# Expected: 776+ passed
+```
 
 ### 3 Ways to Use
 

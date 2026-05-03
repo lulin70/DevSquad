@@ -612,6 +612,178 @@ python scripts/generate_benchmark_report.py --format both
 
 ---
 
+## 🔐 V3.6.0-Prod: 生产级功能指南
+
+### 认证与授权系统
+
+#### 启用认证
+```bash
+# 编辑部署配置
+vim config/deployment.yaml
+
+# 设置 authentication.enabled: true
+
+# 启动Dashboard（自动显示登录界面）
+streamlit run scripts/dashboard.py
+```
+
+**默认凭据** (开发环境):
+```
+用户名: admin      密码: admin123    角色: 管理员 (全部权限)
+用户名: operator   密码: operator123 角色: 操作者 (执行权限)
+用户名: viewer     密码: viewer123   角色: 查看者 (只读权限)
+```
+
+#### 生成生产密码哈希
+```bash
+python3 scripts/auth.py
+# 输出示例:
+# Username: admin
+# Hashed Password: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+```
+
+### REST API 使用指南
+
+#### 启动API服务器
+```bash
+# 安装依赖
+pip install -e ".[api]"
+
+# 启动服务
+uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
+```
+
+#### API端点速查
+
+**生命周期管理**:
+```bash
+# 获取所有阶段
+curl http://localhost:8000/api/v1/lifecycle/phases | jq
+
+# 获取特定阶段详情
+curl http://localhost:8000/api/v1/lifecycle/phases/P8 | jq
+
+# 执行阶段操作
+curl -X POST http://localhost:8000/api/v1/lifecycle/actions \
+  -H "Content-Type: application/json" \
+  -d '{"phase_id": "P8", "action": "advance"}' | jq
+
+# 获取当前状态
+curl http://localhost:8000/api/v1/lifecycle/status | jq
+```
+
+**指标与门禁**:
+```bash
+# 实时指标
+curl http://localhost:8000/api/v1/metrics/current | jq
+
+# 历史数据 (最近24小时)
+curl "http://localhost:8000/api/v1/metrics/history?hours=24" | jq
+
+# 所有Gate状态
+curl http://localhost:8000/api/v1/gates/status | jq
+
+# 检查特定Gate
+curl -X POST http://localhost:8000/api/v1/gates/check \
+  -H "Content-Type: application/json" \
+  -d '{"command": "build"}' | jq
+```
+
+**系统健康检查**:
+```bash
+curl http://localhost:8000/api/v1/health | jq
+```
+
+### 告警通知配置
+
+#### 配置Slack通知
+```yaml
+# config/alerts.yaml
+channels:
+  slack:
+    enabled: true
+    webhook_url: "${SLACK_WEBHOOK_URL}"  # 从环境变量读取
+    channel: "#devsquad-alerts"
+    username: "DevSquad Bot"
+```
+
+#### 配置Email通知
+```yaml
+channels:
+  email:
+    enabled: true
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    sender: "devsquad-alerts@yourdomain.com"
+    recipients:
+      - "oncall-team@yourdomain.com"
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
+```
+
+#### 在代码中使用告警
+```python
+from scripts.alert_manager import AlertManager, AlertSeverity
+
+alerts = AlertManager()
+
+# 发送不同级别的告警
+alerts.send_alert(
+    severity=AlertSeverity.ERROR,
+    title="Gate Check Failed",
+    message="Build gate failed for project X",
+    channel="slack"  # 或 "email", "console", "all"
+)
+
+# 快捷函数
+from scripts.alert_manager import alert_error, alert_critical
+alert_error("Build Failed", "Error details here")
+alert_critical("System Down", "Production incident!")
+```
+
+### 历史数据查询
+
+#### Python API
+```python
+from scripts.history_manager import HistoryManager
+
+history = HistoryManager()
+
+# 保存指标快照
+history.save_metrics_snapshot({
+    "total_phases": 11,
+    "completed_phases": 7,
+    "completion_rate": 63.6,
+    "avg_response_time_ms": 150.5,
+    "cpu_usage_percent": 45.2
+})
+
+# 查询历史数据
+data = history.get_metrics_history(hours=24, interval_minutes=60)
+
+# API统计
+stats = history.get_api_stats(hours=1)
+print(f"总请求数: {stats['total_requests']}")
+print(f"平均响应时间: {stats['avg_response_time_ms']}ms")
+
+# 数据库信息
+info = history.get_database_size()
+print(f"数据库大小: {info['file_size_mb']} MB")
+print(f"总记录数: {info['total_records']}")
+```
+
+#### 数据库位置
+```
+数据文件: data/devsquad_history.db (SQLite)
+表结构:
+  - metrics_snapshots  (性能指标快照)
+  - alert_history       (告警历史记录)
+  - api_logs            (API请求日志)
+  - lifecycle_events    (生命周期事件)
+```
+
+---
+
 ## 示例代码位置
 
 - **快速开始**: [examples/quick_start.py](../examples/quick_start.py)
@@ -625,6 +797,15 @@ python scripts/generate_benchmark_report.py --format both
 ---
 
 ## 版本历史
+
+- **V3.6.0-Prod** (2026-05-03): 生产就绪版本
+  - 新增: 认证与授权系统 (RBAC, 多用户支持)
+  - 新增: REST API服务器 (FastAPI + Swagger文档)
+  - 新增: 告警通知系统 (Slack/Email/Console/Webhook)
+  - 新增: 历史数据存储 (SQLite时序数据库)
+  - 增强: Dashboard集成认证功能
+  - 更新: pyproject.toml添加可选依赖组
+  - 测试: 776+ 测试用例 (99.34% 通过率)
 
 - **V3.5.0-C** (2026-05-03): Plan C分层架构 + 可视化增强
   - 新增: FullLifecycleAdapter (完整11阶段支持)
@@ -646,6 +827,6 @@ python scripts/generate_benchmark_report.py --format both
 
 ---
 
-**最后更新**: 2026-05-03  
-**版本**: V3.5.0-C (Plan C Layered Architecture)  
+**最后更新**: 2026-05-03
+**版本**: V3.6.0-Prod (Production Ready)
 **作者**: DevSquad Team
