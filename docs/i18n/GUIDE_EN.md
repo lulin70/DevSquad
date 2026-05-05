@@ -1,6 +1,6 @@
 # DevSquad User Guide
 
-> **Version**: V3.4.0-Prod | **Updated**: 2026-05-03
+> **Version**: V3.5.0 | **Updated**: 2026-05-05
 >
 > This document is the complete feature manual for DevSquad, covering all user-facing functionality.
 
@@ -274,7 +274,7 @@ result = engine.execute(workflow, checkpoint_dir="./checkpoints")
 
 ### 11-Phase Model
 
-DevSquad V3.4.0 defines an **11-phase (4 optional)** project lifecycle. Each phase has a clear lead role, reviewers, dependencies/artifacts, and gate conditions:
+DevSquad V3.5.0 defines an **11-phase (4 optional)** project lifecycle. Each phase has a clear lead role, reviewers, dependencies/artifacts, and gate conditions:
 
 ```
 P1 Requirements ──→ P2 Architecture ──┬──→ P3 Technical Design ──→ P6 Security Review ──→ P7 Test Planning ──→ P8 Implementation ──→ P9 Test Execution ──→ P10 Deployment ──→ P11 Operations
@@ -1270,4 +1270,4 @@ Security mechanisms: Two-layer defense (InputValidator + length limit ≤500 cha
 
 ---
 
-*DevSquad V3.4.0 — 2026-05-02*
+*DevSquad V3.5.0 — 2026-05-05*

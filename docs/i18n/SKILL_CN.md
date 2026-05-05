@@ -2,17 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.4.0-Prod DevSquad — 生产就绪多角色 AI 任务编排器。
+  V3.5.0 DevSquad — 多角色 AI 任务编排器。
   一个任务输入，多角色 AI 协作，一个结论输出。
   7个核心角色（架构师/产品经理/安全专家/测试员/开发人员/运维/UI设计师），
   真实 LLM 后端（OpenAI/Anthropic），CLI + REST API + Dashboard + MCP + Python API。
-  777+ 测试全部通过 (99.34%)。
-  V3.4.0 新增: 认证系统(RBAC)、FastAPI REST服务器、告警通知、
-  历史数据存储(SQLite)、带登录功能的Streamlit仪表板。
+  1500+ 测试全部通过。
+  V3.5.0 新增: 7角色代码走读、五轴共识引擎、Karpathy原则、
+  生命周期协议扩展、多语言代码地图、项目理解增强。
   ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
 ---
 
-# DevSquad V3.4.0-Prod — 多角色 AI 任务编排器（生产就绪）
+# DevSquad V3.5.0 — 多角色 AI 任务编排器
 
 ## 核心定位
 
@@ -357,7 +357,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 status = disp.get_status()
 # 返回：
 # {
-#   "version": "3.4.0-Prod",
+#   "version": "3.5.0",
 #   "components": {...},       # 各组件启用状态
 #   "dispatch_count": N,        # 已执行调度次数
 #   "scratchpad_stats": {...},  # 黑板统计

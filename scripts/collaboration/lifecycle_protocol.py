@@ -67,7 +67,6 @@ class PhaseDefinition:
         }
 
 
-@dataclass
 class PhaseState(Enum):
     """Phase execution state."""
     PENDING = "pending"
@@ -864,6 +863,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         self,
         spec_path: Optional[str] = None,
         template_id: Optional[str] = None,
+        spec_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Validate specification completeness and consistency.
@@ -871,6 +871,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         Args:
             spec_path: Path to specification file (optional)
             template_id: Template to validate against
+            spec_data: Specification data dict to validate (optional)
 
         Returns:
             Dict with validation results
@@ -885,21 +886,36 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                 "warnings": [],
             }
 
+        if spec_data is None:
+            if spec_path:
+                try:
+                    raw = Path(spec_path).read_text(encoding="utf-8")
+                    spec_data = json.loads(raw)
+                except Exception:
+                    spec_data = {}
+            else:
+                spec_data = {}
+
+        sections = spec_data.get("sections", spec_data)
+
         for field_name in template.required_fields:
-            results["errors"].append(
-                {
-                    "field": field_name,
-                    "message": f"Required field '{field_name}' is missing or empty",
-                    "severity": "critical",
-                }
-            )
-            results["valid"] = False
+            value = sections.get(field_name, spec_data.get(field_name, ""))
+            if not value or (isinstance(value, str) and not value.strip()):
+                results["errors"].append(
+                    {
+                        "field": field_name,
+                        "message": f"Required field '{field_name}' is missing or empty",
+                        "severity": "critical",
+                    }
+                )
+                results["valid"] = False
 
         for rule in template.validation_rules:
             field_name = rule.get("field", "")
             check = rule.get("check", "")
             severity = rule.get("severity", "warning")
-            if check == "not_empty":
+            value = sections.get(field_name, spec_data.get(field_name, ""))
+            if check == "not_empty" and (not value or (isinstance(value, str) and not value.strip())):
                 results["warnings"].append(
                     {
                         "field": field_name,
@@ -1294,10 +1310,21 @@ class FullLifecycleAdapter(LifecycleProtocol):
             ]) if (unified_result.critical_issues or unified_result.warnings) else "",
         )
 
-    @staticmethod
-    def _check_gate_basic(target: str, phase_def: PhaseDefinition) -> GateResult:
+    def _check_gate_basic(self, target: str, phase_def: PhaseDefinition) -> GateResult:
         """Basic fallback gate check without UnifiedGateEngine."""
-        # This would need access to instance state, so we use a simplified version
+        if not phase_def.optional:
+            for dep in phase_def.dependencies:
+                if dep not in self._completed_phases:
+                    dep_state = self._phase_states.get(dep, PhaseState.PENDING)
+                    if dep_state != PhaseState.COMPLETED:
+                        return GateResult(
+                            passed=False,
+                            verdict="BLOCKED",
+                            gap_report=f"Unmet dependencies: {dep}",
+                        )
+        current_state = self._phase_states.get(target, PhaseState.PENDING)
+        if current_state == PhaseState.BLOCKED:
+            return GateResult(passed=False, verdict="BLOCKED", gap_report="Phase is blocked")
         return GateResult(passed=True, verdict="APPROVE")
 
     def get_status(self) -> LifecycleStatus:
@@ -1413,6 +1440,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
         self,
         spec_path: Optional[str] = None,
         template_id: Optional[str] = None,
+        spec_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         shortcut = ShortcutLifecycleAdapter(use_unified_gate=self._use_unified_gate)
-        return shortcut.validate_spec(spec_path, template_id)
+        return shortcut.validate_spec(spec_path, template_id, spec_data)

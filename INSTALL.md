@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V3.4.0-Prod)
+# DevSquad — Installation Guide (V3.5.0)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -68,10 +68,10 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.4.0-Prod
+python3 scripts/cli.py --version   # 3.5.0
 ```
 
-### Method 5: Web Dashboard (V3.4.0) 🎨
+### Method 5: Web Dashboard (V3.5.0) 🎨
 
 ```bash
 # Install visualization dependencies
@@ -97,7 +97,7 @@ streamlit run scripts/dashboard.py
 
 > **Production Deployment**: See [Production Configuration](#production-configuration) below.
 
-### Method 6: REST API Server (V3.4.0 NEW) 🌐
+### Method 6: REST API Server (V3.5.0) 🌐
 
 ```bash
 # Install API server dependencies
@@ -172,13 +172,13 @@ pip install psutil
 # For CarryMem cross-session memory + rule injection (optional)
 pip install carrymem[devsquad]>=0.2.8
 
-# V3.4.0 NEW: API Server (FastAPI + Uvicorn + Pydantic)
+# V3.5.0: API Server (FastAPI + Uvicorn + Pydantic)
 pip install -e ".[api]"
 
-# V3.4.0 NEW: Visualization (Streamlit + Jupyter)
+# V3.5.0: Visualization (Streamlit + Jupyter)
 pip install -e ".[visualization]"
 
-# V3.4.0 NEW: Alert System (Slack SDK)
+# V3.5.0: Alert System (Slack SDK)
 pip install -e ".[alerts]"
 
 # Development & Testing (pytest, black, flake8, mypy)
@@ -352,9 +352,9 @@ python3 scripts/cli.py roles
 python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 # Expected: [DRY RUN] message
 
-# 4. Core tests (V3.4.0-Prod)
+# 4. Core tests (V3.5.0)
 python3 -m pytest tests/test_production_features.py tests/test_full_lifecycle_adapter.py -v
-# Expected: 750+ tests all passing (99.3%)
+# Expected: 1500+ tests all passing
 
 # 5. API Server test (if installed)
 curl http://localhost:8000/api/v1/health | jq '.status'
@@ -411,7 +411,7 @@ DevSquad/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
 │   └── collaboration/            # ★ 45 core modules
-│       ├── _version.py           # Version SSOT (3.4.0-Prod)
+│       ├── _version.py           # Version SSOT (3.5.0)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard
@@ -439,7 +439,7 @@ DevSquad/
 │       ├── null_providers.py     # Graceful degradation providers
 │       ├── prompt_assembler.py   # Dynamic prompt assembly + QC injection
 │       ├── role_template_market.py # Role template marketplace
-│       └── *_test.py             # Test suites (750+ tests)
+│       └── *_test.py             # Test suites (1500+ tests)
 ├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
 ├── Dockerfile                    # Docker support
 ├── pyproject.toml                # pip-installable package
@@ -605,5 +605,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest scripts\collaboration\ tests\ test_v35_integration.py -q
-# Expected: 750+ tests all passing (99.3%)
+# Expected: 1500+ tests all passing
 ```

@@ -7,8 +7,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-777%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0--Prod-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1507%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -113,7 +113,7 @@ python3 scripts/cli.py dispatch -t "認証システムを設計" -r arch --backe
 
 ### プロジェクトライフサイクル（11フェーズモデル）
 
-DevSquad V3.4.0は **11フェーズ（4つオプション）** のプロジェクトライフサイクルを定義。各フェーズには明確なロール、依存関係、ゲート条件があります：
+DevSquad V3.5.0は **11フェーズ（4つオプション）** のプロジェクトライフサイクルを定義。各フェーズには明確なロール、依存関係、ゲート条件があります：
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11

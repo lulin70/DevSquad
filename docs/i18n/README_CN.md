@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色 AI 协作 → 一个结论</strong>
   <br>
-  <em>生产就绪 | V3.4.0-Prod</em>
+  <em>生产就绪 | V3.5.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-777%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0--Prod-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1507%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -24,7 +24,7 @@
 
 ---
 
-## 🚀 V3.4.0-Prod: 生产就绪版本
+## 🚀 V3.5.0: 代码走读与质量增强版
 
 **DevSquad 现已达到生产级别！** 完整的认证、REST API、告警通知和历史数据存储功能。
 
@@ -104,7 +104,7 @@ python3 scripts/cli.py dispatch -t "设计认证系统" -r arch --backend openai
 # 其他命令
 python3 scripts/cli.py status          # 系统状态
 python3 scripts/cli.py roles           # 列出可用角色
-python3 scripts/cli.py --version       # 显示版本 (3.4.0-Prod)
+python3 scripts/cli.py --version       # 显示版本 (3.5.0)
 ```
 
 **2. Python API**
@@ -199,7 +199,7 @@ python3 scripts/mcp_server.py --port 8080  # SSE 模式
 
 ### 项目全生命周期（11阶段模型）
 
-DevSquad V3.4.0 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的角色、依赖和门禁条件：
+DevSquad V3.5.0 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的角色、依赖和门禁条件：
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -277,7 +277,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/ test_v35_integration.py -v
 
 # 快速冒烟测试
-python3 scripts/cli.py --version    # 3.4.0-Prod
+python3 scripts/cli.py --version    # 3.5.0
 python3 scripts/cli.py status       # 系统就绪
 python3 scripts/cli.py roles        # 列出 7 个角色
 ```

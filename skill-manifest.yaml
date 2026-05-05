@@ -1,12 +1,12 @@
 name: devsquad
 version: 3.5.0
 description: |
-  DevSquad V3.4.0-Prod — Production-Ready Multi-Role AI Task Orchestrator.
+  DevSquad V3.5.0 — Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.4.0: Authentication (RBAC), Alert System, History Storage, 777+ tests.
+  NEW in V3.5.0: 7-Role Code Walkthrough, Five-Axis Consensus Engine, Karpathy Principles, Enhanced Lifecycle Protocol, Multi-Language Code Map, 1500+ tests.
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -22,7 +22,7 @@ ai_capabilities:
 capabilities:
   - name: multi-agent-dispatcher
     description: |
-      V3.4.0 统一调度入口 - 一键完成多Agent协作
+      V3.5.0 统一调度入口 - 一键完成多Agent协作
 
       核心能力：
       - 任务意图分析与角色自动匹配（中英双语关键词）
@@ -191,17 +191,23 @@ metadata:
 
   version_history:
     - version: 3.5.0
+      date: "2026-05-05"
+      changes:
+        - 7-Role Code Walkthrough with dedicated concern packs
+        - Five-Axis Consensus Engine (Architecture/Security/Correctness/Operability/Readability)
+        - Karpathy Principles concern pack (code-quality.yaml)
+        - Enhanced Lifecycle Protocol (spec-init/spec-analyze/spec-validate)
+        - Multi-Language Code Map (Python/JS/TS/Go/Java/Rust)
+        - Project Understanding Enhancement (agent_briefing.py)
+        - 1500+ tests all passing
+
+    - version: 3.4.0
       date: "2026-04-27"
       changes:
-        - Real LLM backends (OpenAI/Anthropic/Mock) + streaming
-        - ThreadPoolExecutor parallel execution
-        - InputValidator + 16-pattern prompt injection detection
-        - 7 core roles with bilingual keyword matching (CN+EN)
-        - CheckpointManager, WorkflowEngine, TaskCompletionChecker
-        - CodeMapGenerator, DualLayerContext, SkillRegistry, ConfigManager
-        - Docker + GitHub Actions CI + pip installable
-        - i18n support (zh/en/ja)
-        - 34 modules, 258 unit tests all passing
+        - Authentication (RBAC), Alert System, History Storage
+        - Interactive Setup Wizard, User-Friendly Errors
+        - Performance Monitoring, REST API, Web Dashboard
+        - 1478 tests passing
 
     - version: 3.0.0
       date: "2026-04-16"

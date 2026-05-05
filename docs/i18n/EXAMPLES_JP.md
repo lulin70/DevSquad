@@ -1,6 +1,6 @@
 # DevSquad 使用例
 
-> 最終検証: 2026-05-03, DevSquad V3.4.0-Prod, backend=openai, model=gpt-4
+> 最終検証: 2026-05-05, DevSquad V3.5.0, backend=openai, model=gpt-4
 >
 > **生産レディ**: 認証 ✅ | REST API ✅ | アラート ✅ | 履歴データ ✅
 
@@ -83,7 +83,7 @@ python3 scripts/cli.py dispatch \
 実際のコードベースへのアクセスがないため、実行可能な監査フレームワークを提供します...
 ```
 
-### 例4：ストリーミング出力（V3.4.0新機能）
+### 例4：ストリーミング出力（V3.5.0）
 
 ```bash
 python3 scripts/cli.py dispatch \
@@ -171,7 +171,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles --format json
 
 # バージョン表示
-python3 scripts/cli.py --version    # 3.4.0-Prod
+python3 scripts/cli.py --version    # 3.5.0
 ```
 
 ## Python API使用例

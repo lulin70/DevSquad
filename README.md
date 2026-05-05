@@ -3,14 +3,14 @@
 <p align="center">
   <strong>One task → Multi-role AI collaboration → One conclusion</strong>
   <br>
-  <em>Production Ready | V3.4.0</em>
+  <em>Production Ready | V3.5.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1478%20passing%20(98.4%25)-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0--Prod-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1507%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -27,9 +27,9 @@
 
 ---
 
-## 🚀 V3.4.0-Prod: Production-Ready Release
+## 🚀 V3.5.0: Code Walkthrough & Quality Enhancement Release
 
-**DevSquad is now production-ready!** Complete with concern packs, interactive setup wizard, user-friendly errors, performance monitoring, authentication, REST API, alerting, and historical data storage.
+**DevSquad V3.5.0** adds 7-role code walkthrough, five-axis consensus engine, Karpathy principles, and enhanced lifecycle protocol — making code review systematic and rigorous.
 
 ### 🎯 Quick Start (4 Ways to Use DevSquad)
 
@@ -111,7 +111,33 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ Key Features (V3.4.0-Prod)
+## ✨ Key Features (V3.5.0)
+
+### 🔍 7-Role Code Walkthrough (NEW)
+Systematic multi-perspective code review with dedicated concern packs:
+- **code-walkthrough.yaml** — 7-role walkthrough guidance (architect/security/tester/developer/devops/PM/UI)
+- **code-quality.yaml** — Karpathy principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution)
+- **Document Consistency Check** — 9-category documentation review (version numbers, test counts, module counts, feature descriptions)
+
+### ⚖️ Five-Axis Consensus Engine (NEW)
+Walkthrough-specific code review with weighted five-axis evaluation:
+- **Architecture** (30%) — Structural soundness and design patterns
+- **Security** (25%) — Vulnerability detection and compliance
+- **Correctness** (20%) — Logic verification and edge cases
+- **Operability** (15%) — Deployment and monitoring readiness
+- **Readability** (10%) — Code clarity and maintainability
+
+### 🔄 Enhanced Lifecycle Protocol (NEW)
+Extended specification toolchain with three new commands:
+- **spec-init** — Initialize specification from template (requirements/architecture/technical)
+- **spec-analyze** — Analyze codebase to generate specification draft
+- **spec-validate** — Validate specification completeness and consistency
+
+### 🗺️ Multi-Language Code Map (NEW)
+Code map generator now supports Python, JavaScript, TypeScript, Go, Java, and Rust parsing via `language_parsers.py`.
+
+### 📋 Project Understanding Enhancement (NEW)
+`agent_briefing.py` extended with project overview generation, tech stack detection, and architecture summary.
 
 ### 🧩 Concern Packs (NEW)
 Domain-specific knowledge packs that automatically enhance AI role prompts based on task content:
@@ -315,11 +341,11 @@ pip install -e ".[all]"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.4.0
+# Expected: devsquad 3.5.0
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 776+ passed
+# Expected: 1500+ passed
 ```
 
 ### 3 Ways to Use
@@ -345,7 +371,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch --backend openai
 # Other commands
 python3 scripts/cli.py status          # System status
 python3 scripts/cli.py roles           # List available roles
-python3 scripts/cli.py --version       # Show version (3.4.0-Prod)
+python3 scripts/cli.py --version       # Show version (3.5.0)
 ```
 
 **2. Python API**
@@ -425,7 +451,7 @@ DevSquad is built on a layered architecture with clear separation of concerns:
 └─────────────────────────────────────────────────┘
 ```
 
-## What's New in V3.4.0 🆕
+## What's New in V3.5.0 🆕
 
 ### AgentBriefing System
 Context-aware task briefing that helps agents understand project history and make informed decisions:
@@ -555,7 +581,7 @@ See [Integration Guide](docs/guides/agent_briefing_confidence_integration.md) fo
 
 ### Project Lifecycle (11-Phase Model)
 
-DevSquad V3.4.0 defines an **11-phase (4 optional)** project lifecycle with clear roles, dependencies, and gate conditions:
+DevSquad V3.5.0 defines an **11-phase (4 optional)** project lifecycle with clear roles, dependencies, and gate conditions:
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -698,7 +724,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/test_cli_lifecycle.py -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.4.1
+python3 scripts/cli.py --version    # 3.5.0
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 

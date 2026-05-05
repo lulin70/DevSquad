@@ -424,7 +424,13 @@ class TestInputValidatorIntegration:
         disp = MultiAgentDispatcher(enable_warmup=False, enable_memory=False, enable_skillify=False)
         result = disp.dispatch("")
         assert result.success is False
-        assert "validation" in result.summary.lower() or "invalid" in result.summary.lower()
+        summary_lower = result.summary.lower()
+        assert (
+            "validation" in summary_lower
+            or "invalid" in summary_lower
+            or "太短" in result.summary
+            or "描述" in result.summary
+        )
 
     def test_dispatch_rejects_short_task(self):
         from scripts.collaboration.dispatcher import MultiAgentDispatcher

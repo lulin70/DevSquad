@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import ast
 import re
 import logging
 from typing import Dict, List, Any, Optional
@@ -36,10 +37,10 @@ class PythonParser(LanguageParser):
         return ["__pycache__", "test_", "_test.py", ".venv"]
 
     def parse_file(self, source: str, file_path: str) -> Optional[Dict[str, Any]]:
-        import ast
         try:
             tree = ast.parse(source)
-        except (SyntaxError, UnicodeDecodeError):
+        except (SyntaxError, UnicodeDecodeError) as e:
+            logger.debug("Python parse failed for %s: %s", file_path, e)
             return None
 
         file_imports = []
@@ -68,7 +69,6 @@ class PythonParser(LanguageParser):
         }
 
     def _parse_class(self, node, file_path: str) -> Dict[str, Any]:
-        import ast
         docstring = ast.get_docstring(node) or ""
         methods = []
         for item in node.body:
@@ -81,7 +81,6 @@ class PythonParser(LanguageParser):
         }
 
     def _parse_function(self, node, file_path: str) -> Dict[str, Any]:
-        import ast
         docstring = ast.get_docstring(node) or ""
         calls = []
         for child in ast.walk(node):
@@ -97,10 +96,10 @@ class PythonParser(LanguageParser):
         }
 
     def extract_dependencies(self, source: str) -> List[str]:
-        import ast
         try:
             tree = ast.parse(source)
-        except (SyntaxError, UnicodeDecodeError):
+        except (SyntaxError, UnicodeDecodeError) as e:
+            logger.debug("Python dependency extraction failed: %s", e)
             return []
         deps = set()
         for node in ast.walk(tree):
@@ -164,7 +163,8 @@ class JavaScriptParser(LanguageParser):
                 "total_classes": len(classes),
                 "total_functions": len(functions),
             }
-        except Exception:
+        except Exception as e:
+            logger.debug("JavaScript parse failed for %s: %s", file_path, e)
             return None
 
     def extract_dependencies(self, source: str) -> List[str]:
@@ -233,7 +233,8 @@ class GoParser(LanguageParser):
                 "total_classes": len(structs) + len(interfaces),
                 "total_functions": len(functions),
             }
-        except Exception:
+        except Exception as e:
+            logger.debug("Go parse failed for %s: %s", file_path, e)
             return None
 
     def extract_dependencies(self, source: str) -> List[str]:

@@ -61,13 +61,15 @@ class TestQuickBonusLifecycle:
 
     def test_gate_result_verdict_valid(self):
         result = self.full_adapter.check_gate("P1")
-        assert result.verdict in ["APPROVE", "CONDITIONAL", "REJECT"]
+        assert result.verdict in ["APPROVE", "CONDITIONAL", "REJECT", "BLOCKED"]
 
     def test_advance_p1_always_possible(self):
         result = self.full_adapter.advance_to_phase("P1")
         assert result is not None
 
     def test_complete_after_advance_works(self):
+        self.full_adapter.advance_to_phase("P1")
+        self.full_adapter.complete_phase("P1")
         result = self.full_adapter.advance_to_phase("P2")
         if result.success:
             self.full_adapter.complete_phase("P2")

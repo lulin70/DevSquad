@@ -131,6 +131,7 @@ class FiveAxisConsensusEngine:
         self,
         custom_weights: Optional[Dict[ReviewAxis, float]] = None,
         strict_mode: bool = False,
+        replace_weights: bool = False,
     ):
         """
         Initialize consensus engine.
@@ -138,10 +139,14 @@ class FiveAxisConsensusEngine:
         Args:
             custom_weights: Override default axis weights
             strict_mode: If True, any negative vote on security blocks approval
+            replace_weights: If True, custom_weights fully replace defaults instead of merging
         """
-        self._weights = dict(self.DEFAULT_AXIS_WEIGHTS)
-        if custom_weights:
-            self._weights.update(custom_weights)
+        if replace_weights and custom_weights:
+            self._weights = dict(custom_weights)
+        else:
+            self._weights = dict(self.DEFAULT_AXIS_WEIGHTS)
+            if custom_weights:
+                self._weights.update(custom_weights)
         self._strict_mode = strict_mode
 
     def create_review(
@@ -322,7 +327,8 @@ def create_walkthrough_engine() -> FiveAxisConsensusEngine:
     - Configuration management (externalized config, environment isolation)
     - Performance operations (resource usage, response time, capacity planning, SLA)
     """
-    engine = FiveAxisConsensusEngine.__new__(FiveAxisConsensusEngine)
-    engine._weights = dict(WALKTHROUGH_AXIS_WEIGHTS)
-    engine._strict_mode = True
-    return engine
+    return FiveAxisConsensusEngine(
+        custom_weights=WALKTHROUGH_AXIS_WEIGHTS,
+        strict_mode=True,
+        replace_weights=True,
+    )
