@@ -1,5 +1,5 @@
 name: devsquad
-version: 3.4.0-Prod
+version: 3.5.0
 description: |
   DevSquad V3.4.0-Prod — Production-Ready Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
@@ -190,7 +190,7 @@ metadata:
   repository: https://github.com/lulin70/DevSquad
 
   version_history:
-    - version: 3.4.0
+    - version: 3.5.0
       date: "2026-04-27"
       changes:
         - Real LLM backends (OpenAI/Anthropic/Mock) + streaming

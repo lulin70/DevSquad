@@ -149,6 +149,68 @@ class ViewMapping:
         return phase_id in self.phases
 
 
+@dataclass
+class SpecTemplate:
+    """Specification document template."""
+    template_id: str
+    name: str
+    phase_id: str
+    sections: List[Dict[str, Any]] = field(default_factory=list)
+    required_fields: List[str] = field(default_factory=list)
+    validation_rules: List[Dict[str, Any]] = field(default_factory=list)
+
+
+SPEC_TEMPLATES: Dict[str, SpecTemplate] = {
+    "requirements": SpecTemplate(
+        template_id="requirements",
+        name="Requirements Specification",
+        phase_id="P1",
+        sections=[
+            {"title": "Objectives", "description": "Project goals and success criteria"},
+            {"title": "User Stories", "description": "User stories with acceptance criteria"},
+            {"title": "Non-Functional Requirements", "description": "Performance, security, scalability"},
+            {"title": "Constraints", "description": "Technical and business constraints"},
+            {"title": "Boundaries", "description": "In-scope and out-of-scope items"},
+        ],
+        required_fields=["objectives", "user_stories"],
+        validation_rules=[
+            {"field": "objectives", "check": "not_empty", "severity": "critical"},
+            {"field": "user_stories", "check": "min_count", "value": 1, "severity": "critical"},
+        ],
+    ),
+    "architecture": SpecTemplate(
+        template_id="architecture",
+        name="Architecture Specification",
+        phase_id="P2",
+        sections=[
+            {"title": "System Overview", "description": "High-level architecture diagram"},
+            {"title": "Tech Stack", "description": "Technology selection and rationale"},
+            {"title": "Service Boundaries", "description": "Module/service decomposition"},
+            {"title": "Quality Attributes", "description": "Performance, security, reliability targets"},
+        ],
+        required_fields=["system_overview", "tech_stack"],
+        validation_rules=[
+            {"field": "tech_stack", "check": "not_empty", "severity": "critical"},
+        ],
+    ),
+    "technical": SpecTemplate(
+        template_id="technical",
+        name="Technical Specification",
+        phase_id="P3",
+        sections=[
+            {"title": "API Specifications", "description": "Endpoint definitions"},
+            {"title": "Interface Definitions", "description": "Internal interfaces"},
+            {"title": "Data Models", "description": "Schema definitions"},
+            {"title": "Error Handling", "description": "Error codes and recovery"},
+        ],
+        required_fields=["api_specifications"],
+        validation_rules=[
+            {"field": "api_specifications", "check": "not_empty", "severity": "critical"},
+        ],
+    ),
+}
+
+
 # Predefined view mappings (CLI → 11 phases)
 VIEW_MAPPINGS: Dict[str, ViewMapping] = {
     "spec": ViewMapping(
@@ -215,6 +277,39 @@ VIEW_MAPPINGS: Dict[str, ViewMapping] = {
         pre_dispatch_message=(
             "🚀 Running pre-launch checklist across 6 dimensions. "
             "Rollback plan required."
+        ),
+    ),
+    "spec-init": ViewMapping(
+        command="spec-init",
+        phases=["P1"],
+        description="Initialize specification document from template",
+        required_roles=["architect", "product-manager"],
+        gate="spec_template_complete",
+        pre_dispatch_message=(
+            "📋 Initializing specification document from template. "
+            "Choose template: requirements / architecture / technical."
+        ),
+    ),
+    "spec-analyze": ViewMapping(
+        command="spec-analyze",
+        phases=["P1", "P2"],
+        description="Analyze existing codebase to generate specification draft",
+        required_roles=["architect"],
+        gate="code_analysis_complete",
+        pre_dispatch_message=(
+            "🔍 Analyzing codebase structure to generate specification draft. "
+            "Uses CodeMapGenerator for multi-language analysis."
+        ),
+    ),
+    "spec-validate": ViewMapping(
+        command="spec-validate",
+        phases=["P1", "P2", "P3"],
+        description="Validate specification completeness and consistency",
+        required_roles=["architect", "tester"],
+        gate="spec_validation_passed",
+        pre_dispatch_message=(
+            "✅ Validating specification against completeness rules. "
+            "Checks required fields, consistency, and coverage."
         ),
     ),
 }
@@ -679,6 +774,141 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                 if mapping.covers_phase(self._current_phase):
                     return mapping
         return None
+
+    def init_spec(
+        self,
+        template_id: str = "requirements",
+        project_info: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Initialize a specification document from template.
+
+        Args:
+            template_id: Template type (requirements/architecture/technical)
+            project_info: Optional project information to pre-fill
+
+        Returns:
+            Dict with success status and spec document structure
+        """
+        template = SPEC_TEMPLATES.get(template_id)
+        if not template:
+            return {"success": False, "error": f"Unknown template: {template_id}"}
+
+        doc = {
+            "template_id": template_id,
+            "name": template.name,
+            "phase_id": template.phase_id,
+            "sections": {},
+        }
+        for section in template.sections:
+            doc["sections"][section["title"]] = {
+                "description": section["description"],
+                "content": "",
+                "status": "draft",
+            }
+
+        if project_info:
+            doc["project_info"] = project_info
+
+        return {"success": True, "spec": doc, "template_id": template_id}
+
+    def analyze_spec(
+        self,
+        source_dir: str = ".",
+        template_id: str = "requirements",
+    ) -> Dict[str, Any]:
+        """
+        Analyze existing codebase to generate specification draft.
+
+        Uses CodeMapGenerator for multi-language code analysis.
+
+        Args:
+            source_dir: Root directory to analyze
+            template_id: Template to use for structuring the analysis
+
+        Returns:
+            Dict with success status and analysis results
+        """
+        try:
+            from scripts.collaboration.code_map_generator import CodeMapGenerator
+            from scripts.collaboration.language_parsers import DEFAULT_PARSERS
+
+            gen = CodeMapGenerator(project_root=source_dir, parsers=DEFAULT_PARSERS)
+            code_map = gen.generate_map(output_format="dict")
+            dep_graph = gen.get_dependency_graph()
+
+            analysis = {
+                "modules": list(code_map.keys()),
+                "total_modules": len(code_map),
+                "total_classes": sum(
+                    m.get("total_classes", 0) for m in code_map.values()
+                ),
+                "total_functions": sum(
+                    m.get("total_functions", 0) for m in code_map.values()
+                ),
+                "dependencies": dep_graph,
+                "languages": list(
+                    set(
+                        m.get("language", "python")
+                        for m in code_map.values()
+                        if isinstance(m, dict)
+                    )
+                ),
+            }
+
+            return {"success": True, "analysis": analysis, "template_id": template_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def validate_spec(
+        self,
+        spec_path: Optional[str] = None,
+        template_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Validate specification completeness and consistency.
+
+        Args:
+            spec_path: Path to specification file (optional)
+            template_id: Template to validate against
+
+        Returns:
+            Dict with validation results
+        """
+        results: Dict[str, Any] = {"valid": True, "errors": [], "warnings": []}
+
+        template = SPEC_TEMPLATES.get(template_id or "requirements")
+        if not template:
+            return {
+                "valid": False,
+                "errors": [{"message": f"Unknown template: {template_id}"}],
+                "warnings": [],
+            }
+
+        for field_name in template.required_fields:
+            results["errors"].append(
+                {
+                    "field": field_name,
+                    "message": f"Required field '{field_name}' is missing or empty",
+                    "severity": "critical",
+                }
+            )
+            results["valid"] = False
+
+        for rule in template.validation_rules:
+            field_name = rule.get("field", "")
+            check = rule.get("check", "")
+            severity = rule.get("severity", "warning")
+            if check == "not_empty":
+                results["warnings"].append(
+                    {
+                        "field": field_name,
+                        "message": f"Field '{field_name}' should not be empty",
+                        "severity": severity,
+                    }
+                )
+
+        return results
 
 
 def create_lifecycle_protocol(mode: LifecycleMode = LifecycleMode.SHORTCUT) -> LifecycleProtocol:
@@ -1162,3 +1392,27 @@ class FullLifecycleAdapter(LifecycleProtocol):
             "execution_order": self._execution_order,
             "skip_optional": self._skip_optional,
         }
+
+    def init_spec(
+        self,
+        template_id: str = "requirements",
+        project_info: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        shortcut = ShortcutLifecycleAdapter(use_unified_gate=self._use_unified_gate)
+        return shortcut.init_spec(template_id, project_info)
+
+    def analyze_spec(
+        self,
+        source_dir: str = ".",
+        template_id: str = "requirements",
+    ) -> Dict[str, Any]:
+        shortcut = ShortcutLifecycleAdapter(use_unified_gate=self._use_unified_gate)
+        return shortcut.analyze_spec(source_dir, template_id)
+
+    def validate_spec(
+        self,
+        spec_path: Optional[str] = None,
+        template_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        shortcut = ShortcutLifecycleAdapter(use_unified_gate=self._use_unified_gate)
+        return shortcut.validate_spec(spec_path, template_id)

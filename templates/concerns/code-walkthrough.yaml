@@ -1,0 +1,273 @@
+concern_id: code-walkthrough
+name: 代码走读增强包
+version: "1.0"
+description: 7角色代码走读指南，覆盖架构、安全、测试、代码质量、运维、需求和UI视角，含文档一致性检查
+triggers:
+  keywords:
+    - 代码走读
+    - 代码审查
+    - code review
+    - code walkthrough
+    - 走查
+    - 代码质量
+    - 审查代码
+    - review code
+    - inspect
+    - audit code
+    - 代码评审
+    - 代码检视
+
+decision_framework:
+  step_1_choose_perspective:
+    question: 选择走读视角
+    description: 根据代码变更类型和风险等级选择走读视角，可多选
+    options:
+      - id: architecture
+        name: 架构视角
+        when: 评估系统设计、模块划分、依赖关系、性能设计
+        roles: [architect]
+        focus: 模块划分、依赖方向、分层清晰度、循环依赖、接口抽象度
+
+      - id: security
+        name: 安全视角
+        when: 检查安全漏洞、合规性、数据保护
+        roles: [security]
+        focus: 输入验证、认证授权、数据保护、注入风险、敏感信息泄露
+
+      - id: testing
+        name: 测试视角
+        when: 评估测试覆盖、测试质量、边界条件
+        roles: [tester]
+        focus: 测试完整性、边界条件、异常路径、测试独立性、Mock合理性
+
+      - id: code_quality
+        name: 代码质量视角
+        when: 检查命名规范、复杂度、重复代码、错误处理
+        roles: [solo-coder]
+        focus: 命名规范、函数长度、圈复杂度、重复代码、错误处理
+
+      - id: operability
+        name: 运维视角
+        when: 评估部署可行性、监控覆盖、容灾能力
+        roles: [devops]
+        focus: 部署复杂度、配置管理、日志规范、监控埋点、容灾能力
+
+      - id: requirements
+        name: 需求视角
+        when: 验证需求实现完整性、验收标准达成
+        roles: [product-manager]
+        focus: 需求实现完整性、用户故事覆盖、验收标准达成、边界场景
+
+      - id: ui_consistency
+        name: 交互一致性视角
+        when: 检查组件复用、交互规范、无障碍
+        roles: [ui-designer]
+        focus: 组件复用、交互规范、响应式、无障碍、视觉一致性
+
+  step_2_performance_ownership:
+    question: 性能审查归属
+    description: 性能审查由架构师主责（设计层面）+ 运维专家辅责（运行层面）
+    architect_responsibilities:
+      - 算法复杂度评估（时间/空间复杂度）
+      - 数据库性能设计（索引策略、查询优化、连接池）
+      - 并发设计（线程安全、锁策略、连接管理）
+      - 可扩展性设计（水平扩展、负载均衡、分区策略）
+    devops_responsibilities:
+      - 资源使用监控（CPU/内存/磁盘/网络）
+      - 响应时间保障（P50/P95/P99、SLA目标）
+      - 容量规划（峰值预估、资源预留）
+      - 性能监控（APM、慢查询日志、告警阈值）
+
+  step_3_doc_consistency:
+    question: 文档一致性检查
+    description: 代码走读时同步检查文档与代码的一致性，按严重程度分级处置
+    checks:
+      - dimension: API文档缺失
+        method: 公开函数/类无文档注释
+        severity: critical
+        owner: architect
+
+      - dimension: API文档过时
+        method: 函数签名变更但文档未更新
+        severity: high
+        owner: architect
+
+      - dimension: 配置文档缺失
+        method: 环境变量/配置项无文档
+        severity: medium
+        owner: devops
+
+      - dimension: 需求覆盖缺失
+        method: PRD中的功能无对应代码
+        severity: critical
+        owner: product-manager
+
+      - dimension: 安全策略不一致
+        method: 文档要求与代码实现不符
+        severity: critical
+        owner: security
+
+      - dimension: 测试策略不一致
+        method: 测试文档描述与实际测试不符
+        severity: high
+        owner: tester
+
+      - dimension: 运维文档过时
+        method: 部署配置变更但文档未更新
+        severity: high
+        owner: devops
+
+      - dimension: 变更日志遗漏
+        method: 用户可见变更未记录在CHANGELOG
+        severity: medium
+        owner: product-manager
+
+      - dimension: 版本号不一致
+        method: _version.py / pyproject.toml / CHANGELOG / README / INSTALL / GUIDE / SKILL.md / skill-manifest.yaml 中版本号不统一
+        severity: critical
+        owner: architect
+
+    severity_handling:
+      critical: 阻断发布，必须修复后才能继续
+      high: 必须记录，本版本内修复
+      medium: 建议修复，可推迟到下版本
+
+    trigger_timing:
+      code_walkthrough: 触发code-walkthrough增强包时检查全部9类文档
+      P8_implementation: 代码提交评审时检查API文档、需求文档、测试文档
+      P9_testing: 测试评审时检查测试文档、安全策略文档
+      P10_deployment: 部署评审时检查运维文档、配置文档、变更日志
+      release: 版本发布前检查变更日志、API文档、版本号一致性
+
+checklist:
+  must_have:
+    - item: 每个角色的走读视角已覆盖
+      severity: required
+    - item: 性能审查归属已明确（架构师主责设计层面，运维专家辅责运行层面）
+      severity: required
+    - item: 文档一致性检查已执行（9类文档全覆盖）
+      severity: required
+    - item: 版本号一致性已验证（_version.py / pyproject.toml / CHANGELOG / README / INSTALL / GUIDE / SKILL.md / skill-manifest.yaml）
+      severity: required
+    - item: Critical级别文档不一致已修复
+      severity: required
+    - item: 安全走读视角已覆盖输入验证和注入风险
+      severity: required
+    - item: 运维走读视角已覆盖日志规范和监控埋点
+      severity: high
+    - item: 测试走读视角已覆盖边界条件和异常路径
+      severity: high
+
+  common_pitfalls:
+    - title: 走读只看代码不看文档
+      description: 代码走读时忽略文档与代码的一致性，导致文档腐化
+      severity: high
+      check: 走读报告是否包含文档一致性检查结果？
+      fix: 每个角色走读时必须检查其负责的文档类型与代码的一致性
+
+    - title: 性能审查无人负责
+      description: 五轴引擎有Performance轴但无角色负责，导致性能问题被遗漏
+      severity: high
+      check: 性能审查是否明确分配给架构师（设计层面）和运维专家（运行层面）？
+      fix: 使用走读专用五轴引擎（Operability轴替代Performance轴），架构师+运维专家双责
+
+    - title: 安全走读流于形式
+      description: 安全走读只检查"是否有认证"，不深入检查注入风险和权限绕过
+      severity: critical
+      check: 安全走读是否覆盖了输入验证、注入风险、IDOR、权限提升？
+      fix: 使用安全专家走读检查清单，逐项确认
+
+    - title: 版本号不一致导致发布混乱
+      description: _version.py写3.5.0但pyproject.toml还是3.4.0，用户安装到错误版本
+      severity: critical
+      check: 所有版本号文件是否统一？发布前是否执行版本号一致性检查？
+      fix: 架构师在版本发布前必检版本号一致性，Critical级别阻断发布
+
+    - title: 运维视角被忽略
+      description: 代码走读只关注功能和代码质量，忽略日志、监控、容灾等运维需求
+      severity: high
+      check: 走读报告是否包含日志规范、监控埋点、容灾能力的检查结果？
+      fix: 运维专家必须参与代码走读，Operability轴给予15%权重
+
+    - title: PM不参与技术走读
+      description: 认为走读是纯技术活动，PM不参与导致需求实现偏差未被发现
+      severity: medium
+      check: PM是否从需求覆盖视角参与了走读？
+      fix: PM走读视角聚焦需求实现完整性和验收标准达成
+
+role_enhancements:
+  architect:
+    extra_prompt: |
+      【架构师代码走读指南】
+      在审查代码时，重点关注：
+      1. 模块划分是否符合高内聚低耦合原则
+      2. 依赖方向是否合理，有无循环依赖
+      3. 接口抽象是否恰当，是否符合依赖倒置原则
+      4. 性能设计是否考虑算法复杂度、数据库性能和并发控制
+      5. 文档一致性：API文档vs代码（主责）、配置文档vs代码（辅责）、版本号一致性（主责）
+      6. 版本号一致性：检查_version.py / pyproject.toml / CHANGELOG / README / INSTALL / GUIDE / SKILL.md / skill-manifest.yaml中版本号是否统一
+
+  security:
+    extra_prompt: |
+      【安全专家代码走读指南】
+      在审查代码时，重点关注：
+      1. 输入验证：所有外部输入是否经过校验和清洗
+      2. 认证授权：每个API端点是否有独立的权限校验
+      3. 数据保护：敏感数据是否加密存储和传输
+      4. 注入风险：是否使用参数化查询，是否防范XSS/SSRF
+      5. 敏感信息泄露：日志和错误响应是否暴露内部信息
+      6. 文档一致性：安全策略文档vs代码（主责），安全配置、权限规则是否与文档一致
+
+  tester:
+    extra_prompt: |
+      【测试专家代码走读指南】
+      在审查代码时，重点关注：
+      1. 测试完整性：核心逻辑是否有单元测试覆盖
+      2. 边界条件：空值、极值、并发场景是否测试
+      3. 异常路径：错误处理是否有对应的测试用例
+      4. 测试独立性：测试之间是否有依赖，Mock是否合理
+      5. 文档一致性：测试文档vs代码（主责），测试用例、覆盖率是否与文档一致
+
+  solo-coder:
+    extra_prompt: |
+      【独立开发者代码走读指南】
+      在审查代码时，重点关注：
+      1. 命名规范：变量、函数、类名是否表达意图
+      2. 函数长度：单个函数是否超过50行，是否需要拆分
+      3. 圈复杂度：条件嵌套是否过深（>3层）
+      4. 重复代码：是否有可提取的公共逻辑
+      5. 错误处理：异常是否被正确捕获和处理，是否有裸except
+      6. 文档一致性：API文档vs代码（辅责）、变更日志vs实际变更（辅责）
+
+  devops:
+    extra_prompt: |
+      【运维专家代码走读指南】
+      在审查代码时，重点关注：
+      1. 部署可行性：Docker/K8s配置是否完整，环境变量是否外置
+      2. 配置管理：配置是否有默认值，是否有环境隔离
+      3. 日志规范：关键操作是否有日志，日志级别是否合理
+      4. 监控埋点：核心指标是否有监控，告警阈值是否设置
+      5. 容灾能力：是否有降级方案，是否有回滚机制
+      6. 性能运维：资源使用、响应时间、容量规划、SLA目标
+      7. 文档一致性：运维文档vs代码（主责）、配置文档vs代码（主责）
+
+  product-manager:
+    extra_prompt: |
+      【产品经理代码走读指南】
+      在审查代码时，重点关注：
+      1. 需求实现完整性：PRD中的每个功能点是否有对应代码
+      2. 用户故事覆盖：核心用户流程是否完整实现
+      3. 验收标准达成：每个验收标准是否有代码实现和测试覆盖
+      4. 边界场景：异常流程和边缘情况是否考虑
+      5. 文档一致性：需求文档vs代码（主责）、变更日志vs实际变更（主责）
+
+  ui-designer:
+    extra_prompt: |
+      【UI设计师代码走读指南】
+      在审查代码时，重点关注：
+      1. 组件复用：是否使用统一的组件库，是否有重复实现
+      2. 交互规范：交互行为是否符合设计规范
+      3. 响应式：不同屏幕尺寸是否适配
+      4. 无障碍：是否支持键盘导航、屏幕阅读器、颜色对比度
+      5. 视觉一致性：颜色、字体、间距是否与设计稿一致
+      6. 文档一致性：UI设计文档vs代码（主责）

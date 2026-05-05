@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
   <br>
-  <em>生产就绪 | V3.4.0</em>
+  <em>生产就绪 | V3.5.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-1478%20passing%20(98.4%25)-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0--Prod-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.5.0--Prod-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,7 +18,7 @@
 
 ---
 
-## 🚀 V3.4.0-Prod: 生产就绪版本
+## 🚀 V3.5.0-Prod: 生产就绪版本
 
 **DevSquad 现已达到生产就绪状态！** 完整支持认证、REST API、告警和历史数据存储。
 
@@ -93,7 +93,7 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ 核心特性 (V3.4.0)
+## ✨ 核心特性 (V3.5.0)
 
 ### 🧩 关注点增强包 (NEW)
 领域专属知识包，根据任务内容自动增强AI角色提示词：

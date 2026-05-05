@@ -14,7 +14,7 @@ Usage:
     
     briefing = AgentBriefing(
         agent_role="Architect",
-        project_context={"name": "DevSquad", "version": "3.4.0-Prod"}
+        project_context={"name": "DevSquad", "version": "3.5.0-Prod"}
     )
     
     # Generate briefing
@@ -22,6 +22,12 @@ Usage:
         task="Design Protocol interface system",
         context={"priority": "high"}
     )
+    
+    # Generate project overview
+    overview = briefing.generate_project_overview(".")
+    
+    # Generate role-specific understanding
+    understanding = briefing.generate_role_understanding("security", ".")
     
     # Update with new information
     briefing.update_briefing(
@@ -82,6 +88,8 @@ class AgentBriefing:
     - Priority-based information filtering
     - Incremental updates
     - Persistence support
+    - Project overview generation (V3.5.0)
+    - Role-specific understanding generation (V3.5.0)
     """
     
     def __init__(
@@ -90,26 +98,14 @@ class AgentBriefing:
         project_context: Optional[Dict[str, Any]] = None,
         storage_dir: Optional[str] = None
     ):
-        """
-        Initialize agent briefing
-        
-        Args:
-            agent_role: Agent role (e.g., "Architect", "Developer")
-            project_context: Project-level context information
-            storage_dir: Directory for persisting briefings
-        """
         self.agent_role = agent_role
         self.project_context = project_context or {}
         self.storage_dir = Path(storage_dir or "data/briefings")
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         
-        # Briefing sections
         self.sections: Dict[str, BriefingSection] = {}
-        
-        # Agent context
         self.agent_context = AgentContext(role=agent_role)
         
-        # Load existing briefing if available
         self._load_briefing()
     
     def generate_briefing(
@@ -118,36 +114,17 @@ class AgentBriefing:
         context: Optional[Dict[str, Any]] = None,
         max_length: Optional[int] = None
     ) -> str:
-        """
-        Generate briefing for a specific task
-        
-        Args:
-            task: Task description
-            context: Additional context for this task
-            max_length: Maximum briefing length (characters)
-        
-        Returns:
-            Generated briefing content
-        """
         context = context or {}
         
-        # Build briefing sections
         briefing_parts = []
         
-        # 1. Agent role and capabilities
         briefing_parts.append(self._generate_role_section())
-        
-        # 2. Project context
         briefing_parts.append(self._generate_project_section())
-        
-        # 3. Current task
         briefing_parts.append(self._generate_task_section(task, context))
         
-        # 4. Historical context
         if self.agent_context.history:
             briefing_parts.append(self._generate_history_section())
         
-        # 5. Custom sections (sorted by priority)
         sorted_sections = sorted(
             self.sections.values(),
             key=lambda s: (s.priority, -s.timestamp)
@@ -155,18 +132,267 @@ class AgentBriefing:
         for section in sorted_sections:
             briefing_parts.append(f"## {section.title}\n\n{section.content}")
         
-        # Combine all parts
         full_briefing = "\n\n".join(briefing_parts)
         
-        # Truncate if needed
         if max_length and len(full_briefing) > max_length:
             full_briefing = full_briefing[:max_length] + "\n\n[Briefing truncated...]"
         
-        # Save to history
         self._add_to_history(task, context, full_briefing)
         
         return full_briefing
     
+    def generate_project_overview(self, project_root: str = ".") -> str:
+        """
+        Generate project overview document.
+
+        Analyzes project structure to produce a module-level understanding
+        document covering tech stack, module structure, core components,
+        and dependency relationships.
+
+        Args:
+            project_root: Root directory of the project to analyze
+
+        Returns:
+            Markdown-formatted project overview document
+        """
+        root = Path(project_root)
+
+        tech_stack = self._analyze_tech_stack(root)
+        modules = self._identify_modules(root)
+        core_components = self._identify_core_components(root)
+
+        lines = ["# Project Overview", ""]
+
+        lines.append("## Tech Stack")
+        for category, items in tech_stack.items():
+            lines.append(f"- **{category}**: {', '.join(items)}")
+        lines.append("")
+
+        lines.append("## Module Structure")
+        for mod in modules:
+            indent = "  " * mod.get("depth", 0)
+            lines.append(f"{indent}- {mod['icon']} **{mod['name']}** — {mod['description']}")
+        lines.append("")
+
+        lines.append("## Core Components")
+        for comp in core_components:
+            lines.append(f"- **{comp['name']}** ({comp['file']}): {comp['description']}")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def generate_role_understanding(
+        self, role: str, project_root: str = "."
+    ) -> str:
+        """
+        Generate role-specific project understanding document.
+
+        Produces a tailored understanding document for a specific role,
+        highlighting aspects most relevant to that role's responsibilities.
+
+        Args:
+            role: Role identifier (e.g., "architect", "security", "tester")
+            project_root: Root directory of the project to analyze
+
+        Returns:
+            Markdown-formatted role-specific understanding document
+        """
+        root = Path(project_root)
+        tech_stack = self._analyze_tech_stack(root)
+        modules = self._identify_modules(root)
+
+        role_focus = {
+            "architect": {
+                "title": "Architecture Understanding",
+                "focus_areas": ["Module Structure", "Dependency Graph", "Design Patterns"],
+                "key_questions": [
+                    "Is the module decomposition following high cohesion / low coupling?",
+                    "Are there circular dependencies?",
+                    "Is the abstraction level appropriate?",
+                ],
+            },
+            "security": {
+                "title": "Security Understanding",
+                "focus_areas": ["Authentication", "Authorization", "Data Protection", "Input Validation"],
+                "key_questions": [
+                    "Where are the authentication and authorization checks?",
+                    "How is sensitive data protected at rest and in transit?",
+                    "Are all external inputs validated?",
+                ],
+            },
+            "tester": {
+                "title": "Testing Understanding",
+                "focus_areas": ["Test Coverage", "Test Strategy", "Critical Paths"],
+                "key_questions": [
+                    "What is the current test coverage?",
+                    "Are boundary conditions and error paths tested?",
+                    "What are the most critical code paths to test?",
+                ],
+            },
+            "solo-coder": {
+                "title": "Development Understanding",
+                "focus_areas": ["Code Conventions", "Hot Spots", "Technical Debt"],
+                "key_questions": [
+                    "What are the coding conventions used?",
+                    "Where are the most complex functions?",
+                    "What technical debt exists?",
+                ],
+            },
+            "devops": {
+                "title": "Operations Understanding",
+                "focus_areas": ["Deployment", "Monitoring", "Configuration", "Logging"],
+                "key_questions": [
+                    "How is the application deployed?",
+                    "What metrics are monitored?",
+                    "How is configuration managed across environments?",
+                ],
+            },
+            "product-manager": {
+                "title": "Product Understanding",
+                "focus_areas": ["Features", "User Flows", "Acceptance Criteria"],
+                "key_questions": [
+                    "What features are currently implemented?",
+                    "What are the core user flows?",
+                    "Are all acceptance criteria met?",
+                ],
+            },
+            "ui-designer": {
+                "title": "UI/UX Understanding",
+                "focus_areas": ["Component Library", "Interaction Patterns", "Accessibility"],
+                "key_questions": [
+                    "What UI components are available?",
+                    "Are interaction patterns consistent?",
+                    "Is accessibility supported?",
+                ],
+            },
+        }
+
+        focus = role_focus.get(role, role_focus.get("solo-coder", {}))
+
+        lines = [f"# {focus.get('title', 'Project Understanding')}", ""]
+        lines.append(f"**Role**: {role}")
+        lines.append("")
+
+        lines.append("## Focus Areas")
+        for area in focus.get("focus_areas", []):
+            lines.append(f"- {area}")
+        lines.append("")
+
+        lines.append("## Key Questions to Answer")
+        for q in focus.get("key_questions", []):
+            lines.append(f"- [ ] {q}")
+        lines.append("")
+
+        lines.append("## Tech Stack Summary")
+        for category, items in tech_stack.items():
+            lines.append(f"- **{category}**: {', '.join(items)}")
+        lines.append("")
+
+        lines.append("## Relevant Modules")
+        for mod in modules:
+            indent = "  " * mod.get("depth", 0)
+            lines.append(f"{indent}- {mod['icon']} **{mod['name']}** — {mod['description']}")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _analyze_tech_stack(self, root: Path) -> Dict[str, List[str]]:
+        """Analyze project tech stack from config files."""
+        stack: Dict[str, List[str]] = {}
+
+        pyproject = root / "pyproject.toml"
+        if pyproject.exists():
+            stack["Language"] = ["Python"]
+            try:
+                content = pyproject.read_text(encoding="utf-8")
+                if "fastapi" in content.lower():
+                    stack.setdefault("Web Framework", []).append("FastAPI")
+                if "streamlit" in content.lower():
+                    stack.setdefault("Web Framework", []).append("Streamlit")
+                if "openai" in content.lower():
+                    stack.setdefault("AI Backend", []).append("OpenAI")
+                if "anthropic" in content.lower():
+                    stack.setdefault("AI Backend", []).append("Anthropic")
+                if "sqlite" in content.lower():
+                    stack.setdefault("Database", []).append("SQLite")
+                if "pyyaml" in content.lower() or "yaml" in content.lower():
+                    stack.setdefault("Config", []).append("YAML")
+            except Exception:
+                pass
+
+        dockerfile = root / "Dockerfile"
+        if dockerfile.exists():
+            stack.setdefault("Deployment", []).append("Docker")
+
+        github_dir = root / ".github"
+        if github_dir.exists():
+            stack.setdefault("CI/CD", []).append("GitHub Actions")
+
+        if not stack:
+            stack["Language"] = ["Unknown"]
+
+        return stack
+
+    def _identify_modules(self, root: Path) -> List[Dict[str, Any]]:
+        """Identify project modules and their descriptions."""
+        modules: List[Dict[str, Any]] = []
+
+        known_dirs = {
+            "scripts/collaboration": {"icon": "🔧", "description": "Core collaboration engine"},
+            "scripts/cli": {"icon": "💻", "description": "CLI interface"},
+            "scripts/dashboard": {"icon": "📊", "description": "Web dashboard"},
+            "scripts/api": {"icon": "🌐", "description": "REST API server"},
+            "templates/concerns": {"icon": "📦", "description": "Concern packs"},
+            "docs": {"icon": "📄", "description": "Documentation"},
+            "tests": {"icon": "🧪", "description": "Test suite"},
+            "benchmarks": {"icon": "⚡", "description": "Performance benchmarks"},
+        }
+
+        for dir_path, info in known_dirs.items():
+            full_path = root / dir_path
+            if full_path.exists() and full_path.is_dir():
+                py_files = list(full_path.rglob("*.py"))
+                modules.append({
+                    "name": dir_path,
+                    "icon": info["icon"],
+                    "description": f"{info['description']} ({len(py_files)} files)",
+                    "depth": dir_path.count("/"),
+                })
+
+        return modules
+
+    def _identify_core_components(self, root: Path) -> List[Dict[str, str]]:
+        """Identify core components from key source files."""
+        components: List[Dict[str, str]] = []
+
+        known_components = [
+            ("dispatcher.py", "MultiAgentDispatcher", "Unified dispatch entry point"),
+            ("coordinator.py", "Coordinator", "Global orchestrator for multi-agent collaboration"),
+            ("worker.py", "Worker", "Role execution unit"),
+            ("scratchpad.py", "Scratchpad", "Shared blackboard for inter-agent communication"),
+            ("consensus.py", "ConsensusEngine", "Weighted voting consensus mechanism"),
+            ("five_axis_consensus.py", "FiveAxisConsensusEngine", "Five-axis code review consensus"),
+            ("llm_backend.py", "LLMBackend", "Multi-backend LLM abstraction layer"),
+            ("permission_guard.py", "PermissionGuard", "4-level permission control system"),
+            ("input_validator.py", "InputValidator", "Input validation and injection detection"),
+            ("memory_bridge.py", "MemoryBridge", "Cross-session memory management"),
+            ("workflow_engine.py", "WorkflowEngine", "Task-to-workflow orchestration"),
+            ("context_compressor.py", "ContextCompressor", "4-level context compression"),
+            ("anti_rationalization.py", "AntiRationalizationEngine", "Anti-rationalization pattern injection"),
+            ("verification_gate.py", "VerificationGate", "Evidence-based completion verification"),
+        ]
+
+        collab_dir = root / "scripts" / "collaboration"
+        for filename, class_name, description in known_components:
+            if (collab_dir / filename).exists():
+                components.append({
+                    "name": class_name,
+                    "file": f"scripts/collaboration/{filename}",
+                    "description": description,
+                })
+
+        return components
+
     def _generate_role_section(self) -> str:
         """Generate agent role section"""
         content = f"# Agent Briefing: {self.agent_role}\n\n"
@@ -244,17 +470,7 @@ class AgentBriefing:
         section: Optional[str] = None,
         priority: int = 2
     ) -> None:
-        """
-        Update briefing with new information
-        
-        Args:
-            key: Information key
-            value: Information value
-            section: Section name (creates new section if not exists)
-            priority: Section priority (1=high, 2=medium, 3=low)
-        """
         if section:
-            # Update or create section
             if section not in self.sections:
                 self.sections[section] = BriefingSection(
                     title=section,
@@ -262,7 +478,6 @@ class AgentBriefing:
                     priority=priority
                 )
             
-            # Append to section content
             if isinstance(value, str):
                 self.sections[section].content += f"\n- **{key}**: {value}"
             else:
@@ -270,7 +485,6 @@ class AgentBriefing:
             
             self.sections[section].timestamp = datetime.now().timestamp()
         else:
-            # Update agent context
             if key == "capabilities":
                 if isinstance(value, list):
                     self.agent_context.capabilities.extend(value)
@@ -287,7 +501,6 @@ class AgentBriefing:
                 else:
                     self.agent_context.preferences[key] = value
         
-        # Persist changes
         self._save_briefing()
     
     def add_section(
@@ -297,15 +510,6 @@ class AgentBriefing:
         priority: int = 2,
         metadata: Optional[Dict[str, Any]] = None
     ) -> None:
-        """
-        Add a new briefing section
-        
-        Args:
-            title: Section title
-            content: Section content
-            priority: Section priority (1=high, 2=medium, 3=low)
-            metadata: Additional metadata
-        """
         self.sections[title] = BriefingSection(
             title=title,
             content=content,
@@ -316,15 +520,6 @@ class AgentBriefing:
         self._save_briefing()
     
     def remove_section(self, title: str) -> bool:
-        """
-        Remove a briefing section
-        
-        Args:
-            title: Section title
-        
-        Returns:
-            True if section was removed, False if not found
-        """
         if title in self.sections:
             del self.sections[title]
             self._save_briefing()
@@ -332,25 +527,16 @@ class AgentBriefing:
         return False
     
     def get_section(self, title: str) -> Optional[BriefingSection]:
-        """Get a specific briefing section"""
         return self.sections.get(title)
     
     def list_sections(self) -> List[str]:
-        """List all section titles"""
         return list(self.sections.keys())
     
     def clear_history(self) -> None:
-        """Clear agent history"""
         self.agent_context.history.clear()
         self._save_briefing()
     
     def export_briefing(self, output_path: str) -> None:
-        """
-        Export briefing to file
-        
-        Args:
-            output_path: Output file path
-        """
         briefing_data = {
             "agent_role": self.agent_role,
             "project_context": self.project_context,
@@ -375,7 +561,6 @@ class AgentBriefing:
         context: Dict[str, Any],
         briefing: str
     ) -> None:
-        """Add task to history"""
         history_entry = {
             "task": task,
             "context": context,
@@ -385,14 +570,12 @@ class AgentBriefing:
         
         self.agent_context.history.append(history_entry)
         
-        # Keep only recent history (last 100 entries)
         if len(self.agent_context.history) > 100:
             self.agent_context.history = self.agent_context.history[-100:]
         
         self._save_briefing()
     
     def _save_briefing(self) -> None:
-        """Save briefing to disk"""
         try:
             safe_role = _SAFE_FILENAME_RE.sub('_', self.agent_role.lower())
             briefing_file = self.storage_dir / f"{safe_role}_briefing.json"
@@ -416,7 +599,6 @@ class AgentBriefing:
             logger.warning(f"Failed to save briefing: {e}")
     
     def _load_briefing(self) -> None:
-        """Load briefing from disk"""
         try:
             safe_role = _SAFE_FILENAME_RE.sub('_', self.agent_role.lower())
             briefing_file = self.storage_dir / f"{safe_role}_briefing.json"
@@ -426,14 +608,11 @@ class AgentBriefing:
             
             briefing_data = json.loads(briefing_file.read_text(encoding='utf-8'))
             
-            # Restore project context
             self.project_context = briefing_data.get("project_context", {})
             
-            # Restore agent context
             agent_context_data = briefing_data.get("agent_context", {})
             self.agent_context = AgentContext(**agent_context_data)
             
-            # Restore sections
             sections_data = briefing_data.get("sections", {})
             for title, section_data in sections_data.items():
                 self.sections[title] = BriefingSection(**section_data)
@@ -443,7 +622,6 @@ class AgentBriefing:
             logger.warning(f"Failed to load briefing: {e}")
 
 
-# Global briefing instances
 _briefing_instances: Dict[str, AgentBriefing] = {}
 
 
@@ -452,17 +630,6 @@ def get_agent_briefing(
     project_context: Optional[Dict[str, Any]] = None,
     storage_dir: Optional[str] = None
 ) -> AgentBriefing:
-    """
-    Get or create agent briefing instance
-    
-    Args:
-        agent_role: Agent role
-        project_context: Project context
-        storage_dir: Storage directory
-    
-    Returns:
-        AgentBriefing instance
-    """
     if agent_role not in _briefing_instances:
         _briefing_instances[agent_role] = AgentBriefing(
             agent_role=agent_role,
@@ -479,7 +646,7 @@ def reset_briefings() -> None:
     _briefing_instances.clear()
 
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = [
     "AgentBriefing",
     "BriefingSection",

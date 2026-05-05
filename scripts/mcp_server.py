@@ -196,7 +196,7 @@ def create_mcp_server() -> "FastMCP":
             stats = disp.get_status() if hasattr(disp, 'get_status') else {}
             return json.dumps({
                 "name": "DevSquad",
-                "version": "3.4.0-Prod",
+                "version": "3.5.0",
                 "status": "ready",
                 "modules": 27,
                 "tests": 129,
@@ -219,7 +219,7 @@ def create_mcp_server() -> "FastMCP":
                 },
             }, ensure_ascii=False, indent=2)
         except Exception as e:
-            return json.dumps({"name": "DevSquad", "version": "3.4.0-Prod", "status": "ready", "error": "Internal error occurred"})
+            return json.dumps({"name": "DevSquad", "version": "3.5.0", "status": "ready", "error": "Internal error occurred"})
 
     @mcp.tool()
     def multiagent_analyze(task: str) -> str:

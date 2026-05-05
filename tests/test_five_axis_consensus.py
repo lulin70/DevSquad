@@ -16,6 +16,7 @@ from scripts.collaboration.five_axis_consensus import (
     create_default_engine,
     create_strict_engine,
     create_security_focused_engine,
+    create_walkthrough_engine,
 )
 
 
@@ -23,7 +24,7 @@ class TestReviewAxisEnum:
     """Test the five-axis enum."""
 
     def test_five_axes_exist(self):
-        expected = ["CORRECTNESS", "READABILITY", "ARCHITECTURE", "SECURITY", "PERFORMANCE"]
+        expected = ["CORRECTNESS", "READABILITY", "ARCHITECTURE", "SECURITY", "PERFORMANCE", "OPERABILITY"]
         for name in expected:
             assert hasattr(ReviewAxis, name)
 
@@ -217,6 +218,12 @@ class TestUtilityMethods:
         assert "correctness" in names
         assert "security" in names
 
+    def test_walkthrough_engine_has_operability(self):
+        engine = create_walkthrough_engine()
+        names = engine.get_axis_names()
+        assert "operability" in names
+        assert "performance" not in names
+
     def test_get_default_weights(self):
         engine = FiveAxisConsensusEngine()
         weights = engine.get_default_weights()
@@ -277,7 +284,8 @@ class TestEdgeCases:
     def test_all_axes_covered_in_single_review(self):
         engine = FiveAxisConsensusEngine()
         review = engine.create_review("r1", "comprehensive")
-        for axis in ReviewAxis:
+        default_axes = [a for a in ReviewAxis if a != ReviewAxis.OPERABILITY]
+        for axis in default_axes:
             engine.add_axis_vote(review, axis, 0.75, 0.8)
 
         result = engine.compute_consensus([review])

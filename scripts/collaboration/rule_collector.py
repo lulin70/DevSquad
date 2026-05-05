@@ -13,7 +13,7 @@ Pipeline:
                  (detect intent)   (extract rule)  (security check)  (persist)
 
 Author: DevSquad Team
-Version: 3.4.0
+Version: 3.5.0
 """
 
 import os

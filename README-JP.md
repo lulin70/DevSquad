@@ -3,14 +3,14 @@
 <p align="center">
   <strong>1つのタスク → マルチロールAIコラボレーション → 1つの結論</strong>
   <br>
-  <em>本番運用可能 | V3.4.0</em>
+  <em>本番運用可能 | V3.5.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-1478%20passing%20(98.4%25)-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.4.0--Prod-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.5.0--Prod-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,7 +18,7 @@
 
 ---
 
-## 🚀 V3.4.0-Prod: 本番運用可能リリース
+## 🚀 V3.5.0-Prod: 本番運用可能リリース
 
 **DevSquadは現在、本番運用可能です！** 認証、REST API、アラート履歴データ保存を完全にサポートしています。
 
@@ -93,7 +93,7 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ コア機能 (V3.4.0)
+## ✨ コア機能 (V3.5.0)
 
 ### 🧩 コンサーンパック (NEW)
 タスク内容に基づいてAIロールプロンプトを自動強化するドメイン固有ナレッジパック：

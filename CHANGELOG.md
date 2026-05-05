@@ -5,6 +5,66 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2026-05-05 (V3.5.0 Enhancement Sprint)
+
+### 🆕 V3.5.0 七大增强
+
+#### E1: 代码走读增强包 (code-walkthrough.yaml)
+- 7角色走读视角定义（架构师/安全专家/测试专家/开发者/运维专家/产品经理/UI设计师）
+- 性能审查归属明确：架构师主责设计层面，运维专家辅责运行层面
+- 每个角色的走读检查清单和常见陷阱
+- 角色专属走读指南提示词注入
+
+#### E2: 文档一致性检查（内置在代码走读增强包中）
+- 9类文档一致性检查维度（API/安全/测试/需求/运维/UI/配置/变更日志/版本号）
+- 3级严重程度（Critical/High/Medium）和处置策略
+- 明确每类文档的检查主责人和辅责人
+- 版本号一致性检查（_version.py/pyproject.toml/CHANGELOG/README/INSTALL/GUIDE/SKILL.md/skill-manifest.yaml）
+
+#### E3: Karpathy原则增强包 (code-quality.yaml)
+- 4大核心原则：Think Before Coding / Simplicity First / Surgical Changes / Goal-Driven Execution
+- Vibe Coding精选5条规则融入4原则
+- 3个角色增强提示词（architect/solo-coder/tester）
+- 反模式检测（过早抽象/配置驱动过度/框架化思维）
+
+#### E6: 项目理解增强 (agent_briefing.py扩展)
+- generate_project_overview(): 生成项目概览（技术栈/模块结构/核心组件）
+- generate_role_understanding(): 7角色定制化理解文档
+- 自动分析项目技术栈（pyproject.toml/Dockerfile/.github）
+- 识别核心组件（14个关键类自动发现）
+
+#### E8: 走读专用五轴引擎 (five_axis_consensus.py扩展)
+- create_walkthrough_engine(): 代码走读专用五轴共识引擎
+- Operability轴替代Performance轴（部署/监控/容灾/配置/性能运维）
+- 运维专家在走读中获得15%权重
+- Security轴保留严格模式否决权
+
+#### E4: 代码地图多语言支持 (language_parsers.py)
+- LanguageParser Protocol定义
+- PythonParser: 基于ast标准库（从现有代码提取）
+- JavaScriptParser: 基于正则表达式（支持JS/JSX/TS/TSX）
+- GoParser: 基于正则表达式（支持struct/interface/func）
+- CodeMapGenerator重构：register_parser() + languages过滤
+- 向后兼容：默认无parsers时使用PythonCompatParser
+
+#### E5: 规范工具链增强 (lifecycle_protocol.py扩展)
+- SpecTemplate数据模型 + 3个规范模板（requirements/architecture/technical）
+- init_spec(): 从模板初始化规范文档
+- analyze_spec(): 分析代码生成规范草稿（复用多语言CodeMapGenerator）
+- validate_spec(): 验证规范完整性和一致性
+- VIEW_MAPPINGS新增3个子命令映射（spec-init/spec-analyze/spec-validate）
+
+### 🔄 变更文件清单
+- `templates/concerns/code-walkthrough.yaml` — 新增
+- `templates/concerns/code-quality.yaml` — 新增
+- `scripts/collaboration/five_axis_consensus.py` — 扩展（OPERABILITY轴 + create_walkthrough_engine）
+- `scripts/collaboration/agent_briefing.py` — 扩展（generate_project_overview + generate_role_understanding）
+- `scripts/collaboration/code_map_generator.py` — 重构（多语言支持）
+- `scripts/collaboration/language_parsers.py` — 新增
+- `scripts/collaboration/lifecycle_protocol.py` — 扩展（SpecTemplate + spec工具链）
+- `tests/test_five_axis_consensus.py` — 更新（OPERABILITY轴测试）
+- 版本号统一更新至3.5.0
+
 ## [3.4.0] - 2026-05-04 (Code Quality Sprint + DevSquad 协作)
 
 ### 🤖 DevSquad 7角色协作全面质量提升

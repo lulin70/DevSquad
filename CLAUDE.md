@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-**DevSquad** is a **V3.4.0-Prod Production-Ready Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
+**DevSquad** is a **V3.5.0 Production-Ready Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
 
 **65 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContext, SkillRegistry, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, RoleTemplateMarket, UsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **AlertManager**, **HistoryManager**, **StreamlitDashboard**.
 
 **Test Coverage**: 750+ tests all passing (99.3%).
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 
-## Architecture (V3.4.0-Prod Three-Layer)
+## Architecture (V3.5.0 Three-Layer)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -73,7 +73,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec
 python3 scripts/cli.py dispatch -t "Design auth system" --backend openai --stream
 python3 scripts/cli.py status
 python3 scripts/cli.py roles
-python3 scripts/cli.py --version  # 3.4.0-Prod
+python3 scripts/cli.py --version  # 3.5.0
 ```
 
 ### Quick Dispatch
@@ -89,7 +89,7 @@ result = disp.quick_dispatch(task, include_action_items=True)   # auto-generate 
 DevSquad/
 ├── scripts/
 │   ├── collaboration/          # ★ Core modules (45 files)
-│   │   ├── _version.py         # Version SSOT (3.4.0-Prod)
+│   │   ├── _version.py         # Version SSOT (3.5.0)
 │   │   ├── dispatcher.py       # MultiAgentDispatcher — unified entry point
 │   │   ├── coordinator.py      # Global orchestrator
 │   │   ├── scratchpad.py       # Shared blackboard
@@ -154,7 +154,7 @@ DevSquad/
 - **Documentation**: EN (README.md/SKILL.md) + CN (docs/i18n/README_CN.md/docs/i18n/SKILL_CN.md) + JP variants
 - **Testing**: pytest-based, 750+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`3.4.0-Prod`)
+- **Version**: Single source of truth in `_version.py` (`3.5.0`)
 
 ## Role System (7 Core Roles)
 
@@ -191,7 +191,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/ test_v35_integration.py -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.4.0-Prod
+python3 scripts/cli.py --version    # 3.5.0
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 ```

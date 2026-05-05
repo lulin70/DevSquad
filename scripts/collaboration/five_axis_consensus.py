@@ -29,6 +29,7 @@ class ReviewAxis(Enum):
     ARCHITECTURE = "architecture"
     SECURITY = "security"
     PERFORMANCE = "performance"
+    OPERABILITY = "operability"
 
 
 @dataclass
@@ -254,8 +255,8 @@ class FiveAxisConsensusEngine:
         return result
 
     def get_axis_names(self) -> List[str]:
-        """Return list of axis names."""
-        return [axis.value for axis in ReviewAxis]
+        """Return list of axis names for this engine's configured weights."""
+        return [axis.value for axis in self._weights.keys()]
 
     def get_default_weights(self) -> Dict[str, float]:
         """Return current weights as string-keyed dict."""
@@ -282,3 +283,46 @@ def create_security_focused_engine() -> FiveAxisConsensusEngine:
         ReviewAxis.READABILITY: 0.10,
     }
     return FiveAxisConsensusEngine(custom_weights=custom)
+
+
+WALKTHROUGH_AXIS_WEIGHTS: Dict[ReviewAxis, float] = {
+    ReviewAxis.CORRECTNESS: 0.25,
+    ReviewAxis.SECURITY: 0.25,
+    ReviewAxis.ARCHITECTURE: 0.20,
+    ReviewAxis.OPERABILITY: 0.15,
+    ReviewAxis.READABILITY: 0.15,
+}
+
+WALKTHROUGH_OPERABILITY_CHECKS = [
+    "deployment_feasibility",
+    "logging_standards",
+    "monitoring_instrumentation",
+    "disaster_recovery",
+    "configuration_management",
+    "performance_operations",
+]
+
+
+def create_walkthrough_engine() -> FiveAxisConsensusEngine:
+    """
+    Create walkthrough-specific five-axis consensus engine.
+
+    Replaces Performance axis with Operability axis for code walkthrough:
+    - Correctness (0.25): Logic correctness, bug-free
+    - Security (0.25): Vulnerabilities, compliance (strict mode veto preserved)
+    - Architecture (0.20): Design patterns, modularity
+    - Operability (0.15): Deployment, monitoring, disaster recovery, config management
+    - Readability (0.15): Code clarity, maintainability
+
+    Operability axis checks:
+    - Deployment feasibility (Docker/K8s config completeness)
+    - Logging standards (key operations logged, appropriate log levels)
+    - Monitoring instrumentation (core metrics monitored, alert thresholds set)
+    - Disaster recovery (degradation plan, rollback mechanism)
+    - Configuration management (externalized config, environment isolation)
+    - Performance operations (resource usage, response time, capacity planning, SLA)
+    """
+    engine = FiveAxisConsensusEngine.__new__(FiveAxisConsensusEngine)
+    engine._weights = dict(WALKTHROUGH_AXIS_WEIGHTS)
+    engine._strict_mode = True
+    return engine
