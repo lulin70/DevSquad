@@ -48,5 +48,5 @@
 #   - docs/USAGE_GUIDE.md (Usage Guide)
 #   - config/deployment.yaml (Deployment Configuration)
 #
-# Version: V3.6.0-Prod
+# Version: V3.4.0-Prod
 # Last Updated: 2026-05-03

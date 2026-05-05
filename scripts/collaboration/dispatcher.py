@@ -41,6 +41,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
+from collections import deque
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +75,231 @@ from .test_quality_guard import (
 )
 from .usage_tracker import track_usage
 from .input_validator import InputValidator
+from .user_friendly_error import UserFriendlyError, translate_validation_result, make_user_friendly_error
 from .role_matcher import RoleMatcher
 from .report_formatter import ReportFormatter
+from .concern_pack_loader import ConcernPackLoader
+
+
+@dataclass
+class PerformanceMetric:
+    """单次性能指标"""
+    timestamp: str
+    task_description: str
+    total_duration: float
+    step_timings: Dict[str, float]
+    success: bool
+    error_count: int
+    role_count: int
+
+    def __post_init__(self):
+        if len(self.task_description) > 50:
+            self.task_description = self.task_description[:50] + "..."
+
+
+@dataclass
+class PerformanceThresholds:
+    """性能阈值配置"""
+    total_duration_warning: float = 30.0
+    total_duration_critical: float = 60.0
+    step_warnings: Dict[str, float] = field(default_factory=lambda: {
+        "analyze": 2.0,
+        "warmup": 1.0,
+        "plan": 3.0,
+        "spawn": 1.0,
+        "execute": 20.0,
+        "collect": 2.0,
+        "consensus": 5.0,
+        "compress": 1.0,
+        "permission": 0.5,
+        "memory": 2.0,
+        "skillify": 2.0,
+    })
+    step_criticals: Dict[str, float] = field(default_factory=lambda: {
+        "analyze": 5.0,
+        "warmup": 3.0,
+        "plan": 8.0,
+        "spawn": 3.0,
+        "execute": 45.0,
+        "collect": 5.0,
+        "consensus": 10.0,
+        "compress": 3.0,
+        "permission": 1.0,
+        "memory": 5.0,
+        "skillify": 5.0,
+    })
+
+
+class PerformanceMonitor:
+    """
+    性能监控器
+
+    功能：
+    - 收集每次调度的性能指标
+    - 检测性能异常和回归
+    - 维护滑动窗口统计
+    - 生成性能报告
+    - 触发阈值告警
+    """
+
+    def __init__(self, window_size: int = 100, thresholds: Optional[PerformanceThresholds] = None):
+        self.window_size = window_size
+        self.thresholds = thresholds or PerformanceThresholds()
+        self._metrics: deque = deque(maxlen=window_size)
+        self._lock = threading.Lock()
+
+    def record(self, metric: PerformanceMetric):
+        """记录一次性能指标"""
+        with self._lock:
+            self._metrics.append(metric)
+
+            # 实时检查阈值
+            warnings, criticals = self._check_thresholds(metric)
+            if criticals:
+                logger.critical("PERFORMANCE CRITICAL: %s", json.dumps(criticals, ensure_ascii=False))
+            elif warnings:
+                logger.warning("PERFORMANCE WARNING: %s", json.dumps(warnings, ensure_ascii=False))
+
+    def _check_thresholds(self, metric: PerformanceMetric) -> Tuple[List[Dict], List[Dict]]:
+        """检查指标是否超过阈值"""
+        warnings = []
+        criticals = []
+
+        # 总耗时检查
+        if metric.total_duration > self.thresholds.total_duration_critical:
+            criticals.append({
+                "type": "total_duration",
+                "value": metric.total_duration,
+                "threshold": self.thresholds.total_duration_critical,
+                "task": metric.task_description[:50],
+            })
+        elif metric.total_duration > self.thresholds.total_duration_warning:
+            warnings.append({
+                "type": "total_duration",
+                "value": metric.total_duration,
+                "threshold": self.thresholds.total_duration_warning,
+            })
+
+        # 各步骤耗时检查
+        for step, duration in metric.step_timings.items():
+            critical_threshold = self.thresholds.step_criticals.get(step)
+            warning_threshold = self.thresholds.step_warnings.get(step)
+
+            if critical_threshold and duration > critical_threshold:
+                criticals.append({
+                    "type": f"step_{step}",
+                    "value": duration,
+                    "threshold": critical_threshold,
+                })
+            elif warning_threshold and duration > warning_threshold:
+                warnings.append({
+                    "type": f"step_{step}",
+                    "value": duration,
+                    "threshold": warning_threshold,
+                })
+
+        return warnings, criticals
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """获取滑动窗口内的统计数据"""
+        with self._lock:
+            if not self._metrics:
+                return {"count": 0}
+
+            metrics_list = list(self._metrics)
+            count = len(metrics_list)
+
+            durations = [m.total_duration for m in metrics_list]
+            successes = sum(1 for m in metrics_list if m.success)
+
+            stats = {
+                "count": count,
+                "success_rate": successes / count,
+                "duration": {
+                    "min": min(durations),
+                    "max": max(durations),
+                    "avg": sum(durations) / count,
+                    "p50": sorted(durations)[int(count * 0.5)],
+                    "p95": sorted(durations)[int(count * 0.95)],
+                    "p99": sorted(durations)[int(count * 0.99)] if count > 20 else max(durations),
+                },
+                "errors_per_dispatch_avg": sum(m.error_count for m in metrics_list) / count,
+                "roles_per_dispatch_avg": sum(m.role_count for m in metrics_list) / count,
+            }
+
+            # 各步骤统计
+            step_stats = {}
+            all_steps = set()
+            for m in metrics_list:
+                all_steps.update(m.step_timings.keys())
+
+            for step in all_steps:
+                step_durations = [m.step_timings.get(step, 0) for m in metrics_list if step in m.step_timings]
+                if step_durations:
+                    step_stats[step] = {
+                        "avg": sum(step_durations) / len(step_durations),
+                        "max": max(step_durations),
+                        "min": min(step_durations),
+                        "p95": sorted(step_durations)[int(len(step_durations) * 0.95)],
+                    }
+
+            stats["steps"] = step_stats
+
+            return stats
+
+    def detect_regression(self, baseline_count: int = 10) -> Optional[Dict[str, Any]]:
+        """
+        检测性能回归
+
+        对比最近N次与历史平均，检测显著恶化
+        """
+        with self._lock:
+            if len(self._metrics) < baseline_count * 2:
+                return None
+
+            metrics_list = list(self._metrics)
+            recent = metrics_list[-baseline_count:]
+            baseline = metrics_list[:-baseline_count]
+
+            recent_avg = sum(m.total_duration for m in recent) / len(recent)
+            baseline_avg = sum(m.total_duration for m in baseline) / len(baseline)
+
+            regression_ratio = (recent_avg - baseline_avg) / baseline_avg if baseline_avg > 0 else 0
+
+            if regression_ratio > 0.2:  # 超过20%视为回归
+                return {
+                    "detected": True,
+                    "regression_ratio": round(regression_ratio, 3),
+                    "baseline_avg": round(baseline_avg, 3),
+                    "recent_avg": round(recent_avg, 3),
+                    "baseline_samples": len(baseline),
+                    "recent_samples": len(recent),
+                    "severity": "high" if regression_ratio > 0.5 else "medium",
+                }
+
+            return None
+
+    def export_metrics(self, output_file: str):
+        """导出性能指标到文件"""
+        output_path = os.path.abspath(output_file)
+        base_dir = os.path.abspath(self.persist_dir)
+        if not output_path.startswith(base_dir) and not output_path.startswith("/tmp"):
+            logger.warning("Export path outside allowed directories: %s", output_path)
+            output_path = os.path.join(base_dir, os.path.basename(output_file))
+
+        with self._lock:
+            data = [m.__dict__ for m in self._metrics]
+
+            os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
+            with open(output_path, 'w') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+
+            logger.info("Exported %d performance metrics to %s", len(data), output_path)
+
+    def clear(self):
+        """清除历史数据"""
+        with self._lock:
+            self._metrics.clear()
 
 
 # Backward-compatible aliases from models SSOT
@@ -174,6 +398,7 @@ class DispatchResult:
     errors: List[str] = field(default_factory=list)
     quality_report: Optional[str] = None
     lang: str = "zh"
+    concern_packs: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -277,6 +502,10 @@ class DispatchResult:
             lines.extend(["", t["errors"]])
             for e in self.errors:
                 lines.append(f"- {e}")
+        if self.concern_packs:
+            lines.extend(["", "## 🧩 关注点增强包"])
+            for cp in self.concern_packs:
+                lines.append(f"- **{cp.get('name', '')}**: {cp.get('description', '')}")
         return "\n".join(lines)
 
 
@@ -406,6 +635,12 @@ class MultiAgentDispatcher:
         self._max_history = 100
         self._validator = InputValidator()
 
+        # 性能监控初始化
+        self._perf_monitor = PerformanceMonitor(window_size=100)
+
+        # 关注点增强包加载器
+        self._concern_loader = ConcernPackLoader()
+
     def analyze_task(self, task_description: str) -> List[Dict[str, str]]:
         """
         分析任务，匹配合适的角色
@@ -444,26 +679,31 @@ class MultiAgentDispatcher:
         if lang == "auto":
             import locale
             try:
-                loc = locale.getdefaultlocale()[0] or ""
+                try:
+                    loc = locale.getlocale()[0] or ""
+                except (ValueError, TypeError):
+                    loc = ""
                 if loc.startswith("ja"):
                     lang = "ja"
                 elif loc.startswith("zh"):
                     lang = "zh"
                 else:
                     lang = "zh"
-            except Exception:
+            except Exception as e:
+                logger.debug("Locale detection failed, using default language: %s", e)
                 lang = "zh"
 
         validator = self._validator
         task_result = validator.validate_task(task_description)
         if not task_result.valid:
+            friendly = translate_validation_result(task_result.reason)
             return DispatchResult(
                 success=False,
                 task_description=task_description,
                 matched_roles=[],
                 worker_results=[],
-                summary=f"Input validation failed: {task_result.reason}",
-                errors=[task_result.reason],
+                summary=friendly.message,
+                errors=[friendly.format()],
                 lang=lang,
             )
         task_description = task_result.sanitized_input or task_description
@@ -492,13 +732,14 @@ class MultiAgentDispatcher:
         if roles:
             roles_result = validator.validate_roles(roles)
             if not roles_result.valid:
+                friendly = make_user_friendly_error("role_not_found")
                 return DispatchResult(
                     success=False,
                     task_description=task_description,
                     matched_roles=[],
                     worker_results=[],
-                    summary=f"Role validation failed: {roles_result.reason}",
-                    errors=[roles_result.reason],
+                    summary=friendly.message,
+                    errors=[friendly.format()],
                     lang=lang,
                 )
 
@@ -519,6 +760,14 @@ class MultiAgentDispatcher:
                 matched_roles = self.role_matcher.resolve_roles(roles, matched_roles)
 
             role_ids = [r["role_id"] for r in matched_roles]
+
+            # 匹配关注点增强包
+            concern_packs = self._concern_loader.match_packs(task_description)
+            concern_enhancements = self._concern_loader.get_all_role_enhancements(concern_packs)
+
+            if concern_packs:
+                pack_names = ", ".join(p.name for p in concern_packs)
+                logger.info("Concern packs activated: %s", pack_names)
 
             if dry_run:
                 return DispatchResult(
@@ -547,9 +796,18 @@ class MultiAgentDispatcher:
             available_roles = []
             for r in matched_roles:
                 template = ROLE_TEMPLATES.get(r["role_id"], {})
+                role_prompt = template.get("prompt", "")
+
+                # 注入增强包提示词
+                role_id = r["role_id"]
+                if role_id in concern_enhancements:
+                    enhancement = concern_enhancements[role_id]
+                    if enhancement:
+                        role_prompt = role_prompt + "\n\n" + enhancement if role_prompt else enhancement
+
                 available_roles.append({
-                    "role_id": r["role_id"],
-                    "role_prompt": template.get("prompt", ""),
+                    "role_id": role_id,
+                    "role_prompt": role_prompt,
                     "confidence": r.get("confidence", 0.5),
                 })
 
@@ -656,8 +914,15 @@ class MultiAgentDispatcher:
                         execution_record={"task": task_description, "roles": role_ids},
                         scratchpad_entries=[],
                     )
+                except (ConnectionError, TimeoutError, OSError) as mem_err:
+                    logger.warning("MemoryBridge connection error: %s", mem_err)
+                    errors.append(f"MemoryBridge connection error: {type(mem_err).__name__}: {mem_err}")
+                except (ValueError, KeyError, AttributeError) as mem_val_err:
+                    logger.debug("MemoryBridge data error: %s", mem_val_err)
+                    errors.append(f"MemoryBridge data error: {mem_val_err}")
                 except Exception as mem_err:
-                    errors.append(f"MemoryBridge error: {mem_err}")
+                    logger.warning("Unexpected MemoryBridge error: %s - %s", type(mem_err).__name__, mem_err)
+                    errors.append(f"MemoryBridge unexpected error: {type(mem_err).__name__}")
 
             # [MCE 集成点 v3.2] Dispatcher → MemoryBridge 调用链
             # 已实现: scratchpad → MCE.classify() → typed_metadata → MemoryBridge
@@ -673,8 +938,15 @@ class MultiAgentDispatcher:
                             "confidence": round(mce_classify_result.confidence, 3),
                             "tier": mce_classify_result.tier,
                         }
+                except (ValueError, TypeError, AttributeError) as mce_type_err:
+                    logger.debug("MCE classification data error: %s", mce_type_err)
+                    errors.append(f"MCE classify data error: {mce_type_err}")
+                except (TimeoutError, ConnectionError) as mce_timeout:
+                    logger.warning("MCE classify timeout/connection error: %s", mce_timeout)
+                    errors.append(f"MCE classify timeout error: {mce_timeout}")
                 except Exception as mce_err:
-                    errors.append(f"MCE classify error: {mce_err}")
+                    logger.warning("Unexpected MCE classify error: %s - %s", type(mce_err).__name__, mce_err)
+                    errors.append(f"MCE classify unexpected error: {type(mce_err).__name__}")
 
             if self.memory_bridge and self.enable_memory:
                 try:
@@ -760,6 +1032,7 @@ class MultiAgentDispatcher:
                 worker_results=worker_results,
                 errors=errors,
                 lang=lang,
+                concern_packs=self._concern_loader.get_pack_info(concern_packs) if concern_packs else [],
             )
 
             self._dispatch_history.append(result)
@@ -773,15 +1046,65 @@ class MultiAgentDispatcher:
                 except Exception as e:
                     logger.warning("Quality audit failed: %s", e)
 
+            # 记录性能指标
+            perf_metric = PerformanceMetric(
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                task_description=task_description,
+                total_duration=total_duration,
+                step_timings=result.details.get("timing", {}),
+                success=result.success,
+                error_count=len(result.errors),
+                role_count=len(role_ids),
+            )
+            self._perf_monitor.record(perf_metric)
+
             return result
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as dispatch_err:
+            logger.error(
+                "Dispatch validation error for task '%s': %s - %s",
+                task_description[:50], type(dispatch_err).__name__, dispatch_err,
+                exc_info=True
+            )
+            friendly = make_user_friendly_error("dispatch_failed", original_error=dispatch_err)
             return DispatchResult(
                 success=False,
                 task_description=task_description,
                 matched_roles=[],
-                summary=f"调度异常: {e}",
-                errors=[str(e)],
+                summary=friendly.message,
+                errors=[friendly.format()],
+                duration_seconds=time.time() - start_time,
+                lang=lang,
+            )
+        except (ImportError, ModuleNotFoundError) as import_err:
+            logger.error(
+                "Missing dependency during dispatch of task '%s': %s",
+                task_description[:50], import_err,
+                exc_info=True
+            )
+            friendly = make_user_friendly_error("backend_unavailable", original_error=import_err)
+            return DispatchResult(
+                success=False,
+                task_description=task_description,
+                matched_roles=[],
+                summary=friendly.message,
+                errors=[friendly.format()],
+                duration_seconds=time.time() - start_time,
+                lang=lang,
+            )
+        except Exception as e:
+            logger.critical(
+                "UNEXPECTED ERROR in dispatch task '%s': %s - %s",
+                task_description[:50], type(e).__name__, e,
+                exc_info=True
+            )
+            friendly = make_user_friendly_error("dispatch_failed", original_error=e)
+            return DispatchResult(
+                success=False,
+                task_description=task_description,
+                matched_roles=[],
+                summary=friendly.message,
+                errors=[friendly.format()],
                 duration_seconds=time.time() - start_time,
                 lang=lang,
             )
@@ -838,7 +1161,7 @@ class MultiAgentDispatcher:
     def get_status(self) -> Dict[str, Any]:
         """获取系统状态"""
         status = {
-            "version": "3.4.0",
+            "version": "3.4.0-Prod",
             "persist_dir": self.persist_dir,
             "components": {
                 "coordinator": self.coordinator is not None,
@@ -851,10 +1174,23 @@ class MultiAgentDispatcher:
                 "memory_bridge": self.memory_bridge is not None,
                 "skillifier": self.skillifier is not None,
                 "quality_guard": self.quality_guard is not None,
+                "performance_monitor": True,
             },
             "dispatch_count": len(self._dispatch_history),
             "scratchpad_stats": self.scratchpad.get_stats() if self.scratchpad else {},
         }
+
+        # 性能监控统计
+        try:
+            perf_stats = self._perf_monitor.get_statistics()
+            status["performance"] = perf_stats
+
+            # 回归检测
+            regression = self._perf_monitor.detect_regression()
+            if regression:
+                status["regression_detected"] = regression
+        except Exception as e:
+            logger.debug("Performance stats collection failed: %s", e)
 
         if self.warmup_manager:
             try:
@@ -935,6 +1271,23 @@ class MultiAgentDispatcher:
             combined.score.overall = sum(scores) / len(scores) if scores else 0
         combined.audit_time = sum(r.audit_time for r in reports)
         return combined
+
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """获取性能统计信息"""
+        return self._perf_monitor.get_statistics()
+
+    def check_performance_regression(self) -> Optional[Dict[str, Any]]:
+        """检查是否存在性能回归"""
+        return self._perf_monitor.detect_regression()
+
+    def export_performance_metrics(self, output_file: str):
+        """导出性能指标到文件"""
+        self._perf_monitor.export_metrics(output_file)
+
+    def clear_performance_history(self):
+        """清除性能历史数据"""
+        self._perf_monitor.clear()
+        logger.info("Performance history cleared")
 
     def shutdown(self):
         """优雅关闭所有组件"""

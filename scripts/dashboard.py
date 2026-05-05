@@ -496,7 +496,7 @@ def render_footer(current_user: Optional[User] = None):
     
     with col1:
         st.markdown(
-            "<center>**DevSquad V3.6.0-Prod** | Plan C | Production Ready</center>",
+            "<center>**DevSquad V3.4.0-Prod** | Plan C | Production Ready</center>",
             unsafe_allow_html=True
         )
     

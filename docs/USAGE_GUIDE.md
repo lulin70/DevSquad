@@ -612,7 +612,7 @@ python scripts/generate_benchmark_report.py --format both
 
 ---
 
-## 🔐 V3.6.0-Prod: 生产级功能指南
+## 🔐 V3.4.0-Prod: 生产级功能指南
 
 ### 认证与授权系统
 
@@ -798,7 +798,7 @@ print(f"总记录数: {info['total_records']}")
 
 ## 版本历史
 
-- **V3.6.0-Prod** (2026-05-03): 生产就绪版本
+- **V3.4.0-Prod** (2026-05-03): 生产就绪版本
   - 新增: 认证与授权系统 (RBAC, 多用户支持)
   - 新增: REST API服务器 (FastAPI + Swagger文档)
   - 新增: 告警通知系统 (Slack/Email/Console/Webhook)
@@ -828,5 +828,5 @@ print(f"总记录数: {info['total_records']}")
 ---
 
 **最后更新**: 2026-05-03
-**版本**: V3.6.0-Prod (Production Ready)
+**版本**: V3.4.0-Prod (Production Ready)
 **作者**: DevSquad Team

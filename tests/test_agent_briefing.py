@@ -32,7 +32,7 @@ def agent_briefing(temp_storage_dir):
     # Create new instance
     briefing = AgentBriefing(
         agent_role="Architect",
-        project_context={"name": "DevSquad", "version": "3.5"},
+        project_context={"name": "DevSquad", "version": "3.4.0-Prod"},
         storage_dir=temp_storage_dir
     )
     yield briefing
@@ -62,7 +62,7 @@ def test_agent_briefing_initialization(agent_briefing):
     """Test AgentBriefing initialization"""
     assert agent_briefing.agent_role == "Architect"
     assert agent_briefing.project_context["name"] == "DevSquad"
-    assert agent_briefing.project_context["version"] == "3.5"
+    assert agent_briefing.project_context["version"] == "3.4.0-Prod"
     assert len(agent_briefing.sections) == 0
     assert agent_briefing.agent_context.role == "Architect"
 

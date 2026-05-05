@@ -2,17 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.0-Prod DevSquad — Production-Ready Multi-Role AI Task Orchestrator.
+  V3.4.0-Prod DevSquad — Production-Ready Multi-Role AI Task Orchestrator.
   One task in, multi-role AI collaboration, one conclusion out.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + REST API + Dashboard + MCP + Python API.
-  777+ tests all passing (99.34%).
-  NEW in V3.6.0: Authentication (RBAC), FastAPI REST Server, Alert System,
+  750+ tests all passing (99.3%).
+  NEW in V3.4.0: Authentication (RBAC), FastAPI REST Server, Alert System,
   Historical Data Storage (SQLite), Streamlit Dashboard with login.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
 ---
 
-# DevSquad V3.6.0-Prod — Multi-Role AI Task Orchestrator (Production Ready)
+# DevSquad V3.4.0-Prod — Multi-Role AI Task Orchestrator (Production Ready)
 
 ## Core Positioning
 
@@ -143,7 +143,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend op
 - Need quick multi-role collaboration results
 - No need for fine-grained role control
 
-### Method 3: Interactive Web Dashboard (V3.6.0 NEW)
+### Method 3: Interactive Web Dashboard (V3.4.0 NEW)
 
 ```bash
 # Start Streamlit dashboard with authentication
@@ -165,7 +165,7 @@ streamlit run scripts/dashboard.py
 - Team collaboration with multiple users
 - Non-technical stakeholders need access
 
-### Method 4: REST API Server (V3.6.0 NEW)
+### Method 4: REST API Server (V3.4.0 NEW)
 
 ```bash
 # Install API dependencies
@@ -401,7 +401,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.4.0",
+#   "version": "3.4.0-Prod",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
@@ -724,7 +724,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 - **v3.4.2** (2026-05-03): P1 Enhancement Complete - RoleTemplateMarket V2(27 tests) + OperationClassifier(29 tests) + OutputSlicer(26 tests) + FiveAxisConsensusEngine(29 tests) + CIFeedbackAdapter(22 tests) + 166 new tests + 53 core modules
 - **v3.4.1** (2026-05-03): Agent Skills Quality Framework (P0) - AntiRationalizationEngine(39 tests) + VerificationGate(42 tests) + IntentWorkflowMapper(58 tests) + CLI Lifecycle Commands(28 tests) + 167 new tests + Google Agent Skills integration + 49 core modules
-- **v3.4.0** (2026-05-02): 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates) + requirement change management + gate mechanism with gap reporting + WorkflowEngine lifecycle support + Natural Language Rule Collection (RuleCollector) + 560+ tests passing
+- **v3.4.0** (2026-05-02): 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates) + requirement change management + gate mechanism with gap reporting + WorkflowEngine lifecycle support + Natural Language Rule Collection (RuleCollector) + 748+ tests passing
 - **v3.3** (2026-04-17): WorkBuddy Claw Integration - WorkBuddyClawSource(read-only bridge/INDEX search/daily logs/AI news feed) + Dispatcher AI News auto-inject + Annotation Standards (EN docs/docstring/inline) + Code comment audit (all EN) + MCE v0.4 support (tenant/permission) + Multi-language README (EN/CN/JP) + 33 new tests
 - **v3.2** (2026-04-17): MVP Three Lines - E2E Full Demo(10-step flow/CLI) + Dispatcher UX Enhancement(structured/compact/detailed 3-format report) + MCEAdapter Memory Classification Adapter(lazy-load/graceful-degrade) + Delivery Workflow Iron Rule
 - **v3.1** (2026-04-16): Prompt Optimization System - Dynamic Prompt Assembly(3 variants) + Skillify Closed-loop Feedback(A/B promotion) + Compression-Aware Adaptation

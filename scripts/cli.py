@@ -13,6 +13,7 @@ import argparse
 import json
 import sys
 import os
+import logging
 
 if sys.version_info < (3, 9):
     print("Error: DevSquad requires Python 3.9+. Current: " + sys.version, file=sys.stderr)
@@ -34,6 +35,7 @@ BACKENDS = ["mock", "trae", "openai", "anthropic"]
 LIFECYCLE_COMMANDS = ["spec", "plan", "build", "test", "review", "ship"]
 from scripts.collaboration._version import __version__
 VERSION = __version__
+logger = logging.getLogger(__name__)
 
 LIFECYCLE_PRESETS = {
     "spec": {
@@ -126,6 +128,303 @@ def _create_backend(backend_type: str,
         kwargs["api_key"] = api_key
         kwargs.setdefault("model", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"))
     return create_backend(backend_type, **kwargs)
+
+
+def cmd_init(args):
+    """
+    Interactive initialization wizard for DevSquad.
+
+    Guides new users through setup:
+    - Project type selection
+    - LLM backend configuration
+    - Default role preferences
+    - Output language
+    - Config file generation
+    """
+    import sys as _sys
+
+    print("\n" + "=" * 60)
+    print("🚀 Welcome to DevSquad Setup Wizard!")
+    print("=" * 60)
+    print("\nThis wizard will help you configure DevSquad for your project.")
+    print("It should take about 1-2 minutes.\n")
+
+    config = {
+        "project_type": None,
+        "llm_backend": "mock",
+        "default_roles": ["auto"],
+        "language": "auto",
+        "features": {},
+    }
+
+    # Step 1: Project Type
+    print("📋 Step 1/5: Project Type")
+    print("-" * 40)
+    project_types = {
+        "1": {"id": "web-api", "name": "Web API / Backend Service", "desc": "REST API, GraphQL, microservices", "roles": ["architect", "solo-coder", "security", "tester"]},
+        "2": {"id": "web-fullstack", "name": "Full-Stack Web App", "desc": "Frontend + Backend + Database", "roles": ["architect", "ui-designer", "solo-coder", "tester"]},
+        "3": {"id": "cli-tool", "name": "CLI Tool / Utility", "desc": "Command-line application, DevOps tool", "roles": ["architect", "solo-coder", "tester"]},
+        "4": {"id": "ml-service", "name": "AI/ML Service", "desc": "Machine learning pipeline, data service", "roles": ["architect", "solo-coder", "tester", "devops"]},
+        "5": {"id": "library", "name": "Library / SDK", "desc": "Reusable package, API wrapper", "roles": ["architect", "solo-coder", "tester"]},
+        "6": {"id": "generic", "name": "Generic / Other", "desc": "Custom project or exploring DevSquad", "roles": ["auto"]},
+    }
+
+    for key, ptype in project_types.items():
+        print(f"   {key}) {ptype['name']}")
+        print(f"      {ptype['desc']}")
+
+    project_choice = _prompt_choice("Select your project type [1-6]", list(project_types.keys()), default="6")
+    selected_type = project_types[project_choice]
+    config["project_type"] = selected_type["id"]
+    config["default_roles"] = selected_type["roles"]
+
+    print(f"\n   ✅ Selected: {selected_type['name']}")
+    print(f"   💡 Recommended roles: {', '.join(selected_type['roles'])}")
+
+    # Step 2: LLM Backend
+    print(f"\n\n🤖 Step 2/5: AI Backend Configuration")
+    print("-" * 40)
+    print("DevSquad can work with different AI backends:")
+    print()
+    print("   1) Mock Mode (Recommended for beginners)")
+    print("      • No API key needed")
+    print("      • Fast response (< 1 second)")
+    print("      • Great for testing and learning")
+    print()
+    print("   2) OpenAI (GPT-4, GPT-3.5)")
+    print("      • Requires OPENAI_API_KEY")
+    print("      • Real AI analysis and suggestions")
+    print("      • Best for production use")
+    print()
+    print("   3) Anthropic (Claude)")
+    print("      • Requires ANTHROPIC_API_KEY")
+    print("      • Excellent at complex reasoning")
+    print("      • Good for architecture decisions")
+    print()
+
+    backend_options = {"1": "mock", "2": "openai", "3": "anthropic"}
+    backend_choice = _prompt_choice("Select AI backend [1-3]", list(backend_options.keys()), default="1")
+    config["llm_backend"] = backend_options[backend_choice]
+
+    if config["llm_backend"] != "mock":
+        env_var = "OPENAI_API_KEY" if config["llm_backend"] == "openai" else "ANTHROPIC_API_KEY"
+        if not os.environ.get(env_var):
+            print(f"\n   ⚠️  Warning: {env_var} is not set!")
+            print(f"   You'll need to set it before using real AI:")
+            print(f'   export {env_var}="your-api-key-here"')
+            print(f"\n   For now, we'll save the preference. You can configure the key later.")
+
+    print(f"\n   ✅ Backend: {config['llm_backend'].upper()}")
+
+    # Step 3: Default Roles
+    print(f"\n\n👥 Step 3/5: Role Preferences")
+    print("-" * 40)
+
+    if "auto" in config["default_roles"]:
+        print("   With 'Generic' project type, roles will be auto-matched based on task content.")
+        print("   This is recommended for beginners!")
+    else:
+        print(f"   Based on your project type, we recommend these roles:")
+        for role in config["default_roles"]:
+            role_def = ROLE_REGISTRY.get(role)
+            if role_def:
+                print(f"   • {role_def.name} — {role_def.description}")
+
+        customize = _prompt_yes_no("Customize role selection?", default=False)
+        if customize:
+            print("\n   Available roles:")
+            all_roles = []
+            for rid, rdef in ROLE_REGISTRY.items():
+                alias = rdef.aliases[0] if rdef.aliases else rid
+                status = "" if rdef.status == "active" else " [planned]"
+                print(f"     {alias:<12} — {rdef.description}{status}")
+                all_roles.append(alias)
+
+            print()
+            roles_input = input("   Enter roles (comma-separated, e.g., arch sec test): ").strip()
+            if roles_input:
+                config["default_roles"] = [r.strip() for r in roles_input.split(",")]
+
+    print(f"\n   ✅ Roles configured")
+
+    # Step 4: Language & Features
+    print(f"\n\n🌐 Step 4/5: Language & Features")
+    print("-" * 40)
+
+    lang_options = {
+        "1": ("auto", "Auto-detect from system locale"),
+        "2": ("zh", "中文 (Chinese)"),
+        "3": ("en", "English"),
+        "4": ("ja", "日本語 (Japanese)"),
+    }
+    print("   Output language:")
+    for key, (code, desc) in lang_options.items():
+        print(f"   {key}) {desc}")
+
+    lang_choice = _prompt_choice("Select language [1-4]", list(lang_options.keys()), default="1")
+    config["language"] = lang_options[lang_choice][0]
+
+    print(f"\n   Optional features (can be enabled later):")
+    features = {
+        "warmup": _prompt_yes_no("   Enable startup warmup? (faster subsequent runs)", default=True),
+        "compression": _prompt_yes_no("   Enable context compression? (for long tasks)", default=True),
+        "memory": _prompt_yes_no("   Enable memory bridge? (learn from history)", default=False),
+        "permission": _prompt_yes_no("   Enable permission guard? (security checks)", default=True),
+    }
+    config["features"] = features
+
+    print(f"\n   ✅ Language: {config['language']}")
+    enabled_features = [k for k, v in features.items() if v]
+    if enabled_features:
+        print(f"   ✅ Features: {', '.join(enabled_features)}")
+
+    # Step 5: Summary & Save
+    print(f"\n\n💾 Step 5/5: Configuration Summary")
+    print("-" * 60)
+
+    print(f"\n   📁 Project Type: {selected_type['name']}")
+    print(f"   🤖 AI Backend:   {config['llm_backend'].upper()}")
+    print(f"   👥 Default Roles: {', '.join(config['default_roles'])}")
+    print(f"   🌐 Language:     {config['language']}")
+    print(f"   ⚙️  Features:     {', '.join(enabled_features) if enabled_features else 'None'}")
+
+    confirm = _prompt_yes_no("\n   Save this configuration?", default=True)
+
+    if not confirm:
+        print("\n   ❌ Configuration cancelled. You can run 'devsquad init' again anytime.")
+        return 0
+
+    # Generate configuration file
+    config_path = os.path.expanduser("~/.devsquad.yaml")
+    saved = _save_config(config, config_path)
+
+    if saved:
+        print(f"\n   ✅ Configuration saved to: {config_path}")
+    else:
+        print(f"\n   ⚠️  Could not save to {config_path}. Using inline defaults.")
+
+    # Final success message
+    print("\n" + "=" * 60)
+    print("🎉 Setup Complete! DevSquad is ready to use.")
+    print("=" * 60)
+
+    print(f"\n🚀 Quick Start Commands:\n")
+    print(f"   # Basic usage (auto-match roles)")
+    print(f'   devsquad dispatch -t "your task description"')
+    print()
+    print(f"   # With specific roles")
+    print(f'   devsquad dispatch -t "design auth system" -r arch sec')
+    print()
+    print(f"   # Use lifecycle commands")
+    print(f'   devsquad spec -t "user authentication"')
+    print(f'   devsquad build -t "implement login API"')
+    print()
+
+    if config["llm_backend"] != "mock":
+        print(f"⚡ To use real AI, set your API key:")
+        env_var = "OPENAI_API_KEY" if config["llm_backend"] == "openai" else "ANTHROPIC_API_KEY"
+        print(f'   export {env_var}="your-key-here"')
+        print()
+
+    print(f"📚 Learn more:")
+    print(f"   • docs: https://github.com/lulin70/DevSquad#readme")
+    print(f"   • examples: python examples/quick_start.py")
+    print(f"   • help: devsquad --help")
+    print(f"   • roles: devsquad roles")
+    print()
+
+    print("Happy coding! 🎯\n")
+
+    return 0
+
+
+def _prompt_choice(prompt: str, valid_choices: list, default: str = None) -> str:
+    """Prompt user for choice with validation."""
+    while True:
+        try:
+            user_input = input(f"   {prompt}: ").strip()
+            if not user_input and default:
+                return default
+            if user_input in valid_choices:
+                return user_input
+            print(f"   ❌ Invalid choice. Please enter: {', '.join(valid_choices)}")
+        except EOFError:
+            if default:
+                return default
+            print("   Non-interactive mode detected. Using default.")
+            return default
+        except KeyboardInterrupt:
+            print("\n\n❌ Setup cancelled by user.")
+            sys.exit(1)
+
+
+def _prompt_yes_no(prompt: str, default: bool = True) -> bool:
+    """Prompt user for yes/no confirmation."""
+    default_str = "Y/n" if default else "y/N"
+    while True:
+        try:
+            user_input = input(f"{prompt} [{default_str}]: ").strip().lower()
+            if not user_input:
+                return default
+            if user_input in ("y", "yes", "1", "true"):
+                return True
+            if user_input in ("n", "no", "0", "false"):
+                return False
+            print("   Please enter y/n or yes/no")
+        except EOFError:
+            return default
+        except KeyboardInterrupt:
+            print("\n\n❌ Setup cancelled by user.")
+            sys.exit(1)
+
+
+def _save_config(config: dict, config_path: str) -> bool:
+    """Save configuration to YAML file."""
+    config_path = os.path.expanduser(config_path)
+
+    if os.path.islink(config_path):
+        print(f"\n   ⚠️  {config_path} is a symbolic link. Skipping for security.")
+        return False
+
+    try:
+        import yaml
+
+        yaml_config = {
+            "version": VERSION,
+            "project_type": config["project_type"],
+            "llm_backend": config["llm_backend"],
+            "default_language": config["language"],
+            "default_roles": config["default_roles"],
+            "features": {
+                "warmup": config["features"].get("warmup", True),
+                "compression": config["features"].get("compression", True),
+                "memory_bridge": config["features"].get("memory", False),
+                "permission_guard": config["features"].get("permission", True),
+            },
+        }
+
+        with open(config_path, "w") as f:
+            yaml.dump(yaml_config, f, default_flow_style=False, allow_unicode=True)
+
+        return True
+
+    except ImportError:
+        # YAML not available, create simple format
+        try:
+            with open(config_path, "w") as f:
+                f.write(f"# DevSquad Configuration (generated by init wizard)\n")
+                f.write(f"# Created: {__import__('datetime').datetime.now().isoformat()}\n\n")
+                f.write(f"project_type: {config['project_type']}\n")
+                f.write(f"llm_backend: {config['llm_backend']}\n")
+                f.write(f"default_language: {config['language']}\n")
+                f.write(f"default_roles: {', '.join(config['default_roles'])}\n")
+            return True
+        except Exception as e:
+            logger.warning("Failed to save config: %s", e)
+            return False
+    except Exception as e:
+        logger.warning("Failed to save config: %s", e)
+        return False
 
 
 def cmd_dispatch(args):
@@ -448,6 +747,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  %(prog)s init                              # Interactive setup wizard (recommended for new users)
   %(prog)s dispatch -t "Design user auth system" -r architect pm tester
   %(prog)s dispatch -t "Review codebase" --mode consensus --format json
   %(prog)s dispatch -t "Analyze API" --quick --format compact
@@ -460,6 +760,11 @@ Examples:
   %(prog)s roles
   %(prog)s status
   %(prog)s --version
+
+Getting Started (New Users):
+  1. Run: %(prog)s init          # Launches interactive setup wizard
+  2. Choose your project type and AI backend
+  3. Start collaborating: %(prog)s dispatch -t "your task"
 
 Lifecycle Commands (P0-4 Agent Skills Integration):
   spec      Define/refine requirements into specification (architect + pm)
@@ -481,6 +786,12 @@ Environment Variables (API keys are read from env vars only, never command line)
     parser.add_argument("--version", action="version", version=f"DevSquad {VERSION}")
 
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
+
+    # Init command (interactive setup wizard)
+    p_init = subparsers.add_parser("init", aliases=["setup", "i"],
+                                    help="Interactive setup wizard for new users")
+    p_init.add_argument("--non-interactive", action="store_true",
+                        help="Run in non-interactive mode (use defaults)")
 
     p_dispatch = subparsers.add_parser("dispatch", aliases=["run", "d"], help="Execute a multi-agent task")
     p_dispatch.add_argument("task_positional", nargs="?", default=None, help="Task description (positional, no -t needed)")
@@ -556,7 +867,9 @@ Environment Variables (API keys are read from env vars only, never command line)
 
     args = parser.parse_args()
 
-    if args.command in ("dispatch", "run", "d"):
+    if args.command in ("init", "setup", "i"):
+        return cmd_init(args)
+    elif args.command in ("dispatch", "run", "d"):
         return cmd_dispatch(args)
     elif args.command in ("status", "s"):
         return cmd_status(args)

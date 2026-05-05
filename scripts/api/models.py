@@ -16,7 +16,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class PhaseStatus(str, Enum):
@@ -38,18 +38,8 @@ class UserRole(str, Enum):
 
 class LifecyclePhase(BaseModel):
     """Lifecycle phase information model."""
-    phase_id: str = Field(..., description="Unique phase identifier (e.g., P1, P2)")
-    name: str = Field(..., description="Human-readable phase name")
-    description: str = Field(..., description="Detailed phase description")
-    role_id: str = Field(..., description="Role responsible for this phase")
-    order: int = Field(..., description="Execution order")
-    status: PhaseStatus = Field(default=PhaseStatus.PENDING, description="Current phase status")
-    dependencies: List[str] = Field(default_factory=list, description="List of dependent phase IDs")
-    artifacts_in: Optional[str] = Field(None, description="Input artifacts for this phase")
-    artifacts_out: Optional[str] = Field(None, description="Output artifacts from this phase")
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "phase_id": "P1",
                 "name": "Requirements Analysis",
@@ -62,33 +52,38 @@ class LifecyclePhase(BaseModel):
                 "artifacts_out": "Requirements Document"
             }
         }
+    )
+    
+    phase_id: str = Field(..., description="Unique phase identifier (e.g., P1, P2)")
+    name: str = Field(..., description="Human-readable phase name")
+    description: str = Field(..., description="Detailed phase description")
+    role_id: str = Field(..., description="Role responsible for this phase")
+    order: int = Field(..., description="Execution order")
+    status: PhaseStatus = Field(default=PhaseStatus.PENDING, description="Current phase status")
+    dependencies: List[str] = Field(default_factory=list, description="List of dependent phase IDs")
+    artifacts_in: Optional[str] = Field(None, description="Input artifacts for this phase")
+    artifacts_out: Optional[str] = Field(None, description="Output artifacts from this phase")
 
 
 class GateCheckRequest(BaseModel):
     """Gate check request model."""
-    command: str = Field(..., description="CLI command to check gate for (e.g., 'build', 'test')")
-    strict_mode: bool = Field(default=False, description="Enable strict gate checking")
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "command": "build",
                 "strict_mode": False
             }
         }
+    )
+    
+    command: str = Field(..., description="CLI command to check gate for (e.g., 'build', 'test')")
+    strict_mode: bool = Field(default=False, description="Enable strict gate checking")
 
 
 class GateResult(BaseModel):
     """Gate check result model."""
-    passed: bool = Field(..., description="Whether the gate check passed")
-    verdict: str = Field(..., description="Gate verdict (APPROVE/CONDITIONAL/REJECT)")
-    red_flags_count: int = Field(default=0, description="Number of red flags found")
-    missing_evidence_count: int = Field(default=0, description="Number of missing evidence items")
-    gap_report: Optional[str] = Field(None, description="Detailed gap analysis report")
-    checked_at: datetime = Field(default_factory=datetime.now, description="When the check was performed")
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "passed": True,
                 "verdict": "APPROVE",
@@ -98,17 +93,20 @@ class GateResult(BaseModel):
                 "checked_at": "2026-05-03T12:00:00"
             }
         }
+    )
+    
+    passed: bool = Field(..., description="Whether the gate check passed")
+    verdict: str = Field(..., description="Gate verdict (APPROVE/CONDITIONAL/REJECT)")
+    red_flags_count: int = Field(default=0, description="Number of red flags found")
+    missing_evidence_count: int = Field(default=0, description="Number of missing evidence items")
+    gap_report: Optional[str] = Field(None, description="Detailed gap analysis report")
+    checked_at: datetime = Field(default_factory=datetime.now, description="When the check was performed")
 
 
 class CommandMapping(BaseModel):
     """CLI command to phases mapping model."""
-    command: str = Field(..., description="CLI command name")
-    phases: List[str] = Field(..., description="List of mapped phase IDs")
-    mode: str = Field(..., description="Lifecycle mode (shortcut/full/custom)")
-    gate: Optional[str] = Field(None, description="Required gate for this command")
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "command": "build",
                 "phases": ["P8"],
@@ -116,10 +114,34 @@ class CommandMapping(BaseModel):
                 "gate": "quality_gate"
             }
         }
+    )
+    
+    command: str = Field(..., description="CLI command name")
+    phases: List[str] = Field(..., description="List of mapped phase IDs")
+    mode: str = Field(..., description="Lifecycle mode (shortcut/full/custom)")
+    gate: Optional[str] = Field(None, description="Required gate for this command")
 
 
 class MetricsSnapshot(BaseModel):
     """Performance metrics snapshot model."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "timestamp": "2026-05-03T12:00:00",
+                "total_phases": 11,
+                "completed_phases": 7,
+                "running_phases": 1,
+                "failed_phases": 0,
+                "completion_rate": 63.6,
+                "avg_response_time_ms": 150.5,
+                "p95_latency_ms": 450.2,
+                "success_rate": 99.5,
+                "cpu_usage_percent": 45.2,
+                "memory_usage_percent": 62.8
+            }
+        }
+    )
+    
     timestamp: datetime = Field(default_factory=datetime.now, description="When metrics were captured")
     total_phases: int = Field(..., description="Total number of lifecycle phases")
     completed_phases: int = Field(default=0, description="Number of completed phases")
@@ -135,34 +157,12 @@ class MetricsSnapshot(BaseModel):
     # Resource utilization
     cpu_usage_percent: float = Field(default=0.0, description="CPU usage percentage")
     memory_usage_percent: float = Field(default=0.0, description="Memory usage percentage")
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "timestamp": "2026-05-03T12:00:00",
-                "total_phases": 11,
-                "completed_phases": 7,
-                "running_phases": 1,
-                "failed_phases": 0,
-                "completion_rate": 63.6,
-                "avg_response_time_ms": 150.5,
-                "p95_latency_ms": 450.2,
-                "success_rate": 99.5,
-                "cpu_usage_percent": 45.2,
-                "memory_usage_percent": 62.8
-            }
-        }
 
 
 class PhaseActionRequest(BaseModel):
     """Phase execution action request model."""
-    phase_id: str = Field(..., description="Target phase ID")
-    action: str = Field(..., description="Action to perform (advance/complete/reset/skip)")
-    force: bool = Field(default=False, description="Force action even if dependencies not met")
-    reason: Optional[str] = Field(None, description="Reason for forced action")
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "phase_id": "P8",
                 "action": "advance",
@@ -170,20 +170,18 @@ class PhaseActionRequest(BaseModel):
                 "reason": None
             }
         }
+    )
+    
+    phase_id: str = Field(..., description="Target phase ID")
+    action: str = Field(..., description="Action to perform (advance/complete/reset/skip)")
+    force: bool = Field(default=False, description="Force action even if dependencies not met")
+    reason: Optional[str] = Field(None, description="Reason for forced action")
 
 
 class PhaseActionResult(BaseModel):
     """Phase action result model."""
-    success: bool = Field(..., description="Whether the action was successful")
-    phase_id: str = Field(..., description="Target phase ID")
-    action: str = Field(..., description="Action that was performed")
-    message: str = Field(..., description="Human-readable result message")
-    previous_status: Optional[PhaseStatus] = Field(None, description="Status before action")
-    new_status: Optional[PhaseStatus] = Field(None, description="Status after action")
-    performed_at: datetime = Field(default_factory=datetime.now, description="When action was performed")
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "phase_id": "P8",
@@ -194,6 +192,15 @@ class PhaseActionResult(BaseModel):
                 "performed_at": "2026-05-03T12:00:00"
             }
         }
+    )
+    
+    success: bool = Field(..., description="Whether the action was successful")
+    phase_id: str = Field(..., description="Target phase ID")
+    action: str = Field(..., description="Action that was performed")
+    message: str = Field(..., description="Human-readable result message")
+    previous_status: Optional[PhaseStatus] = Field(None, description="Status before action")
+    new_status: Optional[PhaseStatus] = Field(None, description="Status after action")
+    performed_at: datetime = Field(default_factory=datetime.now, description="When action was performed")
 
 
 class APIError(BaseModel):

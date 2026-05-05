@@ -1,6 +1,6 @@
 # DevSquad 使用示例
 
-> 最后验证: 2026-05-03, DevSquad V3.6.0-Prod, backend=openai, model=gpt-4
+> 最后验证: 2026-05-03, DevSquad V3.4.0-Prod, backend=openai, model=gpt-4
 >
 > **Production Ready**: Authentication ✅ | REST API ✅ | Alert System ✅ | Historical Data ✅
 
@@ -28,7 +28,7 @@ python3 scripts/cli.py dispatch -t "设计用户认证系统" -r arch --backend 
 python3 scripts/cli.py dispatch -t "设计用户认证系统" --dry-run
 ```
 
-### 方式2: Web仪表板 (V3.6.0 NEW) 🎨
+### 方式2: Web仪表板 (V3.4.0 NEW) 🎨
 
 ```bash
 # 启动Streamlit Dashboard (带认证)
@@ -48,7 +48,7 @@ streamlit run scripts/dashboard.py
 - 📈 性能指标展示（响应时间、成功率等）
 - 👥 多用户登录与会话管理
 
-### 方式3: REST API (V3.6.0 NEW) 🌐
+### 方式3: REST API (V3.4.0 NEW) 🌐
 
 ```bash
 # 安装API依赖
@@ -228,7 +228,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles --format json
 
 # 显示版本
-python3 scripts/cli.py --version    # 3.4.0
+python3 scripts/cli.py --version    # 3.4.0-Prod
 ```
 
 ## Python API 示例

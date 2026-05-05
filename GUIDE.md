@@ -1,6 +1,6 @@
 # DevSquad 使用指南
 
-> **版本**: V3.4.0 | **更新日期**: 2026-05-02
+> **版本**: V3.4.0-Prod | **更新日期**: 2026-05-04
 >
 > 本文档是 DevSquad 的完整功能手册，覆盖所有用户可感知的功能。
 
@@ -19,10 +19,11 @@
 - [9. 规则注入与安全](#9-规则注入与安全)
 - [10. 质量保障](#10-质量保障)
 - [11. 性能监控](#11-性能监控)
-- [12. 角色模板市场](#12-角色模板市场)
-- [13. 配置系统](#13-配置系统)
-- [14. 部署方式](#14-部署方式)
-- [15. 常见问题](#15-常见问题)
+- [12. 关注点增强包](#12-关注点增强包)
+- [13. 角色模板市场](#13-角色模板市场)
+- [14. 配置系统](#14-配置系统)
+- [15. 部署方式](#15-部署方式)
+- [16. 常见问题](#16-常见问题)
 - [附录 A：CarryMem 集成](#附录-acarrymem-集成)
 - [附录 B：完整模块清单](#附录-b完整模块清单)
 
@@ -48,7 +49,21 @@ devsquad dispatch -t "设计用户认证系统"
 
 > **选哪种？** 方式 A 适合快速体验——无需任何依赖，但无法加载 `~/.devsquad.yaml` 配置文件。方式 B 将 DevSquad 安装为完整包，启用所有功能，包括 YAML 配置、`devsquad` 命令行工具和可选集成（CarryMem、OpenAI、Anthropic）。
 
-### 1.2 第一次调度
+### 1.2 交互式设置向导（首次使用推荐）
+
+```bash
+# 运行5步交互式向导（1-2分钟）
+python3 scripts/cli.py init
+
+# 向导将引导你完成：
+# Step 1: 项目类型（Web API / 全栈 / CLI / ML / 库 / 通用）
+# Step 2: AI后端（Mock / OpenAI / Anthropic）
+# Step 3: 默认角色（根据项目类型自动推荐）
+# Step 4: 语言和功能开关
+# Step 5: 保存到 ~/.devsquad.yaml
+```
+
+### 1.3 第一次调度
 
 ```bash
 # Mock模式（无需API Key）
@@ -865,7 +880,83 @@ is_degraded = monitor.is_degraded()  # 性能是否降级
 
 ---
 
-## 12. 角色模板市场
+## 12. 关注点增强包
+
+> **V3.4.0 新功能**
+
+关注点增强包（Concern Packs）是领域专属知识包，根据任务描述中的关键词自动匹配并注入到AI角色的提示词中，使输出更专业、更有针对性。
+
+### 12.1 工作原理
+
+```
+用户输入: "设计用户权限系统"
+    ↓
+RoleMatcher 匹配角色 → [architect, security]
+    ↓
+ConcernPackLoader 匹配增强包 → [权限设计增强包]
+    ↓
+提取角色增强提示词 → security: "【权限设计专项检查】..."
+                    architect: "【权限架构设计要点】..."
+    ↓
+注入到 Worker 的角色指令中 → 输出包含领域专业知识
+```
+
+### 12.2 可用增强包
+
+| 增强包 | 触发关键词 | 增强的角色 | 核心内容 |
+|--------|-----------|-----------|---------|
+| **权限设计** | 权限、角色、RBAC、授权、多租户、越权 | security, architect | 4步决策框架 + 7项检查清单 + 7个常见陷阱 |
+| **Web API设计** | API、REST、GraphQL、JWT、OAuth、限流 | architect, security, tester | 5步决策框架 + 10项检查清单 + 6个常见陷阱 |
+| **数据管道** | ETL、数据同步、幂等、血缘、CDC、Kafka | architect, tester | 5步决策框架 + 7项检查清单 + 6个常见陷阱 |
+
+### 12.3 使用方式
+
+增强包是**自动激活**的，无需手动配置：
+
+```bash
+# 自动匹配权限增强包
+devsquad dispatch -t "设计用户权限系统"
+
+# 自动匹配Web API增强包
+devsquad dispatch -t "设计RESTful API接口"
+
+# 自动匹配数据管道增强包
+devsquad dispatch -t "实现ETL数据管道"
+
+# 同时匹配多个增强包（可组合！）
+devsquad dispatch -t "设计多租户SaaS的API权限和数据隔离"
+# → 激活: 权限设计增强包 + Web API设计增强包
+```
+
+### 12.4 扩展增强包
+
+在 `templates/concerns/` 目录下创建新的 YAML 文件即可添加自定义增强包：
+
+```yaml
+concern_id: my-custom-pack
+name: 自定义增强包
+description: 描述
+triggers:
+  keywords: [关键词1, 关键词2]
+checklist:
+  must_have:
+    - item: 检查项1
+      severity: required
+  common_pitfalls:
+    - title: 常见陷阱1
+      description: 描述
+      severity: high
+      check: 检查方法
+role_enhancements:
+  security:
+    extra_prompt: |
+      【自定义安全检查要点】
+      ...
+```
+
+系统会自动发现并加载新的增强包，无需修改任何代码。
+
+## 13. 角色模板市场
 
 > **适用场景**：团队自定义了专用的角色提示词（如"专注于OWASP Top 10的安全审计员"、"熟悉HIPAA合规的医疗系统架构师"），通过模板市场发布、共享和复用。也适合从社区发现和安装高质量的模板。
 
@@ -902,7 +993,7 @@ market.import_template("./templates/security-auditor-owasp.json")
 
 ---
 
-## 13. 配置系统
+## 14. 配置系统
 
 > **适用场景**：团队需要统一配置（如所有项目都启用幻觉检查和安全守卫）、个人需要自定义默认行为（如默认使用OpenAI后端、默认输出英文）、或需要通过环境变量在CI/CD中动态切换配置。
 
@@ -971,7 +1062,7 @@ db_path = config.get("database.path", default=":memory:")
 
 ---
 
-## 14. 部署方式
+## 15. 部署方式
 
 ### 14.1 CLI
 
@@ -1018,7 +1109,7 @@ docker run -e OPENAI_API_KEY=sk-... devsquad dispatch -t "Design auth system"
 
 ---
 
-## 15. 常见问题
+## 16. 常见问题
 
 **Q: 没有API Key可以使用吗？**
 可以。Mock模式无需任何API Key，生成基于角色模板的结构化输出。
@@ -1034,6 +1125,15 @@ CLI: `--lang en`，Python: `MultiAgentDispatcher(lang="en")`
 
 **Q: 如何自定义角色提示词？**
 通过角色模板市场发布自定义模板，或直接修改 `ROLE_TEMPLATES`。
+
+**Q: 关注点增强包如何工作？**
+根据任务描述中的关键词自动匹配增强包，将领域专业知识注入到对应角色的提示词中。无需手动配置，完全自动。
+
+**Q: 如何添加自定义增强包？**
+在 `templates/concerns/` 目录下创建 YAML 文件，定义触发关键词、检查清单和角色增强提示词即可。系统会自动发现和加载。
+
+**Q: devsquad init 做了什么？**
+交互式5步向导：选择项目类型→AI后端→角色偏好→语言和功能→保存配置。生成的 `~/.devsquad.yaml` 会被后续命令自动加载。
 
 ---
 

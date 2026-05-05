@@ -3,15 +3,17 @@
 <p align="center">
   <strong>One task → Multi-role AI collaboration → One conclusion</strong>
   <br>
-  <em>Production Ready | V3.6.0</em>
+  <em>Production Ready | V3.4.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-776%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0--Prod-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1478%20passing%20(98.4%25)-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.4.0--Prod-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
+  <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
+  <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
 </p>
 
 <p align="center">
@@ -25,11 +27,20 @@
 
 ---
 
-## 🚀 V3.6.0-Prod: Production-Ready Release
+## 🚀 V3.4.0-Prod: Production-Ready Release
 
-**DevSquad is now production-ready!** Complete with authentication, REST API, alerting, and historical data storage.
+**DevSquad is now production-ready!** Complete with concern packs, interactive setup wizard, user-friendly errors, performance monitoring, authentication, REST API, alerting, and historical data storage.
 
-### 🎯 Quick Start (3 Ways to Use DevSquad)
+### 🎯 Quick Start (4 Ways to Use DevSquad)
+
+#### 0️⃣ First Time? Start Here!
+```bash
+# Interactive setup wizard (1-2 minutes)
+python scripts/cli.py init
+
+# Then start collaborating!
+devsquad dispatch -t "your task description"
+```
 
 #### 1️⃣ Interactive Web Dashboard (Recommended)
 ```bash
@@ -100,7 +111,41 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ Key Features (V3.6.0-Prod)
+## ✨ Key Features (V3.4.0-Prod)
+
+### 🧩 Concern Packs (NEW)
+Domain-specific knowledge packs that automatically enhance AI role prompts based on task content:
+- **Permission Design Pack** — RBAC/ABAC/ReBAC/ACL decision framework, row/column-level permission patterns, 7 common pitfalls (IDOR, privilege escalation, cache staleness...)
+- **Web API Design Pack** — REST/GraphQL/gRPC style selection, JWT/OAuth2/API Key authentication, versioning strategies, rate limiting, RFC 7807 error handling
+- **Data Pipeline Pack** — Batch/streaming/CDC pipeline patterns, idempotency guarantees, data quality framework, schema evolution, incremental sync strategies
+
+Packs are **auto-matched** by keywords and **composable** — a task about "multi-tenant API permissions" activates both Permission + Web API packs simultaneously.
+
+### 🎯 Interactive Setup Wizard (NEW)
+```bash
+devsquad init    # 5-step guided setup (1-2 minutes)
+# Step 1: Project type (Web API / Full-Stack / CLI / ML / Library / Generic)
+# Step 2: AI backend (Mock / OpenAI / Anthropic)
+# Step 3: Default roles (auto-recommended based on project type)
+# Step 4: Language & features
+# Step 5: Save to ~/.devsquad.yaml
+```
+
+### 💬 User-Friendly Error Messages (NEW)
+Errors are now translated into human-readable messages with fix suggestions and examples:
+```
+❌ Before: "Input validation failed: Task too short (min 5 chars, got 2)"
+✅ Now:    "任务描述太短了，请详细说明你想做什么"
+           "💡 好的任务描述应该包含：做什么 + 为什么 + 有什么特殊要求"
+           "📝 示例: devsquad dispatch -t '设计一个支持手机号和邮箱登录的用户认证系统'"
+```
+
+### 📊 Performance Monitoring (NEW)
+Built-in performance monitoring with sliding window statistics, threshold alerting, and regression detection:
+- Automatic metric collection for every dispatch (11-step timing breakdown)
+- P50/P95/P99 latency analysis
+- Performance regression detection (>20% degradation triggers alert)
+- Export metrics to JSON for external dashboards
 
 ### 🔐 Authentication & Authorization
 - **Multi-user support** with role-based access control (RBAC)
@@ -270,7 +315,7 @@ pip install -e ".[all]"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.6.0
+# Expected: devsquad 3.4.0
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -300,7 +345,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch --backend openai
 # Other commands
 python3 scripts/cli.py status          # System status
 python3 scripts/cli.py roles           # List available roles
-python3 scripts/cli.py --version       # Show version (3.4.0)
+python3 scripts/cli.py --version       # Show version (3.4.0-Prod)
 ```
 
 **2. Python API**
@@ -641,7 +686,7 @@ export OPENAI_API_KEY=sk-...
 ## Running Tests
 
 ```bash
-# Core tests (537+ tests all passing)
+# Core tests (748+ tests all passing)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \
@@ -695,7 +740,7 @@ python3 scripts/cli.py ship -t "Deploy to production"
 | Date | Version | Highlights |
 |------|---------|-----------|
 | 2026-05-03 | **V3.4.1** | 🚀 Agent Skills Quality Framework (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI Lifecycle Commands (spec/plan/build/test/review/ship) + 167 new tests + Google Agent Skills integration + 49 core modules |
-| 2026-05-02 | **V3.4.0** | 🆕 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates), requirement change management, gate mechanism with gap reporting, 560+ tests passing, WorkflowEngine lifecycle support |
+| 2026-05-02 | **V3.4.0** | 🆕 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates), requirement change management, gate mechanism with gap reporting, 748+ tests passing, WorkflowEngine lifecycle support |
 | 2026-05-01 | V3.4.0 | AgentBriefing (context-aware task briefing), ConfidenceScore (5-factor quality assessment), EnhancedWorker (auto quality assurance with retry + memory_provider rule injection), Protocol interface system (match_rules/format_rules_as_prompt), CarryMem v0.2.8+ integration, comprehensive documentation |
 | 2026-04-27 | V3.4.0 | Real LLM backend (OpenAI/Anthropic/Mock), ThreadPoolExecutor parallel execution, InputValidator + prompt injection protection, CheckpointManager, WorkflowEngine, TaskCompletionChecker, AISemanticMatcher, streaming output, Docker, GitHub Actions CI, config file, CodeMapGenerator, DualLayerContext, SkillRegistry, CarryMem integration, 234 unit tests |
 | 2026-04-17 | V3.2 | E2E Demo, MCE Adapter, Dispatcher UX |

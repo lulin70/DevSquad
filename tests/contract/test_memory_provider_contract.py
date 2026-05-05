@@ -272,9 +272,13 @@ class TestRuleTypes(unittest.TestCase):
         from scripts.collaboration.mce_adapter import RULE_TYPES
         self.assertIn("always", RULE_TYPES)
 
+    def test_rule_types_contains_prefer(self):
+        from scripts.collaboration.mce_adapter import RULE_TYPES
+        self.assertIn("prefer", RULE_TYPES)
+
     def test_rule_types_has_exactly_three(self):
         from scripts.collaboration.mce_adapter import RULE_TYPES
-        self.assertEqual(len(RULE_TYPES), 3)
+        self.assertEqual(len(RULE_TYPES), 4)  # forbid, avoid, always, prefer
 
 
 if __name__ == '__main__':

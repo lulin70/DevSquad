@@ -92,6 +92,9 @@ class AuthManager:
         self.credentials = self._get_credentials()
         self.cookie_settings = self.config.get("authentication", {}).get("cookie", {})
         
+        # Validate configuration security
+        self._validate_config_security()
+        
         logger.info(f"AuthManager initialized (enabled={self.auth_enabled})")
     
     def _load_config(self) -> Dict[str, Any]:
@@ -111,6 +114,61 @@ class AuthManager:
         """Get credentials from configuration."""
         auth_config = self.config.get("authentication", {})
         return auth_config.get("credentials", {}).get("usernames", {})
+    
+    def _validate_config_security(self):
+        """
+        Validate configuration for security issues.
+        
+        Warns about:
+        - Placeholder passwords
+        - Default session keys
+        - Insecure configurations
+        """
+        if not self.auth_enabled:
+            return
+        
+        warnings = []
+        
+        # Check for placeholder passwords
+        placeholder_patterns = [
+            "hashed_password_here",
+            "password",
+            "changeme",
+            "default",
+            "your_password",
+        ]
+        
+        for username, cred in self.credentials.items():
+            password = cred.get("password", "")
+            if any(pattern in password.lower() for pattern in placeholder_patterns):
+                warnings.append(
+                    f"User '{username}' has placeholder password: {password[:20]}..."
+                )
+        
+        # Check for default session key
+        cookie_key = self.cookie_settings.get("key", "")
+        default_keys = [
+            "devsquad_session_key_change_in_production",
+            "change_this_key",
+            "default_secret_key",
+        ]
+        
+        if any(key == cookie_key for key in default_keys):
+            warnings.append(
+                f"Using default session key: {cookie_key}. "
+                "Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        
+        # Log warnings
+        if warnings:
+            logger.warning("=" * 60)
+            logger.warning("SECURITY WARNINGS - Configuration Issues Detected:")
+            for warning in warnings:
+                logger.warning(f"  ⚠️  {warning}")
+            logger.warning("=" * 60)
+            logger.warning(
+                "Please update config/deployment.yaml with secure values before production use."
+            )
     
     def _hash_password(self, password: str) -> str:
         """Hash password using SHA-256."""

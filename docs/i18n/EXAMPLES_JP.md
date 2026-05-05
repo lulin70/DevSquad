@@ -1,6 +1,6 @@
 # DevSquad 使用例
 
-> 最終検証: 2026-05-03, DevSquad V3.6.0-Prod, backend=openai, model=gpt-4
+> 最終検証: 2026-05-03, DevSquad V3.4.0-Prod, backend=openai, model=gpt-4
 >
 > **生産レディ**: 認証 ✅ | REST API ✅ | アラート ✅ | 履歴データ ✅
 
@@ -171,7 +171,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles --format json
 
 # バージョン表示
-python3 scripts/cli.py --version    # 3.4.0
+python3 scripts/cli.py --version    # 3.4.0-Prod
 ```
 
 ## Python API使用例

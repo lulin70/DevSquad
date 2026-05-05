@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V3.6.0-Prod)
+# DevSquad — Installation Guide (V3.4.0-Prod)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -20,6 +20,27 @@
 See [**Windows Support**](#windows-support) below for Windows-specific instructions.
 
 ## Quick Start (6 Methods)
+
+### Method 0: Interactive Setup Wizard — First time? Start here!
+
+```bash
+# Clone or download DevSquad
+git clone https://github.com/lulin70/DevSquad.git
+cd DevSquad
+
+# Run the interactive setup wizard (1-2 minutes)
+python3 scripts/cli.py init
+
+# Then start collaborating!
+devsquad dispatch -t "Design user authentication system"
+```
+
+The wizard will guide you through:
+1. **Project type** — Web API, Full-Stack, CLI, ML, Library, or Generic
+2. **AI backend** — Mock (no API key), OpenAI, or Anthropic
+3. **Default roles** — auto-recommended based on your project type
+4. **Language & features** — warmup, compression, memory bridge, permission guard
+5. **Save config** — writes to `~/.devsquad.yaml`
 
 ### Method 1: CLI — Recommended for most users
 
@@ -47,10 +68,10 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.6.0-Prod
+python3 scripts/cli.py --version   # 3.4.0-Prod
 ```
 
-### Method 5: Web Dashboard (V3.6.0 NEW) 🎨
+### Method 5: Web Dashboard (V3.4.0) 🎨
 
 ```bash
 # Install visualization dependencies
@@ -76,7 +97,7 @@ streamlit run scripts/dashboard.py
 
 > **Production Deployment**: See [Production Configuration](#production-configuration) below.
 
-### Method 6: REST API Server (V3.6.0 NEW) 🌐
+### Method 6: REST API Server (V3.4.0 NEW) 🌐
 
 ```bash
 # Install API server dependencies
@@ -151,13 +172,13 @@ pip install psutil
 # For CarryMem cross-session memory + rule injection (optional)
 pip install carrymem[devsquad]>=0.2.8
 
-# V3.6.0 NEW: API Server (FastAPI + Uvicorn + Pydantic)
+# V3.4.0 NEW: API Server (FastAPI + Uvicorn + Pydantic)
 pip install -e ".[api]"
 
-# V3.6.0 NEW: Visualization (Streamlit + Jupyter)
+# V3.4.0 NEW: Visualization (Streamlit + Jupyter)
 pip install -e ".[visualization]"
 
-# V3.6.0 NEW: Alert System (Slack SDK)
+# V3.4.0 NEW: Alert System (Slack SDK)
 pip install -e ".[alerts]"
 
 # Development & Testing (pytest, black, flake8, mypy)
@@ -331,9 +352,9 @@ python3 scripts/cli.py roles
 python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 # Expected: [DRY RUN] message
 
-# 4. Core tests (V3.6.0-Prod)
+# 4. Core tests (V3.4.0-Prod)
 python3 -m pytest tests/test_production_features.py tests/test_full_lifecycle_adapter.py -v
-# Expected: 777+ tests all passing (99.34%)
+# Expected: 750+ tests all passing (99.3%)
 
 # 5. API Server test (if installed)
 curl http://localhost:8000/api/v1/health | jq '.status'
@@ -390,7 +411,7 @@ DevSquad/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
 │   └── collaboration/            # ★ 45 core modules
-│       ├── _version.py           # Version SSOT (3.4.0)
+│       ├── _version.py           # Version SSOT (3.4.0-Prod)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard
@@ -418,7 +439,7 @@ DevSquad/
 │       ├── null_providers.py     # Graceful degradation providers
 │       ├── prompt_assembler.py   # Dynamic prompt assembly + QC injection
 │       ├── role_template_market.py # Role template marketplace
-│       └── *_test.py             # Test suites (560+ tests)
+│       └── *_test.py             # Test suites (750+ tests)
 ├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
 ├── Dockerfile                    # Docker support
 ├── pyproject.toml                # pip-installable package
@@ -584,5 +605,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest scripts\collaboration\ tests\ test_v35_integration.py -q
-# Expected: 560+ tests all passing
+# Expected: 750+ tests all passing (99.3%)
 ```

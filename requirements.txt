@@ -1,40 +1,36 @@
-# DevSquad Dependencies
+# DevSquad V3.6.0-Prod Dependencies
+# ===================================
 
-# Core
+# Core Dependencies (Required)
 pyyaml>=6.0
-python>=3.9
 
-# Standard library modules used (no install needed):
-# - concurrent.futures (parallel execution)
-# - dataclasses (data models)
-# - json (data processing)
-# - pathlib (path handling)
-# - typing (type annotations)
-# - logging (logging)
-# - argparse (CLI arguments)
-# - re (regex patterns)
-# - hashlib (SHA256 integrity)
-# - ast (code analysis)
-# - datetime (timestamps)
-# - sqlite3 (database)
-# - tempfile (temp directories)
-# - yaml (optional — for config file support)
+# Production Server Stack (V3.6.0 NEW)
+fastapi>=0.100.0              # REST API server framework
+uvicorn[standard]>=0.23.0     # ASGI HTTP server
+streamlit>=1.28.0             # Web dashboard
+pydantic>=2.0                 # Data validation (for API)
+slack-sdk>=3.21.0             # Alert notifications (optional)
 
 # Optional LLM Backends (install only what you need)
-# openai>=1.0          # OpenAI backend (pip install devsquad[openai])
-# anthropic>=0.18       # Anthropic backend (pip install devsquad[anthropic])
+# openai>=1.0                  # OpenAI backend (pip install devsquad[openai])
+# anthropic>=0.18              # Anthropic backend (pip install devsquad[anthropic])
 
 # Optional Memory Layer
-# carrymem>=0.8        # CarryMem portable AI memory (pip install devsquad[carrymem])
+# carrymem>=0.8               # CarryMem portable AI memory (pip install devsquad[carrymem])
 
 # Optional MCP Server
-# mcp>=0.9             # MCP protocol (pip install devsquad[mcp])
+# mcp>=0.9                    # MCP protocol (pip install devsquad[mcp])
 
-# Development (pip install devsquad[dev])
+# Development & Testing (pip install devsquad[dev])
 # pytest>=7.0
 # pytest-asyncio>=0.21
 # black>=23.0
 # flake8>=6.0
 # mypy>=1.0
 
-# Install all optional: pip install devsquad[openai,anthropic,mcp,dev]
+# Install options:
+#   pip install -e .                    # Core + Production features
+#   pip install -e .[openai]           # + OpenAI backend
+#   pip install -e .[anthropic]        # + Anthropic backend
+#   pip install -e .[all]              # All optional dependencies
+#   pip install -e .[dev]              # Development tools

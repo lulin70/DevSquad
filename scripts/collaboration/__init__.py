@@ -66,6 +66,32 @@ from .performance_monitor import (
     reset_monitor,
 )
 
+# Collaboration Core exports
+from .scratchpad import Scratchpad
+from .worker import Worker, WorkerFactory
+from .enhanced_worker import EnhancedWorker, AgentBriefingOutput
+from .consensus import ConsensusEngine
+from .coordinator import Coordinator
+from .batch_scheduler import BatchScheduler
+
+# Data models exports
+from .models import (
+    EntryType,
+    EntryStatus,
+    ReferenceType,
+    Reference,
+    ScratchpadEntry,
+    TaskNotification,
+    TaskDefinition,
+    WorkerResult,
+    Vote,
+    DecisionProposal,
+    DecisionOutcome,
+    BatchMode,
+    TaskBatch,
+    ROLE_WEIGHTS,
+)
+
 
 from ._version import __version__
 __author__ = "DevSquad Team"

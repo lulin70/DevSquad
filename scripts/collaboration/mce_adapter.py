@@ -161,11 +161,23 @@ class MCEAdapter:
                     self._status.available = False
                     self._status.init_error = f"CarryMem not installed: {e}"
                     self._adapter_type = "none"
+                except (AttributeError, ModuleNotFoundError) as e:
+                    self._status.available = False
+                    self._status.init_error = f"CarryMem module error: {e}"
+                    self._adapter_type = "none"
                 except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        f"Unexpected error initializing CarryMem: {type(e).__name__}: {e}"
+                    )
                     self._status.available = False
                     self._status.init_error = f"{type(e).__name__}: {e}"
                     self._adapter_type = "none"
             except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"Unexpected error in MCEAdapter init: {type(e).__name__}: {e}"
+                )
                 self._status.available = False
                 self._status.init_error = f"{type(e).__name__}: {e}"
                 self._adapter_type = "none"
@@ -207,7 +219,8 @@ class MCEAdapter:
                 self._status.classify_count += 1
                 return result
 
-            except Exception:
+            except Exception as e:
+                logger.debug("MCE classify failed: %s", e)
                 self._status.classify_fail_count += 1
                 return None
 
@@ -227,7 +240,8 @@ class MCEAdapter:
                     return False
                 result = self._carrymem.classify_and_remember(message, context=context)
                 return result.get("stored", False)
-            except Exception:
+            except Exception as e:
+                logger.debug("MCE store_memory failed: %s", e)
                 return False
 
     def retrieve_memories(self,
@@ -247,7 +261,8 @@ class MCEAdapter:
                     query=query, filters=filters or None, limit=limit,
                 )
                 return results if isinstance(results, list) else []
-            except Exception:
+            except Exception as e:
+                logger.debug("MCE retrieve_memories failed: %s", e)
                 return []
 
     def whoami(self) -> Optional[Dict]:

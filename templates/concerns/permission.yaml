@@ -1,0 +1,249 @@
+concern_id: permission
+name: 权限设计增强包
+version: "1.0"
+description: 帮助选择和设计正确的权限模型，覆盖行级/列级权限、常见陷阱和检查清单
+triggers:
+  keywords:
+    - 权限
+    - 角色
+    - 授权
+    - permission
+    - rbac
+    - abac
+    - access control
+    - 访问控制
+    - 行权限
+    - 列权限
+    - 数据隔离
+    - 多租户
+    - tenant
+    - 岗位
+    - 数据权限
+    - 越权
+
+decision_framework:
+  step_1_choose_model:
+    question: 选择权限模型
+    description: 根据业务特征选择最合适的权限模型，避免过度设计或设计不足
+    options:
+      - id: acl
+        name: ACL (访问控制列表)
+        when: 资源级别精细控制，规则简单，用户和资源数量有限
+        examples: 文件系统权限、简单CRUD应用、Wiki页面编辑权限
+        complexity: 1
+        pros: 实现简单，直观易懂
+        cons: 规则数量随用户×资源增长，难以管理
+        tech_stack: 数据库字段存储权限位图或关联表
+
+      - id: rbac
+        name: RBAC (基于角色的访问控制)
+        when: 用户类型固定，权限按角色分组，角色层级清晰
+        examples: 后台管理系统、企业OA、CMS、ERP
+        complexity: 2
+        pros: 角色管理清晰，权限分配批量操作，审计方便
+        cons: 角色爆炸（角色数随业务增长），无法表达上下文相关权限
+        tech_stack: 角色表 + 权限表 + 用户-角色关联 + 角色-权限关联
+
+      - id: rebac
+        name: ReBAC (基于关系的访问控制)
+        when: 权限依赖实体间关系（文档所有者、团队归属、组织层级）
+        examples: Google Docs共享、GitHub仓库权限、Notion工作区、飞书文档
+        complexity: 3
+        pros: 灵活表达复杂关系，支持委托和继承
+        cons: 关系图查询性能挑战，调试困难
+        tech_stack: Zanzibar/SpiceDB/OpenFGA，或自建关系图
+
+      - id: abac
+        name: ABAC (基于属性的访问控制)
+        when: 权限依赖上下文属性（时间、地点、部门、设备、数据敏感度）
+        examples: 医疗系统（值班医生才能看）、银行（分行+职级+时间窗口）、军工（密级+部门+项目）
+        complexity: 4
+        pros: 最灵活，能表达任何权限策略
+        cons: 策略复杂难调试，性能开销大，策略冲突检测困难
+        tech_stack: OPA/Open Policy Agent，或自建策略引擎
+
+    selection_guide: |
+      选择建议：
+      - 不确定时，从RBAC开始，后续可扩展为ReBAC或ABAC
+      - 如果有"谁能看谁的文档"需求 → ReBAC
+      - 如果有"只有工作日9-18点才能访问"需求 → ABAC
+      - 如果只是"管理员/普通用户" → RBAC甚至ACL就够了
+      - RBAC + 行级过滤 可以覆盖80%的业务场景
+
+  step_2_row_level:
+    question: 是否需要行级权限
+    description: 同一张表，不同用户看到不同行的数据
+    when_to_use:
+      - 销售只能看自己区域的订单
+      - 经理能看下属的考勤记录
+      - 租户只能看自己的数据
+      - 分公司只能看本公司的报表
+    patterns:
+      - name: 租户隔离列
+        implementation: WHERE tenant_id = CURRENT_TENANT_ID()
+        risk: 忘记加WHERE条件 = 数据泄露
+        mitigation: ORM全局Scope / 数据库行级安全策略(RLS)
+        applicable_models: [rbac, abac, rebac]
+
+      - name: 所有者过滤
+        implementation: WHERE owner_id = CURRENT_USER_ID()
+        risk: 批量操作和统计查询时容易遗漏
+        mitigation: 查询构建器自动注入过滤条件
+        applicable_models: [rbac, abac, rebac]
+
+      - name: 部门树过滤
+        implementation: WHERE dept_id IN (SELECT id FROM dept_tree WHERE path LIKE CURRENT_DEPT_PATH%)
+        risk: 部门层级变更时缓存失效，性能随层级深度下降
+        mitigation: 物化路径 + 缓存 + 异步刷新
+        applicable_models: [rbac, abac]
+
+      - name: 自定义规则过滤
+        implementation: 根据业务规则动态拼接WHERE条件
+        risk: 规则组合爆炸，SQL注入风险
+        mitigation: 规则引擎 + 参数化查询
+        applicable_models: [abac]
+
+    decision_checklist:
+      - 确定哪些表需要行级过滤
+      - 确定过滤维度（租户/部门/所有者/自定义）
+      - 确定过滤在哪个层实现（ORM/数据库RLS/中间件）
+      - 确定超级管理员如何绕过行级过滤
+      - 确定统计/报表查询如何处理行级过滤
+
+  step_3_column_level:
+    question: 是否需要列级权限
+    description: 同一行数据，不同角色看到不同字段
+    when_to_use:
+      - 普通员工看不到薪资列
+      - HR能看到薪资但看不到身份证号
+      - 经理能看到绩效评分但看不到具体评价内容
+      - 客服能看到订单但看不到支付详情
+    patterns:
+      - name: 字段脱敏
+        implementation: 返回掩码值（138****1234，***@gmail.com）
+        risk: 掩码规则可能被逆向推导
+        mitigation: 统一脱敏函数 + 不可逆哈希
+        applicable_models: [rbac, abac]
+
+      - name: 字段隐藏
+        implementation: API响应中不返回该字段（null或省略）
+        risk: 前端缓存可能残留旧数据，GraphQL容易过度暴露
+        mitigation: DTO层按角色动态构建响应 + GraphQL字段级权限
+        applicable_models: [rbac, abac, rebac]
+
+      - name: 字段加密
+        implementation: 数据库加密存储，授权用户解密查看
+        risk: 密钥管理复杂，查询性能下降
+        mitigation: 应用层加密 + KMS管理密钥 + 热数据缓存
+        applicable_models: [abac]
+
+  step_4_role_hierarchy:
+    question: 角色层级设计
+    description: 设计角色继承和互斥关系
+    patterns:
+      - name: 扁平角色
+        implementation: 每个角色独立赋权，无继承
+        when: 角色少于10个，关系简单
+        risk: 角色多了管理困难
+
+      - name: 层级继承
+        implementation: 子角色继承父角色所有权限
+        when: 组织层级清晰（员工→主管→经理→总监）
+        risk: 权限只增不减，可能过度授权
+        mitigation: 最小权限原则 + 定期审计
+
+      - name: 角色互斥
+        implementation: 某些角色不能同时拥有（如审批人和申请人）
+        when: 需要职责分离（SoD）
+        risk: 互斥规则复杂时难以维护
+        mitigation: 明确互斥矩阵 + 运行时校验
+
+checklist:
+  must_have:
+    - item: 权限模型已选择并记录选择理由
+      severity: required
+    - item: 超级管理员机制已设计（如何产生、如何约束）
+      severity: required
+    - item: 权限缓存失效策略已确定（角色变更后多久生效）
+      severity: required
+    - item: API层权限校验已实现（每个端点都有独立校验）
+      severity: required
+    - item: 数据层权限过滤已实现（行级/列级）
+      severity: required
+    - item: 权限变更审计日志已实现
+      severity: required
+    - item: 前端按钮/菜单隐藏逻辑与后端权限一致
+      severity: high
+
+  common_pitfalls:
+    - title: 行级权限遗漏
+      description: 查询时忘记加租户/所有者过滤条件，导致跨租户数据泄露
+      severity: critical
+      check: 所有查询是否都包含租户/所有者条件？包括统计查询和导出功能
+      real_world: 某SaaS平台因一条查询遗漏WHERE条件，导致任何租户可查看其他租户的订单数据
+      fix: ORM全局Scope或数据库RLS策略，确保默认过滤而非手动添加
+
+    - title: 前端隐藏不等于后端校验
+      description: 前端隐藏了删除按钮，但后端删除API没有权限校验，直接调用API可绕过
+      severity: critical
+      check: 每个API端点是否都有独立的权限校验？不依赖前端控制
+      real_world: 某系统普通用户通过curl调用管理员API，删除了其他用户的数据
+      fix: 后端中间件统一校验，权限注解/装饰器标记每个端点
+
+    - title: 权限提升攻击
+      description: 普通用户通过修改请求参数（如role_id）将自己提升为管理员
+      severity: critical
+      check: 角色变更接口是否有二次验证？是否检查操作者权限？
+      real_world: 某系统用户修改POST请求中的role字段，将自己升级为超级管理员
+      fix: 角色变更接口独立鉴权，禁止用户修改自身角色字段
+
+    - title: 批量操作绕过
+      description: 单条操作有权限校验，但批量操作接口漏掉了校验或只校验了第一条
+      severity: high
+      check: 批量接口是否对每条记录都执行了权限校验？
+      real_world: 某系统批量删除接口只校验了第一个ID的权限，导致可删除任意记录
+      fix: 批量操作复用单条权限逻辑，逐条校验或预过滤
+
+    - title: 缓存导致权限残留
+      description: 用户角色变更后，缓存中仍是旧权限，变更不立即生效
+      severity: high
+      check: 权限变更后是否主动失效缓存？Token中是否包含权限信息？
+      real_world: 某系统员工离职后2小时内仍可访问系统，因为JWT Token未过期
+      fix: 权限变更时主动失效缓存，短期Token + Token黑名单，或实时校验
+
+    - title: IDOR（不安全的直接对象引用）
+      description: 用户通过修改URL中的ID参数访问不属于自己的资源
+      severity: critical
+      check: 访问资源时是否校验了资源所有权？还是只校验了操作权限？
+      real_world: 某系统用户修改订单ID参数，查看了其他用户的订单详情
+      fix: 资源访问时校验当前用户与资源的关联关系
+
+    - title: GraphQL过度暴露
+      description: GraphQL查询可自由选择字段，导致列级权限被绕过
+      severity: high
+      check: GraphQL Schema是否按角色动态生成？字段级权限是否实现？
+      fix: 按角色生成Schema，或字段级权限指令(@auth)
+
+role_enhancements:
+  security:
+    extra_prompt: |
+      【权限设计专项检查】
+      在分析安全方案时，必须覆盖以下权限安全要点：
+      1. 认证与授权分离：认证(你是谁)和授权(你能做什么)必须独立实现
+      2. 最小权限原则：默认拒绝，按需授权
+      3. 纵深防御：前端隐藏+API校验+数据层过滤，三层缺一不可
+      4. IDOR防护：每个资源访问必须校验所有权
+      5. 权限变更审计：所有权限变更操作必须记录日志
+      6. 缓存一致性：权限变更后必须立即生效或明确告知延迟
+      特别关注：行级权限遗漏和IDOR是最常见的安全事故原因
+
+  architect:
+    extra_prompt: |
+      【权限架构设计要点】
+      在设计系统架构时，权限相关的架构决策：
+      1. 权限模型选择：RBAC覆盖80%场景，ReBAC适合协作场景，ABAC适合复杂策略
+      2. 权限校验层次：网关层(粗粒度) → 服务层(中粒度) → 数据层(细粒度)
+      3. 行级过滤实现：优先使用数据库RLS，其次ORM全局Scope，避免手动拼接
+      4. 权限缓存策略：角色权限缓存TTL < 5分钟，或变更时主动失效
+      5. 超级管理员：必须有，但必须可审计、可约束、可回收
+      6. 多租户隔离：共享数据库+行级过滤 是性价比最高的方案

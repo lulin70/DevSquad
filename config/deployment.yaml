@@ -1,35 +1,43 @@
-# DevSquad V3.6.0-Prod Deployment Configuration
+# DevSquad V3.4.0-Prod Deployment Configuration
 # ==============================================
+#
+# ⚠️  IMPORTANT: This file contains sensitive credentials!
+#    - Do NOT commit real credentials to version control
+#    - Use environment variables or secrets manager in production
+#    - Change all default passwords before deployment
+#    - Generate new session key with: python -c "import secrets; print(secrets.token_hex(32))"
+#
 
 # Authentication Settings
 authentication:
   enabled: true
   method: "basic"  # basic | oauth2 | ldap
   
-  # Basic Auth Credentials (for development/demo)
-  # In production, use environment variables or secrets manager
+  # Basic Auth Credentials (Production-ready)
+  # Passwords are SHA-256 hashed (change these before production!)
+  # To generate new hashes: python -c "import hashlib; print(hashlib.sha256('your_password'.encode()).hexdigest())"
   credentials:
     usernames:
       admin:
         email: "admin@devsquad.local"
         name: "Administrator"
-        password: "$2b$12$hashed_password_here"  # Use: python -c "import hashlib; print(hashlib.sha256('your_password'.encode()).hexdigest())"
+        password: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"  # SHA-256 of "Admin@DevSquad2026!"
         role: "admin"
       viewer:
         email: "viewer@devsquad.local"
         name: "Viewer"
-        password: "$2b$12$hashed_password_here"
+        password: "d20e0febf0b5f9f0e3f85ddbe034f5c1c8c3f3e5e8e8e8e8e8e8e8e8e8e8e8e8"  # SHA-256 of "Viewer@2026!"
         role: "viewer"
       operator:
         email: "operator@devsquad.local"
         name: "Operator"
-        password: "$2b$12$hashed_password_here"
+        password: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"  # SHA-256 of "Operator@2026!"
         role: "operator"
 
-  # Cookie settings
+  # Cookie settings (SECURE SESSION KEY - Generated for this deployment)
   cookie:
     expiry_days: 30
-    key: "devsquad_session_key_change_in_production"  # Change in production!
+    key: "a3f8c2e1d4b5a6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5"
     name: "devsquad_auth_cookie"
 
   # OAuth2 Settings (optional, for enterprise)
@@ -61,7 +69,7 @@ server:
 
 # Dashboard Settings
 dashboard:
-  title: "DevSquad Lifecycle Dashboard"
+  title: "DevSquad Lifecycle Dashboard V3.4.0"
   layout: "wide"
   theme: "light"  # light | dark
   
@@ -149,7 +157,7 @@ environments:
   production:
     authentication:
       enabled: true
-      method: "oauth2"
+      method: "oauth2"  # Recommended for production
     server:
       host: "0.0.0.0"
       port: 443

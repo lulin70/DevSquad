@@ -14,7 +14,7 @@ Usage:
     
     briefing = AgentBriefing(
         agent_role="Architect",
-        project_context={"name": "DevSquad", "version": "3.5"}
+        project_context={"name": "DevSquad", "version": "3.4.0-Prod"}
     )
     
     # Generate briefing

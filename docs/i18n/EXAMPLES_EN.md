@@ -1,6 +1,6 @@
 # DevSquad Usage Examples
 
-> Last verified: 2026-05-03 with DevSquad V3.6.0-Prod, backend=openai, model=gpt-4
+> Last verified: 2026-05-03 with DevSquad V3.4.0-Prod, backend=openai, model=gpt-4
 >
 > **Production Ready**: Authentication ✅ | REST API ✅ | Alert System ✅ | Historical Data ✅
 
@@ -174,7 +174,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles --format json
 
 # Show version
-python3 scripts/cli.py --version    # 3.4.0
+python3 scripts/cli.py --version    # 3.4.0-Prod
 ```
 
 ## Python API Examples

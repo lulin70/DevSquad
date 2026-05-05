@@ -2,16 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.0-Prod マルチエージェントコラボレーションプラットフォーム — 生産レディ。
+  V3.4.0-Prod マルチエージェントコラボレーションプラットフォーム — 生産レディ。
   Coordinator/Worker/Scratchpad パターンに基づく完全なマルチエージェントコラボレーションシステム。
   7コアロール（アーキテクト/PM/セキュリティ/テスター/コーダー/DevOps/UIデザイナー）、
   リアルLLMバックエンド（OpenAI/Anthropic）、CLI + REST API + Dashboard + MCP + Python API対応。
   777+テスト全合格 (99.34%)。
-  V3.6.0新機能: 認証システム(RBAC)、FastAPI RESTサーバー、アラート通知、
+  V3.4.0新機能: 認証システム(RBAC)、FastAPI RESTサーバー、アラート通知、
   履歴データ保存(SQLite)、ログイン機能付きStreamlitダッシュボード。
 ---
 
-# DevSquad V3.6.0-Prod — マルチエージェントコラボレーションプラットフォーム（生産レディ）
+# DevSquad V3.4.0-Prod — マルチエージェントコラボレーションプラットフォーム（生産レディ）
 
 ## コアポジショニング
 

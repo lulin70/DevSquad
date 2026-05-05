@@ -282,8 +282,7 @@ class LLMRetryManager:
             
             # 更新 kwargs 中的 backend 参数
             fallback_kwargs = kwargs.copy()
-            if "backend" in fallback_kwargs:
-                fallback_kwargs["backend"] = backend
+            fallback_kwargs["backend"] = backend  # 始终设置 backend 参数
             
             try:
                 result = func(*args, **fallback_kwargs)

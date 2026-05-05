@@ -1,11 +1,12 @@
 name: devsquad
-version: 3.4.0
+version: 3.4.0-Prod
 description: |
-  DevSquad V3.4.0 — Multi-Role AI Task Orchestrator.
+  DevSquad V3.4.0-Prod — Production-Ready Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
-  (OpenAI/Anthropic), CLI + MCP + Python API. 258 unit tests, all passing.
+  (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
+  NEW in V3.4.0: Authentication (RBAC), Alert System, History Storage, 777+ tests.
 status: active
 ai_enhanced: true
 ai_capabilities:

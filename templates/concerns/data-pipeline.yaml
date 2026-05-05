@@ -1,0 +1,379 @@
+concern_id: data-pipeline
+name: 数据管道增强包
+version: "1.0"
+description: 帮助设计可靠的数据管道，覆盖数据质量、幂等性、血缘追踪、Schema演化等关键决策
+triggers:
+  keywords:
+    - 数据管道
+    - ETL
+    - ELT
+    - 数据同步
+    - 数据迁移
+    - data pipeline
+    - data sync
+    - 数据流
+    - 数据质量
+    - data quality
+    - 幂等
+    - idempotent
+    - 血缘
+    - lineage
+    - 数据仓库
+    - data warehouse
+    - 数据湖
+    - data lake
+    - Kafka
+    - Flink
+    - Spark
+    - Airflow
+    - 增量同步
+    - 全量同步
+    - CDC
+    - 变更捕获
+    - 批处理
+    - 流处理
+    - 数据集成
+
+decision_framework:
+  step_1_pipeline_pattern:
+    question: 选择管道模式
+    description: 根据数据时效性要求和数据量选择管道模式
+    options:
+      - id: batch
+        name: 批处理管道
+        when: 数据时效性要求不高（T+1或小时级），数据量大，计算密集
+        examples: 每日报表生成、月度结算、数据仓库ETL、机器学习特征计算
+        complexity: 2
+        pros: 实现简单、容错容易（重跑即可）、资源利用率高
+        cons: 延迟高、不适合实时场景
+        tech_stack: Airflow/Dagster/Prefect + Spark/dbt
+
+      - id: streaming
+        name: 流处理管道
+        when: 数据需要秒级/分钟级延迟，事件驱动，实时监控
+        examples: 实时风控、实时推荐、IoT数据处理、日志分析
+        complexity: 4
+        pros: 低延迟、实时响应
+        cons: 实现复杂、调试困难、Exactly-Once语义难保证
+        tech_stack: Kafka + Flink/Spark Streaming/Kafka Streams
+
+      - id: micro_batch
+        name: 微批处理管道
+        when: 需要近实时（分钟级），但流处理实现成本太高
+        examples: 准实时报表、小时级聚合、增量同步
+        complexity: 3
+        pros: 比流处理简单、比批处理快
+        cons: 延迟介于两者之间、调优复杂
+        tech_stack: Spark Structured Streaming + Kafka
+
+      - id: lambda
+        name: Lambda架构（批+流）
+        when: 既有实时需求又有历史回算需求
+        examples: 实时大屏+历史报表、实时推荐+离线训练
+        complexity: 5
+        pros: 兼顾实时和历史
+        cons: 两套代码逻辑需保持一致、运维复杂
+        tech_stack: Kafka + Flink(速度层) + Spark(批处理层) + Hudi/Iceberg(合并层)
+
+      - id: cdc
+        name: CDC变更捕获管道
+        when: 需要实时同步数据库变更，保持多个数据存储一致性
+        examples: 数据库→搜索引擎同步、数据库→缓存同步、跨库数据同步
+        complexity: 3
+        pros: 低延迟、对源系统侵入小
+        cons: 依赖数据库Binlog/WAL、DDL变更处理复杂
+        tech_stack: Debezium + Kafka + Sink Connector
+
+    selection_guide: |
+      选择建议：
+      - 不需要实时 → 批处理（最简单最可靠）
+      - 需要秒级延迟 → 流处理
+      - 需要分钟级延迟 → 微批处理
+      - 需要数据库实时同步 → CDC
+      - 既有实时又有历史 → Lambda（但优先考虑Kappa架构：纯流+重放）
+      - 不确定时 → 从批处理开始，逐步演进到流处理
+
+  step_2_idempotency:
+    question: 幂等性保证策略
+    description: 确保管道重复执行不会产生重复数据或错误结果
+    why_critical: |
+      数据管道最常见的故障场景：
+      1. 网络超时 → 上游重试 → 数据重复写入
+      2. 任务失败重跑 → 部分数据已写入 → 重复
+      3. 消费者重启 → 重新消费已处理的消息 → 重复
+      4. 批处理中断 → 前半部分已提交 → 重跑产生重复
+
+    patterns:
+      - name: 去重表
+        implementation: 写入前检查去重表（消息ID/业务主键+处理时间）
+        pros: 实现简单，通用性强
+        cons: 去重表本身是性能瓶颈，需定期清理
+        when: 消息有唯一ID，写入频率中等
+        sql_example: |
+          INSERT INTO target_table (id, data, processed_at)
+          SELECT :id, :data, NOW()
+          WHERE NOT EXISTS (
+            SELECT 1 FROM dedup_table WHERE msg_id = :id
+          );
+
+      - name: UPSERT（插入或更新）
+        implementation: 使用业务主键做UPSERT，重复写入覆盖旧值
+        pros: 天然幂等，无需额外组件
+        cons: 需要业务主键，更新比插入慢
+        when: 数据有自然主键，允许覆盖更新
+        sql_example: |
+          INSERT INTO target_table (id, name, amount, updated_at)
+          VALUES (:id, :name, :amount, NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            amount = EXCLUDED.amount,
+            updated_at = EXCLUDED.updated_at;
+
+      - name: 事务+回滚段
+        implementation: 先写入临时表，校验后原子性切换到正式表
+        pros: 一致性最强
+        cons: 实现复杂，临时表管理
+        when: 批量导入，要求严格一致性
+        sql_example: |
+          -- Step 1: 写入临时表
+          INSERT INTO tmp_table SELECT * FROM source WHERE dt = :date;
+          -- Step 2: 原子性替换
+          BEGIN;
+          DELETE FROM target_table WHERE dt = :date;
+          INSERT INTO target_table SELECT * FROM tmp_table WHERE dt = :date;
+          TRUNCATE tmp_table;
+          COMMIT;
+
+      - name: 幂等键+窗口去重
+        implementation: 消息携带幂等键，消费端在窗口内去重
+        pros: 分布式友好，适合流处理
+        cons: 窗口大小需要权衡
+        when: 流处理场景，Kafka消费者
+        implementation_detail: |
+          - 生产者：每条消息携带 idempotency_key（业务主键的哈希）
+          - 消费者：Redis SETNX 检查幂等键是否已处理
+          - 窗口：设置TTL（如24小时），过期自动清理
+
+    decision_checklist:
+      - 确定哪些操作需要幂等（写入/更新/删除/通知）
+      - 确定幂等粒度（消息级/批次级/业务级）
+      - 确定去重存储（Redis/数据库去重表/状态后端）
+      - 确定去重窗口大小（多久内的重复需要防护）
+      - 确定失败重试策略（at-least-once vs exactly-once）
+
+  step_3_data_quality:
+    question: 数据质量保障框架
+    description: 建立数据质量检查机制，确保管道输出的数据可信
+    dimensions:
+      - name: 完整性
+        description: 数据是否缺失
+        checks:
+          - 行数校验：源表行数 ≈ 目标表行数（允许误差范围）
+          - 非空校验：关键字段不允许NULL
+          - 外键校验：关联数据是否存在
+        alert_condition: 行数偏差 > 5% 或 关键字段NULL率 > 0
+
+      - name: 一致性
+        description: 数据在不同系统间是否一致
+        checks:
+          - 汇总校验：源表SUM(amount) = 目标表SUM(amount)
+          - 哈希校验：关键字段组合的MD5一致
+          - 时间戳校验：数据更新时间在预期范围内
+        alert_condition: 汇总值偏差 > 0.01% 或 哈希不匹配
+
+      - name: 时效性
+        description: 数据是否及时到达
+        checks:
+          - 延迟监控：数据产生时间 vs 可用时间
+          - 完成度监控：预期数据量 vs 实际数据量
+          - SLA监控：是否在承诺时间内完成
+        alert_condition: 延迟 > SLA阈值 或 完成度 < 95%
+
+      - name: 准确性
+        description: 数据值是否正确
+        checks:
+          - 范围校验：数值在合理范围内（如年龄0-150）
+          - 格式校验：日期/邮箱/手机号格式正确
+          - 业务规则：订单金额 > 0，开始时间 < 结束时间
+        alert_condition: 异常值占比 > 0.1%
+
+      - name: 唯一性
+        description: 数据是否重复
+        checks:
+          - 主键唯一：业务主键无重复
+          - 事件唯一：事件ID无重复
+          - 自然唯一：同一时间窗口内无重复记录
+        alert_condition: 重复率 > 0
+
+    implementation_patterns:
+      - name: 行级校验
+        when: 每条记录都需要校验
+        implementation: 管道中嵌入校验规则，不合格记录写入死信队列
+      - name: 表级校验
+        when: 批处理完成后校验整体质量
+        implementation: 管道末尾增加质量检查任务，不通过则告警或阻断
+      - name: 持续监控
+        when: 需要实时了解数据质量趋势
+        implementation: Great Expectations / dbt test + Grafana仪表盘
+
+  step_4_schema_evolution:
+    question: Schema演化策略
+    description: 确保数据结构变更时不破坏现有消费者
+    principles:
+      - name: 向后兼容
+        description: 新Schema能读取旧数据
+        rules:
+          - 新增字段必须有默认值
+          - 不删除已有字段（标记deprecated）
+          - 不修改字段类型（可以拓宽，如int→bigint）
+
+      - name: 向前兼容
+        description: 旧Schema能读取新数据（忽略未知字段）
+        rules:
+          - 消费者忽略不认识的字段
+          - 不依赖字段顺序
+          - 使用字段名而非位置索引
+
+    compatible_changes:
+      - 新增可选字段（有默认值）
+      - 拓宽数值类型（int→bigint）
+      - 新增枚举值
+      - 重命名字段（保留旧字段别名）
+
+    incompatible_changes:
+      - 删除字段
+      - 修改字段类型（string→int）
+      - 修改字段语义（amount从分→元）
+      - 重命名字段（不保留别名）
+
+    strategies:
+      - name: Schema Registry
+        when: Kafka/消息队列场景
+        implementation: Confluent Schema Registry + Avro/Protobuf
+        compatibility: 可配置向后/向前/完全兼容性级别
+
+      - name: 数据湖表格式
+        when: 数据湖/数据仓库场景
+        implementation: Apache Iceberg/Apache Hudi/Delta Lake
+        features: Schema演进内置支持、时间旅行、ACID事务
+
+      - name: 版本化表
+        when: 传统数据库场景
+        implementation: 新版本创建新表/新列，旧版本保持不变
+        migration: 双写过渡期 → 验证一致性 → 切换读取 → 下线旧表
+
+  step_5_incremental_sync:
+    question: 增量同步策略
+    description: 只同步变更的数据，减少传输量和处理时间
+    strategies:
+      - name: 时间戳增量
+        implementation: WHERE updated_at > LAST_SYNC_TIME
+        pros: 实现简单，大多数表都有updated_at
+        cons: 时钟漂移问题、无法捕获删除、高频更新可能遗漏
+        when: 大多数常规同步场景
+        caveats: |
+          - 使用服务器时间而非客户端时间
+          - LAST_SYNC_TIME向前回退1-2分钟（防遗漏）
+          - 需要配合软删除（deleted_at字段）
+
+      - name: 自增ID增量
+        implementation: WHERE id > LAST_MAX_ID
+        pros: 简单可靠、无时钟问题
+        cons: 只适用于有自增ID的表、无法捕获更新和删除
+        when: 只需同步新增数据（如日志表）
+
+      - name: CDC变更捕获
+        implementation: 读取数据库Binlog/WAL
+        pros: 捕获所有变更（增/改/删）、实时性强
+        cons: 依赖数据库特性、DDL变更处理复杂
+        when: 需要实时同步所有变更
+        caveats: |
+          - Binlog格式必须是ROW模式
+          - DDL变更需要暂停→修改Schema→恢复
+          - 需要监控消费延迟
+
+      - name: 版本号增量
+        implementation: WHERE version > LAST_VERSION
+        pros: 无时钟问题、可检测并发修改
+        cons: 需要应用层维护版本号
+        when: 有乐观锁机制的系统
+
+checklist:
+  must_have:
+    - item: 管道模式已选择（批处理/流处理/CDC/混合）
+      severity: required
+    - item: 幂等性策略已确定并实现
+      severity: required
+    - item: 数据质量检查框架已建立（至少覆盖完整性和一致性）
+      severity: required
+    - item: 失败重试策略已确定（重试次数/退避策略/死信队列）
+      severity: required
+    - item: 监控告警已配置（延迟/错误率/数据量异常）
+      severity: required
+    - item: Schema演化策略已确定
+      severity: high
+    - item: 数据血缘追踪已实现（至少手动记录）
+      severity: high
+
+  common_pitfalls:
+    - title: 重复消费导致数据重复
+      description: 消费者重启或重试时，已处理的消息被重新消费，导致目标表数据重复
+      severity: critical
+      check: 消费端是否有幂等性保证？是否使用UPSERT而非INSERT？
+      fix: 消费端实现幂等（去重表/UPSERT/幂等键），或使用Exactly-Once语义
+
+    - title: 静默数据丢失
+      description: 管道运行正常无报错，但部分数据悄悄丢失（类型转换失败、过滤条件过严、编码问题）
+      severity: critical
+      check: 源端和目标端的数据量是否一致？是否有行数校验？
+      fix: 增加行数/汇总校验，类型转换失败写入死信队列而非静默丢弃
+
+    - title: Schema变更导致管道中断
+      description: 上游表新增/删除/修改字段，下游管道未同步更新，导致解析失败
+      severity: high
+      check: 是否有Schema变更通知机制？管道是否容忍未知字段？
+      fix: Schema Registry管理变更，消费者忽略未知字段，DDL变更走变更流程
+
+    - title: 增量同步遗漏
+      description: 时间戳增量同步时，由于时钟漂移或事务隔离级别，部分变更未被捕获
+      severity: high
+      check: 增量同步的LAST_SYNC_TIME是否有安全余量？是否定期全量校验？
+      fix: LAST_SYNC_TIME回退1-2分钟，每周全量校验一次
+
+    - title: 反压导致级联故障
+      description: 下游处理速度慢于上游生产速度，反压传导导致整个管道堆积甚至OOM
+      severity: high
+      check: 是否有背压机制？消费延迟监控是否到位？
+      fix: 设置合理的缓冲区大小，消费延迟超阈值时告警，必要时降级或丢弃
+
+    - title: 大事务锁表
+      description: 批量写入使用单一大事务，锁表时间过长影响在线业务
+      severity: medium
+      check: 批量写入是否分批提交？事务大小是否有限制？
+      fix: 分批提交（每1000-5000行一次COMMIT），低峰期执行大批量操作
+
+role_enhancements:
+  architect:
+    extra_prompt: |
+      【数据管道架构设计要点】
+      在设计数据管道架构时，必须关注：
+      1. 管道模式：批处理最可靠，流处理最复杂，CDC适合数据库同步
+      2. 幂等性：所有写入操作必须幂等，UPSERT是最简单的幂等方案
+      3. 数据质量：完整性+一致性+时效性，至少覆盖行数校验和汇总校验
+      4. Schema演化：新增字段给默认值，删除字段先deprecated，类型变更走迁移
+      5. 增量同步：时间戳增量需回退安全余量，CDC需处理DDL变更
+      6. 失败处理：重试3次+指数退避+死信队列，不静默丢弃数据
+      7. 监控：消费延迟、错误率、数据量偏差、SLA达成率
+
+  tester:
+    extra_prompt: |
+      【数据管道测试要点】
+      在设计数据管道测试策略时，必须覆盖：
+      1. 幂等性测试：相同数据重复写入，结果不变
+      2. 乱序测试：消息乱序到达，结果正确
+      3. 丢失测试：部分消息丢失，能检测并告警
+      4. 重复测试：消息重复消费，不产生重复数据
+      5. Schema变更测试：新增/删除字段，管道不中断
+      6. 大数据量测试：百万级数据量下性能和正确性
+      7. 端到端测试：从源头到目标的完整数据流验证
+      8. 故障恢复测试：管道中断后恢复，数据不丢失不重复

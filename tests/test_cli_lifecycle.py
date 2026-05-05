@@ -12,15 +12,20 @@ import sys
 import os
 from io import StringIO
 from unittest.mock import patch, MagicMock
+import importlib.util
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from scripts.cli import (
-    LIFECYCLE_PRESETS,
-    LIFECYCLE_COMMANDS,
-    cmd_lifecycle,
-    main,
+# Import from cli.py module (not cli package)
+cli_spec = importlib.util.spec_from_file_location(
+    "cli_module",
+    os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cli.py')
 )
+cli_module = importlib.util.module_from_spec(cli_spec)
+cli_spec.loader.exec_module(cli_module)
+
+LIFECYCLE_PRESETS = cli_module.LIFECYCLE_PRESETS
+LIFECYCLE_COMMANDS = cli_module.LIFECYCLE_COMMANDS
+cmd_lifecycle = cli_module.cmd_lifecycle
+main = cli_module.main
 
 
 class TestLifecyclePresets:
@@ -145,7 +150,7 @@ class TestCmdLifecycle:
         result = cmd_lifecycle(args)
         assert result == 1
 
-    @patch('scripts.cli.MultiAgentDispatcher')
+    @patch.object(cli_module, 'MultiAgentDispatcher')
     def test_spec_command_calls_dispatch(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()
@@ -182,7 +187,7 @@ class TestCmdLifecycle:
         assert "architect" in output
         assert "product-manager" in output
 
-    @patch('scripts.cli.MultiAgentDispatcher')
+    @patch.object(cli_module, 'MultiAgentDispatcher')
     def test_build_command_uses_correct_roles(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()
@@ -219,7 +224,7 @@ class TestCmdLifecycle:
         assert "solo-coder" in called_roles
         assert "tester" in called_roles
 
-    @patch('scripts.cli.MultiAgentDispatcher')
+    @patch.object(cli_module, 'MultiAgentDispatcher')
     def test_ship_command_uses_sequential_mode(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()
@@ -258,7 +263,7 @@ class TestCLIIntegration:
     """Test CLI main() integration with lifecycle commands."""
 
     @patch('sys.argv', ['devsquad', 'spec', '-t', 'Test task', '--dry-run'])
-    @patch('scripts.cli.MultiAgentDispatcher')
+    @patch.object(cli_module, 'MultiAgentDispatcher')
     def test_main_with_spec_command(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()
@@ -273,7 +278,7 @@ class TestCLIIntegration:
         assert result == 0
 
     @patch('sys.argv', ['devsquad', 'build', 'Implement feature'])
-    @patch('scripts.cli.MultiAgentDispatcher')
+    @patch.object(cli_module, 'MultiAgentDispatcher')
     def test_main_with_build_command_positional(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()
@@ -314,7 +319,7 @@ class TestEdgeCases:
         result = cmd_lifecycle(args)
         assert result == 1
 
-    @patch('scripts.cli.MultiAgentDispatcher')
+    @patch.object(cli_module, 'MultiAgentDispatcher')
     def test_dispatch_failure_returns_error_code(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()
@@ -346,7 +351,7 @@ class TestEdgeCases:
 
         assert result == 1
 
-    @patch('scripts.cli.MultiAgentDispatcher')
+    @patch.object(cli_module, 'MultiAgentDispatcher')
     def test_json_format_output(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()
