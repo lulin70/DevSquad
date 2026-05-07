@@ -42,10 +42,10 @@ def test_config_loading():
         hc = aqc.get("hallucination_check", {})
         print(f"✓ Hallucination check: {hc.get('enabled')}")
         
-        return True
+        assert True, "QC config loaded successfully"
     else:
         print("✗ Quality control not enabled - config may not be loaded")
-        return False
+        assert False, "QC config not loaded"
 
 
 def test_qc_injection_building():
@@ -82,10 +82,10 @@ def test_qc_injection_building():
         
         print(f"\nInjection length: {len(injection)} characters")
         
-        return all_passed
+        assert all_passed, "All QC injection checks should pass"
     else:
         print("✗ QC injection not built - check configuration")
-        return False
+        assert False, "QC injection not built"
 
 
 def test_prompt_injection():
@@ -123,7 +123,7 @@ def test_prompt_injection():
             snippet = instruction[qc_start:qc_start+200]
             print(f"\nInjection preview:\n{snippet}...")
     
-    return has_qc
+    assert has_qc, "QC rules should be injected in prompt"
 
 
 def test_complex_task_injection():
@@ -176,7 +176,9 @@ def test_complex_task_injection():
     print(f"{'✓' if has_alternatives else '✗'} Alternatives requirement present")
     print(f"{'✓' if has_security else '✗'} Security rules present")
     
-    return has_qc and has_hallucination_check and has_alternatives
+    assert has_qc, "QC rules should be injected"
+    assert has_hallucination_check, "Hallucination rules should be present"
+    assert has_alternatives, "Alternatives requirement should be present"
 
 
 def test_disabled_mode():
@@ -201,7 +203,7 @@ def test_disabled_mode():
         print(f"{'✓' if has_no_qc else '✗'} No QC injection when disabled: {has_no_qc}")
         print(f"QC enabled flag: {assembler.qc_enabled}")
         
-        return has_no_qc
+        assert has_no_qc, "No QC injection when disabled"
     finally:
         os.chdir(original_cwd)
 
@@ -214,36 +216,19 @@ def main():
     print(f"Working directory: {os.getcwd()}")
     print(f"Config file exists: {os.path.exists('.devsquad.yaml')}")
     
-    results = []
-    
     # Run all tests
-    results.append(("Config Loading", test_config_loading()))
-    results.append(("QC Injection Building", test_qc_injection_building()))
-    results.append(("Simple Task Injection", test_prompt_injection()))
-    results.append(("Complex Task Injection", test_complex_task_injection()))
-    results.append(("Disabled Mode", test_disabled_mode()))
+    test_config_loading()
+    test_qc_injection_building()
+    test_prompt_injection()
+    test_complex_task_injection()
+    test_disabled_mode()
     
     # Summary
     print("\n" + "=" * 60)
     print("TEST SUMMARY")
     print("=" * 60)
-    
-    passed = sum(1 for _, result in results if result)
-    total = len(results)
-    
-    for name, result in results:
-        status = "✓ PASS" if result else "✗ FAIL"
-        print(f"{status}: {name}")
-    
-    print(f"\nTotal: {passed}/{total} tests passed")
-    
-    if passed == total:
-        print("\n🎉 All tests passed! Configuration injection is working correctly.")
-        return 0
-    else:
-        print(f"\n⚠️  {total - passed} test(s) failed. Please review the output above.")
-        return 1
+    print("\n🎉 All tests passed! Configuration injection is working correctly.")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

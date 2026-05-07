@@ -168,8 +168,8 @@ def demo_performance_monitoring():
     for prompt in prompts:
         try:
             optimized_llm_call(prompt)
-        except:
-            pass
+        except Exception as e:
+            print(f"Warning: LLM call failed for '{prompt[:30]}...': {e}")
         time.sleep(0.3)
     
     # 获取性能统计

@@ -93,12 +93,21 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+# Configure allowed origins - restrict to specific domains in production
+allowed_origins = [
+    "http://localhost:8501",      # DevSquad Dashboard
+    "http://localhost:8000",      # API Server
+    "http://localhost:3000",      # Frontend dev server
+    "https://yourdomain.com",     # Production domain
+    "https://*.yourdomain.com",   # Subdomains
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 

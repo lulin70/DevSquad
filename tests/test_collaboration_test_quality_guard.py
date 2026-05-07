@@ -56,6 +56,9 @@ class TestDimension(Enum):
     SECURITY = "security"
 
 
+TestDimension.__test__ = False  # Tell pytest this is not a test class
+
+
 @dataclass
 class QualityIssue:
     id: str
@@ -92,6 +95,9 @@ class TestFunctionMeta:
     has_error_test: bool = False
     has_performance_check: bool = False
     docstring: str = ""
+
+
+TestFunctionMeta.__test__ = False  # Tell pytest this is not a test class
 
 
 @dataclass
@@ -225,6 +231,9 @@ class TestQualityReport:
             f"*由 TestQualityGuard v1.0 自动生成*",
         ])
         return "\n".join(lines)
+
+
+TestQualityReport.__test__ = False  # Tell pytest this is not a test class
 
 
 class APISignatureValidator:
@@ -450,7 +459,7 @@ class TestPurposeParser:
         return TestDimension.HAPPY_PATH
 
 
-class TestQualityGuard:
+class _TestQualityGuardImpl:
     """
     测试质量守卫 - 主入口
 
@@ -664,12 +673,12 @@ class TestQualityGuard:
 
 def quick_audit(module_path: str, test_path: str) -> TestQualityReport:
     """便捷函数：单文件审计"""
-    return TestQualityGuard(module_path, test_path).audit()
+    return _TestQualityGuardImpl(module_path, test_path).audit()
 
 
 def project_audit(project_root: str) -> str:
     """便捷函数：项目级审计，返回 Markdown 报告"""
-    guard = TestQualityGuard("", "")
+    guard = _TestQualityGuardImpl("", "")
     reports = guard.audit_project(project_root)
     lines = ["# 项目级测试质量审计报告\n"]
     total_score = 0

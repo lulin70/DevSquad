@@ -56,6 +56,9 @@ class TestDimension(Enum):
     SECURITY = "security"
 
 
+TestDimension.__test__ = False  # Tell pytest this is not a test class
+
+
 @dataclass
 class QualityIssue:
     id: str
@@ -92,6 +95,9 @@ class TestFunctionMeta:
     has_error_test: bool = False
     has_performance_check: bool = False
     docstring: str = ""
+
+
+TestFunctionMeta.__test__ = False  # Tell pytest this is not a test class
 
 
 @dataclass
@@ -225,6 +231,9 @@ class TestQualityReport:
             f"*由 TestQualityGuard v1.0 自动生成*",
         ])
         return "\n".join(lines)
+
+
+TestQualityReport.__test__ = False  # Tell pytest this is not a test class
 
 
 class APISignatureValidator:
@@ -660,6 +669,9 @@ class TestQualityGuard:
         self.assertLess(elapsed, 100, f"耗时 {{elapsed:.1f}}ms 超过 100ms 阈值")
 '''
         return template
+
+
+TestQualityGuard.__test__ = False  # Tell pytest this is not a test class
 
 
 def quick_audit(module_path: str, test_path: str) -> TestQualityReport:
