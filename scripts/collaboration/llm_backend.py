@@ -192,18 +192,20 @@ class AnthropicBackend(LLMBackend):
         self,
         api_key: Optional[str] = None,
         model: str = "claude-sonnet-4-20250514",
+        base_url: Optional[str] = None,
         max_tokens: int = 4096,
         timeout: Optional[int] = None,
     ):
         self._api_key = api_key
         self.model = model
+        self.base_url = base_url
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self._client = None
         self._client_lock = __import__('threading').Lock()
 
     def __repr__(self):
-        return f"AnthropicBackend(model={self.model})"
+        return f"AnthropicBackend(model={self.model}, base_url={self.base_url})"
 
     def _get_client(self):
         if self._client is None:
@@ -211,7 +213,10 @@ class AnthropicBackend(LLMBackend):
                 if self._client is None:
                     try:
                         from anthropic import Anthropic
-                        self._client = Anthropic(api_key=self._api_key, timeout=self.timeout)
+                        kwargs = {"api_key": self._api_key, "timeout": self.timeout}
+                        if self.base_url:
+                            kwargs["base_url"] = self.base_url
+                        self._client = Anthropic(**kwargs)
                     except ImportError:
                         raise ImportError("anthropic package required: pip install anthropic")
         return self._client
@@ -252,17 +257,166 @@ class AnthropicBackend(LLMBackend):
             return False
 
 
+class FallbackBackend(LLMBackend):
+    """
+    Backend with automatic failover across multiple backends.
+
+    Tries each backend in order. If the primary fails (network error,
+    rate limit, auth error, etc.), automatically falls back to the next.
+
+    Usage:
+        primary = AnthropicBackend(api_key="...", model="claude-sonnet-4-6")
+        fallback = OpenAIBackend(api_key="...", model="gpt-5.5")
+        backend = FallbackBackend([primary, fallback])
+    """
+
+    def __init__(self, backends: list, cooldown_seconds: float = 30.0):
+        if not backends:
+            raise ValueError("FallbackBackend requires at least one backend")
+        self._backends = backends
+        self._cooldown_seconds = cooldown_seconds
+        self._failed_at: Dict[str, float] = {}
+        self._active_index = 0
+        self._lock = __import__('threading').Lock()
+
+    def __repr__(self):
+        names = [type(b).__name__ for b in self._backends]
+        return f"FallbackBackend({names})"
+
+    def _is_cooled_down(self, backend_repr: str) -> bool:
+        import time
+        failed_time = self._failed_at.get(backend_repr, 0)
+        return (time.time() - failed_time) > self._cooldown_seconds
+
+    def _mark_failed(self, backend_repr: str):
+        import time
+        self._failed_at[backend_repr] = time.time()
+
+    def generate(self, prompt: str, **kwargs) -> str:
+        import logging
+        logger = logging.getLogger(__name__)
+        last_error = None
+
+        with self._lock:
+            ordered = list(range(len(self._backends)))
+            ordered.sort(key=lambda i: (i != self._active_index, i))
+
+        for idx in ordered:
+            backend = self._backends[idx]
+            backend_repr = repr(backend)
+
+            if idx != self._active_index and not self._is_cooled_down(backend_repr):
+                continue
+
+            try:
+                result = backend.generate(prompt, **kwargs)
+                with self._lock:
+                    self._active_index = idx
+                if idx != 0:
+                    logger.info("FallbackBackend: switched to %s", backend_repr)
+                return result
+            except Exception as e:
+                last_error = e
+                self._mark_failed(backend_repr)
+                logger.warning(
+                    "FallbackBackend: %s failed (%s), trying next",
+                    backend_repr, type(e).__name__,
+                )
+
+        raise last_error
+
+    def generate_stream(self, prompt: str, **kwargs) -> Generator[str, None, None]:
+        import logging
+        logger = logging.getLogger(__name__)
+
+        with self._lock:
+            ordered = list(range(len(self._backends)))
+            ordered.sort(key=lambda i: (i != self._active_index, i))
+
+        for idx in ordered:
+            backend = self._backends[idx]
+            backend_repr = repr(backend)
+
+            if idx != self._active_index and not self._is_cooled_down(backend_repr):
+                continue
+
+            try:
+                with self._lock:
+                    self._active_index = idx
+                for chunk in backend.generate_stream(prompt, **kwargs):
+                    yield chunk
+                return
+            except Exception as e:
+                self._mark_failed(backend_repr)
+                logger.warning(
+                    "FallbackBackend: %s stream failed (%s), trying next",
+                    backend_repr, type(e).__name__,
+                )
+
+        raise last_error
+
+    def is_available(self) -> bool:
+        return any(b.is_available() for b in self._backends)
+
+
 def create_backend(backend_type: str = "mock", **kwargs) -> LLMBackend:
     """
     Factory function to create an LLM backend by type name.
 
+    Automatically reads configuration from environment variables when not
+    explicitly provided via kwargs. Supports .env file loading.
+
+    Environment Variables:
+        DEVSQUAD_LLM_BACKEND: Default backend type (mock|trae|openai|anthropic)
+        DEVSQUAD_OPENAI_API_KEY: OpenAI API key
+        DEVSQUAD_OPENAI_BASE_URL: OpenAI-compatible base URL
+        DEVSQUAD_OPENAI_MODEL: OpenAI model name
+        DEVSQUAD_ANTHROPIC_API_KEY: Anthropic API key
+        DEVSQUAD_ANTHROPIC_BASE_URL: Anthropic-compatible base URL
+        DEVSQUAD_ANTHROPIC_MODEL: Anthropic model name
+
     Args:
-        backend_type: One of 'mock', 'trae', 'openai', 'anthropic'
-        **kwargs: Backend-specific configuration
+        backend_type: One of 'mock', 'trae', 'openai', 'anthropic'.
+                      If not specified, reads from DEVSQUAD_LLM_BACKEND env var.
+        **kwargs: Backend-specific configuration (overrides env vars)
 
     Returns:
         LLMBackend instance
     """
+    import os
+
+    _load_dotenv()
+
+    env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "mock").lower()
+
+    if backend_type == "mock" and not kwargs:
+        if env_backend in ("openai", "anthropic", "fallback"):
+            backend_type = env_backend
+
+    if backend_type == "fallback":
+        anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
+        openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
+        backends_list = []
+        if anthropic_key:
+            backends_list.append(AnthropicBackend(
+                api_key=anthropic_key,
+                base_url=kwargs.pop("anthropic_base_url", None) or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
+                model=kwargs.pop("anthropic_model", None) or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+                max_tokens=kwargs.pop("max_tokens", 4096),
+                timeout=kwargs.pop("timeout", None),
+            ))
+        if openai_key:
+            backends_list.append(OpenAIBackend(
+                api_key=openai_key,
+                base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
+                model=kwargs.pop("openai_model", None) or os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"),
+                max_tokens=kwargs.pop("max_tokens", 4096),
+                timeout=kwargs.pop("timeout", None),
+            ))
+        if not backends_list:
+            backends_list.append(MockBackend())
+        return FallbackBackend(backends_list, cooldown_seconds=kwargs.pop("cooldown_seconds", 30.0))
+
     backends = {
         "mock": MockBackend,
         "trae": TraeBackend,
@@ -272,4 +426,26 @@ def create_backend(backend_type: str = "mock", **kwargs) -> LLMBackend:
     cls = backends.get(backend_type.lower())
     if cls is None:
         raise ValueError(f"Unknown backend type: {backend_type}. Available: {list(backends.keys())}")
+
+    if cls == OpenAIBackend:
+        kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY"))
+        kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
+        kwargs.setdefault("model", os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"))
+    elif cls == AnthropicBackend:
+        kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY"))
+        kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"))
+        kwargs.setdefault("model", os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"))
+
     return cls(**kwargs)
+
+
+def _load_dotenv():
+    """Load .env file if python-dotenv is available."""
+    try:
+        from dotenv import load_dotenv
+        from pathlib import Path
+        env_path = Path(__file__).parent.parent.parent / ".env"
+        if env_path.exists():
+            load_dotenv(env_path)
+    except ImportError:
+        pass

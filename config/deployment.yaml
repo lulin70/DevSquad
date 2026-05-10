@@ -134,6 +134,37 @@ monitoring:
     provider: ""  # sentry | rollbar
     dsn: ""
 
+# LLM Backend Configuration
+# All credentials are read from environment variables or .env file.
+# NEVER hardcode API keys here.
+llm:
+  default_backend: "${DEVSQUAD_LLM_BACKEND:-mock}"  # mock | trae | openai | anthropic
+
+  openai:
+    api_key: "${DEVSQUAD_OPENAI_API_KEY}"
+    base_url: "${DEVSQUAD_OPENAI_BASE_URL:-https://api.openai.com/v1}"
+    model: "${DEVSQUAD_OPENAI_MODEL:-gpt-4}"
+    temperature: 0.7
+    max_tokens: 4096
+    timeout: 120
+
+  anthropic:
+    api_key: "${DEVSQUAD_ANTHROPIC_API_KEY}"
+    base_url: "${DEVSQUAD_ANTHROPIC_BASE_URL:-https://api.anthropic.com}"
+    model: "${DEVSQUAD_ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
+    max_tokens: 4096
+    timeout: 120
+
+  cache:
+    enabled: true
+    ttl_seconds: 3600
+    max_size_mb: 100
+
+  retry:
+    max_retries: 3
+    initial_delay: 1.0
+    backoff_factor: 2.0
+
 # Environment-specific overrides
 environments:
   development:
