@@ -14,7 +14,7 @@ Usage:
     
     briefing = AgentBriefing(
         agent_role="Architect",
-        project_context={"name": "DevSquad", "version": "3.5.0-Prod"}
+        project_context={"name": "DevSquad", "version": "3.6.0-Prod"}
     )
     
     # Generate briefing
@@ -646,7 +646,7 @@ def reset_briefings() -> None:
     _briefing_instances.clear()
 
 
-__version__ = "3.5.0"
+__version__ = "3.6.0"
 __all__ = [
     "AgentBriefing",
     "BriefingSection",

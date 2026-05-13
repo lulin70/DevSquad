@@ -42,7 +42,7 @@ capabilities:
           type: array
           items:
             type: string
-          description: 指定参与角色(可选，默认自动匹配，短ID: arch/pm/test/coder/ui/infra/sec)
+          description: "指定参与角色(可选，默认自动匹配，短ID: arch/pm/test/coder/ui/infra/sec)"
         mode:
           type: string
           enum: [auto, parallel, sequential, consensus]
@@ -200,7 +200,7 @@ metadata:
         - 1548+ tests all passing
         - 47 core modules
 
-    - version: 3.5.0
+    - version: 3.6.0
       date: "2026-05-05"
       changes:
         - 7-Role Code Walkthrough with dedicated concern packs
@@ -211,7 +211,7 @@ metadata:
         - Project Understanding Enhancement (agent_briefing.py)
         - 1500+ tests all passing
 
-    - version: 3.5.0
+    - version: 3.6.0
       date: "2026-04-27"
       changes:
         - Authentication (RBAC), Alert System, History Storage

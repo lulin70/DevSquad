@@ -2,17 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.5.0 DevSquad — Production-Ready Multi-Role AI Task Orchestrator.
+  V3.6.0 DevSquad — Production-Ready Multi-Role AI Task Orchestrator.
   One task in, multi-role AI collaboration, one conclusion out.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + REST API + Dashboard + MCP + Python API.
   750+ tests all passing (99.3%).
-  NEW in V3.5.0: Authentication (RBAC), FastAPI REST Server, Alert System,
+  NEW in V3.6.0: Authentication (RBAC), FastAPI REST Server, Alert System,
   Historical Data Storage (SQLite), Streamlit Dashboard with login.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
 ---
 
-# DevSquad V3.5.0 — Multi-Role AI Task Orchestrator (Production Ready)
+# DevSquad V3.6.0 — Multi-Role AI Task Orchestrator (Production Ready)
 
 ## Core Positioning
 
@@ -143,7 +143,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend op
 - Need quick multi-role collaboration results
 - No need for fine-grained role control
 
-### Method 3: Interactive Web Dashboard (V3.5.0 NEW)
+### Method 3: Interactive Web Dashboard (V3.6.0 NEW)
 
 ```bash
 # Start Streamlit dashboard with authentication
@@ -165,7 +165,7 @@ streamlit run scripts/dashboard.py
 - Team collaboration with multiple users
 - Non-technical stakeholders need access
 
-### Method 4: REST API Server (V3.5.0 NEW)
+### Method 4: REST API Server (V3.6.0 NEW)
 
 ```bash
 # Install API dependencies
@@ -401,7 +401,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.5.0",
+#   "version": "3.6.0",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
@@ -533,7 +533,7 @@ def test_<feature>_<scenario>(self):
 
 ---
 
-## Project Lifecycle: 11-Phase Model (V3.5.0)
+## Project Lifecycle: 11-Phase Model (V3.6.0)
 
 > **Definition document**: `docs/prd/lifecycle_phases_definition.md` (authoritative)
 > **Review report**: `docs/prd/lifecycle_phases_review.md` (7-role review, 9 suggestions adopted)

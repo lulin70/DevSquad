@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DevSquad V3.5.0-C Dashboard (Streamlit MVP)
+DevSquad V3.6.0-C Dashboard (Streamlit MVP)
 
 Interactive web dashboard for lifecycle visualization and monitoring.
 
@@ -496,7 +496,7 @@ def render_footer(current_user: Optional[User] = None):
     
     with col1:
         st.markdown(
-            "<center>**DevSquad V3.5.0** | Plan C | Production Ready</center>",
+            "<center>**DevSquad V3.6.0** | Plan C | Production Ready</center>",
             unsafe_allow_html=True
         )
     
