@@ -39,7 +39,7 @@ class RetrospectiveEngine:
         print(report.to_markdown())
     """
 
-    MEMORY_TYPE = "retrospective"
+    MEMORY_TYPE_STR = "retrospective"
 
     def __init__(self, memory_bridge=None):
         self._memory_bridge = memory_bridge
@@ -229,15 +229,20 @@ class RetrospectiveEngine:
             return
 
         try:
-            from .memory_bridge import MemoryEntry
-            tags = _tokenize_simple(goal.original_description)[:10]
-            entry = MemoryEntry(
-                entry_type=self.MEMORY_TYPE,
-                content=report.to_dict(),
-                tags=tags,
-                source="RetrospectiveEngine",
+            from .memory_bridge import MemoryType, AnalysisCase
+            analysis = AnalysisCase(
+                id=f"retro_{goal.goal_id}",
+                problem=f"Retrospective: {goal.original_description[:60]}",
+                context=report.summary,
+                root_cause="; ".join(d.reason for d in report.deviations[:3]) if report.deviations else "No deviations",
+                solutions=report.improvements,
+                status="completed",
             )
-            self._memory_bridge.store(entry)
+            writer = getattr(self._memory_bridge, 'writer', None)
+            if writer and hasattr(writer, 'write_analysis'):
+                writer.write_analysis(analysis)
+            else:
+                self._memory_bridge.store.save(MemoryType.ANALYSIS, report.to_dict())
             logger.info("Retrospective report stored in MemoryBridge (goal_id=%s)", goal.goal_id)
         except Exception as e:
             logger.warning("Failed to store retrospective report: %s", e)
@@ -247,26 +252,22 @@ class RetrospectiveEngine:
         task_description: str,
         limit: int = 3,
     ) -> List[Dict[str, Any]]:
-        """
-        Load historical retrospective reports for similar tasks.
-
-        Args:
-            task_description: Current task description to match against.
-            limit: Maximum number of reports to return.
-
-        Returns:
-            List of retrospective report dicts, sorted by relevance.
-        """
         if self._memory_bridge is None:
             return []
 
         try:
-            results = self._memory_bridge.recall(
-                query=task_description,
-                entry_type=self.MEMORY_TYPE,
+            from .memory_bridge import MemoryQuery
+            query = MemoryQuery(
+                query_text=task_description,
                 limit=limit,
             )
-            return results if isinstance(results, list) else []
+            result = self._memory_bridge.recall(query)
+            if result and hasattr(result, 'memories') and result.memories:
+                return [
+                    m.content if isinstance(m.content, dict) else {"summary": str(m.content)[:200]}
+                    for m in result.memories[:limit]
+                ]
+            return []
         except Exception as e:
             logger.warning("Failed to load historical retrospectives: %s", e)
             return []

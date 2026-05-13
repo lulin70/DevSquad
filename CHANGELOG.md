@@ -12,20 +12,26 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **RetrospectiveEngine** — Independent post-dispatch retrospective with pattern extraction and anti-pattern detection
 - **StructuredGoal** — Structured goal management with hierarchical decomposition and progress tracking
 - **FallbackBackend** — Automatic LLM backend failover with health monitoring and priority-based routing
-- 45 new tests for AnchorChecker (anchor definition, cross-phase verification, drift scoring, auto-recovery)
-- 38 new tests for RetrospectiveEngine (post-dispatch review, pattern extraction, anti-pattern detection, metric trends)
-- 27 new tests for StructuredGoal (goal decomposition, dependency mapping, progress tracking, completion verification)
-- 35 new tests for FallbackBackend (health monitoring, automatic failover, priority routing, recovery detection)
+- **FeatureUsageTracker** — Thread-safe feature invocation counter with persistence, usage reports, and auto-persist
+- 45 new tests for AnchorChecker and RetrospectiveEngine
+- 30 KNOWN_FEATURES tracked by FeatureUsageTracker for data-driven feature optimization
 
 ### Changed
 - Total test count: 1503 → 1548+
-- Core module count: 45 → 47
+- Core module count: 45 → 48
 - Enhanced dispatcher to support AnchorChecker integration at lifecycle milestones
-- Updated worker configuration to support StructuredGoal tracking
+- Enhanced dispatcher to support RetrospectiveEngine post-task analysis
+- Enhanced dispatcher to support FeatureUsageTracker invocation counting
+- CheckpointManager: Added thread-safe file write lock for concurrent save operations
+- PerformanceMonitor.export_metrics: Fixed missing persist_dir parameter (now accepts allowed_base_dir)
+- FallbackBackend: Added last_error tracking in generate_stream for proper error propagation
 
 ### Fixed
-- Fixed edge case in consensus engine where tie-breaking could produce inconsistent results
-- Fixed performance monitoring regression detection threshold calculation
+- **P0 Deadlock**: FeatureUsageTracker.report() → get_high_usage_features() nested lock acquisition caused deadlock (Lock → RLock)
+- **P0 Race Condition**: CheckpointManager.save_lifecycle_state() concurrent file writes caused intermittent test failures (added _file_lock)
+- **P0 Undefined Variable**: FallbackBackend.generate_stream() raised undefined last_error (added proper tracking)
+- **P0 AttributeError**: PerformanceMonitor.export_metrics() referenced non-existent self.persist_dir (refactored to parameter)
+- Fixed OpenAI/Anthropic backend raise last_error without fallback RuntimeError
 
 ## [3.5.0] - 2026-05-05 (V3.5.0 Enhancement Sprint)
 

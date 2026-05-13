@@ -279,10 +279,10 @@ class PerformanceMonitor:
 
             return None
 
-    def export_metrics(self, output_file: str):
+    def export_metrics(self, output_file: str, allowed_base_dir: str = "/tmp"):
         """导出性能指标到文件"""
         output_path = os.path.abspath(output_file)
-        base_dir = os.path.abspath(self.persist_dir)
+        base_dir = os.path.abspath(allowed_base_dir)
         if not output_path.startswith(base_dir) and not output_path.startswith("/tmp"):
             logger.warning("Export path outside allowed directories: %s", output_path)
             output_path = os.path.join(base_dir, os.path.basename(output_file))
@@ -529,6 +529,7 @@ class MultiAgentDispatcher:
                  enable_quality_guard: bool = False,
                  enable_anchor_check: bool = True,
                  enable_retrospective: bool = True,
+                 enable_usage_tracker: bool = True,
                  compression_threshold: int = 100000,
                  memory_dir: Optional[str] = None,
                  permission_level: PermissionLevel = PermissionLevel.DEFAULT,
@@ -554,6 +555,7 @@ class MultiAgentDispatcher:
         self.enable_quality_guard = enable_quality_guard
         self.enable_anchor_check = enable_anchor_check
         self.enable_retrospective = enable_retrospective
+        self.enable_usage_tracker = enable_usage_tracker
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
         self.enable_warmup = enable_warmup
@@ -650,6 +652,13 @@ class MultiAgentDispatcher:
         else:
             self.retrospective_engine = None
 
+        if self.enable_usage_tracker:
+            from .feature_usage_tracker import FeatureUsageTracker
+            usage_path = os.path.join(self.persist_dir, "feature_usage.json")
+            self.usage_tracker = FeatureUsageTracker(persist_path=usage_path)
+        else:
+            self.usage_tracker = None
+
         self._dispatch_history: List[DispatchResult] = []
         self._max_history = 100
         self._validator = InputValidator()
@@ -692,6 +701,10 @@ class MultiAgentDispatcher:
         """
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
+
+        if self.usage_tracker:
+            self.usage_tracker.tick("dispatch")
+
         errors = []
 
         lang = self.lang
@@ -847,6 +860,8 @@ class MultiAgentDispatcher:
             structured_goal = None
             if self.anchor_checker:
                 structured_goal = self.anchor_checker.parse_goal(task_description)
+                if self.usage_tracker:
+                    self.usage_tracker.tick("anchor_check")
 
             # V3.6.0: Load historical retrospectives into Scratchpad
             if self.retrospective_engine and self.enable_memory:
@@ -896,7 +911,10 @@ class MultiAgentDispatcher:
 
             step7_time = time.time()
 
-            # V3.6.0: Anchor check after execution
+            collection = self.coordinator.collect_results()
+            scratchpad_summary = collection.get("scratchpad", "")
+
+            # V3.6.0: Anchor check after execution (needs scratchpad_summary)
             anchor_result = None
             if self.anchor_checker and structured_goal:
                 try:
@@ -911,6 +929,8 @@ class MultiAgentDispatcher:
                         trigger=AnchorTrigger.STEP_COMPLETE,
                     )
                     if not anchor_result.aligned:
+                        if self.usage_tracker:
+                            self.usage_tracker.tick("anchor_drift_detected")
                         self.scratchpad.write(
                             ScratchpadEntry(
                                 worker_id="system",
@@ -922,9 +942,6 @@ class MultiAgentDispatcher:
                         )
                 except Exception as anchor_err:
                     logger.warning("Anchor check failed: %s", anchor_err)
-
-            collection = self.coordinator.collect_results()
-            scratchpad_summary = collection.get("scratchpad", "")
 
             step8_time = time.time()
 
@@ -1055,20 +1072,6 @@ class MultiAgentDispatcher:
 
             step12_time = time.time()
 
-            # V3.6.0: Run retrospective after task completion
-            retrospective_report = None
-            if self.retrospective_engine and structured_goal and exec_result.success:
-                try:
-                    anchor_history = self.anchor_checker.check_history if self.anchor_checker else []
-                    retrospective_report = self.retrospective_engine.run(
-                        goal=structured_goal,
-                        anchor_history=anchor_history,
-                        worker_outputs={wr["role_id"]: wr.get("output", "") for wr in worker_results if wr.get("output")},
-                        task_duration_seconds=total_duration,
-                    )
-                except Exception as retro_err:
-                    logger.warning("Retrospective failed: %s", retro_err)
-
             skill_proposals = []
             if self.enable_skillify and self.skillifier and exec_result.success:
                 try:
@@ -1085,6 +1088,22 @@ class MultiAgentDispatcher:
                     errors.append(f"Skillifier error: {skill_err}")
 
             total_duration = time.time() - start_time
+
+            # V3.6.0: Run retrospective after task completion (needs total_duration)
+            retrospective_report = None
+            if self.retrospective_engine and structured_goal and exec_result.success:
+                try:
+                    if self.usage_tracker:
+                        self.usage_tracker.tick("retrospective")
+                    anchor_history = self.anchor_checker.check_history if self.anchor_checker else []
+                    retrospective_report = self.retrospective_engine.run(
+                        goal=structured_goal,
+                        anchor_history=anchor_history,
+                        worker_outputs={wr["role_id"]: wr.get("output", "") for wr in worker_results if wr.get("output")},
+                        task_duration_seconds=total_duration,
+                    )
+                except Exception as retro_err:
+                    logger.warning("Retrospective failed: %s", retro_err)
 
             report = self.coordinator.generate_report()
 
@@ -1380,7 +1399,7 @@ class MultiAgentDispatcher:
 
     def export_performance_metrics(self, output_file: str):
         """导出性能指标到文件"""
-        self._perf_monitor.export_metrics(output_file)
+        self._perf_monitor.export_metrics(output_file, allowed_base_dir=self.persist_dir)
 
     def clear_performance_history(self):
         """清除性能历史数据"""
@@ -1400,6 +1419,12 @@ class MultiAgentDispatcher:
                 self.memory_bridge.cleanup_expired_memories()
             except Exception as e:
                 logger.warning("Memory cleanup failed: %s", e)
+
+        if self.usage_tracker:
+            try:
+                self.usage_tracker.persist()
+            except Exception as e:
+                logger.warning("Usage tracker persist failed: %s", e)
 
 
 def create_dispatcher(**kwargs) -> MultiAgentDispatcher:

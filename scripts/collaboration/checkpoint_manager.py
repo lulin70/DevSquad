@@ -3,6 +3,7 @@ import json
 import logging
 import hashlib
 import uuid
+import threading
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
@@ -138,6 +139,7 @@ class CheckpointManager:
         self.storage_path = Path(storage_path)
         self.checkpoints_dir = self.storage_path / "checkpoints"
         self.handoffs_dir = self.storage_path / "handoffs"
+        self._file_lock = threading.Lock()
         self._ensure_directories()
 
     def _ensure_directories(self):
@@ -380,8 +382,9 @@ class CheckpointManager:
             }
 
             state_path = lifecycle_dir / f"{task_id}_lifecycle.json"
-            with open(state_path, 'w', encoding='utf-8') as f:
-                json.dump(state_data, f, indent=2, ensure_ascii=False)
+            with self._file_lock:
+                with open(state_path, 'w', encoding='utf-8') as f:
+                    json.dump(state_data, f, indent=2, ensure_ascii=False)
 
             logger.info(
                 "Lifecycle state saved: %s (phase=%s, mode=%s)",

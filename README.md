@@ -29,7 +29,7 @@
 
 ## 🚀 V3.6.0: Anchor Check & Retrospective Enhancement Release
 
-**DevSquad V3.6.0** adds AnchorChecker for milestone anchor verification, RetrospectiveEngine for independent retrospectives, StructuredGoal for structured goal management, and FallbackBackend for automatic backend failover — making multi-agent collaboration more reliable and self-improving.
+**DevSquad V3.6.0** adds AnchorChecker for milestone anchor verification, RetrospectiveEngine for independent retrospectives, FeatureUsageTracker for data-driven feature optimization, StructuredGoal for structured goal management, and FallbackBackend for automatic backend failover — making multi-agent collaboration more reliable, self-improving, and observable.
 
 ### 🎯 Quick Start (4 Ways to Use DevSquad)
 
@@ -126,6 +126,13 @@ Independent retrospective mechanism for continuous improvement after each dispat
 - **Pattern Extraction** — Extract reusable patterns from successful collaborations
 - **Anti-Pattern Detection** — Identify recurring issues and suggest process improvements
 - **Metric Trend Analysis** — Track quality metrics across dispatches to spot degradation
+
+### 📊 FeatureUsageTracker (NEW)
+Thread-safe feature invocation counter for data-driven feature optimization:
+- **Invocation Tracking** — Count every feature call (dispatch, anchor_check, retrospective, consensus, etc.)
+- **Usage Reports** — Top features, unused features, low-usage features with markdown export
+- **Auto-Persist** — Periodic JSON persistence every 100 ticks
+- **30 Known Features** — Pre-registered feature set covering all DevSquad capabilities
 
 ### 🎯 StructuredGoal (NEW)
 Structured goal management that decomposes high-level objectives into trackable, verifiable sub-goals:
@@ -577,7 +584,7 @@ See [GUIDE.md](GUIDE.md) §4 for full lifecycle details with gate conditions and
 - **GitHub Actions CI**: Python 3.9-3.12 matrix testing
 - **pip installable**: `pip install -e .` with optional dependencies
 
-## Module Reference (47 Modules)
+## Module Reference (48 Modules)
 
 | Module | File | Purpose |
 |--------|------|---------|
@@ -626,7 +633,9 @@ See [GUIDE.md](GUIDE.md) §4 for full lifecycle details with gate conditions and
 | **IntegrationExample** | `integration_example.py` | DevSquad integration example code |
 | **AsyncIntegrationExample** | `async_integration_example.py` | Async DevSquad integration example |
 | **AnchorChecker** | `anchor_checker.py` | Milestone anchor verification + drift detection + auto-recovery |
-| **RetrospectiveEngine** | `retrospective_engine.py` | Independent post-dispatch retrospective + pattern extraction + anti-pattern detection |
+| **RetrospectiveEngine** | `retrospective.py` | Independent post-dispatch retrospective + pattern extraction + anti-pattern detection |
+| **FeatureUsageTracker** | `feature_usage_tracker.py` | Feature invocation counter + usage reports + auto-persist |
+| **FallbackBackend** | `llm_backend.py` | Automatic LLM backend failover with health monitoring |
 
 ## Configuration
 

@@ -8,7 +8,7 @@ description: |
   真实 LLM 后端（OpenAI/Anthropic），CLI + REST API + Dashboard + MCP + Python API。
   1548+ 测试全部通过。
   V3.6.0 新增: AnchorChecker锚点检查、RetrospectiveEngine独立复盘、
-  StructuredGoal结构化目标、FallbackBackend自动故障转移。
+  StructuredGoal结构化目标、FallbackBackend自动故障转移、FeatureUsageTracker功能调用统计。
   ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
 ---
 
@@ -24,7 +24,7 @@ description: |
         → [ConsensusEngine共识] → [报告格式化] → [结构化报告]
 ```
 
-## 架构总览（47大模块）
+## 架构总览（48大模块）
 
 | # | 模块 | 文件 | 职责 |
 |---|------|------|------|

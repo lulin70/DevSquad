@@ -16,7 +16,7 @@
 
 ## 🚀 V3.6.0: アンカー確認＆レトロスペクティブ強化リリース
 
-**DevSquad V3.6.0** は AnchorChecker（マイルストーンアンカー検証）、RetrospectiveEngine（独立レトロスペクティブ）、StructuredGoal（構造化目標管理）、FallbackBackend（自動フェイルオーバー）を追加 — マルチエージェントコラボレーションをより信頼性高く自己改善可能にします。
+**DevSquad V3.6.0** は AnchorChecker（マイルストーンアンカー検証）、RetrospectiveEngine（独立レトロスペクティブ）、StructuredGoal（構造化目標管理）、FallbackBackend（自動フェイルオーバー）を追加 — マルチエージェントコラボレーションをより信頼性高く自己改善可能により観測可能にします。
 
 ## DevSquadとは？
 
@@ -227,7 +227,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
 
 | 日付 | バージョン | ハイライト |
 |------|-----------|-----------|
-| 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（マイルストーンアンカー検証+ドリフト検出）、RetrospectiveEngine（独立レトロスペクティブ+パターン抽出）、StructuredGoal（階層的目標分解+進捗追跡）、FallbackBackend（自動LLMフェイルオーバー+ヘルスモニタリング）、1548+テスト、47コアモジュール |
+| 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（マイルストーンアンカー検証+ドリフト検出）、RetrospectiveEngine（独立レトロスペクティブ+パターン抽出）、StructuredGoal（階層的目標分解+進捗追跡）、FallbackBackend（自動LLMフェイルオーバー+ヘルスモニタリング）、FeatureUsageTracker（機能呼び出し統計+使用レポート+自動永続化）、1548+テスト、48コアモジュール |
 | 2026-05-03 | **V3.5.0** | 🚀 エージェントスキル品質フレームワーク (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLIライフサイクルコマンド + 167新規テスト + Googleエージェントスキル統合 + 49コアモジュール |
 | 2026-05-02 | **V3.4.0** | 🆕 11フェーズプロジェクトライフサイクル（full/backend/frontend/internal_tool/minimalテンプレート）、要件変更管理、ゲートメカニズム+ギャップレポート、560+テスト合格 |
 | 2026-04-27 | V3.4.0 | リアルLLMバックエンド、並列実行、セキュリティ強化、チェックポイント、ワークフロー、ストリーミング、Docker、CI、CarryMem統合 |

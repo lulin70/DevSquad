@@ -8,7 +8,7 @@ description: |
   リアルLLMバックエンド（OpenAI/Anthropic）、CLI + REST API + Dashboard + MCP + Python API対応。
   1548+テスト全合格。
   V3.6.0新機能: AnchorChecker（アンカー検証）、RetrospectiveEngine（独立レトロスペクティブ）、
-  StructuredGoal（構造化目標）、FallbackBackend（自動フェイルオーバー）。
+  StructuredGoal（構造化目標）、FallbackBackend（自動フェイルオーバー）、FeatureUsageTracker（機能呼び出し統計）。
 ---
 
 # DevSquad V3.6.0 — マルチエージェントコラボレーションプラットフォーム
@@ -24,7 +24,7 @@ description: |
              → [コンセンサス決定] → [レポート整形] → [構造化レポート]
 ```
 
-## アーキテクチャ概要（47コアモジュール）
+## アーキテクチャ概要（48コアモジュール）
 
 | # | モジュール | ファイル | 責任 |
 |---|-----------|--------|------|

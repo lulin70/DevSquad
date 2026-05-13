@@ -160,7 +160,7 @@ class OpenAIBackend(LLMBackend):
                 last_error = e
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2 ** attempt)
-        raise last_error
+        raise last_error or RuntimeError(f"OpenAI generate failed after {self.MAX_RETRIES} attempts")
 
     def generate_stream(self, prompt: str, **kwargs) -> Generator[str, None, None]:
         client = self._get_client()
@@ -237,7 +237,7 @@ class AnthropicBackend(LLMBackend):
                 last_error = e
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2 ** attempt)
-        raise last_error
+        raise last_error or RuntimeError(f"Anthropic generate failed after {self.MAX_RETRIES} attempts")
 
     def generate_stream(self, prompt: str, **kwargs) -> Generator[str, None, None]:
         client = self._get_client()
@@ -323,11 +323,12 @@ class FallbackBackend(LLMBackend):
                     backend_repr, type(e).__name__,
                 )
 
-        raise last_error
+        raise last_error or RuntimeError("All backends failed with no specific error")
 
     def generate_stream(self, prompt: str, **kwargs) -> Generator[str, None, None]:
         import logging
         logger = logging.getLogger(__name__)
+        last_error = None
 
         with self._lock:
             ordered = list(range(len(self._backends)))
@@ -347,13 +348,14 @@ class FallbackBackend(LLMBackend):
                     yield chunk
                 return
             except Exception as e:
+                last_error = e
                 self._mark_failed(backend_repr)
                 logger.warning(
                     "FallbackBackend: %s stream failed (%s), trying next",
                     backend_repr, type(e).__name__,
                 )
 
-        raise last_error
+        raise last_error or RuntimeError("All backends failed with no specific error")
 
     def is_available(self) -> bool:
         return any(b.is_available() for b in self._backends)
