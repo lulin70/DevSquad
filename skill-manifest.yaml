@@ -201,7 +201,7 @@ metadata:
         - Project Understanding Enhancement (agent_briefing.py)
         - 1500+ tests all passing
 
-    - version: 3.4.0
+    - version: 3.5.0
       date: "2026-04-27"
       changes:
         - Authentication (RBAC), Alert System, History Storage

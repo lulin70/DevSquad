@@ -1161,7 +1161,7 @@ class MultiAgentDispatcher:
     def get_status(self) -> Dict[str, Any]:
         """获取系统状态"""
         status = {
-            "version": "3.4.0-Prod",
+            "version": "3.5.0",
             "persist_dir": self.persist_dir,
             "components": {
                 "coordinator": self.coordinator is not None,

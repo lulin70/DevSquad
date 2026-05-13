@@ -178,7 +178,7 @@ checklist:
       fix: 使用安全专家走读检查清单，逐项确认
 
     - title: 版本号不一致导致发布混乱
-      description: _version.py写3.5.0但pyproject.toml还是3.4.0，用户安装到错误版本
+      description: _version.py写3.6.0但pyproject.toml还是3.5.0，用户安装到错误版本
       severity: critical
       check: 所有版本号文件是否统一？发布前是否执行版本号一致性检查？
       fix: 架构师在版本发布前必检版本号一致性，Critical级别阻断发布
