@@ -1,7 +1,7 @@
 # User Onboarding Verification Guide
 
-**Version**: 3.5.0  
-**Date**: 2026-05-01  
+**Version**: 3.6.0  
+**Date**: 2026-05-13  
 **Purpose**: Verify complete user onboarding flow
 
 ---
@@ -80,7 +80,7 @@ python3 test_basic_api.py
 
 ---
 
-## Test Scenario 3: New Features (v3.5.0)
+## Test Scenario 3: New Features (v3.6.0)
 
 ### Step 1: Test AgentBriefing
 ```python
@@ -217,10 +217,10 @@ python3 -m pytest tests/test_agent_briefing.py tests/test_confidence_score.py -v
 
 ### Step 1: Check README
 ```bash
-cat README.md | grep "V3.5.0"
+cat README.md | grep "V3.6.0"
 ```
 
-**Expected**: Shows v3.5.0 version info
+**Expected**: Shows v3.6.0 version info
 
 ### Step 2: Check Integration Guide
 ```bash
@@ -289,14 +289,14 @@ python3 -c "from scripts.collaboration.config_loader import load_config; c=load_
 - [ ] Tasks execute successfully
 - [ ] Clean shutdown works
 
-### New Features (v3.5.0)
+### New Features (v3.6.0)
 - [ ] AgentBriefing creates and generates
 - [ ] ConfidenceScore calculates correctly
 - [ ] EnhancedWorker executes with QA
 - [ ] All 65 new tests pass
 
 ### Documentation
-- [ ] README shows v3.5.0
+- [ ] README shows v3.6.0
 - [ ] Integration guide accessible
 - [ ] Milestone summary accessible
 - [ ] Code has inline docs
@@ -375,6 +375,6 @@ python3 -m pytest tests/test_agent_briefing.py tests/test_confidence_score.py -v
 
 ---
 
-**Last Updated**: 2026-05-01  
-**Version**: 3.5.0  
+**Last Updated**: 2026-05-13  
+**Version**: 3.6.0  
 **Status**: ✅ Verified

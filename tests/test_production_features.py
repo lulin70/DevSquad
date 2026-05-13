@@ -472,13 +472,13 @@ class TestAPIDataModels:
         
         health = HealthCheck(
             status="healthy",
-            version="3.5.0",
+            version="3.6.0",
             uptime_seconds=3600.0,
             components={"lifecycle_protocol": "healthy"}
         )
         
         assert health.status == "healthy"
-        assert health.version == "3.5.0"
+        assert health.version == "3.6.0"
         assert health.uptime_seconds > 0
 
 

@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色 AI 协作 → 一个结论</strong>
   <br>
-  <em>生产就绪 | V3.5.0</em>
+  <em>生产就绪 | V3.6.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1507%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -24,9 +24,9 @@
 
 ---
 
-## 🚀 V3.5.0: 代码走读与质量增强版
+## 🚀 V3.6.0: 锚点检查与复盘增强版
 
-**DevSquad 现已达到生产级别！** 完整的认证、REST API、告警通知和历史数据存储功能。
+**DevSquad V3.6.0** 新增 AnchorChecker 锚点检查、RetrospectiveEngine 独立复盘、StructuredGoal 结构化目标、FallbackBackend 自动故障转移 — 让多智能体协作更可靠、更自省。
 
 ## DevSquad 是什么？
 
@@ -104,7 +104,7 @@ python3 scripts/cli.py dispatch -t "设计认证系统" -r arch --backend openai
 # 其他命令
 python3 scripts/cli.py status          # 系统状态
 python3 scripts/cli.py roles           # 列出可用角色
-python3 scripts/cli.py --version       # 显示版本 (3.5.0)
+python3 scripts/cli.py --version       # 显示版本 (3.6.0)
 ```
 
 **2. Python API**
@@ -169,6 +169,84 @@ python3 scripts/mcp_server.py --port 8080  # SSE 模式
 - **任务完成检查器**：DispatchResult/ScheduleResult 完成度跟踪
 - **共识引擎**：加权投票 + 否决权 + 人工升级
 
+### ⚓ AnchorChecker 锚点检查系统
+里程碑锚点验证，确保关键检查点在继续之前被正确验证：
+
+```python
+from scripts.collaboration.anchor_checker import AnchorChecker
+
+checker = AnchorChecker()
+checker.define_anchor("architecture_complete", criteria=["API spec defined", "tech stack selected"])
+result = checker.check_anchor("architecture_complete", phase_output)
+print(f"Anchor passed: {result.passed}")
+print(f"Drift detected: {result.drift_score}")
+```
+
+**特性**:
+- 跨阶段一致性验证
+- 带严重性评分的漂移检测
+- 自动恢复建议
+- 锚点持久化
+
+### 🔄 RetrospectiveEngine 独立复盘引擎
+独立复盘机制，持续改进每次调度：
+
+```python
+from scripts.collaboration.retrospective_engine import RetrospectiveEngine
+
+engine = RetrospectiveEngine()
+report = engine.run_retrospective(dispatch_result)
+print(f"Patterns found: {len(report.patterns)}")
+print(f"Anti-patterns: {len(report.anti_patterns)}")
+print(f"Improvement suggestions: {report.suggestions}")
+```
+
+**特性**:
+- 调度后质量分析
+- 模式与反模式提取
+- 指标趋势跟踪
+- 可操作的改进建议
+
+### 🎯 StructuredGoal 结构化目标
+结构化目标管理，层次化分解：
+
+```python
+from scripts.collaboration.structured_goal import StructuredGoal
+
+goal = StructuredGoal("构建电商平台")
+goal.add_sub_goal("用户认证", criteria=["OAuth2支持", "2FA就绪"])
+goal.add_sub_goal("商品目录", criteria=["搜索", "筛选", "分页"])
+progress = goal.get_progress()
+print(f"Overall: {progress.completion_pct}%")
+```
+
+**特性**:
+- 层次化目标分解
+- 子目标间依赖映射
+- 实时进度跟踪
+- 自动完成验证
+
+### 🔀 FallbackBackend 自动故障转移
+自动LLM后端故障转移，确保高可用：
+
+```python
+from scripts.collaboration.fallback_backend import FallbackBackend
+
+backend = FallbackBackend(
+    primary="openai",
+    fallbacks=["anthropic", "mock"],
+    health_check_interval=30,
+)
+result = backend.generate("设计认证系统")
+# 主后端不可用时自动切换
+```
+
+**特性**:
+- 持续后端健康监控
+- 无缝自动故障转移
+- 优先级路由配置
+- 自动主后端恢复检测
+
 ### 自然语言规则收集
 
 自动从用户自然语言输入中检测并存储规则，无需手动编辑配置文件：
@@ -199,7 +277,7 @@ python3 scripts/mcp_server.py --port 8080  # SSE 模式
 
 ### 项目全生命周期（11阶段模型）
 
-DevSquad V3.5.0 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的角色、依赖和门禁条件：
+DevSquad V3.6.0 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的角色、依赖和门禁条件：
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -223,6 +301,8 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 - **Docker 支持**：`docker build -t devsquad .`
 - **GitHub Actions CI**：Python 3.9-3.12 矩阵测试
 - **pip 可安装**：`pip install -e .` + 可选依赖
+
+## 模块参考 (47 模块)
 
 ## 配置
 
@@ -269,7 +349,7 @@ export OPENAI_API_KEY=sk-...
 ## 运行测试
 
 ```bash
-# 核心测试（560+测试全通过）
+# 核心测试（1548+测试全通过）
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \
@@ -277,7 +357,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/ test_v35_integration.py -v
 
 # 快速冒烟测试
-python3 scripts/cli.py --version    # 3.5.0
+python3 scripts/cli.py --version    # 3.6.0
 python3 scripts/cli.py status       # 系统就绪
 python3 scripts/cli.py roles        # 列出 7 个角色
 ```
@@ -301,6 +381,8 @@ python3 scripts/cli.py roles        # 列出 7 个角色
 
 | 日期 | 版本 | 亮点 |
 |------|------|------|
+| 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（里程碑锚点验证+漂移检测）、RetrospectiveEngine（独立复盘+模式提取）、StructuredGoal（层次化目标分解+进度跟踪）、FallbackBackend（自动LLM故障转移+健康监控）、1548+测试、47核心模块 |
+| 2026-05-03 | **V3.5.0** | 🚀 智能体技能质量框架 (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI生命周期命令 (spec/plan/build/test/review/ship) + 167新测试 + Google智能体技能集成 + 49核心模块 |
 | 2026-05-02 | **V3.4.0** | 🆕 11阶段项目全生命周期（full/backend/frontend/internal_tool/minimal模板）、需求变更管理、门禁机制+差距报告、自然语言规则收集(RuleCollector)、560+测试通过 |
 | 2026-04-27 | V3.4.0 | 真实 LLM 后端、ThreadPoolExecutor 并行、输入验证+Prompt注入防护、检查点管理、工作流引擎、流式输出、Docker、CI、配置文件、CarryMem集成 |
 | 2026-04-17 | V3.2 | E2E Demo、MCE 适配器 |

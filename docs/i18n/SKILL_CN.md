@@ -2,17 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.5.0 DevSquad — 多角色 AI 任务编排器。
+  V3.6.0 DevSquad — 多角色 AI 任务编排器。
   一个任务输入，多角色 AI 协作，一个结论输出。
   7个核心角色（架构师/产品经理/安全专家/测试员/开发人员/运维/UI设计师），
   真实 LLM 后端（OpenAI/Anthropic），CLI + REST API + Dashboard + MCP + Python API。
-  1500+ 测试全部通过。
-  V3.5.0 新增: 7角色代码走读、五轴共识引擎、Karpathy原则、
-  生命周期协议扩展、多语言代码地图、项目理解增强。
+  1548+ 测试全部通过。
+  V3.6.0 新增: AnchorChecker锚点检查、RetrospectiveEngine独立复盘、
+  StructuredGoal结构化目标、FallbackBackend自动故障转移。
   ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
 ---
 
-# DevSquad V3.5.0 — 多角色 AI 任务编排器
+# DevSquad V3.6.0 — 多角色 AI 任务编排器
 
 ## 核心定位
 
@@ -24,7 +24,7 @@ description: |
         → [ConsensusEngine共识] → [报告格式化] → [结构化报告]
 ```
 
-## 架构总览（45大模块）
+## 架构总览（47大模块）
 
 | # | 模块 | 文件 | 职责 |
 |---|------|------|------|
@@ -357,7 +357,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 status = disp.get_status()
 # 返回：
 # {
-#   "version": "3.5.0",
+#   "version": "3.6.0",
 #   "components": {...},       # 各组件启用状态
 #   "dispatch_count": N,        # 已执行调度次数
 #   "scratchpad_stats": {...},  # 黑板统计

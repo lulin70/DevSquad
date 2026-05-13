@@ -1,4 +1,4 @@
-# DevSquad V3.5.0-C 使用指南 (Plan C Layered Architecture)
+# DevSquad V3.6.0-C 使用指南 (Plan C Layered Architecture)
 
 ## 📖 目录
 
@@ -515,7 +515,7 @@ adapter = create_lifecycle_protocol(LifecycleMode.SHORTCUTDOWN)
 
 ---
 
-## 🎨 可视化与监控 (V3.5.0-C 新增)
+## 🎨 可视化与监控 (V3.6.0-C 新增)
 
 ### Streamlit 交互式仪表板
 
@@ -612,7 +612,7 @@ python scripts/generate_benchmark_report.py --format both
 
 ---
 
-## 🔐 V3.5.0: 生产级功能指南
+## 🔐 V3.6.0: 生产级功能指南
 
 ### 认证与授权系统
 
@@ -798,7 +798,7 @@ print(f"总记录数: {info['total_records']}")
 
 ## 版本历史
 
-- **V3.5.0** (2026-05-07): 生产就绪版本
+- **V3.6.0** (2026-05-13): 锚点检查与复盘增强版
   - 新增: 认证与授权系统 (RBAC, 多用户支持)
   - 新增: REST API服务器 (FastAPI + Swagger文档)
   - 新增: 告警通知系统 (Slack/Email/Console/Webhook)
@@ -807,7 +807,7 @@ print(f"总记录数: {info['total_records']}")
   - 更新: pyproject.toml添加可选依赖组
   - 测试: 776+ 测试用例 (99.34% 通过率)
 
-- **V3.5.0-C** (2026-05-03): Plan C分层架构 + 可视化增强
+- **V3.5.0-C** (2026-05-03): Plan C分层架构 + 可视化增强 (历史版本)
   - 新增: FullLifecycleAdapter (完整11阶段支持)
   - 新增: UnifiedGateEngine (统一门禁引擎)
   - 新增: Streamlit Dashboard (Web监控仪表板)
@@ -827,6 +827,6 @@ print(f"总记录数: {info['total_records']}")
 
 ---
 
-**最后更新**: 2026-05-03
-**版本**: V3.5.0 (Production Ready)
+**最后更新**: 2026-05-13
+**版本**: V3.6.0 (Production Ready)
 **作者**: DevSquad Team

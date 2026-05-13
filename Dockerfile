@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 LABEL maintainer="DevSquad Team"
 LABEL description="Multi-Role AI Task Orchestrator"
-LABEL version="3.5.0"
+LABEL version="3.6.0"
 
 WORKDIR /app
 

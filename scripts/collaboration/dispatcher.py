@@ -399,6 +399,8 @@ class DispatchResult:
     quality_report: Optional[str] = None
     lang: str = "zh"
     concern_packs: List[Dict[str, Any]] = field(default_factory=list)
+    anchor_result: Optional[Dict[str, Any]] = None
+    retrospective_report: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -525,6 +527,8 @@ class MultiAgentDispatcher:
                  enable_memory: bool = True,
                  enable_skillify: bool = True,
                  enable_quality_guard: bool = False,
+                 enable_anchor_check: bool = True,
+                 enable_retrospective: bool = True,
                  compression_threshold: int = 100000,
                  memory_dir: Optional[str] = None,
                  permission_level: PermissionLevel = PermissionLevel.DEFAULT,
@@ -548,6 +552,8 @@ class MultiAgentDispatcher:
             llm_backend: LLM execution backend (None=MockBackend, returns prompt as-is)
         """
         self.enable_quality_guard = enable_quality_guard
+        self.enable_anchor_check = enable_anchor_check
+        self.enable_retrospective = enable_retrospective
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
         self.enable_warmup = enable_warmup
@@ -630,6 +636,19 @@ class MultiAgentDispatcher:
             self.quality_guard = TestQualityGuard("", "")
         else:
             self.quality_guard = None
+
+        if self.enable_anchor_check:
+            from .anchor_checker import AnchorChecker
+            self.anchor_checker = AnchorChecker()
+        else:
+            self.anchor_checker = None
+
+        if self.enable_retrospective:
+            from .retrospective import RetrospectiveEngine
+            retrospective_memory = self.memory_bridge if self.enable_memory else None
+            self.retrospective_engine = RetrospectiveEngine(memory_bridge=retrospective_memory)
+        else:
+            self.retrospective_engine = None
 
         self._dispatch_history: List[DispatchResult] = []
         self._max_history = 100
@@ -822,6 +841,36 @@ class MultiAgentDispatcher:
 
             step5_time = time.time()
 
+            step6_time = time.time()
+
+            # V3.6.0: Parse structured goal for anchor checking
+            structured_goal = None
+            if self.anchor_checker:
+                structured_goal = self.anchor_checker.parse_goal(task_description)
+
+            # V3.6.0: Load historical retrospectives into Scratchpad
+            if self.retrospective_engine and self.enable_memory:
+                try:
+                    historical = self.retrospective_engine.load_historical(task_description, limit=3)
+                    if historical:
+                        retro_lines = ["[Historical Retrospective Context]"]
+                        for idx, h in enumerate(historical, 1):
+                            if isinstance(h, dict):
+                                retro_lines.append(f"  {idx}. {h.get('summary', str(h)[:100])}")
+                            else:
+                                retro_lines.append(f"  {idx}. {str(h)[:100]}")
+                        self.scratchpad.write(
+                            ScratchpadEntry(
+                                worker_id="system",
+                                entry_type=EntryType.FINDING,
+                                content="\n".join(retro_lines),
+                                confidence=0.85,
+                                tags=["retrospective", "auto-loaded"],
+                            )
+                        )
+                except Exception as retro_load_err:
+                    logger.debug("Failed to load historical retrospectives: %s", retro_load_err)
+
             exec_result = self.coordinator.execute_plan(plan)
 
             step6_time = time.time()
@@ -846,6 +895,33 @@ class MultiAgentDispatcher:
                 errors.extend(exec_result.errors)
 
             step7_time = time.time()
+
+            # V3.6.0: Anchor check after execution
+            anchor_result = None
+            if self.anchor_checker and structured_goal:
+                try:
+                    combined_output = scratchpad_summary or ""
+                    for wr in worker_results:
+                        if wr.get("output"):
+                            combined_output += "\n" + wr["output"]
+                    from .models import AnchorTrigger
+                    anchor_result = self.anchor_checker.check(
+                        goal=structured_goal,
+                        current_output=combined_output,
+                        trigger=AnchorTrigger.STEP_COMPLETE,
+                    )
+                    if not anchor_result.aligned:
+                        self.scratchpad.write(
+                            ScratchpadEntry(
+                                worker_id="system",
+                                entry_type=EntryType.WARNING,
+                                content=f"[Anchor Drift] {anchor_result.recommendation}",
+                                confidence=0.9,
+                                tags=["anchor-drift", "v3.6.0"],
+                            )
+                        )
+                except Exception as anchor_err:
+                    logger.warning("Anchor check failed: %s", anchor_err)
 
             collection = self.coordinator.collect_results()
             scratchpad_summary = collection.get("scratchpad", "")
@@ -979,6 +1055,20 @@ class MultiAgentDispatcher:
 
             step12_time = time.time()
 
+            # V3.6.0: Run retrospective after task completion
+            retrospective_report = None
+            if self.retrospective_engine and structured_goal and exec_result.success:
+                try:
+                    anchor_history = self.anchor_checker.check_history if self.anchor_checker else []
+                    retrospective_report = self.retrospective_engine.run(
+                        goal=structured_goal,
+                        anchor_history=anchor_history,
+                        worker_outputs={wr["role_id"]: wr.get("output", "") for wr in worker_results if wr.get("output")},
+                        task_duration_seconds=total_duration,
+                    )
+                except Exception as retro_err:
+                    logger.warning("Retrospective failed: %s", retro_err)
+
             skill_proposals = []
             if self.enable_skillify and self.skillifier and exec_result.success:
                 try:
@@ -1033,6 +1123,14 @@ class MultiAgentDispatcher:
                 errors=errors,
                 lang=lang,
                 concern_packs=self._concern_loader.get_pack_info(concern_packs) if concern_packs else [],
+                anchor_result={
+                    "aligned": anchor_result.aligned,
+                    "coverage": anchor_result.coverage,
+                    "drift_score": anchor_result.drift_score,
+                    "severity": anchor_result.severity.value,
+                    "recommendation": anchor_result.recommendation,
+                } if anchor_result else None,
+                retrospective_report=retrospective_report.to_dict() if retrospective_report else None,
             )
 
             self._dispatch_history.append(result)
@@ -1161,7 +1259,7 @@ class MultiAgentDispatcher:
     def get_status(self) -> Dict[str, Any]:
         """获取系统状态"""
         status = {
-            "version": "3.5.0",
+            "version": "3.6.0",
             "persist_dir": self.persist_dir,
             "components": {
                 "coordinator": self.coordinator is not None,

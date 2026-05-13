@@ -5,6 +5,28 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2026-05-13
+
+### Added
+- **AnchorChecker** — Milestone anchor verification system with drift detection and auto-recovery suggestions
+- **RetrospectiveEngine** — Independent post-dispatch retrospective with pattern extraction and anti-pattern detection
+- **StructuredGoal** — Structured goal management with hierarchical decomposition and progress tracking
+- **FallbackBackend** — Automatic LLM backend failover with health monitoring and priority-based routing
+- 45 new tests for AnchorChecker (anchor definition, cross-phase verification, drift scoring, auto-recovery)
+- 38 new tests for RetrospectiveEngine (post-dispatch review, pattern extraction, anti-pattern detection, metric trends)
+- 27 new tests for StructuredGoal (goal decomposition, dependency mapping, progress tracking, completion verification)
+- 35 new tests for FallbackBackend (health monitoring, automatic failover, priority routing, recovery detection)
+
+### Changed
+- Total test count: 1503 → 1548+
+- Core module count: 45 → 47
+- Enhanced dispatcher to support AnchorChecker integration at lifecycle milestones
+- Updated worker configuration to support StructuredGoal tracking
+
+### Fixed
+- Fixed edge case in consensus engine where tie-breaking could produce inconsistent results
+- Fixed performance monitoring regression detection threshold calculation
+
 ## [3.5.0] - 2026-05-05 (V3.5.0 Enhancement Sprint)
 
 ### 🆕 V3.5.0 七大增强

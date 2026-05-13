@@ -7,12 +7,16 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1507%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
 ---
+
+## 🚀 V3.6.0: アンカー確認＆レトロスペクティブ強化リリース
+
+**DevSquad V3.6.0** は AnchorChecker（マイルストーンアンカー検証）、RetrospectiveEngine（独立レトロスペクティブ）、StructuredGoal（構造化目標管理）、FallbackBackend（自動フェイルオーバー）を追加 — マルチエージェントコラボレーションをより信頼性高く自己改善可能にします。
 
 ## DevSquadとは？
 
@@ -83,6 +87,34 @@ python3 scripts/cli.py dispatch -t "認証システムを設計" -r arch --backe
 - **タスク完了チェッカー**: DispatchResult/ScheduleResult完了度追跡
 - **コンセンサスエンジン**: 重み付け投票 + 拒否権 + 人間へのエスカレーション
 
+### ⚓ AnchorChecker アンカー検証 (NEW)
+マイルストーンアンカー検証システム。重要なチェックポイントが先に進む前に適切に検証されることを保証：
+- **アンカー定義** — 重要なライフサイクルマイルストーンに必須検証アンカーを定義
+- **クロスフェーズ検証** — フェーズ出力とアンカー基準間の一貫性を検証
+- **ドリフト検出** — プロジェクト実行が定義されたアンカーポイントから逸脱したことを検出
+- **自動リカバリ** — アンカーチェック失敗時に修正措置を提案
+
+### 🔄 RetrospectiveEngine 独立レトロスペクティブ (NEW)
+独立レトロスペクティブメカニズム。各ディスパッチサイクル後の継続的改善：
+- **ディスパッチ後レビュー** — 何がうまくいったか、何を改善できるかを自動分析
+- **パターン抽出** — 成功したコラボレーションから再利用可能なパターンを抽出
+- **アンチパターン検出** — 繰り返し発生する問題を特定し、プロセス改善を提案
+- **メトリックトレンド分析** — ディスパッチ間の品質メトリックを追跡し、劣化を検出
+
+### 🎯 StructuredGoal 構造化目標 (NEW)
+構造化目標管理。高レベル目標を追跡可能・検証可能なサブ目標に分解：
+- **目標分解** — 複雑な目標を明確な基準を持つ階層的サブ目標に分解
+- **進捗追跡** — 定義された目標構造に対するリアルタイム進捗測定
+- **依存関係マッピング** — サブ目標間の依存関係を可視化・管理
+- **完了検証** — 目標が成功基準を満たしているかを自動検証
+
+### 🔀 FallbackBackend 自動フェイルオーバー (NEW)
+自動LLMバックエンドフェイルオーバー。プライマリバックエンドがダウン時もLLM可用性を確保：
+- **ヘルスモニタリング** — 設定された全LLMバックエンドの継続的ヘルスチェック
+- **自動フェイルオーバー** — プライマリ障害時にバックアップバックエンドへシームレスに切り替え
+- **優先度ベースルーティング** — バックエンド優先順序を設定（例：OpenAI → Anthropic → Mock）
+- **リカバリ検出** — プライマリバックエンド復旧時に自動的に復元
+
 ### 自然言語ルール収集
 
 ユーザーの自然言語入力からルールを自動検出・保存。設定ファイルの手動編集不要：
@@ -113,7 +145,7 @@ python3 scripts/cli.py dispatch -t "認証システムを設計" -r arch --backe
 
 ### プロジェクトライフサイクル（11フェーズモデル）
 
-DevSquad V3.5.0は **11フェーズ（4つオプション）** のプロジェクトライフサイクルを定義。各フェーズには明確なロール、依存関係、ゲート条件があります：
+DevSquad V3.6.0は **11フェーズ（4つオプション）** のプロジェクトライフサイクルを定義。各フェーズには明確なロール、依存関係、ゲート条件があります：
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -195,6 +227,8 @@ python3 -m pytest scripts/collaboration/core_test.py \
 
 | 日付 | バージョン | ハイライト |
 |------|-----------|-----------|
+| 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（マイルストーンアンカー検証+ドリフト検出）、RetrospectiveEngine（独立レトロスペクティブ+パターン抽出）、StructuredGoal（階層的目標分解+進捗追跡）、FallbackBackend（自動LLMフェイルオーバー+ヘルスモニタリング）、1548+テスト、47コアモジュール |
+| 2026-05-03 | **V3.5.0** | 🚀 エージェントスキル品質フレームワーク (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLIライフサイクルコマンド + 167新規テスト + Googleエージェントスキル統合 + 49コアモジュール |
 | 2026-05-02 | **V3.4.0** | 🆕 11フェーズプロジェクトライフサイクル（full/backend/frontend/internal_tool/minimalテンプレート）、要件変更管理、ゲートメカニズム+ギャップレポート、560+テスト合格 |
 | 2026-04-27 | V3.4.0 | リアルLLMバックエンド、並列実行、セキュリティ強化、チェックポイント、ワークフロー、ストリーミング、Docker、CI、CarryMem統合 |
 

@@ -376,7 +376,7 @@ class CheckpointManager:
                 "gate_results": gate_results or {},
                 "metadata": metadata or {},
                 "saved_at": datetime.now().isoformat(),
-                "version": "3.5.0",
+                "version": "3.6.0",
             }
 
             state_path = lifecycle_dir / f"{task_id}_lifecycle.json"

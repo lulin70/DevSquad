@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V3.5.0)
+# DevSquad — Installation Guide (V3.6.0)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -68,10 +68,10 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.5.0
+python3 scripts/cli.py --version   # 3.6.0
 ```
 
-### Method 5: Web Dashboard (V3.5.0) 🎨
+### Method 5: Web Dashboard (V3.6.0) 🎨
 
 ```bash
 # Install visualization dependencies
@@ -97,7 +97,7 @@ streamlit run scripts/dashboard.py
 
 > **Production Deployment**: See [Production Configuration](#production-configuration) below.
 
-### Method 6: REST API Server (V3.5.0) 🌐
+### Method 6: REST API Server (V3.6.0) 🌐
 
 ```bash
 # Install API server dependencies
@@ -172,13 +172,13 @@ pip install psutil
 # For CarryMem cross-session memory + rule injection (optional)
 pip install carrymem[devsquad]>=0.2.8
 
-# V3.5.0: API Server (FastAPI + Uvicorn + Pydantic)
+# V3.6.0: API Server (FastAPI + Uvicorn + Pydantic)
 pip install -e ".[api]"
 
-# V3.5.0: Visualization (Streamlit + Jupyter)
+# V3.6.0: Visualization (Streamlit + Jupyter)
 pip install -e ".[visualization]"
 
-# V3.5.0: Alert System (Slack SDK)
+# V3.6.0: Alert System (Slack SDK)
 pip install -e ".[alerts]"
 
 # Development & Testing (pytest, black, flake8, mypy)
@@ -352,7 +352,7 @@ python3 scripts/cli.py roles
 python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 # Expected: [DRY RUN] message
 
-# 4. Core tests (V3.5.0)
+# 4. Core tests (V3.6.0)
 python3 -m pytest tests/test_production_features.py tests/test_full_lifecycle_adapter.py -v
 # Expected: 1500+ tests all passing
 
@@ -411,7 +411,7 @@ DevSquad/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
 │   └── collaboration/            # ★ 45 core modules
-│       ├── _version.py           # Version SSOT (3.5.0)
+│       ├── _version.py           # Version SSOT (3.6.0)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard

@@ -1,12 +1,12 @@
 name: devsquad
-version: 3.5.0
+version: 3.6.0
 description: |
-  DevSquad V3.5.0 — Multi-Role AI Task Orchestrator.
+  DevSquad V3.6.0 — Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.5.0: 7-Role Code Walkthrough, Five-Axis Consensus Engine, Karpathy Principles, Enhanced Lifecycle Protocol, Multi-Language Code Map, 1500+ tests.
+  NEW in V3.6.0: AnchorChecker (milestone anchor verification + drift detection), RetrospectiveEngine (independent retrospective + pattern extraction), StructuredGoal (structured goal decomposition + progress tracking), FallbackBackend (automatic LLM failover + health monitoring), 1548+ tests.
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -22,7 +22,7 @@ ai_capabilities:
 capabilities:
   - name: multi-agent-dispatcher
     description: |
-      V3.5.0 统一调度入口 - 一键完成多Agent协作
+      V3.6.0 统一调度入口 - 一键完成多Agent协作
 
       核心能力：
       - 任务意图分析与角色自动匹配（中英双语关键词）
@@ -190,6 +190,16 @@ metadata:
   repository: https://github.com/lulin70/DevSquad
 
   version_history:
+    - version: 3.6.0
+      date: "2026-05-13"
+      changes:
+        - AnchorChecker — Milestone anchor verification with drift detection and auto-recovery
+        - RetrospectiveEngine — Independent post-dispatch retrospective with pattern extraction
+        - StructuredGoal — Structured goal management with hierarchical decomposition
+        - FallbackBackend — Automatic LLM backend failover with health monitoring
+        - 1548+ tests all passing
+        - 47 core modules
+
     - version: 3.5.0
       date: "2026-05-05"
       changes:
@@ -259,4 +269,4 @@ metadata:
         - 初始版本
 
 created_at: "2026-03-16T00:00:00"
-updated_at: "2026-04-27"
+updated_at: "2026-05-13"

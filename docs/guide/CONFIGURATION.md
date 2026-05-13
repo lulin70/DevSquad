@@ -1,6 +1,6 @@
-# DevSquad Configuration Guide (V3.5.0)
+# DevSquad Configuration Guide (V3.6.0)
 
-> **Version**: V3.5.0 | **Updated**: 2026-05-07
+> **Version**: V3.6.0 | **Updated**: 2026-05-13
 >
 > Complete configuration reference for all DevSquad components including new production features (Authentication, REST API, Alerts, Historical Data Storage).
 

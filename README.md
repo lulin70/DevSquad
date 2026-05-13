@@ -3,14 +3,14 @@
 <p align="center">
   <strong>One task → Multi-role AI collaboration → One conclusion</strong>
   <br>
-  <em>Production Ready | V3.5.0</em>
+  <em>Production Ready | V3.6.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1507%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.5.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -27,9 +27,9 @@
 
 ---
 
-## 🚀 V3.5.0: Code Walkthrough & Quality Enhancement Release
+## 🚀 V3.6.0: Anchor Check & Retrospective Enhancement Release
 
-**DevSquad V3.5.0** adds 7-role code walkthrough, five-axis consensus engine, Karpathy principles, and enhanced lifecycle protocol — making code review systematic and rigorous.
+**DevSquad V3.6.0** adds AnchorChecker for milestone anchor verification, RetrospectiveEngine for independent retrospectives, StructuredGoal for structured goal management, and FallbackBackend for automatic backend failover — making multi-agent collaboration more reliable and self-improving.
 
 ### 🎯 Quick Start (4 Ways to Use DevSquad)
 
@@ -111,67 +111,35 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ Key Features (V3.5.0)
+## ✨ Key Features (V3.6.0)
 
-### 🔍 7-Role Code Walkthrough (NEW)
-Systematic multi-perspective code review with dedicated concern packs:
-- **code-walkthrough.yaml** — 7-role walkthrough guidance (architect/security/tester/developer/devops/PM/UI)
-- **code-quality.yaml** — Karpathy principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution)
-- **Document Consistency Check** — 9-category documentation review (version numbers, test counts, module counts, feature descriptions)
+### ⚓ AnchorChecker (NEW)
+Milestone anchor verification that ensures critical checkpoints are properly validated before proceeding:
+- **Anchor Point Definition** — Define mandatory validation anchors at key lifecycle milestones
+- **Cross-Phase Verification** — Verify consistency between phase outputs and anchor criteria
+- **Drift Detection** — Detect when project execution drifts from defined anchor points
+- **Auto-Recovery** — Suggest corrective actions when anchor checks fail
 
-### ⚖️ Five-Axis Consensus Engine (NEW)
-Walkthrough-specific code review with weighted five-axis evaluation:
-- **Architecture** (30%) — Structural soundness and design patterns
-- **Security** (25%) — Vulnerability detection and compliance
-- **Correctness** (20%) — Logic verification and edge cases
-- **Operability** (15%) — Deployment and monitoring readiness
-- **Readability** (10%) — Code clarity and maintainability
+### 🔄 RetrospectiveEngine (NEW)
+Independent retrospective mechanism for continuous improvement after each dispatch cycle:
+- **Post-Dispatch Review** — Automatically analyze what went well and what could improve
+- **Pattern Extraction** — Extract reusable patterns from successful collaborations
+- **Anti-Pattern Detection** — Identify recurring issues and suggest process improvements
+- **Metric Trend Analysis** — Track quality metrics across dispatches to spot degradation
 
-### 🔄 Enhanced Lifecycle Protocol (NEW)
-Extended specification toolchain with three new commands:
-- **spec-init** — Initialize specification from template (requirements/architecture/technical)
-- **spec-analyze** — Analyze codebase to generate specification draft
-- **spec-validate** — Validate specification completeness and consistency
+### 🎯 StructuredGoal (NEW)
+Structured goal management that decomposes high-level objectives into trackable, verifiable sub-goals:
+- **Goal Decomposition** — Break complex objectives into hierarchical sub-goals with clear criteria
+- **Progress Tracking** — Real-time progress measurement against defined goal structure
+- **Dependency Mapping** — Visualize and manage dependencies between sub-goals
+- **Completion Verification** — Automated verification that goals meet their success criteria
 
-### 🗺️ Multi-Language Code Map (NEW)
-Code map generator now supports Python, JavaScript, TypeScript, Go, Java, and Rust parsing via `language_parsers.py`.
-
-### 📋 Project Understanding Enhancement (NEW)
-`agent_briefing.py` extended with project overview generation, tech stack detection, and architecture summary.
-
-### 🧩 Concern Packs (NEW)
-Domain-specific knowledge packs that automatically enhance AI role prompts based on task content:
-- **Permission Design Pack** — RBAC/ABAC/ReBAC/ACL decision framework, row/column-level permission patterns, 7 common pitfalls (IDOR, privilege escalation, cache staleness...)
-- **Web API Design Pack** — REST/GraphQL/gRPC style selection, JWT/OAuth2/API Key authentication, versioning strategies, rate limiting, RFC 7807 error handling
-- **Data Pipeline Pack** — Batch/streaming/CDC pipeline patterns, idempotency guarantees, data quality framework, schema evolution, incremental sync strategies
-
-Packs are **auto-matched** by keywords and **composable** — a task about "multi-tenant API permissions" activates both Permission + Web API packs simultaneously.
-
-### 🎯 Interactive Setup Wizard (NEW)
-```bash
-devsquad init    # 5-step guided setup (1-2 minutes)
-# Step 1: Project type (Web API / Full-Stack / CLI / ML / Library / Generic)
-# Step 2: AI backend (Mock / OpenAI / Anthropic)
-# Step 3: Default roles (auto-recommended based on project type)
-# Step 4: Language & features
-# Step 5: Save to ~/.devsquad.yaml
-```
-
-### 💬 User-Friendly Error Messages (NEW)
-Errors are now translated into human-readable messages with fix suggestions and examples:
-```
-❌ Before: "Input validation failed: Task too short (min 5 chars, got 2)"
-✅ Now:    "任务描述太短了，请详细说明你想做什么"
-           "💡 好的任务描述应该包含：做什么 + 为什么 + 有什么特殊要求"
-           "📝 示例: devsquad dispatch -t '设计一个支持手机号和邮箱登录的用户认证系统'"
-```
-
-### 📊 Performance Monitoring (NEW)
-Built-in performance monitoring with sliding window statistics, threshold alerting, and regression detection:
-- Automatic metric collection for every dispatch (11-step timing breakdown)
-- P50/P95/P99 latency analysis
-- Performance regression detection (>20% degradation triggers alert)
-- Export metrics to JSON for external dashboards
+### 🔀 FallbackBackend (NEW)
+Automatic backend failover that ensures LLM availability even when primary backends are down:
+- **Health Monitoring** — Continuous health checks for all configured LLM backends
+- **Automatic Failover** — Seamlessly switch to backup backend when primary fails
+- **Priority-Based Routing** — Configure backend priority order (e.g., OpenAI → Anthropic → Mock)
+- **Recovery Detection** — Automatically restore primary backend when it recovers
 
 ### 🔐 Authentication & Authorization
 - **Multi-user support** with role-based access control (RBAC)
@@ -341,7 +309,7 @@ pip install -e ".[all]"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.5.0
+# Expected: devsquad 3.6.0
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -371,7 +339,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch --backend openai
 # Other commands
 python3 scripts/cli.py status          # System status
 python3 scripts/cli.py roles           # List available roles
-python3 scripts/cli.py --version       # Show version (3.5.0)
+python3 scripts/cli.py --version       # Show version (3.6.0)
 ```
 
 **2. Python API**
@@ -419,7 +387,7 @@ Exposes 6 tools: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
 
 **Auto-match**: If no roles specified, the dispatcher automatically matches based on task keywords.
 
-## Architecture Overview (45 Core Modules)
+## Architecture Overview (47 Core Modules)
 
 DevSquad is built on a layered architecture with clear separation of concerns:
 
@@ -451,82 +419,85 @@ DevSquad is built on a layered architecture with clear separation of concerns:
 └─────────────────────────────────────────────────┘
 ```
 
-## What's New in V3.5.0 🆕
+## What's New in V3.6.0 🆕
 
-### AgentBriefing System
-Context-aware task briefing that helps agents understand project history and make informed decisions:
+### AnchorChecker System
+Milestone anchor verification that ensures critical checkpoints are validated before proceeding:
 
 ```python
-from scripts.collaboration.agent_briefing import get_agent_briefing
+from scripts.collaboration.anchor_checker import AnchorChecker
 
-# Create briefing for agent
-briefing = get_agent_briefing("architect")
-briefing.update_briefing("capabilities", "System design")
-briefing.update_briefing("constraints", "Must use Python 3.8+")
-
-# Generate briefing for task
-content = briefing.generate_briefing(
-    task="Design authentication system",
-    context={"priority": "high"}
-)
+checker = AnchorChecker()
+checker.define_anchor("architecture_complete", criteria=["API spec defined", "tech stack selected"])
+result = checker.check_anchor("architecture_complete", phase_output)
+print(f"Anchor passed: {result.passed}")
+print(f"Drift detected: {result.drift_score}")
 ```
 
 **Features**:
-- Historical pattern recognition
-- Priority-based information filtering
-- JSON persistence
-- Multi-section management
+- Cross-phase consistency verification
+- Drift detection with severity scoring
+- Auto-recovery suggestions
+- Anchor point persistence
 
-### ConfidenceScore System
-Automatic response quality assessment with 5-factor analysis:
-
-```python
-from scripts.collaboration.confidence_score import get_confidence_scorer
-
-scorer = get_confidence_scorer()
-score = scorer.calculate_confidence(
-    prompt="Design a REST API",
-    response=llm_response,
-    metadata={"model": "gpt-4", "temperature": 0.7}
-)
-
-print(f"Confidence: {score.overall_score:.2f}")  # 0.89
-print(f"Level: {score.level.value}")             # "high"
-```
-
-**5 Confidence Factors** (weighted):
-1. **Completeness** (25%): Response length, truncation detection
-2. **Certainty** (25%): Uncertainty phrases, hedging words
-3. **Specificity** (20%): Numbers, code, examples, lists
-4. **Consistency** (15%): Contradictions, self-corrections
-5. **Model Quality** (15%): Model tier, temperature, token count
-
-### EnhancedWorker
-Integrated worker with automatic quality assurance:
+### RetrospectiveEngine
+Independent retrospective mechanism for continuous improvement:
 
 ```python
-from scripts.collaboration.enhanced_worker import create_enhanced_worker
+from scripts.collaboration.retrospective_engine import RetrospectiveEngine
 
-worker = create_enhanced_worker(
-    worker_id="arch-001",
-    role_id="architect",
-    role_prompt="You are a system architect...",
-    scratchpad=scratchpad,
-    confidence_threshold=0.7,  # Auto-retry if below threshold
-    enable_briefing=True,
-    enable_confidence=True,
-)
-
-result = worker.execute(task)
-print(f"Confidence: {result.output['confidence_score']}")
+engine = RetrospectiveEngine()
+report = engine.run_retrospective(dispatch_result)
+print(f"Patterns found: {len(report.patterns)}")
+print(f"Anti-patterns: {len(report.anti_patterns)}")
+print(f"Improvement suggestions: {report.suggestions}")
 ```
 
 **Features**:
-- Automatic briefing generation
-- Automatic confidence evaluation
-- Smart retry mechanism (low confidence)
-- Quality gates
-- Auto-flagging for review
+- Post-dispatch quality analysis
+- Pattern and anti-pattern extraction
+- Metric trend tracking
+- Actionable improvement suggestions
+
+### StructuredGoal
+Structured goal management with hierarchical decomposition:
+
+```python
+from scripts.collaboration.structured_goal import StructuredGoal
+
+goal = StructuredGoal("Build e-commerce platform")
+goal.add_sub_goal("User auth", criteria=["OAuth2 support", "2FA ready"])
+goal.add_sub_goal("Product catalog", criteria=["Search", "Filter", "Pagination"])
+progress = goal.get_progress()
+print(f"Overall: {progress.completion_pct}%")
+```
+
+**Features**:
+- Hierarchical goal decomposition
+- Dependency mapping between sub-goals
+- Real-time progress tracking
+- Automated completion verification
+
+### FallbackBackend
+Automatic LLM backend failover for high availability:
+
+```python
+from scripts.collaboration.fallback_backend import FallbackBackend
+
+backend = FallbackBackend(
+    primary="openai",
+    fallbacks=["anthropic", "mock"],
+    health_check_interval=30,
+)
+result = backend.generate("Design auth system")
+# Automatically fails over if primary is down
+```
+
+**Features**:
+- Continuous backend health monitoring
+- Seamless automatic failover
+- Priority-based routing configuration
+- Automatic primary recovery detection
 
 ### Natural Language Rule Collection
 Automatically detect and store user rules from natural language input:
@@ -581,7 +552,7 @@ See [Integration Guide](docs/guides/agent_briefing_confidence_integration.md) fo
 
 ### Project Lifecycle (11-Phase Model)
 
-DevSquad V3.5.0 defines an **11-phase (4 optional)** project lifecycle with clear roles, dependencies, and gate conditions:
+DevSquad V3.6.0 defines an **11-phase (4 optional)** project lifecycle with clear roles, dependencies, and gate conditions:
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -606,7 +577,7 @@ See [GUIDE.md](GUIDE.md) §4 for full lifecycle details with gate conditions and
 - **GitHub Actions CI**: Python 3.9-3.12 matrix testing
 - **pip installable**: `pip install -e .` with optional dependencies
 
-## Module Reference (45 Modules)
+## Module Reference (47 Modules)
 
 | Module | File | Purpose |
 |--------|------|---------|
@@ -654,6 +625,8 @@ See [GUIDE.md](GUIDE.md) §4 for full lifecycle details with gate conditions and
 | **LLMRetryAsync** | `llm_retry_async.py` | Async LLM retry with backoff |
 | **IntegrationExample** | `integration_example.py` | DevSquad integration example code |
 | **AsyncIntegrationExample** | `async_integration_example.py` | Async DevSquad integration example |
+| **AnchorChecker** | `anchor_checker.py` | Milestone anchor verification + drift detection + auto-recovery |
+| **RetrospectiveEngine** | `retrospective_engine.py` | Independent post-dispatch retrospective + pattern extraction + anti-pattern detection |
 
 ## Configuration
 
@@ -724,7 +697,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/test_cli_lifecycle.py -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.5.0
+python3 scripts/cli.py --version    # 3.6.0
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 
