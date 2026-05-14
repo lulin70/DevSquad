@@ -157,6 +157,34 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r architect --backend o
 
 **Tip**: Add `export` lines to your `~/.zshrc` or `~/.bashrc` for persistence across sessions.
 
+### FallbackBackend Configuration (V3.6.0 — Automatic Failover)
+
+DevSquad V3.6.0 supports automatic LLM backend failover. If the primary backend fails, it automatically switches to the backup:
+
+```bash
+# Option A: Create .env file in DevSquad root directory (recommended)
+cat > .env << 'EOF'
+DEVSQUAD_LLM_BACKEND=fallback
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_BASE_URL=https://api.anthropic.com
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4
+EOF
+
+# Option B: Environment variables
+export DEVSQUAD_LLM_BACKEND=fallback
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+
+# Then just run — no --backend flag needed
+python3 scripts/cli.py dispatch -t "Design auth system"
+# → Tries Anthropic first, falls back to OpenAI if unavailable (30s cooldown)
+```
+
+> **🔒 Security**: The `.env` file is automatically excluded from Git (listed in `.gitignore`). Never commit API keys to version control.
+
 **Install optional dependencies:**
 
 ```bash
@@ -327,13 +355,21 @@ Custom skill available at `.claude/skills/multi-agent-team/SKILL.md`.
 Start the MCP server for tool-based integration:
 
 ```bash
-pip install mcp  # optional, for MCP protocol support
-python3 scripts/mcp_server.py            # stdio mode (default)
-python3 scripts/mcp_server.py --port 8080  # SSE mode
+# Install MCP SDK first (required)
+pip install mcp
+
+# Start in stdio mode (default, for CLI integration)
+python3 scripts/mcp_server.py
+
+# Start in SSE mode (for web/HTTP integration)
+python3 scripts/mcp_server.py --port 8080
 ```
 
 Exposes 6 tools: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
 `multiagent_status`, `multiagent_analyze`, `multiagent_shutdown`.
+
+> **Note**: If `mcp` is not installed, DevSquad logs a warning but continues to work normally.
+> All other features (CLI, API, Python import) work without MCP.
 
 ## Verification
 
@@ -410,7 +446,7 @@ DevSquad/
 ├── scripts/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
-│   └── collaboration/            # ★ 45 core modules
+│   └── collaboration/            # ★ 48 core modules
 │       ├── _version.py           # Version SSOT (3.6.0)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
@@ -438,6 +474,9 @@ DevSquad/
 │       ├── protocols.py          # Interface definitions
 │       ├── null_providers.py     # Graceful degradation providers
 │       ├── prompt_assembler.py   # Dynamic prompt assembly + QC injection
+│       ├── anchor_checker.py     # Goal drift detection + auto-recovery (V3.6.0)
+│       ├── retrospective.py      # Independent post-dispatch retrospective (V3.6.0)
+│       ├── feature_usage_tracker.py # Feature invocation counter + reports (V3.6.0)
 │       ├── role_template_market.py # Role template marketplace
 │       └── *_test.py             # Test suites (1500+ tests)
 ├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
@@ -604,6 +643,6 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 # Expected: [DRY RUN] message
 
 # 4. Core tests
-python -m pytest scripts\collaboration\ tests\ test_v35_integration.py -q
+python -m pytest tests/ -q
 # Expected: 1500+ tests all passing
 ```
