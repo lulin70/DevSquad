@@ -47,7 +47,7 @@ python3 scripts/collaboration/memory_bridge_test.py
 ```
 DevSquad/
 ├── scripts/
-│   ├── collaboration/          # Core modules (48)
+│   ├── collaboration/          # Core modules (53)
 │   │   ├── _version.py         # Version SSOT (3.6.1)
 │   │   ├── models.py           # Data models (zero dependencies)
 │   │   ├── dispatcher.py       # Unified entry point

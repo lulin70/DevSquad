@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ExecutionGuard - V3.6.0 Real-Time Execution Guardian
+ExecutionGuard - V3.6.1 Real-Time Execution Guardian
 
 Monitors worker execution in real-time and triggers abort conditions when
 anomalies are detected (timeout, output overflow, critical errors).
@@ -16,7 +16,7 @@ Usage:
     guard = ExecutionGuard(max_duration_sec=300, max_output_tokens=8000)
     should_abort, reason = guard.check_abort(output, elapsed_time=120.5, token_count=5000)
     if should_abort:
-        print(f"Aborting: {reason}")
+        logger.warning("Aborting: %s", reason)
 """
 
 import logging

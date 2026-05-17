@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1561%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.6.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -27,9 +27,9 @@
 
 ---
 
-## 🚀 V3.6.0: Anchor Check & Retrospective Enhancement Release
+## 🚀 V3.6.1: Cybernetics Enhancement Release
 
-**DevSquad V3.6.0** adds AnchorChecker for milestone anchor verification, RetrospectiveEngine for independent retrospectives, FeatureUsageTracker for data-driven feature optimization, StructuredGoal for structured goal management, and FallbackBackend for automatic backend failover — making multi-agent collaboration more reliable, self-improving, and observable.
+**DevSquad V3.6.1** adds 5 new cybernetics modules: FeedbackControlLoop for closed-loop feedback control, ExecutionGuard for safe execution with rollback, PerformanceFingerprint for performance baseline tracking, SimilarTaskRecommender for TF-IDF-based task similarity search, and AdaptiveRoleSelector for intelligent role selection based on task characteristics — making multi-agent collaboration more adaptive, self-optimizing, and resilient.
 
 ### 🎯 Quick Start (4 Ways to Use DevSquad)
 
@@ -111,7 +111,7 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ Key Features (V3.6.0)
+## ✨ Key Features (V3.6.1)
 
 ### ⚓ AnchorChecker (NEW)
 Milestone anchor verification that ensures critical checkpoints are properly validated before proceeding:
@@ -203,7 +203,7 @@ System:
 
 ---
 
-## 🧩 Layered Sub-Skill Architecture (V3.6.0)
+## 🧩 Layered Sub-Skill Architecture (V3.6.1)
 
 > DevSquad provides **6 atomic sub-skills** that can be used independently or together.
 > Each sub-skill is a thin wrapper (~50 lines) importing existing core modules — no duplicated logic.
@@ -360,7 +360,7 @@ pip install -e ".[all]"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.6.0
+# Expected: devsquad 3.6.1
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -390,7 +390,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch --backend openai
 # Other commands
 python3 scripts/cli.py status          # System status
 python3 scripts/cli.py roles           # List available roles
-python3 scripts/cli.py --version       # Show version (3.6.0)
+python3 scripts/cli.py --version       # Show version (3.6.1)
 ```
 
 **2. Python API**
@@ -452,7 +452,7 @@ Exposes 6 tools: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
 
 **Auto-match**: If no roles specified, the dispatcher automatically matches based on task keywords.
 
-## Architecture Overview (48 Core Modules)
+## Architecture Overview (53 Core Modules)
 
 DevSquad is built on a layered architecture with clear separation of concerns:
 
@@ -484,7 +484,7 @@ DevSquad is built on a layered architecture with clear separation of concerns:
 └─────────────────────────────────────────────────┘
 ```
 
-## What's New in V3.6.0 🆕
+## What's New in V3.6.1 🆕
 
 ### AnchorChecker System
 Milestone anchor verification that ensures critical checkpoints are validated before proceeding:
@@ -617,7 +617,7 @@ See [Integration Guide](docs/guides/agent_briefing_confidence_integration.md) fo
 
 ### Project Lifecycle (11-Phase Model)
 
-DevSquad V3.6.0 defines an **11-phase (4 optional)** project lifecycle with clear roles, dependencies, and gate conditions:
+DevSquad V3.6.1 defines an **11-phase (4 optional)** project lifecycle with clear roles, dependencies, and gate conditions:
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -642,7 +642,7 @@ See [GUIDE.md](GUIDE.md) §4 for full lifecycle details with gate conditions and
 - **GitHub Actions CI**: Python 3.9-3.12 matrix testing
 - **pip installable**: `pip install -e .` with optional dependencies
 
-## Module Reference (48 Modules)
+## Module Reference (53 Modules)
 
 | Module | File | Purpose |
 |--------|------|---------|
@@ -768,7 +768,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/test_cli_lifecycle.py -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.6.0
+python3 scripts/cli.py --version    # 3.6.1
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 
