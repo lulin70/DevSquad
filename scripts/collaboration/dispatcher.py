@@ -532,6 +532,7 @@ class MultiAgentDispatcher:
                  enable_anchor_check: bool = True,
                  enable_retrospective: bool = True,
                  enable_usage_tracker: bool = True,
+                 enable_feedback_loop: bool = False,
                  compression_threshold: int = 100000,
                  memory_dir: Optional[str] = None,
                  permission_level: PermissionLevel = PermissionLevel.DEFAULT,
@@ -548,6 +549,10 @@ class MultiAgentDispatcher:
             enable_memory: Whether to enable memory bridge
             enable_skillify: Whether to enable Skill learning
             enable_quality_guard: Whether to enable test quality auto-audit (P1)
+            enable_anchor_check: Whether to enable anchor checking (V3.6.0)
+            enable_retrospective: Whether to enable retrospective engine (V3.6.0)
+            enable_usage_tracker: Whether to enable feature usage tracking (V3.6.0)
+            enable_feedback_loop: Whether to enable feedback control loop (V3.6.0)
             compression_threshold: Compression trigger threshold (token count)
             memory_dir: Memory storage directory
             permission_level: Default permission level
@@ -558,6 +563,7 @@ class MultiAgentDispatcher:
         self.enable_anchor_check = enable_anchor_check
         self.enable_retrospective = enable_retrospective
         self.enable_usage_tracker = enable_usage_tracker
+        self.enable_feedback_loop = enable_feedback_loop
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
         self.enable_warmup = enable_warmup
@@ -1370,6 +1376,30 @@ class MultiAgentDispatcher:
                 role_count=len(role_ids),
             )
             self._perf_monitor.record(perf_metric)
+
+            # V3.6.0: Feedback Control Loop - iterative refinement if quality is low
+            if self.enable_feedback_loop and not dry_run:
+                try:
+                    from .feedback_control_loop import FeedbackControlLoop
+                    feedback_loop = FeedbackControlLoop(
+                        dispatcher=self,
+                        quality_gate=0.7,
+                        max_iterations=3,
+                    )
+                    result = feedback_loop.run(
+                        task_description, roles=roles, mode=mode, **{
+                            k: v for k, v in kwargs.items()
+                            if k not in ['dry_run']
+                        }
+                    )
+                    if self.usage_tracker:
+                        self.usage_tracker.tick("feedback_loop_executed")
+                    logger.info(
+                        "Feedback loop completed: %d iterations, best_quality=%.2f",
+                        feedback_loop.iteration_count, feedback_loop.best_quality
+                    )
+                except Exception as loop_err:
+                    logger.warning("Feedback control loop failed: %s", loop_err)
 
             return result
 

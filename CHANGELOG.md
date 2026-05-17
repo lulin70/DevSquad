@@ -12,6 +12,38 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Cross-platform compatibility documentation: Claude Code, Cursor, OpenClaw, Pure Python, Docker, MCP
 - All sub-skills work in Mock mode without API keys
 
+## [3.6.1] - 2026-05-17
+
+### Added
+- **FeedbackControlLoop** — Cybernetic feedback iteration system (Sense→Decide→Act→Feedback closed loop)
+  - Quality gate with default 0.7 threshold
+  - Max iterations: 3 (configurable)
+  - Smart adjustment generation based on failure patterns
+  - Best result tracking (not just last result)
+- **ExecutionGuard** — Real-time execution abort guard
+  - Multi-level triggers: timeout / output size / token limit / keywords
+  - Configurable thresholds via configure()
+  - Zero external dependency, <1ms per check
+- **PerformanceFingerprint** — Unified execution fingerprint aggregator
+  - Fuses 4 data sources: FeatureUsageTracker + PerformanceMonitor + CheckpointManager + RetrospectiveEngine
+  - TF-IDF similarity search (pure Python, no external dependencies)
+  - Success/failure pattern extraction
+  - Cold-start graceful degradation
+- **SimilarTaskRecommender** — History-based task configuration recommendation
+  - Recommends roles/intent/duration based on similar historical cases
+  - Confidence levels: high(>0.7) / medium(>0.4) / low
+  - Cold-start fallback to RoleMatcher
+- **AdaptiveRoleSelector** — Success-rate-driven adaptive role selection
+  - Statistical role effectiveness report
+  - Strategy: similar-task → intent-based → fallback
+  - Manual stats update API available
+
+### Changed
+- All 5 modules from upstream v2.5 cybernetics enhancement analysis integrated into core architecture
+- Enhanced execution reliability with real-time abort guards
+- Improved task recommendation through historical pattern matching
+- Better role selection driven by success rate statistics
+
 ## [3.6.0] - 2026-05-13
 
 ### Added

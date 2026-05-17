@@ -1,16 +1,14 @@
 name: devsquad
-version: 3.6.0
+version: 3.6.1
 description: |
-  DevSquad V3.6.0 — Multi-Role AI Task Orchestrator.
+  DevSquad V3.6.1 — Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.6.0: Layered Sub-Skill Architecture (6 atomic sub-skills),
-  AnchorChecker (milestone anchor verification + drift detection),
-  RetrospectiveEngine (independent retrospective + pattern extraction),
-  StructuredGoal (structured goal decomposition + progress tracking),
-  FallbackBackend (automatic LLM failover + health monitoring), 1548+ tests.
+  NEW in V3.6.1: FeedbackControlLoop, ExecutionGuard, PerformanceFingerprint,
+  SimilarTaskRecommender, AdaptiveRoleSelector — cybernetics enhancement from upstream v2.5,
+  1548+ tests.
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -24,6 +22,49 @@ ai_capabilities:
   auto_skill_generation: true
 
 capabilities:
+  - name: feedback-control-loop
+    description: |
+      FeedbackControlLoop — Cybernetic feedback iteration system
+
+      Sense→Decide→Act→Feedback closed loop
+      Quality gate: default 0.7 threshold
+      Max iterations: 3 (configurable)
+      Smart adjustment generation based on failure patterns
+      Best result tracking (not just last result)
+
+  - name: performance-fingerprint
+    description: |
+      PerformanceFingerprint — Unified execution fingerprint aggregator
+
+      Fuses 4 data sources: FeatureUsageTracker + PerformanceMonitor + CheckpointManager + RetrospectiveEngine
+      TF-IDF similarity search (pure Python, no deps)
+      Success/failure pattern extraction
+      Cold-start graceful degradation
+
+  - name: execution-guard
+    description: |
+      ExecutionGuard — Real-time execution abort guard
+
+      Multi-level triggers: timeout / output size / token limit / keywords
+      Configurable thresholds via configure()
+      Zero external dependency, <1ms per check
+
+  - name: similar-task-recommender
+    description: |
+      SimilarTaskRecommender — History-based task config recommendation
+
+      Recommends roles/intent/duration based on similar historical cases
+      Confidence levels: high(>0.7) / medium(>0.4) / low
+      Cold-start fallback to RoleMatcher
+
+  - name: adaptive-role-selector
+    description: |
+      AdaptiveRoleSelector — Success-rate-driven role selection
+
+      Statistical role effectiveness report
+      Strategy: similar-task → intent-based → fallback
+      Manual stats update API available
+
   - name: multi-agent-dispatcher
     description: |
       V3.6.0 统一调度入口 - 一键完成多Agent协作
@@ -239,6 +280,16 @@ metadata:
   repository: https://github.com/lulin70/DevSquad
 
   version_history:
+    - version: 3.6.1
+      date: "2026-05-17"
+      changes:
+        - FeedbackControlLoop — cybernetic feedback loop iteration (sense→decide→act→feedback)
+        - ExecutionGuard — real-time execution abort guard (timeout/output/keywords)
+        - PerformanceFingerprint — unified execution fingerprint with TF-IDF similarity search
+        - SimilarTaskRecommender — history-based task configuration recommendation
+        - AdaptiveRoleSelector — success-rate-driven adaptive role selection
+        - All 5 modules from upstream v2.5 cybernetics enhancement analysis
+
     - version: 3.6.0
       date: "2026-05-16"
       changes:
@@ -326,4 +377,4 @@ metadata:
         - 初始版本
 
 created_at: "2026-03-16T00:00:00"
-updated_at: "2026-05-16"
+updated_at: "2026-05-17"

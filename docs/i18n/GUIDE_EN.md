@@ -1,6 +1,6 @@
 # DevSquad User Guide
 
-> **Version**: V3.6.0 | **Updated**: 2026-05-16
+> **Version**: V3.6.1 | **Updated**: 2026-05-17
 >
 > This document is the complete feature manual for DevSquad, covering all user-facing functionality.
 

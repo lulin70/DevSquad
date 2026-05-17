@@ -3,14 +3,14 @@
 <p align="center">
   <strong>One task → Multi-role AI collaboration → One conclusion</strong>
   <br>
-  <em>Production Ready | V3.6.0</em>
+  <em>Production Ready | V3.6.1</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -866,6 +866,7 @@ docker build -t devsquad . && docker run -it devsquad dispatch -t "test"
 
 | Date | Version | Highlights |
 |------|---------|-----------|
+| 2026-05-17 | **V3.6.1** | 🔄 **Cybernetics Enhancement** — 5 new modules (FeedbackControlLoop/ExecutionGuard/PerformanceFingerprint/SimilarTaskRecommender/AdaptiveRoleSelector) with feedback loops, execution guards, TF-IDF similarity search, and adaptive role selection. Inspired by upstream TraeMultiAgentSkill v2.5's cybernetics architecture. |
 | 2026-05-16 | **V3.6.0** | 🧩 **Layered Sub-Skill Architecture** — 6 atomic sub-skills (dispatch/intent/review/security/test/retrospective) with lazy-loading registry via importlib, each ~50 lines wrapping existing core modules, no duplicated logic. All sub-skills work in Mock mode without API keys. Plus: Cross-platform compatibility docs updated for Claude Code/Cursor/OpenClaw/Pure Python/Docker/MCP. |
 | 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker (milestone anchor verification + drift detection), RetrospectiveEngine (independent retrospective + pattern extraction), StructuredGoal (structured goal decomposition + progress tracking), FallbackBackend (automatic LLM failover + health monitoring), FeatureUsageTracker (feature usage tracking + reporting + auto-persistence), 7 module integrations (IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders), 1548+ tests, 48 core modules |
 | 2026-05-05 | **V3.5.0** | 📋 Enhancement Sprint — Code walkthrough enhancement, documentation consistency checks, Karpathy principles, project understanding (AgentBriefing), CLI lifecycle commands, structured output, 748+ tests |

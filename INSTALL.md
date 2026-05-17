@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V3.6.0)
+# DevSquad — Installation Guide (V3.6.1)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:

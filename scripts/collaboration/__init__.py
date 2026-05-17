@@ -102,6 +102,9 @@ from .operation_classifier import OperationClassifier
 from .skill_registry import SkillRegistry
 from .ai_semantic_matcher import AISemanticMatcher
 from .five_axis_consensus import FiveAxisConsensusEngine
+from .performance_fingerprint import PerformanceFingerprint
+from .similar_task_recommender import SimilarTaskRecommender
+from .adaptive_role_selector import AdaptiveRoleSelector
 from .null_providers import (
     NullCacheProvider,
     NullRetryProvider,
@@ -115,6 +118,10 @@ from .ci_feedback_adapter import CIFeedbackAdapter, CIResult, CIContext
 from .standardized_role_template import StandardizedRoleTemplate
 from .prompt_variant_generator import PromptVariantGenerator
 from .role_template_market import RoleTemplateMarket
+
+# V3.6.0 Control & Guard exports
+from .feedback_control_loop import FeedbackControlLoop
+from .execution_guard import ExecutionGuard
 
 
 from ._version import __version__

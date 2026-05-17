@@ -3,14 +3,14 @@
 <p align="center">
   <strong>1つのタスク → マルチロールAIコラボレーション → 1つの結論</strong>
   <br>
-  <em>本番運用可能 | V3.6.0</em>
+  <em>本番運用可能 | V3.6.1</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.6.0: アンカーチェックとレトロスペクティブ強化リリース
+## 🚀 V3.6.1: サイバネティクス強化リリース
 
-**DevSquad V3.6.0** は、AnchorChecker（マイルストーンアンカー検証）、RetrospectiveEngine（独立したレトロスペクティブ）、FeatureUsageTracker（データドリブンな機能最適化）、StructuredGoal（構造化目標管理）、FallbackBackend（自動バックエンドフェイルオーバー）を追加し、マルチエージェントコラボレーションをより信頼性が高く、自己改善可能で、可観測なものにします。
+**DevSquad V3.6.1** は5つのサイバネティクス強化モジュールを追加：FeedbackControlLoop（クローズドループフィードバック反復）、ExecutionGuard（リアルタイム実行ガード）、PerformanceFingerprint（統一フィンガープリント+TF-IDF類似度検索）、SimilarTaskRecommender（履歴ベースのタスク設定推奨）、AdaptiveRoleSelector（成功率駆動型適応ロール選択）— マルチエージェントコラボレーションに自己認識、自己調整、自己進化能力を付与。
 
 ### 🎯 クイックスタート（3つの使用方法）
 

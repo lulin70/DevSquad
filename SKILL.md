@@ -2,17 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.0 DevSquad — Production-Ready Multi-Role AI Task Orchestrator.
+  V3.6.1 DevSquad — Production-Ready Multi-Role AI Task Orchestrator.
   One task in, multi-role AI collaboration, one conclusion out.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + REST API + Dashboard + MCP + Python API.
   1548+ tests all passing.
-  NEW in V3.6.0: Authentication (RBAC), FastAPI REST Server, Alert System,
-  Historical Data Storage (SQLite), Streamlit Dashboard with login.
+  NEW in V3.6.1: FeedbackControlLoop, ExecutionGuard, PerformanceFingerprint,
+  SimilarTaskRecommender, AdaptiveRoleSelector — cybernetics enhancement from upstream v2.5.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
 ---
 
-# DevSquad V3.6.0 — Multi-Role AI Task Orchestrator (Production Ready)
+# DevSquad V3.6.1 — Multi-Role AI Task Orchestrator (Production Ready)
 
 ## Core Positioning
 
@@ -152,6 +152,48 @@ from skills import discover_all
 all_skills = discover_all()  # {"dispatch": <DispatchSkill>, ...}
 for name, skill in all_skills.items():
     print(f"{name}: {skill.info()['description']}")
+```
+
+---
+
+## 🔄 Cybernetics Enhancement (V3.6.1)
+
+> Inspired by upstream TraeMultiAgentSkill v2.5's cybernetics architecture.
+> 5 new modules that add feedback loops, execution guards, and intelligence to DevSquad.
+
+| Module | File | Purpose |
+|--------|------|---------|
+| FeedbackControlLoop | `feedback_control_loop.py` | Sense→Decide→Act→Feedback closed-loop iteration |
+| ExecutionGuard | `execution_guard.py` | Real-time abort guard (timeout/output/keywords) |
+| PerformanceFingerprint | `performance_fingerprint.py` | Unified fingerprint with TF-IDF similarity search |
+| SimilarTaskRecommender | `similar_task_recommender.py` | History-based task config recommendation |
+| AdaptiveRoleSelector | `adaptive_role_selector.py` | Success-rate-driven adaptive role selection |
+
+### Quick Start
+
+```python
+from scripts.collaboration import (
+    FeedbackControlLoop, PerformanceFingerprint,
+    SimilarTaskRecommender, AdaptiveRoleSelector, ExecutionGuard
+)
+
+# Feedback loop (auto-retry until quality gate passes)
+loop = FeedbackControlLoop(dispatcher, quality_gate=0.7)
+result = loop.run("Design auth system", max_iterations=3)
+
+# Performance fingerprint
+fp = PerformanceFingerprint()
+fp.record_execution(task, result, timing, roles)
+similar = fp.find_similar("Add login page")
+
+# Smart recommendations
+recommender = SimilarTaskRecommender(fp)
+rec = recommender.recommend("Implement API")
+print(rec["recommended_roles"])  # ["architect", "coder"]
+
+# Adaptive role selection
+selector = AdaptiveRoleSelector(fp)
+roles = selector.select_roles("Fix security bug", intent="bug_fix")
 ```
 
 ---

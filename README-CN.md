@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
   <br>
-  <em>生产就绪 | V3.6.0</em>
+  <em>生产就绪 | V3.6.1</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.6.0: 锚点检查与复盘增强版本
+## 🚀 V3.6.1: 控制论增强版本
 
-**DevSquad V3.6.0** 新增 AnchorChecker 用于里程碑锚点验证、RetrospectiveEngine 用于独立复盘、FeatureUsageTracker 用于数据驱动的功能优化、StructuredGoal 用于结构化目标管理、FallbackBackend 用于自动后端故障转移 — 让多Agent协作更可靠、可自我改进、可观测。
+**DevSquad V3.6.1** 新增 5 个控制论增强模块：FeedbackControlLoop（闭环反馈迭代）、ExecutionGuard（实时执行守护）、PerformanceFingerprint（统一指纹+TF-IDF相似度搜索）、SimilarTaskRecommender（历史任务配置推荐）、AdaptiveRoleSelector（成功率驱动的自适应角色选择）— 让多Agent协作具备自我感知、自我调节、自我进化能力。
 
 ### 🎯 快速开始（3种使用方式）
 
