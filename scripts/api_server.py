@@ -46,6 +46,7 @@ from fastapi.responses import JSONResponse
 # Import routes
 from scripts.api.routes.lifecycle import router as lifecycle_router
 from scripts.api.routes.metrics_gates import router as metrics_router
+from scripts.api.routes.dispatch import router as dispatch_router
 
 # Configure logging
 logging.basicConfig(
@@ -64,20 +65,22 @@ app = FastAPI(
     description="""
     ## DevSquad V3.6.0 REST API
     
-    Production-ready API for DevSquad lifecycle management.
+    Production-ready API for DevSquad multi-agent collaboration.
     
-    ### Features
+    ### 核心功能 / Core Features
     
-    * **Lifecycle Management**: Query and control 11-phase lifecycle
-    * **Metrics & Monitoring**: Real-time performance metrics
-    * **Gate Status**: Check and monitor quality gates
-    * **Health Checks**: Service health monitoring
+    * **Task Dispatch**: Multi-agent task orchestration (任务调度)
+    * **Lifecycle Management**: Query and control 11-phase lifecycle (生命周期管理)
+    * **Metrics & Monitoring**: Real-time performance metrics (实时监控)
+    * **Gate Status**: Check and monitor quality gates (质量门禁)
+    * **Health Checks**: Service health monitoring (健康检查)
     
-    ### Authentication
+    ### Authentication / 认证
     
-    API supports basic authentication (configure in config/deployment.yaml).
+    API supports optional authentication via AuthManager.
+    Configure in config/deployment.yaml or disable for development.
     
-    ### Rate Limiting
+    ### Rate Limiting / 限流
     
     Default: 60 requests/minute per IP address.
     
@@ -89,17 +92,25 @@ app = FastAPI(
     version="3.6.0",
     docs_url="/docs",           # Swagger UI
     redoc_url="/redoc",         # ReDoc
-    openapi_url="/openapi.json" # OpenAPI spec
+    openapi_url="/openapi.json", # OpenAPI spec
+    contact={
+        "name": "DevSquad Team",
+        "url": "https://github.com/devsquad",
+        "email": "devsquad@example.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
 )
 
 # Add CORS middleware
-# Configure allowed origins - restrict to specific domains in production
+# Configure allowed origins - use wildcard for development, restrict in production
 allowed_origins = [
     "http://localhost:8501",      # DevSquad Dashboard
     "http://localhost:8000",      # API Server
     "http://localhost:3000",      # Frontend dev server
-    "https://yourdomain.com",     # Production domain
-    "https://*.yourdomain.com",   # Subdomains
+    "*",                          # Allow all origins (restrict in production)
 ]
 
 app.add_middleware(
@@ -171,6 +182,25 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(lifecycle_router)
 app.include_router(metrics_router)
+app.include_router(dispatch_router)
+
+
+# Auth dependency injection (optional, based on AuthManager)
+def get_auth_manager():
+    """Get AuthManager instance for dependency injection."""
+    try:
+        from scripts.auth import AuthManager
+        return AuthManager()
+    except Exception:
+        return None
+
+
+async def get_auth_dependency():
+    """
+    Optional auth dependency - can be used by endpoints that need authentication.
+    Returns AuthManager if enabled, None otherwise.
+    """
+    return get_auth_manager()
 
 
 # Root endpoint
@@ -180,21 +210,34 @@ async def root():
     Root endpoint - API information.
     
     Returns basic API information and available endpoints.
+    
+    根端点 - API信息。返回基本API信息和可用端点。
     """
     return {
         "name": "DevSquad API",
         "version": "3.6.0",
-        "description": "Production REST API for DevSquad lifecycle management",
+        "description": "Production REST API for DevSquad multi-agent collaboration",
         "documentation": {
             "swagger_ui": "/docs",
             "redoc": "/redoc",
             "openapi_spec": "/openapi.json"
         },
         "endpoints": {
+            "task_dispatch": "/api/v1/tasks/",
+            "quick_dispatch": "/api/v1/tasks/quick",
+            "dispatch_history": "/api/v1/tasks/history",
+            "roles": "/api/v1/roles",
             "lifecycle": "/api/v1/lifecycle/",
             "metrics": "/api/v1/metrics/",
             "gates": "/api/v1/gates/",
             "health": "/api/v1/health"
+        },
+        "features": {
+            "task_dispatch": "Multi-Agent task orchestration with 7 roles",
+            "lifecycle_management": "11-phase lifecycle control",
+            "real_time_metrics": "CPU/Memory/Response time monitoring",
+            "quality_gates": "Gate status checking for CI/CD",
+            "auth_integration": "Optional AuthManager integration"
         },
         "status": "operational",
         "timestamp": datetime.now().isoformat()
@@ -218,9 +261,16 @@ async def startup_event():
     logger.info("  ✅ FastAPI initialized")
     logger.info("  ✅ Lifecycle routes registered")
     logger.info("  ✅ Metrics routes registered")
-    logger.info("  ✅ CORS middleware enabled")
+    logger.info("  ✅ Task Dispatch routes registered (NEW)")
+    logger.info("  ✅ CORS middleware enabled (wildcard)")
     logger.info("  ⏱️  Request timing enabled")
+    logger.info("  🔐 Auth dependency injection ready")
     logger.info("=" * 60)
+    logger.info("Available Endpoints:")
+    logger.info("  POST /api/v1/tasks/dispatch   - Full task dispatch")
+    logger.info("  POST /api/v1/tasks/quick      - Quick dispatch")
+    logger.info("  GET  /api/v1/tasks/history     - Dispatch history")
+    logger.info("  GET  /api/v1/roles             - List roles")
     logger.info("Ready to accept requests!")
     logger.info("Swagger UI: http://localhost:8000/docs")
     logger.info("=" * 60)

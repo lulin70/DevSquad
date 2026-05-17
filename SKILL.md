@@ -6,7 +6,7 @@ description: |
   One task in, multi-role AI collaboration, one conclusion out.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + REST API + Dashboard + MCP + Python API.
-  750+ tests all passing (99.3%).
+  1548+ tests all passing.
   NEW in V3.6.0: Authentication (RBAC), FastAPI REST Server, Alert System,
   Historical Data Storage (SQLite), Streamlit Dashboard with login.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
@@ -24,7 +24,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
-## Architecture Overview (45 Core Modules)
+## Architecture Overview (48 Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -53,7 +53,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | 22 | **WorkflowEngine** | `workflow_engine.py` | Task-to-workflow auto-split, step execution, checkpointing, agent handoff, 11-phase lifecycle templates |
 | 23 | **TaskCompletionChecker** | `task_completion_checker.py` | DispatchResult/ScheduleResult completion tracking + progress persistence |
 | 24 | **CodeMapGenerator** | `code_map_generator.py` | Python AST-based code structure analysis + dependency graph |
-| 25 | **DualLayerContext** | `dual_layer_context.py` | Project-level + task-level context management with TTL |
+| 25 | **DualLayerContextManager** | `dual_layer_context.py` | Project-level + task-level context management with TTL |
 | 26 | **SkillRegistry** | `skill_registry.py` | Reusable skill registration + discovery + persistence |
 | 27 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic with streaming support + 120s timeout |
 | 28 | **ConfigManager** | `config_loader.py` | YAML config + env var overrides (16 parameters) |
@@ -97,7 +97,66 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 
 ---
 
-## Architecture Overview (65 Core Modules)
+## Layered Sub-Skill Architecture (V3.6.0)
+
+> DevSquad provides **6 atomic sub-skills** that can be used independently or together.
+> Each sub-skill is a thin wrapper (~50 lines) importing existing core modules — no duplicated logic.
+
+```
+skills/
+├── dispatch/       → DispatchSkill — MultiAgentDispatcher (7-role orchestration)
+├── intent/         → IntentSkill   — IntentWorkflowMapper (6 intents × 3 languages)
+├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5-axis code review)
+├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
+├── test/           → TestSkill     — TestQualityGuard + test strategy generation
+└── retrospective/  → RetroSkill    — RetrospectiveEngine + pattern extraction
+```
+
+### Sub-Skill Quick Reference
+
+| Skill | Class | Core Method | Wraps |
+|-------|-------|------------|-------|
+| `dispatch` | `DispatchSkill` | `run(task, roles, mode)` | MultiAgentDispatcher |
+| `intent` | `IntentSkill` | `detect(text, lang)` | IntentWorkflowMapper |
+| `review` | `ReviewSkill` | `review(code, axes)` | FiveAxisConsensusEngine |
+| `security` | `SecuritySkill` | `scan_input(text)` | InputValidator + OpClassifier |
+| `test` | `TestSkill` | `generate_strategy(module)` | TestQualityGuard |
+| `retrospective` | `RetrospectiveSkill` | `run_retrospective(results)` | RetrospectiveEngine |
+
+### Usage Examples
+
+```python
+# Method A: Direct import (recommended for single skill use)
+from skills.dispatch.handler import DispatchSkill
+result = DispatchSkill().run("Fix login bug", roles=["coder", "tester"])
+print(result["success"])  # True
+
+# Method B: Via registry (recommended for dynamic/discovery use)
+from skills import get_skill, list_skills
+print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
+
+skill = get_skill("security")
+result = skill.scan_input("DROP TABLE users; --")
+print(result["risk_level"])  # "critical"
+
+# Method C: Quick one-liners
+from skills.intent.handler import IntentSkill
+intent = IntentSkill().detect("修复登录漏洞", lang="zh")
+print(intent["intent"])  # "bug_fix"
+```
+
+### Registry API
+
+```python
+from skills import discover_all
+all_skills = discover_all()  # {"dispatch": <DispatchSkill>, ...}
+for name, skill in all_skills.items():
+    print(f"{name}: {skill.info()['description']}")
+```
+
+---
+
+## Architecture Overview (48 Core Modules)
 
 ## Quick Start (Must Follow)
 
@@ -716,7 +775,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-**Total** | **698+** | **✅ ALL PASS** |
+**Total** | **1548+** | **✅ ALL PASS** |
 
 ---
 

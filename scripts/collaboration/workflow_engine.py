@@ -481,7 +481,7 @@ class WorkflowEngine:
 
         definition = WorkflowDefinition(
             name=f"lifecycle-{template_name}",
-            description=f"DevSquad V3.5 {template_name} lifecycle ({len(steps)} phases)",
+            description=f"DevSquad V3.6 {template_name} lifecycle ({len(steps)} phases)",
             steps=steps,
             metadata={'template': template_name, 'lifecycle_version': '3.6.0'},
         )

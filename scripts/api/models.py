@@ -239,3 +239,148 @@ class HealthCheck(BaseModel):
     uptime_seconds: float = Field(..., description="How long the service has been running")
     components: Dict[str, str] = Field(default_factory=dict, description="Component health statuses")
     timestamp: datetime = Field(default_factory=datetime.now, description="When health was checked")
+
+
+class TaskDispatchRequest(BaseModel):
+    """Task dispatch request model / 任务调度请求模型"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "task": "Design a user authentication system with JWT tokens",
+                "roles": ["architect", "security", "tester"],
+                "mode": "auto",
+                "backend": "mock",
+                "lang": "zh"
+            }
+        }
+    )
+
+    task: str = Field(..., description="任务描述 / Task description", min_length=1, max_length=10000)
+    roles: Optional[List[str]] = Field(default=None, description="指定角色列表 / Specific role list (e.g., ['architect', 'tester'])")
+    mode: str = Field(default="auto", description="执行模式 / Execution mode (auto/parallel/sequential/consensus)")
+    backend: Optional[str] = Field(default=None, description="LLM后端 / LLM backend (openai/anthropic/mock)")
+    lang: str = Field(default="auto", description="输出语言 / Output language (zh/en/ja/auto)")
+    dry_run: bool = Field(default=False, description="仅模拟执行 / Dry run only")
+
+
+class QuickDispatchRequest(BaseModel):
+    """Quick dispatch request model / 快速调度请求模型"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "task": "Implement REST API for user management",
+                "output_format": "structured",
+                "include_action_items": True
+            }
+        }
+    )
+
+    task: str = Field(..., description="任务描述 / Task description", min_length=1, max_length=10000)
+    output_format: str = Field(default="structured", description="输出格式 / Output format (structured/compact/detailed)")
+    include_action_items: bool = Field(default=True, description="包含行动项 / Include action items")
+    include_timing: bool = Field(default=False, description="包含耗时分析 / Include timing analysis")
+
+
+class WorkerResultItem(BaseModel):
+    """Worker result item model / Worker结果项模型"""
+    worker_id: Optional[str] = Field(None, description="Worker ID")
+    role_id: str = Field(..., description="角色ID / Role ID")
+    role_name: str = Field(..., description="角色名称 / Role name")
+    task_id: Optional[str] = Field(None, description="Task ID")
+    success: bool = Field(..., description="是否成功 / Whether successful")
+    output: Optional[str] = Field(None, description="输出内容 / Output content")
+    error: Optional[str] = Field(None, description="错误信息 / Error message")
+
+
+class IntentMatchInfo(BaseModel):
+    """Intent match information model / 意图匹配信息模型"""
+    intent_type: Optional[str] = Field(None, description="意图类型 / Intent type")
+    workflow_chain: Optional[List[str]] = Field(None, description="工作流链 / Workflow chain")
+    confidence: Optional[float] = Field(None, description="置信度 / Confidence score")
+
+
+class FiveAxisResult(BaseModel):
+    """Five-axis consensus result model / 五轴共识结果模型"""
+    verdict: Optional[str] = Field(None, description="裁决结果 / Verdict")
+    overall_consensus: Optional[float] = Field(None, description="总体共识度 / Overall consensus")
+    axis_consensus: Optional[Dict[str, Any]] = Field(None, description="各轴共识 / Axis consensus")
+    action_items: Optional[List[str]] = Field(None, description="行动项 / Action items")
+
+
+class AnchorResult(BaseModel):
+    """Anchor check result model / 锚点检查结果模型"""
+    aligned: Optional[bool] = Field(None, description="是否对齐 / Whether aligned")
+    coverage: Optional[float] = Field(None, description="覆盖率 / Coverage")
+    drift_score: Optional[float] = Field(None, description="偏离分数 / Drift score")
+    severity: Optional[str] = Field(None, description="严重程度 / Severity")
+    recommendation: Optional[str] = Field(None, description="建议 / Recommendation")
+
+
+class DispatchResponse(BaseModel):
+    """Task dispatch response model / 任务调度响应模型"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "task_description": "Design a user authentication system",
+                "matched_roles": ["architect", "security"],
+                "summary": "Task completed successfully",
+                "duration_seconds": 15.5,
+                "worker_results": [
+                    {
+                        "role_id": "architect",
+                        "role_name": "Architect",
+                        "success": True,
+                        "output": "Architecture design..."
+                    }
+                ],
+                "intent_match": {"intent_type": "design", "confidence": 0.85},
+                "five_axis_result": {"verdict": "APPROVE", "overall_consensus": 0.82}
+            }
+        }
+    )
+
+    success: bool = Field(..., description="是否成功 / Whether successful")
+    task_description: str = Field(..., description="任务描述 / Task description")
+    matched_roles: List[str] = Field(default_factory=list, description="匹配的角色 / Matched roles")
+    summary: str = Field(default="", description="执行摘要 / Execution summary")
+    duration_seconds: float = Field(default=0.0, description="耗时(秒) / Duration in seconds")
+    worker_results: List[WorkerResultItem] = Field(default_factory=list, description="Worker结果 / Worker results")
+    errors: List[str] = Field(default_factory=list, description="错误列表 / Error list")
+    intent_match: Optional[IntentMatchInfo] = Field(None, description="意图匹配 / Intent match")
+    five_axis_result: Optional[FiveAxisResult] = Field(None, description="五轴共识 / Five-axis consensus")
+    anchor_result: Optional[AnchorResult] = Field(None, description="锚点检查 / Anchor check")
+    scratchpad_summary: Optional[str] = Field(None, description="Scratchpad摘要 / Scratchpad summary")
+    consensus_records: Optional[List[Dict[str, Any]]] = Field(None, description="共识记录 / Consensus records")
+    compression_info: Optional[Dict[str, Any]] = Field(None, description="压缩信息 / Compression info")
+    memory_stats: Optional[Dict[str, Any]] = Field(None, description="记忆统计 / Memory stats")
+    permission_checks: Optional[List[Dict[str, Any]]] = Field(None, description="权限检查 / Permission checks")
+    skill_proposals: Optional[List[Dict[str, Any]]] = Field(None, description="Skill提案 / Skill proposals")
+    quality_report: Optional[str] = Field(None, description="质量报告 / Quality report")
+    retrospective_report: Optional[Dict[str, Any]] = Field(None, description="回顾报告 / Retrospective report")
+    details: Optional[Dict[str, Any]] = Field(None, description="详细信息 / Details")
+    timestamp: datetime = Field(default_factory=datetime.now, description="响应时间 / Response timestamp")
+
+
+class RoleInfo(BaseModel):
+    """Role information model / 角色信息模型"""
+    role_id: str = Field(..., description="角色ID / Role ID")
+    name: str = Field(..., description="角色名称 / Role name")
+    description: Optional[str] = Field(None, description="角色描述 / Role description")
+    keywords: Optional[List[str]] = Field(None, description="关键词 / Keywords")
+    status: Optional[str] = Field(None, description="状态 / Status")
+
+
+class RolesListResponse(BaseModel):
+    """Roles list response model / 角色列表响应模型"""
+    roles: List[RoleInfo] = Field(..., description="角色列表 / Role list")
+    total: int = Field(..., description="总数 / Total count")
+    core_roles: List[str] = Field(default_factory=list, description="核心角色 / Core roles")
+    planned_roles: List[str] = Field(default_factory=list, description="规划中角色 / Planned roles")
+
+
+class DispatchHistoryResponse(BaseModel):
+    """Dispatch history response model / 调度历史响应模型"""
+    history: List[Dict[str, Any]] = Field(..., description="调度历史 / Dispatch history")
+    total: int = Field(..., description="总数 / Total count")
+    limit: int = Field(..., description="查询限制 / Query limit")

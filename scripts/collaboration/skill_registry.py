@@ -110,6 +110,7 @@ class SkillRegistry:
             name=name, description=description, category=category,
             confidence=confidence, tags=tags or [],
         )
+        self.register(skill)
         return skill
 
     def list_skills(self, category: str = "") -> List[Dict[str, Any]]:

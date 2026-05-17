@@ -6,7 +6,11 @@ description: |
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.6.0: AnchorChecker (milestone anchor verification + drift detection), RetrospectiveEngine (independent retrospective + pattern extraction), StructuredGoal (structured goal decomposition + progress tracking), FallbackBackend (automatic LLM failover + health monitoring), 1548+ tests.
+  NEW in V3.6.0: Layered Sub-Skill Architecture (6 atomic sub-skills),
+  AnchorChecker (milestone anchor verification + drift detection),
+  RetrospectiveEngine (independent retrospective + pattern extraction),
+  StructuredGoal (structured goal decomposition + progress tracking),
+  FallbackBackend (automatic LLM failover + health monitoring), 1548+ tests.
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -127,6 +131,51 @@ capabilities:
       遗忘曲线: 7d=1.0 → 90d≈0.3
       自动压缩(60d+) + 过期清理(90d+)
 
+  - name: sub-skill-dispatch
+    description: |
+      DispatchSkill — 独立子Skill, 封装MultiAgentDispatcher
+
+      一键多Agent协作, 支持7角色自动匹配
+      Mock模式默认可用(无需API Key)
+      via: from skills.dispatch.handler import DispatchSkill
+
+  - name: sub-skill-intent
+    description: |
+      IntentSkill — 独立子Skill, 封装IntentWorkflowMapper
+
+      6种意图 × 3语言检测 (zh/en/ja)
+      支持批量检测和意图列表查询
+      via: from skills.intent.handler import IntentSkill
+
+  - name: sub-skill-review
+    description: |
+      ReviewSkill — 独立子Skill, 封装FiveAxisConsensusEngine
+
+      五维代码审查 (correctness/readability/arch/security/performance)
+      加权投票 + 严格模式
+      via: from skills.review.handler import ReviewSkill
+
+  - name: sub-skill-security
+    description: |
+      SecuritySkill — 独立子Skill, 封装安全审计能力
+
+      输入扫描(21+注入模式) + 操作分类(3级) + 权限检查
+      via: from skills.security.handler import SecuritySkill
+
+  - name: sub-skill-test
+    description: |
+      TestSkill — 独立子Skill, 封装测试质量保障
+
+      测试策略生成 + 质量审计 + 用例建议
+      via: from skills.test.handler import TestSkill
+
+  - name: sub-skill-retrospective
+    description: |
+      RetrospectiveSkill — 独立子Skill, 封装RetrospectiveEngine
+
+      调度后复盘 + 模式提取 + 改进建议生成
+      via: from skills.retrospective.handler import RetrospectiveSkill
+
 dependencies: []
 
 ai_integration:
@@ -191,6 +240,14 @@ metadata:
 
   version_history:
     - version: 3.6.0
+      date: "2026-05-16"
+      changes:
+        - Layered Sub-Skill Architecture — 6 atomic sub-skills (dispatch/intent/review/security/test/retrospective)
+        - SkillRegistry with lazy-loading discovery via importlib
+        - Each sub-skill is thin wrapper (~50 lines) importing existing core modules
+        - 1548+ tests all passing
+
+    - version: 3.6.0
       date: "2026-05-13"
       changes:
         - AnchorChecker — Milestone anchor verification with drift detection and auto-recovery
@@ -209,7 +266,7 @@ metadata:
         - Enhanced Lifecycle Protocol (spec-init/spec-analyze/spec-validate)
         - Multi-Language Code Map (Python/JS/TS/Go/Java/Rust)
         - Project Understanding Enhancement (agent_briefing.py)
-        - 1500+ tests all passing
+        - 1548+ tests all passing
 
     - version: 3.6.0
       date: "2026-04-27"
@@ -217,7 +274,7 @@ metadata:
         - Authentication (RBAC), Alert System, History Storage
         - Interactive Setup Wizard, User-Friendly Errors
         - Performance Monitoring, REST API, Web Dashboard
-        - 1478 tests passing
+        - 1548+ tests passing
 
     - version: 3.0.0
       date: "2026-04-16"
@@ -269,4 +326,4 @@ metadata:
         - 初始版本
 
 created_at: "2026-03-16T00:00:00"
-updated_at: "2026-05-13"
+updated_at: "2026-05-16"

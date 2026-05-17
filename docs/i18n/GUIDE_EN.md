@@ -1247,26 +1247,29 @@ Security mechanisms: Two-layer defense (InputValidator + length limit ≤500 cha
 | 22 | WorkflowEngine | workflow_engine.py | Task splitting + workflow + 11-phase lifecycle templates |
 | 23 | TaskCompletionChecker | task_completion_checker.py | Completion tracking |
 | 24 | CodeMapGenerator | code_map_generator.py | AST code analysis |
-| 25 | DualLayerContext | dual_layer_context.py | Project + task dual-layer context |
+| 25 | DualLayerContextManager | dual_layer_context.py | Project + task dual-layer context |
 | 26 | SkillRegistry | skill_registry.py | Skill registration + discovery |
-| 27 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + streaming |
-| 28 | LLMCache | llm_cache.py | TTL LRU cache + disk persistence |
-| 29 | LLMRetry | llm_retry.py | Exponential backoff + circuit breaker |
-| 30 | ConfigManager | config_loader.py | YAML config + environment variables |
-| 31 | Protocols | protocols.py | Protocol interfaces (Cache/Retry/Monitor/Memory + match_rules) |
-| 32 | NullProviders | null_providers.py | Null implementations (graceful degradation + test mocks) |
-| 33 | EnhancedWorker | enhanced_worker.py | Enhanced Worker (cache/retry/monitor/briefing/memory + rule injection) |
-| 34 | PerformanceMonitor | performance_monitor.py | P95/P99 + bottleneck detection |
-| 35 | AgentBriefing | agent_briefing.py | Context briefing generation |
-| 36 | ConfidenceScorer | confidence_score.py | 5-factor confidence scoring |
-| 37 | RoleTemplateMarket | role_template_market.py | Role template market |
-| 38 | UsageTracker | usage_tracker.py | Token/cost tracking |
-| 39 | Models | models.py | Shared data models and type definitions |
-| 40 | ConfigManager (YAML) | config_manager.py | Project-level YAML config |
-| 41 | LLMCacheAsync | llm_cache_async.py | Async LLM cache |
-| 42 | LLMRetryAsync | llm_retry_async.py | Async LLM retry |
-| 43 | IntegrationExample | integration_example.py | Integration example code |
-| 44 | AsyncIntegrationExample | async_integration_example.py | Async integration example |
+| 27 | IntentWorkflowMapper | intent_workflow_mapper.py | User intent → workflow chain mapping (6 intents × 3 languages) |
+| 28 | OperationClassifier | operation_classifier.py | Three-tier operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) |
+| 29 | FiveAxisConsensusEngine | five_axis_consensus.py | Five-axis review consensus with weighted voting |
+| 30 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + streaming |
+| 31 | LLMCache | llm_cache.py | TTL LRU cache + disk persistence |
+| 32 | LLMRetry | llm_retry.py | Exponential backoff + circuit breaker |
+| 33 | ConfigManager | config_loader.py | YAML config + environment variables |
+| 34 | Protocols | protocols.py | Protocol interfaces (Cache/Retry/Monitor/Memory + match_rules) |
+| 35 | NullProviders | null_providers.py | Null implementations (graceful degradation + test mocks) |
+| 36 | EnhancedWorker | enhanced_worker.py | Enhanced Worker (cache/retry/monitor/briefing/memory + rule injection) |
+| 37 | PerformanceMonitor | performance_monitor.py | P95/P99 + bottleneck detection |
+| 38 | AgentBriefing | agent_briefing.py | Context briefing generation |
+| 39 | ConfidenceScorer | confidence_score.py | 5-factor confidence scoring |
+| 40 | RoleTemplateMarket | role_template_market.py | Role template market |
+| 41 | UsageTracker | usage_tracker.py | Token/cost tracking |
+| 42 | Models | models.py | Shared data models and type definitions |
+| 43 | ConfigManager (YAML) | config_manager.py | Project-level YAML config |
+| 44 | LLMCacheAsync | llm_cache_async.py | Async LLM cache |
+| 45 | LLMRetryAsync | llm_retry_async.py | Async LLM retry |
+| 46 | IntegrationExample | integration_example.py | Integration example code |
+| 47 | AsyncIntegrationExample | async_integration_example.py | Async integration example |
 
 ---
 

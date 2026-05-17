@@ -230,7 +230,7 @@ print(f"Overall: {progress.completion_pct}%")
 自动LLM后端故障转移，确保高可用：
 
 ```python
-from scripts.collaboration.fallback_backend import FallbackBackend
+from scripts.collaboration.llm_backend import FallbackBackend
 
 backend = FallbackBackend(
     primary="openai",
@@ -381,8 +381,9 @@ python3 scripts/cli.py roles        # 列出 7 个角色
 
 | 日期 | 版本 | 亮点 |
 |------|------|------|
-| 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（里程碑锚点验证+漂移检测）、RetrospectiveEngine（独立复盘+模式提取）、StructuredGoal（层次化目标分解+进度跟踪）、FallbackBackend（自动LLM故障转移+健康监控）、FeatureUsageTracker（功能调用统计+使用报告+自动持久化）、1548+测试、48核心模块 |
-| 2026-05-03 | **V3.5.0** | 🚀 智能体技能质量框架 (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI生命周期命令 (spec/plan/build/test/review/ship) + 167新测试 + Google智能体技能集成 + 49核心模块 |
+| 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（里程碑锚点验证+漂移检测）、RetrospectiveEngine（独立复盘+模式提取）、StructuredGoal（层次化目标分解+进度跟踪）、FallbackBackend（自动LLM故障转移+健康监控）、FeatureUsageTracker（功能调用统计+使用报告+自动持久化）、7模块集成（IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders）、1548+测试、48核心模块 |
+| 2026-05-05 | **V3.5.0** | 📋 增强冲刺 — 代码走读增强、文档一致性检查、Karpathy原则、项目理解（AgentBriefing）、CLI生命周期命令、结构化输出、748+测试 |
+| 2026-05-03 | **V3.4.1** | 🚀 智能体技能质量框架 (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI生命周期命令 (spec/plan/build/test/review/ship) + 167新测试 + Google智能体技能集成 + 49核心模块 |
 | 2026-05-02 | **V3.4.0** | 🆕 11阶段项目全生命周期（full/backend/frontend/internal_tool/minimal模板）、需求变更管理、门禁机制+差距报告、自然语言规则收集(RuleCollector)、560+测试通过 |
 | 2026-04-27 | V3.4.0 | 真实 LLM 后端、ThreadPoolExecutor 并行、输入验证+Prompt注入防护、检查点管理、工作流引擎、流式输出、Docker、CI、配置文件、CarryMem集成 |
 | 2026-04-17 | V3.2 | E2E Demo、MCE 适配器 |

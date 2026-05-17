@@ -1,0 +1,146 @@
+name: review
+version: "3.6.0"
+description: "Five-axis code review skill for comprehensive code quality assessment across correctness, readability, architecture, security, and performance dimensions"
+
+axes:
+  - id: correctness
+    label: Correctness
+    weight: 0.30
+    description: "Logic correctness, bug-free implementation, meets functional requirements"
+    checks:
+      - Syntax validity
+      - Logical flow
+      - Error handling completeness
+      - Edge case coverage
+
+  - id: readability
+    label: Readability
+    weight: 0.10
+    description: "Code clarity, naming conventions, documentation, maintainability"
+    checks:
+      - Naming convention compliance
+      - Comment/docstring coverage
+      - Line length limits
+      - Code complexity metrics
+
+  - id: architecture
+    label: Architecture
+    weight: 0.20
+    description: "Design patterns, modularity, scalability, separation of concerns"
+    checks:
+      - Design pattern usage
+      - Module cohesion
+      - Coupling levels
+      - Extensibility
+
+  - id: security
+    label: Security
+    weight: 0.25
+    description: "Vulnerability detection, input validation, data protection, secure coding practices"
+    checks:
+      - Injection vulnerabilities (SQL/XSS/Command)
+      - Hardcoded secrets detection
+      - Input sanitization
+      - Authentication/authorization patterns
+
+  - id: performance
+    label: Performance
+    weight: 0.15
+    description: "Efficiency, resource usage optimization, bottleneck identification"
+    checks:
+      - Algorithmic complexity
+      - Memory usage patterns
+      - I/O efficiency
+      - Scalability indicators
+
+parameters:
+  code:
+    type: string
+    required: true
+    description: "Source code to review (required)"
+  strict_mode:
+    type: boolean
+    required: false
+    default: false
+    description: "Enable strict mode where low security score blocks approval"
+  file_path:
+    type: string
+    required: false
+    description: "Optional file path to read code from (alternative to passing code directly)"
+  mode:
+    type: string
+    required: false
+    default: "full"
+    enum: ["full", "quick", "consensus"]
+    description: "Review mode: full (five-axis), quick (single-axis scan), consensus (dispatcher integration)"
+
+methods:
+  review:
+    description: "Full five-axis code review with detailed scoring and action items"
+    parameters: ["code", "strict_mode", "file_path"]
+    returns: "Dict with axis_scores, overall_score, verdict (APPROVE/CONDITIONAL/REJECT), action_items, metadata"
+
+  quick_review:
+    description: "Simplified single-axis quick scan for rapid feedback during development"
+    parameters: ["code_snippet"]
+    returns: "Dict with score (0-1), status (PASS/WARN/FAIL), issues list, suggestion"
+
+  list_axes:
+    description: "Return information about all five review axes"
+    parameters: []
+    returns: "List of axis info dicts with id, label, description, weight"
+
+  run:
+    description: "Main entry point supporting full/quick/consensus modes"
+    parameters: ["code", "mode", "strict_mode", "file_path"]
+    returns: "Review result dict (format depends on mode)"
+
+examples:
+  - title: "Python function review"
+    code: |
+      from skills.registry import get_skill
+      review = get_skill("review")
+      result = review.review(code='''
+def calculate_total(items: list[dict]) -> float:
+    """Calculate total price from items."""
+    total = 0.0
+    for item in items:
+        total += item.get("price", 0) * item.get("quantity", 1)
+    return round(total, 2)
+      ''', strict_mode=False)
+      print(result["verdict"])  # APPROVE/CONDITIONAL/REJECT
+      print(result["axis_consensus"])
+
+  - title: "Quick scan during development"
+    code: |
+      from skills.registry import get_skill
+      review = get_skill("review")
+      result = review.quick_review('''
+x = [i**2 for i in range(1000)]
+print(sum(x))
+      ''')
+      print(result["status"])  # PASS/WARN/FAIL
+      print(result["issues"])
+
+  - title: "File-based review"
+    code: |
+      from skills.registry import get_skill
+      review = get_skill("review")
+      result = review.review(code="", file_path="/path/to/module.py")
+      print(result["verdict"])
+
+  - title: "Dispatcher integration"
+    code: |
+      from scripts.collaboration.dispatcher import MultiAgentDispatcher
+      d = MultiAgentDispatcher()
+      result = d.dispatch(
+          task="Review the authentication module",
+          mode="consensus",
+          code=open("auth.py").read(),
+      )
+
+integration:
+  internal_import: "scripts.collaboration.five_axis_consensus.FiveAxisConsensusEngine"
+  dispatcher_mode: "consensus"
+  base_class: "skills.registry.BaseSkill"
+  version_source: "scripts.collaboration._version (3.6.0)"

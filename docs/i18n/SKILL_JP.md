@@ -52,26 +52,29 @@ description: |
 | 21 | **WorkflowEngine** | `workflow_engine.py` | タスク→ワークフロー自動分割、ステップ実行、チェックポイント復元、11フェーズライフサイクルテンプレート、要件変更管理 |
 | 22 | **TaskCompletionChecker** | `task_completion_checker.py` | 完了追跡+進捗永続化 |
 | 23 | **CodeMapGenerator** | `code_map_generator.py` | Python ASTベースコード分析+依存グラフ |
-| 24 | **DualLayerContext** | `dual_layer_context.py` | プロジェクト+タスクレベルコンテキスト（TTL付き） |
+| 24 | **DualLayerContextManager** | `dual_layer_context.py` | プロジェクト+タスクレベルコンテキスト（TTL付き） |
 | 25 | **SkillRegistry** | `skill_registry.py` | スキル登録+発見+永続化 |
-| 26 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + ストリーミング + 120sタイムアウト |
-| 27 | **ConfigManager** | `config_loader.py` | YAML設定+環境変数オーバーライド（16パラメータ） |
-| 28 | **Protocols** | `protocols.py` | Protocolインターフェース(CacheProvider/RetryProvider/MonitorProvider/MemoryProvider) + 例外階層 |
-| 29 | **NullProviders** | `null_providers.py` | 全Protocolインターフェースの空実装(デグレード+テストモック) |
-| 30 | **EnhancedWorker** | `enhanced_worker.py` | ProtocolベースProvider注入Worker(キャッシュ/リトライ/モニター/ブリーフィング) |
-| 31 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99応答時間/CPU/メモリ追跡/ボトルネック検出/Markdownレポート |
-| 32 | **AgentBriefing** | `agent_briefing.py` | コンテキスト認識ブリーフィング生成 + 優先度フィルタリング + 永続化 |
-| 33 | **ConfidenceScorer** | `confidence_score.py` | 5因子信頼度スコア(完全性/確実性/具体性/一貫性/モデル品質) |
-| 34 | **RoleTemplateMarket** | `role_template_market.py` | ロールテンプレートマーケット(公開/検索/インストール/評価/エクスポート/インポート) |
-| 35 | **LLMCache** | `llm_cache.py` | TTL LRUキャッシュ+ディスク永続化(60-80%コスト削減) |
-| 36 | **LLMRetry** | `llm_retry.py` | 指数バックオフ+サーキットブレーカー+マルチバックエンドフォールバック |
-| 37 | **UsageTracker** | `usage_tracker.py` | Token/コスト使用量追跡とレポート |
-| 38 | **Models** | `models.py` | 共有データモデルと型定義 |
-| 39 | **ConfigManager (YAML)** | `config_manager.py` | プロジェクトレベルYAML設定管理 |
-| 40 | **LLMCacheAsync** | `llm_cache_async.py` | 非同期LLMキャッシュ |
-| 41 | **LLMRetryAsync** | `llm_retry_async.py` | 非同期LLMリトライ+バックオフ |
-| 42 | **IntegrationExample** | `integration_example.py` | DevSquad統合サンプルコード |
-| 43 | **AsyncIntegrationExample** | `async_integration_example.py` | 非同期DevSquad統合サンプル |
+| 26 | **IntentWorkflowMapper** | `intent_workflow_mapper.py` | ユーザー意図→ワークフローチェーンマッピング（6意図×3言語） |
+| 27 | **OperationClassifier** | `operation_classifier.py` | 3層操作分類（ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN） |
+| 28 | **FiveAxisConsensusEngine** | `five_axis_consensus.py` | 5軸レビューコンセンサス（正確性/可読性/アーキテクチャ/セキュリティ/パフォーマンス）重み付き投票 |
+| 29 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + ストリーミング + 120sタイムアウト |
+| 30 | **ConfigManager** | `config_loader.py` | YAML設定+環境変数オーバーライド（16パラメータ） |
+| 31 | **Protocols** | `protocols.py` | Protocolインターフェース(CacheProvider/RetryProvider/MonitorProvider/MemoryProvider) + 例外階層 |
+| 32 | **NullProviders** | `null_providers.py` | 全Protocolインターフェースの空実装(デグレード+テストモック) |
+| 33 | **EnhancedWorker** | `enhanced_worker.py` | ProtocolベースProvider注入Worker(キャッシュ/リトライ/モニター/ブリーフィング) |
+| 34 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99応答時間/CPU/メモリ追跡/ボトルネック検出/Markdownレポート |
+| 35 | **AgentBriefing** | `agent_briefing.py` | コンテキスト認識ブリーフィング生成 + 優先度フィルタリング + 永続化 |
+| 36 | **ConfidenceScorer** | `confidence_score.py` | 5因子信頼度スコア(完全性/確実性/具体性/一貫性/モデル品質) |
+| 37 | **RoleTemplateMarket** | `role_template_market.py` | ロールテンプレートマーケット(公開/検索/インストール/評価/エクスポート/インポート) |
+| 38 | **LLMCache** | `llm_cache.py` | TTL LRUキャッシュ+ディスク永続化(60-80%コスト削減) |
+| 39 | **LLMRetry** | `llm_retry.py` | 指数バックオフ+サーキットブレーカー+マルチバックエンドフォールバック |
+| 40 | **UsageTracker** | `usage_tracker.py` | Token/コスト使用量追跡とレポート |
+| 41 | **Models** | `models.py` | 共有データモデルと型定義 |
+| 42 | **ConfigManager (YAML)** | `config_manager.py` | プロジェクトレベルYAML設定管理 |
+| 43 | **LLMCacheAsync** | `llm_cache_async.py` | 非同期LLMキャッシュ |
+| 44 | **LLMRetryAsync** | `llm_retry_async.py` | 非同期LLMリトライ+バックオフ |
+| 45 | **IntegrationExample** | `integration_example.py` | DevSquad統合サンプルコード |
+| 46 | **AsyncIntegrationExample** | `async_integration_example.py` | 非同期DevSquad統合サンプル |
 
 ---
 

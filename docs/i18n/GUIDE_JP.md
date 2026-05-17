@@ -1246,26 +1246,29 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 | 22 | WorkflowEngine | workflow_engine.py | タスク分割 + ワークフロー + 11フェーズライフサイクルテンプレート |
 | 23 | TaskCompletionChecker | task_completion_checker.py | 完了度トラッキング |
 | 24 | CodeMapGenerator | code_map_generator.py | ASTコード分析 |
-| 25 | DualLayerContext | dual_layer_context.py | プロジェクト + タスク二層コンテキスト |
+| 25 | DualLayerContextManager | dual_layer_context.py | プロジェクト + タスク二層コンテキスト |
 | 26 | SkillRegistry | skill_registry.py | スキル登録 + 検索 |
-| 27 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + ストリーミング |
-| 28 | LLMCache | llm_cache.py | TTL LRUキャッシュ + ディスク永続化 |
-| 29 | LLMRetry | llm_retry.py | 指数バックオフ + サーキットブレーカー |
-| 30 | ConfigManager | config_loader.py | YAML設定 + 環境変数 |
-| 31 | Protocols | protocols.py | プロトコルインターフェース（Cache/Retry/Monitor/Memory + match_rules） |
-| 32 | NullProviders | null_providers.py | Null実装（グレースフルデグラデーション + テストモック） |
-| 33 | EnhancedWorker | enhanced_worker.py | 拡張Worker（キャッシュ/リトライ/モニタ/ブリーフィング/メモリ + ルール注入） |
-| 34 | PerformanceMonitor | performance_monitor.py | P95/P99 + ボトルネック検出 |
-| 35 | AgentBriefing | agent_briefing.py | コンテキストブリーフィング生成 |
-| 36 | ConfidenceScorer | confidence_score.py | 5因子信頼度スコアリング |
-| 37 | RoleTemplateMarket | role_template_market.py | ロールテンプレートマーケット |
-| 38 | UsageTracker | usage_tracker.py | Token/コストトラッキング |
-| 39 | Models | models.py | 共有データモデルと型定義 |
-| 40 | ConfigManager (YAML) | config_manager.py | プロジェクトレベルYAML設定 |
-| 41 | LLMCacheAsync | llm_cache_async.py | 非同期LLMキャッシュ |
-| 42 | LLMRetryAsync | llm_retry_async.py | 非同期LLMリトライ |
-| 43 | IntegrationExample | integration_example.py | 統合サンプルコード |
-| 44 | AsyncIntegrationExample | async_integration_example.py | 非同期統合サンプル |
+| 27 | IntentWorkflowMapper | intent_workflow_mapper.py | ユーザー意図→ワークフローチェーンマッピング（6意図×3言語） |
+| 28 | OperationClassifier | operation_classifier.py | 3層操作分類（ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN） |
+| 29 | FiveAxisConsensusEngine | five_axis_consensus.py | 5軸レビューコンセンサス（重み付き投票） |
+| 30 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + ストリーミング |
+| 31 | LLMCache | llm_cache.py | TTL LRUキャッシュ + ディスク永続化 |
+| 32 | LLMRetry | llm_retry.py | 指数バックオフ + サーキットブレーカー |
+| 33 | ConfigManager | config_loader.py | YAML設定 + 環境変数 |
+| 34 | Protocols | protocols.py | プロトコルインターフェース（Cache/Retry/Monitor/Memory + match_rules） |
+| 35 | NullProviders | null_providers.py | Null実装（グレースフルデグラデーション + テストモック） |
+| 36 | EnhancedWorker | enhanced_worker.py | 拡張Worker（キャッシュ/リトライ/モニタ/ブリーフィング/メモリ + ルール注入） |
+| 37 | PerformanceMonitor | performance_monitor.py | P95/P99 + ボトルネック検出 |
+| 38 | AgentBriefing | agent_briefing.py | コンテキストブリーフィング生成 |
+| 39 | ConfidenceScorer | confidence_score.py | 5因子信頼度スコアリング |
+| 40 | RoleTemplateMarket | role_template_market.py | ロールテンプレートマーケット |
+| 41 | UsageTracker | usage_tracker.py | Token/コストトラッキング |
+| 42 | Models | models.py | 共有データモデルと型定義 |
+| 43 | ConfigManager (YAML) | config_manager.py | プロジェクトレベルYAML設定 |
+| 44 | LLMCacheAsync | llm_cache_async.py | 非同期LLMキャッシュ |
+| 45 | LLMRetryAsync | llm_retry_async.py | 非同期LLMリトライ |
+| 46 | IntegrationExample | integration_example.py | 統合サンプルコード |
+| 47 | AsyncIntegrationExample | async_integration_example.py | 非同期統合サンプル |
 
 ---
 

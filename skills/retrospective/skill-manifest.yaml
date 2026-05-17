@@ -1,0 +1,45 @@
+name: retrospective
+version: 3.6.0
+description: |
+  项目复盘 Skill - 封装 RetrospectiveEngine
+
+  核心能力：
+  - 任务完成后自动运行独立复盘分析
+  - 从历史记录中提取重复出现的模式
+  - 基于发现生成可执行的改进建议
+  - 生成结构化复盘摘要
+
+capabilities:
+  - post_dispatch_analysis   # 调度后分析
+  - pattern_extraction        # 模式提取
+  - improvement_suggestion    # 改进建议
+
+output_formats:
+  - findings     # 发现的问题列表
+  - patterns     # 提取的重复模式
+  - improvements # 可执行的改进建议
+  - summary      # 复盘摘要（what went well / what to improve）
+
+actions:
+  - name: run_retrospective
+    description: 执行独立复盘，提取改进模式
+    params:
+      - dispatch_result (dict, optional): 调度结果数据
+      - task (str, optional): 任务描述（用于模拟数据）
+  - name: extract_patterns
+    description: 从历史记录中提取重复出现的模式
+    params:
+      - history_items (list, optional): 历史记录列表
+  - name: generate_improvements
+    description: 基于发现生成可执行的改进建议
+    params:
+      - findings (list): 发现的问题列表
+  - name: summary
+    description: 生成复盘摘要
+    params:
+      - retro_result (dict, optional): 复盘结果数据
+
+examples:
+  - "对本次bug修复任务进行复盘"
+  - "提取最近5次任务的重复问题模式"
+  - "基于发现生成改进建议清单"

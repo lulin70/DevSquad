@@ -92,6 +92,30 @@ from .models import (
     ROLE_WEIGHTS,
 )
 
+# V3.6.0 Module exports
+from .anchor_checker import AnchorChecker
+from .retrospective import RetrospectiveEngine
+from .feature_usage_tracker import FeatureUsageTracker
+from .dual_layer_context import DualLayerContextManager
+from .intent_workflow_mapper import IntentWorkflowMapper
+from .operation_classifier import OperationClassifier
+from .skill_registry import SkillRegistry
+from .ai_semantic_matcher import AISemanticMatcher
+from .five_axis_consensus import FiveAxisConsensusEngine
+from .null_providers import (
+    NullCacheProvider,
+    NullRetryProvider,
+    NullMonitorProvider,
+    NullMemoryProvider,
+)
+
+# Tier3 Auxiliary Module exports
+from .output_slicer import OutputSlicer, OutputSlice
+from .ci_feedback_adapter import CIFeedbackAdapter, CIResult, CIContext
+from .standardized_role_template import StandardizedRoleTemplate
+from .prompt_variant_generator import PromptVariantGenerator
+from .role_template_market import RoleTemplateMarket
+
 
 from ._version import __version__
 __author__ = "DevSquad Team"

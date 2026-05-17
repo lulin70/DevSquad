@@ -13,8 +13,16 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **StructuredGoal** — Structured goal management with hierarchical decomposition and progress tracking
 - **FallbackBackend** — Automatic LLM backend failover with health monitoring and priority-based routing
 - **FeatureUsageTracker** — Thread-safe feature invocation counter with persistence, usage reports, and auto-persist
+- **IntentWorkflowMapper** — Task intent auto-detection (6 intents: bug_fix/new_feature/security_review/code_review/performance_optimization/deployment) with workflow chain injection
+- **AISemanticMatcher** — LLM-enhanced semantic role matching with keyword fallback
+- **DualLayerContextManager** — Project+task dual-layer context with TTL expiration and LRU eviction
+- **OperationClassifier** — 3-level operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) for PermissionGuard
+- **SkillRegistry** — Skill registration/discovery/persistence with auto-propose from dispatch results
+- **FiveAxisConsensusEngine** — 5-axis code review (correctness/readability/architecture/security/performance) in consensus mode
+- **NullProviders** — Graceful degradation for Cache/Retry/Monitor/Memory protocols
 - 45 new tests for AnchorChecker and RetrospectiveEngine
 - 30 KNOWN_FEATURES tracked by FeatureUsageTracker for data-driven feature optimization
+- 10 new module exports in `__init__.py`
 
 ### Changed
 - Total test count: 1503 → 1548+
@@ -22,15 +30,31 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Enhanced dispatcher to support AnchorChecker integration at lifecycle milestones
 - Enhanced dispatcher to support RetrospectiveEngine post-task analysis
 - Enhanced dispatcher to support FeatureUsageTracker invocation counting
-- CheckpointManager: Added thread-safe file write lock for concurrent save operations
+- Enhanced dispatcher with intent detection before role matching
+- Enhanced dispatcher with semantic role matching augmentation
+- Enhanced dispatcher with dual-layer context management
+- Enhanced dispatcher with operation classification in permission checks
+- Enhanced dispatcher with five-axis consensus in consensus mode
+- Enhanced dispatcher with skill registry auto-proposal
+- CheckpointManager: All file write operations now protected by thread-safe _file_lock
 - PerformanceMonitor.export_metrics: Fixed missing persist_dir parameter (now accepts allowed_base_dir)
 - FallbackBackend: Added last_error tracking in generate_stream for proper error propagation
+- IntentWorkflowMapper: Improved scoring algorithm with primary/secondary language weighting
+- SkillRegistry: propose_from_result() now auto-registers the skill (was only creating, not registering)
+- Deleted config_manager.py (dead code, duplicate of config_loader.py)
 
 ### Fixed
 - **P0 Deadlock**: FeatureUsageTracker.report() → get_high_usage_features() nested lock acquisition caused deadlock (Lock → RLock)
-- **P0 Race Condition**: CheckpointManager.save_lifecycle_state() concurrent file writes caused intermittent test failures (added _file_lock)
+- **P0 Race Condition**: CheckpointManager all file write operations now thread-safe (added _file_lock to save_checkpoint, save_handoff, save_lifecycle_state)
 - **P0 Undefined Variable**: FallbackBackend.generate_stream() raised undefined last_error (added proper tracking)
 - **P0 AttributeError**: PerformanceMonitor.export_metrics() referenced non-existent self.persist_dir (refactored to parameter)
+- **P0 API Mismatch**: FiveAxisConsensusEngine.add_axis_vote() is on engine, not review object
+- **P0 Import Error**: README.md/README_CN.md FallbackBackend import path pointed to non-existent fallback_backend.py
+- **P0 Import Error**: user_onboarding_verification.md referenced non-existent load_config() function
+- **P1 Data**: SKILL.md/CLAUDE.md module count 65→48, test count 750+→1548+
+- **P1 Data**: skill-manifest.yaml test count 1478/1500+→1548+
+- **P1 Data**: workflow_engine.py description V3.5→V3.6
+- **P1 Scoring**: IntentWorkflowMapper Chinese intent detection failed due to ratio-based scoring (changed to weighted primary/secondary)
 - Fixed OpenAI/Anthropic backend raise last_error without fallback RuntimeError
 
 ## [3.5.0] - 2026-05-05 (V3.5.0 Enhancement Sprint)

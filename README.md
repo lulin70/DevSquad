@@ -489,7 +489,7 @@ print(f"Overall: {progress.completion_pct}%")
 Automatic LLM backend failover for high availability:
 
 ```python
-from scripts.collaboration.fallback_backend import FallbackBackend
+from scripts.collaboration.llm_backend import FallbackBackend
 
 backend = FallbackBackend(
     primary="openai",
@@ -602,8 +602,12 @@ See [GUIDE.md](GUIDE.md) §4 for full lifecycle details with gate conditions and
 | **WorkflowEngine** | `workflow_engine.py` | Task-to-workflow auto-split + 11-phase lifecycle templates + requirement change |
 | **TaskCompletionChecker** | `task_completion_checker.py` | Completion tracking + progress reporting |
 | **CodeMapGenerator** | `code_map_generator.py` | Python AST-based code structure analysis |
-| **DualLayerContext** | `dual_layer_context.py` | Project-level + task-level context management |
+| **DualLayerContextManager** | `dual_layer_context.py` | Project-level + task-level context management |
 | **SkillRegistry** | `skill_registry.py` | Reusable skill registration + discovery |
+| **IntentWorkflowMapper** | `intent_workflow_mapper.py` | User intent → workflow chain mapping (6 intents × 3 languages) |
+| **OperationClassifier** | `operation_classifier.py` | Three-tier operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) |
+| **FiveAxisConsensusEngine** | `five_axis_consensus.py` | Five-axis review consensus with weighted voting |
+| **FeatureUsageTracker** | `feature_usage_tracker.py` | Feature usage tracking + reporting + auto-persistence |
 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic with streaming support |
 | **LLMCache** | `llm_cache.py` | TTL-based LRU cache with disk persistence |
 | **LLMRetry** | `llm_retry.py` | Exponential backoff + circuit breaker |
@@ -722,9 +726,13 @@ python3 scripts/cli.py ship -t "Deploy to production"
 
 | Document | Description |
 |----------|-------------|
+| [QUICK_START_EN.md](docs/i18n/QUICK_START_EN.md) | ⚡ Quick start guide (English, 5 minutes) |
+| [REFERENCE_GUIDE_EN.md](docs/i18n/REFERENCE_GUIDE_EN.md) | 📖 Complete reference guide (English) |
+| [QUICK_START_JP.md](docs/i18n/QUICK_START_JP.md) | ⚡ クイックスタートガイド (日本語, 5分) |
+| [REFERENCE_GUIDE_JP.md](docs/i18n/REFERENCE_GUIDE_JP.md) | 📖 完全リファレンスガイド (日本語) |
 | [GUIDE.md](GUIDE.md) | Complete user guide (Chinese) |
-| [GUIDE_EN.md](docs/i18n/GUIDE_EN.md) | Complete user guide (English) |
-| [GUIDE_JP.md](docs/i18n/GUIDE_JP.md) | Complete user guide (Japanese) |
+| [GUIDE_EN.md](docs/i18n/GUIDE_EN.md) | ~~Complete user guide (English)~~ → See QUICK_START + REFERENCE_GUIDE |
+| [GUIDE_JP.md](docs/i18n/GUIDE_JP.md) | ~~完全なユーザーガイド (日本語)~~ → クイックスタート＋リファレンスを参照 |
 | [INSTALL.md](INSTALL.md) | Installation guide (Unix + Windows) |
 | [EXAMPLES.md](EXAMPLES.md) | Real-world usage examples |
 | [SKILL.md](SKILL.md) | Skill manual (EN/CN/JP) |
@@ -732,6 +740,34 @@ python3 scripts/cli.py ship -t "Deploy to production"
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
 | [README-CN.md](docs/i18n/README_CN.md) | 中文说明 |
 | [README-JP.md](docs/i18n/README_JP.md) | 日本語説明 |
+
+### 🆕 Quick Start (Recommended for New Users)
+
+**New to DevSquad? Start here:**
+
+```bash
+# 1. Run the interactive demo (3 scenarios, < 15 seconds)
+python examples/quick_demo.py
+
+# 2. Read the quick start guide
+# English: docs/i18n/QUICK_START_EN.md
+# Japanese: docs/i18n/QUICK_START_JP.md
+
+# 3. Your first dispatch
+python3 scripts/cli.py dispatch -t "Design user authentication system"
+```
+
+### ☸️ Kubernetes Deployment
+
+```bash
+# Deploy with Helm
+helm install devsquad ./helm/devsquad
+
+# Port forward
+kubectl port-forward svc/devsquad-api 8000:8000
+```
+
+See [helm/devsquad/README.md](helm/devsquad/README.md) for full documentation.
 
 ## Cross-Platform Compatibility
 
@@ -747,6 +783,8 @@ python3 scripts/cli.py ship -t "Deploy to production"
 
 | Date | Version | Highlights |
 |------|---------|-----------|
+| 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker (milestone anchor verification + drift detection), RetrospectiveEngine (independent retrospective + pattern extraction), StructuredGoal (structured goal decomposition + progress tracking), FallbackBackend (automatic LLM failover + health monitoring), FeatureUsageTracker (feature usage tracking + reporting + auto-persistence), 7 module integrations (IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders), 1548+ tests, 48 core modules |
+| 2026-05-05 | **V3.5.0** | 📋 Enhancement Sprint — Code walkthrough enhancement, documentation consistency checks, Karpathy principles, project understanding (AgentBriefing), CLI lifecycle commands, structured output, 748+ tests |
 | 2026-05-03 | **V3.4.1** | 🚀 Agent Skills Quality Framework (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI Lifecycle Commands (spec/plan/build/test/review/ship) + 167 new tests + Google Agent Skills integration + 49 core modules |
 | 2026-05-02 | **V3.4.0** | 🆕 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates), requirement change management, gate mechanism with gap reporting, 748+ tests passing, WorkflowEngine lifecycle support |
 | 2026-05-01 | V3.4.0 | AgentBriefing (context-aware task briefing), ConfidenceScore (5-factor quality assessment), EnhancedWorker (auto quality assurance with retry + memory_provider rule injection), Protocol interface system (match_rules/format_rules_as_prompt), CarryMem v0.2.8+ integration, comprehensive documentation |

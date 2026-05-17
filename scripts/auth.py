@@ -177,25 +177,23 @@ class AuthManager:
     def verify_credentials(self, username: str, password: str) -> Optional[User]:
         """
         Verify user credentials.
-        
+
         Args:
             username: Username to verify
             password: Plain text password
-            
+
         Returns:
             User object if authenticated, None otherwise
         """
         if username not in self.credentials:
             logger.warning(f"Login attempt for unknown user: {username}")
             return None
-        
+
         cred = self.credentials[username]
         stored_password_hash = cred.get("password", "")
         input_password_hash = self._hash_password(password)
-        
-        # For demo purposes, also allow plain text comparison
-        # In production, only use hashed comparison
-        if input_password_hash != stored_password_hash and password != stored_password_hash.replace("$2b$12$", ""):
+
+        if input_password_hash != stored_password_hash:
             logger.warning(f"Failed login attempt for user: {username}")
             return None
         

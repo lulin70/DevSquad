@@ -88,8 +88,8 @@ class AgentBriefing:
     - Priority-based information filtering
     - Incremental updates
     - Persistence support
-    - Project overview generation (V3.5.0)
-    - Role-specific understanding generation (V3.5.0)
+    - Project overview generation (V3.6.0)
+    - Role-specific understanding generation (V3.6.0)
     """
     
     def __init__(

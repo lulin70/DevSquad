@@ -1,0 +1,26 @@
+name: intent
+version: 3.6.0
+description: |
+  Intent Detection — Understand what the user wants before executing.
+  Maps natural language to 6 intent types across Chinese/English/Japanese.
+  Returns confidence score, required roles, workflow chain, and gate requirements.
+entry_point: skills.intent.handler:IntentSkill
+capabilities:
+  intent_detection
+  nlp_understanding
+  multilingual_support (zh/en/ja)
+  workflow_mapping
+parameters:
+  - name: text
+    type: string
+    required: true
+    description: User's natural language request
+  - name: lang
+    type: string
+    enum: [auto, zh, en, ja]
+    default: auto
+examples:
+  - command: "修复登录页面的认证bug"
+    expected: intent=bug_fix, confidence>=0.7, lang=zh
+  - command: "Review this code for quality"
+    expected: intent=code_review, confidence>=0.4, lang=en

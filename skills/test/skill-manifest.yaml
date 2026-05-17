@@ -1,0 +1,44 @@
+name: test
+version: 3.6.0
+description: |
+  测试策略生成与质量审计 Skill - 封装 TestQualityGuard
+
+  核心能力：
+  - API 签名校验：检查测试调用是否与实际 API 一致
+  - 反模式检测：识别 "为通过而改测试" 的反模式
+  - 多维度覆盖：happy/error/perf/config/security/integration/boundary
+
+supported_test_types:
+  - unit          # 单元测试（默认）
+  - integration   # 集成测试
+  - e2e           # 端到端测试
+
+coverage_dimensions:
+  - name: API validation
+    description: 测试代码中的 API 调用是否与实际签名一致
+  - name: Anti-pattern detection
+    description: 检测宽松断言、裸except、魔法数字等反模式
+  - name: Dimension coverage
+    description: 检查各测试维度（happy/error/perf/config）是否均衡覆盖
+
+actions:
+  - name: generate_strategy
+    description: 根据代码上下文生成测试策略
+    params:
+      - code_context (str): 被测代码描述
+      - test_type (str): unit/integration/e2e，默认 unit
+  - name: audit_test_quality
+    description: 审计现有测试文件质量
+    params:
+      - test_file (str): 测试文件路径
+  - name: suggest_cases
+    description: 根据需求建议测试用例
+    params:
+      - requirements (str): 功能需求描述
+  - name: coverage_dimensions
+    description: 返回支持的测试覆盖维度列表
+
+examples:
+  - "为登录模块生成单元测试策略"
+  - "审计 tests/test_auth.py 的测试质量"
+  - "为支付接口建议集成测试用例"

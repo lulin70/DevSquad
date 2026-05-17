@@ -177,8 +177,9 @@ class CheckpointManager:
             checkpoint_dict['checkpoint_hash'] = checkpoint.checkpoint_hash
 
             checkpoint_path = self._get_checkpoint_path(checkpoint.checkpoint_id)
-            with open(checkpoint_path, 'w', encoding='utf-8') as f:
-                json.dump(checkpoint_dict, f, indent=2, ensure_ascii=False)
+            with self._file_lock:
+                with open(checkpoint_path, 'w', encoding='utf-8') as f:
+                    json.dump(checkpoint_dict, f, indent=2, ensure_ascii=False)
 
             logger.info("Checkpoint saved: %s (%.1f%%)", checkpoint.checkpoint_id, checkpoint.progress_percentage)
             return True
@@ -268,12 +269,13 @@ class CheckpointManager:
     def save_handoff(self, handoff: HandoffDocument) -> bool:
         try:
             handoff_path = self._get_handoff_path(handoff.handoff_id)
-            with open(handoff_path, 'w', encoding='utf-8') as f:
-                json.dump(handoff.to_dict(), f, indent=2, ensure_ascii=False)
+            with self._file_lock:
+                with open(handoff_path, 'w', encoding='utf-8') as f:
+                    json.dump(handoff.to_dict(), f, indent=2, ensure_ascii=False)
 
-            md_path = handoff_path.with_suffix('.md')
-            with open(md_path, 'w', encoding='utf-8') as f:
-                f.write(handoff.to_markdown())
+                md_path = handoff_path.with_suffix('.md')
+                with open(md_path, 'w', encoding='utf-8') as f:
+                    f.write(handoff.to_markdown())
 
             logger.info("Handoff saved: %s -> %s", handoff.from_agent, handoff.to_agent)
             return True

@@ -53,26 +53,29 @@ description: |
 | 22 | **WorkflowEngine** | `workflow_engine.py` | 任务→工作流自动拆分、步骤执行、断点恢复、11阶段生命周期模板、需求变更管理 |
 | 23 | **TaskCompletionChecker** | `task_completion_checker.py` | DispatchResult/ScheduleResult完成度跟踪 |
 | 24 | **CodeMapGenerator** | `code_map_generator.py` | Python AST代码结构分析 + 依赖图 |
-| 25 | **DualLayerContext** | `dual_layer_context.py` | 项目级+任务级上下文管理（带TTL） |
+| 25 | **DualLayerContextManager** | `dual_layer_context.py` | 项目级+任务级上下文管理（带TTL） |
 | 26 | **SkillRegistry** | `skill_registry.py` | 可复用技能注册+发现+持久化 |
-| 27 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + 流式输出 + 120s超时 |
-| 28 | **ConfigManager** | `config_loader.py` | YAML配置 + 环境变量覆盖（16个参数） |
-| 29 | **Protocols** | `protocols.py` | Protocol接口(CacheProvider/RetryProvider/MonitorProvider/MemoryProvider) + 异常层级 |
-| 30 | **NullProviders** | `null_providers.py` | 所有Protocol接口的空实现(降级 + 测试Mock) |
-| 31 | **EnhancedWorker** | `enhanced_worker.py` | 基于Protocol的Provider注入Worker(缓存/重试/监控/简报) |
-| 32 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99响应时间/CPU/内存追踪/瓶颈检测/Markdown报告 |
-| 33 | **AgentBriefing** | `agent_briefing.py` | 上下文感知简报生成 + 优先级过滤 + 持久化 |
-| 34 | **ConfidenceScorer** | `confidence_score.py` | 5因子置信度评分(完整性/确定性/具体性/一致性/模型质量) |
-| 35 | **RoleTemplateMarket** | `role_template_market.py` | 角色模板市场(发布/搜索/安装/评分/导出/导入) |
-| 36 | **LLMCache** | `llm_cache.py` | TTL LRU缓存+磁盘持久化（节省60-80%成本） |
-| 37 | **LLMRetry** | `llm_retry.py` | 指数退避+熔断器+多后端回退 |
-| 38 | **UsageTracker** | `usage_tracker.py` | Token/成本使用追踪和报告 |
-| 39 | **Models** | `models.py` | 共享数据模型和类型定义 |
-| 40 | **ConfigManager (YAML)** | `config_manager.py` | 项目级YAML配置管理 |
-| 41 | **LLMCacheAsync** | `llm_cache_async.py` | 异步LLM缓存 |
-| 42 | **LLMRetryAsync** | `llm_retry_async.py` | 异步LLM重试+退避 |
-| 43 | **IntegrationExample** | `integration_example.py` | DevSquad集成示例代码 |
-| 44 | **AsyncIntegrationExample** | `async_integration_example.py` | 异步DevSquad集成示例 |
+| 27 | **IntentWorkflowMapper** | `intent_workflow_mapper.py` | 用户意图→工作流链映射（6意图×3语言） |
+| 28 | **OperationClassifier** | `operation_classifier.py` | 三级操作分类（ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN） |
+| 29 | **FiveAxisConsensusEngine** | `five_axis_consensus.py` | 五轴评审共识（正确性/可读性/架构/安全/性能）加权投票 |
+| 30 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + 流式输出 + 120s超时 |
+| 31 | **ConfigManager** | `config_loader.py` | YAML配置 + 环境变量覆盖（16个参数） |
+| 32 | **Protocols** | `protocols.py` | Protocol接口(CacheProvider/RetryProvider/MonitorProvider/MemoryProvider) + 异常层级 |
+| 33 | **NullProviders** | `null_providers.py` | 所有Protocol接口的空实现(降级 + 测试Mock) |
+| 34 | **EnhancedWorker** | `enhanced_worker.py` | 基于Protocol的Provider注入Worker(缓存/重试/监控/简报) |
+| 35 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99响应时间/CPU/内存追踪/瓶颈检测/Markdown报告 |
+| 36 | **AgentBriefing** | `agent_briefing.py` | 上下文感知简报生成 + 优先级过滤 + 持久化 |
+| 37 | **ConfidenceScorer** | `confidence_score.py` | 5因子置信度评分(完整性/确定性/具体性/一致性/模型质量) |
+| 38 | **RoleTemplateMarket** | `role_template_market.py` | 角色模板市场(发布/搜索/安装/评分/导出/导入) |
+| 39 | **LLMCache** | `llm_cache.py` | TTL LRU缓存+磁盘持久化（节省60-80%成本） |
+| 40 | **LLMRetry** | `llm_retry.py` | 指数退避+熔断器+多后端回退 |
+| 41 | **UsageTracker** | `usage_tracker.py` | Token/成本使用追踪和报告 |
+| 42 | **Models** | `models.py` | 共享数据模型和类型定义 |
+| 43 | **ConfigManager (YAML)** | `config_manager.py` | 项目级YAML配置管理 |
+| 44 | **LLMCacheAsync** | `llm_cache_async.py` | 异步LLM缓存 |
+| 45 | **LLMRetryAsync** | `llm_retry_async.py` | 异步LLM重试+退避 |
+| 46 | **IntegrationExample** | `integration_example.py` | DevSquad集成示例代码 |
+| 47 | **AsyncIntegrationExample** | `async_integration_example.py` | 异步DevSquad集成示例 |
 
 ---
 

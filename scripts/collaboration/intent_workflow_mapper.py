@@ -154,7 +154,7 @@ class IntentWorkflowMapper:
                 "zh": ["审查", "review", "代码质量", "重构", "优化", "简化", "走查"],
                 "en": [
                     "review", "code quality", "refactor", "optimize",
-                    "simplify", "walkthrough", "inspect",
+                    "simplify", "walkthrough", "inspect", "quality",
                 ],
                 "ja": [
                     "レビュー", "コード品質", "リファクタ", "最適化",
@@ -292,15 +292,25 @@ class IntentWorkflowMapper:
         chain_def: WorkflowChainDef,
         lang: str,
     ) -> float:
-        """Calculate match score as keyword overlap ratio."""
-        keywords = list(chain_def.trigger_keywords.get(lang, []))
-        keywords += list(chain_def.trigger_keywords.get("en", []))
+        primary_keywords = list(chain_def.trigger_keywords.get(lang, []))
+        secondary_keywords = list(chain_def.trigger_keywords.get("en", [])) if lang != "en" else []
 
-        if not keywords:
+        if not primary_keywords and not secondary_keywords:
             return 0.0
 
-        matches = sum(1 for kw in keywords if kw.lower() in task_lower)
-        return min(matches / max(len(keywords), 1), 1.0)
+        primary_matches = sum(1 for kw in primary_keywords if kw.lower() in task_lower)
+        secondary_matches = sum(1 for kw in secondary_keywords if kw.lower() in task_lower)
+
+        if primary_matches == 0 and secondary_matches == 0:
+            return 0.0
+
+        score = 0.0
+        if primary_matches > 0:
+            score = min(0.4 + (primary_matches - 1) * 0.2, 1.0)
+        elif secondary_matches > 0:
+            score = min(0.25 + (secondary_matches - 1) * 0.15, 0.9)
+
+        return score
 
     def get_available_intents(self) -> List[str]:
         """Return all available intent types."""

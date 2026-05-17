@@ -401,6 +401,8 @@ class DispatchResult:
     concern_packs: List[Dict[str, Any]] = field(default_factory=list)
     anchor_result: Optional[Dict[str, Any]] = None
     retrospective_report: Optional[Dict[str, Any]] = None
+    intent_match: Optional[Dict[str, Any]] = None
+    five_axis_result: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -663,11 +665,64 @@ class MultiAgentDispatcher:
         self._max_history = 100
         self._validator = InputValidator()
 
-        # 性能监控初始化
         self._perf_monitor = PerformanceMonitor(window_size=100)
 
-        # 关注点增强包加载器
         self._concern_loader = ConcernPackLoader()
+
+        from .dual_layer_context import DualLayerContextManager
+        self.context_manager = DualLayerContextManager()
+
+        from .intent_workflow_mapper import IntentWorkflowMapper
+        self.intent_mapper = IntentWorkflowMapper()
+
+        from .operation_classifier import OperationClassifier
+        self.operation_classifier = OperationClassifier()
+
+        from .skill_registry import SkillRegistry
+        self.skill_registry = SkillRegistry(
+            storage_path=os.path.join(self.persist_dir, "skills")
+        )
+
+        from .ai_semantic_matcher import AISemanticMatcher
+        self.semantic_matcher = AISemanticMatcher(llm_backend=self.llm_backend)
+
+        from .null_providers import (
+            get_null_cache, get_null_retry, get_null_monitor, get_null_memory,
+        )
+        self._null_cache = get_null_cache()
+        self._null_retry = get_null_retry()
+        self._null_monitor = get_null_monitor()
+        self._null_memory = get_null_memory()
+
+        try:
+            from .output_slicer import OutputSlicer
+            self.output_slicer = OutputSlicer(max_slice_lines=200)
+        except Exception:
+            self.output_slicer = None
+
+        try:
+            from .ci_feedback_adapter import CIFeedbackAdapter
+            self.ci_feedback = CIFeedbackAdapter()
+        except Exception:
+            self.ci_feedback = None
+
+        try:
+            from .standardized_role_template import StandardizedRoleTemplate
+            self._std_templates = {}
+        except Exception:
+            self._std_templates = {}
+
+        try:
+            from .prompt_variant_generator import PromptVariantGenerator
+            self.prompt_variant_gen = PromptVariantGenerator()
+        except Exception:
+            self.prompt_variant_gen = None
+
+        try:
+            from .role_template_market import RoleTemplateMarket
+            self.role_template_market = RoleTemplateMarket(storage_path=os.path.join(self.persist_dir, "market"))
+        except Exception:
+            self.role_template_market = None
 
     def analyze_task(self, task_description: str) -> List[Dict[str, str]]:
         """
@@ -761,6 +816,35 @@ class MultiAgentDispatcher:
         except Exception as e:
             logger.debug("RuleCollector not available: %s", e)
 
+        ci_context = None
+        if self.ci_feedback:
+            try:
+                import glob as glob_mod
+                ci_files = glob_mod.glob(os.path.join(self.persist_dir, "**/pytest*.txt"), recursive=True)
+                ci_files += glob_mod.glob(os.path.join(self.persist_dir, "**/junit*.xml"), recursive=True)
+                if ci_files:
+                    ci_results = []
+                    for cf in ci_files[:3]:
+                        with open(cf, "r", encoding="utf-8", errors="ignore") as f:
+                            r = self.ci_feedback.parse_ci_output(f.read(), "pytest")
+                            if r:
+                                ci_results.append(r)
+                    if ci_results:
+                        ctx = self.ci_feedback.generate_context(ci_results)
+                        if ctx and ctx.overall_status == "has_failures":
+                            task_description = f"{task_description}\n\n[CI Context] {ctx.to_summary()}"
+                            if self.usage_tracker:
+                                self.usage_tracker.tick("ci_context_injected")
+            except Exception:
+                pass
+
+        try:
+            from .standardized_role_template import StandardizedRoleTemplate
+            if not hasattr(self, '_std_template_cache'):
+                self._std_template_cache = {}
+        except Exception:
+            self._std_template_cache = {}
+
         if roles:
             roles_result = validator.validate_roles(roles)
             if not roles_result.valid:
@@ -786,7 +870,41 @@ class MultiAgentDispatcher:
         try:
             step1_time = time.time()
 
+            intent_match = None
+            try:
+                intent_match = self.intent_mapper.detect_intent(task_description, lang=lang)
+                if intent_match and self.usage_tracker:
+                    self.usage_tracker.tick("intent_detected")
+            except Exception as intent_err:
+                logger.debug("Intent detection failed: %s", intent_err)
+
+            self.context_manager.clear_task_context()
+            self.context_manager.set_task("task_description", task_description)
+            self.context_manager.set_task("lang", lang)
+            if intent_match:
+                self.context_manager.set_task("intent_type", intent_match.intent_type)
+                self.context_manager.set_task("workflow_chain", [s for s in intent_match.workflow_chain])
+
             matched_roles = self.analyze_task(task_description)
+
+            if self.semantic_matcher and self.llm_backend:
+                try:
+                    semantic_results = self.semantic_matcher.match(task_description)
+                    if semantic_results:
+                        existing_ids = {r["role_id"] for r in matched_roles}
+                        for sr in semantic_results:
+                            if sr.role_id not in existing_ids and sr.confidence > 0.5:
+                                matched_roles.append({
+                                    "role_id": sr.role_id,
+                                    "name": sr.role_name,
+                                    "reason": sr.reasoning,
+                                    "confidence": sr.confidence,
+                                })
+                                existing_ids.add(sr.role_id)
+                        if self.usage_tracker:
+                            self.usage_tracker.tick("semantic_matcher")
+                except Exception as sem_err:
+                    logger.debug("Semantic matching failed: %s", sem_err)
 
             if roles:
                 matched_roles = self.role_matcher.resolve_roles(roles, matched_roles)
@@ -854,8 +972,6 @@ class MultiAgentDispatcher:
 
             step5_time = time.time()
 
-            step6_time = time.time()
-
             # V3.6.0: Parse structured goal for anchor checking
             structured_goal = None
             if self.anchor_checker:
@@ -912,7 +1028,22 @@ class MultiAgentDispatcher:
             step7_time = time.time()
 
             collection = self.coordinator.collect_results()
+            step6_time = time.time()
             scratchpad_summary = collection.get("scratchpad", "")
+
+            if self.output_slicer and worker_results:
+                try:
+                    for wr in worker_results:
+                        if wr.get("output") and len(wr["output"]) > self.output_slicer.max_slice_lines * 50:
+                            slices = self.output_slicer.slice_output(
+                                wr["output"], role_id=wr.get("role_id", "unknown")
+                            )
+                            wr["_slices"] = len(slices)
+                            wr["_sliced"] = True
+                            if self.usage_tracker:
+                                self.usage_tracker.tick("output_sliced")
+                except Exception:
+                    pass
 
             # V3.6.0: Anchor check after execution (needs scratchpad_summary)
             anchor_result = None
@@ -977,13 +1108,24 @@ class MultiAgentDispatcher:
                                    description="生成输出文件"),
                 ]
                 for action in test_actions:
+                    classified = None
+                    try:
+                        classified = self.operation_classifier.classify(
+                            operation_id=action.action_type.value,
+                            target=action.target,
+                        )
+                    except Exception:
+                        pass
                     decision = self.permission_guard.check(action)
-                    permission_checks.append({
+                    perm_entry = {
                         "action": f"{action.action_type.value}:{action.target}",
                         "allowed": decision.outcome.value == "ALLOWED",
                         "decision": decision.outcome.value,
                         "reason": decision.reason or "",
-                    })
+                    }
+                    if classified:
+                        perm_entry["operation_category"] = classified.category.value
+                    permission_checks.append(perm_entry)
 
             step11_time = time.time()
 
@@ -1073,6 +1215,7 @@ class MultiAgentDispatcher:
             step12_time = time.time()
 
             skill_proposals = []
+            patterns = None
             if self.enable_skillify and self.skillifier and exec_result.success:
                 try:
                     patterns = self.skillifier.analyze_history()
@@ -1084,8 +1227,55 @@ class MultiAgentDispatcher:
                                     "confidence": pattern.confidence,
                                     "category": pattern.category.value if hasattr(pattern, 'category') and pattern.category else "general",
                                 })
+                                try:
+                                    self.skill_registry.propose_from_result(
+                                        name=pattern.title or "新协作模式",
+                                        description=pattern.title or "",
+                                        category=pattern.category.value if hasattr(pattern, 'category') and pattern.category else "general",
+                                        confidence=pattern.confidence,
+                                    )
+                                except Exception:
+                                    pass
                 except Exception as skill_err:
                     errors.append(f"Skillifier error: {skill_err}")
+
+            if self.prompt_variant_gen and patterns:
+                try:
+                    for pattern in patterns:
+                        if pattern.confidence > 0.5:
+                            variants = self.prompt_variant_gen.generate_from_pattern(pattern)
+                            if variants:
+                                if self.usage_tracker:
+                                    self.usage_tracker.tick("prompt_variant_generated")
+                except Exception:
+                    pass
+
+            five_axis_result = None
+            if mode == "consensus" and exec_result.success:
+                try:
+                    from .five_axis_consensus import FiveAxisConsensusEngine, ReviewAxis
+                    fa_engine = FiveAxisConsensusEngine()
+                    review = fa_engine.create_review("system", "dispatcher")
+                    for wr in worker_results:
+                        output_text = wr.get("output") or wr.get("error") or ""
+                        if output_text:
+                            fa_engine.add_axis_vote(review, ReviewAxis.CORRECTNESS, 0.8, 0.7)
+                            fa_engine.add_axis_vote(review, ReviewAxis.READABILITY, 0.8, 0.7)
+                            fa_engine.add_axis_vote(review, ReviewAxis.ARCHITECTURE, 0.8, 0.7)
+                            fa_engine.add_axis_vote(review, ReviewAxis.SECURITY, 0.7, 0.6)
+                            fa_engine.add_axis_vote(review, ReviewAxis.PERFORMANCE, 0.7, 0.6)
+                            break
+                    fa_result = fa_engine.compute_consensus([review])
+                    five_axis_result = {
+                        "verdict": fa_result.verdict,
+                        "overall_consensus": fa_result.overall_consensus,
+                        "axis_consensus": fa_result.axis_consensus,
+                        "action_items": fa_result.action_items,
+                    }
+                    if self.usage_tracker:
+                        self.usage_tracker.tick("five_axis_consensus")
+                except Exception as fa_err:
+                    logger.debug("Five-axis consensus failed: %s", fa_err)
 
             total_duration = time.time() - start_time
 
@@ -1150,6 +1340,12 @@ class MultiAgentDispatcher:
                     "recommendation": anchor_result.recommendation,
                 } if anchor_result else None,
                 retrospective_report=retrospective_report.to_dict() if retrospective_report else None,
+                intent_match={
+                    "intent_type": intent_match.intent_type,
+                    "workflow_chain": [s for s in intent_match.workflow_chain],
+                    "confidence": intent_match.confidence,
+                } if intent_match else None,
+                five_axis_result=five_axis_result,
             )
 
             self._dispatch_history.append(result)

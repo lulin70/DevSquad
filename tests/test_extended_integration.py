@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Extended Integration Tests for DevSquad V3.5.0-C - Part 2
+Extended Integration Tests for DevSquad V3.6.0
 
 Target: Add ~95 more tests to reach 750+ total coverage
 

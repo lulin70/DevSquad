@@ -242,7 +242,7 @@ ls -la docs/milestones/milestone_2_summary.md
 
 ### Step 1: Check Default Config
 ```bash
-python3 -c "from scripts.collaboration.config_loader import load_config; print(load_config())"
+python3 -c "from scripts.collaboration.config_loader import ConfigManager; cm=ConfigManager(); print(cm.to_dict())"
 ```
 
 **Expected**: Shows default configuration
@@ -262,7 +262,7 @@ EOF
 
 ### Step 3: Verify Config Loading
 ```bash
-python3 -c "from scripts.collaboration.config_loader import load_config; c=load_config(); print(f'QC enabled: {c.get(\"quality_control\", {}).get(\"enabled\")}')"
+python3 -c "from scripts.collaboration.config_loader import ConfigManager; c=ConfigManager(); print(f'QC enabled: {c.get(\"quality_control\", {}).get(\"enabled\")}')"
 ```
 
 **Expected**: Shows "QC enabled: True"

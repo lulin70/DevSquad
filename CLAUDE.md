@@ -4,9 +4,11 @@
 
 **DevSquad** is a **V3.6.0 Production-Ready Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
 
-**65 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContext, SkillRegistry, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, RoleTemplateMarket, UsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **AlertManager**, **HistoryManager**, **StreamlitDashboard**.
+**48 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, PromptVariantGenerator, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, RoleTemplateMarket, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **AlertManager**, **HistoryManager**, **StreamlitDashboard**.
 
-**Test Coverage**: 750+ tests all passing (99.3%).
+**6 Sub-Skills** (Layered Architecture): DispatchSkill (7-role orchestration), IntentSkill (6 intents × 3 languages), ReviewSkill (5-axis code review), SecuritySkill (input scan + op classify), TestSkill (test strategy + quality audit), RetrospectiveSkill (post-dispatch pattern extraction).
+
+**Test Coverage**: 1548+ tests all passing.
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 
 ## Architecture (V3.6.0 Three-Layer)
@@ -29,7 +31,7 @@
 │  │(RBAC Auth)  │ │(Multi-Chnl) │ │(SQLite TSDB)│           │
 │  └─────────────┘ └─────────────┘ └─────────────┘           │
 │  ┌─────────────────────────────────────────────┐            │
-│  │     Core Engine (45+ modules)                │            │
+│  │     Core Engine (48 modules)                │            │
 │  │     Dispatcher → Coordinator → Workers       │            │
 │  │     → Consensus → Report                    │            │
 │  └─────────────────────────────────────────────┘            │
@@ -122,7 +124,16 @@ DevSquad/
 │   │   ├── models.py           # Shared data models and type definitions
 │   │   ├── usage_tracker.py    # Token/cost tracking
 │   │   ├── config_manager.py   # Project-level YAML config
-│   │   └── *_test.py           # Test files (750+ tests)
+│   │   └── *_test.py           # Test files (1548+ tests)
+├── skills/                     # ★ Layered Sub-Skill Architecture (V3.6.0)
+│   ├── __init__.py             # Package init, exports get_skill/list_skills/discover_all
+│   ├── registry.py              # BaseSkill class + lazy-loading registry
+│   ├── dispatch/handler.py      # DispatchSkill → MultiAgentDispatcher
+│   ├── intent/handler.py        # IntentSkill → IntentWorkflowMapper
+│   ├── review/handler.py        # ReviewSkill → FiveAxisConsensusEngine
+│   ├── security/handler.py      # SecuritySkill → InputValidator + OpClassifier
+│   ├── test/handler.py          # TestSkill → TestQualityGuard
+│   └── retrospective/handler.py # RetrospectiveSkill → RetrospectiveEngine
 ├── .github/workflows/test.yml  # CI: Python 3.9-3.12 matrix
 ├── .devsquad.yaml              # Quality control + LLM + collaboration config
 ├── Dockerfile                  # Docker support
@@ -152,7 +163,7 @@ DevSquad/
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
 - **Documentation**: EN (README.md/SKILL.md) + CN (docs/i18n/README_CN.md/docs/i18n/SKILL_CN.md) + JP variants
-- **Testing**: pytest-based, 750+ tests all passing
+- **Testing**: pytest-based, 1548+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
 - **Version**: Single source of truth in `_version.py` (`3.6.0`)
 
@@ -183,7 +194,7 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Full test suite (750+ tests)
+# Full test suite (1548+ tests)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \
@@ -208,6 +219,19 @@ python3 scripts/cli.py roles        # List 7 roles
 - All components support graceful degradation — no hard dependencies on external systems
 - API keys are **environment variables only** — no `--api-key` CLI flag for security
 - `ThreadPoolExecutor` provides real parallel execution for multi-role dispatch
+
+### ⚠️ TRAE 技能缓存层（更新文档时必读）
+
+TRAE CN 版运行在 **CrossOver Wine 容器**内，技能文件有 **4 层**。修改 `skill-manifest.yaml` 或 `SKILL.md` 后**必须同步全部 4 层**，否则 TRAE 技能面板版本不会更新。
+
+| 层 | 路径 | 说明 |
+|---|------|------|
+| **L1 ⭐** | `~/Library/Application Support/CrossOver/Bottles/Steam/dosdevices/y:/.trae-cn/skills/devsquad/` | **TRAE实际读取源（CrossOver容器）** |
+| L2 | `~/.trae/skills/devsquad/` | macOS用户级 |
+| L3 | `<项目>/.trae/skills/devsquad/` | 项目级 |
+| L4 | `<项目>/skill-manifest.yaml`, `<项目>/SKILL.md` | 源文件 |
+
+详细同步命令见 [docs/INDEX.md](docs/INDEX.md) → 文档维护 → TRAE技能缓存层结构。
 
 ## Agent Behavior Guidelines (Quality Control)
 

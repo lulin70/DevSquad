@@ -1198,7 +1198,7 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 | 22 | WorkflowEngine | workflow_engine.py | 任务拆分+工作流+11阶段生命周期模板 |
 | 23 | TaskCompletionChecker | task_completion_checker.py | 完成度跟踪 |
 | 24 | CodeMapGenerator | code_map_generator.py | AST代码分析 |
-| 25 | DualLayerContext | dual_layer_context.py | 项目+任务双层上下文 |
+| 25 | DualLayerContextManager | dual_layer_context.py | 项目+任务双层上下文 |
 | 26 | SkillRegistry | skill_registry.py | 技能注册+发现 |
 | 27 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic+流式 |
 | 28 | LLMCache | llm_cache.py | TTL LRU缓存+磁盘持久化 |
@@ -1218,6 +1218,15 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 | 42 | LLMRetryAsync | llm_retry_async.py | 异步LLM重试 |
 | 43 | IntegrationExample | integration_example.py | 集成示例代码 |
 | 44 | AsyncIntegrationExample | async_integration_example.py | 异步集成示例 |
+| 45 | IntentWorkflowMapper | intent_workflow_mapper.py | 意图→工作流映射（6意图×3语言） |
+| 46 | OperationClassifier | operation_classifier.py | 三级操作分类（安全/审查/禁止） |
+| 47 | FiveAxisConsensusEngine | five_axis_consensus.py | 五轴评审共识加权投票 |
+| 48 | FeatureUsageTracker | feature_usage_tracker.py | 功能调用统计+RLock线程安全 |
+| 49 | AnchorChecker | anchor_checker.py | 里程碑锚点验证+漂移检测 |
+| 50 | RetrospectiveEngine | retrospective.py | 独立复盘+模式提取 |
+| 51 | StructuredGoal | structured_goal.py | 层次化目标分解+进度跟踪 |
+| 52 | AntiRationalizationEngine | anti_rationalization.py | 反合理化借口反驳表 |
+| 53 | VerificationGate | verification_gate.py | 证据强制要求+7红旗检测 |
 
 ---
 

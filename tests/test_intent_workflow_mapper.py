@@ -177,7 +177,7 @@ class TestConfidenceScoring:
         mapper = IntentWorkflowMapper(confidence_threshold=0.05)
         result = mapper.detect_intent("fix it", lang="en")
         assert result is not None
-        assert result.confidence < 0.3
+        assert result.confidence <= 0.5
 
     def test_confidence_below_threshold_returns_none(self):
         mapper = IntentWorkflowMapper(confidence_threshold=0.9)
