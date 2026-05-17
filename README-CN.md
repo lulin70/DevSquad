@@ -9,8 +9,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1478%20passing%20(98.4%25)-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0--Prod-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.6.0-Prod: 生产就绪版本
+## 🚀 V3.6.0: 锚点检查与复盘增强版本
 
-**DevSquad 现已达到生产就绪状态！** 完整支持认证、REST API、告警和历史数据存储。
+**DevSquad V3.6.0** 新增 AnchorChecker 用于里程碑锚点验证、RetrospectiveEngine 用于独立复盘、FeatureUsageTracker 用于数据驱动的功能优化、StructuredGoal 用于结构化目标管理、FallbackBackend 用于自动后端故障转移 — 让多Agent协作更可靠、可自我改进、可观测。
 
 ### 🎯 快速开始（3种使用方式）
 
@@ -158,6 +158,50 @@ devsquad init    # 5步引导设置（1-2分钟）
 
 ---
 
+## 🧩 分层子Skill架构 (V3.6.0)
+
+> DevSquad 提供 **6个原子化子Skill**，可独立使用或组合调用。
+> 每个子Skill是一个轻量级包装器（约50行），导入现有核心模块 — 无重复逻辑。
+
+```
+skills/
+├── dispatch/       → DispatchSkill — MultiAgentDispatcher (7角色编排)
+├── intent/         → IntentSkill   — IntentWorkflowMapper (6意图 × 3语言)
+├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5轴代码审查)
+├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
+├── test/           → TestSkill     — TestQualityGuard + 测试策略生成
+└── retrospective/  → RetroSkill    — RetrospectiveEngine + 模式提取
+```
+
+### 子Skill快速参考
+
+| Skill | 核心方法 | 包装 | Mock模式 |
+|-------|---------|------|:--------:|
+| `dispatch` | `run(task, roles, mode)` | MultiAgentDispatcher | ✅ |
+| `intent` | `detect(text, lang)` | IntentWorkflowMapper | ✅ |
+| `review` | `review(code)` | FiveAxisConsensusEngine | ✅ |
+| `security` | `scan_input(text)` | InputValidator + OpClassifier | ✅ |
+| `test` | `generate_strategy(module)` | TestQualityGuard | ✅ |
+| `retrospective` | `run_retrospective(results)` | RetrospectiveEngine | ✅ |
+
+### 使用示例
+
+```python
+# 直接导入（推荐用于单Skill）
+from skills.dispatch.handler import DispatchSkill
+result = DispatchSkill().run("修复登录漏洞", roles=["coder", "tester"])
+
+# 通过注册表（动态发现）
+from skills import get_skill, list_skills
+print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
+skill = get_skill("security")
+result = skill.scan_input("DROP TABLE users; --")
+```
+
+所有子Skill在**无需任何API Key**的Mock模式下工作。
+
+---
+
 ## 📦 安装与配置
 
 ### 前置条件
@@ -199,7 +243,10 @@ python scripts/cli.py dispatch -t "测试任务"
 | MCEAdapter (CarryMem集成) | 30 | 100% |
 | CLI 生命周期 | 28 | 100% |
 | UX 报告格式 | 24 | 100% |
-| **总计** | **1478** | **98.4%** |
+| P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
+| P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
+| V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
+| **总计** | **1548+** | **100%** |
 
 ---
 

@@ -12,9 +12,9 @@
 | Item | Content |
 |------|---------|
 | Project Name | DevSquad — Multi-Role AI Task Orchestrator |
-| Version | V3.4.1 (Agent Skills Quality Framework) |
+| Version | V3.6.0 (Production-Ready with 48 Core Modules) |
 | Created | 2026-03-16 |
-| Last Updated | 2026-05-03 |
+| Last Updated | 2026-05-17 |
 | Status | Active |
 
 ---

@@ -1028,7 +1028,7 @@ class MultiAgentDispatcher:
             step7_time = time.time()
 
             collection = self.coordinator.collect_results()
-            step6_time = time.time()
+            step8_time = time.time()
             scratchpad_summary = collection.get("scratchpad", "")
 
             if self.output_slicer and worker_results:

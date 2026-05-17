@@ -9,8 +9,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1478%20passing%20(98.4%25)-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0--Prod-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.6.0-Prod: 本番運用可能リリース
+## 🚀 V3.6.0: アンカーチェックとレトロスペクティブ強化リリース
 
-**DevSquadは現在、本番運用可能です！** 認証、REST API、アラート履歴データ保存を完全にサポートしています。
+**DevSquad V3.6.0** は、AnchorChecker（マイルストーンアンカー検証）、RetrospectiveEngine（独立したレトロスペクティブ）、FeatureUsageTracker（データドリブンな機能最適化）、StructuredGoal（構造化目標管理）、FallbackBackend（自動バックエンドフェイルオーバー）を追加し、マルチエージェントコラボレーションをより信頼性が高く、自己改善可能で、可観測なものにします。
 
 ### 🎯 クイックスタート（3つの使用方法）
 
@@ -158,6 +158,50 @@ devsquad init    # 5ステップガイド付きセットアップ（1-2分）
 
 ---
 
+## 🧩 レイヤードサブスキルアーキテクチャ (V3.6.0)
+
+> DevSquadは **6つの原子サブスキル** を提供し、独立または組み合わせて使用できます。
+> 各サブスキルは軽量ラッパー（約50行）で、既存のコアモジュールをインポート — 重複ロジックなし。
+
+```
+skills/
+├── dispatch/       → DispatchSkill — MultiAgentDispatcher (7ロールオーケストレーション)
+├── intent/         → IntentSkill   — IntentWorkflowMapper (6インテント × 3言語)
+├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5軸コードレビュー)
+├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
+├── test/           → TestSkill     — TestQualityGuard + テスト戦略生成
+└── retrospective/  → RetroSkill    — RetrospectiveEngine + パターン抽出
+```
+
+### サブスキルクイックリファレンス
+
+| Skill | コアメソッド | ラップ | Mockモード |
+|-------|------------|-------|:---------:|
+| `dispatch` | `run(task, roles, mode)` | MultiAgentDispatcher | ✅ |
+| `intent` | `detect(text, lang)` | IntentWorkflowMapper | ✅ |
+| `review` | `review(code)` | FiveAxisConsensusEngine | ✅ |
+| `security` | `scan_input(text)` | InputValidator + OpClassifier | ✅ |
+| `test` | `generate_strategy(module)` | TestQualityGuard | ✅ |
+| `retrospective` | `run_retrospective(results)` | RetrospectiveEngine | ✅ |
+
+### 使用例
+
+```python
+# 直接インポート（単一Skill推奨）
+from skills.dispatch.handler import DispatchSkill
+result = DispatchSkill().run("ログインバグ修正", roles=["coder", "tester"])
+
+# レジストリ経由（動的発見）
+from skills import get_skill, list_skills
+print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
+skill = get_skill("security")
+result = skill.scan_input("DROP TABLE users; --")
+```
+
+すべてのサブスキルは**API Keyなし**のMockモードで動作します。
+
+---
+
 ## 📦 インストールと設定
 
 ### 前提条件
@@ -199,7 +243,10 @@ python scripts/cli.py dispatch -t "テストタスク"
 | MCEAdapter (CarryMem統合) | 30 | 100% |
 | CLI ライフサイクル | 28 | 100% |
 | UX レポート形式 | 24 | 100% |
-| **合計** | **1478** | **98.4%** |
+| P0 品質フレームワーク (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
+| P1 拡張モジュール (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
+| V3.6.0 新モジュール (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
+| **合計** | **1548+** | **100%** |
 
 ---
 

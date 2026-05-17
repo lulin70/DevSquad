@@ -333,7 +333,7 @@ class AuthManager:
 def require_auth(func):
     """
     Decorator to require authentication for API endpoints.
-    
+
     Usage:
         @require_auth
         def protected_endpoint():
@@ -341,8 +341,16 @@ def require_auth(func):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        # This would integrate with FastAPI's Depends() in real implementation
-        # For now, just log and call the function
+        _auth_instance = AuthManager.get_instance()
+        if _auth_instance and _auth_instance.enabled:
+            try:
+                import streamlit as st
+                user = st.session_state.get("user")
+                if not user:
+                    logger.warning(f"Auth required but no session for {func.__name__}")
+                    raise PermissionError("Authentication required")
+            except (ImportError, AttributeError):
+                pass
         logger.debug(f"Auth check for {func.__name__}")
         return func(*args, **kwargs)
     return wrapper

@@ -1,25 +1,29 @@
 # 回归测试策略
 
 > **文档类型**：测试计划文档
-> 
-> **版本**：v1.0
-> 
+>
+> **版本**：v1.1
+>
 > **创建日期**：2026-05-01
-> 
+>
+> **最后更新**：2026-05-17
+>
 > **负责人**：QA Engineer
-> 
-> **状态**：待评审
+>
+> **状态**：已批准
 
 ---
 
 ## 一、概述
 
-本文档定义 DevSquad v3.5 的回归测试策略，确保新功能（Protocol 接口、AgentBriefing、置信度系统）不破坏 v3.4 的现有功能。
+本文档定义 DevSquad v3.6.0 的回归测试策略，确保新功能（Authentication、REST API、Alerts、Historical Data Storage）不破坏 v3.5 的现有功能。
 
 **测试目标**：
-- **向后兼容性**：v3.4 代码在 v3.5 环境中正常运行
-- **功能完整性**：v3.4 的所有功能在 v3.5 中保持不变
-- **性能稳定性**：v3.5 不引入性能退化
+- **向后兼容性**：v3.5 代码在 v3.6.0 环境中正常运行
+- **功能完整性**：v3.5 的所有功能在 v3.6.0 中保持不变
+- **性能稳定性**：v3.6.0 不引入性能退化
+- **模块完整性**：48个核心模块全部正常工作
+- **测试覆盖**：1548+ 测试全部通过
 
 ---
 
@@ -27,15 +31,17 @@
 
 ### 2.1 核心功能回归
 
-| 功能模块 | v3.4 功能 | v3.5 变更 | 测试优先级 |
-|----------|-----------|-----------|-----------|
-| LLM Cache | 缓存 LLM 响应 | 实现 CacheProvider Protocol | P0 |
-| LLM Retry | 重试失败的 LLM 调用 | 实现 RetryProvider Protocol | P0 |
-| Performance Monitor | 监控性能指标 | 实现 MonitorProvider Protocol | P0 |
-| Agent 基类 | Agent 执行逻辑 | 增加 Protocol 参数 | P0 |
-| 编排器 | 多 Agent 协作 | 支持 briefing 模式 | P0 |
-| 工作流 | 预定义工作流 | 无变更 | P1 |
-| 配置管理 | 配置加载 | 无变更 | P1 |
+| 功能模块 | v3.5 功能 | v3.6.0 变更 | 测试优先级 |
+|----------|-----------|-------------|-----------|
+| Auth Manager | 无 | 新增 RBAC 认证系统 | P0 |
+| API Server | 无 | 新增 FastAPI REST API | P0 |
+| Alert Manager | 无 | 新增多渠道告警 | P0 |
+| History Manager | 无 | 新增 SQLite 时序存储 | P0 |
+| Lifecycle Protocol | 11阶段工作流 | 增强门禁引擎 | P0 |
+| AgentBriefing | 上下文感知简报 | 优化生成逻辑 | P1 |
+| ConfidenceScore | 置信度评分 | 新增趋势分析 | P1 |
+| EnhancedWorker | 增强Worker | 集成QA流程 | P1 |
+| Dashboard | Streamlit仪表板 | 集成认证功能 | P1 |
 
 ### 2.2 兼容性测试矩阵
 

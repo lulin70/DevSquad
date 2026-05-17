@@ -1,6 +1,6 @@
 # DevSquad ユーザーガイド
 
-> **バージョン**: V3.6.0 | **更新日**: 2026-05-05
+> **バージョン**: V3.6.0 | **更新日**: 2026-05-16
 >
 > 本ドキュメントはDevSquadの完全な機能マニュアルであり、ユーザーが利用可能な全機能を網羅しています。
 
@@ -25,6 +25,7 @@
 - [15. よくある質問](#15-よくある質問)
 - [付録A：CarryMem連携](#付録acarrymem連携)
 - [付録B：完全モジュール一覧](#付録b完全モジュール一覧)
+- [付録C：サブスキルアーキテクチャ](#付録cサブスキルアーキテクチャ)
 
 ---
 
@@ -1269,7 +1270,67 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 | 45 | LLMRetryAsync | llm_retry_async.py | 非同期LLMリトライ |
 | 46 | IntegrationExample | integration_example.py | 統合サンプルコード |
 | 47 | AsyncIntegrationExample | async_integration_example.py | 非同期統合サンプル |
+| 48 | DispatchSkill | skills/dispatch/handler.py | ディスパッチサブスキル（MultiAgentDispatcherラップ） |
+| 50 | IntentSkill | skills/intent/handler.py | 意図検出サブスキル（6意図×3言語） |
+| 51 | ReviewSkill | skills/review/handler.py | コードレビューサブスキル（5軸コンセンサス） |
+| 52 | SecuritySkill | skills/security/handler.py | セキュリティサブスキル（入力スキャン+操作分類） |
+| 53 | TestSkill | skills/test/handler.py | テストサブスキル（戦略生成+品質監査） |
+| 54 | RetrospectiveSkill | skills/retrospective/handler.py | レトロスペクティブサブスキル（パターン抽出+改善提案） |
 
 ---
 
-*DevSquad V3.6.0 — 2026-05-05*
+## 付録C：サブスキルアーキテクチャ
+
+> **V3.6.0 新追加** — 6つの原子サブスキルで、独立または組み合わせて使用可能。
+
+### アーキテクチャ概要
+
+```
+skills/
+├── __init__.py        # パッケージ初期化、get_skill/list_skills/discover_all をエクスポート
+├── registry.py         # BaseSkill クラス + 懒読み込みレジストリ（importlib 自動発見）
+├── dispatch/handler.py    # → MultiAgentDispatcher
+├── intent/handler.py      # → IntentWorkflowMapper
+├── review/handler.py      # → FiveAxisConsensusEngine
+├── security/handler.py    # → InputValidator + OperationClassifier
+├── test/handler.py        # → TestQualityGuard
+└── retrospective/handler.py # → RetrospectiveEngine
+```
+
+### サブスキル使用シーン
+
+| シーン | 推奨方法 | 説明 |
+|--------|---------|------|
+| 完全マルチロール協調 | `MultiAgentDispatcher` / `DispatchSkill` | 7ロール自動マッチング+並行+コンセンサス |
+| 意図検出のみ | `IntentSkill` | 軽量、Dispatcher起動不要 |
+| コードレビューのみ | `ReviewSkill` | 5軸レビュー、ディスパッチフロー独立 |
+| 入力セキュリティスキャン | `SecuritySkill` | 21+注入パターン検出、単独使用可能 |
+| テスト戦略生成 | `TestSkill` | テスト品質監査+テストケース提案 |
+| ディスパッチ後レトロスペクティブ | `RetrospectiveSkill` | パターン抽出+改善提案 |
+
+### クイックスタート
+
+```python
+# 方法1: 直接インポート
+from skills.dispatch.handler import DispatchSkill
+from skills.security.handler import SecuritySkill
+result = SecuritySkill().scan_input("DROP TABLE users")
+
+# 方法2: レジストリ経由動的発見
+from skills import get_skill, list_skills, discover_all
+skills = discover_all()
+for name, skill in skills.items():
+    print(f"{name}: {skill.info()['description']}")
+```
+
+### Dispatcherとの関係
+
+サブスキルは **Dispatcherの代替ではなく補完** です：
+- **Dispatcher** = 完全なマルチエージェント協調フロー（検証→マッチング→ディスパッチ→実行→コンセンサス→レポート）
+- **サブスキル** = 単一能力の軽量エントリ（1機能のみ必要な場合にエンジン全体を起動しない）
+
+典型的な組み合わせ：まず `IntentSkill.detect()` で意図判断し、次に `DispatchSkill.run()` で協調実行、最後に `RetrospectiveSkill.summary()` でレトロスペクティブ。
+
+---
+
+*DevSquad V3.6.0 — 2026-05-16*

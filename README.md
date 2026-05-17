@@ -452,7 +452,7 @@ Exposes 6 tools: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
 
 **Auto-match**: If no roles specified, the dispatcher automatically matches based on task keywords.
 
-## Architecture Overview (47 Core Modules)
+## Architecture Overview (48 Core Modules)
 
 DevSquad is built on a layered architecture with clear separation of concerns:
 
