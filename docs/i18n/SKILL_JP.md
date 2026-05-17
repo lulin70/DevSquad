@@ -2,16 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.0 マルチエージェントコラボレーションプラットフォーム。
+  V3.6.1 マルチエージェントコラボレーションプラットフォーム。
   Coordinator/Worker/Scratchpad パターンに基づく完全なマルチエージェントコラボレーションシステム。
   7コアロール（アーキテクト/PM/セキュリティ/テスター/コーダー/DevOps/UIデザイナー）、
   リアルLLMバックエンド（OpenAI/Anthropic）、CLI + REST API + Dashboard + MCP + Python API対応。
-  1548+テスト全合格。
-  V3.6.0新機能: AnchorChecker（アンカー検証）、RetrospectiveEngine（独立レトロスペクティブ）、
-  StructuredGoal（構造化目標）、FallbackBackend（自動フェイルオーバー）、FeatureUsageTracker（機能呼び出し統計）。
+  1561+テスト全合格。
+  V3.6.1新機能: FeedbackControlLoop（制御論フィードバックループ）、ExecutionGuard（リアルタイム実行ガード）、
+  PerformanceFingerprint（統一実行フィンガープリント）、SimilarTaskRecommender（履歴タスク推奨）、AdaptiveRoleSelector（適応型ロール選択）。
 ---
 
-# DevSquad V3.6.0 — マルチエージェントコラボレーションプラットフォーム
+# DevSquad V3.6.1 — マルチエージェントコラボレーションプラットフォーム
 
 ## コアポジショニング
 
@@ -24,7 +24,7 @@ description: |
              → [コンセンサス決定] → [レポート整形] → [構造化レポート]
 ```
 
-## アーキテクチャ概要（48コアモジュール）
+## アーキテクチャ概要（53コアモジュール）
 
 | # | モジュール | ファイル | 責任 |
 |---|-----------|--------|------|
@@ -241,7 +241,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 
 ---
 
-## サブスキルアーキテクチャ（V3.6.0 新機能）
+## サブスキルアーキテクチャ（V3.6.1 新機能）
 
 > 6つの原子サブスキル。独立使用または組み合わせ呼出しが可能で、完全なDispatcherを起動する必要はありません。
 

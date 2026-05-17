@@ -7,16 +7,16 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1561%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
 ---
 
-## 🚀 V3.6.0: アンカー確認＆レトロスペクティブ強化リリース
+## 🚀 V3.6.1: サイバネティクス強化リリース
 
-**DevSquad V3.6.0** は AnchorChecker（マイルストーンアンカー検証）、RetrospectiveEngine（独立レトロスペクティブ）、StructuredGoal（構造化目標管理）、FallbackBackend（自動フェイルオーバー）を追加 — マルチエージェントコラボレーションをより信頼性高く自己改善可能により観測可能にします。
+**DevSquad V3.6.1** は FeedbackControlLoop 制御論フィードバックループ、ExecutionGuard リアルタイム実行ガード、PerformanceFingerprint 統一実行フィンガープリント、SimilarTaskRecommender 履歴タスク推奨、AdaptiveRoleSelector 適応型ロール選択を追加 — マルチエージェントコラボレーションをよりインテリジェント・自己修復・可観測にします。
 
 ## DevSquadとは？
 
@@ -115,7 +115,7 @@ python3 scripts/cli.py dispatch -t "認証システムを設計" -r arch --backe
 - **優先度ベースルーティング** — バックエンド優先順序を設定（例：OpenAI → Anthropic → Mock）
 - **リカバリ検出** — プライマリバックエンド復旧時に自動的に復元
 
-## 🧩 レイヤードサブスキルアーキテクチャ (V3.6.0 NEW)
+## 🧩 レイヤードサブスキルアーキテクチャ (V3.6.1 NEW)
 
 > DevSquadは **6つの原子サブスキル** を提供し、独立または組み合わせて使用可能。
 > 各サブスキルは約 **50行の薄いラッパー** で、既存コアモジュールをインポート — 重複ロジックなし。
@@ -183,7 +183,7 @@ print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 're
 
 ### プロジェクトライフサイクル（11フェーズモデル）
 
-DevSquad V3.6.0は **11フェーズ（4つオプション）** のプロジェクトライフサイクルを定義。各フェーズには明確なロール、依存関係、ゲート条件があります：
+DevSquad V3.6.1は **11フェーズ（4つオプション）** のプロジェクトライフサイクルを定義。各フェーズには明確なロール、依存関係、ゲート条件があります：
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -241,7 +241,7 @@ llm:
 ## テスト実行
 
 ```bash
-# コアテスト（1548+ 全テスト合格）
+# コアテスト（1561+ 全テスト合格）
 python3 -m pytest tests/ -q --tb=short
 ```
 
@@ -261,6 +261,7 @@ python3 -m pytest tests/ -q --tb=short
 
 | 日付 | バージョン | ハイライト |
 |------|-----------|-----------|
+| 2026-05-17 | **V3.6.1** | 🔄 **サイバネティクス強化** — 5つの新モジュール(フィードバックループ/実行ガード/性能フィンガープリント/タスク推奨/適応型ロール)、アップストリームv2.5サイバネティクスアーキテクチャ分析由来。110新規テスト、計1561。Mockモードゼロ依存で動作可能。 |
 | 2026-05-16 | **V3.6.0** | 🧩 **レイヤードサブスキルアーキテクチャ** — 6つの原子サブスキル(dispatch/intent/review/security/test/retrospective)、遅延ロードレジストリ、各~50行の薄いラッパー。クロスプラットフォーム対応：Claude Code/Cursor/OpenClaw/純Python/Docker/MCP 全サポート。Mockモードゼロ依存で動作可能。 |
 | 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（マイルストーンアンカー検証+ドリフト検出）、RetrospectiveEngine（独立レトロスペクティブ+パターン抽出）、StructuredGoal（階層的目標分解+進捗追跡）、FallbackBackend（自動LLMフェイルオーバー+ヘルスモニタリング）、FeatureUsageTracker（機能呼び出し統計+使用レポート+自動永続化）、7モジュール統合（IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders）、1548+テスト、48コアモジュール |
 | 2026-05-05 | **V3.5.0** | 📋 エンハンスメントスプリント — コードウォークスルー強化、ドキュメント整合性チェック、Karpathy原則、プロジェクト理解（AgentBriefing）、CLIライフサイクルコマンド、構造化出力、748+テスト |

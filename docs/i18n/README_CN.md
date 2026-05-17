@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色 AI 协作 → 一个结论</strong>
   <br>
-  <em>生产就绪 | V3.6.0</em>
+  <em>生产就绪 | V3.6.1</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1548%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-1561%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.6.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -24,9 +24,9 @@
 
 ---
 
-## 🚀 V3.6.0: 锚点检查与复盘增强版
+## 🚀 V3.6.1: 控制论增强版本
 
-**DevSquad V3.6.0** 新增 AnchorChecker 锚点检查、RetrospectiveEngine 独立复盘、StructuredGoal 结构化目标、FallbackBackend 自动故障转移 — 让多智能体协作更可靠、更自省、更可观测。
+**DevSquad V3.6.1** 引入 FeedbackControlLoop 控制论反馈闭环、ExecutionGuard 实时执行守护、PerformanceFingerprint 统一执行指纹、SimilarTaskRecommender 历史任务推荐、AdaptiveRoleSelector 自适应角色选择 — 让多智能体协作更智能、更自愈、更可观测。
 
 ## DevSquad 是什么？
 
@@ -104,7 +104,7 @@ python3 scripts/cli.py dispatch -t "设计认证系统" -r arch --backend openai
 # 其他命令
 python3 scripts/cli.py status          # 系统状态
 python3 scripts/cli.py roles           # 列出可用角色
-python3 scripts/cli.py --version       # 显示版本 (3.6.0)
+python3 scripts/cli.py --version       # 显示版本 (3.6.1)
 ```
 
 **2. Python API**
@@ -160,7 +160,7 @@ ReviewSkill().review("def foo(): pass")
 
 **自动匹配**：如果不指定角色，调度器会根据任务关键词自动匹配。
 
-## 🧩 分层子Skill架构 (V3.6.0 新增)
+## 🧩 分层子Skill架构 (V3.6.1 新增)
 
 > DevSquad 提供 **6 个原子化子Skill**，可独立使用也可组合使用。
 > 每个子Skill 是约 **50 行的薄封装层**，导入现有核心模块——无重复逻辑。
@@ -330,7 +330,7 @@ result = backend.generate("设计认证系统")
 
 ### 项目全生命周期（11阶段模型）
 
-DevSquad V3.6.0 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的角色、依赖和门禁条件：
+DevSquad V3.6.1 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的角色、依赖和门禁条件：
 
 ```
 P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
@@ -355,7 +355,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 - **GitHub Actions CI**：Python 3.9-3.12 矩阵测试
 - **pip 可安装**：`pip install -e .` + 可选依赖
 
-## 模块参考 (48 模块)
+## 模块参考 (53 模块)
 
 ## 配置
 
@@ -402,7 +402,7 @@ export OPENAI_API_KEY=sk-...
 ## 运行测试
 
 ```bash
-# 核心测试（1548+测试全通过）
+# 核心测试（1561+测试全通过）
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \
@@ -410,7 +410,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/ test_v35_integration.py -v
 
 # 快速冒烟测试
-python3 scripts/cli.py --version    # 3.6.0
+python3 scripts/cli.py --version    # 3.6.1
 python3 scripts/cli.py status       # 系统就绪
 python3 scripts/cli.py roles        # 列出 7 个角色
 ```
@@ -434,6 +434,7 @@ python3 scripts/cli.py roles        # 列出 7 个角色
 
 | 日期 | 版本 | 亮点 |
 |------|------|------|
+| 2026-05-17 | **V3.6.1** | 🔄 **控制论增强** — 5个新模块(反馈闭环/执行守护/性能指纹/任务推荐/自适应角色)，来自上游v2.5控制论架构分析。110个新测试，总计1561。Mock模式零依赖可用。 |
 | 2026-05-16 | **V3.6.0** | 🧩 **分层子Skill架构** — 6个原子子Skill(dispatch/intent/review/security/test/retrospective)，懒加载注册表，每个~50行薄封装。跨平台兼容：Claude Code/Cursor/OpenClaw/纯Python/Docker/MCP 全部支持。Mock模式零依赖可用。 |
 | 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（里程碑锚点验证+漂移检测）、RetrospectiveEngine（独立复盘+模式提取）、StructuredGoal（层次化目标分解+进度跟踪）、FallbackBackend（自动LLM故障转移+健康监控）、FeatureUsageTracker（功能调用统计+使用报告+自动持久化）、7模块集成（IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders）、1548+测试、48核心模块 |
 | 2026-05-05 | **V3.5.0** | 📋 增强冲刺 — 代码走读增强、文档一致性检查、Karpathy原则、项目理解（AgentBriefing）、CLI生命周期命令、结构化输出、748+测试 |
