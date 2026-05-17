@@ -5,6 +5,13 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- 🧩 **Layered Sub-Skill Architecture**: 6 atomic sub-skills (dispatch/intent/review/security/test/retrospective) with lazy-loading registry via `importlib`
+- Cross-platform compatibility documentation: Claude Code, Cursor, OpenClaw, Pure Python, Docker, MCP
+- All sub-skills work in Mock mode without API keys
+
 ## [3.6.0] - 2026-05-13
 
 ### Added

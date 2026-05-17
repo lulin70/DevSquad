@@ -1,6 +1,6 @@
 # DevSquad User Guide
 
-> **Version**: V3.6.0 | **Updated**: 2026-05-05
+> **Version**: V3.6.0 | **Updated**: 2026-05-16
 >
 > This document is the complete feature manual for DevSquad, covering all user-facing functionality.
 
@@ -25,6 +25,7 @@
 - [15. FAQ](#15-faq)
 - [Appendix A: CarryMem Integration](#appendix-a-carrymem-integration)
 - [Appendix B: Complete Module List](#appendix-b-complete-module-list)
+- [Appendix C: Sub-Skill Architecture](#appendix-c-sub-skill-architecture)
 
 ---
 
@@ -1216,6 +1217,61 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 ```
 
 Security mechanisms: Two-layer defense (InputValidator + length limit ≤500 chars), Unicode NFKC normalization, user_id injection filtering, rule types direct passthrough (forbid/avoid/always, no conversion needed).
+
+---
+
+## Appendix C: Sub-Skill Architecture
+
+> **New in V3.6.0** — 6 atomic sub-skills, usable independently or in combination.
+
+### Architecture Overview
+
+```
+skills/
+├── __init__.py              # Package init, exports get_skill/list_skills/discover_all
+├── registry.py               # BaseSkill class + lazy-load registry (importlib auto-discovery)
+├── dispatch/handler.py       # → MultiAgentDispatcher
+├── intent/handler.py         # → IntentWorkflowMapper
+├── review/handler.py         # → FiveAxisConsensusEngine
+├── security/handler.py       # → InputValidator + OperationClassifier
+├── test/handler.py           # → TestQualityGuard
+└── retrospective/handler.py  # → RetrospectiveEngine
+```
+
+### When to Use Sub-Skills?
+
+| Scenario | Recommended Approach | Description |
+|----------|---------------------|-------------|
+| Full multi-role collaboration | `MultiAgentDispatcher` or `DispatchSkill` | 7-role auto-matching + parallel + consensus |
+| Intent detection only | `IntentSkill` | Lightweight, no need to launch full Dispatcher |
+| Code review only | `ReviewSkill` | Five-axis review, independent of dispatch flow |
+| Security input scanning | `SecuritySkill` | 21+ injection pattern detection, standalone |
+| Test strategy generation | `TestSkill` | Test quality audit + case suggestions |
+| Post-dispatch retrospective | `RetrospectiveSkill` | Pattern extraction + improvement suggestions |
+
+### Quick Start
+
+```python
+# Method 1: Direct import
+from skills.dispatch.handler import DispatchSkill
+from skills.security.handler import SecuritySkill
+from skills.intent.handler import IntentSkill
+
+# Method 2: Dynamic discovery via registry
+from skills import get_skill, list_skills, discover_all
+skills = discover_all()  # Get all sub-skill instances
+for name, skill in skills.items():
+    print(f"{name}: {skill.info()['description']}")
+```
+
+### Relationship with Dispatcher
+
+Sub-Skills **complement** (not replace) the Dispatcher:
+
+- **Dispatcher** = Complete multi-agent collaboration flow (validate→match→dispatch→execute→consensus→report)
+- **Sub-Skill** = Lightweight single-capability entry point (avoid launching the full engine when only one feature is needed)
+
+Typical combination: First use `IntentSkill.detect()` to determine intent, then `DispatchSkill.run()` to execute collaboration, finally `RetrospectiveSkill.summary()` for retrospective analysis.
 
 ---
 

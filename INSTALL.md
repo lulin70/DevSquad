@@ -371,6 +371,23 @@ Exposes 6 tools: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
 > **Note**: If `mcp` is not installed, DevSquad logs a warning but continues to work normally.
 > All other features (CLI, API, Python import) work without MCP.
 
+### Layered Sub-Skill Architecture (V3.6.0)
+
+DevSquad V3.6.0 introduces a **layered sub-skill system** with 6 atomic sub-skills:
+
+| Sub-Skill | Purpose | Registry Key |
+|-----------|---------|-------------|
+| `dispatch` | Task dispatch & multi-agent orchestration | `dss.dispatch` |
+| `intent` | Intent detection & workflow mapping | `dss.intent` |
+| `review` | Five-axis code review & consensus | `dss.review` |
+| `security` | Permission guard & input validation | `dss.security` |
+| `test` | Test strategy & quality assurance | `dss.test` |
+| `retrospective` | Post-dispatch analysis & pattern extraction | `dss.retrospective` |
+
+All sub-skills use **lazy-loading** via `importlib` — only loaded when invoked. They work in **Mock mode without any API keys**, making them safe for offline development and CI environments.
+
+**Cross-platform compatibility**: Trae IDE · Claude Code · Cursor · OpenClaw · Pure Python · Docker · MCP
+
 ## Verification
 
 ```bash

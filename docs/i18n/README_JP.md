@@ -115,6 +115,44 @@ python3 scripts/cli.py dispatch -t "認証システムを設計" -r arch --backe
 - **優先度ベースルーティング** — バックエンド優先順序を設定（例：OpenAI → Anthropic → Mock）
 - **リカバリ検出** — プライマリバックエンド復旧時に自動的に復元
 
+## 🧩 レイヤードサブスキルアーキテクチャ (V3.6.0 NEW)
+
+> DevSquadは **6つの原子サブスキル** を提供し、独立または組み合わせて使用可能。
+> 各サブスキルは約 **50行の薄いラッパー** で、既存コアモジュールをインポート — 重複ロジックなし。
+
+```
+skills/
+├── dispatch/       → DispatchSkill — マルチエージェントディスパッチ（7ロール）
+├── intent/         → IntentSkill   — 意図検出（6意図 × 3言語）
+├── review/         → ReviewSkill   — 5軸コードレビュー
+├── security/       → SecuritySkill — 入力スキャン + 操作分類
+├── test/           → TestSkill     — テスト戦略 + 品質監査
+└── retrospective/  → RetroSkill    — ディスパッチ後レトロスペクティブ
+```
+
+### サブスキル一覧
+
+| スキル | コアメソッド | ラップモジュール | Mockモード |
+|-------|------------|---------------|:---------:|
+| `dispatch` | `run(task, roles)` | MultiAgentDispatcher | ✅ |
+| `intent` | `detect(text, lang)` | IntentWorkflowMapper | ✅ |
+| `review` | `review(code)` | FiveAxisConsensusEngine | ✅ |
+| `security` | `scan_input(text)` | InputValidator + OpClassifier | ✅ |
+| `test` | `generate_strategy(module)` | TestQualityGuard | ✅ |
+| `retrospective` | `run_retrospective(results)` | RetrospectiveEngine | ✅ |
+
+### 使用例
+
+```python
+from skills.dispatch.handler import DispatchSkill
+result = DispatchSkill().run("ログインバグ修正", roles=["coder", "tester"])
+
+from skills import get_skill, list_skills
+print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
+```
+
+すべてのサブスキルは **APIキー不要** でMockモード動作可能。
+
 ### 自然言語ルール収集
 
 ユーザーの自然言語入力からルールを自動検出・保存。設定ファイルの手動編集不要：
@@ -223,6 +261,7 @@ python3 -m pytest tests/ -q --tb=short
 
 | 日付 | バージョン | ハイライト |
 |------|-----------|-----------|
+| 2026-05-16 | **V3.6.0** | 🧩 **レイヤードサブスキルアーキテクチャ** — 6つの原子サブスキル(dispatch/intent/review/security/test/retrospective)、遅延ロードレジストリ、各~50行の薄いラッパー。クロスプラットフォーム対応：Claude Code/Cursor/OpenClaw/純Python/Docker/MCP 全サポート。Mockモードゼロ依存で動作可能。 |
 | 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（マイルストーンアンカー検証+ドリフト検出）、RetrospectiveEngine（独立レトロスペクティブ+パターン抽出）、StructuredGoal（階層的目標分解+進捗追跡）、FallbackBackend（自動LLMフェイルオーバー+ヘルスモニタリング）、FeatureUsageTracker（機能呼び出し統計+使用レポート+自動永続化）、7モジュール統合（IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders）、1548+テスト、48コアモジュール |
 | 2026-05-05 | **V3.5.0** | 📋 エンハンスメントスプリント — コードウォークスルー強化、ドキュメント整合性チェック、Karpathy原則、プロジェクト理解（AgentBriefing）、CLIライフサイクルコマンド、構造化出力、748+テスト |
 | 2026-05-03 | **V3.4.1** | 🚀 エージェントスキル品質フレームワーク (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLIライフサイクルコマンド + 167新規テスト + Googleエージェントスキル統合 + 49コアモジュール |

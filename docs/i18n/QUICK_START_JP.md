@@ -138,6 +138,21 @@ export DEVSQUAD_LLM_BACKEND=openai
 
 ---
 
+## サブスキル (V3.6.0)
+
+DevSquadは **6つの原子サブスキル** (`skills/` パッケージ) を独立利用可能として提供しています：
+`dispatch`、`intent`、`review`、`security`、`test`、`retrospective`。各スキルはコアモジュールの約50行ラッパーで、API KeyなしのMockモードで動作します。
+
+```python
+from skills import get_skill, list_skills
+from skills.security.handler import SecuritySkill
+risk = SecuritySkill().scan_input("不審な入力")
+```
+
+詳細は [SKILL.md](../SKILL.md) § "Layered Sub-Skill Architecture" を参照してください。
+
+---
+
 ## 次のステップ
 
 📚 **完全ドキュメント**

@@ -416,6 +416,31 @@ kubectl port-forward svc/devsquad-api 8000:8000
 
 ---
 
+## 14.5 サブスキル (V3.6.0)
+
+DevSquadは完全なオーケストレーションパイプラインから独立して使用可能な **6つの原子サブスキル** (`skills/` パッケージ) を提供します：
+
+| サブスキル | 用途 | モジュール |
+|-----------|------|----------|
+| `dispatch` | タスクディスパッチ | `skills.dispatch.handler.DispatchSkill` |
+| `intent` | 意図検出 | `skills.intent.handler.IntentSkill` |
+| `review` | コードレビュー | `skills.review.handler.ReviewSkill` |
+| `security` | 入力スキャン | `skills.security.handler.SecuritySkill` |
+| `test` | テスト生成 | `skills.test.handler.TestSkill` |
+| `retrospective` | レトロスペクティブ分析 | `skills.retrospective.handler.RetrospectiveSkill` |
+
+各サブスキルはコアモジュールの約50行ラッパーで、API KeyなしのMockモードで動作します。
+
+```python
+from skills import get_skill, list_skills
+from skills.security.handler import SecuritySkill
+risk = SecuritySkill().scan_input("不審な入力")
+```
+
+詳細は [SKILL.md](../SKILL.md) § "Layered Sub-Skill Architecture" を参照してください。
+
+---
+
 ## 15. よくある質問
 
 **Q: API Keyなしで使用できますか？**

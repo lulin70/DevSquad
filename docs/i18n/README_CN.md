@@ -135,6 +135,17 @@ python3 scripts/mcp_server.py              # stdio 模式
 python3 scripts/mcp_server.py --port 8080  # SSE 模式
 ```
 
+**4. 子Skill（轻量独立）**
+
+```python
+# 单独使用任意子Skill，无需启动完整 DevSquad
+from skills.security.handler import SecuritySkill
+SecuritySkill().scan_input("DROP TABLE users;")  # Mock 模式零依赖
+
+from skills.review.handler import ReviewSkill
+ReviewSkill().review("def foo(): pass")
+```
+
 ## 7 个核心角色
 
 | 角色 | CLI ID | 别名 | 权重 | 最适合 |
@@ -148,6 +159,48 @@ python3 scripts/mcp_server.py --port 8080  # SSE 模式
 | UI 设计师 | `ui` | `ui-designer` | 0.9 | UX 流程、交互设计、无障碍 |
 
 **自动匹配**：如果不指定角色，调度器会根据任务关键词自动匹配。
+
+## 🧩 分层子Skill架构 (V3.6.0 新增)
+
+> DevSquad 提供 **6 个原子化子Skill**，可独立使用也可组合使用。
+> 每个子Skill 是约 **50 行的薄封装层**，导入现有核心模块——无重复逻辑。
+
+```
+skills/
+├── dispatch/       → DispatchSkill — 多Agent调度（7角色编排）
+├── intent/         → IntentSkill   — 意图检测（6种意图 × 3语言）
+├── review/         → ReviewSkill   — 五维代码审查
+├── security/       → SecuritySkill — 安全扫描 + 操作分类
+├── test/           → TestSkill     — 测试策略 + 质量审计
+└── retrospective/  → RetroSkill    — 调度后复盘 + 模式提取
+```
+
+### 子Skill速查
+
+| Skill | 核心方法 | 封装模块 | Mock模式 |
+|-------|---------|---------|:-------:|
+| `dispatch` | `run(task, roles)` | MultiAgentDispatcher | ✅ |
+| `intent` | `detect(text, lang)` | IntentWorkflowMapper | ✅ |
+| `review` | `review(code)` | FiveAxisConsensusEngine | ✅ |
+| `security` | `scan_input(text)` | InputValidator + OpClassifier | ✅ |
+| `test` | `generate_strategy(module)` | TestQualityGuard | ✅ |
+| `retrospective` | `run_retrospective(results)` | RetrospectiveEngine | ✅ |
+
+### 使用示例
+
+```python
+# 直接导入（推荐用于单Skill场景）
+from skills.dispatch.handler import DispatchSkill
+result = DispatchSkill().run("修复登录漏洞", roles=["coder", "tester"])
+
+# 通过注册表动态发现
+from skills import get_skill, list_skills
+print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
+skill = get_skill("security")
+result = skill.scan_input("DROP TABLE users;")
+```
+
+所有子Skill **无需任何 API Key** 即可在 Mock 模式下运行。
 
 ## 核心特性
 
@@ -381,6 +434,7 @@ python3 scripts/cli.py roles        # 列出 7 个角色
 
 | 日期 | 版本 | 亮点 |
 |------|------|------|
+| 2026-05-16 | **V3.6.0** | 🧩 **分层子Skill架构** — 6个原子子Skill(dispatch/intent/review/security/test/retrospective)，懒加载注册表，每个~50行薄封装。跨平台兼容：Claude Code/Cursor/OpenClaw/纯Python/Docker/MCP 全部支持。Mock模式零依赖可用。 |
 | 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker（里程碑锚点验证+漂移检测）、RetrospectiveEngine（独立复盘+模式提取）、StructuredGoal（层次化目标分解+进度跟踪）、FallbackBackend（自动LLM故障转移+健康监控）、FeatureUsageTracker（功能调用统计+使用报告+自动持久化）、7模块集成（IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders）、1548+测试、48核心模块 |
 | 2026-05-05 | **V3.5.0** | 📋 增强冲刺 — 代码走读增强、文档一致性检查、Karpathy原则、项目理解（AgentBriefing）、CLI生命周期命令、结构化输出、748+测试 |
 | 2026-05-03 | **V3.4.1** | 🚀 智能体技能质量框架 (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI生命周期命令 (spec/plan/build/test/review/ship) + 167新测试 + Google智能体技能集成 + 49核心模块 |

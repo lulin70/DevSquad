@@ -203,6 +203,50 @@ System:
 
 ---
 
+## 🧩 Layered Sub-Skill Architecture (V3.6.0)
+
+> DevSquad provides **6 atomic sub-skills** that can be used independently or together.
+> Each sub-skill is a thin wrapper (~50 lines) importing existing core modules — no duplicated logic.
+
+```
+skills/
+├── dispatch/       → DispatchSkill — MultiAgentDispatcher (7-role orchestration)
+├── intent/         → IntentSkill   — IntentWorkflowMapper (6 intents × 3 languages)
+├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5-axis code review)
+├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
+├── test/           → TestSkill     — TestQualityGuard + test strategy generation
+└── retrospective/  → RetroSkill    — RetrospectiveEngine + pattern extraction
+```
+
+### Sub-Skill Quick Reference
+
+| Skill | Core Method | Wraps | Mock Mode |
+|-------|------------|-------|:---------:|
+| `dispatch` | `run(task, roles, mode)` | MultiAgentDispatcher | ✅ |
+| `intent` | `detect(text, lang)` | IntentWorkflowMapper | ✅ |
+| `review` | `review(code)` | FiveAxisConsensusEngine | ✅ |
+| `security` | `scan_input(text)` | InputValidator + OpClassifier | ✅ |
+| `test` | `generate_strategy(module)` | TestQualityGuard | ✅ |
+| `retrospective` | `run_retrospective(results)` | RetrospectiveEngine | ✅ |
+
+### Usage Examples
+
+```python
+# Direct import (recommended for single skill)
+from skills.dispatch.handler import DispatchSkill
+result = DispatchSkill().run("Fix login bug", roles=["coder", "tester"])
+
+# Via registry (dynamic discovery)
+from skills import get_skill, list_skills
+print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
+skill = get_skill("security")
+result = skill.scan_input("DROP TABLE users; --")
+```
+
+All sub-skills work **without any API key** in Mock mode.
+
+---
+
 ## 📋 Plan C Architecture (Core Engine)
 
 **Unified Lifecycle Architecture** - Resolves CLI 6 commands vs 11-phase lifecycle:
@@ -367,6 +411,20 @@ disp = MultiAgentDispatcher(llm_backend=backend)
 result = disp.dispatch("Design auth system", roles=["architect", "security"])
 print(result.summary)
 disp.shutdown()
+```
+
+**4. Sub-Skills (Lightweight Independent)**
+
+```python
+# Each sub-skill works independently — no Dispatcher needed
+from skills.security.handler import SecuritySkill
+risk = SecuritySkill().scan_input("malicious input")
+
+from skills.review.handler import ReviewScore
+verdict = ReviewSkill().review(code_snippet)
+
+from skills.intent.handler import IntentSkill
+intent = IntentSkill().detect("修复登录漏洞", lang="zh")
 ```
 
 **3. MCP Server (for Cursor / any MCP client)**
@@ -771,18 +829,44 @@ See [helm/devsquad/README.md](helm/devsquad/README.md) for full documentation.
 
 ## Cross-Platform Compatibility
 
-| Platform | Integration Method | Status |
-|----------|-------------------|--------|
-| **Trae IDE** | `skill-manifest.yaml` native skill | ✅ Primary |
-| **Claude Code** | `CLAUDE.md` + `.claude/skills/` custom skill | ✅ Supported |
-| **Cursor / MCP clients** | MCP Server (`scripts/mcp_server.py`, 6 tools) | ✅ Supported |
-| **Terminal / Any IDE** | CLI (`scripts/cli.py`) or Python import | ✅ Universal |
-| **Docker** | `docker build -t devsquad .` | ✅ Supported |
+DevSquad is **not TRAE-exclusive**. It supports 6 integration methods:
+
+| Platform | Integration | Setup Difficulty | Key Features Available |
+|----------|-------------|-----------------|----------------------|
+| **TRAE IDE** | Native Skill (`skill-manifest.yaml`) | ⭐ Zero config | Full: Dispatcher + Dashboard + CLI |
+| **Claude Code** | MCP Server / Python import | ⭐ Low | 6 MCP tools or direct API |
+| **Cursor** | MCP Server (`stdio` mode) | ⭐ Low | Same as Claude Code |
+| **OpenClaw / WorkBuddy Claw** | `WorkBuddyClawSource` bridge | Auto | Read-only memory bridge |
+| **Any MCP Client** | stdio / SSE dual mode | ⭐ Low | 6 tools, configurable port |
+| **Pure Python** | `pip install -e .` | ⭐ Low | CLI + API + Skills + REST |
+| **Docker** | `docker build & run` | ⭐ Low | Isolated container with all features |
+
+### Quick Start per Platform
+
+```bash
+# === TRAE IDE ===
+# Just use it — zero configuration
+
+# === Claude Code / Cursor (MCP) ===
+# Add to .claude/mcp.json or .cursor/mcp.json:
+# {"mcpServers": {"devsquad": {"command": "python", "args": ["/path/to/mcp_server.py"]}}}
+
+# === Pure Python ===
+pip install -e "/path/to/DevSquad[all]"
+devsquad dispatch -t "task description"
+
+# === REST API ===
+uvicorn scripts.api_server:app --port 8000   # → http://localhost:8000/docs
+
+# === Docker ===
+docker build -t devsquad . && docker run -it devsquad dispatch -t "test"
+```
 
 ## Version History
 
 | Date | Version | Highlights |
 |------|---------|-----------|
+| 2026-05-16 | **V3.6.0** | 🧩 **Layered Sub-Skill Architecture** — 6 atomic sub-skills (dispatch/intent/review/security/test/retrospective) with lazy-loading registry via importlib, each ~50 lines wrapping existing core modules, no duplicated logic. All sub-skills work in Mock mode without API keys. Plus: Cross-platform compatibility docs updated for Claude Code/Cursor/OpenClaw/Pure Python/Docker/MCP. |
 | 2026-05-13 | **V3.6.0** | ⚓ AnchorChecker (milestone anchor verification + drift detection), RetrospectiveEngine (independent retrospective + pattern extraction), StructuredGoal (structured goal decomposition + progress tracking), FallbackBackend (automatic LLM failover + health monitoring), FeatureUsageTracker (feature usage tracking + reporting + auto-persistence), 7 module integrations (IntentWorkflowMapper/AISemanticMatcher/DualLayerContextManager/OperationClassifier/SkillRegistry/FiveAxisConsensusEngine/NullProviders), 1548+ tests, 48 core modules |
 | 2026-05-05 | **V3.5.0** | 📋 Enhancement Sprint — Code walkthrough enhancement, documentation consistency checks, Karpathy principles, project understanding (AgentBriefing), CLI lifecycle commands, structured output, 748+ tests |
 | 2026-05-03 | **V3.4.1** | 🚀 Agent Skills Quality Framework (P0) — AntiRationalizationEngine + VerificationGate + IntentWorkflowMapper + CLI Lifecycle Commands (spec/plan/build/test/review/ship) + 167 new tests + Google Agent Skills integration + 49 core modules |

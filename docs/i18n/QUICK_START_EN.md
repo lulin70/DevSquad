@@ -138,6 +138,21 @@ export DEVSQUAD_LLM_BACKEND=openai
 
 ---
 
+## Sub-Skills (V3.6.0)
+
+DevSquad also provides **6 atomic sub-skills** (`skills/` package) that can be used independently:
+`dispatch`, `intent`, `review`, `security`, `test`, `retrospective`. Each is a ~50-line wrapper around core modules, working in Mock mode without API keys.
+
+```python
+from skills import get_skill, list_skills
+from skills.security.handler import SecuritySkill
+risk = SecuritySkill().scan_input("suspicious input")
+```
+
+See [SKILL.md](../SKILL.md) § "Layered Sub-Skill Architecture" for details.
+
+---
+
 ## Next Steps
 
 📚 **Complete Documentation**

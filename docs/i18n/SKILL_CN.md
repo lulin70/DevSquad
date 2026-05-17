@@ -581,3 +581,58 @@ def test_<功能>_<场景>(self):
 - **v2.2** (2026-03-21): 长程 Agent (Checkpoint + Handoff)
 - **v2.1** (2026-03-17): 双层上下文 + AI语义匹配
 - **v2.0/v1.0** (2026-03-16): 初始版本
+
+---
+
+## 子Skill架构（V3.6.0 新增）
+
+> 6 个原子化子Skill，可独立使用或组合调用，无需启动完整 Dispatcher。
+
+### 架构总览
+
+```
+skills/
+├── __init__.py              # 包初始化，导出 get_skill/list_skills/discover_all
+├── registry.py               # BaseSkill 类 + 懒加载注册表（importlib 自动发现）
+├── dispatch/handler.py       # → MultiAgentDispatcher
+├── intent/handler.py         # → IntentWorkflowMapper
+├── review/handler.py         # → FiveAxisConsensusEngine
+├── security/handler.py       # → InputValidator + OperationClassifier
+├── test/handler.py           # → TestQualityGuard
+└── retrospective/handler.py  # → RetrospectiveEngine
+```
+
+### 何时使用子Skill？
+
+| 场景 | 推荐方式 | 说明 |
+|------|---------|------|
+| 完整多角色协作 | `MultiAgentDispatcher` 或 `DispatchSkill` | 7角色自动匹配+并行+共识 |
+| 仅需意图检测 | `IntentSkill` | 轻量级，不需要启动完整Dispatcher |
+| 仅需代码审查 | `ReviewSkill` | 五维审查，独立于调度流程 |
+| 安全扫描输入 | `SecuritySkill` | 21+注入模式检测，可单独使用 |
+| 测试策略生成 | `TestSkill` | 测试质量审计+用例建议 |
+| 调度后复盘 | `RetrospectiveSkill` | 模式提取+改进建议 |
+
+### 快速上手
+
+```python
+# 方式1: 直接导入
+from skills.dispatch.handler import DispatchSkill
+from skills.security.handler import SecuritySkill
+from skills.intent.handler import IntentSkill
+
+# 方式2: 通过注册表动态发现
+from skills import get_skill, list_skills, discover_all
+skills = discover_all()  # 获取所有子Skill实例
+for name, skill in skills.items():
+    print(f"{name}: {skill.info()['description']}")
+```
+
+### 与 Dispatcher 的关系
+
+子Skill **不是替代** Dispatcher，而是**互补**：
+
+- **Dispatcher** = 完整的多Agent协作流程（验证→匹配→调度→执行→共识→报告）
+- **子Skill** = 单一能力的轻量入口（只需一个功能时避免启动整个引擎）
+
+典型组合：先用 `IntentSkill.detect()` 判断意图，再用 `DispatchSkill.run()` 执行协作，最后用 `RetrospectiveSkill.summary()` 做复盘。

@@ -442,6 +442,31 @@ Maps natural language intent to structured workflow chains (6 intents × 3 langu
 
 ---
 
+## 14.5 Sub-Skills (V3.6.0)
+
+DevSquad provides **6 atomic sub-skills** (`skills/` package) that can be used independently of the full orchestration pipeline:
+
+| Sub-Skill | Purpose | Module |
+|-----------|---------|--------|
+| `dispatch` | Task dispatch | `skills.dispatch.handler.DispatchSkill` |
+| `intent` | Intent detection | `skills.intent.handler.IntentSkill` |
+| `review` | Code review | `skills.review.handler.ReviewSkill` |
+| `security` | Input scanning | `skills.security.handler.SecuritySkill` |
+| `test` | Test generation | `skills.test.handler.TestSkill` |
+| `retrospective` | Retrospective analysis | `skills.retrospective.handler.RetrospectiveSkill` |
+
+Each sub-skill is a ~50-line wrapper around core modules, working in Mock mode without API keys.
+
+```python
+from skills import get_skill, list_skills
+from skills.security.handler import SecuritySkill
+risk = SecuritySkill().scan_input("suspicious input")
+```
+
+See [SKILL.md](../SKILL.md) § "Layered Sub-Skill Architecture" for details.
+
+---
+
 ## 15. FAQ
 
 **Q: Can I use DevSquad without an API Key?**

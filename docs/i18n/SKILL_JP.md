@@ -238,3 +238,58 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 - **v3.2** (2026-04-17): MVP 3並行ライン (E2E Demo + Dispatcher UX + MCE Adapter)
 - **v3.1** (2026-04-16): プロンプト最適化システム
 - **v3.0** (2026-04-16): V3アーキテクチャ基盤
+
+---
+
+## サブスキルアーキテクチャ（V3.6.0 新機能）
+
+> 6つの原子サブスキル。独立使用または組み合わせ呼出しが可能で、完全なDispatcherを起動する必要はありません。
+
+### アーキテクチャ概要
+
+```
+skills/
+├── __init__.py              # パッケージ初期化、get_skill/list_skills/discover_allをエクスポート
+├── registry.py               # BaseSkillクラス + 遅延ロードレジストリ（importlib自動検出）
+├── dispatch/handler.py       # → MultiAgentDispatcher
+├── intent/handler.py         # → IntentWorkflowMapper
+├── review/handler.py         # → FiveAxisConsensusEngine
+├── security/handler.py       # → InputValidator + OperationClassifier
+├── test/handler.py           # → TestQualityGuard
+└── retrospective/handler.py  # → RetrospectiveEngine
+```
+
+### いつサブスキルを使う？
+
+| シナリオ | 推奨方式 | 説明 |
+|----------|---------|------|
+| 完全マルチロールコラボレーション | `MultiAgentDispatcher` または `DispatchSkill` | 7ロール自動マッチング+並列+コンセンサス |
+| 意図検出のみ | `IntentSkill` | ライトウェイト、完全なDispatcher不要 |
+| コードレビューのみ | `ReviewSkill` | 5軸レビュー、スケジューリングフローから独立 |
+| セキュリティ入力スキャン | `SecuritySkill` | 21+インジェクションパターン検出、単独使用可能 |
+| テスト戦略生成 | `TestSkill` | テスト品質監査+テストケース提案 |
+| スケジューリング後の振り返り | `RetrospectiveSkill` | パターン抽出+改善提案 |
+
+### クイックスタート
+
+```python
+# 方法1: 直接インポート
+from skills.dispatch.handler import DispatchSkill
+from skills.security.handler import SecuritySkill
+from skills.intent.handler import IntentSkill
+
+# 方法2: レジストリ経由で動的発見
+from skills import get_skill, list_skills, discover_all
+skills = discover_all()  # 全サブスキルインスタンスを取得
+for name, skill in skills.items():
+    print(f"{name}: {skill.info()['description']}")
+```
+
+### Dispatcherとの関係
+
+サブスキルはDispatcherの**代替**ではなく**補完**です：
+
+- **Dispatcher** = 完全なマルチエージェントコラボレーションフロー（検証→マッチング→スケジューリング→実行→コンセンサス→レポート）
+- **サブスキル** = 単一能力のライトウェイトエントリ（1つの機能だけが必要な場合、エンジン全体を起動せずに済む）
+
+典型的な組み合わせ：まず `IntentSkill.detect()` で意図を判断し、次に `DispatchSkill.run()` でコラボレーションを実行し、最後に `RetrospectiveSkill.summary()` で振り返りを行います。
