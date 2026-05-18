@@ -313,7 +313,17 @@ You: "Design a microservices e-commerce backend"
 - **Python 3.9+** (3.9, 3.10, 3.11, 3.12 supported)
 - **pip** or **pipenv** for package management
 
-### Option A: Core Installation (CLI + Dashboard)
+### Option A: PyPI Install (Recommended)
+```bash
+# Install from PyPI — zero setup, ready to use
+pip install devsquad
+
+# With optional dependencies
+pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
+pip install "devsquad[all]"    # All optional features
+```
+
+### Option B: Core Installation (CLI + Dashboard)
 ```bash
 git clone https://github.com/your-org/DevSquad.git
 cd DevSquad
@@ -325,7 +335,7 @@ pip install -e .
 devsquad dispatch -t "Design user authentication system"
 ```
 
-### Option B: Full Production Stack (Recommended)
+### Option C: Full Production Stack (All Features)
 ```bash
 # Clone and install with all production features
 git clone https://github.com/your-org/DevSquad.git

@@ -24,7 +24,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
-## Architecture Overview (48 Core Modules)
+## Architecture Overview (53+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -94,6 +94,11 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | 63 | **AlertManager** | `alert_manager.py` | Multi-channel alerting: Console/Slack/Email/Webhook, rate limiting, deduplication, severity levels |
 | 64 | **HistoryManager** | `history_manager.py` | SQLite time-series storage: metrics snapshots, alert history, API logs, lifecycle events |
 | 65 | **StreamlitDashboard** | `dashboard.py` | Interactive web dashboard with authentication, real-time monitoring, phase visualization |
+| 66 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback closed-loop iteration for continuous improvement |
+| 67 | **ExecutionGuard** | `execution_guard.py` | Real-time abort guard (timeout/output/keywords) for safe execution |
+| 68 | **PerformanceFingerprint** | `performance_fingerprint.py` | Unified fingerprint with TF-IDF similarity search for task matching |
+| 69 | **SimilarTaskRecommender** | `similar_task_recommender.py` | History-based task config recommendation using performance data |
+| 70 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | Success-rate-driven adaptive role selection for optimal team composition |
 
 ---
 
@@ -198,9 +203,24 @@ roles = selector.select_roles("Fix security bug", intent="bug_fix")
 
 ---
 
-## Architecture Overview (48 Core Modules)
+## Architecture Overview (53+ Core Modules)
 
 ## Quick Start (Must Follow)
+
+### Installation
+
+```bash
+# Install from PyPI (recommended)
+pip install devsquad
+
+# With optional dependencies
+pip install "devsquad[api]"    # Includes FastAPI + Streamlit dashboard
+pip install "devsquad[all]"    # All optional dependencies
+
+# Or install in development mode (for contributors)
+pip install -e .
+pip install -e ".[api]"       # With API/dashboard dependencies
+```
 
 ### Method 1: One-Click Collaboration (Recommended for most scenarios)
 

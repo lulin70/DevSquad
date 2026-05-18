@@ -24,7 +24,7 @@ description: |
              → [コンセンサス決定] → [レポート整形] → [構造化レポート]
 ```
 
-## アーキテクチャ概要（53コアモジュール）
+## アーキテクチャ概要（59コアモジュール）
 
 | # | モジュール | ファイル | 責任 |
 |---|-----------|--------|------|
@@ -75,6 +75,29 @@ description: |
 | 44 | **LLMRetryAsync** | `llm_retry_async.py` | 非同期LLMリトライ+バックオフ |
 | 45 | **IntegrationExample** | `integration_example.py` | DevSquad統合サンプルコード |
 | 46 | **AsyncIntegrationExample** | `async_integration_example.py` | 非同期DevSquad統合サンプル |
+| 47 | **AntiRationalizationEngine** | `anti_rationalization.py` | ロール別言い訳→反論テーブル（8汎用+6-7ロール固有）、PromptAssembler経由で注入し品質ショートカット防止 |
+| 48 | **VerificationGate** | `verification_gate.py` | 必須証拠要求 + 7レッドフラグ検出 + Prove-Itパターン（完了主張検証） |
+| 49 | **AnchorChecker** | `anchor_checker.py` | [V3.6.0] アンカー整合性チェック、出力の事実一致性検証 |
+| 50 | **RetrospectiveEngine** | `retrospective_engine.py` | [V3.6.0] 振り返りエンジン、パターン抽出+改善提案生成 |
+| 51 | **StructuredGoal** | `structured_goal.py` | [V3.6.0] 構造化目標定義、目標分解+追跡+達成度評価 |
+| 52 | **FallbackBackend** | `fallback_backend.py` | [V3.6.0] フォールバックバックエンド、マルチバックエンド自動切替+グレースフルデグラデーション |
+| 53 | **FeatureUsageTracker** | `feature_usage_tracker.py` | [V3.6.0] 機能使用量追跡、機能採用率分析+使用レポート |
+| 54 | **FeedbackControlLoop** | `feedback_control_loop.py` | [V3.6.1] Sense→Decide→Act→Feedbackクローズドループ反復 |
+| 55 | **ExecutionGuard** | `execution_guard.py` | [V3.6.1] リアルタイム実行ガード（タイムアウト/出力/キーワード検知） |
+| 56 | **PerformanceFingerprint** | `performance_fingerprint.py` | [V3.6.1] 統一実行フィンガープリント+TF-IDF類似度検索 |
+| 57 | **SimilarTaskRecommender** | `similar_task_recommender.py` | [V3.6.1] 履歴ベースタスク構成推奨 |
+| 58 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | [V3.6.1] 成功率駆動適応型ロール選択 |
+
+---
+
+## インストール
+
+```bash
+# PyPIから直接インストール（推奨）
+pip install devsquad
+pip install "devsquad[api]"
+pip install "devsquad[all]"
+```
 
 ---
 
@@ -88,6 +111,12 @@ disp = MultiAgentDispatcher()
 result = disp.dispatch("ユーザーのタスク")
 print(result.to_markdown())
 disp.shutdown()
+```
+
+**CLI同等コマンド**:
+```bash
+export OPENAI_API_KEY="sk-..."
+python3 scripts/cli.py dispatch -t "認証システム設計" -r arch sec --backend openai
 ```
 
 ### 方法2：ロール指定
@@ -293,3 +322,45 @@ for name, skill in skills.items():
 - **サブスキル** = 単一能力のライトウェイトエントリ（1つの機能だけが必要な場合、エンジン全体を起動せずに済む）
 
 典型的な組み合わせ：まず `IntentSkill.detect()` で意図を判断し、次に `DispatchSkill.run()` でコラボレーションを実行し、最後に `RetrospectiveSkill.summary()` で振り返りを行います。
+
+---
+
+## 🔄 制御論強化（V3.6.1）
+
+> 上流 TraeMultiAgentSkill v2.5 の制御論アーキテクチャに着想。
+> フィードバックループ、実行ガード、インテリジェンスを追加する5つの新モジュール。
+
+| モジュール | ファイル | 目的 |
+|-----------|---------|------|
+| FeedbackControlLoop | `feedback_control_loop.py` | Sense→Decide→Act→Feedbackクローズドループ反復 |
+| ExecutionGuard | `execution_guard.py` | リアルタイム中止ガード（タイムアウト/出力/キーワード） |
+| PerformanceFingerprint | `performance_fingerprint.py` | 統一フィンガープリント+TF-IDF類似度検索 |
+| SimilarTaskRecommender | `similar_task_recommender.py` | 履歴ベースタスク構成推奨 |
+| AdaptiveRoleSelector | `adaptive_role_selector.py` | 成功率駆動適応型ロール選択 |
+
+### クイックスタート
+
+```python
+from scripts.collaboration import (
+    FeedbackControlLoop, PerformanceFingerprint,
+    SimilarTaskRecommender, AdaptiveRoleSelector, ExecutionGuard
+)
+
+# フィードバックループ（品質ゲート通過まで自動リトライ）
+loop = FeedbackControlLoop(dispatcher, quality_gate=0.7)
+result = loop.run("認証システム設計", max_iterations=3)
+
+# パフォーマンスフィンガープリント
+fp = PerformanceFingerprint()
+fp.record_execution(task, result, timing, roles)
+similar = fp.find_similar("ログインページ追加")
+
+# スマート推奨
+recommender = SimilarTaskRecommender(fp)
+rec = recommender.recommend("API実装")
+print(rec["recommended_roles"])  # ["architect", "coder"]
+
+# 適応型ロール選択
+selector = AdaptiveRoleSelector(fp)
+roles = selector.select_roles("セキュリティバグ修正", intent="bug_fix")
+```

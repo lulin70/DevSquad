@@ -18,6 +18,151 @@
 
 **DevSquad V3.6.1** は FeedbackControlLoop 制御論フィードバックループ、ExecutionGuard リアルタイム実行ガード、PerformanceFingerprint 統一実行フィンガープリント、SimilarTaskRecommender 履歴タスク推奨、AdaptiveRoleSelector 適応型ロール選択を追加 — マルチエージェントコラボレーションをよりインテリジェント・自己修復・可観測にします。
 
+## 🔄 V3.6.1 サイバネティクス強化詳細
+
+### FeedbackControlLoop — 閉ループフィードバック制御
+
+**核心能力**: ディスパッチ結果の品質メトリックを継続的にモニタリングし、閉ループフィードバックで自動調整を行う制御論システム。
+
+**主な機能**:
+- **品質メトリック収集**: 各ディスパッチサイクルから信頼度スコア、コンセンサス達成率、レスポンス遅延を収集
+- **フィードバック計算**: 加重平均アルゴリズムで現在のシステム状態を評価
+- **自動調整**: 品質が閾値を下回った場合、ロール重みやLLMパラメータを動的に調整
+- **履歴トレンド分析**: 直近 N 回のディスパッチデータから傾向を検出し、劣化を予防
+
+```python
+from scripts.collaboration.feedback_control_loop import FeedbackControlLoop
+
+# フィードバックループ初期化
+loop = FeedbackControlLoop(
+    quality_threshold=85.0,
+    adjustment_factor=0.1,
+    history_window=10
+)
+
+# ディスパッチ結果を登録
+result = disp.dispatch("API設計タスク")
+loop.record_dispatch(result)
+
+# フィードバックを取得して調整
+feedback = loop.get_feedback()
+if feedback.needs_adjustment:
+    adjusted_params = loop.suggest_adjustments()
+    print(f"調整提案: {adjusted_params}")
+```
+
+### ExecutionGuard — ロールバック付き安全実行ガード
+
+**核心能力**: タスク実行前後に安全チェックを実行し、問題発生時に自動ロールバックする実行保護システム。
+
+**主な機能**:
+- **事前条件検証**: タスク開始前に依存関係、リソース可用性、権限レベルをチェック
+- **実行時モニタリング**: タイムアウト検出、例外キャプチャ、リソース使用量追跡
+- **自動ロールバック**: 失敗時または品質基準未達成時に状態を直前のチェックポイントに復元
+- **セーフティネット**: 最大再試行回数、緊急停止トリガー、部分成功ハンドリング
+
+```python
+from scripts.collaboration.execution_guard import ExecutionGuard
+
+guard = ExecutionGuard(
+    max_retries=3,
+    timeout_seconds=300,
+    auto_rollback=True
+)
+
+# 安全なタスク実行
+with guard.execute("マイグレーションタスク") as execution:
+    result = disp.dispatch(execution.task)
+    
+    # 実行後の品質チェック
+    if result.quality_score < 80:
+        execution.mark_failed("品質基準未達成")
+        # 自動ロールバックが発動
+```
+
+### PerformanceFingerprint — パフォーマンスベースライン追跡
+
+**核心能力**: 各種操作のパフォーマンス指標をベースラインとして記録し、異常検知とボトルネック特定を行うシステム。
+
+**主な機能**:
+- **ベースライン記録**: 初期実行から P50/P95/P99 レイテンシ、スループット、エラー率を記録
+- **異常検出**: 統計的手法（Z-score、IQR）でパフォーマンス逸脱を検出
+- **トレンド分析**: 時系列データからパフォーマンス劣化または改善傾向を識別
+- **レポート生成**: マークダウン形式のパフォーマンスダッシュボードを出力
+
+```python
+from scripts.collaboration.performance_fingerprint import PerformanceFingerprint
+
+pf = PerformanceFingerprint(baseline_samples=20)
+
+# 操作を計測
+with pf.measure("dispatch_operation") as metric:
+    result = disp.dispatch("テストタスク")
+
+# ベースラインと比較
+report = pf.analyze()
+if report.has_anomaly():
+    print(f"⚠️ 異常検出: {report.anomalies}")
+    print(f"ボトルネック: {report.bottlenecks}")
+```
+
+### SimilarTaskRecommender — TF-IDFベースタスク類似性検索
+
+**核心能力**: 過去のタスク履歴から TF-IDF ベクトル空間モデルを使用して、類似タスクを推薦する知的検索システム。
+
+**主な機能**:
+- **TF-IDFベクトル化**: 日本語・英語・中国語対応のテキスト特徴抽出
+- **類似度計算**: コサイン類似度による高速近似最近傍探索
+- **コンテキスト-aware推薦**: 使用されたロール、結果の品質スコア、実行時間を考慮
+- **学習機能**: 新しいタスク実行結果をインデックスに自動追加
+
+```python
+from scripts.collaboration.similar_task_recommender import SimilarTaskRecommender
+
+recommender = SimilarTaskRecommender(language="ja")
+
+# 過去のタスクを登録（通常は自動）
+recommender.index_task("ユーザー認証API設計", roles=["arch", "sec"], success=True)
+
+# 類似タスクを推薦
+similar = recommender.find_similar("ログイン機能実装", top_k=5)
+for task in similar:
+    print(f"📋 {task.description} (類似度: {task.similarity:.2f})")
+    print(f"   推奨ロール: {task.suggested_roles}")
+    print(f"   過去の成功率: {task.success_rate}%")
+```
+
+### AdaptiveRoleSelector — タスク特性に基づく知的ロール選択
+
+**核心能力**: タスクのテキスト特徴、複雑度、ドメインから最適なロール組み合わせを機械学習的に選択する適応システム。
+
+**主な機能**:
+- **タスク解析**: キーワード抽出、複雑度スコアリング、ドメイン分類
+- **ロールスコアリング**: 各ロールのタスク適合度を多因子モデルで評価
+- **動的最適化**: 過去の成功/失敗データから選択精度を継続的に改善
+- **説明可能AI**: 選択理由の透明な説明（どの特徴が影響したか）
+
+```python
+from scripts.collaboration.adaptive_role_selector import AdaptiveRoleSelector
+
+selector = AdaptiveRoleSelector()
+
+# タスクから最適ロールを自動選択
+selection = selector.select_roles(
+    "高負荷分散システムの設計と実装",
+    max_roles=4,
+    explain=True
+)
+
+print(f"選択ロール: {selection.roles}")
+print(f"各ロールの適合スコア:")
+for role, score in selection.scores.items():
+    print(f"  {role}: {score:.2f}")
+
+if selection.explanation:
+    print(f"選択理由: {selection.explanation.reasoning}")
+```
+
 ## DevSquadとは？
 
 DevSquadは、**単一のAIタスクをマルチロールAIコラボレーションに変換**します。タスクを最適な専門ロールの組み合わせに自動ディスパッチし、共有ワークスペースで並行コラボレーションを編成し、重み付きコンセンサス投票で競合を解決し、統一された構造化レポートを提供します。
@@ -27,14 +172,21 @@ DevSquadは、**単一のAIタスクをマルチロールAIコラボレーショ
 ### インストール
 
 ```bash
+# 方法1: PyPI直接インストール（推奨）
+pip install devsquad
+
+# オプション依存関係付き
+pip install "devsquad[api]"   # FastAPI + Streamlit含む
+pip install "devsquad[all]"   # 全オプション依存関係含む
+
 git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
 
-# 方法 A: 直接実行（インストール不要）
+# 方法2: 直接実行（インストール不要）
 # 依存関係なし、即時使用可能、設定ファイル機能は制限されます
 python3 scripts/cli.py dispatch -t "ユーザー認証システムを設計"
 
-# 方法 B: pip インストール（推奨）
+# 方法3: pip インストール（開発モード）
 # 全機能、設定ファイルサポートあり（pyyaml自動インストール）
 pip install -e .
 devsquad dispatch -t "ユーザー認証システムを設計"
@@ -206,7 +358,68 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 - **品質管理注入**: `.devsquad.yaml` 設定に基づき、QCルール（ハルシネーション防止、過信チェック、セキュリティガード、RACIプロトコル）をWorkerプロンプトに自動注入
 - **Dockerサポート**: `docker build -t devsquad .`
 - **GitHub Actions CI**: Python 3.9-3.12マトリックステスト
-- **pipインストール可能**: `pip install -e .` + オプション依存関係
+- **pipインストール可能**: `pip install devsquad` + オプション依存関係
+
+## 📦 モジュール参照 (53 モジュール)
+
+| # | モジュール | ファイル | 責任 |
+|---|----------|---------|------|
+| 1 | **MultiAgentDispatcher** | `dispatcher.py` | 統一エントリポイント |
+| 2 | **Coordinator** | `coordinator.py` | グローバルオーケストレーション：計画→割り当て→実行→収集 |
+| 3 | **Worker** | `worker.py` | LLMバックエンド統合付きロール実行者 |
+| 4 | **EnhancedWorker** | `enhanced_worker.py` | 自動QA付きワーカー（ブリーフィング + 信頼度 + リトライ + メモリルール） |
+| 5 | **Scratchpad** | `scratchpad.py` | ワーカー間通信用共有ブラックボード |
+| 6 | **ConsensusEngine** | `consensus.py` | 重み付け投票 + 拒否権 + エスカレーション |
+| 7 | **RoleMatcher** | `role_matcher.py` | キーワードベースのロールマッチングとエイリアス解決 |
+| 8 | **ReportFormatter** | `report_formatter.py` | 構造化/コンパクト/詳細レポート生成 |
+| 9 | **InputValidator** | `input_validator.py` | セキュリティ検証 + プロンプト注入検出 |
+| 10 | **AISemanticMatcher** | `ai_semantic_matcher.py` | LLM駆動セマンティックロールマッチング |
+| 11 | **CheckpointManager** | `checkpoint_manager.py` | 状態永続化 + ハンドオフ文書 |
+| 12 | **WorkflowEngine** | `workflow_engine.py` | タスク→ワークフロー自動分割 + 11フェーズライフサイクルテンプレート + 要件変更管理 |
+| 13 | **TaskCompletionChecker** | `task_completion_checker.py` | 完了度追跡 + 進捗レポート |
+| 14 | **CodeMapGenerator** | `code_map_generator.py` | Python ASTベースのコード構造解析 |
+| 15 | **DualLayerContextManager** | `dual_layer_context.py` | プロジェクトレベル + タスクレベルコンテキスト管理 |
+| 16 | **SkillRegistry** | `skill_registry.py` | 再利用可能スキル登録 + 発見 |
+| 17 | **IntentWorkflowMapper** | `intent_workflow_mapper.py` | ユーザー意図 → ワークフローチェーンマッピング（6意図 × 3言語） |
+| 18 | **OperationClassifier** | `operation_classifier.py` | 3階層操作分類（ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN） |
+| 19 | **FiveAxisConsensusEngine** | `five_axis_consensus.py` | 5軸レビューコンセンサスと重み付け投票 |
+| 20 | **FeatureUsageTracker** | `feature_usage_tracker.py` | 機能使用追跡 + レポート + 自動永続化 |
+| 21 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + ストリーミングサポート |
+| 22 | **LLMCache** | `llm_cache.py` | TTLベースLRUキャッシュ + ディスク永続化 |
+| 23 | **LLMRetry** | `llm_retry.py` | 指数バックオフ + サーキットブレーカー |
+| 24 | **ConfigManager** | `config_loader.py` | YAML設定 + 環境変数オーバーライド |
+| 25 | **PromptAssembler** | `prompt_assembler.py` | 動的プロンプトアセンブリ + QCルール注入 |
+| 26 | **AgentBriefing** | `agent_briefing.py` | 優先度フィルタリング付きコンテキスト対応タスクブリーフィング |
+| 27 | **ConfidenceScorer** | `confidence_score.py` | 5因子応答品質評価 |
+| 28 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99追跡 + CPU/メモリ監視 |
+| 29 | **MCEAdapter** | `mce_adapter.py` | CarryMem統合アダプター（オプション依存、match_rules + format_rules_as_prompt + add_ruleをサポート） |
+| 30 | **Protocols** | `protocols.py` | インターフェース定義（CacheProvider, MemoryProvider等） |
+| 31 | **NullProviders** | `null_providers.py` | グレースフルデグラデーションプロバイダー |
+| 32 | **PermissionGuard** | `permission_guard.py` | 4レベルセーフティゲート |
+| 33 | **MemoryBridge** | `memory_bridge.py` | クロスセッションメモリ |
+| 34 | **BatchScheduler** | `batch_scheduler.py` | バッチタスクスケジューリング |
+| 35 | **ContextCompressor** | `context_compressor.py` | 長時間タスク用コンテキスト圧縮 |
+| 36 | **RoleTemplateMarket** | `role_template_market.py` | ロールテンプレートシェアリングマーケットプレイス |
+| 37 | **Skillifier** | `skillifier.py` | タスクからの自動スキル学習 |
+| 38 | **UsageTracker** | `usage_tracker.py` | トークン/コスト追跡 |
+| 39 | **WarmupManager** | `warmup_manager.py` | 起動ウォームアップ最適化 |
+| 40 | **TestQualityGuard** | `test_quality_guard.py` | テスト品質強制 |
+| 41 | **PromptVariantGenerator** | `prompt_variant_generator.py` | A/Bプロンプトテスト |
+| 42 | **ConfigManager (YAML)** | `config_manager.py` | プロジェクトレベルYAML設定 |
+| 43 | **WorkBuddyClawSource** | `memory_bridge.py` | WorkBuddy読み取り専用ブリッジ |
+| 44 | **Models** | `models.py` | 共有データモデルと型定義 |
+| 45 | **LLMCacheAsync** | `llm_cache_async.py` | 並列ワークロード用非同期LLMキャッシュ |
+| 46 | **LLMRetryAsync** | `llm_retry_async.py` | バックオフ付き非同期LLMリトライ |
+| 47 | **IntegrationExample** | `integration_example.py` | DevSquad統合サンプルコード |
+| 48 | **AsyncIntegrationExample** | `async_integration_example.py` | 非同期DevSquad統合サンプル |
+| 49 | **AnchorChecker** | `anchor_checker.py` | マイルストーンアンカー検証 + ドリフト検出 + 自動リカバリ |
+| 50 | **RetrospectiveEngine** | `retrospective.py` | 独立ディスパッチ後レトロスペクティブ + パターン抽出 + アンチパターン検出 |
+| 51 | **FallbackBackend** | `llm_backend.py` | ヘルスモニタリング付き自動LLMバックエンドフェイルオーバー |
+| 52 | **FeedbackControlLoop** | `feedback_control_loop.py` | 閉ループフィードバック制御（V3.6.1新規） |
+| 53 | **ExecutionGuard** | `execution_guard.py` | ロールバック付き安全実行ガード（V3.6.1新規） |
+| 54 | **PerformanceFingerprint** | `performance_fingerprint.py` | パフォーマンスベースライン追跡（V3.6.1新規） |
+| 55 | **SimilarTaskRecommender** | `similar_task_recommender.py` | TF-IDFベースタスク類似性検索（V3.6.1新規） |
+| 56 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | タスク特性に基づく知的ロール選択（V3.6.1新規） |
 
 ## 設定
 
