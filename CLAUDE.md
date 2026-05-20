@@ -222,16 +222,24 @@ python3 scripts/cli.py roles        # List 7 roles
 
 ### ⚠️ TRAE 技能缓存层（更新文档时必读）
 
-TRAE CN 版运行在 **CrossOver Wine 容器**内，技能文件有 **4 层**。修改 `skill-manifest.yaml` 或 `SKILL.md` 后**必须同步全部 4 层**，否则 TRAE 技能面板版本不会更新。
+修改 `skill-manifest.yaml` 或 `SKILL.md` 后**必须同步全部 3 层**，否则 TRAE 技能面板版本不会更新。
 
 | 层 | 路径 | 说明 |
 |---|------|------|
-| **L1 ⭐** | `~/Library/Application Support/CrossOver/Bottles/Steam/dosdevices/y:/.trae-cn/skills/devsquad/` | **TRAE实际读取源（CrossOver容器）** |
-| L2 | `~/.trae/skills/devsquad/` | macOS用户级 |
+| **L1 ⭐** | `~/.trae-cn/skills/devsquad/` | **TRAE 实际读取源（最高优先级）** |
+| L2 | `~/.trae/skills/devsquad/` | macOS 全局用户级 |
 | L3 | `<项目>/.trae/skills/devsquad/` | 项目级 |
-| L4 | `<项目>/skill-manifest.yaml`, `<项目>/SKILL.md` | 源文件 |
+| L4 (源) | `<项目>/skill-manifest.yaml`, `<项目>/SKILL.md` | 源文件 |
 
-详细同步命令见 [docs/INDEX.md](docs/INDEX.md) → 文档维护 → TRAE技能缓存层结构。
+**一键同步命令**（在系统终端执行）：
+```bash
+for T in ~/.trae-cn/skills/devsquad ~/.trae/skills/devsquad <项目>/.trae/skills/devsquad; do
+  cp <项目>/skill-manifest.yaml "$T/" 2>/dev/null
+  cp <项目>/SKILL.md "$T/" 2>/dev/null
+done
+```
+
+> **经验教训(2026-05-19)**: L1(`.trae-cn`)是 TRAE CN 的实际加载路径，之前只同步了 L2(`.trae`)导致面板显示旧版本。**每次发布新版本后必须同步 L1**。
 
 ## Agent Behavior Guidelines (Quality Control)
 
