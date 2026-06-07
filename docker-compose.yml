@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  devsquad:
+    build:
+      context: .
+      target: runtime
+    container_name: devsquad-runtime
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    environment:
+      - DEVSQUAD_LLM_BACKEND=mock
+      - LOG_LEVEL=INFO
+    volumes:
+      - squad_data:/app/data
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "from scripts.collaboration._version import __version__; print(__version__)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  devsquad-dev:
+    build:
+      context: .
+      target: dev
+    container_name: devsquad-dev
+    ports:
+      - "8001:8000"
+      - "8502:8501"
+    environment:
+      - DEVSQUAD_LLM_BACKEND=mock
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - .:/app
+      - squad_data_dev:/app/data
+    stdin_open: true
+    tty: true
+    profiles:
+      - dev
+
+volumes:
+  squad_data:
+    driver: local
+  squad_data_dev:
+    driver: local

@@ -1,0 +1,72 @@
+replicaCount: 1
+
+image:
+  repository: devsquad
+  tag: "3.6.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 8000
+  annotations: {}
+
+dashboard:
+  enabled: true
+  port: 8501
+  serviceType: ClusterIP
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+envVars:
+  LLM_BACKEND: "mock"
+  LOG_LEVEL: "WARNING"
+  OPENAI_API_KEY: ""
+  OPENAI_BASE_URL: ""
+  OPENAI_MODEL: "gpt-4"
+  ANTHROPIC_API_KEY: ""
+  ANTHROPIC_MODEL: "claude-sonnet-4-20250514"
+  DEVSQUAD_LLM_BACKEND: "mock"
+  DEVSQUAD_LOG_LEVEL: "WARNING"
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  annotations: {}
+  existingClaim: ""
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+containerSecurityContext:
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+serviceAccount:
+  create: true
+  name: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []

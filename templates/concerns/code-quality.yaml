@@ -1,0 +1,170 @@
+concern_id: code-quality
+name: 代码质量增强包(Karpathy)
+version: "1.0"
+description: 基于Karpathy四大核心原则+Vibe Coding精选规则，防止LLM常见编码错误（不思考就写、过度设计、改太多、跑偏）
+triggers:
+  keywords:
+    - 代码质量
+    - 重构
+    - 优化
+    - 简化
+    - code quality
+    - refactor
+    - simplify
+    - over-engineering
+    - 过度设计
+    - 代码规范
+    - 编码规范
+    - 代码坏味道
+    - code smell
+    - 技术债
+    - technical debt
+
+decision_framework:
+  step_1_think_before_coding:
+    question: Think Before Coding
+    description: LLM直接写代码不思考，导致方向错误或遗漏关键约束
+    problem: LLM倾向于立即生成代码，跳过分析假设和权衡的步骤
+    checks:
+      - 是否先分析了问题中的隐含假设？
+      - 是否呈现了多种方案的权衡比较？
+      - 遇到不清晰的需求是否主动提问而非猜测？
+      - 是否考虑了边界条件和异常情况？
+      - 是否先读代码再改代码（理解现有实现）？
+    applicable_roles: [architect, solo-coder]
+    vibe_coding_rule: 先读代码再改代码 — 补充"先理解再行动"
+
+  step_2_simplicity_first:
+    question: Simplicity First
+    description: LLM喜欢过度设计，添加不必要的抽象和功能
+    problem: LLM倾向于生成过度工程化的代码，包含speculative features和过度抽象
+    checks:
+      - 是否有speculative features（当前不需要但"将来可能需要"的功能）？
+      - 是否过度抽象（只有一种实现的接口、只有两个子类的继承体系）？
+      - 是否用了最简方案（3行代码能解决的不写30行）？
+      - 是否引入了不必要的依赖？
+      - 配置项是否过多（YAGNI原则）？
+    applicable_roles: [architect, solo-coder]
+    anti_patterns:
+      - name: 过早抽象
+        description: 只有一种实现就创建接口/抽象类
+        fix: 等到有第二种实现时再抽象
+      - name: 配置驱动过度
+        description: 把所有东西都做成可配置的
+        fix: 只配置真正需要变化的，硬编码合理的默认值
+      - name: 框架化思维
+        description: 写一个通用框架来解决一个具体问题
+        fix: 先解决具体问题，提取通用模式是后续重构的事
+
+  step_3_surgical_changes:
+    question: Surgical Changes
+    description: LLM改太多无关代码，引入意外副作用
+    problem: LLM倾向于大范围修改，包括格式化、重命名、重构不相关的代码
+    checks:
+      - 是否只改了本次任务需要的代码？
+      - 是否改了无关文件（格式化、重命名等）？
+      - 修改后的代码风格是否与周围代码一致？
+      - 是否保持了原有接口的向后兼容？
+      - 不改无关代码 — 强化"只改必要的"
+      - 保持风格一致 — 补充"风格一致性"
+    applicable_roles: [solo-coder, tester]
+    change_scope_guide: |
+      允许的变更范围：
+      - 修复Bug：只改Bug相关代码 + 必要的错误处理
+      - 新增功能：新增代码 + 最小化的接口变更
+      - 重构：只重构目标模块，不混入功能变更
+      禁止的变更范围：
+      - 修Bug时顺便重构其他代码
+      - 新增功能时顺便改命名规范
+      - 提交中混入格式化变更
+
+  step_4_goal_driven_execution:
+    question: Goal-Driven Execution
+    description: LLM容易跑偏，偏离原始目标
+    problem: LLM在执行过程中容易被细节吸引，偏离用户原始意图
+    checks:
+      - 是否定义了明确的成功标准（Done = ?）？
+      - 是否有验证检查点（每步可验证）？
+      - 是否迭代直到完成（而非半途而废）？
+      - 文档是否同步更新（文档也是交付物）？
+      - 每步可验证 — 强化"渐进验证"
+      - 文档同步更新 — 补充"文档也是交付物"
+    applicable_roles: [architect, solo-coder, tester, security, devops, product-manager, ui-designer]
+    verification_checklist:
+      - 成功标准是否可量化/可验证？
+      - 每个步骤是否有明确的完成条件？
+      - 完成后是否有自测步骤？
+      - 文档是否与代码同步更新？
+
+checklist:
+  must_have:
+    - item: 编码前已分析假设和权衡（Think Before Coding）
+      severity: required
+    - item: 方案是最简实现，无speculative features（Simplicity First）
+      severity: required
+    - item: 变更范围最小化，未改无关代码（Surgical Changes）
+      severity: required
+    - item: 成功标准已定义且可验证（Goal-Driven Execution）
+      severity: required
+    - item: 文档与代码同步更新
+      severity: high
+    - item: 代码风格与周围代码一致
+      severity: high
+
+  common_pitfalls:
+    - title: 不思考就写代码
+      description: LLM直接开始编码，跳过分析假设和权衡的步骤，导致方向错误
+      severity: high
+      check: 是否先分析了问题？是否呈现了权衡？遇到不清是否提问？
+      fix: 强制Think Before Coding步骤，先输出分析再输出代码
+
+    - title: 过度设计
+      description: LLM添加不必要的抽象层、配置项、设计模式，增加理解和维护成本
+      severity: high
+      check: 是否有只用一次的接口？是否有"将来可能需要"的功能？3行能解决的是否写了30行？
+      fix: 应用Simplicity First原则，YAGNI，最简方案优先
+
+    - title: 改太多无关代码
+      description: LLM在修Bug或加功能时，顺便重构、格式化、重命名其他代码
+      severity: medium
+      check: diff中是否包含与本次任务无关的变更？
+      fix: 应用Surgical Changes原则，一次只做一件事
+
+    - title: 半途而废
+      description: LLM实现了核心逻辑但遗漏错误处理、测试、文档，声称"已完成"
+      severity: high
+      check: 成功标准是否全部达成？错误处理是否完整？文档是否更新？
+      fix: 应用Goal-Driven Execution原则，定义明确的Done标准
+
+    - title: 文档不同步
+      description: 代码变更后忘记更新API文档、README、CHANGELOG
+      severity: medium
+      check: 代码变更是否同步更新了所有相关文档？
+      fix: 文档同步更新作为Goal-Driven的完成条件之一
+
+role_enhancements:
+  architect:
+    extra_prompt: |
+      【Karpathy架构师指南】
+      在设计架构时，应用以下原则：
+      1. Think Before Coding: 先分析不同架构方案的优缺点，再做决策。不要第一个想到的方案就直接用
+      2. Simplicity First: 选择最简单的架构能满足需求，避免过度设计。不确定时选简单的
+      3. Surgical Changes: 修改架构时只做必要的改动，保持整体稳定性。不大规模重构
+      4. Goal-Driven Execution: 以业务目标为导向，避免为架构而架构。每个架构决策必须有业务理由
+
+  solo-coder:
+    extra_prompt: |
+      【Karpathy开发者指南】
+      在编写代码时，应用以下原则：
+      1. Think Before Coding: 先读代码再改代码，理解现有实现。遇到不清晰的需求主动提问
+      2. Simplicity First: 3行能解决的不写30行。不添加"将来可能需要"的功能。不创建只有一种实现的接口
+      3. Surgical Changes: 只改本次任务需要的代码，不改无关文件。修Bug时不顺便重构
+      4. Goal-Driven Execution: 定义明确的完成标准，每步可验证，文档同步更新
+
+  tester:
+    extra_prompt: |
+      【Karpathy测试专家指南】
+      在审查代码时，关注：
+      1. Surgical Changes: 检查diff是否包含无关变更，混入的变更可能引入Bug
+      2. Goal-Driven Execution: 验证完成标准是否全部达成，错误处理和边界条件是否覆盖
+      3. Simplicity First: 过度复杂的代码更难测试，简单代码更容易保证质量

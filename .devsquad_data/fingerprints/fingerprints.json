@@ -1,0 +1,31 @@
+{
+  "version": "3.6.0",
+  "updated_at": "2026-05-19T09:12:39.735809",
+  "count": 1,
+  "fingerprints": [
+    {
+      "fingerprint_id": "fp_20260519_091239_4855fb84",
+      "task": "test integration task",
+      "task_hash": "4855fb8492c0",
+      "success": true,
+      "error_message": null,
+      "error_type": null,
+      "timing": {
+        "total": 1.5
+      },
+      "total_duration": 1.5,
+      "roles_used": [
+        "architect",
+        "coder"
+      ],
+      "role_combo": [
+        "architect",
+        "coder"
+      ],
+      "intent": null,
+      "mode": "auto",
+      "error_patterns": [],
+      "created_at": "2026-05-19T09:12:39.735803"
+    }
+  ]
+}

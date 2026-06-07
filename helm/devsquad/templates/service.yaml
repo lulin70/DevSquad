@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devsquad.fullname" . }}-api
+  labels:
+    {{- include "devsquad.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: api
+      protocol: TCP
+      name: api
+  selector:
+    {{- include "devsquad.selectorLabels" . | nindent 4 }}
+---
+{{- if .Values.dashboard.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devsquad.fullname" . }}-dashboard
+  labels:
+    {{- include "devsquad.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.dashboard.serviceType }}
+  ports:
+    - port: {{ .Values.dashboard.port }}
+      targetPort: dashboard
+      protocol: TCP
+      name: dashboard
+  selector:
+    {{- include "devsquad.selectorLabels" . | nindent 4 }}
+{{- end }}

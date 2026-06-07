@@ -1,0 +1,123 @@
+<svg width="1000" height="750" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="1000" height="750" fill="#f8f9fa"/>
+  
+  <!-- 标题 -->
+  <text x="500" y="45" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#2c3e50">Trae Multi-Agent Skill v2.0-v2.1</text>
+  <text x="500" y="75" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#7f8c8d">基于 SimpleSkill 规范的智能体协作系统</text>
+  
+  <!-- v2.0 核心特性：SimpleSkill 规范实现 -->
+  <g transform="translate(50, 110)">
+    <rect width="900" height="90" rx="10" fill="#3498db" opacity="0.1"/>
+    <rect x="5" y="5" width="890" height="80" rx="8" fill="none" stroke="#3498db" stroke-width="2"/>
+    <text x="450" y="30" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#2980b9">📋 v2.0 - SimpleSkill 规范实现</text>
+    <text x="450" y="55" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#34495e">技能原子化 · 可组合性 · 自描述性 · 标准化接口</text>
+    <text x="450" y="75" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#34495e">智能体角色：架构师 | 产品经理 | UI 设计师 | 测试专家 | 独立开发者</text>
+  </g>
+  
+  <!-- v2.1 核心特性：双层上下文管理 -->
+  <g transform="translate(50, 220)">
+    <rect width="900" height="140" rx="10" fill="#9b59b6" opacity="0.1"/>
+    <rect x="5" y="5" width="890" height="130" rx="8" fill="none" stroke="#9b59b6" stroke-width="2"/>
+    <text x="450" y="30" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#8e44ad">🧠 v2.1 - 双层动态上下文管理</text>
+    
+    <!-- 全局上下文 -->
+    <rect x="50" y="45" width="370" height="75" rx="5" fill="#3498db" opacity="0.2"/>
+    <text x="235" y="68" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2980b9">全局上下文（长期记忆）</text>
+    <text x="235" y="90" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#34495e">项目架构 · 技术决策 · 核心知识</text>
+    <text x="235" y="110" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#34495e">持久化存储 · 持续积累</text>
+    
+    <!-- 同步箭头 -->
+    <line x1="440" y1="82" x2="460" y2="82" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5"/>
+    <polygon points="460,82 450,77 450,87" fill="#9b59b6"/>
+    <line x1="440" y1="92" x2="460" y2="92" stroke="#9b59b6" stroke-width="2" stroke-dasharray="5,5"/>
+    <polygon points="440,92 450,97 450,87" fill="#9b59b6"/>
+    <text x="450" y="115" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#9b59b6">双向同步</text>
+    
+    <!-- 任务上下文 -->
+    <rect x="480" y="45" width="370" height="75" rx="5" fill="#2ecc71" opacity="0.2"/>
+    <text x="665" y="68" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#27ae60">任务上下文（工作记忆）</text>
+    <text x="665" y="90" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#34495e">需求描述 · 实现方案 · 测试结果</text>
+    <text x="665" y="110" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#34495e">任务完成后经验沉淀到全局</text>
+  </g>
+  
+  <!-- v2.1 核心特性：AI 语义匹配 -->
+  <g transform="translate(50, 380)">
+    <rect width="440" height="90" rx="10" fill="#e67e22" opacity="0.1"/>
+    <rect x="5" y="5" width="430" height="80" rx="8" fill="none" stroke="#e67e22" stroke-width="2"/>
+    <text x="220" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#d35400">🤖 AI 语义匹配</text>
+    <text x="220" y="55" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">大模型理解 · 意图识别 · 置信度评分</text>
+    <text x="220" y="75" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">可解释的匹配结果 · 准确率大幅提升</text>
+  </g>
+  
+  <!-- v2.1 核心特性：工作流引擎 -->
+  <g transform="translate(510, 380)">
+    <rect width="440" height="90" rx="10" fill="#1abc9c" opacity="0.1"/>
+    <rect x="5" y="5" width="430" height="80" rx="8" fill="none" stroke="#1abc9c" stroke-width="2"/>
+    <text x="220" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#16a085">⚙️ 工作流编排引擎</text>
+    <text x="220" y="55" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">多阶段任务 · 角色协调 · 并行执行</text>
+    <text x="220" y="75" font-family="Arial, sans-serif" font-size="13" text-anchor="middle" fill="#34495e">条件分支 · 灵活编排 · 复杂场景支持</text>
+  </g>
+  
+  <!-- 系统架构图 -->
+  <g transform="translate(50, 490)">
+    <text x="450" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#2c3e50">系统架构概览</text>
+    
+    <!-- 用户层 -->
+    <rect x="50" y="35" width="120" height="45" rx="5" fill="#3498db"/>
+    <text x="110" y="62" font-family="Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" fill="white">用户</text>
+    
+    <!-- 技能层 -->
+    <rect x="200" y="35" width="400" height="45" rx="5" fill="#9b59b6"/>
+    <text x="400" y="62" font-family="Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" fill="white">技能注册与发现</text>
+    
+    <!-- 调度层 -->
+    <rect x="630" y="35" width="120" height="45" rx="5" fill="#e67e22"/>
+    <text x="690" y="62" font-family="Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" fill="white">AI 调度器</text>
+    
+    <!-- 箭头 -->
+    <line x1="170" y1="57" x2="195" y2="57" stroke="#7f8c8d" stroke-width="2"/>
+    <polygon points="195,57 185,52 185,62" fill="#7f8c8d"/>
+    <line x1="600" y1="57" x2="625" y2="57" stroke="#7f8c8d" stroke-width="2"/>
+    <polygon points="625,57 615,52 615,62" fill="#7f8c8d"/>
+    
+    <!-- 智能体角色 -->
+    <rect x="80" y="100" width="90" height="40" rx="5" fill="#3498db"/>
+    <text x="125" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">架构师</text>
+    
+    <rect x="190" y="100" width="90" height="40" rx="5" fill="#9b59b6"/>
+    <text x="235" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">产品经理</text>
+    
+    <rect x="300" y="100" width="90" height="40" rx="5" fill="#e91e63"/>
+    <text x="345" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">UI 设计师</text>
+    
+    <rect x="410" y="100" width="90" height="40" rx="5" fill="#2ecc71"/>
+    <text x="455" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">测试专家</text>
+    
+    <rect x="520" y="100" width="90" height="40" rx="5" fill="#e74c3c"/>
+    <text x="565" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">独立开发者</text>
+    
+    <rect x="630" y="100" width="100" height="40" rx="5" fill="#1abc9c"/>
+    <text x="680" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">工作流引擎</text>
+    
+    <rect x="750" y="100" width="80" height="40" rx="5" fill="#f39c12"/>
+    <text x="790" y="125" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">技能注册</text>
+    
+    <!-- 上下文层 -->
+    <rect x="150" y="160" width="700" height="40" rx="5" fill="#3498db" opacity="0.3"/>
+    <text x="500" y="185" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#2980b9">全局上下文（项目知识库）</text>
+    
+    <rect x="150" y="210" width="700" height="40" rx="5" fill="#2ecc71" opacity="0.3"/>
+    <text x="500" y="235" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#27ae60">任务上下文（工作记忆）</text>
+  </g>
+  
+  <!-- 底部关键特性 -->
+  <g transform="translate(500, 720)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="#2c3e50">SimpleSkill 规范 · 双层上下文 · AI 增强 · 工作流编排 · 知识沉淀</text>
+  </g>
+  
+  <!-- 装饰元素 -->
+  <circle cx="950" cy="50" r="40" fill="#3498db" opacity="0.1"/>
+  <circle cx="50" cy="700" r="30" fill="#9b59b6" opacity="0.1"/>
+  <circle cx="950" cy="700" r="25" fill="#e67e22" opacity="0.1"/>
+</svg>

@@ -1,0 +1,76 @@
+version: '3.8'
+
+# DevSquad Redis Cache Service
+# ============================
+# Usage:
+#   Start Redis only: docker-compose -f docker-compose.redis.yml up -d
+#   With main services: docker-compose -f docker-compose.yml -f docker-compose.redis.yml up -d
+#
+# Environment variables (pass to DevSquad container):
+#   REDIS_URL=redis://redis:6379/0
+#   CACHE_PREFIX=devsquad:
+#   CACHE_TTL=3600
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: devsquad-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --appendonly yes
+      --appendfsync everysec
+      --loglevel notice
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - devsquad-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis Commander (optional web UI for Redis management)
+  # Uncomment below section if you need a web interface
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: devsquad-redis-ui
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     - REDIS_HOSTS=local:redis:6379:0
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - devsquad-network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  devsquad-network:
+    driver: bridge

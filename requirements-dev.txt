@@ -1,0 +1,20 @@
+# Auto-generated from pyproject.toml [dev] optional-dependencies
+# For development: pip install -r requirements-dev.txt
+# =======================================================
+
+# Testing
+pytest>=7.0
+pytest-asyncio>=0.21
+pytest-cov>=3.0
+
+# Code Quality
+black>=23.0
+flake8>=6.0
+mypy>=1.0
+
+# LLM Backends (optional — install only what you need)
+# openai>=1.0           # OpenAI backend (pip install -e .[openai])
+# anthropic>=0.18        # Anthropic backend (pip install -e .[anthropic])
+
+# MCP Server (optional — for Cursor integration)
+# mcp>=0.9              # MCP protocol (pip install -e .[mcp])

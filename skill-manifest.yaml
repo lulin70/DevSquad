@@ -1,0 +1,391 @@
+name: devsquad
+version: 3.6.6
+description: |
+  DevSquad V3.6.6 — Enterprise Multi-Role AI Task Orchestrator.
+  One task → Multi-role AI collaboration → One conclusion.
+  7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
+  (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
+  ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
+  NEW in V3.6.6: RBAC Engine, Audit Logger, Multi-Tenancy Manager, Sensitive Data Masker,
+  AsyncIO Transformation (2x throughput), Redis Cache Integration (95%+ hit rate),
+  Prometheus Monitoring (12 metrics), E2E Test Suite (27 cases, 100% pass),
+  1731+ tests passing, 97% Enterprise Grade maturity.
+status: active
+ai_enhanced: true
+ai_capabilities:
+  semantic_matching: true
+  intelligent_reasoning: true
+  context_understanding: true
+  natural_language_interface: true
+  long_running_agent: true
+  multi_agent_collaboration: true
+  memory_persistence: true
+  auto_skill_generation: true
+
+capabilities:
+  - name: feedback-control-loop
+    description: |
+      FeedbackControlLoop — Cybernetic feedback iteration system
+
+      Sense→Decide→Act→Feedback closed loop
+      Quality gate: default 0.7 threshold
+      Max iterations: 3 (configurable)
+      Smart adjustment generation based on failure patterns
+      Best result tracking (not just last result)
+
+  - name: performance-fingerprint
+    description: |
+      PerformanceFingerprint — Unified execution fingerprint aggregator
+
+      Fuses 4 data sources: FeatureUsageTracker + PerformanceMonitor + CheckpointManager + RetrospectiveEngine
+      TF-IDF similarity search (pure Python, no deps)
+      Success/failure pattern extraction
+      Cold-start graceful degradation
+
+  - name: execution-guard
+    description: |
+      ExecutionGuard — Real-time execution abort guard
+
+      Multi-level triggers: timeout / output size / token limit / keywords
+      Configurable thresholds via configure()
+      Zero external dependency, <1ms per check
+
+  - name: similar-task-recommender
+    description: |
+      SimilarTaskRecommender — History-based task config recommendation
+
+      Recommends roles/intent/duration based on similar historical cases
+      Confidence levels: high(>0.7) / medium(>0.4) / low
+      Cold-start fallback to RoleMatcher
+
+  - name: adaptive-role-selector
+    description: |
+      AdaptiveRoleSelector — Success-rate-driven role selection
+
+      Statistical role effectiveness report
+      Strategy: similar-task → intent-based → fallback
+      Manual stats update API available
+
+  - name: multi-agent-dispatcher
+    description: |
+      V3.6.0 统一调度入口 - 一键完成多Agent协作
+
+      核心能力：
+      - 任务意图分析与角色自动匹配（中英双语关键词）
+      - InputValidator 安全验证 + Prompt注入检测
+      - ThreadPoolExecutor 并行Worker执行
+      - Scratchpad实时共享发现/决策/冲突
+      - Consensus共识决策解决分歧
+      - ReportFormatter 结构化报告（中/英/日三语）
+      - LLM Backend: Mock/OpenAI/Anthropic + 流式输出
+    input_schema:
+      type: object
+      properties:
+        task:
+          type: string
+          description: 任务描述
+        roles:
+          type: array
+          items:
+            type: string
+          description: "指定参与角色(可选，默认自动匹配，短ID: arch/pm/test/coder/ui/infra/sec)"
+        mode:
+          type: string
+          enum: [auto, parallel, sequential, consensus]
+          description: 调度模式
+        backend:
+          type: string
+          enum: [mock, openai, anthropic]
+          description: LLM后端(默认mock)
+        lang:
+          type: string
+          enum: [auto, zh, en, ja]
+          description: 输出语言
+        stream:
+          type: boolean
+          description: 流式输出(需backend)
+        dry_run:
+          type: boolean
+          description: 仅模拟不执行
+    output_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        matched_roles:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+        report:
+          type: string
+          description: Markdown格式完整报告
+        timing:
+          type: object
+        worker_results:
+          type: array
+
+  - name: coordinator-collaboration
+    description: |
+      Coordinator + Worker + Scratchpad 协作核心
+
+      使用场景：
+      - 需要多个角色同时分析同一问题
+      - 复杂任务需要分工协作
+      - 需要实时共享中间发现和决策
+
+  - name: context-compression
+    description: |
+      3级上下文压缩策略
+
+      Level 1 SNIP: 精细剪裁旧对话
+      Level 2 SessionMemory: 提取记忆后清空
+      Level 3 FullCompact: LLM生成摘要
+
+  - name: permission-guard
+    description: |
+      4级权限安全守卫
+
+      PLAN: 只读模式
+      DEFAULT: 写操作需确认
+      AUTO: AI分类器自动判断
+      BYPASS: 完全跳过(最高信任)
+
+  - name: skill-learning
+    description: |
+      Skillifier - 从成功操作序列中自动生成可复用Skill
+
+  - name: warmup-optimizer
+    description: |
+      WarmupManager - 3层启动预热优化冷启动延迟
+
+      EAGER: 同步预加载(~15ms)
+      ASYNC: 异步后台预热(~300ms)
+      LAZY: 按需加载
+
+  - name: memory-bridge
+    description: |
+      MemoryBridge - 跨会话记忆桥接系统
+
+      7种记忆类型: knowledge/episodic/semantic/feedback/pattern/analysis/correction
+      倒排索引 + TF-IDF检索 + 中文分词
+      遗忘曲线: 7d=1.0 → 90d≈0.3
+      自动压缩(60d+) + 过期清理(90d+)
+
+  - name: sub-skill-dispatch
+    description: |
+      DispatchSkill — 独立子Skill, 封装MultiAgentDispatcher
+
+      一键多Agent协作, 支持7角色自动匹配
+      Mock模式默认可用(无需API Key)
+      via: from skills.dispatch.handler import DispatchSkill
+
+  - name: sub-skill-intent
+    description: |
+      IntentSkill — 独立子Skill, 封装IntentWorkflowMapper
+
+      6种意图 × 3语言检测 (zh/en/ja)
+      支持批量检测和意图列表查询
+      via: from skills.intent.handler import IntentSkill
+
+  - name: sub-skill-review
+    description: |
+      ReviewSkill — 独立子Skill, 封装FiveAxisConsensusEngine
+
+      五维代码审查 (correctness/readability/arch/security/performance)
+      加权投票 + 严格模式
+      via: from skills.review.handler import ReviewSkill
+
+  - name: sub-skill-security
+    description: |
+      SecuritySkill — 独立子Skill, 封装安全审计能力
+
+      输入扫描(21+注入模式) + 操作分类(3级) + 权限检查
+      via: from skills.security.handler import SecuritySkill
+
+  - name: sub-skill-test
+    description: |
+      TestSkill — 独立子Skill, 封装测试质量保障
+
+      测试策略生成 + 质量审计 + 用例建议
+      via: from skills.test.handler import TestSkill
+
+  - name: sub-skill-retrospective
+    description: |
+      RetrospectiveSkill — 独立子Skill, 封装RetrospectiveEngine
+
+      调度后复盘 + 模式提取 + 改进建议生成
+      via: from skills.retrospective.handler import RetrospectiveSkill
+
+dependencies: []
+
+ai_integration:
+  enabled: true
+  provider: trae_ai_assistant
+  features:
+    - semantic_matching
+    - intelligent_reasoning
+    - context_understanding
+    - natural_language_processing
+    - code_analysis
+    - multi_agent_orchestration
+  config:
+    max_tokens: 8192
+    temperature: 0.7
+    top_p: 0.9
+    use_cache: true
+    fallback_to_keyword: true
+
+workflows:
+  - workflow_id: v3-multi-agent-collaboration
+    name: V3 多Agent协作工作流
+    description: 基于Coordinator/Worker/Scratchpad的并行协作流程
+    steps:
+      - step_id: analyze
+        name: 任务分析
+        action: dispatcher.analyze_task()
+      - step_id: plan
+        name: 编排计划
+        action: coordinator.plan_task()
+      - step_id: spawn
+        name: 创建Worker
+        action: coordinator.spawn_workers()
+      - step_id: execute
+        name: 并行执行
+        action: coordinator.execute_plan()
+      - step_id: collect
+        name: 收集结果
+        action: coordinator.collect_results()
+      - step_id: consensus
+        name: 共识决策(如有冲突)
+        action: coordinator.resolve_conflicts()
+      - step_id: report
+        name: 生成报告
+        action: result.to_markdown()
+
+metadata:
+  category: productivity
+  tags:
+    - ai
+    - multi-agent
+    - collaboration
+    - coordinator
+    - scratchpad
+    - workflow
+    - context-management
+    - memory
+    - v3
+
+  license: MIT
+  repository: https://github.com/lulin70/DevSquad
+
+  version_history:
+    - version: 3.6.6
+      date: "2026-05-20"
+      changes:
+        - Enterprise Edition — RBAC Engine (15+ permissions, 5 roles), Audit Logger (SHA256 integrity)
+        - Multi-Tenancy Manager (3 isolation levels), Sensitive Data Masker (PII protection)
+        - AsyncIO Transformation (2x throughput), Redis Cache Integration (95%+ hit rate)
+        - Prometheus Monitoring (12 metrics), E2E Test Suite (27 cases, 100% pass)
+        - Code Quality — print()→logging migration, pre-commit hooks, .editorconfig
+        - 1731+ tests passing, 97% Enterprise Grade maturity
+
+    - version: 3.6.1
+      date: "2026-05-17"
+      changes:
+        - FeedbackControlLoop — cybernetic feedback loop iteration (sense→decide→act→feedback)
+        - ExecutionGuard — real-time execution abort guard (timeout/output/keywords)
+        - PerformanceFingerprint — unified execution fingerprint with TF-IDF similarity search
+        - SimilarTaskRecommender — history-based task configuration recommendation
+        - AdaptiveRoleSelector — success-rate-driven adaptive role selection
+        - All 5 modules from upstream v2.5 cybernetics enhancement analysis
+
+    - version: 3.6.0
+      date: "2026-05-16"
+      changes:
+        - Layered Sub-Skill Architecture — 6 atomic sub-skills (dispatch/intent/review/security/test/retrospective)
+        - SkillRegistry with lazy-loading discovery via importlib
+        - Each sub-skill is thin wrapper (~50 lines) importing existing core modules
+        - 1662+ tests all passing
+
+    - version: 3.6.0
+      date: "2026-05-13"
+      changes:
+        - AnchorChecker — Milestone anchor verification with drift detection and auto-recovery
+        - RetrospectiveEngine — Independent post-dispatch retrospective with pattern extraction
+        - StructuredGoal — Structured goal management with hierarchical decomposition
+        - FallbackBackend — Automatic LLM backend failover with health monitoring
+        - 1662+ tests all passing
+      - 47 core modules
+
+    - version: 3.6.0
+      date: "2026-05-05"
+      changes:
+        - 7-Role Code Walkthrough with dedicated concern packs
+        - Five-Axis Consensus Engine (Architecture/Security/Correctness/Operability/Readability)
+        - Karpathy Principles concern pack (code-quality.yaml)
+        - Enhanced Lifecycle Protocol (spec-init/spec-analyze/spec-validate)
+        - Multi-Language Code Map (Python/JS/TS/Go/Java/Rust)
+        - Project Understanding Enhancement (agent_briefing.py)
+        - 1662+ tests all passing
+
+    - version: 3.6.0
+      date: "2026-04-27"
+      changes:
+        - Authentication (RBAC), Alert System, History Storage
+        - Interactive Setup Wizard, User-Friendly Errors
+        - Performance Monitoring, REST API, Web Dashboard
+        - 1662+ tests passing
+
+    - version: 3.0.0
+      date: "2026-04-16"
+      changes:
+        - V3.0 完整重构: Coordinator/Worker/Scratchpad协作架构
+        - 新增 MultiAgentDispatcher 统一调度入口 (54测试)
+        - 新增 ContextCompressor 3级压缩 (72测试)
+        - 新增 PermissionGuard 4级权限 (105测试)
+        - 新增 Skillifier 技能学习 (96测试)
+        - 新增 WarmupManager 启动预热 (103测试)
+        - 新增 MemoryBridge 记忆桥接 (96测试)
+        - 新增 SKILL.md v3 操作手册
+        - 总计668个测试全部通过
+        - 支持本地Trae无缝使用，预留OpenClaw/Claude Code集成接口
+
+    - version: 2.5.0
+      date: "2026-04-06"
+      changes:
+        - 深度集成 Memory Classification Engine
+
+    - version: 2.4.2
+      date: "2026-04-03"
+      changes:
+        - 智能生命周期识别
+
+    - version: 2.4.0
+      date: "2026-03-31"
+      changes:
+        - Vibe Coding 集成
+
+    - version: 2.3.0
+      date: "2026-03-28"
+      changes:
+        - 多角色代码走读
+
+    - version: 2.2.0
+      date: "2026-03-21"
+      changes:
+        - 长程 Agent 支持
+
+    - version: 2.0.0
+      date: "2026-03-17"
+      changes:
+        - 双层动态上下文管理
+
+    - version: 1.0.0
+      date: "2026-03-16"
+      changes:
+        - 初始版本
+
+created_at: "2026-03-16T00:00:00"
+updated_at: "2026-05-20"

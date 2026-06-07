@@ -1,0 +1,29 @@
+# Auto-generated from pyproject.toml dependencies
+# For production: pip install -r requirements.txt
+# For development: pip install -e ".[dev]"
+# =============================================
+
+# Core Dependencies (Required)
+pyyaml>=6.0
+
+# Production Server Stack
+fastapi>=0.100.0              # REST API server framework
+uvicorn[standard]>=0.23.0     # ASGI HTTP server
+pydantic>=2.0                 # Data validation (for API)
+
+# Visualization & Dashboard
+streamlit>=1.28.0             # Web dashboard
+jupyter>=1.0                  # Notebook support
+
+# Monitoring
+psutil>=5.9                   # System monitoring utilities
+
+# Alert Notifications (optional)
+slack-sdk>=3.21.0             # Slack alert integration
+
+# Install options:
+#   pip install -e .                    # Core + Production features
+#   pip install -e .[openai]           # + OpenAI backend
+#   pip install -e .[anthropic]        # + Anthropic backend
+#   pip install -e .[all]              # All optional dependencies
+#   pip install -e .[dev]              # Development tools

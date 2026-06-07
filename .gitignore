@@ -1,0 +1,146 @@
+# === DevSquad V3.4 Git Ignore ===
+
+# Pre-commit
+.pre-commit-cache/
+
+# --- IDE & Editor ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.trae/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# --- Test ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Secrets & Credentials ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+
+# --- Runtime Data ---
+*.db
+*.db-shm
+*.db-wal
+data/llm_cache/
+data/briefings/
+data/tier2/
+data/tier3/
+data/tier4/
+data/registry/
+data/progress/
+data/workflows/
+data/memory-bank/
+data/role_templates/
+benchmarks/
+registry/
+workflows/
+
+# --- Vibe Coding (legacy, not tracked) ---
+scripts/vibe_coding/
+
+# --- Runtime Context (auto-generated) ---
+context/
+data/context/
+
+# --- Temp & Process Files ---
+tmp/
+temp/
+*.tmp
+*.bak
+*.patch
+PROJECT_REVIEW_*.md
+test_full_integration.py
+test_p2_full.py
+test_p2_quick.py
+demo_live_system.py
+demo_p2_activation.py
+add_personal_rule.py
+add_rule_native.py
+rule_manager.py
+data/personal_rules*.json
+data/rules/
+modules/
+multimodal/
+
+# --- Legacy V2 Scripts (superseded by scripts/collaboration/) ---
+scripts/agent_loop_controller_v2.py
+scripts/ai_assistant.py
+scripts/ai_initializer.py
+scripts/ai_semantic_matcher.py
+scripts/benchmark_v3.4.py
+scripts/checkpoint_manager.py
+scripts/code_map_generator.py
+scripts/code_map_generator_v2.py
+scripts/dual_layer_context_manager.py
+scripts/knowledge_base_manager.py
+scripts/memory_adapter.py
+scripts/multi_role_code_walkthrough.py
+scripts/multi_role_collaborative_analyzer.py
+scripts/project_understanding.py
+scripts/role_matcher.py
+scripts/core_rules.py
+scripts/skill_registry.py
+scripts/spec_tools.py
+scripts/standardized_workflow.py
+scripts/task_completion_checker.py
+scripts/task_list_manager.py
+scripts/test_ai_components.py
+scripts/test_memory_adapter.py
+scripts/test_v2_components.py
+scripts/trae_agent.py
+scripts/trae_agent_dispatch.py
+scripts/trae_agent_dispatch.sh
+scripts/trae_agent_dispatch_v2.py
+scripts/trae_agent_dispatch_wrapper.sh
+scripts/user_experience_manager.py
+scripts/user_intent_recognition.py
+scripts/workflow_engine.py
+scripts/workflow_engine_v2.py
+scripts/services/
+scripts/demo/
+scripts/tests/
+scripts/run_real_scenarios.sh
+
+# --- Legacy V2 Docs (superseded) ---
+docs/archive/
+docs/OPTIMIZATION_*.md
+docs/REVIEW_CONSENSUS_*.md
+docs/TEAM_CONSENSUS_*.md
+docs/NEXT_STEPS_CONSENSUS.md
+docs/PROJECT_STATUS.md
+docs/RELEASE_SUMMARY.md
+docs/KARPATHY_PRINCIPLES_INSIGHTS.md
+docs/INDEX.md
+docs/long_agent_architecture.svg
+
+# --- Legacy ---
+memory-bank/
+prompts/
+prompt_evolution/
+plans/
+install.sh
+.git_disabled/
+.claude/skills/
+:memory:
+:memory:-shm
+:memory:-wal
+.DS_Store

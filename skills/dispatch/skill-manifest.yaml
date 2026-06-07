@@ -1,0 +1,35 @@
+name: dispatch
+version: 3.6.0
+description: |
+  DevSquad Dispatch — One task in, multi-AI collaboration out.
+  Auto-detects intent, matches roles, runs parallel agents, produces report.
+  Supports 7 core roles, 4 modes (auto/parallel/sequential/consensus), 3 languages.
+entry_point: skills.dispatch.handler:DispatchSkill
+capabilities:
+  - multi_agent_dispatch
+  - intent_detection
+  - role_auto_matching
+  - consensus_voting
+  - structured_report
+parameters:
+  - name: task
+    type: string
+    required: true
+    description: Task description (supports Chinese/English/Japanese)
+  - name: roles
+    type: array
+    required: false
+    description: Role IDs to include (default: auto-match)
+  - name: mode
+    type: string
+    enum: [auto, parallel, sequential, consensus]
+    default: auto
+  - name: backend
+    type: string
+    enum: [mock, openai, anthropic]
+    default: mock
+examples:
+  - command: "Fix the login bug"
+    expected: Auto-matches coder+tester+security roles
+  - command: "Review this code for quality issues"
+    expected: Triggers code_review intent + consensus mode

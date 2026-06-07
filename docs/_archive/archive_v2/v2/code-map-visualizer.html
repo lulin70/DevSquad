@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码地图 3D 可视化</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #1a1f2e;
+            --bg-tertiary: #252b3d;
+            --bg-card: rgba(26, 31, 46, 0.95);
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d97706;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --border-color: #30363d;
+            --panel-border: #252b3d;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e2e8f0;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --accent-blue: #3182ce;
+            --accent-green: #38a169;
+            --accent-purple: #805ad5;
+            --accent-orange: #dd6b20;
+            --accent-red: #e53e3e;
+            --accent-cyan: #00b5d8;
+            --border-color: #cbd5e0;
+            --panel-border: #e2e8f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--bg-tertiary);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .header-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 16px;
+            min-width: 300px;
+            backdrop-filter: blur(10px);
+        }
+
+        .project-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .project-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .layer-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .layer-row {
+            display: flex;
+            flex-direction: row;
+            gap: 16px;
+        }
+
+        .layer-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .layer-section-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            padding: 2px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .layer-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .layer-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .layer-color.module { background: var(--accent-blue); }
+        .layer-color.file { background: var(--accent-purple); }
+        .layer-color.class { background: var(--accent-green); }
+        .layer-color.function { background: var(--accent-orange); }
+
+        .stats-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 16px;
+            min-width: 180px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .stat-row:last-child { border-bottom: none; }
+
+        .stat-label { font-size: 12px; color: var(--text-secondary); }
+        .stat-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+        .control-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar-btn {
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .toolbar-btn:hover {
+            border-color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        .toolbar-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: #000;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .theme-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .theme-switch::after {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        [data-theme="light"] .theme-switch::after {
+            transform: translateX(20px);
+            background: var(--accent-orange);
+        }
+
+        .detail-panel {
+            position: fixed;
+            bottom: 80px;
+            right: 80px;
+            z-index: 100;
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 320px;
+            max-width: 400px;
+            max-height: 350px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        .detail-panel.active { display: block; }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .detail-type-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .detail-type-badge.module { background: var(--accent-blue); color: #000; }
+        .detail-type-badge.file { background: var(--accent-purple); color: #000; }
+        .detail-type-badge.class { background: var(--accent-green); color: #000; }
+        .detail-type-badge.function { background: var(--accent-orange); color: #000; }
+
+        .detail-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+        .detail-path { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; word-break: break-all; }
+
+        .detail-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .detail-calls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .call-tag {
+            padding: 4px 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .call-tag:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .call-tag.calls { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .call-tag.called { border-color: var(--accent-green); color: var(--accent-green); }
+
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .close-btn:hover { background: var(--accent-red); color: #fff; }
+
+        .tooltip {
+            position: fixed;
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-primary);
+            pointer-events: none;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.2s;
+            max-width: 250px;
+        }
+
+        .tooltip.visible { opacity: 1; }
+
+        .load-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 500;
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .load-panel h3 {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .load-panel input {
+            width: 300px;
+            padding: 10px 14px;
+            background: var(--bg-primary);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .load-panel input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .load-panel button {
+            padding: 10px 24px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .load-panel button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="loading-overlay" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在加载代码地图...</div>
+    </div>
+
+    <div class="load-panel" id="load-panel">
+        <h3>加载代码地图 JSON</h3>
+        <input type="text" id="json-path" placeholder="输入 JSON 文件路径，或留空使用示例数据">
+        <br>
+        <button onclick="loadJSON()">加载</button>
+    </div>
+
+    <div class="header-panel" id="header-panel" style="display: none;">
+        <div class="project-title" id="project-title">项目名称</div>
+        <div class="project-meta" id="project-meta"></div>
+        <div class="layer-legend" id="layer-legend">
+            <div class="layer-row">
+                <div class="layer-section">
+                    <div class="layer-section-title">前端</div>
+                    <div class="layer-item"><div class="layer-color" style="background: var(--accent-blue);"></div><span>UI</span></div>
+                    <div class="layer-item"><div class="layer-color" style="background: var(--accent-purple);"></div><span>服务</span></div>
+                    <div class="layer-item"><div class="layer-color" style="background: var(--accent-cyan);"></div><span>状态</span></div>
+                </div>
+                <div class="layer-section">
+                    <div class="layer-section-title">后端</div>
+                    <div class="layer-item"><div class="layer-color" style="background: var(--accent-red);"></div><span>API</span></div>
+                    <div class="layer-item"><div class="layer-color" style="background: var(--accent-green);"></div><span>业务</span></div>
+                    <div class="layer-item"><div class="layer-color" style="background: var(--accent-orange);"></div><span>领域</span></div>
+                </div>
+                <div class="layer-section">
+                    <div class="layer-section-title">共享</div>
+                    <div class="layer-item"><div class="layer-color" style="background: var(--text-secondary);"></div><span>工具</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-panel" id="stats-panel" style="display: none;">
+        <div class="panel-title" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px;">统计信息</div>
+        <div class="stat-row">
+            <span class="stat-label">总节点</span>
+            <span class="stat-value" id="stat-nodes">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">调用关系</span>
+            <span class="stat-value" id="stat-edges">0</span>
+        </div>
+        <div class="stat-row" id="stat-frontend-row" style="display:none;">
+            <span class="stat-label">前端</span>
+            <span class="stat-value" id="stat-frontend">0</span>
+        </div>
+        <div class="stat-row" id="stat-backend-row" style="display:none;">
+            <span class="stat-label">后端</span>
+            <span class="stat-value" id="stat-backend">0</span>
+        </div>
+        <div class="stat-row" id="stat-shared-row" style="display:none;">
+            <span class="stat-label">共享</span>
+            <span class="stat-value" id="stat-shared">0</span>
+        </div>
+    </div>
+
+    <div class="control-panel" id="control-panel" style="display: none;">
+        <button class="toolbar-btn" onclick="resetView()">🔄 重置视图</button>
+        <button class="toolbar-btn active" id="btn-expand" onclick="toggleExpand()">📂 展开层级</button>
+        <button class="toolbar-btn active" id="btn-flow" onclick="toggleFlow()">✨ 流动效果</button>
+        <button class="toolbar-btn" id="btn-hierarchy" onclick="toggleHierarchy()">🏗️ 分层布局</button>
+    </div>
+
+    <div class="theme-toggle" id="theme-toggle" style="display: none;">
+        <div class="theme-switch" onclick="toggleTheme()"></div>
+    </div>
+
+    <div class="detail-panel" id="detail-panel">
+        <button class="close-btn" onclick="closeDetail()">✕</button>
+        <div class="detail-header">
+            <span class="detail-type-badge" id="detail-type">MODULE</span>
+            <span class="detail-name" id="detail-name">-</span>
+        </div>
+        <div class="detail-path" id="detail-path">-</div>
+        <div class="detail-section" id="detail-metrics-section">
+            <div class="detail-section-title">指标</div>
+            <div id="detail-metrics"></div>
+        </div>
+        <div class="detail-section" id="detail-calls-section">
+            <div class="detail-section-title">调用</div>
+            <div class="detail-calls" id="detail-calls"></div>
+        </div>
+        <div class="detail-section" id="detail-called-section">
+            <div class="detail-section-title">被调用</div>
+            <div class="detail-calls" id="detail-called"></div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // 全局变量
+        let scene, camera, renderer, controls;
+        let nodeGroup, edgeGroup, particleGroup;
+        let nodesMap = new Map();
+        let edgesList = [];
+        let flowParticles = [];
+        let raycaster, mouse;
+        let hoveredNode = null;
+        let selectedNode = null;
+        let currentTheme = 'dark';
+        let animationEnabled = true;
+        let hierarchyLayout = true;
+        let animationFrame = 0;
+
+        // 颜色配置
+        const COLORS = {
+            frontend: 0x58a6ff,
+            backend: 0xf85149,
+            shared: 0x8b949e,
+            module: 0x58a6ff,
+            file: 0xa371f7,
+            class: 0x3fb950,
+            function: 0xd97706,
+            edge: 0x30363d,
+            edgeActive: 0x58a6ff,
+            edgeCall: 0xd97706,
+            background: 0x0a0e14
+        };
+
+        const COLORS_LIGHT = {
+            frontend: 0x3182ce,
+            backend: 0xe53e3e,
+            shared: 0x718096,
+            module: 0x3182ce,
+            file: 0x805ad5,
+            class: 0x38a169,
+            function: 0xdd6b20,
+            edge: 0xa0aec0,
+            edgeActive: 0x3182ce,
+            edgeCall: 0xdd6b20,
+            background: 0xf0f4f8
+        };
+
+        // 示例数据 (JSON v2.0 格式)
+        const SAMPLE_DATA = {
+            "version": "2.0",
+            "project": {
+                "name": "示例项目",
+                "workspace": "/path/to/workspace",
+                "totalFiles": 25,
+                "totalLines": 15200,
+                "languages": ["Python", "JavaScript", "TypeScript"],
+                "frameworks": ["FastAPI", "React", "Spring Boot"],
+                "frontend": {
+                    "name": "前端",
+                    "languages": ["JavaScript", "TypeScript"],
+                    "layers": ["frontend-ui", "frontend-service", "frontend-store"]
+                },
+                "backend": {
+                    "name": "后端",
+                    "languages": ["Python"],
+                    "layers": ["api", "service", "domain", "data", "middleware"]
+                }
+            },
+            "layers": [
+                {"id": "frontend-ui", "name": "前端UI层", "side": "frontend", "color": 0x58a6ff},
+                {"id": "frontend-service", "name": "前端服务层", "side": "frontend", "color": 0xa371f7},
+                {"id": "frontend-store", "name": "前端状态层", "side": "frontend", "color": 0x39c5cf},
+                {"id": "api", "name": "API层", "side": "backend", "color": 0xf85149},
+                {"id": "service", "name": "业务逻辑层", "side": "backend", "color": 0x3fb950},
+                {"id": "domain", "name": "领域层", "side": "backend", "color": 0xd97706},
+                {"id": "data", "name": "数据访问层", "side": "backend", "color": 0xdb61a2},
+                {"id": "middleware", "name": "中间件层", "side": "backend", "color": 0xff7b72},
+                {"id": "util", "name": "工具层", "side": "shared", "color": 0x8b949e},
+                {"id": "config", "name": "配置层", "side": "shared", "color": 0xe3b341}
+            ],
+            "nodes": [
+                // 模块节点
+                {"id": "module:frontend", "type": "module", "name": "frontend", "fullName": "frontend (5 文件)", "layerId": "frontend-ui", "side": "frontend", "filePath": "", "language": "TypeScript", "size": 4, "calls": [], "calledBy": []},
+                {"id": "module:backend", "type": "module", "name": "backend", "fullName": "backend (15 文件)", "layerId": "service", "side": "backend", "filePath": "", "language": "Python", "size": 5, "calls": [], "calledBy": []},
+
+                // 前端文件节点
+                {"id": "file:frontend/src/App.tsx", "type": "file", "name": "App.tsx", "fullName": "frontend/src/App.tsx", "layerId": "frontend-ui", "side": "frontend", "filePath": "frontend/src/App.tsx", "language": "TypeScript", "size": 3, "calls": ["file:frontend/src/pages/HomePage.tsx", "file:frontend/src/services/api.ts"], "calledBy": [], "parentId": "module:frontend"},
+                {"id": "file:frontend/src/pages/HomePage.tsx", "type": "file", "name": "HomePage.tsx", "fullName": "frontend/src/pages/HomePage.tsx", "layerId": "frontend-ui", "side": "frontend", "filePath": "frontend/src/pages/HomePage.tsx", "language": "TypeScript", "size": 2, "calls": ["file:frontend/src/services/api.ts"], "calledBy": [], "parentId": "module:frontend"},
+                {"id": "file:frontend/src/services/api.ts", "type": "file", "name": "api.ts", "fullName": "frontend/src/services/api.ts", "layerId": "frontend-service", "side": "frontend", "filePath": "frontend/src/services/api.ts", "language": "TypeScript", "size": 2, "calls": [], "calledBy": [], "parentId": "module:frontend"},
+                {"id": "file:frontend/src/store/userStore.ts", "type": "file", "name": "userStore.ts", "fullName": "frontend/src/store/userStore.ts", "layerId": "frontend-store", "side": "frontend", "filePath": "frontend/src/store/userStore.ts", "language": "TypeScript", "size": 2, "calls": [], "calledBy": [], "parentId": "module:frontend"},
+
+                // 后端文件节点
+                {"id": "file:backend/api/main.py", "type": "file", "name": "main.py", "fullName": "backend/api/main.py", "layerId": "api", "side": "backend", "filePath": "backend/api/main.py", "language": "Python", "size": 3, "calls": ["file:backend/api/routes.py", "file:backend/service/user_service.py"], "calledBy": [], "parentId": "module:backend"},
+                {"id": "file:backend/api/routes.py", "type": "file", "name": "routes.py", "fullName": "backend/api/routes.py", "layerId": "api", "side": "backend", "filePath": "backend/api/routes.py", "language": "Python", "size": 2, "calls": ["file:backend/service/user_service.py"], "calledBy": [], "parentId": "module:backend"},
+                {"id": "file:backend/service/user_service.py", "type": "file", "name": "user_service.py", "fullName": "backend/service/user_service.py", "layerId": "service", "side": "backend", "filePath": "backend/service/user_service.py", "language": "Python", "size": 3, "calls": ["file:backend/domain/user_model.py", "file:backend/data/user_repository.py"], "calledBy": [], "parentId": "module:backend"},
+                {"id": "file:backend/domain/user_model.py", "type": "file", "name": "user_model.py", "fullName": "backend/domain/user_model.py", "layerId": "domain", "side": "backend", "filePath": "backend/domain/user_model.py", "language": "Python", "size": 2, "calls": [], "calledBy": [], "parentId": "module:backend"},
+                {"id": "file:backend/data/user_repository.py", "type": "file", "name": "user_repository.py", "fullName": "backend/data/user_repository.py", "layerId": "data", "side": "backend", "filePath": "backend/data/user_repository.py", "language": "Python", "size": 2, "calls": [], "calledBy": [], "parentId": "module:backend"},
+                {"id": "file:backend/middleware/auth.py", "type": "file", "name": "auth.py", "fullName": "backend/middleware/auth.py", "layerId": "middleware", "side": "backend", "filePath": "backend/middleware/auth.py", "language": "Python", "size": 2, "calls": [], "calledBy": [], "parentId": "module:backend"},
+
+                // 后端类节点
+                {"id": "class:backend/service/user_service.py:UserService", "type": "class", "name": "UserService", "fullName": "UserService (4 方法)", "layerId": "service", "side": "backend", "filePath": "backend/service/user_service.py", "language": "Python", "size": 2, "calls": ["class:backend/data/user_repository.py:UserRepository"], "calledBy": [], "parentId": "file:backend/service/user_service.py"},
+                {"id": "class:backend/data/user_repository.py:UserRepository", "type": "class", "name": "UserRepository", "fullName": "UserRepository (3 方法)", "layerId": "data", "side": "backend", "filePath": "backend/data/user_repository.py", "language": "Python", "size": 2, "calls": [], "calledBy": [], "parentId": "file:backend/data/user_repository.py"},
+
+                // 后端方法节点
+                {"id": "method:backend/service/user_service.py:UserService:createUser", "type": "function", "name": "createUser", "fullName": "UserService.createUser", "layerId": "service", "side": "backend", "filePath": "backend/service/user_service.py", "language": "Python", "size": 1, "calls": ["method:backend/data/user_repository.py:UserRepository:save"], "calledBy": [], "parentId": "class:backend/service/user_service.py:UserService"},
+                {"id": "method:backend/service/user_service.py:UserService:getUserById", "type": "function", "name": "getUserById", "fullName": "UserService.getUserById", "layerId": "service", "side": "backend", "filePath": "backend/service/user_service.py", "language": "Python", "size": 1, "calls": [], "calledBy": [], "parentId": "class:backend/service/user_service.py:UserService"},
+                {"id": "method:backend/data/user_repository.py:UserRepository:save", "type": "function", "name": "save", "fullName": "UserRepository.save", "layerId": "data", "side": "backend", "filePath": "backend/data/user_repository.py", "language": "Python", "size": 1, "calls": [], "calledBy": [], "parentId": "class:backend/data/user_repository.py:UserRepository"}
+            ],
+            "edges": [
+                // 前端到前端
+                {"id": "e1", "source": "file:frontend/src/App.tsx", "target": "file:frontend/src/pages/HomePage.tsx", "type": "calls", "protocol": "local", "layer": "frontend-ui->frontend-ui"},
+                {"id": "e2", "source": "file:frontend/src/App.tsx", "target": "file:frontend/src/services/api.ts", "type": "calls", "protocol": "local", "layer": "frontend-ui->frontend-service"},
+                {"id": "e3", "source": "file:frontend/src/pages/HomePage.tsx", "target": "file:frontend/src/services/api.ts", "type": "calls", "protocol": "local", "layer": "frontend-ui->frontend-service"},
+
+                // 前端调用后端 API
+                {"id": "e4", "source": "file:frontend/src/services/api.ts", "target": "file:backend/api/main.py", "type": "http", "protocol": "http", "layer": "frontend-service->api"},
+
+                // 后端内部调用
+                {"id": "e5", "source": "file:backend/api/main.py", "target": "file:backend/api/routes.py", "type": "calls", "protocol": "local", "layer": "api->api"},
+                {"id": "e6", "source": "file:backend/api/main.py", "target": "file:backend/service/user_service.py", "type": "calls", "protocol": "local", "layer": "api->service"},
+                {"id": "e7", "source": "file:backend/api/routes.py", "target": "file:backend/service/user_service.py", "type": "calls", "protocol": "local", "layer": "api->service"},
+                {"id": "e8", "source": "file:backend/service/user_service.py", "target": "file:backend/domain/user_model.py", "type": "calls", "protocol": "local", "layer": "service->domain"},
+                {"id": "e9", "source": "file:backend/service/user_service.py", "target": "file:backend/data/user_repository.py", "type": "calls", "protocol": "local", "layer": "service->data"},
+
+                // 类间调用
+                {"id": "e10", "source": "class:backend/service/user_service.py:UserService", "target": "class:backend/data/user_repository.py:UserRepository", "type": "calls", "protocol": "local", "layer": "service->data"},
+                {"id": "e11", "source": "method:backend/service/user_service.py:UserService:createUser", "target": "method:backend/data/user_repository.py:UserRepository:save", "type": "calls", "protocol": "local", "layer": "intra-layer"},
+
+                // 中间件调用
+                {"id": "e12", "source": "file:backend/api/main.py", "target": "file:backend/middleware/auth.py", "type": "calls", "protocol": "local", "layer": "api->middleware"}
+            ],
+            "stats": {
+                "totalNodes": 18,
+                "totalEdges": 12,
+                "nodeTypes": {"module": 2, "file": 12, "class": 2, "function": 3},
+                "sideStats": {"frontend": 6, "backend": 10, "shared": 2}
+            }
+        };
+
+        // 初始化场景
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(COLORS.background);
+            scene.fog = new THREE.Fog(COLORS.background, 80, 300);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 40, 80);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 20;
+            controls.maxDistance = 300;
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // 光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 50, 50);
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0x58a6ff, 0.5, 150);
+            pointLight.position.set(-50, 30, -30);
+            scene.add(pointLight);
+
+            // 组
+            nodeGroup = new THREE.Group();
+            edgeGroup = new THREE.Group();
+            particleGroup = new THREE.Group();
+            scene.add(nodeGroup);
+            scene.add(edgeGroup);
+            scene.add(particleGroup);
+
+            // 星空背景
+            addStars();
+
+            // 地面网格
+            const gridHelper = new THREE.GridHelper(200, 50, 0x1a1f2e, 0x1a1f2e);
+            gridHelper.position.y = -10;
+            scene.add(gridHelper);
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('click', onClick);
+        }
+
+        function addStars() {
+            const geometry = new THREE.BufferGeometry();
+            const material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.15,
+                transparent: true,
+                opacity: 0.6
+            });
+
+            const vertices = [];
+            for (let i = 0; i < 2000; i++) {
+                vertices.push(
+                    (Math.random() - 0.5) * 500,
+                    (Math.random() - 0.5) * 500,
+                    (Math.random() - 0.5) * 500
+                );
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const stars = new THREE.Points(geometry, material);
+            stars.name = 'stars';
+            scene.add(stars);
+        }
+
+        // 创建节点
+        function createNode(nodeData) {
+            const group = new THREE.Group();
+
+            // 根据层级和类型确定尺寸和颜色
+            let width, height, depth, color;
+            const isDark = currentTheme === 'dark';
+
+            // 获取层级信息
+            const layerId = nodeData._layerId || nodeData.layerId || 'service';
+            const side = nodeData._side || nodeData.side || 'backend';
+
+            // 根据 side 和类型确定颜色
+            if (side === 'frontend') {
+                color = isDark ? COLORS.frontend : COLORS_LIGHT.frontend;
+            } else if (side === 'backend') {
+                color = isDark ? COLORS.backend : COLORS_LIGHT.backend;
+            } else {
+                color = isDark ? COLORS.shared : COLORS_LIGHT.shared;
+            }
+
+            // 根据类型确定尺寸
+            switch (nodeData.type) {
+                case 'module':
+                    width = 8 + nodeData.size * 2;
+                    height = 2.5;
+                    depth = 1.5;
+                    break;
+                case 'file':
+                    width = 6 + nodeData.size;
+                    height = 2;
+                    depth = 1;
+                    break;
+                case 'class':
+                    width = 5 + nodeData.size;
+                    height = 1.8;
+                    depth = 0.8;
+                    break;
+                case 'function':
+                    width = 4;
+                    height = 1.5;
+                    depth = 0.6;
+                    break;
+                default:
+                    width = 4;
+                    height = 1.5;
+                    depth = 0.6;
+                    color = 0x888888;
+            }
+
+            // 创建长方形几何体
+            const geometry = new THREE.BoxGeometry(width, height, depth);
+
+            // 创建 Canvas 贴图
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 512;
+            canvas.height = 256;
+
+            const bgColor = isDark ? '#1a1f2e' : '#f0f4f8';
+            const textColor = isDark ? '#ffffff' : '#1a202c';
+            const subTextColor = isDark ? '#8b949e' : '#4a5568';
+            const borderColor = '#' + color.toString(16).padStart(6, '0');
+
+            // 背景
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 边框
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 8;
+            ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+
+            // 主名称
+            ctx.fillStyle = textColor;
+            ctx.font = 'bold 40px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            const mainText = nodeData.name.length > 20 ? nodeData.name.substring(0, 18) + '...' : nodeData.name;
+            ctx.fillText(mainText, canvas.width / 2, 80);
+
+            // 副名称（显示层级）
+            ctx.fillStyle = subTextColor;
+            ctx.font = '28px Microsoft YaHei';
+            const layerName = nodeData.layerId || nodeData.layer || '';
+            ctx.fillText(layerName, canvas.width / 2, 140);
+
+            // 路径
+            ctx.fillStyle = subTextColor;
+            ctx.font = '20px Microsoft YaHei';
+            const pathText = nodeData.filePath || '';
+            const shortPath = pathText.length > 40 ? '...' + pathText.slice(-40) : pathText;
+            ctx.fillText(shortPath, canvas.width / 2, 200);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+
+            // 材质
+            const materials = [
+                new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.5 }),
+                new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.5 }),
+                new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.5 }),
+                new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.5 }),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true }),
+                new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: 0.3 })
+            ];
+
+            const mesh = new THREE.Mesh(geometry, materials);
+            group.add(mesh);
+
+            // 边框线
+            const edgesGeo = new THREE.EdgesGeometry(geometry);
+            const edgesMat = new THREE.LineBasicMaterial({ color: color });
+            const edges = new THREE.LineSegments(edgesGeo, edgesMat);
+            group.add(edges);
+
+            group.userData = {
+                ...nodeData,
+                isGroup: true,
+                mesh: mesh,
+                width: width,
+                height: height,
+                depth: depth
+            };
+
+            return group;
+        }
+
+        // 创建边
+        function createEdge(edgeData, sourceNode, targetNode) {
+            if (!sourceNode || !targetNode) return null;
+
+            const startPos = sourceNode.position.clone();
+            const endPos = targetNode.position.clone();
+
+            // 计算连接点（考虑节点大小）
+            const direction = new THREE.Vector3().subVectors(endPos, startPos).normalize();
+            const halfWidthS = sourceNode.userData.width / 2 + 0.5;
+            const halfWidthT = targetNode.userData.width / 2 + 0.5;
+
+            const adjustedStart = startPos.clone().add(direction.clone().multiplyScalar(halfWidthS));
+            const adjustedEnd = endPos.clone().sub(direction.clone().multiplyScalar(halfWidthT));
+
+            // 创建曲线（根据边的类型选择不同样式）
+            const midPoint = new THREE.Vector3().addVectors(adjustedStart, adjustedEnd).multiplyScalar(0.5);
+
+            // http 类型的边使用更高的弧度
+            const yOffset = edgeData.type === 'http' ? 8 : (edgeData.type === 'layer-calls' ? 5 : 3);
+            midPoint.y += yOffset;
+
+            const curve = new THREE.QuadraticBezierCurve3(adjustedStart, midPoint, adjustedEnd);
+            const points = curve.getPoints(30);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+            // 根据边类型选择颜色
+            let color;
+            if (edgeData.type === 'http') {
+                // HTTP 调用使用特殊颜色
+                color = currentTheme === 'dark' ? 0x58a6ff : 0x3182ce;
+            } else if (edgeData.type === 'calls') {
+                color = currentTheme === 'dark' ? COLORS.edgeCall : COLORS_LIGHT.edgeCall;
+            } else if (edgeData.type === 'layer-calls') {
+                color = currentTheme === 'dark' ? 0x3fb950 : 0x38a169;
+            } else {
+                color = currentTheme === 'dark' ? COLORS.edge : COLORS_LIGHT.edge;
+            }
+
+            const material = new THREE.LineDashedMaterial({
+                color: color,
+                dashSize: edgeData.type === 'http' ? 1.0 : 0.5,
+                gapSize: edgeData.type === 'http' ? 0.5 : 0.3,
+                transparent: true,
+                opacity: 0.7
+            });
+
+            const line = new THREE.Line(geometry, material);
+            line.computeLineDistances();
+
+            line.userData = {
+                id: edgeData.id,
+                source: edgeData.source,
+                target: edgeData.target,
+                type: edgeData.type,
+                protocol: edgeData.protocol,
+                layer: edgeData.layer,
+                curve: curve,
+                originalOpacity: 0.7
+            };
+
+            return line;
+        }
+
+        // 创建流动粒子
+        function createFlowParticle(edgeData, sourceNode, targetNode) {
+            if (!sourceNode || !targetNode) return null;
+
+            const curve = edgeData.userData?.curve;
+            if (!curve) return null;
+
+            const geometry = new THREE.SphereGeometry(0.15, 8, 8);
+            const color = currentTheme === 'dark' ? COLORS.edgeCall : COLORS_LIGHT.edgeCall;
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            const particle = new THREE.Mesh(geometry, material);
+            particle.userData = {
+                progress: Math.random(),
+                speed: 0.008 + Math.random() * 0.005,
+                curve: curve
+            };
+
+            return particle;
+        }
+
+        // 分层布局 - 基于前后端分层
+        function layoutNodes(data) {
+            // 定义层级位置（前后端分开，中间是API边界）
+            const layerPositions = {
+                // 前端层（左侧）
+                'frontend-ui': { y: 35, x: -50, radius: 25 },
+                'frontend-service': { y: 15, x: -45, radius: 22 },
+                'frontend-store': { y: -5, x: -40, radius: 18 },
+                // API 边界层（中间）
+                'api': { y: 5, x: 0, radius: 25 },
+                // 后端层（右侧）
+                'service': { y: 25, x: 45, radius: 22 },
+                'domain': { y: 5, x: 50, radius: 20 },
+                'data': { y: -15, x: 55, radius: 18 },
+                'middleware': { y: -35, x: 45, radius: 15 },
+                // 共享层（底部）
+                'util': { y: -55, x: 0, radius: 15 },
+                'config': { y: -70, x: 0, radius: 12 }
+            };
+
+            // 兼容旧的 layer 属性
+            const legacyLayerMap = {
+                'API Layer': 'api',
+                'Service Layer': 'service',
+                'Data Layer': 'data',
+                'UI Layer': 'frontend-ui',
+                'Middleware Layer': 'middleware',
+                'Utility Layer': 'util',
+                'Config Layer': 'config'
+            };
+
+            const nodesByLayer = {};
+            const nodesBySide = { frontend: [], backend: [], shared: [] };
+
+            data.nodes.forEach(node => {
+                // 获取 layerId（兼容新旧格式）
+                let layerId = node.layerId || legacyLayerMap[node.layer] || node.layer || 'service';
+                node._layerId = layerId;
+
+                // 获取 side
+                let side = node.side || (layerId.startsWith('frontend-') ? 'frontend' :
+                                          ['util', 'config'].includes(layerId) ? 'shared' : 'backend');
+                node._side = side;
+
+                if (!nodesByLayer[layerId]) nodesByLayer[layerId] = [];
+                nodesByLayer[layerId].push(node);
+                nodesBySide[side].push(node);
+            });
+
+            // 获取 layers 定义
+            const layersMap = {};
+            if (data.layers) {
+                data.layers.forEach(l => layersMap[l.id] = l);
+            }
+
+            // 布局节点
+            Object.entries(nodesByLayer).forEach(([layerId, nodes]) => {
+                const config = layerPositions[layerId] || { y: 0, x: 0, radius: 20 };
+                const layerInfo = layersMap[layerId] || {};
+                const side = layerInfo.side || (layerId.startsWith('frontend-') ? 'frontend' :
+                                                ['util', 'config'].includes(layerId) ? 'shared' : 'backend');
+
+                const angleStep = (2 * Math.PI) / Math.max(nodes.length, 1);
+
+                nodes.forEach((node, i) => {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const group = createNode(node);
+
+                    if (hierarchyLayout) {
+                        // 同层圆形分布
+                        group.position.x = config.x + config.radius * Math.cos(angle) * 0.6;
+                        group.position.y = config.y;
+                        group.position.z = config.radius * Math.sin(angle) * 0.6;
+                    } else {
+                        group.position.x = config.x + (Math.random() - 0.5) * 40;
+                        group.position.y = config.y + (Math.random() - 0.5) * 8;
+                        group.position.z = (Math.random() - 0.5) * 40;
+                    }
+
+                    nodeGroup.add(group);
+                    nodesMap.set(node.id, group);
+                });
+            });
+        }
+
+        // 创建所有边
+        function createAllEdges(data) {
+            data.edges.forEach(edgeData => {
+                const sourceNode = nodesMap.get(edgeData.source);
+                const targetNode = nodesMap.get(edgeData.target);
+
+                if (sourceNode && targetNode) {
+                    const line = createEdge(edgeData, sourceNode, targetNode);
+                    if (line) {
+                        edgeGroup.add(line);
+                        edgesList.push(line);
+
+                        const particle = createFlowParticle({ userData: { curve: line.userData.curve } });
+                        if (particle) {
+                            particleGroup.add(particle);
+                            flowParticles.push(particle);
+                        }
+                    }
+                }
+            });
+        }
+
+        // 加载数据
+        function loadData(data) {
+            // 清除旧数据
+            while (nodeGroup.children.length > 0) {
+                nodeGroup.remove(nodeGroup.children[0]);
+            }
+            while (edgeGroup.children.length > 0) {
+                edgeGroup.remove(edgeGroup.children[0]);
+            }
+            while (particleGroup.children.length > 0) {
+                particleGroup.remove(particleGroup.children[0]);
+            }
+            nodesMap.clear();
+            edgesList = [];
+            flowParticles = [];
+
+            // 更新 UI
+            document.getElementById('project-title').textContent = data.project.name;
+
+            // 构建项目元信息
+            let metaText = '';
+            if (data.project.languages) {
+                metaText += data.project.languages.join(', ') + ' | ';
+            }
+            if (data.project.frameworks && data.project.frameworks.length > 0) {
+                metaText += data.project.frameworks.join(', ') + ' | ';
+            }
+            metaText += `${data.project.totalFiles} 文件 | ${data.project.totalLines} 行`;
+            document.getElementById('project-meta').textContent = metaText;
+
+            // 更新统计信息
+            document.getElementById('stat-nodes').textContent = data.stats.totalNodes || 0;
+            document.getElementById('stat-edges').textContent = data.stats.totalEdges || 0;
+
+            // 显示前后端统计（如果存在）
+            if (data.stats.sideStats) {
+                document.getElementById('stat-frontend').textContent = data.stats.sideStats.frontend || 0;
+                document.getElementById('stat-backend').textContent = data.stats.sideStats.backend || 0;
+                document.getElementById('stat-shared').textContent = data.stats.sideStats.shared || 0;
+                document.getElementById('stat-frontend-row').style.display = 'flex';
+                document.getElementById('stat-backend-row').style.display = 'flex';
+                document.getElementById('stat-shared-row').style.display = 'flex';
+            } else if (data.stats.nodeTypes) {
+                // 兼容旧的统计格式
+                document.getElementById('stat-frontend').textContent = data.stats.nodeTypes.file || 0;
+                document.getElementById('stat-backend').textContent = data.stats.nodeTypes.class || 0;
+                document.getElementById('stat-shared').textContent = data.stats.nodeTypes.function || 0;
+            }
+
+            // 布局节点
+            layoutNodes(data);
+
+            // 创建边
+            createAllEdges(data);
+
+            // 显示面板
+            document.getElementById('header-panel').style.display = 'block';
+            document.getElementById('stats-panel').style.display = 'block';
+            document.getElementById('control-panel').style.display = 'flex';
+            document.getElementById('theme-toggle').style.display = 'block';
+            document.getElementById('load-panel').style.display = 'none';
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        // 加载 JSON
+        async function loadJSON() {
+            const path = document.getElementById('json-path').value.trim();
+            let data;
+
+            if (path) {
+                try {
+                    const response = await fetch(path);
+                    data = await response.json();
+                } catch (e) {
+                    alert('加载失败: ' + e.message);
+                    return;
+                }
+            } else {
+                data = SAMPLE_DATA;
+            }
+
+            loadData(data);
+        }
+
+        // 主题切换
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', currentTheme === 'light' ? 'light' : '');
+
+            const colors = currentTheme === 'dark' ? COLORS : COLORS_LIGHT;
+            scene.background = new THREE.Color(colors.background);
+            scene.fog = new THREE.Fog(colors.background, 80, 300);
+
+            // 更新星空
+            const stars = scene.getObjectByName('stars');
+            if (stars) {
+                stars.material.color.setHex(currentTheme === 'dark' ? 0xffffff : 0x4a5568);
+                stars.material.opacity = currentTheme === 'dark' ? 0.6 : 0.3;
+            }
+
+            // 更新所有节点
+            nodesMap.forEach(group => {
+                const nodeData = group.userData;
+                const side = nodeData._side || nodeData.side || 'backend';
+
+                // 根据 side 获取颜色
+                let color;
+                if (side === 'frontend') {
+                    color = currentTheme === 'dark' ? COLORS.frontend : COLORS_LIGHT.frontend;
+                } else if (side === 'backend') {
+                    color = currentTheme === 'dark' ? COLORS.backend : COLORS_LIGHT.backend;
+                } else {
+                    color = currentTheme === 'dark' ? COLORS.shared : COLORS_LIGHT.shared;
+                }
+
+                // 更新材质颜色
+                group.children.forEach(child => {
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach((mat, idx) => {
+                                if (idx !== 4) mat.color.setHex(color);
+                            });
+                        }
+                    }
+                    if (child instanceof THREE.LineSegments) {
+                        child.material.color.setHex(color);
+                    }
+                });
+
+                // 重新创建贴图
+                if (group.children[0]) {
+                    const mesh = group.children[0];
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 512;
+                    canvas.height = 256;
+
+                    const isDark = currentTheme === 'dark';
+                    ctx.fillStyle = isDark ? '#1a1f2e' : '#f0f4f8';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const borderColor = '#' + color.toString(16).padStart(6, '0');
+                    ctx.strokeStyle = borderColor;
+                    ctx.lineWidth = 8;
+                    ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+
+                    ctx.fillStyle = isDark ? '#ffffff' : '#1a202c';
+                    ctx.font = 'bold 40px Microsoft YaHei';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(nodeData.name, canvas.width / 2, 80);
+
+                    ctx.fillStyle = isDark ? '#8b949e' : '#4a5568';
+                    ctx.font = '28px Microsoft YaHei';
+                    ctx.fillText(nodeData.layerId || nodeData.layer || '', canvas.width / 2, 140);
+
+                    ctx.font = '20px Microsoft YaHei';
+                    ctx.fillText(nodeData.filePath || '', canvas.width / 2, 200);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    if (Array.isArray(mesh.material)) {
+                        mesh.material[4].map = texture;
+                        mesh.material[4].needsUpdate = true;
+                    }
+                }
+            });
+
+            // 更新边
+            edgesList.forEach(edge => {
+                const isCall = edge.userData.type === 'calls' || edge.userData.type === 'http';
+                const color = isCall ?
+                    (currentTheme === 'dark' ? COLORS.edgeCall : COLORS_LIGHT.edgeCall) :
+                    (currentTheme === 'dark' ? COLORS.edge : COLORS_LIGHT.edge);
+                edge.material.color.setHex(color);
+            });
+
+            // 更新粒子
+            flowParticles.forEach(particle => {
+                particle.material.color.setHex(currentTheme === 'dark' ? COLORS.edgeCall : COLORS_LIGHT.edgeCall);
+            });
+        }
+
+        function resetView() {
+            camera.position.set(0, 40, 80);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        function toggleExpand() {
+            const btn = document.getElementById('btn-expand');
+            btn.classList.toggle('active');
+            // TODO: 实现展开/折叠逻辑
+        }
+
+        function toggleFlow() {
+            animationEnabled = !animationEnabled;
+            const btn = document.getElementById('btn-flow');
+            btn.classList.toggle('active', animationEnabled);
+        }
+
+        function toggleHierarchy() {
+            hierarchyLayout = !hierarchyLayout;
+            const btn = document.getElementById('btn-hierarchy');
+            btn.classList.toggle('active', hierarchyLayout);
+
+            // 重新布局
+            const data = window.currentData;
+            if (data) {
+                layoutNodes(data);
+                // 重建边
+                edgesList.forEach(edge => edgeGroup.remove(edge));
+                edgesList = [];
+                flowParticles.forEach(p => particleGroup.remove(p));
+                flowParticles = [];
+                createAllEdges(data);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(nodeGroup.children, true);
+
+            const tooltip = document.getElementById('tooltip');
+
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && !obj.userData.type && obj.parent !== scene) {
+                    obj = obj.parent;
+                }
+
+                if (obj.userData.type) {
+                    document.body.style.cursor = 'pointer';
+                    tooltip.innerHTML = `<strong>${obj.userData.name}</strong><br>${obj.userData.layer || ''} | ${obj.userData.type}`;
+                    tooltip.style.left = event.clientX + 15 + 'px';
+                    tooltip.style.top = event.clientY + 15 + 'px';
+                    tooltip.classList.add('visible');
+
+                    if (hoveredNode !== obj) {
+                        hoveredNode = obj;
+                    }
+                }
+            } else {
+                document.body.style.cursor = 'default';
+                tooltip.classList.remove('visible');
+                hoveredNode = null;
+            }
+        }
+
+        function onClick(event) {
+            if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT') return;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(nodeGroup.children, true);
+
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && !obj.userData.type && obj.parent !== scene) {
+                    obj = obj.parent;
+                }
+
+                if (obj.userData.type) {
+                    selectNode(obj);
+                }
+            }
+        }
+
+        function selectNode(node) {
+            selectedNode = node;
+            showDetail(node.userData);
+            highlightEdges(node.userData.id);
+        }
+
+        function highlightEdges(nodeId) {
+            edgesList.forEach(edge => {
+                if (edge.userData.source === nodeId || edge.userData.target === nodeId) {
+                    edge.material.opacity = 1;
+                    edge.material.dashSize = 1;
+                } else {
+                    edge.material.opacity = edge.userData.originalOpacity;
+                    edge.material.dashSize = 0.5;
+                }
+            });
+        }
+
+        function showDetail(nodeData) {
+            const panel = document.getElementById('detail-panel');
+            const typeBadge = document.getElementById('detail-type');
+            const nameEl = document.getElementById('detail-name');
+            const pathEl = document.getElementById('detail-path');
+            const metricsEl = document.getElementById('detail-metrics');
+            const callsEl = document.getElementById('detail-calls');
+            const calledEl = document.getElementById('detail-called');
+
+            typeBadge.textContent = (nodeData.side ? nodeData.side.toUpperCase() + ' | ' : '') + (nodeData.type || 'NODE').toUpperCase();
+            typeBadge.className = `detail-type-badge ${nodeData.type || 'file'}`;
+            nameEl.textContent = nodeData.name || '-';
+            pathEl.textContent = nodeData.filePath || nodeData.fullName || '-';
+
+            // 指标
+            let metricsHtml = '';
+            if (nodeData.metrics) {
+                Object.entries(nodeData.metrics).forEach(([key, value]) => {
+                    if (Array.isArray(value)) {
+                        metricsHtml += `<span style="margin-right:8px">${key}: ${value.length}</span>`;
+                    } else if (typeof value === 'object') {
+                        metricsHtml += `<span style="margin-right:8px">${key}: ${JSON.stringify(value)}</span>`;
+                    } else {
+                        metricsHtml += `<span style="margin-right:8px">${key}: ${value}</span>`;
+                    }
+                });
+            }
+            // 显示层级信息
+            if (nodeData.layerId) {
+                metricsHtml += `<span style="margin-right:8px">层级: ${nodeData.layerId}</span>`;
+            }
+            if (nodeData.side) {
+                metricsHtml += `<span style="margin-right:8px">端: ${nodeData.side === 'frontend' ? '前端' : nodeData.side === 'backend' ? '后端' : '共享'}</span>`;
+            }
+            metricsEl.innerHTML = metricsHtml || '-';
+
+            // 调用
+            callsEl.innerHTML = '';
+            if (nodeData.calls && nodeData.calls.length > 0) {
+                nodeData.calls.forEach(callId => {
+                    const tag = document.createElement('span');
+                    tag.className = 'call-tag calls';
+                    tag.textContent = callId.split(':').pop();
+                    tag.onclick = () => {
+                        const targetNode = nodesMap.get(callId);
+                        if (targetNode) {
+                            selectNode(targetNode);
+                        }
+                    };
+                    callsEl.appendChild(tag);
+                });
+            } else {
+                callsEl.innerHTML = '<span class="call-tag">无</span>';
+            }
+
+            // 被调用
+            calledEl.innerHTML = '';
+            if (nodeData.calledBy && nodeData.calledBy.length > 0) {
+                nodeData.calledBy.forEach(callId => {
+                    const tag = document.createElement('span');
+                    tag.className = 'call-tag called';
+                    tag.textContent = callId.split(':').pop();
+                    tag.onclick = () => {
+                        const targetNode = nodesMap.get(callId);
+                        if (targetNode) {
+                            selectNode(targetNode);
+                        }
+                    };
+                    calledEl.appendChild(tag);
+                });
+            } else {
+                calledEl.innerHTML = '<span class="call-tag">无</span>';
+            }
+
+            panel.classList.add('active');
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-panel').classList.remove('active');
+            selectedNode = null;
+
+            edgesList.forEach(edge => {
+                edge.material.opacity = edge.userData.originalOpacity;
+            });
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            animationFrame++;
+
+            controls.update();
+
+            // 流动动画
+            if (animationEnabled) {
+                edgesList.forEach(edge => {
+                    edge.material.dashOffset = -animationFrame * 0.05;
+                });
+
+                flowParticles.forEach(particle => {
+                    particle.userData.progress += particle.userData.speed;
+                    if (particle.userData.progress > 1) {
+                        particle.userData.progress = 0;
+                    }
+
+                    const point = particle.userData.curve.getPoint(particle.userData.progress);
+                    particle.position.copy(point);
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // 初始化
+        function init() {
+            initScene();
+            animate();
+        }
+
+        init();
+    </script>
+</body>
+</html>

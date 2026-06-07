@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevSquad Benchmark Report - V3.5.0-C</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 35px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .metric-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 5px 0;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .progress-container {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 25px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .gate-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .gate-status {
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .gate-pass { background: #d4edda; color: #155724; }
+        .gate-fail { background: #f8d7da; color: #721c24; }
+        .gate-warn { background: #fff3cd; color: #856404; }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 DevSquad Performance Benchmark Report</h1>
+            <p>V3.5.0-C | Plan C Layered Architecture | Generated: 2026-05-03 19:09:56</p>
+        </div>
+        
+        <div class="content">
+            <!-- Executive Summary -->
+            <div class="section">
+                <div class="section-title">📊 EXECUTIVE SUMMARY</div>
+                
+                <div style="background: white; border: 2px solid #dc3545; border-radius: 8px; padding: 20px; text-align: center;">
+                    <div style="font-size: 48px;">❌</div>
+                    <div style="font-size: 20px; font-weight: bold; color: #dc3545; margin: 10px 0;">
+                        SOME GATES FAILED
+                    </div>
+                    <div style="color: #6c757d;">
+                        1 of 4 quality gates passed
+                    </div>
+                </div>
+                
+                <!-- Test Results Overview -->
+                <div class="card">
+                    <h3 style="margin-bottom: 15px;">🧪 Test Execution Summary</h3>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: 0px;">
+                            0.0%
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr>
+                            <td>Total Tests</td>
+                            <td><strong>0</strong></td>
+                            <td><span class="badge badge-info">Count</span></td>
+                        </tr>
+                        <tr>
+                            <td>Passed ✅</td>
+                            <td><span style="color: #28a745; font-weight: bold;">0</span></td>
+                            <td><span class="badge badge-success">Success</span></td>
+                        </tr>
+                        <tr>
+                            <td>Failed ❌</td>
+                            <td><span style="color: #dc3545; font-weight: bold;">0</span></td>
+                            <td><span class="badge badge-success">None</span></td>
+                        </tr>
+                        <tr>
+                            <td>Skipped ⏭️</td>
+                            <td>0</td>
+                            <td><span class="badge badge-info">Info</span></td>
+                        </tr>
+                        <tr>
+                            <td>XFailed ⚠️</td>
+                            <td>0</td>
+                            <td><span class="badge badge-warn">Expected</span></td>
+                        </tr>
+                        <tr>
+                            <td>Duration ⏱️</td>
+                            <td><strong>0.0s</strong></td>
+                            <td><span class="badge badge-info">Time</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Performance Metrics -->
+            <div class="section">
+                <div class="section-title">⚡ PERFORMANCE METRICS</div>
+                
+                <div class="metric-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Tests/Second</div>
+                        <div class="metric-value">0</div>
+                        <div style="font-size: 11px; color: #6c757d;">↑ Speed indicator</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Avg Test Time</div>
+                        <div class="metric-value">0ms</div>
+                        <div style="font-size: 11px; color: #6c757d;">Per test avg</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Total Duration</div>
+                        <div class="metric-value">0.0s</div>
+                        <div style="font-size: 11px; color: #6c757d;">Execution time</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Pass Rate</div>
+                        <div class="metric-value">0%</div>
+                        <div style="font-size: 11px; color: #6c757d;">Quality metric</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quality Gates -->
+            <div class="section">
+                <div class="section-title">🔒 QUALITY GATES</div>
+                
+                <div class="card">
+                    <p style="margin-bottom: 15px; color: #6c757d;">
+                        Each gate must pass to meet quality standards:
+                    </p>
+                    
+                    <div class="gate-item">
+                        <div>
+                            <strong>Minimum Pass Rate ≥ 95%</strong>
+                            <div style="color: #6c757d; font-size: 12px; margin-top: 3px;">
+                                Pass rate 0.0% ❌ below 95% threshold
+                            </div>
+                        </div>
+                        <div class="gate-status gate-fail">
+                                ❌
+                        </div>
+                    </div>
+                    
+                    <div class="gate-item">
+                        <div>
+                            <strong>Zero Critical Failures</strong>
+                            <div style="color: #6c757d; font-size: 12px; margin-top: 3px;">
+                                Critical failures: 0 ✅ none
+                            </div>
+                        </div>
+                        <div class="gate-status gate-pass">
+                                ✅
+                        </div>
+                    </div>
+                    
+                    <div class="gate-item">
+                        <div>
+                            <strong>Test Coverage Target ≥ 700</strong>
+                            <div style="color: #6c757d; font-size: 12px; margin-top: 3px;">
+                                Test count: 0 ⚠️  below 700 target
+                            </div>
+                        </div>
+                        <div class="gate-status gate-warn">
+                                ⚠️
+                        </div>
+                    </div>
+                    
+                    <div class="gate-item">
+                        <div>
+                            <strong>Execution Speed ≥ 100 tests/s</strong>
+                            <div style="color: #6c757d; font-size: 12px; margin-top: 3px;">
+                                Speed: 0.0 tests/sec
+                            </div>
+                        </div>
+                        <div class="gate-status gate-info">
+                                ℹ
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Info -->
+            <div class="section">
+                <div class="section-title">💻 SYSTEM INFORMATION</div>
+                
+                <table>
+                    <tr>
+                        <th>Property</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Version</td>
+                        <td><code>V3.5.0-C</code> (Plan C Layered Architecture)</td>
+                    </tr>
+                    <tr>
+                        <td>Python</td>
+                        <td>3.9.6</td>
+                    </tr>
+                    <tr>
+                        <td>Platform</td>
+                        <td>darwin</td>
+                    </tr>
+                    <tr>
+                        <td>Report ID</td>
+                        <td><code>20260503_190956</code></td>
+                    </tr>
+                    <tr>
+                        <td>Generated At</td>
+                        <td>2026-05-03 19:09:56</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Generated by DevSquad Benchmark Report Generator</p>
+            <p>Version V3.5.0-C | Plan C Layered Architecture | © 2026 DevSquad Team</p>
+        </div>
+    </div>
+</body>
+</html>

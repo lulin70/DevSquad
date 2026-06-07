@@ -1,0 +1,23 @@
+apiVersion: v2
+name: devsquad
+description: Multi-Role AI Task Orchestrator - DevSquad V3.6.0
+
+type: application
+
+version: 3.6.0
+appVersion: "3.6.0"
+
+keywords:
+  - ai
+  - multi-agent
+  - task-orchestrator
+  - llm
+  - collaboration
+
+maintainers:
+  - name: DevSquad Team
+    email: devsquad@example.com
+
+home: https://github.com/lulin70/DevSquad
+sources:
+  - https://github.com/lulin70/DevSquad

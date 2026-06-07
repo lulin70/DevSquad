@@ -1,0 +1,111 @@
+# Dependabot Configuration for DevSquad
+# 
+# Purpose: Automate dependency updates while avoiding unnecessary PRs
+# 
+# Strategy:
+# - Auto-merge safe CI dependencies (github-actions)
+# - Manual review for Python packages (pip)
+# - Ignore deprecated/unused dependencies (pytest-cov)
+
+version: 2
+
+updates:
+  # ===========================================
+  # GitHub Actions Dependencies (Auto-Merge Enabled)
+  # ===========================================
+  # These are the safest updates:
+  # - Only affect CI/CD pipeline, not production code
+  # - Usually backward compatible (major version bumps are rare)
+  # - No runtime impact on users
+  # ===========================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    
+    # ✅ Enable auto-merge for CI dependencies
+    automerge: true
+    
+    # Only allow these update types to auto-merge:
+    commit-message:
+      prefix: "ci"
+      
+    # Reviewers not required for CI deps (they're safe)
+    reviewers: []
+    
+    # Labels for better tracking
+    labels:
+      - "dependencies"
+      - "ci"
+      - "automerge"
+
+  # ===========================================
+  # Python Dependencies (Manual Review Required)
+  # ===========================================
+  # Python packages can have breaking changes:
+  # - Major version bumps may introduce API changes
+  # - Some packages have complex dependency trees
+  # - Need human judgment for compatibility
+  # ===========================================
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    
+    # ❌ Do NOT auto-merge Python packages
+    automerge: false
+    
+    # Require maintainers to review Python dep changes
+    reviewers:
+      - "lulin70"
+    
+    # ===========================================
+    # IGNORE LIST - Dependencies we don't use or manage manually
+    # ===========================================
+    ignore:
+      # pytest-cov: We removed coverage checks in V3.6.6 (commit e1e0490)
+      # No need to upgrade this unused dependency
+      - dependency-name: "pytest-cov"
+        versions: [">=4.0.0"]
+      
+      # coverage: Same reason as pytest-cov (it's the backend)
+      - dependency-name: "coverage"
+        versions: [">=7.0.0"]
+    
+    # Commit message format for Python deps
+    commit-message:
+      prefix: "deps"
+      
+    # Labels for manual review
+    labels:
+      - "dependencies"
+      - "python"
+      - "review-required"
+
+  # ===========================================
+  # Docker Dependencies (if any in future)
+  # ===========================================
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    
+    # Docker base images should be reviewed (security implications)
+    automerge: false
+    
+    reviewers:
+      - "lulin70"
+    
+    commit-message:
+      prefix: "docker"
+      
+    labels:
+      - "dependencies"
+      - "docker"
+      - "security-review"
