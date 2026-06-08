@@ -144,3 +144,10 @@ install.sh
 :memory:-shm
 :memory:-wal
 .DS_Store
+
+# --- Additional Patterns ---
+.eggs/
+*.orig
+*.log
+.mypy_cache/
+.ruff_cache/

@@ -4,7 +4,7 @@ Input Validator — 输入验证模块
 提供任务描述和用户输入的验证功能，防止恶意输入和过长内容。
 
 Author: DevSquad Team
-Version: 3.6.0
+Version: 3.6.7
 """
 
 import re

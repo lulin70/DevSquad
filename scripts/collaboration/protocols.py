@@ -21,6 +21,13 @@ from typing import Any, Protocol
 # CacheProvider: LLM response cache interface
 # ============================================================================
 
+# NOTE: CacheProvider is the high-level LLM cache interface used by the dispatch pipeline.
+# CacheBackendInterface (in cache_interface.py) is the low-level storage interface used by
+# the multi-level cache coordinator. They serve different layers:
+# - CacheProvider: business-level (prompt → response caching)
+# - CacheBackendInterface: storage-level (key → value caching)
+# Do NOT merge these — they are intentionally separate abstractions.
+
 
 class CacheProvider(Protocol):
     """

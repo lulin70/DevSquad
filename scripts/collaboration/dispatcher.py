@@ -67,6 +67,7 @@ from .permission_guard import (
     PermissionLevel,
     ProposedAction,
 )
+from .prometheus_metrics import get_metrics
 from .report_formatter import ReportFormatter
 from .role_matcher import RoleMatcher
 from .scratchpad import Scratchpad, ScratchpadEntry
@@ -210,6 +211,12 @@ class MultiAgentDispatcher:
         self._init_core_components()
         self._init_optional_components()
         self._init_cache_and_monitor()
+        # Prometheus: set build info
+        try:
+            _metrics = get_metrics()
+            _metrics.set_build_info(version=__version__)
+        except Exception:
+            pass
 
     def _init_core_components(self) -> None:
         """Initialize core components that are always needed."""
@@ -451,6 +458,14 @@ class MultiAgentDispatcher:
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
 
+        # Prometheus: record dispatch start
+        try:
+            _metrics = get_metrics()
+            _metrics.dispatch_counter.labels(mode=mode, role_count="0").inc()
+            _metrics.tasks_in_progress_gauge.labels(phase="dispatch").inc()
+        except Exception:
+            pass
+
         if self.usage_tracker:
             self.usage_tracker.tick("dispatch")
 
@@ -496,7 +511,19 @@ class MultiAgentDispatcher:
             step5_time = prep_timing["step5_time"]
 
             # Step 8: Execute workers
+            # Prometheus: track active workers before execution
+            try:
+                _metrics = get_metrics()
+                _metrics.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
+            except Exception:
+                pass
             exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(plan, task_description)
+            # Prometheus: track active workers after execution
+            try:
+                _metrics = get_metrics()
+                _metrics.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
+            except Exception:
+                pass
             errors.extend(exec_errors)
             step6_time = exec_timing["step6_time"]
             step7_time = exec_timing["step7_time"]
@@ -580,6 +607,15 @@ class MultiAgentDispatcher:
             # Step 18: Feedback loop
             result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
 
+            # Prometheus: record dispatch end (duration + tasks_in_progress)
+            try:
+                _metrics = get_metrics()
+                _metrics.dispatch_histogram.labels(mode=mode).observe(total_duration)
+                _metrics.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc()
+                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
+            except Exception:
+                pass
+
             return result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
@@ -590,6 +626,13 @@ class MultiAgentDispatcher:
                 dispatch_err,
                 exc_info=True,
             )
+            # Prometheus: record error and decrement tasks_in_progress
+            try:
+                _metrics = get_metrics()
+                _metrics.record_error("validation", "dispatcher")
+                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
+            except Exception:
+                pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=dispatch_err)
             return DispatchResult(
                 success=False,
@@ -604,6 +647,13 @@ class MultiAgentDispatcher:
             logger.error(
                 "Missing dependency during dispatch of task '%s': %s", task_description[:50], import_err, exc_info=True
             )
+            # Prometheus: record error and decrement tasks_in_progress
+            try:
+                _metrics = get_metrics()
+                _metrics.record_error("dependency", "dispatcher")
+                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
+            except Exception:
+                pass
             friendly = make_user_friendly_error("backend_unavailable", original_error=import_err)
             return DispatchResult(
                 success=False,
@@ -622,6 +672,13 @@ class MultiAgentDispatcher:
                 e,
                 exc_info=True,
             )
+            # Prometheus: record error and decrement tasks_in_progress
+            try:
+                _metrics = get_metrics()
+                _metrics.record_error("unknown", "dispatcher")
+                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
+            except Exception:
+                pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=e)
             return DispatchResult(
                 success=False,
@@ -658,6 +715,14 @@ class MultiAgentDispatcher:
         """
         track_usage("dispatcher.async_dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
+
+        # Prometheus: record async dispatch start
+        try:
+            _metrics = get_metrics()
+            _metrics.dispatch_counter.labels(mode=mode, role_count="0").inc()
+            _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").inc()
+        except Exception:
+            pass
 
         if self.usage_tracker:
             self.usage_tracker.tick("async_dispatch")
@@ -704,6 +769,12 @@ class MultiAgentDispatcher:
             step5_time = prep_timing["step5_time"]
 
             # Step 8: Execute workers asynchronously via AsyncCoordinator
+            # Prometheus: track active workers before execution
+            try:
+                _metrics = get_metrics()
+                _metrics.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
+            except Exception:
+                pass
             try:
                 from .async_coordinator import AsyncCoordinator
 
@@ -771,6 +842,13 @@ class MultiAgentDispatcher:
                 errors.extend(exec_errors)
                 step6_time = exec_timing["step6_time"]
                 step7_time = exec_timing["step7_time"]
+
+            # Prometheus: track active workers after execution
+            try:
+                _metrics = get_metrics()
+                _metrics.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
+            except Exception:
+                pass
 
             # Step 9: Post-execution processing (collect, slice, anchor check)
             scratchpad_summary, anchor_result, collection, post_errors, post_timing = self._post_execution_processing(
@@ -851,6 +929,15 @@ class MultiAgentDispatcher:
             # Step 18: Feedback loop
             result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
 
+            # Prometheus: record async dispatch end (duration + tasks_in_progress)
+            try:
+                _metrics = get_metrics()
+                _metrics.dispatch_histogram.labels(mode=mode).observe(total_duration)
+                _metrics.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc()
+                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
+            except Exception:
+                pass
+
             return result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
@@ -861,6 +948,13 @@ class MultiAgentDispatcher:
                 dispatch_err,
                 exc_info=True,
             )
+            # Prometheus: record error and decrement tasks_in_progress
+            try:
+                _metrics = get_metrics()
+                _metrics.record_error("validation", "dispatcher")
+                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
+            except Exception:
+                pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=dispatch_err)
             return DispatchResult(
                 success=False,
@@ -875,6 +969,13 @@ class MultiAgentDispatcher:
             logger.error(
                 "Missing dependency during async dispatch of task '%s': %s", task_description[:50], import_err, exc_info=True
             )
+            # Prometheus: record error and decrement tasks_in_progress
+            try:
+                _metrics = get_metrics()
+                _metrics.record_error("dependency", "dispatcher")
+                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
+            except Exception:
+                pass
             friendly = make_user_friendly_error("backend_unavailable", original_error=import_err)
             return DispatchResult(
                 success=False,
@@ -893,6 +994,13 @@ class MultiAgentDispatcher:
                 e,
                 exc_info=True,
             )
+            # Prometheus: record error and decrement tasks_in_progress
+            try:
+                _metrics = get_metrics()
+                _metrics.record_error("unknown", "dispatcher")
+                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
+            except Exception:
+                pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=e)
             return DispatchResult(
                 success=False,
@@ -1033,8 +1141,8 @@ class MultiAgentDispatcher:
                             task = f"{task}\n\n[CI Context] {ctx.summary}"
                             if self.usage_tracker:
                                 self.usage_tracker.tick("ci_context_injected")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"CI context injection failed: {e}")
 
         return task, rule_collection, None
 
@@ -1291,8 +1399,8 @@ class MultiAgentDispatcher:
                         wr["_sliced"] = True
                         if self.usage_tracker:
                             self.usage_tracker.tick("output_sliced")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"OutputSlicer failed: {e}")
 
         # V3.6.0: Anchor check after execution (needs scratchpad_summary)
         anchor_result = None
@@ -1343,6 +1451,12 @@ class MultiAgentDispatcher:
         if conflicts_count > 0 or mode == "consensus":
             resolutions = self.coordinator.resolve_conflicts()
             for rec in resolutions:
+                # Prometheus: record consensus round
+                try:
+                    _metrics = get_metrics()
+                    _metrics.record_consensus_round(rec.outcome.value)
+                except Exception:
+                    pass
                 consensus_records.append(
                     {
                         "topic": rec.topic,
@@ -1393,6 +1507,13 @@ class MultiAgentDispatcher:
                     "decision": decision.outcome.value,
                     "reason": decision.reason or "",
                 }
+                # Prometheus: record gate check
+                try:
+                    _metrics = get_metrics()
+                    gate_result = "pass" if decision.outcome.value == "ALLOWED" else "fail"
+                    _metrics.record_gate_check("permission", gate_result)
+                except Exception:
+                    pass
                 if classified:
                     perm_entry["operation_category"] = classified.category.value
                 permission_checks.append(perm_entry)
@@ -1593,8 +1714,8 @@ class MultiAgentDispatcher:
                                     else "general",
                                     confidence=pattern.confidence,
                                 )
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.warning(f"SkillRegistry proposal failed: {e}")
             except Exception as skill_err:
                 errors.append(f"Skillifier error: {skill_err}")
 
@@ -1606,8 +1727,8 @@ class MultiAgentDispatcher:
                         if variants:
                             if self.usage_tracker:
                                 self.usage_tracker.tick("prompt_variant_generated")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"PromptVariantGenerator failed: {e}")
 
         return skill_proposals, errors
 

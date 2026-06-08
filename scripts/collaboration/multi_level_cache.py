@@ -369,8 +369,8 @@ class MultiLevelCacheCoordinator:
                 cached = await self.l1.get(key)
                 if cached is not None and cached is not NULL_SENTINEL:
                     return cached
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"L1 double-check failed: {e}")
 
         async with key_lock:
             # Triple-check inside lock
@@ -379,8 +379,8 @@ class MultiLevelCacheCoordinator:
                     cached = await self.l1.get(key)
                     if cached is not None and cached is not NULL_SENTINEL:
                         return cached
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"L1 triple-check failed: {e}")
 
             # Rate limit L3 calls
             async with self._l3_semaphore:

@@ -20,6 +20,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator
 from typing import Any, Dict, List, Optional, Union
 
+from .prometheus_metrics import get_metrics
+
 
 class LLMBackend(ABC):
     """Abstract base class for LLM execution backends."""
@@ -150,6 +152,7 @@ class OpenAIBackend(LLMBackend):
         client = self._get_client()
         last_error = None
         for attempt in range(self.MAX_RETRIES):
+            _llm_start = time.time()
             try:
                 response = client.chat.completions.create(
                     model=kwargs.get("model", self.model),
@@ -157,9 +160,23 @@ class OpenAIBackend(LLMBackend):
                     temperature=kwargs.get("temperature", self.temperature),
                     max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 )
+                _llm_duration = time.time() - _llm_start
+                # Prometheus: record successful LLM call
+                try:
+                    _metrics = get_metrics()
+                    _metrics.record_llm_call("openai", _llm_duration, True)
+                except Exception:
+                    pass
                 return response.choices[0].message.content or ""
             except Exception as e:
+                _llm_duration = time.time() - _llm_start
                 last_error = e
+                # Prometheus: record failed LLM call
+                try:
+                    _metrics = get_metrics()
+                    _metrics.record_llm_call("openai", _llm_duration, False)
+                except Exception:
+                    pass
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2**attempt)
         raise last_error or RuntimeError(f"OpenAI generate failed after {self.MAX_RETRIES} attempts")
@@ -230,15 +247,30 @@ class AnthropicBackend(LLMBackend):
         client = self._get_client()
         last_error = None
         for attempt in range(self.MAX_RETRIES):
+            _llm_start = time.time()
             try:
                 response = client.messages.create(
                     model=kwargs.get("model", self.model),
                     max_tokens=kwargs.get("max_tokens", self.max_tokens),
                     messages=[{"role": "user", "content": prompt}],
                 )
+                _llm_duration = time.time() - _llm_start
+                # Prometheus: record successful LLM call
+                try:
+                    _metrics = get_metrics()
+                    _metrics.record_llm_call("anthropic", _llm_duration, True)
+                except Exception:
+                    pass
                 return response.content[0].text if response.content else ""
             except Exception as e:
+                _llm_duration = time.time() - _llm_start
                 last_error = e
+                # Prometheus: record failed LLM call
+                try:
+                    _metrics = get_metrics()
+                    _metrics.record_llm_call("anthropic", _llm_duration, False)
+                except Exception:
+                    pass
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2**attempt)
         raise last_error or RuntimeError(f"Anthropic generate failed after {self.MAX_RETRIES} attempts")
@@ -300,6 +332,7 @@ class FallbackBackend(LLMBackend):
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         import logging
+        import time
 
         logger = logging.getLogger(__name__)
         last_error = None
@@ -311,25 +344,41 @@ class FallbackBackend(LLMBackend):
         for idx in ordered:
             backend = self._backends[idx]
             backend_repr = repr(backend)
+            backend_name = type(backend).__name__.replace("Backend", "").lower()
 
             if idx != self._active_index and not self._is_cooled_down(backend_repr):
                 continue
 
             try:
+                _llm_start = time.time()
                 result: str = backend.generate(prompt, **kwargs)
+                _llm_duration = time.time() - _llm_start
                 with self._lock:
                     self._active_index = idx
                 if idx != 0:
                     logger.info("FallbackBackend: switched to %s", backend_repr)
+                # Prometheus: record successful LLM call
+                try:
+                    _metrics = get_metrics()
+                    _metrics.record_llm_call(backend_name, _llm_duration, True)
+                except Exception:
+                    pass
                 return result
             except Exception as e:
                 last_error = e
+                _llm_duration = time.time() - _llm_start if '_llm_start' in dir() else 0
                 self._mark_failed(backend_repr)
                 logger.warning(
                     "FallbackBackend: %s failed (%s), trying next",
                     backend_repr,
                     type(e).__name__,
                 )
+                # Prometheus: record failed LLM call
+                try:
+                    _metrics = get_metrics()
+                    _metrics.record_llm_call(backend_name, _llm_duration, False)
+                except Exception:
+                    pass
 
         raise last_error or RuntimeError("All backends failed with no specific error")
 

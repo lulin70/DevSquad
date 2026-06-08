@@ -168,6 +168,14 @@ class Serializer:
             raise
 
 
+# NOTE: CacheBackendInterface is the low-level storage interface used by the multi-level
+# cache coordinator. CacheProvider (in protocols.py) is the high-level LLM cache interface
+# used by the dispatch pipeline. They serve different layers:
+# - CacheBackendInterface: storage-level (key → value caching)
+# - CacheProvider: business-level (prompt → response caching)
+# Do NOT merge these — they are intentionally separate abstractions.
+
+
 class CacheBackendInterface(abc.ABC):
     """
     Abstract base class for cache backend implementations.

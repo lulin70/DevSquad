@@ -34,6 +34,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from .prometheus_metrics import get_metrics
+
 logger = logging.getLogger(__name__)
 
 
@@ -194,6 +196,9 @@ class LLMCache:
         Returns:
             缓存的响应，如果未找到或已过期则返回 None
         """
+        # Determine cache level for Prometheus metrics
+        _cache_level = "l1"
+
         # MultiLevelCacheCoordinator backend path
         if self.use_multi_level_cache and self._mlc is not None:
             try:
@@ -202,9 +207,19 @@ class LLMCache:
                 if result is not None:
                     with self._lock:
                         self.stats["hits"] += 1
+                    # Prometheus: record cache hit
+                    try:
+                        get_metrics().record_cache_hit("l1", "llm_response")
+                    except Exception as e:
+                        logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return result
                 with self._lock:
                     self.stats["misses"] += 1
+                # Prometheus: record cache miss
+                try:
+                    get_metrics().record_cache_miss("l1", "llm_response")
+                except Exception as e:
+                    logger.debug(f"Prometheus cache miss recording failed: {e}")
                 return None
             except Exception as e:
                 logger.warning("MultiLevelCache get failed, falling back: %s", e)
@@ -219,6 +234,11 @@ class LLMCache:
                     entry.hit_count += 1
                     entry.last_accessed = time.time()
                     self.stats["hits"] += 1
+                    # Prometheus: record cache hit (L1 memory)
+                    try:
+                        get_metrics().record_cache_hit("l1", "llm_response")
+                    except Exception as e:
+                        logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return entry.response
                 else:
                     del self.memory_cache[cache_key]
@@ -238,24 +258,30 @@ class LLMCache:
 
                     try:
                         cache_file.write_text(json.dumps(asdict(entry)), encoding="utf-8")
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Disk cache write-back failed: {e}")
 
                     with self._lock:
                         self.stats["hits"] += 1
+                    # Prometheus: record cache hit (L1 disk)
+                    try:
+                        get_metrics().record_cache_hit("l1", "llm_response")
+                    except Exception as e:
+                        logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return entry.response
                 else:
                     try:
                         cache_file.unlink()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Failed to delete expired cache file: {e}")
                     with self._lock:
                         self.stats["expirations"] += 1
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Disk cache read failed: {e}")
                 try:
                     cache_file.unlink()
-                except Exception:
-                    pass
+                except Exception as e2:
+                    logger.debug(f"Failed to delete corrupt cache file: {e2}")
 
         # Redis L2 lookup (after disk miss)
         if self._redis_cache:
@@ -265,13 +291,23 @@ class LLMCache:
                 if redis_value is not None:
                     with self._lock:
                         self.stats["hits"] += 1
+                    # Prometheus: record cache hit (L2 Redis)
+                    try:
+                        get_metrics().record_cache_hit("l2", "llm_response")
+                    except Exception as e:
+                        logger.debug(f"Prometheus cache hit recording failed: {e}")
                     logger.debug("Redis L2 cache hit for key %s", redis_key[:16])
                     return redis_value
-            except Exception:
-                pass  # Redis failure should not break the pipeline
+            except Exception as e:
+                logger.debug(f"Redis L2 cache read failed: {e}")
 
         with self._lock:
             self.stats["misses"] += 1
+        # Prometheus: record cache miss
+        try:
+            get_metrics().record_cache_miss("l1", "llm_response")
+        except Exception as e:
+            logger.debug(f"Prometheus cache miss recording failed: {e}")
         return None
 
     def set(self, prompt: str, response: str, backend: str, model: str, ttl: int | None = None):
@@ -331,8 +367,8 @@ class LLMCache:
             try:
                 redis_key = self._redis_hash_prompt(prompt, backend, model)
                 self._redis_cache.set(redis_key, response, ttl=ttl or 3600)
-            except Exception:
-                pass  # Redis failure should not break the pipeline
+            except Exception as e:
+                logger.debug(f"Redis L2 cache write failed: {e}")
 
     def _add_to_memory(self, key: str, entry: CacheEntry):
         """添加到内存缓存，必要时执行 LRU 淘汰"""
@@ -366,9 +402,11 @@ class LLMCache:
                 test_file.write_text("test")
                 test_file.unlink()
                 return True
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Cache dir write test failed: {e}")
                 return False
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Cache availability check failed: {e}")
             return False
 
     def get_stats(self) -> dict[str, Any]:
@@ -384,7 +422,8 @@ class LLMCache:
         # 统计磁盘缓存
         try:
             disk_entries = len(list(self.cache_dir.glob("*.json")))
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Disk entry count failed: {e}")
             disk_entries = 0
 
         # 计算总命中次数
@@ -393,7 +432,8 @@ class LLMCache:
         # 计算总大小（兼容 Protocol 接口）
         try:
             total_size = sum(f.stat().st_size for f in self.cache_dir.glob("*.json"))
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Cache size calculation failed: {e}")
             total_size = 0
 
         return {
@@ -459,8 +499,8 @@ class LLMCache:
         if self._redis_cache:
             try:
                 self._redis_cache.clear()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Redis cache clear failed: {e}")
 
         # 重置统计信息
         self.stats = dict.fromkeys(self.stats, 0)
@@ -557,8 +597,8 @@ def configure_redis_cache(enabled: bool = False, url: Optional[str] = None):
     if _cache_instance is not None:
         try:
             _cache_instance.clear()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Cache clear during Redis reconfigure failed: {e}")
     _cache_instance = None
 
 

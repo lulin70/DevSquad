@@ -12,7 +12,7 @@ Pipeline:
                  (detect intent)   (extract rule)  (security check)  (persist)
 
 Author: DevSquad Team
-Version: 3.6.0
+Version: 3.6.7
 """
 
 import json

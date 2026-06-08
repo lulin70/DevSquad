@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V3.6.6 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V3.6.7 Enterprise Ready</em>
 </p>
 
 <p align="center">
@@ -202,6 +202,8 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | **UsageTracker** | Token/cost usage tracking and reporting | Cost control |
 | **AuditLogger** | SHA256 integrity operation logs with CSV/JSON export (Preview) | Compliance auditing |
 | **RBAC Engine** | 15+ fine-grained permissions, 5 roles (SUPER_ADMIN/ADMIN/OPERATOR/ANALYST/VIEWER) (Preview) | Enterprise access control |
+| **Multi-Tenancy Manager** | 3 isolation levels (strict/moderate/shared), tenant-scoped resources (Preview) | Multi-tenant SaaS |
+| **Sensitive Data Masker** | PII detection and masking (email/phone/ID card/credit card), configurable rules (Preview) | Data compliance |
 | **HistoryManager** | SQLite time-series storage: metrics snapshots, alert history, API logs | Retrospective analysis |
 | **AlertManager** | Multi-channel alerting: Console/Slack/Email/Webhook with rate limiting | Production monitoring |
 
@@ -438,7 +440,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.6.6
+# Expected: devsquad 3.6.7
 
 # Run tests
 pytest tests/ -v --tb=short

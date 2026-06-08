@@ -2,7 +2,7 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.6 DevSquad — Enterprise 多角色 AI 任务编排器。
+  V3.6.7 DevSquad — Enterprise 多角色 AI 任务编排器。
   一个任务输入，多角色 AI 协作，一个结论输出。
   7 个核心角色（架构师/产品经理/安全专家/测试专家/开发工程师/DevOps/UI 设计师），
   真实 LLM 后端（OpenAI/Anthropic/MOKA AI），CLI + MCP + Python API + REST API + Web Dashboard。

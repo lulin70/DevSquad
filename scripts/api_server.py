@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="DevSquad API",
     description="""
-    ## DevSquad V3.6.1 REST API
+    ## DevSquad V3.6.7 REST API
 
     Production-ready API for DevSquad multi-agent collaboration.
 
@@ -256,7 +256,7 @@ async def startup_event():
     logger.info("=" * 60)
     logger.info("🚀 DevSquad API Server Starting...")
     logger.info("=" * 60)
-    logger.info("Version: 3.6.0")
+    logger.info("Version: 3.6.7")
     logger.info(f"Time: {datetime.now().isoformat()}")
     logger.info("Components:")
     logger.info("  ✅ FastAPI initialized")
@@ -300,7 +300,7 @@ if __name__ == "__main__":
 
     print("""
 ╔══════════════════════════════════════════════════════╗
-║          🚀 DevSquad API Server v3.6.0           ║
+║          🚀 DevSquad API Server v3.6.7           ║
 ╠══════════════════════════════════════════════════════╣
 ║  Starting server...                                   ║
 ║                                                       ║
