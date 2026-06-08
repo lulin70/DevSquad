@@ -15,6 +15,7 @@ Test categories:
 Total target: 125 tests
 """
 
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -454,7 +455,7 @@ class TestCLIWithLifecycleIntegration:
             ["python3", "scripts/cli.py", "--help"],
             capture_output=True,
             text=True,
-            cwd="/Users/lin/trae_projects/DevSquad",
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         )
         assert "lifecycle" in result.stdout.lower() or result.returncode == 0
         print("✅ Lifecycle command in CLI help")
