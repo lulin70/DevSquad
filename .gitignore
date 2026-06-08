@@ -52,7 +52,7 @@ data/memory-bank/
 data/role_templates/
 benchmarks/
 registry/
-workflows/
+/workflows/
 
 # --- Vibe Coding (legacy, not tracked) ---
 scripts/vibe_coding/
