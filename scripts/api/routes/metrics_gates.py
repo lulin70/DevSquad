@@ -52,7 +52,7 @@ def _get_real_cpu_usage() -> tuple:
 
         cpu_count = os.cpu_count() or 1
         return (round(100.0 / (cpu_count + 1), 1), True)
-    except Exception as e:
+    except (RuntimeError, OSError) as e:
         logger.warning(f"Failed to get real CPU usage: {e}, using estimated")
         return (45.0, True)
 
@@ -69,7 +69,7 @@ def _get_real_memory_usage() -> tuple:
         return (round(mem.percent, 1), False)
     except ImportError:
         return (60.0, True)
-    except Exception as e:
+    except (RuntimeError, OSError) as e:
         logger.warning(f"Failed to get real memory usage: {e}, using estimated")
         return (60.0, True)
 
@@ -92,7 +92,7 @@ def _get_real_response_time() -> tuple:
             return (round(avg_ms, 1), round(p95_ms, 1), False)
 
         return (150.0, 450.0, True)
-    except Exception as e:
+    except (ImportError, AttributeError, RuntimeError) as e:
         logger.debug(f"HistoryManager not available for response time: {e}")
         return (150.0, 450.0, True)
 
@@ -143,7 +143,7 @@ async def get_current_metrics():
             memory_usage_percent=mem_usage,
         )
 
-    except Exception as e:
+    except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to get metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -192,7 +192,7 @@ async def get_metrics_history(
             "note": "No historical data available. Metrics will be recorded after API requests are made.",
         }
 
-    except Exception as e:
+    except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to get metrics history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -227,7 +227,7 @@ async def get_all_gate_statuses():
                     "missing_evidence_count": len(getattr(result, "missing_evidence", [])),
                     "has_gap_report": bool(getattr(result, "gap_report", None)),
                 }
-            except Exception as e:
+            except (AttributeError, KeyError, RuntimeError) as e:
                 gate_statuses[cmd] = {"passed": False, "verdict": "ERROR", "error": str(e)}
 
         return {
@@ -238,7 +238,7 @@ async def get_all_gate_statuses():
             "timestamp": datetime.now().isoformat(),
         }
 
-    except Exception as e:
+    except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to get gate statuses: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -278,7 +278,7 @@ async def check_specific_gate(request: GateCheckRequest):
             checked_at=datetime.now(),
         )
 
-    except Exception as e:
+    except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to check gate for {request.command}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -307,7 +307,7 @@ async def health_check():
             protocol = get_shared_protocol()
             status = protocol.get_status()
             components["lifecycle_protocol"] = "healthy"
-        except Exception as e:
+        except (ImportError, AttributeError, RuntimeError) as e:
             components["lifecycle_protocol"] = f"unhealthy: {str(e)}"
 
         # Check database (if enabled)
@@ -316,7 +316,7 @@ async def health_check():
 
             mgr = HistoryManager()
             components["history_database"] = "healthy"
-        except Exception:
+        except (ImportError, AttributeError):
             components["history_database"] = "not_configured"
 
         # Determine overall status
@@ -336,7 +336,7 @@ async def health_check():
             timestamp=datetime.now(),
         )
 
-    except Exception as e:
+    except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Health check failed: {e}")
         return HealthCheck(
             status="unhealthy",

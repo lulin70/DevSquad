@@ -1,5 +1,7 @@
 # DevSquad V3.6.1 项目成熟度评估报告
 
+> ⚠️ Note: The "97% maturity" claim in this document has been re-evaluated. See docs/MATURITY_ASSESSMENT.md for the current honest assessment (65%).
+
 > **生成时间**: 2026-05-20  
 > **评估类型**: 全面整理评估（7维度代码走读 + 文档一致性 + 回归测试 + 目录清理）  
 > **评估人**: AI Code Review Agent + 人工审核

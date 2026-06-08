@@ -438,7 +438,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                 storage_path,
             )
             return True
-        except Exception as e:
+        except (ImportError, AttributeError, OSError) as e:
             logger.warning("Failed to enable checkpoint integration: %s", e)
             return False
 
@@ -464,7 +464,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                     completed_phases=self._completed_phases.copy(),
                     mode=mode_str,
                 )
-            except Exception as e:
+            except (OSError, AttributeError, ValueError) as e:
                 logger.warning("Failed to save lifecycle state: %s", e)
                 return False
         return False
@@ -507,7 +507,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                         self._current_phase,
                     )
                     return True
-            except Exception as e:
+            except (OSError, AttributeError, ValueError, KeyError) as e:
                 logger.warning("Failed to restore lifecycle state: %s", e)
                 return False
         return False
@@ -649,7 +649,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         if self._use_unified_gate and self._gate_engine:
             try:
                 return self._check_gate_with_unified_engine(target, phase_def)
-            except Exception as e:
+            except Exception as e:  # Broad catch: unpredictable gate engine
                 logger.warning("UnifiedGateEngine failed, falling back: %s", e)
 
         # Fallback to basic gate checks
@@ -839,7 +839,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
             }
 
             return {"success": True, "analysis": analysis, "template_id": template_id}
-        except Exception as e:
+        except (ImportError, AttributeError, OSError, ValueError) as e:
             return {"success": False, "error": str(e)}
 
     def validate_spec(
@@ -874,7 +874,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                 try:
                     raw = Path(spec_path).read_text(encoding="utf-8")
                     spec_data = json.loads(raw)
-                except Exception:
+                except (OSError, json.JSONDecodeError, ValueError):
                     spec_data = {}
             else:
                 spec_data = {}
@@ -1026,7 +1026,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
             self._checkpoint_manager = CheckpointManager(storage_path=storage_path)
             logger.info("CheckpointManager enabled at %s", storage_path)
             return True
-        except Exception as e:
+        except (ImportError, AttributeError, OSError) as e:
             logger.warning("Failed to enable checkpoint integration: %s", e)
             return False
 
@@ -1057,7 +1057,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
                         "execution_order": self._execution_order,
                     },
                 )
-            except Exception as e:
+            except (OSError, AttributeError, ValueError) as e:
                 logger.warning("Failed to save lifecycle state: %s", e)
                 return False
         return False
@@ -1096,7 +1096,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
                         self._current_phase,
                     )
                     return True
-            except Exception as e:
+            except (OSError, AttributeError, ValueError, KeyError) as e:
                 logger.warning("Failed to restore lifecycle state: %s", e)
                 return False
         return False

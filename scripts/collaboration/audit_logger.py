@@ -277,7 +277,7 @@ class AuditLogger:
         enable_hash_chain: bool = True,
         max_file_size_mb: int = 100,
         retention_days: int = 90,
-        auto_flush_interval: int = 100,
+        auto_flush_interval: int = 10,
     ):
         """
         Initialize audit logger.
@@ -308,6 +308,9 @@ class AuditLogger:
 
         self._ensure_log_dir()
         self._load_state()
+
+        import atexit
+        atexit.register(self.force_flush)
 
     def _ensure_log_dir(self) -> None:
         """Create log directory if it doesn't exist."""
@@ -693,6 +696,10 @@ class AuditLogger:
             return
 
         try:
+            # Ensure log directory still exists (may be cleaned up in tests)
+            if not self.log_dir.exists():
+                return
+
             self._rotate_if_needed()
             filepath = self._current_file_path or (
                 self.log_dir / self._get_today_filename()
@@ -836,6 +843,13 @@ class AuditLogger:
         """
         with self._lock:
             self._flush_buffer()
+
+    def __del__(self):
+        try:
+            if self._buffer and self.log_dir.exists():
+                self._flush_buffer()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

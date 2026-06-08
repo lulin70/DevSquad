@@ -160,7 +160,7 @@ class RedisCacheBackend(CacheBackendInterface):
             self._connected = True
             logger.info(f"Connected to Redis: {self.redis_url}")
             return self._client
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
             self._connected = False
             logger.error(f"Failed to connect to Redis: {e}")
             raise RedisConnectionError(f"Cannot connect to Redis: {e}")
@@ -206,7 +206,7 @@ class RedisCacheBackend(CacheBackendInterface):
                     # Try to reconnect
                     try:
                         await self._reconnect()
-                    except Exception as reconnect_error:
+                    except (ConnectionError, TimeoutError, OSError, RuntimeError) as reconnect_error:
                         logger.error(f"Reconnection failed: {reconnect_error}")
 
         logger.error(f"{operation_name} failed after {self.retry_attempts} attempts: {last_error}")
@@ -258,7 +258,7 @@ class RedisCacheBackend(CacheBackendInterface):
                 )
                 self._stats.hits += 1
                 return value
-            except Exception as e:
+            except (ValueError, TypeError, AttributeError) as e:
                 logger.error(f"Failed to deserialize cached value for key {key}: {e}")
                 self._stats.errors += 1
                 return None
@@ -290,7 +290,7 @@ class RedisCacheBackend(CacheBackendInterface):
                 format=self.serialization_format,
                 compress=self.enable_compression,
             )
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             logger.error(f"Failed to serialize value for key {key}: {e}")
             self._stats.errors += 1
             return False
@@ -387,7 +387,7 @@ class RedisCacheBackend(CacheBackendInterface):
                         )
                         deserialized.append(value)
                         self._stats.hits += 1
-                    except Exception as e:
+                    except (ValueError, TypeError, AttributeError) as e:
                         logger.error(f"Failed to deserialize mget result[{i}]: {e}")
                         deserialized.append(None)
                         self._stats.errors += 1
@@ -421,7 +421,7 @@ class RedisCacheBackend(CacheBackendInterface):
                 data = Serializer.serialize(v, format=self.serialization_format, compress=self.enable_compression)
                 serialized_mapping[pk] = data
                 sizes[k] = len(data)
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             logger.error(f"Failed to serialize batch values: {e}")
             self._stats.errors += len(mapping)
             return False
@@ -483,7 +483,7 @@ class RedisCacheBackend(CacheBackendInterface):
                     "connected_clients": info.get("connected_clients", 0),
                     "uptime_in_seconds": info.get("uptime_in_seconds", 0),
                 }
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug(f"Failed to get Redis INFO: {e}")
                 redis_info["error"] = str(e)
 
@@ -497,7 +497,7 @@ class RedisCacheBackend(CacheBackendInterface):
                 await self._client.close()
             if self._pool:
                 await self._pool.disconnect()
-        except Exception as e:
+        except (ConnectionError, OSError, RuntimeError) as e:
             logger.warning(f"Error closing Redis connection: {e}")
         finally:
             self._client = None
@@ -541,7 +541,7 @@ class RedisCacheBackend(CacheBackendInterface):
             else:
                 health["status"] = "unhealthy"
 
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
             health.update({
                 "status": "unhealthy",
                 "error": str(e),
@@ -612,7 +612,7 @@ class SyncRedisCacheWrapper:
                     compression=self._compression,
                 )
                 self._initialized = True
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 import logging
                 logging.getLogger(__name__).warning(
                     "Redis cache backend init failed: %s", e
@@ -636,9 +636,9 @@ class SyncRedisCacheWrapper:
             except RuntimeError:
                 # No running loop - safe to use asyncio.run
                 return asyncio.run(coro)
-        except Exception as e:
+        except (RuntimeError, ConnectionError, OSError) as e:
             import logging
-            logging.getLogger(__name__).debug("Redis cache operation failed: %s", e)
+            logging.getLogger(__name__).debug("Redis cache operation failed: %s", e
             return None
 
     def get(self, key: str):
@@ -724,7 +724,7 @@ async def test_redis_cache_backend():
         print(f"\n⚠️  Skipping test (redis not installed): {e}")
         print("   Install with: pip install redis[asyncio]")
         return False
-    except Exception as e:
+    except Exception as e:  # Broad catch: test harness
         print(f"\n❌ Test failed: {e}")
         import traceback
         traceback.print_exc()

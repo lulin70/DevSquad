@@ -105,7 +105,7 @@ class LLMCache:
                     try:
                         from .redis_cache_backend import RedisCacheBackend
                         l2 = RedisCacheBackend(redis_url=redis_url)
-                    except Exception as e:
+                    except (ImportError, AttributeError, RuntimeError, OSError) as e:
                         logger.warning("Redis L2 backend for MultiLevelCache init failed: %s", e)
 
                 self._mlc = MultiLevelCacheCoordinator(
@@ -117,7 +117,7 @@ class LLMCache:
                     ttl_jitter_range=0.1,
                 )
                 logger.info("MultiLevelCacheCoordinator enabled as LLMCache backend")
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError) as e:
                 logger.warning("MultiLevelCacheCoordinator init failed, falling back to default: %s", e)
                 self.use_multi_level_cache = False
                 self._mlc = None
@@ -149,7 +149,7 @@ class LLMCache:
                     default_ttl=3600,
                 )
                 logger.info("Redis L2 cache enabled: %s", redis_url)
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.warning("Redis L2 cache init failed, using memory+disk only: %s", e)
 
     def _hash_prompt(self, prompt: str, backend: str, model: str) -> str:
@@ -210,7 +210,7 @@ class LLMCache:
                     # Prometheus: record cache hit
                     try:
                         get_metrics().record_cache_hit("l1", "llm_response")
-                    except Exception as e:
+                    except Exception as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return result
                 with self._lock:
@@ -218,10 +218,10 @@ class LLMCache:
                 # Prometheus: record cache miss
                 try:
                     get_metrics().record_cache_miss("l1", "llm_response")
-                except Exception as e:
+                except Exception as e:  # Broad catch: optional metrics
                     logger.debug(f"Prometheus cache miss recording failed: {e}")
                 return None
-            except Exception as e:
+            except (RuntimeError, AttributeError, KeyError, OSError) as e:
                 logger.warning("MultiLevelCache get failed, falling back: %s", e)
 
         # Default backend path (original logic)
@@ -237,7 +237,7 @@ class LLMCache:
                     # Prometheus: record cache hit (L1 memory)
                     try:
                         get_metrics().record_cache_hit("l1", "llm_response")
-                    except Exception as e:
+                    except Exception as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return entry.response
                 else:
@@ -258,7 +258,7 @@ class LLMCache:
 
                     try:
                         cache_file.write_text(json.dumps(asdict(entry)), encoding="utf-8")
-                    except Exception as e:
+                    except (OSError, ValueError) as e:
                         logger.debug(f"Disk cache write-back failed: {e}")
 
                     with self._lock:
@@ -266,21 +266,21 @@ class LLMCache:
                     # Prometheus: record cache hit (L1 disk)
                     try:
                         get_metrics().record_cache_hit("l1", "llm_response")
-                    except Exception as e:
+                    except Exception as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return entry.response
                 else:
                     try:
                         cache_file.unlink()
-                    except Exception as e:
+                    except OSError as e:
                         logger.debug(f"Failed to delete expired cache file: {e}")
                     with self._lock:
                         self.stats["expirations"] += 1
-            except Exception as e:
+            except (OSError, json.JSONDecodeError, ValueError, KeyError) as e:
                 logger.debug(f"Disk cache read failed: {e}")
                 try:
                     cache_file.unlink()
-                except Exception as e2:
+                except OSError as e2:
                     logger.debug(f"Failed to delete corrupt cache file: {e2}")
 
         # Redis L2 lookup (after disk miss)
@@ -294,11 +294,11 @@ class LLMCache:
                     # Prometheus: record cache hit (L2 Redis)
                     try:
                         get_metrics().record_cache_hit("l2", "llm_response")
-                    except Exception as e:
+                    except Exception as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     logger.debug("Redis L2 cache hit for key %s", redis_key[:16])
                     return redis_value
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug(f"Redis L2 cache read failed: {e}")
 
         with self._lock:
@@ -306,7 +306,7 @@ class LLMCache:
         # Prometheus: record cache miss
         try:
             get_metrics().record_cache_miss("l1", "llm_response")
-        except Exception as e:
+        except Exception as e:  # Broad catch: optional metrics
             logger.debug(f"Prometheus cache miss recording failed: {e}")
         return None
 
@@ -337,7 +337,7 @@ class LLMCache:
                 with self._lock:
                     self.stats["sets"] += 1
                 return
-            except Exception as e:
+            except (RuntimeError, AttributeError, KeyError, OSError) as e:
                 logger.warning("MultiLevelCache set failed, falling back: %s", e)
 
         # Default backend path (original logic)
@@ -359,7 +359,7 @@ class LLMCache:
             cache_file.write_text(json.dumps(asdict(entry)), encoding="utf-8")
             with self._lock:
                 self.stats["sets"] += 1
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.warning("Disk cache write failed: %s", e)
 
         # Redis L2 write (async, non-blocking)
@@ -367,7 +367,7 @@ class LLMCache:
             try:
                 redis_key = self._redis_hash_prompt(prompt, backend, model)
                 self._redis_cache.set(redis_key, response, ttl=ttl or 3600)
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug(f"Redis L2 cache write failed: {e}")
 
     def _add_to_memory(self, key: str, entry: CacheEntry):
@@ -402,10 +402,10 @@ class LLMCache:
                 test_file.write_text("test")
                 test_file.unlink()
                 return True
-            except Exception as e:
+            except OSError as e:
                 logger.debug(f"Cache dir write test failed: {e}")
                 return False
-        except Exception as e:
+        except (OSError, AttributeError) as e:
             logger.debug(f"Cache availability check failed: {e}")
             return False
 
@@ -422,7 +422,7 @@ class LLMCache:
         # 统计磁盘缓存
         try:
             disk_entries = len(list(self.cache_dir.glob("*.json")))
-        except Exception as e:
+        except OSError as e:
             logger.debug(f"Disk entry count failed: {e}")
             disk_entries = 0
 
@@ -432,7 +432,7 @@ class LLMCache:
         # 计算总大小（兼容 Protocol 接口）
         try:
             total_size = sum(f.stat().st_size for f in self.cache_dir.glob("*.json"))
-        except Exception as e:
+        except OSError as e:
             logger.debug(f"Cache size calculation failed: {e}")
             total_size = 0
 
@@ -487,9 +487,9 @@ class LLMCache:
             for f in self.cache_dir.glob("*.json"):
                 try:
                     f.unlink()
-                except Exception as e:
+                except OSError as e:
                     logger.warning("Failed to delete cache file %s: %s", f, e)
-        except Exception as e:
+        except OSError as e:
             logger.warning("Failed to clear disk cache: %s", e)
 
         # 清空内存缓存
@@ -499,7 +499,7 @@ class LLMCache:
         if self._redis_cache:
             try:
                 self._redis_cache.clear()
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug(f"Redis cache clear failed: {e}")
 
         # 重置统计信息
@@ -525,7 +525,7 @@ class LLMCache:
                 data = json.loads(cache_file.read_text(encoding="utf-8"))
                 if data.get("timestamp", 0) < threshold:
                     cache_file.unlink()
-            except Exception as e:
+            except (OSError, json.JSONDecodeError, ValueError) as e:
                 logger.warning("Failed to clean cache file %s: %s", cache_file, e)
 
     def invalidate(self, prompt: str, backend: str, model: str):
@@ -597,7 +597,7 @@ def configure_redis_cache(enabled: bool = False, url: Optional[str] = None):
     if _cache_instance is not None:
         try:
             _cache_instance.clear()
-        except Exception as e:
+        except (OSError, AttributeError, RuntimeError) as e:
             logger.debug(f"Cache clear during Redis reconfigure failed: {e}")
     _cache_instance = None
 

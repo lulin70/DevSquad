@@ -130,14 +130,14 @@ class EnhancedWorker(Worker):
             from .confidence_score import ConfidenceScorer
 
             self._confidence_scorer = ConfidenceScorer()
-        except Exception:
+        except (ImportError, ModuleNotFoundError):
             pass
 
         try:
             from .input_validator import InputValidator
 
             self._validator = InputValidator()
-        except Exception:
+        except (ImportError, ModuleNotFoundError):
             pass
 
     @property
@@ -154,7 +154,7 @@ class EnhancedWorker(Worker):
             from .agent_briefing import AgentBriefing
 
             self._briefing = AgentBriefing(agent_role=self.role_id)
-        except Exception as e:
+        except (ImportError, ModuleNotFoundError) as e:
             logger.warning("Failed to load briefing for %s: %s", self.role_id, e)
             self._briefing = None
 
@@ -175,7 +175,7 @@ class EnhancedWorker(Worker):
             if self._briefing:
                 try:
                     briefing_context = self._briefing.get_briefing_context(task.description)
-                except Exception as e:
+                except (AttributeError, KeyError, RuntimeError) as e:
                     logger.warning("Failed to get briefing context: %s", e)
 
             result = self._do_work(task)
@@ -191,7 +191,7 @@ class EnhancedWorker(Worker):
 
             return result
 
-        except Exception:
+        except Exception:  # Broad catch: re-raise after recording
             duration = time.time() - start_time
             self._record_monitor(task, duration, success=False)
             raise
@@ -206,7 +206,7 @@ class EnhancedWorker(Worker):
                     duration=duration,
                     success=success,
                 )
-            except Exception as e:
+            except (AttributeError, RuntimeError, ConnectionError) as e:
                 logger.warning("Monitor recording failed: %s", e)
 
     def execute(self, task: TaskDefinition) -> WorkerResult:
@@ -228,7 +228,7 @@ class EnhancedWorker(Worker):
                     max_attempts=3,
                     fallback=lambda: self._do_work(task),
                 )
-            except Exception:
+            except Exception:  # Broad catch: retry mechanism fallback
                 result = self._do_work(task)
         else:
             result = self._do_work_with_briefing(task)
@@ -251,7 +251,7 @@ class EnhancedWorker(Worker):
                             f"Low confidence ({score.overall_score:.2f}). "
                             "Assumptions may need verification by subsequent agents."
                         )
-            except Exception as e:
+            except (ValueError, AttributeError, RuntimeError) as e:
                 logger.warning("Confidence scoring failed: %s", e)
 
         if self._injected_rules and result.success and result.output:
@@ -297,7 +297,7 @@ class EnhancedWorker(Worker):
             safe_rules = self._validate_injected_rules(raw_rules)
             self._injected_rules = safe_rules
             self._rules_applied = [r.get("rule_id", r.get("action", "")[:50]) for r in safe_rules]
-        except Exception as e:
+        except (AttributeError, KeyError, RuntimeError, ValueError) as e:
             logger.warning("Rule injection from provider failed: %s", e)
             self._injected_rules = []
 
@@ -343,7 +343,7 @@ class EnhancedWorker(Worker):
                             "Skipping suspicious rule: action_valid=%s, trigger_valid=%s", action_valid, trigger_valid
                         )
                         continue
-                except Exception:
+                except (ValueError, AttributeError):
                     pass
 
             safe_rules.append(rule)
@@ -406,7 +406,7 @@ class EnhancedWorker(Worker):
                 "role": self.role_id,
                 "rules_count": len(self._briefing.get_rules()),
             }
-        except Exception:
+        except (AttributeError, KeyError):
             return {"status": "error", "role": self.role_id}
 
     def export_briefing(self, output_dir: str = "output/briefings") -> str | None:
@@ -431,7 +431,7 @@ class EnhancedWorker(Worker):
             output_path = os.path.join(output_dir, f"{safe_role}_briefing.json")
 
             return self._briefing.export_briefing(output_path)
-        except Exception as e:
+        except (OSError, AttributeError, KeyError) as e:
             logger.warning("Failed to export briefing for %s: %s", self.role_id, e)
             return None
 
@@ -460,7 +460,7 @@ class EnhancedWorker(Worker):
             try:
                 score = self._confidence_scorer.score_response(output_text)
                 confidence = score.overall_score
-            except Exception:
+            except (ValueError, AttributeError, RuntimeError):
                 confidence = 0.5
 
         return AgentBriefingOutput(

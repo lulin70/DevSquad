@@ -9,7 +9,7 @@ description: |
   ThreadPoolExecutor並列、CheckpointManager、WorkflowEngine、ストリーミング出力、Docker、CI。
   NEW in V3.6.7: Redis Cache L2 Backend (memory→disk→Redis three-tier),
   Async Dispatch (asyncio.gather concurrent LLM calls), Dispatcher Refactor (788→18 step methods),
-  DispatchResult Bug Fix (5 missing fields), 1855+ tests passing, 97% Enterprise Grade maturity.
+  DispatchResult Bug Fix (5 missing fields), 1855+ tests passing, 65% 成熟度（誠実な評価）.
 ---
 
 # DevSquad V3.6.7 — マルチエージェントコラボレーションプラットフォーム（Enterprise Ready）

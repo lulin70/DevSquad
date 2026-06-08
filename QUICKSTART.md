@@ -202,7 +202,7 @@ devsquad ship "部署和发布检查"
 ### 质量保障
 - ✅ **E2E Test Suite**: 16 个用户旅程测试用例，100% 通过率
 - ✅ **1855+ Tests Passing**: 覆盖所有核心模块
-- ✅ **97% Maturity Score**: 企业级成熟度评分
+- ✅ **65% Maturity Score (honest assessment)**: 企业级成熟度评分
 
 </details>
 

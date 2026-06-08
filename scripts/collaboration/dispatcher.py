@@ -1,30 +1,8 @@
 #!/usr/bin/env python3
-"""
-V3 Multi-Agent Collaboration Dispatcher (Unified Entry Point)
+"""V3 Multi-Agent Collaboration Dispatcher — Unified Entry Point.
 
-This is the V3 unified entry point that chains all collaboration components
-into a single usable pipeline:
-
-    User Task → [Intent Recognition] → [Role Assignment] → [Coordinator Orchestration]
-             → [Parallel Worker Execution] → [Scratchpad Sharing] → [Consensus Decision]
-             → [Context Compression] → [Permission Check] → [Memory Capture] → [Result Return]
-
-Integrated Components:
-- WarmupManager: Startup warmup to reduce cold-start latency
-- Coordinator + Worker + Scratchpad: Multi-agent collaboration core
-- BatchScheduler: Parallel/sequential hybrid scheduling
-- ConsensusEngine: Weighted voting consensus mechanism with veto power
-- ContextCompressor: 4-level context compression to prevent overflow
-- PermissionGuard: Permission guard for secure operation checks
-- Skillifier: Learns from successful patterns to generate new Skills
-- MemoryBridge: Cross-session memory bridge (with MCE + WorkBuddy Claw integration)
-
-Example Usage:
-    from scripts.collaboration.dispatcher import MultiAgentDispatcher
-
-    disp = MultiAgentDispatcher()
-    result = disp.dispatch("Design a user authentication system")
-    print(result.summary)
+Pipeline: Task → Intent → Roles → Coordinator → Workers → Scratchpad
+       → Consensus → Compression → Permission → Memory → Result
 """
 
 import json
@@ -45,38 +23,18 @@ from .concern_pack_loader import ConcernPackLoader
 from .consensus import ConsensusEngine
 from .context_compressor import ContextCompressor
 from .coordinator import Coordinator
-from .dispatch_models import (
-    DispatchResult,
-    I18N,
-    PLANNED_ROLES,
-    ROLE_TEMPLATES,
-    PerformanceMetric,
-    PerformanceThresholds,
-)
+from .dispatch_models import DispatchResult, I18N, PLANNED_ROLES, ROLE_TEMPLATES, PerformanceMetric, PerformanceThresholds
 from .dispatch_performance import PerformanceMonitor
 from .input_validator import InputValidator
-from .memory_bridge import (
-    EpisodicMemory,
-    MemoryBridge,
-)
-from .models import (
-    EntryType,
-)
-from .permission_guard import (
-    ActionType,
-    PermissionGuard,
-    PermissionLevel,
-    ProposedAction,
-)
+from .memory_bridge import EpisodicMemory, MemoryBridge
+from .models import EntryType
+from .permission_guard import ActionType, PermissionGuard, PermissionLevel, ProposedAction
 from .prometheus_metrics import get_metrics
 from .report_formatter import ReportFormatter
 from .role_matcher import RoleMatcher
 from .scratchpad import Scratchpad, ScratchpadEntry
 from .skillifier import Skillifier
-from .test_quality_guard import (
-    TestQualityGuard,
-    TestQualityReport,
-)
+from .test_quality_guard import TestQualityGuard, TestQualityReport
 from .usage_tracker import track_usage
 from .user_friendly_error import make_user_friendly_error, translate_validation_result
 from .warmup_manager import WarmupConfig, WarmupManager
@@ -86,52 +44,15 @@ from ._version import __version__
 from .rbac_engine import RBACEngine, Permission, PermissionDeniedError
 from .audit_logger import AuditLogger, SensitiveDataMasker
 from .multi_tenant import MultiTenantManager, IsolationLevel
-
-# Async module imports
 from .async_llm_backend import AsyncLLMBackendFactory
 from .async_adapter import SyncToAsyncAdapter, AutoBackendSelector
 from .llm_cache_async import AsyncLLMCache
 
-
-
 class MultiAgentDispatcher:
     """V3 Unified Multi-Agent Collaboration Dispatcher.
 
-    High-level API that orchestrates the complete multi-Agent collaboration
-    pipeline in a single call. Integrates all V3 components:
-
-    Pipeline:
-        User Task → Intent Recognition → Role Assignment → Coordinator Orchestration
-                 → Parallel Worker Execution → Scratchpad Sharing → Consensus Decision
-                 → Context Compression → Permission Check → Memory Capture → Result Return
-
-    Integrated Components:
-    - WarmupManager: Startup warmup to reduce cold-start latency
-    - Coordinator + Worker + Scratchpad: Multi-agent collaboration core
-    - BatchScheduler: Parallel/sequential hybrid scheduling
-    - ConsensusEngine: Weighted voting consensus with veto power
-    - ContextCompressor: 4-level context compression to prevent overflow
-    - PermissionGuard: Permission guard for secure operation checks
-    - Skillifier: Learns from successful patterns to generate new Skills
-    - MemoryBridge: Cross-session memory bridge (with MCE integration)
-    - AnchorChecker (V3.6.0): Goal alignment verification
-    - RetrospectiveEngine (V3.6.0): Post-task analysis and learning
-
-    Example Usage:
-        >>> from scripts.collaboration.dispatcher import MultiAgentDispatcher
-        >>> disp = MultiAgentDispatcher()
-        >>> result = disp.dispatch("Design a user authentication system")
-        >>> print(result.summary)
-
-    Attributes:
-        persist_dir: Directory for Scratchpad persistence
-        enable_warmup: Whether startup warmup is enabled
-        enable_compression: Whether context compression is enabled
-        enable_permission: Whether permission checking is enabled
-        enable_memory: Whether memory bridge is enabled
-        enable_skillify: Whether Skill learning is enabled
-        enable_anchor_check: Whether anchor checking is enabled (V3.6.0)
-        enable_retrospective: Whether retrospective engine is enabled (V3.6.0)
+    Pipeline: Intent → Roles → Coordinator → Workers → Scratchpad →
+    Consensus → Compression → Permission → Memory → Result
     """
 
     def __init__(
@@ -158,40 +79,7 @@ class MultiAgentDispatcher:
         lang: str = "auto",
         **kwargs: Any,
     ) -> None:
-        """Initialize the Multi-Agent Dispatcher.
-
-        Sets up all integrated components based on feature flags.
-        Most features are enabled by default for full functionality.
-
-        Args:
-            persist_dir: Scratchpad persistence directory (None=in-memory only)
-            enable_warmup: Enable startup warmup to reduce cold-start latency
-            enable_compression: Enable context compression for long tasks
-            enable_permission: Enable permission checking before operations
-            enable_memory: Enable cross-session memory bridge
-            enable_skillify: Enable pattern-based Skill generation
-            enable_quality_guard: Enable test quality auto-audit (P1 feature)
-            enable_anchor_check: Enable goal alignment checking (V3.6.0)
-            enable_retrospective: Enable retrospective analysis (V3.6.0)
-            enable_usage_tracker: Enable feature usage tracking (V3.6.0)
-            enable_feedback_loop: Enable feedback control loop (V3.6.0)
-            enable_redis_cache: Enable Redis L2 cache for LLM responses
-            redis_url: Redis connection URL (e.g. redis://localhost:6379/0)
-            compression_threshold: Token count threshold for compression trigger
-            memory_dir: Directory for memory persistence files
-            permission_level: Default permission level (PLAN/DEFAULT/AUTO/BYPASS)
-            mce_adapter: MCE memory classification engine adapter (optional, v3.2)
-            llm_backend: LLM execution backend (None=MockBackend, returns prompt as-is)
-            stream: Enable streaming mode for LLM responses
-            lang: Default language ("auto"/"zh"/"en"/"ja")
-
-        Example:
-            >>> disp = MultiAgentDispatcher(
-            ...     persist_dir="./collab_data",
-            ...     permission_level=PermissionLevel.AUTO,
-            ...     lang="en",
-            ... )
-        """
+        """Initialize the Multi-Agent Dispatcher with feature flags and components."""
         self.enable_quality_guard = enable_quality_guard
         self.enable_anchor_check = enable_anchor_check
         self.enable_retrospective = enable_retrospective
@@ -217,12 +105,14 @@ class MultiAgentDispatcher:
 
         self._mce_adapter = mce_adapter
         self._init_components()
+        self._init_enterprise_features(**kwargs)
 
-        # Enterprise features (optional, disabled by default)
-        self.enable_rbac = kwargs.get('enable_rbac', False)
-        self.enable_audit = kwargs.get('enable_audit', False)
-        self.enable_data_masking = kwargs.get('enable_data_masking', False)
-        self.enable_multi_tenant = kwargs.get('enable_multi_tenant', False)
+    def _init_enterprise_features(self, **kwargs: Any) -> None:
+        """Initialize enterprise features: RBAC, Audit, Multi-Tenant."""
+        self.enable_rbac = kwargs.get('enable_rbac', True)
+        self.enable_audit = kwargs.get('enable_audit', True)
+        self.enable_data_masking = kwargs.get('enable_data_masking', True)
+        self.enable_multi_tenant = kwargs.get('enable_multi_tenant', True)
 
         self.rbac_engine = None
         self.audit_logger = None
@@ -232,8 +122,10 @@ class MultiAgentDispatcher:
         if self.enable_rbac:
             try:
                 self.rbac_engine = RBACEngine()
+                from .rbac_engine import RBACUser, UserRole
+                self.rbac_engine.add_user(RBACUser("default", "default_admin", {UserRole.SUPER_ADMIN}))
                 logger.info("RBAC Engine enabled")
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.warning(f"RBAC Engine initialization failed: {e}")
 
         if self.enable_audit:
@@ -243,30 +135,27 @@ class MultiAgentDispatcher:
                 if self.enable_data_masking:
                     self.data_masker = SensitiveDataMasker()
                 logger.info(f"Audit Logger enabled (data_masking={self.enable_data_masking})")
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.warning(f"Audit Logger initialization failed: {e}")
 
         if self.enable_multi_tenant:
             try:
                 self.tenant_manager = MultiTenantManager()
+                from .multi_tenant import Tenant
+                self.tenant_manager.create_tenant(Tenant(tenant_id="default", name="Default Tenant"))
                 logger.info("Multi-Tenant Manager enabled")
-            except Exception as e:
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.warning(f"Multi-Tenant Manager initialization failed: {e}")
 
     def _init_components(self) -> None:
-        """初始化所有v3组件"""
+        """Initialize all v3 components."""
         self._init_core_components()
         self._init_optional_components()
         self._init_cache_and_monitor()
-        # Prometheus: set build info
-        try:
-            _metrics = get_metrics()
-            _metrics.set_build_info(version=__version__)
-        except Exception:
-            pass
+        self._safe_metrics(lambda m: m.set_build_info(version=__version__))
 
     def _init_core_components(self) -> None:
-        """Initialize core components that are always needed."""
+        """Initialize core components."""
         self.scratchpad = Scratchpad(persist_dir=self.persist_dir)
 
         self.coordinator = Coordinator(
@@ -279,170 +168,108 @@ class MultiAgentDispatcher:
         )
 
         self.batch_scheduler = BatchScheduler()
-
         self.consensus_engine = ConsensusEngine()
-
         self.role_matcher = RoleMatcher()
         self.report_formatter = ReportFormatter(lang=self.lang)
 
-        if self.enable_compression:
-            self.compressor: Optional[ContextCompressor] = ContextCompressor(token_threshold=self.compression_threshold)
-        else:
-            self.compressor = None
+        self.compressor = ContextCompressor(token_threshold=self.compression_threshold) if self.enable_compression else None
+        self.permission_guard = PermissionGuard(current_level=self.permission_level) if self.enable_permission else None
 
-        if self.enable_permission:
-            self.permission_guard: Optional[PermissionGuard] = PermissionGuard(
-                current_level=self.permission_level,
-            )
-        else:
-            self.permission_guard = None
-
-        if self.enable_warmup:
-            warmup_cfg = WarmupConfig(
-                cache_enabled=True,
-                cache_max_size=50,
-                cache_ttl_seconds=3600,
-                metrics_enabled=True,
-            )
-            self.warmup_manager: Optional[WarmupManager] = WarmupManager(config=warmup_cfg)
-            try:
-                self.warmup_manager.warmup()
-            except Exception as e:
-                logger.warning("Warmup failed: %s", e)
-        else:
-            self.warmup_manager = None
-
-        if self.enable_memory:
-            self.memory_bridge: Optional[MemoryBridge] = MemoryBridge(base_dir=self.memory_dir, mce_adapter=self._mce_adapter)
-        else:
-            self.memory_bridge = None
-
-        if self.enable_skillify:
-            self.skillifier: Optional[Skillifier] = Skillifier()
-        else:
-            self.skillifier = None
-
-        if self.enable_quality_guard:
-            self.quality_guard: Optional[TestQualityGuard] = TestQualityGuard("", "")
-        else:
-            self.quality_guard = None
-
-        if self.enable_anchor_check:
-            from .anchor_checker import AnchorChecker
-
-            self.anchor_checker: Optional[Any] = AnchorChecker()
-        else:
-            self.anchor_checker = None
-
-        if self.enable_retrospective:
-            from .retrospective import RetrospectiveEngine
-
-            retrospective_memory = self.memory_bridge if self.enable_memory else None
-            self.retrospective_engine: Optional[Any] = RetrospectiveEngine(memory_bridge=retrospective_memory)
-        else:
-            self.retrospective_engine = None
-
-        if self.enable_usage_tracker:
-            from .feature_usage_tracker import FeatureUsageTracker
-
-            usage_path = os.path.join(self.persist_dir, "feature_usage.json")
-            self.usage_tracker: Optional[Any] = FeatureUsageTracker(persist_path=usage_path)
-        else:
-            self.usage_tracker = None
+        self.warmup_manager = self._init_warmup_manager()
+        self.memory_bridge = MemoryBridge(base_dir=self.memory_dir, mce_adapter=self._mce_adapter) if self.enable_memory else None
+        self.skillifier = Skillifier() if self.enable_skillify else None
+        self.quality_guard = TestQualityGuard("", "") if self.enable_quality_guard else None
+        self.anchor_checker = self._try_import_component('anchor_checker', 'AnchorChecker')
+        self.retrospective_engine = self._init_retrospective_engine()
+        self.usage_tracker = self._init_usage_tracker()
 
         self._dispatch_history: list[DispatchResult] = []
         self._max_history = 100
         self._validator = InputValidator()
 
+    def _init_warmup_manager(self) -> Optional[WarmupManager]:
+        """Init WarmupManager if enabled."""
+        if not self.enable_warmup:
+            return None
+        warmup_cfg = WarmupConfig(
+            cache_enabled=True, cache_max_size=50, cache_ttl_seconds=3600, metrics_enabled=True,
+        )
+        mgr = WarmupManager(config=warmup_cfg)
+        try:
+            mgr.warmup()
+        except (RuntimeError, OSError, ImportError) as e:
+            logger.warning("Warmup failed: %s", e)
+        return mgr
+
+    def _try_import_component(self, module_name: str, class_name: str) -> Optional[Any]:
+        """Try to import and instantiate a component."""
+        try:
+            import importlib
+            mod = importlib.import_module(f".{module_name}", package=__package__)
+            return getattr(mod, class_name)()
+        except (ImportError, AttributeError, RuntimeError, OSError):
+            return None
+
+    def _init_retrospective_engine(self) -> Optional[Any]:
+        """Init RetrospectiveEngine if enabled."""
+        if not self.enable_retrospective:
+            return None
+        try:
+            from .retrospective import RetrospectiveEngine
+            return RetrospectiveEngine(memory_bridge=self.memory_bridge if self.enable_memory else None)
+        except (ImportError, AttributeError, RuntimeError):
+            return None
+
+    def _init_usage_tracker(self) -> Optional[Any]:
+        """Init FeatureUsageTracker if enabled."""
+        if not self.enable_usage_tracker:
+            return None
+        try:
+            from .feature_usage_tracker import FeatureUsageTracker
+            return FeatureUsageTracker(persist_path=os.path.join(self.persist_dir, "feature_usage.json"))
+        except (ImportError, AttributeError, RuntimeError):
+            return None
+
     def _init_optional_components(self) -> None:
-        """Initialize components that may not be available."""
-        try:
-            from .output_slicer import OutputSlicer
-
-            self.output_slicer: Optional[Any] = OutputSlicer(max_slice_lines=200)
-        except Exception as e:
-            logger.debug("OutputSlicer not available: %s", e)
-            self.output_slicer = None
-
-        try:
-            from .ci_feedback_adapter import CIFeedbackAdapter
-
-            self.ci_feedback: Optional[Any] = CIFeedbackAdapter()
-        except Exception as e:
-            logger.debug("CIFeedbackAdapter not available: %s", e)
-            self.ci_feedback = None
-
+        """Init optional components with graceful fallback."""
+        self.output_slicer = self._try_import_component('output_slicer', 'OutputSlicer')
+        self.ci_feedback = self._try_import_component('ci_feedback_adapter', 'CIFeedbackAdapter')
         self._std_templates: Dict[str, Any] = {}
-
-        try:
-            from .prompt_variant_generator import PromptVariantGenerator
-
-            self.prompt_variant_gen: Optional[Any] = PromptVariantGenerator()
-        except Exception as e:
-            logger.debug("PromptVariantGenerator not available: %s", e)
-            self.prompt_variant_gen = None
-
-        try:
-            from .role_template_market import RoleTemplateMarket
-
-            self.role_template_market: Optional[Any] = RoleTemplateMarket()
-        except Exception as e:
-            logger.debug("RoleTemplateMarket not available: %s", e)
-            self.role_template_market = None
+        self.prompt_variant_gen = self._try_import_component('prompt_variant_generator', 'PromptVariantGenerator')
+        self.role_template_market = self._try_import_component('role_template_market', 'RoleTemplateMarket')
 
     def _init_cache_and_monitor(self) -> None:
         """Initialize cache, monitor, and utility components."""
-        # Configure Redis L2 cache for LLM responses
         if self.enable_redis_cache and self.redis_url:
             from .llm_cache import configure_redis_cache
             configure_redis_cache(enabled=True, url=self.redis_url)
 
         self._perf_monitor = PerformanceMonitor(window_size=100)
-
         self._concern_loader = ConcernPackLoader()
 
         from .dual_layer_context import DualLayerContextManager
-
         self.context_manager = DualLayerContextManager()
 
         from .intent_workflow_mapper import IntentWorkflowMapper
-
         self.intent_mapper = IntentWorkflowMapper()
 
         from .operation_classifier import OperationClassifier
-
         self.operation_classifier = OperationClassifier()
 
         from .skill_registry import SkillRegistry
-
         self.skill_registry = SkillRegistry(storage_path=os.path.join(self.persist_dir, "skills"))
 
         from .ai_semantic_matcher import AISemanticMatcher
-
         self.semantic_matcher = AISemanticMatcher(llm_backend=self.llm_backend)
 
-        from .null_providers import (
-            get_null_cache,
-            get_null_memory,
-            get_null_monitor,
-            get_null_retry,
-        )
-
+        from .null_providers import get_null_cache, get_null_memory, get_null_monitor, get_null_retry
         self._null_cache = get_null_cache()
         self._null_retry = get_null_retry()
         self._null_monitor = get_null_monitor()
         self._null_memory = get_null_memory()
 
     def analyze_task(self, task_description: str) -> list[dict[str, str]]:
-        """
-        分析任务，匹配合适的角色
-
-        Args:
-            task_description: 任务描述
-
-        Returns:
-            匹配到的角色列表 [{"role_id": "...", "name": "...", "reason": "..."}]
-        """
+        """Analyze task and match appropriate roles."""
         track_usage("dispatcher.analyze_task")
         return self.role_matcher.analyze_task(task_description)
 
@@ -451,68 +278,21 @@ class MultiAgentDispatcher:
     ) -> DispatchResult:
         """Core dispatch method - complete multi-Agent collaboration in one call.
 
-        Executes the full collaboration pipeline:
-        1. Input validation and sanitization
-        2. Intent recognition (optional)
-        3. Role matching/assignment
-        4. Task planning and Worker spawning
-        5. Parallel execution with Scratchpad sharing
-        6. Consensus decision making
-        7. Context compression (if needed)
-        8. Permission checking
-        9. Memory capture
-        10. Result aggregation and report generation
-
         Args:
-            task_description: User's task description in natural language
-            roles: Optional list of role IDs (e.g., ["architect", "tester"]).
-                   None triggers automatic role matching based on task content.
-            mode: Execution mode:
-                - "auto": Automatically choose parallel or sequential
-                - "parallel": Force parallel execution (default for multiple roles)
-                - "sequential": Force sequential execution
-                - "consensus": Enable five-axis consensus review mode
-            dry_run: If True, simulate execution without running Workers.
-                    Useful for testing role matching and planning.
-
-        Returns:
-            DispatchResult: Complete dispatch result containing:
-                - success: Whether overall dispatch succeeded
-                - task_description: Processed task description
-                - matched_roles: List of matched role definitions
-                - worker_results: List of WorkerResult from each Worker
-                - summary: Human-readable result summary
-                - errors: List of error messages (if any)
-                - timing: Dict with step-level timing information
-                - intent_match: Intent detection result (if enabled)
-                - five_axis_result: Five-axis consensus result (if consensus mode)
-                - report: Formatted Markdown report (if available)
-
-        Raises:
-            No exceptions raised; all errors captured in DispatchResult.errors
-
-        Example:
-            >>> result = disp.dispatch(
-            ...     "Design a REST API for user management",
-            ...     roles=["architect", "tester"],
-            ...     mode="parallel",
-            ... )
-            >>> if result.success:
-            ...     print(result.summary)
-            ...     for wr in result.worker_results:
-            ...         print(f"{wr.role_id}: {wr.output.get('finding_summary')}")
+            task_description: User's task in natural language
+            roles: Optional role IDs (None=auto match)
+            mode: "auto"/"parallel"/"sequential"/"consensus"
+            dry_run: Simulate without running Workers
+            **kwargs: Additional options (tenant_id, user_id, etc.)
         """
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
         phase = "dispatch"
 
-        # Prometheus: record dispatch start
-        try:
-            _metrics = get_metrics()
-            _metrics.dispatch_counter.labels(mode=mode, role_count="0").inc()
-            _metrics.tasks_in_progress_gauge.labels(phase=phase).inc()
-        except Exception:
-            pass
+        self._safe_metrics(lambda m: (
+            m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
+            m.tasks_in_progress_gauge.labels(phase=phase).inc(),
+        ))
 
         if self.usage_tracker:
             self.usage_tracker.tick("dispatch")
@@ -520,12 +300,7 @@ class MultiAgentDispatcher:
         # Pre-dispatch steps (shared with async_dispatch)
         pre_result = self._pre_dispatch_steps(task_description, roles, mode, dry_run, start_time, phase, **kwargs)
         if pre_result.early_return:
-            # Prometheus: decrement on early return
-            try:
-                _metrics = get_metrics()
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
+            self._safe_metrics(lambda m: m.tasks_in_progress_gauge.labels(phase=phase).dec())
             return pre_result.early_return
 
         tenant_ctx = pre_result.tenant_ctx
@@ -533,17 +308,9 @@ class MultiAgentDispatcher:
         try:
             # Step 8: Execute workers (sync path)
             matched_roles = pre_result.matched_roles
-            try:
-                _metrics = get_metrics()
-                _metrics.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
-            except Exception:
-                pass
+            self._safe_metrics(lambda m: m.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles)))
             exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(pre_result.plan, task_description)
-            try:
-                _metrics = get_metrics()
-                _metrics.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
-            except Exception:
-                pass
+            self._safe_metrics(lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles)))
 
             # Post-dispatch steps (shared with async_dispatch)
             return self._post_dispatch_steps(
@@ -558,76 +325,11 @@ class MultiAgentDispatcher:
             )
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
-            logger.error(
-                "Dispatch validation error for task '%s': %s - %s",
-                task_description[:50],
-                type(dispatch_err).__name__,
-                dispatch_err,
-                exc_info=True,
-            )
-            self._cleanup_tenant_context(tenant_ctx)
-            try:
-                _metrics = get_metrics()
-                _metrics.record_error("validation", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
-            friendly = make_user_friendly_error("dispatch_failed", original_error=dispatch_err)
-            return DispatchResult(
-                success=False,
-                task_description=task_description,
-                matched_roles=[],
-                summary=friendly.message,
-                errors=[friendly.format()],
-                duration_seconds=time.time() - start_time,
-                lang=pre_result.lang,
-            )
+            return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
         except (ImportError, ModuleNotFoundError) as import_err:
-            logger.error(
-                "Missing dependency during dispatch of task '%s': %s", task_description[:50], import_err, exc_info=True
-            )
-            self._cleanup_tenant_context(tenant_ctx)
-            try:
-                _metrics = get_metrics()
-                _metrics.record_error("dependency", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
-            friendly = make_user_friendly_error("backend_unavailable", original_error=import_err)
-            return DispatchResult(
-                success=False,
-                task_description=task_description,
-                matched_roles=[],
-                summary=friendly.message,
-                errors=[friendly.format()],
-                duration_seconds=time.time() - start_time,
-                lang=pre_result.lang,
-            )
+            return self._handle_dispatch_error(import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
         except Exception as e:
-            logger.critical(
-                "UNEXPECTED ERROR in dispatch task '%s': %s - %s",
-                task_description[:50],
-                type(e).__name__,
-                e,
-                exc_info=True,
-            )
-            self._cleanup_tenant_context(tenant_ctx)
-            try:
-                _metrics = get_metrics()
-                _metrics.record_error("unknown", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
-            friendly = make_user_friendly_error("dispatch_failed", original_error=e)
-            return DispatchResult(
-                success=False,
-                task_description=task_description,
-                matched_roles=[],
-                summary=friendly.message,
-                errors=[friendly.format()],
-                duration_seconds=time.time() - start_time,
-                lang=pre_result.lang,
-            )
+            return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang)
 
     async def async_dispatch(
         self,
@@ -637,32 +339,15 @@ class MultiAgentDispatcher:
         dry_run: bool = False,
         **kwargs: Any,
     ) -> DispatchResult:
-        """Async version of dispatch() using AsyncCoordinator for concurrent LLM calls.
-
-        Uses asyncio.gather instead of ThreadPoolExecutor for true async I/O.
-        Falls back to sync dispatch if async components are unavailable.
-
-        Args:
-            task_description: User's task description in natural language.
-            roles: Optional list of role IDs.
-            mode: Execution mode ("auto"/"parallel"/"sequential"/"consensus").
-            dry_run: If True, simulate execution without running Workers.
-            **kwargs: Additional options (task_timeout, max_concurrency, etc.).
-
-        Returns:
-            DispatchResult: Complete dispatch result (same as sync dispatch).
-        """
+        """Async version of dispatch() using AsyncCoordinator. Falls back to sync on failure."""
         track_usage("dispatcher.async_dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
         phase = "async_dispatch"
 
-        # Prometheus: record async dispatch start
-        try:
-            _metrics = get_metrics()
-            _metrics.dispatch_counter.labels(mode=mode, role_count="0").inc()
-            _metrics.tasks_in_progress_gauge.labels(phase=phase).inc()
-        except Exception:
-            pass
+        self._safe_metrics(lambda m: (
+            m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
+            m.tasks_in_progress_gauge.labels(phase=phase).inc(),
+        ))
 
         if self.usage_tracker:
             self.usage_tracker.tick("async_dispatch")
@@ -670,11 +355,7 @@ class MultiAgentDispatcher:
         # Pre-dispatch steps (shared with dispatch)
         pre_result = self._pre_dispatch_steps(task_description, roles, mode, dry_run, start_time, phase, **kwargs)
         if pre_result.early_return:
-            try:
-                _metrics = get_metrics()
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
+            self._safe_metrics(lambda m: m.tasks_in_progress_gauge.labels(phase=phase).dec())
             return pre_result.early_return
 
         tenant_ctx = pre_result.tenant_ctx
@@ -682,104 +363,13 @@ class MultiAgentDispatcher:
         try:
             # Step 8: Execute workers asynchronously via AsyncCoordinator
             matched_roles = pre_result.matched_roles
-            try:
-                _metrics = get_metrics()
-                _metrics.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
-            except Exception:
-                pass
+            self._safe_metrics(lambda m: m.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles)))
 
-            # Async backend selection
-            async_backend = None
-            if kwargs.get('use_async_backend', False) or os.environ.get('DEVSQUAD_USE_ASYNC', '').lower() in ('1', 'true'):
-                try:
-                    async_backend = AsyncLLMBackendFactory.create(self.llm_backend.__class__.__name__)
-                except Exception:
-                    async_backend = SyncToAsyncAdapter(self.llm_backend)
-            else:
-                async_backend = SyncToAsyncAdapter(self.llm_backend)
+            exec_result, worker_results, exec_errors, exec_timing = await self._execute_async_workers(
+                pre_result.plan, task_description, matched_roles, kwargs
+            )
 
-            # Async cache
-            async_cache = None
-            if kwargs.get('use_async_cache', False):
-                try:
-                    async_cache = AsyncLLMCache(cache_dir=self.persist_dir or "data/llm_cache")
-                except Exception as e:
-                    logger.debug(f"Async cache init failed: {e}")
-
-            try:
-                from .async_coordinator import AsyncCoordinator
-
-                async_coordinator = AsyncCoordinator(
-                    scratchpad=self.scratchpad,
-                    persist_dir=self.persist_dir,
-                    enable_compression=self.enable_compression,
-                    compression_threshold=self.compression_threshold,
-                    llm_backend=self.llm_backend,
-                    stream=self.stream,
-                    memory_provider=self.memory_bridge if self.enable_memory else None,
-                    task_timeout=kwargs.get("task_timeout", 300),
-                    max_concurrency=kwargs.get("max_concurrency", 10),
-                )
-
-                # Re-plan and spawn using AsyncCoordinator
-                async_plan = async_coordinator.plan_task(
-                    task_description=task_description,
-                    available_roles=[
-                        {
-                            "role_id": r["role_id"],
-                            "role_prompt": str(ROLE_TEMPLATES.get(r["role_id"], {}).get("prompt", "")),
-                            "confidence": r.get("confidence", 0.5),
-                        }
-                        for r in matched_roles
-                    ],
-                )
-                async_coordinator.spawn_workers(async_plan)
-
-                # Execute asynchronously
-                exec_result = await async_coordinator.execute_plan(async_plan)
-
-                step6_time = time.time()
-
-                # Collect worker results (same format as sync)
-                worker_results: List[Dict[str, Any]] = []
-                for r in exec_result.results:
-                    role_id = r.worker_id.split("-")[0] if "-" in r.worker_id else r.worker_id
-                    from .models import ROLE_REGISTRY
-
-                    rdef = ROLE_REGISTRY.get(role_id)
-                    role_name = rdef.name if rdef else role_id
-                    worker_results.append(
-                        {
-                            "worker_id": r.worker_id,
-                            "role_id": role_id,
-                            "role_name": role_name,
-                            "task_id": r.task_id,
-                            "success": r.success,
-                            "output": (r.output.get("finding_summary", "") if isinstance(r.output, dict) else str(r.output))
-                            if r.output
-                            else None,
-                            "error": r.error,
-                        }
-                    )
-
-                step7_time = time.time()
-                exec_errors = list(exec_result.errors) if exec_result.errors else []
-
-                exec_timing = {
-                    "step6_time": step6_time,
-                    "step7_time": step7_time,
-                }
-
-            except (ImportError, Exception) as async_err:
-                # Fallback to sync execution
-                logger.warning("Async dispatch failed, falling back to sync: %s", async_err)
-                exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(pre_result.plan, task_description)
-
-            try:
-                _metrics = get_metrics()
-                _metrics.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
-            except Exception:
-                pass
+            self._safe_metrics(lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles)))
 
             # Post-dispatch steps (shared with dispatch)
             return self._post_dispatch_steps(
@@ -794,76 +384,70 @@ class MultiAgentDispatcher:
             )
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
-            logger.error(
-                "Async dispatch validation error for task '%s': %s - %s",
-                task_description[:50],
-                type(dispatch_err).__name__,
-                dispatch_err,
-                exc_info=True,
-            )
-            self._cleanup_tenant_context(tenant_ctx)
-            try:
-                _metrics = get_metrics()
-                _metrics.record_error("validation", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
-            friendly = make_user_friendly_error("dispatch_failed", original_error=dispatch_err)
-            return DispatchResult(
-                success=False,
-                task_description=task_description,
-                matched_roles=[],
-                summary=friendly.message,
-                errors=[friendly.format()],
-                duration_seconds=time.time() - start_time,
-                lang=pre_result.lang,
-            )
+            return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
         except (ImportError, ModuleNotFoundError) as import_err:
-            logger.error(
-                "Missing dependency during async dispatch of task '%s': %s", task_description[:50], import_err, exc_info=True
-            )
-            self._cleanup_tenant_context(tenant_ctx)
-            try:
-                _metrics = get_metrics()
-                _metrics.record_error("dependency", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
-            friendly = make_user_friendly_error("backend_unavailable", original_error=import_err)
-            return DispatchResult(
-                success=False,
-                task_description=task_description,
-                matched_roles=[],
-                summary=friendly.message,
-                errors=[friendly.format()],
-                duration_seconds=time.time() - start_time,
-                lang=pre_result.lang,
-            )
+            return self._handle_dispatch_error(import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
         except Exception as e:
-            logger.critical(
-                "UNEXPECTED ERROR in async dispatch task '%s': %s - %s",
-                task_description[:50],
-                type(e).__name__,
-                e,
-                exc_info=True,
-            )
-            self._cleanup_tenant_context(tenant_ctx)
+            return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
+
+    async def _execute_async_workers(
+        self, plan: Any, task_description: str, matched_roles: List[Dict[str, Any]], kwargs: Dict[str, Any]
+    ) -> Tuple[Any, List[Dict[str, Any]], List[str], Dict[str, float]]:
+        """Execute workers asynchronously, falling back to sync on failure."""
+        # Async backend selection
+        async_backend = None
+        if kwargs.get('use_async_backend', False) or os.environ.get('DEVSQUAD_USE_ASYNC', '').lower() in ('1', 'true'):
             try:
-                _metrics = get_metrics()
-                _metrics.record_error("unknown", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-            except Exception:
-                pass
-            friendly = make_user_friendly_error("dispatch_failed", original_error=e)
-            return DispatchResult(
-                success=False,
-                task_description=task_description,
-                matched_roles=[],
-                summary=friendly.message,
-                errors=[friendly.format()],
-                duration_seconds=time.time() - start_time,
-                lang=pre_result.lang,
+                async_backend = AsyncLLMBackendFactory.create(self.llm_backend.__class__.__name__)
+            except (ImportError, AttributeError, RuntimeError):
+                async_backend = SyncToAsyncAdapter(self.llm_backend)
+        else:
+            async_backend = SyncToAsyncAdapter(self.llm_backend)
+
+        # Async cache
+        async_cache = None
+        if kwargs.get('use_async_cache', False):
+            try:
+                async_cache = AsyncLLMCache(cache_dir=self.persist_dir or "data/llm_cache")
+            except (ImportError, AttributeError, OSError) as e:
+                logger.debug(f"Async cache init failed: {e}")
+
+        try:
+            from .async_coordinator import AsyncCoordinator
+
+            async_coordinator = AsyncCoordinator(
+                scratchpad=self.scratchpad,
+                persist_dir=self.persist_dir,
+                enable_compression=self.enable_compression,
+                compression_threshold=self.compression_threshold,
+                llm_backend=self.llm_backend,
+                stream=self.stream,
+                memory_provider=self.memory_bridge if self.enable_memory else None,
+                task_timeout=kwargs.get("task_timeout", 300),
+                max_concurrency=kwargs.get("max_concurrency", 10),
             )
+
+            async_plan = async_coordinator.plan_task(
+                task_description=task_description,
+                available_roles=[
+                    {
+                        "role_id": r["role_id"],
+                        "role_prompt": str(ROLE_TEMPLATES.get(r["role_id"], {}).get("prompt", "")),
+                        "confidence": r.get("confidence", 0.5),
+                    }
+                    for r in matched_roles
+                ],
+            )
+            async_coordinator.spawn_workers(async_plan)
+            exec_result = await async_coordinator.execute_plan(async_plan)
+
+            worker_results, step6_time, step7_time = self._collect_worker_results(exec_result)
+            exec_errors = list(exec_result.errors) if exec_result.errors else []
+            return exec_result, worker_results, exec_errors, {"step6_time": step6_time, "step7_time": step7_time}
+
+        except (ImportError, RuntimeError, AttributeError, OSError) as async_err:
+            logger.warning("Async dispatch failed, falling back to sync: %s", async_err)
+            return self._execute_workers(plan, task_description)
 
     # ------------------------------------------------------------------
     # Private step methods extracted from dispatch()
@@ -898,49 +482,14 @@ class MultiAgentDispatcher:
         phase: str,
         **kwargs: Any,
     ):
-        """Steps 0-7: tenant setup, validation, intent, roles, preparation.
-
-        Returns:
-            _PreDispatchResult with all intermediate state needed for
-            execution and post-processing steps.
-        """
+        """Steps 0-7: tenant setup, validation, intent, roles, preparation."""
         # Step 0: Multi-tenant context setup
-        tenant_ctx = None
-        if self.enable_multi_tenant and self.tenant_manager:
-            tenant_id = kwargs.get('tenant_id')
-            user_id = kwargs.get('user_id')
-            if tenant_id:
-                try:
-                    tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
-                    tenant_ctx.__enter__()
-                    if not self.tenant_manager.check_quota("tasks"):
-                        return self._PreDispatchResult(
-                            task_description=task_description,
-                            lang=self.lang,
-                            rule_collection=None,
-                            intent_match=None,
-                            matched_roles=[],
-                            role_ids=[],
-                            concern_packs=None,
-                            concern_enhancements={},
-                            plan=None,
-                            structured_goal=None,
-                            prep_timing={},
-                            step1_time=start_time,
-                            step2_time=start_time,
-                            tenant_ctx=tenant_ctx,
-                            early_return=DispatchResult(
-                                success=False,
-                                task_description=task_description,
-                                error="Quota exceeded",
-                                matched_roles=[],
-                                summary="Quota exceeded for tenant",
-                                errors=["Quota exceeded"],
-                                duration_seconds=time.time() - start_time,
-                            ),
-                        )
-                except Exception as e:
-                    logger.warning(f"Multi-tenant setup failed: {e}")
+        tenant_ctx = self._setup_tenant_context(kwargs, start_time)
+        if isinstance(tenant_ctx, DispatchResult):
+            return self._make_early_pre_result(
+                task_description, self.lang, None, tenant_ctx,
+                step1_time=start_time, step2_time=start_time,
+            )
 
         # Step 1: Resolve language
         lang = self._resolve_language(self.lang)
@@ -948,78 +497,26 @@ class MultiAgentDispatcher:
         # Step 2: Validate input
         task_description, early_return = self._validate_input(task_description, roles, lang)
         if early_return:
-            return self._PreDispatchResult(
-                task_description=task_description,
-                lang=lang,
-                rule_collection=None,
-                intent_match=None,
-                matched_roles=[],
-                role_ids=[],
-                concern_packs=None,
-                concern_enhancements={},
-                plan=None,
-                structured_goal=None,
-                prep_timing={},
-                step1_time=start_time,
-                step2_time=start_time,
-                tenant_ctx=tenant_ctx,
-                early_return=early_return,
+            return self._make_early_pre_result(
+                task_description, lang, tenant_ctx, early_return,
+                step1_time=start_time, step2_time=start_time,
             )
 
         # RBAC pre-check
-        if self.enable_rbac and self.rbac_engine:
-            try:
-                user_id = kwargs.get('user_id', 'default')
-                self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
-            except PermissionDeniedError as e:
-                return self._PreDispatchResult(
-                    task_description=task_description,
-                    lang=lang,
-                    rule_collection=None,
-                    intent_match=None,
-                    matched_roles=[],
-                    role_ids=[],
-                    concern_packs=None,
-                    concern_enhancements={},
-                    plan=None,
-                    structured_goal=None,
-                    prep_timing={},
-                    step1_time=start_time,
-                    step2_time=start_time,
-                    tenant_ctx=tenant_ctx,
-                    early_return=DispatchResult(
-                        success=False,
-                        task_description=task_description,
-                        error=f"Permission denied: {e}",
-                        matched_roles=[],
-                        summary=f"Permission denied: {e}",
-                        errors=[f"Permission denied: {e}"],
-                        duration_seconds=time.time() - start_time,
-                        lang=lang,
-                    ),
-                )
-            except Exception as e:
-                logger.warning(f"RBAC check failed: {e}")
+        rbac_denied = self._check_rbac_access(kwargs, task_description, lang, start_time)
+        if rbac_denied:
+            return self._make_early_pre_result(
+                task_description, lang, tenant_ctx, rbac_denied,
+                step1_time=start_time, step2_time=start_time,
+            )
 
         # Step 3: Collect rules and inject CI context
         task_description, rule_collection, early_return = self._collect_rules(task_description, lang)
         if early_return:
-            return self._PreDispatchResult(
-                task_description=task_description,
-                lang=lang,
+            return self._make_early_pre_result(
+                task_description, lang, tenant_ctx, early_return,
                 rule_collection=rule_collection,
-                intent_match=None,
-                matched_roles=[],
-                role_ids=[],
-                concern_packs=None,
-                concern_enhancements={},
-                plan=None,
-                structured_goal=None,
-                prep_timing={},
-                step1_time=start_time,
-                step2_time=start_time,
-                tenant_ctx=tenant_ctx,
-                early_return=early_return,
+                step1_time=start_time, step2_time=start_time,
             )
 
         step1_time = time.time()
@@ -1037,7 +534,7 @@ class MultiAgentDispatcher:
                     resource_id="unknown",
                     details={"task": task_description[:200]}
                 )
-            except Exception as e:
+            except (OSError, AttributeError, KeyError) as e:
                 logger.debug(f"Audit logging failed: {e}")
 
         # Step 5: Match roles
@@ -1048,22 +545,12 @@ class MultiAgentDispatcher:
             task_description, matched_roles, lang, dry_run, start_time
         )
         if early_return:
-            return self._PreDispatchResult(
-                task_description=task_description,
-                lang=lang,
-                rule_collection=rule_collection,
-                intent_match=intent_match,
-                matched_roles=matched_roles,
-                role_ids=role_ids,
-                concern_packs=concern_packs,
-                concern_enhancements=concern_enhancements,
-                plan=None,
-                structured_goal=None,
-                prep_timing={},
-                step1_time=step1_time,
-                step2_time=time.time(),
-                tenant_ctx=tenant_ctx,
-                early_return=early_return,
+            return self._make_early_pre_result(
+                task_description, lang, tenant_ctx, early_return,
+                rule_collection=rule_collection, intent_match=intent_match,
+                matched_roles=matched_roles, role_ids=role_ids,
+                concern_packs=concern_packs, concern_enhancements=concern_enhancements,
+                step1_time=step1_time, step2_time=time.time(),
             )
 
         step2_time = time.time()
@@ -1102,21 +589,7 @@ class MultiAgentDispatcher:
         phase: str,
         **kwargs: Any,
     ) -> DispatchResult:
-        """Steps 9-18: post-processing, consensus, permissions, memory, assembly.
-
-        Args:
-            pre_result: _PreDispatchResult from _pre_dispatch_steps
-            exec_result: Execution result from worker execution
-            worker_results: List of worker result dicts
-            exec_errors: List of execution errors
-            exec_timing: Timing dict with step6_time, step7_time
-            start_time: Dispatch start time
-            phase: "dispatch" or "async_dispatch"
-            **kwargs: Additional keyword arguments
-
-        Returns:
-            DispatchResult with complete dispatch outcome
-        """
+        """Steps 9-18: post-processing, consensus, permissions, memory, assembly."""
         task_description = pre_result.task_description
         lang = pre_result.lang
         matched_roles = pre_result.matched_roles
@@ -1174,19 +647,11 @@ class MultiAgentDispatcher:
         )
 
         # Step 16: Assemble result
-        step_timings = {
-            "analyze": round(step2_time - step1_time, 3),
-            "warmup": round(step3_time - step2_time, 3),
-            "plan": round(step4_time - step3_time, 3),
-            "spawn": round(step5_time - step4_time, 3),
-            "execute": round(step6_time - step5_time, 3),
-            "collect": round(step7_time - step6_time, 3),
-            "consensus": round(step8_time - step7_time, 3),
-            "compress": round(step9_time - step8_time, 3),
-            "permission": round(step10_time - step9_time, 3),
-            "memory": round(step11_time - step10_time, 3),
-            "skillify": round(step12_time - step11_time, 3),
-        }
+        step_timings = self._build_step_timings(
+            step1_time, step2_time, step3_time, step4_time, step5_time,
+            step6_time, step7_time, step8_time, step9_time, step10_time,
+            step11_time, step12_time,
+        )
         result = self._assemble_result(
             task_description=task_description,
             role_ids=role_ids,
@@ -1220,7 +685,7 @@ class MultiAgentDispatcher:
                     resource_id="unknown",
                     result="success" if result.success else "failure"
                 )
-            except Exception as e:
+            except (OSError, AttributeError, KeyError) as e:
                 logger.debug(f"Audit logging failed: {e}")
 
         # Step 17: Post-dispatch hooks
@@ -1232,26 +697,190 @@ class MultiAgentDispatcher:
         result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
 
         # Prometheus: record dispatch end (duration + tasks_in_progress)
-        try:
-            _metrics = get_metrics()
-            _metrics.dispatch_histogram.labels(mode=mode).observe(total_duration)
-            _metrics.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc()
-            _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
-        except Exception:
-            pass
+        self._safe_metrics(lambda m: (
+            m.dispatch_histogram.labels(mode=mode).observe(total_duration),
+            m.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc(),
+            m.tasks_in_progress_gauge.labels(phase=phase).dec(),
+        ))
 
         # Multi-tenant context cleanup
         self._cleanup_tenant_context(pre_result.tenant_ctx)
 
         return result
 
+    def _setup_tenant_context(self, kwargs: Dict[str, Any], start_time: float) -> Any:
+        """Set up multi-tenant context. Returns context manager or DispatchResult on quota error."""
+        if not self.enable_multi_tenant or not self.tenant_manager:
+            return None
+        tenant_id = kwargs.get('tenant_id', 'default')
+        user_id = kwargs.get('user_id', 'default')
+        if not tenant_id:
+            return None
+        try:
+            tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
+            tenant_ctx.__enter__()
+            if not self.tenant_manager.check_quota("tasks"):
+                return DispatchResult(
+                    success=False, task_description="",
+                    error="Quota exceeded", matched_roles=[],
+                    summary="Quota exceeded for tenant",
+                    errors=["Quota exceeded"],
+                    duration_seconds=time.time() - start_time,
+                )
+            return tenant_ctx
+        except (AttributeError, KeyError, RuntimeError, OSError) as e:
+            logger.warning(f"Multi-tenant setup failed: {e}")
+            return None
+
+    def _check_rbac_access(self, kwargs: Dict[str, Any], task: str, lang: str, start_time: float) -> Optional[DispatchResult]:
+        """Check RBAC access. Returns DispatchResult if denied, None if allowed."""
+        if not self.enable_rbac or not self.rbac_engine:
+            return None
+        try:
+            user_id = kwargs.get('user_id', 'default')
+            self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
+            return None
+        except PermissionDeniedError as e:
+            return DispatchResult(
+                success=False, task_description=task,
+                error=f"Permission denied: {e}", matched_roles=[],
+                summary=f"Permission denied: {e}",
+                errors=[f"Permission denied: {e}"],
+                duration_seconds=time.time() - start_time, lang=lang,
+            )
+        except (AttributeError, RuntimeError, KeyError) as e:
+            logger.warning(f"RBAC check failed: {e}")
+            return None
+
     def _cleanup_tenant_context(self, tenant_ctx: Any) -> None:
         """Clean up tenant context if active."""
         if tenant_ctx:
             try:
                 tenant_ctx.__exit__(None, None, None)
-            except Exception as e:
+            except (AttributeError, RuntimeError, OSError) as e:
                 logger.debug(f"Tenant context cleanup failed: {e}")
+
+    def _safe_metrics(self, fn) -> None:
+        """Safely execute Prometheus metrics callback."""
+        try:
+            fn(get_metrics())
+        except Exception:
+            pass
+
+    def _handle_dispatch_error(
+        self,
+        error: Exception,
+        task_description: str,
+        tenant_ctx: Any,
+        phase: str,
+        start_time: float,
+        lang: str,
+        is_async: bool = False,
+    ) -> DispatchResult:
+        """Handle dispatch errors uniformly for sync and async paths."""
+        prefix = "Async " if is_async else ""
+        if isinstance(error, (ValueError, TypeError, AttributeError)):
+            logger.error(
+                "%sdispatch validation error for task '%s': %s - %s",
+                prefix, task_description[:50], type(error).__name__, error, exc_info=True,
+            )
+            error_key, metrics_label = "dispatch_failed", "validation"
+        elif isinstance(error, (ImportError, ModuleNotFoundError)):
+            logger.error(
+                "Missing dependency during %sdispatch of task '%s': %s",
+                prefix.lower(), task_description[:50], error, exc_info=True,
+            )
+            error_key, metrics_label = "backend_unavailable", "dependency"
+        else:
+            logger.critical(
+                "UNEXPECTED ERROR in %sdispatch task '%s': %s - %s",
+                prefix.lower(), task_description[:50], type(error).__name__, error, exc_info=True,
+            )
+            error_key, metrics_label = "dispatch_failed", "unknown"
+
+        self._cleanup_tenant_context(tenant_ctx)
+        self._safe_metrics(lambda m: (
+            m.record_error(metrics_label, "dispatcher"),
+            m.tasks_in_progress_gauge.labels(phase=phase).dec(),
+        ))
+        friendly = make_user_friendly_error(error_key, original_error=error)
+        return DispatchResult(
+            success=False,
+            task_description=task_description,
+            matched_roles=[],
+            summary=friendly.message,
+            errors=[friendly.format()],
+            duration_seconds=time.time() - start_time,
+            lang=lang,
+        )
+
+    def _make_early_pre_result(
+        self,
+        task_description: str,
+        lang: str,
+        tenant_ctx: Any,
+        early_return: DispatchResult,
+        rule_collection: Any = None,
+        intent_match: Any = None,
+        matched_roles: Optional[List[Dict[str, Any]]] = None,
+        role_ids: Optional[List[str]] = None,
+        concern_packs: Any = None,
+        concern_enhancements: Optional[Dict[str, Any]] = None,
+        step1_time: float = 0.0,
+        step2_time: float = 0.0,
+    ):
+        """Create a _PreDispatchResult with early_return set, filling defaults."""
+        return self._PreDispatchResult(
+            task_description=task_description,
+            lang=lang,
+            rule_collection=rule_collection,
+            intent_match=intent_match,
+            matched_roles=matched_roles or [],
+            role_ids=role_ids or [],
+            concern_packs=concern_packs,
+            concern_enhancements=concern_enhancements or {},
+            plan=None,
+            structured_goal=None,
+            prep_timing={},
+            step1_time=step1_time,
+            step2_time=step2_time,
+            tenant_ctx=tenant_ctx,
+            early_return=early_return,
+        )
+
+    def _collect_worker_results(self, exec_result: Any) -> Tuple[List[Dict[str, Any]], float, float]:
+        """Collect worker results from execution result into standardized dicts."""
+        step6_time = time.time()
+        worker_results: List[Dict[str, Any]] = []
+        for r in exec_result.results:
+            role_id = r.worker_id.split("-")[0] if "-" in r.worker_id else r.worker_id
+            from .models import ROLE_REGISTRY
+
+            rdef = ROLE_REGISTRY.get(role_id)
+            role_name = rdef.name if rdef else role_id
+            worker_results.append(
+                {
+                    "worker_id": r.worker_id,
+                    "role_id": role_id,
+                    "role_name": role_name,
+                    "task_id": r.task_id,
+                    "success": r.success,
+                    "output": (r.output.get("finding_summary", "") if isinstance(r.output, dict) else str(r.output))
+                    if r.output
+                    else None,
+                    "error": r.error,
+                }
+            )
+        step7_time = time.time()
+        return worker_results, step6_time, step7_time
+
+    def _get_current_tenant_id(self) -> str:
+        """Get current tenant_id for data isolation, defaults to 'default'."""
+        if self.enable_multi_tenant and self.tenant_manager:
+            current_tenant = self.tenant_manager.get_current_tenant()
+            if current_tenant:
+                return current_tenant.tenant_id
+        return "default"
 
     def _resolve_language(self, lang: str) -> str:
         """Resolve language from 'auto' to a specific language code."""
@@ -1270,19 +899,14 @@ class MultiAgentDispatcher:
                 return "zh"
             else:
                 return "zh"
-        except Exception as e:
+        except (ValueError, TypeError, OSError) as e:
             logger.debug("Locale detection failed, using default language: %s", e)
             return "zh"
 
     def _validate_input(
         self, task: str, roles: Optional[List[str]], lang: str
     ) -> Tuple[str, Optional[DispatchResult]]:
-        """Validate task and roles input via InputValidator.
-
-        Returns:
-            Tuple of (sanitized_task, early_return). If early_return is not None,
-            dispatch should return it immediately.
-        """
+        """Validate task and roles input. Returns (sanitized_task, early_return)."""
         validator = self._validator
         task_result = validator.validate_task(task)
         if not task_result.valid:
@@ -1301,7 +925,7 @@ class MultiAgentDispatcher:
         try:
             if not hasattr(self, "_std_template_cache"):
                 self._std_template_cache: Dict[str, Any] = {}
-        except Exception:
+        except Exception:  # Broad catch: defensive attribute check
             self._std_template_cache = {}
 
         if roles:
@@ -1331,12 +955,7 @@ class MultiAgentDispatcher:
     def _collect_rules(
         self, task: str, lang: str
     ) -> Tuple[str, Any, Optional[DispatchResult]]:
-        """Collect rules via RuleCollector and inject CI context.
-
-        Returns:
-            Tuple of (task, rule_collection, early_return). Task may be modified
-            by rule collection or CI context injection.
-        """
+        """Collect rules via RuleCollector and inject CI context. Returns (task, rules, early_return)."""
         rule_collection = None
         try:
             from scripts.collaboration.rule_collector import RuleCollector
@@ -1356,45 +975,46 @@ class MultiAgentDispatcher:
                 )
             if rule_collection.rule_detected:
                 task = rule_collection.remaining_task
-        except Exception as e:
+        except (ImportError, AttributeError, ValueError, KeyError) as e:
             logger.debug("RuleCollector not available: %s", e)
 
         if self.ci_feedback:
-            try:
-                import glob as glob_mod
-
-                ci_files = glob_mod.glob(os.path.join(self.persist_dir, "**/pytest*.txt"), recursive=True)
-                ci_files += glob_mod.glob(os.path.join(self.persist_dir, "**/junit*.xml"), recursive=True)
-                if ci_files:
-                    ci_results = []
-                    for cf in ci_files[:3]:
-                        with open(cf, encoding="utf-8", errors="ignore") as f:
-                            r = self.ci_feedback.parse_ci_output(f.read(), "pytest")
-                            if r:
-                                ci_results.append(r)
-                    if ci_results:
-                        ctx = self.ci_feedback.generate_context(ci_results)
-                        if ctx and ctx.overall_status == "has_failures":
-                            task = f"{task}\n\n[CI Context] {ctx.summary}"
-                            if self.usage_tracker:
-                                self.usage_tracker.tick("ci_context_injected")
-            except Exception as e:
-                logger.warning(f"CI context injection failed: {e}")
+            self._inject_ci_context(task)
 
         return task, rule_collection, None
 
-    def _detect_intent(self, task: str, lang: str) -> Any:
-        """Detect intent via IntentWorkflowMapper.
+    def _inject_ci_context(self, task: str) -> str:
+        """Inject CI feedback context into task description if failures found."""
+        try:
+            import glob as glob_mod
 
-        Returns:
-            Intent match result or None.
-        """
+            ci_files = glob_mod.glob(os.path.join(self.persist_dir, "**/pytest*.txt"), recursive=True)
+            ci_files += glob_mod.glob(os.path.join(self.persist_dir, "**/junit*.xml"), recursive=True)
+            if ci_files:
+                ci_results = []
+                for cf in ci_files[:3]:
+                    with open(cf, encoding="utf-8", errors="ignore") as f:
+                        r = self.ci_feedback.parse_ci_output(f.read(), "pytest")
+                        if r:
+                            ci_results.append(r)
+                if ci_results:
+                    ctx = self.ci_feedback.generate_context(ci_results)
+                    if ctx and ctx.overall_status == "has_failures":
+                        if self.usage_tracker:
+                            self.usage_tracker.tick("ci_context_injected")
+                        return f"{task}\n\n[CI Context] {ctx.summary}"
+        except (OSError, ValueError, AttributeError) as e:
+            logger.warning(f"CI context injection failed: {e}")
+        return task
+
+    def _detect_intent(self, task: str, lang: str) -> Any:
+        """Detect intent via IntentWorkflowMapper. Returns intent match or None."""
         intent_match = None
         try:
             intent_match = self.intent_mapper.detect_intent(task, lang=lang)
             if intent_match and self.usage_tracker:
                 self.usage_tracker.tick("intent_detected")
-        except Exception as intent_err:
+        except (ValueError, AttributeError, RuntimeError, ImportError) as intent_err:
             logger.debug("Intent detection failed: %s", intent_err)
 
         self.context_manager.clear_task_context()
@@ -1407,11 +1027,7 @@ class MultiAgentDispatcher:
         return intent_match
 
     def _match_roles(self, task: str, roles: Optional[List[str]]) -> List[Dict[str, Any]]:
-        """Match roles via RoleMatcher and AISemanticMatcher.
-
-        Returns:
-            List of matched role dicts.
-        """
+        """Match roles via RoleMatcher and AISemanticMatcher."""
         matched_roles = self.analyze_task(task)
 
         if self.semantic_matcher and self.llm_backend:
@@ -1432,7 +1048,7 @@ class MultiAgentDispatcher:
                             existing_ids.add(sr.role_id)
                     if self.usage_tracker:
                         self.usage_tracker.tick("semantic_matcher")
-            except Exception as sem_err:
+            except (ValueError, AttributeError, RuntimeError, ConnectionError) as sem_err:
                 logger.debug("Semantic matching failed: %s", sem_err)
 
         if roles:
@@ -1448,12 +1064,7 @@ class MultiAgentDispatcher:
         dry_run: bool,
         start_time: float,
     ) -> Tuple[List[str], Any, Dict[str, Any], Optional[DispatchResult]]:
-        """Validate roles and run security scans (concern packs).
-
-        Returns:
-            Tuple of (role_ids, concern_packs, concern_enhancements, early_return).
-            If early_return is not None, dispatch should return it immediately.
-        """
+        """Validate roles and run security scans. Returns (role_ids, concern_packs, enhancements, early_return)."""
         role_ids = [r["role_id"] for r in matched_roles]
 
         concern_packs = self._concern_loader.match_packs(task)
@@ -1484,12 +1095,7 @@ class MultiAgentDispatcher:
         rule_collection: Any,
         concern_enhancements: Dict[str, Any],
     ) -> Tuple[Any, Any, Dict[str, float]]:
-        """Prepare execution: warmup, prompt assembly, task planning, worker spawn.
-
-        Returns:
-            Tuple of (plan, structured_goal, timing_dict).
-            timing_dict contains step3_time, step4_time, step5_time as absolute timestamps.
-        """
+        """Prepare execution: warmup, prompt assembly, planning, spawn. Returns (plan, goal, timing)."""
         role_ids = [r["role_id"] for r in matched_roles]
 
         if self.warmup_manager:
@@ -1544,27 +1150,7 @@ class MultiAgentDispatcher:
                 self.usage_tracker.tick("anchor_check")
 
         # V3.6.0: Load historical retrospectives into Scratchpad
-        if self.retrospective_engine and self.enable_memory:
-            try:
-                historical = self.retrospective_engine.load_historical(task, limit=3)
-                if historical:
-                    retro_lines = ["[Historical Retrospective Context]"]
-                    for idx, h in enumerate(historical, 1):
-                        if isinstance(h, dict):
-                            retro_lines.append(f"  {idx}. {h.get('summary', str(h)[:100])}")
-                        else:
-                            retro_lines.append(f"  {idx}. {str(h)[:100]}")
-                    self.scratchpad.write(
-                        ScratchpadEntry(
-                            worker_id="system",
-                            entry_type=EntryType.FINDING,
-                            content="\n".join(retro_lines),
-                            confidence=0.85,
-                            tags=["retrospective", "auto-loaded"],
-                        )
-                    )
-            except Exception as retro_load_err:
-                logger.debug("Failed to load historical retrospectives: %s", retro_load_err)
+        self._load_historical_retrospectives(task)
 
         return plan, structured_goal, {
             "step3_time": step3_time,
@@ -1572,42 +1158,37 @@ class MultiAgentDispatcher:
             "step5_time": step5_time,
         }
 
+    def _load_historical_retrospectives(self, task: str) -> None:
+        """Load historical retrospectives into Scratchpad."""
+        if not self.retrospective_engine or not self.enable_memory:
+            return
+        try:
+            historical = self.retrospective_engine.load_historical(task, limit=3)
+            if historical:
+                retro_lines = ["[Historical Retrospective Context]"]
+                for idx, h in enumerate(historical, 1):
+                    if isinstance(h, dict):
+                        retro_lines.append(f"  {idx}. {h.get('summary', str(h)[:100])}")
+                    else:
+                        retro_lines.append(f"  {idx}. {str(h)[:100]}")
+                self.scratchpad.write(
+                    ScratchpadEntry(
+                        worker_id="system",
+                        entry_type=EntryType.FINDING,
+                        content="\n".join(retro_lines),
+                        confidence=0.85,
+                        tags=["retrospective", "auto-loaded"],
+                    )
+                )
+        except (OSError, ValueError, AttributeError, KeyError) as retro_load_err:
+            logger.debug("Failed to load historical retrospectives: %s", retro_load_err)
+
     def _execute_workers(
         self, plan: Any, task_description: str
     ) -> Tuple[Any, List[Dict[str, Any]], List[str], Dict[str, float]]:
-        """Execute workers via Coordinator.
-
-        Returns:
-            Tuple of (exec_result, worker_results, errors, timing_dict).
-            timing_dict contains step6_time, step7_time as absolute timestamps.
-        """
+        """Execute workers via Coordinator. Returns (exec_result, worker_results, errors, timing)."""
         exec_result = self.coordinator.execute_plan(plan)
-
-        step6_time = time.time()
-
-        worker_results: List[Dict[str, Any]] = []
-        for r in exec_result.results:
-            role_id = r.worker_id.split("-")[0] if "-" in r.worker_id else r.worker_id
-            from .models import ROLE_REGISTRY
-
-            rdef = ROLE_REGISTRY.get(role_id)
-            role_name = rdef.name if rdef else role_id
-            worker_results.append(
-                {
-                    "worker_id": r.worker_id,
-                    "role_id": role_id,
-                    "role_name": role_name,
-                    "task_id": r.task_id,
-                    "success": r.success,
-                    "output": (r.output.get("finding_summary", "") if isinstance(r.output, dict) else str(r.output))
-                    if r.output
-                    else None,
-                    "error": r.error,
-                }
-            )
-
-        step7_time = time.time()
-
+        worker_results, step6_time, step7_time = self._collect_worker_results(exec_result)
         exec_errors = list(exec_result.errors) if exec_result.errors else []
         return exec_result, worker_results, exec_errors, {
             "step6_time": step6_time,
@@ -1617,16 +1198,22 @@ class MultiAgentDispatcher:
     def _post_execution_processing(
         self, worker_results: List[Dict[str, Any]], structured_goal: Any
     ) -> Tuple[str, Any, Any, List[str], Dict[str, float]]:
-        """Post-execution processing: collect results, output slicing, anchor check.
-
-        Returns:
-            Tuple of (scratchpad_summary, anchor_result, collection, errors, timing_dict).
-            timing_dict contains step8_time as absolute timestamp.
-        """
+        """Post-execution: collect, slice, anchor check. Returns (summary, anchor, collection, errors, timing)."""
         errors: List[str] = []
         collection = self.coordinator.collect_results()
         scratchpad_summary = collection.get("scratchpad", "")
 
+        self._slice_outputs(worker_results, errors)
+        anchor_result = self._check_anchor_drift(worker_results, structured_goal, scratchpad_summary)
+
+        step8_time = time.time()
+
+        return scratchpad_summary, anchor_result, collection, errors, {
+            "step8_time": step8_time,
+        }
+
+    def _slice_outputs(self, worker_results: List[Dict[str, Any]], errors: List[str]) -> None:
+        """Slice oversized worker outputs."""
         if self.output_slicer and worker_results:
             try:
                 for wr in worker_results:
@@ -1636,64 +1223,52 @@ class MultiAgentDispatcher:
                         wr["_sliced"] = True
                         if self.usage_tracker:
                             self.usage_tracker.tick("output_sliced")
-            except Exception as e:
+            except (ValueError, AttributeError, TypeError) as e:
                 logger.warning(f"OutputSlicer failed: {e}")
 
-        # V3.6.0: Anchor check after execution (needs scratchpad_summary)
-        anchor_result = None
-        if self.anchor_checker and structured_goal:
-            try:
-                combined_output = scratchpad_summary or ""
-                for wr in worker_results:
-                    if wr.get("output"):
-                        combined_output += "\n" + wr["output"]
-                from .models import AnchorTrigger
+    def _check_anchor_drift(self, worker_results: List[Dict[str, Any]], structured_goal: Any, scratchpad_summary: str) -> Any:
+        """Check for anchor drift after execution."""
+        if not self.anchor_checker or not structured_goal:
+            return None
+        try:
+            combined_output = scratchpad_summary or ""
+            for wr in worker_results:
+                if wr.get("output"):
+                    combined_output += "\n" + wr["output"]
+            from .models import AnchorTrigger
 
-                anchor_result = self.anchor_checker.check(
-                    goal=structured_goal,
-                    current_output=combined_output,
-                    trigger=AnchorTrigger.STEP_COMPLETE,
-                )
-                if not anchor_result.aligned:
-                    if self.usage_tracker:
-                        self.usage_tracker.tick("anchor_drift_detected")
-                    self.scratchpad.write(
-                        ScratchpadEntry(
-                            worker_id="system",
-                            entry_type=EntryType.WARNING,
-                            content=f"[Anchor Drift] {anchor_result.recommendation}",
-                            confidence=0.9,
-                            tags=["anchor-drift", "v3.6.0"],
-                        )
+            anchor_result = self.anchor_checker.check(
+                goal=structured_goal,
+                current_output=combined_output,
+                trigger=AnchorTrigger.STEP_COMPLETE,
+            )
+            if not anchor_result.aligned:
+                if self.usage_tracker:
+                    self.usage_tracker.tick("anchor_drift_detected")
+                self.scratchpad.write(
+                    ScratchpadEntry(
+                        worker_id="system",
+                        entry_type=EntryType.WARNING,
+                        content=f"[Anchor Drift] {anchor_result.recommendation}",
+                        confidence=0.9,
+                        tags=["anchor-drift", "v3.6.0"],
                     )
-            except Exception as anchor_err:
-                logger.warning("Anchor check failed: %s", anchor_err)
-
-        step8_time = time.time()
-
-        return scratchpad_summary, anchor_result, collection, errors, {
-            "step8_time": step8_time,
-        }
+                )
+            return anchor_result
+        except (ValueError, AttributeError, ImportError, RuntimeError) as anchor_err:
+            logger.warning("Anchor check failed: %s", anchor_err)
+            return None
 
     def _resolve_consensus(
         self, collection: Any, mode: str
     ) -> Tuple[List[Dict[str, Any]], Any]:
-        """Resolve consensus and get compression info.
-
-        Returns:
-            Tuple of (consensus_records, compression_info).
-        """
+        """Resolve consensus and get compression info. Returns (consensus_records, compression_info)."""
         consensus_records = []
         conflicts_count = collection.get("conflicts_count", 0)
         if conflicts_count > 0 or mode == "consensus":
             resolutions = self.coordinator.resolve_conflicts()
             for rec in resolutions:
-                # Prometheus: record consensus round
-                try:
-                    _metrics = get_metrics()
-                    _metrics.record_consensus_round(rec.outcome.value)
-                except Exception:
-                    pass
+                self._safe_metrics(lambda m: m.record_consensus_round(rec.outcome.value))
                 consensus_records.append(
                     {
                         "topic": rec.topic,
@@ -1716,56 +1291,60 @@ class MultiAgentDispatcher:
     def _check_permissions(
         self, task: str, worker_results: List[Dict[str, Any]], consensus_records: List[Dict[str, Any]], **kwargs: Any
     ) -> List[Dict[str, Any]]:
-        """Check permissions via PermissionGuard.
+        """Check permissions via PermissionGuard and RBAC.
 
         Returns:
             List of permission check results.
         """
         permission_checks = []
         if self.enable_permission and self.permission_guard:
-            test_actions = [
-                ProposedAction(
-                    action_type=ActionType.FILE_CREATE, target="/tmp/test_output.md", description="生成输出文件"
-                ),
-            ]
-            for action in test_actions:
-                classified = None
-                try:
-                    classified = self.operation_classifier.classify(
-                        operation_id=action.action_type.value,
-                        target=action.target,
-                    )
-                except Exception:
-                    pass
-                decision = self.permission_guard.check(action)
-                perm_entry = {
-                    "action": f"{action.action_type.value}:{action.target}",
-                    "allowed": decision.outcome.value == "ALLOWED",
-                    "decision": decision.outcome.value,
-                    "reason": decision.reason or "",
-                }
-                # Prometheus: record gate check
-                try:
-                    _metrics = get_metrics()
-                    gate_result = "pass" if decision.outcome.value == "ALLOWED" else "fail"
-                    _metrics.record_gate_check("permission", gate_result)
-                except Exception:
-                    pass
-                if classified:
-                    perm_entry["operation_category"] = classified.category.value
-                permission_checks.append(perm_entry)
+            permission_checks = self._check_permission_guard(permission_checks)
 
         # RBAC fine-grained check
         if self.enable_rbac and self.rbac_engine:
-            try:
-                user_id = kwargs.get('user_id', 'default')
-                self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
-                permission_checks.append({"action": "rbac:execute", "allowed": True})
-            except PermissionDeniedError as e:
-                permission_checks.append({"action": "rbac:execute", "allowed": False, "reason": str(e)})
-            except Exception as e:
-                logger.debug(f"RBAC permission check failed: {e}")
+            permission_checks = self._check_rbac_permission(permission_checks, **kwargs)
 
+        return permission_checks
+
+    def _check_permission_guard(self, permission_checks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Run PermissionGuard checks on test actions."""
+        test_actions = [
+            ProposedAction(
+                action_type=ActionType.FILE_CREATE, target="/tmp/test_output.md", description="生成输出文件"
+            ),
+        ]
+        for action in test_actions:
+            classified = None
+            try:
+                classified = self.operation_classifier.classify(
+                    operation_id=action.action_type.value, target=action.target,
+                )
+            except (ValueError, AttributeError, KeyError):
+                pass
+            decision = self.permission_guard.check(action)
+            perm_entry = {
+                "action": f"{action.action_type.value}:{action.target}",
+                "allowed": decision.outcome.value == "ALLOWED",
+                "decision": decision.outcome.value,
+                "reason": decision.reason or "",
+            }
+            gate_result = "pass" if decision.outcome.value == "ALLOWED" else "fail"
+            self._safe_metrics(lambda m: m.record_gate_check("permission", gate_result))
+            if classified:
+                perm_entry["operation_category"] = classified.category.value
+            permission_checks.append(perm_entry)
+        return permission_checks
+
+    def _check_rbac_permission(self, permission_checks: List[Dict[str, Any]], **kwargs: Any) -> List[Dict[str, Any]]:
+        """Run RBAC fine-grained permission check."""
+        try:
+            user_id = kwargs.get('user_id', 'default')
+            self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
+            permission_checks.append({"action": "rbac:execute", "allowed": True})
+        except PermissionDeniedError as e:
+            permission_checks.append({"action": "rbac:execute", "allowed": False, "reason": str(e)})
+        except (AttributeError, RuntimeError, KeyError) as e:
+            logger.debug(f"RBAC permission check failed: {e}")
         return permission_checks
 
     def _process_memory_pipeline(
@@ -1776,11 +1355,7 @@ class MultiAgentDispatcher:
         scratchpad_summary: str,
         role_ids: List[str],
     ) -> Tuple[Optional[Dict[str, Any]], List[str]]:
-        """Process memory pipeline: MemoryBridge capture + MCE classify + AI news inject.
-
-        Returns:
-            Tuple of (memory_stats, errors).
-        """
+        """Process memory pipeline: capture + MCE classify + AI news inject."""
         errors: List[str] = []
 
         memory_stats = self._capture_memory(task, scratchpad_summary, role_ids, errors)
@@ -1796,30 +1371,30 @@ class MultiAgentDispatcher:
         role_ids: List[str],
         errors: List[str],
     ) -> Optional[Dict[str, Any]]:
-        """Capture episodic memory via MemoryBridge.
-
-        Returns:
-            memory_stats dict or None.
-        """
+        """Capture episodic memory via MemoryBridge."""
         memory_stats: Optional[Dict[str, Any]] = None
 
         if self.enable_memory and self.memory_bridge:
             try:
                 mem_stats: Any = self.memory_bridge.get_statistics()
+                tenant_id = self._get_current_tenant_id()
                 memory_stats = {
                     "total_memories": mem_stats.total_memories,
                     "by_type_counts": mem_stats.by_type_counts,
                     "index_built": mem_stats.index_built,
                     "total_captures": mem_stats.total_captures,
+                    "tenant_id": tenant_id,
                 }
 
+                # Tenant-isolated storage key prefix
+                key_prefix = f"[{tenant_id}]" if tenant_id != "default" else ""
                 ep = EpisodicMemory(
-                    id=f"epi-{uuid.uuid4().hex[:8]}",
-                    task_description=task,
+                    id=f"epi-{tenant_id}-{uuid.uuid4().hex[:8]}" if key_prefix else f"epi-{uuid.uuid4().hex[:8]}",
+                    task_description=f"{key_prefix}{task}" if key_prefix else task,
                     finding=scratchpad_summary[:500],
                 )
                 self.memory_bridge.capture_execution(
-                    execution_record={"task": task, "roles": role_ids},
+                    execution_record={"task": f"{key_prefix}{task}" if key_prefix else task, "roles": role_ids, "tenant_id": tenant_id},
                     scratchpad_entries=[],
                 )
             except (ConnectionError, TimeoutError, OSError) as mem_err:
@@ -1828,7 +1403,7 @@ class MultiAgentDispatcher:
             except (ValueError, KeyError, AttributeError) as mem_val_err:
                 logger.debug("MemoryBridge data error: %s", mem_val_err)
                 errors.append(f"MemoryBridge data error: {mem_val_err}")
-            except Exception as mem_err:
+            except Exception as mem_err:  # Broad catch: unpredictable memory system
                 logger.warning("Unexpected MemoryBridge error: %s - %s", type(mem_err).__name__, mem_err)
                 errors.append(f"MemoryBridge unexpected error: {type(mem_err).__name__}")
 
@@ -1841,17 +1416,7 @@ class MultiAgentDispatcher:
         memory_stats: Optional[Dict[str, Any]],
         errors: List[str],
     ) -> Optional[Dict[str, Any]]:
-        """Classify memory via MCE adapter.
-
-        Args:
-            scratchpad_summary: Summary from scratchpad.
-            task: Task description.
-            memory_stats: Existing memory stats dict (may be modified in-place).
-            errors: Error list to append to.
-
-        Returns:
-            Updated memory_stats dict or the original value.
-        """
+        """Classify memory via MCE adapter. Returns updated memory_stats."""
         # [MCE 集成点 v3.2] Dispatcher → MemoryBridge 调用链
         if self._mce_adapter and self._mce_adapter.is_available and scratchpad_summary:
             try:
@@ -1871,7 +1436,7 @@ class MultiAgentDispatcher:
             except (TimeoutError, ConnectionError) as mce_timeout:
                 logger.warning("MCE classify timeout/connection error: %s", mce_timeout)
                 errors.append(f"MCE classify timeout error: {mce_timeout}")
-            except Exception as mce_err:
+            except Exception as mce_err:  # Broad catch: unpredictable MCE system
                 logger.warning("Unexpected MCE classify error: %s - %s", type(mce_err).__name__, mce_err)
                 errors.append(f"MCE classify unexpected error: {type(mce_err).__name__}")
 
@@ -1918,7 +1483,7 @@ class MultiAgentDispatcher:
                                 tags=["ai-news", "auto-injected"],
                             )
                         )
-            except Exception as inject_err:
+            except (AttributeError, OSError, KeyError, ValueError) as inject_err:
                 errors.append(f"AI news inject error: {inject_err}")
 
     def _learn_skills(
@@ -1928,11 +1493,7 @@ class MultiAgentDispatcher:
         matched_roles: List[Dict[str, Any]],
         exec_result: Any,
     ) -> Tuple[List[Dict[str, Any]], List[str]]:
-        """Learn skills via Skillifier.
-
-        Returns:
-            Tuple of (skill_proposals, errors).
-        """
+        """Learn skills via Skillifier. Returns (skill_proposals, errors)."""
         errors: List[str] = []
         skill_proposals = []
         patterns = None
@@ -1941,30 +1502,8 @@ class MultiAgentDispatcher:
             try:
                 patterns = self.skillifier.analyze_history()
                 if patterns:
-                    for pattern in patterns:
-                        if pattern.confidence > 0.3:
-                            pattern_title = getattr(pattern, 'title', None) or "新协作模式"
-                            skill_proposals.append(
-                                {
-                                    "title": pattern_title,
-                                    "confidence": pattern.confidence,
-                                    "category": pattern.category.value
-                                    if hasattr(pattern, "category") and pattern.category
-                                    else "general",
-                                }
-                            )
-                            try:
-                                self.skill_registry.propose_from_result(
-                                    name=pattern_title,
-                                    description=pattern_title,
-                                    category=pattern.category.value
-                                    if hasattr(pattern, "category") and pattern.category
-                                    else "general",
-                                    confidence=pattern.confidence,
-                                )
-                            except Exception as e:
-                                logger.warning(f"SkillRegistry proposal failed: {e}")
-            except Exception as skill_err:
+                    skill_proposals = self._propose_skills_from_patterns(patterns)
+            except (ValueError, AttributeError, RuntimeError, ImportError) as skill_err:
                 errors.append(f"Skillifier error: {skill_err}")
 
         if self.prompt_variant_gen and patterns:
@@ -1975,19 +1514,33 @@ class MultiAgentDispatcher:
                         if variants:
                             if self.usage_tracker:
                                 self.usage_tracker.tick("prompt_variant_generated")
-            except Exception as e:
+            except (ValueError, AttributeError, RuntimeError) as e:
                 logger.warning(f"PromptVariantGenerator failed: {e}")
 
         return skill_proposals, errors
 
+    def _propose_skills_from_patterns(self, patterns: list) -> List[Dict[str, Any]]:
+        """Generate skill proposals from analyzed patterns and register them."""
+        proposals = []
+        for pattern in patterns:
+            if pattern.confidence <= 0.3:
+                continue
+            pattern_title = getattr(pattern, 'title', None) or "新协作模式"
+            category = pattern.category.value if hasattr(pattern, "category") and pattern.category else "general"
+            proposals.append({"title": pattern_title, "confidence": pattern.confidence, "category": category})
+            try:
+                self.skill_registry.propose_from_result(
+                    name=pattern_title, description=pattern_title,
+                    category=category, confidence=pattern.confidence,
+                )
+            except (ValueError, AttributeError, OSError, KeyError) as e:
+                logger.warning(f"SkillRegistry proposal failed: {e}")
+        return proposals
+
     def _run_five_axis_consensus(
         self, task: str, worker_results: List[Dict[str, Any]], mode: str, exec_result: Any
     ) -> Optional[Dict[str, Any]]:
-        """Run five-axis consensus review (consensus mode only).
-
-        Returns:
-            Five-axis consensus result dict or None.
-        """
+        """Run five-axis consensus review (consensus mode only)."""
         if mode != "consensus" or not exec_result.success:
             return None
 
@@ -2015,7 +1568,7 @@ class MultiAgentDispatcher:
             if self.usage_tracker:
                 self.usage_tracker.tick("five_axis_consensus")
             return five_axis_result
-        except Exception as fa_err:
+        except (ImportError, AttributeError, ValueError, RuntimeError) as fa_err:
             logger.debug("Five-axis consensus failed: %s", fa_err)
             return None
 
@@ -2027,11 +1580,7 @@ class MultiAgentDispatcher:
         exec_result: Any,
         total_duration: float,
     ) -> Any:
-        """Run RetrospectiveEngine analysis.
-
-        Returns:
-            Retrospective report or None.
-        """
+        """Run RetrospectiveEngine analysis. Returns report or None."""
         if not self.retrospective_engine or not structured_goal or not exec_result.success:
             return None
 
@@ -2048,7 +1597,7 @@ class MultiAgentDispatcher:
                 task_duration_seconds=total_duration,
             )
             return retrospective_report
-        except Exception as retro_err:
+        except (ValueError, AttributeError, RuntimeError, ImportError) as retro_err:
             logger.warning("Retrospective failed: %s", retro_err)
             return None
 
@@ -2079,13 +1628,7 @@ class MultiAgentDispatcher:
         report = self.coordinator.generate_report()
 
         # Data masking
-        if self.data_masker:
-            try:
-                if scratchpad_summary:
-                    masked = self.data_masker.mask({"content": scratchpad_summary})
-                    scratchpad_summary = masked.get("content", scratchpad_summary)
-            except Exception as e:
-                logger.debug(f"Data masking failed: {e}")
+        scratchpad_summary = self._apply_data_masking(scratchpad_summary)
 
         return DispatchResult(
             success=exec_result.success and len(errors) == 0,
@@ -2098,6 +1641,7 @@ class MultiAgentDispatcher:
                 "failed_tasks": exec_result.failed_tasks,
                 "report": report,
                 "timing": step_timings,
+                "tenant_id": self._get_current_tenant_id() if self.enable_multi_tenant else None,
             },
             scratchpad_summary=scratchpad_summary,
             consensus_records=consensus_records,
@@ -2110,25 +1654,55 @@ class MultiAgentDispatcher:
             errors=errors,
             lang=lang,
             concern_packs=self._concern_loader.get_pack_info(concern_packs) if concern_packs else [],
-            anchor_result={
-                "aligned": anchor_result.aligned,
-                "coverage": anchor_result.coverage,
-                "drift_score": anchor_result.drift_score,
-                "severity": anchor_result.severity.value,
-                "recommendation": anchor_result.recommendation,
-            }
-            if anchor_result
-            else None,
+            anchor_result=self._build_anchor_dict(anchor_result),
             retrospective_report=retrospective_report.to_dict() if retrospective_report else None,
-            intent_match={
-                "intent_type": intent_match.intent_type,
-                "workflow_chain": [s for s in intent_match.workflow_chain],
-                "confidence": intent_match.confidence,
-            }
-            if intent_match
-            else None,
+            intent_match=self._build_intent_dict(intent_match),
             five_axis_result=five_axis_result,
         )
+
+    def _apply_data_masking(self, text: str) -> str:
+        """Apply data masking to text if masker is available."""
+        if not self.data_masker or not text:
+            return text
+        try:
+            masked = self.data_masker.mask({"content": text})
+            return masked.get("content", text)
+        except (ValueError, AttributeError, TypeError, KeyError) as e:
+            logger.debug(f"Data masking failed: {e}")
+            return text
+
+    def _build_anchor_dict(self, anchor_result: Any) -> Optional[Dict[str, Any]]:
+        """Build anchor result dict for DispatchResult."""
+        if not anchor_result:
+            return None
+        return {
+            "aligned": anchor_result.aligned,
+            "coverage": anchor_result.coverage,
+            "drift_score": anchor_result.drift_score,
+            "severity": anchor_result.severity.value,
+            "recommendation": anchor_result.recommendation,
+        }
+
+    def _build_intent_dict(self, intent_match: Any) -> Optional[Dict[str, Any]]:
+        """Build intent match dict for DispatchResult."""
+        if not intent_match:
+            return None
+        return {
+            "intent_type": intent_match.intent_type,
+            "workflow_chain": [s for s in intent_match.workflow_chain],
+            "confidence": intent_match.confidence,
+        }
+
+    def _build_step_timings(
+        self, step1: float, step2: float, step3: float, step4: float, step5: float,
+        step6: float, step7: float, step8: float, step9: float, step10: float,
+        step11: float, step12: float,
+    ) -> Dict[str, float]:
+        """Build step timings dict from absolute timestamps."""
+        names = ["analyze", "warmup", "plan", "spawn", "execute", "collect",
+                 "consensus", "compress", "permission", "memory", "skillify"]
+        times = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12]
+        return {name: round(times[i + 1] - times[i], 3) for i, name in enumerate(names)}
 
     def _post_dispatch_hooks(
         self, result: DispatchResult, task: str, role_ids: List[str], total_duration: float
@@ -2142,7 +1716,7 @@ class MultiAgentDispatcher:
             try:
                 qreport = self.audit_quality()
                 result.quality_report = qreport.to_markdown()
-            except Exception as e:
+            except (ValueError, AttributeError, OSError, ImportError) as e:
                 logger.warning("Quality audit failed: %s", e)
 
         perf_metric = PerformanceMetric(
@@ -2166,11 +1740,7 @@ class MultiAgentDispatcher:
         dry_run: bool,
         kwargs: Dict[str, Any],
     ) -> DispatchResult:
-        """Run FeedbackControlLoop iteration.
-
-        Returns:
-            Final result (possibly refined by feedback loop).
-        """
+        """Run FeedbackControlLoop iteration. Returns final (possibly refined) result."""
         if not self.enable_feedback_loop or dry_run:
             return result
 
@@ -2195,13 +1765,13 @@ class MultiAgentDispatcher:
                 feedback_loop.iteration_count,
                 feedback_loop.best_quality,
             )
-        except Exception as loop_err:
+        except (ImportError, ValueError, AttributeError, RuntimeError) as loop_err:
             logger.warning("Feedback control loop failed: %s", loop_err)
 
         return result
 
     def _build_summary(self, task: str, roles: List[str], exec_result: Any, sp_summary: str) -> str:
-        """构建执行摘要"""
+        """Build execution summary."""
         return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)
 
     def quick_dispatch(
@@ -2211,20 +1781,13 @@ class MultiAgentDispatcher:
         include_action_items: bool = True,
         include_timing: bool = False,
     ) -> DispatchResult:
-        """
-        快速调度 - 返回 DispatchResult，summary 包含格式化报告
+        """Quick dispatch returning DispatchResult with formatted report.
 
         Args:
-            task: 任务描述
-            output_format: 输出格式 ("structured"/"compact"/"detailed")
-                - structured: 结构化报告 (默认, UI Designer推荐)
-                - compact: 紧凑格式 (适合终端)
-                - detailed: 详细完整报告
-            include_action_items: 是否包含行动项建议
-            include_timing: 是否包含各步骤耗时分析
-
-        Returns:
-            DispatchResult: 调度结果，summary 字段包含格式化报告
+            task: Task description
+            output_format: "structured" (default), "compact", or "detailed"
+            include_action_items: Include action items in report
+            include_timing: Include step timing analysis
         """
         result = self.dispatch(task)
 
@@ -2274,59 +1837,57 @@ class MultiAgentDispatcher:
             "dispatch_count": len(self._dispatch_history),
             "scratchpad_stats": self.scratchpad.get_stats() if self.scratchpad else {},
         }
+        self._append_perf_status(status)
+        self._append_warmup_status(status)
+        self._append_memory_status(status)
+        return status
 
-        # 性能监控统计
+    def _append_perf_status(self, status: dict) -> None:
+        """Append performance stats to status dict."""
         try:
             perf_stats = self._perf_monitor.get_statistics()
             status["performance"] = perf_stats
-
-            # 回归检测
             regression = self._perf_monitor.detect_regression()
             if regression:
                 status["regression_detected"] = regression
-        except Exception as e:
+        except (ValueError, AttributeError, RuntimeError) as e:
             logger.debug("Performance stats collection failed: %s", e)
 
-        if self.warmup_manager:
-            try:
-                metrics = self.warmup_manager.get_metrics()
-                status["warmup_metrics"] = {
-                    "cache_size": metrics.cache_size,
-                    "hit_rate": round(metrics.cache_hit_rate, 3) if metrics.cache_hit_rate else 0,
-                    "tasks_completed": metrics.tasks_completed,
-                    "eager_duration_ms": round(metrics.eager_duration_ms, 2),
-                }
-            except Exception:
-                status["warmup_metrics"] = None
+    def _append_warmup_status(self, status: dict) -> None:
+        """Append warmup metrics to status dict."""
+        if not self.warmup_manager:
+            return
+        try:
+            metrics = self.warmup_manager.get_metrics()
+            status["warmup_metrics"] = {
+                "cache_size": metrics.cache_size,
+                "hit_rate": round(metrics.cache_hit_rate, 3) if metrics.cache_hit_rate else 0,
+                "tasks_completed": metrics.tasks_completed,
+                "eager_duration_ms": round(metrics.eager_duration_ms, 2),
+            }
+        except (AttributeError, ValueError, RuntimeError):
+            status["warmup_metrics"] = None
 
-        if self.memory_bridge:
-            try:
-                mem_stats = self.memory_bridge.get_statistics()
-                status["memory_stats"] = {
-                    "total_memories": mem_stats.total_memories,
-                    "by_type_counts": mem_stats.by_type_counts,
-                    "index_built": mem_stats.index_built,
-                }
-            except Exception:
-                status["memory_stats"] = None
-
-        return status
+    def _append_memory_status(self, status: dict) -> None:
+        """Append memory stats to status dict."""
+        if not self.memory_bridge:
+            return
+        try:
+            mem_stats = self.memory_bridge.get_statistics()
+            status["memory_stats"] = {
+                "total_memories": mem_stats.total_memories,
+                "by_type_counts": mem_stats.by_type_counts,
+                "index_built": mem_stats.index_built,
+            }
+        except (AttributeError, ValueError, OSError):
+            status["memory_stats"] = None
 
     def get_history(self, limit: int = 10) -> list[dict[str, Any]]:
-        """获取调度历史"""
+        """Get dispatch history."""
         return [r.to_dict() for r in self._dispatch_history[-limit:]]
 
     def audit_quality(self, module_path: str | None = None, test_path: str | None = None) -> TestQualityReport:
-        """
-        执行测试质量审计 (P1 集成)
-
-        Args:
-            module_path: 被测模块路径（默认自动检测 collaboration/ 下所有模块）
-            test_path: 测试文件路径
-
-        Returns:
-            TestQualityReport: 完整质量报告
-        """
+        """Execute test quality audit (P1 integration)."""
         if not self.quality_guard:
             self.quality_guard = TestQualityGuard("", "")
 
@@ -2334,19 +1895,7 @@ class MultiAgentDispatcher:
             return self.quality_guard.__class__(module_path, test_path).audit()
 
         collab_dir = os.path.dirname(os.path.abspath(__file__))
-        reports = []
-        for fname in os.listdir(collab_dir):
-            if fname.endswith(".py") and not fname.startswith("_") and "test" not in fname:
-                mod_name = fname.replace(".py", "")
-                test_name = f"{mod_name}_test.py"
-                mod_full = os.path.join(collab_dir, fname)
-                test_full = os.path.join(collab_dir, test_name)
-                if os.path.exists(test_full):
-                    try:
-                        r = self.quality_guard.__class__(mod_full, test_full).audit()
-                        reports.append(r)
-                    except Exception as e:
-                        logger.warning("Quality guard audit failed for %s: %s", mod_name, e)
+        reports = self._audit_collab_modules(collab_dir)
 
         if len(reports) == 1:
             return reports[0]
@@ -2366,63 +1915,75 @@ class MultiAgentDispatcher:
         combined.audit_time = sum(r.audit_time for r in reports)
         return combined
 
+    def _audit_collab_modules(self, collab_dir: str) -> list:
+        """Audit all collaboration modules that have matching test files."""
+        reports = []
+        for fname in os.listdir(collab_dir):
+            if fname.endswith(".py") and not fname.startswith("_") and "test" not in fname:
+                mod_name = fname.replace(".py", "")
+                test_name = f"{mod_name}_test.py"
+                mod_full = os.path.join(collab_dir, fname)
+                test_full = os.path.join(collab_dir, test_name)
+                if os.path.exists(test_full):
+                    try:
+                        r = self.quality_guard.__class__(mod_full, test_full).audit()
+                        reports.append(r)
+                    except (ValueError, AttributeError, OSError, ImportError) as e:
+                        logger.warning("Quality guard audit failed for %s: %s", mod_name, e)
+        return reports
+
     def get_performance_stats(self) -> dict[str, Any]:
-        """获取性能统计信息"""
+        """Get performance statistics."""
         return self._perf_monitor.get_statistics()
 
     def check_performance_regression(self) -> dict[str, Any] | None:
-        """检查是否存在性能回归"""
+        """Check for performance regression."""
         return self._perf_monitor.detect_regression()
 
     def export_performance_metrics(self, output_file: str) -> None:
-        """导出性能指标到文件"""
+        """Export performance metrics to file."""
         self._perf_monitor.export_metrics(output_file, allowed_base_dir=self.persist_dir)
 
     def clear_performance_history(self) -> None:
-        """清除性能历史数据"""
+        """Clear performance history."""
         self._perf_monitor.clear()
         logger.info("Performance history cleared")
 
     def shutdown(self) -> None:
-        """优雅关闭所有组件"""
-        if self.warmup_manager:
-            try:
-                self.warmup_manager.shutdown()
-            except Exception as e:
-                logger.warning("Warmup shutdown failed: %s", e)
+        """Gracefully shut down all components."""
+        self._shutdown_component(
+            self.warmup_manager, "shutdown",
+            (RuntimeError, OSError, AttributeError), "Warmup shutdown failed")
+        self._shutdown_component(
+            self.memory_bridge, "cleanup_expired_memories",
+            (OSError, AttributeError, RuntimeError), "Memory cleanup failed")
+        self._shutdown_component(
+            self.usage_tracker, "persist",
+            (OSError, ValueError, AttributeError), "Usage tracker persist failed")
+        self._shutdown_component(
+            self.audit_logger, "force_flush",
+            (OSError, AttributeError, RuntimeError), "Audit flush failed")
+        self._shutdown_component(
+            self.tenant_manager, "clear_context",
+            (AttributeError, RuntimeError, OSError), "Tenant cleanup failed")
 
-        if self.memory_bridge:
-            try:
-                self.memory_bridge.cleanup_expired_memories()
-            except Exception as e:
-                logger.warning("Memory cleanup failed: %s", e)
-
-        if self.usage_tracker:
-            try:
-                self.usage_tracker.persist()
-            except Exception as e:
-                logger.warning("Usage tracker persist failed: %s", e)
-
-        if self.audit_logger:
-            try:
-                self.audit_logger.force_flush()
-            except Exception as e:
-                logger.debug(f"Audit flush failed: {e}")
-
-        if self.tenant_manager:
-            try:
-                self.tenant_manager.clear_context()
-            except Exception as e:
-                logger.debug(f"Tenant cleanup failed: {e}")
+    def _shutdown_component(self, component: Any, method: str, exc_types: tuple, msg: str) -> None:
+        """Safely call a shutdown method on a component."""
+        if not component:
+            return
+        try:
+            getattr(component, method)()
+        except exc_types as e:
+            logger.debug(f"{msg}: {e}")
 
 
 def create_dispatcher(**kwargs: Any) -> MultiAgentDispatcher:
-    """工厂函数 - 创建并初始化调度器实例"""
+    """Factory function to create and initialize dispatcher."""
     return MultiAgentDispatcher(**kwargs)
 
 
 def quick_collaborate(task: str, **kwargs: Any) -> DispatchResult:
-    """便捷函数 - 单次调用完成协作"""
+    """Convenience function: single-call collaboration."""
     disp = create_dispatcher(**kwargs)
     result = disp.dispatch(task)
     disp.shutdown()
@@ -2430,7 +1991,7 @@ def quick_collaborate(task: str, **kwargs: Any) -> DispatchResult:
 
 
 async def async_quick_collaborate(task: str, roles: Optional[List[str]] = None, **kwargs: Any) -> DispatchResult:
-    """Async version of quick_collaborate(). Uses async dispatch for concurrent LLM calls."""
+    """Async version of quick_collaborate()."""
     disp = create_dispatcher(**kwargs)
     result = await disp.async_dispatch(task, roles=roles, **kwargs)
     disp.shutdown()

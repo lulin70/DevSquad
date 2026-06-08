@@ -168,7 +168,7 @@ class MCEAdapter:
                     self._status.available = False
                     self._status.init_error = f"{type(e).__name__}: {e}"
                     self._adapter_type = "none"
-            except Exception as e:
+            except Exception as e:  # Broad catch: unpredictable external library init
                 import logging
 
                 logging.getLogger(__name__).warning(f"Unexpected error in MCEAdapter init: {type(e).__name__}: {e}")
@@ -212,7 +212,7 @@ class MCEAdapter:
                 self._status.classify_count += 1
                 return result
 
-            except Exception as e:
+            except Exception as e:  # Broad catch: unpredictable external library call
                 logger.debug("MCE classify failed: %s", e)
                 self._status.classify_fail_count += 1
                 return None
@@ -231,7 +231,7 @@ class MCEAdapter:
                     return False
                 result = self._carrymem.classify_and_remember(message, context=context)
                 return result.get("stored", False)
-            except Exception as e:
+            except Exception as e:  # Broad catch: unpredictable external library call
                 logger.debug("MCE store_memory failed: %s", e)
                 return False
 
@@ -252,7 +252,7 @@ class MCEAdapter:
                     limit=limit,
                 )
                 return results if isinstance(results, list) else []
-            except Exception as e:
+            except Exception as e:  # Broad catch: unpredictable external library call
                 logger.debug("MCE retrieve_memories failed: %s", e)
                 return []
 
@@ -262,7 +262,7 @@ class MCEAdapter:
                 return None
             try:
                 return self._carrymem.whoami()
-            except Exception:
+            except Exception:  # Broad catch: unpredictable external library call
                 return None
 
     def check_conflicts(self) -> list[dict]:
@@ -271,7 +271,7 @@ class MCEAdapter:
                 return []
             try:
                 return self._carrymem.check_conflicts()
-            except Exception:
+            except Exception:  # Broad catch: unpredictable external library call
                 return []
 
     def shutdown(self):
@@ -279,7 +279,7 @@ class MCEAdapter:
             if self._carrymem and hasattr(self._carrymem, "close"):
                 try:
                     self._carrymem.close()
-                except Exception:
+                except Exception:  # Broad catch: unpredictable external library call
                     pass
             self._carrymem = None
             self._status.available = False
@@ -301,7 +301,7 @@ class MCEAdapter:
             try:
                 if hasattr(self._carrymem, "get_stats"):
                     return self._carrymem.get_stats()
-            except Exception:
+            except Exception:  # Broad catch: unpredictable external library call
                 pass
             return {
                 "total_users": 0,
@@ -351,7 +351,7 @@ class MCEAdapter:
                 if isinstance(result, list):
                     return self._normalize_matched_rules(result)
                 return []
-            except Exception as e:
+            except Exception as e:  # Broad catch: unpredictable external library call
                 logger.warning("CarryMem match_rules failed: %s", e)
                 return self._keyword_fallback_match(task_description, safe_user_id, role, max_rules)
 
@@ -378,7 +378,7 @@ class MCEAdapter:
                 if hasattr(self._carrymem, "format_rules_as_prompt"):
                     return self._carrymem.format_rules_as_prompt(rules)
                 return self._format_rules_fallback(rules)
-            except Exception as e:
+            except Exception as e:  # Broad catch: unpredictable external library call
                 logger.warning("CarryMem format_rules_as_prompt failed: %s", e)
                 return self._format_rules_fallback(rules)
 
@@ -403,7 +403,7 @@ class MCEAdapter:
                             rule_type=rule_type,
                             confidence=confidence,
                         )
-                except Exception as e:
+                except Exception as e:  # Broad catch: unpredictable external library call
                     logger.warning("CarryMem add_rule failed: %s", e)
 
         logger.info("CarryMem add_rule unavailable, storing locally")
@@ -421,7 +421,7 @@ class MCEAdapter:
             result = storage.store(rule)
             if result.success:
                 return {"rule_id": result.rule_id, "storage": "local_fallback", "type": rule_type, "success": True}
-        except Exception as e:
+        except (ImportError, AttributeError, OSError, ValueError) as e:
             logger.error("Local fallback store failed: %s", e)
         return {
             "rule_id": f"RULE-LOCAL-{uuid.uuid4().hex[:12]}",
@@ -436,7 +436,7 @@ class MCEAdapter:
         """Keyword-based rule matching fallback when CarryMem is unavailable."""
         try:
             all_rules = self._get_all_rules_raw(user_id, role)
-        except Exception:
+        except (AttributeError, KeyError, ValueError):
             return []
 
         if not all_rules:
@@ -475,7 +475,7 @@ class MCEAdapter:
                 if not isinstance(rules_str, list):
                     return []
                 return [self._parse_rule_string(r) for r in rules_str if isinstance(r, str)]
-            except Exception:
+            except Exception:  # Broad catch: unpredictable external library call
                 return []
 
     @staticmethod

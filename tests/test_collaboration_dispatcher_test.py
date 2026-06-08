@@ -287,7 +287,7 @@ class TestT4_ComponentIntegration:
         disp.shutdown()
 
     def test_06_permission_disabled(self, tmp_dir):
-        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_permission=False)
+        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_permission=False, enable_rbac=False, enable_audit=False, enable_data_masking=False, enable_multi_tenant=False)
         result = disp.dispatch("无权限任务")
         assert len(result.permission_checks) == 0
         disp.shutdown()
@@ -351,7 +351,7 @@ class TestT5_StatusAndHistory:
 
     def test_01_get_status_basic(self, dispatcher):
         status = dispatcher.get_status()
-        assert status["version"] == "3.6.7"
+        assert status["version"] == "3.6.8"
         assert "components" in status
         assert "dispatch_count" in status
 

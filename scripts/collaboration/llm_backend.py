@@ -165,7 +165,7 @@ class OpenAIBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, True)
-                except Exception:
+                except Exception:  # Broad catch: optional metrics
                     pass
                 return response.choices[0].message.content or ""
             except Exception as e:
@@ -175,7 +175,7 @@ class OpenAIBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, False)
-                except Exception:
+                except Exception:  # Broad catch: optional metrics
                     pass
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2**attempt)
@@ -199,7 +199,7 @@ class OpenAIBackend(LLMBackend):
         try:
             self._get_client()
             return True
-        except Exception:
+        except Exception:  # Broad catch: health check
             return False
 
 
@@ -259,7 +259,7 @@ class AnthropicBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, True)
-                except Exception:
+                except Exception:  # Broad catch: optional metrics
                     pass
                 return response.content[0].text if response.content else ""
             except Exception as e:
@@ -269,7 +269,7 @@ class AnthropicBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, False)
-                except Exception:
+                except Exception:  # Broad catch: optional metrics
                     pass
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2**attempt)
@@ -289,7 +289,7 @@ class AnthropicBackend(LLMBackend):
         try:
             self._get_client()
             return True
-        except Exception:
+        except Exception:  # Broad catch: health check
             return False
 
 
@@ -361,10 +361,10 @@ class FallbackBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, True)
-                except Exception:
+                except Exception:  # Broad catch: optional metrics
                     pass
                 return result
-            except Exception as e:
+            except Exception as e:  # Broad catch: LLM API call can fail in many ways
                 last_error = e
                 _llm_duration = time.time() - _llm_start if '_llm_start' in dir() else 0
                 self._mark_failed(backend_repr)
@@ -377,7 +377,7 @@ class FallbackBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, False)
-                except Exception:
+                except Exception:  # Broad catch: optional metrics
                     pass
 
         raise last_error or RuntimeError("All backends failed with no specific error")

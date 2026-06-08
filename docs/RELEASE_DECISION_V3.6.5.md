@@ -1,5 +1,7 @@
 # DevSquad V3.6.6 Release Decision Report
 
+> ⚠️ Note: The "97% maturity" claim in this document has been re-evaluated. See docs/MATURITY_ASSESSMENT.md for the current honest assessment (65%).
+
 > **生成时间**: 2026-05-20T16:00:00+08:00  
 > **评估类型**: 最终发布就绪评估（7维度代码走读 + 全量测试 + 成熟度分析）  
 > **目标版本**: V3.6.6 (Enterprise Edition)  

@@ -38,7 +38,7 @@ RELEASE_BODY=$(cat << 'ENDOFBODY'
 ## 🚀 DevSquad V3.6.6 - Documentation Experience + E2E Testing
 
 > **Release Date**: 2026-05-27
-> **Maturity Level**: 97% Enterprise Grade
+> **Maturity Level**: 65% Maturity
 > **PyPI**: https://pypi.org/project/devsquad/3.6.6/
 
 ### ✨ What's New
@@ -62,7 +62,7 @@ RELEASE_BODY=$(cat << 'ENDOFBODY'
 - Unit Tests: 1770+ passed (96.3%)
 - E2E Tests: 16/16 passed (100%) ✅
 - Code Review: 8.2/10 score (7-dimension) ✅
-- Maturity: 97% Enterprise Grade 🏆
+- Maturity: 65% Maturity 🏆
 
 ### 📦 Installation
 ```bash

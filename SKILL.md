@@ -9,7 +9,7 @@ description: |
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   NEW in V3.6.7: Redis Cache L2 Backend (memory→disk→Redis three-tier),
   Async Dispatch (asyncio.gather concurrent LLM calls), Dispatcher Refactor (788→18 step methods),
-  DispatchResult Bug Fix (5 missing fields), 1855+ tests passing, 97% Enterprise Grade maturity.
+  DispatchResult Bug Fix (5 missing fields), 1989+ tests passing, 65% maturity (honest assessment).
 ---
 
 # DevSquad V3.6.7 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -915,7 +915,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 - **v3.6.7** (2026-06-07): Redis Cache L2 Backend + Async Dispatch (asyncio.gather) + Dispatcher Refactor (788→18 step methods) + DispatchResult Bug Fix (5 missing fields) + 1855+ tests passing
 - **v3.6.6** (2026-06-02): Three-Layer Funnel Documentation + Framework Comparison (COMPARISON.md) + User Journey E2E Testing (16 tests, 100% pass) + InputValidator (40 detection patterns) + Security Fix (removed hardcoded token) + 1672+ tests passing
-- **v3.6.5** (2026-05-28): RBAC Engine (Preview) + Audit Logger (Preview) + Multi-Tenancy Manager (Preview) + Sensitive Data Masker (Preview) + AsyncIO Transformation (2x throughput) + Redis Cache Integration (95%+ hit rate) + Prometheus Monitoring (12 metrics) + E2E Test Suite (27 cases, 100% pass) + 97% Enterprise Grade maturity
+- **v3.6.5** (2026-05-28): RBAC Engine (Preview) + Audit Logger (Preview) + Multi-Tenancy Manager (Preview) + Sensitive Data Masker (Preview) + AsyncIO Transformation (2x throughput) + Redis Cache Integration (95%+ hit rate) + Prometheus Monitoring (12 metrics) + E2E Test Suite (27 cases, 100% pass) + 65% maturity (honest assessment)
 - **v3.4.2** (2026-05-03): P1 Enhancement Complete - RoleTemplateMarket V2(27 tests) + OperationClassifier(29 tests) + OutputSlicer(26 tests) + FiveAxisConsensusEngine(29 tests) + CIFeedbackAdapter(22 tests) + 166 new tests + 53 core modules
 - **v3.4.1** (2026-05-03): Agent Skills Quality Framework (P0) - AntiRationalizationEngine(39 tests) + VerificationGate(42 tests) + IntentWorkflowMapper(58 tests) + CLI Lifecycle Commands(28 tests) + 167 new tests + Google Agent Skills integration + 49 core modules
 - **v3.5.0** (2026-05-02): 11-Phase Project Lifecycle (full/backend/frontend/internal_tool/minimal templates) + requirement change management + gate mechanism with gap reporting + WorkflowEngine lifecycle support + Natural Language Rule Collection (RuleCollector) + 748+ tests passing

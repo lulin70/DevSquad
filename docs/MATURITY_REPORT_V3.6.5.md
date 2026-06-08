@@ -1,5 +1,7 @@
 # DevSquad V3.6.6 项目整理评估报告
 
+> ⚠️ Note: The "97% maturity" claim in this document has been re-evaluated. See docs/MATURITY_ASSESSMENT.md for the current honest assessment (65%).
+
 > **生成时间**: 2026-05-20T23:30:00+08:00  
 > **评估类型**: 全面项目整理评估（7维度代码走读 + 文档更新 + 回归测试 + 目录清理）  
 > **目标版本**: V3.6.6 (Enterprise Edition)  

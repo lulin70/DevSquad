@@ -1047,7 +1047,7 @@ class MemoryWriter:
                 if self.indexer:
                     self.indexer.add_to_index(item)
                 success += 1
-            except Exception:
+            except (OSError, ValueError, AttributeError, KeyError):
                 pass
         return success
 
@@ -1187,7 +1187,7 @@ class MemoryBridge:
             self._claw_source = WorkBuddyClawSource()
             if self._claw_source.is_available:
                 self._claw_enabled = True
-        except Exception:
+        except (OSError, AttributeError):
             pass
 
     def recall(self, query: MemoryQuery) -> MemoryRecallResult:
@@ -1229,14 +1229,14 @@ class MemoryBridge:
                     mapped_type = type_mapping.get(mce_result.memory_type.lower())
                     if mapped_type:
                         effective_type_filter = mapped_type
-            except Exception:
+            except (ValueError, AttributeError, RuntimeError):
                 pass
 
         claw_items: list[MemoryItem] = []
         if self._claw_enabled and self._claw_source:
             try:
                 claw_items = self._claw_source.search_by_index(query.query_text, limit=query.limit // 2)
-            except Exception:
+            except (OSError, AttributeError, ValueError):
                 pass
 
         search_results = self.indexer.search(
@@ -1326,7 +1326,7 @@ class MemoryBridge:
                                 "fact": "KNOWLEDGE",
                             }
                             mce_memory_type = type_hint_map.get(mce_result.memory_type.lower())
-                except Exception:
+                except (ValueError, AttributeError, RuntimeError):
                     pass
 
             tags = self._extract_tags(task_desc + " " + content)
@@ -1480,7 +1480,7 @@ class MemoryBridge:
                 raw = self.store.list_all(mtype)
                 type_counts[mtype.value] = len(raw)
                 all_items.extend(raw)
-            except Exception:
+            except (OSError, ValueError, AttributeError):
                 type_counts[mtype.value] = 0
         stats.by_type_counts = type_counts
         stats.total_memories = sum(type_counts.values())
@@ -1501,7 +1501,7 @@ class MemoryBridge:
                     else 0
                 )
                 stats.claw_item_count = core_count + daily_count
-            except Exception:
+            except (OSError, AttributeError):
                 stats.claw_item_count = 0
         else:
             stats.claw_item_count = 0
@@ -1528,7 +1528,7 @@ class MemoryBridge:
             return []
         try:
             return self._claw_source.get_latest_ai_news(days)
-        except Exception:
+        except (OSError, AttributeError, ValueError):
             return []
 
     def rebuild_index(self) -> None:
@@ -1540,9 +1540,9 @@ class MemoryBridge:
                     try:
                         item = MemoryItem.from_dict(r)
                         all_items.append(item)
-                    except Exception:
+                    except (ValueError, KeyError, AttributeError):
                         continue
-            except Exception:
+            except (OSError, ValueError, AttributeError):
                 continue
         self.indexer.build_index(all_items)
 
@@ -1607,7 +1607,7 @@ class MemoryBridge:
                     if mid:
                         self.store.save(MemoryType.EPISODIC, r)
                         compressed += 1
-        except Exception:
+        except (OSError, ValueError, AttributeError):
             pass
         return compressed
 
@@ -1631,7 +1631,7 @@ class MemoryBridge:
                             removed += 1
                             if self.indexer:
                                 self.indexer.remove_from_index(mid)
-            except Exception:
+            except (OSError, ValueError, AttributeError):
                 continue
         return removed
 
@@ -1677,5 +1677,5 @@ class MemoryBridge:
         if self._mce_adapter:
             try:
                 self._mce_adapter.shutdown()
-            except Exception:
+            except (AttributeError, RuntimeError, OSError):
                 pass

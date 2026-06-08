@@ -1,5 +1,7 @@
 # DevSquad V3.7-V4.0 发展路线图
 
+> ⚠️ Note: The "97% maturity" claim in this document has been re-evaluated. See docs/MATURITY_ASSESSMENT.md for the current honest assessment (65%).
+
 > **文档类型**: 战略规划文档 (Strategic Roadmap)
 > **版本**: V1.0.0
 > **基于版本**: DevSquad V3.6.1 (94% Production-Ready)
