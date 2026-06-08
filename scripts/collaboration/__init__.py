@@ -72,6 +72,16 @@ from .feature_usage_tracker import FeatureUsageTracker
 from .feedback_control_loop import FeedbackControlLoop
 from .five_axis_consensus import FiveAxisConsensusEngine
 from .intent_workflow_mapper import IntentWorkflowMapper
+
+# Enterprise Feature exports
+from .rbac_engine import RBACEngine, Permission, PermissionDeniedError, RBACUser, UserRole
+from .audit_logger import AuditLogger, SensitiveDataMasker
+from .multi_tenant import MultiTenantManager, IsolationLevel, Tenant, TenantContext
+
+# Async Module exports
+from .async_llm_backend import AsyncLLMBackendFactory, AsyncOpenAIBackend, AsyncAnthropicBackend, AsyncFallbackBackend
+from .async_adapter import SyncToAsyncAdapter, AsyncToSyncAdapter, AutoBackendSelector
+from .llm_cache_async import AsyncLLMCache
 from .llm_cache import (
     CacheEntry,
     LLMCache,

@@ -34,6 +34,7 @@ import tempfile
 import threading
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -80,6 +81,16 @@ from .usage_tracker import track_usage
 from .user_friendly_error import make_user_friendly_error, translate_validation_result
 from .warmup_manager import WarmupConfig, WarmupManager
 from ._version import __version__
+
+# Enterprise feature imports
+from .rbac_engine import RBACEngine, Permission, PermissionDeniedError
+from .audit_logger import AuditLogger, SensitiveDataMasker
+from .multi_tenant import MultiTenantManager, IsolationLevel
+
+# Async module imports
+from .async_llm_backend import AsyncLLMBackendFactory
+from .async_adapter import SyncToAsyncAdapter, AutoBackendSelector
+from .llm_cache_async import AsyncLLMCache
 
 
 
@@ -145,6 +156,7 @@ class MultiAgentDispatcher:
         llm_backend: Any = None,
         stream: bool = False,
         lang: str = "auto",
+        **kwargs: Any,
     ) -> None:
         """Initialize the Multi-Agent Dispatcher.
 
@@ -205,6 +217,41 @@ class MultiAgentDispatcher:
 
         self._mce_adapter = mce_adapter
         self._init_components()
+
+        # Enterprise features (optional, disabled by default)
+        self.enable_rbac = kwargs.get('enable_rbac', False)
+        self.enable_audit = kwargs.get('enable_audit', False)
+        self.enable_data_masking = kwargs.get('enable_data_masking', False)
+        self.enable_multi_tenant = kwargs.get('enable_multi_tenant', False)
+
+        self.rbac_engine = None
+        self.audit_logger = None
+        self.data_masker = None
+        self.tenant_manager = None
+
+        if self.enable_rbac:
+            try:
+                self.rbac_engine = RBACEngine()
+                logger.info("RBAC Engine enabled")
+            except Exception as e:
+                logger.warning(f"RBAC Engine initialization failed: {e}")
+
+        if self.enable_audit:
+            try:
+                audit_dir = os.path.join(self.persist_dir, "audit") if self.persist_dir else ".devsquad_data/audit"
+                self.audit_logger = AuditLogger(log_dir=audit_dir)
+                if self.enable_data_masking:
+                    self.data_masker = SensitiveDataMasker()
+                logger.info(f"Audit Logger enabled (data_masking={self.enable_data_masking})")
+            except Exception as e:
+                logger.warning(f"Audit Logger initialization failed: {e}")
+
+        if self.enable_multi_tenant:
+            try:
+                self.tenant_manager = MultiTenantManager()
+                logger.info("Multi-Tenant Manager enabled")
+            except Exception as e:
+                logger.warning(f"Multi-Tenant Manager initialization failed: {e}")
 
     def _init_components(self) -> None:
         """初始化所有v3组件"""
@@ -457,166 +504,58 @@ class MultiAgentDispatcher:
         """
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
+        phase = "dispatch"
 
         # Prometheus: record dispatch start
         try:
             _metrics = get_metrics()
             _metrics.dispatch_counter.labels(mode=mode, role_count="0").inc()
-            _metrics.tasks_in_progress_gauge.labels(phase="dispatch").inc()
+            _metrics.tasks_in_progress_gauge.labels(phase=phase).inc()
         except Exception:
             pass
 
         if self.usage_tracker:
             self.usage_tracker.tick("dispatch")
 
-        errors = []
+        # Pre-dispatch steps (shared with async_dispatch)
+        pre_result = self._pre_dispatch_steps(task_description, roles, mode, dry_run, start_time, phase, **kwargs)
+        if pre_result.early_return:
+            # Prometheus: decrement on early return
+            try:
+                _metrics = get_metrics()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
+            except Exception:
+                pass
+            return pre_result.early_return
 
-        # Step 1: Resolve language
-        lang = self._resolve_language(self.lang)
-
-        # Step 2: Validate input
-        task_description, early_return = self._validate_input(task_description, roles, lang)
-        if early_return:
-            return early_return
-
-        # Step 3: Collect rules and inject CI context
-        task_description, rule_collection, early_return = self._collect_rules(task_description, lang)
-        if early_return:
-            return early_return
+        tenant_ctx = pre_result.tenant_ctx
 
         try:
-            step1_time = time.time()
-
-            # Step 4: Detect intent
-            intent_match = self._detect_intent(task_description, lang)
-
-            # Step 5: Match roles
-            matched_roles = self._match_roles(task_description, roles)
-
-            # Step 6: Validate roles and security (concern packs + dry_run)
-            role_ids, concern_packs, concern_enhancements, early_return = self._validate_roles_and_security(
-                task_description, matched_roles, lang, dry_run, start_time
-            )
-            if early_return:
-                return early_return
-
-            step2_time = time.time()
-
-            # Step 7: Prepare execution (warmup, prompts, plan, spawn, anchor, retrospective load)
-            plan, structured_goal, prep_timing = self._prepare_execution(
-                task_description, matched_roles, lang, intent_match, rule_collection, concern_enhancements
-            )
-            step3_time = prep_timing["step3_time"]
-            step4_time = prep_timing["step4_time"]
-            step5_time = prep_timing["step5_time"]
-
-            # Step 8: Execute workers
-            # Prometheus: track active workers before execution
+            # Step 8: Execute workers (sync path)
+            matched_roles = pre_result.matched_roles
             try:
                 _metrics = get_metrics()
                 _metrics.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
             except Exception:
                 pass
-            exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(plan, task_description)
-            # Prometheus: track active workers after execution
+            exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(pre_result.plan, task_description)
             try:
                 _metrics = get_metrics()
                 _metrics.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
             except Exception:
                 pass
-            errors.extend(exec_errors)
-            step6_time = exec_timing["step6_time"]
-            step7_time = exec_timing["step7_time"]
 
-            # Step 9: Post-execution processing (collect, slice, anchor check)
-            scratchpad_summary, anchor_result, collection, post_errors, post_timing = self._post_execution_processing(
-                worker_results, structured_goal
-            )
-            errors.extend(post_errors)
-            step8_time = post_timing["step8_time"]
-
-            # Step 10: Resolve consensus
-            consensus_records, compression_info = self._resolve_consensus(collection, mode)
-            step9_time = time.time()
-
-            # Step 11: Check permissions
-            permission_checks = self._check_permissions(task_description, worker_results, consensus_records)
-            step10_time = time.time()
-
-            # Step 12: Process memory pipeline
-            memory_stats, mem_errors = self._process_memory_pipeline(
-                task_description, worker_results, lang, scratchpad_summary, role_ids
-            )
-            errors.extend(mem_errors)
-            step11_time = time.time()
-
-            # Step 13: Learn skills
-            skill_proposals, skill_errors = self._learn_skills(task_description, worker_results, matched_roles, exec_result)
-            errors.extend(skill_errors)
-            step12_time = time.time()
-
-            # Step 14: Run five-axis consensus
-            five_axis_result = self._run_five_axis_consensus(task_description, worker_results, mode, exec_result)
-
-            # Step 15: Run retrospective
-            total_duration = time.time() - start_time
-            retrospective_report = self._run_retrospective(
-                task_description, worker_results, structured_goal, exec_result, total_duration
-            )
-
-            # Step 16: Assemble result
-            step_timings = {
-                "analyze": round(step2_time - step1_time, 3),
-                "warmup": round(step3_time - step2_time, 3),
-                "plan": round(step4_time - step3_time, 3),
-                "spawn": round(step5_time - step4_time, 3),
-                "execute": round(step6_time - step5_time, 3),
-                "collect": round(step7_time - step6_time, 3),
-                "consensus": round(step8_time - step7_time, 3),
-                "compress": round(step9_time - step8_time, 3),
-                "permission": round(step10_time - step9_time, 3),
-                "memory": round(step11_time - step10_time, 3),
-                "skillify": round(step12_time - step11_time, 3),
-            }
-            result = self._assemble_result(
-                task_description=task_description,
-                role_ids=role_ids,
+            # Post-dispatch steps (shared with async_dispatch)
+            return self._post_dispatch_steps(
+                pre_result=pre_result,
                 exec_result=exec_result,
-                scratchpad_summary=scratchpad_summary,
-                consensus_records=consensus_records,
-                compression_info=compression_info,
-                memory_stats=memory_stats,
-                permission_checks=permission_checks,
-                skill_proposals=skill_proposals,
-                anchor_result=anchor_result,
-                retrospective_report=retrospective_report,
-                intent_match=intent_match,
-                five_axis_result=five_axis_result,
-                errors=errors,
-                lang=lang,
-                concern_packs=concern_packs,
-                total_duration=total_duration,
-                plan=plan,
-                step_timings=step_timings,
                 worker_results=worker_results,
+                exec_errors=exec_errors,
+                exec_timing=exec_timing,
+                start_time=start_time,
+                phase=phase,
+                **kwargs,
             )
-
-            # Step 17: Post-dispatch hooks
-            self._post_dispatch_hooks(result, task_description, role_ids, total_duration)
-
-            # Step 18: Feedback loop
-            result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
-
-            # Prometheus: record dispatch end (duration + tasks_in_progress)
-            try:
-                _metrics = get_metrics()
-                _metrics.dispatch_histogram.labels(mode=mode).observe(total_duration)
-                _metrics.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc()
-                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
-            except Exception:
-                pass
-
-            return result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
             logger.error(
@@ -626,11 +565,11 @@ class MultiAgentDispatcher:
                 dispatch_err,
                 exc_info=True,
             )
-            # Prometheus: record error and decrement tasks_in_progress
+            self._cleanup_tenant_context(tenant_ctx)
             try:
                 _metrics = get_metrics()
                 _metrics.record_error("validation", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
             except Exception:
                 pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=dispatch_err)
@@ -641,17 +580,17 @@ class MultiAgentDispatcher:
                 summary=friendly.message,
                 errors=[friendly.format()],
                 duration_seconds=time.time() - start_time,
-                lang=lang,
+                lang=pre_result.lang,
             )
         except (ImportError, ModuleNotFoundError) as import_err:
             logger.error(
                 "Missing dependency during dispatch of task '%s': %s", task_description[:50], import_err, exc_info=True
             )
-            # Prometheus: record error and decrement tasks_in_progress
+            self._cleanup_tenant_context(tenant_ctx)
             try:
                 _metrics = get_metrics()
                 _metrics.record_error("dependency", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
             except Exception:
                 pass
             friendly = make_user_friendly_error("backend_unavailable", original_error=import_err)
@@ -662,7 +601,7 @@ class MultiAgentDispatcher:
                 summary=friendly.message,
                 errors=[friendly.format()],
                 duration_seconds=time.time() - start_time,
-                lang=lang,
+                lang=pre_result.lang,
             )
         except Exception as e:
             logger.critical(
@@ -672,11 +611,11 @@ class MultiAgentDispatcher:
                 e,
                 exc_info=True,
             )
-            # Prometheus: record error and decrement tasks_in_progress
+            self._cleanup_tenant_context(tenant_ctx)
             try:
                 _metrics = get_metrics()
                 _metrics.record_error("unknown", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase="dispatch").dec()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
             except Exception:
                 pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=e)
@@ -687,7 +626,7 @@ class MultiAgentDispatcher:
                 summary=friendly.message,
                 errors=[friendly.format()],
                 duration_seconds=time.time() - start_time,
-                lang=lang,
+                lang=pre_result.lang,
             )
 
     async def async_dispatch(
@@ -715,66 +654,58 @@ class MultiAgentDispatcher:
         """
         track_usage("dispatcher.async_dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
+        phase = "async_dispatch"
 
         # Prometheus: record async dispatch start
         try:
             _metrics = get_metrics()
             _metrics.dispatch_counter.labels(mode=mode, role_count="0").inc()
-            _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").inc()
+            _metrics.tasks_in_progress_gauge.labels(phase=phase).inc()
         except Exception:
             pass
 
         if self.usage_tracker:
             self.usage_tracker.tick("async_dispatch")
 
-        errors: List[str] = []
+        # Pre-dispatch steps (shared with dispatch)
+        pre_result = self._pre_dispatch_steps(task_description, roles, mode, dry_run, start_time, phase, **kwargs)
+        if pre_result.early_return:
+            try:
+                _metrics = get_metrics()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
+            except Exception:
+                pass
+            return pre_result.early_return
 
-        # Step 1: Resolve language
-        lang = self._resolve_language(self.lang)
-
-        # Step 2: Validate input
-        task_description, early_return = self._validate_input(task_description, roles, lang)
-        if early_return:
-            return early_return
-
-        # Step 3: Collect rules and inject CI context
-        task_description, rule_collection, early_return = self._collect_rules(task_description, lang)
-        if early_return:
-            return early_return
+        tenant_ctx = pre_result.tenant_ctx
 
         try:
-            step1_time = time.time()
-
-            # Step 4: Detect intent
-            intent_match = self._detect_intent(task_description, lang)
-
-            # Step 5: Match roles
-            matched_roles = self._match_roles(task_description, roles)
-
-            # Step 6: Validate roles and security (concern packs + dry_run)
-            role_ids, concern_packs, concern_enhancements, early_return = self._validate_roles_and_security(
-                task_description, matched_roles, lang, dry_run, start_time
-            )
-            if early_return:
-                return early_return
-
-            step2_time = time.time()
-
-            # Step 7: Prepare execution (warmup, prompts, plan, spawn, anchor, retrospective load)
-            plan, structured_goal, prep_timing = self._prepare_execution(
-                task_description, matched_roles, lang, intent_match, rule_collection, concern_enhancements
-            )
-            step3_time = prep_timing["step3_time"]
-            step4_time = prep_timing["step4_time"]
-            step5_time = prep_timing["step5_time"]
-
             # Step 8: Execute workers asynchronously via AsyncCoordinator
-            # Prometheus: track active workers before execution
+            matched_roles = pre_result.matched_roles
             try:
                 _metrics = get_metrics()
                 _metrics.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
             except Exception:
                 pass
+
+            # Async backend selection
+            async_backend = None
+            if kwargs.get('use_async_backend', False) or os.environ.get('DEVSQUAD_USE_ASYNC', '').lower() in ('1', 'true'):
+                try:
+                    async_backend = AsyncLLMBackendFactory.create(self.llm_backend.__class__.__name__)
+                except Exception:
+                    async_backend = SyncToAsyncAdapter(self.llm_backend)
+            else:
+                async_backend = SyncToAsyncAdapter(self.llm_backend)
+
+            # Async cache
+            async_cache = None
+            if kwargs.get('use_async_cache', False):
+                try:
+                    async_cache = AsyncLLMCache(cache_dir=self.persist_dir or "data/llm_cache")
+                except Exception as e:
+                    logger.debug(f"Async cache init failed: {e}")
+
             try:
                 from .async_coordinator import AsyncCoordinator
 
@@ -833,112 +764,34 @@ class MultiAgentDispatcher:
 
                 step7_time = time.time()
                 exec_errors = list(exec_result.errors) if exec_result.errors else []
-                errors.extend(exec_errors)
+
+                exec_timing = {
+                    "step6_time": step6_time,
+                    "step7_time": step7_time,
+                }
 
             except (ImportError, Exception) as async_err:
                 # Fallback to sync execution
                 logger.warning("Async dispatch failed, falling back to sync: %s", async_err)
-                exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(plan, task_description)
-                errors.extend(exec_errors)
-                step6_time = exec_timing["step6_time"]
-                step7_time = exec_timing["step7_time"]
+                exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(pre_result.plan, task_description)
 
-            # Prometheus: track active workers after execution
             try:
                 _metrics = get_metrics()
                 _metrics.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
             except Exception:
                 pass
 
-            # Step 9: Post-execution processing (collect, slice, anchor check)
-            scratchpad_summary, anchor_result, collection, post_errors, post_timing = self._post_execution_processing(
-                worker_results, structured_goal
-            )
-            errors.extend(post_errors)
-            step8_time = post_timing["step8_time"]
-
-            # Step 10: Resolve consensus
-            consensus_records, compression_info = self._resolve_consensus(collection, mode)
-            step9_time = time.time()
-
-            # Step 11: Check permissions
-            permission_checks = self._check_permissions(task_description, worker_results, consensus_records)
-            step10_time = time.time()
-
-            # Step 12: Process memory pipeline
-            memory_stats, mem_errors = self._process_memory_pipeline(
-                task_description, worker_results, lang, scratchpad_summary, role_ids
-            )
-            errors.extend(mem_errors)
-            step11_time = time.time()
-
-            # Step 13: Learn skills
-            skill_proposals, skill_errors = self._learn_skills(task_description, worker_results, matched_roles, exec_result)
-            errors.extend(skill_errors)
-            step12_time = time.time()
-
-            # Step 14: Run five-axis consensus
-            five_axis_result = self._run_five_axis_consensus(task_description, worker_results, mode, exec_result)
-
-            # Step 15: Run retrospective
-            total_duration = time.time() - start_time
-            retrospective_report = self._run_retrospective(
-                task_description, worker_results, structured_goal, exec_result, total_duration
-            )
-
-            # Step 16: Assemble result
-            step_timings = {
-                "analyze": round(step2_time - step1_time, 3),
-                "warmup": round(step3_time - step2_time, 3),
-                "plan": round(step4_time - step3_time, 3),
-                "spawn": round(step5_time - step4_time, 3),
-                "execute": round(step6_time - step5_time, 3),
-                "collect": round(step7_time - step6_time, 3),
-                "consensus": round(step8_time - step7_time, 3),
-                "compress": round(step9_time - step8_time, 3),
-                "permission": round(step10_time - step9_time, 3),
-                "memory": round(step11_time - step10_time, 3),
-                "skillify": round(step12_time - step11_time, 3),
-            }
-            result = self._assemble_result(
-                task_description=task_description,
-                role_ids=role_ids,
+            # Post-dispatch steps (shared with dispatch)
+            return self._post_dispatch_steps(
+                pre_result=pre_result,
                 exec_result=exec_result,
-                scratchpad_summary=scratchpad_summary,
-                consensus_records=consensus_records,
-                compression_info=compression_info,
-                memory_stats=memory_stats,
-                permission_checks=permission_checks,
-                skill_proposals=skill_proposals,
-                anchor_result=anchor_result,
-                retrospective_report=retrospective_report,
-                intent_match=intent_match,
-                five_axis_result=five_axis_result,
-                errors=errors,
-                lang=lang,
-                concern_packs=concern_packs,
-                total_duration=total_duration,
-                plan=plan,
-                step_timings=step_timings,
                 worker_results=worker_results,
+                exec_errors=exec_errors,
+                exec_timing=exec_timing,
+                start_time=start_time,
+                phase=phase,
+                **kwargs,
             )
-
-            # Step 17: Post-dispatch hooks
-            self._post_dispatch_hooks(result, task_description, role_ids, total_duration)
-
-            # Step 18: Feedback loop
-            result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
-
-            # Prometheus: record async dispatch end (duration + tasks_in_progress)
-            try:
-                _metrics = get_metrics()
-                _metrics.dispatch_histogram.labels(mode=mode).observe(total_duration)
-                _metrics.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc()
-                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
-            except Exception:
-                pass
-
-            return result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
             logger.error(
@@ -948,11 +801,11 @@ class MultiAgentDispatcher:
                 dispatch_err,
                 exc_info=True,
             )
-            # Prometheus: record error and decrement tasks_in_progress
+            self._cleanup_tenant_context(tenant_ctx)
             try:
                 _metrics = get_metrics()
                 _metrics.record_error("validation", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
             except Exception:
                 pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=dispatch_err)
@@ -963,17 +816,17 @@ class MultiAgentDispatcher:
                 summary=friendly.message,
                 errors=[friendly.format()],
                 duration_seconds=time.time() - start_time,
-                lang=lang,
+                lang=pre_result.lang,
             )
         except (ImportError, ModuleNotFoundError) as import_err:
             logger.error(
                 "Missing dependency during async dispatch of task '%s': %s", task_description[:50], import_err, exc_info=True
             )
-            # Prometheus: record error and decrement tasks_in_progress
+            self._cleanup_tenant_context(tenant_ctx)
             try:
                 _metrics = get_metrics()
                 _metrics.record_error("dependency", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
             except Exception:
                 pass
             friendly = make_user_friendly_error("backend_unavailable", original_error=import_err)
@@ -984,7 +837,7 @@ class MultiAgentDispatcher:
                 summary=friendly.message,
                 errors=[friendly.format()],
                 duration_seconds=time.time() - start_time,
-                lang=lang,
+                lang=pre_result.lang,
             )
         except Exception as e:
             logger.critical(
@@ -994,11 +847,11 @@ class MultiAgentDispatcher:
                 e,
                 exc_info=True,
             )
-            # Prometheus: record error and decrement tasks_in_progress
+            self._cleanup_tenant_context(tenant_ctx)
             try:
                 _metrics = get_metrics()
                 _metrics.record_error("unknown", "dispatcher")
-                _metrics.tasks_in_progress_gauge.labels(phase="async_dispatch").dec()
+                _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
             except Exception:
                 pass
             friendly = make_user_friendly_error("dispatch_failed", original_error=e)
@@ -1009,12 +862,396 @@ class MultiAgentDispatcher:
                 summary=friendly.message,
                 errors=[friendly.format()],
                 duration_seconds=time.time() - start_time,
-                lang=lang,
+                lang=pre_result.lang,
             )
 
     # ------------------------------------------------------------------
     # Private step methods extracted from dispatch()
     # ------------------------------------------------------------------
+
+    @dataclass
+    class _PreDispatchResult:
+        """Result container for _pre_dispatch_steps()."""
+        task_description: str
+        lang: str
+        rule_collection: Any
+        intent_match: Any
+        matched_roles: List[Dict[str, Any]]
+        role_ids: List[str]
+        concern_packs: Any
+        concern_enhancements: Dict[str, Any]
+        plan: Any
+        structured_goal: Any
+        prep_timing: Dict[str, float]
+        step1_time: float
+        step2_time: float
+        tenant_ctx: Any = None
+        early_return: Optional[DispatchResult] = None
+
+    def _pre_dispatch_steps(
+        self,
+        task_description: str,
+        roles: Optional[List[str]],
+        mode: str,
+        dry_run: bool,
+        start_time: float,
+        phase: str,
+        **kwargs: Any,
+    ):
+        """Steps 0-7: tenant setup, validation, intent, roles, preparation.
+
+        Returns:
+            _PreDispatchResult with all intermediate state needed for
+            execution and post-processing steps.
+        """
+        # Step 0: Multi-tenant context setup
+        tenant_ctx = None
+        if self.enable_multi_tenant and self.tenant_manager:
+            tenant_id = kwargs.get('tenant_id')
+            user_id = kwargs.get('user_id')
+            if tenant_id:
+                try:
+                    tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
+                    tenant_ctx.__enter__()
+                    if not self.tenant_manager.check_quota("tasks"):
+                        return self._PreDispatchResult(
+                            task_description=task_description,
+                            lang=self.lang,
+                            rule_collection=None,
+                            intent_match=None,
+                            matched_roles=[],
+                            role_ids=[],
+                            concern_packs=None,
+                            concern_enhancements={},
+                            plan=None,
+                            structured_goal=None,
+                            prep_timing={},
+                            step1_time=start_time,
+                            step2_time=start_time,
+                            tenant_ctx=tenant_ctx,
+                            early_return=DispatchResult(
+                                success=False,
+                                task_description=task_description,
+                                error="Quota exceeded",
+                                matched_roles=[],
+                                summary="Quota exceeded for tenant",
+                                errors=["Quota exceeded"],
+                                duration_seconds=time.time() - start_time,
+                            ),
+                        )
+                except Exception as e:
+                    logger.warning(f"Multi-tenant setup failed: {e}")
+
+        # Step 1: Resolve language
+        lang = self._resolve_language(self.lang)
+
+        # Step 2: Validate input
+        task_description, early_return = self._validate_input(task_description, roles, lang)
+        if early_return:
+            return self._PreDispatchResult(
+                task_description=task_description,
+                lang=lang,
+                rule_collection=None,
+                intent_match=None,
+                matched_roles=[],
+                role_ids=[],
+                concern_packs=None,
+                concern_enhancements={},
+                plan=None,
+                structured_goal=None,
+                prep_timing={},
+                step1_time=start_time,
+                step2_time=start_time,
+                tenant_ctx=tenant_ctx,
+                early_return=early_return,
+            )
+
+        # RBAC pre-check
+        if self.enable_rbac and self.rbac_engine:
+            try:
+                user_id = kwargs.get('user_id', 'default')
+                self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
+            except PermissionDeniedError as e:
+                return self._PreDispatchResult(
+                    task_description=task_description,
+                    lang=lang,
+                    rule_collection=None,
+                    intent_match=None,
+                    matched_roles=[],
+                    role_ids=[],
+                    concern_packs=None,
+                    concern_enhancements={},
+                    plan=None,
+                    structured_goal=None,
+                    prep_timing={},
+                    step1_time=start_time,
+                    step2_time=start_time,
+                    tenant_ctx=tenant_ctx,
+                    early_return=DispatchResult(
+                        success=False,
+                        task_description=task_description,
+                        error=f"Permission denied: {e}",
+                        matched_roles=[],
+                        summary=f"Permission denied: {e}",
+                        errors=[f"Permission denied: {e}"],
+                        duration_seconds=time.time() - start_time,
+                        lang=lang,
+                    ),
+                )
+            except Exception as e:
+                logger.warning(f"RBAC check failed: {e}")
+
+        # Step 3: Collect rules and inject CI context
+        task_description, rule_collection, early_return = self._collect_rules(task_description, lang)
+        if early_return:
+            return self._PreDispatchResult(
+                task_description=task_description,
+                lang=lang,
+                rule_collection=rule_collection,
+                intent_match=None,
+                matched_roles=[],
+                role_ids=[],
+                concern_packs=None,
+                concern_enhancements={},
+                plan=None,
+                structured_goal=None,
+                prep_timing={},
+                step1_time=start_time,
+                step2_time=start_time,
+                tenant_ctx=tenant_ctx,
+                early_return=early_return,
+            )
+
+        step1_time = time.time()
+
+        # Step 4: Detect intent
+        intent_match = self._detect_intent(task_description, lang)
+
+        # Audit: dispatch start
+        if self.audit_logger:
+            try:
+                self.audit_logger.log(
+                    user_id=kwargs.get('user_id', 'system'),
+                    action="task:dispatch_start",
+                    resource_type="Task",
+                    resource_id="unknown",
+                    details={"task": task_description[:200]}
+                )
+            except Exception as e:
+                logger.debug(f"Audit logging failed: {e}")
+
+        # Step 5: Match roles
+        matched_roles = self._match_roles(task_description, roles)
+
+        # Step 6: Validate roles and security (concern packs + dry_run)
+        role_ids, concern_packs, concern_enhancements, early_return = self._validate_roles_and_security(
+            task_description, matched_roles, lang, dry_run, start_time
+        )
+        if early_return:
+            return self._PreDispatchResult(
+                task_description=task_description,
+                lang=lang,
+                rule_collection=rule_collection,
+                intent_match=intent_match,
+                matched_roles=matched_roles,
+                role_ids=role_ids,
+                concern_packs=concern_packs,
+                concern_enhancements=concern_enhancements,
+                plan=None,
+                structured_goal=None,
+                prep_timing={},
+                step1_time=step1_time,
+                step2_time=time.time(),
+                tenant_ctx=tenant_ctx,
+                early_return=early_return,
+            )
+
+        step2_time = time.time()
+
+        # Step 7: Prepare execution (warmup, prompts, plan, spawn, anchor, retrospective load)
+        plan, structured_goal, prep_timing = self._prepare_execution(
+            task_description, matched_roles, lang, intent_match, rule_collection, concern_enhancements
+        )
+
+        return self._PreDispatchResult(
+            task_description=task_description,
+            lang=lang,
+            rule_collection=rule_collection,
+            intent_match=intent_match,
+            matched_roles=matched_roles,
+            role_ids=role_ids,
+            concern_packs=concern_packs,
+            concern_enhancements=concern_enhancements,
+            plan=plan,
+            structured_goal=structured_goal,
+            prep_timing=prep_timing,
+            step1_time=step1_time,
+            step2_time=step2_time,
+            tenant_ctx=tenant_ctx,
+            early_return=None,
+        )
+
+    def _post_dispatch_steps(
+        self,
+        pre_result,
+        exec_result,
+        worker_results: List[Dict[str, Any]],
+        exec_errors: List[str],
+        exec_timing: Dict[str, float],
+        start_time: float,
+        phase: str,
+        **kwargs: Any,
+    ) -> DispatchResult:
+        """Steps 9-18: post-processing, consensus, permissions, memory, assembly.
+
+        Args:
+            pre_result: _PreDispatchResult from _pre_dispatch_steps
+            exec_result: Execution result from worker execution
+            worker_results: List of worker result dicts
+            exec_errors: List of execution errors
+            exec_timing: Timing dict with step6_time, step7_time
+            start_time: Dispatch start time
+            phase: "dispatch" or "async_dispatch"
+            **kwargs: Additional keyword arguments
+
+        Returns:
+            DispatchResult with complete dispatch outcome
+        """
+        task_description = pre_result.task_description
+        lang = pre_result.lang
+        matched_roles = pre_result.matched_roles
+        role_ids = pre_result.role_ids
+        concern_packs = pre_result.concern_packs
+        intent_match = pre_result.intent_match
+        structured_goal = pre_result.structured_goal
+        plan = pre_result.plan
+        step1_time = pre_result.step1_time
+        step2_time = pre_result.step2_time
+        step3_time = pre_result.prep_timing.get("step3_time", step2_time)
+        step4_time = pre_result.prep_timing.get("step4_time", step3_time)
+        step5_time = pre_result.prep_timing.get("step5_time", step4_time)
+
+        errors: List[str] = list(exec_errors)
+
+        step6_time = exec_timing.get("step6_time", step5_time)
+        step7_time = exec_timing.get("step7_time", step6_time)
+
+        # Step 9: Post-execution processing (collect, slice, anchor check)
+        scratchpad_summary, anchor_result, collection, post_errors, post_timing = self._post_execution_processing(
+            worker_results, structured_goal
+        )
+        errors.extend(post_errors)
+        step8_time = post_timing["step8_time"]
+
+        # Step 10: Resolve consensus
+        mode = kwargs.get('mode', 'auto')
+        consensus_records, compression_info = self._resolve_consensus(collection, mode)
+        step9_time = time.time()
+
+        # Step 11: Check permissions
+        permission_checks = self._check_permissions(task_description, worker_results, consensus_records, **kwargs)
+        step10_time = time.time()
+
+        # Step 12: Process memory pipeline
+        memory_stats, mem_errors = self._process_memory_pipeline(
+            task_description, worker_results, lang, scratchpad_summary, role_ids
+        )
+        errors.extend(mem_errors)
+        step11_time = time.time()
+
+        # Step 13: Learn skills
+        skill_proposals, skill_errors = self._learn_skills(task_description, worker_results, matched_roles, exec_result)
+        errors.extend(skill_errors)
+        step12_time = time.time()
+
+        # Step 14: Run five-axis consensus
+        five_axis_result = self._run_five_axis_consensus(task_description, worker_results, mode, exec_result)
+
+        # Step 15: Run retrospective
+        total_duration = time.time() - start_time
+        retrospective_report = self._run_retrospective(
+            task_description, worker_results, structured_goal, exec_result, total_duration
+        )
+
+        # Step 16: Assemble result
+        step_timings = {
+            "analyze": round(step2_time - step1_time, 3),
+            "warmup": round(step3_time - step2_time, 3),
+            "plan": round(step4_time - step3_time, 3),
+            "spawn": round(step5_time - step4_time, 3),
+            "execute": round(step6_time - step5_time, 3),
+            "collect": round(step7_time - step6_time, 3),
+            "consensus": round(step8_time - step7_time, 3),
+            "compress": round(step9_time - step8_time, 3),
+            "permission": round(step10_time - step9_time, 3),
+            "memory": round(step11_time - step10_time, 3),
+            "skillify": round(step12_time - step11_time, 3),
+        }
+        result = self._assemble_result(
+            task_description=task_description,
+            role_ids=role_ids,
+            exec_result=exec_result,
+            scratchpad_summary=scratchpad_summary,
+            consensus_records=consensus_records,
+            compression_info=compression_info,
+            memory_stats=memory_stats,
+            permission_checks=permission_checks,
+            skill_proposals=skill_proposals,
+            anchor_result=anchor_result,
+            retrospective_report=retrospective_report,
+            intent_match=intent_match,
+            five_axis_result=five_axis_result,
+            errors=errors,
+            lang=lang,
+            concern_packs=concern_packs,
+            total_duration=total_duration,
+            plan=plan,
+            step_timings=step_timings,
+            worker_results=worker_results,
+        )
+
+        # Audit: dispatch complete
+        if self.audit_logger:
+            try:
+                self.audit_logger.log(
+                    user_id=kwargs.get('user_id', 'system'),
+                    action="task:dispatch_complete",
+                    resource_type="Task",
+                    resource_id="unknown",
+                    result="success" if result.success else "failure"
+                )
+            except Exception as e:
+                logger.debug(f"Audit logging failed: {e}")
+
+        # Step 17: Post-dispatch hooks
+        self._post_dispatch_hooks(result, task_description, role_ids, total_duration)
+
+        # Step 18: Feedback loop
+        roles = kwargs.get('roles')
+        dry_run = kwargs.get('dry_run', False)
+        result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
+
+        # Prometheus: record dispatch end (duration + tasks_in_progress)
+        try:
+            _metrics = get_metrics()
+            _metrics.dispatch_histogram.labels(mode=mode).observe(total_duration)
+            _metrics.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc()
+            _metrics.tasks_in_progress_gauge.labels(phase=phase).dec()
+        except Exception:
+            pass
+
+        # Multi-tenant context cleanup
+        self._cleanup_tenant_context(pre_result.tenant_ctx)
+
+        return result
+
+    def _cleanup_tenant_context(self, tenant_ctx: Any) -> None:
+        """Clean up tenant context if active."""
+        if tenant_ctx:
+            try:
+                tenant_ctx.__exit__(None, None, None)
+            except Exception as e:
+                logger.debug(f"Tenant context cleanup failed: {e}")
 
     def _resolve_language(self, lang: str) -> str:
         """Resolve language from 'auto' to a specific language code."""
@@ -1477,7 +1714,7 @@ class MultiAgentDispatcher:
         return consensus_records, compression_info
 
     def _check_permissions(
-        self, task: str, worker_results: List[Dict[str, Any]], consensus_records: List[Dict[str, Any]]
+        self, task: str, worker_results: List[Dict[str, Any]], consensus_records: List[Dict[str, Any]], **kwargs: Any
     ) -> List[Dict[str, Any]]:
         """Check permissions via PermissionGuard.
 
@@ -1517,6 +1754,17 @@ class MultiAgentDispatcher:
                 if classified:
                     perm_entry["operation_category"] = classified.category.value
                 permission_checks.append(perm_entry)
+
+        # RBAC fine-grained check
+        if self.enable_rbac and self.rbac_engine:
+            try:
+                user_id = kwargs.get('user_id', 'default')
+                self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
+                permission_checks.append({"action": "rbac:execute", "allowed": True})
+            except PermissionDeniedError as e:
+                permission_checks.append({"action": "rbac:execute", "allowed": False, "reason": str(e)})
+            except Exception as e:
+                logger.debug(f"RBAC permission check failed: {e}")
 
         return permission_checks
 
@@ -1829,6 +2077,15 @@ class MultiAgentDispatcher:
     ) -> DispatchResult:
         """Assemble the final DispatchResult from all step results."""
         report = self.coordinator.generate_report()
+
+        # Data masking
+        if self.data_masker:
+            try:
+                if scratchpad_summary:
+                    masked = self.data_masker.mask({"content": scratchpad_summary})
+                    scratchpad_summary = masked.get("content", scratchpad_summary)
+            except Exception as e:
+                logger.debug(f"Data masking failed: {e}")
 
         return DispatchResult(
             success=exec_result.success and len(errors) == 0,
@@ -2145,6 +2402,18 @@ class MultiAgentDispatcher:
                 self.usage_tracker.persist()
             except Exception as e:
                 logger.warning("Usage tracker persist failed: %s", e)
+
+        if self.audit_logger:
+            try:
+                self.audit_logger.force_flush()
+            except Exception as e:
+                logger.debug(f"Audit flush failed: {e}")
+
+        if self.tenant_manager:
+            try:
+                self.tenant_manager.clear_context()
+            except Exception as e:
+                logger.debug(f"Tenant cleanup failed: {e}")
 
 
 def create_dispatcher(**kwargs: Any) -> MultiAgentDispatcher:

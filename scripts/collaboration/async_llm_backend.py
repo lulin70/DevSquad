@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-Preview: Not yet integrated into the main dispatch pipeline.
-
 Async LLM Backend Abstraction Layer
 
 Provides asynchronous versions of LLM backends for improved throughput

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-Preview: Not yet integrated into the main dispatch pipeline.
-
 RBAC Engine - Role-Based Access Control System for DevSquad Enterprise
 
 Extends the existing 4-level PermissionGuard with fine-grained RBAC:

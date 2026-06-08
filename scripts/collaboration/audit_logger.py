@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-Preview: Not yet integrated into the main dispatch pipeline.
-
 Audit Logger - Enterprise-Grade Audit Logging System for DevSquad
 
 Provides cryptographic audit trail with tamper-evidence:

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-Preview: Not yet integrated into the main dispatch pipeline.
-
 Async Adapter - Backward Compatibility Layer
 
 Provides seamless migration from sync to async backends.

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-Preview: Not yet integrated into the main dispatch pipeline.
-
 Async LLM Cache Module
 
 Provides asynchronous caching for LLM API responses to reduce costs and improve performance.
