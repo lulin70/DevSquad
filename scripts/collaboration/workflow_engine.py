@@ -677,7 +677,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "action": "plan_tests",
         "dependencies": ["P1", "P3"],
         "artifacts_in": "P1 + P3 deliverables (+ P6 if exists)",
-        "artifacts_out": "Test plan (8 dimensions: functional/integration/performance/security/env/install/regression/acceptance)",
+        "artifacts_out": "Test plan (10 dimensions: functional/integration/performance/security/env/install/regression/acceptance/ui-interaction/user-journey)",
         "gate_condition": "Test plan review passed",
         "reviewers": ["architect", "security", "devops", "product-manager"],
         "optional": False,

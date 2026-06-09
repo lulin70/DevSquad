@@ -338,7 +338,7 @@ P1 Requirements ──→ P2 Architecture ──┬──→ P3 Technical Design
 - Data compliance review (GDPR/CCPA/HIPAA)
 - Third-party dependency security assessment, check known CVEs
 
-**P7 Test Planning** — Tester-led (8 dimensions)
+**P7 Test Planning** — Tester-led (10 dimensions)
 
 | Dimension | Content | Required |
 |-----------|---------|----------|
@@ -350,8 +350,10 @@ P1 Requirements ──→ P2 Architecture ──┬──→ P3 Technical Design
 | Installation procedure | Install/upgrade/rollback verification, compatibility matrix | 🔍Review decides |
 | Regression strategy | Regression scope, automation rate, CI gates | ✅ |
 | Acceptance criteria | Verification method for each P1 acceptance criterion | ✅ |
+| UI interaction | Interaction flow, responsiveness, accessibility, cross-browser/device | 🔍Review decides |
+| User journey | End-to-end critical paths, onboarding, error recovery paths | ✅ |
 
-> P7 review is conducted by arch+sec+infra+pm. Small projects can skip performance/security/installation dimensions in review, but must document skip reasons.
+> P7 review is conducted by arch+sec+infra+pm. Small projects can skip performance/security/installation/UI dimensions in review, but must document skip reasons.
 
 **P8 Implementation** — Coder-led
 - After architect decides on microservices — coder selects frameworks, implements business logic
