@@ -48,6 +48,7 @@ class FeedbackControlLoop:
         dispatcher,
         quality_gate: float = DEFAULT_QUALITY_GATE,
         max_iterations: int = DEFAULT_MAX_ITERATIONS,
+        llm_backend=None,
     ):
         """
         Initialize the feedback control loop.
@@ -56,10 +57,13 @@ class FeedbackControlLoop:
             dispatcher: MultiAgentDispatcher instance to use for task execution
             quality_gate: Minimum acceptable quality score (0.0-1.0). Default 0.7
             max_iterations: Maximum number of refinement attempts. Default 3
+            llm_backend: Optional LLM backend for intelligent task refinement.
+                        If None, falls back to algorithmic string concatenation.
         """
         self._dispatcher = dispatcher
         self._quality_gate = min(max(quality_gate, 0.0), 1.0)
         self._max_iterations = max(1, max_iterations)
+        self._llm_backend = llm_backend
         self._lock = threading.RLock()
         self._iteration_history: list[dict[str, Any]] = []
         self._best_result = None
@@ -338,8 +342,8 @@ class FeedbackControlLoop:
         """
         Refine task by merging original task with adjustment suggestions.
 
-        Creates an enhanced task description that incorporates the
-        feedback from previous iteration.
+        When an LLM backend is available, uses it to generate an intelligent
+        reformulation. Otherwise falls back to simple string concatenation.
 
         Args:
             task: Original task description
@@ -348,8 +352,57 @@ class FeedbackControlLoop:
         Returns:
             str: Refined task description with adjustment integrated
         """
+        if self._llm_backend is not None:
+            try:
+                refined = self._llm_refine_task(task, adjustment)
+                if refined and len(refined) > 10:
+                    return refined
+            except (ValueError, AttributeError, RuntimeError, ConnectionError) as e:
+                logger.debug("LLM task refinement failed, falling back to concatenation: %s", e)
+
+        # Fallback: simple concatenation
         refined = f"{task}\n\n[Iteration Feedback]\n{adjustment}"
         return refined
+
+    def _llm_refine_task(self, task: str, adjustment: str) -> str:
+        """
+        Use LLM to intelligently refine a task based on feedback.
+
+        Generates a reformulated task that incorporates the adjustment
+        suggestions in a natural, coherent way.
+
+        Args:
+            task: Original task description
+            adjustment: Adjustment suggestions from _generate_adjustment()
+
+        Returns:
+            str: LLM-refined task description
+        """
+        prompt = (
+            "You are a task refinement assistant. Given an original task and feedback "
+            "from a failed execution attempt, produce a refined task description that "
+            "addresses the issues identified.\n\n"
+            f"Original task:\n{task}\n\n"
+            f"Execution feedback:\n{adjustment}\n\n"
+            "Produce a refined task description that:\n"
+            "1. Preserves the original intent and goals\n"
+            "2. Incorporates the feedback to address identified issues\n"
+            "3. Adds specific constraints or clarifications where needed\n"
+            "4. Is clear and actionable for a multi-agent team\n\n"
+            "Output ONLY the refined task description, no preamble."
+        )
+
+        if hasattr(self._llm_backend, 'generate'):
+            return self._llm_backend.generate(prompt)
+        elif hasattr(self._llm_backend, 'call'):
+            return self._llm_backend.call(prompt)
+        elif hasattr(self._llm_backend, 'chat'):
+            response = self._llm_backend.chat([{"role": "user", "content": prompt}])
+            if isinstance(response, dict):
+                return response.get("content", response.get("text", ""))
+            return str(response)
+        else:
+            raise ValueError(f"Unsupported LLM backend type: {type(self._llm_backend)}")
 
     def reset(self):
         """Reset all state for reuse."""

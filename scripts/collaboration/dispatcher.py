@@ -91,7 +91,7 @@ class MultiAgentDispatcher:
         enable_anchor_check: bool = True,
         enable_retrospective: bool = True,
         enable_usage_tracker: bool = True,
-        enable_feedback_loop: bool = False,
+        enable_feedback_loop: Union[bool, str] = "auto",
         enable_redis_cache: bool = False,
         enable_execution_guard: bool = True,
         redis_url: Optional[str] = None,
@@ -1827,9 +1827,35 @@ class MultiAgentDispatcher:
         dry_run: bool,
         kwargs: Dict[str, Any],
     ) -> DispatchResult:
-        """Run FeedbackControlLoop iteration. Returns final (possibly refined) result."""
-        if not self.enable_feedback_loop or dry_run:
+        """Run FeedbackControlLoop iteration. Returns final (possibly refined) result.
+
+        Modes:
+            True:  Always run feedback loop (up to 3 iterations)
+            "auto": Only trigger when first-pass quality < 0.5 (critical failure)
+            False: Never run feedback loop
+        """
+        if self.enable_feedback_loop is False or dry_run:
             return result
+
+        # Auto mode: assess first-pass quality, only trigger on critical failure
+        if self.enable_feedback_loop == "auto":
+            try:
+                from .feedback_control_loop import FeedbackControlLoop
+                loop = FeedbackControlLoop(dispatcher=self)
+                first_quality = loop._assess_quality(result)
+                if first_quality >= 0.5:
+                    logger.debug(
+                        "Feedback loop auto-skip: first-pass quality %.2f >= 0.5 threshold",
+                        first_quality,
+                    )
+                    return result
+                logger.info(
+                    "Feedback loop auto-triggered: first-pass quality %.2f < 0.5",
+                    first_quality,
+                )
+            except (ImportError, ValueError, AttributeError) as e:
+                logger.debug("Feedback loop auto-assessment failed: %s", e)
+                return result
 
         try:
             from .feedback_control_loop import FeedbackControlLoop
@@ -1838,6 +1864,7 @@ class MultiAgentDispatcher:
                 dispatcher=self,
                 quality_gate=0.7,
                 max_iterations=3,
+                llm_backend=self.llm_backend,
             )
             result = feedback_loop.run(
                 task,
