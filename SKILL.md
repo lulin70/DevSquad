@@ -130,7 +130,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 60 | **APIDataModels** | `api/models.py` | Pydantic validation models: LifecyclePhase, GateResult, MetricsSnapshot, PhaseActionRequest/Result |
 | 61 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API endpoints: phases list/detail, status, actions execution, command mappings |
 | 62 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API endpoints: current/historical metrics, gate status/check, health check |
-| 63 | **AlertManager** | `alert_manager.py` | Multi-channel alerting: Console/Slack/Email/Webhook, rate limiting, deduplication, severity levels |
+| 63 | **AlertManager** | `alert_manager.py` | *(Removed in V3.6.8)* Multi-channel alerting was unused and removed |
 | 64 | **HistoryManager** | `history_manager.py` | SQLite time-series storage: metrics snapshots, alert history, API logs, lifecycle events |
 | 65 | **StreamlitDashboard** | `dashboard.py` | Interactive web dashboard with authentication, real-time monitoring, phase visualization |
 | 66 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback closed-loop iteration for continuous improvement |

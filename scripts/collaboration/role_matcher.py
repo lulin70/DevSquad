@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
+import logging
+
 from .models import ROLE_REGISTRY, resolve_role_id
+
+logger = logging.getLogger(__name__)
 
 ROLE_TEMPLATES = {
     rid: {"name": rdef.name, "prompt": rdef.prompt, "keywords": rdef.keywords} for rid, rdef in ROLE_REGISTRY.items()
@@ -8,7 +12,52 @@ ROLE_TEMPLATES = {
 
 
 class RoleMatcher:
-    """Role matching engine based on keyword analysis."""
+    """Role matching engine based on keyword analysis, enhanced with adaptive and similarity-based recommendations."""
+
+    def __init__(self):
+        """Initialize RoleMatcher with lazy-loaded enhanced components."""
+        self._fingerprint_db = None
+        self._adaptive_selector = None
+        self._similar_recommender = None
+
+    def _ensure_fingerprint(self):
+        """Lazy-initialize PerformanceFingerprint."""
+        if self._fingerprint_db is None:
+            try:
+                from .performance_fingerprint import PerformanceFingerprint
+                self._fingerprint_db = PerformanceFingerprint()
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
+                logger.debug("PerformanceFingerprint unavailable: %s", e)
+                self._fingerprint_db = False  # sentinel: tried and failed
+        return self._fingerprint_db if self._fingerprint_db is not False else None
+
+    def _ensure_adaptive_selector(self):
+        """Lazy-initialize AdaptiveRoleSelector."""
+        if self._adaptive_selector is None:
+            fp = self._ensure_fingerprint()
+            if fp is None:
+                return None
+            try:
+                from .adaptive_role_selector import AdaptiveRoleSelector
+                self._adaptive_selector = AdaptiveRoleSelector(fingerprint_db=fp)
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
+                logger.debug("AdaptiveRoleSelector unavailable: %s", e)
+                self._adaptive_selector = False
+        return self._adaptive_selector if self._adaptive_selector is not False else None
+
+    def _ensure_similar_recommender(self):
+        """Lazy-initialize SimilarTaskRecommender."""
+        if self._similar_recommender is None:
+            fp = self._ensure_fingerprint()
+            if fp is None:
+                return None
+            try:
+                from .similar_task_recommender import SimilarTaskRecommender
+                self._similar_recommender = SimilarTaskRecommender(fingerprint_db=fp)
+            except (ImportError, AttributeError, RuntimeError, OSError) as e:
+                logger.debug("SimilarTaskRecommender unavailable: %s", e)
+                self._similar_recommender = False
+        return self._similar_recommender if self._similar_recommender is not False else None
 
     def analyze_task(self, task_description: str) -> list[dict[str, str]]:
         """
@@ -55,6 +104,93 @@ class RoleMatcher:
                     "reason": "默认角色：无明确关键词匹配",
                 }
             )
+
+        return matched
+
+    def analyze_task_enhanced(self, task_description: str) -> list[dict]:
+        """
+        Enhanced task analysis combining keyword matching with adaptive and similarity-based recommendations.
+
+        Pipeline:
+        1. Run keyword-based matching (analyze_task)
+        2. Try AdaptiveRoleSelector for historical success-rate recommendations
+        3. Try SimilarTaskRecommender for TF-IDF similarity recommendations
+        4. Merge: add roles from adaptive/similar that are not in keyword results,
+           with lower confidence and appropriate reason
+
+        Falls back gracefully to keyword-only results when no historical data exists.
+
+        Args:
+            task_description: Task description text
+
+        Returns:
+            List of matched roles with enhanced recommendations merged in.
+        """
+        # Step 1: Keyword-based matching (always runs)
+        matched = self.analyze_task(task_description)
+        existing_ids = {r["role_id"] for r in matched}
+
+        # Step 2: Adaptive role selection based on historical success rates
+        adaptive_roles = []
+        selector = self._ensure_adaptive_selector()
+        if selector is not None:
+            try:
+                adaptive_roles = selector.select_roles(task_description)
+            except (ValueError, AttributeError, RuntimeError, OSError) as e:
+                logger.debug("AdaptiveRoleSelector.select_roles failed: %s", e)
+
+        # Step 3: Similar task recommendation based on TF-IDF
+        similar_roles = []
+        similar_confidence = "low"
+        recommender = self._ensure_similar_recommender()
+        if recommender is not None:
+            try:
+                rec_result = recommender.recommend(task_description)
+                similar_roles = rec_result.get("recommended_roles", [])
+                similar_confidence = rec_result.get("confidence", "low")
+            except (ValueError, AttributeError, RuntimeError, OSError) as e:
+                logger.debug("SimilarTaskRecommender.recommend failed: %s", e)
+
+        # Step 4: Merge adaptive and similar recommendations into keyword results
+        # Map confidence string to numeric value for new entries
+        confidence_map = {"high": 0.6, "medium": 0.45, "low": 0.3}
+
+        # Add adaptive-only roles
+        for role_name in adaptive_roles:
+            if role_name not in existing_ids:
+                template = ROLE_TEMPLATES.get(role_name, {"name": role_name})
+                matched.append(
+                    {
+                        "role_id": role_name,
+                        "name": template.get("name", role_name),
+                        "confidence": 0.4,
+                        "matched_keywords": [],
+                        "reason": "历史成功率推荐（AdaptiveRoleSelector）",
+                        "source": "adaptive",
+                    }
+                )
+                existing_ids.add(role_name)
+
+        # Add similar-only roles
+        for role_name in similar_roles:
+            if role_name not in existing_ids:
+                template = ROLE_TEMPLATES.get(role_name, {"name": role_name})
+                conf = confidence_map.get(similar_confidence, 0.3)
+                matched.append(
+                    {
+                        "role_id": role_name,
+                        "name": template.get("name", role_name),
+                        "confidence": conf,
+                        "matched_keywords": [],
+                        "reason": f"相似任务推荐（SimilarTaskRecommender，置信度: {similar_confidence}）",
+                        "source": "similar",
+                    }
+                )
+                existing_ids.add(role_name)
+
+        # Re-sort by confidence (keyword results keep their original confidence,
+        # enhanced results have lower confidence)
+        matched.sort(key=lambda x: x.get("confidence", 0), reverse=True)
 
         return matched
 

@@ -205,7 +205,6 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | **Multi-Tenancy Manager** | 3 isolation levels (strict/moderate/shared), tenant-scoped resources (Preview) | Multi-tenant SaaS |
 | **Sensitive Data Masker** | PII detection and masking (email/phone/ID card/credit card), configurable rules (Preview) | Data compliance |
 | **HistoryManager** | SQLite time-series storage: metrics snapshots, alert history, API logs | Retrospective analysis |
-| **AlertManager** | Multi-channel alerting: Console/Slack/Email/Webhook with rate limiting | Production monitoring |
 
 ### 🔌 Domain 5: Integration & Extension
 
@@ -315,10 +314,10 @@ All modules are **optional switches** — DevSquad works perfectly without them.
           ▼               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   Business Logic Layer                      │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │AuthManager  │ │AlertManager │ │HistoryMgr   │           │
-│  │(RBAC Auth)  │ │(Multi-Chnl) │ │(SQLite TSDB)│           │
-│  └─────────────┘ └─────────────┘ └─────────────┘           │
+│  ┌─────────────┐ ┌─────────────┐           │
+│  │AuthManager  │ │HistoryMgr   │           │
+│  │(RBAC Auth)  │ │(SQLite TSDB)│           │
+│  └─────────────┘ └─────────────┘           │
 │  ┌─────────────────────────────────────────────┐            │
 │  │     LifecycleProtocol (11-Phase Engine)       │            │
 │  │     UnifiedGateEngine + CheckpointManager     │            │

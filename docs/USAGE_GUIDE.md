@@ -721,26 +721,6 @@ channels:
     password: "${SMTP_PASSWORD}"
 ```
 
-#### 在代码中使用告警
-```python
-from scripts.alert_manager import AlertManager, AlertSeverity
-
-alerts = AlertManager()
-
-# 发送不同级别的告警
-alerts.send_alert(
-    severity=AlertSeverity.ERROR,
-    title="Gate Check Failed",
-    message="Build gate failed for project X",
-    channel="slack"  # 或 "email", "console", "all"
-)
-
-# 快捷函数
-from scripts.alert_manager import alert_error, alert_critical
-alert_error("Build Failed", "Error details here")
-alert_critical("System Down", "Production incident!")
-```
-
 ### 历史数据查询
 
 #### Python API

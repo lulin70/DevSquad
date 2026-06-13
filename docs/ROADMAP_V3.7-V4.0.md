@@ -134,7 +134,6 @@
 | **P2-Medium** | `cli.py` | ~600 lines | **27%** | 55% | +1.5% | 高 |
 | **P2-Medium** | `auth.py` | ~250 lines | **40%** | 70% | +0.5% | 低 |
 | **P2-Medium** | `history_manager.py` | ~200 lines | **38%** | 70% | +0.5% | 低 |
-| **P3-Low** | `alert_manager.py` | ~220 lines | **42%** | 70% | +0.4% | 低 |
 
 **预估总覆盖率提升**: +6.5% (从这些关键模块)
 
@@ -195,8 +194,7 @@
 
 | # | 测试文件名 | 目标模块 | 预估测试数 | 预估行数 | 测试类型 | 复杂度 |
 |---|-----------|----------|------------|----------|----------|--------|
-| 16 | `tests/test_alert_manager.py` | alert_manager.py | **25** | 550 | Unit | ⭐ |
-| 17 | `tests/test_code_quality_tool.py` | code_quality.py | **20** | 450 | Unit | ⭐ |
+| 16 | `tests/test_code_quality_tool.py` | code_quality.py | **20** | 450 | Unit | ⭐ |
 | 18 | `tests/test_feature_usage_tracker.py` | feature_usage_tracker.py | **25** | 550 | Unit | ⭐ |
 
 **Tier 4 小计**: **70 tests**, **1550 lines**

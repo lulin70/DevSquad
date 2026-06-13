@@ -31,12 +31,19 @@ import re
 import time
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 from .models import TaskDefinition, WorkerResult
 from .worker import Worker
 
 logger = logging.getLogger(__name__)
+
+# Lazy import for ExecutionGuard - graceful degradation
+_ExecutionGuard = None
+try:
+    from .execution_guard import ExecutionGuard as _ExecutionGuard
+except (ImportError, ModuleNotFoundError):
+    pass
 
 _SAFE_FILENAME_RE = re.compile(r"[^\w\-.]")
 _MAX_RULE_TEXT_LENGTH = 500
@@ -88,6 +95,7 @@ class EnhancedWorker(Worker):
         retry_provider=None,
         monitor_provider=None,
         memory_provider=None,
+        execution_guard: Any = None,
     ):
         """
         Initialize EnhancedWorker.
@@ -103,6 +111,9 @@ class EnhancedWorker(Worker):
             retry_provider: RetryProvider implementation (optional)
             monitor_provider: MonitorProvider implementation (optional)
             memory_provider: MemoryProvider implementation (optional, for rule injection)
+            execution_guard: ExecutionGuard instance for execution monitoring (optional;
+                           defaults to a standard ExecutionGuard if not provided and
+                           the module is available)
         """
         super().__init__(
             worker_id=worker_id,
@@ -117,6 +128,14 @@ class EnhancedWorker(Worker):
         self.retry_provider = retry_provider
         self.monitor_provider = monitor_provider
         self.memory_provider = memory_provider
+
+        # ExecutionGuard: use provided instance, or create default if available
+        if execution_guard is not None:
+            self.execution_guard = execution_guard
+        elif _ExecutionGuard is not None:
+            self.execution_guard = _ExecutionGuard(max_duration_sec=300, max_output_tokens=8000)
+        else:
+            self.execution_guard = None
 
         self._briefing = None
         self._briefing_loaded = False
@@ -221,6 +240,9 @@ class EnhancedWorker(Worker):
         """
         self._inject_rules_from_provider(task)
 
+        # Track elapsed time for ExecutionGuard
+        exec_start = time.monotonic()
+
         if self.retry_provider and self.retry_provider.is_available():
             try:
                 result = self.retry_provider.retry_with_fallback(
@@ -233,7 +255,36 @@ class EnhancedWorker(Worker):
         else:
             result = self._do_work_with_briefing(task)
 
+        elapsed_time = time.monotonic() - exec_start
+
         self._last_result = result
+
+        # ExecutionGuard: check abort conditions and warnings
+        if self.execution_guard and result.success and result.output:
+            output_text = result.output if isinstance(result.output, str) else str(result.output)
+            try:
+                should_abort, abort_reason = self.execution_guard.check_abort(
+                    output_text, elapsed_time
+                )
+                if should_abort:
+                    logger.warning(
+                        "ExecutionGuard abort triggered for worker %s: %s",
+                        self.worker_id, abort_reason,
+                    )
+                    if isinstance(result.output, dict):
+                        result.output["execution_guard_abort"] = True
+                        result.output["execution_guard_reason"] = abort_reason
+
+                warnings = self.execution_guard.check_warnings(output_text)
+                if warnings:
+                    logger.warning(
+                        "ExecutionGuard warnings for worker %s: %s",
+                        self.worker_id, ", ".join(warnings),
+                    )
+                    if isinstance(result.output, dict):
+                        result.output["execution_guard_warnings"] = warnings
+            except (ValueError, AttributeError, RuntimeError) as guard_err:
+                logger.debug("ExecutionGuard check failed: %s", guard_err)
 
         if self._confidence_scorer and result.success and result.output:
             try:
@@ -536,6 +587,10 @@ class EnhancedWorker(Worker):
                 "available": _is_available(self.memory_provider),
                 "type": type(self.memory_provider).__name__ if self.memory_provider else "none",
                 "rules_injected": len(self._injected_rules),
+            },
+            "execution_guard": {
+                "available": self.execution_guard is not None,
+                "type": type(self.execution_guard).__name__ if self.execution_guard else "none",
             },
             "briefing": {
                 "available": self._briefing is not None,

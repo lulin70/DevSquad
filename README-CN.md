@@ -73,10 +73,10 @@ python scripts/cli.py lifecycle build --visual --verbose
           ▼               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   业务逻辑层                                │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │AuthManager  │ │AlertManager │ │HistoryMgr   │           │
-│  │(RBAC 认证)  │ │(多通道)     │ │(SQLite TSDB)│           │
-│  └─────────────┘ └─────────────┘ └─────────────┘           │
+│  ┌─────────────┐ ┌─────────────┐           │
+│  │AuthManager  │ │HistoryMgr   │           │
+│  │(RBAC 认证)  │ │(SQLite TSDB)│           │
+│  └─────────────┘ └─────────────┘           │
 │  ┌─────────────────────────────────────────────┐            │
 │  │     LifecycleProtocol (11阶段引擎)           │            │
 │  │     UnifiedGateEngine + CheckpointManager     │            │

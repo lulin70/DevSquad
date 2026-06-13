@@ -7,6 +7,11 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.8] - 2026-06-13
+
+### Removed
+- **AlertManager** (`scripts/alert_manager.py`): Removed unused AlertManager module that was never called from any main flow. Multi-channel alerting (Console/Slack/Email/Webhook) is no longer available as a built-in feature.
+
 ## [3.6.7] - 2026-06-07
 
 ### Added - Redis Cache L2 Backend

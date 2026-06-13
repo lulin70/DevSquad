@@ -7,6 +7,11 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.6.8] - 2026-06-13
+
+### 移除
+- **AlertManager**（`scripts/alert_manager.py`）：移除了从未在主流程中被调用的 AlertManager 模块。多渠道告警（控制台/Slack/邮件/Webhook）不再作为内置功能提供。
+
 ## [3.6.7] - 2026-06-07
 
 ### 新增 - Redis 缓存 L2 后端

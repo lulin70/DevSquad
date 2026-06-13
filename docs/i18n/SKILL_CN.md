@@ -100,7 +100,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 | 60 | **APIDataModels** | `api/models.py` | Pydantic 验证模型：LifecyclePhase、GateResult、MetricsSnapshot、PhaseActionRequest/Result |
 | 61 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API 端点：阶段列表/详情、状态、动作执行、命令映射 |
 | 62 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API 端点：当前/历史指标、门控状态/检查、健康检查 |
-| 63 | **AlertManager** | `alert_manager.py` | 多渠道告警：控制台/Slack/邮件/Webhook，限流、去重、严重级别 |
+| 63 | **AlertManager** | `alert_manager.py` | *(V3.6.8 已移除)* 多渠道告警模块因未使用已被移除 |
 | 64 | **HistoryManager** | `history_manager.py` | SQLite 时序存储：指标快照、告警历史、API 日志、生命周期事件 |
 | 65 | **StreamlitDashboard** | `dashboard.py` | 交互式 Web 仪表盘，带认证、实时监控、阶段可视化 |
 | 66 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback 闭环迭代，持续改进 |

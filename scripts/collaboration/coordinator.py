@@ -70,6 +70,7 @@ class Coordinator:
         stream: bool = False,
         memory_provider: Any = None,
         briefing_mode: bool = True,
+        execution_guard: Any = None,
     ) -> None:
         """
         Initialize Coordinator.
@@ -82,6 +83,7 @@ class Coordinator:
             llm_backend: LLM execution backend (None=MockBackend, returns prompt text)
             memory_provider: MemoryProvider implementation (optional, for rule pre-check)
             briefing_mode: Enable inter-Agent briefing handoff (default True)
+            execution_guard: ExecutionGuard instance for worker execution monitoring (optional)
         """
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
@@ -96,6 +98,7 @@ class Coordinator:
         self.memory_provider = memory_provider
         self.briefing_mode = briefing_mode
         self._briefing_chain: list[Any] = []
+        self.execution_guard = execution_guard
 
     def plan_task(
         self, task_description: str, available_roles: List[Dict[str, str]], stage_id: Optional[str] = None
@@ -180,14 +183,38 @@ class Coordinator:
                     if info:
                         role_prompt = info.prompt_content[:2000]
 
-            worker = WorkerFactory.create(
-                worker_id=worker_id,
-                role_id=task.role_id,
-                role_prompt=role_prompt,
-                scratchpad=self.scratchpad,
-                llm_backend=self.llm_backend,
-                stream=getattr(self, "stream", False),
-            )
+            # Use EnhancedWorker when execution_guard is available
+            if self.execution_guard is not None:
+                try:
+                    from .enhanced_worker import EnhancedWorker
+
+                    worker = EnhancedWorker(
+                        worker_id=worker_id,
+                        role_id=task.role_id,
+                        role_prompt=role_prompt,
+                        scratchpad=self.scratchpad,
+                        llm_backend=self.llm_backend,
+                        stream=getattr(self, "stream", False),
+                        execution_guard=self.execution_guard,
+                    )
+                except (ImportError, ModuleNotFoundError):
+                    worker = WorkerFactory.create(
+                        worker_id=worker_id,
+                        role_id=task.role_id,
+                        role_prompt=role_prompt,
+                        scratchpad=self.scratchpad,
+                        llm_backend=self.llm_backend,
+                        stream=getattr(self, "stream", False),
+                    )
+            else:
+                worker = WorkerFactory.create(
+                    worker_id=worker_id,
+                    role_id=task.role_id,
+                    role_prompt=role_prompt,
+                    scratchpad=self.scratchpad,
+                    llm_backend=self.llm_backend,
+                    stream=getattr(self, "stream", False),
+                )
             self.workers[worker_id] = worker
         return list(self.workers.values())
 

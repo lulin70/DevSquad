@@ -145,6 +145,7 @@ class AsyncCoordinator:
         task_timeout: Optional[float] = None,
         max_concurrency: int = MAX_CONCURRENCY,
         enable_retry: bool = False,
+        execution_guard: Any = None,
     ) -> None:
         """
         Initialize AsyncCoordinator.
@@ -161,6 +162,7 @@ class AsyncCoordinator:
             max_concurrency: Maximum concurrent workers
             enable_retry: Enable AsyncLLMRetryManager for LLM calls with
                 exponential backoff, circuit breaker, and fallback support
+            execution_guard: ExecutionGuard instance for worker execution monitoring (optional)
         """
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
@@ -182,6 +184,7 @@ class AsyncCoordinator:
         self._briefing_chain: List[Any] = []
         self.task_timeout = task_timeout or self.DEFAULT_TASK_TIMEOUT
         self.max_concurrency = max_concurrency
+        self.execution_guard = execution_guard
         self._semaphore: Optional[asyncio.Semaphore] = None
 
         # Retry support
@@ -287,14 +290,38 @@ class AsyncCoordinator:
                     if info:
                         role_prompt = info.prompt_content[:2000]
 
-            worker = WorkerFactory.create(
-                worker_id=worker_id,
-                role_id=task.role_id,
-                role_prompt=role_prompt,
-                scratchpad=self.scratchpad,
-                llm_backend=self.llm_backend,
-                stream=getattr(self, "stream", False),
-            )
+            # Use EnhancedWorker when execution_guard is available
+            if self.execution_guard is not None:
+                try:
+                    from .enhanced_worker import EnhancedWorker
+
+                    worker = EnhancedWorker(
+                        worker_id=worker_id,
+                        role_id=task.role_id,
+                        role_prompt=role_prompt,
+                        scratchpad=self.scratchpad,
+                        llm_backend=self.llm_backend,
+                        stream=getattr(self, "stream", False),
+                        execution_guard=self.execution_guard,
+                    )
+                except (ImportError, ModuleNotFoundError):
+                    worker = WorkerFactory.create(
+                        worker_id=worker_id,
+                        role_id=task.role_id,
+                        role_prompt=role_prompt,
+                        scratchpad=self.scratchpad,
+                        llm_backend=self.llm_backend,
+                        stream=getattr(self, "stream", False),
+                    )
+            else:
+                worker = WorkerFactory.create(
+                    worker_id=worker_id,
+                    role_id=task.role_id,
+                    role_prompt=role_prompt,
+                    scratchpad=self.scratchpad,
+                    llm_backend=self.llm_backend,
+                    stream=getattr(self, "stream", False),
+                )
             self.workers[worker_id] = worker
             self._async_workers[worker_id] = AsyncWorkerWrapper(
                 worker, timeout=self.task_timeout

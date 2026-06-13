@@ -18,6 +18,30 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
+# Dispatch step → Lifecycle phase mapping
+# Maps the 18-step dispatch pipeline to the 11-phase lifecycle (P1-P11)
+DISPATCH_LIFECYCLE_MAPPING = {
+    "step0_tenant_setup": "P1_Requirements",
+    "step1_language": "P1_Requirements",
+    "step2_validation": "P1_Requirements",
+    "step3_rules": "P2_Architecture",
+    "step4_intent": "P2_Architecture",
+    "step5_role_match": "P3_Implementation",
+    "step6_security": "P6_Security",
+    "step7_preparation": "P3_Implementation",
+    "step8_execute": "P3_Implementation",
+    "step9_post_exec": "P4_Review",
+    "step10_consensus": "P4_Review",
+    "step11_permission": "P6_Security",
+    "step12_memory": "P5_Integration",
+    "step13_skillify": "P8_Optimization",
+    "step14_five_axis": "P4_Review",
+    "step15_retrospective": "P9_Retrospective",
+    "step16_assemble": "P10_Delivery",
+    "step17_hooks": "P10_Delivery",
+    "step18_feedback": "P11_Monitoring",
+}
+
 from .batch_scheduler import BatchScheduler
 from .concern_pack_loader import ConcernPackLoader
 from .consensus import ConsensusEngine
@@ -63,12 +87,13 @@ class MultiAgentDispatcher:
         enable_permission: bool = True,
         enable_memory: bool = True,
         enable_skillify: bool = True,
-        enable_quality_guard: bool = False,
+        enable_quality_guard: bool = True,
         enable_anchor_check: bool = True,
         enable_retrospective: bool = True,
         enable_usage_tracker: bool = True,
         enable_feedback_loop: bool = False,
         enable_redis_cache: bool = False,
+        enable_execution_guard: bool = True,
         redis_url: Optional[str] = None,
         compression_threshold: int = 100000,
         memory_dir: Optional[str] = None,
@@ -86,6 +111,7 @@ class MultiAgentDispatcher:
         self.enable_usage_tracker = enable_usage_tracker
         self.enable_feedback_loop = enable_feedback_loop
         self.enable_redis_cache = enable_redis_cache
+        self.enable_execution_guard = enable_execution_guard
         self.redis_url = redis_url
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
@@ -158,6 +184,16 @@ class MultiAgentDispatcher:
         """Initialize core components."""
         self.scratchpad = Scratchpad(persist_dir=self.persist_dir)
 
+        # Initialize ExecutionGuard if enabled (graceful degradation)
+        self.execution_guard = None
+        if self.enable_execution_guard:
+            try:
+                from .execution_guard import ExecutionGuard
+                self.execution_guard = ExecutionGuard()
+                logger.info("ExecutionGuard enabled")
+            except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as e:
+                logger.warning("ExecutionGuard initialization failed: %s", e)
+
         self.coordinator = Coordinator(
             scratchpad=self.scratchpad,
             persist_dir=self.persist_dir,
@@ -165,6 +201,7 @@ class MultiAgentDispatcher:
             compression_threshold=self.compression_threshold,
             llm_backend=self.llm_backend,
             stream=self.stream,
+            execution_guard=self.execution_guard,
         )
 
         self.batch_scheduler = BatchScheduler()
@@ -425,6 +462,7 @@ class MultiAgentDispatcher:
                 memory_provider=self.memory_bridge if self.enable_memory else None,
                 task_timeout=kwargs.get("task_timeout", 300),
                 max_concurrency=kwargs.get("max_concurrency", 10),
+                execution_guard=self.execution_guard,
             )
 
             async_plan = async_coordinator.plan_task(
@@ -674,6 +712,10 @@ class MultiAgentDispatcher:
             step_timings=step_timings,
             worker_results=worker_results,
         )
+
+        # Lifecycle phase trace
+        lifecycle_trace = self._build_lifecycle_trace(step_timings)
+        result.details["lifecycle_trace"] = lifecycle_trace
 
         # Audit: dispatch complete
         if self.audit_logger:
@@ -1027,8 +1069,20 @@ class MultiAgentDispatcher:
         return intent_match
 
     def _match_roles(self, task: str, roles: Optional[List[str]]) -> List[Dict[str, Any]]:
-        """Match roles via RoleMatcher and AISemanticMatcher."""
+        """Match roles via RoleMatcher, AISemanticMatcher, and enhanced adaptive/similar recommendations."""
         matched_roles = self.analyze_task(task)
+
+        # Enhanced role matching: merge adaptive and similar-task recommendations
+        try:
+            enhanced_roles = self.role_matcher.analyze_task_enhanced(task)
+            if enhanced_roles:
+                existing_ids = {r["role_id"] for r in matched_roles}
+                for er in enhanced_roles:
+                    if er["role_id"] not in existing_ids:
+                        matched_roles.append(er)
+                        existing_ids.add(er["role_id"])
+        except (ValueError, AttributeError, RuntimeError, OSError) as enhanced_err:
+            logger.debug("Enhanced role matching failed, using keyword-only results: %s", enhanced_err)
 
         if self.semantic_matcher and self.llm_backend:
             try:
@@ -1704,6 +1758,39 @@ class MultiAgentDispatcher:
         times = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12]
         return {name: round(times[i + 1] - times[i], 3) for i, name in enumerate(names)}
 
+    def _build_lifecycle_trace(self, step_timings: Dict[str, float]) -> Dict[str, Any]:
+        """Build lifecycle phase trace from step timings.
+
+        Maps dispatch pipeline steps to lifecycle phases (P1-P11),
+        aggregating timing per phase for observability.
+        """
+        step_to_lifecycle = {
+            "analyze": "P1_Requirements",
+            "warmup": "P2_Architecture",
+            "plan": "P3_Implementation",
+            "spawn": "P3_Implementation",
+            "execute": "P3_Implementation",
+            "collect": "P4_Review",
+            "consensus": "P4_Review",
+            "compress": "P5_Integration",
+            "permission": "P6_Security",
+            "memory": "P5_Integration",
+            "skillify": "P8_Optimization",
+        }
+
+        phase_durations: Dict[str, float] = {}
+        phase_steps: Dict[str, list[str]] = {}
+        for step_name, duration in step_timings.items():
+            phase = step_to_lifecycle.get(step_name, "P10_Delivery")
+            phase_durations[phase] = phase_durations.get(phase, 0.0) + duration
+            phase_steps.setdefault(phase, []).append(step_name)
+
+        return {
+            "lifecycle_phases": phase_durations,
+            "phase_steps": phase_steps,
+            "mapping_version": "1.0",
+        }
+
     def _post_dispatch_hooks(
         self, result: DispatchResult, task: str, role_ids: List[str], total_duration: float
     ) -> None:
@@ -1833,6 +1920,7 @@ class MultiAgentDispatcher:
                 "skillifier": self.skillifier is not None,
                 "quality_guard": self.quality_guard is not None,
                 "performance_monitor": True,
+                "execution_guard": self.execution_guard is not None,
             },
             "dispatch_count": len(self._dispatch_history),
             "scratchpad_stats": self.scratchpad.get_stats() if self.scratchpad else {},

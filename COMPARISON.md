@@ -83,7 +83,7 @@
 | **审计追踪** | ✅ SHA256 完整性链 | ❌ | ❌ | ⚠️ LangSmith |
 | **多租户隔离** | ✅ Shared DB/Schema/DB | ❌ | ❌ | ❌ |
 | **敏感数据脱敏** | ✅ PII 自动检测 | ❌ | ❌ | ❌ |
-| **监控告警** | ✅ Prometheus + AlertManager | ❌ | ❌ | ⚠️ LangSmith |
+| **监控告警** | ✅ Prometheus | ❌ | ❌ | ⚠️ LangSmith |
 | **性能监控** | ✅ 12 核心指标 | ⚠️ 基础日志 | ❌ | ⚠️ LangSmith |
 | **Docker 支持** | ✅ 多阶段构建 | ⚠️ 示例 | ⚠️ 文档 | ✅ 官方支持 |
 | **CI/CD 集成** | ✅ GitHub Actions | ⚠️ 示例 | ❌ | ✅ 官方支持 |
@@ -327,7 +327,7 @@ graph.invoke({"messages": []})
 | **审计日志** | ✅ SHA256 完整性链 | ❌ 无 | ❌ 无 | ⚠️ LangSmith |
 | **性能追踪** | ✅ PerformanceMonitor | ⚠️ 时间戳 | ❌ 无 | ⚠️ LangSmith |
 | **成本跟踪** | ✅ UsageTracker | ❌ 无 | ❌ 无 | ⚠️ LangSmith |
-| **告警通知** | ✅ AlertManager (4 channels) | ❌ 无 | ❌ 无 | ❌ 无 |
+| **告警通知** | ✅ Multi-channel (removed AlertManager in V3.6.8) | ❌ 无 | ❌ 无 | ❌ 无 |
 | **Dashboard** | ✅ Streamlit Web UI | ❌ CLI only | ❌ CLI only | ✅ LangSmith Studio |
 
 ---

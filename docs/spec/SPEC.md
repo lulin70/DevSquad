@@ -325,7 +325,6 @@ Control Loop Architecture (Feedback Systems)
 |----------|----------|--------|
 | `dashboard.py` | Streamlit Web Dashboard | **0%** |
 | `mcp_server.py` | MCP 协议服务器 | **0%** |
-| `alert_manager.py` | 告警管理器 | 42% |
 | `history_manager.py` | 历史记录管理 | 38% |
 | `code_quality.py` | 代码质量工具 | 55% |
 | `generate_benchmark_report.py` | 基准测试报告生成 | 30% |
