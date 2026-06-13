@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DevSquad V3.6.6 E2E Test: User Journey 2 - Architecture Review (Bob)
+DevSquad V3.6.8 E2E Test: User Journey 2 - Architecture Review (Bob)
 
 用户旅程：架构师进行技术方案评审
 故事：Bob 是团队的技术负责人，需要对「微服务 vs 单体架构」的选型做决策，

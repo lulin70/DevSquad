@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Final Integration Tests for DevSquad V3.6.0
+Final Integration Tests for DevSquad V3.6.8
 
 Target: Add ~60 tests to reach 750+ total coverage
 

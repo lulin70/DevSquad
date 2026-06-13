@@ -1,5 +1,5 @@
 name: test
-version: 3.6.0
+version: 3.6.8
 description: |
   测试策略生成与质量审计 Skill - 封装 TestQualityGuard
 

@@ -50,6 +50,7 @@ data/progress/
 data/workflows/
 data/memory-bank/
 data/role_templates/
+data/notifications/
 benchmarks/
 registry/
 /workflows/
@@ -151,3 +152,4 @@ install.sh
 *.log
 .mypy_cache/
 .ruff_cache/
+completions_cache.json

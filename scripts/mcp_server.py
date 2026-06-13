@@ -202,7 +202,7 @@ def create_mcp_server() -> "FastMCP":
             return json.dumps(
                 {
                     "name": "DevSquad",
-                    "version": "3.6.7",
+                    "version": "3.6.8",
                     "status": "ready",
                     "modules": 48,
                     "tests": 1548,
@@ -229,7 +229,7 @@ def create_mcp_server() -> "FastMCP":
             )
         except Exception:
             return json.dumps(
-                {"name": "DevSquad", "version": "3.6.7", "status": "ready", "error": "Internal error occurred"}
+                {"name": "DevSquad", "version": "3.6.8", "status": "ready", "error": "Internal error occurred"}
             )
 
     @mcp.tool()

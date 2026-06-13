@@ -62,11 +62,11 @@ class TestUniversalTable(unittest.TestCase):
 
     def test_universal_entries_have_non_empty_excuse(self):
         for row in self.engine._UNIVERSAL_TABLE:
-            self.assertTrue(len(row.excuse.strip()) > 0)
+            self.assertGreater(len(row.excuse.strip()), 0)
 
     def test_universal_entries_have_non_empty_reality(self):
         for row in self.engine._UNIVERSAL_TABLE:
-            self.assertTrue(len(row.reality.strip()) > 0)
+            self.assertGreater(len(row.reality.strip()), 0)
 
 
 class TestRoleSpecificTables(unittest.TestCase):
@@ -187,7 +187,7 @@ class TestFormatForPrompt(unittest.TestCase):
 
     def test_format_returns_non_empty_for_known_role(self):
         output = self.engine.format_for_prompt("architect")
-        self.assertTrue(len(output) > 0)
+        self.assertGreater(len(output), 0)
 
     def test_format_returns_empty_for_empty_table(self):
         engine = AntiRationalizationEngine()

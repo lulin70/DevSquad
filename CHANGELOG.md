@@ -9,8 +9,30 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [3.6.8] - 2026-06-13
 
+### Added
+- **FeedbackControlLoop auto mode + LLM refinement**: Feedback loop now supports "auto" mode that automatically iterates until quality gate passes, with LLM-based refinement suggestions
+- **AdaptiveRoleSelector + SimilarTaskRecommender integrated into RoleMatcher**: Smart role selection and task recommendation now available through the standard RoleMatcher interface
+- **ExecutionGuard integrated into EnhancedWorker**: Real-time abort guard (timeout/output/keywords) now active in all EnhancedWorker executions
+- **Lifecycle phase trace in dispatch pipeline**: Full lifecycle phase tracking added to the dispatch pipeline for better observability
+- **RBAC checks on get_history/audit_quality/export_metrics/clear_history**: Sensitive API endpoints now require proper RBAC authorization
+- **DispatchModels** (`dispatch_models.py`): Extracted DispatchResult + I18N + ROLE_TEMPLATES from dispatcher
+- **DispatchPerformance** (`dispatch_performance.py`): Extracted PerformanceMonitor from dispatcher
+- **MultiLevelCache** (`multi_level_cache.py`): Multi-level cache coordinator (memory→disk→Redis)
+
+### Changed
+- **TestQualityGuard default enabled**: Test quality auditing is now on by default
+- **enable_feedback_loop default False → "auto"**: Feedback loop now defaults to auto mode instead of disabled
+
 ### Removed
 - **AlertManager** (`scripts/alert_manager.py`): Removed unused AlertManager module that was never called from any main flow. Multi-channel alerting (Console/Slack/Email/Webhook) is no longer available as a built-in feature.
+
+### Fixed
+- **13+ files version sync to 3.6.8**: All version references updated across the codebase
+- **except Exception: pass silent error swallowing**: Replaced with specific exception types and proper logging
+- **assertTrue test anti-patterns**: Replaced loose assertions with precise assertEqual/assertIn assertions
+
+### Tests
+- **1940 passed, 11 skipped, 3 xpassed** (up from 1855+ in V3.6.7)
 
 ## [3.6.7] - 2026-06-07
 

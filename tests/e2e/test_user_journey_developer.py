@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DevSquad V3.6.6 E2E Test: User Journey 1 - Developer Onboarding (Alice)
+DevSquad V3.6.8 E2E Test: User Journey 1 - Developer Onboarding (Alice)
 
 用户旅程：开发者首次使用 DevSquad
 故事：Alice 是一名 Python 开发者，听说 DevSquad 可以让 AI 团队协助开发，

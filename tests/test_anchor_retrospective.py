@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for V3.6.0 AnchorChecker and RetrospectiveEngine
+Tests for V3.6.8 AnchorChecker and RetrospectiveEngine
 
 Covers: Happy path, error case, boundary, performance, configuration, integration
 """

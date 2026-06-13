@@ -1,5 +1,5 @@
 name: dispatch
-version: 3.6.0
+version: 3.6.8
 description: |
   DevSquad Dispatch — One task in, multi-AI collaboration out.
   Auto-detects intent, matches roles, runs parallel agents, produces report.

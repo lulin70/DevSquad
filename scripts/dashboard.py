@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DevSquad V3.6.7-C Dashboard (Streamlit Production-Grade)
+DevSquad V3.6.8-C Dashboard (Streamlit Production-Grade)
 
 Interactive web dashboard for lifecycle visualization, monitoring,
 and task dispatch.
@@ -858,7 +858,7 @@ def render_admin_system_config_page():
         },
         {"Item": "Platform", "Value": sys.platform},
         {"Item": "Working Directory", "Value": os.getcwd()},
-        {"Item": "DevSquad Version", "Value": "V3.6.7"},
+        {"Item": "DevSquad Version", "Value": "V3.6.8"},
         {"Item": "Dashboard Mode", "Value": "Production-Grade"},
     ]
     st.dataframe(sys_info, use_container_width=True, hide_index=True)
@@ -992,7 +992,7 @@ def render_footer(current_user: User | None = None):
 
     with col1:
         st.markdown(
-            "<center>**DevSquad V3.6.7** | Plan C | Production Ready | 🎨 Enhanced UI</center>", unsafe_allow_html=True
+            "<center>**DevSquad V3.6.8** | Plan C | Production Ready | 🎨 Enhanced UI</center>", unsafe_allow_html=True
         )
 
     with col2:

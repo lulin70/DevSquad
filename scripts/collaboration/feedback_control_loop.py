@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-FeedbackControlLoop - V3.6.0 Closed-Loop Iteration Engine
+FeedbackControlLoop - V3.6.8 Closed-Loop Iteration Engine
 
 Implements a "Sense-Decide-Act-Feedback" closed-loop iteration mechanism
 that continuously improves task execution quality through iterative refinement.

@@ -145,7 +145,7 @@ def cmd_demo(args):
     scenario = getattr(args, "scenario", "all")
 
     print("\n" + "=" * 60)
-    print("  🚀 DevSquad V3.6.7 Quick Demo")
+    print("  🚀 DevSquad V3.6.8 Quick Demo")
     print("=" * 60)
     print("  Mode: Mock (no API key required)\n")
 

@@ -2,17 +2,19 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.7 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
+  V3.6.8 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.6.7: Redis Cache L2 Backend (memory→disk→Redis three-tier),
-  Async Dispatch (asyncio.gather concurrent LLM calls), Dispatcher Refactor (788→18 step methods),
-  DispatchResult Bug Fix (5 missing fields), 1989+ tests passing, 65% maturity (honest assessment).
+  NEW in V3.6.8: FeedbackControlLoop auto mode + LLM refinement,
+  AdaptiveRoleSelector/SimilarTaskRecommender integrated into RoleMatcher,
+  ExecutionGuard integrated into EnhancedWorker, Lifecycle phase trace,
+  RBAC checks on sensitive APIs, Removed AlertManager,
+  1940+ tests passing, 73 core modules.
 ---
 
-# DevSquad V3.6.7 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V3.6.8 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -131,13 +133,16 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 61 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API endpoints: phases list/detail, status, actions execution, command mappings |
 | 62 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API endpoints: current/historical metrics, gate status/check, health check |
 | 63 | **AlertManager** | `alert_manager.py` | *(Removed in V3.6.8)* Multi-channel alerting was unused and removed |
-| 64 | **HistoryManager** | `history_manager.py` | SQLite time-series storage: metrics snapshots, alert history, API logs, lifecycle events |
-| 65 | **StreamlitDashboard** | `dashboard.py` | Interactive web dashboard with authentication, real-time monitoring, phase visualization |
-| 66 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback closed-loop iteration for continuous improvement |
-| 67 | **ExecutionGuard** | `execution_guard.py` | Real-time abort guard (timeout/output/keywords) for safe execution |
-| 68 | **PerformanceFingerprint** | `performance_fingerprint.py` | Unified fingerprint with TF-IDF similarity search for task matching |
-| 69 | **SimilarTaskRecommender** | `similar_task_recommender.py` | History-based task config recommendation using performance data |
-| 70 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | Success-rate-driven adaptive role selection for optimal team composition |
+| 64 | **DispatchModels** | `dispatch_models.py` | DispatchResult + I18N + ROLE_TEMPLATES (extracted from dispatcher) |
+| 65 | **DispatchPerformance** | `dispatch_performance.py` | PerformanceMonitor for dispatch pipeline (extracted from dispatcher) |
+| 66 | **MultiLevelCache** | `multi_level_cache.py` | Multi-level cache coordinator (memory→disk→Redis) |
+| 67 | **HistoryManager** | `history_manager.py` | SQLite time-series storage: metrics snapshots, alert history, API logs, lifecycle events |
+| 68 | **StreamlitDashboard** | `dashboard.py` | Interactive web dashboard with authentication, real-time monitoring, phase visualization |
+| 69 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback closed-loop iteration for continuous improvement |
+| 70 | **ExecutionGuard** | `execution_guard.py` | Real-time abort guard (timeout/output/keywords) for safe execution |
+| 71 | **PerformanceFingerprint** | `performance_fingerprint.py` | Unified fingerprint with TF-IDF similarity search for task matching |
+| 72 | **SimilarTaskRecommender** | `similar_task_recommender.py` | History-based task config recommendation using performance data |
+| 73 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | Success-rate-driven adaptive role selection for optimal team composition |
 
 ---
 
@@ -231,7 +236,7 @@ for name, skill in all_skills.items():
 
 ---
 
-## 🔄 Cybernetics Enhancement (V3.6.7)
+## 🔄 Cybernetics Enhancement (V3.6.8)
 
 > Inspired by upstream TraeMultiAgentSkill v2.5's cybernetics architecture.
 > 5 new modules that add feedback loops, execution guards, and intelligence to DevSquad.
@@ -592,7 +597,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.6.7",
+#   "version": "3.6.8",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
@@ -907,12 +912,13 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **Total** | **1855+** | **✅ ALL PASS** |
+| **Total** | **1940+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v3.6.8** (2026-06-13): FeedbackControlLoop auto mode + LLM refinement + AdaptiveRoleSelector/SimilarTaskRecommender integrated into RoleMatcher + ExecutionGuard integrated into EnhancedWorker + Lifecycle phase trace in dispatch pipeline + RBAC checks on get_history/audit_quality/export_metrics/clear_history + TestQualityGuard default enabled + enable_feedback_loop default False→"auto" + Removed AlertManager (unused) + 13+ files version sync to 3.6.8 + Fixed except Exception: pass silent error swallowing + Fixed assertTrue test anti-patterns + 1940 passed, 11 skipped, 3 xpassed
 - **v3.6.7** (2026-06-07): Redis Cache L2 Backend + Async Dispatch (asyncio.gather) + Dispatcher Refactor (788→18 step methods) + DispatchResult Bug Fix (5 missing fields) + 1855+ tests passing
 - **v3.6.6** (2026-06-02): Three-Layer Funnel Documentation + Framework Comparison (COMPARISON.md) + User Journey E2E Testing (16 tests, 100% pass) + InputValidator (40 detection patterns) + Security Fix (removed hardcoded token) + 1672+ tests passing
 - **v3.6.5** (2026-05-28): RBAC Engine (Preview) + Audit Logger (Preview) + Multi-Tenancy Manager (Preview) + Sensitive Data Masker (Preview) + AsyncIO Transformation (2x throughput) + Redis Cache Integration (95%+ hit rate) + Prometheus Monitoring (12 metrics) + E2E Test Suite (27 cases, 100% pass) + 65% maturity (honest assessment)

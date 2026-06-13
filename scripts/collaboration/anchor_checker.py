@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AnchorChecker - V3.6.0 Goal Alignment Engine
+AnchorChecker - V3.6.8 Goal Alignment Engine
 
 Checks whether current output remains aligned with the original task goal
 at key decision points (anchor points), preventing goal drift during

@@ -2,17 +2,19 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.7 DevSquad — Enterprise 多角色 AI 任务编排器。
+  V3.6.8 DevSquad — Enterprise 多角色 AI 任务编排器。
   一个任务输入，多角色 AI 协作，一个结论输出。
   7 个核心角色（架构师/产品经理/安全专家/测试专家/开发工程师/DevOps/UI 设计师），
   真实 LLM 后端（OpenAI/Anthropic/MOKA AI），CLI + MCP + Python API + REST API + Web Dashboard。
   ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
-  NEW in V3.6.7: Redis Cache L2 Backend (memory→disk→Redis three-tier),
-  Async Dispatch (asyncio.gather concurrent LLM calls), Dispatcher Refactor (788→18 step methods),
-  DispatchResult Bug Fix (5 missing fields), 1855+ tests passing, 65% 成熟度（诚实评估）.
+  NEW in V3.6.8: FeedbackControlLoop 自动模式 + LLM 精炼,
+  AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher,
+  ExecutionGuard 集成到 EnhancedWorker, 生命周期阶段追踪,
+  敏感 API 的 RBAC 检查, 移除 AlertManager,
+  1940+ 测试通过, 73 个核心模块.
 ---
 
-# DevSquad V3.6.7 — 多角色 AI 任务编排器（企业级就绪）
+# DevSquad V3.6.8 — 多角色 AI 任务编排器（企业级就绪）
 
 ## 🎯 一句话理解（3 秒）
 
@@ -101,13 +103,16 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 | 61 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API 端点：阶段列表/详情、状态、动作执行、命令映射 |
 | 62 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API 端点：当前/历史指标、门控状态/检查、健康检查 |
 | 63 | **AlertManager** | `alert_manager.py` | *(V3.6.8 已移除)* 多渠道告警模块因未使用已被移除 |
-| 64 | **HistoryManager** | `history_manager.py` | SQLite 时序存储：指标快照、告警历史、API 日志、生命周期事件 |
-| 65 | **StreamlitDashboard** | `dashboard.py` | 交互式 Web 仪表盘，带认证、实时监控、阶段可视化 |
-| 66 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback 闭环迭代，持续改进 |
-| 67 | **ExecutionGuard** | `execution_guard.py` | 实时中止守卫（超时/输出/关键词），保障安全执行 |
-| 68 | **PerformanceFingerprint** | `performance_fingerprint.py` | 统一性能指纹，TF-IDF 相似度搜索用于任务匹配 |
-| 69 | **SimilarTaskRecommender** | `similar_task_recommender.py` | 基于历史的任务配置推荐，使用性能数据 |
-| 70 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | 成功率驱动的自适应角色选择，优化团队组合 |
+| 64 | **DispatchModels** | `dispatch_models.py` | DispatchResult + I18N + ROLE_TEMPLATES（从 dispatcher 提取） |
+| 65 | **DispatchPerformance** | `dispatch_performance.py` | 调度流水线 PerformanceMonitor（从 dispatcher 提取） |
+| 66 | **MultiLevelCache** | `multi_level_cache.py` | 多级缓存协调器（内存→磁盘→Redis） |
+| 67 | **HistoryManager** | `history_manager.py` | SQLite 时序存储：指标快照、告警历史、API 日志、生命周期事件 |
+| 68 | **StreamlitDashboard** | `dashboard.py` | 交互式 Web 仪表盘，带认证、实时监控、阶段可视化 |
+| 69 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback 闭环迭代，持续改进 |
+| 70 | **ExecutionGuard** | `execution_guard.py` | 实时中止守卫（超时/输出/关键词），保障安全执行 |
+| 71 | **PerformanceFingerprint** | `performance_fingerprint.py` | 统一性能指纹，TF-IDF 相似度搜索用于任务匹配 |
+| 72 | **SimilarTaskRecommender** | `similar_task_recommender.py` | 基于历史的任务配置推荐，使用性能数据 |
+| 73 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | 成功率驱动的自适应角色选择，优化团队组合 |
 
 ---
 
@@ -875,11 +880,14 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **总计** | **1662+** | **✅ 全部通过** |
+| **总计** | **1940+** | **✅ 全部通过** |
 
 ---
 
 ## 版本历史
+
+- **v3.6.8** (2026-06-13): FeedbackControlLoop 自动模式 + LLM 精炼 + AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher + ExecutionGuard 集成到 EnhancedWorker + 调度流水线生命周期阶段追踪 + get_history/audit_quality/export_metrics/clear_history 的 RBAC 检查 + TestQualityGuard 默认启用 + enable_feedback_loop 默认值 False→"auto" + 移除 AlertManager（未使用）+ 13+ 文件版本同步至 3.6.8 + 修复 except Exception: pass 静默错误吞没 + 修复 assertTrue 测试反模式 + 1940 通过, 11 跳过, 3 预期外通过
+- **v3.6.7** (2026-06-07): Redis 缓存 L2 后端 + 异步调度 (asyncio.gather) + Dispatcher 重构 (788→18 步骤方法) + DispatchResult Bug 修复 (5 个缺失字段) + 1855+ 测试通过
 
 - **v3.4.2** (2026-05-03): P1 增强完成 — RoleTemplateMarket V2(27 测试) + OperationClassifier(29 测试) + OutputSlicer(26 测试) + FiveAxisConsensusEngine(29 测试) + CIFeedbackAdapter(22 测试) + 166 个新测试 + 53 个核心模块
 - **v3.4.1** (2026-05-03): Agent Skills 质量框架 (P0) — AntiRationalizationEngine(39 测试) + VerificationGate(42 测试) + IntentWorkflowMapper(58 测试) + CLI Lifecycle Commands(28 测试) + 167 个新测试 + Google Agent Skills 集成 + 49 个核心模块

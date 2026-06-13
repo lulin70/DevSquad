@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DevSquad V3.6.0 Full Project Workflow Example
+DevSquad V3.6.8 Full Project Workflow Example
 
 Demonstrates a complete project lifecycle from requirements to deployment
 using the FULL mode 11-phase lifecycle.
@@ -435,7 +435,7 @@ class ProjectWorkflowDemo:
 
 def main():
     """Run full project workflow demo."""
-    print("🚀 DevSquad V3.6.0 Full Project Workflow Example")
+    print("🚀 DevSquad V3.6.8 Full Project Workflow Example")
     print("=" * 60)
     print("Simulating complete lifecycle: UserAPI Service")
     print()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AdaptiveRoleSelector - V3.6.0 Statistics-based Adaptive Role Selection
+AdaptiveRoleSelector - V3.6.8 Statistics-based Adaptive Role Selection
 
 Intelligently selects role combinations based on historical success rates and performance data.
 Uses a three-tier strategy to find optimal roles for different scenarios.

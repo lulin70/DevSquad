@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DevSquad V3.6.0 快速入门 Demo
+DevSquad V3.6.8 快速入门 Demo
 
 展示 DevSquad 核心功能的 3 个典型场景：
   场景1: Bug修复（中文意图检测）
@@ -385,7 +385,7 @@ def main():
     if RICH_AVAILABLE:
         console.print(
             Panel(
-                "[bold green]DevSquad V3.6.0 快速入门 Demo[/bold green]\n\n"
+                "[bold green]DevSquad V3.6.8 快速入门 Demo[/bold green]\n\n"
                 "展示核心功能的 3 个典型场景\n"
                 "[dim]使用 Mock 后端 | 无需 API Key | 运行时间 < 15s[/dim]",
                 title="🚀 DevSquad Quick Demo",
@@ -395,7 +395,7 @@ def main():
         )
     else:
         print("\n" + "=" * 60)
-        print("  🚀 DevSquad V3.6.0 快速入门 Demo")
+        print("  🚀 DevSquad V3.6.8 快速入门 Demo")
         print("=" * 60)
         print("  展示核心功能的 3 个典型场景")
         print("  使用 Mock 后端 | 无需 API Key\n")

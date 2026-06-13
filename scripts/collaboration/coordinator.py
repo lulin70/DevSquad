@@ -12,9 +12,12 @@ Core component for multi-Worker collaboration:
 7. Rule pre-check via MemoryProvider (optional)
 """
 
+import logging
 import time
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 from .consensus import ConsensusEngine
 from .context_compressor import CompressedContext, CompressionLevel, ContextCompressor, Message, MessageType
@@ -427,8 +430,8 @@ class Coordinator:
             if isinstance(worker, EnhancedWorker) and self._briefing_chain:
                 merged = self._merge_briefings(self._briefing_chain)
                 worker.receive_briefing(merged)
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.debug("Briefing injection failed: %s", _e)
 
     def _collect_briefing_from_worker(self, worker: Any) -> None:
         """Collect compressed briefing from a Worker after execution."""
@@ -439,8 +442,8 @@ class Coordinator:
                 briefing = worker.compress_to_briefing()
                 if briefing and briefing.result_summary:
                     self._briefing_chain.append(briefing)
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.debug("Briefing collection failed: %s", _e)
 
     def _merge_briefings(self, briefings: list[Any]) -> Any:
         """Merge multiple Agent briefings into a single composite briefing."""
@@ -520,7 +523,8 @@ class Coordinator:
                             rules.append(rs)
                 if rules:
                     role_rules[worker.role_id] = rules if isinstance(rules, list) else []
-            except Exception:
+            except Exception as _e:
+                logger.debug("Rule extraction failed for worker %s: %s", worker.role_id, _e)
                 continue
 
         return role_rules

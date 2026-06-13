@@ -9,8 +9,30 @@
 
 ## [3.6.8] - 2026-06-13
 
+### 新增
+- **FeedbackControlLoop 自动模式 + LLM 精炼**：反馈循环现在支持"auto"模式，自动迭代直到质量门控通过，并提供基于 LLM 的精炼建议
+- **AdaptiveRoleSelector + SimilarTaskRecommender 集成到 RoleMatcher**：智能角色选择和任务推荐现在通过标准 RoleMatcher 接口可用
+- **ExecutionGuard 集成到 EnhancedWorker**：实时中止守卫（超时/输出/关键词）现在在所有 EnhancedWorker 执行中生效
+- **调度流水线中的生命周期阶段追踪**：调度流水线新增完整的生命周期阶段追踪，提升可观测性
+- **get_history/audit_quality/export_metrics/clear_history 的 RBAC 检查**：敏感 API 端点现在需要适当的 RBAC 授权
+- **DispatchModels**（`dispatch_models.py`）：从 dispatcher 中提取的 DispatchResult + I18N + ROLE_TEMPLATES
+- **DispatchPerformance**（`dispatch_performance.py`）：从 dispatcher 中提取的 PerformanceMonitor
+- **MultiLevelCache**（`multi_level_cache.py`）：多级缓存协调器（内存→磁盘→Redis）
+
+### 变更
+- **TestQualityGuard 默认启用**：测试质量审计现在默认开启
+- **enable_feedback_loop 默认值 False → "auto"**：反馈循环现在默认为自动模式而非禁用
+
 ### 移除
 - **AlertManager**（`scripts/alert_manager.py`）：移除了从未在主流程中被调用的 AlertManager 模块。多渠道告警（控制台/Slack/邮件/Webhook）不再作为内置功能提供。
+
+### 修复
+- **13+ 文件版本同步至 3.6.8**：代码库中所有版本引用已更新
+- **except Exception: pass 静默错误吞没**：替换为具体异常类型和适当的日志记录
+- **assertTrue 测试反模式**：将松散断言替换为精确的 assertEqual/assertIn 断言
+
+### 测试
+- **1940 通过，11 跳过，3 预期外通过**（从 V3.6.7 的 1855+ 提升）
 
 ## [3.6.7] - 2026-06-07
 

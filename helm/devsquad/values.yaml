@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: devsquad
-  tag: "3.6.0"
+  tag: "3.6.8"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []

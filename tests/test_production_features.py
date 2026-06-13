@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Suite for DevSquad V3.6.0 Production Features
+Test Suite for DevSquad V3.6.8 Production Features
 
 Tests for:
   - Authentication system (scripts/auth.py)

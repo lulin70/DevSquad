@@ -1,5 +1,5 @@
 """
-DevSquad V3.6.0 — Layered Sub-Skill Architecture
+DevSquad V3.6.8 — Layered Sub-Skill Architecture
 
 This package provides fine-grained, independently usable skills that wrap
 DevSquad's core modules. Each sub-skill is a thin handler (~50 lines) that
@@ -29,4 +29,4 @@ All sub-skills work with Mock backend by default (no API key needed).
 from .registry import BaseSkill, discover_all, get_skill, list_skills
 
 __all__ = ["BaseSkill", "get_skill", "list_skills", "discover_all"]
-__version__ = "3.6.7"
+__version__ = "3.6.8"

@@ -240,7 +240,7 @@ class TestClawExtractTags(unittest.TestCase):
         tags = WorkBuddyClawSource._extract_tags(
             "\u8fd9\u662f\u4e00\u4e2a\u6d4b\u8bd5\u6587\u672c\uff0c\u542b\u6709Python\u548cAI\u5173\u952e\u8bcd"
         )
-        self.assertTrue(len(tags) > 0, "Should extract at least one Chinese tag")
+        self.assertGreater(len(tags), 0, "Should extract at least one Chinese tag")
 
     def test_extract_tags_english(self):
         tags = WorkBuddyClawSource._extract_tags("This is a test text with Python and machine learning keywords")

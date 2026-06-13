@@ -806,8 +806,8 @@ class MultiAgentDispatcher:
         """Safely execute Prometheus metrics callback."""
         try:
             fn(get_metrics())
-        except Exception:
-            pass
+        except Exception as _me:
+            logger.debug("Metrics recording failed: %s", _me)
 
     def _handle_dispatch_error(
         self,
@@ -1196,14 +1196,14 @@ class MultiAgentDispatcher:
 
         step5_time = time.time()
 
-        # V3.6.0: Parse structured goal for anchor checking
+        # V3.6.8: Parse structured goal for anchor checking
         structured_goal = None
         if self.anchor_checker:
             structured_goal = self.anchor_checker.parse_goal(task)
             if self.usage_tracker:
                 self.usage_tracker.tick("anchor_check")
 
-        # V3.6.0: Load historical retrospectives into Scratchpad
+        # V3.6.8: Load historical retrospectives into Scratchpad
         self._load_historical_retrospectives(task)
 
         return plan, structured_goal, {
@@ -1305,7 +1305,7 @@ class MultiAgentDispatcher:
                         entry_type=EntryType.WARNING,
                         content=f"[Anchor Drift] {anchor_result.recommendation}",
                         confidence=0.9,
-                        tags=["anchor-drift", "v3.6.0"],
+                        tags=["anchor-drift", "v3.6.8"],
                     )
                 )
             return anchor_result
@@ -1997,12 +1997,31 @@ class MultiAgentDispatcher:
         except (AttributeError, ValueError, OSError):
             status["memory_stats"] = None
 
-    def get_history(self, limit: int = 10) -> list[dict[str, Any]]:
+    def get_history(self, limit: int = 10, **kwargs: Any) -> list[dict[str, Any]]:
         """Get dispatch history."""
+        if self.rbac_engine:
+            try:
+                user_id = kwargs.get('user_id', 'default')
+                self.rbac_engine.enforce(user_id, Permission.TASK_READ)
+            except PermissionDeniedError as e:
+                logger.warning("RBAC denied: %s", e)
+                return []
         return [r.to_dict() for r in self._dispatch_history[-limit:]]
 
-    def audit_quality(self, module_path: str | None = None, test_path: str | None = None) -> TestQualityReport:
+    def audit_quality(self, module_path: str | None = None, test_path: str | None = None, **kwargs: Any) -> TestQualityReport:
         """Execute test quality audit (P1 integration)."""
+        if self.rbac_engine:
+            try:
+                user_id = kwargs.get('user_id', 'default')
+                self.rbac_engine.enforce(user_id, Permission.TASK_READ)
+            except PermissionDeniedError as e:
+                logger.warning("RBAC denied: %s", e)
+                return TestQualityReport(
+                    module_name="rbac_denied",
+                    test_file="",
+                    source_file="",
+                )
+
         if not self.quality_guard:
             self.quality_guard = TestQualityGuard("", "")
 
@@ -2055,12 +2074,26 @@ class MultiAgentDispatcher:
         """Check for performance regression."""
         return self._perf_monitor.detect_regression()
 
-    def export_performance_metrics(self, output_file: str) -> None:
+    def export_performance_metrics(self, output_file: str, **kwargs: Any) -> None:
         """Export performance metrics to file."""
+        if self.rbac_engine:
+            try:
+                user_id = kwargs.get('user_id', 'default')
+                self.rbac_engine.enforce(user_id, Permission.TASK_READ)
+            except PermissionDeniedError as e:
+                logger.warning("RBAC denied: %s", e)
+                return
         self._perf_monitor.export_metrics(output_file, allowed_base_dir=self.persist_dir)
 
-    def clear_performance_history(self) -> None:
+    def clear_performance_history(self, **kwargs: Any) -> None:
         """Clear performance history."""
+        if self.rbac_engine:
+            try:
+                user_id = kwargs.get('user_id', 'default')
+                self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
+            except PermissionDeniedError as e:
+                logger.warning("RBAC denied: %s", e)
+                return
         self._perf_monitor.clear()
         logger.info("Performance history cleared")
 
