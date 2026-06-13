@@ -210,7 +210,7 @@ class LLMCache:
                     # Prometheus: record cache hit
                     try:
                         get_metrics().record_cache_hit("l1", "llm_response")
-                    except Exception as e:  # Broad catch: optional metrics
+                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return result
                 with self._lock:
@@ -218,7 +218,7 @@ class LLMCache:
                 # Prometheus: record cache miss
                 try:
                     get_metrics().record_cache_miss("l1", "llm_response")
-                except Exception as e:  # Broad catch: optional metrics
+                except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                     logger.debug(f"Prometheus cache miss recording failed: {e}")
                 return None
             except (RuntimeError, AttributeError, KeyError, OSError) as e:
@@ -237,7 +237,7 @@ class LLMCache:
                     # Prometheus: record cache hit (L1 memory)
                     try:
                         get_metrics().record_cache_hit("l1", "llm_response")
-                    except Exception as e:  # Broad catch: optional metrics
+                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return entry.response
                 else:
@@ -266,7 +266,7 @@ class LLMCache:
                     # Prometheus: record cache hit (L1 disk)
                     try:
                         get_metrics().record_cache_hit("l1", "llm_response")
-                    except Exception as e:  # Broad catch: optional metrics
+                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     return entry.response
                 else:
@@ -294,7 +294,7 @@ class LLMCache:
                     # Prometheus: record cache hit (L2 Redis)
                     try:
                         get_metrics().record_cache_hit("l2", "llm_response")
-                    except Exception as e:  # Broad catch: optional metrics
+                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug(f"Prometheus cache hit recording failed: {e}")
                     logger.debug("Redis L2 cache hit for key %s", redis_key[:16])
                     return redis_value
@@ -306,7 +306,7 @@ class LLMCache:
         # Prometheus: record cache miss
         try:
             get_metrics().record_cache_miss("l1", "llm_response")
-        except Exception as e:  # Broad catch: optional metrics
+        except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
             logger.debug(f"Prometheus cache miss recording failed: {e}")
         return None
 

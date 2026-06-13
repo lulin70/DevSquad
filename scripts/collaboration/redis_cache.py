@@ -193,7 +193,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
                 return result
 
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 last_error = e
                 self._stats.errors += 1
 
@@ -217,13 +217,13 @@ class RedisCacheBackend(CacheBackendInterface):
         if self._client:
             try:
                 await self._client.close()
-            except Exception:
+            except (OSError, RuntimeError, AttributeError):
                 pass
 
         if self._pool:
             try:
                 await self._pool.disconnect()
-            except Exception:
+            except (OSError, RuntimeError, AttributeError):
                 pass
 
         self._client = None
@@ -724,7 +724,7 @@ async def test_redis_cache_backend():
         print(f"\n⚠️  Skipping test (redis not installed): {e}")
         print("   Install with: pip install redis[asyncio]")
         return False
-    except Exception as e:  # Broad catch: test harness
+    except (ConnectionError, TimeoutError, OSError, ValueError, RuntimeError) as e:  # Broad catch: test harness
         print(f"\n❌ Test failed: {e}")
         import traceback
         traceback.print_exc()

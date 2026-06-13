@@ -219,7 +219,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
                     max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 )
                 return response.choices[0].message.content or ""
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 last_error = e
                 if attempt < self.MAX_RETRIES - 1:
                     await asyncio.sleep(2**attempt)
@@ -260,7 +260,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
         try:
             await self._get_client()
             return True
-        except Exception:
+        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):
             return False
 
     async def close(self) -> None:
@@ -341,7 +341,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                     messages=[{"role": "user", "content": prompt}],
                 )
                 return response.content[0].text if response.content else ""
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 last_error = e
                 if attempt < self.MAX_RETRIES - 1:
                     await asyncio.sleep(2**attempt)
@@ -378,7 +378,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
         try:
             await self._get_client()
             return True
-        except Exception:
+        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):
             return False
 
     async def close(self) -> None:
@@ -452,7 +452,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
                         "AsyncFallbackBackend: switched to %s", backend_repr
                     )
                 return result
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 last_error = e
                 self._mark_failed(backend_repr)
                 logger.warning(
@@ -490,7 +490,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
                 async for chunk in backend.generate_stream(prompt, **kwargs):
                     yield chunk
                 return
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 last_error = e
                 self._mark_failed(backend_repr)
                 logger.warning(

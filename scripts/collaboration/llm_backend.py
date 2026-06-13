@@ -165,17 +165,17 @@ class OpenAIBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, True)
-                except Exception:  # Broad catch: optional metrics
+                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
                     pass
                 return response.choices[0].message.content or ""
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
                 # Prometheus: record failed LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, False)
-                except Exception:  # Broad catch: optional metrics
+                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
                     pass
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2**attempt)
@@ -199,7 +199,7 @@ class OpenAIBackend(LLMBackend):
         try:
             self._get_client()
             return True
-        except Exception:  # Broad catch: health check
+        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):  # Broad catch: health check
             return False
 
 
@@ -259,17 +259,17 @@ class AnthropicBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, True)
-                except Exception:  # Broad catch: optional metrics
+                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
                     pass
                 return response.content[0].text if response.content else ""
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
                 # Prometheus: record failed LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, False)
-                except Exception:  # Broad catch: optional metrics
+                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
                     pass
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(2**attempt)
@@ -289,7 +289,7 @@ class AnthropicBackend(LLMBackend):
         try:
             self._get_client()
             return True
-        except Exception:  # Broad catch: health check
+        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):  # Broad catch: health check
             return False
 
 
@@ -361,10 +361,10 @@ class FallbackBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, True)
-                except Exception:  # Broad catch: optional metrics
+                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
                     pass
                 return result
-            except Exception as e:  # Broad catch: LLM API call can fail in many ways
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:  # Broad catch: LLM API call can fail in many ways
                 last_error = e
                 _llm_duration = time.time() - _llm_start if '_llm_start' in dir() else 0
                 self._mark_failed(backend_repr)
@@ -377,7 +377,7 @@ class FallbackBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, False)
-                except Exception:  # Broad catch: optional metrics
+                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
                     pass
 
         raise last_error or RuntimeError("All backends failed with no specific error")
@@ -405,7 +405,7 @@ class FallbackBackend(LLMBackend):
                 for chunk in backend.generate_stream(prompt, **kwargs):
                     yield chunk
                 return
-            except Exception as e:
+            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 last_error = e
                 self._mark_failed(backend_repr)
                 logger.warning(

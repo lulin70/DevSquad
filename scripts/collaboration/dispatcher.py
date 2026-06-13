@@ -49,6 +49,7 @@ from .context_compressor import ContextCompressor
 from .coordinator import Coordinator
 from .dispatch_models import DispatchResult, I18N, PLANNED_ROLES, ROLE_TEMPLATES, PerformanceMetric, PerformanceThresholds
 from .dispatch_performance import PerformanceMonitor
+from .enterprise_mixin import EnterpriseMixin
 from .input_validator import InputValidator
 from .memory_bridge import EpisodicMemory, MemoryBridge
 from .models import EntryType
@@ -72,7 +73,7 @@ from .async_llm_backend import AsyncLLMBackendFactory
 from .async_adapter import SyncToAsyncAdapter, AutoBackendSelector
 from .llm_cache_async import AsyncLLMCache
 
-class MultiAgentDispatcher:
+class MultiAgentDispatcher(EnterpriseMixin):
     """V3 Unified Multi-Agent Collaboration Dispatcher.
 
     Pipeline: Intent → Roles → Coordinator → Workers → Scratchpad →
@@ -132,46 +133,6 @@ class MultiAgentDispatcher:
         self._mce_adapter = mce_adapter
         self._init_components()
         self._init_enterprise_features(**kwargs)
-
-    def _init_enterprise_features(self, **kwargs: Any) -> None:
-        """Initialize enterprise features: RBAC, Audit, Multi-Tenant."""
-        self.enable_rbac = kwargs.get('enable_rbac', True)
-        self.enable_audit = kwargs.get('enable_audit', True)
-        self.enable_data_masking = kwargs.get('enable_data_masking', True)
-        self.enable_multi_tenant = kwargs.get('enable_multi_tenant', True)
-
-        self.rbac_engine = None
-        self.audit_logger = None
-        self.data_masker = None
-        self.tenant_manager = None
-
-        if self.enable_rbac:
-            try:
-                self.rbac_engine = RBACEngine()
-                from .rbac_engine import RBACUser, UserRole
-                self.rbac_engine.add_user(RBACUser("default", "default_admin", {UserRole.SUPER_ADMIN}))
-                logger.info("RBAC Engine enabled")
-            except (ImportError, AttributeError, RuntimeError, OSError) as e:
-                logger.warning(f"RBAC Engine initialization failed: {e}")
-
-        if self.enable_audit:
-            try:
-                audit_dir = os.path.join(self.persist_dir, "audit") if self.persist_dir else ".devsquad_data/audit"
-                self.audit_logger = AuditLogger(log_dir=audit_dir)
-                if self.enable_data_masking:
-                    self.data_masker = SensitiveDataMasker()
-                logger.info(f"Audit Logger enabled (data_masking={self.enable_data_masking})")
-            except (ImportError, AttributeError, RuntimeError, OSError) as e:
-                logger.warning(f"Audit Logger initialization failed: {e}")
-
-        if self.enable_multi_tenant:
-            try:
-                self.tenant_manager = MultiTenantManager()
-                from .multi_tenant import Tenant
-                self.tenant_manager.create_tenant(Tenant(tenant_id="default", name="Default Tenant"))
-                logger.info("Multi-Tenant Manager enabled")
-            except (ImportError, AttributeError, RuntimeError, OSError) as e:
-                logger.warning(f"Multi-Tenant Manager initialization failed: {e}")
 
     def _init_components(self) -> None:
         """Initialize all v3 components."""
@@ -365,7 +326,7 @@ class MultiAgentDispatcher:
             return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
         except (ImportError, ModuleNotFoundError) as import_err:
             return self._handle_dispatch_error(import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
-        except Exception as e:
+        except (RuntimeError, OSError, ConnectionError, TimeoutError) as e:
             return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang)
 
     async def async_dispatch(
@@ -424,7 +385,7 @@ class MultiAgentDispatcher:
             return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
         except (ImportError, ModuleNotFoundError) as import_err:
             return self._handle_dispatch_error(import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
-        except Exception as e:
+        except (RuntimeError, OSError, ConnectionError, TimeoutError) as e:
             return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
 
     async def _execute_async_workers(
@@ -522,7 +483,7 @@ class MultiAgentDispatcher:
     ):
         """Steps 0-7: tenant setup, validation, intent, roles, preparation."""
         # Step 0: Multi-tenant context setup
-        tenant_ctx = self._setup_tenant_context(kwargs, start_time)
+        tenant_ctx = self._set_tenant_context(kwargs, start_time)
         if isinstance(tenant_ctx, DispatchResult):
             return self._make_early_pre_result(
                 task_description, self.lang, None, tenant_ctx,
@@ -563,17 +524,7 @@ class MultiAgentDispatcher:
         intent_match = self._detect_intent(task_description, lang)
 
         # Audit: dispatch start
-        if self.audit_logger:
-            try:
-                self.audit_logger.log(
-                    user_id=kwargs.get('user_id', 'system'),
-                    action="task:dispatch_start",
-                    resource_type="Task",
-                    resource_id="unknown",
-                    details={"task": task_description[:200]}
-                )
-            except (OSError, AttributeError, KeyError) as e:
-                logger.debug(f"Audit logging failed: {e}")
+        self._audit_dispatch_start(task_description, **kwargs)
 
         # Step 5: Match roles
         matched_roles = self._match_roles(task_description, roles)
@@ -718,17 +669,7 @@ class MultiAgentDispatcher:
         result.details["lifecycle_trace"] = lifecycle_trace
 
         # Audit: dispatch complete
-        if self.audit_logger:
-            try:
-                self.audit_logger.log(
-                    user_id=kwargs.get('user_id', 'system'),
-                    action="task:dispatch_complete",
-                    resource_type="Task",
-                    resource_id="unknown",
-                    result="success" if result.success else "failure"
-                )
-            except (OSError, AttributeError, KeyError) as e:
-                logger.debug(f"Audit logging failed: {e}")
+        self._audit_dispatch_complete(result, **kwargs)
 
         # Step 17: Post-dispatch hooks
         self._post_dispatch_hooks(result, task_description, role_ids, total_duration)
@@ -746,67 +687,15 @@ class MultiAgentDispatcher:
         ))
 
         # Multi-tenant context cleanup
-        self._cleanup_tenant_context(pre_result.tenant_ctx)
+        self._clear_tenant_context(pre_result.tenant_ctx)
 
         return result
-
-    def _setup_tenant_context(self, kwargs: Dict[str, Any], start_time: float) -> Any:
-        """Set up multi-tenant context. Returns context manager or DispatchResult on quota error."""
-        if not self.enable_multi_tenant or not self.tenant_manager:
-            return None
-        tenant_id = kwargs.get('tenant_id', 'default')
-        user_id = kwargs.get('user_id', 'default')
-        if not tenant_id:
-            return None
-        try:
-            tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
-            tenant_ctx.__enter__()
-            if not self.tenant_manager.check_quota("tasks"):
-                return DispatchResult(
-                    success=False, task_description="",
-                    error="Quota exceeded", matched_roles=[],
-                    summary="Quota exceeded for tenant",
-                    errors=["Quota exceeded"],
-                    duration_seconds=time.time() - start_time,
-                )
-            return tenant_ctx
-        except (AttributeError, KeyError, RuntimeError, OSError) as e:
-            logger.warning(f"Multi-tenant setup failed: {e}")
-            return None
-
-    def _check_rbac_access(self, kwargs: Dict[str, Any], task: str, lang: str, start_time: float) -> Optional[DispatchResult]:
-        """Check RBAC access. Returns DispatchResult if denied, None if allowed."""
-        if not self.enable_rbac or not self.rbac_engine:
-            return None
-        try:
-            user_id = kwargs.get('user_id', 'default')
-            self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
-            return None
-        except PermissionDeniedError as e:
-            return DispatchResult(
-                success=False, task_description=task,
-                error=f"Permission denied: {e}", matched_roles=[],
-                summary=f"Permission denied: {e}",
-                errors=[f"Permission denied: {e}"],
-                duration_seconds=time.time() - start_time, lang=lang,
-            )
-        except (AttributeError, RuntimeError, KeyError) as e:
-            logger.warning(f"RBAC check failed: {e}")
-            return None
-
-    def _cleanup_tenant_context(self, tenant_ctx: Any) -> None:
-        """Clean up tenant context if active."""
-        if tenant_ctx:
-            try:
-                tenant_ctx.__exit__(None, None, None)
-            except (AttributeError, RuntimeError, OSError) as e:
-                logger.debug(f"Tenant context cleanup failed: {e}")
 
     def _safe_metrics(self, fn) -> None:
         """Safely execute Prometheus metrics callback."""
         try:
             fn(get_metrics())
-        except Exception as _me:
+        except (ValueError, KeyError, AttributeError, RuntimeError) as _me:
             logger.debug("Metrics recording failed: %s", _me)
 
     def _handle_dispatch_error(
@@ -840,7 +729,7 @@ class MultiAgentDispatcher:
             )
             error_key, metrics_label = "dispatch_failed", "unknown"
 
-        self._cleanup_tenant_context(tenant_ctx)
+        self._clear_tenant_context(tenant_ctx)
         self._safe_metrics(lambda m: (
             m.record_error(metrics_label, "dispatcher"),
             m.tasks_in_progress_gauge.labels(phase=phase).dec(),
@@ -967,7 +856,7 @@ class MultiAgentDispatcher:
         try:
             if not hasattr(self, "_std_template_cache"):
                 self._std_template_cache: Dict[str, Any] = {}
-        except Exception:  # Broad catch: defensive attribute check
+        except (AttributeError, RuntimeError):  # Broad catch: defensive attribute check
             self._std_template_cache = {}
 
         if roles:
@@ -1457,7 +1346,7 @@ class MultiAgentDispatcher:
             except (ValueError, KeyError, AttributeError) as mem_val_err:
                 logger.debug("MemoryBridge data error: %s", mem_val_err)
                 errors.append(f"MemoryBridge data error: {mem_val_err}")
-            except Exception as mem_err:  # Broad catch: unpredictable memory system
+            except (OSError, ConnectionError, TimeoutError, RuntimeError) as mem_err:  # Broad catch: unpredictable memory system
                 logger.warning("Unexpected MemoryBridge error: %s - %s", type(mem_err).__name__, mem_err)
                 errors.append(f"MemoryBridge unexpected error: {type(mem_err).__name__}")
 
@@ -1490,7 +1379,7 @@ class MultiAgentDispatcher:
             except (TimeoutError, ConnectionError) as mce_timeout:
                 logger.warning("MCE classify timeout/connection error: %s", mce_timeout)
                 errors.append(f"MCE classify timeout error: {mce_timeout}")
-            except Exception as mce_err:  # Broad catch: unpredictable MCE system
+            except (OSError, ConnectionError, TimeoutError, ValueError, TypeError, RuntimeError) as mce_err:  # Broad catch: unpredictable MCE system
                 logger.warning("Unexpected MCE classify error: %s - %s", type(mce_err).__name__, mce_err)
                 errors.append(f"MCE classify unexpected error: {type(mce_err).__name__}")
 
@@ -1713,17 +1602,6 @@ class MultiAgentDispatcher:
             intent_match=self._build_intent_dict(intent_match),
             five_axis_result=five_axis_result,
         )
-
-    def _apply_data_masking(self, text: str) -> str:
-        """Apply data masking to text if masker is available."""
-        if not self.data_masker or not text:
-            return text
-        try:
-            masked = self.data_masker.mask({"content": text})
-            return masked.get("content", text)
-        except (ValueError, AttributeError, TypeError, KeyError) as e:
-            logger.debug(f"Data masking failed: {e}")
-            return text
 
     def _build_anchor_dict(self, anchor_result: Any) -> Optional[Dict[str, Any]]:
         """Build anchor result dict for DispatchResult."""
@@ -2008,64 +1886,6 @@ class MultiAgentDispatcher:
                 return []
         return [r.to_dict() for r in self._dispatch_history[-limit:]]
 
-    def audit_quality(self, module_path: str | None = None, test_path: str | None = None, **kwargs: Any) -> TestQualityReport:
-        """Execute test quality audit (P1 integration)."""
-        if self.rbac_engine:
-            try:
-                user_id = kwargs.get('user_id', 'default')
-                self.rbac_engine.enforce(user_id, Permission.TASK_READ)
-            except PermissionDeniedError as e:
-                logger.warning("RBAC denied: %s", e)
-                return TestQualityReport(
-                    module_name="rbac_denied",
-                    test_file="",
-                    source_file="",
-                )
-
-        if not self.quality_guard:
-            self.quality_guard = TestQualityGuard("", "")
-
-        if module_path and test_path:
-            return self.quality_guard.__class__(module_path, test_path).audit()
-
-        collab_dir = os.path.dirname(os.path.abspath(__file__))
-        reports = self._audit_collab_modules(collab_dir)
-
-        if len(reports) == 1:
-            return reports[0]
-
-        combined = TestQualityReport(
-            module_name="project",
-            test_file=f"{len(reports)} modules",
-            source_file=collab_dir,
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        )
-        combined.total_tests = sum(r.total_tests for r in reports)
-        combined.issues = [i for r in reports for i in r.issues]
-        combined.test_functions = [tf for r in reports for tf in r.test_functions]
-        if reports:
-            scores = [r.score.overall for r in reports]
-            combined.score.overall = sum(scores) / len(scores) if scores else 0
-        combined.audit_time = sum(r.audit_time for r in reports)
-        return combined
-
-    def _audit_collab_modules(self, collab_dir: str) -> list:
-        """Audit all collaboration modules that have matching test files."""
-        reports = []
-        for fname in os.listdir(collab_dir):
-            if fname.endswith(".py") and not fname.startswith("_") and "test" not in fname:
-                mod_name = fname.replace(".py", "")
-                test_name = f"{mod_name}_test.py"
-                mod_full = os.path.join(collab_dir, fname)
-                test_full = os.path.join(collab_dir, test_name)
-                if os.path.exists(test_full):
-                    try:
-                        r = self.quality_guard.__class__(mod_full, test_full).audit()
-                        reports.append(r)
-                    except (ValueError, AttributeError, OSError, ImportError) as e:
-                        logger.warning("Quality guard audit failed for %s: %s", mod_name, e)
-        return reports
-
     def get_performance_stats(self) -> dict[str, Any]:
         """Get performance statistics."""
         return self._perf_monitor.get_statistics()
@@ -2073,29 +1893,6 @@ class MultiAgentDispatcher:
     def check_performance_regression(self) -> dict[str, Any] | None:
         """Check for performance regression."""
         return self._perf_monitor.detect_regression()
-
-    def export_performance_metrics(self, output_file: str, **kwargs: Any) -> None:
-        """Export performance metrics to file."""
-        if self.rbac_engine:
-            try:
-                user_id = kwargs.get('user_id', 'default')
-                self.rbac_engine.enforce(user_id, Permission.TASK_READ)
-            except PermissionDeniedError as e:
-                logger.warning("RBAC denied: %s", e)
-                return
-        self._perf_monitor.export_metrics(output_file, allowed_base_dir=self.persist_dir)
-
-    def clear_performance_history(self, **kwargs: Any) -> None:
-        """Clear performance history."""
-        if self.rbac_engine:
-            try:
-                user_id = kwargs.get('user_id', 'default')
-                self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
-            except PermissionDeniedError as e:
-                logger.warning("RBAC denied: %s", e)
-                return
-        self._perf_monitor.clear()
-        logger.info("Performance history cleared")
 
     def shutdown(self) -> None:
         """Gracefully shut down all components."""

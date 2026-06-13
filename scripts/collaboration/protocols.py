@@ -18,6 +18,30 @@ from collections.abc import Callable
 from typing import Any, Protocol
 
 # ============================================================================
+# Cache Architecture (Two-Layer Design)
+# =====================================
+# This project uses a two-layer cache architecture:
+#
+# Layer 1: CacheProvider (Business Layer) — protocols.py
+#   - Maps prompt → response (semantic cache)
+#   - Used by: EnhancedWorker, LLMRetry for LLM response caching
+#   - Implementations: LLMCache (LRU+TTL+disk), NullCacheProvider
+#   - Key method: get(prompt) / set(prompt, response)
+#
+# Layer 2: CacheBackendInterface (Storage Layer) — cache_interface.py
+#   - Maps key → value (raw key-value store)
+#   - Used by: LLMCache internally for storage operations
+#   - Implementations: MemoryCacheBackend, DiskCacheBackend, RedisCacheBackend
+#   - Key method: get(key) / set(key, value)
+#
+# When to use which:
+# - For LLM response caching → Use CacheProvider (Layer 1)
+# - For custom caching needs → Use CacheBackendInterface (Layer 2)
+# - For new cache backends → Implement CacheBackendInterface, then plug into LLMCache
+# ============================================================================
+
+
+# ============================================================================
 # CacheProvider: LLM response cache interface
 # ============================================================================
 

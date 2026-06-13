@@ -27,7 +27,7 @@ class InputValidator:
 
     功能：
     1. 长度验证：防止过长的任务描述
-    2. 内容过滤：检测和阻止恶意模式
+    2. 内容过滤：检测和阻止恶意模式（22 forbidden + 8 SSRF + 5 suspicious + 20 prompt injection = 55 patterns）
     3. 字符验证：确保输入为有效的 UTF-8 文本
     4. 输入清理：移除危险字符和模式
     """
@@ -59,6 +59,15 @@ class InputValidator:
         # 数据 URI（可能包含恶意内容）
         r"data:text/html",
         r"data:application/",
+        # SSRF patterns
+        r"http://127\.0\.0\.1",
+        r"http://localhost",
+        r"http://169\.254\.169\.254",  # AWS metadata
+        r"http://metadata\.google\.internal",  # GCP metadata
+        r"http://100\.100\.100\.200",  # Alibaba Cloud metadata
+        r"file:///",
+        r"gopher://",
+        r"dict://",
     ]
 
     # 可疑模式（警告但不阻止）

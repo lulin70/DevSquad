@@ -337,7 +337,7 @@ class AuditLogger:
                         len(records),
                         self._current_file_path.name,
                     )
-            except Exception as e:
+            except (OSError, IOError, ValueError, json.JSONDecodeError, KeyError) as e:
                 self.logger.warning("Failed to load state: %s", e)
 
     def _read_file(self, filepath: Path) -> List[AuditRecord]:
@@ -367,7 +367,7 @@ class AuditLogger:
                     if isinstance(data, list):
                         for item in data:
                             records.append(AuditRecord.from_dict(item))
-        except Exception as e:
+        except (OSError, IOError, ValueError, json.JSONDecodeError, KeyError) as e:
             self.logger.error("Error reading %s: %s", filepath, e)
 
         return records
@@ -713,7 +713,7 @@ class AuditLogger:
             self.logger.debug("Flushed %d records to %s", len(self._buffer), filepath)
             self._buffer.clear()
 
-        except Exception as e:
+        except (OSError, IOError, ValueError) as e:
             self.logger.error("Failed to flush audit buffer: %s", e)
 
     def _flush_to_csv(self, filepath: Path) -> None:
@@ -805,7 +805,7 @@ class AuditLogger:
                     filepath.unlink()
                     removed_count += 1
                     self.logger.info("Removed old audit log: %s", filepath.name)
-            except Exception as e:
+            except (OSError, IOError, PermissionError) as e:
                 self.logger.warning("Failed to remove %s: %s", filepath, e)
 
         return removed_count
@@ -848,7 +848,7 @@ class AuditLogger:
         try:
             if self._buffer and self.log_dir.exists():
                 self._flush_buffer()
-        except Exception:
+        except (OSError, IOError, ValueError, AttributeError):
             pass
 
 
