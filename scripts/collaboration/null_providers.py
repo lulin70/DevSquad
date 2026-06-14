@@ -18,7 +18,7 @@ Created: 2026-05-01
 
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -265,6 +265,42 @@ class NullMemoryProvider:
         return ""
 
 
+class NullUETestProvider:
+    """No-op UE test provider for graceful degradation."""
+
+    def generate_ue_test_plan(self, project_description: str) -> None:
+        return None
+
+    def validate_user_journey(self, journey: Any, actual_results: Dict[str, Any]) -> None:
+        return None
+
+    def assess_usability(self, interface_description: str) -> None:
+        return None
+
+    def is_available(self) -> bool:
+        return False
+
+
+class NullTechDebtProvider:
+    """No-op tech debt provider for graceful degradation."""
+
+    def identify_debt(self, source: str, category: Any, description: str,
+                      location: str, **kwargs: Any) -> None:
+        return None
+
+    def scan_codebase_debt(self, project_path: str) -> List[Any]:
+        return []
+
+    def prioritize(self) -> List[Any]:
+        return []
+
+    def get_debt_report(self) -> None:
+        return None
+
+    def is_available(self) -> bool:
+        return False
+
+
 # ============================================================================
 # Factory functions
 # ============================================================================
@@ -290,14 +326,28 @@ def get_null_memory() -> NullMemoryProvider:
     return NullMemoryProvider()
 
 
+def get_null_ue_test() -> NullUETestProvider:
+    """Get a null UE test instance."""
+    return NullUETestProvider()
+
+
+def get_null_tech_debt() -> NullTechDebtProvider:
+    """Get a null tech debt instance."""
+    return NullTechDebtProvider()
+
+
 __version__ = "1.0.0"
 __all__ = [
     "NullCacheProvider",
     "NullRetryProvider",
     "NullMonitorProvider",
     "NullMemoryProvider",
+    "NullUETestProvider",
+    "NullTechDebtProvider",
     "get_null_cache",
     "get_null_retry",
     "get_null_monitor",
     "get_null_memory",
+    "get_null_ue_test",
+    "get_null_tech_debt",
 ]

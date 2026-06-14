@@ -1,5 +1,5 @@
 name: intent
-version: 3.6.8
+version: 3.6.9
 description: |
   Intent Detection — Understand what the user wants before executing.
   Maps natural language to 6 intent types across Chinese/English/Japanese.

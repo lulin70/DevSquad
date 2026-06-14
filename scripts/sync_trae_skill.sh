@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# TRAE SKILL.md 同步工具 - V3.6.8
+# TRAE SKILL.md 同步工具 - V3.6.9
 #
 # ⚠️ 重要说明：
 #   - TRAE 从 SKILL.md 的 YAML frontmatter 读取版本号
@@ -16,7 +16,7 @@ TARGET_PATH="$HOME/.trae/skills/devsquad/SKILL.md"
 SOURCE_PATH="$PROJECT_ROOT/SKILL.md"
 
 echo "=========================================="
-echo "DevSquad SKILL.md Sync Tool (V3.6.8)"
+echo "DevSquad SKILL.md Sync Tool (V3.6.9)"
 echo "=========================================="
 echo ""
 echo "Source: $SOURCE_PATH"

@@ -1101,14 +1101,14 @@ class MultiAgentDispatcher(EnterpriseMixin):
 
         step5_time = time.time()
 
-        # V3.6.8: Parse structured goal for anchor checking
+        # V3.6.9: Parse structured goal for anchor checking
         structured_goal = None
         if self.anchor_checker:
             structured_goal = self.anchor_checker.parse_goal(task)
             if self.usage_tracker:
                 self.usage_tracker.tick("anchor_check")
 
-        # V3.6.8: Load historical retrospectives into Scratchpad
+        # V3.6.9: Load historical retrospectives into Scratchpad
         self._load_historical_retrospectives(task)
 
         return plan, structured_goal, {
@@ -1210,7 +1210,7 @@ class MultiAgentDispatcher(EnterpriseMixin):
                         entry_type=EntryType.WARNING,
                         content=f"[Anchor Drift] {anchor_result.recommendation}",
                         confidence=0.9,
-                        tags=["anchor-drift", "v3.6.8"],
+                        tags=["anchor-drift", "v3.6.9"],
                     )
                 )
             return anchor_result
@@ -1801,7 +1801,9 @@ class MultiAgentDispatcher(EnterpriseMixin):
             return None
 
         try:
-            framework = UETestFramework(llm_backend=self.llm_backend)
+            if not hasattr(self, '_ue_framework') or self._ue_framework is None:
+                self._ue_framework = UETestFramework(llm_backend=self.llm_backend)
+            framework = self._ue_framework
             plan = framework.generate_ue_test_plan(task)
 
             # Extract tester/PM outputs for journey validation
@@ -1866,7 +1868,17 @@ class MultiAgentDispatcher(EnterpriseMixin):
             Dict with tech_debt_report data, or None on failure.
         """
         try:
-            manager = TechDebtManager(persist_dir=self.persist_dir)
+            # Skip if no tester or architect role involved
+            has_relevant_role = any(
+                wr.get("role_id") in ("tester", "architect")
+                for wr in worker_results
+            )
+            if not has_relevant_role:
+                return None
+
+            if not hasattr(self, '_debt_manager') or self._debt_manager is None:
+                self._debt_manager = TechDebtManager(persist_dir=self.persist_dir)
+            manager = self._debt_manager
 
             # Identify debts from worker outputs
             for wr in worker_results:

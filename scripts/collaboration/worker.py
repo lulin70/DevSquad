@@ -457,7 +457,7 @@ class Worker:
                 try:
                     cache.set(result.instruction, response, "backend", getattr(backend, "model", "unknown"))
                 except Exception:
-                    pass
+                    logger.debug("Cache set failed for instruction: %s", result.instruction[:80])
 
             return response
         except Exception as e:

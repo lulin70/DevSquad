@@ -65,7 +65,7 @@ class DispatchSkill(BaseSkill):
     """
     name = "dispatch"
     description = "Multi-agent task dispatch: submit a task → auto-match roles → parallel execution → structured report"
-    version = "3.6.8"
+    version = "3.6.9"
 
     def run(self, task: str, roles: list = None, mode: str = "auto", dry_run: bool = False) -> dict:
         """Execute multi-agent task dispatch.

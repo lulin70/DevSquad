@@ -15,7 +15,7 @@ def pytest_configure(config):
         "markers", "integration: marks tests as integration tests"
     )
     config.addinivalue_line(
-        "markers", "tech_debt: marks tests with known failures (V3.6.8 tech debt)"
+        "markers", "tech_debt: marks tests with known failures (V3.6.9 tech debt)"
     )
 
 

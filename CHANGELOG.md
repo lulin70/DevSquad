@@ -7,6 +7,16 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.9] - 2026-06-14
+
+### Added
+- **UETestFramework** (`ue_test_framework.py`): UE test framework bridging Tester+PM roles, combining Nielsen heuristics, WCAG accessibility checks, and cognitive load assessment
+- **TechDebtManager** (`tech_debt_manager.py`): Tech debt tracking with CodebaseDebtScanner for automated debt detection and knapsack-based remediation planning for optimal fix prioritization
+- **75 core modules** (up from 73 in V3.6.8)
+
+### Changed
+- **Version sync to 3.6.9**: All version references updated across the codebase
+
 ## [3.6.8] - 2026-06-13
 
 ### Added

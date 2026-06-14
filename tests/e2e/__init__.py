@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-DevSquad V3.6.8 E2E (End-to-End) Test Suite
+DevSquad V3.6.9 E2E (End-to-End) Test Suite
 
 模拟真实用户使用场景的端到端测试，确保发布前系统稳定性。
 
@@ -1122,7 +1122,7 @@ print("✓ Graceful degradation verified")
 def run_all_e2e_tests():
     """Run all E2E tests and generate report"""
     print("="*70)
-    print("DevSquad V3.6.8 E2E (End-to-End) Test Suite")
+    print("DevSquad V3.6.9 E2E (End-to-End) Test Suite")
     print("="*70)
     print(f"Start Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print()

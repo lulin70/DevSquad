@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="DevSquad API",
     description="""
-    ## DevSquad V3.6.8 REST API
+    ## DevSquad V3.6.9 REST API
 
     Production-ready API for DevSquad multi-agent collaboration.
 
@@ -83,10 +83,10 @@ app = FastAPI(
 
     ---
 
-    **Version**: 3.6.8
+    **Version**: 3.6.9
     **Base URL**: `/api/v1`
     """,
-    version="3.6.8",
+    version="3.6.9",
     docs_url="/docs",  # Swagger UI
     redoc_url="/redoc",  # ReDoc
     openapi_url="/openapi.json",  # OpenAPI spec
@@ -218,7 +218,7 @@ async def root():
     """
     return {
         "name": "DevSquad API",
-        "version": "3.6.8",
+        "version": "3.6.9",
         "description": "Production REST API for DevSquad multi-agent collaboration",
         "documentation": {"swagger_ui": "/docs", "redoc": "/redoc", "openapi_spec": "/openapi.json"},
         "endpoints": {
@@ -256,7 +256,7 @@ async def startup_event():
     logger.info("=" * 60)
     logger.info("🚀 DevSquad API Server Starting...")
     logger.info("=" * 60)
-    logger.info("Version: 3.6.8")
+    logger.info("Version: 3.6.9")
     logger.info(f"Time: {datetime.now().isoformat()}")
     logger.info("Components:")
     logger.info("  ✅ FastAPI initialized")
@@ -300,7 +300,7 @@ if __name__ == "__main__":
 
     print("""
 ╔══════════════════════════════════════════════════════╗
-║          🚀 DevSquad API Server v3.6.8           ║
+║          🚀 DevSquad API Server v3.6.9           ║
 ╠══════════════════════════════════════════════════════╣
 ║  Starting server...                                   ║
 ║                                                       ║

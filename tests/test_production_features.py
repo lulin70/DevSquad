@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Suite for DevSquad V3.6.8 Production Features
+Test Suite for DevSquad V3.6.9 Production Features
 
 Tests for:
   - Authentication system (scripts/auth.py)
@@ -339,11 +339,11 @@ class TestAPIDataModels:
         from scripts.api.models import HealthCheck
 
         health = HealthCheck(
-            status="healthy", version="3.6.8", uptime_seconds=3600.0, components={"lifecycle_protocol": "healthy"}
+            status="healthy", version="3.6.9", uptime_seconds=3600.0, components={"lifecycle_protocol": "healthy"}
         )
 
         assert health.status == "healthy"
-        assert health.version == "3.6.8"
+        assert health.version == "3.6.9"
         assert health.uptime_seconds > 0
 
 

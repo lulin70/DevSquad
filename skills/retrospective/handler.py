@@ -1,4 +1,4 @@
-"""Retrospective Skill - V3.6.8"""
+"""Retrospective Skill - V3.6.9"""
 
 from scripts.collaboration.models import (
     AnchorResult,
@@ -14,7 +14,7 @@ from skills.registry import BaseSkill
 class RetrospectiveSkill(BaseSkill):
     name = "retrospective"
     description = "项目复盘 - 提取改进模式/生成可执行建议/复盘摘要"
-    version = "3.6.8"
+    version = "3.6.9"
 
     CAPABILITIES = [
         "post_dispatch_analysis",

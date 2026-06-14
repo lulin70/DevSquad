@@ -2,19 +2,17 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.8 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
+  V3.6.9 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.6.8: FeedbackControlLoop auto mode + LLM refinement,
-  AdaptiveRoleSelector/SimilarTaskRecommender integrated into RoleMatcher,
-  ExecutionGuard integrated into EnhancedWorker, Lifecycle phase trace,
-  RBAC checks on sensitive APIs, Removed AlertManager,
-  1940+ tests passing, 73 core modules.
+  NEW in V3.6.9: UETestFramework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load),
+  TechDebtManager with CodebaseDebtScanner + knapsack remediation planning,
+  75 core modules.
 ---
 
-# DevSquad V3.6.8 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V3.6.9 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -143,6 +141,8 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 71 | **PerformanceFingerprint** | `performance_fingerprint.py` | Unified fingerprint with TF-IDF similarity search for task matching |
 | 72 | **SimilarTaskRecommender** | `similar_task_recommender.py` | History-based task config recommendation using performance data |
 | 73 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | Success-rate-driven adaptive role selection for optimal team composition |
+| 74 | **UETestFramework** | `ue_test_framework.py` | UE test framework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load) |
+| 75 | **TechDebtManager** | `tech_debt_manager.py` | Tech debt tracking with CodebaseDebtScanner + knapsack remediation planning |
 
 ---
 
@@ -236,7 +236,7 @@ for name, skill in all_skills.items():
 
 ---
 
-## 🔄 Cybernetics Enhancement (V3.6.8)
+## 🔄 Cybernetics Enhancement (V3.6.9)
 
 > Inspired by upstream TraeMultiAgentSkill v2.5's cybernetics architecture.
 > 5 new modules that add feedback loops, execution guards, and intelligence to DevSquad.
@@ -597,7 +597,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.6.8",
+#   "version": "3.6.9",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
@@ -918,6 +918,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 ## Version History
 
+- **v3.6.9** (2026-06-14): UETestFramework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load) + TechDebtManager with CodebaseDebtScanner + knapsack remediation planning + 75 core modules + version sync to 3.6.9
 - **v3.6.8** (2026-06-13): FeedbackControlLoop auto mode + LLM refinement + AdaptiveRoleSelector/SimilarTaskRecommender integrated into RoleMatcher + ExecutionGuard integrated into EnhancedWorker + Lifecycle phase trace in dispatch pipeline + RBAC checks on get_history/audit_quality/export_metrics/clear_history + TestQualityGuard default enabled + enable_feedback_loop default False→"auto" + Removed AlertManager (unused) + 13+ files version sync to 3.6.8 + Fixed except Exception: pass silent error swallowing + Fixed assertTrue test anti-patterns + 1940 passed, 11 skipped, 3 xpassed
 - **v3.6.7** (2026-06-07): Redis Cache L2 Backend + Async Dispatch (asyncio.gather) + Dispatcher Refactor (788→18 step methods) + DispatchResult Bug Fix (5 missing fields) + 1855+ tests passing
 - **v3.6.6** (2026-06-02): Three-Layer Funnel Documentation + Framework Comparison (COMPARISON.md) + User Journey E2E Testing (16 tests, 100% pass) + InputValidator (40 detection patterns) + Security Fix (removed hardcoded token) + 1672+ tests passing

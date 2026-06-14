@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RetrospectiveEngine - V3.6.8 Independent Retrospective Engine
+RetrospectiveEngine - V3.6.9 Independent Retrospective Engine
 
 Automatically runs a retrospective after task completion:
 1. Analyzes deviations from the original goal

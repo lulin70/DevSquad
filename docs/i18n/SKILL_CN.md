@@ -2,19 +2,19 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.6.8 DevSquad — Enterprise 多角色 AI 任务编排器。
+  V3.6.9 DevSquad — Enterprise 多角色 AI 任务编排器。
   一个任务输入，多角色 AI 协作，一个结论输出。
   7 个核心角色（架构师/产品经理/安全专家/测试专家/开发工程师/DevOps/UI 设计师），
   真实 LLM 后端（OpenAI/Anthropic/MOKA AI），CLI + MCP + Python API + REST API + Web Dashboard。
   ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
-  NEW in V3.6.8: FeedbackControlLoop 自动模式 + LLM 精炼,
+  NEW in V3.6.9: FeedbackControlLoop 自动模式 + LLM 精炼,
   AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher,
   ExecutionGuard 集成到 EnhancedWorker, 生命周期阶段追踪,
   敏感 API 的 RBAC 检查, 移除 AlertManager,
   1940+ 测试通过, 73 个核心模块.
 ---
 
-# DevSquad V3.6.8 — 多角色 AI 任务编排器（企业级就绪）
+# DevSquad V3.6.9 — 多角色 AI 任务编排器（企业级就绪）
 
 ## 🎯 一句话理解（3 秒）
 
@@ -102,7 +102,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 | 60 | **APIDataModels** | `api/models.py` | Pydantic 验证模型：LifecyclePhase、GateResult、MetricsSnapshot、PhaseActionRequest/Result |
 | 61 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API 端点：阶段列表/详情、状态、动作执行、命令映射 |
 | 62 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API 端点：当前/历史指标、门控状态/检查、健康检查 |
-| 63 | **AlertManager** | `alert_manager.py` | *(V3.6.8 已移除)* 多渠道告警模块因未使用已被移除 |
+| 63 | **AlertManager** | `alert_manager.py` | *(V3.6.9 已移除)* 多渠道告警模块因未使用已被移除 |
 | 64 | **DispatchModels** | `dispatch_models.py` | DispatchResult + I18N + ROLE_TEMPLATES（从 dispatcher 提取） |
 | 65 | **DispatchPerformance** | `dispatch_performance.py` | 调度流水线 PerformanceMonitor（从 dispatcher 提取） |
 | 66 | **MultiLevelCache** | `multi_level_cache.py` | 多级缓存协调器（内存→磁盘→Redis） |
@@ -886,7 +886,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 
 ## 版本历史
 
-- **v3.6.8** (2026-06-13): FeedbackControlLoop 自动模式 + LLM 精炼 + AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher + ExecutionGuard 集成到 EnhancedWorker + 调度流水线生命周期阶段追踪 + get_history/audit_quality/export_metrics/clear_history 的 RBAC 检查 + TestQualityGuard 默认启用 + enable_feedback_loop 默认值 False→"auto" + 移除 AlertManager（未使用）+ 13+ 文件版本同步至 3.6.8 + 修复 except Exception: pass 静默错误吞没 + 修复 assertTrue 测试反模式 + 1940 通过, 11 跳过, 3 预期外通过
+- **v3.6.9** (2026-06-13): FeedbackControlLoop 自动模式 + LLM 精炼 + AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher + ExecutionGuard 集成到 EnhancedWorker + 调度流水线生命周期阶段追踪 + get_history/audit_quality/export_metrics/clear_history 的 RBAC 检查 + TestQualityGuard 默认启用 + enable_feedback_loop 默认值 False→"auto" + 移除 AlertManager（未使用）+ 13+ 文件版本同步至 3.6.9 + 修复 except Exception: pass 静默错误吞没 + 修复 assertTrue 测试反模式 + 1940 通过, 11 跳过, 3 预期外通过
 - **v3.6.7** (2026-06-07): Redis 缓存 L2 后端 + 异步调度 (asyncio.gather) + Dispatcher 重构 (788→18 步骤方法) + DispatchResult Bug 修复 (5 个缺失字段) + 1855+ 测试通过
 
 - **v3.4.2** (2026-05-03): P1 增强完成 — RoleTemplateMarket V2(27 测试) + OperationClassifier(29 测试) + OutputSlicer(26 测试) + FiveAxisConsensusEngine(29 测试) + CIFeedbackAdapter(22 测试) + 166 个新测试 + 53 个核心模块

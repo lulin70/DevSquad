@@ -15,7 +15,7 @@ Created: 2026-05-01
 """
 
 from collections.abc import Callable
-from typing import Any, Protocol
+from typing import Any, Dict, List, Protocol
 
 # ============================================================================
 # Cache Architecture (Two-Layer Design)
@@ -248,6 +248,61 @@ class MemoryProvider(Protocol):
 
 
 # ============================================================================
+# UETestProvider: UE testing interface
+# ============================================================================
+
+
+class UETestProvider(Protocol):
+    """Protocol interface for UE testing providers."""
+
+    def generate_ue_test_plan(self, project_description: str) -> Any:
+        """Generate a comprehensive UE test plan."""
+        ...
+
+    def validate_user_journey(self, journey: Any, actual_results: Dict[str, Any]) -> Any:
+        """Validate actual results against expected journey outcomes."""
+        ...
+
+    def assess_usability(self, interface_description: str) -> Any:
+        """Assess usability against Nielsen's 10 heuristics."""
+        ...
+
+    def is_available(self) -> bool:
+        """Check if the UE test provider is available."""
+        ...
+
+
+# ============================================================================
+# TechDebtProvider: Tech debt management interface
+# ============================================================================
+
+
+class TechDebtProvider(Protocol):
+    """Protocol interface for tech debt management providers."""
+
+    def identify_debt(self, source: str, category: Any, description: str,
+                      location: str, **kwargs: Any) -> Any:
+        """Register a technical debt item."""
+        ...
+
+    def scan_codebase_debt(self, project_path: str) -> List[Any]:
+        """Scan a project for technical debt patterns."""
+        ...
+
+    def prioritize(self) -> List[Any]:
+        """Prioritize debts using composite scoring."""
+        ...
+
+    def get_debt_report(self) -> Any:
+        """Generate a comprehensive debt report."""
+        ...
+
+    def is_available(self) -> bool:
+        """Check if the tech debt provider is available."""
+        ...
+
+
+# ============================================================================
 # Exception definitions
 # ============================================================================
 
@@ -292,6 +347,8 @@ __all__ = [
     "RetryProvider",
     "MonitorProvider",
     "MemoryProvider",
+    "UETestProvider",
+    "TechDebtProvider",
     "ProviderError",
     "CacheError",
     "RetryError",

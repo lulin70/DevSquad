@@ -20,6 +20,7 @@ WarmupManager - 启动预热管理器
 """
 
 import concurrent.futures
+import logging
 import os
 import statistics
 import threading
@@ -30,6 +31,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, ClassVar, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class WarmupLayer(Enum):
@@ -391,7 +394,7 @@ class WarmupManager:
                 try:
                     f.result(timeout=max(t.timeout_ms for t in sorted_tasks) / 1000.0)
                 except Exception:
-                    pass
+                    logger.debug("Warmup task failed: %s", f.exception())
             self._is_warming_up = False
 
         wait_thread = threading.Thread(target=_wait_all, daemon=True, name="warmup-waiter")

@@ -7,6 +7,16 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.6.9] - 2026-06-14
+
+### 新增
+- **UETestFramework**（`ue_test_framework.py`）：UE 测试框架，桥接测试专家+产品经理角色，结合尼尔森启发式、WCAG 无障碍检查和认知负荷评估
+- **TechDebtManager**（`tech_debt_manager.py`）：技术债务追踪，含 CodebaseDebtScanner 自动化债务检测和基于背包算法的修复优先级规划
+- **75 个核心模块**（从 V3.6.8 的 73 个增加）
+
+### 变更
+- **版本同步至 3.6.9**：代码库中所有版本引用已更新
+
 ## [3.6.8] - 2026-06-13
 
 ### 新增

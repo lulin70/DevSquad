@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PerformanceFingerprint - V3.6.8 Execution Performance Fingerprint Aggregation
+PerformanceFingerprint - V3.6.9 Execution Performance Fingerprint Aggregation
 
 Unified execution fingerprint that fuses 4 data sources:
 - FeatureUsageTracker (invocation counts)
@@ -364,7 +364,7 @@ class PerformanceFingerprint:
         try:
             target_path = Path(self._persist_dir) / "fingerprints.json"
             data = {
-                "version": "3.6.8",
+                "version": "3.6.9",
                 "updated_at": datetime.now().isoformat(),
                 "count": len(self._fingerprints),
                 "fingerprints": self._fingerprints,

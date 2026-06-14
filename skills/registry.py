@@ -12,7 +12,7 @@ class BaseSkill:
 
     name: str = ""
     description: str = ""
-    version: str = "3.6.8"
+    version: str = "3.6.9"
 
     def run(self, *args, **kwargs):
         raise NotImplementedError

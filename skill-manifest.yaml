@@ -1,12 +1,12 @@
 name: devsquad
-version: 3.6.8
+version: 3.6.9
 description: |
-  DevSquad V3.6.8 — Enterprise Multi-Role AI Task Orchestrator.
+  DevSquad V3.6.9 — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.6.8: RBAC Engine, Audit Logger, Multi-Tenancy Manager, Sensitive Data Masker,
+  NEW in V3.6.9: RBAC Engine, Audit Logger, Multi-Tenancy Manager, Sensitive Data Masker,
   AsyncIO Transformation (2x throughput), Redis Cache Integration (95%+ hit rate),
   Prometheus Monitoring (12 metrics), E2E Test Suite (27 cases, 100% pass),
   1989+ tests passing, 65% maturity (honest assessment).
@@ -68,7 +68,7 @@ capabilities:
 
   - name: multi-agent-dispatcher
     description: |
-      V3.6.8 统一调度入口 - 一键完成多Agent协作
+      V3.6.9 统一调度入口 - 一键完成多Agent协作
 
       核心能力：
       - 任务意图分析与角色自动匹配（中英双语关键词）
@@ -281,10 +281,10 @@ metadata:
   repository: https://github.com/lulin70/DevSquad
 
   version_history:
-    - version: 3.6.8
+    - version: 3.6.9
       date: "2026-06-08"
       changes:
-        - Version alignment — all version references unified to V3.6.8
+        - Version alignment — all version references unified to V3.6.9
         - Test count updated to 1855+ passing
         - Documentation consistency fixes across all locales
 

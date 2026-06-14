@@ -657,7 +657,7 @@ class TestQualityGuard:
                         r = self.__class__(str(candidate), str(test_file)).audit()
                         reports.append(r)
                     except Exception:
-                        pass
+                        logger.debug("Sub-audit failed for candidate: %s", candidate)
                     break
         return reports
 
