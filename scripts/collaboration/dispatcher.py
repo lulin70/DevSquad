@@ -40,6 +40,8 @@ DISPATCH_LIFECYCLE_MAPPING = {
     "step16_assemble": "P10_Delivery",
     "step17_hooks": "P10_Delivery",
     "step18_feedback": "P11_Monitoring",
+    "step19_ue_testing": "P7_TestPlanning",
+    "step20_tech_debt": "P9_TestExecution",
 }
 
 from .batch_scheduler import BatchScheduler
@@ -64,6 +66,10 @@ from .usage_tracker import track_usage
 from .user_friendly_error import make_user_friendly_error, translate_validation_result
 from .warmup_manager import WarmupConfig, WarmupManager
 from ._version import __version__
+
+# UE testing and tech debt management
+from .ue_test_framework import UETestFramework
+from .tech_debt_manager import TechDebtManager
 
 # Enterprise feature imports
 from .rbac_engine import RBACEngine, Permission, PermissionDeniedError
@@ -678,6 +684,16 @@ class MultiAgentDispatcher(EnterpriseMixin):
         roles = kwargs.get('roles')
         dry_run = kwargs.get('dry_run', False)
         result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
+
+        # Step 19: UE testing (when tester role is involved)
+        ue_test_plan = self._run_ue_testing(task_description, role_ids, worker_results, lang)
+        if ue_test_plan:
+            result.details["ue_test_plan"] = ue_test_plan
+
+        # Step 20: Tech debt scan
+        tech_debt_report = self._run_tech_debt_scan(task_description, worker_results)
+        if tech_debt_report:
+            result.details["tech_debt_report"] = tech_debt_report
 
         # Prometheus: record dispatch end (duration + tasks_in_progress)
         self._safe_metrics(lambda m: (
@@ -1761,6 +1777,194 @@ class MultiAgentDispatcher(EnterpriseMixin):
             logger.warning("Feedback control loop failed: %s", loop_err)
 
         return result
+
+    def _run_ue_testing(
+        self,
+        task: str,
+        role_ids: List[str],
+        worker_results: List[Dict[str, Any]],
+        lang: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Step 19: Generate UE test plan when tester role is involved.
+
+        Bridges Tester and PM perspectives to produce user-experience-focused
+        test dimensions that go beyond code correctness.
+
+        Returns:
+            Dict with ue_test_plan data, or None if tester role not involved.
+        """
+        tester_involved = any(
+            rid in ("tester", "product-manager", "ui-designer")
+            for rid in role_ids
+        )
+        if not tester_involved:
+            return None
+
+        try:
+            framework = UETestFramework(llm_backend=self.llm_backend)
+            plan = framework.generate_ue_test_plan(task)
+
+            # Extract tester/PM outputs for journey validation
+            tester_output = ""
+            pm_output = ""
+            for wr in worker_results:
+                role = wr.get("role_id", "")
+                if role == "tester":
+                    tester_output = wr.get("output", "")
+                elif role == "product-manager":
+                    pm_output = wr.get("output", "")
+
+            # If PM defined user stories, validate against them
+            if pm_output:
+                validation = framework.validate_user_journey(
+                    plan.journey_tests[0] if plan.journey_tests else None,
+                    {"pm_output": pm_output, "tester_output": tester_output},
+                )
+                if validation:
+                    return {
+                        "persona_scenarios": plan.persona_scenarios,
+                        "journey_tests": plan.journey_tests,
+                        "heuristic_checks": [
+                            {"name": h.name, "description": h.description, "passed": h.passed}
+                            for h in plan.heuristic_checks
+                        ],
+                        "accessibility_checks": plan.accessibility_checks,
+                        "cognitive_load_assessment": plan.cognitive_load_assessment,
+                        "journey_validation": {
+                            "completion_rate": validation.completion_rate,
+                            "error_recovery_rate": validation.error_recovery_rate,
+                            "frustration_events": validation.frustration_events,
+                            "overall_ue_score": validation.overall_ue_score,
+                        },
+                    }
+
+            return {
+                "persona_scenarios": plan.persona_scenarios,
+                "journey_tests": plan.journey_tests,
+                "heuristic_checks": [
+                    {"name": h.name, "description": h.description, "passed": h.passed}
+                    for h in plan.heuristic_checks
+                ],
+                "accessibility_checks": plan.accessibility_checks,
+                "cognitive_load_assessment": plan.cognitive_load_assessment,
+            }
+        except (ValueError, AttributeError, ImportError, RuntimeError) as e:
+            logger.debug("UE test plan generation failed: %s", e)
+            return None
+
+    def _run_tech_debt_scan(
+        self,
+        task: str,
+        worker_results: List[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
+        """Step 20: Scan for technical debt after dispatch.
+
+        Bridges Tester and Architect perspectives to identify and track
+        technical debt items from dispatch results.
+
+        Returns:
+            Dict with tech_debt_report data, or None on failure.
+        """
+        try:
+            manager = TechDebtManager(persist_dir=self.persist_dir)
+
+            # Identify debts from worker outputs
+            for wr in worker_results:
+                role = wr.get("role_id", "")
+                output = wr.get("output", "")
+                if not output:
+                    continue
+
+                # Tester identifies test gaps
+                if role == "tester":
+                    self._extract_test_debts(manager, output, task)
+
+                # Architect identifies structural debts
+                elif role == "architect":
+                    self._extract_arch_debts(manager, output, task)
+
+            # Generate report
+            report = manager.get_debt_report()
+            return {
+                "total_debts": report.total_debts,
+                "by_category": report.by_category,
+                "by_severity": report.by_severity,
+                "top_priority": [
+                    {
+                        "id": d.id,
+                        "category": d.category.value,
+                        "description": d.description,
+                        "severity": d.severity.value,
+                        "effort": d.effort.value,
+                    }
+                    for d in report.top_priority[:5]
+                ],
+                "debt_to_value_ratio": report.debt_to_value_ratio,
+                "remediation_progress": report.remediation_progress,
+            }
+        except (ValueError, AttributeError, ImportError, RuntimeError) as e:
+            logger.debug("Tech debt scan failed: %s", e)
+            return None
+
+    def _extract_test_debts(self, manager: TechDebtManager, output: str, task: str) -> None:
+        """Extract test-gap debts from tester output."""
+        from .tech_debt_manager import DebtCategory, DebtSeverity, DebtEffort
+        lower = output.lower()
+        if "missing test" in lower or "no test" in lower or "untested" in lower:
+            manager.identify_debt(
+                source="tester",
+                category=DebtCategory.TEST_GAP,
+                description=f"Test gap identified during dispatch: {task[:80]}",
+                location="dispatch_output",
+                severity=DebtSeverity.MEDIUM,
+                effort=DebtEffort.MINOR,
+                tags=["auto-detected", "test-gap"],
+            )
+        if "flaky" in lower or "intermittent" in lower:
+            manager.identify_debt(
+                source="tester",
+                category=DebtCategory.TEST_GAP,
+                description=f"Flaky test detected: {task[:80]}",
+                location="dispatch_output",
+                severity=DebtSeverity.HIGH,
+                effort=DebtEffort.MODERATE,
+                tags=["auto-detected", "flaky-test"],
+            )
+
+    def _extract_arch_debts(self, manager: TechDebtManager, output: str, task: str) -> None:
+        """Extract architecture debts from architect output."""
+        from .tech_debt_manager import DebtCategory, DebtSeverity, DebtEffort
+        lower = output.lower()
+        if "circular" in lower or "cyclic" in lower:
+            manager.identify_debt(
+                source="architect",
+                category=DebtCategory.ARCHITECTURE,
+                description=f"Circular dependency: {task[:80]}",
+                location="dispatch_output",
+                severity=DebtSeverity.HIGH,
+                effort=DebtEffort.MAJOR,
+                tags=["auto-detected", "circular-dep"],
+            )
+        if "god class" in lower or "too large" in lower or "monolith" in lower:
+            manager.identify_debt(
+                source="architect",
+                category=DebtCategory.ARCHITECTURE,
+                description=f"God class / oversized module: {task[:80]}",
+                location="dispatch_output",
+                severity=DebtSeverity.HIGH,
+                effort=DebtEffort.MAJOR,
+                tags=["auto-detected", "god-class"],
+            )
+        if "tight coupling" in lower or "coupled" in lower:
+            manager.identify_debt(
+                source="architect",
+                category=DebtCategory.ARCHITECTURE,
+                description=f"Tight coupling: {task[:80]}",
+                location="dispatch_output",
+                severity=DebtSeverity.MEDIUM,
+                effort=DebtEffort.MODERATE,
+                tags=["auto-detected", "coupling"],
+            )
 
     def _build_summary(self, task: str, roles: List[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
