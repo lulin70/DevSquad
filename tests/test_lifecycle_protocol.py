@@ -234,7 +234,6 @@ class TestShortcutLifecycleAdapter:
     def test_get_current_phase_before_start(self):
         assert self.adapter.get_current_phase() is None
 
-    @pytest.mark.xfail(reason="Known issue: ABC/dataclass interaction in some Python environments")
     def test_advance_to_phase_success(self):
         result = self.adapter.advance_to_phase("P1")
         assert result.success is True
@@ -250,7 +249,6 @@ class TestShortcutLifecycleAdapter:
         status = self.adapter.get_status()
         assert "P1" in status.completed_phases
 
-    @pytest.mark.xfail(reason="Known issue: Gate check state persistence in ABC subclass")
     def test_check_gate_for_completed_phase(self):
         self.adapter.advance_to_phase("P1")
         self.adapter.complete_phase("P1")

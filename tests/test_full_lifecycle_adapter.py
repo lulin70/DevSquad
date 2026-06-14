@@ -135,7 +135,6 @@ class TestFullLifecycleAdapterPhases:
         assert "P1" in self.adapter._completed_phases
         print("✅ Idempotent completion works")
 
-    @pytest.mark.xfail(reason="Known issue: get_next_phase may return current phase after advance (state sync timing)")
     def test_get_next_phase_returns_correct_order(self):
         """Test get_next_phase returns phases in correct order."""
         next_phase = self.adapter.get_next_phase()

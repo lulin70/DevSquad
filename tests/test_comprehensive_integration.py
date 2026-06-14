@@ -438,14 +438,18 @@ class TestCLIWithLifecycleIntegration:
     """Tests for CLI integration with lifecycle system."""
 
     def test_cli_imports_lifecycle_module(self):
-        """Test CLI can import lifecycle module."""
-        try:
-            from scripts.cli import cmd_lifecycle
-
-            assert callable(cmd_lifecycle)
-            print("✅ CLI imports lifecycle command")
-        except ImportError:
-            pytest.skip("CLI lifecycle not available")
+        """Test CLI module contains lifecycle command."""
+        import sys
+        # scripts/cli/ package shadows scripts/cli.py, so import the .py file directly
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "scripts_cli_module",
+            os.path.join(os.path.dirname(__file__), "..", "scripts", "cli.py"),
+        )
+        cli_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cli_module)
+        assert hasattr(cli_module, "cmd_lifecycle")
+        assert callable(cli_module.cmd_lifecycle)
 
     def test_lifecycle_command_in_cli_parser(self):
         """Test lifecycle subcommand exists in CLI parser."""
