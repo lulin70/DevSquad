@@ -27,7 +27,7 @@ class InputValidator:
 
     功能：
     1. 长度验证：防止过长的任务描述
-    2. 内容过滤：检测和阻止恶意模式（22 forbidden + 8 SSRF + 5 suspicious + 20 prompt injection = 55 patterns）
+    2. 内容过滤：检测和阻止恶意模式（15 forbidden + 13 SSRF + 5 suspicious + 20 prompt injection = 53 patterns）
     3. 字符验证：确保输入为有效的 UTF-8 文本
     4. 输入清理：移除危险字符和模式
     """
@@ -60,11 +60,16 @@ class InputValidator:
         r"data:text/html",
         r"data:application/",
         # SSRF patterns
-        r"http://127\.0\.0\.1",
-        r"http://localhost",
-        r"http://169\.254\.169\.254",  # AWS metadata
-        r"http://metadata\.google\.internal",  # GCP metadata
-        r"http://100\.100\.100\.200",  # Alibaba Cloud metadata
+        r"https?://127\.0\.0\.1",
+        r"https?://localhost",
+        r"https?://169\.254\.169\.254",  # AWS metadata
+        r"https?://metadata\.google\.internal",  # GCP metadata
+        r"https?://100\.100\.100\.200",  # Alibaba Cloud metadata
+        r"https?://\[::1\]",  # IPv6 localhost
+        r"https?://\[::ffff:7f00:1\]",  # IPv6 mapped IPv4
+        r"https?://0x7f000001",  # Hex IP
+        r"https?://0177\.0\.0\.1",  # Octal IP
+        r"https?://2130706433",  # Decimal IP
         r"file:///",
         r"gopher://",
         r"dict://",
