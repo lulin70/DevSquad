@@ -667,6 +667,7 @@ class PromptAssembler:
                 f"Role: {role_display}...\n\n"
                 + ("=== Related Findings ===\n" + "\n".join(f"- {f}" for f in findings) + "\n\n" if findings else "")
                 + (f"=== User Rules ===\n{user_rules}\n\n" if user_rules else "")
+                + (self._get_skill_injection() if self._get_skill_injection() else "")
                 + "Complete your work, output core conclusion."
             )
             return base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
@@ -698,6 +699,10 @@ class PromptAssembler:
                 for ap in anti_patterns:
                     parts.append(f"- Avoid: {ap}")
                 parts.append("")
+
+        skill_injection = self._get_skill_injection()
+        if skill_injection:
+            parts.append(skill_injection)
 
         parts.append("Please complete your work based on the above information.")
         if style == "comprehensive":
@@ -862,6 +867,37 @@ class PromptAssembler:
             ],
         }
         return patterns.get(self.role_id, [])
+
+    def _get_skill_injection(self) -> str:
+        """
+        Inject role-specific methodology skills from SKILL.md files.
+
+        Loaded via RoleSkillLoader, these provide structured frameworks
+        (e.g., PRD template, Opportunity Solution Tree) that the role
+        should follow step-by-step.
+
+        Returns:
+            str: Formatted skill instructions, or empty string if none
+        """
+        try:
+            from scripts.collaboration.role_skill_loader import get_shared_loader
+
+            if not hasattr(self, "_skill_loader"):
+                self._skill_loader = get_shared_loader()
+
+            skills = self._skill_loader.load_skills(self.role_id)
+            if not skills:
+                return ""
+
+            parts = ["\n\n## Methodology Frameworks (Follow these step-by-step)"]
+            for skill in skills:
+                parts.append(skill.to_prompt_text(max_length=1500))
+            parts.append("")
+
+            return "\n".join(parts)
+        except Exception as e:
+            logger.debug("RoleSkillLoader not available: %s", e)
+            return ""
 
     def _get_anti_rationalization_injection(self) -> str:
         """

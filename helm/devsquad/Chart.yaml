@@ -1,11 +1,11 @@
 apiVersion: v2
 name: devsquad
-description: Multi-Role AI Task Orchestrator - DevSquad V3.6.9
+description: Multi-Role AI Task Orchestrator - DevSquad V3.7.0
 
 type: application
 
-version: 3.6.9
-appVersion: "3.6.9"
+version: 3.7.0
+appVersion: "3.7.0"
 
 keywords:
   - ai

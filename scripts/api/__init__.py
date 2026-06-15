@@ -24,7 +24,7 @@ __all__ = [
     "GateResult",
     "MetricsSnapshot",
     "HealthCheck",
-    # Task Dispatch models (NEW in V3.6.9)
+    # Task Dispatch models (NEW in V3.7.0)
     "TaskDispatchRequest",
     "QuickDispatchRequest",
     "DispatchResponse",

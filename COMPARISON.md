@@ -327,7 +327,7 @@ graph.invoke({"messages": []})
 | **审计日志** | ✅ SHA256 完整性链 | ❌ 无 | ❌ 无 | ⚠️ LangSmith |
 | **性能追踪** | ✅ PerformanceMonitor | ⚠️ 时间戳 | ❌ 无 | ⚠️ LangSmith |
 | **成本跟踪** | ✅ UsageTracker | ❌ 无 | ❌ 无 | ⚠️ LangSmith |
-| **告警通知** | ✅ Multi-channel (removed AlertManager in V3.6.9) | ❌ 无 | ❌ 无 | ❌ 无 |
+| **告警通知** | ✅ Multi-channel (removed AlertManager in V3.7.0) | ❌ 无 | ❌ 无 | ❌ 无 |
 | **Dashboard** | ✅ Streamlit Web UI | ❌ CLI only | ❌ CLI only | ✅ LangSmith Studio |
 
 ---

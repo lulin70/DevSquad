@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DevSquad MCP Server Tests (V3.6.2 → V3.6.9 rewrite)
+DevSquad MCP Server Tests (V3.6.2 → V3.7.0 rewrite)
 
 Comprehensive test coverage for MCP protocol server.
 Rewritten to match the closure-based architecture where tool functions

@@ -1,4 +1,4 @@
-# DevSquad V3.6.9 一键发布脚本 - 超简化版
+# DevSquad V3.7.0 一键发布脚本 - 超简化版
 # 使用方法: 复制粘贴以下全部内容到终端运行
 #
 # ⚠️ 安全提示：请使用环境变量传入 Token，不要硬编码！
@@ -7,7 +7,7 @@
 
 set -e
 
-echo "🚀 DevSquad V3.6.9 一键发布"
+echo "🚀 DevSquad V3.7.0 一键发布"
 echo "========================="
 cd /Users/lin/trae_projects/DevSquad
 
@@ -15,7 +15,7 @@ cd /Users/lin/trae_projects/DevSquad
 # 配置
 # ============================================
 REPO="lulin70/DevSquad"
-VERSION="3.6.9"
+VERSION="3.7.0"
 
 # 从环境变量读取 Token（安全做法）
 if [ -z "$GITHUB_TOKEN" ]; then
@@ -35,18 +35,18 @@ echo ""
 echo "📦 [1/3] 创建 GitHub Release..."
 
 RELEASE_BODY=$(cat << 'ENDOFBODY'
-## 🚀 DevSquad V3.6.9 - Documentation Experience + E2E Testing
+## 🚀 DevSquad V3.7.0 - Documentation Experience + E2E Testing
 
 > **Release Date**: 2026-05-27
 > **Maturity Level**: 65% Maturity
-> **PyPI**: https://pypi.org/project/devsquad/3.6.9/
+> **PyPI**: https://pypi.org/project/devsquad/3.7.0/
 
 ### ✨ What's New
 
 #### 🎯 Documentation Experience Enhancement (Major)
 - **Three-Layer Funnel Documentation Structure**: 30-sec elevator pitch → Core workflow demo → Detailed specs in `<details>`
 - **Framework Comparison Page**: COMPARISON.md with 60+ comparison points vs AutoGen/CrewAI/LangGraph
-- **Version Consistency**: Unified V3.6.9 across all 27 documentation files
+- **Version Consistency**: Unified V3.7.0 across all 27 documentation files
 
 #### 🧪 Enhanced E2E Testing - User Journey Oriented (NEW)
 - **User Journey 1: Developer Onboarding (Alice)**: 8 test cases covering installation, first task, status check, error handling
@@ -66,13 +66,13 @@ RELEASE_BODY=$(cat << 'ENDOFBODY'
 
 ### 📦 Installation
 ```bash
-pip install devsquad==3.6.9
-docker pull lulin70/devsquad:3.6.9
+pip install devsquad==3.7.0
+docker pull lulin70/devsquad:3.7.0
 ```
 
 ### 📝 Migration from V3.6.5
 ```bash
-pip install --upgrade devsquad==3.6.9
+pip install --upgrade devsquad==3.7.0
 # No breaking changes - fully backward compatible
 ```
 
@@ -115,7 +115,7 @@ curl -s -X PATCH \
   "https://api.github.com/repos/$REPO" \
   -d '{
     "name": "DevSquad",
-    "description": "🚀 DevSquad V3.6.9 - Enterprise Multi-Role AI Task Orchestrator | Documentation Experience | E2E Testing | 7-Agent Collaboration | RBAC | PyPI Ready",
+    "description": "🚀 DevSquad V3.7.0 - Enterprise Multi-Role AI Task Orchestrator | Documentation Experience | E2E Testing | 7-Agent Collaboration | RBAC | PyPI Ready",
     "homepage": "https://pypi.org/project/devsquad/",
     "topics": [
       "ai-agent", "multi-agent", "task-orchestrator", "python", "llm",

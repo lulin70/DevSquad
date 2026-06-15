@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SimilarTaskRecommender - V3.6.9 Historical Fingerprint-based Task Recommendation
+SimilarTaskRecommender - V3.7.0 Historical Fingerprint-based Task Recommendation
 
 Provides intelligent task configuration recommendations based on historical execution fingerprints.
 Uses TF-IDF similarity to find similar past tasks and extracts optimal configurations.

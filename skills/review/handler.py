@@ -1,4 +1,4 @@
-"""Five-Axis Code Review Skill - V3.6.9
+"""Five-Axis Code Review Skill - V3.7.0
 
 Encapsulates FiveAxisConsensusEngine for multi-dimensional code review:
   1. Correctness: Logic correctness, bug-free, meets requirements
@@ -26,7 +26,7 @@ class ReviewSkill(BaseSkill):
 
     name = "review"
     description = "Five-axis code review: correctness/readability/architecture/security/performance"
-    version = "3.6.9"
+    version = "3.7.0"
 
     AXES_INFO = [
         {

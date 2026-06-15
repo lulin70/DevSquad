@@ -32,6 +32,7 @@ class WorkflowChainDef:
     gate: str | None = None
     gate_description: str = ""
     anti_skip_message: str = ""
+    suggested_next_steps: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -46,6 +47,7 @@ class IntentMatch:
     gate: str | None = None
     gate_description: str = ""
     anti_skip_message: str = ""
+    suggested_next_steps: list[str] = field(default_factory=list)
 
 
 class IntentWorkflowMapper:
@@ -105,6 +107,7 @@ class IntentWorkflowMapper:
             gate="prove_it_pattern",
             gate_description=("Must have a failing reproduction test before implementing fix"),
             anti_skip_message=("Do NOT implement the fix first. Write the test that demonstrates the bug."),
+            suggested_next_steps=["Run security review on the fix", "Add regression tests", "Update documentation"],
         ),
         "new_feature": WorkflowChainDef(
             trigger_keywords={
@@ -153,6 +156,7 @@ class IntentWorkflowMapper:
             gate="spec_first",
             gate_description=("Must produce or validate a spec before writing implementation code"),
             anti_skip_message=("Do NOT start coding until the spec is reviewed and approved."),
+            suggested_next_steps=["Write user stories and acceptance criteria", "Design system architecture", "Plan test strategy"],
         ),
         "security_review": WorkflowChainDef(
             trigger_keywords={
@@ -201,6 +205,7 @@ class IntentWorkflowMapper:
             gate="owasp_checklist",
             gate_description=("Must complete OWASP Top 10 checklist before approving"),
             anti_skip_message=("Do NOT mark as secure without systematic vulnerability assessment."),
+            suggested_next_steps=["Implement recommended fixes", "Add security tests", "Update security documentation"],
         ),
         "code_review": WorkflowChainDef(
             trigger_keywords={
@@ -233,6 +238,7 @@ class IntentWorkflowMapper:
             gate="change_size_limit",
             gate_description="Changes must be ~100 lines or split into smaller reviews",
             anti_skip_message="Do NOT approve large changesets without splitting.",
+            suggested_next_steps=["Implement suggested improvements", "Refactor flagged code smells", "Add missing tests"],
         ),
         "performance_optimization": WorkflowChainDef(
             trigger_keywords={
@@ -276,6 +282,7 @@ class IntentWorkflowMapper:
             gate="measure_first",
             gate_description="Must have baseline measurements before optimizing",
             anti_skip_message=("Do NOT optimize without measurements. You're likely optimizing the wrong thing."),
+            suggested_next_steps=["Implement recommended optimizations", "Set up performance monitoring", "Create performance baseline tests"],
         ),
         "deployment": WorkflowChainDef(
             trigger_keywords={
@@ -301,6 +308,7 @@ class IntentWorkflowMapper:
             gate="pre_launch_checklist",
             gate_description="Complete all 6 categories of pre-launch checks",
             anti_skip_message=("Do NOT deploy without rollback plan and monitoring setup."),
+            suggested_next_steps=["Monitor deployment metrics", "Run smoke tests", "Prepare rollback plan"],
         ),
     }
 
@@ -343,6 +351,7 @@ class IntentWorkflowMapper:
                     gate=chain_def.gate,
                     gate_description=chain_def.gate_description,
                     anti_skip_message=chain_def.anti_skip_message,
+                    suggested_next_steps=list(chain_def.suggested_next_steps),
                 )
 
         if best_match and best_match.confidence >= self._confidence_threshold:
@@ -394,6 +403,21 @@ class IntentWorkflowMapper:
         """Return all available intent types."""
         return sorted(self.WORKFLOW_CHAINS.keys())
 
+    def get_suggested_next_steps(self, intent_type: str) -> list[str]:
+        """Get suggested next steps for a given intent type.
+
+        Args:
+            intent_type: The detected intent type
+
+        Returns:
+            List of suggested next step descriptions
+        """
+        chain_def = self.WORKFLOW_CHAINS.get(intent_type)
+        if chain_def:
+            return list(chain_def.suggested_next_steps)
+        # Default suggestions for unknown intents
+        return ["Review the output and identify follow-up tasks"]
+
     def get_intent_details(self, intent_type: str) -> dict[str, Any] | None:
         """Get full details for an intent type."""
         chain_def = self.WORKFLOW_CHAINS.get(intent_type)
@@ -408,6 +432,7 @@ class IntentWorkflowMapper:
             "gate": chain_def.gate,
             "gate_description": chain_def.gate_description,
             "anti_skip_message": chain_def.anti_skip_message,
+            "suggested_next_steps": chain_def.suggested_next_steps,
         }
 
 

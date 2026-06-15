@@ -1,4 +1,4 @@
-"""Security Audit Skill - V3.6.9
+"""Security Audit Skill - V3.7.0
 
 Encapsulates security components for comprehensive task auditing:
   - InputValidator: 21 pattern injection detection
@@ -28,8 +28,8 @@ class SecuritySkill(BaseSkill):
     """Security audit skill combining injection detection, operation classification, and permission control."""
 
     name = "security"
-    description = "Security auditing: injection detection, operation classification, permission control (V3.6.9)"
-    version = "3.6.9"
+    description = "Security auditing: injection detection, operation classification, permission control (V3.7.0)"
+    version = "3.7.0"
 
     INJECTION_PATTERNS_COUNT = 21
     INJECTION_CATEGORIES = {

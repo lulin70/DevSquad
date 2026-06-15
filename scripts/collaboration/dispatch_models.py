@@ -53,6 +53,7 @@ I18N = {
         "mock_hint": "> 使用 `--backend openai`（或 `anthropic`）并提供有效 API Key 获取真实 AI 分析。",
         "no_output": "*(无输出)*",
         "no_summary": "(无摘要)",
+        "next_steps": "## 🔄 建议下一步",
     },
     "en": {
         "title": "# 🤖 Multi-Agent Collaboration Result",
@@ -76,6 +77,7 @@ I18N = {
         "mock_hint": "> Use `--backend openai` (or `anthropic`) with a valid API key for real AI analysis.",
         "no_output": "*(no output)*",
         "no_summary": "(no summary)",
+        "next_steps": "## 🔄 Suggested Next Steps",
     },
     "ja": {
         "title": "# 🤖 マルチエージェントコラボレーション結果",
@@ -99,6 +101,7 @@ I18N = {
         "mock_hint": "> 実際のAI分析には `--backend openai`（または `anthropic`）と有効なAPIキーを使用してください。",
         "no_output": "*(出力なし)*",
         "no_summary": "(サマリーなし)",
+        "next_steps": "## 🔄 次のステップ",
     },
 }
 
@@ -209,6 +212,7 @@ class DispatchResult:
     lang: str = "zh"
     concern_packs: list[dict[str, Any]] = field(default_factory=list)
     anchor_result: dict[str, Any] | None = None
+    suggested_next_steps: list[str] = field(default_factory=list)
     retrospective_report: dict[str, Any] | None = None
     intent_match: dict[str, Any] | None = None
     five_axis_result: dict[str, Any] | None = None
@@ -232,6 +236,7 @@ class DispatchResult:
             "quality_report": self.quality_report,
             "concern_packs": self.concern_packs,
             "anchor_result": self.anchor_result,
+            "suggested_next_steps": self.suggested_next_steps,
             "retrospective_report": self.retrospective_report,
             "intent_match": self.intent_match,
             "five_axis_result": self.five_axis_result,
@@ -324,6 +329,12 @@ class DispatchResult:
         if self.quality_report:
             lines.extend(["", t["quality"]])
             lines.append(self.quality_report)
+        # Suggested next steps
+        if self.suggested_next_steps:
+            i18n_next = t.get("next_steps", "## 🔄 Suggested Next Steps")
+            lines.extend(["", i18n_next])
+            for i, step in enumerate(self.suggested_next_steps, 1):
+                lines.append(f"{i}. {step}")
         if self.errors:
             lines.extend(["", t["errors"]])
             for e in self.errors:

@@ -7,6 +7,20 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0] - 2026-06-15
+
+### Added
+- **RoleSkillLoader**: Load SKILL.md methodology frameworks for roles, injecting structured PM frameworks into Worker prompts
+- **PM Methodology Skills**: 5 SKILL.md files for product-manager role (create-prd, opportunity-solution-tree, prioritization-frameworks, assumption-mapping, experiment-design)
+- **suggested_next_steps**: Dispatch results now include recommended follow-up actions based on detected intent type
+- **SKILL.md Security Scanner**: 7-pattern security audit for community-contributed SKILL.md files (critical issues block loading, warnings allow loading)
+
+### Changed
+- PromptAssembler now injects role-specific methodology frameworks via `_get_skill_injection()`
+- IntentWorkflowMapper: 6 intent types now include `suggested_next_steps` field
+- DispatchResult: new `suggested_next_steps` field with i18n support (zh/en/ja)
+- 78 core modules (was 75)
+
 ## [3.6.9] - 2026-06-14
 
 ### Added

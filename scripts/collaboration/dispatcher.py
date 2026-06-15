@@ -1076,14 +1076,14 @@ class MultiAgentDispatcher(EnterpriseMixin, DispatchStepsMixin):
 
         step5_time = time.time()
 
-        # V3.6.9: Parse structured goal for anchor checking
+        # V3.7.0: Parse structured goal for anchor checking
         structured_goal = None
         if self.anchor_checker:
             structured_goal = self.anchor_checker.parse_goal(task)
             if self.usage_tracker:
                 self.usage_tracker.tick("anchor_check")
 
-        # V3.6.9: Load historical retrospectives into Scratchpad
+        # V3.7.0: Load historical retrospectives into Scratchpad
         self._load_historical_retrospectives(task)
 
         return plan, structured_goal, {
@@ -1185,7 +1185,7 @@ class MultiAgentDispatcher(EnterpriseMixin, DispatchStepsMixin):
                         entry_type=EntryType.WARNING,
                         content=f"[Anchor Drift] {anchor_result.recommendation}",
                         confidence=0.9,
-                        tags=["anchor-drift", "v3.6.9"],
+                        tags=["anchor-drift", "v3.7.0"],
                     )
                 )
             return anchor_result
@@ -1428,6 +1428,7 @@ class MultiAgentDispatcher(EnterpriseMixin, DispatchStepsMixin):
             lang=lang,
             concern_packs=self._concern_loader.get_pack_info(concern_packs) if concern_packs else [],
             anchor_result=self._build_anchor_dict(anchor_result),
+            suggested_next_steps=list(intent_match.suggested_next_steps) if intent_match else [],
             retrospective_report=retrospective_report.to_dict() if retrospective_report else None,
             intent_match=self._build_intent_dict(intent_match),
             five_axis_result=five_axis_result,
@@ -1453,6 +1454,7 @@ class MultiAgentDispatcher(EnterpriseMixin, DispatchStepsMixin):
             "intent_type": intent_match.intent_type,
             "workflow_chain": [s for s in intent_match.workflow_chain],
             "confidence": intent_match.confidence,
+            "suggested_next_steps": list(intent_match.suggested_next_steps) if hasattr(intent_match, 'suggested_next_steps') else [],
         }
 
     def _post_dispatch_hooks(

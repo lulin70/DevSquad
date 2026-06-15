@@ -7,6 +7,20 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.7.0] - 2026-06-15
+
+### 新增
+- **RoleSkillLoader**：加载 SKILL.md 方法论框架，将结构化 PM 框架注入 Worker 提示词
+- **PM 方法论技能**：5 个产品经理角色的 SKILL.md 文件（create-prd、opportunity-solution-tree、prioritization-frameworks、assumption-mapping、experiment-design）
+- **suggested_next_steps**：调度结果现在包含基于检测到的意图类型的推荐后续操作
+- **SKILL.md 安全扫描器**：7 模式安全审计，用于社区贡献的 SKILL.md 文件（关键问题阻止加载，警告允许加载）
+
+### 变更
+- PromptAssembler 现在通过 `_get_skill_injection()` 注入角色特定方法论框架
+- IntentWorkflowMapper：6 种意图类型现在包含 `suggested_next_steps` 字段
+- DispatchResult：新增 `suggested_next_steps` 字段，支持 i18n（zh/en/ja）
+- 78 个核心模块（原 75 个）
+
 ## [3.6.9] - 2026-06-14
 
 ### 新增

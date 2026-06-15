@@ -57,7 +57,7 @@ from ._version import __version__
 from .adaptive_role_selector import AdaptiveRoleSelector
 from .ai_semantic_matcher import AISemanticMatcher
 
-# V3.6.9 Module exports
+# V3.7.0 Module exports
 from .anchor_checker import AnchorChecker
 from .batch_scheduler import BatchScheduler
 from .ci_feedback_adapter import CIContext, CIFeedbackAdapter, CIResult
@@ -68,7 +68,7 @@ from .enhanced_worker import AgentBriefingOutput, EnhancedWorker
 from .execution_guard import ExecutionGuard
 from .feature_usage_tracker import FeatureUsageTracker
 
-# V3.6.9 Control & Guard exports
+# V3.7.0 Control & Guard exports
 from .feedback_control_loop import FeedbackControlLoop
 from .five_axis_consensus import FiveAxisConsensusEngine
 from .intent_workflow_mapper import IntentWorkflowMapper

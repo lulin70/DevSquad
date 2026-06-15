@@ -351,7 +351,7 @@ class TestT5_StatusAndHistory:
 
     def test_01_get_status_basic(self, dispatcher):
         status = dispatcher.get_status()
-        assert status["version"] == "3.6.9"
+        assert status["version"] == "3.7.0"
         assert "components" in status
         assert "dispatch_count" in status
 

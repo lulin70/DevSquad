@@ -538,7 +538,7 @@ class WorkflowEngine:
             name=f"lifecycle-{template_name}",
             description=f"DevSquad V3.6 {template_name} lifecycle ({len(steps)} phases)",
             steps=steps,
-            metadata={"template": template_name, "lifecycle_version": "3.6.9"},
+            metadata={"template": template_name, "lifecycle_version": "3.7.0"},
         )
         self.definitions[definition.workflow_id] = definition
         logger.info("Lifecycle workflow created: %s (%s, %d phases)", definition.workflow_id, template_name, len(steps))

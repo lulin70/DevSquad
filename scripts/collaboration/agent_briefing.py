@@ -13,7 +13,7 @@ Usage:
 
     briefing = AgentBriefing(
         agent_role="Architect",
-        project_context={"name": "DevSquad", "version": "3.6.9-Prod"}
+        project_context={"name": "DevSquad", "version": "3.7.0-Prod"}
     )
 
     # Generate briefing
@@ -80,8 +80,8 @@ class AgentBriefing:
     - Priority-based information filtering
     - Incremental updates
     - Persistence support
-    - Project overview generation (V3.6.9)
-    - Role-specific understanding generation (V3.6.9)
+    - Project overview generation (V3.7.0)
+    - Role-specific understanding generation (V3.7.0)
     """
 
     def __init__(self, agent_role: str, project_context: dict[str, Any] | None = None, storage_dir: str | None = None):
@@ -585,7 +585,7 @@ def reset_briefings() -> None:
     _briefing_instances.clear()
 
 
-__version__ = "3.6.9"
+__version__ = "3.7.0"
 __all__ = [
     "AgentBriefing",
     "BriefingSection",

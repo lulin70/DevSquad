@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DevSquad V3.6.9 Quick Start Example
+DevSquad V3.7.0 Quick Start Example
 
 Demonstrates basic usage of the unified lifecycle architecture (Plan C).
 
@@ -265,7 +265,7 @@ class Authenticator:
 
 def main():
     """Run all quick start examples."""
-    print("🚀 DevSquad V3.6.9 Quick Start Examples")
+    print("🚀 DevSquad V3.7.0 Quick Start Examples")
     print("=" * 60)
     print("This demonstrates the unified lifecycle architecture (Plan C)")
     print()
