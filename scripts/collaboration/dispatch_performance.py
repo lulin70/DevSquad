@@ -3,7 +3,7 @@
 Dispatch performance monitoring module.
 
 Extracted from dispatcher.py for modularity. Contains:
-- PerformanceMonitor: Performance monitoring and alerting system
+- DispatchPerformanceMonitor: Performance monitoring and alerting system
 """
 
 import json
@@ -18,7 +18,7 @@ from .dispatch_models import PerformanceMetric, PerformanceThresholds
 logger = logging.getLogger(__name__)
 
 
-class PerformanceMonitor:
+class DispatchPerformanceMonitor:
     """Performance monitoring and alerting system.
 
     Collects performance metrics from each dispatch call, maintains
@@ -37,7 +37,7 @@ class PerformanceMonitor:
         thresholds: PerformanceThresholds configuration instance
 
     Example:
-        >>> monitor = PerformanceMonitor(window_size=50)
+        >>> monitor = DispatchPerformanceMonitor(window_size=50)
         >>> metric = PerformanceMetric(
         ...     timestamp="2024-01-01T12:00:00",
         ...     task_description="Test task",

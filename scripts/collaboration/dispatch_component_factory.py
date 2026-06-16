@@ -199,9 +199,9 @@ class ComponentFactory:
             configure_redis_cache(enabled=True, url=config.redis_url)
 
         from .concern_pack_loader import ConcernPackLoader
-        from .dispatch_performance import PerformanceMonitor
+        from .dispatch_performance import DispatchPerformanceMonitor
 
-        components["_perf_monitor"] = PerformanceMonitor(window_size=100)
+        components["_perf_monitor"] = DispatchPerformanceMonitor(window_size=100)
         components["_concern_loader"] = ConcernPackLoader()
 
         from .dual_layer_context import DualLayerContextManager

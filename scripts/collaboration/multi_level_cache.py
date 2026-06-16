@@ -250,10 +250,11 @@ class MultiLevelCacheCoordinator:
         self._null_keys: dict[str, float] = {}
 
         logger.info(
-            f"MultiLevelCacheCoordinator initialized: "
-            f"L1={'enabled' if self.l1 else 'disabled'}, "
-            f"L2={'enabled' if self.l2 else 'disabled'}, "
-            f"L3={'configured' if self.l3_fallback else 'not configured'}"
+            "MultiLevelCacheCoordinator initialized: "
+            "L1=%s, L2=%s, L3=%s",
+            "enabled" if self.l1 else "disabled",
+            "enabled" if self.l2 else "disabled",
+            "configured" if self.l3_fallback else "not configured",
         )
 
     def _add_jitter(self, ttl: int | None) -> int | None:
@@ -286,7 +287,7 @@ class MultiLevelCacheCoordinator:
         # Check for null sentinel (penetration protection)
         if key in self._null_keys:
             if time.time() < self._null_keys[key]:
-                logger.debug(f"Cache penetration blocked for key: {key}")
+                logger.debug("Cache penetration blocked for key: %s", key)
                 return None
             else:
                 del self._null_keys[key]
@@ -302,17 +303,17 @@ class MultiLevelCacheCoordinator:
                 if value is not NULL_SENTINEL:
                     if value is not None:
                         self.l1_stats.hits += 1
-                        logger.debug(f"L1 HIT: {key} ({latency:.2f}ms)")
+                        logger.debug("L1 HIT: %s (%.2fms)", key, latency)
                         return value
                     else:
                         self.l1_stats.misses += 1
                 else:
                     self.l1_stats.hits += 1
-                    logger.debug(f"L1 NULL HIT (penetration block): {key}")
+                    logger.debug("L1 NULL HIT (penetration block): %s", key)
                     return None
             except (AttributeError, KeyError, RuntimeError) as e:
                 self.l1_stats.errors += 1
-                logger.warning(f"L1 cache error: {e}")
+                logger.warning("L1 cache error: %s", e)
 
         # Level 2: Redis/External cache
         if self.enable_l2 and self.l2:
@@ -324,31 +325,31 @@ class MultiLevelCacheCoordinator:
 
                 if value is not None:
                     self.l2_stats.hits += 1
-                    logger.debug(f"L2 HIT: {key} ({latency:.2f}ms)")
+                    logger.debug("L2 HIT: %s (%.2fms)", key, latency)
 
                     # Populate L1
                     if self.enable_l1 and self.l1:
                         try:
                             await self.l1.set(key, value, self._add_jitter(ttl))
                         except (AttributeError, RuntimeError, OSError) as e:
-                            logger.debug(f"Failed to populate L1: {e}")
+                            logger.debug("Failed to populate L1: %s", e)
 
                     return value
                 else:
                     self.l2_stats.misses += 1
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 self.l2_stats.errors += 1
-                logger.warning(f"L2 cache error: {e}")
+                logger.warning("L2 cache error: %s", e)
 
         # Level 3: LLM/Fallback call (with breakdown protection)
         if self.l3_fallback:
             value = await self._call_l3_with_protection(key, ttl)
             total_latency = (time.time() - start_time) * 1000
-            logger.debug(f"L3 CALL: {key} ({total_latency:.2f}ms)")
+            logger.debug("L3 CALL: %s (%.2fms)", key, total_latency)
             return value
 
         # All levels missed
-        logger.debug(f"ALL MISS: {key}")
+        logger.debug("ALL MISS: %s", key)
         return None
 
     async def _call_l3_with_protection(self, key: str, ttl: int | None) -> Any | None:
@@ -370,7 +371,7 @@ class MultiLevelCacheCoordinator:
                 if cached is not None and cached is not NULL_SENTINEL:
                     return cached
             except (AttributeError, RuntimeError) as e:
-                logger.debug(f"L1 double-check failed: {e}")
+                logger.debug("L1 double-check failed: %s", e)
 
         async with key_lock:
             # Triple-check inside lock
@@ -380,7 +381,7 @@ class MultiLevelCacheCoordinator:
                     if cached is not None and cached is not NULL_SENTINEL:
                         return cached
                 except (AttributeError, RuntimeError) as e:
-                    logger.debug(f"L1 triple-check failed: {e}")
+                    logger.debug("L1 triple-check failed: %s", e)
 
             # Rate limit L3 calls
             async with self._l3_semaphore:
@@ -407,7 +408,7 @@ class MultiLevelCacheCoordinator:
 
                 except Exception as e:  # Broad catch: unpredictable LLM/API call
                     self.l3_stats.errors += 1
-                    logger.error(f"L3 fallback error for key {key}: {e}")
+                    logger.error("L3 fallback error for key %s: %s", key, e)
                     raise
 
     async def _populate_all_levels(self, key: str, value: Any, ttl: int | None):
@@ -419,14 +420,14 @@ class MultiLevelCacheCoordinator:
             try:
                 await self.l1.set(key, value, jittered_ttl)
             except (AttributeError, RuntimeError) as e:
-                logger.debug(f"Failed to populate L1: {e}")
+                logger.debug("Failed to populate L1: %s", e)
 
         # Populate L2
         if self.enable_l2 and self.l2:
             try:
                 await self.l2.set(key, value, jittered_ttl)
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-                logger.debug(f"Failed to populate L2: {e}")
+                logger.debug("Failed to populate L2: %s", e)
 
     async def _store_null_sentinel(self, key: str):
         """Store null sentinel to prevent cache penetration"""
@@ -436,7 +437,7 @@ class MultiLevelCacheCoordinator:
             try:
                 await self.l1.set(key, NULL_SENTINEL, self.null_ttl)
             except (AttributeError, RuntimeError) as e:
-                logger.debug(f"Failed to store null sentinel in L1: {e}")
+                logger.debug("Failed to store null sentinel in L1: %s", e)
 
     async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
@@ -458,14 +459,14 @@ class MultiLevelCacheCoordinator:
                 await self.l1.set(key, value, jittered_ttl)
                 success = True
             except (AttributeError, RuntimeError) as e:
-                logger.warning(f"L1 set failed: {e}")
+                logger.warning("L1 set failed: %s", e)
 
         if self.enable_l2 and self.l2:
             try:
                 await self.l2.set(key, value, jittered_ttl)
                 success = True
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-                logger.warning(f"L2 set failed: {e}")
+                logger.warning("L2 set failed: %s", e)
 
         return success
 
@@ -476,19 +477,19 @@ class MultiLevelCacheCoordinator:
         Args:
             key: Cache key to invalidate
         """
-        logger.debug(f"Invalidating key: {key}")
+        logger.debug("Invalidating key: %s", key)
 
         if self.enable_l1 and self.l1:
             try:
                 await self.l1.delete(key)
             except (AttributeError, RuntimeError) as e:
-                logger.debug(f"L1 delete failed: {e}")
+                logger.debug("L1 delete failed: %s", e)
 
         if self.enable_l2 and self.l2:
             try:
                 await self.l2.delete(key)
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-                logger.debug(f"L2 delete failed: {e}")
+                logger.debug("L2 delete failed: %s", e)
 
         # Remove from null key tracking
         if key in self._null_keys:
@@ -517,7 +518,7 @@ class MultiLevelCacheCoordinator:
                     await self.invalidate(key)
                     count += 1
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-                logger.warning(f"Pattern invalidation failed on L2: {e}")
+                logger.warning("Pattern invalidation failed on L2: %s", e)
 
         return count
 
@@ -527,13 +528,13 @@ class MultiLevelCacheCoordinator:
             try:
                 await self.l1.clear()
             except (AttributeError, RuntimeError) as e:
-                logger.warning(f"L1 clear failed: {e}")
+                logger.warning("L1 clear failed: %s", e)
 
         if self.enable_l2 and self.l2:
             try:
                 await self.l2.clear()
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-                logger.warning(f"L2 clear failed: {e}")
+                logger.warning("L2 clear failed: %s", e)
 
         self._null_keys.clear()
         logger.info("All cache levels cleared")
@@ -613,13 +614,13 @@ class MultiLevelCacheCoordinator:
             try:
                 await self.l1.close()
             except (AttributeError, RuntimeError) as e:
-                logger.warning(f"Error closing L1: {e}")
+                logger.warning("Error closing L1: %s", e)
 
         if self.l2:
             try:
                 await self.l2.close()
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-                logger.warning(f"Error closing L2: {e}")
+                logger.warning("Error closing L2: %s", e)
 
         self._key_locks.clear()
         self._null_keys.clear()

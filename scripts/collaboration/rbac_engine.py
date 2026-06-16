@@ -241,7 +241,7 @@ class RBACEngine:
             engine.enforce("u1", Permission.USER_DELETE)
             delete_user(...)
         except PermissionDeniedError as e:
-            logger.error(f"Access denied: {e}")
+            logger.error("Access denied: %s", e)
     """
 
     def __init__(self):

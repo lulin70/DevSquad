@@ -507,7 +507,7 @@ class AgentBriefing:
 
         Path(output_path).write_text(json.dumps(briefing_data, indent=2), encoding="utf-8")
 
-        logger.info(f"Briefing exported to {output_path}")
+        logger.info("Briefing exported to %s", output_path)
 
     def _add_to_history(self, task: str, context: dict[str, Any], briefing: str) -> None:
         history_entry = {
@@ -539,7 +539,7 @@ class AgentBriefing:
 
             briefing_file.write_text(json.dumps(briefing_data, indent=2), encoding="utf-8")
         except Exception as e:
-            logger.warning(f"Failed to save briefing: {e}")
+            logger.warning("Failed to save briefing: %s", e)
 
     def _load_briefing(self) -> None:
         try:
@@ -560,9 +560,9 @@ class AgentBriefing:
             for title, section_data in sections_data.items():
                 self.sections[title] = BriefingSection(**section_data)
 
-            logger.info(f"Loaded briefing for {self.agent_role}")
+            logger.info("Loaded briefing for %s", self.agent_role)
         except Exception as e:
-            logger.warning(f"Failed to load briefing: {e}")
+            logger.warning("Failed to load briefing: %s", e)
 
 
 _briefing_instances: dict[str, AgentBriefing] = {}

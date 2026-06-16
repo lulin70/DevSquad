@@ -2,16 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.7.0 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
+  V3.7.2 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.7.0: RoleSkillLoader + PM Methodology Skills (5 SKILL.md frameworks) + suggested_next_steps + SKILL.md security scanner,
-  76 core modules.
+  NEW in V3.7.2: EventBus + Dispatcher split (1660→706 lines) + Mixin→Composition + f-string logger eliminated + EnhancedWorker bug fix + config_loader dead code removed + skillifier parasitic coupling refactored + broad except narrowed,
+  80+ core modules, 2115 tests passing.
 ---
 
-# DevSquad V3.7.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V3.7.2 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -599,7 +599,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.7.0",
+#   "version": "3.7.2",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
@@ -920,6 +920,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 ## Version History
 
+- **v3.7.2** (2026-06-16): EventBus + Dispatcher split (1660→706 lines, -57%) + Mixin→Composition (3 Mixins eliminated) + f-string logger eliminated (166 fixes) + EnhancedWorker bug fix (_do_work type mismatch) + config_loader dead code removed + skillifier parasitic coupling refactored (8 _storage._xxx→public interface) + broad except narrowed (29 fixes) + DispatchPerformanceMonitor renamed + .gitignore updated + 2115 tests passing
 - **v3.7.0** (2026-06-15): RoleSkillLoader + PM Methodology Skills (5 SKILL.md: create-prd/opportunity-solution-tree/prioritization-frameworks/assumption-mapping/experiment-design) + suggested_next_steps in dispatch results + SKILL.md security scanner (7 patterns) + 76 core modules + 2109 tests passing
 - **v3.6.9** (2026-06-14): UETestFramework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load) + TechDebtManager with CodebaseDebtScanner + knapsack remediation planning + 75 core modules + version sync to 3.6.9
 - **v3.6.8** (2026-06-13): FeedbackControlLoop auto mode + LLM refinement + AdaptiveRoleSelector/SimilarTaskRecommender integrated into RoleMatcher + ExecutionGuard integrated into EnhancedWorker + Lifecycle phase trace in dispatch pipeline + RBAC checks on get_history/audit_quality/export_metrics/clear_history + TestQualityGuard default enabled + enable_feedback_loop default False→"auto" + Removed AlertManager (unused) + 13+ files version sync to 3.6.8 + Fixed except Exception: pass silent error swallowing + Fixed assertTrue test anti-patterns + 1940 passed, 11 skipped, 3 xpassed

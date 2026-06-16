@@ -96,7 +96,7 @@ class AuthManager:
         # Validate configuration security
         self._validate_config_security()
 
-        logger.info(f"AuthManager initialized (enabled={self.auth_enabled})")
+        logger.info("AuthManager initialized (enabled=%s)", self.auth_enabled)
 
     def _load_config(self) -> dict[str, Any]:
         """Load deployment configuration from YAML file."""
@@ -105,10 +105,10 @@ class AuthManager:
                 with open(self.config_path, encoding="utf-8") as f:
                     return yaml.safe_load(f) or {}
             else:
-                logger.warning(f"Config file not found: {self.config_path}")
+                logger.warning("Config file not found: %s", self.config_path)
                 return {}
         except Exception as e:
-            logger.error(f"Failed to load config: {e}")
+            logger.error("Failed to load config: %s", e)
             return {}
 
     def _get_credentials(self) -> dict[str, dict]:
@@ -163,7 +163,7 @@ class AuthManager:
             logger.warning("=" * 60)
             logger.warning("SECURITY WARNINGS - Configuration Issues Detected:")
             for warning in warnings:
-                logger.warning(f"  ⚠️  {warning}")
+                logger.warning("  ⚠️  %s", warning)
             logger.warning("=" * 60)
             logger.warning("Please update config/deployment.yaml with secure values before production use.")
 
@@ -183,7 +183,7 @@ class AuthManager:
             User object if authenticated, None otherwise
         """
         if username not in self.credentials:
-            logger.warning(f"Login attempt for unknown user: {username}")
+            logger.warning("Login attempt for unknown user: %s", username)
             return None
 
         cred = self.credentials[username]
@@ -191,7 +191,7 @@ class AuthManager:
         input_password_hash = self._hash_password(password)
 
         if input_password_hash != stored_password_hash:
-            logger.warning(f"Failed login attempt for user: {username}")
+            logger.warning("Failed login attempt for user: %s", username)
             return None
 
         # Create user object
@@ -209,7 +209,7 @@ class AuthManager:
             session_id=hashlib.md5(f"{username}{datetime.now().isoformat()}".encode()).hexdigest()[:16],
         )
 
-        logger.info(f"User authenticated: {username} (role={role.value})")
+        logger.info("User authenticated: %s (role=%s)", username, role.value)
         return user
 
     def authenticate_streamlit(self):
@@ -352,11 +352,11 @@ def require_auth(func):
 
                 user = st.session_state.get("user")
                 if not user:
-                    logger.warning(f"Auth required but no session for {func.__name__}")
+                    logger.warning("Auth required but no session for %s", func.__name__)
                     raise PermissionError("Authentication required")
             except (ImportError, AttributeError):
                 pass
-        logger.debug(f"Auth check for {func.__name__}")
+        logger.debug("Auth check for %s", func.__name__)
         return func(*args, **kwargs)
 
     return wrapper

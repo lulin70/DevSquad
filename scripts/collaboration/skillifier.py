@@ -355,41 +355,51 @@ class Skillifier:
     # Backward-compatible property accessors for internal state
     @property
     def _records(self) -> list[ExecutionRecord]:
-        return self._storage._records
+        return self._storage.get_all_records()
 
     @_records.setter
     def _records(self, value: list[ExecutionRecord]) -> None:
-        self._storage._records = value
+        self._storage.set_all_records(value)
 
     @property
     def _patterns(self) -> list[SuccessPattern]:
-        return self._storage._patterns
+        return self._storage.get_all_patterns()
 
     @_patterns.setter
     def _patterns(self, value: list[SuccessPattern]) -> None:
-        self._storage._patterns = value
+        self._storage.set_all_patterns(value)
 
     @property
     def _proposals(self) -> dict[str, SkillProposal]:
-        return self._storage._proposals
+        return self._storage.get_all_proposals()
 
     @_proposals.setter
     def _proposals(self, value: dict[str, SkillProposal]) -> None:
-        self._storage._proposals = value
+        self._storage.set_all_proposals(value)
 
-    @property
-    def _lock(self):
-        return self._storage._lock
+    # Explicit delegate methods to SkillExtractor (replacing __getattr__)
+    # These provide static analyzability while maintaining backward compatibility.
 
-    def __getattr__(self, name: str) -> Any:
-        """Delegate attribute access to SkillExtractor for backward compatibility.
+    def _sequence_similarity(self, seq_a: list, seq_b: list) -> float:
+        return self._extractor._sequence_similarity(seq_a, seq_b)
 
-        Allows code that accesses private methods like sf._sequence_similarity()
-        to continue working by delegating to the SkillExtractor instance.
-        """
-        if name.startswith("_") and not name.startswith("__") and hasattr(self.__dict__.get("_extractor", None), name):
-            return getattr(self._extractor, name)
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    def _step_similarity(self, a, b) -> float:
+        return self._extractor._step_similarity(a, b)
+
+    def _cluster_sequences(self, records: list) -> dict:
+        return self._extractor._cluster_sequences(records)
+
+    def _generalize_target(self, targets: list) -> str:
+        return self._extractor._generalize_target(targets)
+
+    def _generalize_description(self, descriptions: list) -> str:
+        return self._extractor._generalize_description(descriptions)
+
+    def _generalize_step(self, step_samples: list):
+        return self._extractor._generalize_step(step_samples)
+
+    def _word_overlap(self, text_a: str, text_b: str) -> float:
+        return self._extractor._word_overlap(text_a, text_b)
 
     # ================================================================
     # Record Management → SkillStorage
@@ -408,7 +418,7 @@ class Skillifier:
     # ================================================================
 
     def analyze_history(self, since: datetime = None, until: datetime = None) -> list[SuccessPattern]:
-        with self._lock:
+        with self._storage.thread_safe():
             records = self._storage.get_records(since=since, until=until, success_only=True)
             patterns = self._extractor.analyze_history(
                 records,

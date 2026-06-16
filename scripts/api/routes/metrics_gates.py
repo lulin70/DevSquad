@@ -53,7 +53,7 @@ def _get_real_cpu_usage() -> tuple:
         cpu_count = os.cpu_count() or 1
         return (round(100.0 / (cpu_count + 1), 1), True)
     except (RuntimeError, OSError) as e:
-        logger.warning(f"Failed to get real CPU usage: {e}, using estimated")
+        logger.warning("Failed to get real CPU usage: %s, using estimated", e)
         return (45.0, True)
 
 
@@ -70,7 +70,7 @@ def _get_real_memory_usage() -> tuple:
     except ImportError:
         return (60.0, True)
     except (RuntimeError, OSError) as e:
-        logger.warning(f"Failed to get real memory usage: {e}, using estimated")
+        logger.warning("Failed to get real memory usage: %s, using estimated", e)
         return (60.0, True)
 
 
@@ -93,7 +93,7 @@ def _get_real_response_time() -> tuple:
 
         return (150.0, 450.0, True)
     except (ImportError, AttributeError, RuntimeError) as e:
-        logger.debug(f"HistoryManager not available for response time: {e}")
+        logger.debug("HistoryManager not available for response time: %s", e)
         return (150.0, 450.0, True)
 
 
@@ -142,8 +142,17 @@ async def get_current_metrics():
             memory_usage_percent=mem_usage,
         )
 
-    except Exception as e:  # Broad catch: API endpoint safety net
-        logger.error(f"Failed to get metrics: {e}")
+    except ImportError as e:
+        logger.error("Failed to load lifecycle protocol for metrics: %s", e)
+        raise HTTPException(status_code=503, detail=f"Protocol unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid data in metrics: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to get metrics: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
+    except Exception as e:
+        logger.error("Unexpected error getting metrics: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -191,8 +200,17 @@ async def get_metrics_history(
             "note": "No historical data available. Metrics will be recorded after API requests are made.",
         }
 
-    except Exception as e:  # Broad catch: API endpoint safety net
-        logger.error(f"Failed to get metrics history: {e}")
+    except ImportError as e:
+        logger.error("Failed to load history manager: %s", e)
+        raise HTTPException(status_code=503, detail=f"History service unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid request for metrics history: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to get metrics history: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
+    except Exception as e:
+        logger.error("Unexpected error getting metrics history: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -237,8 +255,17 @@ async def get_all_gate_statuses():
             "timestamp": datetime.now().isoformat(),
         }
 
-    except Exception as e:  # Broad catch: API endpoint safety net
-        logger.error(f"Failed to get gate statuses: {e}")
+    except ImportError as e:
+        logger.error("Failed to load lifecycle protocol for gates: %s", e)
+        raise HTTPException(status_code=503, detail=f"Protocol unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid data in gate statuses: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to get gate statuses: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
+    except Exception as e:
+        logger.error("Unexpected error getting gate statuses: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -277,8 +304,17 @@ async def check_specific_gate(request: GateCheckRequest):
             checked_at=datetime.now(),
         )
 
-    except Exception as e:  # Broad catch: API endpoint safety net
-        logger.error(f"Failed to check gate for {request.command}: {e}")
+    except ImportError as e:
+        logger.error("Failed to load lifecycle protocol for gate check: %s", e)
+        raise HTTPException(status_code=503, detail=f"Protocol unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid request for gate check '%s': %s", request.command, e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to check gate for %s: %s", request.command, e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
+    except Exception as e:
+        logger.error("Unexpected error checking gate for %s: %s", request.command, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -332,8 +368,8 @@ async def health_check():
             timestamp=datetime.now(),
         )
 
-    except Exception as e:  # Broad catch: API endpoint safety net
-        logger.error(f"Health check failed: {e}")
+    except Exception as e:  # Broad catch: health check must always return a response
+        logger.error("Health check failed: %s", e, exc_info=True)
         return HealthCheck(
             status="unhealthy",
             version="3.7.0",

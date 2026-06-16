@@ -127,7 +127,7 @@ def create_mcp_server() -> "FastMCP":
                 return result.summary
             return result.to_markdown()
         except Exception as e:
-            logger.error(f"Dispatch error: {e}", exc_info=True)
+            logger.error("Dispatch error: %s", e, exc_info=True)
             return json.dumps({"error": "Internal error occurred", "success": False})
 
     @mcp.tool()
@@ -164,7 +164,7 @@ def create_mcp_server() -> "FastMCP":
             )
             return result.to_markdown() if hasattr(result, "to_markdown") else str(result)
         except Exception as e:
-            logger.error(f"Quick dispatch error: {e}", exc_info=True)
+            logger.error("Quick dispatch error: %s", e, exc_info=True)
             return json.dumps({"error": "Internal error occurred", "success": False})
 
     @mcp.tool()
@@ -227,7 +227,13 @@ def create_mcp_server() -> "FastMCP":
                 ensure_ascii=False,
                 indent=2,
             )
-        except Exception:
+        except (AttributeError, RuntimeError) as e:
+            logger.error("Status check failed: %s", e, exc_info=True)
+            return json.dumps(
+                {"name": "DevSquad", "version": "3.7.0", "status": "error", "error": str(e)}
+            )
+        except Exception as e:
+            logger.error("Unexpected error in status check: %s", e, exc_info=True)
             return json.dumps(
                 {"name": "DevSquad", "version": "3.7.0", "status": "ready", "error": "Internal error occurred"}
             )
@@ -262,7 +268,11 @@ def create_mcp_server() -> "FastMCP":
                 ensure_ascii=False,
                 indent=2,
             )
-        except Exception:
+        except (ValueError, RuntimeError, ConnectionError) as e:
+            logger.error("Task analysis failed: %s", e, exc_info=True)
+            return json.dumps({"error": str(e)}, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error("Unexpected error in task analysis: %s", e, exc_info=True)
             return json.dumps({"error": "Internal error occurred"}, ensure_ascii=False, indent=2)
 
     @mcp.tool()
@@ -293,7 +303,7 @@ def main():
     mcp = create_mcp_server()
 
     if args.port:
-        logger.info(f"Starting SSE server on {args.host}:{args.port}")
+        logger.info("Starting SSE server on %s:%s", args.host, args.port)
         mcp.run(transport="sse", host=args.host, port=args.port)
     else:
         logger.info("Starting stdio server")

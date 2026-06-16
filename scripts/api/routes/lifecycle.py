@@ -93,11 +93,20 @@ async def list_phases(
             )
             phases.append(phase_data)
 
-        logger.info(f"Retrieved {len(phases)} phases")
+        logger.info("Retrieved %s phases", len(phases))
         return phases
 
+    except ImportError as e:
+        logger.error("Failed to load lifecycle protocol: %s", e)
+        raise HTTPException(status_code=503, detail=f"Protocol unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid request for phases: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to list phases: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error(f"Failed to list phases: {e}")
+        logger.error("Unexpected error listing phases: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -157,8 +166,17 @@ async def get_phase(phase_id: str):
 
     except HTTPException:
         raise
+    except ImportError as e:
+        logger.error("Failed to load lifecycle protocol: %s", e)
+        raise HTTPException(status_code=503, detail=f"Protocol unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid request for phase %s: %s", phase_id, e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to get phase %s: %s", phase_id, e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error(f"Failed to get phase {phase_id}: {e}")
+        logger.error("Unexpected error getting phase %s: %s", phase_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -194,8 +212,17 @@ async def get_lifecycle_status():
             "timestamp": None,
         }
 
+    except ImportError as e:
+        logger.error("Failed to load lifecycle protocol: %s", e)
+        raise HTTPException(status_code=503, detail=f"Protocol unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid data in lifecycle status: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to get lifecycle status: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error(f"Failed to get lifecycle status: {e}")
+        logger.error("Unexpected error getting lifecycle status: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -254,7 +281,7 @@ async def execute_phase_action(request: PhaseActionRequest):
                 success = True
                 message = f"Phase {phase_id} marked as completed"
                 new_status = PhaseStatus.COMPLETED
-            except Exception as ex:
+            except (ValueError, KeyError, AttributeError, RuntimeError) as ex:
                 success = False
                 message = f"Failed to complete phase {phase_id}: {ex}"
                 new_status = previous_status
@@ -282,8 +309,14 @@ async def execute_phase_action(request: PhaseActionRequest):
 
     except HTTPException:
         raise
+    except (ValueError, KeyError, AttributeError) as e:
+        logger.warning("Invalid request for action %s on phase %s: %s", request.action, request.phase_id, e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except RuntimeError as e:
+        logger.error("Failed to execute action %s on phase %s: %s", request.action, request.phase_id, e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error(f"Failed to execute action {request.action} on phase {request.phase_id}: {e}")
+        logger.error("Unexpected error executing action on phase %s: %s", request.phase_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -311,16 +344,25 @@ async def list_command_mappings():
             try:
                 phases = protocol.resolve_command_to_phases(cmd_name)
                 phase_ids = [p.phase_id for p in phases] if phases else mapping.phases
-            except Exception:
+            except (KeyError, AttributeError, RuntimeError):
                 phase_ids = mapping.phases
 
             mappings.append(
                 CommandMapping(command=cmd_name, phases=phase_ids, mode=mapping.mode or "shortcut", gate=mapping.gate)
             )
 
-        logger.info(f"Retrieved {len(mappings)} command mappings")
+        logger.info("Retrieved %s command mappings", len(mappings))
         return mappings
 
+    except ImportError as e:
+        logger.error("Failed to load lifecycle protocol: %s", e)
+        raise HTTPException(status_code=503, detail=f"Protocol unavailable: {str(e)}") from None
+    except (KeyError, ValueError, TypeError) as e:
+        logger.warning("Invalid data in command mappings: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (AttributeError, RuntimeError) as e:
+        logger.error("Failed to list mappings: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error(f"Failed to list mappings: {e}")
+        logger.error("Unexpected error listing mappings: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from None

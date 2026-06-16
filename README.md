@@ -9,8 +9,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2109%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.7.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2115%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.7.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V3.7.0: Ghost Feature Cleanup + Dispatcher Split + SSRF Hardening
+## 🚀 V3.7.2: EventBus + Dispatcher Split + Tech Debt Cleanup
 
-**DevSquad V3.7.0** removes ghost features (PromptVariantGenerator, RoleTemplateMarket — complete implementations with zero production imports), splits dispatcher.py into DispatchStepsMixin (23% code reduction), adds SSRF detection for IPv6/https variants, adds 9 integration tests for Step 19/20, implements real LLM smoke tests, and brings total to 2109+ tests passing.
+**DevSquad V3.7.2** introduces EventBus event-driven decoupling, splits dispatcher.py from 1660→706 lines (-57%), converts all 3 Mixins to Composition pattern, eliminates 166 f-string logger calls, fixes EnhancedWorker type mismatch bug, removes config_loader dead code, refactors skillifier parasitic coupling, narrows 29 broad except scopes, with 2115 tests passing.
 
 ---
 
@@ -581,6 +581,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-06-15 | Version: V3.7.0*
+*Last updated: 2026-06-16 | Version: V3.7.2*
 
 </details>

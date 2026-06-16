@@ -57,8 +57,8 @@ def _get_dispatcher():
                 enable_quality_guard=False,
             )
             logger.info("MultiAgentDispatcher initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize MultiAgentDispatcher: {e}")
+        except (ImportError, RuntimeError) as e:
+            logger.error("Failed to initialize MultiAgentDispatcher: %s", e)
             raise HTTPException(status_code=503, detail=f"Dispatcher initialization failed: {str(e)}") from None
     return _global_dispatcher
 
@@ -169,9 +169,9 @@ async def dispatch_task(request: TaskDispatchRequest):
                 from scripts.collaboration.llm_backend import create_llm_backend
 
                 create_llm_backend(request.backend.lower())
-                logger.info(f"Using LLM backend: {request.backend}")
-            except Exception as backend_err:
-                logger.warning(f"Failed to create LLM backend '{request.backend}': {backend_err}, using default")
+                logger.info("Using LLM backend: %s", request.backend)
+            except (ImportError, ValueError, RuntimeError, AttributeError) as backend_err:
+                logger.warning("Failed to create LLM backend '%s': %s, using default", request.backend, backend_err)
                 pass
 
         result = dispatcher.dispatch(
@@ -187,10 +187,19 @@ async def dispatch_task(request: TaskDispatchRequest):
     except HTTPException:
         raise
     except ImportError as e:
-        logger.error(f"Missing dependency during dispatch: {e}")
+        logger.error("Missing dependency during dispatch: %s", e)
         raise HTTPException(status_code=503, detail=f"Service unavailable: Missing dependency - {str(e)}") from None
+    except (ValueError, KeyError, AttributeError) as e:
+        logger.warning("Invalid request during dispatch: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (ConnectionError, TimeoutError) as e:
+        logger.error("Service unavailable during dispatch: %s", e)
+        raise HTTPException(status_code=503, detail=f"Service unavailable: {str(e)}") from None
+    except RuntimeError as e:
+        logger.error("Dispatch failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Dispatch failed: {str(e)}") from None
     except Exception as e:
-        logger.error(f"Dispatch failed: {e}", exc_info=True)
+        logger.error("Unexpected error during dispatch: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Dispatch failed: {str(e)}") from None
 
 
@@ -232,8 +241,17 @@ async def quick_dispatch(request: QuickDispatchRequest):
 
     except HTTPException:
         raise
+    except (ValueError, KeyError, AttributeError) as e:
+        logger.warning("Invalid request for quick dispatch: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except (ConnectionError, TimeoutError) as e:
+        logger.error("Service unavailable for quick dispatch: %s", e)
+        raise HTTPException(status_code=503, detail=f"Service unavailable: {str(e)}") from None
+    except RuntimeError as e:
+        logger.error("Quick dispatch failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Quick dispatch failed: {str(e)}") from None
     except Exception as e:
-        logger.error(f"Quick dispatch failed: {e}", exc_info=True)
+        logger.error("Unexpected error during quick dispatch: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Quick dispatch failed: {str(e)}") from None
 
 
@@ -273,8 +291,14 @@ async def get_dispatch_history(
 
     except HTTPException:
         raise
+    except (ValueError, KeyError, AttributeError) as e:
+        logger.warning("Invalid request for dispatch history: %s", e)
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except RuntimeError as e:
+        logger.error("Failed to get dispatch history: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}") from None
     except Exception as e:
-        logger.error(f"Failed to get dispatch history: {e}")
+        logger.error("Unexpected error getting dispatch history: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}") from None
 
 
@@ -327,6 +351,15 @@ async def list_roles():
             planned_roles=planned_role_ids,
         )
 
+    except ImportError as e:
+        logger.error("Failed to load role registry: %s", e)
+        raise HTTPException(status_code=503, detail=f"Role registry unavailable: {str(e)}") from None
+    except (KeyError, AttributeError) as e:
+        logger.error("Failed to list roles: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}") from None
+    except RuntimeError as e:
+        logger.error("Failed to list roles: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}") from None
     except Exception as e:
-        logger.error(f"Failed to list roles: {e}")
+        logger.error("Unexpected error listing roles: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}") from None

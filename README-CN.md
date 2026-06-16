@@ -3,7 +3,7 @@
 <p align="center">
   <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
   <br>
-  <em>企业级就绪 | V3.7.0</em>
+  <em>企业级就绪 | V3.7.2</em>
 </p>
 
 <p align="center">
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.7.0: 幽灵功能清理 + Dispatcher 拆分 + SSRF 加固
+## 🚀 V3.7.2: EventBus + Dispatcher拆分 + 技术债清理
 
-**DevSquad V3.7.0** 移除幽灵功能（PromptVariantGenerator、RoleTemplateMarket — 完整实现但零生产导入）、拆分 dispatcher.py 为 DispatchStepsMixin（代码量减少 23%）、增加 SSRF 检测的 IPv6/https 变体、新增 9 个 Step 19/20 集成测试、实现真实 LLM 冒烟测试，总计 2109+ 测试通过。
+**DevSquad V3.7.2** 引入 EventBus 事件驱动解耦、将 dispatcher.py 从 1660 行拆分为 706 行（-57%）、3 个 Mixin 全部转为 Composition 模式、消除 166 处 f-string logger、修复 EnhancedWorker 类型不匹配 bug、删除 config_loader 死代码、重构 skillifier 寄生耦合、缩小 29 处 broad except 范围，总计 2115 测试通过。
 
 ### 🔄 V3.6.6 企业级功能详情
 
@@ -343,7 +343,7 @@ DevSquad/
 │   ├── cli.py                 # 命令行界面
 │   ├── dashboard.py           # Streamlit仪表板
 │   └── api_server.py          # FastAPI服务器
-├── tests/                     # 测试套件 (1478个)
+├── tests/                     # 测试套件 (2115个)
 ├── docs/                      # 文档
 ├── SKILL.md                   # Skill定义
 ├── CHANGELOG.md              # 变更日志

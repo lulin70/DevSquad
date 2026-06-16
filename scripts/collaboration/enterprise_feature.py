@@ -79,7 +79,7 @@ class EnterpriseFeature:
                 self.rbac_engine.add_user(RBACUser("default", "default_operator", {UserRole.OPERATOR}))
                 logger.info("RBAC Engine enabled")
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
-                logger.warning(f"RBAC Engine initialization failed: {e}")
+                logger.warning("RBAC Engine initialization failed: %s", e)
 
         if self.enable_audit:
             try:
@@ -88,9 +88,9 @@ class EnterpriseFeature:
                 self.audit_logger = AuditLogger(log_dir=audit_dir)
                 if self.enable_data_masking:
                     self.data_masker = SensitiveDataMasker()
-                logger.info(f"Audit Logger enabled (data_masking={self.enable_data_masking})")
+                logger.info("Audit Logger enabled (data_masking=%s)", self.enable_data_masking)
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
-                logger.warning(f"Audit Logger initialization failed: {e}")
+                logger.warning("Audit Logger initialization failed: %s", e)
 
         if self.enable_multi_tenant:
             try:
@@ -99,7 +99,7 @@ class EnterpriseFeature:
                 self.tenant_manager.create_tenant(Tenant(tenant_id="default", name="Default Tenant"))
                 logger.info("Multi-Tenant Manager enabled")
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
-                logger.warning(f"Multi-Tenant Manager initialization failed: {e}")
+                logger.warning("Multi-Tenant Manager initialization failed: %s", e)
 
     def check_rbac_access(self, kwargs: dict[str, Any], task: str, lang: str, start_time: float) -> Any | None:
         """Check RBAC access. Returns DispatchResult if denied, None if allowed."""
@@ -122,7 +122,7 @@ class EnterpriseFeature:
                 duration_seconds=time.time() - start_time, lang=lang,
             )
         except (AttributeError, RuntimeError, KeyError) as e:
-            logger.warning(f"RBAC check failed: {e}")
+            logger.warning("RBAC check failed: %s", e)
             return None
 
     def apply_data_masking(self, text: str) -> str:
@@ -133,7 +133,7 @@ class EnterpriseFeature:
             masked = self.data_masker.mask({"content": text})
             return masked.get("content", text)
         except (ValueError, AttributeError, TypeError, KeyError) as e:
-            logger.debug(f"Data masking failed: {e}")
+            logger.debug("Data masking failed: %s", e)
             return text
 
     def set_tenant_context(self, kwargs: dict[str, Any], start_time: float) -> Any:
@@ -160,7 +160,7 @@ class EnterpriseFeature:
                 )
             return tenant_ctx
         except (AttributeError, KeyError, RuntimeError, OSError) as e:
-            logger.warning(f"Multi-tenant setup failed: {e}")
+            logger.warning("Multi-tenant setup failed: %s", e)
             return None
 
     def clear_tenant_context(self, tenant_ctx: Any) -> None:
@@ -169,7 +169,7 @@ class EnterpriseFeature:
             try:
                 tenant_ctx.__exit__(None, None, None)
             except (AttributeError, RuntimeError, OSError) as e:
-                logger.debug(f"Tenant context cleanup failed: {e}")
+                logger.debug("Tenant context cleanup failed: %s", e)
 
     def audit_dispatch_start(self, task_description: str, **kwargs: Any) -> None:
         """Audit log for dispatch start."""
@@ -184,7 +184,7 @@ class EnterpriseFeature:
                 details={"task": task_description[:200]}
             )
         except (OSError, AttributeError, KeyError) as e:
-            logger.debug(f"Audit logging failed: {e}")
+            logger.debug("Audit logging failed: %s", e)
 
     def audit_dispatch_complete(self, result: Any, **kwargs: Any) -> None:
         """Audit log for dispatch completion."""
@@ -199,7 +199,7 @@ class EnterpriseFeature:
                 result="success" if result.success else "failure"
             )
         except (OSError, AttributeError, KeyError) as e:
-            logger.debug(f"Audit logging failed: {e}")
+            logger.debug("Audit logging failed: %s", e)
 
     def audit_quality(self, module_path: str | None = None, test_path: str | None = None, **kwargs: Any) -> Any:
         """Execute test quality audit (P1 integration)."""

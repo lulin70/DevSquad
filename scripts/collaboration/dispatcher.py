@@ -398,7 +398,7 @@ class MultiAgentDispatcher:
             try:
                 AsyncLLMCache(cache_dir=self.persist_dir or "data/llm_cache")
             except (ImportError, AttributeError, OSError) as e:
-                logger.debug(f"Async cache init failed: {e}")
+                logger.debug("Async cache init failed: %s", e)
 
         try:
             from .async_coordinator import AsyncCoordinator
@@ -682,7 +682,7 @@ class MultiAgentDispatcher:
         try:
             getattr(component, method)()
         except exc_types as e:
-            logger.debug(f"{msg}: {e}")
+            logger.debug("%s: %s", msg, e)
 
 
 def create_dispatcher(**kwargs: Any) -> MultiAgentDispatcher:

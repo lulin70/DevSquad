@@ -73,7 +73,7 @@ class HistoryManager:
         # Initialize database schema
         self._init_schema()
 
-        logger.info(f"HistoryManager initialized (db={db_path})")
+        logger.info("HistoryManager initialized (db=%s)", db_path)
 
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection with row factory."""
@@ -232,7 +232,7 @@ class HistoryManager:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to save metrics snapshot: {e}")
+            logger.error("Failed to save metrics snapshot: %s", e)
             return False
 
     def get_metrics_history(
@@ -286,11 +286,11 @@ class HistoryManager:
 
                 results.append(data)
 
-            logger.debug(f"Retrieved {len(results)} metrics snapshots")
+            logger.debug("Retrieved %s metrics snapshots", len(results))
             return results
 
         except Exception as e:
-            logger.error(f"Failed to get metrics history: {e}")
+            logger.error("Failed to get metrics history: %s", e)
             return []
 
     def log_api_request(
@@ -332,7 +332,7 @@ class HistoryManager:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to log API request: {e}")
+            logger.error("Failed to log API request: %s", e)
             return False
 
     def get_api_stats(self, hours: int = 1, group_by_path: bool = True) -> dict[str, Any]:
@@ -415,7 +415,7 @@ class HistoryManager:
             return stats
 
         except Exception as e:
-            logger.error(f"Failed to get API stats: {e}")
+            logger.error("Failed to get API stats: %s", e)
             return {}
 
     def save_lifecycle_event(
@@ -457,7 +457,7 @@ class HistoryManager:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to save lifecycle event: {e}")
+            logger.error("Failed to save lifecycle event: %s", e)
             return False
 
     def get_lifecycle_history(
@@ -499,7 +499,7 @@ class HistoryManager:
             return [dict(row) for row in cursor.fetchall()]
 
         except Exception as e:
-            logger.error(f"Failed to get lifecycle history: {e}")
+            logger.error("Failed to get lifecycle history: %s", e)
             return []
 
     def cleanup_old_data(self, retention_days: int = 30) -> dict[str, int]:
@@ -528,12 +528,12 @@ class HistoryManager:
             self.conn.commit()
 
             total_deleted = sum(deleted.values())
-            logger.info(f"Cleaned up {total_deleted} old records (retention={retention_days} days)")
+            logger.info("Cleaned up %s old records (retention=%s days)", total_deleted, retention_days)
 
             return deleted
 
         except Exception as e:
-            logger.error(f"Failed to cleanup old data: {e}")
+            logger.error("Failed to cleanup old data: %s", e)
             return {}
 
     def get_database_size(self) -> dict[str, Any]:
@@ -566,7 +566,7 @@ class HistoryManager:
             }
 
         except Exception as e:
-            logger.error(f"Failed to get database size: {e}")
+            logger.error("Failed to get database size: %s", e)
             return {}
 
     def close(self):

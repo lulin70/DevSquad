@@ -132,7 +132,7 @@ async def add_process_time_header(request: Request, call_next):
     start_time = time.time()
 
     # Log request
-    logger.info(f"Request: {request.method} {request.url.path}")
+    logger.info("Request: %s %s", request.method, request.url.path)
 
     response = await call_next(request)
 
@@ -140,7 +140,7 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = f"{process_time:.3f}"
 
     # Log response
-    logger.info(f"Response: {response.status_code} (took {process_time:.3f}s)")
+    logger.info("Response: %s (took %.3fs)", response.status_code, process_time)
 
     return response
 
@@ -164,7 +164,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle unhandled exceptions."""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    logger.error("Unhandled exception: %s", exc, exc_info=True)
 
     return JSONResponse(
         status_code=500,
@@ -256,7 +256,7 @@ async def startup_event():
     logger.info("🚀 DevSquad API Server Starting...")
     logger.info("=" * 60)
     logger.info("Version: 3.7.0")
-    logger.info(f"Time: {datetime.now().isoformat()}")
+    logger.info("Time: %s", datetime.now().isoformat())
     logger.info("Components:")
     logger.info("  ✅ FastAPI initialized")
     logger.info("  ✅ Lifecycle routes registered")
@@ -288,7 +288,7 @@ async def shutdown_event():
     """
     logger.info("=" * 60)
     logger.info("🛑 DevSquad API Server Shutting Down...")
-    logger.info(f"Time: {datetime.now().isoformat()}")
+    logger.info("Time: %s", datetime.now().isoformat())
     logger.info("Cleaning up resources...")
     logger.info("Goodbye! 👋")
     logger.info("=" * 60)

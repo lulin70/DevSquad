@@ -101,7 +101,7 @@ class LLMRetryManager:
             elapsed = (datetime.now() - cb.last_failure_time).total_seconds()
             if elapsed > cb.timeout_seconds:
                 cb.state = "half_open"
-                logger.info(f"Circuit breaker for {backend} entering half-open state")
+                logger.info("Circuit breaker for %s entering half-open state", backend)
             else:
                 self.stats["circuit_breaks"] += 1
                 raise CircuitBreakerError(
@@ -114,7 +114,7 @@ class LLMRetryManager:
         if cb.state == "half_open":
             cb.state = "closed"
             cb.failure_count = 0
-            logger.info(f"Circuit breaker for {backend} closed")
+            logger.info("Circuit breaker for %s closed", backend)
         self.stats["successful_calls"] += 1
 
     def _record_failure(self, backend: str, _error: Exception):
@@ -125,7 +125,7 @@ class LLMRetryManager:
 
         if cb.failure_count >= cb.failure_threshold:
             cb.state = "open"
-            logger.warning(f"Circuit breaker opened for {backend} after {cb.failure_count} failures")
+            logger.warning("Circuit breaker opened for %s after %s failures", backend, cb.failure_count)
 
         self.stats["failed_calls"] += 1
 
@@ -218,7 +218,7 @@ class LLMRetryManager:
 
                 # 检查是否可重试
                 if not self._is_retryable_error(e):
-                    logger.error(f"Non-retryable error: {e}")
+                    logger.error("Non-retryable error: %s", e)
                     break
 
                 # 最后一次尝试不需要延迟
@@ -228,9 +228,9 @@ class LLMRetryManager:
                     # 速率限制错误需要更长延迟
                     if self._is_rate_limit_error(e):
                         delay *= 3
-                        logger.warning(f"Rate limit detected, waiting {delay:.1f}s")
+                        logger.warning("Rate limit detected, waiting %.1fs", delay)
 
-                    logger.info(f"Retry attempt {attempt + 1}/{config.max_retries} after {delay:.1f}s delay")
+                    logger.info("Retry attempt %s/%s after %.1fs delay", attempt + 1, config.max_retries, delay)
                     time.sleep(delay)
                     self.stats["retries"] += 1
 
@@ -239,7 +239,7 @@ class LLMRetryManager:
             try:
                 return self._try_fallback(func, args, kwargs, config, fallback_backends, current_backend)
             except Exception as fallback_error:
-                logger.error(f"All fallback attempts failed: {fallback_error}")
+                logger.error("All fallback attempts failed: %s", fallback_error)
                 last_error = fallback_error
 
         # 所有尝试都失败
@@ -262,10 +262,10 @@ class LLMRetryManager:
             try:
                 self._check_circuit_breaker(backend)
             except CircuitBreakerError:
-                logger.warning(f"Skipping {backend} (circuit breaker open)")
+                logger.warning("Skipping %s (circuit breaker open)", backend)
                 continue
 
-            logger.info(f"Attempting fallback to {backend}")
+            logger.info("Attempting fallback to %s", backend)
             self.stats["fallbacks"] += 1
 
             # 更新 kwargs 中的 backend 参数
@@ -275,11 +275,11 @@ class LLMRetryManager:
             try:
                 result = func(*args, **fallback_kwargs)
                 self._record_success(backend)
-                logger.info(f"Fallback to {backend} successful")
+                logger.info("Fallback to %s successful", backend)
                 return result
             except Exception as e:
                 self._record_failure(backend, e)
-                logger.warning(f"Fallback to {backend} failed: {e}")
+                logger.warning("Fallback to %s failed: %s", backend, e)
                 continue
 
         raise Exception("All fallback backends failed")
@@ -306,7 +306,7 @@ class LLMRetryManager:
         """手动重置熔断器"""
         if backend in self.circuit_breakers:
             self.circuit_breakers[backend] = CircuitBreakerState()
-            logger.info(f"Circuit breaker for {backend} manually reset")
+            logger.info("Circuit breaker for %s manually reset", backend)
 
 
 # 全局实例

@@ -9,6 +9,7 @@ Provides query, export, and publishing capabilities.
 import json
 import re
 import threading
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Any
 
@@ -162,3 +163,43 @@ class SkillStorage:
                 "avg_pattern_confidence": round(avg_confidence, 3),
                 "avg_quality_score": round(avg_quality, 1),
             }
+
+    # ================================================================
+    # Public Accessors (replacing direct private attribute access)
+    # ================================================================
+
+    def get_all_records(self) -> list[ExecutionRecord]:
+        """Return the full internal records list (not a copy, for performance)."""
+        return self._records
+
+    def set_all_records(self, records: list[ExecutionRecord]) -> None:
+        """Replace the internal records list."""
+        self._records = records
+
+    def get_all_patterns(self) -> list[SuccessPattern]:
+        """Return the full internal patterns list (not a copy, for performance)."""
+        return self._patterns
+
+    def set_all_patterns(self, patterns: list[SuccessPattern]) -> None:
+        """Replace the internal patterns list."""
+        self._patterns = patterns
+
+    def get_all_proposals(self) -> dict[str, SkillProposal]:
+        """Return the full internal proposals dict (not a copy, for performance)."""
+        return self._proposals
+
+    def set_all_proposals(self, proposals: dict[str, SkillProposal]) -> None:
+        """Replace the internal proposals dict."""
+        self._proposals = proposals
+
+    @contextmanager
+    def thread_safe(self):
+        """Context manager for thread-safe operations on storage data.
+
+        Usage:
+            with storage.thread_safe():
+                records = storage.get_all_records()
+                # ... modify records ...
+        """
+        with self._lock:
+            yield

@@ -90,7 +90,7 @@ class PermissionService:
         except PermissionDeniedError as e:
             permission_checks.append({"action": "rbac:execute", "allowed": False, "reason": str(e)})
         except (AttributeError, RuntimeError, KeyError) as e:
-            logger.debug(f"RBAC permission check failed: {e}")
+            logger.debug("RBAC permission check failed: %s", e)
         return permission_checks
 
 
@@ -270,5 +270,5 @@ class SkillProposalService:
                     category=category, confidence=pattern.confidence,
                 )
             except (ValueError, AttributeError, OSError, KeyError) as e:
-                logger.warning(f"SkillRegistry proposal failed: {e}")
+                logger.warning("SkillRegistry proposal failed: %s", e)
         return proposals

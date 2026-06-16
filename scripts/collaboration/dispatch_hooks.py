@@ -118,7 +118,7 @@ class DispatchHooks:
                         if self.usage_tracker:
                             self.usage_tracker.tick("output_sliced")
             except (ValueError, AttributeError, TypeError) as e:
-                logger.warning(f"OutputSlicer failed: {e}")
+                logger.warning("OutputSlicer failed: %s", e)
 
     def check_anchor_drift(
         self, worker_results: list[dict[str, Any]], structured_goal: Any, scratchpad_summary: str

@@ -137,7 +137,7 @@ class Serializer:
 
             return data
         except Exception as e:
-            logger.error(f"Serialization failed: {e}")
+            logger.error("Serialization failed: %s", e)
             raise
 
     @staticmethod
@@ -164,7 +164,7 @@ class Serializer:
             else:
                 raise ValueError(f"Unsupported deserialization format: {format}")
         except Exception as e:
-            logger.error(f"Deserialization failed: {e}")
+            logger.error("Deserialization failed: %s", e)
             raise
 
 
@@ -352,7 +352,7 @@ class CacheBackendInterface(abc.ABC):
             await self.set(key, new_value)
             return new_value
         except (ValueError, TypeError):
-            logger.warning(f"Cannot increment non-numeric value for key: {key}")
+            logger.warning("Cannot increment non-numeric value for key: %s", key)
             return None
 
     async def __aenter__(self):

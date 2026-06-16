@@ -7,6 +7,29 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.2] - 2026-06-16
+
+### Added
+- **EventBus** (`event_bus.py`): Event-driven decoupling for dispatch pipeline, replacing callback functions with on/emit/off/clear pattern
+- **DispatchHooks** (`dispatch_hooks.py`): Extracted post-dispatch hooks from dispatcher (post_dispatch_hooks, post_execution_processing, slice_outputs, check_anchor_drift)
+- **ResultAssembler** (`dispatch_result_assembler.py`): Extracted result assembly logic from dispatcher
+- **DispatchPerformanceMonitor** (`dispatch_performance.py`): Renamed from PerformanceMonitor to avoid name collision with performance_monitor.py
+- **_do_work_simple()**: New fallback method in EnhancedWorker that correctly returns WorkerResult (was returning raw str)
+- **Performance benchmarks**: 6 benchmark tests for concurrent dispatch, large tasks, O(1) lookup, thread pool reuse, memory, and creation speed
+
+### Changed
+- **Mixin → Composition**: All 3 Mixins (DispatchStepsMixin, DispatchServicesMixin, DispatchComponentFactoryMixin) converted to composition pattern — dependencies injected via `__init__` instead of implicit `self.*` attribute sharing
+- **Dispatcher split**: dispatcher.py reduced from 1660→706 lines (-57%), extracted 7 independent classes
+- **Skillifier refactored**: 8 parasitic `_storage._xxx` private attribute accesses replaced with public interface methods (get_all_records/set_all_records/thread_safe etc.), `__getattr__` dynamic delegation replaced with 7 explicit methods
+- **f-string logger eliminated**: 166 occurrences across 22 files converted to lazy formatting (`logger.debug("msg %s", var)`) for performance on hot paths
+- **Broad except narrowed**: 29 `except Exception` in critical files (dashboard, API routes, MCP server) narrowed to specific exception types with proper HTTP status code mapping
+- **EnhancedWorker bug fix**: `_do_work_with_briefing` was calling `_do_work()` (returns str) then accessing `result.output` (str has no .output). Fixed to follow Worker.execute() flow: build context → _do_work → write scratchpad → wrap into WorkerResult
+- **.gitignore**: Added `.devsquad_data/`, `output/`, `*.ipynb_checkpoints/`; removed `.devsquad_data/` from git tracking
+- 2115 tests passing (was 2109)
+
+### Removed
+- **config_loader.py**: Dead code — entire ConfigManager/DevSquadConfig system had zero references across the project (15 config fields and 13 env var mappings all unused)
+
 ## [3.7.0] - 2026-06-15
 
 ### Added

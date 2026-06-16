@@ -21,12 +21,15 @@ Requirements:
     streamlit>=1.28.0
 """
 
+import logging
 import os
 import sys
 import time
 from datetime import datetime
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -107,7 +110,7 @@ def load_lifecycle_protocol():
             "mappings": VIEW_MAPPINGS,
             "phases": FULL_LIFECYCLE_PHASES,
         }
-    except Exception as e:
+    except (ImportError, AttributeError, RuntimeError) as e:
         st.error(f"Failed to load lifecycle protocol: {e}")
         return None
 
@@ -126,7 +129,7 @@ def get_dispatcher():
             enable_skillify=True,
             lang="auto",
         )
-    except Exception as e:
+    except (ImportError, AttributeError, RuntimeError) as e:
         st.error(f"Failed to initialize dispatcher: {e}")
         return None
 
@@ -356,6 +359,7 @@ def render_metrics_overview(protocol_data):
             )
 
     except Exception as e:
+        logger.error("Could not load metrics: %s", e)
         st.warning(f"Could not load metrics: {e}")
 
 
@@ -420,6 +424,7 @@ def render_phase_timeline(protocol_data):
                 st.divider()
 
     except Exception as e:
+        logger.error("Error rendering timeline: %s", e)
         st.error(f"Error rendering timeline: {e}")
 
 
@@ -448,7 +453,8 @@ def render_cli_mapping_table(protocol_data):
                     "Gate": mapping.gate or "None",
                 }
             )
-        except Exception:
+        except (KeyError, AttributeError, RuntimeError) as e:
+            logger.debug("Could not resolve command '%s': %s", cmd_name, e)
             mapping_data.append(
                 {
                     "Command": cmd_name.upper(),
@@ -491,7 +497,8 @@ def render_gate_status_panel(protocol_data):
             try:
                 result = protocol.check_command_gate(cmd)
                 gate_results[cmd] = result
-            except Exception:
+            except (KeyError, AttributeError, RuntimeError) as e:
+                logger.debug("Gate check failed for '%s': %s", cmd, e)
                 pass
 
         if gate_results:
@@ -522,6 +529,7 @@ def render_gate_status_panel(protocol_data):
                 st.divider()
 
     except Exception as e:
+        logger.error("Could not load gate status: %s", e)
         st.warning(f"Could not load gate status: {e}")
 
 
@@ -537,7 +545,8 @@ def fetch_api_metrics():
         return None
     except (requests.ConnectionError, requests.Timeout):
         return None
-    except Exception:
+    except (ValueError, requests.RequestException) as e:
+        logger.debug("API metrics fetch failed: %s", e)
         return None
 
 
@@ -712,6 +721,7 @@ def render_task_dispatch_page(dispatcher):
                     st.rerun()
 
                 except Exception as e:
+                    logger.error("Dispatch failed: %s", e, exc_info=True)
                     st.error(f"❌ Dispatch failed: {e}")
                     st.exception(e)
 

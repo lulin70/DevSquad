@@ -665,7 +665,7 @@ class AsyncCoordinator:
                         rules if isinstance(rules, list) else []
                     )
             except Exception as e:
-                logger.debug(f"Rule loading failed for worker {wid}: {e}")
+                logger.debug("Rule loading failed for worker %s: %s", wid, e)
                 continue
 
         return role_rules
@@ -821,7 +821,7 @@ class AsyncCoordinator:
                 merged = self._merge_briefings(self._briefing_chain)
                 worker.receive_briefing(merged)
         except Exception as e:
-            logger.debug(f"Briefing injection failed: {e}")
+            logger.debug("Briefing injection failed: %s", e)
 
     def _collect_briefing_from_worker(self, worker: Any) -> None:
         """Collect compressed briefing from a Worker."""
@@ -833,7 +833,7 @@ class AsyncCoordinator:
                 if briefing and briefing.result_summary:
                     self._briefing_chain.append(briefing)
         except Exception as e:
-            logger.debug(f"Briefing collection failed: {e}")
+            logger.debug("Briefing collection failed: %s", e)
 
     def _merge_briefings(self, briefings: list[Any]) -> Any:
         """Merge multiple Agent briefings into one."""

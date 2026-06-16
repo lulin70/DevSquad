@@ -96,7 +96,7 @@ class AsyncLLMCache:
         # Lock for thread safety
         self._lock = asyncio.Lock()
 
-        logger.info(f"AsyncLLMCache initialized: dir={cache_dir}, ttl={ttl_seconds}s, max_memory={max_memory_entries}")
+        logger.info("AsyncLLMCache initialized: dir=%s, ttl=%ss, max_memory=%s", cache_dir, ttl_seconds, max_memory_entries)
 
     def _generate_cache_key(self, prompt: str, backend: str, model: str) -> str:
         """Generate cache key from prompt, backend, and model"""
@@ -133,12 +133,12 @@ class AsyncLLMCache:
                     self._memory_cache.move_to_end(cache_key)
                     entry.hit_count += 1
                     self._stats["hits"] += 1
-                    logger.debug(f"Memory cache hit: {cache_key[:8]}... (age: {entry.age_hours():.1f}h)")
+                    logger.debug("Memory cache hit: %s... (age: %.1fh)", cache_key[:8], entry.age_hours())
                     return entry.response
                 else:
                     # Expired, remove from memory
                     del self._memory_cache[cache_key]
-                    logger.debug(f"Memory cache expired: {cache_key[:8]}...")
+                    logger.debug("Memory cache expired: %s...", cache_key[:8])
 
             # Try disk cache
             disk_path = self._get_disk_path(cache_key)
@@ -160,18 +160,18 @@ class AsyncLLMCache:
                         # Evict if memory cache is full
                         await self._evict_if_needed()
 
-                        logger.debug(f"Disk cache hit: {cache_key[:8]}... (age: {entry.age_hours():.1f}h)")
+                        logger.debug("Disk cache hit: %s... (age: %.1fh)", cache_key[:8], entry.age_hours())
                         return entry.response
                     else:
                         # Expired, delete from disk
                         await loop.run_in_executor(None, disk_path.unlink)
-                        logger.debug(f"Disk cache expired: {cache_key[:8]}...")
+                        logger.debug("Disk cache expired: %s...", cache_key[:8])
                 except Exception as e:
-                    logger.warning(f"Error reading disk cache: {e}")
+                    logger.warning("Error reading disk cache: %s", e)
 
             # Cache miss
             self._stats["misses"] += 1
-            logger.debug(f"Cache miss: {cache_key[:8]}...")
+            logger.debug("Cache miss: %s...", cache_key[:8])
             return None
 
     async def set(self, prompt: str, response: str, backend: str, model: str, ttl_seconds: int | None = None):
@@ -214,7 +214,7 @@ class AsyncLLMCache:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, disk_path.write_text, json.dumps(asdict(entry), indent=2))
 
-            logger.debug(f"Cache set: {cache_key[:8]}... (ttl: {ttl}s)")
+            logger.debug("Cache set: %s... (ttl: %ss)", cache_key[:8], ttl)
 
     async def _evict_if_needed(self):
         """Evict oldest entries if memory cache is full"""
@@ -222,7 +222,7 @@ class AsyncLLMCache:
             # Remove oldest (first) entry
             oldest_key, _ = self._memory_cache.popitem(last=False)
             self._stats["evictions"] += 1
-            logger.debug(f"Evicted from memory: {oldest_key[:8]}...")
+            logger.debug("Evicted from memory: %s...", oldest_key[:8])
 
     async def clear(self, backend: str | None = None):
         """
@@ -237,7 +237,7 @@ class AsyncLLMCache:
                 keys_to_remove = [k for k, v in self._memory_cache.items() if v.backend == backend]
                 for key in keys_to_remove:
                     del self._memory_cache[key]
-                logger.info(f"Cleared cache for backend: {backend}")
+                logger.info("Cleared cache for backend: %s", backend)
             else:
                 # Clear all
                 self._memory_cache.clear()

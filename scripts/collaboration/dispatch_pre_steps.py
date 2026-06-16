@@ -330,7 +330,7 @@ class PreDispatchPipeline:
                             self.usage_tracker.tick("ci_context_injected")
                         return f"{task}\n\n[CI Context] {ctx.summary}"
         except (OSError, ValueError, AttributeError) as e:
-            logger.warning(f"CI context injection failed: {e}")
+            logger.warning("CI context injection failed: %s", e)
         return task
 
     def detect_intent(self, task: str, lang: str) -> Any:
