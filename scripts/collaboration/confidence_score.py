@@ -381,6 +381,20 @@ class ConfidenceScorer:
         else:
             return ConfidenceLevel.VERY_LOW
 
+    def score_response(self, response: str, prompt: str = "", metadata: dict[str, Any] | None = None) -> ConfidenceScore:
+        """
+        Score a response for confidence (convenience wrapper).
+
+        Args:
+            response: LLM response text
+            prompt: Original prompt (optional)
+            metadata: Additional metadata (model, temperature, etc.)
+
+        Returns:
+            ConfidenceScore object
+        """
+        return self.calculate_confidence(prompt=prompt, response=response, metadata=metadata)
+
     def get_average_confidence(self, limit: int | None = None) -> float:
         """Get average confidence from recent history"""
         if not self.history:

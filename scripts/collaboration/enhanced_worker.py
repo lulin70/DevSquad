@@ -391,9 +391,9 @@ class EnhancedWorker(Worker):
                 if isinstance(result.output, dict):
                     result.output["confidence"] = score.overall_score
                     result.output["confidence_factors"] = {
-                        "completeness": score.completeness_score,
-                        "certainty": score.certainty_score,
-                        "specificity": score.specificity_score,
+                        "completeness": score.factors.get("completeness", 0.0),
+                        "certainty": score.factors.get("certainty", 0.0),
+                        "specificity": score.factors.get("specificity", 0.0),
                     }
                     if score.overall_score < 0.7:
                         result.output["low_confidence_warning"] = (
