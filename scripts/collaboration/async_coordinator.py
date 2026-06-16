@@ -27,8 +27,7 @@ import asyncio
 import logging
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
-
+from typing import Any
 
 from .consensus import ConsensusEngine
 from .context_compressor import (
@@ -53,7 +52,6 @@ from .scratchpad import Scratchpad
 from .usage_tracker import track_usage
 from .worker import Worker, WorkerFactory
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +66,7 @@ class AsyncWorkerWrapper:
     def __init__(
         self,
         worker: Worker,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> None:
         self.worker = worker
         self.timeout = timeout
@@ -134,15 +132,15 @@ class AsyncCoordinator:
 
     def __init__(
         self,
-        scratchpad: Optional[Scratchpad] = None,
-        persist_dir: Optional[str] = None,
+        scratchpad: Scratchpad | None = None,
+        persist_dir: str | None = None,
         enable_compression: bool = True,
         compression_threshold: int = 100000,
         llm_backend: Any = None,
         stream: bool = False,
         memory_provider: Any = None,
         briefing_mode: bool = True,
-        task_timeout: Optional[float] = None,
+        task_timeout: float | None = None,
         max_concurrency: int = MAX_CONCURRENCY,
         enable_retry: bool = False,
         execution_guard: Any = None,
@@ -166,9 +164,9 @@ class AsyncCoordinator:
         """
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
-        self.workers: Dict[str, Worker] = {}
-        self._async_workers: Dict[str, AsyncWorkerWrapper] = {}
-        self._execution_history: List[Dict[str, Any]] = []
+        self.workers: dict[str, Worker] = {}
+        self._async_workers: dict[str, AsyncWorkerWrapper] = {}
+        self._execution_history: list[dict[str, Any]] = []
         self.coordinator_id = f"async-coord-{uuid.uuid4().hex[:8]}"
         self.enable_compression = enable_compression
         self.compressor = (
@@ -176,20 +174,20 @@ class AsyncCoordinator:
             if enable_compression
             else None
         )
-        self._message_buffer: List[Message] = []
+        self._message_buffer: list[Message] = []
         self.llm_backend = llm_backend
         self.stream = stream
         self.memory_provider = memory_provider
         self.briefing_mode = briefing_mode
-        self._briefing_chain: List[Any] = []
+        self._briefing_chain: list[Any] = []
         self.task_timeout = task_timeout or self.DEFAULT_TASK_TIMEOUT
         self.max_concurrency = max_concurrency
         self.execution_guard = execution_guard
-        self._semaphore: Optional[asyncio.Semaphore] = None
+        self._semaphore: asyncio.Semaphore | None = None
 
         # Retry support
         self.enable_retry = enable_retry
-        self._retry_manager: Optional[Any] = None
+        self._retry_manager: Any | None = None
         if enable_retry:
             try:
                 from .llm_retry_async import AsyncLLMRetryManager
@@ -208,8 +206,8 @@ class AsyncCoordinator:
     def plan_task(
         self,
         task_description: str,
-        available_roles: List[Dict[str, str]],
-        stage_id: Optional[str] = None,
+        available_roles: list[dict[str, str]],
+        stage_id: str | None = None,
     ) -> ExecutionPlan:
         """
         将用户任务分解为可并行的 Worker 执行计划
@@ -224,7 +222,7 @@ class AsyncCoordinator:
         Returns:
             ExecutionPlan: 包含批次列表、总任务数、并行度估计
         """
-        tasks: List[TaskDefinition] = []
+        tasks: list[TaskDefinition] = []
         for role_cfg in available_roles:
             task = TaskDefinition(
                 description=task_description,
@@ -258,7 +256,7 @@ class AsyncCoordinator:
 
     def spawn_workers(
         self, plan: ExecutionPlan, registry: Any = None
-    ) -> List[Worker]:
+    ) -> list[Worker]:
         """
         根据执行计划创建 Worker 实例
 
@@ -273,7 +271,7 @@ class AsyncCoordinator:
         """
         self.workers.clear()
         self._async_workers.clear()
-        all_tasks: List[TaskDefinition] = []
+        all_tasks: list[TaskDefinition] = []
 
         for batch in plan.batches:
             all_tasks.extend(batch.tasks)
@@ -343,8 +341,8 @@ class AsyncCoordinator:
             ScheduleResult: 执行结果统计
         """
         start_time = time.time()
-        results: List[WorkerResult] = []
-        errors: List[str] = []
+        results: list[WorkerResult] = []
+        errors: list[str] = []
 
         for batch_idx, batch in enumerate(plan.batches):
             batch_results, batch_errors = await self._execute_batch(batch)
@@ -401,10 +399,10 @@ class AsyncCoordinator:
 
     async def _execute_batch(
         self, batch: TaskBatch
-    ) -> Tuple[List[WorkerResult], List[str]]:
+    ) -> tuple[list[WorkerResult], list[str]]:
         """Execute a single batch asynchronously."""
-        results: List[WorkerResult] = []
-        errors: List[str] = []
+        results: list[WorkerResult] = []
+        errors: list[str] = []
 
         if batch.mode == BatchMode.PARALLEL:
             results = await self._execute_parallel_async(batch)
@@ -415,8 +413,8 @@ class AsyncCoordinator:
                     if worker:
                         async_worker = self._async_workers.get(
                             f"{task.role_id}-"
-                            f"{[k for k in self._async_workers.keys() if k.startswith(task.role_id)][0].split('-')[-1]}"
-                            if any(k.startswith(task.role_id) for k in self._async_workers.keys())
+                            f"{[k for k in self._async_workers if k.startswith(task.role_id)][0].split('-')[-1]}"
+                            if any(k.startswith(task.role_id) for k in self._async_workers)
                             else ""
                         )
                         if async_worker is None:
@@ -440,7 +438,7 @@ class AsyncCoordinator:
 
     async def _execute_parallel_async(
         self, batch: TaskBatch
-    ) -> List[WorkerResult]:
+    ) -> list[WorkerResult]:
         """
         Execute tasks in parallel using asyncio.gather.
 
@@ -451,7 +449,7 @@ class AsyncCoordinator:
         - Natural integration with async backends
         """
         semaphore = await self._get_semaphore()
-        results: List[WorkerResult] = []
+        results: list[WorkerResult] = []
         max_workers = min(
             batch.max_concurrency or len(batch.tasks), len(batch.tasks)
         )
@@ -540,7 +538,7 @@ class AsyncCoordinator:
         )
 
     def _buffer_worker_messages(
-        self, batch_results: List[WorkerResult]
+        self, batch_results: list[WorkerResult]
     ) -> None:
         for r in batch_results:
             if r.output:
@@ -558,7 +556,7 @@ class AsyncCoordinator:
 
     async def compress_context(
         self, force_level: Any = None
-    ) -> Optional[CompressedContext]:
+    ) -> CompressedContext | None:
         """
         手动触发上下文压缩
 
@@ -574,7 +572,7 @@ class AsyncCoordinator:
             self._message_buffer, force_level=force_level
         )
 
-    def get_compression_stats(self) -> Optional[Dict[str, Any]]:
+    def get_compression_stats(self) -> dict[str, Any] | None:
         """获取上下文压缩统计信息"""
         if not self.compressor:
             return None
@@ -613,7 +611,7 @@ class AsyncCoordinator:
         self,
         task_description: str,
         user_id: str = "default",
-    ) -> Dict[str, List[Dict]]:
+    ) -> dict[str, list[dict]]:
         """
         Pre-load rules from MemoryProvider for all active Workers.
 
@@ -627,7 +625,7 @@ class AsyncCoordinator:
         if not self.memory_provider or not self.memory_provider.is_available():
             return {}
 
-        role_rules: Dict[str, List[Dict]] = {}
+        role_rules: dict[str, list[dict]] = {}
         for wid, worker in self.workers.items():
             try:
                 if hasattr(self.memory_provider, "match_rules"):
@@ -677,13 +675,13 @@ class AsyncCoordinator:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, lambda: func(**kwargs))
 
-    def _get_worker_for_task(self, task: TaskDefinition) -> Optional[Worker]:
-        for wid, w in self.workers.items():
+    def _get_worker_for_task(self, task: TaskDefinition) -> Worker | None:
+        for _wid, w in self.workers.items():
             if w.role_id == task.role_id:
                 return w
         return None
 
-    def collect_results(self) -> Dict[str, Any]:
+    def collect_results(self) -> dict[str, Any]:
         """
         从 Scratchpad 收集所有 Worker 的执行结果
 
@@ -721,7 +719,7 @@ class AsyncCoordinator:
             "workers": list(self.workers.keys()),
         }
 
-    async def resolve_conflicts(self) -> List[ConsensusRecord]:
+    async def resolve_conflicts(self) -> list[ConsensusRecord]:
         """
         异步检测并解决冲突
 
@@ -739,7 +737,7 @@ class AsyncCoordinator:
                 options=["接受A", "接受B", "合并方案", "升级人工"],
             )
 
-            for wid, w in self.workers.items():
+            for _wid, w in self.workers.items():
                 vote_result = w.vote_on_proposal(
                     proposal.proposal_id,
                     decision=True,
@@ -837,7 +835,7 @@ class AsyncCoordinator:
         except Exception as e:
             logger.debug(f"Briefing collection failed: {e}")
 
-    def _merge_briefings(self, briefings: List[Any]) -> Any:
+    def _merge_briefings(self, briefings: list[Any]) -> Any:
         """Merge multiple Agent briefings into one."""
         from .enhanced_worker import AgentBriefingOutput
 

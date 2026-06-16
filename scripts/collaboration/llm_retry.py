@@ -97,16 +97,14 @@ class LLMRetryManager:
         """检查熔断器状态"""
         cb = self._get_circuit_breaker(backend)
 
-        if cb.state == "open":
-            # 检查是否可以尝试恢复
-            if cb.last_failure_time:
-                elapsed = (datetime.now() - cb.last_failure_time).total_seconds()
-                if elapsed > cb.timeout_seconds:
-                    cb.state = "half_open"
-                    logger.info(f"Circuit breaker for {backend} entering half-open state")
-                else:
-                    self.stats["circuit_breaks"] += 1
-                    raise CircuitBreakerError(
+        if cb.state == "open" and cb.last_failure_time:
+            elapsed = (datetime.now() - cb.last_failure_time).total_seconds()
+            if elapsed > cb.timeout_seconds:
+                cb.state = "half_open"
+                logger.info(f"Circuit breaker for {backend} entering half-open state")
+            else:
+                self.stats["circuit_breaks"] += 1
+                raise CircuitBreakerError(
                         f"Circuit breaker open for {backend}. Retry after {cb.timeout_seconds - elapsed:.0f}s"
                     )
 
@@ -119,7 +117,7 @@ class LLMRetryManager:
             logger.info(f"Circuit breaker for {backend} closed")
         self.stats["successful_calls"] += 1
 
-    def _record_failure(self, backend: str, error: Exception):
+    def _record_failure(self, backend: str, _error: Exception):
         """记录失败调用"""
         cb = self._get_circuit_breaker(backend)
         cb.failure_count += 1
@@ -252,7 +250,7 @@ class LLMRetryManager:
         func: Callable,
         args: tuple,
         kwargs: dict,
-        config: RetryConfig,
+        _config: RetryConfig,
         fallback_backends: list[str],
         exclude_backend: str | None,
     ) -> Any:

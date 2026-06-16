@@ -2,13 +2,13 @@
 """
 Prompt Optimization System - Integration Tests
 
-Tests for three Claude Code-inspired prompt optimization features:
+Tests for two Claude Code-inspired prompt optimization features:
   Feature 1: Dynamic Prompt Assembly (TaskComplexity-driven)
-  Feature 2: Skillify Closed-Loop (Pattern → Variant → A/B → Promote)
-  Feature 3: Compression-Aware Prompt Adaptation
+  Feature 2: Compression-Aware Prompt Adaptation
+
+Note: PromptVariantGenerator tests removed (module was ghost feature - never used in production).
 """
 
-import copy
 import os
 import sys
 import unittest
@@ -22,52 +22,8 @@ from scripts.collaboration.prompt_assembler import (
     PromptAssembler,
     TaskComplexity,
 )
-from scripts.collaboration.prompt_variant_generator import (
-    PromptVariant,
-    PromptVariantGenerator,
-    VariantGenerationResult,
-)
 from scripts.collaboration.scratchpad import Scratchpad
-from scripts.collaboration.skillifier import (
-    PatternStep,
-    PGActionType,
-    SuccessPattern,
-)
 from scripts.collaboration.worker import Worker
-
-
-class TestDataModels(unittest.TestCase):
-    """T1: 数据模型验证 (5)"""
-
-    def test_assembled_prompt_fields(self):
-        result = AssembledPrompt(
-            instruction="test",
-            complexity=TaskComplexity.MEDIUM,
-            variant_used="standard",
-            tokens_estimate=50,
-            metadata={"key": "value"},
-        )
-        self.assertEqual(result.complexity, TaskComplexity.MEDIUM)
-        self.assertIn("key", result.metadata)
-
-    def test_prompt_variant_default_status(self):
-        v = PromptVariant(role_id="architect")
-        self.assertEqual(v.status, "candidate")
-
-    def test_variant_generation_result_success(self):
-        r = VariantGenerationResult(success=True, variant=PromptVariant())
-        self.assertTrue(r.success)
-        self.assertIsNotNone(r.variant)
-
-    def test_variant_generation_result_failure(self):
-        r = VariantGenerationResult(success=False, reason="low confidence")
-        self.assertFalse(r.success)
-        self.assertIn("confidence", r.reason)
-
-    def test_prompt_variant_to_dict(self):
-        v = PromptVariant(role_id="tester", quality_score=85.5, positive_feedback=4, negative_feedback=1)
-        d = v.to_dict()
-        self.assertAlmostEqual(d["feedback_ratio"], 0.80, places=1)
 
 
 class TestComplexityDetection(unittest.TestCase):
@@ -214,170 +170,6 @@ class TestCompressionOverrides(unittest.TestCase):
         self.assertLessEqual(len(r_snip.instruction), len(r_none.instruction))
 
 
-class TestVariantGeneration(unittest.TestCase):
-    """T5: 模式→变体生成 (8)"""
-
-    def _make_pattern(self, freq=5, conf=0.88):
-        return SuccessPattern(
-            pattern_id="sp-test-001",
-            name="CRUD Pattern",
-            description="Auto-extracted CRUD pattern",
-            steps_template=[
-                PatternStep(
-                    action_type=PGActionType.FILE_CREATE,
-                    target_pattern="*service*.py",
-                    description_template="创建 service 层文件",
-                    is_required=True,
-                    estimated_risk=0.1,
-                ),
-                PatternStep(
-                    action_type=PGActionType.FILE_CREATE,
-                    target_pattern="*model*.py",
-                    description_template="定义数据模型",
-                    is_required=True,
-                    estimated_risk=0.05,
-                ),
-            ],
-            trigger_keywords=["crud", "create", "api"],
-            applicable_roles=["solo-coder"],
-            frequency=freq,
-            confidence=conf,
-        )
-
-    def setUp(self):
-        self.gen = PromptVariantGenerator()
-        self.pattern = self._make_pattern()
-
-    def test_good_pattern_succeeds(self):
-        r = self.gen.generate_from_pattern(self.pattern)
-        self.assertTrue(r.success)
-        self.assertEqual(r.variant.role_id, "solo-coder")
-        self.assertIn("CRUD Pattern", r.variant.prompt_text)
-
-    def test_low_confidence_fails(self):
-        bad = copy.deepcopy(self.pattern)
-        bad.confidence = 0.3
-        r = self.gen.generate_from_pattern(bad)
-        self.assertFalse(r.success)
-        self.assertIn("置信度不足", r.reason)
-
-    def test_low_frequency_fails(self):
-        bad = copy.deepcopy(self.pattern)
-        bad.frequency = 1
-        r = self.gen.generate_from_pattern(bad)
-        self.assertFalse(r.success)
-        self.assertIn("频率不足", r.reason)
-
-    def test_no_roles_fails(self):
-        bad = copy.deepcopy(self.pattern)
-        bad.applicable_roles = []
-        r = self.gen.generate_from_pattern(bad)
-        self.assertFalse(r.success)
-
-    def test_contains_steps_section(self):
-        r = self.gen.generate_from_pattern(self.pattern)
-        self.assertTrue(r.success)
-        self.assertIn("推荐执行步骤", r.variant.prompt_text)
-
-    def test_contains_triggers_section(self):
-        r = self.gen.generate_from_pattern(self.pattern)
-        self.assertTrue(r.success)
-        self.assertIn("适用场景", r.variant.prompt_text)
-
-    def test_quality_in_range(self):
-        r = self.gen.generate_from_pattern(self.pattern)
-        self.assertTrue(0 < r.variant.quality_score <= 100)
-
-    def test_higher_confidence_higher_quality(self):
-        med = copy.deepcopy(self.pattern)
-        med.confidence = 0.75
-        r_hi = self.gen.generate_from_pattern(self.pattern)
-        r_med = self.gen.generate_from_pattern(med)
-        self.assertGreaterEqual(r_hi.variant.quality_score, r_med.variant.quality_score)
-
-
-class TestPromotionLifecycle(unittest.TestCase):
-    """T6: 晋升生命周期 (7)"""
-
-    def _make_test_pattern(self):
-        return SuccessPattern(
-            pattern_id="sp-life-001",
-            name="Test Pattern",
-            trigger_keywords=["test"],
-            applicable_roles=["tester"],
-            frequency=4,
-            confidence=0.9,
-            steps_template=[
-                PatternStep(
-                    action_type=PGActionType.FILE_CREATE,
-                    target_pattern="*_test.py",
-                    description_template="编写单元测试",
-                    is_required=True,
-                    estimated_risk=0.05,
-                ),
-            ],
-        )
-
-    def setUp(self):
-        self.gen = PromptVariantGenerator()
-        r = self.gen.generate_from_pattern(self._make_test_pattern())
-        self.vid = r.variant.variant_id if r.success else None
-
-    def test_initial_candidate_status(self):
-        if not self.vid:
-            return
-        self.assertEqual(self.gen.get_variant(self.vid).status, "candidate")
-
-    def test_promotion_needs_usage(self):
-        if not self.vid:
-            return
-        ok, reason = self.gen.try_promote(self.vid)
-        self.assertFalse(ok)
-        self.assertIn("使用次数", reason)
-
-    def test_promotion_after_positive_feedback(self):
-        if not self.vid:
-            return
-        vid = self.vid
-        for _ in range(5):
-            self.gen.record_usage(vid)
-            self.gen.record_feedback(vid, positive=True)
-        ok, reason = self.gen.try_promote(vid)
-        self.assertTrue(ok, f"应晋升成功: {reason}")
-        self.assertEqual(self.gen.get_variant(vid).status, "promoted")
-
-    def test_negative_blocks_promotion(self):
-        if not self.vid:
-            return
-        vid = self.vid
-        for _ in range(5):
-            self.gen.record_usage(vid)
-            self.gen.record_feedback(vid, positive=False)
-        ok, _ = self.gen.try_promote(vid)
-        self.assertFalse(ok)
-
-    def test_auto_deprecate_bad_variants(self):
-        if not self.vid:
-            return
-        vid = self.vid
-        for _ in range(5):
-            self.gen.record_usage(vid)
-            self.gen.record_feedback(vid, positive=False)
-        deprecated = self.gen.auto_deprecate()
-        self.assertIn(vid, deprecated)
-
-    def test_get_candidates_by_role(self):
-        candidates = self.gen.get_candidates_for_role("tester")
-        if self.vid:
-            vids = [v.variant_id for v in candidates]
-            self.assertIn(self.vid, vids)
-
-    def test_statistics_complete(self):
-        stats = self.gen.get_statistics()
-        self.assertIn("total_variants", stats)
-        self.assertIn("overall_feedback_ratio", stats)
-
-
 class TestWorkerIntegration(unittest.TestCase):
     """T7: Worker 与 PromptAssembler 集成 (6)"""
 
@@ -440,7 +232,7 @@ class TestWorkerIntegration(unittest.TestCase):
 
 
 class TestEdgeCases(unittest.TestCase):
-    """T8: 边界情况 (9)"""
+    """T8: 边界情况 (5 - PromptVariantGenerator tests removed)"""
 
     def setUp(self):
         self.asm = PromptAssembler(role_id="arch", base_prompt="test")
@@ -464,23 +256,6 @@ class TestEdgeCases(unittest.TestCase):
     def test_unknown_role_no_crash(self):
         a = PromptAssembler(role_id="unknown-x", base_prompt="t")
         self.assertIsInstance(a._get_role_anti_patterns(), list)
-
-    def test_full_compact_zero_findings_ok(self):
-        r = self.asm.assemble(task_description="task", compression_level=CompressionLevel.FULL_COMPACT)
-        self.assertIsNotNone(r.instruction)
-
-    def test_empty_generator_stats(self):
-        gen = PromptVariantGenerator()
-        s = gen.get_statistics()
-        self.assertEqual(s["total_variants"], 0)
-
-    def test_get_nonexistent_variant(self):
-        gen = PromptVariantGenerator()
-        self.assertIsNone(gen.get_variant("fake"))
-
-    def test_feedback_on_nonexistent(self):
-        gen = PromptVariantGenerator()
-        self.assertFalse(gen.record_feedback("fake", True))
 
 
 if __name__ == "__main__":

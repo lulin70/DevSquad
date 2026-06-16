@@ -21,13 +21,11 @@ Usage:
 """
 
 import hashlib
-import logging
 import threading
-import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Set, Any
+from typing import Any
 
 
 class Permission(Enum):
@@ -110,11 +108,11 @@ class RBACUser:
 
     user_id: str
     username: str
-    roles: Set[UserRole] = field(default_factory=set)
-    attributes: Dict[str, Any] = field(default_factory=dict)
+    roles: set[UserRole] = field(default_factory=set)
+    attributes: dict[str, Any] = field(default_factory=dict)
     is_active: bool = True
 
-    def has_permission(self, permission: Permission, role_permissions: Dict[UserRole, Set[Permission]]) -> bool:
+    def has_permission(self, permission: Permission, role_permissions: dict[UserRole, set[Permission]]) -> bool:
         """Check if user has a specific permission through any of their roles.
 
         Args:
@@ -127,10 +125,7 @@ class RBACUser:
         if not self.is_active:
             return False
 
-        for role in self.roles:
-            if permission in role_permissions.get(role, set()):
-                return True
-        return False
+        return any(permission in role_permissions.get(role, set()) for role in self.roles)
 
     def to_dict(self) -> dict:
         """Serialize user to dictionary."""
@@ -178,11 +173,11 @@ class AuditRecord:
     action: str
     resource_type: str
     resource_id: str
-    details: Dict[str, Any] = field(default_factory=dict)
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    details: dict[str, Any] = field(default_factory=dict)
+    ip_address: str | None = None
+    user_agent: str | None = None
     result: str = "success"
-    hash_signature: Optional[str] = None
+    hash_signature: str | None = None
 
     def to_dict(self) -> dict:
         """Serialize audit record to dictionary."""
@@ -249,9 +244,9 @@ class RBACEngine:
     """
 
     def __init__(self):
-        self._role_permissions: Dict[UserRole, Set[Permission]] = {}
-        self._users: Dict[str, RBACUser] = {}
-        self._audit_log: List[AuditRecord] = []
+        self._role_permissions: dict[UserRole, set[Permission]] = {}
+        self._users: dict[str, RBACUser] = {}
+        self._audit_log: list[AuditRecord] = []
         self._lock = threading.RLock()
         self._prev_hash: str = ""  # For SHA256 chain
         self._init_default_roles()
@@ -347,7 +342,7 @@ class RBACEngine:
                 return True
             return False
 
-    def get_user(self, user_id: str) -> Optional[RBACUser]:
+    def get_user(self, user_id: str) -> RBACUser | None:
         """Retrieve a user by ID.
 
         Args:
@@ -359,7 +354,7 @@ class RBACEngine:
         with self._lock:
             return self._users.get(user_id)
 
-    def list_users(self, active_only: bool = True) -> List[RBACUser]:
+    def list_users(self, active_only: bool = True) -> list[RBACUser]:
         """List all users.
 
         Args:
@@ -479,7 +474,7 @@ class RBACEngine:
                 return True
             return False
 
-    def get_user_roles(self, user_id: str) -> Set[UserRole]:
+    def get_user_roles(self, user_id: str) -> set[UserRole]:
         """Get all roles assigned to a user.
 
         Args:
@@ -492,7 +487,7 @@ class RBACEngine:
             user = self._users.get(user_id)
             return user.roles.copy() if user else set()
 
-    def get_role_permissions(self, role: UserRole) -> Set[Permission]:
+    def get_role_permissions(self, role: UserRole) -> set[Permission]:
         """Get all permissions for a specific role.
 
         Args:
@@ -547,7 +542,7 @@ class RBACEngine:
                 return True
             return False
 
-    def get_audit_log(self, limit: int = 1000) -> List[AuditRecord]:
+    def get_audit_log(self, limit: int = 1000) -> list[AuditRecord]:
         """Get recent audit records.
 
         Args:
@@ -574,7 +569,7 @@ class RBACEngine:
         action: str,
         resource_type: str,
         resource_id: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
         result: str = "success",
     ) -> AuditRecord:
         """Internal method to create and store an audit record.
@@ -625,7 +620,7 @@ class RBACEngine:
         self._prev_hash = record_hash
         return record
 
-    def verify_audit_integrity(self) -> Dict[str, Any]:
+    def verify_audit_integrity(self) -> dict[str, Any]:
         """Verify SHA256 integrity chain of audit log.
 
         Checks that each record's hash matches the computed hash
@@ -681,14 +676,14 @@ class RBACEngine:
                 "details": results,
             }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get engine statistics for monitoring.
 
         Returns:
             Dictionary with user counts, role distributions, etc.
         """
         with self._lock:
-            role_counts: Dict[str, int] = {}
+            role_counts: dict[str, int] = {}
             active_users = 0
             inactive_users = 0
 

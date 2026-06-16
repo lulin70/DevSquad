@@ -30,16 +30,13 @@ Usage:
 import asyncio
 import logging
 import os
-from typing import Any, List, Optional
+from typing import Any
 
-
-from .async_coordinator import AsyncCoordinator
 from .async_llm_backend import (
-    AsyncLLMBackendInterface,
     AsyncLLMBackendFactory,
+    AsyncLLMBackendInterface,
 )
 from .llm_backend import LLMBackend, create_backend
-
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +58,7 @@ class AsyncToSyncAdapter(LLMBackend):
 
     def __init__(self, async_backend: AsyncLLMBackendInterface) -> None:
         self._async_backend = async_backend
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     def __repr__(self) -> str:
         return f"AsyncToSyncAdapter({repr(self._async_backend)})"
@@ -171,8 +168,8 @@ class SyncToAsyncAdapter(AsyncLLMBackendInterface):
         )
 
     async def batch_generate(
-        self, prompts: List[str], **kwargs: Any
-    ) -> List[str]:
+        self, prompts: list[str], **kwargs: Any
+    ) -> list[str]:
         """Batch execute with concurrency via gather."""
         tasks = [self.generate(p, **kwargs) for p in prompts]
         return await asyncio.gather(*tasks)

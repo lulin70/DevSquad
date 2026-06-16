@@ -127,7 +127,6 @@ async def get_current_metrics():
         mem_usage, mem_estimated = _get_real_memory_usage()
         avg_resp, p95_resp, resp_estimated = _get_real_response_time()
 
-        data_source_note = "estimated" if (cpu_estimated or mem_estimated or resp_estimated) else "real"
 
         return MetricsSnapshot(
             timestamp=datetime.now(),
@@ -145,7 +144,7 @@ async def get_current_metrics():
 
     except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to get metrics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.get(
@@ -194,7 +193,7 @@ async def get_metrics_history(
 
     except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to get metrics history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.get(
@@ -240,7 +239,7 @@ async def get_all_gate_statuses():
 
     except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to get gate statuses: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.post(
@@ -280,7 +279,7 @@ async def check_specific_gate(request: GateCheckRequest):
 
     except Exception as e:  # Broad catch: API endpoint safety net
         logger.error(f"Failed to check gate for {request.command}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.get(
@@ -305,7 +304,7 @@ async def health_check():
         # Check lifecycle protocol
         try:
             protocol = get_shared_protocol()
-            status = protocol.get_status()
+            protocol.get_status()
             components["lifecycle_protocol"] = "healthy"
         except (ImportError, AttributeError, RuntimeError) as e:
             components["lifecycle_protocol"] = f"unhealthy: {str(e)}"
@@ -314,17 +313,14 @@ async def health_check():
         try:
             from scripts.history_manager import HistoryManager
 
-            mgr = HistoryManager()
+            HistoryManager()
             components["history_database"] = "healthy"
         except (ImportError, AttributeError):
             components["history_database"] = "not_configured"
 
         # Determine overall status
         unhealthy = [k for k, v in components.items() if v != "healthy" and not v.startswith("not_")]
-        if unhealthy:
-            overall_status = "degraded"
-        else:
-            overall_status = "healthy"
+        overall_status = "degraded" if unhealthy else "healthy"
 
         uptime = time.time() - _start_time
 

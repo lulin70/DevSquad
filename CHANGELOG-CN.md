@@ -19,7 +19,11 @@
 - PromptAssembler 现在通过 `_get_skill_injection()` 注入角色特定方法论框架
 - IntentWorkflowMapper：6 种意图类型现在包含 `suggested_next_steps` 字段
 - DispatchResult：新增 `suggested_next_steps` 字段，支持 i18n（zh/en/ja）
-- 78 个核心模块（原 75 个）
+- 76 个核心模块（原 75 个）
+
+### 移除
+- **PromptVariantGenerator**（`scripts/collaboration/prompt_variant_generator.py`）：移除从未在生产环境中使用的幽灵功能模块
+- **RoleTemplateMarket**（`scripts/collaboration/role_template_market.py`）：移除从未在生产环境中使用的幽灵功能模块
 
 ## [3.6.9] - 2026-06-14
 

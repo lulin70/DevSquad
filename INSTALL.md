@@ -68,7 +68,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.6.0
+python3 scripts/cli.py --version   # 3.7.0
 ```
 
 ### Method 5: Web Dashboard (V3.6.0) 🎨
@@ -464,7 +464,7 @@ DevSquad/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
 │   └── collaboration/            # ★ 48 core modules
-│       ├── _version.py           # Version SSOT (3.6.0)
+│       ├── _version.py           # Version SSOT (3.7.0)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard
@@ -494,7 +494,6 @@ DevSquad/
 │       ├── anchor_checker.py     # Goal drift detection + auto-recovery (V3.6.0)
 │       ├── retrospective.py      # Independent post-dispatch retrospective (V3.6.0)
 │       ├── feature_usage_tracker.py # Feature invocation counter + reports (V3.6.0)
-│       ├── role_template_market.py # Role template marketplace
 │       └── *_test.py             # Test suites (1500+ tests)
 ├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
 ├── Dockerfile                    # Docker support

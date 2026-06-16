@@ -1,6 +1,6 @@
 # DevSquad User Guide
 
-> **Version**: V3.6.1 | **Updated**: 2026-05-17
+> **Version**: V3.7.0 | **Updated**: 2026-06-15
 >
 > This document is the complete feature manual for DevSquad, covering all user-facing functionality.
 
@@ -1351,7 +1351,7 @@ Typical combination: First use `IntentSkill.detect()` to determine intent, then 
 | 11 | MemoryBridge | memory_bridge.py | Cross-session memory bridge |
 | 12 | TestQualityGuard | test_quality_guard.py | Test quality guard |
 | 13 | PromptAssembler | prompt_assembler.py | Dynamic prompt assembly + QC injection |
-| 14 | PromptVariantGenerator | prompt_variant_generator.py | Prompt variant A/B testing |
+| 14 | PromptVariantGenerator | prompt_variant_generator.py | Prompt variant A/B testing *(Removed)* |
 | 15 | MCEAdapter | mce_adapter.py | CarryMem integration adapter |
 | 16 | WorkBuddyClawSource | memory_bridge.py | WorkBuddy read-only bridge |
 | 17 | RoleMatcher | role_matcher.py | Keyword role matching |
@@ -1377,7 +1377,7 @@ Typical combination: First use `IntentSkill.detect()` to determine intent, then 
 | 37 | PerformanceMonitor | performance_monitor.py | P95/P99 + bottleneck detection |
 | 38 | AgentBriefing | agent_briefing.py | Context briefing generation |
 | 39 | ConfidenceScorer | confidence_score.py | 5-factor confidence scoring |
-| 40 | RoleTemplateMarket | role_template_market.py | Role template market |
+| 40 | RoleTemplateMarket | role_template_market.py | Role template market *(Removed)* |
 | 41 | UsageTracker | usage_tracker.py | Token/cost tracking |
 | 42 | Models | models.py | Shared data models and type definitions |
 | 43 | ConfigManager (YAML) | config_manager.py | Project-level YAML config |

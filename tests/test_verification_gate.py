@@ -39,7 +39,7 @@ class TestRedFlagDefinitions(unittest.TestCase):
 
     def test_all_flags_have_valid_id(self):
         for flag in self.gate.RED_FLAGS:
-            self.assertTrue(len(flag.id) > 0)
+            self.assertGreater(len(flag.id), 0)
             self.assertTrue(flag.id.replace("_", "").isalnum() or "_" in flag.id)
 
     def test_all_flags_have_severity(self):
@@ -49,7 +49,7 @@ class TestRedFlagDefinitions(unittest.TestCase):
 
     def test_all_flags_have_description(self):
         for flag in self.gate.RED_FLAGS:
-            self.assertTrue(len(flag.description) > 0)
+            self.assertGreater(len(flag.description), 0)
 
     def test_all_flags_have_detection_callable(self):
         for flag in self.gate.RED_FLAGS:

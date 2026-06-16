@@ -26,12 +26,13 @@ Version: v1.0
 Created: 2026-05-01
 """
 
+import contextlib
 import logging
 import re
 import time
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from .models import TaskDefinition, WorkerResult
 from .worker import Worker
@@ -40,10 +41,8 @@ logger = logging.getLogger(__name__)
 
 # Lazy import for ExecutionGuard - graceful degradation
 _ExecutionGuard = None
-try:
+with contextlib.suppress(ImportError, ModuleNotFoundError):
     from .execution_guard import ExecutionGuard as _ExecutionGuard
-except (ImportError, ModuleNotFoundError):
-    pass
 
 _SAFE_FILENAME_RE = re.compile(r"[^\w\-.]")
 _MAX_RULE_TEXT_LENGTH = 500
@@ -210,8 +209,9 @@ class EnhancedWorker(Worker):
 
             return result
 
-        except Exception:  # Broad catch: re-raise after recording
+        except Exception as e:  # Broad catch: re-raise after recording
             duration = time.time() - start_time
+            logger.debug("Worker execution failed: %s", e)
             self._record_monitor(task, duration, success=False)
             raise
 
@@ -250,7 +250,8 @@ class EnhancedWorker(Worker):
                     max_attempts=3,
                     fallback=lambda: self._do_work(task),
                 )
-            except Exception:  # Broad catch: retry mechanism fallback
+            except Exception as e:  # Broad catch: retry mechanism fallback
+                logger.debug("Retry mechanism failed, falling back: %s", e)
                 result = self._do_work(task)
         else:
             result = self._do_work_with_briefing(task)
@@ -307,9 +308,8 @@ class EnhancedWorker(Worker):
 
         if self._injected_rules and result.success and result.output:
             violations = self._check_forbid_violations(result)
-            if violations:
-                if isinstance(result.output, dict):
-                    result.output["rule_violations"] = violations
+            if violations and isinstance(result.output, dict):
+                result.output["rule_violations"] = violations
 
         return result
 

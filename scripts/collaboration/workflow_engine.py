@@ -392,7 +392,7 @@ class WorkflowEngine:
 
         return current_step
 
-    def _default_step_executor(self, step: WorkflowStep, variables: dict[str, Any]) -> Any:
+    def _default_step_executor(self, step: WorkflowStep, _variables: dict[str, Any]) -> Any:
         if self.dispatcher:
             result = self.dispatcher.dispatch(
                 task_description=step.description,
@@ -489,7 +489,7 @@ class WorkflowEngine:
         definition = self.definitions.get(instance.workflow_id)
         total_steps = len(definition.steps) if definition else 0
         completed = len(instance.completed_steps)
-        failed = len(instance.failed_steps)
+        len(instance.failed_steps)
 
         return {
             "instance_id": instance_id,

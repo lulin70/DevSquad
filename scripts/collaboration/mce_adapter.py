@@ -44,6 +44,7 @@ Example Usage:
         print("CarryMem unavailable, using default classification")
 """
 
+import contextlib
 import logging
 import re as _re
 import threading
@@ -159,7 +160,7 @@ class MCEAdapter:
                     self._status.available = False
                     self._status.init_error = f"CarryMem module error: {e}"
                     self._adapter_type = "none"
-                except (ValueError, TypeError, AttributeError, RuntimeError, OSError) as e:
+                except (ValueError, TypeError, RuntimeError, OSError) as e:
                     # CarryMem legacy init may raise unpredictable errors from external library
                     import logging
 
@@ -238,7 +239,7 @@ class MCEAdapter:
                 return False
 
     def retrieve_memories(
-        self, query: str, tier: str = "tier2", limit: int = 20, memory_type: str | None = None
+        self, query: str, _tier: str = "tier2", limit: int = 20, memory_type: str | None = None
     ) -> list[dict]:
         with self._lock:
             if not self.is_available or not self._carrymem:
@@ -279,10 +280,8 @@ class MCEAdapter:
     def shutdown(self):
         with self._lock:
             if self._carrymem and hasattr(self._carrymem, "close"):
-                try:
+                with contextlib.suppress(AttributeError, OSError, RuntimeError):
                     self._carrymem.close()
-                except (AttributeError, OSError, RuntimeError):
-                    pass
             self._carrymem = None
             self._status.available = False
 
@@ -450,7 +449,7 @@ class MCEAdapter:
         scored = []
         for rule in all_rules:
             trigger = rule.get("trigger", "").lower()
-            action = rule.get("action", "").lower()
+            rule.get("action", "").lower()
             trigger_words = set(trigger.split())
             overlap = len(desc_words & trigger_words)
             if trigger and trigger in desc_lower:

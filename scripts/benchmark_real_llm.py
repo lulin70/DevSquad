@@ -96,7 +96,7 @@ def run_benchmark(backend_type, num_tasks, mode):
     throughput = num_tasks / total_time if total_time > 0 else 0
 
     print(f"\n{'='*60}")
-    print(f"RESULTS")
+    print("RESULTS")
     print(f"{'='*60}")
     print(f"  Total time:       {total_time:.2f}s")
     print(f"  Avg latency:      {avg_latency:.2f}s")

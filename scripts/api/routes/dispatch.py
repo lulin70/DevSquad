@@ -59,7 +59,7 @@ def _get_dispatcher():
             logger.info("MultiAgentDispatcher initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize MultiAgentDispatcher: {e}")
-            raise HTTPException(status_code=503, detail=f"Dispatcher initialization failed: {str(e)}")
+            raise HTTPException(status_code=503, detail=f"Dispatcher initialization failed: {str(e)}") from None
     return _global_dispatcher
 
 
@@ -136,12 +136,12 @@ def _convert_dispatch_result(result) -> dict[str, Any]:
     summary="Full Task Dispatch / 完整任务调度",
     description="""
     Execute a complete multi-agent task dispatch.
-    
+
     执行完整的多Agent任务调度，支持指定角色、执行模式、LLM后端等参数。
-    
+
     This is the core dispatch interface that orchestrates multiple AI agents
     to collaborate on a complex task.
-    
+
     **Features:**
     - Automatic role matching based on task content
     - Parallel or sequential execution modes
@@ -164,12 +164,11 @@ async def dispatch_task(request: TaskDispatchRequest):
     try:
         dispatcher = _get_dispatcher()
 
-        llm_backend = None
         if request.backend and request.backend.lower() not in ("none", "mock", ""):
             try:
                 from scripts.collaboration.llm_backend import create_llm_backend
 
-                llm_backend = create_llm_backend(request.backend.lower())
+                create_llm_backend(request.backend.lower())
                 logger.info(f"Using LLM backend: {request.backend}")
             except Exception as backend_err:
                 logger.warning(f"Failed to create LLM backend '{request.backend}': {backend_err}, using default")
@@ -189,10 +188,10 @@ async def dispatch_task(request: TaskDispatchRequest):
         raise
     except ImportError as e:
         logger.error(f"Missing dependency during dispatch: {e}")
-        raise HTTPException(status_code=503, detail=f"Service unavailable: Missing dependency - {str(e)}")
+        raise HTTPException(status_code=503, detail=f"Service unavailable: Missing dependency - {str(e)}") from None
     except Exception as e:
         logger.error(f"Dispatch failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Dispatch failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Dispatch failed: {str(e)}") from None
 
 
 @router.post(
@@ -201,9 +200,9 @@ async def dispatch_task(request: TaskDispatchRequest):
     summary="Quick Task Dispatch / 快速任务调度",
     description="""
     Quick dispatch with simplified parameters.
-    
+
     快速调度接口，使用简化的参数，自动选择最优配置。
-    
+
     Ideal for simple tasks where you just want to get results quickly
     without configuring all options.
     """,
@@ -235,7 +234,7 @@ async def quick_dispatch(request: QuickDispatchRequest):
         raise
     except Exception as e:
         logger.error(f"Quick dispatch failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Quick dispatch failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Quick dispatch failed: {str(e)}") from None
 
 
 @router.get(
@@ -244,9 +243,9 @@ async def quick_dispatch(request: QuickDispatchRequest):
     summary="Get Dispatch History / 获取调度历史",
     description="""
     Retrieve recent task dispatch history.
-    
+
     获取最近的任务调度历史记录。
-    
+
     Returns the N most recent dispatch records from the in-memory history.
     """,
 )
@@ -276,7 +275,7 @@ async def get_dispatch_history(
         raise
     except Exception as e:
         logger.error(f"Failed to get dispatch history: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}") from None
 
 
 @router.get(
@@ -285,9 +284,9 @@ async def get_dispatch_history(
     summary="List Available Roles / 列出可用角色",
     description="""
     List all available agent roles with their information.
-    
+
     列出所有可用的AI Agent角色及其详细信息。
-    
+
     Includes core roles (architect, product-manager, security, tester,
     solo-coder, devops, ui-designer) and any planned/extended roles.
     """,
@@ -330,4 +329,4 @@ async def list_roles():
 
     except Exception as e:
         logger.error(f"Failed to list roles: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}") from None

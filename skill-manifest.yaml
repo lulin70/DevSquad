@@ -7,7 +7,7 @@ description: |
   (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   NEW in V3.7.0: RoleSkillLoader + PM Methodology Skills (5 SKILL.md frameworks) + suggested_next_steps + SKILL.md security scanner,
-  78 core modules, 2116+ tests passing.
+  76 core modules, 2109+ tests passing.
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -280,11 +280,11 @@ metadata:
 
   version_history:
     - version: 3.7.0
-      date: "2026-06-08"
+      date: "2026-06-15"
       changes:
-        - Version alignment — all version references unified to V3.7.0
-        - Test count updated to 1855+ passing
-        - Documentation consistency fixes across all locales
+        - RoleSkillLoader + PM Methodology Skills (5 SKILL.md frameworks) + suggested_next_steps + SKILL.md security scanner
+        - Removed PromptVariantGenerator and RoleTemplateMarket (ghost features - never used in production)
+        - 76 core modules, 2109+ tests passing
 
     - version: 3.6.6
       date: "2026-05-20"
@@ -393,4 +393,4 @@ metadata:
         - 初始版本
 
 created_at: "2026-03-16T00:00:00"
-updated_at: "2026-05-20"
+updated_at: "2026-06-15"

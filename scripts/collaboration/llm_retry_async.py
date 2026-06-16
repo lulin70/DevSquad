@@ -122,16 +122,14 @@ class AsyncLLMRetryManager:
         async with self._lock:
             cb = self._get_circuit_breaker(backend)
 
-            if cb.state == "open":
-                # Check if timeout has passed
-                if cb.last_failure_time:
-                    elapsed = (datetime.now() - cb.last_failure_time).total_seconds()
-                    if elapsed > cb.timeout_seconds:
-                        # Move to half-open state
-                        cb.state = "half_open"
-                        logger.info(f"Circuit breaker half-open: {backend}")
-                    else:
-                        raise CircuitBreakerError(f"Circuit breaker open for {backend}")
+            if cb.state == "open" and cb.last_failure_time:
+                elapsed = (datetime.now() - cb.last_failure_time).total_seconds()
+                if elapsed > cb.timeout_seconds:
+                    # Move to half-open state
+                    cb.state = "half_open"
+                    logger.info(f"Circuit breaker half-open: {backend}")
+                else:
+                    raise CircuitBreakerError(f"Circuit breaker open for {backend}")
 
     async def _record_success(self, backend: str):
         """Record successful call"""
@@ -144,18 +142,17 @@ class AsyncLLMRetryManager:
                 cb.failure_count = 0
                 logger.info(f"Circuit breaker closed: {backend}")
 
-    async def _record_failure(self, backend: str, error: Exception):
+    async def _record_failure(self, backend: str, _error: Exception):
         """Record failed call"""
         async with self._lock:
             cb = self._get_circuit_breaker(backend)
             cb.failure_count += 1
             cb.last_failure_time = datetime.now()
 
-            if cb.failure_count >= cb.failure_threshold:
-                if cb.state != "open":
-                    cb.state = "open"
-                    self.stats["circuit_breaker_trips"] += 1
-                    logger.warning(f"Circuit breaker opened: {backend} (failures: {cb.failure_count})")
+            if cb.failure_count >= cb.failure_threshold and cb.state != "open":
+                cb.state = "open"
+                self.stats["circuit_breaker_trips"] += 1
+                logger.warning(f"Circuit breaker opened: {backend} (failures: {cb.failure_count})")
 
     async def retry_with_fallback(
         self,
@@ -247,7 +244,7 @@ class AsyncLLMRetryManager:
         func: Callable,
         args: tuple,
         kwargs: dict,
-        config: RetryConfig,
+        _config: RetryConfig,
         fallback_backends: list[str],
         exclude_backend: str | None,
     ) -> Any:

@@ -750,7 +750,8 @@ class PromptAssembler:
                 elif rtype == "prefer":
                     lines.append(f"PREFER: {trigger + ' -> ' if trigger else ''}{action}")
             return "\n".join(lines)
-        except Exception:
+        except Exception as e:
+            logger.warning("format_rules_as_prompt failed: %s", e)
             return ""
 
     _STOP_WORDS = frozenset(

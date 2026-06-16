@@ -11,6 +11,7 @@ Core abstractions:
 Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 """
 
+import contextlib
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -835,7 +836,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                 "total_classes": sum(m.get("total_classes", 0) for m in code_map.values()),
                 "total_functions": sum(m.get("total_functions", 0) for m in code_map.values()),
                 "dependencies": dep_graph,
-                "languages": list(set(m.get("language", "python") for m in code_map.values() if isinstance(m, dict))),
+                "languages": list({m.get("language", "python") for m in code_map.values() if isinstance(m, dict)}),
             }
 
             return {"success": True, "analysis": analysis, "template_id": template_id}
@@ -1080,10 +1081,8 @@ class FullLifecycleAdapter(LifecycleProtocol):
                             self._phase_states[pid] = PhaseState.PENDING
 
                     mode_raw = state.get("mode", "full")
-                    try:
+                    with contextlib.suppress(ValueError):
                         self._mode = LifecycleMode(mode_raw)
-                    except ValueError:
-                        pass
 
                     # Restore metadata
                     metadata = state.get("metadata", {})

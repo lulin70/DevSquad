@@ -48,8 +48,8 @@ class RetrospectiveEngine:
         self,
         goal: StructuredGoal,
         anchor_history: list[AnchorResult],
-        worker_outputs: dict[str, str] | None = None,
-        task_duration_seconds: float = 0.0,
+        worker_outputs: dict[str, str] | None = None,  # noqa: ARG002
+        task_duration_seconds: float = 0.0,  # noqa: ARG002
     ) -> RetrospectiveReport:
         """
         Run a retrospective analysis on a completed task.
@@ -169,7 +169,7 @@ class RetrospectiveEngine:
     ) -> list[str]:
         improvements = []
 
-        deviation_types = set(d.deviation_type for d in deviations)
+        deviation_types = {d.deviation_type for d in deviations}
         if "goal_uncovered" in deviation_types:
             improvements.append("Decompose task into smaller sub-tasks, each mapping to specific goal items")
         if "goal_drift" in deviation_types:

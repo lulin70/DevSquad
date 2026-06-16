@@ -268,7 +268,7 @@ class FiveAxisConsensusEngine:
 
     def get_axis_names(self) -> list[str]:
         """Return list of axis names for this engine's configured weights."""
-        return [axis.value for axis in self._weights.keys()]
+        return [axis.value for axis in self._weights]
 
     def get_default_weights(self) -> dict[str, float]:
         """Return current weights as string-keyed dict."""

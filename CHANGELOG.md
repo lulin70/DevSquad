@@ -19,7 +19,11 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - PromptAssembler now injects role-specific methodology frameworks via `_get_skill_injection()`
 - IntentWorkflowMapper: 6 intent types now include `suggested_next_steps` field
 - DispatchResult: new `suggested_next_steps` field with i18n support (zh/en/ja)
-- 78 core modules (was 75)
+- 76 core modules (was 75)
+
+### Removed
+- **PromptVariantGenerator** (`scripts/collaboration/prompt_variant_generator.py`): Removed ghost feature module that was never used in production
+- **RoleTemplateMarket** (`scripts/collaboration/role_template_market.py`): Removed ghost feature module that was never used in production
 
 ## [3.6.9] - 2026-06-14
 

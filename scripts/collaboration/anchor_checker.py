@@ -259,7 +259,7 @@ class AnchorChecker:
         goal: StructuredGoal,
         current_output: str,
         trigger: AnchorTrigger = AnchorTrigger.STEP_COMPLETE,
-        context: dict[str, Any] | None = None,
+        _context: dict[str, Any] | None = None,
     ) -> AnchorResult:
         """
         Check whether current output aligns with the original goal.

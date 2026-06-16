@@ -8,7 +8,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   NEW in V3.7.0: RoleSkillLoader + PM Methodology Skills (5 SKILL.md frameworks) + suggested_next_steps + SKILL.md security scanner,
-  78 core modules.
+  76 core modules.
 ---
 
 # DevSquad V3.7.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -79,7 +79,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 10 | **MemoryBridge** | `memory_bridge.py` | 7-type memory bridge + inverted index + TF-IDF + forgetting curve + MCE+Claw integration |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | Test quality audit (API validation / anti-pattern detection / dimension coverage) |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | Dynamic prompt assembly (complexity detection / 3 variants / 5 styles / compression-aware / QC config injection / user rule injection) |
-| 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify closed-loop feedback (pattern→variant / A-B test / auto promote-deprecate) |
+| 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | *(Removed)* Ghost feature — never used in production |
 | 14 | **MCEAdapter** | `mce_adapter.py` | CarryMem integration adapter (DevSquadAdapter preferred, lazy-load / graceful-degrade / thread-safe / match_rules + format_rules_as_prompt + add_rule) |
 | 15 | **WorkBuddyClawSource** | `memory_bridge.py` (class) | WorkBuddy Claw read-only bridge (INDEX search / daily logs / AI news feed) |
 | 16 | **RoleMatcher** | `role_matcher.py` | Keyword-based role matching with alias resolution (extracted from Dispatcher) |
@@ -101,7 +101,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 32 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99 response time, CPU/memory tracking, bottleneck detection, Markdown reports |
 | 33 | **AgentBriefing** | `agent_briefing.py` | Context-aware briefing generation with priority filtering + persistence |
 | 34 | **ConfidenceScorer** | `confidence_score.py` | 5-factor confidence scoring (completeness/certainty/specificity/consistency/model quality) |
-| 35 | **RoleTemplateMarket** | `role_template_market.py` | Role template marketplace (publish/search/install/rate/export/import) |
+| 35 | **RoleTemplateMarket** | `role_template_market.py` | *(Removed)* Ghost feature — never used in production |
 | 36 | **LLMCache** | `llm_cache.py` | TTL-based LRU cache with disk persistence (60-80% cost reduction) |
 | 37 | **LLMRetry** | `llm_retry.py` | Exponential backoff + circuit breaker + multi-backend fallback |
 | 38 | **UsageTracker** | `usage_tracker.py` | Token/cost usage tracking and reporting |
@@ -914,13 +914,13 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **Total** | **2116+** | **✅ ALL PASS** |
+| **Total** | **2109+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
-- **v3.7.0** (2026-06-15): RoleSkillLoader + PM Methodology Skills (5 SKILL.md: create-prd/opportunity-solution-tree/prioritization-frameworks/assumption-mapping/experiment-design) + suggested_next_steps in dispatch results + SKILL.md security scanner (7 patterns) + 78 core modules + 2116 tests passing
+- **v3.7.0** (2026-06-15): RoleSkillLoader + PM Methodology Skills (5 SKILL.md: create-prd/opportunity-solution-tree/prioritization-frameworks/assumption-mapping/experiment-design) + suggested_next_steps in dispatch results + SKILL.md security scanner (7 patterns) + 76 core modules + 2109 tests passing
 - **v3.6.9** (2026-06-14): UETestFramework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load) + TechDebtManager with CodebaseDebtScanner + knapsack remediation planning + 75 core modules + version sync to 3.6.9
 - **v3.6.8** (2026-06-13): FeedbackControlLoop auto mode + LLM refinement + AdaptiveRoleSelector/SimilarTaskRecommender integrated into RoleMatcher + ExecutionGuard integrated into EnhancedWorker + Lifecycle phase trace in dispatch pipeline + RBAC checks on get_history/audit_quality/export_metrics/clear_history + TestQualityGuard default enabled + enable_feedback_loop default False→"auto" + Removed AlertManager (unused) + 13+ files version sync to 3.6.8 + Fixed except Exception: pass silent error swallowing + Fixed assertTrue test anti-patterns + 1940 passed, 11 skipped, 3 xpassed
 - **v3.6.7** (2026-06-07): Redis Cache L2 Backend + Async Dispatch (asyncio.gather) + Dispatcher Refactor (788→18 step methods) + DispatchResult Bug Fix (5 missing fields) + 1855+ tests passing

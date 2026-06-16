@@ -572,32 +572,17 @@ class TestE2EMultiRoleCollaboration:
     """
 
     def test_role_templates_loading(self, e2e_runner: E2ETestRunner):
-        """Step 3.1: Role template system is accessible"""
+        """Step 3.1: Role template system is accessible via StandardizedRoleTemplate"""
         script = """
 import sys
 sys.path.insert(0, '.')
 
 try:
-    from scripts.collaboration.role_template_market import RoleTemplateMarket
-    
-    market = RoleTemplateMarket()
-    
-    # Try different methods to get templates
-    if hasattr(market, 'list_templates'):
-        templates = market.list_templates()
-    elif hasattr(market, 'get_popular'):
-        templates = market.get_popular(limit=20)
-    elif hasattr(market, '_templates'):
-        templates = list(market._templates.values()) if market._templates else []
-    else:
-        # Just verify the class exists and can be instantiated
-        print("✓ RoleTemplateMarket instantiated successfully")
-        templates = []
-    
-    if templates:
-        print(f"✓ Loaded {len(templates)} role templates")
-        for t in templates[:5]:
-            print(f"  - {t}")
+    from scripts.collaboration.standardized_role_template import StandardizedRoleTemplate
+
+    template = StandardizedRoleTemplate()
+    # Verify the class exists and can be instantiated
+    print("✓ StandardizedRoleTemplate instantiated successfully")
 except Exception as e:
     print(f"Role template test note: {e}")
 """

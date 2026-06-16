@@ -18,7 +18,7 @@ Usage:
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from .prometheus_metrics import get_metrics
 
@@ -99,7 +99,7 @@ class TraeBackend(LLMBackend):
     passthrough that signals the host to execute.
     """
 
-    def generate(self, prompt: str, **kwargs: Any) -> str:
+    def generate(self, prompt: str, **_kwargs: Any) -> str:
         return prompt
 
     def is_available(self) -> bool:
@@ -112,12 +112,12 @@ class OpenAIBackend(LLMBackend):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "gpt-4",
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ) -> None:
         self._api_key = api_key
         self.model = model
@@ -125,7 +125,7 @@ class OpenAIBackend(LLMBackend):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
-        self._client: Optional[Any] = None
+        self._client: Any | None = None
         self._client_lock = __import__("threading").Lock()
 
     def __repr__(self) -> str:
@@ -138,12 +138,12 @@ class OpenAIBackend(LLMBackend):
                     try:
                         from openai import OpenAI
 
-                        client_kwargs: Dict[str, Any] = {"api_key": self._api_key, "timeout": self.timeout}
+                        client_kwargs: dict[str, Any] = {"api_key": self._api_key, "timeout": self.timeout}
                         if self.base_url:
                             client_kwargs["base_url"] = self.base_url
                         self._client = OpenAI(**client_kwargs)
                     except ImportError:
-                        raise ImportError("openai package required: pip install openai")
+                        raise ImportError("openai package required: pip install openai") from None
         return self._client
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
@@ -209,18 +209,18 @@ class AnthropicBackend(LLMBackend):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "claude-sonnet-4-20250514",
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         max_tokens: int = 4096,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ) -> None:
         self._api_key = api_key
         self.model = model
         self.base_url = base_url
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
-        self._client: Optional[Any] = None
+        self._client: Any | None = None
         self._client_lock = __import__("threading").Lock()
 
     def __repr__(self) -> str:
@@ -233,12 +233,12 @@ class AnthropicBackend(LLMBackend):
                     try:
                         from anthropic import Anthropic
 
-                        client_kwargs: Dict[str, Any] = {"api_key": self._api_key, "timeout": self.timeout}
+                        client_kwargs: dict[str, Any] = {"api_key": self._api_key, "timeout": self.timeout}
                         if self.base_url:
                             client_kwargs["base_url"] = self.base_url
                         self._client = Anthropic(**client_kwargs)
                     except ImportError:
-                        raise ImportError("anthropic package required: pip install anthropic")
+                        raise ImportError("anthropic package required: pip install anthropic") from None
         return self._client
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
@@ -282,8 +282,7 @@ class AnthropicBackend(LLMBackend):
             max_tokens=kwargs.get("max_tokens", self.max_tokens),
             messages=[{"role": "user", "content": prompt}],
         ) as stream:
-            for text in stream.text_stream:
-                yield text
+            yield from stream.text_stream
 
     def is_available(self) -> bool:
         try:
@@ -306,12 +305,12 @@ class FallbackBackend(LLMBackend):
         backend = FallbackBackend([primary, fallback])
     """
 
-    def __init__(self, backends: List[Any], cooldown_seconds: float = 30.0) -> None:
+    def __init__(self, backends: list[Any], cooldown_seconds: float = 30.0) -> None:
         if not backends:
             raise ValueError("FallbackBackend requires at least one backend")
         self._backends = backends
         self._cooldown_seconds = cooldown_seconds
-        self._failed_at: Dict[str, float] = {}
+        self._failed_at: dict[str, float] = {}
         self._active_index = 0
         self._lock = __import__("threading").Lock()
 
@@ -402,8 +401,7 @@ class FallbackBackend(LLMBackend):
             try:
                 with self._lock:
                     self._active_index = idx
-                for chunk in backend.generate_stream(prompt, **kwargs):
-                    yield chunk
+                yield from backend.generate_stream(prompt, **kwargs)
                 return
             except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
                 last_error = e
@@ -450,14 +448,13 @@ def create_backend(backend_type: str = "mock", **kwargs: Any) -> LLMBackend:
 
     env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "mock").lower()
 
-    if backend_type == "mock" and not kwargs:
-        if env_backend in ("openai", "anthropic", "fallback"):
-            backend_type = env_backend
+    if backend_type == "mock" and not kwargs and env_backend in ("openai", "anthropic", "fallback"):
+        backend_type = env_backend
 
     if backend_type == "fallback":
         anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
         openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-        backends_list: List[Any] = []
+        backends_list: list[Any] = []
         if anthropic_key:
             backends_list.append(
                 AnthropicBackend(

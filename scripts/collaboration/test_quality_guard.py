@@ -24,6 +24,7 @@ TestQualityGuard - 测试质量守卫
 """
 
 import ast
+import logging
 import re
 import time
 from dataclasses import dataclass, field
@@ -31,6 +32,8 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class Severity(Enum):
@@ -264,7 +267,8 @@ class APISignatureValidator:
                         if arg.annotation:
                             try:
                                 annotation = ast.unparse(arg.annotation)
-                            except Exception:
+                            except Exception as e:
+                                logger.warning("ast.unparse failed for annotation: %s", e)
                                 annotation = "?"
                         params.append({"name": arg.arg, "type": annotation})
                 sig = APISignature(
@@ -612,12 +616,11 @@ class TestQualityGuard:
             dim_counts[d] = dim_counts.get(d, 0) + 1
         if dim_counts:
             values = list(dim_counts.values())
-            max_v = max(values)
-            min_v = min(values)
+            max(values)
+            min(values)
             total = sum(values)
             expected_per_dim = total / len(dim_counts)
             variance = sum((v - expected_per_dim) ** 2 for v in values) / len(values)
-            ideal_variance = 0
             score.dimension_balance = max(0, 1 - (variance / (total * total / 4)))
 
         anti_critical = sum(
@@ -656,8 +659,8 @@ class TestQualityGuard:
                     try:
                         r = self.__class__(str(candidate), str(test_file)).audit()
                         reports.append(r)
-                    except Exception:
-                        logger.debug("Sub-audit failed for candidate: %s", candidate)
+                    except Exception as e:
+                        logger.warning("Sub-audit failed for candidate %s: %s", candidate, e)
                     break
         return reports
 

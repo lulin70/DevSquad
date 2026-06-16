@@ -11,7 +11,7 @@ description: |
   AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher,
   ExecutionGuard 集成到 EnhancedWorker, 生命周期阶段追踪,
   敏感 API 的 RBAC 检查, 移除 AlertManager,
-  1940+ 测试通过, 73 个核心模块.
+  2109+ 测试通过, 73 个核心模块.
 ---
 
 # DevSquad V3.7.0 — 多角色 AI 任务编排器（企业级就绪）
@@ -52,7 +52,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 | 10 | **MemoryBridge** | `memory_bridge.py` | 7 类记忆桥接 + 倒排索引 + TF-IDF + 遗忘曲线 + MCE+Claw 集成 |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | 测试质量审计（API 验证 / 反模式检测 / 维度覆盖） |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | 动态 Prompt 组装（复杂度检测 / 3 种变体 / 5 种风格 / 压缩感知 / QC 配置注入 / 用户规则注入） |
-| 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify 闭环反馈（模式→变体 / A-B 测试 / 自动升降级） |
+| 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | Skillify 闭环反馈（模式→变体 / A-B 测试 / 自动升降级） *(已移除)* |
 | 14 | **MCEAdapter** | `mce_adapter.py` | CarryMem 集成适配器（优先 DevSquadAdapter，懒加载 / 优雅降级 / 线程安全 / match_rules + format_rules_as_prompt + add_rule） |
 | 15 | **WorkBuddyClawSource** | `memory_bridge.py` (类) | WorkBuddy Claw 只读桥接（INDEX 搜索 / 日志 / AI 资讯流） |
 | 16 | **RoleMatcher** | `role_matcher.py` | 基于关键词的角色匹配，支持别名解析（从 Dispatcher 提取） |
@@ -880,7 +880,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **总计** | **1940+** | **✅ 全部通过** |
+| **总计** | **2109+** | **✅ 全部通过** |
 
 ---
 

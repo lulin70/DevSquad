@@ -22,6 +22,7 @@ MemoryBridge - 记忆桥接系统
         print(f"[{mem.memory_type.value}] {mem.title}: {mem.content[:80]}")
 """
 
+import contextlib
 import json
 import math
 import os
@@ -833,7 +834,7 @@ class MemoryIndexer:
                 dom_ids = self._domain_index.get(domain_filter, set())
                 candidates = {k: v for k, v in candidates.items() if k in dom_ids}
             results = []
-            for doc_id, raw_score in candidates.items():
+            for doc_id, _raw_score in candidates.items():
                 tfidf_score = self._compute_relevance(query_tokens, doc_id)
                 results.append((doc_id, tfidf_score))
             results.sort(key=lambda x: x[1], reverse=True)
@@ -893,7 +894,7 @@ class MemoryIndexer:
             if len(t) <= 1:
                 result.append(t)
             elif any("\u4e00" <= c <= "\u9fff" for c in t):
-                result.extend([c for c in t])
+                result.extend(list(t))
             else:
                 if len(t) > 3:
                     for i in range(len(t) - 1):
@@ -1234,10 +1235,8 @@ class MemoryBridge:
 
         claw_items: list[MemoryItem] = []
         if self._claw_enabled and self._claw_source:
-            try:
+            with contextlib.suppress(OSError, AttributeError, ValueError):
                 claw_items = self._claw_source.search_by_index(query.query_text, limit=query.limit // 2)
-            except (OSError, AttributeError, ValueError):
-                pass
 
         search_results = self.indexer.search(
             query.query_text,
@@ -1675,7 +1674,5 @@ class MemoryBridge:
 
     def shutdown(self) -> None:
         if self._mce_adapter:
-            try:
+            with contextlib.suppress(AttributeError, RuntimeError, OSError):
                 self._mce_adapter.shutdown()
-            except (AttributeError, RuntimeError, OSError):
-                pass

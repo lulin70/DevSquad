@@ -104,7 +104,7 @@ class ConcernPack:
 
         lines = [f"\n### {self.name} — 决策框架\n"]
 
-        for step_key, step_data in steps.items():
+        for _step_key, step_data in steps.items():
             if not isinstance(step_data, dict):
                 continue
             question = step_data.get("question", "")
@@ -240,7 +240,7 @@ class ConcernPackLoader:
         task_lower = task_description.lower()
         matched = []
 
-        for pack_id, pack in self._packs.items():
+        for _pack_id, pack in self._packs.items():
             keywords = pack.triggers.get("keywords", [])
             if not keywords:
                 continue

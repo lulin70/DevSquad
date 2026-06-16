@@ -25,15 +25,13 @@ TechDebtManager - 技术债务管理框架 (Tester + Architect 协作)
 
 import ast
 import json
-import os
 import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Any
 
 # ============================================================
 # Enums
@@ -622,7 +620,7 @@ class TechDebtManager:
     Provides systematic debt identification, prioritization, and remediation planning.
     """
 
-    def __init__(self, persist_dir: Optional[str] = None):
+    def __init__(self, persist_dir: str | None = None):
         """Initialize TechDebtManager.
 
         Args:
@@ -644,7 +642,7 @@ class TechDebtManager:
         location: str,
         severity: DebtSeverity = DebtSeverity.MEDIUM,
         effort: DebtEffort = DebtEffort.MODERATE,
-        tags: Optional[list[str]] = None,
+        tags: list[str] | None = None,
     ) -> TechDebt:
         """Register a technical debt item.
 

@@ -29,8 +29,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
-from typing import Any, Dict, List, Optional, Union
-
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +57,7 @@ class AsyncLLMBackendInterface(ABC):
         ...
 
     @abstractmethod
-    async def batch_generate(self, prompts: List[str], **kwargs: Any) -> List[str]:
+    async def batch_generate(self, prompts: list[str], **_kwargs: Any) -> list[str]:
         """
         Generate responses for multiple prompts concurrently.
 
@@ -121,8 +120,8 @@ class AsyncMockBackend(AsyncLLMBackendInterface):
     async def is_available(self) -> bool:
         return True
 
-    async def batch_generate(self, prompts: List[str], **kwargs: Any) -> List[str]:
-        tasks = [self.generate(p, **kwargs) for p in prompts]
+    async def batch_generate(self, prompts: list[str], **_kwargs: Any) -> list[str]:
+        tasks = [self.generate(p, **_kwargs) for p in prompts]
         return await asyncio.gather(*tasks)
 
 
@@ -133,13 +132,13 @@ class AsyncTraeBackend(AsyncLLMBackendInterface):
     Passthrough that returns the prompt as-is (same as sync version).
     """
 
-    async def generate(self, prompt: str, **kwargs: Any) -> str:
+    async def generate(self, prompt: str, **_kwargs: Any) -> str:
         return prompt
 
     async def is_available(self) -> bool:
         return True
 
-    async def batch_generate(self, prompts: List[str], **kwargs: Any) -> List[str]:
+    async def batch_generate(self, prompts: list[str], **_kwargs: Any) -> list[str]:
         return list(prompts)
 
 
@@ -157,12 +156,12 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "gpt-4",
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         max_concurrency: int = MAX_CONCURRENCY,
     ) -> None:
         self._api_key = api_key
@@ -172,9 +171,9 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self.max_concurrency = max_concurrency
-        self._client: Optional[Any] = None
-        self._semaphore: Optional[asyncio.Semaphore] = None
-        self._lock: Optional[asyncio.Lock] = None
+        self._client: Any | None = None
+        self._semaphore: asyncio.Semaphore | None = None
+        self._lock: asyncio.Lock | None = None
 
     def __repr__(self) -> str:
         return f"AsyncOpenAIBackend(model={self.model}, base_url={self.base_url})"
@@ -188,7 +187,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
                     try:
                         from openai import AsyncOpenAI
 
-                        client_kwargs: Dict[str, Any] = {
+                        client_kwargs: dict[str, Any] = {
                             "api_key": self._api_key,
                             "timeout": self.timeout,
                         }
@@ -198,7 +197,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
                     except ImportError:
                         raise ImportError(
                             "openai package required: pip install openai"
-                        )
+                        ) from None
         return self._client
 
     async def _get_semaphore(self) -> asyncio.Semaphore:
@@ -245,8 +244,8 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
                 yield content
 
     async def batch_generate(
-        self, prompts: List[str], **kwargs: Any
-    ) -> List[str]:
+        self, prompts: list[str], **kwargs: Any
+    ) -> list[str]:
         semaphore = await self._get_semaphore()
 
         async def _generate_with_limit(prompt: str) -> str:
@@ -282,11 +281,11 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         model: str = "claude-sonnet-4-20250514",
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         max_tokens: int = 4096,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         max_concurrency: int = MAX_CONCURRENCY,
     ) -> None:
         self._api_key = api_key
@@ -295,9 +294,9 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self.max_concurrency = max_concurrency
-        self._client: Optional[Any] = None
-        self._semaphore: Optional[asyncio.Semaphore] = None
-        self._lock: Optional[asyncio.Lock] = None
+        self._client: Any | None = None
+        self._semaphore: asyncio.Semaphore | None = None
+        self._lock: asyncio.Lock | None = None
 
     def __repr__(self) -> str:
         return f"AsyncAnthropicBackend(model={self.model}, base_url={self.base_url})"
@@ -311,7 +310,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                     try:
                         from anthropic import AsyncAnthropic
 
-                        client_kwargs: Dict[str, Any] = {
+                        client_kwargs: dict[str, Any] = {
                             "api_key": self._api_key,
                             "timeout": self.timeout,
                         }
@@ -321,7 +320,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                     except ImportError:
                         raise ImportError(
                             "anthropic package required: pip install anthropic"
-                        )
+                        ) from None
         return self._client
 
     async def _get_semaphore(self) -> asyncio.Semaphore:
@@ -363,8 +362,8 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                 yield text
 
     async def batch_generate(
-        self, prompts: List[str], **kwargs: Any
-    ) -> List[str]:
+        self, prompts: list[str], **kwargs: Any
+    ) -> list[str]:
         semaphore = await self._get_semaphore()
 
         async def _generate_with_limit(prompt: str) -> str:
@@ -397,7 +396,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
 
     def __init__(
         self,
-        backends: List[AsyncLLMBackendInterface],
+        backends: list[AsyncLLMBackendInterface],
         cooldown_seconds: float = 30.0,
     ) -> None:
         if not backends:
@@ -406,9 +405,9 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
             )
         self._backends = backends
         self._cooldown_seconds = cooldown_seconds
-        self._failed_at: Dict[str, float] = {}
+        self._failed_at: dict[str, float] = {}
         self._active_index = 0
-        self._lock: Optional[asyncio.Lock] = None
+        self._lock: asyncio.Lock | None = None
 
     def __repr__(self) -> str:
         names = [type(b).__name__ for b in self._backends]
@@ -504,8 +503,8 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
         )
 
     async def batch_generate(
-        self, prompts: List[str], **kwargs: Any
-    ) -> List[str]:
+        self, prompts: list[str], **kwargs: Any
+    ) -> list[str]:
         tasks = [self.generate(p, **kwargs) for p in prompts]
         return await asyncio.gather(*tasks)
 
@@ -553,9 +552,8 @@ class AsyncLLMBackendFactory:
             "DEVSQUAD_LLM_BACKEND", "mock"
         ).lower()
 
-        if backend_type == "mock" and not kwargs:
-            if env_backend in ("openai", "anthropic", "fallback"):
-                backend_type = env_backend
+        if backend_type == "mock" and not kwargs and env_backend in ("openai", "anthropic", "fallback"):
+            backend_type = env_backend
 
         if kwargs.pop("_force_type", None):
             pass  # Skip env override when explicitly forced
@@ -614,7 +612,7 @@ class AsyncLLMBackendFactory:
         openai_key = kwargs.pop("openai_api_key", None) or os.environ.get(
             "DEVSQUAD_OPENAI_API_KEY"
         )
-        backends_list: List[AsyncLLMBackendInterface] = []
+        backends_list: list[AsyncLLMBackendInterface] = []
 
         if anthropic_key:
             backends_list.append(

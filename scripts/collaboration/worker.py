@@ -9,7 +9,7 @@ and exchanges information with other Workers via Scratchpad.
 import sys
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from scripts.collaboration import get_logger
 
@@ -83,10 +83,10 @@ class Worker:
         self.scratchpad = scratchpad
         self.llm_backend = llm_backend
         self.stream = stream
-        self._notifications_outbox: List[TaskNotification] = []
+        self._notifications_outbox: list[TaskNotification] = []
         self._notifications_lock = threading.Lock()
         self._entries_written_count = 0
-        self._last_assembled_prompt: Optional[Any] = None
+        self._last_assembled_prompt: Any | None = None
 
     def execute(self, task: TaskDefinition) -> WorkerResult:
         """
@@ -174,7 +174,7 @@ class Worker:
                 duration_seconds=time.time() - start_time,
             )
 
-    def read_scratchpad(self, query: str = "", since: Any = None, limit: int = 20) -> List[ScratchpadEntry]:
+    def read_scratchpad(self, query: str = "", since: Any = None, limit: int = 20) -> list[ScratchpadEntry]:
         """
         Read relevant entries from shared scratchpad.
 
@@ -211,7 +211,7 @@ class Worker:
         self._entries_written_count += 1
         return eid
 
-    def write_question(self, question: str, to_roles: Optional[List[str]] = None, tags: Optional[List[str]] = None) -> str:
+    def write_question(self, question: str, to_roles: list[str] | None = None, tags: list[str] | None = None) -> str:
         """
         Write a question to Scratchpad and optionally notify other roles.
 
@@ -289,7 +289,7 @@ class Worker:
         with self._notifications_lock:
             self._notifications_outbox.append(notification)
 
-    def get_pending_notifications(self) -> List[TaskNotification]:
+    def get_pending_notifications(self) -> list[TaskNotification]:
         """
         Get and clear pending notification queue.
 
@@ -304,7 +304,7 @@ class Worker:
             self._notifications_outbox.clear()
             return notifications
 
-    def get_last_prompt(self) -> Optional[Any]:
+    def get_last_prompt(self) -> Any | None:
         """
         Get the most recent _do_work() prompt assembly result.
 
@@ -318,8 +318,8 @@ class Worker:
         return self._last_assembled_prompt
 
     def vote_on_proposal(
-        self, proposal_id: str, decision: bool, reason: str = "", weight: Optional[float] = None
-    ) -> Dict[str, Any]:
+        self, proposal_id: str, decision: bool, reason: str = "", weight: float | None = None
+    ) -> dict[str, Any]:
         """
         Vote on a consensus proposal.
 
@@ -349,7 +349,7 @@ class Worker:
         )
         return {"proposal_id": proposal_id, "vote": vote}
 
-    def _build_execution_context(self, task: TaskDefinition, compression_level: Any = None) -> Dict[str, Any]:
+    def _build_execution_context(self, task: TaskDefinition, compression_level: Any = None) -> dict[str, Any]:
         """
         Build execution context (including prompt assembly).
 
@@ -434,7 +434,8 @@ class Worker:
             if cached:
                 logger.debug("  [%s] Cache hit.", _rname)
                 return cached
-        except Exception:
+        except Exception as e:
+            logger.debug("Cache read failed: %s", e)
             cache = None
 
         logger.info("  [%s] Calling LLM backend...", _rname)
@@ -456,8 +457,8 @@ class Worker:
             if cache and response:
                 try:
                     cache.set(result.instruction, response, "backend", getattr(backend, "model", "unknown"))
-                except Exception:
-                    logger.debug("Cache set failed for instruction: %s", result.instruction[:80])
+                except Exception as e:
+                    logger.debug("Cache set failed for instruction: %s, error: %s", result.instruction[:80], e)
 
             return response
         except Exception as e:
@@ -502,7 +503,7 @@ class WorkerFactory:
         return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend, stream=stream)
 
     @staticmethod
-    def create_batch(workers_config: List[Dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None) -> List[Worker]:
+    def create_batch(workers_config: list[dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None) -> list[Worker]:
         """
         Batch create Worker instances.
 
@@ -519,7 +520,7 @@ class WorkerFactory:
         Returns:
             List[Worker]: List of created Worker instances
         """
-        workers: List[Worker] = []
+        workers: list[Worker] = []
         for cfg in workers_config:
             w = WorkerFactory.create(
                 worker_id=cfg.get("worker_id", f"w-{len(workers)}"),

@@ -13,9 +13,9 @@ Measures:
 
 import argparse
 import asyncio
-import time
-import sys
 import os
+import sys
+import time
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

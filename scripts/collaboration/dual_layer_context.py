@@ -87,7 +87,7 @@ class DualLayerContextManager:
                 combined[k] = v.value
         return combined
 
-    def build_prompt_context(self, role_id: str = "", task_description: str = "") -> str:
+    def build_prompt_context(self, _role_id: str = "", _task_description: str = "") -> str:
         parts = []
         if self.project_context:
             parts.append("## Project Context")

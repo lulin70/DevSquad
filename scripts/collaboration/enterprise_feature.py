@@ -1,37 +1,35 @@
 #!/usr/bin/env python3
-"""Enterprise Mixin — RBAC, Audit, Multi-Tenant, Data Masking features.
+"""EnterpriseFeature — RBAC, Audit, Multi-Tenant, Data Masking features.
 
-Extracted from MultiAgentDispatcher to separate enterprise concerns
-from core dispatch logic. All methods access dispatcher instance
-attributes via ``self``.
+Converted from EnterpriseMixin (Mixin pattern) to Composition pattern.
+This class is now a standalone component instantiated by the dispatcher
+and accessed via `self.enterprise.*` instead of mixin inheritance.
 """
 
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class EnterpriseMixin:
-    """Mixin providing enterprise features for MultiAgentDispatcher.
+class EnterpriseFeature:
+    """Composition-based enterprise features for MultiAgentDispatcher.
 
     Methods
     -------
-    _init_enterprise_features(**kwargs)
-        Initialize RBAC, Audit, Multi-Tenant, and Data Masking subsystems.
-    _check_rbac_access(kwargs, task, lang, start_time)
+    check_rbac_access(kwargs, task, lang, start_time)
         Pre-dispatch RBAC access check; returns DispatchResult if denied.
-    _apply_data_masking(text)
+    apply_data_masking(text)
         Mask sensitive data in text output.
-    _set_tenant_context(kwargs, start_time)
+    set_tenant_context(kwargs, start_time)
         Set up multi-tenant context; returns context manager or DispatchResult.
-    _clear_tenant_context(tenant_ctx)
+    clear_tenant_context(tenant_ctx)
         Clean up tenant context after dispatch.
-    _audit_dispatch_start(task_description, **kwargs)
+    audit_dispatch_start(task_description, **kwargs)
         Log audit event at dispatch start.
-    _audit_dispatch_complete(result, **kwargs)
+    audit_dispatch_complete(result, **kwargs)
         Log audit event at dispatch completion.
     audit_quality(module_path, test_path, **kwargs)
         Execute test quality audit (public API).
@@ -41,12 +39,31 @@ class EnterpriseMixin:
         Clear performance history (public API).
     """
 
-    def _init_enterprise_features(self, **kwargs: Any) -> None:
-        """Initialize enterprise features: RBAC, Audit, Multi-Tenant."""
-        self.enable_rbac = kwargs.get('enable_rbac', True)
-        self.enable_audit = kwargs.get('enable_audit', True)
-        self.enable_data_masking = kwargs.get('enable_data_masking', True)
-        self.enable_multi_tenant = kwargs.get('enable_multi_tenant', True)
+    def __init__(
+        self,
+        persist_dir: str,
+        quality_guard=None,
+        perf_monitor=None,
+        config: dict | None = None,
+    ) -> None:
+        """Initialize enterprise features: RBAC, Audit, Multi-Tenant.
+
+        Args:
+            persist_dir: Directory for persistent storage.
+            quality_guard: Optional TestQualityGuard instance.
+            perf_monitor: Optional PerformanceMonitor instance.
+            config: Optional dict with enable flags (enable_rbac, enable_audit,
+                    enable_data_masking, enable_multi_tenant).
+        """
+        config = config or {}
+        self.persist_dir = persist_dir
+        self.quality_guard = quality_guard
+        self._perf_monitor = perf_monitor
+
+        self.enable_rbac = config.get('enable_rbac', True)
+        self.enable_audit = config.get('enable_audit', True)
+        self.enable_data_masking = config.get('enable_data_masking', True)
+        self.enable_multi_tenant = config.get('enable_multi_tenant', True)
 
         self.rbac_engine = None
         self.audit_logger = None
@@ -84,14 +101,15 @@ class EnterpriseMixin:
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.warning(f"Multi-Tenant Manager initialization failed: {e}")
 
-    def _check_rbac_access(self, kwargs: Dict[str, Any], task: str, lang: str, start_time: float) -> Optional[Any]:
+    def check_rbac_access(self, kwargs: dict[str, Any], task: str, lang: str, start_time: float) -> Any | None:
         """Check RBAC access. Returns DispatchResult if denied, None if allowed."""
         if not self.enable_rbac or not self.rbac_engine:
             return None
         try:
-            from .rbac_engine import Permission, PermissionDeniedError
-            from .dispatch_models import DispatchResult
             import time
+
+            from .dispatch_models import DispatchResult
+            from .rbac_engine import Permission, PermissionDeniedError
             user_id = kwargs.get('user_id', 'default')
             self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
             return None
@@ -107,7 +125,7 @@ class EnterpriseMixin:
             logger.warning(f"RBAC check failed: {e}")
             return None
 
-    def _apply_data_masking(self, text: str) -> str:
+    def apply_data_masking(self, text: str) -> str:
         """Apply data masking to text if masker is available."""
         if not self.data_masker or not text:
             return text
@@ -118,7 +136,7 @@ class EnterpriseMixin:
             logger.debug(f"Data masking failed: {e}")
             return text
 
-    def _set_tenant_context(self, kwargs: Dict[str, Any], start_time: float) -> Any:
+    def set_tenant_context(self, kwargs: dict[str, Any], start_time: float) -> Any:
         """Set up multi-tenant context. Returns context manager or DispatchResult on quota error."""
         if not self.enable_multi_tenant or not self.tenant_manager:
             return None
@@ -127,8 +145,9 @@ class EnterpriseMixin:
         if not tenant_id:
             return None
         try:
-            from .dispatch_models import DispatchResult
             import time
+
+            from .dispatch_models import DispatchResult
             tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
             tenant_ctx.__enter__()
             if not self.tenant_manager.check_quota("tasks"):
@@ -144,7 +163,7 @@ class EnterpriseMixin:
             logger.warning(f"Multi-tenant setup failed: {e}")
             return None
 
-    def _clear_tenant_context(self, tenant_ctx: Any) -> None:
+    def clear_tenant_context(self, tenant_ctx: Any) -> None:
         """Clean up tenant context if active."""
         if tenant_ctx:
             try:
@@ -152,7 +171,7 @@ class EnterpriseMixin:
             except (AttributeError, RuntimeError, OSError) as e:
                 logger.debug(f"Tenant context cleanup failed: {e}")
 
-    def _audit_dispatch_start(self, task_description: str, **kwargs: Any) -> None:
+    def audit_dispatch_start(self, task_description: str, **kwargs: Any) -> None:
         """Audit log for dispatch start."""
         if not self.audit_logger:
             return
@@ -167,7 +186,7 @@ class EnterpriseMixin:
         except (OSError, AttributeError, KeyError) as e:
             logger.debug(f"Audit logging failed: {e}")
 
-    def _audit_dispatch_complete(self, result: Any, **kwargs: Any) -> None:
+    def audit_dispatch_complete(self, result: Any, **kwargs: Any) -> None:
         """Audit log for dispatch completion."""
         if not self.audit_logger:
             return

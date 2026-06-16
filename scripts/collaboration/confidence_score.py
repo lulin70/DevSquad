@@ -208,7 +208,7 @@ class ConfidenceScorer:
 
         return score
 
-    def _calculate_completeness(self, prompt: str, response: str) -> tuple[float, list[str]]:
+    def _calculate_completeness(self, _prompt: str, response: str) -> tuple[float, list[str]]:
         """Calculate response completeness"""
         reasoning = []
         score = 0.0

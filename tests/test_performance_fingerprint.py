@@ -51,7 +51,7 @@ class TestPerformanceFingerprint(unittest.TestCase):
             mode="auto",
         )
 
-        self.assertTrue(fid.startswith("fp_"))
+        self.assertRegex(fid, r"^fp_")
         self.assertEqual(self.fp.get_fingerprint_count(), 1)
 
         with self.fp._lock:

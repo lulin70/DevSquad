@@ -135,10 +135,7 @@ class OperationClassifier:
         base_category = self._classifications.get(operation_id)
 
         if base_category is None:
-            if self._strict_mode:
-                base_category = OperationCategory.FORBIDDEN
-            else:
-                base_category = OperationCategory.NEEDS_REVIEW
+            base_category = OperationCategory.FORBIDDEN if self._strict_mode else OperationCategory.NEEDS_REVIEW
 
         description = self._get_description(operation_id)
         risk_factors = self._assess_risk_factors(operation_id, target, context)

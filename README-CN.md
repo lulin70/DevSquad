@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
   <br>
-  <em>企业级就绪 | V3.6.7</em>
+  <em>企业级就绪 | V3.7.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1855%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.7-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2109%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.7.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.6.7: Redis Cache + Async Dispatch + Dispatcher Refactor
+## 🚀 V3.7.0: 幽灵功能清理 + Dispatcher 拆分 + SSRF 加固
 
-**DevSquad V3.6.7** 新增 Redis 缓存 L2 后端（内存→磁盘→Redis 三级缓存）、异步调度（asyncio.gather 并发 LLM 调用）、Dispatcher 重构（788 行→18 步骤方法，提取 dispatch_models.py 和 dispatch_performance.py）、DispatchResult 数据丢失修复（5 个缺失字段）、except:pass 清理、冗余 to_dict() 移除、183 个 xfailed 测试恢复，总计 1855 个测试通过，CI 重新启用。
+**DevSquad V3.7.0** 移除幽灵功能（PromptVariantGenerator、RoleTemplateMarket — 完整实现但零生产导入）、拆分 dispatcher.py 为 DispatchStepsMixin（代码量减少 23%）、增加 SSRF 检测的 IPv6/https 变体、新增 9 个 Step 19/20 集成测试、实现真实 LLM 冒烟测试，总计 2109+ 测试通过。
 
 ### 🔄 V3.6.6 企业级功能详情
 
@@ -250,7 +250,7 @@ python scripts/cli.py dispatch -t "测试任务"
 | P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **总计** | **1855+** | **100%** |
+| **总计** | **2109+** | **100%** |
 
 ---
 

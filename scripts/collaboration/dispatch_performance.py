@@ -11,7 +11,7 @@ import logging
 import os
 import threading
 from collections import deque
-from typing import Any, Optional
+from typing import Any
 
 from .dispatch_models import PerformanceMetric, PerformanceThresholds
 
@@ -50,7 +50,7 @@ class PerformanceMonitor:
         >>> monitor.record(metric)
     """
 
-    def __init__(self, window_size: int = 100, thresholds: Optional[PerformanceThresholds] = None):
+    def __init__(self, window_size: int = 100, thresholds: PerformanceThresholds | None = None):
         """Initialize Performance Monitor.
 
         Args:

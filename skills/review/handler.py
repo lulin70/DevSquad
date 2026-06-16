@@ -274,7 +274,7 @@ class ReviewSkill(BaseSkill):
         """
         lines = code.split("\n")
         total_lines = len(lines)
-        non_empty = [l for l in lines if l.strip()]
+        non_empty = [line for line in lines if line.strip()]
 
         scores = {
             "correctness": {"score": 0.85, "confidence": 0.8, "comment": "Basic structure looks valid"},
@@ -288,11 +288,11 @@ class ReviewSkill(BaseSkill):
         has_functions = any("def " in line for line in lines)
         has_classes = any("class " in line for line in lines)
         has_docstring = '"""' in code or "'''" in code
-        has_comments = any(line.strip().startswith("#") for line in lines)
+        any(line.strip().startswith("#") for line in lines)
 
-        comment_ratio = sum(1 for l in lines if l.strip().startswith("#")) / max(len(non_empty), 1)
+        comment_ratio = sum(1 for line in lines if line.strip().startswith("#")) / max(len(non_empty), 1)
 
-        avg_line_length = sum(len(l) for l in non_empty) / max(len(non_empty), 1)
+        avg_line_length = sum(len(line) for line in non_empty) / max(len(non_empty), 1)
 
         if total_lines < 10:
             scores["correctness"]["score"] -= 0.1
@@ -333,15 +333,13 @@ class ReviewSkill(BaseSkill):
                 scores["security"]["comment"] = f"Dangerous pattern found: {pattern}"
                 break
 
-        if "password" in code.lower() or "secret" in code.lower() or "api_key" in code.lower():
-            if "=" in code and ('"' in code or "'" in code):
-                scores["security"]["score"] -= 0.3
-                scores["security"]["comment"] = "Possible hardcoded credentials detected"
+        if ("password" in code.lower() or "secret" in code.lower() or "api_key" in code.lower()) and "=" in code and ('"' in code or "'" in code):
+            scores["security"]["score"] -= 0.3
+            scores["security"]["comment"] = "Possible hardcoded credentials detected"
 
-        if "sql" in code.lower() and ("SELECT" in code or "INSERT" in code):
-            if 'f"' in code or "f'" in code or "%" in code or ".format(" in code:
-                scores["security"]["score"] -= 0.15
-                scores["security"]["comment"] += "; Possible SQL injection risk"
+        if "sql" in code.lower() and ("SELECT" in code or "INSERT" in code) and ('f"' in code or "f'" in code or "%" in code or ".format(" in code):
+            scores["security"]["score"] -= 0.15
+            scores["security"]["comment"] += "; Possible SQL injection risk"
 
         if "for " in code and " range(" in code:
             if total_lines > 50:

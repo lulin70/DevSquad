@@ -92,7 +92,7 @@ class TestClawDailyMemories(unittest.TestCase):
     def test_daily_memory_ids_have_date_prefix(self):
         daily = self.source._load_workbuddy_daily_memories()
         if daily:
-            self.assertTrue(daily[0].id.startswith("wb-daily-"))
+            self.assertRegex(daily[0].id, r"^wb-daily-")
 
 
 class TestClawIndexSearch(unittest.TestCase):
@@ -166,7 +166,7 @@ class TestClawAINewsFeed(unittest.TestCase):
         news = self.source.get_latest_ai_news(days=30)
         if news:
             first = news[0]
-            self.assertTrue(first.id.startswith("wb-news-"))
+            self.assertRegex(first.id, r"^wb-news-")
             self.assertEqual(first.domain, "ai-news")
             self.assertIn("sources", first.metadata or {})
 
@@ -244,7 +244,8 @@ class TestClawExtractTags(unittest.TestCase):
 
     def test_extract_tags_english(self):
         tags = WorkBuddyClawSource._extract_tags("This is a test text with Python and machine learning keywords")
-        self.assertTrue(any("python" in t.lower() for t in tags))
+        python_tags = [t for t in tags if "python" in t.lower()]
+        self.assertGreater(len(python_tags), 0, f"Expected 'python' in tags, got {tags}")
 
     def test_extract_tags_limit(self):
         long_text = "word" * 100
@@ -293,7 +294,8 @@ class TestClawParseAutomationLog(unittest.TestCase):
         entries = source._parse_automation_log(content)
         self.assertEqual(len(entries), 2)
         self.assertEqual(entries[0]["date"].strftime("%Y-%m-%d"), "2026-04-17")
-        self.assertTrue(any("gaovi" in s for s in entries[0]["sources"]))
+        gaovi_sources = [s for s in entries[0]["sources"] if "gaovi" in s]
+        self.assertGreater(len(gaovi_sources), 0, f"Expected 'gaovi' in sources, got {entries[0]['sources']}")
         self.assertEqual(entries[0]["status"], "\u6210\u529f")
 
     def test_parse_empty_content(self):

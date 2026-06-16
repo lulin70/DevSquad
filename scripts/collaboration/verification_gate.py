@@ -206,13 +206,8 @@ class VerificationGate:
         """Check which mandatory evidence items are missing."""
         missing = []
         for item in self.MANDATORY_EVIDENCE:
-            if item.required:
-                if item.key not in context.evidence:
-                    missing.append(item)
-            elif item.required_for:
-                if context.role_id in item.required_for:
-                    if item.key not in context.evidence:
-                        missing.append(item)
+            if (item.required or item.required_for and context.role_id in item.required_for) and item.key not in context.evidence:
+                missing.append(item)
         return missing
 
     def build_context_from_worker_result(self, worker_result: dict[str, Any]) -> CompletionContext:

@@ -32,7 +32,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .prometheus_metrics import get_metrics
 
@@ -77,7 +77,7 @@ class LLMCache:
         ttl_seconds: int = 86400,  # 24 hours
         max_memory_entries: int = 1000,
         enable_redis: bool = False,
-        redis_url: Optional[str] = None,
+        redis_url: str | None = None,
         use_multi_level_cache: bool = False,
     ):
         """
@@ -589,7 +589,7 @@ _cache_instance: LLMCache | None = None
 _redis_config = {"enabled": False, "url": None}
 
 
-def configure_redis_cache(enabled: bool = False, url: Optional[str] = None):
+def configure_redis_cache(enabled: bool = False, url: str | None = None):
     """Configure Redis cache for the global LLMCache instance."""
     global _redis_config, _cache_instance
     _redis_config = {"enabled": enabled, "url": url}

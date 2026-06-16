@@ -7,8 +7,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1855%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.7-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2109%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.7.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -567,12 +567,12 @@ DevSquadは関心の分離を明確にしたレイヤードアーキテクチャ
 | 33 | **MemoryBridge** | `memory_bridge.py` | クロスセッションメモリ |
 | 34 | **BatchScheduler** | `batch_scheduler.py` | バッチタスクスケジューリング |
 | 35 | **ContextCompressor** | `context_compressor.py` | 長時間タスク用コンテキスト圧縮 |
-| 36 | **RoleTemplateMarket** | `role_template_market.py` | ロールテンプレートシェアリングマーケットプレイス |
+| 36 | **RoleTemplateMarket** | `role_template_market.py` | ロールテンプレートシェアリングマーケットプレイス *(削除済み)* |
 | 37 | **Skillifier** | `skillifier.py` | タスクからの自動スキル学習 |
 | 38 | **UsageTracker** | `usage_tracker.py` | トークン/コスト追跡 |
 | 39 | **WarmupManager** | `warmup_manager.py` | 起動ウォームアップ最適化 |
 | 40 | **TestQualityGuard** | `test_quality_guard.py` | テスト品質強制 |
-| 41 | **PromptVariantGenerator** | `prompt_variant_generator.py` | A/Bプロンプトテスト |
+| 41 | **PromptVariantGenerator** | `prompt_variant_generator.py` | A/Bプロンプトテスト *(削除済み)* |
 | 42 | **ConfigManager (YAML)** | `config_manager.py` | プロジェクトレベルYAML設定 |
 | 43 | **WorkBuddyClawSource** | `memory_bridge.py` | WorkBuddy読み取り専用ブリッジ |
 | 44 | **Models** | `models.py` | 共有データモデルと型定義 |
@@ -622,7 +622,7 @@ llm:
 ## テスト実行
 
 ```bash
-# コアテスト（1855+ 全テスト合格）
+# コアテスト（2109+ 全テスト合格）
 python3 -m pytest tests/ -q --tb=short
 ```
 
@@ -630,12 +630,12 @@ python3 -m pytest tests/ -q --tb=short
 DevSquadのアップグレード後、以下のコマンドを実行して環境を検証してください：
 ```bash
 # クイックヘルスチェック（30秒以内で完了）
-python3 scripts/cli.py --version       # 期待される出力: DevSquad 3.6.6
+python3 scripts/cli.py --version       # 期待される出力: DevSquad 3.7.0
 python3 scripts/cli.py status          # 期待される出力: システム準備完了
 python3 scripts/cli.py roles           # 期待される出力: 7つのコアロールが表示
 
 # 完全テストスイート
-python3 -m pytest tests/ -q --tb=line # 期待される出力: 1855 passed
+python3 -m pytest tests/ -q --tb=line # 期待される出力: 2109 passed
 ```
 
 ### カバレッジレポート付き

@@ -59,6 +59,11 @@ from .ai_semantic_matcher import AISemanticMatcher
 
 # V3.7.0 Module exports
 from .anchor_checker import AnchorChecker
+from .async_adapter import AsyncToSyncAdapter, AutoBackendSelector, SyncToAsyncAdapter
+
+# Async Module exports
+from .async_llm_backend import AsyncAnthropicBackend, AsyncFallbackBackend, AsyncLLMBackendFactory, AsyncOpenAIBackend
+from .audit_logger import AuditLogger, SensitiveDataMasker
 from .batch_scheduler import BatchScheduler
 from .ci_feedback_adapter import CIContext, CIFeedbackAdapter, CIResult
 from .consensus import ConsensusEngine
@@ -72,22 +77,13 @@ from .feature_usage_tracker import FeatureUsageTracker
 from .feedback_control_loop import FeedbackControlLoop
 from .five_axis_consensus import FiveAxisConsensusEngine
 from .intent_workflow_mapper import IntentWorkflowMapper
-
-# Enterprise Feature exports
-from .rbac_engine import RBACEngine, Permission, PermissionDeniedError, RBACUser, UserRole
-from .audit_logger import AuditLogger, SensitiveDataMasker
-from .multi_tenant import MultiTenantManager, IsolationLevel, Tenant, TenantContext
-
-# Async Module exports
-from .async_llm_backend import AsyncLLMBackendFactory, AsyncOpenAIBackend, AsyncAnthropicBackend, AsyncFallbackBackend
-from .async_adapter import SyncToAsyncAdapter, AsyncToSyncAdapter, AutoBackendSelector
-from .llm_cache_async import AsyncLLMCache
 from .llm_cache import (
     CacheEntry,
     LLMCache,
     get_llm_cache,
     reset_cache,
 )
+from .llm_cache_async import AsyncLLMCache
 
 # LLM Retry exports
 from .llm_retry import (
@@ -102,9 +98,6 @@ from .llm_retry import (
 
 # Async LLM Retry exports
 from .llm_retry_async import AsyncLLMRetryManager
-
-# Multi-Level Cache exports
-from .multi_level_cache import MemoryCacheBackend, MultiLevelCacheCoordinator
 
 # Data models exports
 from .models import (
@@ -123,6 +116,10 @@ from .models import (
     Vote,
     WorkerResult,
 )
+
+# Multi-Level Cache exports
+from .multi_level_cache import MemoryCacheBackend, MultiLevelCacheCoordinator
+from .multi_tenant import IsolationLevel, MultiTenantManager, Tenant, TenantContext
 from .null_providers import (
     NullCacheProvider,
     NullMemoryProvider,
@@ -144,9 +141,10 @@ from .performance_monitor import (
     monitor_performance,
     reset_monitor,
 )
-from .prompt_variant_generator import PromptVariantGenerator
+
+# Enterprise Feature exports
+from .rbac_engine import Permission, PermissionDeniedError, RBACEngine, RBACUser, UserRole
 from .retrospective import RetrospectiveEngine
-from .role_template_market import RoleTemplateMarket
 
 # Collaboration Core exports
 from .scratchpad import Scratchpad
@@ -157,12 +155,65 @@ from .worker import Worker, WorkerFactory
 
 __author__ = "DevSquad Team"
 __all__ = [
+    # Version
+    "__version__",
+    # Core Orchestration
+    "Coordinator",
+    "Worker",
+    "WorkerFactory",
+    "Scratchpad",
+    "ConsensusEngine",
+    "FiveAxisConsensusEngine",
+    "BatchScheduler",
+    "AdaptiveRoleSelector",
+    "AISemanticMatcher",
+    # Dispatch Components
+    "AnchorChecker",
+    "CIContext",
+    "CIFeedbackAdapter",
+    "CIResult",
+    "DualLayerContextManager",
+    "EnhancedWorker",
+    "AgentBriefingOutput",
+    "ExecutionGuard",
+    "FeatureUsageTracker",
+    "FeedbackControlLoop",
+    "IntentWorkflowMapper",
+    "OperationClassifier",
+    "OutputSlice",
+    "OutputSlicer",
+    "PerformanceFingerprint",
+    "RetrospectiveEngine",
+    "SimilarTaskRecommender",
+    "SkillRegistry",
+    "StandardizedRoleTemplate",
+    # Enterprise
+    "RBACEngine",
+    "Permission",
+    "PermissionDeniedError",
+    "RBACUser",
+    "UserRole",
+    "AuditLogger",
+    "SensitiveDataMasker",
+    "MultiTenantManager",
+    "IsolationLevel",
+    "Tenant",
+    "TenantContext",
+    # Async
+    "AsyncLLMBackendFactory",
+    "AsyncOpenAIBackend",
+    "AsyncAnthropicBackend",
+    "AsyncFallbackBackend",
+    "SyncToAsyncAdapter",
+    "AsyncToSyncAdapter",
+    "AutoBackendSelector",
+    "AsyncLLMCache",
+    "AsyncLLMRetryManager",
     # Cache
     "LLMCache",
     "CacheEntry",
     "get_llm_cache",
     "reset_cache",
-    # Multi-Level Cache
     "MultiLevelCacheCoordinator",
     "MemoryCacheBackend",
     # Retry
@@ -173,8 +224,6 @@ __all__ = [
     "CircuitBreakerError",
     "get_retry_manager",
     "retry_with_fallback",
-    # Async Retry
-    "AsyncLLMRetryManager",
     # Monitor
     "PerformanceMonitor",
     "PerformanceMetric",
@@ -182,6 +231,26 @@ __all__ = [
     "get_monitor",
     "monitor_performance",
     "reset_monitor",
+    # Data Models
+    "ROLE_WEIGHTS",
+    "BatchMode",
+    "DecisionOutcome",
+    "DecisionProposal",
+    "EntryStatus",
+    "EntryType",
+    "Reference",
+    "ReferenceType",
+    "ScratchpadEntry",
+    "TaskBatch",
+    "TaskDefinition",
+    "TaskNotification",
+    "Vote",
+    "WorkerResult",
+    # Null Providers
+    "NullCacheProvider",
+    "NullMemoryProvider",
+    "NullMonitorProvider",
+    "NullRetryProvider",
 ]
 
 

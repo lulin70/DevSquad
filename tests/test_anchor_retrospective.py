@@ -73,29 +73,29 @@ class TestAnchorCheckerParseGoal(unittest.TestCase):
     def test_parse_goal_with_requirements(self):
         goal = self.checker.parse_goal("需要实现用户认证系统，必须支持JWT和RBAC，确保安全性")
         self.assertIsInstance(goal, StructuredGoal)
-        self.assertTrue(len(goal.items) > 0)
+        self.assertGreater(len(goal.items), 0)
         self.assertEqual(goal.original_description, "需要实现用户认证系统，必须支持JWT和RBAC，确保安全性")
 
     def test_parse_goal_with_list_items(self):
         goal = self.checker.parse_goal("Design auth system:\n- JWT tokens\n- RBAC roles\n- Password hashing")
-        self.assertTrue(len(goal.items) >= 2)
+        self.assertGreaterEqual(len(goal.items), 2)
 
     def test_parse_goal_with_numbered_items(self):
         goal = self.checker.parse_goal("Requirements:\n1. User login\n2. Token refresh\n3. Role management")
-        self.assertTrue(len(goal.items) >= 2)
+        self.assertGreaterEqual(len(goal.items), 2)
 
     def test_parse_goal_simple_description(self):
         goal = self.checker.parse_goal("Write a sorting function")
-        self.assertTrue(len(goal.items) >= 1)
+        self.assertGreaterEqual(len(goal.items), 1)
         self.assertEqual(goal.items[0].item_id, "G0")
 
     def test_parse_goal_empty(self):
         goal = self.checker.parse_goal("")
-        self.assertTrue(len(goal.items) >= 1)
+        self.assertGreaterEqual(len(goal.items), 1)
 
     def test_parse_goal_generates_id(self):
         goal = self.checker.parse_goal("Test task")
-        self.assertTrue(goal.goal_id.startswith("goal_"))
+        self.assertRegex(goal.goal_id, r"^goal_")
 
 
 class TestAnchorCheckerCheck(unittest.TestCase):

@@ -41,7 +41,8 @@ def test_config_loading():
         hc = aqc.get("hallucination_check", {})
         print(f"✓ Hallucination check: {hc.get('enabled')}")
 
-        assert True, "QC config loaded successfully"
+        assert qc.get("strict_mode") is not None, "strict_mode should be set in QC config"
+        assert qc.get("min_quality_score") is not None, "min_quality_score should be set in QC config"
     else:
         print("✗ Quality control not enabled - config may not be loaded")
         assert False, "QC config not loaded"

@@ -98,7 +98,7 @@ async def list_phases(
 
     except Exception as e:
         logger.error(f"Failed to list phases: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.get(
@@ -159,7 +159,7 @@ async def get_phase(phase_id: str):
         raise
     except Exception as e:
         logger.error(f"Failed to get phase {phase_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.get(
@@ -196,7 +196,7 @@ async def get_lifecycle_status():
 
     except Exception as e:
         logger.error(f"Failed to get lifecycle status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.post(
@@ -284,7 +284,7 @@ async def execute_phase_action(request: PhaseActionRequest):
         raise
     except Exception as e:
         logger.error(f"Failed to execute action {request.action} on phase {request.phase_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None
 
 
 @router.get(
@@ -323,4 +323,4 @@ async def list_command_mappings():
 
     except Exception as e:
         logger.error(f"Failed to list mappings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from None

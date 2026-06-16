@@ -197,7 +197,7 @@ class FeedbackControlLoop:
 
             return best_result
 
-    def _dry_run_dispatch(self, task: str, roles: list[str] | None, mode: str):
+    def _dry_run_dispatch(self, task: str, roles: list[str] | None, _mode: str):
         """Simulate a dispatch for dry-run mode."""
         from .dispatcher import DispatchResult
 

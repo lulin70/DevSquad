@@ -40,7 +40,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 
 class IsolationLevel(Enum):
@@ -88,12 +88,12 @@ class Tenant:
     tenant_id: str
     name: str
     isolation_level: IsolationLevel = IsolationLevel.SHARED_DATABASE
-    config: Dict[str, Any] = field(default_factory=dict)
-    quota_limits: Dict[str, int] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
+    quota_limits: dict[str, int] = field(default_factory=dict)
     is_active: bool = True
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def check_quota(self, resource: str, current_usage: int) -> bool:
         """Check if resource usage is within quota limits.
@@ -110,7 +110,7 @@ class Tenant:
             return True  # No limit configured
         return current_usage <= limit
 
-    def get_quota_limit(self, resource: str) -> Optional[int]:
+    def get_quota_limit(self, resource: str) -> int | None:
         """Get quota limit for a specific resource.
 
         Args:
@@ -179,10 +179,10 @@ class TenantContext:
         metadata: Request-specific context (IP, User-Agent, etc.)
     """
 
-    tenant_id: Optional[str] = None
-    user_id: Optional[str] = None
-    request_id: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    tenant_id: str | None = None
+    user_id: str | None = None
+    request_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def is_set(self) -> bool:
         """Check if context has been initialized.
@@ -230,7 +230,7 @@ class QuotaManager:
     """
 
     def __init__(self):
-        self._usage: Dict[str, Dict[str, int]] = {}
+        self._usage: dict[str, dict[str, int]] = {}
         self._lock = threading.Lock()
 
     def check_and_increment(
@@ -273,7 +273,7 @@ class QuotaManager:
             self._usage[tenant_id][resource] = current + increment
             return True
 
-    def get_usage(self, tenant_id: str) -> Dict[str, int]:
+    def get_usage(self, tenant_id: str) -> dict[str, int]:
         """Get current usage for all resources of a tenant.
 
         Args:
@@ -321,7 +321,7 @@ class QuotaManager:
             self._usage[tenant_id][resource] = new_value
             return new_value
 
-    def reset_usage(self, tenant_id: str, resource: Optional[str] = None) -> None:
+    def reset_usage(self, tenant_id: str, resource: str | None = None) -> None:
         """Reset usage counters (typically called monthly).
 
         Args:
@@ -343,7 +343,7 @@ class QuotaManager:
         with self._lock:
             self._usage.clear()
 
-    def get_all_usage(self) -> Dict[str, Dict[str, int]]:
+    def get_all_usage(self) -> dict[str, dict[str, int]]:
         """Get usage for all tenants (admin view).
 
         Returns:
@@ -355,7 +355,7 @@ class QuotaManager:
                 for tid, resources in self._usage.items()
             }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get quota manager statistics.
 
         Returns:
@@ -419,7 +419,7 @@ class MultiTenantManager:
         Args:
             default_isolation: Default isolation level for new tenants
         """
-        self._tenants: Dict[str, Tenant] = {}
+        self._tenants: dict[str, Tenant] = {}
         self._local = threading.local()
         self._default_isolation = default_isolation
         self._lock = threading.RLock()
@@ -454,7 +454,7 @@ class MultiTenantManager:
             self._tenants[tenant.tenant_id] = tenant
             self.logger.info("Created tenant: %s (%s)", tenant.tenant_id, tenant.name)
 
-    def get_tenant(self, tenant_id: str) -> Optional[Tenant]:
+    def get_tenant(self, tenant_id: str) -> Tenant | None:
         """Retrieve a tenant by ID.
 
         Args:
@@ -553,8 +553,8 @@ class MultiTenantManager:
     def list_tenants(
         self,
         active_only: bool = True,
-        isolation_level: Optional[IsolationLevel] = None,
-    ) -> List[Tenant]:
+        isolation_level: IsolationLevel | None = None,
+    ) -> list[Tenant]:
         """List tenants with optional filtering.
 
         Args:
@@ -578,8 +578,8 @@ class MultiTenantManager:
     def set_context(
         self,
         tenant_id: str,
-        user_id: Optional[str] = None,
-        request_id: Optional[str] = None,
+        user_id: str | None = None,
+        request_id: str | None = None,
         **metadata,
     ) -> TenantContext:
         """Set tenant context for current thread/request.
@@ -635,7 +635,7 @@ class MultiTenantManager:
         ctx.clear()
         self.logger.debug("Cleared tenant context")
 
-    def context(self, tenant_id: str, user_id: Optional[str] = None, **kwargs):
+    def context(self, tenant_id: str, user_id: str | None = None, **kwargs):
         """Context manager for automatic tenant scoping.
 
         Use with 'with' statement for clean setup/teardown:
@@ -702,7 +702,7 @@ class MultiTenantManager:
             ctx.tenant_id, resource, limit, increment
         )
 
-    def get_current_tenant(self) -> Optional[Tenant]:
+    def get_current_tenant(self) -> Tenant | None:
         """Get the Tenant object for the current context.
 
         Returns:
@@ -734,7 +734,7 @@ class MultiTenantManager:
 
         return tenant
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get multi-tenant system statistics.
 
         Returns:
@@ -783,7 +783,6 @@ class MultiTenantManager:
 
 
 from pathlib import Path
-
 
 if __name__ == "__main__":
     print("Multi-Tenant Manager - Enterprise Multi-Tenancy Support")
@@ -851,12 +850,12 @@ if __name__ == "__main__":
                 print(f"  ✗ Tiny task {i+1}: QUOTA EXCEEDED")
 
     stats = mtm.get_stats()
-    print(f"\n📊 Statistics:")
+    print("\n📊 Statistics:")
     print(f"  Total tenants: {stats['total_tenants']}")
     print(f"  Active: {stats['active_tenants']}")
     print(f"  Distribution: {stats['isolation_distribution']}")
 
     quota_stats = mtm.quota_manager.get_stats()
-    print(f"\n  Quota Manager:")
+    print("\n  Quota Manager:")
     print(f"  Tracked tenants: {quota_stats['total_tenants_tracked']}")
     print(f"  Resource types: {quota_stats['resource_types']}")

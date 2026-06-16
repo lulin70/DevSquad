@@ -104,34 +104,26 @@ class TestRoleSpecificTables(unittest.TestCase):
     def test_architect_has_architecture_specific_entries(self):
         table = self.engine.get_table("architect")
         excuses = [r.excuse.lower() for r in table]
-        self.assertTrue(
-            any("architecture" in e or "good enough" in e or "optimize" in e for e in excuses),
-            "Architect table should have architecture-specific entries",
-        )
+        matching = [e for e in excuses if "architecture" in e or "good enough" in e or "optimize" in e]
+        self.assertGreater(len(matching), 0, f"Architect table should have architecture-specific entries, got: {excuses}")
 
     def test_security_has_security_specific_entries(self):
         table = self.engine.get_table("security")
         excuses = [r.excuse.lower() for r in table]
-        self.assertTrue(
-            any("internal tool" in e or "security" in e or "framework" in e for e in excuses),
-            "Security table should have security-specific entries",
-        )
+        matching = [e for e in excuses if "internal tool" in e or "security" in e or "framework" in e]
+        self.assertGreater(len(matching), 0, f"Security table should have security-specific entries, got: {excuses}")
 
     def test_tester_has_testing_specific_entries(self):
         table = self.engine.get_table("tester")
         excuses = [r.excuse.lower() for r in table]
-        self.assertTrue(
-            any("write tests" in e or "too simple" in e or "manual" in e for e in excuses),
-            "Tester table should have testing-specific entries",
-        )
+        matching = [e for e in excuses if "write tests" in e or "too simple" in e or "manual" in e]
+        self.assertGreater(len(matching), 0, f"Tester table should have testing-specific entries, got: {excuses}")
 
     def test_coder_has_ai_code_specific_entry(self):
         table = self.engine.get_table("solo-coder")
         excuses = [r.excuse.lower() for r in table]
-        self.assertTrue(
-            any("ai-generated" in e or "probably fine" in e for e in excuses),
-            "Coder table MUST have 'AI-generated code' entry (most dangerous rationalization for multi-AI systems)",
-        )
+        matching = [e for e in excuses if "ai-generated" in e or "probably fine" in e]
+        self.assertGreater(len(matching), 0, f"Coder table MUST have 'AI-generated code' entry, got: {excuses}")
 
     def test_unknown_role_returns_only_universal(self):
         table = self.engine.get_table("nonexistent_role_xyz")
@@ -163,20 +155,16 @@ class TestGetTableMerge(unittest.TestCase):
         merged = self.engine.get_table("architect")
         universal_excuses = {r.excuse for r in universal}
         merged_excuses = {r.excuse for r in merged}
-        self.assertTrue(
-            universal_excuses.issubset(merged_excuses),
-            "Merged table must contain all universal entries",
-        )
+        missing = universal_excuses - merged_excuses
+        self.assertEqual(missing, set(), "Merged table must contain all universal entries")
 
     def test_merged_contains_specific_entries(self):
         specific = self.engine._ROLE_SPECIFIC_TABLES["architect"]
         merged = self.engine.get_table("architect")
         specific_excuses = {r.excuse for r in specific}
         merged_excuses = {r.excuse for r in merged}
-        self.assertTrue(
-            specific_excuses.issubset(merged_excuses),
-            "Merged table must contain all role-specific entries",
-        )
+        missing = specific_excuses - merged_excuses
+        self.assertEqual(missing, set(), "Merged table must contain all role-specific entries")
 
 
 class TestFormatForPrompt(unittest.TestCase):
@@ -312,7 +300,7 @@ class TestIntegrationPromptAssembly(unittest.TestCase):
         base_prompt = "# Role: Architect\n\n## Task\n\nDesign auth system."
         ar_content = self.engine.format_for_prompt("architect")
         combined = base_prompt + ar_content
-        self.assertTrue(combined.startswith("# Role"))
+        self.assertRegex(combined, r"^# Role")
         self.assertIn("Design auth system", combined)
         self.assertIn("non-negotiable", combined)
 

@@ -347,7 +347,6 @@ def render_metrics_overview(protocol_data):
             )
 
         with col5:
-            progress_color = "#27ae60" if completion_rate >= 70 else "#ff7f0e" if completion_rate >= 40 else "#d62728"
             st.metric(
                 label="Progress",
                 value=f"{completion_rate:.1f}%",
@@ -652,7 +651,7 @@ def render_task_dispatch_page(dispatcher):
             help="How agents should collaborate on this task",
         )
 
-        language = st.selectbox(
+        st.selectbox(
             "Output Language",
             options=["auto", "zh", "en", "ja"],
             format_func=lambda x: {
@@ -665,7 +664,7 @@ def render_task_dispatch_page(dispatcher):
             help="Language for output and reports",
         )
 
-        backend = st.selectbox(
+        st.selectbox(
             "LLM Backend",
             options=["mock", "openai", "anthropic"],
             format_func=lambda x: {
@@ -811,7 +810,7 @@ def render_admin_users_page(auth: AuthManager):
                 st.markdown(f'<span class="status-badge {role_badge}">{role.upper()}</span>', unsafe_allow_html=True)
 
             with col3:
-                new_role = st.selectbox(
+                st.selectbox(
                     "Change Role",
                     options=["admin", "operator", "viewer"],
                     index=["admin", "operator", "viewer"].index(role) if role in ["admin", "operator", "viewer"] else 2,
@@ -959,7 +958,7 @@ def render_sidebar(auth: AuthManager, current_user: User | None = None):
         auto_refresh = st.checkbox("⏱️ Auto Refresh (30s)", value=st.session_state.get("auto_refresh", False))
         st.session_state["auto_refresh"] = auto_refresh
 
-        show_details = st.checkbox("📋 Show Details", value=True)
+        st.checkbox("📋 Show Details", value=True)
 
         st.divider()
 

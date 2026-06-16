@@ -1,37 +1,242 @@
 #!/usr/bin/env python3
-"""DispatchStepsMixin — Step execution methods extracted from MultiAgentDispatcher.
+"""PostDispatchPipeline — Post-dispatch step methods extracted from MultiAgentDispatcher.
 
-This mixin reduces the God Class by moving dispatch pipeline step methods
-into a separate module. All methods access `self.*` attributes from the
-dispatcher instance at runtime via mixin composition.
+This pipeline reduces the God Class by moving post-dispatch pipeline step methods
+(steps 8-20) into a separate module. Uses composition pattern: receives all
+dependencies via __init__ instead of relying on mixin self.* attribute sharing.
+
+Pipeline steps covered:
+  Step 8:  Collect worker results
+  Step 10: Resolve consensus
+  Step 11: Check permissions
+  Step 12: Process memory pipeline
+  Step 13: Learn skills
+  Step 14: Five-axis consensus
+  Step 15: Retrospective
+  Step 18: Feedback loop
+  Step 19: UE testing
+  Step 20: Tech debt scan
 """
 
 import logging
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from .ue_test_framework import UETestFramework
+from .dispatch_models import DispatchResult
+from .dispatch_services import MemoryPipelineService, MetricsService, PermissionService, SkillProposalService
 from .tech_debt_manager import TechDebtManager
+from .ue_test_framework import UETestFramework
 
 logger = logging.getLogger(__name__)
 
 
-class DispatchStepsMixin:
-    """Mixin containing dispatch pipeline step methods.
+class PostDispatchPipeline:
+    """Post-dispatch pipeline containing steps 8-20.
 
-    These methods are called by MultiAgentDispatcher._post_dispatch_steps()
-    and related orchestration methods. They rely on `self` being a fully
-    initialized MultiAgentDispatcher instance.
+    Receives all dependencies via __init__ (composition pattern) instead of
+    relying on mixin self.* attribute sharing.
     """
+
+    def __init__(
+        self,
+        # Core components
+        coordinator: Any,
+        report_formatter: Any,
+        enterprise: Any,
+        # Service instances
+        metrics_service: MetricsService,
+        permission_service: PermissionService,
+        memory_pipeline: MemoryPipelineService,
+        skill_service: SkillProposalService,
+        # Feature flags
+        enable_compression: bool = True,
+        enable_permission: bool = True,
+        enable_feedback_loop: bool | str = "auto",
+        # Additional dependencies
+        compressor: Any = None,
+        usage_tracker: Any = None,
+        retrospective_engine: Any = None,
+        anchor_checker: Any = None,
+        llm_backend: Any = None,
+        persist_dir: str = "",
+        # Dispatcher reference (needed for FeedbackControlLoop)
+        dispatcher: Any = None,
+        # Callbacks for dispatcher-specific operations
+        post_execution_processing_fn=None,
+        assemble_result_fn=None,
+        post_dispatch_hooks_fn=None,
+    ) -> None:
+        self.coordinator = coordinator
+        self.report_formatter = report_formatter
+        self.enterprise = enterprise
+        self.metrics_service = metrics_service
+        self.permission_service = permission_service
+        self.memory_pipeline = memory_pipeline
+        self.skill_service = skill_service
+        self.enable_compression = enable_compression
+        self.enable_permission = enable_permission
+        self.enable_feedback_loop = enable_feedback_loop
+        self.compressor = compressor
+        self.usage_tracker = usage_tracker
+        self.retrospective_engine = retrospective_engine
+        self.anchor_checker = anchor_checker
+        self.llm_backend = llm_backend
+        self.persist_dir = persist_dir
+        self.dispatcher = dispatcher
+        self._post_execution_processing_fn = post_execution_processing_fn
+        self._assemble_result_fn = assemble_result_fn
+        self._post_dispatch_hooks_fn = post_dispatch_hooks_fn
+
+        # Lazy-initialized frameworks
+        self._ue_framework: UETestFramework | None = None
+        self._debt_manager: TechDebtManager | None = None
+
+    # ------------------------------------------------------------------
+    # Main execution entry point
+    # ------------------------------------------------------------------
+
+    def execute(
+        self,
+        pre_result,
+        exec_result,
+        worker_results: list[dict[str, Any]],
+        exec_errors: list[str],
+        exec_timing: dict[str, float],
+        start_time: float,
+        phase: str,
+        **kwargs: Any,
+    ) -> DispatchResult:
+        """Steps 9-20: post-processing, consensus, permissions, memory, assembly."""
+        task_description = pre_result.task_description
+        lang = pre_result.lang
+        matched_roles = pre_result.matched_roles
+        role_ids = pre_result.role_ids
+        concern_packs = pre_result.concern_packs
+        intent_match = pre_result.intent_match
+        structured_goal = pre_result.structured_goal
+        plan = pre_result.plan
+        step1_time = pre_result.step1_time
+        step2_time = pre_result.step2_time
+        step3_time = pre_result.prep_timing.get("step3_time", step2_time)
+        step4_time = pre_result.prep_timing.get("step4_time", step3_time)
+        step5_time = pre_result.prep_timing.get("step5_time", step4_time)
+
+        errors: list[str] = list(exec_errors)
+
+        step6_time = exec_timing.get("step6_time", step5_time)
+        step7_time = exec_timing.get("step7_time", step6_time)
+
+        # Step 9: Post-execution processing (collect, slice, anchor check)
+        scratchpad_summary, anchor_result, collection, post_errors, post_timing = self._post_execution_processing_fn(
+            worker_results, structured_goal
+        )
+        errors.extend(post_errors)
+        step8_time = post_timing["step8_time"]
+
+        # Step 10: Resolve consensus
+        mode = kwargs.get('mode', 'auto')
+        consensus_records, compression_info = self._resolve_consensus(collection, mode)
+        step9_time = time.time()
+
+        # Step 11: Check permissions
+        permission_checks = self._check_permissions(task_description, worker_results, consensus_records, **kwargs)
+        step10_time = time.time()
+
+        # Step 12: Process memory pipeline
+        memory_stats, mem_errors = self._process_memory_pipeline(
+            task_description, worker_results, lang, scratchpad_summary, role_ids
+        )
+        errors.extend(mem_errors)
+        step11_time = time.time()
+
+        # Step 13: Learn skills
+        skill_proposals, skill_errors = self._learn_skills(task_description, worker_results, matched_roles, exec_result)
+        errors.extend(skill_errors)
+        step12_time = time.time()
+
+        # Step 14: Run five-axis consensus
+        five_axis_result = self._run_five_axis_consensus(task_description, worker_results, mode, exec_result)
+
+        # Step 15: Run retrospective
+        total_duration = time.time() - start_time
+        retrospective_report = self._run_retrospective(
+            task_description, worker_results, structured_goal, exec_result, total_duration
+        )
+
+        # Step 16: Assemble result
+        step_timings = self._build_step_timings(
+            step1_time, step2_time, step3_time, step4_time, step5_time,
+            step6_time, step7_time, step8_time, step9_time, step10_time,
+            step11_time, step12_time,
+        )
+        result = self._assemble_result_fn(
+            task_description=task_description,
+            role_ids=role_ids,
+            exec_result=exec_result,
+            scratchpad_summary=scratchpad_summary,
+            consensus_records=consensus_records,
+            compression_info=compression_info,
+            memory_stats=memory_stats,
+            permission_checks=permission_checks,
+            skill_proposals=skill_proposals,
+            anchor_result=anchor_result,
+            retrospective_report=retrospective_report,
+            intent_match=intent_match,
+            five_axis_result=five_axis_result,
+            errors=errors,
+            lang=lang,
+            concern_packs=concern_packs,
+            total_duration=total_duration,
+            plan=plan,
+            step_timings=step_timings,
+            worker_results=worker_results,
+        )
+
+        # Lifecycle phase trace
+        lifecycle_trace = self._build_lifecycle_trace(step_timings)
+        result.details["lifecycle_trace"] = lifecycle_trace
+
+        # Audit: dispatch complete
+        self.enterprise.audit_dispatch_complete(result, **kwargs)
+
+        # Step 17: Post-dispatch hooks
+        self._post_dispatch_hooks_fn(result, task_description, role_ids, total_duration)
+
+        # Step 18: Feedback loop
+        roles = kwargs.get('roles')
+        dry_run = kwargs.get('dry_run', False)
+        result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
+
+        # Step 19: UE testing (when tester role is involved)
+        ue_test_plan = self._run_ue_testing(task_description, role_ids, worker_results, lang)
+        if ue_test_plan:
+            result.details["ue_test_plan"] = ue_test_plan
+
+        # Step 20: Tech debt scan
+        tech_debt_report = self._run_tech_debt_scan(task_description, worker_results)
+        if tech_debt_report:
+            result.details["tech_debt_report"] = tech_debt_report
+
+        # Prometheus: record dispatch end (duration + tasks_in_progress)
+        self.metrics_service.safe_record(lambda m: (
+            m.dispatch_histogram.labels(mode=mode).observe(total_duration),
+            m.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc(),
+            m.tasks_in_progress_gauge.labels(phase=phase).dec(),
+        ))
+
+        # Multi-tenant context cleanup
+        self.enterprise.clear_tenant_context(pre_result.tenant_ctx)
+
+        return result
 
     # ------------------------------------------------------------------
     # Step 8: Collect worker results
     # ------------------------------------------------------------------
 
-    def _collect_worker_results(self, exec_result: Any) -> Tuple[List[Dict[str, Any]], float, float]:
+    def _collect_worker_results(self, exec_result: Any) -> tuple[list[dict[str, Any]], float, float]:
         """Collect worker results from execution result into standardized dicts."""
         step6_time = time.time()
-        worker_results: List[Dict[str, Any]] = []
+        worker_results: list[dict[str, Any]] = []
         for r in exec_result.results:
             role_id = r.worker_id.split("-")[0] if "-" in r.worker_id else r.worker_id
             from .models import ROLE_REGISTRY
@@ -60,14 +265,14 @@ class DispatchStepsMixin:
 
     def _resolve_consensus(
         self, collection: Any, mode: str
-    ) -> Tuple[List[Dict[str, Any]], Any]:
+    ) -> tuple[list[dict[str, Any]], Any]:
         """Resolve consensus and get compression info. Returns (consensus_records, compression_info)."""
         consensus_records = []
         conflicts_count = collection.get("conflicts_count", 0)
         if conflicts_count > 0 or mode == "consensus":
             resolutions = self.coordinator.resolve_conflicts()
             for rec in resolutions:
-                self._safe_metrics(lambda m: m.record_consensus_round(rec.outcome.value))
+                self.metrics_service.safe_record(lambda m, o=rec.outcome.value: m.record_consensus_round(o))
                 consensus_records.append(
                     {
                         "topic": rec.topic,
@@ -92,20 +297,20 @@ class DispatchStepsMixin:
     # ------------------------------------------------------------------
 
     def _check_permissions(
-        self, task: str, worker_results: List[Dict[str, Any]], consensus_records: List[Dict[str, Any]], **kwargs: Any
-    ) -> List[Dict[str, Any]]:
+        self, _task: str, _worker_results: list[dict[str, Any]], _consensus_records: list[dict[str, Any]], **kwargs: Any
+    ) -> list[dict[str, Any]]:
         """Check permissions via PermissionGuard and RBAC.
 
         Returns:
             List of permission check results.
         """
-        permission_checks = []
-        if self.enable_permission and self.permission_guard:
-            permission_checks = self._check_permission_guard(permission_checks)
+        permission_checks: list[dict[str, Any]] = []
+        if self.enable_permission and self.permission_service.permission_guard:
+            permission_checks = self.permission_service.check_permissions(permission_checks)
 
         # RBAC fine-grained check
-        if self.enable_rbac and self.rbac_engine:
-            permission_checks = self._check_rbac_permission(permission_checks, **kwargs)
+        if self.enterprise.enable_rbac and self.enterprise.rbac_engine:
+            permission_checks = self.permission_service.check_rbac(permission_checks, **kwargs)
 
         return permission_checks
 
@@ -116,17 +321,17 @@ class DispatchStepsMixin:
     def _process_memory_pipeline(
         self,
         task: str,
-        worker_results: List[Dict[str, Any]],
-        lang: str,
+        _worker_results: list[dict[str, Any]],
+        _lang: str,
         scratchpad_summary: str,
-        role_ids: List[str],
-    ) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+        role_ids: list[str],
+    ) -> tuple[dict[str, Any] | None, list[str]]:
         """Process memory pipeline: capture + MCE classify + AI news inject."""
-        errors: List[str] = []
+        errors: list[str] = []
 
-        memory_stats = self._capture_memory(task, scratchpad_summary, role_ids, errors)
-        memory_stats = self._classify_mce(scratchpad_summary, task, memory_stats, errors)
-        self._inject_ai_news(task, errors)
+        memory_stats = self.memory_pipeline.capture(task, scratchpad_summary, role_ids, errors)
+        memory_stats = self.memory_pipeline.classify_mce(scratchpad_summary, task, memory_stats, errors)
+        self.memory_pipeline.inject_ai_news(task, errors)
 
         return memory_stats, errors
 
@@ -136,34 +341,23 @@ class DispatchStepsMixin:
 
     def _learn_skills(
         self,
-        task: str,
-        worker_results: List[Dict[str, Any]],
-        matched_roles: List[Dict[str, Any]],
+        _task: str,
+        _worker_results: list[dict[str, Any]],
+        _matched_roles: list[dict[str, Any]],
         exec_result: Any,
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+    ) -> tuple[list[dict[str, Any]], list[str]]:
         """Learn skills via Skillifier. Returns (skill_proposals, errors)."""
-        errors: List[str] = []
+        errors: list[str] = []
         skill_proposals = []
         patterns = None
 
-        if self.enable_skillify and self.skillifier and exec_result.success:
+        if self.skill_service.enable_skillify and self.skill_service.skillifier and exec_result.success:
             try:
-                patterns = self.skillifier.analyze_history()
+                patterns = self.skill_service.skillifier.analyze_history()
                 if patterns:
-                    skill_proposals = self._propose_skills_from_patterns(patterns)
+                    skill_proposals = self.skill_service.propose_from_patterns(patterns)
             except (ValueError, AttributeError, RuntimeError, ImportError) as skill_err:
                 errors.append(f"Skillifier error: {skill_err}")
-
-        if self.prompt_variant_gen and patterns:
-            try:
-                for pattern in patterns:
-                    if pattern.confidence > 0.5:
-                        variants = self.prompt_variant_gen.generate_from_pattern(pattern)
-                        if variants:
-                            if self.usage_tracker:
-                                self.usage_tracker.tick("prompt_variant_generated")
-            except (ValueError, AttributeError, RuntimeError) as e:
-                logger.warning(f"PromptVariantGenerator failed: {e}")
 
         return skill_proposals, errors
 
@@ -172,8 +366,8 @@ class DispatchStepsMixin:
     # ------------------------------------------------------------------
 
     def _run_five_axis_consensus(
-        self, task: str, worker_results: List[Dict[str, Any]], mode: str, exec_result: Any
-    ) -> Optional[Dict[str, Any]]:
+        self, _task: str, worker_results: list[dict[str, Any]], mode: str, exec_result: Any
+    ) -> dict[str, Any] | None:
         """Run five-axis consensus review (consensus mode only)."""
         if mode != "consensus" or not exec_result.success:
             return None
@@ -212,8 +406,8 @@ class DispatchStepsMixin:
 
     def _run_retrospective(
         self,
-        task: str,
-        worker_results: List[Dict[str, Any]],
+        _task: str,
+        worker_results: list[dict[str, Any]],
         structured_goal: Any,
         exec_result: Any,
         total_duration: float,
@@ -247,11 +441,11 @@ class DispatchStepsMixin:
         self,
         task: str,
         result: Any,
-        lang: str,
-        roles: Optional[List[str]],
+        _lang: str,
+        roles: list[str] | None,
         mode: str,
         dry_run: bool,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
     ) -> Any:
         """Run FeedbackControlLoop iteration. Returns final (possibly refined) result.
 
@@ -267,7 +461,7 @@ class DispatchStepsMixin:
         if self.enable_feedback_loop == "auto":
             try:
                 from .feedback_control_loop import FeedbackControlLoop
-                loop = FeedbackControlLoop(dispatcher=self)
+                loop = FeedbackControlLoop(dispatcher=self.dispatcher)
                 first_quality = loop._assess_quality(result)
                 if first_quality >= 0.5:
                     logger.debug(
@@ -287,7 +481,7 @@ class DispatchStepsMixin:
             from .feedback_control_loop import FeedbackControlLoop
 
             feedback_loop = FeedbackControlLoop(
-                dispatcher=self,
+                dispatcher=self.dispatcher,
                 quality_gate=0.7,
                 max_iterations=3,
                 llm_backend=self.llm_backend,
@@ -317,10 +511,10 @@ class DispatchStepsMixin:
     def _run_ue_testing(
         self,
         task: str,
-        role_ids: List[str],
-        worker_results: List[Dict[str, Any]],
-        lang: str,
-    ) -> Optional[Dict[str, Any]]:
+        role_ids: list[str],
+        worker_results: list[dict[str, Any]],
+        _lang: str,
+    ) -> dict[str, Any] | None:
         """Step 19: Generate UE test plan when tester role is involved.
 
         Bridges Tester and PM perspectives to produce user-experience-focused
@@ -337,7 +531,7 @@ class DispatchStepsMixin:
             return None
 
         try:
-            if not hasattr(self, '_ue_framework') or self._ue_framework is None:
+            if self._ue_framework is None:
                 self._ue_framework = UETestFramework(llm_backend=self.llm_backend)
             framework = self._ue_framework
             plan = framework.generate_ue_test_plan(task)
@@ -397,8 +591,8 @@ class DispatchStepsMixin:
     def _run_tech_debt_scan(
         self,
         task: str,
-        worker_results: List[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
+        worker_results: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
         """Step 20: Scan for technical debt after dispatch.
 
         Bridges Tester and Architect perspectives to identify and track
@@ -416,7 +610,7 @@ class DispatchStepsMixin:
             if not has_relevant_role:
                 return None
 
-            if not hasattr(self, '_debt_manager') or self._debt_manager is None:
+            if self._debt_manager is None:
                 self._debt_manager = TechDebtManager(persist_dir=self.persist_dir)
             manager = self._debt_manager
 
@@ -460,7 +654,7 @@ class DispatchStepsMixin:
 
     def _extract_test_debts(self, manager: Any, output: str, task: str) -> None:
         """Extract test-gap debts from tester output."""
-        from .tech_debt_manager import DebtCategory, DebtSeverity, DebtEffort
+        from .tech_debt_manager import DebtCategory, DebtEffort, DebtSeverity
         lower = output.lower()
         if "missing test" in lower or "no test" in lower or "untested" in lower:
             manager.identify_debt(
@@ -485,7 +679,7 @@ class DispatchStepsMixin:
 
     def _extract_arch_debts(self, manager: Any, output: str, task: str) -> None:
         """Extract architecture debts from architect output."""
-        from .tech_debt_manager import DebtCategory, DebtSeverity, DebtEffort
+        from .tech_debt_manager import DebtCategory, DebtEffort, DebtSeverity
         lower = output.lower()
         if "circular" in lower or "cyclic" in lower:
             manager.identify_debt(
@@ -526,14 +720,14 @@ class DispatchStepsMixin:
         self, step1: float, step2: float, step3: float, step4: float, step5: float,
         step6: float, step7: float, step8: float, step9: float, step10: float,
         step11: float, step12: float,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Build step timings dict from absolute timestamps."""
         names = ["analyze", "warmup", "plan", "spawn", "execute", "collect",
                  "consensus", "compress", "permission", "memory", "skillify"]
         times = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12]
         return {name: round(times[i + 1] - times[i], 3) for i, name in enumerate(names)}
 
-    def _build_lifecycle_trace(self, step_timings: Dict[str, float]) -> Dict[str, Any]:
+    def _build_lifecycle_trace(self, step_timings: dict[str, float]) -> dict[str, Any]:
         """Build lifecycle phase trace from step timings.
 
         Maps dispatch pipeline steps to lifecycle phases (P1-P11),
@@ -553,8 +747,8 @@ class DispatchStepsMixin:
             "skillify": "P8_Optimization",
         }
 
-        phase_durations: Dict[str, float] = {}
-        phase_steps: Dict[str, list[str]] = {}
+        phase_durations: dict[str, float] = {}
+        phase_steps: dict[str, list[str]] = {}
         for step_name, duration in step_timings.items():
             phase = step_to_lifecycle.get(step_name, "P10_Delivery")
             phase_durations[phase] = phase_durations.get(phase, 0.0) + duration
@@ -566,6 +760,6 @@ class DispatchStepsMixin:
             "mapping_version": "1.0",
         }
 
-    def _build_summary(self, task: str, roles: List[str], exec_result: Any, sp_summary: str) -> str:
+    def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
         return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)

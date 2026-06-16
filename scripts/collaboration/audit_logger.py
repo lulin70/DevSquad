@@ -28,11 +28,10 @@ import csv
 import hashlib
 import json
 import logging
-import os
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Set
+from typing import Any
 
 
 class AuditRecord:
@@ -60,11 +59,11 @@ class AuditRecord:
         action: str,
         resource_type: str,
         resource_id: str,
-        details: Optional[Dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
         result: str = "success",
-        hash_signature: Optional[str] = None,
+        hash_signature: str | None = None,
     ):
         self.timestamp = timestamp
         self.user_id = user_id
@@ -139,8 +138,8 @@ class SensitiveDataMasker:
     }
 
     def __init__(self):
-        self._patterns: Dict[str, str] = dict(self.DEFAULT_PATTERNS)
-        self._sensitive_keys: Set[str] = {
+        self._patterns: dict[str, str] = dict(self.DEFAULT_PATTERNS)
+        self._sensitive_keys: set[str] = {
             "password", "passwd", "pwd", "secret", "token",
             "api_key", "apikey", "access_token", "auth_token",
             "credit_card", "ssn", "social_security",
@@ -163,7 +162,7 @@ class SensitiveDataMasker:
         """
         self._sensitive_keys.add(key.lower())
 
-    def mask(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def mask(self, data: dict[str, Any]) -> dict[str, Any]:
         """Recursively mask sensitive data in dictionary.
 
         Args:
@@ -172,7 +171,6 @@ class SensitiveDataMasker:
         Returns:
             New dictionary with sensitive values masked
         """
-        import re
 
         masked = {}
         for key, value in data.items():
@@ -297,10 +295,10 @@ class AuditLogger:
         self.retention_days = retention_days
         self.auto_flush_interval = auto_flush_interval
 
-        self._buffer: List[AuditRecord] = []
+        self._buffer: list[AuditRecord] = []
         self._prev_hash: str = ""
         self._lock = threading.Lock()
-        self._current_file_path: Optional[Path] = None
+        self._current_file_path: Path | None = None
         self._record_count_today: int = 0
         self._masker = SensitiveDataMasker()
 
@@ -337,10 +335,10 @@ class AuditLogger:
                         len(records),
                         self._current_file_path.name,
                     )
-            except (OSError, IOError, ValueError, json.JSONDecodeError, KeyError) as e:
+            except (OSError, ValueError, json.JSONDecodeError, KeyError) as e:
                 self.logger.warning("Failed to load state: %s", e)
 
-    def _read_file(self, filepath: Path) -> List[AuditRecord]:
+    def _read_file(self, filepath: Path) -> list[AuditRecord]:
         """Read all records from a log file.
 
         Args:
@@ -356,18 +354,18 @@ class AuditLogger:
 
         try:
             if filepath.suffix == ".csv":
-                with open(filepath, "r", newline="", encoding="utf-8") as f:
+                with open(filepath, newline="", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         row["details"] = json.loads(row.get("details", "{}"))
                         records.append(AuditRecord.from_dict(row))
             else:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, list):
                         for item in data:
                             records.append(AuditRecord.from_dict(item))
-        except (OSError, IOError, ValueError, json.JSONDecodeError, KeyError) as e:
+        except (OSError, ValueError, json.JSONDecodeError, KeyError) as e:
             self.logger.error("Error reading %s: %s", filepath, e)
 
         return records
@@ -378,10 +376,10 @@ class AuditLogger:
         action: str,
         resource_type: str,
         resource_id: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
         result: str = "success",
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
         **kwargs,
     ) -> AuditRecord:
         """Record an audit event.
@@ -467,15 +465,15 @@ class AuditLogger:
 
     def query(
         self,
-        user_id: Optional[str] = None,
-        action: Optional[str] = None,
-        resource_type: Optional[str] = None,
-        start_time: Optional[str] = None,
-        end_time: Optional[str] = None,
-        result: Optional[str] = None,
+        user_id: str | None = None,
+        action: str | None = None,
+        resource_type: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        result: str | None = None,
         limit: int = 1000,
         offset: int = 0,
-    ) -> List[AuditRecord]:
+    ) -> list[AuditRecord]:
         """Query audit logs with flexible filtering.
 
         Supports multiple filter criteria combined with AND logic.
@@ -538,8 +536,8 @@ class AuditLogger:
     def export(
         self,
         output_path: str,
-        format: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None,
+        format: str | None = None,
+        filters: dict[str, Any] | None = None,
     ) -> int:
         """Export audit logs to file for compliance reporting.
 
@@ -592,7 +590,7 @@ class AuditLogger:
         self.logger.info("Exported %d records to %s (%s)", len(records), output_path, fmt)
         return len(records)
 
-    def verify_integrity(self) -> Dict[str, Any]:
+    def verify_integrity(self) -> dict[str, Any]:
         """Verify SHA256 integrity chain of all audit logs.
 
         Checks that each record's hash matches the computed hash based on
@@ -641,7 +639,7 @@ class AuditLogger:
 
         return result
 
-    def _verify_file_integrity(self, filepath: Path) -> Dict[str, Any]:
+    def _verify_file_integrity(self, filepath: Path) -> dict[str, Any]:
         """Verify integrity of a single log file.
 
         Args:
@@ -713,7 +711,7 @@ class AuditLogger:
             self.logger.debug("Flushed %d records to %s", len(self._buffer), filepath)
             self._buffer.clear()
 
-        except (OSError, IOError, ValueError) as e:
+        except (OSError, ValueError) as e:
             self.logger.error("Failed to flush audit buffer: %s", e)
 
     def _flush_to_csv(self, filepath: Path) -> None:
@@ -749,9 +747,9 @@ class AuditLogger:
         existing = []
         if filepath.exists():
             try:
-                with open(filepath, "r", encoding="utf-8") as f:
+                with open(filepath, encoding="utf-8") as f:
                     existing = json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 existing = []
 
         existing.extend([r.to_dict() for r in self._buffer])
@@ -805,12 +803,12 @@ class AuditLogger:
                     filepath.unlink()
                     removed_count += 1
                     self.logger.info("Removed old audit log: %s", filepath.name)
-            except (OSError, IOError, PermissionError) as e:
+            except (OSError, PermissionError) as e:
                 self.logger.warning("Failed to remove %s: %s", filepath, e)
 
         return removed_count
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get logger statistics for monitoring.
 
         Returns:
@@ -848,7 +846,7 @@ class AuditLogger:
         try:
             if self._buffer and self.log_dir.exists():
                 self._flush_buffer()
-        except (OSError, IOError, ValueError, AttributeError):
+        except (OSError, ValueError, AttributeError):
             pass
 
 
@@ -887,7 +885,7 @@ if __name__ == "__main__":
     print(f"\n✓ Exported {count} records to {export_path}")
 
     stats = logger.get_stats()
-    print(f"\n📊 Statistics:")
+    print("\n📊 Statistics:")
     for key, value in stats.items():
         print(f"  {key}: {value}")
 

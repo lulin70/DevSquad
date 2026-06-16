@@ -266,10 +266,7 @@ class RuleExtractor:
                 continue
 
             try:
-                if p["trigger_group"] is not None:
-                    trigger = m.group(p["trigger_group"]).strip()
-                else:
-                    trigger = ""
+                trigger = m.group(p["trigger_group"]).strip() if p["trigger_group"] is not None else ""
                 action = m.group(p["action_group"]).strip()
             except (IndexError, AttributeError):
                 continue
@@ -383,7 +380,7 @@ class LocalRuleStorage:
             os.makedirs(data_dir, exist_ok=True)
             storage_path = os.path.join(data_dir, "rules_local.json")
         else:
-            real = os.path.realpath(storage_path)
+            os.path.realpath(storage_path)
             if not storage_path.endswith(".json") or ".." in storage_path:
                 raise ValueError(f"Invalid storage_path: {storage_path}")
         self.storage_path = storage_path
@@ -433,7 +430,7 @@ class LocalRuleStorage:
                 logger.error("LocalRuleStorage store failed: %s", e)
                 return StoreResult(success=False, message=str(e))
 
-    def list_rules(self, user_id: str = "default") -> list[dict[str, Any]]:
+    def list_rules(self, _user_id: str = "default") -> list[dict[str, Any]]:
         with self._lock:
             data = self._read_data()
             return [{"rule_id": k, **v} for k, v in data.get("rules", {}).items() if v.get("active", True)]
@@ -463,9 +460,8 @@ class LocalRuleStorage:
                     continue
                 if r.get("confidence", 0) < min_confidence:
                     continue
-                if trigger_keywords:
-                    if not any(kw in r.get("trigger", "") or kw in r.get("action", "") for kw in trigger_keywords):
-                        continue
+                if trigger_keywords and not any(kw in r.get("trigger", "") or kw in r.get("action", "") for kw in trigger_keywords):
+                    continue
                 results.append({"rule_id": rid, **r})
             results.sort(key=lambda x: RULE_TYPE_PRIORITY.get(x.get("type", "prefer"), 0), reverse=True)
             return results
@@ -519,7 +515,7 @@ class RuleStorage:
         self._local = LocalRuleStorage()
         self._init_carrymem(carrymem_config)
 
-    def _init_carrymem(self, config):
+    def _init_carrymem(self, _config):
         try:
             from scripts.collaboration.mce_adapter import get_global_mce_adapter
 
@@ -649,7 +645,7 @@ class RuleCollector:
             return ""
         return cleaned
 
-    def _handle_delete(self, text: str, lang: str) -> bool:
+    def _handle_delete(self, text: str, _lang: str) -> bool:
         rule_id_match = re.search(r"(RULE-[\w-]+)", text)
         if rule_id_match:
             return self._storage.delete_rule(rule_id_match.group(1))

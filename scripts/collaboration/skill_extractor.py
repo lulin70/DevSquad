@@ -7,20 +7,19 @@ patterns, skill proposals, and validation results.
 """
 
 import re
-from datetime import datetime
 from typing import Any
 
 from .skillifier import (
-    PGActionType,
+    ExecutionRecord,
+    ExecutionStep,
     PatternStep,
+    PGActionType,
     ProposalStatus,
     SkillCategory,
     SkillProposal,
     SkillStepDef,
     SuccessPattern,
     ValidationResult,
-    ExecutionRecord,
-    ExecutionStep,
 )
 
 
@@ -203,7 +202,7 @@ class SkillExtractor:
                 template_steps.append(ps)
 
         keywords = self._extract_trigger_keywords(rep.task_description, rep.steps)
-        roles = list(set(r.role_id for r in records if r.role_id))
+        roles = list({r.role_id for r in records if r.role_id})
         success_rate = sum(1 for r in records if r.success) / max(len(records), 1)
         confidence = self._calculate_confidence(records, template_steps)
 
@@ -242,10 +241,10 @@ class SkillExtractor:
     def _generalize_target(self, targets: list[str]) -> str:
         if not targets:
             return "*"
-        extensions = set(self._get_extension(t) for t in targets)
-        directories = set(
+        extensions = {self._get_extension(t) for t in targets}
+        directories = {
             "/".join(t.replace("\\", "/").rstrip("/").split("/")[:-1]) for t in targets if "/" in t or "\\" in t
-        )
+        }
 
         if len(extensions) == 1 and list(extensions)[0]:
             ext = list(extensions)[0]
@@ -293,7 +292,7 @@ class SkillExtractor:
         for w in important:
             if w not in stop_words and len(w) >= 4:
                 keywords.add(w)
-        return sorted(list(keywords))[:10]
+        return sorted(keywords)[:10]
 
     def _calculate_confidence(self, records: list[ExecutionRecord], steps: list[PatternStep]) -> float:
         freq_factor = min(1.0, len(records) / 10.0)
@@ -302,7 +301,7 @@ class SkillExtractor:
         if len(records) >= 2:
             lengths = [len(r.steps) for r in records]
             avg_len = sum(lengths) / len(lengths)
-            variance = sum((l - avg_len) ** 2 for l in lengths) / len(lengths)
+            variance = sum((length - avg_len) ** 2 for length in lengths) / len(lengths)
             consistency = max(0.3, 1.0 - variance / (avg_len**2 + 1))
         step_quality = sum(1.0 - ps.estimated_risk for ps in steps) / max(len(steps), 1)
         return freq_factor * 0.3 + success_factor * 0.3 + consistency * 0.2 + step_quality * 0.2

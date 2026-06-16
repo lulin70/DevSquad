@@ -15,7 +15,7 @@ Created: 2026-05-01
 """
 
 from collections.abc import Callable
-from typing import Any, Dict, List, Protocol
+from typing import Any, Protocol
 
 # ============================================================================
 # Cache Architecture (Two-Layer Design)
@@ -259,7 +259,7 @@ class UETestProvider(Protocol):
         """Generate a comprehensive UE test plan."""
         ...
 
-    def validate_user_journey(self, journey: Any, actual_results: Dict[str, Any]) -> Any:
+    def validate_user_journey(self, journey: Any, actual_results: dict[str, Any]) -> Any:
         """Validate actual results against expected journey outcomes."""
         ...
 
@@ -285,11 +285,11 @@ class TechDebtProvider(Protocol):
         """Register a technical debt item."""
         ...
 
-    def scan_codebase_debt(self, project_path: str) -> List[Any]:
+    def scan_codebase_debt(self, project_path: str) -> list[Any]:
         """Scan a project for technical debt patterns."""
         ...
 
-    def prioritize(self) -> List[Any]:
+    def prioritize(self) -> list[Any]:
         """Prioritize debts using composite scoring."""
         ...
 

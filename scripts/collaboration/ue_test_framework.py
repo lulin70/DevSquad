@@ -24,11 +24,12 @@ UETestFramework - UE 测试框架 (Tester + PM 协作)
     print(plan.to_markdown())
 """
 
-import time
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # Data Classes
@@ -141,7 +142,7 @@ class HeuristicCheck:
 
     name: str
     description: str
-    passed: Optional[bool] = None
+    passed: bool | None = None
     evidence: str = ""
     severity: str = ""  # cosmetic/minor/major/critical
 
@@ -287,8 +288,8 @@ class JourneyValidation:
         lines = [
             f"# Journey Validation: {self.journey_name}",
             "",
-            f"| Metric | Value | |",
-            f"|--------|-------|-|",
+            "| Metric | Value | |",
+            "|--------|-------|-|",
             f"| Completion Rate | {self.completion_rate:.0%} | {'PASS' if self.completion_rate >= 0.8 else 'FAIL'} |",
             f"| Error Recovery Rate | {self.error_recovery_rate:.0%} | {'PASS' if self.error_recovery_rate >= 0.7 else 'FAIL'} |",
             f"| Time Budget Adherence | {self.time_budget_adherence:.0%} | {'PASS' if self.time_budget_adherence >= 0.8 else 'FAIL'} |",
@@ -613,7 +614,8 @@ class UETestFramework:
             prompt = self._build_usability_prompt(interface_description)
             response = self.llm_backend.generate(prompt)
             return self._parse_llm_usability_response(response)
-        except Exception:
+        except Exception as e:
+            logger.debug("LLM usability assessment failed, falling back to rule-based: %s", e)
             return self._assess_rule_based(interface_description)
 
     def _build_usability_prompt(self, description: str) -> str:

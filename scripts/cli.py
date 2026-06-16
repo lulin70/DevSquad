@@ -16,10 +16,6 @@ import logging
 import os
 import sys
 
-if sys.version_info < (3, 9):
-    print("Error: DevSquad requires Python 3.9+. Current: %s" % sys.version, file=sys.stderr)
-    sys.exit(1)
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -402,7 +398,7 @@ def cmd_init(args):
         "4": ("ja", "日本語 (Japanese)"),
     }
     print("   Output language:")
-    for key, (code, desc) in lang_options.items():
+    for key, (_code, desc) in lang_options.items():
         print(f"   {key}) {desc}")
 
     lang_choice = _prompt_choice("Select language [1-4]", list(lang_options.keys()), default="1")
@@ -813,7 +809,7 @@ def cmd_lifecycle(args):
             _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "cli"))
 
             try:
-                from cli_visual import Colors, Icons, VisualFormatter, get_visual_formatter
+                from cli_visual import Colors, Icons, get_visual_formatter
 
                 vf = get_visual_formatter(use_color=True)
 

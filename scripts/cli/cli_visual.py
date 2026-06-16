@@ -107,10 +107,7 @@ class ProgressBar:
 
     def render(self, current: int) -> str:
         """Render progress bar at given position."""
-        if self.total == 0:
-            percent = 100
-        else:
-            percent = int(current / self.total * 100)
+        percent = 100 if self.total == 0 else int(current / self.total * 100)
 
         filled = int(self.width * current / self.total)
         bar = self.fill_char * filled + self.empty_char * (self.width - filled)
@@ -330,7 +327,7 @@ class VisualFormatter:
             print()
             return
 
-        passed = getattr(gate_result, "passed", False)
+        getattr(gate_result, "passed", False)
         verdict = getattr(gate_result, "verdict", "UNKNOWN")
         checks_run = getattr(gate_result, "checks_run", 0)
         checks_passed = getattr(gate_result, "checks_passed", 0)
@@ -440,7 +437,7 @@ class VisualFormatter:
         print()
 
         # Phase counts
-        total_phases = len(completed) + len(failed) + len(blocked)
+        len(completed) + len(failed) + len(blocked)
         print(f"  {Icons.CHART} Phase Statistics:")
         print(f"    {Icons.CHECK} Completed: {self._c(str(len(completed)), Colors.GREEN)}")
         print(f"    {Icons.CROSS} Failed: {self._c(str(len(failed)), Colors.RED)}")

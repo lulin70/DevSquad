@@ -125,7 +125,8 @@ def _get_cpu_percent() -> float:
         return 0.0
     try:
         return psutil.Process().cpu_percent()
-    except Exception:
+    except Exception as e:
+        logger.debug("cpu_percent read failed: %s", e)
         return 0.0
 
 
@@ -135,7 +136,8 @@ def _get_memory_mb() -> float:
         return 0.0
     try:
         return psutil.Process().memory_info().rss / 1024 / 1024
-    except Exception:
+    except Exception as e:
+        logger.debug("memory_info read failed: %s", e)
         return 0.0
 
 
@@ -329,7 +331,7 @@ class PerformanceMonitor:
         backend: str,
         model: str,
         duration: float,
-        token_count: int,
+        token_count: int,  # noqa: ARG002
         success: bool,
         metadata: dict[str, Any] | None = None,
     ) -> None:
@@ -350,7 +352,7 @@ class PerformanceMonitor:
         self.record_metric(metric)
 
     def record_agent_execution(
-        self, agent_role: str, task: str, duration: float, success: bool, metadata: dict[str, Any] | None = None
+        self, agent_role: str, task: str, duration: float, success: bool, metadata: dict[str, Any] | None = None  # noqa: ARG002
     ) -> None:
         """Record an agent execution (implements MonitorProvider Protocol)."""
         metric_name = f"agent:{agent_role}"
@@ -377,7 +379,7 @@ class PerformanceMonitor:
             logger.info("Performance report generated: %s", output_path)
         except Exception as e:
             logger.error("Failed to generate report: %s", e)
-            raise OSError(f"Failed to generate report: {e}")
+            raise OSError(f"Failed to generate report: {e}") from e
 
     def is_available(self) -> bool:
         """Check if monitoring is available (implements MonitorProvider Protocol)."""

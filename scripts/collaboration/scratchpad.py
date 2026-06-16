@@ -16,7 +16,7 @@ import os
 import threading
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +196,7 @@ class Scratchpad:
             status=EntryStatus.ACTIVE,
         )
 
-    def get_summary(self, for_role: str | None = None, max_entries: int = 20) -> str:
+    def get_summary(self, _for_role: str | None = None, max_entries: int = 20) -> str:
         """
         生成黑板全局摘要（Markdown格式）
 
@@ -267,9 +267,9 @@ class Scratchpad:
                 - max_entries: 容量上限
         """
         with self._lock:
-            by_type: Dict[str, int] = {}
-            by_status: Dict[str, int] = {}
-            by_worker: Dict[str, int] = {}
+            by_type: dict[str, int] = {}
+            by_status: dict[str, int] = {}
+            by_worker: dict[str, int] = {}
             for e in self._entries.values():
                 by_type[e.entry_type.value] = by_type.get(e.entry_type.value, 0) + 1
                 by_status[e.status.value] = by_status.get(e.status.value, 0) + 1
@@ -286,7 +286,7 @@ class Scratchpad:
             }
 
     def _evict_oldest(self, count: int = 1) -> None:
-        to_evict: List[tuple] = []
+        to_evict: list[tuple] = []
         for eid, entry in self._entries.items():
             if entry.status == EntryStatus.RESOLVED:
                 to_evict.append((eid, entry.timestamp))

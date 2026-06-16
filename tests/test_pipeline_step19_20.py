@@ -76,7 +76,7 @@ class TestStep20TechDebtScan:
         with tempfile.TemporaryDirectory() as tmpdir:
             disp = MultiAgentDispatcher(persist_dir=tmpdir)
             manager = TechDebtManager(persist_dir=tmpdir)
-            disp._extract_test_debts(manager, "There are missing tests for the auth module", "auth module")
+            disp.post_dispatch._extract_test_debts(manager, "There are missing tests for the auth module", "auth module")
             report = manager.get_debt_report()
             assert report.total_debts >= 1
             assert DebtCategory.TEST_GAP.value in report.by_category
@@ -89,7 +89,7 @@ class TestStep20TechDebtScan:
         with tempfile.TemporaryDirectory() as tmpdir:
             disp = MultiAgentDispatcher(persist_dir=tmpdir)
             manager = TechDebtManager(persist_dir=tmpdir)
-            disp._extract_arch_debts(manager, "Found circular dependency between modules", "module review")
+            disp.post_dispatch._extract_arch_debts(manager, "Found circular dependency between modules", "module review")
             report = manager.get_debt_report()
             assert report.total_debts >= 1
             assert DebtCategory.ARCHITECTURE.value in report.by_category
@@ -102,7 +102,7 @@ class TestStep20TechDebtScan:
         with tempfile.TemporaryDirectory() as tmpdir:
             disp = MultiAgentDispatcher(persist_dir=tmpdir)
             manager = TechDebtManager(persist_dir=tmpdir)
-            disp._extract_arch_debts(manager, "This is a god class that handles everything", "class review")
+            disp.post_dispatch._extract_arch_debts(manager, "This is a god class that handles everything", "class review")
             report = manager.get_debt_report()
             assert report.total_debts >= 1
             disp.shutdown()

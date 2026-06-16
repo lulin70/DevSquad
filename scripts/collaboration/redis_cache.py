@@ -26,12 +26,10 @@ Usage:
 """
 
 import asyncio
-import gzip
-import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from .cache_interface import CacheBackendInterface, CacheStats, Serializer
 
@@ -71,7 +69,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
     def __init__(
         self,
-        redis_url: Optional[str] = None,
+        redis_url: str | None = None,
         prefix: str = "devsquad:",
         default_ttl: int = 3600,
         max_connections: int = 10,
@@ -113,7 +111,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
         # Statistics
         self._stats = CacheStats()
-        self._latencies: List[float] = []
+        self._latencies: list[float] = []
 
         logger.info(
             f"RedisCacheBackend initialized: url={self.redis_url}, "
@@ -144,7 +142,7 @@ class RedisCacheBackend(CacheBackendInterface):
         except ImportError:
             raise ImportError(
                 "redis package required. Install with: pip install redis[asyncio]"
-            )
+            ) from None
 
         try:
             self._pool = aioredis.ConnectionPool.from_url(
@@ -163,7 +161,7 @@ class RedisCacheBackend(CacheBackendInterface):
         except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
             self._connected = False
             logger.error(f"Failed to connect to Redis: {e}")
-            raise RedisConnectionError(f"Cannot connect to Redis: {e}")
+            raise RedisConnectionError(f"Cannot connect to Redis: {e}") from e
 
     async def _execute_with_retry(self, operation_name: str, operation_func, *args, **kwargs):
         """
@@ -233,7 +231,7 @@ class RedisCacheBackend(CacheBackendInterface):
         client = await self._get_client()
         return client
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """
         Get value from Redis with decompression if needed.
 
@@ -269,7 +267,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
         return result
 
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         Set value in Redis with compression if enabled.
 
@@ -352,7 +350,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
         await self._execute_with_retry("CLEAR", _do_clear)
 
-    async def mget(self, keys: List[str]) -> List[Optional[Any]]:
+    async def mget(self, keys: list[str]) -> list[Any | None]:
         """
         Batch get using pipeline for performance.
 
@@ -397,7 +395,7 @@ class RedisCacheBackend(CacheBackendInterface):
         result = await self._execute_with_retry("MGET", _do_mget)
         return result if result is not None else [None] * len(keys)
 
-    async def mset(self, mapping: Dict[str, Any], ttl: Optional[int] = None) -> bool:
+    async def mset(self, mapping: dict[str, Any], ttl: int | None = None) -> bool:
         """
         Batch set using pipeline for performance.
 
@@ -442,7 +440,7 @@ class RedisCacheBackend(CacheBackendInterface):
         result = await self._execute_with_retry("MSET", _do_mset)
         return result if result is not None else False
 
-    async def stats(self) -> Dict[str, Any]:
+    async def stats(self) -> dict[str, Any]:
         """
         Get comprehensive cache statistics.
 
@@ -505,7 +503,7 @@ class RedisCacheBackend(CacheBackendInterface):
             self._connected = False
             logger.info("Redis connection closed")
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Perform health check on Redis connection.
 
@@ -551,7 +549,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
         return health
 
-    async def scan_keys(self, pattern: str = "*") -> List[str]:
+    async def scan_keys(self, pattern: str = "*") -> list[str]:
         """
         Scan keys matching pattern (with prefix).
 
@@ -628,7 +626,7 @@ class SyncRedisCacheWrapper:
         try:
             import asyncio
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # We're inside an existing event loop - use thread
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
@@ -638,7 +636,7 @@ class SyncRedisCacheWrapper:
                 return asyncio.run(coro)
         except (RuntimeError, ConnectionError, OSError) as e:
             import logging
-            logging.getLogger(__name__).debug("Redis cache operation failed: %s", e
+            logging.getLogger(__name__).debug("Redis cache operation failed: %s", e)
             return None
 
     def get(self, key: str):

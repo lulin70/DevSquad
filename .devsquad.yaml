@@ -1,8 +1,10 @@
 # DevSquad Configuration
 # =====================
-# 
-# This file controls DevSquad's behavior including quality control,
-# security settings, and collaboration rules.
+#
+# This file controls DevSquad's behavior.
+# - ConfigManager reads flat keys (backend, timeout, etc.)
+# - PromptAssembler reads the quality_control section
+# - Environment variables (DEVSQUAD_*) take precedence over flat keys.
 #
 # Location: Project root directory (same level as setup.py)
 # Format: YAML (human-readable, easy to edit)
@@ -11,71 +13,47 @@
 # No code changes required for most adjustments.
 #
 
-# ===== Quality Control System (from ai-quality-control Skill) =====
+# ===== Quality Control System =====
+# Read by PromptAssembler for QC rule injection into worker prompts
 quality_control:
-  # Master switch: Enable/disable all quality control features
   enabled: true
-  
-  # Strict mode: If true, low-quality outputs are REJECTED
-  # If false, low-quality outputs are WARNED but still accepted
   strict_mode: true
-  
-  # Minimum acceptable score (0-100 scale)
-  # Outputs below this score will be rejected (if strict_mode=true)
   min_quality_score: 85
 
-  # ----- AI Quality Control Subsystem -----
   ai_quality_control:
     enabled: true
-    
-    # Hallucination Detection
     hallucination_check:
       enabled: true
-      require_traceable_references: true   # All API/lib refs must have URLs
-      require_signature_verification: true   # Must verify function signatures
-      forbid_absolute_certainty: true      # No "obviously/clearly" language
-    
-    # Overconfidence Check
+      require_traceable_references: true
+      require_signature_verification: true
+      forbid_absolute_certainty: true
     overconfidence_check:
       enabled: true
-      require_alternatives_min: 2           # Must provide ≥2 options
-      require_failure_scenarios_min: 3       # Must list ≥3 failure modes
-      acknowledge_tradeoffs: true            # Must discuss limitations
-    
-    # Pattern Rigidity Prevention
+      require_alternatives_min: 2
+      require_failure_scenarios_min: 3
+      acknowledge_tradeoffs: true
     pattern_diversity:
       enabled: true
-      check_frequency_every_n_dispatches: 10  # Check diversity every N tasks
-      warn_on_overused_patterns: true         # Flag repeated solutions
-    
-    # Self-Verification Trap Prevention
+      check_frequency_every_n_dispatches: 10
+      warn_on_overused_patterns: true
     self_verification_prevention:
       enabled: true
-      enforce_creator_tester_separation: true  # Coder ≠ Tester
-      require_spec_based_testing: true        # Tests from spec, not impl
-      min_error_coverage_percent: 15          # Error cases ≥15%
+      enforce_creator_tester_separation: true
+      require_spec_based_testing: true
+      min_error_coverage_percent: 15
 
-  # ----- AI Security Guard Subsystem -----
   ai_security_guard:
     enabled: true
-    
-    # PermissionGuard Level (L1=PLAN / L2=DEFAULT / L3=AUTO / L4=BYPASS)
     permission_level: "DEFAULT"
-    
-    # Input Validation (16 patterns)
     input_validation:
       enabled: true
-      block_high_severity: true     # SQL/Command/XSS/SSRF/Path → BLOCK
-      warn_and_sanitize_medium: true  # LDAP/XPath/Log/Header/Email → Sanitize
-      flag_low_severity: true       # Template/ReDoS/Format/XXE/Deserialize → Warn
-    
-    # Security Review Workflow
+      block_high_severity: true
+      warn_and_sanitize_medium: true
+      flag_low_severity: true
     security_review:
-      auto_trigger_when_security_role: true  # Auto-run when Security in roles
-      veto_enabled: true                     # Allow Security to veto
-      block_on_critical_finding: true        # Stop if CRITICAL issue found
-    
-    # Audit Logging
+      auto_trigger_when_security_role: true
+      veto_enabled: true
+      block_on_critical_finding: true
     audit_logging:
       enabled: true
       log_operations: true
@@ -83,33 +61,21 @@ quality_control:
       log_network_requests: true
       retention_days: 90
 
-  # ----- AI Team Collaboration Subsystem -----
   ai_team_collaboration:
     enabled: true
-    
-    # RACI Mode
     raci:
-      mode: "strict"  # strict | relaxed
-      enforce_one_responsible: true   # Only one R per task
-      enforce_one_accountable: true   # Only one A per task
-      allow_a_override_r: true          # Accountable can override Responsible
-    
-    # Scratchpad Protocol
+      mode: "strict"
+      enforce_one_responsible: true
+      enforce_one_accountable: true
+      allow_a_override_r: true
     scratchpad:
-      protocol: "zoned"  # zoned | free
-      zones:
-        - readonly:   # Other roles' outputs (read-only)
-        - write:     # Your own output only
-        - shared:    # Consensus-approved conclusions (requires vote)
-        - private:   # Sensitive data (invisible to others)
+      protocol: "zoned"
       forbid_cross_zone_writes: true
-      forbid_sensitive_in_shared: true  # No passwords/keys in SHARED zone
-    
-    # Consensus Mechanism
+      forbid_sensitive_in_shared: true
     consensus:
       enabled: true
-      threshold: 0.7                    # 70% agreement to pass
-      weights:                          # Role voting weights
+      threshold: 0.7
+      weights:
         architect: 3.0
         security: 2.5
         product-manager: 2.0
@@ -119,160 +85,40 @@ quality_control:
         ui-designer: 1.0
       veto_enabled: true
       veto_allowed_roles:
-        - security    # Can veto on security grounds
-        - architect   # Can veto on architecture principles
-      escalation_policy: "auto"  # auto | manual (deadlock handling)
-      escalation_timeout_seconds: 300  # 5 minutes before escalate to user
-    
-    # Parallel Execution Safety
+        - security
+        - architect
+      escalation_policy: "auto"
+      escalation_timeout_seconds: 300
     parallel_execution:
       require_file_ownership_declaration: true
-      forbid_same_file_writes: true        # Two roles can't modify same file
-      communication_channels:
-        - feedback_channel: true    # For questions/issues
-        - status_channel: true      # For progress updates
+      forbid_same_file_writes: true
 
-# ===== LLM Backend Configuration =====
-llm:
-  backend: "openai"
-  base_url: ""  # Set via LLM_BASE_URL env var, e.g. https://api.openai.com/v1
-  model: ""     # Set via LLM_MODEL env var, e.g. gpt-4
-  timeout: 120
+# ===== LLM Backend (ConfigManager reads these flat keys) =====
+backend: "mock"
+base_url: ""
+model: ""
+timeout: 120
 
-# ===== Cache Configuration =====
-cache:
-  enabled: true
-  ttl_seconds: 86400
-  max_entries: 1000
-  disk_cache: true
+# ===== Task Limits =====
+max_roles: 10
+max_task_length: 10000
+min_task_length: 5
 
-# ===== Retry Configuration =====
-retry:
-  max_retries: 3
-  base_delay: 1.0
-  max_delay: 30.0
-  jitter: true
+# ===== Validation =====
+strict_validation: false
+output_format: "structured"
 
-# ===== Circuit Breaker Configuration =====
-circuit_breaker:
-  failure_threshold: 5
-  recovery_timeout: 60
+# ===== Checkpoint =====
+checkpoint_enabled: true
+checkpoint_dir: "./checkpoints"
 
-# ===== Memory Bridge Configuration =====
-memory_bridge:
-  enabled: true
-  types:
-    - knowledge
-    - episodic
-    - semantic
-    - feedback
-    - pattern
-    - analysis
-    - correction
-  forgetting_curve:
-    days_7: 1.0
-    days_30: 0.8
-    days_60: 0.5
-    days_90: 0.3
+# ===== Workflow =====
+workflow_enabled: false
+workflow_dir: "./workflows"
 
-# ===== Context Compression Configuration =====
-context_compression:
-  enabled: true
-  thresholds:
-    level_0_none_max_tokens: 4000
-    level_1_snip_max_tokens: 8000
-    level_2_session_memory_max_tokens: 16000
-    level_3_full_compact_min_tokens: 16001
+# ===== Cache =====
+cache_enabled: true
+cache_dir: "./data/llm_cache"
 
-# ===== Warmup Manager Configuration =====
-warmup:
-  enabled: true
-  eager_preload: true
-  async_background: true
-  lazy_on_demand: true
-
-# ===== Skill Learning Configuration =====
-skillify:
-  enabled: true
-  auto_extract_patterns: true
-  min_success_streak: 3
-  confidence_threshold: 0.8
-  testing_scenarios_count: 3
-  experimental_to_stable_usage_count: 10
-
-# ===== Prompt Variant Generator Configuration =====
-variant_generator:
-  enabled: true
-  ab_test_frequency_every_n_dispatches: 10
-  promote_after_n_consecutive_wins: 3
-  deprecate_after_n_consecutive_losses: 3
-
-# ===== Checkpoint Manager Configuration =====
-checkpoint:
-  enabled: true
-  integrity_algorithm: "SHA256"
-  auto_create_on_dispatch_start: true
-  auto_cleanup_expired_days: 7
-  max_checkpoints_per_task: 20
-
-# ===== CarryMem Personal Rules Integration (P2 Enhancement) =====
-carrymem_integration:
-  # Master switch for P2 personalization
-  enabled: true
-  
-  # Rule query strategy: "pre_task" | "on_demand" | "batch"
-  # - pre_task: Query before each agent execution (most accurate)
-  # - on_demand: Only query when task matches specific keywords (saves API calls)
-  # - batch: Coordinator queries once, distributes to all agents (fastest)
-  query_strategy: "pre_task"
-  
-  # Maximum rules per agent (prevents prompt bloat)
-  max_rules_per_agent: 5
-  
-  # Rule type priority (higher priority = matched first)
-  rule_type_priority:
-    - forbid          # Prohibition rules most important
-    - avoid           # Avoidance rules second
-    - always          # Always-do rules third
-    - preference      # Preference rules last
-  
-  # Conflict resolution: "first_wins" | "strictest" | "ask_user"
-  conflict_resolution: "strictest"
-  
-  # Inject rules into prompt (true) or use as reference only (false)
-  inject_to_prompt: true
-  
-  # Injection format: "inline" | "section" | "appendix"
-  # - inline: Merge into existing QC rule paragraphs
-  # - section: Dedicated "Personal Experience Rules" section
-  # - appendix: Add at end of prompt as appendix
-  injection_format: "section"
-  
-  # Experience logging (learn from task outcomes)
-  experience_logging:
-    enabled: true
-    auto_log_on_completion: true
-    log_success_outcomes: true       # Log successful completions
-    log_failures: true              # Log failures for learning
-    
-  # Relevance filtering
-  relevance_threshold: 0.3           # Minimum relevance score to include a rule
-
-# ===== Enhanced Worker Configuration (V3.7.0 Features) =====
-enhanced_worker:
-  enabled: true
-  
-  # Enable AgentBriefing compression (P1)
-  briefing_enabled: true
-  
-  # Enable confidence scoring (P3)
-  confidence_scoring_enabled: true
-  
-  # Memory integration settings
-  memory_integration:
-    enabled: true
-    max_rules_per_agent: 5
-    forbid_check_enabled: true     # Check for forbid rule violations
-    
-  # Performance optimization
-  config_caching: true             # Cache configuration to reduce I/O
+# ===== Logging =====
+log_level: "WARNING"

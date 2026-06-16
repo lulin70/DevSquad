@@ -3,7 +3,7 @@
 <p align="center">
   <strong>选择最适合你的 AI Agent 编排方案</strong>
   <br>
-  <em>Last updated: 2026-05-23 | Framework versions: DevSquad V3.6.7, AutoGen V0.4, CrewAI V0.80, LangGraph V0.2</em>
+  <em>Last updated: 2026-05-23 | Framework versions: DevSquad V3.7.0, AutoGen V0.4, CrewAI V0.80, LangGraph V0.2</em>
 </p>
 
 ---
@@ -288,7 +288,7 @@ graph.invoke({"messages": []})
 | 能力 | DevSquad | AutoGen | CrewAI | LangGraph |
 |------|:--------:|:-------:|:------:|:---------:|
 | **预定义角色** | ✅ 7 个专业角色 | ❌ 自定义 | ✅ 角色模板 | ❌ 节点 |
-| **自定义角色** | ✅ RoleTemplateMarket | ✅ 可编程 | ✅ 自定义 Agent | ✅ 自定义 Node |
+| **自定义角色** | ✅ *(Removed in V3.7.0)* | ✅ 可编程 | ✅ 自定义 Agent | ✅ 自定义 Node |
 | **角色权重** | ✅ 加权投票 | ❌ 无 | ❌ 无 | ❌ 无 |
 | **动态角色选择** | ✅ AdaptiveRoleSelector | ❌ 手动 | ❌ 手动 | ✅ 条件路由 |
 | **角色技能** | ✅ Sub-Skill 架构 | ✅ Tools | ✅ Tools | ✅ Tools |
@@ -489,12 +489,12 @@ workflow.add_conditional_edges("start", check_amount)
 
 | 维度 | DevSquad | AutoGen | CrewAI | LangGraph |
 |------|:--------:|:-------:|:------:|:---------:|
-| **版本号** | V3.6.7 | V0.4.x | V0.80.x | V0.2.x |
+| **版本号** | V3.7.0 | V0.4.x | V0.80.x | V0.2.x |
 | **Stars** | Growing | 30k+ | 18k+ | 8k+ |
 | **维护者** | Community | Microsoft | João Moura | LangChain |
 | **发布频率** | Active | Active | Very Active | Active |
 | **文档质量** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **测试覆盖** | 1989 tests (65%) | Good | Basic | Good |
+| **测试覆盖** | 2109 tests | Good | Basic | Good |
 | **企业采用** | Emerging | Growing | Growing | Rapidly Growing |
 | **生产就绪** | ✅ Enterprise | ⚠️ Beta | ⚠️ Beta | ✅ Production |
 
@@ -586,7 +586,7 @@ def devsquad_node(state: State):
 ### 对比基准
 
 - **测试日期**: 2026-05-23
-- **框架版本**: DevSquad V3.6.7, AutoGen V0.4.0, CrewAI V0.80.0, LangGraph V0.2.0
+- **框架版本**: DevSquad V3.7.0, AutoGen V0.4.0, CrewAI V0.80.0, LangGraph V0.2.0
 - **评估维度**: 功能完整性、易用性、性能、企业特性、生态系统
 - **主观评分**: 基于实际使用经验和社区反馈
 
@@ -596,6 +596,7 @@ def devsquad_node(state: State):
 
 | 日期 | 版本 | 变更说明 |
 |------|------|---------|
+| 2026-06-15 | V1.1 | 更新至 DevSquad V3.7.0，标记 RoleTemplateMarket 为 Removed |
 | 2026-05-23 | V1.0 | 初始版本，对比 DevSquad V3.6.7 与主流框架 |
 
 ---

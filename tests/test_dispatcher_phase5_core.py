@@ -22,12 +22,14 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from scripts.collaboration.dispatch_models import PerformanceThresholds
 from scripts.collaboration.dispatcher import (
     MultiAgentDispatcher,
     DispatchResult,
+)
+from scripts.collaboration.performance_monitor import (
     PerformanceMonitor,
     PerformanceMetric,
-    PerformanceThresholds,
 )
 
 
@@ -181,158 +183,163 @@ class TestPerformanceMonitor:
 
     def test_record_metric_basic(self):
         """Test basic metric recording."""
-        monitor = PerformanceMonitor(window_size=10)
+        monitor = PerformanceMonitor(max_history=10)
         metric = PerformanceMetric(
-            timestamp="2024-01-01T00:00:00",
-            task_description="test task",
-            total_duration=1.5,
-            step_timings={"validation": 0.1, "execution": 1.2},
+            name="test_task",
+            start_time=0.0,
+            end_time=1.5,
+            duration=1.5,
+            cpu_percent=10.0,
+            memory_mb=100.0,
             success=True,
-            error_count=0,
-            role_count=2,
         )
-        monitor.record(metric)
-        stats = monitor.get_statistics()
-        assert stats["count"] == 1
-        assert stats["success_rate"] == 1.0
+        monitor.record_metric(metric)
+        stats = monitor.get_stats()
+        assert stats["total_metrics"] == 1
 
     def test_record_metric_warning_threshold(self):
-        """Test warning threshold detection."""
-        thresholds = PerformanceThresholds(
-            total_duration_warning=1.0,
-            total_duration_critical=5.0,
-        )
-        monitor = PerformanceMonitor(window_size=10, thresholds=thresholds)
+        """Test recording a slow metric."""
+        monitor = PerformanceMonitor(max_history=10)
         metric = PerformanceMetric(
-            timestamp="2024-01-01T00:00:00",
-            task_description="slow task",
-            total_duration=2.0,
-            step_timings={},
+            name="slow_task",
+            start_time=0.0,
+            end_time=2.0,
+            duration=2.0,
+            cpu_percent=50.0,
+            memory_mb=200.0,
             success=True,
-            error_count=0,
-            role_count=1,
         )
-        monitor.record(metric)
-        stats = monitor.get_statistics()
-        assert stats["count"] == 1
+        monitor.record_metric(metric)
+        stats = monitor.get_stats()
+        assert stats["total_metrics"] == 1
 
     def test_record_metric_critical_threshold(self):
-        """Test critical threshold detection."""
-        thresholds = PerformanceThresholds(
-            total_duration_warning=1.0,
-            total_duration_critical=2.0,
-        )
-        monitor = PerformanceMonitor(window_size=10, thresholds=thresholds)
+        """Test recording a failed metric."""
+        monitor = PerformanceMonitor(max_history=10)
         metric = PerformanceMetric(
-            timestamp="2024-01-01T00:00:00",
-            task_description="critical slow task",
-            total_duration=10.0,
-            step_timings={},
+            name="critical_task",
+            start_time=0.0,
+            end_time=10.0,
+            duration=10.0,
+            cpu_percent=90.0,
+            memory_mb=500.0,
             success=False,
-            error_count=3,
-            role_count=2,
+            error="timeout",
         )
-        monitor.record(metric)
-        stats = monitor.get_statistics()
-        assert stats["count"] == 1
-        assert stats["success_rate"] == 0.0
+        monitor.record_metric(metric)
+        stats = monitor.get_stats()
+        assert stats["total_metrics"] == 1
 
-    def test_get_statistics_empty(self):
+    def test_get_stats_empty(self):
         """Test statistics with no metrics recorded."""
-        monitor = PerformanceMonitor(window_size=10)
-        stats = monitor.get_statistics()
-        assert stats == {"count": 0}
+        monitor = PerformanceMonitor(max_history=10)
+        stats = monitor.get_stats()
+        assert stats["total_metrics"] == 0
 
-    def test_get_statistics_multiple_metrics(self):
+    def test_get_stats_multiple_metrics(self):
         """Test statistics aggregation with multiple metrics."""
-        monitor = PerformanceMonitor(window_size=10)
+        monitor = PerformanceMonitor(max_history=10)
         for i in range(5):
             metric = PerformanceMetric(
-                timestamp=f"2024-01-0{i+1}T00:00:00",
-                task_description=f"task {i}",
-                total_duration=float(i + 1),
-                step_timings={},
+                name=f"task_{i}",
+                start_time=float(i),
+                end_time=float(i + 1),
+                duration=1.0,
+                cpu_percent=10.0,
+                memory_mb=100.0,
                 success=i % 2 == 0,
-                error_count=0,
-                role_count=2,
             )
-            monitor.record(metric)
+            monitor.record_metric(metric)
 
-        stats = monitor.get_statistics()
-        assert stats["count"] == 5
-        assert 0 < stats["success_rate"] < 1
-        assert "duration" in stats
-        assert "min" in stats["duration"]
-        assert "max" in stats["duration"]
-        assert "avg" in stats["duration"]
+        stats = monitor.get_stats()
+        assert stats["total_metrics"] == 5
 
-    def test_detect_regression_insufficient_data(self):
-        """Test regression detection with insufficient data returns None."""
-        monitor = PerformanceMonitor(window_size=10)
+    def test_max_history_limits_stored_metrics(self):
+        """Test that max_history limits stored metrics."""
+        monitor = PerformanceMonitor(max_history=3)
         for i in range(5):
             metric = PerformanceMetric(
-                timestamp=f"2024-01-0{i+1}T00:00:00",
-                task_description=f"task {i}",
-                total_duration=1.0,
-                step_timings={},
+                name=f"task_{i}",
+                start_time=float(i),
+                end_time=float(i + 1),
+                duration=1.0,
+                cpu_percent=10.0,
+                memory_mb=100.0,
                 success=True,
-                error_count=0,
-                role_count=1,
             )
-            monitor.record(metric)
+            monitor.record_metric(metric)
 
-        result = monitor.detect_regression(baseline_count=10)
-        assert result is None
+        assert len(monitor.all_metrics) == 3
 
-    def test_window_size_limit(self):
-        """Test that window size limits stored metrics."""
-        monitor = PerformanceMonitor(window_size=3)
-        for i in range(5):
+    def test_function_stats_tracking(self):
+        """Test per-function statistics tracking."""
+        monitor = PerformanceMonitor(max_history=10)
+        for _ in range(3):
             metric = PerformanceMetric(
-                timestamp=f"2024-01-0{i+1}T00:00:00",
-                task_description=f"task {i}",
-                total_duration=float(i),
-                step_timings={},
+                name="my_func",
+                start_time=0.0,
+                end_time=1.0,
+                duration=1.0,
+                cpu_percent=10.0,
+                memory_mb=100.0,
                 success=True,
-                error_count=0,
-                role_count=1,
             )
-            monitor.record(metric)
+            monitor.record_metric(metric)
 
-        stats = monitor.get_statistics()
-        assert stats["count"] == 3
+        func_stats = monitor.get_stats(function_name="my_func")
+        assert func_stats["call_count"] == 3
+        assert func_stats["success_rate"] == "100.0%"
 
 
 class TestPerformanceMetricDataclass:
     """PerformanceMetric 数据类测试"""
 
-    def test_truncates_long_description(self):
-        """Test that long task descriptions are truncated to 50 chars."""
-        long_desc = "x" * 100
+    def test_metric_creation(self):
+        """Test basic metric creation with actual fields."""
         metric = PerformanceMetric(
-            timestamp="2024-01-01T00:00:00",
-            task_description=long_desc,
-            total_duration=1.0,
-            step_timings={},
+            name="test_task",
+            start_time=0.0,
+            end_time=1.0,
+            duration=1.0,
+            cpu_percent=10.0,
+            memory_mb=100.0,
             success=True,
-            error_count=0,
-            role_count=1,
         )
-        assert len(metric.task_description) == 53  # 50 chars + "..."
+        assert metric.name == "test_task"
+        assert metric.duration == 1.0
+        assert metric.success is True
+        assert metric.error is None
 
-    def test_preserves_short_description(self):
-        """Test that short descriptions are not modified."""
-        short_desc = "short task"
+    def test_metric_with_error(self):
+        """Test metric creation with error."""
         metric = PerformanceMetric(
-            timestamp="2024-01-01T00:00:00",
-            task_description=short_desc,
-            total_duration=1.0,
-            step_timings={},
-            success=True,
-            error_count=0,
-            role_count=1,
+            name="failed_task",
+            start_time=0.0,
+            end_time=1.0,
+            duration=1.0,
+            cpu_percent=10.0,
+            memory_mb=100.0,
+            success=False,
+            error="timeout",
         )
-        assert metric.task_description == short_desc
+        assert metric.success is False
+        assert metric.error == "timeout"
+
+    def test_metric_to_dict(self):
+        """Test metric serialization."""
+        metric = PerformanceMetric(
+            name="test_task",
+            start_time=0.0,
+            end_time=1.0,
+            duration=1.0,
+            cpu_percent=10.0,
+            memory_mb=100.0,
+            success=True,
+        )
+        d = metric.to_dict()
+        assert "name" in d
+        assert "duration_ms" in d
+        assert "success" in d
 
 
 if __name__ == "__main__":

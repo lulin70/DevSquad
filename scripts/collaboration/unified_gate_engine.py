@@ -315,7 +315,7 @@ class UnifiedGateEngine:
     def _check_phase_transition(
         self,
         context: PhaseGateContext,
-        **kwargs,
+        **_kwargs,
     ) -> UnifiedGateResult:
         """
         Check phase transition gate conditions.
@@ -337,7 +337,7 @@ class UnifiedGateEngine:
         if context.dependencies_met:
             checks_passed += 1
         else:
-            missing_deps = [d for d in getattr(context, "unmet_dependencies", [])]
+            missing_deps = list(getattr(context, "unmet_dependencies", []))
             if missing_deps:
                 critical_issues.append(
                     {
@@ -412,7 +412,7 @@ class UnifiedGateEngine:
     def _check_worker_output(
         self,
         context: WorkerOutputContext,
-        **kwargs,
+        **_kwargs,
     ) -> UnifiedGateResult:
         """
         Check worker output quality using VerificationGate logic.

@@ -1,6 +1,6 @@
 # DevSquad 使用指南
 
-> **版本**: V3.6.6 (Enterprise Edition) | **更新日期**: 2026-05-23**
+> **版本**: V3.7.0 (Enterprise Edition) | **更新日期**: 2026-06-15**
 >
 > 本文档是 DevSquad 的完整功能手册，覆盖所有用户可感知的功能。
 
@@ -1016,39 +1016,13 @@ role_enhancements:
 
 系统会自动发现并加载新的增强包，无需修改任何代码。
 
-## 13. 角色模板市场
+## 13. 角色模板市场 *(已移除)*
 
-> **适用场景**：团队自定义了专用的角色提示词（如"专注于OWASP Top 10的安全审计员"、"熟悉HIPAA合规的医疗系统架构师"），通过模板市场发布、共享和复用。也适合从社区发现和安装高质量的模板。
+> **⚠️ 此模块已在 V3.7.0 中移除**。RoleTemplateMarket（`role_template_market.py`）因零生产导入被判定为幽灵功能并已删除。以下内容仅保留作为历史参考。
 
 ```python
-from scripts.collaboration.role_template_market import RoleTemplateMarket, RoleTemplate
-
-market = RoleTemplateMarket()
-
-# 发布自定义模板
-template = RoleTemplate(
-    template_id="security-auditor-owasp",
-    name="OWASP Security Auditor",
-    role_id="security",
-    description="Security auditor with OWASP Top 10 focus",
-    category="security",
-    tags=["owasp", "audit", "compliance"],
-    custom_prompt="Focus on OWASP Top 10 vulnerabilities...",
-)
-market.publish(template)
-
-# 搜索模板
-results = market.search(query="security", category="security", limit=10)
-
-# 安装模板
-market.install("security-auditor-owasp")
-
-# 评分
-market.rate("security-auditor-owasp", score=5, comment="Excellent for web app audits")
-
-# 导出/导入
-market.export_template("security-auditor-owasp", path="./templates/")
-market.import_template("./templates/security-auditor-owasp.json")
+# ⚠️ 以下代码已不可用 — RoleTemplateMarket 已在 V3.7.0 中移除
+# from scripts.collaboration.role_template_market import RoleTemplateMarket, RoleTemplate
 ```
 
 ---
@@ -1301,7 +1275,7 @@ for name, skill in skills.items():
 | 11 | MemoryBridge | memory_bridge.py | 跨会话记忆桥接 |
 | 12 | TestQualityGuard | test_quality_guard.py | 测试质量守卫 |
 | 13 | PromptAssembler | prompt_assembler.py | 动态提示词组装+QC注入 |
-| 14 | PromptVariantGenerator | prompt_variant_generator.py | 提示词变体A/B测试 |
+| 14 | PromptVariantGenerator | prompt_variant_generator.py | 提示词变体A/B测试 *(已移除)* |
 | 15 | MCEAdapter | mce_adapter.py | CarryMem集成适配器 |
 | 16 | WorkBuddyClawSource | memory_bridge.py | WorkBuddy只读桥接 |
 | 17 | RoleMatcher | role_matcher.py | 关键词角色匹配 |
@@ -1324,7 +1298,7 @@ for name, skill in skills.items():
 | 34 | PerformanceMonitor | performance_monitor.py | P95/P99+瓶颈检测 |
 | 35 | AgentBriefing | agent_briefing.py | 上下文简报生成 |
 | 36 | ConfidenceScorer | confidence_score.py | 5因子置信度评分 |
-| 37 | RoleTemplateMarket | role_template_market.py | 角色模板市场 |
+| 37 | RoleTemplateMarket | role_template_market.py | 角色模板市场 *(已移除)* |
 | 38 | UsageTracker | usage_tracker.py | Token/成本追踪 |
 | 39 | Models | models.py | 共享数据模型和类型定义 |
 | 40 | ConfigManager (YAML) | config_manager.py | 项目级YAML配置 |

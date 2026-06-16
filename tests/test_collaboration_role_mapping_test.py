@@ -12,8 +12,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+from scripts.collaboration.dispatch_models import PLANNED_ROLES
 from scripts.collaboration.dispatcher import (
-    PLANNED_ROLES,
     ROLE_TEMPLATES,
     MultiAgentDispatcher,
 )
@@ -179,12 +179,12 @@ class TestRoleTemplateIntegrity(unittest.TestCase):
     def test_02_all_core_roles_have_non_empty_prompt(self):
         for rid in get_core_roles():
             rdef = ROLE_REGISTRY[rid]
-            self.assertTrue(len(rdef.prompt) > 0, f"Core role '{rid}' has empty prompt template")
+            self.assertGreater(len(rdef.prompt), 0, f"Core role '{rid}' has empty prompt template")
 
     def test_03_all_core_roles_have_keywords(self):
         for rid in get_core_roles():
             rdef = ROLE_REGISTRY[rid]
-            self.assertTrue(len(rdef.keywords) > 0, f"Core role '{rid}' has no keywords defined")
+            self.assertGreater(len(rdef.keywords), 0, f"Core role '{rid}' has no keywords defined")
 
     def test_04_all_planned_roles_have_status_planned(self):
         for rid, rdef in get_planned_roles().items():

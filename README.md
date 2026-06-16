@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V3.6.7 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V3.7.0 Enterprise Ready</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-1855%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.6.7-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2109%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.7.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V3.6.7: Redis Cache + Async Dispatch + Dispatcher Refactor
+## 🚀 V3.7.0: Ghost Feature Cleanup + Dispatcher Split + SSRF Hardening
 
-**DevSquad V3.6.7** adds Redis Cache L2 backend for three-tier caching (memory→disk→Redis), async dispatch with `asyncio.gather` for concurrent LLM calls, dispatcher refactored from 788-line monolith into 18 step methods (extracted `dispatch_models.py` and `dispatch_performance.py`), fixed `DispatchResult.to_dict()`/`to_markdown()` missing 5 fields (data loss bug), cleaned up `except:pass` patterns, removed redundant `to_dict()` wrappers, and restored 183 previously xfailed tests — bringing total to 1855 tests passing with CI re-enabled.
+**DevSquad V3.7.0** removes ghost features (PromptVariantGenerator, RoleTemplateMarket — complete implementations with zero production imports), splits dispatcher.py into DispatchStepsMixin (23% code reduction), adds SSRF detection for IPv6/https variants, adds 9 integration tests for Step 19/20, implements real LLM smoke tests, and brings total to 2109+ tests passing.
 
 ---
 
@@ -439,7 +439,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.6.7
+# Expected: devsquad 3.7.0
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -493,14 +493,14 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 3.6.6
+python3 scripts/cli.py --version       # Expected: DevSquad 3.7.0
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
 
 ### Full Test Suite
 ```bash
-# Run all tests (1855 tests passing)
+# Run all tests (2109+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -517,7 +517,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 1855 tests**
+**Total: 2109+ tests**
 
 Run by priority:
 ```bash
@@ -581,6 +581,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-06-07 | Version: V3.6.7*
+*Last updated: 2026-06-15 | Version: V3.7.0*
 
 </details>

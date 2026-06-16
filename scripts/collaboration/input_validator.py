@@ -188,9 +188,8 @@ class InputValidator:
             if match:
                 injection_detected.append(match.group(0))
 
-        if injection_detected:
-            if self.strict_mode:
-                return ValidationResult(valid=False, reason="Input contains potentially harmful content")
+        if injection_detected and self.strict_mode:
+            return ValidationResult(valid=False, reason="Input contains potentially harmful content")
 
         # 7. 可疑模式检查（严格模式）
         if self.strict_mode:

@@ -20,6 +20,7 @@ WarmupManager - 启动预热管理器
 """
 
 import concurrent.futures
+import contextlib
 import logging
 import os
 import statistics
@@ -237,7 +238,8 @@ class WarmupManager:
                 "stages": list(STAGE_METADATA.keys()),
                 "count": len(ROLE_METADATA),
             }
-        except Exception:
+        except Exception as e:
+            logger.debug("Registry import failed: %s", e)
             return {"roles": [], "stages": [], "count": 0, "error": "registry_import_failed"}
 
     def register_task(self, task: WarmupTask) -> None:
@@ -251,9 +253,8 @@ class WarmupManager:
         if not self.config.enabled:
             return WarmupReport(timestamp=datetime.now())
         self._start_time = time.perf_counter()
-        eager_results = []
         if layers is None or WarmupLayer.EAGER in layers:
-            eager_results = self.warmup_eager()
+            self.warmup_eager()
         if layers is None or WarmupLayer.ASYNC in layers:
             self.warmup_async()
         all_results = list(self._results.values())
@@ -278,10 +279,7 @@ class WarmupManager:
         for task in sorted_tasks:
             start = time.perf_counter()
             try:
-                if task.executor is None:
-                    result_val = None
-                else:
-                    result_val = task.executor()
+                result_val = None if task.executor is None else task.executor()
                 duration = (time.perf_counter() - start) * 1000
                 entry = CacheEntry(
                     key=task.task_id,
@@ -335,10 +333,7 @@ class WarmupManager:
         def _run_task(task: WarmupTask):
             start = time.perf_counter()
             try:
-                if task.executor is None:
-                    result_val = None
-                else:
-                    result_val = task.executor()
+                result_val = None if task.executor is None else task.executor()
                 duration = (time.perf_counter() - start) * 1000
                 entry = CacheEntry(
                     key=task.task_id,
@@ -381,10 +376,8 @@ class WarmupManager:
         def _on_done(future: concurrent.futures.Future):
             task = futures_map.pop(future, None)
             if task:
-                try:
+                with contextlib.suppress(concurrent.futures.TimeoutError, Exception):
                     future.result(timeout=task.timeout_ms / 1000.0)
-                except (concurrent.futures.TimeoutError, Exception):
-                    pass
 
         for future in list(futures_map.keys()):
             future.add_done_callback(_on_done)
@@ -393,8 +386,8 @@ class WarmupManager:
             for f in list(futures_map.keys()):
                 try:
                     f.result(timeout=max(t.timeout_ms for t in sorted_tasks) / 1000.0)
-                except Exception:
-                    logger.debug("Warmup task failed: %s", f.exception())
+                except Exception as e:
+                    logger.debug("Warmup task failed: %s", e)
             self._is_warming_up = False
 
         wait_thread = threading.Thread(target=_wait_all, daemon=True, name="warmup-waiter")
@@ -413,7 +406,7 @@ class WarmupManager:
         entry.access_count += 1
         return entry.value
 
-    def get_or_load(self, key: str, loader: Callable[[], Any], layer: WarmupLayer = WarmupLayer.LAZY) -> Any:
+    def get_or_load(self, key: str, loader: Callable[[], Any], _layer: WarmupLayer = WarmupLayer.LAZY) -> Any:
         value = self.get(key)
         if value is not None:
             return value
@@ -468,9 +461,7 @@ class WarmupManager:
         for result in self._results.values():
             if result.status in (WarmupStatus.PENDING,):
                 return False
-        if self._is_warming_up:
-            return False
-        return True
+        return not self._is_warming_up
 
     def get_report(self) -> WarmupReport:
         all_results = list(self._results.values())
@@ -619,7 +610,7 @@ class WarmupManager:
     def _evict_if_needed(self) -> None:
         if not self.config.cache_enabled or self.config.cache_max_size <= 0:
             return
-        now = time.time()
+        time.time()
         expired = [k for k, v in self._cache.items() if v.is_expired]
         for k in expired:
             self._cache.pop(k, None)

@@ -27,6 +27,8 @@ from enum import Enum
 from functools import wraps
 from typing import Any
 
+_logger = logging.getLogger(__name__)
+
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -254,7 +256,7 @@ class AuthManager:
             with col2:
                 st.markdown("""
                 ### Welcome to DevSquad Dashboard
-                
+
                 Please enter your credentials to access the lifecycle monitoring system.
                 """)
 
@@ -443,7 +445,7 @@ def create_demo_credentials():
 
     # Hash passwords
     auth_manager = AuthManager.__new__(AuthManager)
-    for username, info in demo_users.items():
+    for _username, info in demo_users.items():
         info["password"] = auth_manager._hash_password(info["password"])
 
     _logger = logging.getLogger(__name__)

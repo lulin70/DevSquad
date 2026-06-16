@@ -208,13 +208,12 @@ class RoleMatcher:
         """
         from .models import ROLE_REGISTRY as _RR
 
-        PLANNED_ROLES = {}
 
         resolved_roles = [resolve_role_id(r) for r in roles]
         role_ids_set = set(resolved_roles)
         final = [r for r in matched_roles if r["role_id"] in role_ids_set]
 
-        for rid, original_rid in zip(resolved_roles, roles):
+        for rid, _original_rid in zip(resolved_roles, roles):
             if not any(r["role_id"] == rid for r in final):
                 template = ROLE_TEMPLATES.get(rid, {"name": rid, "prompt": ""})
                 rdef = _RR.get(rid)

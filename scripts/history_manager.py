@@ -27,6 +27,7 @@ Usage:
     data = history.get_metrics_history(hours=24)
 """
 
+import contextlib
 import json
 import logging
 import os
@@ -235,7 +236,7 @@ class HistoryManager:
             return False
 
     def get_metrics_history(
-        self, hours: int = 24, interval_minutes: int = 60, include_custom: bool = False
+        self, hours: int = 24, interval_minutes: int = 60, include_custom: bool = False  # noqa: ARG002
     ) -> list[dict[str, Any]]:
         """
         Retrieve metrics history.
@@ -276,10 +277,8 @@ class HistoryManager:
 
                 # Parse custom data if requested
                 if include_custom and data.get("custom_data"):
-                    try:
+                    with contextlib.suppress(json.JSONDecodeError, TypeError):
                         data["custom_data"] = json.loads(data["custom_data"])
-                    except (json.JSONDecodeError, TypeError):
-                        pass
 
                 # Convert timestamp to string for JSON serialization
                 if isinstance(data.get("timestamp"), datetime):

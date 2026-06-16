@@ -18,7 +18,7 @@ Created: 2026-05-01
 
 import logging
 from collections.abc import Callable
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +38,13 @@ class NullCacheProvider:
         self._call_count = 0
         logger.info("NullCacheProvider initialized (degraded mode)")
 
-    def get(self, prompt: str, backend: str, model: str) -> str | None:
+    def get(self, prompt: str, backend: str, model: str) -> str | None:  # noqa: ARG002
         """Retrieve cached response (always returns None)."""
         self._call_count += 1
         logger.debug("NullCacheProvider.get() called (miss) - call #%d", self._call_count)
         return None
 
-    def set(self, prompt: str, response: str, backend: str, model: str, ttl: int | None = None) -> None:
+    def set(self, prompt: str, response: str, backend: str, model: str, ttl: int | None = None) -> None:  # noqa: ARG002
         """Store response in cache (no-op)."""
         self._call_count += 1
         logger.debug("NullCacheProvider.set() called (no-op) - call #%d", self._call_count)
@@ -88,7 +88,7 @@ class NullRetryProvider:
         logger.info("NullRetryProvider initialized (degraded mode)")
 
     def retry_with_fallback(
-        self, func: Callable[[], Any], max_attempts: int = 3, fallback: Callable[[], Any] | None = None
+        self, func: Callable[[], Any], max_attempts: int = 3, fallback: Callable[[], Any] | None = None  # noqa: ARG002
     ) -> Any:
         """Execute function without retry. Falls back on failure."""
         self._call_count += 1
@@ -143,19 +143,19 @@ class NullMonitorProvider:
 
     def record_llm_call(
         self,
-        backend: str,
-        model: str,
-        duration: float,
-        token_count: int,
-        success: bool,
-        metadata: dict[str, Any] | None = None,
+        backend: str,  # noqa: ARG002
+        model: str,  # noqa: ARG002
+        duration: float,  # noqa: ARG002
+        token_count: int,  # noqa: ARG002
+        success: bool,  # noqa: ARG002
+        metadata: dict[str, Any] | None = None,  # noqa: ARG002
     ) -> None:
         """Record LLM call (no-op)."""
         self._llm_call_count += 1
         logger.debug("NullMonitorProvider.record_llm_call() called (no-op) - call #%d", self._llm_call_count)
 
     def record_agent_execution(
-        self, agent_role: str, task: str, duration: float, success: bool, metadata: dict[str, Any] | None = None
+        self, agent_role: str, task: str, duration: float, success: bool, metadata: dict[str, Any] | None = None  # noqa: ARG002
     ) -> None:
         """Record agent execution (no-op)."""
         self._agent_execution_count += 1
@@ -205,18 +205,18 @@ class NullMemoryProvider:
         self._call_count = 0
         logger.info("NullMemoryProvider initialized (degraded mode)")
 
-    def get_rules(self, user_id: str, context: dict[str, Any] | None = None) -> list[str]:
+    def get_rules(self, user_id: str, context: dict[str, Any] | None = None) -> list[str]:  # noqa: ARG002
         """Retrieve user rules (always returns empty list)."""
         self._call_count += 1
         logger.debug("NullMemoryProvider.get_rules() called (empty) - user: %s, call #%d", user_id, self._call_count)
         return []
 
-    def add_rule(self, user_id: str, rule: str, metadata: dict[str, Any] | None = None) -> None:
+    def add_rule(self, user_id: str, rule: str, metadata: dict[str, Any] | None = None) -> None:  # noqa: ARG002
         """Add user rule (no-op)."""
         self._call_count += 1
         logger.debug("NullMemoryProvider.add_rule() called (no-op) - user: %s, call #%d", user_id, self._call_count)
 
-    def update_rule(self, user_id: str, rule_id: str, rule: str) -> None:
+    def update_rule(self, user_id: str, rule_id: str, rule: str) -> None:  # noqa: ARG002
         """Update user rule (no-op)."""
         self._call_count += 1
         logger.debug(
@@ -251,14 +251,14 @@ class NullMemoryProvider:
         }
 
     def match_rules(
-        self, task_description: str, user_id: str, role: str | None = None, max_rules: int = 5
+        self, task_description: str, user_id: str, role: str | None = None, max_rules: int = 5  # noqa: ARG002
     ) -> list[dict[str, Any]]:
         """Match rules based on task description (always returns empty list)."""
         self._call_count += 1
         logger.debug("NullMemoryProvider.match_rules() called (empty) - user: %s, call #%d", user_id, self._call_count)
         return []
 
-    def format_rules_as_prompt(self, rules: list[dict[str, Any]]) -> str:
+    def format_rules_as_prompt(self, rules: list[dict[str, Any]]) -> str:  # noqa: ARG002
         """Format rules as prompt text (always returns empty string)."""
         self._call_count += 1
         logger.debug("NullMemoryProvider.format_rules_as_prompt() called (empty) - call #%d", self._call_count)
@@ -268,13 +268,13 @@ class NullMemoryProvider:
 class NullUETestProvider:
     """No-op UE test provider for graceful degradation."""
 
-    def generate_ue_test_plan(self, project_description: str) -> None:
+    def generate_ue_test_plan(self, project_description: str) -> None:  # noqa: ARG002
         return None
 
-    def validate_user_journey(self, journey: Any, actual_results: Dict[str, Any]) -> None:
+    def validate_user_journey(self, journey: Any, actual_results: dict[str, Any]) -> None:  # noqa: ARG002
         return None
 
-    def assess_usability(self, interface_description: str) -> None:
+    def assess_usability(self, interface_description: str) -> None:  # noqa: ARG002
         return None
 
     def is_available(self) -> bool:
@@ -285,13 +285,13 @@ class NullTechDebtProvider:
     """No-op tech debt provider for graceful degradation."""
 
     def identify_debt(self, source: str, category: Any, description: str,
-                      location: str, **kwargs: Any) -> None:
+                      location: str, **kwargs: Any) -> None:  # noqa: ARG002
         return None
 
-    def scan_codebase_debt(self, project_path: str) -> List[Any]:
+    def scan_codebase_debt(self, project_path: str) -> list[Any]:  # noqa: ARG002
         return []
 
-    def prioritize(self) -> List[Any]:
+    def prioritize(self) -> list[Any]:
         return []
 
     def get_debt_report(self) -> None:

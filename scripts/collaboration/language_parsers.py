@@ -282,10 +282,10 @@ class NullLanguageParser(LanguageParser):
     def file_patterns(self) -> list[str]:
         return []
 
-    def parse_file(self, source: str, file_path: str) -> dict[str, Any] | None:
+    def parse_file(self, _source: str, _file_path: str) -> dict[str, Any] | None:
         return None
 
-    def extract_dependencies(self, source: str) -> list[str]:
+    def extract_dependencies(self, _source: str) -> list[str]:
         return []
 
     def is_available(self) -> bool:

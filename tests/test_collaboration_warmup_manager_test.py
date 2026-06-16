@@ -151,7 +151,7 @@ class T2CoreLogic(unittest.TestCase):
             t.start()
         for t in threads:
             t.join(timeout=5)
-        self.assertTrue(len(set(id(inst) for inst in instances)) == 1)
+        self.assertEqual(len(set(id(inst) for inst in instances)), 1)
 
     def test_03_reset_creates_new(self):
         a = WarmupManager.instance(WarmupConfig.fast())
@@ -516,9 +516,11 @@ class T4AsyncWarmup(unittest.TestCase):
             )
         )
         wm.warmup_async()
-        main_ok = True
         time.sleep(0.3)
-        self.assertTrue(main_ok)
+        # Verify exception was handled gracefully - result should be ERROR status
+        result = wm._results.get("acrash")
+        self.assertIsNotNone(result, "Exception task should have a result")
+        self.assertIn(result.status, (WarmupStatus.ERROR, WarmupStatus.TIMEOUT))
 
     def test_07_idempotent(self):
         wm = WarmupManager.instance(WarmupConfig.default())

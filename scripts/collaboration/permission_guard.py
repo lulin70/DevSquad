@@ -595,9 +595,7 @@ class PermissionGuard:
                 return True
         except (re.error, TypeError):
             pass
-        if pattern.endswith("*") and target.startswith(pattern[:-1]):
-            return True
-        return False
+        return bool(pattern.endswith("*") and target.startswith(pattern[:-1]))
 
     def _assess_base_risk(self, action: ProposedAction) -> float:
         risk = 0.0
@@ -669,7 +667,7 @@ class PermissionGuard:
             return 0.1
         return 0.5
 
-    def _dim_context_reasonable(self, action: ProposedAction) -> bool:
+    def _dim_context_reasonable(self, action: ProposedAction) -> float:
         if action.metadata.get("task_related"):
             return 0.1
         if action.description and len(action.description) > 20:

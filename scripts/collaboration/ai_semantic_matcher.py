@@ -78,7 +78,7 @@ Return the matching results in JSON format:
         self,
         task_description: str,
         required_capabilities: list[str] = None,
-        preferred_skills: list[str] = None,
+        _preferred_skills: list[str] = None,
         use_cache: bool = True,
     ) -> list[SemanticMatchResult]:
         """
@@ -231,12 +231,9 @@ Return the matching results in JSON format:
 
         return results
 
-    def _parse_ai_response(self, response: str, roles: list[dict[str, Any]]) -> list[SemanticMatchResult]:
+    def _parse_ai_response(self, response: str, _roles: list[dict[str, Any]]) -> list[SemanticMatchResult]:
         try:
-            if isinstance(response, str):
-                data = json.loads(response)
-            else:
-                data = response
+            data = json.loads(response) if isinstance(response, str) else response
 
             results = []
             for match_data in data.get("matches", []):

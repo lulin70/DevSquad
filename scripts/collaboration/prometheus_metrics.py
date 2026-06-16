@@ -260,7 +260,8 @@ class DevSquadMetrics:
         success = True
         try:
             yield
-        except Exception:
+        except Exception as e:
+            logger.debug("LLM call failed in observe context: %s", e)
             success = False
             raise
         finally:

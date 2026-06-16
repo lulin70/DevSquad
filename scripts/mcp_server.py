@@ -198,7 +198,7 @@ def create_mcp_server() -> "FastMCP":
         """
         disp = server._get_dispatcher()
         try:
-            stats = disp.get_status() if hasattr(disp, "get_status") else {}
+            disp.get_status() if hasattr(disp, "get_status") else {}
             return json.dumps(
                 {
                     "name": "DevSquad",

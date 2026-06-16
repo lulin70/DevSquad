@@ -15,7 +15,8 @@ Core component for multi-Worker collaboration:
 import logging
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +66,8 @@ class Coordinator:
 
     def __init__(
         self,
-        scratchpad: Optional[Scratchpad] = None,
-        persist_dir: Optional[str] = None,
+        scratchpad: Scratchpad | None = None,
+        persist_dir: str | None = None,
         enable_compression: bool = True,
         compression_threshold: int = 100000,
         llm_backend: Any = None,
@@ -91,6 +92,8 @@ class Coordinator:
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
         self.workers: dict[str, Worker] = {}
+        self._worker_index: dict[str, Worker] = {}
+        self._executor = ThreadPoolExecutor(max_workers=7)
         self._execution_history: list[dict[str, Any]] = []
         self.coordinator_id = f"coord-{uuid.uuid4().hex[:8]}"
         self.enable_compression = enable_compression
@@ -104,7 +107,7 @@ class Coordinator:
         self.execution_guard = execution_guard
 
     def plan_task(
-        self, task_description: str, available_roles: List[Dict[str, str]], stage_id: Optional[str] = None
+        self, task_description: str, available_roles: list[dict[str, str]], stage_id: str | None = None
     ) -> ExecutionPlan:
         """
         将用户任务分解为可并行的 Worker 执行计划
@@ -126,7 +129,7 @@ class Coordinator:
             >>> plan.total_tasks
             1
         """
-        tasks: List[TaskDefinition] = []
+        tasks: list[TaskDefinition] = []
         for role_cfg in available_roles:
             task = TaskDefinition(
                 description=task_description,
@@ -155,7 +158,7 @@ class Coordinator:
         )
         return plan
 
-    def spawn_workers(self, plan: ExecutionPlan, registry: Any = None) -> List[Worker]:
+    def spawn_workers(self, plan: ExecutionPlan, registry: Any = None) -> list[Worker]:
         """
         根据执行计划创建 Worker 实例
 
@@ -171,7 +174,8 @@ class Coordinator:
             List[Worker]: 创建的 Worker 实例列表
         """
         self.workers.clear()
-        all_tasks: List[TaskDefinition] = []
+        self._worker_index.clear()
+        all_tasks: list[TaskDefinition] = []
         for batch in plan.batches:
             all_tasks.extend(batch.tasks)
 
@@ -219,6 +223,7 @@ class Coordinator:
                     stream=getattr(self, "stream", False),
                 )
             self.workers[worker_id] = worker
+            self._worker_index[worker.role_id] = worker
         return list(self.workers.values())
 
     def execute_plan(self, plan: ExecutionPlan) -> ScheduleResult:
@@ -289,7 +294,7 @@ class Coordinator:
         )
         return result
 
-    def _buffer_worker_messages(self, batch_results: List[WorkerResult]) -> None:
+    def _buffer_worker_messages(self, batch_results: list[WorkerResult]) -> None:
         for r in batch_results:
             if r.output:
                 self._message_buffer.append(
@@ -301,7 +306,7 @@ class Coordinator:
                     )
                 )
 
-    def compress_context(self, force_level: Any = None) -> Optional[CompressedContext]:
+    def compress_context(self, force_level: Any = None) -> CompressedContext | None:
         """
         手动触发上下文压缩
 
@@ -316,7 +321,7 @@ class Coordinator:
             return None
         return self.compressor.check_and_compress(self._message_buffer, force_level=force_level)
 
-    def get_compression_stats(self) -> Optional[Dict[str, Any]]:
+    def get_compression_stats(self) -> dict[str, Any] | None:
         """
         获取上下文压缩统计信息
 
@@ -359,7 +364,7 @@ class Coordinator:
             "total_compressed_tokens": total_compressed,
         }
 
-    def get_session_memory(self, category: Any = None, limit: int = 50) -> Optional[List[Dict[str, Any]]]:
+    def get_session_memory(self, category: Any = None, limit: int = 50) -> list[dict[str, Any]] | None:
         """
         获取会话记忆（从 ContextCompressor 的 SessionMemory 中提取）
 
@@ -370,11 +375,14 @@ class Coordinator:
         Returns:
             List[Dict]: 提取的记忆条目列表
         """
-        pass
+        if self.compressor is None:
+            return None
+        entries = self.compressor.get_session_memory(category=category, limit=limit)
+        return [entry.to_dict() for entry in entries]
 
-    def _execute_batch(self, batch: TaskBatch) -> Tuple[List[WorkerResult], List[str]]:
-        results: List[WorkerResult] = []
-        errors: List[str] = []
+    def _execute_batch(self, batch: TaskBatch) -> tuple[list[WorkerResult], list[str]]:
+        results: list[WorkerResult] = []
+        errors: list[str] = []
 
         if batch.mode == BatchMode.PARALLEL:
             results = self._execute_parallel(batch)
@@ -394,32 +402,29 @@ class Coordinator:
 
         return results, errors
 
-    def _execute_parallel(self, batch: TaskBatch) -> List[WorkerResult]:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-
-        results: List[WorkerResult] = []
+    def _execute_parallel(self, batch: TaskBatch) -> list[WorkerResult]:
+        results: list[WorkerResult] = []
         max_workers = min(batch.max_concurrency or len(batch.tasks), len(batch.tasks))
         if max_workers <= 0:
             return results
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {}
-            for task in batch.tasks:
-                worker = self._get_worker_for_task(task)
-                if worker:
-                    future = executor.submit(worker.execute, task)
-                    futures[future] = task.task_id
-            for future in as_completed(futures):
-                try:
-                    results.append(future.result())
-                except Exception as e:
-                    results.append(
-                        WorkerResult(
-                            worker_id="unknown",
-                            task_id=futures[future],
-                            success=False,
-                            error=str(e),
-                        )
+        futures = {}
+        for task in batch.tasks:
+            worker = self._get_worker_for_task(task)
+            if worker:
+                future = self._executor.submit(worker.execute, task)
+                futures[future] = task.task_id
+        for future in as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                results.append(
+                    WorkerResult(
+                        worker_id="unknown",
+                        task_id=futures[future],
+                        success=False,
+                        error=str(e),
                     )
+                )
         return results
 
     def _inject_briefing_to_worker(self, worker: Any) -> None:
@@ -496,7 +501,7 @@ class Coordinator:
             return {}
 
         role_rules: dict[str, list[dict]] = {}
-        for wid, worker in self.workers.items():
+        for _wid, worker in self.workers.items():
             try:
                 if hasattr(self.memory_provider, "match_rules"):
                     rules = self.memory_provider.match_rules(
@@ -530,10 +535,7 @@ class Coordinator:
         return role_rules
 
     def _get_worker_for_task(self, task: TaskDefinition) -> Worker | None:
-        for wid, w in self.workers.items():
-            if w.role_id == task.role_id:
-                return w
-        return None
+        return self._worker_index.get(task.role_id)
 
     def collect_results(self) -> dict[str, Any]:
         """
@@ -614,7 +616,7 @@ class Coordinator:
                 options=["接受A", "接受B", "合并方案", "升级人工"],
             )
 
-            for wid, w in self.workers.items():
+            for _wid, w in self.workers.items():
                 vote_result = w.vote_on_proposal(proposal.proposal_id, decision=True, reason="默认赞成待讨论")
                 vote_obj = vote_result.get("vote", vote_result)
                 self.consensus.cast_vote(proposal.proposal_id, vote_obj)
@@ -709,3 +711,7 @@ class Coordinator:
             duration: Any = self._execution_history[-1]["result"]["duration"]
             return float(duration)
         return 0.0
+
+    def __del__(self) -> None:
+        if hasattr(self, "_executor"):
+            self._executor.shutdown(wait=False)

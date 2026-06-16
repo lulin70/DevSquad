@@ -161,7 +161,8 @@ class Foo:
         sigs = self.validator.extract_api_signatures(code, "mod.py")
         issues = self.validator.validate_call_against_signature("real_func", {"bad_param", "wrong_name"}, sigs)
         self.assertGreater(len(issues), 0)
-        self.assertTrue(any(i.category == "API参数错误" for i in issues))
+        matching = [i for i in issues if i.category == "API参数错误"]
+        self.assertGreater(len(matching), 0, f"Expected issue with category 'API参数错误', got categories: {[i.category for i in issues]}")
 
     def test_05_valid_call_no_issues(self):
         """验证: 使用正确的参数名时不产生问题"""
@@ -193,13 +194,15 @@ class T3_AntiPatternDetector(unittest.TestCase):
         """验证: 裸 except 子句被检测为 MAJOR 问题"""
         code = "try:\n    x = 1/0\nexcept:\n    pass\n"
         issues = self.detector.detect_in_source(code, "bare.py")
-        self.assertTrue(any(i.category == "异常吞噬" for i in issues))
+        matching = [i for i in issues if i.category == "异常吞噬"]
+        self.assertGreater(len(matching), 0, f"Expected issue with category '异常吞噬', got categories: {[i.category for i in issues]}")
 
     def test_02_detect_magic_number_assert(self):
         """验证: 断言中大数字魔法值被检测"""
         code = "self.assertGreater(result, 99999)"
         issues = self.detector.detect_in_source(code, "magic.py")
-        self.assertTrue(any(i.category == "魔法数字" for i in issues))
+        matching = [i for i in issues if i.category == "魔法数字"]
+        self.assertGreater(len(matching), 0, f"Expected issue with category '魔法数字', got categories: {[i.category for i in issues]}")
 
     def test_03_clean_code_no_issues(self):
         """验证: 干净代码不触发反模式警告"""
@@ -216,7 +219,8 @@ self.assertRaises(ValueError, bad_func)
         """验证: assertGreater(x, 0.0) 被标记为宽松断言"""
         code = "self.assertGreater(score, 0.0)"
         issues = self.detector.detect_in_source(code, "relax.py")
-        self.assertTrue(any(i.category == "无效断言" for i in issues))
+        matching = [i for i in issues if i.category == "无效断言"]
+        self.assertGreater(len(matching), 0, f"Expected issue with category '无效断言', got categories: {[i.category for i in issues]}")
 
     def test_05_issue_has_suggestion(self):
         """验证: 每个检测到的问题都附带修复建议"""

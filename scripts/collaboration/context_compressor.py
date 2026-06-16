@@ -490,7 +490,7 @@ class ContextCompressor:
             if p in content:
                 return MemoryCategory.QUESTION
 
-        if msg_type_hint := getattr(self, "_last_msg_type", None):
+        if _msg_type_hint := getattr(self, "_last_msg_type", None):
             pass
 
         return MemoryCategory.FINDING

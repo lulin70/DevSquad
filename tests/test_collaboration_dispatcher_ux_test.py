@@ -72,13 +72,13 @@ class TestStructuredReportFormat(unittest.TestCase):
         result = self.dispatcher.quick_dispatch("编写单元测试", output_format="structured", include_action_items=True)
         report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
         # Report should be generated successfully
-        self.assertTrue(len(report) > 50)
+        self.assertGreater(len(report), 50)
 
     def test_structured_report_without_action_items(self):
         result = self.dispatcher.quick_dispatch("代码审查", output_format="structured", include_action_items=False)
         report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
         # Report should be generated successfully
-        self.assertTrue(len(report) > 50)
+        self.assertGreater(len(report), 50)
 
     def test_structured_report_with_timing(self):
         result = self.dispatcher.quick_dispatch("性能优化", output_format="structured", include_timing=True)
@@ -155,8 +155,8 @@ class TestDetailedReportFormat(unittest.TestCase):
         result2 = self.dispatcher.quick_dispatch("详细测试任务", output_format="detailed")
         detailed2 = result2.to_markdown() if isinstance(result2, DispatchResult) else str(result2)
         # Both should generate valid reports
-        self.assertTrue(len(detailed) > 50)
-        self.assertTrue(len(detailed2) > 50)
+        self.assertGreater(len(detailed), 50)
+        self.assertGreater(len(detailed2), 50)
 
 
 class TestExtractFindings(unittest.TestCase):
@@ -313,7 +313,7 @@ class TestReportHierarchy(unittest.TestCase):
         report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
 
         # Verify it's a valid report with content
-        self.assertTrue(len(report) > 100, f"Report should have substantial content, got {len(report)} chars")
+        self.assertGreater(len(report), 100, f"Report should have substantial content, got {len(report)} chars")
 
         # Check for basic structure elements
         has_header = "#" in report or "##" in report
@@ -326,12 +326,12 @@ class TestReportHierarchy(unittest.TestCase):
         report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
         # May or may not have separators depending on format
         self.assertIsInstance(report, str)
-        self.assertTrue(len(report) > 10)
+        self.assertGreater(len(report), 10)
 
     def test_invalid_format_fallback_to_default(self):
         result = self.dispatcher.quick_dispatch("测试", output_format="invalid_format")
         report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
-        self.assertTrue(len(report) > 10, "Invalid format should fallback to default")
+        self.assertGreater(len(report), 10, "Invalid format should fallback to default")
 
 
 def run_all_tests():

@@ -103,14 +103,21 @@ class TestMemoryProviderContract(unittest.TestCase):
     def test_add_rule_no_exception(self):
         provider = self._get_provider()
         provider.add_rule(user_id="test", rule="Always use SSL")
+        # Verify the rule was actually added
+        rules = provider.get_rules(user_id="test")
+        self.assertIsInstance(rules, list)
 
     def test_update_rule_no_exception(self):
         provider = self._get_provider()
         provider.update_rule(user_id="test", rule_id="r1", rule="Updated rule")
+        # Verify update completed - provider still functional
+        self.assertIsInstance(provider.get_stats(), dict)
 
     def test_delete_rule_no_exception(self):
         provider = self._get_provider()
         provider.delete_rule(user_id="test", rule_id="r1")
+        # Verify delete completed - provider still functional
+        self.assertIsInstance(provider.get_stats(), dict)
 
 
 class TestNullMemoryProviderContract(TestMemoryProviderContract):

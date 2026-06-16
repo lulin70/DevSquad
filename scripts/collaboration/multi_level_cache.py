@@ -31,17 +31,17 @@ Usage:
 """
 
 import asyncio
-import hashlib
 import logging
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from scripts.collaboration.cache_interface import (
     CacheBackendInterface,
-    CacheStats,
     CacheEntry,
+    CacheStats,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class MemoryCacheBackend(CacheBackendInterface):
         self._lock = asyncio.Lock()
         self._stats = CacheStats()
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         async with self._lock:
             if key not in self._cache:
                 self._stats.misses += 1
@@ -117,7 +117,7 @@ class MemoryCacheBackend(CacheBackendInterface):
             self._stats.hits += 1
             return entry.value
 
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         async with self._lock:
             actual_ttl = ttl or self.default_ttl
             expires_at = time.time() + actual_ttl if actual_ttl > 0 else None
@@ -152,7 +152,7 @@ class MemoryCacheBackend(CacheBackendInterface):
         async with self._lock:
             self._cache.clear()
 
-    async def stats(self) -> Dict[str, Any]:
+    async def stats(self) -> dict[str, Any]:
         total_requests = self._stats.hits + self._stats.misses
         self._stats.hit_rate = self._stats.hits / total_requests if total_requests > 0 else 0.0
         self._stats.entry_count = len(self._cache)
@@ -196,9 +196,9 @@ class MultiLevelCacheCoordinator:
 
     def __init__(
         self,
-        l1_backend: Optional[CacheBackendInterface] = None,
-        l2_backend: Optional[CacheBackendInterface] = None,
-        l3_fallback: Optional[Callable] = None,
+        l1_backend: CacheBackendInterface | None = None,
+        l2_backend: CacheBackendInterface | None = None,
+        l3_fallback: Callable | None = None,
         enable_l1: bool = True,
         enable_l2: bool = True,
         null_ttl: int = 60,
@@ -240,14 +240,14 @@ class MultiLevelCacheCoordinator:
         self.l3_stats = LevelStats()
 
         # Breakdown protection: mutex locks for hot keys
-        self._key_locks: Dict[str, asyncio.Lock] = {}
+        self._key_locks: dict[str, asyncio.Lock] = {}
         self._global_lock = asyncio.Lock()
 
         # Rate limiting for L3 calls
         self._l3_semaphore = asyncio.Semaphore(max_l3_concurrent)
 
         # Penetration protection: track recently queried missing keys
-        self._null_keys: Dict[str, float] = {}
+        self._null_keys: dict[str, float] = {}
 
         logger.info(
             f"MultiLevelCacheCoordinator initialized: "
@@ -256,7 +256,7 @@ class MultiLevelCacheCoordinator:
             f"L3={'configured' if self.l3_fallback else 'not configured'}"
         )
 
-    def _add_jitter(self, ttl: Optional[int]) -> Optional[int]:
+    def _add_jitter(self, ttl: int | None) -> int | None:
         """Add random jitter to TTL to prevent cache avalanche"""
         if ttl is None:
             return None
@@ -265,7 +265,7 @@ class MultiLevelCacheCoordinator:
         jitter = int(ttl * self.ttl_jitter_range * (random.random() * 2 - 1))
         return max(1, ttl + jitter)
 
-    async def get(self, key: str, ttl: Optional[int] = None) -> Optional[Any]:
+    async def get(self, key: str, ttl: int | None = None) -> Any | None:
         """
         Multi-level cache lookup with automatic population.
 
@@ -351,7 +351,7 @@ class MultiLevelCacheCoordinator:
         logger.debug(f"ALL MISS: {key}")
         return None
 
-    async def _call_l3_with_protection(self, key: str, ttl: Optional[int]) -> Optional[Any]:
+    async def _call_l3_with_protection(self, key: str, ttl: int | None) -> Any | None:
         """
         Call L3 fallback with breakdown protection.
 
@@ -410,7 +410,7 @@ class MultiLevelCacheCoordinator:
                     logger.error(f"L3 fallback error for key {key}: {e}")
                     raise
 
-    async def _populate_all_levels(self, key: str, value: Any, ttl: Optional[int]):
+    async def _populate_all_levels(self, key: str, value: Any, ttl: int | None):
         """Populate value into all available cache levels"""
         jittered_ttl = self._add_jitter(ttl)
 
@@ -438,7 +438,7 @@ class MultiLevelCacheCoordinator:
             except (AttributeError, RuntimeError) as e:
                 logger.debug(f"Failed to store null sentinel in L1: {e}")
 
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         Set value in all cache levels.
 
@@ -538,7 +538,7 @@ class MultiLevelCacheCoordinator:
         self._null_keys.clear()
         logger.info("All cache levels cleared")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         Aggregate statistics from all cache levels.
 

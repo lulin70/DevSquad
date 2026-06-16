@@ -28,7 +28,7 @@ import logging
 import pickle
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,9 @@ class CacheStats:
     hit_rate: float = 0.0
     avg_latency_ms: float = 0.0
     last_operation_time: float = 0.0
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary"""
         return {
             "hits": self.hits,
@@ -80,7 +80,7 @@ class CacheEntry:
     key: str
     value: Any
     created_at: float = field(default_factory=time.time)
-    expires_at: Optional[float] = None
+    expires_at: float | None = None
     size_bytes: int = 0
     access_count: int = 0
     last_accessed: float = 0.0
@@ -96,7 +96,7 @@ class CacheEntry:
         return time.time() - self.created_at
 
     @property
-    def ttl_remaining(self) -> Optional[float]:
+    def ttl_remaining(self) -> float | None:
         """Remaining TTL in seconds"""
         if self.expires_at is None:
             return None
@@ -200,7 +200,7 @@ class CacheBackendInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """
         Get value from cache.
 
@@ -213,7 +213,7 @@ class CacheBackendInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """
         Set value in cache.
 
@@ -248,7 +248,7 @@ class CacheBackendInterface(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def stats(self) -> Dict[str, Any]:
+    async def stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
 
@@ -264,7 +264,7 @@ class CacheBackendInterface(abc.ABC):
         """
         pass
 
-    async def mget(self, keys: List[str]) -> List[Optional[Any]]:
+    async def mget(self, keys: list[str]) -> list[Any | None]:
         """
         Batch get multiple values (default implementation).
 
@@ -282,7 +282,7 @@ class CacheBackendInterface(abc.ABC):
             results.append(result)
         return results
 
-    async def mset(self, mapping: Dict[str, Any], ttl: Optional[int] = None) -> bool:
+    async def mset(self, mapping: dict[str, Any], ttl: int | None = None) -> bool:
         """
         Batch set multiple values (default implementation).
 
@@ -315,7 +315,7 @@ class CacheBackendInterface(abc.ABC):
         value = await self.get(key)
         return value is not None
 
-    async def touch(self, key: str, ttl: Optional[int] = None) -> bool:
+    async def touch(self, key: str, ttl: int | None = None) -> bool:
         """
         Update TTL for existing key without changing value.
 
@@ -331,7 +331,7 @@ class CacheBackendInterface(abc.ABC):
             return await self.set(key, value, ttl)
         return False
 
-    async def increment(self, key: str, delta: int = 1) -> Optional[int]:
+    async def increment(self, key: str, delta: int = 1) -> int | None:
         """
         Increment numeric value (default implementation).
 
