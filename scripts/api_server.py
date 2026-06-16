@@ -104,9 +104,8 @@ app = FastAPI(
 # Add CORS middleware
 # ⚠️  Do NOT use wildcard "*" with allow_credentials=True (CORS spec violation)
 # Configure allowed origins explicitly; use env var DEVSQUAD_CORS_ORIGINS in production
-import os as _os
 
-_cors_origins_str = _os.environ.get("DEVSQUAD_CORS_ORIGINS", "")
+_cors_origins_str = os.environ.get("DEVSQUAD_CORS_ORIGINS", "")
 if _cors_origins_str:
     allowed_origins = [o.strip() for o in _cors_origins_str.split(",") if o.strip()]
 else:

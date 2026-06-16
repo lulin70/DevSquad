@@ -13,8 +13,6 @@ from typing import Any
 
 from scripts.collaboration import get_logger
 
-logger = get_logger(__name__)
-
 from .models import (
     EntryType,
     ScratchpadEntry,
@@ -24,6 +22,8 @@ from .models import (
 )
 from .scratchpad import Scratchpad
 from .usage_tracker import track_usage
+
+logger = get_logger(__name__)
 
 
 class Worker:

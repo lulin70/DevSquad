@@ -89,7 +89,7 @@ class AsyncLLMBackendInterface(ABC):
         result = await self.generate(prompt, **kwargs)
         yield result
 
-    async def close(self) -> None:
+    async def close(self) -> None:  # noqa: B027
         """Clean up resources (connection pools, etc.)."""
         pass
 

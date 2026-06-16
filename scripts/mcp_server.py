@@ -45,8 +45,8 @@ except ImportError:
     MCP_AVAILABLE = False
     logger.warning("MCP SDK not installed. Run: pip install mcp")
 
-from scripts.collaboration.dispatcher import MultiAgentDispatcher
-from scripts.collaboration.models import ROLE_REGISTRY
+from scripts.collaboration.dispatcher import MultiAgentDispatcher  # noqa: E402
+from scripts.collaboration.models import ROLE_REGISTRY  # noqa: E402
 
 
 class DevSquadMCPServer:

@@ -284,8 +284,8 @@ class NullUETestProvider:
 class NullTechDebtProvider:
     """No-op tech debt provider for graceful degradation."""
 
-    def identify_debt(self, source: str, category: Any, description: str,
-                      location: str, **kwargs: Any) -> None:  # noqa: ARG002
+    def identify_debt(self, _source: str, _category: Any, _description: str,
+                      _location: str, **_kwargs: Any) -> None:
         return None
 
     def scan_codebase_debt(self, project_path: str) -> list[Any]:  # noqa: ARG002

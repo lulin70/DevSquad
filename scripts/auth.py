@@ -27,9 +27,9 @@ from enum import Enum
 from functools import wraps
 from typing import Any
 
-_logger = logging.getLogger(__name__)
-
 import yaml
+
+_logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

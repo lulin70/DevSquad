@@ -434,7 +434,6 @@ class UnifiedGateEngine:
         # Import VerificationGate if available
         try:
             from scripts.collaboration.verification_gate import (
-                VerificationGate,
                 get_shared_gate,
             )
 

@@ -23,7 +23,9 @@ import time
 from typing import Any
 
 from .dispatch_models import DispatchResult
+from .dispatch_result_assembler import ResultAssembler
 from .dispatch_services import MemoryPipelineService, MetricsService, PermissionService, SkillProposalService
+from .event_bus import EventBus
 from .tech_debt_manager import TechDebtManager
 from .ue_test_framework import UETestFramework
 
@@ -59,12 +61,12 @@ class PostDispatchPipeline:
         anchor_checker: Any = None,
         llm_backend: Any = None,
         persist_dir: str = "",
-        # Dispatcher reference (needed for FeedbackControlLoop)
+        # Dispatcher reference (needed for FeedbackControlLoop and post_execution_processing)
         dispatcher: Any = None,
-        # Callbacks for dispatcher-specific operations
-        post_execution_processing_fn=None,
-        assemble_result_fn=None,
-        post_dispatch_hooks_fn=None,
+        # Event bus for decoupled communication
+        event_bus: EventBus | None = None,
+        # Result assembler for direct assembly calls
+        result_assembler: ResultAssembler | None = None,
     ) -> None:
         self.coordinator = coordinator
         self.report_formatter = report_formatter
@@ -83,9 +85,8 @@ class PostDispatchPipeline:
         self.llm_backend = llm_backend
         self.persist_dir = persist_dir
         self.dispatcher = dispatcher
-        self._post_execution_processing_fn = post_execution_processing_fn
-        self._assemble_result_fn = assemble_result_fn
-        self._post_dispatch_hooks_fn = post_dispatch_hooks_fn
+        self.event_bus = event_bus or EventBus()
+        self.result_assembler = result_assembler
 
         # Lazy-initialized frameworks
         self._ue_framework: UETestFramework | None = None
@@ -127,11 +128,20 @@ class PostDispatchPipeline:
         step7_time = exec_timing.get("step7_time", step6_time)
 
         # Step 9: Post-execution processing (collect, slice, anchor check)
-        scratchpad_summary, anchor_result, collection, post_errors, post_timing = self._post_execution_processing_fn(
+        scratchpad_summary, anchor_result, collection, post_errors, post_timing = self.dispatcher.hooks.post_execution_processing(
             worker_results, structured_goal
         )
         errors.extend(post_errors)
         step8_time = post_timing["step8_time"]
+
+        # Notify listeners that execution processing completed
+        self.event_bus.emit(
+            "post_dispatch.execution_completed",
+            worker_results=worker_results,
+            structured_goal=structured_goal,
+            scratchpad_summary=scratchpad_summary,
+            errors=post_errors,
+        )
 
         # Step 10: Resolve consensus
         mode = kwargs.get('mode', 'auto')
@@ -169,7 +179,10 @@ class PostDispatchPipeline:
             step6_time, step7_time, step8_time, step9_time, step10_time,
             step11_time, step12_time,
         )
-        result = self._assemble_result_fn(
+        tenant_id = None
+        if hasattr(self.dispatcher, '_get_current_tenant_id'):
+            tenant_id = self.dispatcher._get_current_tenant_id()
+        result = self.result_assembler.assemble(
             task_description=task_description,
             role_ids=role_ids,
             exec_result=exec_result,
@@ -190,6 +203,9 @@ class PostDispatchPipeline:
             plan=plan,
             step_timings=step_timings,
             worker_results=worker_results,
+            coordinator=self.coordinator,
+            tenant_id=tenant_id,
+            enterprise=self.enterprise,
         )
 
         # Lifecycle phase trace
@@ -199,8 +215,14 @@ class PostDispatchPipeline:
         # Audit: dispatch complete
         self.enterprise.audit_dispatch_complete(result, **kwargs)
 
-        # Step 17: Post-dispatch hooks
-        self._post_dispatch_hooks_fn(result, task_description, role_ids, total_duration)
+        # Step 17: Post-dispatch hooks (fire-and-forget via event bus)
+        self.event_bus.emit(
+            "post_dispatch.hooks",
+            result=result,
+            task=task_description,
+            role_ids=role_ids,
+            total_duration=total_duration,
+        )
 
         # Step 18: Feedback loop
         roles = kwargs.get('roles')

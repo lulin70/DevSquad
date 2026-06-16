@@ -18,8 +18,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from .consensus import ConsensusEngine
 from .context_compressor import CompressedContext, CompressionLevel, ContextCompressor, Message, MessageType
 from .models import (
@@ -36,6 +34,8 @@ from .models import (
 from .scratchpad import Scratchpad
 from .usage_tracker import track_usage
 from .worker import Worker, WorkerFactory
+
+logger = logging.getLogger(__name__)
 
 
 class Coordinator:

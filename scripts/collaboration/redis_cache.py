@@ -26,6 +26,7 @@ Usage:
 """
 
 import asyncio
+import contextlib
 import logging
 import os
 import time
@@ -213,16 +214,12 @@ class RedisCacheBackend(CacheBackendInterface):
     async def _reconnect(self):
         """Reconnect to Redis"""
         if self._client:
-            try:
+            with contextlib.suppress(OSError, RuntimeError, AttributeError):
                 await self._client.close()
-            except (OSError, RuntimeError, AttributeError):
-                pass
 
         if self._pool:
-            try:
+            with contextlib.suppress(OSError, RuntimeError, AttributeError):
                 await self._pool.disconnect()
-            except (OSError, RuntimeError, AttributeError):
-                pass
 
         self._client = None
         self._pool = None

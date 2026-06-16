@@ -18,14 +18,14 @@ from collections import OrderedDict
 from datetime import datetime
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from .models import (
     EntryStatus,
     EntryType,
     ScratchpadEntry,
 )
 from .usage_tracker import track_usage
+
+logger = logging.getLogger(__name__)
 
 MAX_ENTRIES_DEFAULT = 1000
 

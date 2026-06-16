@@ -10,8 +10,25 @@ import logging
 import os
 import tempfile
 import time
-from datetime import datetime
 from typing import Any
+
+from ._version import __version__
+from .async_adapter import SyncToAsyncAdapter
+from .async_llm_backend import AsyncLLMBackendFactory
+from .dispatch_component_factory import ComponentConfig, ComponentFactory
+from .dispatch_hooks import DispatchHooks
+from .dispatch_models import ROLE_TEMPLATES, DispatchResult
+from .dispatch_pre_steps import PreDispatchPipeline
+from .dispatch_result_assembler import ResultAssembler
+from .dispatch_services import MemoryPipelineService, MetricsService, PermissionService, SkillProposalService
+from .dispatch_steps import PostDispatchPipeline
+from .enterprise_feature import EnterpriseFeature
+from .event_bus import EventBus
+from .llm_cache_async import AsyncLLMCache
+from .permission_guard import PermissionLevel
+from .rbac_engine import Permission, PermissionDeniedError
+from .usage_tracker import track_usage
+from .user_friendly_error import make_user_friendly_error
 
 logger = logging.getLogger(__name__)
 
@@ -40,29 +57,6 @@ DISPATCH_LIFECYCLE_MAPPING = {
     "step19_ue_testing": "P7_TestPlanning",
     "step20_tech_debt": "P9_TestExecution",
 }
-
-from ._version import __version__
-from .async_adapter import SyncToAsyncAdapter
-from .async_llm_backend import AsyncLLMBackendFactory
-from .dispatch_component_factory import ComponentConfig, ComponentFactory
-from .dispatch_models import ROLE_TEMPLATES, DispatchResult, PerformanceMetric
-from .dispatch_pre_steps import PreDispatchPipeline
-from .dispatch_result_assembler import ResultAssembler
-from .dispatch_services import MemoryPipelineService, MetricsService, PermissionService, SkillProposalService
-from .dispatch_steps import PostDispatchPipeline
-from .enterprise_feature import EnterpriseFeature
-from .llm_cache_async import AsyncLLMCache
-from .models import EntryType
-from .permission_guard import PermissionLevel
-from .prometheus_metrics import get_metrics
-
-# Enterprise feature imports
-from .rbac_engine import Permission, PermissionDeniedError
-from .scratchpad import ScratchpadEntry
-
-# UE testing and tech debt management
-from .usage_tracker import track_usage
-from .user_friendly_error import make_user_friendly_error
 
 
 class MultiAgentDispatcher:
@@ -127,6 +121,9 @@ class MultiAgentDispatcher:
         # Composition-based metrics service (must be created before _init_components_from_factory)
         self.metrics_service = MetricsService()
 
+        # Event bus for decoupled pipeline communication
+        self.event_bus = EventBus()
+
         self._init_components_from_factory()
         self.enterprise = EnterpriseFeature(
             persist_dir=self.persist_dir,
@@ -134,6 +131,24 @@ class MultiAgentDispatcher:
             perf_monitor=self._perf_monitor,
             config=kwargs,
         )
+
+        # Initialize DispatchHooks (post-dispatch hooks + post-execution processing)
+        self.hooks = DispatchHooks(
+            coordinator=self.coordinator,
+            enterprise=self.enterprise,
+            quality_guard=self.quality_guard,
+            perf_monitor=self._perf_monitor,
+            anchor_checker=self.anchor_checker,
+            output_slicer=self.output_slicer,
+            scratchpad=self.scratchpad,
+            usage_tracker=self.usage_tracker,
+            dispatch_history=self._dispatch_history,
+            max_history=self._max_history,
+            enable_quality_guard=self.enable_quality_guard,
+        )
+
+        # Register event handlers for post-dispatch hooks
+        self.event_bus.on("post_dispatch.hooks", self.hooks.post_dispatch_hooks)
 
         # Composition-based pre-dispatch pipeline
         self.pre_dispatch = PreDispatchPipeline(
@@ -199,9 +214,8 @@ class MultiAgentDispatcher:
             llm_backend=self.llm_backend,
             persist_dir=self.persist_dir,
             dispatcher=self,
-            post_execution_processing_fn=self._post_execution_processing,
-            assemble_result_fn=self._assemble_result,
-            post_dispatch_hooks_fn=self._post_dispatch_hooks,
+            event_bus=self.event_bus,
+            result_assembler=self._result_assembler,
         )
 
     def _init_components_from_factory(self) -> None:
@@ -507,70 +521,6 @@ class MultiAgentDispatcher:
             "step7_time": step7_time,
         }
 
-    def _post_execution_processing(
-        self, worker_results: list[dict[str, Any]], structured_goal: Any
-    ) -> tuple[str, Any, Any, list[str], dict[str, float]]:
-        """Post-execution: collect, slice, anchor check. Returns (summary, anchor, collection, errors, timing)."""
-        errors: list[str] = []
-        collection = self.coordinator.collect_results()
-        scratchpad_summary = collection.get("scratchpad", "")
-
-        self._slice_outputs(worker_results, errors)
-        anchor_result = self._check_anchor_drift(worker_results, structured_goal, scratchpad_summary)
-
-        step8_time = time.time()
-
-        return scratchpad_summary, anchor_result, collection, errors, {
-            "step8_time": step8_time,
-        }
-
-    def _slice_outputs(self, worker_results: list[dict[str, Any]], _errors: list[str]) -> None:
-        """Slice oversized worker outputs."""
-        if self.output_slicer and worker_results:
-            try:
-                for wr in worker_results:
-                    if wr.get("output") and len(wr["output"]) > self.output_slicer.max_slice_lines * 50:
-                        slices = self.output_slicer.slice_output(wr["output"], role_id=wr.get("role_id", "unknown"))
-                        wr["_slices"] = len(slices)
-                        wr["_sliced"] = True
-                        if self.usage_tracker:
-                            self.usage_tracker.tick("output_sliced")
-            except (ValueError, AttributeError, TypeError) as e:
-                logger.warning(f"OutputSlicer failed: {e}")
-
-    def _check_anchor_drift(self, worker_results: list[dict[str, Any]], structured_goal: Any, scratchpad_summary: str) -> Any:
-        """Check for anchor drift after execution."""
-        if not self.anchor_checker or not structured_goal:
-            return None
-        try:
-            combined_output = scratchpad_summary or ""
-            for wr in worker_results:
-                if wr.get("output"):
-                    combined_output += "\n" + wr["output"]
-            from .models import AnchorTrigger
-
-            anchor_result = self.anchor_checker.check(
-                goal=structured_goal,
-                current_output=combined_output,
-                trigger=AnchorTrigger.STEP_COMPLETE,
-            )
-            if not anchor_result.aligned:
-                if self.usage_tracker:
-                    self.usage_tracker.tick("anchor_drift_detected")
-                self.scratchpad.write(
-                    ScratchpadEntry(
-                        worker_id="system",
-                        entry_type=EntryType.WARNING,
-                        content=f"[Anchor Drift] {anchor_result.recommendation}",
-                        confidence=0.9,
-                        tags=["anchor-drift", "v3.7.0"],
-                    )
-                )
-            return anchor_result
-        except (ValueError, AttributeError, ImportError, RuntimeError) as anchor_err:
-            logger.warning("Anchor check failed: %s", anchor_err)
-            return None
-
     def _get_current_tenant_id(self) -> str:
         """Get current tenant_id for data isolation, defaults to 'default'."""
         if self.enterprise.enable_multi_tenant and self.enterprise.tenant_manager:
@@ -578,115 +528,6 @@ class MultiAgentDispatcher:
             if current_tenant:
                 return current_tenant.tenant_id
         return "default"
-
-    def _assemble_result(
-        self,
-        task_description: str,
-        role_ids: list[str],
-        exec_result: Any,
-        scratchpad_summary: str,
-        consensus_records: list[dict[str, Any]],
-        compression_info: Any,
-        memory_stats: dict[str, Any] | None,
-        permission_checks: list[dict[str, Any]],
-        skill_proposals: list[dict[str, Any]],
-        anchor_result: Any,
-        retrospective_report: Any,
-        intent_match: Any,
-        five_axis_result: dict[str, Any] | None,
-        errors: list[str],
-        lang: str,
-        concern_packs: Any,
-        total_duration: float,
-        plan: Any,
-        step_timings: dict[str, float],
-        worker_results: list[dict[str, Any]],
-    ) -> DispatchResult:
-        """Assemble the final DispatchResult from all step results."""
-        report = self.coordinator.generate_report()
-
-        # Data masking
-        scratchpad_summary = self.enterprise.apply_data_masking(scratchpad_summary)
-
-        return DispatchResult(
-            success=exec_result.success and len(errors) == 0,
-            task_description=task_description,
-            matched_roles=role_ids,
-            summary=self.post_dispatch._build_summary(task_description, role_ids, exec_result, scratchpad_summary),
-            details={
-                "plan_total_tasks": plan.total_tasks,
-                "completed_tasks": exec_result.completed_tasks,
-                "failed_tasks": exec_result.failed_tasks,
-                "report": report,
-                "timing": step_timings,
-                "tenant_id": self._get_current_tenant_id() if self.enterprise.enable_multi_tenant else None,
-            },
-            scratchpad_summary=scratchpad_summary,
-            consensus_records=consensus_records,
-            compression_info=compression_info,
-            memory_stats=memory_stats,
-            permission_checks=permission_checks,
-            skill_proposals=skill_proposals,
-            duration_seconds=total_duration,
-            worker_results=worker_results,
-            errors=errors,
-            lang=lang,
-            concern_packs=self._concern_loader.get_pack_info(concern_packs) if concern_packs else [],
-            anchor_result=self._build_anchor_dict(anchor_result),
-            suggested_next_steps=list(intent_match.suggested_next_steps) if intent_match else [],
-            retrospective_report=retrospective_report.to_dict() if retrospective_report else None,
-            intent_match=self._build_intent_dict(intent_match),
-            five_axis_result=five_axis_result,
-        )
-
-    def _build_anchor_dict(self, anchor_result: Any) -> dict[str, Any] | None:
-        """Build anchor result dict for DispatchResult."""
-        if not anchor_result:
-            return None
-        return {
-            "aligned": anchor_result.aligned,
-            "coverage": anchor_result.coverage,
-            "drift_score": anchor_result.drift_score,
-            "severity": anchor_result.severity.value,
-            "recommendation": anchor_result.recommendation,
-        }
-
-    def _build_intent_dict(self, intent_match: Any) -> dict[str, Any] | None:
-        """Build intent match dict for DispatchResult."""
-        if not intent_match:
-            return None
-        return {
-            "intent_type": intent_match.intent_type,
-            "workflow_chain": list(intent_match.workflow_chain),
-            "confidence": intent_match.confidence,
-            "suggested_next_steps": list(intent_match.suggested_next_steps) if hasattr(intent_match, 'suggested_next_steps') else [],
-        }
-
-    def _post_dispatch_hooks(
-        self, result: DispatchResult, task: str, role_ids: list[str], total_duration: float
-    ) -> None:
-        """Post-dispatch hooks: history recording, quality audit, performance recording."""
-        self._dispatch_history.append(result)
-        if len(self._dispatch_history) > self._max_history:
-            self._dispatch_history = self._dispatch_history[-self._max_history :]
-
-        if self.enable_quality_guard and self.quality_guard:
-            try:
-                qreport = self.enterprise.audit_quality()
-                result.quality_report = qreport.to_markdown()
-            except (ValueError, AttributeError, OSError, ImportError) as e:
-                logger.warning("Quality audit failed: %s", e)
-
-        perf_metric = PerformanceMetric(
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            task_description=task,
-            total_duration=total_duration,
-            step_timings=result.details.get("timing", {}),
-            success=result.success,
-            error_count=len(result.errors),
-            role_count=len(role_ids),
-        )
-        self._perf_monitor.record(perf_metric)
 
     def quick_dispatch(
         self,

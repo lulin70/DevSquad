@@ -81,9 +81,14 @@ class ResultAssembler:
         worker_results: list[dict[str, Any]],
         coordinator: Any,
         tenant_id: str | None = None,
+        enterprise: Any = None,
     ) -> DispatchResult:
         """Assemble the final DispatchResult from all step results."""
         report = coordinator.generate_report()
+
+        # Data masking via enterprise feature
+        if enterprise is not None:
+            scratchpad_summary = enterprise.apply_data_masking(scratchpad_summary)
 
         return DispatchResult(
             success=exec_result.success and len(errors) == 0,

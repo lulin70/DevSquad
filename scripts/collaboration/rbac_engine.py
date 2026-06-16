@@ -21,6 +21,7 @@ Usage:
 """
 
 import hashlib
+import json
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -731,5 +732,3 @@ class RBACEngine:
                            f"Valid values: {list(mapping.keys())}")
         return mapping[level_name]
 
-
-import json

@@ -40,6 +40,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 
@@ -782,7 +783,6 @@ class MultiTenantManager:
         return len(tenants_data)
 
 
-from pathlib import Path
 
 if __name__ == "__main__":
     print("Multi-Tenant Manager - Enterprise Multi-Tenancy Support")

@@ -396,7 +396,6 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
                 from scripts.collaboration.unified_gate_engine import (
                     GateType,
                     PhaseGateContext,
-                    UnifiedGateEngine,
                     get_shared_gate_engine,
                 )
 
@@ -966,7 +965,6 @@ class FullLifecycleAdapter(LifecycleProtocol):
                 from scripts.collaboration.unified_gate_engine import (
                     GateType,
                     PhaseGateContext,
-                    UnifiedGateEngine,
                     get_shared_gate_engine,
                 )
 

@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from scripts.collaboration._version import __version__
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.input_validator import InputValidator
 from scripts.collaboration.models import ROLE_REGISTRY, get_cli_role_list, resolve_role_id
@@ -30,7 +31,6 @@ MODES = ["auto", "parallel", "sequential", "consensus"]
 FORMATS = ["markdown", "json", "compact", "structured", "detailed"]
 BACKENDS = ["mock", "trae", "openai", "anthropic"]
 LIFECYCLE_COMMANDS = ["spec", "plan", "build", "test", "review", "ship"]
-from scripts.collaboration._version import __version__
 
 VERSION = __version__
 logger = logging.getLogger(__name__)
