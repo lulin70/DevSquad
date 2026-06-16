@@ -34,7 +34,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
 
-from .models import TaskDefinition, WorkerResult
+from .models import EntryType, ScratchpadEntry, TaskDefinition, WorkerResult
 from .worker import Worker
 
 logger = logging.getLogger(__name__)
@@ -180,6 +180,12 @@ class EnhancedWorker(Worker):
         """
         Execute task with briefing context injection.
 
+        Follows the same flow as Worker.execute():
+        1. Build execution context
+        2. _do_work() returns str (finding text)
+        3. Write finding to scratchpad
+        4. Wrap into WorkerResult
+
         Args:
             task: Task definition
 
@@ -189,6 +195,7 @@ class EnhancedWorker(Worker):
         start_time = time.time()
 
         try:
+            # Inject briefing context into task description if available
             briefing_context = None
             if self._briefing:
                 try:
@@ -196,13 +203,43 @@ class EnhancedWorker(Worker):
                 except (AttributeError, KeyError, RuntimeError) as e:
                     logger.warning("Failed to get briefing context: %s", e)
 
-            result = self._do_work(task)
+            # Build context and execute (same flow as Worker.execute)
+            context = self._build_execution_context(task)
+            finding = self._do_work(context)
 
-            if briefing_context and result.output:
-                if isinstance(result.output, dict):
-                    result.output["briefing_context"] = briefing_context
-                elif isinstance(result.output, str):
-                    result.output = f"{briefing_context}\n\n{result.output}"
+            # Write finding to scratchpad
+            if finding:
+                entry = ScratchpadEntry(
+                    worker_id=self.worker_id,
+                    role_id=self.role_id,
+                    entry_type=EntryType.FINDING,
+                    content=finding,
+                    confidence=0.7,
+                    tags=[task.task_id, task.stage_id or "", "auto"],
+                )
+                self.write_finding(entry)
+
+            # Build output dict (same structure as Worker.execute)
+            output = {
+                "worker_id": self.worker_id,
+                "role_id": self.role_id,
+                "task_id": task.task_id,
+                "finding_summary": finding,
+            }
+
+            # Inject briefing context into output
+            if briefing_context and output["finding_summary"]:
+                output["briefing_context"] = briefing_context
+
+            result = WorkerResult(
+                worker_id=self.worker_id,
+                task_id=task.task_id,
+                success=True,
+                output=output,
+                scratchpad_entries_written=self._entries_written_count,
+                notifications_sent=len(self._notifications_outbox),
+                duration_seconds=time.time() - start_time,
+            )
 
             duration = time.time() - start_time
             self._record_monitor(task, duration, success=True)
@@ -214,6 +251,66 @@ class EnhancedWorker(Worker):
             logger.debug("Worker execution failed: %s", e)
             self._record_monitor(task, duration, success=False)
             raise
+
+    def _do_work_simple(self, task: TaskDefinition) -> WorkerResult:
+        """
+        Execute task without briefing (fallback path).
+
+        Same flow as Worker.execute(): build context → _do_work → write scratchpad → WorkerResult.
+
+        Args:
+            task: Task definition
+
+        Returns:
+            WorkerResult
+        """
+        start_time = time.time()
+        try:
+            context = self._build_execution_context(task)
+            finding = self._do_work(context)
+
+            if finding:
+                entry = ScratchpadEntry(
+                    worker_id=self.worker_id,
+                    role_id=self.role_id,
+                    entry_type=EntryType.FINDING,
+                    content=finding,
+                    confidence=0.7,
+                    tags=[task.task_id, task.stage_id or "", "auto"],
+                )
+                self.write_finding(entry)
+
+            output = {
+                "worker_id": self.worker_id,
+                "role_id": self.role_id,
+                "task_id": task.task_id,
+                "finding_summary": finding,
+            }
+
+            return WorkerResult(
+                worker_id=self.worker_id,
+                task_id=task.task_id,
+                success=True,
+                output=output,
+                scratchpad_entries_written=self._entries_written_count,
+                notifications_sent=len(self._notifications_outbox),
+                duration_seconds=time.time() - start_time,
+            )
+        except Exception as e:
+            logger.error("Worker %s fallback execution failed: %s", self.worker_id, e)
+            return WorkerResult(
+                worker_id=self.worker_id,
+                task_id=task.task_id,
+                success=False,
+                output={
+                    "worker_id": self.worker_id,
+                    "role_id": self.role_id,
+                    "task_id": task.task_id,
+                    "error_detail": "Fallback execution failed",
+                },
+                error=str(e),
+                duration_seconds=time.time() - start_time,
+            )
 
     def _record_monitor(self, task: TaskDefinition, duration: float, success: bool):
         """Record execution metrics to monitor provider."""
@@ -248,11 +345,11 @@ class EnhancedWorker(Worker):
                 result = self.retry_provider.retry_with_fallback(
                     func=lambda: self._do_work_with_briefing(task),
                     max_attempts=3,
-                    fallback=lambda: self._do_work(task),
+                    fallback=lambda: self._do_work_simple(task),
                 )
             except Exception as e:  # Broad catch: retry mechanism fallback
                 logger.debug("Retry mechanism failed, falling back: %s", e)
-                result = self._do_work(task)
+                result = self._do_work_simple(task)
         else:
             result = self._do_work_with_briefing(task)
 
