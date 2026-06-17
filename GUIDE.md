@@ -1,6 +1,6 @@
 # DevSquad 使用指南
 
-> **版本**: V3.7.0 (Enterprise Edition) | **更新日期**: 2026-06-15**
+> **版本**: V3.7.2 (Enterprise Edition) | **更新日期**: 2026-06-17**
 >
 > 本文档是 DevSquad 的完整功能手册，覆盖所有用户可感知的功能。
 
@@ -1088,7 +1088,7 @@ quality_control:
 ### 13.3 配置加载器
 
 ```python
-from scripts.collaboration.config_loader import ConfigManager
+# ConfigManager removed in V3.7.2 (dead code)
 
 config = ConfigManager()
 db_path = config.get("database.path", default=":memory:")
@@ -1291,7 +1291,7 @@ for name, skill in skills.items():
 | 27 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic+流式 |
 | 28 | LLMCache | llm_cache.py | TTL LRU缓存+磁盘持久化 |
 | 29 | LLMRetry | llm_retry.py | 指数退避+熔断器 |
-| 30 | ConfigManager | config_loader.py | YAML配置+环境变量 |
+| 30 | ConfigManager | config_loader.py | *(V3.7.2 已移除)* 死代码 — 零引用 |
 | 31 | Protocols | protocols.py | 协议接口（Cache/Retry/Monitor/Memory + match_rules） |
 | 32 | NullProviders | null_providers.py | 空实现（优雅降级+测试Mock） |
 | 33 | EnhancedWorker | enhanced_worker.py | 增强Worker（缓存/重试/监控/简报/记忆+规则注入） |

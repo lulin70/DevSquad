@@ -287,7 +287,7 @@ class TestCheckpointManagerLifecycleIntegration:
         assert loaded["current_phase"] == "P9"
         assert loaded["mode"] == "full"
         assert "P1" in loaded["completed_phases"]
-        assert loaded["version"] == "3.7.0"
+        assert loaded["version"] == "3.7.2"
         print("✅ Lifecycle state loaded successfully")
 
     def test_load_nonexistent_state(self):

@@ -117,10 +117,7 @@ python3 scripts/cli.py dispatch -t "task" --stream
 ## Using ConfigManager (Python API)
 
 ```python
-from scripts.collaboration.config_loader import ConfigManager
-
-# Create manager (auto-loads: env > file > defaults)
-config_mgr = ConfigManager()
+# ConfigManager removed in V3.7.2 (dead code)
 
 # Access config values
 print(f"Backend: {config_mgr.get('backend')}")
@@ -183,7 +180,7 @@ docker run --env-file .env devsquad dispatch -t "task"
 ls -la ~/.devsquad.yaml
 
 # Verify config is being read
-python3 -c "from scripts.collaboration.config_loader import ConfigManager; c=ConfigManager(); print(c.to_dict())"
+# ConfigManager removed in V3.7.2 (dead code)
 ```
 
 ### Environment variable not taking effect

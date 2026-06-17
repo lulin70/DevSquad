@@ -364,7 +364,7 @@ class PerformanceFingerprint:
         try:
             target_path = Path(self._persist_dir) / "fingerprints.json"
             data = {
-                "version": "3.7.0",
+                "version": "3.7.2",
                 "updated_at": datetime.now().isoformat(),
                 "count": len(self._fingerprints),
                 "fingerprints": self._fingerprints,

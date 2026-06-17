@@ -237,7 +237,7 @@ disp.shutdown()
 ### ConfigManager使用
 
 ```python
-from scripts.collaboration.config_loader import ConfigManager
+# ConfigManager removed in V3.7.2 (dead code)
 
 config_mgr = ConfigManager()
 config = config_mgr.load()

@@ -48,7 +48,7 @@ python3 scripts/collaboration/memory_bridge_test.py
 DevSquad/
 ├── scripts/
 │   ├── collaboration/          # Core modules (53)
-│   │   ├── _version.py         #   Version SSOT (3.7.0)
+│   │   ├── _version.py         #   Version SSOT (3.7.2)
 │   │   ├── models.py           # Data models (zero dependencies)
 │   │   ├── dispatcher.py       # Unified entry point
 │   │   ├── coordinator.py      # Global orchestrator
@@ -66,7 +66,6 @@ DevSquad/
 │   │   ├── code_map_generator.py  # AST-based code analysis
 │   │   ├── dual_layer_context.py  # Project + task context with TTL
 │   │   ├── skill_registry.py     # Skill registration + discovery
-│   │   ├── config_loader.py      # YAML config + env var overrides
 │   │   ├── context_compressor.py
 │   │   ├── permission_guard.py
 │   │   ├── skillifier.py

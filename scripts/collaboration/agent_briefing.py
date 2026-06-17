@@ -585,7 +585,7 @@ def reset_briefings() -> None:
     _briefing_instances.clear()
 
 
-__version__ = "3.7.0"
+__version__ = "3.7.2"
 __all__ = [
     "AgentBriefing",
     "BriefingSection",

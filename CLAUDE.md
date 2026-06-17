@@ -2,17 +2,17 @@
 
 ## Project Overview
 
-**DevSquad** is a **V3.7.0 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
+**DevSquad** is a **V3.7.2 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
 
-**70+ Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**.
+**80+ Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**.
 
 **6 Sub-Skills** (Layered Architecture): DispatchSkill (7-role orchestration), IntentSkill (6 intents × 3 languages), ReviewSkill (5-axis code review), SecuritySkill (input scan + op classify), TestSkill (test strategy + quality audit), RetrospectiveSkill (post-dispatch pattern extraction).
 
-**Test Coverage**: 2109+ tests all passing (100% unit + 100% E2E).
+**Test Coverage**: 2115+ tests all passing (100% unit + 100% E2E).
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 **Enterprise Features**: RBAC (15+ permissions), Audit Log (SHA256), Multi-Tenancy (3 isolation levels), Prometheus Monitoring (12 metrics).
 
-## Architecture (V3.7.0 Enterprise Three-Layer)
+## Architecture (V3.7.2 Enterprise Three-Layer)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -76,7 +76,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec
 python3 scripts/cli.py dispatch -t "Design auth system" --backend openai --stream
 python3 scripts/cli.py status
 python3 scripts/cli.py roles
-python3 scripts/cli.py --version  # 3.7.0
+python3 scripts/cli.py --version  # 3.7.2
 ```
 
 ### Quick Dispatch
@@ -92,7 +92,7 @@ result = disp.quick_dispatch(task, include_action_items=True)   # auto-generate 
 DevSquad/
 ├── scripts/
 │   ├── collaboration/          # ★ Core modules (45 files)
-│   │   ├── _version.py         # Version SSOT (3.7.0)
+│   │   ├── _version.py         # Version SSOT (3.7.2)
 │   │   ├── dispatcher.py       # MultiAgentDispatcher — unified entry point
 │   │   ├── coordinator.py      # Global orchestrator
 │   │   ├── scratchpad.py       # Shared blackboard
@@ -112,7 +112,6 @@ DevSquad/
 │   │   ├── code_map_generator.py  # AST-based code analysis
 │   │   ├── dual_layer_context.py  # Project + task context with TTL
 │   │   ├── skill_registry.py     # Skill registration + discovery
-│   │   ├── config_loader.py      # YAML config + env var overrides
 │   │   ├── prompt_assembler.py   # Dynamic prompt assembly + QC rule injection
 │   │   ├── protocols.py         # Protocol interfaces (Cache/Retry/Monitor/Memory + match_rules/format_rules_as_prompt)
 │   │   ├── null_providers.py    # No-op implementations for degradation (incl. rule methods)
@@ -163,9 +162,9 @@ DevSquad/
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
 - **Documentation**: EN (README.md/SKILL.md) + CN (docs/i18n/README_CN.md/docs/i18n/SKILL_CN.md) + JP variants
-- **Testing**: pytest-based, 2109+ tests all passing
+- **Testing**: pytest-based, 2115+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`3.7.0`)
+- **Version**: Single source of truth in `_version.py` (`3.7.2`)
 
 ## Role System (7 Core Roles)
 
@@ -194,7 +193,7 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Full test suite (2109+ tests)
+# Full test suite (2115+ tests)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \
@@ -202,7 +201,7 @@ python3 -m pytest scripts/collaboration/core_test.py \
   tests/ test_v35_integration.py -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.7.0
+python3 scripts/cli.py --version    # 3.7.2
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 ```

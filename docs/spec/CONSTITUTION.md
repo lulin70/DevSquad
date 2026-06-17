@@ -12,9 +12,9 @@
 | Item | Content |
 |------|---------|
 | Project Name | DevSquad — Multi-Role AI Task Orchestrator |
-| Version | V3.6.1 (Production-Ready with 70+ Core Modules) |
+| Version | V3.7.2 (Production-Ready with 80+ Core Modules) |
 | Created | 2026-03-16 |
-| Last Updated | 2026-05-17 |
+| Last Updated | 2026-06-17 |
 | Status | Active |
 
 ---
@@ -111,7 +111,6 @@ Rationale: Without documentation-first discipline, knowledge evaporates, decisio
 | API key protection | Environment variables ONLY, never CLI args | llm_backend.py |
 | Path traversal | User IDs validated against base directory | rule_collector.py |
 | Thread safety | Shared resources protected by locks | mce_adapter.py, scratchpad.py |
-| Secret logging | Secrets NEVER appear in logs or error messages | config_loader.py |
 
 ### 2.3 Architecture Standards
 

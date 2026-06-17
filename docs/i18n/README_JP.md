@@ -7,8 +7,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2109%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.7.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2115%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.7.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
 </p>
 
@@ -555,7 +555,7 @@ DevSquadは関心の分離を明確にしたレイヤードアーキテクチャ
 | 21 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic + ストリーミングサポート |
 | 22 | **LLMCache** | `llm_cache.py` | TTLベースLRUキャッシュ + ディスク永続化 |
 | 23 | **LLMRetry** | `llm_retry.py` | 指数バックオフ + サーキットブレーカー |
-| 24 | **ConfigManager** | `config_loader.py` | YAML設定 + 環境変数オーバーライド |
+| 24 | **ConfigManager** | `config_loader.py` | *(V3.7.2 で削除)* デッドコード — 参照ゼロ |
 | 25 | **PromptAssembler** | `prompt_assembler.py` | 動的プロンプトアセンブリ + QCルール注入 |
 | 26 | **AgentBriefing** | `agent_briefing.py` | 優先度フィルタリング付きコンテキスト対応タスクブリーフィング |
 | 27 | **ConfidenceScorer** | `confidence_score.py` | 5因子応答品質評価 |
@@ -622,7 +622,7 @@ llm:
 ## テスト実行
 
 ```bash
-# コアテスト（2109+ 全テスト合格）
+# コアテスト（2115+ 全テスト合格）
 python3 -m pytest tests/ -q --tb=short
 ```
 
@@ -630,12 +630,12 @@ python3 -m pytest tests/ -q --tb=short
 DevSquadのアップグレード後、以下のコマンドを実行して環境を検証してください：
 ```bash
 # クイックヘルスチェック（30秒以内で完了）
-python3 scripts/cli.py --version       # 期待される出力: DevSquad 3.7.0
+python3 scripts/cli.py --version       # 期待される出力: DevSquad 3.7.2
 python3 scripts/cli.py status          # 期待される出力: システム準備完了
 python3 scripts/cli.py roles           # 期待される出力: 7つのコアロールが表示
 
 # 完全テストスイート
-python3 -m pytest tests/ -q --tb=line # 期待される出力: 2109 passed
+python3 -m pytest tests/ -q --tb=line # 期待される出力: 2115 passed
 ```
 
 ### カバレッジレポート付き

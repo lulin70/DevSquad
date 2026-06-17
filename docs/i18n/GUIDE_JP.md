@@ -1,6 +1,6 @@
 # DevSquad ユーザーガイド
 
-> **バージョン**: V3.7.0 | **更新日**: 2026-06-15
+> **バージョン**: V3.7.2 | **更新日**: 2026-06-17
 >
 > 本ドキュメントはDevSquadの完全な機能マニュアルであり、ユーザーが利用可能な全機能を網羅しています。
 
@@ -997,7 +997,7 @@ quality_control:
 ### 13.3 設定ローダー
 
 ```python
-from scripts.collaboration.config_loader import ConfigManager
+# ConfigManager removed in V3.7.2 (dead code)
 
 config = ConfigManager()
 db_path = config.get("database.path", default=":memory:")
@@ -1288,7 +1288,7 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 | 30 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + ストリーミング |
 | 31 | LLMCache | llm_cache.py | TTL LRUキャッシュ + ディスク永続化 |
 | 32 | LLMRetry | llm_retry.py | 指数バックオフ + サーキットブレーカー |
-| 33 | ConfigManager | config_loader.py | YAML設定 + 環境変数 |
+| 33 | ConfigManager | config_loader.py | *(V3.7.2 で削除)* デッドコード — 参照ゼロ |
 | 34 | Protocols | protocols.py | プロトコルインターフェース（Cache/Retry/Monitor/Memory + match_rules） |
 | 35 | NullProviders | null_providers.py | Null実装（グレースフルデグラデーション + テストモック） |
 | 36 | EnhancedWorker | enhanced_worker.py | 拡張Worker（キャッシュ/リトライ/モニタ/ブリーフィング/メモリ + ルール注入） |

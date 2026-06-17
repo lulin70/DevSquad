@@ -7,6 +7,29 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.7.2] - 2026-06-16
+
+### 新增
+- **EventBus**（`event_bus.py`）：事件驱动解耦调度流水线，用 on/emit/off/clear 模式替代回调函数
+- **DispatchHooks**（`dispatch_hooks.py`）：从 dispatcher 中提取后置调度钩子（post_dispatch_hooks、post_execution_processing、slice_outputs、check_anchor_drift）
+- **ResultAssembler**（`dispatch_result_assembler.py`）：从 dispatcher 中提取结果组装逻辑
+- **DispatchPerformanceMonitor**（`dispatch_performance.py`）：从 PerformanceMonitor 重命名以避免与 performance_monitor.py 的名称冲突
+- **_do_work_simple()**：EnhancedWorker 新增回退方法，正确返回 WorkerResult（之前返回原始 str）
+- **性能基准测试**：6 项基准测试，覆盖并发调度、大任务、O(1) 查找、线程池复用、内存和创建速度
+
+### 变更
+- **Mixin → 组合模式**：全部 3 个 Mixin（DispatchStepsMixin、DispatchServicesMixin、DispatchComponentFactoryMixin）转换为组合模式 — 依赖通过 `__init__` 注入，替代隐式 `self.*` 属性共享
+- **Dispatcher 拆分**：dispatcher.py 从 1660→706 行（-57%），提取 7 个独立类
+- **Skillifier 重构**：8 处寄生式 `_storage._xxx` 私有属性访问替换为公共接口方法（get_all_records/set_all_records/thread_safe 等），`__getattr__` 动态委托替换为 7 个显式方法
+- **消除 f-string 日志**：22 个文件中 166 处 f-string 转换为延迟格式化（`logger.debug("msg %s", var)`），优化热路径性能
+- **收窄宽泛异常捕获**：关键文件（dashboard、API 路由、MCP 服务器）中 29 处 `except Exception` 收窄为特定异常类型，并映射正确的 HTTP 状态码
+- **EnhancedWorker Bug 修复**：`_do_work_with_briefing` 之前调用 `_do_work()`（返回 str）后访问 `result.output`（str 无 .output 属性）。修复为遵循 Worker.execute() 流程：构建上下文 → _do_work → 写入 scratchpad → 包装为 WorkerResult
+- **.gitignore**：新增 `.devsquad_data/`、`output/`、`*.ipynb_checkpoints/`；从 git 跟踪中移除 `.devsquad_data/`
+- 2115 个测试通过（原 2109）
+
+### 移除
+- **config_loader.py**：死代码 — 整个 ConfigManager/DevSquadConfig 系统在项目中零引用（15 个配置字段和 13 个环境变量映射均未使用）
+
 ## [3.7.0] - 2026-06-15
 
 ### 新增

@@ -2,19 +2,19 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.7.0 DevSquad — Enterprise 多角色 AI 任务编排器。
+  V3.7.2 DevSquad — Enterprise 多角色 AI 任务编排器。
   一个任务输入，多角色 AI 协作，一个结论输出。
   7 个核心角色（架构师/产品经理/安全专家/测试专家/开发工程师/DevOps/UI 设计师），
   真实 LLM 后端（OpenAI/Anthropic/MOKA AI），CLI + MCP + Python API + REST API + Web Dashboard。
   ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
-  NEW in V3.7.0: FeedbackControlLoop 自动模式 + LLM 精炼,
+  NEW in V3.7.2: FeedbackControlLoop 自动模式 + LLM 精炼,
   AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher,
   ExecutionGuard 集成到 EnhancedWorker, 生命周期阶段追踪,
   敏感 API 的 RBAC 检查, 移除 AlertManager,
-  2109+ 测试通过, 73 个核心模块.
+  2115+ 测试通过, 80+ 个核心模块.
 ---
 
-# DevSquad V3.7.0 — 多角色 AI 任务编排器（企业级就绪）
+# DevSquad V3.7.2 — 多角色 AI 任务编排器（企业级就绪）
 
 ## 🎯 一句话理解（3 秒）
 
@@ -67,14 +67,14 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 | 25 | **DualLayerContextManager** | `dual_layer_context.py` | 项目级 + 任务级上下文管理，带 TTL |
 | 26 | **SkillRegistry** | `skill_registry.py` | 可复用技能注册 + 发现 + 持久化 |
 | 27 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic，支持流式输出 + 120s 超时 |
-| 28 | **ConfigManager** | `config_loader.py` | YAML 配置 + 环境变量覆盖（16 个参数） |
+| 28 | **ConfigManager** | `config_loader.py` | *(V3.7.2 已移除)* 死代码 — 零引用 |
 | 29 | **Protocols** | `protocols.py` | Protocol 接口（CacheProvider/RetryProvider/MonitorProvider/MemoryProvider + match_rules/format_rules_as_prompt）+ 异常层级 |
 | 30 | **NullProviders** | `null_providers.py` | 所有 Protocol 接口的空操作实现（含 match_rules/format_rules_as_prompt，降级 + 测试模拟） |
 | 31 | **EnhancedWorker** | `enhanced_worker.py` | 支持 Protocol 注入的 Worker（缓存/重试/监控/简报/记忆）+ 规则注入流水线 |
 | 32 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99 响应时间、CPU/内存追踪、瓶颈检测、Markdown 报告 |
 | 33 | **AgentBriefing** | `agent_briefing.py` | 上下文感知简报生成，带优先级过滤 + 持久化 |
 | 34 | **ConfidenceScorer** | `confidence_score.py` | 5 因子置信度评分（完整性/确定性/具体性/一致性/模型质量） |
-| 35 | **RoleTemplateMarket** | `role_template_market.py` | 角色模板市场（发布/搜索/安装/评分/导出/导入） |
+| 35 | **RoleTemplateMarket** | `role_template_market.py` | *(已移除)* 幽灵功能 — 生产环境从未使用 |
 | 36 | **LLMCache** | `llm_cache.py` | 基于 TTL 的 LRU 缓存，磁盘持久化（降低 60-80% 成本） |
 | 37 | **LLMRetry** | `llm_retry.py` | 指数退避 + 断路器 + 多后端降级 |
 | 38 | **UsageTracker** | `usage_tracker.py` | Token/成本使用量追踪与报告 |
@@ -880,7 +880,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **总计** | **2109+** | **✅ 全部通过** |
+| **总计** | **2115+** | **✅ 全部通过** |
 
 ---
 

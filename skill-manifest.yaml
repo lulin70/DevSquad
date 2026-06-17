@@ -1,13 +1,13 @@
 name: devsquad
-version: 3.7.0
+version: 3.7.2
 description: |
-  DevSquad V3.7.0 — Enterprise Multi-Role AI Task Orchestrator.
+  DevSquad V3.7.2 — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
-  (OpenAI/Anthropic), CLI + MCP + Python API + REST API + Web Dashboard.
+  (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.7.0: RoleSkillLoader + PM Methodology Skills (5 SKILL.md frameworks) + suggested_next_steps + SKILL.md security scanner,
-  76 core modules, 2109+ tests passing.
+  NEW in V3.7.2: EventBus + Dispatcher split (1660→706 lines) + Mixin→Composition + f-string logger eliminated + EnhancedWorker bug fix + config_loader dead code removed + skillifier parasitic coupling refactored + broad except narrowed,
+  80+ core modules, 2115 tests passing.
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -66,7 +66,7 @@ capabilities:
 
   - name: multi-agent-dispatcher
     description: |
-      V3.7.0 统一调度入口 - 一键完成多Agent协作
+      V3.7.2 统一调度入口 - 一键完成多Agent协作
 
       核心能力：
       - 任务意图分析与角色自动匹配（中英双语关键词）
@@ -279,6 +279,13 @@ metadata:
   repository: https://github.com/lulin70/DevSquad
 
   version_history:
+    - version: 3.7.2
+      date: "2026-06-17"
+      changes:
+        - EventBus + Dispatcher split (1660→706 lines) + Mixin→Composition + f-string logger eliminated
+        - EnhancedWorker bug fix + config_loader dead code removed + skillifier parasitic coupling refactored + broad except narrowed
+        - 80+ core modules, 2115 tests passing
+
     - version: 3.7.0
       date: "2026-06-15"
       changes:
@@ -393,4 +400,4 @@ metadata:
         - 初始版本
 
 created_at: "2026-03-16T00:00:00"
-updated_at: "2026-06-15"
+updated_at: "2026-06-17"

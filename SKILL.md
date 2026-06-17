@@ -62,7 +62,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (70+ Core Modules)
+## Architecture Overview (80+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -94,7 +94,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 25 | **DualLayerContextManager** | `dual_layer_context.py` | Project-level + task-level context management with TTL |
 | 26 | **SkillRegistry** | `skill_registry.py` | Reusable skill registration + discovery + persistence |
 | 27 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic with streaming support + 120s timeout |
-| 28 | **ConfigManager** | `config_loader.py` | YAML config + env var overrides (16 parameters) |
+| 28 | **ConfigManager** | `config_loader.py` | *(Removed in V3.7.2)* Dead code — zero references |
 | 29 | **Protocols** | `protocols.py` | Protocol interfaces (CacheProvider/RetryProvider/MonitorProvider/MemoryProvider + match_rules/format_rules_as_prompt) + exception hierarchy |
 | 30 | **NullProviders** | `null_providers.py` | No-op implementations for all Protocol interfaces (incl. match_rules/format_rules_as_prompt, degradation + test mocking) |
 | 31 | **EnhancedWorker** | `enhanced_worker.py` | Worker with protocol-based provider injection (cache/retry/monitor/briefing/memory) + rule injection pipeline |
@@ -106,7 +106,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 37 | **LLMRetry** | `llm_retry.py` | Exponential backoff + circuit breaker + multi-backend fallback |
 | 38 | **UsageTracker** | `usage_tracker.py` | Token/cost usage tracking and reporting |
 | 39 | **Models** | `models.py` | Shared data models and type definitions |
-| 40 | **ConfigManager (YAML)** | `config_loader.py` | Project-level YAML configuration management |
+| 40 | **ConfigManager (YAML)** | `config_loader.py` | *(Removed in V3.7.2)* Dead code — zero references |
 | 41 | **LLMCacheAsync** | `_archived/llm_cache_async.py` | *(Archived)* Async LLM cache for concurrent workloads |
 | 42 | **LLMRetryAsync** | `_archived/llm_retry_async.py` | *(Archived)* Async LLM retry with backoff |
 | 43 | **IntegrationExample** | `_archived/integration_example.py` | *(Archived)* DevSquad integration example code |
@@ -238,7 +238,7 @@ for name, skill in all_skills.items():
 
 ---
 
-## 🔄 Cybernetics Enhancement (V3.7.0)
+## 🔄 Cybernetics Enhancement (V3.7.2)
 
 > Inspired by upstream TraeMultiAgentSkill v2.5's cybernetics architecture.
 > 5 new modules that add feedback loops, execution guards, and intelligence to DevSquad.
@@ -280,7 +280,7 @@ roles = selector.select_roles("Fix security bug", intent="bug_fix")
 
 ---
 
-## Architecture Overview (70+ Core Modules)
+## Architecture Overview (80+ Core Modules)
 
 ## Quick Start (Must Follow)
 
@@ -914,7 +914,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **Total** | **2109+** | **✅ ALL PASS** |
+| **Total** | **2115+** | **✅ ALL PASS** |
 
 ---
 

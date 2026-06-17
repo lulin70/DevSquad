@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V3.7.0 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V3.7.2 Enterprise Ready</em>
 </p>
 
 <p align="center">
@@ -439,7 +439,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.7.0
+# Expected: devsquad 3.7.2
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -493,14 +493,14 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 3.7.0
+python3 scripts/cli.py --version       # Expected: DevSquad 3.7.2
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
 
 ### Full Test Suite
 ```bash
-# Run all tests (2109+ tests passing)
+# Run all tests (2115+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -517,7 +517,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 2109+ tests**
+**Total: 2115+ tests**
 
 Run by priority:
 ```bash

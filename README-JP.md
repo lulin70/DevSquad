@@ -3,14 +3,14 @@
 <p align="center">
   <strong>1つのタスク → マルチロールAIコラボレーション → 1つの結論</strong>
   <br>
-  <em>エンタープライズ対応 | V3.7.0</em>
+  <em>エンタープライズ対応 | V3.7.2</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2109%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.7.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2115%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.7.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.7.0: ゴースト機能クリーンアップ + Dispatcher分割 + SSRF強化
+## 🚀 V3.7.2: ゴースト機能クリーンアップ + Dispatcher分割 + SSRF強化
 
-**DevSquad V3.7.0** ゴースト機能の削除（PromptVariantGenerator、RoleTemplateMarket — 完全実装だが本番インポートゼロ）、dispatcher.pyをDispatchStepsMixinに分割（コード量23%削減）、SSRF検出のIPv6/httpsバリアント追加、Step 19/20の9つの統合テスト追加、リアルLLMスモークテスト実装、合計2109+テスト合格。
+**DevSquad V3.7.2** ゴースト機能の削除（PromptVariantGenerator、RoleTemplateMarket — 完全実装だが本番インポートゼロ）、dispatcher.pyをDispatchStepsMixinに分割（コード量23%削減）、SSRF検出のIPv6/httpsバリアント追加、Step 19/20の9つの統合テスト追加、リアルLLMスモークテスト実装、合計2115+テスト合格。
 
 ### 🔄 V3.6.6 エンタープライズ機能詳細
 
@@ -250,7 +250,7 @@ python scripts/cli.py dispatch -t "テストタスク"
 | P0 品質フレームワーク (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 拡張モジュール (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新モジュール (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **合計** | **2109+** | **100%** |
+| **合計** | **2115+** | **100%** |
 
 ---
 

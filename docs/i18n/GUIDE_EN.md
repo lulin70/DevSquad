@@ -1,6 +1,6 @@
 # DevSquad User Guide
 
-> **Version**: V3.7.0 | **Updated**: 2026-06-15
+> **Version**: V3.7.2 | **Updated**: 2026-06-17
 >
 > This document is the complete feature manual for DevSquad, covering all user-facing functionality.
 
@@ -1023,7 +1023,7 @@ quality_control:
 ### 13.3 Configuration Loader
 
 ```python
-from scripts.collaboration.config_loader import ConfigManager
+# ConfigManager removed in V3.7.2 (dead code)
 
 config = ConfigManager()
 db_path = config.get("database.path", default=":memory:")
@@ -1370,7 +1370,7 @@ Typical combination: First use `IntentSkill.detect()` to determine intent, then 
 | 30 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + streaming |
 | 31 | LLMCache | llm_cache.py | TTL LRU cache + disk persistence |
 | 32 | LLMRetry | llm_retry.py | Exponential backoff + circuit breaker |
-| 33 | ConfigManager | config_loader.py | YAML config + environment variables |
+| 33 | ConfigManager | config_loader.py | *(Removed in V3.7.2)* Dead code — zero references |
 | 34 | Protocols | protocols.py | Protocol interfaces (Cache/Retry/Monitor/Memory + match_rules) |
 | 35 | NullProviders | null_providers.py | Null implementations (graceful degradation + test mocks) |
 | 36 | EnhancedWorker | enhanced_worker.py | Enhanced Worker (cache/retry/monitor/briefing/memory + rule injection) |

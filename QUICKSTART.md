@@ -3,7 +3,7 @@
 <p align="center">
   <strong>把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>V3.7.0 Enterprise Ready | One task → Multi-role AI → One conclusion</em>
+  <em>V3.7.2 Enterprise Ready | One task → Multi-role AI → One conclusion</em>
 </p>
 
 ---
@@ -201,7 +201,7 @@ devsquad ship "部署和发布检查"
 
 ### 质量保障
 - ✅ **E2E Test Suite**: 16 个用户旅程测试用例，100% 通过率
-- ✅ **2109+ Tests Passing**: 覆盖所有核心模块
+- ✅ **2115+ Tests Passing**: 覆盖所有核心模块
 - ✅ **65% Maturity Score (honest assessment)**: 企业级成熟度评分
 
 </details>
@@ -249,4 +249,4 @@ devsquad ship "部署和发布检查"
 
 ---
 
-*最后更新: 2026-06-15 | 版本: V3.7.0*
+*最后更新: 2026-06-15 | 版本: V3.7.2*

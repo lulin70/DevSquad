@@ -68,7 +68,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.7.0
+python3 scripts/cli.py --version   # 3.7.2
 ```
 
 ### Method 5: Web Dashboard (V3.6.0) 🎨
@@ -464,7 +464,7 @@ DevSquad/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
 │   └── collaboration/            # ★ 48 core modules
-│       ├── _version.py           # Version SSOT (3.7.0)
+│       ├── _version.py           # Version SSOT (3.7.2)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard
@@ -481,7 +481,6 @@ DevSquad/
 │       ├── code_map_generator.py  # AST-based code analysis
 │       ├── dual_layer_context.py  # Project + task context with TTL
 │       ├── skill_registry.py     # Skill registration + discovery
-│       ├── config_loader.py      # YAML config + env var overrides
 │       ├── memory_bridge.py      # Cross-session memory
 │       ├── mce_adapter.py        # CarryMem integration adapter
 │       ├── agent_briefing.py     # Context-aware task briefing
