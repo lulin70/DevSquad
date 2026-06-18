@@ -298,7 +298,7 @@ integration:
     - "scripts.collaboration.operation_classifier.OperationClassifier"
     - "scripts.collaboration.permission_guard.PermissionGuard"
   base_class: "skills.registry.BaseSkill"
-  version_source: "scripts.collaboration._version (3.7.0)"
+  version_source: "scripts.collaboration._version (3.7.2)"
   dispatcher_modes:
     - "security_audit"
     - "permission_check"
