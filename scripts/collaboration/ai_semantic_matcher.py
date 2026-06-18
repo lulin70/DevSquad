@@ -273,12 +273,30 @@ Return the matching results in JSON format:
         self.match_history.append(record)
 
     def get_match_history(self, limit: int = 10) -> list[dict]:
+        """Return the most recent semantic match records.
+
+        Args:
+            limit: Maximum number of recent records to return. Defaults to 10.
+
+        Returns:
+            List of match record dictionaries, newest last, up to ``limit``.
+        """
         return self.match_history[-limit:]
 
     def clear_cache(self):
+        """Clear all cached semantic match results."""
         self.match_cache.clear()
 
     def explain_match(self, result: SemanticMatchResult) -> str:
+        """Build a human-readable explanation of a semantic match result.
+
+        Args:
+            result: The SemanticMatchResult to explain.
+
+        Returns:
+            Multi-line string describing role, confidence, relevance,
+            reasoning, explanation, and matched capabilities.
+        """
         explanation = (
             f"Match: {result.role_name} ({result.role_id})\n"
             f"Confidence: {result.confidence:.1%}\n"

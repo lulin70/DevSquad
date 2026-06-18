@@ -46,6 +46,11 @@ async def run_async_benchmark(dispatcher, task_descriptions):
 
 
 def main():
+    """Run the sync-vs-async dispatch benchmark and print results.
+
+    Parses ``--tasks`` and ``--warmup`` CLI arguments, creates a
+    MultiAgentDispatcher with mock backend, and prints timing comparisons.
+    """
     parser = argparse.ArgumentParser(description="Benchmark sync vs async dispatch")
     parser.add_argument("--tasks", type=int, default=10, help="Number of tasks to dispatch")
     parser.add_argument("--warmup", type=int, default=2, help="Warmup iterations")

@@ -216,6 +216,11 @@ class DispatchResult:
     five_axis_result: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the dispatch result to a dictionary.
+
+        Returns:
+            Dictionary containing all dispatch result fields with rounded duration.
+        """
         return {
             "success": self.success,
             "task_description": self.task_description,
@@ -241,6 +246,11 @@ class DispatchResult:
         }
 
     def to_markdown(self) -> str:
+        """Render the dispatch result as a localized Markdown report.
+
+        Returns:
+            Markdown string with task status, duration, roles, summary, and worker outputs.
+        """
         t = I18N.get(self.lang, I18N["zh"])
         is_mock = any("[MOCK MODE]" in (wr.get("output", "") or "") for wr in (self.worker_results or []))
         lines = []

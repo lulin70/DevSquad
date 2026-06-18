@@ -96,6 +96,17 @@ class AgentBriefing:
         self._load_briefing()
 
     def generate_briefing(self, task: str, context: dict[str, Any] | None = None, max_length: int | None = None) -> str:
+        """Generate a full briefing document for the given task.
+
+        Args:
+            task: Description of the task to brief on.
+            context: Optional dictionary of additional context values.
+            max_length: Optional maximum character length; the briefing is
+                truncated with a marker when exceeded.
+
+        Returns:
+            The assembled briefing as a single string.
+        """
         context = context or {}
 
         briefing_parts = []
@@ -445,6 +456,17 @@ class AgentBriefing:
         return content.strip()
 
     def update_briefing(self, key: str, value: Any, section: str | None = None, priority: int = 2) -> None:
+        """Update the briefing with a new key/value pair.
+
+        Args:
+            key: Name of the field to update (e.g., "capabilities",
+                "constraints", "preferences") when section is None, or the
+                label to render within a section.
+            value: Value to store. Lists are merged, scalars are appended.
+            section: Optional section name; when provided the value is
+                appended to that section's content.
+            priority: Priority for newly created sections. Defaults to 2.
+        """
         if section:
             if section not in self.sections:
                 self.sections[section] = BriefingSection(title=section, content="", priority=priority)
@@ -475,11 +497,27 @@ class AgentBriefing:
         self._save_briefing()
 
     def add_section(self, title: str, content: str, priority: int = 2, metadata: dict[str, Any] | None = None) -> None:
+        """Add or replace a briefing section.
+
+        Args:
+            title: Section title used as the key.
+            content: Section body text.
+            priority: Section priority (lower is higher priority). Defaults to 2.
+            metadata: Optional metadata dictionary for the section.
+        """
         self.sections[title] = BriefingSection(title=title, content=content, priority=priority, metadata=metadata or {})
 
         self._save_briefing()
 
     def remove_section(self, title: str) -> bool:
+        """Remove a briefing section by title.
+
+        Args:
+            title: Title of the section to remove.
+
+        Returns:
+            True when the section existed and was removed, False otherwise.
+        """
         if title in self.sections:
             del self.sections[title]
             self._save_briefing()
@@ -487,16 +525,35 @@ class AgentBriefing:
         return False
 
     def get_section(self, title: str) -> BriefingSection | None:
+        """Retrieve a briefing section by title.
+
+        Args:
+            title: Title of the section to retrieve.
+
+        Returns:
+            The matching BriefingSection, or None when not found.
+        """
         return self.sections.get(title)
 
     def list_sections(self) -> list[str]:
+        """List all briefing section titles.
+
+        Returns:
+            List of section title strings in insertion order.
+        """
         return list(self.sections.keys())
 
     def clear_history(self) -> None:
+        """Clear the agent context history and persist the change."""
         self.agent_context.history.clear()
         self._save_briefing()
 
     def export_briefing(self, output_path: str) -> None:
+        """Export the briefing to a JSON file.
+
+        Args:
+            output_path: Destination file path for the exported JSON.
+        """
         briefing_data = {
             "agent_role": self.agent_role,
             "project_context": self.project_context,
@@ -571,6 +628,18 @@ _briefing_instances: dict[str, AgentBriefing] = {}
 def get_agent_briefing(
     agent_role: str, project_context: dict[str, Any] | None = None, storage_dir: str | None = None
 ) -> AgentBriefing:
+    """Return a cached AgentBriefing instance for the given role.
+
+    Args:
+        agent_role: Identifier of the agent role.
+        project_context: Optional project-level context dictionary. Only
+            applied when creating a new instance.
+        storage_dir: Optional directory for briefing persistence. Only
+            applied when creating a new instance.
+
+    Returns:
+        The shared AgentBriefing instance for ``agent_role``.
+    """
     if agent_role not in _briefing_instances:
         _briefing_instances[agent_role] = AgentBriefing(
             agent_role=agent_role, project_context=project_context, storage_dir=storage_dir

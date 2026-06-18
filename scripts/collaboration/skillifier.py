@@ -75,6 +75,12 @@ class ExecutionStep:
     output_data: str | None = None
 
     def to_dict(self) -> dict:
+        """Serialize the ExecutionStep to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary containing step_order, action_type, target, description,
+            outcome, and duration_ms fields.
+        """
         return {
             "step_order": self.step_order,
             "action_type": self.action_type.value,
@@ -86,6 +92,14 @@ class ExecutionStep:
 
     @classmethod
     def from_dict(cls, d: dict) -> "ExecutionStep":
+        """Construct an ExecutionStep from a dictionary.
+
+        Args:
+            d: Dictionary with step fields; missing values use safe defaults.
+
+        Returns:
+            ExecutionStep instance populated from the dictionary.
+        """
         return cls(
             step_order=d.get("step_order", 0),
             action_type=PGActionType(d.get("action_type", "file_read")),
@@ -111,6 +125,7 @@ class ExecutionRecord:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def finalize(self):
+        """Finalize the record by setting end_time and computing duration_seconds if unset."""
         if self.end_time is None:
             self.end_time = datetime.now()
         if self.duration_seconds == 0.0 and self.start_time:
@@ -118,6 +133,12 @@ class ExecutionRecord:
             self.duration_seconds = max(0.0, delta.total_seconds())
 
     def to_dict(self) -> dict:
+        """Serialize the ExecutionRecord to a summary JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with record_id, task_description, success, worker_id,
+            role_id, step_count, duration_seconds, and artifacts fields.
+        """
         return {
             "record_id": self.record_id,
             "task_description": self.task_description,
@@ -131,6 +152,14 @@ class ExecutionRecord:
 
     @classmethod
     def from_dict(cls, d: dict) -> "ExecutionRecord":
+        """Construct an ExecutionRecord from a summary dictionary.
+
+        Args:
+            d: Dictionary with record fields; missing values use safe defaults.
+
+        Returns:
+            ExecutionRecord instance populated from the dictionary.
+        """
         return cls(
             record_id=d.get("record_id", f"er-{uuid.uuid4().hex[:12]}"),
             task_description=d.get("task_description", ""),
@@ -154,6 +183,12 @@ class PatternStep:
     estimated_risk: float = 0.0
 
     def to_dict(self) -> dict:
+        """Serialize the PatternStep to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with action_type, target_pattern, description_template,
+            is_required, and estimated_risk fields.
+        """
         return {
             "action_type": self.action_type.value,
             "target_pattern": self.target_pattern,
@@ -178,6 +213,12 @@ class SuccessPattern:
     created_at: datetime = field(default_factory=datetime.now)
 
     def to_dict(self) -> dict:
+        """Serialize the SuccessPattern to a summary JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with pattern_id, name, description, frequency, confidence,
+            avg_success_rate, step_count, trigger_keywords, and source_record_count.
+        """
         return {
             "pattern_id": self.pattern_id,
             "name": self.name,
@@ -216,6 +257,11 @@ class ValidationResult:
     suggestions: list[str] = field(default_factory=list)
 
     def grade(self) -> str:
+        """Map the numeric score to a letter grade (A/B/C/D).
+
+        Returns:
+            "A" for score>=85, "B" for >=70, "C" for >=55, otherwise "D".
+        """
         if self.score >= 85:
             return "A"
         elif self.score >= 70:
@@ -226,6 +272,12 @@ class ValidationResult:
             return "D"
 
     def to_dict(self) -> dict:
+        """Serialize the ValidationResult to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with score, grade, completeness, specificity, repeatability,
+            safety, issues, and suggestions fields.
+        """
         return {
             "score": round(self.score, 1),
             "grade": self.grade(),
@@ -266,6 +318,13 @@ class SkillProposal:
         return slug or "unnamed-skill"
 
     def to_dict(self) -> dict:
+        """Serialize the SkillProposal to a summary JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with proposal_id, name, slug, version, description, category,
+            status, step_count, quality_score, created_at, and optional validation
+            and published_at fields.
+        """
         d = {
             "proposal_id": self.proposal_id,
             "name": self.name,
@@ -406,11 +465,26 @@ class Skillifier:
     # ================================================================
 
     def record_execution(self, record: ExecutionRecord) -> None:
+        """Record an execution via the underlying SkillStorage.
+
+        Args:
+            record: ExecutionRecord to finalize and persist.
+        """
         self._storage.record_execution(record)
 
     def get_records(
         self, since: datetime = None, until: datetime = None, success_only: bool = True
     ) -> list[ExecutionRecord]:
+        """Query stored execution records by time range and success status.
+
+        Args:
+            since: Optional inclusive lower bound on record start_time.
+            until: Optional inclusive upper bound on record start_time.
+            success_only: When True (default), only successful records are returned.
+
+        Returns:
+            List of ExecutionRecord matching the filters.
+        """
         return self._storage.get_records(since=since, until=until, success_only=success_only)
 
     # ================================================================
@@ -418,6 +492,15 @@ class Skillifier:
     # ================================================================
 
     def analyze_history(self, since: datetime = None, until: datetime = None) -> list[SuccessPattern]:
+        """Analyze execution history to extract and persist success patterns.
+
+        Args:
+            since: Optional inclusive lower bound on record start_time.
+            until: Optional inclusive upper bound on record start_time.
+
+        Returns:
+            List of newly extracted SuccessPattern instances (also persisted).
+        """
         with self._storage.thread_safe():
             records = self._storage.get_records(since=since, until=until, success_only=True)
             patterns = self._extractor.analyze_history(
@@ -432,6 +515,14 @@ class Skillifier:
     # ================================================================
 
     def generate_skill(self, pattern: SuccessPattern) -> SkillProposal:
+        """Generate, validate, and persist a SkillProposal from a SuccessPattern.
+
+        Args:
+            pattern: SuccessPattern used as the source for skill generation.
+
+        Returns:
+            SkillProposal with validation_result and quality_score populated.
+        """
         proposal = self._extractor.generate_skill(pattern)
         validation = self._extractor.validate_skill(proposal, patterns=self._storage.get_patterns())
         proposal.validation_result = validation
@@ -444,6 +535,14 @@ class Skillifier:
     # ================================================================
 
     def validate_skill(self, proposal: SkillProposal) -> ValidationResult:
+        """Validate a SkillProposal against the current pattern library.
+
+        Args:
+            proposal: SkillProposal to validate.
+
+        Returns:
+            ValidationResult with score, sub-scores, issues, and suggestions.
+        """
         return self._extractor.validate_skill(proposal, patterns=self._storage.get_patterns())
 
     # ================================================================
@@ -451,9 +550,26 @@ class Skillifier:
     # ================================================================
 
     def approve_and_publish(self, proposal_id: str, approver: str = "system") -> bool:
+        """Approve and publish a proposal by id via the underlying storage.
+
+        Args:
+            proposal_id: Identifier of the proposal to publish.
+            approver: Name of the approver (default "system").
+
+        Returns:
+            True if the proposal exists, False otherwise.
+        """
         return self._storage.approve_and_publish(proposal_id, approver)
 
     def suggest_skills_for_task(self, task_description: str) -> list[SkillProposal]:
+        """Suggest approved/published skills whose trigger conditions match a task.
+
+        Args:
+            task_description: Natural language description of the task.
+
+        Returns:
+            List of up to 10 SkillProposal sorted by relevance score (descending).
+        """
         return self._storage.suggest_skills_for_task(task_description)
 
     # ================================================================
@@ -461,16 +577,44 @@ class Skillifier:
     # ================================================================
 
     def get_pattern_library(self) -> list[SuccessPattern]:
+        """Return all stored success patterns.
+
+        Returns:
+            List of SuccessPattern currently in storage.
+        """
         return self._storage.get_patterns()
 
     def get_proposals(self, status=None) -> list[SkillProposal]:
+        """List proposals, optionally filtered by status.
+
+        Args:
+            status: Optional ProposalStatus value to filter by.
+
+        Returns:
+            List of SkillProposal matching the status filter (or all if None).
+        """
         return self._storage.get_proposals(status)
 
     def export_patterns(self) -> str:
+        """Export all stored patterns as a JSON string.
+
+        Returns:
+            JSON-encoded string of the pattern library.
+        """
         return self._storage.export_patterns()
 
     def export_state(self) -> dict:
+        """Export the full storage state (records, patterns, proposals) as a dict.
+
+        Returns:
+            Dictionary containing the serializable storage state.
+        """
         return self._storage.export_state()
 
     def get_statistics(self) -> dict[str, Any]:
+        """Return aggregate statistics about records, patterns, and proposals.
+
+        Returns:
+            Dictionary with counts and quality aggregates from the storage.
+        """
         return self._storage.get_statistics()

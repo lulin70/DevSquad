@@ -38,12 +38,15 @@ except ImportError:
             pass
 
         def labels(self, *_args: Any, **_kwargs: Any):
+            """Return self to support chaining when prometheus is unavailable."""
             return self
 
         def inc(self, amount: int = 1):
+            """No-op increment for the stub counter."""
             pass
 
         def observe(self, amount: float):
+            """No-op observe for the stub counter."""
             pass
 
     class Gauge:  # type: ignore[no-redef]
@@ -51,15 +54,19 @@ except ImportError:
             pass
 
         def labels(self, *_args: Any, **_kwargs: Any):
+            """Return self to support chaining when prometheus is unavailable."""
             return self
 
         def set(self, value: float):
+            """No-op set for the stub gauge."""
             pass
 
         def inc(self, amount: int = 1):
+            """No-op increment for the stub gauge."""
             pass
 
         def dec(self, amount: int = 1):
+            """No-op decrement for the stub gauge."""
             pass
 
     class Histogram:  # type: ignore[no-redef]
@@ -67,12 +74,15 @@ except ImportError:
             pass
 
         def labels(self, *_args: Any, **_kwargs: Any):
+            """Return self to support chaining when prometheus is unavailable."""
             return self
 
         def observe(self, amount: float):
+            """No-op observe for the stub histogram."""
             pass
 
         def time(self):
+            """Return a null context manager for timing when prometheus is unavailable."""
             return _NullContextManager()
 
     class Info:  # type: ignore[no-redef]
@@ -80,6 +90,7 @@ except ImportError:
             pass
 
         def info(self, info_dict: dict[str, str]):
+            """No-op info setter for the stub Info metric."""
             pass
 
 

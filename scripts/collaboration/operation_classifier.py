@@ -75,6 +75,12 @@ class ClassifiedOperation:
     override_allowed: bool
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the classified operation to a dictionary.
+
+        Returns:
+            Dictionary containing operation id, category, description, risk factors,
+            confirmation requirement, and override allowance.
+        """
         return {
             "operation_id": self.operation_id,
             "category": self.category.value,

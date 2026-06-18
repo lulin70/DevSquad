@@ -34,6 +34,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from .llm_cache_base import LLMCacheBase
 from .prometheus_metrics import get_metrics
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ class CacheEntry:
         return (time.time() - self.timestamp) / 3600
 
 
-class LLMCache:
+class LLMCache(LLMCacheBase):
     """
     LLM 响应缓存器
 
@@ -69,6 +70,10 @@ class LLMCache:
     - TTL 过期机制
     - 命中率统计
     - 自动清理过期缓存
+
+    Inherits shared caching strategy (key generation, TTL, LRU policy, stats)
+    from LLMCacheBase. Only I/O layer (memory dict, disk files, Redis) is
+    implemented here.
     """
 
     def __init__(
@@ -122,21 +127,20 @@ class LLMCache:
                 self.use_multi_level_cache = False
                 self._mlc = None
 
+        # Initialize shared strategy from base class (sets ttl, max_memory_entries, stats)
+        super().__init__(
+            cache_dir=cache_dir,
+            ttl_seconds=ttl_seconds,
+            max_memory_entries=max_memory_entries,
+        )
+
         self.cache_dir = Path(cache_dir or "data/llm_cache")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.ttl = ttl_seconds
-        self.max_memory_entries = max_memory_entries
         self.memory_cache: dict[str, CacheEntry] = {}
         self._lock = threading.RLock()
 
-        # 统计信息
-        self.stats = {
-            "hits": 0,
-            "misses": 0,
-            "sets": 0,
-            "evictions": 0,
-            "expirations": 0,
-        }
+        # Extend base stats with sync-specific "expirations" counter
+        self.stats["expirations"] = 0
 
         # Redis L2 缓存
         self._redis_cache = None
@@ -156,13 +160,10 @@ class LLMCache:
         """
         生成缓存键
 
-        使用 SHA256 哈希确保：
-        - 相同输入产生相同键
-        - 不同输入产生不同键
-        - 键长度固定（16 字符）
+        Delegates to LLMCacheBase.generate_cache_key (SHA256, 16-char truncated).
+        Kept as a thin wrapper for backward compatibility with existing callers.
         """
-        key = f"{backend}:{model}:{prompt}"
-        return hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+        return self.generate_cache_key(prompt, backend, model, hash_length=self.DEFAULT_HASH_LENGTH)
 
     def _redis_hash_prompt(self, prompt: str, backend: str, model: str) -> str:
         """Generate a Redis-safe cache key from prompt components."""
@@ -372,7 +373,7 @@ class LLMCache:
 
     def _add_to_memory(self, key: str, entry: CacheEntry):
         """添加到内存缓存，必要时执行 LRU 淘汰"""
-        if len(self.memory_cache) >= self.max_memory_entries:
+        if self.should_evict(len(self.memory_cache)):
             # LRU 淘汰：删除最久未访问的条目
             oldest_key = min(self.memory_cache.keys(), key=lambda k: self.memory_cache[k].last_accessed)
             del self.memory_cache[oldest_key]
@@ -417,7 +418,7 @@ class LLMCache:
             包含命中率、条目数等统计信息的字典
         """
         total_requests = self.stats["hits"] + self.stats["misses"]
-        hit_rate = self.stats["hits"] / total_requests if total_requests > 0 else 0.0
+        hit_rate = self.calculate_hit_rate(self.stats["hits"], self.stats["misses"])
 
         # 统计磁盘缓存
         try:
@@ -447,7 +448,7 @@ class LLMCache:
             "total_requests": total_requests,
             "hits": self.stats["hits"],
             "misses": self.stats["misses"],
-            "hit_rate_percent": f"{hit_rate * 100:.1f}%",
+            "hit_rate_percent": self.format_hit_rate_percent(self.stats["hits"], self.stats["misses"]),
             "memory_entries": len(self.memory_cache),
             "disk_entries": disk_entries,
             "total_hits": total_hits,

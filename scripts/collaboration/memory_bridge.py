@@ -24,16 +24,14 @@ MemoryBridge - 记忆桥接系统
 
 import contextlib
 import json
-import math
 import os
 import re
 import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
-from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -66,9 +64,19 @@ class MemoryItem:
 
     @property
     def age_days(self) -> float:
+        """Return the age of this memory in days since creation.
+
+        Returns:
+            Elapsed days between creation time and now as a float.
+        """
         return (datetime.now() - self.created_at).total_seconds() / 86400
 
     def to_dict(self) -> dict:
+        """Serialize the memory item to a dictionary.
+
+        Returns:
+            Dictionary with all fields, including ISO-formatted timestamps.
+        """
         return {
             "id": self.id,
             "memory_type": self.memory_type.value,
@@ -86,6 +94,15 @@ class MemoryItem:
 
     @classmethod
     def from_dict(cls, d: dict) -> "MemoryItem":
+        """Reconstruct a MemoryItem from a dictionary.
+
+        Args:
+            d: Dictionary produced by to_dict(). Must contain id, memory_type,
+                title, and content keys.
+
+        Returns:
+            A new MemoryItem instance with fields populated from the dictionary.
+        """
         return cls(
             id=d["id"],
             memory_type=MemoryType(d["memory_type"]),
@@ -140,14 +157,30 @@ class MemoryConfig:
 
     @classmethod
     def default(cls) -> "MemoryConfig":
+        """Return the default memory configuration.
+
+        Returns:
+            A MemoryConfig instance with default field values.
+        """
         return cls()
 
     @classmethod
     def lightweight(cls) -> "MemoryConfig":
+        """Return a lightweight memory configuration for low-overhead usage.
+
+        Returns:
+            A MemoryConfig with auto-capture and auto-index disabled and a
+            smaller episodic memory cap.
+        """
         return cls(auto_capture=False, auto_index=False, max_episodic_memories=100)
 
     @classmethod
     def full(cls) -> "MemoryConfig":
+        """Return a full-featured memory configuration for maximum recall.
+
+        Returns:
+            A MemoryConfig with larger memory caps and semantic search enabled.
+        """
         return cls(max_episodic_memories=5000, max_knowledge_items=20000, enable_semantic_search=True)
 
 
@@ -233,431 +266,75 @@ class ErrorContext:
     timestamp: str = ""
 
 
-class WorkBuddyClawSource:
-    """
-    Read-only bridge for WorkBuddy (Claw) memory data source.
+# WorkBuddyClawSource moved to memory_claw_source.py (backward-compatible re-export below)
+from .memory_claw_source import WorkBuddyClawSource  # noqa: E402
 
-    Reads structured memory files from /Users/lin/WorkBuddy/Claw/.memory/
-    and .workbuddy/memory/ directories, converting them into standard
-    MemoryItem lists.
+# Forgetting helpers moved to memory_forgetting.py
+from .memory_forgetting import (  # noqa: E402
+    cleanup_expired_memories as _cleanup_expired_memories,
+)
+from .memory_forgetting import (  # noqa: E402
+    compress_old_memories as _compress_old_memories,
+)
+from .memory_forgetting import (  # noqa: E402
+    forgetting_weight as _forgetting_weight,
+)
 
-    Data mapping rules:
-      .memory/SOUL.md       -> MemoryType.SEMANTIC (personality matrix)
-      .memory/USER.md       -> MemoryType.KNOWLEDGE (user profile)
-      .memory/MEMORY.md     -> MemoryType.KNOWLEDGE (core knowledge)
-      .memory/INDEX.md      -> used for retrieval acceleration (not returned directly)
-      .memory/PROMPT.md     -> MemoryType.PATTERN (prompt optimization rules)
-      .memory/EXP.md        -> MemoryType.EPISODIC (experience system)
-
-    Design constraints:
-      - Read-only access, never writes to Claw directory
-      - Path hardcoded to /Users/lin/WorkBuddy/Claw (overridable via constructor)
-      - Caches INDEX.md parsing results to avoid repeated IO
-      - All exceptions caught internally, never affects main flow
-    """
-
-    CLAW_BASE_PATH = os.environ.get("WORKBUDDY_CLAW_PATH", "/Users/lin/WorkBuddy/Claw")
-    MEMORY_DIR = ".memory"
-    WORKBUDDY_MEMORY_DIR = ".workbuddy/memory"
-
-    CORE_FILE_MAPPING = {
-        "SOUL.md": ("AI Personality Matrix (OCEAN model)", MemoryType.SEMANTIC),
-        "USER.md": ("User Profile (background/preferences/channels)", MemoryType.KNOWLEDGE),
-        "MEMORY.md": ("Core Knowledge Base (lessons/decisions)", MemoryType.KNOWLEDGE),
-        "EXP.md": ("Experience System", MemoryType.EPISODIC),
-        "PROMPT.md": ("Prompt Optimization Rules", MemoryType.PATTERN),
-        "HEALTH.md": ("Health Monitoring Status", MemoryType.SEMANTIC),
-    }
-
-    def __init__(self, base_path: str | None = None):
-        """
-        Initialize the Claw source with optional custom base path.
-
-        Args:
-            base_path: Custom path to Claw directory. Defaults to CLAW_BASE_PATH.
-        """
-        self.base_path = Path(base_path or self.CLAW_BASE_PATH)
-        self._memory_dir = self.base_path / self.MEMORY_DIR
-        self._wb_memory_dir = self.base_path / self.WORKBUDDY_MEMORY_DIR
-        self._index_cache: dict[str, list[str]] | None = None
-
-    @property
-    def is_available(self) -> bool:
-        """Check if the Claw directory exists and is accessible."""
-        return self.base_path.exists() and self._memory_dir.exists()
-
-    def load_all_memories(self) -> list[MemoryItem]:
-        """
-        Load all available memories from Claw directories.
-
-        Returns:
-            List[MemoryItem]: Combined list of core + daily memories,
-            each tagged with source='workbuddy-claw'.
-        """
-        items = []
-        if not self.is_available:
-            return items
-        items.extend(self._load_core_memories())
-        items.extend(self._load_workbuddy_daily_memories())
-        for item in items:
-            item.source = "workbuddy-claw"
-        return items
-
-    def _load_core_memories(self) -> list[MemoryItem]:
-        """Load core memory files from .memory/ directory."""
-        items = []
-        for filename, (title, mtype) in self.CORE_FILE_MAPPING.items():
-            filepath = self._memory_dir / filename
-            if filepath.exists():
-                content = filepath.read_text(encoding="utf-8")
-                items.append(
-                    MemoryItem(
-                        id=f"wb-core-{filename.replace('.md', '')}",
-                        memory_type=mtype,
-                        title=title,
-                        content=content,
-                        domain="user-profile" if "USER" in filename else "claw-core",
-                        tags=self._extract_tags(content),
-                        source="workbuddy-claw",
-                    )
-                )
-        return items
-
-    def _load_workbuddy_daily_memories(self) -> list[MemoryItem]:
-        """Load daily work memories from .workbuddy/memory/ directory."""
-        items = []
-        if not self._wb_memory_dir.exists():
-            return items
-
-        md_files = sorted(
-            self._wb_memory_dir.glob("2026-*.md"),
-            key=lambda p: p.name,
-            reverse=True,
-        )
-        for filepath in md_files[:30]:
-            date_str = filepath.stem
-            content = filepath.read_text(encoding="utf-8")
-            items.append(
-                MemoryItem(
-                    id=f"wb-daily-{date_str}",
-                    memory_type=MemoryType.EPISODIC,
-                    title=f"Work Log {date_str}",
-                    content=content,
-                    domain="daily-log",
-                    tags=["workbuddy", "daily", date_str] + self._extract_tags(content),
-                    source="workbuddy-claw",
-                )
-            )
-        return items
-
-    def search_by_index(self, query: str, limit: int = 5) -> list[MemoryItem]:
-        """
-        Fast search using Claw INDEX.md keyword inverted index.
-
-        INDEX.md format example:
-          | Keyword | Location |
-          | Fudan/Education | USER.md#Background |
-          | QQ/WeChat | USER.md#Channels |
-
-        Performance:
-          - Index hit: O(1) lookup + 1 file read
-          - Index miss: fallback to full-text scan
-
-        Args:
-            query: Search query string.
-            limit: Maximum number of results to return.
-
-        Returns:
-            List[MemoryItem]: Matched memories sorted by relevance.
-        """
-        index_path = self._memory_dir / "INDEX.md"
-        if not index_path.exists():
-            return self._fallback_search(query, limit)
-
-        if self._index_cache is None:
-            self._index_cache = self._parse_index(index_path)
-
-        query_tokens = set(query.lower().split())
-        matched_files = set()
-        for token in query_tokens:
-            if token in self._index_cache:
-                for entry in self._index_cache[token]:
-                    matched_files.add(entry)
-
-        results = []
-        for file_ref in list(matched_files)[:limit]:
-            item = self._load_memory_by_index_ref(file_ref)
-            if item:
-                results.append(item)
-        return results
-
-    def _parse_index(self, index_path: Path) -> dict[str, list[str]]:
-        """
-        Parse INDEX.md table into {keyword: [file_ref]} dictionary.
-
-        Args:
-            index_path: Path to INDEX.md file.
-
-        Returns:
-            Dict mapping lowercase keywords to lists of file references.
-        """
-        result: dict[str, list[str]] = {}
-        lines = index_path.read_text(encoding="utf-8").splitlines()
-        for line in lines:
-            line = line.strip()
-            if not line or line.startswith("#") or line.startswith("|---"):
-                continue
-            if line.startswith("|"):
-                parts = [p.strip() for p in line.split("|") if p.strip()]
-                if len(parts) >= 2 and parts[0] and parts[0] != "\u5173\u952e\u8bcd":
-                    keywords = parts[0]
-                    file_ref = parts[1] if len(parts) > 1 else ""
-                    if file_ref and file_ref != "\u4f4d\u7f6e":
-                        for kw in keywords.split("/"):
-                            kw = kw.strip().lower()
-                            if kw:
-                                result.setdefault(kw, []).append(file_ref)
-        return result
-
-    def _load_memory_by_index_ref(self, ref: str) -> MemoryItem | None:
-        """
-        Load a memory fragment based on an INDEX reference.
-
-        Supports both 'filename.md' and 'filename.md#section' formats.
-
-        Args:
-            ref: File reference from INDEX.md (e.g., USER.md#Background).
-
-        Returns:
-            MemoryItem for the referenced content, or None if not found.
-        """
-        if "#" in ref:
-            filename, section = ref.split("#", 1)
-        else:
-            filename, section = ref, None
-
-        filepath = self._memory_dir / filename
-        if not filepath.exists():
-            return None
-
-        content = filepath.read_text(encoding="utf-8")
-        if section:
-            extracted = self._extract_section(content, section)
-            content = extracted if extracted is not None else content[:500]
-
-        type_map = {
-            "SOUL": MemoryType.SEMANTIC,
-            "USER": MemoryType.KNOWLEDGE,
-            "MEMORY": MemoryType.KNOWLEDGE,
-            "EXP": MemoryType.EPISODIC,
-            "PROMPT": MemoryType.PATTERN,
-        }
-        mtype = next((t for k, t in type_map.items() if k in filename.upper()), MemoryType.KNOWLEDGE)
-
-        return MemoryItem(
-            id=f"wb-index-{filename.replace('.md', '').replace('/', '-')}",
-            memory_type=mtype,
-            title=f"[Claw] {ref}",
-            content=content,
-            source="workbuddy-claw",
-            relevance_score=0.9,
-        )
-
-    @staticmethod
-    def _extract_section(content: str, anchor: str) -> str | None:
-        """
-        Extract a markdown section by its heading anchor text.
-
-        Args:
-            content: Full markdown text to search in.
-            anchor: Section heading text to find.
-
-        Returns:
-            Extracted section text, or None if anchor not found.
-        """
-        pattern = rf"(?:^|\n)#+\s*.*{re.escape(anchor)}"
-        match = re.search(pattern, content, re.MULTILINE | re.IGNORECASE)
-        if not match:
-            return None
-        start = match.start()
-        next_heading = re.search(r"\n#+\s+", content[start + 1 :])
-        end = (next_heading.start() + start + 1) if next_heading else len(content)
-        return content[start:end].strip()
-
-    @staticmethod
-    def _extract_tags(text: str) -> list[str]:
-        """
-        Extract meaningful words as tags from text content.
-
-        Extracts Chinese words (>=2 chars) and English words (>=3 chars).
-
-        Args:
-            text: Source text to extract tags from.
-
-        Returns:
-            List of unique tag strings (max 15).
-        """
-        words = re.findall(r"[\u4e00-\u9fff]{2,}|[a-zA-Z]{3,}", text)
-        return list(set(words))[:15]
-
-    def _fallback_search(self, query: str, limit: int = 5) -> list[MemoryItem]:
-        """
-        Fallback full-text search when INDEX.md is unavailable.
-
-        Scores results by title match (+0.5), content match (+0.3),
-        and tag overlap (+0.2).
-
-        Args:
-            query: Search query string.
-            limit: Maximum results.
-
-        Returns:
-            Scored and ranked MemoryItem list.
-        """
-        all_items = self.load_all_memories()
-        query_lower = query.lower()
-        scored = []
-        for item in all_items:
-            score = 0.0
-            if query_lower in item.title.lower():
-                score += 0.5
-            if query_lower in item.content.lower():
-                score += 0.3
-            if any(q in t.lower() for q in query_lower.split() for t in item.tags):
-                score += 0.2
-            if score > 0:
-                item.relevance_score = min(score, 1.0)
-                scored.append(item)
-        scored.sort(key=lambda x: x.relevance_score, reverse=True)
-        return scored[:limit]
-
-    # ========== Plan B: Automation News Feed Consumer ==========
-
-    def get_latest_ai_news(self, days: int = 7) -> list[MemoryItem]:
-        """
-        Read daily AI news automation task execution records.
-
-        Data source: .codebuddy/automations/ai/memory.md
-        Returns: Recent N days of news entries, each date block as a MemoryItem.
-
-        Each MemoryItem.metadata contains:
-          - sources: List of information sources
-          - topics: List of core topics
-          - status: Execution status string
-
-        Args:
-            days: Number of days to look back (default 7).
-
-        Returns:
-            List of MemoryItems representing AI news entries.
-        """
-        ai_memory_path = self.base_path / ".codebuddy" / "automations" / "ai" / "memory.md"
-        if not ai_memory_path.exists():
-            return []
-
-        content = ai_memory_path.read_text(encoding="utf-8")
-        entries = self._parse_automation_log(content)
-
-        items = []
-        cutoff = datetime.now() - timedelta(days=days)
-        for entry in entries:
-            if entry["date"] >= cutoff:
-                items.append(
-                    MemoryItem(
-                        id=f"wb-news-{entry['date'].strftime('%Y%m%d')}",
-                        memory_type=MemoryType.EPISODIC,
-                        title=f"AI News {entry['date'].strftime('%Y-%m-%d')}",
-                        content=entry["content"],
-                        domain="ai-news",
-                        tags=["ai-news", "daily-push", "automation"] + self._extract_tags(entry["content"]),
-                        source="workbuddy-claw-automation",
-                        metadata={
-                            "sources": entry.get("sources", []),
-                            "core_topics": entry.get("topics", []),
-                            "status": entry.get("status", ""),
-                        },
-                    )
-                )
-        return items
-
-    def _parse_automation_log(self, content: str) -> list[dict]:
-        """
-        Parse automation memory.md log format into structured entries.
-
-        Input format:
-          ## YYYY-MM-DD HH:MM
-          **Status**: Success
-          **Sources**: source1, source2
-          **Push Count**: N
-          **Core Topics**:
-          - topic1
-          - topic2
-          **Notes**: additional notes
-
-        Output:
-          [{date: datetime, content: str, sources: [], topics: [], status: str}, ...]
-
-        Args:
-            content: Raw markdown content from automation memory.md.
-
-        Returns:
-            List of parsed entry dictionaries.
-        """
-        entries = []
-        date_pattern = re.compile(r"^## (\d{4}-\d{2}-\d{2})")
-        current_entry = None
-
-        for line in content.splitlines():
-            date_match = date_pattern.match(line)
-            if date_match:
-                if current_entry:
-                    entries.append(current_entry)
-                try:
-                    current_entry = {
-                        "date": datetime.strptime(date_match.group(1), "%Y-%m-%d"),
-                        "content": "",
-                        "sources": [],
-                        "topics": [],
-                        "status": "",
-                    }
-                except ValueError:
-                    continue
-            elif current_entry is not None:
-                current_entry["content"] += line + "\n"
-
-                src_match = re.match(r"\*\*\u4fe1\u606f\u6765\u6e90\*\*:\s*(.+)", line)
-                if src_match:
-                    current_entry["sources"].append(src_match.group(1))
-
-                topics_match = re.match(r"\*\*\u6838\u5fc3\u4e3b\u9898\*\*:\s*(.+)", line)
-                if topics_match:
-                    current_entry["topics"].append(topics_match.group(1))
-
-                status_match = re.match(r"\*\*\u6267\u884c\u72b6\u6001\*\*:\s*(\S+)", line)
-                if status_match:
-                    current_entry["status"] = status_match.group(1)
-
-        if current_entry:
-            entries.append(current_entry)
-
-        return entries
+# MemoryIndexer moved to memory_index.py (backward-compatible re-export below)
+from .memory_index import MemoryIndexer  # noqa: E402
 
 
 class MemoryStore(ABC):
     @abstractmethod
     def save(self, memory_type: MemoryType, data: dict) -> str:
+        """Persist a memory entry of the given type.
+
+        Args:
+            memory_type: Type of memory to store.
+            data: Dictionary payload to persist.
+
+        Returns:
+            The identifier of the stored memory entry.
+        """
         pass
 
     @abstractmethod
     def load(self, memory_type: MemoryType, item_id: str) -> dict | None:
+        """Load a memory entry by type and ID.
+
+        Args:
+            memory_type: Type of memory to load.
+            item_id: Identifier of the entry to load.
+
+        Returns:
+            The stored dictionary, or None when not found.
+        """
         pass
 
     @abstractmethod
     def list_all(self, memory_type: MemoryType, filters: dict | None = None) -> list[dict]:
+        """List all stored entries of a given memory type.
+
+        Args:
+            memory_type: Type of memory to list.
+            filters: Optional dictionary of field-value pairs to filter by.
+
+        Returns:
+            List of matching entry dictionaries.
+        """
         pass
 
     @abstractmethod
     def delete(self, memory_type: MemoryType, item_id: str) -> bool:
+        """Delete a memory entry by type and ID.
+
+        Args:
+            memory_type: Type of memory to delete.
+            item_id: Identifier of the entry to delete.
+
+        Returns:
+            True when the entry existed and was removed, False otherwise.
+        """
         pass
 
 
@@ -689,6 +366,15 @@ class JsonMemoryStore(MemoryStore):
         return path
 
     def save(self, memory_type: MemoryType, data: dict) -> str:
+        """Persist a memory entry to a JSON file on disk.
+
+        Args:
+            memory_type: Type of memory to store.
+            data: Dictionary payload to persist. An "id" is generated when absent.
+
+        Returns:
+            The identifier of the stored memory entry.
+        """
         item_id = data.get("id", f"{memory_type.value}_{uuid.uuid4().hex[:12]}_{int(time.time())}")
         file_path = self._get_file_path(memory_type, item_id)
         with self._lock:
@@ -698,6 +384,15 @@ class JsonMemoryStore(MemoryStore):
         return item_id
 
     def load(self, memory_type: MemoryType, item_id: str) -> dict | None:
+        """Load a memory entry from a JSON file on disk.
+
+        Args:
+            memory_type: Type of memory to load.
+            item_id: Identifier of the entry to load.
+
+        Returns:
+            The stored dictionary, or None when the file is missing or invalid.
+        """
         file_path = self._get_file_path(memory_type, item_id)
         with self._lock:
             if not file_path.exists():
@@ -709,6 +404,15 @@ class JsonMemoryStore(MemoryStore):
                 return None
 
     def list_all(self, memory_type: MemoryType, filters: dict | None = None) -> list[dict]:
+        """List all stored JSON entries of a given memory type.
+
+        Args:
+            memory_type: Type of memory to list.
+            filters: Optional dictionary of field-value pairs to filter by.
+
+        Returns:
+            List of matching entry dictionaries, sorted by file name.
+        """
         results = []
         dir_path = self._type_dirs.get(memory_type, self.base_dir / "other")
         with self._lock:
@@ -733,182 +437,21 @@ class JsonMemoryStore(MemoryStore):
         return results
 
     def delete(self, memory_type: MemoryType, item_id: str) -> bool:
+        """Delete a memory entry's JSON file from disk.
+
+        Args:
+            memory_type: Type of memory to delete.
+            item_id: Identifier of the entry to delete.
+
+        Returns:
+            True when the file existed and was removed, False otherwise.
+        """
         file_path = self._get_file_path(memory_type, item_id)
         with self._lock:
             if file_path.exists():
                 file_path.unlink()
                 return True
         return False
-
-
-class MemoryIndexer:
-    def __init__(self):
-        self._inverted_index: dict[str, set] = {}
-        self._domain_index: dict[str, set] = {}
-        self._tag_index: dict[str, set] = {}
-        self._type_index: dict[MemoryType, set] = {}
-        self._tf_cache: dict[str, Counter] = {}
-        self._items_cache: dict[str, MemoryItem] = {}
-        self._index_built: bool = False
-        self._write_count: int = 0
-        self._lock = threading.RLock()
-        self._doc_count: int = 0
-
-    def build_index(self, items: list[MemoryItem]) -> None:
-        with self._lock:
-            self._inverted_index.clear()
-            self._domain_index.clear()
-            self._tag_index.clear()
-            self._type_index.clear()
-            self._tf_cache.clear()
-            self._items_cache.clear()
-            self._doc_count = 0
-            for item in items:
-                self._add_to_index_internal(item)
-            self._index_built = True
-
-    def add_to_index(self, item: MemoryItem) -> None:
-        with self._lock:
-            self._add_to_index_internal(item)
-            self._write_count += 1
-            if self._write_count >= 50 and not self._index_built:
-                pass
-
-    def _add_to_index_internal(self, item: MemoryItem) -> None:
-        mid = item.id
-        self._items_cache[mid] = item
-        self._doc_count += 1
-        tokens = self._tokenize(item.title + " " + item.content)
-        self._tf_cache[mid] = Counter(tokens)
-        for token in set(tokens):
-            self._inverted_index.setdefault(token, set()).add(mid)
-        if item.domain:
-            self._domain_index.setdefault(item.domain, set()).add(mid)
-        for tag in item.tags:
-            self._tag_index.setdefault(tag, set()).add(mid)
-        self._type_index.setdefault(item.memory_type, set()).add(mid)
-
-    def remove_from_index(self, memory_id: str) -> None:
-        with self._lock:
-            item = self._items_cache.pop(memory_id, None)
-            if item is None:
-                return
-            self._doc_count -= 1
-            tokens = self._tokenize(item.title + " " + item.content)
-            for token in set(tokens):
-                ids = self._inverted_index.get(token)
-                if ids:
-                    ids.discard(memory_id)
-                    if not ids:
-                        del self._inverted_index[token]
-            if item.domain:
-                ids = self._domain_index.get(item.domain)
-                if ids:
-                    ids.discard(memory_id)
-            for tag in item.tags:
-                ids = self._tag_index.get(tag)
-                if ids:
-                    ids.discard(memory_id)
-            type_set = self._type_index.get(item.memory_type)
-            if type_set:
-                type_set.discard(memory_id)
-            self._tf_cache.pop(memory_id, None)
-
-    def search(
-        self, query_text: str, type_filter: MemoryType | None = None, domain_filter: str | None = None, limit: int = 10
-    ) -> list[tuple[str, float]]:
-        with self._lock:
-            if not self._index_built or not self._inverted_index:
-                return []
-            query_tokens = self._tokenize(query_text)
-            candidates: dict[str, float] = {}
-            for token in query_tokens:
-                ids = self._inverted_index.get(token)
-                if ids:
-                    for doc_id in ids:
-                        candidates[doc_id] = candidates.get(doc_id, 0) + 1
-            if type_filter:
-                type_ids = self._type_index.get(type_filter, set())
-                candidates = {k: v for k, v in candidates.items() if k in type_ids}
-            if domain_filter:
-                dom_ids = self._domain_index.get(domain_filter, set())
-                candidates = {k: v for k, v in candidates.items() if k in dom_ids}
-            results = []
-            for doc_id, _raw_score in candidates.items():
-                tfidf_score = self._compute_relevance(query_tokens, doc_id)
-                results.append((doc_id, tfidf_score))
-            results.sort(key=lambda x: x[1], reverse=True)
-            return results[:limit]
-
-    def keyword_search(self, keywords: list[str], domain: str | None = None) -> list[tuple[str, float]]:
-        with self._lock:
-            if not keywords:
-                return []
-            candidate_sets = []
-            for kw in keywords:
-                tokens = self._tokenize(kw)
-                matching_ids = None
-                for t in tokens:
-                    ids = self._inverted_index.get(t)
-                    if ids is None:
-                        ids = set()
-                    if matching_ids is None:
-                        matching_ids = set(ids)
-                    else:
-                        matching_ids &= set(ids)
-                if matching_ids is not None:
-                    candidate_sets.append(matching_ids)
-            if not candidate_sets:
-                return []
-            final_candidates = candidate_sets[0]
-            for s in candidate_sets[1:]:
-                final_candidates &= s
-            if domain:
-                dom_ids = self._domain_index.get(domain, set())
-                final_candidates &= dom_ids
-            results = [(mid, 1.0) for mid in final_candidates]
-            results.sort(key=lambda x: x[1], reverse=True)
-            return results
-
-    def _compute_relevance(self, query_tokens: list[str], doc_id: str) -> float:
-        doc_tf = self._tf_cache.get(doc_id, Counter())
-        query_tf = Counter(query_tokens)
-        score = 0.0
-        for token in query_tokens:
-            if token in doc_tf:
-                idf = math.log((self._doc_count + 1) / (len(self._inverted_index.get(token, set())) + 1)) + 1
-                score += doc_tf[token] * idf
-        if score > 0:
-            doc_norm = math.sqrt(sum(v**2 for v in doc_tf.values()))
-            query_norm = math.sqrt(sum(v**2 for v in query_tf.values())) or 1
-            score = score / (doc_norm * query_norm)
-        return min(score, 1.0)
-
-    @staticmethod
-    def _tokenize(text: str) -> list[str]:
-        text = text.lower()
-        text = re.sub(r"[^\w\u4e00-\u9fff]", " ", text)
-        tokens = text.split()
-        result = []
-        for t in tokens:
-            if len(t) <= 1:
-                result.append(t)
-            elif any("\u4e00" <= c <= "\u9fff" for c in t):
-                result.extend(list(t))
-            else:
-                if len(t) > 3:
-                    for i in range(len(t) - 1):
-                        result.append(t[i : i + 2])
-                result.append(t)
-        return [t for t in result if len(t) >= 1]
-
-    @property
-    def is_built(self) -> bool:
-        return self._index_built
-
-    @property
-    def size(self) -> int:
-        return self._doc_count
 
 
 class MemoryWriter:
@@ -918,6 +461,14 @@ class MemoryWriter:
         self._capture_count = 0
 
     def write_knowledge(self, item: KnowledgeItem) -> str:
+        """Persist a knowledge item and add it to the index.
+
+        Args:
+            item: KnowledgeItem to store.
+
+        Returns:
+            The identifier of the stored knowledge entry.
+        """
         data = {
             "id": item.id,
             "domain": item.domain,
@@ -942,6 +493,14 @@ class MemoryWriter:
         return item_id
 
     def write_episodic(self, memory: EpisodicMemory) -> str:
+        """Persist an episodic memory and add it to the index.
+
+        Args:
+            memory: EpisodicMemory to store.
+
+        Returns:
+            The identifier of the stored episodic entry.
+        """
         data = {
             "id": memory.id,
             "task_description": memory.task_description,
@@ -967,6 +526,14 @@ class MemoryWriter:
         return item_id
 
     def write_feedback(self, feedback: UserFeedback) -> str:
+        """Persist user feedback and add it to the index.
+
+        Args:
+            feedback: UserFeedback to store.
+
+        Returns:
+            The identifier of the stored feedback entry.
+        """
         data = {
             "id": feedback.id,
             "user_id": feedback.user_id,
@@ -991,6 +558,14 @@ class MemoryWriter:
         return item_id
 
     def write_pattern(self, pattern: PersistedPattern) -> str:
+        """Persist a pattern and add it to the index.
+
+        Args:
+            pattern: PersistedPattern to store.
+
+        Returns:
+            The identifier of the stored pattern entry.
+        """
         data = {
             "id": pattern.id,
             "name": pattern.name,
@@ -1017,6 +592,14 @@ class MemoryWriter:
         return item_id
 
     def write_analysis(self, analysis: AnalysisCase) -> str:
+        """Persist an analysis case (problem/root-cause/solutions) into the memory store.
+
+        Args:
+            analysis: AnalysisCase to persist.
+
+        Returns:
+            Identifier of the stored analysis memory item.
+        """
         data = {
             "id": analysis.id,
             "problem": analysis.problem,
@@ -1040,6 +623,14 @@ class MemoryWriter:
         return item_id
 
     def batch_write(self, items: list[MemoryItem]) -> int:
+        """Persist multiple memory items, skipping any that fail to save.
+
+        Args:
+            items: List of MemoryItem instances to persist.
+
+        Returns:
+            Number of items successfully written.
+        """
         success = 0
         for item in items:
             data = item.to_dict()
@@ -1063,6 +654,14 @@ class MemoryReader:
         self.store = store
 
     def read_knowledge(self, domain: str | None = None) -> list[KnowledgeItem]:
+        """Load knowledge memories, optionally filtered by domain.
+
+        Args:
+            domain: Optional domain filter (e.g. "general", "frontend").
+
+        Returns:
+            List of KnowledgeItem reconstructed from stored records.
+        """
         filters = {"domain": domain} if domain else None
         raw_list = self.store.list_all(MemoryType.KNOWLEDGE, filters)
         return [
@@ -1079,6 +678,15 @@ class MemoryReader:
         ]
 
     def read_episodic(self, limit: int = 50, since: datetime | None = None) -> list[EpisodicMemory]:
+        """Load episodic memories, optionally filtered by recency.
+
+        Args:
+            limit: Maximum number of items to return (default 50).
+            since: Optional datetime; only items created at/after this time are returned.
+
+        Returns:
+            List of EpisodicMemory reconstructed from stored records.
+        """
         raw_list = self.store.list_all(MemoryType.EPISODIC)
         if since:
             raw_list = [r for r in raw_list if r.get("created_at", "") >= since.isoformat()]
@@ -1097,6 +705,15 @@ class MemoryReader:
         ]
 
     def read_feedback(self, status: str | None = None, feedback_type: str | None = None) -> list[UserFeedback]:
+        """Load user feedback memories, optionally filtered by status and type.
+
+        Args:
+            status: Optional status filter (e.g. "pending", "resolved").
+            feedback_type: Optional feedback type filter (e.g. "suggestion", "bug").
+
+        Returns:
+            List of UserFeedback reconstructed from stored records.
+        """
         filters = {}
         if status:
             filters["status"] = status
@@ -1118,6 +735,14 @@ class MemoryReader:
         ]
 
     def read_patterns(self, category: str | None = None) -> list[PersistedPattern]:
+        """Load persisted skill patterns, optionally filtered by category.
+
+        Args:
+            category: Optional category filter (e.g. "auto-generated", "manual").
+
+        Returns:
+            List of PersistedPattern reconstructed from stored records.
+        """
         raw_list = self.store.list_all(MemoryType.PATTERN)
         if category:
             raw_list = [r for r in raw_list if r.get("category") == category]
@@ -1137,6 +762,14 @@ class MemoryReader:
         ]
 
     def read_analysis_cases(self, status: str | None = None) -> list[AnalysisCase]:
+        """Load analysis cases, optionally filtered by status.
+
+        Args:
+            status: Optional status filter (e.g. "completed", "open").
+
+        Returns:
+            List of AnalysisCase reconstructed from stored records.
+        """
         filters = {"status": status} if status else None
         raw_list = self.store.list_all(MemoryType.ANALYSIS, filters)
         return [
@@ -1424,6 +1057,14 @@ class MemoryBridge:
         return self.writer.write_pattern(persisted)
 
     def learn_from_mistake(self, error_context: ErrorContext) -> str:
+        """Convert an error context into a persisted analysis case for future reference.
+
+        Args:
+            error_context: ErrorContext describing the failure (message, task, worker, timestamp).
+
+        Returns:
+            Identifier of the stored analysis memory item.
+        """
         analysis = AnalysisCase(
             id=f"anal_{uuid.uuid4().hex[:12]}_{int(time.time())}",
             problem=error_context.error_message[:200],
@@ -1445,6 +1086,15 @@ class MemoryBridge:
         return self.writer.write_analysis(analysis)
 
     def search_knowledge(self, keywords: list[str], domain: str | None = None) -> list[KnowledgeItem]:
+        """Search knowledge memories by keywords via the indexer.
+
+        Args:
+            keywords: List of keyword strings to match.
+            domain: Optional domain filter.
+
+        Returns:
+            List of KnowledgeItem matching the keywords; empty list if no keywords given.
+        """
         if not keywords:
             return []
         results = self.indexer.keyword_search(keywords, domain=domain)
@@ -1466,6 +1116,12 @@ class MemoryBridge:
         return items
 
     def get_statistics(self) -> MemoryStats:
+        """Compute aggregate statistics about the memory store and bridges.
+
+        Returns:
+            MemoryStats populated with capture/recall counters, per-type counts,
+            index status, and WorkBuddy (Claw) bridge information.
+        """
         stats = MemoryStats(
             total_captures=self._stats.total_captures,
             total_recalls=self._stats.total_recalls,
@@ -1507,6 +1163,14 @@ class MemoryBridge:
         return stats
 
     def get_recent_history(self, n: int = 10) -> list[EpisodicMemory]:
+        """Return the N most recent episodic memories.
+
+        Args:
+            n: Maximum number of recent episodic memories to return (default 10).
+
+        Returns:
+            List of EpisodicMemory ordered by recency.
+        """
         return self.reader.read_episodic(limit=n)
 
     def get_workbuddy_ai_news(self, days: int = 7) -> list[MemoryItem]:
@@ -1531,6 +1195,7 @@ class MemoryBridge:
             return []
 
     def rebuild_index(self) -> None:
+        """Rebuild the in-memory search index from all persisted memory items."""
         all_items: list[MemoryItem] = []
         for mtype in MemoryType:
             try:
@@ -1546,6 +1211,11 @@ class MemoryBridge:
         self.indexer.build_index(all_items)
 
     def print_diagnostics(self) -> str:
+        """Build a human-readable diagnostics report for the memory bridge.
+
+        Returns:
+            Multi-line string summarizing memory counts, index status, and Claw bridge state.
+        """
         s = self.get_statistics()
         lines = [
             "=== MemoryBridge Diagnostics ===",
@@ -1568,71 +1238,31 @@ class MemoryBridge:
         return "\n".join(lines)
 
     def forgetting_weight(self, memory: MemoryItem) -> float:
-        age_days = memory.age_days
-        access_factor = math.log(memory.access_count + 1)
-        if age_days < 7:
-            return 1.0
-        elif age_days < 30:
-            return 0.8 * (access_factor / (access_factor + 1))
-        elif age_days < 60:
-            return 0.5 * (access_factor / (access_factor + 2))
-        else:
-            return 0.3 * (access_factor / (access_factor + 3))
+        """Compute the forgetting weight for a memory item.
+
+        Args:
+            memory: MemoryItem whose forgetting weight is requested.
+
+        Returns:
+            Float weight in [0, 1]; lower means more likely to be forgotten.
+        """
+        return _forgetting_weight(memory)
 
     def compress_old_memories(self) -> int:
-        if not self.config.compress_old_memories:
-            return 0
-        compressed = 0
-        cutoff = datetime.now() - timedelta(days=60)
-        try:
-            raw_list = self.store.list_all(MemoryType.EPISODIC)
-            for r in raw_list:
-                created_str = r.get("created_at", "")
-                if not created_str:
-                    continue
-                try:
-                    created = datetime.fromisoformat(created_str)
-                except (ValueError, TypeError):
-                    continue
-                if created < cutoff and not r.get("metadata", {}).get("compressed"):
-                    content = r.get("finding", "") or r.get("content", "")
-                    summary = content[:200] + "...[COMPRESSED]"
-                    r["content"] = summary
-                    r["finding"] = summary
-                    r.setdefault("metadata", {})["compressed"] = True
-                    r["metadata"]["original_length"] = len(content)
-                    r["metadata"]["compressed_at"] = datetime.now().isoformat()
-                    mid = r.get("id", "")
-                    if mid:
-                        self.store.save(MemoryType.EPISODIC, r)
-                        compressed += 1
-        except (OSError, ValueError, AttributeError):
-            pass
-        return compressed
+        """Compress aged memory items according to the configured policy.
+
+        Returns:
+            Number of memory items compressed.
+        """
+        return _compress_old_memories(self.store, self.config)
 
     def cleanup_expired_memories(self) -> int:
-        removed = 0
-        cutoff = datetime.now() - timedelta(days=self.config.retention_days)
-        for mtype in [MemoryType.EPISODIC, MemoryType.FEEDBACK]:
-            try:
-                raw_list = self.store.list_all(mtype)
-                for r in raw_list:
-                    created_str = r.get("created_at", "")
-                    if not created_str:
-                        continue
-                    try:
-                        created = datetime.fromisoformat(created_str)
-                    except (ValueError, TypeError):
-                        continue
-                    if created < cutoff:
-                        mid = r.get("id", "")
-                        if mid and self.store.delete(mtype, mid):
-                            removed += 1
-                            if self.indexer:
-                                self.indexer.remove_from_index(mid)
-            except (OSError, ValueError, AttributeError):
-                continue
-        return removed
+        """Remove memory items that have exceeded their retention window.
+
+        Returns:
+            Number of memory items removed.
+        """
+        return _cleanup_expired_memories(self.store, self.config, self.indexer)
 
     def _guess_type(self, memory_id: str) -> MemoryType:
         prefix_map = {
@@ -1673,6 +1303,7 @@ class MemoryBridge:
         return list(set(words))[:10]
 
     def shutdown(self) -> None:
+        """Release external resources, closing the MCE adapter if one is attached."""
         if self._mce_adapter:
             with contextlib.suppress(AttributeError, RuntimeError, OSError):
                 self._mce_adapter.shutdown()

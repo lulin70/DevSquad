@@ -345,6 +345,11 @@ def require_auth(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
+        """Check authentication before calling the wrapped function.
+
+        Raises PermissionError when auth is enabled and no user session
+        exists. Otherwise delegates to the wrapped function.
+        """
         _auth_instance = AuthManager.get_instance()
         if _auth_instance and _auth_instance.enabled:
             try:
@@ -371,8 +376,15 @@ def check_permission(required_role: UserRole = UserRole.VIEWER):
     """
 
     def decorator(func):
+        """Wrap `func` with a role-based permission check."""
+
         @wraps(func)
         def wrapper(*args, **kwargs):
+            """Check the current user's role before calling the wrapped function.
+
+            Raises PermissionError when the user is not authenticated or
+            their role is below `required_role` in the hierarchy.
+            """
             user = None
             try:
                 import streamlit as st

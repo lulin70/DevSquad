@@ -173,6 +173,11 @@ class TechDebt:
         return self.severity_weight * (1.0 / max(self.estimated_hours, 0.1)) + self.interest_rate
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the TechDebt to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary containing all TechDebt fields plus the computed priority_score.
+        """
         return {
             "id": self.id,
             "source": self.source,
@@ -193,6 +198,14 @@ class TechDebt:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TechDebt":
+        """Construct a TechDebt from a dictionary.
+
+        Args:
+            data: Dictionary with TechDebt field names (enum values as strings).
+
+        Returns:
+            TechDebt instance populated from the given data.
+        """
         return cls(
             id=data["id"],
             source=data["source"],
@@ -231,6 +244,12 @@ class RemediationPlan:
     deferred_debts: list[str]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the remediation plan to a dictionary.
+
+        Returns:
+            Dictionary containing total debts, planned remediations, budget
+            and used hours, debt reduction percentage, and deferred debt ids.
+        """
         return {
             "total_debts": self.total_debts,
             "planned_remediations": self.planned_remediations,
@@ -241,6 +260,12 @@ class RemediationPlan:
         }
 
     def to_markdown(self) -> str:
+        """Render the remediation plan as a Markdown document.
+
+        Returns:
+            Markdown string with summary header and a planned remediations
+            table.
+        """
         lines = [
             "# Remediation Plan",
             "",
@@ -291,6 +316,13 @@ class DebtReport:
     debt_to_value_ratio: float
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the debt report to a dictionary.
+
+        Returns:
+            Dictionary containing total debts, category/severity breakdowns,
+            top priority debt dicts, interest forecast, remediation progress,
+            and debt-to-value ratio.
+        """
         return {
             "total_debts": self.total_debts,
             "by_category": self.by_category,
@@ -302,6 +334,12 @@ class DebtReport:
         }
 
     def to_markdown(self) -> str:
+        """Render the debt report as a Markdown document.
+
+        Returns:
+            Markdown string with totals, category and severity breakdowns,
+            top priority debts, and remediation progress sections.
+        """
         lines = [
             "# Tech Debt Report",
             "",

@@ -55,6 +55,12 @@ class UserPersona:
     patience_threshold: float = 0.7
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the user persona to a dictionary.
+
+        Returns:
+            Dictionary containing name, tech_level, goals, frustrations,
+            and patience_threshold.
+        """
         return {
             "name": self.name,
             "tech_level": self.tech_level,
@@ -83,6 +89,12 @@ class JourneyStep:
     frustration_triggers: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the journey step to a dictionary.
+
+        Returns:
+            Dictionary containing action, expected_outcome, error_recovery,
+            time_budget_seconds, and frustration_triggers.
+        """
         return {
             "action": self.action,
             "expected_outcome": self.expected_outcome,
@@ -119,6 +131,12 @@ class UserJourney:
         return len(self.steps)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the user journey to a dictionary.
+
+        Returns:
+            Dictionary containing name, persona name, serialized steps,
+            critical_path flag, and total_time_budget.
+        """
         return {
             "name": self.name,
             "persona": self.persona.name,
@@ -147,6 +165,12 @@ class HeuristicCheck:
     severity: str = ""  # cosmetic/minor/major/critical
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the heuristic check to a dictionary.
+
+        Returns:
+            Dictionary containing name, description, passed, evidence,
+            and severity.
+        """
         return {
             "name": self.name,
             "description": self.description,
@@ -179,6 +203,13 @@ class UETestPlan:
     cognitive_load_assessment: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the UE test plan to a dictionary.
+
+        Returns:
+            Dictionary containing project, persona_scenarios, journey_tests,
+            serialized heuristic_checks, accessibility_checks,
+            error_recovery_tests, and cognitive_load_assessment.
+        """
         return {
             "project": self.project,
             "persona_scenarios": self.persona_scenarios,
@@ -190,6 +221,14 @@ class UETestPlan:
         }
 
     def to_markdown(self) -> str:
+        """Render the UE test plan as a Markdown document.
+
+        Returns:
+            Multi-line Markdown string with sections for project info,
+            persona scenarios, journey tests, heuristic checks,
+            accessibility checks, error recovery tests, and cognitive
+            load assessment.
+        """
         lines = [
             "# UE Test Plan",
             "",
@@ -274,6 +313,13 @@ class JourneyValidation:
     overall_ue_score: float
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the journey validation result to a dictionary.
+
+        Returns:
+            Dictionary containing journey name and rounded metric scores
+            for completion, error recovery, time budget, frustration events,
+            cognitive load, and overall UE score.
+        """
         return {
             "journey_name": self.journey_name,
             "completion_rate": round(self.completion_rate, 3),
@@ -285,6 +331,11 @@ class JourneyValidation:
         }
 
     def to_markdown(self) -> str:
+        """Render the journey validation as a Markdown table.
+
+        Returns:
+            Markdown string with a metrics table and pass/fail indicators.
+        """
         lines = [
             f"# Journey Validation: {self.journey_name}",
             "",
@@ -318,6 +369,12 @@ class UsabilityReport:
     recommendations: list[str]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the usability report to a dictionary.
+
+        Returns:
+            Dictionary containing heuristic check dicts, rounded overall
+            score, critical issues, and recommendations.
+        """
         return {
             "heuristics": [h.to_dict() for h in self.heuristics],
             "overall_score": round(self.overall_score, 3),
@@ -326,6 +383,12 @@ class UsabilityReport:
         }
 
     def to_markdown(self) -> str:
+        """Render the usability report as a Markdown document.
+
+        Returns:
+            Markdown string with overall score, heuristic pass counts,
+            critical issues, and recommendations sections.
+        """
         lines = [
             "# Usability Report",
             "",

@@ -269,15 +269,36 @@ class NullUETestProvider:
     """No-op UE test provider for graceful degradation."""
 
     def generate_ue_test_plan(self, project_description: str) -> None:  # noqa: ARG002
+        """Generate a UE test plan (no-op, returns None).
+
+        Args:
+            project_description: Description of the project to test.
+        """
         return None
 
     def validate_user_journey(self, journey: Any, actual_results: dict[str, Any]) -> None:  # noqa: ARG002
+        """Validate a user journey against actual results (no-op).
+
+        Args:
+            journey: The expected user journey definition.
+            actual_results: Dictionary of observed results to compare against.
+        """
         return None
 
     def assess_usability(self, interface_description: str) -> None:  # noqa: ARG002
+        """Assess the usability of an interface (no-op).
+
+        Args:
+            interface_description: Textual description of the interface.
+        """
         return None
 
     def is_available(self) -> bool:
+        """Check whether the UE test provider is available.
+
+        Returns:
+            Always False, indicating degraded mode.
+        """
         return False
 
 
@@ -286,18 +307,46 @@ class NullTechDebtProvider:
 
     def identify_debt(self, _source: str, _category: Any, _description: str,
                       _location: str, **_kwargs: Any) -> None:
+        """Identify a tech debt item (no-op).
+
+        Args:
+            _source: Source of the debt identification.
+            _category: Category of the tech debt.
+            _description: Human-readable description of the debt.
+            _location: File or module location of the debt.
+            **_kwargs: Additional keyword arguments (ignored).
+        """
         return None
 
     def scan_codebase_debt(self, project_path: str) -> list[Any]:  # noqa: ARG002
+        """Scan the codebase for tech debt (no-op).
+
+        Args:
+            project_path: Root path of the project to scan.
+
+        Returns:
+            Always an empty list.
+        """
         return []
 
     def prioritize(self) -> list[Any]:
+        """Prioritize identified tech debt items (no-op).
+
+        Returns:
+            Always an empty list.
+        """
         return []
 
     def get_debt_report(self) -> None:
+        """Generate a tech debt report (no-op, returns None)."""
         return None
 
     def is_available(self) -> bool:
+        """Check whether the tech debt provider is available.
+
+        Returns:
+            Always False, indicating degraded mode.
+        """
         return False
 
 

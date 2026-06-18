@@ -30,6 +30,11 @@ class CIMetric:
     details: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the metric to a dictionary.
+
+        Returns:
+            Dictionary containing name, value, status, and details fields.
+        """
         return {
             "name": self.name,
             "value": self.value,
@@ -50,15 +55,33 @@ class CIResult:
     duration_seconds: float = 0.0
 
     def get_metric(self, name: str) -> CIMetric | None:
+        """Look up a metric by name.
+
+        Args:
+            name: Name of the metric to find.
+
+        Returns:
+            The matching CIMetric, or None if not found.
+        """
         for m in self.metrics:
             if m.name == name:
                 return m
         return None
 
     def has_failures(self) -> bool:
+        """Check whether any metric in this result has a "fail" status.
+
+        Returns:
+            True if at least one metric failed, False otherwise.
+        """
         return any(m.status == "fail" for m in self.metrics)
 
     def to_summary(self) -> str:
+        """Build a human-readable multi-line summary of the CI result.
+
+        Returns:
+            Formatted string with overall status, per-metric lines, and duration.
+        """
         lines = [f"CI Result ({self.source}): {'✅ PASS' if self.success else '❌ FAIL'}"]
         for m in self.metrics:
             icon = {"pass": "✅", "fail": "❌", "warning": "⚠️", "skip": "⏭️"}.get(m.status, "?")
@@ -117,6 +140,14 @@ class PytestParser:
 
     @staticmethod
     def parse(output: str) -> CIResult:
+        """Parse pytest-style output into a CIResult.
+
+        Args:
+            output: Raw pytest output text.
+
+        Returns:
+            CIResult with passed/failed/error/skipped metrics and duration.
+        """
         result = CIResult(source="pytest", raw_output=output)
 
         total_match = re.search(r"(\d+) passed", output)
@@ -147,6 +178,14 @@ class CoverageParser:
 
     @staticmethod
     def parse(output: str) -> CIResult:
+        """Parse coverage report output into a CIResult.
+
+        Args:
+            output: Raw coverage report text (e.g., from `coverage report`).
+
+        Returns:
+            CIResult with coverage_percentage and lines_missed metrics.
+        """
         result = CIResult(source="coverage", raw_output=output)
 
         pct_match = re.search(r"TOTAL\s+[\d\s]+\s+(\d+)%", output)
@@ -175,6 +214,14 @@ class LintParser:
 
     @staticmethod
     def parse(output: str) -> CIResult:
+        """Parse linter output into a CIResult.
+
+        Args:
+            output: Raw linter output text (e.g., from flake8 or eslint).
+
+        Returns:
+            CIResult with errors and warnings metrics.
+        """
         result = CIResult(source="lint", raw_output=output)
 
         error_count = len(re.findall(r"^[EF]\d+", output, re.MULTILINE))
@@ -192,6 +239,15 @@ class BuildParser:
 
     @staticmethod
     def parse(output: str) -> CIResult:
+        """Parse build system output into a CIResult.
+
+        Args:
+            output: Raw build system output text.
+
+        Returns:
+            CIResult with a build_status metric derived from success and
+            failure indicator strings.
+        """
         result = CIResult(source="build", raw_output=output)
 
         success_indicators = ["Build succeeded", "BUILD SUCCESSFUL", "Build OK"]

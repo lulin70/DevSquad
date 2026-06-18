@@ -60,6 +60,11 @@ class Message:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
+        """Serialize the message to a dictionary.
+
+        Returns:
+            Dictionary with all message fields, including ISO-formatted timestamp.
+        """
         return {
             "message_id": self.message_id,
             "role": self.role,
@@ -73,6 +78,14 @@ class Message:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Message":
+        """Reconstruct a Message from a dictionary.
+
+        Args:
+            d: Dictionary produced by to_dict().
+
+        Returns:
+            A new Message instance with fields populated from the dictionary.
+        """
         ts = d.get("timestamp")
         return cls(
             message_id=d.get("message_id", ""),
@@ -98,6 +111,11 @@ class MemoryEntry:
     last_accessed: datetime = field(default_factory=datetime.now)
 
     def to_dict(self) -> dict:
+        """Serialize the memory entry to a dictionary.
+
+        Returns:
+            Dictionary with all entry fields, including ISO-formatted timestamps.
+        """
         return {
             "entry_id": self.entry_id,
             "category": self.category.value,
@@ -111,6 +129,14 @@ class MemoryEntry:
 
     @classmethod
     def from_dict(cls, d: dict) -> "MemoryEntry":
+        """Reconstruct a MemoryEntry from a dictionary.
+
+        Args:
+            d: Dictionary produced by to_dict().
+
+        Returns:
+            A new MemoryEntry instance with fields populated from the dictionary.
+        """
         ca = d.get("created_at")
         la = d.get("last_accessed")
         return cls(
@@ -139,6 +165,12 @@ class CompressedContext:
 
     @property
     def reduction_percent(self) -> float:
+        """Compute the percentage of tokens removed by compression.
+
+        Returns:
+            Reduction percentage between 0 and 100; 0.0 when the original
+            token count is zero.
+        """
         if self.original_token_count == 0:
             return 0.0
         return (1.0 - self.compressed_token_count / self.original_token_count) * 100
@@ -208,6 +240,17 @@ class ContextCompressor:
         self._lock = threading.RLock()
 
     def estimate_tokens(self, text: str) -> int:
+        """Estimate the token count for a piece of text.
+
+        Uses separate char-to-token ratios for Chinese characters and other
+        text to better approximate tokenizer behavior on mixed-language input.
+
+        Args:
+            text: Input text to estimate.
+
+        Returns:
+            Estimated number of tokens; 0 for empty input.
+        """
         if not text:
             return 0
         chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", text))
@@ -217,6 +260,14 @@ class ContextCompressor:
         return chinese_tokens + other_tokens
 
     def estimate_messages_tokens(self, messages: list[Message]) -> int:
+        """Estimate the total token count across a list of messages.
+
+        Args:
+            messages: List of Message objects (or objects with content/token_count).
+
+        Returns:
+            Sum of token estimates for all messages.
+        """
         total = 0
         for m in messages:
             if hasattr(m, "token_count") and getattr(m, "token_count", 0) > 0:
@@ -232,6 +283,17 @@ class ContextCompressor:
     def check_and_compress(
         self, messages: list[Message], force_level: CompressionLevel | None = None
     ) -> CompressedContext:
+        """Compress the message list when its token count exceeds thresholds.
+
+        Args:
+            messages: List of Message objects to compress.
+            force_level: Optional compression level to apply regardless of
+                token count. When None, the level is chosen from thresholds.
+
+        Returns:
+            CompressedContext containing the (possibly compressed) messages,
+            session memory, summary, and statistics.
+        """
         with self._lock:
             total_tokens = self.estimate_messages_tokens(messages)
 
@@ -513,12 +575,33 @@ class ContextCompressor:
         return tags
 
     def get_session_memory(self, category: MemoryCategory | None = None, limit: int = 50) -> list[MemoryEntry]:
+        """Return session memory entries, optionally filtered by category.
+
+        Args:
+            category: Optional category to filter by.
+            limit: Maximum number of entries to return. Defaults to 50.
+
+        Returns:
+            List of MemoryEntry objects (at most `limit`).
+        """
         with self._lock:
             if category:
                 return [m for m in self._session_memory if m.category == category][:limit]
             return list(self._session_memory)[:limit]
 
     def query_memory(self, query: str, limit: int = 20) -> list[MemoryEntry]:
+        """Search session memory for entries matching the query.
+
+        Matching is case-insensitive against entry content and tags. Matched
+        entries have their last_accessed timestamp updated.
+
+        Args:
+            query: Search query string.
+            limit: Maximum number of entries to return. Defaults to 20.
+
+        Returns:
+            List of matching MemoryEntry objects sorted by recency of access.
+        """
         query_lower = query.lower()
         results = []
         for entry in self._session_memory:
@@ -529,12 +612,23 @@ class ContextCompressor:
         return results[:limit]
 
     def clear_session_memory(self) -> int:
+        """Clear all session memory entries.
+
+        Returns:
+            The number of entries that were removed.
+        """
         with self._lock:
             count = len(self._session_memory)
             self._session_memory.clear()
             return count
 
     def get_compression_stats(self) -> dict[str, Any]:
+        """Return statistics about compression history and session memory.
+
+        Returns:
+            Dictionary with total_compressions, memory_entries,
+            memory_by_category, and the 5 most recent compression log entries.
+        """
         with self._lock:
             return {
                 "total_compressions": len(self._compression_log),
@@ -565,6 +659,12 @@ class ContextCompressor:
             self._compression_log = self._compression_log[-50:]
 
     def export_state(self) -> dict:
+        """Export the compressor's state for persistence.
+
+        Returns:
+            Dictionary with session_memory entries, the last 20 compression
+            log entries, thresholds, and token_threshold.
+        """
         with self._lock:
             return {
                 "session_memory": [m.to_dict() for m in self._session_memory],
@@ -574,6 +674,11 @@ class ContextCompressor:
             }
 
     def import_state(self, state: dict):
+        """Restore the compressor's state from a previously exported dictionary.
+
+        Args:
+            state: Dictionary produced by export_state().
+        """
         with self._lock:
             self._session_memory = [MemoryEntry.from_dict(m) for m in state.get("session_memory", [])]
             self._compression_log = state.get("compression_log", [])

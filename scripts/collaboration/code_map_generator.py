@@ -22,6 +22,12 @@ class CodeNode:
     calls: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the code node to a dictionary.
+
+        Returns:
+            Dictionary with name, type, file, lines, docstring (truncated),
+            children, imports, and calls (each truncated to 5 entries).
+        """
         return {
             "name": self.name,
             "type": self.node_type,
@@ -55,6 +61,12 @@ class CodeMapGenerator:
         self._default_parser = _PythonCompatParser()
 
     def register_parser(self, parser: Any) -> None:
+        """Register an additional language parser with this generator.
+
+        Args:
+            parser: Parser instance exposing file_patterns, parse_file, and
+                extract_dependencies methods.
+        """
         if self._parsers is None:
             self._parsers = []
         self._parsers.append(parser)
@@ -152,6 +164,16 @@ class CodeMapGenerator:
         return "\n".join(lines)
 
     def get_dependency_graph(self, target_dir: str = None) -> dict[str, list[str]]:
+        """Build a file-level dependency graph for the target directory.
+
+        Args:
+            target_dir: Directory to scan (relative to project_root).
+                When None the project root is used.
+
+        Returns:
+            Dictionary mapping relative file paths to sorted lists of
+            imported module names.
+        """
         scan_dir = self.project_root / (target_dir or "")
         graph = {}
 
@@ -194,6 +216,16 @@ class _PythonCompatParser:
     """Internal Python parser maintaining backward compatibility with original CodeMapGenerator."""
 
     def scan_file(self, file_path: Path) -> dict[str, Any] | None:
+        """Parse a Python source file and return its code map structure.
+
+        Args:
+            file_path: Path object pointing to the Python file to scan.
+
+        Returns:
+            Dictionary with file name, truncated imports, top-level nodes,
+            and class/function counts, or None when the file cannot be parsed
+            or exceeds the maximum file size.
+        """
         try:
             if file_path.stat().st_size > CodeMapGenerator.MAX_FILE_SIZE:
                 return None

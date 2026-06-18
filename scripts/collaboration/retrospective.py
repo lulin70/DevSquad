@@ -255,6 +255,16 @@ class RetrospectiveEngine:
         task_description: str,
         limit: int = 3,
     ) -> list[dict[str, Any]]:
+        """Load historical retrospective reports similar to a task description.
+
+        Args:
+            task_description: The task description to match against history.
+            limit: Maximum number of historical records to return. Defaults to 3.
+
+        Returns:
+            List of historical memory content dictionaries, or an empty list
+            when no memory bridge is configured or no matches are found.
+        """
         if self._memory_bridge is None:
             return []
 

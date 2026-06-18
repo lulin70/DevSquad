@@ -339,7 +339,7 @@ class PromptAssembler:
                 _config_cache = config
                 _config_cache_path = resolved
                 return config
-            except Exception as e:
+            except (OSError, PermissionError, ValueError, TypeError) as e:
                 logger.warning("Failed to load config from %s: %s", resolved, e)
                 return {}
         else:
@@ -750,7 +750,7 @@ class PromptAssembler:
                 elif rtype == "prefer":
                     lines.append(f"PREFER: {trigger + ' -> ' if trigger else ''}{action}")
             return "\n".join(lines)
-        except Exception as e:
+        except (AttributeError, TypeError, KeyError, ValueError) as e:
             logger.warning("format_rules_as_prompt failed: %s", e)
             return ""
 
@@ -896,7 +896,7 @@ class PromptAssembler:
             parts.append("")
 
             return "\n".join(parts)
-        except Exception as e:
+        except (ImportError, AttributeError, TypeError) as e:
             logger.debug("RoleSkillLoader not available: %s", e)
             return ""
 
@@ -916,7 +916,7 @@ class PromptAssembler:
             if not hasattr(self, "_ar_engine"):
                 self._ar_engine = get_shared_engine()
             return self._ar_engine.format_for_prompt(self.role_id)
-        except Exception as e:
+        except (ImportError, AttributeError, TypeError) as e:
             logger.debug("AntiRationalizationEngine not available: %s", e)
             return ""
 

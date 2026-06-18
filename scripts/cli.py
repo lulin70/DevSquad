@@ -646,6 +646,16 @@ def _quick_init():
 
 
 def cmd_dispatch(args):
+    """Execute the ``dispatch`` subcommand: validate and run a task.
+
+    Args:
+        args: Parsed argparse namespace. Expected attributes include
+            ``task``/``task_positional``, optional ``roles``, ``mode``,
+            ``format``, ``backend``, and ``quick``.
+
+    Returns:
+        0 on success, 1 on validation or dispatch failure.
+    """
     task_text = args.task if args.task is not None else args.task_positional
     if not task_text:
         logger.error(
@@ -736,6 +746,15 @@ def cmd_dispatch(args):
 
 
 def cmd_status(args):
+    """Execute the ``status`` subcommand: print system status as JSON.
+
+    Args:
+        args: Parsed argparse namespace (unused but required by CLI
+            signature).
+
+    Returns:
+        0 on success.
+    """
     disp = MultiAgentDispatcher(enable_warmup=False)
     try:
         stats = disp.get_status() if hasattr(disp, "get_status") else {}
@@ -754,6 +773,15 @@ def cmd_status(args):
 
 
 def cmd_roles(args):
+    """Execute the ``roles`` subcommand: list available roles.
+
+    Args:
+        args: Parsed argparse namespace. Uses ``args.format`` to select
+            ``"json"`` or plain-text output.
+
+    Returns:
+        0 on success.
+    """
     role_descriptions = {}
     for rid, rdef in ROLE_REGISTRY.items():
         display_id = rdef.aliases[0] if rdef.aliases else rid
@@ -960,6 +988,15 @@ def cmd_lifecycle(args):
 
 
 def main():
+    """Entry point for the ``devsquad`` CLI.
+
+    Builds the top-level argparse parser with all subcommands (init,
+    dispatch, spec, plan, build, test, review, ship, roles, status, demo)
+    and dispatches to the corresponding ``cmd_*`` handler.
+
+    Returns:
+        The exit code from the selected subcommand, or 0 for ``--version``.
+    """
     parser = argparse.ArgumentParser(
         description="DevSquad V3.6 — Multi-Agent Orchestration Engine for Software Development",
         formatter_class=argparse.RawDescriptionHelpFormatter,

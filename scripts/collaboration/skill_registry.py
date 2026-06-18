@@ -29,6 +29,11 @@ class SkillEntry:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the SkillEntry to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary containing all SkillEntry fields.
+        """
         return {
             "skill_id": self.skill_id,
             "name": self.name,
@@ -46,6 +51,14 @@ class SkillEntry:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SkillEntry":
+        """Construct a SkillEntry from a dictionary, ignoring unknown keys.
+
+        Args:
+            data: Dictionary with SkillEntry field names.
+
+        Returns:
+            SkillEntry instance populated from the given data.
+        """
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
@@ -68,6 +81,18 @@ class SkillRegistry:
         self._load()
 
     def register(self, skill: SkillEntry, handler: Callable | None = None) -> str:
+        """Register a skill and optional handler in the registry.
+
+        Args:
+            skill: SkillEntry describing the skill.
+            handler: Optional callable invoked when the skill is executed.
+
+        Returns:
+            The skill_id of the registered skill.
+
+        Raises:
+            ValueError: When the skill_id contains path traversal characters.
+        """
         if ".." in skill.skill_id or "/" in skill.skill_id or "\\" in skill.skill_id:
             raise ValueError(f"Invalid skill_id: {skill.skill_id}")
         self.skills[skill.skill_id] = skill
@@ -78,6 +103,14 @@ class SkillRegistry:
         return skill.skill_id
 
     def unregister(self, skill_id: str) -> bool:
+        """Remove a skill and its handler from the registry.
+
+        Args:
+            skill_id: Identifier of the skill to remove.
+
+        Returns:
+            True when the skill existed and was removed, False otherwise.
+        """
         if skill_id in self.skills:
             del self.skills[skill_id]
             self.handlers.pop(skill_id, None)
@@ -86,9 +119,29 @@ class SkillRegistry:
         return False
 
     def get(self, skill_id: str) -> SkillEntry | None:
+        """Retrieve a skill entry by id.
+
+        Args:
+            skill_id: Identifier of the skill to retrieve.
+
+        Returns:
+            The matching SkillEntry, or None when not found.
+        """
         return self.skills.get(skill_id)
 
     def execute(self, skill_id: str, **kwargs) -> Any:
+        """Execute a registered skill by id.
+
+        Args:
+            skill_id: Identifier of the skill to execute.
+            **kwargs: Keyword arguments forwarded to the skill handler.
+
+        Returns:
+            The value returned by the skill handler.
+
+        Raises:
+            ValueError: When the skill or its handler is not found.
+        """
         skill = self.skills.get(skill_id)
         if not skill:
             raise ValueError(f"Skill not found: {skill_id}")
@@ -104,6 +157,17 @@ class SkillRegistry:
         return handler(**kwargs)
 
     def search(self, query: str = "", category: str = "", tags: list[str] = None) -> list[SkillEntry]:
+        """Search skills by query text, category, and tags.
+
+        Args:
+            query: Case-insensitive substring matched against name and
+                description. Empty matches all.
+            category: Exact category filter. Empty matches all.
+            tags: List of tags; skills matching any tag are included.
+
+        Returns:
+            List of matching SkillEntry objects sorted by confidence desc.
+        """
         results = list(self.skills.values())
         if category:
             results = [s for s in results if s.category == category]
@@ -118,6 +182,18 @@ class SkillRegistry:
     def propose_from_result(
         self, name: str, description: str, category: str = "", confidence: float = 0.0, tags: list[str] = None
     ) -> SkillEntry:
+        """Create and register a skill proposal from a dispatch result.
+
+        Args:
+            name: Human-readable skill name.
+            description: Description of what the skill does.
+            category: Optional category for the skill.
+            confidence: Initial confidence score in [0.0, 1.0].
+            tags: Optional list of tags for discovery.
+
+        Returns:
+            The newly registered SkillEntry.
+        """
         skill = SkillEntry(
             name=name,
             description=description,
@@ -129,12 +205,26 @@ class SkillRegistry:
         return skill
 
     def list_skills(self, category: str = "") -> list[dict[str, Any]]:
+        """List skills as dictionaries, optionally filtered by category.
+
+        Args:
+            category: Optional category filter. Empty lists all skills.
+
+        Returns:
+            List of skill dictionaries produced by :meth:`SkillEntry.to_dict`.
+        """
         skills = list(self.skills.values())
         if category:
             skills = [s for s in skills if s.category == category]
         return [s.to_dict() for s in skills]
 
     def get_stats(self) -> dict[str, Any]:
+        """Return summary statistics for the registry.
+
+        Returns:
+            Dictionary with total skill count, per-category counts, and
+            the number of skills with registered handlers.
+        """
         categories = {}
         for s in self.skills.values():
             categories[s.category] = categories.get(s.category, 0) + 1

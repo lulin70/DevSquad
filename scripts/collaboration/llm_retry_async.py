@@ -24,135 +24,90 @@ Usage:
 
 import asyncio
 import logging
-import random
 from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import datetime
 from functools import wraps
 from typing import Any
 
+from .llm_retry_base import (
+    CircuitBreakerError,
+    CircuitBreakerState,
+    LLMRetryBase,
+    RateLimitError,
+    RetryConfig,
+)
+
 logger = logging.getLogger(__name__)
 
-
-class RateLimitError(Exception):
-    """Raised when rate limit is exceeded"""
-
-    pass
-
-
-class CircuitBreakerError(Exception):
-    """Raised when circuit breaker is open"""
-
-    pass
-
-
-@dataclass
-class RetryConfig:
-    """Configuration for retry behavior"""
-
-    max_retries: int = 3
-    initial_delay: float = 1.0
-    max_delay: float = 60.0
-    exponential_base: float = 2.0
-    jitter: bool = True
+# Re-export for backward compatibility.
+__all__ = [
+    "AsyncLLMRetryManager",
+    "CircuitBreakerError",
+    "CircuitBreakerState",
+    "RateLimitError",
+    "RetryConfig",
+    "async_retry_with_fallback",
+    "get_async_retry_manager",
+]
 
 
-@dataclass
-class CircuitBreakerState:
-    """Circuit breaker state for a backend"""
-
-    failure_count: int = 0
-    last_failure_time: datetime | None = None
-    state: str = "closed"  # closed, open, half_open
-    failure_threshold: int = 5
-    timeout_seconds: int = 60
-
-
-class AsyncLLMRetryManager:
+class AsyncLLMRetryManager(LLMRetryBase):
     """
     Async retry manager with circuit breaker and fallback.
 
-    Thread-safe and -compatible implementation.
+    Thread-safe and asyncio-compatible implementation.
+
+    Inherits shared retry/circuit-breaker strategy (delay calculation,
+    error classification, state transitions) from LLMRetryBase.
+    Only the I/O layer (asyncio.Lock, asyncio.sleep, await) is implemented here.
     """
 
     def __init__(self):
         """Initialize async retry manager"""
-        self.circuit_breakers: dict[str, CircuitBreakerState] = {}
-        self.stats = {
-            "total_calls": 0,
-            "successful_calls": 0,
-            "failed_calls": 0,
-            "retries": 0,
-            "fallbacks": 0,
-            "circuit_breaker_trips": 0,
-        }
+        # Initialize shared strategy from base class (sets stats, circuit_breakers)
+        super().__init__()
+        # Extend base stats with async-specific "circuit_breaker_trips" counter
+        self.stats["circuit_breaker_trips"] = 0
         self._lock = asyncio.Lock()
 
         logger.info("AsyncLLMRetryManager initialized")
 
     def _calculate_delay(self, attempt: int, config: RetryConfig) -> float:
-        """Calculate delay for retry attempt with exponential backoff"""
-        delay = min(config.initial_delay * (config.exponential_base**attempt), config.max_delay)
-
-        if config.jitter:
-            # Add jitter: random value between 50% and 150% of delay
-            delay = delay * (0.5 + random.random())
-
-        return delay
+        """Calculate delay for retry attempt — delegates to base class."""
+        return self.calculate_delay(attempt, config)
 
     def _is_retryable_error(self, error: Exception) -> bool:
-        """Check if error is retryable"""
-        error_str = str(error).lower()
-        retryable_patterns = ["timeout", "connection", "network", "unavailable", "503", "502", "504", "429"]
-        return any(pattern in error_str for pattern in retryable_patterns)
+        """Check if error is retryable — delegates to base class."""
+        return self.is_retryable_error(error)
 
     def _is_rate_limit_error(self, error: Exception) -> bool:
-        """Check if error is rate limit related"""
-        error_str = str(error).lower()
-        return "429" in error_str or "rate limit" in error_str
+        """Check if error is rate limit related — delegates to base class."""
+        return self.is_rate_limit_error(error)
 
     def _get_circuit_breaker(self, backend: str) -> CircuitBreakerState:
-        """Get or create circuit breaker for backend"""
-        if backend not in self.circuit_breakers:
-            self.circuit_breakers[backend] = CircuitBreakerState()
-        return self.circuit_breakers[backend]
+        """Get or create circuit breaker for backend — delegates to base class."""
+        return self.get_circuit_breaker(backend)
 
     async def _check_circuit_breaker(self, backend: str):
-        """Check if circuit breaker allows request"""
+        """Check if circuit breaker allows request (async, with lock)."""
         async with self._lock:
-            cb = self._get_circuit_breaker(backend)
-
-            if cb.state == "open" and cb.last_failure_time:
-                elapsed = (datetime.now() - cb.last_failure_time).total_seconds()
-                if elapsed > cb.timeout_seconds:
-                    # Move to half-open state
-                    cb.state = "half_open"
-                    logger.info("Circuit breaker half-open: %s", backend)
-                else:
-                    raise CircuitBreakerError(f"Circuit breaker open for {backend}")
+            try:
+                self.check_circuit_breaker_state(backend)
+            except CircuitBreakerError:
+                # Note: async version does not increment circuit_breaker_trips here;
+                # the trip is counted in _record_failure when the breaker opens.
+                raise
 
     async def _record_success(self, backend: str):
-        """Record successful call"""
+        """Record successful call (async, with lock)."""
         async with self._lock:
-            cb = self._get_circuit_breaker(backend)
-
-            if cb.state == "half_open":
-                # Close circuit breaker
-                cb.state = "closed"
-                cb.failure_count = 0
-                logger.info("Circuit breaker closed: %s", backend)
+            self.record_success(backend)
 
     async def _record_failure(self, backend: str, _error: Exception):
-        """Record failed call"""
+        """Record failed call (async, with lock)."""
         async with self._lock:
-            cb = self._get_circuit_breaker(backend)
-            cb.failure_count += 1
-            cb.last_failure_time = datetime.now()
-
-            if cb.failure_count >= cb.failure_threshold and cb.state != "open":
-                cb.state = "open"
+            opened = self.record_failure(backend)
+            if opened:
                 self.stats["circuit_breaker_trips"] += 1
-                logger.warning("Circuit breaker opened: %s (failures: %s)", backend, cb.failure_count)
 
     async def retry_with_fallback(
         self,
@@ -216,12 +171,7 @@ class AsyncLLMRetryManager:
 
                 # Last attempt, no need to delay
                 if attempt < config.max_retries - 1:
-                    delay = self._calculate_delay(attempt, config)
-
-                    # Rate limit errors need longer delay
-                    if self._is_rate_limit_error(e):
-                        delay *= 3
-                        logger.warning("Rate limit detected, waiting %.1fs", delay)
+                    delay = self.get_enhanced_delay(attempt, config, e)
 
                     logger.info("Retry attempt %s/%s after %.1fs delay", attempt + 1, config.max_retries, delay)
                     await asyncio.sleep(delay)
@@ -262,10 +212,8 @@ class AsyncLLMRetryManager:
             logger.info("Attempting fallback to %s", backend)
             self.stats["fallbacks"] += 1
 
-            # Update backend parameter in kwargs
-            fallback_kwargs = kwargs.copy()
-            if "backend" in fallback_kwargs:
-                fallback_kwargs["backend"] = backend
+            # Update backend parameter in kwargs (async only sets if "backend" key exists)
+            fallback_kwargs = self.build_fallback_kwargs(kwargs, backend, always_set=False)
 
             try:
                 result = await func(*args, **fallback_kwargs)
@@ -332,8 +280,18 @@ def async_retry_with_fallback(
     """
 
     def decorator(func: Callable):
+        """Decorate an async function to add retry-with-fallback behavior.
+
+        Args:
+            func: Async callable to wrap.
+
+        Returns:
+            Wrapped async callable that retries on failure and falls back
+            across backends.
+        """
         @wraps(func)
         async def wrapper(*args, **kwargs):
+            """Invoke the wrapped async function with retry and fallback handling."""
             config = RetryConfig(
                 max_retries=max_retries,
                 initial_delay=initial_delay,
@@ -356,8 +314,10 @@ def async_retry_with_fallback(
 if __name__ == "__main__":
     # Example usage
     async def main():
+        """Run an example demonstrating async retry-with-fallback behavior."""
         @async_retry_with_fallback(max_retries=3, fallback_backends=["backup"])
         async def test_func(value: int, backend: str = "primary"):
+            """Example function that fails for values below 3 to demonstrate retries."""
             print(f"Calling {backend} with {value}")
             if value < 3:
                 raise Exception("503 Service Unavailable")

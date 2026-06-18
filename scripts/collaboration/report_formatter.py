@@ -71,6 +71,19 @@ class ReportFormatter:
         self._role_names = _ROLE_I18N.get(lang, _ROLE_I18N["zh"])
 
     def build_summary(self, task: str, roles: list[str], exec_result, sp_summary: str) -> str:
+        """Build a localized plain-text summary of a dispatch execution.
+
+        Args:
+            task: The task description string.
+            roles: List of role identifiers that participated.
+            exec_result: Execution result object with ``results`` and
+                ``duration_seconds`` attributes.
+            sp_summary: Scratchpad findings summary string.
+
+        Returns:
+            Newline-joined summary string with task, roles, worker status,
+            duration, and scratchpad findings.
+        """
         t = self._t
         role_names = [self._role_names.get(r, ROLE_TEMPLATES.get(r, {}).get("name", r)) for r in roles]
         parts = [

@@ -12,18 +12,56 @@ class LanguageParser:
     """Base class for language-specific code parsers."""
 
     def file_patterns(self) -> list[str]:
+        """Return the list of glob patterns this parser handles.
+
+        Raises:
+            NotImplementedError: Subclasses must override.
+        """
         raise NotImplementedError
 
     def exclude_patterns(self) -> list[str]:
+        """Return glob patterns for paths that should be skipped.
+
+        Returns:
+            List of exclude patterns; empty by default.
+        """
         return []
 
     def parse_file(self, source: str, file_path: str) -> dict[str, Any] | None:
+        """Parse a single source file into a structured description.
+
+        Args:
+            source: File contents as text.
+            file_path: Path to the file (used for metadata and logging).
+
+        Returns:
+            Dictionary describing the file's nodes, or None when parsing fails.
+
+        Raises:
+            NotImplementedError: Subclasses must override.
+        """
         raise NotImplementedError
 
     def extract_dependencies(self, source: str) -> list[str]:
+        """Extract imported dependency module names from source text.
+
+        Args:
+            source: File contents as text.
+
+        Returns:
+            Sorted list of dependency module names.
+
+        Raises:
+            NotImplementedError: Subclasses must override.
+        """
         raise NotImplementedError
 
     def is_available(self) -> bool:
+        """Check whether this parser is available for use.
+
+        Returns:
+            True by default; overridden by NullLanguageParser to return False.
+        """
         return True
 
 
@@ -31,12 +69,32 @@ class PythonParser(LanguageParser):
     """Python AST-based language parser."""
 
     def file_patterns(self) -> list[str]:
+        """Return glob patterns handled by this parser.
+
+        Returns:
+            List containing "*.py".
+        """
         return ["*.py"]
 
     def exclude_patterns(self) -> list[str]:
+        """Return glob patterns for paths that should be skipped.
+
+        Returns:
+            List of Python-specific exclude patterns (cache dirs, tests, venv).
+        """
         return ["__pycache__", "test_", "_test.py", ".venv"]
 
     def parse_file(self, source: str, file_path: str) -> dict[str, Any] | None:
+        """Parse Python source into a structured description using the AST.
+
+        Args:
+            source: Python source code text.
+            file_path: Path to the file (used for metadata and logging).
+
+        Returns:
+            Dictionary with file name, language, imports, top-level nodes,
+            and class/function counts; None on SyntaxError or decode errors.
+        """
         try:
             tree = ast.parse(source)
         except (SyntaxError, UnicodeDecodeError) as e:
@@ -102,6 +160,14 @@ class PythonParser(LanguageParser):
         }
 
     def extract_dependencies(self, source: str) -> list[str]:
+        """Extract imported module names from Python source via the AST.
+
+        Args:
+            source: Python source code text.
+
+        Returns:
+            Sorted list of imported module names; empty list on parse errors.
+        """
         try:
             tree = ast.parse(source)
         except (SyntaxError, UnicodeDecodeError) as e:
@@ -133,12 +199,32 @@ class JavaScriptParser(LanguageParser):
     )
 
     def file_patterns(self) -> list[str]:
+        """Return glob patterns handled by this parser.
+
+        Returns:
+            List of JS/TS file extensions (.js, .jsx, .ts, .tsx).
+        """
         return ["*.js", "*.jsx", "*.ts", "*.tsx"]
 
     def exclude_patterns(self) -> list[str]:
+        """Return glob patterns for paths that should be skipped.
+
+        Returns:
+            List of JS build/dependency directories to exclude.
+        """
         return ["node_modules", "dist", ".next", "coverage", "build"]
 
     def parse_file(self, source: str, file_path: str) -> dict[str, Any] | None:
+        """Parse JavaScript/TypeScript source via regex into a description.
+
+        Args:
+            source: JavaScript/TypeScript source code text.
+            file_path: Path to the file (used for metadata and logging).
+
+        Returns:
+            Dictionary with file name, language, imports, classes and
+            functions; None when no classes or functions are found.
+        """
         try:
             classes = []
             for m in self._CLASS_RE.finditer(source):
@@ -184,6 +270,14 @@ class JavaScriptParser(LanguageParser):
             return None
 
     def extract_dependencies(self, source: str) -> list[str]:
+        """Extract imported module paths from JavaScript/TypeScript source.
+
+        Args:
+            source: JavaScript/TypeScript source code text.
+
+        Returns:
+            Sorted list of imported module paths.
+        """
         deps = set()
         for m in self._IMPORT_RE.finditer(source):
             dep = m.group(1) or m.group(2)
@@ -202,12 +296,32 @@ class GoParser(LanguageParser):
     _IMPORT_LINE_RE = re.compile(r'"([^"]+)"')
 
     def file_patterns(self) -> list[str]:
+        """Return glob patterns handled by this parser.
+
+        Returns:
+            List containing "*.go".
+        """
         return ["*.go"]
 
     def exclude_patterns(self) -> list[str]:
+        """Return glob patterns for paths that should be skipped.
+
+        Returns:
+            List containing "vendor".
+        """
         return ["vendor"]
 
     def parse_file(self, source: str, file_path: str) -> dict[str, Any] | None:
+        """Parse Go source via regex into a structured description.
+
+        Args:
+            source: Go source code text.
+            file_path: Path to the file (used for metadata and logging).
+
+        Returns:
+            Dictionary with file name, language, imports, structs, interfaces
+            and functions; None when none of those are found.
+        """
         try:
             structs = []
             for m in self._TYPE_STRUCT_RE.finditer(source):
@@ -264,6 +378,14 @@ class GoParser(LanguageParser):
             return None
 
     def extract_dependencies(self, source: str) -> list[str]:
+        """Extract imported package paths from Go source.
+
+        Args:
+            source: Go source code text.
+
+        Returns:
+            Sorted list of imported package paths.
+        """
         deps = set()
         for m in self._IMPORT_RE.finditer(source):
             block = m.group(1)
@@ -280,15 +402,42 @@ class NullLanguageParser(LanguageParser):
     """Null parser for graceful degradation."""
 
     def file_patterns(self) -> list[str]:
+        """Return glob patterns handled by this parser.
+
+        Returns:
+            Empty list (the null parser handles no files).
+        """
         return []
 
     def parse_file(self, _source: str, _file_path: str) -> dict[str, Any] | None:
+        """Always return None; the null parser parses nothing.
+
+        Args:
+            _source: Unused source text.
+            _file_path: Unused file path.
+
+        Returns:
+            Always None.
+        """
         return None
 
     def extract_dependencies(self, _source: str) -> list[str]:
+        """Always return an empty list; the null parser extracts nothing.
+
+        Args:
+            _source: Unused source text.
+
+        Returns:
+            Always an empty list.
+        """
         return []
 
     def is_available(self) -> bool:
+        """Return False; the null parser is never available.
+
+        Returns:
+            Always False.
+        """
         return False
 
 

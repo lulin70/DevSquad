@@ -35,6 +35,11 @@ class SkillStorage:
     # ================================================================
 
     def record_execution(self, record: ExecutionRecord) -> None:
+        """Finalize and append an execution record to the store.
+
+        Args:
+            record: ExecutionRecord to finalize and persist in memory.
+        """
         with self._lock:
             record.finalize()
             self._records.append(record)
@@ -42,6 +47,16 @@ class SkillStorage:
     def get_records(
         self, since: datetime = None, until: datetime = None, success_only: bool = True
     ) -> list[ExecutionRecord]:
+        """Query stored execution records by time range and success status.
+
+        Args:
+            since: Optional inclusive lower bound on record start_time.
+            until: Optional inclusive upper bound on record start_time.
+            success_only: When True (default), only successful records are returned.
+
+        Returns:
+            List of ExecutionRecord matching the filters.
+        """
         results = self._records
         if since:
             results = [r for r in results if r.start_time >= since]
@@ -56,12 +71,22 @@ class SkillStorage:
     # ================================================================
 
     def add_pattern(self, pattern: SuccessPattern) -> None:
+        """Add a success pattern to the store, skipping duplicates by pattern_id.
+
+        Args:
+            pattern: SuccessPattern to add.
+        """
         with self._lock:
             existing_ids = {p.pattern_id for p in self._patterns}
             if pattern.pattern_id not in existing_ids:
                 self._patterns.append(pattern)
 
     def add_patterns(self, patterns: list[SuccessPattern]) -> None:
+        """Add multiple success patterns, skipping duplicates by pattern_id.
+
+        Args:
+            patterns: List of SuccessPattern instances to add.
+        """
         with self._lock:
             existing_ids = {p.pattern_id for p in self._patterns}
             for pattern in patterns:
@@ -70,6 +95,11 @@ class SkillStorage:
                     existing_ids.add(pattern.pattern_id)
 
     def get_patterns(self) -> list[SuccessPattern]:
+        """Return a copy of all stored success patterns.
+
+        Returns:
+            List of SuccessPattern currently in storage.
+        """
         return list(self._patterns)
 
     # ================================================================
@@ -77,13 +107,34 @@ class SkillStorage:
     # ================================================================
 
     def add_proposal(self, proposal: SkillProposal) -> None:
+        """Add or replace a skill proposal keyed by proposal_id.
+
+        Args:
+            proposal: SkillProposal to store.
+        """
         with self._lock:
             self._proposals[proposal.proposal_id] = proposal
 
     def get_proposal(self, proposal_id: str) -> SkillProposal | None:
+        """Retrieve a single proposal by id.
+
+        Args:
+            proposal_id: Identifier of the proposal to retrieve.
+
+        Returns:
+            SkillProposal with the given id, or None if not found.
+        """
         return self._proposals.get(proposal_id)
 
     def get_proposals(self, status=None) -> list[SkillProposal]:
+        """List proposals, optionally filtered by status.
+
+        Args:
+            status: Optional ProposalStatus value to filter by.
+
+        Returns:
+            List of SkillProposal matching the status filter (or all if None).
+        """
         props = list(self._proposals.values())
         if status:
             props = [p for p in props if p.status == status]
@@ -94,6 +145,16 @@ class SkillStorage:
     # ================================================================
 
     def approve_and_publish(self, proposal_id: str, approver: str = "system") -> bool:
+        """Mark a proposal as published, recording the approver and timestamp.
+
+        Args:
+            proposal_id: Identifier of the proposal to publish.
+            approver: Name of the approver (default "system").
+
+        Returns:
+            True if the proposal exists (already published or newly published),
+            False if the proposal id is unknown.
+        """
         with self._lock:
             proposal = self._proposals.get(proposal_id)
             if not proposal:
@@ -106,6 +167,14 @@ class SkillStorage:
             return True
 
     def suggest_skills_for_task(self, task_description: str) -> list[SkillProposal]:
+        """Suggest approved/published skills whose trigger conditions match a task.
+
+        Args:
+            task_description: Natural language description of the task.
+
+        Returns:
+            List of up to 10 SkillProposal sorted by relevance score (descending).
+        """
         task_lower = task_description.lower()
         task_words = set(re.findall(r"\w{3,}", task_lower))
         scored = []
@@ -132,9 +201,20 @@ class SkillStorage:
     # ================================================================
 
     def export_patterns(self) -> str:
+        """Serialize all success patterns to a JSON string.
+
+        Returns:
+            Indented JSON string of pattern dictionaries.
+        """
         return json.dumps([p.to_dict() for p in self._patterns], indent=2, ensure_ascii=False, default=str)
 
     def export_state(self) -> dict:
+        """Export a serializable snapshot of the storage state.
+
+        Returns:
+            Dictionary with record/pattern/proposal counts, pattern dicts,
+            and proposal ids.
+        """
         with self._lock:
             return {
                 "records_count": len(self._records),
@@ -145,6 +225,12 @@ class SkillStorage:
             }
 
     def get_statistics(self) -> dict[str, Any]:
+        """Compute aggregate statistics over records, patterns, and proposals.
+
+        Returns:
+            Dictionary with totals, published count, average confidence,
+            and average quality score.
+        """
         with self._lock:
             published = sum(1 for p in self._proposals.values() if p.status == ProposalStatus.PUBLISHED)
             avg_confidence = 0.0

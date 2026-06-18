@@ -66,10 +66,21 @@ class WarmupConfig:
 
     @classmethod
     def default(cls) -> "WarmupConfig":
+        """Return the default warmup configuration.
+
+        Returns:
+            A WarmupConfig instance with default settings.
+        """
         return cls()
 
     @classmethod
     def fast(cls) -> "WarmupConfig":
+        """Return a fast warmup configuration optimized for low latency.
+
+        Returns:
+            A WarmupConfig with fewer async workers, smaller cache, and
+            shorter timeouts.
+        """
         return cls(
             async_workers=0,
             cache_max_size=50,
@@ -79,6 +90,12 @@ class WarmupConfig:
 
     @classmethod
     def full(cls) -> "WarmupConfig":
+        """Return a full warmup configuration optimized for throughput.
+
+        Returns:
+            A WarmupConfig with more async workers, larger cache, and
+            longer timeouts.
+        """
         return cls(
             async_workers=8,
             cache_max_size=500,
@@ -89,6 +106,12 @@ class WarmupConfig:
 
     @classmethod
     def from_env(cls) -> "WarmupConfig":
+        """Build a WarmupConfig from the ``WARMUP_MODE`` environment variable.
+
+        Returns:
+            WarmupConfig selected by the env var: ``FAST``, ``FULL``,
+            ``DISABLED``, or the default when unset/unknown.
+        """
         mode = os.environ.get("WARMUP_MODE", "DEFAULT").upper()
         if mode == "FAST":
             return cls.fast()
@@ -145,12 +168,19 @@ class CacheEntry:
 
     @property
     def is_expired(self) -> bool:
+        """Return True if the cache entry has exceeded its TTL.
+
+        Returns:
+            False when `ttl_seconds` is non-positive (no expiry),
+            otherwise True when `age_seconds` exceeds `ttl_seconds`.
+        """
         if self.ttl_seconds <= 0:
             return False
         return (time.time() - self.created_at) > self.ttl_seconds
 
     @property
     def age_seconds(self) -> float:
+        """Return the age of this cache entry in seconds since creation."""
         return time.time() - self.created_at
 
 
@@ -188,6 +218,15 @@ class WarmupManager:
 
     @classmethod
     def instance(cls, config: WarmupConfig | None = None) -> "WarmupManager":
+        """Return the singleton WarmupManager, creating it on first call.
+
+        Args:
+            config: Optional WarmupConfig. Used only when the singleton is
+                first created; subsequent calls ignore this argument.
+
+        Returns:
+            The shared WarmupManager instance with builtin tasks registered.
+        """
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls(config=config or WarmupConfig.from_env())
@@ -197,6 +236,11 @@ class WarmupManager:
 
     @classmethod
     def reset(cls) -> None:
+        """Shut down and destroy the singleton instance.
+
+        Calls `shutdown()` on the existing instance (if any) and clears the
+        singleton reference so the next `instance()` call creates a fresh one.
+        """
         with cls._lock:
             if cls._instance:
                 cls._instance.shutdown()
@@ -238,11 +282,16 @@ class WarmupManager:
                 "stages": list(STAGE_METADATA.keys()),
                 "count": len(ROLE_METADATA),
             }
-        except Exception as e:
+        except ImportError as e:
             logger.debug("Registry import failed: %s", e)
             return {"roles": [], "stages": [], "count": 0, "error": "registry_import_failed"}
 
     def register_task(self, task: WarmupTask) -> None:
+        """Register a warmup task with the manager.
+
+        Args:
+            task: WarmupTask to register. Its `task_id` must be unique.
+        """
         with self._inner_lock:
             self._tasks[task.task_id] = task
             self._results[task.task_id] = WarmupResult(task_id=task.task_id)
@@ -250,6 +299,16 @@ class WarmupManager:
                 self._eager_task_ids_local.add(task.task_id)
 
     def warmup(self, layers: list[WarmupLayer] | None = None) -> WarmupReport:
+        """Run warmup for the specified layers and return a report.
+
+        Args:
+            layers: Optional list of WarmupLayer values to run. When None,
+                both EAGER and ASYNC layers are executed.
+
+        Returns:
+            WarmupReport with task counts, durations, and per-task results.
+            Returns an empty report when warmup is disabled via config.
+        """
         if not self.config.enabled:
             return WarmupReport(timestamp=datetime.now())
         self._start_time = time.perf_counter()
@@ -273,6 +332,14 @@ class WarmupManager:
         )
 
     def warmup_eager(self) -> list[WarmupResult]:
+        """Synchronously execute all EAGER-layer warmup tasks.
+
+        Tasks are executed in topological order respecting dependencies.
+        Results are cached and stored in `_results`.
+
+        Returns:
+            List of WarmupResult for each eager task, in execution order.
+        """
         eager_tasks = [t for t in self._tasks.values() if t.layer == WarmupLayer.EAGER]
         sorted_tasks = self._topological_sort(eager_tasks)
         results = []
@@ -300,6 +367,7 @@ class WarmupManager:
                     self._results[task.task_id] = wr
                 results.append(wr)
             except Exception as e:
+                # Broad catch: warmup task execution; isolates per-task failures
                 duration = (time.perf_counter() - start) * 1000
                 wr = WarmupResult(
                     task_id=task.task_id,
@@ -313,6 +381,12 @@ class WarmupManager:
         return results
 
     def warmup_async(self) -> None:
+        """Execute ASYNC-layer warmup tasks in a background thread pool.
+
+        Returns immediately after submitting tasks; results are populated
+        asynchronously. No-op if already warming up, no async workers
+        configured, or shutdown has been requested.
+        """
         if self._executor is not None or self._is_warming_up:
             return
         if self.config.async_workers <= 0:
@@ -356,6 +430,7 @@ class WarmupManager:
                 if event:
                     event.set()
             except Exception as e:
+                # Broad catch: async warmup task execution; isolates per-task failures
                 duration = (time.perf_counter() - start) * 1000
                 wr = WarmupResult(
                     task_id=task.task_id,
@@ -387,6 +462,7 @@ class WarmupManager:
                 try:
                     f.result(timeout=max(t.timeout_ms for t in sorted_tasks) / 1000.0)
                 except Exception as e:
+                    # Broad catch: future result from thread pool; per-task isolation
                     logger.debug("Warmup task failed: %s", e)
             self._is_warming_up = False
 
@@ -394,6 +470,15 @@ class WarmupManager:
         wait_thread.start()
 
     def get(self, key: str, default: Any = None) -> Any:
+        """Retrieve a cached value by key.
+
+        Args:
+            key: Cache key to look up.
+            default: Value to return on miss or expiry.
+
+        Returns:
+            The cached value, or ``default`` when missing or expired.
+        """
         if not self.config.cache_enabled:
             return default
         entry = self._cache.get(key)
@@ -407,6 +492,16 @@ class WarmupManager:
         return entry.value
 
     def get_or_load(self, key: str, loader: Callable[[], Any], _layer: WarmupLayer = WarmupLayer.LAZY) -> Any:
+        """Return a cached value, loading it via ``loader`` on miss.
+
+        Args:
+            key: Cache key to look up or populate.
+            loader: Callable that produces the value when the cache misses.
+            _layer: Warmup layer tag for the lazy load (currently unused).
+
+        Returns:
+            The cached or freshly loaded value.
+        """
         value = self.get(key)
         if value is not None:
             return value
@@ -435,6 +530,14 @@ class WarmupManager:
         return self.get(key, default=None)
 
     def set_cache(self, key: str, value: Any, source: str = "", ttl: float | None = None) -> None:
+        """Manually store a value in the cache.
+
+        Args:
+            key: Cache key to set.
+            value: Value to store.
+            source: Optional source label for the entry.
+            ttl: Optional TTL in seconds overriding the config default.
+        """
         if not self.config.cache_enabled:
             return
         entry = CacheEntry(
@@ -450,12 +553,25 @@ class WarmupManager:
             self._evict_if_needed()
 
     def is_ready(self, task_id: str) -> bool:
+        """Check whether a warmup task completed successfully.
+
+        Args:
+            task_id: Identifier of the task to check.
+
+        Returns:
+            True when the task result status is SUCCESS, False otherwise.
+        """
         result = self._results.get(task_id)
         if result is None:
             return False
         return result.status == WarmupStatus.SUCCESS
 
     def is_fully_warmed(self) -> bool:
+        """Check whether all registered tasks have finished warming up.
+
+        Returns:
+            True when no task is pending and no async warmup is in progress.
+        """
         if not self._tasks:
             return True
         for result in self._results.values():
@@ -464,6 +580,12 @@ class WarmupManager:
         return not self._is_warming_up
 
     def get_report(self) -> WarmupReport:
+        """Build a WarmupReport from current task results.
+
+        Returns:
+            WarmupReport with totals, completed/failed/cached counts,
+            duration, and per-task results.
+        """
         all_results = list(self._results.values())
         completed = sum(1 for r in all_results if r.status == WarmupStatus.SUCCESS)
         failed = sum(1 for r in all_results if r.status in (WarmupStatus.ERROR, WarmupStatus.TIMEOUT))
@@ -479,6 +601,13 @@ class WarmupManager:
         )
 
     def get_metrics(self) -> WarmupMetrics:
+        """Collect detailed warmup and cache metrics.
+
+        Returns:
+            WarmupMetrics with startup time, eager/async durations, cache
+            hit rate, cache size, memory estimate, and task counts. When
+            metrics are disabled an empty WarmupMetrics is returned.
+        """
         if not self.config.metrics_enabled:
             return WarmupMetrics()
         total_hits = sum(e.access_count for e in self._cache.values())
@@ -509,6 +638,11 @@ class WarmupManager:
         )
 
     def print_diagnostics(self) -> str:
+        """Return a human-readable diagnostics report as a multi-line string.
+
+        Includes startup timing, eager/async durations, cache hit rate,
+        memory usage, task completion counts, and per-task status lines.
+        """
         m = self.get_metrics()
         lines = [
             "=== WarmupManager Diagnostics ===",
@@ -536,6 +670,16 @@ class WarmupManager:
         return "\n".join(lines)
 
     def benchmark(self, iterations: int = 5) -> dict[str, Any]:
+        """Run warmup repeatedly and return timing statistics.
+
+        Args:
+            iterations: Number of warmup cycles to run. Each cycle
+                invalidates the cache and re-runs warmup.
+
+        Returns:
+            Dict with mean_ms, min_ms, max_ms, p50_ms, p95_ms, and
+            iterations keys.
+        """
         times = []
         for _ in range(iterations):
             self.invalidate_all()
@@ -565,14 +709,21 @@ class WarmupManager:
         }
 
     def invalidate(self, key: str) -> None:
+        """Remove a single entry from the cache.
+
+        Args:
+            key: Cache key to invalidate.
+        """
         with self._inner_lock:
             self._cache.pop(key, None)
 
     def invalidate_all(self) -> None:
+        """Clear all entries from the cache."""
         with self._inner_lock:
             self._cache.clear()
 
     def shutdown(self) -> None:
+        """Shut down the async executor and clear the cache."""
         self._shutdown_flag = True
         self._is_warming_up = False
         if self._executor is not None:

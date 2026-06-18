@@ -60,6 +60,11 @@ class LevelStats:
 
     @property
     def avg_latency_ms(self) -> float:
+        """Return the average per-operation latency in milliseconds.
+
+        Returns:
+            Mean latency, or 0.0 when no operations have been recorded.
+        """
         return self.total_latency_ms / self.operations if self.operations > 0 else 0.0
 
 
@@ -98,6 +103,14 @@ class MemoryCacheBackend(CacheBackendInterface):
         self._stats = CacheStats()
 
     async def get(self, key: str) -> Any | None:
+        """Retrieve a value from the memory cache, respecting TTL and LRU order.
+
+        Args:
+            key: Cache key to look up.
+
+        Returns:
+            The cached value, or None on miss or expiry.
+        """
         async with self._lock:
             if key not in self._cache:
                 self._stats.misses += 1
@@ -118,6 +131,17 @@ class MemoryCacheBackend(CacheBackendInterface):
             return entry.value
 
     async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
+        """Store a value in the memory cache with optional TTL.
+
+        Args:
+            key: Cache key to set.
+            value: Value to store.
+            ttl: Time-to-live in seconds. When None or 0 the default TTL
+                is used; a positive value sets an absolute expiry.
+
+        Returns:
+            True when the value was stored successfully.
+        """
         async with self._lock:
             actual_ttl = ttl or self.default_ttl
             expires_at = time.time() + actual_ttl if actual_ttl > 0 else None
@@ -141,6 +165,14 @@ class MemoryCacheBackend(CacheBackendInterface):
             return True
 
     async def delete(self, key: str) -> bool:
+        """Delete a key from the memory cache.
+
+        Args:
+            key: Cache key to delete.
+
+        Returns:
+            True when the key existed and was removed, False otherwise.
+        """
         async with self._lock:
             if key in self._cache:
                 del self._cache[key]
@@ -149,10 +181,16 @@ class MemoryCacheBackend(CacheBackendInterface):
             return False
 
     async def clear(self) -> None:
+        """Remove all entries from the memory cache."""
         async with self._lock:
             self._cache.clear()
 
     async def stats(self) -> dict[str, Any]:
+        """Return aggregated statistics for the memory cache.
+
+        Returns:
+            Dictionary with hit rate, entry count, backend type, and max size.
+        """
         total_requests = self._stats.hits + self._stats.misses
         self._stats.hit_rate = self._stats.hits / total_requests if total_requests > 0 else 0.0
         self._stats.entry_count = len(self._cache)
@@ -163,6 +201,7 @@ class MemoryCacheBackend(CacheBackendInterface):
         return result
 
     async def close(self) -> None:
+        """Close the backend, clearing all cached entries."""
         await self.clear()
 
 

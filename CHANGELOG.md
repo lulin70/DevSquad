@@ -30,6 +30,29 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Removed
 - **config_loader.py**: Dead code — entire ConfigManager/DevSquadConfig system had zero references across the project (15 config fields and 13 env var mappings all unused)
 
+### P0-P3 Technical Debt Cleanup (2026-06-17)
+
+### Added
+- **pre-commit hooks** (`.pre-commit-config.yaml`): ruff + ruff-format + trailing-whitespace + end-of-file-fixer + check-yaml + check-added-large-files + check-merge-conflict
+- **CI code coverage**: pytest-cov integration with codecov upload in GitHub Actions
+- **llm_cache_base.py**: Shared cache strategy base class (TTL management, LRU eviction, key generation) for sync/async cache
+- **llm_retry_base.py**: Shared retry strategy base class (exponential backoff, circuit breaker, fallback chain) for sync/async retry
+- **memory_forgetting.py**: Extracted forgetting curve + expiry cleanup from memory_bridge.py
+- **memory_index.py**: Extracted inverted index + TF-IDF retrieval from memory_bridge.py
+- **memory_claw_source.py**: Extracted WorkBuddyClawSource class from memory_bridge.py
+- **lifecycle_shortcut_adapter.py**: Extracted ShortcutLifecycleAdapter from lifecycle_protocol.py
+- **lifecycle_templates.py**: Extracted 11-phase template definitions from lifecycle_protocol.py
+- **lifecycle_gate.py**: Extracted gate mechanism from lifecycle_protocol.py
+
+### Changed
+- **Docstring coverage**: 56.9% → 80%+ (683 public methods documented across 30+ files)
+- **Broad except narrowed**: 17 more `except Exception` in 6 core modules (async_coordinator, coordinator, worker, warmup_manager, prompt_assembler, performance_monitor) narrowed to specific types; 10 retained with justification comments
+- **memory_bridge.py**: 1678 → ~600 lines (split into 4 files, backward-compatible re-exports)
+- **lifecycle_protocol.py**: 1434 → ~400 lines (split into 4 files, backward-compatible re-exports)
+- **sync/async dedup**: llm_cache.py and llm_cache_async.py now share LLMCacheBase; llm_retry.py and llm_retry_async.py now share LLMRetryBase
+- **parametrize**: InputValidator tests refactored with @pytest.mark.parametrize to reduce duplication
+- 2115 tests passing, ruff clean
+
 ## [3.7.0] - 2026-06-15
 
 ### Added

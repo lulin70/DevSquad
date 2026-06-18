@@ -29,14 +29,26 @@ jobs:
           pip install -e ".[dev]" 2>/dev/null || pip install -e .
           pip install pytest pytest-asyncio pytest-timeout httpx mcp
 
-      - name: Run tests
+      - name: Install coverage tool
+        run: pip install pytest-cov
+
+      - name: Run tests with coverage
         run: |
           python -m pytest tests/ -q --tb=short \
             --ignore=tests/integration \
             --ignore=tests/e2e \
             --ignore=tests/test_cli_phase5.py \
             -m "not slow" \
-            --timeout=120
+            --timeout=120 \
+            --cov=scripts \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
 
   lint:
     runs-on: ubuntu-latest

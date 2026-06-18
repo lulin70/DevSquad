@@ -43,12 +43,28 @@ class AxisVote:
     voter_id: str = ""
 
     def is_positive(self) -> bool:
+        """Check whether this vote is positive.
+
+        Returns:
+            True if the score is greater than or equal to 0.6.
+        """
         return self.score >= 0.6
 
     def is_negative(self) -> bool:
+        """Check whether this vote is negative.
+
+        Returns:
+            True if the score is strictly below 0.4.
+        """
         return self.score < 0.4
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the axis vote to a dictionary.
+
+        Returns:
+            Dictionary with axis name, rounded score and confidence, comment,
+            and voter_id.
+        """
         return {
             "axis": self.axis.value,
             "score": round(self.score, 2),
@@ -70,6 +86,12 @@ class FiveAxisReview:
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def calculate_overall(self) -> float:
+        """Compute and store the confidence-weighted overall score.
+
+        Returns:
+            The weighted average of vote scores; 0.0 when there are no votes
+            or total confidence is zero.
+        """
         if not self.votes:
             return 0.0
         weighted_sum = sum(v.score * v.confidence for v in self.votes)
@@ -78,6 +100,14 @@ class FiveAxisReview:
         return self.overall_score
 
     def get_vote_for_axis(self, axis: ReviewAxis) -> AxisVote | None:
+        """Return the vote cast on a specific review axis, if any.
+
+        Args:
+            axis: ReviewAxis to look up.
+
+        Returns:
+            The matching AxisVote, or None when no vote exists for that axis.
+        """
         for v in self.votes:
             if v.axis == axis:
                 return v
@@ -95,6 +125,12 @@ class ConsensusResult:
     action_items: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the consensus result to a dictionary.
+
+        Returns:
+            Dictionary containing review count, per-axis consensus scores,
+            overall consensus, verdict, and action items.
+        """
         return {
             "review_count": len(self.reviews),
             "axis_consensus": {k: round(v, 2) for k, v in self.axis_consensus.items()},

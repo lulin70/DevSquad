@@ -40,6 +40,12 @@ class Checkpoint:
     checkpoint_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the checkpoint to a JSON-compatible dictionary.
+
+        Returns:
+            Dict containing all checkpoint fields with enum values converted
+            to their string representation.
+        """
         return {
             "checkpoint_id": self.checkpoint_id,
             "task_id": self.task_id,
@@ -61,6 +67,16 @@ class Checkpoint:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Checkpoint":
+        """Reconstruct a Checkpoint instance from a serialized dictionary.
+
+        Args:
+            data: Dict produced by `to_dict`. The `status` field may be a
+                string and will be converted back to a `CheckpointStatus`
+                enum value; invalid values fall back to `ACTIVE`.
+
+        Returns:
+            A new Checkpoint instance populated from `data`.
+        """
         data_copy = dict(data)
         if isinstance(data_copy.get("status"), str):
             try:
@@ -89,9 +105,24 @@ class HandoffDocument:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "HandoffDocument":
+        """Reconstruct a HandoffDocument from a serialized dictionary.
+
+        Args:
+            data: Dict containing handoff fields (typically produced by
+                `dataclasses.asdict`).
+
+        Returns:
+            A new HandoffDocument instance populated from `data`.
+        """
         return cls(**data)
 
     def to_markdown(self) -> str:
+        """Render the handoff document as a human-readable Markdown string.
+
+        Returns:
+            Markdown-formatted string containing basic info, completed work,
+            current state (as JSON), next steps, pending issues, and notes.
+        """
         md = "# Task Handoff Document\n\n"
         md += "## Basic Info\n"
         md += f"- **Handoff ID**: {self.handoff_id}\n"
@@ -167,6 +198,16 @@ class CheckpointManager:
         return path
 
     def save_checkpoint(self, checkpoint: Checkpoint) -> bool:
+        """Persist a checkpoint to disk with an integrity hash.
+
+        Args:
+            checkpoint: Checkpoint instance to save. Its `updated_at` and
+                `checkpoint_hash` fields are updated in place before writing.
+
+        Returns:
+            True if the checkpoint was written successfully, False on
+            OSError/TypeError/ValueError.
+        """
         try:
             checkpoint.updated_at = datetime.now().isoformat()
             checkpoint_dict = checkpoint.to_dict()
@@ -184,6 +225,15 @@ class CheckpointManager:
             return False
 
     def load_checkpoint(self, checkpoint_id: str) -> Checkpoint | None:
+        """Load and integrity-verify a checkpoint by ID.
+
+        Args:
+            checkpoint_id: Unique checkpoint identifier.
+
+        Returns:
+            Reconstructed Checkpoint if found and hash matches, None if the
+            file is missing, hash verification fails, or parsing errors occur.
+        """
         try:
             checkpoint_path = self._get_checkpoint_path(checkpoint_id)
             if not checkpoint_path.exists():
@@ -205,6 +255,15 @@ class CheckpointManager:
             return None
 
     def get_latest_checkpoint(self, task_id: str) -> Checkpoint | None:
+        """Return the most recently modified checkpoint for a given task.
+
+        Args:
+            task_id: Task identifier to filter checkpoints by.
+
+        Returns:
+            The newest Checkpoint by file mtime, or None if no checkpoints
+            exist for the task or loading fails.
+        """
         try:
             task_checkpoints = []
             for cp_path in self.checkpoints_dir.glob("*.json"):
@@ -223,6 +282,16 @@ class CheckpointManager:
             return None
 
     def list_checkpoints(self, task_id: str | None = None) -> list[Checkpoint]:
+        """List checkpoints, optionally filtered by task.
+
+        Args:
+            task_id: Optional task identifier. When None, all checkpoints
+                are returned.
+
+        Returns:
+            List of Checkpoints sorted by `created_at` descending. Returns
+            an empty list on errors.
+        """
         try:
             checkpoints = []
             for cp_path in self.checkpoints_dir.glob("*.json"):
@@ -237,6 +306,15 @@ class CheckpointManager:
             return []
 
     def delete_checkpoint(self, checkpoint_id: str) -> bool:
+        """Delete a checkpoint file by ID.
+
+        Args:
+            checkpoint_id: Unique checkpoint identifier.
+
+        Returns:
+            True if the file existed and was deleted, False if it did not
+            exist or deletion failed.
+        """
         try:
             checkpoint_path = self._get_checkpoint_path(checkpoint_id)
             if checkpoint_path.exists():
@@ -248,6 +326,16 @@ class CheckpointManager:
             return False
 
     def cleanup_expired_checkpoints(self, max_age_hours: int = 24) -> int:
+        """Remove checkpoint files older than `max_age_hours`.
+
+        Args:
+            max_age_hours: Maximum age in hours. Checkpoints whose file
+                mtime is older than this cutoff are deleted.
+
+        Returns:
+            Number of checkpoint files removed. Returns 0 on errors or when
+            nothing qualifies.
+        """
         try:
             cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
             cleaned_count = 0
@@ -263,6 +351,17 @@ class CheckpointManager:
             return 0
 
     def save_handoff(self, handoff: HandoffDocument) -> bool:
+        """Persist a handoff document as JSON and Markdown.
+
+        Args:
+            handoff: HandoffDocument instance to save. Both a `.json` file
+                (via `dataclasses.asdict`) and a `.md` file (via
+                `to_markdown`) are written.
+
+        Returns:
+            True if both files were written successfully, False on
+            OSError/TypeError/ValueError.
+        """
         try:
             handoff_path = self._get_handoff_path(handoff.handoff_id)
             with self._file_lock:
@@ -280,6 +379,15 @@ class CheckpointManager:
             return False
 
     def load_handoff(self, handoff_id: str) -> HandoffDocument | None:
+        """Load a handoff document by ID.
+
+        Args:
+            handoff_id: Unique handoff identifier.
+
+        Returns:
+            Reconstructed HandoffDocument if found, None if missing or
+            parsing fails.
+        """
         try:
             handoff_path = self._get_handoff_path(handoff_id)
             if not handoff_path.exists():
@@ -292,6 +400,15 @@ class CheckpointManager:
             return None
 
     def get_task_handoffs(self, task_id: str) -> list[HandoffDocument]:
+        """List all handoff documents for a given task.
+
+        Args:
+            task_id: Task identifier to filter handoffs by.
+
+        Returns:
+            List of HandoffDocuments sorted by `created_at` ascending.
+            Returns an empty list on errors.
+        """
         try:
             handoffs = []
             for hf_path in self.handoffs_dir.glob("*.json"):
@@ -315,6 +432,20 @@ class CheckpointManager:
         context: dict[str, Any] = None,
         outputs: dict[str, Any] = None,
     ) -> Checkpoint:
+        """Create and persist a checkpoint from dispatch progress.
+
+        Args:
+            task_id: Unique task identifier.
+            step_name: Human-readable name of the current step.
+            agent_id: Identifier of the agent producing this checkpoint.
+            completed_steps: List of completed step identifiers.
+            remaining_steps: List of remaining step identifiers.
+            context: Optional context snapshot dict.
+            outputs: Optional outputs dict produced so far.
+
+        Returns:
+            The newly created and saved Checkpoint instance.
+        """
         total = len(completed_steps) + len(remaining_steps)
         progress = len(completed_steps) / total if total > 0 else 0.0
 

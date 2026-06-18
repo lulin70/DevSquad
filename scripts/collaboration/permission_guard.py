@@ -66,6 +66,12 @@ class ProposedAction:
     timestamp: datetime = field(default_factory=datetime.now)
 
     def to_dict(self) -> dict:
+        """Serialize the proposed action to a dictionary.
+
+        Returns:
+            Dictionary with action type, target, description, source ids,
+            risk score, metadata, and ISO-formatted timestamp.
+        """
         return {
             "action_type": self.action_type.value,
             "target": self.target,
@@ -79,6 +85,14 @@ class ProposedAction:
 
     @classmethod
     def from_dict(cls, d: dict) -> "ProposedAction":
+        """Reconstruct a ProposedAction from a dictionary.
+
+        Args:
+            d: Dictionary produced by to_dict().
+
+        Returns:
+            A new ProposedAction instance with fields populated from the dictionary.
+        """
         ts = d.get("timestamp")
         return cls(
             action_type=ActionType(d.get("action_type", "file_read")),
@@ -104,6 +118,12 @@ class PermissionRule:
     enabled: bool = True
 
     def to_dict(self) -> dict:
+        """Serialize the permission rule to a dictionary.
+
+        Returns:
+            Dictionary with rule id, action type, pattern, required level,
+            description, risk boost, tags, and enabled flag.
+        """
         return {
             "rule_id": self.rule_id,
             "action_type": self.action_type.value,
@@ -117,6 +137,15 @@ class PermissionRule:
 
     @classmethod
     def from_dict(cls, d: dict) -> "PermissionRule":
+        """Reconstruct a PermissionRule from a dictionary.
+
+        Args:
+            d: Dictionary produced by to_dict(). Must contain rule_id,
+                action_type, pattern, and required_level keys.
+
+        Returns:
+            A new PermissionRule instance with fields populated from the dictionary.
+        """
         return cls(
             rule_id=d["rule_id"],
             action_type=ActionType(d["action_type"]),
@@ -141,6 +170,12 @@ class PermissionDecision:
     decision_id: str = field(default_factory=lambda: f"pd-{uuid.uuid4().hex[:12]}")
 
     def to_dict(self) -> dict:
+        """Serialize the permission decision to a dictionary.
+
+        Returns:
+            Dictionary with decision id, outcome, matched rule id, reason,
+            confirmation flag, confidence, timestamp, and serialized action.
+        """
         return {
             "decision_id": self.decision_id,
             "outcome": self.outcome.value,
@@ -165,6 +200,12 @@ class AuditEntry:
     timestamp: datetime = field(default_factory=datetime.now)
 
     def to_dict(self) -> dict:
+        """Serialize the audit entry to a dictionary.
+
+        Returns:
+            Dictionary containing entry id, action, decision, duration,
+            guard level, user response, session id, and timestamp.
+        """
         return {
             "entry_id": self.entry_id,
             "action": self.action.to_dict() if self.action else None,

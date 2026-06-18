@@ -30,6 +30,12 @@ class OutputSlice:
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the output slice to a dictionary.
+
+        Returns:
+            Dictionary with slice number, total slices, line range, content
+            length, and timestamp.
+        """
         return {
             "slice_number": self.slice_number,
             "total_slices": self.total_slices,
@@ -50,16 +56,35 @@ class SlicedOutput:
     was_sliced: bool = False
 
     def get_full_output(self) -> str:
+        """Reconstruct the full output from slices or return the original.
+
+        Returns:
+            The complete output string, joining slice contents when slicing occurred.
+        """
         if not self.was_sliced:
             return self.original_output
         return "\n".join(s.content for s in self.slices)
 
     def get_slice(self, index: int) -> OutputSlice | None:
+        """Retrieve a slice by its zero-based index.
+
+        Args:
+            index: Zero-based index of the slice to retrieve.
+
+        Returns:
+            The OutputSlice at the given index, or None if out of range.
+        """
         if 0 <= index < len(self.slices):
             return self.slices[index]
         return None
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the sliced output summary to a dictionary.
+
+        Returns:
+            Dictionary containing total lines, total slices, slicing flag,
+            and per-slice metadata.
+        """
         return {
             "total_lines": self.total_lines,
             "total_slices": self.total_slices,

@@ -27,13 +27,14 @@ Usage:
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import time
 from collections import OrderedDict
 from dataclasses import asdict, dataclass
 from pathlib import Path
+
+from .llm_cache_base import LLMCacheBase
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +61,15 @@ class CacheEntry:
         return (time.time() - self.timestamp) / 3600
 
 
-class AsyncLLMCache:
+class AsyncLLMCache(LLMCacheBase):
     """
     Async LLM response cache with memory and disk persistence.
 
     Thread-safe and asyncio-compatible implementation.
+
+    Inherits shared caching strategy (key generation, TTL, LRU policy, stats)
+    from LLMCacheBase. Only I/O layer (OrderedDict, async disk, asyncio.Lock)
+    is implemented here.
     """
 
     def __init__(
@@ -81,17 +86,18 @@ class AsyncLLMCache:
             ttl_seconds: Time-to-live for cache entries (default: 24 hours)
             max_memory_entries: Maximum entries in memory cache
         """
+        # Initialize shared strategy from base class
+        super().__init__(
+            cache_dir=cache_dir,
+            ttl_seconds=ttl_seconds,
+            max_memory_entries=max_memory_entries,
+        )
+
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        self.ttl_seconds = ttl_seconds
-        self.max_memory_entries = max_memory_entries
-
         # Memory cache (LRU)
         self._memory_cache: OrderedDict[str, CacheEntry] = OrderedDict()
-
-        # Statistics
-        self._stats = {"hits": 0, "misses": 0, "sets": 0, "evictions": 0}
 
         # Lock for thread safety
         self._lock = asyncio.Lock()
@@ -99,9 +105,12 @@ class AsyncLLMCache:
         logger.info("AsyncLLMCache initialized: dir=%s, ttl=%ss, max_memory=%s", cache_dir, ttl_seconds, max_memory_entries)
 
     def _generate_cache_key(self, prompt: str, backend: str, model: str) -> str:
-        """Generate cache key from prompt, backend, and model"""
-        content = f"{backend}:{model}:{prompt}"
-        return hashlib.sha256(content.encode()).hexdigest()
+        """Generate cache key from prompt, backend, and model.
+
+        Delegates to LLMCacheBase.generate_cache_key with full hash length
+        (async uses full SHA256 for subdirectory sharding).
+        """
+        return self.generate_cache_key(prompt, backend, model, hash_length=0)
 
     def _get_disk_path(self, cache_key: str) -> Path:
         """Get disk cache file path"""
@@ -132,7 +141,7 @@ class AsyncLLMCache:
                     # Move to end (LRU)
                     self._memory_cache.move_to_end(cache_key)
                     entry.hit_count += 1
-                    self._stats["hits"] += 1
+                    self.stats["hits"] += 1
                     logger.debug("Memory cache hit: %s... (age: %.1fh)", cache_key[:8], entry.age_hours())
                     return entry.response
                 else:
@@ -155,7 +164,7 @@ class AsyncLLMCache:
                         self._memory_cache[cache_key] = entry
                         self._memory_cache.move_to_end(cache_key)
                         entry.hit_count += 1
-                        self._stats["hits"] += 1
+                        self.stats["hits"] += 1
 
                         # Evict if memory cache is full
                         await self._evict_if_needed()
@@ -170,7 +179,7 @@ class AsyncLLMCache:
                     logger.warning("Error reading disk cache: %s", e)
 
             # Cache miss
-            self._stats["misses"] += 1
+            self.stats["misses"] += 1
             logger.debug("Cache miss: %s...", cache_key[:8])
             return None
 
@@ -202,7 +211,7 @@ class AsyncLLMCache:
             # Add to memory cache
             self._memory_cache[cache_key] = entry
             self._memory_cache.move_to_end(cache_key)
-            self._stats["sets"] += 1
+            self.stats["sets"] += 1
 
             # Evict if needed
             await self._evict_if_needed()
@@ -221,7 +230,7 @@ class AsyncLLMCache:
         while len(self._memory_cache) > self.max_memory_entries:
             # Remove oldest (first) entry
             oldest_key, _ = self._memory_cache.popitem(last=False)
-            self._stats["evictions"] += 1
+            self.stats["evictions"] += 1
             logger.debug("Evicted from memory: %s...", oldest_key[:8])
 
     async def clear(self, backend: str | None = None):
@@ -245,18 +254,10 @@ class AsyncLLMCache:
 
     def get_stats(self) -> dict:
         """Get cache statistics"""
-        total_requests = self._stats["hits"] + self._stats["misses"]
-        hit_rate = self._stats["hits"] / total_requests if total_requests > 0 else 0.0
-
-        return {
-            "hits": self._stats["hits"],
-            "misses": self._stats["misses"],
-            "sets": self._stats["sets"],
-            "evictions": self._stats["evictions"],
-            "hit_rate": hit_rate,
-            "memory_entries": len(self._memory_cache),
-            "max_memory_entries": self.max_memory_entries,
-        }
+        return self.build_stats_dict(
+            stats=self.stats,
+            memory_entries=len(self._memory_cache),
+        )
 
     async def export_stats_report(self) -> str:
         """Export statistics as markdown report"""
@@ -296,6 +297,7 @@ def reset_async_cache():
 if __name__ == "__main__":
     # Example usage
     async def main():
+        """Run an example demonstrating async LLM cache set/get and stats."""
         cache = get_async_llm_cache()
 
         # Set cache

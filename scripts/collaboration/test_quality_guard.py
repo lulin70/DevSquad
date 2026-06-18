@@ -69,6 +69,12 @@ class QualityIssue:
     auto_fixable: bool = False
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the QualityIssue to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with id, severity, category, message, file, line,
+            suggestion, and auto_fixable fields.
+        """
         return {
             "id": self.id,
             "severity": self.severity.value,
@@ -117,6 +123,12 @@ class QualityScore:
     overall: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the QualityScore to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with api_compliance, purpose_coverage, dimension_balance,
+            anti_pattern_free, and overall scores rounded to 2 decimals.
+        """
         return {
             "api_compliance": round(self.api_compliance, 2),
             "purpose_coverage": round(self.purpose_coverage, 2),
@@ -141,17 +153,38 @@ class TestQualityReport:
 
     @property
     def critical_count(self) -> int:
+        """Number of CRITICAL-severity issues in the report.
+
+        Returns:
+            Integer count of issues with severity == Severity.CRITICAL.
+        """
         return sum(1 for i in self.issues if i.severity == Severity.CRITICAL)
 
     @property
     def major_count(self) -> int:
+        """Number of MAJOR-severity issues in the report.
+
+        Returns:
+            Integer count of issues with severity == Severity.MAJOR.
+        """
         return sum(1 for i in self.issues if i.severity == Severity.MAJOR)
 
     @property
     def minor_count(self) -> int:
+        """Number of MINOR-severity issues in the report.
+
+        Returns:
+            Integer count of issues with severity == Severity.MINOR.
+        """
         return sum(1 for i in self.issues if i.severity == Severity.MINOR)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the TestQualityReport to a summary JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with module_name, test_file, source_file, total_tests,
+            issue_count, severity counts, score, audit_time_s, and timestamp.
+        """
         return {
             "module_name": self.module_name,
             "test_file": self.test_file,
@@ -167,6 +200,12 @@ class TestQualityReport:
         }
 
     def to_markdown(self) -> str:
+        """Render the audit report as a Markdown document.
+
+        Returns:
+            Multi-line Markdown string with score overview, issue list, and
+            test-function table.
+        """
         lines = [
             "# TestQualityGuard 审计报告",
             "",
@@ -251,6 +290,15 @@ class APISignatureValidator:
         self.api_cache: dict[str, list[APISignature]] = {}
 
     def extract_api_signatures(self, source_code: str, file_path: str) -> list[APISignature]:
+        """Parse Python source and extract function/method signatures.
+
+        Args:
+            source_code: Python source code text to parse.
+            file_path: File path used for reporting signature locations.
+
+        Returns:
+            List of APISignature objects, or an empty list on syntax errors.
+        """
         signatures = []
         try:
             tree = ast.parse(source_code)
@@ -284,6 +332,17 @@ class APISignatureValidator:
     def validate_call_against_signature(
         self, call_name: str, call_kwargs: set[str], signatures: list[APISignature]
     ) -> list[QualityIssue]:
+        """Validate that keyword arguments used in a call match the API signature.
+
+        Args:
+            call_name: Name of the function/method being called.
+            call_kwargs: Set of keyword argument names used in the call.
+            signatures: List of known APISignature objects to match against.
+
+        Returns:
+            List of QualityIssue (severity MAJOR) for each kwarg not present in
+            the matching signature's parameters.
+        """
         issues = []
         matching_sigs = [s for s in signatures if s.name == call_name]
         if not matching_sigs:
@@ -357,6 +416,15 @@ class AntiPatternDetector:
     ]
 
     def detect_in_source(self, source: str, file: str) -> list[QualityIssue]:
+        """Scan source code line-by-line for suspicious test anti-patterns.
+
+        Args:
+            source: Source code text to scan.
+            file: File path used for reporting issue locations.
+
+        Returns:
+            List of QualityIssue, one per matching suspicious pattern occurrence.
+        """
         issues = []
         lines = source.split("\n")
         for idx, line in enumerate(lines, 1):
@@ -430,6 +498,16 @@ class TestPurposeParser:
     }
 
     def parse_function(self, func_node: ast.FunctionDef, source_lines: list[str]) -> TestFunctionMeta:
+        """Parse a test function AST node into metadata.
+
+        Args:
+            func_node: AST FunctionDef node of the test function.
+            source_lines: Full source code split into lines.
+
+        Returns:
+            TestFunctionMeta with purpose, dimension, assert counts, and
+            error/performance flags populated.
+        """
         meta = TestFunctionMeta(
             name=func_node.name,
             line=func_node.lineno,

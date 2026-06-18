@@ -201,9 +201,20 @@ class TaskCompletionChecker:
         )
 
     def get_dispatch_history(self) -> dict:
+        """Return the stored dispatch progress dictionary.
+
+        Returns:
+            Dictionary mapping task ids to their dispatch progress data.
+        """
         return self.progress.get("dispatches", {})
 
     def get_completion_summary(self) -> str:
+        """Build a Markdown summary of dispatch completion status.
+
+        Returns:
+            Markdown string with totals, completion rate, and per-task
+            status lines, or a placeholder when no history exists.
+        """
         dispatches = self.progress.get("dispatches", {})
         if not dispatches:
             return "No dispatch history found."
@@ -228,9 +239,18 @@ class TaskCompletionChecker:
         return "\n".join(lines)
 
     def is_task_completed(self, task_id: str) -> bool:
+        """Check whether a specific task is fully completed.
+
+        Args:
+            task_id: Identifier of the task to check.
+
+        Returns:
+            True when the task exists and is marked completed, False otherwise.
+        """
         dispatch_data = self.progress.get("dispatches", {}).get(task_id)
         return dispatch_data.get("is_completed", False) if dispatch_data else False
 
     def reset_progress(self):
+        """Reset all progress data to an empty state and persist it."""
         self.progress = self._create_empty_progress()
         self._save_progress()

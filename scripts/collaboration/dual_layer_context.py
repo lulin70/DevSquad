@@ -17,6 +17,12 @@ class ContextEntry:
     ttl: int | None = None
 
     def is_expired(self) -> bool:
+        """Check whether this entry has exceeded its time-to-live.
+
+        Returns:
+            True if a TTL is set and the elapsed time since creation exceeds
+            it; False otherwise (including when TTL is None).
+        """
         if self.ttl is None:
             return False
         created = datetime.fromisoformat(self.timestamp)
@@ -42,6 +48,14 @@ class DualLayerContextManager:
         self.max_task = max_task_entries
 
     def set_project(self, key: str, value: Any, source: str = "", ttl: int | None = None):
+        """Store a value in the project context layer.
+
+        Args:
+            key: Lookup key for the value.
+            value: Value to store.
+            source: Optional source identifier for the value.
+            ttl: Optional time-to-live in seconds; entry expires afterwards.
+        """
         self.project_context[key] = ContextEntry(
             key=key,
             value=value,
@@ -52,6 +66,15 @@ class DualLayerContextManager:
         self._evict_if_needed("project")
 
     def get_project(self, key: str, default: Any = None) -> Any:
+        """Retrieve a value from the project context layer.
+
+        Args:
+            key: Lookup key for the value.
+            default: Value to return when the key is missing or expired.
+
+        Returns:
+            The stored value, or ``default`` when missing or expired.
+        """
         entry = self.project_context.get(key)
         if entry and not entry.is_expired():
             return entry.value
@@ -60,6 +83,14 @@ class DualLayerContextManager:
         return default
 
     def set_task(self, key: str, value: Any, source: str = "", ttl: int | None = None):
+        """Store a value in the task context layer.
+
+        Args:
+            key: Lookup key for the value.
+            value: Value to store.
+            source: Optional source identifier for the value.
+            ttl: Optional time-to-live in seconds; entry expires afterwards.
+        """
         self.task_context[key] = ContextEntry(
             key=key,
             value=value,
@@ -70,6 +101,15 @@ class DualLayerContextManager:
         self._evict_if_needed("task")
 
     def get_task(self, key: str, default: Any = None) -> Any:
+        """Retrieve a value from the task context layer.
+
+        Args:
+            key: Lookup key for the value.
+            default: Value to return when the key is missing or expired.
+
+        Returns:
+            The stored value, or ``default`` when missing or expired.
+        """
         entry = self.task_context.get(key)
         if entry and not entry.is_expired():
             return entry.value
@@ -78,6 +118,15 @@ class DualLayerContextManager:
         return default
 
     def get_combined(self, keys: list[str] | None = None) -> dict[str, Any]:
+        """Merge project and task context entries into a single dictionary.
+
+        Args:
+            keys: Optional list of keys to include; when None all non-expired
+                entries are returned.
+
+        Returns:
+            Dictionary mapping context keys to their values.
+        """
         combined = {}
         for k, v in self.project_context.items():
             if not v.is_expired() and (keys is None or k in keys):
@@ -88,6 +137,15 @@ class DualLayerContextManager:
         return combined
 
     def build_prompt_context(self, _role_id: str = "", _task_description: str = "") -> str:
+        """Build a Markdown prompt string from current project and task context.
+
+        Args:
+            _role_id: Optional role identifier (currently unused).
+            _task_description: Optional task description (currently unused).
+
+        Returns:
+            Markdown string with project and task context sections.
+        """
         parts = []
         if self.project_context:
             parts.append("## Project Context")
@@ -104,13 +162,20 @@ class DualLayerContextManager:
         return "\n".join(parts)
 
     def clear_task_context(self):
+        """Remove all entries from the task context layer."""
         self.task_context.clear()
 
     def clear_all(self):
+        """Remove all entries from both project and task context layers."""
         self.project_context.clear()
         self.task_context.clear()
 
     def cleanup_expired(self):
+        """Delete expired entries from both context layers.
+
+        Returns:
+            Total number of expired entries removed.
+        """
         expired_project = [k for k, v in self.project_context.items() if v.is_expired()]
         expired_task = [k for k, v in self.task_context.items() if v.is_expired()]
         for k in expired_project:
@@ -120,6 +185,11 @@ class DualLayerContextManager:
         return len(expired_project) + len(expired_task)
 
     def get_stats(self) -> dict[str, Any]:
+        """Return summary statistics for the context manager.
+
+        Returns:
+            Dictionary with project, task, and total entry counts.
+        """
         return {
             "project_entries": len(self.project_context),
             "task_entries": len(self.task_context),

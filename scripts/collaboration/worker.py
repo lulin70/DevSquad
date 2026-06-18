@@ -154,6 +154,7 @@ class Worker:
             )
             return result
         except Exception as e:
+            # Broad catch: top-level worker execute entry; ensures WorkerResult on failure
             logger.error("  [Worker %s] Error: %s", self.worker_id, e)
             track_usage(
                 f"worker.{self.role_id}.execute",
@@ -434,7 +435,7 @@ class Worker:
             if cached:
                 logger.debug("  [%s] Cache hit.", _rname)
                 return cached
-        except Exception as e:
+        except (ImportError, AttributeError, KeyError, RuntimeError) as e:
             logger.debug("Cache read failed: %s", e)
             cache = None
 
@@ -457,11 +458,12 @@ class Worker:
             if cache and response:
                 try:
                     cache.set(result.instruction, response, "backend", getattr(backend, "model", "unknown"))
-                except Exception as e:
+                except (AttributeError, TypeError, RuntimeError) as e:
                     logger.debug("Cache set failed for instruction: %s, error: %s", result.instruction[:80], e)
 
             return response
         except Exception as e:
+            # Broad catch: LLM backend call; re-raises after logging
             logger.error("  [%s] LLM call failed: %s", _rname, e)
             raise
 

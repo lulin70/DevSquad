@@ -23,49 +23,33 @@ Usage:
 import logging
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import datetime
 from functools import wraps
 from typing import Any
 
+from .llm_retry_base import (
+    CircuitBreakerError,
+    CircuitBreakerState,
+    LLMRetryBase,
+    RateLimitError,
+    RetryConfig,
+)
+
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class RetryConfig:
-    """重试配置"""
-
-    max_retries: int = 3
-    initial_delay: float = 1.0  # 初始延迟（秒）
-    max_delay: float = 60.0  # 最大延迟（秒）
-    exponential_base: float = 2.0  # 指数基数
-    jitter: bool = True  # 添加随机抖动
-
-
-@dataclass
-class CircuitBreakerState:
-    """熔断器状态"""
-
-    failure_count: int = 0
-    last_failure_time: datetime | None = None
-    state: str = "closed"  # closed, open, half_open
-    failure_threshold: int = 5
-    timeout_seconds: int = 60
+# Re-export for backward compatibility — existing imports like
+# `from scripts.collaboration.llm_retry import RetryConfig` continue to work.
+__all__ = [
+    "CircuitBreakerError",
+    "CircuitBreakerState",
+    "LLMRetryManager",
+    "RateLimitError",
+    "RetryConfig",
+    "get_retry_manager",
+    "retry_with_fallback",
+]
 
 
-class RateLimitError(Exception):
-    """速率限制错误"""
-
-    pass
-
-
-class CircuitBreakerError(Exception):
-    """熔断器打开错误"""
-
-    pass
-
-
-class LLMRetryManager:
+class LLMRetryManager(LLMRetryBase):
     """
     LLM 重试管理器
 
@@ -74,93 +58,51 @@ class LLMRetryManager:
     - 多后端故障转移
     - 熔断器保护
     - 速率限制检测
+
+    Inherits shared retry/circuit-breaker strategy (delay calculation,
+    error classification, state transitions) from LLMRetryBase.
+    Only the I/O layer (time.sleep, synchronous calls) is implemented here.
     """
 
     def __init__(self):
-        self.circuit_breakers: dict[str, CircuitBreakerState] = {}
-        self.stats = {
-            "total_calls": 0,
-            "successful_calls": 0,
-            "failed_calls": 0,
-            "retries": 0,
-            "fallbacks": 0,
-            "circuit_breaks": 0,
-        }
-
-    def _get_circuit_breaker(self, backend: str) -> CircuitBreakerState:
-        """获取或创建熔断器"""
-        if backend not in self.circuit_breakers:
-            self.circuit_breakers[backend] = CircuitBreakerState()
-        return self.circuit_breakers[backend]
+        # Initialize shared strategy from base class (sets stats, circuit_breakers)
+        super().__init__()
+        # Extend base stats with sync-specific "circuit_breaks" counter
+        self.stats["circuit_breaks"] = 0
 
     def _check_circuit_breaker(self, backend: str):
-        """检查熔断器状态"""
-        cb = self._get_circuit_breaker(backend)
-
-        if cb.state == "open" and cb.last_failure_time:
-            elapsed = (datetime.now() - cb.last_failure_time).total_seconds()
-            if elapsed > cb.timeout_seconds:
-                cb.state = "half_open"
-                logger.info("Circuit breaker for %s entering half-open state", backend)
-            else:
-                self.stats["circuit_breaks"] += 1
-                raise CircuitBreakerError(
-                        f"Circuit breaker open for {backend}. Retry after {cb.timeout_seconds - elapsed:.0f}s"
-                    )
+        """检查熔断器状态 (sync wrapper around base state-transition logic)."""
+        try:
+            self.check_circuit_breaker_state(backend)
+        except CircuitBreakerError:
+            self.stats["circuit_breaks"] += 1
+            raise
 
     def _record_success(self, backend: str):
         """记录成功调用"""
-        cb = self._get_circuit_breaker(backend)
-        if cb.state == "half_open":
-            cb.state = "closed"
-            cb.failure_count = 0
-            logger.info("Circuit breaker for %s closed", backend)
+        self.record_success(backend)
         self.stats["successful_calls"] += 1
 
     def _record_failure(self, backend: str, _error: Exception):
         """记录失败调用"""
-        cb = self._get_circuit_breaker(backend)
-        cb.failure_count += 1
-        cb.last_failure_time = datetime.now()
-
-        if cb.failure_count >= cb.failure_threshold:
-            cb.state = "open"
-            logger.warning("Circuit breaker opened for %s after %s failures", backend, cb.failure_count)
-
+        self.record_failure(backend)
         self.stats["failed_calls"] += 1
 
     def _calculate_delay(self, attempt: int, config: RetryConfig) -> float:
-        """计算重试延迟（指数退避）"""
-        delay = min(config.initial_delay * (config.exponential_base**attempt), config.max_delay)
-
-        if config.jitter:
-            import random
-
-            delay *= 0.5 + random.random()  # 添加 50-150% 的随机抖动
-
-        return delay
+        """计算重试延迟（指数退避）— delegates to base class."""
+        return self.calculate_delay(attempt, config)
 
     def _is_retryable_error(self, error: Exception) -> bool:
-        """判断错误是否可重试"""
-        error_msg = str(error).lower()
-
-        # 可重试的错误类型
-        retryable_patterns = [
-            "timeout",
-            "connection",
-            "network",
-            "503",  # Service Unavailable
-            "502",  # Bad Gateway
-            "500",  # Internal Server Error
-            "429",  # Rate Limit (但需要更长延迟)
-        ]
-
-        return any(pattern in error_msg for pattern in retryable_patterns)
+        """判断错误是否可重试 — delegates to base class."""
+        return self.is_retryable_error(error)
 
     def _is_rate_limit_error(self, error: Exception) -> bool:
-        """判断是否为速率限制错误"""
-        error_msg = str(error).lower()
-        return "429" in error_msg or "rate limit" in error_msg
+        """判断是否为速率限制错误 — delegates to base class."""
+        return self.is_rate_limit_error(error)
+
+    def _get_circuit_breaker(self, backend: str) -> CircuitBreakerState:
+        """获取或创建熔断器 — delegates to base class."""
+        return self.get_circuit_breaker(backend)
 
     def retry_with_fallback(
         self,
@@ -223,12 +165,7 @@ class LLMRetryManager:
 
                 # 最后一次尝试不需要延迟
                 if attempt < config.max_retries - 1:
-                    delay = self._calculate_delay(attempt, config)
-
-                    # 速率限制错误需要更长延迟
-                    if self._is_rate_limit_error(e):
-                        delay *= 3
-                        logger.warning("Rate limit detected, waiting %.1fs", delay)
+                    delay = self.get_enhanced_delay(attempt, config, e)
 
                     logger.info("Retry attempt %s/%s after %.1fs delay", attempt + 1, config.max_retries, delay)
                     time.sleep(delay)
@@ -268,9 +205,8 @@ class LLMRetryManager:
             logger.info("Attempting fallback to %s", backend)
             self.stats["fallbacks"] += 1
 
-            # 更新 kwargs 中的 backend 参数
-            fallback_kwargs = kwargs.copy()
-            fallback_kwargs["backend"] = backend  # 始终设置 backend 参数
+            # 更新 kwargs 中的 backend 参数 (sync always sets backend)
+            fallback_kwargs = self.build_fallback_kwargs(kwargs, backend, always_set=True)
 
             try:
                 result = func(*args, **fallback_kwargs)
@@ -349,8 +285,17 @@ def retry_with_fallback(
     """
 
     def decorator(func: Callable) -> Callable:
+        """Decorate a sync function to add retry-with-fallback behavior.
+
+        Args:
+            func: Callable to wrap.
+
+        Returns:
+            Wrapped callable that retries on failure and falls back across backends.
+        """
         @wraps(func)
         def wrapper(*args, **kwargs):
+            """Invoke the wrapped function with retry and fallback handling."""
             config = RetryConfig(max_retries=max_retries, initial_delay=initial_delay, max_delay=max_delay)
 
             # 获取当前后端

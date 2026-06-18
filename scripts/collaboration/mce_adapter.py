@@ -89,6 +89,11 @@ class MCEResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
+        """Serialize the MCE result to a dictionary.
+
+        Returns:
+            Dictionary with type, rounded confidence, tier, and metadata.
+        """
         return {
             "type": self.memory_type,
             "confidence": round(self.confidence, 4),
@@ -181,10 +186,20 @@ class MCEAdapter:
 
     @property
     def is_available(self) -> bool:
+        """Check whether the CarryMem backend is available.
+
+        Returns:
+            True when the adapter successfully initialized CarryMem.
+        """
         return self._status.available
 
     @property
     def status(self) -> MCEStatus:
+        """Return a snapshot of the adapter's current status.
+
+        Returns:
+            A new MCEStatus instance copied from the internal status.
+        """
         with self._lock:
             return MCEStatus(
                 available=self._status.available,
@@ -195,6 +210,16 @@ class MCEAdapter:
             )
 
     def classify(self, text: str, context: dict | None = None, timeout_ms: int = 500) -> MCEResult | None:
+        """Classify a text snippet into a memory type via CarryMem.
+
+        Args:
+            text: Text to classify.
+            context: Optional context dictionary forwarded to CarryMem.
+            timeout_ms: Maximum allowed classification duration in milliseconds.
+
+        Returns:
+            MCEResult on success, or None when unavailable, timed out, or on error.
+        """
         with self._lock:
             if not self.is_available or not self._carrymem:
                 self._status.classify_fail_count += 1
@@ -221,9 +246,27 @@ class MCEAdapter:
                 return None
 
     def classify_batch(self, texts: list[str], context: dict | None = None) -> list[MCEResult | None]:
+        """Classify multiple texts sequentially.
+
+        Args:
+            texts: List of text snippets to classify.
+            context: Optional context dictionary forwarded to each classify call.
+
+        Returns:
+            List of MCEResult (or None) in the same order as the input texts.
+        """
         return [self.classify(t, context) for t in texts]
 
     def store_memory(self, memory_data: dict) -> bool:
+        """Store a memory entry via CarryMem's classify-and-remember API.
+
+        Args:
+            memory_data: Dictionary containing "content" (or "message") and
+                optional "context".
+
+        Returns:
+            True when CarryMem reports the memory was stored, False otherwise.
+        """
         with self._lock:
             if not self.is_available or not self._carrymem:
                 return False
@@ -241,6 +284,17 @@ class MCEAdapter:
     def retrieve_memories(
         self, query: str, _tier: str = "tier2", limit: int = 20, memory_type: str | None = None
     ) -> list[dict]:
+        """Retrieve memories matching a query from CarryMem.
+
+        Args:
+            query: Search query string.
+            _tier: Unused tier filter (reserved for future use).
+            limit: Maximum number of memories to return.
+            memory_type: Optional memory type filter (translated to CarryMem type).
+
+        Returns:
+            List of matching memory dictionaries; empty when unavailable or on error.
+        """
         with self._lock:
             if not self.is_available or not self._carrymem:
                 return []
@@ -260,6 +314,11 @@ class MCEAdapter:
                 return []
 
     def whoami(self) -> dict | None:
+        """Return CarryMem identity information.
+
+        Returns:
+            Dictionary from CarryMem's whoami(), or None when unavailable or on error.
+        """
         with self._lock:
             if not self.is_available or not self._carrymem:
                 return None
@@ -269,6 +328,11 @@ class MCEAdapter:
                 return None
 
     def check_conflicts(self) -> list[dict]:
+        """Check for conflicting memories in CarryMem.
+
+        Returns:
+            List of conflict dictionaries; empty when unavailable or on error.
+        """
         with self._lock:
             if not self.is_available or not self._carrymem:
                 return []
@@ -278,6 +342,7 @@ class MCEAdapter:
                 return []
 
     def shutdown(self):
+        """Close the CarryMem backend and mark the adapter as unavailable."""
         with self._lock:
             if self._carrymem and hasattr(self._carrymem, "close"):
                 with contextlib.suppress(AttributeError, OSError, RuntimeError):
@@ -286,6 +351,7 @@ class MCEAdapter:
             self._status.available = False
 
     def force_reinit(self):
+        """Shut down and re-initialize the CarryMem backend."""
         self.shutdown()
         self._try_init()
 
@@ -591,6 +657,15 @@ class MCEAdapter:
 
 
 def get_global_mce_adapter(enable: bool = False) -> MCEAdapter:
+    """Return the singleton MCEAdapter instance, creating it on first call.
+
+    Args:
+        enable: Whether to attempt CarryMem initialization when creating the
+            singleton. Subsequent calls ignore this argument.
+
+    Returns:
+        The shared MCEAdapter instance.
+    """
     if MCEAdapter._instance is None:
         with MCEAdapter._singleton_lock:
             if MCEAdapter._instance is None:

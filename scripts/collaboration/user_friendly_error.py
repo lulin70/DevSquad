@@ -37,6 +37,12 @@ class UserFriendlyError(Exception):
         super().__init__(self.format())
 
     def format(self) -> str:
+        """Format the error into a human-readable multi-line string.
+
+        Returns:
+            Formatted string with error message, suggestion, and example
+            when available.
+        """
         parts = [f"❌ {self.message}"]
         if self.suggestion:
             parts.append(f"💡 {self.suggestion}")
@@ -45,6 +51,11 @@ class UserFriendlyError(Exception):
         return "\n".join(parts)
 
     def to_dict(self) -> dict:
+        """Serialize the user-friendly error to a dictionary.
+
+        Returns:
+            Dictionary containing error message, suggestion, and example fields.
+        """
         return {
             "error": self.message,
             "suggestion": self.suggestion,

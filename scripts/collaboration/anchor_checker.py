@@ -367,15 +367,31 @@ class AnchorChecker:
 
     @property
     def check_history(self) -> list[AnchorResult]:
+        """Return a copy of the recorded anchor check results.
+
+        Returns:
+            List of AnchorResult instances produced by previous checks.
+        """
         return list(self._check_history)
 
     @property
     def drift_count(self) -> int:
+        """Count how many historical checks reported drift.
+
+        Returns:
+            Number of historical results where alignment failed.
+        """
         return sum(1 for r in self._check_history if not r.aligned)
 
     @property
     def total_checks(self) -> int:
+        """Return the total number of recorded anchor checks.
+
+        Returns:
+            Count of historical check results.
+        """
         return len(self._check_history)
 
     def reset(self):
+        """Clear all recorded anchor check history."""
         self._check_history.clear()

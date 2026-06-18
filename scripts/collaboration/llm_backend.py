@@ -72,6 +72,15 @@ class MockBackend(LLMBackend):
     """
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a formatted mock analysis for the prompt.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional role_name and task_description for the mock header.
+
+        Returns:
+            Multi-line mock analysis string with [MOCK MODE] markers.
+        """
         role_name = kwargs.get("role_name", "AI Assistant")
         task_desc = kwargs.get("task_description", "")
         lines = [
@@ -88,6 +97,11 @@ class MockBackend(LLMBackend):
         return "\n".join(lines)
 
     def is_available(self) -> bool:
+        """Check whether this backend is available.
+
+        Returns:
+            Always True; the mock backend requires no external dependencies.
+        """
         return True
 
 
@@ -100,9 +114,23 @@ class TraeBackend(LLMBackend):
     """
 
     def generate(self, prompt: str, **_kwargs: Any) -> str:
+        """Return the prompt unchanged for the Trae host to execute.
+
+        Args:
+            prompt: User prompt text.
+            **_kwargs: Unused keyword arguments.
+
+        Returns:
+            The prompt string unchanged.
+        """
         return prompt
 
     def is_available(self) -> bool:
+        """Check whether this backend is available.
+
+        Returns:
+            Always True; the Trae backend is always available inside the IDE.
+        """
         return True
 
 
@@ -147,6 +175,21 @@ class OpenAIBackend(LLMBackend):
         return self._client
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a completion for a single prompt using the OpenAI API.
+
+        Retries on transient errors with exponential backoff and records
+        Prometheus metrics for each call.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model, temperature, and max_tokens.
+
+        Returns:
+            The generated completion text.
+
+        Raises:
+            RuntimeError: If all retry attempts fail.
+        """
         import time
 
         client = self._get_client()
@@ -182,6 +225,15 @@ class OpenAIBackend(LLMBackend):
         raise last_error or RuntimeError(f"OpenAI generate failed after {self.MAX_RETRIES} attempts")
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
+        """Stream a completion chunk-by-chunk from the OpenAI API.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model, temperature, and max_tokens.
+
+        Yields:
+            str: Each non-empty content delta from the streamed response.
+        """
         client = self._get_client()
         stream = client.chat.completions.create(
             model=kwargs.get("model", self.model),
@@ -196,6 +248,11 @@ class OpenAIBackend(LLMBackend):
                 yield content
 
     def is_available(self) -> bool:
+        """Check whether the OpenAI backend can be initialized.
+
+        Returns:
+            True if the client can be created, False on import or connection errors.
+        """
         try:
             self._get_client()
             return True
@@ -242,6 +299,21 @@ class AnthropicBackend(LLMBackend):
         return self._client
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a completion for a single prompt using the Anthropic API.
+
+        Retries on transient errors with exponential backoff and records
+        Prometheus metrics for each call.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model and max_tokens.
+
+        Returns:
+            The generated completion text.
+
+        Raises:
+            RuntimeError: If all retry attempts fail.
+        """
         import time
 
         client = self._get_client()
@@ -276,6 +348,15 @@ class AnthropicBackend(LLMBackend):
         raise last_error or RuntimeError(f"Anthropic generate failed after {self.MAX_RETRIES} attempts")
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
+        """Stream a completion chunk-by-chunk from the Anthropic API.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model and max_tokens.
+
+        Yields:
+            str: Each text delta from the streamed response.
+        """
         client = self._get_client()
         with client.messages.stream(
             model=kwargs.get("model", self.model),
@@ -285,6 +366,11 @@ class AnthropicBackend(LLMBackend):
             yield from stream.text_stream
 
     def is_available(self) -> bool:
+        """Check whether the Anthropic backend can be initialized.
+
+        Returns:
+            True if the client can be created, False on import or connection errors.
+        """
         try:
             self._get_client()
             return True
@@ -330,6 +416,18 @@ class FallbackBackend(LLMBackend):
         self._failed_at[backend_repr] = time.time()
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a completion, failing over to subsequent backends on error.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides forwarded to each backend.
+
+        Returns:
+            The first successful completion text.
+
+        Raises:
+            RuntimeError: If all backends fail.
+        """
         import logging
         import time
 
@@ -382,6 +480,18 @@ class FallbackBackend(LLMBackend):
         raise last_error or RuntimeError("All backends failed with no specific error")
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
+        """Stream a completion, failing over to subsequent backends on error.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides forwarded to each backend.
+
+        Yields:
+            str: Content chunks from the first backend that streams successfully.
+
+        Raises:
+            RuntimeError: If all backends fail.
+        """
         import logging
 
         logger = logging.getLogger(__name__)
@@ -415,6 +525,11 @@ class FallbackBackend(LLMBackend):
         raise last_error or RuntimeError("All backends failed with no specific error")
 
     def is_available(self) -> bool:
+        """Check whether at least one underlying backend is available.
+
+        Returns:
+            True if any backend reports availability, False otherwise.
+        """
         return any(b.is_available() for b in self._backends)
 
 

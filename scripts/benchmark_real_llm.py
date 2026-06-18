@@ -21,6 +21,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def create_backend(backend_type: str):
+    """Create an LLM backend instance for the given type.
+
+    Args:
+        backend_type: One of ``"openai"`` or ``"anthropic"``. The
+            corresponding API key must be set in the environment.
+
+    Returns:
+        Configured LLM backend instance with max_tokens=500.
+
+    Raises:
+        SystemExit: When the backend type is unknown or the required API
+            key environment variable is not set.
+    """
     if backend_type == "openai":
         from scripts.collaboration.llm_backend import OpenAIBackend
 
@@ -43,6 +56,15 @@ def create_backend(backend_type: str):
 
 
 def run_benchmark(backend_type, num_tasks, mode):
+    """Run a real-LLM dispatch benchmark and print latency/throughput stats.
+
+    Args:
+        backend_type: LLM backend identifier (``"openai"`` or
+            ``"anthropic"``).
+        num_tasks: Number of benchmark tasks to dispatch.
+        mode: Dispatch mode (``"auto"``, ``"parallel"``,
+            ``"sequential"``, or ``"consensus"``).
+    """
     from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
     backend = create_backend(backend_type)
@@ -110,6 +132,11 @@ def run_benchmark(backend_type, num_tasks, mode):
 
 
 def main():
+    """Parse CLI arguments and launch the real-LLM benchmark.
+
+    Required argument: ``--backend`` (openai or anthropic). Optional
+    arguments: ``--tasks`` (default 5) and ``--mode`` (default auto).
+    """
     parser = argparse.ArgumentParser(description="Benchmark real LLM backend dispatch")
     parser.add_argument("--backend", choices=["openai", "anthropic"], required=True)
     parser.add_argument("--tasks", type=int, default=5)

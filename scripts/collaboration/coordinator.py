@@ -398,6 +398,7 @@ class Coordinator:
                         if self.briefing_mode:
                             self._collect_briefing_from_worker(worker)
                 except Exception as e:
+                    # Broad catch: wraps arbitrary worker execution; per-task isolation
                     errors.append(f"Task {task.task_id} failed: {e}")
 
         return results, errors
@@ -417,6 +418,7 @@ class Coordinator:
             try:
                 results.append(future.result())
             except Exception as e:
+                # Broad catch: wraps arbitrary worker execution in thread pool
                 results.append(
                     WorkerResult(
                         worker_id="unknown",
@@ -435,7 +437,7 @@ class Coordinator:
             if isinstance(worker, EnhancedWorker) and self._briefing_chain:
                 merged = self._merge_briefings(self._briefing_chain)
                 worker.receive_briefing(merged)
-        except Exception as _e:
+        except (ImportError, AttributeError) as _e:
             logger.debug("Briefing injection failed: %s", _e)
 
     def _collect_briefing_from_worker(self, worker: Any) -> None:
@@ -447,7 +449,7 @@ class Coordinator:
                 briefing = worker.compress_to_briefing()
                 if briefing and briefing.result_summary:
                     self._briefing_chain.append(briefing)
-        except Exception as _e:
+        except (ImportError, AttributeError) as _e:
             logger.debug("Briefing collection failed: %s", _e)
 
     def _merge_briefings(self, briefings: list[Any]) -> Any:
@@ -528,7 +530,7 @@ class Coordinator:
                             rules.append(rs)
                 if rules:
                     role_rules[worker.role_id] = rules if isinstance(rules, list) else []
-            except Exception as _e:
+            except (AttributeError, TypeError, KeyError, ValueError, RuntimeError) as _e:
                 logger.debug("Rule extraction failed for worker %s: %s", worker.role_id, _e)
                 continue
 

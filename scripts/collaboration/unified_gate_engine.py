@@ -73,6 +73,12 @@ class UnifiedGateResult:
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the gate result summary to a dictionary.
+
+        Returns:
+            Dictionary containing pass status, gate type, verdict, severity,
+            check counts, and issue/warning/evidence counts.
+        """
         return {
             "passed": self.passed,
             "gate_type": self.gate_type.value,
@@ -86,6 +92,12 @@ class UnifiedGateResult:
         }
 
     def to_summary(self) -> str:
+        """Render the gate result as a human-readable multi-line summary.
+
+        Returns:
+            Newline-joined string with gate type, verdict, status, check counts,
+            and any critical issues, warnings, or required evidence.
+        """
         lines = [
             f"Gate Result [{self.gate_type.value}]: {self.verdict}",
             f"Status: {'✅ PASSED' if self.passed else '❌ FAILED'}",

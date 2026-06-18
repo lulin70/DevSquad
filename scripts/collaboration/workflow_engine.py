@@ -54,6 +54,12 @@ class WorkflowStep:
     skip_reason: str = ""
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the workflow step to a dictionary.
+
+        Returns:
+            Dictionary containing all step fields with `status` converted
+            to its string value.
+        """
         d = {
             "step_id": self.step_id,
             "name": self.name,
@@ -80,6 +86,16 @@ class WorkflowStep:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "WorkflowStep":
+        """Reconstruct a WorkflowStep from a serialized dictionary.
+
+        Args:
+            data: Dict produced by `to_dict`. The `status` field, if a
+                string, is converted back to a `StepStatus` enum; invalid
+                values fall back to `PENDING`.
+
+        Returns:
+            A new WorkflowStep instance populated from `data`.
+        """
         data_copy = dict(data)
         if isinstance(data_copy.get("status"), str):
             try:
@@ -112,6 +128,12 @@ class WorkflowDefinition:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the workflow definition to a dictionary.
+
+        Returns:
+            Dictionary containing workflow_id, name, description, serialized
+            steps, variables, metadata, and created_at.
+        """
         return {
             "workflow_id": self.workflow_id,
             "name": self.name,
@@ -322,6 +344,16 @@ class WorkflowEngine:
         return steps
 
     def start_workflow(self, workflow_id: str, variables: dict[str, Any] = None) -> WorkflowInstance | None:
+        """Start a new workflow instance from a registered definition.
+
+        Args:
+            workflow_id: Identifier of the workflow definition to start.
+            variables: Optional initial variables for the instance.
+
+        Returns:
+            The created WorkflowInstance, or None when the definition is
+            not found.
+        """
         definition = self.definitions.get(workflow_id)
         if not definition:
             logger.warning("Workflow not found: %s", workflow_id)
@@ -342,6 +374,18 @@ class WorkflowEngine:
         return instance
 
     def execute_step(self, instance_id: str, step_executor: Callable = None) -> WorkflowStep | None:
+        """Execute the current step of a workflow instance.
+
+        Args:
+            instance_id: Identifier of the workflow instance.
+            step_executor: Optional callable ``(step, variables) -> result``.
+                When None, a registered executor or the default executor is
+                used.
+
+        Returns:
+            The executed WorkflowStep with updated status/result, or None
+            when the instance or its current step cannot be found.
+        """
         instance = self.instances.get(instance_id)
         if not instance:
             return None
@@ -429,6 +473,17 @@ class WorkflowEngine:
         instance.checkpoint_id = checkpoint.checkpoint_id
 
     def resume_from_checkpoint(self, instance_id: str) -> WorkflowInstance | None:
+        """Restore a workflow instance's state from its last checkpoint.
+
+        Args:
+            instance_id: Identifier of the workflow instance.
+
+        Returns:
+            The restored WorkflowInstance with completed_steps, variables,
+            results, and current_step updated from the checkpoint. Returns
+            None if the instance is not found; returns the instance
+            unchanged if no checkpoint exists or loading fails.
+        """
         instance = self.instances.get(instance_id)
         if not instance:
             return None
@@ -456,6 +511,18 @@ class WorkflowEngine:
         return instance
 
     def handoff(self, instance_id: str, from_agent: str, to_agent: str, reason: str = "") -> HandoffDocument | None:
+        """Create and persist a handoff document between agents.
+
+        Args:
+            instance_id: Identifier of the workflow instance.
+            from_agent: Identifier of the agent handing off.
+            to_agent: Identifier of the receiving agent.
+            reason: Optional reason for the handoff.
+
+        Returns:
+            The created HandoffDocument, or None when the instance is not
+            found.
+        """
         instance = self.instances.get(instance_id)
         if not instance:
             return None
@@ -482,6 +549,17 @@ class WorkflowEngine:
         return handoff
 
     def get_workflow_status(self, instance_id: str) -> dict[str, Any] | None:
+        """Return a status summary for a workflow instance.
+
+        Args:
+            instance_id: Identifier of the workflow instance.
+
+        Returns:
+            Dictionary with instance_id, workflow_id, status, progress
+            (e.g. "3/10"), completion_rate percentage, current_step,
+            failed_steps, and has_checkpoint flag. Returns None if the
+            instance is not found.
+        """
         instance = self.instances.get(instance_id)
         if not instance:
             return None
@@ -503,6 +581,12 @@ class WorkflowEngine:
         }
 
     def register_executor(self, action: str, executor: Callable):
+        """Register a callable executor for a step action name.
+
+        Args:
+            action: Action name that maps to the executor.
+            executor: Callable ``(step, variables) -> result``.
+        """
         self.executors[action] = executor
 
     def create_lifecycle(self, template_name: str = "full") -> WorkflowDefinition:

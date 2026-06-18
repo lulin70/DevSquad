@@ -209,6 +209,15 @@ class IntentDetector:
         ]
 
     def detect(self, text: str) -> IntentResult:
+        """Detect whether the input text contains a rule-creation intent.
+
+        Args:
+            text: Natural language input from the user.
+
+        Returns:
+            IntentResult describing the best-matching pattern; is_detected is False
+            when no pattern exceeds the configured sensitivity threshold.
+        """
         if not text or len(text) < 3:
             return IntentResult()
 
@@ -253,6 +262,16 @@ class RuleExtractor:
         ]
 
     def extract(self, text: str, intent: IntentResult) -> ExtractionResult:
+        """Extract a structured RuleData (trigger/action/type) from natural language.
+
+        Args:
+            text: Original natural language input.
+            intent: IntentResult previously produced by IntentDetector.detect.
+
+        Returns:
+            ExtractionResult with the best-scoring RuleData, or success=False with
+            warnings when no extraction pattern matches.
+        """
         if not intent.is_detected:
             return ExtractionResult()
 
@@ -327,6 +346,15 @@ class RuleSanitizer:
 
     @staticmethod
     def sanitize(rule: RuleData) -> tuple[RuleData, list[str]]:
+        """Sanitize a rule by redacting dangerous patterns and enforcing length limits.
+
+        Args:
+            rule: RuleData to sanitize in place.
+
+        Returns:
+            Tuple of (sanitized RuleData, list of warning strings describing each
+            redaction/truncation applied).
+        """
         warnings = []
 
         for pat in DANGEROUS_PATTERNS:
@@ -401,6 +429,14 @@ class LocalRuleStorage:
                 )
 
     def store(self, rule: RuleData) -> StoreResult:
+        """Persist a rule to the local JSON store, assigning it a new rule_id.
+
+        Args:
+            rule: RuleData to persist; rule.rule_id will be overwritten.
+
+        Returns:
+            StoreResult indicating success/failure with the assigned rule_id.
+        """
         with self._lock:
             try:
                 data = self._read_data()
@@ -431,11 +467,27 @@ class LocalRuleStorage:
                 return StoreResult(success=False, message=str(e))
 
     def list_rules(self, _user_id: str = "default") -> list[dict[str, Any]]:
+        """List all active rules in the local store.
+
+        Args:
+            _user_id: Reserved for future per-user filtering (currently unused).
+
+        Returns:
+            List of rule dictionaries (each includes its rule_id) marked active.
+        """
         with self._lock:
             data = self._read_data()
             return [{"rule_id": k, **v} for k, v in data.get("rules", {}).items() if v.get("active", True)]
 
     def delete_rule(self, rule_id: str) -> bool:
+        """Soft-delete a rule by marking it inactive.
+
+        Args:
+            rule_id: Identifier of the rule to delete.
+
+        Returns:
+            True if the rule existed and was marked inactive, False otherwise.
+        """
         with self._lock:
             data = self._read_data()
             if rule_id in data.get("rules", {}):
@@ -450,6 +502,16 @@ class LocalRuleStorage:
     def query(
         self, trigger_keywords: list[str] | None = None, rule_type: str | None = None, min_confidence: float = 0.0
     ) -> list[dict[str, Any]]:
+        """Query active rules by keyword, type, and minimum confidence.
+
+        Args:
+            trigger_keywords: Optional keywords that must appear in trigger or action.
+            rule_type: Optional rule type filter (e.g. "prefer", "avoid", "always").
+            min_confidence: Minimum confidence threshold (inclusive).
+
+        Returns:
+            List of matching rule dicts sorted by rule-type priority (descending).
+        """
         with self._lock:
             data = self._read_data()
             results = []
@@ -503,6 +565,15 @@ class RuleStorage:
 
     @classmethod
     def get_shared(cls, carrymem_config: dict | None = None) -> "RuleStorage":
+        """Return the process-wide shared RuleStorage singleton.
+
+        Args:
+            carrymem_config: Optional CarryMem configuration passed to the constructor
+                when the singleton is first created.
+
+        Returns:
+            The shared RuleStorage instance.
+        """
         if cls._shared_instance is None:
             with cls._instance_lock:
                 if cls._shared_instance is None:
@@ -527,6 +598,14 @@ class RuleStorage:
             logger.info("CarryMem not available for RuleStorage: %s", e)
 
     def store(self, rule: RuleData) -> StoreResult:
+        """Store a rule via CarryMem if available, falling back to local JSON.
+
+        Args:
+            rule: RuleData to persist.
+
+        Returns:
+            StoreResult from the successful backend (CarryMem or local JSON).
+        """
         if self.carrymem_available and self._carrymem:
             try:
                 result = self._store_to_carrymem(rule)
@@ -538,12 +617,37 @@ class RuleStorage:
         return self._local.store(rule)
 
     def list_rules(self, user_id: str = "default") -> list[dict[str, Any]]:
+        """List active rules for the given user from the local fallback store.
+
+        Args:
+            user_id: Optional user identifier (reserved for future use).
+
+        Returns:
+            List of active rule dictionaries.
+        """
         return self._local.list_rules(user_id)
 
     def delete_rule(self, rule_id: str) -> bool:
+        """Delete a rule by id via the local fallback store.
+
+        Args:
+            rule_id: Identifier of the rule to delete.
+
+        Returns:
+            True if the rule was found and deleted, False otherwise.
+        """
         return self._local.delete_rule(rule_id)
 
     def query(self, **kwargs) -> list[dict[str, Any]]:
+        """Query rules by keyword/type/confidence via the local fallback store.
+
+        Args:
+            **kwargs: Forwarded to LocalRuleStorage.query (trigger_keywords,
+                rule_type, min_confidence).
+
+        Returns:
+            List of matching rule dictionaries.
+        """
         return self._local.query(**kwargs)
 
     def _store_to_carrymem(self, rule: RuleData) -> StoreResult:
@@ -580,6 +684,16 @@ class RuleCollector:
         self._storage = RuleStorage()
 
     def process(self, text: str, lang: str = "zh") -> CollectionResult:
+        """Process natural language text, detecting and storing rules or handling list/delete intents.
+
+        Args:
+            text: Natural language input from the user.
+            lang: Response language code ("zh" or "en") used for message formatting.
+
+        Returns:
+            CollectionResult describing the outcome (rule_detected, stored rule,
+            remaining task text, and a localized message).
+        """
         intent = self._detector.detect(text)
 
         if not intent.is_detected:

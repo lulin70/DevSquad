@@ -53,6 +53,12 @@ class PerformanceMetric:
     error: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the performance record to a dictionary.
+
+        Returns:
+            Dictionary with name, duration in milliseconds, CPU percent,
+            memory in MB, success flag, error, and ISO-formatted timestamp.
+        """
         return {
             "name": self.name,
             "duration_ms": self.duration * 1000,
@@ -125,7 +131,7 @@ def _get_cpu_percent() -> float:
         return 0.0
     try:
         return psutil.Process().cpu_percent()
-    except Exception as e:
+    except (AttributeError, RuntimeError, OSError) as e:
         logger.debug("cpu_percent read failed: %s", e)
         return 0.0
 
@@ -136,7 +142,7 @@ def _get_memory_mb() -> float:
         return 0.0
     try:
         return psutil.Process().memory_info().rss / 1024 / 1024
-    except Exception as e:
+    except (AttributeError, RuntimeError, OSError) as e:
         logger.debug("memory_info read failed: %s", e)
         return 0.0
 
@@ -182,8 +188,10 @@ class PerformanceMonitor:
         """
 
         def decorator(func: Callable) -> Callable:
+            """Wrap ``func`` to capture performance metrics on each call."""
             @wraps(func)
             def wrapper(*args, **kwargs):
+                """Execute the wrapped function and record its metric."""
                 start_time = time.time()
                 start_cpu = _get_cpu_percent()
                 start_memory = _get_memory_mb()
@@ -195,6 +203,7 @@ class PerformanceMonitor:
                     result = func(*args, **kwargs)
                     return result
                 except Exception as e:
+                    # Broad catch: wraps arbitrary decorated function; re-raises after recording
                     success = False
                     error = str(e)
                     raise
@@ -377,7 +386,7 @@ class PerformanceMonitor:
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(report)
             logger.info("Performance report generated: %s", output_path)
-        except Exception as e:
+        except (OSError, PermissionError) as e:
             logger.error("Failed to generate report: %s", e)
             raise OSError(f"Failed to generate report: {e}") from e
 

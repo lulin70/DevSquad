@@ -73,6 +73,12 @@ class ConcernPack:
     role_enhancements: dict[str, str] = field(default_factory=dict)
 
     def get_checklist_summary(self) -> str:
+        """Build a Markdown summary of the concern pack checklist.
+
+        Returns:
+            Markdown string listing must-have items and common pitfalls,
+            or an empty body when neither is defined.
+        """
         must_have = self.checklist.get("must_have", [])
         pitfalls = self.checklist.get("common_pitfalls", [])
 
@@ -98,6 +104,12 @@ class ConcernPack:
         return "\n".join(lines)
 
     def get_decision_summary(self) -> str:
+        """Build a Markdown summary of the concern pack decision framework.
+
+        Returns:
+            Markdown string listing decision questions and their options with
+            complexity ratings, or an empty string when no framework is defined.
+        """
         steps = self.decision_framework
         if not steps:
             return ""

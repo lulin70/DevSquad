@@ -193,7 +193,7 @@ class AsyncCoordinator:
                 from .llm_retry_async import AsyncLLMRetryManager
                 self._retry_manager = AsyncLLMRetryManager()
                 logger.info("AsyncLLMRetryManager enabled for AsyncCoordinator")
-            except Exception as e:
+            except ImportError as e:
                 logger.warning("AsyncLLMRetryManager init failed: %s", e)
                 self.enable_retry = False
                 self._retry_manager = None
@@ -428,6 +428,7 @@ class AsyncCoordinator:
                         if self.briefing_mode:
                             self._collect_briefing_from_worker(worker)
                 except Exception as e:
+                    # Broad catch: wraps arbitrary worker execution; per-task isolation
                     errors.append(f"Task {task.task_id} failed: {e}")
                 except asyncio.TimeoutError:
                     errors.append(
@@ -495,6 +496,7 @@ class AsyncCoordinator:
                         error=f"Timeout after {self.task_timeout}s",
                     )
                 except Exception as e:
+                    # Broad catch: wraps arbitrary worker execution; per-task isolation
                     logger.error(
                         "Task %s failed: %s", task.task_id, e
                     )
@@ -664,7 +666,7 @@ class AsyncCoordinator:
                     role_rules[worker.role_id] = (
                         rules if isinstance(rules, list) else []
                     )
-            except Exception as e:
+            except (AttributeError, TypeError, KeyError, ValueError, RuntimeError) as e:
                 logger.debug("Rule loading failed for worker %s: %s", wid, e)
                 continue
 
@@ -820,7 +822,7 @@ class AsyncCoordinator:
             if isinstance(worker, EnhancedWorker) and self._briefing_chain:
                 merged = self._merge_briefings(self._briefing_chain)
                 worker.receive_briefing(merged)
-        except Exception as e:
+        except (ImportError, AttributeError) as e:
             logger.debug("Briefing injection failed: %s", e)
 
     def _collect_briefing_from_worker(self, worker: Any) -> None:
@@ -832,7 +834,7 @@ class AsyncCoordinator:
                 briefing = worker.compress_to_briefing()
                 if briefing and briefing.result_summary:
                     self._briefing_chain.append(briefing)
-        except Exception as e:
+        except (ImportError, AttributeError) as e:
             logger.debug("Briefing collection failed: %s", e)
 
     def _merge_briefings(self, briefings: list[Any]) -> Any:

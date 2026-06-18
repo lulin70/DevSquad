@@ -104,26 +104,67 @@ class FeatureUsageTracker:
         return self._counts[feature]
 
     def get_count(self, feature: str) -> int:
+        """Return the invocation count for a feature.
+
+        Args:
+            feature: Feature name.
+
+        Returns:
+            Number of times the feature has been recorded; 0 if never seen.
+        """
         with self._lock:
             return self._counts.get(feature, 0)
 
     def get_all_counts(self) -> dict[str, int]:
+        """Return a copy of all feature invocation counts.
+
+        Returns:
+            Dictionary mapping feature name to invocation count.
+        """
         with self._lock:
             return dict(self._counts)
 
     def get_unused_features(self) -> list[str]:
+        """Return known features that have never been recorded.
+
+        Returns:
+            Sorted list of feature names with zero invocations.
+        """
         used = set(self._counts.keys())
         return sorted(self.KNOWN_FEATURES - used)
 
     def get_low_usage_features(self, threshold: int = 3) -> list[str]:
+        """Return features whose invocation count is at or below a threshold.
+
+        Args:
+            threshold: Maximum count (inclusive) to be considered low usage.
+                Defaults to 3.
+
+        Returns:
+            Sorted list of feature names with count <= threshold.
+        """
         return sorted(f for f, c in self._counts.items() if c <= threshold)
 
     def get_high_usage_features(self, top_n: int = 10) -> list[tuple]:
+        """Return the most-used features.
+
+        Args:
+            top_n: Maximum number of features to return. Defaults to 10.
+
+        Returns:
+            List of (feature, count) tuples sorted by count descending.
+        """
         with self._lock:
             sorted_features = sorted(self._counts.items(), key=lambda x: x[1], reverse=True)
         return sorted_features[:top_n]
 
     def report(self) -> dict[str, Any]:
+        """Build a summary report of feature usage for the current session.
+
+        Returns:
+            Dictionary with session_start, total_invocations, coverage_ratio,
+            top/unused/low-usage features, and per-feature detail.
+        """
         with self._lock:
             total = sum(self._counts.values())
             return {
@@ -146,6 +187,12 @@ class FeatureUsageTracker:
             }
 
     def report_markdown(self) -> str:
+        """Build a Markdown report of feature usage.
+
+        Returns:
+            Markdown string with session metadata, top features table, and
+            lists of unused and low-usage features.
+        """
         r = self.report()
         lines = [
             "# Feature Usage Report",
@@ -176,6 +223,12 @@ class FeatureUsageTracker:
         return "\n".join(lines)
 
     def persist(self, path: str | None = None):
+        """Persist the current usage report to disk as JSON.
+
+        Args:
+            path: Optional output path; defaults to the configured persist path.
+                When neither is set, the call is a no-op.
+        """
         target = path or self._persist_path
         if not target:
             return
@@ -202,6 +255,7 @@ class FeatureUsageTracker:
             logger.warning("Failed to load feature usage: %s", e)
 
     def reset(self):
+        """Clear all usage counts and timestamps, resetting the tracker."""
         with self._lock:
             self._counts.clear()
             self._first_seen.clear()

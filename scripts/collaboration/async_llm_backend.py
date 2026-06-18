@@ -102,6 +102,16 @@ class AsyncMockBackend(AsyncLLMBackendInterface):
     """
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a formatted mock analysis response.
+
+        Args:
+            prompt: The assembled prompt/instruction text.
+            **kwargs: Optional `role_name` and `task_description` used to
+                format the mock output.
+
+        Returns:
+            Multi-line string describing the mock analysis.
+        """
         role_name = kwargs.get("role_name", "AI Assistant")
         task_desc = kwargs.get("task_description", "")
         lines = [
@@ -118,9 +128,19 @@ class AsyncMockBackend(AsyncLLMBackendInterface):
         return "\n".join(lines)
 
     async def is_available(self) -> bool:
+        """Return True; the mock backend is always available."""
         return True
 
     async def batch_generate(self, prompts: list[str], **_kwargs: Any) -> list[str]:
+        """Generate mock responses for multiple prompts concurrently.
+
+        Args:
+            prompts: List of prompt texts.
+            **_kwargs: Ignored keyword arguments forwarded to `generate`.
+
+        Returns:
+            List of mock response strings in the same order as `prompts`.
+        """
         tasks = [self.generate(p, **_kwargs) for p in prompts]
         return await asyncio.gather(*tasks)
 
@@ -133,12 +153,31 @@ class AsyncTraeBackend(AsyncLLMBackendInterface):
     """
 
     async def generate(self, prompt: str, **_kwargs: Any) -> str:
+        """Return the prompt unchanged (Trae passthrough).
+
+        Args:
+            prompt: The assembled prompt/instruction text.
+            **_kwargs: Ignored keyword arguments.
+
+        Returns:
+            The input `prompt` string verbatim.
+        """
         return prompt
 
     async def is_available(self) -> bool:
+        """Return True; the Trae passthrough backend is always available."""
         return True
 
     async def batch_generate(self, prompts: list[str], **_kwargs: Any) -> list[str]:
+        """Return all prompts unchanged (Trae passthrough).
+
+        Args:
+            prompts: List of prompt texts.
+            **_kwargs: Ignored keyword arguments.
+
+        Returns:
+            A shallow copy of `prompts` as a list.
+        """
         return list(prompts)
 
 
@@ -206,6 +245,18 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
         return self._semaphore
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a completion for a single prompt using the OpenAI API.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model, temperature, and max_tokens.
+
+        Returns:
+            The generated completion text.
+
+        Raises:
+            RuntimeError: If all retry attempts fail.
+        """
         client = await self._get_client()
         last_error = None
 
@@ -230,6 +281,15 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
     async def generate_stream(
         self, prompt: str, **kwargs: Any
     ) -> AsyncGenerator[str, None]:
+        """Stream a completion chunk-by-chunk from the OpenAI API.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model, temperature, and max_tokens.
+
+        Yields:
+            str: Each non-empty content delta from the streamed response.
+        """
         client = await self._get_client()
         stream = await client.chat.completions.create(
             model=kwargs.get("model", self.model),
@@ -246,6 +306,15 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
     async def batch_generate(
         self, prompts: list[str], **kwargs: Any
     ) -> list[str]:
+        """Generate completions for multiple prompts concurrently.
+
+        Args:
+            prompts: List of prompt strings.
+            **kwargs: Optional overrides forwarded to generate().
+
+        Returns:
+            List of completion strings in the same order as prompts.
+        """
         semaphore = await self._get_semaphore()
 
         async def _generate_with_limit(prompt: str) -> str:
@@ -256,6 +325,11 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
         return await asyncio.gather(*tasks)
 
     async def is_available(self) -> bool:
+        """Check whether the OpenAI backend can be initialized.
+
+        Returns:
+            True if the client can be created, False on import or connection errors.
+        """
         try:
             await self._get_client()
             return True
@@ -263,6 +337,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
             return False
 
     async def close(self) -> None:
+        """Close the underlying OpenAI async client and release resources."""
         if self._client:
             await self._client.close()
             self._client = None
@@ -329,6 +404,18 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
         return self._semaphore
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a completion for a single prompt using the Anthropic API.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model and max_tokens.
+
+        Returns:
+            The generated completion text.
+
+        Raises:
+            RuntimeError: If all retry attempts fail.
+        """
         client = await self._get_client()
         last_error = None
 
@@ -352,6 +439,15 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
     async def generate_stream(
         self, prompt: str, **kwargs: Any
     ) -> AsyncGenerator[str, None]:
+        """Stream a completion chunk-by-chunk from the Anthropic API.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides for model and max_tokens.
+
+        Yields:
+            str: Each text delta from the streamed response.
+        """
         client = await self._get_client()
         async with client.messages.stream(
             model=kwargs.get("model", self.model),
@@ -364,6 +460,15 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
     async def batch_generate(
         self, prompts: list[str], **kwargs: Any
     ) -> list[str]:
+        """Generate completions for multiple prompts concurrently.
+
+        Args:
+            prompts: List of prompt strings.
+            **kwargs: Optional overrides forwarded to generate().
+
+        Returns:
+            List of completion strings in the same order as prompts.
+        """
         semaphore = await self._get_semaphore()
 
         async def _generate_with_limit(prompt: str) -> str:
@@ -374,6 +479,11 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
         return await asyncio.gather(*tasks)
 
     async def is_available(self) -> bool:
+        """Check whether the Anthropic backend can be initialized.
+
+        Returns:
+            True if the client can be created, False on import or connection errors.
+        """
         try:
             await self._get_client()
             return True
@@ -381,6 +491,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
             return False
 
     async def close(self) -> None:
+        """Close the underlying Anthropic async client and release resources."""
         if self._client:
             await self._client.close()
             self._client = None
@@ -426,6 +537,18 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
         self._failed_at[backend_repr] = time.time()
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Generate a completion, failing over to subsequent backends on error.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides forwarded to each backend.
+
+        Returns:
+            The first successful completion text.
+
+        Raises:
+            RuntimeError: If all backends fail.
+        """
         lock = await self._get_lock()
         last_error = None
 
@@ -467,6 +590,18 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
     async def generate_stream(
         self, prompt: str, **kwargs: Any
     ) -> AsyncGenerator[str, None]:
+        """Stream a completion, failing over to subsequent backends on error.
+
+        Args:
+            prompt: User prompt text.
+            **kwargs: Optional overrides forwarded to each backend.
+
+        Yields:
+            str: Content chunks from the first backend that streams successfully.
+
+        Raises:
+            RuntimeError: If all backends fail.
+        """
         lock = await self._get_lock()
         last_error = None
 
@@ -505,16 +640,31 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
     async def batch_generate(
         self, prompts: list[str], **kwargs: Any
     ) -> list[str]:
+        """Generate completions for multiple prompts concurrently.
+
+        Args:
+            prompts: List of prompt strings.
+            **kwargs: Optional overrides forwarded to generate().
+
+        Returns:
+            List of completion strings in the same order as prompts.
+        """
         tasks = [self.generate(p, **kwargs) for p in prompts]
         return await asyncio.gather(*tasks)
 
     async def is_available(self) -> bool:
+        """Check whether at least one underlying backend is available.
+
+        Returns:
+            True if any backend reports availability, False otherwise.
+        """
         results = await asyncio.gather(
             *[b.is_available() for b in self._backends]
         )
         return any(results)
 
     async def close(self) -> None:
+        """Close all underlying backends and release their resources."""
         for backend in self._backends:
             await backend.close()
 
