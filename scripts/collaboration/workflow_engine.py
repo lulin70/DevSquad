@@ -618,7 +618,6 @@ class WorkflowEngine:
         definition = self.definitions.get(instance.workflow_id)
         total_steps = len(definition.steps) if definition else 0
         completed = len(instance.completed_steps)
-        len(instance.failed_steps)
 
         return {
             "instance_id": instance_id,

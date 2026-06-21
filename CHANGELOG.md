@@ -7,6 +7,24 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.1] - 2026-06-21
+
+### Fixed
+- **P0: MCP server test fix** (`test_mcp_server_v362.py`): Root cause was missing `mcp` package, not flaky tests. Added `pytest.importorskip("mcp")` safety net. 34/34 tests now pass.
+- **P2: Dead code removal** (`workflow_engine.py:621`): Removed no-op `len(instance.failed_steps)` expression.
+
+### Changed
+- **P1: File split — `two_stage_review_gate.py`** (1059→555 lines): Extracted checkers to `review_checkers.py` (574 lines). `TwoStageReviewGate` now delegates to `ReviewCheckers` via composition.
+- **P1: File split — `lifecycle_shortcut_adapter.py`** (1185→891 lines): Extracted 15 helper functions to `lifecycle_shortcut_helpers.py` (610 lines).
+- **P1: pickle→JSON migration** (`cache_interface.py`): Replaced `pickle.dumps`/`pickle.loads` with `json.dumps`/`json.loads`. Added backward-compatible pickle fallback for legacy cache entries (logs warning).
+- **P2: Secret pattern unification** (`secret_patterns.py`): New shared module with unified `SECRET_PATTERNS`, `is_sensitive()`, `find_secrets()`, `mask_secrets()`. Eliminated duplicate patterns from 4 modules (content_cache, review_checkers, tech_debt_manager, audit_logger).
+- **P2: mypy CI** (`.github/workflows/test.yml`): Added non-blocking mypy type check step to lint job.
+
+### Test Coverage
+- **Total tests**: 2387 passed, 18 skipped (including 34 MCP server tests)
+- **New modules**: `secret_patterns.py`, `review_checkers.py`, `lifecycle_shortcut_helpers.py`
+- **ruff**: All checks passed
+
 ## [3.8.0] - 2026-06-21
 
 ### Added

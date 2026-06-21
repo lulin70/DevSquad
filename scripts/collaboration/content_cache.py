@@ -55,25 +55,14 @@ import re
 from typing import Any
 
 from .llm_cache_base import LLMCacheBase
+from .secret_patterns import SECRET_PATTERNS
 
 logger = logging.getLogger(__name__)
 
 
 # Patterns that indicate sensitive data which must never be cached.
-# Matches are case-insensitive. The list covers common secret formats:
-#   - API key assignments:  api_key=..., api-key: ..., "apikey": "..."
-#   - Bearer tokens:        Authorization: Bearer xxx
-#   - AWS secrets:          AKIA... access keys, aws_secret_access_key=...
-#   - Private keys:         -----BEGIN ... PRIVATE KEY-----
-#   - Generic secret assignments:  secret=..., password=..., token=...
-SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"(?i)\bapi[_-]?key\b\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{16,}"),
-    re.compile(r"(?i)\bauthorization\b\s*[:=]\s*['\"]?bearer\s+[A-Za-z0-9_\-\.]+"),
-    re.compile(r"(?i)\baws[_-]?secret[_-]?access[_-]?key\b\s*[:=]\s*\S+"),
-    re.compile(r"(?i)\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"-----BEGIN\s+[A-Z\s]*PRIVATE KEY-----"),
-    re.compile(r"(?i)\b(secret|password|passwd|token)\b\s*[:=]\s*['\"]?[^\s'\"]{8,}"),
-)
+# V3.8.1: Unified patterns from secret_patterns module (deduplicated from 4 modules).
+SENSITIVE_PATTERNS: tuple[re.Pattern[str], ...] = tuple(p for _, p in SECRET_PATTERNS)
 
 
 class ContentCache:

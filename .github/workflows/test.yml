@@ -94,9 +94,12 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install lint tools
-        run: pip install ruff
+        run: pip install ruff mypy
       - name: Lint
         run: ruff check scripts/ skills/ --ignore=E501,W291
+      - name: Type check (non-blocking)
+        run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary || true
+        continue-on-error: true
 
   build:
     runs-on: ubuntu-latest
