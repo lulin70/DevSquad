@@ -30,6 +30,22 @@ class StepStatus(Enum):
     SKIPPED = "skipped"
 
 
+class NodeType(Enum):
+    """V3.8: Classification of workflow step execution semantics.
+
+    - ``DETERMINISTIC``: Pure logic / no LLM call (e.g. data transforms,
+      file I/O, rule checks). Output is fully reproducible.
+    - ``LLM``: Step whose primary work is an LLM call (e.g. requirements
+      analysis, architecture design, code review).
+    - ``HYBRID``: Mix of deterministic and LLM work (default — preserves
+      backward compatibility for steps created without annotation).
+    """
+
+    DETERMINISTIC = "deterministic"
+    LLM = "llm"
+    HYBRID = "hybrid"
+
+
 @dataclass
 class WorkflowStep:
     step_id: str = field(default_factory=lambda: f"step-{uuid.uuid4().hex[:6]}")
@@ -52,13 +68,17 @@ class WorkflowStep:
     reviewers: list[str] = field(default_factory=list)
     optional: bool = False
     skip_reason: str = ""
+    # V3.8 #6: Deterministic vs LLM step separation.
+    # Defaults to HYBRID for backward compatibility — existing steps
+    # created without an explicit node_type are treated as mixed.
+    node_type: NodeType = NodeType.HYBRID
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the workflow step to a dictionary.
 
         Returns:
-            Dictionary containing all step fields with `status` converted
-            to its string value.
+            Dictionary containing all step fields with `status` and
+            `node_type` converted to their string values.
         """
         d = {
             "step_id": self.step_id,
@@ -81,6 +101,9 @@ class WorkflowStep:
             "reviewers": self.reviewers,
             "optional": self.optional,
             "skip_reason": self.skip_reason,
+            "node_type": self.node_type.value
+            if isinstance(self.node_type, NodeType)
+            else self.node_type,
         }
         return d
 
@@ -91,7 +114,9 @@ class WorkflowStep:
         Args:
             data: Dict produced by `to_dict`. The `status` field, if a
                 string, is converted back to a `StepStatus` enum; invalid
-                values fall back to `PENDING`.
+                values fall back to `PENDING`. The `node_type` field, if
+                a string, is converted back to a `NodeType` enum; invalid
+                or missing values fall back to `HYBRID` (backward compat).
 
         Returns:
             A new WorkflowStep instance populated from `data`.
@@ -102,7 +127,33 @@ class WorkflowStep:
                 data_copy["status"] = StepStatus(data_copy["status"])
             except ValueError:
                 data_copy["status"] = StepStatus.PENDING
+        if isinstance(data_copy.get("node_type"), str):
+            try:
+                data_copy["node_type"] = NodeType(data_copy["node_type"])
+            except ValueError:
+                data_copy["node_type"] = NodeType.HYBRID
+        elif "node_type" not in data_copy:
+            data_copy["node_type"] = NodeType.HYBRID
         return cls(**data_copy)
+
+    def is_deterministic(self) -> bool:
+        """Return True if this step is purely deterministic (no LLM call)."""
+        return self.node_type == NodeType.DETERMINISTIC
+
+    def is_llm(self) -> bool:
+        """Return True if this step's primary work is an LLM call."""
+        return self.node_type == NodeType.LLM
+
+    @property
+    def requires_llm(self) -> bool:
+        """V3.8 #6: Return True if this step requires an LLM call.
+
+        Both ``NodeType.LLM`` and ``NodeType.HYBRID`` steps involve at
+        least one LLM call, so they return ``True``. Pure
+        ``NodeType.DETERMINISTIC`` steps return ``False`` — useful for
+        cost estimation and for skipping LLM backends during execution.
+        """
+        return self.node_type in (NodeType.LLM, NodeType.HYBRID)
 
 
 @dataclass
@@ -427,7 +478,7 @@ class WorkflowEngine:
                 instance.status = WorkflowStatus.COMPLETED
                 instance.completed_at = datetime.now().isoformat()
 
-        except Exception as e:
+        except (RuntimeError, ValueError, AttributeError, TypeError) as e:
             current_step.status = StepStatus.FAILED
             current_step.error = str(e)
             instance.failed_steps.append(current_step.step_id)
@@ -602,6 +653,13 @@ class WorkflowEngine:
         steps = []
         for pid in phase_ids:
             pt = PHASE_TEMPLATES[pid]
+            # V3.8 #6: propagate node_type annotation from template.
+            # Falls back to HYBRID when template omits the field.
+            node_type_value = pt.get("node_type", "hybrid")
+            try:
+                node_type = NodeType(node_type_value)
+            except ValueError:
+                node_type = NodeType.HYBRID
             steps.append(
                 WorkflowStep(
                     step_id=pid,
@@ -615,14 +673,15 @@ class WorkflowEngine:
                     gate_condition=pt["gate_condition"],
                     reviewers=pt["reviewers"],
                     optional=pt["optional"],
+                    node_type=node_type,
                 )
             )
 
         definition = WorkflowDefinition(
             name=f"lifecycle-{template_name}",
-            description=f"DevSquad V3.6 {template_name} lifecycle ({len(steps)} phases)",
+            description=f"DevSquad V3.8 {template_name} lifecycle ({len(steps)} phases)",
             steps=steps,
-            metadata={"template": template_name, "lifecycle_version": "3.7.0"},
+            metadata={"template": template_name, "lifecycle_version": "3.8.0"},
         )
         self.definitions[definition.workflow_id] = definition
         logger.info("Lifecycle workflow created: %s (%s, %d phases)", definition.workflow_id, template_name, len(steps))
@@ -680,6 +739,100 @@ class WorkflowEngine:
         logger.info("Change request submitted: %s (rollback_to=%s)", change_request.change_id, earliest)
         return change_request
 
+    def classify_steps(self, workflow_id: str | None = None) -> dict[str, Any]:
+        """V3.8 #6: Classify workflow steps by node_type and return stats.
+
+        Counts how many steps are deterministic, llm, or hybrid for the
+        given workflow definition. When ``workflow_id`` is None, the
+        most recently created definition is used.
+
+        Returns
+        -------
+        Dict with keys:
+            - ``total``: total step count
+            - ``deterministic``: count of DETERMINISTIC steps
+            - ``llm``: count of LLM steps
+            - ``hybrid``: count of HYBRID steps
+            - ``deterministic_pct``: percentage (0-100)
+            - ``llm_pct``: percentage (0-100)
+            - ``hybrid_pct``: percentage (0-100)
+            - ``by_step``: list of ``{step_id, name, node_type}`` dicts
+        """
+        if workflow_id is None:
+            if not self.definitions:
+                return {
+                    "total": 0,
+                    "deterministic": 0,
+                    "llm": 0,
+                    "hybrid": 0,
+                    "deterministic_pct": 0.0,
+                    "llm_pct": 0.0,
+                    "hybrid_pct": 0.0,
+                    "by_step": [],
+                }
+            workflow_id = next(reversed(self.definitions))
+
+        definition = self.definitions.get(workflow_id)
+        if not definition:
+            return {
+                "total": 0,
+                "deterministic": 0,
+                "llm": 0,
+                "hybrid": 0,
+                "deterministic_pct": 0.0,
+                "llm_pct": 0.0,
+                "hybrid_pct": 0.0,
+                "by_step": [],
+            }
+
+        steps = definition.steps
+        total = len(steps)
+        det = sum(1 for s in steps if s.node_type == NodeType.DETERMINISTIC)
+        llm = sum(1 for s in steps if s.node_type == NodeType.LLM)
+        hybrid = sum(1 for s in steps if s.node_type == NodeType.HYBRID)
+
+        def pct(n: int) -> float:
+            return round(n / total * 100, 2) if total > 0 else 0.0
+
+        return {
+            "total": total,
+            "deterministic": det,
+            "llm": llm,
+            "hybrid": hybrid,
+            "deterministic_pct": pct(det),
+            "llm_pct": pct(llm),
+            "hybrid_pct": pct(hybrid),
+            "by_step": [
+                {"step_id": s.step_id, "name": s.name, "node_type": s.node_type.value}
+                for s in steps
+            ],
+        }
+
+    def get_step_summary(self, workflow_id: str | None = None) -> dict[str, int]:
+        """V3.8 #6: Return a concise step-count summary by node_type.
+
+        Useful for cost estimation and debugging — answers "how many
+        steps in this workflow need an LLM call?" without the full
+        ``classify_steps`` breakdown.
+
+        Args:
+            workflow_id: Workflow definition ID to summarize. When None,
+                the most recently created definition is used (matching
+                ``classify_steps`` behavior). When no definitions exist,
+                all counts are zero.
+
+        Returns:
+            Dict with keys ``deterministic``, ``llm``, ``hybrid``,
+            ``total``. ``total`` is the sum of the other three.
+        """
+        classified = self.classify_steps(workflow_id)
+        return {
+            "deterministic": classified["deterministic"],
+            "llm": classified["llm"],
+            "hybrid": classified["hybrid"],
+            "total": classified["total"],
+        }
+
 
 PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
     "P1": {
@@ -693,6 +846,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Acceptance criteria quantifiable and unambiguous",
         "reviewers": ["architect", "tester", "security", "ui-designer"],
         "optional": False,
+        "node_type": "llm",
     },
     "P2": {
         "name": "Architecture Design",
@@ -705,6 +859,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Architecture passes weighted consensus (>=70%)",
         "reviewers": ["product-manager", "security", "devops"],
         "optional": False,
+        "node_type": "llm",
     },
     "P3": {
         "name": "Technical Design",
@@ -717,6 +872,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "API specs unambiguous",
         "reviewers": ["solo-coder", "tester"],
         "optional": False,
+        "node_type": "llm",
     },
     "P4": {
         "name": "Data Design",
@@ -729,6 +885,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Data model 3NF or denormalization justified",
         "reviewers": ["architect", "security"],
         "optional": True,
+        "node_type": "hybrid",
     },
     "P5": {
         "name": "Interaction Design",
@@ -741,6 +898,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Core flow usability verified",
         "reviewers": ["product-manager", "tester", "security"],
         "optional": True,
+        "node_type": "llm",
     },
     "P6": {
         "name": "Security Review",
@@ -753,6 +911,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "No P0/P1 vulnerabilities, compliance green",
         "reviewers": ["architect", "devops"],
         "optional": True,
+        "node_type": "hybrid",
     },
     "P7": {
         "name": "Test Planning",
@@ -765,6 +924,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Test plan review passed",
         "reviewers": ["architect", "security", "devops", "product-manager"],
         "optional": False,
+        "node_type": "llm",
     },
     "P8": {
         "name": "Implementation",
@@ -777,6 +937,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Code review passed, no P0 defects",
         "reviewers": ["architect", "security", "tester", "solo-coder"],
         "optional": False,
+        "node_type": "hybrid",
     },
     "P9": {
         "name": "Test Execution",
@@ -789,6 +950,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Coverage>=80% + P7 plan 100% executed + no P0 defects",
         "reviewers": ["architect", "product-manager", "security", "devops"],
         "optional": False,
+        "node_type": "deterministic",
     },
     "P10": {
         "name": "Deployment & Release",
@@ -801,6 +963,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "Deployment drill passed, rollback verified",
         "reviewers": ["architect", "security", "tester"],
         "optional": False,
+        "node_type": "deterministic",
     },
     "P11": {
         "name": "Operations & Assurance",
@@ -813,6 +976,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "gate_condition": "P99<target, alert coverage 100%",
         "reviewers": ["architect", "devops"],
         "optional": True,
+        "node_type": "deterministic",
     },
 }
 

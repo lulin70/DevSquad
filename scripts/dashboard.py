@@ -26,6 +26,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from typing import Any
 
 import requests
 
@@ -96,7 +97,7 @@ class DashboardConfig:
 
 
 @st.cache_resource
-def load_lifecycle_protocol():
+def load_lifecycle_protocol() -> dict[str, Any] | None:
     """Load and cache the lifecycle protocol."""
     try:
         from scripts.collaboration.lifecycle_protocol import (
@@ -116,7 +117,7 @@ def load_lifecycle_protocol():
 
 
 @st.cache_resource
-def get_dispatcher():
+def get_dispatcher() -> Any | None:
     """Initialize and cache the MultiAgentDispatcher."""
     try:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -134,7 +135,7 @@ def get_dispatcher():
         return None
 
 
-def set_page_config():
+def set_page_config() -> None:
     """Configure Streamlit page settings."""
     st.set_page_config(
         page_title=DashboardConfig.PAGE_TITLE,
@@ -144,7 +145,7 @@ def set_page_config():
     )
 
 
-def apply_custom_css():
+def apply_custom_css() -> None:
     """Apply custom CSS for production-grade visual appearance."""
     st.markdown(
         """
@@ -279,7 +280,7 @@ def apply_custom_css():
     )
 
 
-def render_header(current_user: User | None = None):
+def render_header(current_user: User | None = None) -> None:
     """Render the main dashboard header with enhanced styling."""
     st.markdown('<div class="main-header">🚀 DevSquad Lifecycle Dashboard</div>', unsafe_allow_html=True)
 
@@ -303,7 +304,7 @@ def render_header(current_user: User | None = None):
             st.markdown(f'<div class="countdown-timer">⏱️ Auto-refresh in {remaining}s</div>', unsafe_allow_html=True)
 
 
-def render_metrics_overview(protocol_data):
+def render_metrics_overview(protocol_data) -> None:
     """Render key metrics overview cards with enhanced styling."""
     if not protocol_data:
         return
@@ -358,12 +359,12 @@ def render_metrics_overview(protocol_data):
                 delta_color="normal",
             )
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError, AttributeError, RuntimeError, ConnectionError) as e:
         logger.error("Could not load metrics: %s", e)
         st.warning(f"Could not load metrics: {e}")
 
 
-def render_phase_timeline(protocol_data):
+def render_phase_timeline(protocol_data) -> None:
     """Render interactive phase timeline visualization with enhanced cards."""
     if not protocol_data:
         return
@@ -423,12 +424,12 @@ def render_phase_timeline(protocol_data):
                 st.markdown("</div>", unsafe_allow_html=True)
                 st.divider()
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError, AttributeError, RuntimeError) as e:
         logger.error("Error rendering timeline: %s", e)
         st.error(f"Error rendering timeline: {e}")
 
 
-def render_cli_mapping_table(protocol_data):
+def render_cli_mapping_table(protocol_data) -> None:
     """Render CLI command to phase mapping table."""
     if not protocol_data:
         return
@@ -480,7 +481,7 @@ def render_cli_mapping_table(protocol_data):
         )
 
 
-def render_gate_status_panel(protocol_data):
+def render_gate_status_panel(protocol_data) -> None:
     """Render gate status monitoring panel."""
     if not protocol_data:
         return
@@ -528,12 +529,12 @@ def render_gate_status_panel(protocol_data):
 
                 st.divider()
 
-    except Exception as e:
+    except (KeyError, ValueError, TypeError, AttributeError, RuntimeError) as e:
         logger.error("Could not load gate status: %s", e)
         st.warning(f"Could not load gate status: {e}")
 
 
-def fetch_api_metrics():
+def fetch_api_metrics() -> dict[str, Any] | None:
     """
     Fetch real metrics from API server.
     Returns dict if successful, None if API unreachable.
@@ -550,7 +551,7 @@ def fetch_api_metrics():
         return None
 
 
-def render_performance_panel():
+def render_performance_panel() -> None:
     """Render performance metrics panel with real API data."""
     st.subheader("📊 System Performance")
 
@@ -620,7 +621,7 @@ def render_performance_panel():
                 st.dataframe(sample_data, use_container_width=True, hide_index=True)
 
 
-def render_task_dispatch_page(dispatcher):
+def render_task_dispatch_page(dispatcher) -> None:
     """Render the Task Dispatch page with full functionality."""
     st.header("🎯 Task Dispatch")
     st.markdown("---")
@@ -720,7 +721,7 @@ def render_task_dispatch_page(dispatcher):
                     st.success(f"✅ Task completed in {duration:.2f}s")
                     st.rerun()
 
-                except Exception as e:
+                except (RuntimeError, ValueError, ConnectionError, TimeoutError, KeyError) as e:
                     logger.error("Dispatch failed: %s", e, exc_info=True)
                     st.error(f"❌ Dispatch failed: {e}")
                     st.exception(e)
@@ -742,7 +743,7 @@ def render_task_dispatch_page(dispatcher):
         render_dispatch_result(result, duration)
 
 
-def render_dispatch_result(result, duration: float):
+def render_dispatch_result(result, duration: float) -> None:
     """Render dispatch result with metadata and formatted report."""
     st.subheader("📊 Dispatch Result")
 
@@ -791,7 +792,7 @@ def render_dispatch_result(result, duration: float):
         st.json(result.to_dict())
 
 
-def render_admin_users_page(auth: AuthManager):
+def render_admin_users_page(auth: AuthManager) -> None:
     """Render Admin User Management page."""
     st.header("👥 User Management")
     st.markdown("---")
@@ -839,7 +840,7 @@ def render_admin_users_page(auth: AuthManager):
     """)
 
 
-def render_admin_system_config_page():
+def render_admin_system_config_page() -> None:
     """Render Admin System Configuration page (read-only)."""
     st.header("⚙️ System Configuration")
     st.markdown("---")
@@ -891,7 +892,7 @@ def render_admin_system_config_page():
     st.caption("ℹ️ This page is read-only. Configuration changes require editing source files.")
 
 
-def render_action_panel(protocol_data):
+def render_action_panel(protocol_data) -> None:
     """Render action control panel."""
     st.subheader("🎮 Control Panel")
 
@@ -915,7 +916,7 @@ def render_action_panel(protocol_data):
             st.success("Generating benchmark report...")
 
 
-def handle_auto_refresh():
+def handle_auto_refresh() -> None:
     """Handle auto-refresh logic with countdown timer."""
     auto_refresh = st.session_state.get("auto_refresh", False)
 
@@ -933,7 +934,7 @@ def handle_auto_refresh():
             st.rerun()
 
 
-def render_sidebar(auth: AuthManager, current_user: User | None = None):
+def render_sidebar(auth: AuthManager, current_user: User | None = None) -> str:
     """Render sidebar navigation and controls with new pages."""
     with st.sidebar:
         st.header("Navigation")
@@ -993,7 +994,7 @@ def render_sidebar(auth: AuthManager, current_user: User | None = None):
         return page
 
 
-def render_footer(current_user: User | None = None):
+def render_footer(current_user: User | None = None) -> None:
     """Render dashboard footer with version and session info."""
     st.markdown("---")
 
@@ -1012,7 +1013,7 @@ def render_footer(current_user: User | None = None):
         st.caption(f"© {datetime.now().year} DevSquad Team")
 
 
-def main():
+def main() -> None:
     """Main dashboard entry point."""
     set_page_config()
     apply_custom_css()

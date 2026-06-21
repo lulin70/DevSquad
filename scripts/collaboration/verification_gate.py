@@ -180,7 +180,7 @@ class VerificationGate:
                         flag.description,
                         context.role_id,
                     )
-            except Exception as e:
+            except Exception as e:  # Broad catch: wraps arbitrary detection callables; must not crash gate
                 logger.debug("Red flag detection error for %s: %s", flag.id, e)
 
         missing = self._check_missing_evidence(context)

@@ -210,7 +210,7 @@ class UsageTracker:
                 with open(self.persist_file, "w", encoding="utf-8") as f:
                     json.dump(dict(self.stats), f, indent=2, ensure_ascii=False)
                 return True
-            except Exception as e:
+            except (OSError, TypeError, ValueError) as e:
                 logger.warning("Failed to save usage stats: %s", e)
                 return False
 
@@ -221,7 +221,7 @@ class UsageTracker:
                 with open(self.persist_file, encoding="utf-8") as f:
                     loaded = json.load(f)
                     self.stats.update(loaded)
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, TypeError) as e:
             logger.warning("Failed to load usage stats: %s", e)
 
     def clear(self) -> int:

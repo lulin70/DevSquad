@@ -311,7 +311,7 @@ class CIFeedbackAdapter:
 
         try:
             return parser_cls.parse(output)
-        except Exception as e:
+        except (ValueError, KeyError, TypeError, RuntimeError) as e:
             logger.error("Failed to parse %s output: %s", source_type, e)
             return None
 

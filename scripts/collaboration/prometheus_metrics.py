@@ -34,62 +34,62 @@ except ImportError:
     _PROMETHEUS_AVAILABLE = False
 
     class Counter:  # type: ignore[no-redef]
-        def __init__(self, *args: Any, **kwargs: Any):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def labels(self, *_args: Any, **_kwargs: Any):
+        def labels(self, *_args: Any, **_kwargs: Any) -> "Counter":
             """Return self to support chaining when prometheus is unavailable."""
             return self
 
-        def inc(self, amount: int = 1):
+        def inc(self, amount: int = 1) -> None:
             """No-op increment for the stub counter."""
             pass
 
-        def observe(self, amount: float):
+        def observe(self, amount: float) -> None:
             """No-op observe for the stub counter."""
             pass
 
     class Gauge:  # type: ignore[no-redef]
-        def __init__(self, *args: Any, **kwargs: Any):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def labels(self, *_args: Any, **_kwargs: Any):
+        def labels(self, *_args: Any, **_kwargs: Any) -> "Gauge":
             """Return self to support chaining when prometheus is unavailable."""
             return self
 
-        def set(self, value: float):
+        def set(self, value: float) -> None:
             """No-op set for the stub gauge."""
             pass
 
-        def inc(self, amount: int = 1):
+        def inc(self, amount: int = 1) -> None:
             """No-op increment for the stub gauge."""
             pass
 
-        def dec(self, amount: int = 1):
+        def dec(self, amount: int = 1) -> None:
             """No-op decrement for the stub gauge."""
             pass
 
     class Histogram:  # type: ignore[no-redef]
-        def __init__(self, *args: Any, **kwargs: Any):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def labels(self, *_args: Any, **_kwargs: Any):
+        def labels(self, *_args: Any, **_kwargs: Any) -> "Histogram":
             """Return self to support chaining when prometheus is unavailable."""
             return self
 
-        def observe(self, amount: float):
+        def observe(self, amount: float) -> None:
             """No-op observe for the stub histogram."""
             pass
 
-        def time(self):
+        def time(self) -> "_NullContextManager":
             """Return a null context manager for timing when prometheus is unavailable."""
             return _NullContextManager()
 
     class Info:  # type: ignore[no-redef]
-        def __init__(self, *args: Any, **kwargs: Any):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def info(self, info_dict: dict[str, str]):
+        def info(self, info_dict: dict[str, str]) -> None:
             """No-op info setter for the stub Info metric."""
             pass
 
@@ -97,10 +97,10 @@ except ImportError:
 class _NullContextManager:
     """Fallback context manager when prometheus_client is not available."""
 
-    def __enter__(self):
+    def __enter__(self) -> "_NullContextManager":
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         pass
 
 
@@ -128,7 +128,7 @@ class DevSquadMetrics:
     DISPATCH_BUCKETS = [0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0]
     LLM_BUCKETS = [0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize all Prometheus metrics."""
         if not _PROMETHEUS_AVAILABLE:
             logger.warning(
@@ -405,7 +405,7 @@ def get_metrics() -> DevSquadMetrics:
     return _metrics_instance
 
 
-def reset_metrics():
+def reset_metrics() -> None:
     """Reset global metrics instance (mainly for testing)."""
     global _metrics_instance
     _metrics_instance = None

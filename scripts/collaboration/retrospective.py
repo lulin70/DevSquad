@@ -247,7 +247,7 @@ class RetrospectiveEngine:
             else:
                 self._memory_bridge.store.save(MemoryType.ANALYSIS, report.to_dict())
             logger.info("Retrospective report stored in MemoryBridge (goal_id=%s)", goal.goal_id)
-        except Exception as e:
+        except (AttributeError, RuntimeError, ValueError, TypeError) as e:
             logger.warning("Failed to store retrospective report: %s", e)
 
     def load_historical(
@@ -282,7 +282,7 @@ class RetrospectiveEngine:
                     for m in result.memories[:limit]
                 ]
             return []
-        except Exception as e:
+        except (ImportError, AttributeError, RuntimeError, ValueError) as e:
             logger.warning("Failed to load historical retrospectives: %s", e)
             return []
 

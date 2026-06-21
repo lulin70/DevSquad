@@ -183,6 +183,8 @@ class AsyncCoordinator:
         self.task_timeout = task_timeout or self.DEFAULT_TASK_TIMEOUT
         self.max_concurrency = max_concurrency
         self.execution_guard = execution_guard
+        # V3.8 #9: ContentCache wrapper (set externally when configured).
+        self.content_cache: Any = None
         self._semaphore: asyncio.Semaphore | None = None
 
         # Retry support
@@ -301,6 +303,7 @@ class AsyncCoordinator:
                         llm_backend=self.llm_backend,
                         stream=getattr(self, "stream", False),
                         execution_guard=self.execution_guard,
+                        content_cache=getattr(self, "content_cache", None),
                     )
                 except (ImportError, ModuleNotFoundError):
                     worker = WorkerFactory.create(
@@ -310,6 +313,7 @@ class AsyncCoordinator:
                         scratchpad=self.scratchpad,
                         llm_backend=self.llm_backend,
                         stream=getattr(self, "stream", False),
+                        content_cache=getattr(self, "content_cache", None),
                     )
             else:
                 worker = WorkerFactory.create(
@@ -319,6 +323,7 @@ class AsyncCoordinator:
                     scratchpad=self.scratchpad,
                     llm_backend=self.llm_backend,
                     stream=getattr(self, "stream", False),
+                    content_cache=getattr(self, "content_cache", None),
                 )
             self.workers[worker_id] = worker
             self._async_workers[worker_id] = AsyncWorkerWrapper(

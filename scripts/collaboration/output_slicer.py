@@ -202,7 +202,7 @@ class OutputSlicer:
                     if task_id:
                         key = f"{task_id}/{key}"
                     self._scratchpad.write(key, content)
-                except Exception as e:
+                except (RuntimeError, AttributeError, TypeError) as e:
                     logger.debug("Failed to write slice %d to scratchpad: %s", slice_num, e)
 
         return SlicedOutput(

@@ -26,7 +26,9 @@ from .dispatch_models import DispatchResult
 from .dispatch_result_assembler import ResultAssembler
 from .dispatch_services import MemoryPipelineService, MetricsService, PermissionService, SkillProposalService
 from .event_bus import EventBus
+from .severity_router import AutoFixResult, SeverityRouter
 from .tech_debt_manager import TechDebtManager
+from .two_stage_review_gate import ReviewFinding, ReviewStage, TwoStageReviewGate, TwoStageReviewResult
 from .ue_test_framework import UETestFramework
 
 logger = logging.getLogger(__name__)
@@ -37,6 +39,11 @@ class PostDispatchPipeline:
 
     Receives all dependencies via __init__ (composition pattern) instead of
     relying on mixin self.* attribute sharing.
+
+    V3.8 additions:
+      - Step 21: Two-stage code review gate (spec compliance + quality)
+      - Step 22: Severity router + auto-fix loop
+      - Step 23: Judge agent consolidation (dedup/conflict-resolve findings)
     """
 
     def __init__(
@@ -54,6 +61,15 @@ class PostDispatchPipeline:
         enable_compression: bool = True,
         enable_permission: bool = True,
         enable_feedback_loop: bool | str = "auto",
+        # V3.8 #2: Two-stage review gate
+        enable_two_stage_review: bool = True,
+        # V3.8 #3: Severity router + auto-fix loop
+        enable_severity_router: bool = True,
+        development_mode: bool = True,
+        max_fix_iterations: int = 3,
+        severity_router: Any = None,
+        # V3.8 #4: Judge agent for finding consolidation
+        judge_agent: Any = None,
         # Additional dependencies
         compressor: Any = None,
         usage_tracker: Any = None,
@@ -91,6 +107,31 @@ class PostDispatchPipeline:
         # Lazy-initialized frameworks
         self._ue_framework: UETestFramework | None = None
         self._debt_manager: TechDebtManager | None = None
+
+        # V3.8 #2: Two-stage review gate
+        self.enable_two_stage_review = enable_two_stage_review
+        self.two_stage_review_gate = TwoStageReviewGate(
+            enable_two_stage_review=enable_two_stage_review,
+        )
+
+        # V3.8 #3: Severity router
+        self.enable_severity_router = enable_severity_router
+        if severity_router is not None:
+            # Use the injected router instance (advanced integration).
+            self.severity_router = severity_router
+        else:
+            self.severity_router = SeverityRouter(
+                event_bus=self.event_bus,
+                development_mode=development_mode,
+                max_fix_iterations=max_fix_iterations,
+            )
+        if self.enable_severity_router and severity_router is None:
+            # Only auto-subscribe when we created the router ourselves
+            # (an injected router is expected to be subscribed already).
+            self.severity_router.subscribe()
+
+        # V3.8 #4: Judge agent for finding consolidation
+        self.judge_agent = judge_agent
 
     # ------------------------------------------------------------------
     # Main execution entry point
@@ -238,6 +279,45 @@ class PostDispatchPipeline:
         tech_debt_report = self._run_tech_debt_scan(task_description, worker_results)
         if tech_debt_report:
             result.details["tech_debt_report"] = tech_debt_report
+
+        # Step 21: V3.8 #2 — Two-stage code review gate
+        # Runs after consensus + tech debt scan, before final completion.
+        # Critical issues block progression (recorded in errors).
+        two_stage_review_result = self._run_two_stage_review(
+            plan, worker_results, structured_goal
+        )
+        if two_stage_review_result is not None:
+            result.details["two_stage_review"] = two_stage_review_result.to_dict()
+            result.two_stage_review = two_stage_review_result.to_dict()
+            if not two_stage_review_result.passed:
+                blocking_msgs = [
+                    f"Two-stage review blocked: {i.description}"
+                    for i in two_stage_review_result.blocking_issues
+                ]
+                errors.extend(blocking_msgs)
+                result.errors = list(errors)
+                result.success = False
+
+        # Step 22: V3.8 #3 — Severity router + auto-fix loop
+        # Processes findings from the review gate and worker outputs.
+        # Only runs in development mode (production: collect-only).
+        auto_fix_result = self._run_severity_router(
+            worker_results, two_stage_review_result
+        )
+        if auto_fix_result is not None:
+            result.details["auto_fix_result"] = auto_fix_result.to_dict()
+            result.auto_fix_result = auto_fix_result.to_dict()
+
+        # Step 23: V3.8 #4 — Judge agent consolidation
+        # Consolidates/deduplicates findings from the two-stage review
+        # gate and severity router before reporting. Runs only when a
+        # JudgeAgent is configured.
+        judge_result = self._run_judge_consolidation(
+            two_stage_review_result, auto_fix_result
+        )
+        if judge_result is not None:
+            result.details["judge_result"] = judge_result.to_dict()
+            result.judge_result = judge_result.to_dict()
 
         # Prometheus: record dispatch end (duration + tasks_in_progress)
         self.metrics_service.safe_record(lambda m: (
@@ -785,3 +865,160 @@ class PostDispatchPipeline:
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
         return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)
+
+    # ------------------------------------------------------------------
+    # V3.8 #2: Step 21 — Two-stage review gate
+    # ------------------------------------------------------------------
+
+    def _run_two_stage_review(
+        self,
+        plan: Any,
+        worker_results: list[dict[str, Any]],
+        structured_goal: Any,
+    ) -> TwoStageReviewResult | None:
+        """Run the two-stage code review gate.
+
+        Stage 1 verifies spec/plan compliance; Stage 2 checks code
+        quality. Returns None when the gate is disabled or fails to
+        initialize (graceful degradation — never blocks dispatch).
+        """
+        if not self.enable_two_stage_review:
+            return None
+        try:
+            # Build spec requirements from structured goal when available
+            spec_requirements: dict[str, Any] = {}
+            if structured_goal is not None:
+                required_roles = getattr(structured_goal, "required_roles", None)
+                if required_roles:
+                    spec_requirements["required_roles"] = list(required_roles)
+                acceptance_criteria = getattr(structured_goal, "acceptance_criteria", None)
+                if acceptance_criteria:
+                    spec_requirements["acceptance_criteria"] = list(acceptance_criteria)
+
+            result = self.two_stage_review_gate.review(
+                plan=plan,
+                worker_results=worker_results,
+                spec_requirements=spec_requirements,
+            )
+            if self.usage_tracker:
+                self.usage_tracker.tick("two_stage_review")
+            return result
+        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
+            logger.warning("Two-stage review gate failed: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # V3.8 #3: Step 22 — Severity router + auto-fix loop
+    # ------------------------------------------------------------------
+
+    def _run_severity_router(
+        self,
+        worker_results: list[dict[str, Any]],
+        review_result: TwoStageReviewResult | None,
+    ) -> AutoFixResult | None:
+        """Run the severity router to process findings and attempt auto-fix.
+
+        Collects findings from worker outputs and the two-stage review
+        result, then runs the auto-fix loop (development mode only).
+        Returns None when the router is disabled (graceful degradation).
+        """
+        if not self.enable_severity_router:
+            return None
+        try:
+            findings = self.severity_router.collect_findings(
+                worker_results=worker_results,
+                review_result=review_result,
+            )
+            # Emit findings to the event bus for observability
+            self.event_bus.emit(
+                SeverityRouter.EVENT_FINDINGS,
+                findings=[f.to_dict() for f in findings],
+                count=len(findings),
+            )
+            # Run the auto-fix loop. In production mode this is a
+            # no-op (collect-only). The fix_callable is None because
+            # the dispatch pipeline does not itself apply code fixes;
+            # downstream consumers (e.g. EnhancedWorker) can subscribe
+            # to the event bus to perform actual fixes.
+            result = self.severity_router.run_auto_fix_loop(findings)
+            if self.usage_tracker:
+                self.usage_tracker.tick("severity_router")
+            return result
+        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
+            logger.warning("Severity router failed: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # V3.8 #4: Step 23 — Judge agent consolidation
+    # ------------------------------------------------------------------
+
+    def _run_judge_consolidation(
+        self,
+        review_result: TwoStageReviewResult | None,
+        auto_fix_result: AutoFixResult | None,
+    ) -> Any:
+        """Run the judge agent to consolidate/deduplicate findings.
+
+        Collects :class:`ReviewFinding` objects from the two-stage
+        review gate result and converts :class:`FixAction` objects from
+        the severity router back into :class:`ReviewFinding` objects,
+        then passes the combined list through
+        :meth:`JudgeAgent.judge` for deduplication, conflict resolution,
+        and confidence filtering.
+
+        Returns the :class:`JudgeResult` (or ``None`` when no judge
+        agent is configured or the call fails — graceful degradation
+        that never blocks dispatch).
+        """
+        if self.judge_agent is None:
+            return None
+        try:
+            findings: list[ReviewFinding] = []
+
+            # Collect findings from the two-stage review gate result.
+            if review_result is not None:
+                findings.extend(review_result.findings)
+
+            # Convert FixAction objects from the severity router back
+            # into ReviewFinding objects so the judge can dedup them
+            # alongside the review-gate findings.
+            if auto_fix_result is not None:
+                for action in auto_fix_result.actions:
+                    # Map SeverityLevel back to a ReviewFinding severity
+                    # string ("critical"/"warning"/"info").
+                    sev = action.severity.value
+                    if sev in ("high", "medium"):
+                        rf_severity = "warning"
+                    elif sev == "low":
+                        rf_severity = "info"
+                    else:
+                        # critical → "critical", info → "info"
+                        rf_severity = sev if sev in ("critical", "info") else "warning"
+                    findings.append(
+                        ReviewFinding(
+                            stage=ReviewStage.CODE_QUALITY,
+                            severity=rf_severity,
+                            category="routed_finding",
+                            description=action.description,
+                            file_path=action.file_path,
+                            suggestion=action.suggested_fix,
+                        )
+                    )
+
+            if not findings:
+                return None
+
+            result = self.judge_agent.judge(findings, context={})
+            if self.usage_tracker:
+                self.usage_tracker.tick("judge_agent")
+            logger.info(
+                "JudgeAgent consolidated %d findings: %d accepted, %d rejected, %d merged",
+                len(findings),
+                len(result.accepted_findings),
+                result.rejected_count,
+                result.merged_count,
+            )
+            return result
+        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
+            logger.warning("Judge agent consolidation failed: %s", exc)
+            return None

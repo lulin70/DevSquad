@@ -568,7 +568,7 @@ def print_enhanced_lifecycle_command(
 
         return 0
 
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError, KeyError, AttributeError) as e:
         print(f"\nVisual enhancement error: {e}\n")
         return 0  # Don't block normal operation
 

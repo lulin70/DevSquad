@@ -595,7 +595,7 @@ class AgentBriefing:
             }
 
             briefing_file.write_text(json.dumps(briefing_data, indent=2), encoding="utf-8")
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to save briefing: %s", e)
 
     def _load_briefing(self) -> None:
@@ -618,7 +618,7 @@ class AgentBriefing:
                 self.sections[title] = BriefingSection(**section_data)
 
             logger.info("Loaded briefing for %s", self.agent_role)
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, KeyError, TypeError) as e:
             logger.warning("Failed to load briefing: %s", e)
 
 
@@ -654,7 +654,7 @@ def reset_briefings() -> None:
     _briefing_instances.clear()
 
 
-__version__ = "3.7.2"
+__version__ = "3.8.0"
 __all__ = [
     "AgentBriefing",
     "BriefingSection",

@@ -43,7 +43,7 @@ class TaskCompletionChecker:
             try:
                 with open(self.progress_file, encoding="utf-8") as f:
                     return json.load(f)
-            except Exception as e:
+            except (json.JSONDecodeError, OSError, ValueError) as e:
                 logger.warning("Failed to load progress: %s", e)
         return self._create_empty_progress()
 
@@ -58,7 +58,7 @@ class TaskCompletionChecker:
             self.progress["last_update"] = datetime.now().isoformat()
             with open(self.progress_file, "w", encoding="utf-8") as f:
                 json.dump(self.progress, f, ensure_ascii=False, indent=2)
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to save progress: %s", e)
 
     def check_dispatch_result(self, dispatch_result) -> TaskCompletionResult:
@@ -113,7 +113,7 @@ class TaskCompletionChecker:
                     self._blocked_workers.add(wr.get("role_id", wr.get("role", "unknown")))
                 else:
                     wr_detail["verification"] = {"passed": True, "verdict": "APPROVE"}
-            except Exception as ve:
+            except (ImportError, AttributeError, RuntimeError, KeyError) as ve:
                 logger.debug("VerificationGate error: %s", ve)
 
             details.append(wr_detail)

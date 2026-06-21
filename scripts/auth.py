@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from functools import wraps
-from typing import Any
+from typing import Any, Callable
 
 import yaml
 
@@ -76,7 +76,7 @@ class AuthManager:
     and role-based access control.
     """
 
-    def __init__(self, config_path: str | None = None):
+    def __init__(self, config_path: str | None = None) -> None:
         """
         Initialize authentication manager.
 
@@ -107,7 +107,7 @@ class AuthManager:
             else:
                 logger.warning("Config file not found: %s", self.config_path)
                 return {}
-        except Exception as e:
+        except (OSError, yaml.YAMLError, ValueError) as e:
             logger.error("Failed to load config: %s", e)
             return {}
 
@@ -116,7 +116,7 @@ class AuthManager:
         auth_config = self.config.get("authentication", {})
         return auth_config.get("credentials", {}).get("usernames", {})
 
-    def _validate_config_security(self):
+    def _validate_config_security(self) -> None:
         """
         Validate configuration for security issues.
 
@@ -212,7 +212,7 @@ class AuthManager:
         logger.info("User authenticated: %s (role=%s)", username, role.value)
         return user
 
-    def authenticate_streamlit(self):
+    def authenticate_streamlit(self) -> None:
         """
         Authenticate user in Streamlit application.
 
@@ -294,7 +294,7 @@ class AuthManager:
         except ImportError:
             return None
 
-    def logout(self):
+    def logout(self) -> None:
         """Logout current user."""
         try:
             import streamlit as st
@@ -305,7 +305,7 @@ class AuthManager:
         except ImportError:
             pass
 
-    def get_login_button(self):
+    def get_login_button(self) -> None:
         """
         Generate logout button for Streamlit sidebar.
 
@@ -333,7 +333,7 @@ class AuthManager:
             pass
 
 
-def require_auth(func):
+def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to require authentication for API endpoints.
 
@@ -344,7 +344,7 @@ def require_auth(func):
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Any:
         """Check authentication before calling the wrapped function.
 
         Raises PermissionError when auth is enabled and no user session
@@ -367,7 +367,7 @@ def require_auth(func):
     return wrapper
 
 
-def check_permission(required_role: UserRole = UserRole.VIEWER):
+def check_permission(required_role: UserRole = UserRole.VIEWER) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Decorator to check user permissions.
 
@@ -375,11 +375,11 @@ def check_permission(required_role: UserRole = UserRole.VIEWER):
         required_role: Minimum role required to access the resource
     """
 
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         """Wrap `func` with a role-based permission check."""
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Any:
             """Check the current user's role before calling the wrapped function.
 
             Raises PermissionError when the user is not authenticated or
@@ -410,7 +410,7 @@ def check_permission(required_role: UserRole = UserRole.VIEWER):
     return decorator
 
 
-def create_demo_credentials():
+def create_demo_credentials() -> dict[str, dict[str, str]]:
     """
     Create demo credentials for testing purposes.
 

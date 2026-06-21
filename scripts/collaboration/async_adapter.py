@@ -225,7 +225,7 @@ class AutoBackendSelector:
         if AutoBackendSelector.should_use_async():
             try:
                 return AsyncLLMBackendFactory.create(backend_type, **kwargs)
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, ImportError) as e:
                 logger.warning(
                     "Failed to create async backend (%s), falling back to sync",
                     e,

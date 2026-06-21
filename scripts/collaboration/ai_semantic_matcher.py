@@ -117,7 +117,7 @@ Return the matching results in JSON format:
 
                 self._record_match(task_description, results)
                 return results
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, ConnectionError) as e:
                 logger.warning("AI matching failed, falling back to keyword: %s", e)
 
         results = self._keyword_match(task_description, roles)
@@ -254,7 +254,7 @@ Return the matching results in JSON format:
 
             results.sort(key=lambda r: r.confidence, reverse=True)
             return results
-        except Exception as e:
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
             logger.warning("Failed to parse AI response: %s", e)
             return []
 

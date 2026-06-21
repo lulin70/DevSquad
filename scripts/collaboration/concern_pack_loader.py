@@ -183,7 +183,7 @@ class ConcernPackLoader:
                     if pack:
                         self._packs[pack.concern_id] = pack
                         logger.debug("Loaded concern pack: %s (%s)", pack.concern_id, pack.name)
-                except Exception as e:
+                except (OSError, ValueError, RuntimeError) as e:
                     logger.warning("Failed to load concern pack %s: %s", filename, e)
 
             self._loaded = True

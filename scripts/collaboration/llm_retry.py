@@ -29,6 +29,7 @@ from typing import Any
 from .llm_retry_base import (
     CircuitBreakerError,
     CircuitBreakerState,
+    JitterStrategy,
     LLMRetryBase,
     RateLimitError,
     RetryConfig,
@@ -41,6 +42,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "CircuitBreakerError",
     "CircuitBreakerState",
+    "JitterStrategy",
     "LLMRetryManager",
     "RateLimitError",
     "RetryConfig",

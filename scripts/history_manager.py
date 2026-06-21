@@ -231,7 +231,7 @@ class HistoryManager:
             self.conn.commit()
             return True
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to save metrics snapshot: %s", e)
             return False
 
@@ -289,7 +289,7 @@ class HistoryManager:
             logger.debug("Retrieved %s metrics snapshots", len(results))
             return results
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to get metrics history: %s", e)
             return []
 
@@ -331,7 +331,7 @@ class HistoryManager:
             self.conn.commit()
             return True
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to log API request: %s", e)
             return False
 
@@ -414,7 +414,7 @@ class HistoryManager:
 
             return stats
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to get API stats: %s", e)
             return {}
 
@@ -456,7 +456,7 @@ class HistoryManager:
             self.conn.commit()
             return True
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to save lifecycle event: %s", e)
             return False
 
@@ -498,7 +498,7 @@ class HistoryManager:
 
             return [dict(row) for row in cursor.fetchall()]
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to get lifecycle history: %s", e)
             return []
 
@@ -532,7 +532,7 @@ class HistoryManager:
 
             return deleted
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to cleanup old data: %s", e)
             return {}
 
@@ -565,7 +565,7 @@ class HistoryManager:
                 "total_records": sum(table_sizes.values()),
             }
 
-        except Exception as e:
+        except (sqlite3.Error, OSError) as e:
             logger.error("Failed to get database size: %s", e)
             return {}
 

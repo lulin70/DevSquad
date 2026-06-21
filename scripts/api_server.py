@@ -33,12 +33,13 @@ import os
 import sys
 import time
 from datetime import datetime
+from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from scripts.api.routes.dispatch import router as dispatch_router
 
@@ -193,7 +194,7 @@ def get_auth_manager():
         from scripts.auth import AuthManager
 
         return AuthManager()
-    except Exception:
+    except (ImportError, RuntimeError, ValueError, OSError):
         return None
 
 

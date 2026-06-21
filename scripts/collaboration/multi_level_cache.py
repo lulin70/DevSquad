@@ -731,7 +731,7 @@ async def test_multi_level_cache():
             print("\n✅ All MultiLevelCache tests passed!")
             return True
 
-    except Exception as e:
+    except (AssertionError, RuntimeError, ValueError, KeyError, OSError, AttributeError) as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
         traceback.print_exc()

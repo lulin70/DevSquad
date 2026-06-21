@@ -171,7 +171,7 @@ class NullMonitorProvider:
                 f.write("# Performance Report (Degraded Mode)\n\n")
                 f.write("Monitoring is currently unavailable (NullMonitorProvider).\n")
                 f.write("No performance data was collected.\n")
-        except Exception as e:
+        except OSError as e:
             logger.warning("NullMonitorProvider: failed to write empty report: %s", e)
 
     def is_available(self) -> bool:

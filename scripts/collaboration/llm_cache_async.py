@@ -175,7 +175,7 @@ class AsyncLLMCache(LLMCacheBase):
                         # Expired, delete from disk
                         await loop.run_in_executor(None, disk_path.unlink)
                         logger.debug("Disk cache expired: %s...", cache_key[:8])
-                except Exception as e:
+                except (OSError, json.JSONDecodeError, AttributeError) as e:
                     logger.warning("Error reading disk cache: %s", e)
 
             # Cache miss

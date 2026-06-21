@@ -462,7 +462,7 @@ class LocalRuleStorage:
                     timestamp=datetime.now().isoformat(),
                     message=f"Rule stored: {rule_id}",
                 )
-            except Exception as e:
+            except (OSError, ValueError, TypeError) as e:
                 logger.error("LocalRuleStorage store failed: %s", e)
                 return StoreResult(success=False, message=str(e))
 
@@ -594,7 +594,7 @@ class RuleStorage:
             if adapter and adapter.is_available:
                 self._carrymem = adapter
                 self.carrymem_available = True
-        except Exception as e:
+        except (ImportError, AttributeError, RuntimeError) as e:
             logger.info("CarryMem not available for RuleStorage: %s", e)
 
     def store(self, rule: RuleData) -> StoreResult:
@@ -611,7 +611,7 @@ class RuleStorage:
                 result = self._store_to_carrymem(rule)
                 if result.success:
                     return result
-            except Exception as e:
+            except (RuntimeError, ValueError, AttributeError) as e:
                 logger.warning("CarryMem store failed, using fallback: %s", e)
 
         return self._local.store(rule)

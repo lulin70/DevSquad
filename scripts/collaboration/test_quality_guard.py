@@ -315,7 +315,7 @@ class APISignatureValidator:
                         if arg.annotation:
                             try:
                                 annotation = ast.unparse(arg.annotation)
-                            except Exception as e:
+                            except (ValueError, SyntaxError) as e:
                                 logger.warning("ast.unparse failed for annotation: %s", e)
                                 annotation = "?"
                         params.append({"name": arg.arg, "type": annotation})
@@ -737,7 +737,7 @@ class TestQualityGuard:
                     try:
                         r = self.__class__(str(candidate), str(test_file)).audit()
                         reports.append(r)
-                    except Exception as e:
+                    except (RuntimeError, ValueError, OSError, AttributeError) as e:
                         logger.warning("Sub-audit failed for candidate %s: %s", candidate, e)
                     break
         return reports

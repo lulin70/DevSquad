@@ -106,7 +106,7 @@ def run_benchmark(backend_type, num_tasks, mode):
             if result.success:
                 successes += 1
             status = "OK" if result.success else "FAIL"
-        except Exception as e:
+        except (RuntimeError, ValueError, ConnectionError, TimeoutError) as e:
             elapsed = time.time() - start
             latencies.append(elapsed)
             status = f"ERROR: {e}"

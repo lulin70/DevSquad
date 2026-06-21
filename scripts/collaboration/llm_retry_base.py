@@ -26,11 +26,34 @@ Usage (subclasses inherit, do not instantiate Base directly):
 
 import logging
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+class JitterStrategy(Enum):
+    """V3.8 #9: Jitter strategies for exponential backoff retry.
+
+    - ``NONE``: No jitter — deterministic exponential backoff.
+    - ``EQUAL``: Equal jitter — ``delay/2 + random.uniform(0, delay/2)``.
+      Preserves half of the deterministic component while spreading
+      the rest, balancing predictability and dispersion.
+    - ``FULL``: Full jitter — ``random.uniform(0, delay)``. Maximum
+      dispersion; ideal for rate-limit backoff (AWS recommendation).
+    - ``DECORRELATED``: Decorrelated jitter —
+      ``min(cap, random.uniform(base, last_delay * 3))``. Each delay
+      is derived from the previous one, preventing synchronized
+      retry storms across clients (AWS "Exponential Backoff With
+      Decorrelated Jitter").
+    """
+
+    NONE = "none"
+    EQUAL = "equal"
+    FULL = "full"
+    DECORRELATED = "decorrelated"
 
 
 @dataclass
@@ -42,6 +65,26 @@ class RetryConfig:
     max_delay: float = 60.0  # 最大延迟（秒）
     exponential_base: float = 2.0  # 指数基数
     jitter: bool = True  # 添加随机抖动
+    # V3.8: Jitter mode selection (legacy string-based API, kept for
+    # backward compatibility with existing callers).
+    #   "none"          — no jitter (deterministic exponential backoff)
+    #   "full"          — full jitter: random.uniform(0, delay)
+    #   "decorrelated"  — current behavior: delay * random.uniform(0.5, 1.5)
+    jitter_mode: str = "decorrelated"
+    # V3.8 #9: New enum-based jitter strategy selection.
+    # When set (non-None), takes precedence over the legacy ``jitter_mode``
+    # string. Defaults to ``None`` for backward compatibility — existing
+    # callers continue to use the legacy ``jitter_mode`` string (default
+    # "decorrelated", i.e. 50-150% proportional jitter). New callers can
+    # opt in to the AWS-recommended full jitter by setting this to
+    # ``JitterStrategy.FULL``.
+    jitter_strategy: JitterStrategy | None = None
+    # V3.8 #9: Last delay used (for decorrelated jitter state tracking).
+    # Callers performing multi-attempt retries should update this field
+    # after each attempt so the next decorrelated-jitter calculation can
+    # use it. When None, the decorrelated strategy falls back to using
+    # ``initial_delay`` as the previous delay.
+    last_delay: float | None = field(default=None, repr=False)
 
 
 @dataclass
@@ -115,13 +158,46 @@ class LLMRetryBase:
             "fallbacks": 0,
         }
 
-    def calculate_delay(self, attempt: int, config: RetryConfig) -> float:
-        """
-        Calculate retry delay using exponential backoff with optional jitter.
+    def calculate_delay(
+        self,
+        attempt: int,
+        config: RetryConfig,
+        last_delay: float | None = None,
+    ) -> float:
+        """Calculate retry delay using exponential backoff with optional jitter.
+
+        V3.8 #9 supports four jitter strategies:
+
+        - **NONE**: deterministic exponential backoff, no jitter.
+        - **EQUAL**: equal jitter — ``delay/2 + random.uniform(0, delay/2)``.
+          Half the delay is preserved deterministically; the other half
+          is randomized to spread retries.
+        - **FULL**: full jitter — ``random.uniform(0, delay)``. Maximum
+          dispersion; the AWS-recommended default for rate-limit backoff.
+        - **DECORRELATED**: decorrelated jitter —
+          ``min(cap, random.uniform(base, last_delay * 3))``. The next
+          delay is derived from the previous one (stateful), preventing
+          synchronized retry storms.
+
+        Strategy selection precedence (V3.8 #9):
+
+        1. If ``config.jitter_strategy`` is set (non-None), use it. This
+           is the new enum-based API and takes precedence.
+        2. Otherwise, fall back to the legacy ``config.jitter_mode`` string
+           for backward compatibility ("none" / "full" / "decorrelated").
+           The legacy "decorrelated" string maps to the original 50-150%
+           proportional jitter (NOT the standard AWS decorrelated formula).
+
+        When ``config.jitter`` is False, jitter is disabled regardless of
+        ``jitter_strategy`` / ``jitter_mode`` (preserves the original
+        opt-out flag).
 
         Args:
-            attempt: Zero-based attempt number
-            config: Retry configuration
+            attempt: Zero-based attempt number.
+            config: Retry configuration.
+            last_delay: Previous delay (for decorrelated jitter). When
+                None, falls back to ``config.last_delay`` and then to
+                ``config.initial_delay``.
 
         Returns:
             Delay in seconds (capped at config.max_delay, with optional jitter)
@@ -131,10 +207,66 @@ class LLMRetryBase:
             config.max_delay,
         )
 
-        if config.jitter:
-            # Add jitter: random value between 50% and 150% of delay
-            delay = delay * (0.5 + random.random())
+        if not config.jitter:
+            return delay
 
+        # V3.8 #9: enum-based strategy takes precedence over legacy string.
+        if config.jitter_strategy is not None:
+            return self._apply_jitter_strategy(delay, config, last_delay)
+
+        # Legacy string-based fallback (backward compatibility).
+        mode = (config.jitter_mode or "decorrelated").lower()
+        if mode == "none":
+            return delay
+        if mode == "full":
+            # Full jitter: random value between 0 and delay
+            return random.uniform(0, delay)
+        # Default: legacy "decorrelated" (50-150% of delay) — backward compat
+        return delay * (0.5 + random.random())
+
+    def _apply_jitter_strategy(
+        self,
+        delay: float,
+        config: RetryConfig,
+        last_delay: float | None,
+    ) -> float:
+        """Apply the V3.8 #9 ``JitterStrategy`` enum to a base delay.
+
+        Args:
+            delay: Base exponential backoff delay (already capped at
+                ``config.max_delay``).
+            config: Retry configuration (provides ``jitter_strategy``,
+                ``max_delay``, ``initial_delay``, ``last_delay``).
+            last_delay: Caller-supplied previous delay. When None, falls
+                back to ``config.last_delay`` then ``config.initial_delay``.
+
+        Returns:
+            Jittered delay in seconds, capped at ``config.max_delay``.
+        """
+        strategy = config.jitter_strategy
+        if strategy == JitterStrategy.NONE:
+            return delay
+        if strategy == JitterStrategy.EQUAL:
+            # Equal jitter: half deterministic + half randomized.
+            # Range: [delay/2, delay]
+            return delay / 2 + random.uniform(0, delay / 2)
+        if strategy == JitterStrategy.FULL:
+            # Full jitter: random value between 0 and delay.
+            # Range: [0, delay]
+            return random.uniform(0, delay)
+        if strategy == JitterStrategy.DECORRELATED:
+            # Decorrelated jitter (AWS formula):
+            #   delay = min(cap, random.uniform(base, last_delay * 3))
+            # ``base`` is config.initial_delay; ``last_delay`` is the
+            # delay used in the previous attempt.
+            prev = last_delay if last_delay is not None else config.last_delay
+            prev = prev if prev is not None else config.initial_delay
+            upper = prev * 3
+            # Ensure upper >= base so random.uniform(base, upper) is valid.
+            if upper < config.initial_delay:
+                upper = config.initial_delay
+            return min(config.max_delay, random.uniform(config.initial_delay, upper))
+        # Unknown strategy: fall back to deterministic delay.
         return delay
 
     def is_retryable_error(self, error: Exception) -> bool:
@@ -261,9 +393,9 @@ class LLMRetryBase:
         attempt: int,
         config: RetryConfig,
         error: Exception,
+        last_delay: float | None = None,
     ) -> float:
-        """
-        Calculate delay with rate-limit awareness.
+        """Calculate delay with rate-limit awareness.
 
         Rate-limit errors (429) get 3x longer delay.
 
@@ -271,11 +403,13 @@ class LLMRetryBase:
             attempt: Zero-based attempt number
             config: Retry configuration
             error: The exception that triggered the retry
+            last_delay: Previous delay (for decorrelated jitter). When
+                None, ``calculate_delay`` falls back to ``config.last_delay``.
 
         Returns:
             Delay in seconds
         """
-        delay = self.calculate_delay(attempt, config)
+        delay = self.calculate_delay(attempt, config, last_delay)
 
         if self.is_rate_limit_error(error):
             delay *= 3

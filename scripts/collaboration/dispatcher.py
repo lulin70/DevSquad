@@ -81,6 +81,25 @@ class MultiAgentDispatcher:
         enable_feedback_loop: bool | str = "auto",
         enable_redis_cache: bool = False,
         enable_execution_guard: bool = True,
+        # V3.8 #2: Two-stage code review gate
+        enable_two_stage_review: bool = True,
+        # V3.8 #3: Severity router + auto-fix loop
+        enable_severity_router: bool = True,
+        # V3.8 #7: Micro-task planner (optional; when provided, dispatched
+        # tasks can be decomposed into 2-5 minute micro-tasks for more
+        # granular execution tracking).
+        micro_task_planner: Any = None,
+        development_mode: bool = True,
+        max_fix_iterations: int = 3,
+        severity_router: Any = None,
+        # V3.8 #4: Judge agent for finding consolidation (optional; when
+        # provided, runs after the severity router to dedup/consolidate
+        # findings before reporting).
+        judge_agent: Any = None,
+        # V3.8 #9: ContentCache wrapper for the LLM call path (optional;
+        # when provided, checked before LLM API calls and populated after
+        # responses — adds SHA-256 key hashing + secret filtering).
+        content_cache: Any = None,
         redis_url: str | None = None,
         compression_threshold: int = 100000,
         memory_dir: str | None = None,
@@ -99,6 +118,18 @@ class MultiAgentDispatcher:
         self.enable_feedback_loop = enable_feedback_loop
         self.enable_redis_cache = enable_redis_cache
         self.enable_execution_guard = enable_execution_guard
+        # V3.8 feature flags
+        self.enable_two_stage_review = enable_two_stage_review
+        self.enable_severity_router = enable_severity_router
+        self.development_mode = development_mode
+        self.max_fix_iterations = max_fix_iterations
+        self._injected_severity_router = severity_router
+        # V3.8 #7: Optional micro-task planner for granular task decomposition.
+        self.micro_task_planner = micro_task_planner
+        # V3.8 #4: Optional judge agent for finding consolidation.
+        self.judge_agent = judge_agent
+        # V3.8 #9: Optional ContentCache wrapper for the LLM call path.
+        self.content_cache = content_cache
         self.redis_url = redis_url
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
@@ -207,6 +238,15 @@ class MultiAgentDispatcher:
             enable_compression=self.enable_compression,
             enable_permission=self.enable_permission,
             enable_feedback_loop=self.enable_feedback_loop,
+            # V3.8 #2: Two-stage review gate
+            enable_two_stage_review=self.enable_two_stage_review,
+            # V3.8 #3: Severity router + auto-fix loop
+            enable_severity_router=self.enable_severity_router,
+            development_mode=self.development_mode,
+            max_fix_iterations=self.max_fix_iterations,
+            severity_router=self._injected_severity_router,
+            # V3.8 #4: Judge agent for finding consolidation
+            judge_agent=self.judge_agent,
             compressor=self.compressor,
             usage_tracker=self.usage_tracker,
             retrospective_engine=self.retrospective_engine,
@@ -217,6 +257,12 @@ class MultiAgentDispatcher:
             event_bus=self.event_bus,
             result_assembler=self._result_assembler,
         )
+
+        # V3.8 #9: Attach ContentCache to the coordinator so workers can
+        # check it before LLM API calls. The coordinator exposes it to
+        # workers via spawn_workers().
+        if self.content_cache is not None:
+            self.coordinator.content_cache = self.content_cache
 
     def _init_components_from_factory(self) -> None:
         """Initialize all components via ComponentFactory."""
@@ -263,8 +309,72 @@ class MultiAgentDispatcher:
         track_usage("dispatcher.analyze_task")
         return self.role_matcher.analyze_task(task_description)
 
+    def decompose_task(
+        self,
+        task_description: str,
+        spec: dict[str, Any] | None = None,
+    ) -> Any:
+        """Decompose a task into micro-tasks using the configured planner.
+
+        V3.8 #7: When a :class:`MicroTaskPlanner` is configured via
+        the ``micro_task_planner`` parameter, this method delegates to
+        ``planner.plan(task_description, spec)`` and returns the
+        resulting :class:`MicroTaskPlan`. When no planner is
+        configured, returns ``None``.
+
+        Parameters
+        ----------
+        task_description:
+            Natural-language task description.
+        spec:
+            Optional spec dict (files, functions, tests, etc.).
+
+        Returns
+        -------
+        MicroTaskPlan or None
+        """
+        if self.micro_task_planner is None:
+            return None
+        return self.micro_task_planner.plan(task_description, spec=spec)
+
+    def _maybe_decompose_task(
+        self,
+        task_description: str,
+        use_micro_tasks: bool,
+        kwargs: dict[str, Any],
+    ) -> Any:
+        """V3.8 #7: Optionally decompose the task into micro-tasks.
+
+        Runs only when ``use_micro_tasks=True`` and a
+        :class:`MicroTaskPlanner` is configured. Returns the
+        :class:`MicroTaskPlan` (or ``None`` when decomposition is
+        disabled or fails — graceful degradation).
+        """
+        if not use_micro_tasks or self.micro_task_planner is None:
+            return None
+        try:
+            # Build a spec from kwargs when relevant keys are present.
+            spec: dict[str, Any] = {}
+            for key in ("files", "functions", "tests", "acceptance_criteria"):
+                if key in kwargs:
+                    spec[key] = kwargs[key]
+            plan = self.decompose_task(task_description, spec=spec or None)
+            if plan is not None:
+                logger.info(
+                    "MicroTaskPlanner decomposed task into %d micro-tasks "
+                    "(est. %d min)",
+                    len(plan.micro_tasks),
+                    plan.total_estimated_minutes,
+                )
+                if self.usage_tracker:
+                    self.usage_tracker.tick("micro_task_planner")
+            return plan
+        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
+            logger.warning("Micro-task decomposition failed: %s", exc)
+            return None
+
     def dispatch(
-        self, task_description: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, **kwargs: Any
+        self, task_description: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, use_micro_tasks: bool = False, **kwargs: Any
     ) -> DispatchResult:
         """Core dispatch method - complete multi-Agent collaboration in one call.
 
@@ -273,6 +383,10 @@ class MultiAgentDispatcher:
             roles: Optional role IDs (None=auto match)
             mode: "auto"/"parallel"/"sequential"/"consensus"
             dry_run: Simulate without running Workers
+            use_micro_tasks: When True and a MicroTaskPlanner is configured,
+                decompose the task into 2-5 minute micro-tasks before role
+                assignment. The resulting plan is stored in
+                ``DispatchResult.micro_task_plan``.
             **kwargs: Additional options (tenant_id, user_id, etc.)
         """
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
@@ -295,6 +409,13 @@ class MultiAgentDispatcher:
 
         tenant_ctx = pre_result.tenant_ctx
 
+        # V3.8 #7: Micro-task decomposition (after task analysis, before
+        # role assignment / worker execution). Runs only when explicitly
+        # requested via use_micro_tasks=True and a planner is configured.
+        micro_task_plan = self._maybe_decompose_task(
+            task_description, use_micro_tasks, kwargs
+        )
+
         try:
             # Step 8: Execute workers (sync path)
             matched_roles = pre_result.matched_roles
@@ -303,7 +424,7 @@ class MultiAgentDispatcher:
             self.metrics_service.safe_record(lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles)))
 
             # Post-dispatch steps (shared with async_dispatch)
-            return self.post_dispatch.execute(
+            result = self.post_dispatch.execute(
                 pre_result=pre_result,
                 exec_result=exec_result,
                 worker_results=worker_results,
@@ -313,6 +434,13 @@ class MultiAgentDispatcher:
                 phase=phase,
                 **kwargs,
             )
+
+            # Attach the micro-task plan to the result (if decomposed).
+            if micro_task_plan is not None:
+                result.micro_task_plan = micro_task_plan.to_dict()
+                result.details["micro_task_plan"] = micro_task_plan.to_dict()
+
+            return result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
             return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)

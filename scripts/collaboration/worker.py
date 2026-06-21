@@ -58,6 +58,20 @@ class Worker:
         result = worker.execute(task_definition)
     """
 
+    __slots__ = (
+        "worker_id",
+        "role_id",
+        "role_prompt",
+        "scratchpad",
+        "llm_backend",
+        "stream",
+        "content_cache",
+        "_notifications_outbox",
+        "_notifications_lock",
+        "_entries_written_count",
+        "_last_assembled_prompt",
+    )
+
     def __init__(
         self,
         worker_id: str,
@@ -66,6 +80,7 @@ class Worker:
         scratchpad: Scratchpad,
         llm_backend: Any = None,
         stream: bool = False,
+        content_cache: Any = None,
     ) -> None:
         """
         Initialize Worker instance.
@@ -76,6 +91,9 @@ class Worker:
             role_prompt: Role system prompt / instruction template
             scratchpad: Associated shared scratchpad instance
             llm_backend: LLM execution backend (None=MockBackend, returns assembled prompt)
+            content_cache: Optional ContentCache wrapper (V3.8 #9). When
+                provided, checked before LLM API calls and populated after
+                responses.
         """
         self.worker_id = worker_id
         self.role_id = role_id
@@ -83,10 +101,23 @@ class Worker:
         self.scratchpad = scratchpad
         self.llm_backend = llm_backend
         self.stream = stream
+        # V3.8 #9: ContentCache wrapper for the LLM call path.
+        self.content_cache = content_cache
         self._notifications_outbox: list[TaskNotification] = []
         self._notifications_lock = threading.Lock()
         self._entries_written_count = 0
         self._last_assembled_prompt: Any | None = None
+
+    def reset(self) -> None:
+        """Reset transient execution state for object-pool reuse.
+
+        Clears the notification outbox, write counter, and last prompt cache.
+        Identity attributes (worker_id/role_id/role_prompt/scratchpad/llm_backend/stream)
+        are left intact; callers re-assign them via WorkerPool.acquire().
+        """
+        self._notifications_outbox.clear()
+        self._entries_written_count = 0
+        self._last_assembled_prompt = None
 
     def execute(self, task: TaskDefinition) -> WorkerResult:
         """
@@ -427,6 +458,21 @@ class Worker:
         _rdef = _RR.get(self.role_id)
         _rname = _rdef.name if _rdef else self.role_id
 
+        # V3.8 #9: Check ContentCache first (when configured). The
+        # ContentCache wraps the existing LLMCache with SHA-256 key
+        # hashing and sensitive-data filtering, so it takes precedence
+        # over the raw global cache.
+        if self.content_cache is not None:
+            try:
+                cached = self.content_cache.get(
+                    result.instruction, "backend", getattr(backend, "model", "unknown")
+                )
+                if cached:
+                    logger.debug("  [%s] ContentCache hit.", _rname)
+                    return cached
+            except (AttributeError, TypeError, RuntimeError) as e:
+                logger.debug("ContentCache read failed: %s", e)
+
         try:
             from .llm_cache import get_llm_cache
 
@@ -454,6 +500,15 @@ class Worker:
             else:
                 response = backend.generate(result.instruction)
             logger.debug("  [%s] Response received.", _rname)
+
+            # V3.8 #9: Store the response in ContentCache (when configured).
+            if self.content_cache is not None and response:
+                try:
+                    self.content_cache.set(
+                        result.instruction, response, "backend", getattr(backend, "model", "unknown")
+                    )
+                except (AttributeError, TypeError, RuntimeError) as e:
+                    logger.debug("ContentCache set failed: %s", e)
 
             if cache and response:
                 try:
@@ -486,7 +541,7 @@ class WorkerFactory:
 
     @staticmethod
     def create(
-        worker_id: str, role_id: str, role_prompt: str, scratchpad: Scratchpad, llm_backend: Any = None, stream: bool = False
+        worker_id: str, role_id: str, role_prompt: str, scratchpad: Scratchpad, llm_backend: Any = None, stream: bool = False, content_cache: Any = None
     ) -> Worker:
         """
         Create a single Worker instance.
@@ -498,11 +553,12 @@ class WorkerFactory:
             scratchpad: Shared scratchpad instance
             llm_backend: LLM execution backend
             stream: Whether to enable streaming output
+            content_cache: Optional ContentCache wrapper (V3.8 #9)
 
         Returns:
             Worker: Newly created Worker instance
         """
-        return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend, stream=stream)
+        return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend, stream=stream, content_cache=content_cache)
 
     @staticmethod
     def create_batch(workers_config: list[dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None) -> list[Worker]:
@@ -533,3 +589,67 @@ class WorkerFactory:
             )
             workers.append(w)
         return workers
+
+
+class WorkerPool:
+    """Simple object pool for Worker reuse.
+
+    Reduces allocation overhead when many short-lived Workers are created
+    in tight loops (e.g. benchmark dispatches). Thread-unsafe by design;
+    callers must serialize acquire/release if sharing across threads.
+
+    Usage:
+        worker = WorkerPool.acquire("w-1", "architect", prompt, sp)
+        try:
+            worker.execute(task)
+        finally:
+            WorkerPool.release(worker)
+    """
+
+    __slots__ = ()
+    _pool: list[Worker] = []
+
+    @classmethod
+    def acquire(
+        cls,
+        worker_id: str,
+        role_id: str,
+        role_prompt: str,
+        scratchpad: Scratchpad,
+        llm_backend: Any = None,
+        stream: bool = False,
+    ) -> Worker:
+        """Acquire a Worker from the pool, creating one if empty.
+
+        Reused Workers have their identity attributes reassigned and
+        transient state cleared via reset().
+        """
+        if cls._pool:
+            worker = cls._pool.pop()
+            worker.worker_id = worker_id
+            worker.role_id = role_id
+            worker.role_prompt = role_prompt
+            worker.scratchpad = scratchpad
+            worker.llm_backend = llm_backend
+            worker.stream = stream
+            worker.reset()
+            return worker
+        return Worker(
+            worker_id=worker_id,
+            role_id=role_id,
+            role_prompt=role_prompt,
+            scratchpad=scratchpad,
+            llm_backend=llm_backend,
+            stream=stream,
+        )
+
+    @classmethod
+    def release(cls, worker: Worker) -> None:
+        """Return a Worker to the pool for later reuse."""
+        worker.reset()
+        cls._pool.append(worker)
+
+    @classmethod
+    def clear(cls) -> None:
+        """Drain the pool (e.g. between test runs)."""
+        cls._pool.clear()

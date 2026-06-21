@@ -677,7 +677,7 @@ class UETestFramework:
             prompt = self._build_usability_prompt(interface_description)
             response = self.llm_backend.generate(prompt)
             return self._parse_llm_usability_response(response)
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, ConnectionError) as e:
             logger.debug("LLM usability assessment failed, falling back to rule-based: %s", e)
             return self._assess_rule_based(interface_description)
 

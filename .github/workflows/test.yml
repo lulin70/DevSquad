@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 2 * * *"  # Nightly at 2AM UTC
 
 jobs:
   test:
@@ -49,6 +51,40 @@ jobs:
         with:
           file: ./coverage.xml
           fail_ci_if_error: false
+
+  e2e:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    env:
+      DEVSQUAD_LLM_BACKEND: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          pip install pytest pytest-asyncio pytest-timeout httpx mcp
+      - name: Run E2E tests
+        run: |
+          python -m pytest tests/e2e/ tests/integration/ \
+            -q --tb=short \
+            --timeout=300 \
+            -m "not slow"
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install bandit
+        run: pip install bandit[toml]
+      - name: Run security scan
+        run: bandit -r scripts/ -c pyproject.toml -ll
 
   lint:
     runs-on: ubuntu-latest

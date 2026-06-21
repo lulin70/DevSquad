@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devsquad"
-version = "3.7.2"
+version = "3.8.0"
 description = "Production-Ready Multi-Role AI Task Orchestrator"
 readme = "README.md"
 license = {text = "MIT"}
@@ -208,3 +208,7 @@ title = "DevSquad Test Coverage Report"
 [tool.black]
 line-length = 120
 target-version = ["py310"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "scripts/collaboration/_archived"]
+skips = ["B101", "B311", "B404", "B603"]

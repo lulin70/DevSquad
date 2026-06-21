@@ -27,7 +27,7 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from .memory_bridge import MemoryItem, MemoryType
+from .memory_types import MemoryItem, MemoryType
 
 
 class WorkBuddyClawSource:

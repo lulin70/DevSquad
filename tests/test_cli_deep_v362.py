@@ -163,7 +163,7 @@ class TestDemoCommand:
         assert exit_code == 0
         assert mock_validator.validate_task.call_count >= 1
 
-    @patch.object(cli_module, "MultiAgentDispatcher")
+    @patch("scripts.cli_dispatch.MultiAgentDispatcher")
     def test_demo_dispatch_scenario(self, mock_dispatcher_class):
         """Test demo dispatch dry-run scenario."""
         mock_dispatcher = MagicMock()
@@ -179,7 +179,7 @@ class TestDemoCommand:
         assert exit_code == 0
         mock_dispatcher.shutdown.assert_called_once()
 
-    @patch.object(cli_module, "MultiAgentDispatcher")
+    @patch("scripts.cli_dispatch.MultiAgentDispatcher")
     def test_demo_all_scenarios(self, mock_dispatcher_class):
         """Test running all demo scenarios."""
         mock_dispatcher = MagicMock()
@@ -217,7 +217,7 @@ class TestDemoCommand:
 class TestInitWizard:
     """Test initialization wizard functionality."""
 
-    @patch.object(cli_module, "_save_config", return_value=True)
+    @patch("scripts.cli_utils._save_config", return_value=True)
     def test_quick_init_success(self, mock_save):
         """Test quick non-interactive initialization succeeds."""
         with patch("sys.stdout", new=StringIO()):

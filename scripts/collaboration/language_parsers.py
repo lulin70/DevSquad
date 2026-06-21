@@ -265,7 +265,7 @@ class JavaScriptParser(LanguageParser):
                 "total_classes": len(classes),
                 "total_functions": len(functions),
             }
-        except Exception as e:
+        except (ValueError, RecursionError, RuntimeError) as e:
             logger.debug("JavaScript parse failed for %s: %s", file_path, e)
             return None
 
@@ -373,7 +373,7 @@ class GoParser(LanguageParser):
                 "total_classes": len(structs) + len(interfaces),
                 "total_functions": len(functions),
             }
-        except Exception as e:
+        except (ValueError, RecursionError, RuntimeError) as e:
             logger.debug("Go parse failed for %s: %s", file_path, e)
             return None
 

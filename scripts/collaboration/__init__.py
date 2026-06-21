@@ -276,7 +276,7 @@ def print_stats():
         logger.info("  Total Requests: %s", cache_stats["total_requests"])
         logger.info("  Memory Entries: %s", cache_stats["memory_entries"])
         logger.info("  Disk Entries: %s", cache_stats["disk_entries"])
-    except Exception as e:
+    except (AttributeError, RuntimeError, KeyError) as e:
         logger.warning("\n📦 Cache: Not initialized or error: %s", e)
 
     # Retry stats
@@ -288,7 +288,7 @@ def print_stats():
         logger.info("  Total Calls: %s", retry_stats["total_calls"])
         logger.info("  Retries: %s", retry_stats["retries"])
         logger.info("  Fallbacks: %s", retry_stats["fallbacks"])
-    except Exception as e:
+    except (AttributeError, RuntimeError, KeyError) as e:
         logger.warning("\n🔄 Retry: Not initialized or error: %s", e)
 
     # Performance stats
@@ -299,7 +299,7 @@ def print_stats():
         logger.info("  Uptime: %.0fs", perf_stats["uptime_seconds"])
         logger.info("  Total Metrics: %s", perf_stats["total_metrics"])
         logger.info("  Monitored Functions: %d", len(perf_stats["functions"]))
-    except Exception as e:
+    except (AttributeError, RuntimeError, KeyError) as e:
         logger.warning("\n⚡ Performance: Not initialized or error: %s", e)
 
     logger.info("\n" + "=" * 60)

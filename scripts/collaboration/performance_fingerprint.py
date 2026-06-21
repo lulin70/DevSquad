@@ -364,7 +364,7 @@ class PerformanceFingerprint:
         try:
             target_path = Path(self._persist_dir) / "fingerprints.json"
             data = {
-                "version": "3.7.2",
+                "version": "3.8.0",
                 "updated_at": datetime.now().isoformat(),
                 "count": len(self._fingerprints),
                 "fingerprints": self._fingerprints,
@@ -372,7 +372,7 @@ class PerformanceFingerprint:
             with open(target_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False, default=str)
             logger.debug("Persisted %d fingerprints to %s", len(self._fingerprints), target_path)
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to persist fingerprints: %s", e)
 
     def _load(self):
@@ -386,7 +386,7 @@ class PerformanceFingerprint:
                 with self._lock:
                     self._fingerprints = loaded
                 logger.info("Loaded %d fingerprints from %s", len(loaded), target_path)
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, KeyError, TypeError) as e:
             logger.warning("Failed to load fingerprints: %s", e)
             self._fingerprints = []
 

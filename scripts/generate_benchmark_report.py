@@ -103,7 +103,7 @@ class BenchmarkReportGenerator:
         except subprocess.TimeoutExpired:
             print("   ⚠️  Test collection timed out (>120s)")
             return False
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError, ValueError, json.JSONDecodeError) as e:
             print(f"   ❌ Error collecting tests: {e}")
             return False
 
@@ -692,7 +692,7 @@ class BenchmarkReportGenerator:
         try:
             webbrowser.open(f"file://{Path(file_path).absolute()}")
             print(f"🌐 Opened report in browser: {file_path}")
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             print(f"⚠️  Could not open browser: {e}")
 
     def generate_all_reports(self, open_browser: bool = False) -> dict[str, str | None]:

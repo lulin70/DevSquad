@@ -136,7 +136,7 @@ class Serializer:
                 data = gzip.compress(data)
 
             return data
-        except Exception as e:
+        except (TypeError, ValueError, pickle.PickleError, OSError) as e:
             logger.error("Serialization failed: %s", e)
             raise
 
@@ -163,7 +163,7 @@ class Serializer:
                 return pickle.loads(data)
             else:
                 raise ValueError(f"Unsupported deserialization format: {format}")
-        except Exception as e:
+        except (TypeError, ValueError, pickle.PickleError, OSError, json.JSONDecodeError) as e:
             logger.error("Deserialization failed: %s", e)
             raise
 

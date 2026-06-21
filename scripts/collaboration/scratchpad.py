@@ -57,6 +57,16 @@ class Scratchpad:
         findings = sp.read(entry_type=EntryType.FINDING)
     """
 
+    __slots__ = (
+        "scratchpad_id",
+        "persist_dir",
+        "_entries",
+        "_lock",
+        "_max_entries",
+        "_write_count",
+        "_read_count",
+    )
+
     def __init__(self, scratchpad_id: str | None = None, persist_dir: str | None = None):
         """
         初始化共享黑板
@@ -305,7 +315,7 @@ class Scratchpad:
         try:
             with open(filepath, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry.to_dict(), ensure_ascii=False) + "\n")
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to persist scratchpad entry %s: %s", entry.entry_id, e)
 
     def _load_from_disk(self) -> None:
@@ -323,7 +333,7 @@ class Scratchpad:
                     data = json.loads(line)
                     entry = ScratchpadEntry.from_dict(data)
                     self._entries[entry.entry_id] = entry
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, KeyError, TypeError) as e:
             logger.warning("Failed to load scratchpad from %s: %s", filepath, e)
 
     def clear(self) -> None:

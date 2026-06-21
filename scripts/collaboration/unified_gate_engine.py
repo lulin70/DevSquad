@@ -256,7 +256,7 @@ class UnifiedGateEngine:
                     custom_result = checker(context, **kwargs)
                     if isinstance(custom_result, dict):
                         custom_results.append(custom_result)
-                except Exception as e:
+                except (RuntimeError, ValueError, TypeError, AttributeError) as e:
                     logger.warning("Custom checker error: %s", e)
 
             # Merge custom results

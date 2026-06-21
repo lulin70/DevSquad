@@ -31,6 +31,7 @@ from typing import Any
 from .llm_retry_base import (
     CircuitBreakerError,
     CircuitBreakerState,
+    JitterStrategy,
     LLMRetryBase,
     RateLimitError,
     RetryConfig,
@@ -43,6 +44,7 @@ __all__ = [
     "AsyncLLMRetryManager",
     "CircuitBreakerError",
     "CircuitBreakerState",
+    "JitterStrategy",
     "RateLimitError",
     "RetryConfig",
     "async_retry_with_fallback",
@@ -61,7 +63,7 @@ class AsyncLLMRetryManager(LLMRetryBase):
     Only the I/O layer (asyncio.Lock, asyncio.sleep, await) is implemented here.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize async retry manager"""
         # Initialize shared strategy from base class (sets stats, circuit_breakers)
         super().__init__()
@@ -87,7 +89,7 @@ class AsyncLLMRetryManager(LLMRetryBase):
         """Get or create circuit breaker for backend — delegates to base class."""
         return self.get_circuit_breaker(backend)
 
-    async def _check_circuit_breaker(self, backend: str):
+    async def _check_circuit_breaker(self, backend: str) -> None:
         """Check if circuit breaker allows request (async, with lock)."""
         async with self._lock:
             try:

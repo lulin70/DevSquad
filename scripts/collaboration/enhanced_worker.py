@@ -95,6 +95,7 @@ class EnhancedWorker(Worker):
         monitor_provider=None,
         memory_provider=None,
         execution_guard: Any = None,
+        content_cache: Any = None,
     ):
         """
         Initialize EnhancedWorker.
@@ -113,6 +114,9 @@ class EnhancedWorker(Worker):
             execution_guard: ExecutionGuard instance for execution monitoring (optional;
                            defaults to a standard ExecutionGuard if not provided and
                            the module is available)
+            content_cache: Optional ContentCache wrapper (V3.8 #9). When
+                provided, checked before LLM API calls and populated after
+                responses.
         """
         super().__init__(
             worker_id=worker_id,
@@ -121,6 +125,7 @@ class EnhancedWorker(Worker):
             scratchpad=scratchpad,
             llm_backend=llm_backend,
             stream=stream,
+            content_cache=content_cache,
         )
 
         self.cache_provider = cache_provider
@@ -296,7 +301,7 @@ class EnhancedWorker(Worker):
                 notifications_sent=len(self._notifications_outbox),
                 duration_seconds=time.time() - start_time,
             )
-        except Exception as e:
+        except Exception as e:  # Broad catch: fallback worker entry; ensures WorkerResult on failure
             logger.error("Worker %s fallback execution failed: %s", self.worker_id, e)
             return WorkerResult(
                 worker_id=self.worker_id,

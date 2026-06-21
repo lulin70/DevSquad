@@ -16,7 +16,7 @@ import math
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
-from .memory_bridge import MemoryItem, MemoryType
+from .memory_types import MemoryItem, MemoryType
 
 if TYPE_CHECKING:
     from .memory_bridge import JsonMemoryStore, MemoryConfig, MemoryIndexer

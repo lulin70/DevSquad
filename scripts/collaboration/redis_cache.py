@@ -79,7 +79,7 @@ class RedisCacheBackend(CacheBackendInterface):
         retry_attempts: int = 3,
         retry_delay: float = 1.0,
         health_check_interval: float = 30.0,
-    ):
+    ) -> None:
         """
         Initialize Redis cache backend.
 
@@ -129,7 +129,7 @@ class RedisCacheBackend(CacheBackendInterface):
             return key[len(self.prefix):]
         return key
 
-    async def _get_client(self):
+    async def _get_client(self) -> Any:
         """
         Get or create Redis client with connection pool.
 
@@ -164,7 +164,7 @@ class RedisCacheBackend(CacheBackendInterface):
             logger.error("Failed to connect to Redis: %s", e)
             raise RedisConnectionError(f"Cannot connect to Redis: {e}") from e
 
-    async def _execute_with_retry(self, operation_name: str, operation_func, *args, **kwargs):
+    async def _execute_with_retry(self, operation_name: str, operation_func, *args, **kwargs) -> Any:
         """
         Execute operation with automatic retry on failure.
 
@@ -212,7 +212,7 @@ class RedisCacheBackend(CacheBackendInterface):
         logger.error("%s failed after %s attempts: %s", operation_name, self.retry_attempts, last_error)
         return None
 
-    async def _reconnect(self):
+    async def _reconnect(self) -> Any:
         """Reconnect to Redis"""
         if self._client:
             with contextlib.suppress(OSError, RuntimeError, AttributeError):
@@ -241,7 +241,7 @@ class RedisCacheBackend(CacheBackendInterface):
         """
         prefixed_key = self._prefixed_key(key)
 
-        async def _do_get(client):
+        async def _do_get(client) -> Any | None:
             data = await client.get(prefixed_key)
             if data is None:
                 return None
@@ -291,7 +291,7 @@ class RedisCacheBackend(CacheBackendInterface):
             self._stats.errors += 1
             return False
 
-        async def _do_set(client):
+        async def _do_set(client) -> bool:
             await client.set(prefixed_key, serialized, ex=actual_ttl)
             self._stats.sets += 1
             self._stats.total_size_bytes += len(serialized)
@@ -313,7 +313,7 @@ class RedisCacheBackend(CacheBackendInterface):
         """
         prefixed_key = self._prefixed_key(key)
 
-        async def _do_delete(client):
+        async def _do_delete(client) -> bool:
             result = await client.delete(prefixed_key)
             if result > 0:
                 self._stats.deletes += 1
@@ -329,7 +329,7 @@ class RedisCacheBackend(CacheBackendInterface):
         Clear all entries with configured prefix.
         Uses SCAN for safe iteration (avoids blocking).
         """
-        async def _do_clear(client):
+        async def _do_clear(client) -> int:
             cursor = 0
             total_deleted = 0
 
@@ -363,7 +363,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
         prefixed_keys = [self._prefixed_key(k) for k in keys]
 
-        async def _do_mget(client):
+        async def _do_mget(client) -> list[Any | None]:
             pipeline = client.pipeline(transaction=False)
             for pk in prefixed_keys:
                 pipeline.get(pk)
@@ -422,7 +422,7 @@ class RedisCacheBackend(CacheBackendInterface):
             self._stats.errors += len(mapping)
             return False
 
-        async def _do_mset(client):
+        async def _do_mset(client) -> bool:
             pipeline = client.pipeline(transaction=False)
             for pk, data in serialized_mapping.items():
                 pipeline.set(pk, data, ex=actual_ttl)
@@ -562,7 +562,7 @@ class RedisCacheBackend(CacheBackendInterface):
         full_pattern = f"{self.prefix}{pattern}"
         keys = []
 
-        async def _do_scan(client):
+        async def _do_scan(client) -> list[str]:
             cursor = 0
             while True:
                 cursor, found_keys = await client.scan(cursor, match=full_pattern, count=100)
@@ -589,7 +589,7 @@ class SyncRedisCacheWrapper:
     """
 
     def __init__(self, redis_url: str, prefix: str = "devsquad:",
-                 default_ttl: int = 3600, compression: bool = False):
+                 default_ttl: int = 3600, compression: bool = False) -> None:
         self._redis_url = redis_url
         self._prefix = prefix
         self._default_ttl = default_ttl
@@ -597,7 +597,7 @@ class SyncRedisCacheWrapper:
         self._backend = None
         self._initialized = False
 
-    def _ensure_backend(self):
+    def _ensure_backend(self) -> None:
         """Lazy initialization of the async Redis backend."""
         if not self._initialized:
             try:
@@ -616,7 +616,7 @@ class SyncRedisCacheWrapper:
                 self._backend = None
                 self._initialized = True  # Don't retry
 
-    def _run_async(self, coro):
+    def _run_async(self, coro) -> Any:
         """Run an async coroutine from synchronous context."""
         self._ensure_backend()
         if self._backend is None:
@@ -637,7 +637,7 @@ class SyncRedisCacheWrapper:
             logging.getLogger(__name__).debug("Redis cache operation failed: %s", e)
             return None
 
-    def get(self, key: str):
+    def get(self, key: str) -> Any:
         """Get a value from Redis cache (sync)."""
         return self._run_async(self._backend.get(key)) if self._backend else None
 
@@ -651,7 +651,7 @@ class SyncRedisCacheWrapper:
         result = self._run_async(self._backend.delete(key)) if self._backend else False
         return result if result is not None else False
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all keys in Redis cache (sync)."""
         self._run_async(self._backend.clear()) if self._backend else None
 
@@ -660,12 +660,12 @@ class SyncRedisCacheWrapper:
         result = self._run_async(self._backend.health_check()) if self._backend else {}
         return result if result else {"status": "unavailable"}
 
-    def close(self):
+    def close(self) -> None:
         """Close Redis connection (sync)."""
         self._run_async(self._backend.close()) if self._backend else None
 
 
-async def test_redis_cache_backend():
+async def test_redis_cache_backend() -> None:
     """Test function for Redis cache backend"""
     print("Testing RedisCacheBackend...")
 

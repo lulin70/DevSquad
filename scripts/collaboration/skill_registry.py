@@ -243,7 +243,7 @@ class SkillRegistry:
                 for skill_data in data.get("skills", []):
                     skill = SkillEntry.from_dict(skill_data)
                     self.skills[skill.skill_id] = skill
-            except Exception as e:
+            except (json.JSONDecodeError, OSError, ValueError) as e:
                 logger.warning("Failed to load skill registry: %s", e)
 
     def _save(self):
@@ -252,5 +252,5 @@ class SkillRegistry:
             data = {"skills": [s.to_dict() for s in self.skills.values()]}
             with open(registry_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to save skill registry: %s", e)

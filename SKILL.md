@@ -2,16 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.7.2 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
+  V3.8.0 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  NEW in V3.7.2: EventBus + Dispatcher split (1660→706 lines) + Mixin→Composition + f-string logger eliminated + EnhancedWorker bug fix + config_loader dead code removed + skillifier parasitic coupling refactored + broad except narrowed,
-  80+ core modules, 2115 tests passing.
+  NEW in V3.8.0: Two-Stage Review Gate + Severity Router + Auto-Fix Loop + Judge Agent + Micro-Task Planner + Content Cache + Jitter Strategies + NodeType classification,
+  86+ core modules, 2339+ tests passing.
 ---
 
-# DevSquad V3.7.2 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V3.8.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -62,7 +62,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (80+ Core Modules)
+## Architecture Overview (86+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -145,6 +145,14 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 76 | **RoleSkillLoader** | `role_skill_loader.py` | Load SKILL.md methodology frameworks for roles, with security scanning and caching |
 | 77 | **SkillContent** | `role_skill_loader.py` (class) | Parsed SKILL.md content with to_prompt_text() for prompt injection |
 | 78 | **PM Methodology Skills** | `role_skills/product-manager/` | 5 SKILL.md frameworks: create-prd, opportunity-solution-tree, prioritization-frameworks, assumption-mapping, experiment-design |
+| 79 | **EventBus** | `event_bus.py` | Event-driven decoupling for dispatch pipeline (on/emit/off/clear pattern) |
+| 80 | **DispatchHooks** | `dispatch_hooks.py` | Extracted post-dispatch hooks from dispatcher (post_dispatch_hooks, post_execution_processing, slice_outputs, check_anchor_drift) |
+| 81 | **ResultAssembler** | `dispatch_result_assembler.py` | Extracted result assembly logic from dispatcher |
+| 82 | **TwoStageReviewGate** | `two_stage_review_gate.py` | Two-stage code review: spec compliance + code quality, critical findings block |
+| 83 | **SeverityRouter** | `severity_router.py` | Severity-based routing with auto-fix loop (max 3 rounds) |
+| 84 | **JudgeAgent** | `judge_agent.py` | Finding arbitration: dedup, conflict resolution, confidence filtering, history learning |
+| 85 | **MicroTaskPlanner** | `micro_task_planner.py` | 2-5 min micro-task decomposition with file paths + verification commands |
+| 86 | **ContentCache** | `content_cache.py` | Unified SHA-256 content cache with sensitive-data filtering |
 
 ---
 
@@ -280,7 +288,7 @@ roles = selector.select_roles("Fix security bug", intent="bug_fix")
 
 ---
 
-## Architecture Overview (80+ Core Modules)
+## Architecture Overview (86+ Core Modules)
 
 ## Quick Start (Must Follow)
 
@@ -599,7 +607,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.7.2",
+#   "version": "3.8.0",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
@@ -914,12 +922,20 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **Total** | **2115+** | **✅ ALL PASS** |
+| **V3.8.0 ContentCache** | **32** | **✅ PASS** |
+| **V3.8.0 StepNodeTypes (NodeType)** | **14** | **✅ PASS** |
+| **V3.8.0 RetryJitter (JitterStrategy)** | **9** | **✅ PASS** |
+| **V3.8.0 TwoStageReviewGate** | **40** | **✅ PASS** |
+| **V3.8.0 SeverityRouter** | **51** | **✅ PASS** |
+| **V3.8.0 JudgeAgent** | **33** | **✅ PASS** |
+| **V3.8.0 MicroTaskPlanner** | **47** | **✅ PASS** |
+| **Total** | **2339+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v3.8.0** (2026-06-21): Two-Stage Review Gate (spec compliance + code quality, 40 tests) + Severity Router with auto-fix loop (51 tests) + Judge Agent with history learning (33 tests) + Micro-Task Planner (2-5 min decomposition, 47 tests) + Content Cache with sensitive-data filtering (32 tests) + Jitter Strategies (NONE/EQUAL/FULL/DECORRELATED, 9 tests) + NodeType classification (DETERMINISTIC/LLM/HYBRID, 14 tests) + V3.8 Planning Docs (5 docs, 2482 lines) + 86+ core modules + 2339 tests passing + maturity 65%→72%
 - **v3.7.2** (2026-06-16): EventBus + Dispatcher split (1660→706 lines, -57%) + Mixin→Composition (3 Mixins eliminated) + f-string logger eliminated (166 fixes) + EnhancedWorker bug fix (_do_work type mismatch) + config_loader dead code removed + skillifier parasitic coupling refactored (8 _storage._xxx→public interface) + broad except narrowed (29 fixes) + DispatchPerformanceMonitor renamed + .gitignore updated + 2115 tests passing
 - **v3.7.0** (2026-06-15): RoleSkillLoader + PM Methodology Skills (5 SKILL.md: create-prd/opportunity-solution-tree/prioritization-frameworks/assumption-mapping/experiment-design) + suggested_next_steps in dispatch results + SKILL.md security scanner (7 patterns) + 76 core modules + 2109 tests passing
 - **v3.6.9** (2026-06-14): UETestFramework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load) + TechDebtManager with CodebaseDebtScanner + knapsack remediation planning + 75 core modules + version sync to 3.6.9

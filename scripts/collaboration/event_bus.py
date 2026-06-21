@@ -27,7 +27,7 @@ class EventBus:
         for handler in self._handlers.get(event, []):
             try:
                 handler(**kwargs)
-            except Exception as e:
+            except (RuntimeError, ValueError, TypeError, AttributeError) as e:
                 logger.debug("Event handler failed for %s: %s", event, e)
 
     def off(self, event: str, handler: Callable | None = None) -> None:

@@ -188,7 +188,7 @@ class PerformanceThresholds:
     )
 
 
-@dataclass
+@dataclass(slots=True)
 class DispatchResult:
     """调度结果"""
 
@@ -214,6 +214,14 @@ class DispatchResult:
     retrospective_report: dict[str, Any] | None = None
     intent_match: dict[str, Any] | None = None
     five_axis_result: dict[str, Any] | None = None
+    # V3.8 #2: Two-stage review gate result
+    two_stage_review: dict[str, Any] | None = None
+    # V3.8 #3: Severity router auto-fix result
+    auto_fix_result: dict[str, Any] | None = None
+    # V3.8 #4: Judge agent consolidation result
+    judge_result: dict[str, Any] | None = None
+    # V3.8 #7: Micro-task plan (when use_micro_tasks=True)
+    micro_task_plan: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the dispatch result to a dictionary.
@@ -243,6 +251,10 @@ class DispatchResult:
             "retrospective_report": self.retrospective_report,
             "intent_match": self.intent_match,
             "five_axis_result": self.five_axis_result,
+            "two_stage_review": self.two_stage_review,
+            "auto_fix_result": self.auto_fix_result,
+            "judge_result": self.judge_result,
+            "micro_task_plan": self.micro_task_plan,
         }
 
     def to_markdown(self) -> str:

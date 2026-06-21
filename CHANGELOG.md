@@ -7,6 +7,29 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2026-06-21
+
+### Added
+- **#2 Two-Stage Code Review Gate** (`two_stage_review_gate.py`): Spec compliance (Stage 1) + code quality (Stage 2) review with critical-finding blocking. Inspired by Superpowers. 40 tests.
+- **#3 Severity Router + Auto-Fix Loop** (`severity_router.py`): CRITICAL/HIGH/MEDIUM/LOW/INFO classification with auto-fix loop (max 3 rounds). Inspired by NodeGuard. 51 tests.
+- **#4 Judge Agent + History Learning** (`judge_agent.py`): Finding deduplication, conflict resolution, confidence filtering (≥0.7), optional history learning (off by default). Inspired by Qodo PR-Agent. 33 tests.
+- **#6 Deterministic vs LLM Step Separation**: `NodeType` enum (DETERMINISTIC/LLM/HYBRID) added to `WorkflowStep` with `is_deterministic()`/`requires_llm` properties and `classify_steps()` method. Inspired by RepoReviewer. 14 tests.
+- **#7 Micro-Task Planner** (`micro_task_planner.py`): 2-5 minute micro-task decomposition with file paths, verification commands, DAG dependencies, max 20 tasks. Inspired by Superpowers. 47 tests.
+- **#9 Content Cache + Jitter Strategies** (`content_cache.py`): Unified SHA-256 content cache with sensitive-data filtering (API keys/tokens never cached). Added `JitterStrategy` enum (NONE/EQUAL/FULL/DECORRELATED) to `LLMRetryBase`. Inspired by NodeGuard. 41 tests.
+- **V3.8 Planning Docs**: 7-role evaluation, PRD, implementation plan, architecture evolution, consensus review (5 docs, 2482 lines).
+
+### Changed
+- `WorkflowStep` dataclass: Added `node_type: NodeType` field (default HYBRID for backward compat)
+- `LLMRetryBase`: Added `JitterStrategy` enum and `jitter_strategy` config field
+- `MultiAgentDispatcher`: Added optional `severity_router` and `micro_task_planner` parameters
+- `workflow_engine.py`: All lifecycle template steps annotated with `node_type`
+- Maturity assessment: 65% → 72% (honest assessment)
+
+### Test Coverage
+- **New tests**: 226 (32 content_cache + 14 step_node_types + 9 retry_jitter + 40 two_stage_review + 51 severity_router + 33 judge_agent + 47 micro_task_planner)
+- **Total tests**: 2339 passed, 18 skipped (excluding pre-existing flaky MCP server tests)
+- **All new modules**: ruff clean, no security issues found
+
 ## [3.7.2] - 2026-06-16
 
 ### Added

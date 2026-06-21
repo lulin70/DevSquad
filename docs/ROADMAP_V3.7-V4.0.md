@@ -1,6 +1,8 @@
 # DevSquad V3.7-V4.0 发展路线图
 
-> ⚠️ Note: The "97% maturity" claim in this document has been re-evaluated. See docs/MATURITY_ASSESSMENT.md for the current honest assessment (65%).
+> ⚠️ Note: The "97% maturity" claim in this document has been re-evaluated. See docs/MATURITY_ASSESSMENT.md for the current honest assessment (72% as of V3.8.0).
+
+> ✅ **V3.8.0 Completed (2026-06-21)**: 6 new modules (TwoStageReviewGate, SeverityRouter, JudgeAgent, MicroTaskPlanner, ContentCache + NodeType/JitterStrategy enhancements) + 226 new tests + 2339 total tests passing. Maturity 65% → 72%. See CHANGELOG.md [3.8.0] for details.
 
 > **文档类型**: 战略规划文档 (Strategic Roadmap)
 > **版本**: V1.0.0
@@ -96,11 +98,32 @@
 
 | 里程碑 | 计划日期 | 交付物 | 成熟度 | 验收标准 |
 |--------|----------|--------|--------|----------|
+| **M0: V3.8.0 Code Review & Planning** | 2026-06-21 ✅ | 6 new modules + 226 tests + 5 planning docs | 72% | ✅ TwoStageReviewGate + SeverityRouter + JudgeAgent + MicroTaskPlanner + ContentCache + NodeType/JitterStrategy |
 | **M1: 质量基石** | 2026-06-07 | Phase 6 完成 | 96% Stable | 覆盖率 ≥70%, 新增 300+ 测试 |
 | **M2: 性能飞跃** | 2026-06-28 | Phase 7 完成 | 96% Stable | P99 延迟降低 50%, QPS 提升 2x |
 | **M3: 可观测生产** | 2026-07-19 | Phase 8 完成 | 96% Stable | Prometheus 采集正常, Tracing 可用 |
 | **M4: 企业就绪** | 2026-08-30 | Phase 9 完成 | **97% Enterprise** | RBAC+Audit+Compliance 通过 |
 | **M5: V4.0 Release** | 2026-09-13 | 全部完成 + 发布 | **97% Enterprise** | 所有 Phase 验收通过 |
+
+### 2.3 V3.8.0 已完成里程碑详情 (2026-06-21)
+
+V3.8.0 是一个独立的代码审查与任务规划增强版本，不在原 Phase 6-9 计划内，但为 V4.0 目标提供了重要基础：
+
+| 增强项 | 模块 | 测试数 | 灵感来源 |
+|--------|------|--------|----------|
+| #2 Two-Stage Code Review Gate | `two_stage_review_gate.py` | 40 | Superpowers |
+| #3 Severity Router + Auto-Fix Loop | `severity_router.py` | 51 | NodeGuard |
+| #4 Judge Agent + History Learning | `judge_agent.py` | 33 | Qodo PR-Agent |
+| #6 Deterministic vs LLM Step Separation | `NodeType` enum in `WorkflowStep` | 14 | RepoReviewer |
+| #7 Micro-Task Planner | `micro_task_planner.py` | 47 | Superpowers |
+| #9 Content Cache + Jitter Strategies | `content_cache.py` + `JitterStrategy` | 41 | NodeGuard |
+
+**V3.8.0 关键成果**:
+- ✅ 6 个新模块 + 2 个现有模块增强
+- ✅ 226 个新测试，总计 2339 passed, 18 skipped
+- ✅ 所有新模块 ruff clean，无安全问题
+- ✅ 5 个 V3.8 规划文档（2482 行）
+- ✅ 成熟度从 65% 提升至 72%（诚实评估）
 
 ---
 

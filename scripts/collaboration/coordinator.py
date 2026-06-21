@@ -64,6 +64,26 @@ class Coordinator:
         report = coord.generate_report()
     """
 
+    __slots__ = (
+        "scratchpad",
+        "consensus",
+        "workers",
+        "_worker_index",
+        "_executor",
+        "_execution_history",
+        "coordinator_id",
+        "enable_compression",
+        "compressor",
+        "_message_buffer",
+        "llm_backend",
+        "stream",
+        "memory_provider",
+        "briefing_mode",
+        "_briefing_chain",
+        "execution_guard",
+        "content_cache",
+    )
+
     def __init__(
         self,
         scratchpad: Scratchpad | None = None,
@@ -105,6 +125,10 @@ class Coordinator:
         self.briefing_mode = briefing_mode
         self._briefing_chain: list[Any] = []
         self.execution_guard = execution_guard
+        # V3.8 #9: ContentCache wrapper (set by the dispatcher after
+        # construction when a ContentCache is configured). When set,
+        # workers check it before LLM API calls.
+        self.content_cache: Any = None
 
     def plan_task(
         self, task_description: str, available_roles: list[dict[str, str]], stage_id: str | None = None
@@ -203,6 +227,7 @@ class Coordinator:
                         llm_backend=self.llm_backend,
                         stream=getattr(self, "stream", False),
                         execution_guard=self.execution_guard,
+                        content_cache=getattr(self, "content_cache", None),
                     )
                 except (ImportError, ModuleNotFoundError):
                     worker = WorkerFactory.create(
@@ -212,6 +237,7 @@ class Coordinator:
                         scratchpad=self.scratchpad,
                         llm_backend=self.llm_backend,
                         stream=getattr(self, "stream", False),
+                        content_cache=getattr(self, "content_cache", None),
                     )
             else:
                 worker = WorkerFactory.create(
@@ -221,6 +247,7 @@ class Coordinator:
                     scratchpad=self.scratchpad,
                     llm_backend=self.llm_backend,
                     stream=getattr(self, "stream", False),
+                    content_cache=getattr(self, "content_cache", None),
                 )
             self.workers[worker_id] = worker
             self._worker_index[worker.role_id] = worker

@@ -177,7 +177,7 @@ class RoleSkillLoader:
                     metadata=metadata,
                 )
                 skills.append(skill)
-            except Exception as e:
+            except (OSError, ValueError, KeyError, TypeError) as e:
                 logger.warning("Failed to load skill %s: %s", skill_file, e)
 
         self._cache[role_id] = skills

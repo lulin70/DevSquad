@@ -100,7 +100,7 @@ class BatchScheduler:
             try:
                 result = worker.execute(task)
                 results.append(result)
-            except Exception as e:
+            except (RuntimeError, ValueError, AttributeError, TypeError) as e:
                 errors.append(f"Worker {worker.worker_id} error: {e}")
         return results, errors
 
@@ -117,7 +117,7 @@ class BatchScheduler:
                     result = worker.execute(task)
                     results.append(result)
                     break
-                except Exception as e:
+                except (RuntimeError, ValueError, AttributeError, TypeError) as e:
                     if attempt == self._default_retries:
                         errors.append(f"Task {task.task_id} failed after retries: {e}")
         return results, errors

@@ -238,7 +238,7 @@ class FeatureUsageTracker:
             with open(target, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             logger.debug("Feature usage persisted to %s", target)
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to persist feature usage: %s", e)
 
     def _load(self, path: str):
@@ -251,7 +251,7 @@ class FeatureUsageTracker:
                     self._first_seen[feat] = info.get("first_seen", "")
                     self._last_seen[feat] = info.get("last_seen", "")
                 logger.info("Loaded %d feature usage records from %s", len(self._counts), path)
-        except Exception as e:
+        except (json.JSONDecodeError, OSError, KeyError, TypeError) as e:
             logger.warning("Failed to load feature usage: %s", e)
 
     def reset(self):
