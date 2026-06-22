@@ -556,10 +556,16 @@ class PromptAssembler:
         return TaskComplexity.MEDIUM
 
     def assemble(
-        self, task_description: str, related_findings: list[str] = None, task_id: str = "", compression_level=None
+        self,
+        task_description: str,
+        related_findings: list[str] = None,
+        task_id: str = "",
+        compression_level=None,
+        dials: Any = None,
+        variant: str | None = None,
+        code_graph_hints: list[dict[str, Any]] | None = None,
     ) -> AssembledPrompt:
-        """
-        Assemble the final prompt
+        """Assemble the final prompt.
 
         Complete flow:
         1. Detect task complexity
@@ -568,11 +574,28 @@ class PromptAssembler:
         4. Trim each section according to configuration
         5. Assemble final instruction
 
+        V3.9-04: When ``dials`` (a :class:`PromptDials`) is provided, the
+        dial fragment is prepended to the instruction. When ``variant`` is
+        provided but ``dials`` is not, the variant is converted to dials
+        via :meth:`PromptDials.from_variant`. Backward compatible: when
+        neither is provided, behavior is unchanged.
+
+        V3.9-02: When ``code_graph_hints`` is provided (a list of symbol
+        dicts from :class:`CodeKnowledgeGraph`), they are injected as a
+        "Code Context" section so the worker can reference existing
+        symbols without Read/Grep.
+
         Args:
             task_description: Task description
             related_findings: Related findings list (from Scratchpad)
             task_id: Task ID (for instruction header)
             compression_level: ContextCompressor compression level (optional)
+            dials: Optional :class:`PromptDials` instance (V3.9-04).
+            variant: Optional legacy variant string ("concise"/"balanced"/"detailed").
+                When ``dials`` is None and ``variant`` is provided, converted
+                via :meth:`PromptDials.from_variant`.
+            code_graph_hints: Optional list of symbol dicts from the code
+                knowledge graph (V3.9-02).
 
         Returns:
             AssembledPrompt: Assembly result, containing instruction/complexity/variant/metadata
@@ -591,6 +614,23 @@ class PromptAssembler:
         findings_to_include = (related_findings or [])[: config["findings_limit"]]
         truncated_findings = [f[: config["findings_truncate"]] for f in findings_to_include]
 
+        # V3.9-04: Resolve PromptDials — explicit dials take precedence;
+        # otherwise convert a legacy variant string.
+        resolved_dials = dials
+        if resolved_dials is None and variant is not None:
+            try:
+                from .prompt_dials import PromptDials
+
+                resolved_dials = PromptDials.from_variant(variant)
+            except (ImportError, AttributeError, TypeError):
+                resolved_dials = None
+        dial_fragment = ""
+        if resolved_dials is not None:
+            try:
+                dial_fragment = resolved_dials.to_prompt_fragment()
+            except (AttributeError, TypeError, RuntimeError):
+                dial_fragment = ""
+
         style = config.get("instruction_style", "structured")
         instruction = self._build_instruction(
             style=style,
@@ -600,23 +640,42 @@ class PromptAssembler:
             findings=truncated_findings,
             include_constraints=config.get("include_constraints", False),
             include_anti_patterns=config.get("include_anti_patterns", False),
+            dial_fragment=dial_fragment,
+            code_graph_hints=code_graph_hints,
         )
 
         token_est = len(instruction) // 3
+
+        metadata: dict[str, Any] = {
+            "compression_applied": compression_level is not None,
+            "compression_level": str(compression_level),
+            "original_base_length": len(self.base_prompt),
+            "assembled_length": len(instruction),
+            "findings_included": len(truncated_findings),
+            "findings_total": len(related_findings or []),
+        }
+        if resolved_dials is not None:
+            metadata["dials_applied"] = True
+            try:
+                metadata["dials_variant"] = resolved_dials.to_variant()
+                metadata["dials"] = {
+                    "verbosity": resolved_dials.verbosity,
+                    "creativity": resolved_dials.creativity,
+                    "risk_tolerance": resolved_dials.risk_tolerance,
+                }
+            except (AttributeError, TypeError, RuntimeError):
+                metadata["dials_applied"] = False
+        else:
+            metadata["dials_applied"] = False
+        if code_graph_hints:
+            metadata["code_graph_hints_count"] = len(code_graph_hints)
 
         return AssembledPrompt(
             instruction=instruction,
             complexity=complexity,
             variant_used=config.get("name", f"{complexity.value}_custom"),
             tokens_estimate=token_est,
-            metadata={
-                "compression_applied": compression_level is not None,
-                "compression_level": str(compression_level),
-                "original_base_length": len(self.base_prompt),
-                "assembled_length": len(instruction),
-                "findings_included": len(truncated_findings),
-                "findings_total": len(related_findings or []),
-            },
+            metadata=metadata,
         )
 
     def _build_instruction(
@@ -628,6 +687,8 @@ class PromptAssembler:
         findings: list[str],
         include_constraints: bool,
         include_anti_patterns: bool,
+        dial_fragment: str = "",
+        code_graph_hints: list[dict[str, Any]] | None = None,
     ) -> str:
         """
         Build work instruction in the specified style
@@ -640,13 +701,20 @@ class PromptAssembler:
             findings: Trimmed related findings list
             include_constraints: Whether to include constraint reminders
             include_anti_patterns: Whether to include anti-pattern warnings
+            dial_fragment: V3.9-04 PromptDials fragment to prepend (may be empty).
+            code_graph_hints: V3.9-02 code-graph symbol dicts to inject as context.
 
         Returns:
             str: Assembled instruction text
         """
+        # V3.9-04: Prepend the dial fragment (when non-empty) to every style.
+        prefix = ""
+        if dial_fragment:
+            prefix = f"{dial_fragment}\n\n"
+
         if style == "ultra_minimal":
             base = f"[{self.role_id}] {task_description}\nOutput core conclusion."
-            return base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
+            return prefix + base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
 
         if style == "minimal":
             parts = [f"[{self.role_id}] Task: {task_description}"]
@@ -657,7 +725,7 @@ class PromptAssembler:
                 parts.append(f"Rules: {user_rules[:100]}")
             parts.append("Output key conclusion.")
             base = "\n".join(parts)
-            return base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
+            return prefix + base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
 
         if style == "direct":
             user_rules = self._get_user_rules_injection(task_description)
@@ -670,7 +738,7 @@ class PromptAssembler:
                 + (self._get_skill_injection() if self._get_skill_injection() else "")
                 + "Complete your work, output core conclusion."
             )
-            return base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
+            return prefix + base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
 
         parts = []
         parts.append("=== Task ===")
@@ -679,6 +747,22 @@ class PromptAssembler:
         parts.append(f"Description: {task_description}")
         parts.append(f"Role: {role_display}")
         parts.append("")
+
+        # V3.9-02: Inject code-graph hints as a "Code Context" section so
+        # the worker can reference existing symbols without Read/Grep.
+        if code_graph_hints:
+            parts.append("=== Code Context (from CodeKnowledgeGraph) ===")
+            for hint in code_graph_hints[:8]:  # Cap at 8 hints to limit prompt size.
+                name = hint.get("name", "?")
+                sym_type = hint.get("type", "unknown")
+                file_path = hint.get("file", "")
+                signature = hint.get("signature", "")
+                line_start = hint.get("line_start", 0)
+                line_end = hint.get("line_end", 0)
+                loc = f"{file_path}:{line_start}-{line_end}" if file_path else ""
+                sig_str = f"  signature: {signature}" if signature else ""
+                parts.append(f"- {name} ({sym_type}) {loc}{sig_str}")
+            parts.append("")
 
         if findings:
             parts.append("=== Related Findings (from other Workers) ===")
@@ -723,7 +807,7 @@ class PromptAssembler:
         if ar_content:
             parts.append(ar_content)
 
-        return "\n".join(parts)
+        return prefix + "\n".join(parts)
 
     def _get_user_rules_injection(self, task_description: str) -> str:
         """Query user rules from RuleCollector storage and format as prompt text."""

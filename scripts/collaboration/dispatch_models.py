@@ -222,6 +222,11 @@ class DispatchResult:
     judge_result: dict[str, Any] | None = None
     # V3.8 #7: Micro-task plan (when use_micro_tasks=True)
     micro_task_plan: dict[str, Any] | None = None
+    # V3.9-02: RBAC permission check result (when DispatchRBAC is configured)
+    permission_result: dict[str, Any] | None = None
+    # V3.9-02: Audit log entries collected during dispatch (when
+    # DispatchAuditLogger is configured)
+    audit_entries: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the dispatch result to a dictionary.
@@ -255,6 +260,8 @@ class DispatchResult:
             "auto_fix_result": self.auto_fix_result,
             "judge_result": self.judge_result,
             "micro_task_plan": self.micro_task_plan,
+            "permission_result": self.permission_result,
+            "audit_entries": self.audit_entries,
         }
 
     def to_markdown(self) -> str:

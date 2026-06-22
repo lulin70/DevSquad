@@ -182,6 +182,10 @@ class TestCreateMCPServerFunction:
             "multiagent_status",
             "multiagent_analyze",
             "multiagent_shutdown",
+            # V3.9-02: Code Knowledge Graph tools
+            "codegraph_explore",
+            "codegraph_status",
+            "codegraph_refresh",
         }
         assert expected == tool_names
 

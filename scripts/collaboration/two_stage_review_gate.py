@@ -70,6 +70,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from .redesign_auditor import RedesignAuditor
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,6 +85,7 @@ class ReviewStage(Enum):
 
     SPEC_COMPLIANCE = "spec_compliance"  # Stage 1: Does code match the plan/spec?
     CODE_QUALITY = "code_quality"        # Stage 2: Is the code quality acceptable?
+    REDESIGN = "redesign"                # Stage 3 (V3.9): Can the code be simpler?
 
 
 class StageResult(Enum):
@@ -147,10 +150,16 @@ class TwoStageReviewResult:
         Outcome of Stage 1 (spec compliance).
     stage2_result:
         Outcome of Stage 2 (code quality).
+    stage3_result:
+        Outcome of Stage 3 (redesign audit, V3.9). Defaults to PASS when
+        the redesign audit is disabled.
     findings:
-        All findings (critical + warning + info) produced by both stages.
+        All findings (critical + warning + info) produced by all stages.
+    redesign_findings:
+        Raw :class:`RedesignFinding` objects from Stage 3 (V3.9). Empty
+        when the redesign audit is disabled.
     overall_passed:
-        True only if both stages did not FAIL (no critical findings).
+        True only if all enabled stages did not FAIL (no critical findings).
     blocking_findings:
         Critical findings that blocked progression (empty when passed).
     summary:
@@ -159,7 +168,9 @@ class TwoStageReviewResult:
 
     stage1_result: StageResult = StageResult.PASS
     stage2_result: StageResult = StageResult.PASS
+    stage3_result: StageResult = StageResult.PASS
     findings: list[ReviewFinding] = field(default_factory=list)
+    redesign_findings: list[Any] = field(default_factory=list)
     overall_passed: bool = True
     blocking_findings: list[ReviewFinding] = field(default_factory=list)
     summary: str = ""
@@ -185,6 +196,11 @@ class TwoStageReviewResult:
         return self.stage2_result != StageResult.FAIL
 
     @property
+    def stage3_passed(self) -> bool:
+        """True if Stage 3 (redesign) did not FAIL (V3.9)."""
+        return self.stage3_result != StageResult.FAIL
+
+    @property
     def blocking_issues(self) -> list[ReviewFinding]:
         """Alias for :attr:`blocking_findings`."""
         return self.blocking_findings
@@ -195,14 +211,31 @@ class TwoStageReviewResult:
         return [f for f in self.findings if f.severity == "warning"]
 
     def to_dict(self) -> dict[str, Any]:
+        redesign_dicts: list[dict[str, Any]] = []
+        for rf in self.redesign_findings:
+            if hasattr(rf, "__dict__") or hasattr(rf, "severity"):
+                redesign_dicts.append(
+                    {
+                        "severity": getattr(rf, "severity", ""),
+                        "category": getattr(rf, "category", ""),
+                        "current": getattr(rf, "current", ""),
+                        "suggested": getattr(rf, "suggested", ""),
+                        "saving_lines": getattr(rf, "saving_lines", 0),
+                    }
+                )
+            elif isinstance(rf, dict):
+                redesign_dicts.append(rf)
         return {
             "passed": self.overall_passed,
             "overall_passed": self.overall_passed,
             "stage1_passed": self.stage1_passed,
             "stage2_passed": self.stage2_passed,
+            "stage3_passed": self.stage3_passed,
             "stage1_result": self.stage1_result.value,
             "stage2_result": self.stage2_result.value,
+            "stage3_result": self.stage3_result.value,
             "findings": [f.to_dict() for f in self.findings],
+            "redesign_findings": redesign_dicts,
             "blocking_issues": [f.to_dict() for f in self.blocking_findings],
             "blocking_findings": [f.to_dict() for f in self.blocking_findings],
             "warnings": [f.to_dict() for f in self.warnings],
@@ -227,7 +260,7 @@ from .review_checkers import ReviewCheckers  # noqa: E402
 
 
 class TwoStageReviewGate:
-    """Two-stage code review gate inspired by Superpowers.
+    """Two-stage (V3.9: three-stage) code review gate inspired by Superpowers.
 
     Stage 1 (Spec Compliance): Checks if the implementation matches the
     plan/spec.
@@ -243,7 +276,14 @@ class TwoStageReviewGate:
       - Test coverage (missing tests for new code)
       - Code style (line length, naming, complexity)
 
-    Critical findings in either stage block progression.
+    Stage 3 (Redesign Audit, V3.9): Checks if the code can be simpler.
+
+      - YAGNI: unnecessary code/functions/classes
+      - STDLIB: custom implementations that have stdlib equivalents
+      - DUPLICATE: repeated code that can be extracted
+      - OVERENGINEERING: excessive abstraction or unnecessary config
+
+    Critical findings in any stage block progression.
 
     Parameters
     ----------
@@ -254,17 +294,30 @@ class TwoStageReviewGate:
     strict_mode:
         When True (default), missing spec requirements are treated as
         critical. When False, they are downgraded to warnings.
+    enable_redesign_audit:
+        V3.9 master switch for Stage 3 (redesign audit). When True
+        (default), :class:`RedesignAuditor` runs after Stages 1 and 2.
+        When False, Stage 3 is skipped (backward compatible with V3.8).
+    redesign_auditor:
+        Optional injected :class:`RedesignAuditor` instance (for testing
+        or advanced configuration). When ``None`` and
+        ``enable_redesign_audit`` is True, a default instance is created.
     """
 
     def __init__(
         self,
         enable_two_stage_review: bool = True,
         strict_mode: bool = True,
+        enable_redesign_audit: bool = True,
+        redesign_auditor: RedesignAuditor | None = None,
     ) -> None:
         self.enable_two_stage_review = enable_two_stage_review
         self.strict_mode = strict_mode
+        self.enable_redesign_audit = enable_redesign_audit
         # Delegate checker methods to ReviewCheckers via composition.
         self._checkers = ReviewCheckers(strict_mode=strict_mode)
+        # V3.9-02: Stage 3 — RedesignAuditor (lazy-init when not injected).
+        self._redesign_auditor: RedesignAuditor | None = redesign_auditor
 
     # ------------------------------------------------------------------
     # Public API
@@ -321,26 +374,46 @@ class TwoStageReviewGate:
         )
 
         all_findings = stage1_findings + stage2_findings
+
+        # V3.9-02: Stage 3 — Redesign audit (code simplicity check).
+        # Runs after Stages 1 and 2 when enabled. CRITICAL findings from
+        # the auditor (e.g. >50 lines of dead code) block progression.
+        stage3_result = StageResult.PASS
+        stage3_findings: list[ReviewFinding] = []
+        redesign_findings_raw: list[Any] = []
+        if self.enable_redesign_audit:
+            stage3_result, stage3_findings, redesign_findings_raw = self._run_redesign_audit(
+                code_changes
+            )
+            all_findings.extend(stage3_findings)
+
         blocking = [f for f in all_findings if f.is_critical()]
-        overall_passed = stage1_result != StageResult.FAIL and stage2_result != StageResult.FAIL
+        overall_passed = (
+            stage1_result != StageResult.FAIL
+            and stage2_result != StageResult.FAIL
+            and stage3_result != StageResult.FAIL
+        )
 
         summary = self._build_summary(
-            stage1_result, stage2_result, all_findings, blocking
+            stage1_result, stage2_result, stage3_result, all_findings, blocking
         )
 
         result = TwoStageReviewResult(
             stage1_result=stage1_result,
             stage2_result=stage2_result,
+            stage3_result=stage3_result,
             findings=all_findings,
+            redesign_findings=redesign_findings_raw,
             overall_passed=overall_passed,
             blocking_findings=blocking,
             summary=summary,
         )
 
         logger.info(
-            "TwoStageReviewGate: stage1=%s stage2=%s passed=%s blocking=%d findings=%d",
+            "TwoStageReviewGate: stage1=%s stage2=%s stage3=%s passed=%s blocking=%d findings=%d",
             stage1_result.value,
             stage2_result.value,
+            stage3_result.value,
             overall_passed,
             len(blocking),
             len(all_findings),
@@ -413,6 +486,117 @@ class TwoStageReviewGate:
         return spec, code_changes
 
     # ------------------------------------------------------------------
+    # V3.9-02: Stage 3 — Redesign audit
+    # ------------------------------------------------------------------
+
+    def _get_redesign_auditor(self) -> RedesignAuditor:
+        """Lazily instantiate the RedesignAuditor when first needed."""
+        if self._redesign_auditor is None:
+            self._redesign_auditor = RedesignAuditor()
+        return self._redesign_auditor
+
+    def _run_redesign_audit(
+        self, code_changes: dict[str, Any]
+    ) -> tuple[StageResult, list[ReviewFinding], list[Any]]:
+        """Run Stage 3: RedesignAuditor on the combined code.
+
+        Concatenates all file contents from ``code_changes['files']``
+        (plus ``code_changes['outputs']`` as a fallback) and passes the
+        combined source to :meth:`RedesignAuditor.audit`.
+
+        Severity mapping (RedesignFinding → ReviewFinding):
+          - CRITICAL → "critical" (blocks progression)
+          - HIGH     → "warning"
+          - MEDIUM   → "warning"
+          - LOW      → "info"
+
+        Returns
+        -------
+        tuple
+            (stage_result, review_findings, raw_redesign_findings)
+        """
+        try:
+            auditor = self._get_redesign_auditor()
+            combined_code = self._extract_code_for_audit(code_changes)
+            if not combined_code.strip():
+                return StageResult.PASS, [], []
+            raw_findings = auditor.audit(combined_code)
+        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
+            logger.warning("RedesignAuditor failed: %s", exc)
+            return StageResult.PASS, [], []
+
+        review_findings: list[ReviewFinding] = []
+        has_critical = False
+        for rf in raw_findings:
+            severity = self._map_redesign_severity(rf.severity)
+            if severity == "critical":
+                has_critical = True
+            review_findings.append(
+                ReviewFinding(
+                    stage=ReviewStage.REDESIGN,
+                    severity=severity,
+                    category=rf.category,
+                    description=rf.current,
+                    suggestion=rf.suggested,
+                )
+            )
+
+        stage_result = StageResult.FAIL if has_critical else (
+            StageResult.WARN if review_findings else StageResult.PASS
+        )
+        return stage_result, review_findings, raw_findings
+
+    @staticmethod
+    def _extract_code_for_audit(code_changes: dict[str, Any]) -> str:
+        """Extract combined source code from code_changes for auditing.
+
+        Concatenates file contents from ``files`` dict; falls back to
+        ``outputs`` string when no files are present.
+        """
+        parts: list[str] = []
+        files = code_changes.get("files")
+        if isinstance(files, dict):
+            for path, info in files.items():
+                if isinstance(info, dict):
+                    content = info.get("content", "")
+                elif isinstance(info, str):
+                    content = info
+                else:
+                    content = ""
+                if content:
+                    parts.append(f"# === {path} ===\n{content}")
+        elif isinstance(files, list):
+            for entry in files:
+                if isinstance(entry, dict):
+                    content = entry.get("content", "")
+                    path = entry.get("path", "<unknown>")
+                    if content:
+                        parts.append(f"# === {path} ===\n{content}")
+
+        if not parts:
+            outputs = code_changes.get("outputs")
+            if isinstance(outputs, str) and outputs.strip():
+                parts.append(outputs)
+
+        return "\n\n".join(parts)
+
+    @staticmethod
+    def _map_redesign_severity(redesign_severity: str) -> str:
+        """Map RedesignFinding severity to ReviewFinding severity.
+
+        CRITICAL → "critical" (blocks progression)
+        HIGH     → "warning"
+        MEDIUM   → "warning"
+        LOW      → "info"
+        """
+        sev = redesign_severity.upper()
+        if sev == "CRITICAL":
+            return "critical"
+        if sev in ("HIGH", "MEDIUM"):
+            return "warning"
+        return "info"
+
+    # ------------------------------------------------------------------
     # Reporting
     # ------------------------------------------------------------------
 
@@ -420,6 +604,7 @@ class TwoStageReviewGate:
         self,
         stage1: StageResult,
         stage2: StageResult,
+        stage3: StageResult,
         findings: list[ReviewFinding],
         blocking: list[ReviewFinding],
     ) -> str:
@@ -429,6 +614,7 @@ class TwoStageReviewGate:
             f"Two-Stage Review: {status}",
             f"  Stage 1 (Spec Compliance): {stage1.value.upper()}",
             f"  Stage 2 (Code Quality):    {stage2.value.upper()}",
+            f"  Stage 3 (Redesign Audit):  {stage3.value.upper()}",
             f"  Total findings: {len(findings)} "
             f"({len(blocking)} critical, "
             f"{len([f for f in findings if f.severity == 'warning'])} warning, "
@@ -465,6 +651,7 @@ class TwoStageReviewGate:
         lines.append("|-------|--------|")
         lines.append(f"| Stage 1: Spec Compliance | {result.stage1_result.value} |")
         lines.append(f"| Stage 2: Code Quality | {result.stage2_result.value} |")
+        lines.append(f"| Stage 3: Redesign Audit | {result.stage3_result.value} |")
         lines.append("")
 
         if result.blocking_findings:
@@ -496,6 +683,22 @@ class TwoStageReviewGate:
                 lines.append(f"- **[{f.category}]** {f.description}")
             lines.append("")
 
+        # V3.9-02: Redesign suggestions (Stage 3 raw findings)
+        if result.redesign_findings:
+            lines.append("## Redesign Suggestions (Stage 3)")
+            lines.append("")
+            for rf in result.redesign_findings:
+                severity = getattr(rf, "severity", "")
+                category = getattr(rf, "category", "")
+                current = getattr(rf, "current", "")
+                suggested = getattr(rf, "suggested", "")
+                saving = getattr(rf, "saving_lines", 0)
+                lines.append(
+                    f"- **[{severity}/{category}]** {current} → {suggested}"
+                    f" (saves ~{saving} lines)"
+                )
+            lines.append("")
+
         lines.append("## Summary")
         lines.append("")
         lines.append("```")
@@ -515,8 +718,9 @@ def run_two_stage_review(
     *,
     enable_two_stage_review: bool = True,
     strict_mode: bool = True,
+    enable_redesign_audit: bool = True,
 ) -> TwoStageReviewResult:
-    """Convenience function to run a two-stage review.
+    """Convenience function to run a two-stage (V3.9: three-stage) review.
 
     Parameters
     ----------
@@ -532,6 +736,8 @@ def run_two_stage_review(
         Master switch (default True).
     strict_mode:
         When True, missing spec requirements are critical (default True).
+    enable_redesign_audit:
+        V3.9 master switch for Stage 3 (redesign audit). Default True.
 
     Returns
     -------
@@ -540,11 +746,13 @@ def run_two_stage_review(
     gate = TwoStageReviewGate(
         enable_two_stage_review=enable_two_stage_review,
         strict_mode=strict_mode,
+        enable_redesign_audit=enable_redesign_audit,
     )
     return gate.review(spec=spec, code_changes=code_changes)
 
 
 __all__ = [
+    "RedesignAuditor",
     "ReviewFinding",
     "ReviewIssue",
     "ReviewStage",

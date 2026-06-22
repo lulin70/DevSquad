@@ -96,6 +96,7 @@ class EnhancedWorker(Worker):
         memory_provider=None,
         execution_guard: Any = None,
         content_cache: Any = None,
+        code_graph: Any = None,
     ):
         """
         Initialize EnhancedWorker.
@@ -117,6 +118,9 @@ class EnhancedWorker(Worker):
             content_cache: Optional ContentCache wrapper (V3.8 #9). When
                 provided, checked before LLM API calls and populated after
                 responses.
+            code_graph: Optional CodeKnowledgeGraph (V3.9-02). When provided,
+                queried before LLM calls to inject relevant code-structure
+                context into the worker briefing.
         """
         super().__init__(
             worker_id=worker_id,
@@ -126,6 +130,7 @@ class EnhancedWorker(Worker):
             llm_backend=llm_backend,
             stream=stream,
             content_cache=content_cache,
+            code_graph=code_graph,
         )
 
         self.cache_provider = cache_provider

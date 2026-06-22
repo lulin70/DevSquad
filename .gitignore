@@ -43,6 +43,7 @@ output/
 *.db
 *.db-shm
 *.db-wal
+.codegraph.db
 data/llm_cache/
 data/briefings/
 data/tier2/

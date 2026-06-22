@@ -66,6 +66,7 @@ class Worker:
         "llm_backend",
         "stream",
         "content_cache",
+        "code_graph",
         "_notifications_outbox",
         "_notifications_lock",
         "_entries_written_count",
@@ -81,6 +82,7 @@ class Worker:
         llm_backend: Any = None,
         stream: bool = False,
         content_cache: Any = None,
+        code_graph: Any = None,
     ) -> None:
         """
         Initialize Worker instance.
@@ -94,6 +96,9 @@ class Worker:
             content_cache: Optional ContentCache wrapper (V3.8 #9). When
                 provided, checked before LLM API calls and populated after
                 responses.
+            code_graph: Optional CodeKnowledgeGraph (V3.9-02). When provided,
+                queried before LLM calls to inject relevant code-structure
+                context into the worker briefing (reduces Read/Grep usage).
         """
         self.worker_id = worker_id
         self.role_id = role_id
@@ -103,6 +108,8 @@ class Worker:
         self.stream = stream
         # V3.8 #9: ContentCache wrapper for the LLM call path.
         self.content_cache = content_cache
+        # V3.9-02: CodeKnowledgeGraph for code-structure queries.
+        self.code_graph = code_graph
         self._notifications_outbox: list[TaskNotification] = []
         self._notifications_lock = threading.Lock()
         self._entries_written_count = 0
@@ -388,25 +395,90 @@ class Worker:
         Reads relevant findings from Scratchpad and performs dynamic prompt
         trimming via PromptAssembler (based on task complexity and compression level).
 
+        V3.9-02: When a CodeKnowledgeGraph is configured, queries the graph for
+        symbols mentioned in the task description and adds them to the context
+        as ``code_graph_hints``. This is a lightweight enhancement — failures
+        are logged and silently ignored (graceful degradation).
+
         Args:
             task: Task definition
             compression_level: ContextCompressor compression level (optional, affects prompt style)
 
         Returns:
             Dict[str, Any]: Execution context containing task/role_prompt/related_findings/
-                             worker_id/compression_level
+                             worker_id/compression_level/code_graph_hints
         """
         related = self.read_scratchpad(
             query=task.description[:50],
             limit=10,
         )
-        return {
+        context = {
             "task": task,
             "role_prompt": self.role_prompt,
             "related_findings": [f.content for f in related[:8]],
             "worker_id": self.worker_id,
             "compression_level": compression_level,
         }
+
+        # V3.9-02: Query the code knowledge graph for symbols mentioned in
+        # the task description. The hints are added to the context so the
+        # PromptAssembler can inject them into the worker's briefing.
+        if self.code_graph is not None:
+            hints = self._query_code_graph_for_task(task.description)
+            if hints:
+                context["code_graph_hints"] = hints
+
+        return context
+
+    def _query_code_graph_for_task(self, task_description: str) -> list[dict[str, Any]]:
+        """Query the CodeKnowledgeGraph for symbols mentioned in the task.
+
+        Extracts candidate identifiers from the task description (CamelCase
+        words, snake_case words of length >= 3) and looks each up in the
+        graph. Returns a list of symbol dicts (name, type, file, lines).
+
+        Failures are logged at debug level and return an empty list — this
+        is a best-effort enhancement and must never break the worker flow.
+        """
+        if not self.code_graph:
+            return []
+        try:
+            import re as _re
+
+            # Extract candidate identifiers: CamelCase or snake_case, length >= 3.
+            candidates = set(_re.findall(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b", task_description))
+            # Filter out common English words (very short heuristic stoplist).
+            stoplist = {
+                "the", "and", "for", "with", "that", "this", "from", "have",
+                "will", "your", "their", "they", "are", "was", "were", "been",
+                "should", "would", "could", "must", "shall", "may", "might",
+                "can", "into", "onto", "over", "under", "between", "through",
+            }
+            candidates = {c for c in candidates if c.lower() not in stoplist}
+
+            if not candidates:
+                return []
+
+            query = self.code_graph.query()
+            hints: list[dict[str, Any]] = []
+            for name in sorted(candidates)[:10]:  # Cap at 10 lookups for performance.
+                try:
+                    symbols = query.find_symbol(name)
+                except (AttributeError, ValueError, RuntimeError):
+                    continue
+                for sym in symbols[:3]:  # Max 3 hits per name.
+                    hints.append({
+                        "name": sym.name,
+                        "type": getattr(sym, "symbol_type", "unknown"),
+                        "file": getattr(sym, "file_path", ""),
+                        "line_start": getattr(sym, "line_start", 0),
+                        "line_end": getattr(sym, "line_end", 0),
+                        "signature": getattr(sym, "signature", ""),
+                    })
+            return hints
+        except (AttributeError, ValueError, TypeError, RuntimeError) as e:
+            logger.debug("CodeKnowledgeGraph query failed for worker %s: %s", self.worker_id, e)
+            return []
 
     def _do_work(self, context: dict[str, Any]) -> str:
         """
@@ -437,6 +509,9 @@ class Worker:
             related_findings=context.get("related_findings", []),
             task_id=task.task_id,
             compression_level=context.get("compression_level"),
+            # V3.9-02: Pass code-graph hints so the assembler can inject
+            # them into the worker briefing (reduces Read/Grep usage).
+            code_graph_hints=context.get("code_graph_hints"),
         )
 
         self._last_assembled_prompt = result
@@ -541,7 +616,7 @@ class WorkerFactory:
 
     @staticmethod
     def create(
-        worker_id: str, role_id: str, role_prompt: str, scratchpad: Scratchpad, llm_backend: Any = None, stream: bool = False, content_cache: Any = None
+        worker_id: str, role_id: str, role_prompt: str, scratchpad: Scratchpad, llm_backend: Any = None, stream: bool = False, content_cache: Any = None, code_graph: Any = None
     ) -> Worker:
         """
         Create a single Worker instance.
@@ -554,11 +629,12 @@ class WorkerFactory:
             llm_backend: LLM execution backend
             stream: Whether to enable streaming output
             content_cache: Optional ContentCache wrapper (V3.8 #9)
+            code_graph: Optional CodeKnowledgeGraph (V3.9-02)
 
         Returns:
             Worker: Newly created Worker instance
         """
-        return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend, stream=stream, content_cache=content_cache)
+        return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend, stream=stream, content_cache=content_cache, code_graph=code_graph)
 
     @staticmethod
     def create_batch(workers_config: list[dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None) -> list[Worker]:
@@ -618,6 +694,8 @@ class WorkerPool:
         scratchpad: Scratchpad,
         llm_backend: Any = None,
         stream: bool = False,
+        content_cache: Any = None,
+        code_graph: Any = None,
     ) -> Worker:
         """Acquire a Worker from the pool, creating one if empty.
 
@@ -632,6 +710,8 @@ class WorkerPool:
             worker.scratchpad = scratchpad
             worker.llm_backend = llm_backend
             worker.stream = stream
+            worker.content_cache = content_cache
+            worker.code_graph = code_graph
             worker.reset()
             return worker
         return Worker(
@@ -641,6 +721,8 @@ class WorkerPool:
             scratchpad=scratchpad,
             llm_backend=llm_backend,
             stream=stream,
+            content_cache=content_cache,
+            code_graph=code_graph,
         )
 
     @classmethod

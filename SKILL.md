@@ -2,16 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.8.1 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
+  V3.9.0 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  V3.8.1: MCP test fix + file split refactor + pickle→JSON migration + secret pattern unification + mypy CI,
-  88+ core modules, 2387+ tests passing.
+  V3.9.0: CodeKnowledgeGraph + MCP codegraph_explore + YagniChecker + PromptDials + RedesignAudit + RBAC/Audit integration,
+  94+ core modules, 2591+ tests passing.
 ---
 
-# DevSquad V3.8.1 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V3.9.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 

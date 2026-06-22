@@ -151,6 +151,10 @@ class MicroTaskPlan:
         Hard limit on micro-tasks per plan (default 20).
     summary:
         Human-readable summary.
+    yagni_results:
+        V3.9-03: Per-micro-task YagniChecker verdicts. Maps micro-task ID
+        to a dict ``{"verdict": str, "reason": str, "shortcut_marker": str}``.
+        Empty when no YagniChecker is configured.
     """
 
     task_id: str
@@ -158,6 +162,7 @@ class MicroTaskPlan:
     total_estimated_minutes: int = 0
     max_micro_tasks: int = 20
     summary: str = ""
+    yagni_results: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -166,6 +171,7 @@ class MicroTaskPlan:
             "total_estimated_minutes": self.total_estimated_minutes,
             "max_micro_tasks": self.max_micro_tasks,
             "summary": self.summary,
+            "yagni_results": dict(self.yagni_results),
         }
 
 
@@ -186,6 +192,12 @@ class MicroTaskPlanner:
       - Each micro-task has a verification command
       - Dependencies form a DAG (no cycles)
 
+    V3.9-03: When a :class:`YagniChecker` is configured, each micro-task
+    is run through the YAGNI ladder after decomposition. Tasks with
+    verdict ``SKIP`` are marked as :attr:`MicroTaskStatus.SKIPPED` (and
+    excluded from execution). Other verdicts are attached as metadata
+    on the plan via :attr:`MicroTaskPlan.yagni_results`.
+
     Parameters
     ----------
     max_micro_tasks:
@@ -194,6 +206,9 @@ class MicroTaskPlanner:
         Minimum estimated duration per micro-task. Default 2.
     max_duration_minutes:
         Maximum estimated duration per micro-task. Default 5.
+    yagni_checker:
+        Optional :class:`YagniChecker` instance. When provided, runs the
+        YAGNI ladder on each micro-task during :meth:`plan`.
     """
 
     # Default verification command templates by file type.
@@ -211,10 +226,14 @@ class MicroTaskPlanner:
         max_micro_tasks: int = 20,
         min_duration_minutes: int = 2,
         max_duration_minutes: int = 5,
+        yagni_checker: Any = None,
     ) -> None:
         self.max_micro_tasks = max_micro_tasks
         self.min_duration_minutes = min_duration_minutes
         self.max_duration_minutes = max_duration_minutes
+        # V3.9-03: Optional YagniChecker for filtering micro-tasks.
+        # Imported lazily to avoid a hard dependency at module load time.
+        self._yagni_checker = yagni_checker
 
     # ------------------------------------------------------------------
     # Public API
@@ -278,6 +297,11 @@ class MicroTaskPlanner:
         # Topological sort by dependencies.
         micro_tasks = self._topological_sort(micro_tasks)
 
+        # V3.9-03: Run the YAGNI ladder on each micro-task (when configured).
+        # SKIP tasks are marked as SKIPPED (excluded from execution); other
+        # verdicts are attached as metadata on the plan.
+        yagni_results = self._run_yagni_checks(micro_tasks)
+
         total = sum(t.estimated_minutes for t in micro_tasks)
         summary = self._build_summary(task_description, micro_tasks, total)
 
@@ -287,7 +311,47 @@ class MicroTaskPlanner:
             total_estimated_minutes=total,
             max_micro_tasks=self.max_micro_tasks,
             summary=summary,
+            yagni_results=yagni_results,
         )
+
+    # ------------------------------------------------------------------
+    # V3.9-03: YagniChecker integration
+    # ------------------------------------------------------------------
+
+    def _run_yagni_checks(self, micro_tasks: list[MicroTask]) -> dict[str, dict[str, Any]]:
+        """Run the YagniChecker on each micro-task (when configured).
+
+        SKIP tasks are marked as :attr:`MicroTaskStatus.SKIPPED` so they
+        are excluded from execution by :meth:`get_next_ready`. Other
+        verdicts are recorded but do not affect execution.
+
+        Returns a dict mapping micro-task ID to the YagniResult fields.
+        Empty dict when no YagniChecker is configured.
+        """
+        if not self._yagni_checker:
+            return {}
+        results: dict[str, dict[str, Any]] = {}
+        for mt in micro_tasks:
+            try:
+                yagni_result = self._yagni_checker.check_micro_task(mt)
+            except (AttributeError, ValueError, TypeError, RuntimeError) as exc:
+                logger.warning("YagniChecker failed for micro-task %s: %s", mt.id, exc)
+                continue
+            results[mt.id] = {
+                "verdict": yagni_result.verdict,
+                "reason": yagni_result.reason,
+                "upgrade_path": yagni_result.upgrade_path,
+                "shortcut_marker": yagni_result.shortcut_marker,
+            }
+            # SKIP tasks are marked as skipped so get_next_ready() excludes them.
+            if yagni_result.verdict == "SKIP":
+                mt.status = MicroTaskStatus.SKIPPED
+                logger.info(
+                    "YagniChecker skipped micro-task '%s': %s",
+                    mt.title,
+                    yagni_result.reason,
+                )
+        return results
 
     # ------------------------------------------------------------------
     # Decomposition
@@ -682,17 +746,19 @@ class MicroTaskPlanner:
         """Get tasks ready to execute (all deps completed).
 
         Returns micro-tasks whose status is PLANNED and all
-        dependencies are COMPLETED.
+        dependencies are COMPLETED (or SKIPPED — V3.9-03: skipped
+        tasks are treated as satisfied so their dependents can run).
         """
-        completed_ids = {
+        # V3.9-03: SKIPPED tasks count as satisfied dependencies.
+        satisfied_ids = {
             mt.id for mt in plan.micro_tasks
-            if mt.status == MicroTaskStatus.COMPLETED
+            if mt.status in (MicroTaskStatus.COMPLETED, MicroTaskStatus.SKIPPED)
         }
         ready: list[MicroTask] = []
         for mt in plan.micro_tasks:
             if mt.status != MicroTaskStatus.PLANNED:
                 continue
-            if all(dep in completed_ids for dep in mt.dependencies):
+            if all(dep in satisfied_ids for dep in mt.dependencies):
                 ready.append(mt)
         return ready
 

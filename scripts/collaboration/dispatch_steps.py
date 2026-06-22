@@ -63,6 +63,8 @@ class PostDispatchPipeline:
         enable_feedback_loop: bool | str = "auto",
         # V3.8 #2: Two-stage review gate
         enable_two_stage_review: bool = True,
+        # V3.9-02: Stage 3 — Redesign audit (code simplicity check)
+        enable_redesign_audit: bool = True,
         # V3.8 #3: Severity router + auto-fix loop
         enable_severity_router: bool = True,
         development_mode: bool = True,
@@ -110,8 +112,11 @@ class PostDispatchPipeline:
 
         # V3.8 #2: Two-stage review gate
         self.enable_two_stage_review = enable_two_stage_review
+        # V3.9-02: Stage 3 — Redesign audit (enabled by default, can be disabled)
+        self.enable_redesign_audit = enable_redesign_audit
         self.two_stage_review_gate = TwoStageReviewGate(
             enable_two_stage_review=enable_two_stage_review,
+            enable_redesign_audit=enable_redesign_audit,
         )
 
         # V3.8 #3: Severity router

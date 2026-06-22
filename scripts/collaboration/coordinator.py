@@ -82,6 +82,7 @@ class Coordinator:
         "_briefing_chain",
         "execution_guard",
         "content_cache",
+        "code_graph",
     )
 
     def __init__(
@@ -129,6 +130,10 @@ class Coordinator:
         # construction when a ContentCache is configured). When set,
         # workers check it before LLM API calls.
         self.content_cache: Any = None
+        # V3.9-02: CodeKnowledgeGraph (set by the dispatcher after
+        # construction when a graph is configured). When set, workers
+        # query the graph before LLM calls to reduce Read/Grep usage.
+        self.code_graph: Any = None
 
     def plan_task(
         self, task_description: str, available_roles: list[dict[str, str]], stage_id: str | None = None
@@ -228,6 +233,7 @@ class Coordinator:
                         stream=getattr(self, "stream", False),
                         execution_guard=self.execution_guard,
                         content_cache=getattr(self, "content_cache", None),
+                        code_graph=getattr(self, "code_graph", None),
                     )
                 except (ImportError, ModuleNotFoundError):
                     worker = WorkerFactory.create(
@@ -238,6 +244,7 @@ class Coordinator:
                         llm_backend=self.llm_backend,
                         stream=getattr(self, "stream", False),
                         content_cache=getattr(self, "content_cache", None),
+                        code_graph=getattr(self, "code_graph", None),
                     )
             else:
                 worker = WorkerFactory.create(
@@ -248,6 +255,7 @@ class Coordinator:
                     llm_backend=self.llm_backend,
                     stream=getattr(self, "stream", False),
                     content_cache=getattr(self, "content_cache", None),
+                    code_graph=getattr(self, "code_graph", None),
                 )
             self.workers[worker_id] = worker
             self._worker_index[worker.role_id] = worker

@@ -15,10 +15,12 @@ from typing import Any
 from ._version import __version__
 from .async_adapter import SyncToAsyncAdapter
 from .async_llm_backend import AsyncLLMBackendFactory
+from .dispatch_audit import DispatchAuditLogger
 from .dispatch_component_factory import ComponentConfig, ComponentFactory
 from .dispatch_hooks import DispatchHooks
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
 from .dispatch_pre_steps import PreDispatchPipeline
+from .dispatch_rbac import DispatchRBAC
 from .dispatch_result_assembler import ResultAssembler
 from .dispatch_services import MemoryPipelineService, MetricsService, PermissionService, SkillProposalService
 from .dispatch_steps import PostDispatchPipeline
@@ -83,6 +85,8 @@ class MultiAgentDispatcher:
         enable_execution_guard: bool = True,
         # V3.8 #2: Two-stage code review gate
         enable_two_stage_review: bool = True,
+        # V3.9-02: Stage 3 — Redesign audit (code simplicity check)
+        enable_redesign_audit: bool = True,
         # V3.8 #3: Severity router + auto-fix loop
         enable_severity_router: bool = True,
         # V3.8 #7: Micro-task planner (optional; when provided, dispatched
@@ -100,6 +104,18 @@ class MultiAgentDispatcher:
         # when provided, checked before LLM API calls and populated after
         # responses — adds SHA-256 key hashing + secret filtering).
         content_cache: Any = None,
+        # V3.9-02: CodeKnowledgeGraph for code-structure queries (optional;
+        # when provided, workers query the graph before LLM calls to reduce
+        # redundant Read/Grep tool usage).
+        code_graph: Any = None,
+        # V3.9-02: DispatchRBAC for dispatch-level permission checks
+        # (optional; when provided, checked at dispatch start — denied
+        # requests are logged and returned as failed DispatchResult).
+        rbac: DispatchRBAC | None = None,
+        # V3.9-02: DispatchAuditLogger for tamper-evident audit trail
+        # (optional; when provided, logs dispatch_start/dispatch_end/
+        # permission_denied/error events with SHA-256 chain hash).
+        audit_logger: DispatchAuditLogger | None = None,
         redis_url: str | None = None,
         compression_threshold: int = 100000,
         memory_dir: str | None = None,
@@ -120,6 +136,7 @@ class MultiAgentDispatcher:
         self.enable_execution_guard = enable_execution_guard
         # V3.8 feature flags
         self.enable_two_stage_review = enable_two_stage_review
+        self.enable_redesign_audit = enable_redesign_audit
         self.enable_severity_router = enable_severity_router
         self.development_mode = development_mode
         self.max_fix_iterations = max_fix_iterations
@@ -130,6 +147,12 @@ class MultiAgentDispatcher:
         self.judge_agent = judge_agent
         # V3.8 #9: Optional ContentCache wrapper for the LLM call path.
         self.content_cache = content_cache
+        # V3.9-02: Optional CodeKnowledgeGraph for code-structure queries.
+        self._code_graph = code_graph
+        # V3.9-02: Optional DispatchRBAC for dispatch-level permission checks.
+        self._rbac = rbac
+        # V3.9-02: Optional DispatchAuditLogger for tamper-evident audit trail.
+        self._audit_logger = audit_logger
         self.redis_url = redis_url
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
@@ -240,6 +263,8 @@ class MultiAgentDispatcher:
             enable_feedback_loop=self.enable_feedback_loop,
             # V3.8 #2: Two-stage review gate
             enable_two_stage_review=self.enable_two_stage_review,
+            # V3.9-02: Stage 3 — Redesign audit
+            enable_redesign_audit=self.enable_redesign_audit,
             # V3.8 #3: Severity router + auto-fix loop
             enable_severity_router=self.enable_severity_router,
             development_mode=self.development_mode,
@@ -263,6 +288,12 @@ class MultiAgentDispatcher:
         # workers via spawn_workers().
         if self.content_cache is not None:
             self.coordinator.content_cache = self.content_cache
+
+        # V3.9-02: Attach CodeKnowledgeGraph to the coordinator so workers
+        # can query the graph before LLM calls (reduces Read/Grep usage).
+        # The coordinator exposes it to workers via spawn_workers().
+        if self._code_graph is not None:
+            self.coordinator.code_graph = self._code_graph
 
     def _init_components_from_factory(self) -> None:
         """Initialize all components via ComponentFactory."""
@@ -393,6 +424,57 @@ class MultiAgentDispatcher:
         start_time = time.time()
         phase = "dispatch"
 
+        # V3.9-02: Extract user_id for RBAC and audit logging.
+        user_id = str(kwargs.get("user_id", "anonymous"))
+
+        # V3.9-02: RBAC permission check (before any work begins).
+        permission_result_dict: dict[str, Any] | None = None
+        if self._rbac is not None:
+            try:
+                # Determine the roles to check — use requested roles or
+                # fall back to a wildcard list (any role).
+                check_roles = list(roles) if roles else []
+                perm = self._rbac.check_dispatch_permission(
+                    user_id=user_id,
+                    roles=check_roles,
+                    mode=mode,
+                )
+                permission_result_dict = {
+                    "allowed": perm.allowed,
+                    "reason": perm.reason,
+                    "user_id": perm.user_id,
+                    "requested_roles": perm.requested_roles,
+                    "requested_mode": perm.requested_mode,
+                }
+                if not perm.allowed:
+                    # V3.9-02: Log permission denial to audit logger.
+                    if self._audit_logger is not None:
+                        try:
+                            self._audit_logger.log_permission_denied(
+                                user_id=user_id,
+                                reason=perm.reason,
+                            )
+                        except (ValueError, RuntimeError, OSError) as audit_err:
+                            logger.warning("Audit log_permission_denied failed: %s", audit_err)
+                    # Return a failed DispatchResult immediately.
+                    self.metrics_service.safe_record(lambda m: (
+                        m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
+                    ))
+                    denied_result = DispatchResult(
+                        success=False,
+                        task_description=task_description,
+                        errors=[f"Permission denied: {perm.reason}"],
+                        permission_result=permission_result_dict,
+                    )
+                    # V3.9-02: Attach audit entries (including the
+                    # permission_denied event that was just logged).
+                    self._attach_audit_entries(denied_result)
+                    return denied_result
+            except (ValueError, AttributeError, TypeError, RuntimeError) as rbac_err:
+                logger.warning("RBAC check failed (allowing dispatch): %s", rbac_err)
+                # Fail-open: log the error but continue dispatch (do not
+                # block on RBAC infrastructure failures).
+
         self.metrics_service.safe_record(lambda m: (
             m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
             m.tasks_in_progress_gauge.labels(phase=phase).inc(),
@@ -401,11 +483,29 @@ class MultiAgentDispatcher:
         if self.usage_tracker:
             self.usage_tracker.tick("dispatch")
 
+        # V3.9-02: Log dispatch_start to audit logger.
+        if self._audit_logger is not None:
+            try:
+                audit_roles = list(roles) if roles else []
+                self._audit_logger.log_dispatch_start(
+                    user_id=user_id,
+                    task=task_description,
+                    roles=audit_roles,
+                )
+            except (ValueError, RuntimeError, OSError) as audit_err:
+                logger.warning("Audit log_dispatch_start failed: %s", audit_err)
+
         # Pre-dispatch steps (shared with async_dispatch)
         pre_result = self.pre_dispatch.execute(task_description, roles, mode, dry_run, start_time, phase, **kwargs)
         if pre_result.early_return:
             self.metrics_service.safe_record(lambda m: m.tasks_in_progress_gauge.labels(phase=phase).dec())
-            return pre_result.early_return
+            # V3.9-02: Log dispatch_end for early return.
+            self._log_dispatch_end_audit(user_id, False, time.time() - start_time)
+            early_result = pre_result.early_return
+            if permission_result_dict is not None:
+                early_result.permission_result = permission_result_dict
+            self._attach_audit_entries(early_result)
+            return early_result
 
         tenant_ctx = pre_result.tenant_ctx
 
@@ -440,13 +540,22 @@ class MultiAgentDispatcher:
                 result.micro_task_plan = micro_task_plan.to_dict()
                 result.details["micro_task_plan"] = micro_task_plan.to_dict()
 
+            # V3.9-02: Attach RBAC permission result and audit entries.
+            if permission_result_dict is not None:
+                result.permission_result = permission_result_dict
+            self._log_dispatch_end_audit(user_id, result.success, time.time() - start_time)
+            self._attach_audit_entries(result)
+
             return result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
+            self._log_dispatch_error_audit(user_id, dispatch_err)
             return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
         except (ImportError, ModuleNotFoundError) as import_err:
+            self._log_dispatch_error_audit(user_id, import_err)
             return self._handle_dispatch_error(import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
         except (RuntimeError, OSError, ConnectionError, TimeoutError) as e:
+            self._log_dispatch_error_audit(user_id, e)
             return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang)
 
     async def async_dispatch(
@@ -616,6 +725,59 @@ class MultiAgentDispatcher:
             duration_seconds=time.time() - start_time,
             lang=lang,
         )
+
+    # ------------------------------------------------------------------
+    # V3.9-02: Audit logging helpers
+    # ------------------------------------------------------------------
+
+    def _log_dispatch_end_audit(
+        self, user_id: str, success: bool, duration: float
+    ) -> None:
+        """Log dispatch_end event to the audit logger (if configured)."""
+        if self._audit_logger is None:
+            return
+        try:
+            self._audit_logger.log_dispatch_end(
+                user_id=user_id,
+                success=success,
+                duration=duration,
+            )
+        except (ValueError, RuntimeError, OSError) as audit_err:
+            logger.warning("Audit log_dispatch_end failed: %s", audit_err)
+
+    def _log_dispatch_error_audit(
+        self, user_id: str, error: Exception
+    ) -> None:
+        """Log an error event to the audit logger (if configured)."""
+        if self._audit_logger is None:
+            return
+        try:
+            self._audit_logger.log_error(
+                user_id=user_id,
+                error_type=type(error).__name__,
+                context={"message": str(error)[:200]},
+            )
+        except (ValueError, RuntimeError, OSError) as audit_err:
+            logger.warning("Audit log_error failed: %s", audit_err)
+
+    def _attach_audit_entries(self, result: DispatchResult) -> None:
+        """Attach recent audit entries to the dispatch result."""
+        if self._audit_logger is None:
+            return
+        try:
+            entries = self._audit_logger.get_entries(limit=50)
+            result.audit_entries = [
+                {
+                    "event_type": e.event_type,
+                    "user_id": e.user_id,
+                    "timestamp": e.timestamp,
+                    "details": e.details,
+                    "entry_hash": e.entry_hash,
+                }
+                for e in entries
+            ]
+        except (ValueError, RuntimeError, OSError) as audit_err:
+            logger.warning("Audit get_entries failed: %s", audit_err)
 
     def _resolve_language(self, lang: str) -> str:
         """Resolve language from 'auto' to a specific language code."""

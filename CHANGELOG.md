@@ -7,6 +7,44 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.0] - 2026-06-22
+
+### Added — Code Intelligence (inspired by colbymchenry/codegraph)
+- **V39-01 CodeKnowledgeGraph** (`code_knowledge_graph.py` + `code_graph_storage.py`): Persistent SQLite-backed code structure graph with incremental updates. Query symbols, callers, callees, dependencies, call graph, and similar implementations. 40 tests.
+- **V39-02 MCP codegraph_explore** (`mcp_server.py`): Three new MCP tools — `codegraph_explore`, `codegraph_status`, `codegraph_refresh` — for external agents to query the code graph.
+
+### Added — Efficiency Optimization (inspired by DietrichGebert/ponytail)
+- **V39-03 YagniChecker** (`yagni_checker.py`): YAGNI ladder check for micro-tasks. 6-rung ladder: NECESSARY → SKIP → USE_STDLIB → USE_DEPENDENCY → ONE_LINER → MINIMAL. Security/error/test tasks never skipped. 34 tests.
+- **V39-04 PromptDials** (`prompt_dials.py`): Three-dimension prompt tuning (VERBOSITY/CREATIVITY/RISK_TOLERANCE, 1-5 each). Backward compatible with variant system. 33 tests.
+
+### Added — Code Review Enhancement (inspired by Leonxlnx/taste-skill)
+- **V39-05 RedesignAuditor** (`redesign_auditor.py`): Third-stage code simplicity audit. Checks YAGNI/STDLIB/DUPLICATE/OVERENGINEERING categories. Integrated into TwoStageReviewGate as Stage 3. 28 tests.
+
+### Added — Production Readiness
+- **V39-06 DispatchRBAC** (`dispatch_rbac.py`): RBAC0 permission model for dispatch pipeline. Role-level + mode-level permission checks. 18 tests.
+- **V39-06 DispatchAuditLogger** (`dispatch_audit.py`): Append-only audit log with SHA-256 chain hash. Records dispatch lifecycle events. Tamper detection via chain verification. 23 tests.
+
+### Changed — Dispatch Pipeline Integration (Anti-Ghost-Feature)
+- **Dispatcher**: Accepts `code_graph`, `rbac`, `audit_logger` optional parameters. RBAC check at dispatch start, audit logging throughout lifecycle.
+- **Worker**: Queries CodeKnowledgeGraph before LLM calls to reduce Read/Grep tool usage.
+- **MicroTaskPlanner**: Runs YagniChecker on each micro-task, skips unnecessary tasks.
+- **PromptAssembler**: Accepts `PromptDials` for three-dimension prompt tuning.
+- **TwoStageReviewGate**: Third stage `REDESIGN` enabled by default (`enable_redesign_audit=True`).
+- **DispatchResult**: New fields `permission_result` and `audit_entries`.
+
+### Test Coverage
+- **Total tests**: 2591 passed, 18 skipped (including 28 V3.9 integration tests)
+- **New modules**: 7 modules + 6 test files = 176 new unit tests + 28 integration tests
+- **Ghost feature check**: All 7 modules imported and called by production code (verified by grep)
+- **ruff**: All checks passed
+- **7-role consensus**: PRD approved at 77.9% (≥70% gate)
+
+### Documentation
+- PRD: `docs/prd/V3.9_PRD_Code_Intelligence.md`
+- Consensus Review: `docs/planning/V3.9_PRD_Consensus_Review.md`
+- Technical Design: `docs/architecture/V3.9_Technical_Design.md`
+- Test Plan: `docs/prd/V3.9_Test_Plan.md`
+
 ## [3.8.1] - 2026-06-21
 
 ### Fixed
