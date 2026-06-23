@@ -7,6 +7,22 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.1] - 2026-06-23
+
+### Changed — Refactoring & Quality
+- **File split**: `code_knowledge_graph.py` 511→346 lines (extracted `CodeGraphQuery` to `code_graph_query.py`, 182 lines)
+- **File split**: `redesign_auditor.py` 550→229 lines (extracted detection methods to `redesign_checkers.py`, 415 lines)
+- **RedesignAuditor false-positive fix**: `_normalize_block` now preserves Python builtins (not just keywords) and uses sequential identifier naming (id0, id1, ...) to maintain structural distinction. `_count_dead_code_lines` no longer counts blank lines as dead code.
+- **CI improvement**: E2E tests now run on release tags (`v*`) in addition to nightly schedule. Build job now depends on `test + lint + security` (was `test` only).
+
+### Added — Multi-Host Adapter (V39-07, inspired by ponytail multi-platform plugin)
+- **MultiHostAdapter** (`multi_host_adapter.py`): Unified adapter for dispatching DevSquad tasks from 6 AI host platforms — Claude Code, Cursor, Codex CLI, Cline, Trae, and Generic. Host-specific role mapping, prompt adaptation, and output slicing. 32 tests.
+
+### Test Coverage
+- 2629 passed, 18 skipped (was 2597 in V3.9.0)
+- 0 files >500 lines in `scripts/collaboration/` (was 2)
+- 95+ core modules (was 94+)
+
 ## [3.9.0] - 2026-06-22
 
 ### Added — Code Intelligence (inspired by colbymchenry/codegraph)

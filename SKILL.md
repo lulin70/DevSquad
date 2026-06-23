@@ -7,11 +7,11 @@ description: |
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  V3.9.0: CodeKnowledgeGraph + MCP codegraph_explore + YagniChecker + PromptDials + RedesignAudit + RBAC/Audit integration,
-  94+ core modules, 2597+ tests passing.
+  V3.9.1: File splits (code_knowledge_graph 511→346, redesign_auditor 550→229) + RedesignAuditor false-positive fix (builtins preserved, sequential naming, blank lines excluded from dead code) + Multi-host adapter (Claude Code/Cursor/Codex/Cline/Trae/Generic) + CI E2E release gate + build depends on lint+security,
+96+ core modules, 2629+ tests passing.
 ---
 
-# DevSquad V3.9.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V3.9.1 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -62,7 +62,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (94+ Core Modules)
+## Architecture Overview (96+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -153,6 +153,16 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 84 | **JudgeAgent** | `judge_agent.py` | Finding arbitration: dedup, conflict resolution, confidence filtering, history learning |
 | 85 | **MicroTaskPlanner** | `micro_task_planner.py` | 2-5 min micro-task decomposition with file paths + verification commands |
 | 86 | **ContentCache** | `content_cache.py` | Unified SHA-256 content cache with sensitive-data filtering |
+| 87 | **CodeKnowledgeGraph** | `code_knowledge_graph.py` | Persistent SQLite code structure graph with incremental updates |
+| 88 | **CodeGraphQuery** | `code_graph_query.py` | Query interface for code graph (find_symbol/callers/callees/similar) |
+| 89 | **CodeGraphStorage** | `code_graph_storage.py` | SQLite storage layer for code graph (symbols/edges/files) |
+| 90 | **YagniChecker** | `yagni_checker.py` | YAGNI ladder checker (6 levels, safety tasks never skipped) |
+| 91 | **PromptDials** | `prompt_dials.py` | Three-dimension prompt control (verbosity/creativity/risk_tolerance) |
+| 92 | **RedesignAuditor** | `redesign_auditor.py` | Third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING) |
+| 93 | **RedesignCheckers** | `redesign_checkers.py` | Detection methods for RedesignAuditor (extracted from redesign_auditor.py) |
+| 94 | **DispatchRBAC** | `dispatch_rbac.py` | RBAC permission control integrated with AuthManager |
+| 95 | **DispatchAuditLogger** | `dispatch_audit.py` | SHA-256 chain hash audit logging for dispatch lifecycle |
+| 96 | **MultiHostAdapter** | `multi_host_adapter.py` | Multi-host adapter (Claude Code/Cursor/Codex/Cline/Trae/Generic) |
 
 ---
 
@@ -288,7 +298,7 @@ roles = selector.select_roles("Fix security bug", intent="bug_fix")
 
 ---
 
-## Architecture Overview (94+ Core Modules)
+## Architecture Overview (96+ Core Modules)
 
 ## Quick Start (Must Follow)
 
@@ -936,12 +946,13 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V3.9.0 PromptDials** | **33** | **✅ PASS** |
 | **V3.9.0 RedesignAuditor** | **28** | **✅ PASS** |
 | **V3.9.0 E2E + Integration + Performance** | **68** | **✅ PASS** |
-| **Total** | **2597+** | **✅ ALL PASS** |
+| **Total** | **2629+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v3.9.1** (2026-06-23): File splits (code_knowledge_graph 511→346, redesign_auditor 550→229) + RedesignAuditor false-positive fix (builtins preserved, sequential naming, blank lines excluded from dead code) + MultiHostAdapter (6 host types: Claude Code/Cursor/Codex/Cline/Trae/Generic, 32 tests) + CI E2E release tag gate + build depends on lint+security + 0 files >500 lines + 95+ core modules + 2629 tests passing
 - **v3.9.0** (2026-06-22): CodeKnowledgeGraph (SQLite-backed symbols/edges/files storage, 40 tests) + MCP codegraph_explore tools (symbol/callers/callees/traversal/status) + YagniChecker (34 tests) + PromptDials (verbosity/creativity dials, 33 tests) + RedesignAuditor third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING, 28 tests) + DispatchRBAC integration with AuthManager (17 tests) + DispatchAuditLogger SHA-256 chain hash (24 tests) + V3.9.0 E2E/Integration/Performance (68 tests) + P0 security fixes (audit hash length-prefixed fields, RBAC open-mode warning) + P1 thread safety (CodeGraphStorage check_same_thread=False + Lock) + 94+ core modules + 2597 tests passing
 - **v3.8.0** (2026-06-21): Two-Stage Review Gate (spec compliance + code quality, 40 tests) + Severity Router with auto-fix loop (51 tests) + Judge Agent with history learning (33 tests) + Micro-Task Planner (2-5 min decomposition, 47 tests) + Content Cache with sensitive-data filtering (32 tests) + Jitter Strategies (NONE/EQUAL/FULL/DECORRELATED, 9 tests) + NodeType classification (DETERMINISTIC/LLM/HYBRID, 14 tests) + V3.8 Planning Docs (5 docs, 2482 lines) + 86+ core modules + 2339 tests passing + maturity 65%→72%
 - **v3.7.2** (2026-06-16): EventBus + Dispatcher split (1660→706 lines, -57%) + Mixin→Composition (3 Mixins eliminated) + f-string logger eliminated (166 fixes) + EnhancedWorker bug fix (_do_work type mismatch) + config_loader dead code removed + skillifier parasitic coupling refactored (8 _storage._xxx→public interface) + broad except narrowed (29 fixes) + DispatchPerformanceMonitor renamed + .gitignore updated + 2115 tests passing
