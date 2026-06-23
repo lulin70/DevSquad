@@ -12,6 +12,7 @@ Tables:
 
 import logging
 import sqlite3
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -67,14 +68,16 @@ class CodeGraphStorage:
         """
         db_path = Path(db_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn: sqlite3.Connection = sqlite3.connect(str(db_path))
+        self._lock = threading.Lock()
+        self._conn: sqlite3.Connection = sqlite3.connect(str(db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._create_tables()
 
     def _create_tables(self) -> None:
         """Create database tables and indexes if they don't exist."""
-        cur = self._conn.cursor()
-        cur.executescript(
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.executescript(
             """
             CREATE TABLE IF NOT EXISTS symbols (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,8 +116,8 @@ class CodeGraphStorage:
             CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(edge_type, target);
             CREATE INDEX IF NOT EXISTS idx_edges_file ON edges(file_path);
             """
-        )
-        self._conn.commit()
+            )
+            self._conn.commit()
 
     def upsert_symbol(self, symbol: SymbolInfo) -> bool:
         """Insert or update a single symbol.
@@ -125,44 +128,8 @@ class CodeGraphStorage:
         Returns:
             True if the symbol was inserted or updated.
         """
-        cur = self._conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO symbols (name, symbol_type, file_path, line_start, line_end, docstring, signature)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(name, file_path, line_start) DO UPDATE SET
-                symbol_type=excluded.symbol_type,
-                line_end=excluded.line_end,
-                docstring=excluded.docstring,
-                signature=excluded.signature
-            """,
-            (
-                symbol.name,
-                symbol.symbol_type,
-                symbol.file_path,
-                symbol.line_start,
-                symbol.line_end,
-                symbol.docstring,
-                symbol.signature,
-            ),
-        )
-        self._conn.commit()
-        return cur.rowcount > 0
-
-    def upsert_symbols(self, symbols: list[SymbolInfo]) -> int:
-        """Batch upsert symbols in a single transaction.
-
-        Args:
-            symbols: List of SymbolInfo dataclasses to upsert.
-
-        Returns:
-            Number of symbols upserted.
-        """
-        if not symbols:
-            return 0
-        cur = self._conn.cursor()
-        count = 0
-        for symbol in symbols:
+        with self._lock:
+            cur = self._conn.cursor()
             cur.execute(
                 """
                 INSERT INTO symbols (name, symbol_type, file_path, line_start, line_end, docstring, signature)
@@ -183,10 +150,48 @@ class CodeGraphStorage:
                     symbol.signature,
                 ),
             )
-            if cur.rowcount > 0:
-                count += 1
-        self._conn.commit()
-        return count
+            self._conn.commit()
+            return cur.rowcount > 0
+
+    def upsert_symbols(self, symbols: list[SymbolInfo]) -> int:
+        """Batch upsert symbols in a single transaction.
+
+        Args:
+            symbols: List of SymbolInfo dataclasses to upsert.
+
+        Returns:
+            Number of symbols upserted.
+        """
+        if not symbols:
+            return 0
+        with self._lock:
+            cur = self._conn.cursor()
+            count = 0
+            for symbol in symbols:
+                cur.execute(
+                    """
+                    INSERT INTO symbols (name, symbol_type, file_path, line_start, line_end, docstring, signature)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(name, file_path, line_start) DO UPDATE SET
+                        symbol_type=excluded.symbol_type,
+                        line_end=excluded.line_end,
+                        docstring=excluded.docstring,
+                        signature=excluded.signature
+                    """,
+                    (
+                        symbol.name,
+                        symbol.symbol_type,
+                        symbol.file_path,
+                        symbol.line_start,
+                        symbol.line_end,
+                        symbol.docstring,
+                        symbol.signature,
+                    ),
+                )
+                if cur.rowcount > 0:
+                    count += 1
+            self._conn.commit()
+            return count
 
     def delete_symbols_for_file(self, file_path: str) -> int:
         """Delete all symbols associated with a file.
@@ -197,10 +202,11 @@ class CodeGraphStorage:
         Returns:
             Number of symbols deleted.
         """
-        cur = self._conn.cursor()
-        cur.execute("DELETE FROM symbols WHERE file_path = ?", (file_path,))
-        self._conn.commit()
-        return cur.rowcount
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("DELETE FROM symbols WHERE file_path = ?", (file_path,))
+            self._conn.commit()
+            return cur.rowcount
 
     def upsert_call_edge(self, edge: CallEdge) -> bool:
         """Insert or update a single call edge.
@@ -211,18 +217,19 @@ class CodeGraphStorage:
         Returns:
             True if the edge was inserted or updated.
         """
-        cur = self._conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
-            VALUES ('call', ?, ?, ?, ?, '')
-            ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
-                target=excluded.target
-            """,
-            (edge.caller, edge.callee, edge.file_path, edge.line),
-        )
-        self._conn.commit()
-        return cur.rowcount > 0
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
+                VALUES ('call', ?, ?, ?, ?, '')
+                ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
+                    target=excluded.target
+                """,
+                (edge.caller, edge.callee, edge.file_path, edge.line),
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
 
     def upsert_call_edges(self, edges: list[CallEdge]) -> int:
         """Batch upsert call edges in a single transaction.
@@ -235,22 +242,23 @@ class CodeGraphStorage:
         """
         if not edges:
             return 0
-        cur = self._conn.cursor()
-        count = 0
-        for edge in edges:
-            cur.execute(
-                """
-                INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
-                VALUES ('call', ?, ?, ?, ?, '')
-                ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
-                    target=excluded.target
-                """,
-                (edge.caller, edge.callee, edge.file_path, edge.line),
-            )
-            if cur.rowcount > 0:
-                count += 1
-        self._conn.commit()
-        return count
+        with self._lock:
+            cur = self._conn.cursor()
+            count = 0
+            for edge in edges:
+                cur.execute(
+                    """
+                    INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
+                    VALUES ('call', ?, ?, ?, ?, '')
+                    ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
+                        target=excluded.target
+                    """,
+                    (edge.caller, edge.callee, edge.file_path, edge.line),
+                )
+                if cur.rowcount > 0:
+                    count += 1
+            self._conn.commit()
+            return count
 
     def delete_edges_for_file(self, file_path: str) -> int:
         """Delete all edges associated with a file.
@@ -261,10 +269,11 @@ class CodeGraphStorage:
         Returns:
             Number of edges deleted.
         """
-        cur = self._conn.cursor()
-        cur.execute("DELETE FROM edges WHERE file_path = ?", (file_path,))
-        self._conn.commit()
-        return cur.rowcount
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("DELETE FROM edges WHERE file_path = ?", (file_path,))
+            self._conn.commit()
+            return cur.rowcount
 
     def upsert_dependency(self, dep: DependencyEdge) -> bool:
         """Insert or update a dependency edge.
@@ -275,18 +284,19 @@ class CodeGraphStorage:
         Returns:
             True if the dependency was inserted or updated.
         """
-        cur = self._conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
-            VALUES ('dependency', ?, ?, '', 0, ?)
-            ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
-                import_type=excluded.import_type
-            """,
-            (dep.source_module, dep.target_module, dep.import_type),
-        )
-        self._conn.commit()
-        return cur.rowcount > 0
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
+                VALUES ('dependency', ?, ?, '', 0, ?)
+                ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
+                    import_type=excluded.import_type
+                """,
+                (dep.source_module, dep.target_module, dep.import_type),
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
 
     def upsert_file(self, path: str, hash: str, line_count: int) -> bool:
         """Insert or update file metadata (path, hash, line count).
@@ -299,21 +309,22 @@ class CodeGraphStorage:
         Returns:
             True if the file record was inserted or updated.
         """
-        cur = self._conn.cursor()
-        now = datetime.now(timezone.utc).isoformat()
-        cur.execute(
-            """
-            INSERT INTO files (path, hash, line_count, updated_at)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(path) DO UPDATE SET
-                hash=excluded.hash,
-                line_count=excluded.line_count,
-                updated_at=excluded.updated_at
-            """,
-            (path, hash, line_count, now),
-        )
-        self._conn.commit()
-        return cur.rowcount > 0
+        with self._lock:
+            cur = self._conn.cursor()
+            now = datetime.now(timezone.utc).isoformat()
+            cur.execute(
+                """
+                INSERT INTO files (path, hash, line_count, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(path) DO UPDATE SET
+                    hash=excluded.hash,
+                    line_count=excluded.line_count,
+                    updated_at=excluded.updated_at
+                """,
+                (path, hash, line_count, now),
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
 
     def get_file_hash(self, path: str) -> str | None:
         """Get the stored content hash for a file.
@@ -324,10 +335,11 @@ class CodeGraphStorage:
         Returns:
             The SHA256 hash string, or None if the file is not tracked.
         """
-        cur = self._conn.cursor()
-        cur.execute("SELECT hash FROM files WHERE path = ?", (path,))
-        row = cur.fetchone()
-        return row[0] if row else None
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("SELECT hash FROM files WHERE path = ?", (path,))
+            row = cur.fetchone()
+            return row[0] if row else None
 
     def query_symbol(self, name: str) -> list[SymbolInfo]:
         """Query symbols by exact name.
@@ -338,9 +350,10 @@ class CodeGraphStorage:
         Returns:
             List of matching SymbolInfo objects (may span multiple files).
         """
-        cur = self._conn.cursor()
-        cur.execute("SELECT * FROM symbols WHERE name = ?", (name,))
-        return [self._row_to_symbol(row) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("SELECT * FROM symbols WHERE name = ?", (name,))
+            return [self._row_to_symbol(row) for row in cur.fetchall()]
 
     def query_callers(self, function_name: str) -> list[SymbolInfo]:
         """Find symbols that call the given function.
@@ -351,16 +364,17 @@ class CodeGraphStorage:
         Returns:
             List of SymbolInfo objects for caller symbols.
         """
-        cur = self._conn.cursor()
-        cur.execute(
-            """
-            SELECT DISTINCT s.* FROM symbols s
-            JOIN edges e ON s.name = e.source AND s.file_path = e.file_path
-            WHERE e.edge_type = 'call' AND e.target = ?
-            """,
-            (function_name,),
-        )
-        return [self._row_to_symbol(row) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT DISTINCT s.* FROM symbols s
+                JOIN edges e ON s.name = e.source AND s.file_path = e.file_path
+                WHERE e.edge_type = 'call' AND e.target = ?
+                """,
+                (function_name,),
+            )
+            return [self._row_to_symbol(row) for row in cur.fetchall()]
 
     def query_callees(self, function_name: str) -> list[SymbolInfo]:
         """Find symbols called by the given function.
@@ -371,16 +385,17 @@ class CodeGraphStorage:
         Returns:
             List of SymbolInfo objects for callee symbols that exist in the codebase.
         """
-        cur = self._conn.cursor()
-        cur.execute(
-            """
-            SELECT DISTINCT s.* FROM symbols s
-            JOIN edges e ON s.name = e.target
-            WHERE e.edge_type = 'call' AND e.source = ?
-            """,
-            (function_name,),
-        )
-        return [self._row_to_symbol(row) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT DISTINCT s.* FROM symbols s
+                JOIN edges e ON s.name = e.target
+                WHERE e.edge_type = 'call' AND e.source = ?
+                """,
+                (function_name,),
+            )
+            return [self._row_to_symbol(row) for row in cur.fetchall()]
 
     def query_dependencies(self, module_path: str) -> list[DependencyEdge]:
         """Query dependency edges for a module.
@@ -391,19 +406,20 @@ class CodeGraphStorage:
         Returns:
             List of DependencyEdge objects.
         """
-        cur = self._conn.cursor()
-        cur.execute(
-            "SELECT * FROM edges WHERE edge_type = 'dependency' AND source = ?",
-            (module_path,),
-        )
-        return [
-            DependencyEdge(
-                source_module=row["source"],
-                target_module=row["target"],
-                import_type=row["import_type"],
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                "SELECT * FROM edges WHERE edge_type = 'dependency' AND source = ?",
+                (module_path,),
             )
-            for row in cur.fetchall()
-        ]
+            return [
+                DependencyEdge(
+                    source_module=row["source"],
+                    target_module=row["target"],
+                    import_type=row["import_type"],
+                )
+                for row in cur.fetchall()
+            ]
 
     def query_symbols_by_type(self, symbol_type: str) -> list[SymbolInfo]:
         """Query symbols by type (function, class, method, module).
@@ -414,9 +430,10 @@ class CodeGraphStorage:
         Returns:
             List of matching SymbolInfo objects.
         """
-        cur = self._conn.cursor()
-        cur.execute("SELECT * FROM symbols WHERE symbol_type = ?", (symbol_type,))
-        return [self._row_to_symbol(row) for row in cur.fetchall()]
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("SELECT * FROM symbols WHERE symbol_type = ?", (symbol_type,))
+            return [self._row_to_symbol(row) for row in cur.fetchall()]
 
     def get_stats(self) -> dict:
         """Get storage statistics.
@@ -424,21 +441,22 @@ class CodeGraphStorage:
         Returns:
             Dictionary with counts: symbols, call_edges, dependencies, files.
         """
-        cur = self._conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM symbols")
-        symbol_count = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM edges WHERE edge_type = 'call'")
-        call_edge_count = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM edges WHERE edge_type = 'dependency'")
-        dep_count = cur.fetchone()[0]
-        cur.execute("SELECT COUNT(*) FROM files")
-        file_count = cur.fetchone()[0]
-        return {
-            "symbols": symbol_count,
-            "call_edges": call_edge_count,
-            "dependencies": dep_count,
-            "files": file_count,
-        }
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM symbols")
+            symbol_count = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM edges WHERE edge_type = 'call'")
+            call_edge_count = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM edges WHERE edge_type = 'dependency'")
+            dep_count = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM files")
+            file_count = cur.fetchone()[0]
+            return {
+                "symbols": symbol_count,
+                "call_edges": call_edge_count,
+                "dependencies": dep_count,
+                "files": file_count,
+            }
 
     def _row_to_symbol(self, row: sqlite3.Row) -> SymbolInfo:
         """Convert a database row to a SymbolInfo dataclass.
@@ -461,4 +479,5 @@ class CodeGraphStorage:
 
     def close(self) -> None:
         """Close the database connection."""
-        self._conn.close()
+        with self._lock:
+            self._conn.close()

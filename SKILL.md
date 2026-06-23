@@ -8,7 +8,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V3.9.0: CodeKnowledgeGraph + MCP codegraph_explore + YagniChecker + PromptDials + RedesignAudit + RBAC/Audit integration,
-  94+ core modules, 2591+ tests passing.
+  94+ core modules, 2597+ tests passing.
 ---
 
 # DevSquad V3.9.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -62,7 +62,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (86+ Core Modules)
+## Architecture Overview (94+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -288,7 +288,7 @@ roles = selector.select_roles("Fix security bug", intent="bug_fix")
 
 ---
 
-## Architecture Overview (86+ Core Modules)
+## Architecture Overview (94+ Core Modules)
 
 ## Quick Start (Must Follow)
 
@@ -929,12 +929,20 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V3.8.0 SeverityRouter** | **51** | **✅ PASS** |
 | **V3.8.0 JudgeAgent** | **33** | **✅ PASS** |
 | **V3.8.0 MicroTaskPlanner** | **47** | **✅ PASS** |
-| **Total** | **2339+** | **✅ ALL PASS** |
+| **V3.9.0 CodeKnowledgeGraph** | **40** | **✅ PASS** |
+| **V3.9.0 DispatchRBAC** | **17** | **✅ PASS** |
+| **V3.9.0 DispatchAuditLogger** | **24** | **✅ PASS** |
+| **V3.9.0 YagniChecker** | **34** | **✅ PASS** |
+| **V3.9.0 PromptDials** | **33** | **✅ PASS** |
+| **V3.9.0 RedesignAuditor** | **28** | **✅ PASS** |
+| **V3.9.0 E2E + Integration + Performance** | **68** | **✅ PASS** |
+| **Total** | **2597+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v3.9.0** (2026-06-22): CodeKnowledgeGraph (SQLite-backed symbols/edges/files storage, 40 tests) + MCP codegraph_explore tools (symbol/callers/callees/traversal/status) + YagniChecker (34 tests) + PromptDials (verbosity/creativity dials, 33 tests) + RedesignAuditor third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING, 28 tests) + DispatchRBAC integration with AuthManager (17 tests) + DispatchAuditLogger SHA-256 chain hash (24 tests) + V3.9.0 E2E/Integration/Performance (68 tests) + P0 security fixes (audit hash length-prefixed fields, RBAC open-mode warning) + P1 thread safety (CodeGraphStorage check_same_thread=False + Lock) + 94+ core modules + 2597 tests passing
 - **v3.8.0** (2026-06-21): Two-Stage Review Gate (spec compliance + code quality, 40 tests) + Severity Router with auto-fix loop (51 tests) + Judge Agent with history learning (33 tests) + Micro-Task Planner (2-5 min decomposition, 47 tests) + Content Cache with sensitive-data filtering (32 tests) + Jitter Strategies (NONE/EQUAL/FULL/DECORRELATED, 9 tests) + NodeType classification (DETERMINISTIC/LLM/HYBRID, 14 tests) + V3.8 Planning Docs (5 docs, 2482 lines) + 86+ core modules + 2339 tests passing + maturity 65%→72%
 - **v3.7.2** (2026-06-16): EventBus + Dispatcher split (1660→706 lines, -57%) + Mixin→Composition (3 Mixins eliminated) + f-string logger eliminated (166 fixes) + EnhancedWorker bug fix (_do_work type mismatch) + config_loader dead code removed + skillifier parasitic coupling refactored (8 _storage._xxx→public interface) + broad except narrowed (29 fixes) + DispatchPerformanceMonitor renamed + .gitignore updated + 2115 tests passing
 - **v3.7.0** (2026-06-15): RoleSkillLoader + PM Methodology Skills (5 SKILL.md: create-prd/opportunity-solution-tree/prioritization-frameworks/assumption-mapping/experiment-design) + suggested_next_steps in dispatch results + SKILL.md security scanner (7 patterns) + 76 core modules + 2109 tests passing

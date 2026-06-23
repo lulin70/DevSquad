@@ -34,6 +34,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from scripts.collaboration.code_knowledge_graph import CodeKnowledgeGraph
 from scripts.collaboration.dispatch_audit import DispatchAuditLogger
 from scripts.collaboration.dispatch_rbac import DispatchRBAC
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+from scripts.collaboration.micro_task_planner import MicroTaskPlanner
 from scripts.collaboration.prompt_dials import PromptDials
 from scripts.collaboration.redesign_auditor import RedesignAuditor
 from scripts.collaboration.yagni_checker import YagniChecker
@@ -49,6 +51,10 @@ AUDIT_LOG_TARGET_MS = 1.0
 PROMPT_DIALS_TARGET_MS = 1.0
 YAGNI_CHECKER_TARGET_MS = 5.0
 REDESIGN_AUDIT_TARGET_MS = 100.0
+# Extended benchmarks (full pipeline + build + chain verification).
+FULL_DISPATCH_TARGET_MS = 2000.0
+GRAPH_BUILD_TARGET_MS = 5000.0
+VERIFY_CHAIN_TARGET_MS = 500.0
 
 # Number of measured runs per benchmark. Median is robust with >= 10 samples.
 MEASURED_RUNS = 15
@@ -487,6 +493,208 @@ class TestRedesignAuditPerformance:
         assert median_ms < REDESIGN_AUDIT_TARGET_MS, (
             f"RedesignAuditor.audit (clean) median {median_ms:.3f}ms >= "
             f"{REDESIGN_AUDIT_TARGET_MS}ms target"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Benchmark 8: Full dispatch with all V3.9 modules <2s (mock mode)
+# ---------------------------------------------------------------------------
+
+
+class TestFullDispatchPerformance:
+    """Verify a full dispatch with all V3.9 modules completes under 2s."""
+
+    def test_full_dispatch_with_v39_modules_under_2s(self) -> None:
+        """Verify: full dispatch (mock mode) median latency < 2s.
+
+        Scenario: Configure a dispatcher with CodeKnowledgeGraph +
+        DispatchRBAC + DispatchAuditLogger + MicroTaskPlanner, then
+        dispatch a simple task in mock mode (no LLM backend).
+
+        Expected: Median latency across 5 runs is under 2000ms.
+        """
+        tmpdir, project_root = _make_temp_project()
+        try:
+            db_path = Path(tmpdir) / "codegraph.db"
+            graph = CodeKnowledgeGraph(db_path)
+            graph.build_from_project(project_root)
+
+            mock_auth = MagicMock()
+            mock_auth.credentials = {"admin_user": {"role": "admin"}}
+            rbac = DispatchRBAC(auth_manager=mock_auth)
+            audit = DispatchAuditLogger()
+            planner = MicroTaskPlanner(yagni_checker=YagniChecker())
+
+            # Warmup: one dispatch (not measured) to amortize cold-start.
+            warmup_disp = MultiAgentDispatcher(
+                persist_dir=tmpdir,
+                code_graph=graph,
+                micro_task_planner=planner,
+                rbac=rbac,
+                audit_logger=audit,
+                enable_rbac=False,
+            )
+            warmup_disp.dispatch(
+                "Write a hello function",
+                roles=["solo-coder"],
+                user_id="admin_user",
+            )
+            warmup_disp.shutdown()
+
+            counter = [0]
+
+            def _measured_dispatch() -> None:
+                counter[0] += 1
+                disp = MultiAgentDispatcher(
+                    persist_dir=tmpdir,
+                    code_graph=graph,
+                    micro_task_planner=planner,
+                    rbac=rbac,
+                    audit_logger=audit,
+                    enable_rbac=False,
+                )
+                result = disp.dispatch(
+                    "Write a hello function",
+                    roles=["solo-coder"],
+                    user_id="admin_user",
+                )
+                assert result.success, (
+                    f"Dispatch run {counter[0]} failed: {result.errors}"
+                )
+                disp.shutdown()
+
+            # Use 5 runs (full dispatch is heavier than unit benchmarks).
+            median_ms = _measure_ms(_measured_dispatch, runs=5)
+            assert median_ms < FULL_DISPATCH_TARGET_MS, (
+                f"Full dispatch median {median_ms:.3f}ms >= "
+                f"{FULL_DISPATCH_TARGET_MS}ms target"
+            )
+
+            graph.close()
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# Benchmark 9: CodeKnowledgeGraph build_from_project <5s
+# ---------------------------------------------------------------------------
+
+
+class TestGraphBuildPerformance:
+    """Verify CodeKnowledgeGraph.build_from_project() completes under 5s."""
+
+    def test_build_from_collaboration_dir_under_5s(self) -> None:
+        """Verify: build_from_project median latency < 5s.
+
+        Scenario: Build the code graph from the real scripts/collaboration/
+        directory (88+ Python files) and measure the build time.
+
+        Expected: Median latency across 3 runs is under 5000ms.
+        """
+        project_root = Path(
+            os.path.join(os.path.dirname(__file__), "..", "scripts", "collaboration")
+        ).resolve()
+        assert project_root.is_dir(), (
+            f"scripts/collaboration/ not found at {project_root}"
+        )
+
+        tmpdir = tempfile.mkdtemp(prefix="v39_perf_build_")
+        try:
+            # Warmup: one build (not measured).
+            warmup_db = Path(tmpdir) / "warmup.db"
+            warmup_graph = CodeKnowledgeGraph(warmup_db)
+            warmup_graph.build_from_project(project_root)
+            warmup_stats = warmup_graph.get_stats()
+            warmup_graph.close()
+            assert warmup_stats["files"] >= 10, (
+                f"Expected >=10 files indexed, got {warmup_stats['files']}"
+            )
+
+            counter = [0]
+
+            def _measured_build() -> None:
+                counter[0] += 1
+                db = Path(tmpdir) / f"build_{counter[0]}.db"
+                g = CodeKnowledgeGraph(db)
+                g.build_from_project(project_root)
+                g.close()
+
+            # Use 3 runs (full project build is the heaviest benchmark).
+            median_ms = _measure_ms(_measured_build, runs=3)
+            assert median_ms < GRAPH_BUILD_TARGET_MS, (
+                f"build_from_project median {median_ms:.3f}ms >= "
+                f"{GRAPH_BUILD_TARGET_MS}ms target"
+            )
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# Benchmark 10: DispatchAuditLogger verify_chain <500ms
+# ---------------------------------------------------------------------------
+
+
+class TestVerifyChainPerformance:
+    """Verify DispatchAuditLogger.verify_chain() completes under 500ms."""
+
+    def test_verify_chain_50_entries_under_500ms(self) -> None:
+        """Verify: verify_chain (50 entries) median latency < 500ms.
+
+        Scenario: Log 50 audit entries (alternating dispatch_start and
+        dispatch_end), then call verify_chain to recompute all hashes.
+
+        Expected: Median latency across 15 runs is under 500ms.
+        """
+        audit_logger = DispatchAuditLogger()
+
+        # Populate the chain with 50 entries.
+        for i in range(50):
+            if i % 2 == 0:
+                audit_logger.log_dispatch_start(
+                    user_id=f"user_{i}",
+                    task=f"task {i}",
+                    roles=["architect"],
+                )
+            else:
+                audit_logger.log_dispatch_end(
+                    user_id=f"user_{i}",
+                    success=True,
+                    duration=0.5,
+                )
+
+        assert audit_logger.count() == 50, (
+            f"Expected 50 entries, got {audit_logger.count()}"
+        )
+
+        # Warmup.
+        audit_logger.verify_chain()
+
+        median_ms = _measure_ms(lambda: audit_logger.verify_chain())
+        assert median_ms < VERIFY_CHAIN_TARGET_MS, (
+            f"verify_chain (50 entries) median {median_ms:.3f}ms >= "
+            f"{VERIFY_CHAIN_TARGET_MS}ms target"
+        )
+
+    def test_verify_chain_empty_under_500ms(self) -> None:
+        """Verify: verify_chain on empty chain median latency < 500ms.
+
+        Scenario: An empty audit chain (no entries) is verified. This
+        exercises the early-return path.
+
+        Expected: Median latency across 15 runs is under 500ms.
+        """
+        audit_logger = DispatchAuditLogger()
+
+        audit_logger.verify_chain()  # warmup
+
+        median_ms = _measure_ms(lambda: audit_logger.verify_chain())
+        assert median_ms < VERIFY_CHAIN_TARGET_MS, (
+            f"verify_chain (empty) median {median_ms:.3f}ms >= "
+            f"{VERIFY_CHAIN_TARGET_MS}ms target"
         )
 
 

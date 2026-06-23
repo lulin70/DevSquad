@@ -7,7 +7,12 @@ chain hash (adopted from Security review S3).
 
 Each entry's hash is computed as::
 
-    SHA-256(prev_hash + event_type + user_id + timestamp + json.dumps(details))
+    SHA-256(prev_hash + len(event_type):event_type + len(user_id):user_id +
+    timestamp(%.6f) + json.dumps(details))
+
+Length-prefixed fields eliminate boundary ambiguity (e.g. event_type="dispatch",
+user_id="_start" vs event_type="dispatch_start", user_id=""). The timestamp is
+formatted with fixed 6-decimal precision for cross-version stability.
 
 The first entry has ``prev_hash = "0" * 64`` (64 hex zeros). Each subsequent
 entry's ``prev_hash`` is the ``entry_hash`` of the previous entry. This
@@ -70,8 +75,9 @@ class AuditEntry:
     prev_hash:
         Hash of the previous entry in the chain (GENESIS_HASH for first).
     entry_hash:
-        SHA-256 hash of this entry (computed from prev_hash + event_type +
-        user_id + timestamp + json.dumps(details)).
+        SHA-256 hash of this entry (computed from prev_hash +
+        len(event_type):event_type + len(user_id):user_id +
+        timestamp(%.6f) + json.dumps(details)).
     """
 
     event_type: str
@@ -169,8 +175,11 @@ class DispatchAuditLogger:
     ) -> str:
         """Compute the SHA-256 hash for an audit entry.
 
-        The hash is computed from the concatenation of:
-        prev_hash + event_type + user_id + timestamp + json.dumps(details)
+        The hash is computed from length-prefixed fields to eliminate
+        boundary ambiguity:
+
+            prev_hash + len(event_type):event_type + len(user_id):user_id
+            + timestamp(%.6f) + json.dumps(details)
 
         Parameters
         ----------
@@ -191,7 +200,7 @@ class DispatchAuditLogger:
             The 64-character hex SHA-256 digest.
         """
         details_json = json.dumps(details, sort_keys=True)
-        payload = f"{prev_hash}{event_type}{user_id}{timestamp}{details_json}"
+        payload = f"{prev_hash}{len(event_type)}:{event_type}{len(user_id)}:{user_id}{timestamp:.6f}{details_json}"
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def _append_entry(

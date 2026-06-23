@@ -41,10 +41,13 @@ Usage::
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 __all__ = ["DispatchRBAC", "PermissionResult"]
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -166,9 +169,13 @@ class DispatchRBAC:
         """
         # Open mode: no AuthManager configured → allow all.
         if self._auth is None:
+            logger.warning(
+                "DispatchRBAC running in OPEN mode (no AuthManager configured) "
+                "— all operations allowed"
+            )
             return PermissionResult(
                 allowed=True,
-                reason="No RBAC configured",
+                reason="No RBAC configured (open mode)",
                 user_id=user_id,
                 requested_roles=list(roles),
                 requested_mode=mode,

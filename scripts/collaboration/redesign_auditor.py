@@ -32,6 +32,7 @@ Usage::
 
 from __future__ import annotations
 
+import keyword
 import re
 from dataclasses import dataclass
 
@@ -425,15 +426,23 @@ class RedesignAuditor:
         """Normalize a code block for duplicate comparison.
 
         Replaces identifiers and string/number literals with placeholders
-        so that structurally similar blocks match.
+        so that structurally similar blocks match. Python keywords are
+        preserved to avoid false DUPLICATE findings (e.g. two functions
+        that both use ``return`` should not match solely because every
+        identifier collapsed to the same token).
         """
         # Replace string literals.
         normalized = re.sub(r'"[^"]*"', '"X"', block)
         normalized = re.sub(r"'[^']*'", "'X'", normalized)
         # Replace numeric literals.
         normalized = re.sub(r"\b\d+\b", "N", normalized)
-        # Replace identifiers after keywords (variable names).
-        normalized = re.sub(r"\b[a-z_]\w*\b", "id", normalized, flags=re.IGNORECASE)
+        # Replace identifiers that are NOT Python keywords (variable/function names).
+        def replacer(m):
+            word = m.group(0)
+            if keyword.iskeyword(word):
+                return word
+            return "id"
+        normalized = re.sub(r"\b[a-z_]\w*\b", replacer, normalized, flags=re.IGNORECASE)
         return normalized.strip()
 
     # ------------------------------------------------------------------
