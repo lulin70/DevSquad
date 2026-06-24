@@ -154,7 +154,7 @@ class CodeGraphStorage:
             return cur.rowcount > 0
 
     def upsert_symbols(self, symbols: list[SymbolInfo]) -> int:
-        """Batch upsert symbols in a single transaction.
+        """Batch upsert symbols in a single transaction using executemany.
 
         Args:
             symbols: List of SymbolInfo dataclasses to upsert.
@@ -166,32 +166,32 @@ class CodeGraphStorage:
             return 0
         with self._lock:
             cur = self._conn.cursor()
-            count = 0
-            for symbol in symbols:
-                cur.execute(
-                    """
-                    INSERT INTO symbols (name, symbol_type, file_path, line_start, line_end, docstring, signature)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(name, file_path, line_start) DO UPDATE SET
-                        symbol_type=excluded.symbol_type,
-                        line_end=excluded.line_end,
-                        docstring=excluded.docstring,
-                        signature=excluded.signature
-                    """,
-                    (
-                        symbol.name,
-                        symbol.symbol_type,
-                        symbol.file_path,
-                        symbol.line_start,
-                        symbol.line_end,
-                        symbol.docstring,
-                        symbol.signature,
-                    ),
+            rows = [
+                (
+                    s.name,
+                    s.symbol_type,
+                    s.file_path,
+                    s.line_start,
+                    s.line_end,
+                    s.docstring,
+                    s.signature,
                 )
-                if cur.rowcount > 0:
-                    count += 1
+                for s in symbols
+            ]
+            cur.executemany(
+                """
+                INSERT INTO symbols (name, symbol_type, file_path, line_start, line_end, docstring, signature)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(name, file_path, line_start) DO UPDATE SET
+                    symbol_type=excluded.symbol_type,
+                    line_end=excluded.line_end,
+                    docstring=excluded.docstring,
+                    signature=excluded.signature
+                """,
+                rows,
+            )
             self._conn.commit()
-            return count
+            return len(symbols)
 
     def delete_symbols_for_file(self, file_path: str) -> int:
         """Delete all symbols associated with a file.
@@ -232,7 +232,7 @@ class CodeGraphStorage:
             return cur.rowcount > 0
 
     def upsert_call_edges(self, edges: list[CallEdge]) -> int:
-        """Batch upsert call edges in a single transaction.
+        """Batch upsert call edges in a single transaction using executemany.
 
         Args:
             edges: List of CallEdge dataclasses to upsert.
@@ -244,21 +244,21 @@ class CodeGraphStorage:
             return 0
         with self._lock:
             cur = self._conn.cursor()
-            count = 0
-            for edge in edges:
-                cur.execute(
-                    """
-                    INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
-                    VALUES ('call', ?, ?, ?, ?, '')
-                    ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
-                        target=excluded.target
-                    """,
-                    (edge.caller, edge.callee, edge.file_path, edge.line),
-                )
-                if cur.rowcount > 0:
-                    count += 1
+            rows = [
+                (e.caller, e.callee, e.file_path, e.line)
+                for e in edges
+            ]
+            cur.executemany(
+                """
+                INSERT INTO edges (edge_type, source, target, file_path, line, import_type)
+                VALUES ('call', ?, ?, ?, ?, '')
+                ON CONFLICT(edge_type, source, target, file_path, line) DO UPDATE SET
+                    target=excluded.target
+                """,
+                rows,
+            )
             self._conn.commit()
-            return count
+            return len(edges)
 
     def delete_edges_for_file(self, file_path: str) -> int:
         """Delete all edges associated with a file.

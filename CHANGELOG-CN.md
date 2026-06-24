@@ -7,6 +7,104 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.9.1] - 2026-06-23
+
+### 变更 — 重构与质量
+- **文件拆分**：`code_knowledge_graph.py` 511→346 行（将 `CodeGraphQuery` 提取到 `code_graph_query.py`，182 行）
+- **文件拆分**：`redesign_auditor.py` 550→229 行（将检测方法提取到 `redesign_checkers.py`，415 行）
+- **RedesignAuditor 误报修复**：`_normalize_block` 现在保留 Python 内置函数（不仅是关键字），并使用顺序标识符命名（id0、id1、...）以维持结构区分。`_count_dead_code_lines` 不再将空行计为死代码。
+- **CI 改进**：E2E 测试现在除了夜间定时任务外，还在发布标签（`v*`）上运行。Build 任务现在依赖于 `test + lint + security`（之前仅依赖 `test`）。
+- **mypy 阻断**（P2）：修复了 `scripts/collaboration/` 中 82 个文件的全部 551 个 mypy 错误。CI mypy 检查从非阻断（`continue-on-error: true`）升级为阻断。零逻辑变更 — 仅添加类型注解、`cast()`、`# type: ignore` 注释和 `from __future__ import annotations`。
+
+### 新增 — 多主机适配器（V39-07，灵感来自 ponytail 多平台插件）
+- **MultiHostAdapter**（`multi_host_adapter.py`）：统一适配器，用于从 6 个 AI 主机平台调度 DevSquad 任务 — Claude Code、Cursor、Codex CLI、Cline、Trae 和 Generic。主机特定的角色映射、提示词适配和输出切片。32 个测试。
+
+### 测试覆盖
+- 2681 通过，18 跳过（V3.9.0 为 2591）
+- 2 个文件拆分至 ≤500 行（code_knowledge_graph、redesign_auditor）；仍有 37 个文件 >500 行（技术债）
+- 95+ 核心模块（原 94+）
+- mypy：0 错误（原 551，CI 中阻断）
+- bandit：0 High/Medium 问题（原 16）
+
+## [3.9.0] - 2026-06-22
+
+### 新增 — 代码智能（灵感来自 colbymchenry/codegraph）
+- **V39-01 CodeKnowledgeGraph**（`code_knowledge_graph.py` + `code_graph_storage.py`）：基于 SQLite 的持久化代码结构图，支持增量更新。查询符号、调用者、被调用者、依赖关系、调用图和相似实现。40 个测试。
+- **V39-02 MCP codegraph_explore**（`mcp_server.py`）：三个新 MCP 工具 — `codegraph_explore`、`codegraph_status`、`codegraph_refresh` — 供外部 Agent 查询代码图。
+
+### 新增 — 效率优化（灵感来自 DietrichGebert/ponytail）
+- **V39-03 YagniChecker**（`yagni_checker.py`）：微任务的 YAGNI 阶梯检查。6 级阶梯：NECESSARY → SKIP → USE_STDLIB → USE_DEPENDENCY → ONE_LINER → MINIMAL。安全/错误/测试任务永不跳过。34 个测试。
+- **V39-04 PromptDials**（`prompt_dials.py`）：三维提示词调节（VERBOSITY/CREATIVITY/RISK_TOLERANCE，各 1-5）。与 variant 系统向后兼容。33 个测试。
+
+### 新增 — 代码审查增强（灵感来自 Leonxlnx/taste-skill）
+- **V39-05 RedesignAuditor**（`redesign_auditor.py`）：第三阶段代码简洁性审计。检查 YAGNI/STDLIB/DUPLICATE/OVERENGINEERING 类别。作为 Stage 3 集成到 TwoStageReviewGate。28 个测试。
+
+### 新增 — 生产就绪
+- **V39-06 DispatchRBAC**（`dispatch_rbac.py`）：调度流水线的 RBAC0 权限模型。角色级 + 模式级权限检查。18 个测试。
+- **V39-06 DispatchAuditLogger**（`dispatch_audit.py`）：仅追加的审计日志，含 SHA-256 链式哈希。记录调度生命周期事件。通过链验证进行篡改检测。23 个测试。
+
+### 变更 — 调度流水线集成（反幽灵功能）
+- **Dispatcher**：接受 `code_graph`、`rbac`、`audit_logger` 可选参数。调度开始时进行 RBAC 检查，整个生命周期内进行审计日志记录。
+- **Worker**：在 LLM 调用前查询 CodeKnowledgeGraph 以减少 Read/Grep 工具使用。
+- **MicroTaskPlanner**：对每个微任务运行 YagniChecker，跳过不必要的任务。
+- **PromptAssembler**：接受 `PromptDials` 用于三维提示词调节。
+- **TwoStageReviewGate**：第三阶段 `REDESIGN` 默认启用（`enable_redesign_audit=True`）。
+- **DispatchResult**：新增 `permission_result` 和 `audit_entries` 字段。
+
+### 测试覆盖
+- **总测试数**：2591 通过，18 跳过（含 28 个 V3.9 集成测试）
+- **新模块**：7 个模块 + 6 个测试文件 = 176 个新单元测试 + 28 个集成测试
+- **幽灵功能检查**：全部 7 个模块均被生产代码导入并调用（通过 grep 验证）
+- **ruff**：所有检查通过
+- **7 角色共识**：PRD 以 77.9% 通过（≥70% 门控）
+
+### 文档
+- PRD：`docs/prd/V3.9_PRD_Code_Intelligence.md`
+- 共识评审：`docs/planning/V3.9_PRD_Consensus_Review.md`
+- 技术设计：`docs/architecture/V3.9_Technical_Design.md`
+- 测试计划：`docs/prd/V3.9_Test_Plan.md`
+
+## [3.8.1] - 2026-06-21
+
+### 修复
+- **P0：MCP 服务器测试修复**（`test_mcp_server_v362.py`）：根因是缺少 `mcp` 包，而非测试不稳定。添加 `pytest.importorskip("mcp")` 安全网。34/34 测试现在通过。
+- **P2：死代码移除**（`workflow_engine.py:621`）：移除无操作的 `len(instance.failed_steps)` 表达式。
+
+### 变更
+- **P1：文件拆分 — `two_stage_review_gate.py`**（1059→555 行）：将检查器提取到 `review_checkers.py`（574 行）。`TwoStageReviewGate` 现在通过组合委托给 `ReviewCheckers`。
+- **P1：文件拆分 — `lifecycle_shortcut_adapter.py`**（1185→891 行）：将 15 个辅助函数提取到 `lifecycle_shortcut_helpers.py`（610 行）。
+- **P1：pickle→JSON 迁移**（`cache_interface.py`）：用 `json.dumps`/`json.loads` 替换 `pickle.dumps`/`pickle.loads`。为遗留缓存条目添加向后兼容的 pickle 回退（记录警告）。
+- **P2：密钥模式统一**（`secret_patterns.py`）：新共享模块，含统一的 `SECRET_PATTERNS`、`is_sensitive()`、`find_secrets()`、`mask_secrets()`。消除 4 个模块（content_cache、review_checkers、tech_debt_manager、audit_logger）中的重复模式。
+- **P2：mypy CI**（`.github/workflows/test.yml`）：在 lint 任务中添加非阻断的 mypy 类型检查步骤。
+
+### 测试覆盖
+- **总测试数**：2387 通过，18 跳过（含 34 个 MCP 服务器测试）
+- **新模块**：`secret_patterns.py`、`review_checkers.py`、`lifecycle_shortcut_helpers.py`
+- **ruff**：所有检查通过
+
+## [3.8.0] - 2026-06-21
+
+### 新增
+- **#2 两阶段代码审查门控**（`two_stage_review_gate.py`）：规范合规性（Stage 1）+ 代码质量（Stage 2）审查，含关键发现阻断。灵感来自 Superpowers。40 个测试。
+- **#3 严重性路由器 + 自动修复循环**（`severity_router.py`）：CRITICAL/HIGH/MEDIUM/LOW/INFO 分类，含自动修复循环（最多 3 轮）。灵感来自 NodeGuard。51 个测试。
+- **#4 Judge Agent + 历史学习**（`judge_agent.py`）：发现去重、冲突解决、置信度过滤（≥0.7）、可选历史学习（默认关闭）。灵感来自 Qodo PR-Agent。33 个测试。
+- **#6 确定性 vs LLM 步骤分离**：在 `WorkflowStep` 中添加 `NodeType` 枚举（DETERMINISTIC/LLM/HYBRID），含 `is_deterministic()`/`requires_llm` 属性和 `classify_steps()` 方法。灵感来自 RepoReviewer。14 个测试。
+- **#7 微任务规划器**（`micro_task_planner.py`）：2-5 分钟微任务分解，含文件路径、验证命令、DAG 依赖，最多 20 个任务。灵感来自 Superpowers。47 个测试。
+- **#9 内容缓存 + 抖动策略**（`content_cache.py`）：统一 SHA-256 内容缓存，含敏感数据过滤（API 密钥/Token 永不缓存）。在 `LLMRetryBase` 中添加 `JitterStrategy` 枚举（NONE/EQUAL/FULL/DECORRELATED）。灵感来自 NodeGuard。41 个测试。
+- **V3.8 规划文档**：7 角色评估、PRD、实施计划、架构演进、共识评审（5 份文档，2482 行）。
+
+### 变更
+- `WorkflowStep` dataclass：添加 `node_type: NodeType` 字段（默认 HYBRID 以向后兼容）
+- `LLMRetryBase`：添加 `JitterStrategy` 枚举和 `jitter_strategy` 配置字段
+- `MultiAgentDispatcher`：添加可选 `severity_router` 和 `micro_task_planner` 参数
+- `workflow_engine.py`：所有生命周期模板步骤标注 `node_type`
+- 成熟度评估：65% → 72%（诚实评估）
+
+### 测试覆盖
+- **新测试**：226（32 content_cache + 14 step_node_types + 9 retry_jitter + 40 two_stage_review + 51 severity_router + 33 judge_agent + 47 micro_task_planner）
+- **总测试数**：2339 通过，18 跳过（不含预先存在的不稳定 MCP 服务器测试）
+- **所有新模块**：ruff 清洁，未发现安全问题
+
 ## [3.7.2] - 2026-06-16
 
 ### 新增

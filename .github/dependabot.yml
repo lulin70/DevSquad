@@ -69,12 +69,11 @@ updates:
     # IGNORE LIST - Dependencies we don't use or manage manually
     # ===========================================
     ignore:
-      # pytest-cov: We removed coverage checks in V3.6.6 (commit e1e0490)
-      # No need to upgrade this unused dependency
+      # pytest-cov: Used in CI for coverage reporting (pyproject.toml [tool.coverage])
       - dependency-name: "pytest-cov"
         versions: [">=4.0.0"]
-      
-      # coverage: Same reason as pytest-cov (it's the backend)
+
+      # coverage: Used in CI for coverage reporting (pyproject.toml [tool.coverage])
       - dependency-name: "coverage"
         versions: [">=7.0.0"]
     

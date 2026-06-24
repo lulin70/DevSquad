@@ -118,6 +118,9 @@ from .models import (
     WorkerResult,
 )
 
+# V3.9.1: Multi-Host Adapter for cross-platform dispatch
+from .multi_host_adapter import HOST_CONFIGS, HostConfig, HostType, MultiHostAdapter
+
 # Multi-Level Cache exports
 from .multi_level_cache import MemoryCacheBackend, MultiLevelCacheCoordinator
 from .multi_tenant import IsolationLevel, MultiTenantManager, Tenant, TenantContext
@@ -217,6 +220,11 @@ __all__ = [
     "reset_cache",
     "MultiLevelCacheCoordinator",
     "MemoryCacheBackend",
+    # Multi-Host Adapter (V3.9.1)
+    "MultiHostAdapter",
+    "HostType",
+    "HostConfig",
+    "HOST_CONFIGS",
     # Retry
     "LLMRetryManager",
     "RetryConfig",

@@ -148,6 +148,10 @@ class MultiAgentDispatcher:
         # (optional; when provided, logs dispatch_start/dispatch_end/
         # permission_denied/error events with SHA-256 chain hash).
         audit_logger: DispatchAuditLogger | None = None,
+        # V3.9.1: RBAC fail mode — when True, RBAC infrastructure failures
+        # deny dispatch (fail-closed, production-safe). When False, failures
+        # are logged but dispatch continues (fail-open, development convenience).
+        rbac_fail_closed: bool = False,
         redis_url: str | None = None,
         compression_threshold: int = 100000,
         memory_dir: str | None = None,
@@ -185,6 +189,8 @@ class MultiAgentDispatcher:
         self._rbac = rbac
         # V3.9-02: Optional DispatchAuditLogger for tamper-evident audit trail.
         self._audit_logger = audit_logger
+        # V3.9.1: RBAC fail mode (fail-closed for production, fail-open for development).
+        self._rbac_fail_closed = rbac_fail_closed
         self.redis_url = redis_url
         self.persist_dir = persist_dir or tempfile.mkdtemp(prefix="mas_v3_")
         self.memory_dir = memory_dir or os.path.join(self.persist_dir, "memory")
@@ -503,9 +509,26 @@ class MultiAgentDispatcher:
                     self._attach_audit_entries(denied_result)
                     return denied_result
             except (ValueError, AttributeError, TypeError, RuntimeError) as rbac_err:
-                logger.warning("RBAC check failed (allowing dispatch): %s", rbac_err)
-                # Fail-open: log the error but continue dispatch (do not
-                # block on RBAC infrastructure failures).
+                logger.warning("RBAC check failed: %s", rbac_err)
+                if self._rbac_fail_closed:
+                    # Fail-closed (production): deny dispatch on RBAC infrastructure failure.
+                    if self._audit_logger is not None:
+                        try:
+                            self._audit_logger.log_permission_denied(
+                                user_id=user_id,
+                                reason=f"RBAC infrastructure error: {rbac_err}",
+                            )
+                        except (ValueError, RuntimeError, OSError) as audit_err:
+                            logger.warning("Audit log_permission_denied failed: %s", audit_err)
+                    denied_result = DispatchResult(
+                        success=False,
+                        task_description=task_description,
+                        errors=[f"RBAC check failed (fail-closed): {rbac_err}"],
+                        permission_result={"allowed": False, "reason": str(rbac_err), "user_id": user_id},
+                    )
+                    self._attach_audit_entries(denied_result)
+                    return denied_result
+                # Fail-open (development): log the error but continue dispatch.
 
         self.metrics_service.safe_record(lambda m: (
             m.dispatch_counter.labels(mode=mode, role_count="0").inc(),

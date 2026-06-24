@@ -274,7 +274,7 @@ EOF
 ### Installation & Setup
 - [ ] Repository clones successfully
 - [ ] No missing dependencies errors
-- [ ] Python 3.9+ detected
+- [ ] Python 3.10+ detected
 - [ ] CLI commands work
 
 ### Basic Functionality

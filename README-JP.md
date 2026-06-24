@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-2115%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.7.2-success" />
@@ -210,7 +210,7 @@ result = skill.scan_input("DROP TABLE users; --")
 
 ### 前提条件
 
-- Python 3.9+
+- Python 3.10+
 - pip または pipenv
 
 ### インストール手順

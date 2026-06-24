@@ -386,6 +386,12 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_dispatch.add_argument(
         "--permission-level", choices=["PLAN", "DEFAULT", "AUTO", "BYPASS"], help="Permission level"
     )
+    p_dispatch.add_argument(
+        "--host",
+        choices=["claude-code", "cursor", "codex", "cline", "trae", "generic"],
+        default=None,
+        help="AI host platform adapter (enables host-specific role mapping and output formatting)",
+    )
 
     subparsers.add_parser("status", aliases=["s"], help="Show system status")
 

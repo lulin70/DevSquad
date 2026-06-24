@@ -12,7 +12,7 @@
 
 ## Prerequisites
 
-- **Python 3.9+** (pure Python, no compiled dependencies)
+- **Python 3.10+** (pure Python, no compiled dependencies)
 - **OS**: macOS / Linux / **Windows 10+** (fully cross-platform)
 - **Any AI coding environment**: Trae IDE / Claude Code / OpenClaw / Terminal
 - **No external dependencies required** (all integrations use graceful degradation)
@@ -494,7 +494,7 @@ DevSquad/
 │       ├── retrospective.py      # Independent post-dispatch retrospective (V3.6.0)
 │       ├── feature_usage_tracker.py # Feature invocation counter + reports (V3.6.0)
 │       └── *_test.py             # Test suites (1500+ tests)
-├── .github/workflows/test.yml    # CI: Python 3.9-3.12 matrix
+├── .github/workflows/test.yml    # CI: Python 3.10-3.11 matrix
 ├── Dockerfile                    # Docker support
 ├── pyproject.toml                # pip-installable package
 ├── SKILL.md                      # Skill manual (EN/CN/JP)
@@ -521,13 +521,13 @@ Windows-specific instructions.
 
 ### Prerequisites on Windows
 
-- **Python 3.9+** — Download from [python.org](https://python.org) or install via `winget`
+- **Python 3.10+** — Download from [python.org](https://python.org) or install via `winget`
 - **PowerShell** or **CMD** — Both work; PowerShell recommended
 - **Git for Windows** — For cloning the repo: [git-scm.com](https://git-scm.com)
 
 ```powershell
 # Quick check (PowerShell)
-python --version    # Should show Python 3.9+
+python --version    # Should show Python 3.10+
 git --version       # Should show git version
 ```
 

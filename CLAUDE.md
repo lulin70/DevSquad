@@ -133,7 +133,7 @@ DevSquad/
 │   ├── security/handler.py      # SecuritySkill → InputValidator + OpClassifier
 │   ├── test/handler.py          # TestSkill → TestQualityGuard
 │   └── retrospective/handler.py # RetrospectiveSkill → RetrospectiveEngine
-├── .github/workflows/test.yml  # CI: Python 3.9-3.12 matrix
+├── .github/workflows/test.yml  # CI: Python 3.10-3.11 matrix
 ├── .devsquad.yaml              # Quality control + LLM + collaboration config
 ├── Dockerfile                  # Docker support
 ├── pyproject.toml              # pip-installable package

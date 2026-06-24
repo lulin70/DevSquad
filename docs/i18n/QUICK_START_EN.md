@@ -18,7 +18,7 @@ DevSquad transforms a **single AI task into a multi-role AI collaboration**. It 
 
 ### Prerequisites
 
-- **Python 3.9+** (3.9, 3.10, 3.11, 3.12 supported)
+- **Python 3.10+** (3.10, 3.11 supported)
 - **pip** or **pipenv** for package management
 
 ### Option A: Quick Start (No Installation)
