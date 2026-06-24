@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-2115%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.7.2-success" />
@@ -493,7 +493,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 - **設定ファイル**: プロジェクトルートの `.devsquad.yaml` + 環境変数オーバーライド
 - **品質管理注入**: `.devsquad.yaml` 設定に基づき、QCルール（ハルシネーション防止、過信チェック、セキュリティガード、RACIプロトコル）をWorkerプロンプトに自動注入
 - **Dockerサポート**: `docker build -t devsquad .`
-- **GitHub Actions CI**: Python 3.9-3.12マトリックステスト
+- **GitHub Actions CI**: Python 3.10-3.11マトリックステスト
 - **pipインストール可能**: `pip install devsquad` + オプション依存関係
 
 ## 🏗️ アーキテクチャ概要（60+ コアモジュール）

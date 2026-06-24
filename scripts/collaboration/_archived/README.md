@@ -1,5 +1,7 @@
 # Archived Modules
 
+> ⚠️ **Note**: Some files referenced below have been removed. This README is kept for historical reference only.
+
 This directory contains modules that have been archived because they have **no production code references** (only self-references or test/example references).
 
 These modules are kept for historical reference and should not be imported by any active production code.

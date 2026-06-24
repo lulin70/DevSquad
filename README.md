@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V3.9.0 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V3.9.1 Enterprise Ready</em>
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2597%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.9.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2681%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.9.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -217,7 +217,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | **Dashboard (Streamlit)** | Interactive web dashboard with authentication | Operations team visualization |
 | **MCP Protocol** | Integration with TRAE/Claude Code/Cursor | AI Agent ecosystem |
 | **Docker Support** | Multi-stage build for production deployment | Containerized environments |
-| **GitHub Actions CI** | Python 3.9-3.12 matrix testing | CI/CD pipelines |
+| **GitHub Actions CI** | Python 3.10-3.11 matrix testing | CI/CD pipelines |
 
 ---
 
@@ -410,7 +410,7 @@ CLI View Layer (6 commands)          Core Engine (11 phases)
 ## 📦 Installation
 
 ### Prerequisites
-- **Python 3.9+** (3.9, 3.10, 3.11, 3.12 supported)
+- **Python 3.10+** (3.10, 3.11 supported, tested in CI)
 - **pip** or **pipenv** for package management
 
 ### Option A: PyPI Install (Recommended)
@@ -439,11 +439,11 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.9.0
+# Expected: devsquad 3.9.1
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 1500+ passed
+# Expected: 2600+ passed
 ```
 
 ---
@@ -493,7 +493,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 3.9.0
+python3 scripts/cli.py --version       # Expected: DevSquad 3.9.1
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
@@ -581,6 +581,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-06-22 | Version: V3.9.0*
+*Last updated: 2026-06-24 | Version: V3.9.1*
 
 </details>

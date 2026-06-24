@@ -80,7 +80,7 @@ DevSquad/
 │   ├── vibe_coding/            # Vibe coding module
 │   ├── cli.py                  # CLI entry point
 │   └── mcp_server.py           # MCP Server for OpenClaw
-├── .github/workflows/          # CI (Python 3.9-3.12 matrix)
+├── .github/workflows/          # CI (Python 3.10-3.11 matrix)
 ├── data/                       # Runtime data (gitignored)
 ├── docs/                       # Documentation
 ├── Dockerfile                  # Docker support

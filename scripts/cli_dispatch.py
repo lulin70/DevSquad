@@ -15,6 +15,7 @@ import sys
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.input_validator import InputValidator
 from scripts.collaboration.models import ROLE_REGISTRY, resolve_role_id
+from scripts.collaboration.multi_host_adapter import HostType, MultiHostAdapter
 from scripts.collaboration.permission_guard import PermissionLevel
 
 from .cli_utils import (
@@ -205,6 +206,23 @@ def cmd_dispatch(args):
 
     disp = MultiAgentDispatcher(**kwargs)
 
+    # V3.9.1: Wrap with MultiHostAdapter when --host is specified
+    host_type_str = getattr(args, "host", None)
+    adapter = None
+    if host_type_str:
+        host_map = {
+            "claude-code": HostType.CLAUDE_CODE,
+            "cursor": HostType.CURSOR,
+            "codex": HostType.CODEX,
+            "cline": HostType.CLINE,
+            "trae": HostType.TRAE,
+            "generic": HostType.GENERIC,
+        }
+        adapter = MultiHostAdapter(
+            host_type=host_map[host_type_str],
+            dispatcher=disp,
+        )
+
     try:
         if args.quick:
             result = disp.quick_dispatch(
@@ -213,6 +231,20 @@ def cmd_dispatch(args):
                 include_action_items=args.action_items,
                 include_timing=args.timing,
             )
+        elif adapter is not None:
+            host_result = adapter.dispatch(
+                task,
+                roles=args.roles,
+                mode=args.mode,
+                dry_run=args.dry_run,
+            )
+            # MultiHostAdapter returns a dict; print the host-formatted report
+            if args.format == "json":
+                print(json.dumps(host_result, ensure_ascii=False, indent=2, default=str))
+            else:
+                print(f"[Host: {host_result['host']}]")
+                print(host_result["report"])
+            return 0 if host_result["success"] else 1
         else:
             result = disp.dispatch(
                 task,  # 使用验证后的任务

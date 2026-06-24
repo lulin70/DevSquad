@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-2115%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.7.2-success" />
@@ -606,7 +606,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 - **配置文件**：项目根目录 `.devsquad.yaml` + 环境变量覆盖
 - **质量控制注入**：基于 `.devsquad.yaml` 配置，自动将 QC 规则（幻觉预防、过度自信检查、安全守卫、RACI 协议）注入 Worker 提示词
 - **Docker 支持**：`docker build -t devsquad .`
-- **GitHub Actions CI**：Python 3.9-3.12 矩阵测试
+- **GitHub Actions CI**：Python 3.10-3.11 矩阵测试
 - **pip 可安装**：`pip install -e .` + 可选依赖
 
 ## 📦 模块参考 (60+ 模块)
