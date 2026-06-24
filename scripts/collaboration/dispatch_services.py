@@ -7,6 +7,8 @@ explicit dependency injection via __init__.
 """
 
 import logging
+import os
+import tempfile
 import uuid
 from typing import Any
 
@@ -55,7 +57,7 @@ class PermissionService:
         """Run PermissionGuard checks on test actions."""
         test_actions = [
             ProposedAction(
-                action_type=ActionType.FILE_CREATE, target="/tmp/test_output.md", description="生成输出文件"
+                action_type=ActionType.FILE_CREATE, target=os.path.join(tempfile.gettempdir(), "test_output.md"), description="生成输出文件"
             ),
         ]
         for action in test_actions:

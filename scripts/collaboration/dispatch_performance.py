@@ -9,6 +9,7 @@ Extracted from dispatcher.py for modularity. Contains:
 import json
 import logging
 import os
+import tempfile
 import threading
 from collections import deque
 from typing import Any
@@ -212,11 +213,11 @@ class DispatchPerformanceMonitor:
 
             return None
 
-    def export_metrics(self, output_file: str, allowed_base_dir: str = "/tmp") -> None:
+    def export_metrics(self, output_file: str, allowed_base_dir: str = tempfile.gettempdir()) -> None:
         """导出性能指标到文件"""
         output_path = os.path.abspath(output_file)
         base_dir = os.path.abspath(allowed_base_dir)
-        if not output_path.startswith(base_dir) and not output_path.startswith("/tmp"):
+        if not output_path.startswith(base_dir) and not output_path.startswith(tempfile.gettempdir()):
             logger.warning("Export path outside allowed directories: %s", output_path)
             output_path = os.path.join(base_dir, os.path.basename(output_file))
 

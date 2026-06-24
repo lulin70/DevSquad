@@ -260,7 +260,7 @@ Return the matching results in JSON format:
 
     def _generate_cache_key(self, task_description: str) -> str:
         content = f"{task_description}|{len(ROLE_REGISTRY)}"
-        return hashlib.md5(content.encode("utf-8")).hexdigest()
+        return hashlib.md5(content.encode("utf-8"), usedforsecurity=False).hexdigest()
 
     def _record_match(self, task_description: str, results: list[SemanticMatchResult]) -> None:
         record = {

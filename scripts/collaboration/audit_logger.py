@@ -28,6 +28,8 @@ import csv
 import hashlib
 import json
 import logging
+import os
+import tempfile
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -854,7 +856,7 @@ if __name__ == "__main__":
     print("Audit Logger - Enterprise Audit Logging System")
     print("=" * 60)
 
-    logger = AuditLogger(log_dir="/tmp/test_audit")
+    logger = AuditLogger(log_dir=os.path.join(tempfile.gettempdir(), "test_audit"))
 
     test_record = logger.log(
         user_id="admin",
@@ -880,7 +882,7 @@ if __name__ == "__main__":
     integrity = logger.verify_integrity()
     print(f"\n✓ Integrity check: {'PASS' if integrity['valid'] else 'FAIL'}")
 
-    export_path = "/tmp/test_audit/export.csv"
+    export_path = os.path.join(tempfile.gettempdir(), "test_audit", "export.csv")
     count = logger.export(export_path)
     print(f"\n✓ Exported {count} records to {export_path}")
 

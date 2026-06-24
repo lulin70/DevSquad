@@ -50,7 +50,7 @@ class MemoryCategory(Enum):
 
 @dataclass
 class Message:
-    message_id: str = field(default_factory=lambda: f"msg-{hashlib.md5(str(datetime.now()).encode()).hexdigest()[:12]}")
+    message_id: str = field(default_factory=lambda: f"msg-{hashlib.md5(str(datetime.now()).encode(), usedforsecurity=False).hexdigest()[:12]}")
     role: str = "user"
     content: str = ""
     msg_type: MessageType = MessageType.USER
@@ -101,7 +101,7 @@ class Message:
 
 @dataclass
 class MemoryEntry:
-    entry_id: str = field(default_factory=lambda: f"mem-{hashlib.md5(str(datetime.now()).encode()).hexdigest()[:12]}")
+    entry_id: str = field(default_factory=lambda: f"mem-{hashlib.md5(str(datetime.now()).encode(), usedforsecurity=False).hexdigest()[:12]}")
     category: MemoryCategory = MemoryCategory.FINDING
     content: str = ""
     source_message_ids: list[str] = field(default_factory=list)

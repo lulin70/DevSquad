@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SkillEntry:
     skill_id: str = field(
-        default_factory=lambda: f"skill-{hashlib.md5(str(datetime.now().isoformat()).encode()).hexdigest()[:8]}"
+        default_factory=lambda: f"skill-{hashlib.md5(str(datetime.now().isoformat()).encode(), usedforsecurity=False).hexdigest()[:8]}"
     )
     name: str = ""
     description: str = ""

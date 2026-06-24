@@ -167,7 +167,7 @@ class Serializer:
                 try:
                     import pickle  # local import: only needed for legacy data
 
-                    value = pickle.loads(data)  # noqa: S301 (trusted local cache)
+                    value = pickle.loads(data)  # nosec B301  # noqa: S301 - trusted local cache
                     logger.warning(
                         "Deserialized legacy pickle cache entry via fallback; "
                         "it will be re-written as JSON on next set()."
@@ -253,7 +253,7 @@ class Serializer:
                 logger.warning(
                     "Pickle deserialization requested (deprecated); prefer JSON."
                 )
-                return pickle.loads(data)  # noqa: S301 (trusted local cache)
+                return pickle.loads(data)  # nosec B301  # noqa: S301 - trusted local cache
             else:
                 raise ValueError(f"Unsupported deserialization format: {format}")
         except (TypeError, ValueError, OSError, json.JSONDecodeError) as e:
