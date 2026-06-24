@@ -88,7 +88,7 @@ class AsyncToSyncAdapter(LLMBackend):
 
         try:
 
-            async def _run():
+            async def _run() -> Any:
                 return await self._async_backend.generate(prompt, **kwargs)
 
             if loop.is_running():
@@ -102,7 +102,7 @@ class AsyncToSyncAdapter(LLMBackend):
                     )
                     return future.result()
             else:
-                return loop.run_until_complete(_run())
+                return loop.run_until_complete(_run())  # type: ignore[no-any-return]
         finally:
             if not loop.is_running():
                 pass
@@ -113,7 +113,7 @@ class AsyncToSyncAdapter(LLMBackend):
 
         try:
 
-            async def _check():
+            async def _check() -> Any:
                 return await self._async_backend.is_available()
 
             if loop.is_running():
@@ -126,7 +126,7 @@ class AsyncToSyncAdapter(LLMBackend):
                     )
                     return future.result()
             else:
-                return loop.run_until_complete(_check())
+                return loop.run_until_complete(_check())  # type: ignore[no-any-return]
         finally:
             if not loop.is_running():
                 pass
@@ -285,7 +285,7 @@ def wrap_for_async(sync_backend: LLMBackend) -> AsyncLLMBackendInterface:
     return SyncToAsyncAdapter(sync_backend)
 
 
-async def test_adapter():
+async def test_adapter() -> None:
     """Test the adapter layer."""
     print("Testing Async Adapter...")
 

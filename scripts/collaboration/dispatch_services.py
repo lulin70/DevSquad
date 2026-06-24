@@ -23,10 +23,10 @@ logger = logging.getLogger(__name__)
 class MetricsService:
     """Safe Prometheus metrics recording wrapper."""
 
-    def __init__(self, metrics_provider=None) -> None:
+    def __init__(self, metrics_provider: Any = None) -> None:
         self._metrics = metrics_provider
 
-    def safe_record(self, fn) -> None:
+    def safe_record(self, fn: Any) -> None:
         """Safely execute Prometheus metrics callback."""
         try:
             fn(get_metrics())
@@ -39,9 +39,9 @@ class PermissionService:
 
     def __init__(
         self,
-        permission_guard=None,
-        operation_classifier=None,
-        rbac_engine=None,
+        permission_guard: Any = None,
+        operation_classifier: Any = None,
+        rbac_engine: Any = None,
         enable_rbac: bool = False,
         metrics_service: MetricsService | None = None,
     ) -> None:
@@ -99,11 +99,11 @@ class MemoryPipelineService:
 
     def __init__(
         self,
-        memory_bridge=None,
-        mce_adapter=None,
-        scratchpad=None,
+        memory_bridge: Any = None,
+        mce_adapter: Any = None,
+        scratchpad: Any = None,
         enable_memory: bool = False,
-        enterprise=None,
+        enterprise: Any = None,
     ) -> None:
         self.memory_bridge = memory_bridge
         self.mce_adapter = mce_adapter
@@ -116,7 +116,7 @@ class MemoryPipelineService:
         if self.enterprise and self.enterprise.enable_multi_tenant and self.enterprise.tenant_manager:
             current_tenant = self.enterprise.tenant_manager.get_current_tenant()
             if current_tenant:
-                return current_tenant.tenant_id
+                return current_tenant.tenant_id  # type: ignore[no-any-return]
         return "default"
 
     def capture(
@@ -247,9 +247,9 @@ class SkillProposalService:
 
     def __init__(
         self,
-        skillifier=None,
+        skillifier: Any = None,
         enable_skillify: bool = False,
-        skill_registry=None,
+        skill_registry: Any = None,
     ) -> None:
         self.skillifier = skillifier
         self.enable_skillify = enable_skillify

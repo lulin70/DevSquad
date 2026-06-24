@@ -39,7 +39,7 @@ except ImportError:
 
         def labels(self, *_args: Any, **_kwargs: Any) -> "Counter":
             """Return self to support chaining when prometheus is unavailable."""
-            return self
+            return self  # type: ignore[return-value]
 
         def inc(self, amount: int = 1) -> None:
             """No-op increment for the stub counter."""
@@ -55,7 +55,7 @@ except ImportError:
 
         def labels(self, *_args: Any, **_kwargs: Any) -> "Gauge":
             """Return self to support chaining when prometheus is unavailable."""
-            return self
+            return self  # type: ignore[return-value]
 
         def set(self, value: float) -> None:
             """No-op set for the stub gauge."""
@@ -75,7 +75,7 @@ except ImportError:
 
         def labels(self, *_args: Any, **_kwargs: Any) -> "Histogram":
             """Return self to support chaining when prometheus is unavailable."""
-            return self
+            return self  # type: ignore[return-value]
 
         def observe(self, amount: float) -> None:
             """No-op observe for the stub histogram."""

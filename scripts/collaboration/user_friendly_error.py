@@ -11,6 +11,8 @@ Author: DevSquad Team
 Version: 1.0
 """
 
+from typing import Any
+
 
 class UserFriendlyError(Exception):
     """
@@ -132,7 +134,7 @@ ERROR_TEMPLATES = {
 }
 
 
-def make_user_friendly_error(error_key: str, **kwargs) -> UserFriendlyError:
+def make_user_friendly_error(error_key: str, **kwargs: Any) -> UserFriendlyError:
     """
     根据错误键创建用户友好的错误
 

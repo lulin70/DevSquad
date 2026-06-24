@@ -162,7 +162,7 @@ class ConcernPackLoader:
         self._loaded = False
         self._lock = threading.Lock()
 
-    def _load_all_packs(self):
+    def _load_all_packs(self) -> None:
         """加载所有增强包"""
         with self._lock:
             if self._loaded:
@@ -304,7 +304,7 @@ class ConcernPackLoader:
         Returns:
             {role_id: enhancement_text} 字典
         """
-        result = {}
+        result: dict[str, str] = {}
         for pack in packs:
             for role_id, enhancement in pack.role_enhancements.items():
                 text = self._extract_enhancement_text(enhancement)
@@ -317,12 +317,12 @@ class ConcernPackLoader:
         return result
 
     @staticmethod
-    def _extract_enhancement_text(enhancement) -> str:
+    def _extract_enhancement_text(enhancement: Any) -> str:
         """从增强包数据中提取提示词文本"""
         if isinstance(enhancement, str):
             return enhancement
         if isinstance(enhancement, dict):
-            return enhancement.get("extra_prompt", "")
+            return enhancement.get("extra_prompt", "")  # type: ignore[no-any-return]
         return str(enhancement) if enhancement else ""
 
     def get_combined_checklist(self, packs: list[ConcernPack]) -> str:

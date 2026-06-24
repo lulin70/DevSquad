@@ -26,6 +26,7 @@ Contents
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any
 
 from .two_stage_review_gate import ReviewFinding, ReviewStage, StageResult
@@ -451,7 +452,7 @@ class ReviewCheckers:
         code_files: list[tuple[str, str]] = []
         test_files: list[tuple[str, str]] = []
         if isinstance(files, dict):
-            items = files.items()
+            items: Iterable[tuple[str, Any]] = files.items()
         else:
             items = (
                 (f.get("path", "<unknown>"), f) if isinstance(f, dict) else ("<unknown>", f)

@@ -26,6 +26,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 from .memory_types import MemoryItem, MemoryType
 
@@ -91,7 +92,7 @@ class WorkBuddyClawSource:
             List[MemoryItem]: Combined list of core + daily memories,
             each tagged with source='workbuddy-claw'.
         """
-        items = []
+        items: list[MemoryItem] = []
         if not self.is_available:
             return items
         items.extend(self._load_core_memories())
@@ -122,7 +123,7 @@ class WorkBuddyClawSource:
 
     def _load_workbuddy_daily_memories(self) -> list[MemoryItem]:
         """Load daily work memories from .workbuddy/memory/ directory."""
-        items = []
+        items: list[MemoryItem] = []
         if not self._wb_memory_dir.exists():
             return items
 
@@ -402,7 +403,7 @@ class WorkBuddyClawSource:
         """
         entries = []
         date_pattern = re.compile(r"^## (\d{4}-\d{2}-\d{2})")
-        current_entry = None
+        current_entry: dict[str, Any] | None = None
 
         for line in content.splitlines():
             date_match = date_pattern.match(line)

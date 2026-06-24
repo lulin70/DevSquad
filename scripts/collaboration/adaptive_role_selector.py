@@ -47,7 +47,7 @@ class AdaptiveRoleSelector:
         _role_stats: Cached dictionary of per-role statistics.
     """
 
-    def __init__(self, fingerprint_db: PerformanceFingerprint = None):
+    def __init__(self, fingerprint_db: PerformanceFingerprint | None = None):
         """
         Initialize the selector with a fingerprint database.
 
@@ -61,7 +61,7 @@ class AdaptiveRoleSelector:
     def select_roles(
         self,
         task: str,
-        intent: str = None,
+        intent: str | None = None,
         min_success_rate: float = 0.5,
         max_roles: int = 5,
     ) -> list[str]:
@@ -100,7 +100,7 @@ class AdaptiveRoleSelector:
         logger.debug("No historical data for role selection, returning empty (fallback)")
         return []
 
-    def update_stats(self, roles: list[str], success: bool, duration_s: float):
+    def update_stats(self, roles: list[str], success: bool, duration_s: float) -> None:
         """
         Manually update role statistics (for external integration).
 
@@ -295,7 +295,7 @@ class AdaptiveRoleSelector:
                 role_combo_stats[combo_key]["successes"] += 1
 
         best_combo = None
-        best_success_rate = -1
+        best_success_rate: float = -1.0
 
         for combo_key, stats in role_combo_stats.items():
             total = stats["total"]

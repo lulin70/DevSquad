@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class TaskCompletionChecker:
         if self.progress_file.exists():
             try:
                 with open(self.progress_file, encoding="utf-8") as f:
-                    return json.load(f)
+                    return json.load(f)  # type: ignore[no-any-return]
             except (json.JSONDecodeError, OSError, ValueError) as e:
                 logger.warning("Failed to load progress: %s", e)
         return self._create_empty_progress()
@@ -53,7 +54,7 @@ class TaskCompletionChecker:
             "dispatches": {},
         }
 
-    def _save_progress(self):
+    def _save_progress(self) -> None:
         try:
             self.progress["last_update"] = datetime.now().isoformat()
             with open(self.progress_file, "w", encoding="utf-8") as f:
@@ -61,7 +62,7 @@ class TaskCompletionChecker:
         except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to save progress: %s", e)
 
-    def check_dispatch_result(self, dispatch_result) -> TaskCompletionResult:
+    def check_dispatch_result(self, dispatch_result: Any) -> TaskCompletionResult:
         """
         Check completion status of a DispatchResult.
 
@@ -139,7 +140,7 @@ class TaskCompletionChecker:
         self._record_dispatch(task_id, result)
         return result
 
-    def _record_dispatch(self, task_id: str, result: TaskCompletionResult):
+    def _record_dispatch(self, task_id: str, result: TaskCompletionResult) -> None:
         self.progress["dispatches"][task_id] = {
             "is_completed": result.is_completed,
             "completion_rate": result.completion_rate,
@@ -150,7 +151,7 @@ class TaskCompletionChecker:
         }
         self._save_progress()
 
-    def check_schedule_result(self, schedule_result) -> TaskCompletionResult:
+    def check_schedule_result(self, schedule_result: Any) -> TaskCompletionResult:
         """
         Check completion status of a ScheduleResult from Coordinator.
 
@@ -206,7 +207,7 @@ class TaskCompletionChecker:
         Returns:
             Dictionary mapping task ids to their dispatch progress data.
         """
-        return self.progress.get("dispatches", {})
+        return self.progress.get("dispatches", {})  # type: ignore[no-any-return]
 
     def get_completion_summary(self) -> str:
         """Build a Markdown summary of dispatch completion status.
@@ -250,7 +251,7 @@ class TaskCompletionChecker:
         dispatch_data = self.progress.get("dispatches", {}).get(task_id)
         return dispatch_data.get("is_completed", False) if dispatch_data else False
 
-    def reset_progress(self):
+    def reset_progress(self) -> None:
         """Reset all progress data to an empty state and persist it."""
         self.progress = self._create_empty_progress()
         self._save_progress()

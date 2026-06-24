@@ -823,7 +823,7 @@ class UETestFramework:
         """Generate journey test cases from defined journeys."""
         tests = []
         for journey in self._journeys:
-            test = {
+            test: dict[str, Any] = {
                 "name": journey.name,
                 "persona": journey.persona.name,
                 "critical": journey.critical_path,

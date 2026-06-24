@@ -9,6 +9,7 @@ Provides query, export, and publishing capabilities.
 import json
 import re
 import threading
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any
@@ -24,7 +25,7 @@ from .skillifier import (
 class SkillStorage:
     """Manages storage and retrieval of execution records, patterns, and proposals."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._records: list[ExecutionRecord] = []
         self._patterns: list[SuccessPattern] = []
         self._proposals: dict[str, SkillProposal] = {}
@@ -45,7 +46,7 @@ class SkillStorage:
             self._records.append(record)
 
     def get_records(
-        self, since: datetime = None, until: datetime = None, success_only: bool = True
+        self, since: datetime | None = None, until: datetime | None = None, success_only: bool = True
     ) -> list[ExecutionRecord]:
         """Query stored execution records by time range and success status.
 
@@ -126,7 +127,7 @@ class SkillStorage:
         """
         return self._proposals.get(proposal_id)
 
-    def get_proposals(self, status=None) -> list[SkillProposal]:
+    def get_proposals(self, status: ProposalStatus | None = None) -> list[SkillProposal]:
         """List proposals, optionally filtered by status.
 
         Args:
@@ -279,7 +280,7 @@ class SkillStorage:
         self._proposals = proposals
 
     @contextmanager
-    def thread_safe(self):
+    def thread_safe(self) -> Iterator[None]:
         """Context manager for thread-safe operations on storage data.
 
         Usage:

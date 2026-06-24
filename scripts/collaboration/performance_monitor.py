@@ -83,7 +83,7 @@ class FunctionStats:
     max_duration: float = 0.0
     recent_metrics: deque = field(default_factory=lambda: deque(maxlen=100))
 
-    def add_metric(self, metric: PerformanceMetric):
+    def add_metric(self, metric: PerformanceMetric) -> None:
         """Add a performance metric."""
         self.call_count += 1
         if metric.success:
@@ -113,7 +113,7 @@ class FunctionStats:
             return 0.0
         durations = sorted([m.duration for m in self.recent_metrics])
         idx = int(len(durations) * 0.95)
-        return durations[idx] if idx < len(durations) else durations[-1]
+        return durations[idx] if idx < len(durations) else durations[-1]  # type: ignore[no-any-return]
 
     @property
     def p99_duration(self) -> float:
@@ -122,7 +122,7 @@ class FunctionStats:
             return 0.0
         durations = sorted([m.duration for m in self.recent_metrics])
         idx = int(len(durations) * 0.99)
-        return durations[idx] if idx < len(durations) else durations[-1]
+        return durations[idx] if idx < len(durations) else durations[-1]  # type: ignore[no-any-return]
 
 
 def _get_cpu_percent() -> float:
@@ -130,7 +130,7 @@ def _get_cpu_percent() -> float:
     if not _PSUTIL_AVAILABLE:
         return 0.0
     try:
-        return psutil.Process().cpu_percent()
+        return psutil.Process().cpu_percent()  # type: ignore[no-any-return]
     except (AttributeError, RuntimeError, OSError) as e:
         logger.debug("cpu_percent read failed: %s", e)
         return 0.0
@@ -141,7 +141,7 @@ def _get_memory_mb() -> float:
     if not _PSUTIL_AVAILABLE:
         return 0.0
     try:
-        return psutil.Process().memory_info().rss / 1024 / 1024
+        return psutil.Process().memory_info().rss / 1024 / 1024  # type: ignore[no-any-return]
     except (AttributeError, RuntimeError, OSError) as e:
         logger.debug("memory_info read failed: %s", e)
         return 0.0
@@ -170,7 +170,7 @@ class PerformanceMonitor:
         self.all_metrics: deque = deque(maxlen=max_history)
         self.start_time = time.time()
 
-    def record_metric(self, metric: PerformanceMetric):
+    def record_metric(self, metric: PerformanceMetric) -> None:
         """Record a performance metric."""
         self.all_metrics.append(metric)
 
@@ -179,7 +179,7 @@ class PerformanceMonitor:
 
         self.function_stats[metric.name].add_metric(metric)
 
-    def monitor(self, name: str):
+    def monitor(self, name: str) -> Callable[[Callable], Callable]:
         """
         Decorator: monitor function performance.
 
@@ -190,7 +190,7 @@ class PerformanceMonitor:
         def decorator(func: Callable) -> Callable:
             """Wrap ``func`` to capture performance metrics on each call."""
             @wraps(func)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 """Execute the wrapped function and record its metric."""
                 start_time = time.time()
                 start_cpu = _get_cpu_percent()
@@ -445,7 +445,7 @@ def get_monitor() -> PerformanceMonitor:
     return _monitor_instance
 
 
-def monitor_performance(name: str):
+def monitor_performance(name: str) -> Callable[[Callable], Callable]:
     """
     Decorator: monitor function performance.
 
@@ -461,7 +461,7 @@ def monitor_performance(name: str):
     return monitor.monitor(name)
 
 
-def reset_monitor():
+def reset_monitor() -> None:
     """Reset global monitor instance (mainly for testing)."""
     global _monitor_instance
     _monitor_instance = None

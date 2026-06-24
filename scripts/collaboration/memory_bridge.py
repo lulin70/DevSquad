@@ -41,6 +41,7 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # WorkBuddyClawSource moved to memory_claw_source.py (backward-compatible re-export)
 from .memory_claw_source import WorkBuddyClawSource  # noqa: F401
@@ -184,7 +185,7 @@ class JsonMemoryStore(MemoryStore):
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-        return item_id
+        return item_id  # type: ignore[no-any-return]
 
     def load(self, memory_type: MemoryType, item_id: str) -> dict | None:
         """Load a memory entry from a JSON file on disk.
@@ -202,7 +203,7 @@ class JsonMemoryStore(MemoryStore):
                 return None
             try:
                 with open(file_path, encoding="utf-8") as f:
-                    return json.load(f)
+                    return json.load(f)  # type: ignore[no-any-return]
             except (OSError, json.JSONDecodeError):
                 return None
 
@@ -216,7 +217,7 @@ class JsonMemoryStore(MemoryStore):
         Returns:
             List of matching entry dictionaries, sorted by file name.
         """
-        results = []
+        results: list[dict] = []
         dir_path = self._type_dirs.get(memory_type, self.base_dir / "other")
         with self._lock:
             if not dir_path.exists():
@@ -258,7 +259,7 @@ class JsonMemoryStore(MemoryStore):
 
 
 class MemoryBridge(MemorySerializerMixin, MemoryQueryMixin):
-    def __init__(self, base_dir: str | None = None, config: MemoryConfig | None = None, mce_adapter=None):
+    def __init__(self, base_dir: str | None = None, config: MemoryConfig | None = None, mce_adapter: Any = None):
         """
         初始化记忆桥接器
 

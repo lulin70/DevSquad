@@ -450,7 +450,7 @@ class ConfidenceScorer:
         if not self.history:
             return {}
 
-        factor_sums = {}
+        factor_sums: dict[str, float] = {}
         for score in self.history:
             for factor, value in score.factors.items():
                 factor_sums[factor] = factor_sums.get(factor, 0) + value

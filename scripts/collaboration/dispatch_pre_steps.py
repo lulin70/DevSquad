@@ -114,7 +114,7 @@ class PreDispatchPipeline:
         start_time: float,
         _phase: str,
         **kwargs: Any,
-    ):
+    ) -> _PreDispatchResult:
         """Steps 0-7: tenant setup, validation, intent, roles, preparation."""
         # Step 0: Multi-tenant context setup
         tenant_ctx = self.enterprise.set_tenant_context(kwargs, start_time)
@@ -215,7 +215,7 @@ class PreDispatchPipeline:
         concern_enhancements: dict[str, Any] | None = None,
         step1_time: float = 0.0,
         step2_time: float = 0.0,
-    ):
+    ) -> _PreDispatchResult:
         """Create a _PreDispatchResult with early_return set, filling defaults."""
         return _PreDispatchResult(
             task_description=task_description,
@@ -392,7 +392,7 @@ class PreDispatchPipeline:
         if roles:
             matched_roles = self.role_matcher.resolve_roles(roles, matched_roles)
 
-        return matched_roles
+        return matched_roles  # type: ignore[no-any-return]
 
     def validate_roles_and_security(
         self,

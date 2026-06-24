@@ -162,7 +162,7 @@ class SkillExtractor:
     def _extension_match(self, target_a: str, target_b: str) -> bool:
         ext_a = self._get_extension(target_a)
         ext_b = self._get_extension(target_b)
-        return ext_a and ext_b and ext_a == ext_b
+        return bool(ext_a and ext_b and ext_a == ext_b)
 
     def _directory_match(self, target_a: str, target_b: str) -> bool:
         parts_a = target_a.replace("\\", "/").rstrip("/").split("/")
@@ -310,7 +310,7 @@ class SkillExtractor:
         if task_desc:
             words = re.findall(r"[A-Za-z][A-Za-z0-9 ]{2,20}", task_desc)
             if words:
-                return words[0].strip().title() + " Pattern"
+                return words[0].strip().title() + " Pattern"  # type: ignore[no-any-return]
         if steps:
             action_names = {s.action_type.value.replace("_", " ").title() for s in steps}
             return " & ".join(sorted(action_names)[:3]) + " Pattern"

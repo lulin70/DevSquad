@@ -126,7 +126,7 @@ class PythonParser(LanguageParser):
             "total_functions": sum(1 for n in top_level_nodes if n["type"] in ("function", "method")),
         }
 
-    def _parse_class(self, node, file_path: str) -> dict[str, Any]:
+    def _parse_class(self, node: ast.ClassDef, file_path: str) -> dict[str, Any]:
         docstring = ast.get_docstring(node) or ""
         methods = []
         for item in node.body:
@@ -141,7 +141,7 @@ class PythonParser(LanguageParser):
             "children": methods,
         }
 
-    def _parse_function(self, node, file_path: str) -> dict[str, Any]:
+    def _parse_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef, file_path: str) -> dict[str, Any]:
         docstring = ast.get_docstring(node) or ""
         calls = []
         for child in ast.walk(node):
@@ -226,7 +226,7 @@ class JavaScriptParser(LanguageParser):
             functions; None when no classes or functions are found.
         """
         try:
-            classes = []
+            classes: list[dict[str, Any]] = []
             for m in self._CLASS_RE.finditer(source):
                 classes.append(
                     {
@@ -239,7 +239,7 @@ class JavaScriptParser(LanguageParser):
                     }
                 )
 
-            functions = []
+            functions: list[dict[str, Any]] = []
             for m in self._FUNC_RE.finditer(source):
                 name = m.group(1) or m.group(2)
                 if name:
@@ -323,7 +323,7 @@ class GoParser(LanguageParser):
             and functions; None when none of those are found.
         """
         try:
-            structs = []
+            structs: list[dict[str, Any]] = []
             for m in self._TYPE_STRUCT_RE.finditer(source):
                 structs.append(
                     {
@@ -336,7 +336,7 @@ class GoParser(LanguageParser):
                     }
                 )
 
-            interfaces = []
+            interfaces: list[dict[str, Any]] = []
             for m in self._TYPE_INTERFACE_RE.finditer(source):
                 interfaces.append(
                     {
@@ -349,7 +349,7 @@ class GoParser(LanguageParser):
                     }
                 )
 
-            functions = []
+            functions: list[dict[str, Any]] = []
             for m in self._FUNC_RE.finditer(source):
                 functions.append(
                     {

@@ -40,7 +40,7 @@ from .worker import Worker
 logger = logging.getLogger(__name__)
 
 # Lazy import for ExecutionGuard - graceful degradation
-_ExecutionGuard = None
+_ExecutionGuard: Any = None
 with contextlib.suppress(ImportError, ModuleNotFoundError):
     from .execution_guard import ExecutionGuard as _ExecutionGuard
 
@@ -48,13 +48,13 @@ _SAFE_FILENAME_RE = re.compile(r"[^\w\-.]")
 _MAX_RULE_TEXT_LENGTH = 500
 
 
-def _is_available(provider) -> bool:
+def _is_available(provider: Any) -> bool:
     """Check provider availability, compatible with both property and method."""
     if provider is None:
         return False
     val = provider.is_available
     if callable(val):
-        return val()
+        return val()  # type: ignore[no-any-return]
     return bool(val)
 
 
@@ -87,13 +87,13 @@ class EnhancedWorker(Worker):
         worker_id: str,
         role_id: str,
         role_prompt: str = "",
-        scratchpad=None,
-        llm_backend=None,
+        scratchpad: Any = None,
+        llm_backend: Any = None,
         stream: bool = False,
-        cache_provider=None,
-        retry_provider=None,
-        monitor_provider=None,
-        memory_provider=None,
+        cache_provider: Any = None,
+        retry_provider: Any = None,
+        monitor_provider: Any = None,
+        memory_provider: Any = None,
         execution_guard: Any = None,
         content_cache: Any = None,
         code_graph: Any = None,
@@ -146,7 +146,7 @@ class EnhancedWorker(Worker):
         else:
             self.execution_guard = None
 
-        self._briefing = None
+        self._briefing: Any = None
         self._briefing_loaded = False
         self._last_result: WorkerResult | None = None
         self._confidence_scorer = None
@@ -169,14 +169,14 @@ class EnhancedWorker(Worker):
             pass
 
     @property
-    def briefing(self):
+    def briefing(self) -> Any:
         """Get agent briefing (lazy load)."""
         if not self._briefing_loaded:
             self._load_briefing()
             self._briefing_loaded = True
         return self._briefing
 
-    def _load_briefing(self):
+    def _load_briefing(self) -> None:
         """Load agent briefing from memory provider."""
         try:
             from .agent_briefing import AgentBriefing
@@ -322,7 +322,7 @@ class EnhancedWorker(Worker):
                 duration_seconds=time.time() - start_time,
             )
 
-    def _record_monitor(self, task: TaskDefinition, duration: float, success: bool):
+    def _record_monitor(self, task: TaskDefinition, duration: float, success: bool) -> None:
         """Record execution metrics to monitor provider."""
         if self.monitor_provider and self.monitor_provider.is_available():
             try:
@@ -418,9 +418,9 @@ class EnhancedWorker(Worker):
             if violations and isinstance(result.output, dict):
                 result.output["rule_violations"] = violations
 
-        return result
+        return result  # type: ignore[no-any-return]
 
-    def _inject_rules_from_provider(self, task: TaskDefinition):
+    def _inject_rules_from_provider(self, task: TaskDefinition) -> None:
         """Fetch and validate rules from MemoryProvider before task execution."""
         if not self.memory_provider or not _is_available(self.memory_provider):
             return
@@ -521,7 +521,7 @@ class EnhancedWorker(Worker):
         Returns:
             List of violation dicts with rule_id and description
         """
-        violations = []
+        violations: list[dict[str, str]] = []
         forbid_rules = [r for r in self._injected_rules if isinstance(r, dict) and r.get("rule_type") == "forbid"]
 
         if not forbid_rules or not result.output:
@@ -588,7 +588,7 @@ class EnhancedWorker(Worker):
             safe_role = _SAFE_FILENAME_RE.sub("_", self.role_id)
             output_path = os.path.join(output_dir, f"{safe_role}_briefing.json")
 
-            return self._briefing.export_briefing(output_path)
+            return self._briefing.export_briefing(output_path)  # type: ignore[no-any-return]
         except (OSError, AttributeError, KeyError) as e:
             logger.warning("Failed to export briefing for %s: %s", self.role_id, e)
             return None
@@ -631,7 +631,7 @@ class EnhancedWorker(Worker):
             assumptions=[],
         )
 
-    def receive_briefing(self, briefing: AgentBriefingOutput):
+    def receive_briefing(self, briefing: AgentBriefingOutput) -> None:
         """
         Receive compressed state from a preceding Agent.
 

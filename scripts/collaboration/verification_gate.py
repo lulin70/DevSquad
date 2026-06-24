@@ -298,5 +298,5 @@ def get_shared_gate(strict_mode: bool = True) -> VerificationGate:
         Shared VerificationGate instance
     """
     if not hasattr(get_shared_gate, "_instance"):
-        get_shared_gate._instance = VerificationGate(strict_mode=strict_mode)
-    return get_shared_gate._instance
+        get_shared_gate._instance = VerificationGate(strict_mode=strict_mode)  # type: ignore[attr-defined]
+    return get_shared_gate._instance  # type: ignore[no-any-return,attr-defined]

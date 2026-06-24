@@ -24,7 +24,7 @@ Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from . import lifecycle_shortcut_helpers as helpers
 from .lifecycle_protocol import (
@@ -103,7 +103,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         """
         return helpers.save_lifecycle_state_to_checkpoint(
             self._checkpoint_manager,
-            self._task_id,
+            cast(str, self._task_id),
             self._current_phase,
             self._phase_states,
             self._completed_phases,
@@ -118,7 +118,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
             True if restored successfully
         """
         restored = helpers.restore_lifecycle_state_from_checkpoint(
-            self._checkpoint_manager, self._task_id, default_mode=LifecycleMode.SHORTCUT
+            self._checkpoint_manager, cast(str, self._task_id), default_mode=LifecycleMode.SHORTCUT
         )
         if not restored:
             return False
@@ -291,7 +291,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         target = phase_id or self._current_phase
         phase_def = self.get_phase(target) if target else None
         return helpers.check_phase_gate(
-            target,
+            cast(str, target),
             phase_def,
             self._phase_states,
             self._completed_phases,
@@ -487,7 +487,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
         """Save current lifecycle state to checkpoint manager."""
         return helpers.save_lifecycle_state_to_checkpoint(
             self._checkpoint_manager,
-            self._task_id,
+            cast(str, self._task_id),
             self._current_phase,
             self._phase_states,
             self._completed_phases,
@@ -502,7 +502,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
     def restore_state(self) -> bool:
         """Restore lifecycle state from checkpoint manager."""
         restored = helpers.restore_lifecycle_state_from_checkpoint(
-            self._checkpoint_manager, self._task_id, default_mode=LifecycleMode.FULL
+            self._checkpoint_manager, cast(str, self._task_id), default_mode=LifecycleMode.FULL
         )
         if not restored:
             return False
@@ -697,7 +697,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
         target = phase_id or self._current_phase
         phase_def = self.get_phase(target) if target else None
         return helpers.check_phase_gate(
-            target,
+            cast(str, target),
             phase_def,
             self._phase_states,
             self._completed_phases,
@@ -887,5 +887,5 @@ def create_lifecycle_protocol(mode: LifecycleMode = LifecycleMode.SHORTCUT) -> L
 def get_shared_protocol() -> LifecycleProtocol:
     """Get shared singleton instance of lifecycle protocol."""
     if not hasattr(get_shared_protocol, "_instance"):
-        get_shared_protocol._instance = create_lifecycle_protocol()
-    return get_shared_protocol._instance
+        get_shared_protocol._instance = create_lifecycle_protocol()  # type: ignore[attr-defined]
+    return get_shared_protocol._instance  # type: ignore[attr-defined, no-any-return]

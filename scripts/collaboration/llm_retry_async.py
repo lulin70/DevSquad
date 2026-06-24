@@ -99,12 +99,12 @@ class AsyncLLMRetryManager(LLMRetryBase):
                 # the trip is counted in _record_failure when the breaker opens.
                 raise
 
-    async def _record_success(self, backend: str):
+    async def _record_success(self, backend: str) -> None:
         """Record successful call (async, with lock)."""
         async with self._lock:
             self.record_success(backend)
 
-    async def _record_failure(self, backend: str, _error: Exception):
+    async def _record_failure(self, backend: str, _error: Exception) -> None:
         """Record failed call (async, with lock)."""
         async with self._lock:
             opened = self.record_failure(backend)
@@ -138,7 +138,7 @@ class AsyncLLMRetryManager(LLMRetryBase):
             Exception: If all retries and fallbacks fail
         """
         self.stats["total_calls"] += 1
-        last_error = None
+        last_error: Exception | None = None
 
         # Check circuit breaker first
         if current_backend:
@@ -189,6 +189,7 @@ class AsyncLLMRetryManager(LLMRetryBase):
 
         # All attempts failed
         self.stats["failed_calls"] += 1
+        assert last_error is not None
         raise last_error
 
     async def _try_fallback(
@@ -233,7 +234,7 @@ class AsyncLLMRetryManager(LLMRetryBase):
         """Get retry statistics"""
         return self.stats.copy()
 
-    async def reset_circuit_breaker(self, backend: str):
+    async def reset_circuit_breaker(self, backend: str) -> None:
         """Manually reset circuit breaker for a backend"""
         async with self._lock:
             if backend in self.circuit_breakers:
@@ -263,7 +264,7 @@ def async_retry_with_fallback(
     exponential_base: float = 2.0,
     jitter: bool = True,
     fallback_backends: list[str] | None = None,
-):
+) -> Callable[[Callable], Callable]:
     """
     Decorator for async functions with retry and fallback.
 
@@ -281,7 +282,7 @@ def async_retry_with_fallback(
             return await your_api_call(prompt, backend)
     """
 
-    def decorator(func: Callable):
+    def decorator(func: Callable) -> Callable:
         """Decorate an async function to add retry-with-fallback behavior.
 
         Args:
@@ -292,7 +293,7 @@ def async_retry_with_fallback(
             across backends.
         """
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Invoke the wrapped async function with retry and fallback handling."""
             config = RetryConfig(
                 max_retries=max_retries,
@@ -315,10 +316,10 @@ def async_retry_with_fallback(
 
 if __name__ == "__main__":
     # Example usage
-    async def main():
+    async def main() -> None:
         """Run an example demonstrating async retry-with-fallback behavior."""
         @async_retry_with_fallback(max_retries=3, fallback_backends=["backup"])
-        async def test_func(value: int, backend: str = "primary"):
+        async def test_func(value: int, backend: str = "primary") -> str:
             """Example function that fails for values below 3 to demonstrate retries."""
             print(f"Calling {backend} with {value}")
             if value < 3:

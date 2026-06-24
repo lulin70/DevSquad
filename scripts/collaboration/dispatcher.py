@@ -68,6 +68,38 @@ class MultiAgentDispatcher:
     Consensus → Compression → Permission → Memory → Result
     """
 
+    # Class-level type annotations for attributes dynamically assigned
+    # in _init_components_from_factory() via setattr().
+    coordinator: Any
+    scratchpad: Any
+    batch_scheduler: Any
+    consensus_engine: Any
+    compressor: Any
+    permission_guard: Any
+    warmup_manager: Any
+    memory_bridge: Any
+    skillifier: Any
+    quality_guard: Any
+    anchor_checker: Any
+    retrospective_engine: Any
+    usage_tracker: Any
+    report_formatter: Any
+    role_matcher: Any
+    semantic_matcher: Any
+    intent_mapper: Any
+    context_manager: Any
+    operation_classifier: Any
+    skill_registry: Any
+    execution_guard: Any
+    output_slicer: Any
+    ci_feedback: Any
+    _perf_monitor: Any
+    _concern_loader: Any
+    _validator: Any
+    _dispatch_history: list[Any]
+    _max_history: int
+    _result_assembler: Any
+
     def __init__(
         self,
         persist_dir: str | None = None,
@@ -338,7 +370,7 @@ class MultiAgentDispatcher:
     def analyze_task(self, task_description: str) -> list[dict[str, str]]:
         """Analyze task and match appropriate roles."""
         track_usage("dispatcher.analyze_task")
-        return self.role_matcher.analyze_task(task_description)
+        return self.role_matcher.analyze_task(task_description)  # type: ignore[no-any-return]
 
     def decompose_task(
         self,
@@ -850,16 +882,16 @@ class MultiAgentDispatcher:
     def _format_structured_report(
         self, result: DispatchResult, include_action_items: bool = True, include_timing: bool = False
     ) -> str:
-        return self.report_formatter.format_structured_report(result, include_action_items, include_timing)
+        return self.report_formatter.format_structured_report(result, include_action_items, include_timing)  # type: ignore[no-any-return]
 
     def _format_compact_report(self, result: DispatchResult) -> str:
-        return self.report_formatter.format_compact_report(result)
+        return self.report_formatter.format_compact_report(result)  # type: ignore[no-any-return]
 
     def _extract_findings(self, scratchpad_summary: str) -> list[str]:
-        return self.report_formatter.extract_findings(scratchpad_summary)
+        return self.report_formatter.extract_findings(scratchpad_summary)  # type: ignore[no-any-return]
 
     def _generate_action_items(self, result: DispatchResult) -> list[dict[str, str]]:
-        return self.report_formatter.generate_action_items(result)
+        return self.report_formatter.generate_action_items(result)  # type: ignore[no-any-return]
 
     def get_status(self) -> dict[str, Any]:
         """获取系统状态"""
@@ -941,11 +973,11 @@ class MultiAgentDispatcher:
 
     def get_performance_stats(self) -> dict[str, Any]:
         """Get performance statistics."""
-        return self._perf_monitor.get_statistics()
+        return self._perf_monitor.get_statistics()  # type: ignore[no-any-return]
 
     def check_performance_regression(self) -> dict[str, Any] | None:
         """Check for performance regression."""
-        return self._perf_monitor.detect_regression()
+        return self._perf_monitor.detect_regression()  # type: ignore[no-any-return]
 
     def shutdown(self) -> None:
         """Gracefully shut down all components."""

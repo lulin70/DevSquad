@@ -26,7 +26,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +265,7 @@ class PromptAssembler:
         },
     }
 
-    def __init__(self, role_id: str, base_prompt: str, config_path: str = None):
+    def __init__(self, role_id: str, base_prompt: str, config_path: str | None = None):
         """
         Initialize the prompt assembler
 
@@ -284,7 +284,7 @@ class PromptAssembler:
         if self.qc_enabled:
             self._qc_injection = self._build_quality_control_injection()
 
-    def _load_config(self, config_path: str = None) -> dict:
+    def _load_config(self, config_path: str | None = None) -> dict:
         """
         Load DevSquad configuration from YAML file.
 
@@ -558,9 +558,9 @@ class PromptAssembler:
     def assemble(
         self,
         task_description: str,
-        related_findings: list[str] = None,
+        related_findings: list[str] | None = None,
         task_id: str = "",
-        compression_level=None,
+        compression_level: Any = None,
         dials: Any = None,
         variant: str | None = None,
         code_graph_hints: list[dict[str, Any]] | None = None,
@@ -601,13 +601,13 @@ class PromptAssembler:
             AssembledPrompt: Assembly result, containing instruction/complexity/variant/metadata
         """
         complexity = self.detect_complexity(task_description)
-        config = dict(self._TEMPLATE_VARIANTS[complexity])
+        config: dict[str, Any] = dict(self._TEMPLATE_VARIANTS[complexity])
 
         if compression_level is not None:
             override_key = (
                 compression_level.name if hasattr(compression_level, "name") else str(compression_level).upper()
             )
-            override = self._COMPRESSION_OVERRIDES.get(override_key, {})
+            override: dict[str, Any] = cast(dict[str, Any], self._COMPRESSION_OVERRIDES.get(override_key, {}))
             config.update(override)
 
         role_display = self.base_prompt[: config["role_truncate"]]

@@ -232,7 +232,7 @@ class ContextCompressor:
         CompressionLevel.FULL_COMPACT: 100000,
     }
 
-    def __init__(self, token_threshold: int = 100000, thresholds: dict[int, int] | None = None):
+    def __init__(self, token_threshold: int = 100000, thresholds: dict[CompressionLevel, int] | None = None):
         self.token_threshold = token_threshold
         self.thresholds = thresholds or self.DEFAULT_THRESHOLDS
         self._session_memory: list[MemoryEntry] = []
@@ -644,7 +644,7 @@ class ContextCompressor:
             counts[cat] = counts.get(cat, 0) + 1
         return counts
 
-    def _log_compression(self, result: CompressedContext):
+    def _log_compression(self, result: CompressedContext) -> None:
         self._compression_log.append(
             {
                 "timestamp": datetime.now().isoformat(),
@@ -673,7 +673,7 @@ class ContextCompressor:
                 "token_threshold": self.token_threshold,
             }
 
-    def import_state(self, state: dict):
+    def import_state(self, state: dict) -> None:
         """Restore the compressor's state from a previously exported dictionary.
 
         Args:

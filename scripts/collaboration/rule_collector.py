@@ -25,7 +25,7 @@ import unicodedata
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +237,7 @@ class IntentDetector:
         if best_score < self.sensitivity or best_pattern is None:
             return IntentResult(is_detected=False, confidence=best_score)
 
+        assert best_match is not None
         return IntentResult(
             is_detected=True,
             pattern_id=best_pattern["id"],
@@ -249,8 +250,8 @@ class IntentDetector:
 class RuleExtractor:
     """Extract structured rule data from natural language input."""
 
-    def __init__(self):
-        self.extraction_patterns = EXTRACTION_PATTERNS
+    def __init__(self) -> None:
+        self.extraction_patterns: list[dict[str, Any]] = cast(list[dict[str, Any]], EXTRACTION_PATTERNS)
         self._compiled = [
             {
                 "id": p["id"],
@@ -417,7 +418,7 @@ class LocalRuleStorage:
         self._cache_time: float = 0.0
         self._ensure_file()
 
-    def _ensure_file(self):
+    def _ensure_file(self) -> None:
         if not os.path.exists(self.storage_path):
             os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
             with open(self.storage_path, "w", encoding="utf-8") as f:
@@ -550,7 +551,7 @@ class LocalRuleStorage:
                 return data
         return {"_metadata": {}, "rules": {}}
 
-    def _write_data(self, data: dict):
+    def _write_data(self, data: dict) -> None:
         tmp_path = self.storage_path + ".tmp"
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -580,13 +581,13 @@ class RuleStorage:
                     cls._shared_instance = cls(carrymem_config)
         return cls._shared_instance
 
-    def __init__(self, carrymem_config: dict | None = None):
+    def __init__(self, carrymem_config: dict | None = None) -> None:
         self.carrymem_available = False
-        self._carrymem = None
+        self._carrymem: Any = None
         self._local = LocalRuleStorage()
         self._init_carrymem(carrymem_config)
 
-    def _init_carrymem(self, _config):
+    def _init_carrymem(self, _config: dict | None) -> None:
         try:
             from scripts.collaboration.mce_adapter import get_global_mce_adapter
 
@@ -638,7 +639,7 @@ class RuleStorage:
         """
         return self._local.delete_rule(rule_id)
 
-    def query(self, **kwargs) -> list[dict[str, Any]]:
+    def query(self, **kwargs: Any) -> list[dict[str, Any]]:
         """Query rules by keyword/type/confidence via the local fallback store.
 
         Args:
@@ -651,7 +652,7 @@ class RuleStorage:
         return self._local.query(**kwargs)
 
     def _store_to_carrymem(self, rule: RuleData) -> StoreResult:
-        if hasattr(self._carrymem, "add_rule"):
+        if self._carrymem is not None and hasattr(self._carrymem, "add_rule"):
             result = self._carrymem.add_rule(
                 trigger=rule.trigger,
                 action=rule.action,

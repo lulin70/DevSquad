@@ -137,7 +137,7 @@ class SensitiveDataMasker:
         "password": r"(?i)(password|passwd|pwd)\s*[:=]\s*\S+",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._patterns: dict[str, str] = dict(self.DEFAULT_PATTERNS)
         self._sensitive_keys: set[str] = {
             "password", "passwd", "pwd", "secret", "token",
@@ -172,7 +172,7 @@ class SensitiveDataMasker:
             New dictionary with sensitive values masked
         """
 
-        masked = {}
+        masked: dict[str, Any] = {}
         for key, value in data.items():
             if isinstance(value, dict):
                 masked[key] = self.mask(value)
@@ -347,7 +347,7 @@ class AuditLogger:
         Returns:
             List of AuditRecord instances
         """
-        records = []
+        records: list[AuditRecord] = []
 
         if not filepath.exists():
             return records
@@ -380,7 +380,7 @@ class AuditLogger:
         result: str = "success",
         ip_address: str | None = None,
         user_agent: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> AuditRecord:
         """Record an audit event.
 
@@ -609,7 +609,7 @@ class AuditLogger:
             This operation reads all log files and may be slow for large datasets.
             Recommended to run periodically (e.g., daily) rather than on every request.
         """
-        result = {
+        result: dict[str, Any] = {
             "valid": True,
             "total_records_checked": 0,
             "files_verified": 0,
@@ -842,7 +842,7 @@ class AuditLogger:
         with self._lock:
             self._flush_buffer()
 
-    def __del__(self):
+    def __del__(self) -> None:
         try:
             if self._buffer and self.log_dir.exists():
                 self._flush_buffer()
@@ -872,7 +872,7 @@ if __name__ == "__main__":
     print("\n✓ Created audit record:")
     print(f"  User: {test_record.user_id}")
     print(f"  Action: {test_record.action}")
-    print(f"  Hash: {test_record.hash_signature[:16]}...")
+    print(f"  Hash: {(test_record.hash_signature or '')[:16]}...")
 
     records = logger.query(user_id="admin")
     print(f"\n✓ Queried {len(records)} records for user 'admin'")

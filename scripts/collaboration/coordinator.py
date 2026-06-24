@@ -224,7 +224,7 @@ class Coordinator:
                 try:
                     from .enhanced_worker import EnhancedWorker
 
-                    worker = EnhancedWorker(
+                    worker: Worker = EnhancedWorker(
                         worker_id=worker_id,
                         role_id=task.role_id,
                         role_prompt=role_prompt,

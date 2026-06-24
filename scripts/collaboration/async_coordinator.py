@@ -295,7 +295,7 @@ class AsyncCoordinator:
                 try:
                     from .enhanced_worker import EnhancedWorker
 
-                    worker = EnhancedWorker(
+                    worker: Worker = EnhancedWorker(
                         worker_id=worker_id,
                         role_id=task.role_id,
                         role_prompt=role_prompt,
@@ -535,7 +535,8 @@ class AsyncCoordinator:
         config = RetryConfig(max_retries=3, initial_delay=1.0, max_delay=60.0)
         current_backend = getattr(self.llm_backend, "backend_name", None)
 
-        return await self._retry_manager.retry_with_fallback(
+        assert self._retry_manager is not None
+        return await self._retry_manager.retry_with_fallback(  # type: ignore[no-any-return]
             func=async_worker.execute,
             args=(task,),
             kwargs={},
@@ -893,7 +894,7 @@ class AsyncCoordinator:
         return 0.0
 
 
-async def test_async_coordinator():
+async def test_async_coordinator() -> None:
     """Quick smoke test for AsyncCoordinator."""
     print("Testing AsyncCoordinator...")
 

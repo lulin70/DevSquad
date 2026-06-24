@@ -66,13 +66,13 @@ class LLMRetryManager(LLMRetryBase):
     Only the I/O layer (time.sleep, synchronous calls) is implemented here.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Initialize shared strategy from base class (sets stats, circuit_breakers)
         super().__init__()
         # Extend base stats with sync-specific "circuit_breaks" counter
         self.stats["circuit_breaks"] = 0
 
-    def _check_circuit_breaker(self, backend: str):
+    def _check_circuit_breaker(self, backend: str) -> None:
         """检查熔断器状态 (sync wrapper around base state-transition logic)."""
         try:
             self.check_circuit_breaker_state(backend)
@@ -80,12 +80,12 @@ class LLMRetryManager(LLMRetryBase):
             self.stats["circuit_breaks"] += 1
             raise
 
-    def _record_success(self, backend: str):
+    def _record_success(self, backend: str) -> None:
         """记录成功调用"""
         self.record_success(backend)
         self.stats["successful_calls"] += 1
 
-    def _record_failure(self, backend: str, _error: Exception):
+    def _record_failure(self, backend: str, _error: Exception) -> None:
         """记录失败调用"""
         self.record_failure(backend)
         self.stats["failed_calls"] += 1
@@ -182,7 +182,9 @@ class LLMRetryManager(LLMRetryBase):
                 last_error = fallback_error
 
         # 所有尝试都失败
-        raise last_error
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("All retry attempts failed with no specific error")
 
     def _try_fallback(
         self,
@@ -240,7 +242,7 @@ class LLMRetryManager(LLMRetryBase):
             },
         }
 
-    def reset_circuit_breaker(self, backend: str):
+    def reset_circuit_breaker(self, backend: str) -> None:
         """手动重置熔断器"""
         if backend in self.circuit_breakers:
             self.circuit_breakers[backend] = CircuitBreakerState()
@@ -265,7 +267,7 @@ def retry_with_fallback(
     max_delay: float = 60.0,
     fallback_backends: list[str] | None = None,
     backend_param: str = "backend",
-):
+) -> Callable:
     """
     装饰器：为 LLM 调用添加重试和故障转移
 
@@ -296,7 +298,7 @@ def retry_with_fallback(
             Wrapped callable that retries on failure and falls back across backends.
         """
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Invoke the wrapped function with retry and fallback handling."""
             config = RetryConfig(max_retries=max_retries, initial_delay=initial_delay, max_delay=max_delay)
 

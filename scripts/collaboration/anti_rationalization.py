@@ -386,5 +386,5 @@ def get_shared_engine(max_entries_per_role: int = 0) -> AntiRationalizationEngin
         Shared AntiRationalizationEngine instance
     """
     if not hasattr(get_shared_engine, "_instance"):
-        get_shared_engine._instance = AntiRationalizationEngine(max_entries_per_role=max_entries_per_role)
-    return get_shared_engine._instance
+        get_shared_engine._instance = AntiRationalizationEngine(max_entries_per_role=max_entries_per_role)  # type: ignore[attr-defined]
+    return get_shared_engine._instance  # type: ignore[no-any-return,attr-defined]

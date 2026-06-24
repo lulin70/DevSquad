@@ -209,7 +209,7 @@ class UnifiedGateEngine:
         self,
         gate_type: GateType,
         context: Any,
-        **kwargs,
+        **kwargs: Any,
     ) -> UnifiedGateResult:
         """
         Run unified gate check.
@@ -281,7 +281,7 @@ class UnifiedGateEngine:
                 len(result.critical_issues),
             )
 
-            return result
+            return result  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error("Gate check failed with exception: %s", e)
@@ -327,7 +327,7 @@ class UnifiedGateEngine:
     def _check_phase_transition(
         self,
         context: PhaseGateContext,
-        **_kwargs,
+        **_kwargs: Any,
     ) -> UnifiedGateResult:
         """
         Check phase transition gate conditions.
@@ -340,9 +340,9 @@ class UnifiedGateEngine:
         """
         checks_run = 0
         checks_passed = 0
-        critical_issues = []
-        warnings = []
-        evidence_required = []
+        critical_issues: list[dict[str, Any]] = []
+        warnings: list[dict[str, Any]] = []
+        evidence_required: list[str] = []
 
         # Check 1: Dependencies
         checks_run += 1
@@ -424,7 +424,7 @@ class UnifiedGateEngine:
     def _check_worker_output(
         self,
         context: WorkerOutputContext,
-        **_kwargs,
+        **_kwargs: Any,
     ) -> UnifiedGateResult:
         """
         Check worker output quality using VerificationGate logic.
@@ -628,5 +628,5 @@ def get_shared_gate_engine(
         Shared UnifiedGateEngine instance
     """
     if not hasattr(get_shared_gate_engine, "_instance"):
-        get_shared_gate_engine._instance = UnifiedGateEngine(config=config)
-    return get_shared_gate_engine._instance
+        get_shared_gate_engine._instance = UnifiedGateEngine(config=config)  # type: ignore[attr-defined]
+    return get_shared_gate_engine._instance  # type: ignore[attr-defined,no-any-return]

@@ -30,7 +30,7 @@ class BatchScheduler:
         - 重试次数: 2次
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         初始化批处理调度器
 
@@ -139,5 +139,5 @@ class BatchScheduler:
     def _find_worker(self, workers: dict, role_id: str) -> Worker | None:
         for w in workers.values():
             if w.role_id == role_id:
-                return w
+                return w  # type: ignore[no-any-return]
         return None

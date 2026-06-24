@@ -447,5 +447,5 @@ def get_shared_mapper(confidence_threshold: float = 0.3) -> IntentWorkflowMapper
         Shared IntentWorkflowMapper instance
     """
     if not hasattr(get_shared_mapper, "_instance"):
-        get_shared_mapper._instance = IntentWorkflowMapper(confidence_threshold=confidence_threshold)
-    return get_shared_mapper._instance
+        get_shared_mapper._instance = IntentWorkflowMapper(confidence_threshold=confidence_threshold)  # type: ignore[attr-defined]
+    return get_shared_mapper._instance  # type: ignore[no-any-return,attr-defined]

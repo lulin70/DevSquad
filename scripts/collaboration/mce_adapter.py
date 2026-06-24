@@ -44,6 +44,8 @@ Example Usage:
         print("CarryMem unavailable, using default classification")
 """
 
+from __future__ import annotations
+
 import contextlib
 import logging
 import re as _re
@@ -122,7 +124,7 @@ class MCEAdapter:
     Thread Safety: All public methods are thread-safe (internal RLock protection)
     """
 
-    _instance = None
+    _instance: MCEAdapter | None = None
     _singleton_lock = threading.Lock()
 
     def __init__(self, enable: bool = False):
@@ -134,7 +136,7 @@ class MCEAdapter:
         if enable:
             self._try_init()
 
-    def _try_init(self):
+    def _try_init(self) -> None:
         with self._lock:
             try:
                 from memory_classification_engine.integration.devsquad import DevSquadAdapter
@@ -341,7 +343,7 @@ class MCEAdapter:
             except (ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):
                 return []
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Close the CarryMem backend and mark the adapter as unavailable."""
         with self._lock:
             if self._carrymem and hasattr(self._carrymem, "close"):
@@ -350,7 +352,7 @@ class MCEAdapter:
             self._carrymem = None
             self._status.available = False
 
-    def force_reinit(self):
+    def force_reinit(self) -> None:
         """Shut down and re-initialize the CarryMem backend."""
         self.shutdown()
         self._try_init()
@@ -605,7 +607,7 @@ class MCEAdapter:
                         "rule_type": rule_type,
                         "trigger": rule.get("trigger", ""),
                         "action": rule.get("action", rule.get("description", "")),
-                        "relevance_score": float(rule.get("relevance_score", rule.get("score", 0.0))),
+                        "relevance_score": float(rule.get("relevance_score", rule.get("score", 0.0))),  # type: ignore[arg-type]
                         "rule_id": str(rule.get("rule_id", rule.get("id", ""))),
                         "override": bool(rule.get("override", False)),
                     }
@@ -670,4 +672,5 @@ def get_global_mce_adapter(enable: bool = False) -> MCEAdapter:
         with MCEAdapter._singleton_lock:
             if MCEAdapter._instance is None:
                 MCEAdapter._instance = MCEAdapter(enable=enable)
+    assert MCEAdapter._instance is not None
     return MCEAdapter._instance

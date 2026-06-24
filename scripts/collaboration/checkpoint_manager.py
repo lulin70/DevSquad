@@ -170,7 +170,7 @@ class CheckpointManager:
         self._file_lock = threading.Lock()
         self._ensure_directories()
 
-    def _ensure_directories(self):
+    def _ensure_directories(self) -> None:
         self.checkpoints_dir.mkdir(parents=True, exist_ok=True)
         self.handoffs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -429,8 +429,8 @@ class CheckpointManager:
         agent_id: str,
         completed_steps: list[str],
         remaining_steps: list[str],
-        context: dict[str, Any] = None,
-        outputs: dict[str, Any] = None,
+        context: dict[str, Any] | None = None,
+        outputs: dict[str, Any] | None = None,
     ) -> Checkpoint:
         """Create and persist a checkpoint from dispatch progress.
 
@@ -473,8 +473,8 @@ class CheckpointManager:
         phase_states: dict[str, str],
         completed_phases: list[str],
         mode: str = "shortcut",
-        gate_results: dict[str, dict] = None,
-        metadata: dict[str, Any] = None,
+        gate_results: dict[str, dict[str, Any]] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """
         Save lifecycle state for Plan C unified architecture.
@@ -548,7 +548,7 @@ class CheckpointManager:
                 data = json.load(f)
 
             logger.info("Lifecycle state loaded: %s", task_id)
-            return data
+            return data  # type: ignore[no-any-return]
 
         except (OSError, json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
             logger.warning("Failed to load lifecycle state: %s", e)
@@ -618,7 +618,7 @@ class CheckpointManager:
     def create_checkpoint_from_lifecycle(
         self,
         task_id: str,
-        protocol=None,
+        protocol: Any = None,
     ) -> Checkpoint | None:
         """
         Create a checkpoint from current lifecycle protocol state.

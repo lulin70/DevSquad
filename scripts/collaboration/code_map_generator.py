@@ -57,7 +57,7 @@ class CodeMapGenerator:
 
     def __init__(self, project_root: str = ".", parsers: list[Any] | None = None):
         self.project_root = Path(project_root)
-        self._parsers: list[Any] = parsers
+        self._parsers: list[Any] | None = parsers
         self._default_parser = _PythonCompatParser()
 
     def register_parser(self, parser: Any) -> None:
@@ -73,7 +73,7 @@ class CodeMapGenerator:
 
     def generate_map(
         self,
-        target_dir: str = None,
+        target_dir: str | None = None,
         output_format: str = "dict",
         languages: list[str] | None = None,
     ) -> Any:
@@ -118,10 +118,10 @@ class CodeMapGenerator:
             for py_file in sorted(scan_dir.rglob("*.py")):
                 if any(p in str(py_file) for p in ["__pycache__", "test_", "_test.py", ".venv"]):
                     continue
-                rel_path = py_file.relative_to(self.project_root)
+                rel_path = str(py_file.relative_to(self.project_root))
                 module_map = self._default_parser.scan_file(py_file)
                 if module_map:
-                    modules[str(rel_path)] = module_map
+                    modules[rel_path] = module_map
 
         if output_format == "markdown":
             return self._to_markdown(modules)
@@ -142,7 +142,7 @@ class CodeMapGenerator:
             ".tsx": "javascript",
             ".go": "go",
         }
-        return lang_map.get(ext, ext.lstrip("."))
+        return lang_map.get(ext, ext.lstrip("."))  # type: ignore[no-any-return]
 
     def _to_markdown(self, modules: dict[str, Any]) -> str:
         lines = ["# Code Map", ""]
@@ -163,7 +163,7 @@ class CodeMapGenerator:
             lines.append("")
         return "\n".join(lines)
 
-    def get_dependency_graph(self, target_dir: str = None) -> dict[str, list[str]]:
+    def get_dependency_graph(self, target_dir: str | None = None) -> dict[str, list[str]]:
         """Build a file-level dependency graph for the target directory.
 
         Args:
@@ -274,7 +274,7 @@ class _PythonCompatParser:
             children=methods,
         )
 
-    def _parse_function(self, node, file_path: str) -> CodeNode:
+    def _parse_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef, file_path: str) -> CodeNode:
         docstring = ast.get_docstring(node) or ""
         calls = []
         for child in ast.walk(node):

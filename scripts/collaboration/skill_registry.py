@@ -129,7 +129,7 @@ class SkillRegistry:
         """
         return self.skills.get(skill_id)
 
-    def execute(self, skill_id: str, **kwargs) -> Any:
+    def execute(self, skill_id: str, **kwargs: Any) -> Any:
         """Execute a registered skill by id.
 
         Args:
@@ -156,7 +156,7 @@ class SkillRegistry:
 
         return handler(**kwargs)
 
-    def search(self, query: str = "", category: str = "", tags: list[str] = None) -> list[SkillEntry]:
+    def search(self, query: str = "", category: str = "", tags: list[str] | None = None) -> list[SkillEntry]:
         """Search skills by query text, category, and tags.
 
         Args:
@@ -180,7 +180,7 @@ class SkillRegistry:
         return results
 
     def propose_from_result(
-        self, name: str, description: str, category: str = "", confidence: float = 0.0, tags: list[str] = None
+        self, name: str, description: str, category: str = "", confidence: float = 0.0, tags: list[str] | None = None
     ) -> SkillEntry:
         """Create and register a skill proposal from a dispatch result.
 
@@ -225,7 +225,7 @@ class SkillRegistry:
             Dictionary with total skill count, per-category counts, and
             the number of skills with registered handlers.
         """
-        categories = {}
+        categories: dict[str, int] = {}
         for s in self.skills.values():
             categories[s.category] = categories.get(s.category, 0) + 1
         return {
@@ -234,7 +234,7 @@ class SkillRegistry:
             "with_handlers": len(self.handlers),
         }
 
-    def _load(self):
+    def _load(self) -> None:
         registry_file = self.storage_path / "registry.json"
         if registry_file.exists():
             try:
@@ -246,7 +246,7 @@ class SkillRegistry:
             except (json.JSONDecodeError, OSError, ValueError) as e:
                 logger.warning("Failed to load skill registry: %s", e)
 
-    def _save(self):
+    def _save(self) -> None:
         registry_file = self.storage_path / "registry.json"
         try:
             data = {"skills": [s.to_dict() for s in self.skills.values()]}

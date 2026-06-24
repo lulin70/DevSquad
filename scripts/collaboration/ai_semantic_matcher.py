@@ -69,7 +69,7 @@ Return the matching results in JSON format:
     "analysis": "overall analysis"
 }}"""
 
-    def __init__(self, llm_backend=None):
+    def __init__(self, llm_backend: Any = None) -> None:
         self.llm_backend = llm_backend
         self.match_cache: dict[str, SemanticMatchResult] = {}
         self.match_history: list[dict[str, Any]] = []
@@ -77,8 +77,8 @@ Return the matching results in JSON format:
     def match(
         self,
         task_description: str,
-        required_capabilities: list[str] = None,
-        _preferred_skills: list[str] = None,
+        required_capabilities: list[str] | None = None,
+        _preferred_skills: list[str] | None = None,
         use_cache: bool = True,
     ) -> list[SemanticMatchResult]:
         """
@@ -262,7 +262,7 @@ Return the matching results in JSON format:
         content = f"{task_description}|{len(ROLE_REGISTRY)}"
         return hashlib.md5(content.encode("utf-8")).hexdigest()
 
-    def _record_match(self, task_description: str, results: list[SemanticMatchResult]):
+    def _record_match(self, task_description: str, results: list[SemanticMatchResult]) -> None:
         record = {
             "task_description": task_description[:100],
             "timestamp": datetime.now().isoformat(),
@@ -283,7 +283,7 @@ Return the matching results in JSON format:
         """
         return self.match_history[-limit:]
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clear all cached semantic match results."""
         self.match_cache.clear()
 

@@ -145,7 +145,7 @@ class LLMRetryBase:
 
     RATE_LIMIT_PATTERNS = ["429", "rate limit"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize base retry manager with shared stats structure."""
         # Statistics structure shared by both implementations.
         # Subclasses may extend with additional counters.

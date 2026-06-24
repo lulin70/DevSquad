@@ -15,7 +15,7 @@ class EventBus:
         post_dispatch.* → dispatch.completed
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._handlers: dict[str, list[Callable]] = defaultdict(list)
 
     def on(self, event: str, handler: Callable) -> None:

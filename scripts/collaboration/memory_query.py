@@ -15,6 +15,7 @@ MemoryQueryMixin 通过 mixin 模式被 MemoryBridge 继承，
 import contextlib
 import time
 from datetime import datetime
+from typing import Any
 
 from .memory_types import (
     EpisodicMemory,
@@ -27,7 +28,7 @@ from .memory_types import (
 
 
 class MemoryReader:
-    def __init__(self, store):
+    def __init__(self, store: Any) -> None:
         self.store = store
 
     def read_knowledge(self, domain: str | None = None) -> list[KnowledgeItem]:
@@ -81,7 +82,7 @@ class MemoryReader:
             for r in raw_list
         ]
 
-    def read_feedback(self, status: str | None = None, feedback_type: str | None = None):
+    def read_feedback(self, status: str | None = None, feedback_type: str | None = None) -> list[Any]:
         """Load user feedback memories, optionally filtered by status and type.
 
         Args:
@@ -113,7 +114,7 @@ class MemoryReader:
             for r in raw_list
         ]
 
-    def read_patterns(self, category: str | None = None):
+    def read_patterns(self, category: str | None = None) -> list[Any]:
         """Load persisted skill patterns, optionally filtered by category.
 
         Args:
@@ -142,7 +143,7 @@ class MemoryReader:
             for r in raw_list
         ]
 
-    def read_analysis_cases(self, status: str | None = None):
+    def read_analysis_cases(self, status: str | None = None) -> list[Any]:
         """Load analysis cases, optionally filtered by status.
 
         Args:
@@ -184,6 +185,18 @@ class MemoryQueryMixin:
     - self._stats (MemoryStats)
     """
 
+    # Class-level type annotations for attributes provided by the host
+    # class (MemoryBridge) via mixin composition.
+    config: Any
+    indexer: Any
+    store: Any
+    reader: Any
+    _claw_enabled: bool
+    _claw_source: Any
+    _mce_enabled: bool
+    _mce_adapter: Any
+    _stats: Any
+
     def recall(self, query: MemoryQuery) -> MemoryRecallResult:
         """
         [MCE 集成点 Phase B] 跨会话记忆召回
@@ -222,7 +235,7 @@ class MemoryQueryMixin:
                     }
                     mapped_type = type_mapping.get(mce_result.memory_type.lower())
                     if mapped_type:
-                        effective_type_filter = mapped_type
+                        effective_type_filter = mapped_type  # type: ignore[assignment]
             except (ValueError, AttributeError, RuntimeError):
                 pass
 
@@ -309,7 +322,7 @@ class MemoryQueryMixin:
         Returns:
             List of EpisodicMemory ordered by recency.
         """
-        return self.reader.read_episodic(limit=n)
+        return self.reader.read_episodic(limit=n)  # type: ignore[no-any-return]
 
     def get_workbuddy_ai_news(self, days: int = 7) -> list[MemoryItem]:
         """
@@ -328,7 +341,7 @@ class MemoryQueryMixin:
         if not self._claw_enabled or not self._claw_source:
             return []
         try:
-            return self._claw_source.get_latest_ai_news(days)
+            return self._claw_source.get_latest_ai_news(days)  # type: ignore[no-any-return]
         except (OSError, AttributeError, ValueError):
             return []
 
@@ -355,12 +368,12 @@ class MemoryQueryMixin:
         if data is not None:
             if "memory_type" not in data:
                 data["memory_type"] = guessed.value
-            return data
+            return data  # type: ignore[no-any-return]
         for mtype in MemoryType:
             if mtype != guessed:
                 data = self.store.load(mtype, memory_id)
                 if data is not None:
                     if "memory_type" not in data:
                         data["memory_type"] = mtype.value
-                    return data
+                    return data  # type: ignore[no-any-return]
         return None
