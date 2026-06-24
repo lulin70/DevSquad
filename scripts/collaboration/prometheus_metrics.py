@@ -37,9 +37,9 @@ except ImportError:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def labels(self, *_args: Any, **_kwargs: Any) -> "Counter":
+        def labels(self, *_args: Any, **_kwargs: Any) -> Any:
             """Return self to support chaining when prometheus is unavailable."""
-            return self  # type: ignore[return-value]
+            return self
 
         def inc(self, amount: int = 1) -> None:
             """No-op increment for the stub counter."""
