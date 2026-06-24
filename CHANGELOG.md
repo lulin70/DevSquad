@@ -20,9 +20,9 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **MultiHostAdapter** (`multi_host_adapter.py`): Unified adapter for dispatching DevSquad tasks from 6 AI host platforms — Claude Code, Cursor, Codex CLI, Cline, Trae, and Generic. Host-specific role mapping, prompt adaptation, and output slicing. 32 tests.
 
 ### Test Coverage
-- 2681 passed, 18 skipped (was 2591 in V3.9.0)
-- 2 files split to ≤500 lines (code_knowledge_graph, redesign_auditor); 37 files >500 lines remain (tech debt)
-- 95+ core modules (was 94+)
+- 2605 passed, 14 skipped (CI authoritative, Python 3.10+3.11; was 2591 in V3.9.0)
+- 2 files split to ≤500 lines (code_knowledge_graph, redesign_auditor); 42 files >500 lines remain (tech debt)
+- 118 core modules (was 94+)
 - mypy: 0 errors (was 551, blocking in CI)
 - bandit: 0 High/Medium issues (was 16)
 

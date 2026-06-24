@@ -20,7 +20,7 @@
 | 集成 | 5/10 | 6/10 | +1 | C+ |
 | **总体** | **5.6/10** | **6.7/10** | **+1.1** | **B-** |
 
-> V3.9.0 评估为 5.6/10。V3.9.1 通过 mypy CI 阻断（551→0 errors）、bandit 安全扫描清零（16→0 High/Medium）、RBAC fail-closed 选项、MultiHostAdapter 集成、code_graph_storage.py N+1 inserts 修复、死代码删除、CI pip 缓存、PR/Issue 模板等改进，将综合得分提升至 6.7/10。共 95+ core modules，2681 tests passed, 18 skipped。
+> V3.9.0 评估为 5.6/10。V3.9.1 通过 mypy CI 阻断（551→0 errors）、bandit 安全扫描清零（16→0 High/Medium）、RBAC fail-closed 选项、MultiHostAdapter 集成、code_graph_storage.py N+1 inserts 修复、死代码删除、CI pip 缓存、PR/Issue 模板等改进，将综合得分提升至 6.7/10。共 118 core modules，2605 tests passed, 14 skipped (CI authoritative, Python 3.10+3.11)。
 
 ---
 
@@ -48,7 +48,7 @@
 |------|------|
 | MultiHostAdapter 集成 | 从幽灵功能转为 CLI --host 选项 + __init__.py 导出 |
 | code_graph_storage.py N+1 修复 | 使用 executemany 替代逐条 insert |
-| 95+ core modules | 模块化设计，职责分离 |
+| 118 core modules | 模块化设计，职责分离 |
 | 核心调度管线稳定 | sync/async dispatch 均工作正常，benchmark 实测通过 |
 | async_dispatch | 3.15x 加速比实测 |
 
@@ -56,14 +56,14 @@
 
 | 问题 | 严重度 | 详情 |
 |------|--------|------|
-| 巨型文件 | 高 | 37 files >500 lines in scripts/collaboration/（dispatch_steps.py 1030行最大）|
+| 巨型文件 | 高 | 42 files >500 lines in scripts/collaboration/（dispatch_steps.py 1030行最大）|
 | REST API 安全未集成 | 高 | InputValidator/RBAC/Audit 未集成到 REST API |
 
 ### 评分理由
 
 - MultiHostAdapter 从幽灵功能转为正式 CLI 集成 (+1)
 - N+1 inserts 修复提升数据层架构质量 (+0.5)
-- 95+ core modules 模块化设计 (+0.5)
+- 118 core modules 模块化设计 (+0.5)
 - 巨型文件仍存在 (-1)
 
 ---
@@ -108,26 +108,26 @@
 ### 实测数据
 
 ```
-2681 tests passed, 18 skipped (V3.9.1 权威数据)
-95+ core modules 覆盖
+2605 tests passed, 14 skipped (CI authoritative, Python 3.10+3.11) (V3.9.1 权威数据)
+118 core modules 覆盖
 ```
 
 ### 分析
 
 | 指标 | 数据 | 评价 |
 |------|------|------|
-| 单元测试数量 | 2681 passed | 数量可观 |
-| 测试通过率 | 99.3% (2681/2699) | 良好 |
-| skipped 测试 | 18 | 需关注 |
+| 单元测试数量 | 2605 passed (CI) | 数量可观 |
+| 测试通过率 | 99.5% (2605/2619) | 良好 |
+| skipped 测试 | 14 | 需关注 |
 | CI pip 缓存 | 所有 job 已配置 | 加速反馈 |
 | 真实 LLM 集成测试 | 0 | 仍然缺失 |
 | Contract 测试 | 1 文件 | 不足 |
 
 ### 评分理由
 
-- 2681 测试数量可观，较 V3.9.0 增长 (+1)
+- 2605 测试数量可观，较 V3.9.0 增长 (+1)
 - CI pip 缓存提升测试效率 (+0.5)
-- 18 skipped 测试需关注 (-0.5)
+- 14 skipped 测试需关注 (-0.5)
 - 仍无真实 LLM 后端测试 (-1)
 
 ---
@@ -174,7 +174,7 @@
 
 | 问题 | 严重度 | 详情 |
 |------|--------|------|
-| 巨型文件 | 高 | 37 files >500 lines in scripts/collaboration/（dispatch_steps.py 1030行最大）|
+| 巨型文件 | 高 | 42 files >500 lines in scripts/collaboration/（dispatch_steps.py 1030行最大）|
 | 宽泛异常捕获 | 中 | P3: except Exception 过于宽泛 |
 | 魔法数字 | 低 | P3: 需提取为常量 |
 
@@ -265,9 +265,15 @@
 
 ### 已知技术债
 
-1. **37 files >500 lines in scripts/collaboration/**（dispatch_steps.py 1030行最大）
-2. **REST API 未集成安全特性**（InputValidator/RBAC/Audit）
+1. **42 files >500 lines in scripts/**（dashboard.py 1087行最大，dispatcher.py 1051行次之）
+2. **REST API 未集成安全特性**（InputValidator/RBAC/Audit）— P1 延后，需独立设计
 3. **P3: 魔法数字提取，宽泛异常捕获**
+
+### V3.9.1 后续清理（本轮）
+
+- 归档 6 个过时 V3.6.x 文档至 docs/archive/（E2E_TEST_REPORT/RELEASE_DECISION/MATURITY_REPORT×2/TECHNICAL_DEBT/TEST_PLAN）
+- 修复 tests/manual/ 本地 pytest 收集崩溃（norecursedirs + CI --ignore）
+- 修正文档中的测试数（2681→2605 CI 权威）、模块数（95+→118）、大文件数（37→42）
 
 ### 诚实结论
 
@@ -289,4 +295,4 @@ DevSquad V3.9.1 是一个**安全性显著提升且持续改进**的版本：
 3. **P3: 魔法数字提取，宽泛异常捕获**
 4. **添加真实 LLM 后端集成测试**（至少 OpenAI + Anthropic 各 5 个 case）
 5. **审计日志持久化**（从内存改为文件/数据库）
-6. **调查 18 个 skipped 测试**（确认是否为 MCP server flaky 测试）
+6. **调查 14 个 skipped 测试**（确认是否为 MCP server flaky 测试）

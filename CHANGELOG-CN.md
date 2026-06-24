@@ -20,9 +20,9 @@
 - **MultiHostAdapter**（`multi_host_adapter.py`）：统一适配器，用于从 6 个 AI 主机平台调度 DevSquad 任务 — Claude Code、Cursor、Codex CLI、Cline、Trae 和 Generic。主机特定的角色映射、提示词适配和输出切片。32 个测试。
 
 ### 测试覆盖
-- 2681 通过，18 跳过（V3.9.0 为 2591）
-- 2 个文件拆分至 ≤500 行（code_knowledge_graph、redesign_auditor）；仍有 37 个文件 >500 行（技术债）
-- 95+ 核心模块（原 94+）
+- 2605 通过，14 跳过（CI 权威数据，Python 3.10+3.11；V3.9.0 为 2591）
+- 2 个文件拆分至 ≤500 行（code_knowledge_graph、redesign_auditor）；仍有 42 个文件 >500 行（技术债）
+- 118 核心模块（原 94+）
 - mypy：0 错误（原 551，CI 中阻断）
 - bandit：0 High/Medium 问题（原 16）
 

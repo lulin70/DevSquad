@@ -7,7 +7,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V3.9.1: File splits + RedesignAuditor fix + MultiHostAdapter + mypy blocking + bandit clean,
-  95+ core modules, 2681 tests passing.
+  118 core modules, 2605 tests passing (CI authoritative).
 status: active
 ai_enhanced: true
 ai_capabilities:
@@ -284,7 +284,7 @@ metadata:
       changes:
         - File splits (code_knowledge_graph 511→346, redesign_auditor 550→229) + RedesignAuditor false-positive fix
         - MultiHostAdapter (6 host types) + CI E2E release gate + mypy blocking (551→0) + bandit clean
-        - 95+ core modules, 2681 tests passing
+        - 118 core modules, 2605 tests passing (CI authoritative)
     - version: 3.9.0
       date: "2026-06-22"
       changes:
