@@ -21,11 +21,12 @@ import hashlib
 import logging
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
