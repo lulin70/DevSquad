@@ -16,6 +16,7 @@ import re
 import time
 import uuid
 from datetime import datetime
+from typing import Any
 
 from .memory_types import (
     AnalysisCase,
@@ -30,7 +31,7 @@ from .memory_types import (
 
 
 class MemoryWriter:
-    def __init__(self, store, indexer=None):
+    def __init__(self, store: Any, indexer: Any = None) -> None:
         self.store = store
         self.indexer = indexer
         self._capture_count = 0
@@ -65,7 +66,7 @@ class MemoryWriter:
                 source=item.source,
             )
             self.indexer.add_to_index(mem_item)
-        return item_id
+        return item_id  # type: ignore[no-any-return]
 
     def write_episodic(self, memory: EpisodicMemory) -> str:
         """Persist an episodic memory and add it to the index.
@@ -98,7 +99,7 @@ class MemoryWriter:
             )
             self.indexer.add_to_index(mem_item)
         self._capture_count += 1
-        return item_id
+        return item_id  # type: ignore[no-any-return]
 
     def write_feedback(self, feedback: UserFeedback) -> str:
         """Persist user feedback and add it to the index.
@@ -130,7 +131,7 @@ class MemoryWriter:
                 metadata={"rating": feedback.rating},
             )
             self.indexer.add_to_index(mem_item)
-        return item_id
+        return item_id  # type: ignore[no-any-return]
 
     def write_pattern(self, pattern: PersistedPattern) -> str:
         """Persist a pattern and add it to the index.
@@ -164,7 +165,7 @@ class MemoryWriter:
                 metadata={"quality_score": pattern.quality_score, "confidence": pattern.confidence},
             )
             self.indexer.add_to_index(mem_item)
-        return item_id
+        return item_id  # type: ignore[no-any-return]
 
     def write_analysis(self, analysis: AnalysisCase) -> str:
         """Persist an analysis case (problem/root-cause/solutions) into the memory store.
@@ -195,7 +196,7 @@ class MemoryWriter:
                 metadata={"solutions_count": len(analysis.solutions)},
             )
             self.indexer.add_to_index(mem_item)
-        return item_id
+        return item_id  # type: ignore[no-any-return]
 
     def batch_write(self, items: list[MemoryItem]) -> int:
         """Persist multiple memory items, skipping any that fail to save.
@@ -235,7 +236,15 @@ class MemorySerializerMixin:
     - self._stats (MemoryStats)
     """
 
-    def capture_execution(self, execution_record=None, scratchpad_entries=None) -> str | None:
+    # Class-level type annotations for attributes provided by the host
+    # class (MemoryBridge) via mixin composition.
+    config: Any
+    writer: Any
+    _mce_enabled: bool
+    _mce_adapter: Any
+    _stats: Any
+
+    def capture_execution(self, execution_record: Any = None, scratchpad_entries: Any = None) -> str | None:
         """
         [MCE 集成点 Phase A] Worker 执行结果 → 记忆沉淀
 
@@ -256,7 +265,7 @@ class MemorySerializerMixin:
         captured_id = None
         for entry in scratchpad_entries:
             entry_type = getattr(entry, "entry_type", None)
-            entry_type_val = entry_type.value if hasattr(entry_type, "value") else str(entry_type)
+            entry_type_val = entry_type.value if hasattr(entry_type, "value") else str(entry_type)  # type: ignore[union-attr]
             if entry_type_val != "FINDING":
                 continue
             confidence = getattr(entry, "confidence", 0.8) or 0.8
@@ -289,7 +298,7 @@ class MemorySerializerMixin:
             tags = self._extract_tags(task_desc + " " + content)
 
             if mce_memory_type == "KNOWLEDGE":
-                knowledge = KnowledgeMemory(  # noqa: F821
+                knowledge = KnowledgeMemory(  # type: ignore[name-defined]  # noqa: F821
                     id=f"know_{uuid.uuid4().hex[:12]}_{int(time.time())}",
                     domain=task_desc[:100] if task_desc else "general",
                     fact=content,
@@ -301,7 +310,7 @@ class MemorySerializerMixin:
                 self.writer.write_knowledge(knowledge)
                 captured_id = knowledge.id
             elif mce_memory_type == "FEEDBACK":
-                feedback = FeedbackMemory(  # noqa: F821
+                feedback = FeedbackMemory(  # type: ignore[name-defined]  # noqa: F821
                     id=f"feed_{uuid.uuid4().hex[:12]}_{int(time.time())}",
                     category="preference",
                     content=content,
@@ -341,9 +350,9 @@ class MemorySerializerMixin:
             feedback.id = f"fb_{uuid.uuid4().hex[:12]}_{int(time.time())}"
         if not feedback.created_at:
             feedback.created_at = datetime.now().isoformat()
-        return self.writer.write_feedback(feedback)
+        return self.writer.write_feedback(feedback)  # type: ignore[no-any-return]
 
-    def persist_pattern(self, pattern) -> str | None:
+    def persist_pattern(self, pattern: Any) -> str | None:
         """
         [MCE 集成点 Phase D] Skillifier 生成的 Skill 模式持久化
 
@@ -379,7 +388,7 @@ class MemorySerializerMixin:
             quality_score=qs,
             created_at=datetime.now().isoformat(),
         )
-        return self.writer.write_pattern(persisted)
+        return self.writer.write_pattern(persisted)  # type: ignore[no-any-return]
 
     def learn_from_mistake(self, error_context: ErrorContext) -> str:
         """Convert an error context into a persisted analysis case for future reference.
@@ -408,7 +417,7 @@ class MemorySerializerMixin:
             status="completed",
             created_at=datetime.now().isoformat(),
         )
-        return self.writer.write_analysis(analysis)
+        return self.writer.write_analysis(analysis)  # type: ignore[no-any-return]
 
     @staticmethod
     def _extract_tags(text: str) -> list[str]:

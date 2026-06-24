@@ -148,7 +148,7 @@ class ResultAssembler:
 
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
-        return self._report_formatter.build_summary(task, roles, exec_result, sp_summary)
+        return self._report_formatter.build_summary(task, roles, exec_result, sp_summary)  # type: ignore[no-any-return]
 
     @staticmethod
     def build_step_timings(

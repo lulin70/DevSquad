@@ -113,7 +113,7 @@ class OutputSlicer:
         max_slice_lines: int = DEFAULT_MAX_SLICE_LINES,
         include_headers: bool = True,
         write_to_scratchpad: bool = False,
-        scratchpad=None,
+        scratchpad: Any = None,
     ):
         """
         Initialize output slicer.

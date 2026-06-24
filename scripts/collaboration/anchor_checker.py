@@ -168,7 +168,7 @@ def _tokenize(text: str) -> list[str]:
 def _compute_tfidf_vectors(documents: list[list[str]]) -> list[dict[str, float]]:
     if not documents:
         return []
-    doc_freq = Counter()
+    doc_freq: Counter[str] = Counter()
     for doc in documents:
         unique_terms = set(doc)
         for term in unique_terms:
@@ -392,6 +392,6 @@ class AnchorChecker:
         """
         return len(self._check_history)
 
-    def reset(self):
+    def reset(self) -> None:
         """Clear all recorded anchor check history."""
         self._check_history.clear()

@@ -37,7 +37,7 @@ except ImportError:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def labels(self, *_args: Any, **_kwargs: Any) -> "Counter":
+        def labels(self, *_args: Any, **_kwargs: Any) -> Any:
             """Return self to support chaining when prometheus is unavailable."""
             return self
 
@@ -53,7 +53,7 @@ except ImportError:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def labels(self, *_args: Any, **_kwargs: Any) -> "Gauge":
+        def labels(self, *_args: Any, **_kwargs: Any) -> Any:
             """Return self to support chaining when prometheus is unavailable."""
             return self
 
@@ -73,7 +73,7 @@ except ImportError:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def labels(self, *_args: Any, **_kwargs: Any) -> "Histogram":
+        def labels(self, *_args: Any, **_kwargs: Any) -> Any:
             """Return self to support chaining when prometheus is unavailable."""
             return self
 
@@ -382,7 +382,7 @@ class DevSquadMetrics:
         """
         if not _PROMETHEUS_AVAILABLE:
             return None
-        return generate_latest(REGISTRY)
+        return generate_latest(REGISTRY)  # type: ignore[no-any-return, unused-ignore]
 
     def is_available(self) -> bool:
         """Check if Prometheus client is available."""

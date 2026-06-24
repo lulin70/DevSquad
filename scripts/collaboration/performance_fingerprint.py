@@ -325,7 +325,7 @@ class PerformanceFingerprint:
 
         Returns list of normalized error pattern strings.
         """
-        patterns = []
+        patterns: list[str] = []
         if result is None:
             return patterns
 
@@ -359,7 +359,7 @@ class PerformanceFingerprint:
 
         return patterns
 
-    def _persist(self):
+    def _persist(self) -> None:
         """Persist fingerprints to JSON file."""
         try:
             target_path = Path(self._persist_dir) / "fingerprints.json"
@@ -375,7 +375,7 @@ class PerformanceFingerprint:
         except (OSError, TypeError, ValueError) as e:
             logger.warning("Failed to persist fingerprints: %s", e)
 
-    def _load(self):
+    def _load(self) -> None:
         """Load fingerprints from JSON file."""
         try:
             target_path = Path(self._persist_dir) / "fingerprints.json"
@@ -390,7 +390,7 @@ class PerformanceFingerprint:
             logger.warning("Failed to load fingerprints: %s", e)
             self._fingerprints = []
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all fingerprints (useful for testing)."""
         with self._lock:
             self._fingerprints.clear()

@@ -138,14 +138,14 @@ class ContentCache:
         # its own internal key derivation; we pass our unified key as
         # the prompt argument so the underlying SHA-256 is applied to
         # the canonical content, not the raw prompt.
-        result = self._wrapped.get(key, backend, model)
+        result = self._wrapped.get(key, backend, model)  # type: ignore[attr-defined]
         if result is not None:
             self.hits += 1
             self._record_metric(hit=True)
         else:
             self.misses += 1
             self._record_metric(hit=False)
-        return result
+        return result  # type: ignore[no-any-return]
 
     def set(self, prompt: str, response: str, backend: str, model: str) -> bool:
         """Store a response in the cache, filtering sensitive prompts.
@@ -163,7 +163,7 @@ class ContentCache:
             return False
 
         key = self._generate_key(prompt, backend, model)
-        self._wrapped.set(key, response, backend, model)
+        self._wrapped.set(key, response, backend, model)  # type: ignore[attr-defined]
         return True
 
     # ------------------------------------------------------------------

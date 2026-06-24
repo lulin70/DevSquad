@@ -45,10 +45,10 @@ class FeedbackControlLoop:
 
     def __init__(
         self,
-        dispatcher,
+        dispatcher: Any,
         quality_gate: float = DEFAULT_QUALITY_GATE,
         max_iterations: int = DEFAULT_MAX_ITERATIONS,
-        llm_backend=None,
+        llm_backend: Any = None,
     ):
         """
         Initialize the feedback control loop.
@@ -91,7 +91,7 @@ class FeedbackControlLoop:
         return list(self._iteration_history)
 
     @property
-    def best_result(self):
+    def best_result(self) -> Any:
         """Best result achieved across all iterations."""
         return self._best_result
 
@@ -100,7 +100,7 @@ class FeedbackControlLoop:
         """Highest quality score achieved."""
         return self._best_quality
 
-    def run(self, task: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, **kwargs):
+    def run(self, task: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, **kwargs: Any) -> Any:
         """
         Execute the feedback control loop.
 
@@ -197,7 +197,7 @@ class FeedbackControlLoop:
 
             return best_result
 
-    def _dry_run_dispatch(self, task: str, roles: list[str] | None, _mode: str):
+    def _dry_run_dispatch(self, task: str, roles: list[str] | None, _mode: str) -> Any:
         """Simulate a dispatch for dry-run mode."""
         from .dispatcher import DispatchResult
 
@@ -209,7 +209,7 @@ class FeedbackControlLoop:
             duration_seconds=0.0,
         )
 
-    def _assess_quality(self, result) -> float:
+    def _assess_quality(self, result: Any) -> float:
         """
         Assess the quality of a dispatch result.
 
@@ -256,7 +256,7 @@ class FeedbackControlLoop:
 
         return min(max(score, 0.0), 1.0)
 
-    def _generate_adjustment(self, result, quality: float) -> str:
+    def _generate_adjustment(self, result: Any, quality: float) -> str:
         """
         Generate adjustment suggestion based on failed result analysis.
 
@@ -393,18 +393,18 @@ class FeedbackControlLoop:
         )
 
         if hasattr(self._llm_backend, 'generate'):
-            return self._llm_backend.generate(prompt)
+            return self._llm_backend.generate(prompt)  # type: ignore[no-any-return]
         elif hasattr(self._llm_backend, 'call'):
-            return self._llm_backend.call(prompt)
+            return self._llm_backend.call(prompt)  # type: ignore[no-any-return]
         elif hasattr(self._llm_backend, 'chat'):
             response = self._llm_backend.chat([{"role": "user", "content": prompt}])
             if isinstance(response, dict):
-                return response.get("content", response.get("text", ""))
+                return response.get("content", response.get("text", ""))  # type: ignore[return-value]
             return str(response)
         else:
             raise ValueError(f"Unsupported LLM backend type: {type(self._llm_backend)}")
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset all state for reuse."""
         with self._lock:
             self._iteration_history.clear()

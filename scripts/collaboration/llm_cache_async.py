@@ -183,7 +183,7 @@ class AsyncLLMCache(LLMCacheBase):
             logger.debug("Cache miss: %s...", cache_key[:8])
             return None
 
-    async def set(self, prompt: str, response: str, backend: str, model: str, ttl_seconds: int | None = None):
+    async def set(self, prompt: str, response: str, backend: str, model: str, ttl_seconds: int | None = None) -> None:
         """
         Set cache entry asynchronously.
 
@@ -225,7 +225,7 @@ class AsyncLLMCache(LLMCacheBase):
 
             logger.debug("Cache set: %s... (ttl: %ss)", cache_key[:8], ttl)
 
-    async def _evict_if_needed(self):
+    async def _evict_if_needed(self) -> None:
         """Evict oldest entries if memory cache is full"""
         while len(self._memory_cache) > self.max_memory_entries:
             # Remove oldest (first) entry
@@ -233,7 +233,7 @@ class AsyncLLMCache(LLMCacheBase):
             self.stats["evictions"] += 1
             logger.debug("Evicted from memory: %s...", oldest_key[:8])
 
-    async def clear(self, backend: str | None = None):
+    async def clear(self, backend: str | None = None) -> None:
         """
         Clear cache asynchronously.
 
@@ -288,7 +288,7 @@ def get_async_llm_cache() -> AsyncLLMCache:
     return _global_async_cache
 
 
-def reset_async_cache():
+def reset_async_cache() -> None:
     """Reset global async cache instance"""
     global _global_async_cache
     _global_async_cache = None
@@ -296,7 +296,7 @@ def reset_async_cache():
 
 if __name__ == "__main__":
     # Example usage
-    async def main():
+    async def main() -> None:
         """Run an example demonstrating async LLM cache set/get and stats."""
         cache = get_async_llm_cache()
 

@@ -247,7 +247,7 @@ class WarmupManager:
             cls._instance = None
             cls._eager_task_ids = set()
 
-    def _register_builtin_tasks(self):
+    def _register_builtin_tasks(self) -> None:
         self.register_task(
             WarmupTask(
                 task_id="core-models",
@@ -270,7 +270,7 @@ class WarmupManager:
             )
         )
 
-    def _load_core_models(self) -> dict[str, str]:
+    def _load_core_models(self) -> dict[str, Any]:
         return {"models_loaded": True, "timestamp": time.time()}
 
     def _load_role_metadata(self) -> dict[str, Any]:
@@ -404,7 +404,7 @@ class WarmupManager:
         )
         futures_map: dict[concurrent.futures.Future, WarmupTask] = {}
 
-        def _run_task(task: WarmupTask):
+        def _run_task(task: WarmupTask) -> None:
             start = time.perf_counter()
             try:
                 result_val = None if task.executor is None else task.executor()
@@ -448,7 +448,7 @@ class WarmupManager:
             future = self._executor.submit(_run_task, task)
             futures_map[future] = task
 
-        def _on_done(future: concurrent.futures.Future):
+        def _on_done(future: concurrent.futures.Future) -> None:
             task = futures_map.pop(future, None)
             if task:
                 with contextlib.suppress(concurrent.futures.TimeoutError, Exception):
@@ -457,7 +457,7 @@ class WarmupManager:
         for future in list(futures_map.keys()):
             future.add_done_callback(_on_done)
 
-        def _wait_all():
+        def _wait_all() -> None:
             for f in list(futures_map.keys()):
                 try:
                     f.result(timeout=max(t.timeout_ms for t in sorted_tasks) / 1000.0)

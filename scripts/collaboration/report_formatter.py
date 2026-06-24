@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import re
+from typing import Any
 
 from .models import ROLE_REGISTRY
 
@@ -70,7 +71,7 @@ class ReportFormatter:
         self._t = _I18N_SUMMARY.get(lang, _I18N_SUMMARY["zh"])
         self._role_names = _ROLE_I18N.get(lang, _ROLE_I18N["zh"])
 
-    def build_summary(self, task: str, roles: list[str], exec_result, sp_summary: str) -> str:
+    def build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build a localized plain-text summary of a dispatch execution.
 
         Args:
@@ -88,7 +89,7 @@ class ReportFormatter:
         role_names = [self._role_names.get(r, ROLE_TEMPLATES.get(r, {}).get("name", r)) for r in roles]
         parts = [
             t["task_done"].format(task=task[:80]),
-            t["roles"].format(roles=", ".join(role_names), count=len(roles)),
+            t["roles"].format(roles=", ".join(role_names), count=len(roles)),  # type: ignore[arg-type]
         ]
         if exec_result.results:
             done = sum(1 for r in exec_result.results if r.success)
@@ -99,7 +100,7 @@ class ReportFormatter:
             parts.append(t["sp_findings"].format(sp=sp_summary[:200]))
         return "\n".join(parts)
 
-    def format_structured_report(self, result, include_action_items: bool = True, include_timing: bool = False) -> str:
+    def format_structured_report(self, result: Any, include_action_items: bool = True, include_timing: bool = False) -> str:
         """
         Generate structured report (v3.2 UI Designer spec).
 
@@ -266,7 +267,7 @@ class ReportFormatter:
 
         return "\n".join(lines)
 
-    def format_compact_report(self, result) -> str:
+    def format_compact_report(self, result: Any) -> str:
         """Generate compact report suitable for terminal quick view."""
         status = "✅" if result.success else "❌"
         roles_str = ", ".join(result.matched_roles) if result.matched_roles else "无"
@@ -323,7 +324,7 @@ class ReportFormatter:
         findings = [s.strip() for s in sentences if len(s.strip()) >= 10]
         return findings[:8]
 
-    def generate_action_items(self, result) -> list[dict[str, str]]:
+    def generate_action_items(self, result: Any) -> list[dict[str, str]]:
         """
         Auto-generate action item suggestions based on dispatch result.
 

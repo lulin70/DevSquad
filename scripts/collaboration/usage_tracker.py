@@ -158,7 +158,7 @@ class UsageTracker:
 
             # 按组件分类
             lines.append("\n## 按组件分类\n")
-            by_component = defaultdict(int)
+            by_component: defaultdict[str, int] = defaultdict(int)
             for name, stat in self.stats.items():
                 component = name.split(".")[0] if "." in name else "other"
                 by_component[component] += stat["count"]

@@ -244,7 +244,7 @@ class RBACEngine:
             logger.error("Access denied: %s", e)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._role_permissions: dict[UserRole, set[Permission]] = {}
         self._users: dict[str, RBACUser] = {}
         self._audit_log: list[AuditRecord] = []
@@ -252,7 +252,7 @@ class RBACEngine:
         self._prev_hash: str = ""  # For SHA256 chain
         self._init_default_roles()
 
-    def _init_default_roles(self):
+    def _init_default_roles(self) -> None:
         """Initialize default role-permission mapping.
 
         Defines the hierarchical permission matrix:
@@ -638,7 +638,7 @@ class RBACEngine:
             if not self._audit_log:
                 return {"valid": True, "total_records": 0, "details": []}
 
-            prev_hash = ""
+            prev_hash: str | None = ""
             results = []
 
             for idx, record in enumerate(self._audit_log):

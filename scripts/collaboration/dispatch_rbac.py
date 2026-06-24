@@ -267,5 +267,6 @@ class DispatchRBAC:
             return role
         # Handle enum roles (e.g. UserRole.ADMIN).
         if hasattr(role, "value"):
+            assert role is not None
             return str(role.value)
         return None

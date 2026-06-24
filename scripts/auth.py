@@ -20,12 +20,14 @@ Usage:
 import hashlib
 import logging
 import os
+import secrets
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
@@ -206,7 +208,7 @@ class AuthManager:
             name=cred.get("name", username),
             role=role,
             authenticated_at=datetime.now(),
-            session_id=hashlib.md5(f"{username}{datetime.now().isoformat()}".encode()).hexdigest()[:16],
+            session_id=secrets.token_hex(16),
         )
 
         logger.info("User authenticated: %s (role=%s)", username, role.value)

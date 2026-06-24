@@ -522,7 +522,7 @@ class HistoryManager:
             for table in tables:
                 # alert_history uses 'created_at' column, others use 'timestamp'
                 col = "created_at" if table == "alert_history" else "timestamp"
-                cursor.execute(f"DELETE FROM {table} WHERE {col} < ?", (cutoff,))
+                cursor.execute(f"DELETE FROM {table} WHERE {col} < ?", (cutoff,))  # nosec B608
                 deleted[table] = cursor.rowcount
 
             self.conn.commit()
@@ -551,7 +551,7 @@ class HistoryManager:
             tables = ["metrics_snapshots", "alert_history", "api_logs", "lifecycle_events"]
 
             for table in tables:
-                cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
+                cursor.execute(f"SELECT COUNT(*) as count FROM {table}")  # nosec B608
                 table_sizes[table] = cursor.fetchone()["count"]
 
             # File size

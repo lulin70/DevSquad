@@ -34,7 +34,7 @@ class NullCacheProvider:
     - is_available() returns False
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._call_count = 0
         logger.info("NullCacheProvider initialized (degraded mode)")
 
@@ -80,7 +80,7 @@ class NullRetryProvider:
     - is_available() returns False
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._call_count = 0
         self._success_count = 0
         self._failure_count = 0
@@ -136,7 +136,7 @@ class NullMonitorProvider:
     - is_available() returns False
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._llm_call_count = 0
         self._agent_execution_count = 0
         logger.info("NullMonitorProvider initialized (degraded mode)")
@@ -201,7 +201,7 @@ class NullMemoryProvider:
     - is_available() returns False
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._call_count = 0
         logger.info("NullMemoryProvider initialized (degraded mode)")
 

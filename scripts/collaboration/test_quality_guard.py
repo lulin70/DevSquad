@@ -54,7 +54,7 @@ class TestDimension(Enum):
     SECURITY = "security"
 
 
-TestDimension.__test__ = False  # Tell pytest this is not a test class
+TestDimension.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 @dataclass
@@ -101,7 +101,7 @@ class TestFunctionMeta:
     docstring: str = ""
 
 
-TestFunctionMeta.__test__ = False  # Tell pytest this is not a test class
+TestFunctionMeta.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 @dataclass
@@ -278,7 +278,7 @@ class TestQualityReport:
         return "\n".join(lines)
 
 
-TestQualityReport.__test__ = False  # Tell pytest this is not a test class
+TestQualityReport.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 class APISignatureValidator:
@@ -286,7 +286,7 @@ class APISignatureValidator:
 
     PARAM_PATTERN = re.compile(r"(\w+)\s*=\s*")
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_cache: dict[str, list[APISignature]] = {}
 
     def extract_api_signatures(self, source_code: str, file_path: str) -> list[APISignature]:
@@ -299,7 +299,7 @@ class APISignatureValidator:
         Returns:
             List of APISignature objects, or an empty list on syntax errors.
         """
-        signatures = []
+        signatures: list[APISignature] = []
         try:
             tree = ast.parse(source_code)
         except SyntaxError:
@@ -343,7 +343,7 @@ class APISignatureValidator:
             List of QualityIssue (severity MAJOR) for each kwarg not present in
             the matching signature's parameters.
         """
-        issues = []
+        issues: list[QualityIssue] = []
         matching_sigs = [s for s in signatures if s.name == call_name]
         if not matching_sigs:
             return issues
@@ -370,7 +370,7 @@ class APISignatureValidator:
 class AntiPatternDetector:
     """检测 '为测试通过而修改测试' 的反模式"""
 
-    SUSPICIOUS_PATTERNS = [
+    SUSPICIOUS_PATTERNS: list[dict[str, Any]] = [
         {
             "id": "anti-loose-assert",
             "pattern": re.compile(r"assertTrue\(.+\)"),
@@ -561,7 +561,7 @@ class TestPurposeParser:
             if score > 0:
                 scores[dim] = score
         if scores:
-            return max(scores, key=scores.get)
+            return max(scores, key=scores.get)  # type: ignore[arg-type]
         return TestDimension.HAPPY_PATH
 
 
@@ -688,7 +688,7 @@ class TestQualityGuard:
             purpose_count = sum(1 for t in report.test_functions if t.has_purpose)
             score.purpose_coverage = purpose_count / report.total_tests
 
-        dim_counts = {}
+        dim_counts: dict[TestDimension, int] = {}
         for tf in report.test_functions:
             d = tf.dimension or TestDimension.HAPPY_PATH
             dim_counts[d] = dim_counts.get(d, 0) + 1
@@ -742,7 +742,7 @@ class TestQualityGuard:
                     break
         return reports
 
-    def generate_test_template(self, api_sig: APISignature, dimensions: list[TestDimension] = None) -> str:
+    def generate_test_template(self, api_sig: APISignature, dimensions: list[TestDimension] | None = None) -> str:
         """根据 API 签名生成高质量测试模板"""
         dims = dimensions or [TestDimension.HAPPY_PATH, TestDimension.ERROR_CASE]
         params_str = ", ".join(p["name"] for p in api_sig.params if p["name"] != "self")
@@ -785,7 +785,7 @@ class TestQualityGuard:
         return template
 
 
-TestQualityGuard.__test__ = False  # Tell pytest this is not a test class
+TestQualityGuard.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 def quick_audit(module_path: str, test_path: str) -> TestQualityReport:
@@ -798,7 +798,7 @@ def project_audit(project_root: str) -> str:
     guard = TestQualityGuard("", "")
     reports = guard.audit_project(project_root)
     lines = ["# 项目级测试质量审计报告\n"]
-    total_score = 0
+    total_score: float = 0.0
     for r in reports:
         lines.append(r.to_markdown())
         lines.append("\n---\n")

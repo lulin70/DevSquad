@@ -28,10 +28,7 @@ for root, dirs, files in os.walk('scripts'):
             if path not in forbidden:
                 targets.append(path)
         # cli*.py
-        elif os.path.basename(path).startswith('cli') and path.startswith('scripts/'):
-            targets.append(path)
-        # api_server.py, dashboard.py
-        elif path in ['scripts/api_server.py', 'scripts/dashboard.py']:
+        elif os.path.basename(path).startswith('cli') and path.startswith('scripts/') or path in ['scripts/api_server.py', 'scripts/dashboard.py']:
             targets.append(path)
 
 missing_by_file = defaultdict(list)
@@ -42,9 +39,8 @@ for path in sorted(targets):
         except Exception:
             continue
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if node.returns is None:
-                missing_by_file[path].append((node.lineno, node.name, type(node).__name__))
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.returns is None:
+            missing_by_file[path].append((node.lineno, node.name, type(node).__name__))
 
 total_missing = sum(len(v) for v in missing_by_file.values())
 print(f'Total missing in target files: {total_missing}')

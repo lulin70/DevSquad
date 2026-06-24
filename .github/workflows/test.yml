@@ -99,9 +99,8 @@ jobs:
         run: pip install ruff mypy
       - name: Lint
         run: ruff check scripts/ skills/ --ignore=E501,W291
-      - name: Type check (non-blocking, target: V3.9.2 blocking)
-        run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary || true
-        continue-on-error: true
+      - name: Type check (blocking since V3.9.1)
+        run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary
 
   build:
     runs-on: ubuntu-latest

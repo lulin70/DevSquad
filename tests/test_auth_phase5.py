@@ -117,7 +117,7 @@ authentication:
         assert user.email == "admin@devsquad.test"
         assert user.name == "Administrator"
         assert isinstance(user.authenticated_at, datetime)
-        assert len(user.session_id) == 16
+        assert len(user.session_id) == 32  # secrets.token_hex(16) = 32 chars
 
     def test_verify_invalid_role_fallback(self):
         """Test that invalid role falls back to VIEWER."""
@@ -325,8 +325,8 @@ authentication:
             user2 = auth.verify_credentials("testuser", "password")
 
             assert user1.session_id != user2.session_id
-            assert len(user1.session_id) == 16
-            assert len(user2.session_id) == 16
+            assert len(user1.session_id) == 32  # secrets.token_hex(16) = 32 chars
+            assert len(user2.session_id) == 32
 
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@ class RetrospectiveEngine:
 
     MEMORY_TYPE_STR = "retrospective"
 
-    def __init__(self, memory_bridge=None):
+    def __init__(self, memory_bridge: Any = None):
         self._memory_bridge = memory_bridge
 
     def run(
@@ -147,8 +147,8 @@ class RetrospectiveEngine:
         return deviations
 
     def _find_redundant_steps(self, anchor_history: list[AnchorResult]) -> list[str]:
-        redundant = []
-        seen_triggers = {}
+        redundant: list[str] = []
+        seen_triggers: dict[str, AnchorResult] = {}
         for a in anchor_history:
             key = a.trigger.value
             if key in seen_triggers:
@@ -215,7 +215,7 @@ class RetrospectiveEngine:
                 f"No deviations detected."
             )
 
-        severity_counts = {}
+        severity_counts: dict[str, int] = {}
         for d in deviations:
             severity_counts[d.deviation_type] = severity_counts.get(d.deviation_type, 0) + 1
 
@@ -225,7 +225,7 @@ class RetrospectiveEngine:
 
         return " ".join(parts)
 
-    def _store_report(self, report: RetrospectiveReport, goal: StructuredGoal):
+    def _store_report(self, report: RetrospectiveReport, goal: StructuredGoal) -> None:
         if self._memory_bridge is None:
             logger.debug("No MemoryBridge configured, retrospective not persisted")
             return
@@ -236,7 +236,7 @@ class RetrospectiveEngine:
             analysis = AnalysisCase(
                 id=f"retro_{goal.goal_id}",
                 problem=f"Retrospective: {goal.original_description[:60]}",
-                context=report.summary,
+                context=report.summary,  # type: ignore[arg-type]
                 root_cause="; ".join(d.reason for d in report.deviations[:3]) if report.deviations else "No deviations",
                 solutions=report.improvements,
                 status="completed",

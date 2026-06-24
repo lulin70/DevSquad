@@ -164,7 +164,7 @@ def save_lifecycle_state_to_checkpoint(
         }
         mode_str = mode.value if hasattr(mode, "value") else str(mode)
 
-        return checkpoint_manager.save_lifecycle_state(
+        return checkpoint_manager.save_lifecycle_state(  # type: ignore[no-any-return]
             task_id=task_id,
             current_phase=current_phase,
             phase_states=phase_states_str,
@@ -458,7 +458,7 @@ def create_spec_from_template(
     if not template:
         return {"success": False, "error": f"Unknown template: {template_id}"}
 
-    doc = {
+    doc: dict[str, Any] = {
         "template_id": template_id,
         "name": template.name,
         "phase_id": template.phase_id,

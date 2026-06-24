@@ -47,7 +47,7 @@ class DualLayerContextManager:
         self.max_project = max_project_entries
         self.max_task = max_task_entries
 
-    def set_project(self, key: str, value: Any, source: str = "", ttl: int | None = None):
+    def set_project(self, key: str, value: Any, source: str = "", ttl: int | None = None) -> None:
         """Store a value in the project context layer.
 
         Args:
@@ -82,7 +82,7 @@ class DualLayerContextManager:
             del self.project_context[key]
         return default
 
-    def set_task(self, key: str, value: Any, source: str = "", ttl: int | None = None):
+    def set_task(self, key: str, value: Any, source: str = "", ttl: int | None = None) -> None:
         """Store a value in the task context layer.
 
         Args:
@@ -161,16 +161,16 @@ class DualLayerContextManager:
 
         return "\n".join(parts)
 
-    def clear_task_context(self):
+    def clear_task_context(self) -> None:
         """Remove all entries from the task context layer."""
         self.task_context.clear()
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         """Remove all entries from both project and task context layers."""
         self.project_context.clear()
         self.task_context.clear()
 
-    def cleanup_expired(self):
+    def cleanup_expired(self) -> int:
         """Delete expired entries from both context layers.
 
         Returns:
@@ -196,7 +196,7 @@ class DualLayerContextManager:
             "total_entries": len(self.project_context) + len(self.task_context),
         }
 
-    def _evict_if_needed(self, layer: str):
+    def _evict_if_needed(self, layer: str) -> None:
         if layer == "project" and len(self.project_context) > self.max_project:
             oldest_key = min(self.project_context, key=lambda k: self.project_context[k].timestamp)
             del self.project_context[oldest_key]

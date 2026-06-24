@@ -39,7 +39,7 @@ class SimilarTaskRecommender:
         _fp: PerformanceFingerprint instance for accessing historical data.
     """
 
-    def __init__(self, fingerprint_db: PerformanceFingerprint = None):
+    def __init__(self, fingerprint_db: PerformanceFingerprint | None = None):
         """
         Initialize the recommender with a fingerprint database.
 
@@ -130,7 +130,7 @@ class SimilarTaskRecommender:
             List of recommended role names. Empty list if no data available.
         """
         result = self.recommend(task, top_k=3)
-        return result.get("recommended_roles", [])
+        return result.get("recommended_roles", [])  # type: ignore[no-any-return]
 
     def _extract_most_common_roles(self, cases: list[dict]) -> list[str]:
         """
@@ -193,7 +193,7 @@ class SimilarTaskRecommender:
         durations = [case.get("duration_s", 0.0) for case in cases if case.get("duration_s", 0.0) > 0]
 
         if durations:
-            return sum(durations) / len(durations)
+            return sum(durations) / len(durations)  # type: ignore[no-any-return]
 
         return 0.0
 

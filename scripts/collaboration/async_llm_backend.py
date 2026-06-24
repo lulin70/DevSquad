@@ -816,7 +816,7 @@ def _load_dotenv_async() -> None:
         pass
 
 
-async def test_async_backend():
+async def test_async_backend() -> None:
     """Quick smoke test for async backends."""
     print("Testing AsyncMockBackend...")
     backend = AsyncLLMBackendFactory.create("mock", _force_type=True)

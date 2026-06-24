@@ -36,7 +36,7 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from scripts.collaboration.cache_interface import (
     CacheBackendInterface,
@@ -431,6 +431,7 @@ class MultiLevelCacheCoordinator:
                     if asyncio.iscoroutinefunction(self.l3_fallback):
                         value = await self.l3_fallback(key)
                     else:
+                        assert self.l3_fallback is not None
                         value = self.l3_fallback(key)
 
                     l3_latency = (time.time() - l3_start) * 1000
@@ -450,7 +451,7 @@ class MultiLevelCacheCoordinator:
                     logger.error("L3 fallback error for key %s: %s", key, e)
                     raise
 
-    async def _populate_all_levels(self, key: str, value: Any, ttl: int | None):
+    async def _populate_all_levels(self, key: str, value: Any, ttl: int | None) -> None:
         """Populate value into all available cache levels"""
         jittered_ttl = self._add_jitter(ttl)
 
@@ -468,7 +469,7 @@ class MultiLevelCacheCoordinator:
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug("Failed to populate L2: %s", e)
 
-    async def _store_null_sentinel(self, key: str):
+    async def _store_null_sentinel(self, key: str) -> None:
         """Store null sentinel to prevent cache penetration"""
         self._null_keys[key] = time.time() + self.null_ttl
 
@@ -665,11 +666,11 @@ class MultiLevelCacheCoordinator:
         self._null_keys.clear()
         logger.info("MultiLevelCacheCoordinator closed")
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "MultiLevelCacheCoordinator":
         """Async context manager entry"""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Literal[False]:
         """Async context manager exit"""
         await self.close()
         return False
@@ -683,7 +684,7 @@ class MultiLevelCacheCoordinator:
         )
 
 
-async def test_multi_level_cache():
+async def test_multi_level_cache() -> bool:
     """Test function for multi-level cache coordinator"""
     print("\nTesting MultiLevelCacheCoordinator...")
 

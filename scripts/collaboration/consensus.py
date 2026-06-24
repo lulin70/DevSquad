@@ -52,7 +52,7 @@ class ConsensusEngine:
         print(f"决策结果: {record.outcome.value}")
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化共识引擎（空提案和空记录集合）"""
         self._records: dict[str, ConsensusRecord] = {}
         self._proposals: dict[str, DecisionProposal] = {}
@@ -185,14 +185,14 @@ class ConsensusEngine:
 
     def _determine_outcome(
         self,
-        proposal,
-        votes_for,
-        votes_against,
-        total_weight_for,
-        total_weight_against,
-        total_weight_normal_against,
-        has_veto,
-        votes_abstain,
+        proposal: DecisionProposal,
+        votes_for: list[Vote],
+        votes_against: list[Vote],
+        total_weight_for: float,
+        total_weight_against: float,
+        total_weight_normal_against: float,
+        has_veto: bool,
+        votes_abstain: int,
     ) -> tuple:
         total_votes = len(votes_for) + len(votes_against) + votes_abstain
 

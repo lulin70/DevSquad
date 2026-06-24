@@ -50,7 +50,7 @@ class MemoryCategory(Enum):
 
 @dataclass
 class Message:
-    message_id: str = field(default_factory=lambda: f"msg-{hashlib.md5(str(datetime.now()).encode()).hexdigest()[:12]}")
+    message_id: str = field(default_factory=lambda: f"msg-{hashlib.md5(str(datetime.now()).encode(), usedforsecurity=False).hexdigest()[:12]}")
     role: str = "user"
     content: str = ""
     msg_type: MessageType = MessageType.USER
@@ -101,7 +101,7 @@ class Message:
 
 @dataclass
 class MemoryEntry:
-    entry_id: str = field(default_factory=lambda: f"mem-{hashlib.md5(str(datetime.now()).encode()).hexdigest()[:12]}")
+    entry_id: str = field(default_factory=lambda: f"mem-{hashlib.md5(str(datetime.now()).encode(), usedforsecurity=False).hexdigest()[:12]}")
     category: MemoryCategory = MemoryCategory.FINDING
     content: str = ""
     source_message_ids: list[str] = field(default_factory=list)
@@ -232,7 +232,7 @@ class ContextCompressor:
         CompressionLevel.FULL_COMPACT: 100000,
     }
 
-    def __init__(self, token_threshold: int = 100000, thresholds: dict[int, int] | None = None):
+    def __init__(self, token_threshold: int = 100000, thresholds: dict[CompressionLevel, int] | None = None):
         self.token_threshold = token_threshold
         self.thresholds = thresholds or self.DEFAULT_THRESHOLDS
         self._session_memory: list[MemoryEntry] = []
@@ -644,7 +644,7 @@ class ContextCompressor:
             counts[cat] = counts.get(cat, 0) + 1
         return counts
 
-    def _log_compression(self, result: CompressedContext):
+    def _log_compression(self, result: CompressedContext) -> None:
         self._compression_log.append(
             {
                 "timestamp": datetime.now().isoformat(),
@@ -673,7 +673,7 @@ class ContextCompressor:
                 "token_threshold": self.token_threshold,
             }
 
-    def import_state(self, state: dict):
+    def import_state(self, state: dict) -> None:
         """Restore the compressor's state from a previously exported dictionary.
 
         Args:

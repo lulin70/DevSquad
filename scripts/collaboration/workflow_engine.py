@@ -230,7 +230,7 @@ class WorkflowEngine:
     4. Resume from checkpoint
     """
 
-    def __init__(self, storage_path: str = "./workflows", coordinator=None, dispatcher=None):
+    def __init__(self, storage_path: str = "./workflows", coordinator: Any = None, dispatcher: Any = None) -> None:
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
@@ -247,7 +247,7 @@ class WorkflowEngine:
         self,
         task_title: str,
         task_description: str = "",
-        target_agent: str = None,
+        target_agent: str | None = None,
     ) -> WorkflowDefinition:
         """
         Create a workflow from a task description.
@@ -271,7 +271,7 @@ class WorkflowEngine:
         return definition
 
     def _split_task_into_steps(
-        self, task_title: str, task_description: str, target_agent: str = None
+        self, task_title: str, task_description: str, target_agent: str | None = None
     ) -> list[WorkflowStep]:
         steps = []
         task_text = f"{task_title} {task_description}".lower()
@@ -394,7 +394,7 @@ class WorkflowEngine:
 
         return steps
 
-    def start_workflow(self, workflow_id: str, variables: dict[str, Any] = None) -> WorkflowInstance | None:
+    def start_workflow(self, workflow_id: str, variables: dict[str, Any] | None = None) -> WorkflowInstance | None:
         """Start a new workflow instance from a registered definition.
 
         Args:
@@ -424,7 +424,7 @@ class WorkflowEngine:
         logger.info("Workflow started: %s", instance.instance_id)
         return instance
 
-    def execute_step(self, instance_id: str, step_executor: Callable = None) -> WorkflowStep | None:
+    def execute_step(self, instance_id: str, step_executor: Callable[..., Any] | None = None) -> WorkflowStep | None:
         """Execute the current step of a workflow instance.
 
         Args:
@@ -457,7 +457,7 @@ class WorkflowEngine:
         current_step.status = StepStatus.RUNNING
 
         try:
-            if step_executor:
+            if step_executor is not None:
                 result = step_executor(current_step, instance.variables)
             elif current_step.action in self.executors:
                 result = self.executors[current_step.action](current_step, instance.variables)
@@ -505,7 +505,7 @@ class WorkflowEngine:
                 found_current = True
         return None
 
-    def _save_checkpoint(self, instance: WorkflowInstance, current_step: WorkflowStep):
+    def _save_checkpoint(self, instance: WorkflowInstance, current_step: WorkflowStep) -> None:
         definition = self.definitions.get(instance.workflow_id)
         all_step_ids = [s.step_id for s in (definition.steps if definition else [])]
         remaining = [
@@ -630,7 +630,7 @@ class WorkflowEngine:
             "has_checkpoint": instance.checkpoint_id is not None,
         }
 
-    def register_executor(self, action: str, executor: Callable):
+    def register_executor(self, action: str, executor: Callable[..., Any]) -> None:
         """Register a callable executor for a step action name.
 
         Args:

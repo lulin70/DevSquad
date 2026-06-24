@@ -222,7 +222,7 @@ class OperationClassifier:
         self,
         operation_id: str,
         category: OperationCategory,
-    ):
+    ) -> None:
         """Add or update custom operation classification."""
         self._classifications[operation_id] = category
 

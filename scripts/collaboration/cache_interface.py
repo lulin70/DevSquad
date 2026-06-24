@@ -167,7 +167,7 @@ class Serializer:
                 try:
                     import pickle  # local import: only needed for legacy data
 
-                    value = pickle.loads(data)  # noqa: S301 (trusted local cache)
+                    value = pickle.loads(data)  # nosec B301  # noqa: S301 - trusted local cache
                     logger.warning(
                         "Deserialized legacy pickle cache entry via fallback; "
                         "it will be re-written as JSON on next set()."
@@ -253,7 +253,7 @@ class Serializer:
                 logger.warning(
                     "Pickle deserialization requested (deprecated); prefer JSON."
                 )
-                return pickle.loads(data)  # noqa: S301 (trusted local cache)
+                return pickle.loads(data)  # nosec B301  # noqa: S301 - trusted local cache
             else:
                 raise ValueError(f"Unsupported deserialization format: {format}")
         except (TypeError, ValueError, OSError, json.JSONDecodeError) as e:
@@ -448,11 +448,11 @@ class CacheBackendInterface(abc.ABC):
             logger.warning("Cannot increment non-numeric value for key: %s", key)
             return None
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "CacheBackendInterface":
         """Async context manager entry"""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any) -> bool | None:
         """Async context manager exit"""
         await self.close()
         return False

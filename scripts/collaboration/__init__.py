@@ -260,7 +260,7 @@ def get_version() -> str:
     return __version__
 
 
-def print_stats():
+def print_stats() -> None:
     """Print statistics from all optimization modules."""
     logger = get_logger(__name__)
     logger.info("\n" + "=" * 60)
@@ -305,7 +305,7 @@ def print_stats():
     logger.info("\n" + "=" * 60)
 
 
-def reset_all():
+def reset_all() -> None:
     """Reset all optimization modules (useful for testing)."""
     reset_cache()
     reset_monitor()
@@ -315,7 +315,7 @@ def reset_all():
 
 
 # Module initialization message
-def _init_message():
+def _init_message() -> None:
     """Print initialization message (only in debug mode)."""
     import os
 

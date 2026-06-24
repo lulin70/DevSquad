@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+from typing import Any
 
 from .models import ROLE_REGISTRY, resolve_role_id
 
@@ -14,13 +15,13 @@ ROLE_TEMPLATES = {
 class RoleMatcher:
     """Role matching engine based on keyword analysis, enhanced with adaptive and similarity-based recommendations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize RoleMatcher with lazy-loaded enhanced components."""
-        self._fingerprint_db = None
-        self._adaptive_selector = None
-        self._similar_recommender = None
+        self._fingerprint_db: Any = None
+        self._adaptive_selector: Any = None
+        self._similar_recommender: Any = None
 
-    def _ensure_fingerprint(self):
+    def _ensure_fingerprint(self) -> Any:
         """Lazy-initialize PerformanceFingerprint."""
         if self._fingerprint_db is None:
             try:
@@ -31,7 +32,7 @@ class RoleMatcher:
                 self._fingerprint_db = False  # sentinel: tried and failed
         return self._fingerprint_db if self._fingerprint_db is not False else None
 
-    def _ensure_adaptive_selector(self):
+    def _ensure_adaptive_selector(self) -> Any:
         """Lazy-initialize AdaptiveRoleSelector."""
         if self._adaptive_selector is None:
             fp = self._ensure_fingerprint()
@@ -45,7 +46,7 @@ class RoleMatcher:
                 self._adaptive_selector = False
         return self._adaptive_selector if self._adaptive_selector is not False else None
 
-    def _ensure_similar_recommender(self):
+    def _ensure_similar_recommender(self) -> Any:
         """Lazy-initialize SimilarTaskRecommender."""
         if self._similar_recommender is None:
             fp = self._ensure_fingerprint()
@@ -59,7 +60,7 @@ class RoleMatcher:
                 self._similar_recommender = False
         return self._similar_recommender if self._similar_recommender is not False else None
 
-    def analyze_task(self, task_description: str) -> list[dict[str, str]]:
+    def analyze_task(self, task_description: str) -> list[dict[str, Any]]:
         """
         Analyze a task description and match appropriate roles.
 
@@ -70,7 +71,7 @@ class RoleMatcher:
             List of matched roles: [{"role_id": "...", "name": "...", "reason": "..."}]
         """
         task_lower = task_description.lower()
-        matched = []
+        matched: list[dict[str, Any]] = []
 
         for role_id, role_info in ROLE_TEMPLATES.items():
             score = 0
@@ -107,7 +108,7 @@ class RoleMatcher:
 
         return matched
 
-    def analyze_task_enhanced(self, task_description: str) -> list[dict]:
+    def analyze_task_enhanced(self, task_description: str) -> list[dict[str, Any]]:
         """
         Enhanced task analysis combining keyword matching with adaptive and similarity-based recommendations.
 

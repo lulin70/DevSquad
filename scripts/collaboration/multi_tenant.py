@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 
 class IsolationLevel(Enum):
@@ -230,7 +230,7 @@ class QuotaManager:
             handle_quota_exceeded(...)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._usage: dict[str, dict[str, int]] = {}
         self._lock = threading.Lock()
 
@@ -364,7 +364,7 @@ class QuotaManager:
         """
         with self._lock:
             total_tenants = len(self._usage)
-            total_resources = set()
+            total_resources: set[str] = set()
             total_usage = 0
 
             for resources in self._usage.values():
@@ -431,7 +431,7 @@ class MultiTenantManager:
         """Get or create thread-local context."""
         if not hasattr(self._local, "context"):
             self._local.context = TenantContext()
-        return self._local.context
+        return self._local.context  # type: ignore[no-any-return]
 
     def create_tenant(self, tenant: Tenant) -> None:
         """Create/register a new tenant.
@@ -467,7 +467,7 @@ class MultiTenantManager:
         with self._lock:
             return self._tenants.get(tenant_id)
 
-    def update_tenant(self, tenant_id: str, **kwargs) -> bool:
+    def update_tenant(self, tenant_id: str, **kwargs: Any) -> bool:
         """Update tenant attributes.
 
         Args:
@@ -581,7 +581,7 @@ class MultiTenantManager:
         tenant_id: str,
         user_id: str | None = None,
         request_id: str | None = None,
-        **metadata,
+        **metadata: Any,
     ) -> TenantContext:
         """Set tenant context for current thread/request.
 
@@ -636,7 +636,7 @@ class MultiTenantManager:
         ctx.clear()
         self.logger.debug("Cleared tenant context")
 
-    def context(self, tenant_id: str, user_id: str | None = None, **kwargs):
+    def context(self, tenant_id: str, user_id: str | None = None, **kwargs: Any) -> Any:
         """Context manager for automatic tenant scoping.
 
         Use with 'with' statement for clean setup/teardown:
@@ -656,16 +656,16 @@ class MultiTenantManager:
             # Context automatically cleared here
         """
         class _TenantContextManager:
-            def __init__(self, manager, tid, uid, **kw):
+            def __init__(self, manager: "MultiTenantManager", tid: str, uid: str | None, **kw: Any) -> None:
                 self.manager = manager
                 self.tid = tid
                 self.uid = uid
                 self.kwargs = kw
 
-            def __enter__(self):
+            def __enter__(self) -> TenantContext:
                 return self.manager.set_context(self.tid, self.uid, **self.kwargs)
 
-            def __exit__(self, exc_type, exc_val, exc_tb):
+            def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Literal[False]:
                 self.manager.clear_context()
                 return False
 
@@ -745,7 +745,7 @@ class MultiTenantManager:
             active = sum(1 for t in self._tenants.values() if t.is_active)
             inactive = len(self._tenants) - active
 
-            isolation_counts = {}
+            isolation_counts: dict[str, int] = {}
             for t in self._tenants.values():
                 level = t.isolation_level.value
                 isolation_counts[level] = isolation_counts.get(level, 0) + 1
@@ -825,6 +825,7 @@ if __name__ == "__main__":
         print(f"  Request ID: {ctx.request_id}")
 
         current = mtm.get_current_tenant()
+        assert current is not None
         print(f"  Current Tenant: {current.name}")
 
         for i in range(5):

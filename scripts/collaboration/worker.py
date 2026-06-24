@@ -544,7 +544,7 @@ class Worker:
                 )
                 if cached:
                     logger.debug("  [%s] ContentCache hit.", _rname)
-                    return cached
+                    return cached  # type: ignore[no-any-return]
             except (AttributeError, TypeError, RuntimeError) as e:
                 logger.debug("ContentCache read failed: %s", e)
 

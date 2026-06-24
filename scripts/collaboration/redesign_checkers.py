@@ -334,7 +334,7 @@ def _normalize_block(block: str) -> str:
     id_counter = [0]
     id_map: dict[str, str] = {}
 
-    def replacer(m):
+    def replacer(m: re.Match[str]) -> str:
         word = m.group(0)
         if keyword.iskeyword(word) or word in _BUILTIN_NAMES:
             return word

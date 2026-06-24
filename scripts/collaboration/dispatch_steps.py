@@ -144,8 +144,8 @@ class PostDispatchPipeline:
 
     def execute(
         self,
-        pre_result,
-        exec_result,
+        pre_result: Any,
+        exec_result: Any,
         worker_results: list[dict[str, Any]],
         exec_errors: list[str],
         exec_timing: dict[str, float],
@@ -228,6 +228,7 @@ class PostDispatchPipeline:
         tenant_id = None
         if hasattr(self.dispatcher, '_get_current_tenant_id'):
             tenant_id = self.dispatcher._get_current_tenant_id()
+        assert self.result_assembler is not None
         result = self.result_assembler.assemble(
             task_description=task_description,
             role_ids=role_ids,
@@ -334,7 +335,7 @@ class PostDispatchPipeline:
         # Multi-tenant context cleanup
         self.enterprise.clear_tenant_context(pre_result.tenant_ctx)
 
-        return result
+        return result  # type: ignore[no-any-return]
 
     # ------------------------------------------------------------------
     # Step 8: Collect worker results
@@ -656,7 +657,7 @@ class PostDispatchPipeline:
             # If PM defined user stories, validate against them
             if pm_output:
                 validation = framework.validate_user_journey(
-                    plan.journey_tests[0] if plan.journey_tests else None,
+                    plan.journey_tests[0] if plan.journey_tests else None,  # type: ignore[arg-type]
                     {"pm_output": pm_output, "tester_output": tester_output},
                 )
                 if validation:
@@ -869,7 +870,7 @@ class PostDispatchPipeline:
 
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
-        return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)
+        return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)  # type: ignore[no-any-return]
 
     # ------------------------------------------------------------------
     # V3.8 #2: Step 21 — Two-stage review gate
@@ -948,7 +949,7 @@ class PostDispatchPipeline:
             result = self.severity_router.run_auto_fix_loop(findings)
             if self.usage_tracker:
                 self.usage_tracker.tick("severity_router")
-            return result
+            return result  # type: ignore[no-any-return]
         except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
             logger.warning("Severity router failed: %s", exc)
             return None

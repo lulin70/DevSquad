@@ -151,7 +151,7 @@ class TechDebt:
     interest_rate: float = 0.0
     dependencies: list[str] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.identified_at:
             self.identified_at = datetime.now().isoformat()
         if self.interest_rate == 0.0:
@@ -473,7 +473,7 @@ class CodebaseDebtScanner:
         self, source: str, rel_path: str, prefix: str
     ) -> list[TechDebt]:
         """Detect classes exceeding line threshold."""
-        debts = []
+        debts: list[TechDebt] = []
         try:
             tree = ast.parse(source)
         except SyntaxError:
@@ -572,7 +572,7 @@ class CodebaseDebtScanner:
         self, source: str, rel_path: str, prefix: str
     ) -> list[TechDebt]:
         """Detect public methods missing docstrings."""
-        debts = []
+        debts: list[TechDebt] = []
         try:
             tree = ast.parse(source)
         except SyntaxError:
@@ -602,7 +602,7 @@ class CodebaseDebtScanner:
         self, source: str, rel_path: str, prefix: str
     ) -> list[TechDebt]:
         """Detect potentially unused imports."""
-        debts = []
+        debts: list[TechDebt] = []
         try:
             tree = ast.parse(source)
         except SyntaxError:

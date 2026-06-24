@@ -70,7 +70,7 @@ class StandardizedRoleTemplate:
     rating: float = 0.0
     install_count: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         now = datetime.now().isoformat()
         if not self.created_at:
             object.__setattr__(self, "created_at", now)

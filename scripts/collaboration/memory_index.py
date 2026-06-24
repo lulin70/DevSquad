@@ -20,7 +20,7 @@ from .memory_types import MemoryItem, MemoryType
 
 
 class MemoryIndexer:
-    def __init__(self):
+    def __init__(self) -> None:
         self._inverted_index: dict[str, set] = {}
         self._domain_index: dict[str, set] = {}
         self._tag_index: dict[str, set] = {}

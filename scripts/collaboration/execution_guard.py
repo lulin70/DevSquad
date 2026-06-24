@@ -112,7 +112,7 @@ class ExecutionGuard:
         """Total number of aborts triggered."""
         return self._abort_count
 
-    def configure(self, trigger_name: str, value) -> None:
+    def configure(self, trigger_name: str, value: Any) -> None:
         """
         Dynamically adjust a trigger threshold.
 
@@ -286,7 +286,7 @@ class ExecutionGuard:
         self._check_count = 0
         self._abort_count = 0
 
-    def get_stats(self) -> dict[str, any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         Get guard statistics.
 

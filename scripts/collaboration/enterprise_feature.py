@@ -42,8 +42,8 @@ class EnterpriseFeature:
     def __init__(
         self,
         persist_dir: str,
-        quality_guard=None,
-        perf_monitor=None,
+        quality_guard: Any = None,
+        perf_monitor: Any = None,
         config: dict | None = None,
     ) -> None:
         """Initialize enterprise features: RBAC, Audit, Multi-Tenant.
@@ -114,7 +114,7 @@ class EnterpriseFeature:
             self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
             return None
         except PermissionDeniedError as e:
-            return DispatchResult(
+            return DispatchResult(  # type: ignore[call-arg]
                 success=False, task_description=task,
                 error=f"Permission denied: {e}", matched_roles=[],
                 summary=f"Permission denied: {e}",
@@ -131,7 +131,7 @@ class EnterpriseFeature:
             return text
         try:
             masked = self.data_masker.mask({"content": text})
-            return masked.get("content", text)
+            return masked.get("content", text)  # type: ignore[no-any-return]
         except (ValueError, AttributeError, TypeError, KeyError) as e:
             logger.debug("Data masking failed: %s", e)
             return text
@@ -151,7 +151,7 @@ class EnterpriseFeature:
             tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
             tenant_ctx.__enter__()
             if not self.tenant_manager.check_quota("tasks"):
-                return DispatchResult(
+                return DispatchResult(  # type: ignore[call-arg]
                     success=False, task_description="",
                     error="Quota exceeded", matched_roles=[],
                     summary="Quota exceeded for tenant",

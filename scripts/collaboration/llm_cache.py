@@ -170,7 +170,7 @@ class LLMCache(LLMCacheBase):
         raw = f"{prompt}:{backend}:{model}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
-    def _run_async(self, coro):
+    def _run_async(self, coro: Any) -> Any:
         """Run an async coroutine synchronously (bridge for MultiLevelCacheCoordinator)."""
         try:
             loop = asyncio.get_event_loop()
@@ -213,7 +213,7 @@ class LLMCache(LLMCacheBase):
                         get_metrics().record_cache_hit("l1", "llm_response")
                     except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug("Prometheus cache hit recording failed: %s", e)
-                    return result
+                    return result  # type: ignore[no-any-return]
                 with self._lock:
                     self.stats["misses"] += 1
                 # Prometheus: record cache miss
@@ -298,7 +298,7 @@ class LLMCache(LLMCacheBase):
                     except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug("Prometheus cache hit recording failed: %s", e)
                     logger.debug("Redis L2 cache hit for key %s", redis_key[:16])
-                    return redis_value
+                    return redis_value  # type: ignore[no-any-return]
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug("Redis L2 cache read failed: %s", e)
 
@@ -311,7 +311,7 @@ class LLMCache(LLMCacheBase):
             logger.debug("Prometheus cache miss recording failed: %s", e)
         return None
 
-    def set(self, prompt: str, response: str, backend: str, model: str, ttl: int | None = None):
+    def set(self, prompt: str, response: str, backend: str, model: str, ttl: int | None = None) -> None:
         """
         保存响应到缓存
 
@@ -371,7 +371,7 @@ class LLMCache(LLMCacheBase):
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug("Redis L2 cache write failed: %s", e)
 
-    def _add_to_memory(self, key: str, entry: CacheEntry):
+    def _add_to_memory(self, key: str, entry: CacheEntry) -> None:
         """添加到内存缓存，必要时执行 LRU 淘汰"""
         if self.should_evict(len(self.memory_cache)):
             # LRU 淘汰：删除最久未访问的条目
@@ -476,7 +476,7 @@ class LLMCache(LLMCacheBase):
             for key, entry in sorted_entries
         ]
 
-    def clear(self):
+    def clear(self) -> None:
         """
         清空所有缓存
 
@@ -506,7 +506,7 @@ class LLMCache(LLMCacheBase):
         # 重置统计信息
         self.stats = dict.fromkeys(self.stats, 0)
 
-    def clear_old(self, older_than_hours: float):
+    def clear_old(self, older_than_hours: float) -> None:
         """
         清除旧缓存（保留此方法以保持向后兼容）
 
@@ -529,7 +529,7 @@ class LLMCache(LLMCacheBase):
             except (OSError, json.JSONDecodeError, ValueError) as e:
                 logger.warning("Failed to clean cache file %s: %s", cache_file, e)
 
-    def invalidate(self, prompt: str, backend: str, model: str):
+    def invalidate(self, prompt: str, backend: str, model: str) -> None:
         """使特定缓存失效"""
         cache_key = self._hash_prompt(prompt, backend, model)
 
@@ -587,10 +587,10 @@ class LLMCache(LLMCacheBase):
 
 # 全局单例
 _cache_instance: LLMCache | None = None
-_redis_config = {"enabled": False, "url": None}
+_redis_config: dict[str, Any] = {"enabled": False, "url": None}
 
 
-def configure_redis_cache(enabled: bool = False, url: str | None = None):
+def configure_redis_cache(enabled: bool = False, url: str | None = None) -> None:
     """Configure Redis cache for the global LLMCache instance."""
     global _redis_config, _cache_instance
     _redis_config = {"enabled": enabled, "url": url}
@@ -603,7 +603,7 @@ def configure_redis_cache(enabled: bool = False, url: str | None = None):
     _cache_instance = None
 
 
-def get_llm_cache(**kwargs) -> LLMCache:
+def get_llm_cache(**kwargs: Any) -> LLMCache:
     """
     获取全局 LLM 缓存实例（单例模式）
 
@@ -624,7 +624,7 @@ def get_llm_cache(**kwargs) -> LLMCache:
     return _cache_instance
 
 
-def reset_cache():
+def reset_cache() -> None:
     """重置全局缓存实例（主要用于测试）"""
     global _cache_instance
     _cache_instance = None

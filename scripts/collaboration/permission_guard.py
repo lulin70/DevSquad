@@ -723,7 +723,7 @@ class PermissionGuard:
             confidence=1.0 if outcome != DecisionOutcome.ESCALATED else 0.5,
         )
 
-    def _record_audit(self, action: ProposedAction, decision: PermissionDecision, start_time: float):
+    def _record_audit(self, action: ProposedAction, decision: PermissionDecision, start_time: float) -> None:
         if not self.audit_log_enabled:
             return
         duration_ms = int((time.perf_counter() - start_time) * 1000)

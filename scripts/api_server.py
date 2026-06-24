@@ -33,13 +33,12 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
 
 from scripts.api.routes.dispatch import router as dispatch_router
 
@@ -314,7 +313,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "scripts.api_server:app",
-        host="0.0.0.0",
+        host="0.0.0.0",  # nosec B104
         port=8000,
         reload=True,  # Enable auto-reload during development
         log_level="info",

@@ -24,7 +24,7 @@ try:
     from .permission_guard import ActionType as PGActionType
 except ImportError:
 
-    class PGActionType(Enum):
+    class PGActionType(Enum):  # type: ignore[no-redef]
         FILE_READ = "file_read"
         FILE_CREATE = "file_create"
         FILE_MODIFY = "file_modify"
@@ -124,7 +124,7 @@ class ExecutionRecord:
     artifacts: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def finalize(self):
+    def finalize(self) -> None:
         """Finalize the record by setting end_time and computing duration_seconds if unset."""
         if self.end_time is None:
             self.end_time = datetime.now()
@@ -312,7 +312,7 @@ class SkillProposal:
     approved_by: str | None = None
     published_at: datetime | None = None
 
-    def _generate_slug(self):
+    def _generate_slug(self) -> str:
         slug = re.sub(r"[^a-zA-Z0-9\s-]", "", self.name.lower())
         slug = re.sub(r"\s+", "-", slug.strip())
         return slug or "unnamed-skill"
@@ -325,7 +325,7 @@ class SkillProposal:
             status, step_count, quality_score, created_at, and optional validation
             and published_at fields.
         """
-        d = {
+        d: dict[str, Any] = {
             "proposal_id": self.proposal_id,
             "name": self.name,
             "slug": self.slug,
@@ -442,7 +442,7 @@ class Skillifier:
     def _sequence_similarity(self, seq_a: list, seq_b: list) -> float:
         return self._extractor._sequence_similarity(seq_a, seq_b)
 
-    def _step_similarity(self, a, b) -> float:
+    def _step_similarity(self, a: ExecutionStep, b: ExecutionStep) -> float:
         return self._extractor._step_similarity(a, b)
 
     def _cluster_sequences(self, records: list) -> dict:
@@ -454,7 +454,7 @@ class Skillifier:
     def _generalize_description(self, descriptions: list) -> str:
         return self._extractor._generalize_description(descriptions)
 
-    def _generalize_step(self, step_samples: list):
+    def _generalize_step(self, step_samples: list[ExecutionStep]) -> PatternStep:
         return self._extractor._generalize_step(step_samples)
 
     def _word_overlap(self, text_a: str, text_b: str) -> float:
@@ -473,7 +473,7 @@ class Skillifier:
         self._storage.record_execution(record)
 
     def get_records(
-        self, since: datetime = None, until: datetime = None, success_only: bool = True
+        self, since: datetime | None = None, until: datetime | None = None, success_only: bool = True
     ) -> list[ExecutionRecord]:
         """Query stored execution records by time range and success status.
 
@@ -491,7 +491,7 @@ class Skillifier:
     # Pattern Extraction → SkillExtractor + SkillStorage
     # ================================================================
 
-    def analyze_history(self, since: datetime = None, until: datetime = None) -> list[SuccessPattern]:
+    def analyze_history(self, since: datetime | None = None, until: datetime | None = None) -> list[SuccessPattern]:
         """Analyze execution history to extract and persist success patterns.
 
         Args:
@@ -584,7 +584,7 @@ class Skillifier:
         """
         return self._storage.get_patterns()
 
-    def get_proposals(self, status=None) -> list[SkillProposal]:
+    def get_proposals(self, status: ProposalStatus | None = None) -> list[SkillProposal]:
         """List proposals, optionally filtered by status.
 
         Args:
