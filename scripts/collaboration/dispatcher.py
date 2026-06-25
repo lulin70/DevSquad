@@ -10,6 +10,7 @@ import logging
 import os
 import tempfile
 import time
+from pathlib import Path
 from typing import Any
 
 from ._version import __version__
@@ -99,6 +100,7 @@ class MultiAgentDispatcher:
     _dispatch_history: list[Any]
     _max_history: int
     _result_assembler: Any
+    _audit_logger: DispatchAuditLogger | None
 
     def __init__(
         self,
@@ -148,6 +150,11 @@ class MultiAgentDispatcher:
         # (optional; when provided, logs dispatch_start/dispatch_end/
         # permission_denied/error events with SHA-256 chain hash).
         audit_logger: DispatchAuditLogger | None = None,
+        # V3.9.2: Enable persistent dispatch audit logging by default.
+        # When True and no audit_logger is injected, a SQLite-backed
+        # DispatchAuditLogger is created under persist_dir.
+        enable_audit_logger: bool = True,
+        audit_db_path: str | Path | None = None,
         # V3.9.1: RBAC fail mode — when True, RBAC infrastructure failures
         # deny dispatch (fail-closed, production-safe). When False, failures
         # are logged but dispatch continues (fail-open, development convenience).
@@ -187,8 +194,6 @@ class MultiAgentDispatcher:
         self._code_graph = code_graph
         # V3.9-02: Optional DispatchRBAC for dispatch-level permission checks.
         self._rbac = rbac
-        # V3.9-02: Optional DispatchAuditLogger for tamper-evident audit trail.
-        self._audit_logger = audit_logger
         # V3.9.1: RBAC fail mode (fail-closed for production, fail-open for development).
         self._rbac_fail_closed = rbac_fail_closed
         self.redis_url = redis_url
@@ -207,6 +212,20 @@ class MultiAgentDispatcher:
 
         os.makedirs(self.persist_dir, exist_ok=True)
         os.makedirs(self.memory_dir, exist_ok=True)
+
+        # V3.9-02: Optional DispatchAuditLogger for tamper-evident audit trail.
+        # V3.9.2: Default to a SQLite-backed logger so audit records survive
+        # process restarts unless the caller explicitly disables it.
+        if audit_logger is not None:
+            self._audit_logger = audit_logger
+        elif enable_audit_logger:
+            db_path = Path(audit_db_path) if audit_db_path else None
+            if db_path is None:
+                db_path = Path(self.persist_dir) / "audit" / "dispatch_audit.db"
+                db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._audit_logger = DispatchAuditLogger(db_path=db_path)
+        else:
+            self._audit_logger = None
 
         self._mce_adapter = mce_adapter
 
@@ -1016,6 +1035,9 @@ class MultiAgentDispatcher:
         self._shutdown_component(
             self.enterprise.audit_logger, "force_flush",
             (OSError, AttributeError, RuntimeError), "Audit flush failed")
+        self._shutdown_component(
+            self._audit_logger, "close",
+            (OSError, AttributeError, RuntimeError), "Dispatch audit close failed")
         self._shutdown_component(
             self.enterprise.tenant_manager, "clear_context",
             (AttributeError, RuntimeError, OSError), "Tenant cleanup failed")

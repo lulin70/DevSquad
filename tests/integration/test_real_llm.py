@@ -293,3 +293,111 @@ class TestDispatcherRealLLM:
             assert result.success is True
         finally:
             dispatcher.shutdown()
+
+
+# ── Auto backend fallback integration tests ──
+
+class TestAutoBackendRealLLM:
+    """Verify the new 'auto' backend behaves correctly with real API keys."""
+
+    @pytest.mark.integration
+    def test_auto_with_openai_key_uses_real_backend(self, openai_key):
+        """With a real OpenAI key, auto should build a FallbackBackend chain."""
+        from scripts.collaboration.llm_backend import (
+            FallbackBackend,
+            MockBackend,
+            OpenAIBackend,
+            create_backend,
+        )
+
+        backend = create_backend(
+            "auto",
+            openai_api_key=openai_key,
+            openai_model=os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"),
+            max_tokens=50,
+        )
+        assert isinstance(backend, FallbackBackend)
+        assert len(backend._backends) == 2
+        assert isinstance(backend._backends[0], OpenAIBackend)
+        assert isinstance(backend._backends[1], MockBackend)
+
+    @pytest.mark.integration
+    def test_auto_with_anthropic_key_uses_real_backend(self, anthropic_key):
+        """With a real Anthropic key, auto should build a FallbackBackend chain."""
+        from scripts.collaboration.llm_backend import (
+            AnthropicBackend,
+            FallbackBackend,
+            MockBackend,
+            create_backend,
+        )
+
+        backend = create_backend(
+            "auto",
+            anthropic_api_key=anthropic_key,
+            anthropic_model=os.environ.get(
+                "DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"
+            ),
+            max_tokens=50,
+        )
+        assert isinstance(backend, FallbackBackend)
+        assert len(backend._backends) == 2
+        assert isinstance(backend._backends[0], AnthropicBackend)
+        assert isinstance(backend._backends[1], MockBackend)
+
+    @pytest.mark.integration
+    def test_auto_without_keys_returns_mock(self):
+        """Without any real keys, auto should degrade to MockBackend."""
+        import os
+        from unittest.mock import patch
+
+        from scripts.collaboration.llm_backend import (
+            MockBackend,
+            create_backend,
+        )
+
+        # Ensure no real API keys are picked up from the environment.
+        with patch.dict(
+            os.environ,
+            {
+                "DEVSQUAD_LLM_BACKEND": "auto",
+                "DEVSQUAD_OPENAI_API_KEY": "",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "",
+                "OPENAI_API_KEY": "",
+                "ANTHROPIC_API_KEY": "",
+            },
+            clear=False,
+        ):
+            backend = create_backend("auto")
+            assert isinstance(backend, MockBackend)
+
+    @pytest.mark.integration
+    def test_auto_dispatch_with_openai_fallback_succeeds(self, openai_key):
+        """Full dispatcher dispatch using auto backend with real OpenAI."""
+        from scripts.collaboration.llm_backend import create_backend
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        backend = create_backend(
+            "auto",
+            openai_api_key=openai_key,
+            openai_model=os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"),
+            max_tokens=200,
+        )
+        dispatcher = MultiAgentDispatcher(
+            llm_backend=backend,
+            enable_warmup=False,
+            enable_compression=False,
+            enable_permission=False,
+            enable_memory=False,
+            enable_skillify=False,
+            enable_anchor_check=False,
+            enable_retrospective=False,
+            enable_usage_tracker=False,
+        )
+        try:
+            result = dispatcher.dispatch(
+                "Explain the difference between list and tuple in Python",
+                mode="auto",
+            )
+            assert result.success is True
+        finally:
+            dispatcher.shutdown()

@@ -33,8 +33,9 @@ from scripts.api_server import app
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
     """Create a FastAPI TestClient for API testing."""
+    monkeypatch.setenv("DEVSQUAD_API_AUTH_DISABLED", "1")
     return TestClient(app)
 
 

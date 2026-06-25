@@ -170,7 +170,9 @@ monitoring:
 # All credentials are read from environment variables or .env file.
 # NEVER hardcode API keys here.
 llm:
-  default_backend: "${DEVSQUAD_LLM_BACKEND:-mock}"  # mock | trae | openai | anthropic
+  default_backend: "${DEVSQUAD_LLM_BACKEND:-auto}"  # auto | mock | trae | openai | anthropic
+  # auto: tries real backends (anthropic -> openai) then falls back to mock
+  #       set DEVSQUAD_LLM_BACKEND=mock to force mock-only behavior
 
   openai:
     api_key: "${DEVSQUAD_OPENAI_API_KEY}"

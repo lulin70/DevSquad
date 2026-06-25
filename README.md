@@ -459,7 +459,7 @@ quality_control:
   min_quality_score: 85
 
 llm:
-  backend: openai
+  backend: auto
   base_url: ""  # Set via DEVSQUAD_OPENAI_BASE_URL env var
   model: ""     # Set via DEVSQUAD_OPENAI_MODEL env var
   timeout: 120
@@ -468,7 +468,8 @@ llm:
 Or use environment variables (higher priority):
 
 ```bash
-export DEVSQUAD_LLM_BACKEND=openai
+# Default: auto tries real backends first, then falls back to mock
+export DEVSQUAD_LLM_BACKEND=auto
 export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
 export DEVSQUAD_OPENAI_MODEL=gpt-4
 export DEVSQUAD_OPENAI_API_KEY=sk-...
@@ -478,7 +479,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `DEVSQUAD_LLM_BACKEND` | Default backend type (mock\|trae\|openai\|anthropic\|fallback) | `mock` |
+| `DEVSQUAD_LLM_BACKEND` | Default backend type (auto\|mock\|trae\|openai\|anthropic\|fallback) | `auto` |
 | `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
 | `DEVSQUAD_OPENAI_BASE_URL` | OpenAI-compatible base URL | None |
 | `DEVSQUAD_OPENAI_MODEL` | OpenAI model name | `gpt-4` |

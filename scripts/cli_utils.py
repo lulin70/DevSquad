@@ -22,7 +22,7 @@ ALL_ROLE_IDS = list(ROLE_REGISTRY.keys()) + ROLES
 ALL_ROLE_IDS = sorted(set(ALL_ROLE_IDS))
 MODES = ["auto", "parallel", "sequential", "consensus"]
 FORMATS = ["markdown", "json", "compact", "structured", "detailed"]
-BACKENDS = ["mock", "trae", "openai", "anthropic"]
+BACKENDS = ["auto", "mock", "trae", "openai", "anthropic"]
 LIFECYCLE_COMMANDS = ["spec", "plan", "build", "test", "review", "ship"]
 
 VERSION = __version__
@@ -90,8 +90,13 @@ LIFECYCLE_PRESETS = {
 
 
 def _create_backend(backend_type: str, base_url: str = None, model: str = None):
-    if backend_type == "mock" or backend_type is None:
+    # None is the historical default for CLI callers that want mock behaviour.
+    # Only the explicit "auto" string triggers the real-LLM-first fallback chain.
+    if backend_type is None:
         return None
+    if backend_type == "mock":
+        return None
+
     from scripts.collaboration.llm_backend import create_backend
 
     kwargs = {}
@@ -99,23 +104,30 @@ def _create_backend(backend_type: str, base_url: str = None, model: str = None):
         kwargs["base_url"] = base_url
     if model:
         kwargs["model"] = model
+
+    if backend_type == "auto":
+        # Auto mode: create_backend() will build a FallbackBackend that tries
+        # real LLMs first and degrades to MockBackend on failure. No API key
+        # check here; absence of keys simply means the chain collapses to mock.
+        return create_backend("auto", **kwargs)
+
     if backend_type == "openai":
-        api_key = os.environ.get("OPENAI_API_KEY")
+        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
         if not api_key:
-            print("Error: OPENAI_API_KEY environment variable not set.", file=sys.stderr)
+            print("Error: OPENAI_API_KEY or DEVSQUAD_OPENAI_API_KEY environment variable not set.", file=sys.stderr)
             print('  export OPENAI_API_KEY="sk-..."', file=sys.stderr)
             return None
         kwargs["api_key"] = api_key
-        kwargs.setdefault("base_url", os.environ.get("OPENAI_BASE_URL"))
-        kwargs.setdefault("model", os.environ.get("OPENAI_MODEL", "gpt-4"))
+        kwargs.setdefault("base_url", os.environ.get("OPENAI_BASE_URL") or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
+        kwargs.setdefault("model", os.environ.get("OPENAI_MODEL") or os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"))
     elif backend_type == "anthropic":
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
         if not api_key:
-            print("Error: ANTHROPIC_API_KEY environment variable not set.", file=sys.stderr)
+            print("Error: ANTHROPIC_API_KEY or DEVSQUAD_ANTHROPIC_API_KEY environment variable not set.", file=sys.stderr)
             print('  export ANTHROPIC_API_KEY="sk-ant-..."', file=sys.stderr)
             return None
         kwargs["api_key"] = api_key
-        kwargs.setdefault("model", os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"))
+        kwargs.setdefault("model", os.environ.get("ANTHROPIC_MODEL") or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"))
     return create_backend(backend_type, **kwargs)
 
 

@@ -467,7 +467,9 @@ class TestDispatchAuditLoggerIntegration:
     def test_audit_logger_not_configured(self) -> None:
         """Without audit_logger configured, audit_entries is empty."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            disp = MultiAgentDispatcher(persist_dir=tmpdir)
+            disp = MultiAgentDispatcher(
+                persist_dir=tmpdir, enable_audit_logger=False
+            )
             result = disp.dispatch("Write a function", roles=["solo-coder"])
             assert result.audit_entries == []
             disp.shutdown()
@@ -608,7 +610,9 @@ class TestBackwardCompatibility:
     def test_dispatch_without_v39_modules(self) -> None:
         """A standard dispatch with no V3.9 modules succeeds."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            disp = MultiAgentDispatcher(persist_dir=tmpdir)
+            disp = MultiAgentDispatcher(
+                persist_dir=tmpdir, enable_audit_logger=False
+            )
 
             result = disp.dispatch("Write a hello world function", roles=["solo-coder"])
 
@@ -625,7 +629,9 @@ class TestBackwardCompatibility:
     def test_to_dict_includes_v39_fields(self) -> None:
         """DispatchResult.to_dict() includes the new V3.9 fields."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            disp = MultiAgentDispatcher(persist_dir=tmpdir)
+            disp = MultiAgentDispatcher(
+                persist_dir=tmpdir, enable_audit_logger=False
+            )
             result = disp.dispatch("Write a function", roles=["solo-coder"])
             d = result.to_dict()
             assert "permission_result" in d
