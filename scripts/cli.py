@@ -321,7 +321,8 @@ Lifecycle Commands (P0-4 Agent Skills Integration):
   ship      Pre-launch checklist + deployment prep (devops + security + architect)
 
 Environment Variables (API keys are read from env vars only, never command line):
-  DEVSQUAD_LLM_BACKEND   Default LLM backend (mock/openai/anthropic)
+  DEVSQUAD_LLM_BACKEND   Default LLM backend (auto/mock/openai/anthropic)
+                         'auto' tries real backends first, falls back to mock
   OPENAI_API_KEY         OpenAI API key (required for --backend openai)
   OPENAI_BASE_URL        Custom API endpoint (for OpenAI-compatible APIs)
   OPENAI_MODEL           Model name (default: gpt-4)
@@ -364,8 +365,8 @@ Environment Variables (API keys are read from env vars only, never command line)
         "--backend",
         "-b",
         choices=BACKENDS,
-        default=os.environ.get("DEVSQUAD_LLM_BACKEND", "mock"),
-        help="LLM backend (default: mock, or DEVSQUAD_LLM_BACKEND env)",
+        default=os.environ.get("DEVSQUAD_LLM_BACKEND", "auto"),
+        help="LLM backend (default: auto, or DEVSQUAD_LLM_BACKEND env; auto tries real LLM then falls back to mock)",
     )
     p_dispatch.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
     p_dispatch.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
@@ -407,8 +408,8 @@ Environment Variables (API keys are read from env vars only, never command line)
         "--backend",
         "-b",
         choices=BACKENDS,
-        default=os.environ.get("DEVSQUAD_LLM_BACKEND", "mock"),
-        help="LLM backend (default: mock, or DEVSQUAD_LLM_BACKEND env)",
+        default=os.environ.get("DEVSQUAD_LLM_BACKEND", "auto"),
+        help="LLM backend (default: auto, or DEVSQUAD_LLM_BACKEND env; auto tries real LLM then falls back to mock)",
     )
     p_lifecycle.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
     p_lifecycle.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
@@ -443,8 +444,8 @@ Environment Variables (API keys are read from env vars only, never command line)
             "--backend",
             "-b",
             choices=BACKENDS,
-            default=os.environ.get("DEVSQUAD_LLM_BACKEND", "mock"),
-            help="LLM backend (default: mock, or DEVSQUAD_LLM_BACKEND env)",
+            default=os.environ.get("DEVSQUAD_LLM_BACKEND", "auto"),
+            help="LLM backend (default: auto, or DEVSQUAD_LLM_BACKEND env; auto tries real LLM then falls back to mock)",
         )
         p_cmd.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
         p_cmd.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")

@@ -679,13 +679,14 @@ class AsyncLLMBackendFactory:
 
     @staticmethod
     def create(
-        backend_type: str = "mock", **kwargs: Any
+        backend_type: str = "auto", **kwargs: Any
     ) -> AsyncLLMBackendInterface:
         """
         Create an async LLM backend by type name.
 
         Args:
-            backend_type: One of 'mock', 'trae', 'openai', 'anthropic', 'fallback'.
+            backend_type: One of 'auto', 'mock', 'trae', 'openai', 'anthropic', 'fallback'.
+                        'auto' tries real backends first, then falls back to mock.
             **kwargs: Backend-specific configuration parameters.
 
         Returns:
@@ -699,17 +700,17 @@ class AsyncLLMBackendFactory:
         _load_dotenv_async()
 
         env_backend = os.environ.get(
-            "DEVSQUAD_LLM_BACKEND", "mock"
+            "DEVSQUAD_LLM_BACKEND", "auto"
         ).lower()
 
-        if backend_type == "mock" and not kwargs and env_backend in ("openai", "anthropic", "fallback"):
+        if backend_type == "auto" and not kwargs and env_backend in ("openai", "anthropic", "fallback", "mock", "trae"):
             backend_type = env_backend
 
         if kwargs.pop("_force_type", None):
             pass  # Skip env override when explicitly forced
 
-        if backend_type == "fallback":
-            return AsyncLLMBackendFactory._create_fallback(**kwargs)
+        if backend_type in ("fallback", "auto"):
+            return AsyncLLMBackendFactory._create_fallback(backend_type=backend_type, **kwargs)
 
         backends = {
             "mock": AsyncMockBackend,
@@ -753,7 +754,9 @@ class AsyncLLMBackendFactory:
         return cls(**kwargs)
 
     @staticmethod
-    def _create_fallback(**kwargs: Any) -> AsyncFallbackBackend:
+    def _create_fallback(
+        backend_type: str = "fallback", **kwargs: Any
+    ) -> AsyncLLMBackendInterface:
         import os
 
         anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get(
@@ -793,7 +796,15 @@ class AsyncLLMBackendFactory:
                 )
             )
 
-        if not backends_list:
+        if backend_type == "auto":
+            # In auto mode, always append MockBackend as the final fallback
+            # so real-LLM failures degrade gracefully instead of crashing.
+            backends_list.append(AsyncMockBackend())
+            if len(backends_list) == 1:
+                # No real API keys available: return plain MockBackend to avoid
+                # wrapping a single mock inside a FallbackBackend.
+                return backends_list[0]
+        elif not backends_list:
             backends_list.append(AsyncMockBackend())
 
         return AsyncFallbackBackend(
@@ -802,8 +813,19 @@ class AsyncLLMBackendFactory:
         )
 
 
+_DOTENV_LOADED_ASYNC = False
+
+
 def _load_dotenv_async() -> None:
-    """Load .env file if python-dotenv is available."""
+    """Load .env file if python-dotenv is available.
+
+    Uses a module-level sentinel so the .env file is loaded at most once per
+    process, matching the synchronous backend behaviour.
+    """
+    global _DOTENV_LOADED_ASYNC
+    if _DOTENV_LOADED_ASYNC:
+        return
+    _DOTENV_LOADED_ASYNC = True
     try:
         from pathlib import Path
 

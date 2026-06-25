@@ -533,7 +533,7 @@ class FallbackBackend(LLMBackend):
         return any(b.is_available() for b in self._backends)
 
 
-def create_backend(backend_type: str = "mock", **kwargs: Any) -> LLMBackend:
+def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     """
     Factory function to create an LLM backend by type name.
 
@@ -541,7 +541,7 @@ def create_backend(backend_type: str = "mock", **kwargs: Any) -> LLMBackend:
     explicitly provided via kwargs. Supports .env file loading.
 
     Environment Variables:
-        DEVSQUAD_LLM_BACKEND: Default backend type (mock|trae|openai|anthropic)
+        DEVSQUAD_LLM_BACKEND: Default backend type (auto|mock|trae|openai|anthropic|fallback)
         DEVSQUAD_OPENAI_API_KEY: OpenAI API key
         DEVSQUAD_OPENAI_BASE_URL: OpenAI-compatible base URL
         DEVSQUAD_OPENAI_MODEL: OpenAI model name
@@ -550,8 +550,9 @@ def create_backend(backend_type: str = "mock", **kwargs: Any) -> LLMBackend:
         DEVSQUAD_ANTHROPIC_MODEL: Anthropic model name
 
     Args:
-        backend_type: One of 'mock', 'trae', 'openai', 'anthropic'.
+        backend_type: One of 'auto', 'mock', 'trae', 'openai', 'anthropic', 'fallback'.
                       If not specified, reads from DEVSQUAD_LLM_BACKEND env var.
+                      'auto' tries real backends first, then falls back to mock.
         **kwargs: Backend-specific configuration (overrides env vars)
 
     Returns:
@@ -561,12 +562,12 @@ def create_backend(backend_type: str = "mock", **kwargs: Any) -> LLMBackend:
 
     _load_dotenv()
 
-    env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "mock").lower()
+    env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "auto").lower()
 
-    if backend_type == "mock" and not kwargs and env_backend in ("openai", "anthropic", "fallback"):
+    if backend_type == "auto" and not kwargs and env_backend in ("openai", "anthropic", "fallback", "mock", "trae"):
         backend_type = env_backend
 
-    if backend_type == "fallback":
+    if backend_type in ("fallback", "auto"):
         anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
         openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
         backends_list: list[Any] = []
@@ -591,8 +592,13 @@ def create_backend(backend_type: str = "mock", **kwargs: Any) -> LLMBackend:
                     timeout=kwargs.pop("timeout", None),
                 )
             )
-        if not backends_list:
-            backends_list.append(MockBackend())
+        # Always append MockBackend as the final fallback so real-LLM failures
+        # degrade gracefully instead of crashing the dispatch.
+        backends_list.append(MockBackend())
+        if backend_type == "auto" and len(backends_list) == 1:
+            # No real API keys available: return plain MockBackend to avoid
+            # wrapping a single mock inside a FallbackBackend.
+            return backends_list[0]
         return FallbackBackend(backends_list, cooldown_seconds=kwargs.pop("cooldown_seconds", 30.0))
 
     backends = {
@@ -617,8 +623,20 @@ def create_backend(backend_type: str = "mock", **kwargs: Any) -> LLMBackend:
     return cls(**kwargs)
 
 
+_DOTENV_LOADED = False
+
+
 def _load_dotenv() -> None:
-    """Load .env file if python-dotenv is available."""
+    """Load .env file if python-dotenv is available.
+
+    Uses a module-level sentinel so the .env file is loaded at most once per
+    process. This prevents runtime monkey-patching of ``os.environ`` (e.g. in
+    tests) from being overwritten on every ``create_backend`` call.
+    """
+    global _DOTENV_LOADED
+    if _DOTENV_LOADED:
+        return
+    _DOTENV_LOADED = True
     try:
         from pathlib import Path
 
