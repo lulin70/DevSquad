@@ -16,7 +16,8 @@ import hashlib
 import logging
 import os
 import threading
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
 
