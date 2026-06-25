@@ -31,6 +31,24 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from scripts.collaboration.llm_backend import (
+    DEFAULT_BACKOFF_BASE,
+    DEFAULT_COOLDOWN_SECONDS,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_MODEL_ANTHROPIC,
+    DEFAULT_MODEL_OPENAI,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TIMEOUT,
+    _get_availability_exceptions,
+    _get_fallback_exceptions,
+    _get_openai_retry_exceptions,
+    _get_anthropic_retry_exceptions,
+)
+
+# Async-specific defaults (sync backend has no concurrency concept).
+DEFAULT_MAX_CONCURRENCY = 10
+
 logger = logging.getLogger(__name__)
 
 
@@ -189,17 +207,17 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
     Supports concurrent requests via asyncio.gather in batch_generate().
     """
 
-    DEFAULT_TIMEOUT = 120.0
-    MAX_RETRIES = 3
-    MAX_CONCURRENCY = 10
+    DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
+    MAX_RETRIES = DEFAULT_MAX_RETRIES
+    MAX_CONCURRENCY = DEFAULT_MAX_CONCURRENCY
 
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "gpt-4",
+        model: str = DEFAULT_MODEL_OPENAI,
         base_url: str | None = None,
-        temperature: float = 0.7,
-        max_tokens: int = 4096,
+        temperature: float = DEFAULT_TEMPERATURE,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
         timeout: float | None = None,
         max_concurrency: int = MAX_CONCURRENCY,
     ) -> None:
@@ -269,10 +287,10 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
                     max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 )
                 return response.choices[0].message.content or ""
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except _get_openai_retry_exceptions() as e:
                 last_error = e
                 if attempt < self.MAX_RETRIES - 1:
-                    await asyncio.sleep(2**attempt)
+                    await asyncio.sleep(DEFAULT_BACKOFF_BASE**attempt)
 
         raise last_error or RuntimeError(
             f"OpenAI generate failed after {self.MAX_RETRIES} attempts"
@@ -333,7 +351,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
         try:
             await self._get_client()
             return True
-        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):
+        except _get_availability_exceptions():  # health check must never crash
             return False
 
     async def close(self) -> None:
@@ -350,16 +368,16 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
     Uses AsyncAnthropic for non-blocking HTTP calls with connection pooling.
     """
 
-    DEFAULT_TIMEOUT = 120.0
-    MAX_RETRIES = 3
-    MAX_CONCURRENCY = 10
+    DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
+    MAX_RETRIES = DEFAULT_MAX_RETRIES
+    MAX_CONCURRENCY = DEFAULT_MAX_CONCURRENCY
 
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = DEFAULT_MODEL_ANTHROPIC,
         base_url: str | None = None,
-        max_tokens: int = 4096,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
         timeout: float | None = None,
         max_concurrency: int = MAX_CONCURRENCY,
     ) -> None:
@@ -427,10 +445,10 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                     messages=[{"role": "user", "content": prompt}],
                 )
                 return response.content[0].text if response.content else ""
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except _get_anthropic_retry_exceptions() as e:
                 last_error = e
                 if attempt < self.MAX_RETRIES - 1:
-                    await asyncio.sleep(2**attempt)
+                    await asyncio.sleep(DEFAULT_BACKOFF_BASE**attempt)
 
         raise last_error or RuntimeError(
             f"Anthropic generate failed after {self.MAX_RETRIES} attempts"
@@ -487,7 +505,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
         try:
             await self._get_client()
             return True
-        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):
+        except _get_availability_exceptions():  # health check must never crash
             return False
 
     async def close(self) -> None:
@@ -508,7 +526,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
     def __init__(
         self,
         backends: list[AsyncLLMBackendInterface],
-        cooldown_seconds: float = 30.0,
+        cooldown_seconds: float = DEFAULT_COOLDOWN_SECONDS,
     ) -> None:
         if not backends:
             raise ValueError(
@@ -574,7 +592,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
                         "AsyncFallbackBackend: switched to %s", backend_repr
                     )
                 return result
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except _get_fallback_exceptions() as e:  # backend failure -> try next backend
                 last_error = e
                 self._mark_failed(backend_repr)
                 logger.warning(
@@ -624,7 +642,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
                 async for chunk in backend.generate_stream(prompt, **kwargs):
                     yield chunk
                 return
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except _get_fallback_exceptions() as e:  # backend stream failure -> try next backend
                 last_error = e
                 self._mark_failed(backend_repr)
                 logger.warning(
@@ -734,7 +752,7 @@ class AsyncLLMBackendFactory:
             )
             kwargs.setdefault(
                 "model",
-                os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"),
+                os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
             )
         elif cls == AsyncAnthropicBackend:
             kwargs.setdefault(
@@ -747,7 +765,7 @@ class AsyncLLMBackendFactory:
                 "model",
                 os.environ.get(
                     "DEVSQUAD_ANTHROPIC_MODEL",
-                    "claude-sonnet-4-20250514",
+                    DEFAULT_MODEL_ANTHROPIC,
                 ),
             )
 
@@ -776,9 +794,9 @@ class AsyncLLMBackendFactory:
                     model=kwargs.pop("anthropic_model", None)
                     or os.environ.get(
                         "DEVSQUAD_ANTHROPIC_MODEL",
-                        "claude-sonnet-4-20250514",
+                        DEFAULT_MODEL_ANTHROPIC,
                     ),
-                    max_tokens=kwargs.pop("max_tokens", 4096),
+                    max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
                     timeout=kwargs.pop("timeout", None),
                 )
             )
@@ -790,8 +808,8 @@ class AsyncLLMBackendFactory:
                     base_url=kwargs.pop("openai_base_url", None)
                     or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
                     model=kwargs.pop("openai_model", None)
-                    or os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"),
-                    max_tokens=kwargs.pop("max_tokens", 4096),
+                    or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
+                    max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
                     timeout=kwargs.pop("timeout", None),
                 )
             )
@@ -809,7 +827,7 @@ class AsyncLLMBackendFactory:
 
         return AsyncFallbackBackend(
             backends_list,
-            cooldown_seconds=kwargs.pop("cooldown_seconds", 30.0),
+            cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS),
         )
 
 

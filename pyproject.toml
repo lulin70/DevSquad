@@ -173,6 +173,7 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "benchmark: marks tests as performance benchmarks",
+    "smoke: marks tests as release smoke tests",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

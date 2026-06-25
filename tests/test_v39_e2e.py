@@ -337,9 +337,12 @@ class TestE2ERBACAudit:
         """
         tmpdir = tempfile.mkdtemp(prefix="v39_e2e_open_")
         try:
+            # Explicitly disable the default audit logger to verify open-mode
+            # behavior without any V3.9 modules active.
             disp = MultiAgentDispatcher(
                 persist_dir=tmpdir,
                 enable_rbac=False,
+                enable_audit_logger=False,
             )
 
             result = disp.dispatch(
@@ -884,6 +887,7 @@ class TestE2EBackwardCompatibility:
             disp = MultiAgentDispatcher(
                 persist_dir=tmpdir,
                 enable_rbac=False,
+                enable_audit_logger=False,
             )
 
             result = disp.dispatch(
@@ -925,6 +929,7 @@ class TestE2EBackwardCompatibility:
             disp = MultiAgentDispatcher(
                 persist_dir=tmpdir,
                 enable_rbac=False,
+                enable_audit_logger=False,
             )
 
             result = disp.dispatch(

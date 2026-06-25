@@ -23,6 +23,18 @@ from typing import Any
 from .prometheus_metrics import get_metrics
 
 
+# Shared defaults so sync and async backends stay consistent.
+DEFAULT_TIMEOUT = 120.0
+DEFAULT_MAX_TOKENS = 4096
+DEFAULT_TEMPERATURE = 0.7
+DEFAULT_COOLDOWN_SECONDS = 30.0
+DEFAULT_BACKOFF_BASE = 2
+DEFAULT_MAX_RETRIES = 3
+MOCK_SEPARATOR_WIDTH = 50
+DEFAULT_MODEL_OPENAI = "gpt-4"
+DEFAULT_MODEL_ANTHROPIC = "claude-sonnet-4-20250514"
+
+
 class LLMBackend(ABC):
     """Abstract base class for LLM execution backends."""
 
@@ -85,7 +97,7 @@ class MockBackend(LLMBackend):
         task_desc = kwargs.get("task_description", "")
         lines = [
             f"[MOCK MODE] {role_name} Analysis",
-            "=" * 50,
+            "=" * MOCK_SEPARATOR_WIDTH,
             "",
             f"Task: {task_desc}" if task_desc else "Task: (auto-detected)",
             "",
@@ -135,17 +147,17 @@ class TraeBackend(LLMBackend):
 
 
 class OpenAIBackend(LLMBackend):
-    DEFAULT_TIMEOUT = 120
-    MAX_RETRIES = 3
+    DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
+    MAX_RETRIES = DEFAULT_MAX_RETRIES
 
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "gpt-4",
+        model: str = DEFAULT_MODEL_OPENAI,
         base_url: str | None = None,
-        temperature: float = 0.7,
-        max_tokens: int = 4096,
-        timeout: int | None = None,
+        temperature: float = DEFAULT_TEMPERATURE,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+        timeout: float | None = None,
     ) -> None:
         self._api_key = api_key
         self.model = model
@@ -208,20 +220,20 @@ class OpenAIBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, True)
-                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
+                except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
                 return response.choices[0].message.content or ""
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except _get_openai_retry_exceptions() as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
                 # Prometheus: record failed LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, False)
-                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
+                except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
                 if attempt < self.MAX_RETRIES - 1:
-                    time.sleep(2**attempt)
+                    time.sleep(DEFAULT_BACKOFF_BASE**attempt)
         raise last_error or RuntimeError(f"OpenAI generate failed after {self.MAX_RETRIES} attempts")
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
@@ -256,21 +268,21 @@ class OpenAIBackend(LLMBackend):
         try:
             self._get_client()
             return True
-        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):  # Broad catch: health check
+        except _get_availability_exceptions():  # health check must never crash
             return False
 
 
 class AnthropicBackend(LLMBackend):
-    DEFAULT_TIMEOUT = 120
-    MAX_RETRIES = 3
+    DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
+    MAX_RETRIES = DEFAULT_MAX_RETRIES
 
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = DEFAULT_MODEL_ANTHROPIC,
         base_url: str | None = None,
-        max_tokens: int = 4096,
-        timeout: int | None = None,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+        timeout: float | None = None,
     ) -> None:
         self._api_key = api_key
         self.model = model
@@ -331,20 +343,20 @@ class AnthropicBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, True)
-                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
+                except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
                 return response.content[0].text if response.content else ""
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except _get_anthropic_retry_exceptions() as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
                 # Prometheus: record failed LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, False)
-                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
+                except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
                 if attempt < self.MAX_RETRIES - 1:
-                    time.sleep(2**attempt)
+                    time.sleep(DEFAULT_BACKOFF_BASE**attempt)
         raise last_error or RuntimeError(f"Anthropic generate failed after {self.MAX_RETRIES} attempts")
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
@@ -374,7 +386,7 @@ class AnthropicBackend(LLMBackend):
         try:
             self._get_client()
             return True
-        except (ImportError, ConnectionError, TimeoutError, OSError, AttributeError, RuntimeError):  # Broad catch: health check
+        except _get_availability_exceptions():  # health check must never crash
             return False
 
 
@@ -391,7 +403,7 @@ class FallbackBackend(LLMBackend):
         backend = FallbackBackend([primary, fallback])
     """
 
-    def __init__(self, backends: list[Any], cooldown_seconds: float = 30.0) -> None:
+    def __init__(self, backends: list[Any], cooldown_seconds: float = DEFAULT_COOLDOWN_SECONDS) -> None:
         if not backends:
             raise ValueError("FallbackBackend requires at least one backend")
         self._backends = backends
@@ -458,10 +470,10 @@ class FallbackBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, True)
-                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
+                except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
                 return result
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:  # Broad catch: LLM API call can fail in many ways
+            except _get_fallback_exceptions() as e:  # backend failure -> try next backend
                 last_error = e
                 _llm_duration = time.time() - _llm_start if '_llm_start' in dir() else 0
                 self._mark_failed(backend_repr)
@@ -474,7 +486,7 @@ class FallbackBackend(LLMBackend):
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, False)
-                except (ValueError, KeyError, AttributeError, RuntimeError):  # Broad catch: optional metrics
+                except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
 
         raise last_error or RuntimeError("All backends failed with no specific error")
@@ -513,7 +525,7 @@ class FallbackBackend(LLMBackend):
                     self._active_index = idx
                 yield from backend.generate_stream(prompt, **kwargs)
                 return
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except _get_fallback_exceptions() as e:  # backend stream failure -> try next backend
                 last_error = e
                 self._mark_failed(backend_repr)
                 logger.warning(
@@ -570,15 +582,15 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     if backend_type in ("fallback", "auto"):
         anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
         openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-        backends_list: list[Any] = []
+        backends_list: list[LLMBackend] = []
         if anthropic_key:
             backends_list.append(
                 AnthropicBackend(
                     api_key=anthropic_key,
                     base_url=kwargs.pop("anthropic_base_url", None) or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
                     model=kwargs.pop("anthropic_model", None)
-                    or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
-                    max_tokens=kwargs.pop("max_tokens", 4096),
+                    or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
+                    max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
                     timeout=kwargs.pop("timeout", None),
                 )
             )
@@ -587,8 +599,8 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
                 OpenAIBackend(
                     api_key=openai_key,
                     base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
-                    model=kwargs.pop("openai_model", None) or os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"),
-                    max_tokens=kwargs.pop("max_tokens", 4096),
+                    model=kwargs.pop("openai_model", None) or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
+                    max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
                     timeout=kwargs.pop("timeout", None),
                 )
             )
@@ -599,7 +611,7 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
             # No real API keys available: return plain MockBackend to avoid
             # wrapping a single mock inside a FallbackBackend.
             return backends_list[0]
-        return FallbackBackend(backends_list, cooldown_seconds=kwargs.pop("cooldown_seconds", 30.0))
+        return FallbackBackend(backends_list, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS))
 
     backends = {
         "mock": MockBackend,
@@ -614,13 +626,56 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     if cls == OpenAIBackend:
         kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY"))
         kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
-        kwargs.setdefault("model", os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"))
+        kwargs.setdefault("model", os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI))
     elif cls == AnthropicBackend:
         kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY"))
         kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"))
-        kwargs.setdefault("model", os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"))
+        kwargs.setdefault("model", os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC))
 
     return cls(**kwargs)
+
+
+def _get_openai_retry_exceptions() -> tuple[type[BaseException], ...]:
+    """Return exceptions that should trigger a retry in OpenAI generate()."""
+    try:
+        from openai import APIError
+
+        return (ConnectionError, TimeoutError, OSError, APIError)
+    except ImportError:
+        return (ConnectionError, TimeoutError, OSError)
+
+
+def _get_anthropic_retry_exceptions() -> tuple[type[BaseException], ...]:
+    """Return exceptions that should trigger a retry in Anthropic generate()."""
+    try:
+        from anthropic import APIError
+
+        return (ConnectionError, TimeoutError, OSError, APIError)
+    except ImportError:
+        return (ConnectionError, TimeoutError, OSError)
+
+
+def _get_availability_exceptions() -> tuple[type[BaseException], ...]:
+    """Return exceptions that availability/health checks should tolerate."""
+    return (ImportError, ConnectionError, TimeoutError, OSError, RuntimeError)
+
+
+def _get_fallback_exceptions() -> tuple[type[BaseException], ...]:
+    """Return exceptions that FallbackBackend should treat as backend failures."""
+    exceptions: set[type[BaseException]] = {ConnectionError, TimeoutError, OSError, RuntimeError}
+    try:
+        from openai import APIError as OpenAIAPIError
+
+        exceptions.add(OpenAIAPIError)
+    except ImportError:
+        pass
+    try:
+        from anthropic import APIError as AnthropicAPIError
+
+        exceptions.add(AnthropicAPIError)
+    except ImportError:
+        pass
+    return tuple(exceptions)
 
 
 _DOTENV_LOADED = False

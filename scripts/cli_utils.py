@@ -90,8 +90,10 @@ LIFECYCLE_PRESETS = {
 
 
 def _create_backend(backend_type: str, base_url: str = None, model: str = None):
+    # None is the historical default for CLI callers that want mock behaviour.
+    # Only the explicit "auto" string triggers the real-LLM-first fallback chain.
     if backend_type is None:
-        backend_type = "auto"
+        return None
     if backend_type == "mock":
         return None
 

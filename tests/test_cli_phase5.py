@@ -64,11 +64,11 @@ class TestCreateBackend:
 
     def test_create_openai_backend_without_key(self):
         """Test creating OpenAI backend without API key returns None."""
-        env_key = "OPENAI_API_KEY"
-        original_value = os.environ.get(env_key)
+        env_keys = ["OPENAI_API_KEY", "DEVSQUAD_OPENAI_API_KEY"]
+        original_values = {k: os.environ.get(k) for k in env_keys}
 
-        if env_key in os.environ:
-            del os.environ[env_key]
+        for k in env_keys:
+            os.environ.pop(k, None)
 
         try:
             with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
@@ -77,16 +77,17 @@ class TestCreateBackend:
                 output = mock_stderr.getvalue()
                 assert "OPENAI_API_KEY" in output
         finally:
-            if original_value is not None:
-                os.environ[env_key] = original_value
+            for k, v in original_values.items():
+                if v is not None:
+                    os.environ[k] = v
 
     def test_create_anthropic_backend_without_key(self):
         """Test creating Anthropic backend without API key returns None."""
-        env_key = "ANTHROPIC_API_KEY"
-        original_value = os.environ.get(env_key)
+        env_keys = ["ANTHROPIC_API_KEY", "DEVSQUAD_ANTHROPIC_API_KEY"]
+        original_values = {k: os.environ.get(k) for k in env_keys}
 
-        if env_key in os.environ:
-            del os.environ[env_key]
+        for k in env_keys:
+            os.environ.pop(k, None)
 
         try:
             with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
@@ -95,8 +96,9 @@ class TestCreateBackend:
                 output = mock_stderr.getvalue()
                 assert "ANTHROPIC_API_KEY" in output
         finally:
-            if original_value is not None:
-                os.environ[env_key] = original_value
+            for k, v in original_values.items():
+                if v is not None:
+                    os.environ[k] = v
 
     def test_create_openai_with_base_url_and_model(self):
         """Test creating OpenAI backend with custom base URL and model."""

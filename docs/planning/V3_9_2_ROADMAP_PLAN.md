@@ -203,18 +203,36 @@ class AuditLogger:
 
 ---
 
-## 7. 任务 5: P3 清理
+## 7. 任务 5: P3 清理（已完成）
 
 ### 7.1 魔法数字
 
-- 扫描 `scripts/collaboration/` 和 `scripts/api/` 中未命名的数字常量
-- 优先处理出现在多个地方的值
+- [x] 提取 `llm_backend.py` / `async_llm_backend.py` 中重复出现的默认值：
+  - `DEFAULT_TIMEOUT = 120.0`
+  - `DEFAULT_MAX_TOKENS = 4096`
+  - `DEFAULT_TEMPERATURE = 0.7`
+  - `DEFAULT_COOLDOWN_SECONDS = 30.0`
+  - `DEFAULT_BACKOFF_BASE = 2`
+  - `DEFAULT_MAX_RETRIES = 3`
+  - `DEFAULT_MODEL_OPENAI = "gpt-4"`
+  - `DEFAULT_MODEL_ANTHROPIC = "claude-sonnet-4-20250514"`
+  - `MOCK_SEPARATOR_WIDTH = 50`
+  - `async_llm_backend.py` 本地保留 `DEFAULT_MAX_CONCURRENCY = 10`
+- [x] `async_llm_backend.py` 复用 `llm_backend.py` 的共享常量，避免二义性
 
 ### 7.2 宽泛异常
 
-- 扫描 `except Exception:` / `except:`
-- 收窄到具体异常类型
-- 保留必要的兜底异常处理
+- [x] 将 `generate()` / `is_available()` 中的 `(ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError)` 收窄为：
+  - 重试异常：网络异常 + 对应厂商 `APIError`（`openai.APIError` / `anthropic.APIError`）
+  - 可用性检查：`ImportError, ConnectionError, TimeoutError, OSError, RuntimeError`
+- [x] `FallbackBackend` / `AsyncFallbackBackend` 使用 `_get_fallback_exceptions()` 统一处理真实后端故障
+- [x] Prometheus 指标记录的兜底异常收窄为 `(RuntimeError, ValueError, AttributeError)`，并注明“optional metrics must never break LLM calls”
+
+### 7.3 验证
+
+- [x] `tests/test_llm_auto_fallback.py` 全绿
+- [x] `python -m mypy scripts/collaboration/llm_backend.py scripts/collaboration/async_llm_backend.py` 0 errors
+- [x] 全量单元测试 2703 passed
 
 ---
 

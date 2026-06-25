@@ -338,5 +338,98 @@ class TestDispatchAuditLoggerPerformance(unittest.TestCase):
         self.assertLess(elapsed, 0.5, f"verify_chain took {elapsed:.3f}s (> 500ms)")
 
 
+class TestDispatcherDefaultAuditPersistence(unittest.TestCase):
+    """Dispatcher defaults to a SQLite-backed DispatchAuditLogger."""
+
+    def test_dispatcher_creates_persistent_audit_logger(self):
+        """Verify: MultiAgentDispatcher creates a DispatchAuditLogger backed by SQLite."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+            dispatcher = MultiAgentDispatcher(
+                persist_dir=tmpdir,
+                enable_warmup=False,
+                enable_compression=False,
+                enable_permission=False,
+                enable_memory=False,
+                enable_skillify=False,
+                enable_anchor_check=False,
+                enable_retrospective=False,
+                enable_usage_tracker=False,
+            )
+            try:
+                self.assertIsNotNone(dispatcher._audit_logger)
+                self.assertIsInstance(dispatcher._audit_logger, DispatchAuditLogger)
+                expected_db = Path(tmpdir) / "audit" / "dispatch_audit.db"
+                self.assertEqual(dispatcher._audit_logger._db_path, expected_db)
+                self.assertTrue(expected_db.exists())
+            finally:
+                dispatcher.shutdown()
+
+    def test_dispatcher_audit_entries_persist_across_restarts(self):
+        """Verify: dispatch audit entries survive dispatcher restart."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+            db_path = Path(tmpdir) / "audit" / "dispatch_audit.db"
+            dispatcher1 = MultiAgentDispatcher(
+                persist_dir=tmpdir,
+                audit_db_path=db_path,
+                enable_warmup=False,
+                enable_compression=False,
+                enable_permission=False,
+                enable_memory=False,
+                enable_skillify=False,
+                enable_anchor_check=False,
+                enable_retrospective=False,
+                enable_usage_tracker=False,
+            )
+            try:
+                dispatcher1.dispatch("test task", dry_run=True)
+                self.assertGreater(dispatcher1._audit_logger.count(), 0)
+            finally:
+                dispatcher1.shutdown()
+
+            dispatcher2 = MultiAgentDispatcher(
+                persist_dir=tmpdir,
+                audit_db_path=db_path,
+                enable_warmup=False,
+                enable_compression=False,
+                enable_permission=False,
+                enable_memory=False,
+                enable_skillify=False,
+                enable_anchor_check=False,
+                enable_retrospective=False,
+                enable_usage_tracker=False,
+            )
+            try:
+                self.assertGreater(dispatcher2._audit_logger.count(), 0)
+                self.assertTrue(dispatcher2._audit_logger.verify_chain())
+            finally:
+                dispatcher2.shutdown()
+
+    def test_dispatcher_can_disable_audit_logger(self):
+        """Verify: enable_audit_logger=False leaves _audit_logger as None."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+            dispatcher = MultiAgentDispatcher(
+                persist_dir=tmpdir,
+                enable_audit_logger=False,
+                enable_warmup=False,
+                enable_compression=False,
+                enable_permission=False,
+                enable_memory=False,
+                enable_skillify=False,
+                enable_anchor_check=False,
+                enable_retrospective=False,
+                enable_usage_tracker=False,
+            )
+            try:
+                self.assertIsNone(dispatcher._audit_logger)
+            finally:
+                dispatcher.shutdown()
+
+
 if __name__ == "__main__":
     unittest.main()

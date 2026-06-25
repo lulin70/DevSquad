@@ -270,3 +270,32 @@ DevSquad V3.9.1 在**模块层面**已经具备 Loop Engineering 所需的大部
 - **巨型文件拆分**: `dashboard.py` (1087 行) 等 42 个文件需要拆分，提升可维护性
 - **真实 LLM 后端集成测试**: 验证生成器/评判器在真实 LLM 下的行为
 - **审计日志持久化**: Loop Engineering 中 Persistence 的一环
+
+---
+
+## 附录 A：TRAEMultiAgent 上游控制方法论核查
+
+**核查日期**: 2026-06-25  
+**核查范围**: DevSquad 仓库内 `/Users/lin/trae_projects/DevSquad` 及本地文件系统 `/Users` 范围。
+
+### A.1 上游代码位置
+
+- 本地文件系统未找到独立的 `TRAEMultiAgent` 或 `TraeMultiAgent` 仓库/目录。
+- DevSquad `SKILL.md` 将其声明为 "upstream TraeMultiAgentSkill v2.5's cybernetics architecture" 的灵感来源，但未提供可访问的 upstream URL。
+- **结论**: 无法直接对照 upstream 源码；以下评估基于 DevSquad 自身代码中声明受 upstream 启发的 5 个 Cybernetics 模块。
+
+### A.2 Cybernetics 模块实现与生产调用情况
+
+| 模块 | 文件 | 是否实现 | 是否默认接入 dispatch pipeline | 代码级证据 |
+|---|---|---|---|---|
+| `FeedbackControlLoop` | `feedback_control_loop.py` | 是 | 是（`enable_feedback_loop="auto"`） | `PostDispatchPipeline._run_feedback_loop()` 调用；实现 Sense→Decide→Act→Feedback 结构 |
+| `ExecutionGuard` | `execution_guard.py` | 是 | 是 | `ComponentFactory._init_core_components()` 创建；`EnhancedWorker.execute()` 调用 `check_abort()` |
+| `PerformanceFingerprint` | `performance_fingerprint.py` | 是 | **否** | 仅作为独立工具类存在，无默认生产调用 |
+| `SimilarTaskRecommender` | `similar_task_recommender.py` | 是 | **否** | 仅作为独立工具类存在，无默认生产调用 |
+| `AdaptiveRoleSelector` | `adaptive_role_selector.py` | 是 | **否** | 仅作为独立工具类存在，无默认生产调用 |
+
+### A.3 代码层面保障总结
+
+- **已实现且有默认代码保障**: `FeedbackControlLoop`、`ExecutionGuard`。
+- **已实现但默认未接入生产管线（幽灵功能风险）**: `PerformanceFingerprint`、`SimilarTaskRecommender`、`AdaptiveRoleSelector`。
+- 与 Loop Engineering 橙皮书对照，DevSquad 的 Cybernetics 增强只完成了 "反馈控制" 和 "执行守卫" 两个环节的默认闭环，历史经验驱动的角色推荐和任务推荐尚未成为默认路径的一部分。
