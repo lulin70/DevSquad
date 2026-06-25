@@ -15,6 +15,9 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+# Dashboard is a visualization feature; skip these tests when streamlit is not installed.
+pytest.importorskip("streamlit")
+
 
 class TestDashboardPackageImports:
     """Ensure the new package and facade expose the expected public API."""
