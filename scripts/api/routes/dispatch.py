@@ -19,7 +19,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from scripts.api.models import (
     AnchorResult,
@@ -33,6 +33,7 @@ from scripts.api.models import (
     TaskDispatchRequest,
     WorkerResultItem,
 )
+from scripts.api.security import audit_log, require_permission
 
 logger = logging.getLogger(__name__)
 
@@ -151,17 +152,38 @@ def _convert_dispatch_result(result) -> dict[str, Any]:
     - Memory bridge for cross-session learning
     """,
 )
-async def dispatch_task(request: TaskDispatchRequest):
+async def dispatch_task(
+    request: TaskDispatchRequest,
+    user_id: str = Depends(require_permission("TASK_EXECUTE")),
+):
     """
     Full task dispatch endpoint.
 
     Args:
         request: Task dispatch request with task, roles, mode, etc.
+        user_id: Authenticated user ID from API Key.
 
     Returns:
         DispatchResponse with complete results from all workers
     """
     try:
+        # InputValidator: validate task and roles for injection/prompt attacks
+        from scripts.collaboration.input_validator import InputValidator
+
+        validator = InputValidator()
+        task_validation = validator.validate_task(request.task)
+        if not task_validation.valid:
+            audit_log(user_id, "task:dispatch", "task", result="rejected",
+                      details={"reason": task_validation.reason})
+            raise HTTPException(status_code=422, detail=f"Input validation failed: {task_validation.reason}")
+
+        if request.roles:
+            roles_validation = validator.validate_roles(request.roles)
+            if not roles_validation.valid:
+                audit_log(user_id, "task:dispatch", "task", result="rejected",
+                          details={"reason": roles_validation.reason})
+                raise HTTPException(status_code=422, detail=f"Roles validation failed: {roles_validation.reason}")
+
         dispatcher = _get_dispatcher()
 
         if request.backend and request.backend.lower() not in ("none", "mock", ""):
@@ -182,6 +204,17 @@ async def dispatch_task(request: TaskDispatchRequest):
         )
 
         response_data = _convert_dispatch_result(result)
+
+        # Audit log: record successful dispatch
+        audit_log(
+            user_id=user_id,
+            action="task:dispatch",
+            resource_type="task",
+            resource_id=response_data.get("task_description", "")[:100],
+            result="success" if result.success else "failure",
+            details={"roles": result.matched_roles, "duration": result.duration_seconds},
+        )
+
         return DispatchResponse(**response_data)
 
     except HTTPException:
@@ -216,17 +249,31 @@ async def dispatch_task(request: TaskDispatchRequest):
     without configuring all options.
     """,
 )
-async def quick_dispatch(request: QuickDispatchRequest):
+async def quick_dispatch(
+    request: QuickDispatchRequest,
+    user_id: str = Depends(require_permission("TASK_EXECUTE")),
+):
     """
     Quick dispatch endpoint.
 
     Args:
         request: Quick dispatch request with task and format options
+        user_id: Authenticated user ID from API Key.
 
     Returns:
         DispatchResponse with formatted summary
     """
     try:
+        # InputValidator: validate task for injection/prompt attacks
+        from scripts.collaboration.input_validator import InputValidator
+
+        validator = InputValidator()
+        task_validation = validator.validate_task(request.task)
+        if not task_validation.valid:
+            audit_log(user_id, "task:quick_dispatch", "task", result="rejected",
+                      details={"reason": task_validation.reason})
+            raise HTTPException(status_code=422, detail=f"Input validation failed: {task_validation.reason}")
+
         dispatcher = _get_dispatcher()
 
         result = dispatcher.quick_dispatch(
@@ -237,6 +284,16 @@ async def quick_dispatch(request: QuickDispatchRequest):
         )
 
         response_data = _convert_dispatch_result(result)
+
+        audit_log(
+            user_id=user_id,
+            action="task:quick_dispatch",
+            resource_type="task",
+            resource_id=request.task[:100],
+            result="success" if result.success else "failure",
+            details={"format": request.output_format},
+        )
+
         return DispatchResponse(**response_data)
 
     except HTTPException:
@@ -269,12 +326,14 @@ async def quick_dispatch(request: QuickDispatchRequest):
 )
 async def get_dispatch_history(
     limit: int = Query(10, ge=1, le=100, description="Maximum number of records to return / 最大返回记录数"),
+    user_id: str = Depends(require_permission("TASK_READ")),
 ):
     """
     Get dispatch history.
 
     Args:
         limit: Maximum number of records to return (1-100)
+        user_id: Authenticated user ID from API Key.
 
     Returns:
         DispatchHistoryResponse with list of historical dispatches
@@ -315,9 +374,14 @@ async def get_dispatch_history(
     solo-coder, devops, ui-designer) and any planned/extended roles.
     """,
 )
-async def list_roles():
+async def list_roles(
+    user_id: str = Depends(require_permission("TASK_READ")),
+):
     """
     List all available roles.
+
+    Args:
+        user_id: Authenticated user ID from API Key.
 
     Returns:
         RolesListResponse with role information

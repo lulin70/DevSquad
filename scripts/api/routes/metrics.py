@@ -15,9 +15,10 @@ Endpoint:
 
 import logging
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import PlainTextResponse
 
+from scripts.api.security import require_permission
 from scripts.collaboration.prometheus_metrics import get_metrics
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,9 @@ scrape_configs:
 - `devsquad_build` - Build info metadata
 """,
 )
-async def prometheus_metrics() -> Response:
+async def prometheus_metrics(
+    user_id: str = Depends(require_permission("AUDIT_READ")),
+) -> Response:
     """
     Expose Prometheus metrics endpoint.
 

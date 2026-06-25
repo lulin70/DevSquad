@@ -621,7 +621,7 @@ class TestResponseFormatValidation:
             mock_dispatcher.dispatch.return_value = mock_result
             mock_disp.return_value = mock_dispatcher
 
-            response = client.post("/api/v1/tasks/dispatch", json={"task": "Test"})
+            response = client.post("/api/v1/tasks/dispatch", json={"task": "Test task for response structure validation"})
             data = response.json()
 
             required_fields = [

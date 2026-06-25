@@ -12,7 +12,7 @@
 authentication:
   enabled: true
   method: "basic"  # basic | oauth2 | ldap
-  
+
   # Basic Auth Credentials
   # ⚠️  Passwords are SHA-256 hashed. NEVER commit plaintext passwords or hints!
   # To generate hashes: python -c "import hashlib; print(hashlib.sha256('your_password'.encode()).hexdigest())"
@@ -50,6 +50,35 @@ authentication:
     client_id: ""
     client_secret: ""
     redirect_uri: ""
+
+# REST API Security (FastAPI endpoints)
+# =====================================
+# Secures all /api/v1/* endpoints with API Key authentication + RBAC.
+# Set DEVSQUAD_API_AUTH_DISABLED=1 to bypass auth in development.
+#
+# To generate an API key hash:
+#   python -c "import secrets, hashlib; k=secrets.token_urlsafe(32); print(f'Key: {k}'); print(f'Hash: sha256:{hashlib.sha256(k.encode()).hexdigest()}')"
+#
+# Permission mapping:
+#   TASK_EXECUTE  → POST /api/v1/tasks/dispatch, /api/v1/tasks/quick
+#   TASK_READ     → GET  /api/v1/tasks/history, /api/v1/roles, /api/v1/lifecycle/*
+#   TASK_UPDATE   → POST /api/v1/lifecycle/actions
+#   AUDIT_READ    → GET  /api/v1/metrics/*, /api/v1/gates/*, /metrics
+#   PUBLIC        → GET  /api/v1/health, /
+api_security:
+  enabled: false  # Set to true in production; use DEVSQUAD_API_AUTH_DISABLED=1 for dev bypass
+  api_keys:
+    # ⚠️  Replace with real hashes before deployment!
+    # Example: admin key with all permissions
+    - key_hash: "${DEVSQUAD_API_KEY_ADMIN_HASH}"  # sha256:<hash> via env var
+      user_id: "admin@devsquad.local"
+      roles: ["SUPER_ADMIN"]
+      active: true
+    # Example: analyst key with read-only permissions
+    - key_hash: "${DEVSQUAD_API_KEY_ANALYST_HASH}"  # sha256:<hash> via env var
+      user_id: "analyst@devsquad.local"
+      roles: ["ANALYST"]
+      active: true
 
 # Server Configuration
 server:

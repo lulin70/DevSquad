@@ -252,6 +252,14 @@ async def startup_event():
 
     Initialize components and log startup message.
     """
+    # Import security status for startup logging
+    try:
+        from scripts.api.security import get_security_status
+        sec_status = get_security_status()
+    except (ImportError, RuntimeError, OSError):
+        sec_status = {"auth_enabled": False, "api_keys_configured": False,
+                      "audit_logger_available": False, "rbac_engine_available": False}
+
     logger.info("=" * 60)
     logger.info("🚀 DevSquad API Server Starting...")
     logger.info("=" * 60)
@@ -265,14 +273,25 @@ async def startup_event():
     logger.info("  ✅ Prometheus /metrics endpoint registered (NEW)")
     logger.info("  ✅ CORS middleware enabled (wildcard)")
     logger.info("  ⏱️  Request timing enabled")
-    logger.info("  🔐 Auth dependency injection ready")
+    logger.info("Security:")
+    if sec_status.get("auth_enabled"):
+        logger.info("  🔐 API Key authentication: ENABLED")
+        logger.info("  🔑 API keys configured: %s", sec_status.get("api_key_count", 0))
+    else:
+        logger.info("  ⚠️  API Key authentication: DISABLED (set DEVSQUAD_API_AUTH_DISABLED=0 to enable)")
+    logger.info("  📋 RBAC engine: %s", "ready" if sec_status.get("rbac_engine_available") else "unavailable")
+    logger.info("  📝 Audit logger: %s", "ready" if sec_status.get("audit_logger_available") else "unavailable")
     logger.info("=" * 60)
     logger.info("Available Endpoints:")
-    logger.info("  POST /api/v1/tasks/dispatch   - Full task dispatch")
-    logger.info("  POST /api/v1/tasks/quick      - Quick dispatch")
-    logger.info("  GET  /api/v1/tasks/history     - Dispatch history")
-    logger.info("  GET  /api/v1/roles             - List roles")
-    logger.info("  GET  /metrics                  - Prometheus metrics (NEW)")
+    logger.info("  POST /api/v1/tasks/dispatch   - Full task dispatch (TASK_EXECUTE)")
+    logger.info("  POST /api/v1/tasks/quick      - Quick dispatch (TASK_EXECUTE)")
+    logger.info("  GET  /api/v1/tasks/history     - Dispatch history (TASK_READ)")
+    logger.info("  GET  /api/v1/roles             - List roles (TASK_READ)")
+    logger.info("  GET  /api/v1/lifecycle/*       - Lifecycle mgmt (TASK_READ/TASK_UPDATE)")
+    logger.info("  GET  /api/v1/metrics/*         - Metrics (AUDIT_READ)")
+    logger.info("  GET  /api/v1/gates/*           - Gates (AUDIT_READ)")
+    logger.info("  GET  /api/v1/health            - Health check (PUBLIC)")
+    logger.info("  GET  /metrics                  - Prometheus metrics (AUDIT_READ)")
     logger.info("Ready to accept requests!")
     logger.info("Swagger UI: http://localhost:8000/docs")
     logger.info("=" * 60)
