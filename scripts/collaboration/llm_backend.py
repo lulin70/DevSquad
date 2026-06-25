@@ -22,7 +22,6 @@ from typing import Any
 
 from .prometheus_metrics import get_metrics
 
-
 # Shared defaults so sync and async backends stay consistent.
 DEFAULT_TIMEOUT = 120.0
 DEFAULT_MAX_TOKENS = 4096
