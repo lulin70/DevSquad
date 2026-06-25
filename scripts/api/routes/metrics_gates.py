@@ -20,7 +20,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from scripts.api.models import (
     GateCheckRequest,
@@ -28,6 +28,7 @@ from scripts.api.models import (
     HealthCheck,
     MetricsSnapshot,
 )
+from scripts.api.security import require_permission
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,9 @@ def _get_real_response_time() -> tuple:
     summary="Get current metrics snapshot / 获取当前指标快照",
     description="Retrieve current system performance and lifecycle metrics / 获取当前系统性能和生命周期指标",
 )
-async def get_current_metrics():
+async def get_current_metrics(
+    user_id: str = Depends(require_permission("AUDIT_READ")),
+):
     """
     Get current metrics snapshot.
 
@@ -164,6 +167,7 @@ async def get_current_metrics():
 async def get_metrics_history(
     hours: int = Query(24, ge=1, le=168, description="Number of hours of history to retrieve"),
     interval_minutes: int = Query(60, ge=5, le=1440, description="Data point interval in minutes"),
+    user_id: str = Depends(require_permission("AUDIT_READ")),
 ):
     """
     Get historical metrics.
@@ -219,7 +223,9 @@ async def get_metrics_history(
     summary="Get all gate statuses",
     description="Retrieve current status of all lifecycle gates",
 )
-async def get_all_gate_statuses():
+async def get_all_gate_statuses(
+    user_id: str = Depends(require_permission("AUDIT_READ")),
+):
     """
     Get status of all gates.
 
@@ -275,7 +281,10 @@ async def get_all_gate_statuses():
     summary="Check specific gate",
     description="Perform a detailed gate check for a specific CLI command",
 )
-async def check_specific_gate(request: GateCheckRequest):
+async def check_specific_gate(
+    request: GateCheckRequest,
+    user_id: str = Depends(require_permission("AUDIT_READ")),
+):
     """
     Check a specific gate.
 

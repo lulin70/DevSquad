@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from scripts.api.models import (
     CommandMapping,
@@ -27,6 +27,7 @@ from scripts.api.models import (
     PhaseActionResult,
     PhaseStatus,
 )
+from scripts.api.security import audit_log, require_permission
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ router = APIRouter(prefix="/api/v1/lifecycle", tags=["Lifecycle Management"])
 async def list_phases(
     status_filter: PhaseStatus | None = Query(None, description="Filter by phase status"),
     include_details: bool = Query(False, description="Include detailed artifact information"),
+    user_id: str = Depends(require_permission("TASK_READ")),
 ):
     """
     List all lifecycle phases.
@@ -116,7 +118,10 @@ async def list_phases(
     summary="Get specific phase details",
     description="Retrieve detailed information about a specific lifecycle phase",
 )
-async def get_phase(phase_id: str):
+async def get_phase(
+    phase_id: str,
+    user_id: str = Depends(require_permission("TASK_READ")),
+):
     """
     Get details of a specific phase.
 
@@ -185,7 +190,9 @@ async def get_phase(phase_id: str):
     summary="Get current lifecycle status",
     description="Retrieve overall lifecycle execution status and progress",
 )
-async def get_lifecycle_status():
+async def get_lifecycle_status(
+    user_id: str = Depends(require_permission("TASK_READ")),
+):
     """
     Get current lifecycle status.
 
@@ -232,12 +239,16 @@ async def get_lifecycle_status():
     summary="Execute phase action",
     description="Execute an action on a specific phase (advance/complete/reset/skip)",
 )
-async def execute_phase_action(request: PhaseActionRequest):
+async def execute_phase_action(
+    request: PhaseActionRequest,
+    user_id: str = Depends(require_permission("TASK_UPDATE")),
+):
     """
     Execute an action on a lifecycle phase.
 
     Args:
         request: Action request containing phase_id, action, and options
+        user_id: Authenticated user ID from API Key.
 
     Returns:
         ActionResult indicating success/failure
@@ -297,6 +308,15 @@ async def execute_phase_action(request: PhaseActionRequest):
             message = f"Phase {phase_id} skipped"
             new_status = PhaseStatus.SKIPPED
 
+        audit_log(
+            user_id=user_id,
+            action=f"lifecycle:{request.action}",
+            resource_type="phase",
+            resource_id=phase_id,
+            result="success" if success else "failure",
+            details={"previous": previous_status.value, "new": new_status.value},
+        )
+
         return PhaseActionResult(
             success=success,
             phase_id=phase_id,
@@ -326,7 +346,9 @@ async def execute_phase_action(request: PhaseActionRequest):
     summary="List CLI command mappings",
     description="Retrieve mapping of CLI commands to lifecycle phases",
 )
-async def list_command_mappings():
+async def list_command_mappings(
+    user_id: str = Depends(require_permission("TASK_READ")),
+):
     """
     List CLI command to phase mappings.
 
