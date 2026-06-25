@@ -100,6 +100,7 @@ class MultiAgentDispatcher:
     _dispatch_history: list[Any]
     _max_history: int
     _result_assembler: Any
+    _audit_logger: DispatchAuditLogger | None
 
     def __init__(
         self,
