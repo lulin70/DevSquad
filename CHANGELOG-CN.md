@@ -7,6 +7,26 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.9.2] - 2026-06-26
+
+### 新增 — LLM 后端弹性
+- **Auto LLM fallback**（`llm_backend.py`、`async_llm_backend.py`）：新增默认后端 `"auto"`，优先尝试真实 LLM 供应商（Anthropic → OpenAI），无 API key 或所有真实后端失败时优雅回退到 `MockBackend`。同步/异步工厂均已更新；`.env.example` 和 `config/deployment.yaml` 默认值改为 `"auto"`。
+- **真实 LLM 集成测试**（`tests/integration/test_real_llm.py`、`tests/smoke/test_real_llm_auto_mode.py`）：覆盖 auto 后端在有/无真实 API key 时的构造行为，以及仅在 key 存在时运行的冒烟测试。
+
+### 变更 — 架构与可维护性
+- **Dashboard 拆分**（`scripts/dashboard.py` → `scripts/dashboard/` 包）：将 1087 行的单体文件拆分为 8 个单一职责模块（`app`、`components`、`state`、`lifecycle_views`、`metrics_views`、`dispatch_views`、`auth_views`）。原 `scripts/dashboard.py` 保留为兼容入口。
+- **审计持久化**（`dispatcher.py`）：`MultiAgentDispatcher` 默认使用 SQLite  backed `DispatchAuditLogger`；除非显式禁用，审计记录在进程重启后仍可保留。
+- **P3 清理**（`llm_backend.py`、`async_llm_backend.py`）：提取魔法数字为模块常量；将宽泛的 `except Exception` 收窄为网络/API 特定异常集合。
+
+### 文档
+- **Loop Engineering 评估**（`docs/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md`）：对照上游 TRAEMultiAgent 控制方法论评估 DevSquad，记录差距并确认 V3.9.2 路线图完成。
+- **V3.9.2 路线图**（`docs/planning/V3_9_2_ROADMAP_PLAN.md`）：auto fallback、dashboard 拆分、真实 LLM 测试、审计持久化、P3 清理 的实施计划。
+
+### 测试覆盖
+- 2703 通过（CI 权威数据，Python 3.10+3.11；V3.9.1 为 2605）
+- mypy：0 错误（CI 中阻断）
+- bandit：0 High/Medium 问题
+
 ## [3.9.1] - 2026-06-23
 
 ### 变更 — 重构与质量
