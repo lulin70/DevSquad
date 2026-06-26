@@ -73,10 +73,11 @@ E2E 用户旅程: 16 passed
 **正面**
 - 性能测试 28 个全部通过。
 - `code_graph_storage.py` N+1 inserts 修复（V3.9.1）。
+- Mock LLM 后端基准已重新实测并更新到 `docs/MATURITY_ASSESSMENT.md`。
 
 **问题**
-- 文档中的性能基准数据仍沿用 V3.9.1，未随 V3.9.2 重新实测刷新。
-- 无真实 LLM 后端性能基线。
+- 仍无真实 LLM 后端性能基线。
+- 缺少性能基准自动化（无法做容量规划）。
 
 ### 2.5 可维护性 (8.0/10)
 
@@ -97,7 +98,6 @@ E2E 用户旅程: 16 passed
 - docs/MATURITY_ASSESSMENT.md 升级为 V3.9.2 评估。
 
 **问题**
-- 性能基准章节数据未刷新。
 - 部分内部技术文档（如早期 PRD）仍为 V3.9.0 目标版本，需标注为历史文档。
 
 ### 2.7 集成/CI&CD (7.0/10)
@@ -151,8 +151,8 @@ E2E 用户旅程: 16 passed
 ## 6. 下一步建议（按优先级）
 
 ### P1 — 短期（1-2 周）
-1. **拆分剩余巨型文件**：`dispatch_steps.py`（1030 行）、`dispatcher.py`（1073 行）。
-2. **刷新性能基准数据**：重新实测并更新 README/成熟度评估中的性能数据。
+1. ~~**拆分剩余巨型文件**：`dispatch_steps.py`（1030 行）、`dispatcher.py`（1073 行）。~~ ✅ 已完成：dispatcher.py 拆为 7 mixin + 1 base；dispatch_steps.py 拆为 4 mixin + 1 base。
+2. ~~**刷新性能基准数据**：重新实测并更新 README/成熟度评估中的性能数据。~~ ✅ 已完成：Mock LLM 后端基准已刷新到 `docs/MATURITY_ASSESSMENT.md`。
 3. **评估 test job 中排除的 `tests/test_cli_phase5.py`**：确认是否可恢复。
 
 ### P2 — 中期（2-4 周）

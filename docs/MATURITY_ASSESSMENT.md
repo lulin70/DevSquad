@@ -62,7 +62,7 @@
 | code_graph_storage.py N+1 修复 | 使用 executemany 替代逐条 insert |
 | 118 core modules | 模块化设计，职责分离 |
 | 核心调度管线稳定 | sync/async dispatch 均工作正常，benchmark 实测通过 |
-| async_dispatch | 3.15x 加速比实测 |
+| async_dispatch | Mock 后端下与 sync 基本持平 (~0.93x)；真实 LLM 后端基线待测 |
 
 ### 问题
 
@@ -151,7 +151,7 @@
 | 改进 | 详情 |
 |------|------|
 | code_graph_storage.py N+1 修复 | 使用 executemany 替代逐条 insert |
-| async_dispatch | 3.15x 加速比实测 |
+| async_dispatch | Mock 后端下与 sync 基本持平 (~0.93x)；真实 LLM 后端基线待测 |
 | ContentCache | 统一 SHA-256 内容缓存 |
 | Redis cache | 三层缓存架构 |
 
@@ -162,10 +162,22 @@
 | 缺少性能基准自动化 | 无法做容量规划 |
 | 无真实 LLM 后端性能验证 | 不确定生产性能 |
 
+### 实测基准（V3.9.2，Mock LLM 后端）
+
+使用 `scripts/benchmark_async_dispatch.py --tasks 10 --warmup 2` 在本地 Python 3.12 环境运行 3 次取中位数：
+
+| 指标 | Sync | Async | 备注 |
+|------|------|-------|------|
+| 总耗时 (s) | 0.080 | 0.086 | 10 个任务 |
+| 吞吐 (tasks/s) | 125.3 | 116.6 | Mock 后端无网络 I/O |
+| 加速比 | 1.0x | 0.93x | async 开销在 Mock 场景下未体现优势 |
+
+> 注：V3.9.1 文档中记录的 3.15x 加速比来自真实 LLM 后端；当前无真实 LLM 后端基线，本次刷新仅更新 Mock 后端数据并标注差异。
+
 ### 评分理由
 
 - N+1 inserts 修复但整体性能无显著变化 (0)
-- 仍缺少性能基准数据自动化 (-)
+- Mock 后端基准已刷新，真实 LLM 基线仍缺失 (-)
 
 ---
 
