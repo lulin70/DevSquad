@@ -110,7 +110,7 @@ E2E 用户旅程: 16 passed
 
 **问题**
 - E2E job 未安装 `[visualization]` 依赖；若 e2e 涉及 dashboard 需额外处理。
-- test job 仍排除 `tests/test_cli_phase5.py`，需确认原因是否已过时。
+- ~~test job 仍排除 `tests/test_cli_phase5.py`，需确认原因是否已过时。~~ ✅ 已恢复：本地测试 27 passed；CI workflow 已移除 `--ignore`。
 
 ---
 
@@ -153,7 +153,7 @@ E2E 用户旅程: 16 passed
 ### P1 — 短期（1-2 周）
 1. ~~**拆分剩余巨型文件**：`dispatch_steps.py`（1030 行）、`dispatcher.py`（1073 行）。~~ ✅ 已完成：dispatcher.py 拆为 7 mixin + 1 base；dispatch_steps.py 拆为 4 mixin + 1 base。
 2. ~~**刷新性能基准数据**：重新实测并更新 README/成熟度评估中的性能数据。~~ ✅ 已完成：Mock LLM 后端基准已刷新到 `docs/MATURITY_ASSESSMENT.md`。
-3. **评估 test job 中排除的 `tests/test_cli_phase5.py`**：确认是否可恢复。
+3. ~~**评估 test job 中排除的 `tests/test_cli_phase5.py`**：确认是否可恢复。~~ ✅ 已恢复：CI workflow 移除 `--ignore`，纳入常规测试。
 
 ### P2 — 中期（2-4 周）
 4. **增强 Cybernetics 模块集成深度**：考虑将 PerformanceFingerprint/SimilarTaskRecommender/AdaptiveRoleSelector 从 RoleMatcher 的降级路径提升为默认启用。

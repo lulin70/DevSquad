@@ -44,7 +44,6 @@ jobs:
             --ignore=tests/integration \
             --ignore=tests/e2e \
             --ignore=tests/manual \
-            --ignore=tests/test_cli_phase5.py \
             -m "not slow" \
             --timeout=120 \
             --cov=scripts \
