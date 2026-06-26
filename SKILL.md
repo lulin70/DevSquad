@@ -2,16 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.9.1 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
+  V3.9.2 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  V3.9.1: File splits (code_knowledge_graph 511→346, redesign_auditor 550→229) + RedesignAuditor false-positive fix (builtins preserved, sequential naming, blank lines excluded from dead code) + Multi-host adapter (Claude Code/Cursor/Codex/Cline/Trae/Generic) + CI E2E release gate + build depends on lint+security,
+  V3.9.2: Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence + P3 cleanup (magic numbers + narrowed exceptions).
 118 core modules, 2600+ tests passing.
 ---
 
-# DevSquad V3.9.1 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V3.9.2 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -952,6 +952,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 
 ## Version History
 
+- **v3.9.2** (2026-06-26): Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence by default + P3 cleanup (magic numbers extracted + narrowed exceptions) + Loop Engineering implementation assessment + 2703 tests passing (CI authoritative)
 - **v3.9.1** (2026-06-23): File splits (code_knowledge_graph 511→346, redesign_auditor 550→229) + RedesignAuditor false-positive fix (builtins preserved, sequential naming, blank lines excluded from dead code) + MultiHostAdapter (6 host types: Claude Code/Cursor/Codex/Cline/Trae/Generic, 32 tests) + CI E2E release tag gate + build depends on lint+security + mypy blocking (551→0 errors) + 118 core modules + 2605 tests passing (CI authoritative)
 - **v3.9.0** (2026-06-22): CodeKnowledgeGraph (SQLite-backed symbols/edges/files storage, 40 tests) + MCP codegraph_explore tools (symbol/callers/callees/traversal/status) + YagniChecker (34 tests) + PromptDials (verbosity/creativity dials, 33 tests) + RedesignAuditor third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING, 28 tests) + DispatchRBAC integration with AuthManager (17 tests) + DispatchAuditLogger SHA-256 chain hash (24 tests) + V3.9.0 E2E/Integration/Performance (68 tests) + P0 security fixes (audit hash length-prefixed fields, RBAC open-mode warning) + P1 thread safety (CodeGraphStorage check_same_thread=False + Lock) + 94+ core modules + 2591 tests passing
 - **v3.8.0** (2026-06-21): Two-Stage Review Gate (spec compliance + code quality, 40 tests) + Severity Router with auto-fix loop (51 tests) + Judge Agent with history learning (33 tests) + Micro-Task Planner (2-5 min decomposition, 47 tests) + Content Cache with sensitive-data filtering (32 tests) + Jitter Strategies (NONE/EQUAL/FULL/DECORRELATED, 9 tests) + NodeType classification (DETERMINISTIC/LLM/HYBRID, 14 tests) + V3.8 Planning Docs (5 docs, 2482 lines) + 86+ core modules + 2339 tests passing + maturity 65%→72%

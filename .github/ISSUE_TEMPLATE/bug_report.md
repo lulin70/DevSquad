@@ -25,7 +25,7 @@ labels: bug
 
 ## Environment
 
-- DevSquad version: <!-- e.g., 3.9.1 -->
+- DevSquad version: <!-- e.g., 3.9.2 -->
 - Python version: <!-- e.g., 3.11 -->
 - OS: <!-- e.g., macOS 14, Ubuntu 22.04 -->
 - LLM backend: <!-- mock/openai/anthropic -->

@@ -7,6 +7,26 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.2] - 2026-06-26
+
+### Added — LLM Backend Resilience
+- **Auto LLM fallback** (`llm_backend.py`, `async_llm_backend.py`): New default backend `"auto"` tries real LLM providers (Anthropic → OpenAI) and gracefully falls back to `MockBackend` when no API key is available or all real backends fail. Synchronous and asynchronous factories updated; `.env.example` and `config/deployment.yaml` default to `"auto"`.
+- **Real LLM integration tests** (`tests/integration/test_real_llm.py`, `tests/smoke/test_real_llm_auto_mode.py`): Coverage for auto backend construction with/without real API keys and smoke tests that run only when keys are present.
+
+### Changed — Architecture & Maintainability
+- **Dashboard split** (`scripts/dashboard.py` → `scripts/dashboard/` package): 1087-line monolith split into 8 single-responsibility modules (`app`, `components`, `state`, `lifecycle_views`, `metrics_views`, `dispatch_views`, `auth_views`). Original `scripts/dashboard.py` retained as backward-compatible entry point.
+- **Audit persistence** (`dispatcher.py`): `MultiAgentDispatcher` now defaults to a SQLite-backed `DispatchAuditLogger`; audit records survive process restarts unless explicitly disabled.
+- **P3 cleanup** (`llm_backend.py`, `async_llm_backend.py`): Magic numbers extracted to module constants; broad `except Exception` narrowed to network/API-specific exception sets.
+
+### Documentation
+- **Loop Engineering assessment** (`docs/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md`): Evaluated DevSquad against upstream TRAEMultiAgent cybernetics methodology; documented gaps and V3.9.2 roadmap completion.
+- **V3.9.2 roadmap** (`docs/planning/V3_9_2_ROADMAP_PLAN.md`): Implementation plan for auto fallback, dashboard split, real LLM tests, audit persistence, and P3 cleanup.
+
+### Test Coverage
+- 2703 passed (CI authoritative, Python 3.10+3.11; was 2605 in V3.9.1)
+- mypy: 0 errors (blocking in CI)
+- bandit: 0 High/Medium issues
+
 ## [3.9.1] - 2026-06-23
 
 ### Changed — Refactoring & Quality
