@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""PostDispatchPipeline — Post-dispatch step methods extracted from MultiAgentDispatcher.
+"""PostDispatchPipeline — Post-dispatch step orchestration.
 
-This pipeline reduces the God Class by moving post-dispatch pipeline step methods
-(steps 8-20) into a separate module. Uses composition pattern: receives all
-dependencies via __init__ instead of relying on mixin self.* attribute sharing.
+This module keeps the post-dispatch orchestration (``__init__`` and
+``execute``) and a small set of execution helpers.  Step-specific logic
+has been split into single-responsibility mixins under
+``dispatch_steps_*_mixin.py``.
 
 Pipeline steps covered:
   Step 8:  Collect worker results
@@ -16,6 +17,9 @@ Pipeline steps covered:
   Step 18: Feedback loop
   Step 19: UE testing
   Step 20: Tech debt scan
+  Step 21: Two-stage review gate
+  Step 22: Severity router + auto-fix loop
+  Step 23: Judge agent consolidation
 """
 
 import logging
@@ -25,25 +29,28 @@ from typing import Any
 from .dispatch_models import DispatchResult
 from .dispatch_result_assembler import ResultAssembler
 from .dispatch_services import MemoryPipelineService, MetricsService, PermissionService, SkillProposalService
+from .dispatch_steps_consensus_mixin import PostDispatchConsensusMixin
+from .dispatch_steps_feedback_mixin import PostDispatchFeedbackMixin
+from .dispatch_steps_quality_mixin import PostDispatchQualityMixin
+from .dispatch_steps_services_mixin import PostDispatchServicesMixin
 from .event_bus import EventBus
-from .severity_router import AutoFixResult, SeverityRouter
-from .tech_debt_manager import TechDebtManager
-from .two_stage_review_gate import ReviewFinding, ReviewStage, TwoStageReviewGate, TwoStageReviewResult
+from .severity_router import SeverityRouter
+from .two_stage_review_gate import TwoStageReviewGate
 from .ue_test_framework import UETestFramework
 
 logger = logging.getLogger(__name__)
 
 
-class PostDispatchPipeline:
-    """Post-dispatch pipeline containing steps 8-20.
+class PostDispatchPipeline(
+    PostDispatchConsensusMixin,
+    PostDispatchFeedbackMixin,
+    PostDispatchQualityMixin,
+    PostDispatchServicesMixin,
+):
+    """Post-dispatch pipeline containing steps 8-23.
 
-    Receives all dependencies via __init__ (composition pattern) instead of
-    relying on mixin self.* attribute sharing.
-
-    V3.8 additions:
-      - Step 21: Two-stage code review gate (spec compliance + quality)
-      - Step 22: Severity router + auto-fix loop
-      - Step 23: Judge agent consolidation (dedup/conflict-resolve findings)
+    Receives all dependencies via ``__init__`` (composition pattern) instead of
+    relying on mixin ``self.*`` attribute sharing.
     """
 
     def __init__(
@@ -108,7 +115,7 @@ class PostDispatchPipeline:
 
         # Lazy-initialized frameworks
         self._ue_framework: UETestFramework | None = None
-        self._debt_manager: TechDebtManager | None = None
+        self._debt_manager: Any = None
 
         # V3.8 #2: Two-stage review gate
         self.enable_two_stage_review = enable_two_stage_review
@@ -153,7 +160,7 @@ class PostDispatchPipeline:
         phase: str,
         **kwargs: Any,
     ) -> DispatchResult:
-        """Steps 9-20: post-processing, consensus, permissions, memory, assembly."""
+        """Steps 9-23: post-processing, consensus, permissions, memory, assembly."""
         task_description = pre_result.task_description
         lang = pre_result.lang
         matched_roles = pre_result.matched_roles
@@ -286,7 +293,7 @@ class PostDispatchPipeline:
         if tech_debt_report:
             result.details["tech_debt_report"] = tech_debt_report
 
-        # Step 21: V3.8 #2 — Two-stage code review gate
+        # Step 21: V3.8 #2 — Two-stage review gate
         # Runs after consensus + tech debt scan, before final completion.
         # Critical issues block progression (recorded in errors).
         two_stage_review_result = self._run_two_stage_review(
@@ -368,459 +375,6 @@ class PostDispatchPipeline:
         return worker_results, step6_time, step7_time
 
     # ------------------------------------------------------------------
-    # Step 10: Resolve consensus
-    # ------------------------------------------------------------------
-
-    def _resolve_consensus(
-        self, collection: Any, mode: str
-    ) -> tuple[list[dict[str, Any]], Any]:
-        """Resolve consensus and get compression info. Returns (consensus_records, compression_info)."""
-        consensus_records = []
-        conflicts_count = collection.get("conflicts_count", 0)
-        if conflicts_count > 0 or mode == "consensus":
-            resolutions = self.coordinator.resolve_conflicts()
-            for rec in resolutions:
-                self.metrics_service.safe_record(lambda m, o=rec.outcome.value: m.record_consensus_round(o))
-                consensus_records.append(
-                    {
-                        "topic": rec.topic,
-                        "outcome": rec.outcome.value,
-                        "final_decision": rec.final_decision,
-                        "votes_for": rec.votes_for,
-                        "votes_against": rec.votes_against,
-                        "votes_abstain": rec.votes_abstain,
-                    }
-                )
-
-        compression_info = None
-        if self.enable_compression and self.compressor:
-            stats = self.coordinator.get_compression_stats()
-            if stats:
-                compression_info = stats
-
-        return consensus_records, compression_info
-
-    # ------------------------------------------------------------------
-    # Step 11: Check permissions
-    # ------------------------------------------------------------------
-
-    def _check_permissions(
-        self, _task: str, _worker_results: list[dict[str, Any]], _consensus_records: list[dict[str, Any]], **kwargs: Any
-    ) -> list[dict[str, Any]]:
-        """Check permissions via PermissionGuard and RBAC.
-
-        Returns:
-            List of permission check results.
-        """
-        permission_checks: list[dict[str, Any]] = []
-        if self.enable_permission and self.permission_service.permission_guard:
-            permission_checks = self.permission_service.check_permissions(permission_checks)
-
-        # RBAC fine-grained check
-        if self.enterprise.enable_rbac and self.enterprise.rbac_engine:
-            permission_checks = self.permission_service.check_rbac(permission_checks, **kwargs)
-
-        return permission_checks
-
-    # ------------------------------------------------------------------
-    # Step 12: Process memory pipeline
-    # ------------------------------------------------------------------
-
-    def _process_memory_pipeline(
-        self,
-        task: str,
-        _worker_results: list[dict[str, Any]],
-        _lang: str,
-        scratchpad_summary: str,
-        role_ids: list[str],
-    ) -> tuple[dict[str, Any] | None, list[str]]:
-        """Process memory pipeline: capture + MCE classify + AI news inject."""
-        errors: list[str] = []
-
-        memory_stats = self.memory_pipeline.capture(task, scratchpad_summary, role_ids, errors)
-        memory_stats = self.memory_pipeline.classify_mce(scratchpad_summary, task, memory_stats, errors)
-        self.memory_pipeline.inject_ai_news(task, errors)
-
-        return memory_stats, errors
-
-    # ------------------------------------------------------------------
-    # Step 13: Learn skills
-    # ------------------------------------------------------------------
-
-    def _learn_skills(
-        self,
-        _task: str,
-        _worker_results: list[dict[str, Any]],
-        _matched_roles: list[dict[str, Any]],
-        exec_result: Any,
-    ) -> tuple[list[dict[str, Any]], list[str]]:
-        """Learn skills via Skillifier. Returns (skill_proposals, errors)."""
-        errors: list[str] = []
-        skill_proposals = []
-        patterns = None
-
-        if self.skill_service.enable_skillify and self.skill_service.skillifier and exec_result.success:
-            try:
-                patterns = self.skill_service.skillifier.analyze_history()
-                if patterns:
-                    skill_proposals = self.skill_service.propose_from_patterns(patterns)
-            except (ValueError, AttributeError, RuntimeError, ImportError) as skill_err:
-                errors.append(f"Skillifier error: {skill_err}")
-
-        return skill_proposals, errors
-
-    # ------------------------------------------------------------------
-    # Step 14: Five-axis consensus
-    # ------------------------------------------------------------------
-
-    def _run_five_axis_consensus(
-        self, _task: str, worker_results: list[dict[str, Any]], mode: str, exec_result: Any
-    ) -> dict[str, Any] | None:
-        """Run five-axis consensus review (consensus mode only)."""
-        if mode != "consensus" or not exec_result.success:
-            return None
-
-        try:
-            from .five_axis_consensus import FiveAxisConsensusEngine, ReviewAxis
-
-            fa_engine = FiveAxisConsensusEngine()
-            review = fa_engine.create_review("system", "dispatcher")
-            for wr in worker_results:
-                output_text = wr.get("output") or wr.get("error") or ""
-                if output_text:
-                    fa_engine.add_axis_vote(review, ReviewAxis.CORRECTNESS, 0.8, 0.7)
-                    fa_engine.add_axis_vote(review, ReviewAxis.READABILITY, 0.8, 0.7)
-                    fa_engine.add_axis_vote(review, ReviewAxis.ARCHITECTURE, 0.8, 0.7)
-                    fa_engine.add_axis_vote(review, ReviewAxis.SECURITY, 0.7, 0.6)
-                    fa_engine.add_axis_vote(review, ReviewAxis.PERFORMANCE, 0.7, 0.6)
-                    break
-            fa_result = fa_engine.compute_consensus([review])
-            five_axis_result = {
-                "verdict": fa_result.verdict,
-                "overall_consensus": fa_result.overall_consensus,
-                "axis_consensus": fa_result.axis_consensus,
-                "action_items": fa_result.action_items,
-            }
-            if self.usage_tracker:
-                self.usage_tracker.tick("five_axis_consensus")
-            return five_axis_result
-        except (ImportError, AttributeError, ValueError, RuntimeError) as fa_err:
-            logger.debug("Five-axis consensus failed: %s", fa_err)
-            return None
-
-    # ------------------------------------------------------------------
-    # Step 15: Retrospective
-    # ------------------------------------------------------------------
-
-    def _run_retrospective(
-        self,
-        _task: str,
-        worker_results: list[dict[str, Any]],
-        structured_goal: Any,
-        exec_result: Any,
-        total_duration: float,
-    ) -> Any:
-        """Run RetrospectiveEngine analysis. Returns report or None."""
-        if not self.retrospective_engine or not structured_goal or not exec_result.success:
-            return None
-
-        try:
-            if self.usage_tracker:
-                self.usage_tracker.tick("retrospective")
-            anchor_history = self.anchor_checker.check_history if self.anchor_checker else []
-            retrospective_report = self.retrospective_engine.run(
-                goal=structured_goal,
-                anchor_history=anchor_history,
-                worker_outputs={
-                    wr["role_id"]: wr.get("output", "") for wr in worker_results if wr.get("output")
-                },
-                task_duration_seconds=total_duration,
-            )
-            return retrospective_report
-        except (ValueError, AttributeError, RuntimeError, ImportError) as retro_err:
-            logger.warning("Retrospective failed: %s", retro_err)
-            return None
-
-    # ------------------------------------------------------------------
-    # Step 18: Feedback loop
-    # ------------------------------------------------------------------
-
-    def _run_feedback_loop(
-        self,
-        task: str,
-        result: Any,
-        _lang: str,
-        roles: list[str] | None,
-        mode: str,
-        dry_run: bool,
-        kwargs: dict[str, Any],
-    ) -> Any:
-        """Run FeedbackControlLoop iteration. Returns final (possibly refined) result.
-
-        Modes:
-            True:  Always run feedback loop (up to 3 iterations)
-            "auto": Only trigger when first-pass quality < 0.5 (critical failure)
-            False: Never run feedback loop
-        """
-        if self.enable_feedback_loop is False or dry_run:
-            return result
-
-        # Auto mode: assess first-pass quality, only trigger on critical failure
-        if self.enable_feedback_loop == "auto":
-            try:
-                from .feedback_control_loop import FeedbackControlLoop
-                loop = FeedbackControlLoop(dispatcher=self.dispatcher)
-                first_quality = loop._assess_quality(result)
-                if first_quality >= 0.5:
-                    logger.debug(
-                        "Feedback loop auto-skip: first-pass quality %.2f >= 0.5 threshold",
-                        first_quality,
-                    )
-                    return result
-                logger.info(
-                    "Feedback loop auto-triggered: first-pass quality %.2f < 0.5",
-                    first_quality,
-                )
-            except (ImportError, ValueError, AttributeError) as e:
-                logger.debug("Feedback loop auto-assessment failed: %s", e)
-                return result
-
-        try:
-            from .feedback_control_loop import FeedbackControlLoop
-
-            feedback_loop = FeedbackControlLoop(
-                dispatcher=self.dispatcher,
-                quality_gate=0.7,
-                max_iterations=3,
-                llm_backend=self.llm_backend,
-            )
-            result = feedback_loop.run(
-                task,
-                roles=roles,
-                mode=mode,
-                **{k: v for k, v in kwargs.items() if k not in ["dry_run"]},
-            )
-            if self.usage_tracker:
-                self.usage_tracker.tick("feedback_loop_executed")
-            logger.info(
-                "Feedback loop completed: %d iterations, best_quality=%.2f",
-                feedback_loop.iteration_count,
-                feedback_loop.best_quality,
-            )
-        except (ImportError, ValueError, AttributeError, RuntimeError) as loop_err:
-            logger.warning("Feedback control loop failed: %s", loop_err)
-
-        return result
-
-    # ------------------------------------------------------------------
-    # Step 19: UE testing
-    # ------------------------------------------------------------------
-
-    def _run_ue_testing(
-        self,
-        task: str,
-        role_ids: list[str],
-        worker_results: list[dict[str, Any]],
-        _lang: str,
-    ) -> dict[str, Any] | None:
-        """Step 19: Generate UE test plan when tester role is involved.
-
-        Bridges Tester and PM perspectives to produce user-experience-focused
-        test dimensions that go beyond code correctness.
-
-        Returns:
-            Dict with ue_test_plan data, or None if tester role not involved.
-        """
-        tester_involved = any(
-            rid in ("tester", "product-manager", "ui-designer")
-            for rid in role_ids
-        )
-        if not tester_involved:
-            return None
-
-        try:
-            if self._ue_framework is None:
-                self._ue_framework = UETestFramework(llm_backend=self.llm_backend)
-            framework = self._ue_framework
-            plan = framework.generate_ue_test_plan(task)
-
-            # Extract tester/PM outputs for journey validation
-            tester_output = ""
-            pm_output = ""
-            for wr in worker_results:
-                role = wr.get("role_id", "")
-                if role == "tester":
-                    tester_output = wr.get("output", "")
-                elif role == "product-manager":
-                    pm_output = wr.get("output", "")
-
-            # If PM defined user stories, validate against them
-            if pm_output:
-                validation = framework.validate_user_journey(
-                    plan.journey_tests[0] if plan.journey_tests else None,  # type: ignore[arg-type]
-                    {"pm_output": pm_output, "tester_output": tester_output},
-                )
-                if validation:
-                    return {
-                        "persona_scenarios": plan.persona_scenarios,
-                        "journey_tests": plan.journey_tests,
-                        "heuristic_checks": [
-                            {"name": h.name, "description": h.description, "passed": h.passed}
-                            for h in plan.heuristic_checks
-                        ],
-                        "accessibility_checks": plan.accessibility_checks,
-                        "cognitive_load_assessment": plan.cognitive_load_assessment,
-                        "journey_validation": {
-                            "completion_rate": validation.completion_rate,
-                            "error_recovery_rate": validation.error_recovery_rate,
-                            "frustration_events": validation.frustration_events,
-                            "overall_ue_score": validation.overall_ue_score,
-                        },
-                    }
-
-            return {
-                "persona_scenarios": plan.persona_scenarios,
-                "journey_tests": plan.journey_tests,
-                "heuristic_checks": [
-                    {"name": h.name, "description": h.description, "passed": h.passed}
-                    for h in plan.heuristic_checks
-                ],
-                "accessibility_checks": plan.accessibility_checks,
-                "cognitive_load_assessment": plan.cognitive_load_assessment,
-            }
-        except (ValueError, AttributeError, ImportError, RuntimeError) as e:
-            logger.debug("UE test plan generation failed: %s", e)
-            return None
-
-    # ------------------------------------------------------------------
-    # Step 20: Tech debt scan
-    # ------------------------------------------------------------------
-
-    def _run_tech_debt_scan(
-        self,
-        task: str,
-        worker_results: list[dict[str, Any]],
-    ) -> dict[str, Any] | None:
-        """Step 20: Scan for technical debt after dispatch.
-
-        Bridges Tester and Architect perspectives to identify and track
-        technical debt items from dispatch results.
-
-        Returns:
-            Dict with tech_debt_report data, or None on failure.
-        """
-        try:
-            # Skip if no tester or architect role involved
-            has_relevant_role = any(
-                wr.get("role_id") in ("tester", "architect")
-                for wr in worker_results
-            )
-            if not has_relevant_role:
-                return None
-
-            if self._debt_manager is None:
-                self._debt_manager = TechDebtManager(persist_dir=self.persist_dir)
-            manager = self._debt_manager
-
-            # Identify debts from worker outputs
-            for wr in worker_results:
-                role = wr.get("role_id", "")
-                output = wr.get("output", "")
-                if not output:
-                    continue
-
-                # Tester identifies test gaps
-                if role == "tester":
-                    self._extract_test_debts(manager, output, task)
-
-                # Architect identifies structural debts
-                elif role == "architect":
-                    self._extract_arch_debts(manager, output, task)
-
-            # Generate report
-            report = manager.get_debt_report()
-            return {
-                "total_debts": report.total_debts,
-                "by_category": report.by_category,
-                "by_severity": report.by_severity,
-                "top_priority": [
-                    {
-                        "id": d.id,
-                        "category": d.category.value,
-                        "description": d.description,
-                        "severity": d.severity.value,
-                        "effort": d.effort.value,
-                    }
-                    for d in report.top_priority[:5]
-                ],
-                "debt_to_value_ratio": report.debt_to_value_ratio,
-                "remediation_progress": report.remediation_progress,
-            }
-        except (ValueError, AttributeError, ImportError, RuntimeError) as e:
-            logger.debug("Tech debt scan failed: %s", e)
-            return None
-
-    def _extract_test_debts(self, manager: Any, output: str, task: str) -> None:
-        """Extract test-gap debts from tester output."""
-        from .tech_debt_manager import DebtCategory, DebtEffort, DebtSeverity
-        lower = output.lower()
-        if "missing test" in lower or "no test" in lower or "untested" in lower:
-            manager.identify_debt(
-                source="tester",
-                category=DebtCategory.TEST_GAP,
-                description=f"Test gap identified during dispatch: {task[:80]}",
-                location="dispatch_output",
-                severity=DebtSeverity.MEDIUM,
-                effort=DebtEffort.MINOR,
-                tags=["auto-detected", "test-gap"],
-            )
-        if "flaky" in lower or "intermittent" in lower:
-            manager.identify_debt(
-                source="tester",
-                category=DebtCategory.TEST_GAP,
-                description=f"Flaky test detected: {task[:80]}",
-                location="dispatch_output",
-                severity=DebtSeverity.HIGH,
-                effort=DebtEffort.MODERATE,
-                tags=["auto-detected", "flaky-test"],
-            )
-
-    def _extract_arch_debts(self, manager: Any, output: str, task: str) -> None:
-        """Extract architecture debts from architect output."""
-        from .tech_debt_manager import DebtCategory, DebtEffort, DebtSeverity
-        lower = output.lower()
-        if "circular" in lower or "cyclic" in lower:
-            manager.identify_debt(
-                source="architect",
-                category=DebtCategory.ARCHITECTURE,
-                description=f"Circular dependency: {task[:80]}",
-                location="dispatch_output",
-                severity=DebtSeverity.HIGH,
-                effort=DebtEffort.MAJOR,
-                tags=["auto-detected", "circular-dep"],
-            )
-        if "god class" in lower or "too large" in lower or "monolith" in lower:
-            manager.identify_debt(
-                source="architect",
-                category=DebtCategory.ARCHITECTURE,
-                description=f"God class / oversized module: {task[:80]}",
-                location="dispatch_output",
-                severity=DebtSeverity.HIGH,
-                effort=DebtEffort.MAJOR,
-                tags=["auto-detected", "god-class"],
-            )
-        if "tight coupling" in lower or "coupled" in lower:
-            manager.identify_debt(
-                source="architect",
-                category=DebtCategory.ARCHITECTURE,
-                description=f"Tight coupling: {task[:80]}",
-                location="dispatch_output",
-                severity=DebtSeverity.MEDIUM,
-                effort=DebtEffort.MODERATE,
-                tags=["auto-detected", "coupling"],
-            )
-
-    # ------------------------------------------------------------------
     # Result building helpers
     # ------------------------------------------------------------------
 
@@ -871,160 +425,3 @@ class PostDispatchPipeline:
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
         return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)  # type: ignore[no-any-return]
-
-    # ------------------------------------------------------------------
-    # V3.8 #2: Step 21 — Two-stage review gate
-    # ------------------------------------------------------------------
-
-    def _run_two_stage_review(
-        self,
-        plan: Any,
-        worker_results: list[dict[str, Any]],
-        structured_goal: Any,
-    ) -> TwoStageReviewResult | None:
-        """Run the two-stage code review gate.
-
-        Stage 1 verifies spec/plan compliance; Stage 2 checks code
-        quality. Returns None when the gate is disabled or fails to
-        initialize (graceful degradation — never blocks dispatch).
-        """
-        if not self.enable_two_stage_review:
-            return None
-        try:
-            # Build spec requirements from structured goal when available
-            spec_requirements: dict[str, Any] = {}
-            if structured_goal is not None:
-                required_roles = getattr(structured_goal, "required_roles", None)
-                if required_roles:
-                    spec_requirements["required_roles"] = list(required_roles)
-                acceptance_criteria = getattr(structured_goal, "acceptance_criteria", None)
-                if acceptance_criteria:
-                    spec_requirements["acceptance_criteria"] = list(acceptance_criteria)
-
-            result = self.two_stage_review_gate.review(
-                plan=plan,
-                worker_results=worker_results,
-                spec_requirements=spec_requirements,
-            )
-            if self.usage_tracker:
-                self.usage_tracker.tick("two_stage_review")
-            return result
-        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
-            logger.warning("Two-stage review gate failed: %s", exc)
-            return None
-
-    # ------------------------------------------------------------------
-    # V3.8 #3: Step 22 — Severity router + auto-fix loop
-    # ------------------------------------------------------------------
-
-    def _run_severity_router(
-        self,
-        worker_results: list[dict[str, Any]],
-        review_result: TwoStageReviewResult | None,
-    ) -> AutoFixResult | None:
-        """Run the severity router to process findings and attempt auto-fix.
-
-        Collects findings from worker outputs and the two-stage review
-        result, then runs the auto-fix loop (development mode only).
-        Returns None when the router is disabled (graceful degradation).
-        """
-        if not self.enable_severity_router:
-            return None
-        try:
-            findings = self.severity_router.collect_findings(
-                worker_results=worker_results,
-                review_result=review_result,
-            )
-            # Emit findings to the event bus for observability
-            self.event_bus.emit(
-                SeverityRouter.EVENT_FINDINGS,
-                findings=[f.to_dict() for f in findings],
-                count=len(findings),
-            )
-            # Run the auto-fix loop. In production mode this is a
-            # no-op (collect-only). The fix_callable is None because
-            # the dispatch pipeline does not itself apply code fixes;
-            # downstream consumers (e.g. EnhancedWorker) can subscribe
-            # to the event bus to perform actual fixes.
-            result = self.severity_router.run_auto_fix_loop(findings)
-            if self.usage_tracker:
-                self.usage_tracker.tick("severity_router")
-            return result  # type: ignore[no-any-return]
-        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
-            logger.warning("Severity router failed: %s", exc)
-            return None
-
-    # ------------------------------------------------------------------
-    # V3.8 #4: Step 23 — Judge agent consolidation
-    # ------------------------------------------------------------------
-
-    def _run_judge_consolidation(
-        self,
-        review_result: TwoStageReviewResult | None,
-        auto_fix_result: AutoFixResult | None,
-    ) -> Any:
-        """Run the judge agent to consolidate/deduplicate findings.
-
-        Collects :class:`ReviewFinding` objects from the two-stage
-        review gate result and converts :class:`FixAction` objects from
-        the severity router back into :class:`ReviewFinding` objects,
-        then passes the combined list through
-        :meth:`JudgeAgent.judge` for deduplication, conflict resolution,
-        and confidence filtering.
-
-        Returns the :class:`JudgeResult` (or ``None`` when no judge
-        agent is configured or the call fails — graceful degradation
-        that never blocks dispatch).
-        """
-        if self.judge_agent is None:
-            return None
-        try:
-            findings: list[ReviewFinding] = []
-
-            # Collect findings from the two-stage review gate result.
-            if review_result is not None:
-                findings.extend(review_result.findings)
-
-            # Convert FixAction objects from the severity router back
-            # into ReviewFinding objects so the judge can dedup them
-            # alongside the review-gate findings.
-            if auto_fix_result is not None:
-                for action in auto_fix_result.actions:
-                    # Map SeverityLevel back to a ReviewFinding severity
-                    # string ("critical"/"warning"/"info").
-                    sev = action.severity.value
-                    if sev in ("high", "medium"):
-                        rf_severity = "warning"
-                    elif sev == "low":
-                        rf_severity = "info"
-                    else:
-                        # critical → "critical", info → "info"
-                        rf_severity = sev if sev in ("critical", "info") else "warning"
-                    findings.append(
-                        ReviewFinding(
-                            stage=ReviewStage.CODE_QUALITY,
-                            severity=rf_severity,
-                            category="routed_finding",
-                            description=action.description,
-                            file_path=action.file_path,
-                            suggestion=action.suggested_fix,
-                        )
-                    )
-
-            if not findings:
-                return None
-
-            result = self.judge_agent.judge(findings, context={})
-            if self.usage_tracker:
-                self.usage_tracker.tick("judge_agent")
-            logger.info(
-                "JudgeAgent consolidated %d findings: %d accepted, %d rejected, %d merged",
-                len(findings),
-                len(result.accepted_findings),
-                result.rejected_count,
-                result.merged_count,
-            )
-            return result
-        except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
-            logger.warning("Judge agent consolidation failed: %s", exc)
-            return None
