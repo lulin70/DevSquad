@@ -137,8 +137,7 @@ DevSquad/
 ├── .devsquad.yaml              # Quality control + LLM + collaboration config
 ├── Dockerfile                  # Docker support
 ├── pyproject.toml              # pip-installable package
-├── SKILL.md                    # English skill manual (default)
-├── SKILL.md                    # Skill manual (EN, with CN/JP in docs/i18n/)
+├── SKILL.md                    # English skill manual (default, with CN/JP in docs/i18n/)
 ├── GUIDE.md                    # User guide (Chinese, with EN/JP in docs/i18n/)
 ├── README.md                   # English readme (with CN/JP in docs/i18n/)
 ├── EXAMPLES.md                 # Usage examples (Chinese)

@@ -165,6 +165,206 @@ result = quick_collaborate("マイクロサービス設計を手伝って")
 
 ---
 
+## 完全ワークフロー（スキル呼び出し時）
+
+### ステップ1：ディスパッチャー作成
+
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+import tempfile
+
+work_dir = tempfile.mkdtemp(prefix="mas_v3_")
+disp = MultiAgentDispatcher(
+    persist_dir=work_dir,
+    enable_warmup=True,
+    enable_compression=True,
+    enable_permission=True,
+    enable_memory=True,
+    enable_skillify=True,
+)
+```
+
+### ステップ2：タスク分析とロールマッチング
+
+```python
+matched = disp.analyze_task(user_task)
+for role in matched:
+    print(f"{role['name']} (信頼度: {role['confidence']:.0%}) - {role['reason']}")
+```
+
+### ステップ3：コラボレーション実行
+
+```python
+result = disp.dispatch(
+    task_description=user_task,
+    roles=None,          # None=自動マッチ、または ["architect", "tester"] 指定
+    mode="auto",         # auto/parallel/sequential/consensus
+    dry_run=False,       # True=シミュレーションのみ
+)
+```
+
+### ステップ4：結果確認
+
+```python
+print(f"成功: {result.success}")
+print(f"ロール: {result.matched_roles}")
+print(f"実行時間: {result.duration_seconds:.2f}s")
+print(result.summary)
+
+if result.worker_results:
+    for wr in result.worker_results:
+        print(f"[{wr['role']}] {wr['output'][:200]}")
+```
+
+### ステップ5：Markdownレポート出力
+
+```python
+report = result.to_markdown()
+print(report)
+```
+
+### ステップ6：クリーンアップ
+
+```python
+disp.shutdown()
+```
+
+---
+
+## 高度な機能ガイド
+
+### コンテキスト圧縮（長対話オーバーフロー防止）
+
+対話が長くなりすぎると、ContextCompressor が自動的にトリガーされます：
+- **レベル1 SNIP**: 古い対話の細粒度トリミング、重要な決定と結論を保持
+- **レベル2 SessionMemory**: 重要な情報をメモリに抽出してからコンテキストをクリア
+- **レベル3 FullCompact**: LLM が1ページ要約を生成（最も積極的）
+
+圧縮状態の確認：
+```python
+stats = disp.coordinator.get_compression_stats()
+memory = disp.coordinator.get_session_memory()
+```
+
+### パーミッションガード（セキュア操作センティネル）
+
+PermissionGuard が危険な操作を自動チェックします：
+- **PLAN レベル**: 読み取り専用操作のみ
+- **DEFAULT レベル**: 書き込み操作は確認が必要
+- **AUTO レベル**: AI 分類器が自動判定
+- **BYPASS レベル**: 完全スキップ（最高信頼）
+
+パーミッション記録は `result.permission_checks` に格納されます。
+
+### メモリーブリッジ（クロスセッションメモリー）
+
+MemoryBridge は7種類のメモリーを提供します：
+- `knowledge` — ナレッジエントリ
+- `episodic` — エピソード記憶（タスク実行記録）
+- `semantic` — 意味記憶
+- `feedback` — ユーザーフィードバック
+- `pattern` — 成功パターン
+- `analysis` — 分析ケース
+- `correction` — 訂正記録
+
+忘却曲線: 7d=1.0, 30d≈0.8, 60d≈0.5, 90d≈0.3
+
+メモリー状態の確認：
+```python
+status = disp.get_status()
+mem_stats = status.get("memory_stats")
+```
+
+### 起動ウォームアップ（コールドスタート遅延削減）
+
+WarmupManager 3層ウォームアップ：
+- **EAGER 層**: 重要リソースの同期的プリロード（〜15ms）
+- **ASYNC 層**: 非同期バックグラウンドウォームアップ（〜300ms）
+- **LAZY 層**: オンデマンド読み込み
+
+ウォームアップ状態の確認：
+```python
+status = disp.get_status()
+warmup = status.get("warmup_metrics")
+```
+
+### スキル学習（成功からの進化）
+
+Skillifier が成功した操作シーケンスから再利用可能なパターンを自動抽出します：
+```python
+proposals = result.skill_proposals
+for p in proposals:
+    print(f"新スキル候補: {p['title']} (信頼度: {p['confidence']:.0%})")
+```
+
+### コンセンサス決定（マルチロール紛争解決）
+
+Worker 間で意見が分かれた場合、ConsensusEngine が投票を開始します：
+- 重み付き投票（ロール重要度で重み付け）
+- 否決権（主要ロールが単独でブロック可能）
+- 人間へのエスカレーション（コンセンサス到達不能時、人間の決定待ちとしてマーク）
+
+コンセンサス記録は `result.consensus_records` に含まれます。
+
+---
+
+## ディスパッチモード表
+
+| モード | 説明 | ユースケース |
+|--------|------|--------------|
+| `auto` | 最適モードを自動選択 | デフォルト推奨 |
+| `parallel` | 全ロールが並行実行 | ロール間依存関係なし |
+| `sequential` | 順次実行 | 依存チェーンあり |
+| `consensus` | 実行後にコンセンサス投票を強制 | 全員一致の決定が必要 |
+
+---
+
+## システム状態照会
+
+```python
+status = disp.get_status()
+# 戻り値:
+# {
+#   "version": "3.9.2",
+#   "components": {...},        # コンポーネント有効状態
+#   "dispatch_count": N,         # 完了ディスパッチ数
+#   "scratchpad_stats": {...}, # ブラックボード統計
+#   "warmup_metrics": {...},    # ウォームアップ指標（有効時）
+#   "memory_stats": {...},      # メモリー統計（有効時）
+# }
+
+history = disp.get_history(limit=10)
+# 直近N件のディスパッチ完全結果を返します
+```
+
+---
+
+## エラーハンドリング
+
+全例外は `DispatchResult` 内にキャプチャされ、スローされることはありません：
+
+```python
+result = disp.dispatch("任意のタスク")
+if not result.success:
+    print("エラー:", result.errors)
+    print("サマリー:", result.summary)
+```
+
+一般的なエラーと対処：
+- `FILE_CREATE` / パーミッション関連 → PermissionGuard がブロック、`result.permission_checks` を確認
+- メモリー書き込み失敗 → MemoryBridge ストレージ問題、ディレクトリ権限を確認
+- 圧縮失敗 → ContextCompressor の問題、通常メインフローには影響なし
+
+---
+
+## 言語ルール
+
+- ユーザー言語を自動検出（中国語/英語/日本語）
+- 全出力はユーザーと同じ言語を使用
+- ロール名マッピング: 架构师→Architect, PM→Product Manager など
+
+---
+
 ## プロジェクトライフサイクル：11フェーズモデル（V3.5）
 
 > **定義ドキュメント**: `docs/prd/lifecycle_phases_definition.md`（権威）
@@ -233,6 +433,52 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 | Boundary | ≥10% |
 | Performance | **≥5%** |
 | Integration | ≥10% |
+
+---
+
+## メタ鉄則：ドキュメント先行、全てをトレース（⚠️ 最高法）
+
+> **ドキュメント先行、万事留痕** — 全ての他のルールを統轄する最高鉄則です。
+> **このルール違反は重大エラーであり、行われた全作業を無効化します。**
+
+### コア原則
+
+```
+コードを書く前 → Plan/Spec ドキュメントが存在すること
+変更を加える前 → 影響分析が文書化されていること
+作業完了後 → 結果がドキュメントに記録されていること
+決定後 → 理由がトレース可能であること
+```
+
+### 必須要件
+
+| フェーズ | 要件 | 検証 |
+|----------|------|------|
+| **作業前** | Spec/Plan ドキュメントなしにコードなし | `docs/spec/` または `docs/prd/` に該当ドキュメントあり |
+| **作業中** | 全決定に理由付きでログ | コミットメッセージ、ADR、またはインラインコメントで WHY を説明 |
+| **作業後** | 影響する全ドキュメントを同期的に更新 | バージョン/モジュール数/テスト数が全ドキュメントで一貫 |
+| **常時** | ドキュメント由来のトレース不能な孤立コードなし | 全ファイルの目的が少なくとも1つのドキュメントに記録 |
+
+### 「ドキュメント先行」の意味
+
+1. **実装前に Spec**: SPEC や PRD がない場合は、まず書く。1段落の Spec でも無いよりマシ。
+2. **コーディング前に設計**: アーキテクチャ決定はコード書く前に記録。
+3. **テスト前にテスト計画**: 何をテストするか、なぜかを、テストコード書く前に。
+4. **マージ前に変更ログ**: 何が変更されたか、なぜかを、プッシュ前に。
+
+### 「全てをトレース」の意味
+
+1. **全決定に WHY がある**: コードコメント、コミットメッセージ、ADR — 少なくとも1つ選ぶ。
+2. **全ファイルにオーナー/目的がある**: なぜこのファイルが存在するか？文書化する。
+3. **全変更にトレイルがある**: Git 履歴 + ドキュメント更新 = 完全監査トレイル。
+4. **ステルス変更なし**: 対応するドキュメント更新なしにコミットなし。
+
+### 強制
+
+- CI チェック: `docs/` ディレクトリにコード変更にマッチする更新ファイルがなければならない
+- レビューゲート: PR レビュアーがドキュメント同期状態をチェック
+- コンセンサス: Coordinator が承認前にドキュメント完全性を検証
+- 遡及的: 事前ドキュメントなしで行われた作業は即座にバックフィル必要
 
 ---
 

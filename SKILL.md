@@ -62,7 +62,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (96+ Core Modules)
+## Architecture Overview (118+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -297,8 +297,6 @@ roles = selector.select_roles("Fix security bug", intent="bug_fix")
 ```
 
 ---
-
-## Architecture Overview (96+ Core Modules)
 
 ## Quick Start (Must Follow)
 

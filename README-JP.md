@@ -3,14 +3,14 @@
 <p align="center">
   <strong>1つのタスク → マルチロールAIコラボレーション → 1つの結論</strong>
   <br>
-  <em>エンタープライズ対応 | V3.7.2</em>
+  <em>エンタープライズ対応 | V3.9.2</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2115%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.7.2-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2703%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,11 +18,11 @@
 
 ---
 
-## 🚀 V3.7.2: ゴースト機能クリーンアップ + Dispatcher分割 + SSRF強化
+## 🚀 V3.9.2: 自動LLMバックエンドフォールバック + Dashboard分割 + SQLite監査永続化 + P3クリーンアップ
 
-**DevSquad V3.7.2** ゴースト機能の削除（PromptVariantGenerator、RoleTemplateMarket — 完全実装だが本番インポートゼロ）、dispatcher.pyをDispatchStepsMixinに分割（コード量23%削減）、SSRF検出のIPv6/httpsバリアント追加、Step 19/20の9つの統合テスト追加、リアルLLMスモークテスト実装、合計2115+テスト合格。
+**DevSquad V3.9.2** 自動LLMバックエンドフォールバック（auto backend は最初にリアルLLMを試行、失敗時にmockへフォールバック）、dashboard.py を1087行から8モジュールパッケージに分割、SQLite バックエンドのdispatch監査永続化をデフォルト化、P3クリーンアップ（マジックナンバー抽出 + 例外スコープの限定）、合計2703+テスト合格。
 
-### 🔄 V3.6.6 エンタープライズ機能詳細
+### 🔄 V3.9.2 エンタープライズ機能詳細
 
 ### 🎯 クイックスタート（3つの使用方法）
 
@@ -95,7 +95,19 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ コア機能 (V3.6.6)
+## ✨ コア機能 (V3.9.2)
+
+### 🏗️ 5大能力ドメインアーキテクチャ（V3.9.2）
+
+DevSquad の 118+ モジュールは **5大能力ドメイン** に編成され、各ドメインが特定の問題を解決します：
+
+| 能力ドメイン | コアモジュール | 解決する問題 |
+|--------------|----------------|--------------|
+| **タスクオーケストレーションエンジン** | MultiAgentDispatcher / Coordinator / Scratchpad / ConsensusEngine / BatchScheduler | 7ロール協調の「指揮センター」 |
+| **品質保証システム** | InputValidator / VerificationGate / AntiRationalizationEngine / TestQualityGuard / PermissionGuard | AIの「サボり」や「ハルシネーション」を防止 |
+| **パフォーマンスと信頼性** | LLMCache / LLMRetry / FeedbackControlLoop / ExecutionGuard / FallbackBackend | より速く、より安定、よりコスト効率よく |
+| **可観測性とガバナンス** | PerformanceMonitor / UsageTracker / AuditLogger / RBAC Engine / Multi-Tenancy Manager | システムが何をしているか把握 |
+| **統合と拡張** | CLI / REST API / Dashboard / MCP Protocol / Docker / GitHub Actions | 既存ツールチェーンへの統合 |
 
 ### 🧩 コンサーンパック (NEW)
 タスク内容に基づいてAIロールプロンプトを自動強化するドメイン固有ナレッジパック：
@@ -250,7 +262,8 @@ python scripts/cli.py dispatch -t "テストタスク"
 | P0 品質フレームワーク (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 拡張モジュール (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新モジュール (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **合計** | **2115+** | **100%** |
+| V3.9.2 拡張モジュール (LLM フォールバック/Dashboard 分割/監査永続化) | 588 | 100% |
+| **合計** | **2703+** | **100%** |
 
 ---
 

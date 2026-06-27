@@ -95,7 +95,19 @@ python scripts/cli.py lifecycle build --visual --verbose
 
 ---
 
-## ✨ 核心特性 (V3.6.6)
+## ✨ 核心特性 (V3.9.2)
+
+### 🏗️ 五大能力域架构（V3.9.2）
+
+DevSquad 的 118+ 模块组织为 **5 大能力域**，各域解决特定问题：
+
+| 能力域 | 核心模块 | 解决问题 |
+|--------|---------|---------|
+| **任务编排引擎** | MultiAgentDispatcher / Coordinator / Scratchpad / ConsensusEngine / BatchScheduler | 7 角色协作的"指挥中心" |
+| **质量保障体系** | InputValidator / VerificationGate / AntiRationalizationEngine / TestQualityGuard / PermissionGuard | 防止 AI"偷懒"或"幻觉" |
+| **性能与可靠性** | LLMCache / LLMRetry / FeedbackControlLoop / ExecutionGuard / FallbackBackend | 更快、更稳、更省 |
+| **可观测性与治理** | PerformanceMonitor / UsageTracker / AuditLogger / RBAC Engine / Multi-Tenancy Manager | 知道系统在做什么 |
+| **集成与扩展** | CLI / REST API / Dashboard / MCP Protocol / Docker / GitHub Actions | 融入现有工具链 |
 
 ### 🧩 关注点增强包 (NEW)
 领域专属知识包，根据任务内容自动增强AI角色提示词：
