@@ -126,7 +126,7 @@ scripts/tests/
 scripts/run_real_scenarios.sh
 
 # --- Legacy V2 Docs (superseded) ---
-docs/archive/
+# docs/archive/ removed in P2-1 (consolidated into docs/_archive/)
 docs/OPTIMIZATION_*.md
 docs/REVIEW_CONSENSUS_*.md
 docs/TEAM_CONSENSUS_*.md
