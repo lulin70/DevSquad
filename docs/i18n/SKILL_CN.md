@@ -2,19 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.7.2 DevSquad — Enterprise 多角色 AI 任务编排器。
+  V3.9.2 DevSquad — Enterprise 多角色 AI 任务编排器。
   一个任务输入，多角色 AI 协作，一个结论输出。
   7 个核心角色（架构师/产品经理/安全专家/测试专家/开发工程师/DevOps/UI 设计师），
   真实 LLM 后端（OpenAI/Anthropic/MOKA AI），CLI + MCP + Python API + REST API + Web Dashboard。
   ThreadPoolExecutor 并行、CheckpointManager、WorkflowEngine、流式输出、Docker、CI。
-  NEW in V3.7.2: FeedbackControlLoop 自动模式 + LLM 精炼,
-  AdaptiveRoleSelector/SimilarTaskRecommender 集成到 RoleMatcher,
-  ExecutionGuard 集成到 EnhancedWorker, 生命周期阶段追踪,
-  敏感 API 的 RBAC 检查, 移除 AlertManager,
-  2115+ 测试通过, 80+ 个核心模块.
+  V3.9.2: 自动 LLM 后端回退 + Dashboard 拆分 + SQLite 审计持久化 + P3 清理,
+  118 核心模块, 2703+ 测试通过 (CI 权威).
 ---
 
-# DevSquad V3.7.2 — 多角色 AI 任务编排器（企业级就绪）
+# DevSquad V3.9.2 — 多角色 AI 任务编排器（企业级就绪）
 
 ## 🎯 一句话理解（3 秒）
 

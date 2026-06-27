@@ -26,7 +26,7 @@ class ReviewSkill(BaseSkill):
 
     name = "review"
     description = "Five-axis code review: correctness/readability/architecture/security/performance"
-    version = "3.7.0"
+    version = "3.9.2"
 
     AXES_INFO = [
         {

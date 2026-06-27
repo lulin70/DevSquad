@@ -83,10 +83,10 @@ app = FastAPI(
 
     ---
 
-    **Version**: 3.7.0
+    **Version**: 3.9.2
     **Base URL**: `/api/v1`
     """,
-    version="3.7.0",
+    version="3.9.2",
     docs_url="/docs",  # Swagger UI
     redoc_url="/redoc",  # ReDoc
     openapi_url="/openapi.json",  # OpenAPI spec

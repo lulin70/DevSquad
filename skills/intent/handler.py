@@ -52,7 +52,7 @@ class IntentSkill(BaseSkill):
     """
     name = "intent"
     description = "Detect user intent from natural language and map to workflow chain (6 intents × 3 languages)"
-    version = "3.7.0"
+    version = "3.9.2"
 
     INTENT_MAP = {
         "bug_fix": "🐛 Bug修复",

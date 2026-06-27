@@ -71,9 +71,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V3.7.2: EventBus + Dispatcher Split + Tech Debt Cleanup
+## 🚀 V3.9.2: Auto LLM Fallback + Dashboard Split + SQLite Audit Persistence + P3 Cleanup
 
-**DevSquad V3.7.2** introduces EventBus event-driven decoupling, splits dispatcher.py from 1660→706 lines (-57%), converts all 3 Mixins to Composition pattern, eliminates 166 f-string logger calls, fixes EnhancedWorker type mismatch bug, removes config_loader dead code, refactors skillifier parasitic coupling, narrows 29 broad except scopes, with 2115 tests passing.
+**DevSquad V3.9.2** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 2703+ tests passing.
 
 ---
 

@@ -1,5 +1,5 @@
 name: security
-version: "3.7.0"
+version: "3.9.2"
 description: "Comprehensive security audit skill combining injection detection (21 patterns), three-tier operation classification, and four-level permission control for secure multi-agent collaboration"
 
 capabilities:

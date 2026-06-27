@@ -1,5 +1,5 @@
 name: review
-version: "3.7.0"
+version: "3.9.2"
 description: "Five-axis code review skill for comprehensive code quality assessment across correctness, readability, architecture, security, and performance dimensions"
 
 axes:

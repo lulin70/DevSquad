@@ -2,17 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.7.2 DevSquad — Enterprise マルチエージェントコラボレーションプラットフォーム。
+  V3.9.2 DevSquad — Enterprise マルチエージェントコラボレーションプラットフォーム。
   Coordinator/Worker/Scratchpad パターンに基づく完全なマルチエージェントコラボレーションシステム。
   7コアロール（アーキテクト/PM/セキュリティ/テスター/コーダー/DevOps/UIデザイナー）、
   リアルLLMバックエンド（OpenAI/Anthropic/MOKA AI）、CLI + MCP + Python API + REST API + Web Dashboard対応。
   ThreadPoolExecutor並列、CheckpointManager、WorkflowEngine、ストリーミング出力、Docker、CI。
-  NEW in V3.7.2: ゴースト機能削除(PromptVariantGenerator/RoleTemplateMarket),
-  Dispatcher分割(DispatchStepsMixin, 23%コード削減), SSRF検出IPv6/httpsバリアント追加,
-  Step 19/20統合テスト9件追加, リアルLLMスモークテスト実装, 2115+テスト合格.
+  V3.9.2: 自動LLMバックエンドフォールバック + Dashboard分割 + SQLite監査永続化 + P3クリーンアップ,
+  118 コアモジュール, 2703+ テスト合格 (CI 権威).
 ---
 
-# DevSquad V3.7.2 — マルチエージェントコラボレーションプラットフォーム（Enterprise Ready）
+# DevSquad V3.9.2 — マルチエージェントコラボレーションプラットフォーム（Enterprise Ready）
 
 ## 🎯 一言で理解（3 秒）
 

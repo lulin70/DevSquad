@@ -29,4 +29,4 @@ All sub-skills work with Mock backend by default (no API key needed).
 from .registry import BaseSkill, discover_all, get_skill, list_skills
 
 __all__ = ["BaseSkill", "get_skill", "list_skills", "discover_all"]
-__version__ = "3.7.0"
+__version__ = "3.9.2"

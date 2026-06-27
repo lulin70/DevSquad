@@ -371,7 +371,7 @@ async def health_check():
 
         return HealthCheck(
             status=overall_status,
-            version="3.7.0",
+            version="3.9.2",
             uptime_seconds=round(uptime, 2),
             components=components,
             timestamp=datetime.now(),
@@ -381,7 +381,7 @@ async def health_check():
         logger.error("Health check failed: %s", e, exc_info=True)
         return HealthCheck(
             status="unhealthy",
-            version="3.7.0",
+            version="3.9.2",
             uptime_seconds=time.time() - _start_time,
             components={"error": str(e)},
             timestamp=datetime.now(),

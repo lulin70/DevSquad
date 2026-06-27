@@ -11,8 +11,8 @@ RUN pip install --no-cache-dir --prefix=/install .[all]
 FROM python:3.12-slim AS runtime
 
 LABEL maintainer="DevSquad Team"
-LABEL description="DevSquad V3.6.1 - Multi-Role AI Task Orchestrator"
-LABEL version="3.6.1"
+LABEL description="DevSquad V3.9.2 - Multi-Role AI Task Orchestrator"
+LABEL version="3.9.2"
 LABEL org.opencontainers.image.source="https://github.com/lulin70/DevSquad"
 
 WORKDIR /app

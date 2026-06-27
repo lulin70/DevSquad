@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.7.2: EventBus + Dispatcher拆分 + 技术债清理
+## 🚀 V3.9.2: 自动 LLM 后端回退 + Dashboard 拆分 + SQLite 审计持久化 + P3 清理
 
-**DevSquad V3.7.2** 引入 EventBus 事件驱动解耦、将 dispatcher.py 从 1660 行拆分为 706 行（-57%）、3 个 Mixin 全部转为 Composition 模式、消除 166 处 f-string logger、修复 EnhancedWorker 类型不匹配 bug、删除 config_loader 死代码、重构 skillifier 寄生耦合、缩小 29 处 broad except 范围，总计 2115 测试通过。
+**DevSquad V3.9.2** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 2703+ 测试通过。
 
 ### 🔄 V3.6.6 企业级功能详情
 

@@ -1,8 +1,8 @@
-# DevSquad V3.7.2 完整技术规范
+# DevSquad V3.9.2 完整技术规范
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V3.7.2 (Enterprise Edition)
-> **成熟度**: 65% (诚实评估)
+> **版本**: V3.9.2 (Enterprise Edition)
+> **成熟度**: 7.1/10 (诚实评估)
 > **最后更新**: 2026-05-20
 > **文档位置**: `docs/spec/SPEC.md`
 
