@@ -425,7 +425,7 @@ pip install "devsquad[all]"    # All optional features
 
 ### Option B: Git Clone + Local Install
 ```bash
-git clone https://github.com/weiransoft/devsquad.git
+git clone https://github.com/lulin70/DevSquad.git
 cd DevSquad
 
 # Install core package (minimal dependencies)

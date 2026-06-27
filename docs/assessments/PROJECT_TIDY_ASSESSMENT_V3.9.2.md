@@ -1,180 +1,291 @@
-# DevSquad V3.9.2 项目整理评估报告
+# DevSquad V3.9.2 项目整理评估报告（第二轮深度评估）
 
 > **评估时间**: 2026-06-26
 > **评估版本**: V3.9.2
-> **评估方法**: 7 维度代码走读 + 文档审查 + 测试执行 + CI/CD 检查
+> **评估方法**: 7 维度代码走读 + 文档审查 + 测试执行 + CI/CD 检查 + 目录结构清理
 > **评估原则**: 诚实、可验证、不虚报
+> **测试环境**: Python 3.12.13, macOS, mock LLM 后端
 
 ---
 
 ## 1. 执行摘要
 
-本次项目整理评估依据 Trae 命令“项目整理评估”的 7 项要求，对 DevSquad 进行了全面体检与整理。核心结论是：**V3.9.2 版本已达到 mid-beta 成熟度，CI 全绿，版本号已统一，无幽灵功能，可作为阶段性基线继续演进。**
+本次为第二轮深度评估，在第一轮基础上增加了目录结构清理、多语言文档一致性检查、幽灵功能深度排查。**核心结论：V3.9.2 版本 CI 全绿、测试覆盖完善，但存在 2 项违反项目硬约束的安全/架构问题和严重的文档不一致问题，需要优先修复后方可宣称 production-ready。**
 
-| 维度 | 评分 | 权重 | 加权 | 关键状态 |
-|------|------|------|------|----------|
-| 架构 | 7.5/10 | 15% | 1.125 | dashboard 拆分完成；仍有 19 个 >500 行文件 |
-| 安全 | 7.5/10 | 15% | 1.125 | REST API 安全已集成；审计持久化默认启用；bandit 0 High/Medium |
-| 测试 | 8.0/10 | 15% | 1.200 | 2703 passed / 0 skipped；新增真实 LLM 测试 |
-| 性能 | 7.0/10 | 15% | 1.050 | 性能测试通过；基准数据沿用 V3.9.1，需刷新 |
-| 可维护性 | 8.0/10 | 15% | 1.200 | P3 清理完成；mypy 0 errors；魔法数字提取 |
-| 文档 | 7.0/10 | 15% | 1.050 | 版本号统一；CHANGELOG/成熟度评估已更新 |
-| 集成/CI&CD | 7.0/10 | 10% | 0.700 | CI 全绿；mypy blocking；build 依赖完整 |
-| **综合** | **7.3/10** | **100%** | **7.45** | **B / mid-beta** |
+| 维度 | 第一轮评分 | 第二轮评分 | 变化 | 关键状态 |
+|------|-----------|-----------|------|----------|
+| 架构 | 7.5/10 | 7.0/10 | -0.5 | ConsensusEngine 未并行投票（违反硬约束）；34 个 >500 行文件 |
+| 安全 | 7.5/10 | 7.0/10 | -0.5 | rbac_fail_closed 默认 False（fail-open，违反硬约束） |
+| 测试 | 8.0/10 | 8.0/10 | 0 | 2703 单元 + 21 E2E + 28 性能全绿 |
+| 性能 | 7.0/10 | 7.0/10 | 0 | Mock 基准已刷新；真实 LLM 基线仍缺失 |
+| 可维护性 | 8.0/10 | 7.5/10 | -0.5 | 20+ 魔法数字未抽取；ruff/mypy 全绿 |
+| 文档 | 7.0/10 | 5.5/10 | -1.5 | 28+ 文件版本过时；README URL 错误；多语言严重不同步 |
+| 集成/CI&CD | 7.0/10 | 7.5/10 | +0.5 | test_cli_phase5.py 已恢复；5 job 矩阵完善 |
+| **综合** | **7.3/10** | **7.1/10** | **-0.2** | **B- / mid-beta** |
+
+> 评分下调原因：第一轮评估未充分检查多语言文档一致性和硬约束遵守情况。本轮深度检查发现了更严重的问题。
 
 ---
 
-## 2. 7 维度检查结果
+## 2. 测试执行结果（实测数据）
 
-### 2.1 架构 (7.5/10)
+### 2.1 单元测试
+```
+2703 passed, 3 skipped, 5 deselected in 30.55s
+```
+- Python 3.12.13, mock LLM 后端
+- 3 skipped: 2 smoke (无真实 API key) + 1 Claw 集成
+- 5 deselected: slow 标记
 
-**正面**
-- `scripts/dashboard.py` 1087 行拆分为 `scripts/dashboard/` 8 模块包（app/components/state/lifecycle_views/metrics_views/dispatch_views/auth_views）。
-- `scripts/dashboard.py` 保留为兼容入口。
-- `FeedbackControlLoop` 与 `ExecutionGuard` 已默认接入 dispatch pipeline。
-- `PerformanceFingerprint` / `AdaptiveRoleSelector` / `SimilarTaskRecommender` 被 `RoleMatcher` 调用，非幽灵功能。
+### 2.2 E2E + 集成测试
+```
+21 passed, 18 skipped in 31.37s
+```
+- 16 E2E 用户旅程测试全绿（architect + developer）
+- 18 skipped: 真实 LLM 测试（无 API key）
 
-**问题**
-- `scripts/collaboration/` 仍有 38 个文件 >500 行，最大 `dispatcher.py` 1073 行、`dispatch_steps.py` 1030 行。
-- 部分 async 后端异常集合可进一步按厂商错误码细分。
+### 2.3 性能测试
+```
+28 passed in 8.31s
+```
+- 6 performance benchmarks + 5 memory benchmarks + 17 v39 performance
 
-### 2.2 安全 (7.5/10)
-
-**正面**
-- PR #5 已完成 REST API 安全集成：API Key Store (SHA-256)、RBACEngine (5 角色 × 15 权限)、InputValidator (53 模式)、AuditLogger (SHA-256 哈希链)。
-- `MultiAgentDispatcher` 默认启用 SQLite-backed `DispatchAuditLogger`，审计记录跨进程持久化。
-- `ruff` / `mypy` / `bandit` 全绿：0 High/Medium issues。
-
-**问题**
-- 异步 LLM 后端异常处理仍可进一步收窄到厂商特定错误类型。
-- 无内置 HTTPS 强制与速率限制（文档中已声明为部署层责任）。
-
-### 2.3 测试 (8.0/10)
-
-**实测数据**
-```text
-单元测试: 2703 passed, 0 skipped (Python 3.12 本地; CI Python 3.10+3.11)
-集成/冒烟: 6 passed, 25 skipped (skipped 因缺少真实 API key)
-E2E 用户旅程: 16 passed
-性能测试: 28 passed
+### 2.4 代码质量门禁
+```
+ruff: All checks passed!
+mypy: 0 errors (pyproject.toml: note: unused section(s): module = ['tests.*'])
+bandit: 0 High, 0 Medium, 11 Low
 ```
 
-**正面**
-- 测试数量从 V3.9.1 的 2605 增长到 2703。
-- 新增 `tests/test_llm_auto_fallback.py`、`tests/integration/test_real_llm.py`、`tests/smoke/test_real_llm_auto_mode.py`。
-- 测试覆盖 auto fallback、dashboard 拆分、audit persistence。
+---
 
-**问题**
-- Contract 测试仅 1 个文件，仍不足。
-- 25 个集成/冒烟测试依赖外部 API key，无法在无 key CI 中运行。
+## 3. 7 维度深度检查结果
 
-### 2.4 性能 (7.0/10)
+### 3.1 架构 (7.0/10) ⬇️
 
 **正面**
-- 性能测试 28 个全部通过。
-- `code_graph_storage.py` N+1 inserts 修复（V3.9.1）。
-- Mock LLM 后端基准已重新实测并更新到 `docs/MATURITY_ASSESSMENT.md`。
+- 132 个 Python 模块，54394 行代码，模块化设计
+- dispatcher.py（1073行）和 dispatch_steps.py（1030行）已完成 Mixin 拆分
+- API 层用懒加载规避循环导入
+- 缓存架构分层清晰（6 个缓存模块）
 
 **问题**
-- 仍无真实 LLM 后端性能基线。
-- 缺少性能基准自动化（无法做容量规划）。
 
-### 2.5 可维护性 (8.0/10)
+| 问题 | 严重度 | 详情 |
+|------|--------|------|
+| ConsensusEngine 未并行投票 | **P0** | `consensus.py`（254行）完全同步实现，无 asyncio.gather/threading，违反项目硬约束"三贤者系统必须采用并行投票架构" |
+| ConsensusEngine 疑似幽灵功能 | **P0** | dispatcher.py 的 20+ 内部导入未引用 consensus 模块；仅 FiveAxisConsensusEngine 在 review 流程中使用 |
+| 34 个 >500 行文件 | P2 | 最大：prompt_assembler.py(1020)、ue_test_framework.py(995)、workflow_engine.py(988) |
+
+### 3.2 安全 (7.0/10) ⬇️
 
 **正面**
-- P3 清理完成：`llm_backend.py` / `async_llm_backend.py` 中魔法数字提取为常量，宽泛异常收窄。
-- mypy 0 errors，CI blocking。
-- dashboard 拆分显著降低单文件复杂度。
+- REST API 安全三件套齐全：InputValidator + RBAC + Audit
+- API Key 仅存 SHA-256 哈希
+- 无硬编码密钥泄漏（14 处匹配全在 tests/）
+- 无 localStorage/sessionStorage 使用
+- bandit 0 High/Medium
 
 **问题**
-- `dispatcher.py` / `dispatch_steps.py` 仍是超 1000 行的大文件。
-- 部分历史注释和文档中的旧数据需定期刷新。
 
-### 2.6 文档 (7.0/10)
+| 问题 | 严重度 | 详情 |
+|------|--------|------|
+| rbac_fail_closed 默认 False | **P0** | `dispatcher.py:125` 默认 fail-open，违反项目硬约束"共识门在关键决策失败时必须安全降级，禁止fail-open直接执行" |
+| 无 HTTPS 强制 | P2 | REST API 未强制 HTTPS |
+| 无速率限制 | P2 | REST API 无 rate limiting |
+
+### 3.3 测试 (8.0/10) ➡️
 
 **正面**
-- 版本号已统一为 3.9.2：pyproject.toml、_version.py、README、README-CN、SKILL.md、skill-manifest.yaml、CHANGELOG、CHANGELOG-CN、docs/INDEX.md、docs/MATURITY_ASSESSMENT.md、ISSUE 模板。
-- CHANGELOG 新增 3.9.2 完整条目。
-- docs/MATURITY_ASSESSMENT.md 升级为 V3.9.2 评估。
+- 2752 总测试用例（2703 单元 + 21 E2E + 28 性能），全绿
+- Contract 测试存在（MemoryProvider 协议，43 个测试方法）
+- 测试分层清晰：unit / integration / e2e / smoke / manual
 
 **问题**
-- 部分内部技术文档（如早期 PRD）仍为 V3.9.0 目标版本，需标注为历史文档。
 
-### 2.7 集成/CI&CD (7.0/10)
+| 问题 | 严重度 | 详情 |
+|------|--------|------|
+| 18 个集成测试因无 API key 跳过 | P2 | 真实 LLM 测试无法在无 key 环境运行 |
+| Contract 测试仅 1 个文件 | P3 | 需扩展到核心协议接口 |
+
+### 3.4 性能 (7.0/10) ➡️
 
 **正面**
-- CI 全绿：lint、security、test(3.10/3.11)、build 均通过。
-- mypy 已设为 blocking。
-- build job 依赖 test + lint + security。
-- E2E 在 release tag、nightly、manual dispatch 触发。
+- Mock LLM 后端基准已刷新（sync 125.3 tasks/s, async 116.6 tasks/s）
+- N+1 inserts 已修复（executemany）
+- 多级缓存架构完善
 
 **问题**
-- E2E job 未安装 `[visualization]` 依赖；若 e2e 涉及 dashboard 需额外处理。
-- ~~test job 仍排除 `tests/test_cli_phase5.py`，需确认原因是否已过时。~~ ✅ 已恢复：本地测试 27 passed；CI workflow 已移除 `--ignore`。
+
+| 问题 | 严重度 | 详情 |
+|------|--------|------|
+| 无真实 LLM 后端性能基线 | P2 | 不确定生产性能 |
+| 缺少性能基准自动化 | P2 | 无法做容量规划 |
+
+### 3.5 可维护性 (7.5/10) ⬇️
+
+**正面**
+- mypy 0 errors，CI blocking
+- ruff 全绿
+- 无 bare except
+- dispatcher.py 和 dispatch_steps.py 已完成 Mixin 拆分
+
+**问题**
+
+| 问题 | 严重度 | 详情 |
+|------|--------|------|
+| 20+ 处魔法数字未抽取 | P2 | skill_extractor.py、prompt_assembler.py、confidence_score.py 等 |
+| 34 个 >500 行文件 | P2 | 拆分空间仍大 |
+| mypy "unused section" 警告 | P3 | pyproject.toml tests.* override 配置问题 |
+
+### 3.6 文档 (5.5/10) ⬇️⬇️
+
+**正面**
+- pyproject.toml、_version.py、CHANGELOG.md、CHANGELOG-CN.md、MATURITY_ASSESSMENT.md 版本号一致（V3.9.2）
+- .github/ISSUE_TEMPLATE/bug_report.md 版本号正确
+- PR/Issue 模板齐全
+
+**问题（严重）**
+
+| 问题 | 严重度 | 详情 |
+|------|--------|------|
+| README.md git clone URL 错误 | **P0** | 第 428 行 `weiransoft/devsquad.git` 与 pyproject.toml `lulin70/DevSquad` 不一致，用户按 README 克隆会得到错误仓库 |
+| skill-manifest.yaml 测试数冲突 | **P0** | description "2605 tests" vs version_history 3.9.2 "2703 tests" |
+| README-JP.md 停留 V3.6.6 | P1 | 徽章 V3.7.2，章节标题 V3.6.6，与 EN/CN 严重不同步 |
+| SKILL_JP.md 缺失 7 个核心章节 | P1 | Complete Workflow、Advanced Features、Dispatch Mode Table 等全缺 |
+| 28+ 文件引用 V3.7.2 | P1 | INSTALL.md、GUIDE.md、QUICKSTART.md、COMPARISON.md、CLAUDE.md 等 |
+| 12+ 文件引用 V3.6.x | P1 | EXAMPLES.md、docs/i18n/QUICK_START_*.md、helm/devsquad/README.md 等 |
+| README 三语言章节结构不一致 | P1 | EN 15 章 vs CN/JP 13 章，4 章节互缺 |
+| GUIDE 三语言章节内容错位 | P1 | CN 第 12 章"关注点增强包"在 EN/JP 中无对应 |
+| CLAUDE.md SKILL.md 重复条目 | P1 | 第 140-141 行相邻两行同名文件，注释不一致 |
+| SKILL.md Architecture Overview 章节重复 | P1 | 第 65 行和第 301 行均出现 |
+| README 双副本冲突 | P2 | 根目录 README-CN.md vs docs/i18n/README_CN.md 重复但版本不同 |
+| docs/archive/ 与 docs/_archive/ 双套归档 | P2 | 一个被 .gitignore 忽略、一个入库，命名相似易混淆 |
+| _archived/README.md 引用 8 个不存在文件 | P2 | 悬空文档 |
+
+### 3.7 集成/CI&CD (7.5/10) ⬆️
+
+**正面**
+- 5 job 矩阵：test (3.10+3.11) / e2e / security / lint / build
+- mypy blocking since V3.9.1
+- bandit -ll 安全扫描
+- codecov 覆盖率上传
+- build 依赖 test+lint+security
+- Dependabot 已配置
+- test_cli_phase5.py 已恢复纳入 CI
+
+**问题**
+
+| 问题 | 严重度 | 详情 |
+|------|--------|------|
+| E2E job 未安装 visualization 依赖 | P2 | 若 e2e 涉及 dashboard 需额外处理 |
+| 无版本号一致性 CI 检查 | P2 | 导致文档版本漂移 |
 
 ---
 
-## 3. 幽灵功能检查
+## 4. 幽灵功能检查
 
-| 模块 | 文件 | 生产调用 | 结论 |
-|------|------|----------|------|
-| FeedbackControlLoop | `feedback_control_loop.py` | `dispatch_steps.py` 默认调用 | 已集成 |
-| ExecutionGuard | `execution_guard.py` | `dispatch_component_factory.py` + `enhanced_worker.py` | 已集成 |
-| PerformanceFingerprint | `performance_fingerprint.py` | `role_matcher.py` | 已集成（弱） |
-| SimilarTaskRecommender | `similar_task_recommender.py` | `role_matcher.py` | 已集成（弱） |
-| AdaptiveRoleSelector | `adaptive_role_selector.py` | `role_matcher.py` | 已集成（弱） |
-
-**结论**：V3.9.2 无幽灵功能。建议后续评估是否将 PerformanceFingerprint 等模块的集成从“失败降级”提升为“默认启用”。
-
----
-
-## 4. 目录结构与临时文件
-
-- `_archived` 目录仅含 README.md，为允许的归档说明。
-- `.gitignore` 已覆盖 `__pycache__/`、`*.pyc`、`*.pyo`、`.DS_Store`。
-- 本次已清理本地 `__pycache__` 和 `.pyc` 缓存文件。
-- 未跟踪文件：`docs/Loop-Engineering橙皮书-v260615.pdf`（外部参考文档，不纳入版本控制）。
+| 模块 | 定义位置 | 生产引用 | 状态 |
+|------|---------|---------|------|
+| ConsensusEngine | consensus.py | dispatcher.py 未引用 | **疑似幽灵功能** ⚠️ |
+| FiveAxisConsensusEngine | five_axis_consensus.py | dispatch_steps_quality_mixin.py | 已集成 ✅ |
+| FeedbackControlLoop | feedback_control_loop.py | dispatch_steps_feedback_mixin.py | 已集成 ✅ |
+| ExecutionGuard | execution_guard.py | dispatch_component_factory.py | 已集成 ✅ |
+| PerformanceFingerprint | performance_fingerprint.py | role_matcher.py | 已集成（弱）⚠️ |
+| SimilarTaskRecommender | similar_task_recommender.py | role_matcher.py | 已集成（弱）⚠️ |
+| AdaptiveRoleSelector | adaptive_role_selector.py | role_matcher.py | 已集成（弱）⚠️ |
+| MultiHostAdapter | multi_host_adapter.py | CLI --host + __init__.py 导出 | 已集成 ✅ |
 
 ---
 
-## 5. 已完成的整理动作
+## 5. 目录结构检查
 
-1. **版本号统一**：所有当前版本引用更新为 3.9.2（PR #7 已合并）。
-2. **文档同步**：CHANGELOG、README、SKILL.md、skill-manifest、成熟度评估同步更新。
-3. **测试验证**：单元/E2E/性能测试全绿；集成/冒烟测试在无 key 环境下合理跳过。
-4. **CI 确认**：lint/security/test/build 全绿，mypy blocking。
-5. **幽灵功能排查**：确认 Cybernetics 模块均有生产调用。
-6. **目录清理**：清理本地缓存，确认无临时/过程文件遗留。
+| 检查项 | 结果 |
+|--------|------|
+| *.tmp / *.bak / *.patch | 未发现 ✅ |
+| 根目录 test_*.py / demo_*.py | 未发现 ✅ |
+| 空目录 | 未发现 ✅ |
+| scripts/ V2 遗留 | 未发现 ✅ |
+| docs/archive/ vs docs/_archive/ 双套归档 | 冗余 ⚠️ |
+| _archived/README.md 引用 8 个不存在文件 | 悬空 ⚠️ |
+| README 双副本（根目录 vs docs/i18n/） | 冲突 ⚠️ |
 
 ---
 
-## 6. 下一步建议（按优先级）
+## 6. 诚实成熟度评价
+
+### 6.1 当前成熟度：7.1/10 (B- / mid-beta)
+
+DevSquad V3.9.2 是一个**测试覆盖优秀但文档治理严重滞后**的 mid-beta 版本：
+
+**强项（做得好的）**
+1. 测试体系完善：2752 用例分层覆盖，全绿
+2. CI/CD 流水线专业：5 job 矩阵 + 类型/安全门禁
+3. API 安全集成到位：InputValidator + RBAC + Audit
+4. 代码质量工具链严格：mypy 0 errors, ruff 全绿, bandit 0 High/Medium
+5. 缓存架构分层清晰
+
+**弱项（需要改进的）**
+1. **硬约束违反**：rbac_fail_closed 默认 fail-open；ConsensusEngine 未并行投票
+2. **文档治理严重滞后**：28+ 文件版本过时，多语言文档严重不同步，README URL 错误
+3. **魔法数字残留**：20+ 处硬编码阈值
+4. **巨型文件仍多**：34 个 >500 行文件
+5. **幽灵功能疑似**：ConsensusEngine 可能有定义无生产引用
+
+### 6.2 与 V3.9.1 对比
+
+| 指标 | V3.9.1 | V3.9.2 | 变化 |
+|------|--------|--------|------|
+| 测试数量 | 2605 | 2703+21+28 | +147 |
+| mypy errors | 0 | 0 | 持平 |
+| bandit High/Medium | 0 | 0 | 持平 |
+| >500 行文件 | 42 | 34 | -8 |
+| 文档版本一致性 | 部分统一 | 28+ 过时 | 退步 ⚠️ |
+| 硬约束违反 | 未检查 | 2 项 | 新发现 |
+
+---
+
+## 7. 下一步建议（按优先级）
+
+### P0 — 立即修复（阻塞 production-ready）
+
+1. **修复 rbac_fail_closed 默认值**：`dispatcher.py:125` 改为 `True`（fail-closed）
+2. **修复 README.md git clone URL**：`weiransoft/devsquad.git` → `lulin70/DevSquad.git`
+3. **修复 skill-manifest.yaml 测试数**：description "2605" → "2703"
+4. **确认 ConsensusEngine 状态**：若仍在用则改为并行投票架构（asyncio.gather）；若已废弃则从 `__init__.py` 导出中移除并标注 deprecated
 
 ### P1 — 短期（1-2 周）
-1. ~~**拆分剩余巨型文件**：`dispatch_steps.py`（1030 行）、`dispatcher.py`（1073 行）。~~ ✅ 已完成：dispatcher.py 拆为 7 mixin + 1 base；dispatch_steps.py 拆为 4 mixin + 1 base。
-2. ~~**刷新性能基准数据**：重新实测并更新 README/成熟度评估中的性能数据。~~ ✅ 已完成：Mock LLM 后端基准已刷新到 `docs/MATURITY_ASSESSMENT.md`。
-3. ~~**评估 test job 中排除的 `tests/test_cli_phase5.py`**：确认是否可恢复。~~ ✅ 已恢复：CI workflow 移除 `--ignore`，纳入常规测试。
+
+5. **批量更新 28+ 文件版本号**：V3.7.2 → V3.9.2（INSTALL.md、GUIDE.md、QUICKSTART.md、COMPARISON.md、CLAUDE.md 等）
+6. **更新 README-JP.md**：从 V3.6.6 同步到 V3.9.2
+7. **补齐 SKILL_JP.md 缺失的 7 个章节**
+8. **对齐 README 三语言章节结构**
+9. **修复 CLAUDE.md SKILL.md 重复条目**和 SKILL.md Architecture Overview 重复章节
+10. **抽取 20+ 魔法数字为命名常量**
 
 ### P2 — 中期（2-4 周）
-4. **增强 Cybernetics 模块集成深度**：考虑将 PerformanceFingerprint/SimilarTaskRecommender/AdaptiveRoleSelector 从 RoleMatcher 的降级路径提升为默认启用。
-5. **补充 Contract 测试**：从 1 个文件扩展到核心协议接口。
-6. **按厂商错误码细化异步后端重试策略**。
+
+11. **统一归档目录**：合并 docs/archive/ 与 docs/_archive/，删除悬空的 _archived/README.md
+12. **删除 README 双副本**：保留根目录或 docs/i18n/ 其中之一
+13. **拆分剩余巨型文件**：prompt_assembler.py(1020)、ue_test_framework.py(995)、workflow_engine.py(988)
+14. **增强 Cybernetics 模块集成深度**：PerformanceFingerprint/SimilarTaskRecommender/AdaptiveRoleSelector 从降级路径提升为默认启用
+15. **补充 Contract 测试**：从 1 个文件扩展到核心协议接口
+16. **CI 增加版本号一致性检查脚本**
 
 ### P3 — 长期
-7. **真实 LLM 后端性能基线**：在有关键的环境中定期运行并记录。
-8. **文档治理自动化**：在 CI 中增加版本号一致性检查脚本，防止未来版本漂移。
+
+17. **真实 LLM 后端性能基线**：在有关键的环境中定期运行并记录
+18. **REST API 强制 HTTPS + 速率限制**
+19. **helm chart 版本同步**：image.tag 3.6.0 → 3.9.2
 
 ---
 
-## 7. 诚实结论
+## 8. 诚实结论
 
-DevSquad V3.9.2 是一个**架构、测试、可维护性同步提升**的 mid-beta 版本：
+DevSquad V3.9.2 的**工程基础设施（测试、CI/CD、代码质量工具链）已达到 B+ 水平**，但**文档治理和硬约束遵守严重滞后**，拉低整体成熟度至 B-。
 
-- LLM 后端具备真实 LLM 优先 + Mock 回退的弹性。
-- 巨型文件治理取得实质进展（dashboard 拆分）。
-- 审计日志默认持久化，安全合规性增强。
-- 测试覆盖 2703 个用例，通过率 100%。
-- CI 全绿，mypy 阻断，bandit 无高危问题。
-- 版本号和文档已统一。
+最紧迫的两个问题是：
+1. **rbac_fail_closed 默认 fail-open** — 这是安全漏洞，不是技术债
+2. **README git clone URL 错误** — 这是用户第一印象的致命错误
 
-**当前成熟度：7.3/10（B / mid-beta）**，可作为阶段性基线继续向 P1 建议项演进。
+修复 P0 项后，预估成熟度可回升至 7.5/10（B / solid-beta）。完成 P1 项后可达到 8.0/10（B+ / late-beta）。

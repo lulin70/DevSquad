@@ -74,3 +74,46 @@ class PostDispatchConsensusMixin(PostDispatchBase):
         except (ImportError, AttributeError, ValueError, RuntimeError) as fa_err:
             logger.debug("Five-axis consensus failed: %s", fa_err)
             return None
+
+    def _run_consensus_gate(
+        self,
+        task_description: str,
+        worker_results: list[dict[str, Any]],
+    ) -> Any | None:
+        """Step 15.5: Pre-decision consensus gate (HC-2).
+
+        Uses ConsensusGate to run ConsensusEngine as a *pre-decision*
+        check before result assembly.  This is not a post-hoc conflict
+        resolver — it evaluates whether worker outputs collectively meet
+        consensus before committing the final result.
+
+        Returns ``None`` when the gate is unavailable (graceful
+        degradation that never blocks dispatch).
+        """
+        try:
+            from .consensus_gate import ConsensusGate
+
+            # Use the dispatcher's consensus_engine if available
+            engine = getattr(self.dispatcher, "consensus_engine", None)
+            if engine is None:
+                logger.debug("ConsensusGate skipped: no consensus_engine available")
+                return None
+
+            gate = ConsensusGate()
+            result = gate.check(
+                task_description=task_description,
+                worker_results=worker_results,
+                consensus_engine=engine,
+            )
+            if self.usage_tracker:
+                self.usage_tracker.tick("consensus_gate")
+            logger.info(
+                "ConsensusGate: outcome=%s approved=%s needs_review=%s",
+                result.outcome,
+                result.approved,
+                result.needs_review,
+            )
+            return result
+        except (ImportError, AttributeError, ValueError, RuntimeError) as cg_err:
+            logger.warning("ConsensusGate failed: %s", cg_err)
+            return None

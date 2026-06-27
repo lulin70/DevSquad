@@ -122,7 +122,7 @@ class MultiAgentDispatcher(
         audit_logger: DispatchAuditLogger | None = None,
         enable_audit_logger: bool = True,
         audit_db_path: str | Path | None = None,
-        rbac_fail_closed: bool = False,
+        rbac_fail_closed: bool = True,  # HC-1: fail-closed by default (硬约束: 禁止 fail-open)
         redis_url: str | None = None,
         compression_threshold: int = 100000,
         memory_dir: str | None = None,

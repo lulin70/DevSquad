@@ -7,7 +7,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V3.9.2: Auto LLM fallback + Dashboard split + SQLite audit persistence + P3 cleanup,
-  118 core modules, 2605 tests passing (CI authoritative).
+  118 core modules, 2703+ tests passing (CI authoritative).
 status: active
 ai_enhanced: true
 ai_capabilities:

@@ -226,6 +226,12 @@ class PostDispatchPipeline(
             task_description, worker_results, structured_goal, exec_result, total_duration
         )
 
+        # Step 15.5: Pre-decision consensus gate (HC-2)
+        # ConsensusEngine 前置介入关键决策点，在结果组装前进行共识检查
+        consensus_gate_result = self._run_consensus_gate(
+            task_description, worker_results
+        )
+
         # Step 16: Assemble result
         step_timings = self._build_step_timings(
             step1_time, step2_time, step3_time, step4_time, step5_time,
@@ -265,6 +271,22 @@ class PostDispatchPipeline(
         # Lifecycle phase trace
         lifecycle_trace = self._build_lifecycle_trace(step_timings)
         result.details["lifecycle_trace"] = lifecycle_trace
+
+        # HC-2: Apply consensus gate result
+        if consensus_gate_result is not None:
+            result.details["consensus_gate"] = {
+                "outcome": consensus_gate_result.outcome,
+                "approved": consensus_gate_result.approved,
+                "needs_review": consensus_gate_result.needs_review,
+                "reason": consensus_gate_result.reason,
+            }
+            if not consensus_gate_result.approved:
+                result.success = False
+                result.errors.append(
+                    f"Consensus gate blocked: {consensus_gate_result.reason}"
+                )
+            if consensus_gate_result.needs_review:
+                result.details["needs_review"] = True
 
         # Audit: dispatch complete
         self.enterprise.audit_dispatch_complete(result, **kwargs)

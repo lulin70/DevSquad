@@ -235,9 +235,9 @@ devsquad ship "部署和发布检查"
 
 ## 🤝 支持与反馈
 
-- 📕 **GitHub Issues**: [提交问题或建议](https://github.com/weiransoft/devsquad/issues)
-- 💬 **Discussions**: [参与社区讨论](https://github.com/weiransoft/devsquad/discussions)
-- 📧 **Email**: dev@weiransoft.com
+- 📕 **GitHub Issues**: [提交问题或建议](https://github.com/lulin70/DevSquad/issues)
+- 💬 **Discussions**: [参与社区讨论](https://github.com/lulin70/DevSquad/discussions)
+- 📧 **Email**: dev@lulin70.com
 
 ---
 
