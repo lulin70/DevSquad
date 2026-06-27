@@ -132,15 +132,18 @@
 
 ## 四、P2 问题修改方案（中期 2-4 周）
 
-### P2-1: 统一归档目录
-- 合并 `docs/archive/`（6文件，被 .gitignore 忽略）到 `docs/_archive/`
-- 删除 `docs/archive/` 目录和 .gitignore 中的对应条目
-- 删除悬空的 `scripts/collaboration/_archived/README.md`
-- 扁平化 `docs/_archive/archive_v2/v2/dev/` 深层嵌套
+### P2-1: 统一归档目录 ✅ 已完成 (2026-06-27)
+- 合并 `docs/archive/`（6文件，被 .gitignore 忽略）到 `docs/_archive/` ✅
+- 删除 `docs/archive/` 目录和 .gitignore 中的对应条目 ✅
+- 删除悬空的 `scripts/collaboration/_archived/README.md` ✅
+- 扁平化 `docs/_archive/archive_v2/v2/dev/` 深层嵌套 → `docs/_archive/archive_v2/dev/` ✅
+- 验证: 90 单元测试全绿，59 文件重命名，2 处文本修正
 
-### P2-2: 删除 README 双副本
-- 保留根目录 `README-CN.md` / `README-JP.md`
-- 删除 `docs/i18n/README_CN.md` / `docs/i18n/README_JP.md`（内容重复且版本过时）
+### P2-2: 删除 README 双副本 ✅ 已完成 (2026-06-27)
+- 保留根目录 `README-CN.md` / `README-JP.md` ✅
+- 删除 `docs/i18n/README_CN.md` / `docs/i18n/README_JP.md`（V3.6.6 过时版本，独有内容已在 EN README / SKILL.md / CHANGELOG.md 中以更权威形式存在） ✅
+- 同步更新 `README.md` 文档资源表（i18n 路径 → 根路径） ✅
+- 顺带修复 `CLAUDE.md` 中过时的测试数（2115+ → 2703+）和版本号（3.7.2 → 3.9.2） ✅
 
 ### P2-3: 拆分剩余巨型文件
 - `prompt_assembler.py`（1020行）→ 按职责拆分（模板加载/变量替换/格式化/验证）

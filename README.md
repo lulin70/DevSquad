@@ -544,8 +544,8 @@ python3 -m pytest tests/ -q --tb=line
 | [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
 | [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |
 | [CHANGELOG.md](CHANGELOG.md) | 版本历史记录 | EN |
-| [docs/i18n/README_CN.md](docs/i18n/README_CN.md) | 中文说明 | 中文 |
-| [docs/i18n/README_JP.md](docs/i18n/README_JP.md) | 日本語説明 | 日本語 |
+| [README-CN.md](README-CN.md) | 中文说明 | 中文 |
+| [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
 | [docs/PRD.md](docs/PRD.md) | 产品需求文档 | 中文 |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 技术架构文档 | 中文 |
 

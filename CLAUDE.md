@@ -160,10 +160,10 @@ DevSquad/
 - **Language**: All code comments and docstrings in **English**
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
-- **Documentation**: EN (README.md/SKILL.md) + CN (docs/i18n/README_CN.md/docs/i18n/SKILL_CN.md) + JP variants
-- **Testing**: pytest-based, 2115+ tests all passing
+- **Documentation**: EN (README.md/SKILL.md) + CN (README-CN.md/docs/i18n/SKILL_CN.md) + JP variants
+- **Testing**: pytest-based, 2703+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`3.7.2`)
+- **Version**: Single source of truth in `_version.py` (`3.9.2`)
 
 ## Role System (7 Core Roles)
 
