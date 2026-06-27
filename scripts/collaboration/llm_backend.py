@@ -20,15 +20,22 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator
 from typing import Any
 
+from .constants import (
+    DEFAULT_LLM_MAX_RETRIES,
+    DEFAULT_LLM_MAX_TOKENS,
+    DEFAULT_LLM_TEMPERATURE,
+    DEFAULT_LLM_TIMEOUT_SECONDS,
+)
 from .prometheus_metrics import get_metrics
 
 # Shared defaults so sync and async backends stay consistent.
-DEFAULT_TIMEOUT = 120.0
-DEFAULT_MAX_TOKENS = 4096
-DEFAULT_TEMPERATURE = 0.7
+# Magic numbers centralized in .constants — re-exported here for backward compatibility.
+DEFAULT_TIMEOUT = DEFAULT_LLM_TIMEOUT_SECONDS
+DEFAULT_MAX_TOKENS = DEFAULT_LLM_MAX_TOKENS
+DEFAULT_TEMPERATURE = DEFAULT_LLM_TEMPERATURE
 DEFAULT_COOLDOWN_SECONDS = 30.0
 DEFAULT_BACKOFF_BASE = 2
-DEFAULT_MAX_RETRIES = 3
+DEFAULT_MAX_RETRIES = DEFAULT_LLM_MAX_RETRIES
 MOCK_SEPARATOR_WIDTH = 50
 DEFAULT_MODEL_OPENAI = "gpt-4"
 DEFAULT_MODEL_ANTHROPIC = "claude-sonnet-4-20250514"

@@ -142,7 +142,14 @@ class EnhancedWorker(Worker):
         if execution_guard is not None:
             self.execution_guard = execution_guard
         elif _ExecutionGuard is not None:
-            self.execution_guard = _ExecutionGuard(max_duration_sec=300, max_output_tokens=8000)
+            from .constants import (
+                DEFAULT_EXECUTION_GUARD_MAX_DURATION_SECONDS,
+                DEFAULT_EXECUTION_GUARD_MAX_OUTPUT_TOKENS,
+            )
+            self.execution_guard = _ExecutionGuard(
+                max_duration_sec=DEFAULT_EXECUTION_GUARD_MAX_DURATION_SECONDS,
+                max_output_tokens=DEFAULT_EXECUTION_GUARD_MAX_OUTPUT_TOKENS,
+            )
         else:
             self.execution_guard = None
 

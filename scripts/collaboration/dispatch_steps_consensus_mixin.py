@@ -52,14 +52,22 @@ class PostDispatchConsensusMixin(PostDispatchBase):
 
             fa_engine = FiveAxisConsensusEngine()
             review = fa_engine.create_review("system", "dispatcher")
+            from .constants import (
+                FIVE_AXIS_DEFAULT_CONFIDENCE,
+                FIVE_AXIS_DEFAULT_SCORE,
+                FIVE_AXIS_PERFORMANCE_CONFIDENCE,
+                FIVE_AXIS_PERFORMANCE_SCORE,
+                FIVE_AXIS_SECURITY_CONFIDENCE,
+                FIVE_AXIS_SECURITY_SCORE,
+            )
             for wr in worker_results:
                 output_text = wr.get("output") or wr.get("error") or ""
                 if output_text:
-                    fa_engine.add_axis_vote(review, ReviewAxis.CORRECTNESS, 0.8, 0.7)
-                    fa_engine.add_axis_vote(review, ReviewAxis.READABILITY, 0.8, 0.7)
-                    fa_engine.add_axis_vote(review, ReviewAxis.ARCHITECTURE, 0.8, 0.7)
-                    fa_engine.add_axis_vote(review, ReviewAxis.SECURITY, 0.7, 0.6)
-                    fa_engine.add_axis_vote(review, ReviewAxis.PERFORMANCE, 0.7, 0.6)
+                    fa_engine.add_axis_vote(review, ReviewAxis.CORRECTNESS, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE)
+                    fa_engine.add_axis_vote(review, ReviewAxis.READABILITY, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE)
+                    fa_engine.add_axis_vote(review, ReviewAxis.ARCHITECTURE, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE)
+                    fa_engine.add_axis_vote(review, ReviewAxis.SECURITY, FIVE_AXIS_SECURITY_SCORE, FIVE_AXIS_SECURITY_CONFIDENCE)
+                    fa_engine.add_axis_vote(review, ReviewAxis.PERFORMANCE, FIVE_AXIS_PERFORMANCE_SCORE, FIVE_AXIS_PERFORMANCE_CONFIDENCE)
                     break
             fa_result = fa_engine.compute_consensus([review])
             five_axis_result = {
