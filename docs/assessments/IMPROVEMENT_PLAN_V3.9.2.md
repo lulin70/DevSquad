@@ -145,10 +145,12 @@
 - 同步更新 `README.md` 文档资源表（i18n 路径 → 根路径） ✅
 - 顺带修复 `CLAUDE.md` 中过时的测试数（2115+ → 2703+）和版本号（3.7.2 → 3.9.2） ✅
 
-### P2-3: 拆分剩余巨型文件
-- `prompt_assembler.py`（1020行）→ 按职责拆分（模板加载/变量替换/格式化/验证）
-- `ue_test_framework.py`（995行）→ 按职责拆分（persona/journey/heuristic/accessibility）
-- `workflow_engine.py`（988行）→ 按职责拆分（状态机/转换/验证/持久化）
+### P2-3: 拆分剩余巨型文件 ✅ 已完成 (2026-06-27)
+- `prompt_assembler.py`（1020行）→ facade(216) + base(112) + 4 mixin(152/218/297/213) ✅
+- `ue_test_framework.py`（995行）→ facade(170) + base(424) + 4 mixin(89/185/236/53) ✅
+- `workflow_engine.py`（988行）→ facade(100) + base(439) + 4 mixin(282/156/145/122) ✅
+- 验证: 248 测试全绿（含 5 prompt_assembler + 47 ue_test + 104 workflow_engine 相关），ruff/flake8/mypy 全绿
+- 模式: 沿用已验证的 mixin extraction + facade，100% 公共 API 向后兼容
 
 ### P2-4: GUIDE 三语言章节对齐
 - CN 第 12 章"关注点增强包"翻译到 EN/JP
