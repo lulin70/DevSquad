@@ -34,8 +34,18 @@ from scripts.api_server import app
 
 @pytest.fixture
 def client(monkeypatch):
-    """Create a FastAPI TestClient for API testing."""
+    """Create a FastAPI TestClient for API testing.
+
+    Disables auth and rate limiting: this suite tests API endpoint logic
+    (not rate limiting, which has its own test_rate_limit.py coverage).
+    Without disabling rate limit, the 200+ requests in this file would
+    trigger the 60 req/min default threshold (P3-2).
+    """
     monkeypatch.setenv("DEVSQUAD_API_AUTH_DISABLED", "1")
+    monkeypatch.setenv("DEVSQUAD_RATE_LIMIT_DISABLED", "1")
+    # Reset the rate limiter singleton so a fresh one (with disabled flag) is built
+    from scripts.api.rate_limit import reset_rate_limiter
+    reset_rate_limiter()
     return TestClient(app)
 
 

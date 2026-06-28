@@ -1,6 +1,6 @@
 # DevSquad Helm Chart
 
-Kubernetes Helm Chart for deploying **DevSquad V3.6.0** - Multi-Role AI Task Orchestrator.
+Kubernetes Helm Chart for deploying **DevSquad V3.9.2** - Multi-Role AI Task Orchestrator.
 
 ## Quick Start
 
@@ -55,7 +55,7 @@ kubectl port-forward svc/devsquad-dashboard 8501:8501
 |-----------|-------------|---------|
 | `replicaCount` | Number of replicas | `1` |
 | `image.repository` | Container image name | `devsquad` |
-| `image.tag` | Container image tag | `3.6.0` |
+| `image.tag` | Container image tag | `3.9.2` |
 | `service.type` | Service type (ClusterIP/NodePort/LoadBalancer) | `ClusterIP` |
 | `service.port` | API service port | `8000` |
 | `dashboard.enabled` | Enable Streamlit dashboard | `true` |
@@ -121,7 +121,7 @@ replicaCount: 2
 
 image:
   repository: your-registry/devsquad
-  tag: "3.6.0"
+  tag: "3.9.2"
   pullPolicy: Always
 
 envVars:
@@ -233,7 +233,7 @@ kubectl exec -it deployment/devsquad -- /bin/bash
 
 - **Issues**: [GitHub Issues](https://github.com/lulin70/DevSquad/issues)
 - **Documentation**: [GUIDE_EN.md](../../docs/i18n/GUIDE_EN.md)
-- **Version**: DevSquad V3.6.0
+- **Version**: DevSquad V3.9.2
 
 ## License
 

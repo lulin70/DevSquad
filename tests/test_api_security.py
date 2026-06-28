@@ -59,8 +59,10 @@ def secure_client(monkeypatch, tmp_path):
 
     Sets up a temporary deployment.yaml with a known API key hash,
     then creates a client that must send X-API-Key header.
+    Rate limiting is disabled (P3-2): this suite tests auth, not rate limiting.
     """
     monkeypatch.delenv("DEVSQUAD_API_AUTH_DISABLED", raising=False)
+    monkeypatch.setenv("DEVSQUAD_RATE_LIMIT_DISABLED", "1")
 
     # Generate a test API key and its hash
     test_api_key = "test-key-admin-12345"
@@ -142,8 +144,12 @@ def secure_client(monkeypatch, tmp_path):
 
 @pytest.fixture
 def viewer_client(monkeypatch, tmp_path):
-    """TestClient with a VIEWER-role API key (read-only, no execute/update)."""
+    """TestClient with a VIEWER-role API key (read-only, no execute/update).
+
+    Rate limiting is disabled (P3-2): this suite tests RBAC, not rate limiting.
+    """
     monkeypatch.delenv("DEVSQUAD_API_AUTH_DISABLED", raising=False)
+    monkeypatch.setenv("DEVSQUAD_RATE_LIMIT_DISABLED", "1")
 
     test_api_key = "test-key-viewer-67890"
     test_key_hash = hashlib.sha256(test_api_key.encode()).hexdigest()

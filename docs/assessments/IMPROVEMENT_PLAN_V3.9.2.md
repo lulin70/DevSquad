@@ -176,18 +176,30 @@
 
 ## 五、P3 问题修改方案（长期）
 
-### P3-1: 真实 LLM 后端性能基线
-- 在有 API key 的环境中运行 `scripts/benchmark_real_llm.py`
-- 记录基线数据到 `docs/MATURITY_ASSESSMENT.md`
+### P3-1: 真实 LLM 后端性能基线 ⏳ 延后运行 (需 API key 环境)
+- 脚本已就绪: `scripts/benchmark_real_llm.py` ✅
+- 待有 API key 的环境中运行，记录基线数据到 `docs/MATURITY_ASSESSMENT.md`
 - 建立 monthly 性能回归机制
+- 状态: 非阻塞，可在发布后随时补测
 
-### P3-2: REST API 安全增强
-- 添加 HTTPS 强制重定向中间件
-- 添加速率限制中间件（slowapi 或自定义）
+### P3-2: REST API 安全增强 ✅ 已完成 (2026-06-28)
+- 新增 `scripts/api/rate_limit.py` (297 行) ✅
+  - RateLimitMiddleware: per-IP 滑动窗口限流，默认 60 req/min
+  - HTTPSRedirectMiddleware: 308 重定向 X-Forwarded-Proto: http → https
+  - 豁免路径: /api/v1/health, /healthz, /metrics, /, /docs, /redoc, /openapi.json
+  - 异步锁序列化并发检查，定期清理 idle buckets
+- 集成到 `scripts/api_server.py` (lint job + startup log) ✅
+- 配置项:
+  - `DEVSQUAD_RATE_LIMIT_DISABLED=1` 关闭限流
+  - `DEVSQUAD_RATE_LIMIT_PER_MINUTE=100` 自定义阈值
+  - `DEVSQUAD_HTTPS_REDIRECT_ENABLED=1` 启用 HTTPS 强制重定向（生产环境）
+- 新增 `tests/test_rate_limit.py`: 38 测试全绿 (config/SlidingWindow/RateLimiter/IP提取/集成/HTTPS重定向/reset)
+- 验证: mypy 0 errors, ruff 0 errors, 38/38 passed
 
-### P3-3: helm chart 版本同步
-- `helm/devsquad/Chart.yaml` image.tag: 3.6.0 → 3.9.2
-- `helm/devsquad/README.md` 版本号同步
+### P3-3: helm chart 版本同步 ✅ 已完成 (2026-06-28)
+- `helm/devsquad/Chart.yaml`: version + appVersion 已是 3.9.2 ✅
+- `helm/devsquad/values.yaml`: image.tag "3.7.2" → "3.9.2" ✅
+- `helm/devsquad/README.md`: 4 处版本号同步 (标题/参数表/示例/Support 节) ✅
 
 ---
 

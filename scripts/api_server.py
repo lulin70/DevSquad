@@ -40,6 +40,10 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from scripts.api.rate_limit import (
+    https_redirect_middleware,
+    rate_limit_middleware,
+)
 from scripts.api.routes.dispatch import router as dispatch_router
 
 # Import routes
@@ -143,6 +147,20 @@ async def add_process_time_header(request: Request, call_next):
     logger.info("Response: %s (took %.3fs)", response.status_code, process_time)
 
     return response
+
+
+# HTTPS redirect middleware (P3-2, disabled by default; enable in production)
+# Must be registered BEFORE rate_limit so http requests are redirected before
+# consuming rate limit budget.
+@app.middleware("http")
+async def _https_redirect(request: Request, call_next):
+    return await https_redirect_middleware(request, call_next)
+
+
+# Rate limit middleware (P3-2, default 60 rpm per IP)
+@app.middleware("http")
+async def _rate_limit(request: Request, call_next):
+    return await rate_limit_middleware(request, call_next)
 
 
 # Global exception handler
@@ -281,6 +299,20 @@ async def startup_event():
         logger.info("  ⚠️  API Key authentication: DISABLED (set DEVSQUAD_API_AUTH_DISABLED=0 to enable)")
     logger.info("  📋 RBAC engine: %s", "ready" if sec_status.get("rbac_engine_available") else "unavailable")
     logger.info("  📝 Audit logger: %s", "ready" if sec_status.get("audit_logger_available") else "unavailable")
+    # P3-2 middlewares
+    from scripts.api.rate_limit import (
+        _get_rate_limit_per_minute,
+        _is_https_redirect_enabled,
+        _is_rate_limit_enabled,
+    )
+    if _is_rate_limit_enabled():
+        logger.info("  🚦 Rate limit: ENABLED (%d req/min per IP)", _get_rate_limit_per_minute())
+    else:
+        logger.info("  ⚠️  Rate limit: DISABLED (DEVSQUAD_RATE_LIMIT_DISABLED=1)")
+    if _is_https_redirect_enabled():
+        logger.info("  🔒 HTTPS redirect: ENABLED (308 on X-Forwarded-Proto: http)")
+    else:
+        logger.info("  ⚠️  HTTPS redirect: DISABLED (set DEVSQUAD_HTTPS_REDIRECT_ENABLED=1 in production)")
     logger.info("=" * 60)
     logger.info("Available Endpoints:")
     logger.info("  POST /api/v1/tasks/dispatch   - Full task dispatch (TASK_EXECUTE)")
