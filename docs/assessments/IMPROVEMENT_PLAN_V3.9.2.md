@@ -165,10 +165,12 @@
 - `test_permission_guard_contract.py`: 16 测试（PLAN/DEFAULT/BYPASS 三级别）
 - 验证: 64 新测试 + 61 现有 contract 测试全绿，ruff 0 错误，使用真实组件（非 Mock）
 
-### P2-6: CI 版本号一致性检查
-- 新增 `scripts/check_version_consistency.py` 脚本
-- 在 CI lint job 中添加步骤运行此脚本
-- 检查 pyproject.toml / _version.py / README / CHANGELOG / SKILL.md 版本号一致
+### P2-6: CI 版本号一致性检查 ✅ 已完成 (2026-06-27)
+- 新增 `scripts/check_version_consistency.py` 脚本 ✅
+- 在 CI lint job 中添加步骤运行此脚本 ✅
+- 检查 15 个文件: pyproject.toml / _version.py / skill-manifest.yaml / Dockerfile / helm Chart.yaml (version+appVersion) / CHANGELOG.md / CHANGELOG-CN.md / README.md/CN/JP / SKILL.md / CLAUDE.md / deployment.yaml / COMPARISON.md ✅
+- 两种检查模式: `first_match` (CHANGELOG 首条目必须等于当前版本) 和 `contains` (其他文件至少包含一次当前版本，允许历史引用) ✅
+- 验证: 15 passed, 0 failed, "All 15 version checks passed. Version 3.9.2 is consistent." ✅
 
 ---
 
