@@ -32,19 +32,28 @@ class TestAuthentication:
         assert hasattr(auth, "auth_enabled")
 
     def test_password_hashing(self):
-        """Test password hashing functionality."""
+        """Test password hashing functionality (PBKDF2 + random salt)."""
         from scripts.auth import AuthManager
 
         auth = AuthManager.__new__(AuthManager)
 
         password = "test_password_123"
         hashed = auth._hash_password(password)
+        hashed2 = auth._hash_password(password)
 
-        # Hash should be consistent
-        assert hashed == auth._hash_password(password)
+        # Hash should use pbkdf2_sha256 format with random salt
+        assert hashed.startswith("pbkdf2_sha256$")
+        assert hashed2.startswith("pbkdf2_sha256$")
+
+        # Same password produces different hashes (random salt)
+        assert hashed != hashed2
 
         # Hash should be different from plain text
         assert hashed != password
+
+        # Both hashes should verify against the same password
+        assert auth._verify_password(password, hashed) is True
+        assert auth._verify_password(password, hashed2) is True
 
     def test_verify_credentials_success(self):
         """Test credential verification with correct credentials."""

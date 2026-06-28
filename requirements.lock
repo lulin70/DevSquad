@@ -1,0 +1,66 @@
+# DevSquad Dependency Lock File (V3.9.2)
+# ============================================
+# This file locks all project dependencies to specific versions for reproducible builds.
+#
+# Usage:
+#   pip install -r requirements.lock
+#
+# Generation:
+#   Generated from pyproject.toml + installed environment snapshot.
+#   Locked versions (==) are verified in the test environment.
+#   Constrained versions (>=) are declared in pyproject.toml but not installed
+#   in the generation environment — install them and re-run lock generation
+#   to pin exact versions.
+#
+# Regenerate:
+#   pip install -e ".[api,visualization,monitoring,dev]"
+#   python3 -c "import importlib.metadata as md; print('\n'.join(f'{d}=={md.version(d)}' for d in sorted([...]) if __import__('importlib.metadata').distributions()))" > requirements.lock
+#
+# ============================================
+
+# --- Core Dependencies (Required) ---
+pyyaml==6.0.3
+# fastapi>=0.100.0           # not installed in lock gen env
+# uvicorn[standard]>=0.23.0  # not installed in lock gen env
+# pydantic>=2.0              # not installed in lock gen env
+
+# --- Optional: API Server ---
+# fastapi>=0.100.0           # see above
+# uvicorn[standard]>=0.23.0  # see above
+# pydantic>=2.0              # see above
+
+# --- Optional: Visualization ---
+# streamlit>=1.28.0          # not installed in lock gen env
+# jupyter>=1.0               # not installed in lock gen env
+
+# --- Optional: Monitoring ---
+# psutil>=5.9                # not installed in lock gen env
+# prometheus-client>=0.19    # not installed in lock gen env
+
+# --- Optional: LLM Backends ---
+# openai>=1.0                # not installed in lock gen env
+# anthropic>=0.18            # not installed in lock gen env
+
+# --- Optional: Integrations ---
+# carrymem[devsquad]>=0.2.8  # not installed in lock gen env
+# mcp>=0.9                   # not installed in lock gen env
+# slack-sdk>=3.21.0          # not installed in lock gen env
+
+# --- Optional: Dev Tools ---
+# pytest>=7.0                # not installed in lock gen env
+# pytest-asyncio>=0.21       # not installed in lock gen env
+# pytest-cov>=3.0            # not installed in lock gen env
+# black>=23.0                # not installed in lock gen env
+# flake8>=6.0                # not installed in lock gen env
+# mypy>=1.0                  # not installed in lock gen env
+
+# --- Installed Transitive Dependencies (locked) ---
+cryptography==49.0.0
+emoji==2.15.0
+pillow==11.3.0
+pypdf==6.14.2
+typing_extensions==4.15.0
+websocket-client==1.9.0
+cffi==2.0.0
+pycparser==2.23
+six==1.15.0

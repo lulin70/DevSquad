@@ -33,34 +33,163 @@ from scripts.auth import (
 
 
 class TestPasswordHashing:
-    """密码哈希功能测试"""
+    """密码哈希功能测试（PBKDF2-HMAC-SHA256 + 随机 salt）"""
 
-    def test_hash_password_consistency(self):
-        """Test that same password produces same hash."""
+    def test_hash_password_uniqueness_same_input(self):
+        """Same password produces different hashes due to random salt."""
         auth = AuthManager(config_path=None)
         hash1 = auth._hash_password("test_password_123")
         hash2 = auth._hash_password("test_password_123")
-        assert hash1 == hash2
+        assert hash1 != hash2  # Random salt ensures uniqueness
 
-    def test_hash_password_uniqueness(self):
-        """Test that different passwords produce different hashes."""
+    def test_hash_password_uniqueness_different_input(self):
+        """Different passwords produce different hashes."""
         auth = AuthManager(config_path=None)
         hash1 = auth._hash_password("password_one")
         hash2 = auth._hash_password("password_two")
         assert hash1 != hash2
 
-    def test_hash_password_output_format(self):
-        """Test that hash is a 64-character hex string (SHA-256)."""
+    def test_hash_password_output_format_pbkdf2(self):
+        """Hash uses pbkdf2_sha256$<iter>$<salt>$<hash> format."""
         auth = AuthManager(config_path=None)
         hashed = auth._hash_password("any_password")
-        assert len(hashed) == 64
-        assert all(c in '0123456789abcdef' for c in hashed)
+        assert hashed.startswith("pbkdf2_sha256$")
+        parts = hashed.split("$")
+        assert len(parts) == 4
+        assert parts[0] == "pbkdf2_sha256"
+        assert int(parts[1]) >= 390000  # OWASP 2023 minimum
+        # Salt is 16 bytes = 32 hex chars; hash is 32 bytes = 64 hex chars
+        assert len(parts[2]) == 32
+        assert len(parts[3]) == 64
+        assert all(c in '0123456789abcdef' for c in parts[2] + parts[3])
 
-    def test_hash_empty_password(self):
-        """Test hashing empty string."""
+    def test_hash_empty_password_pbkdf2(self):
+        """Empty password still produces valid pbkdf2 format."""
         auth = AuthManager(config_path=None)
         hashed = auth._hash_password("")
-        assert len(hashed) == 64
+        assert hashed.startswith("pbkdf2_sha256$")
+        assert hashed.split("$")[3] != ""  # Hash is non-empty
+
+    def test_hash_uses_random_salt(self):
+        """Each call generates a unique salt (no salt reuse)."""
+        auth = AuthManager(config_path=None)
+        hashes = [auth._hash_password("same") for _ in range(10)]
+        salts = [h.split("$")[2] for h in hashes]
+        assert len(set(salts)) == 10  # All 10 salts unique
+
+
+class TestPasswordVerification:
+    """密码验证功能测试（_verify_password 新旧格式）"""
+
+    def test_verify_new_pbkdf2_format(self):
+        """_verify_password accepts new pbkdf2_sha256 format."""
+        auth = AuthManager(config_path=None)
+        hashed = auth._hash_password("my_secret")
+        assert auth._verify_password("my_secret", hashed) is True
+        assert auth._verify_password("wrong", hashed) is False
+
+    def test_verify_legacy_sha256_format(self):
+        """_verify_password accepts legacy 64-char SHA-256 for migration."""
+        auth = AuthManager(config_path=None)
+        # SHA-256 of "password" = 5e884898...
+        legacy = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+        assert auth._verify_password("password", legacy) is True
+        assert auth._verify_password("wrong", legacy) is False
+
+    def test_verify_empty_stored_hash(self):
+        """_verify_password rejects empty stored hash."""
+        auth = AuthManager(config_path=None)
+        assert auth._verify_password("anything", "") is False
+
+    def test_verify_malformed_pbkdf2_hash(self):
+        """_verify_password rejects malformed pbkdf2 hash."""
+        auth = AuthManager(config_path=None)
+        assert auth._verify_password("x", "pbkdf2_sha256$abc$not_hex$alsobad") is False
+        assert auth._verify_password("x", "pbkdf2_sha256$1000$") is False
+
+    def test_verify_non_hex_legacy_hash(self):
+        """_verify_password rejects 64-char non-hex string."""
+        auth = AuthManager(config_path=None)
+        # 64 chars but contains non-hex characters
+        fake = "z" * 64
+        # SHA-256 of "password" won't match this, so returns False
+        assert auth._verify_password("anything", fake) is False
+
+
+class TestPasswordMigration:
+    """密码迁移测试（legacy SHA-256 → pbkdf2_sha256）"""
+
+    def test_needs_upgrade_legacy_sha256(self):
+        """Legacy 64-char hex hash needs upgrade."""
+        auth = AuthManager(config_path=None)
+        legacy = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+        assert auth._needs_password_upgrade(legacy) is True
+
+    def test_needs_upgrade_new_pbkdf2(self):
+        """New pbkdf2_sha256 hash does not need upgrade."""
+        auth = AuthManager(config_path=None)
+        new_hash = auth._hash_password("test")
+        assert auth._needs_password_upgrade(new_hash) is False
+
+    def test_needs_upgrade_empty_hash(self):
+        """Empty hash does not trigger upgrade."""
+        auth = AuthManager(config_path=None)
+        assert auth._needs_password_upgrade("") is False
+
+    def test_verify_credentials_upgrades_legacy_hash(self, tmp_path):
+        """Successful login with legacy hash upgrades to pbkdf2 in memory."""
+        config_path = tmp_path / "deployment.yaml"
+        config_content = """
+authentication:
+  enabled: true
+  credentials:
+    usernames:
+      admin:
+        password: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+        email: admin@devsquad.test
+        name: Administrator
+        role: admin
+"""
+        config_path.write_text(config_content)
+        auth = AuthManager(config_path=str(config_path))
+
+        # Before login: legacy hash
+        assert auth._needs_password_upgrade(
+            auth.credentials["admin"]["password"]
+        ) is True
+
+        # Successful login
+        user = auth.verify_credentials("admin", "password")
+        assert user is not None
+
+        # After login: upgraded to pbkdf2 in memory
+        new_hash = auth.credentials["admin"]["password"]
+        assert new_hash.startswith("pbkdf2_sha256$")
+        assert auth._needs_password_upgrade(new_hash) is False
+
+    def test_verify_credentials_no_upgrade_for_new_format(self, tmp_path):
+        """Login with new pbkdf2 hash does not trigger upgrade."""
+        auth_tmp = AuthManager(config_path=None)
+        new_hash = auth_tmp._hash_password("secret123")
+        config_path = tmp_path / "deployment.yaml"
+        config_content = f"""
+authentication:
+  enabled: true
+  credentials:
+    usernames:
+      admin:
+        password: {new_hash}
+        email: admin@devsquad.test
+        name: Administrator
+        role: admin
+"""
+        config_path.write_text(config_content)
+        auth = AuthManager(config_path=str(config_path))
+
+        user = auth.verify_credentials("admin", "secret123")
+        assert user is not None
+        # Hash unchanged (no upgrade needed)
+        assert auth.credentials["admin"]["password"] == new_hash
 
 
 class TestUserCredentialVerification:

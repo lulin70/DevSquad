@@ -170,12 +170,79 @@ class AuthManager:
             logger.warning("Please update config/deployment.yaml with secure values before production use.")
 
     def _hash_password(self, password: str) -> str:
-        """Hash password using SHA-256."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash password using PBKDF2-HMAC-SHA256 with random salt.
+
+        Uses 390000 iterations (OWASP 2023 recommendation) and 16-byte salt.
+        Output format: ``pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>``
+
+        Args:
+            password: Plain text password.
+
+        Returns:
+            Hashed password string with algorithm, iterations, salt, and hash.
+        """
+        iterations = 390000  # OWASP 2023 recommended minimum
+        salt = secrets.token_bytes(16)  # 128-bit salt
+        hash_bytes = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), salt, iterations
+        )
+        return f"pbkdf2_sha256${iterations}${salt.hex()}${hash_bytes.hex()}"
+
+    def _verify_password(self, password: str, stored_hash: str) -> bool:
+        """Verify password against stored hash with timing-safe comparison.
+
+        Supports two formats for backward compatibility:
+        - New: ``pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>``
+        - Legacy: 64-char hex SHA-256 (no salt, kept for migration only)
+
+        Args:
+            password: Plain text password.
+            stored_hash: Stored hash string.
+
+        Returns:
+            True if password matches stored hash.
+        """
+        if not stored_hash:
+            return False
+
+        if stored_hash.startswith("pbkdf2_sha256$"):
+            try:
+                _, iterations_str, salt_hex, hash_hex = stored_hash.split("$", 3)
+                iterations = int(iterations_str)
+                salt = bytes.fromhex(salt_hex)
+                expected = bytes.fromhex(hash_hex)
+                actual = hashlib.pbkdf2_hmac(
+                    "sha256", password.encode("utf-8"), salt, iterations
+                )
+                return secrets.compare_digest(actual, expected)
+            except (ValueError, IndexError):
+                return False
+
+        # Legacy SHA-256 (64-char hex, no salt) — kept for migration only
+        if len(stored_hash) == 64:
+            legacy = hashlib.sha256(password.encode("utf-8")).hexdigest()
+            return secrets.compare_digest(legacy, stored_hash)
+
+        return False
+
+    def _needs_password_upgrade(self, stored_hash: str) -> bool:
+        """Check if stored hash is legacy SHA-256 and should be upgraded.
+
+        Args:
+            stored_hash: Stored hash string.
+
+        Returns:
+            True if hash is legacy format (64-char hex without prefix).
+        """
+        return bool(stored_hash) and not stored_hash.startswith("pbkdf2_sha256$")
 
     def verify_credentials(self, username: str, password: str) -> User | None:
         """
         Verify user credentials.
+
+        On successful login with a legacy SHA-256 hash, the in-memory credential
+        is upgraded to pbkdf2_sha256 format (callers persisting config should
+        write back ``cred['password']`` after a successful login).
 
         Args:
             username: Username to verify
@@ -190,11 +257,18 @@ class AuthManager:
 
         cred = self.credentials[username]
         stored_password_hash = cred.get("password", "")
-        input_password_hash = self._hash_password(password)
 
-        if input_password_hash != stored_password_hash:
+        if not self._verify_password(password, stored_password_hash):
             logger.warning("Failed login attempt for user: %s", username)
             return None
+
+        # Upgrade legacy SHA-256 hash to pbkdf2 on successful login
+        if self._needs_password_upgrade(stored_password_hash):
+            cred["password"] = self._hash_password(password)
+            logger.info(
+                "Upgraded password hash for user: %s (SHA-256 → pbkdf2_sha256)",
+                username,
+            )
 
         # Create user object
         try:
