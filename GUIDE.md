@@ -1,6 +1,6 @@
 # DevSquad 使用指南
 
-> **版本**: V3.7.2 (Enterprise Edition) | **更新日期**: 2026-06-17**
+> **版本**: V3.9.2 | **更新日期**: 2026-06-27**
 >
 > 本文档是 DevSquad 的完整功能手册，覆盖所有用户可感知的功能。
 
@@ -23,7 +23,8 @@
 - [13. 角色模板市场](#13-角色模板市场)
 - [14. 配置系统](#14-配置系统)
 - [15. 部署方式](#15-部署方式)
-- [16. 常见问题](#16-常见问题)
+- [16. Agent 技能质量框架](#16-agent-技能质量框架)
+- [17. 常见问题](#17-常见问题)
 - [附录 A：CarryMem 集成](#附录-acarrymem-集成)
 - [附录 B：完整模块清单](#附录-b完整模块清单)
 - [附录 C：子Skill架构](#附录-c子skill架构)
@@ -1031,7 +1032,7 @@ role_enhancements:
 
 > **适用场景**：团队需要统一配置（如所有项目都启用幻觉检查和安全守卫）、个人需要自定义默认行为（如默认使用OpenAI后端、默认输出英文）、或需要通过环境变量在CI/CD中动态切换配置。
 
-### 13.1 .devsquad.yaml
+### 14.1 .devsquad.yaml
 
 ```yaml
 quality_control:
@@ -1076,7 +1077,7 @@ quality_control:
       veto_allowed_roles: ["security", "architect"]
 ```
 
-### 13.2 环境变量
+### 14.2 环境变量
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
@@ -1085,7 +1086,7 @@ quality_control:
 | `DEVSQUAD_LANG` | 输出语言 (zh/en/ja/auto) | zh |
 | `DEVSQUAD_BACKEND` | LLM后端 (mock/openai/anthropic) | mock |
 
-### 13.3 配置加载器
+### 14.3 配置加载器
 
 ```python
 # ConfigManager removed in V3.7.2 (dead code)
@@ -1098,7 +1099,7 @@ db_path = config.get("database.path", default=":memory:")
 
 ## 15. 部署方式
 
-### 14.1 CLI
+### 15.1 CLI
 
 ```bash
 python3 scripts/cli.py dispatch -t "任务" -r arch coder --lang en
@@ -1107,7 +1108,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 ```
 
-### 14.2 Python API
+### 15.2 Python API
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -1127,14 +1128,14 @@ disp = MultiAgentDispatcher(llm_backend=backend)
 disp.shutdown()
 ```
 
-### 14.3 MCP 服务器
+### 15.3 MCP 服务器
 
 ```bash
 python3 scripts/mcp_server.py
 # 供 Trae IDE / Claude Code / Cursor 调用
 ```
 
-### 14.4 Docker
+### 15.4 Docker
 
 ```bash
 docker build -t devsquad .
@@ -1143,7 +1144,156 @@ docker run -e OPENAI_API_KEY=sk-... devsquad dispatch -t "Design auth system"
 
 ---
 
-## 16. 常见问题
+## 16. Agent 技能质量框架（v3.4.1 新功能）
+
+> **适用场景**：当你希望为多 AI 团队提供 Google Agent Skills 级别的质量控制，防止常见的 AI 走捷径行为（如跳过测试、无证据就接受"看起来没问题"、或为任务类型选择错误的工作流）时使用。
+
+### 16.1 反合理化引擎
+
+> **适用场景**：当 Worker 试图用貌似合理的借口跳过质量步骤时（"这个很简单"、"我稍后测试"、"AI 代码应该没问题"），该引擎向每个 Worker 的提示词注入反驳论点。
+
+```python
+from scripts.collaboration.anti_rationalization import get_shared_engine
+
+engine = get_shared_engine()
+
+# 获取特定角色的反合理化内容
+content = engine.format_for_prompt("solo-coder")
+# 返回 借口 → 反驳 的 Markdown 表格
+# 示例: "这是个小改动" → "小改动会累积..."
+
+# 可用角色
+roles = engine.list_all_roles()
+# ['architect', 'solo-coder', 'tester', 'security', ...]
+```
+
+**核心特性：**
+- 8 个通用反模式（适用于所有角色）
+- 每个角色 6-7 个专属模式（如 coder 会收到"AI 代码需要更严格的审查"）
+- QC 启用时通过 PromptAssembler 自动注入
+- 单例模式 + 缓存
+
+**被拦截的常见借口：**
+
+| 借口（被拦截） | 现实（被强制） |
+|----------------|---------------|
+| "这是个小改动" | 小改动会累积。现在跳过质量，将来要还技术债 |
+| "我稍后写测试" | 你不会写的。事后测试测的是实现，不是行为 |
+| "太简单不需要测试" | 简单代码会变复杂。测试文档化预期行为 |
+| "AI 生成的代码应该没问题" | AI 代码需要更严格的审查，而不是更宽松 |
+
+### 16.2 验证门禁
+
+> **适用场景**：当你需要在接受工作为"完成"之前强制要求证据时使用。防止"看起来对"就足够的情况。
+
+```python
+from scripts.collaboration.verification_gate import get_shared_gate
+
+gate = get_shared_gate()
+
+# 从 Worker 结果构建上下文
+ctx = gate.build_context_from_worker_result(worker_result)
+# ctx.has_code_changes → True/False
+# ctx.has_test_changes → True/False
+# ctx.is_bug_fix → True/False
+
+# 对照门禁检查
+result = gate.check(ctx)
+# result.passed → True/False
+# result.verdict → "APPROVE" / "CONDITIONAL" / "REJECT"
+# result.red_flags → [触发的红旗列表]
+# result.missing_evidence → [缺失的证据项列表]
+```
+
+**检测的红旗（共 7 项）：**
+
+| 红旗 | 严重度 | 检测逻辑 |
+|------|--------|----------|
+| 新行为无测试 | 致命 | 代码变更但没有测试变更 |
+| Bug 修复无回归测试 | 致命 | Bug 修复但没有失败的复现测试 |
+| 安全变更未审查 | 致命 | 安全相关代码没有安全审查 |
+| 大规模变更集 | 警告 | 变更超过阈值 |
+| 无构建验证 | 必需 | 未提供构建状态 |
+| 无差异摘要 | 必需 | 变更范围未文档化 |
+| 低置信度评分 | 警告 | 置信度低于阈值 |
+
+**强制证据（3 项）：**
+
+| 证据 | 适用角色 | 格式 |
+|------|----------|------|
+| `test_results` | 所有角色 | `pytest: 142 passed, 0 failed` |
+| `build_status` | 架构师、开发者 | `Build succeeded in 1.2s` |
+| `diff_summary` | 所有角色 | `Modified: dispatcher.py (+23/-5)` |
+
+### 16.3 意图→工作流映射器
+
+> **适用场景**：当用户说"修复 bug"时，系统应自动触发调试工作流，而非通用编码。将自然语言意图映射到结构化工作流链。
+
+```python
+from scripts.collaboration.intent_workflow_mapper import get_shared_mapper
+
+mapper = get_shared_mapper()
+
+# 从任务描述检测意图
+match = mapper.detect_intent("Fix login page crash", lang="en")
+if match:
+    print(f"Intent: {match.intent_type}")           # "bug_fix"
+    print(f"Confidence: {match.confidence:.2f}")     # 0.85
+    print(f"Workflow: {match.workflow_chain}")        # ["debugging_and_error_recovery", "test_driven_development"]
+    print(f"Roles: {match.required_roles}")           # ["solo-coder", "tester"]
+    print(f"Gate: {match.gate}")                      # "prove_it_pattern"
+    print(f"Message: {match.anti_skip_message}")      # "Do NOT implement fix first..."
+```
+
+**支持的意图（6 类型 × 3 语言）：**
+
+| 意图 | 触发关键词（EN） | 工作流链 | 必需角色 | 门禁 |
+|------|-----------------|----------|----------|------|
+| `bug_fix` | fix, bug, error, crash, fail | 调试 + TDD | coder, tester | prove_it_pattern |
+| `new_feature` | implement, develop, add, create, feature | 规格 + 计划 + 实现 + TDD | architect, coder, tester, pm | spec_first |
+| `security_review` | security, vulnerability, audit, OWASP | 安全 + 审查 | architect, security | owasp_checklist |
+| `code_review` | review, refactor, optimize, simplify | 审查 + 质量 | coder, security, tester, architect | change_size_limit |
+| `performance_optimization` | performance, slow, optimize, bottleneck | 优化 + 审查 | architect, devops | measure_first |
+| `deployment` | deploy, release, ship, launch, CI/CD | CI/CD + 发布 | devops, security, architect | pre_launch_checklist |
+
+### 16.4 CLI 生命周期命令
+
+> **适用场景**：当你希望一键访问标准生命周期工作流，降低认知负荷并确保一致的流程遵守时使用。
+
+```bash
+# 将需求定义/细化为规格说明
+devsquad spec -t "User authentication system"
+
+# 将规格分解为原子任务
+devsquad plan -t "Implement OAuth2 login flow"
+
+# 以 TDD 纪律实现
+devsquad build -t "Add password reset feature"
+
+# 带证据要求运行测试
+devsquad test -t "Run all unit and integration tests"
+
+# 五轴代码审查
+devsquad review -t "Review PR #123 for merge"
+
+# 发布前检查清单 + 部署准备
+devsquad ship -t "Deploy v2.0 to production"
+```
+
+**命令参照表：**
+
+| 命令 | 角色 | 模式 | 门禁 | 说明 |
+|------|------|------|------|------|
+| `spec` | architect + pm | 顺序 | spec_first | 编码前生成 PRD |
+| `plan` | architect + pm | 自动 | task_breakdown_complete | 分解为可验证任务 |
+| `build` | architect + coder + tester | 并行 | incremental_verification | ~100 行切片的 TDD |
+| `test` | tester + coder | 共识 | evidence_required | 强制测试/构建/差异证据 |
+| `review` | coder + security + tester + architect | 共识 | change_size_limit | 多维代码审查 |
+| `ship` | devops + security + architect | 顺序 | pre_launch_checklist | 6 维发布前检查 |
+
+---
+
+## 17. 常见问题
 
 **Q: 没有API Key可以使用吗？**
 可以。Mock模式无需任何API Key，生成基于角色模板的结构化输出。
@@ -1204,60 +1354,6 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 
 ---
 
-## 附录 C：子Skill架构
-
-> **V3.6.0 新增** — 6 个原子化子Skill，可独立使用或组合调用。
-
-### 架构总览
-
-```
-skills/
-├── __init__.py        # 包初始化，导出 get_skill/list_skills/discover_all
-├── registry.py         # BaseSkill 类 + 懒加载注册表（importlib 自动发现）
-├── dispatch/handler.py    # → MultiAgentDispatcher
-├── intent/handler.py      # → IntentWorkflowMapper
-├── review/handler.py      # → FiveAxisConsensusEngine
-├── security/handler.py    # → InputValidator + OperationClassifier
-├── test/handler.py        # → TestQualityGuard
-└── retrospective/handler.py # → RetrospectiveEngine
-```
-
-### 何时使用子Skill？
-
-| 场景 | 推荐方式 | 说明 |
-|------|---------|------|
-| 完整多角色协作 | `MultiAgentDispatcher` 或 `DispatchSkill` | 7角色自动匹配+并行+共识 |
-| 仅需意图检测 | `IntentSkill` | 轻量级，不需要启动完整Dispatcher |
-| 仅需代码审查 | `ReviewSkill` | 五维审查，独立于调度流程 |
-| 安全扫描输入 | `SecuritySkill` | 21+注入模式检测，可单独使用 |
-| 测试策略生成 | `TestSkill` | 测试质量审计+用例建议 |
-| 调度后复盘 | `RetrospectiveSkill` | 模式提取+改进建议 |
-
-### 快速上手
-
-```python
-# 方式1: 直接导入
-from skills.dispatch.handler import DispatchSkill
-from skills.security.handler import SecuritySkill
-from skills.intent.handler import IntentSkill
-
-# 方式2: 通过注册表动态发现
-from skills import get_skill, list_skills, discover_all
-skills = discover_all()  # 获取所有子Skill实例
-for name, skill in skills.items():
-    print(f"{name}: {skill.info()['description']}")
-```
-
-### 与 Dispatcher 的关系
-
-子Skill **不是替代** Dispatcher，而是**互补**：
-- **Dispatcher** = 完整的多Agent协作流程（验证→匹配→调度→执行→共识→报告）
-- **子Skill** = 单一能力的轻量入口（只需一个功能时避免启动整个引擎）
-
-典型组合：先用 `IntentSkill.detect()` 判断意图，再用 `DispatchSkill.run()` 执行协作，最后用 `RetrospectiveSkill.summary()` 做复盘。
-
----
-
 ## 附录 B：完整模块清单
 
 | # | 模块 | 文件 | 功能 |
@@ -1315,6 +1411,60 @@ for name, skill in skills.items():
 | 51 | StructuredGoal | structured_goal.py | 层次化目标分解+进度跟踪 |
 | 52 | AntiRationalizationEngine | anti_rationalization.py | 反合理化借口反驳表 |
 | 53 | VerificationGate | verification_gate.py | 证据强制要求+7红旗检测 |
+
+---
+
+## 附录 C：子Skill架构
+
+> **V3.6.0 新增** — 6 个原子化子Skill，可独立使用或组合调用。
+
+### 架构总览
+
+```
+skills/
+├── __init__.py        # 包初始化，导出 get_skill/list_skills/discover_all
+├── registry.py         # BaseSkill 类 + 懒加载注册表（importlib 自动发现）
+├── dispatch/handler.py    # → MultiAgentDispatcher
+├── intent/handler.py      # → IntentWorkflowMapper
+├── review/handler.py      # → FiveAxisConsensusEngine
+├── security/handler.py    # → InputValidator + OperationClassifier
+├── test/handler.py        # → TestQualityGuard
+└── retrospective/handler.py # → RetrospectiveEngine
+```
+
+### 何时使用子Skill？
+
+| 场景 | 推荐方式 | 说明 |
+|------|---------|------|
+| 完整多角色协作 | `MultiAgentDispatcher` 或 `DispatchSkill` | 7角色自动匹配+并行+共识 |
+| 仅需意图检测 | `IntentSkill` | 轻量级，不需要启动完整Dispatcher |
+| 仅需代码审查 | `ReviewSkill` | 五维审查，独立于调度流程 |
+| 安全扫描输入 | `SecuritySkill` | 21+注入模式检测，可单独使用 |
+| 测试策略生成 | `TestSkill` | 测试质量审计+用例建议 |
+| 调度后复盘 | `RetrospectiveSkill` | 模式提取+改进建议 |
+
+### 快速上手
+
+```python
+# 方式1: 直接导入
+from skills.dispatch.handler import DispatchSkill
+from skills.security.handler import SecuritySkill
+from skills.intent.handler import IntentSkill
+
+# 方式2: 通过注册表动态发现
+from skills import get_skill, list_skills, discover_all
+skills = discover_all()  # 获取所有子Skill实例
+for name, skill in skills.items():
+    print(f"{name}: {skill.info()['description']}")
+```
+
+### 与 Dispatcher 的关系
+
+子Skill **不是替代** Dispatcher，而是**互补**：
+- **Dispatcher** = 完整的多Agent协作流程（验证→匹配→调度→执行→共识→报告）
+- **子Skill** = 单一能力的轻量入口（只需一个功能时避免启动整个引擎）
+
+典型组合：先用 `IntentSkill.detect()` 判断意图，再用 `DispatchSkill.run()` 执行协作，最后用 `RetrospectiveSkill.summary()` 做复盘。
 
 ---
 

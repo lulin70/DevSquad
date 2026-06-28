@@ -19,10 +19,12 @@
 - [9. Rule Injection and Security](#9-rule-injection-and-security)
 - [10. Quality Assurance](#10-quality-assurance)
 - [11. Performance Monitoring](#11-performance-monitoring)
-- [12. Role Template Market](#12-role-template-market)
-- [13. Configuration System](#13-configuration-system)
-- [14. Deployment Methods](#14-deployment-methods)
-- [15. FAQ](#15-faq)
+- [12. Focus Enhancement Pack](#12-focus-enhancement-pack)
+- [13. Role Template Market](#13-role-template-market)
+- [14. Configuration System](#14-configuration-system)
+- [15. Deployment Methods](#15-deployment-methods)
+- [16. Agent Skills Quality Framework](#16-agent-skills-quality-framework)
+- [17. FAQ](#17-faq)
 - [Appendix A: CarryMem Integration](#appendix-a-carrymem-integration)
 - [Appendix B: Complete Module List](#appendix-b-complete-module-list)
 - [Appendix C: Sub-Skill Architecture](#appendix-c-sub-skill-architecture)
@@ -925,7 +927,85 @@ is_degraded = monitor.is_degraded()  # Whether performance is degraded
 
 ---
 
-## 12. Role Template Market
+## 12. Focus Enhancement Pack
+
+> **V3.6.0 New Feature**
+
+Focus Enhancement Packs (Concern Packs) are domain-specific knowledge packs that automatically match based on keywords in the task description and inject into AI role prompts, making output more professional and targeted.
+
+### 12.1 How It Works
+
+```
+User Input: "Design user permission system"
+    ↓
+RoleMatcher matches roles → [architect, security]
+    ↓
+ConcernPackLoader matches enhancement packs → [Permission Design Pack]
+    ↓
+Extract role enhancement prompts → security: "[Permission Design Specific Checks]..."
+                            architect: "[Permission Architecture Design Key Points]..."
+    ↓
+Inject into Worker's role instructions → Output includes domain expertise
+```
+
+### 12.2 Available Enhancement Packs
+
+| Pack | Trigger Keywords | Enhanced Roles | Core Content |
+|------|-----------------|----------------|--------------|
+| **Permission Design** | permission, role, RBAC, authorization, multi-tenant, privilege escalation | security, architect | 4-step decision framework + 7-item checklist + 7 common pitfalls |
+| **Web API Design** | API, REST, GraphQL, JWT, OAuth, rate limiting | architect, security, tester | 5-step decision framework + 10-item checklist + 6 common pitfalls |
+| **Data Pipeline** | ETL, data sync, idempotent, lineage, CDC, Kafka | architect, tester | 5-step decision framework + 7-item checklist + 6 common pitfalls |
+
+### 12.3 Usage
+
+Enhancement packs are **automatically activated**, no manual configuration needed:
+
+```bash
+# Auto-match permission design pack
+devsquad dispatch -t "Design user permission system"
+
+# Auto-match Web API design pack
+devsquad dispatch -t "Design RESTful API interface"
+
+# Auto-match data pipeline pack
+devsquad dispatch -t "Implement ETL data pipeline"
+
+# Match multiple packs simultaneously (composable!)
+devsquad dispatch -t "Design multi-tenant SaaS API permissions and data isolation"
+# → Activates: Permission Design Pack + Web API Design Pack
+```
+
+### 12.4 Extending Enhancement Packs
+
+Create a new YAML file in the `templates/concerns/` directory to add a custom enhancement pack:
+
+```yaml
+concern_id: my-custom-pack
+name: Custom Enhancement Pack
+description: Description
+triggers:
+  keywords: [keyword1, keyword2]
+checklist:
+  must_have:
+    - item: Checklist item 1
+      severity: required
+  common_pitfalls:
+    - title: Common pitfall 1
+      description: Description
+      severity: high
+      check: Check method
+role_enhancements:
+  security:
+    extra_prompt: |
+      [Custom Security Check Points]
+      ...
+```
+
+The system automatically discovers and loads new enhancement packs without any code changes.
+
+---
+
+## 13. Role Template Market
 
 > **When to use**: When the team has customized role prompts (e.g., "security auditor focused on OWASP Top 10", "healthcare system architect familiar with HIPAA compliance"), publish, share, and reuse them via the template market. Also useful for discovering and installing high-quality templates from the community.
 
@@ -962,11 +1042,11 @@ market.import_template("./templates/security-auditor-owasp.json")
 
 ---
 
-## 13. Configuration System
+## 14. Configuration System
 
 > **When to use**: When the team needs unified configuration (e.g., enable hallucination check and security guard for all projects), individuals need custom defaults (e.g., default OpenAI backend, default English output), or need to dynamically switch configurations via environment variables in CI/CD.
 
-### 13.1 .devsquad.yaml
+### 14.1 .devsquad.yaml
 
 ```yaml
 quality_control:
@@ -1011,7 +1091,7 @@ quality_control:
       veto_allowed_roles: ["security", "architect"]
 ```
 
-### 13.2 Environment Variables
+### 14.2 Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -1020,7 +1100,7 @@ quality_control:
 | `DEVSQUAD_LANG` | Output language (zh/en/ja/auto) | zh |
 | `DEVSQUAD_BACKEND` | LLM backend (mock/openai/anthropic) | mock |
 
-### 13.3 Configuration Loader
+### 14.3 Configuration Loader
 
 ```python
 # ConfigManager removed in V3.7.2 (dead code)
@@ -1031,9 +1111,9 @@ db_path = config.get("database.path", default=":memory:")
 
 ---
 
-## 14. Deployment Methods
+## 15. Deployment Methods
 
-### 14.1 CLI
+### 15.1 CLI
 
 ```bash
 python3 scripts/cli.py dispatch -t "Task" -r arch coder --lang en
@@ -1042,7 +1122,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 ```
 
-### 14.2 Python API
+### 15.2 Python API
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -1062,14 +1142,14 @@ disp = MultiAgentDispatcher(llm_backend=backend)
 disp.shutdown()
 ```
 
-### 14.3 MCP Server
+### 15.3 MCP Server
 
 ```bash
 python3 scripts/mcp_server.py
 # For Trae IDE / Claude Code / Cursor
 ```
 
-### 14.4 Docker
+### 15.4 Docker
 
 ```bash
 docker build -t devsquad .
@@ -1078,11 +1158,11 @@ docker run -e OPENAI_API_KEY=sk-... devsquad dispatch -t "Design auth system"
 
 ---
 
-## 15. Agent Skills Quality Framework (NEW in v3.4.1)
+## 16. Agent Skills Quality Framework (NEW in v3.4.1)
 
 > **When to use**: When you want Google Agent Skills-level quality control for your multi-AI team, preventing common AI shortcuts like skipping tests, accepting "looks fine" without evidence, or missing the right workflow for the task type.
 
-### 15.1 Anti-Rationalization Engine
+### 16.1 Anti-Rationalization Engine
 
 > **When to use**: When Workers try to skip quality steps with plausible excuses ("this is simple", "I'll test later", "AI code is probably fine"). This engine injects counter-arguments into every Worker's prompt.
 
@@ -1116,7 +1196,7 @@ roles = engine.list_all_roles()
 | "Too simple to test" | Simple code gets complicated. Tests document expected behavior |
 | "AI-generated code is probably fine" | AI code needs MORE scrutiny, not less |
 
-### 15.2 Verification Gate
+### 16.2 Verification Gate
 
 > **When to use**: When you need mandatory evidence before accepting work as "done". Prevents "seems right" from being sufficient.
 
@@ -1159,7 +1239,7 @@ result = gate.check(ctx)
 | `build_status` | Architect, Coder | `Build succeeded in 1.2s` |
 | `diff_summary` | All roles | `Modified: dispatcher.py (+23/-5)` |
 
-### 15.3 Intent→Workflow Mapper
+### 16.3 Intent→Workflow Mapper
 
 > **When to use**: When user says "fix bug" but system should automatically trigger debugging workflow, not generic coding. Maps natural language intent to structured workflow chains.
 
@@ -1190,7 +1270,7 @@ if match:
 | `performance_optimization` | performance, slow, optimize, bottleneck | optimization + review | architect, devops | measure_first |
 | `deployment` | deploy, release, ship, launch, CI/CD | CI/CD + launch | devops, security, architect | pre_launch_checklist |
 
-### 15.4 CLI Lifecycle Commands
+### 16.4 CLI Lifecycle Commands
 
 > **When to use**: When you want one-command access to standard lifecycle workflows, reducing cognitive load and ensuring consistent process adherence.
 
@@ -1227,7 +1307,7 @@ devsquad ship -t "Deploy v2.0 to production"
 
 ---
 
-## 16. FAQ
+## 17. FAQ
 
 **Q: Can I use DevSquad without an API Key?**
 Yes. Mock mode works without any API Key, generating structured output based on role templates.
@@ -1276,6 +1356,60 @@ worker = EnhancedWorker(worker_id="w1", role_id="architect", memory_provider=ada
 ```
 
 Security mechanisms: Two-layer defense (InputValidator + length limit ≤500 chars), Unicode NFKC normalization, user_id injection filtering, rule types direct passthrough (forbid/avoid/always, no conversion needed).
+
+---
+
+## Appendix B: Complete Module List
+
+| # | Module | File | Function |
+|---|--------|------|----------|
+| 1 | MultiAgentDispatcher | dispatcher.py | Unified entry, role matching + parallel dispatch |
+| 2 | Coordinator | coordinator.py | Global orchestration, briefing mode, rule preloading |
+| 3 | Scratchpad | scratchpad.py | Scratchpad, 4-zone shared protocol |
+| 4 | Worker | worker.py | Role executor, streaming output |
+| 5 | ConsensusEngine | consensus.py | Weighted voting + veto power |
+| 6 | BatchScheduler | batch_scheduler.py | Batch task scheduling |
+| 7 | ContextCompressor | context_compressor.py | 4-level context compression |
+| 8 | PermissionGuard | permission_guard.py | 4-level permission control |
+| 9 | Skillifier | skillifier.py | Skill closed-loop feedback |
+| 10 | WarmupManager | warmup_manager.py | Warmup management |
+| 11 | MemoryBridge | memory_bridge.py | Cross-session memory bridge |
+| 12 | TestQualityGuard | test_quality_guard.py | Test quality guard |
+| 13 | PromptAssembler | prompt_assembler.py | Dynamic prompt assembly + QC injection |
+| 14 | PromptVariantGenerator | prompt_variant_generator.py | Prompt variant A/B testing *(Removed)* |
+| 15 | MCEAdapter | mce_adapter.py | CarryMem integration adapter |
+| 16 | WorkBuddyClawSource | memory_bridge.py | WorkBuddy read-only bridge |
+| 17 | RoleMatcher | role_matcher.py | Keyword role matching |
+| 18 | ReportFormatter | report_formatter.py | 3 report formats |
+| 19 | InputValidator | input_validator.py | 16 injection pattern detection |
+| 20 | AISemanticMatcher | ai_semantic_matcher.py | LLM semantic matching |
+| 21 | CheckpointManager | checkpoint_manager.py | State persistence + checkpoint recovery |
+| 22 | WorkflowEngine | workflow_engine.py | Task splitting + workflow + 11-phase lifecycle templates |
+| 23 | TaskCompletionChecker | task_completion_checker.py | Completion tracking |
+| 24 | CodeMapGenerator | code_map_generator.py | AST code analysis |
+| 25 | DualLayerContextManager | dual_layer_context.py | Project + task dual-layer context |
+| 26 | SkillRegistry | skill_registry.py | Skill registration + discovery |
+| 27 | IntentWorkflowMapper | intent_workflow_mapper.py | User intent → workflow chain mapping (6 intents × 3 languages) |
+| 28 | OperationClassifier | operation_classifier.py | Three-tier operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) |
+| 29 | FiveAxisConsensusEngine | five_axis_consensus.py | Five-axis review consensus with weighted voting |
+| 30 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + streaming |
+| 31 | LLMCache | llm_cache.py | TTL LRU cache + disk persistence |
+| 32 | LLMRetry | llm_retry.py | Exponential backoff + circuit breaker |
+| 33 | ConfigManager | config_loader.py | *(Removed in V3.7.2)* Dead code — zero references |
+| 34 | Protocols | protocols.py | Protocol interfaces (Cache/Retry/Monitor/Memory + match_rules) |
+| 35 | NullProviders | null_providers.py | Null implementations (graceful degradation + test mocks) |
+| 36 | EnhancedWorker | enhanced_worker.py | Enhanced Worker (cache/retry/monitor/briefing/memory + rule injection) |
+| 37 | PerformanceMonitor | performance_monitor.py | P95/P99 + bottleneck detection |
+| 38 | AgentBriefing | agent_briefing.py | Context briefing generation |
+| 39 | ConfidenceScorer | confidence_score.py | 5-factor confidence scoring |
+| 40 | RoleTemplateMarket | role_template_market.py | Role template market *(Removed)* |
+| 41 | UsageTracker | usage_tracker.py | Token/cost tracking |
+| 42 | Models | models.py | Shared data models and type definitions |
+| 43 | ConfigManager (YAML) | config_manager.py | Project-level YAML config |
+| 44 | LLMCacheAsync | llm_cache_async.py | Async LLM cache |
+| 45 | LLMRetryAsync | llm_retry_async.py | Async LLM retry |
+| 46 | IntegrationExample | integration_example.py | Integration example code |
+| 47 | AsyncIntegrationExample | async_integration_example.py | Async integration example |
 
 ---
 
@@ -1331,60 +1465,6 @@ Sub-Skills **complement** (not replace) the Dispatcher:
 - **Sub-Skill** = Lightweight single-capability entry point (avoid launching the full engine when only one feature is needed)
 
 Typical combination: First use `IntentSkill.detect()` to determine intent, then `DispatchSkill.run()` to execute collaboration, finally `RetrospectiveSkill.summary()` for retrospective analysis.
-
----
-
-## Appendix B: Complete Module List
-
-| # | Module | File | Function |
-|---|--------|------|----------|
-| 1 | MultiAgentDispatcher | dispatcher.py | Unified entry, role matching + parallel dispatch |
-| 2 | Coordinator | coordinator.py | Global orchestration, briefing mode, rule preloading |
-| 3 | Scratchpad | scratchpad.py | Scratchpad, 4-zone shared protocol |
-| 4 | Worker | worker.py | Role executor, streaming output |
-| 5 | ConsensusEngine | consensus.py | Weighted voting + veto power |
-| 6 | BatchScheduler | batch_scheduler.py | Batch task scheduling |
-| 7 | ContextCompressor | context_compressor.py | 4-level context compression |
-| 8 | PermissionGuard | permission_guard.py | 4-level permission control |
-| 9 | Skillifier | skillifier.py | Skill closed-loop feedback |
-| 10 | WarmupManager | warmup_manager.py | Warmup management |
-| 11 | MemoryBridge | memory_bridge.py | Cross-session memory bridge |
-| 12 | TestQualityGuard | test_quality_guard.py | Test quality guard |
-| 13 | PromptAssembler | prompt_assembler.py | Dynamic prompt assembly + QC injection |
-| 14 | PromptVariantGenerator | prompt_variant_generator.py | Prompt variant A/B testing *(Removed)* |
-| 15 | MCEAdapter | mce_adapter.py | CarryMem integration adapter |
-| 16 | WorkBuddyClawSource | memory_bridge.py | WorkBuddy read-only bridge |
-| 17 | RoleMatcher | role_matcher.py | Keyword role matching |
-| 18 | ReportFormatter | report_formatter.py | 3 report formats |
-| 19 | InputValidator | input_validator.py | 16 injection pattern detection |
-| 20 | AISemanticMatcher | ai_semantic_matcher.py | LLM semantic matching |
-| 21 | CheckpointManager | checkpoint_manager.py | State persistence + checkpoint recovery |
-| 22 | WorkflowEngine | workflow_engine.py | Task splitting + workflow + 11-phase lifecycle templates |
-| 23 | TaskCompletionChecker | task_completion_checker.py | Completion tracking |
-| 24 | CodeMapGenerator | code_map_generator.py | AST code analysis |
-| 25 | DualLayerContextManager | dual_layer_context.py | Project + task dual-layer context |
-| 26 | SkillRegistry | skill_registry.py | Skill registration + discovery |
-| 27 | IntentWorkflowMapper | intent_workflow_mapper.py | User intent → workflow chain mapping (6 intents × 3 languages) |
-| 28 | OperationClassifier | operation_classifier.py | Three-tier operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) |
-| 29 | FiveAxisConsensusEngine | five_axis_consensus.py | Five-axis review consensus with weighted voting |
-| 30 | LLMBackend | llm_backend.py | Mock/OpenAI/Anthropic + streaming |
-| 31 | LLMCache | llm_cache.py | TTL LRU cache + disk persistence |
-| 32 | LLMRetry | llm_retry.py | Exponential backoff + circuit breaker |
-| 33 | ConfigManager | config_loader.py | *(Removed in V3.7.2)* Dead code — zero references |
-| 34 | Protocols | protocols.py | Protocol interfaces (Cache/Retry/Monitor/Memory + match_rules) |
-| 35 | NullProviders | null_providers.py | Null implementations (graceful degradation + test mocks) |
-| 36 | EnhancedWorker | enhanced_worker.py | Enhanced Worker (cache/retry/monitor/briefing/memory + rule injection) |
-| 37 | PerformanceMonitor | performance_monitor.py | P95/P99 + bottleneck detection |
-| 38 | AgentBriefing | agent_briefing.py | Context briefing generation |
-| 39 | ConfidenceScorer | confidence_score.py | 5-factor confidence scoring |
-| 40 | RoleTemplateMarket | role_template_market.py | Role template market *(Removed)* |
-| 41 | UsageTracker | usage_tracker.py | Token/cost tracking |
-| 42 | Models | models.py | Shared data models and type definitions |
-| 43 | ConfigManager (YAML) | config_manager.py | Project-level YAML config |
-| 44 | LLMCacheAsync | llm_cache_async.py | Async LLM cache |
-| 45 | LLMRetryAsync | llm_retry_async.py | Async LLM retry |
-| 46 | IntegrationExample | integration_example.py | Integration example code |
-| 47 | AsyncIntegrationExample | async_integration_example.py | Async integration example |
 
 ---
 

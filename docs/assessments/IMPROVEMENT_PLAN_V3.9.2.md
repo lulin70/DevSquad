@@ -152,10 +152,11 @@
 - 验证: 248 测试全绿（含 5 prompt_assembler + 47 ue_test + 104 workflow_engine 相关），ruff/flake8/mypy 全绿
 - 模式: 沿用已验证的 mixin extraction + facade，100% 公共 API 向后兼容
 
-### P2-4: GUIDE 三语言章节对齐
-- CN 第 12 章"关注点增强包"翻译到 EN/JP
-- EN/JP 第 15 章"Agent Skills Quality Framework"翻译到 CN
-- 统一附录顺序为 A→B→C
+### P2-4: GUIDE 三语言章节对齐 ✅ 已完成 (2026-06-27)
+- CN 第12章"关注点增强包" → EN 第12章"Focus Enhancement Pack" / JP 第12章"フォーカス強化パッケージ" ✅
+- EN/JP 第15章"Agent Skills Quality Framework" → CN 第16章"Agent 技能质量框架" ✅
+- 统一为 17 章 + 3 附录（A→B→C 顺序对齐） ✅
+- 三语言章节结构 100% 对齐，版本号 V3.9.2 一致
 
 ### P2-5: Contract 测试扩展
 - 从 1 个文件（MemoryProvider）扩展到核心协议:
