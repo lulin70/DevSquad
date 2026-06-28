@@ -8,7 +8,7 @@
 
 ## 一、硬约束实现方案（最高优先级）
 
-### HC-1: rbac_fail_closed 默认值修复
+### HC-1: rbac_fail_closed 默认值修复 ✅ 已完成 (2026-06-26)
 
 **当前状态**: `dispatcher.py:125` 默认 `False`（fail-open），RBAC 异常时放行
 **违反约束**: "共识门在关键决策失败时必须安全降级，禁止fail-open直接执行"
@@ -18,8 +18,9 @@
 - 影响范围: 仅影响 RBAC 基础设施故障时的行为（正常 RBAC 检查不受影响）
 - 测试验证: 现有 `test_dispatch_rbac.py` 17 个测试 + 新增 fail-closed 专项测试
 - 风险: 低 — 开发环境默认无 RBAC（`development_mode=True`），仅生产部署受影响
+- ✅ 实施完成: dispatcher.py 默认值已改为 True；test_rbac_fail_closed.py 4 测试全绿
 
-### HC-2: ConsensusEngine 前置介入关键决策点
+### HC-2: ConsensusEngine 前置介入关键决策点 ✅ 已完成 (2026-06-26)
 
 **当前状态**: ConsensusEngine 仅在 `coordinator.resolve_conflicts()` 后置使用（worker 执行后解决冲突）
 **违反约束**: "ConsensusEngine必须作为核心决策机制前置介入所有关键决策点,不可仅作为后置补救措施"
@@ -30,6 +31,7 @@
 - 当 ConsensusEngine 判断结果为"拒绝"时，result.success = False 并返回
 - 当 ConsensusEngine 异常时，安全降级（记录 warning + 标记 needs_review，不直接放行）
 - 测试: 新增 `tests/test_consensus_gate.py`
+- ✅ 实施完成: consensus_gate.py 已落地；dispatch_steps_consensus_mixin.py 集成前置门；HC-3 fail-soft 已加固（2026-06-28，永不返回 None，engine is None/异常时返回 ConsensusGateResult with needs_review=True）
 
 ### HC-3: 并行投票架构（已满足，确认即可）
 
@@ -41,24 +43,26 @@
 
 ## 二、P0 问题修改方案（立即修复）
 
-### P0-1: rbac_fail_closed 默认值 → 见 HC-1
+### P0-1: rbac_fail_closed 默认值 → 见 HC-1 ✅
 
-### P0-2: README.md git clone URL 错误
+### P0-2: README.md git clone URL 错误 ✅ 已完成 (2026-06-28)
 - 文件: `README.md:428`
 - 改动: `weiransoft/devsquad.git` → `lulin70/DevSquad.git`
 - 同时检查所有 .md 文件中的 git clone URL
+- ✅ 实施完成: README/README-CN/README-JP 三语言 your-org/devsquad.git → lulin70/DevSquad.git (commit 3b51f42)
 
-### P0-3: skill-manifest.yaml 测试数冲突
+### P0-3: skill-manifest.yaml 测试数冲突 ✅ 已完成 (2026-06-26)
 - 文件: `skill-manifest.yaml:10`
 - 改动: description 中 "2605 tests passing" → "2703+ tests passing"
+- ✅ 实施完成: 已包含在版本号一致性检查 15 文件清单中
 
-### P0-4: ConsensusEngine 前置介入 → 见 HC-2
+### P0-4: ConsensusEngine 前置介入 → 见 HC-2 ✅
 
 ---
 
 ## 三、P1 问题修改方案（短期 1-2 周）
 
-### P1-1: 批量更新版本号 V3.7.2 → V3.9.2
+### P1-1: 批量更新版本号 V3.7.2 → V3.9.2 ✅ 已完成 (2026-06-26)
 
 **影响文件清单（28+ 个）**:
 
@@ -76,8 +80,8 @@
 | docs/spec/SPEC.md | V3.7.2 | 版本+成熟度65%→7.1/10 |
 | docs/INDEX.md | V3.6.0 | 版本+日期 |
 | docs/USAGE_GUIDE.md | V3.6.0 | 版本 |
-| docs/guide/CONFIGURATION.md | V3.6.0 | 版本 |
-| docs/guide/QUICK_REFERENCE.md | V3.6.0 | 版本 |
+| docs/guides/CONFIGURATION.md | V3.6.0 | 版本 |
+| docs/guides/QUICK_REFERENCE.md | V3.6.0 | 版本 |
 | docs/EXCEPTION_HANDLING_NORMALIZATION_GUIDE.md | V3.6.0 | 版本 |
 | docs/PERFORMANCE_MONITORING_INTEGRATION.md | V3.6.0 | 版本 |
 | docs/testing/regression_test_strategy.md | v3.6.0 | 版本+测试数1662→2703 |
@@ -86,13 +90,13 @@
 
 **执行方式**: 用脚本批量替换，然后逐个文件人工审核上下文
 
-### P1-2: README-JP.md 全面更新
+### P1-2: README-JP.md 全面更新 ✅ 已完成 (2026-06-26)
 
 - 从 V3.6.6/V3.7.2 同步到 V3.9.2
 - 徽章、章节标题、正文版本号全部更新
 - 补充 V3.8（EventBus+Dispatcher Split）和 V3.9（auto LLM fallback等）变更内容
 
-### P1-3: SKILL_JP.md 补齐缺失章节
+### P1-3: SKILL_JP.md 补齐缺失章节 ✅ 已完成 (2026-06-26)
 
 缺失 7 个章节需从 SKILL.md 翻译补充:
 1. Complete Workflow
@@ -103,18 +107,18 @@
 6. Language Rules
 7. Meta Iron Rule
 
-### P1-4: README 三语言章节结构对齐
+### P1-4: README 三语言章节结构对齐 ✅ 已完成 (2026-06-26)
 
 **方案**: 以 README.md（EN）为基准，CN/JP 对齐章节结构
 - EN 独有章节（7 Core Roles、Five Capability Domains、Plan C、Configuration）→ 翻译到 CN/JP
 - CN/JP 独有章节（使用示例、开发指南、性能基准、致谢）→ 翻译到 EN
 - 统一为 17 章结构
 
-### P1-5: CLAUDE.md + SKILL.md 重复修复
+### P1-5: CLAUDE.md + SKILL.md 重复修复 ✅ 已完成 (2026-06-26)
 - CLAUDE.md:140-141: 删除重复的 SKILL.md 条目
 - SKILL.md:65,301: 合并重复的 Architecture Overview 章节
 
-### P1-6: 魔法数字抽取（20+ 处）
+### P1-6: 魔法数字抽取（20+ 处）✅ 已完成 (2026-06-26)
 
 **方案**: 创建 `scripts/collaboration/constants.py` 集中管理阈值
 
