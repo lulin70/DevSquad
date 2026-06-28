@@ -158,11 +158,12 @@
 - 统一为 17 章 + 3 附录（A→B→C 顺序对齐） ✅
 - 三语言章节结构 100% 对齐，版本号 V3.9.2 一致
 
-### P2-5: Contract 测试扩展
-- 从 1 个文件（MemoryProvider）扩展到核心协议:
-  - CacheProvider 协议
-  - LLMBackend 协议
-  - PermissionGuard 协议
+### P2-5: Contract 测试扩展 ✅ 已完成 (2026-06-27)
+- 从 1 个文件（MemoryProvider）扩展到 4 个核心协议 ✅
+- `test_cache_provider_contract.py`: 26 测试（LLMCache + NullCacheProvider）
+- `test_llm_backend_contract.py`: 22 测试（MockBackend + TraeBackend）
+- `test_permission_guard_contract.py`: 16 测试（PLAN/DEFAULT/BYPASS 三级别）
+- 验证: 64 新测试 + 61 现有 contract 测试全绿，ruff 0 错误，使用真实组件（非 Mock）
 
 ### P2-6: CI 版本号一致性检查
 - 新增 `scripts/check_version_consistency.py` 脚本
