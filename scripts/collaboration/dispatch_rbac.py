@@ -132,7 +132,7 @@ class DispatchRBAC:
         ),
     }
 
-    def __init__(self, auth_manager: Any | None = None) -> None:
+    def __init__(self, auth_manager: Any | None = None, fail_closed: bool = False) -> None:
         """Initialize with optional AuthManager.
 
         Parameters
@@ -140,9 +140,15 @@ class DispatchRBAC:
         auth_manager:
             An AuthManager instance (or any object with a ``credentials``
             dict attribute mapping usernames to ``{"role": str, ...}``).
-            If None, all operations are allowed (open mode).
+            If None, behavior depends on ``fail_closed``.
+        fail_closed:
+            If True and ``auth_manager`` is None, all operations are
+            **denied** (fail-closed, production-safe). If False (default)
+            and ``auth_manager`` is None, all operations are allowed
+            (open mode, development-friendly). Aligns with HC-1 spirit.
         """
         self._auth = auth_manager
+        self._fail_closed = fail_closed
 
     def check_dispatch_permission(
         self,
@@ -167,8 +173,20 @@ class DispatchRBAC:
             The decision with reason. If ``auth_manager`` is None,
             always returns ``allowed=True``.
         """
-        # Open mode: no AuthManager configured → allow all.
+        # No AuthManager configured: behavior depends on fail_closed flag.
         if self._auth is None:
+            if self._fail_closed:
+                logger.warning(
+                    "DispatchRBAC running in FAIL-CLOSED mode (no AuthManager "
+                    "configured) — all operations DENIED (HC-1 alignment)"
+                )
+                return PermissionResult(
+                    allowed=False,
+                    reason="No RBAC configured (fail-closed mode denies all)",
+                    user_id=user_id,
+                    requested_roles=list(roles),
+                    requested_mode=mode,
+                )
             logger.warning(
                 "DispatchRBAC running in OPEN mode (no AuthManager configured) "
                 "— all operations allowed"

@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 
+from .consensus_gate import ConsensusGateResult
 from .dispatch_steps_base import PostDispatchBase
 
 logger = logging.getLogger(__name__)
@@ -87,7 +88,7 @@ class PostDispatchConsensusMixin(PostDispatchBase):
         self,
         task_description: str,
         worker_results: list[dict[str, Any]],
-    ) -> Any | None:
+    ) -> ConsensusGateResult:
         """Step 15.5: Pre-decision consensus gate (HC-2).
 
         Uses ConsensusGate to run ConsensusEngine as a *pre-decision*
@@ -95,8 +96,10 @@ class PostDispatchConsensusMixin(PostDispatchBase):
         resolver — it evaluates whether worker outputs collectively meet
         consensus before committing the final result.
 
-        Returns ``None`` when the gate is unavailable (graceful
-        degradation that never blocks dispatch).
+        HC-3: Always returns a ConsensusGateResult (never None).
+        On infrastructure error, returns a fail-soft result with
+        ``approved=True, needs_review=True`` — the result is flagged
+        for human review rather than silently failing open.
         """
         try:
             from .consensus_gate import ConsensusGate
@@ -105,7 +108,13 @@ class PostDispatchConsensusMixin(PostDispatchBase):
             engine = getattr(self.dispatcher, "consensus_engine", None)
             if engine is None:
                 logger.debug("ConsensusGate skipped: no consensus_engine available")
-                return None
+                return ConsensusGateResult(
+                    approved=True,
+                    outcome="SKIPPED",
+                    reason="No consensus_engine available (safe degradation)",
+                    consensus_record=None,
+                    needs_review=True,
+                )
 
             gate = ConsensusGate()
             result = gate.check(
@@ -123,5 +132,13 @@ class PostDispatchConsensusMixin(PostDispatchBase):
             )
             return result
         except (ImportError, AttributeError, ValueError, RuntimeError) as cg_err:
-            logger.warning("ConsensusGate failed: %s", cg_err)
-            return None
+            logger.warning("ConsensusGate failed (safe degradation, HC-3): %s", cg_err)
+            # HC-3: Never return None (would be fail-open). Return a
+            # fail-soft result flagging needs_review for human oversight.
+            return ConsensusGateResult(
+                approved=True,
+                outcome="ERROR",
+                reason=f"ConsensusGate infrastructure error: {cg_err}",
+                consensus_record=None,
+                needs_review=True,
+            )

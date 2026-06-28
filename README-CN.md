@@ -229,7 +229,7 @@ result = skill.scan_input("DROP TABLE users; --")
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-org/devsquad.git
+git clone https://github.com/lulin70/DevSquad.git
 cd devsquad
 
 # 创建虚拟环境（推荐）
@@ -262,7 +262,7 @@ python scripts/cli.py dispatch -t "测试任务"
 | P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **总计** | **2115+** | **100%** |
+| **总计** | **2703+** | **100%** |
 
 ---
 

@@ -32,7 +32,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
          → [ConsensusEngine 共识决策] → [ReportFormatter 报告生成] → [结构化报告]
 ```
 
-## 架构概览（70+ 核心模块）
+## 架构概览（118+ 核心模块）
 
 | # | 模块 | 文件 | 职责 |
 |---|------|------|------|
@@ -203,7 +203,7 @@ for name, skill in all_skills.items():
 
 ---
 
-## 🔄 控制论增强（V3.6.1）
+## 🔄 控制论增强（V3.7.2）
 
 > 灵感源自上游 TraeMultiAgentSkill v2.5 的控制论架构。
 > 5 个新模块，为 DevSquad 增加反馈循环、执行守卫和智能能力。
@@ -877,7 +877,7 @@ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→
 | **P1-3 OutputSlicer** | **26** | **✅ PASS** |
 | **P1-4 FiveAxisConsensusEngine** | **29** | **✅ PASS** |
 | **P1-5 CIFeedbackAdapter** | **22** | **✅ PASS** |
-| **总计** | **2115+** | **✅ 全部通过** |
+| **总计** | **2703+** | **✅ 全部通过** |
 
 ---
 

@@ -229,7 +229,7 @@ result = skill.scan_input("DROP TABLE users; --")
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/your-org/devsquad.git
+git clone https://github.com/lulin70/DevSquad.git
 cd devsquad
 
 # 仮想環境を作成（推奨）

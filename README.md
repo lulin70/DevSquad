@@ -64,7 +64,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
 | 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [70+ 模块详细参考](SKILL.md)
+📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [118+ 模块详细参考](SKILL.md)
 
 ---
 
@@ -147,7 +147,7 @@ print(result.consensus)
 
 ## 🏗️ Five Capability Domains (Architecture Overview)
 
-DevSquad's 70+ modules are organized into **5 capability domains**, each solving a specific problem:
+DevSquad's 118+ modules are organized into **5 capability domains**, each solving a specific problem:
 
 ### 🎯 Domain 1: Task Orchestration Engine (Core)
 
@@ -501,7 +501,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (2115+ tests passing)
+# Run all tests (2703+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -518,7 +518,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 2115+ tests**
+**Total: 2703+ tests**
 
 Run by priority:
 ```bash
@@ -539,7 +539,7 @@ python3 -m pytest tests/ -q --tb=line
 | Document | Description | Language |
 |----------|-------------|----------|
 | [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30 秒快速入门指南（推荐新用户）** | 中文 |
-| [SKILL.md](SKILL.md) | 完整技能手册 + 70+ 模块参考 | EN/CN/JP |
+| [SKILL.md](SKILL.md) | 完整技能手册 + 118+ 模块参考 | EN/CN/JP |
 | [GUIDE.md](GUIDE.md) | 完全用户指南 | 中文 |
 | [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
 | [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |

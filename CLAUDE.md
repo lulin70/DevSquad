@@ -8,7 +8,7 @@
 
 **6 Sub-Skills** (Layered Architecture): DispatchSkill (7-role orchestration), IntentSkill (6 intents × 3 languages), ReviewSkill (5-axis code review), SecuritySkill (input scan + op classify), TestSkill (test strategy + quality audit), RetrospectiveSkill (post-dispatch pattern extraction).
 
-**Test Coverage**: 2115+ tests all passing (100% unit + 100% E2E).
+**Test Coverage**: 2703+ tests all passing (100% unit + 100% E2E).
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 **Enterprise Features**: RBAC (15+ permissions), Audit Log (SHA256), Multi-Tenancy (3 isolation levels), Prometheus Monitoring (12 metrics).
 
@@ -192,7 +192,7 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Full test suite (2115+ tests)
+# Full test suite (2703+ tests)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \

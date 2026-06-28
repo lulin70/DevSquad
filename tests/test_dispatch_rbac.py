@@ -85,6 +85,45 @@ class TestDispatchRBACOpenMode(unittest.TestCase):
         self.assertEqual(result.requested_mode, "parallel")
 
 
+class TestDispatchRBACFailClosedMode(unittest.TestCase):
+    """Fail-closed mode — no AuthManager configured, all operations DENIED.
+
+    P1-2 fix (HC-1 alignment): when ``fail_closed=True`` and no AuthManager
+    is configured, DispatchRBAC denies all operations instead of allowing
+    them. This is the production-safe default.
+    """
+
+    def setUp(self) -> None:
+        self.rbac = DispatchRBAC(fail_closed=True)  # No auth_manager, fail-closed.
+
+    def test_fail_closed_denies_any_user(self) -> None:
+        """Verify: fail-closed mode denies any user when no AuthManager."""
+        result = self.rbac.check_dispatch_permission("anyone", ["architect"], "auto")
+        self.assertFalse(result.allowed)
+        self.assertIn("fail-closed", result.reason)
+
+    def test_fail_closed_denies_any_role_and_mode(self) -> None:
+        """Verify: fail-closed mode denies any role/mode combination."""
+        result = self.rbac.check_dispatch_permission(
+            "u1", ["security", "coder"], "consensus"
+        )
+        self.assertFalse(result.allowed)
+
+    def test_fail_closed_preserves_request_fields(self) -> None:
+        """Verify: PermissionResult still echoes request fields in fail-closed mode."""
+        result = self.rbac.check_dispatch_permission("u1", ["architect"], "parallel")
+        self.assertFalse(result.allowed)
+        self.assertEqual(result.user_id, "u1")
+        self.assertEqual(result.requested_roles, ["architect"])
+        self.assertEqual(result.requested_mode, "parallel")
+
+    def test_fail_closed_default_is_false(self) -> None:
+        """Verify: DispatchRBAC defaults to open mode (fail_closed=False)."""
+        rbac = DispatchRBAC()  # No fail_closed arg.
+        result = rbac.check_dispatch_permission("u1", ["architect"], "auto")
+        self.assertTrue(result.allowed)  # Open mode allows all.
+
+
 class TestDispatchRBACAdminRole(unittest.TestCase):
     """Admin role — all roles and modes permitted."""
 

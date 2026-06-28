@@ -201,7 +201,7 @@ devsquad ship "部署和发布检查"
 
 ### 质量保障
 - ✅ **E2E Test Suite**: 16 个用户旅程测试用例，100% 通过率
-- ✅ **2115+ Tests Passing**: 覆盖所有核心模块
+- ✅ **2703+ Tests Passing**: 覆盖所有核心模块
 - ✅ **65% Maturity Score (honest assessment)**: 企业级成熟度评分
 
 </details>
@@ -225,7 +225,7 @@ devsquad ship "部署和发布检查"
 | 文档 | 适用人群 | 内容深度 |
 |------|---------|---------|
 | [README.md](README.md) | 所有用户 | 完整功能介绍 + 架构详解 |
-| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 70+ 模块参考 |
+| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 118+ 模块参考 |
 | [docs/i18n/SKILL_CN.md](docs/i18n/SKILL_CN.md) | 中文用户 | 中文版技能手册 |
 | [docs/PRD.md](docs/PRD.md) | 产品经理 | 产品需求文档 |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构师 | 技术架构文档 |

@@ -494,7 +494,7 @@ workflow.add_conditional_edges("start", check_amount)
 | **维护者** | Community | Microsoft | João Moura | LangChain |
 | **发布频率** | Active | Active | Very Active | Active |
 | **文档质量** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **测试覆盖** | 2115 tests | Good | Basic | Good |
+| **测试覆盖** | 2703+ tests | Good | Basic | Good |
 | **企业采用** | Emerging | Growing | Growing | Rapidly Growing |
 | **生产就绪** | ✅ Enterprise | ⚠️ Beta | ⚠️ Beta | ✅ Production |
 
