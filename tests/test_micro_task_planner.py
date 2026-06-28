@@ -313,7 +313,7 @@ class TestDependencyDAGValidation(unittest.TestCase):
         ]
         cycle = planner._detect_cycle(micro_tasks)
         self.assertIsNotNone(cycle)
-        self.assertTrue(len(cycle) >= 2)
+        self.assertGreaterEqual(len(cycle), 2)
 
     def test_detect_cycle_no_cycle_returns_none(self) -> None:
         planner = MicroTaskPlanner()
@@ -543,12 +543,13 @@ class TestIntegrationWithDispatcher(unittest.TestCase):
 
     def test_dispatcher_accepts_micro_task_planner_parameter(self) -> None:
         """Integration with dispatcher — accepts micro_task_planner parameter."""
+        import inspect
+
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
-        planner = MicroTaskPlanner()
+
         # We can't easily construct a full dispatcher (too many deps),
         # but we can verify the parameter is accepted by inspecting
         # the __init__ signature.
-        import inspect
         sig = inspect.signature(MultiAgentDispatcher.__init__)
         self.assertIn("micro_task_planner", sig.parameters)
 

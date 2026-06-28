@@ -156,3 +156,6 @@ install.sh
 .mypy_cache/
 .ruff_cache/
 completions_cache.json
+
+# --- PDF documents (process docs, not tracked) ---
+*.pdf

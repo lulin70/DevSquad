@@ -289,7 +289,10 @@ async def startup_event():
     logger.info("  ✅ Metrics routes registered")
     logger.info("  ✅ Task Dispatch routes registered (NEW)")
     logger.info("  ✅ Prometheus /metrics endpoint registered (NEW)")
-    logger.info("  ✅ CORS middleware enabled (wildcard)")
+    if _cors_origins_str:
+        logger.info("  ✅ CORS middleware enabled (explicit: %d origins from DEVSQUAD_CORS_ORIGINS)", len(allowed_origins))
+    else:
+        logger.info("  ✅ CORS middleware enabled (dev defaults: %d localhost origins)", len(allowed_origins))
     logger.info("  ⏱️  Request timing enabled")
     logger.info("Security:")
     if sec_status.get("auth_enabled"):
