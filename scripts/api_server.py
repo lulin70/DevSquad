@@ -50,6 +50,7 @@ from scripts.api.routes.dispatch import router as dispatch_router
 from scripts.api.routes.lifecycle import router as lifecycle_router
 from scripts.api.routes.metrics import router as prometheus_router
 from scripts.api.routes.metrics_gates import router as metrics_router
+from scripts.collaboration._version import __version__ as DEVSQUAD_VERSION
 
 # Configure logging
 logging.basicConfig(
@@ -63,8 +64,8 @@ logger = logging.getLogger(__name__)
 # Create FastAPI application
 app = FastAPI(
     title="DevSquad API",
-    description="""
-    ## DevSquad V3.7.0 REST API
+    description=f"""
+    ## DevSquad V{DEVSQUAD_VERSION} REST API
 
     Production-ready API for DevSquad multi-agent collaboration.
 
@@ -87,10 +88,10 @@ app = FastAPI(
 
     ---
 
-    **Version**: 3.9.2
+    **Version**: {DEVSQUAD_VERSION}
     **Base URL**: `/api/v1`
     """,
-    version="3.9.2",
+    version=DEVSQUAD_VERSION,
     docs_url="/docs",  # Swagger UI
     redoc_url="/redoc",  # ReDoc
     openapi_url="/openapi.json",  # OpenAPI spec
@@ -235,7 +236,7 @@ async def root():
     """
     return {
         "name": "DevSquad API",
-        "version": "3.7.0",
+        "version": DEVSQUAD_VERSION,
         "description": "Production REST API for DevSquad multi-agent collaboration",
         "documentation": {"swagger_ui": "/docs", "redoc": "/redoc", "openapi_spec": "/openapi.json"},
         "endpoints": {
@@ -281,7 +282,7 @@ async def startup_event():
     logger.info("=" * 60)
     logger.info("🚀 DevSquad API Server Starting...")
     logger.info("=" * 60)
-    logger.info("Version: 3.7.0")
+    logger.info("Version: %s", DEVSQUAD_VERSION)
     logger.info("Time: %s", datetime.now().isoformat())
     logger.info("Components:")
     logger.info("  ✅ FastAPI initialized")
@@ -351,9 +352,9 @@ async def shutdown_event():
 if __name__ == "__main__":
     import uvicorn
 
-    print("""
+    print(f"""
 ╔══════════════════════════════════════════════════════╗
-║          🚀 DevSquad API Server v3.7.0           ║
+║          🚀 DevSquad API Server v{DEVSQUAD_VERSION}           ║
 ╠══════════════════════════════════════════════════════╣
 ║  Starting server...                                   ║
 ║                                                       ║

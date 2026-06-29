@@ -77,13 +77,14 @@ echo ""
 echo -e "${BLUE}[2/4] 数据库初始化...${NC}"
 
 # 创建运行时目录（SQLite + checkpoints + data）
+# Note: CheckpointManager creates checkpoints/ and handoffs/ subdirs itself,
+# so we only create the base directories here (avoids nested checkpoints/checkpoints).
 RUNTIME_DIRS=(
     "$PROJECT_ROOT/data"
     "$PROJECT_ROOT/data/memory-bank"
     "$PROJECT_ROOT/data/role_templates"
     "$PROJECT_ROOT/checkpoints"
-    "$PROJECT_ROOT/checkpoints/checkpoints"
-    "$PROJECT_ROOT/checkpoints/handoffs"
+    "$PROJECT_ROOT/handoffs"
     "$PROJECT_ROOT/.devsquad_data"
 )
 

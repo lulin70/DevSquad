@@ -358,6 +358,69 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         """
         return helpers.resolve_command_to_phase_definitions(command)
 
+    def check_command_gate(self, command: str) -> GateResult:
+        """Aggregate gate check across all phases covered by a CLI command.
+
+        Resolves ``command`` to its covered phases (e.g. "build" →
+        implementation / verification phases) and runs :meth:`check_gate`
+        against each. The aggregate verdict is REJECT if any phase is
+        rejected, CONDITIONAL if any phase is conditional (and none
+        rejected), otherwise APPROVE.
+
+        Args:
+            command: CLI command name (spec/plan/build/test/review/ship).
+
+        Returns:
+            GateResult with aggregated passed flag, verdict, red_flags,
+            missing_evidence and gap_report across all covered phases.
+            Unknown commands return a REJECT result.
+        """
+        phases = self.resolve_command_to_phases(command)
+        if not phases:
+            return GateResult(
+                passed=False,
+                verdict="REJECT",
+                gap_report=f"Unknown command: {command}",
+            )
+
+        aggregate_red_flags: list[dict[str, Any]] = []
+        aggregate_missing: list[dict[str, Any]] = []
+        gap_lines: list[str] = []
+        any_rejected = False
+        any_conditional = False
+
+        for phase in phases:
+            result = self.check_gate(phase.phase_id)
+            if result.red_flags:
+                aggregate_red_flags.extend(result.red_flags)
+            if result.missing_evidence:
+                aggregate_missing.extend(result.missing_evidence)
+            if not result.passed:
+                if result.verdict == "REJECT":
+                    any_rejected = True
+                elif result.verdict == "CONDITIONAL":
+                    any_conditional = True
+                if result.gap_report:
+                    gap_lines.append(f"[{phase.phase_id}] {result.gap_report}")
+
+        if any_rejected:
+            verdict = "REJECT"
+            passed = False
+        elif any_conditional:
+            verdict = "CONDITIONAL"
+            passed = False
+        else:
+            verdict = "APPROVE"
+            passed = True
+
+        return GateResult(
+            passed=passed,
+            verdict=verdict,
+            red_flags=aggregate_red_flags,
+            missing_evidence=aggregate_missing,
+            gap_report="; ".join(gap_lines) if gap_lines else "",
+        )
+
     def _get_current_mapping(self) -> ViewMapping | None:
         return helpers.find_current_mapping(self._current_phase)
 
