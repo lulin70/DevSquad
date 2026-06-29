@@ -78,7 +78,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         if not self._checkpoint_manager:
             self._checkpoint_manager = helpers.init_checkpoint_manager_for_task(task_id)
 
-    def enable_checkpoint_integration(self, storage_path: str = "./checkpoints") -> bool:
+    def enable_checkpoint_integration(self, storage_path: str = ".") -> bool:
         """
         Enable checkpoint manager integration for state persistence.
 
@@ -470,7 +470,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
         if not self._checkpoint_manager:
             self._checkpoint_manager = helpers.init_checkpoint_manager_for_task(task_id)
 
-    def enable_checkpoint_integration(self, storage_path: str = "./checkpoints") -> bool:
+    def enable_checkpoint_integration(self, storage_path: str = ".") -> bool:
         """Enable checkpoint manager integration for state persistence."""
         manager = helpers.create_checkpoint_manager(storage_path)
         if manager is not None:

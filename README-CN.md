@@ -56,6 +56,23 @@ python scripts/cli.py lifecycle build
 python scripts/cli.py lifecycle build --visual --verbose
 ```
 
+#### 4️⃣ 一键启动脚本（V3.9.2+）
+```bash
+# 一键启动 — 4 阶段：环境检查 → 数据库初始化 → 前端构建 → 服务启动
+./scripts/start.sh
+
+# 启动 Streamlit 仪表板（替代 API 服务器）
+./scripts/start.sh --dashboard
+
+# 覆盖 API 端口
+DEVSQUAD_API_PORT=9000 ./scripts/start.sh
+
+# 查看帮助
+./scripts/start.sh --help
+```
+
+`start.sh` 是 V3.9.2（P0-2）引入的统一入口脚本，一条命令完成环境校验、数据库初始化、前端构建和服务启动。配合 `requirements.lock` 可实现可复现构建（`pip install -r requirements.lock`）。
+
 ---
 
 ## 🏗️ 架构概览

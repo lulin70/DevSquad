@@ -77,9 +77,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 ---
 
-## ⚡ Quick Start (4 Ways to Use DevSquad)
+## ⚡ Quick Start (5 Ways to Use DevSquad)
 
-### 方式 1：命令行（推荐新手）
+### Method 1: CLI (Recommended for Beginners)
 
 ```bash
 # Interactive setup wizard (1-2 minutes)
@@ -89,7 +89,7 @@ python scripts/cli.py init
 devsquad dispatch -t "your task description"
 ```
 
-### 方式 2：Web Dashboard（推荐团队）
+### Method 2: Web Dashboard (Recommended for Teams)
 
 ```bash
 # Start Streamlit dashboard with authentication
@@ -100,7 +100,7 @@ streamlit run scripts/dashboard.py
 # Username: admin   Password: <your-secure-password>
 ```
 
-### 方式 3：REST API（推荐集成）
+### Method 3: REST API (Recommended for Integration)
 
 ```bash
 # Install dependencies
@@ -113,7 +113,7 @@ uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
 # Access ReDoc:      http://localhost:8000/redoc
 ```
 
-### 方式 4：Python API（推荐开发者）
+### Method 4: Python API (Recommended for Developers)
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -126,6 +126,24 @@ result = dispatcher.dispatch(
 print(result.report)
 print(result.consensus)
 ```
+
+### Method 5: One-Click Startup Script (V3.9.2+)
+
+```bash
+# One-click startup — 4 phases: env check → DB init → frontend build → service start
+./scripts/start.sh
+
+# Launch Streamlit dashboard instead of API server
+./scripts/start.sh --dashboard
+
+# Override API port
+DEVSQUAD_API_PORT=9000 ./scripts/start.sh
+
+# Show help
+./scripts/start.sh --help
+```
+
+`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`).
 
 ---
 

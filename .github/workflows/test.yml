@@ -111,6 +111,22 @@ jobs:
         run: ruff check scripts/ skills/ --ignore=E501,W291
       - name: Type check (blocking since V3.9.1)
         run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary
+      # Baseline mode: track scripts/ full mypy errors without blocking CI.
+      # Purpose: prevent type regressions in scripts/auth.py and scripts/api/
+      # (P2-3) while allowing gradual migration. Baseline=115 (V3.9.1 snapshot).
+      # Fails only if error count INCREASES; decreases are welcomed.
+      # Target: V3.10.0 reduce to <50 errors.
+      - name: Type check scripts/ full (baseline, non-blocking)
+        continue-on-error: true
+        run: |
+          mypy scripts/ --ignore-missing-imports --no-error-summary 2>&1 | tee /tmp/mypy_full.log
+          error_count=$(grep -c "error:" /tmp/mypy_full.log || echo "0")
+          baseline=115
+          if [ "$error_count" -gt "$baseline" ]; then
+            echo "ERROR: mypy errors increased from $baseline to $error_count"
+            exit 1
+          fi
+          echo "OK: mypy errors $error_count <= baseline $baseline"
       - name: Version consistency check (added in P2-6)
         run: python scripts/check_version_consistency.py
 

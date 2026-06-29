@@ -96,5 +96,8 @@ class WorkflowEngine(
 
         self.coordinator = coordinator
         self.dispatcher = dispatcher
-        self.checkpoint_manager = CheckpointManager(storage_path=str(self.storage_path / "checkpoints"))
+        # Pass the base storage_path; CheckpointManager creates the
+        # checkpoints/ and handoffs/ subdirs itself (avoids nesting like
+        # workflows/checkpoints/checkpoints).
+        self.checkpoint_manager = CheckpointManager(storage_path=str(self.storage_path))
         self.checkpoint_interval = 2

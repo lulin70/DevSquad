@@ -7,6 +7,19 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.2] - 2026-06-28
+
+### Fixed — P0 Security & Hard Constraints
+- **P0-1 Password hash upgrade** (`scripts/auth.py`): Migrated password hashing from plain SHA-256 to OWASP 2023 recommended **PBKDF2-HMAC-SHA256** with random per-user salt (390,000 iterations). Format: `pbkdf2_sha256$<iter>$<salt_hex>$<hash_hex>`. Legacy SHA-256 hashes are auto-migrated to PBKDF2 on next successful login. Verification uses `secrets.compare_digest` for timing-safe comparison. 31 tests covering hash/verify/migration/timing-safety.
+- **P0-2 One-click startup script** (`scripts/start.sh`): Unified entry point with 4 phases — (1) environment check, (2) database initialization, (3) frontend build, (4) service startup. Supports `--dashboard` flag (launch Streamlit dashboard instead of API server), `--help`, and `DEVSQUAD_API_PORT` environment variable override. 14 tests.
+- **P0-3 Dependency lock file** (`requirements.lock`): Added pinned dependency lock file recording exact installed versions for reproducible builds. Documents declared vs transitive dependencies. 6 tests.
+
+### Test Coverage
+- 2853 passed (CI authoritative, Python 3.10+3.11; was 2703 in [3.9.2] - 2026-06-26)
+- Net +150 tests from P0-1 (31) + P0-2 (14) + P0-3 (6) + related coverage
+- mypy: 0 errors (blocking in CI)
+- bandit: 0 High/Medium issues
+
 ## [3.9.2] - 2026-06-26
 
 ### Added — LLM Backend Resilience

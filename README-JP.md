@@ -56,6 +56,23 @@ python scripts/cli.py lifecycle build
 python scripts/cli.py lifecycle build --visual --verbose
 ```
 
+#### 4️⃣ ワンクリック起動スクリプト（V3.9.2+）
+```bash
+# ワンクリック起動 — 4フェーズ：環境チェック → DB初期化 → フロントエンド構築 → サービス起動
+./scripts/start.sh
+
+# APIサーバーの代わりにStreamlitダッシュボードを起動
+./scripts/start.sh --dashboard
+
+# APIポートを上書き
+DEVSQUAD_API_PORT=9000 ./scripts/start.sh
+
+# ヘルプを表示
+./scripts/start.sh --help
+```
+
+`start.sh`はV3.9.2（P0-2）で導入された統合エントリポイントです。環境チェック、データベース初期化、フロントエンド構築、サービス起動を1コマンドで実行します。`requirements.lock`と組み合わせて再現可能なビルドを実現できます（`pip install -r requirements.lock`）。
+
 ---
 
 ## 🏗️ アーキテクチャ概要

@@ -131,7 +131,6 @@ docs/OPTIMIZATION_*.md
 docs/REVIEW_CONSENSUS_*.md
 docs/TEAM_CONSENSUS_*.md
 docs/NEXT_STEPS_CONSENSUS.md
-docs/PROJECT_STATUS.md
 docs/RELEASE_SUMMARY.md
 docs/KARPATHY_PRINCIPLES_INSIGHTS.md
 docs/INDEX.md
@@ -148,6 +147,10 @@ install.sh
 :memory:
 :memory:-shm
 :memory:-wal
+
+# --- Runtime directories (created by CheckpointManager/WorkflowEngine) ---
+/checkpoints/
+/handoffs/
 
 # --- Additional Patterns ---
 .eggs/

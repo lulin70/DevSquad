@@ -435,6 +435,24 @@ result = quick_collaborate("Help me design a microservice architecture")
 print(result.to_markdown())
 ```
 
+### Method 5: One-Click Startup Script (V3.9.2+)
+
+```bash
+# One-click startup — runs 4 phases: env check → DB init → frontend build → service start
+./scripts/start.sh
+
+# Launch Streamlit dashboard instead of API server
+./scripts/start.sh --dashboard
+
+# Override API port
+DEVSQUAD_API_PORT=9000 ./scripts/start.sh
+
+# Show help
+./scripts/start.sh --help
+```
+
+`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`).
+
 ---
 
 ## Role System (7 Core Roles)

@@ -15,20 +15,22 @@ Phase 5: Auth 认证模块覆盖率提升测试
 import os
 import sys
 import tempfile
-import unittest
 from datetime import datetime
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import patch
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from scripts.auth import (
+from scripts.auth import (  # noqa: E402
     AuthManager,
     User,
     UserRole,
-    require_auth,
-    check_permission,
+)
+
+# SHA-256 of "password" — legacy hash reused across migration tests.
+LEGACY_SHA256_PASSWORD = (
+    "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
 )
 
 
@@ -92,7 +94,7 @@ class TestPasswordVerification:
         """_verify_password accepts legacy 64-char SHA-256 for migration."""
         auth = AuthManager(config_path=None)
         # SHA-256 of "password" = 5e884898...
-        legacy = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+        legacy = LEGACY_SHA256_PASSWORD
         assert auth._verify_password("password", legacy) is True
         assert auth._verify_password("wrong", legacy) is False
 
@@ -104,7 +106,9 @@ class TestPasswordVerification:
     def test_verify_malformed_pbkdf2_hash(self):
         """_verify_password rejects malformed pbkdf2 hash."""
         auth = AuthManager(config_path=None)
-        assert auth._verify_password("x", "pbkdf2_sha256$abc$not_hex$alsobad") is False
+        assert auth._verify_password(
+            "x", "pbkdf2_sha256$abc$not_hex$alsobad"
+        ) is False
         assert auth._verify_password("x", "pbkdf2_sha256$1000$") is False
 
     def test_verify_non_hex_legacy_hash(self):
@@ -122,7 +126,7 @@ class TestPasswordMigration:
     def test_needs_upgrade_legacy_sha256(self):
         """Legacy 64-char hex hash needs upgrade."""
         auth = AuthManager(config_path=None)
-        legacy = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+        legacy = LEGACY_SHA256_PASSWORD
         assert auth._needs_password_upgrade(legacy) is True
 
     def test_needs_upgrade_new_pbkdf2(self):
@@ -139,13 +143,13 @@ class TestPasswordMigration:
     def test_verify_credentials_upgrades_legacy_hash(self, tmp_path):
         """Successful login with legacy hash upgrades to pbkdf2 in memory."""
         config_path = tmp_path / "deployment.yaml"
-        config_content = """
+        config_content = f"""
 authentication:
   enabled: true
   credentials:
     usernames:
       admin:
-        password: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+        password: {LEGACY_SHA256_PASSWORD}
         email: admin@devsquad.test
         name: Administrator
         role: admin
@@ -200,13 +204,13 @@ class TestUserCredentialVerification:
         """Create AuthManager with test credentials using temp config."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "deployment.yaml")
-            config_content = """
+            config_content = f"""
 authentication:
   enabled: true
   credentials:
     usernames:
       admin:
-        password: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+        password: {LEGACY_SHA256_PASSWORD}
         email: admin@devsquad.test
         name: Administrator
         role: admin
@@ -224,24 +228,32 @@ authentication:
 
     def test_verify_valid_credentials(self, auth_manager_with_credentials):
         """Test verification of valid credentials."""
-        user = auth_manager_with_credentials.verify_credentials("admin", "password")
+        user = auth_manager_with_credentials.verify_credentials(
+            "admin", "password"
+        )
         assert user is not None
         assert user.username == "admin"
         assert user.role == UserRole.ADMIN
 
     def test_verify_invalid_password(self, auth_manager_with_credentials):
         """Test verification fails with wrong password."""
-        user = auth_manager_with_credentials.verify_credentials("admin", "wrong_password")
+        user = auth_manager_with_credentials.verify_credentials(
+            "admin", "wrong_password"
+        )
         assert user is None
 
     def test_verify_unknown_user(self, auth_manager_with_credentials):
         """Test verification fails for unknown username."""
-        user = auth_manager_with_credentials.verify_credentials("nonexistent", "password")
+        user = auth_manager_with_credentials.verify_credentials(
+            "nonexistent", "password"
+        )
         assert user is None
 
     def test_verify_returns_user_object(self, auth_manager_with_credentials):
         """Test that successful verification returns proper User object."""
-        user = auth_manager_with_credentials.verify_credentials("admin", "password")
+        user = auth_manager_with_credentials.verify_credentials(
+            "admin", "password"
+        )
         assert isinstance(user, User)
         assert user.email == "admin@devsquad.test"
         assert user.name == "Administrator"
@@ -363,9 +375,10 @@ class TestAuthManagerConfigLoading:
         assert auth.config == {}
 
     def test_auth_disabled_by_default(self):
-        """Test authentication disabled when config file missing or has no auth section."""
-        # Use a non-existent path to test "no config file" behavior
-        # Note: config_path=None will fallback to default deployment.yaml which may exist
+        """Auth disabled when config missing or has no auth section."""
+        # Use a non-existent path to test "no config file" behavior.
+        # Note: config_path=None falls back to default deployment.yaml
+        # which may exist.
         auth = AuthManager(config_path="/nonexistent/path/config.yaml")
         assert auth.auth_enabled is False
 
@@ -407,7 +420,7 @@ authentication:
                 f.write(config_content)
 
             with patch('scripts.auth.logger') as mock_logger:
-                auth = AuthManager(config_path=config_path)
+                AuthManager(config_path=config_path)
                 mock_logger.warning.assert_called()
 
     def test_detect_default_session_key(self):
@@ -424,10 +437,15 @@ authentication:
                 f.write(config_content)
 
             with patch('scripts.auth.logger') as mock_logger:
-                auth = AuthManager(config_path=config_path)
-                warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
-                assert any("default session key" in w.lower() or "session key" in w.lower()
-                          for w in warning_calls)
+                AuthManager(config_path=config_path)
+                warning_calls = [
+                    str(call) for call in mock_logger.warning.call_args_list
+                ]
+                assert any(
+                    ("default session key" in w.lower()
+                     or "session key" in w.lower())
+                    for w in warning_calls
+                )
 
 
 class TestSessionManagement:
@@ -437,13 +455,13 @@ class TestSessionManagement:
         """Test that session IDs are generated correctly."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "deployment.yaml")
-            config_content = """
+            config_content = f"""
 authentication:
   enabled: true
   credentials:
     usernames:
       testuser:
-        password: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+        password: {LEGACY_SHA256_PASSWORD}
         role: viewer
 """
             with open(config_path, "w") as f:
@@ -454,7 +472,7 @@ authentication:
             user2 = auth.verify_credentials("testuser", "password")
 
             assert user1.session_id != user2.session_id
-            assert len(user1.session_id) == 32  # secrets.token_hex(16) = 32 chars
+            assert len(user1.session_id) == 32  # token_hex(16) = 32 chars
             assert len(user2.session_id) == 32
 
 

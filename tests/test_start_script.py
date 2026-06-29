@@ -17,7 +17,6 @@ Verifies:
 
 import os
 import subprocess
-import sys
 import unittest
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,13 +32,17 @@ class TestStartScriptExists:
 
     def test_script_is_executable(self):
         """start.sh must be executable."""
-        assert os.access(SCRIPT_PATH, os.X_OK), f"Not executable: {SCRIPT_PATH}"
+        assert os.access(SCRIPT_PATH, os.X_OK), (
+            f"Not executable: {SCRIPT_PATH}"
+        )
 
     def test_script_has_shebang(self):
         """start.sh must have bash shebang."""
         with open(SCRIPT_PATH) as f:
             first_line = f.readline()
-        assert first_line.startswith("#!/bin/bash"), f"Bad shebang: {first_line}"
+        assert first_line.startswith("#!/bin/bash"), (
+            f"Bad shebang: {first_line}"
+        )
 
 
 class TestStartScriptSyntax:
@@ -95,7 +98,9 @@ class TestStartScriptPhases:
             content = f.read()
         phase_markers = ["[1/4]", "[2/4]", "[3/4]", "[4/4]"]
         positions = [content.find(m) for m in phase_markers]
-        assert all(p >= 0 for p in positions), f"Missing phase marker: {phase_markers}"
+        assert all(p >= 0 for p in positions), (
+            f"Missing phase marker: {phase_markers}"
+        )
         assert positions == sorted(positions), "Phases out of order"
 
 

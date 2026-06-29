@@ -106,11 +106,13 @@ def init_checkpoint_manager_for_task(task_id: str) -> Any:
         return None
 
 
-def create_checkpoint_manager(storage_path: str = "./checkpoints") -> Any:
+def create_checkpoint_manager(storage_path: str = ".") -> Any:
     """Create a CheckpointManager at the given storage path.
 
     Args:
-        storage_path: Path for storing checkpoints and lifecycle state.
+        storage_path: Base directory under which checkpoints/ and handoffs/
+            subdirs are created. Callers must NOT pass a path already ending
+            in "checkpoints" (nested duplicates would be created).
 
     Returns:
         A CheckpointManager instance, or None if unavailable.

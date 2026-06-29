@@ -163,7 +163,11 @@ class CheckpointManager:
     5. Expired checkpoint auto-cleanup
     """
 
-    def __init__(self, storage_path: str = "./checkpoints"):
+    def __init__(self, storage_path: str = "."):
+        # storage_path is the BASE directory; checkpoints/, handoffs/, and
+        # lifecycle/ subdirs are created under it. Callers must NOT pass a
+        # path already ending in "checkpoints" (e.g. "./checkpoints") or
+        # nested duplicates like ./checkpoints/checkpoints will be created.
         self.storage_path = Path(storage_path)
         self.checkpoints_dir = self.storage_path / "checkpoints"
         self.handoffs_dir = self.storage_path / "handoffs"

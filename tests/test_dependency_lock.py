@@ -35,8 +35,8 @@ class TestDependencyLockContent:
         """Lock file must contain at least one == locked version."""
         with open(LOCK_PATH) as f:
             content = f.read()
-        locked_lines = [l for l in content.splitlines()
-                        if l and not l.startswith("#") and "==" in l]
+        locked_lines = [line for line in content.splitlines()
+                        if line and not line.startswith("#") and "==" in line]
         assert len(locked_lines) >= 1, "No locked (==) versions found"
 
     def test_pyyaml_locked(self):
@@ -47,7 +47,7 @@ class TestDependencyLockContent:
         assert "pyyaml" in content.lower()
 
     def test_documents_optional_dependencies(self):
-        """Lock file must document optional dependencies (api/visualization/dev)."""
+        """Lock file must document optional deps (api/visualization/dev)."""
         with open(LOCK_PATH) as f:
             content = f.read()
         # Must mention key optional deps
