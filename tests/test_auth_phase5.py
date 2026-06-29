@@ -447,6 +447,84 @@ authentication:
                     for w in warning_calls
                 )
 
+    def test_detect_insecure_cookie_flags(self):
+        """Test detection of insecure cookie flags (secure/httponly/samesite)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = os.path.join(tmpdir, "deployment.yaml")
+            config_content = """
+authentication:
+  enabled: true
+  cookie:
+    key: a_very_secure_random_key_12345
+    secure: false
+    httponly: false
+    samesite: "None"
+"""
+            with open(config_path, "w") as f:
+                f.write(config_content)
+
+            with patch('scripts.auth.logger') as mock_logger:
+                AuthManager(config_path=config_path)
+                warning_calls = [
+                    str(call) for call in mock_logger.warning.call_args_list
+                ]
+                joined = " ".join(w.lower() for w in warning_calls)
+                assert "secure" in joined, f"Expected 'secure' warning, got: {warning_calls}"
+                assert "httponly" in joined, f"Expected 'httponly' warning, got: {warning_calls}"
+                assert "samesite" in joined, f"Expected 'samesite' warning, got: {warning_calls}"
+
+    def test_secure_cookie_flags_no_warning(self):
+        """Test that secure cookie flags produce no cookie-related warnings."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = os.path.join(tmpdir, "deployment.yaml")
+            config_content = """
+authentication:
+  enabled: true
+  cookie:
+    key: a_very_secure_random_key_12345
+    secure: true
+    httponly: true
+    samesite: "Strict"
+"""
+            with open(config_path, "w") as f:
+                f.write(config_content)
+
+            with patch('scripts.auth.logger') as mock_logger:
+                AuthManager(config_path=config_path)
+                warning_calls = [
+                    str(call) for call in mock_logger.warning.call_args_list
+                ]
+                joined = " ".join(w.lower() for w in warning_calls)
+                assert "secure" not in joined, f"Unexpected secure warning: {warning_calls}"
+                assert "httponly" not in joined, f"Unexpected httponly warning: {warning_calls}"
+                assert "samesite" not in joined, f"Unexpected samesite warning: {warning_calls}"
+
+    def test_invalid_samesite_value_warns(self):
+        """Test that invalid SameSite value triggers a warning."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = os.path.join(tmpdir, "deployment.yaml")
+            config_content = """
+authentication:
+  enabled: true
+  cookie:
+    key: a_very_secure_random_key_12345
+    secure: true
+    httponly: true
+    samesite: "Invalid"
+"""
+            with open(config_path, "w") as f:
+                f.write(config_content)
+
+            with patch('scripts.auth.logger') as mock_logger:
+                AuthManager(config_path=config_path)
+                warning_calls = [
+                    str(call) for call in mock_logger.warning.call_args_list
+                ]
+                joined = " ".join(w.lower() for w in warning_calls)
+                assert "invalid" in joined and "samesite" in joined, (
+                    f"Expected invalid samesite warning, got: {warning_calls}"
+                )
+
 
 class TestSessionManagement:
     """会话管理测试"""

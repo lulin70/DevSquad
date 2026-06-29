@@ -1,9 +1,9 @@
 # DevSquad 项目状态
 
 > **当前版本**: V3.9.2
-> **最后更新**: 2026-06-29
-> **最新评估**: 第六轮项目整理评估（综合 8.9/10, A-）— P0 RBAC fail-open 修复 + CI/CD 防护增强 + 文档三语对齐
-> **硬约束通过率**: 11/11（100%）
+> **最后更新**: 2026-06-30
+> **最新评估**: 第七轮发布链路修复（综合 9.1/10, A）— cookie 安全 + release.yml + .pre-commit + git tag
+> **硬约束通过率**: 13/13（100%）
 
 ---
 
@@ -34,11 +34,11 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元测试 | 2853 passed, 7 skipped | ✅ 全绿 |
+| 单元测试 | 2856 passed, 3 skipped | ✅ 全绿 |
 | E2E 用户旅程 | 16 passed | ✅ 全绿 |
 | 契约 + 集成 | 130 passed, 18 skipped | ✅ 全绿 |
 | 性能测试 | 85 passed | ✅ 全绿 |
-| **合计** | **2861 collected** | **0 failed** |
+| **合计** | **2864 collected** | **0 failed** |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
 
@@ -59,6 +59,8 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | 依赖锁文件 | ✅ PASS |
 | CI mypy 阻塞 | ✅ PASS |
 | E2E 模拟真实用户测试 | ✅ PASS |
+| release.yml 含 publish-pypi job | ✅ PASS (第七轮) |
+| git tag 作为发布触发器 | ✅ PASS (v3.9.2, 第七轮) |
 
 ---
 
@@ -99,22 +101,25 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 指标 | 当前值 | 目标 |
 |------|--------|------|
-| ruff | 1 error (F841) | 0 |
-| mypy (scripts/collaboration/) | 2 errors | 0 |
-| mypy (scripts/ 全量) | 115 errors (baseline) | <50 |
+| ruff | All checks passed | 0 |
+| mypy (scripts/collaboration/) | 0 errors | 0 |
+| mypy (scripts/ 全量) | 112 errors (baseline=115) | <50 |
 | bandit | 0 H/M, 49 L | 0 H/M |
 | flake8 (新测试文件) | 0 | 0 |
 | 版本一致性 | 15/15 | 15/15 |
+| pre-commit hooks | 已配置 (ruff + mypy + 版本一致性) | 已配置 |
 
 ---
 
 ## 9. 下一步计划
 
-1. **V3.9.3 发布**（E2E 测试已通过，可发布）
-   - ✅ 发布前 E2E 测试 5/5 全通过（详见 `docs/assessments/E2E_TEST_REPORT_V3.9.2.md`）
-   - ✅ 修复 3 个 E2E 发现的问题（check_command_gate 幽灵函数 + API 版本号不一致 + start.sh 嵌套目录）
+1. **V3.9.2 发布**（已就绪，待 git tag 推送触发 release.yml）
+   - ✅ 发布前 E2E 测试 5/5 全通过（第五轮）
+   - ✅ P0 RBAC fail-open 修复 + P1 require_auth 死代码删除（第六轮）
+   - ✅ cookie 安全配置 + release.yml + .pre-commit + git tag（第七轮）
+   - ⏳ 推送 v3.9.2 tag 触发 PyPI 发布
 2. **V3.10.0 规划**
-   - mypy 渐进式修复（115→<50）
+   - mypy 渐进式修复（112→<50）
    - Mixin 重构评估
    - bandit Low 告警收敛
 
@@ -129,5 +134,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | 第三轮 | 2026-06-28 | 8.0 | 9/11 | 文档同步 + fail-closed + 幽灵函数清理 |
 | 第四轮 | 2026-06-28 | 8.3 | 11/11 | P0 修复（密码哈希 + start.sh + 锁文件） |
 | 第五轮 | 2026-06-29 | 8.5 | 11/11 | P1-P2 修复（文档同步 + 空目录 + flake8 + CI mypy） + E2E 测试 5/5 全通过 |
+| 第六轮 | 2026-06-29 | 8.9 | 11/11 | P0 RBAC fail-open 修复 + P1 死代码 + CI timeout + 文档三语对齐 |
+| 第七轮 | 2026-06-30 | 9.1 | 13/13 | cookie 安全 + release.yml + .pre-commit + git tag + CI 僵尸配置清理 |
 
 评估报告路径: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`

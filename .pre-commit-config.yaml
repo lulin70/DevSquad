@@ -1,26 +1,60 @@
+# Pre-commit hooks for DevSquad
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+#
+# Mirrors CI checks in .github/workflows/test.yml (lint job) so that
+# locally-caught issues never reach CI. Fast hooks run first; slow mypy
+# runs last and only on staged files.
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
+    rev: v0.6.9
     hooks:
       - id: ruff
-        args: [--ignore=E501,W291]
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^(scripts|skills|tests)/.*\.py$
+        exclude: ^tests/manual/
       - id: ruff-format
-        args: [--line-length=120]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
-    hooks:
-      - id: mypy
-        args: [--ignore-missing-imports, --no-strict-optional]
-        files: ^scripts/collaboration/
-        exclude: ^scripts/collaboration/_archived/
+        files: ^(scripts|skills|tests)/.*\.py$
+        exclude: ^tests/manual/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: \.md$|^docs/
       - id: end-of-file-fixer
+        exclude: \.md$|^docs/
       - id: check-yaml
+        files: \.(yaml|yml)$
+        # deployment.yaml uses ${ENV_VAR} placeholders that are not template syntax
+        args: [--unsafe]
+      - id: check-toml
+      - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=500]
-      - id: check-merge-conflict
+      - id: debug-statements
+      - id: fix-encoding-pragma
+        args: [--remove]
+
+  - repo: local
+    hooks:
+      # Blocking mypy on collaboration package (matches CI lint job)
+      - id: mypy-collaboration
+        name: mypy (scripts/collaboration/)
+        entry: mypy
+        language: system
+        types: [python]
+        files: ^scripts/collaboration/.*\.py$
+        args: [--ignore-missing-imports, --no-error-summary]
+        pass_filenames: false
+        # Run on the whole package, not just staged files (cross-file type flow)
+        additional_dependencies: []
+
+      # Version consistency check (catch version drift before commit)
+      - id: version-consistency
+        name: version consistency
+        entry: python scripts/check_version_consistency.py
+        language: system
+        files: ^(scripts/collaboration/_version\.py|pyproject\.toml|scripts/check_version_consistency\.py)$
+        pass_filenames: false

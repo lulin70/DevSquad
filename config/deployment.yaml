@@ -42,6 +42,10 @@ authentication:
     expiry_days: 30
     key: "${DEVSQUAD_SESSION_KEY}"  # Set via env var
     name: "devsquad_auth_cookie"
+    # Security flags (enforced in production via environments.production override)
+    secure: false        # Set true in production (requires HTTPS)
+    httponly: true       # Prevent JS access to cookie (mitigate XSS)
+    samesite: "Lax"      # Lax | Strict | None (mitigate CSRF)
 
   # OAuth2 Settings (optional, for enterprise)
   oauth2:
@@ -223,6 +227,12 @@ environments:
     authentication:
       enabled: true
       method: "oauth2"  # Recommended for production
+      cookie:
+        secure: true          # HC: production MUST use Secure (HTTPS-only)
+        httponly: true
+        samesite: "Strict"    # Strict in production for max CSRF protection
+    api_security:
+      enabled: true           # HC: production MUST enable API key auth
     server:
       host: "0.0.0.0"
       port: 443

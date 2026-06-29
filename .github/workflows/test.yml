@@ -44,7 +44,6 @@ jobs:
           python -m pytest tests/ -q --tb=short \
             --ignore=tests/integration \
             --ignore=tests/e2e \
-            --ignore=tests/manual \
             -m "not slow" \
             --timeout=120 \
             --cov=scripts \

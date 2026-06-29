@@ -7,6 +7,26 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.9.2] - 2026-06-30 (发布链路修复)
+
+### 安全 — P2 cookie 安全配置
+- **cookie Secure/HttpOnly/SameSite 显式配置**（`config/deployment.yaml` + `scripts/auth.py`）：在 `deployment.yaml` cookie 节添加 `secure`/`httponly`/`samesite` 属性；`auth.py._validate_config_security` 新增对三项属性的验证告警（secure=false/httponly=false/samesite=None/无效值）。production 环境强制 `secure=true`、`samesite=Strict`、`httponly=true`。
+- **api_security production 强制开启**（`config/deployment.yaml`）：production 环境覆盖中显式 `api_security.enabled: true`，避免生产环境默认关闭 API Key 鉴权。
+
+### CI/CD — 发布链路修复（硬约束）
+- **创建 release.yml**（`.github/workflows/release.yml`）：新增专用发布 workflow，由 `v*` tag 触发，含 3 个 jobs：(1) `build` — 版本一致性检查 + tag版本==canonical版本==wheel版本 三重验证；(2) `publish-pypi` — PyPI Trusted Publishing (OIDC) + 发布后 `pip install` 验证；(3) `github-release` — 自动生成 Release Notes。满足硬约束"release.yml 必须包含 publish-pypi job"。
+- **创建 .pre-commit-config.yaml**（根目录）：本地提交前检查（ruff check + ruff format + mypy collaboration + 版本一致性），镜像 CI lint job，使本地捕获先于 CI。
+- **清理 CI 僵尸配置**（`.github/workflows/test.yml`）：移除 `--ignore=tests/manual`（目录实际不存在，round6 报告 P3 项已失效）。
+
+### 测试
+- **cookie 安全验证测试**（`tests/test_auth_phase5.py`）：新增 3 个测试 — `test_detect_insecure_cookie_flags`（验证 insecure 配置触发告警）、`test_secure_cookie_flags_no_warning`（验证 secure 配置无告警）、`test_invalid_samesite_value_warns`（验证无效 SameSite 值告警）。
+
+### 验证
+- pytest 全量：2856 passed / 0 failed（+3 cookie 测试）
+- mypy collaboration（阻断）：0 errors
+- ruff check：All checks passed
+- 版本一致性：15/15 passed
+
 ## [3.9.2] - 2026-06-29 (安全修复)
 
 ### 安全 — P0/P1 修复

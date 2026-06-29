@@ -160,6 +160,34 @@ class AuthManager:
                 'Generate a secure key with: python -c "import secrets; print(secrets.token_hex(32))"'
             )
 
+        # Validate cookie security flags (Secure/HttpOnly/SameSite)
+        # These mitigate XSS (HttpOnly), CSRF (SameSite), and MITM (Secure).
+        cookie_secure = self.cookie_settings.get("secure", False)
+        cookie_httponly = self.cookie_settings.get("httponly", True)
+        cookie_samesite = self.cookie_settings.get("samesite", "Lax")
+
+        if not cookie_secure:
+            warnings.append(
+                "Cookie 'secure' is false — cookie will be sent over HTTP. "
+                "Set secure=true in production (requires HTTPS)."
+            )
+        if not cookie_httponly:
+            warnings.append(
+                "Cookie 'httponly' is false — JavaScript can access the cookie (XSS risk). "
+                "Set httponly=true."
+            )
+        valid_samesite = {"Lax", "Strict", "None"}
+        if cookie_samesite not in valid_samesite:
+            warnings.append(
+                f"Cookie 'samesite'={cookie_samesite!r} is invalid. "
+                f"Must be one of {sorted(valid_samesite)}."
+            )
+        elif cookie_samesite == "None":
+            warnings.append(
+                "Cookie 'samesite' is None — cookie sent on cross-site requests (CSRF risk). "
+                "Use 'Lax' or 'Strict' unless cross-site auth is explicitly required."
+            )
+
         # Log warnings
         if warnings:
             logger.warning("=" * 60)
