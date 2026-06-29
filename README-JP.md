@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2703%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2861%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -20,11 +20,11 @@
 
 ## 🚀 V3.9.2: 自動LLMバックエンドフォールバック + Dashboard分割 + SQLite監査永続化 + P3クリーンアップ
 
-**DevSquad V3.9.2** 自動LLMバックエンドフォールバック（auto backend は最初にリアルLLMを試行、失敗時にmockへフォールバック）、dashboard.py を1087行から8モジュールパッケージに分割、SQLite バックエンドのdispatch監査永続化をデフォルト化、P3クリーンアップ（マジックナンバー抽出 + 例外スコープの限定）、合計2703+テスト合格。
+**DevSquad V3.9.2** 自動LLMバックエンドフォールバック（auto backend は最初にリアルLLMを試行、失敗時にmockへフォールバック）、dashboard.py を1087行から8モジュールパッケージに分割、SQLite バックエンドのdispatch監査永続化をデフォルト化、P3クリーンアップ（マジックナンバー抽出 + 例外スコープの限定）、合計2861+テスト合格。
 
 ### 🔄 V3.9.2 エンタープライズ機能詳細
 
-### 🎯 クイックスタート（3つの使用方法）
+### 🎯 クイックスタート（5つの使用方法）
 
 #### 1️⃣ インタラクティブWebダッシュボード（推奨）
 ```bash
@@ -56,7 +56,20 @@ python scripts/cli.py lifecycle build
 python scripts/cli.py lifecycle build --visual --verbose
 ```
 
-#### 4️⃣ ワンクリック起動スクリプト（V3.9.2+）
+#### 4️⃣ Python API（開発者推奨）
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+dispatcher = MultiAgentDispatcher()
+result = dispatcher.dispatch(
+    task="データベースクエリのパフォーマンスを最適化",
+    roles=["architect", "security", "tester"],
+)
+print(result.report)
+print(result.consensus)
+```
+
+#### 5️⃣ ワンクリック起動スクリプト（V3.9.2+）
 ```bash
 # ワンクリック起動 — 4フェーズ：環境チェック → DB初期化 → フロントエンド構築 → サービス起動
 ./scripts/start.sh
@@ -116,7 +129,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ### 🏗️ 5大能力ドメインアーキテクチャ（V3.9.2）
 
-DevSquad の 118+ モジュールは **5大能力ドメイン** に編成され、各ドメインが特定の問題を解決します：
+DevSquad の 149+ モジュールは **5大能力ドメイン** に編成され、各ドメインが特定の問題を解決します：
 
 | 能力ドメイン | コアモジュール | 解決する問題 |
 |--------------|----------------|--------------|
@@ -280,7 +293,7 @@ python scripts/cli.py dispatch -t "テストタスク"
 | P1 拡張モジュール (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新モジュール (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
 | V3.9.2 拡張モジュール (LLM フォールバック/Dashboard 分割/監査永続化) | 588 | 100% |
-| **合計** | **2703+** | **100%** |
+| **合計** | **2861+** | **100%** |
 
 ---
 

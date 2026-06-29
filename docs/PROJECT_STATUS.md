@@ -2,7 +2,7 @@
 
 > **当前版本**: V3.9.2
 > **最后更新**: 2026-06-29
-> **最新评估**: 第六轮项目整理评估（综合 8.8/10, A-）— P0 RBAC fail-open 修复 + CI/CD 防护增强
+> **最新评估**: 第六轮项目整理评估（综合 8.9/10, A-）— P0 RBAC fail-open 修复 + CI/CD 防护增强 + 文档三语对齐
 > **硬约束通过率**: 11/11（100%）
 
 ---
@@ -17,7 +17,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**核心模块数**: 70+（详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 149+（`scripts/collaboration/` 下 .py 文件总数，详见 [SKILL.md](../SKILL.md) Architecture Overview）
 
 **关键模块分类**:
 - **调度核心**: MultiAgentDispatcher, Coordinator, Worker, ConsensusEngine
@@ -38,7 +38,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | E2E 用户旅程 | 16 passed | ✅ 全绿 |
 | 契约 + 集成 | 130 passed, 18 skipped | ✅ 全绿 |
 | 性能测试 | 85 passed | ✅ 全绿 |
-| **合计** | **3084 passed** | **0 failed** |
+| **合计** | **2861 collected** | **0 failed** |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
 

@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2600%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2861%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -64,7 +64,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
 | 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [118+ 模块详细参考](SKILL.md)
+📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [149+ 模块详细参考](SKILL.md)
 
 ---
 
@@ -73,7 +73,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 ## 🚀 V3.9.2: Auto LLM Fallback + Dashboard Split + SQLite Audit Persistence + P3 Cleanup
 
-**DevSquad V3.9.2** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 2703+ tests passing.
+**DevSquad V3.9.2** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 2861+ tests passing.
 
 ---
 
@@ -165,7 +165,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ## 🏗️ Five Capability Domains (Architecture Overview)
 
-DevSquad's 118+ modules are organized into **5 capability domains**, each solving a specific problem:
+DevSquad's 149+ modules are organized into **5 capability domains**, each solving a specific problem:
 
 ### 🎯 Domain 1: Task Orchestration Engine (Core)
 
@@ -461,7 +461,7 @@ devsquad --version
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 2600+ passed
+# Expected: 2861+ passed
 ```
 
 ---
@@ -519,7 +519,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (2703+ tests passing)
+# Run all tests (2861+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -536,7 +536,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 2703+ tests**
+**Total: 2861+ tests**
 
 Run by priority:
 ```bash
@@ -557,7 +557,7 @@ python3 -m pytest tests/ -q --tb=line
 | Document | Description | Language |
 |----------|-------------|----------|
 | [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30 秒快速入门指南（推荐新用户）** | 中文 |
-| [SKILL.md](SKILL.md) | 完整技能手册 + 118+ 模块参考 | EN/CN/JP |
+| [SKILL.md](SKILL.md) | 完整技能手册 + 149+ 模块参考 | EN/CN/JP |
 | [GUIDE.md](GUIDE.md) | 完全用户指南 | 中文 |
 | [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
 | [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |

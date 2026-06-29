@@ -366,7 +366,7 @@ class TestMultiagentStatusTool:
         data = json.loads(result)
 
         assert "modules" in data
-        assert data["modules"] == 70
+        assert data["modules"] == 149
 
     def test_status_contains_features_list(self, mcp_server_with_mock):
         """Test status includes features capability list."""

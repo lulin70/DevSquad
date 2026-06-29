@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2600%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2861%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -20,11 +20,11 @@
 
 ## 🚀 V3.9.2: 自动 LLM 后端回退 + Dashboard 拆分 + SQLite 审计持久化 + P3 清理
 
-**DevSquad V3.9.2** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 2703+ 测试通过。
+**DevSquad V3.9.2** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 2861+ 测试通过。
 
 ### 🔄 V3.6.6 企业级功能详情
 
-### 🎯 快速开始（3种使用方式）
+### 🎯 快速开始（5种使用方式）
 
 #### 1️⃣ 交互式 Web 仪表板（推荐）
 ```bash
@@ -56,7 +56,20 @@ python scripts/cli.py lifecycle build
 python scripts/cli.py lifecycle build --visual --verbose
 ```
 
-#### 4️⃣ 一键启动脚本（V3.9.2+）
+#### 4️⃣ Python API（开发者推荐）
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+dispatcher = MultiAgentDispatcher()
+result = dispatcher.dispatch(
+    task="优化数据库查询性能",
+    roles=["architect", "security", "tester"],
+)
+print(result.report)
+print(result.consensus)
+```
+
+#### 5️⃣ 一键启动脚本（V3.9.2+）
 ```bash
 # 一键启动 — 4 阶段：环境检查 → 数据库初始化 → 前端构建 → 服务启动
 ./scripts/start.sh
@@ -116,7 +129,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ### 🏗️ 五大能力域架构（V3.9.2）
 
-DevSquad 的 118+ 模块组织为 **5 大能力域**，各域解决特定问题：
+DevSquad 的 149+ 模块组织为 **5 大能力域**，各域解决特定问题：
 
 | 能力域 | 核心模块 | 解决问题 |
 |--------|---------|---------|
@@ -279,7 +292,7 @@ python scripts/cli.py dispatch -t "测试任务"
 | P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **总计** | **2703+** | **100%** |
+| **总计** | **2861+** | **100%** |
 
 ---
 
