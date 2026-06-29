@@ -19,6 +19,7 @@ from .ue_test_framework_base import (
     JourneyValidation,
     UETestFrameworkBase,
     UserJourney,
+    UserPersona,
 )
 
 
@@ -28,7 +29,7 @@ class UETestJourneyMixin(UETestFrameworkBase):
     def define_journey(
         self,
         name: str,
-        persona: UserJourney,
+        persona: UserPersona,
         steps: list[JourneyStep],
     ) -> UserJourney:
         """Define a user journey with expected outcomes per step.

@@ -51,6 +51,7 @@ except ImportError:
     MCP_AVAILABLE = False
     logger.warning("MCP SDK not installed. Run: pip install mcp")
 
+from scripts.collaboration._version import __version__ as DEVSQUAD_VERSION  # noqa: E402
 from scripts.collaboration.dispatcher import MultiAgentDispatcher  # noqa: E402
 from scripts.collaboration.models import ROLE_REGISTRY  # noqa: E402
 
@@ -246,10 +247,10 @@ def create_mcp_server() -> "FastMCP":
             return json.dumps(
                 {
                     "name": "DevSquad",
-                    "version": "3.7.0",
+                    "version": DEVSQUAD_VERSION,
                     "status": "ready",
-                    "modules": 48,
-                    "tests": 1548,
+                    "modules": 70,
+                    "tests": 2853,
                     "roles": 7,
                     "modes": ["auto", "parallel", "sequential", "consensus"],
                     "backends": ["mock", "openai", "anthropic"],
@@ -274,12 +275,12 @@ def create_mcp_server() -> "FastMCP":
         except (AttributeError, RuntimeError) as e:
             logger.error("Status check failed: %s", e, exc_info=True)
             return json.dumps(
-                {"name": "DevSquad", "version": "3.7.0", "status": "error", "error": str(e)}
+                {"name": "DevSquad", "version": DEVSQUAD_VERSION, "status": "error", "error": str(e)}
             )
         except Exception as e:
             logger.error("Unexpected error in status check: %s", e, exc_info=True)
             return json.dumps(
-                {"name": "DevSquad", "version": "3.7.0", "status": "ready", "error": "Internal error occurred"}
+                {"name": "DevSquad", "version": DEVSQUAD_VERSION, "status": "ready", "error": "Internal error occurred"}
             )
 
     @mcp.tool()

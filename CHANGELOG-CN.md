@@ -7,6 +7,20 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.9.2] - 2026-06-29 (安全修复)
+
+### 安全 — P0/P1 修复
+- **RBAC fail-open 修复**（`dispatcher.py`）：当 `self._rbac is None` 且 `development_mode=False`（生产模式）时，按 `rbac_fail_closed=True` 拒绝调度（HC-1 硬约束）。此前 `_rbac is None` 时整个 RBAC 检查块被跳过，违反"禁止 fail-open 直接执行"。API 路由 `dispatch.py` 显式设 `development_mode=False` 启用生产模式 fail-closed。
+- **require_auth 死代码删除**（`auth.py`）：删除调用不存在 `AuthManager.get_instance()` 且访问错误属性 `_auth_instance.enabled` 的损坏装饰器。该装饰器仅 docstring 示例引用，从未在生产代码使用。
+- **mcp_server.py 版本号统一**（`mcp_server.py`）：3 处硬编码 `"3.7.0"` 替换为 `DEVSQUAD_VERSION`（从 `_version.py` 导入）；模块数 48→70、测试数 1548→2853 同步更新。
+
+### CI/CD — 防护增强
+- **timeout-minutes 添加**（`.github/workflows/test.yml`）：为全部 5 个 jobs（test/e2e/security/lint/build）添加超时限制（30/60/15/15/15 分钟），防止 nightly 任务无限运行。
+
+### 测试
+- **RBAC fail-closed 测试增强**（`tests/test_rbac_fail_closed.py`）：新增 `test_no_rbac_production_mode_denies_dispatch` 验证生产模式 fail-closed；原 `test_no_rbac_no_fail_closed_check` 重命名为 `test_no_rbac_dev_mode_allows_dispatch` 明确测试 dev 模式向后兼容。
+- **mcp_server 测试同步**（`tests/test_mcp_server_v362.py`）：模块数断言 48→70。
+
 ## [3.9.2] - 2026-06-26
 
 ### 新增 — LLM 后端弹性

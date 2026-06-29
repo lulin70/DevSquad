@@ -110,10 +110,10 @@ class TestRbacFailClosedBehavior(unittest.TestCase):
 
 
 class TestRbacFailClosedDisabledRbac(unittest.TestCase):
-    """Layer 3: When RBAC is disabled, fail-closed flag has no effect."""
+    """Layer 3: RBAC-missing behavior depends on development_mode flag."""
 
-    def test_no_rbac_no_fail_closed_check(self) -> None:
-        """当无 RBAC 配置时，rbac_fail_closed 不影响正常调度。"""
+    def test_no_rbac_dev_mode_allows_dispatch(self) -> None:
+        """开发模式 (development_mode=True) 下，无 RBAC 配置时不影响调度（向后兼容）。"""
         dispatcher = MultiAgentDispatcher(
             enable_warmup=False,
             enable_compression=False,
@@ -135,12 +135,43 @@ class TestRbacFailClosedDisabledRbac(unittest.TestCase):
         # Default should still be True
         self.assertTrue(dispatcher._rbac_fail_closed)
 
-        # Dispatch should work fine without RBAC
+        # Dispatch should work fine without RBAC in dev mode
         result = dispatcher.dispatch("test task", roles=["architect"])
-        # Should not have RBAC errors (RBAC not configured)
+        # Should not have RBAC errors (RBAC not configured, dev mode)
         self.assertFalse(
             any("RBAC" in err for err in result.errors),
-            f"Without RBAC configured, no RBAC errors expected, got: {result.errors}",
+            f"Without RBAC configured in dev mode, no RBAC errors expected, got: {result.errors}",
+        )
+
+    def test_no_rbac_production_mode_denies_dispatch(self) -> None:
+        """生产模式 (development_mode=False) 下，无 RBAC 配置时必须 fail-closed 拒绝（HC-1）。"""
+        dispatcher = MultiAgentDispatcher(
+            enable_warmup=False,
+            enable_compression=False,
+            enable_permission=False,
+            enable_memory=False,
+            enable_skillify=False,
+            enable_quality_guard=False,
+            enable_anchor_check=False,
+            enable_retrospective=False,
+            enable_usage_tracker=False,
+            enable_feedback_loop=False,
+            enable_execution_guard=False,
+            enable_two_stage_review=False,
+            enable_redesign_audit=False,
+            enable_severity_router=False,
+            development_mode=False,  # HC-1: production mode
+            enable_audit_logger=False,
+        )
+        self.assertTrue(dispatcher._rbac_fail_closed)
+        self.assertFalse(dispatcher.development_mode)
+
+        result = dispatcher.dispatch("test task", roles=["architect"])
+        # Must be denied with fail-closed message
+        self.assertFalse(result.success, "Production mode without RBAC must deny dispatch")
+        self.assertTrue(
+            any("fail-closed" in err.lower() or "No RBAC configured" in err for err in result.errors),
+            f"Expected fail-closed denial error, got: {result.errors}",
         )
 
 

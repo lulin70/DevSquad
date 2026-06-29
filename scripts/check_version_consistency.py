@@ -229,7 +229,7 @@ def check_file(spec: FileSpec, expected: str) -> VersionCheck:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check version consistency across project files.")
     parser.add_argument("--strict", action="store_true", help="fail on warnings too")
-    args = parser.parse_args()
+    parser.parse_args()
 
     expected = get_canonical_version()
     if expected is None:

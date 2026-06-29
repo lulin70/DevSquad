@@ -47,9 +47,11 @@ def render_phase_timeline(protocol_data: dict[str, Any] | None) -> None:
 
     try:
         status = protocol.get_status()
-        completed_phases = set(status.get("completed_phases", []))
-        running_phases = set(status.get("running_phases", []))
-        failed_phases = set(status.get("failed_phases", []))
+        completed_phases = set(status.completed_phases)
+        failed_phases = set(status.failed_phases)
+        # LifecycleStatus has no running_phases field; dashboard cannot
+        # derive it without access to protocol._phase_states
+        running_phases = set()
 
         for idx, phase in enumerate(phases, 1):
             phase_id = phase.phase_id

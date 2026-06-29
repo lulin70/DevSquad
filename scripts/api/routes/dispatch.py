@@ -56,6 +56,7 @@ def _get_dispatcher():
                 enable_memory=True,
                 enable_skillify=True,
                 enable_quality_guard=False,
+                development_mode=False,  # HC-1: production mode enforces RBAC fail-closed
             )
             logger.info("MultiAgentDispatcher initialized successfully")
         except (ImportError, RuntimeError) as e:

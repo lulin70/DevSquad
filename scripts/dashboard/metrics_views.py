@@ -29,9 +29,10 @@ def render_metrics_overview(protocol_data: dict[str, Any] | None) -> None:
         status = protocol.get_status()
 
         total_phases = len(phases)
-        completed = len(status.get("completed_phases", []))
-        running = len(status.get("running_phases", []))
-        failed = len(status.get("failed_phases", []))
+        completed = len(status.completed_phases)
+        failed = len(status.failed_phases)
+        blocked = len(status.blocked_phases)
+        running = total_phases - completed - failed - blocked
 
         completion_rate = (completed / total_phases * 100) if total_phases > 0 else 0
 

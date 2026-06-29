@@ -11,7 +11,7 @@ Features:
   - OAuth2 support (optional)
 
 Usage:
-    from scripts.auth import AuthManager, require_auth, check_permission
+    from scripts.auth import AuthManager, check_permission
 
     auth = AuthManager(config_path="config/deployment.yaml")
     auth.authenticate()  # Call in Streamlit app
@@ -407,40 +407,6 @@ class AuthManager:
 
         except ImportError:
             pass
-
-
-def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Decorator to require authentication for API endpoints.
-
-    Usage:
-        @require_auth
-        def protected_endpoint():
-            return {"message": "This is protected"}
-    """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs) -> Any:
-        """Check authentication before calling the wrapped function.
-
-        Raises PermissionError when auth is enabled and no user session
-        exists. Otherwise delegates to the wrapped function.
-        """
-        _auth_instance = AuthManager.get_instance()
-        if _auth_instance and _auth_instance.enabled:
-            try:
-                import streamlit as st
-
-                user = st.session_state.get("user")
-                if not user:
-                    logger.warning("Auth required but no session for %s", func.__name__)
-                    raise PermissionError("Authentication required")
-            except (ImportError, AttributeError):
-                pass
-        logger.debug("Auth check for %s", func.__name__)
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 def check_permission(required_role: UserRole = UserRole.VIEWER) -> Callable[[Callable[..., Any]], Callable[..., Any]]:

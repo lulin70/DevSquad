@@ -421,6 +421,39 @@ class MultiAgentDispatcher(
                     )
                     self._attach_audit_entries(denied_result)
                     return denied_result
+        else:
+            # HC-1: When no RBAC is configured, consult rbac_fail_closed flag.
+            # In production (development_mode=False), deny all operations to
+            # satisfy hard constraint "禁止 fail-open 直接执行".
+            # In dev/test mode (development_mode=True), allow for backward compat.
+            if self._rbac_fail_closed and not self.development_mode:
+                logger.warning(
+                    "Dispatch denied: no RBAC configured (fail-closed mode, "
+                    "user=%s, production mode)"
+                )
+                permission_result_dict = {
+                    "allowed": False,
+                    "reason": "No RBAC configured (fail-closed mode denies all)",
+                    "user_id": user_id,
+                    "requested_roles": list(roles) if roles else [],
+                    "requested_mode": mode,
+                }
+                if self._audit_logger is not None:
+                    try:
+                        self._audit_logger.log_permission_denied(
+                            user_id=user_id,
+                            reason="No RBAC configured (fail-closed mode denies all)",
+                        )
+                    except (ValueError, RuntimeError, OSError) as audit_err:
+                        logger.warning("Audit log_permission_denied failed: %s", audit_err)
+                denied_result = DispatchResult(
+                    success=False,
+                    task_description=task_description,
+                    errors=["Permission denied: No RBAC configured (fail-closed mode)"],
+                    permission_result=permission_result_dict,
+                )
+                self._attach_audit_entries(denied_result)
+                return denied_result
 
         self.metrics_service.safe_record(lambda m: (
             m.dispatch_counter.labels(mode=mode, role_count="0").inc(),

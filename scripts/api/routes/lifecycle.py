@@ -288,7 +288,7 @@ async def execute_phase_action(
 
         elif request.action == "complete":
             try:
-                protocol.mark_phase_completed(phase_id)
+                protocol.complete_phase(phase_id)
                 success = True
                 message = f"Phase {phase_id} marked as completed"
                 new_status = PhaseStatus.COMPLETED

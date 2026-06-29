@@ -13,6 +13,7 @@ Responsibilities (from IMPROVEMENT_PLAN_V3.9.2.md P2-3):
 
 import logging
 import re
+from typing import cast
 
 from .prompt_assembler_base import PromptAssemblerBase
 
@@ -212,7 +213,7 @@ class PromptAssemblerSubstitutionMixin(PromptAssemblerBase):
 
             if not hasattr(self, "_ar_engine"):
                 self._ar_engine = get_shared_engine()
-            return self._ar_engine.format_for_prompt(self.role_id)
+            return cast(str, self._ar_engine.format_for_prompt(self.role_id))
         except (ImportError, AttributeError, TypeError) as e:
             logger.debug("AntiRationalizationEngine not available: %s", e)
             return ""
