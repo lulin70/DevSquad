@@ -39,7 +39,7 @@ logger = logging.getLogger("DevSquad-MCP")
 try:
     from scripts.collaboration.input_validator import InputValidator
 
-    _validator = InputValidator()
+    _validator: InputValidator | None = InputValidator()
 except ImportError:
     _validator = None
 
@@ -73,13 +73,13 @@ def _default_codegraph_db_path() -> Path:
 class DevSquadMCPServer:
     """MCP Server wrapper for DevSquad."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._dispatcher: MultiAgentDispatcher | None = None
         # V3.9-02: lazily-constructed CodeKnowledgeGraph (only when first needed).
         self._code_graph: Any = None
         self._code_graph_db_path: Path = _default_codegraph_db_path()
 
-    def _get_dispatcher(self, **kwargs) -> MultiAgentDispatcher:
+    def _get_dispatcher(self, **kwargs: Any) -> MultiAgentDispatcher:
         """Lazy-init dispatcher with caching."""
         if self._dispatcher is None:
             self._dispatcher = MultiAgentDispatcher(**kwargs)
@@ -102,7 +102,7 @@ class DevSquadMCPServer:
                 self._code_graph = None
         return self._code_graph
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Clean up dispatcher and code graph."""
         if self._code_graph is not None:
             with suppress(AttributeError, OSError, RuntimeError):
@@ -113,12 +113,12 @@ class DevSquadMCPServer:
             self._dispatcher = None
 
 
-def create_mcp_server() -> "FastMCP":
+def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
     """Create and configure the MCP server with all tools."""
     if not MCP_AVAILABLE:
         raise ImportError("MCP SDK not installed. Run: pip install mcp")
 
-    mcp = FastMCP("DevSquad")
+    mcp = FastMCP("DevSquad", host=host, port=port)
     server = DevSquadMCPServer()
 
     @mcp.tool()
@@ -151,7 +151,12 @@ def create_mcp_server() -> "FastMCP":
                 return json.dumps({"error": f"Invalid task: {vresult.reason}", "success": False})
             task = vresult.sanitized_input or task
         try:
-            result = disp.dispatch(
+            # MultiAgentDispatcher.dispatch's first parameter is ``task_description``,
+            # but the public MCP tool contract (and its tests) pass ``task``. We keep
+            # ``task=`` to honor that contract; the resulting mypy call-arg error is
+            # suppressed here. (tests/ and scripts/collaboration/ are out of scope,
+            # so the dispatcher signature cannot be reconciled here.)
+            result = disp.dispatch(  # type: ignore[call-arg]
                 task=task,
                 roles=roles,
                 mode=mode,
@@ -542,7 +547,7 @@ def create_mcp_server() -> "FastMCP":
     return mcp
 
 
-def main():
+def main() -> None:
     """Start the MCP server."""
     import argparse
 
@@ -555,11 +560,14 @@ def main():
         logger.error("MCP SDK required. Install with: pip install mcp")
         sys.exit(1)
 
-    mcp = create_mcp_server()
+    mcp = create_mcp_server(
+        host=args.host,
+        port=args.port if args.port is not None else 8000,
+    )
 
     if args.port:
         logger.info("Starting SSE server on %s:%s", args.host, args.port)
-        mcp.run(transport="sse", host=args.host, port=args.port)
+        mcp.run(transport="sse")
     else:
         logger.info("Starting stdio server")
         mcp.run(transport="stdio")

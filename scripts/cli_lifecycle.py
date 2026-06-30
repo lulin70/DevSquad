@@ -6,6 +6,7 @@ DevSquad CLI lifecycle 子命令模块。
 处理函数 cmd_lifecycle，作为 11-phase 生命周期协议的 View Layer。
 """
 
+import argparse
 import json
 import sys
 
@@ -15,7 +16,7 @@ from scripts.collaboration.input_validator import InputValidator
 from .cli_utils import LIFECYCLE_COMMANDS, LIFECYCLE_PRESETS, _create_backend
 
 
-def cmd_lifecycle(args):
+def cmd_lifecycle(args: argparse.Namespace) -> int:
     """Handle lifecycle commands (spec/plan/build/test/review/ship) as View Layer over 11-phase lifecycle."""
     command = args.lifecycle_command
     preset = LIFECYCLE_PRESETS.get(command)
@@ -71,7 +72,8 @@ def cmd_lifecycle(args):
                         vf.print_phase_list(phases)
 
                         # Show progress overview
-                        completed_count = len([p for p in phases if p.phase_id in (protocol._completed_phases or [])])
+                        completed_phases = getattr(protocol, "_completed_phases", None) or []
+                        completed_count = len([p for p in phases if p.phase_id in completed_phases])
                         vf.print_progress_overview(completed_count, len(phases), f"Command '{command}' Coverage")
 
                 # Show gate status

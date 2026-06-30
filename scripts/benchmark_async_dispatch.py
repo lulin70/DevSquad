@@ -16,6 +16,7 @@ import asyncio
 import os
 import sys
 import time
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,10 +24,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 
-def run_sync_benchmark(dispatcher, task_descriptions):
+def run_sync_benchmark(dispatcher: MultiAgentDispatcher, task_descriptions: list[str]) -> tuple[float, list[Any]]:
     """Run N tasks sequentially with sync dispatch."""
     start = time.time()
-    results = []
+    results: list[Any] = []
     for desc in task_descriptions:
         result = dispatcher.dispatch(desc, mode="auto")
         results.append(result)
@@ -34,10 +35,10 @@ def run_sync_benchmark(dispatcher, task_descriptions):
     return elapsed, results
 
 
-async def run_async_benchmark(dispatcher, task_descriptions):
+async def run_async_benchmark(dispatcher: MultiAgentDispatcher, task_descriptions: list[str]) -> tuple[float, list[Any]]:
     """Run N tasks with async dispatch."""
     start = time.time()
-    results = []
+    results: list[Any] = []
     for desc in task_descriptions:
         result = await dispatcher.async_dispatch(desc, mode="auto")
         results.append(result)
@@ -45,7 +46,7 @@ async def run_async_benchmark(dispatcher, task_descriptions):
     return elapsed, results
 
 
-def main():
+def main() -> None:
     """Run the sync-vs-async dispatch benchmark and print results.
 
     Parses ``--tasks`` and ``--warmup`` CLI arguments, creates a

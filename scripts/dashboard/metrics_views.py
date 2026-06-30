@@ -6,7 +6,7 @@ Metrics and performance visualisations for the DevSquad dashboard.
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, Literal
 
 import requests
 
@@ -44,7 +44,9 @@ def render_metrics_overview(protocol_data: dict[str, Any] | None) -> None:
             )
 
         with col2:
-            delta_color = "normal" if completion_rate >= 50 else "inverse"
+            delta_color: Literal["normal", "inverse"] = (
+                "normal" if completion_rate >= 50 else "inverse"
+            )
             st.metric(
                 label="Completed",
                 value=f"{completed}",
@@ -86,7 +88,12 @@ def fetch_api_metrics() -> dict[str, Any] | None:
     try:
         response = requests.get("http://localhost:8000/api/v1/metrics/current", timeout=3)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            # ``response.json()`` returns ``Any``; narrow to dict so the declared
+            # return type holds (a non-dict JSON payload is treated as no data).
+            if isinstance(data, dict):
+                return data
+            return None
         return None
     except (requests.ConnectionError, requests.Timeout):
         return None

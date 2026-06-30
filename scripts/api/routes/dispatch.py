@@ -11,11 +11,13 @@ Endpoints:
   GET    /api/v1/roles             - List available roles
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import sys
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -35,14 +37,18 @@ from scripts.api.models import (
 )
 from scripts.api.security import audit_log, require_permission
 
+if TYPE_CHECKING:
+    from scripts.collaboration.dispatch_models import DispatchResult
+    from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Task Dispatch"])
 
-_global_dispatcher = None
+_global_dispatcher: MultiAgentDispatcher | None = None
 
 
-def _get_dispatcher():
+def _get_dispatcher() -> MultiAgentDispatcher:
     """Get or create the global MultiAgentDispatcher instance."""
     global _global_dispatcher
     if _global_dispatcher is None:
@@ -65,7 +71,7 @@ def _get_dispatcher():
     return _global_dispatcher
 
 
-def _convert_dispatch_result(result) -> dict[str, Any]:
+def _convert_dispatch_result(result: DispatchResult) -> dict[str, Any]:
     """Convert DispatchResult to API response dict."""
     worker_results = []
     for wr in result.worker_results or []:
@@ -156,7 +162,7 @@ def _convert_dispatch_result(result) -> dict[str, Any]:
 async def dispatch_task(
     request: TaskDispatchRequest,
     user_id: str = Depends(require_permission("TASK_EXECUTE")),
-):
+) -> DispatchResponse:
     """
     Full task dispatch endpoint.
 
@@ -189,9 +195,9 @@ async def dispatch_task(
 
         if request.backend and request.backend.lower() not in ("none", "mock", ""):
             try:
-                from scripts.collaboration.llm_backend import create_llm_backend
+                from scripts.collaboration.llm_backend import create_backend
 
-                create_llm_backend(request.backend.lower())
+                create_backend(request.backend.lower())
                 logger.info("Using LLM backend: %s", request.backend)
             except (ImportError, ValueError, RuntimeError, AttributeError) as backend_err:
                 logger.warning("Failed to create LLM backend '%s': %s, using default", request.backend, backend_err)
@@ -253,7 +259,7 @@ async def dispatch_task(
 async def quick_dispatch(
     request: QuickDispatchRequest,
     user_id: str = Depends(require_permission("TASK_EXECUTE")),
-):
+) -> DispatchResponse:
     """
     Quick dispatch endpoint.
 
@@ -328,7 +334,7 @@ async def quick_dispatch(
 async def get_dispatch_history(
     limit: int = Query(10, ge=1, le=100, description="Maximum number of records to return / 最大返回记录数"),
     user_id: str = Depends(require_permission("TASK_READ")),
-):
+) -> DispatchHistoryResponse:
     """
     Get dispatch history.
 
@@ -377,7 +383,7 @@ async def get_dispatch_history(
 )
 async def list_roles(
     user_id: str = Depends(require_permission("TASK_READ")),
-):
+) -> RolesListResponse:
     """
     List all available roles.
 
@@ -394,7 +400,7 @@ async def list_roles(
             get_planned_roles,
         )
 
-        roles = []
+        roles: list[RoleInfo] = []
         for role_id, role_def in ROLE_REGISTRY.items():
             roles.append(
                 RoleInfo(
@@ -403,7 +409,7 @@ async def list_roles(
                     description=role_def.description,
                     keywords=getattr(role_def, "keywords", None),
                     status=getattr(role_def, "status", "active"),
-                ).model_dump()
+                )
             )
 
         core_role_ids = [r.role_id for r in get_core_roles().values()]

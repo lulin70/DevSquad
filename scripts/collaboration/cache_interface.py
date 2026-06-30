@@ -165,7 +165,7 @@ class Serializer:
             # Only bytes can be pickle data; str inputs have no pickle path.
             if isinstance(data, bytes):
                 try:
-                    import pickle  # local import: only needed for legacy data
+                    import pickle  # nosec B403 — local import for trusted legacy cache deserialization only
 
                     value = pickle.loads(data)  # nosec B301  # noqa: S301 - trusted local cache
                     logger.warning(
@@ -207,7 +207,7 @@ class Serializer:
             elif format == "pickle":
                 # Deprecated: kept for backward compat with callers that
                 # explicitly request pickle. New writes should use JSON.
-                import pickle  # local import: only needed for explicit pickle format
+                import pickle  # nosec B403 — local import for explicit pickle format (backward compat)
 
                 logger.warning(
                     "Pickle serialization requested (deprecated); prefer JSON."
@@ -248,7 +248,7 @@ class Serializer:
                 # explicitly request pickle. _deserialize already falls
                 # back to pickle for legacy data, so this branch is only
                 # reached when the caller explicitly opts in.
-                import pickle  # local import: only needed for explicit pickle format
+                import pickle  # nosec B403 — local import for explicit pickle format (caller opts in)
 
                 logger.warning(
                     "Pickle deserialization requested (deprecated); prefer JSON."

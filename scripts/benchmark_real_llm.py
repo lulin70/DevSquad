@@ -16,11 +16,12 @@ import argparse
 import os
 import sys
 import time
+from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def create_backend(backend_type: str):
+def create_backend(backend_type: str) -> Any:
     """Create an LLM backend instance for the given type.
 
     Args:
@@ -55,7 +56,7 @@ def create_backend(backend_type: str):
         sys.exit(1)
 
 
-def run_benchmark(backend_type, num_tasks, mode):
+def run_benchmark(backend_type: str, num_tasks: int, mode: str) -> None:
     """Run a real-LLM dispatch benchmark and print latency/throughput stats.
 
     Args:
@@ -131,7 +132,7 @@ def run_benchmark(backend_type, num_tasks, mode):
     dispatcher.shutdown()
 
 
-def main():
+def main() -> None:
     """Parse CLI arguments and launch the real-LLM benchmark.
 
     Required argument: ``--backend`` (openai or anthropic). Optional

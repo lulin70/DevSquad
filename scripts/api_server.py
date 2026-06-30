@@ -32,13 +32,18 @@ import logging
 import os
 import sys
 import time
+from collections.abc import Awaitable, Callable
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+
+if TYPE_CHECKING:
+    from scripts.auth import AuthManager
 
 from scripts.api.rate_limit import (
     https_redirect_middleware,
@@ -132,7 +137,9 @@ app.add_middleware(
 
 # Request timing middleware
 @app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
+async def add_process_time_header(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     """Add processing time header to responses."""
     start_time = time.time()
 
@@ -154,19 +161,23 @@ async def add_process_time_header(request: Request, call_next):
 # Must be registered BEFORE rate_limit so http requests are redirected before
 # consuming rate limit budget.
 @app.middleware("http")
-async def _https_redirect(request: Request, call_next):
-    return await https_redirect_middleware(request, call_next)
+async def _https_redirect(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    return cast(Response, await https_redirect_middleware(request, call_next))
 
 
 # Rate limit middleware (P3-2, default 60 rpm per IP)
 @app.middleware("http")
-async def _rate_limit(request: Request, call_next):
-    return await rate_limit_middleware(request, call_next)
+async def _rate_limit(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    return cast(Response, await rate_limit_middleware(request, call_next))
 
 
 # Global exception handler
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handle HTTP exceptions with custom error format."""
     return JSONResponse(
         status_code=exc.status_code,
@@ -181,7 +192,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unhandled exceptions."""
     logger.error("Unhandled exception: %s", exc, exc_info=True)
 
@@ -206,7 +217,7 @@ app.include_router(prometheus_router)
 
 
 # Auth dependency injection (optional, based on AuthManager)
-def get_auth_manager():
+def get_auth_manager() -> Optional["AuthManager"]:
     """Get AuthManager instance for dependency injection."""
     try:
         from scripts.auth import AuthManager
@@ -216,7 +227,7 @@ def get_auth_manager():
         return None
 
 
-async def get_auth_dependency():
+async def get_auth_dependency() -> Optional["AuthManager"]:
     """
     Optional auth dependency - can be used by endpoints that need authentication.
     Returns AuthManager if enabled, None otherwise.
@@ -226,7 +237,7 @@ async def get_auth_dependency():
 
 # Root endpoint
 @app.get("/", tags=["Root"])
-async def root():
+async def root() -> dict[str, Any]:
     """
     Root endpoint - API information.
 
@@ -265,7 +276,7 @@ async def root():
 
 # Startup event
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """
     Execute on application startup.
 
@@ -335,7 +346,7 @@ async def startup_event():
 
 # Shutdown event
 @app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_event() -> None:
     """
     Execute on application shutdown.
 

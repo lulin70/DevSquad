@@ -8,9 +8,15 @@ LIFECYCLE_COMMANDS / LIFECYCLE_PRESETS）、后端创建函数（_create_backend
 _quick_init）。
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import sys
+from typing import TYPE_CHECKING, Any, TypedDict
+
+if TYPE_CHECKING:
+    from scripts.collaboration.llm_backend import LLMBackend
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -28,7 +34,18 @@ LIFECYCLE_COMMANDS = ["spec", "plan", "build", "test", "review", "ship"]
 VERSION = __version__
 logger = logging.getLogger(__name__)
 
-LIFECYCLE_PRESETS = {
+
+class LifecyclePreset(TypedDict):
+    """Type definition for a lifecycle command preset configuration."""
+
+    description: str
+    required_roles: list[str]
+    mode: str
+    gate: str
+    pre_dispatch_message: str
+
+
+LIFECYCLE_PRESETS: dict[str, LifecyclePreset] = {
     "spec": {
         "description": "Define and refine requirements before implementation",
         "required_roles": ["architect", "product-manager"],
@@ -89,7 +106,11 @@ LIFECYCLE_PRESETS = {
 }
 
 
-def _create_backend(backend_type: str, base_url: str = None, model: str = None):
+def _create_backend(
+    backend_type: str | None,
+    base_url: str | None = None,
+    model: str | None = None,
+) -> LLMBackend | None:
     # None is the historical default for CLI callers that want mock behaviour.
     # Only the explicit "auto" string triggers the real-LLM-first fallback chain.
     if backend_type is None:
@@ -99,7 +120,7 @@ def _create_backend(backend_type: str, base_url: str = None, model: str = None):
 
     from scripts.collaboration.llm_backend import create_backend
 
-    kwargs = {}
+    kwargs: dict[str, Any] = {}
     if base_url:
         kwargs["base_url"] = base_url
     if model:
@@ -131,7 +152,7 @@ def _create_backend(backend_type: str, base_url: str = None, model: str = None):
     return create_backend(backend_type, **kwargs)
 
 
-def _prompt_choice(prompt: str, valid_choices: list, default: str = None) -> str:
+def _prompt_choice(prompt: str, valid_choices: list, default: str | None = None) -> str | None:
     """Prompt user for choice with validation."""
     while True:
         try:
@@ -220,7 +241,7 @@ def _save_config(config: dict, config_path: str) -> bool:
         return False
 
 
-def _quick_init():
+def _quick_init() -> int:
     """
     Quick non-interactive initialization with sensible defaults.
 

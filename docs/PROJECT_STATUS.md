@@ -82,18 +82,19 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | P1-2 | 创建 docs/PROJECT_STATUS.md（本文件） |
 | P2-1 | 清理 5 个嵌套空目录 + 修复 checkpoint_manager.py mkdir 根因 |
 | P2-2 | flake8 清理新测试文件（30→0 违规） |
-| P2-3 | CI mypy 扩展覆盖 scripts/ 全量（baseline=115，防回退） |
+| P2-3 | CI mypy 扩展覆盖 scripts/ 全量（✅ 已升级为 0-error 阻断门禁，原 baseline=115） |
 | P2-5 | README.md 语言混杂修复（中文标题→英文） |
 
 ---
 
 ## 7. 已知技术债
 
-| 编号 | 描述 | 目标版本 |
-|------|------|----------|
-| TD-067 | mypy 115 errors in 22 files（scripts/ 全量） | V3.10.0 (<50) |
-| TD-068 | 24 个 Mixin，类爆炸风险 | V3.10.0 |
-| TD-069 | bandit 49 个 Low 级告警 | V3.10.0 |
+| 编号 | 描述 | 目标版本 | 状态 |
+|------|------|----------|------|
+| TD-067 | mypy 112 errors（scripts/ 全量，本轮修复中） | V3.10.0 (<50) | 修复中 |
+| TD-068 | 24 个 Mixin 类爆炸风险 | — | ✅ 降级关闭（评估结论：非类爆炸，是合理关注点分离；真正问题是 PromptAssembler+WorkflowEngine 测试缺口） |
+| TD-069 | bandit 11 个 Low 级告警（实际非 49，已 skips B101/B311/B404/B603） | — | ✅ 已清零（全误报/合法使用，加 nosec 注释） |
+| TD-070 | PromptAssembler + WorkflowEngine 缺专用单元测试 | V3.10.0 | 新增（TD-068 评估发现） |
 
 ---
 
@@ -103,8 +104,8 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 |------|--------|------|
 | ruff | All checks passed | 0 |
 | mypy (scripts/collaboration/) | 0 errors | 0 |
-| mypy (scripts/ 全量) | 112 errors (baseline=115) | <50 |
-| bandit | 0 H/M, 49 L | 0 H/M |
+| mypy (scripts/ 全量) | 0 errors (阻断门禁，原 112) | 0 ✅ |
+| bandit | 0 issues (原 11 Low) | 0 ✅ |
 | flake8 (新测试文件) | 0 | 0 |
 | 版本一致性 | 15/15 | 15/15 |
 | pre-commit hooks | 已配置 (ruff + mypy + 版本一致性) | 已配置 |
@@ -119,9 +120,11 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
    - ✅ cookie 安全配置 + release.yml + .pre-commit + git tag（第七轮）
    - ⏳ 推送 v3.9.2 tag 触发 PyPI 发布
 2. **V3.10.0 规划**
-   - mypy 渐进式修复（112→<50）
-   - Mixin 重构评估
-   - bandit Low 告警收敛
+   - ✅ mypy 渐进式修复（112→0，超额达成 <50 目标）
+   - ✅ Mixin 重构评估（TD-068 降级关闭）
+   - ✅ bandit Low 告警收敛（11→0）
+   - TD-070: PostDispatch 直接实例化测试补充
+   - PyPI Trusted Publishing 首次配置（pypi.org 手动步骤）
 
 ---
 
@@ -136,5 +139,6 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | 第五轮 | 2026-06-29 | 8.5 | 11/11 | P1-P2 修复（文档同步 + 空目录 + flake8 + CI mypy） + E2E 测试 5/5 全通过 |
 | 第六轮 | 2026-06-29 | 8.9 | 11/11 | P0 RBAC fail-open 修复 + P1 死代码 + CI timeout + 文档三语对齐 |
 | 第七轮 | 2026-06-30 | 9.1 | 13/13 | cookie 安全 + release.yml + .pre-commit + git tag + CI 僵尸配置清理 |
+| 第八轮 | 2026-06-30 | 9.3 | 13/13 | mypy 112→0 + bandit 11→0 + TD-068 降级关闭 + CI mypy 阻断门禁 |
 
 评估报告路径: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`

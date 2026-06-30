@@ -9,8 +9,10 @@ DevSquad CLI dispatch 子命令模块。
 - cmd_demo: 演示 DevSquad 能力（mock 模式，无需 API key）
 """
 
+import argparse
 import json
 import sys
+from typing import Any
 
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.input_validator import InputValidator
@@ -26,7 +28,7 @@ from .cli_utils import (
 )
 
 
-def cmd_demo(args):
+def cmd_demo(args: argparse.Namespace) -> int:
     """
     Demo command — show DevSquad capabilities in mock mode (no API key needed).
 
@@ -45,7 +47,7 @@ def cmd_demo(args):
     print("=" * 60)
     print("  Mode: Mock (no API key required)\n")
 
-    results = []
+    results: list[dict[str, Any]] = []
 
     if scenario in ("all", "intent"):
         print("▶️ Scenario 1: Intent Detection")
@@ -56,14 +58,16 @@ def cmd_demo(args):
 
             mapper = IntentWorkflowMapper()
             task = "修复用户登录模块中的认证失败问题，报错信息显示token验证异常"
-            result = mapper.detect_intent(task)
+            intent_result = mapper.detect_intent(task)
+            if intent_result is None:
+                raise RuntimeError("detect_intent returned None")
 
             print(f"  Task: {task}")
-            print(f"  Intent: {result.intent_type}")
-            print(f"  Confidence: {result.confidence:.1%}")
-            print(f"  Required roles: {', '.join(result.required_roles)}")
-            if result.optional_roles:
-                print(f"  Optional roles: {', '.join(result.optional_roles)}")
+            print(f"  Intent: {intent_result.intent_type}")
+            print(f"  Confidence: {intent_result.confidence:.1%}")
+            print(f"  Required roles: {', '.join(intent_result.required_roles)}")
+            if intent_result.optional_roles:
+                print(f"  Optional roles: {', '.join(intent_result.optional_roles)}")
             print(f"  ✅ Completed in {_time.time() - start:.2f}s\n")
             results.append({"scenario": "Intent Detection", "success": True, "duration": _time.time() - start})
         except (RuntimeError, ValueError, ImportError, AttributeError) as e:
@@ -85,9 +89,11 @@ def cmd_demo(args):
                 ("$(cat /etc/passwd)", "OS Command Injection"),
             ]
             for inp, label in test_inputs:
-                result = validator.validate_task(inp)
+                validate_result = validator.validate_task(inp)
                 status = (
-                    "🚫 BLOCKED" if not result.valid else ("⚠️ WARNING" if result.sanitized_input != inp else "✅ OK")
+                    "🚫 BLOCKED"
+                    if not validate_result.valid
+                    else ("⚠️ WARNING" if validate_result.sanitized_input != inp else "✅ OK")
                 )
                 print(f"  [{status}] {label}: {inp[:40]}")
             print(f"  ✅ Completed in {_time.time() - start:.2f}s\n")
@@ -102,16 +108,16 @@ def cmd_demo(args):
         start = _time.time()
         try:
             disp = MultiAgentDispatcher(enable_warmup=False)
-            result = disp.dispatch(
+            dispatch_result = disp.dispatch(
                 "设计一个微服务架构的用户认证系统",
                 dry_run=True,
             )
             print("  Task: 设计一个微服务架构的用户认证系统")
             print("  Mode: Dry-run (simulation)")
-            if hasattr(result, "matched_roles"):
-                print(f"  Matched roles: {', '.join(result.matched_roles)}")
-            if hasattr(result, "summary"):
-                print(f"  Summary: {result.summary[:100]}...")
+            if hasattr(dispatch_result, "matched_roles"):
+                print(f"  Matched roles: {', '.join(dispatch_result.matched_roles)}")
+            if hasattr(dispatch_result, "summary"):
+                print(f"  Summary: {dispatch_result.summary[:100]}...")
             print(f"  ✅ Completed in {_time.time() - start:.2f}s\n")
             disp.shutdown()
             results.append({"scenario": "Dispatch Dry-Run", "success": True, "duration": _time.time() - start})
@@ -137,7 +143,7 @@ def cmd_demo(args):
     return 0 if all(r["success"] for r in results) else 1
 
 
-def cmd_dispatch(args):
+def cmd_dispatch(args: argparse.Namespace) -> int:
     """Execute the ``dispatch`` subcommand: validate and run a task.
 
     Args:
@@ -272,7 +278,7 @@ def cmd_dispatch(args):
         disp.shutdown()
 
 
-def cmd_status(args):
+def cmd_status(args: argparse.Namespace) -> int:
     """Execute the ``status`` subcommand: print system status as JSON.
 
     Args:
@@ -299,7 +305,7 @@ def cmd_status(args):
         disp.shutdown()
 
 
-def cmd_roles(args):
+def cmd_roles(args: argparse.Namespace) -> int:
     """Execute the ``roles`` subcommand: list available roles.
 
     Args:

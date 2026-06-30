@@ -416,7 +416,7 @@ class VisualFormatter:
         print(self._c("  ┌─ Overview ─────────────────────────────┐", Colors.CYAN))
         print(self._c("  │", Colors.CYAN))
 
-        mode_str = mode.value if hasattr(mode, "value") else str(mode)
+        mode_str = "unknown" if mode is None else mode.value if hasattr(mode, "value") else str(mode)
         print(self._c("  │", Colors.CYAN) + " Mode: ".ljust(12) + self._c(mode_str, Colors.BOLD + Colors.MAGENTA))
 
         progress_str = f"{progress:.1f}%"

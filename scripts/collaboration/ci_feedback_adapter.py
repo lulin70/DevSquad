@@ -84,7 +84,7 @@ class CIResult:
         """
         lines = [f"CI Result ({self.source}): {'✅ PASS' if self.success else '❌ FAIL'}"]
         for m in self.metrics:
-            icon = {"pass": "✅", "fail": "❌", "warning": "⚠️", "skip": "⏭️"}.get(m.status, "?")
+            icon = {"pass": "✅", "fail": "❌", "warning": "⚠️", "skip": "⏭️"}.get(m.status, "?")  # nosec B105 — emoji status icons, not passwords
             lines.append(f"  {icon} {m.name}: {m.value}")
         if self.duration_seconds > 0:
             lines.append(f"  ⏱ Duration: {self.duration_seconds:.1f}s")
@@ -284,7 +284,7 @@ class CIFeedbackAdapter:
     }
 
     QUALITY_GATE_THRESHOLDS = {
-        "test_pass_rate": 100.0,  # All tests must pass
+        "test_pass_rate": 100.0,  # nosec B105 — threshold value, not a password  # All tests must pass
         "min_coverage": 80.0,  # Minimum coverage percentage
         "zero_lint_errors": True,  # No lint errors allowed
         "build_success": True,  # Build must succeed

@@ -68,7 +68,7 @@ class HistoryManager:
             db_path = str(data_dir / "devsquad_history.db")
 
         self.db_path = db_path
-        self.conn = self._get_connection()
+        self.conn: sqlite3.Connection | None = self._get_connection()
 
         # Initialize database schema
         self._init_schema()
@@ -83,9 +83,21 @@ class HistoryManager:
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
 
-    def _init_schema(self):
+    @property
+    def _conn(self) -> sqlite3.Connection:
+        """Return the active connection, raising if the manager is closed.
+
+        Centralizes the None check so data-access methods don't need to
+        repeat it. Raises ``sqlite3.Error`` (caught by existing handlers)
+        when the connection has been closed via :meth:`close`.
+        """
+        if self.conn is None:
+            raise sqlite3.Error("Database connection is closed")
+        return self.conn
+
+    def _init_schema(self) -> None:
         """Initialize database tables if they don't exist."""
-        cursor = self.conn.cursor()
+        cursor = self._conn.cursor()
 
         # Metrics snapshots table
         cursor.execute("""
@@ -168,7 +180,7 @@ class HistoryManager:
         for idx_sql in indexes:
             cursor.execute(idx_sql)
 
-        self.conn.commit()
+        self._conn.commit()
         logger.debug("Database schema initialized/verified")
 
     def save_metrics_snapshot(self, metrics_data: dict[str, Any]) -> bool:
@@ -182,7 +194,7 @@ class HistoryManager:
             True if saved successfully, False otherwise
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
 
             # Extract known fields
             custom_data = {
@@ -228,7 +240,7 @@ class HistoryManager:
                 ),
             )
 
-            self.conn.commit()
+            self._conn.commit()
             return True
 
         except (sqlite3.Error, OSError) as e:
@@ -250,7 +262,7 @@ class HistoryManager:
             List of metric snapshot dictionaries
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
 
             cutoff = datetime.now() - timedelta(hours=hours)
 
@@ -317,7 +329,7 @@ class HistoryManager:
             True if logged successfully
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO api_logs (
@@ -328,7 +340,7 @@ class HistoryManager:
                 (datetime.now(), method, path, status_code, response_time_ms, client_ip, user_agent),
             )
 
-            self.conn.commit()
+            self._conn.commit()
             return True
 
         except (sqlite3.Error, OSError) as e:
@@ -347,7 +359,7 @@ class HistoryManager:
             Dictionary with API statistics
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
             cutoff = datetime.now() - timedelta(hours=hours)
 
             # Total requests
@@ -442,7 +454,7 @@ class HistoryManager:
             True if saved successfully
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO lifecycle_events (
@@ -453,7 +465,7 @@ class HistoryManager:
                 (datetime.now(), event_type, phase_id, previous_status, new_status, user_id, details),
             )
 
-            self.conn.commit()
+            self._conn.commit()
             return True
 
         except (sqlite3.Error, OSError) as e:
@@ -475,14 +487,14 @@ class HistoryManager:
             List of lifecycle event dictionaries
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
             cutoff = datetime.now() - timedelta(hours=hours)
 
             query = """
                 SELECT * FROM lifecycle_events
                 WHERE timestamp >= ?
             """
-            params = [cutoff]
+            params: list[Any] = [cutoff]
 
             if phase_id:
                 query += " AND phase_id = ?"
@@ -513,7 +525,7 @@ class HistoryManager:
             Dictionary with counts of deleted records per table
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
             cutoff = datetime.now() - timedelta(days=retention_days)
 
             deleted = {}
@@ -525,7 +537,7 @@ class HistoryManager:
                 cursor.execute(f"DELETE FROM {table} WHERE {col} < ?", (cutoff,))  # nosec B608
                 deleted[table] = cursor.rowcount
 
-            self.conn.commit()
+            self._conn.commit()
 
             total_deleted = sum(deleted.values())
             logger.info("Cleaned up %s old records (retention=%s days)", total_deleted, retention_days)
@@ -544,7 +556,7 @@ class HistoryManager:
             Dictionary with size statistics
         """
         try:
-            cursor = self.conn.cursor()
+            cursor = self._conn.cursor()
 
             # Table sizes
             table_sizes = {}
@@ -569,7 +581,7 @@ class HistoryManager:
             logger.error("Failed to get database size: %s", e)
             return {}
 
-    def close(self):
+    def close(self) -> None:
         """Close database connection."""
         if self.conn:
             self.conn.close()

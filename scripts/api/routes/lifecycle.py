@@ -15,6 +15,7 @@ Endpoints:
 import logging
 import os
 import sys
+from typing import TYPE_CHECKING, Any, cast
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -28,6 +29,9 @@ from scripts.api.models import (
     PhaseStatus,
 )
 from scripts.api.security import audit_log, require_permission
+
+if TYPE_CHECKING:
+    from scripts.collaboration.lifecycle_shortcut_adapter import ShortcutLifecycleAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +48,7 @@ async def list_phases(
     status_filter: PhaseStatus | None = Query(None, description="Filter by phase status"),
     include_details: bool = Query(False, description="Include detailed artifact information"),
     user_id: str = Depends(require_permission("TASK_READ")),
-):
+) -> list[LifecyclePhase]:
     """
     List all lifecycle phases.
 
@@ -65,7 +69,7 @@ async def list_phases(
         # Determine current status
         completed = set(status.completed_phases or [])
         failed = set(status.failed_phases or [])
-        running = set()
+        running: set[str] = set()
 
         phases = []
         for phase in all_phases:
@@ -121,7 +125,7 @@ async def list_phases(
 async def get_phase(
     phase_id: str,
     user_id: str = Depends(require_permission("TASK_READ")),
-):
+) -> LifecyclePhase:
     """
     Get details of a specific phase.
 
@@ -192,7 +196,7 @@ async def get_phase(
 )
 async def get_lifecycle_status(
     user_id: str = Depends(require_permission("TASK_READ")),
-):
+) -> dict[str, Any]:
     """
     Get current lifecycle status.
 
@@ -242,7 +246,7 @@ async def get_lifecycle_status(
 async def execute_phase_action(
     request: PhaseActionRequest,
     user_id: str = Depends(require_permission("TASK_UPDATE")),
-):
+) -> PhaseActionResult:
     """
     Execute an action on a lifecycle phase.
 
@@ -288,7 +292,7 @@ async def execute_phase_action(
 
         elif request.action == "complete":
             try:
-                protocol.complete_phase(phase_id)
+                cast("ShortcutLifecycleAdapter", protocol).complete_phase(phase_id)
                 success = True
                 message = f"Phase {phase_id} marked as completed"
                 new_status = PhaseStatus.COMPLETED
@@ -348,7 +352,7 @@ async def execute_phase_action(
 )
 async def list_command_mappings(
     user_id: str = Depends(require_permission("TASK_READ")),
-):
+) -> list[CommandMapping]:
     """
     List CLI command to phase mappings.
 
@@ -370,7 +374,12 @@ async def list_command_mappings(
                 phase_ids = mapping.phases
 
             mappings.append(
-                CommandMapping(command=cmd_name, phases=phase_ids, mode=mapping.mode or "shortcut", gate=mapping.gate)
+                CommandMapping(
+                    command=cmd_name,
+                    phases=phase_ids,
+                    mode=mapping.mode.value if mapping.mode else "shortcut",
+                    gate=mapping.gate,
+                )
             )
 
         logger.info("Retrieved %s command mappings", len(mappings))

@@ -65,7 +65,7 @@ class ExecutionGuard:
             "FAILED",
             "TIMEOUT",
         ],
-        "token_estimate_ratio": 4.0,
+        "token_estimate_ratio": 4.0,  # nosec B105 — chars-per-token ratio, not a password
     }
 
     def __init__(

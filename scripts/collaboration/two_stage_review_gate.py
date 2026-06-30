@@ -96,7 +96,7 @@ class StageResult(Enum):
     ``PASS`` means no findings at all.
     """
 
-    PASS = "pass"
+    PASS = "pass"  # nosec B105 — enum value for gate status, not a password
     WARN = "warn"
     FAIL = "fail"  # Blocks progression
 

@@ -37,7 +37,7 @@ for path in sorted(targets):
         try:
             tree = ast.parse(fh.read())
         except Exception:
-            continue
+            continue  # nosec B112 — skip unparseable files during hint scan
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.returns is None:
             missing_by_file[path].append((node.lineno, node.name, type(node).__name__))

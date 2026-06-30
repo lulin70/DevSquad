@@ -17,6 +17,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from typing import TYPE_CHECKING, Any, cast
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -29,6 +30,9 @@ from scripts.api.models import (
     MetricsSnapshot,
 )
 from scripts.api.security import require_permission
+
+if TYPE_CHECKING:
+    from scripts.collaboration.lifecycle_shortcut_adapter import ShortcutLifecycleAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +110,7 @@ def _get_real_response_time() -> tuple:
 )
 async def get_current_metrics(
     user_id: str = Depends(require_permission("AUDIT_READ")),
-):
+) -> MetricsSnapshot:
     """
     Get current metrics snapshot.
 
@@ -168,7 +172,7 @@ async def get_metrics_history(
     hours: int = Query(24, ge=1, le=168, description="Number of hours of history to retrieve"),
     interval_minutes: int = Query(60, ge=5, le=1440, description="Data point interval in minutes"),
     user_id: str = Depends(require_permission("AUDIT_READ")),
-):
+) -> dict[str, Any]:
     """
     Get historical metrics.
 
@@ -225,7 +229,7 @@ async def get_metrics_history(
 )
 async def get_all_gate_statuses(
     user_id: str = Depends(require_permission("AUDIT_READ")),
-):
+) -> dict[str, Any]:
     """
     Get status of all gates.
 
@@ -242,7 +246,7 @@ async def get_all_gate_statuses(
 
         for cmd in commands:
             try:
-                result = protocol.check_command_gate(cmd)
+                result = cast("ShortcutLifecycleAdapter", protocol).check_command_gate(cmd)
                 gate_statuses[cmd] = {
                     "passed": result.passed,
                     "verdict": result.verdict,
@@ -284,7 +288,7 @@ async def get_all_gate_statuses(
 async def check_specific_gate(
     request: GateCheckRequest,
     user_id: str = Depends(require_permission("AUDIT_READ")),
-):
+) -> GateResult:
     """
     Check a specific gate.
 
@@ -301,15 +305,16 @@ async def check_specific_gate(
 
         # Map command to phase_id, then check gate
         view_mapping = protocol.get_view_mapping(request.command.lower())
-        phase_id = view_mapping.phase_id if view_mapping else None
+        phase_id = cast(Any, view_mapping).phase_id if view_mapping else None
         result = protocol.check_gate(phase_id)
 
+        gap_report_raw = getattr(result, "gap_report", None)
         return GateResult(
             passed=result.passed,
             verdict=result.verdict,
             red_flags_count=len(getattr(result, "red_flags", [])),
             missing_evidence_count=len(getattr(result, "missing_evidence", [])),
-            gap_report=getattr(result, "gap_report", None)[:500] if getattr(result, "gap_report", None) else None,
+            gap_report=gap_report_raw[:500] if gap_report_raw else None,
             checked_at=datetime.now(),
         )
 
@@ -333,7 +338,7 @@ async def check_specific_gate(
     summary="Health check endpoint",
     description="Check service health and component status",
 )
-async def health_check():
+async def health_check() -> HealthCheck:
     """
     Health check endpoint.
 

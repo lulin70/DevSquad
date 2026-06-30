@@ -63,7 +63,7 @@ class BenchmarkReportGenerator:
         self.performance_metrics: dict[str, Any] = {}
         self.quality_gates: dict[str, Any] = {}
 
-    def collect_test_results(self) -> bool:
+    def collect_test_results(self) -> bool | dict[str, Any]:
         """Run pytest and collect test results."""
         print("📊 Collecting test results...")
 
@@ -126,7 +126,7 @@ class BenchmarkReportGenerator:
 
     def _parse_text_output(self, output: str) -> dict:
         """Parse pytest text output as fallback."""
-        results = {
+        results: dict[str, Any] = {
             "total": 0,
             "passed": 0,
             "failed": 0,
@@ -320,7 +320,7 @@ class BenchmarkReportGenerator:
             status_text = "WARNING"
 
         # Gate status icons
-        gate_icons = {"PASS": "✅", "FAIL": "❌", "WARN": "⚠️", "INFO": "ℹ"}
+        gate_icons = {"PASS": "✅", "FAIL": "❌", "WARN": "⚠️", "INFO": "ℹ"}  # nosec B105 — emoji status icons, not passwords
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -695,9 +695,9 @@ class BenchmarkReportGenerator:
         except (OSError, RuntimeError) as e:
             print(f"⚠️  Could not open browser: {e}")
 
-    def generate_all_reports(self, open_browser: bool = False) -> dict[str, str | None]:
+    def generate_all_reports(self, open_browser: bool = False) -> dict[str, str]:
         """Generate all requested report formats."""
-        results = {}
+        results: dict[str, str] = {}
 
         # Step 1: Collect test data
         if not self.collect_test_results():
@@ -728,7 +728,7 @@ class BenchmarkReportGenerator:
         return results
 
 
-def main():
+def main() -> int:
     """Main entry point for benchmark report generator."""
     parser = argparse.ArgumentParser(
         description="Generate DevSquad performance benchmark reports",

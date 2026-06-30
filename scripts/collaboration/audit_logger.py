@@ -136,7 +136,7 @@ class SensitiveDataMasker:
         "credit_card": r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
         "ssn": r"\b\d{3}-\d{2}-\d{4}\b",
         "api_key": r"(?:sk-|api_|token)[a-zA-Z0-9_-]{16,}",
-        "password": r"(?i)(password|passwd|pwd)\s*[:=]\s*\S+",
+        "password": r"(?i)(password|passwd|pwd)\s*[:=]\s*\S+",  # nosec B105 — regex pattern for detecting password leaks, not a password
     }
 
     def __init__(self) -> None:

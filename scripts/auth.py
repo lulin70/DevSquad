@@ -116,7 +116,12 @@ class AuthManager:
     def _get_credentials(self) -> dict[str, dict]:
         """Get credentials from configuration."""
         auth_config = self.config.get("authentication", {})
-        return auth_config.get("credentials", {}).get("usernames", {})
+        usernames = auth_config.get("credentials", {}).get("usernames", {})
+        # ``.get()`` chain returns ``Any``; validate the shape so the declared
+        # return type holds even when the config is malformed.
+        if isinstance(usernames, dict):
+            return usernames
+        return {}
 
     def _validate_config_security(self) -> None:
         """
@@ -449,7 +454,7 @@ def check_permission(required_role: UserRole = UserRole.VIEWER) -> Callable[[Cal
         """Wrap `func` with a role-based permission check."""
 
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Check the current user's role before calling the wrapped function.
 
             Raises PermissionError when the user is not authenticated or

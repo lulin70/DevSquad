@@ -8,7 +8,7 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -24,7 +24,7 @@ class DashboardConfig:
 
     PAGE_TITLE = "🔄 DevSquad Lifecycle Dashboard"
     PAGE_ICON = "🚀"
-    LAYOUT = "wide"
+    LAYOUT: Literal["wide"] = "wide"
 
     COLOR_SCHEME = {
         "primary": "#4A90D9",

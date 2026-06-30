@@ -20,15 +20,15 @@ def load_lifecycle_protocol() -> dict[str, Any] | None:
     """Load and cache the lifecycle protocol."""
     try:
         from scripts.collaboration.lifecycle_protocol import (
-            FULL_LIFECYCLE_PHASES,
             VIEW_MAPPINGS,
             get_shared_protocol,
         )
 
+        protocol = get_shared_protocol()
         return {
-            "protocol": get_shared_protocol(),
+            "protocol": protocol,
             "mappings": VIEW_MAPPINGS,
-            "phases": FULL_LIFECYCLE_PHASES,
+            "phases": protocol.get_all_phases(),
         }
     except (ImportError, AttributeError, RuntimeError) as e:
         st.error(f"Failed to load lifecycle protocol: {e}")
@@ -51,7 +51,7 @@ def render_phase_timeline(protocol_data: dict[str, Any] | None) -> None:
         failed_phases = set(status.failed_phases)
         # LifecycleStatus has no running_phases field; dashboard cannot
         # derive it without access to protocol._phase_states
-        running_phases = set()
+        running_phases: set[str] = set()
 
         for idx, phase in enumerate(phases, 1):
             phase_id = phase.phase_id

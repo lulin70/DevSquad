@@ -7,6 +7,38 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.9.2] - 2026-06-30 (技术债清零：mypy/bandit/Mixin)
+
+### 代码质量 — 三项技术债修复（V3.10.0 目标提前达成）
+
+- **mypy full baseline 112→0 errors**（5 个并行 agent + 手动修复 TYPE_CHECKING bug）：
+  - Group A (29→0): `cli_dispatch.py`、`cli_utils.py`、`cli_lifecycle.py`、`cli/cli_visual.py` — 添加返回类型注解、None 检查、ternary 简化
+  - Group B (21→0): `api_server.py`、`mcp_server.py` — 中间件参数类型 `Callable[[Request], Awaitable[Response]]`、`cast(Response, ...)` 修复 no-any-return
+  - Group C (24→0): `api/routes/dispatch.py`、`lifecycle.py`、`metrics_gates.py` — `from __future__ import annotations` 修复 TYPE_CHECKING 运行时 NameError、`cast("ShortcutLifecycleAdapter", ...)` 字符串前向引用
+  - Group D (26→0): `tools/rule_manager.py`、`tools/add_personal_rule.py`、`generate_benchmark_report.py`、`benchmark_real_llm.py`、`benchmark_async_dispatch.py`、`tools/add_rule_native.py` — 返回类型注解、类型收窄
+  - Group E (12→0): `history_manager.py`、`dashboard/metrics_views.py`、`dashboard/lifecycle_views.py`、`auth.py`、`dashboard/components.py` — `_conn` property 集中 None 检查、`Literal` 类型注解、修复 broken import
+  - **关键 bug 修复**：`dispatch.py` 中 `MultiAgentDispatcher` 移至 `TYPE_CHECKING` 块后，模块级 `_global_dispatcher: MultiAgentDispatcher | None = None` 运行时注解触发 `NameError`，导致 `test_api_server_v362.py` 收集失败。修复：添加 `from __future__ import annotations` 使注解延迟求值。
+
+- **bandit 11 个 Low 级告警清零**（全误报/合法使用，加 nosec 注释）：
+  - B105（emoji ✅/阈值 100.0/比率 4.0/enum "pass"/regex pattern 被误认为密码）→ 6 处 nosec
+  - B403（pickle 用于受信本地缓存）→ 3 处 nosec
+  - B110/B112（try/except/pass/continue 合法错误处理）→ 2 处 nosec
+  - 注：round6 报告"49 个 Low 告警"为过期数据，pyproject.toml 已 skips B101/B311/B404/B603（大头），实际仅 11 个
+
+- **TD-068 Mixin 类爆炸风险评估 → 降级关闭**（`docs/assessments/MIXIN_EVALUATION_TD068.md`）：
+  - 24 个 Mixin 分布于 35 文件/7328 行，单文件最大 439 行，每组 2-6 个 Mixin
+  - 6 组（Dispatcher/Memory/PostDispatch/PromptAssembler/UETest/WorkflowEngine）职责单一、耦合度低、内聚性高
+  - 结论：非类爆炸，是合理的关注点分离；真正问题是 PostDispatch 缺直接实例化测试（新增 TD-070）
+
+### CI/CD — mypy baseline 升级为阻断门禁
+- **test.yml mypy baseline 115→0 阻断**（`.github/workflows/test.yml`）：原 baseline=115 非阻断模式升级为 0-error 阻断策略，`continue-on-error: true` 移除。V3.10.0 目标"<50"提前超额达成。
+
+### 验证
+- pytest 全量：2856 passed / 0 failed / 3 skipped
+- mypy scripts/ 全量：0 errors（原 112 errors）
+- ruff check：All checks passed
+- bandit：0 issues（原 11 Low）
+
 ## [3.9.2] - 2026-06-30 (发布链路修复)
 
 ### 安全 — P2 cookie 安全配置
