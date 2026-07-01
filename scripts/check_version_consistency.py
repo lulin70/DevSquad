@@ -90,8 +90,8 @@ FILES_TO_CHECK: list[FileSpec] = [
     ),
     FileSpec(
         relative_path="Dockerfile",
-        pattern=re.compile(r'^LABEL version="(\d+\.\d+\.\d+)"', re.MULTILINE),
-        description="Docker image label",
+        pattern=re.compile(r'^ARG\s+VERSION\s*=\s*"?(\d+\.\d+\.\d+)"?', re.MULTILINE),
+        description="Dockerfile VERSION arg",
     ),
     FileSpec(
         relative_path="helm/devsquad/Chart.yaml",

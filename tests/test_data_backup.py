@@ -99,7 +99,7 @@ class TestCheckpointManagerPersistence:
 
     def test_list_and_delete_checkpoints(self, tmp_path: Path):
         manager = CheckpointManager(storage_path=str(tmp_path))
-        cp1 = manager.create_checkpoint_from_dispatch(
+        manager.create_checkpoint_from_dispatch(
             "task-1", "s1", "agent-1", ["a"], ["b"]
         )
         cp2 = manager.create_checkpoint_from_dispatch(

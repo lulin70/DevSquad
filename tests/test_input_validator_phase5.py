@@ -308,8 +308,8 @@ class TestDispatchPreStepsPromptInjectionFallback:
             enable_memory=False,
             scratchpad=None,
             enterprise=None,
-            resolve_language_fn=lambda x: x,
-            analyze_task_fn=lambda x: [],
+            resolve_language_fn=lambda _x: _x,
+            analyze_task_fn=lambda _x: [],
         )
 
     def test_pipeline_returns_fallback_on_injection(self, pipeline, caplog):
@@ -346,8 +346,8 @@ class TestDispatchPreStepsPromptInjectionFallback:
             enable_memory=False,
             scratchpad=None,
             enterprise=None,
-            resolve_language_fn=lambda x: x,
-            analyze_task_fn=lambda x: [],
+            resolve_language_fn=lambda _x: _x,
+            analyze_task_fn=lambda _x: [],
         )
         with caplog.at_level("WARNING"):
             task, early = pipeline.validate_input(

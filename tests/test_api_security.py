@@ -740,6 +740,7 @@ class TestProductionEnvironmentHardening:
     def test_api_key_verify_uses_hmac_compare_digest(self, monkeypatch, tmp_path):
         """APIKeyStore.verify must use hmac.compare_digest."""
         import hmac
+
         import yaml
 
         import scripts.api.security as sec

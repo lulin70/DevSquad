@@ -14,7 +14,6 @@ import pytest
 
 from scripts.collaboration._version import __version__
 
-
 PROJECT_ROOT = Path(__file__).parent.parent
 
 

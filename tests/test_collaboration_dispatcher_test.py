@@ -554,7 +554,7 @@ class TestT8_DispatcherRBACAndErrorPaths:
 
     def test_rbac_exception_fail_closed(self, tmp_dir):
         class BrokenRBAC:
-            def check_dispatch_permission(self, *args, **kwargs):
+            def check_dispatch_permission(self, *_args, **_kwargs):
                 raise RuntimeError("RBAC down")
 
         disp = MultiAgentDispatcher(
@@ -574,7 +574,7 @@ class TestT8_DispatcherRBACAndErrorPaths:
 
     def test_rbac_exception_fail_open_continues(self, tmp_dir):
         class BrokenRBAC:
-            def check_dispatch_permission(self, *args, **kwargs):
+            def check_dispatch_permission(self, *_args, **_kwargs):
                 raise RuntimeError("RBAC down")
 
         disp = MultiAgentDispatcher(
