@@ -22,12 +22,15 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from .content_crusher import ContentRouter, SmartCrusher
+
 
 class CompressionLevel(Enum):
     NONE = 0
     SNIP = 1
     SESSION_MEMORY = 2
     FULL_COMPACT = 3
+    SMART = 4  # V3.10.0: structure-aware via ContentRouter + SmartCrusher
 
 
 class MessageType(Enum):
@@ -238,6 +241,8 @@ class ContextCompressor:
         self._session_memory: list[MemoryEntry] = []
         self._compression_log: list[dict] = []
         self._lock = threading.RLock()
+        self._crusher = SmartCrusher()
+        self._router = ContentRouter()
 
     def estimate_tokens(self, text: str) -> int:
         """Estimate the token count for a piece of text.
@@ -323,6 +328,8 @@ class ContextCompressor:
                 result = self._level2_session_memory(messages, result)
             elif level == CompressionLevel.FULL_COMPACT:
                 result = self._level3_full_compact(messages, result)
+            elif level == CompressionLevel.SMART:
+                result = self._level4_smart(messages, result)
 
             result.session_memory = list(self._session_memory)
             result.stats["original_message_count"] = len(messages)
@@ -466,6 +473,46 @@ class ContextCompressor:
         ctx.stats["todos"] = len(todos)
         ctx.stats["errors"] = len(errors)
         ctx.stats["deliverables"] = len(deliverables)
+        return ctx
+
+    def _level4_smart(self, messages: list[Message], ctx: CompressedContext) -> CompressedContext:
+        """Level 4: Structure-aware compression via ContentRouter + SmartCrusher.
+
+        Unlike levels 1-3 which prune or summarize messages, SMART preserves
+        all messages but compresses each message's content using structure-aware
+        crushers (JSON array → representative subset, log → error+boundary lines).
+        Short messages (<=200 chars) are returned unchanged by the crusher.
+
+        Args:
+            messages: Original message list.
+            ctx: CompressedContext to populate with compressed messages.
+
+        Returns:
+            Updated ctx with compressed messages and token count.
+        """
+        compressed_msgs: list[Message] = []
+        crush_count = 0
+        for m in messages:
+            crushed = self._crusher.crush(m.content)
+            if crushed != m.content:
+                new_m = Message(
+                    message_id=m.message_id,
+                    role=m.role,
+                    content=crushed,
+                    msg_type=m.msg_type,
+                    timestamp=m.timestamp,
+                    token_count=self.estimate_tokens(crushed),
+                    importance_score=m.importance_score,
+                    metadata={**m.metadata, "smart_crushed": True},
+                )
+                compressed_msgs.append(new_m)
+                crush_count += 1
+            else:
+                compressed_msgs.append(m)
+        ctx.messages = compressed_msgs
+        ctx.compressed_token_count = self.estimate_messages_tokens(compressed_msgs)
+        ctx.stats["smart_crush_applied"] = crush_count
+        ctx.stats["smart_crush_total"] = len(messages)
         return ctx
 
     def _extract_memory_from_message(self, msg: Message) -> MemoryEntry | None:
