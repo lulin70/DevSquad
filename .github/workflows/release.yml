@@ -85,6 +85,8 @@ jobs:
     needs: build
     timeout-minutes: 15
     environment: pypi  # requires manual approval in GitHub env protection
+    permissions:
+      id-token: write  # required for PyPI OIDC trusted publishing
     steps:
       - uses: actions/checkout@v4
 

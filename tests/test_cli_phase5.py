@@ -215,7 +215,7 @@ class TestCLIArgumentParsing:
         cli_main = _cli.main
         with (
             patch("sys.argv", ["devsquad", "dispatch", "-t", "test task"]),
-            patch("scripts.cli_module.cmd_dispatch") as mock_cmd,
+            patch.object(_cli, "cmd_dispatch") as mock_cmd,
             contextlib.suppress(SystemExit),
         ):
             cli_main()
@@ -244,7 +244,7 @@ class TestCLIArgumentParsing:
         ]
         with (
             patch("sys.argv", test_args),
-            patch("scripts.cli_module.cmd_dispatch") as mock_cmd,
+            patch.object(_cli, "cmd_dispatch") as mock_cmd,
             contextlib.suppress(SystemExit),
         ):
             cli_main()
@@ -262,7 +262,7 @@ class TestCLIArgumentParsing:
         cli_main = _cli.main
         with (
             patch("sys.argv", ["devsquad", "demo", "--scenario", "intent"]),
-            patch("scripts.cli_module.cmd_demo") as mock_cmd,
+            patch.object(_cli, "cmd_demo") as mock_cmd,
             contextlib.suppress(SystemExit),
         ):
             cli_main()
@@ -274,7 +274,7 @@ class TestCLIArgumentParsing:
         cli_main = _cli.main
         with (
             patch("sys.argv", ["devsquad", "init", "--quick"]),
-            patch("scripts.cli_module.cmd_init") as mock_cmd,
+            patch.object(_cli, "cmd_init") as mock_cmd,
             contextlib.suppress(SystemExit),
         ):
             cli_main()
