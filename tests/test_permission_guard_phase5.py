@@ -13,20 +13,17 @@ Phase 5: PermissionGuard 权限系统覆盖率提升测试（基于实际 API）
 
 import os
 import sys
-import unittest
 from enum import Enum
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.collaboration.permission_guard import (
+    ActionType,
     PermissionGuard,
     PermissionLevel,
-    ActionType,
     ProposedAction,
-    PermissionDecision as PermissionResult,
 )
 
 
@@ -37,11 +34,11 @@ class TestPermissionLevelEnum:
         """Test that expected permission levels are defined."""
         expected_levels = ["DEFAULT", "PLAN", "AUTO", "BYPASS"]
         for level in expected_levels:
-            assert level in [l.name for l in PermissionLevel]
+            assert level in [pl.name for pl in PermissionLevel]
 
     def test_permission_level_values_unique(self):
         """Test that all permission level values are unique."""
-        values = [l.value for l in PermissionLevel]
+        values = [pl.value for pl in PermissionLevel]
         assert len(values) == len(set(values))
 
     def test_bypass_is_highest(self):
@@ -75,8 +72,7 @@ class TestActionTypeEnum:
 
     def test_file_actions_exist(self):
         """Test file-related action types exist."""
-        file_actions = [ActionType.FILE_READ, ActionType.FILE_CREATE,
-                       ActionType.FILE_MODIFY, ActionType.FILE_DELETE]
+        file_actions = [ActionType.FILE_READ, ActionType.FILE_CREATE, ActionType.FILE_MODIFY, ActionType.FILE_DELETE]
         for action in file_actions:
             assert action in ActionType
 
@@ -168,17 +164,17 @@ class TestPermissionCheckScenarios:
         shell_action = ProposedAction(action_type=ActionType.SHELL_EXECUTE, target="rm -rf /")
         shell_result = permission_guard.check(shell_action)
 
-        assert hasattr(read_result, 'outcome')
-        assert hasattr(delete_result, 'outcome')
-        assert hasattr(shell_result, 'outcome')
+        assert hasattr(read_result, "outcome")
+        assert hasattr(delete_result, "outcome")
+        assert hasattr(shell_result, "outcome")
 
     def test_permission_decision_structure(self, permission_guard):
         """Test that permission decision has required fields."""
         permission_guard.set_level(PermissionLevel.DEFAULT)
         action = ProposedAction(action_type=ActionType.FILE_READ, target="test.txt")
         result = permission_guard.check(action)
-        assert hasattr(result, 'outcome')
-        assert hasattr(result, 'reason')
+        assert hasattr(result, "outcome")
+        assert hasattr(result, "reason")
         assert isinstance(result.outcome, Enum)
 
 
@@ -197,7 +193,7 @@ class TestPermissionEdgeCases:
             target="",
         )
         result = permission_guard.check(action)
-        assert hasattr(result, 'outcome')
+        assert hasattr(result, "outcome")
 
     def test_none_metadata_handling(self, permission_guard):
         """Test handling of default metadata in action."""
@@ -207,7 +203,7 @@ class TestPermissionEdgeCases:
             target="file.txt",
         )
         result = permission_guard.check(action)
-        assert hasattr(result, 'outcome')
+        assert hasattr(result, "outcome")
 
     def test_very_long_target_path(self, permission_guard):
         """Test permission check with very long target path."""
@@ -232,7 +228,7 @@ class TestPermissionEdgeCases:
         for target in special_targets:
             action = ProposedAction(action_type=ActionType.FILE_READ, target=target)
             result = permission_guard.check(action)
-            assert hasattr(result, 'outcome')
+            assert hasattr(result, "outcome")
 
 
 if __name__ == "__main__":

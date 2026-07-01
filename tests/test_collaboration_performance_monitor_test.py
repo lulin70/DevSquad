@@ -276,7 +276,7 @@ class TestPerformanceMonitor:
 
     def test_detect_bottlenecks(self):
         """Test bottleneck detection"""
-        for i in range(10):
+        for _i in range(10):
             fast_metric = PerformanceMetric(
                 name="fast_func",
                 start_time=time.time() - 0.01,
@@ -288,7 +288,7 @@ class TestPerformanceMonitor:
             )
             self.monitor.record_metric(fast_metric)
 
-        for i in range(10):
+        for _i in range(10):
             slow_metric = PerformanceMetric(
                 name="slow_func",
                 start_time=time.time() - 2.0,
@@ -308,7 +308,7 @@ class TestPerformanceMonitor:
 
     def test_detect_bottlenecks_empty(self):
         """Test bottleneck detection with no bottlenecks"""
-        for i in range(10):
+        for _i in range(10):
             metric = PerformanceMetric(
                 name="fast_func",
                 start_time=time.time() - 0.01,
@@ -355,7 +355,7 @@ class TestPerformanceMonitor:
 
     def test_export_report_with_bottlenecks(self):
         """Test report includes bottleneck section"""
-        for i in range(5):
+        for _i in range(5):
             metric = PerformanceMetric(
                 name="slow_func",
                 start_time=time.time() - 2.0,
@@ -374,7 +374,7 @@ class TestPerformanceMonitor:
 
     def test_get_slowest_functions(self):
         """Test getting slowest functions"""
-        for i in range(5):
+        for _i in range(5):
             fast_metric = PerformanceMetric(
                 name="fast_func",
                 start_time=time.time() - 0.01,
@@ -386,7 +386,7 @@ class TestPerformanceMonitor:
             )
             self.monitor.record_metric(fast_metric)
 
-        for i in range(5):
+        for _i in range(5):
             slow_metric = PerformanceMetric(
                 name="slow_func",
                 start_time=time.time() - 2.0,
@@ -605,7 +605,7 @@ class TestIntegration:
             return "saved"
 
         # Execute workflow multiple times
-        for i in range(10):
+        for _i in range(10):
             api_call()
             process_data()
             save_data()

@@ -1,5 +1,8 @@
 """Retrospective Skill - V3.9.2"""
 
+from collections.abc import Callable
+from typing import Any
+
 from scripts.collaboration.models import (
     AnchorResult,
     AnchorTrigger,
@@ -24,8 +27,8 @@ class RetrospectiveSkill(BaseSkill):
 
     OUTPUT_FORMATS = ["findings", "patterns", "improvements", "summary"]
 
-    def run(self, action="info", **kwargs):
-        actions = {
+    def run(self, action: str = "info", **kwargs: Any) -> Any:
+        actions: dict[str, Callable[..., Any]] = {
             "run_retrospective": self.run_retrospective,
             "extract_patterns": self.extract_patterns,
             "generate_improvements": self.generate_improvements,
@@ -54,12 +57,12 @@ class RetrospectiveSkill(BaseSkill):
             AnchorResult(aligned=True, trigger=AnchorTrigger.STEP_COMPLETE, coverage=0.95, drift_score=0.01),
         ]
 
-    def run_retrospective(self, dispatch_result: dict = None, task: str = "") -> dict:
+    def run_retrospective(self, dispatch_result: dict[str, Any] | None = None, task: str = "") -> dict[str, Any]:
         engine = RetrospectiveEngine()
         goal = self._mock_goal(task)
         history = self._mock_anchor_history()
         report = engine.run(goal=goal, anchor_history=history)
-        result = (
+        result: dict[str, Any] = (
             report.to_dict()
             if hasattr(report, "to_dict")
             else {
@@ -74,13 +77,13 @@ class RetrospectiveSkill(BaseSkill):
             result["dispatch_context"] = dispatch_result
         return result
 
-    def extract_patterns(self, history_items: list = None) -> dict:
+    def extract_patterns(self, history_items: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         items = history_items or [
             {"type": "goal_drift", "count": 3},
             {"type": "redundant_step", "count": 2},
             {"type": "late_error_detection", "count": 4},
         ]
-        patterns = {}
+        patterns: dict[str, int] = {}
         for item in items:
             t = item.get("type", "unknown")
             patterns[t] = patterns.get(t, 0) + item.get("count", 1)
@@ -91,7 +94,7 @@ class RetrospectiveSkill(BaseSkill):
             "insight": f"最频繁模式: {top_patterns[0][0] if top_patterns else 'N/A'} ({top_patterns[0][1] if top_patterns else 0}次)",
         }
 
-    def generate_improvements(self, findings: list) -> dict:
+    def generate_improvements(self, findings: list[str]) -> dict[str, Any]:
         if not findings:
             findings = ["goal_drift", "missing_anchor_checks"]
         improvement_map = {
@@ -108,7 +111,7 @@ class RetrospectiveSkill(BaseSkill):
             "priority": "high" if len(findings) > 3 else "medium",
         }
 
-    def summary(self, retro_result: dict = None) -> dict:
+    def summary(self, retro_result: dict[str, Any] | None = None) -> dict[str, Any]:
         if retro_result:
             deviations = retro_result.get("deviations", [])
             improvements = retro_result.get("improvements", [])

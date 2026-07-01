@@ -7,20 +7,15 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.9.2] - 2026-06-28
+## [3.9.2] - 2026-07-01
 
 ### Fixed — P0 Security & Hard Constraints
 - **P0-1 Password hash upgrade** (`scripts/auth.py`): Migrated password hashing from plain SHA-256 to OWASP 2023 recommended **PBKDF2-HMAC-SHA256** with random per-user salt (390,000 iterations). Format: `pbkdf2_sha256$<iter>$<salt_hex>$<hash_hex>`. Legacy SHA-256 hashes are auto-migrated to PBKDF2 on next successful login. Verification uses `secrets.compare_digest` for timing-safe comparison. 31 tests covering hash/verify/migration/timing-safety.
 - **P0-2 One-click startup script** (`scripts/start.sh`): Unified entry point with 4 phases — (1) environment check, (2) database initialization, (3) frontend build, (4) service startup. Supports `--dashboard` flag (launch Streamlit dashboard instead of API server), `--help`, and `DEVSQUAD_API_PORT` environment variable override. 14 tests.
-- **P0-3 Dependency lock file** (`requirements.lock`): Added pinned dependency lock file recording exact installed versions for reproducible builds. Documents declared vs transitive dependencies. 6 tests.
-
-### Test Coverage
-- 2853 passed (CI authoritative, Python 3.10+3.11; was 2703 in [3.9.2] - 2026-06-26)
-- Net +150 tests from P0-1 (31) + P0-2 (14) + P0-3 (6) + related coverage
-- mypy: 0 errors (blocking in CI)
-- bandit: 0 High/Medium issues
-
-## [3.9.2] - 2026-06-26
+- **P0-3 Dependency lock file** (`requirements.lock`): Added pinned dependency lock file recording exact versions for reproducible builds. Documents declared vs transitive dependencies. 6 tests.
+- **P0-4 VERSION file restored** (`VERSION`): Root-level `VERSION` file synchronized with `scripts/collaboration/_version.py`; version consistency check now validates 15 locations.
+- **P0-5 E2E/Integration tests re-enabled** (`pyproject.toml`): Removed `tests/e2e` and `tests/integration` from `norecursedirs`; tests now filtered via markers (`-m "not e2e"`) instead of being excluded from collection.
+- **P0-6 Test coverage raised to 68.15%** (`tests/`): Added `test_version.py`, `test_docker_deployment.py`, `test_data_backup.py`, and expanded dispatcher/coordinator/consensus error-path tests. Coverage up from 25.26% to 68.15%, exceeding the 60% gate.
 
 ### Added — LLM Backend Resilience
 - **Auto LLM fallback** (`llm_backend.py`, `async_llm_backend.py`): New default backend `"auto"` tries real LLM providers (Anthropic → OpenAI) and gracefully falls back to `MockBackend` when no API key is available or all real backends fail. Synchronous and asynchronous factories updated; `.env.example` and `config/deployment.yaml` default to `"auto"`.
@@ -31,13 +26,35 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Audit persistence** (`dispatcher.py`): `MultiAgentDispatcher` now defaults to a SQLite-backed `DispatchAuditLogger`; audit records survive process restarts unless explicitly disabled.
 - **P3 cleanup** (`llm_backend.py`, `async_llm_backend.py`): Magic numbers extracted to module constants; broad `except Exception` narrowed to network/API-specific exception sets.
 
+### Security — P1/P2 Hardening (Round 9)
+- **RBAC fail-closed enforcement** (`dispatcher.py`): Production mode denies dispatch when `_rbac is None`, satisfying hard constraint HC-1.
+- **Cookie security code-level enforcement** (`scripts/auth.py`): Production mode overrides config to force `secure=true`, `httponly=true`, `samesite=Strict`.
+- **API security production enforcement** (`scripts/api/security.py`): Merges `deployment.yaml` environment overrides; production mode ignores `DEVSQUAD_API_AUTH_DISABLED`.
+- **API key comparison hardening** (`scripts/api/security.py`): Replaced direct dict lookup with `hmac.compare_digest` over all stored hashes for timing-safe comparison.
+- **Prompt injection safe fallback** (`scripts/collaboration/input_validator.py`, `scripts/collaboration/dispatch_pre_steps.py`): Detected injections return a localized safe template response and an audit log entry instead of echoing malicious input.
+- **Deployment docs aligned to PBKDF2** (`config/deployment.yaml`, `config/samples/env.production`): Removed SHA-256 examples; added PBKDF2 generation commands.
+
+### Code Quality — P1/P3 Cleanup (Round 9)
+- **skills/ type-checked by mypy**: All 6 sub-skill handlers fully typed; `mypy scripts/ skills/` passes with 0 errors.
+- **Async return-type annotation coverage 100%**: 153/153 async functions in `scripts/` annotated.
+- **Lock files complete**: New `requirements-dev.lock`; `requirements.lock` now pins `fastapi`/`uvicorn`/`pydantic` and transitive deps.
+- **Dockerfile version-arg**: Added `ARG VERSION=3.9.2` and referenced `${VERSION}` in LABEL.
+- **Directory cleanup**: Removed `scripts/tools/` (migrated useful script to `scripts/utils/`) and `tests/manual/`; cleared 44 stale files from `docs/_archive/`; documented ghost-feature utilities in `test_quality_guard.py`.
+
 ### Documentation
 - **Loop Engineering assessment** (`docs/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md`): Evaluated DevSquad against upstream TRAEMultiAgent cybernetics methodology; documented gaps and V3.9.2 roadmap completion.
 - **V3.9.2 roadmap** (`docs/planning/V3_9_2_ROADMAP_PLAN.md`): Implementation plan for auto fallback, dashboard split, real LLM tests, audit persistence, and P3 cleanup.
+- **SKILL.md module count corrected**: Updated from 118 to 149+ modules; removed ghost/removed module entries; renumbered module table.
+- **Trilingual README aligned**: Unified "5 Ways to Use DevSquad" order across EN/CN/JP.
+- **Round 9 assessment** (`docs/PROJECT_TIDY_ASSESSMENT_V3.9.2_round9.md`): Honest 7-dimension maturity evaluation with command-output evidence.
+- **External research** (`docs/research/ponytail_headroom_research.md`): Analysis of ponytail agent behavior constraints and headroom token compression for future ContextCompressor upgrades.
 
 ### Test Coverage
-- 2703 passed (CI authoritative, Python 3.10+3.11; was 2605 in V3.9.1)
-- mypy: 0 errors (blocking in CI)
+- 2940 passed, 3 skipped, 34 deselected (unit + integration-ready suite, Python 3.10+3.11)
+- Total collected: 2977 tests (including 45 e2e/integration tests)
+- Coverage: 68.15% total, 59.53% branches
+- mypy scripts/ + skills/: 0 errors (blocking in CI)
+- ruff check scripts/ skills/: All checks passed
 - bandit: 0 High/Medium issues
 
 ## [3.9.1] - 2026-06-23

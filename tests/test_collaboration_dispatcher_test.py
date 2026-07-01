@@ -50,7 +50,7 @@ class TestT1_DispatcherDataModels:
             errors=["warn1"],
         )
         d = r.to_dict()
-        assert d["success"] == True
+        assert d["success"]
         assert d["task_description"] == "test task"
         assert d["matched_roles"] == ["architect", "tester"]
         assert "warn1" in d["errors"]
@@ -287,7 +287,14 @@ class TestT4_ComponentIntegration:
         disp.shutdown()
 
     def test_06_permission_disabled(self, tmp_dir):
-        disp = MultiAgentDispatcher(persist_dir=tmp_dir, enable_permission=False, enable_rbac=False, enable_audit=False, enable_data_masking=False, enable_multi_tenant=False)
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            enable_permission=False,
+            enable_rbac=False,
+            enable_audit=False,
+            enable_data_masking=False,
+            enable_multi_tenant=False,
+        )
         result = disp.dispatch("无权限任务")
         assert len(result.permission_checks) == 0
         disp.shutdown()
@@ -508,6 +515,154 @@ class TestT7_EdgeCases:
     def test_08_auto_persist_dir_created(self):
         disp = MultiAgentDispatcher(enable_warmup=False, enable_memory=False, enable_skillify=False)
         assert os.path.exists(disp.persist_dir)
+        disp.shutdown()
+
+
+class TestT8_DispatcherRBACAndErrorPaths:
+    """补充 Dispatcher 的 RBAC 与错误处理路径。"""
+
+    @pytest.fixture
+    def tmp_dir(self):
+        tmp = tempfile.mkdtemp(prefix="mas_test_t8_")
+        yield tmp
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_rbac_denies_unauthorized_roles(self, tmp_dir):
+        from scripts.collaboration.dispatch_rbac import DispatchRBAC
+
+        class FakeAuth:
+            credentials = {"viewer-user": {"role": "viewer"}}
+
+        rbac = DispatchRBAC(auth_manager=FakeAuth())
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            rbac=rbac,
+            enable_audit_logger=False,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            enable_rbac=False,
+        )
+        result = disp.dispatch(
+            "需要安全审计的任务",
+            roles=["security"],
+            user_id="viewer-user",
+        )
+        assert result.success is False
+        assert any("Permission denied" in e for e in result.errors)
+        disp.shutdown()
+
+    def test_rbac_exception_fail_closed(self, tmp_dir):
+        class BrokenRBAC:
+            def check_dispatch_permission(self, *args, **kwargs):
+                raise RuntimeError("RBAC down")
+
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            rbac=BrokenRBAC(),
+            rbac_fail_closed=True,
+            enable_audit_logger=False,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            enable_rbac=False,
+        )
+        result = disp.dispatch("task", user_id="u1")
+        assert result.success is False
+        assert any("RBAC check failed" in e for e in result.errors)
+        disp.shutdown()
+
+    def test_rbac_exception_fail_open_continues(self, tmp_dir):
+        class BrokenRBAC:
+            def check_dispatch_permission(self, *args, **kwargs):
+                raise RuntimeError("RBAC down")
+
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            rbac=BrokenRBAC(),
+            rbac_fail_closed=False,
+            enable_audit_logger=False,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            enable_rbac=False,
+        )
+        result = disp.dispatch("设计用户认证模块", user_id="u1")
+        # fail-open 模式下 RBAC 异常被记录，但 dispatch 继续执行。
+        assert result.success is True
+        disp.shutdown()
+
+    def test_no_rbac_production_fail_closed(self, tmp_dir):
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            rbac=None,
+            development_mode=False,
+            rbac_fail_closed=True,
+            enable_audit_logger=False,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            enable_rbac=False,
+        )
+        result = disp.dispatch("task", user_id="u1")
+        assert result.success is False
+        assert any("No RBAC configured" in e for e in result.errors)
+        disp.shutdown()
+
+    def test_handle_dispatch_error_validation(self, tmp_dir):
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+        )
+        result = disp._handle_dispatch_error(
+            ValueError("bad input"),
+            task_description="task",
+            tenant_ctx=None,
+            phase="dispatch",
+            start_time=0.0,
+            lang="zh",
+        )
+        assert result.success is False
+        assert result.errors
+        disp.shutdown()
+
+    def test_handle_dispatch_error_dependency(self, tmp_dir):
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+        )
+        result = disp._handle_dispatch_error(
+            ImportError("missing backend"),
+            task_description="task",
+            tenant_ctx=None,
+            phase="dispatch",
+            start_time=0.0,
+            lang="zh",
+        )
+        assert result.success is False
+        assert result.errors
+        disp.shutdown()
+
+    def test_handle_dispatch_error_unexpected(self, tmp_dir):
+        disp = MultiAgentDispatcher(
+            persist_dir=tmp_dir,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+        )
+        result = disp._handle_dispatch_error(
+            ConnectionError("network down"),
+            task_description="task",
+            tenant_ctx=None,
+            phase="dispatch",
+            start_time=0.0,
+            lang="zh",
+        )
+        assert result.success is False
         disp.shutdown()
 
 

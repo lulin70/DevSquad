@@ -24,8 +24,6 @@ import json
 import os
 import sys
 import tempfile
-from datetime import datetime, timedelta
-from pathlib import Path
 
 import pytest
 
@@ -75,9 +73,7 @@ class TestDatabaseInitialization:
     def test_schema_creates_metrics_table(self, history_manager):
         """Test that metrics_snapshots table is created."""
         cursor = history_manager.conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='metrics_snapshots'"
-        )
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='metrics_snapshots'")
         result = cursor.fetchone()
         assert result is not None
 
@@ -98,18 +94,14 @@ class TestDatabaseInitialization:
     def test_schema_creates_lifecycle_events_table(self, history_manager):
         """Test that lifecycle_events table is created."""
         cursor = history_manager.conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='lifecycle_events'"
-        )
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='lifecycle_events'")
         result = cursor.fetchone()
         assert result is not None
 
     def test_schema_creates_indexes(self, history_manager):
         """Test that performance indexes are created."""
         cursor = history_manager.conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'"
-        )
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'")
         indexes = cursor.fetchall()
         assert len(indexes) >= 5
 
@@ -163,10 +155,12 @@ class TestMetricsSnapshotOperations:
 
     def test_get_metrics_history_with_custom_field(self, history_manager):
         """Test retrieving metrics includes custom data when requested."""
-        history_manager.save_metrics_snapshot({
-            "total_phases": 10,
-            "custom_field": "test_value",
-        })
+        history_manager.save_metrics_snapshot(
+            {
+                "total_phases": 10,
+                "custom_field": "test_value",
+            }
+        )
 
         data = history_manager.get_metrics_history(hours=1, include_custom=True)
         assert len(data) > 0
@@ -175,6 +169,7 @@ class TestMetricsSnapshotOperations:
             custom_data = data[0]["custom_data"]
             if isinstance(custom_data, str):
                 import json
+
                 parsed = json.loads(custom_data)
             else:
                 parsed = custom_data
@@ -398,7 +393,8 @@ class TestConnectionManagement:
         """Test that operations after close handle gracefully."""
         history_manager.close()
 
-        should_not_crash = lambda: history_manager.get_database_size()
+        def should_not_crash():
+            return history_manager.get_database_size()
         try:
             result = should_not_crash()
             assert isinstance(result, dict) or result is None

@@ -111,7 +111,7 @@ jobs:
       - name: Install lint tools
         run: pip install ruff mypy
       - name: Lint
-        run: ruff check scripts/ skills/ --ignore=E501,W291
+        run: ruff check . --ignore=E501
       - name: Type check (blocking since V3.9.1)
         run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary
       # Full scripts/ mypy check (blocking since V3.10.0).

@@ -1,5 +1,8 @@
 """Test Strategy Generation Skill - V3.9.2"""
 
+from collections.abc import Callable
+from typing import Any
+
 from scripts.collaboration.test_quality_guard import (
     APISignature,
     TestDimension,
@@ -20,8 +23,8 @@ class TestSkill(BaseSkill):
         "Dimension coverage",
     ]
 
-    def run(self, action="info", **kwargs):
-        actions = {
+    def run(self, action: str = "info", **kwargs: Any) -> Any:
+        actions: dict[str, Callable[..., Any]] = {
             "generate_strategy": self.generate_strategy,
             "audit_test_quality": self.audit_test_quality,
             "suggest_cases": self.suggest_cases,

@@ -25,9 +25,9 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.collaboration.dispatch_audit import (
+    GENESIS_HASH,
     AuditEntry,
     DispatchAuditLogger,
-    GENESIS_HASH,
 )
 
 

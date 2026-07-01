@@ -116,7 +116,7 @@ class SecuritySkill(BaseSkill):
         },
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._validator = InputValidator(strict_mode=False)
         self._classifier = OperationClassifier()
         self._guard = PermissionGuard(current_level=PermissionLevel.DEFAULT)
@@ -334,7 +334,7 @@ class SecuritySkill(BaseSkill):
                     }
                 )
 
-        permission_summary = {
+        permission_summary: dict[str, Any] = {
             "min_required_level": "DEFAULT",
             "requires_confirmation": any(op.get("requires_confirmation") for op in operations_found),
             "forbidden_operations": [
@@ -397,7 +397,7 @@ class SecuritySkill(BaseSkill):
             },
         }
 
-    def run(self, *args, **kwargs):
+    def run(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """
         Main entry point for the security skill.
 

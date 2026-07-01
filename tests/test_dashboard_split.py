@@ -9,7 +9,6 @@ compatible facade entry point.
 
 import os
 import sys
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,26 +24,7 @@ class TestDashboardPackageImports:
     def test_dashboard_package_imports(self):
         from scripts.dashboard import (
             DashboardConfig,
-            apply_custom_css,
-            fetch_api_metrics,
-            get_dispatcher,
-            handle_auto_refresh,
-            load_lifecycle_protocol,
             main,
-            render_action_panel,
-            render_admin_system_config_page,
-            render_admin_users_page,
-            render_cli_mapping_table,
-            render_dispatch_result,
-            render_footer,
-            render_gate_status_panel,
-            render_header,
-            render_metrics_overview,
-            render_performance_panel,
-            render_phase_timeline,
-            render_sidebar,
-            render_task_dispatch_page,
-            set_page_config,
         )
 
         assert callable(main)
@@ -111,16 +91,12 @@ class TestDashboardFacadeFile:
     """Verify the backward-compatible ``scripts/dashboard.py`` facade."""
 
     def test_facade_file_exists(self):
-        facade_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "scripts", "dashboard.py"
-        )
+        facade_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "dashboard.py")
         assert os.path.isfile(facade_path)
 
     def test_facade_file_is_short(self):
         """Facade should be a thin shim, not a duplicate of the old monolith."""
-        facade_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "scripts", "dashboard.py"
-        )
+        facade_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "dashboard.py")
         with open(facade_path, encoding="utf-8") as f:
             lines = f.readlines()
         assert len(lines) < 50

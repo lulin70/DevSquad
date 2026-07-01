@@ -1,24 +1,23 @@
 """Tests for async modules: AsyncMockBackend, AsyncFallbackBackend, AsyncLLMBackendFactory,
 SyncToAsyncAdapter, AsyncToSyncAdapter, and AsyncLLMCache."""
 
-import asyncio
 import tempfile
 
 import pytest
 
+from scripts.collaboration.async_adapter import (
+    AsyncToSyncAdapter,
+    AutoBackendSelector,
+    SyncToAsyncAdapter,
+)
 from scripts.collaboration.async_llm_backend import (
     AsyncFallbackBackend,
     AsyncLLMBackendFactory,
     AsyncMockBackend,
     AsyncTraeBackend,
 )
-from scripts.collaboration.async_adapter import (
-    AsyncToSyncAdapter,
-    AutoBackendSelector,
-    SyncToAsyncAdapter,
-)
-from scripts.collaboration.llm_cache_async import AsyncLLMCache
 from scripts.collaboration.llm_backend import MockBackend
+from scripts.collaboration.llm_cache_async import AsyncLLMCache
 
 
 class TestAsyncMockBackend:
@@ -91,9 +90,7 @@ class TestAsyncFallbackBackend:
 
     @pytest.mark.asyncio
     async def test_fallback_with_multiple_backends(self):
-        backend = AsyncFallbackBackend(
-            backends=[AsyncMockBackend(), AsyncTraeBackend()]
-        )
+        backend = AsyncFallbackBackend(backends=[AsyncMockBackend(), AsyncTraeBackend()])
         result = await backend.generate("test prompt")
         assert isinstance(result, str)
 
@@ -199,9 +196,7 @@ class TestAsyncLLMCache:
     async def test_cache_hit(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache = AsyncLLMCache(cache_dir=tmpdir)
-            await cache.set(
-                "test prompt", "test response", backend="mock", model="test"
-            )
+            await cache.set("test prompt", "test response", backend="mock", model="test")
             result = await cache.get("test prompt", backend="mock", model="test")
             assert result == "test response"
 
@@ -210,9 +205,7 @@ class TestAsyncLLMCache:
         with tempfile.TemporaryDirectory() as tmpdir:
             cache = AsyncLLMCache(cache_dir=tmpdir)
             await cache.set("prompt", "openai_resp", backend="openai", model="gpt-4")
-            await cache.set(
-                "prompt", "anthropic_resp", backend="anthropic", model="claude-3"
-            )
+            await cache.set("prompt", "anthropic_resp", backend="anthropic", model="claude-3")
             r1 = await cache.get("prompt", backend="openai", model="gpt-4")
             r2 = await cache.get("prompt", backend="anthropic", model="claude-3")
             assert r1 == "openai_resp"
@@ -236,7 +229,7 @@ class TestAsyncLLMCache:
             cache = AsyncLLMCache(cache_dir=tmpdir)
             await cache.set("key", "val", backend="mock", model="test")
             await cache.clear()
-            result = await cache.get("key", backend="mock", model="test")
+            await cache.get("key", backend="mock", model="test")
             # After clearing memory, should check disk
             # Depending on implementation, may still find on disk
             # but memory cache is cleared
@@ -259,6 +252,7 @@ class TestAsyncLLMCache:
             await cache.set("key", "val", backend="mock", model="test")
             # With TTL=0, entry should be expired immediately
             import time
+
             time.sleep(0.1)
             result = await cache.get("key", backend="mock", model="test")
             assert result is None

@@ -35,8 +35,7 @@ class TestDependencyLockContent:
         """Lock file must contain at least one == locked version."""
         with open(LOCK_PATH) as f:
             content = f.read()
-        locked_lines = [line for line in content.splitlines()
-                        if line and not line.startswith("#") and "==" in line]
+        locked_lines = [line for line in content.splitlines() if line and not line.startswith("#") and "==" in line]
         assert len(locked_lines) >= 1, "No locked (==) versions found"
 
     def test_pyyaml_locked(self):

@@ -29,9 +29,7 @@ from scripts.auth import (  # noqa: E402
 )
 
 # SHA-256 of "password" — legacy hash reused across migration tests.
-LEGACY_SHA256_PASSWORD = (
-    "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
-)
+LEGACY_SHA256_PASSWORD = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
 
 
 class TestPasswordHashing:
@@ -63,7 +61,7 @@ class TestPasswordHashing:
         # Salt is 16 bytes = 32 hex chars; hash is 32 bytes = 64 hex chars
         assert len(parts[2]) == 32
         assert len(parts[3]) == 64
-        assert all(c in '0123456789abcdef' for c in parts[2] + parts[3])
+        assert all(c in "0123456789abcdef" for c in parts[2] + parts[3])
 
     def test_hash_empty_password_pbkdf2(self):
         """Empty password still produces valid pbkdf2 format."""
@@ -106,9 +104,7 @@ class TestPasswordVerification:
     def test_verify_malformed_pbkdf2_hash(self):
         """_verify_password rejects malformed pbkdf2 hash."""
         auth = AuthManager(config_path=None)
-        assert auth._verify_password(
-            "x", "pbkdf2_sha256$abc$not_hex$alsobad"
-        ) is False
+        assert auth._verify_password("x", "pbkdf2_sha256$abc$not_hex$alsobad") is False
         assert auth._verify_password("x", "pbkdf2_sha256$1000$") is False
 
     def test_verify_non_hex_legacy_hash(self):
@@ -158,9 +154,7 @@ authentication:
         auth = AuthManager(config_path=str(config_path))
 
         # Before login: legacy hash
-        assert auth._needs_password_upgrade(
-            auth.credentials["admin"]["password"]
-        ) is True
+        assert auth._needs_password_upgrade(auth.credentials["admin"]["password"]) is True
 
         # Successful login
         user = auth.verify_credentials("admin", "password")
@@ -228,32 +222,24 @@ authentication:
 
     def test_verify_valid_credentials(self, auth_manager_with_credentials):
         """Test verification of valid credentials."""
-        user = auth_manager_with_credentials.verify_credentials(
-            "admin", "password"
-        )
+        user = auth_manager_with_credentials.verify_credentials("admin", "password")
         assert user is not None
         assert user.username == "admin"
         assert user.role == UserRole.ADMIN
 
     def test_verify_invalid_password(self, auth_manager_with_credentials):
         """Test verification fails with wrong password."""
-        user = auth_manager_with_credentials.verify_credentials(
-            "admin", "wrong_password"
-        )
+        user = auth_manager_with_credentials.verify_credentials("admin", "wrong_password")
         assert user is None
 
     def test_verify_unknown_user(self, auth_manager_with_credentials):
         """Test verification fails for unknown username."""
-        user = auth_manager_with_credentials.verify_credentials(
-            "nonexistent", "password"
-        )
+        user = auth_manager_with_credentials.verify_credentials("nonexistent", "password")
         assert user is None
 
     def test_verify_returns_user_object(self, auth_manager_with_credentials):
         """Test that successful verification returns proper User object."""
-        user = auth_manager_with_credentials.verify_credentials(
-            "admin", "password"
-        )
+        user = auth_manager_with_credentials.verify_credentials("admin", "password")
         assert isinstance(user, User)
         assert user.email == "admin@devsquad.test"
         assert user.name == "Administrator"
@@ -419,7 +405,7 @@ authentication:
             with open(config_path, "w") as f:
                 f.write(config_content)
 
-            with patch('scripts.auth.logger') as mock_logger:
+            with patch("scripts.auth.logger") as mock_logger:
                 AuthManager(config_path=config_path)
                 mock_logger.warning.assert_called()
 
@@ -436,16 +422,10 @@ authentication:
             with open(config_path, "w") as f:
                 f.write(config_content)
 
-            with patch('scripts.auth.logger') as mock_logger:
+            with patch("scripts.auth.logger") as mock_logger:
                 AuthManager(config_path=config_path)
-                warning_calls = [
-                    str(call) for call in mock_logger.warning.call_args_list
-                ]
-                assert any(
-                    ("default session key" in w.lower()
-                     or "session key" in w.lower())
-                    for w in warning_calls
-                )
+                warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+                assert any(("default session key" in w.lower() or "session key" in w.lower()) for w in warning_calls)
 
     def test_detect_insecure_cookie_flags(self):
         """Test detection of insecure cookie flags (secure/httponly/samesite)."""
@@ -463,11 +443,9 @@ authentication:
             with open(config_path, "w") as f:
                 f.write(config_content)
 
-            with patch('scripts.auth.logger') as mock_logger:
+            with patch("scripts.auth.logger") as mock_logger:
                 AuthManager(config_path=config_path)
-                warning_calls = [
-                    str(call) for call in mock_logger.warning.call_args_list
-                ]
+                warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
                 joined = " ".join(w.lower() for w in warning_calls)
                 assert "secure" in joined, f"Expected 'secure' warning, got: {warning_calls}"
                 assert "httponly" in joined, f"Expected 'httponly' warning, got: {warning_calls}"
@@ -489,11 +467,9 @@ authentication:
             with open(config_path, "w") as f:
                 f.write(config_content)
 
-            with patch('scripts.auth.logger') as mock_logger:
+            with patch("scripts.auth.logger") as mock_logger:
                 AuthManager(config_path=config_path)
-                warning_calls = [
-                    str(call) for call in mock_logger.warning.call_args_list
-                ]
+                warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
                 joined = " ".join(w.lower() for w in warning_calls)
                 assert "secure" not in joined, f"Unexpected secure warning: {warning_calls}"
                 assert "httponly" not in joined, f"Unexpected httponly warning: {warning_calls}"
@@ -515,11 +491,9 @@ authentication:
             with open(config_path, "w") as f:
                 f.write(config_content)
 
-            with patch('scripts.auth.logger') as mock_logger:
+            with patch("scripts.auth.logger") as mock_logger:
                 AuthManager(config_path=config_path)
-                warning_calls = [
-                    str(call) for call in mock_logger.warning.call_args_list
-                ]
+                warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
                 joined = " ".join(w.lower() for w in warning_calls)
                 assert "invalid" in joined and "samesite" in joined, (
                     f"Expected invalid samesite warning, got: {warning_calls}"
@@ -552,6 +526,76 @@ authentication:
             assert user1.session_id != user2.session_id
             assert len(user1.session_id) == 32  # token_hex(16) = 32 chars
             assert len(user2.session_id) == 32
+
+
+class TestProductionCookieEnforcement:
+    """Production mode must override cookie security flags in code."""
+
+    def test_production_enforces_secure_httponly_strict(self, monkeypatch, tmp_path):
+        """In production, cookie flags are forced to secure/httponly/Strict."""
+        config_path = tmp_path / "deployment.yaml"
+        config_content = """
+authentication:
+  enabled: true
+  cookie:
+    key: a_very_secure_random_key_12345
+    secure: false
+    httponly: false
+    samesite: "None"
+"""
+        config_path.write_text(config_content)
+
+        monkeypatch.setenv("DEVSQUAD_ENV", "production")
+        auth = AuthManager(config_path=str(config_path))
+        assert auth.cookie_settings["secure"] is True
+        assert auth.cookie_settings["httponly"] is True
+        assert auth.cookie_settings["samesite"] == "Strict"
+
+    def test_production_no_insecure_cookie_warnings(self, monkeypatch, tmp_path):
+        """Forced secure flags should not produce insecure-cookie warnings."""
+        config_path = tmp_path / "deployment.yaml"
+        config_content = """
+authentication:
+  enabled: true
+  cookie:
+    key: a_very_secure_random_key_12345
+    secure: false
+    httponly: false
+    samesite: "None"
+"""
+        config_path.write_text(config_content)
+
+        monkeypatch.setenv("DEVSQUAD_ENV", "production")
+        with patch("scripts.auth.logger") as mock_logger:
+            AuthManager(config_path=str(config_path))
+            warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+            joined = " ".join(w.lower() for w in warning_calls)
+            assert "secure" not in joined, f"Unexpected secure warning: {warning_calls}"
+            assert "httponly" not in joined, f"Unexpected httponly warning: {warning_calls}"
+            assert "samesite" not in joined, f"Unexpected samesite warning: {warning_calls}"
+
+    def test_non_production_respects_config_cookie_flags(self, monkeypatch, tmp_path):
+        """Non-production mode should still warn about insecure config values."""
+        config_path = tmp_path / "deployment.yaml"
+        config_content = """
+authentication:
+  enabled: true
+  cookie:
+    key: a_very_secure_random_key_12345
+    secure: false
+    httponly: false
+    samesite: "None"
+"""
+        config_path.write_text(config_content)
+
+        monkeypatch.delenv("DEVSQUAD_ENV", raising=False)
+        with patch("scripts.auth.logger") as mock_logger:
+            AuthManager(config_path=str(config_path))
+            warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+            joined = " ".join(w.lower() for w in warning_calls)
+            assert "secure" in joined, f"Expected secure warning, got: {warning_calls}"
+            assert "httponly" in joined, f"Expected httponly warning, got: {warning_calls}"
+            assert "samesite" in joined, f"Expected samesite warning, got: {warning_calls}"
 
 
 if __name__ == "__main__":

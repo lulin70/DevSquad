@@ -107,10 +107,7 @@ class TestPlanDecomposition(unittest.TestCase):
         # 2 file micro-tasks + 1 test micro-task = 3.
         self.assertEqual(len(plan.micro_tasks), 3)
         # Each file micro-task should have file_paths.
-        file_mts = [
-            mt for mt in plan.micro_tasks
-            if any("src/" in p for p in mt.file_paths)
-        ]
+        file_mts = [mt for mt in plan.micro_tasks if any("src/" in p for p in mt.file_paths)]
         self.assertEqual(len(file_mts), 2)
 
     def test_function_based_decomposition(self) -> None:
@@ -132,8 +129,7 @@ class TestPlanDecomposition(unittest.TestCase):
         """Plan decomposition — heuristic sentence-based."""
         planner = MicroTaskPlanner()
         plan = planner.plan(
-            "First, create the auth module. Then, add the login function. "
-            "Finally, write tests for the login function.",
+            "First, create the auth module. Then, add the login function. Finally, write tests for the login function.",
         )
         # Should produce at least 3 micro-tasks (one per sentence).
         self.assertGreaterEqual(len(plan.micro_tasks), 3)
@@ -251,10 +247,8 @@ class TestDependencyDAGValidation(unittest.TestCase):
             task_id="t1",
             micro_tasks=[
                 MicroTask(id="a", title="A", description="d", verification_cmd="x"),
-                MicroTask(id="b", title="B", description="d", verification_cmd="x",
-                          dependencies=["a"]),
-                MicroTask(id="c", title="C", description="d", verification_cmd="x",
-                          dependencies=["b"]),
+                MicroTask(id="b", title="B", description="d", verification_cmd="x", dependencies=["a"]),
+                MicroTask(id="c", title="C", description="d", verification_cmd="x", dependencies=["b"]),
             ],
         )
         errors = planner._validate_plan(plan)
@@ -266,12 +260,9 @@ class TestDependencyDAGValidation(unittest.TestCase):
         plan = MicroTaskPlan(
             task_id="t1",
             micro_tasks=[
-                MicroTask(id="a", title="A", description="d", verification_cmd="x",
-                          dependencies=["c"]),
-                MicroTask(id="b", title="B", description="d", verification_cmd="x",
-                          dependencies=["a"]),
-                MicroTask(id="c", title="C", description="d", verification_cmd="x",
-                          dependencies=["b"]),
+                MicroTask(id="a", title="A", description="d", verification_cmd="x", dependencies=["c"]),
+                MicroTask(id="b", title="B", description="d", verification_cmd="x", dependencies=["a"]),
+                MicroTask(id="c", title="C", description="d", verification_cmd="x", dependencies=["b"]),
             ],
         )
         errors = planner._validate_plan(plan)
@@ -295,8 +286,7 @@ class TestDependencyDAGValidation(unittest.TestCase):
         plan = MicroTaskPlan(
             task_id="t1",
             micro_tasks=[
-                MicroTask(id="a", title="A", description="d", verification_cmd="x",
-                          dependencies=["nonexistent"]),
+                MicroTask(id="a", title="A", description="d", verification_cmd="x", dependencies=["nonexistent"]),
             ],
         )
         errors = planner._validate_plan(plan)
@@ -306,10 +296,8 @@ class TestDependencyDAGValidation(unittest.TestCase):
         """The _detect_cycle method returns the cycle path."""
         planner = MicroTaskPlanner()
         micro_tasks = [
-            MicroTask(id="a", title="A", description="d", verification_cmd="x",
-                      dependencies=["b"]),
-            MicroTask(id="b", title="B", description="d", verification_cmd="x",
-                      dependencies=["a"]),
+            MicroTask(id="a", title="A", description="d", verification_cmd="x", dependencies=["b"]),
+            MicroTask(id="b", title="B", description="d", verification_cmd="x", dependencies=["a"]),
         ]
         cycle = planner._detect_cycle(micro_tasks)
         self.assertIsNotNone(cycle)
@@ -319,8 +307,7 @@ class TestDependencyDAGValidation(unittest.TestCase):
         planner = MicroTaskPlanner()
         micro_tasks = [
             MicroTask(id="a", title="A", description="d", verification_cmd="x"),
-            MicroTask(id="b", title="B", description="d", verification_cmd="x",
-                      dependencies=["a"]),
+            MicroTask(id="b", title="B", description="d", verification_cmd="x", dependencies=["a"]),
         ]
         cycle = planner._detect_cycle(micro_tasks)
         self.assertIsNone(cycle)
@@ -333,10 +320,8 @@ class TestTopologicalSort(unittest.TestCase):
         """Topological sort — dependencies come before dependents."""
         planner = MicroTaskPlanner()
         micro_tasks = [
-            MicroTask(id="c", title="C", description="d", verification_cmd="x",
-                      dependencies=["b"]),
-            MicroTask(id="b", title="B", description="d", verification_cmd="x",
-                      dependencies=["a"]),
+            MicroTask(id="c", title="C", description="d", verification_cmd="x", dependencies=["b"]),
+            MicroTask(id="b", title="B", description="d", verification_cmd="x", dependencies=["a"]),
             MicroTask(id="a", title="A", description="d", verification_cmd="x"),
         ]
         sorted_tasks = planner._topological_sort(micro_tasks)
@@ -384,8 +369,7 @@ class TestGetNextReady(unittest.TestCase):
             task_id="t1",
             micro_tasks=[
                 MicroTask(id="a", title="A", description="d", verification_cmd="x"),
-                MicroTask(id="b", title="B", description="d", verification_cmd="x",
-                          dependencies=["a"]),
+                MicroTask(id="b", title="B", description="d", verification_cmd="x", dependencies=["a"]),
             ],
         )
         ready = planner.get_next_ready(plan)
@@ -399,10 +383,8 @@ class TestGetNextReady(unittest.TestCase):
             task_id="t1",
             micro_tasks=[
                 MicroTask(id="a", title="A", description="d", verification_cmd="x"),
-                MicroTask(id="b", title="B", description="d", verification_cmd="x",
-                          dependencies=["a"]),
-                MicroTask(id="c", title="C", description="d", verification_cmd="x",
-                          dependencies=["a"]),
+                MicroTask(id="b", title="B", description="d", verification_cmd="x", dependencies=["a"]),
+                MicroTask(id="c", title="C", description="d", verification_cmd="x", dependencies=["a"]),
             ],
         )
         # Initially only 'a' is ready.
@@ -556,6 +538,7 @@ class TestIntegrationWithDispatcher(unittest.TestCase):
     def test_dispatcher_decompose_task_uses_planner(self) -> None:
         """Integration with dispatcher — decompose_task delegates to planner."""
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
         planner = MicroTaskPlanner()
         # Create a minimal mock dispatcher by bypassing __init__.
         # This avoids the heavy dependency setup.
@@ -572,6 +555,7 @@ class TestIntegrationWithDispatcher(unittest.TestCase):
     def test_dispatcher_decompose_task_returns_none_without_planner(self) -> None:
         """Integration with dispatcher — returns None when no planner configured."""
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
         dispatcher = MultiAgentDispatcher.__new__(MultiAgentDispatcher)
         dispatcher.micro_task_planner = None
         result = dispatcher.decompose_task("Add login")

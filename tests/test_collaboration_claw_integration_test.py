@@ -17,6 +17,8 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import contextlib
+
 from scripts.collaboration.memory_bridge import (
     MemoryBridge,
     MemoryItem,
@@ -130,10 +132,8 @@ class TestClawRecallIntegration(unittest.TestCase):
         self.bridge = MemoryBridge()
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.bridge.shutdown()
-        except Exception:
-            pass
 
     def test_recall_works_without_claw(self):
         query = MemoryQuery(query_text="test query about microservices")
@@ -194,10 +194,8 @@ class TestClawAINewsFeed(unittest.TestCase):
             news = bridge.get_workbuddy_ai_news(7)
             self.assertIsInstance(news, list)
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 bridge.shutdown()
-            except Exception:
-                pass
 
 
 class TestClawDiagnostics(unittest.TestCase):
@@ -213,10 +211,8 @@ class TestClawDiagnostics(unittest.TestCase):
             else:
                 self.assertIn("Available: No", diag)
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 bridge.shutdown()
-            except Exception:
-                pass
 
     def test_statistics_contains_claw_fields(self):
         bridge = MemoryBridge()
@@ -227,10 +223,8 @@ class TestClawDiagnostics(unittest.TestCase):
             if stats.claw_enabled:
                 self.assertGreater(stats.claw_item_count, 0)
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 bridge.shutdown()
-            except Exception:
-                pass
 
 
 class TestClawExtractTags(unittest.TestCase):

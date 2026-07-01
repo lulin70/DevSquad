@@ -612,12 +612,11 @@ class _TestQualityGuardImpl:
             dim_counts[d] = dim_counts.get(d, 0) + 1
         if dim_counts:
             values = list(dim_counts.values())
-            max_v = max(values)
-            min_v = min(values)
+            max(values)
+            min(values)
             total = sum(values)
             expected_per_dim = total / len(dim_counts)
             variance = sum((v - expected_per_dim) ** 2 for v in values) / len(values)
-            ideal_variance = 0
             score.dimension_balance = max(0, 1 - (variance / (total * total / 4)))
 
         anti_critical = sum(

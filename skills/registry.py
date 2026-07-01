@@ -1,10 +1,13 @@
 """Sub-skill registry: discover and instantiate skills by name."""
 
+from __future__ import annotations
+
 import importlib
 from pathlib import Path
+from typing import Any
 
 _SKILL_DIR = Path(__file__).parent
-_AVAILABLE_SKILLS: dict[str, type] = {}
+_AVAILABLE_SKILLS: dict[str, type[BaseSkill]] = {}
 
 
 class BaseSkill:
@@ -14,10 +17,10 @@ class BaseSkill:
     description: str = ""
     version: str = "3.7.0"
 
-    def run(self, *args, **kwargs):
+    def run(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def info(self) -> dict:
+    def info(self) -> dict[str, Any]:
         return {"name": self.name, "description": self.description, "version": self.version}
 
 
@@ -49,7 +52,7 @@ def get_skill(name: str) -> BaseSkill:
     return _AVAILABLE_SKILLS[name]()
 
 
-def list_skills() -> list:
+def list_skills() -> list[str]:
     """List all available sub-skill names."""
     if not _AVAILABLE_SKILLS:
         for d in sorted(_SKILL_DIR.iterdir()):

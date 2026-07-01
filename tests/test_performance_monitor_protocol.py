@@ -151,7 +151,7 @@ def test_monitor_generate_report_io_error():
 
 def test_monitor_is_available(monitor):
     """测试 PerformanceMonitor.is_available() 返回 True"""
-    assert monitor.is_available() == True
+    assert monitor.is_available()
 
 
 def test_monitor_get_stats_structure(monitor):
@@ -282,7 +282,7 @@ def test_monitor_get_recent_errors(monitor):
     # 验证只返回失败的调用
     assert len(errors) == 2
     for error in errors:
-        assert error["success"] == False
+        assert not error["success"]
         assert error["error"] is not None
 
 

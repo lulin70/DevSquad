@@ -187,8 +187,7 @@ class TestStage1SpecCompliance(unittest.TestCase):
         self.assertFalse(result.overall_passed)
         self.assertEqual(result.stage1_result, StageResult.FAIL)
         self.assertTrue(
-            any(f.category == "missing_file" and f.file_path == "src/utils.py"
-                for f in result.blocking_findings)
+            any(f.category == "missing_file" and f.file_path == "src/utils.py" for f in result.blocking_findings)
         )
 
     def test_all_planned_files_present_passes_stage1(self) -> None:
@@ -200,21 +199,16 @@ class TestStage1SpecCompliance(unittest.TestCase):
     def test_missing_planned_function_blocks(self) -> None:
         """Missing functions detection — planned function not in code."""
         spec = {"planned_functions": ["login", "logout"]}
-        code_changes = {
-            "files": {"src/auth.py": {"content": "def login():\n    pass\n"}}
-        }
+        code_changes = {"files": {"src/auth.py": {"content": "def login():\n    pass\n"}}}
         result = self.gate.review(spec=spec, code_changes=code_changes)
         self.assertFalse(result.overall_passed)
         self.assertTrue(
-            any(f.category == "missing_function" and "logout" in f.description
-                for f in result.blocking_findings)
+            any(f.category == "missing_function" and "logout" in f.description for f in result.blocking_findings)
         )
 
     def test_all_planned_functions_present_passes_stage1(self) -> None:
         spec = {"planned_functions": ["login", "logout"]}
-        code_changes = {
-            "files": {"src/auth.py": {"content": "def login():\n    pass\ndef logout():\n    pass\n"}}
-        }
+        code_changes = {"files": {"src/auth.py": {"content": "def login():\n    pass\ndef logout():\n    pass\n"}}}
         result = self.gate.review(spec=spec, code_changes=code_changes)
         self.assertEqual(result.stage1_result, StageResult.PASS)
 
@@ -259,18 +253,14 @@ class TestStage2CodeQuality(unittest.TestCase):
         code_changes = {"files": {"src/config.py": {"content": content}}}
         result = self.gate.review(spec={}, code_changes=code_changes)
         self.assertEqual(result.stage2_result, StageResult.FAIL)
-        self.assertTrue(
-            any(f.category == "security_hardcoded_api_key" for f in result.blocking_findings)
-        )
+        self.assertTrue(any(f.category == "security_hardcoded_api_key" for f in result.blocking_findings))
 
     def test_hardcoded_password_is_critical(self) -> None:
         content = 'password = "supersecretpass"\n'
         code_changes = {"files": {"src/config.py": {"content": content}}}
         result = self.gate.review(spec={}, code_changes=code_changes)
         self.assertEqual(result.stage2_result, StageResult.FAIL)
-        self.assertTrue(
-            any(f.category == "security_hardcoded_password" for f in result.blocking_findings)
-        )
+        self.assertTrue(any(f.category == "security_hardcoded_password" for f in result.blocking_findings))
 
     def test_sql_injection_format_is_critical(self) -> None:
         """Security issue detection — SQL injection patterns."""
@@ -278,9 +268,7 @@ class TestStage2CodeQuality(unittest.TestCase):
         code_changes = {"files": {"src/db.py": {"content": content}}}
         result = self.gate.review(spec={}, code_changes=code_changes)
         self.assertEqual(result.stage2_result, StageResult.FAIL)
-        self.assertTrue(
-            any(f.category == "security_sql_injection_format" for f in result.blocking_findings)
-        )
+        self.assertTrue(any(f.category == "security_sql_injection_format" for f in result.blocking_findings))
 
     def test_bare_except_is_warning(self) -> None:
         """Bare except detection — warning, not critical."""
@@ -294,9 +282,7 @@ class TestStage2CodeQuality(unittest.TestCase):
         code_changes = {"files": {"src/foo.py": {"content": content}}}
         result = self.gate.review(spec={}, code_changes=code_changes)
         self.assertEqual(result.stage2_result, StageResult.FAIL)
-        self.assertTrue(
-            any(f.category == "anti_pattern_eval_usage" for f in result.blocking_findings)
-        )
+        self.assertTrue(any(f.category == "anti_pattern_eval_usage" for f in result.blocking_findings))
 
     def test_exec_usage_is_critical(self) -> None:
         content = "exec(code_string)\n"
@@ -322,9 +308,7 @@ class TestStage2CodeQuality(unittest.TestCase):
             }
         }
         result = self.gate.review(spec={}, code_changes=code_changes)
-        self.assertFalse(
-            any(f.category == "missing_test" for f in result.blocking_findings)
-        )
+        self.assertFalse(any(f.category == "missing_test" for f in result.blocking_findings))
 
     def test_todo_left_is_warning(self) -> None:
         content = "# TODO: implement this later\n"
@@ -339,17 +323,8 @@ class TestStage2CodeQuality(unittest.TestCase):
         self.assertTrue(any(f.category == "oversized_output" for f in result.warnings))
 
     def test_clean_code_passes_stage2(self) -> None:
-        content = (
-            '"""Module docstring."""\n\n'
-            "def add(a, b):\n"
-            '    """Add two numbers."""\n'
-            "    return a + b\n"
-        )
-        test_content = (
-            "from src.math import add\n"
-            "def test_add():\n"
-            "    assert add(1, 2) == 3\n"
-        )
+        content = '"""Module docstring."""\n\ndef add(a, b):\n    """Add two numbers."""\n    return a + b\n'
+        test_content = "from src.math import add\ndef test_add():\n    assert add(1, 2) == 3\n"
         code_changes = {
             "files": {
                 "src/math.py": {"content": content},
@@ -365,9 +340,7 @@ class TestReportFormatting(unittest.TestCase):
 
     def test_format_report_includes_status_and_stages(self) -> None:
         gate = TwoStageReviewGate()
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection")
         result = TwoStageReviewResult(
             stage1_result=StageResult.PASS,
             stage2_result=StageResult.FAIL,
@@ -422,9 +395,7 @@ class TestLegacyCallingConvention(unittest.TestCase):
         """Integration with spec dict format — legacy convention."""
         gate = TwoStageReviewGate()
         plan = FakePlan(total_tasks=5, completed_tasks=3, failed_tasks=0)
-        worker_results = [
-            {"role_id": "solo-coder", "output": "def foo():\n    pass\n", "success": True}
-        ]
+        worker_results = [{"role_id": "solo-coder", "output": "def foo():\n    pass\n", "success": True}]
         result = gate.review(
             plan=plan,
             worker_results=worker_results,
@@ -467,12 +438,7 @@ class TestTwoStageReviewGateIntegration(unittest.TestCase):
         code_changes = {
             "files": {
                 "src/auth.py": {
-                    "content": (
-                        '"""Auth module."""\n\n'
-                        "def login():\n"
-                        '    """Login function."""\n'
-                        "    return True\n"
-                    )
+                    "content": ('"""Auth module."""\n\ndef login():\n    """Login function."""\n    return True\n')
                 },
                 "tests/test_auth.py": {
                     "content": "from src.auth import login\ndef test_login():\n    assert login()\n"

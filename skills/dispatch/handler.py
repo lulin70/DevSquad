@@ -17,6 +17,7 @@ Example:
 
 import os
 import sys
+from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -25,7 +26,7 @@ from skills.registry import BaseSkill
 _dispatcher = None
 
 
-def _get_dispatcher():
+def _get_dispatcher() -> Any:
     """Get or create lazy-initialized MultiAgentDispatcher instance.
 
     Uses singleton pattern to avoid repeated initialization overhead.
@@ -67,7 +68,7 @@ class DispatchSkill(BaseSkill):
     description = "Multi-agent task dispatch: submit a task → auto-match roles → parallel execution → structured report"
     version = "3.9.2"
 
-    def run(self, task: str, roles: list = None, mode: str = "auto", dry_run: bool = False) -> dict:
+    def run(self, task: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False) -> dict[str, Any]:
         """Execute multi-agent task dispatch.
 
         Submits task to MultiAgentDispatcher and returns structured results
@@ -115,7 +116,7 @@ class DispatchSkill(BaseSkill):
             "status": "success" if result.success else "failed",
         }
 
-    def quick(self, task: str, **kwargs) -> dict:
+    def quick(self, task: str, **kwargs: Any) -> dict[str, Any]:
         """Quick dispatch with sensible defaults.
 
         Convenience method for simple use cases where default settings are acceptable.
@@ -130,10 +131,10 @@ class DispatchSkill(BaseSkill):
         """
         return self.run(task, **kwargs)
 
-    def roles_info(self) -> list:
+    def roles_info(self) -> list[dict[str, Any]]:
         """Get information about available collaboration roles.
 
-        Retrieves role definitions from RoleMatcher for display or selection.
+        Retrieves role definitions from the role registry for display or selection.
 
         Returns:
             List of dicts with keys:
@@ -141,7 +142,9 @@ class DispatchSkill(BaseSkill):
                 - name: Display name (e.g., "架构师")
                 - keywords: First 5 keywords for this role
         """
-        from scripts.collaboration.role_matcher import RoleMatcher
+        from scripts.collaboration.models_dispatch import ROLE_REGISTRY
 
-        rm = RoleMatcher()
-        return [{"id": r.role_id, "name": r.name, "keywords": r.keywords[:5]} for r in rm.roles]
+        return [
+            {"id": rdef.role_id, "name": rdef.name, "keywords": rdef.keywords[:5]}
+            for rdef in ROLE_REGISTRY.values()
+        ]

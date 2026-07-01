@@ -44,9 +44,7 @@ class TestRbacFailClosedDefault(unittest.TestCase):
 class TestRbacFailClosedBehavior(unittest.TestCase):
     """Layer 2: Verify RBAC exception triggers fail-closed denial by default."""
 
-    def _create_dispatcher_with_broken_rbac(
-        self, rbac_fail_closed: bool | None = None
-    ) -> MultiAgentDispatcher:
+    def _create_dispatcher_with_broken_rbac(self, rbac_fail_closed: bool | None = None) -> MultiAgentDispatcher:
         """Create a dispatcher whose RBAC check will raise an exception."""
         kwargs: dict = {
             "enable_warmup": False,
@@ -73,9 +71,7 @@ class TestRbacFailClosedBehavior(unittest.TestCase):
 
         # Inject a broken RBAC that always raises
         broken_rbac = MagicMock(spec=DispatchRBAC)
-        broken_rbac.check_dispatch_permission.side_effect = RuntimeError(
-            "RBAC infrastructure failure"
-        )
+        broken_rbac.check_dispatch_permission.side_effect = RuntimeError("RBAC infrastructure failure")
         dispatcher._rbac = broken_rbac
         return dispatcher
 

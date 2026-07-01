@@ -25,7 +25,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from scripts.collaboration.coordinator import Coordinator
 from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
-from scripts.collaboration.models import BatchMode, ExecutionPlan, TaskBatch, TaskDefinition
 from scripts.collaboration.scratchpad import Scratchpad
 
 
@@ -36,22 +35,22 @@ class TestPerformanceBenchmarks(unittest.TestCase):
     def _create_dispatcher(self, **overrides):
         """Create a lightweight dispatcher for benchmarking."""
         tmpdir = tempfile.mkdtemp(prefix="bench_")
-        defaults = dict(
-            persist_dir=tmpdir,
-            enable_memory=False,
-            enable_warmup=False,
-            enable_compression=False,
-            enable_permission=False,
-            enable_skillify=False,
-            enable_quality_guard=False,
-            enable_anchor_check=False,
-            enable_retrospective=False,
-            enable_usage_tracker=False,
-            enable_feedback_loop=False,
-            enable_redis_cache=False,
-            enable_execution_guard=False,
-            llm_backend=None,
-        )
+        defaults = {
+            "persist_dir": tmpdir,
+            "enable_memory": False,
+            "enable_warmup": False,
+            "enable_compression": False,
+            "enable_permission": False,
+            "enable_skillify": False,
+            "enable_quality_guard": False,
+            "enable_anchor_check": False,
+            "enable_retrospective": False,
+            "enable_usage_tracker": False,
+            "enable_feedback_loop": False,
+            "enable_redis_cache": False,
+            "enable_execution_guard": False,
+            "llm_backend": None,
+        }
         defaults.update(overrides)
         return MultiAgentDispatcher(**defaults)
 
@@ -68,10 +67,7 @@ class TestPerformanceBenchmarks(unittest.TestCase):
 
     def _make_plan(self, coord, task_description, role_ids):
         """Build an ExecutionPlan for the given roles."""
-        available_roles = [
-            {"role_id": rid, "role_prompt": f"Prompt for {rid}"}
-            for rid in role_ids
-        ]
+        available_roles = [{"role_id": rid, "role_prompt": f"Prompt for {rid}"} for rid in role_ids]
         return coord.plan_task(task_description, available_roles)
 
     # ------------------------------------------------------------------
@@ -161,7 +157,7 @@ class TestPerformanceBenchmarks(unittest.TestCase):
     def test_dispatcher_creation_speed(self):
         """Dispatcher should initialize in under 2 seconds."""
         start = time.perf_counter()
-        disp = self._create_dispatcher()
+        self._create_dispatcher()
         elapsed = time.perf_counter() - start
         assert elapsed < 2.0, f"Dispatcher creation too slow: {elapsed:.3f}s"
 

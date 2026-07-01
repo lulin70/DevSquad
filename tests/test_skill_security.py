@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 """Tests for SKILL.md security scanning — V3.7.0."""
 
-from pathlib import Path
-
-import pytest
-
-from scripts.collaboration.role_skill_loader import RoleSkillLoader, SkillContent
+from scripts.collaboration.role_skill_loader import RoleSkillLoader
 
 
 class TestSkillSecurityScanning:

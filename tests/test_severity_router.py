@@ -43,9 +43,7 @@ from scripts.collaboration.severity_router import (
 from scripts.collaboration.two_stage_review_gate import (
     ReviewFinding,
     ReviewStage,
-    StageResult,
     TwoStageReviewGate,
-    TwoStageReviewResult,
 )
 
 
@@ -87,12 +85,8 @@ class TestFixAction(unittest.TestCase):
     """Verify FixAction dataclass."""
 
     def test_is_blocking_for_critical_and_high(self) -> None:
-        self.assertTrue(
-            FixAction("id1", SeverityLevel.CRITICAL, "desc").is_blocking()
-        )
-        self.assertTrue(
-            FixAction("id2", SeverityLevel.HIGH, "desc").is_blocking()
-        )
+        self.assertTrue(FixAction("id1", SeverityLevel.CRITICAL, "desc").is_blocking())
+        self.assertTrue(FixAction("id2", SeverityLevel.HIGH, "desc").is_blocking())
 
     def test_is_not_blocking_for_medium_low_info(self) -> None:
         self.assertFalse(FixAction("id", SeverityLevel.MEDIUM, "d").is_blocking())
@@ -134,10 +128,8 @@ class TestRoutingResult(unittest.TestCase):
         self.assertTrue(result.all_fixed)
 
     def test_all_fixed_true_when_blocking_fixed(self) -> None:
-        action = FixAction("id", SeverityLevel.HIGH, "d", auto_fixable=True,
-                           fix_applied=True, fix_verified=True)
-        result = RoutingResult(actions=[action], blocked=False,
-                               auto_fix_triggered=True)
+        action = FixAction("id", SeverityLevel.HIGH, "d", auto_fixable=True, fix_applied=True, fix_verified=True)
+        result = RoutingResult(actions=[action], blocked=False, auto_fix_triggered=True)
         self.assertTrue(result.all_fixed)
 
     def test_all_fixed_false_when_blocking_unfixed(self) -> None:
@@ -146,9 +138,7 @@ class TestRoutingResult(unittest.TestCase):
         self.assertFalse(result.all_fixed)
 
     def test_status_success_when_no_blocking(self) -> None:
-        result = RoutingResult(
-            actions=[FixAction("id", SeverityLevel.MEDIUM, "d")]
-        )
+        result = RoutingResult(actions=[FixAction("id", SeverityLevel.MEDIUM, "d")])
         self.assertEqual(result.status, "success")
 
     def test_status_failed_when_blocking_unfixed(self) -> None:
@@ -165,8 +155,7 @@ class TestRoutingResult(unittest.TestCase):
     def test_to_dict_includes_all_fields(self) -> None:
         action = FixAction("id", SeverityLevel.CRITICAL, "d")
         result = RoutingResult(
-            actions=[action], blocked=True, auto_fix_triggered=False,
-            fix_round=0, max_rounds=3, summary="test"
+            actions=[action], blocked=True, auto_fix_triggered=False, fix_round=0, max_rounds=3, summary="test"
         )
         d = result.to_dict()
         self.assertIn("actions", d)
@@ -187,63 +176,36 @@ class TestSeverityClassification(unittest.TestCase):
 
     def test_critical_finding_maps_to_critical(self) -> None:
         finding = ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "xss")
-        self.assertEqual(
-            SeverityRouter._classify_severity(finding), SeverityLevel.CRITICAL
-        )
+        self.assertEqual(SeverityRouter._classify_severity(finding), SeverityLevel.CRITICAL)
 
     def test_warning_finding_maps_to_high(self) -> None:
         finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "style", "long line")
-        self.assertEqual(
-            SeverityRouter._classify_severity(finding), SeverityLevel.HIGH
-        )
+        self.assertEqual(SeverityRouter._classify_severity(finding), SeverityLevel.HIGH)
 
     def test_info_finding_maps_to_info(self) -> None:
         finding = ReviewFinding(ReviewStage.CODE_QUALITY, "info", "note", "FYI")
-        self.assertEqual(
-            SeverityRouter._classify_severity(finding), SeverityLevel.INFO
-        )
+        self.assertEqual(SeverityRouter._classify_severity(finding), SeverityLevel.INFO)
 
     def test_missing_docstring_downgraded_to_low(self) -> None:
         finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "missing_docstring", "d")
-        self.assertEqual(
-            SeverityRouter._classify_severity(finding), SeverityLevel.LOW
-        )
+        self.assertEqual(SeverityRouter._classify_severity(finding), SeverityLevel.LOW)
 
     def test_oversized_output_downgraded_to_low(self) -> None:
         finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "oversized_output", "d")
-        self.assertEqual(
-            SeverityRouter._classify_severity(finding), SeverityLevel.LOW
-        )
+        self.assertEqual(SeverityRouter._classify_severity(finding), SeverityLevel.LOW)
 
     def test_acceptance_criteria_downgraded_to_medium(self) -> None:
-        finding = ReviewFinding(
-            ReviewStage.SPEC_COMPLIANCE, "warning",
-            "acceptance_criteria_not_evident", "d"
-        )
-        self.assertEqual(
-            SeverityRouter._classify_severity(finding), SeverityLevel.MEDIUM
-        )
+        finding = ReviewFinding(ReviewStage.SPEC_COMPLIANCE, "warning", "acceptance_criteria_not_evident", "d")
+        self.assertEqual(SeverityRouter._classify_severity(finding), SeverityLevel.MEDIUM)
 
     def test_classify_static_method(self) -> None:
         self.assertEqual(SeverityRouter.classify("critical"), SeverityLevel.CRITICAL)
         self.assertEqual(SeverityRouter.classify(SeverityLevel.HIGH), SeverityLevel.HIGH)
 
     def test_should_auto_fix(self) -> None:
-        self.assertTrue(
-            SeverityRouter.should_auto_fix(
-                ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "c", "d")
-            )
-        )
-        self.assertTrue(
-            SeverityRouter.should_auto_fix(
-                ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "c", "d")
-            )
-        )
-        self.assertFalse(
-            SeverityRouter.should_auto_fix(
-                ReviewFinding(ReviewStage.CODE_QUALITY, "info", "c", "d")
-            )
-        )
+        self.assertTrue(SeverityRouter.should_auto_fix(ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "c", "d")))
+        self.assertTrue(SeverityRouter.should_auto_fix(ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "c", "d")))
+        self.assertFalse(SeverityRouter.should_auto_fix(ReviewFinding(ReviewStage.CODE_QUALITY, "info", "c", "d")))
 
 
 class TestRouting(unittest.TestCase):
@@ -263,9 +225,8 @@ class TestRouting(unittest.TestCase):
     def test_high_finding_triggers_auto_fix_when_fixable(self) -> None:
         """HIGH triggers auto-fix (when auto_fixable)."""
         # Use an auto-fixable category
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except")
+
         # With a callable that returns True
         def fix_fn(action: FixAction, context: dict) -> bool:
             return True
@@ -281,13 +242,8 @@ class TestRouting(unittest.TestCase):
         router = SeverityRouter(development_mode=True)
         findings = [
             ReviewFinding(ReviewStage.CODE_QUALITY, "info", "note", "FYI"),
-            ReviewFinding(
-                ReviewStage.SPEC_COMPLIANCE, "warning",
-                "acceptance_criteria_not_evident", "criterion"
-            ),
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "missing_docstring", "no doc"
-            ),
+            ReviewFinding(ReviewStage.SPEC_COMPLIANCE, "warning", "acceptance_criteria_not_evident", "criterion"),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "missing_docstring", "no doc"),
         ]
         result = router.route(findings, context={})
         self.assertFalse(result.blocked)
@@ -308,18 +264,14 @@ class TestAutoFixLoop(unittest.TestCase):
 
     def test_auto_fix_success_on_round_1(self) -> None:
         """Auto-fix loop: success on round 1."""
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except")
         call_count = [0]
 
         def fix_fn(action: FixAction, context: dict) -> bool:
             call_count[0] += 1
             return True  # fix succeeds
 
-        router = SeverityRouter(
-            development_mode=True, max_rounds=3, auto_fix_callable=fix_fn
-        )
+        router = SeverityRouter(development_mode=True, max_rounds=3, auto_fix_callable=fix_fn)
         result = router.run_fix_loop([finding], context={})
         self.assertEqual(result.status, "success")
         self.assertTrue(result.auto_fix_triggered)
@@ -327,9 +279,7 @@ class TestAutoFixLoop(unittest.TestCase):
 
     def test_auto_fix_success_on_round_2(self) -> None:
         """Auto-fix loop: success on round 2."""
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except")
         call_count = [0]
 
         def fix_fn(action: FixAction, context: dict) -> bool:
@@ -337,9 +287,7 @@ class TestAutoFixLoop(unittest.TestCase):
             # First attempt fails, second succeeds
             return call_count[0] >= 2
 
-        router = SeverityRouter(
-            development_mode=True, max_rounds=3, auto_fix_callable=fix_fn
-        )
+        router = SeverityRouter(development_mode=True, max_rounds=3, auto_fix_callable=fix_fn)
         result = router.run_fix_loop([finding], context={})
         self.assertEqual(result.status, "success")
         self.assertEqual(result.fix_round, 2)
@@ -347,16 +295,12 @@ class TestAutoFixLoop(unittest.TestCase):
 
     def test_auto_fix_failure_after_max_rounds_escalates(self) -> None:
         """Auto-fix loop: failure after max_rounds → escalate."""
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except")
 
         def fix_fn(action: FixAction, context: dict) -> bool:
             return False  # always fails
 
-        router = SeverityRouter(
-            development_mode=True, max_rounds=2, auto_fix_callable=fix_fn
-        )
+        router = SeverityRouter(development_mode=True, max_rounds=2, auto_fix_callable=fix_fn)
         result = router.run_fix_loop([finding], context={})
         self.assertEqual(result.status, "failed")
         self.assertEqual(result.fix_round, 2)
@@ -365,18 +309,14 @@ class TestAutoFixLoop(unittest.TestCase):
 
     def test_critical_findings_block_without_auto_fix(self) -> None:
         """CRITICAL findings block progression — no auto-fix loop."""
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection")
         call_count = [0]
 
         def fix_fn(action: FixAction, context: dict) -> bool:
             call_count[0] += 1
             return True
 
-        router = SeverityRouter(
-            development_mode=True, max_rounds=3, auto_fix_callable=fix_fn
-        )
+        router = SeverityRouter(development_mode=True, max_rounds=3, auto_fix_callable=fix_fn)
         result = router.run_fix_loop([finding], context={})
         self.assertTrue(result.blocked)
         self.assertEqual(result.fix_round, 0)  # no rounds run
@@ -394,17 +334,13 @@ class TestAutoFixLoop(unittest.TestCase):
 
     def test_production_mode_skips_auto_fix(self) -> None:
         """Production mode — no auto-fix."""
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except")
 
         def fix_fn(action: FixAction, context: dict) -> bool:
             self.fail("fix_callable should not be called in production mode")
             return True
 
-        router = SeverityRouter(
-            development_mode=False, max_rounds=3, auto_fix_callable=fix_fn
-        )
+        router = SeverityRouter(development_mode=False, max_rounds=3, auto_fix_callable=fix_fn)
         result = router.run_fix_loop([finding], context={})
         # HIGH finding, production mode → no fix applied
         self.assertFalse(result.auto_fix_triggered)
@@ -412,16 +348,12 @@ class TestAutoFixLoop(unittest.TestCase):
 
     def test_fix_action_tracking(self) -> None:
         """FixAction tracking — fix_applied and fix_verified set correctly."""
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "anti_pattern_bare_except", "bare except")
 
         def fix_fn(action: FixAction, context: dict) -> bool:
             return True
 
-        router = SeverityRouter(
-            development_mode=True, max_rounds=3, auto_fix_callable=fix_fn
-        )
+        router = SeverityRouter(development_mode=True, max_rounds=3, auto_fix_callable=fix_fn)
         result = router.run_fix_loop([finding], context={})
         action = result.actions[0]
         self.assertTrue(action.fix_applied)
@@ -452,24 +384,17 @@ class TestShouldEscalate(unittest.TestCase):
 
     def test_escalate_when_max_rounds_exhausted_with_remaining(self) -> None:
         action = FixAction("id", SeverityLevel.HIGH, "d")
-        result = RoutingResult(
-            actions=[action], fix_round=3, max_rounds=3
-        )
+        result = RoutingResult(actions=[action], fix_round=3, max_rounds=3)
         self.assertTrue(SeverityRouter()._should_escalate(result))
 
     def test_no_escalate_when_all_fixed(self) -> None:
-        action = FixAction("id", SeverityLevel.HIGH, "d",
-                           fix_applied=True, fix_verified=True)
-        result = RoutingResult(
-            actions=[action], fix_round=1, max_rounds=3
-        )
+        action = FixAction("id", SeverityLevel.HIGH, "d", fix_applied=True, fix_verified=True)
+        result = RoutingResult(actions=[action], fix_round=1, max_rounds=3)
         self.assertFalse(SeverityRouter()._should_escalate(result))
 
     def test_no_escalate_when_rounds_remaining(self) -> None:
         action = FixAction("id", SeverityLevel.HIGH, "d")
-        result = RoutingResult(
-            actions=[action], fix_round=1, max_rounds=3
-        )
+        result = RoutingResult(actions=[action], fix_round=1, max_rounds=3)
         self.assertFalse(SeverityRouter()._should_escalate(result))
 
 
@@ -572,13 +497,7 @@ class TestIntegrationWithTwoStageReviewGate(unittest.TestCase):
             "completed_tasks": 1,  # incomplete
             "failed_tasks": 1,
         }
-        code_changes = {
-            "files": {
-                "src/bad.py": {
-                    "content": 'api_key = "sk-1234567890abcdef1234567890abcdef"\n'
-                }
-            }
-        }
+        code_changes = {"files": {"src/bad.py": {"content": 'api_key = "sk-1234567890abcdef1234567890abcdef"\n'}}}
         review_result = gate.review(spec=spec, code_changes=code_changes)
         self.assertFalse(review_result.overall_passed)
 
@@ -594,11 +513,7 @@ class TestIntegrationWithTwoStageReviewGate(unittest.TestCase):
         gate = TwoStageReviewGate()
         # Create a spec that produces only HIGH-severity findings (warnings)
         spec = {"acceptance_criteria": ["user authentication"]}
-        code_changes = {
-            "files": {
-                "src/foo.py": {"content": "print('hello')\n"}
-            }
-        }
+        code_changes = {"files": {"src/foo.py": {"content": "print('hello')\n"}}}
         review_result = gate.review(spec=spec, code_changes=code_changes)
 
         router = SeverityRouter(development_mode=True, max_rounds=2)

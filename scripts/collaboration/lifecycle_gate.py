@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from .lifecycle_protocol import GateResult, PhaseDefinition, PhaseState
 
 if TYPE_CHECKING:
-    pass
+    pass  # intentional no-op: reserved for future type-only imports
 
 logger = logging.getLogger(__name__)
 

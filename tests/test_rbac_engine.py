@@ -1,12 +1,13 @@
 """Tests for RBACEngine - Role-Based Access Control System."""
 
 import pytest
+
 from scripts.collaboration.rbac_engine import (
+    Permission,
+    PermissionDeniedError,
     RBACEngine,
     RBACUser,
     UserRole,
-    Permission,
-    PermissionDeniedError,
 )
 
 

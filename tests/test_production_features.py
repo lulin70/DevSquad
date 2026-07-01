@@ -89,7 +89,7 @@ class TestAuthentication:
             assert user is not None
             assert user.username == "testuser"
             assert user.role == UserRole.ADMIN
-            assert user.can_execute_phases() == True
+            assert user.can_execute_phases()
 
         finally:
             os.unlink(temp_path)
@@ -143,14 +143,14 @@ class TestAuthentication:
         )
 
         # Admin can do everything
-        assert admin_user.can_execute_phases() == True
-        assert admin_user.can_view_metrics() == True
-        assert admin_user.can_modify_config() == True
+        assert admin_user.can_execute_phases()
+        assert admin_user.can_view_metrics()
+        assert admin_user.can_modify_config()
 
         # Viewer has limited permissions
-        assert viewer_user.can_execute_phases() == False
-        assert viewer_user.can_view_metrics() == True
-        assert viewer_user.can_modify_config() == False
+        assert not viewer_user.can_execute_phases()
+        assert viewer_user.can_view_metrics()
+        assert not viewer_user.can_modify_config()
 
 
 class TestHistoryManager:
@@ -188,7 +188,7 @@ class TestHistoryManager:
             }
 
             result = history.save_metrics_snapshot(test_data)
-            assert result == True
+            assert result
 
             # Query back
             queried = history.get_metrics_history(hours=1)
@@ -217,7 +217,7 @@ class TestHistoryManager:
                 client_ip="127.0.0.1",
             )
 
-            assert result == True
+            assert result
 
             # Get stats with longer time window to ensure data is captured
             stats = history.get_api_stats(hours=24)  # Use 24 hours instead of 1
@@ -243,7 +243,7 @@ class TestHistoryManager:
                 details="Test event details",
             )
 
-            assert result == True
+            assert result
 
             # Query events with longer time window
             events = history.get_lifecycle_history(hours=24)  # Use 24 hours instead of 1
@@ -323,7 +323,7 @@ class TestAPIDataModels:
 
         result = GateResult(passed=True, verdict="APPROVE", red_flags_count=0, missing_evidence_count=0)
 
-        assert result.passed == True
+        assert result.passed
         assert result.verdict == "APPROVE"
         assert result.checked_at is not None  # Auto-generated
 

@@ -186,12 +186,12 @@ def test_remove_section(agent_briefing):
 
     # Remove section
     result = agent_briefing.remove_section("Test Section")
-    assert result == True
+    assert result
     assert "Test Section" not in agent_briefing.sections
 
     # Try to remove non-existent section
     result = agent_briefing.remove_section("Non-existent")
-    assert result == False
+    assert not result
 
 
 def test_get_section(agent_briefing):
@@ -313,6 +313,7 @@ def test_briefing_section_dataclass(agent_briefing):
 
     # Test to_dict via asdict
     from dataclasses import asdict
+
     data = asdict(section)
     assert data["title"] == "Test"
     assert data["content"] == "Content"
@@ -334,6 +335,7 @@ def test_agent_context_dataclass(agent_briefing):
 
     # Test to_dict via asdict
     from dataclasses import asdict
+
     data = asdict(context)
     assert data["role"] == "Tester"
     assert "Unit testing" in data["capabilities"]

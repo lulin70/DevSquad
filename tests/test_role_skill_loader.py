@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Tests for RoleSkillLoader — SKILL.md loading and prompt injection."""
 
-import tempfile
 from pathlib import Path
-
-import pytest
 
 from scripts.collaboration.role_skill_loader import (
     RoleSkillLoader,
@@ -37,7 +34,7 @@ class TestFrontmatterParsing:
         assert "Body text." in body
 
     def test_parse_frontmatter_with_quotes(self):
-        content = '---\nname: "my skill"\ndescription: \'a skill\'\n---\nBody.'
+        content = "---\nname: \"my skill\"\ndescription: 'a skill'\n---\nBody."
         meta, body = _parse_frontmatter(content)
         assert meta["name"] == "my skill"
         assert meta["description"] == "a skill"
@@ -105,11 +102,15 @@ class TestRoleSkillLoader:
 
     def test_load_multiple_skills(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "create-prd",
+            tmp_path,
+            "product-manager",
+            "create-prd",
             "---\nname: create-prd\n---\nPRD content.",
         )
         self._create_skill_dir(
-            tmp_path, "product-manager", "prioritization",
+            tmp_path,
+            "product-manager",
+            "prioritization",
             "---\nname: prioritization-frameworks\n---\nPrio content.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -118,7 +119,9 @@ class TestRoleSkillLoader:
 
     def test_load_skills_caching(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "create-prd",
+            tmp_path,
+            "product-manager",
+            "create-prd",
             "---\nname: create-prd\n---\nContent.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -128,7 +131,9 @@ class TestRoleSkillLoader:
 
     def test_load_skills_no_cache(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "create-prd",
+            tmp_path,
+            "product-manager",
+            "create-prd",
             "---\nname: create-prd\n---\nContent.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -138,7 +143,9 @@ class TestRoleSkillLoader:
 
     def test_get_skill_by_name(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "create-prd",
+            tmp_path,
+            "product-manager",
+            "create-prd",
             "---\nname: create-prd\n---\nContent.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -153,11 +160,15 @@ class TestRoleSkillLoader:
 
     def test_list_available_skills(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "create-prd",
+            tmp_path,
+            "product-manager",
+            "create-prd",
             "---\nname: create-prd\n---\nContent.",
         )
         self._create_skill_dir(
-            tmp_path, "architect", "adr",
+            tmp_path,
+            "architect",
+            "adr",
             "---\nname: adr\n---\nADR content.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -167,7 +178,9 @@ class TestRoleSkillLoader:
 
     def test_list_available_skills_filtered(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "create-prd",
+            tmp_path,
+            "product-manager",
+            "create-prd",
             "---\nname: create-prd\n---\nContent.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -177,7 +190,9 @@ class TestRoleSkillLoader:
 
     def test_clear_cache(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "create-prd",
+            tmp_path,
+            "product-manager",
+            "create-prd",
             "---\nname: create-prd\n---\nContent.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -189,7 +204,9 @@ class TestRoleSkillLoader:
 
     def test_skill_file_without_frontmatter(self, tmp_path):
         self._create_skill_dir(
-            tmp_path, "product-manager", "simple-skill",
+            tmp_path,
+            "product-manager",
+            "simple-skill",
             "Just plain instructions without frontmatter.",
         )
         loader = RoleSkillLoader(skills_dir=tmp_path)
@@ -236,6 +253,7 @@ class TestPromptAssemblerSkillInjection:
         assembler = PromptAssembler(role_id="product-manager", base_prompt="You are PM.")
         # Inject custom loader
         from scripts.collaboration.role_skill_loader import RoleSkillLoader
+
         assembler._skill_loader = RoleSkillLoader(skills_dir=tmp_path)
 
         result = assembler.assemble("Write a PRD for SSO feature")
@@ -247,6 +265,7 @@ class TestPromptAssemblerSkillInjection:
 
         assembler = PromptAssembler(role_id="architect", base_prompt="You are architect.")
         from scripts.collaboration.role_skill_loader import RoleSkillLoader
+
         assembler._skill_loader = RoleSkillLoader(skills_dir=tmp_path)
 
         result = assembler.assemble("Design microservice architecture")

@@ -107,7 +107,7 @@ def test_llm_cache_clear(llm_cache):
 
 def test_llm_cache_is_available(llm_cache):
     """测试 LLMCache.is_available() 返回 True"""
-    assert llm_cache.is_available() == True
+    assert llm_cache.is_available()
 
 
 def test_llm_cache_is_available_invalid_dir():
@@ -116,7 +116,7 @@ def test_llm_cache_is_available_invalid_dir():
 
     try:
         cache = LLMCache(cache_dir="/invalid/path/that/does/not/exist")
-        assert cache.is_available() == False
+        assert not cache.is_available()
     except OSError:
         pass
 

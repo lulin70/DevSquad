@@ -78,8 +78,7 @@ def _build_test_app() -> FastAPI:
 def _reset_singletons(monkeypatch):
     """Reset rate limiter singleton + clear env vars before each test."""
     # Clear all rate_limit-related env vars
-    for var in ("DEVSQUAD_RATE_LIMIT_DISABLED", "DEVSQUAD_RATE_LIMIT_PER_MINUTE",
-                "DEVSQUAD_HTTPS_REDIRECT_ENABLED"):
+    for var in ("DEVSQUAD_RATE_LIMIT_DISABLED", "DEVSQUAD_RATE_LIMIT_PER_MINUTE", "DEVSQUAD_HTTPS_REDIRECT_ENABLED"):
         monkeypatch.delenv(var, raising=False)
     reset_rate_limiter()
     yield
@@ -198,7 +197,7 @@ class TestRateLimiter:
         limiter = RateLimiter(limit=5, window_seconds=60)
         for i in range(5):
             allowed, _ = await limiter.check("1.2.3.4")
-            assert allowed is True, f"Request {i+1} should be allowed"
+            assert allowed is True, f"Request {i + 1} should be allowed"
 
     @pytest.mark.asyncio
     async def test_blocks_over_limit(self):
@@ -438,9 +437,11 @@ class TestResetHelper:
     def test_reset_clears_singleton(self):
         # First call creates singleton
         from scripts.api.rate_limit import _get_rate_limiter
+
         _ = _get_rate_limiter()
         # Reset
         reset_rate_limiter()
         # Module-level singleton should be None now
         import scripts.api.rate_limit as rl
+
         assert rl._rate_limiter is None

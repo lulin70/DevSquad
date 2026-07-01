@@ -222,10 +222,6 @@ def scenario_2_code_review():
 
     try:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
-        from scripts.collaboration.five_axis_consensus import FiveAxisConsensusEngine
-
-        # 创建五轴共识引擎（用于代码评审）
-        five_axis = FiveAxisConsensusEngine()
 
         print_info("启用五轴评审模式:")
         axes = [

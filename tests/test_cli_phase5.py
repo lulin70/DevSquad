@@ -11,16 +11,17 @@ Phase 5: CLI 命令行接口覆盖率提升测试
 遵循 AAA 模式 (Arrange-Act-Assert)
 """
 
+import contextlib
+import importlib.util
 import os
 import sys
-import importlib.util
-import unittest
 from io import StringIO
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+
 
 def _import_cli_module():
     """Import scripts.cli.py directly to avoid package conflict."""
@@ -28,9 +29,10 @@ def _import_cli_module():
     cli_path = os.path.join(base_dir, "scripts", "cli.py")
     spec = importlib.util.spec_from_file_location("scripts.cli_module", cli_path)
     cli_module = importlib.util.module_from_spec(spec)
-    sys.modules['scripts.cli_module'] = cli_module
+    sys.modules["scripts.cli_module"] = cli_module
     spec.loader.exec_module(cli_module)
     return cli_module
+
 
 _cli = _import_cli_module()
 
@@ -71,7 +73,7 @@ class TestCreateBackend:
             os.environ.pop(k, None)
 
         try:
-            with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+            with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                 result = _create_backend("openai")
                 assert result is None
                 output = mock_stderr.getvalue()
@@ -90,7 +92,7 @@ class TestCreateBackend:
             os.environ.pop(k, None)
 
         try:
-            with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+            with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                 result = _create_backend("anthropic")
                 assert result is None
                 output = mock_stderr.getvalue()
@@ -130,8 +132,14 @@ class TestLifecyclePresets:
     def test_preset_roles_are_valid(self):
         """Test that preset roles are from valid role list."""
         valid_roles = [
-            "architect", "product-manager", "tester", "solo-coder",
-            "ui-designer", "security", "devops", "auto"
+            "architect",
+            "product-manager",
+            "tester",
+            "solo-coder",
+            "ui-designer",
+            "security",
+            "devops",
+            "auto",
         ]
         for cmd, preset in LIFECYCLE_PRESETS.items():
             for role in preset["required_roles"]:
@@ -205,77 +213,85 @@ class TestCLIArgumentParsing:
     def test_parse_dispatch_command_minimal(self):
         """Test parsing dispatch command with minimal arguments."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad', 'dispatch', '-t', 'test task']):
-            with patch('scripts.cli_module.cmd_dispatch') as mock_cmd:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                mock_cmd.assert_called_once()
+        with (
+            patch("sys.argv", ["devsquad", "dispatch", "-t", "test task"]),
+            patch("scripts.cli_module.cmd_dispatch") as mock_cmd,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        mock_cmd.assert_called_once()
 
     def test_parse_dispatch_command_with_all_options(self):
         """Test parsing dispatch command with all options."""
         cli_main = _cli.main
         test_args = [
-            'devsquad', 'dispatch',
-            '-t', 'complex task',
-            '-r', 'architect', 'tester',
-            '-m', 'parallel',
-            '-f', 'json',
-            '-b', 'mock',
-            '--dry-run',
-            '--lang', 'en',
+            "devsquad",
+            "dispatch",
+            "-t",
+            "complex task",
+            "-r",
+            "architect",
+            "tester",
+            "-m",
+            "parallel",
+            "-f",
+            "json",
+            "-b",
+            "mock",
+            "--dry-run",
+            "--lang",
+            "en",
         ]
-        with patch('sys.argv', test_args):
-            with patch('scripts.cli_module.cmd_dispatch') as mock_cmd:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                args = mock_cmd.call_args[0][0]
-                assert args.task == 'complex task'
-                assert args.roles == ['architect', 'tester']
-                assert args.mode == 'parallel'
-                assert args.format == 'json'
-                assert args.backend == 'mock'
-                assert args.dry_run is True
-                assert args.lang == 'en'
+        with (
+            patch("sys.argv", test_args),
+            patch("scripts.cli_module.cmd_dispatch") as mock_cmd,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        args = mock_cmd.call_args[0][0]
+        assert args.task == "complex task"
+        assert args.roles == ["architect", "tester"]
+        assert args.mode == "parallel"
+        assert args.format == "json"
+        assert args.backend == "mock"
+        assert args.dry_run is True
+        assert args.lang == "en"
 
     def test_parse_demo_command_with_scenario(self):
         """Test parsing demo command with scenario option."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad', 'demo', '--scenario', 'intent']):
-            with patch('scripts.cli_module.cmd_demo') as mock_cmd:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                args = mock_cmd.call_args[0][0]
-                assert args.scenario == 'intent'
+        with (
+            patch("sys.argv", ["devsquad", "demo", "--scenario", "intent"]),
+            patch("scripts.cli_module.cmd_demo") as mock_cmd,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        args = mock_cmd.call_args[0][0]
+        assert args.scenario == "intent"
 
     def test_parse_init_quick_mode(self):
         """Test parsing init command with quick flag."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad', 'init', '--quick']):
-            with patch('scripts.cli_module.cmd_init') as mock_cmd:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                args = mock_cmd.call_args[0][0]
-                assert args.quick is True
+        with (
+            patch("sys.argv", ["devsquad", "init", "--quick"]),
+            patch("scripts.cli_module.cmd_init") as mock_cmd,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        args = mock_cmd.call_args[0][0]
+        assert args.quick is True
 
     def test_parse_version_flag(self):
         """Test parsing --version flag."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad', '--version']):
-            with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                output = mock_stdout.getvalue()
-                assert len(output) > 0
+        with (
+            patch("sys.argv", ["devsquad", "--version"]),
+            patch("sys.stdout", new_callable=StringIO) as mock_stdout,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        output = mock_stdout.getvalue()
+        assert len(output) > 0
 
 
 class TestCLIEdgeCases:
@@ -284,47 +300,46 @@ class TestCLIEdgeCases:
     def test_no_command_provided(self):
         """Test behavior when no command is provided."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad']):
-            with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
-                try:
-                    cli_main()
-                except SystemExit as e:
-                    assert e.code != 0
+        with patch("sys.argv", ["devsquad"]), patch("sys.stderr", new_callable=StringIO):
+            try:
+                cli_main()
+            except SystemExit as e:
+                assert e.code != 0
 
     def test_invalid_command(self):
         """Test behavior with invalid command name."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad', 'nonexistent_command']):
-            with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                output = mock_stderr.getvalue()
-                assert len(output) > 0
+        with (
+            patch("sys.argv", ["devsquad", "nonexistent_command"]),
+            patch("sys.stderr", new_callable=StringIO) as mock_stderr,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        output = mock_stderr.getvalue()
+        assert len(output) > 0
 
     def test_invalid_choice_for_role(self):
         """Test behavior with invalid role choice."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad', 'dispatch', '-t', 'task', '-r', 'invalid_role']):
-            with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                output = mock_stderr.getvalue()
-                assert len(output) > 0
+        with (
+            patch("sys.argv", ["devsquad", "dispatch", "-t", "task", "-r", "invalid_role"]),
+            patch("sys.stderr", new_callable=StringIO) as mock_stderr,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        output = mock_stderr.getvalue()
+        assert len(output) > 0
 
     def test_invalid_mode_choice(self):
         """Test behavior with invalid mode choice."""
         cli_main = _cli.main
-        with patch('sys.argv', ['devsquad', 'dispatch', '-t', 'task', '--mode', 'invalid_mode']):
-            with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
-                try:
-                    cli_main()
-                except SystemExit:
-                    pass
-                output = mock_stderr.getvalue()
+        with (
+            patch("sys.argv", ["devsquad", "dispatch", "-t", "task", "--mode", "invalid_mode"]),
+            patch("sys.stderr", new_callable=StringIO) as mock_stderr,
+            contextlib.suppress(SystemExit),
+        ):
+            cli_main()
+        mock_stderr.getvalue()
 
 
 if __name__ == "__main__":

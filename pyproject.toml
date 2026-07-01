@@ -152,14 +152,11 @@ warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "silent"
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
+files = ["scripts", "skills"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-norecursedirs = ["tests/manual", "tests/integration", "tests/e2e"]
+norecursedirs = []
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -170,9 +167,10 @@ addopts = [
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
+    "e2e: end-to-end tests requiring full stack",
+    "integration: integration tests",
+    "benchmark: performance benchmark tests",
     "unit: marks tests as unit tests",
-    "benchmark: marks tests as performance benchmarks",
     "smoke: marks tests as release smoke tests",
 ]
 filterwarnings = [

@@ -14,8 +14,9 @@ authentication:
   method: "basic"  # basic | oauth2 | ldap
 
   # Basic Auth Credentials
-  # ⚠️  Passwords are SHA-256 hashed. NEVER commit plaintext passwords or hints!
-  # To generate hashes: python -c "import hashlib; print(hashlib.sha256('your_password'.encode()).hexdigest())"
+  # ⚠️  Passwords are PBKDF2-HMAC-SHA256 hashed. NEVER commit plaintext passwords or hints!
+  # Format: pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>
+  # To generate hashes: python -c "import secrets, hashlib; pw='your_password'; salt=secrets.token_bytes(16); print('pbkdf2_sha256$390000$' + salt.hex() + '$' + hashlib.pbkdf2_hmac('sha256', pw.encode(), salt, 390000).hex())"
   # ⚠️  Replace ALL default credentials before any deployment!
   credentials:
     usernames:

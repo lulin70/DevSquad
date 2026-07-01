@@ -69,12 +69,14 @@ class TestPhaseDefinition:
             order=8,
         )
         from dataclasses import asdict
+
         d = asdict(phase)
         assert len(d["dependencies"]) == 2
         assert d["order"] == 8
 
     def test_to_dict_serialization(self):
         from dataclasses import asdict
+
         phase = PhaseDefinition(
             phase_id="P1",
             name="Test",

@@ -553,7 +553,7 @@ class ContextCompressor:
                 return MemoryCategory.QUESTION
 
         if _msg_type_hint := getattr(self, "_last_msg_type", None):
-            pass
+            pass  # intentional no-op: msg type hint reserved for future category override
 
         return MemoryCategory.FINDING
 

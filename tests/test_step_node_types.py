@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """Tests for V3.8 #6: WorkflowStep node_type (Deterministic vs LLM separation)."""
 
-import pytest
-
 from scripts.collaboration.workflow_engine import (
     NodeType,
-    StepStatus,
     WorkflowEngine,
     WorkflowStep,
 )
@@ -101,6 +98,7 @@ class TestWorkflowEngineStepSummary:
         engine = WorkflowEngine()
         # Create a workflow definition with steps
         from scripts.collaboration.workflow_engine import WorkflowDefinition
+
         steps = [
             WorkflowStep(name="s1", node_type=NodeType.DETERMINISTIC),
             WorkflowStep(name="s2", node_type=NodeType.DETERMINISTIC),
@@ -128,6 +126,7 @@ class TestWorkflowEngineStepSummary:
         """Verify: classify_steps returns per-step detail."""
         engine = WorkflowEngine()
         from scripts.collaboration.workflow_engine import WorkflowDefinition
+
         steps = [
             WorkflowStep(step_id="s1", name="parse_file", node_type=NodeType.DETERMINISTIC),
             WorkflowStep(step_id="s2", name="generate", node_type=NodeType.LLM),

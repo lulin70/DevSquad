@@ -459,7 +459,7 @@ class T4MemoryIndexer(unittest.TestCase):
         ]
         self.indexer.build_index(items)
         score_exact = self.indexer._compute_relevance(["redis", "缓存"], "tf1")
-        score_irrelevant = self.indexer._compute_relevance(["redis", "缓存"], "tf2")
+        self.indexer._compute_relevance(["redis", "缓存"], "tf2")
         self.assertGreaterEqual(score_exact, 0.0)
 
 
@@ -774,7 +774,7 @@ class T7StorageLayer(unittest.TestCase):
 
     def test_03_json_delete(self):
         store = JsonMemoryStore(self.tmpdir)
-        sid = store.save(MemoryType.FEEDBACK, {"id": "jd1", "msg": "delete me"})
+        store.save(MemoryType.FEEDBACK, {"id": "jd1", "msg": "delete me"})
         self.assertTrue(store.delete(MemoryType.FEEDBACK, "jd1"))
         self.assertIsNone(store.load(MemoryType.FEEDBACK, "jd1"))
 
@@ -941,8 +941,7 @@ class T8EdgeCases(unittest.TestCase):
         write_time = (time.perf_counter() - start) * 1000
         self.bridge.rebuild_index()
         rebuild_time = (time.perf_counter() - start) * 1000 - write_time
-        result = self.bridge.recall(MemoryQuery(query_text="Performance Item"))
-        search_time = result.query_time_ms
+        self.bridge.recall(MemoryQuery(query_text="Performance Item"))
         self.assertLess(write_time + rebuild_time, 5000)
 
     def test_10_null_domain_memory_item(self):
@@ -1202,7 +1201,7 @@ class E2ETests(unittest.TestCase):
             )
         self.bridge.rebuild_index()
         start = time.perf_counter()
-        result = self.bridge.recall(MemoryQuery(query_text="Scale Item", limit=10))
+        self.bridge.recall(MemoryQuery(query_text="Scale Item", limit=10))
         elapsed = (time.perf_counter() - start) * 1000
         self.assertLess(elapsed, 200)
 

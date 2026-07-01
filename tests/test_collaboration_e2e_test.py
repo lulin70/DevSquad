@@ -53,7 +53,7 @@ def test_scratchpad_write_read():
         confidence=0.9,
         tags=["performance", "database"],
     )
-    eid = sp.write(entry)
+    sp.write(entry)
     results = sp.read(query="N+1")
     assert len(results) == 1
     assert "N+1" in results[0].content
@@ -283,7 +283,7 @@ def test_coordinator_execute_plan():
             {"role_id": "solo-coder"},
         ],
     )
-    workers = coord.spawn_workers(plan)
+    coord.spawn_workers(plan)
     result = coord.execute_plan(plan)
     assert result.total_tasks == 3
     assert result.completed_tasks == 3

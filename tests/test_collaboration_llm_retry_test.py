@@ -126,7 +126,7 @@ class TestLLMRetryManager:
         backend = "test_backend"
 
         # Record failures until threshold
-        for i in range(5):
+        for _i in range(5):
             self.manager._record_failure(backend, Exception("Test error"))
 
         cb = self.manager._get_circuit_breaker(backend)
@@ -138,7 +138,7 @@ class TestLLMRetryManager:
         backend = "test_backend"
 
         # Open the circuit breaker
-        for i in range(5):
+        for _i in range(5):
             self.manager._record_failure(backend, Exception("Test error"))
 
         # Should raise CircuitBreakerError
@@ -150,7 +150,7 @@ class TestLLMRetryManager:
         backend = "test_backend"
 
         # Open the circuit breaker
-        for i in range(5):
+        for _i in range(5):
             self.manager._record_failure(backend, Exception("Test error"))
 
         cb = self.manager._get_circuit_breaker(backend)
@@ -273,7 +273,7 @@ class TestLLMRetryManager:
         backend = "test_backend"
 
         # Open circuit breaker
-        for i in range(5):
+        for _i in range(5):
             self.manager._record_failure(backend, Exception("Error"))
 
         cb = self.manager._get_circuit_breaker(backend)

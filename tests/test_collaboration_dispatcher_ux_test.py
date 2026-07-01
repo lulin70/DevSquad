@@ -17,6 +17,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import contextlib
+
 from scripts.collaboration.dispatcher import (
     DispatchResult,
     MultiAgentDispatcher,
@@ -36,10 +38,8 @@ class TestStructuredReportFormat(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.dispatcher.shutdown()
-        except Exception:
-            pass
 
     def test_structured_report_has_header(self):
         result = self.dispatcher.quick_dispatch("测试任务", output_format="structured")
@@ -82,7 +82,7 @@ class TestStructuredReportFormat(unittest.TestCase):
 
     def test_structured_report_with_timing(self):
         result = self.dispatcher.quick_dispatch("性能优化", output_format="structured", include_timing=True)
-        report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
+        result.to_markdown() if isinstance(result, DispatchResult) else str(result)
         # Timing info should be recorded in DispatchResult
         self.assertIsInstance(result, DispatchResult)
         self.assertGreaterEqual(result.duration_seconds, 0)
@@ -101,15 +101,13 @@ class TestCompactReportFormat(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.dispatcher.shutdown()
-        except Exception:
-            pass
 
     def test_compact_report_is_concise(self):
         result = self.dispatcher.quick_dispatch("简单任务", output_format="compact")
         report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
-        lines = [l for l in report.split("\n") if l.strip()]
+        lines = [line for line in report.split("\n") if line.strip()]
         self.assertLessEqual(len(lines), 20, "Compact format should be concise")
 
     def test_compact_report_has_status_icon(self):
@@ -144,10 +142,8 @@ class TestDetailedReportFormat(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.dispatcher.shutdown()
-        except Exception:
-            pass
 
     def test_detailed_uses_original_markdown(self):
         result = self.dispatcher.dispatch("详细测试任务")
@@ -172,10 +168,8 @@ class TestExtractFindings(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.dispatcher.shutdown()
-        except Exception:
-            pass
 
     def test_extract_numbered_list(self):
         text = "1. 第一个发现\n2. 第二个发现\n3. 第三个发现"
@@ -220,10 +214,8 @@ class TestGenerateActionItems(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.dispatcher.shutdown()
-        except Exception:
-            pass
 
     def test_success_generates_low_priority_items(self):
         result = DispatchResult(
@@ -299,10 +291,8 @@ class TestReportHierarchy(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.dispatcher.shutdown()
-        except Exception:
-            pass
 
     def test_structured_has_all_sections_when_data_present(self):
         result = self.dispatcher.quick_dispatch(

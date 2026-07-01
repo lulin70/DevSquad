@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2861%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2857%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -73,7 +73,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 ## 🚀 V3.9.2: Auto LLM Fallback + Dashboard Split + SQLite Audit Persistence + P3 Cleanup
 
-**DevSquad V3.9.2** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 2861+ tests passing.
+**DevSquad V3.9.2** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 2857+ tests passing.
 
 ---
 
@@ -97,7 +97,7 @@ streamlit run scripts/dashboard.py
 
 # Open http://localhost:8501
 # Login with default account, then change password immediately.
-# Username: admin   Password: <your-secure-password>
+# Username: admin   Password: admin123   (change in production)
 ```
 
 ### Method 3: REST API (Recommended for Integration)
@@ -461,7 +461,7 @@ devsquad --version
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 2861+ passed
+# Expected: 2857+ passed
 ```
 
 ---
@@ -519,7 +519,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (2861+ tests passing)
+# Run all tests (2857+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -536,7 +536,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 2861+ tests**
+**Total: 2857+ tests (2864 collected)**
 
 Run by priority:
 ```bash

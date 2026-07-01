@@ -39,6 +39,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def mock_dispatcher():
     """Create a mock MultiAgentDispatcher instance."""
@@ -91,6 +92,7 @@ def _get_tool_fn(mcp, name: str):
 # ---------------------------------------------------------------------------
 # Test: DevSquadMCPServer class (still has __init__, _get_dispatcher, shutdown)
 # ---------------------------------------------------------------------------
+
 
 class TestDevSquadMCPServerClass:
     """Test DevSquadMCPServer class."""
@@ -149,6 +151,7 @@ class TestDevSquadMCPServerClass:
 # Test: create_mcp_server factory function
 # ---------------------------------------------------------------------------
 
+
 class TestCreateMCPServerFunction:
     """Test create_mcp_server factory function."""
 
@@ -163,6 +166,7 @@ class TestCreateMCPServerFunction:
     def test_create_mcp_server_returns_fastmcp(self):
         """Test create_mcp_server returns a FastMCP instance."""
         from mcp.server.fastmcp import FastMCP
+
         from scripts.mcp_server import create_mcp_server
 
         mcp = create_mcp_server()
@@ -193,6 +197,7 @@ class TestCreateMCPServerFunction:
 # ---------------------------------------------------------------------------
 # Test: multiagent_dispatch tool
 # ---------------------------------------------------------------------------
+
 
 class TestMultiagentDispatchTool:
     """Test multiagent_dispatch MCP tool."""
@@ -264,6 +269,7 @@ class TestMultiagentDispatchTool:
 # Test: multiagent_quick tool
 # ---------------------------------------------------------------------------
 
+
 class TestMultiagentQuickTool:
     """Test multiagent_quick MCP tool."""
 
@@ -301,6 +307,7 @@ class TestMultiagentQuickTool:
 # ---------------------------------------------------------------------------
 # Test: multiagent_roles tool
 # ---------------------------------------------------------------------------
+
 
 class TestMultiagentRolesTool:
     """Test multiagent_roles MCP tool."""
@@ -342,6 +349,7 @@ class TestMultiagentRolesTool:
 # ---------------------------------------------------------------------------
 # Test: multiagent_status tool
 # ---------------------------------------------------------------------------
+
 
 class TestMultiagentStatusTool:
     """Test multiagent_status MCP tool."""
@@ -405,6 +413,7 @@ class TestMultiagentStatusTool:
 # Test: multiagent_analyze tool
 # ---------------------------------------------------------------------------
 
+
 class TestMultiagentAnalyzeTool:
     """Test multiagent_analyze MCP tool."""
 
@@ -435,6 +444,7 @@ class TestMultiagentAnalyzeTool:
 # ---------------------------------------------------------------------------
 # Test: Input validation and security
 # ---------------------------------------------------------------------------
+
 
 class TestInputValidation:
     """Test input validation and security checks."""
@@ -509,6 +519,7 @@ class TestInputValidation:
 # Test: Error handling
 # ---------------------------------------------------------------------------
 
+
 class TestErrorHandling:
     """Test error handling and exception scenarios."""
 
@@ -575,6 +586,7 @@ class TestErrorHandling:
 # Test: multiagent_shutdown tool
 # ---------------------------------------------------------------------------
 
+
 class TestShutdownTool:
     """Test multiagent_shutdown MCP tool."""
 
@@ -590,23 +602,25 @@ class TestShutdownTool:
 
     def test_shutdown_calls_server_shutdown(self, mock_dispatcher):
         """Test shutdown tool calls DevSquadMCPServer.shutdown()."""
-        with patch.object(
-            __import__("scripts.mcp_server", fromlist=["DevSquadMCPServer"]).DevSquadMCPServer,
-            "shutdown",
-        ) as mock_shutdown:
-            with patch.object(
+        with (
+            patch.object(
+                __import__("scripts.mcp_server", fromlist=["DevSquadMCPServer"]).DevSquadMCPServer,
+                "shutdown",
+            ) as mock_shutdown,
+            patch.object(
                 __import__("scripts.mcp_server", fromlist=["DevSquadMCPServer"]).DevSquadMCPServer,
                 "_get_dispatcher",
                 return_value=mock_dispatcher,
-            ):
-                from scripts.mcp_server import create_mcp_server
+            ),
+        ):
+            from scripts.mcp_server import create_mcp_server
 
-                mcp = create_mcp_server()
-                fn = _get_tool_fn(mcp, "multiagent_shutdown")
+            mcp = create_mcp_server()
+            fn = _get_tool_fn(mcp, "multiagent_shutdown")
 
-                fn()
+            fn()
 
-                mock_shutdown.assert_called_once()
+            mock_shutdown.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -73,9 +73,7 @@ class TestJudgeDecision(unittest.TestCase):
         self.assertIsNone(d["merged_finding"])
 
     def test_to_dict_with_merged_finding(self) -> None:
-        finding = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-        )
+        finding = ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection")
         decision = JudgeDecision(
             action=JudgeAction.MERGE,
             finding_ids=["id1", "id2"],
@@ -180,12 +178,13 @@ class TestDeduplication(unittest.TestCase):
         judge = JudgeAgent(similarity_threshold=0.75)
         findings = [
             ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security",
-                "SQL injection vulnerability in login form"
+                ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection vulnerability in login form"
             ),
             ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security",
-                "SQL injection vulnerability in login form found by tester"
+                ReviewStage.CODE_QUALITY,
+                "critical",
+                "security",
+                "SQL injection vulnerability in login form found by tester",
             ),
         ]
         result = judge.judge(findings, context={})
@@ -199,7 +198,10 @@ class TestDeduplication(unittest.TestCase):
         findings = [
             ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"),
             ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "style", "Long line in foo.py",
+                ReviewStage.CODE_QUALITY,
+                "warning",
+                "style",
+                "Long line in foo.py",
                 suggestion="Shorten the line",
             ),
         ]
@@ -212,14 +214,8 @@ class TestDeduplication(unittest.TestCase):
         """Findings with different categories are not duplicates."""
         judge = JudgeAgent(similarity_threshold=0.5)
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security",
-                "Same description here"
-            ),
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "style",
-                "Same description here"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "Same description here"),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "style", "Same description here"),
         ]
         result = judge.judge(findings, context={})
         merge_decisions = [d for d in result.decisions if d.action == JudgeAction.MERGE]
@@ -233,14 +229,8 @@ class TestConflictResolution(unittest.TestCase):
         """Conflict resolution — two reviewers, different severities → upgrade."""
         judge = JudgeAgent(similarity_threshold=0.85)
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "security",
-                "SQL injection vulnerability in login"
-            ),
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security",
-                "SQL injection vulnerability in login"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "security", "SQL injection vulnerability in login"),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection vulnerability in login"),
         ]
         result = judge.judge(findings, context={})
         # An UPGRADE decision should be present.
@@ -260,9 +250,7 @@ class TestConfidenceFiltering(unittest.TestCase):
         judge = JudgeAgent(confidence_threshold=0.95)
         # A finding with no suggestion and no file_path → confidence 0.5.
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "style", "Long line"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "style", "Long line"),
         ]
         result = judge.judge(findings, context={})
         reject_decisions = [d for d in result.decisions if d.action == JudgeAction.REJECT]
@@ -274,9 +262,7 @@ class TestConfidenceFiltering(unittest.TestCase):
         """Critical findings have confidence 1.0 — always kept."""
         judge = JudgeAgent(confidence_threshold=0.95)
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"),
         ]
         result = judge.judge(findings, context={})
         self.assertEqual(len(result.accepted_findings), 1)
@@ -285,9 +271,7 @@ class TestConfidenceFiltering(unittest.TestCase):
         """The legacy _filter_by_confidence method works."""
         judge = JudgeAgent(confidence_threshold=0.7)
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "style", "Long line"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "style", "Long line"),
         ]
         decisions = judge._filter_by_confidence(findings, threshold=0.95)
         self.assertEqual(len(decisions), 1)
@@ -305,9 +289,7 @@ class TestHistoryLearningDisabled(unittest.TestCase):
     def test_no_history_decisions_when_disabled(self) -> None:
         judge = JudgeAgent()
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"),
         ]
         result = judge.judge(findings, context={})
         self.assertFalse(result.history_used)
@@ -335,20 +317,21 @@ class TestHistoryLearningEnabled(unittest.TestCase):
 
     def test_enable_history_learning_loads_existing_records(self) -> None:
         # Create a temp file with existing records.
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
-            json.dump([
-                {
-                    "record_id": "r1",
-                    "finding_text": "SQL injection",
-                    "category": "security",
-                    "severity": "critical",
-                    "action": "reject",
-                    "human_override": False,
-                    "timestamp": 1.0,
-                }
-            ], f)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(
+                [
+                    {
+                        "record_id": "r1",
+                        "finding_text": "SQL injection",
+                        "category": "security",
+                        "severity": "critical",
+                        "action": "reject",
+                        "human_override": False,
+                        "timestamp": 1.0,
+                    }
+                ],
+                f,
+            )
             path = f.name
         try:
             judge = JudgeAgent()
@@ -373,9 +356,7 @@ class TestHistoryLearningEnabled(unittest.TestCase):
             path = os.path.join(tmpdir, "history.json")
             judge = JudgeAgent()
             judge.enable_history_learning(path)
-            finding = ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-            )
+            finding = ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection")
             decision = JudgeDecision(
                 action=JudgeAction.ACCEPT,
                 finding_ids=["id1"],
@@ -396,25 +377,25 @@ class TestHistoryLearningEnabled(unittest.TestCase):
             path = os.path.join(tmpdir, "history.json")
             # Pre-populate history with a rejected finding.
             with open(path, "w", encoding="utf-8") as f:
-                json.dump([
-                    {
-                        "record_id": "r1",
-                        "finding_text": "SQL injection vulnerability in login",
-                        "category": "security",
-                        "severity": "critical",
-                        "action": "reject",
-                        "human_override": False,
-                        "timestamp": 1.0,
-                    }
-                ], f)
+                json.dump(
+                    [
+                        {
+                            "record_id": "r1",
+                            "finding_text": "SQL injection vulnerability in login",
+                            "category": "security",
+                            "severity": "critical",
+                            "action": "reject",
+                            "human_override": False,
+                            "timestamp": 1.0,
+                        }
+                    ],
+                    f,
+                )
             judge = JudgeAgent()
             judge.enable_history_learning(path)
             # Judge a similar finding — should DEFER.
             findings = [
-                ReviewFinding(
-                    ReviewStage.CODE_QUALITY, "critical", "security",
-                    "SQL injection vulnerability in login"
-                ),
+                ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection vulnerability in login"),
             ]
             result = judge.judge(findings, context={})
             self.assertTrue(result.history_used)
@@ -427,24 +408,24 @@ class TestHistoryLearningEnabled(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "history.json")
             with open(path, "w", encoding="utf-8") as f:
-                json.dump([
-                    {
-                        "record_id": "r1",
-                        "finding_text": "SQL injection vulnerability in login",
-                        "category": "security",
-                        "severity": "critical",
-                        "action": "accept",
-                        "human_override": False,
-                        "timestamp": 1.0,
-                    }
-                ], f)
+                json.dump(
+                    [
+                        {
+                            "record_id": "r1",
+                            "finding_text": "SQL injection vulnerability in login",
+                            "category": "security",
+                            "severity": "critical",
+                            "action": "accept",
+                            "human_override": False,
+                            "timestamp": 1.0,
+                        }
+                    ],
+                    f,
+                )
             judge = JudgeAgent()
             judge.enable_history_learning(path)
             findings = [
-                ReviewFinding(
-                    ReviewStage.CODE_QUALITY, "critical", "security",
-                    "SQL injection vulnerability in login"
-                ),
+                ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection vulnerability in login"),
             ]
             result = judge.judge(findings, context={})
             self.assertTrue(result.history_used)
@@ -456,9 +437,7 @@ class TestHistoryLearningEnabled(unittest.TestCase):
             path = os.path.join(tmpdir, "history.json")
             judge = JudgeAgent()
             judge.enable_history_learning(path)
-            finding = ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-            )
+            finding = ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection")
             judge.record_decision(
                 JudgeDecision(
                     action=JudgeAction.ACCEPT,
@@ -490,12 +469,8 @@ class TestJudgeResultSummary(unittest.TestCase):
     def test_summary_contains_key_info(self) -> None:
         judge = JudgeAgent()
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-            ),
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection"),
         ]
         result = judge.judge(findings, context={})
         self.assertIn("JudgeAgent", result.summary)
@@ -526,9 +501,7 @@ class TestVariousJudgeActions(unittest.TestCase):
     def test_reject_action_produced_for_low_confidence(self) -> None:
         judge = JudgeAgent(confidence_threshold=0.95)
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "style", "Long line"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "style", "Long line"),
         ]
         result = judge.judge(findings, context={})
         actions = {d.action for d in result.decisions}
@@ -537,12 +510,8 @@ class TestVariousJudgeActions(unittest.TestCase):
     def test_upgrade_action_produced_for_conflict(self) -> None:
         judge = JudgeAgent(similarity_threshold=0.85)
         findings = [
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "security", "Same issue"
-            ),
-            ReviewFinding(
-                ReviewStage.CODE_QUALITY, "critical", "security", "Same issue"
-            ),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "warning", "security", "Same issue"),
+            ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "Same issue"),
         ]
         result = judge.judge(findings, context={})
         actions = {d.action for d in result.decisions}
@@ -552,24 +521,24 @@ class TestVariousJudgeActions(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "history.json")
             with open(path, "w", encoding="utf-8") as f:
-                json.dump([
-                    {
-                        "record_id": "r1",
-                        "finding_text": "SQL injection vulnerability in login",
-                        "category": "security",
-                        "severity": "critical",
-                        "action": "reject",
-                        "human_override": False,
-                        "timestamp": 1.0,
-                    }
-                ], f)
+                json.dump(
+                    [
+                        {
+                            "record_id": "r1",
+                            "finding_text": "SQL injection vulnerability in login",
+                            "category": "security",
+                            "severity": "critical",
+                            "action": "reject",
+                            "human_override": False,
+                            "timestamp": 1.0,
+                        }
+                    ],
+                    f,
+                )
             judge = JudgeAgent()
             judge.enable_history_learning(path)
             findings = [
-                ReviewFinding(
-                    ReviewStage.CODE_QUALITY, "critical", "security",
-                    "SQL injection vulnerability in login"
-                ),
+                ReviewFinding(ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection vulnerability in login"),
             ]
             result = judge.judge(findings, context={})
             actions = {d.action for d in result.decisions}
@@ -584,19 +553,25 @@ class TestIntegrationWithReviewFinding(unittest.TestCase):
         judge = JudgeAgent()
         findings = [
             ReviewFinding(
-                ReviewStage.SPEC_COMPLIANCE, "critical", "missing_file",
+                ReviewStage.SPEC_COMPLIANCE,
+                "critical",
+                "missing_file",
                 "Planned file not found: src/auth.py",
                 file_path="src/auth.py",
                 suggestion="Create src/auth.py",
             ),
             ReviewFinding(
-                ReviewStage.CODE_QUALITY, "warning", "bare_except",
+                ReviewStage.CODE_QUALITY,
+                "warning",
+                "bare_except",
                 "Bare except clause in src/foo.py",
                 file_path="src/foo.py",
                 suggestion="Catch specific exceptions",
             ),
             ReviewFinding(
-                ReviewStage.CODE_QUALITY, "info", "note",
+                ReviewStage.CODE_QUALITY,
+                "info",
+                "note",
                 "Consider adding docstrings",
             ),
         ]
@@ -613,7 +588,10 @@ class TestIntegrationWithReviewFinding(unittest.TestCase):
         """Accepted findings retain their original attributes."""
         judge = JudgeAgent()
         original = ReviewFinding(
-            ReviewStage.CODE_QUALITY, "critical", "security", "SQL injection",
+            ReviewStage.CODE_QUALITY,
+            "critical",
+            "security",
+            "SQL injection",
             file_path="src/db.py",
             line_range="10-20",
             suggestion="Use parameterized queries",

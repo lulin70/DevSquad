@@ -428,7 +428,7 @@ class TestEdgeCases(unittest.TestCase):
             id="broken",
             severity="warning",
             description="test",
-            detection=lambda ctx: 1 / 0,
+            detection=lambda _ctx: 1 / 0,
         )
         original = gate.RED_FLAGS
         gate.RED_FLAGS = [broken_flag]

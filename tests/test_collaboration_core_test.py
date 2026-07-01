@@ -5,6 +5,7 @@ import pytest
 from scripts.collaboration.consensus import ConsensusEngine
 from scripts.collaboration.coordinator import Coordinator
 from scripts.collaboration.models import (
+    BatchMode,
     DecisionOutcome,
     EntryStatus,
     EntryType,
@@ -123,7 +124,7 @@ class TestScratchpad:
             content="New finding",
             references=[ref],
         )
-        entry_id = self.sp.write(entry)
+        self.sp.write(entry)
         results = self.sp.read()
         assert len(results[0].references) == 1
         assert results[0].references[0].reference_type == ReferenceType.SUPPORTS
@@ -520,3 +521,157 @@ class TestInputValidatorIntegration:
         disp = MultiAgentDispatcher(enable_warmup=False, enable_memory=False, enable_skillify=False)
         result = disp.dispatch("Design a user authentication system")
         assert result.success is True
+
+
+class TestConsensusEngineEdgeCases:
+    """补充 ConsensusEngine 的错误路径与边界条件。"""
+
+    def setup_method(self):
+        self.engine = ConsensusEngine()
+
+    def test_cast_vote_on_closed_proposal_raises(self):
+        proposal = self.engine.create_proposal(topic="T", proposer_id="w1", content="C")
+        self.engine.cast_vote(
+            proposal.proposal_id,
+            Vote(voter_id="w1", voter_role="architect", decision=True),
+        )
+        self.engine.reach_consensus(proposal.proposal_id)
+        with pytest.raises(ValueError):
+            self.engine.cast_vote(
+                proposal.proposal_id,
+                Vote(voter_id="w2", voter_role="architect", decision=True),
+            )
+
+    def test_reach_consensus_with_veto_is_escalated(self):
+        proposal = self.engine.create_proposal(topic="T", proposer_id="w1", content="C")
+        self.engine.cast_vote(
+            proposal.proposal_id,
+            Vote(voter_id="w1", voter_role="architect", decision=True, weight=1.5),
+        )
+        self.engine.cast_vote(
+            proposal.proposal_id,
+            Vote(voter_id="sec-1", voter_role="security", decision=False, weight=-1.0),
+        )
+        record = self.engine.reach_consensus(proposal.proposal_id)
+        assert record.outcome == DecisionOutcome.ESCALATED
+        assert record.escalation_reason is not None
+
+    def test_reach_consensus_with_no_votes_is_timeout(self):
+        proposal = self.engine.create_proposal(topic="T", proposer_id="w1", content="C")
+        record = self.engine.reach_consensus(proposal.proposal_id)
+        assert record.outcome == DecisionOutcome.TIMEOUT
+
+    def test_reach_consensus_split_decision(self):
+        proposal = self.engine.create_proposal(topic="T", proposer_id="w1", content="C")
+        self.engine.cast_vote(
+            proposal.proposal_id,
+            Vote(voter_id="w1", voter_role="architect", decision=True, weight=1.0),
+        )
+        self.engine.cast_vote(
+            proposal.proposal_id,
+            Vote(voter_id="w2", voter_role="coder", decision=True, weight=1.0),
+        )
+        self.engine.cast_vote(
+            proposal.proposal_id,
+            Vote(voter_id="w3", voter_role="tester", decision=False, weight=1.0),
+        )
+        self.engine.cast_vote(
+            proposal.proposal_id,
+            Vote(voter_id="w4", voter_role="pm", decision=False, weight=1.0),
+        )
+        record = self.engine.reach_consensus(proposal.proposal_id)
+        assert record.outcome == DecisionOutcome.SPLIT
+
+    def test_get_record_missing_returns_none(self):
+        assert self.engine.get_record("missing-record-id") is None
+
+    def test_get_all_records_initially_empty(self):
+        assert self.engine.get_all_records() == []
+
+
+class TestCoordinatorEdgeCases:
+    """补充 Coordinator 的错误路径与边界条件。"""
+
+    def test_plan_task_with_empty_roles(self):
+        coord = Coordinator(enable_compression=False)
+        plan = coord.plan_task("task", available_roles=[])
+        assert plan.total_tasks == 0
+        assert plan.estimated_parallelism == 0.0
+
+    def test_spawn_workers_with_empty_plan(self):
+        coord = Coordinator(enable_compression=False)
+        plan = ExecutionPlan(batches=[], total_tasks=0, estimated_parallelism=0.0)
+        workers = coord.spawn_workers(plan)
+        assert workers == []
+        assert coord.workers == {}
+
+    def test_execute_plan_with_empty_plan(self):
+        coord = Coordinator(enable_compression=False)
+        plan = ExecutionPlan(batches=[], total_tasks=0, estimated_parallelism=0.0)
+        result = coord.execute_plan(plan)
+        assert result.success is True
+        assert result.total_tasks == 0
+
+    def test_execute_batch_sequential_worker_exception(self):
+        from scripts.collaboration.models_lifecycle import BatchMode
+
+        coord = Coordinator(enable_compression=False)
+        plan = coord.plan_task("task", available_roles=[{"role_id": "architect"}])
+        coord.spawn_workers(plan)
+
+        class RaisingWorker:
+            worker_id = "forced-worker"
+            role_id = "architect"
+
+            def execute(self, _task):
+                raise RuntimeError("forced failure")
+
+        coord._worker_index["architect"] = RaisingWorker()
+
+        batch = plan.batches[0]
+        batch.mode = BatchMode.SERIAL
+        results, errors = coord._execute_batch(batch)
+        assert any("forced failure" in e for e in errors)
+
+    def test_execute_parallel_zero_concurrency(self):
+        from scripts.collaboration.models_lifecycle import TaskBatch
+
+        coord = Coordinator(enable_compression=False)
+        batch = TaskBatch(
+            mode=BatchMode.PARALLEL,
+            tasks=[TaskDefinition(role_id="architect")],
+            max_concurrency=0,
+        )
+        results = coord._execute_parallel(batch)
+        assert results == []
+
+    def test_compress_context_and_stats_when_disabled(self):
+        coord = Coordinator(enable_compression=False)
+        assert coord.compress_context() is None
+        assert coord.get_compression_stats() is None
+        assert coord.get_session_memory() is None
+
+    def test_collect_results_with_no_workers(self):
+        coord = Coordinator(enable_compression=False)
+        results = coord.collect_results()
+        assert results["workers"] == []
+        assert results["notifications"] == []
+
+    def test_resolve_conflicts_with_no_conflicts(self):
+        coord = Coordinator(enable_compression=False)
+        records = coord.resolve_conflicts()
+        assert records == []
+
+    def test_generate_report_without_execution(self):
+        coord = Coordinator(enable_compression=False)
+        report = coord.generate_report()
+        assert "0.0s" in report
+        assert coord.coordinator_id in report
+
+    def test_preload_rules_without_memory_provider(self):
+        coord = Coordinator(enable_compression=False)
+        assert coord.preload_rules("task") == {}
+
+    def test_get_worker_for_task_missing(self):
+        coord = Coordinator(enable_compression=False)
+        assert coord._get_worker_for_task(TaskDefinition(role_id="missing")) is None

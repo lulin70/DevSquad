@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-2861%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-2857%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -20,13 +20,22 @@
 
 ## 🚀 V3.9.2: 自动 LLM 后端回退 + Dashboard 拆分 + SQLite 审计持久化 + P3 清理
 
-**DevSquad V3.9.2** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 2861+ 测试通过。
+**DevSquad V3.9.2** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 2857+ 测试通过。
 
 ### 🔄 V3.6.6 企业级功能详情
 
 ### 🎯 快速开始（5种使用方式）
 
-#### 1️⃣ 交互式 Web 仪表板（推荐）
+#### 1️⃣ 命令行界面
+```bash
+# 标准 CLI 用法
+python scripts/cli.py lifecycle build
+
+# 增强的可视化输出
+python scripts/cli.py lifecycle build --visual --verbose
+```
+
+#### 2️⃣ 交互式 Web 仪表板（推荐）
 ```bash
 # 启动带认证的 Streamlit 仪表板
 streamlit run scripts/dashboard.py
@@ -35,7 +44,7 @@ streamlit run scripts/dashboard.py
 # 使用 admin / admin123 登录
 ```
 
-#### 2️⃣ REST API 服务器
+#### 3️⃣ REST API 服务器
 ```bash
 # 安装依赖
 pip install fastapi uvicorn
@@ -45,15 +54,6 @@ uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
 
 # 访问 Swagger UI: http://localhost:8000/docs
 # 访问 ReDoc:      http://localhost:8000/redoc
-```
-
-#### 3️⃣ 命令行界面
-```bash
-# 标准 CLI 用法
-python scripts/cli.py lifecycle build
-
-# 增强的可视化输出
-python scripts/cli.py lifecycle build --visual --verbose
 ```
 
 #### 4️⃣ Python API（开发者推荐）
@@ -292,7 +292,7 @@ python scripts/cli.py dispatch -t "测试任务"
 | P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **总计** | **2861+** | **100%** |
+| **总计** | **2857+ (收集 2864)** | **100%** |
 
 ---
 
@@ -372,7 +372,7 @@ python scripts/cli.py lifecycle ship -t "v2.0发布"
 ```
 DevSquad/
 ├── scripts/
-│   ├── collaboration/          # 核心协作模块 (27个)
+│   ├── collaboration/          # 核心协作模块 (149+ 个)
 │   │   ├── dispatcher.py       # 统一调度入口
 │   │   ├── coordinator.py      # 全局编排器
 │   │   ├── worker.py           # Worker执行者
@@ -385,7 +385,7 @@ DevSquad/
 │   ├── cli.py                 # 命令行界面
 │   ├── dashboard.py           # Streamlit仪表板
 │   └── api_server.py          # FastAPI服务器
-├── tests/                     # 测试套件 (2115个)
+├── tests/                     # 测试套件 (2857+ 个)
 ├── docs/                      # 文档
 ├── SKILL.md                   # Skill定义
 ├── CHANGELOG.md              # 变更日志

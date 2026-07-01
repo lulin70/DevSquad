@@ -26,10 +26,7 @@ pytestmark = [
 
 
 def _has_real_key() -> bool:
-    return bool(
-        os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-        or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
-    )
+    return bool(os.environ.get("DEVSQUAD_OPENAI_API_KEY") or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY"))
 
 
 @pytest.mark.skipif(not _has_real_key(), reason="No real LLM API key configured")
@@ -67,7 +64,7 @@ class TestRealLLMAutoMode:
 
     def test_auto_falls_back_to_mock_when_real_backend_is_unavailable(self) -> None:
         """If the real backend is forced unavailable, auto degrades to mock output."""
-        from scripts.collaboration.llm_backend import MockBackend, create_backend
+        from scripts.collaboration.llm_backend import create_backend
 
         backend = create_backend("auto")
         # Force every real backend in the chain to report unavailable.

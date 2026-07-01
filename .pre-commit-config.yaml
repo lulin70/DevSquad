@@ -13,10 +13,8 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
         files: ^(scripts|skills|tests)/.*\.py$
-        exclude: ^tests/manual/
       - id: ruff-format
         files: ^(scripts|skills|tests)/.*\.py$
-        exclude: ^tests/manual/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -39,16 +37,16 @@ repos:
 
   - repo: local
     hooks:
-      # Blocking mypy on collaboration package (matches CI lint job)
-      - id: mypy-collaboration
-        name: mypy (scripts/collaboration/)
+      # Blocking mypy on scripts/ and skills/ (matches CI lint job)
+      - id: mypy
+        name: mypy (scripts/ and skills/)
         entry: mypy
         language: system
         types: [python]
-        files: ^scripts/collaboration/.*\.py$
+        files: ^(scripts|skills)/.*\.py$
         args: [--ignore-missing-imports, --no-error-summary]
         pass_filenames: false
-        # Run on the whole package, not just staged files (cross-file type flow)
+        # Run on the whole packages, not just staged files (cross-file type flow)
         additional_dependencies: []
 
       # Version consistency check (catch version drift before commit)

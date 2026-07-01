@@ -24,6 +24,7 @@ Example:
 
 import os
 import sys
+from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -94,6 +95,17 @@ class IntentSkill(BaseSkill):
 
         mapper = IntentWorkflowMapper()
         result = mapper.detect_intent(text, lang=lang)
+        if result is None:
+            return {
+                "intent": "unknown",
+                "label": "❓ unknown",
+                "confidence": 0.0,
+                "lang": lang,
+                "required_roles": [],
+                "optional_roles": [],
+                "workflow_chain": [],
+                "gates": [],
+            }
         icon = self.INTENT_MAP.get(result.intent_type, "❓")
         return {
             "intent": result.intent_type,
@@ -106,7 +118,7 @@ class IntentSkill(BaseSkill):
             "gates": [],
         }
 
-    def batch_detect(self, texts: list, **kwargs) -> list:
+    def batch_detect(self, texts: list[str], **kwargs: Any) -> list[dict[str, Any]]:
         """Detect intents for multiple texts in batch.
 
         Convenience method for processing multiple inputs at once.
@@ -121,7 +133,7 @@ class IntentSkill(BaseSkill):
         """
         return [self.detect(t, **kwargs) for t in texts]
 
-    def list_intents(self) -> list:
+    def list_intents(self) -> list[dict[str, Any]]:
         """List all supported intent types with descriptions.
 
         Returns metadata about all available intent categories for

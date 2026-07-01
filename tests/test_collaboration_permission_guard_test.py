@@ -140,7 +140,7 @@ def t1_04_decision_outcome():
         reason="test ok",
     )
     assert_true(d.decision_id.startswith("pd-"), "ID format")
-    assert_true(d.requires_confirmation == False, "default no confirm")
+    assert_true(not d.requires_confirmation, "default no confirm")
     assert_true(d.confidence > 0, "confidence positive")
 
 
@@ -171,7 +171,7 @@ test("T1.06 ActionType 9 types", t1_06_action_types_enum)
 
 
 def t1_07_levels_enum():
-    levels = [l.value for l in PermissionLevel]
+    levels = [pl.value for pl in PermissionLevel]
     assert_eq(len(levels), 4)
     assert_in("plan", levels)
     assert_in("bypass", levels)
@@ -389,7 +389,7 @@ test("T3.01 Default 30 rules", t3_01_default_30_rules)
 
 def t3_02_covers_8_types():
     g = PermissionGuard()
-    types = set(r.action_type for r in g.rules)
+    types = {r.action_type for r in g.rules}
     assert_eq(len(types), 8, f"got {len(types)} types")
 
 
@@ -418,8 +418,7 @@ test("T3.04 remove_rule works", t3_04_remove_rule)
 
 def t3_05_remove_affects_check():
     g = PermissionGuard(PermissionLevel.DEFAULT)
-    d1 = g.check(make_action(ActionType.FILE_MODIFY, ".env"))
-    is_prompt_before = d1.outcome == DecisionOutcome.PROMPT
+    g.check(make_action(ActionType.FILE_MODIFY, ".env"))
     g.remove_rule("R009")
     d2 = g.check(make_action(ActionType.FILE_MODIFY, ".env"))
     assert_true(isinstance(d2, PermissionDecision), "still returns decision after remove")
@@ -971,7 +970,7 @@ test("T6.09 set_level API", t6_09_set_level_api)
 def t6_10_remove_nonexistent():
     g = PermissionGuard()
     result = g.remove_rule("NONEXISTENT_RULE_ID")
-    assert_true(result == False, "returns False for nonexistent")
+    assert_true(not result, "returns False for nonexistent")
 
 
 test("T6.10 Remove nonexistent rule", t6_10_remove_nonexistent)
@@ -1116,7 +1115,7 @@ test("IT1.04 Export state", it1_04_export_state)
 def it1_05_multi_level_flow():
     g = PermissionGuard(PermissionLevel.PLAN, audit_log=True)
     g.check(make_action(ActionType.FILE_CREATE, "x.py"))
-    plan_denied = len([e for e in g.get_audit_log() if e.decision and e.decision.outcome == DecisionOutcome.DENIED])
+    len([e for e in g.get_audit_log() if e.decision and e.decision.outcome == DecisionOutcome.DENIED])
     g.set_level(PermissionLevel.DEFAULT)
     g.check(make_action(ActionType.FILE_CREATE, "y.py"))
     g.set_level(PermissionLevel.BYPASS)
@@ -1353,7 +1352,7 @@ test("E2E-5 Five roles with guard", e2e_05_five_roles_with_guard)
 
 def e2e_06_dynamic_hot_update():
     g = PermissionGuard(PermissionLevel.DEFAULT, audit_log=True)
-    d1 = g.check(make_action(ActionType.FILE_CREATE, "test.log"))
+    g.check(make_action(ActionType.FILE_CREATE, "test.log"))
     g.add_rule(PermissionRule("HOTFIX", ActionType.FILE_CREATE, "*.log", PermissionLevel.BYPASS, "hotfix allow logs"))
     d2 = g.check(make_action(ActionType.FILE_CREATE, "test.log"))
     assert_true(isinstance(d2, PermissionDecision), "after hotfix still works")

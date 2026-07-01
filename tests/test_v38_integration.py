@@ -104,9 +104,7 @@ class TestJudgeAgentIntegration:
                 summary="Two warnings found",
             )
 
-            with patch.object(
-                disp.post_dispatch, "_run_two_stage_review", return_value=crafted_review
-            ):
+            with patch.object(disp.post_dispatch, "_run_two_stage_review", return_value=crafted_review):
                 result = disp.dispatch(
                     "Review the database layer for security issues",
                     roles=["solo-coder"],
@@ -156,9 +154,7 @@ class TestContentCacheIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             cache = ContentCache(wrapped=LLMCache(cache_dir=tmpdir + "/cache"))
             backend = _FakeBackend()
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, content_cache=cache, llm_backend=backend
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, content_cache=cache, llm_backend=backend)
 
             assert disp.coordinator.content_cache is cache, "ContentCache not wired to coordinator"
 
@@ -177,9 +173,7 @@ class TestContentCacheIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             cache = ContentCache(wrapped=LLMCache(cache_dir=tmpdir + "/cache"))
             backend = _FakeBackend()
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, content_cache=cache, llm_backend=backend
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, content_cache=cache, llm_backend=backend)
 
             disp.dispatch("Write a hello world function", roles=["solo-coder"])
 
@@ -189,9 +183,7 @@ class TestContentCacheIntegration:
             assert stats["has_wrapped"], "ContentCache should have a wrapped cache"
             # The wrapped LLMCache should have recorded at least one set.
             wrapped_stats = stats.get("wrapped_stats", {})
-            assert wrapped_stats.get("sets", 0) >= 1, (
-                "ContentCache.set() was not called after LLM response"
-            )
+            assert wrapped_stats.get("sets", 0) >= 1, "ContentCache.set() was not called after LLM response"
             disp.shutdown()
 
     def test_content_cache_not_used_when_not_configured(self) -> None:
@@ -215,9 +207,7 @@ class TestMicroTaskPlannerIntegration:
         """When use_micro_tasks=True and a planner is configured, the plan is stored."""
         with tempfile.TemporaryDirectory() as tmpdir:
             planner = MicroTaskPlanner()
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, micro_task_planner=planner
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, micro_task_planner=planner)
 
             result = disp.dispatch(
                 "Write a hello world function. Then write tests for it.",
@@ -225,9 +215,7 @@ class TestMicroTaskPlannerIntegration:
                 use_micro_tasks=True,
             )
 
-            assert result.micro_task_plan is not None, (
-                "micro_task_plan not populated when use_micro_tasks=True"
-            )
+            assert result.micro_task_plan is not None, "micro_task_plan not populated when use_micro_tasks=True"
             assert "micro_tasks" in result.micro_task_plan
             assert len(result.micro_task_plan["micro_tasks"]) >= 1
             assert "total_estimated_minutes" in result.micro_task_plan
@@ -237,9 +225,7 @@ class TestMicroTaskPlannerIntegration:
         """When use_micro_tasks=False (default), no micro-task plan is produced."""
         with tempfile.TemporaryDirectory() as tmpdir:
             planner = MicroTaskPlanner()
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, micro_task_planner=planner
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, micro_task_planner=planner)
 
             result = disp.dispatch(
                 "Write a hello world function",
@@ -268,9 +254,7 @@ class TestMicroTaskPlannerIntegration:
         """Micro-task decomposition uses file specs passed via kwargs."""
         with tempfile.TemporaryDirectory() as tmpdir:
             planner = MicroTaskPlanner()
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, micro_task_planner=planner
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, micro_task_planner=planner)
 
             result = disp.dispatch(
                 "Implement the auth module",
@@ -328,9 +312,7 @@ class TestAllThreeModulesTogether:
                 summary="One warning",
             )
 
-            with patch.object(
-                disp.post_dispatch, "_run_two_stage_review", return_value=crafted_review
-            ):
+            with patch.object(disp.post_dispatch, "_run_two_stage_review", return_value=crafted_review):
                 result = disp.dispatch(
                     "Implement the auth module with login and logout",
                     roles=["solo-coder"],

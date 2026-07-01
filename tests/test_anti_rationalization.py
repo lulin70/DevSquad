@@ -105,7 +105,9 @@ class TestRoleSpecificTables(unittest.TestCase):
         table = self.engine.get_table("architect")
         excuses = [r.excuse.lower() for r in table]
         matching = [e for e in excuses if "architecture" in e or "good enough" in e or "optimize" in e]
-        self.assertGreater(len(matching), 0, f"Architect table should have architecture-specific entries, got: {excuses}")
+        self.assertGreater(
+            len(matching), 0, f"Architect table should have architecture-specific entries, got: {excuses}"
+        )
 
     def test_security_has_security_specific_entries(self):
         table = self.engine.get_table("security")

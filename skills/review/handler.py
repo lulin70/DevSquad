@@ -61,7 +61,7 @@ class ReviewSkill(BaseSkill):
         },
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._engine: FiveAxisConsensusEngine | None = None
 
     def _get_engine(self, strict_mode: bool = False) -> FiveAxisConsensusEngine:
@@ -234,7 +234,7 @@ class ReviewSkill(BaseSkill):
         """
         return self.AXES_INFO
 
-    def run(self, *args, **kwargs):
+    def run(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """
         Main entry point for the skill.
 
@@ -276,7 +276,7 @@ class ReviewSkill(BaseSkill):
         total_lines = len(lines)
         non_empty = [line for line in lines if line.strip()]
 
-        scores = {
+        scores: dict[str, dict[str, Any]] = {
             "correctness": {"score": 0.85, "confidence": 0.8, "comment": "Basic structure looks valid"},
             "readability": {"score": 0.75, "confidence": 0.7, "comment": "Moderate readability"},
             "architecture": {"score": 0.80, "confidence": 0.6, "comment": "Reasonable structure"},

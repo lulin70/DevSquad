@@ -369,7 +369,7 @@ def t4_02_session_memory_extracts_all():
         make_msg("最新消息B"),
         make_msg("最新消息C"),
     ]
-    result = c.check_and_compress(msgs, force_level=CompressionLevel.SESSION_MEMORY)
+    c.check_and_compress(msgs, force_level=CompressionLevel.SESSION_MEMORY)
     memory = c.get_session_memory()
     assert_true(len(memory) >= 2, "Should extract memory entries from all messages")
 

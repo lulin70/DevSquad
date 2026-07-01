@@ -17,12 +17,10 @@ Usage:
     pytest tests/test_api_server_v362.py -v --cov=scripts/api_server --cov-report=term-missing
 """
 
-import json
 import os
 import sys
-import tempfile
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -45,6 +43,7 @@ def client(monkeypatch):
     monkeypatch.setenv("DEVSQUAD_RATE_LIMIT_DISABLED", "1")
     # Reset the rate limiter singleton so a fresh one (with disabled flag) is built
     from scripts.api.rate_limit import reset_rate_limiter
+
     reset_rate_limiter()
     return TestClient(app)
 
@@ -539,9 +538,9 @@ class TestMiddlewareAndExceptionHandling:
 class TestAuthenticationIntegration:
     """Test suite for authentication dependency injection."""
 
-    def test_auth_manager_dependency_exists(self, client):
+    def test_auth_manager_dependency_exists(self, client):  # noqa: ARG002
         """Verify auth dependency injection is configured."""
-        from scripts.api_server import get_auth_manager, get_auth_dependency
+        from scripts.api_server import get_auth_dependency, get_auth_manager
 
         assert callable(get_auth_manager)
         assert callable(get_auth_dependency)
@@ -632,7 +631,9 @@ class TestResponseFormatValidation:
             mock_dispatcher.dispatch.return_value = mock_result
             mock_disp.return_value = mock_dispatcher
 
-            response = client.post("/api/v1/tasks/dispatch", json={"task": "Test task for response structure validation"})
+            response = client.post(
+                "/api/v1/tasks/dispatch", json={"task": "Test task for response structure validation"}
+            )
             data = response.json()
 
             required_fields = [

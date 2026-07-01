@@ -150,10 +150,10 @@ def test_cache_provider_structural_typing():
 
     # 创建一个简单的类，实现 CacheProvider 接口
     class SimpleCacheProvider:
-        def get(self, prompt: str, backend: str, model: str) -> str | None:
+        def get(self, _prompt: str, _backend: str, _model: str) -> str | None:
             return None
 
-        def set(self, prompt: str, response: str, backend: str, model: str, ttl: int | None = None) -> None:
+        def set(self, _prompt: str, _response: str, _backend: str, _model: str, _ttl: int | None = None) -> None:
             pass
 
         def clear(self) -> None:
@@ -172,7 +172,7 @@ def test_cache_provider_structural_typing():
     assert cache.get("test", "openai", "gpt-4") is None
     cache.set("test", "response", "openai", "gpt-4")
     cache.clear()
-    assert cache.is_available() == True
+    assert cache.is_available()
     assert cache.get_stats() == {}
 
 
@@ -214,7 +214,7 @@ def test_monitor_provider_structural_typing():
     monitor.record_llm_call("openai", "gpt-4", 1.5, 1000, True)
     monitor.record_agent_execution("Architect", "Design API", 3.0, True)
     monitor.generate_report("/tmp/report.md")
-    assert monitor.is_available() == True
+    assert monitor.is_available()
     assert monitor.get_stats() == {}
 
 

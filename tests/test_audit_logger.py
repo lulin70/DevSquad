@@ -3,17 +3,13 @@
 import os
 import tempfile
 
-import pytest
-
 from scripts.collaboration.audit_logger import AuditLogger, AuditRecord, SensitiveDataMasker
 
 
 class TestAuditLogger:
     def setup_method(self):
         self.tmpdir = tempfile.mkdtemp()
-        self.logger = AuditLogger(
-            log_dir=self.tmpdir, format="csv", enable_hash_chain=True
-        )
+        self.logger = AuditLogger(log_dir=self.tmpdir, format="csv", enable_hash_chain=True)
 
     def test_log_creates_record(self):
         record = self.logger.log(
@@ -65,34 +61,22 @@ class TestAuditLogger:
         assert record.result == "denied"
 
     def test_query_returns_records(self):
-        self.logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
-        self.logger.log(
-            user_id="user2", action="action2", resource_type="Task", resource_id="2"
-        )
+        self.logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
+        self.logger.log(user_id="user2", action="action2", resource_type="Task", resource_id="2")
         results = self.logger.query(user_id="user1")
         assert len(results) >= 1
         assert all(r.user_id == "user1" for r in results)
 
     def test_query_by_action(self):
-        self.logger.log(
-            user_id="user1", action="task:create", resource_type="Task", resource_id="1"
-        )
-        self.logger.log(
-            user_id="user1", action="task:delete", resource_type="Task", resource_id="2"
-        )
+        self.logger.log(user_id="user1", action="task:create", resource_type="Task", resource_id="1")
+        self.logger.log(user_id="user1", action="task:delete", resource_type="Task", resource_id="2")
         results = self.logger.query(action="task:create")
         assert len(results) >= 1
         assert all("task:create" in r.action for r in results)
 
     def test_query_by_resource_type(self):
-        self.logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
-        self.logger.log(
-            user_id="user1", action="action2", resource_type="User", resource_id="2"
-        )
+        self.logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
+        self.logger.log(user_id="user1", action="action2", resource_type="User", resource_id="2")
         results = self.logger.query(resource_type="Task")
         assert len(results) >= 1
         assert all(r.resource_type == "Task" for r in results)
@@ -128,39 +112,27 @@ class TestAuditLogger:
         assert len(results) == 3
 
     def test_verify_integrity(self):
-        self.logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
+        self.logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
         result = self.logger.verify_integrity()
         assert result["valid"] is True
 
     def test_verify_integrity_no_hash_chain(self):
-        logger = AuditLogger(
-            log_dir=tempfile.mkdtemp(), format="csv", enable_hash_chain=False
-        )
-        logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
+        logger = AuditLogger(log_dir=tempfile.mkdtemp(), format="csv", enable_hash_chain=False)
+        logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
         result = logger.verify_integrity()
         assert result["valid"] is True
         assert "note" in result
 
     def test_force_flush(self):
-        self.logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
+        self.logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
         self.logger.force_flush()
         # Verify file was written
-        log_files = list(
-            os.path.isdir(self.tmpdir) and os.listdir(self.tmpdir) or []
-        )
+        log_files = list(os.path.isdir(self.tmpdir) and os.listdir(self.tmpdir) or [])
         csv_files = [f for f in log_files if f.endswith(".csv")]
         assert len(csv_files) > 0
 
     def test_export_csv(self):
-        self.logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
+        self.logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
         self.logger.force_flush()
         export_path = os.path.join(self.tmpdir, "export.csv")
         count = self.logger.export(export_path, format="csv")
@@ -168,9 +140,7 @@ class TestAuditLogger:
         assert os.path.exists(export_path)
 
     def test_export_json(self):
-        self.logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
+        self.logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
         self.logger.force_flush()
         export_path = os.path.join(self.tmpdir, "export.json")
         count = self.logger.export(export_path, format="json")
@@ -178,9 +148,7 @@ class TestAuditLogger:
         assert os.path.exists(export_path)
 
     def test_get_stats(self):
-        self.logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
+        self.logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
         stats = self.logger.get_stats()
         assert "buffer_size" in stats
         assert "records_today" in stats
@@ -189,18 +157,15 @@ class TestAuditLogger:
         assert stats["hash_chain_enabled"] is True
 
     def test_json_format_logger(self):
-        json_logger = AuditLogger(
-            log_dir=tempfile.mkdtemp(), format="json", enable_hash_chain=True
-        )
-        record = json_logger.log(
-            user_id="user1", action="action1", resource_type="Task", resource_id="1"
-        )
+        json_logger = AuditLogger(log_dir=tempfile.mkdtemp(), format="json", enable_hash_chain=True)
+        record = json_logger.log(user_id="user1", action="action1", resource_type="Task", resource_id="1")
         assert record is not None
         assert record.hash_signature is not None
         assert len(record.hash_signature) > 0
         json_logger.force_flush()
         # Verify file was created
         import os
+
         json_files = [f for f in os.listdir(json_logger.log_dir) if f.endswith(".json")]
         assert len(json_files) > 0
 

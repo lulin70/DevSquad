@@ -10,9 +10,11 @@ RUN pip install --no-cache-dir --prefix=/install .[all]
 # ============ Stage 2: Production Runtime ============
 FROM python:3.12-slim AS runtime
 
+ARG VERSION=3.9.2
+
 LABEL maintainer="DevSquad Team"
-LABEL description="DevSquad V3.9.2 - Multi-Role AI Task Orchestrator"
-LABEL version="3.9.2"
+LABEL description="DevSquad V${VERSION} - Multi-Role AI Task Orchestrator"
+LABEL version="${VERSION}"
 LABEL org.opencontainers.image.source="https://github.com/lulin70/DevSquad"
 
 WORKDIR /app

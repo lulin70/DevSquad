@@ -1,13 +1,11 @@
 """Tests for UETestFramework module."""
 
-import pytest
-
 from scripts.collaboration.ue_test_framework import (
+    WCAG_AA_CHECKS,
     JourneyStep,
     UETestFramework,
     UserJourney,
     UserPersona,
-    WCAG_AA_CHECKS,
 )
 
 
@@ -17,8 +15,10 @@ class TestDefinePersona:
     def test_creates_persona_with_all_fields(self):
         fw = UETestFramework()
         persona = fw.define_persona(
-            "first-time-user", "beginner",
-            ["Complete registration"], ["Cannot find button"],
+            "first-time-user",
+            "beginner",
+            ["Complete registration"],
+            ["Cannot find button"],
         )
         assert isinstance(persona, UserPersona)
         assert persona.name == "first-time-user"
@@ -416,8 +416,12 @@ class TestCognitiveLoadAssessment:
         persona = fw.define_persona("u", "beginner", [], [])
         # Each frustration_trigger adds to decision count
         steps = [
-            JourneyStep("Complex action", "Done", "Retry",
-                        frustration_triggers=["confusing", "overwhelming", "ambiguous", "hidden", "slow", "stuck", "error"]),
+            JourneyStep(
+                "Complex action",
+                "Done",
+                "Retry",
+                frustration_triggers=["confusing", "overwhelming", "ambiguous", "hidden", "slow", "stuck", "error"],
+            ),
         ]
         fw.define_journey("complex", persona, steps)
         result = fw._assess_cognitive_load()
@@ -428,8 +432,7 @@ class TestCognitiveLoadAssessment:
         fw = UETestFramework()
         persona = fw.define_persona("u", "beginner", [], [])
         steps = [
-            JourneyStep("Action", "Done", "Retry",
-                        frustration_triggers=[f"trigger_{i}" for i in range(20)]),
+            JourneyStep("Action", "Done", "Retry", frustration_triggers=[f"trigger_{i}" for i in range(20)]),
         ]
         fw.define_journey("overload", persona, steps)
         result = fw._assess_cognitive_load()

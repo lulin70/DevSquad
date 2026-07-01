@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-TestQualityGuard - 测试质量守卫
+"""TestQualityGuard - 测试质量守卫
 
 解决 AI 测试的三大顽疾：
   1) 不看 API 文档凭空写 → API 签名校验
@@ -21,6 +20,12 @@ TestQualityGuard - 测试质量守卫
                               test_path="scripts/collaboration/coordinator_test.py")
     report = guard.audit()
     print(report.to_markdown())
+
+注意:
+- ``project_audit`` / ``quick_audit`` / ``validate_call_against_signature`` 是
+  internal utility，当前未接入 dispatch pipeline，仅供测试文件与外部审计脚本使用。
+- 生产入口为 ``TestQualityGuard.audit()`` 与 ``dispatch_component_factory`` 中的
+  ``quality_guard`` 组件。
 """
 
 import ast
@@ -333,6 +338,9 @@ class APISignatureValidator:
         self, call_name: str, call_kwargs: set[str], signatures: list[APISignature]
     ) -> list[QualityIssue]:
         """Validate that keyword arguments used in a call match the API signature.
+
+        Internal utility: used by tests and external audit scripts; not wired into
+        the dispatch pipeline. See module docstring for production entry points.
 
         Args:
             call_name: Name of the function/method being called.
@@ -789,12 +797,20 @@ TestQualityGuard.__test__ = False  # type: ignore[attr-defined]  # Tell pytest t
 
 
 def quick_audit(module_path: str, test_path: str) -> TestQualityReport:
-    """便捷函数：单文件审计"""
+    """便捷函数：单文件审计。
+
+    Internal utility: not wired into the dispatch pipeline. Use ``TestQualityGuard.audit()``
+    for production-quality checks.
+    """
     return TestQualityGuard(module_path, test_path).audit()
 
 
 def project_audit(project_root: str) -> str:
-    """便捷函数：项目级审计，返回 Markdown 报告"""
+    """便捷函数：项目级审计，返回 Markdown 报告。
+
+    Internal utility: not wired into the dispatch pipeline. Suitable for ad-hoc
+    external audits and test verification.
+    """
     guard = TestQualityGuard("", "")
     reports = guard.audit_project(project_root)
     lines = ["# 项目级测试质量审计报告\n"]

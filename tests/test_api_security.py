@@ -45,11 +45,13 @@ def dev_client(monkeypatch):
     monkeypatch.setenv("DEVSQUAD_API_AUTH_DISABLED", "1")
     # Clear cached singletons in security module
     import scripts.api.security as sec
+
     sec._api_key_store = None
     sec._rbac_engine = None
     sec._audit_logger = None
 
     from scripts.api_server import app
+
     return TestClient(app)
 
 
@@ -70,6 +72,7 @@ def secure_client(monkeypatch, tmp_path):
 
     # Create a temporary config file
     import yaml
+
     config = {
         "api_security": {
             "enabled": True,
@@ -114,6 +117,7 @@ def secure_client(monkeypatch, tmp_path):
     # Also patch _load_api_keys_into_rbac to use our config
     def patched_load_rbac(engine):
         from scripts.collaboration.rbac_engine import RBACUser, UserRole
+
         user = RBACUser(
             user_id="admin@test.com",
             username="admin",
@@ -130,6 +134,7 @@ def secure_client(monkeypatch, tmp_path):
     sec._audit_logger = None
 
     from scripts.api_server import app
+
     client = TestClient(app)
 
     # Attach the test key for convenience
@@ -155,6 +160,7 @@ def viewer_client(monkeypatch, tmp_path):
     test_key_hash = hashlib.sha256(test_api_key.encode()).hexdigest()
 
     import yaml
+
     config = {
         "api_security": {
             "enabled": True,
@@ -194,6 +200,7 @@ def viewer_client(monkeypatch, tmp_path):
 
     def patched_load_rbac(engine):
         from scripts.collaboration.rbac_engine import RBACUser, UserRole
+
         user = RBACUser(
             user_id="viewer@test.com",
             username="viewer",
@@ -209,6 +216,7 @@ def viewer_client(monkeypatch, tmp_path):
     sec._audit_logger = None
 
     from scripts.api_server import app
+
     client = TestClient(app)
     client.test_api_key = test_api_key  # type: ignore[attr-defined]
     client.test_user_id = "viewer@test.com"  # type: ignore[attr-defined]
@@ -459,8 +467,10 @@ class TestAuditLogging:
 
     def test_dispatch_calls_audit_log(self, dev_client):
         """POST /tasks/dispatch should call audit_log on success."""
-        with patch("scripts.api.routes.dispatch._get_dispatcher") as mock_disp, \
-             patch("scripts.api.routes.dispatch.audit_log") as mock_audit:
+        with (
+            patch("scripts.api.routes.dispatch._get_dispatcher") as mock_disp,
+            patch("scripts.api.routes.dispatch.audit_log") as mock_audit,
+        ):
             mock_result = MagicMock()
             mock_result.success = True
             mock_result.task_description = "audit test task"
@@ -492,13 +502,14 @@ class TestAuditLogging:
             mock_audit.assert_called()
             # Verify the action was logged
             call_args = mock_audit.call_args
-            assert call_args.kwargs.get("action") == "task:dispatch" or \
-                   "task:dispatch" in str(call_args)
+            assert call_args.kwargs.get("action") == "task:dispatch" or "task:dispatch" in str(call_args)
 
     def test_phase_action_calls_audit_log(self, dev_client):
         """POST /lifecycle/actions should call audit_log."""
-        with patch("scripts.api.routes.lifecycle.audit_log") as mock_audit, \
-             patch("scripts.collaboration.lifecycle_protocol.get_shared_protocol") as mock_proto:
+        with (
+            patch("scripts.api.routes.lifecycle.audit_log") as mock_audit,
+            patch("scripts.collaboration.lifecycle_protocol.get_shared_protocol") as mock_proto,
+        ):
             mock_protocol = MagicMock()
             mock_status = MagicMock()
             mock_status.completed_phases = []
@@ -526,6 +537,7 @@ class TestSecurityInfrastructure:
     def test_api_key_store_verify_valid_key(self, tmp_path):
         """APIKeyStore.verify should return user_id for valid key."""
         import yaml
+
         import scripts.api.security as sec
 
         test_key = "unit-test-key-abc"
@@ -534,12 +546,14 @@ class TestSecurityInfrastructure:
         config = {
             "api_security": {
                 "enabled": True,
-                "api_keys": [{
-                    "key_hash": f"sha256:{key_hash}",
-                    "user_id": "unit@test.com",
-                    "roles": ["ADMIN"],
-                    "active": True,
-                }],
+                "api_keys": [
+                    {
+                        "key_hash": f"sha256:{key_hash}",
+                        "user_id": "unit@test.com",
+                        "roles": ["ADMIN"],
+                        "active": True,
+                    }
+                ],
             }
         }
         config_path = tmp_path / "deployment.yaml"
@@ -674,3 +688,104 @@ class TestEndpointPermissionMapping:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code != 403
+
+
+# ---------------------------------------------------------------------------
+# 9. Production environment hardening tests
+# ---------------------------------------------------------------------------
+
+
+class TestProductionEnvironmentHardening:
+    """Tests for code-layer production security enforcement."""
+
+    def test_merge_environment_overrides_production_forces_api_security_enabled(self, monkeypatch):
+        """Production override must force api_security.enabled=True."""
+        import scripts.api.security as sec
+
+        monkeypatch.setenv("DEVSQUAD_ENV", "production")
+        config = {
+            "api_security": {"enabled": False, "api_keys": []},
+            "environments": {"production": {"api_security": {"enabled": True}}},
+        }
+        merged = sec._merge_environment_overrides(config)
+        assert merged["api_security"]["enabled"] is True
+
+    def test_merge_environment_overrides_dev_merges_sections(self, monkeypatch):
+        """Development environment overrides should be merged."""
+        import scripts.api.security as sec
+
+        monkeypatch.setenv("DEVSQUAD_ENV", "development")
+        config = {
+            "authentication": {"enabled": True},
+            "server": {"port": 443},
+            "environments": {
+                "development": {
+                    "authentication": {"enabled": False},
+                    "server": {"port": 8501},
+                }
+            },
+        }
+        merged = sec._merge_environment_overrides(config)
+        assert merged["authentication"]["enabled"] is False
+        assert merged["server"]["port"] == 8501
+
+    def test_auth_disabled_bypass_ignored_in_production(self, monkeypatch):
+        """DEVSQUAD_API_AUTH_DISABLED must be ignored in production."""
+        import scripts.api.security as sec
+
+        monkeypatch.setenv("DEVSQUAD_ENV", "production")
+        monkeypatch.setenv("DEVSQUAD_API_AUTH_DISABLED", "1")
+        assert sec._is_auth_disabled() is False
+
+    def test_api_key_verify_uses_hmac_compare_digest(self, monkeypatch, tmp_path):
+        """APIKeyStore.verify must use hmac.compare_digest."""
+        import hmac
+        import yaml
+
+        import scripts.api.security as sec
+
+        test_key = "hmac-test-key-xyz"
+        key_hash = hashlib.sha256(test_key.encode()).hexdigest()
+
+        config = {
+            "api_security": {
+                "enabled": True,
+                "api_keys": [
+                    {
+                        "key_hash": f"sha256:{key_hash}",
+                        "user_id": "hmac@test.com",
+                        "roles": ["VIEWER"],
+                        "active": True,
+                    }
+                ],
+            }
+        }
+        config_path = tmp_path / "deployment.yaml"
+        with open(config_path, "w") as f:
+            yaml.dump(config, f)
+
+        def patched_load(self):
+            with open(config_path) as f:
+                cfg = yaml.safe_load(f) or {}
+            cfg = sec._merge_environment_overrides(cfg)
+            for entry in cfg.get("api_security", {}).get("api_keys", []):
+                kh = entry.get("key_hash", "").removeprefix("sha256:")
+                self._key_to_user[kh] = entry.get("user_id", "")
+
+        original = sec.APIKeyStore._load_config
+        sec.APIKeyStore._load_config = patched_load
+        try:
+            store = sec.APIKeyStore()
+            with monkeypatch.context() as m:
+                compare_calls = []
+
+                def wrapped_compare(a, b):
+                    compare_calls.append((a, b))
+                    return hmac.compare_digest(a, b)
+
+                m.setattr(sec, "hmac", type("HmacMock", (), {"compare_digest": wrapped_compare}))
+                assert store.verify(test_key) == "hmac@test.com"
+                assert store.verify("wrong-key") is None
+                assert any(isinstance(a, str) and isinstance(b, str) for a, b in compare_calls)
+        finally:
+            sec.APIKeyStore._load_config = original

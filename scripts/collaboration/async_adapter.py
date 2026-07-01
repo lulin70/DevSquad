@@ -105,7 +105,7 @@ class AsyncToSyncAdapter(LLMBackend):
                 return loop.run_until_complete(_run())  # type: ignore[no-any-return]
         finally:
             if not loop.is_running():
-                pass
+                pass  # intentional no-op: loop cleanup handled by caller
 
     def is_available(self) -> bool:
         """Check availability synchronously."""
@@ -129,7 +129,7 @@ class AsyncToSyncAdapter(LLMBackend):
                 return loop.run_until_complete(_check())  # type: ignore[no-any-return]
         finally:
             if not loop.is_running():
-                pass
+                pass  # intentional no-op: loop cleanup handled by caller
 
 
 class SyncToAsyncAdapter(AsyncLLMBackendInterface):

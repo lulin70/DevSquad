@@ -5,7 +5,6 @@ import pytest
 from scripts.collaboration.multi_tenant import (
     IsolationLevel,
     MultiTenantManager,
-    QuotaExceededError,
     QuotaManager,
     Tenant,
     TenantContext,
@@ -42,16 +41,12 @@ class TestTenant:
         assert tenant.quota_limits["tasks"] == 100
 
     def test_check_quota_within_limit(self):
-        tenant = Tenant(
-            tenant_id="t1", name="Test", quota_limits={"tasks": 100}
-        )
+        tenant = Tenant(tenant_id="t1", name="Test", quota_limits={"tasks": 100})
         assert tenant.check_quota("tasks", 50) is True
         assert tenant.check_quota("tasks", 100) is True
 
     def test_check_quota_exceeds_limit(self):
-        tenant = Tenant(
-            tenant_id="t1", name="Test", quota_limits={"tasks": 100}
-        )
+        tenant = Tenant(tenant_id="t1", name="Test", quota_limits={"tasks": 100})
         assert tenant.check_quota("tasks", 101) is False
 
     def test_check_quota_no_limit_configured(self):
@@ -149,9 +144,7 @@ class TestQuotaManager:
 
 class TestMultiTenantManager:
     def setup_method(self):
-        self.mtm = MultiTenantManager(
-            default_isolation=IsolationLevel.SHARED_DATABASE
-        )
+        self.mtm = MultiTenantManager(default_isolation=IsolationLevel.SHARED_DATABASE)
 
     def test_create_tenant(self):
         tenant = Tenant(tenant_id="t1", name="Test Tenant")
@@ -210,9 +203,7 @@ class TestMultiTenantManager:
             assert result is True  # No limit configured
 
     def test_check_quota_with_limit(self):
-        tenant = Tenant(
-            tenant_id="t1", name="Test Tenant", quota_limits={"tasks": 3}
-        )
+        tenant = Tenant(tenant_id="t1", name="Test Tenant", quota_limits={"tasks": 3})
         self.mtm.create_tenant(tenant)
         with self.mtm.context("t1", "user1"):
             assert self.mtm.check_quota("tasks") is True

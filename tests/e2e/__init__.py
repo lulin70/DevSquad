@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 DevSquad V3.7.0 E2E (End-to-End) Test Suite
 
@@ -42,38 +41,41 @@ python -m pytest tests/e2e/ -v --html=e2e_report.html
 3. Mock LLM 后端可用（无需真实 API Key）
 """
 
-import pytest
+import json
+import os
+import shutil
 import subprocess
 import sys
-import os
-import json
-import time
 import tempfile
-import shutil
-from pathlib import Path
-from typing import Dict, List, Optional, Any
+import time
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import pytest
 
 # ============================================================================
 # E2E Test Infrastructure
 # ============================================================================
 
+
 @dataclass
 class E2ETestResult:
     """E2E test result with detailed metrics"""
+
     scenario: str
     passed: bool
     duration_ms: float
     steps_executed: int
     steps_total: int
-    error_message: Optional[str] = None
-    metrics: Optional[Dict[str, Any]] = None
+    error_message: str | None = None
+    metrics: dict[str, Any] | None = None
 
 
 class E2ETestRunner:
     """
     E2E Test Runner - Simulates real user interactions
-    
+
     Features:
     - CLI command execution
     - API server interaction
@@ -82,50 +84,46 @@ class E2ETestRunner:
     - Result collection and reporting
     """
 
-    def __init__(self, project_root: Optional[str] = None):
+    def __init__(self, project_root: str | None = None):
         self.project_root = Path(project_root or Path(__file__).parent.parent.parent)
-        self.results: List[E2ETestResult] = []
-        self.temp_dirs: List[Path] = []
+        self.results: list[E2ETestResult] = []
+        self.temp_dirs: list[Path] = []
         self.start_time: float = 0
-        self.test_env: Optional[Dict[str, str]] = None
+        self.test_env: dict[str, str] | None = None
 
-    def setup_test_environment(self) -> Dict[str, str]:
+    def setup_test_environment(self) -> dict[str, str]:
         """Setup isolated test environment"""
         env = os.environ.copy()
-        
+
         # Ensure we're using project's Python
         env["PYTHONPATH"] = str(self.project_root)
         env["PYTHONUNBUFFERED"] = "1"
         env["DEVSQUAD_LLM_BACKEND"] = "mock"  # Use mock for E2E tests
         env["DEVSQUAD_LOG_LEVEL"] = "DEBUG"
-        
+
         # Disable color output for parsing
         env["NO_COLOR"] = "1"
         env["TERM"] = "dumb"
-        
+
         self.test_env = env
         return env
 
     def run_cli_command(
-        self,
-        args: List[str],
-        timeout: int = 30,
-        expect_success: bool = True,
-        working_dir: Optional[str] = None
+        self, args: list[str], timeout: int = 30, expect_success: bool = True, working_dir: str | None = None
     ) -> subprocess.CompletedProcess:
         """Run a CLI command and return result"""
         cli_script = self.project_root / "scripts" / "cli.py"
         cmd = [sys.executable, str(cli_script)] + args
-        
+
         result = subprocess.run(
             cmd,
             cwd=working_dir or str(self.project_root),
             capture_output=True,
             text=True,
             timeout=timeout,
-            env=self.test_env or self.setup_test_environment()
+            env=self.test_env or self.setup_test_environment(),
         )
-        
+
         if expect_success and result.returncode != 0:
             raise AssertionError(
                 f"CLI command failed: {' '.join(args)}\n"
@@ -133,14 +131,10 @@ class E2ETestRunner:
                 f"STDOUT:\n{result.stdout}\n"
                 f"STDERR:\n{result.stderr}"
             )
-        
+
         return result
 
-    def run_python_script(
-        self,
-        script: str,
-        timeout: int = 30
-    ) -> subprocess.CompletedProcess:
+    def run_python_script(self, script: str, timeout: int = 30) -> subprocess.CompletedProcess:
         """Run a Python script in project context"""
         result = subprocess.run(
             [sys.executable, "-c", script],
@@ -148,7 +142,7 @@ class E2ETestRunner:
             capture_output=True,
             text=True,
             timeout=timeout,
-            env=self.test_env or self.setup_test_environment()
+            env=self.test_env or self.setup_test_environment(),
         )
         return result
 
@@ -176,6 +170,7 @@ class E2ETestRunner:
 # E2E Test Fixtures
 # ============================================================================
 
+
 @pytest.fixture(scope="session")
 def e2e_runner():
     """Create E2E test runner for entire session"""
@@ -196,13 +191,11 @@ def temp_project_dir(e2e_runner: E2ETestRunner):
 # Utility Functions
 # ============================================================================
 
+
 def assert_output_contains(output: str, *expected_strings: str):
     """Assert that output contains all expected strings"""
     for expected in expected_strings:
-        assert expected in output, (
-            f"Expected to find '{expected}' in output.\n"
-            f"Actual output:\n{output[:500]}..."
-        )
+        assert expected in output, f"Expected to find '{expected}' in output.\nActual output:\n{output[:500]}..."
 
 
 def assert_json_output_valid(output: str):
@@ -212,30 +205,27 @@ def assert_json_output_valid(output: str):
         assert isinstance(data, dict), "Output should be a JSON object"
         return data
     except json.JSONDecodeError as e:
-        raise AssertionError(f"Output is not valid JSON: {e}\nOutput:\n{output[:200]}")
+        raise AssertionError(f"Output is not valid JSON: {e}\nOutput:\n{output[:200]}") from e
 
 
-def measure_performance(operation, *args, **kwargs) -> Dict[str, Any]:
+def measure_performance(operation, *args, **kwargs) -> dict[str, Any]:
     """Measure performance of an operation"""
     start = time.time()
     result = operation(*args, **kwargs)
     duration_ms = (time.time() - start) * 1000
-    
-    return {
-        "duration_ms": round(duration_ms, 2),
-        "success": result is not None,
-        "result": result
-    }
+
+    return {"duration_ms": round(duration_ms, 2), "success": result is not None, "result": result}
 
 
 # ============================================================================
 # Scenario 1: CLI Complete Workflow
 # ============================================================================
 
+
 class TestE2ECliWorkflow:
     """
     E2E Test: Complete CLI User Journey
-    
+
     Simulates first-time user experience:
     1. Check version
     2. Quick init
@@ -257,10 +247,7 @@ class TestE2ECliWorkflow:
         result = e2e_runner.run_cli_command(["--help"])
         assert "usage" in result.stdout.lower() or "devsquad" in result.stdout.lower()
         # Check key subcommands are documented
-        assert_output_contains(
-            result.stdout.lower(),
-            "dispatch", "demo", "status", "roles"
-        )
+        assert_output_contains(result.stdout.lower(), "dispatch", "demo", "status", "roles")
         print("✅ Help command passed")
 
     def test_cli_quick_init(self, e2e_runner: E2ETestRunner, temp_project_dir: Path):
@@ -268,9 +255,9 @@ class TestE2ECliWorkflow:
         result = e2e_runner.run_cli_command(
             ["init"],
             working_dir=str(temp_project_dir),
-            expect_success=False  # Init may not create .env in all cases
+            expect_success=False,  # Init may not create .env in all cases
         )
-        
+
         # Check if init command ran successfully (exit code 0 or shows help)
         assert result.returncode == 0 or "usage" in result.stderr.lower() or "help" in result.stdout.lower()
         print("✅ Quick init passed (command recognized)")
@@ -280,37 +267,44 @@ class TestE2ECliWorkflow:
         start = time.time()
         result = e2e_runner.run_cli_command(
             ["demo"],
-            timeout=60  # Demo may take longer
+            timeout=60,  # Demo may take longer
         )
         duration = (time.time() - start) * 1000
-        
+
         # Demo should complete without errors
         assert result.returncode == 0, f"Demo failed:\n{result.stderr[:500]}"
-        
+
         # Should show some output about roles/tasks
         assert len(result.stdout) > 100, "Demo output too short"
-        
+
         print(f"✅ Demo execution passed ({duration:.0f}ms)")
 
     def test_cli_dispatch_simple_task(self, e2e_runner: E2ETestRunner):
         """Step 4: Simple task dispatch works"""
-        result = e2e_runner.run_cli_command([
-            "dispatch",
-            "-t", "Build a REST API with Python and FastAPI",
-            "--roles", "architect", "coder", "test",  # Space-separated roles
-            "--mode", "parallel",
-            "--dry-run"  # Don't actually call LLM
-        ])
-        
+        result = e2e_runner.run_cli_command(
+            [
+                "dispatch",
+                "-t",
+                "Build a REST API with Python and FastAPI",
+                "--roles",
+                "architect",
+                "coder",
+                "test",  # Space-separated roles
+                "--mode",
+                "parallel",
+                "--dry-run",  # Don't actually call LLM
+            ]
+        )
+
         assert result.returncode == 0, f"Dispatch failed:\n{result.stderr[:500]}"
-        
+
         # Dispatch should complete (output format may vary)
         print(f"✅ Task dispatch passed (exit code: {result.returncode})")
 
     def test_cli_status_check(self, e2e_runner: E2ETestRunner):
         """Step 5: Status command shows system state"""
         result = e2e_runner.run_cli_command(["status"])
-        
+
         assert result.returncode == 0
         # Should show version and basic stats
         assert "devsquad" in result.stdout.lower() or "version" in result.stdout.lower()
@@ -319,16 +313,15 @@ class TestE2ECliWorkflow:
     def test_cli_roles_info(self, e2e_runner: E2ETestRunner):
         """Step 6: Roles command lists all available roles"""
         result = e2e_runner.run_cli_command(["roles"])
-        
+
         assert result.returncode == 0
         # Should list core roles (check for actual role names from CLI)
-        role_names = ["architect", "coder", "test", "security", 
-                       "pm", "devops"]  # Use actual CLI role names
+        role_names = ["architect", "coder", "test", "security", "pm", "devops"]  # Use actual CLI role names
         found_roles = []
         for role in role_names:
             if role in result.stdout.lower():
                 found_roles.append(role)
-        
+
         assert len(found_roles) >= 4, f"Expected at least 4 roles, found: {found_roles}"
         print(f"✅ Roles info passed (found {len(found_roles)} roles)")
 
@@ -342,16 +335,15 @@ class TestE2ECliWorkflow:
             ("review", []),
             ("ship", []),
         ]
-        
+
         for cmd, extra_args in lifecycle_cmds:
             result = e2e_runner.run_cli_command(
                 ["lifecycle", cmd] + extra_args,
-                expect_success=False  # May fail without proper setup
+                expect_success=False,  # May fail without proper setup
             )
             # Command should be recognized (not "unknown command")
-            assert "unknown" not in result.stderr.lower(), \
-                f"Lifecycle command '{cmd}' not recognized"
-        
+            assert "unknown" not in result.stderr.lower(), f"Lifecycle command '{cmd}' not recognized"
+
         print("✅ Lifecycle commands passed")
 
 
@@ -359,10 +351,11 @@ class TestE2ECliWorkflow:
 # Scenario 2: REST API Complete Lifecycle
 # ============================================================================
 
+
 class TestE2ERestAPILifecycle:
     """
     E2E Test: REST API Full Lifecycle Management
-    
+
     Tests the complete API workflow:
     1. Health check
     2. Task dispatch via API
@@ -558,10 +551,11 @@ print(f"✓ Validation error handled: status={response.status_code}")
 # Scenario 3: Multi-Role Collaboration
 # ============================================================================
 
+
 class TestE2EMultiRoleCollaboration:
     """
     E2E Test: 7-Role Consensus Collaboration Workflow
-    
+
     Tests the multi-agent collaboration feature:
     1. Role template loading
     2. Scratchpad shared memory
@@ -598,9 +592,9 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.scratchpad import Scratchpad
-    
+
     scratchpad = Scratchpad()
-    
+
     # Try basic operations
     if hasattr(scratchpad, 'write_entry'):
         scratchpad.write_entry(
@@ -609,15 +603,15 @@ try:
             content="Use FastAPI framework"
         )
         print("✓ Scratchpad write_entry works")
-    
+
     if hasattr(scratchpad, 'read_entries'):
         entries = scratchpad.read_entries(role="architect")
         print(f"✓ Scratchpad read_entries works ({len(entries)} entries)")
-    
+
     if hasattr(scratchpad, 'get_all_entries'):
         all_entries = scratchpad.get_all_entries()
         print(f"✓ Scratchpad get_all_entries works ({len(all_entries)} entries)")
-    
+
     print("✓ Scratchpad core functionality verified")
 except Exception as e:
     print(f"Scratchpad test note: {e}")
@@ -634,10 +628,10 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.consensus import ConsensusEngine
-    
+
     engine = ConsensusEngine()
     print("✓ ConsensusEngine instantiated")
-    
+
     # Check for vote aggregation method
     if hasattr(engine, 'aggregate_votes'):
         print("✓ aggregate_votes method exists")
@@ -648,7 +642,7 @@ try:
     else:
         methods = [m for m in dir(engine) if not m.startswith('_')]
         print(f"✓ Available consensus methods: {methods[:5]}")
-    
+
     print("✓ Consensus mechanism accessible")
 except Exception as e:
     print(f"Consensus test note: {e}")
@@ -665,10 +659,10 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.dispatcher import MultiAgentDispatcher
-    
+
     dispatcher = MultiAgentDispatcher()
     print("✓ MultiAgentDispatcher instantiated")
-    
+
     # Verify dispatcher has core methods
     required_methods = ['dispatch']
     available_methods = []
@@ -676,13 +670,13 @@ try:
         if hasattr(dispatcher, method):
             available_methods.append(method)
             print(f"✓ Dispatcher.{method}() exists")
-    
+
     if len(available_methods) > 0:
         print(f"✓ Multi-role dispatcher ready ({len(available_methods)} core methods)")
     else:
         all_methods = [m for m in dir(dispatcher) if not m.startswith('_')]
         print(f"✓ Dispatcher has methods: {all_methods[:8]}")
-        
+
 except Exception as e:
     print(f"Dispatcher test note: {e}")
 """
@@ -695,10 +689,11 @@ except Exception as e:
 # Scenario 4: Enterprise Features (RBAC + AuditLog + Multi-Tenancy)
 # ============================================================================
 
+
 class TestE2EEnterpriseFeatures:
     """
     E2E Test: Enterprise-Grade Security & Compliance
-    
+
     Tests advanced features:
     1. RBAC permission checking
     2. Audit logging with integrity verification
@@ -717,10 +712,10 @@ try:
     from scripts.collaboration.rbac_engine import (
         RBACEngine, RBACUser, UserRole, Permission, PermissionDeniedError
     )
-    
+
     engine = RBACEngine()
     print("✓ RBACEngine instantiated")
-    
+
     # Check core functionality
     if hasattr(engine, 'check_permission'):
         print("✓ check_permission method exists")
@@ -732,18 +727,18 @@ try:
             print(f"✓ Permission check works: {result}")
         except Exception as e:
             print(f"  Permission check note: {e}")
-    
+
     if hasattr(engine, 'enforce'):
         print("✓ enforce method exists")
-    
+
     if hasattr(engine, 'add_user'):
         print("✓ add_user method exists")
-    
+
     # List available permissions
     perm_count = len(list(Permission))
     role_count = len(list(UserRole))
     print(f"✓ RBAC system ready: {perm_count} permissions, {role_count} roles")
-    
+
 except Exception as e:
     print(f"RBAC test note: {e}")
 """
@@ -761,22 +756,22 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.audit_logger import AuditLogger
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = AuditLogger(log_dir=tmpdir, format="json", enable_hash_chain=True)
         print("✓ AuditLogger instantiated")
-        
+
         # Test logging
         if hasattr(logger, 'log'):
-            logger.log("user-1", "task:create", "Task", "T-001", 
+            logger.log("user-1", "task:create", "Task", "T-001",
                       details={"title": "Test task"}, result="success")
             print("✓ log method works")
-        
+
         # Test query
         if hasattr(logger, 'query'):
             records = logger.query(user_id="user-1")
             print(f"✓ query method works ({len(records)} records)")
-        
+
         # Test integrity verification
         if hasattr(logger, 'verify_integrity'):
             try:
@@ -784,13 +779,13 @@ try:
                 print(f"✓ verify_integrity works: valid={integrity.get('valid', 'N/A')}")
             except Exception as e:
                 print(f"  Integrity check note: {e}")
-        
+
         # Test export
         if hasattr(logger, 'export'):
             export_path = os.path.join(tmpdir, "export.json")
             count = logger.export(export_path)
             print(f"✓ export method works ({count} records)")
-        
+
         print("✓ Audit logging core functionality verified")
 
 except Exception as e:
@@ -810,10 +805,10 @@ try:
     from scripts.collaboration.multi_tenant import (
         MultiTenantManager, Tenant, IsolationLevel
     )
-    
+
     mtm = MultiTenantManager()
     print("✓ MultiTenantManager instantiated")
-    
+
     # Test tenant creation
     acme = Tenant(
         tenant_id="acme-corp",
@@ -821,25 +816,25 @@ try:
         isolation_level=IsolationLevel.SCHEMA_PER_TENANT,
         quota_limits={"tasks": 100}
     )
-    
+
     if hasattr(mtm, 'create_tenant'):
         mtm.create_tenant(acme)
         print("✓ create_tenant method works")
-    
+
     # Test context management
     if hasattr(mtm, 'set_context'):
         mtm.set_context("acme-corp", "admin-acme")
         print("✓ set_context method works")
-    
+
     # Test quota checking
     if hasattr(mtm, 'check_quota'):
         can_create = mtm.check_quota("tasks")
         print(f"✓ check_quota method works: {can_create}")
-    
+
     # List isolation levels
     levels = list(IsolationLevel)
     print(f"✓ Multi-tenant system ready: {len(levels)} isolation levels")
-    
+
 except Exception as e:
     print(f"Multi-tenant test note: {e}")
 """
@@ -857,24 +852,24 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.audit_logger import SensitiveDataMasker, AuditLogger
-    
+
     masker = SensitiveDataMasker()
     print("✓ SensitiveDataMasker instantiated")
-    
+
     # Test email masking
     test_data = {"email": "test@example.com", "phone": "123-456-7890"}
     masked = masker.mask(test_data)
-    
+
     if masked.get('email') != 'test@example.com':
         print("✓ Email masking works")
     else:
         print("  Email masking note: unchanged (may be expected)")
-    
+
     if masked.get('phone') != '123-456-7890':
         print("✓ Phone masking works")
     else:
         print("  Phone masking note: unchanged (may be expected)")
-    
+
     print("✓ Sensitive data masking functional")
 
 except Exception as e:
@@ -889,10 +884,11 @@ except Exception as e:
 # Scenario 5: Error Recovery and Edge Cases
 # ============================================================================
 
+
 class TestE2EErrorRecovery:
     """
     E2E Test: Error Recovery and Boundary Conditions
-    
+
     Tests system resilience:
     1. Invalid input handling
     2. Empty/None value handling
@@ -910,39 +906,39 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.input_validator import InputValidator
-    
+
     validator = InputValidator()
     print("✓ InputValidator instantiated")
-    
+
     # Test empty string
     result = validator.validate_task("")
     if hasattr(result, 'valid'):
         print(f"✓ Empty task validation: valid={result.valid}")
-    
+
     # Test very long task
     long_task = "test " * 10000
     result = validator.validate_task(long_task)
     if hasattr(result, 'valid'):
         print(f"✓ Long input validation: valid={result.valid}")
-    
+
     # Test special characters
     special_chars = "<script>alert('xss')</script>"
     result = validator.validate_task(special_chars)
     if hasattr(result, 'valid'):
         print(f"✓ Special chars validation: valid={result.valid}")
-    
+
     # Test SQL injection attempt
     sql_injection = "'; DROP TABLE users; --"
     result = validator.validate_task(sql_injection)
     if hasattr(result, 'valid'):
         print(f"✓ SQL injection validation: valid={result.valid}")
-    
+
     # Test Unicode characters
     unicode_task = "设计一个API接口 🎉 日本語テスト"
     result = validator.validate_task(unicode_task)
     if hasattr(result, 'valid'):
         print(f"✓ Unicode validation: valid={result.valid}")
-    
+
     print("✓ Input validation edge cases handled")
 
 except Exception as e:
@@ -962,10 +958,10 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.scratchpad import Scratchpad
-    
+
     scratchpad = Scratchpad()
     errors = []
-    
+
     def writer_thread(role: str, entries: int):
         try:
             for i in range(entries):
@@ -978,28 +974,28 @@ try:
                     )
         except Exception as e:
             errors.append(str(e))
-    
+
     # Launch concurrent writers
     threads = []
     for role in ["architect", "coder", "tester"]:
         t = threading.Thread(target=writer_thread, args=(role, 50))
         threads.append(t)
         t.start()
-    
+
     # Wait for completion
     for t in threads:
         t.join(timeout=10)
-    
+
     if len(errors) == 0:
         print("✓ Concurrent access safe (no errors)")
     else:
         print(f"✓ Concurrent access completed with {len(errors)} notes")
-        
+
     # Verify data integrity
     if hasattr(scratchpad, 'get_all_entries'):
         all_entries = scratchpad.get_all_entries()
         print(f"✓ Data integrity verified ({len(all_entries)} entries)")
-    
+
     print("✓ Concurrent access safety test passed")
 
 except Exception as e:
@@ -1019,23 +1015,23 @@ sys.path.insert(0, '.')
 
 try:
     from scripts.collaboration.audit_logger import AuditLogger
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         logger = AuditLogger(log_dir=tmpdir)
         print("✓ AuditLogger instantiated")
-        
+
         if hasattr(logger, 'log'):
             logger.log("user-1", "test", "Resource", "R-001", result="success")
             print("✓ log method works")
-        
+
         if hasattr(logger, 'cleanup_old_logs'):
             cleaned = logger.cleanup_old_logs(days_retention=0)
             print(f"✓ cleanup_old_logs works ({cleaned})")
-        
+
         if hasattr(logger, 'query'):
             remaining = logger.query()
             print(f"✓ query works ({len(remaining)} records)")
-    
+
     print("✓ Resource cleanup functional")
 
 except Exception as e:
@@ -1063,11 +1059,11 @@ print(f"{'✓ Redis available' if redis_available else '✓ Redis not available 
 # Test 2: Cache backend fallback
 try:
     from scripts.collaboration.llm_cache import get_llm_cache, reset_cache
-    
+
     reset_cache()
     cache = get_llm_cache()
     print("✓ LLM cache instantiated")
-    
+
     # Memory cache should work
     cache.set("test_key", "test_value", ttl=60)
     result = cache.get("test_key")
@@ -1081,7 +1077,7 @@ except Exception as e:
 # Test 3: Async adapter fallback
 try:
     from scripts.collaboration.async_adapter import AutoBackendSelector
-    
+
     if hasattr(AutoBackendSelector, 'should_use_async'):
         should_use_async = AutoBackendSelector.should_use_async()
         print(f"✓ Backend auto-selection: {'async' if should_use_async else 'sync'}")
@@ -1104,38 +1100,46 @@ print("✓ Graceful degradation verified")
 # E2E Test Runner Entry Point
 # ============================================================================
 
+
 def run_all_e2e_tests():
     """Run all E2E tests and generate report"""
-    print("="*70)
+    print("=" * 70)
     print("DevSquad V3.7.0 E2E (End-to-End) Test Suite")
-    print("="*70)
+    print("=" * 70)
     print(f"Start Time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print()
-    
+
     runner = E2ETestRunner()
     runner.start_time = time.time()
-    
+
     try:
         # Run pytest on E2E tests
-        exit_code = subprocess.call([
-            sys.executable, "-m", "pytest", 
-            __file__,  # This file itself
-            "-v", "--tb=long",
-            "--html=e2e_report.html",
-            "-k", "e2e",  # Only run E2E marked tests
-        ], cwd=str(Path(__file__).parent))
-        
+        exit_code = subprocess.call(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                __file__,  # This file itself
+                "-v",
+                "--tb=long",
+                "--html=e2e_report.html",
+                "-k",
+                "e2e",  # Only run E2E marked tests
+            ],
+            cwd=str(Path(__file__).parent),
+        )
+
         if exit_code == 0:
-            print("\n" + "="*70)
+            print("\n" + "=" * 70)
             print("✅ ALL E2E TESTS PASSED")
-            print("="*70)
+            print("=" * 70)
         else:
-            print("\n" + "="*70)
+            print("\n" + "=" * 70)
             print("⚠️  SOME E2E TESTS FAILED")
-            print("="*70)
-        
+            print("=" * 70)
+
         return exit_code == 0
-        
+
     finally:
         duration = (time.time() - runner.start_time) * 1000
         print(f"\nTotal E2E Test Duration: {duration:.0f}ms")

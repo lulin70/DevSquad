@@ -15,21 +15,18 @@ Phase 5: Dispatcher 核心路径覆盖率提升测试（基于实际 API）
 import os
 import sys
 import tempfile
-import unittest
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from scripts.collaboration.dispatch_models import PerformanceThresholds
 from scripts.collaboration.dispatcher import (
-    MultiAgentDispatcher,
     DispatchResult,
+    MultiAgentDispatcher,
 )
 from scripts.collaboration.performance_monitor import (
-    PerformanceMonitor,
     PerformanceMetric,
+    PerformanceMonitor,
 )
 
 

@@ -69,9 +69,7 @@ class TestDispatchRBACOpenMode(unittest.TestCase):
     def test_open_mode_allows_any_role_and_mode(self) -> None:
         """Verify: without AuthManager, any role/mode is allowed."""
         # Act
-        result = self.rbac.check_dispatch_permission(
-            "u1", ["security", "coder"], "consensus"
-        )
+        result = self.rbac.check_dispatch_permission("u1", ["security", "coder"], "consensus")
         # Assert
         self.assertTrue(result.allowed)
 
@@ -104,9 +102,7 @@ class TestDispatchRBACFailClosedMode(unittest.TestCase):
 
     def test_fail_closed_denies_any_role_and_mode(self) -> None:
         """Verify: fail-closed mode denies any role/mode combination."""
-        result = self.rbac.check_dispatch_permission(
-            "u1", ["security", "coder"], "consensus"
-        )
+        result = self.rbac.check_dispatch_permission("u1", ["security", "coder"], "consensus")
         self.assertFalse(result.allowed)
 
     def test_fail_closed_preserves_request_fields(self) -> None:
@@ -128,9 +124,7 @@ class TestDispatchRBACAdminRole(unittest.TestCase):
     """Admin role — all roles and modes permitted."""
 
     def setUp(self) -> None:
-        self.auth = MockAuthManager(
-            credentials={"admin": {"role": "admin", "name": "Admin User"}}
-        )
+        self.auth = MockAuthManager(credentials={"admin": {"role": "admin", "name": "Admin User"}})
         self.rbac = DispatchRBAC(auth_manager=self.auth)
 
     def test_admin_can_dispatch_all_roles(self) -> None:
@@ -156,9 +150,7 @@ class TestDispatchRBACOperatorRole(unittest.TestCase):
     """Operator role — all roles except security, no consensus mode."""
 
     def setUp(self) -> None:
-        self.auth = MockAuthManager(
-            credentials={"op": {"role": "operator", "name": "Op User"}}
-        )
+        self.auth = MockAuthManager(credentials={"op": {"role": "operator", "name": "Op User"}})
         self.rbac = DispatchRBAC(auth_manager=self.auth)
 
     def test_operator_can_dispatch_coder(self) -> None:
@@ -189,9 +181,7 @@ class TestDispatchRBACViewerRole(unittest.TestCase):
     """Viewer role — read-only roles, auto mode only."""
 
     def setUp(self) -> None:
-        self.auth = MockAuthManager(
-            credentials={"viewer": {"role": "viewer", "name": "Viewer"}}
-        )
+        self.auth = MockAuthManager(credentials={"viewer": {"role": "viewer", "name": "Viewer"}})
         self.rbac = DispatchRBAC(auth_manager=self.auth)
 
     def test_viewer_can_dispatch_architect(self) -> None:

@@ -162,7 +162,11 @@ class Foo:
         issues = self.validator.validate_call_against_signature("real_func", {"bad_param", "wrong_name"}, sigs)
         self.assertGreater(len(issues), 0)
         matching = [i for i in issues if i.category == "API参数错误"]
-        self.assertGreater(len(matching), 0, f"Expected issue with category 'API参数错误', got categories: {[i.category for i in issues]}")
+        self.assertGreater(
+            len(matching),
+            0,
+            f"Expected issue with category 'API参数错误', got categories: {[i.category for i in issues]}",
+        )
 
     def test_05_valid_call_no_issues(self):
         """验证: 使用正确的参数名时不产生问题"""
@@ -195,14 +199,18 @@ class T3_AntiPatternDetector(unittest.TestCase):
         code = "try:\n    x = 1/0\nexcept:\n    pass\n"
         issues = self.detector.detect_in_source(code, "bare.py")
         matching = [i for i in issues if i.category == "异常吞噬"]
-        self.assertGreater(len(matching), 0, f"Expected issue with category '异常吞噬', got categories: {[i.category for i in issues]}")
+        self.assertGreater(
+            len(matching), 0, f"Expected issue with category '异常吞噬', got categories: {[i.category for i in issues]}"
+        )
 
     def test_02_detect_magic_number_assert(self):
         """验证: 断言中大数字魔法值被检测"""
         code = "self.assertGreater(result, 99999)"
         issues = self.detector.detect_in_source(code, "magic.py")
         matching = [i for i in issues if i.category == "魔法数字"]
-        self.assertGreater(len(matching), 0, f"Expected issue with category '魔法数字', got categories: {[i.category for i in issues]}")
+        self.assertGreater(
+            len(matching), 0, f"Expected issue with category '魔法数字', got categories: {[i.category for i in issues]}"
+        )
 
     def test_03_clean_code_no_issues(self):
         """验证: 干净代码不触发反模式警告"""
@@ -220,7 +228,9 @@ self.assertRaises(ValueError, bad_func)
         code = "self.assertGreater(score, 0.0)"
         issues = self.detector.detect_in_source(code, "relax.py")
         matching = [i for i in issues if i.category == "无效断言"]
-        self.assertGreater(len(matching), 0, f"Expected issue with category '无效断言', got categories: {[i.category for i in issues]}")
+        self.assertGreater(
+            len(matching), 0, f"Expected issue with category '无效断言', got categories: {[i.category for i in issues]}"
+        )
 
     def test_05_issue_has_suggestion(self):
         """验证: 每个检测到的问题都附带修复建议"""
@@ -411,7 +421,7 @@ class BadTest(unittest.TestCase):
         tst = "\n".join([f"class T(unittest.TestCase):\n    def test_{i}(self): pass" for i in range(30)])
         sp, tp = self._write_files(src, tst)
         start = time.perf_counter()
-        report = TestQualityGuard(sp, tp).audit()
+        TestQualityGuard(sp, tp).audit()
         elapsed = time.perf_counter() - start
         self.assertLess(elapsed, 2.0, f"审计耗时 {elapsed:.2f}s 过长")
 

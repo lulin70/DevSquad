@@ -109,7 +109,7 @@ class AsyncLLMBackendInterface(ABC):
 
     async def close(self) -> None:  # noqa: B027
         """Clean up resources (connection pools, etc.)."""
-        pass
+        pass  # intentional no-op: default backend has no resources to release
 
 
 class AsyncMockBackend(AsyncLLMBackendInterface):
@@ -725,7 +725,7 @@ class AsyncLLMBackendFactory:
             backend_type = env_backend
 
         if kwargs.pop("_force_type", None):
-            pass  # Skip env override when explicitly forced
+            pass  # intentional no-op: skip env override when explicitly forced
 
         if backend_type in ("fallback", "auto"):
             return AsyncLLMBackendFactory._create_fallback(backend_type=backend_type, **kwargs)

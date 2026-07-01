@@ -119,7 +119,7 @@ def example_basic_full_mode():
 
     # Step 3: Auto-advance through first few phases
     print("\n⚡ Step 3: Auto-advance (first 3 phases)")
-    for i in range(3):
+    for _ in range(3):
         result = adapter.auto_advance()
         if result.success:
             print(f"   ✅ Advanced to {result.phase_id}")

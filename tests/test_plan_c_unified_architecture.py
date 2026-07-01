@@ -427,7 +427,7 @@ class TestShortcutLifecycleAdapterWithUnifiedGate:
     def test_set_task_id_and_enable_checkpoint(self):
         """Test setting up checkpoint integration."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            success = self.adapter.set_task_id("test-task-123")
+            self.adapter.set_task_id("test-task-123")
             # Note: set_task_id may auto-initialize checkpoint manager
             # so we just verify it doesn't error
 
@@ -544,7 +544,6 @@ class TestEndToEndIntegration:
         all_phase_ids = {p.phase_id for p in all_phases}
 
         covered_phases = set()
-        unmapped_commands = []
         for cmd, mapping in VIEW_MAPPINGS.items():
             cmd_covered = []
             for phase_id in mapping.phases:

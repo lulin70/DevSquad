@@ -38,6 +38,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 logger = logging.getLogger(__name__)
 
 
+def _is_production() -> bool:
+    """Return True when DEVSQUAD_ENV indicates production."""
+    return os.environ.get("DEVSQUAD_ENV", "").lower() == "production"
+
+
 class UserRole(Enum):
     """User roles for access control."""
 
@@ -94,6 +99,13 @@ class AuthManager:
         self.auth_enabled = self.config.get("authentication", {}).get("enabled", False)
         self.credentials = self._get_credentials()
         self.cookie_settings = self.config.get("authentication", {}).get("cookie", {})
+
+        # Production: code-layer enforcement of secure cookie flags.
+        if _is_production():
+            self.cookie_settings["secure"] = True
+            self.cookie_settings["httponly"] = True
+            self.cookie_settings["samesite"] = "Strict"
+            logger.info("Production mode: cookie security flags enforced (secure/httponly/Strict).")
 
         # Validate configuration security
         self._validate_config_security()

@@ -101,7 +101,7 @@ class _NullContextManager:
         return self
 
     def __exit__(self, *args: Any) -> None:
-        pass
+        pass  # intentional no-op: null context manager has nothing to clean up
 
 
 logger = logging.getLogger(__name__)

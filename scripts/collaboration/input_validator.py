@@ -19,6 +19,7 @@ class ValidationResult:
     valid: bool
     reason: str | None = None
     sanitized_input: str | None = None
+    fallback_response: str | None = None
 
 
 class InputValidator:
@@ -108,6 +109,22 @@ class InputValidator:
         r"前の指示を無視",
     ]
 
+    # 安全降级模板：当检测到 prompt injection 时返回给用户/调用方，避免传播恶意输入。
+    PROMPT_INJECTION_FALLBACK_TEMPLATE_EN = (
+        "SECURITY FALLBACK: This request was blocked because it contains instructions "
+        "that attempt to override the system prompt. Please rephrase your task as a "
+        "plain, goal-oriented description."
+    )
+    PROMPT_INJECTION_FALLBACK_TEMPLATE_ZH = (
+        "安全降级：请求包含试图覆盖系统提示的指令，已被拦截。"
+        "请用平实的、目标导向的描述重新表述您的任务。"
+    )
+    PROMPT_INJECTION_FALLBACK_TEMPLATE_JA = (
+        "セキュリティフォールバック: システムプロンプトを上書きしようとする指示が"
+        "検出されたため、このリクエストはブロックされました。"
+        "目標に沿った平易な説明に言い換えてください。"
+    )
+
     def __init__(self, max_length: int = MAX_TASK_LENGTH, min_length: int = MIN_TASK_LENGTH, strict_mode: bool = True):
         """
         初始化验证器
@@ -125,6 +142,27 @@ class InputValidator:
         self._forbidden_regex = [re.compile(pattern, re.IGNORECASE | re.DOTALL) for pattern in self.FORBIDDEN_PATTERNS]
         self._suspicious_regex = [re.compile(pattern, re.IGNORECASE) for pattern in self.SUSPICIOUS_PATTERNS]
         self._injection_regex = [re.compile(pattern, re.IGNORECASE) for pattern in self.PROMPT_INJECTION_PATTERNS]
+
+    def get_prompt_injection_fallback(self, task: str, lang: str = "auto") -> str:
+        """Return a safe fallback response when prompt injection is detected.
+
+        The fallback is intentionally generic and does not echo the original input,
+        preventing the malicious content from being propagated downstream.
+
+        Args:
+            task: Original task description (used only for length checks, not echoed).
+            lang: Target language code ("zh", "ja", or anything else defaults to English).
+
+        Returns:
+            Localized safe fallback response string.
+        """
+        _ = task  # reserved for future length-aware fallback logic
+        lang_lower = (lang or "auto").lower()
+        if lang_lower.startswith("zh"):
+            return self.PROMPT_INJECTION_FALLBACK_TEMPLATE_ZH
+        if lang_lower.startswith("ja"):
+            return self.PROMPT_INJECTION_FALLBACK_TEMPLATE_JA
+        return self.PROMPT_INJECTION_FALLBACK_TEMPLATE_EN
 
     RULE_COMMAND_PATTERNS = [
         re.compile(r"^(?:列出|查看|显示).*(?:规则|规范)$"),
@@ -188,8 +226,15 @@ class InputValidator:
             if match:
                 injection_detected.append(match.group(0))
 
-        if injection_detected and self.strict_mode:
-            return ValidationResult(valid=False, reason="Input contains potentially harmful content")
+        fallback_response = None
+        if injection_detected:
+            fallback_response = self.get_prompt_injection_fallback(task)
+            if self.strict_mode:
+                return ValidationResult(
+                    valid=False,
+                    reason="Input contains potentially harmful content",
+                    fallback_response=fallback_response,
+                )
 
         # 7. 可疑模式检查（严格模式）
         if self.strict_mode:
@@ -202,7 +247,11 @@ class InputValidator:
 
         sanitized = self._sanitize_input(task_normalized)
 
-        return ValidationResult(valid=True, sanitized_input=sanitized)
+        return ValidationResult(
+            valid=True,
+            sanitized_input=sanitized,
+            fallback_response=fallback_response,
+        )
 
     def validate_roles(self, roles: list[str]) -> ValidationResult:
         """
@@ -275,6 +324,8 @@ class InputValidator:
         Returns:
             List[str]: 检测到的可疑模式列表
         """
+        if not isinstance(task, str):
+            return []
         warnings = []
         task_normalized = unicodedata.normalize("NFKC", task)
         task_normalized = re.sub(r"[\u200b-\u200f\u2028-\u202f\ufeff]", "", task_normalized)
@@ -294,6 +345,8 @@ class InputValidator:
         Returns:
             List[str]: 检测到的 Prompt 注入模式列表
         """
+        if not isinstance(task, str):
+            return []
         detected = []
         task_normalized = unicodedata.normalize("NFKC", task)
         task_normalized = re.sub(r"[\u200b-\u200f\u2028-\u202f\ufeff]", "", task_normalized)

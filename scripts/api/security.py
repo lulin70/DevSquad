@@ -13,6 +13,7 @@ Issue: https://github.com/lulin70/DevSquad/issues/4
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
 import os
 import threading
@@ -22,6 +23,43 @@ from typing import Any
 from fastapi import Depends, HTTPException, Request, status
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Environment / configuration helpers
+# ---------------------------------------------------------------------------
+
+
+def _is_production() -> bool:
+    """Return True when DEVSQUAD_ENV indicates production."""
+    return os.environ.get("DEVSQUAD_ENV", "").lower() == "production"
+
+
+def _merge_environment_overrides(config: dict[str, Any]) -> dict[str, Any]:
+    """Merge deployment.yaml ``environments.<DEVSQUAD_ENV>`` overrides.
+
+    Shallow-merges each top-level section from the environment block.
+    In production, ``api_security.enabled`` is unconditionally set to True
+    and the dev/test auth bypass is disabled.
+    """
+    env = os.environ.get("DEVSQUAD_ENV", "").lower()
+    if env:
+        env_overrides = config.get("environments", {}).get(env)
+        if isinstance(env_overrides, dict):
+            for section, overrides in env_overrides.items():
+                if section == "environments":
+                    continue
+                if isinstance(overrides, dict) and isinstance(config.get(section), dict):
+                    config[section] = {**config[section], **overrides}
+                else:
+                    config[section] = overrides
+
+    if _is_production():
+        api_security = config.setdefault("api_security", {})
+        api_security["enabled"] = True
+
+    return config
+
 
 # ---------------------------------------------------------------------------
 # Lazy imports (avoid circular imports and optional dependency issues)
@@ -104,6 +142,7 @@ class APIKeyStore:
             with open(config_path, encoding="utf-8") as f:
                 config = yaml.safe_load(f) or {}
 
+            config = _merge_environment_overrides(config)
             api_security = config.get("api_security", {})
             if not api_security.get("enabled", False):
                 logger.info("API security disabled in config")
@@ -132,6 +171,9 @@ class APIKeyStore:
     def verify(self, api_key: str) -> str | None:
         """Verify an API key and return the associated user_id.
 
+        Uses a timing-safe comparison (``hmac.compare_digest``) against all
+        configured key hashes to mitigate timing attacks.
+
         Args:
             api_key: Plaintext API key from X-API-Key header.
 
@@ -141,8 +183,16 @@ class APIKeyStore:
         if not api_key:
             return None
 
+        if not self._key_to_user:
+            return None
+
         key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
-        return self._key_to_user.get(key_hash)
+        matched_user_id: str | None = None
+        for stored_hash, user_id in self._key_to_user.items():
+            # Both values are lower-case hex strings (same length, same type).
+            if hmac.compare_digest(key_hash, stored_hash):
+                matched_user_id = user_id
+        return matched_user_id
 
     def has_keys(self) -> bool:
         """Check if any API keys are configured."""
@@ -182,6 +232,7 @@ def _load_api_keys_into_rbac(engine: Any) -> None:
         with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
 
+        config = _merge_environment_overrides(config)
         api_security = config.get("api_security", {})
         if not api_security.get("enabled", False):
             return
@@ -231,7 +282,13 @@ def _load_api_keys_into_rbac(engine: Any) -> None:
 
 
 def _is_auth_disabled() -> bool:
-    """Check if auth is disabled via environment variable (dev/test mode)."""
+    """Check if auth is disabled via environment variable (dev/test mode).
+
+    Production mode ignores DEVSQUAD_API_AUTH_DISABLED to prevent accidental
+    auth bypass.
+    """
+    if _is_production():
+        return False
     return os.environ.get("DEVSQUAD_API_AUTH_DISABLED", "").lower() in ("1", "true", "yes")
 
 

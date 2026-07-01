@@ -3,9 +3,6 @@
 Pytest configuration with markers and fixtures.
 """
 
-import pytest
-
-
 def pytest_configure(config):
     """Configure custom markers."""
     config.addinivalue_line(

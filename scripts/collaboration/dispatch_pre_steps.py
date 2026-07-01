@@ -241,7 +241,27 @@ class PreDispatchPipeline:
         """Validate task and roles input. Returns (sanitized_task, early_return)."""
         validator = self.validator
         task_result = validator.validate_task(task)
+        injection_warnings = validator.check_prompt_injection(task)
+        injection_detected = bool(injection_warnings) or bool(task_result.fallback_response)
+
         if not task_result.valid:
+            # Prompt injection: return a safe fallback template instead of echoing the input.
+            if injection_detected:
+                fallback = validator.get_prompt_injection_fallback(task, lang)
+                logger.warning(
+                    "[AUDIT] Prompt injection fallback triggered (lang=%s, matched=%s)",
+                    lang,
+                    ", ".join(injection_warnings) if injection_warnings else "validation",
+                )
+                return task, DispatchResult(
+                    success=False,
+                    task_description="",
+                    matched_roles=[],
+                    worker_results=[],
+                    summary=fallback,
+                    errors=[fallback],
+                    lang=lang,
+                )
             friendly = translate_validation_result(task_result.reason or "")
             return task, DispatchResult(
                 success=False,
@@ -272,9 +292,23 @@ class PreDispatchPipeline:
         if warnings:
             logger.warning("Suspicious patterns in task: %s", ", ".join(warnings))
 
-        injection_warnings = validator.check_prompt_injection(task)
-        if injection_warnings:
-            logger.warning("Prompt injection patterns detected: %s", ", ".join(injection_warnings))
+        if injection_detected:
+            # Non-strict mode reached here: still downgrade to a safe template response.
+            fallback = validator.get_prompt_injection_fallback(task, lang)
+            logger.warning(
+                "[AUDIT] Prompt injection fallback triggered (lang=%s, matched=%s)",
+                lang,
+                ", ".join(injection_warnings) if injection_warnings else "validation",
+            )
+            return task, DispatchResult(
+                success=False,
+                task_description="",
+                matched_roles=[],
+                worker_results=[],
+                summary=fallback,
+                errors=[fallback],
+                lang=lang,
+            )
 
         return task, None
 

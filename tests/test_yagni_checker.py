@@ -290,8 +290,7 @@ class TestYagniCheckerEdgeCases(unittest.TestCase):
         # Act
         result = self.checker.check(long_desc)
         # Assert
-        self.assertIn(result.verdict, {"MINIMAL", "USE_STDLIB", "USE_DEPENDENCY",
-                                       "ONE_LINER", "SKIP", "NECESSARY"})
+        self.assertIn(result.verdict, {"MINIMAL", "USE_STDLIB", "USE_DEPENDENCY", "ONE_LINER", "SKIP", "NECESSARY"})
 
     def test_task_details_optional(self) -> None:
         """Verify: task_details parameter is optional and does not crash."""
@@ -320,8 +319,7 @@ class TestYagniCheckerVerdictSet(unittest.TestCase):
     def test_all_verdicts_are_valid(self) -> None:
         """Verify: every verdict returned is in the documented set."""
         # Arrange
-        valid_verdicts = {"SKIP", "USE_STDLIB", "USE_DEPENDENCY",
-                          "ONE_LINER", "MINIMAL", "NECESSARY"}
+        valid_verdicts = {"SKIP", "USE_STDLIB", "USE_DEPENDENCY", "ONE_LINER", "MINIMAL", "NECESSARY"}
         tasks = [
             "",  # SKIP
             "Validate input",  # NECESSARY
@@ -334,8 +332,7 @@ class TestYagniCheckerVerdictSet(unittest.TestCase):
         # Act + Assert
         for task in tasks:
             result = self.checker.check(task)
-            self.assertIn(result.verdict, valid_verdicts,
-                          f"Task '{task}' returned invalid verdict: {result.verdict}")
+            self.assertIn(result.verdict, valid_verdicts, f"Task '{task}' returned invalid verdict: {result.verdict}")
 
 
 class TestYagniCheckerPerformance(unittest.TestCase):
@@ -359,8 +356,7 @@ class TestYagniCheckerPerformance(unittest.TestCase):
             self.checker.check(task)
         elapsed = time.perf_counter() - start
         # Assert
-        self.assertLess(elapsed, 5.0,
-                        f"1000 checks took {elapsed:.3f}s (> 5ms per call)")
+        self.assertLess(elapsed, 5.0, f"1000 checks took {elapsed:.3f}s (> 5ms per call)")
 
 
 class TestYagniCheckerMicroTaskIntegration(unittest.TestCase):
@@ -415,11 +411,13 @@ class TestYagniCheckerMicroTaskIntegration(unittest.TestCase):
         (duck typing) — should work without importing MicroTask.
         Expected: returns a YagniResult.
         """
+
         # Arrange
         class FakeMicroTask:
             title = "Parse JSON"
             description = "Parse the JSON payload"
             file_paths = ["src/parser.py"]
+
         # Act
         result = self.checker.check_micro_task(FakeMicroTask())
         # Assert

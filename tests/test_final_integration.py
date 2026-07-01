@@ -414,7 +414,7 @@ class TestAdapterBehaviorUnderLoad:
 
     def test_status_after_many_operations(self):
         """Test status remains consistent after many operations."""
-        initial_status = self.adapter.get_status()
+        self.adapter.get_status()
 
         for _ in range(30):
             self.adapter.advance_to_phase("P1")
@@ -437,7 +437,7 @@ class TestAdapterBehaviorUnderLoad:
             assert hasattr(r, "verdict")
 
         # Verdicts should be similar (may vary slightly)
-        verdicts = set(r.verdict for r in results)
+        verdicts = {r.verdict for r in results}
         assert len(verdicts) <= 3  # APPROVE, CONDITIONAL, REJECT
         print(f"✅ Gate checks consistent: {len(verdicts)} unique verdicts")
 

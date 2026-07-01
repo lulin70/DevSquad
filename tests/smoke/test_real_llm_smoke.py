@@ -8,12 +8,12 @@ Usage:
 """
 
 import os
+
 import pytest
 
 # Skip entire module if no API key
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("LLM_API_KEY"),
-    reason="LLM_API_KEY not set — smoke tests require real API key"
+    not os.environ.get("LLM_API_KEY"), reason="LLM_API_KEY not set — smoke tests require real API key"
 )
 
 
@@ -22,9 +22,10 @@ class TestRealLLMSmoke:
 
     def test_dispatch_with_real_llm(self):
         """Verify dispatch works end-to-end with real LLM."""
+        import tempfile
+
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
         from scripts.collaboration.llm_backend import create_backend
-        import tempfile
 
         backend = create_backend(
             "openai",
@@ -41,9 +42,10 @@ class TestRealLLMSmoke:
 
     def test_dispatch_with_ue_testing(self):
         """Verify Step 19 UE testing works with real LLM."""
+        import tempfile
+
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
         from scripts.collaboration.llm_backend import create_backend
-        import tempfile
 
         backend = create_backend(
             "openai",
@@ -62,9 +64,10 @@ class TestRealLLMSmoke:
 
     def test_dispatch_tech_debt_scan(self):
         """Verify Step 20 tech debt scan works with real LLM."""
+        import tempfile
+
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
         from scripts.collaboration.llm_backend import create_backend
-        import tempfile
 
         backend = create_backend(
             "openai",

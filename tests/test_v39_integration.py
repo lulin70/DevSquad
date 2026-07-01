@@ -93,9 +93,7 @@ class TestCodeKnowledgeGraphIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "codegraph.db"
             graph = CodeKnowledgeGraph(db_path)
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, code_graph=graph
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, code_graph=graph)
             assert disp.coordinator.code_graph is graph
             graph.close()
             disp.shutdown()
@@ -113,20 +111,14 @@ class TestCodeKnowledgeGraphIntegration:
             query_spy = MagicMock(wraps=original_query)
             graph.query = query_spy  # type: ignore[method-assign]
 
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, code_graph=graph
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, code_graph=graph)
 
             # Dispatch with a task that mentions "hello" (a symbol in the graph).
-            result = disp.dispatch(
-                "Review the hello function", roles=["solo-coder"]
-            )
+            result = disp.dispatch("Review the hello function", roles=["solo-coder"])
 
             # The graph's query method should have been called at least once
             # by the worker's _query_code_graph_for_task method.
-            assert query_spy.called, (
-                "CodeKnowledgeGraph.query() was not called during dispatch"
-            )
+            assert query_spy.called, "CodeKnowledgeGraph.query() was not called during dispatch"
             assert result.success
             graph.close()
             disp.shutdown()
@@ -165,13 +157,8 @@ class TestYagniCheckerIntegration:
         )
 
         # At least one micro-task should be SKIPPED.
-        skipped = [
-            mt for mt in plan.micro_tasks
-            if mt.status.value == "skipped"
-        ]
-        assert len(skipped) >= 1, (
-            "YagniChecker did not skip any micro-tasks for an exploratory task"
-        )
+        skipped = [mt for mt in plan.micro_tasks if mt.status.value == "skipped"]
+        assert len(skipped) >= 1, "YagniChecker did not skip any micro-tasks for an exploratory task"
         # yagni_results should be populated.
         assert len(plan.yagni_results) > 0
 
@@ -192,9 +179,7 @@ class TestPromptDialsIntegration:
 
     def test_dials_affect_assembled_prompt(self) -> None:
         """When dials are non-default, the assembled prompt includes the fragment."""
-        assembler = PromptAssembler(
-            role_id="solo-coder", base_prompt="You are a coder."
-        )
+        assembler = PromptAssembler(role_id="solo-coder", base_prompt="You are a coder.")
 
         # Non-default dials (verbosity=1 → concise).
         dials = PromptDials(verbosity=1, creativity=3, risk_tolerance=3)
@@ -212,9 +197,7 @@ class TestPromptDialsIntegration:
 
     def test_variant_still_works(self) -> None:
         """The legacy variant parameter still works (backward compat)."""
-        assembler = PromptAssembler(
-            role_id="solo-coder", base_prompt="You are a coder."
-        )
+        assembler = PromptAssembler(role_id="solo-coder", base_prompt="You are a coder.")
 
         prompt = assembler.assemble(
             task_description="Write a function",
@@ -226,9 +209,7 @@ class TestPromptDialsIntegration:
 
     def test_default_dials_no_change(self) -> None:
         """When dials are at default (3,3,3), no fragment is added."""
-        assembler = PromptAssembler(
-            role_id="solo-coder", base_prompt="You are a coder."
-        )
+        assembler = PromptAssembler(role_id="solo-coder", base_prompt="You are a coder.")
 
         dials = PromptDials(verbosity=3, creativity=3, risk_tolerance=3)
         prompt_default = assembler.assemble(
@@ -273,14 +254,10 @@ def make_widget():
         # Stage 3 should have run (not PASS with no findings, since the
         # factory pattern should trigger an OVERENGINEERING finding).
         assert result.stage3_result in (StageResult.WARN, StageResult.FAIL)
-        assert len(result.redesign_findings) > 0, (
-            "RedesignAuditor did not produce any findings for overengineered code"
-        )
+        assert len(result.redesign_findings) > 0, "RedesignAuditor did not produce any findings for overengineered code"
         # At least one finding should be about overengineering.
         categories = [getattr(f, "category", "") for f in result.redesign_findings]
-        assert "OVERENGINEERING" in categories, (
-            f"Expected OVERENGINEERING finding, got: {categories}"
-        )
+        assert "OVERENGINEERING" in categories, f"Expected OVERENGINEERING finding, got: {categories}"
 
     def test_redesign_audit_can_be_disabled(self) -> None:
         """When enable_redesign_audit=False, Stage 3 is skipped."""
@@ -310,9 +287,7 @@ def make_widget():
     def test_redesign_auditor_wired_to_post_dispatch(self) -> None:
         """TwoStageReviewGate in PostDispatchPipeline has enable_redesign_audit."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, enable_redesign_audit=True
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, enable_redesign_audit=True)
             assert disp.post_dispatch.enable_redesign_audit is True
             assert disp.post_dispatch.two_stage_review_gate.enable_redesign_audit is True
             disp.shutdown()
@@ -338,9 +313,7 @@ class TestDispatchRBACIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Disable enterprise RBAC to avoid interference (it uses a
             # separate rbac_engine that would also check user_id).
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, rbac=rbac, enable_rbac=False
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, rbac=rbac, enable_rbac=False)
 
             # Viewer is not allowed to use "consensus" mode.
             result = disp.dispatch(
@@ -367,9 +340,7 @@ class TestDispatchRBACIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Disable enterprise RBAC to avoid interference (it uses a
             # separate rbac_engine that would also check user_id).
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, rbac=rbac, enable_rbac=False
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, rbac=rbac, enable_rbac=False)
 
             result = disp.dispatch(
                 "Write a function",
@@ -390,7 +361,8 @@ class TestDispatchRBACIntegration:
             assert disp._rbac is None
 
             result = disp.dispatch(
-                "Write a function", roles=["solo-coder"],
+                "Write a function",
+                roles=["solo-coder"],
                 user_id="anyone",
             )
             # permission_result should be None (no RBAC configured).
@@ -413,9 +385,7 @@ class TestDispatchAuditLoggerIntegration:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Disable enterprise RBAC to avoid interference when user_id is passed.
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, audit_logger=audit_logger, enable_rbac=False
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, audit_logger=audit_logger, enable_rbac=False)
 
             result = disp.dispatch(
                 "Write a function",
@@ -425,9 +395,7 @@ class TestDispatchAuditLoggerIntegration:
 
             assert result.success
             # Audit entries should be attached to the result.
-            assert len(result.audit_entries) >= 2, (
-                "Expected at least 2 audit entries (start + end)"
-            )
+            assert len(result.audit_entries) >= 2, "Expected at least 2 audit entries (start + end)"
             event_types = [e["event_type"] for e in result.audit_entries]
             assert "dispatch_start" in event_types
             assert "dispatch_end" in event_types
@@ -467,9 +435,7 @@ class TestDispatchAuditLoggerIntegration:
     def test_audit_logger_not_configured(self) -> None:
         """Without audit_logger configured, audit_entries is empty."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, enable_audit_logger=False
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, enable_audit_logger=False)
             result = disp.dispatch("Write a function", roles=["solo-coder"])
             assert result.audit_entries == []
             disp.shutdown()
@@ -509,6 +475,7 @@ class TestMCPCodegraphExplore:
             server.shutdown()
         finally:
             import shutil
+
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_codegraph_explore_returns_callers(self) -> None:
@@ -528,14 +495,13 @@ class TestMCPCodegraphExplore:
             q = graph.query()
             callers = q.find_callers("hello")
             caller_names = [c.name for c in callers]
-            assert "call_hello" in caller_names, (
-                f"Expected 'call_hello' in callers, got: {caller_names}"
-            )
+            assert "call_hello" in caller_names, f"Expected 'call_hello' in callers, got: {caller_names}"
 
             graph.close()
             server.shutdown()
         finally:
             import shutil
+
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_codegraph_explore_unavailable_returns_error(self) -> None:
@@ -585,6 +551,7 @@ class TestMCPCodegraphStatus:
             server.shutdown()
         finally:
             import shutil
+
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_codegraph_status_unavailable(self) -> None:
@@ -610,9 +577,7 @@ class TestBackwardCompatibility:
     def test_dispatch_without_v39_modules(self) -> None:
         """A standard dispatch with no V3.9 modules succeeds."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, enable_audit_logger=False
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, enable_audit_logger=False)
 
             result = disp.dispatch("Write a hello world function", roles=["solo-coder"])
 
@@ -629,9 +594,7 @@ class TestBackwardCompatibility:
     def test_to_dict_includes_v39_fields(self) -> None:
         """DispatchResult.to_dict() includes the new V3.9 fields."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            disp = MultiAgentDispatcher(
-                persist_dir=tmpdir, enable_audit_logger=False
-            )
+            disp = MultiAgentDispatcher(persist_dir=tmpdir, enable_audit_logger=False)
             result = disp.dispatch("Write a function", roles=["solo-coder"])
             d = result.to_dict()
             assert "permission_result" in d
@@ -731,6 +694,7 @@ class TestAllV39ModulesTogether:
             disp.shutdown()
         finally:
             import shutil
+
             shutil.rmtree(tmpdir, ignore_errors=True)
 
 

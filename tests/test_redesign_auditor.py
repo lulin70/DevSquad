@@ -54,19 +54,11 @@ class TestRedesignAuditorYagni(unittest.TestCase):
     def test_unused_import_detected(self) -> None:
         """Verify: unused import is flagged as YAGNI/LOW."""
         # Arrange
-        code = (
-            "import os\n"
-            "import json\n"
-            "\n"
-            "print(os.getcwd())\n"
-        )
+        code = "import os\nimport json\n\nprint(os.getcwd())\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
-        yagni_imports = [
-            f for f in findings
-            if f.category == "YAGNI" and "unused import" in f.current.lower()
-        ]
+        yagni_imports = [f for f in findings if f.category == "YAGNI" and "unused import" in f.current.lower()]
         self.assertEqual(len(yagni_imports), 1)
         self.assertIn("json", yagni_imports[0].current)
         self.assertEqual(yagni_imports[0].severity, "LOW")
@@ -74,35 +66,21 @@ class TestRedesignAuditorYagni(unittest.TestCase):
     def test_used_import_not_flagged(self) -> None:
         """Verify: used import is NOT flagged."""
         # Arrange
-        code = (
-            "import os\n"
-            "import json\n"
-            "\n"
-            "print(os.getcwd())\n"
-            "print(json.dumps({}))\n"
-        )
+        code = "import os\nimport json\n\nprint(os.getcwd())\nprint(json.dumps({}))\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
-        unused_import_findings = [
-            f for f in findings if "unused import" in f.current.lower()
-        ]
+        unused_import_findings = [f for f in findings if "unused import" in f.current.lower()]
         self.assertEqual(len(unused_import_findings), 0)
 
     def test_placeholder_pass_function_detected(self) -> None:
         """Verify: function with only 'pass' body is flagged."""
         # Arrange
-        code = (
-            "def not_implemented_func():\n"
-            "    pass\n"
-        )
+        code = "def not_implemented_func():\n    pass\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
-        placeholder_findings = [
-            f for f in findings
-            if f.category == "YAGNI" and "placeholder" in f.current.lower()
-        ]
+        placeholder_findings = [f for f in findings if f.category == "YAGNI" and "placeholder" in f.current.lower()]
         self.assertEqual(len(placeholder_findings), 1)
         self.assertIn("not_implemented_func", placeholder_findings[0].current)
         self.assertEqual(placeholder_findings[0].severity, "HIGH")
@@ -110,17 +88,11 @@ class TestRedesignAuditorYagni(unittest.TestCase):
     def test_placeholder_notimplementederror_function_detected(self) -> None:
         """Verify: function raising NotImplementedError is flagged."""
         # Arrange
-        code = (
-            "def future_function():\n"
-            "    raise NotImplementedError\n"
-        )
+        code = "def future_function():\n    raise NotImplementedError\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
-        placeholder_findings = [
-            f for f in findings
-            if f.category == "YAGNI" and "placeholder" in f.current.lower()
-        ]
+        placeholder_findings = [f for f in findings if f.category == "YAGNI" and "placeholder" in f.current.lower()]
         self.assertEqual(len(placeholder_findings), 1)
         self.assertIn("future_function", placeholder_findings[0].current)
 
@@ -132,10 +104,7 @@ class TestRedesignAuditorYagni(unittest.TestCase):
         # Act
         findings = self.auditor.audit(code)
         # Assert
-        critical_findings = [
-            f for f in findings
-            if f.category == "YAGNI" and f.severity == "CRITICAL"
-        ]
+        critical_findings = [f for f in findings if f.category == "YAGNI" and f.severity == "CRITICAL"]
         self.assertEqual(len(critical_findings), 1)
         self.assertIn("dead code", critical_findings[0].current.lower())
 
@@ -148,9 +117,7 @@ class TestRedesignAuditorYagni(unittest.TestCase):
         findings = self.auditor.audit(code)
         # Assert
         high_dead = [
-            f for f in findings
-            if f.category == "YAGNI" and f.severity == "HIGH"
-            and "dead code" in f.current.lower()
+            f for f in findings if f.category == "YAGNI" and f.severity == "HIGH" and "dead code" in f.current.lower()
         ]
         self.assertEqual(len(high_dead), 1)
 
@@ -164,11 +131,7 @@ class TestRedesignAuditorStdlib(unittest.TestCase):
     def test_custom_url_parser_detected(self) -> None:
         """Verify: custom parse_url function is flagged."""
         # Arrange
-        code = (
-            "def parse_url(url):\n"
-            "    parts = url.split('://')\n"
-            "    return parts\n"
-        )
+        code = "def parse_url(url):\n    parts = url.split('://')\n    return parts\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -180,11 +143,7 @@ class TestRedesignAuditorStdlib(unittest.TestCase):
     def test_custom_json_parser_class_detected(self) -> None:
         """Verify: custom JSONParser class is flagged."""
         # Arrange
-        code = (
-            "class CustomJsonParser:\n"
-            "    def parse(self, text):\n"
-            "        return eval(text)\n"
-        )
+        code = "class CustomJsonParser:\n    def parse(self, text):\n        return eval(text)\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -218,16 +177,9 @@ class TestRedesignAuditorDuplicate(unittest.TestCase):
     def test_duplicate_block_detected(self) -> None:
         """Verify: 3+ consecutive similar lines repeated are flagged."""
         # Arrange
-        block = (
-            "    result = process(data)\n"
-            "    result = transform(result)\n"
-            "    result = validate(result)\n"
-        )
+        block = "    result = process(data)\n    result = transform(result)\n    result = validate(result)\n"
         code = (
-            "def func_a(data):\n" + block +
-            "    return result\n\n"
-            "def func_b(data):\n" + block +
-            "    return result\n"
+            "def func_a(data):\n" + block + "    return result\n\ndef func_b(data):\n" + block + "    return result\n"
         )
         # Act
         findings = self.auditor.audit(code)
@@ -264,10 +216,7 @@ class TestRedesignAuditorDuplicate(unittest.TestCase):
     def test_duplicate_skips_blank_and_comment_blocks(self) -> None:
         """Verify: blocks of only blank/comment lines are not flagged."""
         # Arrange
-        code = (
-            "# comment 1\n# comment 2\n# comment 3\n"
-            "# comment 1\n# comment 2\n# comment 3\n"
-        )
+        code = "# comment 1\n# comment 2\n# comment 3\n# comment 1\n# comment 2\n# comment 3\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -321,12 +270,7 @@ class TestRedesignAuditorOverengineering(unittest.TestCase):
     def test_builder_pattern_detected(self) -> None:
         """Verify: Builder class is flagged as overengineering."""
         # Arrange
-        code = (
-            "class QueryBuilder:\n"
-            "    def select(self, *cols):\n"
-            "        self.cols = cols\n"
-            "        return self\n"
-        )
+        code = "class QueryBuilder:\n    def select(self, *cols):\n        self.cols = cols\n        return self\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -337,10 +281,7 @@ class TestRedesignAuditorOverengineering(unittest.TestCase):
     def test_excessive_parameters_detected(self) -> None:
         """Verify: function with >5 parameters is flagged."""
         # Arrange
-        code = (
-            "def configure_system(host, port, user, password, db, timeout, retry, debug):\n"
-            "    pass\n"
-        )
+        code = "def configure_system(host, port, user, password, db, timeout, retry, debug):\n    pass\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -352,10 +293,7 @@ class TestRedesignAuditorOverengineering(unittest.TestCase):
     def test_normal_parameter_count_not_flagged(self) -> None:
         """Verify: function with <=5 parameters is NOT flagged."""
         # Arrange
-        code = (
-            "def normal_func(a, b, c, d, e):\n"
-            "    return a + b + c + d + e\n"
-        )
+        code = "def normal_func(a, b, c, d, e):\n    return a + b + c + d + e\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -394,10 +332,7 @@ class TestRedesignAuditorEdgeCases(unittest.TestCase):
     def test_clean_code_returns_no_findings(self) -> None:
         """Verify: clean, minimal code returns no findings."""
         # Arrange
-        code = (
-            "def add(a, b):\n"
-            "    return a + b\n"
-        )
+        code = "def add(a, b):\n    return a + b\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -441,8 +376,7 @@ class TestRedesignAuditorCategorySet(unittest.TestCase):
         for code in codes:
             findings = self.auditor.audit(code)
             for f in findings:
-                self.assertIn(f.category, valid_categories,
-                              f"Invalid category: {f.category}")
+                self.assertIn(f.category, valid_categories, f"Invalid category: {f.category}")
 
     def test_all_findings_have_valid_severities(self) -> None:
         """Verify: every finding's severity is in the documented set."""
@@ -457,8 +391,7 @@ class TestRedesignAuditorCategorySet(unittest.TestCase):
         for code in codes:
             findings = self.auditor.audit(code)
             for f in findings:
-                self.assertIn(f.severity, valid_severities,
-                              f"Invalid severity: {f.severity}")
+                self.assertIn(f.severity, valid_severities, f"Invalid severity: {f.severity}")
 
 
 class TestRedesignAuditorPerformance(unittest.TestCase):
@@ -493,8 +426,7 @@ class TestRedesignAuditorPerformance(unittest.TestCase):
             self.auditor.audit(code)
         elapsed = time.perf_counter() - start
         # Assert
-        self.assertLess(elapsed, 5.0,
-                        f"10 audits took {elapsed:.3f}s (> 500ms per call)")
+        self.assertLess(elapsed, 5.0, f"10 audits took {elapsed:.3f}s (> 500ms per call)")
 
 
 class TestRedesignAuditorIntegration(unittest.TestCase):

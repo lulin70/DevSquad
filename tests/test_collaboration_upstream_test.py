@@ -319,7 +319,7 @@ class TestWorkflowEngine:
         assert step.result["custom"] is True
 
     def test_register_executor(self):
-        self.engine.register_executor("test_action", lambda s, v: {"registered": True})
+        self.engine.register_executor("test_action", lambda _s, _v: {"registered": True})
         assert "test_action" in self.engine.executors
 
     def test_workflow_status(self):
@@ -347,7 +347,7 @@ class TestWorkflowEngine:
 
     def test_default_step_executor_with_dispatcher(self):
         class MockDispatcher:
-            def dispatch(self, task_description, roles=None):
+            def dispatch(self, task_description, roles=None):  # noqa: ARG002
                 class R:
                     success = True
                     summary = "Mock dispatch result"

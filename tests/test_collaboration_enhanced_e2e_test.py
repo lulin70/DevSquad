@@ -11,6 +11,7 @@ Coverage:
 """
 
 import json
+import os
 import shutil
 import tempfile
 import threading
@@ -77,7 +78,7 @@ class TestT1ScratchpadCRUD:
         entry = ScratchpadEntry(
             worker_id="w1", role_id="arch", content="性能问题", confidence=0.9, tags=["perf", "database"]
         )
-        eid = sp.write(entry)
+        sp.write(entry)
         result = sp.read()[0]
         assert result.confidence == 0.9
         assert result.tags == ["perf", "database"]
@@ -281,7 +282,7 @@ class TestT3StatsSummaryCapacityPersistence:
         """get_conflicts 仅返回活跃冲突"""
         sp = Scratchpad()
         e1 = sp.write(ScratchpadEntry(entry_type=EntryType.CONFLICT, content="活跃冲突"))
-        e2 = sp.write(ScratchpadEntry(entry_type=EntryType.CONFLICT, content="另一个冲突"))
+        sp.write(ScratchpadEntry(entry_type=EntryType.CONFLICT, content="另一个冲突"))
         sp.resolve(e1)
         conflicts = sp.get_conflicts()
         assert len(conflicts) == 1
@@ -341,10 +342,6 @@ class TestT3StatsSummaryCapacityPersistence:
         assert resolved_ids[0] not in sp._entries
 
 
-# Need to add os import at the top
-import os
-
-
 class TestT4WorkerCreateExecute:
     """T4: Worker Create & Execute (US-2.1~2.2)"""
 
@@ -394,7 +391,7 @@ class TestT4WorkerCreateExecute:
         """execute 异常处理"""
 
         class FailingWorker(Worker):
-            def _do_work(self, context):
+            def _do_work(self, _context):
                 raise RuntimeError("模拟执行失败")
 
         sp = Scratchpad()
@@ -433,7 +430,7 @@ class TestT5WorkerInteraction:
         sp = Scratchpad()
         w = Worker("sec-1", "security", "", sp)
         target_eid = sp.write(ScratchpadEntry(content="目标建议"))
-        cid = w.write_conflict("安全风险", target_eid, reason="未加密存储")
+        w.write_conflict("安全风险", target_eid, reason="未加密存储")
         conflict = sp.read(entry_type=EntryType.CONFLICT)[0]
         assert target_eid in conflict.tags
         assert "未加密存储" in conflict.content
@@ -820,7 +817,7 @@ class TestBoundaryException:
     def test_bt_1_empty_content(self):
         """空内容条目"""
         sp = Scratchpad()
-        eid = sp.write(ScratchpadEntry(content=""))
+        sp.write(ScratchpadEntry(content=""))
         result = sp.read()[0]
         assert result.content == ""
 
@@ -835,7 +832,7 @@ class TestBoundaryException:
         """Worker execute 异常"""
 
         class BadWorker(Worker):
-            def _do_work(self, ctx):
+            def _do_work(self, _ctx):
                 raise ValueError("boom")
 
         sp = Scratchpad()
@@ -991,7 +988,7 @@ class TestIntegration:
         sp = Scratchpad()
         w1 = Worker("w1", "arch", "", sp)
         w2 = Worker("w2", "test", "", sp)
-        eid = w1.write_finding(ScratchpadEntry(entry_type=EntryType.FINDING, content="架构发现: 需要拆分服务"))
+        w1.write_finding(ScratchpadEntry(entry_type=EntryType.FINDING, content="架构发现: 需要拆分服务"))
         results = w2.read_scratchpad(query="架构")
         assert len(results) >= 1
 
@@ -999,7 +996,7 @@ class TestIntegration:
         """W→W 问答闭环"""
         sp = Scratchpad()
         w_ui = Worker("ui", "ui-designer", "", sp)
-        w_pm = Worker("pm", "product-manager", "", sp)
+        Worker("pm", "product-manager", "", sp)
         w_ui.write_question("需要暗色模式吗?", to_roles=["product-manager"])
         notifs = w_ui.get_pending_notifications()
         assert len(notifs) == 1
@@ -1157,7 +1154,7 @@ class TestE2EUserJourneys:
         findings = sp.read(query="API")
         assert len(findings) == 1
         ref = Reference(ReferenceType.EXTENDS, e1, "建议添加 Redis 缓存")
-        e2 = sp.write(
+        sp.write(
             ScratchpadEntry(
                 worker_id="dev-b",
                 role_id="coder",
@@ -1261,8 +1258,8 @@ class TestE2EUserJourneys:
         roles = [{"role_id": f"role-{i}"} for i in range(20)]
         plan = coord.plan_task("压力测试: 设计企业级微服务架构", roles)
         start = time.time()
-        workers = coord.spawn_workers(plan)
-        spawn_time = time.time() - start
+        coord.spawn_workers(plan)
+        time.time() - start
         result = coord.execute_plan(plan)
         exec_time = time.time() - start
         assert result.completed_tasks == 20
@@ -1283,11 +1280,11 @@ class TestE2EUserJourneys:
                 {"role_id": "bad-worker"},
             ],
         )
-        workers = coord.spawn_workers(plan)
+        coord.spawn_workers(plan)
 
         # Make one worker fail
         class BrokenWorker(Worker):
-            def _do_work(self, ctx):
+            def _do_work(self, _ctx):
                 raise RuntimeError("intentional failure")
 
         bad_w = BrokenWorker("broken", "bad-worker", "", coord.scratchpad)

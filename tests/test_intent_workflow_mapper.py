@@ -381,7 +381,7 @@ class TestEdgeCases:
         result_lower = mapper.detect_intent("fix bug", lang="en")
         result_upper = mapper.detect_intent("FIX BUG", lang="en")
         assert result_lower is not None
-        result_upper is not None
+        assert result_upper is not None
         assert result_lower.intent_type == result_upper.intent_type
 
     def test_partial_keyword_match(self):

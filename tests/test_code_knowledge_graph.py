@@ -189,12 +189,8 @@ class TestCodeGraphStorage(unittest.TestCase):
         Expected: query_callers("bar") returns the foo symbol.
         """
         # Arrange
-        self.storage.upsert_symbol(
-            SymbolInfo("foo", "function", "/tmp/x.py", 1, 5, "", "foo()")
-        )
-        self.storage.upsert_symbol(
-            SymbolInfo("bar", "function", "/tmp/y.py", 1, 5, "", "bar()")
-        )
+        self.storage.upsert_symbol(SymbolInfo("foo", "function", "/tmp/x.py", 1, 5, "", "foo()"))
+        self.storage.upsert_symbol(SymbolInfo("bar", "function", "/tmp/y.py", 1, 5, "", "bar()"))
         edge = CallEdge(caller="foo", callee="bar", file_path="/tmp/x.py", line=3)
 
         # Act
@@ -215,9 +211,7 @@ class TestCodeGraphStorage(unittest.TestCase):
         """
         # Arrange
         for name in ("foo", "bar", "baz"):
-            self.storage.upsert_symbol(
-                SymbolInfo(name, "function", f"/tmp/{name}.py", 1, 5, "", f"{name}()")
-            )
+            self.storage.upsert_symbol(SymbolInfo(name, "function", f"/tmp/{name}.py", 1, 5, "", f"{name}()"))
         self.storage.upsert_call_edge(CallEdge("foo", "bar", "/tmp/foo.py", 2))
         self.storage.upsert_call_edge(CallEdge("foo", "baz", "/tmp/foo.py", 3))
 
@@ -235,9 +229,7 @@ class TestCodeGraphStorage(unittest.TestCase):
         Expected: query_dependencies("/tmp/a.py") returns the dependency.
         """
         # Arrange
-        dep = DependencyEdge(
-            source_module="/tmp/a.py", target_module="os", import_type="import"
-        )
+        dep = DependencyEdge(source_module="/tmp/a.py", target_module="os", import_type="import")
 
         # Act
         inserted = self.storage.upsert_dependency(dep)
@@ -287,11 +279,13 @@ class TestCodeGraphStorage(unittest.TestCase):
         Expected: delete_symbols_for_file("/tmp/a.py") returns 2, only b.py symbol remains.
         """
         # Arrange
-        self.storage.upsert_symbols([
-            SymbolInfo("f1", "function", "/tmp/a.py", 1, 5, "", ""),
-            SymbolInfo("f2", "function", "/tmp/a.py", 6, 10, "", ""),
-            SymbolInfo("f3", "function", "/tmp/b.py", 1, 5, "", ""),
-        ])
+        self.storage.upsert_symbols(
+            [
+                SymbolInfo("f1", "function", "/tmp/a.py", 1, 5, "", ""),
+                SymbolInfo("f2", "function", "/tmp/a.py", 6, 10, "", ""),
+                SymbolInfo("f3", "function", "/tmp/b.py", 1, 5, "", ""),
+            ]
+        )
 
         # Act
         deleted = self.storage.delete_symbols_for_file("/tmp/a.py")
@@ -309,11 +303,13 @@ class TestCodeGraphStorage(unittest.TestCase):
         Expected: delete_edges_for_file("/tmp/a.py") returns 2.
         """
         # Arrange
-        self.storage.upsert_call_edges([
-            CallEdge("f1", "f2", "/tmp/a.py", 1),
-            CallEdge("f1", "f3", "/tmp/a.py", 2),
-            CallEdge("f4", "f5", "/tmp/b.py", 1),
-        ])
+        self.storage.upsert_call_edges(
+            [
+                CallEdge("f1", "f2", "/tmp/a.py", 1),
+                CallEdge("f1", "f3", "/tmp/a.py", 2),
+                CallEdge("f4", "f5", "/tmp/b.py", 1),
+            ]
+        )
 
         # Act
         deleted = self.storage.delete_edges_for_file("/tmp/a.py")
@@ -328,14 +324,14 @@ class TestCodeGraphStorage(unittest.TestCase):
         Expected: get_stats returns dict with matching counts.
         """
         # Arrange
-        self.storage.upsert_symbols([
-            SymbolInfo("f1", "function", "/tmp/a.py", 1, 5, "", ""),
-            SymbolInfo("f2", "function", "/tmp/b.py", 1, 5, "", ""),
-        ])
-        self.storage.upsert_call_edge(CallEdge("f1", "f2", "/tmp/a.py", 2))
-        self.storage.upsert_dependency(
-            DependencyEdge("/tmp/a.py", "os", "import")
+        self.storage.upsert_symbols(
+            [
+                SymbolInfo("f1", "function", "/tmp/a.py", 1, 5, "", ""),
+                SymbolInfo("f2", "function", "/tmp/b.py", 1, 5, "", ""),
+            ]
         )
+        self.storage.upsert_call_edge(CallEdge("f1", "f2", "/tmp/a.py", 2))
+        self.storage.upsert_dependency(DependencyEdge("/tmp/a.py", "os", "import"))
         self.storage.upsert_file("/tmp/a.py", "hash123", 10)
 
         # Act
@@ -354,11 +350,13 @@ class TestCodeGraphStorage(unittest.TestCase):
         Expected: query_symbols_by_type("function") returns 2, "class" returns 1.
         """
         # Arrange
-        self.storage.upsert_symbols([
-            SymbolInfo("f1", "function", "/tmp/a.py", 1, 5, "", ""),
-            SymbolInfo("f2", "function", "/tmp/b.py", 1, 5, "", ""),
-            SymbolInfo("Cls", "class", "/tmp/c.py", 1, 20, "", ""),
-        ])
+        self.storage.upsert_symbols(
+            [
+                SymbolInfo("f1", "function", "/tmp/a.py", 1, 5, "", ""),
+                SymbolInfo("f2", "function", "/tmp/b.py", 1, 5, "", ""),
+                SymbolInfo("Cls", "class", "/tmp/c.py", 1, 20, "", ""),
+            ]
+        )
 
         # Act
         funcs = self.storage.query_symbols_by_type("function")
@@ -442,12 +440,8 @@ class TestCodeGraphStorage(unittest.TestCase):
         # Arrange
         project = Path(self.tmpdir.name) / "syntax_project"
         project.mkdir()
-        (project / "good.py").write_text(
-            'def valid_func():\n    """Valid."""\n    return True\n', encoding="utf-8"
-        )
-        (project / "bad.py").write_text(
-            "def broken(:\n    pass\n", encoding="utf-8"
-        )
+        (project / "good.py").write_text('def valid_func():\n    """Valid."""\n    return True\n', encoding="utf-8")
+        (project / "bad.py").write_text("def broken(:\n    pass\n", encoding="utf-8")
         graph = CodeKnowledgeGraph(Path(self.tmpdir.name) / "syntax.db")
 
         # Act
@@ -470,9 +464,7 @@ class TestCodeGraphStorage(unittest.TestCase):
         # Arrange
         project = Path(self.tmpdir.name) / "empty_file_project"
         project.mkdir()
-        (project / "empty.py").write_text(
-            '"""Empty module."""\n', encoding="utf-8"
-        )
+        (project / "empty.py").write_text('"""Empty module."""\n', encoding="utf-8")
         graph = CodeKnowledgeGraph(Path(self.tmpdir.name) / "empty_file.db")
 
         # Act
@@ -591,9 +583,7 @@ class TestCodeGraphStorage(unittest.TestCase):
         # Arrange
         db_path = Path(self.tmpdir.name) / "persistence.db"
         storage1 = CodeGraphStorage(db_path)
-        storage1.upsert_symbol(
-            SymbolInfo("persistent_func", "function", "/tmp/p.py", 1, 5, "", "persistent_func()")
-        )
+        storage1.upsert_symbol(SymbolInfo("persistent_func", "function", "/tmp/p.py", 1, 5, "", "persistent_func()"))
         storage1.close()
 
         # Act

@@ -145,15 +145,11 @@ class TestE2ECodeKnowledgeGraph:
             )
 
             # Dispatch should succeed.
-            assert result.success, (
-                f"Dispatch should succeed, errors: {result.errors}"
-            )
+            assert result.success, f"Dispatch should succeed, errors: {result.errors}"
 
             # The graph's query method should have been called at least once
             # by the worker's _query_code_graph_for_task method.
-            assert query_call_count[0] >= 1, (
-                "CodeKnowledgeGraph.query() was not called during dispatch"
-            )
+            assert query_call_count[0] >= 1, "CodeKnowledgeGraph.query() was not called during dispatch"
 
             # The coordinator should have the code graph attached.
             assert disp.coordinator.code_graph is graph
@@ -193,9 +189,7 @@ class TestE2ECodeKnowledgeGraph:
 
             assert result.success
             # Worker results should be present.
-            assert len(result.worker_results) >= 1, (
-                "Expected at least one worker result"
-            )
+            assert len(result.worker_results) >= 1, "Expected at least one worker result"
             # The graph should have been queried (verified by successful
             # dispatch with graph attached).
             assert disp.coordinator.code_graph is graph
@@ -247,9 +241,7 @@ class TestE2ERBACAudit:
             )
 
             # Dispatch should fail.
-            assert not result.success, (
-                "Dispatch should fail for unauthorized user"
-            )
+            assert not result.success, "Dispatch should fail for unauthorized user"
 
             # permission_result should be populated and denied.
             assert result.permission_result is not None
@@ -259,9 +251,7 @@ class TestE2ERBACAudit:
             # audit_entries should contain permission_denied event.
             assert len(result.audit_entries) >= 1
             event_types = [e["event_type"] for e in result.audit_entries]
-            assert "permission_denied" in event_types, (
-                f"Expected permission_denied in audit events, got: {event_types}"
-            )
+            assert "permission_denied" in event_types, f"Expected permission_denied in audit events, got: {event_types}"
 
             # The audit chain should be valid.
             assert audit.verify_chain(), "Audit chain should be valid"
@@ -303,9 +293,7 @@ class TestE2ERBACAudit:
             )
 
             # Dispatch should succeed.
-            assert result.success, (
-                f"Dispatch should succeed for authorized user, errors: {result.errors}"
-            )
+            assert result.success, f"Dispatch should succeed for authorized user, errors: {result.errors}"
 
             # permission_result should be populated and allowed.
             assert result.permission_result is not None
@@ -418,18 +406,13 @@ class TestE2EAllV39Features:
             )
 
             # Dispatch should succeed.
-            assert result.success, (
-                f"Full dispatch with all V3.9 features should succeed, "
-                f"errors: {result.errors}"
-            )
+            assert result.success, f"Full dispatch with all V3.9 features should succeed, errors: {result.errors}"
 
             # CodeKnowledgeGraph should be attached to the coordinator.
             assert disp.coordinator.code_graph is graph
 
             # MicroTaskPlan should be populated.
-            assert result.micro_task_plan is not None, (
-                "Expected micro_task_plan to be populated"
-            )
+            assert result.micro_task_plan is not None, "Expected micro_task_plan to be populated"
 
             # RBAC permission_result should be populated and allowed.
             assert result.permission_result is not None
@@ -538,9 +521,7 @@ class TestE2EPromptDials:
         - The exhaustive prompt contains "exhaustive".
         - The two prompts are different lengths.
         """
-        assembler = PromptAssembler(
-            role_id="product-manager", base_prompt="You are a product manager."
-        )
+        assembler = PromptAssembler(role_id="product-manager", base_prompt="You are a product manager.")
         task = "Write a user story for the login feature"
 
         terse = assembler.assemble(
@@ -574,9 +555,7 @@ class TestE2EPromptDials:
         - The prompt contains "innovative" or "non-traditional".
         - dials_applied metadata is True.
         """
-        assembler = PromptAssembler(
-            role_id="product-manager", base_prompt="You are a product manager."
-        )
+        assembler = PromptAssembler(role_id="product-manager", base_prompt="You are a product manager.")
         prompt = assembler.assemble(
             task_description="Brainstorm a new onboarding flow",
             dials=PromptDials(verbosity=3, creativity=5, risk_tolerance=3),
@@ -598,9 +577,7 @@ class TestE2EPromptDials:
         - But the instruction length equals the no-dials baseline
           (empty fragment is prepended).
         """
-        assembler = PromptAssembler(
-            role_id="product-manager", base_prompt="You are a product manager."
-        )
+        assembler = PromptAssembler(role_id="product-manager", base_prompt="You are a product manager.")
         task = "Write a user story"
 
         baseline = assembler.assemble(task_description=task)
@@ -635,12 +612,8 @@ class TestE2EPromptDials:
                 roles=["product-manager"],
             )
 
-            assert result.success, (
-                f"Dispatch with dials should succeed, errors: {result.errors}"
-            )
-            assert len(result.worker_results) >= 1, (
-                "Expected at least one worker result"
-            )
+            assert result.success, f"Dispatch with dials should succeed, errors: {result.errors}"
+            assert len(result.worker_results) >= 1, "Expected at least one worker result"
             disp.shutdown()
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
@@ -736,9 +709,7 @@ def test_build_widget():
         )
 
         # Redesign findings should be non-empty.
-        assert len(result.redesign_findings) > 0, (
-            "Expected redesign findings for overengineered code"
-        )
+        assert len(result.redesign_findings) > 0, "Expected redesign findings for overengineered code"
 
         # At least one finding should be STDLIB or OVERENGINEERING.
         categories = [getattr(f, "category", "") for f in result.redesign_findings]
@@ -749,20 +720,12 @@ def test_build_widget():
         # Each finding should have a valid severity and non-empty suggestion.
         valid_severities = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
         for finding in result.redesign_findings:
-            assert finding.severity in valid_severities, (
-                f"Invalid severity: {finding.severity}"
-            )
-            assert finding.suggested, (
-                f"Finding suggestion should not be empty: {finding}"
-            )
-            assert finding.saving_lines >= 0, (
-                f"Saving lines should be non-negative: {finding.saving_lines}"
-            )
+            assert finding.severity in valid_severities, f"Invalid severity: {finding.severity}"
+            assert finding.suggested, f"Finding suggestion should not be empty: {finding}"
+            assert finding.saving_lines >= 0, f"Saving lines should be non-negative: {finding.saving_lines}"
 
         # Overall should pass (no critical findings from Stage 3).
-        assert result.overall_passed, (
-            "Overall review should pass (no critical redesign findings)"
-        )
+        assert result.overall_passed, "Overall review should pass (no critical redesign findings)"
 
     def test_three_stage_review_clean_code_passes_all(self) -> None:
         """Verify: clean code has no OVERENGINEERING or STDLIB findings.
@@ -827,9 +790,7 @@ def test_compute_sum():
         )
 
         # Overall should pass (no critical findings).
-        assert result.overall_passed, (
-            "Overall review should pass on clean code"
-        )
+        assert result.overall_passed, "Overall review should pass on clean code"
 
     def test_redesign_audit_disabled_skips_stage3(self) -> None:
         """Verify: when redesign audit is disabled, Stage 3 is skipped.
@@ -856,9 +817,7 @@ def test_compute_sum():
         assert result.stage3_result == StageResult.PASS, (
             f"Stage 3 should be PASS when disabled, got {result.stage3_result}"
         )
-        assert len(result.redesign_findings) == 0, (
-            "Expected no redesign findings when audit disabled"
-        )
+        assert len(result.redesign_findings) == 0, "Expected no redesign findings when audit disabled"
 
 
 # ---------------------------------------------------------------------------
@@ -896,10 +855,7 @@ class TestE2EBackwardCompatibility:
             )
 
             # Dispatch should succeed.
-            assert result.success, (
-                f"Dispatch without V3.9 modules should succeed, "
-                f"errors: {result.errors}"
-            )
+            assert result.success, f"Dispatch without V3.9 modules should succeed, errors: {result.errors}"
 
             # V3.9 optional fields should be None/empty.
             assert result.permission_result is None
@@ -1052,9 +1008,7 @@ class TestE2EMCPCodegraphTools:
             q = graph.query()
             callers = q.find_callers("hello")
             caller_names = [c.name for c in callers]
-            assert "call_hello" in caller_names, (
-                f"Expected 'call_hello' in callers, got: {caller_names}"
-            )
+            assert "call_hello" in caller_names, f"Expected 'call_hello' in callers, got: {caller_names}"
 
             graph.close()
             server.shutdown()
@@ -1085,9 +1039,7 @@ class TestE2EMCPCodegraphTools:
             q = graph.query()
             callees = q.find_callees("call_hello")
             callee_names = [c.name for c in callees]
-            assert "hello" in callee_names, (
-                f"Expected 'hello' in callees of call_hello, got: {callee_names}"
-            )
+            assert "hello" in callee_names, f"Expected 'hello' in callees of call_hello, got: {callee_names}"
 
             graph.close()
             server.shutdown()
@@ -1124,9 +1076,7 @@ class TestE2EMCPCodegraphTools:
             assert len(call_graph["edges"]) >= 1
             # The edge call_hello → hello should exist.
             edge_pairs = [(e["caller"], e["callee"]) for e in call_graph["edges"]]
-            assert ("call_hello", "hello") in edge_pairs, (
-                f"Expected edge (call_hello, hello), got: {edge_pairs}"
-            )
+            assert ("call_hello", "hello") in edge_pairs, f"Expected edge (call_hello, hello), got: {edge_pairs}"
 
             graph.close()
             server.shutdown()

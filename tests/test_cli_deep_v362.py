@@ -19,7 +19,6 @@ Usage:
     pytest tests/test_cli_deep_v362.py -v --cov=scripts/cli --cov-report=term-missing
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -32,7 +31,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import importlib.util
 
-spec = importlib.util.spec_from_file_location("cli_module", os.path.join(os.path.dirname(__file__), "..", "scripts", "cli.py"))
+spec = importlib.util.spec_from_file_location(
+    "cli_module", os.path.join(os.path.dirname(__file__), "..", "scripts", "cli.py")
+)
 cli_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cli_module)
 
@@ -189,9 +190,10 @@ class TestDemoCommand:
         mock_dispatcher.dispatch.return_value = mock_result
         mock_dispatcher_class.return_value = mock_dispatcher
 
-        with patch("scripts.collaboration.intent_workflow_mapper.IntentWorkflowMapper") as mock_intent, patch(
-            "scripts.collaboration.input_validator.InputValidator"
-        ) as mock_security:
+        with (
+            patch("scripts.collaboration.intent_workflow_mapper.IntentWorkflowMapper") as mock_intent,
+            patch("scripts.collaboration.input_validator.InputValidator") as mock_security,
+        ):
             mock_intent_mapper = MagicMock()
             mock_intent_result = MagicMock()
             mock_intent_result.intent_type = "test"
@@ -297,7 +299,7 @@ class TestSaveConfig:
             assert result is True
             assert os.path.exists(temp_path)
 
-            with open(temp_path, "r") as f:
+            with open(temp_path) as f:
                 content = f.read()
                 assert "project_type" in content
                 assert "web-api" in content
@@ -317,9 +319,7 @@ class TestSaveConfig:
             result = _save_config(config, temp_path)
             assert result is False
         finally:
-            if os.path.islink(temp_path):
-                os.unlink(temp_path)
-            elif os.path.exists(temp_path):
+            if os.path.islink(temp_path) or os.path.exists(temp_path):
                 os.unlink(temp_path)
 
 
@@ -398,13 +398,13 @@ class TestConfigurationEdgeCases:
 
     def test_lifecycle_preset_descriptions_are_strings(self):
         """Verify all lifecycle descriptions are non-empty strings."""
-        for cmd, preset in LIFECYCLE_PRESETS.items():
+        for _cmd, preset in LIFECYCLE_PRESETS.items():
             assert isinstance(preset["description"], str)
             assert len(preset["description"]) > 0
 
     def test_lifecycle_preset_roles_are_lists(self):
         """Verify all lifecycle required_roles are lists."""
-        for cmd, preset in LIFECYCLE_PRESETS.items():
+        for _cmd, preset in LIFECYCLE_PRESETS.items():
             assert isinstance(preset["required_roles"], list)
             assert len(preset["required_roles"]) > 0
 
@@ -417,7 +417,7 @@ class TestBackendCreationEdgeCases:
         """Test OpenAI backend uses environment variable fallbacks."""
         with patch("scripts.collaboration.llm_backend.create_backend") as mock_create:
             mock_create.return_value = MagicMock()
-            result = _create_backend("openai", base_url="https://custom.api.com", model="gpt-4-turbo")
+            _create_backend("openai", base_url="https://custom.api.com", model="gpt-4-turbo")
 
             call_kwargs = mock_create.call_args[1]
             assert call_kwargs.get("base_url") == "https://custom.api.com"
@@ -428,7 +428,7 @@ class TestBackendCreationEdgeCases:
         """Test Anthropic backend accepts custom model parameter."""
         with patch("scripts.collaboration.llm_backend.create_backend") as mock_create:
             mock_create.return_value = MagicMock()
-            result = _create_backend("anthropic", model="claude-3-opus")
+            _create_backend("anthropic", model="claude-3-opus")
 
             call_kwargs = mock_create.call_args[1]
             assert call_kwargs.get("model") == "claude-3-opus"

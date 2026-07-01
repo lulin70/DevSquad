@@ -7,73 +7,46 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
-## [3.9.2] - 2026-06-30 (技术债清零：mypy/bandit/Mixin)
+## [3.9.2] - 2026-07-01
 
-### 代码质量 — 三项技术债修复（V3.10.0 目标提前达成）
+### 代码质量 — 三项技术债清零（V3.10.0 目标提前达成）
+- **mypy full baseline 112→0 errors**：5 个并行 agent 分组修复 27 个文件；关键修复包括 `from __future__ import annotations` 解决 TYPE_CHECKING 运行时 NameError、`cast("...", ...)` 字符串前向引用。
+- **bandit 11 个 Low 级告警清零**：全误报/合法使用，加 nosec 注释。
+- **TD-068 Mixin 类爆炸风险评估 → 降级关闭**：24 个 Mixin 职责单一，非类爆炸；新增 TD-070 跟踪 PostDispatch 直接实例化测试缺口。
+- **skills/ 纳入 mypy 检查**：补齐 skills/ 下全部 handler 类型注解。
+- **async 返回类型注解覆盖率 100%**：153/153 async 函数带返回注解。
 
-- **mypy full baseline 112→0 errors**（5 个并行 agent + 手动修复 TYPE_CHECKING bug）：
-  - Group A (29→0): `cli_dispatch.py`、`cli_utils.py`、`cli_lifecycle.py`、`cli/cli_visual.py` — 添加返回类型注解、None 检查、ternary 简化
-  - Group B (21→0): `api_server.py`、`mcp_server.py` — 中间件参数类型 `Callable[[Request], Awaitable[Response]]`、`cast(Response, ...)` 修复 no-any-return
-  - Group C (24→0): `api/routes/dispatch.py`、`lifecycle.py`、`metrics_gates.py` — `from __future__ import annotations` 修复 TYPE_CHECKING 运行时 NameError、`cast("ShortcutLifecycleAdapter", ...)` 字符串前向引用
-  - Group D (26→0): `tools/rule_manager.py`、`tools/add_personal_rule.py`、`generate_benchmark_report.py`、`benchmark_real_llm.py`、`benchmark_async_dispatch.py`、`tools/add_rule_native.py` — 返回类型注解、类型收窄
-  - Group E (12→0): `history_manager.py`、`dashboard/metrics_views.py`、`dashboard/lifecycle_views.py`、`auth.py`、`dashboard/components.py` — `_conn` property 集中 None 检查、`Literal` 类型注解、修复 broken import
-  - **关键 bug 修复**：`dispatch.py` 中 `MultiAgentDispatcher` 移至 `TYPE_CHECKING` 块后，模块级 `_global_dispatcher: MultiAgentDispatcher | None = None` 运行时注解触发 `NameError`，导致 `test_api_server_v362.py` 收集失败。修复：添加 `from __future__ import annotations` 使注解延迟求值。
-
-- **bandit 11 个 Low 级告警清零**（全误报/合法使用，加 nosec 注释）：
-  - B105（emoji ✅/阈值 100.0/比率 4.0/enum "pass"/regex pattern 被误认为密码）→ 6 处 nosec
-  - B403（pickle 用于受信本地缓存）→ 3 处 nosec
-  - B110/B112（try/except/pass/continue 合法错误处理）→ 2 处 nosec
-  - 注：round6 报告"49 个 Low 告警"为过期数据，pyproject.toml 已 skips B101/B311/B404/B603（大头），实际仅 11 个
-
-- **TD-068 Mixin 类爆炸风险评估 → 降级关闭**（`docs/assessments/MIXIN_EVALUATION_TD068.md`）：
-  - 24 个 Mixin 分布于 35 文件/7328 行，单文件最大 439 行，每组 2-6 个 Mixin
-  - 6 组（Dispatcher/Memory/PostDispatch/PromptAssembler/UETest/WorkflowEngine）职责单一、耦合度低、内聚性高
-  - 结论：非类爆炸，是合理的关注点分离；真正问题是 PostDispatch 缺直接实例化测试（新增 TD-070）
-
-### CI/CD — mypy baseline 升级为阻断门禁
-- **test.yml mypy baseline 115→0 阻断**（`.github/workflows/test.yml`）：原 baseline=115 非阻断模式升级为 0-error 阻断策略，`continue-on-error: true` 移除。V3.10.0 目标"<50"提前超额达成。
-
-### 验证
-- pytest 全量：2856 passed / 0 failed / 3 skipped
-- mypy scripts/ 全量：0 errors（原 112 errors）
-- ruff check：All checks passed
-- bandit：0 issues（原 11 Low）
-
-## [3.9.2] - 2026-06-30 (发布链路修复)
-
-### 安全 — P2 cookie 安全配置
-- **cookie Secure/HttpOnly/SameSite 显式配置**（`config/deployment.yaml` + `scripts/auth.py`）：在 `deployment.yaml` cookie 节添加 `secure`/`httponly`/`samesite` 属性；`auth.py._validate_config_security` 新增对三项属性的验证告警（secure=false/httponly=false/samesite=None/无效值）。production 环境强制 `secure=true`、`samesite=Strict`、`httponly=true`。
-- **api_security production 强制开启**（`config/deployment.yaml`）：production 环境覆盖中显式 `api_security.enabled: true`，避免生产环境默认关闭 API Key 鉴权。
+### 安全 — P0/P1/P2 修复
+- **RBAC fail-open 修复**：生产模式 `_rbac is None` 时 fail-closed。
+- **require_auth 死代码删除**。
+- **cookie Secure/HttpOnly/SameSite 显式配置 + 生产模式代码层强制**。
+- **api_security production 强制 enabled=true**（代码层合并 environments 覆盖）。
+- **API Key 比较改用 `hmac.compare_digest`**，防御时序攻击。
+- **密码存储文档同步 PBKDF2-HMAC-SHA256**。
+- **Prompt injection 检测后安全模板降级**，不再直接传播恶意输入。
 
 ### CI/CD — 发布链路修复（硬约束）
-- **创建 release.yml**（`.github/workflows/release.yml`）：新增专用发布 workflow，由 `v*` tag 触发，含 3 个 jobs：(1) `build` — 版本一致性检查 + tag版本==canonical版本==wheel版本 三重验证；(2) `publish-pypi` — PyPI Trusted Publishing (OIDC) + 发布后 `pip install` 验证；(3) `github-release` — 自动生成 Release Notes。满足硬约束"release.yml 必须包含 publish-pypi job"。
-- **创建 .pre-commit-config.yaml**（根目录）：本地提交前检查（ruff check + ruff format + mypy collaboration + 版本一致性），镜像 CI lint job，使本地捕获先于 CI。
-- **清理 CI 僵尸配置**（`.github/workflows/test.yml`）：移除 `--ignore=tests/manual`（目录实际不存在，round6 报告 P3 项已失效）。
+- **创建 release.yml**：build + publish-pypi (OIDC) + github-release 三 job。
+- **创建 .pre-commit-config.yaml**：本地 ruff + ruff-format + mypy 门禁。
+- **test.yml timeout-minutes**：5 个 job 全部加超时。
+- **Dockerfile 增加 `ARG VERSION=3.9.2`**。
+- **生成 requirements-dev.lock，修复 requirements.lock 核心依赖锁定**。
 
 ### 测试
-- **cookie 安全验证测试**（`tests/test_auth_phase5.py`）：新增 3 个测试 — `test_detect_insecure_cookie_flags`（验证 insecure 配置触发告警）、`test_secure_cookie_flags_no_warning`（验证 secure 配置无告警）、`test_invalid_samesite_value_warns`（验证无效 SameSite 值告警）。
+- **cookie 安全验证测试**（+3）。
+- **RBAC fail-closed 测试增强**（+1）。
+- **mcp_server 测试同步** 模块/测试数。
+- **新增 `tests/test_version.py`、`test_docker_deployment.py`、`test_data_backup.py`**。
+- **核心编排模块覆盖率提升**：dispatcher 83.4%、consensus 100%、整体 68.15%。
 
 ### 验证
-- pytest 全量：2856 passed / 0 failed（+3 cookie 测试）
-- mypy collaboration（阻断）：0 errors
-- ruff check：All checks passed
+- pytest 全量（非 e2e/integration/slow/benchmark）：2940 passed / 3 skipped / 34 deselected
+- pytest 收集总数：2977 tests
+- mypy scripts/ + skills/：0 errors
+- ruff check scripts/ skills/：All checks passed
 - 版本一致性：15/15 passed
 
-## [3.9.2] - 2026-06-29 (安全修复)
-
-### 安全 — P0/P1 修复
-- **RBAC fail-open 修复**（`dispatcher.py`）：当 `self._rbac is None` 且 `development_mode=False`（生产模式）时，按 `rbac_fail_closed=True` 拒绝调度（HC-1 硬约束）。此前 `_rbac is None` 时整个 RBAC 检查块被跳过，违反"禁止 fail-open 直接执行"。API 路由 `dispatch.py` 显式设 `development_mode=False` 启用生产模式 fail-closed。
-- **require_auth 死代码删除**（`auth.py`）：删除调用不存在 `AuthManager.get_instance()` 且访问错误属性 `_auth_instance.enabled` 的损坏装饰器。该装饰器仅 docstring 示例引用，从未在生产代码使用。
-- **mcp_server.py 版本号统一**（`mcp_server.py`）：3 处硬编码 `"3.7.0"` 替换为 `DEVSQUAD_VERSION`（从 `_version.py` 导入）；模块数 48→149、测试数 1548→2861 同步更新。
-
-### CI/CD — 防护增强
-- **timeout-minutes 添加**（`.github/workflows/test.yml`）：为全部 5 个 jobs（test/e2e/security/lint/build）添加超时限制（30/60/15/15/15 分钟），防止 nightly 任务无限运行。
-
-### 测试
-- **RBAC fail-closed 测试增强**（`tests/test_rbac_fail_closed.py`）：新增 `test_no_rbac_production_mode_denies_dispatch` 验证生产模式 fail-closed；原 `test_no_rbac_no_fail_closed_check` 重命名为 `test_no_rbac_dev_mode_allows_dispatch` 明确测试 dev 模式向后兼容。
-- **mcp_server 测试同步**（`tests/test_mcp_server_v362.py`）：模块数断言 48→149。
-
-## [3.9.2] - 2026-06-26
+## [3.9.1] - 2026-06-23
 
 ### 新增 — LLM 后端弹性
 - **Auto LLM fallback**（`llm_backend.py`、`async_llm_backend.py`）：新增默认后端 `"auto"`，优先尝试真实 LLM 供应商（Anthropic → OpenAI），无 API key 或所有真实后端失败时优雅回退到 `MockBackend`。同步/异步工厂均已更新；`.env.example` 和 `config/deployment.yaml` 默认值改为 `"auto"`。

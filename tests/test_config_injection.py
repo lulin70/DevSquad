@@ -14,7 +14,7 @@ import sys
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, script_dir)
 
-from scripts.collaboration.prompt_assembler import PromptAssembler
+from scripts.collaboration.prompt_assembler import PromptAssembler  # noqa: E402
 
 
 def test_config_loading():
@@ -45,7 +45,7 @@ def test_config_loading():
         assert qc.get("min_quality_score") is not None, "min_quality_score should be set in QC config"
     else:
         print("✗ Quality control not enabled - config may not be loaded")
-        assert False, "QC config not loaded"
+        raise AssertionError("QC config not loaded")
 
 
 def test_qc_injection_building():
@@ -84,7 +84,7 @@ def test_qc_injection_building():
         assert all_passed, "All QC injection checks should pass"
     else:
         print("✗ QC injection not built - check configuration")
-        assert False, "QC injection not built"
+        raise AssertionError("QC injection not built")
 
 
 def test_prompt_injection():

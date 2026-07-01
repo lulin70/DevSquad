@@ -71,7 +71,7 @@ class LevelStats:
 @dataclass
 class NullValue:
     """Sentinel for null values to prevent cache penetration"""
-    pass
+    pass  # intentional no-op: marker class with no behavior
 
 
 NULL_SENTINEL = NullValue()

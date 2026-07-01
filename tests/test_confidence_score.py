@@ -72,23 +72,23 @@ def test_calculate_confidence_high_quality(scorer):
     """Test confidence calculation for high-quality response"""
     response = """
     Here's a comprehensive REST API design:
-    
+
     1. User endpoints:
        - GET /api/v1/users - List users
        - POST /api/v1/users - Create user
        - GET /api/v1/users/{id} - Get user details
-    
+
     2. Authentication:
        - Use JWT tokens with 15-minute expiry
        - Implement refresh tokens (7-day expiry)
-    
+
     Example implementation:
     ```python
     @app.route('/api/v1/users', methods=['GET'])
     def list_users():
         return jsonify(users)
     ```
-    
+
     This design follows REST best practices and includes proper authentication.
     """
 
@@ -180,15 +180,15 @@ def test_specificity_factor_high(scorer):
     """Test specificity factor with specific details"""
     response = """
     Use bcrypt with cost factor 12 for password hashing.
-    
+
     Example:
     ```python
     import bcrypt
     hash = bcrypt.hashpw(password, bcrypt.gensalt(12))
     ```
-    
+
     For example, this provides 2^12 iterations.
-    
+
     Key points:
     - Use 12 rounds minimum
     - Store hash in database
@@ -292,17 +292,17 @@ def test_confidence_level_very_high(scorer):
     # Create high-quality response
     response = """
     Comprehensive solution with specific details:
-    
+
     1. Use Protocol interfaces (Python 3.8+)
     2. Implement with @runtime_checkable decorator
     3. Example code:
     ```python
     from typing import Protocol
-    
+
     class CacheProvider(Protocol):
         def get(self, key: str) -> Any: ...
     ```
-    
+
     This provides type safety without runtime overhead.
     """
 
@@ -338,8 +338,8 @@ def test_confidence_score_is_confident(scorer):
 
     # Test different thresholds
     assert score.is_confident(threshold=0.5) in [True, False]
-    assert score.is_confident(threshold=0.0) == True
-    assert score.is_confident(threshold=1.0) == False
+    assert score.is_confident(threshold=0.0)
+    assert not score.is_confident(threshold=1.0)
 
 
 def test_confidence_score_to_dict(scorer):
@@ -458,7 +458,7 @@ def test_level_distribution(scorer):
 def test_factor_averages(scorer):
     """Test factor averages in stats"""
     # Generate some scores
-    for i in range(3):
+    for _i in range(3):
         scorer.calculate_confidence("Test", "Response " * 20, {"model": "gpt-4"})
 
     stats = scorer.export_stats()

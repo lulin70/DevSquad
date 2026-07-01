@@ -351,7 +351,7 @@ class ProjectWorkflowDemo:
         Prepare and deploy to production.
         """
         print("\n" + "=" * 60)
-        print = "🚀 PHASE P10: Deployment"
+        print("🚀 PHASE P10: Deployment")
         print("=" * 60)
 
         result = self.adapter.advance_to_phase("P10")

@@ -34,9 +34,7 @@ from scripts.collaboration.consensus import ConsensusEngine
 from scripts.collaboration.consensus_gate import ConsensusGate, ConsensusGateResult
 
 
-def _make_worker_result(
-    role_id: str, success: bool = True, output: str = "", error: str = ""
-) -> dict:
+def _make_worker_result(role_id: str, success: bool = True, output: str = "", error: str = "") -> dict:
     """Create a standardized worker result dict for testing."""
     return {
         "worker_id": f"{role_id}-001",

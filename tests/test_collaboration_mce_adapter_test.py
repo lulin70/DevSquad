@@ -51,7 +51,7 @@ class TestTypeMapping(unittest.TestCase):
         self.assertEqual(DEVSQUAD_TO_CARRYMEM["correction"], "correction")
 
     def test_roundtrip_mapping_primary(self):
-        for ds_type, cm_type in DEVSQUAD_TO_CARRYMEM.items():
+        for _ds_type, cm_type in DEVSQUAD_TO_CARRYMEM.items():
             back = CARRYMEM_TO_DEVOPSQUAD.get(cm_type)
             self.assertIsNotNone(back, f"No reverse mapping for CarryMem type: {cm_type}")
 

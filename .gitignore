@@ -74,13 +74,8 @@ temp/
 *.patch
 PROJECT_REVIEW_*.md
 test_full_integration.py
-test_p2_full.py
-test_p2_quick.py
 demo_live_system.py
 demo_p2_activation.py
-add_personal_rule.py
-add_rule_native.py
-rule_manager.py
 data/personal_rules*.json
 data/rules/
 modules/

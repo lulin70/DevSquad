@@ -440,7 +440,7 @@ test("T3.08 Source records tracked", t3_08_source_records_tracked)
 def t3_09_applicable_roles():
     sf = Skillifier(min_pattern_occurrences=2)
     roles_map = {"arch": "architect", "dev": "developer", "test": "tester"}
-    for i, (k, v) in enumerate(roles_map.items()):
+    for i, (_k, v) in enumerate(roles_map.items()):
         r = make_python_init_record(i + 1)
         r.role_id = v
         sf.record_execution(r)

@@ -151,7 +151,7 @@ class T2CoreLogic(unittest.TestCase):
             t.start()
         for t in threads:
             t.join(timeout=5)
-        self.assertEqual(len(set(id(inst) for inst in instances)), 1)
+        self.assertEqual(len({id(inst) for inst in instances}), 1)
 
     def test_03_reset_creates_new(self):
         a = WarmupManager.instance(WarmupConfig.fast())
@@ -193,7 +193,7 @@ class T2CoreLogic(unittest.TestCase):
     def test_08_warmup_eager_only(self):
         wm = WarmupManager.instance(WarmupConfig.fast())
         report = wm.warmup(layers=[WarmupLayer.EAGER])
-        eager_ids = {t.task_id for t in report.tasks if t.task_id in wm._eager_task_ids_local}
+        {t.task_id for t in report.tasks if t.task_id in wm._eager_task_ids_local}
         async_ids = {t.task_id for t in report.tasks if t.task_id not in wm._eager_task_ids_local}
         self.assertEqual(len(async_ids), 0)
 
@@ -986,7 +986,7 @@ class IT1CoordinatorIntegration(unittest.TestCase):
         from scripts.collaboration.coordinator import Coordinator
 
         start = time.perf_counter()
-        coord = Coordinator()
+        Coordinator()
         elapsed = (time.perf_counter() - start) * 1000
         self.assertLess(elapsed, 200)
 
@@ -1002,16 +1002,16 @@ class IT1CoordinatorIntegration(unittest.TestCase):
 
     def test_03_lazy_coordinator_without_warmup(self):
         _reset()
-        wm = WarmupManager.instance(WarmupConfig.fast())
+        WarmupManager.instance(WarmupConfig.fast())
         from scripts.collaboration.coordinator import Coordinator
 
         start = time.perf_counter()
-        coord = Coordinator()
+        Coordinator()
         elapsed = (time.perf_counter() - start) * 1000
         self.assertLess(elapsed, 500)
 
     def test_04_scratchpad_shared_cache(self):
-        wm = WarmupManager.instance(WarmupConfig.fast())
+        WarmupManager.instance(WarmupConfig.fast())
         from scripts.collaboration.scratchpad import Scratchpad
 
         s1 = Scratchpad()
@@ -1133,7 +1133,7 @@ class E2ETests(unittest.TestCase):
             )
         )
         wm.warmup_async()
-        val = wm.get("race-async")
+        wm.get("race-async")
         time.sleep(0.3)
         val_later = wm.get("race-async")
         if val_later is not None:

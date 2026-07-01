@@ -83,9 +83,7 @@ class TestRealUserLoginFlow:
         assert user.username == "alice"
         assert user.role == UserRole.ADMIN
         assert user.email == "alice@example.com"
-        assert user.session_id and len(user.session_id) >= 32, (
-            "session_id 必须为至少 32 字符的 hex"
-        )
+        assert user.session_id and len(user.session_id) >= 32, "session_id 必须为至少 32 字符的 hex"
 
     def test_legacy_sha256_password_auto_migration(self, temp_config):
         """场景 2：legacy SHA-256 密码登录成功后应自动迁移到 PBKDF2。"""
@@ -120,9 +118,7 @@ class TestRealUserLoginFlow:
         am2.credentials["bob"]["password"] = new_hash
         user2 = am2.verify_credentials("bob", "LegacyPass456#")
         assert user2 is not None, "迁移后用相同密码应仍能登录"
-        assert not am2._needs_password_upgrade(am2.credentials["bob"]["password"]), (
-            "不应再次迁移"
-        )
+        assert not am2._needs_password_upgrade(am2.credentials["bob"]["password"]), "不应再次迁移"
 
     def test_wrong_password_login_failure(self, temp_config):
         """场景 3：用户输入错误密码，应登录失败。"""

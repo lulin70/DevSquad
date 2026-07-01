@@ -143,8 +143,7 @@ class TestGraphQueryPerformance:
 
             median_ms = _measure_ms(lambda: query.find_symbol("hello"))
             assert median_ms < GRAPH_QUERY_TARGET_MS, (
-                f"find_symbol median {median_ms:.3f}ms >= "
-                f"{GRAPH_QUERY_TARGET_MS}ms target"
+                f"find_symbol median {median_ms:.3f}ms >= {GRAPH_QUERY_TARGET_MS}ms target"
             )
             graph.close()
         finally:
@@ -169,8 +168,7 @@ class TestGraphQueryPerformance:
 
             median_ms = _measure_ms(lambda: query.find_callers("hello"))
             assert median_ms < GRAPH_QUERY_TARGET_MS, (
-                f"find_callers median {median_ms:.3f}ms >= "
-                f"{GRAPH_QUERY_TARGET_MS}ms target"
+                f"find_callers median {median_ms:.3f}ms >= {GRAPH_QUERY_TARGET_MS}ms target"
             )
             graph.close()
         finally:
@@ -222,8 +220,7 @@ class TestIncrementalUpdatePerformance:
 
             median_ms = _measure_ms(_measured_update)
             assert median_ms < INCREMENTAL_UPDATE_TARGET_MS, (
-                f"update_file median {median_ms:.3f}ms >= "
-                f"{INCREMENTAL_UPDATE_TARGET_MS}ms target"
+                f"update_file median {median_ms:.3f}ms >= {INCREMENTAL_UPDATE_TARGET_MS}ms target"
             )
 
             # Restore original content for cleanliness.
@@ -268,8 +265,7 @@ class TestRBACCheckPerformance:
             )
         )
         assert median_ms < RBAC_CHECK_TARGET_MS, (
-            f"RBAC check median {median_ms:.3f}ms >= "
-            f"{RBAC_CHECK_TARGET_MS}ms target"
+            f"RBAC check median {median_ms:.3f}ms >= {RBAC_CHECK_TARGET_MS}ms target"
         )
 
     def test_rbac_check_denied_under_5ms(self) -> None:
@@ -296,8 +292,7 @@ class TestRBACCheckPerformance:
             )
         )
         assert median_ms < RBAC_CHECK_TARGET_MS, (
-            f"RBAC denied-check median {median_ms:.3f}ms >= "
-            f"{RBAC_CHECK_TARGET_MS}ms target"
+            f"RBAC denied-check median {median_ms:.3f}ms >= {RBAC_CHECK_TARGET_MS}ms target"
         )
 
 
@@ -336,8 +331,7 @@ class TestAuditLogPerformance:
 
         median_ms = _measure_ms(_measured_log)
         assert median_ms < AUDIT_LOG_TARGET_MS, (
-            f"Audit log_dispatch_start median {median_ms:.3f}ms >= "
-            f"{AUDIT_LOG_TARGET_MS}ms target"
+            f"Audit log_dispatch_start median {median_ms:.3f}ms >= {AUDIT_LOG_TARGET_MS}ms target"
         )
 
     def test_audit_log_end_under_1ms(self) -> None:
@@ -362,8 +356,7 @@ class TestAuditLogPerformance:
             )
         )
         assert median_ms < AUDIT_LOG_TARGET_MS, (
-            f"Audit log_dispatch_end median {median_ms:.3f}ms >= "
-            f"{AUDIT_LOG_TARGET_MS}ms target"
+            f"Audit log_dispatch_end median {median_ms:.3f}ms >= {AUDIT_LOG_TARGET_MS}ms target"
         )
 
 
@@ -387,8 +380,7 @@ class TestPromptDialsPerformance:
 
         median_ms = _measure_ms(lambda: dials.to_prompt_fragment())
         assert median_ms < PROMPT_DIALS_TARGET_MS, (
-            f"PromptDials.to_prompt_fragment median {median_ms:.3f}ms >= "
-            f"{PROMPT_DIALS_TARGET_MS}ms target"
+            f"PromptDials.to_prompt_fragment median {median_ms:.3f}ms >= {PROMPT_DIALS_TARGET_MS}ms target"
         )
 
     def test_from_variant_under_1ms(self) -> None:
@@ -401,8 +393,7 @@ class TestPromptDialsPerformance:
 
         median_ms = _measure_ms(lambda: PromptDials.from_variant("concise"))
         assert median_ms < PROMPT_DIALS_TARGET_MS, (
-            f"PromptDials.from_variant median {median_ms:.3f}ms >= "
-            f"{PROMPT_DIALS_TARGET_MS}ms target"
+            f"PromptDials.from_variant median {median_ms:.3f}ms >= {PROMPT_DIALS_TARGET_MS}ms target"
         )
 
 
@@ -424,12 +415,9 @@ class TestYagniCheckerPerformance:
 
         checker.check("Write a function to parse JSON response")  # warmup
 
-        median_ms = _measure_ms(
-            lambda: checker.check("Write a function to parse JSON response")
-        )
+        median_ms = _measure_ms(lambda: checker.check("Write a function to parse JSON response"))
         assert median_ms < YAGNI_CHECKER_TARGET_MS, (
-            f"YagniChecker.check median {median_ms:.3f}ms >= "
-            f"{YAGNI_CHECKER_TARGET_MS}ms target"
+            f"YagniChecker.check median {median_ms:.3f}ms >= {YAGNI_CHECKER_TARGET_MS}ms target"
         )
 
     def test_yagni_check_exploratory_under_5ms(self) -> None:
@@ -442,14 +430,9 @@ class TestYagniCheckerPerformance:
 
         checker.check("Explore different approaches and prototype a demo")  # warmup
 
-        median_ms = _measure_ms(
-            lambda: checker.check(
-                "Explore different approaches and prototype a demo"
-            )
-        )
+        median_ms = _measure_ms(lambda: checker.check("Explore different approaches and prototype a demo"))
         assert median_ms < YAGNI_CHECKER_TARGET_MS, (
-            f"YagniChecker.check (exploratory) median {median_ms:.3f}ms >= "
-            f"{YAGNI_CHECKER_TARGET_MS}ms target"
+            f"YagniChecker.check (exploratory) median {median_ms:.3f}ms >= {YAGNI_CHECKER_TARGET_MS}ms target"
         )
 
 
@@ -474,8 +457,7 @@ class TestRedesignAuditPerformance:
 
         median_ms = _measure_ms(lambda: auditor.audit(code_sample))
         assert median_ms < REDESIGN_AUDIT_TARGET_MS, (
-            f"RedesignAuditor.audit median {median_ms:.3f}ms >= "
-            f"{REDESIGN_AUDIT_TARGET_MS}ms target"
+            f"RedesignAuditor.audit median {median_ms:.3f}ms >= {REDESIGN_AUDIT_TARGET_MS}ms target"
         )
 
     def test_redesign_audit_clean_code_under_100ms(self) -> None:
@@ -491,8 +473,7 @@ class TestRedesignAuditPerformance:
 
         median_ms = _measure_ms(lambda: auditor.audit(clean_code))
         assert median_ms < REDESIGN_AUDIT_TARGET_MS, (
-            f"RedesignAuditor.audit (clean) median {median_ms:.3f}ms >= "
-            f"{REDESIGN_AUDIT_TARGET_MS}ms target"
+            f"RedesignAuditor.audit (clean) median {median_ms:.3f}ms >= {REDESIGN_AUDIT_TARGET_MS}ms target"
         )
 
 
@@ -558,16 +539,13 @@ class TestFullDispatchPerformance:
                     roles=["solo-coder"],
                     user_id="admin_user",
                 )
-                assert result.success, (
-                    f"Dispatch run {counter[0]} failed: {result.errors}"
-                )
+                assert result.success, f"Dispatch run {counter[0]} failed: {result.errors}"
                 disp.shutdown()
 
             # Use 5 runs (full dispatch is heavier than unit benchmarks).
             median_ms = _measure_ms(_measured_dispatch, runs=5)
             assert median_ms < FULL_DISPATCH_TARGET_MS, (
-                f"Full dispatch median {median_ms:.3f}ms >= "
-                f"{FULL_DISPATCH_TARGET_MS}ms target"
+                f"Full dispatch median {median_ms:.3f}ms >= {FULL_DISPATCH_TARGET_MS}ms target"
             )
 
             graph.close()
@@ -593,12 +571,8 @@ class TestGraphBuildPerformance:
 
         Expected: Median latency across 3 runs is under 15000ms (adjusted for CI runner variability).
         """
-        project_root = Path(
-            os.path.join(os.path.dirname(__file__), "..", "scripts", "collaboration")
-        ).resolve()
-        assert project_root.is_dir(), (
-            f"scripts/collaboration/ not found at {project_root}"
-        )
+        project_root = Path(os.path.join(os.path.dirname(__file__), "..", "scripts", "collaboration")).resolve()
+        assert project_root.is_dir(), f"scripts/collaboration/ not found at {project_root}"
 
         tmpdir = tempfile.mkdtemp(prefix="v39_perf_build_")
         try:
@@ -608,9 +582,7 @@ class TestGraphBuildPerformance:
             warmup_graph.build_from_project(project_root)
             warmup_stats = warmup_graph.get_stats()
             warmup_graph.close()
-            assert warmup_stats["files"] >= 10, (
-                f"Expected >=10 files indexed, got {warmup_stats['files']}"
-            )
+            assert warmup_stats["files"] >= 10, f"Expected >=10 files indexed, got {warmup_stats['files']}"
 
             counter = [0]
 
@@ -624,8 +596,7 @@ class TestGraphBuildPerformance:
             # Use 3 runs (full project build is the heaviest benchmark).
             median_ms = _measure_ms(_measured_build, runs=3)
             assert median_ms < GRAPH_BUILD_TARGET_MS, (
-                f"build_from_project median {median_ms:.3f}ms >= "
-                f"{GRAPH_BUILD_TARGET_MS}ms target"
+                f"build_from_project median {median_ms:.3f}ms >= {GRAPH_BUILD_TARGET_MS}ms target"
             )
         finally:
             import shutil
@@ -666,17 +637,14 @@ class TestVerifyChainPerformance:
                     duration=0.5,
                 )
 
-        assert audit_logger.count() == 50, (
-            f"Expected 50 entries, got {audit_logger.count()}"
-        )
+        assert audit_logger.count() == 50, f"Expected 50 entries, got {audit_logger.count()}"
 
         # Warmup.
         audit_logger.verify_chain()
 
         median_ms = _measure_ms(lambda: audit_logger.verify_chain())
         assert median_ms < VERIFY_CHAIN_TARGET_MS, (
-            f"verify_chain (50 entries) median {median_ms:.3f}ms >= "
-            f"{VERIFY_CHAIN_TARGET_MS}ms target"
+            f"verify_chain (50 entries) median {median_ms:.3f}ms >= {VERIFY_CHAIN_TARGET_MS}ms target"
         )
 
     def test_verify_chain_empty_under_500ms(self) -> None:
@@ -693,8 +661,7 @@ class TestVerifyChainPerformance:
 
         median_ms = _measure_ms(lambda: audit_logger.verify_chain())
         assert median_ms < VERIFY_CHAIN_TARGET_MS, (
-            f"verify_chain (empty) median {median_ms:.3f}ms >= "
-            f"{VERIFY_CHAIN_TARGET_MS}ms target"
+            f"verify_chain (empty) median {median_ms:.3f}ms >= {VERIFY_CHAIN_TARGET_MS}ms target"
         )
 
 

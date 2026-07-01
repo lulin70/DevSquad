@@ -14,8 +14,6 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.collaboration.llm_backend import (
@@ -23,7 +21,6 @@ from scripts.collaboration.llm_backend import (
     MockBackend,
     create_backend,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

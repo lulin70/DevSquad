@@ -8,7 +8,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V3.9.2: Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence + P3 cleanup (magic numbers + narrowed exceptions).
-118 core modules, 2600+ tests passing.
+149+ core modules, 2857+ tests passing.
 ---
 
 # DevSquad V3.9.2 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -62,7 +62,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (118+ Core Modules)
+## Architecture Overview (149+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -79,90 +79,81 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 10 | **MemoryBridge** | `memory_bridge.py` | 7-type memory bridge + inverted index + TF-IDF + forgetting curve + MCE+Claw integration |
 | 11 | **TestQualityGuard** | `test_quality_guard.py` | Test quality audit (API validation / anti-pattern detection / dimension coverage) |
 | 12 | **PromptAssembler** | `prompt_assembler.py` | Dynamic prompt assembly (complexity detection / 3 variants / 5 styles / compression-aware / QC config injection / user rule injection) |
-| 13 | **PromptVariantGenerator** | `prompt_variant_generator.py` | *(Removed)* Ghost feature — never used in production |
-| 14 | **MCEAdapter** | `mce_adapter.py` | CarryMem integration adapter (DevSquadAdapter preferred, lazy-load / graceful-degrade / thread-safe / match_rules + format_rules_as_prompt + add_rule) |
-| 15 | **WorkBuddyClawSource** | `memory_bridge.py` (class) | WorkBuddy Claw read-only bridge (INDEX search / daily logs / AI news feed) |
-| 16 | **RoleMatcher** | `role_matcher.py` | Keyword-based role matching with alias resolution (extracted from Dispatcher) |
-| 17 | **ReportFormatter** | `report_formatter.py` | Structured/compact/detailed report generation (extracted from Dispatcher) |
-| 18 | **InputValidator** | `input_validator.py` | Security validation + 40-pattern detection (14 forbidden + 21 prompt injection + 5 suspicious) |
-| 19 | **RuleCollector** | `rule_collector.py` | Natural language rule collection (intent detection / rule extraction / sanitization / CarryMem+JSON storage / prompt injection protection) |
-| 20 | **AISemanticMatcher** | `ai_semantic_matcher.py` | LLM-powered semantic role matching with bilingual keyword fallback |
-| 21 | **CheckpointManager** | `checkpoint_manager.py` | SHA256 integrity, handoff documents, auto-cleanup, dispatch integration |
-| 22 | **WorkflowEngine** | `workflow_engine.py` | Task-to-workflow auto-split, step execution, checkpointing, agent handoff, 11-phase lifecycle templates |
-| 23 | **TaskCompletionChecker** | `task_completion_checker.py` | DispatchResult/ScheduleResult completion tracking + progress persistence |
-| 24 | **CodeMapGenerator** | `code_map_generator.py` | Python AST-based code structure analysis + dependency graph |
-| 25 | **DualLayerContextManager** | `dual_layer_context.py` | Project-level + task-level context management with TTL |
-| 26 | **SkillRegistry** | `skill_registry.py` | Reusable skill registration + discovery + persistence |
-| 27 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic with streaming support + 120s timeout |
-| 28 | **ConfigManager** | `config_loader.py` | *(Removed in V3.7.2)* Dead code — zero references |
-| 29 | **Protocols** | `protocols.py` | Protocol interfaces (CacheProvider/RetryProvider/MonitorProvider/MemoryProvider + match_rules/format_rules_as_prompt) + exception hierarchy |
-| 30 | **NullProviders** | `null_providers.py` | No-op implementations for all Protocol interfaces (incl. match_rules/format_rules_as_prompt, degradation + test mocking) |
-| 31 | **EnhancedWorker** | `enhanced_worker.py` | Worker with protocol-based provider injection (cache/retry/monitor/briefing/memory) + rule injection pipeline |
-| 32 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99 response time, CPU/memory tracking, bottleneck detection, Markdown reports |
-| 33 | **AgentBriefing** | `agent_briefing.py` | Context-aware briefing generation with priority filtering + persistence |
-| 34 | **ConfidenceScorer** | `confidence_score.py` | 5-factor confidence scoring (completeness/certainty/specificity/consistency/model quality) |
-| 35 | **RoleTemplateMarket** | `role_template_market.py` | *(Removed)* Ghost feature — never used in production |
-| 36 | **LLMCache** | `llm_cache.py` | TTL-based LRU cache with disk persistence (60-80% cost reduction) |
-| 37 | **LLMRetry** | `llm_retry.py` | Exponential backoff + circuit breaker + multi-backend fallback |
-| 38 | **UsageTracker** | `usage_tracker.py` | Token/cost usage tracking and reporting |
-| 39 | **Models** | `models.py` | Shared data models and type definitions |
-| 40 | **ConfigManager (YAML)** | `config_loader.py` | *(Removed in V3.7.2)* Dead code — zero references |
-| 41 | **LLMCacheAsync** | `_archived/llm_cache_async.py` | *(Archived)* Async LLM cache for concurrent workloads |
-| 42 | **LLMRetryAsync** | `_archived/llm_retry_async.py` | *(Archived)* Async LLM retry with backoff |
-| 43 | **IntegrationExample** | `_archived/integration_example.py` | *(Archived)* DevSquad integration example code |
-| 44 | **AsyncIntegrationExample** | `_archived/async_integration_example.py` | *(Archived)* Async DevSquad integration example |
-| 45 | **AntiRationalizationEngine** | `anti_rationalization.py` | Per-role excuse→rebuttal tables (8 universal + 6-7 role-specific) injected via PromptAssembler to prevent quality shortcuts |
-| 46 | **VerificationGate** | `verification_gate.py` | Mandatory evidence requirements + 7 Red Flags detection + Prove-It Pattern for completion claims |
-| 47 | **IntentWorkflowMapper** | `intent_workflow_mapper.py` | User intent → workflow chain mapping (6 intents × 3 languages) with gate requirements and anti-skip messages |
-| 48 | **CLI Lifecycle Commands** | `cli.py` | 6 lifecycle shortcuts (spec/plan/build/test/review/ship) with preset roles/modes/gates inspired by Agent Skills |
-| 49 | **StandardizedRoleTemplate** | `standardized_role_template.py` | V2 template format with SKILL.md anatomy: overview, when_to_use, process_steps, rationalizations, red_flags, verification_requirements |
-| 50 | **OperationClassifier** | `operation_classifier.py` | Three-tier operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) with 20+ predefined operations and custom overrides |
-| 51 | **OutputSlicer** | `output_slicer.py` | Incremental output slicing for large responses: configurable slice size, headers, scratchpad integration |
-| 52 | **FiveAxisConsensusEngine** | `five_axis_consensus.py` | Five-axis review consensus (correctness/readability/architecture/security/performance) with weighted voting and strict mode |
-| 53 | **CIFeedbackAdapter** | `ci_feedback_adapter.py` | CI results parser (pytest/coverage/lint/build) + context generator + prompt injection for dispatch pipeline |
-| 54 | **LifecycleProtocol** | `lifecycle_protocol.py` | Abstract interface for unified lifecycle management (SHORTCUT/FULL/CUSTOM modes) with 11-phase support |
-| 55 | **UnifiedGateEngine** | `unified_gate_engine.py` | Unified gate engine integrating VerificationGate + LifecycleProtocol gates with pluggable checkers |
-| 56 | **CheckpointManager (Enhanced)** | `checkpoint_manager.py` | Extended with lifecycle state persistence: save/restore/list/delete lifecycle states across sessions |
-| 57 | **ShortcutLifecycleAdapter** | `lifecycle_protocol.py` (class) | Plan C adapter implementing LifecycleProtocol using CLI 6-command shortcuts with auto state persistence |
-| 58 | **AuthManager** | `auth.py` | Authentication & Authorization: Multi-user RBAC, SHA-256 password hashing, Streamlit login UI, OAuth2 support |
-| 59 | **APIServer** | `api_server.py` | FastAPI REST API server: OpenAPI/Swagger docs, CORS middleware, request timing, 10+ endpoints |
-| 60 | **APIDataModels** | `api/models.py` | Pydantic validation models: LifecyclePhase, GateResult, MetricsSnapshot, PhaseActionRequest/Result |
-| 61 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API endpoints: phases list/detail, status, actions execution, command mappings |
-| 62 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API endpoints: current/historical metrics, gate status/check, health check |
-| 63 | **AlertManager** | `alert_manager.py` | *(Removed in V3.6.8)* Multi-channel alerting was unused and removed |
-| 64 | **DispatchModels** | `dispatch_models.py` | DispatchResult + I18N + ROLE_TEMPLATES (extracted from dispatcher) |
-| 65 | **DispatchPerformance** | `dispatch_performance.py` | PerformanceMonitor for dispatch pipeline (extracted from dispatcher) |
-| 66 | **MultiLevelCache** | `multi_level_cache.py` | Multi-level cache coordinator (memory→disk→Redis) |
-| 67 | **HistoryManager** | `history_manager.py` | SQLite time-series storage: metrics snapshots, alert history, API logs, lifecycle events |
-| 68 | **StreamlitDashboard** | `dashboard.py` | Interactive web dashboard with authentication, real-time monitoring, phase visualization |
-| 69 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback closed-loop iteration for continuous improvement |
-| 70 | **ExecutionGuard** | `execution_guard.py` | Real-time abort guard (timeout/output/keywords) for safe execution |
-| 71 | **PerformanceFingerprint** | `performance_fingerprint.py` | Unified fingerprint with TF-IDF similarity search for task matching |
-| 72 | **SimilarTaskRecommender** | `similar_task_recommender.py` | History-based task config recommendation using performance data |
-| 73 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | Success-rate-driven adaptive role selection for optimal team composition |
-| 74 | **UETestFramework** | `ue_test_framework.py` | UE test framework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load) |
-| 75 | **TechDebtManager** | `tech_debt_manager.py` | Tech debt tracking with CodebaseDebtScanner + knapsack remediation planning |
-| 76 | **RoleSkillLoader** | `role_skill_loader.py` | Load SKILL.md methodology frameworks for roles, with security scanning and caching |
-| 77 | **SkillContent** | `role_skill_loader.py` (class) | Parsed SKILL.md content with to_prompt_text() for prompt injection |
-| 78 | **PM Methodology Skills** | `role_skills/product-manager/` | 5 SKILL.md frameworks: create-prd, opportunity-solution-tree, prioritization-frameworks, assumption-mapping, experiment-design |
-| 79 | **EventBus** | `event_bus.py` | Event-driven decoupling for dispatch pipeline (on/emit/off/clear pattern) |
-| 80 | **DispatchHooks** | `dispatch_hooks.py` | Extracted post-dispatch hooks from dispatcher (post_dispatch_hooks, post_execution_processing, slice_outputs, check_anchor_drift) |
-| 81 | **ResultAssembler** | `dispatch_result_assembler.py` | Extracted result assembly logic from dispatcher |
-| 82 | **TwoStageReviewGate** | `two_stage_review_gate.py` | Two-stage code review: spec compliance + code quality, critical findings block |
-| 83 | **SeverityRouter** | `severity_router.py` | Severity-based routing with auto-fix loop (max 3 rounds) |
-| 84 | **JudgeAgent** | `judge_agent.py` | Finding arbitration: dedup, conflict resolution, confidence filtering, history learning |
-| 85 | **MicroTaskPlanner** | `micro_task_planner.py` | 2-5 min micro-task decomposition with file paths + verification commands |
-| 86 | **ContentCache** | `content_cache.py` | Unified SHA-256 content cache with sensitive-data filtering |
-| 87 | **CodeKnowledgeGraph** | `code_knowledge_graph.py` | Persistent SQLite code structure graph with incremental updates |
-| 88 | **CodeGraphQuery** | `code_graph_query.py` | Query interface for code graph (find_symbol/callers/callees/similar) |
-| 89 | **CodeGraphStorage** | `code_graph_storage.py` | SQLite storage layer for code graph (symbols/edges/files) |
-| 90 | **YagniChecker** | `yagni_checker.py` | YAGNI ladder checker (6 levels, safety tasks never skipped) |
-| 91 | **PromptDials** | `prompt_dials.py` | Three-dimension prompt control (verbosity/creativity/risk_tolerance) |
-| 92 | **RedesignAuditor** | `redesign_auditor.py` | Third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING) |
-| 93 | **RedesignCheckers** | `redesign_checkers.py` | Detection methods for RedesignAuditor (extracted from redesign_auditor.py) |
-| 94 | **DispatchRBAC** | `dispatch_rbac.py` | RBAC permission control integrated with AuthManager |
-| 95 | **DispatchAuditLogger** | `dispatch_audit.py` | SHA-256 chain hash audit logging for dispatch lifecycle |
-| 96 | **MultiHostAdapter** | `multi_host_adapter.py` | Multi-host adapter (Claude Code/Cursor/Codex/Cline/Trae/Generic) |
+| 13 | **MCEAdapter** | `mce_adapter.py` | CarryMem integration adapter (DevSquadAdapter preferred, lazy-load / graceful-degrade / thread-safe / match_rules + format_rules_as_prompt + add_rule) |
+| 14 | **WorkBuddyClawSource** | `memory_bridge.py` (class) | WorkBuddy Claw read-only bridge (INDEX search / daily logs / AI news feed) |
+| 15 | **RoleMatcher** | `role_matcher.py` | Keyword-based role matching with alias resolution (extracted from Dispatcher) |
+| 16 | **ReportFormatter** | `report_formatter.py` | Structured/compact/detailed report generation (extracted from Dispatcher) |
+| 17 | **InputValidator** | `input_validator.py` | Security validation + 40-pattern detection (14 forbidden + 21 prompt injection + 5 suspicious) |
+| 18 | **RuleCollector** | `rule_collector.py` | Natural language rule collection (intent detection / rule extraction / sanitization / CarryMem+JSON storage / prompt injection protection) |
+| 19 | **AISemanticMatcher** | `ai_semantic_matcher.py` | LLM-powered semantic role matching with bilingual keyword fallback |
+| 20 | **CheckpointManager** | `checkpoint_manager.py` | SHA256 integrity, handoff documents, auto-cleanup, dispatch integration |
+| 21 | **WorkflowEngine** | `workflow_engine.py` | Task-to-workflow auto-split, step execution, checkpointing, agent handoff, 11-phase lifecycle templates |
+| 22 | **TaskCompletionChecker** | `task_completion_checker.py` | DispatchResult/ScheduleResult completion tracking + progress persistence |
+| 23 | **CodeMapGenerator** | `code_map_generator.py` | Python AST-based code structure analysis + dependency graph |
+| 24 | **DualLayerContextManager** | `dual_layer_context.py` | Project-level + task-level context management with TTL |
+| 25 | **SkillRegistry** | `skill_registry.py` | Reusable skill registration + discovery + persistence |
+| 26 | **LLMBackend** | `llm_backend.py` | Mock/OpenAI/Anthropic with streaming support + 120s timeout |
+| 27 | **Protocols** | `protocols.py` | Protocol interfaces (CacheProvider/RetryProvider/MonitorProvider/MemoryProvider + match_rules/format_rules_as_prompt) + exception hierarchy |
+| 28 | **NullProviders** | `null_providers.py` | No-op implementations for all Protocol interfaces (incl. match_rules/format_rules_as_prompt, degradation + test mocking) |
+| 29 | **EnhancedWorker** | `enhanced_worker.py` | Worker with protocol-based provider injection (cache/retry/monitor/briefing/memory) + rule injection pipeline |
+| 30 | **PerformanceMonitor** | `performance_monitor.py` | P95/P99 response time, CPU/memory tracking, bottleneck detection, Markdown reports |
+| 31 | **AgentBriefing** | `agent_briefing.py` | Context-aware briefing generation with priority filtering + persistence |
+| 32 | **ConfidenceScorer** | `confidence_score.py` | 5-factor confidence scoring (completeness/certainty/specificity/consistency/model quality) |
+| 33 | **LLMCache** | `llm_cache.py` | TTL-based LRU cache with disk persistence (60-80% cost reduction) |
+| 34 | **LLMRetry** | `llm_retry.py` | Exponential backoff + circuit breaker + multi-backend fallback |
+| 35 | **UsageTracker** | `usage_tracker.py` | Token/cost usage tracking and reporting |
+| 36 | **Models** | `models.py` | Shared data models and type definitions |
+| 37 | **AntiRationalizationEngine** | `anti_rationalization.py` | Per-role excuse→rebuttal tables (8 universal + 6-7 role-specific) injected via PromptAssembler to prevent quality shortcuts |
+| 38 | **VerificationGate** | `verification_gate.py` | Mandatory evidence requirements + 7 Red Flags detection + Prove-It Pattern for completion claims |
+| 39 | **IntentWorkflowMapper** | `intent_workflow_mapper.py` | User intent → workflow chain mapping (6 intents × 3 languages) with gate requirements and anti-skip messages |
+| 40 | **CLI Lifecycle Commands** | `cli.py` | 6 lifecycle shortcuts (spec/plan/build/test/review/ship) with preset roles/modes/gates inspired by Agent Skills |
+| 41 | **StandardizedRoleTemplate** | `standardized_role_template.py` | V2 template format with SKILL.md anatomy: overview, when_to_use, process_steps, rationalizations, red_flags, verification_requirements |
+| 42 | **OperationClassifier** | `operation_classifier.py` | Three-tier operation classification (ALWAYS_SAFE/NEEDS_REVIEW/FORBIDDEN) with 20+ predefined operations and custom overrides |
+| 43 | **OutputSlicer** | `output_slicer.py` | Incremental output slicing for large responses: configurable slice size, headers, scratchpad integration |
+| 44 | **FiveAxisConsensusEngine** | `five_axis_consensus.py` | Five-axis review consensus (correctness/readability/architecture/security/performance) with weighted voting and strict mode |
+| 45 | **CIFeedbackAdapter** | `ci_feedback_adapter.py` | CI results parser (pytest/coverage/lint/build) + context generator + prompt injection for dispatch pipeline |
+| 46 | **LifecycleProtocol** | `lifecycle_protocol.py` | Abstract interface for unified lifecycle management (SHORTCUT/FULL/CUSTOM modes) with 11-phase support |
+| 47 | **UnifiedGateEngine** | `unified_gate_engine.py` | Unified gate engine integrating VerificationGate + LifecycleProtocol gates with pluggable checkers |
+| 48 | **CheckpointManager (Enhanced)** | `checkpoint_manager.py` | Extended with lifecycle state persistence: save/restore/list/delete lifecycle states across sessions |
+| 49 | **ShortcutLifecycleAdapter** | `lifecycle_protocol.py` (class) | Plan C adapter implementing LifecycleProtocol using CLI 6-command shortcuts with auto state persistence |
+| 50 | **AuthManager** | `auth.py` | Authentication & Authorization: Multi-user RBAC, SHA-256 password hashing, Streamlit login UI, OAuth2 support |
+| 51 | **APIServer** | `api_server.py` | FastAPI REST API server: OpenAPI/Swagger docs, CORS middleware, request timing, 10+ endpoints |
+| 52 | **APIDataModels** | `api/models.py` | Pydantic validation models: LifecyclePhase, GateResult, MetricsSnapshot, PhaseActionRequest/Result |
+| 53 | **LifecycleAPIRoutes** | `api/routes/lifecycle.py` | REST API endpoints: phases list/detail, status, actions execution, command mappings |
+| 54 | **MetricsGatesAPIRoutes** | `api/routes/metrics_gates.py` | API endpoints: current/historical metrics, gate status/check, health check |
+| 55 | **DispatchModels** | `dispatch_models.py` | DispatchResult + I18N + ROLE_TEMPLATES (extracted from dispatcher) |
+| 56 | **DispatchPerformance** | `dispatch_performance.py` | PerformanceMonitor for dispatch pipeline (extracted from dispatcher) |
+| 57 | **MultiLevelCache** | `multi_level_cache.py` | Multi-level cache coordinator (memory→disk→Redis) |
+| 58 | **HistoryManager** | `history_manager.py` | SQLite time-series storage: metrics snapshots, alert history, API logs, lifecycle events |
+| 59 | **StreamlitDashboard** | `dashboard.py` | Interactive web dashboard with authentication, real-time monitoring, phase visualization |
+| 60 | **FeedbackControlLoop** | `feedback_control_loop.py` | Sense→Decide→Act→Feedback closed-loop iteration for continuous improvement |
+| 61 | **ExecutionGuard** | `execution_guard.py` | Real-time abort guard (timeout/output/keywords) for safe execution |
+| 62 | **PerformanceFingerprint** | `performance_fingerprint.py` | Unified fingerprint with TF-IDF similarity search for task matching |
+| 63 | **SimilarTaskRecommender** | `similar_task_recommender.py` | History-based task config recommendation using performance data |
+| 64 | **AdaptiveRoleSelector** | `adaptive_role_selector.py` | Success-rate-driven adaptive role selection for optimal team composition |
+| 65 | **UETestFramework** | `ue_test_framework.py` | UE test framework bridging Tester+PM (Nielsen heuristics + WCAG + cognitive load) |
+| 66 | **TechDebtManager** | `tech_debt_manager.py` | Tech debt tracking with CodebaseDebtScanner + knapsack remediation planning |
+| 67 | **RoleSkillLoader** | `role_skill_loader.py` | Load SKILL.md methodology frameworks for roles, with security scanning and caching |
+| 68 | **SkillContent** | `role_skill_loader.py` (class) | Parsed SKILL.md content with to_prompt_text() for prompt injection |
+| 69 | **PM Methodology Skills** | `role_skills/product-manager/` | 5 SKILL.md frameworks: create-prd, opportunity-solution-tree, prioritization-frameworks, assumption-mapping, experiment-design |
+| 70 | **EventBus** | `event_bus.py` | Event-driven decoupling for dispatch pipeline (on/emit/off/clear pattern) |
+| 71 | **DispatchHooks** | `dispatch_hooks.py` | Extracted post-dispatch hooks from dispatcher (post_dispatch_hooks, post_execution_processing, slice_outputs, check_anchor_drift) |
+| 72 | **ResultAssembler** | `dispatch_result_assembler.py` | Extracted result assembly logic from dispatcher |
+| 73 | **TwoStageReviewGate** | `two_stage_review_gate.py` | Two-stage code review: spec compliance + code quality, critical findings block |
+| 74 | **SeverityRouter** | `severity_router.py` | Severity-based routing with auto-fix loop (max 3 rounds) |
+| 75 | **JudgeAgent** | `judge_agent.py` | Finding arbitration: dedup, conflict resolution, confidence filtering, history learning |
+| 76 | **MicroTaskPlanner** | `micro_task_planner.py` | 2-5 min micro-task decomposition with file paths + verification commands |
+| 77 | **ContentCache** | `content_cache.py` | Unified SHA-256 content cache with sensitive-data filtering |
+| 78 | **CodeKnowledgeGraph** | `code_knowledge_graph.py` | Persistent SQLite code structure graph with incremental updates |
+| 79 | **CodeGraphQuery** | `code_graph_query.py` | Query interface for code graph (find_symbol/callers/callees/similar) |
+| 80 | **CodeGraphStorage** | `code_graph_storage.py` | SQLite storage layer for code graph (symbols/edges/files) |
+| 81 | **YagniChecker** | `yagni_checker.py` | YAGNI ladder checker (6 levels, safety tasks never skipped) |
+| 82 | **PromptDials** | `prompt_dials.py` | Three-dimension prompt control (verbosity/creativity/risk_tolerance) |
+| 83 | **RedesignAuditor** | `redesign_auditor.py` | Third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING) |
+| 84 | **RedesignCheckers** | `redesign_checkers.py` | Detection methods for RedesignAuditor (extracted from redesign_auditor.py) |
+| 85 | **DispatchRBAC** | `dispatch_rbac.py` | RBAC permission control integrated with AuthManager |
+| 86 | **DispatchAuditLogger** | `dispatch_audit.py` | SHA-256 chain hash audit logging for dispatch lifecycle |
+| 87 | **MultiHostAdapter** | `multi_host_adapter.py` | Multi-host adapter (Claude Code/Cursor/Codex/Cline/Trae/Generic) |
 
 ---
 
@@ -962,13 +953,13 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V3.9.0 PromptDials** | **33** | **✅ PASS** |
 | **V3.9.0 RedesignAuditor** | **28** | **✅ PASS** |
 | **V3.9.0 E2E + Integration + Performance** | **68** | **✅ PASS** |
-| **Total** | **2600+** | **✅ ALL PASS** |
+| **Total** | **2857+** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
-- **v3.9.2** (2026-06-26): Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence by default + P3 cleanup (magic numbers extracted + narrowed exceptions) + Loop Engineering implementation assessment + 2703 tests passing (CI authoritative)
+- **v3.9.2** (2026-06-30): Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence by default + P3 cleanup (magic numbers extracted + narrowed exceptions) + P0 security fixes (PBKDF2 password hashing + start.sh + requirements.lock) + Loop Engineering implementation assessment + 149+ core modules + 2857+ tests passing (CI authoritative)
 - **v3.9.1** (2026-06-23): File splits (code_knowledge_graph 511→346, redesign_auditor 550→229) + RedesignAuditor false-positive fix (builtins preserved, sequential naming, blank lines excluded from dead code) + MultiHostAdapter (6 host types: Claude Code/Cursor/Codex/Cline/Trae/Generic, 32 tests) + CI E2E release tag gate + build depends on lint+security + mypy blocking (551→0 errors) + 118 core modules + 2605 tests passing (CI authoritative)
 - **v3.9.0** (2026-06-22): CodeKnowledgeGraph (SQLite-backed symbols/edges/files storage, 40 tests) + MCP codegraph_explore tools (symbol/callers/callees/traversal/status) + YagniChecker (34 tests) + PromptDials (verbosity/creativity dials, 33 tests) + RedesignAuditor third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING, 28 tests) + DispatchRBAC integration with AuthManager (17 tests) + DispatchAuditLogger SHA-256 chain hash (24 tests) + V3.9.0 E2E/Integration/Performance (68 tests) + P0 security fixes (audit hash length-prefixed fields, RBAC open-mode warning) + P1 thread safety (CodeGraphStorage check_same_thread=False + Lock) + 94+ core modules + 2591 tests passing
 - **v3.8.0** (2026-06-21): Two-Stage Review Gate (spec compliance + code quality, 40 tests) + Severity Router with auto-fix loop (51 tests) + Judge Agent with history learning (33 tests) + Micro-Task Planner (2-5 min decomposition, 47 tests) + Content Cache with sensitive-data filtering (32 tests) + Jitter Strategies (NONE/EQUAL/FULL/DECORRELATED, 9 tests) + NodeType classification (DETERMINISTIC/LLM/HYBRID, 14 tests) + V3.8 Planning Docs (5 docs, 2482 lines) + 86+ core modules + 2339 tests passing + maturity 65%→72%

@@ -84,7 +84,7 @@ def test_null_cache_provider_is_available():
     cache = NullCacheProvider()
 
     # 总是返回 False（标识为降级实现）
-    assert cache.is_available() == False
+    assert not cache.is_available()
 
 
 def test_null_cache_provider_get_stats():
@@ -102,7 +102,7 @@ def test_null_cache_provider_get_stats():
     assert stats["total_size"] == 0
     assert stats["entry_count"] == 0
     assert stats["provider_type"] == "null"
-    assert stats["degraded"] == True
+    assert stats["degraded"]
 
 
 def test_null_cache_provider_implements_protocol():
@@ -117,7 +117,7 @@ def test_null_cache_provider_implements_protocol():
     assert cache.get("test", "openai", "gpt-4") is None
     cache.set("test", "response", "openai", "gpt-4")
     cache.clear()
-    assert cache.is_available() == False
+    assert not cache.is_available()
     assert isinstance(cache.get_stats(), dict)
 
 
@@ -186,7 +186,7 @@ def test_null_retry_provider_is_available():
     from scripts.collaboration.null_providers import NullRetryProvider
 
     retry = NullRetryProvider()
-    assert retry.is_available() == False
+    assert not retry.is_available()
 
 
 def test_null_retry_provider_get_stats():
@@ -208,7 +208,7 @@ def test_null_retry_provider_get_stats():
     assert stats["fallback_count"] == 1
     assert stats["avg_attempts"] == 1.0  # 不重试，总是 1
     assert stats["provider_type"] == "null"
-    assert stats["degraded"] == True
+    assert stats["degraded"]
 
 
 # ============================================================================
@@ -267,7 +267,7 @@ def test_null_monitor_provider_is_available():
     from scripts.collaboration.null_providers import NullMonitorProvider
 
     monitor = NullMonitorProvider()
-    assert monitor.is_available() == False
+    assert not monitor.is_available()
 
 
 def test_null_monitor_provider_get_stats():
@@ -285,7 +285,7 @@ def test_null_monitor_provider_get_stats():
     assert stats["avg_agent_duration"] == 0.0
     assert stats["total_tokens"] == 0
     assert stats["provider_type"] == "null"
-    assert stats["degraded"] == True
+    assert stats["degraded"]
 
 
 # ============================================================================
@@ -343,7 +343,7 @@ def test_null_memory_provider_is_available():
     from scripts.collaboration.null_providers import NullMemoryProvider
 
     memory = NullMemoryProvider()
-    assert memory.is_available() == False
+    assert not memory.is_available()
 
 
 def test_null_memory_provider_get_stats():
@@ -359,7 +359,7 @@ def test_null_memory_provider_get_stats():
     assert stats["total_rules"] == 0
     assert stats["avg_rules_per_user"] == 0.0
     assert stats["provider_type"] == "null"
-    assert stats["degraded"] == True
+    assert stats["degraded"]
 
 
 # ============================================================================

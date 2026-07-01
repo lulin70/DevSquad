@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Tests for suggested_next_steps feature — V3.7.0."""
 
-import pytest
-
-from scripts.collaboration.intent_workflow_mapper import IntentWorkflowMapper, IntentMatch, WorkflowChainDef
 from scripts.collaboration.dispatch_models import DispatchResult
+from scripts.collaboration.intent_workflow_mapper import IntentWorkflowMapper
 
 
 class TestWorkflowChainDefNextSteps:
@@ -13,9 +11,7 @@ class TestWorkflowChainDefNextSteps:
     def test_all_intents_have_next_steps(self):
         mapper = IntentWorkflowMapper()
         for intent_type, chain_def in mapper.WORKFLOW_CHAINS.items():
-            assert len(chain_def.suggested_next_steps) >= 1, (
-                f"Intent '{intent_type}' missing suggested_next_steps"
-            )
+            assert len(chain_def.suggested_next_steps) >= 1, f"Intent '{intent_type}' missing suggested_next_steps"
 
     def test_next_steps_are_strings(self):
         mapper = IntentWorkflowMapper()

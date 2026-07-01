@@ -439,9 +439,9 @@ class TestCLIWithLifecycleIntegration:
 
     def test_cli_imports_lifecycle_module(self):
         """Test CLI module contains lifecycle command."""
-        import sys
         # scripts/cli/ package shadows scripts/cli.py, so import the .py file directly
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
             "scripts_cli_module",
             os.path.join(os.path.dirname(__file__), "..", "scripts", "cli.py"),
@@ -492,7 +492,7 @@ class TestErrorHandlingAndRecovery:
         adapter = FullLifecycleAdapter(use_unified_gate=False)
 
         # Try to advance to P2 (blocked, no P1)
-        result_p2 = adapter.advance_to_phase("P2")
+        adapter.advance_to_phase("P2")
 
         # Now complete P1 properly
         result_p1 = adapter.advance_to_phase("P1")
@@ -571,7 +571,7 @@ class TestWorkflowEngineBridge:
 
         workflow_phases = set(PHASE_TEMPLATES.keys())
         adapter = FullLifecycleAdapter(use_unified_gate=False)
-        lifecycle_phases = set(p.phase_id for p in adapter.get_all_phases())
+        lifecycle_phases = {p.phase_id for p in adapter.get_all_phases()}
 
         assert workflow_phases == lifecycle_phases
         print(f"✅ Workflow and lifecycle have matching phases ({len(lifecycle_phases)})")
@@ -625,7 +625,7 @@ class TestPerformanceAndScalability:
             )
             assert cp is not None
 
-        states = cm.list_lifecycle_states()  # Different function, just testing storage
+        cm.list_lifecycle_states()  # Different function, just testing storage
         print("✅ Stored 100 checkpoints successfully")
 
     def teardown_method(self):
