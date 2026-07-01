@@ -143,29 +143,62 @@ Total coverage: 68.15%
 
 ---
 
-## 8. 剩余风险与下一步
+## 8. 验证结果（最终）
 
-### 8.1 剩余风险
+### 8.1 关键命令输出
 
-1. **E2E/集成测试未实际执行**：已恢复收集，但未在真实 LLM Key 与完整服务栈下跑通；发布前必须手动触发 `workflow_dispatch` 跑 E2E。
-2. **tests/ 目录 ruff 错误**：`ruff check . --ignore=E501` 在 tests/ 仍有 9 个历史错误，不影响 scripts/ skills/。
-3. **Bandit 38 Low issues**：全部位于未改动历史代码，未阻塞发布，但建议后续专项清理。
-4. **覆盖率虽达 68.15%，但分支覆盖率 59.53%**：接近 60% 门禁，建议继续补充边界分支测试。
+```bash
+# 全量回归（非 e2e/integration/slow/benchmark）
+pytest -m "not e2e and not integration and not slow and not benchmark" -q --timeout=120
+2940 passed, 3 skipped, 34 deselected in 44.21s
 
-### 8.2 下一步建议
+# mypy
+mypy scripts/ --ignore-missing-imports --no-error-summary
+(no output = 0 errors)
+
+# ruff
+ruff check scripts/ skills/ tests/ --ignore=E501
+All checks passed!
+
+# 版本一致性
+python scripts/check_version_consistency.py --strict
+15 passed, 0 failed
+
+# GitHub Actions
+- CI (main): ✅ success
+- CI (v3.9.2 tag): ✅ success
+- Release (v3.9.2 tag): ❌ PyPI Trusted Publisher 未配置
+```
+
+## 9. 剩余风险与下一步
+
+### 9.1 剩余风险
+
+1. **PyPI Trusted Publisher 未配置**：release.yml 已通过 OIDC 获取 token，但 pypi.org 端缺少对应 Publisher，导致 publish-pypi job 失败。这是唯一发布阻塞项，需在 pypi.org 手动完成。
+2. **E2E/集成测试未实际执行**：已恢复收集（45 tests），但未在真实 LLM Key 与完整服务栈下跑通；发布前必须手动触发 `workflow_dispatch` 跑 E2E。
+3. **Bandit 39 Low issues**：全部位于未改动历史代码，未阻塞发布，但建议后续专项清理。
+4. **覆盖率 68.15%，分支覆盖率 59.53%**：超过 60% 门禁，但建议继续补充边界分支测试以冲刺 80%+。
+
+### 9.2 下一步建议
 
 1. **发布前必做**：
+   - 在 [pypi.org/manage/account/publishing/](https://pypi.org/manage/account/publishing/) 添加 Trusted Publisher：
+     - Project: `devsquad`
+     - Owner: `lulin70`
+     - Repository: `DevSquad`
+     - Workflow: `.github/workflows/release.yml`
+     - Environment: `pypi`
+   - 配置完成后重新推送 v3.9.2 tag（或创建 v3.9.2.post1）触发 release.yml
    - 手动触发 E2E workflow 并确认 45 个 E2E/集成测试通过
-   - 创建并推送 v3.9.2 tag，验证 release.yml publish-pypi
 2. **V3.10.0 规划**：
    - 引入 ponytail 式最小实现规则与 benchmark 基线
    - 按 headroom 思路升级 ContextCompressor
-   - 清理 tests/ ruff 错误与 bandit Low issues
+   - 清理 bandit Low issues
    - 将覆盖率提升至 80%+
 
 ---
 
-## 9. 修改文件统计
+## 10. 修改文件统计
 
 ```bash
 git diff --stat | tail -3

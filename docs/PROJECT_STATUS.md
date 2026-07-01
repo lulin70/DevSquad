@@ -116,17 +116,18 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 9. 下一步计划
 
-1. **V3.9.2 发布**（已就绪，待 git tag 推送触发 release.yml）
-   - ✅ 发布前 E2E 测试 5/5 全通过（第五轮）
-   - ✅ P0 RBAC fail-open 修复 + P1 require_auth 死代码删除（第六轮）
-   - ✅ cookie 安全配置 + release.yml + .pre-commit + git tag（第七轮）
-   - ⏳ 推送 v3.9.2 tag 触发 PyPI 发布
+1. **V3.9.2 发布**（tag 已推送，CI 全绿，PyPI 发布待配置）
+   - ✅ v3.9.2 tag 已推送至 origin，触发 release.yml
+   - ✅ CI (test/lint/security/build) 在 main 与 tag 上均通过
+   - ✅ Dockerfile 版本一致性 15/15 通过
+   - ⚠️ PyPI 发布因 Trusted Publisher 未配置而阻塞，需在 pypi.org 手动添加 Publisher
+   - ⏳ 手动触发 E2E workflow 并确认 45 个 E2E/集成测试通过
 2. **V3.10.0 规划**
    - ✅ mypy 渐进式修复（112→0，超额达成 <50 目标）
    - ✅ Mixin 重构评估（TD-068 降级关闭）
    - ✅ bandit Low 告警收敛（11→0）
    - TD-070: PostDispatch 直接实例化测试补充
-   - PyPI Trusted Publishing 首次配置（pypi.org 手动步骤）
+   - 引入 ponytail 式最小实现规则与 headroom ContextCompressor 升级
 
 ---
 
