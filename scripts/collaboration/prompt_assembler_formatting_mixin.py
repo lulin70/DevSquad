@@ -18,6 +18,27 @@ from .prompt_assembler_base import PromptAssemblerBase
 class PromptAssemblerFormattingMixin(PromptAssemblerBase):
     """Provides instruction formatting and QC injection for PromptAssembler."""
 
+    def _concat_injections(self, style: str = "") -> str:
+        """Concatenate QC + ponytail injections for short-style instructions.
+
+        Used by ultra_minimal/minimal/direct styles where the injection is
+        appended as a single block rather than as separate ``parts.append``
+        calls.
+
+        Args:
+            style: The instruction style. Ponytail rules are skipped for
+                compressed styles (``ultra_minimal``, ``minimal``) to avoid
+                defeating the purpose of context compression.
+        """
+        chunks: list[str] = []
+        if self.qc_enabled and self._qc_injection:
+            chunks.append(self._qc_injection)
+        if style not in ("ultra_minimal", "minimal"):
+            ponytail = self._get_ponytail_injection()
+            if ponytail:
+                chunks.append(ponytail)
+        return "\n\n".join(chunks) if chunks else ""
+
     def _build_quality_control_injection(self) -> str:
         """
         Build quality control system prompt injection based on configuration.
@@ -186,7 +207,7 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
 
         if style == "ultra_minimal":
             base = f"[{self.role_id}] {task_description}\nOutput core conclusion."
-            return prefix + base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
+            return prefix + base + self._concat_injections(style)
 
         if style == "minimal":
             parts = [f"[{self.role_id}] Task: {task_description}"]
@@ -197,7 +218,7 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
                 parts.append(f"Rules: {user_rules[:100]}")
             parts.append("Output key conclusion.")
             base = "\n".join(parts)
-            return prefix + base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
+            return prefix + base + self._concat_injections(style)
 
         if style == "direct":
             user_rules = self._get_user_rules_injection(task_description)
@@ -210,7 +231,7 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
                 + (self._get_skill_injection() if self._get_skill_injection() else "")
                 + "Complete your work, output core conclusion."
             )
-            return prefix + base + (self._qc_injection if self.qc_enabled and self._qc_injection else "")
+            return prefix + base + self._concat_injections(style)
 
         parts = []
         parts.append("=== Task ===")
@@ -274,6 +295,10 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
 
         if self.qc_enabled and self._qc_injection:
             parts.append(self._qc_injection)
+
+        ponytail = self._get_ponytail_injection()
+        if ponytail:
+            parts.append(ponytail)
 
         ar_content = self._get_anti_rationalization_injection()
         if ar_content:

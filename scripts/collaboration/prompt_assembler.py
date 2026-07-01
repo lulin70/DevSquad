@@ -92,6 +92,11 @@ class PromptAssembler(
         if self.qc_enabled:
             self._qc_injection = self._build_quality_control_injection()
 
+        from .ponytail_rule_injector import PonytailRuleInjector
+
+        self._ponytail_injector = PonytailRuleInjector(self.qc_config)
+        self._ponytail_injection = self._ponytail_injector.build_injection()
+
     def assemble(
         self,
         task_description: str,

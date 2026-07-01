@@ -60,6 +60,7 @@ class PromptAssemblerBase:
     qc_config: dict
     qc_enabled: bool
     _qc_injection: str
+    _ponytail_injection: str
 
     # Lazily-initialized collaborators (set by substitution mixin methods)
     _rule_storage: Any
@@ -110,3 +111,11 @@ class PromptAssemblerBase:
     def _get_anti_rationalization_injection(self) -> str:
         """Inject anti-rationalization content (implemented by substitution mixin)."""
         raise NotImplementedError
+
+    def _get_ponytail_injection(self) -> str:
+        """Return ponytail minimal-implementation injection text.
+
+        Returns the pre-built ``_ponytail_injection`` string (may be empty
+        if ``quality_control.minimal_implementation`` is disabled).
+        """
+        return getattr(self, "_ponytail_injection", "")

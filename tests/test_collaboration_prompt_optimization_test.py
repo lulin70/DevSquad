@@ -79,7 +79,9 @@ class TestAssemblyVariants(unittest.TestCase):
     def test_simple_produces_compact_or_standard(self):
         result = self.asm.assemble(task_description="写个排序函数")
         self.assertIn(result.variant_used, ["compact", "standard"])
-        self.assertLess(result.tokens_estimate, 1000)
+        # V3.10.0: ponytail minimal-implementation injection adds ~170 tokens;
+        # threshold raised from 1000 to 1500 to account for the new feature.
+        self.assertLess(result.tokens_estimate, 1500)
 
     def test_complex_produces_enhanced(self):
         result = self.asm.assemble(task_description="设计分布式微服务架构方案，含服务发现和负载均衡")

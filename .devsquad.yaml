@@ -19,6 +19,8 @@ quality_control:
   enabled: true
   strict_mode: true
   min_quality_score: 85
+  minimal_implementation: true
+  ponytail_markers: true
 
   ai_quality_control:
     enabled: true
