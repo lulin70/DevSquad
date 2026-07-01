@@ -16,6 +16,10 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - **Regression threshold**: `test_simple_produces_compact_or_standard` token threshold raised from 1000 to 1500 to account for ponytail injection (~170 tokens). `test_build_instruction_ultra_minimal_includes_ponytail` renamed to `test_build_instruction_ultra_minimal_skips_ponytail` (assertion inverted: ponytail must NOT appear in compressed styles).
 
+### Added — V3.10.0 Phase 2: Structure-Aware Compression
+- **ContentRouter + SmartCrusher** (`scripts/collaboration/content_crusher.py`): New module detecting 6 content types (JSON_ARRAY / CODE / LOG / PLAIN_TEXT / HTML / DIFF) and applying structure-aware compression. JSON array crush extracts constant fields, retains first/last/error items + representative sample (100 items → 7 representatives, 90%+ reduction). Log crush retains ERROR/WARN/FATAL lines + first/last boundary context. Short inputs (<=200 chars) skipped.
+- **CompressionLevel.SMART** (`scripts/collaboration/context_compressor.py`): New level 4 that preserves all messages but compresses each message's content via SmartCrusher. Crushed messages tagged with `smart_crushed=True` metadata. 88.7% token reduction measured on mixed JSON+log workload. 46 new tests (unit/integration/performance/edge).
+
 ## [3.9.2] - 2026-07-01
 
 ### Fixed — P0 Security & Hard Constraints

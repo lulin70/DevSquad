@@ -16,6 +16,10 @@
 ### 变更
 - **回归阈值调整**：`test_simple_produces_compact_or_standard` token 阈值从 1000 调至 1500（ponytail 注入约增 170 tokens）。`test_build_instruction_ultra_minimal_includes_ponytail` 更名为 `test_build_instruction_ultra_minimal_skips_ponytail`（断言反转：压缩风格中不应出现 ponytail）。
 
+### 新增 — V3.10.0 Phase 2：结构感知压缩
+- **ContentRouter + SmartCrusher**（`scripts/collaboration/content_crusher.py`）：新模块，检测 6 种内容类型（JSON_ARRAY / CODE / LOG / PLAIN_TEXT / HTML / DIFF）并应用结构感知压缩。JSON 数组压缩：提取常量字段、保留首尾/异常项 + 代表性子集（100 项 → 7 项代表，90%+ 压缩率）。日志压缩：保留 ERROR/WARN/FATAL 行 + 首尾边界上下文。短输入（≤200 字符）跳过。
+- **CompressionLevel.SMART**（`scripts/collaboration/context_compressor.py`）：新增级别 4，保留全部消息仅压缩内容（通过 SmartCrusher）。被压缩消息标记 `smart_crushed=True`。混合 JSON+日志负载实测 88.7% token 压缩率。46 个新测试（单元/集成/性能/边界）。
+
 ## [3.9.2] - 2026-07-01
 
 ### 代码质量 — 三项技术债清零（V3.10.0 目标提前达成）

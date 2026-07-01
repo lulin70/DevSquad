@@ -1,8 +1,8 @@
 # DevSquad 项目状态
 
-> **当前版本**: V3.10.0-dev（Phase 1 核心完成）
+> **当前版本**: V3.10.0-dev（Phase 1+2 核心完成）
 > **最后更新**: 2026-07-01
-> **最新评估**: V3.10.0 Phase 1 推进中 — PonytailRuleInjector + PromptAssembler 注入已上线（commit 084cbec）；V3.9.2 基线综合 8.5/10, A-，硬约束 13/13
+> **最新评估**: V3.10.0 Phase 1+2 推进中 — PonytailRuleInjector + ContentRouter/SmartCrusher 已上线（commit 084cbec, eb9820d）；V3.9.2 基线综合 8.5/10, A-，硬约束 13/13
 > **硬约束通过率**: 13/13（100%）
 
 ---
@@ -132,7 +132,8 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
    - ✅ bandit Low 告警收敛（11→0）
    - ✅ Phase 1 核心：PonytailRuleInjector + PromptAssembler 注入已上线（commit 084cbec，2969 passed）
      - 待办：benchmark 套件、基线对比、`ponytail:` 标记使用指南
-   - Phase 2：ContextCompressor 引入 ContentRouter + SmartCrusher（进行中）
+   - ✅ Phase 2 核心：ContentRouter + SmartCrusher + CompressionLevel.SMART 已上线（commit eb9820d，3015 passed）
+     - 待办：Coordinator/Worker 调用链接入、A/B 评估
    - Phase 3：CCRStore 可逆压缩 + TokenBudget + CompressedScratchpad
    - Phase 4：RetrospectiveSkill 失败学习闭环
    - 同步清理 bandit Low issues，覆盖率冲刺 80%+，综合评分目标 9.0/A
