@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from functools import wraps
-from typing import Any
+from typing import Any, cast
 
 import yaml
 
@@ -411,7 +411,7 @@ class AuthManager:
         try:
             import streamlit as st
 
-            return st.session_state.get("user")
+            return cast("User | None", st.session_state.get("user"))
         except ImportError:
             return None
 

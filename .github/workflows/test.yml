@@ -110,6 +110,10 @@ jobs:
           cache-dependency-path: pyproject.toml
       - name: Install lint tools
         run: pip install ruff mypy
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all]"
       - name: Lint
         run: ruff check . --ignore=E501
       - name: Type check (blocking since V3.9.1)
