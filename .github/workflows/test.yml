@@ -62,8 +62,15 @@ jobs:
     # Run E2E on: nightly schedule, manual dispatch, or release tags (v*)
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     env:
-      DEVSQUAD_LLM_BACKEND: mock
+      # Use "auto" so real LLM tests run when secrets are present, otherwise mock.
+      DEVSQUAD_LLM_BACKEND: auto
       DEVSQUAD_API_AUTH_DISABLED: "1"
+      DEVSQUAD_OPENAI_API_KEY: ${{ secrets.DEVSQUAD_OPENAI_API_KEY }}
+      DEVSQUAD_OPENAI_BASE_URL: ${{ secrets.DEVSQUAD_OPENAI_BASE_URL }}
+      DEVSQUAD_OPENAI_MODEL: ${{ secrets.DEVSQUAD_OPENAI_MODEL }}
+      DEVSQUAD_ANTHROPIC_API_KEY: ${{ secrets.DEVSQUAD_ANTHROPIC_API_KEY }}
+      DEVSQUAD_ANTHROPIC_BASE_URL: ${{ secrets.DEVSQUAD_ANTHROPIC_BASE_URL }}
+      DEVSQUAD_ANTHROPIC_MODEL: ${{ secrets.DEVSQUAD_ANTHROPIC_MODEL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

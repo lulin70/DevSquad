@@ -100,12 +100,15 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Publish to PyPI (trusted publishing via OIDC)
-        # Uses PyPI Trusted Publishing (no API token needed).
-        # Configure at: https://pypi.org/manage/account/publishing/
-        # Project: devsquad, Publisher: GitHub, Environment: pypi
+      - name: Publish to PyPI (API token)
+        # Uses PYPI_API_TOKEN repository secret.
+        # Recommended: also configure PyPI Trusted Publishing at
+        # https://pypi.org/manage/account/publishing/ so the secret can be
+        # removed once OIDC is verified. The action will prefer an explicit
+        # password over OIDC when both are present.
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
           # Fail fast if version already exists on PyPI (idempotent releases)
           skip-existing: false
 

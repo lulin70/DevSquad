@@ -16,6 +16,7 @@ Usage:
     worker = Worker(..., llm_backend=backend)
 """
 
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from typing import Any
@@ -159,15 +160,15 @@ class OpenAIBackend(LLMBackend):
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = DEFAULT_MODEL_OPENAI,
+        model: str | None = None,
         base_url: str | None = None,
         temperature: float = DEFAULT_TEMPERATURE,
         max_tokens: int = DEFAULT_MAX_TOKENS,
         timeout: float | None = None,
     ) -> None:
-        self._api_key = api_key
-        self.model = model
-        self.base_url = base_url
+        self._api_key = api_key or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
+        self.model = model or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI)
+        self.base_url = base_url or os.environ.get("DEVSQUAD_OPENAI_BASE_URL")
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
@@ -261,6 +262,10 @@ class OpenAIBackend(LLMBackend):
             stream=True,
         )
         for chunk in stream:
+            # Some OpenAI-compatible providers emit empty choices during stream setup;
+            # skip them instead of crashing.
+            if not chunk.choices:
+                continue
             content = chunk.choices[0].delta.content
             if content:
                 yield content
@@ -285,14 +290,14 @@ class AnthropicBackend(LLMBackend):
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = DEFAULT_MODEL_ANTHROPIC,
+        model: str | None = None,
         base_url: str | None = None,
         max_tokens: int = DEFAULT_MAX_TOKENS,
         timeout: float | None = None,
     ) -> None:
-        self._api_key = api_key
-        self.model = model
-        self.base_url = base_url
+        self._api_key = api_key or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
+        self.model = model or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC)
+        self.base_url = base_url or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL")
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self._client: Any | None = None
@@ -481,7 +486,7 @@ class FallbackBackend(LLMBackend):
                 return result
             except _get_fallback_exceptions() as e:  # backend failure -> try next backend
                 last_error = e
-                _llm_duration = time.time() - _llm_start if '_llm_start' in dir() else 0
+                _llm_duration = time.time() - _llm_start if "_llm_start" in dir() else 0
                 self._mark_failed(backend_repr)
                 logger.warning(
                     "FallbackBackend: %s failed (%s), trying next",
@@ -605,7 +610,8 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
                 OpenAIBackend(
                     api_key=openai_key,
                     base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
-                    model=kwargs.pop("openai_model", None) or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
+                    model=kwargs.pop("openai_model", None)
+                    or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
                     max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
                     timeout=kwargs.pop("timeout", None),
                 )
