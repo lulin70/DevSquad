@@ -152,9 +152,13 @@ Total coverage: 68.15%
 pytest -m "not e2e and not integration and not slow and not benchmark" -q --timeout=120
 2947 passed, 7 skipped, 23 deselected in 42.87s
 
-# 真实 LLM 集成测试
+# 真实 LLM 集成测试（本地）
 pytest tests/integration/test_real_llm.py -q --tb=short --timeout=300
 15 passed, 8 skipped in 199.08s
+
+# 真实 LLM E2E（GitHub Actions，workflow_dispatch）
+python -m pytest tests/e2e/ tests/integration/ -q --tb=short --timeout=300 -m "not slow"
+37 passed, 8 skipped in 175.31s
 
 # mypy
 python3.12 -m mypy scripts skills
@@ -172,9 +176,14 @@ black --check scripts/collaboration/llm_backend.py tests/integration/test_real_l
 python scripts/check_version_consistency.py --strict
 15 passed, 0 failed
 
+# PyPI 安装验证
+pip install --no-deps --index-url https://pypi.org/simple "devsquad==3.9.2" --target /tmp/verify_devsquad_392
+python -c "import sys; sys.path.insert(0, '/tmp/verify_devsquad_392'); from scripts.collaboration._version import __version__; print(__version__)"
+3.9.2
+
 # GitHub Actions
-- CI (main): ✅ success
-- Release (v3.9.2 tag): ⏳ 已切换为 API token，待重新推送 tag 触发
+- CI (main, workflow_dispatch): ✅ success (test×2, security, lint, e2e, build)
+- Release (v3.9.2 tag): ✅ success (build → publish-pypi → github-release)
 ```
 
 ## 9. 剩余风险与下一步
@@ -193,11 +202,13 @@ python scripts/check_version_consistency.py --strict
 
 ### 9.2 下一步建议
 
-1. **发布前必做（已就绪，待触发）**：
+1. **V3.9.2 发布（✅ 已完成）**：
    - ✅ GitHub secrets 已配置：`PYPI_API_TOKEN`、`DEVSQUAD_OPENAI_API_KEY`、`DEVSQUAD_OPENAI_BASE_URL`、`DEVSQUAD_OPENAI_MODEL`
    - ✅ release.yml 已切换为 API token 认证；version consistency 验证保留
-   - ⏳ 重新创建并推送 v3.9.2 tag 触发 release.yml（原 tag 指向旧 commit，workflow 此前因 lint/凭证问题失败）
-   - ⏳ 在 GitHub Actions 中手动触发 E2E workflow，确认真实 LLM Key 环境下通过
+   - ✅ v3.9.2 tag 重新推送并触发 release.yml：build → publish-pypi → github-release 全绿
+   - ✅ GitHub Actions E2E workflow 手动触发并通过：`37 passed, 8 skipped`
+   - ✅ PyPI 安装验证：`pip install devsquad==3.9.2` 成功，版本号 3.9.2
+   - ✅ GitHub Release：[https://github.com/lulin70/DevSquad/releases/tag/v3.9.2](https://github.com/lulin70/DevSquad/releases/tag/v3.9.2)
    - （可选）后续仍可配置 PyPI Trusted Publisher 并移除 `PYPI_API_TOKEN`，操作清单见 [docs/PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md)
 2. **V3.10.0 规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)）：
    - Phase 1：PromptAssembler 注入 ponytail 式最小实现规则 + benchmark 基线

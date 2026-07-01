@@ -116,16 +116,16 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 9. 下一步计划
 
-1. **V3.9.2 发布**（PyPI API token 已配置，真实 LLM 测试已通过，待重新推送 tag 触发 release）
-   - ✅ v3.9.2 tag 已存在；本地修复后需重新指向最新 commit 并推送以触发 release.yml
-   - ✅ CI (test/lint/security/build) 在 main 上通过
+1. **V3.9.2 发布**（✅ 已完成）
+   - ✅ v3.9.2 tag 重新推送并触发 release.yml
+   - ✅ CI (test/lint/security/build/e2e) 在 main 与 workflow_dispatch 上均通过
    - ✅ Dockerfile / 版本一致性 15/15 通过
-   - ✅ 真实 LLM integration tests 本地实测：`tests/integration/test_real_llm.py` 15 passed，8 skipped（skipped 为 Anthropic Key 未配置）
+   - ✅ PyPI 发布成功：`pip install devsquad==3.9.2` 已验证
+   - ✅ GitHub Release 已创建：[https://github.com/lulin70/DevSquad/releases/tag/v3.9.2](https://github.com/lulin70/DevSquad/releases/tag/v3.9.2)
+   - ✅ 真实 LLM E2E 验证通过：GitHub Actions E2E job `37 passed, 8 skipped`
    - ✅ release.yml 已切换为 API token 认证（`secrets.PYPI_API_TOKEN`），并保留 version consistency 验证
    - ✅ GitHub secrets 已配置：`PYPI_API_TOKEN`、`DEVSQUAD_OPENAI_API_KEY`、`DEVSQUAD_OPENAI_BASE_URL`、`DEVSQUAD_OPENAI_MODEL`
    - ✅ 本地明文 `.env` 已删除，所有凭证通过环境变量注入
-   - ⏳ 重新创建并推送 v3.9.2 tag 触发 release.yml（原 tag 指向旧 commit，release workflow 此前失败）
-   - ⏳ 在 GitHub Actions 中手动触发 E2E workflow，确认真实 LLM Key 环境下通过
 2. **V3.10.0 规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)）
    - ✅ mypy 渐进式修复（112→0，超额达成 <50 目标）
    - ✅ Mixin 重构评估（TD-068 降级关闭）
