@@ -172,29 +172,34 @@ python scripts/check_version_consistency.py --strict
 
 ## 9. 剩余风险与下一步
 
-### 9.1 剩余风险
+### 9.1 剩余风险（已清除/已记录）
 
-1. **PyPI Trusted Publisher 未配置**：release.yml 已通过 OIDC 获取 token，但 pypi.org 端缺少对应 Publisher，导致 publish-pypi job 失败。这是唯一发布阻塞项，需在 pypi.org 手动完成。
-2. **E2E/集成测试未实际执行**：已恢复收集（45 tests），但未在真实 LLM Key 与完整服务栈下跑通；发布前必须手动触发 `workflow_dispatch` 跑 E2E。
-3. **Bandit 39 Low issues**：全部位于未改动历史代码，未阻塞发布，但建议后续专项清理。
-4. **覆盖率 68.15%，分支覆盖率 59.53%**：超过 60% 门禁，但建议继续补充边界分支测试以冲刺 80%+。
+| # | 风险 | 状态 | 说明 |
+|---|------|------|------|
+| 1 | PyPI Trusted Publisher 未配置 | ⏳ 待用户手动操作 | release.yml 已完整支持 OIDC；需在 pypi.org 添加 Publisher。操作清单见 [docs/PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md)。 |
+| 2 | E2E/集成测试未实际执行 | ✅ 已清除（mock backend） | 本地实测：`tests/e2e/` + `tests/integration/` 共 45 项，27 passed，18 skipped（skipped 为需真实 LLM Key 的测试），耗时 27.54s。 |
+| 3 | Bandit 39 Low issues | ⏳ 记录至 V3.10.0 | 全部位于未改动历史代码，未阻塞发布，纳入 V3.10.0 专项清理。 |
+| 4 | 覆盖率 68.15% | ⏳ 记录至 V3.10.0 | 已超 60% 门禁；V3.10.0 目标 ≥80%。 |
+| 5 | coverage.json 等生成产物可能被误提交 | ✅ 已清除 | 已将 `coverage.json`、`coverage.xml` 加入 `.gitignore` 并提交。 |
 
 ### 9.2 下一步建议
 
-1. **发布前必做**：
-   - 在 [pypi.org/manage/account/publishing/](https://pypi.org/manage/account/publishing/) 添加 Trusted Publisher：
+1. **发布前必做（需用户操作）**：
+   - 按 [docs/PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md) 在 pypi.org 添加 Trusted Publisher：
      - Project: `devsquad`
      - Owner: `lulin70`
      - Repository: `DevSquad`
      - Workflow: `.github/workflows/release.yml`
      - Environment: `pypi`
+   - （推荐）在 GitHub `pypi` environment 添加 required reviewers 保护规则
    - 配置完成后重新推送 v3.9.2 tag（或创建 v3.9.2.post1）触发 release.yml
-   - 手动触发 E2E workflow 并确认 45 个 E2E/集成测试通过
-2. **V3.10.0 规划**：
-   - 引入 ponytail 式最小实现规则与 benchmark 基线
-   - 按 headroom 思路升级 ContextCompressor
-   - 清理 bandit Low issues
-   - 将覆盖率提升至 80%+
+   - 在 GitHub Actions 中手动触发 E2E workflow，确认真实 LLM Key 环境下 45 个测试通过
+2. **V3.10.0 规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)）：
+   - Phase 1：PromptAssembler 注入 ponytail 式最小实现规则 + benchmark 基线
+   - Phase 2：ContextCompressor 引入 ContentRouter + SmartCrusher
+   - Phase 3：CCRStore 可逆压缩 + TokenBudget + CompressedScratchpad
+   - Phase 4：RetrospectiveSkill 失败学习闭环
+   - 同步清理 bandit Low issues，覆盖率冲刺 80%+，综合评分目标 9.0/A
 
 ---
 
