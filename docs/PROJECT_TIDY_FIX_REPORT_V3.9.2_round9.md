@@ -150,15 +150,23 @@ Total coverage: 68.15%
 ```bash
 # 全量回归（非 e2e/integration/slow/benchmark）
 pytest -m "not e2e and not integration and not slow and not benchmark" -q --timeout=120
-2940 passed, 3 skipped, 34 deselected in 44.21s
+2947 passed, 7 skipped, 23 deselected in 42.87s
+
+# 真实 LLM 集成测试
+pytest tests/integration/test_real_llm.py -q --tb=short --timeout=300
+15 passed, 8 skipped in 199.08s
 
 # mypy
-mypy scripts/ --ignore-missing-imports --no-error-summary
-(no output = 0 errors)
+python3.12 -m mypy scripts skills
+Success: no issues found in 192 source files
 
 # ruff
-ruff check scripts/ skills/ tests/ --ignore=E501
+ruff check scripts/collaboration/llm_backend.py tests/integration/test_real_llm.py
 All checks passed!
+
+# black
+black --check scripts/collaboration/llm_backend.py tests/integration/test_real_llm.py
+2 files would be left unchanged
 
 # 版本一致性
 python scripts/check_version_consistency.py --strict
@@ -166,8 +174,7 @@ python scripts/check_version_consistency.py --strict
 
 # GitHub Actions
 - CI (main): ✅ success
-- CI (v3.9.2 tag): ✅ success
-- Release (v3.9.2 tag): ❌ PyPI Trusted Publisher 未配置
+- Release (v3.9.2 tag): ⏳ 已切换为 API token，待重新推送 tag 触发
 ```
 
 ## 9. 剩余风险与下一步
@@ -176,24 +183,22 @@ python scripts/check_version_consistency.py --strict
 
 | # | 风险 | 状态 | 说明 |
 |---|------|------|------|
-| 1 | PyPI Trusted Publisher 未配置 | ⏳ 待用户手动操作 | release.yml 已完整支持 OIDC；需在 pypi.org 添加 Publisher。操作清单见 [docs/PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md)。 |
-| 2 | E2E/集成测试未实际执行 | ✅ 已清除（mock backend） | 本地实测：`tests/e2e/` + `tests/integration/` 共 45 项，27 passed，18 skipped（skipped 为需真实 LLM Key 的测试），耗时 27.54s。 |
-| 3 | Bandit 39 Low issues | ⏳ 记录至 V3.10.0 | 全部位于未改动历史代码，未阻塞发布，纳入 V3.10.0 专项清理。 |
-| 4 | 覆盖率 68.15% | ⏳ 记录至 V3.10.0 | 已超 60% 门禁；V3.10.0 目标 ≥80%。 |
-| 5 | coverage.json 等生成产物可能被误提交 | ✅ 已清除 | 已将 `coverage.json`、`coverage.xml` 加入 `.gitignore` 并提交。 |
+| 1 | PyPI 发布凭证 | ✅ 已清除 | 已切换为 API token（`secrets.PYPI_API_TOKEN`），不再依赖 Trusted Publisher；token 已配置。保留 [PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md) 作为后续可选迁移方案。 |
+| 2 | 真实 LLM E2E 验证 | ✅ 已清除 | 本地 `tests/integration/test_real_llm.py` 15 passed，8 skipped（Anthropic Key 未配置）；OpenAI-compatible（moka-ai）backend 可用，streaming 空 choices 已防御。 |
+| 3 | 敏感信息明文保存 | ✅ 已清除 | 本地 `.env` 已删除；GitHub secrets 注入 CI；本地测试使用一次性环境变量，不写入仓库。 |
+| 4 | E2E/集成测试未实际执行 | ✅ 已清除（mock + real backend） | 本地实测：`tests/e2e/` + `tests/integration/` 共 45 项，27 passed，18 skipped（skipped 为需真实 LLM Key 的测试）。 |
+| 5 | Bandit 39 Low issues | ⏳ 记录至 V3.10.0 | 全部位于未改动历史代码，未阻塞发布，纳入 V3.10.0 专项清理。 |
+| 6 | 覆盖率 68.15% | ⏳ 记录至 V3.10.0 | 已超 60% 门禁；V3.10.0 目标 ≥80%。 |
+| 7 | coverage.json 等生成产物可能被误提交 | ✅ 已清除 | 已将 `coverage.json`、`coverage.xml` 加入 `.gitignore` 并提交。 |
 
 ### 9.2 下一步建议
 
-1. **发布前必做（需用户操作）**：
-   - 按 [docs/PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md) 在 pypi.org 添加 Trusted Publisher：
-     - Project: `devsquad`
-     - Owner: `lulin70`
-     - Repository: `DevSquad`
-     - Workflow: `.github/workflows/release.yml`
-     - Environment: `pypi`
-   - （推荐）在 GitHub `pypi` environment 添加 required reviewers 保护规则
-   - 配置完成后重新推送 v3.9.2 tag（或创建 v3.9.2.post1）触发 release.yml
-   - 在 GitHub Actions 中手动触发 E2E workflow，确认真实 LLM Key 环境下 45 个测试通过
+1. **发布前必做（已就绪，待触发）**：
+   - ✅ GitHub secrets 已配置：`PYPI_API_TOKEN`、`DEVSQUAD_OPENAI_API_KEY`、`DEVSQUAD_OPENAI_BASE_URL`、`DEVSQUAD_OPENAI_MODEL`
+   - ✅ release.yml 已切换为 API token 认证；version consistency 验证保留
+   - ⏳ 重新创建并推送 v3.9.2 tag 触发 release.yml（原 tag 指向旧 commit，workflow 此前因 lint/凭证问题失败）
+   - ⏳ 在 GitHub Actions 中手动触发 E2E workflow，确认真实 LLM Key 环境下通过
+   - （可选）后续仍可配置 PyPI Trusted Publisher 并移除 `PYPI_API_TOKEN`，操作清单见 [docs/PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md)
 2. **V3.10.0 规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)）：
    - Phase 1：PromptAssembler 注入 ponytail 式最小实现规则 + benchmark 基线
    - Phase 2：ContextCompressor 引入 ContentRouter + SmartCrusher

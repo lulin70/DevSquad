@@ -58,8 +58,8 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | 依赖锁文件 | ✅ PASS |
 | CI mypy 阻塞 | ✅ PASS |
 | E2E 模拟真实用户测试 | ✅ PASS |
-| release.yml 含 publish-pypi job | ✅ PASS (第七轮) |
-| git tag 作为发布触发器 | ✅ PASS (v3.9.2, 第七轮) |
+| release.yml 含 publish-pypi job | ✅ PASS (API token + version consistency) |
+| git tag 作为发布触发器 | ✅ PASS (v3.9.2) |
 
 ---
 
@@ -116,14 +116,15 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 9. 下一步计划
 
-1. **V3.9.2 发布**（tag 已推送，CI 全绿，PyPI 发布待用户手动配置）
-   - ✅ v3.9.2 tag 已推送至 origin，触发 release.yml
-   - ✅ CI (test/lint/security/build) 在 main 与 tag 上均通过
-   - ✅ Dockerfile 版本一致性 15/15 通过
-   - ✅ E2E/集成测试本地实测：45 collected，27 passed，18 skipped（skipped 为需真实 LLM Key 的测试）
-   - ✅ release.yml OIDC / version consistency / PyPI 验证步骤齐备
-   - ⚠️ PyPI 发布因 Trusted Publisher 未配置而阻塞，需在 pypi.org 手动添加 Publisher（操作清单见 [PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md)）
-   - ⏳ 配置完成后重新推送 v3.9.2 tag（或 v3.9.2.post1）触发 release.yml
+1. **V3.9.2 发布**（PyPI API token 已配置，真实 LLM 测试已通过，待重新推送 tag 触发 release）
+   - ✅ v3.9.2 tag 已存在；本地修复后需重新指向最新 commit 并推送以触发 release.yml
+   - ✅ CI (test/lint/security/build) 在 main 上通过
+   - ✅ Dockerfile / 版本一致性 15/15 通过
+   - ✅ 真实 LLM integration tests 本地实测：`tests/integration/test_real_llm.py` 15 passed，8 skipped（skipped 为 Anthropic Key 未配置）
+   - ✅ release.yml 已切换为 API token 认证（`secrets.PYPI_API_TOKEN`），并保留 version consistency 验证
+   - ✅ GitHub secrets 已配置：`PYPI_API_TOKEN`、`DEVSQUAD_OPENAI_API_KEY`、`DEVSQUAD_OPENAI_BASE_URL`、`DEVSQUAD_OPENAI_MODEL`
+   - ✅ 本地明文 `.env` 已删除，所有凭证通过环境变量注入
+   - ⏳ 重新创建并推送 v3.9.2 tag 触发 release.yml（原 tag 指向旧 commit，release workflow 此前失败）
    - ⏳ 在 GitHub Actions 中手动触发 E2E workflow，确认真实 LLM Key 环境下通过
 2. **V3.10.0 规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)）
    - ✅ mypy 渐进式修复（112→0，超额达成 <50 目标）
