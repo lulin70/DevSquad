@@ -1,8 +1,8 @@
 # DevSquad 项目状态
 
-> **当前版本**: V3.9.2
+> **当前版本**: V3.10.0-dev（Phase 1 核心完成）
 > **最后更新**: 2026-07-01
-> **最新评估**: 第九轮 P0-P3 全量修复（综合 8.5/10, A-）— 覆盖率 25.26%→68.15%、VERSION 恢复、E2E/集成默认可用、skills/ mypy 0 errors
+> **最新评估**: V3.10.0 Phase 1 推进中 — PonytailRuleInjector + PromptAssembler 注入已上线（commit 084cbec）；V3.9.2 基线综合 8.5/10, A-，硬约束 13/13
 > **硬约束通过率**: 13/13（100%）
 
 ---
@@ -17,7 +17,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**模块数**: 149+（`scripts/collaboration/` 下 .py 文件总数，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 150+（`scripts/collaboration/` 下 .py 文件总数，详见 [SKILL.md](../SKILL.md) Architecture Overview）
 
 **关键模块分类**:
 - **调度核心**: MultiAgentDispatcher, Coordinator, Worker, ConsensusEngine
@@ -34,9 +34,9 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成就绪回归 | 2940 passed, 3 skipped | ✅ 全绿 |
+| 单元/集成就绪回归 | 2969 passed, 25 skipped | ✅ 全绿 |
 | E2E 用户旅程 | 45 collected | ✅ 默认可用（按 marker 过滤） |
-| **合计** | **2977 collected** | **0 failed** |
+| **合计** | **3014+ collected** | **0 failed** |
 | 覆盖率 | 68.15% total / 59.53% branches | ✅ 超过 60% 门禁 |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
@@ -130,8 +130,9 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
    - ✅ mypy 渐进式修复（112→0，超额达成 <50 目标）
    - ✅ Mixin 重构评估（TD-068 降级关闭）
    - ✅ bandit Low 告警收敛（11→0）
-   - Phase 1：PromptAssembler 注入 ponytail 式最小实现规则 + benchmark 基线
-   - Phase 2：ContextCompressor 引入 ContentRouter + SmartCrusher
+   - ✅ Phase 1 核心：PonytailRuleInjector + PromptAssembler 注入已上线（commit 084cbec，2969 passed）
+     - 待办：benchmark 套件、基线对比、`ponytail:` 标记使用指南
+   - Phase 2：ContextCompressor 引入 ContentRouter + SmartCrusher（进行中）
    - Phase 3：CCRStore 可逆压缩 + TokenBudget + CompressedScratchpad
    - Phase 4：RetrospectiveSkill 失败学习闭环
    - 同步清理 bandit Low issues，覆盖率冲刺 80%+，综合评分目标 9.0/A

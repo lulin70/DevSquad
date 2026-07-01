@@ -7,6 +7,15 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.0-dev] - 2026-07-01
+
+### Added — V3.10.0 Phase 1: Minimal Implementation Rules
+- **PonytailRuleInjector** (`scripts/collaboration/ponytail_rule_injector.py`): New module injecting ponytail-style "laziness ladder" (7 rungs: YAGNI → reuse → stdlib → platform native → installed dependency → one line → minimal code) into prompts to suppress over-engineering in 7-role parallel processing. Includes never-skip boundary (input validation / data loss prevention / security / accessibility). Configurable via `quality_control.minimal_implementation` and `quality_control.ponytail_markers` in `.devsquad.yaml`.
+- **PromptAssembler integration** (`prompt_assembler.py`, `prompt_assembler_base.py`, `prompt_assembler_formatting_mixin.py`): Ponytail rules injected into structured/compact/direct instruction styles via new `_concat_injections(style)` helper. Compression styles (`ultra_minimal`, `minimal`) intentionally skip ponytail injection to preserve compression effectiveness. 17 new unit/integration tests.
+
+### Changed
+- **Regression threshold**: `test_simple_produces_compact_or_standard` token threshold raised from 1000 to 1500 to account for ponytail injection (~170 tokens). `test_build_instruction_ultra_minimal_includes_ponytail` renamed to `test_build_instruction_ultra_minimal_skips_ponytail` (assertion inverted: ponytail must NOT appear in compressed styles).
+
 ## [3.9.2] - 2026-07-01
 
 ### Fixed — P0 Security & Hard Constraints

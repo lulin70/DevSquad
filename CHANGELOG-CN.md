@@ -7,6 +7,15 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [3.10.0-dev] - 2026-07-01
+
+### 新增 — V3.10.0 Phase 1：最小实现规则注入
+- **PonytailRuleInjector**（`scripts/collaboration/ponytail_rule_injector.py`）：新模块，注入 ponytail 式「懒惰阶梯」（7 级：YAGNI → 复用 → 标准库 → 平台原生 → 已安装依赖 → 一行实现 → 最小代码），抑制 7 角色并行协作中的过度工程。包含「永不削减」底线（输入校验 / 防数据丢失 / 安全 / 可访问性）。通过 `.devsquad.yaml` 的 `quality_control.minimal_implementation` 与 `quality_control.ponytail_markers` 配置。
+- **PromptAssembler 集成**（`prompt_assembler.py`、`prompt_assembler_base.py`、`prompt_assembler_formatting_mixin.py`）：ponytail 规则通过新增 `_concat_injections(style)` 辅助方法注入到 structured/compact/direct 指令风格中。压缩风格（`ultra_minimal`、`minimal`）故意跳过 ponytail 注入以保压缩效果。新增 17 个单元/集成测试。
+
+### 变更
+- **回归阈值调整**：`test_simple_produces_compact_or_standard` token 阈值从 1000 调至 1500（ponytail 注入约增 170 tokens）。`test_build_instruction_ultra_minimal_includes_ponytail` 更名为 `test_build_instruction_ultra_minimal_skips_ponytail`（断言反转：压缩风格中不应出现 ponytail）。
+
 ## [3.9.2] - 2026-07-01
 
 ### 代码质量 — 三项技术债清零（V3.10.0 目标提前达成）
