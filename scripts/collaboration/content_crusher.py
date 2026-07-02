@@ -12,7 +12,10 @@ from __future__ import annotations
 import json
 import re
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .ccr_store import CCRStore
 
 
 class ContentType(Enum):
@@ -98,6 +101,7 @@ class SmartCrusher:
         self,
         json_max_representative: int = 5,
         log_max_context_lines: int = 3,
+        ccr_store: CCRStore | None = None,
     ) -> None:
         """Configure crush limits.
 
@@ -106,9 +110,13 @@ class SmartCrusher:
                 JSON array (in addition to first/last/error items).
             log_max_context_lines: Context lines retained around each
                 ERROR/WARN log entry.
+            ccr_store: Optional CCRStore for reversible compression. When set,
+                the original text is stored and a ``retrieve full: trace_id=X``
+                marker is appended to the crush header.
         """
         self._json_max_rep = json_max_representative
         self._log_max_ctx = log_max_context_lines
+        self._ccr_store = ccr_store
 
     def crush(self, text: str, content_type: ContentType | None = None) -> str:
         """Route ``text`` to the appropriate per-type crusher.
@@ -120,6 +128,9 @@ class SmartCrusher:
 
         Returns:
             Compressed text. Short inputs (<=200 chars) are returned unchanged.
+            When a CCRStore is configured and compression occurs, the original
+            is stored and a ``retrieve full: trace_id=...`` marker is injected
+            into the crush header.
         """
         if len(text) <= 200:
             return text
@@ -128,10 +139,35 @@ class SmartCrusher:
             content_type = ContentRouter().detect(text)
 
         if content_type == ContentType.JSON_ARRAY:
-            return self.crush_json_array(text)
-        if content_type == ContentType.LOG:
-            return self.crush_log(text)
-        return text  # CODE/HTML/DIFF/PLAIN_TEXT: defer to existing compressor
+            crushed = self.crush_json_array(text)
+        elif content_type == ContentType.LOG:
+            crushed = self.crush_log(text)
+        else:
+            return text  # CODE/HTML/DIFF/PLAIN_TEXT: defer to existing compressor
+
+        # CCR marker: store original + inject trace_id when compression happened
+        if self._ccr_store is not None and crushed != text:
+            trace_id = self._ccr_store.store(
+                text, metadata={"content_type": content_type.value}
+            )
+            crushed = self._inject_trace_id(crushed, trace_id)
+        return crushed
+
+    @staticmethod
+    def _inject_trace_id(crushed: str, trace_id: str) -> str:
+        """Append ``retrieve full: trace_id=X`` to the crush header line.
+
+        Header format before: ``[N items compressed to M]``
+        Header format after:  ``[N items compressed to M; retrieve full: trace_id=X]``
+        """
+        lines = crushed.split("\n", 1)
+        header = lines[0]
+        rest = lines[1] if len(lines) > 1 else ""
+        if header.startswith("[") and header.endswith("]"):
+            header = header[:-1] + f"; retrieve full: trace_id={trace_id}]"
+        else:
+            header = header + f" [retrieve full: trace_id={trace_id}]"
+        return header + ("\n" + rest if rest else "")
 
     def crush_json_array(self, text: str) -> str:
         """Compress a JSON array string.

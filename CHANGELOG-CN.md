@@ -34,6 +34,23 @@
 - 版本一致性：15/15 PASS
 - 模块总数：150+（新增 `benchmark_ponytail_smart.py`）
 
+### 新增 — V3.10.0 Phase 3：可逆压缩 + Token 预算
+- **CCRStore**（`scripts/collaboration/ccr_store.py`）：可逆压缩后端（SQLite + 内存 LRU + TTL + 线程安全）。SmartCrusher 压缩内容时，原始内容存入 CCRStore 并在压缩输出中发射 `trace_id` 标记；Worker 可通过 `devsquad_retrieve(trace_id=..., query=...)` 检索完整原始内容。Coordinator 扫描 Worker 输出中的标记并自动注入原始内容。23 个新测试。
+- **TokenBudget**（`scripts/collaboration/models_base.py`）：按 dispatch 的 token 预算控制。配置后 Coordinator 跟踪 `_used_input_tokens`，预算超限时触发压缩/截断。防止长多 Agent 任务成本失控。
+- **CompressedScratchpadEntry**（`scripts/collaboration/models_base.py`、`scratchpad.py`）：原始内容已通过 CCRStore 压缩的 Scratchpad 条目。存储 `trace_id` 指针；Worker 默认读压缩摘要，按需通过 `CCRStore.retrieve` 获取完整原始内容。
+- **Dispatch pipeline 接入**（`dispatch_component_factory.py`、`.devsquad.yaml`）：`ComponentConfig` 新增 `smart_compression`、`ccr_store`、`token_budget` 字段。`Coordinator` 创建时传递这些参数，完成 Phase 2+3 接入（此前 Coordinator 接受参数但 factory 未传递——幽灵功能风险已消除）。`.devsquad.yaml` 新增 `smart_compression`、`ccr_store_path`、`token_budget_total` 配置项。
+- **coordinator.py `from __future__ import annotations`**：修复 P0 NameError — `__init__` 中的 `CCRStore | None` 注解在运行时被求值，因 `coordinator.py` 缺少 `from __future__ import annotations` 导致 76 个测试收集失败。添加 future import 修复。
+
+### 修复 — V3.10.0 Phase 3 P0
+- **NameError: CCRStore not defined**（P0，76 个测试阻塞）：`coordinator.py` 使用 `CCRStore | None` 类型注解但缺少 `from __future__ import annotations`，导致类定义时 `NameError`。根因：Phase 3 代码部分合并时缺少对应的 import guard。
+
+### 验证 — Phase 3
+- pytest 本地（Python 3.12）：3137 passed / 3 skipped / 0 failed（71 个 Phase 3 新测试 + 21 个 pipeline 接入测试）
+- mypy scripts/ skills/：0 errors
+- ruff check scripts/ skills/：All checks passed
+- 版本一致性：15/15 PASS
+- 模块总数：152+（新增 `ccr_store.py`，扩展 `models_base.py`/`scratchpad.py`）
+
 ## [3.9.2] - 2026-07-01
 
 ### 代码质量 — 三项技术债清零（V3.10.0 目标提前达成）

@@ -34,6 +34,23 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Version consistency: 15/15 PASS
 - Module count: 150+ (added `benchmark_ponytail_smart.py`)
 
+### Added — V3.10.0 Phase 3: Reversible Compression + Token Budget
+- **CCRStore** (`scripts/collaboration/ccr_store.py`): Reversible compression backend (SQLite + in-memory LRU + TTL + thread-safe). When SmartCrusher compresses content, the original is stored in CCRStore and a `trace_id` marker is emitted in the compressed output. Workers can later retrieve the full original via `devsquad_retrieve(trace_id=..., query=...)`. Coordinator scans Worker output for these markers and auto-injects the original content. 23 new tests.
+- **TokenBudget** (`scripts/collaboration/models_base.py`): Per-dispatch token budget enforcement. When configured, Coordinator tracks `_used_input_tokens` and triggers compression/truncation when budget is exceeded. Prevents cost overruns on long multi-Agent tasks.
+- **CompressedScratchpadEntry** (`scripts/collaboration/models_base.py`, `scratchpad.py`): Scratchpad entries whose original content has been compressed via CCRStore. Stores a `trace_id` pointer; Workers read the compressed summary by default and retrieve the full original on demand via `CCRStore.retrieve`.
+- **Dispatch pipeline integration** (`dispatch_component_factory.py`, `.devsquad.yaml`): `ComponentConfig` extended with `smart_compression`, `ccr_store`, `token_budget` fields. `Coordinator` creation now passes these parameters, completing the Phase 2+3 integration (previously Coordinator accepted the params but the factory did not pass them — ghost-feature risk eliminated). `.devsquad.yaml` adds `smart_compression`, `ccr_store_path`, `token_budget_total` config keys.
+- **coordinator.py `from __future__ import annotations`**: Fixed P0 NameError — `CCRStore | None` annotation in `__init__` was evaluated at runtime because `coordinator.py` lacked `from __future__ import annotations`, causing 76 test collection errors. Fixed by adding the future import.
+
+### Fixed — V3.10.0 Phase 3 P0
+- **NameError: CCRStore not defined** (P0, 76 tests blocked): `coordinator.py` used `CCRStore | None` type annotation without `from __future__ import annotations`, causing `NameError` at class definition time. Fixed by adding the future import. Root cause: Phase 3 code was partially merged without the corresponding import guard.
+
+### Verification — Phase 3
+- pytest local (Python 3.12): 3137 passed / 3 skipped / 0 failed (71 new Phase 3 tests + 21 pipeline integration tests)
+- mypy scripts/ skills/: 0 errors
+- ruff check scripts/ skills/: All checks passed
+- Version consistency: 15/15 PASS
+- Module count: 152+ (added `ccr_store.py`, extended `models_base.py`/`scratchpad.py`)
+
 ## [3.9.2] - 2026-07-01
 
 ### Fixed — P0 Security & Hard Constraints

@@ -1,8 +1,8 @@
 # DevSquad 项目状态
 
-> **当前版本**: V3.10.0-dev（Phase 1+2 全部完成）
+> **当前版本**: V3.10.0-dev（Phase 1+2+3 全部完成）
 > **最后更新**: 2026-07-02
-> **最新评估**: V3.10.0-dev Round 2 评估完成 — 综合 **8.3/10（B+）**，硬约束 **13/13**；UI 启动验证 HTTP 200、多语言文档一致性修复、CI mypy 扩展至 skills/、幽灵功能深度审计 0 项。详见 [docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md](./assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md)
+> **最新评估**: V3.10.0-dev Round 2 评估完成 — 综合 **8.3/10（B+）**，硬约束 **13/13**；Phase 3（CCRStore + TokenBudget + CompressedScratchpad）已完成并接入 dispatch pipeline，3137 passed。
 > **硬约束通过率**: 13/13（100%）
 
 ---
@@ -34,7 +34,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成就绪回归 | 3007 passed, 15 skipped（CI 权威，Python 3.10+3.11） | ✅ 全绿 |
+| 单元/集成就绪回归 | 3137 passed, 3 skipped（本地 Python 3.12，含 Phase 3） | ✅ 全绿 |
 | E2E 用户旅程 | 45 collected | ✅ 默认可用（按 marker 过滤） |
 | **合计** | **3052+ collected** | **0 failed** |
 | 覆盖率 | 67.92% total（CI）/ 68.47%（本地 3.12） | ✅ 超过 60% 门禁 |

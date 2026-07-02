@@ -13,12 +13,14 @@ Scratchpad - 共享黑板实现
 import json
 import logging
 import os
+import re
 import threading
 from collections import OrderedDict
 from datetime import datetime
 from typing import Any
 
 from .models import (
+    CompressedScratchpadEntry,
     EntryStatus,
     EntryType,
     ScratchpadEntry,
@@ -28,6 +30,12 @@ from .usage_tracker import track_usage
 logger = logging.getLogger(__name__)
 
 MAX_ENTRIES_DEFAULT = 1000
+
+# Regex for ``devsquad_retrieve(trace_id=X, query=Y)`` markers emitted by SmartCrusher.
+# Used by Coordinator to auto-inject original content into Worker output.
+_DEVSQUAD_RETRIEVE_PATTERN = re.compile(
+    r"devsquad_retrieve\(\s*trace_id\s*=\s*['\"]?([a-f0-9]+)['\"]?\s*(?:,\s*query\s*=\s*['\"]([^'\"]*)['\"]\s*)?\)"
+)
 
 
 class Scratchpad:
@@ -65,6 +73,7 @@ class Scratchpad:
         "_max_entries",
         "_write_count",
         "_read_count",
+        "_compressed_entries",
     )
 
     def __init__(self, scratchpad_id: str | None = None, persist_dir: str | None = None):
@@ -85,6 +94,10 @@ class Scratchpad:
         self._max_entries: int = MAX_ENTRIES_DEFAULT
         self._write_count: int = 0
         self._read_count: int = 0
+        # V3.10.0 Phase 3: Compressed entries whose originals live in CCRStore.
+        # Workers read ``summary`` by default; Coordinator auto-retrieves the
+        # original via ``devsquad_retrieve(trace_id=..., query=...)`` when needed.
+        self._compressed_entries: list[CompressedScratchpadEntry] = []
 
         if self.persist_dir:
             os.makedirs(self.persist_dir, exist_ok=True)
@@ -293,6 +306,7 @@ class Scratchpad:
                 "write_count": self._write_count,
                 "read_count": self._read_count,
                 "max_entries": self._max_entries,
+                "compressed_entries_count": len(self._compressed_entries),
             }
 
     def _evict_oldest(self, count: int = 1) -> None:
@@ -340,6 +354,57 @@ class Scratchpad:
         """清空所有黑板条目（仅内存，不影响已持久化的文件）"""
         with self._lock:
             self._entries.clear()
+            self._compressed_entries.clear()
+
+    def write_compressed(
+        self,
+        summary: str,
+        trace_id: str,
+        original_size: int = 0,
+        compressed_size: int = 0,
+    ) -> CompressedScratchpadEntry:
+        """V3.10.0 Phase 3 — Write a compressed scratchpad entry.
+
+        Compressed entries store only a ``summary`` plus a ``trace_id`` pointer
+        into CCRStore. Workers read the summary by default; when the full
+        original is needed, the Coordinator detects ``devsquad_retrieve(
+        trace_id=..., query=...)`` markers in Worker output and calls
+        ``CCRStore.retrieve`` to inject the original.
+
+        Args:
+            summary: Compressed summary text shown to Workers by default.
+            trace_id: CCRStore trace_id pointing at the original content.
+            original_size: Original content size (chars) for reduction stats.
+            compressed_size: Compressed summary size (chars).
+
+        Returns:
+            The created CompressedScratchpadEntry.
+        """
+        with self._lock:
+            entry = CompressedScratchpadEntry(
+                summary=summary,
+                trace_id=trace_id,
+                original_size=original_size,
+                compressed_size=compressed_size,
+            )
+            self._compressed_entries.append(entry)
+            self._write_count += 1
+            track_usage(
+                "scratchpad.write_compressed",
+                success=True,
+                metadata={"trace_id": trace_id, "original_size": original_size},
+            )
+            return entry
+
+    def read_compressed_entries(self) -> list[CompressedScratchpadEntry]:
+        """V3.10.0 Phase 3 — Return all compressed scratchpad entries.
+
+        Returns:
+            List of CompressedScratchpadEntry instances (newest last).
+        """
+        with self._lock:
+            self._read_count += 1
+            return list(self._compressed_entries)
 
     def export_json(self) -> str:
         """

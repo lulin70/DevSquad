@@ -12,11 +12,14 @@ Core component for multi-Worker collaboration:
 7. Rule pre-check via MemoryProvider (optional)
 """
 
+from __future__ import annotations
+
 import logging
+import re
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .consensus import ConsensusEngine
 from .context_compressor import CompressedContext, CompressionLevel, ContextCompressor, Message, MessageType
@@ -29,13 +32,24 @@ from .models import (
     ScheduleResult,
     TaskBatch,
     TaskDefinition,
+    TokenBudget,
     WorkerResult,
 )
 from .scratchpad import Scratchpad
 from .usage_tracker import track_usage
 from .worker import Worker, WorkerFactory
 
+if TYPE_CHECKING:
+    from .ccr_store import CCRStore
+
 logger = logging.getLogger(__name__)
+
+# Pattern for ``devsquad_retrieve(trace_id=X, query=Y)`` markers in Worker output.
+# Coordinator scans Worker output for these markers and auto-injects the original
+# content from CCRStore so downstream Workers see the full uncompressed context.
+_DEVSQUAD_RETRIEVE_PATTERN = re.compile(
+    r"devsquad_retrieve\(\s*trace_id\s*=\s*['\"]?([a-f0-9]+)['\"]?\s*(?:,\s*query\s*=\s*['\"]([^'\"]*)['\"]\s*)?\)"
+)
 
 
 class Coordinator:
@@ -85,6 +99,9 @@ class Coordinator:
         "code_graph",
         "smart_compression",
         "_smart_stats",
+        "token_budget",
+        "ccr_store",
+        "_used_input_tokens",
     )
 
     def __init__(
@@ -99,6 +116,8 @@ class Coordinator:
         briefing_mode: bool = True,
         execution_guard: Any = None,
         smart_compression: bool = False,
+        token_budget: TokenBudget | None = None,
+        ccr_store: CCRStore | None = None,
     ) -> None:
         """
         Initialize Coordinator.
@@ -117,6 +136,17 @@ class Coordinator:
                 while compressing JSON/log/code content, reducing token count without
                 information loss. When True, SMART runs first; if tokens still exceed
                 threshold, destructive level (SNIP/SESSION_MEMORY/FULL_COMPACT) runs next.
+            token_budget: V3.10.0 Phase 3 — per-dispatch token budget. When set,
+                ``execute_plan`` checks ``used_input_tokens`` against the budget
+                before each batch. On warning (>=80% by default) SMART compression
+                is force-triggered; on exceed (>=100%) destructive compression
+                is force-triggered via FULL_COMPACT. ``get_budget_status`` exposes
+                the live counters for dashboard/API.
+            ccr_store: V3.10.0 Phase 3 — reversible compression store. When set,
+                passed to ``ContextCompressor`` so ``SmartCrusher`` injects
+                ``retrieve full: trace_id=...`` markers into crushed output. The
+                Coordinator scans Worker output for ``devsquad_retrieve(trace_id=...)``
+                markers and auto-injects the original content from the store.
         """
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
@@ -126,7 +156,11 @@ class Coordinator:
         self._execution_history: list[dict[str, Any]] = []
         self.coordinator_id = f"coord-{uuid.uuid4().hex[:8]}"
         self.enable_compression = enable_compression
-        self.compressor = ContextCompressor(token_threshold=compression_threshold) if enable_compression else None
+        self.compressor = (
+            ContextCompressor(token_threshold=compression_threshold, ccr_store=ccr_store)
+            if enable_compression
+            else None
+        )
         self._message_buffer: list[Message] = []
         self.smart_compression = smart_compression
         self._smart_stats: dict[str, Any] = {
@@ -149,6 +183,10 @@ class Coordinator:
         # construction when a graph is configured). When set, workers
         # query the graph before LLM calls to reduce Read/Grep usage.
         self.code_graph: Any = None
+        # V3.10.0 Phase 3: Token budget + reversible compression store.
+        self.token_budget = token_budget
+        self.ccr_store = ccr_store
+        self._used_input_tokens: int = 0
 
     def plan_task(
         self, task_description: str, available_roles: list[dict[str, str]], stage_id: str | None = None
@@ -296,7 +334,19 @@ class Coordinator:
         errors = []
 
         for batch_idx, batch in enumerate(plan.batches):
+            # V3.10.0 Phase 3: Token budget pre-batch check.
+            # On warning: force SMART compression (preserves all messages,
+            # only crushes structured content). On exceed: force destructive
+            # FULL_COMPACT to free token budget before the next batch runs.
+            self._check_token_budget_before_batch()
+
             batch_results, batch_errors = self._execute_batch(batch)
+            # V3.10.0 Phase 3: Auto-retrieve compressed originals.
+            # If Worker output contains ``devsquad_retrieve(trace_id=...)``
+            # markers and a CCRStore is configured, replace the marker with
+            # the original content so downstream Workers see full context.
+            if self.ccr_store is not None:
+                batch_results = [self._retrieve_compressed_originals(r) for r in batch_results]
             results.extend(batch_results)
             errors.extend(batch_errors)
 
@@ -335,6 +385,9 @@ class Coordinator:
                             },
                         }
                     )
+                # V3.10.0 Phase 3: Update used_input_tokens from compressed result.
+                if self.token_budget is not None:
+                    self._used_input_tokens = compressed.compressed_token_count
 
         duration = time.time() - start_time
         success_count = sum(1 for r in results if r.success)
@@ -423,6 +476,101 @@ class Coordinator:
             self._smart_stats["smart_tokens_before"] += smart_ctx.original_token_count
             self._smart_stats["smart_tokens_after"] += smart_ctx.compressed_token_count
         return smart_ctx
+
+    def _check_token_budget_before_batch(self) -> None:
+        """V3.10.0 Phase 3 — Enforce token budget before each batch.
+
+        Estimates the current message buffer token count and updates
+        ``_used_input_tokens``. When a ``TokenBudget`` is configured:
+          - On warning (>=80% by default): force SMART compression to reduce
+            structured content without losing messages.
+          - On exceed (>=100%): force destructive FULL_COMPACT compression
+            to free token budget before the next batch runs.
+
+        Logs a warning when the budget is exceeded. No-op when no budget
+        is configured or compression is disabled.
+        """
+        if self.token_budget is None or self.compressor is None:
+            return
+        if self._message_buffer:
+            self._used_input_tokens = self.compressor.estimate_messages_tokens(self._message_buffer)
+        if self.token_budget.is_exceeded(self._used_input_tokens):
+            logger.warning(
+                "Token budget exceeded (%d/%d) — forcing FULL_COMPACT compression",
+                self._used_input_tokens,
+                self.token_budget.total_input_budget,
+            )
+            self.compressor.check_and_compress(
+                self._message_buffer, force_level=CompressionLevel.FULL_COMPACT
+            )
+        elif self.token_budget.is_warning(self._used_input_tokens):
+            logger.info(
+                "Token budget warning (%d/%d) — forcing SMART compression",
+                self._used_input_tokens,
+                self.token_budget.total_input_budget,
+            )
+            self.apply_smart_compression()
+
+    def _retrieve_compressed_originals(self, result: WorkerResult) -> WorkerResult:
+        """V3.10.0 Phase 3 — Auto-inject compressed originals into Worker output.
+
+        Scans ``result.output`` for ``devsquad_retrieve(trace_id=X, query=Y)``
+        markers emitted by SmartCrusher. For each marker, retrieves the original
+        content from ``CCRStore`` and appends it after the marker so downstream
+        Workers see the full uncompressed context.
+
+        Args:
+            result: WorkerResult whose ``output`` may contain retrieve markers.
+
+        Returns:
+            The same WorkerResult with ``output`` updated in-place when markers
+            were found and originals retrieved. Returns the result unchanged
+            when no CCRStore is configured or no markers are present.
+        """
+        if self.ccr_store is None or not result.output:
+            return result
+        output_str = str(result.output)
+
+        def _replace(match: re.Match[str]) -> str:
+            trace_id = match.group(1)
+            query = match.group(2) if match.lastindex and match.lastindex >= 2 else None
+            try:
+                original = self.ccr_store.retrieve(trace_id, query=query)  # type: ignore[union-attr]
+                if original:
+                    return f"\n[Retrieved original (trace_id={trace_id})]\n{original}\n[/Retrieved]\n"
+            except (KeyError, ValueError) as e:
+                logger.warning("Failed to retrieve trace_id=%s: %s", trace_id, e)
+            return match.group(0)
+
+        new_output = _DEVSQUAD_RETRIEVE_PATTERN.sub(_replace, output_str)
+        if new_output != output_str:
+            result.output = new_output
+        return result
+
+    def get_budget_status(self) -> dict[str, Any] | None:
+        """V3.10.0 Phase 3 — Return live token budget status for dashboard/API.
+
+        Returns:
+            Dict with budget config + live counters, or None when no
+            TokenBudget is configured. Fields:
+              - total_input_budget / per_role_input_budget / output_budget
+              - warning_ratio / warning_threshold
+              - used_input_tokens / remaining_input_tokens
+              - is_warning / is_exceeded
+        """
+        if self.token_budget is None:
+            return None
+        return {
+            "total_input_budget": self.token_budget.total_input_budget,
+            "per_role_input_budget": self.token_budget.per_role_input_budget,
+            "output_budget": self.token_budget.output_budget,
+            "warning_ratio": self.token_budget.warning_ratio,
+            "warning_threshold": self.token_budget.warning_threshold(),
+            "used_input_tokens": self._used_input_tokens,
+            "remaining_input_tokens": self.token_budget.remaining(self._used_input_tokens),
+            "is_warning": self.token_budget.is_warning(self._used_input_tokens),
+            "is_exceeded": self.token_budget.is_exceeded(self._used_input_tokens),
+        }
 
     def get_compression_stats(self) -> dict[str, Any] | None:
         """

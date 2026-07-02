@@ -477,3 +477,133 @@ CONSENSUS_THRESHOLDS = {
 - super_majority (0.67): Required for important architectural choices
 - unanimous (1.0): Full agreement needed for critical security decisions
 """
+
+
+# ============================================================
+# V3.10.0 Phase 3: Token budget + Compressed scratchpad
+# ============================================================
+
+
+@dataclass
+class TokenBudget:
+    """Token usage budget for a single dispatch execution.
+
+    Controls cost by enforcing input/output token limits per dispatch and per role.
+    Coordinator checks budget before dispatching each Worker; when usage approaches
+    ``warning_ratio`` threshold, compression level is escalated, briefings are
+    shortened, and non-critical roles may be skipped.
+
+    Attributes:
+        total_input_budget: Maximum total input tokens across all roles (default: 100_000)
+        per_role_input_budget: Maximum input tokens per single role (default: 20_000)
+        output_budget: Maximum total output tokens (default: 10_000)
+        warning_ratio: Ratio at which to trigger warning/escalation (default: 0.8)
+
+    Example:
+        >>> budget = TokenBudget(total_input_budget=50_000)
+        >>> budget.is_warning(42_000)  # 42k >= 40k threshold
+        True
+        >>> budget.is_exceeded(42_000)  # 42k < 50k hard limit
+        False
+    """
+
+    total_input_budget: int = 100_000
+    per_role_input_budget: int = 20_000
+    output_budget: int = 10_000
+    warning_ratio: float = 0.8
+
+    def warning_threshold(self) -> int:
+        """Return the total input token count at which the warning triggers.
+
+        Computed as ``int(total_input_budget * warning_ratio)``.
+        """
+        return int(self.total_input_budget * self.warning_ratio)
+
+    def is_warning(self, used_input_tokens: int) -> bool:
+        """Check whether total input token usage has crossed the warning threshold."""
+        return used_input_tokens >= self.warning_threshold()
+
+    def is_exceeded(self, used_input_tokens: int) -> bool:
+        """Check whether total input token usage has exceeded the hard budget."""
+        return used_input_tokens >= self.total_input_budget
+
+    def is_role_exceeded(self, used_role_input_tokens: int) -> bool:
+        """Check whether a single role's input token usage exceeded the per-role budget."""
+        return used_role_input_tokens >= self.per_role_input_budget
+
+    def remaining(self, used_input_tokens: int) -> int:
+        """Return remaining total input token budget (never negative)."""
+        return max(0, self.total_input_budget - used_input_tokens)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize budget to a JSON-compatible dictionary."""
+        return {
+            "total_input_budget": self.total_input_budget,
+            "per_role_input_budget": self.per_role_input_budget,
+            "output_budget": self.output_budget,
+            "warning_ratio": self.warning_ratio,
+        }
+
+
+@dataclass
+class CompressedScratchpadEntry:
+    """Scratchpad entry whose original content has been compressed via CCRStore.
+
+    Workers read the ``summary`` by default. When a Worker's output contains
+    ``devsquad_retrieve(trace_id=..., query=...)``, the Coordinator auto-retrieves
+    the original content from CCRStore and injects it into the Worker context.
+
+    Attributes:
+        summary: Compressed summary shown to Workers by default
+        trace_id: CCRStore trace ID for retrieving the full original content
+        original_size: Original content size in characters
+        compressed_size: Compressed summary size in characters
+        created_at: Creation timestamp (defaults to now)
+
+    Example:
+        >>> entry = CompressedScratchpadEntry(
+        ...     summary="[1000 items compressed to 20; retrieve full: trace_id=abc]",
+        ...     trace_id="abc",
+        ...     original_size=15000,
+        ...     compressed_size=60,
+        ... )
+        >>> entry.reduction_ratio  # 0.996
+    """
+
+    summary: str
+    trace_id: str
+    original_size: int = 0
+    compressed_size: int = 0
+    created_at: datetime = field(default_factory=datetime.now)
+
+    @property
+    def reduction_ratio(self) -> float:
+        """Compression ratio achieved (0.0-1.0). Higher means more reduction."""
+        if self.original_size <= 0:
+            return 0.0
+        return 1.0 - (self.compressed_size / self.original_size)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize entry to a JSON-compatible dictionary."""
+        return {
+            "summary": self.summary,
+            "trace_id": self.trace_id,
+            "original_size": self.original_size,
+            "compressed_size": self.compressed_size,
+            "created_at": self.created_at.isoformat(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "CompressedScratchpadEntry":
+        """Deserialize entry from a dictionary (inverse of :meth:`to_dict`)."""
+        return cls(
+            summary=data.get("summary", ""),
+            trace_id=data.get("trace_id", ""),
+            original_size=data.get("original_size", 0),
+            compressed_size=data.get("compressed_size", 0),
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if "created_at" in data
+                else datetime.now()
+            ),
+        )

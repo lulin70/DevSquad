@@ -39,6 +39,11 @@ class ComponentConfig:
     llm_backend: Any = None
     stream: bool = False
     lang: str = "auto"
+    # V3.10.0 Phase 2: SMART structure-aware pre-compression (preserves all messages)
+    smart_compression: bool = False
+    # V3.10.0 Phase 3: reversible compression store + per-dispatch token budget
+    ccr_store: Any = None  # CCRStore | None
+    token_budget: Any = None  # TokenBudget | None
 
 
 class ComponentFactory:
@@ -101,6 +106,9 @@ class ComponentFactory:
             llm_backend=config.llm_backend,
             stream=config.stream,
             execution_guard=components["execution_guard"],
+            smart_compression=config.smart_compression,
+            token_budget=config.token_budget,
+            ccr_store=config.ccr_store,
         )
 
         components["batch_scheduler"] = BatchScheduler()

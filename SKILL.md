@@ -8,7 +8,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V3.9.2: Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence + P3 cleanup (magic numbers + narrowed exceptions).
-150+ core modules, 3007+ tests passing (CI authoritative).
+150+ core modules, 3137+ tests passing (CI authoritative).
 ---
 
 # DevSquad V3.9.2 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -157,6 +157,8 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 88 | **PonytailRuleInjector** | `ponytail_rule_injector.py` | Ponytail-style minimal-implementation rules injection (7-rung laziness ladder + never-skip boundary) — V3.10.0 Phase 1 |
 | 89 | **ContentRouter + SmartCrusher** | `content_crusher.py` | Structure-aware compression: 6-type detection (JSON/CODE/LOG/HTML/DIFF/PLAIN) + per-type crushers (JSON array → representatives, log → errors+boundaries) — V3.10.0 Phase 2 |
 | 90 | **BenchmarkPonytailSmart** | `benchmark_ponytail_smart.py` | Phase 1+2 A/B benchmark suite: 15-task baseline (5 simple + 5 medium + 5 complex) + 6 content-sample A/B evaluation; measures ponytail injection overhead and SMART vs SNIP compression ratio / message preservation / correctness — V3.10.0 Phase 1+2 收尾 |
+| 91 | **CCRStore** | `ccr_store.py` | Reversible compression store (SQLite + LRU + TTL + thread-safe): SmartCrusher stores original content and emits trace_id marker; Workers retrieve full original via `devsquad_retrieve(trace_id=...)` — V3.10.0 Phase 3 |
+| 92 | **TokenBudget + CompressedScratchpad** | `models_base.py` / `scratchpad.py` | Per-dispatch token budget enforcement + Scratchpad entries with CCRStore trace_id for lazy retrieval of original content — V3.10.0 Phase 3 |
 
 ---
 
@@ -960,7 +962,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V3.10.0 ContentRouter + SmartCrusher** | **46** | **✅ PASS** |
 | **V3.10.0 Coordinator SMART-first Integration** | **22** | **✅ PASS** |
 | **V3.10.0 Benchmark Ponytail+Smart A/B** | **20** | **✅ PASS** |
-| **Total** | **3007+ (CI authoritative)** | **✅ ALL PASS** |
+| **Total** | **3137+ (CI authoritative)** | **✅ ALL PASS** |
 
 ---
 

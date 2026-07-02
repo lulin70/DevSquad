@@ -14,15 +14,20 @@ Trigger thresholds:
   > 100K        → Level 3 FullCompact
 """
 
+from __future__ import annotations
+
 import hashlib
 import re
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .content_crusher import ContentRouter, SmartCrusher
+
+if TYPE_CHECKING:
+    from .ccr_store import CCRStore
 
 
 class CompressionLevel(Enum):
@@ -80,7 +85,7 @@ class Message:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Message":
+    def from_dict(cls, d: dict) -> Message:
         """Reconstruct a Message from a dictionary.
 
         Args:
@@ -131,7 +136,7 @@ class MemoryEntry:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "MemoryEntry":
+    def from_dict(cls, d: dict) -> MemoryEntry:
         """Reconstruct a MemoryEntry from a dictionary.
 
         Args:
@@ -235,14 +240,20 @@ class ContextCompressor:
         CompressionLevel.FULL_COMPACT: 100000,
     }
 
-    def __init__(self, token_threshold: int = 100000, thresholds: dict[CompressionLevel, int] | None = None):
+    def __init__(
+        self,
+        token_threshold: int = 100000,
+        thresholds: dict[CompressionLevel, int] | None = None,
+        ccr_store: CCRStore | None = None,
+    ):
         self.token_threshold = token_threshold
         self.thresholds = thresholds or self.DEFAULT_THRESHOLDS
         self._session_memory: list[MemoryEntry] = []
         self._compression_log: list[dict] = []
         self._lock = threading.RLock()
-        self._crusher = SmartCrusher()
+        self._crusher = SmartCrusher(ccr_store=ccr_store)
         self._router = ContentRouter()
+        self._ccr_store = ccr_store
 
     def estimate_tokens(self, text: str) -> int:
         """Estimate the token count for a piece of text.

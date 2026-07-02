@@ -15,6 +15,7 @@
 # Base: shared enums, foundational dataclasses, consensus types
 from .models_base import (  # noqa: F401
     CONSENSUS_THRESHOLDS,
+    CompressedScratchpadEntry,
     ConsensusRecord,
     DecisionOutcome,
     DecisionProposal,
@@ -25,6 +26,7 @@ from .models_base import (  # noqa: F401
     ScratchpadEntry,
     TaskDefinition,
     TaskNotification,
+    TokenBudget,
     Vote,
     WorkerResult,
 )

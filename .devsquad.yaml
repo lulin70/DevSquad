@@ -124,3 +124,19 @@ cache_dir: "./data/llm_cache"
 
 # ===== Logging =====
 log_level: "WARNING"
+
+# ===== V3.10.0 Compression Enhancements =====
+# SMART: structure-aware pre-compression (Phase 2). Preserves all messages,
+# compresses JSON/log/code content via ContentRouter + SmartCrusher.
+# When True, SMART runs before destructive compression; if tokens still exceed
+# threshold, destructive level (SNIP/SESSION_MEMORY/FULL_COMPACT) runs next.
+smart_compression: false
+# CCRStore: reversible compression store (Phase 3). When set, SmartCrusher
+# stores the original content and emits a trace_id marker; Workers can later
+# retrieve the full original via devsquad_retrieve(trace_id=...).
+# Leave null to disable. Set to a file path to enable SQLite-backed store.
+ccr_store_path: null  # e.g. "./data/ccr_store.db"
+# TokenBudget: per-dispatch token budget (Phase 3). When set, Coordinator
+# enforces total input token limit across all Workers; excess content is
+# compressed or truncated to fit the budget.
+token_budget_total: null  # e.g. 50000
