@@ -7,20 +7,20 @@
 
 ---
 
-## 最新总评（V3.10.0-dev）
+## 最新总评（V3.10.0-dev Round 2）
 
-| 维度 | V3.10.0-dev 得分 | 较 V3.9.2 变化 | 评级 |
-|------|------------------|----------------|------|
-| 架构 | 8.2/10 | +0.7 | B+ |
-| 安全 | 8.0/10 | +0.5 | B+ |
-| 测试 | 8.3/10 | +0.3 | B+ |
-| 性能 | 7.6/10 | +0.6 | B |
-| 可维护性 | 8.2/10 | +0.2 | B+ |
-| 文档 | 7.8/10 | +0.8 | B+ |
-| 集成 | 8.0/10 | +1.0 | B+ |
-| **总体** | **8.1/10** | **+0.8** | **B+ / late-beta** |
+| 维度 | Round 2 得分 | 较 Round 1 变化 | 评级 |
+|------|--------------|-----------------|------|
+| 架构 | 8.3/10 | +0.1 | B+ |
+| 安全 | 8.0/10 | 持平 | B+ |
+| 测试 | 8.3/10 | 持平 | B+ |
+| 性能 | 7.6/10 | 持平 | B |
+| 可维护性 | 8.4/10 | +0.2 | B+ |
+| 文档 | 8.1/10 | +0.3 | B+ |
+| 集成 | 8.3/10 | +0.3 | B+ |
+| **总体** | **8.3/10** | **+0.2** | **B+ / late-beta** |
 
-> V3.10.0-dev（Phase 1+2）在 V3.9.2 基线 7.3/10 上继续提升，综合得分 **8.1/10**。关键改进：PonytailRuleInjector 注入 PromptAssembler 并建立 benchmark 基线、ContentRouter/SmartCrusher 结构感知压缩接入 Coordinator、新增 42 个 V3.10.0 专用测试、CI 持续全绿。完整评估见 [PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md](./assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md)。
+> V3.10.0-dev Round 2 综合得分 **8.3/10**。关键改进：Streamlit dashboard UI 启动验证 HTTP 200、多语言文档测试数据口径统一为 CI 权威 3007、CI lint job mypy 范围扩展至 skills/、Codecov 添加 artifact fallback、幽灵功能深度审计确认 0 项。完整评估见 [PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md](./assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md)。
 
 ---
 

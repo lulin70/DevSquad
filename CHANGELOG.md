@@ -20,6 +20,20 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **ContentRouter + SmartCrusher** (`scripts/collaboration/content_crusher.py`): New module detecting 6 content types (JSON_ARRAY / CODE / LOG / PLAIN_TEXT / HTML / DIFF) and applying structure-aware compression. JSON array crush extracts constant fields, retains first/last/error items + representative sample (100 items → 7 representatives, 90%+ reduction). Log crush retains ERROR/WARN/FATAL lines + first/last boundary context. Short inputs (<=200 chars) skipped.
 - **CompressionLevel.SMART** (`scripts/collaboration/context_compressor.py`): New level 4 that preserves all messages but compresses each message's content via SmartCrusher. Crushed messages tagged with `smart_crushed=True` metadata. 88.7% token reduction measured on mixed JSON+log workload. 46 new tests (unit/integration/performance/edge).
 
+### Added — V3.10.0 Phase 1+2 Finishing Items: Benchmark Suite + Coordinator SMART Integration
+- **Benchmark suite** (`scripts/benchmark_ponytail_smart.py`): 15-task baseline (5 simple + 5 medium + 5 complex) + 6 content-sample A/B evaluation. Phase 1 measured: ponytail injection overhead is a fixed ~240 tokens, 37.6% overhead on simple tasks / 35.4% on complex tasks. Phase 2 measured: SMART achieves 89.1% reduction on JSON / 82.0% on log, with 100% message preservation (SNIP deletes messages). 20 new tests.
+- **Coordinator SMART-first integration** (`scripts/collaboration/coordinator.py`): New `smart_compression` opt-in flag + `apply_smart_compression()` method. SMART pre-compression runs before destructive compression, preserving all messages by compressing content only; if SMART reduces tokens below threshold, destructive compression is skipped, achieving "zero information loss". `get_compression_stats()` extended with SMART fields (precompressions / messages_crushed / tokens_before / tokens_after / avg_reduction_pct). 22 new tests.
+- **Ponytail marker usage guide** (`docs/guides/PONYTAIL_MARKER_GUIDE.md`): 10-section document defining `ponytail:` marker convention (syntax / elements / placement), when to use and when not to use, hard-constraint boundaries, relationship with YagniChecker, review guidance, anti-patterns.
+
+### Verification — Phase 1+2 Finishing Items
+- pytest full suite (CI authoritative, Python 3.10 + 3.11): 3007 passed / 15 skipped / 0 failed
+- pytest local (Python 3.12, includes V3.10.0 new tests): 3045 passed / 3 skipped
+- mypy scripts/ skills/: 0 errors (CI blocking gate)
+- ruff check scripts/ skills/: All checks passed
+- bandit -r scripts/: 0 issues
+- Version consistency: 15/15 PASS
+- Module count: 150+ (added `benchmark_ponytail_smart.py`)
+
 ## [3.9.2] - 2026-07-01
 
 ### Fixed — P0 Security & Hard Constraints

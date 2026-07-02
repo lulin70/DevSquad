@@ -52,10 +52,23 @@ jobs:
             --cov-report=term-missing
 
       - name: Upload coverage
+        # NOTE: Codecov upload requires CODECOV_TOKEN secret for private repos / branch protection.
+        # If CODECOV_TOKEN is not configured, upload fails silently (fail_ci_if_error: false).
+        # Coverage report is still generated as coverage.xml artifact below.
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           fail_ci_if_error: false
+          # token: ${{ secrets.CODECOV_TOKEN }}  # uncomment after configuring secret
+
+      - name: Upload coverage artifact
+        # Always upload coverage.xml as an artifact so coverage data is preserved
+        # even when Codecov token is not configured.
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml-${{ matrix.python-version }}
+          path: ./coverage.xml
+          retention-days: 14
 
   e2e:
     runs-on: ubuntu-latest
@@ -127,18 +140,18 @@ jobs:
         run: ruff check . --ignore=E501
       - name: Type check (blocking since V3.9.1)
         run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary
-      # Full scripts/ mypy check (blocking since V3.10.0).
+      # Full scripts/+skills/ mypy check (blocking since V3.10.0).
       # Achievement: 112 errors → 0 (V3.10.0, 2026-06-30).
-      # Previously baseline=115 non-blocking; now enforces 0-error policy.
-      - name: Type check scripts/ full (blocking)
+      # skills/ added to mypy scope in V3.9.2 Round 9 (P1-1).
+      - name: Type check scripts/+skills/ full (blocking)
         run: |
-          mypy scripts/ --ignore-missing-imports --no-error-summary 2>&1 | tee /tmp/mypy_full.log
+          mypy scripts/ skills/ --ignore-missing-imports --no-error-summary 2>&1 | tee /tmp/mypy_full.log
           error_count=$(grep -c "error:" /tmp/mypy_full.log || echo "0")
           if [ "$error_count" -gt 0 ]; then
             echo "ERROR: mypy found $error_count error(s) — must be 0 (V3.10.0 policy)"
             exit 1
           fi
-          echo "OK: mypy 0 errors (V3.10.0 achievement maintained)"
+          echo "OK: mypy 0 errors (scripts/ + skills/, V3.10.0 achievement maintained)"
       - name: Version consistency check (added in P2-6)
         run: python scripts/check_version_consistency.py
 

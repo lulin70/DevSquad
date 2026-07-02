@@ -20,6 +20,20 @@
 - **ContentRouter + SmartCrusher**（`scripts/collaboration/content_crusher.py`）：新模块，检测 6 种内容类型（JSON_ARRAY / CODE / LOG / PLAIN_TEXT / HTML / DIFF）并应用结构感知压缩。JSON 数组压缩：提取常量字段、保留首尾/异常项 + 代表性子集（100 项 → 7 项代表，90%+ 压缩率）。日志压缩：保留 ERROR/WARN/FATAL 行 + 首尾边界上下文。短输入（≤200 字符）跳过。
 - **CompressionLevel.SMART**（`scripts/collaboration/context_compressor.py`）：新增级别 4，保留全部消息仅压缩内容（通过 SmartCrusher）。被压缩消息标记 `smart_crushed=True`。混合 JSON+日志负载实测 88.7% token 压缩率。46 个新测试（单元/集成/性能/边界）。
 
+### 新增 — V3.10.0 Phase 1+2 收尾项：Benchmark 套件 + Coordinator SMART 集成
+- **Benchmark 套件**（`scripts/benchmark_ponytail_smart.py`）：15 任务基线（5 simple + 5 medium + 5 complex）+ 6 内容样本 A/B 评估。Phase 1 实测：ponytail 注入开销固定 ~240 tokens，简单任务 37.6% / 复杂任务 35.4% overhead。Phase 2 实测：SMART 对 JSON 89.1% / Log 82.0% 压缩率，100% 消息保留（SNIP 会删除消息）。20 个新测试。
+- **Coordinator SMART-first 集成**（`scripts/collaboration/coordinator.py`）：新增 `smart_compression` opt-in 参数 + `apply_smart_compression()` 方法。SMART 预压缩在破坏性压缩前运行，保留全部消息仅压缩内容；若 SMART 将 token 降至阈值以下则破坏性压缩不会触发，实现「零信息损失」。`get_compression_stats()` 新增 SMART 字段（precompressions / messages_crushed / tokens_before / tokens_after / avg_reduction_pct）。22 个新测试。
+- **Ponytail 标记使用指南**（`docs/guides/PONYTAIL_MARKER_GUIDE.md`）：10 章节文档，明确 `ponytail:` 标记约定（语法 / 要素 / 放置）、何时使用与何时不用、硬约束边界、与 YagniChecker 关系、审阅指引、反模式。
+
+### 验证 — Phase 1+2 收尾项
+- pytest 全量（CI 权威，Python 3.10 + 3.11）：3007 passed / 15 skipped / 0 failed
+- pytest 本地（Python 3.12，含 V3.10.0 新增测试）：3045 passed / 3 skipped
+- mypy scripts/ skills/：0 errors（CI 阻断门禁）
+- ruff check scripts/ skills/：All checks passed
+- bandit -r scripts/：0 issues
+- 版本一致性：15/15 PASS
+- 模块总数：150+（新增 `benchmark_ponytail_smart.py`）
+
 ## [3.9.2] - 2026-07-01
 
 ### 代码质量 — 三项技术债清零（V3.10.0 目标提前达成）

@@ -2,7 +2,7 @@
 
 > **当前版本**: V3.10.0-dev（Phase 1+2 全部完成）
 > **最后更新**: 2026-07-02
-> **最新评估**: V3.10.0-dev Round 1 评估完成 — 综合 **8.1/10（B+）**，硬约束 **13/13**；Phase 1+2 无幽灵功能，CI test/lint/security/build 全绿。详见 [docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md](./assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md)
+> **最新评估**: V3.10.0-dev Round 2 评估完成 — 综合 **8.3/10（B+）**，硬约束 **13/13**；UI 启动验证 HTTP 200、多语言文档一致性修复、CI mypy 扩展至 skills/、幽灵功能深度审计 0 项。详见 [docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md](./assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md)
 > **硬约束通过率**: 13/13（100%）
 
 ---
@@ -156,7 +156,9 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | 第七轮 | 2026-06-30 | 9.1 | 13/13 | cookie 安全 + release.yml + .pre-commit + git tag + CI 僵尸配置清理 |
 | 第八轮 | 2026-06-30 | 9.3 | 13/13 | mypy 112→0 + bandit 11→0 + TD-068 降级关闭 + CI mypy 阻断门禁 |
 | **V3.10.0 Round 1** | **2026-07-02** | **8.1** | **13/13** | **Phase 1+2 完整交付、无幽灵功能、CI 全绿、基准可量化** |
+| **V3.10.0 Round 2** | **2026-07-02** | **8.3** | **13/13** | **UI 启动验证、多语言一致性、CI mypy 扩展、artifact fallback、幽灵功能深度审计** |
 
 评估报告路径:
 - V3.9.2: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`
-- **V3.10.0-dev: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md`**
+- V3.10.0-dev Round 1: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md`
+- **V3.10.0-dev Round 2: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md`**

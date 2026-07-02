@@ -8,7 +8,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V3.9.2: Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence + P3 cleanup (magic numbers + narrowed exceptions).
-149+ core modules, 2857+ tests passing.
+150+ core modules, 3007+ tests passing (CI authoritative).
 ---
 
 # DevSquad V3.9.2 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -156,6 +156,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 87 | **MultiHostAdapter** | `multi_host_adapter.py` | Multi-host adapter (Claude Code/Cursor/Codex/Cline/Trae/Generic) |
 | 88 | **PonytailRuleInjector** | `ponytail_rule_injector.py` | Ponytail-style minimal-implementation rules injection (7-rung laziness ladder + never-skip boundary) — V3.10.0 Phase 1 |
 | 89 | **ContentRouter + SmartCrusher** | `content_crusher.py` | Structure-aware compression: 6-type detection (JSON/CODE/LOG/HTML/DIFF/PLAIN) + per-type crushers (JSON array → representatives, log → errors+boundaries) — V3.10.0 Phase 2 |
+| 90 | **BenchmarkPonytailSmart** | `benchmark_ponytail_smart.py` | Phase 1+2 A/B benchmark suite: 15-task baseline (5 simple + 5 medium + 5 complex) + 6 content-sample A/B evaluation; measures ponytail injection overhead and SMART vs SNIP compression ratio / message preservation / correctness — V3.10.0 Phase 1+2 收尾 |
 
 ---
 
@@ -956,13 +957,16 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V3.9.0 RedesignAuditor** | **28** | **✅ PASS** |
 | **V3.9.0 E2E + Integration + Performance** | **68** | **✅ PASS** |
 | **V3.10.0 PonytailRuleInjector** | **17** | **✅ PASS** |
-| **Total** | **2874+** | **✅ ALL PASS** |
+| **V3.10.0 ContentRouter + SmartCrusher** | **46** | **✅ PASS** |
+| **V3.10.0 Coordinator SMART-first Integration** | **22** | **✅ PASS** |
+| **V3.10.0 Benchmark Ponytail+Smart A/B** | **20** | **✅ PASS** |
+| **Total** | **3007+ (CI authoritative)** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
-- **v3.10.0-dev** (2026-07-01): PonytailRuleInjector (7-rung laziness ladder: YAGNI→reuse→stdlib→platform→installed dep→one line→minimal code, 17 tests) + PromptAssembler integration via `_concat_injections(style)` (compression styles skip ponytail) + `.devsquad.yaml` config (minimal_implementation/ponytail_markers) + ContentRouter+SmartCrusher (6-type detection + JSON/log structure-aware crush, 46 tests) + CompressionLevel.SMART (preserve all msgs, compress content only, 88.7% token reduction) + 151+ core modules + 3015 tests passing
+- **v3.10.0-dev** (2026-07-01): PonytailRuleInjector (7-rung laziness ladder: YAGNI→reuse→stdlib→platform→installed dep→one line→minimal code, 17 tests) + PromptAssembler integration via `_concat_injections(style)` (compression styles skip ponytail) + `.devsquad.yaml` config (minimal_implementation/ponytail_markers) + ContentRouter+SmartCrusher (6-type detection + JSON/log structure-aware crush, 46 tests) + CompressionLevel.SMART (preserve all msgs, compress content only, 88.7% token reduction) + Phase 1+2 finishing items: BenchmarkPonytailSmart suite (15-task baseline + 6-sample A/B, 20 tests; measured ponytail ~240 tokens overhead, SMART 89.1% JSON / 82.0% log reduction) + Coordinator SMART-first integration (`smart_compression` flag + `apply_smart_compression()` method, 22 tests; SMART pre-compression runs before destructive compression for zero information loss) + PONYTAIL_MARKER_GUIDE.md (10-section marker convention doc) + 150+ core modules + 3007 tests passing (CI authoritative)
 - **v3.9.2** (2026-06-30): Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence by default + P3 cleanup (magic numbers extracted + narrowed exceptions) + P0 security fixes (PBKDF2 password hashing + start.sh + requirements.lock) + Loop Engineering implementation assessment + 149+ core modules + 2857+ tests passing (CI authoritative)
 - **v3.9.1** (2026-06-23): File splits (code_knowledge_graph 511→346, redesign_auditor 550→229) + RedesignAuditor false-positive fix (builtins preserved, sequential naming, blank lines excluded from dead code) + MultiHostAdapter (6 host types: Claude Code/Cursor/Codex/Cline/Trae/Generic, 32 tests) + CI E2E release tag gate + build depends on lint+security + mypy blocking (551→0 errors) + 118 core modules + 2605 tests passing (CI authoritative)
 - **v3.9.0** (2026-06-22): CodeKnowledgeGraph (SQLite-backed symbols/edges/files storage, 40 tests) + MCP codegraph_explore tools (symbol/callers/callees/traversal/status) + YagniChecker (34 tests) + PromptDials (verbosity/creativity dials, 33 tests) + RedesignAuditor third-stage simplicity audit (YAGNI/STDLIB/DUPLICATE/OVERENGINEERING, 28 tests) + DispatchRBAC integration with AuthManager (17 tests) + DispatchAuditLogger SHA-256 chain hash (24 tests) + V3.9.0 E2E/Integration/Performance (68 tests) + P0 security fixes (audit hash length-prefixed fields, RBAC open-mode warning) + P1 thread safety (CodeGraphStorage check_same_thread=False + Lock) + 94+ core modules + 2591 tests passing
