@@ -1,13 +1,30 @@
-# DevSquad V3.9.2 诚实成熟度评估
+# DevSquad 诚实成熟度评估
 
-> **评估时间**: 2026-06-26
-> **评估版本**: V3.9.2
-> **评估方法**: 基于代码走读、测试执行、文档审查的独立评估
+> **评估时间**: 2026-06-26（V3.9.2 基线）；2026-07-02（V3.10.0-dev 刷新）
+> **评估版本**: V3.10.0-dev（Phase 1+2 已完成）
+> **评估方法**: 基于代码走读、测试执行、文档审查、CI 验证的独立评估
 > **评估原则**: 诚实、可验证、不虚报
 
 ---
 
-## 总评
+## 最新总评（V3.10.0-dev）
+
+| 维度 | V3.10.0-dev 得分 | 较 V3.9.2 变化 | 评级 |
+|------|------------------|----------------|------|
+| 架构 | 8.2/10 | +0.7 | B+ |
+| 安全 | 8.0/10 | +0.5 | B+ |
+| 测试 | 8.3/10 | +0.3 | B+ |
+| 性能 | 7.6/10 | +0.6 | B |
+| 可维护性 | 8.2/10 | +0.2 | B+ |
+| 文档 | 7.8/10 | +0.8 | B+ |
+| 集成 | 8.0/10 | +1.0 | B+ |
+| **总体** | **8.1/10** | **+0.8** | **B+ / late-beta** |
+
+> V3.10.0-dev（Phase 1+2）在 V3.9.2 基线 7.3/10 上继续提升，综合得分 **8.1/10**。关键改进：PonytailRuleInjector 注入 PromptAssembler 并建立 benchmark 基线、ContentRouter/SmartCrusher 结构感知压缩接入 Coordinator、新增 42 个 V3.10.0 专用测试、CI 持续全绿。完整评估见 [PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md](./assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md)。
+
+---
+
+## 总评（历史基线）
 
 | 维度 | V3.9.0 得分 | V3.9.1 得分 | V3.9.2 得分 | 变化 | 评级 |
 |------|------------|------------|------------|------|------|
@@ -23,6 +40,18 @@
 > V3.9.0 评估为 5.6/10，V3.9.1 提升至 6.7/10。V3.9.2 在 V3.9.1 基础上完成 auto LLM fallback、dashboard 巨型文件拆分、SQLite 审计日志持久化、P3 清理（魔法数字 + 异常收窄）、真实 LLM 集成/冒烟测试、Loop Engineering 方法论评估与落地，综合得分提升至 **7.3/10**。共 118 core modules，**2703 tests passed** (CI authoritative, Python 3.10+3.11)，mypy 0 errors，bandit 0 High/Medium issues。
 
 ---
+
+## V3.10.0-dev 改进项（Phase 1+2）
+
+| 改进项 | 类型 | 详情 |
+|--------|------|------|
+| PonytailRuleInjector 落地 | 架构/可维护性 | 在 `PromptAssembler` 中注入 ponytail 式最小实现规则；新增 `YagniChecker` 运行时识别 `ponytail:` 标记 |
+| ContentRouter + SmartCrusher | 架构/性能 | 结构感知压缩：JSON 数组、日志、代码等内容类型按需压缩；新增 `CompressionLevel.SMART` |
+| Coordinator SMART-first 集成 | 架构/性能 | `Coordinator` 新增 `smart_compression` 参数与 `apply_smart_compression()`；SMART 预压缩在破坏性压缩前运行，保留全部消息 |
+| Benchmark 套件 | 测试/性能 | 新增 `scripts/benchmark_ponytail_smart.py`，覆盖 ponytail 注入 A/B 与 SMART 压缩 A/B |
+| Ponytail 标记指南 | 文档 | 新增 `docs/guides/PONYTAIL_MARKER_GUIDE.md`（10 章节） |
+| 新增 V3.10.0 测试 | 测试 | `test_ponytail_rule_injector.py`、`test_benchmark_ponytail_smart.py`、`test_coordinator_smart_compression.py` 共 42 项新测试 |
+| CI 持续全绿 | 集成 | test/lint/security/build 全通过；硬约束 13/13 PASS |
 
 ## V3.9.2 改进项
 
