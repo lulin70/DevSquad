@@ -83,6 +83,8 @@ class Coordinator:
         "execution_guard",
         "content_cache",
         "code_graph",
+        "smart_compression",
+        "_smart_stats",
     )
 
     def __init__(
@@ -96,6 +98,7 @@ class Coordinator:
         memory_provider: Any = None,
         briefing_mode: bool = True,
         execution_guard: Any = None,
+        smart_compression: bool = False,
     ) -> None:
         """
         Initialize Coordinator.
@@ -109,6 +112,11 @@ class Coordinator:
             memory_provider: MemoryProvider implementation (optional, for rule pre-check)
             briefing_mode: Enable inter-Agent briefing handoff (default True)
             execution_guard: ExecutionGuard instance for worker execution monitoring (optional)
+            smart_compression: V3.10.0 — apply SMART structure-aware pre-compression
+                between batches before destructive compression. Preserves all messages
+                while compressing JSON/log/code content, reducing token count without
+                information loss. When True, SMART runs first; if tokens still exceed
+                threshold, destructive level (SNIP/SESSION_MEMORY/FULL_COMPACT) runs next.
         """
         self.scratchpad = scratchpad or Scratchpad(persist_dir=persist_dir)
         self.consensus = ConsensusEngine()
@@ -120,6 +128,13 @@ class Coordinator:
         self.enable_compression = enable_compression
         self.compressor = ContextCompressor(token_threshold=compression_threshold) if enable_compression else None
         self._message_buffer: list[Message] = []
+        self.smart_compression = smart_compression
+        self._smart_stats: dict[str, Any] = {
+            "smart_precompressions": 0,
+            "smart_messages_crushed": 0,
+            "smart_tokens_before": 0,
+            "smart_tokens_after": 0,
+        }
         self.llm_backend = llm_backend
         self.stream = stream
         self.memory_provider = memory_provider
@@ -287,6 +302,25 @@ class Coordinator:
 
             if self.compressor and batch_idx < len(plan.batches) - 1:
                 self._buffer_worker_messages(batch_results)
+                # V3.10.0: SMART pre-compression — structure-aware content compression
+                # that preserves all messages. Runs before destructive compression
+                # (SNIP/SESSION_MEMORY/FULL_COMPACT) so structured content (JSON/logs/
+                # code) is crushed first; if tokens still exceed threshold, the
+                # destructive level runs next on the already-reduced buffer.
+                if self.smart_compression:
+                    smart_ctx = self.apply_smart_compression()
+                    if smart_ctx is not None and smart_ctx.stats.get("smart_crush_applied", 0) > 0:
+                        self._execution_history.append(
+                            {
+                                "timestamp": time.time(),
+                                "smart_precompression": {
+                                    "messages_crushed": smart_ctx.stats.get("smart_crush_applied", 0),
+                                    "tokens_before": smart_ctx.original_token_count,
+                                    "tokens_after": smart_ctx.compressed_token_count,
+                                    "reduction_pct": round(smart_ctx.reduction_percent, 1),
+                                },
+                            }
+                        )
                 compressed = self.compressor.check_and_compress(self._message_buffer)
                 if compressed.compression_level != CompressionLevel.NONE:
                     self._execution_history.append(
@@ -356,6 +390,40 @@ class Coordinator:
             return None
         return self.compressor.check_and_compress(self._message_buffer, force_level=force_level)
 
+    def apply_smart_compression(self) -> CompressedContext | None:
+        """
+        V3.10.0 — Apply SMART structure-aware compression to the message buffer.
+
+        SMART compression preserves all messages (no deletion) while compressing
+        structured content (JSON arrays, logs, code) via ContentRouter + SmartCrusher.
+        After compression, the internal _message_buffer is replaced with the
+        compressed messages so subsequent destructive compression (SNIP/
+        SESSION_MEMORY/FULL_COMPACT) sees the reduced token count.
+
+        This is the "SMART-first" strategy: structure-aware compression runs
+        before destructive compression. If SMART reduces tokens below the
+        destructive threshold, no messages are lost.
+
+        Returns:
+            CompressedContext with SMART-level stats, or None if compression
+            is disabled or the buffer is empty.
+        """
+        if not self.compressor or not self._message_buffer:
+            return None
+        smart_ctx = self.compressor.check_and_compress(
+            self._message_buffer, force_level=CompressionLevel.SMART
+        )
+        crushed_count = smart_ctx.stats.get("smart_crush_applied", 0)
+        if crushed_count > 0:
+            # Replace buffer with SMART-compressed messages so later automatic
+            # compression sees the reduced token count.
+            self._message_buffer = list(smart_ctx.messages)
+            self._smart_stats["smart_precompressions"] += 1
+            self._smart_stats["smart_messages_crushed"] += crushed_count
+            self._smart_stats["smart_tokens_before"] += smart_ctx.original_token_count
+            self._smart_stats["smart_tokens_after"] += smart_ctx.compressed_token_count
+        return smart_ctx
+
     def get_compression_stats(self) -> dict[str, Any] | None:
         """
         获取上下文压缩统计信息
@@ -380,23 +448,38 @@ class Coordinator:
         if not self.compressor:
             return None
         compression_events = [e["compression"] for e in self._execution_history if "compression" in e]
-        if not compression_events:
+        smart_events = [e["smart_precompression"] for e in self._execution_history if "smart_precompression" in e]
+        if not compression_events and not smart_events:
             return {
                 "total_compressions": 0,
                 "avg_reduction_pct": 0.0,
                 "last_compression": None,
                 "total_original_tokens": 0,
                 "total_compressed_tokens": 0,
+                "smart_precompressions": self._smart_stats["smart_precompressions"],
+                "smart_messages_crushed": self._smart_stats["smart_messages_crushed"],
             }
         total_original = sum(e.get("original_tokens", 0) for e in compression_events)
         total_compressed = sum(e.get("compressed_tokens", 0) for e in compression_events)
-        avg_reduction = sum(e.get("reduction_pct", 0) for e in compression_events) / len(compression_events)
+        avg_reduction = sum(e.get("reduction_pct", 0) for e in compression_events) / len(compression_events) if compression_events else 0.0
+        smart_tokens_before = sum(e.get("tokens_before", 0) for e in smart_events)
+        smart_tokens_after = sum(e.get("tokens_after", 0) for e in smart_events)
+        smart_avg_reduction = (
+            sum(e.get("reduction_pct", 0) for e in smart_events) / len(smart_events)
+            if smart_events
+            else 0.0
+        )
         return {
             "total_compressions": len(compression_events),
             "avg_reduction_pct": round(avg_reduction, 1),
-            "last_compression": compression_events[-1],
+            "last_compression": compression_events[-1] if compression_events else None,
             "total_original_tokens": total_original,
             "total_compressed_tokens": total_compressed,
+            "smart_precompressions": len(smart_events),
+            "smart_messages_crushed": sum(e.get("messages_crushed", 0) for e in smart_events),
+            "smart_tokens_before": smart_tokens_before,
+            "smart_tokens_after": smart_tokens_after,
+            "smart_avg_reduction_pct": round(smart_avg_reduction, 1),
         }
 
     def get_session_memory(self, category: Any = None, limit: int = 50) -> list[dict[str, Any]] | None:
