@@ -434,3 +434,44 @@ async def list_roles(
     except Exception as e:
         logger.error("Unexpected error listing roles: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}") from None
+
+
+@router.get(
+    "/api/v1/budget/status",
+    summary="Token Budget Status / Token 预算状态",
+    description="""
+    V3.10.0 Phase 3 — Live token budget status for dashboard/Prometheus polling.
+
+    Returns the Coordinator's current ``used_input_tokens`` against the
+    configured ``TokenBudget`` thresholds (warning_ratio defaults to 0.8).
+    When no budget is configured, returns ``{"configured": false}``.
+
+    Fields:
+      - configured: bool — whether a TokenBudget is attached
+      - total_input_budget / per_role_input_budget / output_budget
+      - warning_ratio / warning_threshold
+      - used_input_tokens / remaining_input_tokens
+      - is_warning / is_exceeded — gate flags for alerting
+    """,
+)
+async def get_budget_status(
+    user_id: str = Depends(require_permission("AUDIT_READ")),
+) -> dict[str, Any]:
+    """Return live token budget status for monitoring/alerting."""
+    try:
+        dispatcher = _get_dispatcher()
+        coordinator = getattr(dispatcher, "coordinator", None)
+        if coordinator is None:
+            return {"configured": False, "reason": "coordinator_unavailable"}
+        status = coordinator.get_budget_status()
+        if status is None:
+            return {"configured": False, "reason": "no_token_budget_attached"}
+        return {"configured": True, **status}
+    except HTTPException:
+        raise
+    except (ImportError, RuntimeError) as e:
+        logger.error("Failed to query budget status: %s", e)
+        raise HTTPException(status_code=503, detail=f"Budget status unavailable: {str(e)}") from None
+    except Exception as e:
+        logger.error("Unexpected error querying budget status: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to query budget: {str(e)}") from None

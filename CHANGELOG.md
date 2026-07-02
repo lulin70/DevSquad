@@ -41,15 +41,29 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Dispatch pipeline integration** (`dispatch_component_factory.py`, `.devsquad.yaml`): `ComponentConfig` extended with `smart_compression`, `ccr_store`, `token_budget` fields. `Coordinator` creation now passes these parameters, completing the Phase 2+3 integration (previously Coordinator accepted the params but the factory did not pass them — ghost-feature risk eliminated). `.devsquad.yaml` adds `smart_compression`, `ccr_store_path`, `token_budget_total` config keys.
 - **coordinator.py `from __future__ import annotations`**: Fixed P0 NameError — `CCRStore | None` annotation in `__init__` was evaluated at runtime because `coordinator.py` lacked `from __future__ import annotations`, causing 76 test collection errors. Fixed by adding the future import.
 
+### Added — V3.10.0 Phase 3 Task #57: CCR marker injection
+- **SmartCrusher CCR marker** (`scripts/collaboration/content_crusher.py`): `SmartCrusher.__init__` gains `ccr_store: CCRStore | None = None`; `crush()` stores the original and calls new `_inject_trace_id()` static method to inject `retrieve full: trace_id=X` into the crush header when compression happened. Backward compatible — no marker when no CCRStore. 14 new tests (marker format / round-trip retrieval / query filtering / boundaries).
+- **ContextCompressor CCRStore passthrough** (`scripts/collaboration/context_compressor.py`): `__init__` gains `ccr_store` arg, passed through to SmartCrusher; also added `from __future__ import annotations` to fix PEP 604 union annotation runtime evaluation.
+
+### Added — V3.10.0 Phase 3 Task #58: Coordinator budget checks + auto-retrieve
+- **Coordinator TokenBudget integration** (`scripts/collaboration/coordinator.py`): `__init__` gains `token_budget` + `ccr_store` args; `execute_plan()` calls new `_check_token_budget_before_batch()` before each batch — warning (>=80%) triggers SMART compression, exceed (>=100%) triggers FULL_COMPACT; new `get_budget_status()` exposes live counters for dashboard/API.
+- **Coordinator auto-retrieve** (`scripts/collaboration/coordinator.py`): New `_retrieve_compressed_originals(result)` scans Worker output for `devsquad_retrieve(trace_id=..., query=...)` markers, calls `CCRStore.retrieve` to inject the original into Worker output (with `[Retrieved original]` boundary markers) so downstream Workers see the full context.
+- **Scratchpad CompressedScratchpadEntry support** (`scripts/collaboration/scratchpad.py`): New `write_compressed()` / `read_compressed_entries()` methods; `get_stats()` gains `compressed_entries_count`; `clear()` resets compressed entries.
+- **21 new tests**: coordinator budget checks / SMART trigger / exceed trigger / marker replacement / query excerpt / unknown trace_id boundary / Scratchpad lifecycle / Coordinator+CCRStore+Scratchpad full round-trip / budget_status performance (<0.1ms/call).
+
+### Added — V3.10.0 Phase 3 Task #59: Dashboard API exposure
+- **/api/v1/budget/status endpoint** (`scripts/api/routes/dispatch.py`): New GET endpoint reading from `dispatcher.coordinator.get_budget_status()`, returns `{configured, total_input_budget, per_role_input_budget, output_budget, warning_ratio, warning_threshold, used_input_tokens, remaining_input_tokens, is_warning, is_exceeded}`. Returns `{configured: false}` when no budget is attached. Requires `AUDIT_READ` permission. 4 new tests.
+
 ### Fixed — V3.10.0 Phase 3 P0
 - **NameError: CCRStore not defined** (P0, 76 tests blocked): `coordinator.py` used `CCRStore | None` type annotation without `from __future__ import annotations`, causing `NameError` at class definition time. Fixed by adding the future import. Root cause: Phase 3 code was partially merged without the corresponding import guard.
 
 ### Verification — Phase 3
-- pytest local (Python 3.12): 3137 passed / 3 skipped / 0 failed (71 new Phase 3 tests + 21 pipeline integration tests)
+- pytest local (Python 3.12, with full Phase 3): 3131 passed / 25 skipped / 0 failed (109 new Phase 3 tests: CCRStore 23 + TokenBudget/CompressedScratchpad 34 + CCR marker 14 + Coordinator budget/CCR integration 21 + Scratchpad 5 + API endpoint 4 + pipeline 8)
+- pytest E2E: 22 passed / 0 failed (user_journey_architect/developer/login all green)
 - mypy scripts/ skills/: 0 errors
 - ruff check scripts/ skills/: All checks passed
 - Version consistency: 15/15 PASS
-- Module count: 152+ (added `ccr_store.py`, extended `models_base.py`/`scratchpad.py`)
+- Module count: 152+ (added `ccr_store.py`, extended `models_base.py`/`scratchpad.py`/`coordinator.py`/`content_crusher.py`/`context_compressor.py`/`api/routes/dispatch.py`)
 
 ## [3.9.2] - 2026-07-01
 

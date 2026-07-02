@@ -41,15 +41,29 @@
 - **Dispatch pipeline 接入**（`dispatch_component_factory.py`、`.devsquad.yaml`）：`ComponentConfig` 新增 `smart_compression`、`ccr_store`、`token_budget` 字段。`Coordinator` 创建时传递这些参数，完成 Phase 2+3 接入（此前 Coordinator 接受参数但 factory 未传递——幽灵功能风险已消除）。`.devsquad.yaml` 新增 `smart_compression`、`ccr_store_path`、`token_budget_total` 配置项。
 - **coordinator.py `from __future__ import annotations`**：修复 P0 NameError — `__init__` 中的 `CCRStore | None` 注解在运行时被求值，因 `coordinator.py` 缺少 `from __future__ import annotations` 导致 76 个测试收集失败。添加 future import 修复。
 
+### 新增 — V3.10.0 Phase 3 Task #57：CCR marker 注入
+- **SmartCrusher CCR marker**（`scripts/collaboration/content_crusher.py`）：`SmartCrusher.__init__` 新增 `ccr_store: CCRStore | None = None` 参数；`crush()` 在压缩发生时存储原文并调用新增 `_inject_trace_id()` 静态方法注入 `retrieve full: trace_id=X` 标记到 crush header。无 CCRStore 时行为不变（向后兼容）。14 个新测试（marker 格式 / round-trip 检索 / query 过滤 / 边界）。
+- **ContextCompressor CCRStore 透传**（`scripts/collaboration/context_compressor.py`）：`__init__` 新增 `ccr_store` 参数，透传给 SmartCrusher；同时补 `from __future__ import annotations` 修复 PEP 604 union 注解运行时求值问题。
+
+### 新增 — V3.10.0 Phase 3 Task #58：Coordinator 预算检查 + 自动检索
+- **Coordinator TokenBudget 集成**（`scripts/collaboration/coordinator.py`）：`__init__` 新增 `token_budget` + `ccr_store` 参数；`execute_plan()` 在每个 batch 前调用新增 `_check_token_budget_before_batch()`，warning（>=80%）触发 SMART 压缩、exceed（>=100%）触发 FULL_COMPACT；新增 `get_budget_status()` 暴露 live counters 用于 dashboard/API。
+- **Coordinator 自动检索**（`scripts/collaboration/coordinator.py`）：新增 `_retrieve_compressed_originals(result)` 方法，扫描 Worker 输出中的 `devsquad_retrieve(trace_id=..., query=...)` 标记，调用 `CCRStore.retrieve` 将原文注入到 Worker 输出中（含 `[Retrieved original]` 边界标记），让下游 Worker 看到完整上下文。
+- **Scratchpad CompressedScratchpadEntry 支持**（`scripts/collaboration/scratchpad.py`）：新增 `write_compressed()` / `read_compressed_entries()` 方法；`get_stats()` 增加 `compressed_entries_count`；`clear()` 同步清理 compressed entries。
+- **21 个新测试**：coordinator 预算检查 / SMART 触发 / exceed 触发 / marker 替换 / query 摘要 / unknown trace_id 边界 / Scratchpad 生命周期 / Coordinator+CCRStore+Scratchpad 全链路 round-trip / budget_status 性能 (<0.1ms/call)。
+
+### 新增 — V3.10.0 Phase 3 Task #59：Dashboard API 暴露
+- **/api/v1/budget/status endpoint**（`scripts/api/routes/dispatch.py`）：新增 GET 端点，从 `dispatcher.coordinator.get_budget_status()` 读取，返回 `{configured, total_input_budget, per_role_input_budget, output_budget, warning_ratio, warning_threshold, used_input_tokens, remaining_input_tokens, is_warning, is_exceeded}`。Coordinator 未配置预算时返回 `{configured: false}`。需 `AUDIT_READ` 权限。4 个新测试。
+
 ### 修复 — V3.10.0 Phase 3 P0
 - **NameError: CCRStore not defined**（P0，76 个测试阻塞）：`coordinator.py` 使用 `CCRStore | None` 类型注解但缺少 `from __future__ import annotations`，导致类定义时 `NameError`。根因：Phase 3 代码部分合并时缺少对应的 import guard。
 
 ### 验证 — Phase 3
-- pytest 本地（Python 3.12）：3137 passed / 3 skipped / 0 failed（71 个 Phase 3 新测试 + 21 个 pipeline 接入测试）
+- pytest 本地（Python 3.12，含 Phase 3 全部）：3131 passed / 25 skipped / 0 failed（109 个 Phase 3 新测试：CCRStore 23 + TokenBudget/CompressedScratchpad 34 + CCR marker 14 + Coordinator budget/CCR integration 21 + Scratchpad 5 + API endpoint 4 + pipeline 8）
+- pytest E2E：22 passed / 0 failed（user_journey_architect/developer/login 全通过）
 - mypy scripts/ skills/：0 errors
 - ruff check scripts/ skills/：All checks passed
 - 版本一致性：15/15 PASS
-- 模块总数：152+（新增 `ccr_store.py`，扩展 `models_base.py`/`scratchpad.py`）
+- 模块总数：152+（新增 `ccr_store.py`，扩展 `models_base.py`/`scratchpad.py`/`coordinator.py`/`content_crusher.py`/`context_compressor.py`/`api/routes/dispatch.py`）
 
 ## [3.9.2] - 2026-07-01
 
