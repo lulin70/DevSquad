@@ -1,8 +1,8 @@
 # DevSquad 项目状态
 
-> **当前版本**: V3.10.0-dev（Phase 1+2 核心完成）
+> **当前版本**: V3.10.0-dev（Phase 1+2 全部完成）
 > **最后更新**: 2026-07-01
-> **最新评估**: V3.10.0 Phase 1+2 推进中 — PonytailRuleInjector + ContentRouter/SmartCrusher 已上线（commit 084cbec, eb9820d）；V3.9.2 基线综合 8.5/10, A-，硬约束 13/13
+> **最新评估**: V3.10.0 Phase 1+2 全部完成 — PonytailRuleInjector + ContentRouter/SmartCrusher + Coordinator SMART 集成 + benchmark 套件 + ponytail 标记指南已交付；V3.9.2 基线综合 8.5/10, A-，硬约束 13/13
 > **硬约束通过率**: 13/13（100%）
 
 ---
@@ -34,9 +34,9 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成就绪回归 | 2969 passed, 25 skipped | ✅ 全绿 |
+| 单元/集成就绪回归 | 3057 passed, 25 skipped | ✅ 全绿 |
 | E2E 用户旅程 | 45 collected | ✅ 默认可用（按 marker 过滤） |
-| **合计** | **3014+ collected** | **0 failed** |
+| **合计** | **3102+ collected** | **0 failed** |
 | 覆盖率 | 68.15% total / 59.53% branches | ✅ 超过 60% 门禁 |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
@@ -130,10 +130,13 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
    - ✅ mypy 渐进式修复（112→0，超额达成 <50 目标）
    - ✅ Mixin 重构评估（TD-068 降级关闭）
    - ✅ bandit Low 告警收敛（11→0）
-   - ✅ Phase 1 核心：PonytailRuleInjector + PromptAssembler 注入已上线（commit 084cbec，2969 passed）
-     - 待办：benchmark 套件、基线对比、`ponytail:` 标记使用指南
-   - ✅ Phase 2 核心：ContentRouter + SmartCrusher + CompressionLevel.SMART 已上线（commit eb9820d，3015 passed）
-     - 待办：Coordinator/Worker 调用链接入、A/B 评估
+   - ✅ Phase 1 全部完成：PonytailRuleInjector + PromptAssembler 注入 + benchmark 套件 + ponytail 标记指南
+     - benchmark 实测：ponytail 注入开销 ~240 tokens / 35-38% overhead（15 任务基线）
+     - 使用指南：docs/guides/PONYTAIL_MARKER_GUIDE.md（10 章节）
+   - ✅ Phase 2 全部完成：ContentRouter + SmartCrusher + CompressionLevel.SMART + Coordinator SMART-first 集成 + A/B 评估
+     - Coordinator 新增 smart_compression 参数 + apply_smart_compression() 方法
+     - SMART-first 策略：结构感知压缩在破坏性压缩前运行，保留全部消息
+     - benchmark 实测：SMART 对 JSON 89.1% / Log 82.0% 压缩率，100% 消息保留
    - Phase 3：CCRStore 可逆压缩 + TokenBudget + CompressedScratchpad
    - Phase 4：RetrospectiveSkill 失败学习闭环
    - 同步清理 bandit Low issues，覆盖率冲刺 80%+，综合评分目标 9.0/A
