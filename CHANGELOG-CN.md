@@ -58,7 +58,7 @@
 - **NameError: CCRStore not defined**（P0，76 个测试阻塞）：`coordinator.py` 使用 `CCRStore | None` 类型注解但缺少 `from __future__ import annotations`，导致类定义时 `NameError`。根因：Phase 3 代码部分合并时缺少对应的 import guard。
 
 ### 验证 — Phase 3
-- pytest 本地（Python 3.12，含 Phase 3 全部）：3131 passed / 25 skipped / 0 failed（109 个 Phase 3 新测试：CCRStore 23 + TokenBudget/CompressedScratchpad 34 + CCR marker 14 + Coordinator budget/CCR integration 21 + Scratchpad 5 + API endpoint 4 + pipeline 8）
+- pytest 本地（Python 3.12，含 e2e+integration）：3146 passed / 21 skipped / 0 failed（109 个 Phase 3 新测试：CCRStore 23 + TokenBudget/CompressedScratchpad 34 + CCR marker 14 + Coordinator budget/CCR integration 21 + Scratchpad 5 + API endpoint 4 + pipeline 8）
 - pytest E2E：22 passed / 0 failed（user_journey_architect/developer/login 全通过）
 - mypy scripts/ skills/：0 errors
 - ruff check scripts/ skills/：All checks passed

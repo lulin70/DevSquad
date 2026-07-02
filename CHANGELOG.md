@@ -58,7 +58,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **NameError: CCRStore not defined** (P0, 76 tests blocked): `coordinator.py` used `CCRStore | None` type annotation without `from __future__ import annotations`, causing `NameError` at class definition time. Fixed by adding the future import. Root cause: Phase 3 code was partially merged without the corresponding import guard.
 
 ### Verification — Phase 3
-- pytest local (Python 3.12, with full Phase 3): 3131 passed / 25 skipped / 0 failed (109 new Phase 3 tests: CCRStore 23 + TokenBudget/CompressedScratchpad 34 + CCR marker 14 + Coordinator budget/CCR integration 21 + Scratchpad 5 + API endpoint 4 + pipeline 8)
+- pytest local (Python 3.12, with e2e+integration): 3146 passed / 21 skipped / 0 failed (109 new Phase 3 tests: CCRStore 23 + TokenBudget/CompressedScratchpad 34 + CCR marker 14 + Coordinator budget/CCR integration 21 + Scratchpad 5 + API endpoint 4 + pipeline 8)
 - pytest E2E: 22 passed / 0 failed (user_journey_architect/developer/login all green)
 - mypy scripts/ skills/: 0 errors
 - ruff check scripts/ skills/: All checks passed
