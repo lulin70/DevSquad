@@ -65,6 +65,20 @@
 - 版本一致性：15/15 PASS
 - 模块总数：152+（新增 `ccr_store.py`，扩展 `models_base.py`/`scratchpad.py`/`coordinator.py`/`content_crusher.py`/`context_compressor.py`/`api/routes/dispatch.py`）
 
+### 新增 — V3.10.0 Phase 4：RetrospectiveSkill 失败学习闭环
+- **LearnedRule**（`scripts/collaboration/models_base.py`）：从任务失败/回顾中提取的规则数据类。字段：`rule_text`、`trigger_condition`、`confidence`（0.0-1.0）、`source_task_id`、`created_at`。`tier` 属性自动路由到 tier1（≥0.8，自动注入）或 tier2（0.5-0.8，候选池）。校验：confidence 范围 + rule_text 非空。
+- **LearnedRuleStore**（`scripts/collaboration/learned_rule_store.py`）：双层持久化。Tier-1 规则写入 `.devsquad.yaml` `quality_control.learned_rules`（人类可编辑 YAML，PromptAssembler 自动注入）。Tier-2 规则写入 `data/tier2/corrections.json`（候选池，人工审核）。SHA256 去重。`promote_tier2_to_tier1()` 手动晋升。线程安全。
+- **RetrospectiveEngine.extract_learned_rules()**（`scripts/collaboration/retrospective.py`）：将偏差类型映射为可执行规则。`goal_uncovered` → 任务分解规则（0.85）。`goal_drift` → anchor 检查调度规则（0.80）。`sustained_drift` → 漂移阈值规则（0.90）。低覆盖率（<50%）→ 分解验证规则（0.55, tier2）。改进建议 → 回顾规则（0.60, tier2）。`source_task_id` 传播用于追溯。
+- **PromptAssembler learned_rules 注入**（`prompt_assembler.py`、`prompt_assembler_formatting_mixin.py`、`prompt_assembler_base.py`）：新增 `_build_learned_rules_injection()` 在初始化时从 `.devsquad.yaml` 加载 tier-1 规则，格式化为 `## Learned Rules (from past task retrospectives)` 块。在短样式 `_concat_injections()` 和长样式 `parts.append` 两个路径均注入。`_get_learned_rules_injection()` 访问器添加到基类。
+- 23 个新测试覆盖：LearnedRule 校验/序列化、LearnedRuleStore tier1/tier2/去重/晋升/加载、RetrospectiveEngine 偏差→规则映射、PromptAssembler 注入 + 组装指令集成。
+
+### 验证 — Phase 4
+- pytest 本地（Python 3.12）：3164 passed / 3 skipped / 0 failed（23 个 Phase 4 测试 + Phase 1-3 基线）
+- mypy scripts/ skills/：0 errors
+- ruff check scripts/ skills/：All checks passed
+- 版本一致性：15/15 PASS
+- 模块总数：155+（新增 `learned_rule_store.py`，扩展 `models_base.py`/`retrospective.py`/`prompt_assembler.py`/`prompt_assembler_base.py`/`prompt_assembler_formatting_mixin.py`/`models.py`）
+
 ## [3.9.2] - 2026-07-01
 
 ### 代码质量 — 三项技术债清零（V3.10.0 目标提前达成）

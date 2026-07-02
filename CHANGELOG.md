@@ -65,6 +65,20 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Version consistency: 15/15 PASS
 - Module count: 152+ (added `ccr_store.py`, extended `models_base.py`/`scratchpad.py`/`coordinator.py`/`content_crusher.py`/`context_compressor.py`/`api/routes/dispatch.py`)
 
+### Added — V3.10.0 Phase 4: RetrospectiveSkill Failure Learning Loop
+- **LearnedRule** (`scripts/collaboration/models_base.py`): Dataclass for rules extracted from task failures/retrospectives. Fields: `rule_text`, `trigger_condition`, `confidence` (0.0-1.0), `source_task_id`, `created_at`. `tier` property auto-routes to tier1 (>=0.8, auto-inject) or tier2 (0.5-0.8, candidate pool). Validation: confidence range + non-empty rule_text.
+- **LearnedRuleStore** (`scripts/collaboration/learned_rule_store.py`): Two-tier persistence. Tier-1 rules written to `.devsquad.yaml` `quality_control.learned_rules` (human-editable YAML, auto-injected by PromptAssembler). Tier-2 rules written to `data/tier2/corrections.json` (candidate pool for manual review). SHA256 dedup. `promote_tier2_to_tier1()` for manual promotion. Thread-safe.
+- **RetrospectiveEngine.extract_learned_rules()** (`scripts/collaboration/retrospective.py`): Maps deviation types to actionable rules. `goal_uncovered` → task decomposition rule (0.85). `goal_drift` → anchor check scheduling rule (0.80). `sustained_drift` → drift threshold rule (0.90). Low coverage (<50%) → decomposition verification rule (0.55, tier2). Improvements → retrospective rules (0.60, tier2). `source_task_id` propagated for traceability.
+- **PromptAssembler learned_rules injection** (`prompt_assembler.py`, `prompt_assembler_formatting_mixin.py`, `prompt_assembler_base.py`): New `_build_learned_rules_injection()` loads tier-1 rules from `.devsquad.yaml` at init, formats as `## Learned Rules (from past task retrospectives)` block. Injected in both short-style `_concat_injections()` and long-style `parts.append` paths. `_get_learned_rules_injection()` accessor added to base.
+- 23 new tests covering: LearnedRule validation/serialization, LearnedRuleStore tier1/tier2/dedup/promote/load, RetrospectiveEngine deviation→rule mapping, PromptAssembler injection + assembled instruction integration.
+
+### Verification — Phase 4
+- pytest local (Python 3.12): 3164 passed / 3 skipped / 0 failed (23 Phase 4 tests + Phase 1-3 baseline)
+- mypy scripts/ skills/: 0 errors
+- ruff check scripts/ skills/: All checks passed
+- Version consistency: 15/15 PASS
+- Module count: 155+ (added `learned_rule_store.py`, extended `models_base.py`/`retrospective.py`/`prompt_assembler.py`/`prompt_assembler_base.py`/`prompt_assembler_formatting_mixin.py`/`models.py`)
+
 ## [3.9.2] - 2026-07-01
 
 ### Fixed — P0 Security & Hard Constraints

@@ -8,7 +8,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V3.9.2: Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence + P3 cleanup (magic numbers + narrowed exceptions).
-150+ core modules, 3137+ tests passing (CI authoritative).
+150+ core modules, 3164+ tests passing (CI authoritative).
 ---
 
 # DevSquad V3.9.2 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -159,6 +159,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 90 | **BenchmarkPonytailSmart** | `benchmark_ponytail_smart.py` | Phase 1+2 A/B benchmark suite: 15-task baseline (5 simple + 5 medium + 5 complex) + 6 content-sample A/B evaluation; measures ponytail injection overhead and SMART vs SNIP compression ratio / message preservation / correctness — V3.10.0 Phase 1+2 收尾 |
 | 91 | **CCRStore** | `ccr_store.py` | Reversible compression store (SQLite + LRU + TTL + thread-safe): SmartCrusher stores original content and emits trace_id marker; Workers retrieve full original via `devsquad_retrieve(trace_id=...)` — V3.10.0 Phase 3 |
 | 92 | **TokenBudget + CompressedScratchpad** | `models_base.py` / `scratchpad.py` | Per-dispatch token budget enforcement + Scratchpad entries with CCRStore trace_id for lazy retrieval of original content — V3.10.0 Phase 3 |
+| 93 | **LearnedRuleStore** | `learned_rule_store.py` | Two-tier rule persistence (V3.10.0 Phase 4): tier-1 (confidence ≥0.8) written to `.devsquad.yaml` `quality_control.learned_rules` for auto-injection; tier-2 (0.5–0.8) to `data/tier2/corrections.json` candidate pool; dedup by SHA256 hash; `promote_tier2_to_tier1()` for manual promotion |
+| 94 | **RetrospectiveEngine.extract_learned_rules** | `retrospective.py` | Deviation → LearnedRule extraction (V3.10.0 Phase 4): maps `goal_uncovered`/`goal_drift`/`sustained_drift`/low-coverage/improvements to actionable rules with confidence scores; integrates with LearnedRuleStore for persistence |
+| 95 | **PromptAssembler learned_rules injection** | `prompt_assembler.py` / `prompt_assembler_formatting_mixin.py` | Auto-injects tier-1 learned rules into Worker prompts (V3.10.0 Phase 4): loads from `.devsquad.yaml`, formats as `## Learned Rules` block, injected in both short-style `_concat_injections` and long-style `parts.append` paths |
 
 ---
 
@@ -962,7 +965,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V3.10.0 ContentRouter + SmartCrusher** | **46** | **✅ PASS** |
 | **V3.10.0 Coordinator SMART-first Integration** | **22** | **✅ PASS** |
 | **V3.10.0 Benchmark Ponytail+Smart A/B** | **20** | **✅ PASS** |
-| **Total** | **3137+ (CI authoritative)** | **✅ ALL PASS** |
+| **Total** | **3164+ (CI authoritative)** | **✅ ALL PASS** |
 
 ---
 

@@ -1,8 +1,8 @@
 # DevSquad 项目状态
 
-> **当前版本**: V3.10.0-dev（Phase 1+2+3 全部完成）
+> **当前版本**: V3.10.0-dev（Phase 1+2+3+4 全部完成 — V3.10.0 spec 全部交付）
 > **最后更新**: 2026-07-03
-> **最新评估**: V3.10.0-dev Round 2 评估完成 — 综合 **8.3/10（B+）**，硬约束 **13/13**；Phase 3（CCRStore + TokenBudget + CompressedScratchpad + CCR marker + 预算检查 + auto-retrieve + /api/v1/budget/status）全部完成并接入 dispatch pipeline，3131 passed / 25 skipped + E2E 22 passed。
+> **最新评估**: V3.10.0-dev Round 2 评估完成 — 综合 **8.3/10（B+）**，硬约束 **13/13**；Phase 4（RetrospectiveSkill 失败学习闭环：LearnedRule + LearnedRuleStore + extract_learned_rules + PromptAssembler 注入）完成，3164 passed。
 > **硬约束通过率**: 13/13（100%）
 
 ---
@@ -34,7 +34,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成就绪回归 | 3146 passed, 21 skipped（本地 Python 3.12，含 Phase 3 全部 + e2e/integration） | ✅ 全绿 |
+| 单元/集成就绪回归 | 3164 passed, 3 skipped（本地 Python 3.12，含 Phase 1-4 全部） | ✅ 全绿 |
 | E2E 用户旅程 | 22 passed（user_journey_architect/developer/login） | ✅ 全绿 |
 | **合计** | **3153 passed** | **0 failed** |
 | 覆盖率 | 67.92% total（CI）/ 68.47%（本地 3.12） | ✅ 超过 60% 门禁 |

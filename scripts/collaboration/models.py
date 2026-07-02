@@ -21,6 +21,7 @@ from .models_base import (  # noqa: F401
     DecisionProposal,
     EntryStatus,
     EntryType,
+    LearnedRule,
     Reference,
     ReferenceType,
     ScratchpadEntry,

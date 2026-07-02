@@ -37,6 +37,9 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
             ponytail = self._get_ponytail_injection()
             if ponytail:
                 chunks.append(ponytail)
+        learned = self._get_learned_rules_injection()
+        if learned:
+            chunks.append(learned)
         return "\n\n".join(chunks) if chunks else ""
 
     def _build_quality_control_injection(self) -> str:
@@ -299,6 +302,10 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
         ponytail = self._get_ponytail_injection()
         if ponytail:
             parts.append(ponytail)
+
+        learned = self._get_learned_rules_injection()
+        if learned:
+            parts.append(learned)
 
         ar_content = self._get_anti_rationalization_injection()
         if ar_content:

@@ -607,3 +607,68 @@ class CompressedScratchpadEntry:
                 else datetime.now()
             ),
         )
+
+
+@dataclass
+class LearnedRule:
+    """A rule extracted from task failure/retrospective analysis (V3.10.0 Phase 4).
+
+    When a task fails, retries, exceeds context, or fails to reach consensus,
+    RetrospectiveEngine extracts a LearnedRule. High-confidence rules (>=0.8)
+    are written to ``.devsquad.yaml`` and auto-injected into future prompts via
+    PromptAssembler. Medium-confidence rules (0.5-0.8) enter a candidate pool
+    at ``data/tier2/corrections.json`` for manual review.
+
+    Attributes:
+        rule_text: The actionable rule statement (e.g., "Always prefer pathlib over os.path")
+        trigger_condition: When this rule should fire (e.g., "file_path_manipulation")
+        confidence: Extraction confidence 0.0-1.0 (higher = more reliable)
+        source_task_id: Task ID that triggered the learning
+        created_at: Extraction timestamp (defaults to now)
+    """
+
+    rule_text: str
+    trigger_condition: str
+    confidence: float
+    source_task_id: str = ""
+    created_at: datetime = field(default_factory=datetime.now)
+
+    def __post_init__(self) -> None:
+        if not 0.0 <= self.confidence <= 1.0:
+            raise ValueError(f"confidence must be 0.0-1.0, got {self.confidence}")
+        if not self.rule_text.strip():
+            raise ValueError("rule_text must not be empty")
+
+    @property
+    def tier(self) -> str:
+        """Storage tier: 'tier1' (>=0.8, auto-inject) or 'tier2' (0.5-0.8, candidate)."""
+        if self.confidence >= 0.8:
+            return "tier1"
+        if self.confidence >= 0.5:
+            return "tier2"
+        return "rejected"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize rule to a JSON-compatible dictionary."""
+        return {
+            "rule": self.rule_text,
+            "trigger": self.trigger_condition,
+            "confidence": self.confidence,
+            "source_task_id": self.source_task_id,
+            "created_at": self.created_at.isoformat(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LearnedRule":
+        """Deserialize rule from a dictionary (inverse of :meth:`to_dict`)."""
+        return cls(
+            rule_text=data.get("rule", data.get("rule_text", "")),
+            trigger_condition=data.get("trigger", data.get("trigger_condition", "")),
+            confidence=float(data.get("confidence", 0.0)),
+            source_task_id=data.get("source_task_id", ""),
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if "created_at" in data
+                else datetime.now()
+            ),
+        )

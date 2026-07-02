@@ -97,6 +97,30 @@ class PromptAssembler(
         self._ponytail_injector = PonytailRuleInjector(self.qc_config)
         self._ponytail_injection = self._ponytail_injector.build_injection()
 
+        self._learned_rules_injection = self._build_learned_rules_injection()
+
+    def _build_learned_rules_injection(self) -> str:
+        """Build learned-rules injection text from .devsquad.yaml (V3.10.0 Phase 4).
+
+        Loads tier-1 rules (confidence >= 0.8) from
+        ``quality_control.learned_rules`` and formats them as an injection
+        block. Returns empty string when no rules are configured.
+        """
+        if not self.qc_enabled:
+            return ""
+        rules_data = self.qc_config.get("quality_control", {}).get("learned_rules", [])
+        if not rules_data:
+            return ""
+        lines = ["\n\n## Learned Rules (from past task retrospectives)"]
+        for r in rules_data[:10]:
+            if isinstance(r, dict):
+                rule_text = r.get("rule", r.get("rule_text", ""))
+                trigger = r.get("trigger", r.get("trigger_condition", ""))
+                if rule_text:
+                    suffix = f" [trigger: {trigger}]" if trigger else ""
+                    lines.append(f"- {rule_text}{suffix}")
+        return "\n".join(lines) if len(lines) > 1 else ""
+
     def assemble(
         self,
         task_description: str,

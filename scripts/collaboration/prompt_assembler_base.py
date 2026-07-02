@@ -119,3 +119,11 @@ class PromptAssemblerBase:
         if ``quality_control.minimal_implementation`` is disabled).
         """
         return getattr(self, "_ponytail_injection", "")
+
+    def _get_learned_rules_injection(self) -> str:
+        """Return learned-rules injection text (V3.10.0 Phase 4).
+
+        Returns the pre-built ``_learned_rules_injection`` string (may be
+        empty when no tier-1 learned rules are configured).
+        """
+        return getattr(self, "_learned_rules_injection", "")
