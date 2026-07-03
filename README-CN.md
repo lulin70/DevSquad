@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
   <br>
-  <em>企业级就绪 | V3.9.2</em>
+  <em>企业级就绪 | V3.9.3</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-3164%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-3312%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.9.3-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V3.9.2: 自动 LLM 后端回退 + Dashboard 拆分 + SQLite 审计持久化 + P3 清理
+## 🚀 V3.9.3: 自动 LLM 后端回退 + Dashboard 拆分 + SQLite 审计持久化 + P3 清理
 
-**DevSquad V3.9.2** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 2857+ 测试通过。
+**DevSquad V3.9.3** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 3312+ 测试通过。
 
 ### 🔄 V3.6.6 企业级功能详情
 
@@ -125,9 +125,9 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## ✨ 核心特性 (V3.9.2)
+## ✨ 核心特性 (V3.9.3)
 
-### 🏗️ 五大能力域架构（V3.9.2）
+### 🏗️ 五大能力域架构（V3.9.3）
 
 DevSquad 的 149+ 模块组织为 **5 大能力域**，各域解决特定问题：
 

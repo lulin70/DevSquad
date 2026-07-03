@@ -87,6 +87,31 @@
 - 版本一致性：15/15 PASS
 - 模块总数：155+（新增 `learned_rule_store.py`，扩展 `models_base.py`/`retrospective.py`/`prompt_assembler.py`/`prompt_assembler_base.py`/`prompt_assembler_formatting_mixin.py`/`models.py`/`dispatch_steps_quality_mixin.py`/`dispatch_component_factory.py`/`dispatcher.py`/`dispatch_steps.py`/`dispatch_steps_base.py`）
 
+## [3.9.3] - 2026-07-03
+
+### 新增 — UI E2E 浏览器驱动测试
+- **streamlit-app-testing 集成**（`tests/test_dashboard_ui_e2e.py`）：26 个测试使用 Streamlit 官方 `AppTest.from_file()` 框架驱动 Dashboard 进行真实用户交互。覆盖 8 类场景：页面加载、导航、RBAC（viewer/operator/admin）、生命周期视图、指标视图、组件、会话状态、完整用户旅程（登录→导航→查看→退出）。发现 P0 Dashboard 启动崩溃（`dispatch_steps.py` 中 `learned_rule_store` 未声明），3164 个单元测试均漏检——证明"后端 API 测试通过 ≠ 用户能用"。
+
+### 新增 — 覆盖率补充
+- **skill_registry 覆盖率**（`tests/test_skill_registry_coverage.py`）：43 个测试，覆盖率从 28.79% → 100.00%。覆盖路径遍历拒绝、损坏注册表加载、非序列化元数据、空注册表统计、重复注册、持久化往返。
+- **usage_tracker 覆盖率**（`tests/test_usage_tracker_coverage.py`）：45 个测试，覆盖率从 36.90% → 99.40%。覆盖保存失败、损坏统计加载、错误率阈值边界、并发线程安全跟踪（4 线程 × 50 操作）、模块级单例。
+- **workflow_engine_persistence 覆盖率**（`tests/test_workflow_persistence_coverage.py`）：22 个测试，覆盖率从 14.81% → 100.00%。覆盖缺失定义的检查点保存、缺失/无检查点恢复、交接文档创建、跨交接历史累积。
+
+### 新增 — Phase 4 幽灵功能防御
+- **幽灵功能防御测试**（`tests/test_phase4_ghost_feature_defense.py`）：12 个测试证明 RetrospectiveSkill 不是幽灵功能。三维度：(1) spy mock 验证 `_run_retrospective` 调用 `extract_learned_rules` + `add_rule`；(2) `exec_result.success=False` 不再跳过 retrospective（修复原 `not exec_result.success` 守卫 bug）；(3) 完整 E2E 学习闭环——失败任务 → retrospective → tier1 规则持久化 → 下次 dispatch 的 PromptAssembler 注入规则。
+
+### 修复
+- **P0 Dashboard 启动崩溃**：`dispatch_steps.py:109` 在 `__init__` 主体中引用 `learned_rule_store` 变量但未声明为参数。3164 个单元测试通过但 Dashboard 通过 `get_dispatcher()` → `MultiAgentDispatcher` → `PostDispatchPipeline` → `dispatch_steps.py` 链路启动即崩。修复：添加 `learned_rule_store: Any = None` 参数。
+
+### 变更
+- **版本 bump**：3.9.2 → 3.9.3（15/15 版本一致性检查通过）
+- **测试数**：3164 → 3312 passed（+148 新测试：26 UI E2E + 110 覆盖率 + 12 幽灵防御）
+- **覆盖率**：68.47% → 70.74%（+2.27pp）；3 个模块达 ~100%
+- **Spec 同步**：`docs/spec/v3.10.0_spec.md` Phase 3+4 标记为 `[x]` 完成
+
+### 评估
+- **Round 3 评估**：8.6/10（A-），较 Round 2 的 8.3/10 提升。硬约束 13/13。CI schedule 6/6 jobs 成功。Release-ready。
+
 ## [3.9.2] - 2026-07-01
 
 ### 代码质量 — 三项技术债清零（V3.10.0 目标提前达成）

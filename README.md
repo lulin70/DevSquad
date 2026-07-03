@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V3.9.2 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V3.9.3 Enterprise Ready</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-3164%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.9.2-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-3312%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V3.9.3-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V3.9.2: Auto LLM Fallback + Dashboard Split + SQLite Audit Persistence + P3 Cleanup
+## 🚀 V3.9.3: Auto LLM Fallback + Dashboard Split + SQLite Audit Persistence + P3 Cleanup
 
-**DevSquad V3.9.2** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 2857+ tests passing.
+**DevSquad V3.9.3** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 3312+ tests passing.
 
 ---
 
@@ -127,7 +127,7 @@ print(result.report)
 print(result.consensus)
 ```
 
-### Method 5: One-Click Startup Script (V3.9.2+)
+### Method 5: One-Click Startup Script (V3.9.3+)
 
 ```bash
 # One-click startup — 4 phases: env check → DB init → frontend build → service start
@@ -143,7 +143,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 ./scripts/start.sh --help
 ```
 
-`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`).
+`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`). V3.9.3 adds UI E2E browser-driven tests and coverage supplements.
 
 ---
 
@@ -457,7 +457,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.9.2
+# Expected: devsquad 3.9.3
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -512,7 +512,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 3.9.2
+python3 scripts/cli.py --version       # Expected: DevSquad 3.9.3
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
@@ -600,6 +600,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-06-26 | Version: V3.9.2*
+*Last updated: 2026-07-03 | Version: V3.9.3*
 
 </details>
