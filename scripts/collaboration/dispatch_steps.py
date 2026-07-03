@@ -84,6 +84,7 @@ class PostDispatchPipeline(
         usage_tracker: Any = None,
         retrospective_engine: Any = None,
         anchor_checker: Any = None,
+        learned_rule_store: Any = None,
         llm_backend: Any = None,
         persist_dir: str = "",
         # Dispatcher reference (needed for FeedbackControlLoop and post_execution_processing)
@@ -106,6 +107,7 @@ class PostDispatchPipeline(
         self.compressor = compressor
         self.usage_tracker = usage_tracker
         self.retrospective_engine = retrospective_engine
+        self.learned_rule_store = learned_rule_store
         self.anchor_checker = anchor_checker
         self.llm_backend = llm_backend
         self.persist_dir = persist_dir

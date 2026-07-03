@@ -74,6 +74,7 @@ class MultiAgentDispatcher(
     quality_guard: Any
     anchor_checker: Any
     retrospective_engine: Any
+    learned_rule_store: Any
     usage_tracker: Any
     report_formatter: Any
     role_matcher: Any
@@ -282,6 +283,7 @@ class MultiAgentDispatcher(
             compressor=self.compressor,
             usage_tracker=self.usage_tracker,
             retrospective_engine=self.retrospective_engine,
+            learned_rule_store=self.learned_rule_store,
             anchor_checker=self.anchor_checker,
             llm_backend=self.llm_backend,
             persist_dir=self.persist_dir,

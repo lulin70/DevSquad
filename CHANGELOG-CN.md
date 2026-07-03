@@ -72,12 +72,20 @@
 - **PromptAssembler learned_rules 注入**（`prompt_assembler.py`、`prompt_assembler_formatting_mixin.py`、`prompt_assembler_base.py`）：新增 `_build_learned_rules_injection()` 在初始化时从 `.devsquad.yaml` 加载 tier-1 规则，格式化为 `## Learned Rules (from past task retrospectives)` 块。在短样式 `_concat_injections()` 和长样式 `parts.append` 两个路径均注入。`_get_learned_rules_injection()` 访问器添加到基类。
 - 23 个新测试覆盖：LearnedRule 校验/序列化、LearnedRuleStore tier1/tier2/去重/晋升/加载、RetrospectiveEngine 偏差→规则映射、PromptAssembler 注入 + 组装指令集成。
 
+### 修复 — V3.10.0 Phase 4 闭环断裂（幽灵功能防御）
+- **问题**：`_run_retrospective` 在 `retrospective_engine.run()` 之后直接返回报告，从未调用 `extract_learned_rules()` + `LearnedRuleStore.add_rule()`，导致"提取规则→持久化→下次注入"闭环断裂 — 组件已实现并注册但从未被串联调用（幽灵功能）。
+- **修复 `dispatch_steps_quality_mixin.py`**：`_run_retrospective` 在 `run()` 之后新增 `extract_learned_rules()` + `add_rule()` 调用链；移除 `not exec_result.success` 守卫（失败任务必须触发复盘，与 spec §5.7 设计意图一致）；添加 info 级日志记录规则提取数量和 tier 分布，提供调用证据。
+- **修复 `dispatch_component_factory.py`**：新增 `_init_learned_rule_store()` 方法，在 `_init_core_components` 中创建 `LearnedRuleStore` 实例（路径指向 `persist_dir`），消除 factory 未创建 store 导致的源头断裂。
+- **修复 `dispatcher.py`**：类级别新增 `learned_rule_store: Any` 注解；`PostDispatchPipeline` 创建时传入 `learned_rule_store=self.learned_rule_store`。
+- **修复 `dispatch_steps.py` + `dispatch_steps_base.py`**：`PostDispatchPipeline.__init__` 新增 `learned_rule_store` 参数 + 赋值；`PostDispatchBase` 新增属性声明。
+- **12 个幽灵功能防御测试**（`tests/test_phase4_ghost_feature_defense.py`）：三维度覆盖 — (1) 闭环调用验证（MagicMock spy 证明 `extract_learned_rules` + `add_rule` 被调用）；(2) 失败路径触发验证（`exec_result.success=False` 不跳过复盘）；(3) E2E 学习闭环（失败任务 → 规则持久化到 `.devsquad.yaml` → PromptAssembler 加载注入）。
+
 ### 验证 — Phase 4
-- pytest 本地（Python 3.12）：3164 passed / 3 skipped / 0 failed（23 个 Phase 4 测试 + Phase 1-3 基线）
+- pytest 本地（Python 3.12，含闭环修复 + 幽灵功能防御测试）：3302 passed / 25 skipped / 0 failed
 - mypy scripts/ skills/：0 errors
 - ruff check scripts/ skills/：All checks passed
 - 版本一致性：15/15 PASS
-- 模块总数：155+（新增 `learned_rule_store.py`，扩展 `models_base.py`/`retrospective.py`/`prompt_assembler.py`/`prompt_assembler_base.py`/`prompt_assembler_formatting_mixin.py`/`models.py`）
+- 模块总数：155+（新增 `learned_rule_store.py`，扩展 `models_base.py`/`retrospective.py`/`prompt_assembler.py`/`prompt_assembler_base.py`/`prompt_assembler_formatting_mixin.py`/`models.py`/`dispatch_steps_quality_mixin.py`/`dispatch_component_factory.py`/`dispatcher.py`/`dispatch_steps.py`/`dispatch_steps_base.py`）
 
 ## [3.9.2] - 2026-07-01
 

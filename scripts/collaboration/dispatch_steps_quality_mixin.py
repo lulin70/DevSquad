@@ -21,8 +21,18 @@ class PostDispatchQualityMixin(PostDispatchBase):
         exec_result: Any,
         total_duration: float,
     ) -> Any:
-        """Run RetrospectiveEngine analysis. Returns report or None."""
-        if not self.retrospective_engine or not structured_goal or not exec_result.success:
+        """Run RetrospectiveEngine analysis and persist LearnedRule entries.
+
+        Phase 4: Closes the failure-learning loop by extracting rules from
+        the retrospective report and persisting them via LearnedRuleStore.
+        Triggers on BOTH success and failure — failed tasks are prioritized
+        for learning per spec §5.7 (failure/retry/over-budget/consensus-miss).
+        Returns the report or None.
+        """
+        # Guard: require engine + structured_goal.
+        # NOTE: exec_result.success is intentionally NOT gated — failures
+        # must trigger retrospective to extract learning rules.
+        if not self.retrospective_engine or not structured_goal:
             return None
 
         try:
@@ -37,6 +47,36 @@ class PostDispatchQualityMixin(PostDispatchBase):
                 },
                 task_duration_seconds=total_duration,
             )
+
+            # Phase 4: Extract + persist LearnedRule entries.
+            # This is the critical call that closes the learning loop —
+            # without it RetrospectiveEngine.run() output never feeds back
+            # into future dispatches (ghost-feature).
+            if self.learned_rule_store is not None:
+                learned_rules = self.retrospective_engine.extract_learned_rules(
+                    report=retrospective_report,
+                    task_id=(_task or "")[:80],
+                )
+                tier_counts: dict[str, int] = {"tier1": 0, "tier2": 0, "rejected": 0}
+                for rule in learned_rules:
+                    tier = self.learned_rule_store.add_rule(rule)
+                    if tier in tier_counts:
+                        tier_counts[tier] += 1
+                logger.info(
+                    "RetrospectiveSkill closed loop: extracted %d rules "
+                    "(tier1=%d, tier2=%d, rejected=%d) — task success=%s",
+                    len(learned_rules),
+                    tier_counts["tier1"],
+                    tier_counts["tier2"],
+                    tier_counts["rejected"],
+                    getattr(exec_result, "success", None),
+                )
+            else:
+                logger.debug(
+                    "RetrospectiveSkill ran but LearnedRuleStore is None — "
+                    "rules not persisted (ghost-feature risk)"
+                )
+
             return retrospective_report
         except (ValueError, AttributeError, RuntimeError, ImportError) as retro_err:
             logger.warning("Retrospective failed: %s", retro_err)

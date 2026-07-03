@@ -72,12 +72,20 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **PromptAssembler learned_rules injection** (`prompt_assembler.py`, `prompt_assembler_formatting_mixin.py`, `prompt_assembler_base.py`): New `_build_learned_rules_injection()` loads tier-1 rules from `.devsquad.yaml` at init, formats as `## Learned Rules (from past task retrospectives)` block. Injected in both short-style `_concat_injections()` and long-style `parts.append` paths. `_get_learned_rules_injection()` accessor added to base.
 - 23 new tests covering: LearnedRule validation/serialization, LearnedRuleStore tier1/tier2/dedup/promote/load, RetrospectiveEngine deviation→rule mapping, PromptAssembler injection + assembled instruction integration.
 
+### Fixed — V3.10.0 Phase 4 Learning Loop Breakage (Ghost-Feature Defense)
+- **Problem**: `_run_retrospective` returned the report immediately after `retrospective_engine.run()` without ever calling `extract_learned_rules()` + `LearnedRuleStore.add_rule()`, breaking the "extract → persist → inject on next dispatch" loop — components were implemented and registered but never chained together (ghost feature).
+- **Fixed `dispatch_steps_quality_mixin.py`**: `_run_retrospective` now calls `extract_learned_rules()` + `add_rule()` after `run()`; removed `not exec_result.success` guard (failed tasks MUST trigger retrospective per spec §5.7); added info-level logging of rule extraction count and tier distribution as invocation evidence.
+- **Fixed `dispatch_component_factory.py`**: New `_init_learned_rule_store()` method creates a `LearnedRuleStore` instance in `_init_core_components` (paths under `persist_dir`), eliminating the source-level breakage where the factory never created the store.
+- **Fixed `dispatcher.py`**: Class-level `learned_rule_store: Any` annotation added; `PostDispatchPipeline` creation now passes `learned_rule_store=self.learned_rule_store`.
+- **Fixed `dispatch_steps.py` + `dispatch_steps_base.py`**: `PostDispatchPipeline.__init__` gains `learned_rule_store` parameter + assignment; `PostDispatchBase` gains attribute declaration.
+- **12 ghost-feature defense tests** (`tests/test_phase4_ghost_feature_defense.py`): Three dimensions — (1) closed-loop call verification (MagicMock spy proves `extract_learned_rules` + `add_rule` are invoked); (2) failure-path trigger verification (`exec_result.success=False` does NOT skip retrospective); (3) E2E learning cycle (failed task → rule persisted to `.devsquad.yaml` → PromptAssembler loads and injects on next dispatch).
+
 ### Verification — Phase 4
-- pytest local (Python 3.12): 3164 passed / 3 skipped / 0 failed (23 Phase 4 tests + Phase 1-3 baseline)
+- pytest local (Python 3.12, with loop-fix + ghost-feature defense tests): 3302 passed / 25 skipped / 0 failed
 - mypy scripts/ skills/: 0 errors
 - ruff check scripts/ skills/: All checks passed
 - Version consistency: 15/15 PASS
-- Module count: 155+ (added `learned_rule_store.py`, extended `models_base.py`/`retrospective.py`/`prompt_assembler.py`/`prompt_assembler_base.py`/`prompt_assembler_formatting_mixin.py`/`models.py`)
+- Module count: 155+ (added `learned_rule_store.py`, extended `models_base.py`/`retrospective.py`/`prompt_assembler.py`/`prompt_assembler_base.py`/`prompt_assembler_formatting_mixin.py`/`models.py`/`dispatch_steps_quality_mixin.py`/`dispatch_component_factory.py`/`dispatcher.py`/`dispatch_steps.py`/`dispatch_steps_base.py`)
 
 ## [3.9.2] - 2026-07-01
 

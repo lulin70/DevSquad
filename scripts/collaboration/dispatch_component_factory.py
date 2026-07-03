@@ -137,6 +137,7 @@ class ComponentFactory:
         components["quality_guard"] = TestQualityGuard("", "") if config.enable_quality_guard else None
         components["anchor_checker"] = self._try_import_component("anchor_checker", "AnchorChecker")
         components["retrospective_engine"] = self._init_retrospective_engine(config, components)
+        components["learned_rule_store"] = self._init_learned_rule_store(config)
         components["usage_tracker"] = self._init_usage_tracker(config)
 
         components["_dispatch_history"] = []
@@ -180,6 +181,31 @@ class ComponentFactory:
                 memory_bridge=components.get("memory_bridge") if config.enable_memory else None
             )
         except (ImportError, AttributeError, RuntimeError):
+            return None
+
+    def _init_learned_rule_store(self, config: ComponentConfig) -> Any | None:
+        """Init LearnedRuleStore if retrospective is enabled (Phase 4).
+
+        Provides two-tier persistence for LearnedRule entries extracted by
+        RetrospectiveEngine.extract_learned_rules(). Without this, the
+        learning loop is broken — rules extracted from retrospectives are
+        never persisted and never injected into future prompts (ghost feature).
+        """
+        if not config.enable_retrospective:
+            return None
+        try:
+            from .learned_rule_store import LearnedRuleStore
+
+            config_path = os.path.join(config.persist_dir, ".devsquad.yaml")
+            tier2_dir = os.path.join(config.persist_dir, "data", "tier2")
+            os.makedirs(tier2_dir, exist_ok=True)
+            tier2_path = os.path.join(tier2_dir, "corrections.json")
+            return LearnedRuleStore(
+                config_path=config_path,
+                tier2_path=tier2_path,
+            )
+        except (ImportError, AttributeError, RuntimeError, OSError) as e:
+            logger.warning("LearnedRuleStore initialization failed: %s", e)
             return None
 
     def _init_usage_tracker(self, config: ComponentConfig) -> Any | None:

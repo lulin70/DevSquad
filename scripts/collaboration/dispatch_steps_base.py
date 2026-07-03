@@ -52,6 +52,7 @@ class PostDispatchBase:
     compressor: Any
     usage_tracker: Any
     retrospective_engine: Any
+    learned_rule_store: Any
     anchor_checker: Any
     llm_backend: Any
 
