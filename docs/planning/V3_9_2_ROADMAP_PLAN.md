@@ -3,7 +3,7 @@
 **文档版本**: 1.0.0  
 **规划日期**: 2026-06-25  
 **依据文档**:
-- [docs/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md](LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md)
+- [docs/_archive/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md](../_archive/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md)
 - [docs/MATURITY_ASSESSMENT.md](../MATURITY_ASSESSMENT.md)
 - 《Loop Engineering 橙皮书 v260615》
 - DevSquad SKILL.md Cybernetics Enhancement (V3.6.5)

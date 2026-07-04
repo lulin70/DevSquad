@@ -161,6 +161,6 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | **V3.10.0 Round 2** | **2026-07-02** | **8.3** | **13/13** | **UI 启动验证、多语言一致性、CI mypy 扩展、artifact fallback、幽灵功能深度审计** |
 
 评估报告路径:
-- V3.9.2: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`
-- V3.10.0-dev Round 1: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md`
-- **V3.10.0-dev Round 2: `docs/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md`**
+- V3.9.2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`
+- V3.10.0-dev Round 1: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round1.md`
+- V3.10.0-dev Round 2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.10.0_round2.md`

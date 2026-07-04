@@ -147,11 +147,11 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Directory cleanup**: Removed `scripts/tools/` (migrated useful script to `scripts/utils/`) and `tests/manual/`; cleared 44 stale files from `docs/_archive/`; documented ghost-feature utilities in `test_quality_guard.py`.
 
 ### Documentation
-- **Loop Engineering assessment** (`docs/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md`): Evaluated DevSquad against upstream TRAEMultiAgent cybernetics methodology; documented gaps and V3.9.2 roadmap completion.
+- **Loop Engineering assessment** (`docs/_archive/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md`): Evaluated DevSquad against upstream TRAEMultiAgent cybernetics methodology; documented gaps and V3.9.2 roadmap completion.
 - **V3.9.2 roadmap** (`docs/planning/V3_9_2_ROADMAP_PLAN.md`): Implementation plan for auto fallback, dashboard split, real LLM tests, audit persistence, and P3 cleanup.
 - **SKILL.md module count corrected**: Updated from 118 to 149+ modules; removed ghost/removed module entries; renumbered module table.
 - **Trilingual README aligned**: Unified "5 Ways to Use DevSquad" order across EN/CN/JP.
-- **Round 9 assessment** (`docs/PROJECT_TIDY_ASSESSMENT_V3.9.2_round9.md`): Honest 7-dimension maturity evaluation with command-output evidence.
+- **Round 9 assessment** (`docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round9.md`): Honest 7-dimension maturity evaluation with command-output evidence.
 - **External research** (`docs/research/ponytail_headroom_research.md`): Analysis of ponytail agent behavior constraints and headroom token compression for future ContextCompressor upgrades.
 
 ### Test Coverage

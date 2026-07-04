@@ -163,7 +163,7 @@
 - **P3 清理**（`llm_backend.py`、`async_llm_backend.py`）：提取魔法数字为模块常量；将宽泛的 `except Exception` 收窄为网络/API 特定异常集合。
 
 ### 文档
-- **Loop Engineering 评估**（`docs/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md`）：对照上游 TRAEMultiAgent 控制方法论评估 DevSquad，记录差距并确认 V3.9.2 路线图完成。
+- **Loop Engineering 评估**（`docs/_archive/assessments/LOOP_ENGINEERING_IMPLEMENTATION_ASSESSMENT.md`）：对照上游 TRAEMultiAgent 控制方法论评估 DevSquad，记录差距并确认 V3.9.2 路线图完成。
 - **V3.9.2 路线图**（`docs/planning/V3_9_2_ROADMAP_PLAN.md`）：auto fallback、dashboard 拆分、真实 LLM 测试、审计持久化、P3 清理 的实施计划。
 
 ### 测试覆盖

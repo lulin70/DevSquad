@@ -8,7 +8,7 @@ Validates:
     DEVSQUAD_HTTPS_REDIRECT_ENABLED)
   - Singleton reset helper for test isolation
 
-Design doc: docs/assessments/IMPROVEMENT_PLAN_V3.9.2.md (P3-2)
+Design doc: docs/_archive/assessments/IMPROVEMENT_PLAN_V3.9.2.md (P3-2)
 """
 
 from __future__ import annotations

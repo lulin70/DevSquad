@@ -149,4 +149,4 @@ python -c "import sys; sys.path.insert(0,'/tmp/verify_install'); from scripts.co
 
 - [`.github/workflows/release.yml`](https://github.com/lulin70/DevSquad/blob/main/.github/workflows/release.yml)
 - [`scripts/check_version_consistency.py`](https://github.com/lulin70/DevSquad/blob/main/scripts/check_version_consistency.py)
-- [`docs/PROJECT_TIDY_FIX_REPORT_V3.9.2_round9.md`](./PROJECT_TIDY_FIX_REPORT_V3.9.2_round9.md)
+- [`docs/_archive/assessments/PROJECT_TIDY_FIX_REPORT_V3.9.2_round9.md`](./_archive/assessments/PROJECT_TIDY_FIX_REPORT_V3.9.2_round9.md)
