@@ -358,7 +358,8 @@ class TestT5_StatusAndHistory:
 
     def test_01_get_status_basic(self, dispatcher):
         status = dispatcher.get_status()
-        assert status["version"] == "3.9.2"
+        from scripts.collaboration._version import __version__
+        assert status["version"] == __version__
         assert "components" in status
         assert "dispatch_count" in status
 

@@ -12,6 +12,7 @@ Consensus - 共识机制
 """
 
 from datetime import datetime
+from typing import Any
 
 from .models import (
     CONSENSUS_THRESHOLDS,
@@ -252,3 +253,28 @@ class ConsensusEngine:
             List[ConsensusRecord]: 所有已完成的共识裁决记录
         """
         return list(self._records.values())
+
+    # V4.0.0 P2-1: Dynamic Workflows 对抗验证
+    def adversarial_verify(self, proposal_content: str) -> Any:
+        """对提案执行对抗验证。
+
+        红方挑战 → 蓝方防御 → 裁判裁决。
+
+        Args:
+            proposal_content: 提案内容（自然语言描述）。
+
+        Returns:
+            AdversarialResult: 包含挑战、防御、裁决的完整结果。
+
+        Usage:
+            engine = ConsensusEngine()
+            result = engine.adversarial_verify("Add new API endpoint /api/v1/users")
+            if not result.passed:
+                # 提案未通过对抗验证，需改进
+                for imp in result.verdict.improvements:
+                    print(f"- {imp}")
+        """
+        from .adversarial_verify import AdversarialVerifyMode
+
+        mode = AdversarialVerifyMode()
+        return mode.execute(proposal_content)
