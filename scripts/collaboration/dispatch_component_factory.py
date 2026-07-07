@@ -44,6 +44,9 @@ class ComponentConfig:
     # V3.10.0 Phase 3: reversible compression store + per-dispatch token budget
     ccr_store: Any = None  # CCRStore | None
     token_budget: Any = None  # TokenBudget | None
+    # V4.0.0 P1-1: Loop Engineering 五步闭环
+    loop_engineering_enabled: bool = False
+    loop_config: Any = None  # LoopEngineeringConfig | None
 
 
 class ComponentFactory:
@@ -220,11 +223,16 @@ class ComponentFactory:
         except (ImportError, AttributeError, RuntimeError):
             return None
 
-    def _init_optional_components(self, _config: ComponentConfig, components: dict[str, Any]) -> None:
+    def _init_optional_components(self, config: ComponentConfig, components: dict[str, Any]) -> None:
         """Init optional components with graceful fallback."""
         components["output_slicer"] = self._try_import_component("output_slicer", "OutputSlicer")
         components["ci_feedback"] = self._try_import_component("ci_feedback_adapter", "CIFeedbackAdapter")
         components["_std_templates"] = {}
+
+        if config.loop_engineering_enabled:
+            from .loop_engineering import LoopKernel, LoopEngineeringConfig
+            loop_config = config.loop_config or LoopEngineeringConfig()
+            components["loop_kernel"] = LoopKernel(config=loop_config)
 
     def _init_cache_and_monitor(self, config: ComponentConfig, components: dict[str, Any]) -> None:
         """Initialize cache, monitor, and utility components."""

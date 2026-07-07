@@ -537,6 +537,42 @@ class MultiAgentDispatcher(
             self._log_dispatch_error_audit(user_id, e)
             return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang)
 
+    # V4.0.0 P1-1: Loop Engineering 五步闭环
+    def dispatch_with_loop(
+        self,
+        task_description: str,
+        loop_type: str = "coding",
+        max_iterations: int = 50,
+        **kwargs: Any,
+    ) -> Any:
+        """使用 Loop Engineering 五步闭环执行任务。
+
+        Args:
+            task_description: 任务目标
+            loop_type: "design" | "coding" | "testing"
+            max_iterations: 最大迭代次数
+            **kwargs: 传递给 dispatch 的额外参数
+        """
+        from .loop_engineering import (
+            HandoffAdapter,
+            LoopEngineeringConfig,
+            LoopKernel,
+            LoopType,
+        )
+
+        loop_config = LoopEngineeringConfig(
+            loop_type=LoopType(loop_type),
+            max_iterations=max_iterations,
+        )
+
+        handoff = HandoffAdapter(dispatcher=self)
+        kernel = LoopKernel(
+            config=loop_config,
+            handoff_adapter=handoff,
+        )
+
+        return kernel.run(task_description)
+
 
 __all__ = [
     "DISPATCH_LIFECYCLE_MAPPING",
