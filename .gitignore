@@ -161,3 +161,7 @@ completions_cache.json
 
 # --- PDF documents (process docs, not tracked) ---
 *.pdf
+
+# --- V4.0.0 Autonomous runtime dirs (created by NotesMemory/UnifiedMemory) ---
+.devsquad_autonomous/
+.devsquad_loop/

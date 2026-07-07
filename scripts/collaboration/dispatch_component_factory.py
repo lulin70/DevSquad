@@ -50,6 +50,9 @@ class ComponentConfig:
     # V4.0.0 P1-2: UI/UX 巡检与视觉回归
     qa_enabled: bool = False
     qa_pixel_diff_threshold: float = 0.01
+    # V4.0.0 P3-1: Autonomous 自主迭代模式
+    autonomous_enabled: bool = False
+    autonomous_max_iterations: int = 20
 
 
 class ComponentFactory:
@@ -248,6 +251,22 @@ class ComponentFactory:
                 logger.info("UIUXAnalyzer + VisualRegressionChecker enabled")
             except (ImportError, ModuleNotFoundError) as e:
                 logger.warning("QA components initialization failed: %s", e)
+
+        # V4.0.0 P3-1: Autonomous 自主迭代模式
+        if config.autonomous_enabled:
+            try:
+                from .autonomous import AutonomousLoopController
+                from .autonomous.loop_controller import AutonomousConfig
+                autonomous_config = AutonomousConfig(
+                    objective="",  # 运行时由 dispatch_autonomous() 设置
+                    max_iterations=config.autonomous_max_iterations,
+                )
+                components["autonomous_controller"] = AutonomousLoopController(
+                    config=autonomous_config,
+                )
+                logger.info("AutonomousLoopController enabled")
+            except (ImportError, ModuleNotFoundError, AttributeError) as e:
+                logger.warning("Autonomous components initialization failed: %s", e)
 
     def _init_cache_and_monitor(self, config: ComponentConfig, components: dict[str, Any]) -> None:
         """Initialize cache, monitor, and utility components."""

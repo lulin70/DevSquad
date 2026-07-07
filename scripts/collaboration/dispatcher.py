@@ -93,6 +93,8 @@ class MultiAgentDispatcher(
     _max_history: int
     _result_assembler: Any
     _audit_logger: DispatchAuditLogger | None
+    # V4.0.0 P3-1: Autonomous 自主迭代
+    autonomous_controller: Any
 
     def __init__(
         self,
@@ -135,6 +137,9 @@ class MultiAgentDispatcher(
         # V4.0.0 P1-2: UI/UX 巡检与视觉回归
         qa_enabled: bool = False,
         qa_pixel_diff_threshold: float = 0.01,
+        # V4.0.0 P3-1: Autonomous 自主迭代模式
+        autonomous_enabled: bool = False,
+        autonomous_max_iterations: int = 20,
         **kwargs: Any,
     ) -> None:
         """Initialize the Multi-Agent Dispatcher with feature flags and components."""
@@ -172,6 +177,8 @@ class MultiAgentDispatcher(
         self.lang = lang
         self.qa_enabled = qa_enabled
         self.qa_pixel_diff_threshold = qa_pixel_diff_threshold
+        self.autonomous_enabled = autonomous_enabled
+        self.autonomous_max_iterations = autonomous_max_iterations
 
         os.makedirs(self.persist_dir, exist_ok=True)
         os.makedirs(self.memory_dir, exist_ok=True)
@@ -194,6 +201,9 @@ class MultiAgentDispatcher(
 
         # Event bus for decoupled pipeline communication
         self.event_bus = EventBus()
+
+        # V4.0.0 P3-1: 预初始化为 None，确保属性始终存在（避免 disabled 时 AttributeError）
+        self.autonomous_controller = None
 
         self._init_components_from_factory()
         self.enterprise = EnterpriseFeature(
@@ -329,6 +339,8 @@ class MultiAgentDispatcher(
             lang=self.lang,
             qa_enabled=self.qa_enabled,
             qa_pixel_diff_threshold=self.qa_pixel_diff_threshold,
+            autonomous_enabled=self.autonomous_enabled,
+            autonomous_max_iterations=self.autonomous_max_iterations,
         )
         factory = ComponentFactory()
         components = factory.create_all(config)
@@ -627,6 +639,51 @@ class MultiAgentDispatcher(
                 "VisualRegressionChecker not enabled. Initialize dispatcher with qa_enabled=True."
             )
         return self.visual_regression_checker.compare(baseline, current)
+
+    # V4.0.0 P3-1: Autonomous 自主迭代模式
+    def dispatch_autonomous(
+        self,
+        objective: str,
+        max_iterations: int | None = None,
+        auto_resume: bool = False,
+        run_id: str | None = None,
+    ) -> Any:
+        """启动 Autonomous 自主迭代模式。
+
+        4 阶段循环：plan → dev → verify → fix，复用 LoopKernel。
+        不绕过 ConsensusEngine 前置共识门（HC-2）。
+
+        Args:
+            objective: 迭代目标。
+            max_iterations: 最大迭代次数，None 则使用初始化时的配置。
+            auto_resume: 是否自动从断点续跑。
+            run_id: 可选的运行 ID，用于断点续跑。
+
+        Returns:
+            AutonomousRunReport。若 autonomous_controller 未启用，抛出 RuntimeError。
+
+        Raises:
+            RuntimeError: autonomous_enabled=False。
+        """
+        if not self.autonomous_enabled or self.autonomous_controller is None:
+            raise RuntimeError(
+                "AutonomousLoopController not enabled. "
+                "Initialize dispatcher with autonomous_enabled=True."
+            )
+
+        from .autonomous.loop_controller import AutonomousConfig, AutonomousLoopController
+
+        # 重新构建 config（objective 是运行时参数，不能在 factory 中固定）
+        config = AutonomousConfig(
+            objective=objective,
+            max_iterations=max_iterations or self.autonomous_max_iterations,
+            consensus_engine=self.consensus_engine,
+            dispatcher=self,
+            auto_resume=auto_resume,
+        )
+        # 复用已初始化的 NotesMemory 目录
+        controller = AutonomousLoopController(config=config)
+        return controller.run(run_id=run_id)
 
 
 __all__ = [
