@@ -299,6 +299,7 @@ def render_sidebar(auth: AuthManager, current_user: User | None = None) -> str:
             "Gates",
             "Performance",
             "Task Dispatch",
+            "DAG",
         ]
 
         page_captions = [
@@ -308,6 +309,7 @@ def render_sidebar(auth: AuthManager, current_user: User | None = None) -> str:
             "Gate status monitor",
             "Performance metrics",
             "Create & manage tasks",
+            "V4.0.0 Lifecycle dependency graph",
         ]
 
         page = st.radio("Go to", page_options, captions=page_captions, label_visibility="collapsed")

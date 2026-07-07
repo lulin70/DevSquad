@@ -27,6 +27,7 @@ from scripts.dashboard.components import (
     render_sidebar,
     set_page_config,
 )  # noqa: E402
+from scripts.dashboard.dag_views import render_dag_view  # noqa: E402
 from scripts.dashboard.dispatch_views import (
     get_dispatcher,
     render_task_dispatch_page,
@@ -95,6 +96,9 @@ def main() -> None:
         else:
             st.error("🔒 Task dispatch requires Operator or Admin role")
             st.info("Please contact your administrator to request elevated permissions.")
+
+    elif page == "DAG":
+        render_dag_view(protocol_data)
 
     if st.session_state.get("page") == "admin_users":
         if current_user and current_user.role.value == "admin":
