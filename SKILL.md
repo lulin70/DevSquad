@@ -2,16 +2,16 @@
 name: devsquad
 slug: devsquad
 description: |
-  V3.9.3 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
+  V4.0.0 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
-  V3.9.3: Auto LLM fallback + Dashboard split + SQLite audit persistence + P3 cleanup + UI E2E browser-driven tests + coverage supplements.
-150+ core modules, 3312+ tests passing (CI authoritative).
+  V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载.
+150+ core modules, 3400+ tests passing (CI authoritative).
 ---
 
-# DevSquad V3.9.3 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V4.0.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -632,7 +632,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "3.9.3",
+#   "version": "4.0.0",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats

@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V3.9.3 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.0.0 Enterprise Ready</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-3312%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.9.3-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-3400%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.0.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,17 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V3.9.3: Auto LLM Fallback + Dashboard Split + SQLite Audit Persistence + P3 Cleanup
+## 🚀 V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
 
-**DevSquad V3.9.3** introduces automatic LLM backend fallback (auto backend tries real LLM first, falls back to mock), splits dashboard.py from 1087 lines into an 8-module package, makes SQLite-backed dispatch audit persistence default, and performs P3 cleanup (magic number extraction + narrowed exception scopes), with 3312+ tests passing.
+**DevSquad V4.0.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
+- **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
+- **P1-2 UI/UX 巡检**: 4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff 视觉回归
+- **P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁三阶段对抗验证
+- **P2-2 DAG 可视化**: Mermaid / JSON / DOT 三种格式依赖图可视化
+- **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
+- **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
+
+3400+ tests passing。
 
 ---
 
@@ -127,7 +135,7 @@ print(result.report)
 print(result.consensus)
 ```
 
-### Method 5: One-Click Startup Script (V3.9.3+)
+### Method 5: One-Click Startup Script (V3.9.2+)
 
 ```bash
 # One-click startup — 4 phases: env check → DB init → frontend build → service start
@@ -457,7 +465,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 3.9.3
+# Expected: devsquad 4.0.0
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -512,7 +520,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 3.9.3
+python3 scripts/cli.py --version       # Expected: DevSquad 4.0.0
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
@@ -600,6 +608,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-07-03 | Version: V3.9.3*
+*Last updated: 2026-07-07 | Version: V4.0.0*
 
 </details>

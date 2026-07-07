@@ -7,7 +7,7 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.0-dev] - 2026-07-07
+## [4.0.0] - 2026-07-07
 
 MAJOR version bump:借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能。Spec 详见 `docs/spec/v4.0.0_spec.md`。
 
