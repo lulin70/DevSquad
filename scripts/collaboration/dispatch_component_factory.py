@@ -47,6 +47,9 @@ class ComponentConfig:
     # V4.0.0 P1-1: Loop Engineering 五步闭环
     loop_engineering_enabled: bool = False
     loop_config: Any = None  # LoopEngineeringConfig | None
+    # V4.0.0 P1-2: UI/UX 巡检与视觉回归
+    qa_enabled: bool = False
+    qa_pixel_diff_threshold: float = 0.01
 
 
 class ComponentFactory:
@@ -230,9 +233,21 @@ class ComponentFactory:
         components["_std_templates"] = {}
 
         if config.loop_engineering_enabled:
-            from .loop_engineering import LoopKernel, LoopEngineeringConfig
+            from .loop_engineering import LoopEngineeringConfig, LoopKernel
             loop_config = config.loop_config or LoopEngineeringConfig()
             components["loop_kernel"] = LoopKernel(config=loop_config)
+
+        # V4.0.0 P1-2: UI/UX 巡检与视觉回归（软依赖策略）
+        if config.qa_enabled:
+            try:
+                from scripts.qa import UIUXAnalyzer, VisualRegressionChecker
+                components["uiux_analyzer"] = UIUXAnalyzer()
+                components["visual_regression_checker"] = VisualRegressionChecker(
+                    pixel_diff_threshold=config.qa_pixel_diff_threshold,
+                )
+                logger.info("UIUXAnalyzer + VisualRegressionChecker enabled")
+            except (ImportError, ModuleNotFoundError) as e:
+                logger.warning("QA components initialization failed: %s", e)
 
     def _init_cache_and_monitor(self, config: ComponentConfig, components: dict[str, Any]) -> None:
         """Initialize cache, monitor, and utility components."""

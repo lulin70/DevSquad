@@ -132,6 +132,9 @@ class MultiAgentDispatcher(
         llm_backend: Any = None,
         stream: bool = False,
         lang: str = "auto",
+        # V4.0.0 P1-2: UI/UX 巡检与视觉回归
+        qa_enabled: bool = False,
+        qa_pixel_diff_threshold: float = 0.01,
         **kwargs: Any,
     ) -> None:
         """Initialize the Multi-Agent Dispatcher with feature flags and components."""
@@ -167,6 +170,8 @@ class MultiAgentDispatcher(
         self.llm_backend = llm_backend
         self.stream = stream
         self.lang = lang
+        self.qa_enabled = qa_enabled
+        self.qa_pixel_diff_threshold = qa_pixel_diff_threshold
 
         os.makedirs(self.persist_dir, exist_ok=True)
         os.makedirs(self.memory_dir, exist_ok=True)
@@ -322,6 +327,8 @@ class MultiAgentDispatcher(
             llm_backend=self.llm_backend,
             stream=self.stream,
             lang=self.lang,
+            qa_enabled=self.qa_enabled,
+            qa_pixel_diff_threshold=self.qa_pixel_diff_threshold,
         )
         factory = ComponentFactory()
         components = factory.create_all(config)
@@ -543,7 +550,6 @@ class MultiAgentDispatcher(
         task_description: str,
         loop_type: str = "coding",
         max_iterations: int = 50,
-        **kwargs: Any,
     ) -> Any:
         """使用 Loop Engineering 五步闭环执行任务。
 
@@ -551,7 +557,6 @@ class MultiAgentDispatcher(
             task_description: 任务目标
             loop_type: "design" | "coding" | "testing"
             max_iterations: 最大迭代次数
-            **kwargs: 传递给 dispatch 的额外参数
         """
         from .loop_engineering import (
             HandoffAdapter,
@@ -573,12 +578,62 @@ class MultiAgentDispatcher(
 
         return kernel.run(task_description)
 
+    # V4.0.0 P1-2: UI/UX 巡检与视觉回归
+    def qa_audit_url(self, url: str, **kwargs: Any) -> Any:
+        """对指定 URL 执行 UI/UX 巡检。
+
+        Args:
+            url: 巡检目标 URL。
+            **kwargs: 传递给 Playwright launch 的额外参数。
+
+        Returns:
+            UIUXAuditReport。若 uiux_analyzer 未启用或 Playwright 不可用，抛出 RuntimeError。
+
+        Raises:
+            RuntimeError: qa_enabled=False 或 Playwright 未安装。
+        """
+        if not hasattr(self, "uiux_analyzer") or self.uiux_analyzer is None:
+            raise RuntimeError(
+                "UIUXAnalyzer not enabled. Initialize dispatcher with qa_enabled=True."
+            )
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError as exc:
+            raise RuntimeError(
+                "Playwright is required for qa_audit_url. Install with: pip install playwright && playwright install"
+            ) from exc
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(**kwargs)
+            try:
+                page = browser.new_page()
+                page.goto(url, wait_until="networkidle")
+                return self.uiux_analyzer.audit(page, url=url)
+            finally:
+                browser.close()
+
+    def qa_visual_regression(self, baseline: str, current: str) -> Any:
+        """对两张图片执行视觉回归检查。
+
+        Args:
+            baseline: 基线图片路径。
+            current: 当前图片路径。
+
+        Returns:
+            DiffResult。若 visual_regression_checker 未启用，抛出 RuntimeError。
+        """
+        if not hasattr(self, "visual_regression_checker") or self.visual_regression_checker is None:
+            raise RuntimeError(
+                "VisualRegressionChecker not enabled. Initialize dispatcher with qa_enabled=True."
+            )
+        return self.visual_regression_checker.compare(baseline, current)
+
 
 __all__ = [
     "DISPATCH_LIFECYCLE_MAPPING",
     "ROLE_TEMPLATES",
     "MultiAgentDispatcher",
-    "async_quick_collaborate",
     "create_dispatcher",
     "quick_collaborate",
+    "async_quick_collaborate",
 ]
