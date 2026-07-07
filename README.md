@@ -151,7 +151,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 ./scripts/start.sh --help
 ```
 
-`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`). V3.9.3 adds UI E2E browser-driven tests and coverage supplements.
+`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`). V4.0.0 adds Loop Engineering, UI/UX 巡检, Adversarial 验证, DAG 可视化, Autonomous, and 插件热加载.
 
 ---
 

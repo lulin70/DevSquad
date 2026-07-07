@@ -3,14 +3,14 @@
 <p align="center">
   <strong>1つのタスク → マルチロールAIコラボレーション → 1つの結論</strong>
   <br>
-  <em>エンタープライズ対応 | V3.9.3</em>
+  <em>エンタープライズ対応 | V4.0.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-3312%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.9.3-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-3400%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.0.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,17 @@
 
 ---
 
-## 🚀 V3.9.3: 自動LLMバックエンドフォールバック + Dashboard分割 + SQLite監査永続化 + P3クリーンアップ
+## 🚀 V4.0.0: Loop Engineering + UI/UX 巡検 + Adversarial 検証 + DAG 可視化 + Autonomous + プラグインホットロード
 
-**DevSquad V3.9.3** 自動LLMバックエンドフォールバック（auto backend は最初にリアルLLMを試行、失敗時にmockへフォールバック）、dashboard.py を1087行から8モジュールパッケージに分割、SQLite バックエンドのdispatch監査永続化をデフォルト化、P3クリーンアップ（マジックナンバー抽出 + 例外スコープの限定）、合計3312+テスト合格。
+**DevSquad V4.0.0** は上流 TraeMultiAgentSkill v2.7 の理念を参考に、6 つの機能（P1-P3）を追加し、dispatch pipeline に完全統合、ゴースト機能なし：
+- **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling の5ステップ閉ループ
+- **P1-2 UI/UX 巡検**: 4 次元監査（a11y/interaction/layout/ux）+ PIL ピクセル diff ビジュアルリグレッション
+- **P2-1 Adversarial 検証**: レッドチーム攻撃 + ブルーチーム防御 + 審判仲裁の3段階対抗検証
+- **P2-2 DAG 可視化**: Mermaid / JSON / DOT の3形式依存グラフ可視化
+- **P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復、LoopKernel 再利用、コンセンサスゲートをバイパスしない
+- **P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層防护 + reload ロールバック + 監査ログ
+
+3400+ tests passing。
 
 ### 🔄 V3.9.2 エンタープライズ機能詳細
 
@@ -125,9 +133,9 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## ✨ コア機能 (V3.9.3)
+## ✨ コア機能 (V4.0.0)
 
-### 🏗️ 5大能力ドメインアーキテクチャ（V3.9.3）
+### 🏗️ 5大能力ドメインアーキテクチャ（V4.0.0）
 
 DevSquad の 149+ モジュールは **5大能力ドメイン** に編成され、各ドメインが特定の問題を解決します：
 

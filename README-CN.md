@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
   <br>
-  <em>企业级就绪 | V3.9.3</em>
+  <em>企业级就绪 | V4.0.0</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-3312%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V3.9.3-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-3400%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.0.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,9 +18,17 @@
 
 ---
 
-## 🚀 V3.9.3: 自动 LLM 后端回退 + Dashboard 拆分 + SQLite 审计持久化 + P3 清理
+## 🚀 V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
 
-**DevSquad V3.9.3** 在 V3.7.2 基础上引入自动 LLM 后端回退（auto backend 先尝试真实 LLM，失败回退到 mock）、Dashboard 拆分（1087 行 → 8 模块包）、SQLite 审计持久化（默认开启）、P3 清理（魔法数字抽取 + 异常范围收窄），总计 3312+ 测试通过。
+**DevSquad V4.0.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
+- **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
+- **P1-2 UI/UX 巡检**: 4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff 视觉回归
+- **P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁三阶段对抗验证
+- **P2-2 DAG 可视化**: Mermaid / JSON / DOT 三种格式依赖图可视化
+- **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
+- **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
+
+3400+ tests passing。
 
 ### 🔄 V3.6.6 企业级功能详情
 
@@ -125,9 +133,9 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## ✨ 核心特性 (V3.9.3)
+## ✨ 核心特性 (V4.0.0)
 
-### 🏗️ 五大能力域架构（V3.9.3）
+### 🏗️ 五大能力域架构（V4.0.0）
 
 DevSquad 的 149+ 模块组织为 **5 大能力域**，各域解决特定问题：
 

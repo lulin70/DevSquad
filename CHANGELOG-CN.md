@@ -18,10 +18,10 @@ MAJOR 版本升级：借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个
 - **UIUXAnalyzer + VisualRegressionChecker**（`scripts/qa/`）：4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff。Playwright 软依赖，未安装时优雅降级。dispatcher 新增 `qa_audit_url()` / `qa_visual_regression()` 公共 API。
 
 ### 新增 — V4.0.0 P2-1：Dynamic Workflows 对抗验证
-- **AdversarialVerifier + RedBlueTeam**（`scripts/collaboration/adversarial/`）：红队攻击 + 蓝队防御 + 裁判仲裁三阶段。支持 STRICT/STANDARD/LENIENT 三种严格度。dispatcher 集成 `verify_adversarial()` API。
+- **AdversarialVerifier + RedBlueTeam**（`scripts/collaboration/adversarial_verify.py`）：红队攻击 + 蓝队防御 + 裁判仲裁三阶段。支持 STRICT/STANDARD/LENIENT 三种严格度。通过 `consensus_engine.adversarial_verify()` 访问（集成到 ConsensusEngine，不是 dispatcher 直通方法）。
 
 ### 新增 — V4.0.0 P2-2：DAG 依赖图可视化
-- **DAGVisualizer**（`scripts/collaboration/dag_visualizer/`）：Mermaid / JSON / DOT 三种输出格式。支持节点高亮、依赖路径追踪、循环检测。dispatcher 集成 `visualize_dag()` API。
+- **DAGVisualizer**（`scripts/dashboard/dag_views.py`）：Mermaid / JSON / DOT 三种输出格式。支持节点高亮、依赖路径追踪、循环检测。通过 Dashboard `DAGVisualizer` 类访问（不是 dispatcher 直通方法）。
 
 ### 新增 — V4.0.0 P3-1：Autonomous 自主迭代模式
 - **AutonomousLoopController + 4 组件**（`scripts/collaboration/autonomous/`）：plan → dev → verify → fix 4 阶段循环，复用 LoopKernel。`RunState` 9 状态枚举，`NotesMemory` SHA256 校验 + 断点续跑，`SmartConfirmation` 三态智能确认（smart/whitelist-only/blacklist-only），`GitDriver` 风险等级评估（high/medium/low）。`ConsensusAwareEvaluator` 包装确保不绕过 HC-2 共识门。dispatcher 集成 `dispatch_autonomous()` API。95 个测试。
