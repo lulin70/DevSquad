@@ -53,6 +53,10 @@ class ComponentConfig:
     # V4.0.0 P3-1: Autonomous 自主迭代模式
     autonomous_enabled: bool = False
     autonomous_max_iterations: int = 20
+    # V4.0.0 P3-2: 插件热加载
+    plugins_enabled: bool = False
+    plugins_dropin_dir: Any = None  # str | Path | None
+    plugins_no_hot_reload: bool = False
 
 
 class ComponentFactory:
@@ -267,6 +271,27 @@ class ComponentFactory:
                 logger.info("AutonomousLoopController enabled")
             except (ImportError, ModuleNotFoundError, AttributeError) as e:
                 logger.warning("Autonomous components initialization failed: %s", e)
+
+        # V4.0.0 P3-2: 插件热加载
+        if config.plugins_enabled:
+            try:
+                from .plugins import PluginHotLoader
+
+                dropin_dir = config.plugins_dropin_dir or os.path.join(
+                    config.persist_dir, "plugins_extra"
+                )
+                os.makedirs(dropin_dir, exist_ok=True)
+                components["plugin_hot_loader"] = PluginHotLoader(
+                    dropin_dir=dropin_dir,
+                    no_hot_reload=config.plugins_no_hot_reload,
+                )
+                logger.info(
+                    "PluginHotLoader enabled (dropin_dir=%s, no_hot_reload=%s)",
+                    dropin_dir,
+                    config.plugins_no_hot_reload,
+                )
+            except (ImportError, ModuleNotFoundError, AttributeError) as e:
+                logger.warning("PluginHotLoader initialization failed: %s", e)
 
     def _init_cache_and_monitor(self, config: ComponentConfig, components: dict[str, Any]) -> None:
         """Initialize cache, monitor, and utility components."""

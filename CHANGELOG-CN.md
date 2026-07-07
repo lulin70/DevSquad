@@ -7,6 +7,33 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.0.0-dev] - 2026-07-07
+
+MAJOR 版本升级：借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能。Spec 详见 `docs/spec/v4.0.0_spec.md`。
+
+### 新增 — V4.0.0 P1-1：Loop Engineering 五步闭环
+- **LoopKernel + 5 阶段组件**（`scripts/collaboration/loop_engineering/`）：Discovery → Handoff → Verification → Persistence → Scheduling 闭环。`DiscoveryProbe` 发现本轮工作项，`HandoffAdapter` 调用 dispatcher 执行，`VerificationGate` 校验结果，`NotesMemory` 持久化（SHA256 校验 + 断点续跑），`LoopScheduler` 决策 CONTINUE/FIX/STOP_SUCCESS/STOP_FAILURE/HUMAN_CHECKPOINT。9 个模块，覆盖单测 + 集成测试。
+
+### 新增 — V4.0.0 P1-2：UI/UX 巡检与视觉回归
+- **UIUXAnalyzer + VisualRegressionChecker**（`scripts/qa/`）：4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff。Playwright 软依赖，未安装时优雅降级。dispatcher 新增 `qa_audit_url()` / `qa_visual_regression()` 公共 API。
+
+### 新增 — V4.0.0 P2-1：Dynamic Workflows 对抗验证
+- **AdversarialVerifier + RedBlueTeam**（`scripts/collaboration/adversarial/`）：红队攻击 + 蓝队防御 + 裁判仲裁三阶段。支持 STRICT/STANDARD/LENIENT 三种严格度。dispatcher 集成 `verify_adversarial()` API。
+
+### 新增 — V4.0.0 P2-2：DAG 依赖图可视化
+- **DAGVisualizer**（`scripts/collaboration/dag_visualizer/`）：Mermaid / JSON / DOT 三种输出格式。支持节点高亮、依赖路径追踪、循环检测。dispatcher 集成 `visualize_dag()` API。
+
+### 新增 — V4.0.0 P3-1：Autonomous 自主迭代模式
+- **AutonomousLoopController + 4 组件**（`scripts/collaboration/autonomous/`）：plan → dev → verify → fix 4 阶段循环，复用 LoopKernel。`RunState` 9 状态枚举，`NotesMemory` SHA256 校验 + 断点续跑，`SmartConfirmation` 三态智能确认（smart/whitelist-only/blacklist-only），`GitDriver` 风险等级评估（high/medium/low）。`ConsensusAwareEvaluator` 包装确保不绕过 HC-2 共识门。dispatcher 集成 `dispatch_autonomous()` API。95 个测试。
+
+### 新增 — V4.0.0 P3-2：插件热加载
+- **PluginHotLoader**（`scripts/collaboration/plugins/`）：三种加载路径（BUILTIN_PLUGINS / Hot Register API / Drop-in 目录扫描）。路径穿越三层防护（白名单目录 + 规范化路径 + 后缀/大小检查）。reload 失败回滚保留旧实例。`--no-hot-reload` 完全关闭动态能力。审计日志（内部 + 外部日志器）。线程安全（`threading.RLock`）。dispatcher 集成 7 个公共 API：`register_plugin()` / `unregister_plugin()` / `register_builtin_plugin()` / `get_plugin()` / `list_plugins()` / `scan_plugins()` / `reload_plugins()`。48 个测试覆盖 spec 8.6 全部 10 个 E2E 场景。
+
+### 验证 — V4.0.0 P1-P3
+- pytest 回归：211 passed（dispatcher + QA + autonomous + plugins）
+- ruff check：All checks passed
+- 无幽灵功能：所有 6 个特性均通过 dispatcher 公共 API 可触达
+
 ## [3.10.0-dev] - 2026-07-01
 
 ### 新增 — V3.10.0 Phase 1：最小实现规则注入

@@ -95,6 +95,8 @@ class MultiAgentDispatcher(
     _audit_logger: DispatchAuditLogger | None
     # V4.0.0 P3-1: Autonomous 自主迭代
     autonomous_controller: Any
+    # V4.0.0 P3-2: 插件热加载
+    plugin_hot_loader: Any
 
     def __init__(
         self,
@@ -140,6 +142,10 @@ class MultiAgentDispatcher(
         # V4.0.0 P3-1: Autonomous 自主迭代模式
         autonomous_enabled: bool = False,
         autonomous_max_iterations: int = 20,
+        # V4.0.0 P3-2: 插件热加载
+        plugins_enabled: bool = False,
+        plugins_dropin_dir: str | Path | None = None,
+        plugins_no_hot_reload: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize the Multi-Agent Dispatcher with feature flags and components."""
@@ -179,6 +185,9 @@ class MultiAgentDispatcher(
         self.qa_pixel_diff_threshold = qa_pixel_diff_threshold
         self.autonomous_enabled = autonomous_enabled
         self.autonomous_max_iterations = autonomous_max_iterations
+        self.plugins_enabled = plugins_enabled
+        self.plugins_dropin_dir = plugins_dropin_dir
+        self.plugins_no_hot_reload = plugins_no_hot_reload
 
         os.makedirs(self.persist_dir, exist_ok=True)
         os.makedirs(self.memory_dir, exist_ok=True)
@@ -204,6 +213,8 @@ class MultiAgentDispatcher(
 
         # V4.0.0 P3-1: 预初始化为 None，确保属性始终存在（避免 disabled 时 AttributeError）
         self.autonomous_controller = None
+        # V4.0.0 P3-2: 同样预初始化 plugin_hot_loader
+        self.plugin_hot_loader = None
 
         self._init_components_from_factory()
         self.enterprise = EnterpriseFeature(
@@ -341,6 +352,9 @@ class MultiAgentDispatcher(
             qa_pixel_diff_threshold=self.qa_pixel_diff_threshold,
             autonomous_enabled=self.autonomous_enabled,
             autonomous_max_iterations=self.autonomous_max_iterations,
+            plugins_enabled=self.plugins_enabled,
+            plugins_dropin_dir=self.plugins_dropin_dir,
+            plugins_no_hot_reload=self.plugins_no_hot_reload,
         )
         factory = ComponentFactory()
         components = factory.create_all(config)
@@ -684,6 +698,133 @@ class MultiAgentDispatcher(
         # 复用已初始化的 NotesMemory 目录
         controller = AutonomousLoopController(config=config)
         return controller.run(run_id=run_id)
+
+    # V4.0.0 P3-2: 插件热加载
+    def register_plugin(self, name: str, plugin: Any) -> bool:
+        """运行时注册插件实例。
+
+        Args:
+            name: 插件唯一名。
+            plugin: 插件实例。
+
+        Returns:
+            True 注册成功，False 注册失败（plugins_enabled=False 或 no_hot_reload=True）。
+
+        Raises:
+            RuntimeError: plugins_enabled=False。
+        """
+        if not self.plugins_enabled or self.plugin_hot_loader is None:
+            raise RuntimeError(
+                "PluginHotLoader not enabled. "
+                "Initialize dispatcher with plugins_enabled=True."
+            )
+        return self.plugin_hot_loader.hot_register(name, plugin)
+
+    def unregister_plugin(self, name: str) -> bool:
+        """运行时注销插件。
+
+        Args:
+            name: 插件名。
+
+        Returns:
+            True 注销成功，False 插件不存在。
+
+        Raises:
+            RuntimeError: plugins_enabled=False。
+        """
+        if not self.plugins_enabled or self.plugin_hot_loader is None:
+            raise RuntimeError(
+                "PluginHotLoader not enabled. "
+                "Initialize dispatcher with plugins_enabled=True."
+            )
+        return self.plugin_hot_loader.hot_unregister(name)
+
+    def register_builtin_plugin(self, name: str, plugin: Any) -> bool:
+        """静态注册内置插件（不受 no_hot_reload 限制）。
+
+        Args:
+            name: 插件名。
+            plugin: 插件实例。
+
+        Returns:
+            True 注册成功，False 已存在同名插件。
+
+        Raises:
+            RuntimeError: plugins_enabled=False。
+        """
+        if not self.plugins_enabled or self.plugin_hot_loader is None:
+            raise RuntimeError(
+                "PluginHotLoader not enabled. "
+                "Initialize dispatcher with plugins_enabled=True."
+            )
+        return self.plugin_hot_loader.register_builtin(name, plugin)
+
+    def get_plugin(self, name: str) -> Any | None:
+        """获取已注册的插件实例。
+
+        Args:
+            name: 插件名。
+
+        Returns:
+            插件实例，未找到则返回 None。
+
+        Raises:
+            RuntimeError: plugins_enabled=False。
+        """
+        if not self.plugins_enabled or self.plugin_hot_loader is None:
+            raise RuntimeError(
+                "PluginHotLoader not enabled. "
+                "Initialize dispatcher with plugins_enabled=True."
+            )
+        return self.plugin_hot_loader.get_plugin(name)
+
+    def list_plugins(self) -> list[str]:
+        """列出所有已注册插件名。
+
+        Returns:
+            插件名列表。
+
+        Raises:
+            RuntimeError: plugins_enabled=False。
+        """
+        if not self.plugins_enabled or self.plugin_hot_loader is None:
+            raise RuntimeError(
+                "PluginHotLoader not enabled. "
+                "Initialize dispatcher with plugins_enabled=True."
+            )
+        return self.plugin_hot_loader.list_plugins()
+
+    def scan_plugins(self) -> list[Any]:
+        """扫描 drop-in 目录，加载新插件。
+
+        Returns:
+            新加载的 PluginEntry 列表。
+
+        Raises:
+            RuntimeError: plugins_enabled=False。
+        """
+        if not self.plugins_enabled or self.plugin_hot_loader is None:
+            raise RuntimeError(
+                "PluginHotLoader not enabled. "
+                "Initialize dispatcher with plugins_enabled=True."
+            )
+        return self.plugin_hot_loader.scan_dropin_dir()
+
+    def reload_plugins(self) -> list[str]:
+        """检查 mtime 和 checksum，重新加载变更的插件（失败回滚保留旧实例）。
+
+        Returns:
+            重载的插件名列表。
+
+        Raises:
+            RuntimeError: plugins_enabled=False。
+        """
+        if not self.plugins_enabled or self.plugin_hot_loader is None:
+            raise RuntimeError(
+                "PluginHotLoader not enabled. "
+                "Initialize dispatcher with plugins_enabled=True."
+            )
+        return self.plugin_hot_loader.reload_if_changed()
 
 
 __all__ = [
