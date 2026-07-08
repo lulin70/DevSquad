@@ -1,9 +1,11 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.0.0（借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性 P1-P3，全面接入 dispatch pipeline，无幽灵功能）
-> **最后更新**: 2026-07-07
-> **最新评估**: V4.0.0 发布前全面审查完成 — 文档一致性修复（10+ 文件版本同步）、CHANGELOG 错误修正（P2-1/P2-2 路径与 API）、SKILL.md 模块表补全（18 个 V4.0.0 新模块）；上游对比平均充分性 84.3%；测试审计发现 V4.0.0 E2E 测试待补充；3400+ tests passing。
+> **当前版本**: V4.0.0（已发布到 PyPI + GitHub Release — 2026-07-08）
+> **最后更新**: 2026-07-08
+> **最新评估**: V4.0.0 发布完成 — 6 个特性（P1-P3）+ 后续改进项（共识投票 STUB 修复 / SleepGuard / HSV 检测 / httpx2 修复 / MD5 安全修复 / LLM 投票替换模拟投票）。3614 tests passing / 9 skipped / 0 failed。ruff All passed / bandit 0 issues / mypy 0 errors。版本一致性 15/15 PASS。
 > **硬约束通过率**: 13/13（100%）
+> **PyPI**: https://pypi.org/project/devsquad/4.0.0/
+> **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0
 
 ---
 
