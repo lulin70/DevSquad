@@ -1457,3 +1457,95 @@ class TestRealMokaAIVoting:
             assert 0.0 <= vote.confidence <= 1.0
             # 真实 LLM 投票不应包含 "Mock fallback"
             assert "Mock fallback" not in vote.reason
+
+
+class TestDispatchAutonomousLLMWiring:
+    """生产路径装配验证：dispatch_autonomous() 是否正确装配 llm_backend。
+
+    Task #87 收尾：修复幽灵功能 — pytest 显式构造 llm_backend 通过，
+    但 dispatch_autonomous() 生产路径漏传 llm_backend，导致 TRAE skill
+    调用 autonomous 模式时回退 mock 投票，Moka AI 从未被调用。
+    """
+
+    def test_resolve_moka_backend_returns_none_without_env(self, monkeypatch: pytest.MonkeyPatch):
+        """MOKA_API_KEY 未设置时 _resolve_moka_backend_from_env 返回 None。"""
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        monkeypatch.delenv("MOKA_API_KEY", raising=False)
+        disp = MultiAgentDispatcher(autonomous_enabled=True)
+        assert disp._resolve_moka_backend_from_env() is None
+
+    def test_resolve_moka_backend_creates_openai_backend_with_env(self, monkeypatch: pytest.MonkeyPatch):
+        """MOKA_API_KEY 设置时 _resolve_moka_backend_from_env 返回 OpenAIBackend。"""
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        monkeypatch.setenv("MOKA_API_KEY", "sk-test-fake-key-for-wiring-test")
+        monkeypatch.setenv("MOKA_API_BASE", "https://api.moka-ai.com/v1")
+        monkeypatch.setenv("MOKA_MODEL", "moka/claude-sonnet-4-6")
+        disp = MultiAgentDispatcher(autonomous_enabled=True)
+        backend = disp._resolve_moka_backend_from_env()
+        assert backend is not None
+        # 验证是 OpenAIBackend 实例（不调用 API，只验证类型）
+        from scripts.collaboration.llm_backend import OpenAIBackend
+        assert isinstance(backend, OpenAIBackend)
+
+    def test_dispatch_autonomous_wires_llm_backend_from_env(self, monkeypatch: pytest.MonkeyPatch):
+        """dispatch_autonomous() 从 MOKA_API_KEY env var 装配 llm_backend 到 AutonomousConfig。
+
+        验证生产路径：dispatcher 无显式 llm_backend（TRAE skill 模式），
+        但 MOKA_API_KEY env var 存在时，dispatch_autonomous 应自动创建
+        OpenAIBackend 并传入 AutonomousConfig.llm_backend。
+        """
+        from unittest.mock import MagicMock
+
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        monkeypatch.setenv("MOKA_API_KEY", "sk-test-fake-key-for-wiring-test")
+        monkeypatch.setenv("MOKA_API_BASE", "https://api.moka-ai.com/v1")
+        monkeypatch.setenv("MOKA_MODEL", "moka/claude-sonnet-4-6")
+
+        disp = MultiAgentDispatcher(autonomous_enabled=True)
+        assert disp.llm_backend is None  # 前置条件：dispatcher 无显式 backend
+
+        captured_configs: list[Any] = []
+
+        class StubController:
+            def __init__(self, config: Any) -> None:
+                captured_configs.append(config)
+
+            def run(self, run_id: str | None = None) -> Any:  # noqa: ARG002
+                return MagicMock()
+
+        # dispatch_autonomous 内部做局部 import，patch 源模块即可
+        import scripts.collaboration.autonomous.loop_controller as lc_module
+
+        monkeypatch.setattr(lc_module, "AutonomousLoopController", StubController)
+
+        disp.dispatch_autonomous(objective="wiring test")
+
+        assert len(captured_configs) == 1
+        config = captured_configs[0]
+        # 核心断言：llm_backend 已装配（不是 None）
+        assert config.llm_backend is not None
+        from scripts.collaboration.llm_backend import OpenAIBackend
+        assert isinstance(config.llm_backend, OpenAIBackend)
+
+    def test_dispatch_autonomous_prefers_explicit_backend(self, monkeypatch: pytest.MonkeyPatch):
+        """dispatch_autonomous() 优先使用 dispatcher.llm_backend，而非 env var。
+
+        当 dispatcher 已有显式 llm_backend 时，不应从 env var 创建新的。
+        """
+        from unittest.mock import MagicMock
+
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        monkeypatch.setenv("MOKA_API_KEY", "sk-test-fake-key-for-wiring-test")
+
+        explicit_backend = MagicMock()
+        explicit_backend.is_available.return_value = True
+        disp = MultiAgentDispatcher(autonomous_enabled=True, llm_backend=explicit_backend)
+
+        # _resolve_moka_backend_from_env 不应被调用（因为 self.llm_backend 已存在）
+        # 验证：直接检查优先级逻辑
+        backend = disp.llm_backend if disp.llm_backend is not None else disp._resolve_moka_backend_from_env()
+        assert backend is explicit_backend

@@ -687,6 +687,12 @@ class MultiAgentDispatcher(
 
         from .autonomous.loop_controller import AutonomousConfig, AutonomousLoopController
 
+        # 装配 LLM 投票后端（Task #87 收尾：生产路径装配）
+        # 优先级: dispatcher.llm_backend > MOKA_API_KEY env var > None (mock 回退)
+        llm_backend = self.llm_backend
+        if llm_backend is None:
+            llm_backend = self._resolve_moka_backend_from_env()
+
         # 重新构建 config（objective 是运行时参数，不能在 factory 中固定）
         config = AutonomousConfig(
             objective=objective,
@@ -694,10 +700,37 @@ class MultiAgentDispatcher(
             consensus_engine=self.consensus_engine,
             dispatcher=self,
             auto_resume=auto_resume,
+            llm_backend=llm_backend,
         )
         # 复用已初始化的 NotesMemory 目录
         controller = AutonomousLoopController(config=config)
         return controller.run(run_id=run_id)
+
+    def _resolve_moka_backend_from_env(self) -> Any:
+        """从 MOKA_API_KEY 环境变量自动创建 OpenAIBackend（用于 autonomous LLM 投票）。
+
+        当 dispatcher 本身没有 llm_backend（如 TRAE skill 模式下
+        MultiAgentDispatcher() 无参数创建）时，autonomous 投票仍可使用
+        Moka AI。key 仅从环境变量读取，不硬编码到代码中。
+
+        Returns:
+            OpenAIBackend 或 None（MOKA_API_KEY 未设置或创建失败时）。
+        """
+        import os
+
+        api_key = os.environ.get("MOKA_API_KEY")
+        if not api_key:
+            return None
+        try:
+            from .llm_backend import OpenAIBackend
+
+            return OpenAIBackend(
+                api_key=api_key,
+                base_url=os.environ.get("MOKA_API_BASE", "https://api.moka-ai.com/v1"),
+                model=os.environ.get("MOKA_MODEL", "moka/claude-sonnet-4-6"),
+            )
+        except Exception:  # noqa: BLE001 — 创建失败时安全回退到 mock 投票
+            return None
 
     # V4.0.0 P3-2: 插件热加载
     def register_plugin(self, name: str, plugin: Any) -> bool:
