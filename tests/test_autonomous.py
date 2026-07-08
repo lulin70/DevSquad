@@ -71,21 +71,71 @@ class StubDispatcher:
 
 
 class StubConsensusEngine:
-    """最小 ConsensusEngine stub，用于测试 HC-2 共识门。"""
+    """最小 ConsensusEngine stub，用于测试 HC-2 共识门。
+
+    实现完整的 create_proposal → cast_vote → reach_consensus 流程，
+    根据 allow 参数返回 APPROVED 或 REJECTED。
+    """
 
     def __init__(self, *, allow: bool = True) -> None:
         self._allow = allow
         self.proposals: list[dict[str, Any]] = []
+        self._next_id = 0
+        self._votes: dict[str, list[Any]] = {}
 
     def create_proposal(
         self,
         topic: str,
         proposer_id: str,
         content: str,
-    ) -> dict[str, Any]:
-        proposal = {"topic": topic, "proposer_id": proposer_id, "content": content}
-        self.proposals.append(proposal)
-        return {"approved": self._allow, "proposal": proposal}
+        options: list[str] | None = None,  # noqa: ARG002
+        deadline: Any = None,  # noqa: ARG002
+    ) -> Any:
+        self._next_id += 1
+        proposal_id = f"stub-prop-{self._next_id}"
+
+        class StubProposal:
+            def __init__(self, pid: str, t: str, pid2: str, c: str) -> None:
+                self.proposal_id = pid
+                self.topic = t
+                self.proposer_id = pid2
+                self.proposal_content = c
+                self.votes: list[Any] = []
+                self.status = "open"
+
+        proposal = StubProposal(proposal_id, topic, proposer_id, content)
+        self.proposals.append({
+            "proposal_id": proposal_id,
+            "topic": topic,
+            "proposer_id": proposer_id,
+            "content": content,
+        })
+        self._votes[proposal_id] = []
+        return proposal
+
+    def cast_vote(self, proposal_id: str, vote: Any) -> Any:
+        if proposal_id in self._votes:
+            self._votes[proposal_id].append(vote)
+        for p in self.proposals:
+            if p["proposal_id"] == proposal_id:
+                p.setdefault("votes", []).append(vote)
+        return self.proposals[-1] if self.proposals else {}
+
+    def reach_consensus(self, proposal_id: str) -> Any:
+        votes_count = len(self._votes.get(proposal_id, []))
+        is_allowed = self._allow
+
+        class StubOutcome:
+            def __init__(self, approved: bool) -> None:
+                self.value = "approved" if approved else "rejected"
+
+        class StubRecord:
+            def __init__(self) -> None:
+                self.outcome = StubOutcome(is_allowed)
+                self.votes_for = votes_count if is_allowed else 0
+                self.votes_against = 0 if is_allowed else votes_count
+
+        return StubRecord()
 
     def check_gate(self, _result: Any) -> dict[str, Any]:
         return {"approved": self._allow, "reason": "stub-allow" if self._allow else "stub-deny"}

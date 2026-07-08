@@ -178,9 +178,11 @@ class UIUXAnalyzer:
         self,
         min_button_size: int = 44,
         contrast_threshold: float = 4.5,
+        hsv_harsh_saturation_threshold: float = 0.6,
     ) -> None:
         self._min_button_size = min_button_size
         self._contrast_threshold = contrast_threshold
+        self._hsv_harsh_sat_threshold = hsv_harsh_saturation_threshold
 
     def audit(self, page: Any, url: str = "") -> UIUXAuditReport:
         """对 Playwright Page 执行综合巡检。
@@ -279,7 +281,78 @@ class UIUXAnalyzer:
                     metric={"ratio": round(ratio, 2), "required": self._contrast_threshold},
                 ))
 
+            hsv_issue = self._check_hsv_harsh_combination(
+                text_item.get("color", ""),
+                text_item.get("background", ""),
+                text_item.get("text", ""),
+            )
+            if hsv_issue is not None:
+                issues.append(hsv_issue)
+
         return issues
+
+    def _check_hsv_harsh_combination(
+        self,
+        color_fg: str,
+        color_bg: str,
+        text: str,
+    ) -> UIUXIssue | None:
+        """检测 HSV 颜色空间中的刺眼配色（WCAG 补充）。
+
+        WCAG luminance 可能放行高饱和度的互补色组合（如红绿），
+        但这类配色在视觉上不舒适。HSV 检测捕获这些情况：
+        - 高饱和度红绿组合（色相差 ~180°）
+        - 高饱和度蓝黄组合（色相差 ~180°）
+        """
+        rgb_fg = self._parse_color(color_fg)
+        rgb_bg = self._parse_color(color_bg)
+        if rgb_fg is None or rgb_bg is None:
+            return None
+
+        h_fg, s_fg, _ = self._rgb_to_hsv(rgb_fg)
+        h_bg, s_bg, _ = self._rgb_to_hsv(rgb_bg)
+
+        if s_fg < self._hsv_harsh_sat_threshold or s_bg < self._hsv_harsh_sat_threshold:
+            return None
+
+        hue_diff = abs(h_fg - h_bg)
+        if hue_diff > 180:
+            hue_diff = 360 - hue_diff
+
+        harsh_pairs = [
+            (0, 120, "red-green"),
+            (120, 0, "green-red"),
+            (0, 240, "red-blue"),
+            (240, 0, "blue-red"),
+            (60, 240, "yellow-blue"),
+            (240, 60, "blue-yellow"),
+        ]
+
+        for h1, h2, label in harsh_pairs:
+            d1 = abs(h_fg - h1)
+            if d1 > 180:
+                d1 = 360 - d1
+            d2 = abs(h_bg - h2)
+            if d2 > 180:
+                d2 = 360 - d2
+            if d1 < 30 and d2 < 30 and hue_diff >= 120:
+                return UIUXIssue(
+                    severity="info",
+                    category="a11y",
+                    rule="hsv_harsh_combination",
+                    element=f"text: '{text}'",
+                    message=f"Harsh color combination ({label}) may cause visual discomfort despite passing WCAG",
+                    fix="Use less saturated colors or adjust hue to reduce visual harshness",
+                    metric={
+                        "hue_fg": round(h_fg, 1),
+                        "hue_bg": round(h_bg, 1),
+                        "sat_fg": round(s_fg, 2),
+                        "sat_bg": round(s_bg, 2),
+                        "hue_diff": round(hue_diff, 1),
+                    },
+                )
+
+        return None
 
     def _check_interaction(self, interaction: dict[str, Any]) -> list[UIUXIssue]:
         issues: list[UIUXIssue] = []
@@ -428,3 +501,30 @@ class UIUXAnalyzer:
 
         r, g, b = rgb
         return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+    @staticmethod
+    def _rgb_to_hsv(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
+        """RGB 转 HSV 颜色空间。
+
+        Returns:
+            (hue: 0-360, saturation: 0.0-1.0, value: 0.0-1.0)
+        """
+        r, g, b = rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0
+        max_val = max(r, g, b)
+        min_val = min(r, g, b)
+        diff = max_val - min_val
+
+        if diff == 0:
+            hue = 0.0
+        elif max_val == r:
+            hue = 60.0 * (((g - b) / diff) % 6)
+        elif max_val == g:
+            hue = 60.0 * (((b - r) / diff) + 2)
+        else:
+            hue = 60.0 * (((r - g) / diff) + 4)
+
+        if hue < 0:
+            hue += 360.0
+
+        saturation = diff / max_val if max_val > 0 else 0.0
+        return (hue, saturation, max_val)

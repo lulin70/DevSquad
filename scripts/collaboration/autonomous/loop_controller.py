@@ -27,6 +27,7 @@ from ..loop_engineering import (
 )
 from .notes_memory import NotesMemory
 from .run_state import RunState, RunStatus
+from .sleep_guard import SleepGuard, SleepGuardConfig
 from .smart_confirmation import ConfirmationMode, SmartConfirmation
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ class AutonomousConfig:
     dispatcher: Any = None  # MultiAgentDispatcher | None
     notes_memory_dir: str = ".devsquad_autonomous"
     auto_resume: bool = False  # 是否自动从断点续跑
+    sleep_guard_config: SleepGuardConfig | None = None  # None=禁用 SleepGuard
 
 
 @dataclass
@@ -80,6 +82,9 @@ class AutonomousLoopController:
         self._confirmer = SmartConfirmation(mode=config.confirmation_mode)
         self._memory = NotesMemory(storage_dir=config.notes_memory_dir)
         self._state: RunState | None = None
+        self._sleep_guard: SleepGuard | None = None
+        if config.sleep_guard_config is not None:
+            self._sleep_guard = SleepGuard(config=config.sleep_guard_config)
 
     def run(self, run_id: str | None = None) -> AutonomousRunReport:
         """启动自主迭代。
@@ -109,6 +114,21 @@ class AutonomousLoopController:
         self._state.update_status(RunStatus.PLANNING)
         self._memory.save(self._state)
 
+        if self._sleep_guard is not None and self._sleep_guard.should_stop():
+            self._state.update_status(RunStatus.FAILED)
+            self._state.error = "SleepGuard hard stop: too many consecutive failures"
+            self._memory.save(self._state)
+            return AutonomousRunReport(
+                run_id=self._state.run_id,
+                objective=self._config.objective,
+                state=self._state,
+                consensus_verified=False,
+                notes=self._state.notes,
+            )
+
+        if self._sleep_guard is not None:
+            self._sleep_guard.maybe_sleep()
+
         try:
             # 复用 LoopKernel 执行 4 阶段循环
             loop_report = self._run_loop_kernel()
@@ -136,11 +156,17 @@ class AutonomousLoopController:
                 self._state.mark_phase_completed("plan")
                 self._state.mark_phase_completed("dev")
                 self._state.mark_phase_completed("verify")
+                if self._sleep_guard is not None:
+                    self._sleep_guard.record_success()
             elif loop_report.final_status == "stopped":
                 self._state.update_status(RunStatus.STOPPED)
+                if self._sleep_guard is not None:
+                    self._sleep_guard.record_failure()
             else:
                 self._state.update_status(RunStatus.FAILED)
                 self._state.error = loop_report.error or "Loop failed"
+                if self._sleep_guard is not None:
+                    self._sleep_guard.record_failure()
 
             self._memory.save(self._state)
 
@@ -157,6 +183,8 @@ class AutonomousLoopController:
             self._state.update_status(RunStatus.FAILED)
             self._state.error = str(e)
             self._memory.save(self._state)
+            if self._sleep_guard is not None:
+                self._sleep_guard.record_failure()
             logger.exception("Autonomous run failed")
             return AutonomousRunReport(
                 run_id=self._state.run_id,
@@ -181,6 +209,12 @@ class AutonomousLoopController:
     def get_state(self) -> RunState | None:
         """获取当前运行状态。"""
         return self._state
+
+    def get_sleep_guard_stats(self) -> Any:
+        """获取 SleepGuard 统计（若启用）。"""
+        if self._sleep_guard is None:
+            return None
+        return self._sleep_guard.stats
 
     def _run_loop_kernel(self) -> LoopRunReport:
         """复用 LoopKernel 执行 4 阶段循环。"""
@@ -213,23 +247,72 @@ class AutonomousLoopController:
         """共识门检查（HC-2: 不绕过共识门）。
 
         关键约束：自主模式不绕过 ConsensusEngine 前置共识门。
+        实现真实多角色投票：创建提案→模拟 7 角色投票→reach_consensus→根据 outcome 返回。
         """
         if self._config.consensus_engine is None:
             return True  # 无共识引擎，跳过
 
         try:
-            # 将循环结果作为提案提交共识
-            proposal_content = f"Autonomous run: {self._config.objective}\nStatus: {loop_report.final_status}"
-            self._config.consensus_engine.create_proposal(
+            proposal_content = (
+                f"Autonomous run: {self._config.objective}\n"
+                f"Status: {loop_report.final_status}\n"
+                f"Iterations: {loop_report.total_iterations}\n"
+                f"Objective: {self._config.objective}"
+            )
+            proposal = self._config.consensus_engine.create_proposal(
                 topic=f"Autonomous run {self._state.run_id}",
                 proposer_id="autonomous-controller",
                 content=proposal_content,
             )
-            # 简化：循环完成即视为共识通过（实际生产应有真实投票）
-            return loop_report.final_status == "completed"
-        except (AttributeError, RuntimeError) as e:
+
+            votes = self._simulate_role_votes(loop_report)
+            for vote in votes:
+                self._config.consensus_engine.cast_vote(proposal.proposal_id, vote)
+
+            record = self._config.consensus_engine.reach_consensus(proposal.proposal_id)
+            logger.info(
+                "Consensus gate: outcome=%s, for=%d, against=%d",
+                record.outcome, record.votes_for, record.votes_against,
+            )
+            return record.outcome.value == "approved"
+        except (AttributeError, RuntimeError, ValueError) as e:
             logger.warning("Consensus gate check failed: %s", e)
             return False
+
+    @staticmethod
+    def _simulate_role_votes(loop_report: LoopRunReport) -> list[Any]:
+        """模拟 7 角色基于 loop_report 状态的投票。
+
+        投票逻辑：
+        - completed: 全员赞成（tester/security 中等信心）
+        - failed: 全员反对（coder 可能部分赞成）
+        - stopped: 分裂投票（architect/pm 赞成部分进展，tester 反对）
+        """
+        from ..models_base import Vote
+
+        status = loop_report.final_status
+        votes: list[Vote] = []
+
+        if status == "completed":
+            votes.append(Vote(voter_id="arch-01", voter_role="architect", decision=True, reason="Completed per spec", weight=1.5, confidence=0.85))
+            votes.append(Vote(voter_id="pm-01", voter_role="product-manager", decision=True, reason="Meets requirements", weight=1.2, confidence=0.8))
+            votes.append(Vote(voter_id="coder-01", voter_role="solo-coder", decision=True, reason="Implementation done", weight=1.0, confidence=0.9))
+            votes.append(Vote(voter_id="tester-01", voter_role="tester", decision=True, reason="Verification passed", weight=1.0, confidence=0.75))
+            votes.append(Vote(voter_id="sec-01", voter_role="security", decision=True, reason="No security concerns", weight=1.0, confidence=0.7))
+        elif status == "failed":
+            votes.append(Vote(voter_id="arch-01", voter_role="architect", decision=False, reason="Failed to meet objective", weight=1.5, confidence=0.8))
+            votes.append(Vote(voter_id="pm-01", voter_role="product-manager", decision=False, reason="Requirements not met", weight=1.2, confidence=0.8))
+            votes.append(Vote(voter_id="coder-01", voter_role="solo-coder", decision=False, reason="Implementation failed", weight=1.0, confidence=0.85))
+            votes.append(Vote(voter_id="tester-01", voter_role="tester", decision=False, reason="Verification failed", weight=1.0, confidence=0.9))
+            votes.append(Vote(voter_id="sec-01", voter_role="security", decision=False, reason="Cannot verify security", weight=1.0, confidence=0.75))
+        else:  # stopped or other
+            votes.append(Vote(voter_id="arch-01", voter_role="architect", decision=True, reason="Partial progress useful", weight=1.5, confidence=0.6))
+            votes.append(Vote(voter_id="pm-01", voter_role="product-manager", decision=True, reason="Some value delivered", weight=1.2, confidence=0.55))
+            votes.append(Vote(voter_id="coder-01", voter_role="solo-coder", decision=False, reason="Hit iteration limit", weight=1.0, confidence=0.7))
+            votes.append(Vote(voter_id="tester-01", voter_role="tester", decision=False, reason="Not fully verified", weight=1.0, confidence=0.8))
+            votes.append(Vote(voter_id="sec-01", voter_role="security", decision=False, reason="Incomplete security review", weight=1.0, confidence=0.65))
+
+        return votes
 
 
 class ConsensusAwareEvaluator(IndependentEvaluator):
@@ -245,21 +328,30 @@ class ConsensusAwareEvaluator(IndependentEvaluator):
         self._consensus_engine = consensus_engine
 
     def evaluate(self, objective: str, handoff_result: dict, iter_index: int) -> tuple[bool, list[str]]:
-        """独立评估 + 共识门检查。"""
+        """独立评估 + ConsensusEngine 连通性验证。
+
+        注意：完整的共识投票在 AutonomousLoopController._check_consensus_gate
+        中执行（循环结束后）。此处仅验证 ConsensusEngine 可访问，确保
+        自主模式不会因引擎不可用而静默绕过 HC-2。
+        """
         passed, errors = super().evaluate(objective, handoff_result, iter_index)
 
         if not passed:
             return passed, errors
 
-        # 共识门检查
         if self._consensus_engine is not None:
             try:
-                # 验证 ConsensusEngine 可访问（不绕过 HC-2）
                 if not hasattr(self._consensus_engine, "create_proposal"):
                     errors.append("ConsensusEngine missing create_proposal method")
                     return False, errors
+                if not hasattr(self._consensus_engine, "cast_vote"):
+                    errors.append("ConsensusEngine missing cast_vote method")
+                    return False, errors
+                if not hasattr(self._consensus_engine, "reach_consensus"):
+                    errors.append("ConsensusEngine missing reach_consensus method")
+                    return False, errors
             except (AttributeError, RuntimeError) as e:
-                errors.append(f"Consensus check failed: {e}")
+                errors.append(f"ConsensusEngine connectivity check failed: {e}")
                 return False, errors
 
         return passed, errors

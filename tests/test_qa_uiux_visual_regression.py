@@ -281,6 +281,98 @@ class TestUIUXAnalyzerColorParsing:
         assert ratio == 1.0
 
 
+class TestUIUXAnalyzerHSV:
+    """HSV 颜色空间检测测试（WCAG 补充）。"""
+
+    def test_rgb_to_hsv_red(self):
+        """纯红色 HSV 正确转换。"""
+        h, s, v = UIUXAnalyzer._rgb_to_hsv((255, 0, 0))
+        assert h == 0.0
+        assert s == 1.0
+        assert v == 1.0
+
+    def test_rgb_to_hsv_green(self):
+        """纯绿色 HSV 正确转换。"""
+        h, s, v = UIUXAnalyzer._rgb_to_hsv((0, 255, 0))
+        assert h == 120.0
+        assert s == 1.0
+        assert v == 1.0
+
+    def test_rgb_to_hsv_blue(self):
+        """纯蓝色 HSV 正确转换。"""
+        h, s, v = UIUXAnalyzer._rgb_to_hsv((0, 0, 255))
+        assert h == 240.0
+        assert s == 1.0
+        assert v == 1.0
+
+    def test_rgb_to_hsv_white(self):
+        """白色饱和度为 0。"""
+        h, s, v = UIUXAnalyzer._rgb_to_hsv((255, 255, 255))
+        assert s == 0.0
+        assert v == 1.0
+
+    def test_rgb_to_hsv_gray(self):
+        """灰色饱和度为 0。"""
+        h, s, v = UIUXAnalyzer._rgb_to_hsv((128, 128, 128))
+        assert s == 0.0
+        assert 0.49 < v < 0.51
+
+    def test_hsv_detects_red_green_harsh_combination(self):
+        """检测红绿刺眼配色（高饱和度）。"""
+        analyzer = UIUXAnalyzer()
+        issue = analyzer._check_hsv_harsh_combination(
+            "rgb(255, 0, 0)", "rgb(0, 255, 0)", "test text"
+        )
+        assert issue is not None
+        assert issue.rule == "hsv_harsh_combination"
+        assert "red-green" in issue.message or "green-red" in issue.message
+
+    def test_hsv_detects_yellow_blue_harsh_combination(self):
+        """检测黄蓝刺眼配色。"""
+        analyzer = UIUXAnalyzer()
+        issue = analyzer._check_hsv_harsh_combination(
+            "rgb(255, 255, 0)", "rgb(0, 0, 255)", "test text"
+        )
+        assert issue is not None
+        assert issue.rule == "hsv_harsh_combination"
+
+    def test_hsv_no_issue_for_low_saturation(self):
+        """低饱和度配色不触发 HSV 检测。"""
+        analyzer = UIUXAnalyzer()
+        issue = analyzer._check_hsv_harsh_combination(
+            "rgb(200, 200, 200)", "rgb(100, 100, 100)", "gray text"
+        )
+        assert issue is None
+
+    def test_hsv_no_issue_for_similar_hues(self):
+        """相似色相不触发刺眼配色检测。"""
+        analyzer = UIUXAnalyzer()
+        issue = analyzer._check_hsv_harsh_combination(
+            "rgb(255, 0, 0)", "rgb(255, 50, 0)", "red text"
+        )
+        assert issue is None
+
+    def test_hsv_no_issue_for_invalid_colors(self):
+        """无效颜色返回 None。"""
+        analyzer = UIUXAnalyzer()
+        assert analyzer._check_hsv_harsh_combination("invalid", "rgb(0,255,0)", "text") is None
+        assert analyzer._check_hsv_harsh_combination("rgb(255,0,0)", "invalid", "text") is None
+
+    def test_hsv_issue_has_correct_metrics(self):
+        """HSV issue 包含正确的 metric 数据。"""
+        analyzer = UIUXAnalyzer()
+        issue = analyzer._check_hsv_harsh_combination(
+            "rgb(255, 0, 0)", "rgb(0, 255, 0)", "test"
+        )
+        assert issue is not None
+        assert "hue_fg" in issue.metric
+        assert "hue_bg" in issue.metric
+        assert "sat_fg" in issue.metric
+        assert "sat_bg" in issue.metric
+        assert "hue_diff" in issue.metric
+        assert issue.metric["hue_diff"] >= 120
+
+
 class TestUIUXAnalyzerWithMockPage:
     """模拟 Playwright Page 测试完整 audit 流程。"""
 

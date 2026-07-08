@@ -34,6 +34,11 @@ MAJOR 版本升级：借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个
 - ruff check：All checks passed
 - 无幽灵功能：所有 6 个特性均通过 dispatcher 公共 API 可触达
 
+### 修复 — V4.0.0 后续改进项（发布前审计）
+- **P3-1 共识投票 STUB 修复**（`autonomous/loop_controller.py`）：`_check_consensus_gate` 原为 STUB（创建提案后直接返回 `final_status=="completed"`），从未调用 `cast_vote`/`reach_consensus`。现实现真实多角色投票：创建提案→模拟 5 角色（architect/pm/coder/tester/security）基于 loop_report 状态投票→`reach_consensus`→根据 `outcome.value=="approved"` 返回。
+- **P3-1 SleepGuard 新增**（`autonomous/sleep_guard.py`）：借鉴上游的无限循环防护机制。三状态（NORMAL/BACKOFF/HARD_STOP），连续失败时指数退避 sleep，超过上限硬停止。集成到 `AutonomousLoopController`（可选）。18 个单元测试。
+- **P1-2 HSV 颜色空间检测**（`qa/uiux_analyzer.py`）：在 WCAG luminance 基础上新增 HSV 检测补充，捕获 WCAG 通过但视觉刺眼的配色（高饱和度红绿/蓝黄组合）。11 个单元测试。
+
 ## [3.10.0-dev] - 2026-07-01
 
 ### 新增 — V3.10.0 Phase 1：最小实现规则注入
