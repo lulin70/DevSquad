@@ -67,6 +67,7 @@ dev = [
     "mypy>=1.0",
     "black>=23.0",
     "flake8>=6.0",
+    "httpx2>=2.5.0",
 ]
 all = [
     "openai>=1.0",
@@ -89,6 +90,7 @@ all = [
     "mypy>=1.0",
     "black>=23.0",
     "flake8>=6.0",
+    "httpx2>=2.5.0",
 ]
 
 [project.scripts]
@@ -164,6 +166,7 @@ norecursedirs = []
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_mode = "auto"
 addopts = [
     "-v",
     "--tb=short",
@@ -176,6 +179,7 @@ markers = [
     "benchmark: performance benchmark tests",
     "unit: marks tests as unit tests",
     "smoke: marks tests as release smoke tests",
+    "asyncio: async tests using pytest-asyncio",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
