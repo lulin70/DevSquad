@@ -39,6 +39,11 @@ MAJOR 版本升级：借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个
 - **P3-1 SleepGuard 新增**（`autonomous/sleep_guard.py`）：借鉴上游的无限循环防护机制。三状态（NORMAL/BACKOFF/HARD_STOP），连续失败时指数退避 sleep，超过上限硬停止。集成到 `AutonomousLoopController`（可选）。18 个单元测试。
 - **P1-2 HSV 颜色空间检测**（`qa/uiux_analyzer.py`）：在 WCAG luminance 基础上新增 HSV 检测补充，捕获 WCAG 通过但视觉刺眼的配色（高饱和度红绿/蓝黄组合）。11 个单元测试。
 
+### 新增 — V4.0.0 后续改进项（Task #85/#86/#87）
+- **Task #85: httpx2 + pytest-asyncio 配置修复**（`pyproject.toml`、`requirements-dev.lock`、`.github/workflows/test.yml`）：starlette 1.3.1 testclient 从 httpx 迁移到 httpx2，缺包导致 API 测试收集阶段 RuntimeError。新增 `asyncio_mode="auto"` + `asyncio` marker 注册 + httpx2>=2.5.0 依赖。CI 3 处 httpx → httpx2。本地 3603 测试全通过（含 72 async 测试）。
+- **Task #86: 技术债清理**（`adversarial_verify.py`、`loop_controller.py`）：bandit B324 HIGH 告警修复（MD5 添加 `usedforsecurity=False`，与其他 4 处一致）。`_simulate_role_votes` 从 15 行 180+ 字符超长行重构为表驱动方式（vote_matrix + role_weights），可读性大幅提升。bandit 0 issues / ruff All passed。
+- **Task #87: LLM 投票替换模拟投票**（`autonomous/loop_controller.py`）：`AutonomousConfig` 新增 `llm_backend` 字段。新增 `_cast_role_votes` 分发器（LLM 可用时调用真实 LLM，否则回退 mock）。`_llm_role_votes` 为 5 角色分别构造 role-specific prompt → 调用 LLM → 解析 JSON 响应为 Vote。单角色 LLM 失败时自动回退到 mock 投票。支持 Moka AI（OpenAI-compatible）。11 个单元测试 + 1 个真实 LLM 集成测试（MOKA_API_KEY 无效时优雅 skip）。
+
 ## [3.10.0-dev] - 2026-07-01
 
 ### 新增 — V3.10.0 Phase 1：最小实现规则注入

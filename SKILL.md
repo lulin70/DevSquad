@@ -181,6 +181,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 112 | **GitDriver** | `autonomous/git_driver.py` | V4.0.0 P3-1: 自动 git 操作 + 风险等级评估（high/medium/low） |
 | 113 | **PluginHotLoader** | `plugins/hot_loader.py` | V4.0.0 P3-2: 三种加载路径（BUILTIN_PLUGINS / Hot Register API / Drop-in 目录扫描）+ 路径穿越三层防护 + reload 回滚 + 审计日志。dispatcher 集成 7 个公共 API（register/unregister/builtin/get/list/scan/reload） |
 | 114 | **SleepGuard** | `autonomous/sleep_guard.py` | V4.0.0 P3-1 增补: 无限循环防护（指数退避 + 硬停止）。三状态（NORMAL/BACKOFF/HARD_STOP），连续失败超限自动停止。集成到 AutonomousLoopController |
+| 115 | **LLMRoleVoting** | `autonomous/loop_controller.py` | V4.0.0 P3-1 增补: LLM 投票替换模拟投票。`AutonomousConfig.llm_backend` 注入 LLM 后端（如 Moka AI），5 角色 role-specific prompt → JSON 响应解析为 Vote。LLM 失败自动回退 mock。|
 
 ---
 

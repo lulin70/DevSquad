@@ -45,6 +45,7 @@ class AutonomousConfig:
     notes_memory_dir: str = ".devsquad_autonomous"
     auto_resume: bool = False  # 是否自动从断点续跑
     sleep_guard_config: SleepGuardConfig | None = None  # None=禁用 SleepGuard
+    llm_backend: Any = None  # LLMBackend | None; None=回退到 mock 投票
 
 
 @dataclass
@@ -247,7 +248,8 @@ class AutonomousLoopController:
         """共识门检查（HC-2: 不绕过共识门）。
 
         关键约束：自主模式不绕过 ConsensusEngine 前置共识门。
-        实现真实多角色投票：创建提案→模拟 5 角色投票→reach_consensus→根据 outcome 返回。
+        实现真实多角色投票：创建提案→5 角色投票→reach_consensus→根据 outcome 返回。
+        LLM 后端可用时调用真实 LLM 投票，否则回退到 mock 投票。
         """
         if self._config.consensus_engine is None:
             return True  # 无共识引擎，跳过
@@ -265,7 +267,7 @@ class AutonomousLoopController:
                 content=proposal_content,
             )
 
-            votes = self._simulate_role_votes(loop_report)
+            votes = self._cast_role_votes(loop_report)
             for vote in votes:
                 self._config.consensus_engine.cast_vote(proposal.proposal_id, vote)
 
@@ -278,6 +280,150 @@ class AutonomousLoopController:
         except (AttributeError, RuntimeError, ValueError) as e:
             logger.warning("Consensus gate check failed: %s", e)
             return False
+
+    def _cast_role_votes(self, loop_report: LoopRunReport) -> list[Any]:
+        """分发角色投票：LLM 可用时调用真实 LLM，否则回退 mock。"""
+        if self._config.llm_backend is not None and self._config.llm_backend.is_available():
+            votes = self._llm_role_votes(loop_report)
+            if votes:
+                return votes
+            logger.warning("LLM voting returned empty, falling back to mock.")
+        return self._simulate_role_votes(loop_report)
+
+    # ---- LLM 投票 ----
+
+    _ROLE_DEFINITIONS: dict[str, dict[str, str]] = {
+        "architect": {
+            "voter_id": "arch-01",
+            "description": "Focus on design quality, architectural soundness, and technical feasibility.",
+        },
+        "product-manager": {
+            "voter_id": "pm-01",
+            "description": "Focus on requirements coverage, user value, and scope alignment.",
+        },
+        "solo-coder": {
+            "voter_id": "coder-01",
+            "description": "Focus on implementation correctness, code quality, and completeness.",
+        },
+        "tester": {
+            "voter_id": "tester-01",
+            "description": "Focus on verification coverage, test results, and edge cases.",
+        },
+        "security": {
+            "voter_id": "sec-01",
+            "description": "Focus on security risks, vulnerability exposure, and data safety.",
+        },
+    }
+
+    _ROLE_WEIGHTS: dict[str, float] = {
+        "architect": 1.5,
+        "product-manager": 1.2,
+        "solo-coder": 1.0,
+        "tester": 1.0,
+        "security": 1.0,
+    }
+
+    def _build_vote_prompt(self, role: str, role_def: dict[str, str], loop_report: LoopRunReport) -> str:
+        """为指定角色构造 LLM 投票 prompt。"""
+        errors = getattr(loop_report, "errors", []) or []
+        errors_text = "\n".join(f"- {e}" for e in errors[:5]) if errors else "(none)"
+        return (
+            f"You are a {role} on a multi-role AI team evaluating an autonomous run.\n\n"
+            f"## Run Context\n"
+            f"Objective: {self._config.objective}\n"
+            f"Final Status: {loop_report.final_status}\n"
+            f"Total Iterations: {loop_report.total_iterations}\n"
+            f"Errors:\n{errors_text}\n\n"
+            f"## Your Role: {role}\n"
+            f"{role_def['description']}\n\n"
+            f"## Vote Instructions\n"
+            f"Based on your role's perspective, decide if this autonomous run should be approved.\n"
+            f"Respond ONLY with JSON (no markdown fences, no extra text):\n"
+            f'{{"decision": true_or_false, "reason": "one sentence", "confidence": 0.0_to_1.0}}'
+        )
+
+    def _parse_llm_vote(self, response: str, role: str, role_def: dict[str, str]) -> Any | None:
+        """解析 LLM 返回的 JSON 投票，失败返回 None。"""
+        import json
+        import re
+
+        text = response.strip()
+        # 移除可能的 markdown fences
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text).strip()
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            # 尝试提取第一个 JSON 对象
+            match = re.search(r"\{[^{}]*\}", text)
+            if not match:
+                return None
+            try:
+                data = json.loads(match.group(0))
+            except json.JSONDecodeError:
+                return None
+
+        from ..models_base import Vote
+
+        decision = bool(data.get("decision", False))
+        reason = str(data.get("reason", "LLM vote"))[:200]
+        confidence = float(data.get("confidence", 0.5))
+        confidence = max(0.0, min(1.0, confidence))
+
+        return Vote(
+            voter_id=role_def["voter_id"],
+            voter_role=role,
+            decision=decision,
+            reason=reason,
+            weight=self._ROLE_WEIGHTS[role],
+            confidence=confidence,
+        )
+
+    def _llm_role_votes(self, loop_report: LoopRunReport) -> list[Any]:
+        """调用 LLM 为 5 个角色分别投票。单个角色失败时回退到 mock 投票。"""
+        votes: list[Any] = []
+        for role, role_def in self._ROLE_DEFINITIONS.items():
+            prompt = self._build_vote_prompt(role, role_def, loop_report)
+            try:
+                response = self._config.llm_backend.generate(
+                    prompt, temperature=0.3, max_tokens=200,
+                )
+                vote = self._parse_llm_vote(response, role, role_def)
+                if vote is not None:
+                    votes.append(vote)
+                    continue
+            except Exception as e:  # noqa: BLE001 — LLM 后端可能抛各种异常，全部回退到 mock
+                logger.warning("LLM vote for %s failed: %s — using mock fallback.", role, e)
+
+            # 单角色回退到 mock
+            votes.extend(self._mock_single_role_vote(role, role_def, loop_report))
+        return votes
+
+    @staticmethod
+    def _mock_single_role_vote(role: str, role_def: dict[str, str], loop_report: LoopRunReport) -> list[Any]:
+        """单角色 mock 投票回退（LLM 失败时使用）。"""
+        from ..models_base import Vote
+
+        status = loop_report.final_status
+        if status == "completed":
+            decision, reason, confidence = True, "Mock fallback: completed", 0.75
+        elif status == "failed":
+            decision, reason, confidence = False, "Mock fallback: failed", 0.75
+        else:
+            decision, reason, confidence = False, "Mock fallback: stopped", 0.5
+
+        weights = AutonomousLoopController._ROLE_WEIGHTS
+        return [
+            Vote(
+                voter_id=role_def["voter_id"],
+                voter_role=role,
+                decision=decision,
+                reason=reason,
+                weight=weights[role],
+                confidence=confidence,
+            )
+        ]
 
     @staticmethod
     def _simulate_role_votes(loop_report: LoopRunReport) -> list[Any]:

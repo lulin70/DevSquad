@@ -1167,3 +1167,293 @@ class TestAutonomousIntegration:
         )
         report = d.dispatch_autonomous("test", run_id="custom-integration-id")
         assert report.run_id == "custom-integration-id"
+
+
+# ---------------------------------------------------------------------------
+# TestLLMRoleVotes — LLM 投票（Task #87）
+# ---------------------------------------------------------------------------
+
+
+class StubLLMBackend:
+    """可配置响应的 LLM 后端 stub。
+
+    responses: dict[role, str] — 每个角色的 LLM 响应。
+    如果角色不在 responses 中，调用 generate() 抛 RuntimeError 触发回退。
+    """
+
+    def __init__(self, responses: dict[str, str] | None = None, available: bool = True) -> None:
+        self._responses = responses or {}
+        self._available = available
+        self.call_log: list[str] = []  # 记录被调用时的 prompt
+
+    def generate(self, prompt: str, **kwargs: Any) -> str:  # noqa: ARG002
+        self.call_log.append(prompt)
+        # 从 prompt 中提取角色名（prompt 以 "You are a {role}" 开头）
+        for role in ("architect", "product-manager", "solo-coder", "tester", "security"):
+            if f"You are a {role}" in prompt:
+                if role in self._responses:
+                    return self._responses[role]
+                raise RuntimeError(f"No response configured for role: {role}")
+        raise RuntimeError("Could not determine role from prompt")
+
+    def is_available(self) -> bool:
+        return self._available
+
+
+def _make_completed_loop_report():
+    """构造一个 final_status='completed' 的 LoopRunReport。"""
+    from scripts.collaboration.loop_engineering import LoopRunReport
+    return LoopRunReport(
+        objective="llm voting test",
+        total_iterations=3,
+        final_status="completed",
+    )
+
+
+class TestLLMRoleVotes:
+    """Task #87: LLM 投票替换模拟投票。"""
+
+    def test_cast_role_votes_uses_llm_when_available(self, tmp_path: Path):
+        """LLM 后端可用时，_cast_role_votes 应调用 LLM 投票。"""
+        responses = {
+            "architect": '{"decision": true, "reason": "Design sound", "confidence": 0.9}',
+            "product-manager": '{"decision": true, "reason": "Meets requirements", "confidence": 0.85}',
+            "solo-coder": '{"decision": true, "reason": "Implementation correct", "confidence": 0.88}',
+            "tester": '{"decision": true, "reason": "Tests pass", "confidence": 0.8}',
+            "security": '{"decision": true, "reason": "No risks", "confidence": 0.75}',
+        }
+        backend = StubLLMBackend(responses=responses, available=True)
+        config = AutonomousConfig(
+            objective="llm test",
+            notes_memory_dir=str(tmp_path / "llm"),
+            llm_backend=backend,
+        )
+        controller = AutonomousLoopController(config=config)
+        votes = controller._cast_role_votes(_make_completed_loop_report())
+
+        assert len(votes) == 5
+        # 所有投票应为 LLM 生成（reason 不是 "Mock fallback"）
+        assert all("Mock fallback" not in v.reason for v in votes)
+        # LLM 被调用 5 次
+        assert len(backend.call_log) == 5
+
+    def test_cast_role_votes_falls_back_when_no_backend(self, tmp_path: Path):
+        """无 LLM 后端时，_cast_role_votes 应回退到 mock 投票。"""
+        config = AutonomousConfig(
+            objective="mock test",
+            notes_memory_dir=str(tmp_path / "mock"),
+            llm_backend=None,
+        )
+        controller = AutonomousLoopController(config=config)
+        votes = controller._cast_role_votes(_make_completed_loop_report())
+
+        assert len(votes) == 5
+        # mock 投票的 reason 以 "Mock fallback" 或具体模拟 reason 开头
+        # mock 投票的 reason 是 "Completed per spec" 等
+        assert all("Mock fallback" not in v.reason for v in votes)  # mock 模式用具体 reason
+
+    def test_cast_role_votes_falls_back_when_backend_unavailable(self, tmp_path: Path):
+        """LLM 后端不可用时（is_available=False），应回退到 mock。"""
+        backend = StubLLMBackend(available=False)
+        config = AutonomousConfig(
+            objective="unavailable test",
+            notes_memory_dir=str(tmp_path / "unavail"),
+            llm_backend=backend,
+        )
+        controller = AutonomousLoopController(config=config)
+        votes = controller._cast_role_votes(_make_completed_loop_report())
+
+        assert len(votes) == 5
+        # LLM 未被调用
+        assert len(backend.call_log) == 0
+
+    def test_llm_role_votes_returns_5_votes(self, tmp_path: Path):
+        """_llm_role_votes 应为 5 个角色各返回一个投票。"""
+        responses = {
+            role: f'{{"decision": true, "reason": "{role} approves", "confidence": 0.8}}'
+            for role in ("architect", "product-manager", "solo-coder", "tester", "security")
+        }
+        backend = StubLLMBackend(responses=responses)
+        config = AutonomousConfig(
+            objective="5 votes test",
+            notes_memory_dir=str(tmp_path / "5votes"),
+            llm_backend=backend,
+        )
+        controller = AutonomousLoopController(config=config)
+        votes = controller._llm_role_votes(_make_completed_loop_report())
+
+        assert len(votes) == 5
+        voter_roles = {v.voter_role for v in votes}
+        assert voter_roles == {"architect", "product-manager", "solo-coder", "tester", "security"}
+
+    def test_llm_role_votes_falls_back_on_role_failure(self, tmp_path: Path):
+        """单个角色 LLM 调用失败时，应回退到 mock 投票。"""
+        responses = {
+            "architect": '{"decision": true, "reason": "OK", "confidence": 0.9}',
+            # product-manager 缺失 → 触发 RuntimeError → mock 回退
+            "solo-coder": '{"decision": true, "reason": "OK", "confidence": 0.85}',
+            "tester": '{"decision": true, "reason": "OK", "confidence": 0.8}',
+            "security": '{"decision": true, "reason": "OK", "confidence": 0.75}',
+        }
+        backend = StubLLMBackend(responses=responses)
+        config = AutonomousConfig(
+            objective="fallback test",
+            notes_memory_dir=str(tmp_path / "fallback"),
+            llm_backend=backend,
+        )
+        controller = AutonomousLoopController(config=config)
+        votes = controller._llm_role_votes(_make_completed_loop_report())
+
+        assert len(votes) == 5
+        pm_vote = next(v for v in votes if v.voter_role == "product-manager")
+        assert "Mock fallback" in pm_vote.reason
+        # 其他角色应为 LLM 投票
+        arch_vote = next(v for v in votes if v.voter_role == "architect")
+        assert arch_vote.reason == "OK"
+
+    def test_parse_llm_vote_valid_json(self, tmp_path: Path):
+        """_parse_llm_vote 正确解析合法 JSON。"""
+        config = AutonomousConfig(objective="t", notes_memory_dir=str(tmp_path / "parse"))
+        controller = AutonomousLoopController(config=config)
+        role_def = {"voter_id": "arch-01", "description": "test"}
+        response = '{"decision": true, "reason": "Good design", "confidence": 0.85}'
+
+        vote = controller._parse_llm_vote(response, "architect", role_def)
+
+        assert vote is not None
+        assert vote.decision is True
+        assert vote.reason == "Good design"
+        assert vote.confidence == 0.85
+        assert vote.weight == 1.5  # architect 权重
+        assert vote.voter_id == "arch-01"
+
+    def test_parse_llm_vote_markdown_fences(self, tmp_path: Path):
+        """_parse_llm_vote 应剥离 markdown 代码块标记。"""
+        config = AutonomousConfig(objective="t", notes_memory_dir=str(tmp_path / "md"))
+        controller = AutonomousLoopController(config=config)
+        role_def = {"voter_id": "pm-01", "description": "test"}
+        response = '```json\n{"decision": false, "reason": "Scope creep", "confidence": 0.6}\n```'
+
+        vote = controller._parse_llm_vote(response, "product-manager", role_def)
+
+        assert vote is not None
+        assert vote.decision is False
+        assert vote.reason == "Scope creep"
+
+    def test_parse_llm_vote_invalid_returns_none(self, tmp_path: Path):
+        """_parse_llm_vote 对无法解析的响应返回 None。"""
+        config = AutonomousConfig(objective="t", notes_memory_dir=str(tmp_path / "invalid"))
+        controller = AutonomousLoopController(config=config)
+        role_def = {"voter_id": "tester-01", "description": "test"}
+
+        # 完全无效
+        assert controller._parse_llm_vote("I cannot decide", "tester", role_def) is None
+        # 空
+        assert controller._parse_llm_vote("", "tester", role_def) is None
+
+    def test_parse_llm_vote_embedded_json(self, tmp_path: Path):
+        """_parse_llm_vote 应从混合文本中提取 JSON。"""
+        config = AutonomousConfig(objective="t", notes_memory_dir=str(tmp_path / "embed"))
+        controller = AutonomousLoopController(config=config)
+        role_def = {"voter_id": "sec-01", "description": "test"}
+        response = 'Based on my analysis: {"decision": true, "reason": "Secure", "confidence": 0.9}'
+
+        vote = controller._parse_llm_vote(response, "security", role_def)
+
+        assert vote is not None
+        assert vote.decision is True
+
+    def test_build_vote_prompt_contains_role_and_context(self, tmp_path: Path):
+        """_build_vote_prompt 应包含角色描述和运行上下文。"""
+        config = AutonomousConfig(objective="prompt test objective", notes_memory_dir=str(tmp_path / "prompt"))
+        controller = AutonomousLoopController(config=config)
+        role_def = AutonomousLoopController._ROLE_DEFINITIONS["architect"]
+        report = _make_completed_loop_report()
+
+        prompt = controller._build_vote_prompt("architect", role_def, report)
+
+        assert "architect" in prompt
+        assert role_def["description"] in prompt
+        assert "prompt test objective" in prompt
+        assert "completed" in prompt
+        assert "JSON" in prompt
+
+    def test_consensus_gate_with_llm_backend(self, tmp_path: Path):
+        """集成测试：LLM 后端 + ConsensusEngine 端到端投票。"""
+        vote_json = '{"decision": true, "reason": "Approved", "confidence": 0.85}'
+        responses = dict.fromkeys(
+            ("architect", "product-manager", "solo-coder", "tester", "security"),
+            vote_json,
+        )
+        backend = StubLLMBackend(responses=responses)
+        consensus = StubConsensusEngine(allow=True)
+        config = AutonomousConfig(
+            objective="integration test",
+            notes_memory_dir=str(tmp_path / "integ"),
+            consensus_engine=consensus,
+            llm_backend=backend,
+        )
+        controller = AutonomousLoopController(config=config)
+        controller._state = RunState(
+            run_id="test-llm-consensus",
+            objective="integration test",
+            status=RunStatus.VERIFYING,
+        )
+
+        result = controller._check_consensus_gate(_make_completed_loop_report())
+
+        assert result is True
+        assert len(consensus.proposals) >= 1
+        # LLM 被调用 5 次
+        assert len(backend.call_log) == 5
+
+
+# ---------------------------------------------------------------------------
+# TestRealMokaAIVoting — 真实 Moka AI LLM 投票（需 API Key）
+# ---------------------------------------------------------------------------
+
+
+class TestRealMokaAIVoting:
+    """Task #87: 真实 Moka AI LLM 投票验证。
+
+    仅在 MOKA_API_KEY 环境变量存在且有效时运行，否则 skip。
+    """
+
+    @pytest.mark.skipif(
+        not os.environ.get("MOKA_API_KEY"),
+        reason="MOKA_API_KEY not set — skipping real LLM voting test",
+    )
+    def test_real_moka_ai_voting(self, tmp_path: Path):
+        """使用真实 Moka AI 后端进行 5 角色投票。"""
+        from scripts.collaboration.llm_backend import OpenAIBackend
+
+        backend = OpenAIBackend(
+            api_key=os.environ["MOKA_API_KEY"],
+            base_url=os.environ.get("MOKA_API_BASE", "https://api.moka-ai.com/v1"),
+            model=os.environ.get("MOKA_MODEL", "moka/claude-sonnet-4-6"),
+        )
+        if not backend.is_available():
+            pytest.skip("OpenAIBackend not available (openai package missing)")
+
+        # 预检：用最小 prompt 验证 API key 有效，避免 5 次失败调用
+        try:
+            backend.generate("Reply with: OK", max_tokens=5)
+        except Exception as e:  # noqa: BLE001
+            pytest.skip(f"Moka AI API key invalid or unreachable: {type(e).__name__}")
+
+        config = AutonomousConfig(
+            objective="Verify pytest test suite runs cleanly",
+            notes_memory_dir=str(tmp_path / "moka"),
+            llm_backend=backend,
+        )
+        controller = AutonomousLoopController(config=config)
+        report = _make_completed_loop_report()
+
+        votes = controller._llm_role_votes(report)
+
+        assert len(votes) == 5
+        for vote in votes:
+            assert vote.voter_role in controller._ROLE_DEFINITIONS
+            assert 0.0 <= vote.confidence <= 1.0
+            # 真实 LLM 投票不应包含 "Mock fallback"
+            assert "Mock fallback" not in vote.reason
