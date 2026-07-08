@@ -164,7 +164,7 @@ class RedTeam:
 
     @staticmethod
     def _make_id(proposal: str, challenge_type: str) -> str:
-        h = hashlib.md5(f"{proposal}:{challenge_type}".encode()).hexdigest()[:8]
+        h = hashlib.md5(f"{proposal}:{challenge_type}".encode(), usedforsecurity=False).hexdigest()[:8]
         return f"challenge-{challenge_type}-{h}"
 
 

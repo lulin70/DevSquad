@@ -247,7 +247,7 @@ class AutonomousLoopController:
         """共识门检查（HC-2: 不绕过共识门）。
 
         关键约束：自主模式不绕过 ConsensusEngine 前置共识门。
-        实现真实多角色投票：创建提案→模拟 7 角色投票→reach_consensus→根据 outcome 返回。
+        实现真实多角色投票：创建提案→模拟 5 角色投票→reach_consensus→根据 outcome 返回。
         """
         if self._config.consensus_engine is None:
             return True  # 无共识引擎，跳过
@@ -281,7 +281,7 @@ class AutonomousLoopController:
 
     @staticmethod
     def _simulate_role_votes(loop_report: LoopRunReport) -> list[Any]:
-        """模拟 7 角色基于 loop_report 状态的投票。
+        """模拟 5 角色基于 loop_report 状态的投票（占位实现，Task #87 替换为 LLM 投票）。
 
         投票逻辑：
         - completed: 全员赞成（tester/security 中等信心）
@@ -290,29 +290,53 @@ class AutonomousLoopController:
         """
         from ..models_base import Vote
 
+        # 角色权重表（architect=1.5, pm=1.2, 其余=1.0）
+        role_weights = {
+            "architect": 1.5,
+            "product-manager": 1.2,
+            "solo-coder": 1.0,
+            "tester": 1.0,
+            "security": 1.0,
+        }
+
+        # 按状态定义各角色的 (decision, reason, confidence)
         status = loop_report.final_status
-        votes: list[Vote] = []
+        vote_matrix: dict[str, list[tuple[str, str, bool, str, float]]] = {
+            "completed": [
+                ("arch-01", "architect", True, "Completed per spec", 0.85),
+                ("pm-01", "product-manager", True, "Meets requirements", 0.80),
+                ("coder-01", "solo-coder", True, "Implementation done", 0.90),
+                ("tester-01", "tester", True, "Verification passed", 0.75),
+                ("sec-01", "security", True, "No security concerns", 0.70),
+            ],
+            "failed": [
+                ("arch-01", "architect", False, "Failed to meet objective", 0.80),
+                ("pm-01", "product-manager", False, "Requirements not met", 0.80),
+                ("coder-01", "solo-coder", False, "Implementation failed", 0.85),
+                ("tester-01", "tester", False, "Verification failed", 0.90),
+                ("sec-01", "security", False, "Cannot verify security", 0.75),
+            ],
+            "stopped": [
+                ("arch-01", "architect", True, "Partial progress useful", 0.60),
+                ("pm-01", "product-manager", True, "Some value delivered", 0.55),
+                ("coder-01", "solo-coder", False, "Hit iteration limit", 0.70),
+                ("tester-01", "tester", False, "Not fully verified", 0.80),
+                ("sec-01", "security", False, "Incomplete security review", 0.65),
+            ],
+        }
 
-        if status == "completed":
-            votes.append(Vote(voter_id="arch-01", voter_role="architect", decision=True, reason="Completed per spec", weight=1.5, confidence=0.85))
-            votes.append(Vote(voter_id="pm-01", voter_role="product-manager", decision=True, reason="Meets requirements", weight=1.2, confidence=0.8))
-            votes.append(Vote(voter_id="coder-01", voter_role="solo-coder", decision=True, reason="Implementation done", weight=1.0, confidence=0.9))
-            votes.append(Vote(voter_id="tester-01", voter_role="tester", decision=True, reason="Verification passed", weight=1.0, confidence=0.75))
-            votes.append(Vote(voter_id="sec-01", voter_role="security", decision=True, reason="No security concerns", weight=1.0, confidence=0.7))
-        elif status == "failed":
-            votes.append(Vote(voter_id="arch-01", voter_role="architect", decision=False, reason="Failed to meet objective", weight=1.5, confidence=0.8))
-            votes.append(Vote(voter_id="pm-01", voter_role="product-manager", decision=False, reason="Requirements not met", weight=1.2, confidence=0.8))
-            votes.append(Vote(voter_id="coder-01", voter_role="solo-coder", decision=False, reason="Implementation failed", weight=1.0, confidence=0.85))
-            votes.append(Vote(voter_id="tester-01", voter_role="tester", decision=False, reason="Verification failed", weight=1.0, confidence=0.9))
-            votes.append(Vote(voter_id="sec-01", voter_role="security", decision=False, reason="Cannot verify security", weight=1.0, confidence=0.75))
-        else:  # stopped or other
-            votes.append(Vote(voter_id="arch-01", voter_role="architect", decision=True, reason="Partial progress useful", weight=1.5, confidence=0.6))
-            votes.append(Vote(voter_id="pm-01", voter_role="product-manager", decision=True, reason="Some value delivered", weight=1.2, confidence=0.55))
-            votes.append(Vote(voter_id="coder-01", voter_role="solo-coder", decision=False, reason="Hit iteration limit", weight=1.0, confidence=0.7))
-            votes.append(Vote(voter_id="tester-01", voter_role="tester", decision=False, reason="Not fully verified", weight=1.0, confidence=0.8))
-            votes.append(Vote(voter_id="sec-01", voter_role="security", decision=False, reason="Incomplete security review", weight=1.0, confidence=0.65))
-
-        return votes
+        rows = vote_matrix.get(status, vote_matrix["stopped"])
+        return [
+            Vote(
+                voter_id=vid,
+                voter_role=role,
+                decision=decision,
+                reason=reason,
+                weight=role_weights[role],
+                confidence=confidence,
+            )
+            for vid, role, decision, reason, confidence in rows
+        ]
 
 
 class ConsensusAwareEvaluator(IndependentEvaluator):
