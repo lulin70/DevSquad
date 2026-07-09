@@ -163,7 +163,7 @@ DevSquad/
 - **Documentation**: EN (README.md/SKILL.md) + CN (README-CN.md/docs/i18n/SKILL_CN.md) + JP variants
 - **Testing**: pytest-based, 2857+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`3.9.3`)
+- **Version**: Single source of truth in `_version.py` (`4.0.0`)
 
 ## Role System (7 Core Roles)
 
