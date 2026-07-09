@@ -23,6 +23,36 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scripts.collaboration._version import __version__
 from scripts.collaboration.models import ROLE_REGISTRY, get_cli_role_list
 
+
+def _load_env_file() -> None:
+    """Load .env file if exists (not tracked by git).
+
+    Searches CWD first (installed package usage), then project root
+    (development usage). Only sets variables not already in the environment
+    (env wins over .env). No external dependency (python-dotenv not required).
+    """
+    from pathlib import Path
+
+    candidates = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+    env_path = next((p for p in candidates if p.exists()), None)
+    if env_path is None:
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_env_file()
+
 ROLES = get_cli_role_list()
 ALL_ROLE_IDS = list(ROLE_REGISTRY.keys()) + ROLES
 ALL_ROLE_IDS = sorted(set(ALL_ROLE_IDS))
