@@ -1,6 +1,7 @@
 ---
 name: devsquad
 slug: devsquad
+version: 4.0.0
 description: |
   V4.0.0 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
