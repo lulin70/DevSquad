@@ -857,7 +857,7 @@ class MultiAgentDispatcher(
                 "PluginHotLoader not enabled. "
                 "Initialize dispatcher with plugins_enabled=True."
             )
-        return self.plugin_hot_loader.reload_if_changed()
+        return list(self.plugin_hot_loader.reload_if_changed())
 
 
 __all__ = [
