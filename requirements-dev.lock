@@ -20,10 +20,11 @@
 black==26.5.1
 flake8==7.3.0
 httpx2==2.5.0
-mypy==2.1.0
+mypy==2.2.0
 pytest==9.0.3
 pytest-asyncio==1.4.0
 pytest-cov==7.1.0
+ruff==0.15.20
 
 # --- Transitive dependencies ---
 click==8.3.3

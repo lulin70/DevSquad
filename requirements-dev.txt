@@ -12,6 +12,7 @@ httpx2>=2.5.0
 black>=23.0
 flake8>=6.0
 mypy>=1.0
+ruff>=0.4.0
 
 # LLM Backends (optional — install only what you need)
 # openai>=1.0           # OpenAI backend (pip install -e .[openai])

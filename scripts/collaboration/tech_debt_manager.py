@@ -394,8 +394,35 @@ class DebtReport:
 class CodebaseDebtScanner:
     """扫描代码库中的常见技术债务模式。"""
 
-    GOD_CLASS_LINE_THRESHOLD = 500
+    # God Class detection: responsibility-based (not pure line count).
+    # A class is flagged if it has multiple distinct responsibility domains.
+    # Line count is used only as a pre-filter to skip tiny classes.
+    # Old >500 line threshold had 98.1% false positive rate (52 candidates → 1 TRUE).
+    GOD_CLASS_MIN_LINES = 200
+    GOD_CLASS_MIN_PUBLIC_METHODS = 10
+    GOD_CLASS_MIN_DOMAINS = 5
     HIGH_COMPLEXITY_THRESHOLD = 10
+
+    # Method name prefix → responsibility domain mapping.
+    # Used to infer whether a class spans multiple distinct responsibilities.
+    _METHOD_DOMAIN_MAP: dict[str, str] = {
+        "save": "persistence", "load": "persistence", "store": "persistence",
+        "fetch": "persistence", "persist": "persistence", "dump": "persistence",
+        "restore": "persistence",
+        "validate": "validation", "check": "validation", "verify": "validation",
+        "render": "presentation", "draw": "presentation", "display": "presentation",
+        "show": "presentation", "format": "presentation", "print": "presentation",
+        "parse": "parsing", "read": "parsing", "scan": "parsing", "extract": "parsing",
+        "start": "lifecycle", "stop": "lifecycle", "shutdown": "lifecycle",
+        "close": "lifecycle", "open": "lifecycle", "setup": "lifecycle",
+        "calculate": "computation", "compute": "computation", "process": "computation",
+        "transform": "computation", "convert": "computation", "evaluate": "computation",
+        "send": "communication", "receive": "communication", "notify": "communication",
+        "emit": "communication", "dispatch": "communication", "broadcast": "communication",
+        "get": "access", "set": "access", "is": "access", "has": "access",
+        "add": "mutation", "remove": "mutation", "delete": "mutation",
+        "update": "mutation", "insert": "mutation", "clear": "mutation", "reset": "mutation",
+    }
 
     TODO_PATTERN = re.compile(r"#\s*(TODO|FIXME|HACK|XXX|WORKAROUND)", re.IGNORECASE)
     BROAD_EXCEPT_PATTERN = re.compile(r"except\s+Exception\b")
@@ -409,7 +436,7 @@ class CodebaseDebtScanner:
         """Scan a project directory for technical debt patterns.
 
         Detects:
-        - God classes (>500 lines)
+        - God classes (responsibility-based: multiple distinct domains)
         - High cyclomatic complexity
         - Broad exception handling (except Exception)
         - TODO/FIXME/HACK comments
@@ -472,7 +499,15 @@ class CodebaseDebtScanner:
     def _detect_god_classes(
         self, source: str, rel_path: str, prefix: str
     ) -> list[TechDebt]:
-        """Detect classes exceeding line threshold."""
+        """Detect God Classes using responsibility-based detection.
+
+        A God Class is identified by multiple distinct responsibility domains
+        (inferred from method name semantics), NOT by line count alone.
+        Line count is used only as a pre-filter to skip tiny classes.
+
+        This replaces the old >500 line threshold which had a 98.1% false
+        positive rate (52 candidates → 1 TRUE).
+        """
         debts: list[TechDebt] = []
         try:
             tree = ast.parse(source)
@@ -480,24 +515,85 @@ class CodebaseDebtScanner:
             return debts
 
         for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
-                start = node.lineno
-                end = node.end_lineno or start
-                class_lines = end - start + 1
-                if class_lines > self.GOD_CLASS_LINE_THRESHOLD:
-                    debts.append(
-                        TechDebt(
-                            id=f"{prefix}-god-{node.name}",
-                            source="static_analysis",
-                            category=DebtCategory.ARCHITECTURE,
-                            description=f"God class '{node.name}' has {class_lines} lines (threshold: {self.GOD_CLASS_LINE_THRESHOLD})",
-                            location=f"{rel_path}:{start}",
-                            severity=DebtSeverity.HIGH,
-                            effort=DebtEffort.MAJOR,
-                            tags=["god-class", "architecture"],
-                        )
+            if not isinstance(node, ast.ClassDef):
+                continue
+
+            start = node.lineno
+            end = node.end_lineno or start
+            class_lines = end - start + 1
+
+            # Pre-filter: skip tiny classes
+            if class_lines < self.GOD_CLASS_MIN_LINES:
+                continue
+
+            # Collect public methods (skip __dunder__ and _private)
+            public_methods = [
+                n for n in node.body
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and not n.name.startswith("_")
+            ]
+
+            if len(public_methods) < self.GOD_CLASS_MIN_PUBLIC_METHODS:
+                continue
+
+            # Classify methods into responsibility domains
+            domains = self._classify_method_domains(public_methods)
+
+            # God Class: multiple distinct responsibility domains
+            if len(domains) >= self.GOD_CLASS_MIN_DOMAINS:
+                domain_summary = ", ".join(
+                    f"{domain}({len(methods)})" for domain, methods in sorted(domains.items())
+                )
+                debts.append(
+                    TechDebt(
+                        id=f"{prefix}-god-{node.name}",
+                        source="static_analysis",
+                        category=DebtCategory.ARCHITECTURE,
+                        description=(
+                            f"God class '{node.name}' has {len(public_methods)} public methods "
+                            f"across {len(domains)} responsibility domains "
+                            f"({domain_summary}) — consider splitting into focused classes"
+                        ),
+                        location=f"{rel_path}:{start}",
+                        severity=DebtSeverity.HIGH,
+                        effort=DebtEffort.MAJOR,
+                        tags=["god-class", "architecture", "responsibility-based"],
                     )
+                )
         return debts
+
+    def _classify_method_domains(
+        self, methods: list[ast.FunctionDef | ast.AsyncFunctionDef]
+    ) -> dict[str, list[str]]:
+        """Classify methods into responsibility domains by name prefix.
+
+        Args:
+            methods: List of AST function definition nodes.
+
+        Returns:
+            Dict mapping domain name to list of method names in that domain.
+            Only domains with at least one method are included.
+        """
+        domains: dict[str, list[str]] = {}
+        for method in methods:
+            name = method.name
+            # Extract prefix: first segment before underscore, or leading lowercase word
+            if "_" in name:
+                prefix = name.split("_")[0].lower()
+            else:
+                prefix = ""
+                for ch in name:
+                    if ch.isupper():
+                        break
+                    prefix += ch.lower()
+                if not prefix:
+                    prefix = name.lower()
+
+            domain = self._METHOD_DOMAIN_MAP.get(prefix, "other")
+            if domain not in domains:
+                domains[domain] = []
+            domains[domain].append(name)
+        return domains
 
     def _detect_todos(
         self, source: str, rel_path: str, prefix: str
@@ -716,7 +812,7 @@ class TechDebtManager:
         """Scan a project for common technical debt patterns.
 
         Detects:
-        - God classes (>500 lines)
+        - God classes (responsibility-based: multiple distinct domains)
         - High cyclomatic complexity
         - Broad exception handling (except Exception)
         - TODO/FIXME/HACK comments

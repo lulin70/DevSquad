@@ -527,3 +527,139 @@ class TestJsonPersistence:
             # Should not raise even if file doesn't exist
             mgr = TechDebtManager(persist_dir=tmpdir)
             assert len(mgr._debts) == 0
+
+
+class TestGodClassDetection:
+    """Tests for responsibility-based God Class detection in CodebaseDebtScanner."""
+
+    def _make_god_class_source(self) -> str:
+        """Create a Python source with a class spanning 5+ responsibility domains."""
+        lines = [
+            "class KitchenSink:",
+            "    def __init__(self):",
+            "        pass",
+        ]
+        # Add 12 public methods across 6 domains: access, mutation, validation,
+        # persistence, presentation, computation
+        methods = [
+            "    def get_name(self): pass",
+            "    def get_age(self): pass",
+            "    def set_name(self, name): pass",
+            "    def add_item(self, item): pass",
+            "    def remove_item(self, item): pass",
+            "    def delete_all(self): pass",
+            "    def validate_input(self, data): pass",
+            "    def check_status(self): pass",
+            "    def save_state(self, path): pass",
+            "    def load_state(self, path): pass",
+            "    def render_report(self): pass",
+            "    def calculate_score(self): pass",
+        ]
+        lines.extend(methods)
+        # Pad with attribute assignments to exceed GOD_CLASS_MIN_LINES (200)
+        # (AST end_lineno only covers statements, not comments)
+        for i in range(190):
+            lines.append(f"    _pad_{i} = {i}")
+        return "\n".join(lines) + "\n"
+
+    def _make_focused_class_source(self) -> str:
+        """Create a large class with a single responsibility (not a God Class)."""
+        lines = [
+            "class UserRepository:",
+            "    def __init__(self):",
+            "        pass",
+        ]
+        # All methods in a single domain (access/persistence) — not a God Class
+        methods = [
+            "    def get_user(self, uid): pass",
+            "    def get_all_users(self): pass",
+            "    def get_user_by_email(self, email): pass",
+            "    def get_user_by_name(self, name): pass",
+            "    def save_user(self, user): pass",
+            "    def load_user(self, uid): pass",
+            "    def store_user(self, user): pass",
+            "    def fetch_user(self, uid): pass",
+            "    def delete_user(self, uid): pass",
+            "    def restore_user(self, backup): pass",
+        ]
+        lines.extend(methods)
+        for i in range(190):
+            lines.append(f"    _pad_{i} = {i}")
+        return "\n".join(lines) + "\n"
+
+    def test_god_class_detected_with_multiple_domains(self):
+        from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+        scanner = CodebaseDebtScanner()
+        source = self._make_god_class_source()
+        debts = scanner._detect_god_classes(source, "test.py", "test")
+        assert len(debts) == 1
+        assert "responsibility-based" in debts[0].tags
+        assert "KitchenSink" in debts[0].description
+        assert "responsibility domains" in debts[0].description
+
+    def test_focused_class_not_flagged(self):
+        from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+        scanner = CodebaseDebtScanner()
+        source = self._make_focused_class_source()
+        debts = scanner._detect_god_classes(source, "test.py", "test")
+        assert len(debts) == 0
+
+    def test_small_class_not_flagged(self):
+        from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+        scanner = CodebaseDebtScanner()
+        # Small class with many domains but too few lines
+        source = (
+            "class Tiny:\n"
+            "    def get_a(self): pass\n"
+            "    def set_b(self): pass\n"
+            "    def add_c(self): pass\n"
+            "    def validate_d(self): pass\n"
+            "    def save_e(self): pass\n"
+            "    def render_f(self): pass\n"
+        )
+        debts = scanner._detect_god_classes(source, "test.py", "test")
+        assert len(debts) == 0
+
+    def test_class_with_few_methods_not_flagged(self):
+        from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+        scanner = CodebaseDebtScanner()
+        # 200+ lines but only 3 public methods
+        lines = [
+            "class Sparse:",
+            "    def __init__(self): pass",
+            "    def get_a(self): pass",
+            "    def set_b(self): pass",
+            "    def save_c(self): pass",
+        ]
+        for i in range(200):
+            lines.append(f"    _pad_{i} = {i}")
+        source = "\n".join(lines) + "\n"
+        debts = scanner._detect_god_classes(source, "test.py", "test")
+        assert len(debts) == 0
+
+    def test_classify_method_domains(self):
+        import ast as _ast
+
+        from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+
+        scanner = CodebaseDebtScanner()
+        source = (
+            "class C:\n"
+            "    def get_x(self): pass\n"
+            "    def set_x(self): pass\n"
+            "    def save_y(self): pass\n"
+            "    def validate_z(self): pass\n"
+            "    def render_w(self): pass\n"
+        )
+        tree = _ast.parse(source)
+        class_node = next(n for n in _ast.walk(tree) if isinstance(n, _ast.ClassDef))
+        methods = [
+            n for n in class_node.body
+            if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+        ]
+        domains = scanner._classify_method_domains(methods)
+        assert "access" in domains
+        assert "persistence" in domains
+        assert "validation" in domains
+        assert "presentation" in domains
+        assert len(domains) >= 4
