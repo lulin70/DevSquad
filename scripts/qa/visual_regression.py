@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from .models import ChangedRegion, DiffResult
 
@@ -125,7 +126,7 @@ class VisualRegressionChecker:
             or result.has_display_error
         )
 
-    def _detect_regions(self, diff_img, size: tuple[int, int]) -> list[ChangedRegion]:
+    def _detect_regions(self, diff_img: Any, size: tuple[int, int]) -> list[ChangedRegion]:
         """网格扫描检测变化区域。
 
         将图片划分为 grid_size x grid_size 的网格，
