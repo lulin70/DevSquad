@@ -81,7 +81,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
 - **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
 
-3400+ tests passing。
+3600+ tests passing。
 
 ---
 

@@ -751,7 +751,7 @@ class MultiAgentDispatcher(
                 "PluginHotLoader not enabled. "
                 "Initialize dispatcher with plugins_enabled=True."
             )
-        return self.plugin_hot_loader.hot_register(name, plugin)
+        return bool(self.plugin_hot_loader.hot_register(name, plugin))
 
     def unregister_plugin(self, name: str) -> bool:
         """运行时注销插件。
@@ -770,7 +770,7 @@ class MultiAgentDispatcher(
                 "PluginHotLoader not enabled. "
                 "Initialize dispatcher with plugins_enabled=True."
             )
-        return self.plugin_hot_loader.hot_unregister(name)
+        return bool(self.plugin_hot_loader.hot_unregister(name))
 
     def register_builtin_plugin(self, name: str, plugin: Any) -> bool:
         """静态注册内置插件（不受 no_hot_reload 限制）。
@@ -790,7 +790,7 @@ class MultiAgentDispatcher(
                 "PluginHotLoader not enabled. "
                 "Initialize dispatcher with plugins_enabled=True."
             )
-        return self.plugin_hot_loader.register_builtin(name, plugin)
+        return bool(self.plugin_hot_loader.register_builtin(name, plugin))
 
     def get_plugin(self, name: str) -> Any | None:
         """获取已注册的插件实例。
@@ -825,7 +825,7 @@ class MultiAgentDispatcher(
                 "PluginHotLoader not enabled. "
                 "Initialize dispatcher with plugins_enabled=True."
             )
-        return self.plugin_hot_loader.list_plugins()
+        return list(self.plugin_hot_loader.list_plugins())
 
     def scan_plugins(self) -> list[Any]:
         """扫描 drop-in 目录，加载新插件。
@@ -841,7 +841,7 @@ class MultiAgentDispatcher(
                 "PluginHotLoader not enabled. "
                 "Initialize dispatcher with plugins_enabled=True."
             )
-        return self.plugin_hot_loader.scan_dropin_dir()
+        return list(self.plugin_hot_loader.scan_dropin_dir())
 
     def reload_plugins(self) -> list[str]:
         """检查 mtime 和 checksum，重新加载变更的插件（失败回滚保留旧实例）。

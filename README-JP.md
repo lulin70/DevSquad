@@ -28,7 +28,7 @@
 - **P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復、LoopKernel 再利用、コンセンサスゲートをバイパスしない
 - **P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層防护 + reload ロールバック + 監査ログ
 
-3400+ tests passing。
+3600+ tests passing。
 
 ### 🔄 V3.9.2 エンタープライズ機能詳細
 

@@ -41,7 +41,7 @@ htmlcov/
 credentials.json
 
 # --- Runtime Data ---
-.devSquad_data/
+.devsquad_data/
 output/
 *.ipynb_checkpoints/
 *.db

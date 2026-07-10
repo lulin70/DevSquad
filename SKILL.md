@@ -9,7 +9,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载.
-  150+ core modules, 3400+ tests passing (CI authoritative).
+  185+ core modules, 3666+ tests passing (CI authoritative).
 ---
 
 # DevSquad V4.0.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -986,7 +986,14 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V3.10.0 ContentRouter + SmartCrusher** | **46** | **✅ PASS** |
 | **V3.10.0 Coordinator SMART-first Integration** | **22** | **✅ PASS** |
 | **V3.10.0 Benchmark Ponytail+Smart A/B** | **20** | **✅ PASS** |
-| **Total** | **3164+ (CI authoritative)** | **✅ ALL PASS** |
+| **V4.0.0 Loop Engineering (P1-1)** | **35** | **✅ PASS** |
+| **V4.0.0 UI/UX 巡检 + Visual Regression (P1-2)** | **53** | **✅ PASS** |
+| **V4.0.0 Adversarial 验证 (P2-1)** | **39** | **✅ PASS** |
+| **V4.0.0 DAG 可视化 (P2-2)** | **39** | **✅ PASS** |
+| **V4.0.0 Autonomous (P3-1)** | **111** | **✅ PASS** |
+| **V4.0.0 插件热加载 (P3-2)** | **48** | **✅ PASS** |
+| **V4.0.0 E2E 用户旅程 + 集成 + 幽灵防御** | **42** | **✅ PASS** |
+| **Total** | **3666+ (CI authoritative)** | **✅ ALL PASS** |
 
 ---
 

@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]" 2>/dev/null || pip install -e .
-          pip install pytest pytest-asyncio pytest-timeout httpx2 mcp
+          pip install pytest pytest-asyncio pytest-timeout httpx2 mcp streamlit Pillow
 
       - name: Install coverage tool
         run: pip install pytest-cov
@@ -96,7 +96,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]" 2>/dev/null || pip install -e .
-          pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic
+          pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic streamlit Pillow
       - name: Run E2E tests
         run: |
           python -m pytest tests/e2e/ tests/integration/ \

@@ -1,8 +1,8 @@
 # DevSquad 项目状态
 
 > **当前版本**: V4.0.0（已发布到 PyPI + GitHub Release — 2026-07-08）
-> **最后更新**: 2026-07-08
-> **最新评估**: V4.0.0 发布完成 — 6 个特性（P1-P3）+ 后续改进项（共识投票 STUB 修复 / SleepGuard / HSV 检测 / httpx2 修复 / MD5 安全修复 / LLM 投票替换模拟投票）。3614 tests passing / 9 skipped / 0 failed。ruff All passed / bandit 0 issues / mypy 0 errors。版本一致性 15/15 PASS。
+> **最后更新**: 2026-07-10
+> **最新评估**: V4.0.0 发布完成 — 6 个特性（P1-P3）+ 后续改进项（共识投票 STUB 修复 / SleepGuard / HSV 检测 / httpx2 修复 / MD5 安全修复 / LLM 投票替换模拟投票）。3666 tests passing / 22 skipped / 0 failed。ruff All passed / bandit 0 issues / mypy 0 errors。版本一致性 15/15 PASS。
 > **硬约束通过率**: 13/13（100%）
 > **PyPI**: https://pypi.org/project/devsquad/4.0.0/
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0
@@ -36,12 +36,12 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 3354 passed（本地 Python 3.12，含 V3.10.0 Phase 1-4 + V4.0.0 P1-P3 + 幽灵防御） | ✅ 全绿 |
-| UI E2E 浏览器驱动 | 26 passed（streamlit-app-testing，8 类用户场景） | ✅ 全绿 |
-| E2E 用户旅程（nightly CI） | 37 passed, 8 skipped | ✅ 全绿 |
+| 单元/集成回归 | 3618 passed（本地 Python 3.12，含 V3.10.0 Phase 1-4 + V4.0.0 P1-P3 + 幽灵防御） | ✅ 全绿 |
+| UI E2E 浏览器驱动 | 37 passed（streamlit-app-testing，Dashboard 8 类用户场景） | ✅ 全绿 |
+| E2E 用户旅程 + 集成（nightly CI） | 48 passed, 18 skipped（18 skipped 为真实 LLM 测试，mock 模式无 key 预期跳过） | ✅ 全绿 |
 | V4.0.0 集成验证 | 14 passed（6 特性 dispatcher 可达性，无幽灵功能） | ✅ 全绿 |
-| Phase 4 幽灵功能防御 | 12 passed（ghost-feature defense） | ✅ 全绿 |
-| **合计** | **3431+ passed** | **0 failed** |
+| 性能基准 | 23 passed | ✅ 全绿 |
+| **合计** | **3666+ passed** | **0 failed** |
 | 覆盖率 | 70.74%（本地 3.12） | ✅ 超过 60% 门禁 |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
@@ -121,19 +121,19 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 9. 下一步计划
 
-1. **V4.0.0 发布**（✅ 代码完成，待推送 Git）
+1. **V4.0.0 发布**（✅ 已完成 — 2026-07-08 发布到 PyPI + GitHub Release）
    - ✅ 6 特性全部实现并接入 dispatch pipeline（无幽灵功能）
-   - ✅ 版本号同步到 9 个核心文件 + 10+ 辅助文件（PROJECT_STATUS/CLAUDE/COMPARISON/Chart/values/INSTALL/QUICKSTART/deployment/INDEX/CONFIGURATION/SKILL_JP/README-CN/README-JP/requirements.lock/requirements-dev.lock）
+   - ✅ 版本号同步到 15 个核心文件（check_version_consistency.py 15/15 PASS）
    - ✅ CHANGELOG 错误修正（P2-1/P2-2 路径与 API 名称）
    - ✅ SKILL.md 模块表补全（18 个 V4.0.0 新模块，#96-#113）
    - ✅ SKILL.md Version History 添加 v4.0.0 条目
-   - ⏳ V4.0.0 E2E 测试待补充（tests/e2e/test_v4_user_journey.py）
-   - ⏳ 推送到远程仓库
-2. **V4.0.0 后续改进**（来自上游对比审计，平均充分性 84.3%）
-   - P1-2 UI/UX: 补齐 HSV 红色检测 + Toast/dialog 检测（当前 72%，最弱）
-   - P3-1 Autonomous: 补 SleepGuard 防休眠 + 落地真实共识投票（当前 78%，共识门是 stub）
-   - P1-1 Loop Engineering: 补 token 预算生效 + backoff 退避 + run_id 追踪（当前 85%）
-   - P2-1 Adversarial: 补 dispatcher 直通入口 + LLM 驱动（当前 80%）
+   - ✅ V4.0.0 E2E 测试已补充（tests/e2e/test_v4_user_journey.py，21 tests）
+   - ✅ 推送到远程仓库 + PyPI 发布 + GitHub Release 创建
+2. **V4.0.0 后续改进**（来自上游对比审计，平均充分性 84.3%，部分已在 v4.0.0 收尾完成）
+   - ✅ P3-1 Autonomous: SleepGuard 防休眠 + LLM 投票替换模拟投票（已落地）
+   - ✅ P2-1 Adversarial: dispatcher 直通入口（consensus_engine.adversarial_verify）
+   - ⏳ P1-2 UI/UX: 补齐 HSV 红色检测 + Toast/dialog 检测（当前 72%，最弱）
+   - ⏳ P1-1 Loop Engineering: 补 token 预算生效 + backoff 退避 + run_id 追踪（当前 85%）
 3. **V3.10.0 历史规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)，已完成）
    - ✅ Phase 1-4 全部完成
 
@@ -154,6 +154,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | **V3.10.0 Round 1** | **2026-07-02** | **8.1** | **13/13** | **Phase 1+2 完整交付、无幽灵功能、CI 全绿、基准可量化** |
 | **V3.10.0 Round 2** | **2026-07-02** | **8.3** | **13/13** | **UI 启动验证、多语言一致性、CI mypy 扩展、artifact fallback、幽灵功能深度审计** |
 | **V4.0.0 发布前审查** | **2026-07-07** | **8.4** | **13/13** | **6 特性全部交付、文档一致性修复、上游对比 84.3%、待补 E2E 测试** |
+| **V4.0.0 项目整理评估** | **2026-07-10** | **8.6** | **13/13** | **3666 tests 全绿、.gitignore 大小写 bug 修复、文档测试数同步、SKILL.md 测试表补全 V4.0.0 行、无幽灵功能验证** |
 
 评估报告路径:
 - V3.9.2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`

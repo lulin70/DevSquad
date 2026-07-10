@@ -254,6 +254,9 @@ class AutonomousLoopController:
         if self._config.consensus_engine is None:
             return True  # 无共识引擎，跳过
 
+        if self._state is None:
+            return False
+
         try:
             proposal_content = (
                 f"Autonomous run: {self._config.objective}\n"
@@ -276,7 +279,7 @@ class AutonomousLoopController:
                 "Consensus gate: outcome=%s, for=%d, against=%d",
                 record.outcome, record.votes_for, record.votes_against,
             )
-            return record.outcome.value == "approved"
+            return bool(record.outcome.value == "approved")
         except (AttributeError, RuntimeError, ValueError) as e:
             logger.warning("Consensus gate check failed: %s", e)
             return False

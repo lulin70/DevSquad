@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
 
 
 class RunStatus(str, Enum):
@@ -37,6 +38,7 @@ class RunState:
     checkpoint_sha: str = ""  # SHA256 校验值，用于断点续跑
     notes: list[str] = field(default_factory=list)
     error: str = ""
+    loop_report: Any = None  # LoopRunReport，运行结束后填充
 
     def update_status(self, status: RunStatus) -> None:
         """更新状态。"""
