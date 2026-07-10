@@ -155,6 +155,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | **V3.10.0 Round 2** | **2026-07-02** | **8.3** | **13/13** | **UI 启动验证、多语言一致性、CI mypy 扩展、artifact fallback、幽灵功能深度审计** |
 | **V4.0.0 发布前审查** | **2026-07-07** | **8.4** | **13/13** | **6 特性全部交付、文档一致性修复、上游对比 84.3%、待补 E2E 测试** |
 | **V4.0.0 项目整理评估** | **2026-07-10** | **8.6** | **13/13** | **3666 tests 全绿、.gitignore 大小写 bug 修复、文档测试数同步、SKILL.md 测试表补全 V4.0.0 行、无幽灵功能验证** |
+| **V4.0.0 P0-P2 改进** | **2026-07-10** | **8.7** | **13/13** | **mypy/ruff 版本锁定、streamlit/Pillow 加入 [dev] extras、e2e 在 PR 时运行、God Class 检测改为职责检测(23→4 候选)、broad-except 收窄** |
 
 评估报告路径:
 - V3.9.2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`
