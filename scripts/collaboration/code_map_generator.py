@@ -4,7 +4,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ class CodeMapGenerator:
             ".tsx": "javascript",
             ".go": "go",
         }
-        return lang_map.get(ext, ext.lstrip("."))  # type: ignore[no-any-return]
+        return cast(str, lang_map.get(ext, ext.lstrip(".")))
 
     def _to_markdown(self, modules: dict[str, Any]) -> str:
         lines = ["# Code Map", ""]

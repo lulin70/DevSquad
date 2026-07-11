@@ -6,6 +6,7 @@ BatchScheduler - 批处理调度器
 """
 
 import time
+from typing import cast
 
 from .models import (
     BatchMode,
@@ -139,5 +140,5 @@ class BatchScheduler:
     def _find_worker(self, workers: dict, role_id: str) -> Worker | None:
         for w in workers.values():
             if w.role_id == role_id:
-                return w  # type: ignore[no-any-return]
+                return cast(Worker, w)
         return None

@@ -15,7 +15,7 @@ MemoryQueryMixin 通过 mixin 模式被 MemoryBridge 继承，
 import contextlib
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from .memory_types import (
     EpisodicMemory,
@@ -322,7 +322,7 @@ class MemoryQueryMixin:
         Returns:
             List of EpisodicMemory ordered by recency.
         """
-        return self.reader.read_episodic(limit=n)  # type: ignore[no-any-return]
+        return cast(list[EpisodicMemory], self.reader.read_episodic(limit=n))
 
     def get_workbuddy_ai_news(self, days: int = 7) -> list[MemoryItem]:
         """
@@ -341,7 +341,7 @@ class MemoryQueryMixin:
         if not self._claw_enabled or not self._claw_source:
             return []
         try:
-            return self._claw_source.get_latest_ai_news(days)  # type: ignore[no-any-return]
+            return cast(list[MemoryItem], self._claw_source.get_latest_ai_news(days))
         except (OSError, AttributeError, ValueError):
             return []
 
@@ -368,12 +368,12 @@ class MemoryQueryMixin:
         if data is not None:
             if "memory_type" not in data:
                 data["memory_type"] = guessed.value
-            return data  # type: ignore[no-any-return]
+            return cast(dict, data)
         for mtype in MemoryType:
             if mtype != guessed:
                 data = self.store.load(mtype, memory_id)
                 if data is not None:
                     if "memory_type" not in data:
                         data["memory_type"] = mtype.value
-                    return data  # type: ignore[no-any-return]
+                    return cast(dict, data)
         return None

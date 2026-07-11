@@ -7,6 +7,23 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - 2026-07-11
+
+PATCH release: 修复、重构、优化，无新功能。基于 TECH_DEBT_ASSESSMENT_V4.0.md 评估报告推进 P0-P1 技术债清理。
+
+### Fixed — P0: 测试覆盖率提升
+- **dispatch_steps.py 测试补充** (`tests/test_dispatch_steps.py`): 新增 54 个单元测试覆盖 PostDispatchPipeline 的 init/build_step_timings/build_lifecycle_trace/collect_worker_results/build_summary/execute 全方法。使用 `_SENTINEL` 哨兵模式区分 None 和未传参，`event_bus=MagicMock()` 避免真实 EventBus 创建。
+- **dispatcher mixins 测试补充** (`tests/test_dispatcher_mixins.py`): 新增 67 个单元测试覆盖 5 个 mixin（UtilsMixin/StatusMixin/ErrorMixin/AuditMixin/LifecycleMixin），使用 `__new__` 模式绕过抽象 `__init__`，手动设置属性。
+
+### Fixed — P1: 类型安全改进
+- **no-any-return type: ignore 批量修复**: 从 55 个减少至 23 个（修复 32 个）。使用 `cast()` 替代 `# type: ignore[no-any-return]`，覆盖 `json.load()` 返回值、`dict.get()` 返回值、`self.store.save()` 委托、`psutil` 调用、`self._llm_backend` 委托等场景。剩余 23 个为委托给 `Any` 类型字段的，需添加 Protocol 类型注解（纳入 P2）。
+- 涉及 15 个源文件：memory_serializer.py、memory_bridge.py、task_completion_checker.py、checkpoint_manager.py、enterprise_feature.py、concern_pack_loader.py、similar_task_recommender.py、dispatch_services.py、code_map_generator.py、memory_query.py、performance_monitor.py、feedback_control_loop.py、batch_scheduler.py、multi_tenant.py、dispatch_pre_steps.py。
+
+### Verified
+- ruff check: 0 errors
+- mypy: 0 errors（仅预存 numpy stub 警告）
+- pytest: 3744 passed, 4 skipped（全量回归无回归）
+
 ## [4.0.0] - 2026-07-07
 
 MAJOR version bump:借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能。Spec 详见 `docs/spec/v4.0.0_spec.md`。

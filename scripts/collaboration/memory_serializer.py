@@ -16,7 +16,7 @@ import re
 import time
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from .memory_types import (
     AnalysisCase,
@@ -66,7 +66,7 @@ class MemoryWriter:
                 source=item.source,
             )
             self.indexer.add_to_index(mem_item)
-        return item_id  # type: ignore[no-any-return]
+        return cast(str, item_id)
 
     def write_episodic(self, memory: EpisodicMemory) -> str:
         """Persist an episodic memory and add it to the index.
@@ -99,7 +99,7 @@ class MemoryWriter:
             )
             self.indexer.add_to_index(mem_item)
         self._capture_count += 1
-        return item_id  # type: ignore[no-any-return]
+        return cast(str, item_id)
 
     def write_feedback(self, feedback: UserFeedback) -> str:
         """Persist user feedback and add it to the index.
@@ -131,7 +131,7 @@ class MemoryWriter:
                 metadata={"rating": feedback.rating},
             )
             self.indexer.add_to_index(mem_item)
-        return item_id  # type: ignore[no-any-return]
+        return cast(str, item_id)
 
     def write_pattern(self, pattern: PersistedPattern) -> str:
         """Persist a pattern and add it to the index.
@@ -165,7 +165,7 @@ class MemoryWriter:
                 metadata={"quality_score": pattern.quality_score, "confidence": pattern.confidence},
             )
             self.indexer.add_to_index(mem_item)
-        return item_id  # type: ignore[no-any-return]
+        return cast(str, item_id)
 
     def write_analysis(self, analysis: AnalysisCase) -> str:
         """Persist an analysis case (problem/root-cause/solutions) into the memory store.
@@ -196,7 +196,7 @@ class MemoryWriter:
                 metadata={"solutions_count": len(analysis.solutions)},
             )
             self.indexer.add_to_index(mem_item)
-        return item_id  # type: ignore[no-any-return]
+        return cast(str, item_id)
 
     def batch_write(self, items: list[MemoryItem]) -> int:
         """Persist multiple memory items, skipping any that fail to save.
@@ -350,7 +350,7 @@ class MemorySerializerMixin:
             feedback.id = f"fb_{uuid.uuid4().hex[:12]}_{int(time.time())}"
         if not feedback.created_at:
             feedback.created_at = datetime.now().isoformat()
-        return self.writer.write_feedback(feedback)  # type: ignore[no-any-return]
+        return cast(str, self.writer.write_feedback(feedback))
 
     def persist_pattern(self, pattern: Any) -> str | None:
         """
@@ -388,7 +388,7 @@ class MemorySerializerMixin:
             quality_score=qs,
             created_at=datetime.now().isoformat(),
         )
-        return self.writer.write_pattern(persisted)  # type: ignore[no-any-return]
+        return cast(str, self.writer.write_pattern(persisted))
 
     def learn_from_mistake(self, error_context: ErrorContext) -> str:
         """Convert an error context into a persisted analysis case for future reference.
@@ -417,7 +417,7 @@ class MemorySerializerMixin:
             status="completed",
             created_at=datetime.now().isoformat(),
         )
-        return self.writer.write_analysis(analysis)  # type: ignore[no-any-return]
+        return cast(str, self.writer.write_analysis(analysis))
 
     @staticmethod
     def _extract_tags(text: str) -> list[str]:

@@ -22,7 +22,7 @@ import logging
 import os
 import threading
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -322,7 +322,7 @@ class ConcernPackLoader:
         if isinstance(enhancement, str):
             return enhancement
         if isinstance(enhancement, dict):
-            return enhancement.get("extra_prompt", "")  # type: ignore[no-any-return]
+            return cast(str, enhancement.get("extra_prompt", ""))
         return str(enhancement) if enhancement else ""
 
     def get_combined_checklist(self, packs: list[ConcernPack]) -> str:

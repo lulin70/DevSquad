@@ -20,7 +20,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
 from .models import EntryType
@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class _PreDispatchResult:
     """Result container for PreDispatchPipeline.execute()."""
+
     task_description: str
     lang: str
     rule_collection: Any
@@ -120,8 +121,12 @@ class PreDispatchPipeline:
         tenant_ctx = self.enterprise.set_tenant_context(kwargs, start_time)
         if isinstance(tenant_ctx, DispatchResult):
             return self.make_early_pre_result(
-                task_description, self.lang, None, tenant_ctx,
-                step1_time=start_time, step2_time=start_time,
+                task_description,
+                self.lang,
+                None,
+                tenant_ctx,
+                step1_time=start_time,
+                step2_time=start_time,
             )
 
         # Step 1: Resolve language
@@ -131,25 +136,37 @@ class PreDispatchPipeline:
         task_description, early_return = self.validate_input(task_description, roles, lang)
         if early_return:
             return self.make_early_pre_result(
-                task_description, lang, tenant_ctx, early_return,
-                step1_time=start_time, step2_time=start_time,
+                task_description,
+                lang,
+                tenant_ctx,
+                early_return,
+                step1_time=start_time,
+                step2_time=start_time,
             )
 
         # RBAC pre-check
         rbac_denied = self.enterprise.check_rbac_access(kwargs, task_description, lang, start_time)
         if rbac_denied:
             return self.make_early_pre_result(
-                task_description, lang, tenant_ctx, rbac_denied,
-                step1_time=start_time, step2_time=start_time,
+                task_description,
+                lang,
+                tenant_ctx,
+                rbac_denied,
+                step1_time=start_time,
+                step2_time=start_time,
             )
 
         # Step 3: Collect rules and inject CI context
         task_description, rule_collection, early_return = self.collect_rules(task_description, lang)
         if early_return:
             return self.make_early_pre_result(
-                task_description, lang, tenant_ctx, early_return,
+                task_description,
+                lang,
+                tenant_ctx,
+                early_return,
                 rule_collection=rule_collection,
-                step1_time=start_time, step2_time=start_time,
+                step1_time=start_time,
+                step2_time=start_time,
             )
 
         step1_time = time.time()
@@ -169,11 +186,18 @@ class PreDispatchPipeline:
         )
         if early_return:
             return self.make_early_pre_result(
-                task_description, lang, tenant_ctx, early_return,
-                rule_collection=rule_collection, intent_match=intent_match,
-                matched_roles=matched_roles, role_ids=role_ids,
-                concern_packs=concern_packs, concern_enhancements=concern_enhancements,
-                step1_time=step1_time, step2_time=time.time(),
+                task_description,
+                lang,
+                tenant_ctx,
+                early_return,
+                rule_collection=rule_collection,
+                intent_match=intent_match,
+                matched_roles=matched_roles,
+                role_ids=role_ids,
+                concern_packs=concern_packs,
+                concern_enhancements=concern_enhancements,
+                step1_time=step1_time,
+                step2_time=time.time(),
             )
 
         step2_time = time.time()
@@ -235,9 +259,7 @@ class PreDispatchPipeline:
             early_return=early_return,
         )
 
-    def validate_input(
-        self, task: str, roles: list[str] | None, lang: str
-    ) -> tuple[str, DispatchResult | None]:
+    def validate_input(self, task: str, roles: list[str] | None, lang: str) -> tuple[str, DispatchResult | None]:
         """Validate task and roles input. Returns (sanitized_task, early_return)."""
         validator = self.validator
         task_result = validator.validate_task(task)
@@ -312,9 +334,7 @@ class PreDispatchPipeline:
 
         return task, None
 
-    def collect_rules(
-        self, task: str, lang: str
-    ) -> tuple[str, Any, DispatchResult | None]:
+    def collect_rules(self, task: str, lang: str) -> tuple[str, Any, DispatchResult | None]:
         """Collect rules via RuleCollector and inject CI context. Returns (task, rules, early_return)."""
         rule_collection = None
         try:
@@ -324,14 +344,18 @@ class PreDispatchPipeline:
                 self._rule_collector = RuleCollector()
             rule_collection = self._rule_collector.process(task, lang)
             if rule_collection.rule_detected and not rule_collection.remaining_task:
-                return task, rule_collection, DispatchResult(
-                    success=True,
-                    task_description=task,
-                    matched_roles=[],
-                    worker_results=[],
-                    summary=rule_collection.message,
-                    errors=[],
-                    lang=lang,
+                return (
+                    task,
+                    rule_collection,
+                    DispatchResult(
+                        success=True,
+                        task_description=task,
+                        matched_roles=[],
+                        worker_results=[],
+                        summary=rule_collection.message,
+                        errors=[],
+                        lang=lang,
+                    ),
                 )
             if rule_collection.rule_detected:
                 task = rule_collection.remaining_task
@@ -426,7 +450,7 @@ class PreDispatchPipeline:
         if roles:
             matched_roles = self.role_matcher.resolve_roles(roles, matched_roles)
 
-        return matched_roles  # type: ignore[no-any-return]
+        return cast(list[dict[str, Any]], matched_roles)
 
     def validate_roles_and_security(
         self,
@@ -447,13 +471,18 @@ class PreDispatchPipeline:
             logger.info("Concern packs activated: %s", pack_names)
 
         if dry_run:
-            return role_ids, concern_packs, concern_enhancements, DispatchResult(
-                success=True,
-                task_description=task,
-                matched_roles=role_ids,
-                summary=f"[DRY RUN] 将调度角色: {', '.join(role_ids)}",
-                duration_seconds=time.time() - start_time,
-                lang=lang,
+            return (
+                role_ids,
+                concern_packs,
+                concern_enhancements,
+                DispatchResult(
+                    success=True,
+                    task_description=task,
+                    matched_roles=role_ids,
+                    summary=f"[DRY RUN] 将调度角色: {', '.join(role_ids)}",
+                    duration_seconds=time.time() - start_time,
+                    lang=lang,
+                ),
             )
 
         return role_ids, concern_packs, concern_enhancements, None
@@ -524,11 +553,15 @@ class PreDispatchPipeline:
         # V3.7.0: Load historical retrospectives into Scratchpad
         self.load_historical_retrospectives(task)
 
-        return plan, structured_goal, {
-            "step3_time": step3_time,
-            "step4_time": step4_time,
-            "step5_time": step5_time,
-        }
+        return (
+            plan,
+            structured_goal,
+            {
+                "step3_time": step3_time,
+                "step4_time": step4_time,
+                "step5_time": step5_time,
+            },
+        )
 
     def load_historical_retrospectives(self, task: str) -> None:
         """Load historical retrospectives into Scratchpad."""

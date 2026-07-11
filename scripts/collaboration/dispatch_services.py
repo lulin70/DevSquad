@@ -10,7 +10,7 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from .memory_bridge import EpisodicMemory
 from .models import EntryType
@@ -57,14 +57,17 @@ class PermissionService:
         """Run PermissionGuard checks on test actions."""
         test_actions = [
             ProposedAction(
-                action_type=ActionType.FILE_CREATE, target=os.path.join(tempfile.gettempdir(), "test_output.md"), description="生成输出文件"
+                action_type=ActionType.FILE_CREATE,
+                target=os.path.join(tempfile.gettempdir(), "test_output.md"),
+                description="生成输出文件",
             ),
         ]
         for action in test_actions:
             classified = None
             try:
                 classified = self.operation_classifier.classify(
-                    operation_id=action.action_type.value, target=action.target,
+                    operation_id=action.action_type.value,
+                    target=action.target,
                 )
             except (ValueError, AttributeError, KeyError) as e:
                 logger.debug("Operation classifier call failed: %s", e)
@@ -86,7 +89,7 @@ class PermissionService:
     def check_rbac(self, permission_checks: list[dict[str, Any]], **kwargs: Any) -> list[dict[str, Any]]:
         """Run RBAC fine-grained permission check."""
         try:
-            user_id = kwargs.get('user_id', 'default')
+            user_id = kwargs.get("user_id", "default")
             self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
             permission_checks.append({"action": "rbac:execute", "allowed": True})
         except PermissionDeniedError as e:
@@ -118,7 +121,7 @@ class MemoryPipelineService:
         if self.enterprise and self.enterprise.enable_multi_tenant and self.enterprise.tenant_manager:
             current_tenant = self.enterprise.tenant_manager.get_current_tenant()
             if current_tenant:
-                return current_tenant.tenant_id  # type: ignore[no-any-return]
+                return cast(str, current_tenant.tenant_id)
         return "default"
 
     def capture(
@@ -151,7 +154,11 @@ class MemoryPipelineService:
                     finding=scratchpad_summary[:500],
                 )
                 self.memory_bridge.capture_execution(
-                    execution_record={"task": f"{key_prefix}{task}" if key_prefix else task, "roles": role_ids, "tenant_id": tenant_id},
+                    execution_record={
+                        "task": f"{key_prefix}{task}" if key_prefix else task,
+                        "roles": role_ids,
+                        "tenant_id": tenant_id,
+                    },
                     scratchpad_entries=[],
                 )
             except (ConnectionError, TimeoutError, OSError) as mem_err:
@@ -263,13 +270,15 @@ class SkillProposalService:
         for pattern in patterns:
             if pattern.confidence <= 0.3:
                 continue
-            pattern_title = getattr(pattern, 'title', None) or "新协作模式"
+            pattern_title = getattr(pattern, "title", None) or "新协作模式"
             category = pattern.category.value if hasattr(pattern, "category") and pattern.category else "general"
             proposals.append({"title": pattern_title, "confidence": pattern.confidence, "category": category})
             try:
                 self.skill_registry.propose_from_result(
-                    name=pattern_title, description=pattern_title,
-                    category=category, confidence=pattern.confidence,
+                    name=pattern_title,
+                    description=pattern_title,
+                    category=category,
+                    confidence=pattern.confidence,
                 )
             except (ValueError, AttributeError, OSError, KeyError) as e:
                 logger.warning("SkillRegistry proposal failed: %s", e)

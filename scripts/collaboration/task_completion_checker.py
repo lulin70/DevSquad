@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class TaskCompletionChecker:
         if self.progress_file.exists():
             try:
                 with open(self.progress_file, encoding="utf-8") as f:
-                    return json.load(f)  # type: ignore[no-any-return]
+                    return cast(dict, json.load(f))
             except (json.JSONDecodeError, OSError, ValueError) as e:
                 logger.warning("Failed to load progress: %s", e)
         return self._create_empty_progress()
@@ -207,7 +207,7 @@ class TaskCompletionChecker:
         Returns:
             Dictionary mapping task ids to their dispatch progress data.
         """
-        return self.progress.get("dispatches", {})  # type: ignore[no-any-return]
+        return cast(dict, self.progress.get("dispatches", {}))
 
     def get_completion_summary(self) -> str:
         """Build a Markdown summary of dispatch completion status.

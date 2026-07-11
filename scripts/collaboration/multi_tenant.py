@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 
 class IsolationLevel(Enum):
@@ -209,10 +209,7 @@ class QuotaExceededError(Exception):
         self.resource = resource
         self.limit = limit
         self.current = current
-        message = (
-            f"Tenant '{tenant_id}' exceeded quota for '{resource}' "
-            f"(current: {current}, limit: {limit})"
-        )
+        message = f"Tenant '{tenant_id}' exceeded quota for '{resource}' (current: {current}, limit: {limit})"
         super().__init__(message)
 
 
@@ -351,10 +348,7 @@ class QuotaManager:
             Nested dict: {tenant_id: {resource: usage}}
         """
         with self._lock:
-            return {
-                tid: dict(resources)
-                for tid, resources in self._usage.items()
-            }
+            return {tid: dict(resources) for tid, resources in self._usage.items()}
 
     def get_stats(self) -> dict[str, Any]:
         """Get quota manager statistics.
@@ -431,7 +425,7 @@ class MultiTenantManager:
         """Get or create thread-local context."""
         if not hasattr(self._local, "context"):
             self._local.context = TenantContext()
-        return self._local.context  # type: ignore[no-any-return]
+        return cast(TenantContext, self._local.context)
 
     def create_tenant(self, tenant: Tenant) -> None:
         """Create/register a new tenant.
@@ -615,7 +609,9 @@ class MultiTenantManager:
 
         self.logger.debug(
             "Set context: tenant=%s user=%s request=%s",
-            tenant_id, user_id, ctx.request_id,
+            tenant_id,
+            user_id,
+            ctx.request_id,
         )
         return ctx
 
@@ -655,6 +651,7 @@ class MultiTenantManager:
                 perform_tenant_specific_operations()
             # Context automatically cleared here
         """
+
         class _TenantContextManager:
             def __init__(self, manager: "MultiTenantManager", tid: str, uid: str | None, **kw: Any) -> None:
                 self.manager = manager
@@ -699,9 +696,7 @@ class MultiTenantManager:
         if limit is None:
             return True  # No limit configured
 
-        return self.quota_manager.check_and_increment(
-            ctx.tenant_id, resource, limit, increment
-        )
+        return self.quota_manager.check_and_increment(ctx.tenant_id, resource, limit, increment)
 
     def get_current_tenant(self) -> Tenant | None:
         """Get the Tenant object for the current context.
@@ -783,7 +778,6 @@ class MultiTenantManager:
         return len(tenants_data)
 
 
-
 if __name__ == "__main__":
     print("Multi-Tenant Manager - Enterprise Multi-Tenancy Support")
     print("=" * 60)
@@ -830,9 +824,9 @@ if __name__ == "__main__":
 
         for i in range(5):
             if mtm.check_quota("tasks"):
-                print(f"  ✓ Task {i+1} quota granted")
+                print(f"  ✓ Task {i + 1} quota granted")
             else:
-                print(f"  ✗ Task {i+1} quota denied")
+                print(f"  ✗ Task {i + 1} quota denied")
 
     print("\n✓ Testing quota enforcement:")
 
@@ -846,9 +840,9 @@ if __name__ == "__main__":
     with mtm.context("tiny", "user-tiny"):
         for i in range(5):
             if mtm.check_quota("tasks"):
-                print(f"  ✓ Tiny task {i+1}: OK")
+                print(f"  ✓ Tiny task {i + 1}: OK")
             else:
-                print(f"  ✗ Tiny task {i+1}: QUOTA EXCEEDED")
+                print(f"  ✗ Tiny task {i + 1}: QUOTA EXCEEDED")
 
     stats = mtm.get_stats()
     print("\n📊 Statistics:")

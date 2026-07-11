@@ -26,7 +26,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
-from typing import Any
+from typing import Any, cast
 
 try:
     import psutil
@@ -113,7 +113,7 @@ class FunctionStats:
             return 0.0
         durations = sorted([m.duration for m in self.recent_metrics])
         idx = int(len(durations) * 0.95)
-        return durations[idx] if idx < len(durations) else durations[-1]  # type: ignore[no-any-return]
+        return cast(float, durations[idx] if idx < len(durations) else durations[-1])
 
     @property
     def p99_duration(self) -> float:
@@ -122,7 +122,7 @@ class FunctionStats:
             return 0.0
         durations = sorted([m.duration for m in self.recent_metrics])
         idx = int(len(durations) * 0.99)
-        return durations[idx] if idx < len(durations) else durations[-1]  # type: ignore[no-any-return]
+        return cast(float, durations[idx] if idx < len(durations) else durations[-1])
 
 
 def _get_cpu_percent() -> float:
@@ -130,7 +130,7 @@ def _get_cpu_percent() -> float:
     if not _PSUTIL_AVAILABLE:
         return 0.0
     try:
-        return psutil.Process().cpu_percent()  # type: ignore[no-any-return]
+        return cast(float, psutil.Process().cpu_percent())
     except (AttributeError, RuntimeError, OSError) as e:
         logger.debug("cpu_percent read failed: %s", e)
         return 0.0
@@ -141,7 +141,7 @@ def _get_memory_mb() -> float:
     if not _PSUTIL_AVAILABLE:
         return 0.0
     try:
-        return psutil.Process().memory_info().rss / 1024 / 1024  # type: ignore[no-any-return]
+        return cast(float, psutil.Process().memory_info().rss / 1024 / 1024)
     except (AttributeError, RuntimeError, OSError) as e:
         logger.debug("memory_info read failed: %s", e)
         return 0.0
@@ -189,6 +189,7 @@ class PerformanceMonitor:
 
         def decorator(func: Callable) -> Callable:
             """Wrap ``func`` to capture performance metrics on each call."""
+
             @wraps(func)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 """Execute the wrapped function and record its metric."""
@@ -361,7 +362,12 @@ class PerformanceMonitor:
         self.record_metric(metric)
 
     def record_agent_execution(
-        self, agent_role: str, task: str, duration: float, success: bool, metadata: dict[str, Any] | None = None  # noqa: ARG002
+        self,
+        agent_role: str,
+        task: str,  # noqa: ARG002
+        duration: float,
+        success: bool,
+        metadata: dict[str, Any] | None = None,  # noqa: ARG002
     ) -> None:
         """Record an agent execution (implements MonitorProvider Protocol)."""
         metric_name = f"agent:{agent_role}"

@@ -9,7 +9,7 @@ and accessed via `self.enterprise.*` instead of mixin inheritance.
 import logging
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +60,10 @@ class EnterpriseFeature:
         self.quality_guard = quality_guard
         self._perf_monitor = perf_monitor
 
-        self.enable_rbac = config.get('enable_rbac', True)
-        self.enable_audit = config.get('enable_audit', True)
-        self.enable_data_masking = config.get('enable_data_masking', True)
-        self.enable_multi_tenant = config.get('enable_multi_tenant', True)
+        self.enable_rbac = config.get("enable_rbac", True)
+        self.enable_audit = config.get("enable_audit", True)
+        self.enable_data_masking = config.get("enable_data_masking", True)
+        self.enable_multi_tenant = config.get("enable_multi_tenant", True)
 
         self.rbac_engine = None
         self.audit_logger = None
@@ -73,6 +73,7 @@ class EnterpriseFeature:
         if self.enable_rbac:
             try:
                 from .rbac_engine import RBACEngine, RBACUser, UserRole
+
                 self.rbac_engine = RBACEngine()
                 # Default user is OPERATOR (least privilege).
                 # For production use, configure proper RBAC roles via RBACEngine.add_user().
@@ -84,6 +85,7 @@ class EnterpriseFeature:
         if self.enable_audit:
             try:
                 from .audit_logger import AuditLogger, SensitiveDataMasker
+
                 audit_dir = os.path.join(self.persist_dir, "audit") if self.persist_dir else ".devsquad_data/audit"
                 self.audit_logger = AuditLogger(log_dir=audit_dir)
                 if self.enable_data_masking:
@@ -95,6 +97,7 @@ class EnterpriseFeature:
         if self.enable_multi_tenant:
             try:
                 from .multi_tenant import MultiTenantManager, Tenant
+
                 self.tenant_manager = MultiTenantManager()
                 self.tenant_manager.create_tenant(Tenant(tenant_id="default", name="Default Tenant"))
                 logger.info("Multi-Tenant Manager enabled")
@@ -110,16 +113,20 @@ class EnterpriseFeature:
 
             from .dispatch_models import DispatchResult
             from .rbac_engine import Permission, PermissionDeniedError
-            user_id = kwargs.get('user_id', 'default')
+
+            user_id = kwargs.get("user_id", "default")
             self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
             return None
         except PermissionDeniedError as e:
             return DispatchResult(  # type: ignore[call-arg]
-                success=False, task_description=task,
-                error=f"Permission denied: {e}", matched_roles=[],
+                success=False,
+                task_description=task,
+                error=f"Permission denied: {e}",
+                matched_roles=[],
                 summary=f"Permission denied: {e}",
                 errors=[f"Permission denied: {e}"],
-                duration_seconds=time.time() - start_time, lang=lang,
+                duration_seconds=time.time() - start_time,
+                lang=lang,
             )
         except (AttributeError, RuntimeError, KeyError) as e:
             logger.warning("RBAC check failed: %s", e)
@@ -131,7 +138,7 @@ class EnterpriseFeature:
             return text
         try:
             masked = self.data_masker.mask({"content": text})
-            return masked.get("content", text)  # type: ignore[no-any-return]
+            return cast(str, masked.get("content", text))
         except (ValueError, AttributeError, TypeError, KeyError) as e:
             logger.debug("Data masking failed: %s", e)
             return text
@@ -140,20 +147,23 @@ class EnterpriseFeature:
         """Set up multi-tenant context. Returns context manager or DispatchResult on quota error."""
         if not self.enable_multi_tenant or not self.tenant_manager:
             return None
-        tenant_id = kwargs.get('tenant_id', 'default')
-        user_id = kwargs.get('user_id', 'default')
+        tenant_id = kwargs.get("tenant_id", "default")
+        user_id = kwargs.get("user_id", "default")
         if not tenant_id:
             return None
         try:
             import time
 
             from .dispatch_models import DispatchResult
+
             tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
             tenant_ctx.__enter__()
             if not self.tenant_manager.check_quota("tasks"):
                 return DispatchResult(  # type: ignore[call-arg]
-                    success=False, task_description="",
-                    error="Quota exceeded", matched_roles=[],
+                    success=False,
+                    task_description="",
+                    error="Quota exceeded",
+                    matched_roles=[],
                     summary="Quota exceeded for tenant",
                     errors=["Quota exceeded"],
                     duration_seconds=time.time() - start_time,
@@ -177,11 +187,11 @@ class EnterpriseFeature:
             return
         try:
             self.audit_logger.log(
-                user_id=kwargs.get('user_id', 'system'),
+                user_id=kwargs.get("user_id", "system"),
                 action="task:dispatch_start",
                 resource_type="Task",
                 resource_id="unknown",
-                details={"task": task_description[:200]}
+                details={"task": task_description[:200]},
             )
         except (OSError, AttributeError, KeyError) as e:
             logger.debug("Audit logging failed: %s", e)
@@ -192,11 +202,11 @@ class EnterpriseFeature:
             return
         try:
             self.audit_logger.log(
-                user_id=kwargs.get('user_id', 'system'),
+                user_id=kwargs.get("user_id", "system"),
                 action="task:dispatch_complete",
                 resource_type="Task",
                 resource_id="unknown",
-                result="success" if result.success else "failure"
+                result="success" if result.success else "failure",
             )
         except (OSError, AttributeError, KeyError) as e:
             logger.debug("Audit logging failed: %s", e)
@@ -208,7 +218,8 @@ class EnterpriseFeature:
         if self.rbac_engine:
             try:
                 from .rbac_engine import Permission, PermissionDeniedError
-                user_id = kwargs.get('user_id', 'default')
+
+                user_id = kwargs.get("user_id", "default")
                 self.rbac_engine.enforce(user_id, Permission.TASK_READ)
             except PermissionDeniedError as e:
                 logger.warning("RBAC denied: %s", e)
@@ -267,7 +278,8 @@ class EnterpriseFeature:
         if self.rbac_engine:
             try:
                 from .rbac_engine import Permission, PermissionDeniedError
-                user_id = kwargs.get('user_id', 'default')
+
+                user_id = kwargs.get("user_id", "default")
                 self.rbac_engine.enforce(user_id, Permission.TASK_READ)
             except PermissionDeniedError as e:
                 logger.warning("RBAC denied: %s", e)
@@ -279,7 +291,8 @@ class EnterpriseFeature:
         if self.rbac_engine:
             try:
                 from .rbac_engine import Permission, PermissionDeniedError
-                user_id = kwargs.get('user_id', 'default')
+
+                user_id = kwargs.get("user_id", "default")
                 self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
             except PermissionDeniedError as e:
                 logger.warning("RBAC denied: %s", e)

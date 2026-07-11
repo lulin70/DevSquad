@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -552,7 +552,7 @@ class CheckpointManager:
                 data = json.load(f)
 
             logger.info("Lifecycle state loaded: %s", task_id)
-            return data  # type: ignore[no-any-return]
+            return cast(dict, data)
 
         except (OSError, json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
             logger.warning("Failed to load lifecycle state: %s", e)

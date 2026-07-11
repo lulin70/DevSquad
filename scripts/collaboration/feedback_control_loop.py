@@ -21,7 +21,7 @@ Usage:
 import logging
 import threading
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,9 @@ class FeedbackControlLoop:
         """Highest quality score achieved."""
         return self._best_quality
 
-    def run(self, task: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, **kwargs: Any) -> Any:
+    def run(
+        self, task: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, **kwargs: Any
+    ) -> Any:
         """
         Execute the feedback control loop.
 
@@ -392,11 +394,11 @@ class FeedbackControlLoop:
             "Output ONLY the refined task description, no preamble."
         )
 
-        if hasattr(self._llm_backend, 'generate'):
-            return self._llm_backend.generate(prompt)  # type: ignore[no-any-return]
-        elif hasattr(self._llm_backend, 'call'):
-            return self._llm_backend.call(prompt)  # type: ignore[no-any-return]
-        elif hasattr(self._llm_backend, 'chat'):
+        if hasattr(self._llm_backend, "generate"):
+            return cast(str, self._llm_backend.generate(prompt))
+        elif hasattr(self._llm_backend, "call"):
+            return cast(str, self._llm_backend.call(prompt))
+        elif hasattr(self._llm_backend, "chat"):
             response = self._llm_backend.chat([{"role": "user", "content": prompt}])
             if isinstance(response, dict):
                 return response.get("content", response.get("text", ""))  # type: ignore[return-value]
