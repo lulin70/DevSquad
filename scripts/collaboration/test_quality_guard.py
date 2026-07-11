@@ -50,6 +50,7 @@ class Severity(Enum):
 
 
 class TestDimension(Enum):
+    __test__ = False
     HAPPY_PATH = "happy_path"
     ERROR_CASE = "error_case"
     BOUNDARY = "boundary"
@@ -57,9 +58,6 @@ class TestDimension(Enum):
     CONFIGURATION = "configuration"
     INTEGRATION = "integration"
     SECURITY = "security"
-
-
-TestDimension.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 @dataclass
@@ -94,6 +92,7 @@ class QualityIssue:
 
 @dataclass
 class TestFunctionMeta:
+    __test__ = False
     name: str
     line: int
     has_purpose: bool = False
@@ -104,9 +103,6 @@ class TestFunctionMeta:
     has_error_test: bool = False
     has_performance_check: bool = False
     docstring: str = ""
-
-
-TestFunctionMeta.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 @dataclass
@@ -145,6 +141,7 @@ class QualityScore:
 
 @dataclass
 class TestQualityReport:
+    __test__ = False
     module_name: str
     test_file: str
     source_file: str
@@ -281,9 +278,6 @@ class TestQualityReport:
             ]
         )
         return "\n".join(lines)
-
-
-TestQualityReport.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 class APISignatureValidator:
@@ -569,7 +563,7 @@ class TestPurposeParser:
             if score > 0:
                 scores[dim] = score
         if scores:
-            return max(scores, key=scores.get)  # type: ignore[arg-type]
+            return max(scores, key=lambda k: scores[k])
         return TestDimension.HAPPY_PATH
 
 
@@ -580,6 +574,8 @@ class TestQualityGuard:
     对测试文件进行全方位质量审计，
     输出可操作的改进建议报告。
     """
+
+    __test__ = False
 
     def __init__(self, module_path: str, test_path: str, strict_mode: bool = False):
         """
@@ -791,9 +787,6 @@ class TestQualityGuard:
         self.assertLess(elapsed, 100, f"耗时 {{elapsed:.1f}}ms 超过 100ms 阈值")
 '''
         return template
-
-
-TestQualityGuard.__test__ = False  # type: ignore[attr-defined]  # Tell pytest this is not a test class
 
 
 def quick_audit(module_path: str, test_path: str) -> TestQualityReport:

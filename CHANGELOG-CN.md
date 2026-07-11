@@ -7,6 +7,21 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.0.5] - 2026-07-12
+
+PATCH 发布：修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.6 推进 P2-6（type: ignore 清理 — 消除 35 处非 no-any-return type: ignore，修复 1 个运行时 bug）。
+
+### 修复 — P2-6：type: ignore 系统性清理（35 处清理 / 6 处合理保留）
+
+- **单例 attr-defined（10 处）**：5 个文件用模块级变量替代函数属性单例模式，消除 10 个 `attr-defined` + `no-any-return`。
+- **no-redef stub 类（1 处清理 / 4 处保留）**：`prometheus_metrics.py` 重构为 `importlib.util.find_spec` + `if/else`，移除冗余 cast。4 处 `no-redef` 保留（mypy 已知限制）。stub Counter 移除不存在的 `observe()` 方法。`reset_metrics()` 新增 REGISTRY 清理。
+- **arg-type/call-arg/union-attr（11 处清理 / 1 处保留）**：6 个 arg-type（cast/类型注解/str()包装）、3 个 call-arg（参数名修正/移除不存在参数）、2 个 union-attr（局部变量/getattr）。`mcp_server.py:159` 保留（MCP 工具契约原因）。
+- **assignment/name-defined/return-value/bare/attr-defined（12 处清理 / 1 处保留）**：`memory_serializer.py` **修复运行时 bug**（`KnowledgeMemory`/`FeedbackMemory` 引用不存在的类名，改为 `KnowledgeItem`/`UserFeedback`）。`loop_engineering/models.py` `scheduling_decision` 改为 Optional + 添加 None 检查。`dag_views.py` 保留（`st.mermaid` 不在类型 stubs 中）。
+- **pytest __test__ attr-defined（4 处清理）**：`test_quality_guard.py` 4 个类的 `__test__ = False` 从外部赋值改为类体内声明。
+
+### 修复 — test_prometheus_metrics.py 兼容真实 prometheus_client
+- 修复测试在安装了 prometheus_client 的环境中失败的问题：使用唯一 metric 名、接口检查替代对象同一性、context manager 协议检查替代特定类型检查。
+
 ## [4.0.4] - 2026-07-11
 
 PATCH 发布：修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.4 按 ROI 推进 P2-4（无测试模块补充 — 两梯队 11 个模块，整体覆盖率 79.15% → 80.06%）。

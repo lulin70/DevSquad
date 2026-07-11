@@ -138,7 +138,7 @@ class ContentCache:
         # its own internal key derivation; we pass our unified key as
         # the prompt argument so the underlying SHA-256 is applied to
         # the canonical content, not the raw prompt.
-        result = self._wrapped.get(key, backend, model)  # type: ignore[attr-defined]
+        result = cast(Any, self._wrapped).get(key, backend, model)
         if result is not None:
             self.hits += 1
             self._record_metric(hit=True)
@@ -163,7 +163,7 @@ class ContentCache:
             return False
 
         key = self._generate_key(prompt, backend, model)
-        self._wrapped.set(key, response, backend, model)  # type: ignore[attr-defined]
+        cast(Any, self._wrapped).set(key, response, backend, model)
         return True
 
     # ------------------------------------------------------------------

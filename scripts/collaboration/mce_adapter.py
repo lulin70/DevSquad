@@ -607,7 +607,7 @@ class MCEAdapter:
                         "rule_type": rule_type,
                         "trigger": rule.get("trigger", ""),
                         "action": rule.get("action", rule.get("description", "")),
-                        "relevance_score": float(rule.get("relevance_score", rule.get("score", 0.0))),  # type: ignore[arg-type]
+                        "relevance_score": float(rule.get("relevance_score") or rule.get("score") or 0.0),
                         "rule_id": str(rule.get("rule_id", rule.get("id", ""))),
                         "override": bool(rule.get("override", False)),
                     }

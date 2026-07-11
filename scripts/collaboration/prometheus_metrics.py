@@ -20,18 +20,18 @@ Dependencies:
     pip install prometheus-client
 """
 
+import importlib.util
 import logging
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
-try:
-    from prometheus_client import REGISTRY, Counter, Gauge, Histogram, Info, generate_latest
+_PROMETHEUS_AVAILABLE = importlib.util.find_spec("prometheus_client") is not None
 
-    _PROMETHEUS_AVAILABLE = True
-except ImportError:
-    _PROMETHEUS_AVAILABLE = False
+if _PROMETHEUS_AVAILABLE:
+    from prometheus_client import REGISTRY, Counter, Gauge, Histogram, Info, generate_latest
+else:
 
     class Counter:  # type: ignore[no-redef]
         def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -43,10 +43,6 @@ except ImportError:
 
         def inc(self, amount: int = 1) -> None:
             """No-op increment for the stub counter."""
-            pass
-
-        def observe(self, amount: float) -> None:
-            """No-op observe for the stub counter."""
             pass
 
     class Gauge:  # type: ignore[no-redef]
@@ -382,7 +378,7 @@ class DevSquadMetrics:
         """
         if not _PROMETHEUS_AVAILABLE:
             return None
-        return generate_latest(REGISTRY)  # type: ignore[no-any-return, unused-ignore]
+        return generate_latest(REGISTRY)
 
     def is_available(self) -> bool:
         """Check if Prometheus client is available."""
@@ -406,6 +402,14 @@ def get_metrics() -> DevSquadMetrics:
 
 
 def reset_metrics() -> None:
-    """Reset global metrics instance (mainly for testing)."""
+    """Reset global metrics instance (mainly for testing).
+
+    Also unregisters all collectors from the global REGISTRY so that
+    a subsequent ``get_metrics()`` call can re-create metrics without
+    hitting "Duplicated timeseries" errors.
+    """
     global _metrics_instance
     _metrics_instance = None
+    if _PROMETHEUS_AVAILABLE:
+        for collector in list(REGISTRY._collector_to_names.keys()):
+            REGISTRY.unregister(collector)

@@ -436,6 +436,9 @@ class IntentWorkflowMapper:
         }
 
 
+_shared_mapper_instance: IntentWorkflowMapper | None = None
+
+
 def get_shared_mapper(confidence_threshold: float = 0.3) -> IntentWorkflowMapper:
     """
     Get or create shared singleton instance.
@@ -446,6 +449,7 @@ def get_shared_mapper(confidence_threshold: float = 0.3) -> IntentWorkflowMapper
     Returns:
         Shared IntentWorkflowMapper instance
     """
-    if not hasattr(get_shared_mapper, "_instance"):
-        get_shared_mapper._instance = IntentWorkflowMapper(confidence_threshold=confidence_threshold)  # type: ignore[attr-defined]
-    return get_shared_mapper._instance  # type: ignore[no-any-return,attr-defined]
+    global _shared_mapper_instance
+    if _shared_mapper_instance is None:
+        _shared_mapper_instance = IntentWorkflowMapper(confidence_threshold=confidence_threshold)
+    return _shared_mapper_instance

@@ -265,7 +265,9 @@ class MemorySerializerMixin:
         captured_id = None
         for entry in scratchpad_entries:
             entry_type = getattr(entry, "entry_type", None)
-            entry_type_val = entry_type.value if hasattr(entry_type, "value") else str(entry_type)  # type: ignore[union-attr]
+            entry_type_val = getattr(entry_type, "value", None)
+            if not entry_type_val:
+                entry_type_val = str(entry_type)
             if entry_type_val != "FINDING":
                 continue
             confidence = getattr(entry, "confidence", 0.8) or 0.8
@@ -298,25 +300,23 @@ class MemorySerializerMixin:
             tags = self._extract_tags(task_desc + " " + content)
 
             if mce_memory_type == "KNOWLEDGE":
-                knowledge = KnowledgeMemory(  # type: ignore[name-defined]  # noqa: F821
+                knowledge = KnowledgeItem(
                     id=f"know_{uuid.uuid4().hex[:12]}_{int(time.time())}",
                     domain=task_desc[:100] if task_desc else "general",
-                    fact=content,
+                    title=content[:100] if content else "untitled",
+                    content=content,
                     source=worker_id or "multi-agent",
-                    confidence=mce_confidence,
                     tags=tags,
                     created_at=datetime.now().isoformat(),
                 )
                 self.writer.write_knowledge(knowledge)
                 captured_id = knowledge.id
             elif mce_memory_type == "FEEDBACK":
-                feedback = FeedbackMemory(  # type: ignore[name-defined]  # noqa: F821
+                feedback = UserFeedback(
                     id=f"feed_{uuid.uuid4().hex[:12]}_{int(time.time())}",
-                    category="preference",
+                    user_id=worker_id or "user",
+                    feedback_type="preference",
                     content=content,
-                    source=worker_id or "user",
-                    severity="info",
-                    tags=tags,
                     created_at=datetime.now().isoformat(),
                 )
                 self.writer.write_feedback(feedback)

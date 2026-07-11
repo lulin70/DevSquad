@@ -15,7 +15,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -310,7 +310,8 @@ class CIFeedbackAdapter:
             return None
 
         try:
-            return parser_cls.parse(output)  # type: ignore[attr-defined,no-any-return]
+            parser: Any = parser_cls
+            return cast(CIResult, parser.parse(output))
         except (ValueError, KeyError, TypeError, RuntimeError) as e:
             logger.error("Failed to parse %s output: %s", source_type, e)
             return None

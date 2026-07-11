@@ -401,7 +401,7 @@ class FeedbackControlLoop:
         elif hasattr(self._llm_backend, "chat"):
             response = self._llm_backend.chat([{"role": "user", "content": prompt}])
             if isinstance(response, dict):
-                return response.get("content", response.get("text", ""))  # type: ignore[return-value]
+                return str(response.get("content", response.get("text", "")))
             return str(response)
         else:
             raise ValueError(f"Unsupported LLM backend type: {type(self._llm_backend)}")

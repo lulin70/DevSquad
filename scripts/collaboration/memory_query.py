@@ -235,7 +235,7 @@ class MemoryQueryMixin:
                     }
                     mapped_type = type_mapping.get(mce_result.memory_type.lower())
                     if mapped_type:
-                        effective_type_filter = mapped_type  # type: ignore[assignment]
+                        effective_type_filter = MemoryType[mapped_type]
             except (ValueError, AttributeError, RuntimeError):
                 pass
 

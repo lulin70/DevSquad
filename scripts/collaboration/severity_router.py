@@ -49,7 +49,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from .event_bus import EventBus
 from .two_stage_review_gate import ReviewFinding
@@ -795,7 +795,7 @@ class SeverityRouter:
         # passing them through directly (run_fix_loop handles FixAction
         # inputs via _classify_severity's pass-through for FixAction).
         result = self.run_fix_loop(
-            findings=findings,  # type: ignore[arg-type]
+            findings=cast(list[ReviewFinding], findings),
             context={},
             fix_callable=fix_callable,
             ci_check_callable=ci_check_callable,

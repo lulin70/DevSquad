@@ -1,7 +1,7 @@
 """Feedback loop, UE testing, and technical-debt post-dispatch step mixins."""
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from .dispatch_steps_base import PostDispatchBase
 from .tech_debt_manager import TechDebtManager
@@ -121,7 +121,7 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
             # If PM defined user stories, validate against them
             if pm_output:
                 validation = framework.validate_user_journey(
-                    plan.journey_tests[0] if plan.journey_tests else None,  # type: ignore[arg-type]
+                    cast(Any, plan.journey_tests[0] if plan.journey_tests else None),
                     {"pm_output": pm_output, "tester_output": tester_output},
                 )
                 if validation:

@@ -91,6 +91,10 @@ class LoopKernel:
             report.total_iterations = iter_index + 1
 
             decision = cycle.scheduling_decision
+            if decision is None:
+                report.final_status = "failed"
+                report.error = "Cycle returned without scheduling decision"
+                break
             if decision.action == SchedulingAction.STOP_SUCCESS:
                 report.final_status = "completed"
                 break
@@ -144,7 +148,7 @@ class LoopKernel:
                         handoff={},
                         verification_passed=True,
                         verification_errors=[],
-                        scheduling_decision=None,  # type: ignore
+                        scheduling_decision=None,
                     ),
                     self._consecutive_failures,
                     self._config.max_iterations,
@@ -186,7 +190,7 @@ class LoopKernel:
             handoff=handoff,
             verification_passed=passed,
             verification_errors=errors,
-            scheduling_decision=None,  # type: ignore
+            scheduling_decision=None,
             events=events,
         )
         self._memory.persist_cycle(cycle)

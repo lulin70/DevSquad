@@ -615,6 +615,9 @@ class UnifiedGateEngine:
         }
 
 
+_shared_gate_engine_instance: UnifiedGateEngine | None = None
+
+
 def get_shared_gate_engine(
     config: UnifiedGateConfig | None = None,
 ) -> UnifiedGateEngine:
@@ -627,6 +630,7 @@ def get_shared_gate_engine(
     Returns:
         Shared UnifiedGateEngine instance
     """
-    if not hasattr(get_shared_gate_engine, "_instance"):
-        get_shared_gate_engine._instance = UnifiedGateEngine(config=config)  # type: ignore[attr-defined]
-    return get_shared_gate_engine._instance  # type: ignore[attr-defined,no-any-return]
+    global _shared_gate_engine_instance
+    if _shared_gate_engine_instance is None:
+        _shared_gate_engine_instance = UnifiedGateEngine(config=config)
+    return _shared_gate_engine_instance

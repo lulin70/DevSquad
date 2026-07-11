@@ -20,6 +20,26 @@ from scripts.collaboration.prometheus_metrics import (
     reset_metrics,
 )
 
+
+@pytest.fixture(autouse=True)
+def _clear_prometheus_registry():
+    """Clear the global CollectorRegistry before each test to avoid duplicate
+    timeseries errors when multiple tests create metrics with the same names.
+    Stubs are no-ops so this is safe when prometheus_client is unavailable.
+    """
+    if _PROMETHEUS_AVAILABLE:
+        from prometheus_client import REGISTRY
+
+        for collector in list(REGISTRY._collector_to_names.keys()):
+            REGISTRY.unregister(collector)
+    yield
+    if _PROMETHEUS_AVAILABLE:
+        from prometheus_client import REGISTRY
+
+        for collector in list(REGISTRY._collector_to_names.keys()):
+            REGISTRY.unregister(collector)
+
+
 # ---------------------------------------------------------------------------
 # Stub classes (active when prometheus_client is not installed)
 # ---------------------------------------------------------------------------
@@ -27,86 +47,89 @@ from scripts.collaboration.prometheus_metrics import (
 
 class TestCounterStub:
     def test_init_no_args(self):
-        c = Counter("name", "desc")
+        c = Counter("test_counter_init_no_args", "desc")
         assert c is not None
 
     def test_init_with_args(self):
-        c = Counter("name", "desc", ["label1", "label2"])
+        c = Counter("test_counter_init_with_args", "desc", ["label1", "label2"])
         assert c is not None
 
-    def test_labels_returns_self(self):
-        c = Counter("name", "desc")
-        assert c.labels(key="val") is c
+    def test_labels_returns_callable(self):
+        c = Counter("test_counter_labels", "desc", ["key"])
+        labeled = c.labels(key="val")
+        assert labeled is not None
+        assert hasattr(labeled, "inc")
 
     def test_inc_default(self):
-        c = Counter("name", "desc")
+        c = Counter("test_counter_inc_default", "desc")
         c.inc()
 
     def test_inc_with_amount(self):
-        c = Counter("name", "desc")
+        c = Counter("test_counter_inc_with_amount", "desc")
         c.inc(5)
-
-    def test_observe(self):
-        c = Counter("name", "desc")
-        c.observe(3.14)
 
 
 class TestGaugeStub:
     def test_init(self):
-        g = Gauge("name", "desc")
+        g = Gauge("test_gauge_init", "desc")
         assert g is not None
 
-    def test_labels_returns_self(self):
-        g = Gauge("name", "desc")
-        assert g.labels(key="val") is g
+    def test_labels_returns_callable(self):
+        g = Gauge("test_gauge_labels", "desc", ["key"])
+        labeled = g.labels(key="val")
+        assert labeled is not None
+        assert hasattr(labeled, "set")
 
     def test_set(self):
-        g = Gauge("name", "desc")
+        g = Gauge("test_gauge_set", "desc")
         g.set(42.0)
 
     def test_inc_default(self):
-        g = Gauge("name", "desc")
+        g = Gauge("test_gauge_inc_default", "desc")
         g.inc()
 
     def test_inc_with_amount(self):
-        g = Gauge("name", "desc")
+        g = Gauge("test_gauge_inc_with_amount", "desc")
         g.inc(3)
 
     def test_dec_default(self):
-        g = Gauge("name", "desc")
+        g = Gauge("test_gauge_dec_default", "desc")
         g.dec()
 
     def test_dec_with_amount(self):
-        g = Gauge("name", "desc")
+        g = Gauge("test_gauge_dec_with_amount", "desc")
         g.dec(2)
 
 
 class TestHistogramStub:
     def test_init(self):
-        h = Histogram("name", "desc")
+        h = Histogram("test_histogram_init", "desc")
         assert h is not None
 
-    def test_labels_returns_self(self):
-        h = Histogram("name", "desc")
-        assert h.labels(key="val") is h
+    def test_labels_returns_callable(self):
+        h = Histogram("test_histogram_labels", "desc", ["key"])
+        labeled = h.labels(key="val")
+        assert labeled is not None
+        assert hasattr(labeled, "observe")
 
     def test_observe(self):
-        h = Histogram("name", "desc")
+        h = Histogram("test_histogram_observe", "desc")
         h.observe(1.5)
 
     def test_time_returns_context_manager(self):
-        h = Histogram("name", "desc")
+        h = Histogram("test_histogram_time", "desc")
         cm = h.time()
-        assert isinstance(cm, _NullContextManager)
+        assert hasattr(cm, "__enter__")
+        assert hasattr(cm, "__exit__")
 
 
 class TestInfoStub:
     def test_init(self):
-        i = Info("name", "desc")
+        i = Info("test_info_init", "desc")
         assert i is not None
 
     def test_info(self):
-        i = Info("name", "desc")
+        i = Info("test_info_method", "desc")
         i.info({"version": "1.0.0"})
 
 
@@ -276,15 +299,15 @@ class TestGateCheckMetrics:
 class TestBuildInfo:
     def test_set_build_info_version_only(self):
         m = DevSquadMetrics()
-        m.set_build_info("4.0.4")
+        m.set_build_info("4.0.5")
 
     def test_set_build_info_with_commit(self):
         m = DevSquadMetrics()
-        m.set_build_info("4.0.4", commit="abc123")
+        m.set_build_info("4.0.5", commit="abc123")
 
     def test_set_build_info_with_all(self):
         m = DevSquadMetrics()
-        m.set_build_info("4.0.4", commit="abc123", build_date="2026-07-11")
+        m.set_build_info("4.0.5", commit="abc123", build_date="2026-07-11")
 
 
 class TestGenerateMetrics:

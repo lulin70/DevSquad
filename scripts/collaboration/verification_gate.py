@@ -287,6 +287,9 @@ class VerificationGate:
         return len(self.MANDATORY_EVIDENCE)
 
 
+_shared_verification_gate_instance: VerificationGate | None = None
+
+
 def get_shared_gate(strict_mode: bool = True) -> VerificationGate:
     """
     Get or create shared singleton instance.
@@ -297,6 +300,7 @@ def get_shared_gate(strict_mode: bool = True) -> VerificationGate:
     Returns:
         Shared VerificationGate instance
     """
-    if not hasattr(get_shared_gate, "_instance"):
-        get_shared_gate._instance = VerificationGate(strict_mode=strict_mode)  # type: ignore[attr-defined]
-    return get_shared_gate._instance  # type: ignore[no-any-return,attr-defined]
+    global _shared_verification_gate_instance
+    if _shared_verification_gate_instance is None:
+        _shared_verification_gate_instance = VerificationGate(strict_mode=strict_mode)
+    return _shared_verification_gate_instance

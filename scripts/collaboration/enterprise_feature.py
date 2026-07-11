@@ -118,10 +118,9 @@ class EnterpriseFeature:
             self.rbac_engine.enforce(user_id, Permission.TASK_EXECUTE)
             return None
         except PermissionDeniedError as e:
-            return DispatchResult(  # type: ignore[call-arg]
+            return DispatchResult(
                 success=False,
                 task_description=task,
-                error=f"Permission denied: {e}",
                 matched_roles=[],
                 summary=f"Permission denied: {e}",
                 errors=[f"Permission denied: {e}"],
@@ -159,10 +158,9 @@ class EnterpriseFeature:
             tenant_ctx = self.tenant_manager.context(tenant_id, user_id)
             tenant_ctx.__enter__()
             if not self.tenant_manager.check_quota("tasks"):
-                return DispatchResult(  # type: ignore[call-arg]
+                return DispatchResult(
                     success=False,
                     task_description="",
-                    error="Quota exceeded",
                     matched_roles=[],
                     summary="Quota exceeded for tenant",
                     errors=["Quota exceeded"],

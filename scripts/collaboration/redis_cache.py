@@ -94,7 +94,7 @@ class RedisCacheBackend(CacheBackendInterface):
             retry_delay: Delay between retries (seconds)
             health_check_interval: Interval between health checks
         """
-        self.redis_url: str = redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0")  # type: ignore[assignment]
+        self.redis_url: str = redis_url or os.getenv("REDIS_URL") or "redis://localhost:6379/0"
         self.prefix = os.getenv("CACHE_PREFIX", prefix)
         self.default_ttl = int(os.getenv("CACHE_TTL", str(default_ttl)))
         self.max_connections = max_connections
@@ -605,7 +605,7 @@ class SyncRedisCacheWrapper:
                     redis_url=self._redis_url,
                     prefix=self._prefix,
                     default_ttl=self._default_ttl,
-                    compression=self._compression,  # type: ignore[call-arg]
+                    enable_compression=self._compression,
                 )
                 self._initialized = True
             except (ImportError, AttributeError, RuntimeError, OSError) as e:

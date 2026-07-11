@@ -947,8 +947,12 @@ def create_lifecycle_protocol(mode: LifecycleMode = LifecycleMode.SHORTCUT) -> L
         return adapter
 
 
+_shared_protocol_instance: LifecycleProtocol | None = None
+
+
 def get_shared_protocol() -> LifecycleProtocol:
     """Get shared singleton instance of lifecycle protocol."""
-    if not hasattr(get_shared_protocol, "_instance"):
-        get_shared_protocol._instance = create_lifecycle_protocol()  # type: ignore[attr-defined]
-    return get_shared_protocol._instance  # type: ignore[attr-defined, no-any-return]
+    global _shared_protocol_instance
+    if _shared_protocol_instance is None:
+        _shared_protocol_instance = create_lifecycle_protocol()
+    return _shared_protocol_instance

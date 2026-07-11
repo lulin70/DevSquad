@@ -237,7 +237,7 @@ class RetrospectiveEngine:
             analysis = AnalysisCase(
                 id=f"retro_{goal.goal_id}",
                 problem=f"Retrospective: {goal.original_description[:60]}",
-                context=report.summary,  # type: ignore[arg-type]
+                context={"summary": report.summary},
                 root_cause="; ".join(d.reason for d in report.deviations[:3]) if report.deviations else "No deviations",
                 solutions=report.improvements,
                 status="completed",

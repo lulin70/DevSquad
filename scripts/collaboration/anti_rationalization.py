@@ -375,6 +375,9 @@ class AntiRationalizationEngine:
         return len(self._UNIVERSAL_TABLE) + max_specific
 
 
+_shared_engine_instance: AntiRationalizationEngine | None = None
+
+
 def get_shared_engine(max_entries_per_role: int = 0) -> AntiRationalizationEngine:
     """
     Get or create shared singleton instance.
@@ -385,6 +388,7 @@ def get_shared_engine(max_entries_per_role: int = 0) -> AntiRationalizationEngin
     Returns:
         Shared AntiRationalizationEngine instance
     """
-    if not hasattr(get_shared_engine, "_instance"):
-        get_shared_engine._instance = AntiRationalizationEngine(max_entries_per_role=max_entries_per_role)  # type: ignore[attr-defined]
-    return get_shared_engine._instance  # type: ignore[no-any-return,attr-defined]
+    global _shared_engine_instance
+    if _shared_engine_instance is None:
+        _shared_engine_instance = AntiRationalizationEngine(max_entries_per_role=max_entries_per_role)
+    return _shared_engine_instance

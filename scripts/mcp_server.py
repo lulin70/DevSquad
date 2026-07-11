@@ -23,6 +23,7 @@ Dependencies (optional, graceful fallback):
     pip install mcp             # For MCP protocol support
 """
 
+import importlib.util
 import json
 import logging
 import os
@@ -56,13 +57,12 @@ from scripts.collaboration.dispatcher import MultiAgentDispatcher  # noqa: E402
 from scripts.collaboration.models import ROLE_REGISTRY  # noqa: E402
 
 # V3.9-02: CodeKnowledgeGraph integration (graceful fallback when unavailable).
-try:
-    from scripts.collaboration.code_knowledge_graph import CodeKnowledgeGraph  # noqa: E402
+_CODEGRAPH_AVAILABLE = importlib.util.find_spec("scripts.collaboration.code_knowledge_graph") is not None
 
-    _CODEGRAPH_AVAILABLE = True
-except ImportError:  # pragma: no cover — defensive: optional dependency
-    _CODEGRAPH_AVAILABLE = False
-    CodeKnowledgeGraph = None  # type: ignore[assignment,misc]
+if _CODEGRAPH_AVAILABLE:
+    from scripts.collaboration.code_knowledge_graph import CodeKnowledgeGraph  # noqa: E402
+else:
+    CodeKnowledgeGraph = None  # type: ignore[assignment, misc]
 
 
 def _default_codegraph_db_path() -> Path:

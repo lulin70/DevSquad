@@ -7,6 +7,51 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.5] - 2026-07-12
+
+PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.6 推进 P2-6（type: ignore 清理 — 消除 35 处非 no-any-return type: ignore，修复 1 个运行时 bug）。
+
+### Fixed — P2-6: type: ignore 系统性清理（35 处清理 / 6 处合理保留）
+
+**任务 #122: 单例 attr-defined（10 处清理）**
+- `unified_gate_engine.py`, `verification_gate.py`, `anti_rationalization.py`, `lifecycle_shortcut_adapter.py`, `intent_workflow_mapper.py`: 用模块级变量 `_shared_xxx_instance: XxxType | None = None` + `global` 替代函数属性 `func._instance` 单例模式，消除 10 个 `type: ignore[attr-defined, no-any-return]`。
+
+**任务 #123: no-redef stub 类（1 处清理 / 4 处保留）**
+- `prometheus_metrics.py`: 重构可选依赖检测为 `importlib.util.find_spec` + `if/else`，移除 L385 `type: ignore[no-any-return, unused-ignore]`（改为直接返回 `generate_latest(REGISTRY)`）。4 处 `no-redef` 保留（mypy 已知限制：可选依赖 stub 类与 import 同名无法绕过）。
+- `prometheus_metrics.py` stub Counter: 移除不存在的 `observe()` 方法（Counter 接口无此方法，是 Histogram 方法）。
+- `prometheus_metrics.py` `reset_metrics()`: 新增 REGISTRY 清理逻辑（unregister all collectors），确保测试间无重复注册。
+
+**任务 #124: arg-type/call-arg/union-attr（11 处清理 / 1 处保留）**
+- `test_quality_guard.py`: `scores.get()` → `max(scores, key=lambda k: scores[k])` 消除 arg-type。
+- `report_formatter.py`: 添加 `_I18N_SUMMARY` 类型注解 + `str()` 包装消除 arg-type。
+- `severity_router.py`: `cast(list[ReviewFinding], findings)` 消除 arg-type。
+- `dispatch_steps_feedback_mixin.py`: `cast(Any, plan.journey_tests[0])` 消除 arg-type。
+- `retrospective.py`: `context={"summary": report.summary}` 包装 str 为 dict 消除 arg-type。
+- `mce_adapter.py`: `float(rule.get("x") or rule.get("y") or 0.0)` 处理 None 消除 arg-type。
+- `enterprise_feature.py`: 移除 `error=...` 参数（DispatchResult 无 `error` 字段，有 `errors: list[str]`），消除 2 个 call-arg。
+- `redis_cache.py`: `compression=` → `enable_compression=`（参数名修正），消除 call-arg。
+- `memory_serializer.py`: `getattr(entry_type, "value", None)` 替代 `hasattr + attr` 访问消除 union-attr。
+- `coordinator.py`: 局部变量 `store = self.ccr_store` 替代嵌套函数中 `self.ccr_store` 访问消除 union-attr。
+- `mcp_server.py:159`: 保留 `call-arg`（MCP 工具契约使用 `task=`，dispatcher 签名为 `task_description=`）。
+
+**任务 #125: assignment/name-defined/return-value/bare/attr-defined（12 处清理 / 1 处保留）**
+- `mcp_server.py`: `importlib.util.find_spec` 替代 `try/except ImportError`，消除 assignment + misc。
+- `redis_cache.py`: `or` 链处理 `os.getenv` 返回值消除 assignment。
+- `memory_query.py`: `MemoryType[mapped_type]` 将字符串转为枚举消除 assignment。
+- `memory_serializer.py`: **修复运行时 bug** — `KnowledgeMemory` → `KnowledgeItem`，`FeedbackMemory` → `UserFeedback`（原代码引用不存在的类名，运行时会 NameError），同步修正构造参数（`fact`→`content`+`title`，`category`→`feedback_type`，移除不存在的 `confidence`/`severity`/`tags` 字段），消除 2 个 name-defined。
+- `feedback_control_loop.py`: `str()` 包装 `response.get()` 返回值消除 return-value。
+- `loop_engineering/models.py`: `scheduling_decision: SchedulingDecision | None = None` 改为 Optional。
+- `loop_engineering/kernel.py`: 添加 None 检查 + 移除 2 个 bare `type: ignore`。
+- `content_cache.py`: `cast(Any, self._wrapped)` 替代 attr-defined（LLMCacheBase 不定义 get/set，由子类实现）。
+- `ci_feedback_adapter.py`: `cast(CIResult, parser.parse(output))` 替代 attr-defined + no-any-return。
+- `dag_views.py`: 保留 `attr-defined`（`st.mermaid` 是 Streamlit 1.29+ API，不在类型 stubs 中）。
+
+**任务 #126: pytest __test__ attr-defined（4 处清理）**
+- `test_quality_guard.py`: 将 `TestDimension`, `TestFunctionMeta`, `TestQualityReport`, `TestQualityGuard` 的 `__test__ = False` 从类外部赋值改为类体内声明，消除 4 个 `attr-defined`。
+
+### Fixed — test_prometheus_metrics.py 兼容真实 prometheus_client
+- 修复测试在安装了 prometheus_client 的环境中失败的问题：所有 stub 测试使用唯一 metric 名（避免 CollectorRegistry 重复注册），`labels()` 测试改为检查返回值接口而非对象同一性，`time()` 测试改为检查 context manager 协议而非特定类型。
+
 ## [4.0.4] - 2026-07-11
 
 PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.4 按 ROI 推进 P2-4（无测试模块补充 — 两梯队 11 个模块，整体覆盖率 79.15% → 80.06%）。

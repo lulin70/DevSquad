@@ -101,7 +101,7 @@ class CycleResult:
     handoff: dict[str, Any]
     verification_passed: bool
     verification_errors: list[str]
-    scheduling_decision: SchedulingDecision
+    scheduling_decision: SchedulingDecision | None = None
     events: list[LoopEvent] = field(default_factory=list)
 
 

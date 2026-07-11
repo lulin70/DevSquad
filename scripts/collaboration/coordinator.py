@@ -527,7 +527,8 @@ class Coordinator:
             were found and originals retrieved. Returns the result unchanged
             when no CCRStore is configured or no markers are present.
         """
-        if self.ccr_store is None or not result.output:
+        store = self.ccr_store
+        if store is None or not result.output:
             return result
         output_str = str(result.output)
 
@@ -535,7 +536,7 @@ class Coordinator:
             trace_id = match.group(1)
             query = match.group(2) if match.lastindex and match.lastindex >= 2 else None
             try:
-                original = self.ccr_store.retrieve(trace_id, query=query)  # type: ignore[union-attr]
+                original = store.retrieve(trace_id, query=query)
                 if original:
                     return f"\n[Retrieved original (trace_id={trace_id})]\n{original}\n[/Retrieved]\n"
             except (KeyError, ValueError) as e:

@@ -8,7 +8,7 @@ ROLE_TEMPLATES = {
     rid: {"name": rdef.name, "prompt": rdef.prompt, "keywords": rdef.keywords} for rid, rdef in ROLE_REGISTRY.items()
 }
 
-_I18N_SUMMARY = {
+_I18N_SUMMARY: dict[str, dict[str, str]] = {
     "zh": {
         "task_done": "任务「{task}」已完成多Agent协作。",
         "roles": "参与角色: {roles} ({count}个)",
@@ -86,10 +86,10 @@ class ReportFormatter:
             duration, and scratchpad findings.
         """
         t = self._t
-        role_names = [self._role_names.get(r, ROLE_TEMPLATES.get(r, {}).get("name", r)) for r in roles]
+        role_names = [str(self._role_names.get(r, ROLE_TEMPLATES.get(r, {}).get("name", r))) for r in roles]
         parts = [
             t["task_done"].format(task=task[:80]),
-            t["roles"].format(roles=", ".join(role_names), count=len(roles)),  # type: ignore[arg-type]
+            t["roles"].format(roles=", ".join(role_names), count=len(roles)),
         ]
         if exec_result.results:
             done = sum(1 for r in exec_result.results if r.success)
