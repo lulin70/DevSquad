@@ -1,7 +1,7 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.0.5
+version: 4.0.6
 description: |
   V4.0.0 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
@@ -653,7 +653,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "4.0.5",
+#   "version": "4.0.6",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats

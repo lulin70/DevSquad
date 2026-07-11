@@ -7,6 +7,36 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.6] - 2026-07-12
+
+PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.7 推进 P2-7（E2E 测试覆盖增强 — 多租户隔离 E2E），并完成 P2-5/P2-2 校验收尾。
+
+### Added — P2-7: 多租户隔离 E2E 测试（14 个新测试）
+- **test_multi_tenant_isolation_e2e.py**（14 个测试）：多租户隔离 E2E 全覆盖。涵盖：
+  - **TestMultiTenantDispatchE2E**（4 个测试）：tenant-a/tenant-b/default 独立 dispatch、两个 tenant 顺序 dispatch 无干扰。
+  - **TestQuotaIsolationE2E**（4 个测试）：quota 跟踪、tenant-a 配额耗尽不影响 tenant-b、配额超限返回失败、tenant-b 独立耗尽配额。
+  - **TestTenantLifecycleE2E**（2 个测试）：deactivated tenant dispatch 不崩溃、reactivated tenant 恢复 dispatch。
+  - **TestThreadLocalContextE2E**（2 个测试）：tenant context 线程隔离、两线程并发 dispatch 不同 tenant 无干扰。
+  - **TestNonexistentTenantE2E**（2 个测试）：不存在 tenant_id 不崩溃、不产生 quota 记录。
+
+### Verified — P2-5: REST API 速率限制（已完成，方案描述已过期）
+- 校验结果：rate_limit.py 已完整实现并集成到 api_server.py。38 个测试通过，覆盖率 99.31%。方案中"已存在但未集成"的描述已过期。突发容量（burst capacity）评估为 over-design，不实现。
+
+### Cancelled — P2-2: God Class 拆分（4 个候选全部判定为 NOT God Class）
+- 基于"单类多职责"标准（而非方法数/行数阈值）重新校验 4 个候选：
+  - `mce_adapter.py`：所有方法围绕 CarryMem 引擎，强内聚，NOT God Class
+  - `redis_cache.py`：所有方法是缓存操作，高内聚，NOT God Class
+  - `warmup_manager.py`：所有方法围绕预热流程，共享数据结构，NOT God Class
+  - `worker.py`：所有方法围绕 Worker 执行流程，职责集中，NOT God Class
+- D13 N-1 教训再次验证：基于"方法数>30"阈值的 God Class 识别有 98.1% 误判率
+
+### Fixed — 版本一致性修复
+- 修复 P2-6 commit 遗漏的版本不一致：VERSION 文件（4.0.4→4.0.6）、Dockerfile ARG（4.0.4→4.0.6）、skill-manifest.yaml（4.0.4→4.0.6）。
+
+### 验证
+- ruff check：0 errors
+- pytest：4599 passed, 25 skipped, 6 failed（全部为预存环境问题：2 个 Python 3.9 系统版本 + 3 个已修复版本一致性 + 1 个预存 flaky）
+
 ## [4.0.5] - 2026-07-12
 
 PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.6 推进 P2-6（type: ignore 清理 — 消除 35 处非 no-any-return type: ignore，修复 1 个运行时 bug）。

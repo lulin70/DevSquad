@@ -84,27 +84,18 @@ class DispatcherUtilsMixin(DispatcherBase):
 **风险**: 中（Protocol 定义需与实际实现匹配，可能引入 mypy 新错误）
 **验证方法**: mypy 0 errors + ruff 0 errors + 全量 pytest 回归
 
-### 2.2 P2-2: God Class 拆分（P1.2 延续）
+### 2.2 P2-2: God Class 拆分（P1.2 延续）— ❌ 已取消
 
 **目标**: 拆分 4 个 HIGH 级别 God Class，降低单类职责复杂度
 
-**4 个 God Class**:
+**校验结果（2026-07-12）**: 4 个候选全部判定为 **NOT God Class**。所有类职责高度内聚，不违反 SRP。基于"方法数>30"阈值的 God Class 识别有 98.1% 误判率（D13 N-1 教训再次验证）。任务取消。
 
-| # | 模块 | 行数 | 当前职责 | 拆分方案 |
-|---|------|------|----------|----------|
-| 1 | `mce_adapter.py` | ~400+ | MCE 适配 + CarryMem 规则匹配 + 规则格式化 | 拆分为 MCEAdapter + RuleMatcher + RuleFormatter |
-| 2 | `redis_cache.py` | ~400+ | 缓存 CRUD + TTL 管理 + 序列化 | 拆分为 RedisCacheBackend + TTLManager + CacheSerializer |
-| 3 | `warmup_manager.py` | ~400+ | 预热调度 + 进程级缓存 + 指标收集 | 拆分为 WarmupScheduler + ProcessCache + WarmupMetrics |
-| 4 | `worker.py` | ~400+ | Worker 执行 + Scratchpad 交互 + 结果组装 | 拆分为 Worker + ScratchpadInteractor + ResultBuilder |
-
-**原则**:
-- 每个 God Class 拆分前先补充测试（确保现有行为不变）
-- 拆分后保持向后兼容（原类名作为 Facade 转发到新类）
-- 逐个拆分，每个完成后验证再下一个
-
-**预估工作量**: 16-32h（每个 4-8h）
-**风险**: 高（改变类结构可能影响依赖链）
-**验证方法**: 全量 pytest + mypy + 集成测试 + E2E 冒烟测试
+| # | 模块 | 判定 | 理由 |
+|---|------|------|------|
+| 1 | `mce_adapter.py` | ❌ NOT God Class | 所有方法围绕 CarryMem 引擎展开，共享状态，强内聚 |
+| 2 | `redis_cache.py` | ❌ NOT God Class | 所有方法是缓存操作（get/set/delete/mget/mset/stats/health），高内聚 |
+| 3 | `warmup_manager.py` | ❌ NOT God Class | 所有方法围绕预热流程和缓存，共享数据结构，高内聚 |
+| 4 | `worker.py` | ❌ NOT God Class | 所有方法围绕 Worker 执行流程，职责集中，拆分边界不清晰 |
 
 ### 2.3 P2-3: workflow_engine_base.py 测试补充（P1.3 延续）
 
@@ -139,19 +130,21 @@ class DispatcherUtilsMixin(DispatcherBase):
 **风险**: 低
 **验证方法**: pytest --cov 覆盖率报告 ≥80%
 
-### 2.5 P2-5: REST API 速率限制启用
+### 2.5 P2-5: REST API 速率限制启用 — ✅ 已完成
 
 **目标**: 启用 rate_limit.py（已存在但未集成到 api_server.py）
 
-**方案**:
-- 审查 rate_limit.py 现有实现
-- 集成到 api_server.py 中间件链
-- 添加配置项（每分钟请求数、突发容量）
-- 补充集成测试
+**校验结果（2026-07-12）**: rate_limit.py 已完整实现并集成到 api_server.py。38 个测试通过，覆盖率 99.31%。方案中"已存在但未集成"的描述已过期。
 
-**预估工作量**: 4-6h
-**风险**: 中（可能影响 API 响应时间）
-**验证方法**: API 集成测试 + 压测验证限流效果
+**已完成项**:
+- ✅ `rate_limit.py` 完整实现（滑动窗口、per-IP、exempt paths、HTTPS redirect）
+- ✅ `api_server.py` 已集成 rate_limit_middleware（L170-175）+ https_redirect_middleware（L163-167）
+- ✅ 启动日志显示 rate limit 状态（L317-330）
+- ✅ 38 个测试通过，覆盖率 99.31%
+- ✅ 环境变量配置（`DEVSQUAD_RATE_LIMIT_PER_MINUTE`、`DEVSQUAD_RATE_LIMIT_DISABLED`、`DEVSQUAD_HTTPS_REDIRECT_ENABLED`）
+
+**未实现项（评估为 over-design，不实现）**:
+- 突发容量（burst capacity）：对于 DevSquad 内部工具 API，滑动窗口已足够，token bucket burst 属于 over-design
 
 ### 2.6 P2-6: 剩余 type: ignore 清理（非 no-any-return）
 
@@ -171,17 +164,24 @@ class DispatcherUtilsMixin(DispatcherBase):
 **风险**: 低-中
 **验证方法**: mypy 0 errors + `grep -r "type: ignore" scripts/ | wc -l` 减少
 
-### 2.7 P2-7: E2E 测试覆盖增强
+### 2.7 P2-7: E2E 测试覆盖增强 — 部分完成
 
 **目标**: 增强端到端测试覆盖关键用户旅程
 
-**方案**:
-- 真实 LLM 端到端 dispatch（需 API key 或 Mock 策略）
-- Dashboard 关键流程（登录 → 查看 → 操作）
-- 多租户场景隔离验证
-- 插件热加载回滚验证
+**方案与进度**:
+- ❌ 真实 LLM 端到端 dispatch — 延期（需 API key，CI 默认 skip，低优先级）
+- ❌ Dashboard 关键流程（登录 → 查看 → 操作）— 延期（Streamlit AppTest 限制，现有测试预注入 user 绕过登录）
+- ✅ 多租户场景隔离验证 — **已完成**（14 个 E2E 测试，覆盖 dispatch 隔离/quota 隔离/tenant 生命周期/线程隔离/nonexistent tenant）
+- ✅ 插件热加载回滚验证 — **已覆盖**（test_plugins_hot_loader.py 10 场景含 TestReloadRollback）
 
-**预估工作量**: 8-12h
+**已完成项（v4.0.6）**:
+- `tests/test_multi_tenant_isolation_e2e.py`：14 个 E2E 测试，覆盖 dispatcher 级多租户隔离
+
+**延期项（纳入 P3）**:
+- Dashboard 登录 E2E（需重构现有 test_dashboard_ui_e2e.py 的预注入模式）
+- 真实 LLM 高级路径 smoke（需 API key 配置）
+
+**预估工作量**: 8-12h（已完成 ~3h，剩余延期）
 **风险**: 低
 **验证方法**: E2E 测试通过率 100%
 
@@ -189,13 +189,13 @@ class DispatcherUtilsMixin(DispatcherBase):
 
 ```
 推荐执行顺序（按 ROI 排序）:
-1. P2-3 workflow_engine 测试 (4-6h, 低风险, 立即收益)
-2. P2-1 Protocol 类型注解 (12-16h, 中风险, 类型安全)
-3. P2-4 无测试模块补充 (12-16h, 低风险, 覆盖率提升)
-4. P2-6 剩余 type: ignore (6-10h, 低风险, 代码质量)
-5. P2-5 速率限制 (4-6h, 中风险, 安全提升)
-6. P2-2 God Class 拆分 (16-32h, 高风险, 架构改进)
-7. P2-7 E2E 增强 (8-12h, 低风险, 质量保障)
+1. ✅ P2-3 workflow_engine 测试 (v4.0.2)
+2. ✅ P2-1 Protocol 类型注解 (v4.0.3)
+3. ✅ P2-4 无测试模块补充 (v4.0.4)
+4. ✅ P2-6 剩余 type: ignore (v4.0.5)
+5. ✅ P2-5 速率限制 (已完成，v4.0.6 校验)
+6. ❌ P2-2 God Class 拆分 (取消，4 候选全部 NOT God Class)
+7. ◐ P2-7 E2E 增强 (部分完成，v4.0.6 多租户 E2E，Dashboard 登录延期至 P3)
 ```
 
 **P2 总预估**: 62-98h（约 2-3 周全职，或 1-2 月兼职）
