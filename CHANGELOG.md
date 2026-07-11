@@ -9,7 +9,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [4.0.4] - 2026-07-11
 
-PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.4 按 ROI 推进 P2-4（无测试模块补充 — 第一梯队 5 个模块从 0-49% 提升至 80-100%）。
+PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.4 按 ROI 推进 P2-4（无测试模块补充 — 两梯队 11 个模块，整体覆盖率 79.15% → 80.06%）。
 
 ### Added — P2-4: 第一梯队测试补充（5 模块，353 个新测试）
 - **test_async_coordinator.py** (71 tests): AsyncCoordinator + AsyncWorkerWrapper 全覆盖。涵盖 plan_task/spawn_workers/execute_plan/execute_batch_serial/execute_parallel_async/buffer_worker_messages/compression/preload_rules/collect_results/resolve_conflicts/generate_report/async_call/briefing_injection。覆盖率 0% → 80.70%（+265 语句）。
@@ -20,6 +20,14 @@ PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §
 
 ### Fixed — 源码 Bug 修复（rule_collector.py 安全漏洞）
 - **rule_collector.py RuleSanitizer.sanitize()**: 修复 prompt injection 和 dangerous patterns 的 redaction 丢失 `re.IGNORECASE` 标志的 bug。原代码用 `re.sub(pat.pattern, "[REDACTED]", ...)` 传入字符串模式，丢失了编译时的 `re.IGNORECASE` 标志，导致 "Ignore"（大写 I）不被替换。改为 `pat.sub("[REDACTED]", ...)` 使用编译后的正则表达式，保留所有标志。这是一个安全漏洞 — prompt injection 模式被检测到但未被实际清除。
+
+### Added — P2-4: 第二梯队测试补充（6 模块，231 个新测试，覆盖率突破 80%）
+- **test_dispatch_performance.py** (39 tests): DispatchPerformanceMonitor 性能监控全覆盖。涵盖 record/threshold_check(warning+critical)/get_statistics(p50/p95/p99)/detect_regression/export_metrics/clear。覆盖率 46.02% → 99.12%。
+- **test_dual_layer_context.py** (41 tests): ContextEntry + DualLayerContextManager 双层上下文全覆盖。涵盖 project/task layers/combined/build_prompt_context/cleanup_expired/eviction/TTL expiry。覆盖率 30.16% → 98.41%。
+- **test_secret_patterns.py** (38 tests): 密钥检测模式全覆盖。涵盖 is_sensitive/find_secrets/mask_secrets + 10 种密钥模式（OpenAI/GitHub/AWS/password/bearer/private key/connection string）。覆盖率 29.17% → ~100%。
+- **test_prometheus_metrics.py** (56 tests): DevSquadMetrics + stub classes 全覆盖。涵盖 Counter/Gauge/Histogram/Info/_NullContextManager stubs + record_dispatch/dispatch_timer/record_llm_call/llm_call_timer/cache_hit/miss/workers/errors/consensus/gate_check/build_info/get_metrics/reset_metrics。覆盖率 71.72% → ~100%。
+- **test_task_completion_checker.py** (32 tests): TaskCompletionChecker 任务完成检查全覆盖。涵盖 init/load_progress/save_progress/check_dispatch_result/check_schedule_result/get_dispatch_history/get_completion_summary/is_task_completed/reset_progress。覆盖率 73.72% → ~100%。
+- **test_similar_task_recommender.py** (25 tests): SimilarTaskRecommender 相似任务推荐全覆盖。涵盖 recommend/get_role_suggestion/_extract_most_common_roles/_extract_most_common_intent/_calculate_avg_duration/_determine_confidence。覆盖率 75.00% → ~100%。
 
 ## [4.0.3] - 2026-07-11
 
