@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir --prefix=/install .[all]
 # ============ Stage 2: Production Runtime ============
 FROM python:3.12-slim AS runtime
 
-ARG VERSION=4.0.3
+ARG VERSION=4.0.4
 
 LABEL maintainer="DevSquad Team"
 LABEL description="DevSquad V${VERSION} - Multi-Role AI Task Orchestrator"

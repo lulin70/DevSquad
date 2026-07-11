@@ -7,6 +7,20 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.4] - 2026-07-11
+
+PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.4 按 ROI 推进 P2-4（无测试模块补充 — 第一梯队 5 个模块从 0-49% 提升至 80-100%）。
+
+### Added — P2-4: 第一梯队测试补充（5 模块，353 个新测试）
+- **test_async_coordinator.py** (71 tests): AsyncCoordinator + AsyncWorkerWrapper 全覆盖。涵盖 plan_task/spawn_workers/execute_plan/execute_batch_serial/execute_parallel_async/buffer_worker_messages/compression/preload_rules/collect_results/resolve_conflicts/generate_report/async_call/briefing_injection。覆盖率 0% → 80.70%（+265 语句）。
+- **test_feedback_control_loop.py** (52 tests): FeedbackControlLoop 闭环迭代引擎全覆盖。涵盖 run/dry_run/quality_gate_pass/iterate_until_pass/assess_quality/generate_adjustment/refine_task/reset/get_statistics。覆盖率 29% → 99.60%（+130 语句）。
+- **test_enhanced_worker.py** (59 tests): EnhancedWorker provider injection + briefing + rules + guard 全覆盖。涵盖 is_available/agent_briefing/init/briefing_property/execute/do_work_paths/record_monitor/inject_rules/validate_injected_rules/check_forbid_violations/briefing_summary/export_briefing/compress_to_briefing/extract_decisions/extract_pending/get_provider_status。覆盖率 49% → 80.62%（+91 语句）。
+- **test_rule_collector.py** (135 tests): RuleCollector 自然语言规则收集全流程全覆盖。涵盖 IntentDetector(11 patterns)/RuleExtractor(7 patterns)/RuleSanitizer(dangerous+injection)/LocalRuleStorage(store/list/delete/query/cache)/RuleStorage(CarryMem fallback)/RuleCollector(process/format helpers)。覆盖率 44% → 98.89%（+354 语句）。
+- **test_adaptive_role_selector.py** (36 tests): AdaptiveRoleSelector 三层选择策略全覆盖。涵盖 similar_tasks/intent/fallback/update_stats/get_role_report。覆盖率 45% → 100%（+60 语句）。
+
+### Fixed — 源码 Bug 修复（rule_collector.py 安全漏洞）
+- **rule_collector.py RuleSanitizer.sanitize()**: 修复 prompt injection 和 dangerous patterns 的 redaction 丢失 `re.IGNORECASE` 标志的 bug。原代码用 `re.sub(pat.pattern, "[REDACTED]", ...)` 传入字符串模式，丢失了编译时的 `re.IGNORECASE` 标志，导致 "Ignore"（大写 I）不被替换。改为 `pat.sub("[REDACTED]", ...)` 使用编译后的正则表达式，保留所有标志。这是一个安全漏洞 — prompt injection 模式被检测到但未被实际清除。
+
 ## [4.0.3] - 2026-07-11
 
 PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.1 按 ROI 推进 P2-1（Protocol 类型注解 — 消除剩余 23 个 `no-any-return` type: ignore）。

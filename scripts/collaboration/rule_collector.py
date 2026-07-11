@@ -361,22 +361,22 @@ class RuleSanitizer:
         for pat in DANGEROUS_PATTERNS:
             if pat.search(rule.action):
                 warnings.append("Dangerous pattern detected in rule action")
-                rule.action = re.sub(pat.pattern, "[REDACTED]", rule.action)
+                rule.action = pat.sub("[REDACTED]", rule.action)
 
         for pat in DANGEROUS_PATTERNS:
             if pat.search(rule.trigger):
                 warnings.append("Dangerous pattern detected in rule trigger")
-                rule.trigger = re.sub(pat.pattern, "[REDACTED]", rule.trigger)
+                rule.trigger = pat.sub("[REDACTED]", rule.trigger)
 
         for pat in PROMPT_INJECTION_PATTERNS:
             if pat.search(rule.action):
                 warnings.append("Prompt injection pattern detected in rule action")
-                rule.action = re.sub(pat.pattern, "[REDACTED]", rule.action)
+                rule.action = pat.sub("[REDACTED]", rule.action)
 
         for pat in PROMPT_INJECTION_PATTERNS:
             if pat.search(rule.trigger):
                 warnings.append("Prompt injection pattern detected in rule trigger")
-                rule.trigger = re.sub(pat.pattern, "[REDACTED]", rule.trigger)
+                rule.trigger = pat.sub("[REDACTED]", rule.trigger)
 
         if len(rule.trigger) > MAX_TRIGGER_LENGTH:
             warnings.append(f"Trigger truncated from {len(rule.trigger)} to {MAX_TRIGGER_LENGTH}")
