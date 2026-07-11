@@ -7,6 +7,25 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2026-07-11
+
+PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md 按 ROI 推进 P2-3（workflow_engine 测试补充）。
+
+### Fixed — P2-3: WorkflowEngine 测试套件补充
+- **workflow_engine_base.py 测试** (`tests/test_workflow_engine_base.py`): 新增 53 个单元测试覆盖枚举（StepStatus/WorkflowStatus/NodeType）、WorkflowStep dataclass 序列化（to_dict/from_dict 往返、无效值回退、缺失字段默认值）、PHASE_TEMPLATES P1-P11 完整性（11 阶段×11 必需字段）、LIFECYCLE_TEMPLATES 5 模板（full/backend/frontend/internal_tool/minimal）、WorkflowEngineBase 抽象 stubs。
+- **workflow_engine_lifecycle_mixin.py 测试** (`tests/test_workflow_engine_lifecycle.py`): 新增 51 个单元测试覆盖 `_split_task_into_steps`（7 类关键词检测：product/architecture/security/ui/testing/development/deployment + 中文 + 空回退）、`create_lifecycle`（5 模板 + 无效模板 + node_type 传播）、`submit_change_request`（5 种状态 + 描述净化截断至 500 字符）。
+- **workflow_engine_state_mixin.py 测试** (`tests/test_workflow_engine_state.py`): 新增 25 个单元测试覆盖 `get_workflow_status`（not found/有定义/无定义/零步骤/checkpoint/failed/全完成）、`classify_steps`（None/not found/混合/all-deterministic/all-llm/all-hybrid/empty/by_step/百分比求和=100%）、`get_step_summary`。
+- **workflow_engine_transition_mixin.py 测试** (`tests/test_workflow_engine_transition.py`): 新增 39 个单元测试覆盖 `start_workflow`（9 场景）、`execute_step`（18 场景含 not found/success/failure/checkpoint interval 触发/completion/advance）、`_default_step_executor`（5 场景含 dispatcher Mock/截断/无 summary 属性/失败）、`_get_next_step`（6 场景）。
+- **workflow_engine.py 主类测试** (`tests/test_workflow_engine.py`): 新增 14 个单元测试覆盖 `__init__`（storage_path 创建含嵌套目录、属性初始化、checkpoint_manager 创建、默认 checkpoint_interval=2、coordinator/dispatcher 传递）。
+
+### Fixed — 测试维护
+- **版本断言测试改为前缀检查**: `test_v4_version_is_4_0_0` → `test_v4_version_is_current`（`startswith("4.0.")`），`test_dockerfile_declares_version_arg` 同步改为前缀检查，避免每次 PATCH 版本递增都需更新测试。
+
+### Verified
+- ruff check: 0 errors
+- mypy: 0 errors（仅预存 numpy stub 警告）
+- pytest: 182 个新测试全部通过，workflow_engine 模块覆盖率 99.58%（389 语句 + 90 分支，仅 2 行未覆盖）
+
 ## [4.0.1] - 2026-07-11
 
 PATCH release: 修复、重构、优化，无新功能。基于 TECH_DEBT_ASSESSMENT_V4.0.md 评估报告推进 P0-P1 技术债清理。

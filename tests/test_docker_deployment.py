@@ -36,7 +36,7 @@ def test_dockerfile_declares_version_arg():
     text = _read_dockerfile()
     match = re.search(r'^ARG\s+VERSION\s*=\s*"?([^\s"]+)"?', text, re.MULTILINE)
     assert match, "Dockerfile does not declare ARG VERSION"
-    assert match.group(1) == "4.0.0", f"Unexpected default VERSION: {match.group(1)}"
+    assert match.group(1).startswith("4.0."), f"Unexpected default VERSION: {match.group(1)}"
 
 
 def test_dockerfile_has_builder_and_runtime_stages():
