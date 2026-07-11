@@ -17,7 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +247,7 @@ class UnifiedGateEngine:
                     ],
                 )
 
-            result = base_checker(context, **kwargs)
+            result = cast(UnifiedGateResult, base_checker(context, **kwargs))
 
             # Run custom checkers if any
             custom_results = []
@@ -281,7 +281,7 @@ class UnifiedGateEngine:
                 len(result.critical_issues),
             )
 
-            return result  # type: ignore[no-any-return]
+            return result
 
         except Exception as e:
             logger.error("Gate check failed with exception: %s", e)

@@ -10,6 +10,7 @@ from typing import Any
 
 from .concern_pack_loader import ConcernPackLoader
 from .dispatch_models import DispatchResult
+from .dispatcher_base import ReportFormatterProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class ResultAssembler:
         )
     """
 
-    def __init__(self, concern_loader: ConcernPackLoader, report_formatter: Any) -> None:
+    def __init__(self, concern_loader: ConcernPackLoader, report_formatter: ReportFormatterProtocol) -> None:
         self._concern_loader = concern_loader
         self._report_formatter = report_formatter
 
@@ -148,7 +149,7 @@ class ResultAssembler:
 
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
-        return self._report_formatter.build_summary(task, roles, exec_result, sp_summary)  # type: ignore[no-any-return]
+        return self._report_formatter.build_summary(task, roles, exec_result, sp_summary)
 
     @staticmethod
     def build_step_timings(

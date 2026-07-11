@@ -32,7 +32,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .llm_cache_base import LLMCacheBase
 from .prometheus_metrics import get_metrics
@@ -213,7 +213,7 @@ class LLMCache(LLMCacheBase):
                         get_metrics().record_cache_hit("l1", "llm_response")
                     except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug("Prometheus cache hit recording failed: %s", e)
-                    return result  # type: ignore[no-any-return]
+                    return cast(str | None, result)
                 with self._lock:
                     self.stats["misses"] += 1
                 # Prometheus: record cache miss
@@ -298,7 +298,7 @@ class LLMCache(LLMCacheBase):
                     except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
                         logger.debug("Prometheus cache hit recording failed: %s", e)
                     logger.debug("Redis L2 cache hit for key %s", redis_key[:16])
-                    return redis_value  # type: ignore[no-any-return]
+                    return cast(str | None, redis_value)
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug("Redis L2 cache read failed: %s", e)
 

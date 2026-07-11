@@ -9,7 +9,7 @@ and exchanges information with other Workers via Scratchpad.
 import sys
 import threading
 import time
-from typing import Any
+from typing import Any, cast
 
 from scripts.collaboration import get_logger
 
@@ -544,7 +544,7 @@ class Worker:
                 )
                 if cached:
                     logger.debug("  [%s] ContentCache hit.", _rname)
-                    return cached  # type: ignore[no-any-return]
+                    return cast(str, cached)
             except (AttributeError, TypeError, RuntimeError) as e:
                 logger.debug("ContentCache read failed: %s", e)
 

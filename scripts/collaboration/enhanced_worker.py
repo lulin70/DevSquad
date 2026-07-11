@@ -32,7 +32,7 @@ import re
 import time
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from .models import EntryType, ScratchpadEntry, TaskDefinition, WorkerResult
 from .worker import Worker
@@ -54,7 +54,7 @@ def _is_available(provider: Any) -> bool:
         return False
     val = provider.is_available
     if callable(val):
-        return val()  # type: ignore[no-any-return]
+        return bool(val())
     return bool(val)
 
 
@@ -359,10 +359,13 @@ class EnhancedWorker(Worker):
 
         if self.retry_provider and self.retry_provider.is_available():
             try:
-                result = self.retry_provider.retry_with_fallback(
-                    func=lambda: self._do_work_with_briefing(task),
-                    max_attempts=3,
-                    fallback=lambda: self._do_work_simple(task),
+                result = cast(
+                    WorkerResult,
+                    self.retry_provider.retry_with_fallback(
+                        func=lambda: self._do_work_with_briefing(task),
+                        max_attempts=3,
+                        fallback=lambda: self._do_work_simple(task),
+                    ),
                 )
             except Exception as e:  # Broad catch: retry mechanism fallback
                 logger.debug("Retry mechanism failed, falling back: %s", e)
@@ -425,7 +428,7 @@ class EnhancedWorker(Worker):
             if violations and isinstance(result.output, dict):
                 result.output["rule_violations"] = violations
 
-        return result  # type: ignore[no-any-return]
+        return result
 
     def _inject_rules_from_provider(self, task: TaskDefinition) -> None:
         """Fetch and validate rules from MemoryProvider before task execution."""
@@ -595,7 +598,8 @@ class EnhancedWorker(Worker):
             safe_role = _SAFE_FILENAME_RE.sub("_", self.role_id)
             output_path = os.path.join(output_dir, f"{safe_role}_briefing.json")
 
-            return self._briefing.export_briefing(output_path)  # type: ignore[no-any-return]
+            self._briefing.export_briefing(output_path)
+            return output_path
         except (OSError, AttributeError, KeyError) as e:
             logger.warning("Failed to export briefing for %s: %s", self.role_id, e)
             return None

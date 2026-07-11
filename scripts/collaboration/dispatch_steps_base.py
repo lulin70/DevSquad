@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from .dispatcher_base import ReportFormatterProtocol
+
 if TYPE_CHECKING:
     from .dispatch_result_assembler import ResultAssembler
     from .dispatch_services import MemoryPipelineService, PermissionService, SkillProposalService
@@ -22,7 +24,7 @@ class PostDispatchBase:
 
     # Core components
     coordinator: Any
-    report_formatter: Any
+    report_formatter: ReportFormatterProtocol
     enterprise: Any
 
     # Service instances

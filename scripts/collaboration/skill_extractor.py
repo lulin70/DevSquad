@@ -310,7 +310,7 @@ class SkillExtractor:
         if task_desc:
             words = re.findall(r"[A-Za-z][A-Za-z0-9 ]{2,20}", task_desc)
             if words:
-                return words[0].strip().title() + " Pattern"  # type: ignore[no-any-return]
+                return str(words[0]).strip().title() + " Pattern"
         if steps:
             action_names = {s.action_type.value.replace("_", " ").title() for s in steps}
             return " & ".join(sorted(action_names)[:3]) + " Pattern"

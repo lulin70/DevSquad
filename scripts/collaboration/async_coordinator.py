@@ -27,7 +27,7 @@ import asyncio
 import logging
 import time
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from .consensus import ConsensusEngine
 from .context_compressor import (
@@ -536,13 +536,16 @@ class AsyncCoordinator:
         current_backend = getattr(self.llm_backend, "backend_name", None)
 
         assert self._retry_manager is not None
-        return await self._retry_manager.retry_with_fallback(  # type: ignore[no-any-return]
-            func=async_worker.execute,
-            args=(task,),
-            kwargs={},
-            config=config,
-            fallback_backends=None,
-            current_backend=current_backend,
+        return cast(
+            WorkerResult,
+            await self._retry_manager.retry_with_fallback(
+                func=async_worker.execute,
+                args=(task,),
+                kwargs={},
+                config=config,
+                fallback_backends=None,
+                current_backend=current_backend,
+            ),
         )
 
     def _buffer_worker_messages(

@@ -52,7 +52,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
-from typing import Any
+from typing import Any, cast
 
 from .llm_cache_base import LLMCacheBase
 from .secret_patterns import SECRET_PATTERNS
@@ -145,7 +145,7 @@ class ContentCache:
         else:
             self.misses += 1
             self._record_metric(hit=False)
-        return result  # type: ignore[no-any-return]
+        return cast(str | None, result)
 
     def set(self, prompt: str, response: str, backend: str, model: str) -> bool:
         """Store a response in the cache, filtering sensitive prompts.

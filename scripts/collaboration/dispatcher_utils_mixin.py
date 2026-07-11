@@ -18,20 +18,18 @@ class DispatcherUtilsMixin(DispatcherBase):
 
     micro_task_planner: Any
     usage_tracker: Any
-    role_matcher: Any
     coordinator: Any
-    report_formatter: Any
     post_dispatch: Any
     enterprise: Any
     persist_dir: str
     llm_backend: Any
 
-    def analyze_task(self, task_description: str) -> list[dict[str, str]]:
+    def analyze_task(self, task_description: str) -> list[dict[str, Any]]:
         """Analyze task and match appropriate roles."""
         from .usage_tracker import track_usage
 
         track_usage("dispatcher.analyze_task")
-        return self.role_matcher.analyze_task(task_description)  # type: ignore[no-any-return]
+        return self.role_matcher.analyze_task(task_description)
 
     def decompose_task(
         self,
@@ -149,13 +147,13 @@ class DispatcherUtilsMixin(DispatcherBase):
     def _format_structured_report(
         self, result: DispatchResult, include_action_items: bool = True, include_timing: bool = False
     ) -> str:
-        return self.report_formatter.format_structured_report(result, include_action_items, include_timing)  # type: ignore[no-any-return]
+        return self.report_formatter.format_structured_report(result, include_action_items, include_timing)
 
     def _format_compact_report(self, result: DispatchResult) -> str:
-        return self.report_formatter.format_compact_report(result)  # type: ignore[no-any-return]
+        return self.report_formatter.format_compact_report(result)
 
     def _extract_findings(self, scratchpad_summary: str) -> list[str]:
-        return self.report_formatter.extract_findings(scratchpad_summary)  # type: ignore[no-any-return]
+        return self.report_formatter.extract_findings(scratchpad_summary)
 
     def _generate_action_items(self, result: DispatchResult) -> list[dict[str, str]]:
-        return self.report_formatter.generate_action_items(result)  # type: ignore[no-any-return]
+        return self.report_formatter.generate_action_items(result)

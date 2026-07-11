@@ -27,7 +27,6 @@ class DispatcherStatusMixin(DispatcherBase):
     skillifier: Any
     quality_guard: Any
     execution_guard: Any
-    _perf_monitor: Any
     _dispatch_history: list[Any]
     enterprise: Any
 
@@ -111,8 +110,8 @@ class DispatcherStatusMixin(DispatcherBase):
 
     def get_performance_stats(self) -> dict[str, Any]:
         """Get performance statistics."""
-        return self._perf_monitor.get_statistics()  # type: ignore[no-any-return]
+        return self._perf_monitor.get_statistics()
 
     def check_performance_regression(self) -> dict[str, Any] | None:
         """Check for performance regression."""
-        return self._perf_monitor.detect_regression()  # type: ignore[no-any-return]
+        return self._perf_monitor.detect_regression()

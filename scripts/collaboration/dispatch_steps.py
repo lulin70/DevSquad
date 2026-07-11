@@ -24,7 +24,7 @@ Pipeline steps covered:
 
 import logging
 import time
-from typing import Any
+from typing import Any, cast
 
 from .dispatch_models import DispatchResult
 from .dispatch_result_assembler import ResultAssembler
@@ -33,6 +33,7 @@ from .dispatch_steps_consensus_mixin import PostDispatchConsensusMixin
 from .dispatch_steps_feedback_mixin import PostDispatchFeedbackMixin
 from .dispatch_steps_quality_mixin import PostDispatchQualityMixin
 from .dispatch_steps_services_mixin import PostDispatchServicesMixin
+from .dispatcher_base import ReportFormatterProtocol
 from .event_bus import EventBus
 from .severity_router import SeverityRouter
 from .two_stage_review_gate import TwoStageReviewGate
@@ -57,7 +58,7 @@ class PostDispatchPipeline(
         self,
         # Core components
         coordinator: Any,
-        report_formatter: Any,
+        report_formatter: ReportFormatterProtocol,
         enterprise: Any,
         # Service instances
         metrics_service: MetricsService,
@@ -305,7 +306,7 @@ class PostDispatchPipeline(
         # Step 18: Feedback loop
         roles = kwargs.get('roles')
         dry_run = kwargs.get('dry_run', False)
-        result = self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
+        result = cast(DispatchResult, self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs))
 
         # Step 19: UE testing (when tester role is involved)
         ue_test_plan = self._run_ue_testing(task_description, role_ids, worker_results, lang)
@@ -366,7 +367,7 @@ class PostDispatchPipeline(
         # Multi-tenant context cleanup
         self.enterprise.clear_tenant_context(pre_result.tenant_ctx)
 
-        return result  # type: ignore[no-any-return]
+        return result
 
     # ------------------------------------------------------------------
     # Step 8: Collect worker results
@@ -448,4 +449,4 @@ class PostDispatchPipeline(
 
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
         """Build execution summary."""
-        return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)  # type: ignore[no-any-return]
+        return self.report_formatter.build_summary(task, roles, exec_result, sp_summary)

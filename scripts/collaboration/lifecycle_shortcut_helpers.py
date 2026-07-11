@@ -29,7 +29,7 @@ import contextlib
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .lifecycle_gate import check_gate_basic, check_gate_with_unified_engine
 from .lifecycle_protocol import (
@@ -166,13 +166,16 @@ def save_lifecycle_state_to_checkpoint(
         }
         mode_str = mode.value if hasattr(mode, "value") else str(mode)
 
-        return checkpoint_manager.save_lifecycle_state(  # type: ignore[no-any-return]
-            task_id=task_id,
-            current_phase=current_phase,
-            phase_states=phase_states_str,
-            completed_phases=completed_phases.copy(),
-            mode=mode_str,
-            metadata=metadata or {},
+        return cast(
+            bool,
+            checkpoint_manager.save_lifecycle_state(
+                task_id=task_id,
+                current_phase=current_phase,
+                phase_states=phase_states_str,
+                completed_phases=completed_phases.copy(),
+                mode=mode_str,
+                metadata=metadata or {},
+            ),
         )
     except (OSError, AttributeError, ValueError) as e:
         logger.warning("Failed to save lifecycle state: %s", e)

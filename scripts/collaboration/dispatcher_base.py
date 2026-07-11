@@ -7,13 +7,43 @@ requiring heavy casts or ``# type: ignore`` comments.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from .dispatch_models import DispatchResult
 
 if TYPE_CHECKING:
     from .dispatch_pre_steps import PreDispatchPipeline
     from .dispatch_steps import PostDispatchPipeline
+
+
+class RoleMatcherProtocol(Protocol):
+    """Protocol for the role_matcher field used by dispatcher mixins."""
+
+    def analyze_task(self, task_description: str) -> list[dict[str, Any]]: ...
+
+
+class ReportFormatterProtocol(Protocol):
+    """Protocol for the report_formatter field used by dispatcher mixins."""
+
+    def format_structured_report(
+        self, result: Any, include_action_items: bool = True, include_timing: bool = False
+    ) -> str: ...
+
+    def format_compact_report(self, result: Any) -> str: ...
+
+    def extract_findings(self, scratchpad_summary: str) -> list[str]: ...
+
+    def generate_action_items(self, result: Any) -> list[dict[str, str]]: ...
+
+    def build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str: ...
+
+
+class PerfMonitorProtocol(Protocol):
+    """Protocol for the _perf_monitor field used by dispatcher mixins."""
+
+    def get_statistics(self) -> dict[str, Any]: ...
+
+    def detect_regression(self, baseline_count: int = 10) -> dict[str, Any] | None: ...
 
 
 class DispatcherBase:
@@ -38,8 +68,8 @@ class DispatcherBase:
     anchor_checker: Any
     retrospective_engine: Any
     usage_tracker: Any
-    report_formatter: Any
-    role_matcher: Any
+    report_formatter: ReportFormatterProtocol
+    role_matcher: RoleMatcherProtocol
     semantic_matcher: Any
     intent_mapper: Any
     context_manager: Any
@@ -48,7 +78,7 @@ class DispatcherBase:
     execution_guard: Any
     output_slicer: Any
     ci_feedback: Any
-    _perf_monitor: Any
+    _perf_monitor: PerfMonitorProtocol
     _concern_loader: Any
     _validator: Any
     _dispatch_history: list[Any]

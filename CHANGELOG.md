@@ -7,6 +7,38 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.3] - 2026-07-11
+
+PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.1 按 ROI 推进 P2-1（Protocol 类型注解 — 消除剩余 23 个 `no-any-return` type: ignore）。
+
+### Fixed — P2-1: Protocol 类型注解（PEP 544）
+- **dispatcher_base.py**: 新增 3 个 Protocol 定义（`RoleMatcherProtocol`/`ReportFormatterProtocol`/`PerfMonitorProtocol`），将 `DispatcherBase` 的 3 个字段从 `Any` 替换为对应 Protocol 类型，让 mypy 能检查委托调用的返回值类型。
+- **dispatcher_utils_mixin.py**: 移除重复的 `role_matcher: Any` 和 `report_formatter: Any` 字段声明（基类已有 Protocol 类型），`analyze_task` 返回类型从 `list[dict[str, str]]` 改为 `list[dict[str, Any]]`（与 RoleMatcher 实际返回匹配），消除 5 个 `# type: ignore[no-any-return]`。
+- **dispatcher_status_mixin.py**: 移除重复的 `_perf_monitor: Any` 字段声明（基类已改为 `PerfMonitorProtocol`），消除 2 个 `# type: ignore[no-any-return]`。
+- **dispatch_steps_base.py**: `report_formatter: Any` → `ReportFormatterProtocol`（PostDispatchPipeline 的基类，独立于 DispatcherBase）。
+- **dispatch_steps.py**: `__init__` 参数 `report_formatter: Any` → `ReportFormatterProtocol`，L308 用 `cast(DispatchResult, ...)` 包装 `_run_feedback_loop` 返回值，消除 2 个 `# type: ignore[no-any-return]`。
+- **dispatch_result_assembler.py**: `__init__` 参数 `report_formatter: Any` → `ReportFormatterProtocol`（ResultAssembler 不继承 DispatcherBase），消除 1 个 `# type: ignore[no-any-return]`。
+- **enhanced_worker.py**: L57 用 `bool()` 包装 `val()` 返回值；L362-369 用 `cast(WorkerResult, ...)` 包装 `retry_provider.retry_with_fallback` 返回值；L598-602 语义修复 `export_briefing` 返回文件路径（原来委托返回 None），消除 3 个 `# type: ignore[no-any-return]`。
+- **worker.py**: L547 用 `cast(str, cached)` 包装缓存返回值，消除 1 个 `# type: ignore[no-any-return]`。
+- **async_coordinator.py**: L539 用 `cast(WorkerResult, ...)` 包装 `retry_manager.retry_with_fallback` 返回值，消除 1 个 `# type: ignore[no-any-return]`。
+- **lifecycle_shortcut_helpers.py**: L169 用 `cast(bool, ...)` 包装 `checkpoint_manager.save_lifecycle_state` 返回值，消除 1 个 `# type: ignore[no-any-return]`。
+- **llm_cache.py**: L216/L301 用 `cast(str | None, ...)` 包装缓存返回值，消除 2 个 `# type: ignore[no-any-return]`。
+- **async_adapter.py**: L105/L129 用 `cast(str, ...)`/`cast(bool, ...)` 包装 `loop.run_until_complete` 返回值，消除 2 个 `# type: ignore[no-any-return]`。
+- **content_cache.py**: L148 用 `cast(str | None, ...)` 包装缓存返回值，消除 1 个 `# type: ignore[no-any-return]`。
+- **unified_gate_engine.py**: L250 用 `cast(UnifiedGateResult, ...)` 包装 `base_checker(context, **kwargs)` 返回值，消除 1 个 `# type: ignore[no-any-return]`。
+- **skill_extractor.py**: L313 用 `str()` 包装 `re.findall` 返回的首元素，消除 1 个 `# type: ignore[no-any-return]`。
+
+### Strategy — Protocol vs cast()
+- 决策点 3 拍板采用 Protocol 方案（非纯 cast+Any），理由是"不留技术债"。
+- 实际实现混合使用：委托给 `Any` 类型字段的用 Protocol 替换字段类型（9 处），返回 `Any` 局部变量的用 `cast()` 解决（14 处）。
+- Protocol 结构化子类型：不需要显式继承，只要类有匹配的方法签名即满足 Protocol。
+
+### Verified
+- ruff check: 0 errors（15 个修改的源文件全部 lint clean）
+- mypy: 0 errors（172 个文件 in `scripts/collaboration/`，`warn_return_any = true` + `warn_unused_ignores = true`）
+- pytest: 4005 passed, 25 skipped, 4 failed（全部为预存环境问题：3 个 numpy 相关 + 1 个 carrymem 集成，0 新回归）
+- grep 确认: `type: ignore[no-any-return]` 在 `scripts/` 下 0 matches（从 23 个减至 0）
+
 ## [4.0.2] - 2026-07-11
 
 PATCH release: 修复、重构、优化，无新功能。基于 P2_P3_PLAN.md 按 ROI 推进 P2-3（workflow_engine 测试补充）。

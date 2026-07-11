@@ -30,7 +30,7 @@ Usage:
 import asyncio
 import logging
 import os
-from typing import Any
+from typing import Any, cast
 
 from .async_llm_backend import (
     AsyncLLMBackendFactory,
@@ -102,7 +102,7 @@ class AsyncToSyncAdapter(LLMBackend):
                     )
                     return future.result()
             else:
-                return loop.run_until_complete(_run())  # type: ignore[no-any-return]
+                return cast(str, loop.run_until_complete(_run()))
         finally:
             if not loop.is_running():
                 pass  # intentional no-op: loop cleanup handled by caller
@@ -126,7 +126,7 @@ class AsyncToSyncAdapter(LLMBackend):
                     )
                     return future.result()
             else:
-                return loop.run_until_complete(_check())  # type: ignore[no-any-return]
+                return cast(bool, loop.run_until_complete(_check()))
         finally:
             if not loop.is_running():
                 pass  # intentional no-op: loop cleanup handled by caller
