@@ -15,7 +15,7 @@ Created: 2026-05-01
 """
 
 from collections.abc import Callable
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 # ============================================================================
 # Cache Architecture (Two-Layer Design)
@@ -53,6 +53,7 @@ from typing import Any, Protocol
 # Do NOT merge these — they are intentionally separate abstractions.
 
 
+@runtime_checkable
 class CacheProvider(Protocol):
     """
     LLM response cache interface.
@@ -95,6 +96,7 @@ class CacheProvider(Protocol):
 # ============================================================================
 
 
+@runtime_checkable
 class RetryProvider(Protocol):
     """
     LLM call retry interface.
@@ -130,6 +132,7 @@ class RetryProvider(Protocol):
 # ============================================================================
 
 
+@runtime_checkable
 class MonitorProvider(Protocol):
     """
     Performance monitoring interface.
@@ -181,6 +184,7 @@ class MonitorProvider(Protocol):
 # ============================================================================
 
 
+@runtime_checkable
 class MemoryProvider(Protocol):
     """
     Personalization memory interface.
@@ -252,6 +256,7 @@ class MemoryProvider(Protocol):
 # ============================================================================
 
 
+@runtime_checkable
 class UETestProvider(Protocol):
     """Protocol interface for UE testing providers."""
 
@@ -277,11 +282,11 @@ class UETestProvider(Protocol):
 # ============================================================================
 
 
+@runtime_checkable
 class TechDebtProvider(Protocol):
     """Protocol interface for tech debt management providers."""
 
-    def identify_debt(self, source: str, category: Any, description: str,
-                      location: str, **kwargs: Any) -> Any:
+    def identify_debt(self, source: str, category: Any, description: str, location: str, **kwargs: Any) -> Any:
         """Register a technical debt item."""
         ...
 

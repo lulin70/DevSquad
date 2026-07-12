@@ -7,6 +7,26 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.0.8] - 2026-07-12
+
+PATCH 发布：修复、重构、优化，无新功能。完成 P3-3（异步异常细分 — 修复 dead code bug）和 P3-2（Contract 测试补全 — 3 个 Protocol 契约测试 + runtime_checkable 启用）。
+
+### 修复 — P3-3：异步异常 dead code 修复
+- **async_coordinator.py** L418-422（顺序执行路径）：修复 `except Exception` 在 `except asyncio.TimeoutError` 之前导致 TimeoutError 分支不可达的 dead code bug。重排 except 顺序，TimeoutError 优先捕获。
+- 影响：超时任务现在被正确记录为 "timed out" 而非 "failed"，恢复区分信息。
+- 并行版本（L468）的 except 顺序原本正确，无需修改。
+
+### 新增 — P3-2：Contract 测试补全（28 个新测试 + runtime_checkable）
+- **protocols.py**：为全部 6 个 Protocol 添加 `@runtime_checkable` 装饰器，启用 isinstance 结构化子类型检查。
+- **test_retry_provider_contract.py**（15 个测试）：RetryProvider Protocol 定义验证、结构化子类型验证、NullRetryProvider 契约合规。
+- **test_ue_test_provider_contract.py**（8 个测试）：UETestProvider Protocol 定义验证、结构化子类型验证、UETestFramework 契约差距文档化（缺少 is_available）。
+- **test_tech_debt_provider_contract.py**（8 个测试）：TechDebtProvider Protocol 定义验证、结构化子类型验证、TechDebtManager 契约差距文档化（缺少 is_available）。
+
+### 验证
+- ruff check：0 errors
+- pytest tests/contract/：163 passed（135 existing + 28 new）
+- pytest async tests：125 passed, 0 regressions
+
 ## [4.0.7] - 2026-07-12
 
 PATCH 发布：修复、重构、优化，无新功能。完成 P2-7b（Moka 真实 LLM smoke 测试）、P3-1（benchmark Moka AI 后端支持）、P2-7a（Dashboard 登录 E2E）。

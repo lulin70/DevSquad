@@ -96,9 +96,7 @@ class AsyncWorkerWrapper:
 
             return await _execute_with_timeout()
         else:
-            return await loop.run_in_executor(
-                None, self.worker.execute, task
-            )
+            return await loop.run_in_executor(None, self.worker.execute, task)
 
 
 class AsyncCoordinator:
@@ -169,11 +167,7 @@ class AsyncCoordinator:
         self._execution_history: list[dict[str, Any]] = []
         self.coordinator_id = f"async-coord-{uuid.uuid4().hex[:8]}"
         self.enable_compression = enable_compression
-        self.compressor = (
-            ContextCompressor(token_threshold=compression_threshold)
-            if enable_compression
-            else None
-        )
+        self.compressor = ContextCompressor(token_threshold=compression_threshold) if enable_compression else None
         self._message_buffer: list[Message] = []
         self.llm_backend = llm_backend
         self.stream = stream
@@ -193,6 +187,7 @@ class AsyncCoordinator:
         if enable_retry:
             try:
                 from .llm_retry_async import AsyncLLMRetryManager
+
                 self._retry_manager = AsyncLLMRetryManager()
                 logger.info("AsyncLLMRetryManager enabled for AsyncCoordinator")
             except ImportError as e:
@@ -256,9 +251,7 @@ class AsyncCoordinator:
         )
         return plan
 
-    def spawn_workers(
-        self, plan: ExecutionPlan, registry: Any = None
-    ) -> list[Worker]:
+    def spawn_workers(self, plan: ExecutionPlan, registry: Any = None) -> list[Worker]:
         """
         根据执行计划创建 Worker 实例
 
@@ -326,9 +319,7 @@ class AsyncCoordinator:
                     content_cache=getattr(self, "content_cache", None),
                 )
             self.workers[worker_id] = worker
-            self._async_workers[worker_id] = AsyncWorkerWrapper(
-                worker, timeout=self.task_timeout
-            )
+            self._async_workers[worker_id] = AsyncWorkerWrapper(worker, timeout=self.task_timeout)
 
         return list(self.workers.values())
 
@@ -356,9 +347,7 @@ class AsyncCoordinator:
 
             if self.compressor and batch_idx < len(plan.batches) - 1:
                 self._buffer_worker_messages(batch_results)
-                compressed = self.compressor.check_and_compress(
-                    self._message_buffer
-                )
+                compressed = self.compressor.check_and_compress(self._message_buffer)
                 if compressed.compression_level != CompressionLevel.NONE:
                     self._execution_history.append(
                         {
@@ -367,9 +356,7 @@ class AsyncCoordinator:
                                 "level": compressed.compression_level.value,
                                 "original_tokens": compressed.original_token_count,
                                 "compressed_tokens": compressed.compressed_token_count,
-                                "reduction_pct": round(
-                                    compressed.reduction_percent, 1
-                                ),
+                                "reduction_pct": round(compressed.reduction_percent, 1),
                                 "summary": compressed.summary[:200],
                             },
                         }
@@ -402,9 +389,7 @@ class AsyncCoordinator:
         )
         return result
 
-    async def _execute_batch(
-        self, batch: TaskBatch
-    ) -> tuple[list[WorkerResult], list[str]]:
+    async def _execute_batch(self, batch: TaskBatch) -> tuple[list[WorkerResult], list[str]]:
         """Execute a single batch asynchronously."""
         results: list[WorkerResult] = []
         errors: list[str] = []
@@ -423,28 +408,22 @@ class AsyncCoordinator:
                             else ""
                         )
                         if async_worker is None:
-                            async_worker = AsyncWorkerWrapper(
-                                worker, timeout=self.task_timeout
-                            )
+                            async_worker = AsyncWorkerWrapper(worker, timeout=self.task_timeout)
                         if self.briefing_mode and self._briefing_chain:
                             self._inject_briefing_to_worker(worker)
                         r = await async_worker.execute(task)
                         results.append(r)
                         if self.briefing_mode:
                             self._collect_briefing_from_worker(worker)
-                except Exception as e:
-                    # Broad catch: wraps arbitrary worker execution; per-task isolation
-                    errors.append(f"Task {task.task_id} failed: {e}")
                 except asyncio.TimeoutError:
-                    errors.append(
-                        f"Task {task.task_id} timed out after {self.task_timeout}s"
-                    )
+                    errors.append(f"Task {task.task_id} timed out after {self.task_timeout}s")
+                except Exception as e:
+                    # Per-task isolation: one task failure doesn't abort the batch
+                    errors.append(f"Task {task.task_id} failed: {e}")
 
         return results, errors
 
-    async def _execute_parallel_async(
-        self, batch: TaskBatch
-    ) -> list[WorkerResult]:
+    async def _execute_parallel_async(self, batch: TaskBatch) -> list[WorkerResult]:
         """
         Execute tasks in parallel using asyncio.gather.
 
@@ -456,9 +435,7 @@ class AsyncCoordinator:
         """
         semaphore = await self._get_semaphore()
         results: list[WorkerResult] = []
-        max_workers = min(
-            batch.max_concurrency or len(batch.tasks), len(batch.tasks)
-        )
+        max_workers = min(batch.max_concurrency or len(batch.tasks), len(batch.tasks))
 
         if max_workers <= 0:
             return results
@@ -502,9 +479,7 @@ class AsyncCoordinator:
                     )
                 except Exception as e:
                     # Broad catch: wraps arbitrary worker execution; per-task isolation
-                    logger.error(
-                        "Task %s failed: %s", task.task_id, e
-                    )
+                    logger.error("Task %s failed: %s", task.task_id, e)
                     return WorkerResult(
                         worker_id=worker.worker_id,
                         task_id=task.task_id,
@@ -521,14 +496,10 @@ class AsyncCoordinator:
         """Get or create AsyncWorkerWrapper for a Worker."""
         worker_id = worker.worker_id
         if worker_id not in self._async_workers:
-            self._async_workers[worker_id] = AsyncWorkerWrapper(
-                worker, timeout=self.task_timeout
-            )
+            self._async_workers[worker_id] = AsyncWorkerWrapper(worker, timeout=self.task_timeout)
         return self._async_workers[worker_id]
 
-    async def _execute_with_retry(
-        self, async_worker: AsyncWorkerWrapper, task: TaskDefinition
-    ) -> WorkerResult:
+    async def _execute_with_retry(self, async_worker: AsyncWorkerWrapper, task: TaskDefinition) -> WorkerResult:
         """Execute a worker task with retry and fallback via AsyncLLMRetryManager."""
         from .llm_retry_async import RetryConfig
 
@@ -548,9 +519,7 @@ class AsyncCoordinator:
             ),
         )
 
-    def _buffer_worker_messages(
-        self, batch_results: list[WorkerResult]
-    ) -> None:
+    def _buffer_worker_messages(self, batch_results: list[WorkerResult]) -> None:
         for r in batch_results:
             if r.output:
                 self._message_buffer.append(
@@ -565,9 +534,7 @@ class AsyncCoordinator:
                     )
                 )
 
-    async def compress_context(
-        self, force_level: Any = None
-    ) -> CompressedContext | None:
+    async def compress_context(self, force_level: Any = None) -> CompressedContext | None:
         """
         手动触发上下文压缩
 
@@ -579,19 +546,13 @@ class AsyncCoordinator:
         """
         if not self.compressor:
             return None
-        return self.compressor.check_and_compress(
-            self._message_buffer, force_level=force_level
-        )
+        return self.compressor.check_and_compress(self._message_buffer, force_level=force_level)
 
     def get_compression_stats(self) -> dict[str, Any] | None:
         """获取上下文压缩统计信息"""
         if not self.compressor:
             return None
-        compression_events = [
-            e["compression"]
-            for e in self._execution_history
-            if "compression" in e
-        ]
+        compression_events = [e["compression"] for e in self._execution_history if "compression" in e]
         if not compression_events:
             return {
                 "total_compressions": 0,
@@ -600,16 +561,9 @@ class AsyncCoordinator:
                 "total_original_tokens": 0,
                 "total_compressed_tokens": 0,
             }
-        total_original = sum(
-            e.get("original_tokens", 0) for e in compression_events
-        )
-        total_compressed = sum(
-            e.get("compressed_tokens", 0) for e in compression_events
-        )
-        avg_reduction = (
-            sum(e.get("reduction_pct", 0) for e in compression_events)
-            / len(compression_events)
-        )
+        total_original = sum(e.get("original_tokens", 0) for e in compression_events)
+        total_compressed = sum(e.get("compressed_tokens", 0) for e in compression_events)
+        avg_reduction = sum(e.get("reduction_pct", 0) for e in compression_events) / len(compression_events)
         return {
             "total_compressions": len(compression_events),
             "avg_reduction_pct": round(avg_reduction, 1),
@@ -672,9 +626,7 @@ class AsyncCoordinator:
                         elif isinstance(rs, dict):
                             rules.append(rs)
                 if rules:
-                    role_rules[worker.role_id] = (
-                        rules if isinstance(rules, list) else []
-                    )
+                    role_rules[worker.role_id] = rules if isinstance(rules, list) else []
             except (AttributeError, TypeError, KeyError, ValueError, RuntimeError) as e:
                 logger.debug("Rule loading failed for worker %s: %s", wid, e)
                 continue
@@ -766,9 +718,7 @@ class AsyncCoordinator:
                     resolution=f"[共识:{record.outcome.value}] {record.final_decision}",
                 )
             else:
-                self.scratchpad.resolve(
-                    conflict.entry_id, resolution="已通过共识解决"
-                )
+                self.scratchpad.resolve(conflict.entry_id, resolution="已通过共识解决")
 
         track_usage(
             "async_coordinator.resolve_conflicts",
@@ -803,10 +753,7 @@ class AsyncCoordinator:
         if collection["notifications"]:
             lines.append("\n## Worker 间消息")
             for n in collection["notifications"][:10]:
-                lines.append(
-                    f"- **{n.from_worker}** → "
-                    f"{', '.join(n.to_workers)}: {n.summary}"
-                )
+                lines.append(f"- **{n.from_worker}** → {', '.join(n.to_workers)}: {n.summary}")
 
         consensus_records = self.consensus.get_all_records()
         if consensus_records:
@@ -902,9 +849,7 @@ async def test_async_coordinator() -> None:
     print("Testing AsyncCoordinator...")
 
     scratchpad = Scratchpad()
-    coord = AsyncCoordinator(
-        scratchpad=scratchpad, task_timeout=30.0
-    )
+    coord = AsyncCoordinator(scratchpad=scratchpad, task_timeout=30.0)
 
     roles = [
         {"role_id": "architect", "role_prompt": "You are an architect."},
@@ -918,8 +863,7 @@ async def test_async_coordinator() -> None:
     print(f"✓ Workers spawned: {len(workers)}")
 
     result = await coord.execute_plan(plan)
-    print(f"✓ Plan executed: success={result.success}, "
-          f"completed={result.completed_tasks}/{result.total_tasks}")
+    print(f"✓ Plan executed: success={result.success}, completed={result.completed_tasks}/{result.total_tasks}")
 
     report = coord.generate_report()
     print(f"✓ Report generated ({len(report)} chars)")
