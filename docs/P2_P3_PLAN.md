@@ -278,38 +278,47 @@ class DispatcherUtilsMixin(DispatcherBase):
 
 ## 四、版本规划
 
-| 版本 | 范围 | 预估时间 |
-|------|------|----------|
-| v4.0.1 (已完成) | P0-P1 测试补充 + no-any-return 修复 | 2026-07-11 |
-| v4.0.2 (计划) | P2-3 + P2-1 (workflow_engine 测试 + Protocol 类型注解) | 2-3 周 |
-| v4.0.3 (计划) | P2-4 + P2-6 (无测试模块 + type: ignore 清理) | 2-3 周 |
-| v4.0.4 (计划) | P2-5 + P2-7 (速率限制 + E2E 增强) | 1-2 周 |
-| v4.1.0 (计划) | P2-2 God Class 拆分 (MINOR: 架构重构) | 3-4 周 |
-| v4.2.0+ (长期) | P3 全部 (性能基准 + Contract 测试 + 异常细分) | 持续推进 |
+> **更新历史**: 2026-07-12 修订 — 对齐实际发布历史，P2-2 God Class 拆分已正式取消
+
+| 版本 | 范围 | 状态 |
+|------|------|------|
+| v4.0.1 | P0-P1 测试补充 + no-any-return 修复 | 已完成 (2026-07-11) |
+| v4.0.2-v4.0.6 | P2-1/P2-3/P2-4/P2-5/P2-6/P2-7 逐步推进 (workflow_engine 测试 + Protocol 类型注解 + 无测试模块 + type: ignore 清理 + 速率限制 + E2E 增强) | 已完成 (2026-07-11) |
+| v4.0.7 | P2-7a/b Moka smoke + benchmark Moka + Dashboard 登录 E2E | 已完成 (2026-07-11) |
+| v4.0.8 | P3-3 异步异常细分 + P3-2 Contract 测试补全 | 已完成 (2026-07-11) |
+| v4.0.9 | P4-1 就绪探针 + P4-2 运维/架构文档 + P3-5 文档性能数据刷新 | 已完成 (2026-07-12) |
+| v4.1.0+ (计划) | P1 充分性提升 (Loop Engineering + UI/UX) + TD-070 PromptAssembler 专用测试 | 待规划 |
+| v5.0.0+ (长期) | P3 剩余项 (性能基准 + Contract 测试扩展 + 异常细分深化) | 持续推进 |
 
 **版本号规则**:
-- v4.0.x (PATCH): 修复/重构/优化，无新功能
-- v4.1.0 (MINOR): God Class 拆分（向后兼容的架构重构）
-- v4.2.0+ (MINOR): P3 新增能力
+- v4.0.x (PATCH): 修复/重构/优化/文档，无新功能
+- v4.1.0+ (MINOR): 向后兼容的功能新增（如 P1 充分性提升）
+- v5.0.0+ (MAJOR): 破坏性变更或重大架构调整
+
+**P2-2 God Class 拆分取消说明**:
+- 原计划在 v4.1.0 执行 P2-2 God Class 拆分（MINOR 架构重构）
+- 取消依据: D13 N-1 分析证明 'method count >30' 阈值误判率 98.1%；4 个候选 (mce_adapter/redis_cache/warmup_manager/worker) 经 SRP 分析全部判定为 NOT God Class
+- 决策: SRP 分析（而非行数/方法数阈值）是可靠的 God Class 判断标准
+- 详见 `project_memory.md` Lessons Learned
 
 ---
 
 ## 五、共识确认
 
-### 需要用户确认的决策点
+### 已达成共识的决策点
 
-1. **P2 优先级排序**: 是否同意按 ROI 排序的执行顺序？还是有特定优先模块？
-2. **God Class 拆分策略**: 是否采用 Facade 模式保持向后兼容？还是直接破坏性重构（v5.0.0）？
-3. **Protocol 类型注解**: 是否同意引入 Protocol 类型？还是保持 `Any` + `cast()` 方案？
-4. **LLM API key**: P3-1 性能基准是否配置 API key？还是继续使用 Mock？
-5. **Prometheus 集成**: P3-6 是否有 Prometheus/Grafana 基础设施可用？
+1. **P2 优先级排序**: 按 ROI 排序执行，已完成 v4.0.1-v4.0.9 全部 P2 项
+2. ~~**God Class 拆分策略**~~: **已取消** — SRP 分析证明 4 个候选均非 God Class
+3. **Protocol 类型注解**: 已采用 Protocol 类型（P2-1 已完成）
+4. **LLM API key**: P3-1 性能基准已配置 Moka API key（v4.0.7 已完成）
+5. **Prometheus 集成**: P3-6 待后续规划（需 Prometheus/Grafana 基础设施）
 
-### 风险提示
+### 剩余风险提示
 
-- **P2-2 God Class 拆分**是最高风险项，建议放在 P2 末期执行
-- **P2-1 Protocol 类型注解**可能触发连锁 mypy 错误，需逐文件验证
-- **P2-5 速率限制**需评估对现有 API 调用方的影响
+- ~~**P2-2 God Class 拆分**~~: 已取消，无风险
+- **P1 充分性提升** (v4.1.0+): Loop Engineering 五步闭环 + UI/UX 巡检需评估当前实现充分性
+- **TD-070 PromptAssembler**: 缺少专用测试，需补充测试覆盖
 
 ---
 
-*文档创建: 2026-07-11 | 版本: v4.0.1 | 状态: 待用户共识*
+*文档创建: 2026-07-11 | 最后修订: 2026-07-12 | 版本: v4.0.9 | 状态: P2 已完成，P1 充分性待评估*
