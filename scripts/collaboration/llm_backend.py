@@ -564,18 +564,22 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     explicitly provided via kwargs. Supports .env file loading.
 
     Environment Variables:
-        DEVSQUAD_LLM_BACKEND: Default backend type (auto|mock|trae|openai|anthropic|fallback)
+        DEVSQUAD_LLM_BACKEND: Default backend type (auto|mock|trae|openai|anthropic|moka|fallback)
         DEVSQUAD_OPENAI_API_KEY: OpenAI API key
         DEVSQUAD_OPENAI_BASE_URL: OpenAI-compatible base URL
         DEVSQUAD_OPENAI_MODEL: OpenAI model name
         DEVSQUAD_ANTHROPIC_API_KEY: Anthropic API key
         DEVSQUAD_ANTHROPIC_BASE_URL: Anthropic-compatible base URL
         DEVSQUAD_ANTHROPIC_MODEL: Anthropic model name
+        MOKA_API_KEY: Moka AI API key (OpenAI-compatible)
+        MOKA_API_BASE: Moka AI base URL (default: https://api.moka-ai.com/v1)
+        MOKA_MODEL: Moka AI model name (default: moka/claude-sonnet-4-6)
 
     Args:
-        backend_type: One of 'auto', 'mock', 'trae', 'openai', 'anthropic', 'fallback'.
+        backend_type: One of 'auto', 'mock', 'trae', 'openai', 'anthropic', 'moka', 'fallback'.
                       If not specified, reads from DEVSQUAD_LLM_BACKEND env var.
                       'auto' tries real backends first, then falls back to mock.
+                      'moka' uses OpenAIBackend with Moka AI's OpenAI-compatible API.
         **kwargs: Backend-specific configuration (overrides env vars)
 
     Returns:
@@ -587,7 +591,11 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
 
     env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "auto").lower()
 
-    if backend_type == "auto" and not kwargs and env_backend in ("openai", "anthropic", "fallback", "mock", "trae"):
+    if (
+        backend_type == "auto"
+        and not kwargs
+        and env_backend in ("openai", "anthropic", "moka", "fallback", "mock", "trae")
+    ):
         backend_type = env_backend
 
     if backend_type in ("fallback", "auto"):
@@ -630,12 +638,17 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         "trae": TraeBackend,
         "openai": OpenAIBackend,
         "anthropic": AnthropicBackend,
+        "moka": OpenAIBackend,
     }
     cls = backends.get(backend_type.lower())
     if cls is None:
         raise ValueError(f"Unknown backend type: {backend_type}. Available: {list(backends.keys())}")
 
-    if cls == OpenAIBackend:
+    if backend_type.lower() == "moka":
+        kwargs.setdefault("api_key", os.environ.get("MOKA_API_KEY"))
+        kwargs.setdefault("base_url", os.environ.get("MOKA_API_BASE", "https://api.moka-ai.com/v1"))
+        kwargs.setdefault("model", os.environ.get("MOKA_MODEL", "moka/claude-sonnet-4-6"))
+    elif cls == OpenAIBackend:
         kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY"))
         kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
         kwargs.setdefault("model", os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI))

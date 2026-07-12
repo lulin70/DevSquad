@@ -7,6 +7,32 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.0.7] - 2026-07-12
+
+PATCH 发布：修复、重构、优化，无新功能。完成 P2-7b（Moka 真实 LLM smoke 测试）、P3-1（benchmark Moka AI 后端支持）、P2-7a（Dashboard 登录 E2E）。
+
+### 新增 — P2-7b：Moka 真实 LLM smoke 测试（3 个新测试）
+- **test_real_llm_smoke.py** TestMokaLLMSmoke（3 个测试）：使用 Moka AI（OpenAI-compatible API）验证核心 dispatch 链路端到端可用。
+  - test_dispatch_with_moka_llm：基本 dispatch
+  - test_dispatch_multi_role_moka：多角色并行
+  - test_moka_result_contains_findings：结果结构验证（dict/对象兼容）
+
+### 新增 — P3-1：benchmark Moka AI 后端支持
+- **benchmark_real_llm.py**：新增 `--backend moka` 选项，通过 OpenAIBackend 复用 Moka AI（OpenAI-compatible API）。3/3 成功，avg 110.58s。
+- **llm_backend.py** create_backend()：新增 moka 工厂分支，支持 MOKA_API_KEY/MOKA_API_BASE/MOKA_MODEL 环境变量。
+
+### 新增 — P2-7a：Dashboard 登录 E2E（3 个新测试）
+- **test_dashboard_ui_e2e.py** TestDashboardRealLoginFlow（3 个测试）：验证 AuthManager.verify_credentials() → session_state → dashboard 页面渲染的真实链路。
+  - test_correct_login_returns_user：正确密码 → User → dashboard 渲染
+  - test_wrong_password_returns_none：错误密码 → None → 不注入 user
+  - test_role_permissions_differ：admin vs viewer 登录后页面渲染差异
+
+### 验证
+- ruff check：0 errors
+- pytest TestDashboardRealLoginFlow：3/3 PASSED
+- Moka LLM smoke：3/3 PASSED（194.56s）
+- benchmark Moka：3/3 成功（avg 110.58s）
+
 ## [4.0.6] - 2026-07-12
 
 PATCH 发布：修复、重构、优化，无新功能。基于 P2_P3_PLAN.md §2.7 推进 P2-7（E2E 测试覆盖增强 — 多租户隔离 E2E），并完成 P2-5/P2-2 校验收尾。

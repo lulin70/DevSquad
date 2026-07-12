@@ -4,6 +4,7 @@
 Usage:
     DEVSQUAD_OPENAI_API_KEY=sk-... python scripts/benchmark_real_llm.py --backend openai --tasks 5
     DEVSQUAD_ANTHROPIC_API_KEY=sk-... python scripts/benchmark_real_llm.py --backend anthropic --tasks 5
+    source .env && python scripts/benchmark_real_llm.py --backend moka --tasks 5
 
 Measures:
 - Per-task latency
@@ -25,8 +26,8 @@ def create_backend(backend_type: str) -> Any:
     """Create an LLM backend instance for the given type.
 
     Args:
-        backend_type: One of ``"openai"`` or ``"anthropic"``. The
-            corresponding API key must be set in the environment.
+        backend_type: One of ``"openai"``, ``"anthropic"``, or ``"moka"``.
+            The corresponding API key must be set in the environment.
 
     Returns:
         Configured LLM backend instance with max_tokens=500.
@@ -51,8 +52,21 @@ def create_backend(backend_type: str) -> Any:
             print("Error: DEVSQUAD_ANTHROPIC_API_KEY not set")
             sys.exit(1)
         return AnthropicBackend(api_key=api_key, max_tokens=500)
+    elif backend_type == "moka":
+        from scripts.collaboration.llm_backend import OpenAIBackend
+
+        api_key = os.environ.get("MOKA_API_KEY")
+        if not api_key:
+            print("Error: MOKA_API_KEY not set")
+            sys.exit(1)
+        return OpenAIBackend(
+            api_key=api_key,
+            base_url=os.environ.get("MOKA_API_BASE", "https://api.moka-ai.com/v1"),
+            model=os.environ.get("MOKA_MODEL", "moka/claude-sonnet-4-6"),
+            max_tokens=500,
+        )
     else:
-        print(f"Error: Unknown backend '{backend_type}'. Use 'openai' or 'anthropic'")
+        print(f"Error: Unknown backend '{backend_type}'. Use 'openai', 'anthropic', or 'moka'")
         sys.exit(1)
 
 
@@ -90,10 +104,10 @@ def run_benchmark(backend_type: str, num_tasks: int, mode: str) -> None:
         for i in range(num_tasks)
     ]
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Real LLM Benchmark: {backend_type.upper()} backend")
     print(f"Tasks: {num_tasks}, Mode: {mode}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     latencies = []
     successes = 0
@@ -112,22 +126,22 @@ def run_benchmark(backend_type: str, num_tasks: int, mode: str) -> None:
             latencies.append(elapsed)
             status = f"ERROR: {e}"
 
-        print(f"  Task {i+1}/{num_tasks}: {elapsed:.2f}s [{status}]")
+        print(f"  Task {i + 1}/{num_tasks}: {elapsed:.2f}s [{status}]")
 
     total_time = sum(latencies)
     avg_latency = total_time / len(latencies) if latencies else 0
     throughput = num_tasks / total_time if total_time > 0 else 0
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("RESULTS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Total time:       {total_time:.2f}s")
     print(f"  Avg latency:      {avg_latency:.2f}s")
     print(f"  Min latency:      {min(latencies):.2f}s")
     print(f"  Max latency:      {max(latencies):.2f}s")
     print(f"  Throughput:       {throughput:.2f} tasks/s")
-    print(f"  Success rate:     {successes}/{num_tasks} ({100*successes/num_tasks:.0f}%)")
-    print(f"{'='*60}")
+    print(f"  Success rate:     {successes}/{num_tasks} ({100 * successes / num_tasks:.0f}%)")
+    print(f"{'=' * 60}")
 
     dispatcher.shutdown()
 
@@ -135,11 +149,11 @@ def run_benchmark(backend_type: str, num_tasks: int, mode: str) -> None:
 def main() -> None:
     """Parse CLI arguments and launch the real-LLM benchmark.
 
-    Required argument: ``--backend`` (openai or anthropic). Optional
+    Required argument: ``--backend`` (openai, anthropic, or moka). Optional
     arguments: ``--tasks`` (default 5) and ``--mode`` (default auto).
     """
     parser = argparse.ArgumentParser(description="Benchmark real LLM backend dispatch")
-    parser.add_argument("--backend", choices=["openai", "anthropic"], required=True)
+    parser.add_argument("--backend", choices=["openai", "anthropic", "moka"], required=True)
     parser.add_argument("--tasks", type=int, default=5)
     parser.add_argument("--mode", default="auto", choices=["auto", "parallel", "sequential", "consensus"])
     args = parser.parse_args()

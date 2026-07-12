@@ -21,8 +21,12 @@ import os
 import unittest
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from scripts.auth import AuthManager
 
 # Skip entirely if streamlit is not installed (CI without dashboard deps)
 pytest.importorskip("streamlit")
@@ -126,10 +130,7 @@ class TestDashboardRBAC(unittest.TestCase):
             self.skipTest(f"Auth setup failed in test env: {at.exception}")
         markdown_texts = [m.value for m in at.markdown] + [i.value for i in at.info]
         all_texts = " ".join(markdown_texts)
-        readonly_found = (
-            "Phase execution requires" in all_texts
-            or "Operator or Admin" in all_texts
-        )
+        readonly_found = "Phase execution requires" in all_texts or "Operator or Admin" in all_texts
         self.assertTrue(
             readonly_found,
             "VIEWER should see read-only/access restriction message",
@@ -155,9 +156,7 @@ class TestDashboardRBAC(unittest.TestCase):
             with contextlib.suppress(Exception):
                 at.radio[0].select("Task Dispatch").run()
             error_texts = [e.value for e in at.error] if at.error else []
-            dispatch_blocked = any(
-                "requires Operator" in t or "Access denied" in t for t in error_texts
-            )
+            dispatch_blocked = any("requires Operator" in t or "Access denied" in t for t in error_texts)
             if error_texts:
                 self.assertTrue(
                     dispatch_blocked,
@@ -361,6 +360,82 @@ class TestDashboardFullUserJourney(unittest.TestCase):
                 at.exception,
                 f"Refresh button click caused exception: {at.exception}",
             )
+
+
+class TestDashboardRealLoginFlow(unittest.TestCase):
+    """Verify the real AuthManager → session_state → dashboard rendering chain.
+
+    Unlike other tests that pre-inject a User object, these tests call
+    AuthManager.verify_credentials() with real hashed passwords to validate
+    the authentication pipeline end-to-end (minus the Streamlit form submit,
+    which AppTest cannot simulate).
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
+
+    def _create_auth_manager_with_test_credentials(self) -> AuthManager:
+        """Create an AuthManager with test credentials (bypass config env var placeholders)."""
+        from scripts.auth import AuthManager
+
+        auth = AuthManager()
+        auth.auth_enabled = True
+        auth.credentials = {
+            "testadmin": {
+                "password": auth._hash_password("TestPass#123"),
+                "email": "admin@test.local",
+                "name": "Test Admin",
+                "role": "admin",
+            },
+            "testviewer": {
+                "password": auth._hash_password("ViewPass#456"),
+                "email": "viewer@test.local",
+                "name": "Test Viewer",
+                "role": "viewer",
+            },
+        }
+        return auth
+
+    def test_correct_login_returns_user(self) -> None:
+        """Correct password → verify_credentials returns User → dashboard renders."""
+        auth = self._create_auth_manager_with_test_credentials()
+        user = auth.verify_credentials("testadmin", "TestPass#123")
+        self.assertIsNotNone(user, "Correct credentials should return User")
+        assert user is not None  # narrow for type checker
+        self.assertEqual(user.username, "testadmin")
+        self.assertEqual(user.role.value, "admin")
+
+        at = AppTest.from_file(str(DASHBOARD_APP), default_timeout=10)
+        at.session_state["user"] = user
+        at.run()
+        self.assertFalse(at.exception, f"Dashboard crashed after login: {at.exception}")
+
+    def test_wrong_password_returns_none(self) -> None:
+        """Wrong password → verify_credentials returns None → user not injected."""
+        auth = self._create_auth_manager_with_test_credentials()
+        user = auth.verify_credentials("testadmin", "WrongPassword!")
+        self.assertIsNone(user, "Wrong password should return None")
+
+    def test_role_permissions_differ(self) -> None:
+        """Admin vs viewer login → both render without crash, different visibility."""
+        auth = self._create_auth_manager_with_test_credentials()
+
+        admin_user = auth.verify_credentials("testadmin", "TestPass#123")
+        viewer_user = auth.verify_credentials("testviewer", "ViewPass#456")
+        self.assertIsNotNone(admin_user, "Admin login should succeed")
+        self.assertIsNotNone(viewer_user, "Viewer login should succeed")
+
+        at_admin = AppTest.from_file(str(DASHBOARD_APP), default_timeout=10)
+        at_admin.session_state["user"] = admin_user
+        at_admin.run()
+
+        at_viewer = AppTest.from_file(str(DASHBOARD_APP), default_timeout=10)
+        at_viewer.session_state["user"] = viewer_user
+        at_viewer.run()
+
+        self.assertFalse(at_admin.exception, f"Admin dashboard crashed: {at_admin.exception}")
+        self.assertFalse(at_viewer.exception, f"Viewer dashboard crashed: {at_viewer.exception}")
 
 
 if __name__ == "__main__":

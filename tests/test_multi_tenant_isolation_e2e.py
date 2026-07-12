@@ -223,8 +223,9 @@ class TestQuotaIsolationE2E:
             user_id="user-a1",
         )
         assert not result.success, "Dispatch should fail when quota exceeded"
-        assert any("quota" in err.lower() for err in result.errors), \
+        assert any("quota" in err.lower() for err in result.errors), (
             f"Errors should mention quota, got: {result.errors}"
+        )
 
     def test_tenant_b_exhausts_own_quota_independently(self, dispatcher_with_tenants):
         """Tenant B can exhaust its own quota independently of Tenant A."""
@@ -303,8 +304,7 @@ class TestTenantLifecycleE2E:
         # The dispatch may still succeed (with None context) or fail depending on
         # how the pipeline handles missing tenant context.
         # The important assertion is that it doesn't crash.
-        assert isinstance(result.success, bool), \
-            "Dispatch should return a DispatchResult, not crash"
+        assert isinstance(result.success, bool), "Dispatch should return a DispatchResult, not crash"
 
     def test_reactivated_tenant_can_dispatch(self, dispatcher_with_tenants):
         """A reactivated tenant can dispatch again."""
@@ -362,8 +362,7 @@ class TestThreadLocalContextE2E:
 
             assert not errors, f"Thread should not raise: {errors}"
             # The other thread's context should NOT be tenant-a
-            assert other_ctx_tenant[0] != "tenant-a", \
-                "Tenant context leaked across threads"
+            assert other_ctx_tenant[0] != "tenant-a", "Tenant context leaked across threads"
 
     def test_concurrent_tenants_on_different_threads(self, dispatcher_with_tenants):
         """Two threads dispatching for different tenants don't interfere."""
@@ -439,5 +438,4 @@ class TestNonexistentTenantE2E:
 
         # ghost-tenant should not appear in quota usage
         all_usage = mtm.quota_manager.get_all_usage()
-        assert "ghost-tenant" not in all_usage, \
-            f"Ghost tenant should not have quota tracking, got: {all_usage}"
+        assert "ghost-tenant" not in all_usage, f"Ghost tenant should not have quota tracking, got: {all_usage}"
