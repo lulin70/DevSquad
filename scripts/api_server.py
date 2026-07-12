@@ -66,6 +66,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Readiness flag — set True on startup, False on shutdown.
+# /ready returns 503 when False, allowing load balancers to drain traffic
+# before uvicorn completes the shutdown sequence.
+_app_ready: bool = False
+
 # Create FastAPI application
 app = FastAPI(
     title="DevSquad API",
@@ -137,9 +142,7 @@ app.add_middleware(
 
 # Request timing middleware
 @app.middleware("http")
-async def add_process_time_header(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
+async def add_process_time_header(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     """Add processing time header to responses."""
     start_time = time.time()
 
@@ -161,17 +164,13 @@ async def add_process_time_header(
 # Must be registered BEFORE rate_limit so http requests are redirected before
 # consuming rate limit budget.
 @app.middleware("http")
-async def _https_redirect(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
+async def _https_redirect(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     return cast(Response, await https_redirect_middleware(request, call_next))
 
 
 # Rate limit middleware (P3-2, default 60 rpm per IP)
 @app.middleware("http")
-async def _rate_limit(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
+async def _rate_limit(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     return cast(Response, await rate_limit_middleware(request, call_next))
 
 
@@ -259,6 +258,7 @@ async def root() -> dict[str, Any]:
             "metrics": "/api/v1/metrics/",
             "gates": "/api/v1/gates/",
             "health": "/api/v1/health",
+            "ready": "/api/v1/ready",
             "prometheus": "/metrics",
         },
         "features": {
@@ -274,6 +274,24 @@ async def root() -> dict[str, Any]:
     }
 
 
+# Readiness probe — separated from /health (liveness) for K8s/load-balancer traffic management.
+# /health reports component status; /ready reports traffic-readiness (503 during startup/shutdown).
+@app.get("/api/v1/ready", tags=["Health"])
+async def readiness_check() -> dict[str, Any]:
+    """Readiness probe — returns 503 when not ready (startup/shutdown).
+
+    Use for K8s/load-balancer readiness checks. Returns 200 only when the
+    application has completed startup and is accepting traffic.
+    """
+    if not _app_ready:
+        raise HTTPException(status_code=503, detail="Service not ready")
+    return {
+        "ready": True,
+        "version": DEVSQUAD_VERSION,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
 # Startup event
 @app.on_event("startup")
 async def startup_event() -> None:
@@ -285,10 +303,15 @@ async def startup_event() -> None:
     # Import security status for startup logging
     try:
         from scripts.api.security import get_security_status
+
         sec_status = get_security_status()
     except (ImportError, RuntimeError, OSError):
-        sec_status = {"auth_enabled": False, "api_keys_configured": False,
-                      "audit_logger_available": False, "rbac_engine_available": False}
+        sec_status = {
+            "auth_enabled": False,
+            "api_keys_configured": False,
+            "audit_logger_available": False,
+            "rbac_engine_available": False,
+        }
 
     logger.info("=" * 60)
     logger.info("🚀 DevSquad API Server Starting...")
@@ -302,7 +325,9 @@ async def startup_event() -> None:
     logger.info("  ✅ Task Dispatch routes registered (NEW)")
     logger.info("  ✅ Prometheus /metrics endpoint registered (NEW)")
     if _cors_origins_str:
-        logger.info("  ✅ CORS middleware enabled (explicit: %d origins from DEVSQUAD_CORS_ORIGINS)", len(allowed_origins))
+        logger.info(
+            "  ✅ CORS middleware enabled (explicit: %d origins from DEVSQUAD_CORS_ORIGINS)", len(allowed_origins)
+        )
     else:
         logger.info("  ✅ CORS middleware enabled (dev defaults: %d localhost origins)", len(allowed_origins))
     logger.info("  ⏱️  Request timing enabled")
@@ -320,6 +345,7 @@ async def startup_event() -> None:
         _is_https_redirect_enabled,
         _is_rate_limit_enabled,
     )
+
     if _is_rate_limit_enabled():
         logger.info("  🚦 Rate limit: ENABLED (%d req/min per IP)", _get_rate_limit_per_minute())
     else:
@@ -338,7 +364,10 @@ async def startup_event() -> None:
     logger.info("  GET  /api/v1/metrics/*         - Metrics (AUDIT_READ)")
     logger.info("  GET  /api/v1/gates/*           - Gates (AUDIT_READ)")
     logger.info("  GET  /api/v1/health            - Health check (PUBLIC)")
+    logger.info("  GET  /api/v1/ready             - Readiness probe (PUBLIC)")
     logger.info("  GET  /metrics                  - Prometheus metrics (AUDIT_READ)")
+    global _app_ready
+    _app_ready = True
     logger.info("Ready to accept requests!")
     logger.info("Swagger UI: http://localhost:8000/docs")
     logger.info("=" * 60)
@@ -347,14 +376,13 @@ async def startup_event() -> None:
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event() -> None:
-    """
-    Execute on application shutdown.
-
-    Clean up resources and log shutdown message.
-    """
+    """Execute on application shutdown — drain traffic then clean up."""
+    global _app_ready
+    _app_ready = False
     logger.info("=" * 60)
     logger.info("🛑 DevSquad API Server Shutting Down...")
     logger.info("Time: %s", datetime.now().isoformat())
+    logger.info("Draining traffic (ready=False)...")
     logger.info("Cleaning up resources...")
     logger.info("Goodbye! 👋")
     logger.info("=" * 60)

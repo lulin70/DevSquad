@@ -670,5 +670,42 @@ class TestResponseFormatValidation:
             pytest.fail(f"Timestamp is not valid ISO format: {timestamp}")
 
 
+class TestReadinessProbe:
+    """Test readiness probe endpoint (/api/v1/ready).
+
+    Verifies the /ready endpoint returns 200 when the app is ready
+    and 503 during startup/shutdown (traffic draining).
+    """
+
+    def test_ready_returns_200_when_app_ready(self, client):
+        """After startup, /ready returns 200 with ready=True."""
+        import scripts.api_server as srv
+
+        srv._app_ready = True
+        response = client.get("/api/v1/ready")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ready"] is True
+        assert "version" in data
+
+    def test_ready_returns_503_when_not_ready(self, client):
+        """During shutdown, /ready returns 503."""
+        import scripts.api_server as srv
+
+        srv._app_ready = False
+        response = client.get("/api/v1/ready")
+        assert response.status_code == 503
+
+    def test_ready_endpoint_listed_in_root(self, client):
+        """Root endpoint lists /ready in available endpoints."""
+        import scripts.api_server as srv
+
+        srv._app_ready = True
+        response = client.get("/")
+        data = response.json()
+        assert "ready" in data["endpoints"]
+        assert data["endpoints"]["ready"] == "/api/v1/ready"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

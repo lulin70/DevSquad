@@ -1,8 +1,9 @@
 # DevSquad 性能监控集成方案
 
-**版本**: V3.6.0
-**日期**: 2026-05-04
+**版本**: V4.1.0
+**日期**: 2026-07-12
 **目标**: 建立完整的性能监控体系
+**更新**: V4.0.7 新增 Moka AI 后端基准数据；V4.1.0 新增 /ready 就绪探针
 
 ---
 
@@ -43,6 +44,35 @@
 | **Cache Hit Rate** | LLM缓存命中率 | >70% | N/A |
 | **Memory Usage** | 内存占用 | <200MB | ~85MB |
 | **Startup Time** | Dispatcher初始化 | <2s | ~1.3s |
+
+### 真实 LLM 后端基准 (V4.0.7+)
+
+| 后端 | 模型 | 平均耗时 | 成功率 | 备注 |
+|------|------|---------|--------|------|
+| Mock | (内置) | ~120ms | 100% | 无网络调用，用于 CI |
+| Moka AI | moka/claude-sonnet-4-6 | ~110.58s | 100% (3/3) | OpenAI-compatible API |
+| OpenAI | gpt-4 | (未测) | — | 需 OPENAI_API_KEY |
+
+**运行方式**:
+```bash
+# Moka AI 基准测试
+python scripts/benchmark_real_llm.py --backend moka
+
+# 环境变量
+export MOKA_API_KEY=your_key
+export MOKA_API_BASE=https://api.moka-ai.com/v1
+export MOKA_MODEL=moka/claude-sonnet-4-6
+```
+
+### 就绪探针监控 (V4.1.0+)
+
+| 端点 | 类型 | 用途 |
+|------|------|------|
+| `/api/v1/health` | Liveness | 组件状态（lifecycle, database） |
+| `/api/v1/ready` | Readiness | 流量就绪（503 = 排空流量中） |
+| `/metrics` | Prometheus | 指标采集 |
+
+详见 [运维手册](operations/OPERATIONS.md)。
 
 ### Benchmark 测试用例
 

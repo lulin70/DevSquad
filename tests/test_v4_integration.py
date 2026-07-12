@@ -171,7 +171,7 @@ class TestV4Integration:
         assert hasattr(d, "consensus_engine")
 
     def test_v4_version_is_current(self) -> None:
-        """验证版本号已升级到 V4.0.x。"""
+        """验证版本号已升级到 V4.x。"""
         from scripts.collaboration._version import __version__
 
-        assert __version__.startswith("4.0."), f"Expected 4.0.x, got {__version__}"
+        assert __version__.startswith("4."), f"Expected 4.x, got {__version__}"

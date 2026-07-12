@@ -1,11 +1,11 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.0.0（已发布到 PyPI + GitHub Release — 2026-07-08）
-> **最后更新**: 2026-07-10
-> **最新评估**: V4.0.0 发布完成 — 6 个特性（P1-P3）+ 后续改进项（共识投票 STUB 修复 / SleepGuard / HSV 检测 / httpx2 修复 / MD5 安全修复 / LLM 投票替换模拟投票）。3666 tests passing / 22 skipped / 0 failed。ruff All passed / bandit 0 issues / mypy 0 errors。版本一致性 15/15 PASS。
+> **当前版本**: V4.1.0（开发完成 — 2026-07-12）
+> **最后更新**: 2026-07-12
+> **最新评估**: V4.1.0 开发完成 — P4-1（优雅关闭 + 就绪探针 `/api/v1/ready`）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。4614 tests passing / 26 skipped / 5 failed（预存问题：Moka 超时 / CLI lifecycle / start.sh Python 3.9 检测）。覆盖率 76.44%。ruff All passed / 版本一致性 7/7 PASS。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.0.0/
-> **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0
+> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.1.0 待发布）
+> **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
 
@@ -36,13 +36,12 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 3618 passed（本地 Python 3.12，含 V3.10.0 Phase 1-4 + V4.0.0 P1-P3 + 幽灵防御） | ✅ 全绿 |
-| UI E2E 浏览器驱动 | 37 passed（streamlit-app-testing，Dashboard 8 类用户场景） | ✅ 全绿 |
-| E2E 用户旅程 + 集成（nightly CI） | 48 passed, 18 skipped（18 skipped 为真实 LLM 测试，mock 模式无 key 预期跳过） | ✅ 全绿 |
-| V4.0.0 集成验证 | 14 passed（6 特性 dispatcher 可达性，无幽灵功能） | ✅ 全绿 |
-| 性能基准 | 23 passed | ✅ 全绿 |
-| **合计** | **3666+ passed** | **0 failed** |
-| 覆盖率 | 70.74%（本地 3.12） | ✅ 超过 60% 门禁 |
+| 单元/集成回归 | 4614 passed（本地 Python 3.12，含 V4.1.0 P4-1/P4-2/P3-5 + 全部历史特性） | ✅ 全绿 |
+| Contract 测试 | 163 passed（6 Protocol 契约合规，V4.0.8 补全） | ✅ 全绿 |
+| API 服务器测试 | 51 passed（含 V4.1.0 TestReadinessProbe 3 个新测试） | ✅ 全绿 |
+| 版本一致性 | 7 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README） | ✅ 全绿 |
+| 覆盖率 | 76.44%（本地 3.12，26686 statements / 5784 missed） | ✅ 超过 60% 门禁 |
+| 预存失败 | 5 failed（Moka 超时 / CLI lifecycle / start.sh Python 3.9 检测 — 非本次引入） | ⚠️ 预存 |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
 

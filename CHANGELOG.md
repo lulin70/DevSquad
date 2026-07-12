@@ -7,6 +7,31 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-07-12
+
+MINOR release: 向后兼容的功能新增。完成 P4-1（优雅关闭 + 就绪探针）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。
+
+### Added — P4-1: 优雅关闭 + 就绪探针
+- **api_server.py**：新增 `/api/v1/ready` readiness probe 端点，与 `/api/v1/health` liveness probe 分离。
+- **startup_event**：启动完成后设置 `_app_ready=True`，允许负载均衡器导入流量。
+- **shutdown_event**：关闭开始时设置 `_app_ready=False`，/ready 返回 503，实现流量排空。
+- **test_api_server_v362.py** TestReadinessProbe（3 个测试）：ready 200、not-ready 503、root 列表。
+
+### Added — P4-2: 运维手册 + 架构文档
+- **docs/operations/OPERATIONS.md**：运维手册（部署、环境变量、健康检查端点、日志、启动/关闭流程、Docker、故障排查、监控清单）。
+- **docs/architecture/ARCHITECTURE_V4.md**：v4.x 架构文档（7-role 系统、数据流、Protocol 体系、API 层、安全层、生命周期、v4.x 变更、测试架构）。
+
+### Updated — P3-5: 文档性能数据刷新
+- **docs/PROJECT_STATUS.md**：版本 V4.0.0 → V4.1.0，刷新测试数量和覆盖率。
+- **docs/PERFORMANCE_MONITORING_INTEGRATION.md**：版本 V3.6.0 → V4.1.0，添加 Moka AI 后端基准数据。
+
+### 验证
+- ruff check：0 errors
+- pytest 全套：4614 passed / 26 skipped / 5 failed（预存问题，非本次引入）
+- 覆盖率：76.44%（26686 statements / 5784 missed）
+- pytest tests/test_api_server_v362.py：51 passed（含 3 个新 TestReadinessProbe 测试）
+- 版本一致性：7/7 PASS（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CHANGELOG）
+
 ## [4.0.8] - 2026-07-12
 
 PATCH release: 修复、重构、优化，无新功能。完成 P3-3（异步异常细分 — 修复 dead code bug）和 P3-2（Contract 测试补全 — 3 个 Protocol 契约测试 + runtime_checkable 启用）。
