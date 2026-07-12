@@ -1,6 +1,6 @@
 # DevSquad V4.x Architecture
 
-> **Version**: V4.1.0
+> **Version**: V4.0.9
 > **Last Updated**: 2026-07-12
 > **Status**: Active (supersedes V3.8/V3.9 architecture docs)
 
@@ -156,7 +156,7 @@ Request → CORS → HTTPS Redirect → Rate Limit → Timing → Endpoint Handl
 | Dispatch | `scripts/api/routes/dispatch.py` | `/api/v1/tasks/*` |
 | Prometheus | `scripts/api/routes/metrics.py` | `/metrics` |
 
-### Health Endpoints (v4.1.0)
+### Health Endpoints (v4.0.9)
 
 | Endpoint | Type | Purpose |
 |----------|------|---------|
@@ -251,7 +251,7 @@ Quality gates enforce criteria before phase transitions:
 - 28 new contract tests (163 total)
 - Async exception dead code fix (`async_coordinator.py`)
 
-### V4.1.0 — Operations & Readiness
+### V4.0.9 — Operations & Readiness
 - `/api/v1/ready` readiness probe (separated from `/health` liveness)
 - `_app_ready` lifecycle flag (startup=True, shutdown=False)
 - Traffic draining during graceful shutdown

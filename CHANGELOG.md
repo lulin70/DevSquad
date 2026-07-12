@@ -7,9 +7,9 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.1.0] - 2026-07-12
+## [4.0.9] - 2026-07-12
 
-MINOR release: 向后兼容的功能新增。完成 P4-1（优雅关闭 + 就绪探针）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。
+PATCH release: 修复、重构、优化，无新功能。完成 P4-1（优雅关闭 + 就绪探针）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。
 
 ### Added — P4-1: 优雅关闭 + 就绪探针
 - **api_server.py**：新增 `/api/v1/ready` readiness probe 端点，与 `/api/v1/health` liveness probe 分离。
@@ -22,8 +22,8 @@ MINOR release: 向后兼容的功能新增。完成 P4-1（优雅关闭 + 就绪
 - **docs/architecture/ARCHITECTURE_V4.md**：v4.x 架构文档（7-role 系统、数据流、Protocol 体系、API 层、安全层、生命周期、v4.x 变更、测试架构）。
 
 ### Updated — P3-5: 文档性能数据刷新
-- **docs/PROJECT_STATUS.md**：版本 V4.0.0 → V4.1.0，刷新测试数量和覆盖率。
-- **docs/PERFORMANCE_MONITORING_INTEGRATION.md**：版本 V3.6.0 → V4.1.0，添加 Moka AI 后端基准数据。
+- **docs/PROJECT_STATUS.md**：版本 V4.0.0 → V4.0.9，刷新测试数量和覆盖率。
+- **docs/PERFORMANCE_MONITORING_INTEGRATION.md**：版本 V3.6.0 → V4.0.9，添加 Moka AI 后端基准数据。
 
 ### 验证
 - ruff check：0 errors

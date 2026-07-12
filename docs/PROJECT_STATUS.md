@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.1.0（开发完成 — 2026-07-12）
+> **当前版本**: V4.0.9（开发完成 — 2026-07-12）
 > **最后更新**: 2026-07-12
-> **最新评估**: V4.1.0 开发完成 — P4-1（优雅关闭 + 就绪探针 `/api/v1/ready`）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。4614 tests passing / 26 skipped / 5 failed（预存问题：Moka 超时 / CLI lifecycle / start.sh Python 3.9 检测）。覆盖率 76.44%。ruff All passed / 版本一致性 7/7 PASS。
+> **最新评估**: V4.0.9 开发完成 — P4-1（优雅关闭 + 就绪探针 `/api/v1/ready`）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。4614 tests passing / 26 skipped / 5 failed（预存问题：Moka 超时 / CLI lifecycle / start.sh Python 3.9 检测）。覆盖率 76.44%。ruff All passed / 版本一致性 7/7 PASS。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.1.0 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.0.9 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
@@ -36,9 +36,9 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 4614 passed（本地 Python 3.12，含 V4.1.0 P4-1/P4-2/P3-5 + 全部历史特性） | ✅ 全绿 |
+| 单元/集成回归 | 4614 passed（本地 Python 3.12，含 V4.0.9 P4-1/P4-2/P3-5 + 全部历史特性） | ✅ 全绿 |
 | Contract 测试 | 163 passed（6 Protocol 契约合规，V4.0.8 补全） | ✅ 全绿 |
-| API 服务器测试 | 51 passed（含 V4.1.0 TestReadinessProbe 3 个新测试） | ✅ 全绿 |
+| API 服务器测试 | 51 passed（含 V4.0.9 TestReadinessProbe 3 个新测试） | ✅ 全绿 |
 | 版本一致性 | 7 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README） | ✅ 全绿 |
 | 覆盖率 | 76.44%（本地 3.12，26686 statements / 5784 missed） | ✅ 超过 60% 门禁 |
 | 预存失败 | 5 failed（Moka 超时 / CLI lifecycle / start.sh Python 3.9 检测 — 非本次引入） | ⚠️ 预存 |
