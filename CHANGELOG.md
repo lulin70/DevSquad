@@ -9,7 +9,27 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [4.0.10] - 2026-07-13
 
-PATCH release: P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复，无新功能。
+PATCH release: P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复 + 项目整理评估修复，无新功能。
+
+### Added — Project Evaluation: redis_url credential leak protection
+- **scripts/collaboration/redis_cache.py**: Added `_mask_redis_url()` function to mask passwords in Redis URLs across logs/stats/health_check/repr.
+- **tests/test_redis_cache.py**: Added `TestMaskRedisUrl` 10 tests covering no-password/with-password/username+password/rediss/invalid-url/stats-masking/health_check-masking/repr-masking.
+
+### Fixed — Project Evaluation: health_check RedisConnectionError capture
+- **scripts/collaboration/redis_cache.py**: Added `RedisConnectionError` to `health_check()` except clause, fixing a bug where connection failure raised an uncaught exception instead of returning "unhealthy" status.
+
+### Fixed — Project Evaluation: dependency sync
+- **requirements-dev.txt**: Added `fakeredis>=2.30` and `redis>=5.0` (synced with pyproject.toml [dev]).
+- **pyproject.toml [all] extras**: Added `fakeredis>=2.30` and `redis>=5.0`.
+
+### Fixed — Project Evaluation: CI/CD improvements
+- **.github/workflows/test.yml**: Added Python 3.12 to matrix (`["3.10", "3.11", "3.12"]`), added fakeredis/redis to test and e2e job install steps.
+- **.pre-commit-config.yaml**: Updated ruff version from v0.6.9 to v0.15.20 (aligned with CI lint job).
+
+### Fixed — Project Evaluation: version references and doc refresh
+- **SKILL.md / CLAUDE.md / config/deployment.yaml / COMPARISON.md / helm/devsquad/Chart.yaml**: Version references V4.0.0→V4.0.10.
+- **SKILL.md / .trae/skills/devsquad/SKILL.md / skill-manifest.yaml**: Test count 3666→4651.
+- **README.md / README-CN.md / README-JP.md**: Tests badge 3400→4600, README-CN/JP version badge V4.0.0→V4.0.10.
 
 ### Added — P1-D: 覆盖率门禁提升
 - **pyproject.toml**：`fail_under` 从 60 提升至 75，防止覆盖率回归。当前实际覆盖率 80.03%。

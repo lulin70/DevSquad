@@ -95,6 +95,8 @@ all = [
     "black>=23.0",
     "flake8>=6.0",
     "httpx2>=2.5.0",
+    "fakeredis>=2.30",
+    "redis>=5.0",
 ]
 
 [project.scripts]

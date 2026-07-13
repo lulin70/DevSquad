@@ -31,6 +31,7 @@ import logging
 import os
 import time
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 from .cache_interface import CacheBackendInterface, CacheStats, Serializer
 
@@ -41,6 +42,26 @@ class RedisConnectionError(Exception):
     """Custom exception for Redis connection errors"""
 
     pass
+
+
+def _mask_redis_url(url: str) -> str:
+    """Mask password in Redis URL for safe logging/stats exposure.
+
+    redis://:secret@host:6379/0  →  redis://***@host:6379/0
+    redis://user:secret@host:6379/0  →  redis://user:***@host:6379/0
+    redis://host:6379/0  →  redis://host:6379/0  (no password, unchanged)
+    """
+    try:
+        parsed = urlparse(url)
+        if parsed.password:
+            masked_netloc = parsed.hostname or ""
+            if parsed.port:
+                masked_netloc = f"{masked_netloc}:{parsed.port}"
+            masked_netloc = f"{parsed.username}:***@{masked_netloc}" if parsed.username else f":***@{masked_netloc}"
+            return urlunparse(parsed._replace(netloc=masked_netloc))
+    except Exception:
+        pass
+    return url
 
 
 class RedisCacheBackend(CacheBackendInterface):
@@ -116,7 +137,7 @@ class RedisCacheBackend(CacheBackendInterface):
         self._latencies: list[float] = []
 
         logger.info(
-            f"RedisCacheBackend initialized: url={self.redis_url}, prefix={self.prefix}, ttl={self.default_ttl}s"
+            f"RedisCacheBackend initialized: url={_mask_redis_url(self.redis_url)}, prefix={self.prefix}, ttl={self.default_ttl}s"
         )
 
     def _prefixed_key(self, key: str) -> str:
@@ -157,7 +178,7 @@ class RedisCacheBackend(CacheBackendInterface):
             self._client = aioredis.Redis(connection_pool=self._pool)
             await self._client.ping()
             self._connected = True
-            logger.info("Connected to Redis: %s", self.redis_url)
+            logger.info("Connected to Redis: %s", _mask_redis_url(self.redis_url))
             return self._client
         except Exception as e:
             self._connected = False
@@ -471,7 +492,7 @@ class RedisCacheBackend(CacheBackendInterface):
 
         stats_dict = self._stats.to_dict()
         stats_dict["backend_type"] = "redis"
-        stats_dict["redis_url"] = self.redis_url
+        stats_dict["redis_url"] = _mask_redis_url(self.redis_url)
         stats_dict["prefix"] = self.prefix
         stats_dict["default_ttl"] = self.default_ttl
         stats_dict["compression_enabled"] = self.enable_compression
@@ -529,7 +550,7 @@ class RedisCacheBackend(CacheBackendInterface):
         health = {
             "status": "unknown",
             "timestamp": current_time,
-            "url": self.redis_url,
+            "url": _mask_redis_url(self.redis_url),
         }
 
         try:
@@ -549,7 +570,7 @@ class RedisCacheBackend(CacheBackendInterface):
             else:
                 health["status"] = "unhealthy"
 
-        except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
+        except (RedisConnectionError, ConnectionError, TimeoutError, OSError, RuntimeError) as e:
             health.update(
                 {
                     "status": "unhealthy",
@@ -589,7 +610,7 @@ class RedisCacheBackend(CacheBackendInterface):
         return keys
 
     def __repr__(self) -> str:
-        return f"RedisCacheBackend(url={self.redis_url}, prefix={self.prefix}, connected={self._connected})"
+        return f"RedisCacheBackend(url={_mask_redis_url(self.redis_url)}, prefix={self.prefix}, connected={self._connected})"
 
 
 class SyncRedisCacheWrapper:

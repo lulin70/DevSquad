@@ -15,6 +15,7 @@ from scripts.collaboration.redis_cache import (
     RedisCacheBackend,
     RedisConnectionError,
     SyncRedisCacheWrapper,
+    _mask_redis_url,
 )
 
 
@@ -437,3 +438,70 @@ class TestSyncRedisCacheWrapper:
         wrapper._backend._get_client = mock_get_client
         wrapper.close()
         assert wrapper._backend._connected is False
+
+
+# ============================================================================
+# _mask_redis_url — Credential masking (P1 security fix)
+# ============================================================================
+
+
+class TestMaskRedisUrl:
+    """Tests for _mask_redis_url credential masking function."""
+
+    def test_no_password_unchanged(self):
+        assert _mask_redis_url("redis://localhost:6379/0") == "redis://localhost:6379/0"
+
+    def test_no_password_with_db_unchanged(self):
+        assert _mask_redis_url("redis://host:6380/3") == "redis://host:6380/3"
+
+    def test_password_only_masked(self):
+        masked = _mask_redis_url("redis://:secret@host:6379/0")
+        assert "secret" not in masked
+        assert "***" in masked
+        assert "host:6379" in masked
+
+    def test_username_password_masked(self):
+        masked = _mask_redis_url("redis://user:secret@host:6379/0")
+        assert "secret" not in masked
+        assert "***" in masked
+        assert "user" in masked
+        assert "host:6379" in masked
+
+    def test_rediss_scheme_masked(self):
+        masked = _mask_redis_url("rediss://:pass@secure.host:6380/1")
+        assert "pass" not in masked
+        assert "***" in masked
+
+    def test_invalid_url_returns_original(self):
+        original = "not-a-valid-url"
+        assert _mask_redis_url(original) == original
+
+    async def test_stats_exposes_masked_url(self, redis_backend):
+        """Default redis_url has no password — stats should show unchanged URL."""
+        result = await redis_backend.stats()
+        assert "redis_url" in result
+        assert "***" not in result["redis_url"]
+
+    async def test_stats_masks_password_in_url(self):
+        """Verify stats() masks password when redis_url contains one."""
+        backend = RedisCacheBackend(redis_url="redis://:mypassword@localhost:6379/0")
+        stats = await backend.stats()
+        assert "mypassword" not in stats["redis_url"]
+        assert "***" in stats["redis_url"]
+
+    async def test_health_check_masks_url(self):
+        """Verify health_check() masks password in url field even on connection failure."""
+        backend = RedisCacheBackend(redis_url="redis://:secret@localhost:6379/0", health_check_interval=0)
+        health = await backend.health_check()
+        # Connection will fail (no Redis running) but url should still be masked
+        assert "url" in health
+        assert "secret" not in health["url"]
+        assert "***" in health["url"]
+        assert health["status"] == "unhealthy"
+
+    def test_repr_masks_url(self):
+        """Verify __repr__ masks password."""
+        backend = RedisCacheBackend(redis_url="redis://:secret@host:6379/0")
+        repr_str = repr(backend)
+        assert "secret" not in repr_str
+        assert "***" in repr_str

@@ -9,7 +9,27 @@
 
 ## [4.0.10] - 2026-07-13
 
-PATCH 发布：P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复，无新功能。
+PATCH 发布：P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复 + 项目整理评估修复，无新功能。
+
+### 新增 — 项目整理评估：redis_url 凭据泄露防护
+- **scripts/collaboration/redis_cache.py**：新增 `_mask_redis_url()` 函数，在日志/stats/health_check/repr 中脱敏 Redis URL 中的密码。
+- **tests/test_redis_cache.py**：新增 `TestMaskRedisUrl` 10 个测试，覆盖无密码/有密码/用户名+密码/rediss/无效URL/stats脱敏/health_check脱敏/repr脱敏。
+
+### 修复 — 项目整理评估：health_check RedisConnectionError 捕获
+- **scripts/collaboration/redis_cache.py**：`health_check()` 的 except 子句添加 `RedisConnectionError`，修复连接失败时抛出未捕获异常而非返回 "unhealthy" 状态的 bug。
+
+### 修复 — 项目整理评估：依赖同步
+- **requirements-dev.txt**：添加 `fakeredis>=2.30` 和 `redis>=5.0`（与 pyproject.toml [dev] 同步）。
+- **pyproject.toml [all] extras**：添加 `fakeredis>=2.30` 和 `redis>=5.0`。
+
+### 修复 — 项目整理评估：CI/CD 改进
+- **.github/workflows/test.yml**：Python 矩阵添加 3.12（`["3.10", "3.11", "3.12"]`），test job 和 e2e job 安装步骤添加 fakeredis/redis。
+- **.pre-commit-config.yaml**：ruff 版本从 v0.6.9 更新到 v0.15.20（与 CI lint job 一致）。
+
+### 修复 — 项目整理评估：版本引用与文档刷新
+- **SKILL.md / CLAUDE.md / config/deployment.yaml / COMPARISON.md / helm/devsquad/Chart.yaml**：版本引用 V4.0.0→V4.0.10。
+- **SKILL.md / .trae/skills/devsquad/SKILL.md / skill-manifest.yaml**：测试数 3666→4651。
+- **README.md / README-CN.md / README-JP.md**：Tests 徽章 3400→4600，README-CN/JP 版本徽章 V4.0.0→V4.0.10。
 
 ### 新增 — P1-D：覆盖率门禁提升
 - **pyproject.toml**：`fail_under` 从 60 提升至 75，防止覆盖率回归。当前实际覆盖率 80.03%。
