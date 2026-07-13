@@ -7,6 +7,40 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.10] - 2026-07-13
+
+PATCH release: P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复，无新功能。
+
+### Added — P1-D: 覆盖率门禁提升
+- **pyproject.toml**：`fail_under` 从 60 提升至 75，防止覆盖率回归。当前实际覆盖率 80.03%。
+
+### Added — P1-C: UE 启发式 LLM 路径测试
+- **tests/test_ue_test_framework.py**：新增 `TestHeuristicLLMAssessment` 7 个测试，覆盖 LLM 辅助评估路径（L36, L85-97, L110-135）。
+- FakeLLMBackend 模拟 LLM 响应，测试 JSON 解析、错误降级、部分数据场景。
+
+### Added — P1-A: redis_cache.py 专用测试
+- **tests/test_redis_cache.py**：新增 41 个测试，覆盖 RedisCacheBackend 全部方法（get/set/delete/clear/mget/mset/stats/health_check/scan_keys/close）和 SyncRedisCacheWrapper。
+- 使用 fakeredis 模拟 Redis，测试真实业务逻辑。
+- 新增 dev 依赖：fakeredis>=2.30, redis>=5.0。
+
+### Fixed — P1-A: redis_cache.py 4 个源码 bug
+- **`_strip_prefix` bytes 处理**：`decode_responses=False` 配置下 SCAN 返回 bytes，`_strip_prefix` 期望 str 导致 `startswith` TypeError。修复：bytes 输入先 decode("utf-8")。
+- **`stats()` ResponseError 捕获**：fakeredis 不支持 `info` 命令抛出 `ResponseError`，源码 except 子句未包含该异常类型。修复：改为 `except Exception`（stats 是诊断信息，宽松捕获合理）。
+- **`_get_client` redis.exceptions.ConnectionError 捕获**：`redis.exceptions.ConnectionError` 不继承 `builtins.ConnectionError`，源码 except 子句捕获了错误的异常类型，导致 Redis 连接失败时异常直接传播而非包装为 `RedisConnectionError`。修复：改为 `except Exception` 并包装为 `RedisConnectionError`。
+- **`_execute_with_retry` RedisConnectionError 捕获**：`_get_client` 抛出的自定义 `RedisConnectionError` 未被 `_execute_with_retry` 的 except 子句捕获，导致重试机制失效。修复：在 except 子句中添加 `RedisConnectionError`。
+
+### Added — P1-B: FeedbackControlLoop E2E 闭环测试
+- **tests/test_feedback_control_loop.py**：新增 26 个 E2E 测试，覆盖 Sense-Decide-Act-Feedback 完整闭环。
+- 7 个测试维度：质量门场景（4）、Dry-Run 模式（2）、LLM 精炼路径（3）、历史追踪（3）、线程安全（1）、质量评估子系统（7）、调整生成（6）。
+- FakeDispatcher + FakeLLMBackend 模拟完整调度链路。
+
+### 验证
+- ruff check：All checks passed
+- pytest 全套：4639 passed / 26 skipped / 2 failed（Moka LLM smoke 超时 — 需真实 API key，非本次引入）
+- 新增测试：41 (redis_cache) + 26 (feedback_control_loop) + 7 (ue_test_framework) = 74 个
+- 源码 bug 修复：4 个（_strip_prefix / stats / _get_client / _execute_with_retry）
+- 版本一致性：全量 PASS（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CHANGELOG）
+
 ## [4.0.9] - 2026-07-12
 
 PATCH release: 修复、重构、优化，无新功能。完成 P4-1（优雅关闭 + 就绪探针）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。

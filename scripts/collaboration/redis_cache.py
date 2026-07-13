@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 class RedisConnectionError(Exception):
     """Custom exception for Redis connection errors"""
+
     pass
 
 
@@ -115,18 +116,19 @@ class RedisCacheBackend(CacheBackendInterface):
         self._latencies: list[float] = []
 
         logger.info(
-            f"RedisCacheBackend initialized: url={self.redis_url}, "
-            f"prefix={self.prefix}, ttl={self.default_ttl}s"
+            f"RedisCacheBackend initialized: url={self.redis_url}, prefix={self.prefix}, ttl={self.default_ttl}s"
         )
 
     def _prefixed_key(self, key: str) -> str:
         """Add namespace prefix to key"""
         return f"{self.prefix}{key}"
 
-    def _strip_prefix(self, key: str) -> str:
+    def _strip_prefix(self, key: str | bytes) -> str:
         """Remove namespace prefix from key"""
+        if isinstance(key, bytes):
+            key = key.decode("utf-8")
         if key.startswith(self.prefix):
-            return key[len(self.prefix):]
+            return key[len(self.prefix) :]
         return key
 
     async def _get_client(self) -> Any:
@@ -141,9 +143,7 @@ class RedisCacheBackend(CacheBackendInterface):
         try:
             import redis.asyncio as aioredis
         except ImportError:
-            raise ImportError(
-                "redis package required. Install with: pip install redis[asyncio]"
-            ) from None
+            raise ImportError("redis package required. Install with: pip install redis[asyncio]") from None
 
         try:
             self._pool = aioredis.ConnectionPool.from_url(
@@ -159,7 +159,7 @@ class RedisCacheBackend(CacheBackendInterface):
             self._connected = True
             logger.info("Connected to Redis: %s", self.redis_url)
             return self._client
-        except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
+        except Exception as e:
             self._connected = False
             logger.error("Failed to connect to Redis: %s", e)
             raise RedisConnectionError(f"Cannot connect to Redis: {e}") from e
@@ -192,14 +192,27 @@ class RedisCacheBackend(CacheBackendInterface):
 
                 return result
 
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except (
+                RedisConnectionError,
+                ConnectionError,
+                TimeoutError,
+                OSError,
+                ValueError,
+                KeyError,
+                TypeError,
+                AttributeError,
+                RuntimeError,
+            ) as e:
                 last_error = e
                 self._stats.errors += 1
 
                 if attempt < self.retry_attempts - 1:
                     logger.warning(
                         "%s failed (attempt %s/%s): %s",
-                        operation_name, attempt + 1, self.retry_attempts, e,
+                        operation_name,
+                        attempt + 1,
+                        self.retry_attempts,
+                        e,
                     )
                     await asyncio.sleep(self.retry_delay * (attempt + 1))
 
@@ -329,6 +342,7 @@ class RedisCacheBackend(CacheBackendInterface):
         Clear all entries with configured prefix.
         Uses SCAN for safe iteration (avoids blocking).
         """
+
         async def _do_clear(client: Any) -> int:
             cursor = 0
             total_deleted = 0
@@ -451,13 +465,9 @@ class RedisCacheBackend(CacheBackendInterface):
             - redis_info (if available)
         """
         total_requests = self._stats.total_requests
-        self._stats.hit_rate = (
-            self._stats.hits / total_requests if total_requests > 0 else 0.0
-        )
+        self._stats.hit_rate = self._stats.hits / total_requests if total_requests > 0 else 0.0
 
-        self._stats.avg_latency_ms = (
-            sum(self._latencies) / len(self._latencies) if self._latencies else 0.0
-        )
+        self._stats.avg_latency_ms = sum(self._latencies) / len(self._latencies) if self._latencies else 0.0
 
         stats_dict = self._stats.to_dict()
         stats_dict["backend_type"] = "redis"
@@ -479,7 +489,7 @@ class RedisCacheBackend(CacheBackendInterface):
                     "connected_clients": info.get("connected_clients", 0),
                     "uptime_in_seconds": info.get("uptime_in_seconds", 0),
                 }
-            except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
+            except Exception as e:
                 logger.debug("Failed to get Redis INFO: %s", e)
                 redis_info["error"] = str(e)
 
@@ -529,20 +539,24 @@ class RedisCacheBackend(CacheBackendInterface):
             latency_ms = (time.time() - start) * 1000
 
             if pong:
-                health.update({
-                    "status": "healthy",
-                    "latency_ms": round(latency_ms, 2),
-                    "connected": True,
-                })
+                health.update(
+                    {
+                        "status": "healthy",
+                        "latency_ms": round(latency_ms, 2),
+                        "connected": True,
+                    }
+                )
             else:
                 health["status"] = "unhealthy"
 
         except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-            health.update({
-                "status": "unhealthy",
-                "error": str(e),
-                "connected": False,
-            })
+            health.update(
+                {
+                    "status": "unhealthy",
+                    "error": str(e),
+                    "connected": False,
+                }
+            )
             self._connected = False
 
         return health
@@ -575,10 +589,7 @@ class RedisCacheBackend(CacheBackendInterface):
         return keys
 
     def __repr__(self) -> str:
-        return (
-            f"RedisCacheBackend(url={self.redis_url}, "
-            f"prefix={self.prefix}, connected={self._connected})"
-        )
+        return f"RedisCacheBackend(url={self.redis_url}, prefix={self.prefix}, connected={self._connected})"
 
 
 class SyncRedisCacheWrapper:
@@ -588,8 +599,9 @@ class SyncRedisCacheWrapper:
     Automatically handles event loop management.
     """
 
-    def __init__(self, redis_url: str, prefix: str = "devsquad:",
-                 default_ttl: int = 3600, compression: bool = False) -> None:
+    def __init__(
+        self, redis_url: str, prefix: str = "devsquad:", default_ttl: int = 3600, compression: bool = False
+    ) -> None:
         self._redis_url = redis_url
         self._prefix = prefix
         self._default_ttl = default_ttl
@@ -610,9 +622,8 @@ class SyncRedisCacheWrapper:
                 self._initialized = True
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 import logging
-                logging.getLogger(__name__).warning(
-                    "Redis cache backend init failed: %s", e
-                )
+
+                logging.getLogger(__name__).warning("Redis cache backend init failed: %s", e)
                 self._backend = None
                 self._initialized = True  # Don't retry
 
@@ -623,10 +634,12 @@ class SyncRedisCacheWrapper:
             return None
         try:
             import asyncio
+
             try:
                 asyncio.get_running_loop()
                 # We're inside an existing event loop - use thread
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                     return pool.submit(asyncio.run, coro).result()
             except RuntimeError:
@@ -634,6 +647,7 @@ class SyncRedisCacheWrapper:
                 return asyncio.run(coro)
         except (RuntimeError, ConnectionError, OSError) as e:
             import logging
+
             logging.getLogger(__name__).debug("Redis cache operation failed: %s", e)
             return None
 
@@ -723,10 +737,12 @@ async def test_redis_cache_backend() -> bool:
     except (ConnectionError, TimeoutError, OSError, ValueError, RuntimeError) as e:  # Broad catch: test harness
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(test_redis_cache_backend())

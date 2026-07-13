@@ -1,6 +1,6 @@
 # DevSquad Operations Manual
 
-> **Version**: V4.0.9
+> **Version**: V4.0.10
 > **Last Updated**: 2026-07-12
 > **Audience**: DevOps engineers, system administrators
 
@@ -88,7 +88,7 @@ DevSquad provides three health-related endpoints:
 ```json
 {
   "status": "healthy",
-  "version": "4.0.9",
+  "version": "4.0.10",
   "uptime_seconds": 120.5,
   "components": {
     "lifecycle_protocol": "healthy",
@@ -102,7 +102,7 @@ DevSquad provides three health-related endpoints:
 
 **Implementation**: `scripts/api/routes/metrics_gates.py` → `health_check()`
 
-### `/api/v1/ready` — Readiness Probe (v4.0.9+)
+### `/api/v1/ready` — Readiness Probe (v4.0.10+)
 
 **Purpose**: Reports whether the service is ready to accept traffic. Returns 503 during startup and shutdown.
 
@@ -110,7 +110,7 @@ DevSquad provides three health-related endpoints:
 ```json
 {
   "ready": true,
-  "version": "4.0.9",
+  "version": "4.0.10",
   "timestamp": "2026-07-12T10:30:00"
 }
 ```
@@ -212,7 +212,7 @@ During shutdown, load balancers should route traffic to other instances based on
 
 ```bash
 # Production image
-docker build --build-arg VERSION=4.0.9 -t devsquad:4.0.9 .
+docker build --build-arg VERSION=4.0.10 -t devsquad:4.0.10 .
 
 # Dev image (includes git, vim, source code)
 docker build --target dev -t devsquad:dev .
@@ -231,14 +231,14 @@ docker build --target dev -t devsquad:dev .
 docker run -p 8000:8000 \
   -e DEVSQUAD_LLM_BACKEND=mock \
   -e DEVSQUAD_API_AUTH_DISABLED=1 \
-  devsquad:4.0.9 \
+  devsquad:4.0.10 \
   uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000
 
 # With production auth
 docker run -p 8000:8000 \
   -e DEVSQUAD_ENV=production \
   -e DEVSQUAD_CORS_ORIGINS=https://dashboard.example.com \
-  devsquad:4.0.9 \
+  devsquad:4.0.10 \
   uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
@@ -331,6 +331,6 @@ unset DEVSQUAD_HTTPS_REDIRECT_ENABLED
 |-------|---------|----------|
 | Liveness | `curl http://localhost:8000/api/v1/health` | 200 with `status: healthy` |
 | Readiness | `curl http://localhost:8000/api/v1/ready` | 200 with `ready: true` |
-| Version | `curl http://localhost:8000/ | python -m json.tool` | `version: 4.0.9` |
+| Version | `curl http://localhost:8000/ | python -m json.tool` | `version: 4.0.10` |
 | Prometheus | `curl http://localhost:8000/metrics` | Metrics in Prometheus format |
 | Swagger UI | Open `http://localhost:8000/docs` | Interactive API docs |

@@ -7,6 +7,38 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.0.10] - 2026-07-13
+
+PATCH 发布：P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复，无新功能。
+
+### 新增 — P1-D：覆盖率门禁提升
+- **pyproject.toml**：`fail_under` 从 60 提升至 75，防止覆盖率回归。当前实际覆盖率 80.03%。
+
+### 新增 — P1-C：UE 启发式 LLM 路径测试
+- **tests/test_ue_test_framework.py**：新增 `TestHeuristicLLMAssessment` 7 个测试，覆盖 LLM 辅助评估路径。
+- FakeLLMBackend 模拟 LLM 响应，测试 JSON 解析、错误降级、部分数据场景。
+
+### 新增 — P1-A：redis_cache.py 专用测试
+- **tests/test_redis_cache.py**：新增 41 个测试，覆盖 RedisCacheBackend 全部方法和 SyncRedisCacheWrapper。
+- 使用 fakeredis 模拟 Redis，测试真实业务逻辑。
+- 新增 dev 依赖：fakeredis>=2.30, redis>=5.0。
+
+### 修复 — P1-A：redis_cache.py 4 个源码 bug
+- **`_strip_prefix` bytes 处理**：`decode_responses=False` 配置下 SCAN 返回 bytes，`_strip_prefix` 期望 str 导致 TypeError。修复：bytes 输入先 decode。
+- **`stats()` ResponseError 捕获**：fakeredis 不支持 `info` 命令抛出 `ResponseError` 未被捕获。修复：改为 `except Exception`。
+- **`_get_client` redis.exceptions.ConnectionError 捕获**：`redis.exceptions.ConnectionError` 不继承 `builtins.ConnectionError`，源码 except 子句捕获了错误的异常类型。修复：改为 `except Exception` 并包装为 `RedisConnectionError`。
+- **`_execute_with_retry` RedisConnectionError 捕获**：自定义 `RedisConnectionError` 未被重试机制捕获。修复：在 except 子句中添加 `RedisConnectionError`。
+
+### 新增 — P1-B：FeedbackControlLoop E2E 闭环测试
+- **tests/test_feedback_control_loop.py**：新增 26 个 E2E 测试，覆盖 Sense-Decide-Act-Feedback 完整闭环。
+- 7 个测试维度：质量门场景、Dry-Run 模式、LLM 精炼路径、历史追踪、线程安全、质量评估子系统、调整生成。
+
+### 验证
+- ruff check：All checks passed
+- pytest 全套：4639 passed / 26 skipped / 2 failed（Moka LLM smoke 超时 — 需真实 API key，非本次引入）
+- 新增测试：74 个（41 + 26 + 7）
+- 源码 bug 修复：4 个
+
 ## [4.0.9] - 2026-07-12
 
 PATCH 发布：修复、重构、优化，无新功能。完成 P4-1（优雅关闭 + 就绪探针）、P4-2（运维手册 + 架构文档）、P3-5（文档性能数据刷新）。

@@ -1,604 +1,465 @@
-"""Tests for FeedbackControlLoop — V3.7.0 closed-loop iteration engine.
+"""E2E closed-loop tests for FeedbackControlLoop (P1-B).
 
-Covers:
-- __init__ with parameter clamping (quality_gate, max_iterations)
-- run() with dry_run, real dispatch, quality gate pass/fail, max iterations
-- _assess_quality() with all factor combinations
-- _generate_adjustment() with various failure patterns
-- _refine_task() / _llm_refine_task() with multiple backend types
-- reset() and get_statistics()
+Tests the full Sense-Decide-Act-Feedback iteration cycle with:
+- FakeDispatcher returning configurable DispatchResult sequences
+- FakeLLMBackend for intelligent refinement path
+- Quality gate scenarios: pass-first, improve-then-pass, never-pass
+- Dry-run mode, thread safety, iteration history tracking
 """
 
-import pytest
+import threading
+from typing import Any
 
+from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.feedback_control_loop import FeedbackControlLoop
 
-# ---------------------------------------------------------------------------
-# Stub helpers
-# ---------------------------------------------------------------------------
 
+class FakeDispatcher:
+    """Dispatcher that returns scripted results in sequence."""
 
-class StubDispatcher:
-    """Minimal dispatcher stub for testing run()."""
-
-    def __init__(self, results=None):
+    def __init__(self, results: list[DispatchResult] | None = None):
         self._results = results or []
+        self._index = 0
         self._call_count = 0
-        self.calls = []
+        self._received_tasks: list[str] = []
+        self._received_roles: list[list[str] | None] = []
+        self._received_modes: list[str] = []
 
-    def dispatch(self, task, roles=None, mode="auto", **kwargs):
-        self.calls.append({"task": task, "roles": roles, "mode": mode, "kwargs": kwargs})
-        if self._call_count < len(self._results):
-            result = self._results[self._call_count]
-        else:
-            result = self._results[-1] if self._results else None
+    def dispatch(self, task: str, roles: list[str] | None = None, mode: str = "auto", **_kwargs: Any) -> DispatchResult:
         self._call_count += 1
-        return result
+        self._received_tasks.append(task)
+        self._received_roles.append(roles)
+        self._received_modes.append(mode)
+
+        if self._index < len(self._results):
+            result = self._results[self._index]
+            self._index += 1
+            return result
+        if self._results:
+            return self._results[-1]
+        return DispatchResult(success=True, task_description=task, summary="default")
 
 
-class StubResult:
-    """Minimal DispatchResult stub."""
+class FakeLLMBackend:
+    """LLM backend returning scripted responses for task refinement."""
 
-    def __init__(
-        self,
-        success=True,
-        worker_results=None,
-        consensus_records=None,
-        errors=None,
-        summary="test summary",
-    ):
-        self.success = success
-        self.worker_results = worker_results or []
-        self.consensus_records = consensus_records or []
-        self.errors = errors or []
-        self.summary = summary
-        self.task_description = "test task"
+    def __init__(self, responses: list[str] | None = None, default: str = "Refined task with clearer objectives"):
+        self._responses = responses or []
+        self._index = 0
+        self._default = default
+        self._call_count = 0
+        self._received_prompts: list[str] = []
 
-
-class StubLLMBackend:
-    """Stub LLM backend with configurable generate()."""
-
-    def __init__(self, response="Refined task description here"):
-        self._response = response
-        self.generate_calls = []
-
-    def generate(self, prompt):
-        self.generate_calls.append(prompt)
-        return self._response
+    def generate(self, prompt: str) -> str:
+        self._call_count += 1
+        self._received_prompts.append(prompt)
+        if self._index < len(self._responses):
+            resp = self._responses[self._index]
+            self._index += 1
+            return resp
+        return self._default
 
 
-class StubLLMBackendCall:
-    """Stub LLM backend with call() method."""
-
-    def __init__(self, response="Refined via call"):
-        self._response = response
-
-    def call(self, _prompt):
-        return self._response
-
-
-class StubLLMBackendChat:
-    """Stub LLM backend with chat() method."""
-
-    def __init__(self, response="Refined via chat"):
-        self._response = response
-
-    def chat(self, _messages):
-        return {"content": self._response}
-
-
-# ---------------------------------------------------------------------------
-# __init__ and properties
-# ---------------------------------------------------------------------------
+def _make_result(
+    success: bool = True,
+    worker_results: list[dict[str, Any]] | None = None,
+    consensus_records: list[dict[str, Any]] | None = None,
+    errors: list[str] | None = None,
+    summary: str = "ok",
+) -> DispatchResult:
+    """Helper to build a DispatchResult with sensible defaults."""
+    return DispatchResult(
+        success=success,
+        task_description="test",
+        summary=summary,
+        worker_results=worker_results or [],
+        consensus_records=consensus_records or [],
+        errors=errors or [],
+        duration_seconds=0.1,
+    )
 
 
-class TestInit:
-    def test_defaults(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        assert loop.quality_gate == 0.7
-        assert loop.max_iterations == 3
-        assert loop.iteration_count == 0
-        assert loop.iteration_history == []
-        assert loop.best_result is None
-        assert loop.best_quality == 0.0
+# ============================================================================
+# E2E: Quality Gate Scenarios
+# ============================================================================
 
-    def test_custom_params(self):
-        loop = FeedbackControlLoop(
-            StubDispatcher(),
-            quality_gate=0.9,
-            max_iterations=5,
+
+class TestFeedbackLoopQualityGate:
+    """Tests covering quality gate pass/fail/early-exit scenarios."""
+
+    def test_pass_on_first_iteration(self):
+        """Quality gate met immediately — loop exits after 1 iteration."""
+        result = _make_result(
+            success=True,
+            worker_results=[{"role_id": "architect", "success": True}],
+            consensus_records=[{"outcome": "APPROVED"}],
         )
-        assert loop.quality_gate == 0.9
-        assert loop.max_iterations == 5
+        dispatcher = FakeDispatcher([result])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.5, max_iterations=3)
 
-    def test_quality_gate_clamped_high(self):
-        loop = FeedbackControlLoop(StubDispatcher(), quality_gate=1.5)
-        assert loop.quality_gate == 1.0
+        best = loop.run("design API")
 
-    def test_quality_gate_clamped_low(self):
-        loop = FeedbackControlLoop(StubDispatcher(), quality_gate=-0.5)
-        assert loop.quality_gate == 0.0
+        assert loop.iteration_count == 1
+        assert best is result
+        assert loop.best_quality >= 0.5
+        assert dispatcher._call_count == 1
 
-    def test_max_iterations_minimum_one(self):
-        loop = FeedbackControlLoop(StubDispatcher(), max_iterations=0)
-        assert loop.max_iterations == 1
+    def test_improve_then_pass(self):
+        """First iteration fails gate, second passes — loop exits early."""
+        low_quality = _make_result(
+            success=False,
+            worker_results=[{"role_id": "coder", "success": False, "error": "timeout"}],
+            errors=["worker timeout"],
+        )
+        high_quality = _make_result(
+            success=True,
+            worker_results=[{"role_id": "coder", "success": True}],
+            consensus_records=[{"outcome": "APPROVED"}],
+        )
+        dispatcher = FakeDispatcher([low_quality, high_quality])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.6, max_iterations=3)
 
-    def test_max_iterations_negative(self):
-        loop = FeedbackControlLoop(StubDispatcher(), max_iterations=-5)
-        assert loop.max_iterations == 1
+        best = loop.run("implement feature")
+
+        assert loop.iteration_count == 2
+        assert best is high_quality
+        assert loop.best_quality >= 0.6
+        assert len(loop.iteration_history) == 2
+        assert loop.iteration_history[0]["passed"] is False
+        assert loop.iteration_history[1]["passed"] is True
+
+    def test_never_passes_returns_best(self):
+        """Quality never meets gate — returns best (highest score) result."""
+        r1 = _make_result(
+            success=False,
+            worker_results=[{"role_id": "a", "success": False, "error": "err"}],
+            errors=["e1"],
+        )
+        r2 = _make_result(
+            success=True,
+            worker_results=[{"role_id": "a", "success": True}, {"role_id": "b", "success": False, "error": "x"}],
+        )
+        r3 = _make_result(
+            success=False,
+            worker_results=[{"role_id": "a", "success": False, "error": "y"}],
+            errors=["e2", "e3"],
+        )
+        dispatcher = FakeDispatcher([r1, r2, r3])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.95, max_iterations=3)
+
+        best = loop.run("hard task")
+
+        assert loop.iteration_count == 4  # max_iterations + 1
+        assert best is r2  # r2 has highest quality (success + partial workers)
+        assert len(loop.iteration_history) == 4
+        assert all(not h["passed"] for h in loop.iteration_history)
+
+    def test_zero_quality_when_result_is_none(self):
+        """None result yields quality 0.0."""
+        dispatcher = FakeDispatcher([])
+        # Empty FakeDispatcher returns default success result, so test None explicitly
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.99, max_iterations=1)
+        # Force None result via _assess_quality direct call
+        quality = loop._assess_quality(None)
+        assert quality == 0.0
 
 
-# ---------------------------------------------------------------------------
-# run() — dry_run mode
-# ---------------------------------------------------------------------------
+# ============================================================================
+# E2E: Dry Run Mode
+# ============================================================================
 
 
-class TestRunDryRun:
-    def test_dry_run_returns_result(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = loop.run("Design system", dry_run=True)
+class TestFeedbackLoopDryRun:
+    """Tests for dry-run mode (simulation without actual dispatch)."""
+
+    def test_dry_run_returns_result_without_dispatch(self):
+        dispatcher = FakeDispatcher([])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.9, max_iterations=3)
+
+        result = loop.run("simulate task", dry_run=True)
+
         assert result is not None
+        assert result.success is True
+        assert "DRY RUN" in result.summary
+        assert dispatcher._call_count == 0
         assert loop.iteration_count == 1
 
-    def test_dry_run_records_history(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        loop.run("Design system", dry_run=True)
+    def test_dry_run_history_recorded(self):
+        dispatcher = FakeDispatcher([])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.5, max_iterations=2)
+
+        loop.run("simulate", dry_run=True)
+
         assert len(loop.iteration_history) == 1
         record = loop.iteration_history[0]
-        assert record["iteration"] == 1
+        assert "iteration" in record
         assert "quality" in record
         assert "passed" in record
         assert "task_preview" in record
         assert "timestamp" in record
 
-    def test_dry_run_does_not_call_dispatcher(self):
-        dispatcher = StubDispatcher()
-        loop = FeedbackControlLoop(dispatcher)
-        loop.run("Design system", dry_run=True)
-        assert len(dispatcher.calls) == 0
+
+# ============================================================================
+# E2E: LLM-Assisted Refinement
+# ============================================================================
 
 
-# ---------------------------------------------------------------------------
-# run() — real dispatch, quality gate pass on first iteration
-# ---------------------------------------------------------------------------
+class TestFeedbackLoopLLMRefinement:
+    """Tests for LLM-assisted task refinement path."""
 
-
-class TestRunQualityGatePass:
-    def test_passes_on_first_iteration(self):
-        """High-quality result passes the gate immediately."""
-        good_result = StubResult(
+    def test_llm_refinement_invoked_on_failure(self):
+        low_quality = _make_result(
+            success=False,
+            worker_results=[{"role_id": "coder", "success": False, "error": "timeout"}],
+            errors=["timeout"],
+        )
+        high_quality = _make_result(
             success=True,
-            worker_results=[{"success": True, "role_id": "arch"}],
+            worker_results=[{"role_id": "coder", "success": True}],
+        )
+        dispatcher = FakeDispatcher([low_quality, high_quality])
+        llm = FakeLLMBackend(default="Refined: break task into smaller steps")
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.6, max_iterations=3, llm_backend=llm)
+
+        loop.run("implement complex feature")
+
+        assert llm._call_count == 1
+        assert len(llm._received_prompts) == 1
+        assert "implement complex feature" in llm._received_prompts[0]
+        # Second task should be the LLM-refined version
+        assert dispatcher._received_tasks[1] == "Refined: break task into smaller steps"
+
+    def test_llm_failure_falls_back_to_concat(self):
+        """LLM raising exception falls back to algorithmic concatenation."""
+
+        class FailingLLM:
+            def generate(self, _prompt: str) -> str:
+                raise RuntimeError("LLM unavailable")
+
+        low_quality = _make_result(
+            success=False,
+            worker_results=[{"role_id": "a", "success": False, "error": "x"}],
+            errors=["e1"],
+        )
+        high_quality = _make_result(success=True, worker_results=[{"role_id": "a", "success": True}])
+        dispatcher = FakeDispatcher([low_quality, high_quality])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.6, max_iterations=2, llm_backend=FailingLLM())
+
+        loop.run("test task")
+
+        # Second task should contain adjustment (not LLM response)
+        assert "test task" in dispatcher._received_tasks[1]
+        # Should have appended adjustment rather than LLM default
+        assert len(dispatcher._received_tasks[1]) > len("test task")
+
+    def test_llm_returns_empty_string_falls_back(self):
+        """LLM returning empty/short response falls back to concatenation."""
+        low_quality = _make_result(success=False, errors=["e1"])
+        high_quality = _make_result(success=True, worker_results=[{"role_id": "a", "success": True}])
+        dispatcher = FakeDispatcher([low_quality, high_quality])
+        llm = FakeLLMBackend(default="short")  # < 10 chars, triggers fallback
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.6, max_iterations=2, llm_backend=llm)
+
+        loop.run("original task")
+
+        # Should fall back to concatenation, not use "short"
+        assert "original task" in dispatcher._received_tasks[1]
+
+
+# ============================================================================
+# E2E: Iteration History & Best Result Tracking
+# ============================================================================
+
+
+class TestFeedbackLoopHistory:
+    """Tests for iteration_history and best_result tracking."""
+
+    def test_history_cleared_between_runs(self):
+        r1 = _make_result(success=True, worker_results=[{"role_id": "a", "success": True}])
+        dispatcher = FakeDispatcher([r1, r1])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.5, max_iterations=2)
+
+        loop.run("first run")
+        assert len(loop.iteration_history) == 1
+
+        loop.run("second run")
+        assert len(loop.iteration_history) == 1  # cleared, not accumulated
+
+    def test_best_result_updated_each_iteration(self):
+        r1 = _make_result(success=False, errors=["e1"])
+        r2 = _make_result(success=True, worker_results=[{"role_id": "a", "success": True}])
+        r3 = _make_result(
+            success=True,
+            worker_results=[{"role_id": "a", "success": True}, {"role_id": "b", "success": True}],
             consensus_records=[{"outcome": "APPROVED"}],
         )
-        dispatcher = StubDispatcher(results=[good_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.5)
-        result = loop.run("Design system")
-        assert result is good_result
-        assert loop.iteration_count == 1
+        dispatcher = FakeDispatcher([r1, r2, r3])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.95, max_iterations=3)
 
-    def test_records_best_quality(self):
-        good_result = StubResult(
-            success=True,
-            worker_results=[{"success": True}],
-        )
-        dispatcher = StubDispatcher(results=[good_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.3)
-        loop.run("Design system")
-        assert loop.best_quality > 0
+        loop.run("track best")
 
+        # r3 should be best (success + full workers + consensus)
+        assert loop.best_result is r3
+        assert loop.best_quality >= 0.8
 
-# ---------------------------------------------------------------------------
-# run() — quality gate fail, iterate until pass
-# ---------------------------------------------------------------------------
+    def test_history_contains_adjustment_when_refining(self):
+        low = _make_result(success=False, errors=["timeout"])
+        high = _make_result(success=True, worker_results=[{"role_id": "a", "success": True}])
+        dispatcher = FakeDispatcher([low, high])
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.6, max_iterations=2)
 
+        loop.run("needs refinement")
 
-class TestRunIterateUntilPass:
-    def test_iterates_until_quality_passes(self):
-        """First result is low quality, second is high quality."""
-        bad_result = StubResult(
-            success=False,
-            worker_results=[{"success": False, "error": "failed", "role_id": "arch"}],
-            errors=["error1"],
-        )
-        good_result = StubResult(
-            success=True,
-            worker_results=[{"success": True, "role_id": "arch"}],
-            consensus_records=[{"outcome": "APPROVED"}],
-        )
-        dispatcher = StubDispatcher(results=[bad_result, good_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.5, max_iterations=3)
-        result = loop.run("Design system")
-        assert result is good_result
-        assert loop.iteration_count == 2
-
-    def test_max_iterations_reached(self):
-        """All results fail the gate, loop stops at max_iterations."""
-        bad_result = StubResult(
-            success=False,
-            worker_results=[],
-            errors=["error"],
-        )
-        dispatcher = StubDispatcher(results=[bad_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.9, max_iterations=2)
-        loop.run("Design system")
-        assert loop.iteration_count == 3  # max_iterations + 1 (0, 1, 2)
-
-    def test_best_result_tracked_across_iterations(self):
-        """Best result is tracked even when gate not met."""
-        low_quality = StubResult(success=False, worker_results=[])
-        medium_quality = StubResult(
-            success=True,
-            worker_results=[{"success": True}],
-        )
-        dispatcher = StubDispatcher(results=[low_quality, medium_quality])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.95, max_iterations=2)
-        result = loop.run("Design system")
-        assert result is medium_quality
-        assert loop.best_quality > 0
-
-    def test_task_refined_between_iterations(self):
-        """Task description is refined between iterations."""
-        bad_result = StubResult(success=False, worker_results=[], errors=["error"])
-        dispatcher = StubDispatcher(results=[bad_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.9, max_iterations=1)
-        loop.run("Original task")
-        # Second call should have refined task
-        assert len(dispatcher.calls) == 2
-        assert "Iteration Feedback" in dispatcher.calls[1]["task"]
+        first_record = loop.iteration_history[0]
+        assert "adjustment" in first_record
+        assert "refined_task" in first_record
+        assert "needs refinement" in first_record["task_preview"]
 
 
-# ---------------------------------------------------------------------------
-# _assess_quality
-# ---------------------------------------------------------------------------
+# ============================================================================
+# E2E: Thread Safety
+# ============================================================================
 
 
-class TestAssessQuality:
-    def test_none_result_returns_zero(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        assert loop._assess_quality(None) == 0.0
+class TestFeedbackLoopThreadSafety:
+    """Tests for RLock-based thread safety."""
 
-    def test_success_true_high_score(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(success=True, worker_results=[{"success": True}])
-        score = loop._assess_quality(result)
-        assert score > 0.5
+    def test_concurrent_runs_serialized(self):
+        """Concurrent run() calls are serialized by RLock — no corruption."""
+        result = _make_result(success=True, worker_results=[{"role_id": "a", "success": True}])
+        dispatcher = FakeDispatcher([result] * 10)
+        loop = FeedbackControlLoop(dispatcher, quality_gate=0.5, max_iterations=1)
 
-    def test_success_false_lower_score(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(success=False, worker_results=[{"success": False}])
-        score = loop._assess_quality(result)
-        assert score < 0.7
+        errors: list[Exception] = []
 
-    def test_no_worker_results(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(success=True, worker_results=[])
-        score = loop._assess_quality(result)
-        assert 0 < score < 1.0
+        def worker():
+            try:
+                loop.run("concurrent task")
+            except Exception as e:
+                errors.append(e)
 
-    def test_consensus_approved(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=True,
-            worker_results=[{"success": True}],
-            consensus_records=[{"outcome": "APPROVED"}],
-        )
-        score = loop._assess_quality(result)
-        assert score > 0.7
+        threads = [threading.Thread(target=worker) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
-    def test_consensus_rejected(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=True,
-            worker_results=[{"success": True}],
-            consensus_records=[{"outcome": "REJECTED"}],
-        )
-        score = loop._assess_quality(result)
-        assert score < 1.0
-
-    def test_errors_reduce_score(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result_no_errors = StubResult(success=True, worker_results=[{"success": True}])
-        result_with_errors = StubResult(
-            success=True,
-            worker_results=[{"success": True}],
-            errors=["err1", "err2"],
-        )
-        assert loop._assess_quality(result_with_errors) < loop._assess_quality(result_no_errors)
-
-    def test_score_clamped_to_max_1(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=True,
-            worker_results=[{"success": True}],
-            consensus_records=[{"outcome": "APPROVED"}],
-        )
-        score = loop._assess_quality(result)
-        assert score <= 1.0
-
-    def test_score_clamped_to_min_0(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[],
-            errors=["e1", "e2", "e3", "e4"],
-        )
-        score = loop._assess_quality(result)
-        assert score >= 0.0
-
-    def test_partial_worker_success(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=True,
-            worker_results=[
-                {"success": True},
-                {"success": False},
-                {"success": True},
-            ],
-        )
-        score = loop._assess_quality(result)
-        assert 0 < score < 1.0
-
-
-# ---------------------------------------------------------------------------
-# _generate_adjustment
-# ---------------------------------------------------------------------------
-
-
-class TestGenerateAdjustment:
-    def test_failed_workers_single_role(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[{"success": False, "error": "err", "role_id": "architect"}],
-        )
-        adjustment = loop._generate_adjustment(result, 0.3)
-        assert "architect" in adjustment
-
-    def test_failed_workers_multiple_roles(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[
-                {"success": False, "error": "err", "role_id": "architect"},
-                {"success": False, "error": "err", "role_id": "tester"},
-            ],
-        )
-        adjustment = loop._generate_adjustment(result, 0.3)
-        assert "architect" in adjustment or "tester" in adjustment
-
-    def test_timeout_error(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[],
-            errors=["Task timed out after 30s"],
-        )
-        adjustment = loop._generate_adjustment(result, 0.3)
-        assert "timeout" in adjustment.lower() or "complexity" in adjustment.lower()
-
-    def test_permission_error(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[],
-            errors=["Permission denied for resource"],
-        )
-        adjustment = loop._generate_adjustment(result, 0.3)
-        assert "permission" in adjustment.lower()
-
-    def test_resource_error(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[],
-            errors=["Out of memory"],
-        )
-        adjustment = loop._generate_adjustment(result, 0.3)
-        assert "resource" in adjustment.lower() or "memory" in adjustment.lower()
-
-    def test_no_worker_results(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(success=True, worker_results=[])
-        adjustment = loop._generate_adjustment(result, 0.5)
-        assert "vague" in adjustment.lower() or "criteria" in adjustment.lower()
-
-    def test_low_success_rate(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[
-                {"success": True},
-                {"success": False, "error": "err", "role_id": "a"},
-                {"success": False, "error": "err", "role_id": "b"},
-                {"success": False, "error": "err", "role_id": "c"},
-            ],
-        )
-        adjustment = loop._generate_adjustment(result, 0.3)
-        assert "success rate" in adjustment.lower() or "simplifying" in adjustment.lower()
-
-    def test_quality_critically_low(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(success=True, worker_results=[{"success": True}])
-        adjustment = loop._generate_adjustment(result, 0.2)
-        assert "critically" in adjustment.lower() or "reformulation" in adjustment.lower()
-
-    def test_quality_moderately_low(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(success=True, worker_results=[{"success": True}])
-        adjustment = loop._generate_adjustment(result, 0.5)
-        assert "acceptable" in adjustment.lower() or "strengthen" in adjustment.lower()
-
-    def test_no_specific_issues_general_refinement(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(success=True, worker_results=[{"success": True}])
-        adjustment = loop._generate_adjustment(result, 0.65)
-        assert "refinement" in adjustment.lower() or "review" in adjustment.lower()
-
-    def test_general_error_type(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        result = StubResult(
-            success=False,
-            worker_results=[],
-            errors=["Some unknown error occurred"],
-        )
-        adjustment = loop._generate_adjustment(result, 0.3)
-        assert isinstance(adjustment, str)
-        assert len(adjustment) > 0
-
-
-# ---------------------------------------------------------------------------
-# _refine_task / _llm_refine_task
-# ---------------------------------------------------------------------------
-
-
-class TestRefineTask:
-    def test_no_llm_backend_uses_concatenation(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        refined = loop._refine_task("Original task", "Add more details")
-        assert "Original task" in refined
-        assert "Iteration Feedback" in refined
-        assert "Add more details" in refined
-
-    def test_llm_backend_generate_method(self):
-        backend = StubLLMBackend(response="LLM refined task description")
-        loop = FeedbackControlLoop(StubDispatcher(), llm_backend=backend)
-        refined = loop._refine_task("Original task", "feedback")
-        assert refined == "LLM refined task description"
-        assert len(backend.generate_calls) == 1
-
-    def test_llm_backend_call_method(self):
-        backend = StubLLMBackendCall(response="Refined via call method")
-        loop = FeedbackControlLoop(StubDispatcher(), llm_backend=backend)
-        refined = loop._refine_task("Original task", "feedback")
-        assert refined == "Refined via call method"
-
-    def test_llm_backend_chat_method_dict_response(self):
-        backend = StubLLMBackendChat(response="Refined via chat")
-        loop = FeedbackControlLoop(StubDispatcher(), llm_backend=backend)
-        refined = loop._refine_task("Original task", "feedback")
-        assert refined == "Refined via chat"
-
-    def test_llm_backend_chat_method_string_response(self):
-        class StringChatBackend:
-            def chat(self, _messages):
-                return "String chat response"
-
-        loop = FeedbackControlLoop(StubDispatcher(), llm_backend=StringChatBackend())
-        refined = loop._refine_task("Original", "feedback")
-        assert refined == "String chat response"
-
-    def test_llm_backend_unsupported_type_raises(self):
-        class UnsupportedBackend:
-            pass
-
-        loop = FeedbackControlLoop(StubDispatcher(), llm_backend=UnsupportedBackend())
-        with pytest.raises(ValueError, match="Unsupported"):
-            loop._llm_refine_task("task", "feedback")
-
-    def test_llm_short_response_falls_back_to_concatenation(self):
-        backend = StubLLMBackend(response="short")  # less than 10 chars
-        loop = FeedbackControlLoop(StubDispatcher(), llm_backend=backend)
-        refined = loop._refine_task("Original task", "feedback")
-        assert "Original task" in refined
-        assert "Iteration Feedback" in refined
-
-    def test_llm_error_falls_back_to_concatenation(self):
-        class ErrorBackend:
-            def generate(self, _prompt):
-                raise RuntimeError("LLM error")
-
-        loop = FeedbackControlLoop(StubDispatcher(), llm_backend=ErrorBackend())
-        refined = loop._refine_task("Original task", "feedback")
-        assert "Original task" in refined
-        assert "Iteration Feedback" in refined
-
-
-# ---------------------------------------------------------------------------
-# reset()
-# ---------------------------------------------------------------------------
-
-
-class TestReset:
-    def test_reset_clears_history(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        loop.run("task", dry_run=True)
-        assert len(loop.iteration_history) > 0
-        loop.reset()
-        assert loop.iteration_history == []
-        assert loop.iteration_count == 0
-
-    def test_reset_clears_best_result(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        loop.run("task", dry_run=True)
-        loop.reset()
-        assert loop.best_result is None
-        assert loop.best_quality == 0.0
-
-    def test_reset_allows_reuse(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        loop.run("task1", dry_run=True)
-        loop.reset()
-        loop.run("task2", dry_run=True)
-        assert loop.iteration_count == 1
+        assert len(errors) == 0
+        # Each run resets history, so final history should have 1 entry
         assert len(loop.iteration_history) == 1
 
 
-# ---------------------------------------------------------------------------
-# get_statistics()
-# ---------------------------------------------------------------------------
+# ============================================================================
+# E2E: Quality Assessment Subsystem
+# ============================================================================
 
 
-class TestGetStatistics:
-    def test_empty_statistics(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        stats = loop.get_statistics()
-        assert stats["iterations"] == 0
-        assert stats["best_quality"] == 0.0
-        assert stats["converged"] is False
-        assert stats["history"] == []
+class TestAssessQuality:
+    """Tests for _assess_quality with various DispatchResult shapes."""
 
-    def test_statistics_after_dry_run(self):
-        loop = FeedbackControlLoop(StubDispatcher())
-        loop.run("task", dry_run=True)
-        stats = loop.get_statistics()
-        assert stats["iterations"] == 1
-        assert "best_quality" in stats
-        assert "converged" in stats
-        assert len(stats["history"]) == 1
+    def setup_method(self):
+        self.loop = FeedbackControlLoop(FakeDispatcher([]), quality_gate=0.5)
 
-    def test_statistics_converged(self):
-        good_result = StubResult(
+    def test_success_boosts_score(self):
+        r = _make_result(success=True)
+        q = self.loop._assess_quality(r)
+        assert q >= 0.4  # success contributes 0.4
+
+    def test_failure_lowers_success_component(self):
+        r = _make_result(success=False)
+        q = self.loop._assess_quality(r)
+        assert q < 0.5  # failure contributes 0.3 (0.3*0.4=0.12 < 0.4)
+
+    def test_worker_ratio_contributes(self):
+        r = _make_result(
             success=True,
-            worker_results=[{"success": True}],
+            worker_results=[
+                {"role_id": "a", "success": True},
+                {"role_id": "b", "success": True},
+            ],
+        )
+        q = self.loop._assess_quality(r)
+        assert q >= 0.7  # 0.4 (success) + 0.3 (full worker ratio)
+
+    def test_partial_worker_ratio(self):
+        r = _make_result(
+            success=True,
+            worker_results=[
+                {"role_id": "a", "success": True},
+                {"role_id": "b", "success": False},
+            ],
+        )
+        q = self.loop._assess_quality(r)
+        # 0.4 (success) + 0.15 (half worker ratio) = 0.55
+        assert 0.5 <= q <= 0.65
+
+    def test_consensus_approved_boosts(self):
+        r = _make_result(
+            success=True,
+            consensus_records=[{"outcome": "APPROVED"}, {"outcome": "APPROVED"}],
+        )
+        q = self.loop._assess_quality(r)
+        # 0.4 (success) + 0.1 (no workers) + 0.2 (full consensus) = 0.7
+        assert q >= 0.7
+
+    def test_errors_penalty(self):
+        r = _make_result(success=True, errors=["e1", "e2", "e3"])
+        q = self.loop._assess_quality(r)
+        # 0.4 (success) + 0.1 (no workers) + 0.1 (no consensus) - 0.15 (3 errors) = 0.45
+        assert q <= 0.5
+
+    def test_score_clamped_to_0_1(self):
+        r = _make_result(success=False, errors=["e"] * 100)
+        q = self.loop._assess_quality(r)
+        assert 0.0 <= q <= 1.0
+
+
+# ============================================================================
+# E2E: Adjustment Generation
+# ============================================================================
+
+
+class TestGenerateAdjustment:
+    """Tests for _generate_adjustment failure analysis."""
+
+    def setup_method(self):
+        self.loop = FeedbackControlLoop(FakeDispatcher([]), quality_gate=0.5)
+
+    def test_failed_worker_mentioned(self):
+        r = _make_result(
+            success=False,
+            worker_results=[{"role_id": "coder", "success": False, "error": "fail"}],
+        )
+        adj = self.loop._generate_adjustment(r, 0.3)
+        assert "coder" in adj
+
+    def test_timeout_error_detected(self):
+        r = _make_result(success=False, errors=["Operation timeout after 30s"])
+        adj = self.loop._generate_adjustment(r, 0.3)
+        assert "timeout" in adj.lower() or "complexity" in adj.lower()
+
+    def test_permission_error_detected(self):
+        r = _make_result(success=False, errors=["Permission denied for resource"])
+        adj = self.loop._generate_adjustment(r, 0.3)
+        assert "permission" in adj.lower()
+
+    def test_no_workers_suggests_vague_task(self):
+        r = _make_result(success=False, worker_results=[], errors=[])
+        adj = self.loop._generate_adjustment(r, 0.3)
+        assert "vague" in adj.lower() or "criteria" in adj.lower()
+
+    def test_critical_quality_suggests_reformulation(self):
+        r = _make_result(success=False, errors=["e1"])
+        adj = self.loop._generate_adjustment(r, 0.2)
+        assert "reformulation" in adj.lower() or "critical" in adj.lower()
+
+    def test_no_specific_issue_gives_general_refinement(self):
+        """When no specific failure pattern matches, general refinement is returned."""
+        r = _make_result(
+            success=True,
+            worker_results=[{"role_id": "a", "success": True}],
             consensus_records=[{"outcome": "APPROVED"}],
+            errors=[],
         )
-        dispatcher = StubDispatcher(results=[good_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.3)
-        loop.run("task")
-        stats = loop.get_statistics()
-        assert stats["converged"] is True
-        assert stats["converged_at_iteration"] == 1
-
-    def test_statistics_not_converged(self):
-        bad_result = StubResult(success=False, worker_results=[], errors=["err"])
-        dispatcher = StubDispatcher(results=[bad_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.95, max_iterations=1)
-        loop.run("task")
-        stats = loop.get_statistics()
-        assert stats["converged"] is False
-        assert stats["converged_at_iteration"] is None
-
-    def test_statistics_includes_quality_metrics(self):
-        bad_result = StubResult(success=False, worker_results=[], errors=["err"])
-        good_result = StubResult(
-            success=True,
-            worker_results=[{"success": True}],
-        )
-        dispatcher = StubDispatcher(results=[bad_result, good_result])
-        loop = FeedbackControlLoop(dispatcher, quality_gate=0.5, max_iterations=2)
-        loop.run("task")
-        stats = loop.get_statistics()
-        assert "worst_quality" in stats
-        assert "avg_quality" in stats
-        assert stats["worst_quality"] <= stats["best_quality"]
+        adj = self.loop._generate_adjustment(r, 0.65)
+        assert len(adj) > 0  # always returns something

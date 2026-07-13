@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devsquad"
-version = "4.0.9"
+version = "4.0.10"
 description = "Production-Ready Multi-Role AI Task Orchestrator"
 readme = "README.md"
 license = {text = "MIT"}
@@ -70,6 +70,8 @@ dev = [
     "httpx2>=2.5.0",
     "streamlit>=1.28.0",
     "Pillow>=10.0.0",
+    "fakeredis>=2.30",
+    "redis>=5.0",
 ]
 all = [
     "openai>=1.0",
@@ -207,7 +209,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@abstractmethod",
 ]
-fail_under = 60
+fail_under = 75
 show_missing = true
 precision = 2
 

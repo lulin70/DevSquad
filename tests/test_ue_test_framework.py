@@ -445,3 +445,90 @@ class TestCognitiveLoadAssessment:
         fw.define_journey("j", persona, steps)
         result = fw._assess_cognitive_load()
         assert result["assessment"] in ("Low", "Medium - consider reducing options", "High - needs simplification")
+
+
+class FakeLLMBackend:
+    """Fake LLM backend for testing LLM-assisted assessment paths."""
+
+    def __init__(self, response: str = ""):
+        self._response = response
+        self.call_count = 0
+
+    def generate(self, _prompt: str) -> str:
+        self.call_count += 1
+        if isinstance(self._response, Exception):
+            raise self._response
+        return self._response
+
+
+class TestHeuristicLLMAssessment:
+    """Tests for LLM-assisted heuristic assessment (P1-C coverage)."""
+
+    VALID_LLM_RESPONSE = """{
+        "heuristics": [
+            {"name": "visibility_of_system_status", "description": "status", "passed": true, "evidence": "has loading", "severity": ""},
+            {"name": "error_prevention", "description": "prevent", "passed": false, "evidence": "no validation", "severity": "major"}
+        ],
+        "recommendations": ["Add validation", "Add loading indicators"]
+    }"""
+
+    def test_assess_usability_with_llm_backend(self):
+        """When llm_backend is provided, should use LLM path."""
+        fw = UETestFramework(llm_backend=FakeLLMBackend(self.VALID_LLM_RESPONSE))
+        report = fw.assess_usability("A login form with loading spinner")
+        assert len(report.heuristics) == 2
+        assert report.heuristics[0].passed is True
+        assert report.heuristics[1].passed is False
+        assert report.heuristics[1].severity == "major"
+        assert len(report.recommendations) == 2
+        assert "error_prevention" in report.critical_issues[0]
+
+    def test_assess_usability_without_llm_falls_back_to_rules(self):
+        """Without llm_backend, should use rule-based assessment."""
+        fw = UETestFramework()
+        report = fw.assess_usability("A clean minimal interface with undo and loading indicators")
+        assert len(report.heuristics) == 10
+        visibility = next(h for h in report.heuristics if h.name == "visibility_of_system_status")
+        assert visibility.passed is True
+        assert "positive indicator" in visibility.evidence.lower()
+
+    def test_assess_with_llm_falls_back_on_error(self):
+        """When LLM raises an exception, should fall back to rule-based."""
+        error_backend = FakeLLMBackend(RuntimeError("LLM unavailable"))
+        fw = UETestFramework(llm_backend=error_backend)
+        report = fw.assess_usability("A clean interface with undo")
+        assert len(report.heuristics) == 10
+        user_control = next(h for h in report.heuristics if h.name == "user_control_and_freedom")
+        assert user_control.passed is True
+
+    def test_parse_llm_usability_response_valid_json(self):
+        """_parse_llm_usability_response should parse valid JSON correctly."""
+        fw = UETestFramework(llm_backend=FakeLLMBackend())
+        report = fw._parse_llm_usability_response(self.VALID_LLM_RESPONSE)
+        assert len(report.heuristics) == 2
+        assert report.heuristics[0].name == "visibility_of_system_status"
+        assert report.overall_score == 0.5
+
+    def test_parse_llm_usability_response_invalid_json_falls_back(self):
+        """Invalid JSON should fall back to rule-based assessment."""
+        fw = UETestFramework(llm_backend=FakeLLMBackend())
+        report = fw._parse_llm_usability_response("not valid json {{{")
+        assert len(report.heuristics) == 10
+
+    def test_parse_llm_usability_response_partial_data(self):
+        """Partial data (missing fields) should be handled gracefully."""
+        partial = '{"heuristics": [{"name": "test"}], "recommendations": []}'
+        fw = UETestFramework(llm_backend=FakeLLMBackend())
+        report = fw._parse_llm_usability_response(partial)
+        assert len(report.heuristics) == 1
+        assert report.heuristics[0].name == "test"
+        assert report.heuristics[0].passed is None
+
+    def test_build_usability_prompt_contains_heuristics(self):
+        """_build_usability_prompt should contain all 10 heuristics."""
+        fw = UETestFramework()
+        prompt = fw._build_usability_prompt("test interface")
+        assert "visibility_of_system_status" in prompt
+        assert "help_and_documentation" in prompt
+        assert "test interface" in prompt
+        assert "Nielsen" in prompt
