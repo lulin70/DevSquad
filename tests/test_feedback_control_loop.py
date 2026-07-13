@@ -10,6 +10,7 @@ Tests the full Sense-Decide-Act-Feedback iteration cycle with:
 import threading
 from typing import Any
 
+from conftest import FakeLLMBackend
 from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.feedback_control_loop import FeedbackControlLoop
 
@@ -38,26 +39,6 @@ class FakeDispatcher:
         if self._results:
             return self._results[-1]
         return DispatchResult(success=True, task_description=task, summary="default")
-
-
-class FakeLLMBackend:
-    """LLM backend returning scripted responses for task refinement."""
-
-    def __init__(self, responses: list[str] | None = None, default: str = "Refined task with clearer objectives"):
-        self._responses = responses or []
-        self._index = 0
-        self._default = default
-        self._call_count = 0
-        self._received_prompts: list[str] = []
-
-    def generate(self, prompt: str) -> str:
-        self._call_count += 1
-        self._received_prompts.append(prompt)
-        if self._index < len(self._responses):
-            resp = self._responses[self._index]
-            self._index += 1
-            return resp
-        return self._default
 
 
 def _make_result(

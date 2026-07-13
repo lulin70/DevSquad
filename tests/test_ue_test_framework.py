@@ -1,5 +1,6 @@
 """Tests for UETestFramework module."""
 
+from conftest import FakeLLMBackend
 from scripts.collaboration.ue_test_framework import (
     WCAG_AA_CHECKS,
     JourneyStep,
@@ -445,20 +446,6 @@ class TestCognitiveLoadAssessment:
         fw.define_journey("j", persona, steps)
         result = fw._assess_cognitive_load()
         assert result["assessment"] in ("Low", "Medium - consider reducing options", "High - needs simplification")
-
-
-class FakeLLMBackend:
-    """Fake LLM backend for testing LLM-assisted assessment paths."""
-
-    def __init__(self, response: str = ""):
-        self._response = response
-        self.call_count = 0
-
-    def generate(self, _prompt: str) -> str:
-        self.call_count += 1
-        if isinstance(self._response, Exception):
-            raise self._response
-        return self._response
 
 
 class TestHeuristicLLMAssessment:

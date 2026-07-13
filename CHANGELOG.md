@@ -7,6 +7,27 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.11] - 2026-07-13
+
+PATCH release: test code refactoring + CI tooling enhancement, no new functionality. Based on V4.0.10 project evaluation report §下一步建议.
+
+### Changed — FakeLLMBackend extraction to conftest.py
+- **conftest.py**: Added unified `FakeLLMBackend` class consolidating the two previously duplicated definitions in `test_feedback_control_loop.py` (sequential responses + default) and `test_ue_test_framework.py` (single response + exception raising). Supports all instantiation patterns: sequential list, single string (repeats), Exception (raises every call), default-only, empty.
+- **tests/test_feedback_control_loop.py**: Removed local `FakeLLMBackend` class, import from `conftest`.
+- **tests/test_ue_test_framework.py**: Removed local `FakeLLMBackend` class, import from `conftest`.
+
+### Added — CI dependency sync check
+- **scripts/check_dependency_sync.py**: New script detecting drift between `requirements-dev.txt` and `pyproject.toml [dev]`. Zero-dependency (regex-based, no tomllib/tomli). Exit 0 if in sync, 1 if drift detected. Prevents recurrence of the V4.0.10 fakeredis/redis missing-from-requirements-dev.txt bug.
+- **.github/workflows/test.yml**: Added "Dependency sync check" step to lint job (runs after version consistency check).
+- **requirements-dev.txt**: Added missing `streamlit>=1.28.0` and `Pillow>=10.0.0` (drift detected and fixed by the new check script).
+
+### Verification
+- ruff check: All checks passed
+- ruff format: 4 files formatted
+- pytest (excluding smoke/e2e): 4603 passed / 20 skipped / 0 failed
+- Version consistency: 15/15 PASS (4.0.11)
+- Dependency sync: OK (12 packages in sync)
+
 ## [4.0.10] - 2026-07-13
 
 PATCH release: P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复 + 项目整理评估修复，无新功能。

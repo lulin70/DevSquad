@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.0.10（开发完成 — 2026-07-13）
+> **当前版本**: V4.0.11（开发完成 — 2026-07-13）
 > **最后更新**: 2026-07-13
-> **最新评估**: V4.0.10 项目整理评估完成 — 7 维度审查（代码走读/文档一致性/技术债/E2E测试/CI-CD/目录清理/成熟度）。4641 tests passing / 26 skipped / 0 failed。覆盖率 80.03%+。版本一致性 15/15 PASS。新增 redis_url 凭据泄露防护（_mask_redis_url + 10 测试）+ health_check RedisConnectionError 捕获修复。修复 13 个问题（8 P1 + 5 P2）：依赖同步、CI 3.12 矩阵、pre-commit ruff 版本对齐、5 文件版本引用 V4.0.0→V4.0.10、文档测试数刷新。综合评分 8.8/10。
+> **最新评估**: V4.0.10 项目整理评估完成 — 7 维度审查（代码走读/文档一致性/技术债/E2E测试/CI-CD/目录清理/成熟度）。4641 tests passing / 26 skipped / 0 failed。覆盖率 80.03%+。版本一致性 15/15 PASS。新增 redis_url 凭据泄露防护（_mask_redis_url + 10 测试）+ health_check RedisConnectionError 捕获修复。修复 13 个问题（8 P1 + 5 P2）：依赖同步、CI 3.12 矩阵、pre-commit ruff 版本对齐、5 文件版本引用 V4.0.0→V4.0.10、文档测试数刷新。综合评分 8.8/10。V4.0.11：FakeLLMBackend 提取到 conftest.py + CI 依赖同步检查脚本。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.0.10 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.0.11 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---

@@ -154,6 +154,8 @@ jobs:
           echo "OK: mypy 0 errors (scripts/ + skills/, V3.10.0 achievement maintained)"
       - name: Version consistency check (added in P2-6)
         run: python scripts/check_version_consistency.py
+      - name: Dependency sync check (added in v4.0.11)
+        run: python scripts/check_dependency_sync.py
 
   build:
     runs-on: ubuntu-latest

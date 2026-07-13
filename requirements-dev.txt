@@ -16,6 +16,10 @@ flake8>=6.0
 mypy>=1.0
 ruff>=0.4.0
 
+# Visualization & QA (synced from pyproject.toml [dev])
+streamlit>=1.28.0
+Pillow>=10.0.0
+
 # LLM Backends (optional — install only what you need)
 # openai>=1.0           # OpenAI backend (pip install -e .[openai])
 # anthropic>=0.18        # Anthropic backend (pip install -e .[anthropic])

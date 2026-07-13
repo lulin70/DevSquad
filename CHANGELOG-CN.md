@@ -7,6 +7,27 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.0.11] - 2026-07-13
+
+PATCH 发布：测试代码重构 + CI 工具增强，无新功能。基于 V4.0.10 项目评估报告 §下一步建议。
+
+### 变更 — FakeLLMBackend 提取到 conftest.py
+- **conftest.py**：新增统一 `FakeLLMBackend` 类，合并 `test_feedback_control_loop.py`（序列响应 + default）和 `test_ue_test_framework.py`（单一响应 + 异常）中重复的定义。支持所有实例化方式：序列列表、单一字符串（重复返回）、Exception（每次 raise）、仅 default、空参数。
+- **tests/test_feedback_control_loop.py**：删除本地 `FakeLLMBackend` 类，从 `conftest` 导入。
+- **tests/test_ue_test_framework.py**：删除本地 `FakeLLMBackend` 类，从 `conftest` 导入。
+
+### 新增 — CI 依赖同步检查
+- **scripts/check_dependency_sync.py**：新脚本，检测 `requirements-dev.txt` 与 `pyproject.toml [dev]` 之间的依赖漂移。零依赖（正则解析，无需 tomllib/tomli）。同步返回 0，漂移返回 1。防止 V4.0.10 fakeredis/redis 缺失问题再次发生。
+- **.github/workflows/test.yml**：lint job 新增"Dependency sync check"步骤（在版本一致性检查之后运行）。
+- **requirements-dev.txt**：补充缺失的 `streamlit>=1.28.0` 和 `Pillow>=10.0.0`（由新检查脚本检测并修复的漂移）。
+
+### 验证
+- ruff check：All checks passed
+- ruff format：4 文件已格式化
+- pytest（排除 smoke/e2e）：4603 passed / 20 skipped / 0 failed
+- 版本一致性：15/15 PASS（4.0.11）
+- 依赖同步：OK（12 包同步）
+
 ## [4.0.10] - 2026-07-13
 
 PATCH 发布：P1 充分性提升 — 测试覆盖增强 + 4 个源码 bug 修复 + 项目整理评估修复，无新功能。
