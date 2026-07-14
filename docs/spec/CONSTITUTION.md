@@ -1,13 +1,10 @@
 # DevSquad Project Constitution
 
-> ⚠️ **已过时 (SUPERSEDED)** — 本文档停留在 V3.9.2 (118+ modules)，当前版本为 V4.0.11 (185+ modules)。
-> 权威文档请参阅: [SKILL.md](../../SKILL.md) + [ARCHITECTURE_V4.md](../architecture/ARCHITECTURE_V4.md)。
-> 本文档保留作历史参考，不代表当前系统状态。
-
 > **Document Type**: Project Constitution
 > **Responsible**: Multi-Role Consensus
 > **Location**: `docs/spec/CONSTITUTION.md`
-> **Version**: V1.0 | **Status**: Approved — **历史版本，已过时**
+> **Version**: V2.0 | **Status**: Approved
+> **活文档原则**: 本文档与代码同步演进，每次版本发布时同步更新所有数据点。
 
 ---
 
@@ -16,9 +13,9 @@
 | Item | Content |
 |------|---------|
 | Project Name | DevSquad — Multi-Role AI Task Orchestrator |
-| Version | V3.9.2 (Production-Ready with 118+ Core Modules) |
+| Version | V4.0.11 (Production-Ready with 185+ Core Modules) |
 | Created | 2026-03-16 |
-| Last Updated | 2026-06-17 |
+| Last Updated | 2026-07-14 |
 | Status | Active |
 
 ---
@@ -27,6 +24,7 @@
 
 | Version | Date | Author | Changes | Status |
 |---------|------|--------|---------|--------|
+| v2.0 | 2026-07-14 | DevSquad 7-Role Team | V4.0.11 活文档同步：更新版本/模块数/Python版本/生命周期阶段定义/生命周期模板；移除 SUPERSEDED 标注 | Approved |
 | v1.1 | 2026-05-03 | DevSquad 7-Role Team | Added P0 Agent Skills Quality Framework implementation record | Approved |
 | v1.0 | 2026-05-02 | DevSquad 7-Role Team | Initial constitution with iron rules | Approved |
 
@@ -101,8 +99,8 @@ Rationale: Without documentation-first discipline, knowledge evaporates, decisio
 
 | Standard | Requirement | Source |
 |----------|-------------|--------|
-| Python version | 3.9+ (pure Python, no compiled deps) | pyproject.toml |
-| Test coverage | Core modules >= 80%, overall >= 70% | pytest --cov |
+| Python version | ≥3.10 (pure Python, no compiled deps) | pyproject.toml |
+| Test coverage | Core modules >= 80%, overall >= 75% (CI gate) | pytest --cov --cov-fail-under=75 |
 | Code comments | English only for all code comments | Style guide |
 | Docstrings | All public methods must have Args/Returns | Lint check |
 | Type hints | All function signatures typed | mypy/mypy compatible |
@@ -111,7 +109,7 @@ Rationale: Without documentation-first discipline, knowledge evaporates, decisio
 
 | Standard | Requirement | Source |
 |----------|-------------|--------|
-| Input validation | 40 detection patterns (14 forbidden + 21 prompt injection + 5 suspicious) | input_validator.py |
+| Input validation | 53 detection patterns (15 forbidden + 13 SSRF + 5 suspicious + 20 prompt injection) | input_validator.py |
 | API key protection | Environment variables ONLY, never CLI args | llm_backend.py |
 | Path traversal | User IDs validated against base directory | rule_collector.py |
 | Thread safety | Shared resources protected by locks | mce_adapter.py, scratchpad.py |
@@ -132,10 +130,39 @@ Rationale: Without documentation-first discipline, knowledge evaporates, decisio
 ### 3.1 Development Lifecycle
 
 ```
-P0(Init) → P1(Spec) → P2(Plan) → P3(Design) → P4(DBDesign)
-→ P5(UI) → P6(TestPlan) → P7(Implement) → P8(CodeReview)
-→ P9(QA) → P10(Deploy) [4 optional phases]
+P1(Requirements Analysis) → P2(Architecture Design) → P3(Technical Design)
+→ P4(Data Design, opt) → P5(Interaction Design, opt) → P6(Security Review, opt)
+→ P7(Test Planning) → P8(Implementation) → P9(Test Execution)
+→ P10(Deployment & Release) → P11(Operations & Assurance, opt)
 ```
+
+**11 阶段生命周期** (P4/P5/P6/P11 为可选阶段):
+
+| # | Phase | Lead | Optional | Gate Condition |
+|---|-------|------|----------|----------------|
+| P1 | Requirements Analysis | pm | ❌ | Acceptance criteria quantifiable |
+| P2 | Architecture Design | architect | ❌ | Weighted consensus ≥70% |
+| P3 | Technical Design | architect+coder | ❌ | API specs unambiguous |
+| P4 | Data Design | architect | ✅ | 3NF or denormalization justified |
+| P5 | Interaction Design | ui-designer | ✅ | Core flow usability verified |
+| P6 | Security Review | security | ✅ | No P0/P1 vulns, compliance green |
+| P7 | Test Planning | tester | ❌ | Test plan review passed |
+| P8 | Implementation | solo-coder | ❌ | Code review passed, no P0 defects |
+| P9 | Test Execution | tester | ❌ | Coverage≥80% + P7 plan 100% executed |
+| P10 | Deployment & Release | devops | ❌ | Deployment drill passed |
+| P11 | Operations & Assurance | devops+sec | ✅ | P99<target, alerts 100% |
+
+**5 种生命周期模板**:
+
+| Template | Phases | Use Case |
+|----------|--------|----------|
+| `full` | P1-P11 | Complete project |
+| `backend` | No P5 | Backend services |
+| `frontend` | No P4, P6 | Frontend applications |
+| `internal_tool` | No P4, P5, P6, P11 | Internal tools |
+| `minimal` | P1, P3, P7, P8, P9 | Minimum set |
+
+> **真相源**: `scripts/collaboration/workflow_engine_base.py:233-385` (PHASE_TEMPLATES + LIFECYCLE_TEMPLATES)
 
 Each phase has:
 - **Entry gate**: Requirements from previous phase
