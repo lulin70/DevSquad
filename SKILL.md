@@ -63,7 +63,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (149+ Core Modules)
+## Architecture Overview (185+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|

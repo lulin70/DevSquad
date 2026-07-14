@@ -137,7 +137,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ### 🏗️ 5大能力ドメインアーキテクチャ（V4.0.0）
 
-DevSquad の 149+ モジュールは **5大能力ドメイン** に編成され、各ドメインが特定の問題を解決します：
+DevSquad の 185+ モジュールは **5大能力ドメイン** に編成され、各ドメインが特定の問題を解決します：
 
 | 能力ドメイン | コアモジュール | 解決する問題 |
 |--------------|----------------|--------------|
@@ -381,7 +381,7 @@ python scripts/cli.py lifecycle ship -t "v2.0リリース"
 ```
 DevSquad/
 ├── scripts/
-│   ├── collaboration/          # コアコラボレーションモジュール (149+ 個)
+│   ├── collaboration/          # コアコラボレーションモジュール (185+ 個)
 │   │   ├── dispatcher.py       # 統一ディスパッチャー
 │   │   ├── coordinator.py      # グローバルオーケストレーター
 │   │   ├── worker.py           # Worker実行者

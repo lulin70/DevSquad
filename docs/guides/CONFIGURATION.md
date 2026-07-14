@@ -1,8 +1,8 @@
-# DevSquad Configuration Guide (V4.0.0)
+# DevSquad Configuration Guide (V4.0.11)
 
-> **Version**: V4.0.0 | **Updated**: 2026-07-07
+> **Version**: V4.0.11 | **Updated**: 2026-07-14
 >
-> Complete configuration reference for all DevSquad components including new production features (Authentication, REST API, Alerts, Historical Data Storage).
+> Complete configuration reference for all DevSquad components including LLM backends (mock/openai/anthropic/moka/auto/trae/fallback), Authentication, REST API, Alerts, Historical Data Storage.
 
 ## Configuration Methods
 
@@ -13,16 +13,21 @@ DevSquad supports 3 configuration methods with clear priority:
 ## Method 1: Environment Variables (Highest Priority)
 
 ```bash
-# LLM Backend
-export OPENAI_API_KEY="sk-..."              # Required for OpenAI backend
-export OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional: custom endpoint
+# LLM Backend — DevSquad reads DEVSQUAD_-prefixed vars first, falls back to bare names
+export DEVSQUAD_OPENAI_API_KEY="sk-..."     # Required for OpenAI backend (or OPENAI_API_KEY)
+export DEVSQUAD_OPENAI_BASE_URL="https://api.openai.com/v1"  # Optional: custom endpoint
 export OPENAI_MODEL="gpt-4"                 # Optional: model name
 
-export ANTHROPIC_API_KEY="sk-ant-..."       # Required for Anthropic backend
+export DEVSQUAD_ANTHROPIC_API_KEY="sk-ant-..."  # Required for Anthropic backend (or ANTHROPIC_API_KEY)
 export ANTHROPIC_MODEL="claude-sonnet-4-20250514"  # Optional: model name
 
+# Moka AI backend (V4.0.7+)
+export MOKA_API_KEY="your-moka-key"         # Required for Moka backend
+export MOKA_API_BASE="https://api.moka-ai.com/v1"
+export MOKA_MODEL="moka/claude-sonnet-4-6"
+
 # DevSquad Settings
-export DEVSQUAD_LLM_BACKEND=openai          # Default backend: mock/openai/anthropic
+export DEVSQUAD_LLM_BACKEND=auto            # Backend: auto/mock/openai/anthropic/moka/trae/fallback
 export DEVSQUAD_LOG_LEVEL=WARNING           # Logging level
 ```
 
@@ -49,8 +54,8 @@ Create `~/.devsquad.yaml`:
 
 ```yaml
 devsquad:
-  # LLM Backend
-  backend: openai                    # mock/openai/anthropic
+  # LLM Backend — auto tries real LLM first, falls back to mock
+  backend: auto                    # auto/mock/openai/anthropic/moka/trae/fallback
   base_url: https://api.openai.com/v1
   model: gpt-4
   timeout: 120                       # Request timeout in seconds
@@ -87,8 +92,8 @@ When no environment variables or config file values are set, DevSquad uses these
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `backend` | `mock` | Mock backend returns assembled prompts |
-| `model` | `gpt-4` (OpenAI) / `claude-sonnet-4-20250514` (Anthropic) | Default model per backend |
+| `backend` | `auto` | Auto tries real LLM first, falls back to mock |
+| `model` | `gpt-4` (OpenAI) / `claude-sonnet-4-20250514` (Anthropic) / `moka/claude-sonnet-4-6` (Moka) | Default model per backend |
 | `timeout` | `120` | Request timeout in seconds |
 | `output_format` | `markdown` | Default output format |
 | `strict_validation` | `false` | Warn on prompt injection (don't block) |
@@ -114,24 +119,9 @@ python3 scripts/cli.py dispatch -t "task" --base-url https://custom.api.com/v1
 python3 scripts/cli.py dispatch -t "task" --stream
 ```
 
-## Using ConfigManager (Python API)
+## Python API Configuration
 
-```python
-# ConfigManager removed in V3.7.2 (dead code)
-
-# Access config values
-print(f"Backend: {config_mgr.get('backend')}")
-print(f"Model: {config_mgr.get('model')}")
-print(f"Timeout: {config_mgr.get('timeout')}")
-print(f"Strict validation: {config_mgr.get('strict_validation')}")
-
-# Set config values
-config_mgr.set('backend', 'openai')
-config_mgr.set('log_level', 'DEBUG')
-
-# Save current config to file (~/.devsquad.yaml)
-config_mgr.save()
-```
+ConfigManager was removed in V3.7.2 (dead code). Configuration is managed via environment variables and `~/.devsquad.yaml` only. No Python API for runtime config modification is provided.
 
 ## Docker Configuration
 

@@ -463,8 +463,8 @@ DevSquad/
 ├── scripts/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
-│   └── collaboration/            # ★ 48 core modules
-│       ├── _version.py           # Version SSOT (3.7.2)
+│   └── collaboration/            # ★ 185+ core modules
+│       ├── _version.py           # Version SSOT (4.0.11)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard

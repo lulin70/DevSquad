@@ -1,9 +1,13 @@
 # DevSquad Project Constitution
 
+> ⚠️ **已过时 (SUPERSEDED)** — 本文档停留在 V3.9.2 (118+ modules)，当前版本为 V4.0.11 (185+ modules)。
+> 权威文档请参阅: [SKILL.md](../../SKILL.md) + [ARCHITECTURE_V4.md](../architecture/ARCHITECTURE_V4.md)。
+> 本文档保留作历史参考，不代表当前系统状态。
+
 > **Document Type**: Project Constitution
 > **Responsible**: Multi-Role Consensus
 > **Location**: `docs/spec/CONSTITUTION.md`
-> **Version**: V1.0 | **Status**: Approved
+> **Version**: V1.0 | **Status**: Approved — **历史版本，已过时**
 
 ---
 

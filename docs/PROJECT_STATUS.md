@@ -19,7 +19,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**模块数**: 173+（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件总数，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 185+（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件总数，详见 [SKILL.md](../SKILL.md) Architecture Overview）
 
 **关键模块分类**:
 - **调度核心**: MultiAgentDispatcher, Coordinator, Worker, ConsensusEngine
@@ -36,7 +36,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 4641 passed（本地 Python 3.12，含 V4.0.10 P1-A/B/C/D + 项目整理评估修复 + 全部历史特性） | ✅ 全绿 |
+| 单元/集成回归 | 4603 passed（本地 Python 3.12，含 V4.0.11 FakeLLMBackend 提取 + CI 依赖同步检查 + 全部历史特性） | ✅ 全绿 |
 | Contract 测试 | 163 passed（6 Protocol 契约合规，V4.0.8 补全） | ✅ 全绿 |
 | API 服务器测试 | 51 passed（含 V4.0.10 TestReadinessProbe 3 个新测试） | ✅ 全绿 |
 | 版本一致性 | 15 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CLAUDE/deployment.yaml/COMPARISON.md/Chart.yaml） | ✅ 全绿 |
@@ -156,6 +156,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | **V4.0.0 项目整理评估** | **2026-07-10** | **8.6** | **13/13** | **3666 tests 全绿、.gitignore 大小写 bug 修复、文档测试数同步、SKILL.md 测试表补全 V4.0.0 行、无幽灵功能验证** |
 | **V4.0.0 P0-P2 改进** | **2026-07-10** | **8.7** | **13/13** | **mypy/ruff 版本锁定、streamlit/Pillow 加入 [dev] extras、e2e 在 PR 时运行、God Class 检测改为职责检测(23→4 候选)、broad-except 收窄** |
 | **V4.0.10 项目整理评估** | **2026-07-13** | **8.8** | **13/13** | **4651 tests 全绿、redis_url 凭据泄露防护 + health_check bug 修复、依赖同步(requirements-dev.txt/[all] extras)、CI 3.12 矩阵、pre-commit ruff 版本对齐、5 文件版本引用刷新、文档测试数同步** |
+| **V4.0.11 文档审核** | **2026-07-14** | **8.9** | **13/13** | **全面文档审核(57 issues: 16 P0+23 P1+18 P2)、health_check 版本硬编码 3.9.2→DEVSQUAD_VERSION 修复、CI 覆盖率门禁 --cov-fail-under=75 启用、模块数统一 185+(8 文件)、INDEX.md 路径修复、历史文档 superseded 标注** |
 
 评估报告路径:
 - V3.9.2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`

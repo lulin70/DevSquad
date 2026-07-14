@@ -1,5 +1,8 @@
 # DevSquad V3.8 增强 PRD (产品需求文档)
 
+> 📌 **已实现的历史 PRD** — V3.8 已完成，当前版本 V4.0.11。
+> 当前需求请参阅: [SKILL.md](../../SKILL.md) + [PROJECT_STATUS.md](../PROJECT_STATUS.md)
+
 > **文档类型**: 产品需求文档 (PRD)
 > **版本**: V3.8.0
 > **基于版本**: DevSquad V3.7.2 (2115 tests passing, 65% 成熟度)

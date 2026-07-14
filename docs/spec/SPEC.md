@@ -1,7 +1,11 @@
 # DevSquad V3.9.2 完整技术规范
 
+> ⚠️ **已过时 (SUPERSEDED)** — 本文档停留在 V3.9.2 (2026-05-20)，当前版本为 V4.0.11。
+> 权威技术文档请参阅: [SKILL.md](../../SKILL.md) (185+ 模块表) + [ARCHITECTURE_V4.md](../architecture/ARCHITECTURE_V4.md) (V4 架构)。
+> 本文档保留作历史参考，不代表当前系统状态。
+
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V3.9.2 (Enterprise Edition)
+> **版本**: V3.9.2 (Enterprise Edition) — **历史版本，已过时**
 > **成熟度**: 7.1/10 (诚实评估)
 > **最后更新**: 2026-05-20
 > **文档位置**: `docs/spec/SPEC.md`

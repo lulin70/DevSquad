@@ -64,7 +64,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
 | 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [149+ 模块详细参考](SKILL.md)
+📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [185+ 模块详细参考](SKILL.md)
 
 ---
 
@@ -173,7 +173,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ## 🏗️ Five Capability Domains (Architecture Overview)
 
-DevSquad's 149+ modules are organized into **5 capability domains**, each solving a specific problem:
+DevSquad's 185+ modules are organized into **5 capability domains**, each solving a specific problem:
 
 ### 🎯 Domain 1: Task Orchestration Engine (Core)
 
@@ -565,7 +565,7 @@ python3 -m pytest tests/ -q --tb=line
 | Document | Description | Language |
 |----------|-------------|----------|
 | [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30 秒快速入门指南（推荐新用户）** | 中文 |
-| [SKILL.md](SKILL.md) | 完整技能手册 + 149+ 模块参考 | EN/CN/JP |
+| [SKILL.md](SKILL.md) | 完整技能手册 + 185+ 模块参考 | EN/CN/JP |
 | [GUIDE.md](GUIDE.md) | 完全用户指南 | 中文 |
 | [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
 | [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |

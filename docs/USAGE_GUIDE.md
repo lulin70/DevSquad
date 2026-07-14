@@ -1,5 +1,8 @@
 # DevSquad V3.6.0-C 使用指南 (Plan C Layered Architecture)
 
+> ⚠️ **已过时 (HISTORICAL)** — 本文档停留在 V3.6.0-C (2026-05-22)，当前版本为 V4.0.11。
+> 最新使用指南请参阅: [README.md](../README.md) + [SKILL.md](../SKILL.md) + [QUICKSTART.md](../QUICKSTART.md)
+
 ## 📖 目录
 
 1. [快速开始](#快速开始)

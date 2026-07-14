@@ -30,6 +30,7 @@ from scripts.api.models import (
     MetricsSnapshot,
 )
 from scripts.api.security import require_permission
+from scripts.collaboration._version import __version__ as DEVSQUAD_VERSION
 
 if TYPE_CHECKING:
     from scripts.collaboration.lifecycle_shortcut_adapter import ShortcutLifecycleAdapter
@@ -376,7 +377,7 @@ async def health_check() -> HealthCheck:
 
         return HealthCheck(
             status=overall_status,
-            version="3.9.2",
+            version=DEVSQUAD_VERSION,
             uptime_seconds=round(uptime, 2),
             components=components,
             timestamp=datetime.now(),
@@ -386,7 +387,7 @@ async def health_check() -> HealthCheck:
         logger.error("Health check failed: %s", e, exc_info=True)
         return HealthCheck(
             status="unhealthy",
-            version="3.9.2",
+            version=DEVSQUAD_VERSION,
             uptime_seconds=time.time() - _start_time,
             components={"error": str(e)},
             timestamp=datetime.now(),

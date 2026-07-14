@@ -132,7 +132,7 @@ class DispatcherUtilsMixin(DispatcherBase):
 
 ### 2.5 P2-5: REST API 速率限制启用 — ✅ 已完成
 
-**目标**: 启用 rate_limit.py（已存在但未集成到 api_server.py）
+**目标**: 启用 rate_limit.py（~~已存在但未集成到 api_server.py~~ 已于 v4.0.6 完成集成，38 测试通过/99.31% 覆盖率）
 
 **校验结果（2026-07-12）**: rate_limit.py 已完整实现并集成到 api_server.py。38 个测试通过，覆盖率 99.31%。方案中"已存在但未集成"的描述已过期。
 

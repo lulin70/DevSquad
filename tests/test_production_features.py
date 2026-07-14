@@ -348,11 +348,11 @@ class TestAPIDataModels:
         from scripts.api.models import HealthCheck
 
         health = HealthCheck(
-            status="healthy", version="3.9.2", uptime_seconds=3600.0, components={"lifecycle_protocol": "healthy"}
+            status="healthy", version="4.0.11", uptime_seconds=3600.0, components={"lifecycle_protocol": "healthy"}
         )
 
         assert health.status == "healthy"
-        assert health.version == "3.9.2"
+        assert health.version == "4.0.11"
         assert health.uptime_seconds > 0
 
 

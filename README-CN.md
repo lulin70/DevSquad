@@ -137,7 +137,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ### 🏗️ 五大能力域架构（V4.0.0）
 
-DevSquad 的 149+ 模块组织为 **5 大能力域**，各域解决特定问题：
+DevSquad 的 185+ 模块组织为 **5 大能力域**，各域解决特定问题：
 
 | 能力域 | 核心模块 | 解决问题 |
 |--------|---------|---------|
@@ -380,7 +380,7 @@ python scripts/cli.py lifecycle ship -t "v2.0发布"
 ```
 DevSquad/
 ├── scripts/
-│   ├── collaboration/          # 核心协作模块 (149+ 个)
+│   ├── collaboration/          # 核心协作模块 (185+ 个)
 │   │   ├── dispatcher.py       # 统一调度入口
 │   │   ├── coordinator.py      # 全局编排器
 │   │   ├── worker.py           # Worker执行者
