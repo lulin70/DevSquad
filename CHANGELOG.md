@@ -7,6 +7,47 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-07-15
+
+MINOR release: Matt Pocock skills fusion (7 P0 items) + UI/UX skills fusion (3 P0 items) + four-doc system. 10 P0 modules implemented, 200+ new tests, 5 ADRs, 43 GLOSSARY terms.
+
+### Added — Matt Pocock Skills Fusion (7 P0 items)
+
+- **P0-1 Tautological test detection** (`scripts/qa/tautological_test_detector.py`): 5 pattern detector (assert-recompute, mock-returns-expected, no-assertion, assert-true, self-comparison) + SeamAnalyzer (2 patterns: interface-seam, factory-seam). 24 tests.
+- **P0-2 GLOSSARY.md + ADR system** (`docs/spec/GLOSSARY.md`, `docs/adr/`): Pure terminology table (43 terms across 3 sections: Matt Pocock 17 + UI/UX 12 + DevSquad 14). ADR system with 3-criterion gate. 5 ADRs (ADR-001 four-doc system, ADR-002 CodeKnowledgeGraph explore-before-ask, ADR-003 SRP-based God Class identification, ADR-004 DEBUG-tag mechanism, ADR-005 four-layer prompt injection). `RoleSkillLoader.load_glossary()` for prompt injection. 11 tests.
+- **P0-3 Deletion test** (`scripts/qa/redesign_auditor.py`): Deletion test implementation + HTML report generation. Identifies shallow/pass-through modules via "delete and check if complexity disappears" method.
+- **P0-4 Red-capable gate + DEBUG tag** (`scripts/collaboration/verification_gate.py`, `scripts/collaboration/execution_guard.py`): Red-capable feedback loop gate + [DEBUG-xxx] tag mechanism for one-shot debug log cleanup.
+- **P0-5 Deep/shallow vocabulary** (`scripts/collaboration/yagni_checker.py`): `PrematureSeamResult` dataclass + `check_premature_seam()` AST-based analysis. One adapter = premature seam (hypothetical), two+ adapters = real seam. Architect SKILL.md with deep/shallow vocabulary and 4-step analysis. 16 tests.
+- **P0-6 No-op test + failure modes** (`scripts/collaboration/standardized_role_template.py`, `scripts/collaboration/skillifier.py`): No-op test verification + failure modes classification + invocation classification (HITL/AFK).
+- **P0-7 Grilling one-question-at-a-time** (`scripts/collaboration/rule_collector.py`, `scripts/collaboration/prompt_assembler.py`): `GrillingMode` class + `GrillingQuestion`/`GrillingResult` dataclasses + `RuleCollector.grilling_mode()` factory + `inject_grilling_discipline()` for prompt injection + explore-before-ask discipline (CodeKnowledgeGraph.query().find_symbol()). 31 tests.
+
+### Added — UI/UX Skills Fusion (3 P0 items)
+
+- **UI-P0-1 DeterministicRuleEngine** (`scripts/qa/uiux_analyzer.py`, `scripts/qa/models.py`): 46 deterministic rules across 7 design pillars (Typography/Color/Spatial/Responsiveness/Interactions/Motion/UX writing). Pure if/else + AST analysis, no LLM required. 57 tests, 80% coverage.
+- **UI-P0-2 TasteDials** (`scripts/qa/taste_dials.py`): 3 visual taste dials (design_variance/motion_intensity/visual_density, range 0.0-1.0) + sensitivity control + 3 presets (minimalist/balanced/rich) + threshold adjustment API. Distinct from PromptDials (prompt-level 1-5). 66 tests, 100% coverage.
+- **UI-P0-3 DESIGN.md** (`docs/spec/DESIGN.md`): Project design guidelines (Morandi color system, 4pt grid, OKLCH color space, WCAG 2.1 AA, 6 anti-pattern bans). Loaded by UIUXAnalyzer as audit context.
+
+### Added — Four-doc System Infrastructure
+
+- **GLOSSARY.md**: Pure terminology table (43 terms), no implementation details.
+- **ADR**: Architecture Decision Records with 3-criterion gate (hard-to-reverse + surprising-without-context + real-tradeoff). 5 ADRs.
+- **DESIGN.md**: Project design guidelines for UIUXAnalyzer context.
+- **SPEC.md**: Technical specifications (modules/API/data models).
+- `RoleSkillLoader.load_glossary()` for GLOSSARY injection into role prompts.
+
+### Fixed — Module 10 grilling injection bug
+
+- **scripts/collaboration/prompt_assembler_formatting_mixin.py**: `_grilling_injection` was stored in `PromptAssembler.__init__` but never injected into the instruction. Fixed by adding grilling injection to the structured/comprehensive style path in `_build_instruction`. Simple tasks (direct style) skip grilling — they don't need Q&A discipline.
+- **tests/test_collaboration_prompt_optimization_test.py**: Raised token threshold from 1500 to 1800 for compact variant (V4.1.0 ponytail injection now applies to direct style, adding ~320 tokens). 3 new tests verify grilling injection for COMPLEX/MEDIUM tasks and absence for SIMPLE tasks.
+
+### Verification
+
+- ruff check: All checks passed
+- mypy --follow-imports=skip: Success, no issues
+- pytest (full regression): 4940 passed / 26 skipped / 1 failed (LLM smoke, network-dependent)
+- Version consistency: 7/7 PASS (4.1.0)
+- 10 P0 modules: ALL COMPLETE
+
 ## [4.0.11] - 2026-07-13
 
 PATCH release: test code refactoring + CI tooling enhancement, no new functionality. Based on V4.0.10 project evaluation report §下一步建议.

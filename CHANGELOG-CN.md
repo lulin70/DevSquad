@@ -7,6 +7,46 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.1.0] - 2026-07-15
+
+MINOR 发布：Matt Pocock 技能融合（7 项 P0）+ UI/UX 技能融合（3 项 P0）+ 四文档体系。10 个 P0 模块全部完成，200+ 新测试，5 个 ADR，43 个术语。
+
+### 新增 — Matt Pocock 技能融合（7 项 P0）
+
+- **P0-1 重言式测试检测**（`scripts/qa/tautological_test_detector.py`）：5 种模式检测器 + SeamAnalyzer（2 种模式）。24 个测试。
+- **P0-2 GLOSSARY.md + ADR 体系**（`docs/spec/GLOSSARY.md`、`docs/adr/`）：纯术语表（43 术语，3 个分区）+ ADR 架构决策记录（3 准则门禁）。5 个 ADR。`RoleSkillLoader.load_glossary()` 注入。11 个测试。
+- **P0-3 删除测试**（`scripts/qa/redesign_auditor.py`）：删除测试 + HTML 报告，识别浅层/pass-through 模块。
+- **P0-4 Red-capable 门禁 + DEBUG 标签**（`scripts/collaboration/verification_gate.py`、`execution_guard.py`）：Red-capable 反馈循环门禁 + [DEBUG-xxx] 标签一次性清理机制。
+- **P0-5 Deep/shallow 词汇**（`scripts/collaboration/yagni_checker.py`）：`PrematureSeamResult` + `check_premature_seam()` AST 分析。一个适配器 = 过早 seam（假设性），两个+ = 真实 seam。架构师 SKILL.md。16 个测试。
+- **P0-6 No-op 测试 + 失败模式**（`scripts/collaboration/standardized_role_template.py`、`skillifier.py`）：No-op 测试验证 + 失败模式分类 + 调用分类（HITL/AFK）。
+- **P0-7 Grilling 逐问访谈**（`scripts/collaboration/rule_collector.py`、`prompt_assembler.py`）：`GrillingMode` 类 + 数据类 + `inject_grilling_discipline()` + explore-before-ask 纪律（CodeKnowledgeGraph.query().find_symbol()）。31 个测试。
+
+### 新增 — UI/UX 技能融合（3 项 P0）
+
+- **UI-P0-1 确定性规则引擎**（`scripts/qa/uiux_analyzer.py`、`models.py`）：46 条确定性规则，7 个设计支柱。纯 if/else + AST 分析，无需 LLM。57 个测试，80% 覆盖率。
+- **UI-P0-2 TasteDials 视觉层**（`scripts/qa/taste_dials.py`）：3 个视觉品味旋钮（0.0-1.0）+ 灵敏度控制 + 3 个预设。与 PromptDials（1-5）职责分离。66 个测试，100% 覆盖率。
+- **UI-P0-3 DESIGN.md 协议**（`docs/spec/DESIGN.md`）：项目设计准则（Morandi 色系、4pt 网格、OKLCH 色彩空间、WCAG 2.1 AA、6 类反模式禁令）。
+
+### 新增 — 四文档体系基础设施
+
+- **GLOSSARY.md**：纯术语表（43 术语），禁止实现细节。
+- **ADR**：架构决策记录（3 准则门禁）。5 个 ADR。
+- **DESIGN.md**：项目设计准则，UIUXAnalyzer 审计上下文。
+- **SPEC.md**：技术规范（模块/API/数据模型）。
+
+### 修复 — Module 10 grilling injection bug
+
+- `prompt_assembler_formatting_mixin.py`：`_grilling_injection` 在 `__init__` 中存储但从未注入 instruction。修复后在 structured/comprehensive 路径注入，简单任务（direct style）跳过。
+- 测试阈值 1500→1800（V4.1.0 ponytail 对 direct style 生效，+320 tokens）。3 个新测试验证 grilling injection。
+
+### 验证
+
+- ruff check: All checks passed
+- mypy --follow-imports=skip: Success, no issues
+- pytest（全量回归）：4940 passed / 26 skipped / 1 failed（LLM smoke，网络依赖）
+- 版本一致性：7/7 PASS（4.1.0）
+- 10 个 P0 模块：全部完成
+
 ## [4.0.11] - 2026-07-13
 
 PATCH 发布：测试代码重构 + CI 工具增强，无新功能。基于 V4.0.10 项目评估报告 §下一步建议。

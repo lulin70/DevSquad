@@ -1,7 +1,7 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.0.11
+version: 4.1.0
 description: |
   V4.0.0 DevSquad — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
@@ -12,7 +12,7 @@ description: |
   185+ core modules, 4651+ tests passing (CI authoritative).
 ---
 
-# DevSquad V4.0.11 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V4.1.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -653,7 +653,7 @@ Consensus records in `result.consensus_records`.
 status = disp.get_status()
 # Returns:
 # {
-#   "version": "4.0.11",
+#   "version": "4.1.0",
 #   "components": {...},        # Component enabled status
 #   "dispatch_count": N,         # Completed dispatch count
 #   "scratchpad_stats": {...}, # Blackboard stats
