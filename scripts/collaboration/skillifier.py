@@ -618,3 +618,84 @@ class Skillifier:
             Dictionary with counts and quality aggregates from the storage.
         """
         return self._storage.get_statistics()
+
+    # ------------------------------------------------------------------
+    # Module 9 (Matt P0-6): Invocation type classification
+    # ------------------------------------------------------------------
+
+    # Categories that suggest broad, general-purpose skills.
+    _MODEL_INVOKED_CATEGORIES: frozenset[str] = frozenset({
+        SkillCategory.CODE_GENERATION.value,
+        SkillCategory.CODE_REVIEW.value,
+        SkillCategory.TESTING.value,
+        SkillCategory.ANALYSIS.value,
+        SkillCategory.REFACTORING.value,
+    })
+
+    # Categories that suggest specific, user-triggered skills.
+    _USER_INVOKED_CATEGORIES: frozenset[str] = frozenset({
+        SkillCategory.DEPLOYMENT.value,
+        SkillCategory.SECURITY.value,
+        SkillCategory.DOCUMENTATION.value,
+        SkillCategory.INTEGRATION.value,
+        SkillCategory.PERFORMANCE.value,
+    })
+
+    # Trigger keywords that suggest user-initiated invocation.
+    _USER_TRIGGER_KEYWORDS: frozenset[str] = frozenset({
+        "deploy", "publish", "release", "audit", "security",
+        "migrate", "rollback", "production", "staging",
+    })
+
+    def classify_invocation_type(self, proposal: SkillProposal) -> str:
+        """Classify how a skill should be invoked (Matt P0-6).
+
+        Determines whether a skill should be:
+        - ``"model-invoked"``: The AI agent decides to use it autonomously
+          (broad triggers, general-purpose category)
+        - ``"user-invoked"``: The user explicitly triggers it
+          (specific triggers, niche category)
+        - ``"both"``: Can be both model- and user-invoked
+
+        Classification criteria:
+        1. Category — general categories → model-invoked, specific → user-invoked
+        2. Trigger conditions — broad/many → model-invoked, specific/few → user-invoked
+        3. Required roles — multi-role → model-invoked, single-role → user-invoked
+
+        Args:
+            proposal: The :class:`SkillProposal` to classify.
+
+        Returns:
+            One of ``"model-invoked"``, ``"user-invoked"``, ``"both"``.
+        """
+        score = 0  # Positive → model-invoked, negative → user-invoked.
+
+        # 1. Category signal.
+        if proposal.category in self._MODEL_INVOKED_CATEGORIES:
+            score += 2
+        elif proposal.category in self._USER_INVOKED_CATEGORIES:
+            score -= 2
+
+        # 2. Trigger conditions signal.
+        triggers = proposal.trigger_conditions
+        if len(triggers) >= 3:
+            score += 1  # Many triggers → broad → model-invoked.
+        elif len(triggers) <= 1:
+            score -= 1  # Few triggers → specific → user-invoked.
+
+        # Check for user-trigger keywords.
+        trigger_text = " ".join(triggers).lower()
+        if any(kw in trigger_text for kw in self._USER_TRIGGER_KEYWORDS):
+            score -= 2
+
+        # 3. Required roles signal.
+        if len(proposal.required_roles) >= 2:
+            score += 1  # Multi-role → general → model-invoked.
+
+        # Classify.
+        if score > 0:
+            return "model-invoked"
+        elif score < 0:
+            return "user-invoked"
+        else:
+            return "both"

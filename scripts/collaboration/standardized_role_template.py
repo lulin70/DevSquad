@@ -11,6 +11,7 @@ Spec reference: SPEC_V35_Agent_Skills_Quality_Framework.md Section 7.1
 """
 
 import hashlib
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -324,3 +325,221 @@ def create_example_template() -> StandardizedRoleTemplate:
             "Remember: Security is never 'good enough'. Be thorough."
         ),
     )
+
+
+# ------------------------------------------------------------------
+# Module 9 (Matt P0-6): No-op test + failure modes
+# ------------------------------------------------------------------
+
+
+@dataclass
+class NoOpFinding:
+    """A single no-op finding from ``apply_no_op_test``.
+
+    A "no-op" line is one that sounds like an instruction but doesn't
+    actually change the default behavior of the model or agent.
+
+    Attributes:
+        line_number: 1-based line number in the input content.
+        line_content: The offending line (stripped).
+        reason: Why this line is a no-op.
+    """
+
+    line_number: int
+    line_content: str
+    reason: str
+
+
+# Patterns that indicate no-op lines. Each entry is (regex, reason).
+# Patterns use \b word boundary (not ^) to allow numbered/bullet prefixes.
+_NO_OP_PATTERNS: list[tuple[str, str]] = [
+    (
+        r"(?i)\b(always\s+)?be\s+(helpful|thorough|careful|precise|concise)\b",
+        "Tautological virtue — 'be helpful' is the default, not an instruction",
+    ),
+    (
+        r"(?i)\bdo\s+your\s+best\b",
+        "'Do your best' is not actionable — specify what 'best' means",
+    ),
+    (
+        r"(?i)\bfollow\s+best\s+practices?\b",
+        "'Follow best practices' without specifying which practices is a no-op",
+    ),
+    (
+        r"(?i)\b(remember\s+to\s+)?use\s+(python|javascript|typescript|java|go|rust)\b",
+        "Restates language default — the project already uses this language",
+    ),
+    (
+        r"(?i)\b(always\s+)?write\s+(clean|readable|maintainable)\s+code\b",
+        "'Write clean code' is a universal aspiration, not an instruction",
+    ),
+    (
+        r"(?i)\btry\s+your\s+hardest\b",
+        "'Try your hardest' is not measurable or actionable",
+    ),
+    (
+        r"(?i)\b(always\s+)?be\s+professional\b",
+        "'Be professional' is the default expectation, not an instruction",
+    ),
+    (
+        r"(?i)\bmake\s+sure\s+(everything\s+)?works?\b",
+        "'Make sure it works' is the goal, not an instruction — specify how",
+    ),
+]
+
+
+def apply_no_op_test(skill_content: str) -> list[NoOpFinding]:
+    """Run Matt Pocock's no-op test on skill content.
+
+    Scans each line for patterns that sound like instructions but don't
+    actually change default behavior. These are "no-ops" — lines that
+    waste prompt tokens without adding value.
+
+    Args:
+        skill_content: The skill text to analyze (SKILL.md content,
+            prompt_template, or any instruction text).
+
+    Returns:
+        List of :class:`NoOpFinding` for each no-op line detected.
+    """
+    if not skill_content:
+        return []
+    findings: list[NoOpFinding] = []
+    for i, line in enumerate(skill_content.split("\n"), start=1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        for pattern, reason in _NO_OP_PATTERNS:
+            if re.search(pattern, stripped):
+                findings.append(
+                    NoOpFinding(
+                        line_number=i,
+                        line_content=stripped,
+                        reason=reason,
+                    )
+                )
+                break  # One finding per line is enough.
+    return findings
+
+
+# ------------------------------------------------------------------
+# Failure modes (Matt Pocock's writing-great-skills)
+# ------------------------------------------------------------------
+
+
+@dataclass
+class FailureModeFinding:
+    """A failure mode detected in skill content.
+
+    Matt Pocock identifies 5 failure modes for skills:
+    1. premature_completion — skill ends too early, missing steps
+    2. duplication — skill repeats content from other skills
+    3. sediment — outdated instructions that accumulate over time
+    4. sprawl — skill grows too large, loses focus
+    5. no_op — instructions that don't change behavior
+
+    Attributes:
+        mode: One of "premature_completion", "duplication", "sediment",
+            "sprawl", "no_op".
+        severity: "high" / "medium" / "low".
+        description: Human-readable explanation.
+    """
+
+    mode: str
+    severity: str
+    description: str
+
+
+def detect_failure_modes(
+    skill_content: str,
+    *,
+    max_lines: int = 200,
+    min_steps: int = 3,
+) -> list[FailureModeFinding]:
+    """Detect Matt Pocock's 5 failure modes in skill content.
+
+    Args:
+        skill_content: The skill text to analyze.
+        max_lines: Threshold for "sprawl" detection (default 200).
+        min_steps: Minimum numbered steps before "premature_completion"
+            is checked (default 3).
+
+    Returns:
+        List of :class:`FailureModeFinding` for each detected mode.
+    """
+    findings: list[FailureModeFinding] = []
+    if not skill_content or not skill_content.strip():
+        return findings
+
+    lines = skill_content.split("\n")
+
+    # 1. Sprawl — too many lines.
+    if len(lines) > max_lines:
+        findings.append(
+            FailureModeFinding(
+                mode="sprawl",
+                severity="medium",
+                description=f"Skill has {len(lines)} lines (threshold: {max_lines}). Consider splitting.",
+            )
+        )
+
+    # 2. No-op — delegate to apply_no_op_test.
+    no_op_findings = apply_no_op_test(skill_content)
+    if no_op_findings:
+        findings.append(
+            FailureModeFinding(
+                mode="no_op",
+                severity="low",
+                description=f"{len(no_op_findings)} no-op line(s) detected (e.g., line {no_op_findings[0].line_number})",
+            )
+        )
+
+    # 3. Premature completion — too few numbered steps.
+    numbered_steps = len(re.findall(r"^\s*\d+\.\s", skill_content, re.MULTILINE))
+    if 0 < numbered_steps < min_steps:
+        findings.append(
+            FailureModeFinding(
+                mode="premature_completion",
+                severity="high",
+                description=f"Only {numbered_steps} numbered step(s) found (minimum: {min_steps}). Skill may end too early.",
+            )
+        )
+
+    # 4. Sediment — outdated markers.
+    sediment_markers = re.findall(r"(?i)\b(TODO|FIXME|DEPRECATED|OUTDATED)\b", skill_content)
+    if sediment_markers:
+        findings.append(
+            FailureModeFinding(
+                mode="sediment",
+                severity="medium",
+                description=f"{len(sediment_markers)} sediment marker(s) found (TODO/FIXME/DEPRECATED/OUTDATED)",
+            )
+        )
+
+    # 5. Duplication — repeated 3+ word phrases.
+    findings.extend(_detect_duplication(skill_content))
+
+    return findings
+
+
+def _detect_duplication(content: str) -> list[FailureModeFinding]:
+    """Detect duplicated 4+ word phrases in skill content."""
+    # Extract sentences/phrases of 4+ words.
+    words = re.findall(r"[A-Za-z]+", content.lower())
+    if len(words) < 8:
+        return []
+    # Build 4-word phrases and count.
+    phrases: dict[str, int] = {}
+    for i in range(len(words) - 3):
+        phrase = " ".join(words[i : i + 4])
+        phrases[phrase] = phrases.get(phrase, 0) + 1
+    duplicated = [p for p, c in phrases.items() if c >= 2]
+    if duplicated:
+        return [
+            FailureModeFinding(
+                mode="duplication",
+                severity="low",
+                description=f"{len(duplicated)} duplicated 4-word phrase(s) detected (e.g., '{duplicated[0]}')",
+            )
+        ]
+    return []
