@@ -219,6 +219,40 @@ class RoleSkillLoader:
         """Clear the skill loading cache."""
         self._cache.clear()
 
+    def load_glossary(self, glossary_path: Path | str | None = None) -> str:
+        """Load GLOSSARY.md content for injection into role prompts.
+
+        Matt Pocock domain-modeling (P0-2): GLOSSARY.md is a pure terminology
+        reference that should be available to all roles. This method reads
+        the glossary file and returns its content for prompt injection.
+
+        Args:
+            glossary_path: Override path to GLOSSARY.md. When None, defaults
+                to ``docs/spec/GLOSSARY.md`` relative to the project root
+                (derived from the skills directory location).
+
+        Returns:
+            GLOSSARY.md content as a string. Returns empty string when the
+                file is not found or cannot be read.
+        """
+        if glossary_path is not None:
+            path = Path(glossary_path)
+        else:
+            # Derive project root from _SKILLS_BASE_DIR:
+            # scripts/collaboration/role_skills -> project root
+            project_root = _SKILLS_BASE_DIR.parent.parent.parent
+            path = project_root / "docs" / "spec" / "GLOSSARY.md"
+
+        try:
+            content = path.read_text(encoding="utf-8")
+            if not content.strip():
+                logger.warning("GLOSSARY.md is empty at %s", path)
+                return ""
+            return content
+        except (OSError, UnicodeDecodeError) as e:
+            logger.warning("Failed to load GLOSSARY.md at %s: %s", path, e)
+            return ""
+
 
 # Module-level singleton
 _shared_loader: RoleSkillLoader | None = None

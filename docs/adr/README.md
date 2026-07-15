@@ -55,6 +55,10 @@ Accepted | Proposed | Deprecated | Superseded by ADR-YYY
 | ADR | 标题 | 状态 | 日期 |
 |-----|------|------|------|
 | [ADR-001](ADR-001-four-doc-system.md) | 四文档体系建立（GLOSSARY + ADR + DESIGN + SPEC） | Accepted | 2026-07-15 |
+| [ADR-002](ADR-002-code-knowledge-graph-explore-before-ask.md) | CodeKnowledgeGraph as explore-before-ask backbone | Accepted | 2026-07-15 |
+| [ADR-003](ADR-003-srp-based-god-class-identification.md) | SRP-based God Class identification (replacing mechanical thresholds) | Accepted | 2026-07-15 |
+| [ADR-004](ADR-004-debug-tag-mechanism.md) | [DEBUG-xxx] tag mechanism for one-shot cleanup | Accepted | 2026-07-15 |
+| [ADR-005](ADR-005-four-layer-prompt-injection.md) | Four-layer prompt injection architecture | Accepted | 2026-07-15 |
 
 ---
 
