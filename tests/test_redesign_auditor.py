@@ -331,8 +331,8 @@ class TestRedesignAuditorEdgeCases(unittest.TestCase):
 
     def test_clean_code_returns_no_findings(self) -> None:
         """Verify: clean, minimal code returns no findings."""
-        # Arrange
-        code = "def add(a, b):\n    return a + b\n"
+        # Arrange — ``add`` is called twice to avoid single-use/dead-code flags.
+        code = "def add(a, b):\n    return a + b\n\nprint(add(1, 2))\nprint(add(3, 4))\n"
         # Act
         findings = self.auditor.audit(code)
         # Assert
@@ -366,7 +366,7 @@ class TestRedesignAuditorCategorySet(unittest.TestCase):
     def test_all_findings_have_valid_categories(self) -> None:
         """Verify: every finding's category is in the documented set."""
         # Arrange
-        valid_categories = {"YAGNI", "STDLIB", "DUPLICATE", "OVERENGINEERING", "REDUNDANT_DEP"}
+        valid_categories = {"YAGNI", "STDLIB", "DUPLICATE", "OVERENGINEERING", "REDUNDANT_DEP", "DELETION_TEST"}
         codes = [
             "import unused_module\n",
             "def parse_url(u): return u\n",

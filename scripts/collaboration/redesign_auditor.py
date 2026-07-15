@@ -32,6 +32,9 @@ Usage::
 
 from __future__ import annotations
 
+import ast
+from html import escape
+
 from .redesign_checkers import (
     RedesignFinding,
     check_duplicates,
@@ -71,6 +74,7 @@ class RedesignAuditor:
     CATEGORY_DUPLICATE = "DUPLICATE"
     CATEGORY_OVERENGINEERING = "OVERENGINEERING"
     CATEGORY_REDUNDANT_DEP = "REDUNDANT_DEP"
+    CATEGORY_DELETION_TEST = "DELETION_TEST"
 
     # Threshold for CRITICAL dead-code detection (lines).
     DEAD_CODE_CRITICAL_THRESHOLD = 50
@@ -226,4 +230,243 @@ class RedesignAuditor:
                 excessive_param_threshold=self.EXCESSIVE_PARAM_THRESHOLD,
             )
         )
+        # Module 6 (Matt P0-3): deletion test
+        findings.extend(self.deletion_test(code))
         return findings
+
+    # ------------------------------------------------------------------
+    # Module 6 (Matt P0-3): Deletion Test
+    # ------------------------------------------------------------------
+
+    def deletion_test(
+        self, code: str, file_path: str = ""
+    ) -> list[RedesignFinding]:
+        """Run Matt Pocock's deletion test on source code.
+
+        For each function/class, asks: "If I delete this, what breaks?"
+
+        Detects:
+        1. Pass-through functions — body just delegates to another call.
+        2. Dead code — defined but never referenced in the same file.
+        3. Single-use functions — called only once (inlining candidate).
+
+        Args:
+            code: Python source code string to analyze.
+            file_path: File path for reporting (informational).
+
+        Returns:
+            List of RedesignFinding with category DELETION_TEST.
+        """
+        findings: list[RedesignFinding] = []
+        if not code or not code.strip():
+            return findings
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            return findings
+
+        # Collect top-level function and class names
+        definitions: dict[str, ast.AST] = {}
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                definitions[node.name] = node
+
+        # Count references (Name nodes and Attribute nodes)
+        call_counts: dict[str, int] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                call_counts[node.id] = call_counts.get(node.id, 0) + 1
+            elif isinstance(node, ast.Attribute):
+                call_counts[node.attr] = call_counts.get(node.attr, 0) + 1
+
+        for name, node in definitions.items():
+            # Skip dunder methods
+            if name.startswith("__") and name.endswith("__"):
+                continue
+
+            # Check for pass-through (functions only)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and self._is_pass_through(node):
+                body_lines = (node.end_lineno or node.lineno) - node.lineno + 1
+                findings.append(
+                    RedesignFinding(
+                        severity=self.SEVERITY_MEDIUM,
+                        category=self.CATEGORY_DELETION_TEST,
+                        current=(
+                            f"Function ``{name}`` is a pass-through "
+                            f"(body just delegates to another call)"
+                            + (f" in {file_path}" if file_path else "")
+                        ),
+                        suggested=(
+                            f"Delete ``{name}`` and call the delegated "
+                            f"function directly, or deepen it with real logic"
+                        ),
+                        saving_lines=body_lines,
+                    )
+                )
+                continue
+
+            # Reference count: FunctionDef.name / ClassDef.name are string
+            # attributes (not ast.Name nodes), so ast.walk does not count the
+            # definition itself. ref_count therefore equals the number of
+            # actual references (call sites / attribute accesses).
+            ref_count = call_counts.get(name, 0)
+            actual_callers = ref_count
+
+            if actual_callers == 0:
+                findings.append(
+                    RedesignFinding(
+                        severity=self.SEVERITY_HIGH,
+                        category=self.CATEGORY_DELETION_TEST,
+                        current=(
+                            f"Function/class ``{name}`` is defined but never "
+                            f"referenced in the same file"
+                        ),
+                        suggested=(
+                            f"Delete ``{name}`` if truly unused. "
+                            f"Verify cross-file references before deleting."
+                        ),
+                        saving_lines=3,
+                    )
+                )
+            elif actual_callers == 1:
+                findings.append(
+                    RedesignFinding(
+                        severity=self.SEVERITY_LOW,
+                        category=self.CATEGORY_DELETION_TEST,
+                        current=(
+                            f"Function/class ``{name}`` is called only once "
+                            f"— inlining candidate"
+                        ),
+                        suggested=(
+                            f"Consider inlining ``{name}`` at the call site "
+                            f"to reduce indirection"
+                        ),
+                        saving_lines=2,
+                    )
+                )
+
+        return findings
+
+    def _is_pass_through(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef
+    ) -> bool:
+        """Check if a function is a pass-through (body just delegates).
+
+        A pass-through function has a body consisting of only a docstring
+        and a single return statement that calls another function, or just
+        a ``pass`` statement.
+
+        Args:
+            node: AST FunctionDef node to check.
+
+        Returns:
+            True if the function is a pass-through.
+        """
+        # Filter out docstrings (Expr nodes with Constant string values)
+        body = [
+            n
+            for n in node.body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
+        ]
+        if len(body) != 1:
+            return False
+        stmt = body[0]
+        # return other_func(...) or return self.other_func(...)
+        if isinstance(stmt, ast.Return) and isinstance(stmt.value, ast.Call):
+            return True
+        # pass
+        return isinstance(stmt, ast.Pass)
+
+    # ------------------------------------------------------------------
+    # Module 6 (Matt P0-3): HTML Report
+    # ------------------------------------------------------------------
+
+    def to_html_report(
+        self,
+        findings: list[RedesignFinding],
+        title: str = "Redesign Audit Report",
+    ) -> str:
+        """Generate an HTML report from redesign findings.
+
+        Produces a standalone HTML document with a color-coded table of
+        findings, sorted by severity. No external dependencies (inline CSS).
+
+        Args:
+            findings: List of RedesignFinding to render.
+            title: Report title (defaults to "Redesign Audit Report").
+
+        Returns:
+            HTML string suitable for writing to a file.
+        """
+        severity_colors = {
+            "CRITICAL": "#dc2626",
+            "HIGH": "#ea580c",
+            "MEDIUM": "#ca8a04",
+            "LOW": "#2563eb",
+        }
+        severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+        sorted_findings = sorted(
+            findings, key=lambda f: severity_order.get(f.severity, 99)
+        )
+
+        rows_html: list[str] = []
+        for f in sorted_findings:
+            color = severity_colors.get(f.severity, "#6b7280")
+            rows_html.append(
+                "<tr>"
+                f'<td style="color:{color};font-weight:bold">{escape(f.severity)}</td>'
+                f"<td>{escape(f.category)}</td>"
+                f"<td>{escape(f.current)}</td>"
+                f"<td>{escape(f.suggested)}</td>"
+                f'<td style="text-align:right">{f.saving_lines}</td>'
+                "</tr>"
+            )
+
+        total_savings = sum(f.saving_lines for f in findings)
+        by_category: dict[str, int] = {}
+        for f in findings:
+            by_category[f.category] = by_category.get(f.category, 0) + 1
+
+        summary_items = [
+            f"<li>{escape(cat)}: {count}</li>"
+            for cat, count in sorted(by_category.items())
+        ]
+
+        return (
+            "<!DOCTYPE html>\n"
+            '<html lang="en">\n'
+            "<head>\n"
+            '<meta charset="utf-8">\n'
+            f"<title>{escape(title)}</title>\n"
+            "<style>\n"
+            "body { font-family: -apple-system, sans-serif; margin: 2rem; }\n"
+            "h1 { color: #1f2937; }\n"
+            "table { border-collapse: collapse; width: 100%; }\n"
+            "th, td { border: 1px solid #d1d5db; padding: 0.5rem; text-align: left; }\n"
+            "th { background-color: #f3f4f6; }\n"
+            ".summary { background: #f9fafb; padding: 1rem; margin: 1rem 0; }\n"
+            "</style>\n"
+            "</head>\n"
+            "<body>\n"
+            f"<h1>{escape(title)}</h1>\n"
+            f'<div class="summary">\n'
+            f"<p><strong>Total findings:</strong> {len(findings)}</p>\n"
+            f"<p><strong>Estimated lines saved:</strong> {total_savings}</p>\n"
+            f"<ul>{''.join(summary_items)}</ul>\n"
+            "</div>\n"
+            "<table>\n"
+            "<thead><tr>"
+            "<th>Severity</th><th>Category</th><th>Current</th>"
+            "<th>Suggested</th><th>Lines Saved</th>"
+            "</tr></thead>\n"
+            "<tbody>\n"
+            + "\n".join(rows_html)
+            + "\n</tbody>\n"
+            "</table>\n"
+            "</body>\n"
+            "</html>"
+        )
