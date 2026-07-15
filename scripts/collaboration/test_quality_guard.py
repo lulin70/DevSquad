@@ -459,6 +459,298 @@ class AntiPatternDetector:
         return suggestions.get(pattern_id, "")
 
 
+class TautologicalTestDetector:
+    """Detect tautological tests — assertions that re-compute implementation logic.
+
+    Inspired by Matt Pocock's tdd skill (V4.1.0 Matt P0-1): a tautological
+    test is one where the expected value is computed using the same expression
+    as the implementation, making the assertion trivially true.
+
+    Detected patterns:
+    1. ``assert True`` / ``assert 1`` / ``assert "literal"`` — constant truthy
+    2. ``assert x == x`` — self-comparison (same Name both sides)
+    3. ``assert f(x) == f(x)`` — same Call both sides
+    4. ``self.assertEqual(x, x)`` — unittest self-comparison
+    5. ``assert add(a, b) == a + b`` — re-computes implementation operator
+    """
+
+    # Maps function names to their operator equivalents for recompute detection
+    _FUNC_TO_OP: dict[str, type[ast.AST]] = {
+        "add": ast.Add,
+        "sub": ast.Sub,
+        "mul": ast.Mult,
+        "div": ast.Div,
+    }
+
+    def detect_in_ast(self, tree: ast.Module, file: str) -> list[QualityIssue]:
+        """Walk AST and return tautological assertion issues.
+
+        Args:
+            tree: Parsed AST module of the test source.
+            file: File path for issue reporting.
+
+        Returns:
+            List of QualityIssue (severity MAJOR) for each tautological pattern.
+        """
+        issues: list[QualityIssue] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assert):
+                issues.extend(self._check_assert_node(node, file))
+            elif isinstance(node, ast.Call):
+                issues.extend(self._check_call_node(node, file))
+        return issues
+
+    def _check_assert_node(self, node: ast.Assert, file: str) -> list[QualityIssue]:
+        """Check a bare ``assert`` statement for tautological patterns."""
+        issues: list[QualityIssue] = []
+        # Pattern 1: assert True / assert 1 / assert "literal"
+        if isinstance(node.test, ast.Constant) and bool(node.test.value):
+            issues.append(self._make_issue(
+                "taut-constant-assert",
+                node.lineno,
+                file,
+                f"``assert {ast.unparse(node.test)}`` 是恒真常量断言，没有实际验证",
+                "替换为有意义的断言如 assertEqual(actual, expected)",
+            ))
+        # Patterns 2, 3, 5: assert X == Y comparisons
+        if isinstance(node.test, ast.Compare):
+            issues.extend(self._check_compare(node.test, node.lineno, file))
+        return issues
+
+    def _check_call_node(self, node: ast.Call, file: str) -> list[QualityIssue]:
+        """Detect self.assertEqual(x, x) / assertEqual(f(x), f(x)) patterns."""
+        issues: list[QualityIssue] = []
+        # Inline isinstance check so mypy narrows node.func to ast.Attribute
+        if not (
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "self"
+            and node.func.attr in ("assertEqual", "assertEquals")
+        ):
+            return issues
+        method_name = node.func.attr
+        args = node.args
+        if len(args) < 2:
+            return issues
+        left, right = args[0], args[1]
+        if self._ast_equal(left, right):
+            issues.append(self._make_issue(
+                "taut-self-assert-equal",
+                node.lineno,
+                file,
+                f"``{method_name}({ast.unparse(left)}, {ast.unparse(right)})`` 两参数相同，断言恒真",
+                "第二参数应为独立计算的期望值，而非复制第一参数",
+            ))
+        elif self._is_recompute_pattern(left, right):
+            issues.append(self._make_issue(
+                "taut-recompute-assert-equal",
+                node.lineno,
+                file,
+                f"``{method_name}({ast.unparse(left)}, {ast.unparse(right)})`` 右侧重算了实现逻辑",
+                "期望值应来自独立来源（如硬编码的预期值），而非重算实现逻辑",
+            ))
+        return issues
+
+    def _check_compare(
+        self, cmp: ast.Compare, line: int, file: str
+    ) -> list[QualityIssue]:
+        """Detect assert X == Y where X and Y are equivalent expressions."""
+        issues: list[QualityIssue] = []
+        if len(cmp.ops) != 1 or not isinstance(cmp.ops[0], ast.Eq):
+            return issues
+        if len(cmp.comparators) != 1:
+            return issues
+        left = cmp.left
+        right = cmp.comparators[0]
+        # Patterns 2 & 3: same expression both sides
+        if self._ast_equal(left, right):
+            issues.append(self._make_issue(
+                "taut-self-compare",
+                line,
+                file,
+                f"``assert {ast.unparse(left)} == {ast.unparse(right)}`` 两边表达式相同，断言恒真",
+                "右侧应为独立计算的期望值",
+            ))
+        # Pattern 5: recompute implementation logic
+        elif self._is_recompute_pattern(left, right):
+            issues.append(self._make_issue(
+                "taut-recompute-impl",
+                line,
+                file,
+                f"``assert {ast.unparse(left)} == {ast.unparse(right)}`` 右侧重算了实现逻辑",
+                "期望值应来自独立来源（如硬编码的预期值），而非重算实现逻辑",
+            ))
+        return issues
+
+    def _ast_equal(self, a: ast.AST, b: ast.AST) -> bool:
+        """Compare two AST nodes for structural equality (ignoring locations)."""
+        return ast.dump(a) == ast.dump(b)
+
+    def _is_recompute_pattern(self, left: ast.AST, right: ast.AST) -> bool:
+        """Detect if one side re-computes the other side's logic.
+
+        Example: left=Call(func='add', args=[a, b]), right=BinOp(op='+', a, b)
+        Checks both directions (call-vs-binop and binop-vs-call).
+        """
+        return self._call_vs_binop(left, right) or self._call_vs_binop(right, left)
+
+    def _call_vs_binop(self, call: ast.AST, binop: ast.AST) -> bool:
+        """Check if a Call node re-computes a BinOp via named function."""
+        if not (isinstance(call, ast.Call) and isinstance(binop, ast.BinOp)):
+            return False
+        if not (isinstance(call.func, ast.Name) and len(call.args) == 2):
+            return False
+        expected_op = self._FUNC_TO_OP.get(call.func.id.lower())
+        if not expected_op or not isinstance(binop.op, expected_op):
+            return False
+        return self._ast_equal(call.args[0], binop.left) and self._ast_equal(
+            call.args[1], binop.right
+        )
+
+    def _make_issue(
+        self, issue_id: str, line: int, file: str, message: str, suggestion: str
+    ) -> QualityIssue:
+        return QualityIssue(
+            id=issue_id,
+            severity=Severity.MAJOR,
+            category="同义反复",
+            message=message,
+            file=file,
+            line=line,
+            suggestion=suggestion,
+            auto_fixable=False,
+        )
+
+
+class SeamAnalyzer:
+    """Analyze test structure for missing seams-up-front declarations.
+
+    Inspired by Matt Pocock's tdd skill (V4.1.0 Matt P0-1): seams (places
+    where behavior can vary) should be declared up front via fixtures,
+    setUp, or parametrize — not scattered inline throughout test bodies.
+
+    Detected patterns:
+    1. Test class with 3+ tests but no setUp/fixture and repeated instantiation
+    2. Test function that creates Mock/MagicMock inline without fixture
+    """
+
+    _MOCK_NAMES: frozenset[str] = frozenset({"Mock", "MagicMock", "AsyncMock", "patch"})
+
+    def analyze(self, tree: ast.Module, file: str) -> list[QualityIssue]:
+        """Find test classes/functions with missing seam declarations.
+
+        Args:
+            tree: Parsed AST module of the test source.
+            file: File path for issue reporting.
+
+        Returns:
+            List of QualityIssue (severity MINOR) for each missing-seam pattern.
+        """
+        issues: list[QualityIssue] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
+                issues.extend(self._check_class_seams(node, file))
+            elif (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name.startswith("test_")
+            ):
+                issues.extend(self._check_function_seams(node, file))
+        return issues
+
+    def _check_class_seams(
+        self, node: ast.ClassDef, file: str
+    ) -> list[QualityIssue]:
+        """Check test class for missing shared seam (setUp/fixture)."""
+        issues: list[QualityIssue] = []
+        test_methods = [
+            n
+            for n in node.body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and n.name.startswith("test_")
+        ]
+        if len(test_methods) < 3:
+            return issues
+        has_setup = any(
+            isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and n.name in ("setUp", "setUpClass", "tearDown")
+            for n in node.body
+        )
+        has_fixture = any(self._has_fixture_decorator(n) for n in node.body)
+        if has_setup or has_fixture:
+            return issues
+        # Check for repeated instantiation across tests
+        instantiation_counts: dict[str, int] = {}
+        for tm in test_methods:
+            for sub in ast.walk(tm):
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name):
+                    instantiation_counts[sub.func.id] = (
+                        instantiation_counts.get(sub.func.id, 0) + 1
+                    )
+        repeated = [name for name, count in instantiation_counts.items() if count >= 2]
+        if repeated:
+            issues.append(
+                QualityIssue(
+                    id="seam-missing-setup",
+                    severity=Severity.MINOR,
+                    category="缺失seam声明",
+                    message=(
+                        f"测试类 ``{node.name}`` 有 {len(test_methods)} 个测试"
+                        f"但无 setUp/fixture，``{repeated[0]}`` 在多个测试中重复实例化"
+                    ),
+                    file=file,
+                    line=node.lineno,
+                    suggestion=(
+                        f"将 ``{repeated[0]}`` 实例化提取到 setUp() 或 @pytest.fixture"
+                    ),
+                    auto_fixable=False,
+                )
+            )
+        return issues
+
+    def _check_function_seams(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef, file: str
+    ) -> list[QualityIssue]:
+        """Check test function for inline mock creation (missing seam)."""
+        issues: list[QualityIssue] = []
+        for sub in ast.walk(node):
+            if (
+                isinstance(sub, ast.Call)
+                and isinstance(sub.func, ast.Name)
+                and sub.func.id in self._MOCK_NAMES
+            ):
+                issues.append(
+                    QualityIssue(
+                        id="seam-inline-mock",
+                        severity=Severity.MINOR,
+                        category="缺失seam声明",
+                        message=(
+                            f"测试 ``{node.name}`` 内联创建 ``{sub.func.id}()``，"
+                            f"未声明为 seam"
+                        ),
+                        file=file,
+                        line=sub.lineno,
+                        suggestion=(
+                            f"将 ``{sub.func.id}()`` 提取到 fixture 或 setUp，"
+                            f"使其成为可替换的 seam"
+                        ),
+                        auto_fixable=False,
+                    )
+                )
+                break  # One issue per function is enough
+        return issues
+
+    def _has_fixture_decorator(self, node: ast.stmt) -> bool:
+        """Check if a statement is a function with @pytest.fixture decorator."""
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return False
+        for dec in node.decorator_list:
+            if isinstance(dec, ast.Attribute) and dec.attr == "fixture":
+                return True
+            if isinstance(dec, ast.Name) and dec.id == "fixture":
+                return True
+        return False
+
+
 class TestPurposeParser:
     """解析测试函数的目的声明"""
 
@@ -590,6 +882,8 @@ class TestQualityGuard:
         self.api_validator = APISignatureValidator()
         self.anti_detector = AntiPatternDetector()
         self.purpose_parser = TestPurposeParser()
+        self.taut_detector = TautologicalTestDetector()
+        self.seam_analyzer = SeamAnalyzer()
 
     def audit(self) -> TestQualityReport:
         """执行完整审计"""
@@ -648,6 +942,13 @@ class TestQualityGuard:
         anti_issues = self.anti_detector.detect_in_source(test_code, str(self.test_path))
         report.issues.extend(anti_issues)
 
+        # Module 5 (Matt P0-1): tautological + seams detection via AST
+        taut_issues = self._check_tautological(test_tree)
+        report.issues.extend(taut_issues)
+
+        seam_issues = self._check_seams(test_tree)
+        report.issues.extend(seam_issues)
+
         no_error_class = not any(tf.has_error_test for tf in report.test_functions)
         if no_error_class and report.total_tests > 5:
             report.issues.append(
@@ -685,6 +986,34 @@ class TestQualityGuard:
         except FileNotFoundError:
             return None
 
+    def _check_tautological(self, tree: ast.Module) -> list[QualityIssue]:
+        """Module 5 (Matt P0-1): Detect tautological tests via AST analysis.
+
+        A tautological test re-computes the expected value using the same
+        expression as the implementation, making the assertion trivially true.
+
+        Args:
+            tree: Parsed AST module of the test source.
+
+        Returns:
+            List of QualityIssue (severity MAJOR, category "同义反复").
+        """
+        return self.taut_detector.detect_in_ast(tree, str(self.test_path))
+
+    def _check_seams(self, tree: ast.Module) -> list[QualityIssue]:
+        """Module 5 (Matt P0-1): Check for missing seams-up-front declarations.
+
+        Seams (places where behavior can vary) should be declared up front
+        via fixtures, setUp, or parametrize — not scattered inline.
+
+        Args:
+            tree: Parsed AST module of the test source.
+
+        Returns:
+            List of QualityIssue (severity MINOR, category "缺失seam声明").
+        """
+        return self.seam_analyzer.analyze(tree, str(self.test_path))
+
     def _calculate_score(self, report: TestQualityReport) -> QualityScore:
         score = QualityScore()
 
@@ -708,7 +1037,8 @@ class TestQualityGuard:
         anti_critical = sum(
             1
             for i in report.issues
-            if i.severity in (Severity.CRITICAL, Severity.MAJOR) and i.category in ("宽松断言", "异常吞噬")
+            if i.severity in (Severity.CRITICAL, Severity.MAJOR)
+            and i.category in ("宽松断言", "异常吞噬", "同义反复")
         )
         score.anti_pattern_free = max(0, 1 - anti_critical / max(report.total_tests * 0.1, 1))
 
