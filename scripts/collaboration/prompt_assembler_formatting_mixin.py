@@ -307,6 +307,13 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
         if learned:
             parts.append(learned)
 
+        # V4.1.0 (Matt P0-7): Inject grilling discipline for structured/
+        # comprehensive styles (MEDIUM/COMPLEX tasks). Simple tasks (direct
+        # style) skip grilling — they don't need Q&A discipline.
+        grilling = getattr(self, "_grilling_injection", "")
+        if grilling:
+            parts.append(grilling)
+
         ar_content = self._get_anti_rationalization_injection()
         if ar_content:
             parts.append(ar_content)

@@ -81,12 +81,29 @@ class TestAssemblyVariants(unittest.TestCase):
         self.assertIn(result.variant_used, ["compact", "standard"])
         # V3.10.0: ponytail minimal-implementation injection adds ~170 tokens;
         # threshold raised from 1000 to 1500 to account for the new feature.
-        self.assertLess(result.tokens_estimate, 1500)
+        # V4.1.0: ponytail injection now also applies to direct style (compact
+        # variant), adding ~320 tokens; threshold raised from 1500 to 1800.
+        self.assertLess(result.tokens_estimate, 1800)
 
     def test_complex_produces_enhanced(self):
         result = self.asm.assemble(task_description="设计分布式微服务架构方案，含服务发现和负载均衡")
         self.assertEqual(result.variant_used, "enhanced")
         self.assertEqual(result.complexity, TaskComplexity.COMPLEX)
+
+    def test_grilling_injection_for_complex_task(self):
+        """V4.1.0 (Matt P0-7): grilling discipline injected for COMPLEX tasks."""
+        result = self.asm.assemble(task_description="设计分布式微服务架构方案，含服务发现和负载均衡")
+        self.assertIn("Grilling Discipline", result.instruction)
+
+    def test_grilling_injection_for_medium_task(self):
+        """V4.1.0 (Matt P0-7): grilling discipline injected for MEDIUM tasks."""
+        result = self.asm.assemble(task_description="实现完整的用户登录功能，支持OAuth2.0和邮箱验证")
+        self.assertIn("Grilling Discipline", result.instruction)
+
+    def test_no_grilling_injection_for_simple_task(self):
+        """V4.1.0 (Matt P0-7): simple tasks skip grilling discipline."""
+        result = self.asm.assemble(task_description="写个排序函数")
+        self.assertNotIn("Grilling Discipline", result.instruction)
 
     def test_medium_produces_standard(self):
         result = self.asm.assemble(task_description="实现完整的用户登录功能，支持OAuth2.0和邮箱验证")
