@@ -44,7 +44,7 @@ from .prompt_assembler_validation_mixin import PromptAssemblerValidationMixin
 # ``AssembledPrompt`` and ``TaskComplexity`` are imported above and intentionally
 # re-exported so that ``from .prompt_assembler import AssembledPrompt`` keeps
 # working after the split.
-__all__ = ["PromptAssembler", "AssembledPrompt", "TaskComplexity"]
+__all__ = ["PromptAssembler", "AssembledPrompt", "TaskComplexity", "inject_grilling_discipline"]
 
 
 class PromptAssembler(
@@ -98,6 +98,7 @@ class PromptAssembler(
         self._ponytail_injection = self._ponytail_injector.build_injection()
 
         self._learned_rules_injection = self._build_learned_rules_injection()
+        self._grilling_injection = inject_grilling_discipline()
 
     def _build_learned_rules_injection(self) -> str:
         """Build learned-rules injection text from .devsquad.yaml (V3.10.0 Phase 4).
@@ -120,6 +121,24 @@ class PromptAssembler(
                     suffix = f" [trigger: {trigger}]" if trigger else ""
                     lines.append(f"- {rule_text}{suffix}")
         return "\n".join(lines) if len(lines) > 1 else ""
+
+    def _inject_explore_before_ask(self) -> str:
+        """Build explore-before-ask discipline text (Matt P0-7).
+
+        Returns a compact injection block reminding the role to explore the
+        codebase (via CodeKnowledgeGraph) before asking the user clarifying
+        questions. Integrated into the grilling discipline.
+
+        Returns:
+            Injection text for explore-before-ask discipline.
+        """
+        return (
+            "\n\n## Explore-Before-Ask Discipline (Matt P0-7)\n"
+            "- Before asking the user a clarifying question, search the codebase\n"
+            "  using CodeKnowledgeGraph.query().find_symbol(name) and find_callers(name).\n"
+            "- Only ask the user when the codebase is silent on the topic.\n"
+            "- When you do ask, provide a recommended answer based on codebase patterns.\n"
+        )
 
     def assemble(
         self,
@@ -243,3 +262,62 @@ class PromptAssembler(
             tokens_estimate=token_est,
             metadata=metadata,
         )
+
+
+# ---------------------------------------------------------------------------
+# Module 10 (Matt P0-7): Grilling discipline injection
+# ---------------------------------------------------------------------------
+
+
+def inject_grilling_discipline(
+    *,
+    include_explore_before_ask: bool = True,
+    max_questions_per_turn: int = 1,
+) -> str:
+    """Generate grilling discipline text for prompt injection.
+
+    Matt Pocock grilling principles (P0-7):
+
+    1. **One question at a time** — asking multiple questions simultaneously
+       overwhelms the user and produces lower-quality answers.
+    2. **Recommended answer per question** — provide a suggested default so
+       the user can confirm rather than reason from scratch.
+    3. **Explore the codebase before asking** — use CodeKnowledgeGraph to
+       find existing patterns; only ask the user when the codebase is silent.
+    4. **Walk down each branch of the design tree** — explore branches
+       sequentially rather than in parallel.
+
+    Args:
+        include_explore_before_ask: When True (default), include the
+            explore-before-ask discipline block.
+        max_questions_per_turn: Maximum number of questions to ask per turn.
+            Default is 1 (one-question-at-a-time principle). Setting to a
+            higher value relaxes the discipline for batch-mode interviews.
+
+    Returns:
+        Injection text block to append to a role's prompt. Returns empty
+        string when max_questions_per_turn <= 0.
+    """
+    if max_questions_per_turn <= 0:
+        return ""
+
+    lines = [
+        "\n\n## Grilling Discipline (Matt P0-7)",
+        f"- Ask AT MOST {max_questions_per_turn} question(s) per turn. "
+        "Asking multiple questions simultaneously overwhelms the user.",
+        "- For each question, provide a recommended answer so the user can "
+        "confirm rather than reason from scratch.",
+        "- Walk down each branch of the design tree sequentially — do not "
+        "skip ahead to later branches before resolving the current one.",
+    ]
+
+    if include_explore_before_ask:
+        lines.extend(
+            [
+                "- Before asking the user, explore the codebase using "
+                "CodeKnowledgeGraph.query().find_symbol() and find_callers().",
+                "- Only ask the user when the codebase is silent on the topic.",
+            ]
+        )
+
+    return "\n".join(lines)

@@ -841,3 +841,270 @@ class RuleCollector:
 
         header = "Stored Rules:" if lang == "en" else "保存済みルール:" if lang == "ja" else "已存储规则:"
         return f"{header}\n" + "\n".join(lines)
+
+    def grilling_mode(self, code_graph: Any = None) -> "GrillingMode":
+        """Create a grilling session for one-question-at-a-time interview.
+
+        Matt Pocock grilling principles (P0-7):
+        - One question at a time — multiple questions confuse users
+        - Recommended answer per question — reduce cognitive load
+        - Explore codebase before asking — use CodeKnowledgeGraph first
+        - Walk down each branch of design tree — sequential exploration
+
+        Args:
+            code_graph: Optional CodeKnowledgeGraph instance for explore-before-ask.
+                When provided, the grilling session will attempt to find answers
+                in the codebase before presenting questions to the user.
+
+        Returns:
+            A new GrillingMode session ready to accept questions.
+        """
+        return GrillingMode(code_graph=code_graph)
+
+
+# ---------------------------------------------------------------------------
+# Module 10 (Matt P0-7): Grilling Mode — one-question-at-a-time interview
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class GrillingQuestion:
+    """A single question in a grilling session.
+
+    Attributes:
+        question: The question text presented to the user.
+        recommended_answers: Suggested answers ordered by likelihood.
+            Providing a recommendation reduces user cognitive load.
+        context: Why this question matters (design branch justification).
+        branch: Which design tree branch this question explores.
+        explored: Whether codebase exploration has been attempted for this question.
+        explored_answer: Answer found by codebase exploration, or empty string.
+        user_answer: The user's answer once provided, or empty string.
+    """
+
+    question: str = ""
+    recommended_answers: list[str] = field(default_factory=list)
+    context: str = ""
+    branch: str = ""
+    explored: bool = False
+    explored_answer: str = ""
+    user_answer: str = ""
+
+
+@dataclass
+class GrillingResult:
+    """Final result of a completed grilling session.
+
+    Attributes:
+        questions: All questions in the session (with answers filled in).
+        completed: Whether all questions have been answered.
+        explored_answers: Mapping of question text to codebase-explored answer.
+    """
+
+    questions: list[GrillingQuestion] = field(default_factory=list)
+    completed: bool = False
+    explored_answers: dict[str, str] = field(default_factory=dict)
+
+
+class GrillingMode:
+    """One-question-at-a-time interview mode with explore-before-ask.
+
+    Matt Pocock grilling discipline (P0-7):
+
+    1. **One question at a time** — asking multiple questions simultaneously
+       overwhelms the user and produces lower-quality answers.
+    2. **Recommended answer per question** — provide a suggested default so
+       the user can confirm rather than reason from scratch.
+    3. **Explore the codebase before asking** — use CodeKnowledgeGraph to
+       find existing patterns; only ask the user when the codebase is silent.
+    4. **Walk down each branch of the design tree** — explore branches
+       sequentially rather than in parallel.
+
+    Usage:
+        session = collector.grilling_mode(code_graph=graph)
+        session.add_question(
+            question="Which logging framework?",
+            recommended_answers=["structlog", "logging"],
+            context="Need structured logging for trace correlation",
+            branch="observability",
+        )
+        if session.is_complete():
+            result = session.get_summary()
+    """
+
+    def __init__(self, code_graph: Any = None) -> None:
+        self._code_graph = code_graph
+        self._questions: list[GrillingQuestion] = []
+        self._current_index: int = 0
+
+    def add_question(
+        self,
+        question: str,
+        recommended_answers: list[str] | None = None,
+        context: str = "",
+        branch: str = "",
+    ) -> None:
+        """Add a question to the grilling queue.
+
+        Args:
+            question: The question text to present to the user.
+            recommended_answers: Optional list of suggested answers (ordered
+                by likelihood). Pass None or empty list for open-ended questions.
+            context: Explanation of why this question matters.
+            branch: Design tree branch identifier this question explores.
+        """
+        self._questions.append(
+            GrillingQuestion(
+                question=question,
+                recommended_answers=list(recommended_answers) if recommended_answers else [],
+                context=context,
+                branch=branch,
+            )
+        )
+
+    def next_question(self) -> GrillingQuestion | None:
+        """Advance to the next question and return it.
+
+        Returns:
+            The next GrillingQuestion, or None if all questions are exhausted.
+        """
+        if self._current_index >= len(self._questions):
+            return None
+        q = self._questions[self._current_index]
+        self._current_index += 1
+        return q
+
+    def current_question(self) -> GrillingQuestion | None:
+        """Get the current question without advancing the pointer.
+
+        Returns:
+            The current GrillingQuestion, or None if the session hasn't
+            started or is already complete.
+        """
+        if self._current_index >= len(self._questions):
+            return None
+        return self._questions[self._current_index]
+
+    def is_complete(self) -> bool:
+        """Check if all questions have been answered.
+
+        Returns:
+            True when every question in the session has a non-empty user_answer
+            (or an explored_answer that was auto-accepted).
+        """
+        if not self._questions:
+            return True
+        return all(q.user_answer or q.explored_answer for q in self._questions)
+
+    def explore_before_ask(self, question: GrillingQuestion) -> str | None:
+        """Attempt to find an answer in the codebase before asking the user.
+
+        Uses the CodeKnowledgeGraph (if provided) to search for existing
+        symbols or patterns that may answer the question. When the codebase
+        provides a clear answer, the user need not be prompted.
+
+        Args:
+            question: The GrillingQuestion to explore.
+
+        Returns:
+            A string describing the codebase finding if one is found,
+            or None when the codebase is silent and the user must be asked.
+        """
+        if question.explored:
+            return question.explored_answer or None
+        question.explored = True
+
+        if self._code_graph is None:
+            return None
+
+        try:
+            query = self._code_graph.query()
+        except (AttributeError, RuntimeError):
+            return None
+
+        # Extract candidate symbol names from the question text.
+        # Look for quoted terms, camelCase/snake_case identifiers.
+        candidates = self._extract_search_terms(question.question)
+        findings: list[str] = []
+        for term in candidates:
+            try:
+                symbols = query.find_symbol(term)
+            except (AttributeError, RuntimeError):
+                continue
+            if symbols:
+                names = [s.name if hasattr(s, "name") else str(s) for s in symbols[:3]]
+                findings.append(f"'{term}' found: {', '.join(names)}")
+
+        if findings:
+            answer = "; ".join(findings)
+            question.explored_answer = answer
+            return answer
+
+        return None
+
+    def answer_current(self, answer: str) -> bool:
+        """Record the user's answer for the current question and advance.
+
+        Args:
+            answer: The user's answer text.
+
+        Returns:
+            True if the answer was recorded and the pointer advanced,
+            False if there is no current question to answer.
+        """
+        q = self.current_question()
+        if q is None:
+            return False
+        q.user_answer = answer
+        self._current_index += 1
+        return True
+
+    def get_summary(self) -> GrillingResult:
+        """Get the final grilling result with all questions and explored answers.
+
+        Returns:
+            GrillingResult containing all questions (with answers filled in),
+            a completed flag, and a mapping of question text to explored answers.
+        """
+        explored = {
+            q.question: q.explored_answer for q in self._questions if q.explored_answer
+        }
+        return GrillingResult(
+            questions=list(self._questions),
+            completed=self.is_complete(),
+            explored_answers=explored,
+        )
+
+    @staticmethod
+    def _extract_search_terms(text: str) -> list[str]:
+        """Extract candidate symbol names from question text.
+
+        Looks for:
+        - Quoted terms: ``"structlog"`` or ``'logging'``
+        - snake_case identifiers: ``my_function``
+        - CamelCase identifiers: ``MyClass``
+
+        Args:
+            text: Question text to extract terms from.
+
+        Returns:
+            List of candidate symbol names (deduplicated, order preserved).
+        """
+        terms: list[str] = []
+        # Quoted terms
+        for match in re.finditer(r'["\']([A-Za-z_][\w]*)["\']', text):
+            terms.append(match.group(1))
+        # snake_case identifiers (length >= 3 to avoid noise)
+        for match in re.finditer(r"\b([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b", text):
+            terms.append(match.group(1))
+        # CamelCase identifiers
+        for match in re.finditer(r"\b([A-Z][a-z]+(?:[A-Z][a-z]+)+)\b", text):
+            terms.append(match.group(1))
+        # Deduplicate preserving order
+        seen: set[str] = set()
+        unique: list[str] = []
+        for t in terms:
+            if t not in seen:
+                seen.add(t)
+                unique.append(t)
+        return unique
