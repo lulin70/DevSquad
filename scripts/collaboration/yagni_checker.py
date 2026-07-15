@@ -33,11 +33,12 @@ Usage::
 
 from __future__ import annotations
 
+import ast
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
-__all__ = ["YagniChecker", "YagniResult"]
+__all__ = ["YagniChecker", "YagniResult", "PrematureSeamResult"]
 
 
 @dataclass
@@ -60,6 +61,35 @@ class YagniResult:
     reason: str
     upgrade_path: str
     shortcut_marker: str  # "shortcut: <reason>"
+
+
+@dataclass
+class PrematureSeamResult:
+    """Result of a premature seam check (Matt P0-5).
+
+    Matt Pocock codebase-design: One adapter = hypothetical seam.
+    Two adapters = real seam. A seam with only one implementation
+    is premature — the abstraction isn't justified yet.
+
+    Attributes
+    ----------
+    seam_name:
+        Name of the interface/abstract class.
+    adapter_count:
+        Number of concrete implementations found.
+    is_premature:
+        True when adapter_count < 2 (premature seam).
+    adapters:
+        List of concrete implementation class names.
+    reason:
+        Human-readable explanation.
+    """
+
+    seam_name: str = ""
+    adapter_count: int = 0
+    is_premature: bool = False
+    adapters: list[str] = field(default_factory=list)
+    reason: str = ""
 
 
 class YagniChecker:
@@ -267,6 +297,88 @@ class YagniChecker:
             task_details={"file_paths": list(file_paths)},
         )
 
+    def check_premature_seam(self, code: str, file_path: str = "") -> list[PrematureSeamResult]:
+        """Check for premature seams — interfaces with only one implementation.
+
+        Matt Pocock codebase-design (P0-5):
+        - One adapter = hypothetical seam (premature — abstraction not justified)
+        - Two adapters = real seam (abstraction is justified)
+        - The interface is the test surface
+
+        Analyzes Python source code to find abstract base classes (ABC,
+        Protocol, or classes with @abstractmethod) and counts how many
+        concrete implementations each has.
+
+        Parameters
+        ----------
+        code:
+            Python source code to analyze.
+        file_path:
+            Optional file path for error reporting (informational only).
+
+        Returns
+        -------
+        list[PrematureSeamResult]
+            One result per abstract base class found. Empty list when no
+            abstract bases are present (no seams to check).
+        """
+        try:
+            tree = ast.parse(code)
+        except SyntaxError as e:
+            location = f"{file_path}:" if file_path else ""
+            return [PrematureSeamResult(
+                seam_name="<syntax_error>",
+                reason=f"Could not parse code at {location}{e.lineno}:{e.offset}: {e.msg}",
+            )]
+
+        # Find abstract base classes (inherit from ABC/Protocol/ABCMeta
+        # or contain @abstractmethod).
+        abstract_bases: dict[str, ast.ClassDef] = {}
+        for node in ast.iter_child_nodes(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            if self._is_abstract_class(node):
+                abstract_bases[node.name] = node
+
+        if not abstract_bases:
+            return []
+
+        # Find concrete implementations of each abstract base.
+        implementations: dict[str, list[str]] = {name: [] for name in abstract_bases}
+        for node in ast.iter_child_nodes(tree):
+            if not isinstance(node, ast.ClassDef) or node.name in abstract_bases:
+                continue
+            for base in node.bases:
+                base_name = self._get_base_name(base)
+                if base_name in implementations:
+                    implementations[base_name].append(node.name)
+
+        # Build results.
+        results: list[PrematureSeamResult] = []
+        for seam_name, impls in implementations.items():
+            adapter_count = len(impls)
+            is_premature = adapter_count < 2
+            if is_premature:
+                reason = (
+                    f"Premature seam: '{seam_name}' has only {adapter_count} "
+                    f"adapter(s). Matt: one adapter = hypothetical seam, "
+                    f"two adapters = real seam."
+                )
+            else:
+                reason = (
+                    f"Real seam: '{seam_name}' has {adapter_count} adapters "
+                    f"({', '.join(impls)})."
+                )
+            results.append(PrematureSeamResult(
+                seam_name=seam_name,
+                adapter_count=adapter_count,
+                is_premature=is_premature,
+                adapters=list(impls),
+                reason=reason,
+            ))
+
+        return results
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -331,3 +443,62 @@ class YagniChecker:
         return any(
             re.search(p, stripped) for p in self.ONE_LINER_PATTERNS
         ) and len(stripped) <= 80
+
+    # ------------------------------------------------------------------
+    # P0-5 helpers: deep/shallow + premature seam detection
+    # ------------------------------------------------------------------
+
+    _ABSTRACT_BASE_NAMES: frozenset[str] = frozenset({
+        "ABC", "Protocol", "ABCMeta", "Interface", "ABCInterface",
+    })
+
+    @staticmethod
+    def _get_base_name(base: ast.expr) -> str:
+        """Extract the base class name from an AST base expression.
+
+        Handles simple names (``Foo``), attribute access (``module.Foo``),
+        and subscript (``Protocol[T]``).
+
+        Args:
+            base: An AST expression from ``ClassDef.bases``.
+
+        Returns:
+            The base class name as a string, or empty string when unparseable.
+        """
+        if isinstance(base, ast.Name):
+            return base.id
+        if isinstance(base, ast.Attribute):
+            return base.attr
+        if isinstance(base, ast.Subscript):
+            return YagniChecker._get_base_name(base.value)
+        return ""
+
+    def _is_abstract_class(self, node: ast.ClassDef) -> bool:
+        """Check if a ClassDef is an abstract base class or protocol.
+
+        A class is abstract when:
+        1. It inherits from ABC/Protocol/ABCMeta/Interface, OR
+        2. It contains at least one @abstractmethod-decorated method.
+
+        Args:
+            node: The ClassDef AST node to check.
+
+        Returns:
+            True if the class is abstract.
+        """
+        # Check bases for ABC/Protocol/etc.
+        for base in node.bases:
+            base_name = self._get_base_name(base)
+            if base_name in self._ABSTRACT_BASE_NAMES:
+                return True
+
+        # Check for @abstractmethod decorators on methods.
+        for item in node.body:
+            if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for decorator in item.decorator_list:
+                decorator_name = self._get_base_name(decorator)
+                if decorator_name == "abstractmethod":
+                    return True
+
+        return False
