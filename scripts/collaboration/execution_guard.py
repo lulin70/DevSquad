@@ -19,9 +19,87 @@ Usage:
 """
 
 import logging
+import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+# ------------------------------------------------------------------
+# Module 7 (Matt P0-4): [DEBUG-xxx] tag mechanism
+# ------------------------------------------------------------------
+
+#: Regex pattern for [DEBUG-xxx] tags. Matches ``[DEBUG-SOMETHING]``.
+_DEBUG_TAG_PATTERN = re.compile(r"\[DEBUG-([A-Z0-9_]+)\]")
+
+#: Module-level registry of debug tags created during a session.
+_registered_debug_tags: set[str] = set()
+
+
+def register_debug_tag(tag: str) -> None:
+    """Register a debug tag for tracking.
+
+    Tags should follow the ``[DEBUG-XXX]`` convention where ``XXX`` is a
+    short uppercase identifier. The ``[DEBUG-`` prefix and ``]`` suffix
+    are optional in the ``tag`` argument (e.g., ``"MY_BUG"`` and
+    ``"[DEBUG-MY_BUG]"`` are both accepted).
+
+    Args:
+        tag: The debug tag to register (with or without brackets).
+    """
+    clean = tag.strip().upper()
+    # Strip [DEBUG- prefix and ] suffix if present.
+    if clean.startswith("[DEBUG-"):
+        clean = clean[len("[DEBUG-"):]
+    if clean.endswith("]"):
+        clean = clean[:-1]
+    if clean:
+        _registered_debug_tags.add(clean)
+        logger.debug("Registered debug tag: [DEBUG-%s]", clean)
+
+
+def cleanup_debug_tags(output: str) -> list[str]:
+    """Find all ``[DEBUG-xxx]`` tags present in the output.
+
+    Useful for identifying which debug statements were emitted during
+    execution, enabling one-shot cleanup via a single grep.
+
+    Args:
+        output: The worker output string to scan.
+
+    Returns:
+        Sorted list of unique tag names (without the ``[DEBUG-]`` wrapper).
+    """
+    if not output:
+        return []
+    found = _DEBUG_TAG_PATTERN.findall(output)
+    return sorted(set(found))
+
+
+def strip_debug_tags(output: str) -> str:
+    """Remove all lines containing ``[DEBUG-xxx]`` tags from output.
+
+    Args:
+        output: The worker output string to clean.
+
+    Returns:
+        Output with all ``[DEBUG-xxx]`` lines removed.
+    """
+    if not output:
+        return output
+    lines = output.split("\n")
+    cleaned = [line for line in lines if not _DEBUG_TAG_PATTERN.search(line)]
+    return "\n".join(cleaned)
+
+
+def get_registered_debug_tags() -> set[str]:
+    """Return a copy of all registered debug tags."""
+    return set(_registered_debug_tags)
+
+
+def clear_debug_tags() -> None:
+    """Clear all registered debug tags (use after cleanup)."""
+    _registered_debug_tags.clear()
 
 
 class ExecutionGuard:
@@ -299,3 +377,35 @@ class ExecutionGuard:
             "abort_rate": (round(self._abort_count / max(self._check_count, 1), 3) if self._check_count > 0 else 0.0),
             "config": dict(self._triggers),
         }
+
+    # ------------------------------------------------------------------
+    # Module 7 (Matt P0-4): [DEBUG-xxx] tag instance methods
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def find_debug_tags(output: str) -> list[str]:
+        """Find all ``[DEBUG-xxx]`` tags in the given output.
+
+        Thin wrapper around :func:`cleanup_debug_tags` for instance access.
+
+        Args:
+            output: Worker output to scan.
+
+        Returns:
+            Sorted list of unique tag names found.
+        """
+        return cleanup_debug_tags(output)
+
+    @staticmethod
+    def remove_debug_lines(output: str) -> str:
+        """Remove all lines containing ``[DEBUG-xxx]`` tags from output.
+
+        Thin wrapper around :func:`strip_debug_tags` for instance access.
+
+        Args:
+            output: Worker output to clean.
+
+        Returns:
+            Output with debug-tag lines removed.
+        """
+        return strip_debug_tags(output)

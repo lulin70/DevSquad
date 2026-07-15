@@ -12,6 +12,7 @@ Spec reference: SPEC_V35_Agent_Skills_Quality_Framework.md Section 6.2
 """
 
 import logging
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -67,6 +68,30 @@ class GateResult:
     red_flags: list[RedFlag] = field(default_factory=list)
     missing_evidence: list[EvidenceItem] = field(default_factory=list)
     verdict: str = "APPROVE"
+
+
+@dataclass
+class RedCapableResult:
+    """Result of Matt Pocock's red-capable gate check (P0-4).
+
+    A debugging command is "red-capable" if it meets all 4 criteria:
+    1. on-red-capable — can produce a failing (RED) result
+    2. on-deterministic — same input always gives same output
+    3. on-fast — completes quickly (no long sleeps/loops)
+    4. on-agent-runnable — an AI agent can execute without human input
+
+    Attributes:
+        passed: True if all 4 criteria are satisfied.
+        failed_criteria: List of criterion names that failed (subset of
+            {"on-red-capable", "on-deterministic", "on-fast", "on-agent-runnable"}).
+        reasoning: Human-readable explanation of the verdict.
+        command: The command string that was evaluated.
+    """
+
+    passed: bool
+    failed_criteria: list[str] = field(default_factory=list)
+    reasoning: str = ""
+    command: str = ""
 
 
 class VerificationGate:
@@ -209,6 +234,140 @@ class VerificationGate:
             if (item.required or item.required_for and context.role_id in item.required_for) and item.key not in context.evidence:
                 missing.append(item)
         return missing
+
+    # ------------------------------------------------------------------
+    # Module 7 (Matt P0-4): Red-capable gate
+    # ------------------------------------------------------------------
+
+    # Patterns that indicate non-deterministic behavior.
+    _NON_DETERMINISTIC_PATTERNS: list[str] = [
+        r"\brandom\b",
+        r"\brandom\.",
+        r"\btime\.time\b",
+        r"\bdatetime\.now\b",
+        r"\bdatetime\.utcnow\b",
+        r"\brequests\.",
+        r"\burllib\b",
+        r"\bhttpx\b",
+        r"\baiohttp\b",
+        r"\bsocket\b",
+        r"\buuid\.uuid4\b",
+        r"\bos\.urandom\b",
+    ]
+
+    # Patterns that indicate slow execution.
+    _SLOW_PATTERNS: list[str] = [
+        r"\btime\.sleep\b",
+        r"\basyncio\.sleep\b",
+        r"\bwhile\s+True\b",
+        r"\bfor\s+\w+\s+in\s+range\s*\(\s*\d{4,}\s*\)",  # range(1000+)
+    ]
+
+    # Patterns that indicate interactive (non-agent-runnable) commands.
+    _INTERACTIVE_PATTERNS: list[str] = [
+        r"\binput\s*\(",
+        r"\bbreakpoint\s*\(",
+        r"\bpdb\b",
+        r"\bipdb\b",
+        r"\bpudb\b",
+        r"\b--interactive\b",
+        r"\bpython\s+-i\b",
+    ]
+
+    def verify_debug_loop_ready(self, command: str) -> RedCapableResult:
+        """Check if a debugging command meets Matt Pocock's red-capable criteria.
+
+        Phase 1 of Matt's debugging methodology: before investigating,
+        ensure the feedback loop is red-capable. A command that cannot
+        produce a RED (failing) result is useless for debugging.
+
+        The 4 criteria:
+        1. **on-red-capable** — command can fail (not a tautology)
+        2. **on-deterministic** — same input → same output (no random/network)
+        3. **on-fast** — completes quickly (no sleep/infinite loops)
+        4. **on-agent-runnable** — executable by an AI agent (no interactive input)
+
+        Args:
+            command: The debugging command or code string to evaluate.
+
+        Returns:
+            RedCapableResult with pass/fail status and reasoning.
+        """
+        if not command or not command.strip():
+            return RedCapableResult(
+                passed=False,
+                failed_criteria=["on-red-capable", "on-deterministic", "on-fast", "on-agent-runnable"],
+                reasoning="Empty command cannot satisfy any criterion",
+                command=command,
+            )
+
+        failed: list[str] = []
+        reasoning_parts: list[str] = []
+
+        if not self._is_red_capable(command):
+            failed.append("on-red-capable")
+            reasoning_parts.append("command cannot produce a failing result (tautological or assignment-only)")
+
+        if not self._is_deterministic(command):
+            failed.append("on-deterministic")
+            reasoning_parts.append("command uses non-deterministic elements (random/time/network)")
+
+        if not self._is_fast(command):
+            failed.append("on-fast")
+            reasoning_parts.append("command appears slow (sleep/long loops)")
+
+        if not self._is_agent_runnable(command):
+            failed.append("on-agent-runnable")
+            reasoning_parts.append("command requires interactive input")
+
+        passed = len(failed) == 0
+        reasoning = "; ".join(reasoning_parts) if reasoning_parts else "All 4 red-capable criteria satisfied"
+
+        return RedCapableResult(
+            passed=passed,
+            failed_criteria=failed,
+            reasoning=reasoning,
+            command=command,
+        )
+
+    def _is_red_capable(self, command: str) -> bool:
+        """Check if the command can produce a failing (RED) result.
+
+        A command is red-capable if it contains some form of assertion,
+        comparison, or test — not just an assignment or echo.
+        """
+        cmd = command.lower()
+        # Red-capable indicators: assertions, tests, comparisons, exits
+        red_indicators = [
+            "assert",
+            "test",
+            "pytest",
+            "unittest",
+            "==",
+            "!=",
+            "exit(",
+            "sys.exit",
+            "raise",
+            "if ",
+            "expect",
+            "should",
+            "match",
+            "grep",
+            "diff",
+        ]
+        return any(ind in cmd for ind in red_indicators)
+
+    def _is_deterministic(self, command: str) -> bool:
+        """Check if the command is deterministic (no random/time/network)."""
+        return all(not re.search(pattern, command) for pattern in self._NON_DETERMINISTIC_PATTERNS)
+
+    def _is_fast(self, command: str) -> bool:
+        """Check if the command appears fast (no sleep/long loops)."""
+        return all(not re.search(pattern, command) for pattern in self._SLOW_PATTERNS)
+
+    def _is_agent_runnable(self, command: str) -> bool:
+        """Check if the command is agent-runnable (no interactive input)."""
+        return all(not re.search(pattern, command) for pattern in self._INTERACTIVE_PATTERNS)
 
     def build_context_from_worker_result(self, worker_result: dict[str, Any]) -> CompletionContext:
         """
