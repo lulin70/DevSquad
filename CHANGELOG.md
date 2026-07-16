@@ -9,7 +9,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [4.1.0] - 2026-07-15
 
-MINOR release: Matt Pocock skills fusion (7 P0 + 7 P1 + 4 P2) + UI/UX skills fusion (3 P0 + 3 P1 + 4 P2) + four-doc system. 10 P0 modules + 12 P1-P2 code items + 6 ROADMAP entries. 439 new tests (200 P0 + 239 P1-P2), 5 ADRs, 43 GLOSSARY terms.
+MINOR release: Matt Pocock skills fusion (7 P0 + 7 P1 + 4 P2) + UI/UX skills fusion (3 P0 + 3 P1 + 4 P2) + four-doc system + atomic Skill decomposition (3 P0 + 2 P1). 10 P0 modules + 12 P1-P2 code items + 6 ROADMAP entries + 5 atomic SKILL.md. 475 new tests (200 P0 + 239 P1-P2 + 23 P0 atomic + 13 P1 atomic), 5 ADRs, 43 GLOSSARY terms.
 
 ### Added — Matt Pocock Skills Fusion (7 P0 items)
 
@@ -93,9 +93,18 @@ PM + architect evaluation identified 3 modules with high independent-use value, 
 
 Role coverage after this change: architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) = 10 SKILL.md (was 7).
 
+### Added — Atomic Skill Decomposition (2 P1 SKILL.md)
+
+Continued atomic skill decomposition for modules that integrate multiple techniques but remain independently usable. Created 1 new role_skills SKILL.md and enhanced 1 existing one with standalone-usage instructions:
+
+- **coder/codebase-audit** (`role_skills/coder/codebase-audit/SKILL.md`): Integrates 4 audit techniques — YAGNI ladder check (`YagniChecker.check()`), premature seam detection (`YagniChecker.check_premature_seam()`), simplification audit (`RedesignAuditor.audit()` covering YAGNI/STDLIB/DUPLICATE/OVERENGINEERING), and deletion test (`RedesignAuditor.deletion_test()`). Fills coder role gap (previously 0 SKILL.md). 9 tests.
+- **ui-designer/uiux-audit (enhanced)** (`role_skills/ui-designer/uiux-audit/SKILL.md`): Added "Standalone Usage (Without DevSquad Dispatcher)" section with 3 usage tiers — CSS-Level Audit (no browser needed, `check_css_antipatterns()` / `check_4pt_grid()` / OKLCH conversion), Full DOM Audit (requires Playwright, `UIUXAnalyzer.audit(page, url)`), and Deterministic Rule Engine (direct, `DeterministicRuleEngine.check()` / `get_rules_by_pillar()`). 4 tests.
+
+Role coverage after this change: architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) + coder(1) = 11 SKILL.md (was 10).
+
 ### Fixed — Local TRAE version display
 
-- `.trae/skills/devsquad/SKILL.md` and `skill-manifest.yaml` were stuck at 4.0.10/4.0.0, causing TRAE IDE to display wrong version. Updated to 4.1.0 with V4.1.0 description. (`.trae/` is gitignored — local fix only, no git commit needed.)
+- `.trae/skills/devsquad/SKILL.md` and `skill-manifest.yaml` had inconsistent versions (frontmatter `version: 4.0.11` but description text still said `V4.0.0`), causing TRAE IDE to display "4.0.0" in settings list and "4.0.11" in edit view. Updated both files at project root `.trae/skills/devsquad/` to 4.1.0 with V4.1.0 description. (`.trae/` is gitignored — local fix only, no git commit needed.)
 
 ## [4.0.11] - 2026-07-13
 

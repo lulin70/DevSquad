@@ -248,3 +248,66 @@ print(f"Passed: {report.passed}, Critical: {report.critical_count}")
 - Adjusting a11y rule thresholds via TasteDials (contrast is never optional)
 - Skipping the CSS-level anti-pattern bans when only DOM probes are available
 - Using HSV for perceptual color comparison instead of OKLCH
+
+## Standalone Usage (Without DevSquad Dispatcher)
+
+This skill can be used independently — no 7-role dispatch required.
+
+### CSS-Level Audit (No Browser Needed)
+
+```python
+from scripts.qa.uiux_analyzer import UIUXAnalyzer
+
+analyzer = UIUXAnalyzer()
+
+# 6 anti-pattern bans
+css_issues = analyzer.check_css_antipatterns(css_text)
+
+# 4pt grid spacing check
+spacing_issues = analyzer.check_4pt_grid(css_text)
+
+# OKLCH color conversion
+rgb = analyzer._oklch_to_rgb(0.7, 0.15, 200)
+oklch = analyzer._rgb_to_oklch(180, 100, 50)
+```
+
+### Full DOM Audit (Requires Playwright)
+
+```python
+from scripts.qa.uiux_analyzer import UIUXAnalyzer
+from playwright.sync_api import sync_playwright
+
+analyzer = UIUXAnalyzer()
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page()
+    page.goto("https://example.com")
+    report = analyzer.audit(page, url="https://example.com")
+    print(f"Passed: {report.passed}, Issues: {len(report.issues)}")
+    browser.close()
+```
+
+### Deterministic Rule Engine (Direct)
+
+```python
+from scripts.qa.deterministic_rule_engine import DeterministicRuleEngine
+from scripts.qa.taste_dials import TasteDials
+
+engine = DeterministicRuleEngine()
+dials = TasteDials(visual_density=0.7)
+
+# Check all 46 rules
+issues = engine.check(probes, dials=dials, context={})
+
+# Check rules by pillar
+typography_rules = engine.get_rules_by_pillar("typography")
+```
+
+## Verification Requirements
+
+- All 46 deterministic rules must pass for production deploy
+- a11y rules (contrast, focus, aria) are NEVER adjusted by TasteDials
+- CSS anti-pattern bans must return 0 issues
+- 4pt grid violations must be 0 for new CSS
+- OKLCH color space is preferred over HSV for perceptual comparison

@@ -9,7 +9,7 @@
 
 ## [4.1.0] - 2026-07-15
 
-MINOR 发布：Matt Pocock 技能融合（7 项 P0 + 7 项 P1 + 4 项 P2）+ UI/UX 技能融合（3 项 P0 + 3 项 P1 + 4 项 P2）+ 四文档体系。10 个 P0 模块 + 12 项 P1-P2 代码 + 6 项 ROADMAP。439 个新测试（200 P0 + 239 P1-P2），5 个 ADR，43 个术语。
+MINOR 发布：Matt Pocock 技能融合（7 项 P0 + 7 项 P1 + 4 项 P2）+ UI/UX 技能融合（3 项 P0 + 3 项 P1 + 4 项 P2）+ 四文档体系 + 原子 Skill 拆分（3 项 P0 + 2 项 P1）。10 个 P0 模块 + 12 项 P1-P2 代码 + 6 项 ROADMAP + 5 个原子 SKILL.md。475 个新测试（200 P0 + 239 P1-P2 + 23 P0 原子 + 13 P1 原子），5 个 ADR，43 个术语。
 
 ### 新增 — Matt Pocock 技能融合（7 项 P0）
 
@@ -92,9 +92,18 @@ PM + 架构师评估识别出 3 个具有高独立使用价值、零内部依赖
 
 角色覆盖变更：architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) = 10 个 SKILL.md（原 7 个）。
 
+### 新增 — 原子 Skill 拆分（2 个 P1 SKILL.md）
+
+继续对整合多种技术但仍可独立使用的模块进行原子 Skill 拆分。新建 1 个 role_skills SKILL.md，并为 1 个已有 SKILL.md 增补独立使用说明：
+
+- **coder/codebase-audit**（`role_skills/coder/codebase-audit/SKILL.md`）：整合 4 种审计技术 — YAGNI 阶梯检查（`YagniChecker.check()`）、过早接缝检测（`YagniChecker.check_premature_seam()`）、简化审计（`RedesignAuditor.audit()` 覆盖 YAGNI/STDLIB/DUPLICATE/OVERENGINEERING）、删除测试（`RedesignAuditor.deletion_test()`）。补全 coder 角色空白（此前 0 个 SKILL.md）。9 个测试。
+- **ui-designer/uiux-audit（增强）**（`role_skills/ui-designer/uiux-audit/SKILL.md`）：新增 "Standalone Usage（无需 DevSquad 调度器）" 章节，提供 3 层使用方式 — CSS 级审计（无需浏览器，`check_css_antipatterns()` / `check_4pt_grid()` / OKLCH 转换）、完整 DOM 审计（需 Playwright，`UIUXAnalyzer.audit(page, url)`）、确定性规则引擎（直接调用，`DeterministicRuleEngine.check()` / `get_rules_by_pillar()`）。4 个测试。
+
+角色覆盖变更：architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) + coder(1) = 11 个 SKILL.md（原 10 个）。
+
 ### 修复 — 本地 TRAE 版本显示
 
-- `.trae/skills/devsquad/SKILL.md` 和 `skill-manifest.yaml` 停留在 4.0.10/4.0.0，导致 TRAE IDE 显示错误版本。已更新为 4.1.0。（`.trae/` 被 gitignore — 仅本地修复，无需 git 提交。）
+- `.trae/skills/devsquad/SKILL.md` 和 `skill-manifest.yaml` 版本不一致（frontmatter `version: 4.0.11` 但描述文本仍为 `V4.0.0`），导致 TRAE IDE 设置列表显示 "4.0.0"，编辑视图显示 "4.0.11"。已将项目根 `.trae/skills/devsquad/` 下两个文件统一更新为 4.1.0 + V4.1.0 描述。（`.trae/` 被 gitignore — 仅本地修复，无需 git 提交。）
 
 ## [4.0.11] - 2026-07-13
 

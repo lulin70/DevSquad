@@ -573,3 +573,94 @@ class TestPMGrillingInterviewSkill:
         assert "create-prd" in names
         assert "assumption-mapping" in names
         assert "grilling-interview" in names
+
+
+class TestCoderCodebaseAuditSkill:
+    """Tests for coder/codebase-audit SKILL.md (V4.1.0 P1 atomic skill)."""
+
+    def _get_skill_path(self) -> Path:
+        return (
+            Path(__file__).resolve().parent.parent
+            / "scripts"
+            / "collaboration"
+            / "role_skills"
+            / "coder"
+            / "codebase-audit"
+            / "SKILL.md"
+        )
+
+    def test_skill_md_exists(self):
+        assert self._get_skill_path().exists()
+
+    def test_skill_md_loadable_by_role_skill_loader(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("coder", no_cache=True)
+        names = [s.name for s in skills]
+        assert "codebase-audit" in names
+
+    def test_skill_md_contains_yagni_ladder(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "YAGNI" in content
+        assert "ladder" in content.lower()
+
+    def test_skill_md_contains_premature_seam(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "premature seam" in content.lower() or "Premature seam" in content
+
+    def test_skill_md_contains_deletion_test(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "deletion test" in content.lower() or "Deletion test" in content
+
+    def test_skill_md_contains_simplification_categories(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        for cat in ("YAGNI", "STDLIB", "DUPLICATE", "OVERENGINEERING"):
+            assert cat in content, f"Missing simplification category: {cat}"
+
+    def test_skill_md_contains_failure_modes(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Failure Modes" in content
+
+    def test_skill_md_contains_verification_requirements(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Verification Requirements" in content
+
+    def test_to_prompt_text_contains_content(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("coder", no_cache=True)
+        skill = next(s for s in skills if s.name == "codebase-audit")
+        text = skill.to_prompt_text()
+        assert len(text) > 100
+        assert "yagni" in text.lower() or "YAGNI" in text
+
+
+class TestUIDesignerUiuxAuditEnhanced:
+    """Tests for enhanced ui-designer/uiux-audit SKILL.md (V4.1.0 P1 standalone usage)."""
+
+    def _get_skill_path(self) -> Path:
+        return (
+            Path(__file__).resolve().parent.parent
+            / "scripts"
+            / "collaboration"
+            / "role_skills"
+            / "ui-designer"
+            / "uiux-audit"
+            / "SKILL.md"
+        )
+
+    def test_skill_md_contains_standalone_usage(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Standalone Usage" in content
+
+    def test_skill_md_contains_css_level_audit_example(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "check_css_antipatterns" in content
+        assert "check_4pt_grid" in content
+
+    def test_skill_md_contains_oklch_example(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "_oklch_to_rgb" in content
+        assert "_rgb_to_oklch" in content
+
+    def test_skill_md_contains_verification_requirements(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Verification Requirements" in content
