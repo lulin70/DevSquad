@@ -1014,7 +1014,10 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V4.1.0 P1-UI-3 OKLCH color space** | **23** | **✅ PASS** |
 | **V4.1.0 P2-3 Git guardrails** | **57** | **✅ PASS** |
 | **V4.1.0 P2-UI-4 4pt grid spacing** | **17** | **✅ PASS** |
-| **Total** | **5183+ (CI authoritative)** | **✅ ALL PASS** |
+| **V4.1.0 Atomic Skill: tautological-test-detection** | **7** | **✅ PASS** |
+| **V4.1.0 Atomic Skill: git-guardrails** | **7** | **✅ PASS** |
+| **V4.1.0 Atomic Skill: grilling-interview** | **9** | **✅ PASS** |
+| **Total** | **5206+ (CI authoritative)** | **✅ ALL PASS** |
 
 ---
 

@@ -82,6 +82,20 @@ MINOR 发布：Matt Pocock 技能融合（7 项 P0 + 7 项 P1 + 4 项 P2）+ UI/
 - 12 项 P1-P2 代码：全部完成
 - 6 项 ROADMAP：全部记录
 
+### 新增 — 原子 Skill 拆分（3 个 P0 SKILL.md）
+
+PM + 架构师评估识别出 3 个具有高独立使用价值、零内部依赖、目标用户明确的模块。新建 3 个 role_skills SKILL.md，补全 tester 和 security 角色空白：
+
+- **tester/tautological-test-detection**（`role_skills/tester/tautological-test-detection/SKILL.md`）：5 种 tautological 反模式检测规则（重算表达式、自引用断言、镜像赋值、常量比较、assertTrue 计算表达式）。补全 tester 角色空白（此前 0 个 SKILL.md）。7 个测试。
+- **security/git-guardrails**（`role_skills/security/git-guardrails/SKILL.md`）：三层 git 命令分类（FORBIDDEN/NEEDS_REVIEW/ALWAYS_SAFE）+ 受保护分支（main/master）。补全 security 角色空白（此前 0 个 SKILL.md）。7 个测试。
+- **product-manager/grilling-interview**（`role_skills/product-manager/grilling-interview/SKILL.md`）：逐问访谈技术 + recommended answer + GLOSSARY 自动生成 + stateless 模式。增强 PM 角色（第 6 个 SKILL.md）。9 个测试。
+
+角色覆盖变更：architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) = 10 个 SKILL.md（原 7 个）。
+
+### 修复 — 本地 TRAE 版本显示
+
+- `.trae/skills/devsquad/SKILL.md` 和 `skill-manifest.yaml` 停留在 4.0.10/4.0.0，导致 TRAE IDE 显示错误版本。已更新为 4.1.0。（`.trae/` 被 gitignore — 仅本地修复，无需 git 提交。）
+
 ## [4.0.11] - 2026-07-13
 
 PATCH 发布：测试代码重构 + CI 工具增强，无新功能。基于 V4.0.10 项目评估报告 §下一步建议。

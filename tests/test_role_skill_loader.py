@@ -412,3 +412,164 @@ class TestUIDesignerUiuxAuditSkill:
         content = self._get_skill_path().read_text(encoding="utf-8")
         assert "DeterministicRuleEngine" in content
         assert "TasteDials" in content or "Taste Dials" in content
+
+
+class TestTesterTautologicalTestDetectionSkill:
+    """Tests for tester/tautological-test-detection SKILL.md (V4.1.0 P0 atomic skill)."""
+
+    def _get_skill_path(self) -> Path:
+        return (
+            Path(__file__).resolve().parent.parent
+            / "scripts"
+            / "collaboration"
+            / "role_skills"
+            / "tester"
+            / "tautological-test-detection"
+            / "SKILL.md"
+        )
+
+    def test_skill_md_exists(self):
+        assert self._get_skill_path().exists()
+
+    def test_skill_md_loadable_by_role_skill_loader(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("tester", no_cache=True)
+        names = [s.name for s in skills]
+        assert "tautological-test-detection" in names
+
+    def test_skill_md_contains_detection_patterns(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Detection Patterns" in content or "detection pattern" in content.lower()
+
+    def test_skill_md_contains_tautological_vocabulary(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        for term in ("Tautological test", "Seam", "Red-green"):
+            assert term in content, f"Missing vocabulary term: {term}"
+
+    def test_skill_md_contains_failure_modes(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Failure Modes" in content
+
+    def test_skill_md_contains_verification_requirements(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Verification Requirements" in content
+
+    def test_to_prompt_text_contains_content(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("tester", no_cache=True)
+        skill = next(s for s in skills if s.name == "tautological-test-detection")
+        text = skill.to_prompt_text()
+        assert len(text) > 100
+        assert "tautological" in text.lower()
+
+
+class TestSecurityGitGuardrailsSkill:
+    """Tests for security/git-guardrails SKILL.md (V4.1.0 P0 atomic skill)."""
+
+    def _get_skill_path(self) -> Path:
+        return (
+            Path(__file__).resolve().parent.parent
+            / "scripts"
+            / "collaboration"
+            / "role_skills"
+            / "security"
+            / "git-guardrails"
+            / "SKILL.md"
+        )
+
+    def test_skill_md_exists(self):
+        assert self._get_skill_path().exists()
+
+    def test_skill_md_loadable_by_role_skill_loader(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("security", no_cache=True)
+        names = [s.name for s in skills]
+        assert "git-guardrails" in names
+
+    def test_skill_md_contains_three_tier_classification(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        for tier in ("FORBIDDEN", "NEEDS_REVIEW", "ALWAYS_SAFE"):
+            assert tier in content, f"Missing classification tier: {tier}"
+
+    def test_skill_md_contains_protected_branches(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "main" in content
+        assert "master" in content
+        assert "Protected branch" in content or "protected" in content.lower()
+
+    def test_skill_md_contains_failure_modes(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Failure Modes" in content
+
+    def test_skill_md_contains_verification_requirements(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Verification Requirements" in content
+
+    def test_to_prompt_text_contains_content(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("security", no_cache=True)
+        skill = next(s for s in skills if s.name == "git-guardrails")
+        text = skill.to_prompt_text()
+        assert len(text) > 100
+        assert "FORBIDDEN" in text
+
+
+class TestPMGrillingInterviewSkill:
+    """Tests for product-manager/grilling-interview SKILL.md (V4.1.0 P0 atomic skill)."""
+
+    def _get_skill_path(self) -> Path:
+        return (
+            Path(__file__).resolve().parent.parent
+            / "scripts"
+            / "collaboration"
+            / "role_skills"
+            / "product-manager"
+            / "grilling-interview"
+            / "SKILL.md"
+        )
+
+    def test_skill_md_exists(self):
+        assert self._get_skill_path().exists()
+
+    def test_skill_md_loadable_by_role_skill_loader(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("product-manager", no_cache=True)
+        names = [s.name for s in skills]
+        assert "grilling-interview" in names
+
+    def test_skill_md_contains_one_question_at_a_time(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "One-question-at-a-time" in content or "one question at a time" in content.lower()
+
+    def test_skill_md_contains_glossary_candidates(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "GLOSSARY" in content or "glossary" in content.lower()
+
+    def test_skill_md_contains_stateless_mode(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "stateless" in content.lower()
+
+    def test_skill_md_contains_failure_modes(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Failure Modes" in content
+
+    def test_skill_md_contains_verification_requirements(self):
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Verification Requirements" in content
+
+    def test_to_prompt_text_contains_content(self):
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("product-manager", no_cache=True)
+        skill = next(s for s in skills if s.name == "grilling-interview")
+        text = skill.to_prompt_text()
+        assert len(text) > 100
+        assert "grilling" in text.lower()
+
+    def test_existing_pm_skills_still_loadable(self):
+        """Ensure adding grilling-interview didn't break existing PM skills."""
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("product-manager", no_cache=True)
+        names = [s.name for s in skills]
+        assert "create-prd" in names
+        assert "assumption-mapping" in names
+        assert "grilling-interview" in names

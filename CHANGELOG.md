@@ -83,6 +83,20 @@ MINOR release: Matt Pocock skills fusion (7 P0 + 7 P1 + 4 P2) + UI/UX skills fus
 - 12 P1-P2 code items: ALL COMPLETE
 - 6 ROADMAP entries: ALL RECORDED
 
+### Added — Atomic Skill Decomposition (3 P0 SKILL.md)
+
+PM + architect evaluation identified 3 modules with high independent-use value, zero internal dependencies, and clear target users. Created 3 new role_skills SKILL.md to fill tester and security role gaps:
+
+- **tester/tautological-test-detection** (`role_skills/tester/tautological-test-detection/SKILL.md`): 5 tautological anti-pattern detection rules (re-computed expression, self-referential assertion, mirror assignment, constant comparison, assertTrue with computed expression). Fills tester role gap (previously 0 SKILL.md). 7 tests.
+- **security/git-guardrails** (`role_skills/security/git-guardrails/SKILL.md`): Three-tier git command classification (FORBIDDEN/NEEDS_REVIEW/ALWAYS_SAFE) with protected branches (main/master). Fills security role gap (previously 0 SKILL.md). 7 tests.
+- **product-manager/grilling-interview** (`role_skills/product-manager/grilling-interview/SKILL.md`): One-question-at-a-time interview technique with recommended answers, GLOSSARY auto-generation, and stateless mode. Enhances PM role (6th SKILL.md). 9 tests.
+
+Role coverage after this change: architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) = 10 SKILL.md (was 7).
+
+### Fixed — Local TRAE version display
+
+- `.trae/skills/devsquad/SKILL.md` and `skill-manifest.yaml` were stuck at 4.0.10/4.0.0, causing TRAE IDE to display wrong version. Updated to 4.1.0 with V4.1.0 description. (`.trae/` is gitignored — local fix only, no git commit needed.)
+
 ## [4.0.11] - 2026-07-13
 
 PATCH release: test code refactoring + CI tooling enhancement, no new functionality. Based on V4.0.10 project evaluation report §下一步建议.
