@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
+## 🚀 V4.1.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
 
-**DevSquad V4.0.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
+**DevSquad V4.1.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
 - **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
 - **P1-2 UI/UX 巡检**: 4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff 视觉回归
 - **P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁三阶段对抗验证
@@ -28,7 +28,7 @@
 - **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
 - **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
 
-5183+ tests passing。
+5219+ tests passing。
 
 ### 🔄 V3.6.6 企业级功能详情
 
@@ -133,9 +133,9 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## ✨ 核心特性 (V4.0.0)
+## ✨ 核心特性 (V4.1.0)
 
-### 🏗️ 五大能力域架构（V4.0.0）
+### 🏗️ 五大能力域架构（V4.1.0）
 
 DevSquad 的 185+ 模块组织为 **5 大能力域**，各域解决特定问题：
 
@@ -300,7 +300,7 @@ python scripts/cli.py dispatch -t "测试任务"
 | P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **总计** | **2857+ (收集 2864)** | **100%** |
+| **总计** | **2857+ (收集 5248)** | **100%** |
 
 ---
 

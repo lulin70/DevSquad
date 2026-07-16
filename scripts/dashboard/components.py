@@ -27,22 +27,22 @@ class DashboardConfig:
     LAYOUT: Literal["wide"] = "wide"
 
     COLOR_SCHEME = {
-        "primary": "#4A90D9",
-        "success": "#2ca02c",
-        "warning": "#ff7f0e",
-        "danger": "#d62728",
-        "info": "#17becf",
-        "background": "#ffffff",
-        "text": "#333333",
+        "primary": "#7B9EA8",
+        "success": "#8FA886",
+        "warning": "#C9A87C",
+        "danger": "#B58484",
+        "info": "#9DB5C2",
+        "background": "#F5F3F0",
+        "text": "#4A4A4A",
     }
 
     PHASE_COLORS = {
-        "pending": "#95a5a6",
-        "running": "#3498db",
-        "completed": "#27ae60",
-        "failed": "#e74c3c",
-        "skipped": "#f39c12",
-        "blocked": "#c0392b",
+        "pending": "#B0B0B0",
+        "running": "#7B9EA8",
+        "completed": "#8FA886",
+        "failed": "#B58484",
+        "skipped": "#C9A87C",
+        "blocked": "#9B8AA4",
     }
 
     CORE_ROLES = [
@@ -91,26 +91,20 @@ def apply_custom_css() -> None:
     st.markdown(
         """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
     * {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     .main-header {
         font-size: 2.5rem;
         font-weight: 700;
-        color: #4A90D9;
+        color: oklch(0.64 0.04 230);
         text-align: center;
         padding: 1rem 0;
-        background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
     }
 
     .metric-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        background: #f8f9fa;
         border-radius: 12px;
         padding: 1.5rem;
         margin: 0.5rem 0;
@@ -129,7 +123,7 @@ def apply_custom_css() -> None:
         border-radius: 10px;
         padding: 1.25rem;
         margin: 0.5rem 0;
-        border-left: 4px solid #4A90D9;
+        border: 1px solid #e9ecef;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
         transition: all 0.3s ease;
     }
@@ -154,14 +148,14 @@ def apply_custom_css() -> None:
     .status-secondary { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
 
     .task-input textarea {
-        border: 2px solid #4A90D9 !important;
+        border: 2px solid #7B9EA8 !important;
         border-radius: 8px !important;
         font-family: 'Monaco', 'Menlo', monospace !important;
         font-size: 14px !important;
     }
 
     .primary-btn {
-        background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%) !important;
+        background: #7B9EA8 !important;
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
@@ -172,7 +166,7 @@ def apply_custom_css() -> None:
 
     .primary-btn:hover {
         transform: translateY(-1px) !important;
-        box-shadow: 0 4px 12px rgba(74, 144, 217, 0.35) !important;
+        box-shadow: 0 4px 12px rgba(123, 158, 168, 0.35) !important;
     }
 
     [data-testid="stMetric"] {
@@ -186,8 +180,8 @@ def apply_custom_css() -> None:
         display: inline-block;
         width: 20px;
         height: 20px;
-        border: 3px solid rgba(74, 144, 217, 0.3);
-        border-top-color: #4A90D9;
+        border: 3px solid rgba(123, 158, 168, 0.3);
+        border-top-color: #7B9EA8;
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
@@ -357,7 +351,7 @@ def render_footer(current_user: User | None = None) -> None:
 
     with col1:
         st.markdown(
-            "<center>**DevSquad V3.7.0** | Plan C | Production Ready | 🎨 Enhanced UI</center>", unsafe_allow_html=True
+            "<center>**DevSquad V4.1.0** | Plan C | Production Ready | 🎨 Enhanced UI</center>", unsafe_allow_html=True
         )
 
     with col2:

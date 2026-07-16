@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CLI Visual Enhancement Module for DevSquad V3.7.0
+CLI Visual Enhancement Module for DevSquad V4.1.0
 
 Provides rich visual output for lifecycle commands including:
   - Colored progress bars
@@ -457,7 +457,7 @@ class VisualFormatter:
         else:
             return Colors.RED
 
-    def print_footer(self, version: str = "V3.7.0") -> None:
+    def print_footer(self, version: str = "V4.1.0") -> None:
         """Print footer with version and timestamp."""
         from datetime import datetime
 

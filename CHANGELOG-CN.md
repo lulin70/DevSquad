@@ -96,14 +96,43 @@ PM + 架构师评估识别出 3 个具有高独立使用价值、零内部依赖
 
 继续对整合多种技术但仍可独立使用的模块进行原子 Skill 拆分。新建 1 个 role_skills SKILL.md，并为 1 个已有 SKILL.md 增补独立使用说明：
 
-- **coder/codebase-audit**（`role_skills/coder/codebase-audit/SKILL.md`）：整合 4 种审计技术 — YAGNI 阶梯检查（`YagniChecker.check()`）、过早接缝检测（`YagniChecker.check_premature_seam()`）、简化审计（`RedesignAuditor.audit()` 覆盖 YAGNI/STDLIB/DUPLICATE/OVERENGINEERING）、删除测试（`RedesignAuditor.deletion_test()`）。补全 coder 角色空白（此前 0 个 SKILL.md）。9 个测试。
+- **coder/codebase-audit**（`role_skills/solo-coder/codebase-audit/SKILL.md`）：整合 4 种审计技术 — YAGNI 阶梯检查（`YagniChecker.check()`）、过早接缝检测（`YagniChecker.check_premature_seam()`）、简化审计（`RedesignAuditor.audit()` 覆盖 YAGNI/STDLIB/DUPLICATE/OVERENGINEERING）、删除测试（`RedesignAuditor.deletion_test()`）。补全 solo-coder 角色空白（此前 0 个 SKILL.md）。9 个测试。
 - **ui-designer/uiux-audit（增强）**（`role_skills/ui-designer/uiux-audit/SKILL.md`）：新增 "Standalone Usage（无需 DevSquad 调度器）" 章节，提供 3 层使用方式 — CSS 级审计（无需浏览器，`check_css_antipatterns()` / `check_4pt_grid()` / OKLCH 转换）、完整 DOM 审计（需 Playwright，`UIUXAnalyzer.audit(page, url)`）、确定性规则引擎（直接调用，`DeterministicRuleEngine.check()` / `get_rules_by_pillar()`）。4 个测试。
 
-角色覆盖变更：architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) + coder(1) = 11 个 SKILL.md（原 10 个）。
+角色覆盖变更：architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) + solo-coder(1) = 11 个 SKILL.md（原 10 个）。
 
 ### 修复 — 本地 TRAE 版本显示
 
 - `.trae/skills/devsquad/SKILL.md` 和 `skill-manifest.yaml` 版本不一致（frontmatter `version: 4.0.11` 但描述文本仍为 `V4.0.0`），导致 TRAE IDE 设置列表显示 "4.0.0"，编辑视图显示 "4.0.11"。已将项目根 `.trae/skills/devsquad/` 下两个文件统一更新为 4.1.0 + V4.1.0 描述。（`.trae/` 被 gitignore — 仅本地修复，无需 git 提交。）
+
+### 修复 — V4.1.0 全面审核（7 角色并行评审）
+
+7 角色并行审核（架构师/PM/安全/测试/开发/运维/UI）发现 33 个 P0 + 38 个 P1 + 52 个 P2 问题。本次修复 16 项（11 P0 + 5 P1），其余延后至 V4.1.1 ROADMAP。完整审核报告：`docs/audits/V4.1.0_Project_Audit.md`。
+
+**DevOps 修复（3 P0）：**
+- **Dockerfile builder 阶段损坏**：`COPY pyproject.toml ./` 缺少源码 — 补充 `COPY pyproject.toml scripts/ skills/ ./`，使 `pip install .[all]` 能找到包。
+- **Dockerfile CMD 未启动服务**：`CMD ["python3", "-m", "scripts.cli", "--version"]` 仅打印版本即退出 — 改为 `CMD ["uvicorn", "scripts.api_server:app", "--host", "0.0.0.0", "--port", "8000"]` + HEALTHCHECK 改为 `curl -f http://localhost:8000/health`。
+- **release.yml skip-existing 与注释矛盾**：`skip-existing: false` 配注释"Fail fast if version already exists" — 改为 `skip-existing: true` 实现幂等发布。
+
+**文档修复（5 P0 + 2 P1）：**
+- **QUICKSTART.md 假命令 `devsquad server`**：替换为 `uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000`。
+- **QUICKSTART.md 生命周期命令缺 `-t` 标志**：`devsquad spec "..."` → `devsquad spec -t "..."`（6 条命令全部修正）。
+- **测试数统一**：README.md/README-CN.md/README-JP.md/QUICKSTART.md 从过期的 5183+/2857+/2703+ 统一更新为 5219+（5248 collected），与 SKILL.md 和 skill-manifest.yaml 一致。
+- **版本字符串统一**：README.md/README-CN.md/README-JP.md 中 V4.0.0 → V4.1.0（标题和特性描述）。
+- **QUICKSTART.md/INSTALL.md 版本号**：V4.0.0 → V4.1.0，INSTALL.md `# 3.7.2` → `# 4.1.0`。
+- **CHANGELOG.md P0-1 路径错误**：`scripts/qa/tautological_test_detector.py` → `scripts/collaboration/test_quality_guard.py`。
+
+**UI/UX 修复（5 P0 + 2 P1）— Dashboard 自审：**
+- **渐变文字移除**：`.main-header` 使用 `linear-gradient` + `-webkit-background-clip: text` — 替换为纯色 `oklch(0.64 0.04 230)`。
+- **外部字体依赖移除**：`@import url('https://fonts.googleapis.com/css2?family=Inter...')` + `font-family: 'Inter'` — 替换为系统字体栈（`-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`）。
+- **左边框强调移除**：`.phase-card` 的 `border-left: 4px solid #4A90D9`（违反 DESIGN.md）— 替换为统一 `border: 1px solid #e9ecef`。
+- **Morandi 色系应用**：COLOR_SCHEME 和 PHASE_COLORS 从饱和色更新为 Morandi 柔和色板（primary `#7B9EA8`、success `#8FA886`、warning `#C9A87C`、danger `#B58484`）。
+- **OKLCH 色彩空间采用**：关键 CSS 色彩迁移至 OKLCH（如 `oklch(0.64 0.04 230)` 用于主色）。
+- **Dashboard 版本字符串更新**：`V3.7.0` → `V4.1.0`（`components.py` 页脚、`auth_views.py` 系统信息、`cli_visual.py` 模块文档 + `print_footer()` 默认值）。
+- **`st.exception` 替换为折叠面板**：`dispatch_views.py` 的裸 `st.exception(e)` → `st.error()` + 可折叠 `st.expander` 展示错误详情。
+
+**架构修复（1 P1）：**
+- **role_skills 目录重命名**：`role_skills/coder/` → `role_skills/solo-coder/` — RoleSkillLoader 使用 `role_id="solo-coder"`（非别名 `"coder"`），导致 SKILL.md 从未被加载。测试同步更新。
 
 ## [4.0.11] - 2026-07-13
 

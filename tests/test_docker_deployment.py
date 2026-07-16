@@ -62,10 +62,10 @@ def test_dockerfile_version_label_is_parameterized():
 
 
 def test_dockerfile_has_healthcheck():
-    """Dockerfile 必须包含基于 _version 的健康检查。"""
+    """Dockerfile 必须包含基于 HTTP /health 端点的健康检查。"""
     text = _read_dockerfile()
     assert "HEALTHCHECK" in text
-    assert "scripts.collaboration._version" in text
+    assert "curl -f http://localhost:8000/health" in text
 
 
 def test_dockerfile_exposes_expected_ports():

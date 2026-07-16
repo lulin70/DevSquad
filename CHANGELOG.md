@@ -13,7 +13,7 @@ MINOR release: Matt Pocock skills fusion (7 P0 + 7 P1 + 4 P2) + UI/UX skills fus
 
 ### Added — Matt Pocock Skills Fusion (7 P0 items)
 
-- **P0-1 Tautological test detection** (`scripts/qa/tautological_test_detector.py`): 5 pattern detector (assert-recompute, mock-returns-expected, no-assertion, assert-true, self-comparison) + SeamAnalyzer (2 patterns: interface-seam, factory-seam). 24 tests.
+- **P0-1 Tautological test detection** (`scripts/collaboration/test_quality_guard.py`): 5 pattern detector (assert-recompute, mock-returns-expected, no-assertion, assert-true, self-comparison) + SeamAnalyzer (2 patterns: interface-seam, factory-seam). 24 tests.
 - **P0-2 GLOSSARY.md + ADR system** (`docs/spec/GLOSSARY.md`, `docs/adr/`): Pure terminology table (43 terms across 3 sections: Matt Pocock 17 + UI/UX 12 + DevSquad 14). ADR system with 3-criterion gate. 5 ADRs (ADR-001 four-doc system, ADR-002 CodeKnowledgeGraph explore-before-ask, ADR-003 SRP-based God Class identification, ADR-004 DEBUG-tag mechanism, ADR-005 four-layer prompt injection). `RoleSkillLoader.load_glossary()` for prompt injection. 11 tests.
 - **P0-3 Deletion test** (`scripts/qa/redesign_auditor.py`): Deletion test implementation + HTML report generation. Identifies shallow/pass-through modules via "delete and check if complexity disappears" method.
 - **P0-4 Red-capable gate + DEBUG tag** (`scripts/collaboration/verification_gate.py`, `scripts/collaboration/execution_guard.py`): Red-capable feedback loop gate + [DEBUG-xxx] tag mechanism for one-shot debug log cleanup.
@@ -97,14 +97,43 @@ Role coverage after this change: architect(1) + pm(6) + ui-designer(1) + tester(
 
 Continued atomic skill decomposition for modules that integrate multiple techniques but remain independently usable. Created 1 new role_skills SKILL.md and enhanced 1 existing one with standalone-usage instructions:
 
-- **coder/codebase-audit** (`role_skills/coder/codebase-audit/SKILL.md`): Integrates 4 audit techniques — YAGNI ladder check (`YagniChecker.check()`), premature seam detection (`YagniChecker.check_premature_seam()`), simplification audit (`RedesignAuditor.audit()` covering YAGNI/STDLIB/DUPLICATE/OVERENGINEERING), and deletion test (`RedesignAuditor.deletion_test()`). Fills coder role gap (previously 0 SKILL.md). 9 tests.
+- **coder/codebase-audit** (`role_skills/solo-coder/codebase-audit/SKILL.md`): Integrates 4 audit techniques — YAGNI ladder check (`YagniChecker.check()`), premature seam detection (`YagniChecker.check_premature_seam()`), simplification audit (`RedesignAuditor.audit()` covering YAGNI/STDLIB/DUPLICATE/OVERENGINEERING), and deletion test (`RedesignAuditor.deletion_test()`). Fills solo-coder role gap (previously 0 SKILL.md). 9 tests.
 - **ui-designer/uiux-audit (enhanced)** (`role_skills/ui-designer/uiux-audit/SKILL.md`): Added "Standalone Usage (Without DevSquad Dispatcher)" section with 3 usage tiers — CSS-Level Audit (no browser needed, `check_css_antipatterns()` / `check_4pt_grid()` / OKLCH conversion), Full DOM Audit (requires Playwright, `UIUXAnalyzer.audit(page, url)`), and Deterministic Rule Engine (direct, `DeterministicRuleEngine.check()` / `get_rules_by_pillar()`). 4 tests.
 
-Role coverage after this change: architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) + coder(1) = 11 SKILL.md (was 10).
+Role coverage after this change: architect(1) + pm(6) + ui-designer(1) + tester(1) + security(1) + solo-coder(1) = 11 SKILL.md (was 10).
 
 ### Fixed — Local TRAE version display
 
 - `.trae/skills/devsquad/SKILL.md` and `skill-manifest.yaml` had inconsistent versions (frontmatter `version: 4.0.11` but description text still said `V4.0.0`), causing TRAE IDE to display "4.0.0" in settings list and "4.0.11" in edit view. Updated both files at project root `.trae/skills/devsquad/` to 4.1.0 with V4.1.0 description. (`.trae/` is gitignored — local fix only, no git commit needed.)
+
+### Fixed — V4.1.0 Comprehensive Audit (7-Role Parallel Review)
+
+7-role parallel audit (architect/pm/security/tester/coder/devops/ui) identified 33 P0 + 38 P1 + 52 P2 issues. 16 items fixed in this batch (11 P0 + 5 P1), remainder deferred to V4.1.1 ROADMAP. Full audit report: `docs/audits/V4.1.0_Project_Audit.md`.
+
+**DevOps fixes (3 P0):**
+- **Dockerfile builder stage broken**: `COPY pyproject.toml ./` missing source code — added `COPY pyproject.toml scripts/ skills/ ./` so `pip install .[all]` can find the package.
+- **Dockerfile CMD didn't start service**: `CMD ["python3", "-m", "scripts.cli", "--version"]` printed version and exited — changed to `CMD ["uvicorn", "scripts.api_server:app", "--host", "0.0.0.0", "--port", "8000"]` + HEALTHCHECK to `curl -f http://localhost:8000/health`.
+- **release.yml skip-existing contradicted comment**: `skip-existing: false` with comment "Fail fast if version already exists" — changed to `skip-existing: true` for idempotent releases.
+
+**Documentation fixes (5 P0 + 2 P1):**
+- **QUICKSTART.md fake `devsquad server` command**: replaced with `uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000`.
+- **QUICKSTART.md lifecycle commands missing `-t` flag**: `devsquad spec "..."` → `devsquad spec -t "..."` for all 6 lifecycle shortcuts.
+- **Test count unification**: README.md/README-CN.md/README-JP.md/QUICKSTART.md updated from stale 5183+/2857+/2703+ to 5219+ (5248 collected), consistent with SKILL.md and skill-manifest.yaml.
+- **Version string unification**: V4.0.0 → V4.1.0 across README.md/README-CN.md/README-JP.md headers and feature descriptions.
+- **QUICKSTART.md/INSTALL.md version**: V4.0.0 → V4.1.0, INSTALL.md `# 3.7.2` → `# 4.1.0`.
+- **CHANGELOG.md P0-1 path error**: `scripts/qa/tautological_test_detector.py` → `scripts/collaboration/test_quality_guard.py`.
+
+**UI/UX fixes (5 P0 + 2 P1) — Dashboard self-audit:**
+- **Gradient text removed**: `.main-header` used `linear-gradient` + `-webkit-background-clip: text` — replaced with solid `oklch(0.64 0.04 230)` color.
+- **External font dependency removed**: `@import url('https://fonts.googleapis.com/css2?family=Inter...')` + `font-family: 'Inter'` — replaced with system font stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`).
+- **Border-left accent removed**: `.phase-card` had `border-left: 4px solid #4A90D9` (violates DESIGN.md) — replaced with uniform `border: 1px solid #e9ecef`.
+- **Morandi color system applied**: COLOR_SCHEME and PHASE_COLORS updated from saturated colors to Morandi muted palette (primary `#7B9EA8`, success `#8FA886`, warning `#C9A87C`, danger `#B58484`).
+- **OKLCH color space adopted**: Key CSS colors migrated to OKLCH (e.g., `oklch(0.64 0.04 230)` for primary).
+- **Dashboard version strings updated**: `V3.7.0` → `V4.1.0` in `components.py` footer, `auth_views.py` system info, `cli_visual.py` module docstring + `print_footer()` default.
+- **`st.exception` replaced with expander**: `dispatch_views.py` raw `st.exception(e)` → `st.error()` + collapsible `st.expander` for error details.
+
+**Architecture fix (1 P1):**
+- **role_skills directory rename**: `role_skills/coder/` → `role_skills/solo-coder/` — RoleSkillLoader uses `role_id="solo-coder"` (not alias `"coder"`), so SKILL.md was never loaded. Test updated to match.
 
 ## [4.0.11] - 2026-07-13
 

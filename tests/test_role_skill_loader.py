@@ -576,7 +576,7 @@ class TestPMGrillingInterviewSkill:
 
 
 class TestCoderCodebaseAuditSkill:
-    """Tests for coder/codebase-audit SKILL.md (V4.1.0 P1 atomic skill)."""
+    """Tests for solo-coder/codebase-audit SKILL.md (V4.1.0 P1 atomic skill)."""
 
     def _get_skill_path(self) -> Path:
         return (
@@ -584,7 +584,7 @@ class TestCoderCodebaseAuditSkill:
             / "scripts"
             / "collaboration"
             / "role_skills"
-            / "coder"
+            / "solo-coder"
             / "codebase-audit"
             / "SKILL.md"
         )
@@ -594,7 +594,7 @@ class TestCoderCodebaseAuditSkill:
 
     def test_skill_md_loadable_by_role_skill_loader(self):
         loader = RoleSkillLoader()
-        skills = loader.load_skills("coder", no_cache=True)
+        skills = loader.load_skills("solo-coder", no_cache=True)
         names = [s.name for s in skills]
         assert "codebase-audit" in names
 
@@ -626,7 +626,7 @@ class TestCoderCodebaseAuditSkill:
 
     def test_to_prompt_text_contains_content(self):
         loader = RoleSkillLoader()
-        skills = loader.load_skills("coder", no_cache=True)
+        skills = loader.load_skills("solo-coder", no_cache=True)
         skill = next(s for s in skills if s.name == "codebase-audit")
         text = skill.to_prompt_text()
         assert len(text) > 100

@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.0.0 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.1.0 Enterprise Ready</em>
 </p>
 
 <p align="center">
@@ -71,9 +71,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
+## 🚀 V4.1.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
 
-**DevSquad V4.0.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
+**DevSquad V4.1.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
 - **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
 - **P1-2 UI/UX 巡检**: 4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff 视觉回归
 - **P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁三阶段对抗验证
@@ -81,7 +81,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
 - **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
 
-5183+ tests passing。
+5219+ tests passing。
 
 ---
 
@@ -151,7 +151,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 ./scripts/start.sh --help
 ```
 
-`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`). V4.0.0 adds Loop Engineering, UI/UX 巡检, Adversarial 验证, DAG 可视化, Autonomous, and 插件热加载.
+`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`). V4.1.0 adds Loop Engineering, UI/UX 巡检, Adversarial 验证, DAG 可视化, Autonomous, and 插件热加载.
 
 ---
 
@@ -469,7 +469,7 @@ devsquad --version
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 2857+ passed
+# Expected: 5219+ passed
 ```
 
 ---
@@ -527,7 +527,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (2857+ tests passing)
+# Run all tests (5219+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -544,7 +544,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 2857+ tests (2864 collected)**
+**Total: 5219+ tests (5248 collected)**
 
 Run by priority:
 ```bash

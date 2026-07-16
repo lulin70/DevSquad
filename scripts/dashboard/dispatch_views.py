@@ -140,7 +140,8 @@ def render_task_dispatch_page(dispatcher: Any | None) -> None:
                 except (RuntimeError, ValueError, ConnectionError, TimeoutError, KeyError) as e:
                     logger.error("Dispatch failed: %s", e, exc_info=True)
                     st.error(f"❌ Dispatch failed: {e}")
-                    st.exception(e)
+                    with st.expander("🔍 Error details", expanded=False):
+                        st.exception(e)
 
     with col_clear:
         if st.button("🗑️ Clear Results", use_container_width=True):

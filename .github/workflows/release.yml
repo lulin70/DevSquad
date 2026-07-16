@@ -109,8 +109,8 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-          # Fail fast if version already exists on PyPI (idempotent releases)
-          skip-existing: false
+          # Idempotent: skip if version already exists on PyPI
+          skip-existing: true
 
       - name: Verify PyPI publication
         run: |

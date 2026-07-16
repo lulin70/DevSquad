@@ -18,9 +18,9 @@
 
 ---
 
-## 🚀 V4.0.0: Loop Engineering + UI/UX 巡検 + Adversarial 検証 + DAG 可視化 + Autonomous + プラグインホットロード
+## 🚀 V4.1.0: Loop Engineering + UI/UX 巡検 + Adversarial 検証 + DAG 可視化 + Autonomous + プラグインホットロード
 
-**DevSquad V4.0.0** は上流 TraeMultiAgentSkill v2.7 の理念を参考に、6 つの機能（P1-P3）を追加し、dispatch pipeline に完全統合、ゴースト機能なし：
+**DevSquad V4.1.0** は上流 TraeMultiAgentSkill v2.7 の理念を参考に、6 つの機能（P1-P3）を追加し、dispatch pipeline に完全統合、ゴースト機能なし：
 - **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling の5ステップ閉ループ
 - **P1-2 UI/UX 巡検**: 4 次元監査（a11y/interaction/layout/ux）+ PIL ピクセル diff ビジュアルリグレッション
 - **P2-1 Adversarial 検証**: レッドチーム攻撃 + ブルーチーム防御 + 審判仲裁の3段階対抗検証
@@ -133,9 +133,9 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## ✨ コア機能 (V4.0.0)
+## ✨ コア機能 (V4.1.0)
 
-### 🏗️ 5大能力ドメインアーキテクチャ（V4.0.0）
+### 🏗️ 5大能力ドメインアーキテクチャ（V4.1.0）
 
 DevSquad の 185+ モジュールは **5大能力ドメイン** に編成され、各ドメインが特定の問題を解決します：
 
@@ -301,7 +301,7 @@ python scripts/cli.py dispatch -t "テストタスク"
 | P1 拡張モジュール (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新モジュール (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
 | V3.9.2 拡張モジュール (LLM フォールバック/Dashboard 分割/監査永続化) | 588 | 100% |
-| **合計** | **2857+ (収集 2864)** | **100%** |
+| **合計** | **5219+ (収集 5248)** | **100%** |
 
 ---
 
@@ -394,7 +394,7 @@ DevSquad/
 │   ├── cli.py                 # コマンドラインインターフェース
 │   ├── dashboard.py           # Streamlitダッシュボード
 │   └── api_server.py          # FastAPIサーバー
-├── tests/                     # テストスイート (2857+ 個)
+├── tests/                     # テストスイート (5219+ 個)
 ├── docs/                      # ドキュメント
 ├── SKILL.md                   # Skill定義
 ├── CHANGELOG.md              # 変更ログ

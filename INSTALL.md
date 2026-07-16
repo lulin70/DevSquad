@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V4.0.0)
+# DevSquad — Installation Guide (V4.1.0)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -68,7 +68,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 3.7.2
+python3 scripts/cli.py --version   # 4.1.0
 ```
 
 ### Method 5: Web Dashboard (V3.6.0) 🎨

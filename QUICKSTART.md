@@ -3,7 +3,7 @@
 <p align="center">
   <strong>把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>V4.0.0 Enterprise Ready | One task → Multi-role AI → One conclusion</em>
+  <em>V4.1.0 Enterprise Ready | One task → Multi-role AI → One conclusion</em>
 </p>
 
 ---
@@ -70,7 +70,7 @@ print(result.consensus)  # 共识结论
 
 ```bash
 # 启动服务
-devsquad server --port 8000
+uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000
 
 # 调用 API
 curl -X POST http://localhost:8000/api/v1/dispatch \
@@ -137,12 +137,12 @@ devsquad run "评估微服务 vs 单体架构的优劣" \
 
 ```bash
 # CLI 6 大生命周期命令
-devsquad spec "用户认证系统需求"
-devsquad plan "技术选型和架构设计"
-devsquad build "核心功能实现"
-devsquad test "单元测试和集成测试"
-devsquad review "代码审查和质量门禁"
-devsquad ship "部署和发布检查"
+devsquad spec -t "用户认证系统需求"
+devsquad plan -t "技术选型和架构设计"
+devsquad build -t "核心功能实现"
+devsquad test -t "单元测试和集成测试"
+devsquad review -t "代码审查和质量门禁"
+devsquad ship -t "部署和发布检查"
 ```
 
 ---
@@ -201,8 +201,8 @@ devsquad ship "部署和发布检查"
 
 ### 质量保障
 - ✅ **E2E Test Suite**: 16 个用户旅程测试用例，100% 通过率
-- ✅ **2703+ Tests Passing**: 覆盖所有核心模块
-- ✅ **65% Maturity Score (honest assessment)**: 企业级成熟度评分
+- ✅ **5219+ Tests Passing**: 覆盖所有核心模块
+- ✅ **72% Maturity Score (honest assessment)**: 企业级成熟度评分
 
 </details>
 
@@ -225,7 +225,7 @@ devsquad ship "部署和发布检查"
 | 文档 | 适用人群 | 内容深度 |
 |------|---------|---------|
 | [README.md](README.md) | 所有用户 | 完整功能介绍 + 架构详解 |
-| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 118+ 模块参考 |
+| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 185+ 模块参考 |
 | [docs/i18n/SKILL_CN.md](docs/i18n/SKILL_CN.md) | 中文用户 | 中文版技能手册 |
 | [docs/PRD.md](docs/PRD.md) | 产品经理 | 产品需求文档 |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构师 | 技术架构文档 |
@@ -249,4 +249,4 @@ devsquad ship "部署和发布检查"
 
 ---
 
-*最后更新: 2026-07-07 | 版本: V4.0.0*
+*最后更新: 2026-07-16 | 版本: V4.1.0*
