@@ -143,16 +143,11 @@ def cmd_demo(args: argparse.Namespace) -> int:
     return 0 if all(r["success"] for r in results) else 1
 
 
-def cmd_dispatch(args: argparse.Namespace) -> int:
-    """Execute the ``dispatch`` subcommand: validate and run a task.
+def _validate_dispatch_input(args):
+    """Validate task text and roles for dispatch.
 
-    Args:
-        args: Parsed argparse namespace. Expected attributes include
-            ``task``/``task_positional``, optional ``roles``, ``mode``,
-            ``format``, ``backend``, and ``quick``.
-
-    Returns:
-        0 on success, 1 on validation or dispatch failure.
+    Returns ``(task, error_code)``. On success ``error_code`` is ``None``;
+    on failure ``task`` is ``None`` and ``error_code`` is ``1``.
     """
     task_text = args.task if args.task is not None else args.task_positional
     if not task_text:
@@ -161,7 +156,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         logging.getLogger(__name__).error(
             'Error: Task description required. Usage: devsquad dispatch "your task" or devsquad dispatch -t "your task"'
         )
-        return 1
+        return None, 1
 
     validator = InputValidator()
 
@@ -170,7 +165,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         import logging
 
         logging.getLogger(__name__).error("Error: Invalid task - %s", task_result.reason)
-        return 1
+        return None, 1
 
     task = task_result.sanitized_input or task_text
 
@@ -180,7 +175,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         roles_result = validator.validate_roles(args.roles)
         if not roles_result.valid:
             print(f"Error: Invalid roles - {roles_result.reason}", file=sys.stderr)
-            return 1
+            return None, 1
 
     # 检查可疑模式（警告但不阻止）
     warnings = validator.check_suspicious_patterns(task)
@@ -188,6 +183,15 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         print(f"Warning: Suspicious patterns detected: {', '.join(warnings)}", file=sys.stderr)
         print("Proceeding anyway...", file=sys.stderr)
 
+    return task, None
+
+
+def _build_dispatch_kwargs(args):
+    """Build MultiAgentDispatcher kwargs from parsed args.
+
+    Returns ``(kwargs, error_code)``. On backend failure ``kwargs`` is ``None``
+    and ``error_code`` is ``1``.
+    """
     kwargs = {
         "persist_dir": args.persist_dir,
         "enable_warmup": not args.no_warmup,
@@ -206,28 +210,82 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         print(f"\nError: Failed to create '{args.backend}' backend.", file=sys.stderr)
         print("Falling back to mock mode is NOT allowed when a backend is explicitly specified.", file=sys.stderr)
         print("Please check your API key and configuration.", file=sys.stderr)
-        return 1
+        return None, 1
     if backend is not None:
         kwargs["llm_backend"] = backend
 
-    disp = MultiAgentDispatcher(**kwargs)
+    return kwargs, None
 
+
+def _create_host_adapter(args, disp):
+    """Create a MultiHostAdapter when ``--host`` is specified, else ``None``."""
     # V3.9.1: Wrap with MultiHostAdapter when --host is specified
     host_type_str = getattr(args, "host", None)
-    adapter = None
-    if host_type_str:
-        host_map = {
-            "claude-code": HostType.CLAUDE_CODE,
-            "cursor": HostType.CURSOR,
-            "codex": HostType.CODEX,
-            "cline": HostType.CLINE,
-            "trae": HostType.TRAE,
-            "generic": HostType.GENERIC,
+    if not host_type_str:
+        return None
+    host_map = {
+        "claude-code": HostType.CLAUDE_CODE,
+        "cursor": HostType.CURSOR,
+        "codex": HostType.CODEX,
+        "cline": HostType.CLINE,
+        "trae": HostType.TRAE,
+        "generic": HostType.GENERIC,
+    }
+    return MultiHostAdapter(
+        host_type=host_map[host_type_str],
+        dispatcher=disp,
+    )
+
+
+def _print_dispatch_result(args, result):
+    """Print a dispatch result according to ``args.format``."""
+    if args.format == "json":
+        output = {
+            "success": result.success,
+            "matched_roles": getattr(result, "matched_roles", None),
+            "summary": result.summary,
+            "report": result.to_markdown(),
+            "timing": getattr(result, "timing", None),
         }
-        adapter = MultiHostAdapter(
-            host_type=host_map[host_type_str],
-            dispatcher=disp,
-        )
+        print(json.dumps(output, ensure_ascii=False, indent=2))
+    elif args.format == "compact":
+        print(result.summary)
+    else:
+        print(result.to_markdown())
+
+
+def _print_host_result(args, host_result):
+    """Print a host-adapter dispatch result and return the exit code."""
+    # MultiHostAdapter returns a dict; print the host-formatted report
+    if args.format == "json":
+        print(json.dumps(host_result, ensure_ascii=False, indent=2, default=str))
+    else:
+        print(f"[Host: {host_result['host']}]")
+        print(host_result["report"])
+    return 0 if host_result["success"] else 1
+
+
+def cmd_dispatch(args: argparse.Namespace) -> int:
+    """Execute the ``dispatch`` subcommand: validate and run a task.
+
+    Args:
+        args: Parsed argparse namespace. Expected attributes include
+            ``task``/``task_positional``, optional ``roles``, ``mode``,
+            ``format``, ``backend``, and ``quick``.
+
+    Returns:
+        0 on success, 1 on validation or dispatch failure.
+    """
+    task, err = _validate_dispatch_input(args)
+    if err is not None:
+        return err
+
+    kwargs, err = _build_dispatch_kwargs(args)
+    if err is not None:
+        return err
+
+    disp = MultiAgentDispatcher(**kwargs)
+    adapter = _create_host_adapter(args, disp)
 
     try:
         if args.quick:
@@ -244,13 +302,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
                 mode=args.mode,
                 dry_run=args.dry_run,
             )
-            # MultiHostAdapter returns a dict; print the host-formatted report
-            if args.format == "json":
-                print(json.dumps(host_result, ensure_ascii=False, indent=2, default=str))
-            else:
-                print(f"[Host: {host_result['host']}]")
-                print(host_result["report"])
-            return 0 if host_result["success"] else 1
+            return _print_host_result(args, host_result)
         else:
             result = disp.dispatch(
                 task,  # 使用验证后的任务
@@ -259,20 +311,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
                 dry_run=args.dry_run,
             )
 
-        if args.format == "json":
-            output = {
-                "success": result.success,
-                "matched_roles": getattr(result, "matched_roles", None),
-                "summary": result.summary,
-                "report": result.to_markdown(),
-                "timing": getattr(result, "timing", None),
-            }
-            print(json.dumps(output, ensure_ascii=False, indent=2))
-        elif args.format == "compact":
-            print(result.summary)
-        else:
-            print(result.to_markdown())
-
+        _print_dispatch_result(args, result)
         return 0 if result.success else 1
     finally:
         disp.shutdown()

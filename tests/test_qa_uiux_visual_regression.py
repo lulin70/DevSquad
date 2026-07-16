@@ -154,9 +154,12 @@ class TestUIUXAnalyzerInteraction:
         }
         analyzer = UIUXAnalyzer()
         report = analyzer.audit_dom_data(data, url="http://test")
-        assert report.total_count == 1
-        assert report.issues[0].rule == "button_too_small"
-        assert report.issues[0].severity == "warning"
+        # V4.1.1: DeterministicRuleEngine may add related issues
+        # (responsive_touch_target, interaction_button_min_size, ux_button_text_clarity).
+        # We assert the original rule is still present with correct severity.
+        button_issues = [i for i in report.issues if i.rule == "button_too_small"]
+        assert len(button_issues) == 1
+        assert button_issues[0].severity == "warning"
 
     def test_focus_outline_removed(self):
         data = {

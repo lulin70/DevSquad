@@ -120,6 +120,18 @@ class DispatchHooks:
             except (ValueError, AttributeError, TypeError) as e:
                 logger.warning("OutputSlicer failed: %s", e)
 
+        # V4.1.1: Strip [DEBUG-xxx] tags from worker output
+        from .execution_guard import ExecutionGuard
+        for wr in worker_results:
+            output = wr.get("output")
+            if output:
+                tags = ExecutionGuard.find_debug_tags(output)
+                if tags:
+                    wr["output"] = ExecutionGuard.remove_debug_lines(output)
+                    wr["_debug_tags_found"] = tags
+                    if self.usage_tracker:
+                        self.usage_tracker.tick("debug_tags_stripped")
+
     def check_anchor_drift(
         self, worker_results: list[dict[str, Any]], structured_goal: Any, scratchpad_summary: str
     ) -> Any:

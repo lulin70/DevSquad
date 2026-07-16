@@ -39,6 +39,11 @@ from .prometheus_metrics import get_metrics
 
 logger = logging.getLogger(__name__)
 
+# Sentinel returned by LLMCache._get_from_mlc when the MultiLevelCacheCoordinator
+# backend itself errored, signalling that get() should fall through to the
+# default memory/disk/Redis path. Distinct from None (a recorded MLC miss).
+_MLC_FALLTHROUGH: Any = object()
+
 
 @dataclass
 class CacheEntry:
@@ -197,119 +202,151 @@ class LLMCache(LLMCacheBase):
         Returns:
             缓存的响应，如果未找到或已过期则返回 None
         """
-        # Determine cache level for Prometheus metrics
-        _cache_level = "l1"
-
         # MultiLevelCacheCoordinator backend path
         if self.use_multi_level_cache and self._mlc is not None:
-            try:
-                cache_key = self._hash_prompt(prompt, backend, model)
-                result = self._run_async(self._mlc.get(cache_key, ttl=self.ttl))
-                if result is not None:
-                    with self._lock:
-                        self.stats["hits"] += 1
-                    # Prometheus: record cache hit
-                    try:
-                        get_metrics().record_cache_hit("l1", "llm_response")
-                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
-                        logger.debug("Prometheus cache hit recording failed: %s", e)
-                    return cast(str | None, result)
-                with self._lock:
-                    self.stats["misses"] += 1
-                # Prometheus: record cache miss
-                try:
-                    get_metrics().record_cache_miss("l1", "llm_response")
-                except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
-                    logger.debug("Prometheus cache miss recording failed: %s", e)
-                return None
-            except (RuntimeError, AttributeError, KeyError, OSError) as e:
-                logger.warning("MultiLevelCache get failed, falling back: %s", e)
+            mlc_result = self._get_from_mlc(prompt, backend, model)
+            # _get_from_mlc returns _MLC_FALLTHROUGH only when the backend
+            # itself errored; in that case we drop down to the default path.
+            # Any other value (hit response or None for a recorded miss) is
+            # returned immediately, matching the original control flow.
+            if mlc_result is not _MLC_FALLTHROUGH:
+                return cast(str | None, mlc_result)
 
         # Default backend path (original logic)
         cache_key = self._hash_prompt(prompt, backend, model)
 
-        with self._lock:
-            if cache_key in self.memory_cache:
-                entry = self.memory_cache[cache_key]
-                if not entry.is_expired(self.ttl):
-                    entry.hit_count += 1
-                    entry.last_accessed = time.time()
-                    self.stats["hits"] += 1
-                    # Prometheus: record cache hit (L1 memory)
-                    try:
-                        get_metrics().record_cache_hit("l1", "llm_response")
-                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
-                        logger.debug("Prometheus cache hit recording failed: %s", e)
-                    return entry.response
-                else:
-                    del self.memory_cache[cache_key]
-                    self.stats["expirations"] += 1
+        memory_hit = self._get_from_memory(cache_key)
+        if memory_hit is not None:
+            return memory_hit
 
-        cache_file = self.cache_dir / f"{cache_key}.json"
-        if cache_file.exists():
-            try:
-                data = json.loads(cache_file.read_text(encoding="utf-8"))
-                entry = CacheEntry(**data)
+        disk_hit = self._get_from_disk(cache_key)
+        if disk_hit is not None:
+            return disk_hit
 
-                if not entry.is_expired(self.ttl):
-                    entry.hit_count += 1
-                    entry.last_accessed = time.time()
-                    with self._lock:
-                        self._add_to_memory(cache_key, entry)
-
-                    try:
-                        cache_file.write_text(json.dumps(asdict(entry)), encoding="utf-8")
-                    except (OSError, ValueError) as e:
-                        logger.debug("Disk cache write-back failed: %s", e)
-
-                    with self._lock:
-                        self.stats["hits"] += 1
-                    # Prometheus: record cache hit (L1 disk)
-                    try:
-                        get_metrics().record_cache_hit("l1", "llm_response")
-                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
-                        logger.debug("Prometheus cache hit recording failed: %s", e)
-                    return entry.response
-                else:
-                    try:
-                        cache_file.unlink()
-                    except OSError as e:
-                        logger.debug("Failed to delete expired cache file: %s", e)
-                    with self._lock:
-                        self.stats["expirations"] += 1
-            except (OSError, json.JSONDecodeError, ValueError, KeyError) as e:
-                logger.debug("Disk cache read failed: %s", e)
-                try:
-                    cache_file.unlink()
-                except OSError as e2:
-                    logger.debug("Failed to delete corrupt cache file: %s", e2)
-
-        # Redis L2 lookup (after disk miss)
-        if self._redis_cache:
-            try:
-                redis_key = self._redis_hash_prompt(prompt, backend, model)
-                redis_value = self._redis_cache.get(redis_key)
-                if redis_value is not None:
-                    with self._lock:
-                        self.stats["hits"] += 1
-                    # Prometheus: record cache hit (L2 Redis)
-                    try:
-                        get_metrics().record_cache_hit("l2", "llm_response")
-                    except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
-                        logger.debug("Prometheus cache hit recording failed: %s", e)
-                    logger.debug("Redis L2 cache hit for key %s", redis_key[:16])
-                    return cast(str | None, redis_value)
-            except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
-                logger.debug("Redis L2 cache read failed: %s", e)
+        redis_hit = self._get_from_redis(prompt, backend, model)
+        if redis_hit is not None:
+            return redis_hit
 
         with self._lock:
             self.stats["misses"] += 1
-        # Prometheus: record cache miss
+        self._record_prometheus_miss("l1")
+        return None
+
+    @staticmethod
+    def _record_prometheus_hit(level: str) -> None:
+        """Record a Prometheus cache hit; swallow errors from optional metrics."""
         try:
-            get_metrics().record_cache_miss("l1", "llm_response")
+            get_metrics().record_cache_hit(level, "llm_response")
+        except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
+            logger.debug("Prometheus cache hit recording failed: %s", e)
+
+    @staticmethod
+    def _record_prometheus_miss(level: str) -> None:
+        """Record a Prometheus cache miss; swallow errors from optional metrics."""
+        try:
+            get_metrics().record_cache_miss(level, "llm_response")
         except (ValueError, KeyError, AttributeError, RuntimeError) as e:  # Broad catch: optional metrics
             logger.debug("Prometheus cache miss recording failed: %s", e)
+
+    def _get_from_mlc(self, prompt: str, backend: str, model: str) -> Any:
+        """Look up a cached response via the MultiLevelCacheCoordinator.
+
+        Returns the cached response on hit, None on miss (after recording the
+        miss), or the sentinel ``_MLC_FALLTHROUGH`` when the backend itself
+        errored so the caller can fall through to the default path.
+        """
+        try:
+            cache_key = self._hash_prompt(prompt, backend, model)
+            result = self._run_async(self._mlc.get(cache_key, ttl=self.ttl))
+        except (RuntimeError, AttributeError, KeyError, OSError) as e:
+            logger.warning("MultiLevelCache get failed, falling back: %s", e)
+            return _MLC_FALLTHROUGH
+        if result is not None:
+            with self._lock:
+                self.stats["hits"] += 1
+            self._record_prometheus_hit("l1")
+            return cast(str | None, result)
+        with self._lock:
+            self.stats["misses"] += 1
+        self._record_prometheus_miss("l1")
         return None
+
+    def _get_from_memory(self, cache_key: str) -> str | None:
+        """Return a non-expired response from the in-memory cache, else None."""
+        with self._lock:
+            if cache_key not in self.memory_cache:
+                return None
+            entry = self.memory_cache[cache_key]
+            if entry.is_expired(self.ttl):
+                del self.memory_cache[cache_key]
+                self.stats["expirations"] += 1
+                return None
+            entry.hit_count += 1
+            entry.last_accessed = time.time()
+            self.stats["hits"] += 1
+            # Prometheus: record cache hit (L1 memory)
+            self._record_prometheus_hit("l1")
+            return entry.response
+
+    def _get_from_disk(self, cache_key: str) -> str | None:
+        """Return a non-expired response from the on-disk cache, else None."""
+        cache_file = self.cache_dir / f"{cache_key}.json"
+        if not cache_file.exists():
+            return None
+        try:
+            data = json.loads(cache_file.read_text(encoding="utf-8"))
+            entry = CacheEntry(**data)
+        except (OSError, json.JSONDecodeError, ValueError, KeyError) as e:
+            logger.debug("Disk cache read failed: %s", e)
+            try:
+                cache_file.unlink()
+            except OSError as e2:
+                logger.debug("Failed to delete corrupt cache file: %s", e2)
+            return None
+
+        if entry.is_expired(self.ttl):
+            try:
+                cache_file.unlink()
+            except OSError as e:
+                logger.debug("Failed to delete expired cache file: %s", e)
+            with self._lock:
+                self.stats["expirations"] += 1
+            return None
+
+        entry.hit_count += 1
+        entry.last_accessed = time.time()
+        with self._lock:
+            self._add_to_memory(cache_key, entry)
+
+        try:
+            cache_file.write_text(json.dumps(asdict(entry)), encoding="utf-8")
+        except (OSError, ValueError) as e:
+            logger.debug("Disk cache write-back failed: %s", e)
+
+        with self._lock:
+            self.stats["hits"] += 1
+        # Prometheus: record cache hit (L1 disk)
+        self._record_prometheus_hit("l1")
+        return entry.response
+
+    def _get_from_redis(self, prompt: str, backend: str, model: str) -> str | None:
+        """Return a response from the Redis L2 cache, else None."""
+        if not self._redis_cache:
+            return None
+        try:
+            redis_key = self._redis_hash_prompt(prompt, backend, model)
+            redis_value = self._redis_cache.get(redis_key)
+        except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
+            logger.debug("Redis L2 cache read failed: %s", e)
+            return None
+        if redis_value is None:
+            return None
+        with self._lock:
+            self.stats["hits"] += 1
+        # Prometheus: record cache hit (L2 Redis)
+        self._record_prometheus_hit("l2")
+        logger.debug("Redis L2 cache hit for key %s", redis_key[:16])
+        return cast(str | None, redis_value)
 
     def set(self, prompt: str, response: str, backend: str, model: str, ttl: int | None = None) -> None:
         """

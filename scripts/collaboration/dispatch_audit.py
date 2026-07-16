@@ -44,7 +44,11 @@ Usage::
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import logging
+import os
+import secrets
 import sqlite3
 import threading
 import time
@@ -52,6 +56,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 __all__ = ["DispatchAuditLogger", "AuditEntry"]
+
+logger = logging.getLogger(__name__)
+
+# Environment variable name for the HMAC secret key used to tamper-proof the
+# audit chain. When unset, a random per-process key is generated (with a
+# WARNING) — this means verification cannot span process restarts.
+_AUDIT_HMAC_KEY_ENV = "DEV_SQUAD_AUDIT_HMAC_KEY"
 
 
 # The genesis hash for the first entry in the chain (64 hex zeros).
@@ -89,11 +100,18 @@ class AuditEntry:
 
 
 class DispatchAuditLogger:
-    """Append-only audit logger with SHA-256 chain hash.
+    """Append-only audit logger with HMAC-SHA256 chain hash.
 
     Records dispatch lifecycle events (start, end, permission_denied, error)
     with cryptographic integrity. Each entry's hash chains to the previous
-    entry, making tampering detectable via :meth:`verify_chain`.
+    entry, making tampering detectable via :meth:`verify_chain` or the
+    stricter :meth:`verify_hmac_chain`.
+
+    The chain uses HMAC-SHA256 with a secret key (loaded from the
+    ``DEV_SQUAD_AUDIT_HMAC_KEY`` environment variable) so that an attacker
+    who can modify the log cannot recompute valid hashes without the key.
+    The previous plain SHA-256 chain (pre-V4.1.1) is still recognized by
+    :meth:`verify_chain` for backward compatibility (with a WARNING).
 
     Thread Safety
     -------------
@@ -104,6 +122,11 @@ class DispatchAuditLogger:
     - ``db_path=None`` (default): in-memory only (lost on exit).
     - ``db_path=Path(...)``: persisted to SQLite database.
     """
+
+    # Class-level cache for the randomly-generated HMAC key (when the env
+    # var is not set). This ensures all instances in the same process share
+    # the same key, so persistence tests within one process still verify.
+    _hmac_key_cache: bytes | None = None
 
     def __init__(self, db_path: Path | None = None) -> None:
         """Initialize the audit logger.
@@ -122,6 +145,37 @@ class DispatchAuditLogger:
 
         if db_path is not None:
             self._init_db()
+
+    # ------------------------------------------------------------------
+    # HMAC key management
+    # ------------------------------------------------------------------
+
+    def _get_hmac_key(self) -> bytes:
+        """Load or create the HMAC secret key.
+
+        The key is loaded from the ``DEV_SQUAD_AUDIT_HMAC_KEY`` environment
+        variable. If the env var is not set, a random 32-byte key is
+        generated once per process (cached at class level) and a WARNING is
+        logged — in this state, audit chain verification cannot span
+        process restarts because the random key is lost on exit.
+
+        Returns
+        -------
+        bytes
+            The HMAC key.
+        """
+        env_key = os.environ.get(_AUDIT_HMAC_KEY_ENV)
+        if env_key:
+            return env_key.encode("utf-8")
+        if DispatchAuditLogger._hmac_key_cache is None:
+            DispatchAuditLogger._hmac_key_cache = secrets.token_bytes(32)
+            logger.warning(
+                "%s not set — generated a random HMAC key for this process. "
+                "Audit chain verification will FAIL across process restarts. "
+                "Set the env var in production for persistent tamper-proofing.",
+                _AUDIT_HMAC_KEY_ENV,
+            )
+        return DispatchAuditLogger._hmac_key_cache
 
     def _init_db(self) -> None:
         """Initialize the SQLite database and load existing entries."""
@@ -165,18 +219,17 @@ class DispatchAuditLogger:
             self._entries.append(entry)
             self._prev_hash = entry.entry_hash
 
-    def _compute_hash(
+    def _build_hash_payload(
         self,
         event_type: str,
         user_id: str,
         timestamp: float,
         details: dict,
         prev_hash: str,
-    ) -> str:
-        """Compute the SHA-256 hash for an audit entry.
+    ) -> bytes:
+        """Build the canonical length-prefixed payload for an audit entry.
 
-        The hash is computed from length-prefixed fields to eliminate
-        boundary ambiguity:
+        The payload format eliminates boundary ambiguity:
 
             prev_hash + len(event_type):event_type + len(user_id):user_id
             + timestamp(%.6f) + json.dumps(details)
@@ -196,12 +249,69 @@ class DispatchAuditLogger:
 
         Returns
         -------
-        str
-            The 64-character hex SHA-256 digest.
+        bytes
+            The UTF-8 encoded payload bytes.
         """
         details_json = json.dumps(details, sort_keys=True)
         payload = f"{prev_hash}{len(event_type)}:{event_type}{len(user_id)}:{user_id}{timestamp:.6f}{details_json}"
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        return payload.encode("utf-8")
+
+    def _compute_hash(
+        self,
+        event_type: str,
+        user_id: str,
+        timestamp: float,
+        details: dict,
+        prev_hash: str,
+    ) -> str:
+        """Compute the HMAC-SHA256 hash for an audit entry.
+
+        Uses HMAC-SHA256 with a secret key (from
+        ``DEV_SQUAD_AUDIT_HMAC_KEY``) so that an attacker who can modify
+        the log cannot recompute valid hashes without the key.
+
+        Parameters
+        ----------
+        event_type:
+            The event type string.
+        user_id:
+            The user ID string.
+        timestamp:
+            The Unix timestamp.
+        details:
+            The details dict (JSON-serialized with sorted keys).
+        prev_hash:
+            The previous entry's hash (or GENESIS_HASH for first entry).
+
+        Returns
+        -------
+        str
+            The 64-character hex HMAC-SHA256 digest.
+        """
+        payload = self._build_hash_payload(
+            event_type, user_id, timestamp, details, prev_hash
+        )
+        key = self._get_hmac_key()
+        return hmac.new(key, payload, hashlib.sha256).hexdigest()
+
+    def _compute_legacy_hash(
+        self,
+        event_type: str,
+        user_id: str,
+        timestamp: float,
+        details: dict,
+        prev_hash: str,
+    ) -> str:
+        """Compute the legacy plain SHA-256 hash (pre-V4.1.1, no HMAC key).
+
+        Used only by :meth:`verify_chain` for backward compatibility with
+        entries written before the HMAC upgrade. New entries always use
+        :meth:`_compute_hash` (HMAC).
+        """
+        payload = self._build_hash_payload(
+            event_type, user_id, timestamp, details, prev_hash
+        )
+        return hashlib.sha256(payload).hexdigest()
 
     def _append_entry(
         self,
@@ -396,6 +506,13 @@ class DispatchAuditLogger:
         2. Each entry's entry_hash matches the recomputed hash.
         3. Each entry's prev_hash matches the previous entry's entry_hash.
 
+        Verification uses HMAC-SHA256. For backward compatibility with
+        entries written before the V4.1.1 HMAC upgrade, if the HMAC
+        recomputation does not match, the legacy plain SHA-256 hash is
+        tried — if it matches, a WARNING is logged (the entry is treated
+        as a legacy entry) and verification continues. A genuinely
+        tampered entry matches neither hash and fails verification.
+
         Returns
         -------
         bool
@@ -410,7 +527,70 @@ class DispatchAuditLogger:
                 # Check prev_hash chains correctly.
                 if entry.prev_hash != expected_prev:
                     return False
-                # Recompute hash and check it matches.
+                # Recompute HMAC hash and check it matches.
+                recomputed = self._compute_hash(
+                    event_type=entry.event_type,
+                    user_id=entry.user_id,
+                    timestamp=entry.timestamp,
+                    details=entry.details,
+                    prev_hash=entry.prev_hash,
+                )
+                if recomputed != entry.entry_hash:
+                    # Backward compat: try legacy plain SHA-256 (pre-HMAC).
+                    legacy = self._compute_legacy_hash(
+                        event_type=entry.event_type,
+                        user_id=entry.user_id,
+                        timestamp=entry.timestamp,
+                        details=entry.details,
+                        prev_hash=entry.prev_hash,
+                    )
+                    if legacy == entry.entry_hash:
+                        logger.warning(
+                            "Audit entry uses legacy SHA-256 hash (pre-HMAC). "
+                            "Re-hash with HMAC for full tamper-proofing. "
+                            "event_type=%s user_id=%s",
+                            entry.event_type,
+                            entry.user_id,
+                        )
+                    else:
+                        return False
+                expected_prev = entry.entry_hash
+            return True
+
+    def verify_hmac_chain(self, entries: list[AuditEntry] | None = None) -> bool:
+        """Strictly verify the HMAC chain integrity (no legacy fallback).
+
+        Recomputes the HMAC-SHA256 hash for every entry and checks that:
+        1. The first entry's prev_hash equals GENESIS_HASH.
+        2. Each entry's entry_hash matches the recomputed HMAC hash.
+        3. Each entry's prev_hash matches the previous entry's entry_hash.
+
+        Unlike :meth:`verify_chain`, this method does NOT fall back to the
+        legacy plain SHA-256 hash. Entries that use the old (non-HMAC) hash
+        will fail verification. Use this for security-critical verification
+        where all entries are expected to be HMAC-signed.
+
+        Parameters
+        ----------
+        entries:
+            Optional list of entries to verify. If None, all entries in
+            this logger are verified.
+
+        Returns
+        -------
+        bool
+            True if the HMAC chain is intact, False if any entry is
+            tampered or uses a legacy (non-HMAC) hash.
+        """
+        with self._lock:
+            to_verify = entries if entries is not None else self._entries
+            if not to_verify:
+                return True  # Empty chain is valid.
+
+            expected_prev = GENESIS_HASH
+            for entry in to_verify:
+                if entry.prev_hash != expected_prev:
+                    return False
                 recomputed = self._compute_hash(
                     event_type=entry.event_type,
                     user_id=entry.user_id,

@@ -61,113 +61,10 @@ class WorkflowEngineLifecycleMixin(WorkflowEngineBase):
     def _split_task_into_steps(
         self, task_title: str, task_description: str, target_agent: str | None = None
     ) -> list[WorkflowStep]:
-        steps: list[WorkflowStep] = []
         task_text = f"{task_title} {task_description}".lower()
+        kinds = self._detect_task_kinds(task_text)
 
-        is_architecture = any(kw in task_text for kw in ["architecture", "design", "system", "架构", "设计"])
-        is_ui_design = any(kw in task_text for kw in ["ui", "interface", "frontend", "界面", "交互"])
-        is_development = any(kw in task_text for kw in ["develop", "implement", "code", "开发", "实现", "编码"])
-        is_testing = any(kw in task_text for kw in ["test", "verify", "quality", "测试", "验证"])
-        is_product = any(kw in task_text for kw in ["requirement", "product", "prd", "需求", "产品"])
-        is_deployment = any(kw in task_text for kw in ["deploy", "release", "ci/cd", "部署", "发布"])
-        is_security = any(kw in task_text for kw in ["security", "auth", "vulnerability", "安全", "认证"])
-
-        step_id = 1
-
-        if is_product or is_architecture:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="Requirements Analysis",
-                    description="Analyze task requirements and create detailed specification",
-                    role_id="product-manager",
-                    action="analyze_requirements",
-                )
-            )
-            step_id += 1
-
-        if is_architecture:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="Architecture Design",
-                    description="Design system architecture and technology selection",
-                    role_id="architect",
-                    action="design_architecture",
-                )
-            )
-            step_id += 1
-
-        if is_security:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="Security Review",
-                    description="Review security implications and recommend protections",
-                    role_id="security",
-                    action="security_review",
-                )
-            )
-            step_id += 1
-
-        if is_ui_design:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="UI Design",
-                    description="Design user interface and interaction flow",
-                    role_id="ui-designer",
-                    action="design_ui",
-                )
-            )
-            step_id += 1
-
-        if is_testing:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="Test Design",
-                    description="Create test strategy and test cases",
-                    role_id="tester",
-                    action="design_tests",
-                )
-            )
-            step_id += 1
-
-        if is_development:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="Development",
-                    description="Implement feature code",
-                    role_id="solo-coder",
-                    action="develop",
-                )
-            )
-            step_id += 1
-
-        if is_testing and is_development:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="Test Execution",
-                    description="Execute test cases and verify functionality",
-                    role_id="tester",
-                    action="execute_tests",
-                )
-            )
-            step_id += 1
-
-        if is_deployment:
-            steps.append(
-                WorkflowStep(
-                    step_id=f"step_{step_id}",
-                    name="Deployment",
-                    description="Deploy and release the system",
-                    role_id="devops",
-                    action="deploy",
-                )
-            )
+        steps = self._build_steps_for_kinds(kinds)
 
         if not steps:
             steps.append(
@@ -180,6 +77,55 @@ class WorkflowEngineLifecycleMixin(WorkflowEngineBase):
                 )
             )
 
+        return steps
+
+    @staticmethod
+    def _detect_task_kinds(task_text: str) -> dict[str, bool]:
+        """Detect which task categories are implied by the task text."""
+        return {
+            "architecture": any(kw in task_text for kw in ["architecture", "design", "system", "架构", "设计"]),
+            "ui_design": any(kw in task_text for kw in ["ui", "interface", "frontend", "界面", "交互"]),
+            "development": any(kw in task_text for kw in ["develop", "implement", "code", "开发", "实现", "编码"]),
+            "testing": any(kw in task_text for kw in ["test", "verify", "quality", "测试", "验证"]),
+            "product": any(kw in task_text for kw in ["requirement", "product", "prd", "需求", "产品"]),
+            "deployment": any(kw in task_text for kw in ["deploy", "release", "ci/cd", "部署", "发布"]),
+            "security": any(kw in task_text for kw in ["security", "auth", "vulnerability", "安全", "认证"]),
+        }
+
+    @staticmethod
+    def _build_steps_for_kinds(kinds: dict[str, bool]) -> list[WorkflowStep]:
+        """Build the ordered workflow steps triggered by the detected task kinds.
+
+        Each spec is ``(required_kinds, mode, step_fields)`` where ``mode`` is
+        ``"any"`` (triggered when any of the kinds is set) or ``"all"``
+        (triggered only when all of the kinds are set).
+        """
+        specs: list[tuple[list[str], str, tuple[str, str, str, str]]] = [
+            (["product", "architecture"], "any", ("Requirements Analysis", "Analyze task requirements and create detailed specification", "product-manager", "analyze_requirements")),
+            (["architecture"], "any", ("Architecture Design", "Design system architecture and technology selection", "architect", "design_architecture")),
+            (["security"], "any", ("Security Review", "Review security implications and recommend protections", "security", "security_review")),
+            (["ui_design"], "any", ("UI Design", "Design user interface and interaction flow", "ui-designer", "design_ui")),
+            (["testing"], "any", ("Test Design", "Create test strategy and test cases", "tester", "design_tests")),
+            (["development"], "any", ("Development", "Implement feature code", "solo-coder", "develop")),
+            (["testing", "development"], "all", ("Test Execution", "Execute test cases and verify functionality", "tester", "execute_tests")),
+            (["deployment"], "any", ("Deployment", "Deploy and release the system", "devops", "deploy")),
+        ]
+        steps: list[WorkflowStep] = []
+        step_id = 1
+        for required, mode, (name, description, role_id, action) in specs:
+            triggered = all(kinds[k] for k in required) if mode == "all" else any(kinds[k] for k in required)
+            if not triggered:
+                continue
+            steps.append(
+                WorkflowStep(
+                    step_id=f"step_{step_id}",
+                    name=name,
+                    description=description,
+                    role_id=role_id,
+                    action=action,
+                )
+            )
+            step_id += 1
         return steps
 
     def create_lifecycle(self, template_name: str = "full") -> WorkflowDefinition:

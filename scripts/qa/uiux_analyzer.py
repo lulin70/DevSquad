@@ -24,7 +24,9 @@ import math
 import re
 from typing import Any
 
+from .deterministic_rule_engine import DeterministicRuleEngine
 from .models import UIUXAuditReport, UIUXIssue
+from .taste_dials import TasteDials
 
 logger = logging.getLogger(__name__)
 
@@ -197,10 +199,13 @@ class UIUXAnalyzer:
         min_button_size: int = 44,
         contrast_threshold: float = 4.5,
         hsv_harsh_saturation_threshold: float = 0.6,
+        taste_dials: TasteDials | None = None,
     ) -> None:
         self._min_button_size = min_button_size
         self._contrast_threshold = contrast_threshold
         self._hsv_harsh_sat_threshold = hsv_harsh_saturation_threshold
+        self._taste_dials = taste_dials or TasteDials()
+        self._rule_engine = DeterministicRuleEngine()
 
     def audit(self, page: Any, url: str = "") -> UIUXAuditReport:
         """对 Playwright Page 执行综合巡检。
@@ -228,6 +233,9 @@ class UIUXAnalyzer:
         """对预先采集的 DOM 数据执行巡检（无 Playwright 依赖）。
 
         用于单元测试或离线分析。失败安全：任一维度异常不影响其他维度。
+
+        V4.1.1: Integrates DeterministicRuleEngine (46 deterministic rules) for
+        enhanced coverage beyond the original 4-section heuristic checks.
         """
         issues: list[UIUXIssue] = []
         for section, checker in [
@@ -244,6 +252,18 @@ class UIUXAnalyzer:
                 issues.extend(checker(section_data))
             except Exception as exc:
                 logger.warning("UIUX check %s failed: %s", section, exc)
+
+        # V4.1.1: Run 46 deterministic rules for enhanced coverage
+        try:
+            deterministic_issues = self._rule_engine.check(
+                probes=data,
+                dials=self._taste_dials,
+                context={"url": url},
+            )
+            issues.extend(deterministic_issues)
+        except Exception as exc:
+            logger.warning("DeterministicRuleEngine failed: %s", exc)
+
         return UIUXAuditReport(url=url, issues=issues)
 
     def _check_a11y(self, a11y: dict[str, Any]) -> list[UIUXIssue]:

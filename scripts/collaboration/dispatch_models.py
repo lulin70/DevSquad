@@ -271,127 +271,196 @@ class DispatchResult:
             Markdown string with task status, duration, roles, summary, and worker outputs.
         """
         t = I18N.get(self.lang, I18N["zh"])
-        is_mock = any("[MOCK MODE]" in (wr.get("output", "") or "") for wr in (self.worker_results or []))
-        lines = []
-        if is_mock:
-            lines.extend([t["mock_banner"], t["mock_hint"], ""])
-        lines.extend(
-            [
-                t["title"],
-                "",
-                f"{t['task']}: {self.task_description}",
-                f"**{t['status_label']}**: {t['status_ok'] if self.success else t['status_fail']}",
-                f"{t['duration']}: {self.duration_seconds:.2f}s",
-                f"{t['roles']}: {', '.join(self.matched_roles)}",
-                "",
-                t["summary"],
-                self.summary or t["no_summary"],
-            ]
-        )
-        if self.worker_results:
-            lines.append("")
-            lines.append(t["output"])
-            role_icons = {
-                "architect": "🏗️",
-                "product-manager": "📋",
-                "security": "🔒",
-                "tester": "🧪",
-                "solo-coder": "💻",
-                "devops": "⚙️",
-                "ui-designer": "🎨",
-            }
-            for wr in self.worker_results:
-                role_id = wr.get("role_id", wr.get("role", "unknown"))
-                role_name = wr.get("role_name", wr.get("role", "unknown"))
-                status_icon = "✅" if wr.get("success") else "❌"
-                icon = role_icons.get(role_id, "🤖")
-                output = wr.get("output", "") or ""
-                lines.append("")
-                lines.append(f"### {icon} {role_name} [{status_icon}]")
-                lines.append("---")
-                if output:
-                    lines.append(output)
-                else:
-                    lines.append(t["no_output"])
-        if self.scratchpad_summary:
-            lines.extend(["", t["scratchpad"], self.scratchpad_summary])
-        if self.consensus_records:
-            lines.append("")
-            lines.append(t["consensus"])
-            for cr in self.consensus_records:
-                icon = "✅" if cr.get("outcome") == "APPROVED" else "⚠️"
-                lines.append(f"- [{icon}] {cr.get('topic', '')}: {cr.get('outcome', '')}")
-        if self.compression_info:
-            ci = self.compression_info
-            lines.extend(
-                [
-                    "",
-                    t["compression"],
-                    f"- {t['duration'].replace('**', '')}: {ci.get('level', 'N/A')}",
-                    f"- {ci.get('original_tokens', 0)} tokens → {ci.get('compressed_tokens', 0)} tokens ({ci.get('reduction_pct', 0)}%)",
-                ]
-            )
-        if self.memory_stats:
-            ms = self.memory_stats
-            lines.extend(
-                [
-                    "",
-                    t["memory"],
-                    f"- Total: {ms.get('total_memories', 0)}",
-                    f"- Knowledge: {ms.get('knowledge_count', 0)}",
-                    f"- Episodic: {ms.get('episodic_count', 0)}",
-                ]
-            )
-        if self.permission_checks:
-            lines.append("")
-            lines.append(t["permission"])
-            for pc in self.permission_checks:
-                icon = "✅" if pc.get("allowed") else "🚫"
-                lines.append(f"- [{icon}] {pc.get('action', '')}: {pc.get('decision', '')}")
-        if self.skill_proposals:
-            lines.append("")
-            lines.append(t["skill"])
-            for sp in self.skill_proposals:
-                lines.append(f"- 📌 {sp.get('title', 'New Skill')}: {sp.get('confidence', 0):.0%}")
-        if self.quality_report:
-            lines.extend(["", t["quality"]])
-            lines.append(self.quality_report)
-        # Suggested next steps
-        if self.suggested_next_steps:
-            i18n_next = t.get("next_steps", "## 🔄 Suggested Next Steps")
-            lines.extend(["", i18n_next])
-            for i, step in enumerate(self.suggested_next_steps, 1):
-                lines.append(f"{i}. {step}")
-        if self.errors:
-            lines.extend(["", t["errors"]])
-            for e in self.errors:
-                lines.append(f"- {e}")
-        if self.concern_packs:
-            lines.extend(["", "## 🧩 关注点增强包"])
-            for cp in self.concern_packs:
-                lines.append(f"- **{cp.get('name', '')}**: {cp.get('description', '')}")
-        if self.anchor_result:
-            lines.extend(["", "## ⚓ Anchor 对齐检查"])
-            ar = self.anchor_result
-            lines.append(f"- 对齐状态: {'✅ 通过' if ar.get('aligned') else '⚠️ 偏移'}")
-            if ar.get('details'):
-                lines.append(f"- 详情: {ar['details']}")
-        if self.intent_match:
-            lines.extend(["", "## 🎯 意图匹配"])
-            im = self.intent_match
-            lines.append(f"- 意图: {im.get('intent', 'N/A')}")
-            lines.append(f"- 置信度: {im.get('confidence', 0):.0%}")
-        if self.five_axis_result:
-            lines.extend(["", "## 🌟 五轴共识审查"])
-            fr = self.five_axis_result
-            for axis, result in fr.items() if isinstance(fr, dict) else []:
-                lines.append(f"- {axis}: {result}")
-        if self.retrospective_report:
-            lines.extend(["", "## 📊 回顾分析"])
-            rr = self.retrospective_report
-            if isinstance(rr, dict):
-                for key, val in rr.items():
-                    lines.append(f"- {key}: {val}")
-            else:
-                lines.append(str(rr))
+        sections = [
+            self._format_mock_banner(t),
+            self._format_header(t),
+            self._format_worker_results(t),
+            self._format_scratchpad(t),
+            self._format_consensus(t),
+            self._format_compression(t),
+            self._format_memory(t),
+            self._format_permission(t),
+            self._format_skill(t),
+            self._format_quality(t),
+            self._format_next_steps(t),
+            self._format_errors(t),
+            self._format_concern_packs(),
+            self._format_anchor(),
+            self._format_intent_match(),
+            self._format_five_axis(),
+            self._format_retrospective(),
+        ]
+        lines: list[str] = []
+        for section in sections:
+            lines.extend(section)
         return "\n".join(lines)
+
+    def _format_mock_banner(self, t: dict[str, str]) -> list[str]:
+        is_mock = any("[MOCK MODE]" in (wr.get("output", "") or "") for wr in (self.worker_results or []))
+        if not is_mock:
+            return []
+        return [t["mock_banner"], t["mock_hint"], ""]
+
+    def _format_header(self, t: dict[str, str]) -> list[str]:
+        return [
+            t["title"],
+            "",
+            f"{t['task']}: {self.task_description}",
+            f"**{t['status_label']}**: {t['status_ok'] if self.success else t['status_fail']}",
+            f"{t['duration']}: {self.duration_seconds:.2f}s",
+            f"{t['roles']}: {', '.join(self.matched_roles)}",
+            "",
+            t["summary"],
+            self.summary or t["no_summary"],
+        ]
+
+    def _format_worker_results(self, t: dict[str, str]) -> list[str]:
+        if not self.worker_results:
+            return []
+        role_icons = {
+            "architect": "🏗️",
+            "product-manager": "📋",
+            "security": "🔒",
+            "tester": "🧪",
+            "solo-coder": "💻",
+            "devops": "⚙️",
+            "ui-designer": "🎨",
+        }
+        lines = ["", t["output"]]
+        for wr in self.worker_results:
+            role_id = wr.get("role_id", wr.get("role", "unknown"))
+            role_name = wr.get("role_name", wr.get("role", "unknown"))
+            status_icon = "✅" if wr.get("success") else "❌"
+            icon = role_icons.get(role_id, "🤖")
+            output = wr.get("output", "") or ""
+            lines.append("")
+            lines.append(f"### {icon} {role_name} [{status_icon}]")
+            lines.append("---")
+            lines.append(output if output else t["no_output"])
+        return lines
+
+    def _format_scratchpad(self, t: dict[str, str]) -> list[str]:
+        if not self.scratchpad_summary:
+            return []
+        return ["", t["scratchpad"], self.scratchpad_summary]
+
+    def _format_consensus(self, t: dict[str, str]) -> list[str]:
+        if not self.consensus_records:
+            return []
+        lines = ["", t["consensus"]]
+        for cr in self.consensus_records:
+            icon = "✅" if cr.get("outcome") == "APPROVED" else "⚠️"
+            lines.append(f"- [{icon}] {cr.get('topic', '')}: {cr.get('outcome', '')}")
+        return lines
+
+    def _format_compression(self, t: dict[str, str]) -> list[str]:
+        if not self.compression_info:
+            return []
+        ci = self.compression_info
+        return [
+            "",
+            t["compression"],
+            f"- {t['duration'].replace('**', '')}: {ci.get('level', 'N/A')}",
+            f"- {ci.get('original_tokens', 0)} tokens → {ci.get('compressed_tokens', 0)} tokens ({ci.get('reduction_pct', 0)}%)",
+        ]
+
+    def _format_memory(self, t: dict[str, str]) -> list[str]:
+        if not self.memory_stats:
+            return []
+        ms = self.memory_stats
+        return [
+            "",
+            t["memory"],
+            f"- Total: {ms.get('total_memories', 0)}",
+            f"- Knowledge: {ms.get('knowledge_count', 0)}",
+            f"- Episodic: {ms.get('episodic_count', 0)}",
+        ]
+
+    def _format_permission(self, t: dict[str, str]) -> list[str]:
+        if not self.permission_checks:
+            return []
+        lines = ["", t["permission"]]
+        for pc in self.permission_checks:
+            icon = "✅" if pc.get("allowed") else "🚫"
+            lines.append(f"- [{icon}] {pc.get('action', '')}: {pc.get('decision', '')}")
+        return lines
+
+    def _format_skill(self, t: dict[str, str]) -> list[str]:
+        if not self.skill_proposals:
+            return []
+        lines = ["", t["skill"]]
+        for sp in self.skill_proposals:
+            lines.append(f"- 📌 {sp.get('title', 'New Skill')}: {sp.get('confidence', 0):.0%}")
+        return lines
+
+    def _format_quality(self, t: dict[str, str]) -> list[str]:
+        if not self.quality_report:
+            return []
+        return ["", t["quality"], self.quality_report]
+
+    def _format_next_steps(self, t: dict[str, str]) -> list[str]:
+        # Suggested next steps
+        if not self.suggested_next_steps:
+            return []
+        i18n_next = t.get("next_steps", "## 🔄 Suggested Next Steps")
+        lines = ["", i18n_next]
+        for i, step in enumerate(self.suggested_next_steps, 1):
+            lines.append(f"{i}. {step}")
+        return lines
+
+    def _format_errors(self, t: dict[str, str]) -> list[str]:
+        if not self.errors:
+            return []
+        lines = ["", t["errors"]]
+        for e in self.errors:
+            lines.append(f"- {e}")
+        return lines
+
+    def _format_concern_packs(self) -> list[str]:
+        if not self.concern_packs:
+            return []
+        lines = ["", "## 🧩 关注点增强包"]
+        for cp in self.concern_packs:
+            lines.append(f"- **{cp.get('name', '')}**: {cp.get('description', '')}")
+        return lines
+
+    def _format_anchor(self) -> list[str]:
+        if not self.anchor_result:
+            return []
+        ar = self.anchor_result
+        lines = ["", "## ⚓ Anchor 对齐检查", f"- 对齐状态: {'✅ 通过' if ar.get('aligned') else '⚠️ 偏移'}"]
+        if ar.get("details"):
+            lines.append(f"- 详情: {ar['details']}")
+        return lines
+
+    def _format_intent_match(self) -> list[str]:
+        if not self.intent_match:
+            return []
+        im = self.intent_match
+        return [
+            "",
+            "## 🎯 意图匹配",
+            f"- 意图: {im.get('intent', 'N/A')}",
+            f"- 置信度: {im.get('confidence', 0):.0%}",
+        ]
+
+    def _format_five_axis(self) -> list[str]:
+        if not self.five_axis_result:
+            return []
+        fr = self.five_axis_result
+        lines = ["", "## 🌟 五轴共识审查"]
+        for axis, result in fr.items() if isinstance(fr, dict) else []:
+            lines.append(f"- {axis}: {result}")
+        return lines
+
+    def _format_retrospective(self) -> list[str]:
+        if not self.retrospective_report:
+            return []
+        rr = self.retrospective_report
+        lines = ["", "## 📊 回顾分析"]
+        if isinstance(rr, dict):
+            for key, val in rr.items():
+                lines.append(f"- {key}: {val}")
+        else:
+            lines.append(str(rr))
+        return lines

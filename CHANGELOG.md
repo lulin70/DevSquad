@@ -7,6 +7,67 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.1] - 2026-07-16
+
+PATCH release: 4 ghost-feature integrations + 22 radon cc D+ refactors + 4-dimension security hardening + README 3-language sync + PyPI OIDC Trusted Publishing. 69 new tests (13 ghost-feature integration + 56 security hardening). All 22 D+ functions reduced to C/B/A level (cc < 21). Zero D/E/F functions remain.
+
+### Added — Ghost Feature Integration (4 features activated)
+
+Previously-dormant modules with implementation + unit tests but no dispatch pipeline wiring are now genuinely invoked:
+
+- **DeterministicRuleEngine** (46 rules): Integrated into `UIUXAnalyzer.audit_dom_data()` as a post-4-dimension enhancement step. Rules cover 7 design pillars (Typography 8 / Color 8 / Spatial 6 / Responsiveness 6 / Interactions 8 / Motion 5 / UX writing 5).
+- **TasteDials** (3 dials): Accepted as `UIUXAnalyzer.__init__` parameter (`design_variance` / `motion_intensity` / `visual_density`, range 0.0-1.0). Adjusts DRE thresholds (a11y rules never adjusted). Presets: minimalist / balanced / rich.
+- **verify_debug_loop_ready** (Matt Pocock red-capable): New `UnifiedGateEngine.check_debug_loop_ready(command)` method + `GateType.DEBUG_LOOP_READY`. Wraps `VerificationGate.verify_debug_loop_ready()` through the standard gate pipeline (statistics tracking + pluggable checkers + result merging). 4 criteria: on-red-capable / on-deterministic / on-fast / on-agent-runnable.
+- **ExecutionGuard DEBUG tag cleanup**: Integrated into `DispatchHooks.slice_outputs()`. Strips `[DEBUG-xxx]` tagged lines from worker output, records found tags in `_debug_tags_found` field, ticks `debug_tags_stripped` on usage tracker.
+
+### Added — Security Hardening (4 dimensions)
+
+- **MCP Permission Control**: `MCPPermissionLevel` enum (READ_ONLY/WRITE/ADMIN), `MCP_TOOL_PERMISSIONS` mapping, `_check_mcp_permission()` method. All 9 MCP tools now enforce permission checks. Fail-closed when permission cannot be determined.
+- **RBAC Global Protection**: RBAC checks integrated into MCP server tool execution path. `DevSquadMCPServer.__init__` accepts `rbac` parameter. RBAC now applied to ALL entry points (dispatch + MCP), not just dispatch.
+- **Audit HMAC**: `dispatch_audit.py` replaced SHA-256 chain hash with HMAC-SHA256 using `DEV_SQUAD_AUDIT_HMAC_KEY` environment variable. `_get_hmac_key()` loads/creates key with class-level cache. `verify_hmac_chain()` strict mode (no legacy fallback). `verify_chain()` backward-compatible (tries HMAC first, falls back to legacy SHA-256 with warning).
+- **PermissionGuard fail-closed**: `fail_closed: bool = True` constructor parameter. When `True` (default) and a permission check raises an exception, DENY the request. `_handle_check_exception()` method handles exception routing.
+
+### Changed — Radon cc D+ Refactoring (22 functions)
+
+All 22 D+ cyclomatic complexity functions refactored to C/B/A level (cc < 21). Zero D/E/F functions remain in `scripts/`.
+
+| Function | Before | After |
+|----------|--------|-------|
+| `DispatchResult.to_markdown` | E (40) | A (2) |
+| `ReportFormatter.format_structured_report` | E (40) | A (2) |
+| `PromptAssemblerFormattingMixin._build_instruction` | E (31) | A (5) |
+| `FeedbackControlLoop._generate_adjustment` | D (29) | B (10) |
+| `SeverityRouter.run_fix_loop` | D (28) | C (18) |
+| `cmd_lifecycle` | D (27) | B (10) |
+| `MultiAgentDispatcher.dispatch` | D (26) | B (10) |
+| `PromptAssemblerFormattingMixin._build_quality_control_injection` | D (25) | A (5) |
+| `EnhancedWorker.execute` | D (25) | A (1) |
+| `cmd_init` | D (25) | A (4) |
+| `MemorySerializerMixin.capture_execution` | D (24) | B (10) |
+| `ContextCompressor._level3_full_compact` | D (23) | C (13) |
+| `PermissionGuard.get_security_report` | D (22) | A (1) |
+| `ReviewCheckers._check_test_coverage` | D (22) | B (6) |
+| `LLMCache.get` | D (22) | B (7) |
+| `cmd_dispatch` | D (22) | B (7) |
+| `PromptAssemblerValidationMixin` (class) | D (22) | A (5) |
+| `DispatchResult` (class) | D (22) | A (4) |
+| `CodeMapGenerator.generate_map` | D (21) | A (4) |
+| `WorkflowEngineLifecycleMixin._split_task_into_steps` | D (21) | A (4) |
+| `UETestPlan.to_markdown` | D (21) | A (2) |
+| `PromptAssemblerValidationMixin.detect_complexity` | D (21) | A (2) |
+
+### Changed — Documentation
+
+- **README 3-language sync**: README.md / README-CN.md / README-JP.md feature descriptions synchronized. All three now consistently describe 185+ core modules, 5219+ tests passing, V4.1.0 feature set (Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载).
+- **PyPI OIDC Trusted Publishing**: `release.yml` publish job now uses OIDC Trusted Publishing (removed `password: ${{ secrets.PYPI_API_TOKEN }}`, kept as commented fallback). Setup guide: `docs/PyPI_OIDC_Trusted_Publishing_Setup.md`.
+
+### Tests
+
+- 5240 passed, 1 skipped (153s) — up from 5184 (56 new security hardening tests + 13 ghost-feature integration tests).
+- `ruff check scripts/ tests/` — All checks passed.
+- `radon cc scripts/ -nc -s` — Zero D/E/F functions (all 22 refactored).
+- Version consistency: 7/7 PASS (4.1.1).
+
 ## [4.1.0] - 2026-07-15
 
 MINOR release: Matt Pocock skills fusion (7 P0 + 7 P1 + 4 P2) + UI/UX skills fusion (3 P0 + 3 P1 + 4 P2) + four-doc system + atomic Skill decomposition (3 P0 + 2 P1). 10 P0 modules + 12 P1-P2 code items + 6 ROADMAP entries + 5 atomic SKILL.md. 475 new tests (200 P0 + 239 P1-P2 + 23 P0 atomic + 13 P1 atomic), 5 ADRs, 43 GLOSSARY terms.

@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.1.0 Enterprise Ready</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.1.1 Enterprise Ready</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5180%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.1.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-5219%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.1.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -608,6 +608,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-07-15 | Version: V4.1.0*
+*Last updated: 2026-07-16 | Version: V4.1.1*
 
 </details>

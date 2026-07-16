@@ -35,37 +35,17 @@ from scripts.cli_utils import (
 from scripts.collaboration.models import ROLE_REGISTRY
 
 
-def cmd_init(args):
-    """
-    Interactive initialization wizard for DevSquad.
-
-    Guides new users through setup:
-    - Project type selection
-    - LLM backend configuration
-    - Default role preferences
-    - Output language
-    - Config file generation
-    """
-
-    # Quick init: non-interactive mode with sensible defaults
-    if getattr(args, "quick", False) or getattr(args, "non_interactive", False):
-        return _quick_init()
-
+def _print_init_welcome():
+    """Print the setup wizard welcome banner."""
     print("\n" + "=" * 60)
     print("🚀 Welcome to DevSquad Setup Wizard!")
     print("=" * 60)
     print("\nThis wizard will help you configure DevSquad for your project.")
     print("It should take about 1-2 minutes.\n")
 
-    config = {
-        "project_type": None,
-        "llm_backend": "mock",
-        "default_roles": ["auto"],
-        "language": "auto",
-        "features": {},
-    }
 
-    # Step 1: Project Type
+def _init_step1_project_type(config):
+    """Step 1: Project Type selection. Returns the selected project type dict."""
     print("📋 Step 1/5: Project Type")
     print("-" * 40)
     project_types = {
@@ -118,8 +98,11 @@ def cmd_init(args):
 
     print(f"\n   ✅ Selected: {selected_type['name']}")
     print(f"   💡 Recommended roles: {', '.join(selected_type['roles'])}")
+    return selected_type
 
-    # Step 2: LLM Backend
+
+def _init_step2_backend(config):
+    """Step 2: LLM Backend configuration."""
     print("\n\n🤖 Step 2/5: AI Backend Configuration")
     print("-" * 40)
     print("DevSquad can work with different AI backends:")
@@ -154,38 +137,44 @@ def cmd_init(args):
 
     print(f"\n   ✅ Backend: {config['llm_backend'].upper()}")
 
-    # Step 3: Default Roles
+
+def _init_step3_roles(config):
+    """Step 3: Default Roles preferences."""
     print("\n\n👥 Step 3/5: Role Preferences")
     print("-" * 40)
 
     if "auto" in config["default_roles"]:
         print("   With 'Generic' project type, roles will be auto-matched based on task content.")
         print("   This is recommended for beginners!")
-    else:
-        print("   Based on your project type, we recommend these roles:")
-        for role in config["default_roles"]:
-            role_def = ROLE_REGISTRY.get(role)
-            if role_def:
-                print(f"   • {role_def.name} — {role_def.description}")
+        print("\n   ✅ Roles configured")
+        return
 
-        customize = _prompt_yes_no("Customize role selection?", default=False)
-        if customize:
-            print("\n   Available roles:")
-            all_roles = []
-            for rid, rdef in ROLE_REGISTRY.items():
-                alias = rdef.aliases[0] if rdef.aliases else rid
-                status = "" if rdef.status == "active" else " [planned]"
-                print(f"     {alias:<12} — {rdef.description}{status}")
-                all_roles.append(alias)
+    print("   Based on your project type, we recommend these roles:")
+    for role in config["default_roles"]:
+        role_def = ROLE_REGISTRY.get(role)
+        if role_def:
+            print(f"   • {role_def.name} — {role_def.description}")
 
-            print()
-            roles_input = input("   Enter roles (comma-separated, e.g., arch sec test): ").strip()
-            if roles_input:
-                config["default_roles"] = [r.strip() for r in roles_input.split(",")]
+    customize = _prompt_yes_no("Customize role selection?", default=False)
+    if customize:
+        print("\n   Available roles:")
+        all_roles = []
+        for rid, rdef in ROLE_REGISTRY.items():
+            alias = rdef.aliases[0] if rdef.aliases else rid
+            status = "" if rdef.status == "active" else " [planned]"
+            print(f"     {alias:<12} — {rdef.description}{status}")
+            all_roles.append(alias)
+
+        print()
+        roles_input = input("   Enter roles (comma-separated, e.g., arch sec test): ").strip()
+        if roles_input:
+            config["default_roles"] = [r.strip() for r in roles_input.split(",")]
 
     print("\n   ✅ Roles configured")
 
-    # Step 4: Language & Features
+
+def _init_step4_language_features(config):
+    """Step 4: Language & Features. Returns the list of enabled feature names."""
     print("\n\n🌐 Step 4/5: Language & Features")
     print("-" * 40)
 
@@ -215,8 +204,11 @@ def cmd_init(args):
     enabled_features = [k for k, v in features.items() if v]
     if enabled_features:
         print(f"   ✅ Features: {', '.join(enabled_features)}")
+    return enabled_features
 
-    # Step 5: Summary & Save
+
+def _init_step5_summary_and_save(config, selected_type, enabled_features):
+    """Step 5: Configuration Summary & Save. Returns True if saved, False if cancelled."""
     print("\n\n💾 Step 5/5: Configuration Summary")
     print("-" * 60)
 
@@ -230,7 +222,7 @@ def cmd_init(args):
 
     if not confirm:
         print("\n   ❌ Configuration cancelled. You can run 'devsquad init' again anytime.")
-        return 0
+        return False
 
     # Generate configuration file
     config_path = os.path.expanduser("~/.devsquad.yaml")
@@ -241,6 +233,11 @@ def cmd_init(args):
     else:
         print(f"\n   ⚠️  Could not save to {config_path}. Using inline defaults.")
 
+    return True
+
+
+def _print_init_complete(config):
+    """Print the final setup-complete banner and quick-start guide."""
     # Final success message
     print("\n" + "=" * 60)
     print("🎉 Setup Complete! DevSquad is ready to use.")
@@ -272,6 +269,47 @@ def cmd_init(args):
     print()
 
     print("Happy coding! 🎯\n")
+
+
+def cmd_init(args):
+    """
+    Interactive initialization wizard for DevSquad.
+
+    Guides new users through setup:
+    - Project type selection
+    - LLM backend configuration
+    - Default role preferences
+    - Output language
+    - Config file generation
+    """
+
+    # Quick init: non-interactive mode with sensible defaults
+    if getattr(args, "quick", False) or getattr(args, "non_interactive", False):
+        return _quick_init()
+
+    _print_init_welcome()
+
+    config = {
+        "project_type": None,
+        "llm_backend": "mock",
+        "default_roles": ["auto"],
+        "language": "auto",
+        "features": {},
+    }
+
+    # Step 1: Project Type
+    selected_type = _init_step1_project_type(config)
+    # Step 2: LLM Backend
+    _init_step2_backend(config)
+    # Step 3: Default Roles
+    _init_step3_roles(config)
+    # Step 4: Language & Features
+    enabled_features = _init_step4_language_features(config)
+    # Step 5: Summary & Save
+    if not _init_step5_summary_and_save(config, selected_type, enabled_features):
+        return 0
+
+    _print_init_complete(config)
 
     return 0
 

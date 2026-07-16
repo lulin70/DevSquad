@@ -641,49 +641,15 @@ class SeverityRouter:
                 len(current_blocking),
             )
 
-            if fix_callable is not None:
-                # Legacy signature: fix_callable takes a list and returns
-                # the list of remaining (unfixed) actions.
-                try:
-                    remaining = fix_callable(list(current_blocking))
-                    remaining_ids = {
-                        getattr(a, "finding_id", id(a)) for a in (remaining or [])
-                    }
-                    for action in current_blocking:
-                        if action.finding_id not in remaining_ids:
-                            action.fix_applied = True
-                            action.fix_verified = True
-                except (RuntimeError, ValueError, AttributeError, OSError) as exc:
-                    logger.warning("SeverityRouter: fix_callable failed: %s", exc)
-                    result.fix_round = round_num
-                    result.summary = self._build_summary(
-                        result.actions, result.blocked, True, round_num
-                    )
-                    return result
-            else:
-                # New signature: trigger auto-fix per action
-                for action in current_blocking:
-                    if action.auto_fixable:
-                        fixed = self._trigger_auto_fix(action, context)
-                        if fixed:
-                            result.auto_fix_triggered = True
+            early_result = self._run_fix_round(
+                result, current_blocking, fix_callable, context, round_num
+            )
+            if early_result is not None:
+                return early_result
 
-            # Run CI check after each round (legacy)
-            if ci_check_callable is not None:
-                try:
-                    ci_passed = ci_check_callable()
-                except (RuntimeError, OSError, ValueError) as exc:
-                    logger.warning("SeverityRouter: CI check failed: %s", exc)
-                    ci_passed = False
-                if not ci_passed:
-                    logger.warning(
-                        "SeverityRouter: CI check failed after round %d", round_num
-                    )
-                    result.fix_round = round_num
-                    result.summary = self._build_summary(
-                        result.actions, result.blocked, True, round_num
-                    )
-                    return result
+            early_result = self._run_ci_check(ci_check_callable, round_num, result)
+            if early_result is not None:
+                return early_result
 
             result.fix_round = round_num
 
@@ -692,6 +658,86 @@ class SeverityRouter:
             result.actions, result.blocked, result.auto_fix_triggered, result.fix_round
         )
         return result
+
+    def _run_fix_round(
+        self,
+        result: RoutingResult,
+        current_blocking: list[FixAction],
+        fix_callable: Callable[[list[FixAction]], list[FixAction]] | None,
+        context: dict[str, Any],
+        round_num: int,
+    ) -> RoutingResult | None:
+        """Run one fix round.
+
+        Returns a ``RoutingResult`` to early-return on legacy fix_callable
+        failure, or None to continue the loop.
+        """
+        if fix_callable is not None:
+            return self._apply_legacy_fix_callable(
+                result, current_blocking, fix_callable, round_num
+            )
+        # New signature: trigger auto-fix per action
+        for action in current_blocking:
+            if action.auto_fixable:
+                fixed = self._trigger_auto_fix(action, context)
+                if fixed:
+                    result.auto_fix_triggered = True
+        return None
+
+    def _apply_legacy_fix_callable(
+        self,
+        result: RoutingResult,
+        current_blocking: list[FixAction],
+        fix_callable: Callable[[list[FixAction]], list[FixAction]],
+        round_num: int,
+    ) -> RoutingResult | None:
+        """Legacy signature: fix_callable takes a list and returns the list of remaining (unfixed) actions."""
+        try:
+            remaining = fix_callable(list(current_blocking))
+            remaining_ids = {
+                getattr(a, "finding_id", id(a)) for a in (remaining or [])
+            }
+            for action in current_blocking:
+                if action.finding_id not in remaining_ids:
+                    action.fix_applied = True
+                    action.fix_verified = True
+            return None
+        except (RuntimeError, ValueError, AttributeError, OSError) as exc:
+            logger.warning("SeverityRouter: fix_callable failed: %s", exc)
+            result.fix_round = round_num
+            result.summary = self._build_summary(
+                result.actions, result.blocked, True, round_num
+            )
+            return result
+
+    def _run_ci_check(
+        self,
+        ci_check_callable: Callable[[], bool] | None,
+        round_num: int,
+        result: RoutingResult,
+    ) -> RoutingResult | None:
+        """Run CI check after each round (legacy).
+
+        Returns a ``RoutingResult`` to early-return on CI failure, or None
+        to continue the loop.
+        """
+        if ci_check_callable is None:
+            return None
+        try:
+            ci_passed = ci_check_callable()
+        except (RuntimeError, OSError, ValueError) as exc:
+            logger.warning("SeverityRouter: CI check failed: %s", exc)
+            ci_passed = False
+        if not ci_passed:
+            logger.warning(
+                "SeverityRouter: CI check failed after round %d", round_num
+            )
+            result.fix_round = round_num
+            result.summary = self._build_summary(
+                result.actions, result.blocked, True, round_num
+            )
+            return result
+        return None
 
     # ------------------------------------------------------------------
     # Backward-compat: collect_findings + run_auto_fix_loop

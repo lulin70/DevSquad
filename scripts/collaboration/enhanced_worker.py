@@ -357,78 +357,98 @@ class EnhancedWorker(Worker):
         # Track elapsed time for ExecutionGuard
         exec_start = time.monotonic()
 
-        if self.retry_provider and self.retry_provider.is_available():
-            try:
-                result = cast(
-                    WorkerResult,
-                    self.retry_provider.retry_with_fallback(
-                        func=lambda: self._do_work_with_briefing(task),
-                        max_attempts=3,
-                        fallback=lambda: self._do_work_simple(task),
-                    ),
-                )
-            except Exception as e:  # Broad catch: retry mechanism fallback
-                logger.debug("Retry mechanism failed, falling back: %s", e)
-                result = self._do_work_simple(task)
-        else:
-            result = self._do_work_with_briefing(task)
+        result = self._execute_with_retry(task)
 
         elapsed_time = time.monotonic() - exec_start
 
         self._last_result = result
 
         # ExecutionGuard: check abort conditions and warnings
-        if self.execution_guard and result.success and result.output:
-            output_text = result.output if isinstance(result.output, str) else str(result.output)
-            try:
-                should_abort, abort_reason = self.execution_guard.check_abort(
-                    output_text, elapsed_time
-                )
-                if should_abort:
-                    logger.warning(
-                        "ExecutionGuard abort triggered for worker %s: %s",
-                        self.worker_id, abort_reason,
-                    )
-                    if isinstance(result.output, dict):
-                        result.output["execution_guard_abort"] = True
-                        result.output["execution_guard_reason"] = abort_reason
+        self._apply_execution_guard(result, elapsed_time)
 
-                warnings = self.execution_guard.check_warnings(output_text)
-                if warnings:
-                    logger.warning(
-                        "ExecutionGuard warnings for worker %s: %s",
-                        self.worker_id, ", ".join(warnings),
-                    )
-                    if isinstance(result.output, dict):
-                        result.output["execution_guard_warnings"] = warnings
-            except (ValueError, AttributeError, RuntimeError) as guard_err:
-                logger.debug("ExecutionGuard check failed: %s", guard_err)
+        # Confidence scoring
+        self._apply_confidence_scoring(result)
 
-        if self._confidence_scorer and result.success and result.output:
-            try:
-                output_text = result.output if isinstance(result.output, str) else str(result.output)
-                score = self._confidence_scorer.score_response(output_text)
-                if isinstance(result.output, dict):
-                    result.output["confidence"] = score.overall_score
-                    result.output["confidence_factors"] = {
-                        "completeness": score.factors.get("completeness", 0.0),
-                        "certainty": score.factors.get("certainty", 0.0),
-                        "specificity": score.factors.get("specificity", 0.0),
-                    }
-                    if score.overall_score < 0.7:
-                        result.output["low_confidence_warning"] = (
-                            f"Low confidence ({score.overall_score:.2f}). "
-                            "Assumptions may need verification by subsequent agents."
-                        )
-            except (ValueError, AttributeError, RuntimeError) as e:
-                logger.warning("Confidence scoring failed: %s", e)
-
-        if self._injected_rules and result.success and result.output:
-            violations = self._check_forbid_violations(result)
-            if violations and isinstance(result.output, dict):
-                result.output["rule_violations"] = violations
+        # Rule violation checks
+        self._record_rule_violations(result)
 
         return result
+
+    def _execute_with_retry(self, task: TaskDefinition) -> WorkerResult:
+        """Run the task via briefing, wrapping with retry/fallback when available."""
+        if not (self.retry_provider and self.retry_provider.is_available()):
+            return self._do_work_with_briefing(task)
+        try:
+            return cast(
+                WorkerResult,
+                self.retry_provider.retry_with_fallback(
+                    func=lambda: self._do_work_with_briefing(task),
+                    max_attempts=3,
+                    fallback=lambda: self._do_work_simple(task),
+                ),
+            )
+        except Exception as e:  # Broad catch: retry mechanism fallback
+            logger.debug("Retry mechanism failed, falling back: %s", e)
+            return self._do_work_simple(task)
+
+    def _apply_execution_guard(self, result: WorkerResult, elapsed_time: float) -> None:
+        """ExecutionGuard: check abort conditions and warnings, annotating output."""
+        if not (self.execution_guard and result.success and result.output):
+            return
+        output_text = result.output if isinstance(result.output, str) else str(result.output)
+        try:
+            should_abort, abort_reason = self.execution_guard.check_abort(
+                output_text, elapsed_time
+            )
+            if should_abort:
+                logger.warning(
+                    "ExecutionGuard abort triggered for worker %s: %s",
+                    self.worker_id, abort_reason,
+                )
+                if isinstance(result.output, dict):
+                    result.output["execution_guard_abort"] = True
+                    result.output["execution_guard_reason"] = abort_reason
+
+            warnings = self.execution_guard.check_warnings(output_text)
+            if warnings:
+                logger.warning(
+                    "ExecutionGuard warnings for worker %s: %s",
+                    self.worker_id, ", ".join(warnings),
+                )
+                if isinstance(result.output, dict):
+                    result.output["execution_guard_warnings"] = warnings
+        except (ValueError, AttributeError, RuntimeError) as guard_err:
+            logger.debug("ExecutionGuard check failed: %s", guard_err)
+
+    def _apply_confidence_scoring(self, result: WorkerResult) -> None:
+        """Score the result and annotate output dict with confidence metadata."""
+        if not (self._confidence_scorer and result.success and result.output):
+            return
+        try:
+            output_text = result.output if isinstance(result.output, str) else str(result.output)
+            score = self._confidence_scorer.score_response(output_text)
+            if isinstance(result.output, dict):
+                result.output["confidence"] = score.overall_score
+                result.output["confidence_factors"] = {
+                    "completeness": score.factors.get("completeness", 0.0),
+                    "certainty": score.factors.get("certainty", 0.0),
+                    "specificity": score.factors.get("specificity", 0.0),
+                }
+                if score.overall_score < 0.7:
+                    result.output["low_confidence_warning"] = (
+                        f"Low confidence ({score.overall_score:.2f}). "
+                        "Assumptions may need verification by subsequent agents."
+                    )
+        except (ValueError, AttributeError, RuntimeError) as e:
+            logger.warning("Confidence scoring failed: %s", e)
+
+    def _record_rule_violations(self, result: WorkerResult) -> None:
+        """Check injected rules for forbid violations and record them on output."""
+        if not (self._injected_rules and result.success and result.output):
+            return
+        violations = self._check_forbid_violations(result)
+        if violations and isinstance(result.output, dict):
+            result.output["rule_violations"] = violations
 
     def _inject_rules_from_provider(self, task: TaskDefinition) -> None:
         """Fetch and validate rules from MemoryProvider before task execution."""

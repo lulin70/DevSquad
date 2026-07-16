@@ -264,75 +264,99 @@ class MemorySerializerMixin:
             return None
         captured_id = None
         for entry in scratchpad_entries:
-            entry_type = getattr(entry, "entry_type", None)
-            entry_type_val = getattr(entry_type, "value", None)
-            if not entry_type_val:
-                entry_type_val = str(entry_type)
-            if entry_type_val != "FINDING":
+            if not self._is_capturable_finding(entry):
                 continue
             confidence = getattr(entry, "confidence", 0.8) or 0.8
-            if confidence < 0.7:
-                continue
             content = getattr(entry, "content", "") or ""
             if len(content) > 5000:
                 content = content[:5000] + "...[TRUNCATED]"
             task_desc = getattr(execution_record, "task_description", "") or ""
             worker_id = getattr(execution_record, "worker_id", "") or ""
 
-            mce_memory_type = None
-            mce_confidence = confidence
-            if self._mce_enabled and self._mce_adapter and content:
-                try:
-                    mce_result = self._mce_adapter.classify(content, timeout_ms=500)
-                    if mce_result:
-                        mce_confidence = max(confidence, mce_result.confidence)
-                        if mce_result.memory_type:
-                            type_hint_map = {
-                                "preference": "FEEDBACK",
-                                "decision": "EPISODIC",
-                                "correction": "EPISODIC",
-                                "fact": "KNOWLEDGE",
-                            }
-                            mce_memory_type = type_hint_map.get(mce_result.memory_type.lower())
-                except (ValueError, AttributeError, RuntimeError):
-                    pass
-
+            mce_memory_type, mce_confidence = self._mce_classify(content, confidence)
             tags = self._extract_tags(task_desc + " " + content)
+            captured_id = self._write_captured_memory(
+                mce_memory_type, content, task_desc, worker_id, tags, mce_confidence
+            )
+        return captured_id
 
-            if mce_memory_type == "KNOWLEDGE":
-                knowledge = KnowledgeItem(
-                    id=f"know_{uuid.uuid4().hex[:12]}_{int(time.time())}",
-                    domain=task_desc[:100] if task_desc else "general",
-                    title=content[:100] if content else "untitled",
-                    content=content,
-                    source=worker_id or "multi-agent",
-                    tags=tags,
-                    created_at=datetime.now().isoformat(),
-                )
-                self.writer.write_knowledge(knowledge)
-                captured_id = knowledge.id
-            elif mce_memory_type == "FEEDBACK":
-                feedback = UserFeedback(
-                    id=f"feed_{uuid.uuid4().hex[:12]}_{int(time.time())}",
-                    user_id=worker_id or "user",
-                    feedback_type="preference",
-                    content=content,
-                    created_at=datetime.now().isoformat(),
-                )
-                self.writer.write_feedback(feedback)
-                captured_id = feedback.id
-            else:
-                episodic = EpisodicMemory(
-                    id=f"epi_{uuid.uuid4().hex[:12]}_{int(time.time())}",
-                    task_description=task_desc[:200],
-                    finding=content,
-                    worker_id=worker_id,
-                    confidence=mce_confidence,
-                    tags=tags,
-                    created_at=datetime.now().isoformat(),
-                )
-                captured_id = self.writer.write_episodic(episodic)
-                self._stats.total_captures += 1
+    @staticmethod
+    def _is_capturable_finding(entry: Any) -> bool:
+        """Return True only for FINDING entries with sufficient confidence."""
+        entry_type = getattr(entry, "entry_type", None)
+        entry_type_val = getattr(entry_type, "value", None)
+        if not entry_type_val:
+            entry_type_val = str(entry_type)
+        if entry_type_val != "FINDING":
+            return False
+        confidence = getattr(entry, "confidence", 0.8) or 0.8
+        return confidence >= 0.7
+
+    def _mce_classify(self, content: str, confidence: float) -> tuple[str | None, float]:
+        """Run MCE classification when enabled, returning (memory_type, confidence)."""
+        mce_memory_type: str | None = None
+        mce_confidence = confidence
+        if not (self._mce_enabled and self._mce_adapter and content):
+            return mce_memory_type, mce_confidence
+        try:
+            mce_result = self._mce_adapter.classify(content, timeout_ms=500)
+            if mce_result:
+                mce_confidence = max(confidence, mce_result.confidence)
+                if mce_result.memory_type:
+                    type_hint_map = {
+                        "preference": "FEEDBACK",
+                        "decision": "EPISODIC",
+                        "correction": "EPISODIC",
+                        "fact": "KNOWLEDGE",
+                    }
+                    mce_memory_type = type_hint_map.get(mce_result.memory_type.lower())
+        except (ValueError, AttributeError, RuntimeError):
+            pass
+        return mce_memory_type, mce_confidence
+
+    def _write_captured_memory(
+        self,
+        mce_memory_type: str | None,
+        content: str,
+        task_desc: str,
+        worker_id: str,
+        tags: list[str],
+        mce_confidence: float,
+    ) -> str | None:
+        """Persist the captured memory using the appropriate writer, returning its id."""
+        if mce_memory_type == "KNOWLEDGE":
+            knowledge = KnowledgeItem(
+                id=f"know_{uuid.uuid4().hex[:12]}_{int(time.time())}",
+                domain=task_desc[:100] if task_desc else "general",
+                title=content[:100] if content else "untitled",
+                content=content,
+                source=worker_id or "multi-agent",
+                tags=tags,
+                created_at=datetime.now().isoformat(),
+            )
+            self.writer.write_knowledge(knowledge)
+            return knowledge.id
+        if mce_memory_type == "FEEDBACK":
+            feedback = UserFeedback(
+                id=f"feed_{uuid.uuid4().hex[:12]}_{int(time.time())}",
+                user_id=worker_id or "user",
+                feedback_type="preference",
+                content=content,
+                created_at=datetime.now().isoformat(),
+            )
+            self.writer.write_feedback(feedback)
+            return feedback.id
+        episodic = EpisodicMemory(
+            id=f"epi_{uuid.uuid4().hex[:12]}_{int(time.time())}",
+            task_description=task_desc[:200],
+            finding=content,
+            worker_id=worker_id,
+            confidence=mce_confidence,
+            tags=tags,
+            created_at=datetime.now().isoformat(),
+        )
+        captured_id = self.writer.write_episodic(episodic)
+        self._stats.total_captures += 1
         return captured_id
 
     def record_feedback(self, feedback: UserFeedback) -> str:

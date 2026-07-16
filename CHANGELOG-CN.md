@@ -7,6 +7,49 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.1.1] - 2026-07-16
+
+PATCH 发布：4 个幽灵功能集成 + 22 个 radon cc D+ 函数重构 + 4 维度安全加固 + README 三语言同步 + PyPI OIDC Trusted Publishing。69 个新测试（13 幽灵功能集成 + 56 安全加固）。22 个 D+ 函数全部降至 C/B/A 级（cc < 21）。零 D/E/F 函数残留。
+
+### 新增 — 幽灵功能集成（4 个功能激活）
+
+先前休眠的模块（有实现+单元测试但未接入 dispatch pipeline）现已真正调用：
+
+- **DeterministicRuleEngine**（46 规则）：集成到 `UIUXAnalyzer.audit_dom_data()` 作为 4 维度检查后的增强步骤。覆盖 7 个设计支柱（排版 8 / 颜色 8 / 空间 6 / 响应式 6 / 交互 8 / 动效 5 / UX 文案 5）。
+- **TasteDials**（3 拨号）：作为 `UIUXAnalyzer.__init__` 参数（`design_variance` / `motion_intensity` / `visual_density`，范围 0.0-1.0）。调整 DRE 阈值（a11y 规则永不调整）。预设：minimalist / balanced / rich。
+- **verify_debug_loop_ready**（Matt Pocock red-capable）：新增 `UnifiedGateEngine.check_debug_loop_ready(command)` 方法 + `GateType.DEBUG_LOOP_READY`。通过标准门控管道包装 `VerificationGate.verify_debug_loop_ready()`。4 条标准：on-red-capable / on-deterministic / on-fast / on-agent-runnable。
+- **ExecutionGuard DEBUG tag 清理**：集成到 `DispatchHooks.slice_outputs()`。从 worker 输出中剥离 `[DEBUG-xxx]` 标记行，记录到 `_debug_tags_found` 字段，tick `debug_tags_stripped` 使用追踪器。
+
+### 新增 — 安全加固（4 维度）
+
+- **MCP 权限控制**：`MCPPermissionLevel` 枚举（READ_ONLY/WRITE/ADMIN），`MCP_TOOL_PERMISSIONS` 映射，`_check_mcp_permission()` 方法。全部 9 个 MCP 工具强制权限检查。权限无法确定时 fail-closed。
+- **RBAC 全局保护**：RBAC 检查集成到 MCP 服务器工具执行路径。`DevSquadMCPServer.__init__` 接受 `rbac` 参数。RBAC 现应用于所有入口点（dispatch + MCP）。
+- **审计 HMAC**：`dispatch_audit.py` 将 SHA-256 链式哈希替换为 HMAC-SHA256，使用 `DEV_SQUAD_AUDIT_HMAC_KEY` 环境变量。`verify_hmac_chain()` 严格模式。`verify_chain()` 向后兼容（优先 HMAC，回退到旧版 SHA-256 并警告）。
+- **PermissionGuard fail-closed**：`fail_closed: bool = True` 构造函数参数。当 `True`（默认）且权限检查抛出异常时，拒绝请求。
+
+### 变更 — Radon cc D+ 重构（22 个函数）
+
+22 个 D+ 圈复杂度函数全部重构至 C/B/A 级（cc < 21）。`scripts/` 中零 D/E/F 函数残留。
+
+亮点：
+- `DispatchResult.to_markdown`: E(40) → A(2)
+- `ReportFormatter.format_structured_report`: E(40) → A(2)
+- `PromptAssemblerFormattingMixin._build_instruction`: E(31) → A(5)
+- `FeedbackControlLoop._generate_adjustment`: D(29) → B(10)
+- `SeverityRouter.run_fix_loop`: D(28) → C(18)
+
+### 变更 — 文档
+
+- **README 三语言同步**：README.md / README-CN.md / README-JP.md 特性描述同步。三文件一致描述 185+ 核心模块、5219+ 测试通过、V4.1.0 特性集。
+- **PyPI OIDC Trusted Publishing**：`release.yml` 发布作业改用 OIDC Trusted Publishing。配置指南：`docs/PyPI_OIDC_Trusted_Publishing_Setup.md`。
+
+### 测试
+
+- 5240 passed, 1 skipped（153s）— 较 5184 增加 56 安全加固测试 + 13 幽灵功能集成测试。
+- `ruff check scripts/ tests/` — 全部通过。
+- `radon cc scripts/ -nc -s` — 零 D/E/F 函数（22 个全部重构）。
+- 版本一致性：7/7 PASS（4.1.1）。
+
 ## [4.1.0] - 2026-07-15
 
 MINOR 发布：Matt Pocock 技能融合（7 项 P0 + 7 项 P1 + 4 项 P2）+ UI/UX 技能融合（3 项 P0 + 3 项 P1 + 4 项 P2）+ 四文档体系 + 原子 Skill 拆分（3 项 P0 + 2 项 P1）。10 个 P0 模块 + 12 项 P1-P2 代码 + 6 项 ROADMAP + 5 个原子 SKILL.md。475 个新测试（200 P0 + 239 P1-P2 + 23 P0 原子 + 13 P1 原子），5 个 ADR，43 个术语。

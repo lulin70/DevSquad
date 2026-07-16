@@ -29,6 +29,8 @@ import logging
 import os
 import sys
 from contextlib import suppress
+from dataclasses import dataclass
+from enum import IntEnum
 from pathlib import Path
 from typing import Any
 
@@ -53,8 +55,81 @@ except ImportError:
     logger.warning("MCP SDK not installed. Run: pip install mcp")
 
 from scripts.collaboration._version import __version__ as DEVSQUAD_VERSION  # noqa: E402
+from scripts.collaboration.dispatch_rbac import DispatchRBAC, PermissionResult  # noqa: E402
 from scripts.collaboration.dispatcher import MultiAgentDispatcher  # noqa: E402
 from scripts.collaboration.models import ROLE_REGISTRY  # noqa: E402
+
+# ------------------------------------------------------------------
+# V4.1.1: MCP Permission Control (Dimension 1) — tool permission levels
+# ------------------------------------------------------------------
+
+
+class MCPPermissionLevel(IntEnum):
+    """Permission level required to invoke an MCP tool.
+
+    Levels are ordered: READ_ONLY < WRITE < ADMIN. A caller's level must
+    be >= the tool's required level to be permitted.
+    """
+
+    READ_ONLY = 0
+    WRITE = 1
+    ADMIN = 2
+
+
+# Mapping from MCP tool name → minimum permission level required.
+# Unknown tools default to ADMIN (fail-closed).
+MCP_TOOL_PERMISSIONS: dict[str, MCPPermissionLevel] = {
+    "multiagent_dispatch": MCPPermissionLevel.WRITE,
+    "multiagent_quick": MCPPermissionLevel.WRITE,
+    "multiagent_roles": MCPPermissionLevel.READ_ONLY,
+    "multiagent_status": MCPPermissionLevel.READ_ONLY,
+    "multiagent_analyze": MCPPermissionLevel.READ_ONLY,
+    "multiagent_shutdown": MCPPermissionLevel.ADMIN,
+    "codegraph_explore": MCPPermissionLevel.READ_ONLY,
+    "codegraph_status": MCPPermissionLevel.READ_ONLY,
+    "codegraph_refresh": MCPPermissionLevel.WRITE,
+}
+
+
+# Mapping from user role string → permission level.
+# Aligns with DispatchRBAC roles (admin / operator / viewer).
+MCP_ROLE_LEVELS: dict[str, MCPPermissionLevel] = {
+    "admin": MCPPermissionLevel.ADMIN,
+    "operator": MCPPermissionLevel.WRITE,
+    "viewer": MCPPermissionLevel.READ_ONLY,
+}
+
+
+# Tools that trigger dispatch operations and require RBAC checks in
+# addition to the permission-level check (Dimension 2).
+_RBAC_GUARDED_TOOLS: frozenset[str] = frozenset(
+    {"multiagent_dispatch", "multiagent_quick"}
+)
+
+
+@dataclass
+class MCPPermissionResult:
+    """Result of an MCP tool permission check.
+
+    Attributes
+    ----------
+    allowed:
+        True if the caller is permitted to invoke the tool.
+    reason:
+        Human-readable explanation of the decision.
+    tool_name:
+        The requested tool name.
+    required_level:
+        The permission level required for the tool.
+    user_level:
+        The caller's permission level (None if undeterminable).
+    """
+
+    allowed: bool
+    reason: str
+    tool_name: str
+    required_level: MCPPermissionLevel
+    user_level: MCPPermissionLevel | None
 
 # V3.9-02: CodeKnowledgeGraph integration (graceful fallback when unavailable).
 _CODEGRAPH_AVAILABLE = importlib.util.find_spec("scripts.collaboration.code_knowledge_graph") is not None
@@ -73,11 +148,43 @@ def _default_codegraph_db_path() -> Path:
 class DevSquadMCPServer:
     """MCP Server wrapper for DevSquad."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        enable_permission_check: bool = True,
+        auth_manager: Any | None = None,
+        rbac: DispatchRBAC | None = None,
+    ) -> None:
+        """Initialize the MCP server wrapper.
+
+        Parameters
+        ----------
+        enable_permission_check:
+            When True (default, production-safe), every tool invocation is
+            gated by :meth:`_check_mcp_permission` and, for dispatch tools,
+            :meth:`_check_rbac_permission`. When False, permission checks
+            are skipped (development mode — insecure).
+        auth_manager:
+            Optional AuthManager instance. When provided, the RBAC engine
+            uses it to look up user roles. When None, the caller's role is
+            read from the ``DEV_SQUAD_MCP_USER_ROLE`` environment variable.
+        rbac:
+            Optional pre-configured :class:`DispatchRBAC` instance. When
+            None, a default DispatchRBAC is created (open mode when no
+            auth_manager, fail-closed when auth_manager is provided).
+        """
         self._dispatcher: MultiAgentDispatcher | None = None
         # V3.9-02: lazily-constructed CodeKnowledgeGraph (only when first needed).
         self._code_graph: Any = None
         self._code_graph_db_path: Path = _default_codegraph_db_path()
+        # V4.1.1: Permission control state (Dimensions 1 & 2).
+        self._enable_permission_check = enable_permission_check
+        self._auth_manager = auth_manager
+        if rbac is not None:
+            self._rbac: DispatchRBAC = rbac
+        elif auth_manager is not None:
+            self._rbac = DispatchRBAC(auth_manager=auth_manager, fail_closed=True)
+        else:
+            self._rbac = DispatchRBAC(fail_closed=False)
 
     def _get_dispatcher(self, **kwargs: Any) -> MultiAgentDispatcher:
         """Lazy-init dispatcher with caching."""
@@ -102,6 +209,205 @@ class DevSquadMCPServer:
                 self._code_graph = None
         return self._code_graph
 
+    # ------------------------------------------------------------------
+    # V4.1.1: Permission control (Dimension 1) + RBAC (Dimension 2)
+    # ------------------------------------------------------------------
+
+    def _resolve_user_context(self) -> dict[str, str] | None:
+        """Resolve the caller's user context for permission checks.
+
+        The user role is read from the ``DEV_SQUAD_MCP_USER_ROLE``
+        environment variable (one of ``admin`` / ``operator`` / ``viewer``).
+        The user ID is read from ``DEV_SQUAD_MCP_USER_ID`` (defaults to
+        ``"mcp_user"``).
+
+        Returns
+        -------
+        dict | None
+            A dict with ``role`` and ``user_id`` keys, or None if the role
+            cannot be determined (fail-closed: callers will be denied).
+        """
+        role = os.environ.get("DEV_SQUAD_MCP_USER_ROLE")
+        if not role:
+            return None
+        user_id = os.environ.get("DEV_SQUAD_MCP_USER_ID", "mcp_user")
+        return {"role": role, "user_id": user_id}
+
+    def _check_mcp_permission(
+        self,
+        tool_name: str,
+        user_context: dict[str, str] | None,
+    ) -> MCPPermissionResult:
+        """Check whether the caller may invoke ``tool_name`` (Dimension 1).
+
+        Implements fail-closed semantics:
+        - If ``user_context`` is None → DENY (no caller identity).
+        - If the caller's role is unknown → DENY.
+        - If the tool is not in the permission map → DENY (unknown tools
+          require ADMIN, and an unknown caller cannot have ADMIN).
+        - If the caller's level < tool's required level → DENY.
+        - Otherwise → ALLOW.
+
+        Parameters
+        ----------
+        tool_name:
+            The MCP tool name being invoked.
+        user_context:
+            The caller's context dict (``role`` + ``user_id``), or None.
+
+        Returns
+        -------
+        MCPPermissionResult
+            The permission decision with reason.
+        """
+        # Unknown tools default to ADMIN (fail-closed).
+        required = MCP_TOOL_PERMISSIONS.get(tool_name, MCPPermissionLevel.ADMIN)
+
+        # Fail-closed: no user context → deny.
+        if user_context is None:
+            return MCPPermissionResult(
+                allowed=False,
+                reason="No user context (fail-closed): caller identity unknown",
+                tool_name=tool_name,
+                required_level=required,
+                user_level=None,
+            )
+
+        role = user_context.get("role")
+        if not role:
+            return MCPPermissionResult(
+                allowed=False,
+                reason="No role in user context (fail-closed)",
+                tool_name=tool_name,
+                required_level=required,
+                user_level=None,
+            )
+
+        user_level = MCP_ROLE_LEVELS.get(role)
+        if user_level is None:
+            return MCPPermissionResult(
+                allowed=False,
+                reason=f"Unknown role '{role}' (fail-closed)",
+                tool_name=tool_name,
+                required_level=required,
+                user_level=None,
+            )
+
+        if user_level >= required:
+            return MCPPermissionResult(
+                allowed=True,
+                reason=f"Role '{role}' (level={user_level.name}) permits {tool_name} (required={required.name})",
+                tool_name=tool_name,
+                required_level=required,
+                user_level=user_level,
+            )
+
+        return MCPPermissionResult(
+            allowed=False,
+            reason=(
+                f"Role '{role}' (level={user_level.name}) insufficient for "
+                f"{tool_name} (required={required.name})"
+            ),
+            tool_name=tool_name,
+            required_level=required,
+            user_level=user_level,
+        )
+
+    def _check_rbac_permission(
+        self,
+        user_context: dict[str, str] | None,
+        roles: list[str],
+        mode: str,
+    ) -> PermissionResult:
+        """Check RBAC permission for a dispatch operation (Dimension 2).
+
+        Delegates to the :class:`DispatchRBAC` engine. When no
+        ``auth_manager`` is configured, RBAC runs in open mode (allows all
+        dispatch roles/modes) — the MCP permission-level check (Dimension 1)
+        is still the primary gate. When ``auth_manager`` IS configured, RBAC
+        enforces the full role/mode permission matrix.
+
+        Parameters
+        ----------
+        user_context:
+            The caller's context dict, or None.
+        roles:
+            The dispatch roles requested.
+        mode:
+            The dispatch mode requested.
+
+        Returns
+        -------
+        PermissionResult
+            The RBAC decision.
+        """
+        user_id = (user_context or {}).get("user_id", "mcp_user")
+        return self._rbac.check_dispatch_permission(user_id, list(roles), mode)
+
+    def _enforce_tool_permission(
+        self,
+        tool_name: str,
+        roles: list[str] | None = None,
+        mode: str | None = None,
+    ) -> str | None:
+        """Enforce permission checks before tool execution.
+
+        This combines Dimension 1 (permission level) and Dimension 2 (RBAC)
+        checks. It should be called at the start of every tool function.
+
+        Parameters
+        ----------
+        tool_name:
+            The MCP tool name being invoked.
+        roles:
+            The dispatch roles (for RBAC-guarded tools only).
+        mode:
+            The dispatch mode (for RBAC-guarded tools only).
+
+        Returns
+        -------
+        str | None
+            A JSON denial string if the call is denied, or None if allowed.
+            When permission checking is disabled, always returns None.
+        """
+        if not self._enable_permission_check:
+            return None
+
+        user_ctx = self._resolve_user_context()
+
+        # Dimension 1: permission-level check.
+        perm = self._check_mcp_permission(tool_name, user_ctx)
+        if not perm.allowed:
+            logger.warning(
+                "MCP permission DENIED: tool=%s user=%s reason=%s",
+                tool_name,
+                user_ctx,
+                perm.reason,
+            )
+            return json.dumps(
+                {"error": perm.reason, "success": False, "denied": True},
+                ensure_ascii=False,
+            )
+
+        # Dimension 2: RBAC check for dispatch-related tools.
+        if tool_name in _RBAC_GUARDED_TOOLS:
+            rbac_roles = roles if roles is not None else []
+            rbac_mode = mode or "auto"
+            rbac_result = self._check_rbac_permission(user_ctx, rbac_roles, rbac_mode)
+            if not rbac_result.allowed:
+                logger.warning(
+                    "MCP RBAC DENIED: tool=%s user=%s reason=%s",
+                    tool_name,
+                    user_ctx,
+                    rbac_result.reason,
+                )
+                return json.dumps(
+                    {"error": rbac_result.reason, "success": False, "denied": True},
+                    ensure_ascii=False,
+                )
+
+        return None
+
     def shutdown(self) -> None:
         """Clean up dispatcher and code graph."""
         if self._code_graph is not None:
@@ -113,13 +419,38 @@ class DevSquadMCPServer:
             self._dispatcher = None
 
 
-def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
-    """Create and configure the MCP server with all tools."""
+def create_mcp_server(
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    enable_permission_check: bool = True,
+    auth_manager: Any | None = None,
+    rbac: DispatchRBAC | None = None,
+) -> "FastMCP":
+    """Create and configure the MCP server with all tools.
+
+    Parameters
+    ----------
+    host:
+        SSE transport host (default 127.0.0.1).
+    port:
+        SSE transport port (default 8000).
+    enable_permission_check:
+        When True (default), enforce MCP permission-level checks (Dimension 1)
+        and RBAC checks (Dimension 2) on every tool invocation.
+    auth_manager:
+        Optional AuthManager instance for RBAC role lookup.
+    rbac:
+        Optional pre-configured DispatchRBAC instance.
+    """
     if not MCP_AVAILABLE:
         raise ImportError("MCP SDK not installed. Run: pip install mcp")
 
     mcp = FastMCP("DevSquad", host=host, port=port)
-    server = DevSquadMCPServer()
+    server = DevSquadMCPServer(
+        enable_permission_check=enable_permission_check,
+        auth_manager=auth_manager,
+        rbac=rbac,
+    )
 
     @mcp.tool()
     def multiagent_dispatch(
@@ -144,6 +475,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
             Markdown or JSON formatted collaboration result with findings,
             conflicts resolution, and action items.
         """
+        denial = server._enforce_tool_permission("multiagent_dispatch", roles=roles, mode=mode)
+        if denial is not None:
+            return denial
         disp = server._get_dispatcher()
         if _validator:
             vresult = _validator.validate_task(task)
@@ -199,6 +533,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
         Returns:
             Formatted collaboration result optimized for quick reading.
         """
+        denial = server._enforce_tool_permission("multiagent_quick")
+        if denial is not None:
+            return denial
         disp = server._get_dispatcher()
         if _validator:
             vresult = _validator.validate_task(task)
@@ -228,6 +565,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
         Returns:
             Role list with descriptions showing expertise areas.
         """
+        denial = server._enforce_tool_permission("multiagent_roles")
+        if denial is not None:
+            return denial
         roles = {}
         for rid, rdef in ROLE_REGISTRY.items():
             display_id = rdef.aliases[0] if rdef.aliases else rid
@@ -246,6 +586,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
         Returns:
             JSON with version, status, available roles/modes, and module info.
         """
+        denial = server._enforce_tool_permission("multiagent_status")
+        if denial is not None:
+            return denial
         disp = server._get_dispatcher()
         try:
             disp.get_status() if hasattr(disp, "get_status") else {}
@@ -299,6 +642,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
         Returns:
             Analysis including suggested roles, estimated complexity, and mode recommendation.
         """
+        denial = server._enforce_tool_permission("multiagent_analyze")
+        if denial is not None:
+            return denial
         disp = server._get_dispatcher(enable_warmup=False)
         if _validator:
             vresult = _validator.validate_task(task)
@@ -331,6 +677,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
         Shutdown the DevSquad dispatcher and free resources.
         Call this when done to clean up memory and connections.
         """
+        denial = server._enforce_tool_permission("multiagent_shutdown")
+        if denial is not None:
+            return denial
         server.shutdown()
         return json.dumps({"status": "shutdown_complete"})
 
@@ -358,6 +707,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
             (e.g. CodeKnowledgeGraph unavailable or not yet built), returns
             a helpful error message with ``available=false``.
         """
+        denial = server._enforce_tool_permission("codegraph_explore")
+        if denial is not None:
+            return denial
         graph = server._get_code_graph()
         if graph is None:
             return json.dumps(
@@ -437,6 +789,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
             ``last_update``, ``file_count``. When the graph is unavailable,
             returns ``built=false`` with an explanatory error.
         """
+        denial = server._enforce_tool_permission("codegraph_status")
+        if denial is not None:
+            return denial
         graph = server._get_code_graph()
         if graph is None:
             return json.dumps(
@@ -489,6 +844,9 @@ def create_mcp_server(host: str = "127.0.0.1", port: int = 8000) -> "FastMCP":
             JSON with keys: ``updated_files``, ``new_symbols``, ``duration_ms``.
             When the graph is unavailable, returns an error.
         """
+        denial = server._enforce_tool_permission("codegraph_refresh")
+        if denial is not None:
+            return denial
         import time as _time
 
         graph = server._get_code_graph()

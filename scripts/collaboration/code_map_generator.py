@@ -91,41 +91,62 @@ class CodeMapGenerator:
         scan_dir = self.project_root / (target_dir or "")
         if not scan_dir.exists():
             logger.warning("Target directory does not exist: %s", scan_dir)
-            return {} if output_format != "markdown" else ""
-
-        modules = {}
+            return self._empty_map(output_format)
 
         if self._parsers:
-            for parser in self._parsers:
-                lang = self._detect_language(parser)
-                if languages and lang not in languages:
-                    continue
-                for pattern in parser.file_patterns():
-                    for file_path in sorted(scan_dir.rglob(pattern)):
-                        if any(p in str(file_path) for p in parser.exclude_patterns()):
-                            continue
-                        if file_path.stat().st_size > self.MAX_FILE_SIZE:
-                            continue
-                        try:
-                            source = file_path.read_text(encoding="utf-8")
-                        except UnicodeDecodeError:
-                            continue
-                        rel_path = str(file_path.relative_to(self.project_root))
-                        file_map = parser.parse_file(source, str(file_path))
-                        if file_map:
-                            modules[rel_path] = file_map
+            modules = self._collect_modules_with_parsers(scan_dir, languages)
         else:
-            for py_file in sorted(scan_dir.rglob("*.py")):
-                if any(p in str(py_file) for p in ["__pycache__", "test_", "_test.py", ".venv"]):
-                    continue
-                rel_path = str(py_file.relative_to(self.project_root))
-                module_map = self._default_parser.scan_file(py_file)
-                if module_map:
-                    modules[rel_path] = module_map
+            modules = self._collect_modules_default(scan_dir)
 
+        return self._format_map(modules, output_format)
+
+    @staticmethod
+    def _empty_map(output_format: str) -> Any:
+        """Return the format-appropriate empty code map."""
+        return "" if output_format == "markdown" else {}
+
+    def _collect_modules_with_parsers(
+        self, scan_dir: Path, languages: list[str] | None
+    ) -> dict[str, Any]:
+        """Scan ``scan_dir`` using registered parsers, optionally filtered by language."""
+        modules: dict[str, Any] = {}
+        for parser in self._parsers or []:
+            lang = self._detect_language(parser)
+            if languages and lang not in languages:
+                continue
+            for pattern in parser.file_patterns():
+                for file_path in sorted(scan_dir.rglob(pattern)):
+                    if any(p in str(file_path) for p in parser.exclude_patterns()):
+                        continue
+                    if file_path.stat().st_size > self.MAX_FILE_SIZE:
+                        continue
+                    try:
+                        source = file_path.read_text(encoding="utf-8")
+                    except UnicodeDecodeError:
+                        continue
+                    rel_path = str(file_path.relative_to(self.project_root))
+                    file_map = parser.parse_file(source, str(file_path))
+                    if file_map:
+                        modules[rel_path] = file_map
+        return modules
+
+    def _collect_modules_default(self, scan_dir: Path) -> dict[str, Any]:
+        """Scan ``scan_dir`` for Python files using the built-in default parser."""
+        modules: dict[str, Any] = {}
+        for py_file in sorted(scan_dir.rglob("*.py")):
+            if any(p in str(py_file) for p in ["__pycache__", "test_", "_test.py", ".venv"]):
+                continue
+            rel_path = str(py_file.relative_to(self.project_root))
+            module_map = self._default_parser.scan_file(py_file)
+            if module_map:
+                modules[rel_path] = module_map
+        return modules
+
+    def _format_map(self, modules: dict[str, Any], output_format: str) -> Any:
+        """Render the collected modules in the requested output format."""
         if output_format == "markdown":
             return self._to_markdown(modules)
-        elif output_format == "json":
+        if output_format == "json":
             return json.dumps(modules, indent=2, ensure_ascii=False)
         return modules
 

@@ -448,7 +448,24 @@ class ReviewCheckers:
         if not files:
             return findings
 
-        # Identify code files vs test files
+        code_files, test_files = self._partition_code_and_test_files(files)
+
+        # For each code file with function/class defs, check if tests exist
+        has_any_test = len(test_files) > 0
+        combined_test_content = "\n".join(c for _, c in test_files).lower()
+        for path, content in code_files:
+            finding = self._check_single_file_coverage(
+                path, content, has_any_test, combined_test_content
+            )
+            if finding is not None:
+                findings.append(finding)
+        return findings
+
+    @staticmethod
+    def _partition_code_and_test_files(
+        files: Any,
+    ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+        """Split changed files into (code_files, test_files) pairs."""
         code_files: list[tuple[str, str]] = []
         test_files: list[tuple[str, str]] = []
         if isinstance(files, dict):
@@ -470,57 +487,54 @@ class ReviewCheckers:
                 continue
             else:
                 code_files.append((path, str(content)))
+        return code_files, test_files
 
-        # For each code file with function/class defs, check if tests exist
-        has_any_test = len(test_files) > 0
-        combined_test_content = "\n".join(c for _, c in test_files).lower()
-        for path, content in code_files:
-            has_code = any(
-                kw in content
-                for kw in ("def ", "class ", "function ", "import ")
+    @staticmethod
+    def _check_single_file_coverage(
+        path: str,
+        content: str,
+        has_any_test: bool,
+        combined_test_content: str,
+    ) -> ReviewFinding | None:
+        """Return a finding for a single code file lacking test coverage, else None."""
+        has_code = any(kw in content for kw in ("def ", "class ", "function ", "import "))
+        if not has_code:
+            return None
+        has_test_keywords = any(
+            kw in content.lower()
+            for kw in ("test", "spec", "assert", "pytest", "unittest", "describe(")
+        )
+        if has_test_keywords:
+            return None  # Inline tests present
+        if not has_any_test:
+            return ReviewFinding(
+                stage=ReviewStage.CODE_QUALITY,
+                severity="critical",
+                category="missing_test",
+                description=(
+                    f"Code changes in {path} have no corresponding test files"
+                ),
+                file_path=path,
+                suggestion="Add a test file covering the new code paths.",
             )
-            if not has_code:
-                continue
-            has_test_keywords = any(
-                kw in content.lower()
-                for kw in ("test", "spec", "assert", "pytest", "unittest", "describe(")
-            )
-            if has_test_keywords:
-                continue  # Inline tests present
-            if not has_any_test:
-                findings.append(
-                    ReviewFinding(
-                        stage=ReviewStage.CODE_QUALITY,
-                        severity="critical",
-                        category="missing_test",
-                        description=(
-                            f"Code changes in {path} have no corresponding test files"
-                        ),
-                        file_path=path,
-                        suggestion="Add a test file covering the new code paths.",
-                    )
-                )
-            else:
-                # Tests exist — check if they reference this file/module
-                # (heuristic: look for the file's basename without extension)
-                import os
+        # Tests exist — check if they reference this file/module
+        # (heuristic: look for the file's basename without extension)
+        import os
 
-                module_name = os.path.splitext(os.path.basename(path))[0].lower()
-                if module_name and module_name not in combined_test_content:
-                    findings.append(
-                        ReviewFinding(
-                            stage=ReviewStage.CODE_QUALITY,
-                            severity="warning",
-                            category="test_coverage_gap",
-                            description=(
-                                f"Test files exist but do not appear to reference "
-                                f"module '{module_name}' ({path})"
-                            ),
-                            file_path=path,
-                            suggestion=f"Add tests that import and exercise {module_name}.",
-                        )
-                    )
-        return findings
+        module_name = os.path.splitext(os.path.basename(path))[0].lower()
+        if module_name and module_name not in combined_test_content:
+            return ReviewFinding(
+                stage=ReviewStage.CODE_QUALITY,
+                severity="warning",
+                category="test_coverage_gap",
+                description=(
+                    f"Test files exist but do not appear to reference "
+                    f"module '{module_name}' ({path})"
+                ),
+                file_path=path,
+                suggestion=f"Add tests that import and exercise {module_name}.",
+            )
+        return None
 
     def _check_anti_patterns(
         self, code_changes: dict[str, Any]

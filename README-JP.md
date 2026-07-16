@@ -3,14 +3,14 @@
 <p align="center">
   <strong>1つのタスク → マルチロールAIコラボレーション → 1つの結論</strong>
   <br>
-  <em>エンタープライズ対応 | V4.1.0</em>
+  <em>エンタープライズ対応 | V4.1.1</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5180%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.1.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-5219%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.1.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -28,9 +28,7 @@
 - **P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復、LoopKernel 再利用、コンセンサスゲートをバイパスしない
 - **P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層防护 + reload ロールバック + 監査ログ
 
-5183+ tests passing。
-
-### 🔄 V3.9.2 エンタープライズ機能詳細
+5219+ tests passing。
 
 ### 🎯 クイックスタート（5つの使用方法）
 

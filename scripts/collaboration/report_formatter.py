@@ -62,6 +62,14 @@ _ROLE_I18N = {
     },
 }
 
+_CONSENSUS_OUTCOME_BADGES: dict[str, str] = {
+    "APPROVED": "🟢 通过",
+    "REJECTED": "🔴 否决",
+    "SPLIT": "🟡 分歧",
+    "ESCALATED": "🔵 升级",
+}
+_ACTION_PRIORITY_BADGES: dict[str, str] = {"H": "🔴高", "M": "🟡中", "L": "🟢低"}
+
 
 class ReportFormatter:
     """Report formatting engine for DispatchResult."""
@@ -107,112 +115,115 @@ class ReportFormatter:
         Report hierarchy: Summary card -> Role assignments -> Key findings
                           -> Conflict resolution -> Action items
         """
-        lines = []
+        lines: list[str] = []
+        sections = [
+            self._format_summary_card(result),
+            self._format_role_assignments(result),
+            self._format_findings_section(result),
+            self._format_consensus_section(result),
+            self._format_action_items_section(result, include_action_items),
+            self._format_system_info(result),
+            self._format_timing_section(result, include_timing),
+            self._format_errors_section(result),
+        ]
+        for section in sections:
+            lines.extend(section)
+        return "\n".join(lines)
+
+    def _format_summary_card(self, result: Any) -> list[str]:
         status_icon = "✅" if result.success else "❌"
         status_text = "协作完成" if result.success else "协作异常"
-
-        lines.append(f"# {status_icon} Multi-Agent 协作报告")
-        lines.append("")
-
-        lines.append("---")
-        lines.append("## 📋 任务摘要")
-        lines.append("")
-        lines.append("| 项目 | 内容 |")
-        lines.append("|------|------|")
-        lines.append(f"| **任务** | {result.task_description[:100]} |")
-        lines.append(f"| **状态** | {status_text} |")
-        lines.append(f"| **参与角色** | {len(result.matched_roles)} 个 ({', '.join(result.matched_roles)}) |")
-        lines.append(f"| **总耗时** | {result.duration_seconds:.2f}s |")
-
+        lines = [
+            f"# {status_icon} Multi-Agent 协作报告",
+            "",
+            "---",
+            "## 📋 任务摘要",
+            "",
+            "| 项目 | 内容 |",
+            "|------|------|",
+            f"| **任务** | {result.task_description[:100]} |",
+            f"| **状态** | {status_text} |",
+            f"| **参与角色** | {len(result.matched_roles)} 个 ({', '.join(result.matched_roles)}) |",
+            f"| **总耗时** | {result.duration_seconds:.2f}s |",
+        ]
         if result.worker_results:
             success_count = sum(1 for w in result.worker_results if w.get("success"))
             total_count = len(result.worker_results)
             lines.append(
                 f"| **执行成功率** | {success_count}/{total_count} ({success_count / total_count * 100:.0f}%) |"
             )
-
         if result.errors:
             lines.append(f"| **错误数** | {len(result.errors)} |")
+        lines.extend(["", "---", ""])
+        return lines
+
+    def _format_role_assignments(self, result: Any) -> list[str]:
+        if not result.worker_results:
+            return []
+        lines = [
+            "## 👥 角色分配与产出",
+            "",
+            "| 角色 | 状态 | 核心产出 (预览) |",
+            "|------|------|----------------|",
+        ]
+        for wr in result.worker_results:
+            role_name = wr.get("role", "unknown")
+            role_display = ROLE_TEMPLATES.get(role_name, {}).get("name", role_name)
+            status_icon = "✅" if wr.get("success") else "❌"
+            output_preview = (wr.get("output") or "(无输出)")[:80].replace("\n", " ")
+            lines.append(f"| **{role_display}** | {status_icon} | {output_preview} |")
+        lines.extend(["", "---", ""])
+        return lines
+
+    def _format_findings_section(self, result: Any) -> list[str]:
+        if not result.scratchpad_summary:
+            return []
+        lines = ["## 🔍 关键发现", ""]
+        findings = self.extract_findings(result.scratchpad_summary)
+        if findings:
+            for i, finding in enumerate(findings[:8], 1):
+                lines.append(f"{i}. {finding}")
+        else:
+            lines.append(f"> {result.scratchpad_summary[:300]}")
+        lines.extend(["", "---", ""])
+        return lines
+
+    def _format_consensus_section(self, result: Any) -> list[str]:
+        if not result.consensus_records:
+            return []
+        lines = ["## 🗳️ 共识决策与冲突解决", ""]
+        for cr in result.consensus_records:
+            topic = cr.get("topic", "未知议题")
+            outcome = cr.get("outcome", "")
+            decision = cr.get("final_decision", "")
+            badge = _CONSENSUS_OUTCOME_BADGES.get(outcome, "⏪ 超时")
+            votes_for = cr.get("votes_for", 0)
+            votes_against = cr.get("votes_against", 0)
+            votes_abstain = cr.get("votes_abstain", 0)
+            lines.append(f"- **{topic}** `{badge}`")
+            lines.append(f"  - 投票: ✅{votes_for} ❌{votes_against} ⚪{votes_abstain}")
+            if decision:
+                lines.append(f"  - 决策: {decision[:100]}")
+            lines.append("")
+        lines.extend(["---", ""])
+        return lines
+
+    def _format_action_items_section(self, result: Any, include_action_items: bool) -> list[str]:
+        if not include_action_items:
+            return []
+        action_items = self.generate_action_items(result)
+        if not action_items:
+            return []
+        lines = ["## 📌 行动项建议", ""]
+        for i, item in enumerate(action_items, 1):
+            priority = item.get("priority", "M")
+            priority_badge = _ACTION_PRIORITY_BADGES.get(priority, "⚪")
+            lines.append(f"{i}. [{priority_badge}] {item['text']}")
         lines.append("")
-        lines.append("---")
-        lines.append("")
+        return lines
 
-        if result.worker_results:
-            lines.append("## 👥 角色分配与产出")
-            lines.append("")
-            lines.append("| 角色 | 状态 | 核心产出 (预览) |")
-            lines.append("|------|------|----------------|")
-
-            for wr in result.worker_results:
-                role_name = wr.get("role", "unknown")
-                role_display = ROLE_TEMPLATES.get(role_name, {}).get("name", role_name)
-                status_icon = "✅" if wr.get("success") else "❌"
-                output_preview = (wr.get("output") or "(无输出)")[:80].replace("\n", " ")
-                lines.append(f"| **{role_display}** | {status_icon} | {output_preview} |")
-
-            lines.append("")
-            lines.append("---")
-            lines.append("")
-
-        if result.scratchpad_summary:
-            lines.append("## 🔍 关键发现")
-            lines.append("")
-            findings = self.extract_findings(result.scratchpad_summary)
-            if findings:
-                for i, finding in enumerate(findings[:8], 1):
-                    lines.append(f"{i}. {finding}")
-            else:
-                lines.append(f"> {result.scratchpad_summary[:300]}")
-            lines.append("")
-            lines.append("---")
-            lines.append("")
-
-        if result.consensus_records:
-            lines.append("## 🗳️ 共识决策与冲突解决")
-            lines.append("")
-
-            for cr in result.consensus_records:
-                topic = cr.get("topic", "未知议题")
-                outcome = cr.get("outcome", "")
-                decision = cr.get("final_decision", "")
-
-                if outcome == "APPROVED":
-                    badge = "🟢 通过"
-                elif outcome == "REJECTED":
-                    badge = "🔴 否决"
-                elif outcome == "SPLIT":
-                    badge = "🟡 分歧"
-                elif outcome == "ESCALATED":
-                    badge = "🔵 升级"
-                else:
-                    badge = "⏪ 超时"
-
-                votes_for = cr.get("votes_for", 0)
-                votes_against = cr.get("votes_against", 0)
-                votes_abstain = cr.get("votes_abstain", 0)
-
-                lines.append(f"- **{topic}** `{badge}`")
-                lines.append(f"  - 投票: ✅{votes_for} ❌{votes_against} ⚪{votes_abstain}")
-                if decision:
-                    lines.append(f"  - 决策: {decision[:100]}")
-                lines.append("")
-
-            lines.append("---")
-            lines.append("")
-
-        if include_action_items:
-            action_items = self.generate_action_items(result)
-            if action_items:
-                lines.append("## 📌 行动项建议")
-                lines.append("")
-                for i, item in enumerate(action_items, 1):
-                    priority = item.get("priority", "M")
-                    priority_badge = {"H": "🔴高", "M": "🟡中", "L": "🟢低"}.get(priority, "⚪")
-                    lines.append(f"{i}. [{priority_badge}] {item['text']}")
-                lines.append("")
-
-        ext_sections = []
-
+    def _format_system_info(self, result: Any) -> list[str]:
+        ext_sections: list[str] = []
         if result.compression_info:
             ci = result.compression_info
             ext_sections.append(
@@ -220,52 +231,51 @@ class ReportFormatter:
                 f"{ci.get('original_tokens', 0)}→{ci.get('compressed_tokens', 0)} tokens | "
                 f"节省 {ci.get('reduction_pct', 0)}%"
             )
-
         if result.memory_stats:
             ms = result.memory_stats
             ext_sections.append(
                 f"**记忆系统**: 总记忆={ms.get('total_memories', 0)} | 捕获次数={ms.get('total_captures', 0)}"
             )
-
-        if result.skill_proposals and len(result.skill_proposals) > 0:
+        if result.skill_proposals:
             proposals = [f"{p.get('title', '')}({p.get('confidence', 0):.0%})" for p in result.skill_proposals[:3]]
             ext_sections.append(f"**技能提案**: {', '.join(proposals)}")
-
         if result.permission_checks:
             allowed = sum(1 for pc in result.permission_checks if pc.get("allowed"))
             total_pc = len(result.permission_checks)
             ext_sections.append(f"**权限检查**: {allowed}/{total_pc} 通过")
+        if not ext_sections:
+            return []
+        lines = ["---", "", "> **系统信息**"]
+        for section in ext_sections:
+            lines.append(f"> {section}")
+        lines.append("")
+        return lines
 
-        if ext_sections:
-            lines.append("---")
-            lines.append("")
-            lines.append("> **系统信息**")
-            for section in ext_sections:
-                lines.append(f"> {section}")
-            lines.append("")
+    def _format_timing_section(self, result: Any, include_timing: bool) -> list[str]:
+        if not (include_timing and result.details.get("timing")):
+            return []
+        timing = result.details["timing"]
+        lines = [
+            "",
+            "<details>",
+            "<summary>⏱️ 各阶段耗时详情</summary>",
+            "",
+            "| 阶段 | 耗时(s) |",
+            "|------|---------|",
+        ]
+        for stage, duration in timing.items():
+            if duration > 0.001:
+                lines.append(f"| {stage} | {duration:.3f} |")
+        lines.extend(["", "</details>", ""])
+        return lines
 
-        if include_timing and result.details.get("timing"):
-            timing = result.details["timing"]
-            lines.append("")
-            lines.append("<details>")
-            lines.append("<summary>⏱️ 各阶段耗时详情</summary>")
-            lines.append("")
-            lines.append("| 阶段 | 耗时(s) |")
-            lines.append("|------|---------|")
-            for stage, duration in timing.items():
-                if duration > 0.001:
-                    lines.append(f"| {stage} | {duration:.3f} |")
-            lines.append("")
-            lines.append("</details>")
-            lines.append("")
-
-        if result.errors:
-            lines.append("")
-            lines.append("> ⚠️ **错误/警告**:")
-            for err in result.errors[:5]:
-                lines.append(f"> - {err[:150]}")
-
-        return "\n".join(lines)
+    def _format_errors_section(self, result: Any) -> list[str]:
+        if not result.errors:
+            return []
+        lines = ["", "> ⚠️ **错误/警告**:"]
+        for err in result.errors[:5]:
+            lines.append(f"> - {err[:150]}")
+        return lines
 
     def format_compact_report(self, result: Any) -> str:
         """Generate compact report suitable for terminal quick view."""

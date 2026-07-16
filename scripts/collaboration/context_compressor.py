@@ -447,6 +447,30 @@ class ContextCompressor:
         errors = [m for m in self._session_memory if m.category == MemoryCategory.ERROR]
         deliverables = [m for m in self._session_memory if m.category == MemoryCategory.DELIVERABLE]
 
+        summary_lines = self._build_full_compact_summary(
+            messages, decisions, deliverables, todos, errors, findings
+        )
+
+        ctx.messages = []
+        ctx.compressed_token_count = self.estimate_tokens("\n".join(summary_lines))
+        ctx.summary = "\n".join(summary_lines)
+        ctx.stats["decisions"] = len(decisions)
+        ctx.stats["findings"] = len(findings)
+        ctx.stats["todos"] = len(todos)
+        ctx.stats["errors"] = len(errors)
+        ctx.stats["deliverables"] = len(deliverables)
+        return ctx
+
+    def _build_full_compact_summary(
+        self,
+        messages: list[Message],
+        decisions: list,
+        deliverables: list,
+        todos: list,
+        errors: list,
+        findings: list,
+    ) -> list[str]:
+        """Render the level-3 full-compact summary lines from categorized memories."""
         summary_lines = ["=== FullCompact Summary ==="]
         summary_lines.append(f"Total messages processed: {len(messages)}")
         summary_lines.append(f"Memory entries extracted: {len(self._session_memory)}")
@@ -475,16 +499,7 @@ class ContextCompressor:
             summary_lines.append(f"\n## Key Findings ({len(findings)})")
             for f in findings[:5]:
                 summary_lines.append(f"- {f.content[:120]}")
-
-        ctx.messages = []
-        ctx.compressed_token_count = self.estimate_tokens("\n".join(summary_lines))
-        ctx.summary = "\n".join(summary_lines)
-        ctx.stats["decisions"] = len(decisions)
-        ctx.stats["findings"] = len(findings)
-        ctx.stats["todos"] = len(todos)
-        ctx.stats["errors"] = len(errors)
-        ctx.stats["deliverables"] = len(deliverables)
-        return ctx
+        return summary_lines
 
     def _level4_smart(self, messages: list[Message], ctx: CompressedContext) -> CompressedContext:
         """Level 4: Structure-aware compression via ContentRouter + SmartCrusher.

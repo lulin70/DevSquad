@@ -30,6 +30,8 @@ class GateType(Enum):
     QUALITY_THRESHOLD = "quality_threshold"
     SECURITY_CHECK = "security_check"
     COMPLIANCE_CHECK = "compliance_check"
+    # V4.1.1: Debug loop readiness gate (Matt Pocock red-capable criteria)
+    DEBUG_LOOP_READY = "debug_loop_ready"
 
 
 class GateSeverity(Enum):
@@ -172,6 +174,8 @@ class UnifiedGateEngine:
         self._checkers: dict[GateType, Callable] = {
             GateType.PHASE_TRANSITION: self._check_phase_transition,
             GateType.WORKER_OUTPUT: self._check_worker_output,
+            # V4.1.1: Debug loop readiness (Matt Pocock red-capable)
+            GateType.DEBUG_LOOP_READY: self._check_debug_loop_ready,
         }
         self._custom_checkers: dict[GateType, list[Callable]] = {}
         self._statistics: dict[str, int] = {
@@ -595,6 +599,98 @@ class UnifiedGateEngine:
         if context.diff_summary:
             evidence["diff_summary"] = context.diff_summary
         return evidence
+
+    # ------------------------------------------------------------------
+    # V4.1.1: Debug loop readiness gate (Matt Pocock red-capable criteria)
+    # ------------------------------------------------------------------
+
+    def check_debug_loop_ready(self, command: str) -> UnifiedGateResult:
+        """Check if a debugging command meets Matt Pocock's red-capable criteria.
+
+        Wraps ``VerificationGate.verify_debug_loop_ready`` so the unified gate
+        engine can reject debugging commands that cannot produce a failing
+        (RED) result, are non-deterministic, slow, or require interactive
+        input. This eliminates the ghost-function status of
+        ``verify_debug_loop_ready`` by routing it through the standard gate
+        pipeline (statistics tracking + pluggable checkers + result merging).
+
+        Args:
+            command: The debugging command or code snippet to evaluate.
+
+        Returns:
+            UnifiedGateResult with ``gate_type=DEBUG_LOOP_READY``. The
+            ``critical_issues`` field contains one entry per failed
+            criterion; ``suggestions`` contains the human-readable reasoning.
+        """
+        return cast(
+            UnifiedGateResult,
+            self.check(GateType.DEBUG_LOOP_READY, command),
+        )
+
+    def _check_debug_loop_ready(
+        self,
+        command: str,
+        **_kwargs: Any,
+    ) -> UnifiedGateResult:
+        """Internal checker for debug-loop readiness.
+
+        Delegates to ``VerificationGate.verify_debug_loop_ready`` and
+        translates the ``RedCapableResult`` into a ``UnifiedGateResult``.
+        """
+        try:
+            from scripts.collaboration.verification_gate import get_shared_gate
+
+            vg = get_shared_gate(strict_mode=self.config.strict_mode)
+            red_result = vg.verify_debug_loop_ready(command)
+        except ImportError:
+            logger.warning("VerificationGate not available for debug-loop check")
+            return UnifiedGateResult(
+                passed=False,
+                gate_type=GateType.DEBUG_LOOP_READY,
+                verdict="REJECT",
+                severity=GateSeverity.CRITICAL,
+                critical_issues=[
+                    {
+                        "code": "VG_UNAVAILABLE",
+                        "message": "VerificationGate module not available",
+                    }
+                ],
+            )
+
+        critical_issues: list[dict[str, Any]] = []
+        warnings: list[dict[str, Any]] = []
+        suggestions: list[str] = []
+
+        for criterion in red_result.failed_criteria:
+            critical_issues.append(
+                {
+                    "code": criterion,
+                    "message": f"Debug command failed criterion: {criterion}",
+                    "criterion": criterion,
+                }
+            )
+
+        if red_result.reasoning:
+            suggestions.append(red_result.reasoning)
+
+        if red_result.passed:
+            verdict = "APPROVE"
+            severity = GateSeverity.INFO
+        else:
+            verdict = "REJECT"
+            severity = GateSeverity.CRITICAL
+
+        return UnifiedGateResult(
+            passed=red_result.passed,
+            gate_type=GateType.DEBUG_LOOP_READY,
+            verdict=verdict,
+            severity=severity,
+            checks_run=4,
+            checks_passed=4 - len(red_result.failed_criteria),
+            critical_issues=critical_issues,
+            warnings=warnings,
+            suggestions=suggestions,
+        )
 
     def get_statistics(self) -> dict[str, Any]:
         """Get gate engine statistics."""

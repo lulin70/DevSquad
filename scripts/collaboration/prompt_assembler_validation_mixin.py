@@ -149,61 +149,71 @@ class PromptAssemblerValidationMixin(PromptAssemblerBase):
         Returns:
             TaskComplexity: Detected complexity level
         """
+        if not task_description.strip():
+            return TaskComplexity.SIMPLE
         desc_lower = task_description.lower()
         desc_len = len(task_description)
 
-        score_simple = 0.0
-        score_complex = 0.0
-
-        length_score = 0.0
-        if desc_len < 15:
-            length_score = -0.5
-        elif desc_len < 30:
-            length_score = -0.3
-        elif desc_len < 150:
-            length_score = 0.0
-        else:
-            length_score = 0.3
-
-        simple_kw = self._COMPLEXITY_KEYWORDS[TaskComplexity.SIMPLE]
-        complex_kw = self._COMPLEXITY_KEYWORDS[TaskComplexity.COMPLEX]
-
-        def _word_match(keyword: str, text: str) -> bool:
-            if "\u4e00" <= keyword[0] <= "\u9fff":
-                return keyword in text
-            return bool(re.search(r"\b" + re.escape(keyword) + r"\b", text))
-
-        for kw in simple_kw["positive"]:
-            if _word_match(kw, desc_lower):
-                score_simple += 0.15
-        for kw in simple_kw["negative"]:
-            if _word_match(kw, desc_lower):
-                score_simple -= 0.2
-
-        for kw in complex_kw["positive"]:
-            if _word_match(kw, desc_lower):
-                score_complex += 0.2
-        for kw in complex_kw["negative"]:
-            if _word_match(kw, desc_lower):
-                score_complex -= 0.15
-
-        has_numbering = bool(_RE_NUMBERING.search(task_description))
-        has_multi_question = task_description.count("?") >= 2
-        has_multi_requirement = len(_RE_MULTI_REQ.split(task_description)) >= 3
-
-        structure_bonus = 0.0
-        if has_numbering:
-            structure_bonus += 0.1
-        if has_multi_question:
-            structure_bonus += 0.15
-        if has_multi_requirement:
-            structure_bonus += 0.1
+        length_score = self._length_score(desc_len)
+        score_simple, score_complex = self._keyword_scores(desc_lower)
+        structure_bonus = self._structure_bonus(task_description)
 
         final_simple = score_simple + length_score * 0.5
         final_complex = score_complex + length_score * 0.5 + structure_bonus
+        return self._classify_by_scores(final_simple, final_complex, desc_len)
 
-        if not task_description.strip():
-            return TaskComplexity.SIMPLE
+    def _length_score(self, desc_len: int) -> float:
+        """Return the length-dimension score for a task description."""
+        if desc_len < 15:
+            return -0.5
+        if desc_len < 30:
+            return -0.3
+        if desc_len < 150:
+            return 0.0
+        return 0.3
+
+    @staticmethod
+    def _word_match(keyword: str, text: str) -> bool:
+        """Match a complexity keyword against text (substring for CJK, word-boundary otherwise)."""
+        if "\u4e00" <= keyword[0] <= "\u9fff":
+            return keyword in text
+        return bool(re.search(r"\b" + re.escape(keyword) + r"\b", text))
+
+    def _keyword_scores(self, desc_lower: str) -> tuple[float, float]:
+        """Return ``(simple_score, complex_score)`` from keyword matching."""
+        simple_kw = self._COMPLEXITY_KEYWORDS[TaskComplexity.SIMPLE]
+        complex_kw = self._COMPLEXITY_KEYWORDS[TaskComplexity.COMPLEX]
+        score_simple = 0.0
+        score_complex = 0.0
+        for kw in simple_kw["positive"]:
+            if self._word_match(kw, desc_lower):
+                score_simple += 0.15
+        for kw in simple_kw["negative"]:
+            if self._word_match(kw, desc_lower):
+                score_simple -= 0.2
+        for kw in complex_kw["positive"]:
+            if self._word_match(kw, desc_lower):
+                score_complex += 0.2
+        for kw in complex_kw["negative"]:
+            if self._word_match(kw, desc_lower):
+                score_complex -= 0.15
+        return score_simple, score_complex
+
+    def _structure_bonus(self, task_description: str) -> float:
+        """Return the structure-dimension bonus (numbering/questions/multi-requirement)."""
+        bonus = 0.0
+        if _RE_NUMBERING.search(task_description):
+            bonus += 0.1
+        if task_description.count("?") >= 2:
+            bonus += 0.15
+        if len(_RE_MULTI_REQ.split(task_description)) >= 3:
+            bonus += 0.1
+        return bonus
+
+    def _classify_by_scores(
+        self, final_simple: float, final_complex: float, desc_len: int
+    ) -> TaskComplexity:
+        """Classify complexity from the final simple/complex scores and length."""
         if desc_len < 15:
             return TaskComplexity.SIMPLE
         if final_complex > 0.3 and final_complex > final_simple + 0.1:

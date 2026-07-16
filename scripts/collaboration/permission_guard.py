@@ -18,6 +18,7 @@ Core components:
 """
 
 import fnmatch
+import logging
 import re
 import threading
 import time
@@ -26,6 +27,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class PermissionLevel(Enum):
@@ -424,6 +427,7 @@ class PermissionGuard:
         rules: list[PermissionRule] | None = None,
         audit_log: bool = True,
         session_id: str | None = None,
+        fail_closed: bool = True,
     ):
         """
         初始化权限守卫
@@ -433,6 +437,9 @@ class PermissionGuard:
             rules: 自定义规则列表（为空则使用 30 条内置默认规则）
             audit_log: 是否启用审计日志记录
             session_id: 会话标识（用于审计追踪，自动生成如未提供）
+            fail_closed: 当权限检查抛出异常时，True（默认，生产安全）则
+                DENY 操作；False 则 ALLOW 操作（不安全，仅用于调试）。
+                遵循 fail-safe 原则：默认 fail-closed。
         """
         self.current_level = current_level
         self.rules: list[PermissionRule] = rules or _build_default_rules()
@@ -445,6 +452,7 @@ class PermissionGuard:
         self._whitelist: set[str] = set()
         self._lock = threading.RLock()
         self.session_id = session_id or f"sess-{uuid.uuid4().hex[:8]}"
+        self._fail_closed = fail_closed
 
     def check(self, action: ProposedAction) -> PermissionDecision:
         """
@@ -462,6 +470,10 @@ class PermissionGuard:
 
         所有决策都会记录到审计日志。
 
+        当检查过程中抛出异常时，根据 ``fail_closed`` 配置决定行为:
+        - ``fail_closed=True``（默认）: 返回 DENY（生产安全，fail-safe）
+        - ``fail_closed=False``: 返回 ALLOW（不安全，仅调试用）
+
         Args:
             action: 操作提案，包含类型、目标路径、描述、来源信息等
 
@@ -474,9 +486,19 @@ class PermissionGuard:
                 - confidence: 决策置信度 [0.1, 1.0]
                 - risk_score: 计算后的风险评分 [0.0, 1.0]
         """
-        with self._lock:
-            start = time.perf_counter()
+        start = time.perf_counter()
+        try:
+            return self._check_impl(action, start)
+        except Exception as e:
+            return self._handle_check_exception(action, e, start)
 
+    def _check_impl(self, action: ProposedAction, start: float) -> PermissionDecision:
+        """Internal permission check implementation (may raise exceptions).
+
+        Separated from :meth:`check` so the caller can apply fail-closed /
+        fail-open exception handling without re-indenting the decision logic.
+        """
+        with self._lock:
             if self.current_level == PermissionLevel.BYPASS:
                 decision = self._make_decision(action, DecisionOutcome.ALLOWED, "BYPASS模式: 跳过所有检查")
                 self._record_audit(action, decision, start)
@@ -574,6 +596,41 @@ class PermissionGuard:
 
             self._record_audit(action, decision, start)
             return decision
+
+    def _handle_check_exception(
+        self,
+        action: ProposedAction,
+        error: Exception,
+        start_time: float,
+    ) -> PermissionDecision:
+        """Handle exceptions raised during :meth:`_check_impl`.
+
+        When ``fail_closed=True`` (default, production-safe), exceptions
+        result in a DENY decision. When ``fail_closed=False``, exceptions
+        result in an ALLOW decision (fail-open, insecure — debug only).
+
+        This implements the fail-safe principle: when the permission system
+        cannot make a reliable decision, it denies the request.
+        """
+        if self._fail_closed:
+            outcome = DecisionOutcome.DENIED
+            mode = "fail-closed DENY"
+        else:
+            outcome = DecisionOutcome.ALLOWED
+            mode = "fail-open ALLOW"
+        logger.warning(
+            "Permission check raised exception (%s): %s",
+            mode,
+            error,
+            exc_info=True,
+        )
+        decision = self._make_decision(
+            action,
+            outcome,
+            f"Permission check error ({mode}): {type(error).__name__}",
+        )
+        self._record_audit(action, decision, start_time)
+        return decision
 
     def auto_classify(self, action: ProposedAction) -> float:
         """
@@ -848,22 +905,13 @@ class PermissionGuard:
             Dict[str, Any]: 安全报告字典
         """
         total = len(self._audit_log)
-        allowed = sum(1 for e in self._audit_log if e.decision and e.decision.outcome == DecisionOutcome.ALLOWED)
-        denied = sum(1 for e in self._audit_log if e.decision and e.decision.outcome == DecisionOutcome.DENIED)
-        prompted = sum(1 for e in self._audit_log if e.decision and e.decision.outcome == DecisionOutcome.PROMPT)
-        escalated = sum(1 for e in self._audit_log if e.decision and e.decision.outcome == DecisionOutcome.ESCALATED)
+        allowed = self._count_outcome(DecisionOutcome.ALLOWED)
+        denied = self._count_outcome(DecisionOutcome.DENIED)
+        prompted = self._count_outcome(DecisionOutcome.PROMPT)
+        escalated = self._count_outcome(DecisionOutcome.ESCALATED)
 
-        avg_risk = 0.0
-        if total > 0:
-            risks = [e.action.risk_score for e in self._audit_log if e.action]
-            avg_risk = sum(risks) / len(risks) if risks else 0.0
-
-        denied_targets: dict[str, int] = {}
-        for e in self._audit_log:
-            if e.decision and e.decision.outcome == DecisionOutcome.DENIED and e.action:
-                t = e.action.target or "unknown"
-                denied_targets[t] = denied_targets.get(t, 0) + 1
-        top_denied = sorted(denied_targets.items(), key=lambda x: x[1], reverse=True)[:5]
+        avg_risk = self._compute_avg_risk(total)
+        top_denied = self._top_denied_actions(limit=5)
 
         return {
             "total_checks": total,
@@ -877,6 +925,26 @@ class PermissionGuard:
             "rules_count": len(self.rules),
             "whitelist_count": len(self._whitelist),
         }
+
+    def _count_outcome(self, outcome: "DecisionOutcome") -> int:
+        """Count audit-log entries whose decision matches the given outcome."""
+        return sum(1 for e in self._audit_log if e.decision and e.decision.outcome == outcome)
+
+    def _compute_avg_risk(self, total: int) -> float:
+        """Compute the average risk score across audit-log entries with an action."""
+        if total <= 0:
+            return 0.0
+        risks = [e.action.risk_score for e in self._audit_log if e.action]
+        return sum(risks) / len(risks) if risks else 0.0
+
+    def _top_denied_actions(self, limit: int = 5) -> list[tuple[str, int]]:
+        """Return the most-frequently denied action targets, descending."""
+        denied_targets: dict[str, int] = {}
+        for e in self._audit_log:
+            if e.decision and e.decision.outcome == DecisionOutcome.DENIED and e.action:
+                t = e.action.target or "unknown"
+                denied_targets[t] = denied_targets.get(t, 0) + 1
+        return sorted(denied_targets.items(), key=lambda x: x[1], reverse=True)[:limit]
 
     def add_whitelist(self, pattern: str) -> None:
         """将模式加入白名单（匹配时直接放行，跳过规则检查）"""

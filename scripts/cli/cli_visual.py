@@ -457,7 +457,7 @@ class VisualFormatter:
         else:
             return Colors.RED
 
-    def print_footer(self, version: str = "V4.1.0") -> None:
+    def print_footer(self, version: str = "V4.1.1") -> None:
         """Print footer with version and timestamp."""
         from datetime import datetime
 

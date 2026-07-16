@@ -278,60 +278,18 @@ class FeedbackControlLoop:
         errors = getattr(result, "errors", []) or []
 
         failed_workers = [wr for wr in worker_results if not wr.get("success") and wr.get("error")]
+        successful_workers = [wr for wr in worker_results if wr.get("success")]
 
-        if failed_workers:
-            failed_roles = set()
-            for fw in failed_workers:
-                role_id = fw.get("role_id", "unknown")
-                failed_roles.add(role_id)
-
-            if len(failed_roles) == 1:
-                role = list(failed_roles)[0]
-                adjustments.append(f"Add additional review from {role} role or simplify requirements for {role}")
-            else:
-                roles_str = ", ".join(sorted(failed_roles))
-                adjustments.append(
-                    f"Address failures in roles: {roles_str}. Consider breaking down task into smaller sub-tasks"
-                )
-
-        if errors:
-            error_types = set()
-            for err in errors[:5]:
-                err_lower = err.lower()
-                if "timeout" in err_lower or "time" in err_lower:
-                    error_types.add("timeout")
-                elif "permission" in err_lower or "auth" in err_lower:
-                    error_types.add("permission")
-                elif "memory" in err_lower or "resource" in err_lower:
-                    error_types.add("resource")
-                else:
-                    error_types.add("general")
-
-            if "timeout" in error_types:
-                adjustments.append("Reduce task complexity or scope to prevent timeout")
-            if "permission" in error_types:
-                adjustments.append("Clarify permission requirements and constraints")
-            if "resource" in error_types:
-                adjustments.append("Optimize resource usage or reduce memory footprint")
+        adjustments.extend(self._adjustment_for_failed_workers(failed_workers))
+        adjustments.extend(self._adjustment_for_errors(errors))
 
         if not worker_results:
             adjustments.append("Task may be too vague. Add specific acceptance criteria and expected outputs")
 
-        successful_workers = [wr for wr in worker_results if wr.get("success")]
-        if successful_workers and failed_workers:
-            success_count = len(successful_workers)
-            total = len(worker_results)
-            if success_count / total < 0.5:
-                adjustments.append(
-                    "Low success rate detected. Consider reducing number of roles or simplifying task scope"
-                )
-
-        if quality < 0.4:
-            adjustments.append("Quality critically low. Recommend complete task reformulation with clearer objectives")
-        elif quality < 0.6:
-            adjustments.append(
-                "Quality below acceptable level. Strengthen task description with examples and constraints"
-            )
+        adjustments.extend(
+            self._adjustment_for_success_rate(successful_workers, failed_workers, worker_results)
+        )
+        adjustments.extend(self._adjustment_for_quality(quality))
 
         if not adjustments:
             adjustments.append(
@@ -339,6 +297,73 @@ class FeedbackControlLoop:
             )
 
         return " | ".join(adjustments[:5])
+
+    def _adjustment_for_failed_workers(self, failed_workers: list[dict[str, Any]]) -> list[str]:
+        """Build adjustment suggestions keyed off the set of failed roles."""
+        if not failed_workers:
+            return []
+        failed_roles = set()
+        for fw in failed_workers:
+            role_id = fw.get("role_id", "unknown")
+            failed_roles.add(role_id)
+
+        if len(failed_roles) == 1:
+            role = list(failed_roles)[0]
+            return [f"Add additional review from {role} role or simplify requirements for {role}"]
+        roles_str = ", ".join(sorted(failed_roles))
+        return [
+            f"Address failures in roles: {roles_str}. Consider breaking down task into smaller sub-tasks"
+        ]
+
+    def _adjustment_for_errors(self, errors: list[str]) -> list[str]:
+        """Classify error strings and emit one adjustment per detected type."""
+        if not errors:
+            return []
+        error_types = set()
+        for err in errors[:5]:
+            err_lower = err.lower()
+            if "timeout" in err_lower or "time" in err_lower:
+                error_types.add("timeout")
+            elif "permission" in err_lower or "auth" in err_lower:
+                error_types.add("permission")
+            elif "memory" in err_lower or "resource" in err_lower:
+                error_types.add("resource")
+            else:
+                error_types.add("general")
+
+        type_messages = {
+            "timeout": "Reduce task complexity or scope to prevent timeout",
+            "permission": "Clarify permission requirements and constraints",
+            "resource": "Optimize resource usage or reduce memory footprint",
+        }
+        return [type_messages[t] for t in ("timeout", "permission", "resource") if t in error_types]
+
+    def _adjustment_for_success_rate(
+        self,
+        successful_workers: list[dict[str, Any]],
+        failed_workers: list[dict[str, Any]],
+        worker_results: list[dict[str, Any]],
+    ) -> list[str]:
+        """Emit a low-success-rate warning when applicable."""
+        if not (successful_workers and failed_workers):
+            return []
+        success_count = len(successful_workers)
+        total = len(worker_results)
+        if success_count / total < 0.5:
+            return [
+                "Low success rate detected. Consider reducing number of roles or simplifying task scope"
+            ]
+        return []
+
+    def _adjustment_for_quality(self, quality: float) -> list[str]:
+        """Emit quality-driven adjustment suggestions."""
+        if quality < 0.4:
+            return ["Quality critically low. Recommend complete task reformulation with clearer objectives"]
+        if quality < 0.6:
+            return [
+                "Quality below acceptable level. Strengthen task description with examples and constraints"
+            ]
+        return []
 
     def _refine_task(self, task: str, adjustment: str) -> str:
         """

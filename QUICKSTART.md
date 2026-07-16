@@ -3,7 +3,7 @@
 <p align="center">
   <strong>把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>V4.1.0 Enterprise Ready | One task → Multi-role AI → One conclusion</em>
+  <em>V4.1.1 Enterprise Ready | One task → Multi-role AI → One conclusion</em>
 </p>
 
 ---
@@ -249,4 +249,4 @@ devsquad ship -t "部署和发布检查"
 
 ---
 
-*最后更新: 2026-07-16 | 版本: V4.1.0*
+*最后更新: 2026-07-16 | 版本: V4.1.1*
