@@ -105,6 +105,10 @@ class MicroTask:
         Result string (set on completion).
     started_at / completed_at:
         ISO timestamps (set by the executor, not the planner).
+    execution_mode:
+        ``HITL`` (human-in-the-loop) or ``AFK`` (async autonomous). Default ``AFK``.
+    slice_type:
+        ``vertical`` (end-to-end slice) or ``horizontal`` (layer slice). Default ``horizontal``.
     """
 
     id: str
@@ -118,6 +122,10 @@ class MicroTask:
     result: str = ""
     started_at: str = ""
     completed_at: str = ""
+    # P1-4 to-issues: execution mode (HITL = human-in-the-loop, AFK = async).
+    execution_mode: str = "AFK"
+    # P1-4 to-issues: vertical = end-to-end slice, horizontal = layer slice.
+    slice_type: str = "horizontal"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -132,6 +140,8 @@ class MicroTask:
             "result": self.result,
             "started_at": self.started_at,
             "completed_at": self.completed_at,
+            "execution_mode": self.execution_mode,
+            "slice_type": self.slice_type,
         }
 
 
@@ -737,6 +747,65 @@ class MicroTaskPlanner:
             result.extend(remaining)
 
         return result
+
+    # ------------------------------------------------------------------
+    # P1-4 to-issues: vertical slice + HITL/AFK + dependency ordering
+    # ------------------------------------------------------------------
+
+    def classify_execution_mode(self, task: MicroTask) -> str:
+        """Classify a micro-task's execution mode as ``"HITL"`` or ``"AFK"``.
+
+        Tasks involving deployment, release, or approval require a
+        human-in-the-loop (``HITL``); all others can execute
+        asynchronously (``AFK``).
+
+        Args:
+            task: The micro-task to classify.
+
+        Returns:
+            ``"HITL"`` when a deployment/release/approval keyword is found
+            in the task title or description, otherwise ``"AFK"``.
+        """
+        text = f"{task.title} {task.description}".lower()
+        hitl_keywords = [
+            "部署",
+            "deploy",
+            "发布",
+            "release",
+            "审批",
+            "approve",
+        ]
+        if any(kw in text for kw in hitl_keywords):
+            return "HITL"
+        return "AFK"
+
+    def order_by_dependencies(
+        self, tasks: list[MicroTask]
+    ) -> list[MicroTask]:
+        """Order tasks topologically: dependencies first, dependents after.
+
+        Performs a stable topological sort so that every task appears
+        after all of its dependencies. When a dependency cycle is
+        detected, the original order is preserved and a warning is
+        logged (the caller is responsible for resolving the cycle).
+
+        Args:
+            tasks: List of :class:`MicroTask` objects (the ``dependencies``
+                field holds the IDs of prerequisite tasks).
+
+        Returns:
+            A new list ordered so dependencies precede their dependents.
+            On cycle detection, a copy of the original list is returned.
+        """
+        cycle = self._detect_cycle(tasks)
+        if cycle:
+            logger.warning(
+                "order_by_dependencies: dependency cycle detected (%s); "
+                "preserving original order.",
+                " -> ".join(cycle),
+            )
+            return list(tasks)
+        return self._topological_sort(tasks)
 
     # ------------------------------------------------------------------
     # Execution helpers

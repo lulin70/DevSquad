@@ -9,7 +9,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [4.1.0] - 2026-07-15
 
-MINOR release: Matt Pocock skills fusion (7 P0 items) + UI/UX skills fusion (3 P0 items) + four-doc system. 10 P0 modules implemented, 200+ new tests, 5 ADRs, 43 GLOSSARY terms.
+MINOR release: Matt Pocock skills fusion (7 P0 + 7 P1 + 4 P2) + UI/UX skills fusion (3 P0 + 3 P1 + 4 P2) + four-doc system. 10 P0 modules + 12 P1-P2 code items + 6 ROADMAP entries. 439 new tests (200 P0 + 239 P1-P2), 5 ADRs, 43 GLOSSARY terms.
 
 ### Added — Matt Pocock Skills Fusion (7 P0 items)
 
@@ -35,6 +35,37 @@ MINOR release: Matt Pocock skills fusion (7 P0 items) + UI/UX skills fusion (3 P
 - **SPEC.md**: Technical specifications (modules/API/data models).
 - `RoleSkillLoader.load_glossary()` for GLOSSARY injection into role prompts.
 
+### Added — Matt Pocock Skills Fusion (7 P1 items)
+
+- **P1-1 Flow vs standalone classification** (`scripts/collaboration/intent_workflow_mapper.py`): `classify_flow_vs_standalone()` detects multi-step flow tasks (然后/接着/接下来, after that/then/next/continue) vs standalone questions. `IntentMatch.flow_type` field populated by `detect_intent()`. 22 tests.
+- **P1-2 Grill-with-docs (GLOSSARY auto-generation)** (`scripts/collaboration/rule_collector.py`): `GrillingMode.extract_glossary_candidates()` extracts CamelCase / hyphenated / quoted terms from Q&A transcripts. `GrillingResult.glossary_candidates` field. Interview becomes documentation. 8 tests (in test_grilling_mode.py).
+- **P1-3 Triage labels (category + state + HITL/AFK)** (`scripts/collaboration/lifecycle_protocol.py`): `TriageLabel` dataclass with 4 categories (feature/bug/tech_debt/security) + 5 states (new/triaged/in_progress/blocked/done) + 2 execution modes (HITL/AFK) + 4 priorities (P0-P3). `triage_requirement()` auto-classifies from requirement text. 27 tests.
+- **P1-4 Vertical slice + dependency ordering** (`scripts/collaboration/micro_task_planner.py`): `MicroTask.execution_mode` (HITL/AFK, deploy/release/approve → HITL) + `MicroTask.slice_type` (horizontal/vertical). `order_by_dependencies()` topological sort with cycle detection. 22 tests.
+- **P1-5 Seam-first design (to-prd)** (`scripts/collaboration/role_skills/product-manager/create-prd/SKILL.md`): PRD template section for identifying seams (where behavior changes without editing) before feature decomposition. 6 tests (in test_role_skill_loader.py).
+- **P1-6 Stateless grilling mode (grill-me)** (`scripts/collaboration/rule_collector.py`): `GrillingMode.stateless_mode()` classmethod + `is_stateless()` method + `_stateless` flag. Supports `--no-codebook` interview without codebase access. 7 tests (in test_grilling_mode.py).
+- **P1-7 Handoff redaction + suggested-skills** (`scripts/collaboration/checkpoint_manager.py`): `_redact_sensitive_info()` redacts sk-xxx / api_key / token / password / email patterns. `suggest_skills()` keyword-based skill recommendations (devops/security/dispatch/etc). `save_handoff()` applies redaction to Markdown output. 22 tests.
+
+### Added — UI/UX Skills Fusion (3 P1 items)
+
+- **P1-UI-1 Anti-pattern bans (6 rules)** (`scripts/qa/uiux_analyzer.py`): 6 AI frontend anti-pattern detectors: border_left_accent_stripes / gradient_text / glassmorphism_overuse / overused_fonts / purple_blue_gradient / nested_cards. 22 tests.
+- **P1-UI-2 7 Design Pillars vocabulary** (`scripts/collaboration/role_skills/ui-designer/uiux-audit/SKILL.md`): New UI designer skill with 7 design pillars (Typography / Color / Spatial / Responsiveness / Interactions / Motion / UX writing) + integration with DeterministicRuleEngine and TasteDials. 6 tests (in test_role_skill_loader.py).
+- **P1-UI-3 OKLCH color space** (`scripts/qa/uiux_analyzer.py`): `_parse_oklch_color()` / `_oklch_to_rgb()` / `_rgb_to_oklch()` — full bidirectional OKLCH ↔ RGB conversion for perceptually-uniform color audit. 23 tests.
+
+### Added — P2 Code Items (2 items)
+
+- **P2-3 Git guardrails** (`scripts/collaboration/operation_classifier.py`): `classify_git_command()` returns FORBIDDEN / NEEDS_REVIEW / ALWAYS_SAFE. `PROTECTED_BRANCHES = {"main", "master"}`. 9 private helper methods for parsing push/branch/checkout/stash/pull/rebase/commit/reset/clean. Uses `shlex` for robust argument parsing. Force-push to protected branches → FORBIDDEN. 57 tests.
+- **P2-UI-4 4pt grid spacing detection** (`scripts/qa/uiux_analyzer.py`): `check_4pt_grid()` / `_check_4pt_grid()` / `_spacing_token_to_px()` — detects non-4pt-multiple spacing values. Supports px / rem / em units. 17 tests.
+
+### Added — ROADMAP (6 items, deferred to V4.2+)
+
+- **P2-1 PrototypeSkill**: Record to ROADMAP (V4.2+ throwaway-prototype discipline).
+- **P2-2 TeachSkill**: Record to ROADMAP (DevSquad onboarding scenario).
+- **P2-4 Setup pre-commit hooks**: Record to ROADMAP (pre-commit hooks, mindful of version-drift lesson).
+- **P2-UI-1 CLI 23 Commands**: Record to ROADMAP (CLI command palette for UI/UX audit).
+- **P2-UI-2 Live Browser**: Record to ROADMAP (live browser iteration for UI/UX audit).
+- **P2-UI-3 6 Meta-skills**: Record to ROADMAP (6 UI/UX meta-skills).
+- **docs/ROADMAP.md**: New file consolidating all 6 deferred items with rationale and target version.
+
 ### Fixed — Module 10 grilling injection bug
 
 - **scripts/collaboration/prompt_assembler_formatting_mixin.py**: `_grilling_injection` was stored in `PromptAssembler.__init__` but never injected into the instruction. Fixed by adding grilling injection to the structured/comprehensive style path in `_build_instruction`. Simple tasks (direct style) skip grilling — they don't need Q&A discipline.
@@ -44,9 +75,13 @@ MINOR release: Matt Pocock skills fusion (7 P0 items) + UI/UX skills fusion (3 P
 
 - ruff check: All checks passed
 - mypy --follow-imports=skip: Success, no issues
-- pytest (full regression): 4940 passed / 26 skipped / 1 failed (LLM smoke, network-dependent)
+- pytest (full regression): 5183 passed / 24 skipped / 6 failed (LLM smoke, network-dependent)
 - Version consistency: 7/7 PASS (4.1.0)
+- Local TRAE deployment: CLI 4.1.0 verified, API health OK
+- E2E feature verification: 11/11 PASS (all P0-P1-P2 features verified end-to-end)
 - 10 P0 modules: ALL COMPLETE
+- 12 P1-P2 code items: ALL COMPLETE
+- 6 ROADMAP entries: ALL RECORDED
 
 ## [4.0.11] - 2026-07-13
 

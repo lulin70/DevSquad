@@ -9,7 +9,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载.
-  185+ core modules, 4651+ tests passing (CI authoritative).
+  185+ core modules, 5183+ tests passing (CI authoritative).
 ---
 
 # DevSquad V4.1.0 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -993,7 +993,28 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V4.0.0 Autonomous (P3-1)** | **111** | **✅ PASS** |
 | **V4.0.0 插件热加载 (P3-2)** | **48** | **✅ PASS** |
 | **V4.0.0 E2E 用户旅程 + 集成 + 幽灵防御** | **42** | **✅ PASS** |
-| **Total** | **4651+ (CI authoritative)** | **✅ ALL PASS** |
+| **V4.1.0 P0-1 Tautological test detection** | **24** | **✅ PASS** |
+| **V4.1.0 P0-2 GLOSSARY + ADR system** | **11** | **✅ PASS** |
+| **V4.1.0 P0-3 Deletion test** | **10** | **✅ PASS** |
+| **V4.1.0 P0-4 Red-capable gate + DEBUG tag** | **12** | **✅ PASS** |
+| **V4.1.0 P0-5 Deep/shallow vocabulary** | **16** | **✅ PASS** |
+| **V4.1.0 P0-6 No-op test + failure modes** | **10** | **✅ PASS** |
+| **V4.1.0 P0-7 Grilling one-question-at-a-time** | **31** | **✅ PASS** |
+| **V4.1.0 UI-P0-1 DeterministicRuleEngine (46 rules)** | **57** | **✅ PASS** |
+| **V4.1.0 UI-P0-2 TasteDials** | **66** | **✅ PASS** |
+| **V4.1.0 UI-P0-3 DESIGN.md protocol** | **8** | **✅ PASS** |
+| **V4.1.0 Module 10 grilling injection fix** | **3** | **✅ PASS** |
+| **V4.1.0 P1-1 Flow vs standalone** | **22** | **✅ PASS** |
+| **V4.1.0 P1-2 Grill-with-docs + P1-6 Stateless** | **15** | **✅ PASS** |
+| **V4.1.0 P1-3 Triage labels** | **27** | **✅ PASS** |
+| **V4.1.0 P1-4 Vertical slice + dep ordering** | **22** | **✅ PASS** |
+| **V4.1.0 P1-5 Seam-first design + P1-UI-2 7 Pillars** | **12** | **✅ PASS** |
+| **V4.1.0 P1-7 Handoff redaction + suggested-skills** | **22** | **✅ PASS** |
+| **V4.1.0 P1-UI-1 Anti-pattern bans (6 rules)** | **22** | **✅ PASS** |
+| **V4.1.0 P1-UI-3 OKLCH color space** | **23** | **✅ PASS** |
+| **V4.1.0 P2-3 Git guardrails** | **57** | **✅ PASS** |
+| **V4.1.0 P2-UI-4 4pt grid spacing** | **17** | **✅ PASS** |
+| **Total** | **5183+ (CI authoritative)** | **✅ ALL PASS** |
 
 ---
 

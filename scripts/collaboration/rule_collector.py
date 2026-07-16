@@ -899,11 +899,15 @@ class GrillingResult:
         questions: All questions in the session (with answers filled in).
         completed: Whether all questions have been answered.
         explored_answers: Mapping of question text to codebase-explored answer.
+        glossary_candidates: Glossary term candidates auto-extracted from
+            question text and user answers (Matt Pocock grill-with-docs P1-2).
+            Deduplicated and alphabetically sorted.
     """
 
     questions: list[GrillingQuestion] = field(default_factory=list)
     completed: bool = False
     explored_answers: dict[str, str] = field(default_factory=dict)
+    glossary_candidates: list[str] = field(default_factory=list)
 
 
 class GrillingMode:
@@ -936,6 +940,37 @@ class GrillingMode:
         self._code_graph = code_graph
         self._questions: list[GrillingQuestion] = []
         self._current_index: int = 0
+        # Matt Pocock grill-me (P1-6): stateless mode skips codebase exploration
+        # and proceeds directly to user questions.
+        self._stateless: bool = code_graph is None
+
+    @classmethod
+    def stateless_mode(cls, code_graph: Any = None) -> "GrillingMode":
+        """Create a stateless GrillingMode that does not depend on CodeKnowledgeGraph.
+
+        Matt Pocock grill-me principle (P1-6): grilling can proceed without a
+        codebase. In stateless mode ``explore_before_ask`` skips codebase search
+        entirely and returns ``None`` immediately, so every question is asked
+        directly to the user.
+
+        Args:
+            code_graph: Optional CodeKnowledgeGraph; when None (the typical
+                case) the session is fully stateless.
+
+        Returns:
+            A new GrillingMode instance configured for stateless operation.
+        """
+        session = cls(code_graph=code_graph)
+        session._stateless = code_graph is None
+        return session
+
+    def is_stateless(self) -> bool:
+        """Return True when this session operates without a CodeKnowledgeGraph.
+
+        Returns:
+            True if no code_graph was supplied (stateless mode), False otherwise.
+        """
+        return self._stateless
 
     def add_question(
         self,
@@ -1003,6 +1038,9 @@ class GrillingMode:
         symbols or patterns that may answer the question. When the codebase
         provides a clear answer, the user need not be prompted.
 
+        In stateless mode (Matt Pocock grill-me P1-6) the method short-circuits
+        and returns ``None`` immediately without touching any code_graph.
+
         Args:
             question: The GrillingQuestion to explore.
 
@@ -1014,7 +1052,7 @@ class GrillingMode:
             return question.explored_answer or None
         question.explored = True
 
-        if self._code_graph is None:
+        if self._stateless or self._code_graph is None:
             return None
 
         try:
@@ -1062,9 +1100,14 @@ class GrillingMode:
     def get_summary(self) -> GrillingResult:
         """Get the final grilling result with all questions and explored answers.
 
+        Also auto-extracts glossary term candidates from question text and
+        user answers (Matt Pocock grill-with-docs P1-2), populating
+        ``GrillingResult.glossary_candidates``.
+
         Returns:
             GrillingResult containing all questions (with answers filled in),
-            a completed flag, and a mapping of question text to explored answers.
+            a completed flag, a mapping of question text to explored answers,
+            and a deduplicated/sorted list of glossary term candidates.
         """
         explored = {
             q.question: q.explored_answer for q in self._questions if q.explored_answer
@@ -1073,7 +1116,42 @@ class GrillingMode:
             questions=list(self._questions),
             completed=self.is_complete(),
             explored_answers=explored,
+            glossary_candidates=self.extract_glossary_candidates(),
         )
+
+    def extract_glossary_candidates(self) -> list[str]:
+        """Extract glossary term candidates from all questions and user answers.
+
+        Matt Pocock grill-with-docs principle (P1-2): the grilling interview
+        itself is a documentation process. Term candidates are extracted from
+        both question text and user_answer text using these rules:
+
+        - CamelCase phrases (e.g., ``DeepModule``, ``CodeKnowledgeGraph``)
+        - Hyphenated phrases (e.g., ``red-capable``, ``stateless-mode``)
+        - Quoted terms (e.g., ``"seam"``, ``'structlog'``)
+
+        Candidates are deduplicated and sorted alphabetically.
+
+        Returns:
+            A deduplicated, alphabetically sorted list of candidate terms.
+        """
+        candidates: set[str] = set()
+
+        for q in self._questions:
+            for source_text in (q.question, q.user_answer):
+                if not source_text:
+                    continue
+                # CamelCase phrases (>= 2 capitalised components)
+                for match in re.finditer(r"\b([A-Z][a-z]+(?:[A-Z][a-z]+)+)\b", source_text):
+                    candidates.add(match.group(1))
+                # Hyphenated phrases (>= 1 hyphen, alphabetic components only)
+                for match in re.finditer(r"\b([a-zA-Z]+(?:-[a-zA-Z]+)+)\b", source_text):
+                    candidates.add(match.group(1))
+                # Quoted terms (single or double quotes)
+                for match in re.finditer(r'["\']([A-Za-z_][\w-]*)["\']', source_text):
+                    candidates.add(match.group(1))
+
+        return sorted(candidates)
 
     @staticmethod
     def _extract_search_terms(text: str) -> list[str]:

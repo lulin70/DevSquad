@@ -270,3 +270,145 @@ class TestPromptAssemblerSkillInjection:
 
         result = assembler.assemble("Design microservice architecture")
         assert "Methodology Frameworks" not in result.instruction
+
+
+# ======================================================================
+# V4.1.0 P1-5 to-prd — create-prd SKILL.md Seam-First Design
+# ======================================================================
+
+
+class TestCreatePrdSeamFirstDesign:
+    """P1-5: create-prd SKILL.md must include seam-first design content."""
+
+    def _get_skill_path(self) -> Path:
+        """Return the path to the real create-prd SKILL.md."""
+        from scripts.collaboration.role_skill_loader import _SKILLS_BASE_DIR
+
+        return _SKILLS_BASE_DIR / "product-manager" / "create-prd" / "SKILL.md"
+
+    def test_skill_md_contains_seam_first_design_section(self):
+        """Verify: SKILL.md has a 'Seam-First Design' section."""
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "## Seam-First Design" in content
+
+    def test_skill_md_contains_seams_identification_template(self):
+        """Verify: SKILL.md has a 'Seams Identification' subsection template."""
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "Seams Identification" in content
+        # The template should reference the seam-table columns
+        assert "Current Choice" in content
+        assert "Alternatives Considered" in content
+
+    def test_skill_md_loadable_by_role_skill_loader(self):
+        """Verify: create-prd SKILL.md loads cleanly via RoleSkillLoader."""
+        loader = RoleSkillLoader()
+        skill = loader.get_skill("product-manager", "create-prd")
+        assert skill is not None
+        assert skill.name == "create-prd"
+
+    def test_to_prompt_text_contains_seam_first_content(self):
+        """Verify: loaded skill's to_prompt_text() includes seam-first content."""
+        loader = RoleSkillLoader()
+        skill = loader.get_skill("product-manager", "create-prd")
+        assert skill is not None
+        # Use a generous max_length so the seam-first section (at end of file)
+        # is not truncated away by the default 2000-char cap.
+        text = skill.to_prompt_text(max_length=10000)
+        assert "Seam-First Design" in text
+        assert "Seams Identification" in text
+
+    def test_existing_create_prd_skill_still_loads(self):
+        """Verify: existing create-prd skill still loads (regression check)."""
+        loader = RoleSkillLoader()
+        skills = loader.load_skills("product-manager", no_cache=True)
+        names = [s.name for s in skills]
+        assert "create-prd" in names
+
+
+# ======================================================================
+# V4.1.0 P1-UI-2 — ui-designer/uiux-audit SKILL.md + 7 Design Pillars
+# ======================================================================
+
+
+class TestUIDesignerUiuxAuditSkill:
+    """P1-UI-2: ui-designer/uiux-audit SKILL.md must encode 7 Design Pillars."""
+
+    def _get_skill_path(self) -> Path:
+        """Return the path to the real uiux-audit SKILL.md."""
+        from scripts.collaboration.role_skill_loader import _SKILLS_BASE_DIR
+
+        return _SKILLS_BASE_DIR / "ui-designer" / "uiux-audit" / "SKILL.md"
+
+    def test_glossary_contains_design_pillars(self):
+        """Verify: GLOSSARY.md includes the 'Design Pillars' entry."""
+        loader = RoleSkillLoader()
+        content = loader.load_glossary()
+        assert "Design Pillars" in content
+
+    def test_glossary_contains_all_seven_pillars(self):
+        """Verify: GLOSSARY.md mentions all 7 pillar names."""
+        loader = RoleSkillLoader()
+        content = loader.load_glossary()
+        # 7 pillars defined in scripts/qa/deterministic_rule_engine.py SEVEN_PILLARS
+        for pillar in (
+            "Typography",
+            "Color",
+            "Spatial",
+            "Responsiveness",
+            "Interactions",
+            "Motion",
+            "UX writing",
+        ):
+            assert pillar in content, f"GLOSSARY.md missing pillar: {pillar}"
+
+    def test_ui_designer_skill_md_loadable(self):
+        """Verify: ui-designer/uiux-audit SKILL.md loads cleanly via RoleSkillLoader."""
+        loader = RoleSkillLoader()
+        skill = loader.get_skill("ui-designer", "uiux-audit")
+        assert skill is not None
+        assert skill.name == "uiux-audit"
+        assert skill.role_id == "ui-designer"
+
+    def test_to_prompt_text_contains_pillar_content(self):
+        """Verify: loaded skill's to_prompt_text() includes pillar content."""
+        loader = RoleSkillLoader()
+        skill = loader.get_skill("ui-designer", "uiux-audit")
+        assert skill is not None
+        text = skill.to_prompt_text(max_length=10000)
+        # Each pillar should be mentioned in the prompt text
+        assert "Typography" in text
+        assert "Responsiveness" in text
+        assert "UX Writing" in text or "UX writing" in text
+        # Should reference the 7 pillars framework
+        assert "7 Design Pillars" in text or "Design Pillars" in text
+
+    def test_existing_skills_still_loadable(self):
+        """Verify: existing skills (architect, product-manager) still load (regression)."""
+        loader = RoleSkillLoader()
+        # architect
+        arch_skills = loader.load_skills("architect", no_cache=True)
+        assert len(arch_skills) >= 1
+        # product-manager
+        pm_skills = loader.load_skills("product-manager", no_cache=True)
+        assert len(pm_skills) >= 1
+
+    def test_skill_md_contains_seven_pillar_sections(self):
+        """Verify: SKILL.md has a section per pillar."""
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        # Each pillar should have a dedicated heading
+        for pillar in (
+            "Typography",
+            "Color",
+            "Spatial",
+            "Responsiveness",
+            "Interactions",
+            "Motion",
+            "UX Writing",
+        ):
+            assert pillar in content, f"SKILL.md missing pillar section: {pillar}"
+
+    def test_skill_md_has_integration_with_deterministic_rule_engine(self):
+        """Verify: SKILL.md documents integration with DeterministicRuleEngine."""
+        content = self._get_skill_path().read_text(encoding="utf-8")
+        assert "DeterministicRuleEngine" in content
+        assert "TasteDials" in content or "Taste Dials" in content

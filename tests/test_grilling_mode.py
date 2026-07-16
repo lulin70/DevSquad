@@ -440,5 +440,152 @@ class TestGrillingModeFullWorkflow(unittest.TestCase):
         self.assertIn("Should I use 'structlog'?", result.explored_answers)
 
 
+# ======================================================================
+# V4.1.0 P1-2 grill-with-docs — extract_glossary_candidates
+# ======================================================================
+
+
+class TestExtractGlossaryCandidates(unittest.TestCase):
+    """P1-2: Glossary candidate extraction from grilling Q&A."""
+
+    def test_empty_session_returns_empty_list(self) -> None:
+        """Verify: no questions → empty glossary candidate list."""
+        session = GrillingMode()
+        self.assertEqual(session.extract_glossary_candidates(), [])
+
+    def test_extracts_camel_case_terms(self) -> None:
+        """Verify: CamelCase phrases like 'DeepModule' are extracted."""
+        session = GrillingMode()
+        session.add_question(question="Should we use DeepModule here?")
+        candidates = session.extract_glossary_candidates()
+        self.assertIn("DeepModule", candidates)
+
+    def test_extracts_hyphenated_terms(self) -> None:
+        """Verify: hyphenated phrases like 'red-capable' are extracted."""
+        session = GrillingMode()
+        session.add_question(question="Is the suite red-capable?")
+        candidates = session.extract_glossary_candidates()
+        self.assertIn("red-capable", candidates)
+
+    def test_extracts_quoted_terms(self) -> None:
+        """Verify: quoted terms like \"seam\" are extracted."""
+        session = GrillingMode()
+        session.add_question(question='Identify the "seam" in this design.')
+        candidates = session.extract_glossary_candidates()
+        self.assertIn("seam", candidates)
+
+    def test_deduplicates_candidates(self) -> None:
+        """Verify: repeated terms are deduplicated."""
+        session = GrillingMode()
+        session.add_question(question="Use DeepModule and 'seam'.")
+        session._questions[0].user_answer = "Also DeepModule and 'seam'."
+        candidates = session.extract_glossary_candidates()
+        self.assertEqual(candidates.count("DeepModule"), 1)
+        self.assertEqual(candidates.count("seam"), 1)
+
+    def test_merges_candidates_from_question_and_answer(self) -> None:
+        """Verify: candidates from question text and user_answer are merged."""
+        session = GrillingMode()
+        session.add_question(question="What about DeepModule?")
+        session._questions[0].user_answer = "Prefer the red-capable approach."
+        candidates = session.extract_glossary_candidates()
+        self.assertIn("DeepModule", candidates)
+        self.assertIn("red-capable", candidates)
+
+    def test_get_summary_populates_glossary_candidates(self) -> None:
+        """Verify: get_summary() fills GrillingResult.glossary_candidates."""
+        session = GrillingMode()
+        session.add_question(question='What is a "seam"?')
+        session._questions[0].user_answer = "Like DeepModule in red-capable code."
+        result = session.get_summary()
+        self.assertIsInstance(result.glossary_candidates, list)
+        self.assertIn("seam", result.glossary_candidates)
+        self.assertIn("DeepModule", result.glossary_candidates)
+        self.assertIn("red-capable", result.glossary_candidates)
+
+    def test_special_characters_handling(self) -> None:
+        """Verify: special characters around terms do not break extraction."""
+        session = GrillingMode()
+        session.add_question(question='Use "seam", (DeepModule), [red-capable]!')
+        candidates = session.extract_glossary_candidates()
+        self.assertIn("seam", candidates)
+        self.assertIn("DeepModule", candidates)
+        self.assertIn("red-capable", candidates)
+
+    def test_candidates_are_alphabetically_sorted(self) -> None:
+        """Verify: candidates are returned in alphabetical order."""
+        session = GrillingMode()
+        session.add_question(question="ZebraModule and AppleService and 'mango'")
+        candidates = session.extract_glossary_candidates()
+        self.assertEqual(candidates, sorted(candidates))
+
+
+# ======================================================================
+# V4.1.0 P1-6 grill-me — stateless mode
+# ======================================================================
+
+
+class TestGrillingModeStateless(unittest.TestCase):
+    """P1-6: Stateless grilling mode (no CodeKnowledgeGraph required)."""
+
+    def test_stateless_mode_creates_instance(self) -> None:
+        """Verify: stateless_mode() returns a GrillingMode instance."""
+        session = GrillingMode.stateless_mode()
+        self.assertIsInstance(session, GrillingMode)
+
+    def test_stateless_mode_is_stateless(self) -> None:
+        """Verify: is_stateless() returns True for stateless_mode()."""
+        session = GrillingMode.stateless_mode()
+        self.assertTrue(session.is_stateless())
+
+    def test_stateless_explore_before_ask_returns_none(self) -> None:
+        """Verify: explore_before_ask returns None in stateless mode."""
+        session = GrillingMode.stateless_mode()
+        q = GrillingQuestion(question="Anything?", recommended_answers=[])
+        result = session.explore_before_ask(q)
+        self.assertIsNone(result)
+        self.assertTrue(q.explored)
+
+    def test_stateless_add_and_next_question_work(self) -> None:
+        """Verify: add_question / next_question work normally in stateless mode."""
+        session = GrillingMode.stateless_mode()
+        session.add_question("Q1?")
+        session.add_question("Q2?")
+        q1 = session.next_question()
+        q2 = session.next_question()
+        assert q1 is not None and q2 is not None
+        self.assertEqual(q1.question, "Q1?")
+        self.assertEqual(q2.question, "Q2?")
+
+    def test_with_code_graph_is_not_stateless(self) -> None:
+        """Verify: is_stateless() returns False when a code_graph is provided."""
+        mock_graph = MagicMock()
+        session = GrillingMode(code_graph=mock_graph)
+        self.assertFalse(session.is_stateless())
+
+    def test_stateless_full_session_workflow(self) -> None:
+        """Verify: a complete stateless grilling session runs end-to-end."""
+        session = GrillingMode.stateless_mode()
+        session.add_question(question="Which framework?", recommended_answers=["flask", "fastapi"])
+        session.add_question(question="Which database?", recommended_answers=["postgres"])
+
+        # explore_before_ask returns None in stateless mode
+        q1 = session.current_question()
+        assert q1 is not None
+        self.assertIsNone(session.explore_before_ask(q1))
+        session.answer_current("fastapi")
+
+        q2 = session.current_question()
+        assert q2 is not None
+        self.assertIsNone(session.explore_before_ask(q2))
+        session.answer_current("postgres")
+
+        result = session.get_summary()
+        self.assertTrue(result.completed)
+        self.assertEqual(len(result.questions), 2)
+        self.assertEqual(result.questions[0].user_answer, "fastapi")
+        self.assertEqual(result.questions[1].user_answer, "postgres")
+
+
 if __name__ == "__main__":
     unittest.main()

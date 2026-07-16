@@ -10,16 +10,34 @@
 2. 交互质量 (interaction): 按钮最小尺寸、焦点可见性、加载反馈
 3. 布局响应式 (layout): 元素重叠、文字截断、视口溢出
 4. UX 反模式 (ux_antipattern): 强制注册、破坏性操作无确认、表单无校验
+
+V4.1.0 extensions:
+- P1-UI-1: 6 anti-pattern bans (taste-skill) — see check_css_antipatterns()
+- P1-UI-3: OKLCH color space parsing & conversion
+- P2-UI-4: 4pt grid spacing detection
 """
 
 from __future__ import annotations
 
 import logging
+import math
+import re
 from typing import Any
 
 from .models import UIUXAuditReport, UIUXIssue
 
 logger = logging.getLogger(__name__)
+
+
+# V4.1.0 P1-UI-1: Banned font families (taste-skill Anti-pattern Bans)
+_BANNED_FONT_FAMILIES: tuple[str, ...] = (
+    "inter",
+    "roboto",
+    "dm sans",
+)
+
+# V4.1.0 P2-UI-4: 4pt grid — multiples of 4 are valid (0 included as no-spacing)
+_4PT_GRID_UNIT = 4
 
 
 # Playwright 单次综合探针脚本：一次 evaluate 取齐所有 DOM 数据
@@ -454,6 +472,213 @@ class UIUXAnalyzer:
                 metric={},
             ))
 
+        # V4.1.0 P1-UI-1: taste-skill Anti-pattern Bans (6 CSS rules)
+        css_text = ux.get("css_text", "") or ux.get("css", "")
+        if isinstance(css_text, str) and css_text:
+            issues.extend(self.check_css_antipatterns(css_text))
+
+        return issues
+
+    # ── V4.1.0 P1-UI-1: Anti-pattern Bans (taste-skill) ────────────────────────
+
+    def check_css_antipatterns(self, css_text: str) -> list[UIUXIssue]:
+        """Run all 6 taste-skill Anti-pattern Bans against CSS text.
+
+        Args:
+            css_text: Raw CSS source to scan.
+
+        Returns:
+            List of UIUXIssue detected by the 6 anti-pattern rules.
+        """
+        issues: list[UIUXIssue] = []
+        for checker in (
+            self._check_border_left_accent,
+            self._check_gradient_text,
+            self._check_glassmorphism_overuse,
+            self._check_overused_fonts,
+            self._check_purple_blue_gradient,
+            self._check_nested_cards,
+        ):
+            try:
+                issues.extend(checker(css_text))
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Anti-pattern checker %s failed: %s", checker.__name__, exc)
+        return issues
+
+    def _check_border_left_accent(self, css_text: str) -> list[UIUXIssue]:
+        """Detect `border-left: Npx solid <color>` accent stripes.
+
+        The left-accent stripe is an overused AI pattern for callout boxes.
+        """
+        issues: list[UIUXIssue] = []
+        pattern = re.compile(
+            r"border-left\s*:\s*(\d+)px\s+solid\s+([#\w][^;}]*)",
+            re.IGNORECASE,
+        )
+        for match in pattern.finditer(css_text):
+            width = int(match.group(1))
+            if width >= 2:  # only flag visible accent stripes (>=2px)
+                issues.append(UIUXIssue(
+                    severity="warning",
+                    category="ux_antipattern",
+                    rule="border_left_accent_stripes",
+                    element=f"border-left:{width}px solid {match.group(2).strip()}",
+                    message=(
+                        "border-left accent stripe is an overused AI pattern; "
+                        "use a dedicated callout component instead"
+                    ),
+                    fix="Replace left-accent stripe with a structured callout/banner component",
+                    metric={"width": width, "color": match.group(2).strip()},
+                ))
+        return issues
+
+    def _check_gradient_text(self, css_text: str) -> list[UIUXIssue]:
+        """Detect `background-clip: text` combined with `linear-gradient`/`radial-gradient`."""
+        issues: list[UIUXIssue] = []
+        # Split CSS into rule blocks so we can correlate background-clip with gradient
+        # within the same selector block.
+        block_pattern = re.compile(r"([^{}]*?)\{([^{}]*)\}", re.DOTALL)
+        for selector, body in block_pattern.findall(css_text):
+            has_clip_text = "background-clip" in body and "text" in body
+            has_gradient = "gradient(" in body.lower()
+            if has_clip_text and has_gradient:
+                # Extract the gradient for the metric
+                grad_match = re.search(r"(linear|radial|conic)-gradient\([^)]*\)", body, re.IGNORECASE)
+                gradient_value = grad_match.group(0) if grad_match else "gradient"
+                issues.append(UIUXIssue(
+                    severity="error",
+                    category="ux_antipattern",
+                    rule="gradient_text",
+                    element=selector.strip()[:60] or "selector",
+                    message=(
+                        "Gradient text (background-clip: text + gradient) is banned; "
+                        "reduces readability and accessibility"
+                    ),
+                    fix="Use a solid color or a subtle text-shadow instead of gradient text",
+                    metric={"gradient": gradient_value[:80]},
+                ))
+        return issues
+
+    def _check_glassmorphism_overuse(self, css_text: str) -> list[UIUXIssue]:
+        """Detect `backdrop-filter: blur()` usage exceeding 2 instances."""
+        issues: list[UIUXIssue] = []
+        matches = re.findall(r"backdrop-filter\s*:\s*blur\(", css_text, re.IGNORECASE)
+        count = len(matches)
+        if count > 2:
+            issues.append(UIUXIssue(
+                severity="warning",
+                category="ux_antipattern",
+                rule="glassmorphism_overuse",
+                element="backdrop-filter",
+                message=(
+                    f"Glassmorphism used {count} times, max 2 recommended; "
+                    "overuse hurts readability and performance"
+                ),
+                fix="Limit backdrop-filter: blur() to at most 2 instances per page",
+                metric={"count": count, "max_recommended": 2},
+            ))
+        return issues
+
+    def _check_overused_fonts(self, css_text: str) -> list[UIUXIssue]:
+        """Detect banned font-family declarations (Inter / Roboto / DM Sans)."""
+        issues: list[UIUXIssue] = []
+        pattern = re.compile(r"font-family\s*:\s*([^;}]+)", re.IGNORECASE)
+        for match in pattern.finditer(css_text):
+            family_decl = match.group(1).strip().strip('"').strip("'").lower()
+            for banned in _BANNED_FONT_FAMILIES:
+                if banned in family_decl:
+                    issues.append(UIUXIssue(
+                        severity="warning",
+                        category="ux_antipattern",
+                        rule="overused_fonts",
+                        element=f"font-family: {match.group(1).strip()[:60]}",
+                        message=(
+                            f"Overused font '{banned}' detected; "
+                            "these fonts signal generic AI-generated UI"
+                        ),
+                        fix="Choose a more distinctive font family that matches the brand",
+                        metric={"font": banned, "declaration": match.group(1).strip()[:80]},
+                    ))
+                    break  # one banned font per declaration is enough
+        return issues
+
+    def _check_purple_blue_gradient(self, css_text: str) -> list[UIUXIssue]:
+        """Detect purple/blue gradient backgrounds (signature AI pattern).
+
+        Parses hex colors and rgb() inside the gradient stops and converts
+        each to HSV. A stop is considered purple when its hue is in
+        240-300°, and blue when its hue is in 180-240°. Named color keywords
+        (purple/violet/indigo/blue) are also accepted as a fallback when the
+        color value cannot be parsed.
+        """
+        issues: list[UIUXIssue] = []
+        gradient_pattern = re.compile(
+            r"(linear|radial|conic)-gradient\s*\(([^)]*)\)",
+            re.IGNORECASE,
+        )
+        purple_keywords = ("purple", "violet", "indigo")
+        blue_keywords = ("blue", "navy", "royalblue")
+        for grad_type, grad_body in gradient_pattern.findall(css_text):
+            body_lower = grad_body.lower()
+            has_purple = any(kw in body_lower for kw in purple_keywords)
+            has_blue = any(kw in body_lower for kw in blue_keywords)
+            # Also parse hex colors and rgb() for HSV-based detection
+            hex_colors = re.findall(r"#[0-9a-fA-F]{6}\b", grad_body)
+            rgb_colors = re.findall(r"rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)", grad_body, re.IGNORECASE)
+            for hex_str in hex_colors:
+                rgb = UIUXAnalyzer._parse_color(hex_str)
+                if rgb is None:
+                    continue
+                hue, _sat, _val = UIUXAnalyzer._rgb_to_hsv(rgb)
+                if 240 <= hue <= 300:
+                    has_purple = True
+                elif 180 <= hue < 240:
+                    has_blue = True
+            for rgb_str in rgb_colors:
+                rgb = UIUXAnalyzer._parse_color(rgb_str)
+                if rgb is None:
+                    continue
+                hue, _sat, _val = UIUXAnalyzer._rgb_to_hsv(rgb)
+                if 240 <= hue <= 300:
+                    has_purple = True
+                elif 180 <= hue < 240:
+                    has_blue = True
+            if has_purple and has_blue:
+                full_gradient = f"{grad_type}-gradient({grad_body})"[:80]
+                issues.append(UIUXIssue(
+                    severity="warning",
+                    category="ux_antipattern",
+                    rule="purple_blue_gradient",
+                    element=full_gradient,
+                    message=(
+                        "Purple-blue gradient is the signature AI-generated UI pattern; "
+                        "use a more intentional palette"
+                    ),
+                    fix="Replace purple-blue gradient with a brand-aligned color pair",
+                    metric={"gradient": full_gradient},
+                ))
+        return issues
+
+    def _check_nested_cards(self, css_text: str) -> list[UIUXIssue]:
+        """Detect `.card .card` nested selectors (visual hierarchy anti-pattern)."""
+        issues: list[UIUXIssue] = []
+        # Match selectors like ".card .card", ".card .card .card", etc.
+        pattern = re.compile(r"(^|[^.\w-])(\.card(?:\s+\.card)+)", re.MULTILINE)
+        for match in pattern.finditer(css_text):
+            selector = match.group(2)
+            nesting_level = selector.count(".card")
+            issues.append(UIUXIssue(
+                severity="warning",
+                category="ux_antipattern",
+                rule="nested_cards",
+                element=selector,
+                message=(
+                    f"Nested .card selector (depth {nesting_level}) detected; "
+                    "card-in-card layout breaks visual hierarchy"
+                ),
+                fix="Use distinct component types (e.g. .card > .panel) instead of nested cards",
+                metric={"nesting_level": nesting_level, "selector": selector},
+            ))
         return issues
 
     @staticmethod
@@ -475,7 +700,7 @@ class UIUXAnalyzer:
 
     @staticmethod
     def _parse_color(color: str) -> tuple[int, int, int] | None:
-        """解析 CSS 颜色为 (r, g, b)。支持 rgb() 和 #hex。"""
+        """解析 CSS 颜色为 (r, g, b)。支持 rgb() / #hex / oklch()。"""
         if not color:
             return None
         color = color.strip()
@@ -490,7 +715,133 @@ class UIUXAnalyzer:
                 return (int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16))
             except ValueError:
                 return None
+        # V4.1.0 P1-UI-3: OKLCH color space support
+        if color.lower().startswith("oklch"):
+            oklch = UIUXAnalyzer._parse_oklch_color(color)
+            if oklch is None:
+                return None
+            return UIUXAnalyzer._oklch_to_rgb(*oklch)
         return None
+
+    # ── V4.1.0 P1-UI-3: OKLCH color space ───────────────────────────────────────
+
+    @staticmethod
+    def _parse_oklch_color(color_str: str) -> tuple[float, float, float] | None:
+        """Parse an `oklch(L C H)` CSS color string into (L, C, H).
+
+        Args:
+            color_str: CSS color string, e.g. `oklch(0.7 0.15 250)`.
+
+        Returns:
+            Tuple (L: 0-1, C: 0-0.4+, H: 0-360) or None when the format
+            is invalid.
+        """
+        if not color_str:
+            return None
+        text = color_str.strip()
+        if not text.lower().startswith("oklch"):
+            return None
+        try:
+            inner = text[text.index("(") + 1:text.rindex(")")]
+        except ValueError:
+            return None
+        parts = [p.strip() for p in inner.split() if p.strip()]
+        if len(parts) != 3:
+            return None
+        try:
+            l_raw = float(parts[0])
+            c_raw = float(parts[1])
+            h_raw = float(parts[2])
+        except ValueError:
+            return None
+        # Reject NaN/inf — they parse as floats but are not valid colors.
+        if not (0.0 <= l_raw <= 1.0):
+            return None
+        if c_raw < 0.0:
+            return None
+        if not (0.0 <= h_raw <= 360.0):
+            return None
+        return (l_raw, c_raw, h_raw)
+
+    @staticmethod
+    def _oklch_to_rgb(
+        lightness: float, chroma: float, h_deg: float
+    ) -> tuple[int, int, int]:
+        """Convert OKLCH (L, C, H) to 8-bit sRGB (r, g, b).
+
+        Pipeline: OKLCH → OKLab → l'ms' (cube roots) → LMS (cube) → linear
+        sRGB → sRGB. The implementation is a simplified approximation
+        (sufficient for taste-skill detection), not a color-management-grade
+        conversion.
+        """
+        h_rad = math.radians(h_deg)
+        # OKLab from OKLCH
+        lab_l = lightness
+        lab_a = chroma * math.cos(h_rad)
+        lab_b = chroma * math.sin(h_rad)
+
+        # OKLab → l'ms' (cube roots of LMS)
+        l_prime = lab_l + 0.3963377774 * lab_a + 0.2158037573 * lab_b
+        m_prime = lab_l - 0.1055613458 * lab_a - 0.0638541728 * lab_b
+        s_prime = lab_l - 0.0894841775 * lab_a - 1.2914855480 * lab_b
+
+        # Cube l'ms' to get LMS
+        l_cubed = l_prime ** 3
+        m_cubed = m_prime ** 3
+        s_cubed = s_prime ** 3
+
+        # LMS → linear sRGB
+        lin_r = +4.0767416621 * l_cubed - 3.3077115913 * m_cubed + 0.2309699292 * s_cubed
+        lin_g = -1.2684380046 * l_cubed + 2.6097573513 * m_cubed - 0.3413193965 * s_cubed
+        lin_b = -0.0041960863 * l_cubed - 0.7034186147 * m_cubed + 1.7076147010 * s_cubed
+
+        def to_srgb_channel(linear: float) -> float:
+            linear = max(0.0, min(1.0, linear))
+            return linear if linear <= 0.0031308 else 1.055 * (linear ** (1.0 / 2.4)) - 0.055
+
+        r = to_srgb_channel(lin_r)
+        g = to_srgb_channel(lin_g)
+        b = to_srgb_channel(lin_b)
+        return (
+            max(0, min(255, round(r * 255))),
+            max(0, min(255, round(g * 255))),
+            max(0, min(255, round(b * 255))),
+        )
+
+    @staticmethod
+    def _rgb_to_oklch(
+        r: int, g: int, b: int
+    ) -> tuple[float, float, float]:
+        """Convert 8-bit sRGB (r, g, b) to OKLCH (L, C, H).
+
+        Pipeline: sRGB → linear sRGB → OKLab → OKLCH. The reverse of
+        :meth:`_oklch_to_rgb`. Simplified approximation.
+        """
+        def to_linear(channel_8bit: int) -> float:
+            s = channel_8bit / 255.0
+            return s / 12.92 if s <= 0.04045 else ((s + 0.055) / 1.055) ** 2.4
+
+        lin_r = to_linear(r)
+        lin_g = to_linear(g)
+        lin_b = to_linear(b)
+
+        l_ = 0.4122214708 * lin_r + 0.5363325363 * lin_g + 0.0514459929 * lin_b
+        m_ = 0.2119034982 * lin_r + 0.6806995451 * lin_g + 0.1073969566 * lin_b
+        s_ = 0.0883024619 * lin_r + 0.2817188376 * lin_g + 0.6299787005 * lin_b
+
+        l_ = l_ ** (1.0 / 3.0) if l_ > 0 else 0.0
+        m_ = m_ ** (1.0 / 3.0) if m_ > 0 else 0.0
+        s_ = s_ ** (1.0 / 3.0) if s_ > 0 else 0.0
+
+        lab_l = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
+        lab_a = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_
+        lab_b = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+
+        chroma = math.sqrt(lab_a * lab_a + lab_b * lab_b)
+        hue = math.degrees(math.atan2(lab_b, lab_a))
+        if hue < 0:
+            hue += 360.0
+        return (lab_l, chroma, hue)
 
     @staticmethod
     def _relative_luminance(rgb: tuple[int, int, int]) -> float:
@@ -528,3 +879,91 @@ class UIUXAnalyzer:
 
         saturation = diff / max_val if max_val > 0 else 0.0
         return (hue, saturation, max_val)
+
+    # ── V4.1.0 P2-UI-4: 4pt grid spacing ────────────────────────────────────────
+
+    def check_4pt_grid(self, css_text: str) -> list[UIUXIssue]:
+        """Run the 4pt-grid spacing check against CSS text.
+
+        Args:
+            css_text: Raw CSS source to scan.
+
+        Returns:
+            List of UIUXIssue for each spacing value that is not on the
+            4pt grid (4/8/12/16/20/24/...).
+        """
+        return self._check_4pt_grid(css_text)
+
+    def _check_4pt_grid(self, css_text: str) -> list[UIUXIssue]:
+        """Detect spacing values that are not multiples of 4 (4pt grid).
+
+        Scans `margin`, `padding`, and `gap` declarations. Supports `px`,
+        `rem` (1rem = 16px), and `em` (uses parent font-size 16px by
+        convention). `0` is always valid.
+        """
+        issues: list[UIUXIssue] = []
+        if not css_text:
+            return issues
+        # Match spacing properties with px/rem/em values
+        # Example: margin: 8px 12px 4px; padding-top: 7rem; gap: 13em;
+        pattern = re.compile(
+            r"(margin(?:-top|-right|-bottom|-left)?|"
+            r"padding(?:-top|-right|-bottom|-left)?|"
+            r"gap|row-gap|column-gap)\s*:\s*([^;{}]+)",
+            re.IGNORECASE,
+        )
+        for match in pattern.finditer(css_text):
+            prop = match.group(1).strip().lower()
+            value_part = match.group(2)
+            # Split shorthand (e.g. "8px 12px 4px 16px")
+            for token in value_part.split():
+                token = token.strip().rstrip(",")
+                if not token:
+                    continue
+                px_value = self._spacing_token_to_px(token)
+                if px_value is None:
+                    continue  # unsupported unit (e.g. "%", "vw"), skip
+                # 0 is always valid (no spacing)
+                if px_value == 0:
+                    continue
+                if px_value % _4PT_GRID_UNIT != 0:
+                    issues.append(UIUXIssue(
+                        severity="warning",
+                        category="layout",
+                        rule="spacing_4pt_grid",
+                        element=f"{prop}: {token}",
+                        message=(
+                            f"Spacing {token} ({px_value}px) is not on the "
+                            "4pt grid (use multiples of 4)"
+                        ),
+                        fix="Use 4pt grid values: 4, 8, 12, 16, 20, 24, 28, 32, ...",
+                        metric={
+                            "property": prop,
+                            "token": token,
+                            "px": px_value,
+                            "grid_unit": _4PT_GRID_UNIT,
+                        },
+                    ))
+        return issues
+
+    @staticmethod
+    def _spacing_token_to_px(token: str) -> float | None:
+        """Convert a CSS spacing token to a pixel value.
+
+        Supports `px`, `rem` (1rem = 16px), `em` (1em = 16px default).
+        Returns None when the unit is unsupported or the value is invalid.
+        """
+        token = token.strip().lower()
+        if not token:
+            return None
+        try:
+            if token.endswith("px"):
+                return float(token[:-2])
+            if token.endswith("rem"):
+                return float(token[:-3]) * 16.0
+            if token.endswith("em"):
+                return float(token[:-2]) * 16.0
+            # bare number — assume px
+            return float(token)
+        except ValueError:
+            return None

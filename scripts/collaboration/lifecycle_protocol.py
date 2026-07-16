@@ -142,6 +142,96 @@ class LifecycleStatus:
         return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# P1-3 triage: category + state dual-label with HITL/AFK execution mode.
+# Inspired by Matt Pocock's triage philosophy for the Requirements phase.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class TriageLabel:
+    """Triage label for a requirement (P1 phase).
+
+    Combines a category (feature/bug/tech_debt/security) with a state
+    (new/triaged/in_progress/blocked/done) and an execution mode:
+      - HITL: needs human-in-the-loop confirmation
+      - AFK:  can execute asynchronously (away from keyboard)
+
+    Attributes
+    ----------
+    category:
+        Requirement category — ``feature`` | ``bug`` | ``tech_debt`` | ``security``.
+    state:
+        Lifecycle state — ``new`` | ``triaged`` | ``in_progress`` | ``blocked`` | ``done``.
+    execution_mode:
+        ``HITL`` (human confirmation required) or ``AFK`` (async autonomous).
+    priority:
+        ``P0`` | ``P1`` | ``P2`` | ``P3``.
+    notes:
+        Optional free-form notes.
+    """
+
+    category: str  # feature|bug|tech_debt|security
+    state: str  # new|triaged|in_progress|blocked|done
+    execution_mode: str  # HITL|AFK
+    priority: str  # P0|P1|P2|P3
+    notes: str = ""
+
+
+def triage_requirement(requirement: str) -> TriageLabel:
+    """Triage a requirement into a :class:`TriageLabel`.
+
+    Uses keyword matching to derive category, execution mode and priority:
+      - category: ``"bug"``/``"缺陷"`` → bug, ``"安全"``/``"security"`` → security,
+        ``"技术债"``/``"tech debt"`` → tech_debt, otherwise feature.
+      - execution_mode: ``"确认"``/``"审批"``/``"confirm"``/``"approve"`` → HITL,
+        otherwise AFK.
+      - priority: ``"紧急"``/``"urgent"``/``"P0"`` → P0,
+        ``"重要"``/``"important"``/``"P1"`` → P1, otherwise P2.
+
+    The state is always ``"new"`` for a freshly triaged requirement.
+
+    Args:
+        requirement: Natural-language requirement text.
+
+    Returns:
+        A :class:`TriageLabel` with the derived fields.
+    """
+    text = (requirement or "").lower()
+
+    # Category detection (first match wins).
+    bug_keywords = ["bug", "缺陷", "错误", "报错"]
+    security_keywords = ["安全", "security", "漏洞", "vulnerability"]
+    tech_debt_keywords = ["技术债", "tech debt", "tech_debt", "重构", "refactor"]
+    if any(kw in text for kw in security_keywords):
+        category = "security"
+    elif any(kw in text for kw in bug_keywords):
+        category = "bug"
+    elif any(kw in text for kw in tech_debt_keywords):
+        category = "tech_debt"
+    else:
+        category = "feature"
+
+    # Execution mode detection.
+    hitl_keywords = ["确认", "审批", "confirm", "approve"]
+    execution_mode = "HITL" if any(kw in text for kw in hitl_keywords) else "AFK"
+
+    # Priority detection.
+    if any(kw in text for kw in ["紧急", "urgent", "p0"]):
+        priority = "P0"
+    elif any(kw in text for kw in ["重要", "important", "p1"]):
+        priority = "P1"
+    else:
+        priority = "P2"
+
+    return TriageLabel(
+        category=category,
+        state="new",
+        execution_mode=execution_mode,
+        priority=priority,
+    )
+
+
 class LifecycleProtocol(ABC):
     """
     Abstract interface for unified lifecycle management.
@@ -233,6 +323,9 @@ __all__ = [
     "PhaseResult",
     "LifecycleStatus",
     "LifecycleProtocol",
+    # P1-3 triage
+    "TriageLabel",
+    "triage_requirement",
     # Templates (re-exported)
     "SpecTemplate",
     "SPEC_TEMPLATES",

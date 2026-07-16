@@ -15,6 +15,7 @@ Spec reference: SPEC_V35_Agent_Skills_Quality_Framework.md Section 6.3
 """
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -48,6 +49,8 @@ class IntentMatch:
     gate_description: str = ""
     anti_skip_message: str = ""
     suggested_next_steps: list[str] = field(default_factory=list)
+    # P1-1 ask-matt: flow (continuous workflow question) vs standalone.
+    flow_type: str = "standalone"
 
 
 class IntentWorkflowMapper:
@@ -312,10 +315,52 @@ class IntentWorkflowMapper:
         ),
     }
 
+    # P1-1 ask-matt: continuity keywords indicating a "flow" question.
+    # Chinese keywords use substring matching; English keywords use
+    # word-boundary regex matching to avoid false positives such as
+    # "then" matching inside "authentication".
+    _FLOW_KEYWORDS_ZH: list[str] = [
+        "然后",
+        "接着",
+        "接下来",
+    ]
+    _FLOW_KEYWORDS_EN: list[str] = [
+        "after that",
+        "then",
+        "next",
+        "continue",
+    ]
+
     def __init__(self, confidence_threshold: float = 0.3):
         self._confidence_threshold = confidence_threshold
         self._cache: dict[str, IntentMatch | None] = {}
         self._MAX_CACHE_SIZE = 128
+
+    def classify_flow_vs_standalone(self, task_description: str) -> str:
+        """Classify a task description as ``"flow"`` or ``"standalone"``.
+
+        Inspired by Matt Pocock's ask-matt distinction: a ``flow`` question
+        continues an existing workflow (it carries continuity markers such as
+        "然后"/"接着"/"接下来" or "then"/"next"/"after that"/"continue"); a
+        ``standalone`` question is independent and self-contained.
+
+        Args:
+            task_description: The user's task text.
+
+        Returns:
+            ``"flow"`` when a continuity keyword is detected, otherwise
+            ``"standalone"``.
+        """
+        if not task_description or not task_description.strip():
+            return "standalone"
+        text_lower = task_description.lower()
+        for keyword in self._FLOW_KEYWORDS_ZH:
+            if keyword in text_lower:
+                return "flow"
+        for keyword in self._FLOW_KEYWORDS_EN:
+            if re.search(r"\b" + re.escape(keyword) + r"\b", text_lower):
+                return "flow"
+        return "standalone"
 
     def detect_intent(self, task_description: str, lang: str = "zh") -> IntentMatch | None:
         """
@@ -352,6 +397,7 @@ class IntentWorkflowMapper:
                     gate_description=chain_def.gate_description,
                     anti_skip_message=chain_def.anti_skip_message,
                     suggested_next_steps=list(chain_def.suggested_next_steps),
+                    flow_type=self.classify_flow_vs_standalone(task_description),
                 )
 
         if best_match and best_match.confidence >= self._confidence_threshold:

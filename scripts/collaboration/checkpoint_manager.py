@@ -2,6 +2,7 @@
 import hashlib
 import json
 import logging
+import re
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -357,10 +358,15 @@ class CheckpointManager:
     def save_handoff(self, handoff: HandoffDocument) -> bool:
         """Persist a handoff document as JSON and Markdown.
 
+        The Markdown output is run through ``_redact_sensitive_info`` so that
+        secrets leaking into prose (API keys, tokens, passwords, emails) are
+        masked before a human reads the handoff (Matt Pocock handoff P1-7).
+        The JSON file preserves the original values for machine consumption.
+
         Args:
             handoff: HandoffDocument instance to save. Both a `.json` file
                 (via `dataclasses.asdict`) and a `.md` file (via
-                `to_markdown`) are written.
+                `to_markdown`, redacted) are written.
 
         Returns:
             True if both files were written successfully, False on
@@ -374,7 +380,7 @@ class CheckpointManager:
 
                 md_path = handoff_path.with_suffix(".md")
                 with open(md_path, "w", encoding="utf-8") as f:
-                    f.write(handoff.to_markdown())
+                    f.write(self._redact_sensitive_info(handoff.to_markdown()))
 
             logger.info("Handoff saved: %s -> %s", handoff.from_agent, handoff.to_agent)
             return True
@@ -425,6 +431,97 @@ class CheckpointManager:
         except (OSError, json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
             logger.warning("Failed to get task handoffs: %s", e)
             return []
+
+    # ========== V4.1.0 P1-7 handoff: redaction + suggested skills ==========
+
+    # Pre-compiled patterns for _redact_sensitive_info (case-insensitive).
+    # Each entry: (compiled_regex, replacement_template). Templates use \g<name>
+    # to preserve the key portion while masking the secret value.
+    _REDACT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+        # API keys with sk- prefix (e.g., sk-abc123, sk-live_key)
+        (re.compile(r"\bsk-[A-Za-z0-9_-]+"), "[REDACTED]"),
+        # api_key / api-key / apikey followed by : or = and a value
+        (
+            re.compile(r"\b(api[_-]?key)\s*[:=]\s*\S+", re.IGNORECASE),
+            r"\g<1>: [REDACTED]",
+        ),
+        # token followed by : or = and a value
+        (re.compile(r"\btoken\s*[:=]\s*\S+", re.IGNORECASE), "token: [REDACTED]"),
+        # password / passwd followed by : or = and a value
+        (
+            re.compile(r"\b(passw(?:or)?d)\s*[:=]\s*\S+", re.IGNORECASE),
+            r"\g<1>: [REDACTED]",
+        ),
+    ]
+    # Email pattern: mask local part, preserve domain.
+    _EMAIL_RE = re.compile(r"\b([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b")
+
+    @staticmethod
+    def _redact_sensitive_info(text: str) -> str:
+        """Redact sensitive information from handoff text.
+
+        Matt Pocock handoff principle (P1-7): handoff documents are read by
+        humans and forwarded between agents, so secrets that leaked into prose
+        must be masked before the document is shared.
+
+        The following patterns are redacted (case-insensitive):
+
+        - API keys with ``sk-`` prefix → ``[REDACTED]``
+        - ``api_key: <value>`` / ``api-key=<value>`` → ``api_key: [REDACTED]``
+        - ``token: <value>`` → ``token: [REDACTED]``
+        - ``password: <value>`` / ``passwd: <value>`` → ``password: [REDACTED]``
+        - Email addresses → ``***@<domain>`` (domain preserved)
+
+        Args:
+            text: Raw handoff text potentially containing secrets.
+
+        Returns:
+            Text with sensitive values replaced by ``[REDACTED]`` or masked
+            emails. When no sensitive patterns are present, the original text
+            is returned unchanged.
+        """
+        if not text:
+            return text
+        redacted = text
+        for pattern, replacement in CheckpointManager._REDACT_PATTERNS:
+            redacted = pattern.sub(replacement, redacted)
+        redacted = CheckpointManager._EMAIL_RE.sub(r"***@\g<2>", redacted)
+        return redacted
+
+    def suggest_skills(self, handoff_content: str) -> list[str]:
+        """Suggest next-step skills based on handoff content keywords.
+
+        Matt Pocock handoff principle (P1-7): a handoff document should point
+        the receiving agent at the most useful next skill. This method inspects
+        the handoff text and returns a skill recommendation list.
+
+        Keyword mapping (first match wins, case-insensitive for English):
+
+        - ``测试`` / ``test`` → ``["test", "retrospective"]``
+        - ``部署`` / ``deploy`` → ``["devops"]``
+        - ``安全`` / ``security`` → ``["security"]``
+        - ``设计`` / ``design`` → ``["dispatch", "intent"]``
+        - default (no keyword match) → ``["dispatch"]``
+
+        Args:
+            handoff_content: Handoff document text to scan for keywords.
+
+        Returns:
+            List of recommended skill names. Returns ``["dispatch"]`` when no
+            keyword matches.
+        """
+        if not handoff_content:
+            return ["dispatch"]
+        lowered = handoff_content.lower()
+        if "测试" in handoff_content or "test" in lowered:
+            return ["test", "retrospective"]
+        if "部署" in handoff_content or "deploy" in lowered:
+            return ["devops"]
+        if "安全" in handoff_content or "security" in lowered:
+            return ["security"]
+        if "设计" in handoff_content or "design" in lowered:
+            return ["dispatch", "intent"]
+        return ["dispatch"]
 
     def create_checkpoint_from_dispatch(
         self,
