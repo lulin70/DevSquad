@@ -131,7 +131,7 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - name: Install lint tools
-        run: pip install ruff==0.15.20 mypy==2.2.0
+        run: pip install ruff==0.15.20 mypy==2.2.0 radon==6.0.1
       - name: Install project dependencies
         run: |
           python -m pip install --upgrade pip
@@ -139,6 +139,17 @@ jobs:
           pip install fastapi uvicorn pydantic streamlit mcp prometheus-client psutil slack-sdk openai anthropic httpx2
       - name: Lint
         run: ruff check . --ignore=E501
+      - name: Complexity check (radon cc, blocking since V4.1.1)
+        run: |
+          # radon cc -nd shows only D/E/F grade functions (complexity >= 16)
+          # V4.1.1 achievement: zero D+ functions (22 refactored to C/B/A)
+          output=$(radon cc scripts/ -nd -s 2>&1)
+          if [ -n "$output" ]; then
+            echo "ERROR: radon cc found D+ functions (complexity >= 16, grade D/E/F)"
+            echo "$output"
+            exit 1
+          fi
+          echo "OK: radon cc zero D+ functions (V4.1.1 achievement maintained)"
       - name: Type check (blocking since V3.9.1)
         run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary
       # Full scripts/+skills/ mypy check (blocking since V3.10.0).
