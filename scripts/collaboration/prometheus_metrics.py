@@ -378,7 +378,8 @@ class DevSquadMetrics:
         """
         if not _PROMETHEUS_AVAILABLE:
             return None
-        return generate_latest(REGISTRY)
+        latest = generate_latest(REGISTRY)
+        return bytes(latest) if latest is not None else None
 
     def is_available(self) -> bool:
         """Check if Prometheus client is available."""

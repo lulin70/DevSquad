@@ -510,6 +510,8 @@ class MultiAgentDispatcher(
         task_description: str,
     ) -> tuple[dict[str, Any] | None, DispatchResult | None]:
         """RBAC check path when an RBAC provider is configured."""
+        if self._rbac is None:
+            return None, None
         try:
             check_roles = list(roles) if roles else []
             perm = self._rbac.check_dispatch_permission(

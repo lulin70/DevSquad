@@ -357,7 +357,7 @@ class MemorySerializerMixin:
         )
         captured_id = self.writer.write_episodic(episodic)
         self._stats.total_captures += 1
-        return captured_id
+        return str(captured_id) if captured_id is not None else None
 
     def record_feedback(self, feedback: UserFeedback) -> str:
         """

@@ -138,9 +138,17 @@ class TestV4UIUXInspectionE2E:
         finally:
             dispatcher.shutdown()
 
-    def test_qa_audit_url_without_playwright_raises_e2e(self, tmp_path: Path) -> None:
+    def test_qa_audit_url_without_playwright_raises_e2e(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """用户调用 qa_audit_url() 但 Playwright 未安装时，抛出 RuntimeError。"""
+        # Simulate playwright not being installed, regardless of whether
+        # it is actually present in the test environment.
+        import sys
+
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
+        monkeypatch.setitem(sys.modules, "playwright", None)
+        monkeypatch.setitem(sys.modules, "playwright.sync_api", None)
 
         dispatcher = MultiAgentDispatcher(
             enable_warmup=False, enable_memory=False, enable_skillify=False,

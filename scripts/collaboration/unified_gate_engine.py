@@ -622,10 +622,7 @@ class UnifiedGateEngine:
             ``critical_issues`` field contains one entry per failed
             criterion; ``suggestions`` contains the human-readable reasoning.
         """
-        return cast(
-            UnifiedGateResult,
-            self.check(GateType.DEBUG_LOOP_READY, command),
-        )
+        return self.check(GateType.DEBUG_LOOP_READY, command)
 
     def _check_debug_loop_ready(
         self,
