@@ -213,7 +213,8 @@ addopts = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "e2e: end-to-end tests requiring full stack",
-    "integration: integration tests",
+    "integration: integration tests (cross-module, no external deps)",
+    "external: tests requiring real external services (LLM API, Redis, PostgreSQL)",
     "benchmark: performance benchmark tests",
     "unit: marks tests as unit tests",
     "smoke: marks tests as release smoke tests",

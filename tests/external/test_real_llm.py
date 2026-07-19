@@ -1,7 +1,11 @@
-"""Real LLM backend integration tests.
+"""Real LLM backend external tests.
 
-These tests make actual API calls to LLM providers.
+These tests make actual API calls to LLM providers (OpenAI/Anthropic).
 They are skipped unless the corresponding API keys are set.
+
+Moved from ``tests/integration/`` to ``tests/external/`` in V4.1.2 Phase 3 TD-6
+to separate "cross-module integration" (no external deps) from "real external
+service" tests. See ``docs/audits/V4.1.2_Phase3_Plan.md`` §2.4.
 
 Set environment variables to enable:
     DEVSQUAD_OPENAI_API_KEY=sk-...     # For OpenAI tests
@@ -12,8 +16,8 @@ import os
 
 import pytest
 
-# Mark entire module as integration
-pytestmark = pytest.mark.integration
+# Mark entire module as external (real LLM API calls).
+pytestmark = pytest.mark.external
 
 
 # ── Fixtures ──

@@ -439,12 +439,13 @@ class TestCLIWithLifecycleIntegration:
 
     def test_cli_imports_lifecycle_module(self):
         """Test CLI module contains lifecycle command."""
-        # scripts/cli/ package shadows scripts/cli.py, so import the .py file directly
+        # scripts/cli/ package shadows scripts/cli.py, so import the .py file directly.
+        # Path: tests/integration/ → project root (two levels up).
         import importlib.util
 
         spec = importlib.util.spec_from_file_location(
             "scripts_cli_module",
-            os.path.join(os.path.dirname(__file__), "..", "scripts", "cli.py"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "cli.py"),
         )
         cli_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cli_module)
@@ -455,11 +456,13 @@ class TestCLIWithLifecycleIntegration:
         """Test lifecycle subcommand exists in CLI parser."""
         import subprocess
 
+        # tests/integration/ → project root (two levels up via abspath).
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         result = subprocess.run(
             ["python3", "scripts/cli.py", "--help"],
             capture_output=True,
             text=True,
-            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            cwd=project_root,
         )
         assert "lifecycle" in result.stdout.lower() or result.returncode == 0
         print("✅ Lifecycle command in CLI help")
