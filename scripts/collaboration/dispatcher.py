@@ -33,6 +33,7 @@ from .dispatch_services import MemoryPipelineService, MetricsService, Permission
 from .dispatch_steps import PostDispatchPipeline
 from .dispatcher_async_mixin import DispatcherAsyncMixin
 from .dispatcher_audit_mixin import DispatcherAuditMixin
+from .dispatcher_config import DispatcherConfig
 from .dispatcher_error_mixin import DispatcherErrorMixin
 from .dispatcher_factory import async_quick_collaborate, create_dispatcher, quick_collaborate
 from .dispatcher_lifecycle_mixin import DispatcherLifecycleMixin
@@ -323,6 +324,25 @@ class MultiAgentDispatcher(
             self.coordinator.content_cache = self.content_cache
         if self._code_graph is not None:
             self.coordinator.code_graph = self._code_graph
+
+    @classmethod
+    def from_config(cls, config: DispatcherConfig) -> "MultiAgentDispatcher":
+        """Construct a :class:`MultiAgentDispatcher` from a :class:`DispatcherConfig`.
+
+        This is the recommended entry point for new code. The legacy
+        ``__init__`` with 43 kwargs remains supported for backward
+        compatibility (5219 existing tests rely on it).
+
+        Equivalence guarantee::
+
+            MultiAgentDispatcher.from_config(config)
+            # is equivalent to
+            MultiAgentDispatcher(**config.to_init_kwargs())
+
+        See :mod:`scripts.collaboration.dispatcher_config` for the full
+        field-by-field documentation.
+        """
+        return cls(**config.to_init_kwargs())
 
     def _init_components_from_factory(self) -> None:
         """Initialize all components via ComponentFactory."""

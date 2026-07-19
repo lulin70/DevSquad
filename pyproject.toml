@@ -147,6 +147,12 @@ ignore = [
 known-first-party = ["scripts", "skills"]
 known-third-party = ["fastapi", "uvicorn", "pydantic", "yaml", "streamlit"]
 
+[tool.ruff.lint.per-file-ignores]
+# pytest fixtures are injected via function args but often not referenced
+# directly in the test body (they trigger setup/teardown). ARG002 (unused
+# method argument) is therefore a false positive in test files.
+"tests/**" = ["ARG002"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
