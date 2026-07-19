@@ -11,9 +11,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 from scripts.collaboration.checkpoint_manager import CheckpointManager
 from scripts.collaboration.workflow_engine import WorkflowEngine
 from scripts.collaboration.workflow_engine_base import WorkflowDefinition, WorkflowInstance
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestWorkflowEngineInit(unittest.TestCase):

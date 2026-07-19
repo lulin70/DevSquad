@@ -16,11 +16,16 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import pytest
+
 from scripts.collaboration.llm_backend import (
     FallbackBackend,
     MockBackend,
     create_backend,
 )
+
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -21,9 +21,14 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.content_cache import SENSITIVE_PATTERNS, ContentCache
 from scripts.collaboration.llm_cache import LLMCache
 from scripts.collaboration.performance_monitor import PerformanceMonitor
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestContentCacheKeyGeneration(unittest.TestCase):

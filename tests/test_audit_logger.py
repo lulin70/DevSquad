@@ -3,7 +3,12 @@
 import os
 import tempfile
 
+import pytest
+
 from scripts.collaboration.audit_logger import AuditLogger, AuditRecord, SensitiveDataMasker
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestAuditLogger:

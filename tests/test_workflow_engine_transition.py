@@ -12,6 +12,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 from scripts.collaboration.checkpoint_manager import CheckpointManager
 from scripts.collaboration.workflow_engine_base import (
     StepStatus,
@@ -30,6 +32,9 @@ from scripts.collaboration.workflow_engine_state_mixin import WorkflowEngineStat
 from scripts.collaboration.workflow_engine_transition_mixin import (
     WorkflowEngineTransitionMixin,
 )
+
+pytestmark = pytest.mark.unit
+
 
 
 class _Engine(

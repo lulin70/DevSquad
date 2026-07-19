@@ -10,6 +10,9 @@ from scripts.collaboration.rbac_engine import (
     UserRole,
 )
 
+pytestmark = pytest.mark.unit
+
+
 
 class TestRBACEngine:
     def setup_method(self):

@@ -68,13 +68,13 @@ quality_control:
     # PLANNED — RACI/Scratchpad zone protocol is not yet implemented in code.
     # See docs/audits/V4.1.1_WorkBuddy_Review_Action_Plan.md (P1-7).
     # These config keys are kept for forward-compat; code currently ignores them.
-    raci:
+    raci:  # PLANNED - not implemented; code ignores these keys
       mode: "strict"
       enforce_one_responsible: true
       enforce_one_accountable: true
       allow_a_override_r: true
-    scratchpad:
-      protocol: "zoned"
+    scratchpad:  # PLANNED - not implemented; code ignores these keys
+      protocol: "zoned"  # PLANNED - "zoned" protocol not enforced
       forbid_cross_zone_writes: true
       forbid_sensitive_in_shared: true
     consensus:

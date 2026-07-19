@@ -10,6 +10,9 @@ from scripts.collaboration.multi_tenant import (
     TenantContext,
 )
 
+pytestmark = pytest.mark.unit
+
+
 
 class TestIsolationLevel:
     def test_isolation_levels_exist(self):

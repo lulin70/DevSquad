@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from scripts.collaboration.secret_patterns import (
     _SENSITIVE_QUICK_CHECK,
     SECRET_PATTERNS,
@@ -16,6 +18,9 @@ from scripts.collaboration.secret_patterns import (
     is_sensitive,
     mask_secrets,
 )
+
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Constants

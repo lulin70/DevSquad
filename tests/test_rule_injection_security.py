@@ -12,8 +12,13 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.enhanced_worker import _MAX_RULE_TEXT_LENGTH, EnhancedWorker
 from scripts.collaboration.models import TaskDefinition
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestValidateInjectedRules(unittest.TestCase):

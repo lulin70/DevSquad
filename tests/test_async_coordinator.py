@@ -27,6 +27,9 @@ from scripts.collaboration.models import (
 from scripts.collaboration.scratchpad import Scratchpad
 from scripts.collaboration.worker import Worker, WorkerFactory
 
+pytestmark = pytest.mark.unit
+
+
 # ---------------------------------------------------------------------------
 # Test fixtures
 # ---------------------------------------------------------------------------

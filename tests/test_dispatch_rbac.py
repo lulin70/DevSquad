@@ -21,7 +21,12 @@ from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.dispatch_rbac import DispatchRBAC, PermissionResult
+
+pytestmark = pytest.mark.unit
+
 
 
 @dataclass

@@ -14,6 +14,7 @@ import json
 import sys
 from typing import Any
 
+from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.input_validator import InputValidator
 from scripts.collaboration.models import ROLE_REGISTRY, resolve_role_id
@@ -143,7 +144,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
     return 0 if all(r["success"] for r in results) else 1
 
 
-def _validate_dispatch_input(args):
+def _validate_dispatch_input(args: argparse.Namespace) -> tuple[str | None, int | None]:
     """Validate task text and roles for dispatch.
 
     Returns ``(task, error_code)``. On success ``error_code`` is ``None``;
@@ -186,7 +187,7 @@ def _validate_dispatch_input(args):
     return task, None
 
 
-def _build_dispatch_kwargs(args):
+def _build_dispatch_kwargs(args: argparse.Namespace) -> tuple[dict[str, Any] | None, int | None]:
     """Build MultiAgentDispatcher kwargs from parsed args.
 
     Returns ``(kwargs, error_code)``. On backend failure ``kwargs`` is ``None``
@@ -217,7 +218,10 @@ def _build_dispatch_kwargs(args):
     return kwargs, None
 
 
-def _create_host_adapter(args, disp):
+def _create_host_adapter(
+    args: argparse.Namespace,
+    disp: MultiAgentDispatcher,
+) -> MultiHostAdapter | None:
     """Create a MultiHostAdapter when ``--host`` is specified, else ``None``."""
     # V3.9.1: Wrap with MultiHostAdapter when --host is specified
     host_type_str = getattr(args, "host", None)
@@ -237,7 +241,7 @@ def _create_host_adapter(args, disp):
     )
 
 
-def _print_dispatch_result(args, result):
+def _print_dispatch_result(args: argparse.Namespace, result: DispatchResult) -> None:
     """Print a dispatch result according to ``args.format``."""
     if args.format == "json":
         output = {
@@ -254,7 +258,7 @@ def _print_dispatch_result(args, result):
         print(result.to_markdown())
 
 
-def _print_host_result(args, host_result):
+def _print_host_result(args: argparse.Namespace, host_result: dict[str, Any]) -> int:
     """Print a host-adapter dispatch result and return the exit code."""
     # MultiHostAdapter returns a dict; print the host-formatted report
     if args.format == "json":
@@ -277,12 +281,12 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         0 on success, 1 on validation or dispatch failure.
     """
     task, err = _validate_dispatch_input(args)
-    if err is not None:
-        return err
+    if err is not None or task is None:
+        return err if err is not None else 1
 
     kwargs, err = _build_dispatch_kwargs(args)
-    if err is not None:
-        return err
+    if err is not None or kwargs is None:
+        return err if err is not None else 1
 
     disp = MultiAgentDispatcher(**kwargs)
     adapter = _create_host_adapter(args, disp)

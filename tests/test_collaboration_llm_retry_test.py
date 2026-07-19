@@ -24,6 +24,9 @@ from scripts.collaboration.llm_retry import (
     retry_with_fallback,
 )
 
+pytestmark = pytest.mark.unit
+
+
 
 class TestRetryConfig:
     """Test retry configuration"""

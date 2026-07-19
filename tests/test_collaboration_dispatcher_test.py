@@ -28,6 +28,9 @@ from scripts.collaboration.dispatcher import (
     quick_collaborate,
 )
 
+pytestmark = pytest.mark.unit
+
+
 
 class TestT1_DispatcherDataModels:
     """T1: 数据模型测试"""

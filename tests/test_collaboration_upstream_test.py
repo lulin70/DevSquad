@@ -2,6 +2,8 @@
 import shutil
 import tempfile
 
+import pytest
+
 from scripts.collaboration.ai_semantic_matcher import AISemanticMatcher, SemanticMatchResult
 from scripts.collaboration.checkpoint_manager import (
     Checkpoint,
@@ -14,6 +16,9 @@ from scripts.collaboration.workflow_engine import (
     WorkflowEngine,
     WorkflowStatus,
 )
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestCheckpointManager:

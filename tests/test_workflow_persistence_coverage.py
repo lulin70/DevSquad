@@ -18,6 +18,8 @@ from __future__ import annotations
 import tempfile
 import unittest
 
+import pytest
+
 from scripts.collaboration.checkpoint_manager import CheckpointManager, CheckpointStatus
 from scripts.collaboration.workflow_engine_base import (
     WorkflowDefinition,
@@ -28,6 +30,8 @@ from scripts.collaboration.workflow_engine_base import (
 from scripts.collaboration.workflow_engine_persistence_mixin import (
     WorkflowEnginePersistenceMixin,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class _Engine(WorkflowEnginePersistenceMixin):

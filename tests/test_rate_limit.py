@@ -38,6 +38,9 @@ from scripts.api.rate_limit import (
     reset_rate_limiter,
 )
 
+pytestmark = pytest.mark.unit
+
+
 # ---------------------------------------------------------------------------
 # Test app fixture
 # ---------------------------------------------------------------------------

@@ -19,6 +19,9 @@ from scripts.collaboration.dispatcher_lifecycle_mixin import DispatcherLifecycle
 from scripts.collaboration.dispatcher_status_mixin import DispatcherStatusMixin
 from scripts.collaboration.dispatcher_utils_mixin import DispatcherUtilsMixin
 
+pytestmark = pytest.mark.unit
+
+
 # ---------------------------------------------------------------------------
 # DispatcherUtilsMixin tests
 # ---------------------------------------------------------------------------

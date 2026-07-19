@@ -7,6 +7,20 @@
 
 ---
 
+## Core Ready vs Enterprise Preview（V4.1.1 澄清）
+
+为避免 "Enterprise Ready" 与 Preview 状态自相矛盾 (WorkBuddy P1-13)，明确区分如下：
+
+| 类别 | 状态 | 涵盖模块 |
+|------|------|----------|
+| **Core Ready** (Production-Ready) | ✅ 默认启用，CI 阻断验证 | Coordinator / AsyncCoordinator / MultiAgentDispatcher / ConsensusEngine / FiveAxisConsensusEngine / ConsensusGate / Worker / EnhancedWorker / LLMBackend (含 retry + cache + fallback) / InputValidator / OutputValidator / PermissionGuard / CheckpointManager (V4.1.2 原子写入) / TwoStageReviewGate / SeverityRouter / JudgeAgent / RetrospectiveEngine / FeedbackControlLoop / MemoryBridge / SkillRegistry / WorkflowEngine / EventBus / PromptAssembler / 全部 V4.0.0 Loop Engineering 模块 |
+| **Enterprise Preview** | 🟡 代码已实现但未在主 dispatch 管线默认启用 | RBACEngine (rbac_engine.py) / DispatchRBAC (dispatch_rbac.py) / AuditLogger (audit_logger.py) / DispatchAuditLogger (dispatch_audit.py) / MultiTenantManager (multi_tenant.py) / EnterpriseFeature (enterprise_feature.py) |
+| **Configuration Placeholder** | ⏸ 配置键已定义，代码忽略 | `.devsquad.yaml` 的 `raci` / `scratchpad.protocol: zoned` / `veto_allowed_roles` (P1-7 PLANNED 标注) |
+
+**结论**: DevSquad V4.1.1 是 **Enterprise-Ready (RBAC/Audit/Multi-Tenancy in Preview)** —— Core 协作引擎生产就绪，企业特性 (RBAC / Audit / Multi-Tenancy) 代码已实现但仍在 Preview 阶段，未在主 dispatch 管线默认启用。
+
+---
+
 ## 最新总评（V4.0.11 Round 3 — 2026-07-14）
 
 | 维度 | Round 3 得分 | 较 Round 2 变化 | 评级 |

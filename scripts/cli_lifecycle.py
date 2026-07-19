@@ -9,14 +9,26 @@ DevSquad CLI lifecycle 子命令模块。
 import argparse
 import json
 import sys
+from collections.abc import Callable
+from typing import Any
 
+from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.input_validator import InputValidator
+from scripts.collaboration.lifecycle_protocol import LifecycleProtocol
+from scripts.collaboration.lifecycle_templates import ViewMapping
 
-from .cli_utils import LIFECYCLE_COMMANDS, LIFECYCLE_PRESETS, _create_backend
+from .cli_utils import LIFECYCLE_COMMANDS, LIFECYCLE_PRESETS, LifecyclePreset, _create_backend
 
 
-def _render_lifecycle_visual(command, mapping, preset, task, use_verbose, get_shared_protocol):
+def _render_lifecycle_visual(
+    command: str,
+    mapping: ViewMapping | None,
+    preset: LifecyclePreset,
+    task: str,
+    use_verbose: bool,
+    get_shared_protocol: Callable[[], LifecycleProtocol],
+) -> None:
     """Render lifecycle command output using the enhanced visual formatter."""
     # Use enhanced visual output
     import os as _os
@@ -80,7 +92,12 @@ def _render_lifecycle_visual(command, mapping, preset, task, use_verbose, get_sh
         print("Falling back to standard output...\n")
 
 
-def _render_lifecycle_verbose(command, mapping, preset, get_shared_protocol):
+def _render_lifecycle_verbose(
+    command: str,
+    mapping: ViewMapping | None,
+    preset: LifecyclePreset,
+    get_shared_protocol: Callable[[], LifecycleProtocol],
+) -> None:
     """Render lifecycle command output in verbose text mode (no colors but detailed)."""
     print(f"\n{'=' * 60}")
     print("🔄 DevSquad Lifecycle [Verbose Mode]")
@@ -109,7 +126,11 @@ def _render_lifecycle_verbose(command, mapping, preset, get_shared_protocol):
     print(f"{'=' * 60}\n")
 
 
-def _render_lifecycle_simple(command, mapping, preset):
+def _render_lifecycle_simple(
+    command: str,
+    mapping: ViewMapping | None,
+    preset: LifecyclePreset,
+) -> None:
     """Render lifecycle command output in the original simple backward-compatible mode."""
     print(f"\n{'=' * 60}")
     print("🔄 DevSquad Lifecycle [View Layer Mode]")
@@ -125,7 +146,11 @@ def _render_lifecycle_simple(command, mapping, preset):
     print("💡 Tip: Use --visual for enhanced output, --verbose for details\n")
 
 
-def _render_lifecycle_error(command, preset, error):
+def _render_lifecycle_error(
+    command: str,
+    preset: LifecyclePreset,
+    error: BaseException,
+) -> None:
     """Render fallback output when view mapping info is unavailable."""
     print(f"\n{'=' * 60}")
     print(f"🔄 DevSquad Lifecycle: {command.upper()}")
@@ -135,7 +160,7 @@ def _render_lifecycle_error(command, preset, error):
     print(f"(View mapping info unavailable: {error})\n")
 
 
-def _build_lifecycle_kwargs(args):
+def _build_lifecycle_kwargs(args: argparse.Namespace) -> dict[str, Any]:
     """Build MultiAgentDispatcher kwargs for a lifecycle command from parsed args."""
     kwargs = {
         "persist_dir": args.persist_dir,
@@ -155,7 +180,12 @@ def _build_lifecycle_kwargs(args):
     return kwargs
 
 
-def _print_lifecycle_result(args, command, preset, result):
+def _print_lifecycle_result(
+    args: argparse.Namespace,
+    command: str,
+    preset: LifecyclePreset,
+    result: DispatchResult,
+) -> None:
     """Print lifecycle dispatch result according to args.format."""
     if args.format == "json":
         output = {

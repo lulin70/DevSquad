@@ -12,6 +12,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.dispatch_models import PLANNED_ROLES
 from scripts.collaboration.dispatcher import (
     ROLE_TEMPLATES,
@@ -24,6 +26,9 @@ from scripts.collaboration.models import (
     get_planned_roles,
     resolve_role_id,
 )
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestRoleAliases(unittest.TestCase):

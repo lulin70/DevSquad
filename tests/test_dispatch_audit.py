@@ -24,11 +24,16 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.dispatch_audit import (
     GENESIS_HASH,
     AuditEntry,
     DispatchAuditLogger,
 )
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestAuditEntryDataclass(unittest.TestCase):

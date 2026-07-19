@@ -13,6 +13,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
+
 # Import from cli.py module (not cli package)
 cli_spec = importlib.util.spec_from_file_location(
     "cli_module", os.path.join(os.path.dirname(__file__), "..", "scripts", "cli.py")

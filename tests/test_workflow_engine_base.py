@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import unittest
 
+import pytest
+
 from scripts.collaboration.workflow_engine_base import (
     LIFECYCLE_TEMPLATES,
     PHASE_TEMPLATES,
@@ -21,6 +23,9 @@ from scripts.collaboration.workflow_engine_base import (
     WorkflowStatus,
     WorkflowStep,
 )
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestWorkflowStatusEnum(unittest.TestCase):

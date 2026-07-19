@@ -33,6 +33,8 @@ import pytest
 pytest.importorskip("mcp", reason="MCP SDK not installed. Run: pip install mcp")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+pytestmark = pytest.mark.unit
+
 
 
 # ---------------------------------------------------------------------------

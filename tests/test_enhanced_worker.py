@@ -14,6 +14,8 @@ Covers the enhanced execution pipeline:
 
 import tempfile
 
+import pytest
+
 from scripts.collaboration.enhanced_worker import (
     AgentBriefingOutput,
     EnhancedWorker,
@@ -22,6 +24,9 @@ from scripts.collaboration.enhanced_worker import (
 from scripts.collaboration.llm_backend import MockBackend
 from scripts.collaboration.models import TaskDefinition, WorkerResult
 from scripts.collaboration.scratchpad import Scratchpad
+
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Stub providers

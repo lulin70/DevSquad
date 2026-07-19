@@ -35,6 +35,7 @@ from .dispatch_steps_quality_mixin import PostDispatchQualityMixin
 from .dispatch_steps_services_mixin import PostDispatchServicesMixin
 from .dispatcher_base import ReportFormatterProtocol
 from .event_bus import EventBus
+from .output_validator import OutputValidator
 from .severity_router import SeverityRouter
 from .two_stage_review_gate import TwoStageReviewGate
 from .ue_test_framework import UETestFramework
@@ -147,6 +148,93 @@ class PostDispatchPipeline(
 
         # V3.8 #4: Judge agent for finding consolidation
         self.judge_agent = judge_agent
+
+        # V4.1.2 P1-6: OutputValidator (non-blocking, log-only for now).
+        # Full blocking semantics deferred to Phase 3.
+        self.output_validator: OutputValidator | None = OutputValidator()
+
+    # ------------------------------------------------------------------
+    # V4.1.2 P1-6: Output validation
+    # ------------------------------------------------------------------
+
+    def _validate_outputs(self, worker_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Scan worker outputs for risky content (P1-6 skeleton).
+
+        Non-blocking: logs findings at WARNING level and returns a list
+        of finding summaries so callers can attach them to the dispatch
+        result. Outputs are *not* modified in place — the redacted form
+        is logged for diagnosis but the original ``worker_results`` are
+        preserved so downstream steps (consensus, memory pipeline) see
+        the real content.
+
+        Args:
+            worker_results: List of worker result dicts. Each dict may
+                carry its textual payload under any of these keys
+                (checked in order): ``output``, ``raw_output``,
+                ``content``, ``report``.
+
+        Returns:
+            A list of finding summary dicts (empty if no findings or if
+            the validator is disabled). Each dict has keys:
+            ``worker_idx``, ``category``, ``severity``, ``pattern_name``,
+            ``redacted_text``.
+        """
+        if self.output_validator is None:
+            return []
+
+        all_findings: list[dict[str, Any]] = []
+        for idx, wr in enumerate(worker_results):
+            text = self._extract_output_text(wr)
+            if not text:
+                continue
+            result = self.output_validator.validate(text)
+            if not result.findings:
+                continue
+            for finding in result.findings:
+                summary = {
+                    "worker_idx": idx,
+                    "category": finding.category,
+                    "severity": finding.severity,
+                    "pattern_name": finding.pattern_name,
+                    "redacted_text": finding.redacted_text,
+                }
+                all_findings.append(summary)
+                if finding.severity == "high":
+                    logger.warning(
+                        "OutputValidator: worker[%d] %s %s — %s",
+                        idx,
+                        finding.category,
+                        finding.severity,
+                        finding.redacted_text,
+                    )
+                else:
+                    logger.info(
+                        "OutputValidator: worker[%d] %s %s — %s",
+                        idx,
+                        finding.category,
+                        finding.severity,
+                        finding.redacted_text,
+                    )
+        if all_findings:
+            logger.info(
+                "OutputValidator: %d finding(s) across %d worker output(s)",
+                len(all_findings),
+                len(worker_results),
+            )
+        return all_findings
+
+    @staticmethod
+    def _extract_output_text(worker_result: dict[str, Any]) -> str:
+        """Extract the textual payload from a worker result dict.
+
+        Tries common output field names in order. Returns an empty
+        string when no textual payload is found.
+        """
+        for key in ("output", "raw_output", "content", "report"):
+            val = worker_result.get(key)
+            if isinstance(val, str) and val:
+                return val
+        return ""
 
     # ------------------------------------------------------------------
     # Main execution entry point

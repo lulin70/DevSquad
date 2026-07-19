@@ -26,6 +26,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.warmup_manager import (
     CacheEntry,
     WarmupConfig,
@@ -37,6 +39,9 @@ from scripts.collaboration.warmup_manager import (
     WarmupStatus,
     WarmupTask,
 )
+
+pytestmark = pytest.mark.unit
+
 
 
 def _reset():
@@ -429,8 +434,11 @@ class T4AsyncWarmup(unittest.TestCase):
                 timeout_ms=5000,
             )
         )
+        # Pre-register ready event so the worker signals completion deterministically.
+        event = threading.Event()
+        wm._ready_flags["async2"] = event
         wm.warmup_async()
-        time.sleep(0.3)
+        self.assertTrue(event.wait(timeout=5.0), "async2 should complete within 5s")
         self.assertEqual(wm.get("async2"), "done_async")
 
     def test_03_result_in_cache(self):
@@ -446,8 +454,11 @@ class T4AsyncWarmup(unittest.TestCase):
                 timeout_ms=5000,
             )
         )
+        # Pre-register ready event so the worker signals completion deterministically.
+        event = threading.Event()
+        wm._ready_flags["acache"] = event
         wm.warmup_async()
-        time.sleep(0.3)
+        self.assertTrue(event.wait(timeout=5.0), "acache should complete within 5s")
         val = wm.get("acache")
         self.assertIsNotNone(val)
         self.assertEqual(val["cached"], True)
@@ -478,8 +489,14 @@ class T4AsyncWarmup(unittest.TestCase):
                 executor=make_exec("b"),
             )
         )
+        # Pre-register ready events for both tasks so we wait deterministically.
+        event_a = threading.Event()
+        event_b = threading.Event()
+        wm._ready_flags["adep-a"] = event_a
+        wm._ready_flags["adep-b"] = event_b
         wm.warmup_async()
-        time.sleep(0.5)
+        self.assertTrue(event_a.wait(timeout=5.0), "adep-a should complete within 5s")
+        self.assertTrue(event_b.wait(timeout=5.0), "adep-b should complete within 5s")
         if len(order) >= 2:
             self.assertLess(order.index("a"), order.index("b"))
 
@@ -515,8 +532,12 @@ class T4AsyncWarmup(unittest.TestCase):
                 timeout_ms=1000,
             )
         )
+        # Pre-register ready event so the worker signals completion deterministically
+        # (event is set in the `finally`-equivalent path even when the executor raises).
+        event = threading.Event()
+        wm._ready_flags["acrash"] = event
         wm.warmup_async()
-        time.sleep(0.3)
+        self.assertTrue(event.wait(timeout=5.0), "acrash should finish (with error) within 5s")
         # Verify exception was handled gracefully - result should be ERROR status
         result = wm._results.get("acrash")
         self.assertIsNotNone(result, "Exception task should have a result")
@@ -576,8 +597,11 @@ class T4AsyncWarmup(unittest.TestCase):
                 timeout_ms=2000,
             )
         )
+        # Pre-register ready event so the worker signals completion deterministically.
+        event = threading.Event()
+        wm._ready_flags["aworkers"] = event
         wm.warmup_async()
-        time.sleep(0.3)
+        self.assertTrue(event.wait(timeout=5.0), "aworkers should complete within 5s")
         self.assertIsNotNone(wm.get("aworkers"))
 
     def test_10_shutdown_stops(self):
@@ -1132,9 +1156,12 @@ class E2ETests(unittest.TestCase):
                 timeout_ms=2000,
             )
         )
+        # Pre-register ready event so we wait deterministically instead of fixed sleep.
+        event = threading.Event()
+        wm._ready_flags["race-async"] = event
         wm.warmup_async()
-        wm.get("race-async")
-        time.sleep(0.3)
+        wm.get("race-async")  # may return None (cache miss) while task is in-flight
+        self.assertTrue(event.wait(timeout=5.0), "race-async should complete within 5s")
         val_later = wm.get("race-async")
         if val_later is not None:
             self.assertEqual(val_later, "race_val")

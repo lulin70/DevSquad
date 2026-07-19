@@ -134,6 +134,7 @@ from .operation_classifier import OperationClassifier
 
 # Tier3 Auxiliary Module exports
 from .output_slicer import OutputSlice, OutputSlicer
+from .output_validator import OutputValidator
 from .performance_fingerprint import PerformanceFingerprint
 
 # Performance Monitor exports
@@ -186,6 +187,7 @@ __all__ = [
     "OperationClassifier",
     "OutputSlice",
     "OutputSlicer",
+    "OutputValidator",
     "PerformanceFingerprint",
     "RetrospectiveEngine",
     "SimilarTaskRecommender",

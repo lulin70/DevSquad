@@ -29,6 +29,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.api_server import app
 
+pytestmark = pytest.mark.unit
+
+
 
 @pytest.fixture
 def client(monkeypatch):

@@ -18,6 +18,9 @@ from scripts.collaboration.redis_cache import (
     _mask_redis_url,
 )
 
+pytestmark = pytest.mark.unit
+
+
 
 @pytest.fixture
 async def redis_backend():

@@ -7,6 +7,9 @@ Test the ConfidenceScore system for LLM response quality assessment.
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
+
 
 @pytest.fixture
 def scorer():

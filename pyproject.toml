@@ -166,6 +166,30 @@ follow_imports = "silent"
 ignore_missing_imports = true
 files = ["scripts", "skills"]
 
+# Per-file overrides: external library decorators we cannot fix.
+# scripts/mcp_server.py uses @mcp.tool() from FastMCP (mcp.server.fastmcp),
+# which returns an untyped decorator. Disabling untyped-decorator check
+# only for this file; all other mypy checks still apply.
+[[tool.mypy.overrides]]
+module = "scripts.mcp_server"
+disallow_untyped_decorators = false
+
+# scripts/api_server.py uses FastAPI decorators (@app.get, @app.exception_handler,
+# @app.on_event) which return untyped decorators. Same pattern as mcp_server.
+# Also applies to FastAPI route modules under scripts/api/routes/ and
+# scripts/dashboard/*_views.py — all use @app.route/@router.* decorators.
+[[tool.mypy.overrides]]
+module = [
+    "scripts.api_server",
+    "scripts.api.routes.metrics",
+    "scripts.api.routes.dispatch",
+    "scripts.api.routes.metrics_gates",
+    "scripts.api.routes.lifecycle",
+    "scripts.dashboard.dispatch_views",
+    "scripts.dashboard.lifecycle_views",
+]
+disallow_untyped_decorators = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = []

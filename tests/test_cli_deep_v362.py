@@ -31,6 +31,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import importlib.util
 
+pytestmark = pytest.mark.unit
+
+
 spec = importlib.util.spec_from_file_location(
     "cli_module", os.path.join(os.path.dirname(__file__), "..", "scripts", "cli.py")
 )

@@ -11,6 +11,8 @@ import threading
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pytest
+
 from scripts.collaboration.context_compressor import (
     CompressedContext,
     CompressionLevel,
@@ -20,6 +22,9 @@ from scripts.collaboration.context_compressor import (
     Message,
     MessageType,
 )
+
+pytestmark = pytest.mark.unit
+
 
 # ============================================================
 # Helper utilities

@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Tests for SKILL.md security scanning — V3.7.0."""
 
+import pytest
+
 from scripts.collaboration.role_skill_loader import RoleSkillLoader
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestSkillSecurityScanning:

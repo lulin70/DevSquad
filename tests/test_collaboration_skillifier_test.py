@@ -15,6 +15,8 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pytest
+
 from scripts.collaboration.skillifier import (
     ExecutionRecord,
     ExecutionStep,
@@ -28,6 +30,8 @@ from scripts.collaboration.skillifier import (
     SuccessPattern,
     ValidationResult,
 )
+
+pytestmark = pytest.mark.unit
 
 # ============================================================
 # Helpers

@@ -340,7 +340,7 @@ def render_sidebar(auth: AuthManager, current_user: User | None = None) -> str:
             if st.button("⚙️ System Config", use_container_width=True):
                 st.session_state.page = "system_config"
 
-        return page
+        return str(page)
 
 
 def render_footer(current_user: User | None = None) -> None:

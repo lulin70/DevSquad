@@ -2,9 +2,12 @@
 import hashlib
 import json
 import logging
+import os
 import re
+import tempfile
 import threading
 import uuid
+from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -179,6 +182,67 @@ class CheckpointManager:
         self.checkpoints_dir.mkdir(parents=True, exist_ok=True)
         self.handoffs_dir.mkdir(parents=True, exist_ok=True)
 
+    def _atomic_write_json(self, target_path: Path, data: Any) -> None:
+        """Atomically write JSON data to ``target_path``.
+
+        Writes to a temporary file in the same directory, then uses
+        :func:`os.replace` to atomically swap it into place. This ensures
+        that a crash mid-write never leaves a corrupted/truncated file —
+        readers either see the previous complete file or the new complete
+        file, never an intermediate state.
+
+        Raises:
+            OSError, TypeError, ValueError: propagated from json.dump or
+                filesystem operations. The temporary file is unlinked on
+                any exception.
+        """
+        target_dir = target_path.parent
+        target_dir.mkdir(parents=True, exist_ok=True)
+        tmp = tempfile.NamedTemporaryFile(  # noqa: SIM115
+            mode="w",
+            encoding="utf-8",
+            dir=target_dir,
+            delete=False,
+            suffix=".tmp",
+        )
+        try:
+            json.dump(data, tmp, indent=2, ensure_ascii=False)
+            tmp.close()
+            os.replace(tmp.name, target_path)
+        except Exception:
+            # Close if not yet closed, then unlink the temp file.
+            with suppress(OSError):
+                tmp.close()
+            with suppress(OSError):
+                os.unlink(tmp.name)
+            raise
+
+    def _atomic_write_text(self, target_path: Path, text: str) -> None:
+        """Atomically write ``text`` to ``target_path``.
+
+        Same atomic semantics as :meth:`_atomic_write_json` but for plain
+        text content.
+        """
+        target_dir = target_path.parent
+        target_dir.mkdir(parents=True, exist_ok=True)
+        tmp = tempfile.NamedTemporaryFile(  # noqa: SIM115
+            mode="w",
+            encoding="utf-8",
+            dir=target_dir,
+            delete=False,
+            suffix=".tmp",
+        )
+        try:
+            tmp.write(text)
+            tmp.close()
+            os.replace(tmp.name, target_path)
+        except Exception:
+            with suppress(OSError):
+                tmp.close()
+            with suppress(OSError):
+                os.unlink(tmp.name)
+            raise
+
     def _compute_hash(self, data: dict[str, Any]) -> str:
         data_for_hash = {k: v for k, v in data.items() if k != "checkpoint_hash"}
         json_str = json.dumps(data_for_hash, sort_keys=True, ensure_ascii=False)
@@ -220,8 +284,8 @@ class CheckpointManager:
             checkpoint_dict["checkpoint_hash"] = checkpoint.checkpoint_hash
 
             checkpoint_path = self._get_checkpoint_path(checkpoint.checkpoint_id)
-            with self._file_lock, open(checkpoint_path, "w", encoding="utf-8") as f:
-                json.dump(checkpoint_dict, f, indent=2, ensure_ascii=False)
+            with self._file_lock:
+                self._atomic_write_json(checkpoint_path, checkpoint_dict)
 
             logger.info("Checkpoint saved: %s (%.1f%%)", checkpoint.checkpoint_id, checkpoint.progress_percentage)
             return True
@@ -375,12 +439,10 @@ class CheckpointManager:
         try:
             handoff_path = self._get_handoff_path(handoff.handoff_id)
             with self._file_lock:
-                with open(handoff_path, "w", encoding="utf-8") as f:
-                    json.dump(asdict(handoff), f, indent=2, ensure_ascii=False)
+                self._atomic_write_json(handoff_path, asdict(handoff))
 
                 md_path = handoff_path.with_suffix(".md")
-                with open(md_path, "w", encoding="utf-8") as f:
-                    f.write(self._redact_sensitive_info(handoff.to_markdown()))
+                self._atomic_write_text(md_path, self._redact_sensitive_info(handoff.to_markdown()))
 
             logger.info("Handoff saved: %s -> %s", handoff.from_agent, handoff.to_agent)
             return True
@@ -612,8 +674,8 @@ class CheckpointManager:
             }
 
             state_path = lifecycle_dir / f"{task_id}_lifecycle.json"
-            with self._file_lock, open(state_path, "w", encoding="utf-8") as f:
-                json.dump(state_data, f, indent=2, ensure_ascii=False)
+            with self._file_lock:
+                self._atomic_write_json(state_path, state_data)
 
             logger.info(
                 "Lifecycle state saved: %s (phase=%s, mode=%s)",

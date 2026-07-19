@@ -16,7 +16,12 @@ from __future__ import annotations
 import time
 import unittest
 
+import pytest
+
 from scripts.collaboration.models import CompressedScratchpadEntry, TokenBudget
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestTokenBudgetDefaults(unittest.TestCase):

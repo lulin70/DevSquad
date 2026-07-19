@@ -23,8 +23,13 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.dispatch_rbac import DispatchRBAC
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+pytestmark = pytest.mark.unit
+
 
 
 class TestRbacFailClosedDefault(unittest.TestCase):

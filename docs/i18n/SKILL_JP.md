@@ -11,7 +11,7 @@ description: |
   150+ コアモジュール, 3400+ テスト合格 (CI 権威).
 ---
 
-# DevSquad V4.0.0 — マルチエージェントコラボレーションプラットフォーム（Enterprise Ready）
+# DevSquad V4.0.0 — マルチエージェントコラボレーションプラットフォーム（Enterprise-Ready: Core production-ready; RBAC/Audit/Multi-Tenancy in Preview）
 
 ## 🎯 一言で理解（3 秒）
 

@@ -23,6 +23,9 @@ from scripts.collaboration.input_validator import (
     ValidationResult,
 )
 
+pytestmark = pytest.mark.unit
+
+
 
 class TestInputValidatorSpecialCharacters:
     """特殊字符和 Unicode 处理测试"""

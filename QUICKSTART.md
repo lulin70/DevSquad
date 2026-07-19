@@ -3,7 +3,7 @@
 <p align="center">
   <strong>把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>V4.1.1 Enterprise Ready | One task → Multi-role AI → One conclusion</em>
+  <em>V4.1.1 Enterprise-Ready (RBAC/Audit/Multi-Tenancy in Preview) | One task → Multi-role AI → One conclusion</em>
 </p>
 
 ---

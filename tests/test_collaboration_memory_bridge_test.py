@@ -28,6 +28,8 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
+import pytest
+
 from scripts.collaboration.memory_bridge import (
     AnalysisCase,
     EpisodicMemory,
@@ -47,6 +49,9 @@ from scripts.collaboration.memory_bridge import (
     PersistedPattern,
     UserFeedback,
 )
+
+pytestmark = pytest.mark.unit
+
 
 
 class T1DataModels(unittest.TestCase):

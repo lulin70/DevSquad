@@ -12,7 +12,7 @@ description: |
   185+ core modules, 5250+ CI tests passing (CI authoritative, 5355 total collected).
 ---
 
-# DevSquad V4.1.1 — Multi-Role AI Task Orchestrator (Enterprise Ready)
+# DevSquad V4.1.1 — Multi-Role AI Task Orchestrator (Enterprise-Ready: Core production-ready; RBAC/Audit/Multi-Tenancy in Preview)
 
 ## 🎯 一句话理解（3 秒）
 
