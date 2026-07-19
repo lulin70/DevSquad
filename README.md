@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5219%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-5250%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V4.1.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -81,7 +81,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
 - **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
 
-5219+ tests passing。
+5250+ tests passing。
 
 ---
 
@@ -469,7 +469,7 @@ devsquad --version
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 5219+ passed
+# Expected: 5250+ passed
 ```
 
 ---
@@ -527,7 +527,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (5219+ tests passing)
+# Run all tests (5250+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -544,7 +544,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 5219+ tests (5248 collected)**
+**Total: 5250+ CI tests / 66 e2e (5355 collected)**
 
 Run by priority:
 ```bash

@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5219%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-5250%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V4.1.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -28,7 +28,7 @@
 - **P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復、LoopKernel 再利用、コンセンサスゲートをバイパスしない
 - **P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層防护 + reload ロールバック + 監査ログ
 
-5219+ tests passing。
+5250+ tests passing。
 
 ### 🎯 クイックスタート（5つの使用方法）
 
@@ -299,7 +299,7 @@ python scripts/cli.py dispatch -t "テストタスク"
 | P1 拡張モジュール (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新モジュール (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
 | V3.9.2 拡張モジュール (LLM フォールバック/Dashboard 分割/監査永続化) | 588 | 100% |
-| **合計** | **5219+ (収集 5248)** | **100%** |
+| **合計** | **5250+ CI / 66 e2e (収集 5355)** | **100%** |
 
 ---
 
@@ -392,7 +392,7 @@ DevSquad/
 │   ├── cli.py                 # コマンドラインインターフェース
 │   ├── dashboard.py           # Streamlitダッシュボード
 │   └── api_server.py          # FastAPIサーバー
-├── tests/                     # テストスイート (5219+ 個)
+├── tests/                     # テストスイート (5250+ CI / 66 e2e, 5355 collected)
 ├── docs/                      # ドキュメント
 ├── SKILL.md                   # Skill定義
 ├── CHANGELOG.md              # 変更ログ

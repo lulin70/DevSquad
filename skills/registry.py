@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from pathlib import Path
 from typing import Any
+
+from ._version import __version__ as _SKILLS_VERSION
+
+logger = logging.getLogger(__name__)
 
 _SKILL_DIR = Path(__file__).parent
 _AVAILABLE_SKILLS: dict[str, type[BaseSkill]] = {}
@@ -15,7 +20,7 @@ class BaseSkill:
 
     name: str = ""
     description: str = ""
-    version: str = "3.7.0"
+    version: str = _SKILLS_VERSION
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
@@ -37,8 +42,8 @@ def _load_skill(name: str) -> type[BaseSkill] | None:
             attr = getattr(mod, attr_name)
             if isinstance(attr, type) and issubclass(attr, BaseSkill) and attr is not BaseSkill:
                 return attr
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to load skill '%s': %s", name, e, exc_info=True)
     return None
 
 

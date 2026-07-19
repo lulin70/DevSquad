@@ -50,6 +50,10 @@ def _mask_redis_url(url: str) -> str:
     redis://:secret@host:6379/0  →  redis://***@host:6379/0
     redis://user:secret@host:6379/0  →  redis://user:***@host:6379/0
     redis://host:6379/0  →  redis://host:6379/0  (no password, unchanged)
+
+    P1-2 (V4.1.2): On parse failure, return a safe placeholder instead of the
+    raw URL — the raw URL may contain an embedded password that must not leak
+    into logs. See docs/audits/V4.1.1_WorkBuddy_Review_Action_Plan.md.
     """
     try:
         parsed = urlparse(url)
@@ -60,7 +64,8 @@ def _mask_redis_url(url: str) -> str:
             masked_netloc = f"{parsed.username}:***@{masked_netloc}" if parsed.username else f":***@{masked_netloc}"
             return urlunparse(parsed._replace(netloc=masked_netloc))
     except Exception:
-        pass
+        # Parse failure: return safe placeholder rather than raw URL (may contain password).
+        return "[REDACTED-URL]"
     return url
 
 

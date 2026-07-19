@@ -152,7 +152,10 @@ class Coordinator:
         self.consensus = ConsensusEngine()
         self.workers: dict[str, Worker] = {}
         self._worker_index: dict[str, Worker] = {}
-        self._executor = ThreadPoolExecutor(max_workers=7)
+        # P2-4 (V4.1.2): max_workers aligned with max_roles=10 (.devsquad.yaml)
+        # so the pool can accommodate up to 10 parallel Workers when needed.
+        # Previously hardcoded to 7, which undersized the pool when max_roles=10.
+        self._executor = ThreadPoolExecutor(max_workers=10)
         self._execution_history: list[dict[str, Any]] = []
         self.coordinator_id = f"coord-{uuid.uuid4().hex[:8]}"
         self.enable_compression = enable_compression

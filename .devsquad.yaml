@@ -65,6 +65,9 @@ quality_control:
 
   ai_team_collaboration:
     enabled: true
+    # PLANNED — RACI/Scratchpad zone protocol is not yet implemented in code.
+    # See docs/audits/V4.1.1_WorkBuddy_Review_Action_Plan.md (P1-7).
+    # These config keys are kept for forward-compat; code currently ignores them.
     raci:
       mode: "strict"
       enforce_one_responsible: true
@@ -77,15 +80,21 @@ quality_control:
     consensus:
       enabled: true
       threshold: 0.7
+      # Weights MUST be aligned with scripts/collaboration/models_dispatch.py:ROLE_WEIGHTS.
+      # Canonical source = ROLE_WEIGHTS (code-side). This yaml mirror is for visibility only.
+      # See docs/audits/V4.1.1_WorkBuddy_Review_Action_Plan.md (P0-5).
       weights:
-        architect: 3.0
-        security: 2.5
-        product-manager: 2.0
-        tester: 1.5
-        solo-coder: 1.5
+        architect: 1.5
+        security: 1.1
+        product-manager: 1.2
+        tester: 1.0
+        solo-coder: 1.0
         devops: 1.0
-        ui-designer: 1.0
+        ui-designer: 0.9
       veto_enabled: true
+      # PLANNED — veto_allowed_roles is not yet implemented in code.
+      # Code currently uses weight < 0 to trigger ESCALATED, not role-name check.
+      # See docs/audits/V4.1.1_WorkBuddy_Review_Action_Plan.md (P0-5).
       veto_allowed_roles:
         - security
         - architect

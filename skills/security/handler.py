@@ -28,8 +28,7 @@ class SecuritySkill(BaseSkill):
     """Security audit skill combining injection detection, operation classification, and permission control."""
 
     name = "security"
-    description = "Security auditing: injection detection, operation classification, permission control (V3.9.2)"
-    version = "3.9.2"
+    description = "Security auditing: injection detection, operation classification, permission control (V4.1.1)"
 
     INJECTION_PATTERNS_COUNT = 21
     INJECTION_CATEGORIES = {

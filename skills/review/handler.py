@@ -26,7 +26,6 @@ class ReviewSkill(BaseSkill):
 
     name = "review"
     description = "Five-axis code review: correctness/readability/architecture/security/performance"
-    version = "3.9.2"
 
     AXES_INFO = [
         {
@@ -288,7 +287,6 @@ class ReviewSkill(BaseSkill):
         has_functions = any("def " in line for line in lines)
         has_classes = any("class " in line for line in lines)
         has_docstring = '"""' in code or "'''" in code
-        any(line.strip().startswith("#") for line in lines)
 
         comment_ratio = sum(1 for line in lines if line.strip().startswith("#")) / max(len(non_empty), 1)
 

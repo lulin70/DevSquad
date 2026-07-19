@@ -14,7 +14,6 @@ from skills.registry import BaseSkill
 class TestSkill(BaseSkill):
     name = "test"
     description = "测试策略生成与质量审计 - API验证/反模式检测/维度覆盖"
-    version = "3.9.2"
 
     SUPPORTED_TYPES = ["unit", "integration", "e2e"]
     COVERAGE_DIMENSIONS = [

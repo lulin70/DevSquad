@@ -9,7 +9,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载.
-  185+ core modules, 5219+ tests passing (CI authoritative).
+  185+ core modules, 5250+ CI tests passing (CI authoritative, 5355 total collected).
 ---
 
 # DevSquad V4.1.1 — Multi-Role AI Task Orchestrator (Enterprise Ready)
@@ -1019,7 +1019,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V4.1.0 Atomic Skill: grilling-interview** | **9** | **✅ PASS** |
 | **V4.1.0 Atomic Skill: codebase-audit (coder)** | **9** | **✅ PASS** |
 | **V4.1.0 Atomic Skill: uiux-audit standalone usage (enhanced)** | **4** | **✅ PASS** |
-| **Total** | **5219+ (CI authoritative)** | **✅ ALL PASS** |
+| **Total** | **5250+ CI / 66 e2e (5355 collected)** | **✅ ALL PASS** |
 
 ---
 

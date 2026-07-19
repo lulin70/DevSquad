@@ -7,7 +7,7 @@ description: |
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.
   ThreadPoolExecutor parallel, CheckpointManager, WorkflowEngine, streaming, Docker, CI.
   V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载,
-  185+ core modules, 5219+ tests passing (CI authoritative).
+  185+ core modules, 5250+ CI tests passing (CI authoritative, 5355 total collected).
 status: active
 ai_enhanced: true
 ai_capabilities:

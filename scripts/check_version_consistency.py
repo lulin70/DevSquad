@@ -150,6 +150,21 @@ FILES_TO_CHECK: list[FileSpec] = [
         pattern=re.compile(r"V(\d+\.\d+\.\d+)", re.MULTILINE),
         description="COMPARISON.md version reference",
     ),
+    FileSpec(
+        relative_path="skills/__init__.py",
+        pattern=re.compile(r"DevSquad V(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="skills package docstring version",
+    ),
+    FileSpec(
+        relative_path="docs/spec/SPEC.md",
+        pattern=re.compile(r"DevSquad V(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="SPEC.md title version",
+    ),
+    FileSpec(
+        relative_path="docs/architecture/ARCHITECTURE_V4.md",
+        pattern=re.compile(r"V(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="ARCHITECTURE_V4.md version",
+    ),
 ]
 
 

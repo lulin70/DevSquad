@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5219%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-5250%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V4.1.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -28,7 +28,7 @@
 - **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
 - **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
 
-5219+ tests passing。
+5250+ tests passing。
 
 ### 🎯 快速开始（5种使用方式）
 
@@ -298,7 +298,7 @@ python scripts/cli.py dispatch -t "测试任务"
 | P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
 | P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **总计** | **5219+ (收集 5248)** | **100%** |
+| **总计** | **5250+ CI / 66 e2e (收集 5355)** | **100%** |
 
 ---
 
@@ -391,7 +391,7 @@ DevSquad/
 │   ├── cli.py                 # 命令行界面
 │   ├── dashboard.py           # Streamlit仪表板
 │   └── api_server.py          # FastAPI服务器
-├── tests/                     # 测试套件 (5219+ 个)
+├── tests/                     # 测试套件 (5250+ CI / 66 e2e, 5355 collected)
 ├── docs/                      # 文档
 ├── SKILL.md                   # Skill定义
 ├── CHANGELOG.md              # 变更日志

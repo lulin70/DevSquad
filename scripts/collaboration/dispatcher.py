@@ -791,7 +791,11 @@ class MultiAgentDispatcher(
                 base_url=os.environ.get("MOKA_API_BASE", "https://api.moka-ai.com/v1"),
                 model=os.environ.get("MOKA_MODEL", "moka/claude-sonnet-4-6"),
             )
-        except Exception:  # noqa: BLE001 — 创建失败时安全回退到 mock 投票
+        except (ImportError, OSError, ValueError, RuntimeError) as e:
+            # P1-3 (V4.1.2): Narrowed from bare Exception. Import/config/runtime
+            # errors are expected fallback triggers; unexpected exceptions
+            # should propagate so they are not silently swallowed.
+            logger.warning("MOKA backend creation failed, falling back to mock: %s", e)
             return None
 
     # V4.0.0 P3-2: 插件热加载

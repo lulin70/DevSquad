@@ -39,23 +39,6 @@ def agent_briefing(temp_storage_dir):
     reset_briefings()
 
 
-def test_import_agent_briefing():
-    """Test AgentBriefing module import"""
-    from scripts.collaboration.agent_briefing import (
-        AgentBriefing,
-        AgentContext,
-        BriefingSection,
-        get_agent_briefing,
-        reset_briefings,
-    )
-
-    assert AgentBriefing is not None
-    assert BriefingSection is not None
-    assert AgentContext is not None
-    assert get_agent_briefing is not None
-    assert reset_briefings is not None
-
-
 def test_agent_briefing_initialization(agent_briefing):
     """Test AgentBriefing initialization"""
     assert agent_briefing.agent_role == "Architect"

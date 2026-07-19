@@ -41,7 +41,7 @@ class IntentSkill(BaseSkill):
     Attributes:
         name: Skill identifier ("intent")
         description: Human-readable skill description
-        version: Skill semantic version (3.7.0)
+        version: Skill semantic version (inherited from BaseSkill)
         INTENT_MAP: Mapping of intent types to display labels
 
     Example:
@@ -53,7 +53,6 @@ class IntentSkill(BaseSkill):
     """
     name = "intent"
     description = "Detect user intent from natural language and map to workflow chain (6 intents × 3 languages)"
-    version = "3.9.2"
 
     INTENT_MAP = {
         "bug_fix": "🐛 Bug修复",

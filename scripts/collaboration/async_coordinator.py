@@ -488,7 +488,29 @@ class AsyncCoordinator:
                     )
 
         tasks = [_execute_with_semaphore(task) for task in batch.tasks]
-        results = await asyncio.gather(*tasks, return_exceptions=False)
+        # P0-2 (V4.1.2): return_exceptions=True so one Worker failure does not
+        # discard the results of all other parallel Workers. The per-task
+        # _execute_with_semaphore already wraps exceptions into WorkerResult,
+        # but return_exceptions=True is the defensive belt-and-suspenders.
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = []
+        for r in raw_results:
+            if isinstance(r, BaseException):
+                # Defensive: should rarely hit because _execute_with_semaphore
+                # catches Exception, but KeyboardInterrupt/SystemExit could propagate.
+                logger.error(
+                    "Worker raised unexpected exception in async gather: %s", r, exc_info=r
+                )
+                results.append(
+                    WorkerResult(
+                        worker_id="<unknown>",
+                        task_id="<unknown>",
+                        success=False,
+                        error=f"Unexpected exception: {r!r}",
+                    )
+                )
+            else:
+                results.append(r)
 
         return results
 
