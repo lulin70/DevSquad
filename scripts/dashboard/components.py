@@ -646,3 +646,390 @@ def show_toast(message: str, level: str = "info", duration: int = 5) -> str:
         unsafe_allow_html=True,
     )
     return toast_id
+
+
+# --- W3-T1: Command palette (Cmd+K) ---
+
+# 7 page commands + 1 toggle command (kept compact for fuzzy matching)
+COMMAND_PALETTE_ITEMS: list[dict[str, str]] = [
+    {"id": "page-overview", "label": "Go to Overview", "hint": "1", "action": "page:Overview"},
+    {"id": "page-phases", "label": "Go to Phases", "hint": "2", "action": "page:Phases"},
+    {"id": "page-mapping", "label": "Go to Mapping", "hint": "3", "action": "page:Mapping"},
+    {"id": "page-gates", "label": "Go to Gates", "hint": "4", "action": "page:Gates"},
+    {"id": "page-performance", "label": "Go to Performance", "hint": "5", "action": "page:Performance"},
+    {"id": "page-dispatch", "label": "Go to Task Dispatch", "hint": "6", "action": "page:Task Dispatch"},
+    {"id": "page-dag", "label": "Go to DAG", "hint": "7", "action": "page:DAG"},
+    {"id": "toggle-dark", "label": "Toggle Dark Mode", "hint": "D", "action": "toggle:dark_mode"},
+]
+
+
+def render_command_palette() -> None:
+    """Render a Cmd+K command palette overlay.
+
+    Injects HTML/CSS/JS for a modal-like command palette that opens on
+    Cmd+K (macOS) or Ctrl+K (other OS). Supports fuzzy search over
+    :data:`COMMAND_PALETTE_ITEMS`. Selection triggers a Streamlit
+    query param change so the app can route accordingly.
+
+    Note:
+        Uses Streamlit's ``set_query_param`` via JS click on a hidden
+        button — the app reads the query param on rerun to route.
+    """
+    import json
+
+    items_json = json.dumps(COMMAND_PALETTE_ITEMS)
+    st.markdown(
+        f"""
+    <style>
+    .cmd-palette-overlay {{
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 10000;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 12vh;
+    }}
+    .cmd-palette-overlay.open {{ display: flex; }}
+    .cmd-palette {{
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        width: 90%; max-width: 540px;
+        overflow: hidden;
+        border: 1px solid var(--border-subtle, #e9ecef);
+    }}
+    .cmd-palette-input {{
+        width: 100%; padding: 1rem 1.25rem;
+        border: none; outline: none;
+        font-size: 1rem;
+        background: transparent;
+        color: var(--text-primary, #4A4A4A);
+        border-bottom: 1px solid var(--border-subtle, #e9ecef);
+    }}
+    .cmd-palette-list {{ max-height: 320px; overflow-y: auto; }}
+    .cmd-palette-item {{
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        display: flex; justify-content: space-between; align-items: center;
+        color: var(--text-primary, #4A4A4A);
+    }}
+    .cmd-palette-item:hover, .cmd-palette-item.selected {{
+        background: var(--accent-primary, #7B9EA8);
+        color: white;
+    }}
+    .cmd-palette-item-hint {{
+        font-size: 0.75rem;
+        background: rgba(0, 0, 0, 0.08);
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        color: inherit;
+    }}
+    .cmd-palette-item:hover .cmd-palette-item-hint,
+    .cmd-palette-item.selected .cmd-palette-item-hint {{
+        background: rgba(255, 255, 255, 0.25);
+    }}
+    </style>
+
+    <div id="cmd-palette-overlay" class="cmd-palette-overlay" role="dialog"
+         aria-modal="true" aria-label="Command palette">
+        <div class="cmd-palette">
+            <input id="cmd-palette-search" type="text" class="cmd-palette-input"
+                   placeholder="Search commands... (Esc to close)"
+                   autocomplete="off" />
+            <div id="cmd-palette-list" class="cmd-palette-list"></div>
+        </div>
+    </div>
+
+    <script>
+    (function() {{
+        var items = {items_json};
+        var overlay = document.getElementById('cmd-palette-overlay');
+        var searchInput = document.getElementById('cmd-palette-search');
+        var listEl = document.getElementById('cmd-palette-list');
+        var selectedIdx = 0;
+
+        function fuzzyMatch(query, text) {{
+            query = query.toLowerCase(); text = text.toLowerCase();
+            if (!query) return true;
+            var qi = 0;
+            for (var i = 0; i < text.length && qi < query.length; i++) {{
+                if (text[i] === query[qi]) qi++;
+            }}
+            return qi === query.length;
+        }}
+
+        function renderList(query) {{
+            var matches = items.filter(function(it) {{
+                return fuzzyMatch(query || '', it.label);
+            }});
+            selectedIdx = 0;
+            listEl.innerHTML = matches.map(function(it, i) {{
+                return '<div class="cmd-palette-item' + (i === 0 ? ' selected' : '') +
+                       '" data-action="' + it.action + '" data-idx="' + i + '">' +
+                       '<span>' + it.label + '</span>' +
+                       '<span class="cmd-palette-item-hint">' + it.hint + '</span>' +
+                       '</div>';
+            }}).join('');
+            // Attach click handlers
+            var items_dom = listEl.querySelectorAll('.cmd-palette-item');
+            for (var i = 0; i < items_dom.length; i++) {{
+                items_dom[i].addEventListener('click', function() {{
+                    executeAction(this.getAttribute('data-action'));
+                }});
+            }}
+        }}
+
+        function executeAction(action) {{
+            // Use query param to signal the Streamlit app
+            var url = new URL(window.location);
+            var parts = action.split(':');
+            url.searchParams.set('_cmd_action', parts[0]);
+            url.searchParams.set('_cmd_target', parts[1] || '');
+            window.history.pushState({{}}, '', url);
+            closePalette();
+            // Trigger Streamlit rerun via hidden button click
+            var btn = document.querySelector('[data-testid="stAppViewContainer"] button');
+            if (btn) btn.click();
+            else window.location.reload();
+        }}
+
+        function openPalette() {{
+            overlay.classList.add('open');
+            searchInput.value = '';
+            renderList('');
+            setTimeout(function() {{ searchInput.focus(); }}, 50);
+        }}
+
+        function closePalette() {{
+            overlay.classList.remove('open');
+        }}
+
+        // Global Cmd+K / Ctrl+K shortcut
+        document.addEventListener('keydown', function(e) {{
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {{
+                e.preventDefault();
+                if (overlay.classList.contains('open')) closePalette();
+                else openPalette();
+                return;
+            }}
+            if (e.key === 'Escape' && overlay.classList.contains('open')) {{
+                closePalette();
+                return;
+            }}
+            if (overlay.classList.contains('open')) {{
+                if (e.key === 'ArrowDown') {{
+                    e.preventDefault();
+                    var items_dom = listEl.querySelectorAll('.cmd-palette-item');
+                    if (items_dom.length === 0) return;
+                    selectedIdx = Math.min(selectedIdx + 1, items_dom.length - 1);
+                    updateSelection(items_dom);
+                }} else if (e.key === 'ArrowUp') {{
+                    e.preventDefault();
+                    var items_dom = listEl.querySelectorAll('.cmd-palette-item');
+                    if (items_dom.length === 0) return;
+                    selectedIdx = Math.max(selectedIdx - 1, 0);
+                    updateSelection(items_dom);
+                }} else if (e.key === 'Enter') {{
+                    e.preventDefault();
+                    var items_dom = listEl.querySelectorAll('.cmd-palette-item');
+                    if (items_dom[selectedIdx]) {{
+                        executeAction(items_dom[selectedIdx].getAttribute('data-action'));
+                    }}
+                }}
+            }}
+        }});
+
+        function updateSelection(items_dom) {{
+            for (var i = 0; i < items_dom.length; i++) {{
+                if (i === selectedIdx) items_dom[i].classList.add('selected');
+                else items_dom[i].classList.remove('selected');
+            }}
+            // Scroll into view
+            if (items_dom[selectedIdx]) {{
+                items_dom[selectedIdx].scrollIntoView({{ block: 'nearest' }});
+            }}
+        }}
+
+        searchInput.addEventListener('input', function() {{
+            renderList(this.value);
+        }});
+
+        // Close on overlay click (outside palette)
+        overlay.addEventListener('click', function(e) {{
+            if (e.target === overlay) closePalette();
+        }});
+    }})();
+    </script>
+    """,
+        unsafe_allow_html=True,
+    )
+
+
+# --- W3-T3: Skeleton screens ---
+
+# 3 skeleton kinds with predefined element counts
+SKELETON_KINDS: dict[str, int] = {
+    "metric": 4,      # top metric cards
+    "phase_row": 5,   # phase timeline rows
+    "chart": 1,       # single chart placeholder
+}
+
+
+def render_skeleton(kind: str, count: int | None = None) -> None:
+    """Render a skeleton loading placeholder.
+
+    Args:
+        kind: One of ``"metric"``, ``"phase_row"``, ``"chart"``.
+            Unknown kinds fall back to ``"metric"``.
+        count: Number of skeleton elements to render. If None, uses
+            the default count for the kind (see :data:`SKELETON_KINDS`).
+
+    Note:
+        Uses CSS ``@keyframes skeleton-shimmer`` for a subtle pulsing
+        effect. Replaces ``st.spinner`` for initial data loading.
+    """
+    if kind not in SKELETON_KINDS:
+        kind = "metric"
+    if count is None:
+        count = SKELETON_KINDS[kind]
+    count = max(1, min(20, int(count)))  # safety clamp
+
+    # Build skeleton elements based on kind
+    if kind == "metric":
+        element_html = (
+            '<div class="skeleton skeleton-metric">'
+            '<div class="skeleton-line skeleton-line-short"></div>'
+            '<div class="skeleton-line skeleton-line-long"></div>'
+            "</div>"
+        )
+        container_class = "skeleton-metric-row"
+    elif kind == "phase_row":
+        element_html = (
+            '<div class="skeleton skeleton-phase-row">'
+            '<div class="skeleton-circle"></div>'
+            '<div class="skeleton-line skeleton-line-medium"></div>'
+            '<div class="skeleton-line skeleton-line-short"></div>'
+            "</div>"
+        )
+        container_class = "skeleton-phase-list"
+    else:  # chart
+        element_html = (
+            '<div class="skeleton skeleton-chart">'
+            '<div class="skeleton-chart-bar" style="height: 60%"></div>'
+            '<div class="skeleton-chart-bar" style="height: 80%"></div>'
+            '<div class="skeleton-chart-bar" style="height: 45%"></div>'
+            '<div class="skeleton-chart-bar" style="height: 70%"></div>'
+            '<div class="skeleton-chart-bar" style="height: 55%"></div>'
+            "</div>"
+        )
+        container_class = "skeleton-chart-container"
+
+    elements = element_html * count
+    st.markdown(
+        f"""
+    <style>
+    @keyframes skeleton-shimmer {{
+        0% {{ background-position: -200% 0; }}
+        100% {{ background-position: 200% 0; }}
+    }}
+    .skeleton {{
+        background: linear-gradient(
+            90deg,
+            var(--border-subtle, #e9ecef) 25%,
+            rgba(0, 0, 0, 0.06) 50%,
+            var(--border-subtle, #e9ecef) 75%
+        );
+        background-size: 200% 100%;
+        animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        border-radius: 8px;
+    }}
+    .skeleton-metric-row {{
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin: 0.5rem 0;
+    }}
+    .skeleton-metric {{
+        padding: 1.5rem;
+        border-radius: 12px;
+        background: var(--bg-card, #fff);
+        border: 1px solid var(--border-subtle, #e9ecef);
+    }}
+    .skeleton-line {{
+        height: 0.875rem;
+        margin-bottom: 0.5rem;
+        border-radius: 4px;
+    }}
+    .skeleton-line-short {{ width: 40%; }}
+    .skeleton-line-medium {{ width: 65%; }}
+    .skeleton-line-long {{ width: 85%; }}
+    .skeleton-phase-list {{
+        display: flex; flex-direction: column;
+        gap: 0.5rem;
+        margin: 0.5rem 0;
+    }}
+    .skeleton-phase-row {{
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 1rem;
+        background: var(--bg-card, #fff);
+        border-radius: 10px;
+        border: 1px solid var(--border-subtle, #e9ecef);
+    }}
+    .skeleton-circle {{
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(
+            90deg,
+            var(--border-subtle, #e9ecef) 25%,
+            rgba(0, 0, 0, 0.06) 50%,
+            var(--border-subtle, #e9ecef) 75%
+        );
+        background-size: 200% 100%;
+        animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    }}
+    .skeleton-chart-container {{
+        margin: 0.5rem 0;
+        padding: 1rem;
+        background: var(--bg-card, #fff);
+        border-radius: 10px;
+        border: 1px solid var(--border-subtle, #e9ecef);
+        height: 240px;
+    }}
+    .skeleton-chart {{
+        display: flex; align-items: flex-end;
+        gap: 0.5rem;
+        height: 100%;
+    }}
+    .skeleton-chart-bar {{
+        flex: 1;
+        background: linear-gradient(
+            90deg,
+            var(--border-subtle, #e9ecef) 25%,
+            rgba(0, 0, 0, 0.06) 50%,
+            var(--border-subtle, #e9ecef) 75%
+        );
+        background-size: 200% 100%;
+        animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        border-radius: 4px 4px 0 0;
+    }}
+    [data-theme="dark"] .skeleton,
+    [data-theme="dark"] .skeleton-circle,
+    [data-theme="dark"] .skeleton-chart-bar {{
+        background: linear-gradient(
+            90deg,
+            var(--border-subtle, #3A3A40) 25%,
+            rgba(255, 255, 255, 0.04) 50%,
+            var(--border-subtle, #3A3A40) 75%
+        );
+        background-size: 200% 100%;
+    }}
+    </style>
+    <div class="{container_class}" role="status" aria-live="polite"
+         aria-label="Loading content">
+        {elements}
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
