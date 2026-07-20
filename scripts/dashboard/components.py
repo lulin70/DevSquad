@@ -45,6 +45,37 @@ class DashboardConfig:
         "blocked": "#9B8AA4",
     }
 
+    # W2-T1: Dark mode color palette (Morandi-tuned, only lightness adjusted)
+    LIGHT_MODE_COLORS = {
+        "bg-primary": "#F5F3F0",
+        "bg-card": "#FFFFFF",
+        "text-primary": "#4A4A4A",
+        "text-secondary": "#666666",
+        "accent-primary": "#7B9EA8",
+        "accent-success": "#8FA886",
+        "accent-warning": "#C9A87C",
+        "accent-danger": "#B58484",
+    }
+
+    DARK_MODE_COLORS = {
+        "bg-primary": "#1F1F23",
+        "bg-card": "#2A2A30",
+        "text-primary": "#E8E6E3",
+        "text-secondary": "#A8A6A3",
+        "accent-primary": "#9DB5C2",  # Morandi info (brighter on dark)
+        "accent-success": "#A8C2A0",
+        "accent-warning": "#DDB589",
+        "accent-danger": "#C9A0A0",
+    }
+
+    # W2-T3: Toast notification colors (4 levels, Morandi-aligned)
+    TOAST_COLORS = {
+        "info": "#9DB5C2",     # Morandi info
+        "success": "#8FA886",  # Morandi success
+        "warning": "#C9A87C",  # Morandi warning
+        "error": "#B58484",    # Morandi danger
+    }
+
     CORE_ROLES = [
         "architect",
         "product-manager",
@@ -63,6 +94,57 @@ class DashboardConfig:
         "solo-coder": "💻",
         "devops": "⚙️",
         "ui-designer": "🎨",
+    }
+
+    # W2-T2: Lucide-style SVG icons (single-color stroke, currentColor for theme adaptation)
+    # Source: Lucide icons (https://lucide.dev) — MIT licensed
+    # Each value is the inner SVG content (paths), to be wrapped with <svg> tag by get_role_icon()
+    ROLE_SVG_ICONS = {
+        "architect": (
+            '<line x1="3" y1="22" x2="21" y2="22"/>'
+            '<line x1="6" y1="18" x2="6" y2="11"/>'
+            '<line x1="10" y1="18" x2="10" y2="11"/>'
+            '<line x1="14" y1="18" x2="14" y2="11"/>'
+            '<line x1="18" y1="18" x2="18" y2="11"/>'
+            '<polygon points="12 2 20 7 4 7"/>'
+        ),
+        "product-manager": (
+            '<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>'
+            '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>'
+            '<path d="M12 11h4"/>'
+            '<path d="M12 16h4"/>'
+            '<path d="M8 11h.01"/>'
+            '<path d="M8 16h.01"/>'
+        ),
+        "security": (
+            '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>'
+            '<path d="m9 12 2 2 4-4"/>'
+        ),
+        "tester": (
+            '<path d="M10 2v7.31"/>'
+            '<path d="M14 9.3V2"/>'
+            '<path d="M8.5 2h7"/>'
+            '<path d="M14 9.3a6.5 6.5 0 1 1-4 0"/>'
+            '<path d="M5.52 16h12.96"/>'
+        ),
+        "solo-coder": (
+            '<path d="m18 16 4-4-4-4"/>'
+            '<path d="m6 8-4 4 4 4"/>'
+            '<path d="m14.5 4-5 16"/>'
+        ),
+        "devops": (
+            '<path d="M20 7h-9"/>'
+            '<path d="M14 17H5"/>'
+            '<circle cx="17" cy="17" r="3"/>'
+            '<circle cx="7" cy="7" r="3"/>'
+        ),
+        "ui-designer": (
+            '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>'
+            '<circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>'
+            '<circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>'
+            '<circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>'
+            '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>'
+        ),
     }
 
     ROLE_NAMES = {
@@ -87,10 +169,43 @@ def set_page_config() -> None:
 
 
 def apply_custom_css() -> None:
-    """Apply custom CSS for production-grade visual appearance."""
+    """Apply custom CSS for production-grade visual appearance.
+
+    W2-T1: Uses CSS variables + [data-theme="dark"] selector for dark mode.
+    W2-T3: Includes .toast-container / .toast styles for notification system.
+    """
     st.markdown(
         """
     <style>
+    /* W2-T1: CSS variables for light/dark mode (Morandi palette) */
+    :root {
+        --bg-primary: #F5F3F0;
+        --bg-card: #FFFFFF;
+        --text-primary: #4A4A4A;
+        --text-secondary: #666666;
+        --accent-primary: #7B9EA8;
+        --accent-success: #8FA886;
+        --accent-warning: #C9A87C;
+        --accent-danger: #B58484;
+        --border-subtle: #e9ecef;
+        --shadow-card: rgba(0, 0, 0, 0.07);
+        --shadow-hover: rgba(0, 0, 0, 0.12);
+    }
+
+    [data-theme="dark"] {
+        --bg-primary: #1F1F23;
+        --bg-card: #2A2A30;
+        --text-primary: #E8E6E3;
+        --text-secondary: #A8A6A3;
+        --accent-primary: #9DB5C2;
+        --accent-success: #A8C2A0;
+        --accent-warning: #DDB589;
+        --accent-danger: #C9A0A0;
+        --border-subtle: #3A3A40;
+        --shadow-card: rgba(0, 0, 0, 0.3);
+        --shadow-hover: rgba(0, 0, 0, 0.5);
+    }
+
     * {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
@@ -98,38 +213,38 @@ def apply_custom_css() -> None:
     .main-header {
         font-size: 2.5rem;
         font-weight: 700;
-        color: oklch(0.64 0.04 230);
+        color: var(--accent-primary);
         text-align: center;
         padding: 1rem 0;
     }
 
     .metric-card {
-        background: #f8f9fa;
+        background: var(--bg-card);
         border-radius: 12px;
         padding: 1.5rem;
         margin: 0.5rem 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-        border: 1px solid #e9ecef;
+        box-shadow: 0 4px 6px var(--shadow-card);
+        border: 1px solid var(--border-subtle);
         transition: all 0.3s ease;
     }
 
     .metric-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.12);
+        box-shadow: 0 8px 12px var(--shadow-hover);
     }
 
     .phase-card {
-        background-color: white;
+        background-color: var(--bg-card);
         border-radius: 10px;
         padding: 1.25rem;
         margin: 0.5rem 0;
-        border: 1px solid #e9ecef;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--border-subtle);
+        box-shadow: 0 2px 4px var(--shadow-card);
         transition: all 0.3s ease;
     }
 
     .phase-card:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 8px var(--shadow-hover);
     }
 
     .status-badge {
@@ -148,14 +263,14 @@ def apply_custom_css() -> None:
     .status-secondary { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
 
     .task-input textarea {
-        border: 2px solid #7B9EA8 !important;
+        border: 2px solid var(--accent-primary) !important;
         border-radius: 8px !important;
         font-family: 'Monaco', 'Menlo', monospace !important;
         font-size: 14px !important;
     }
 
     .primary-btn {
-        background: #7B9EA8 !important;
+        background: var(--accent-primary) !important;
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
@@ -170,10 +285,10 @@ def apply_custom_css() -> None:
     }
 
     [data-testid="stMetric"] {
-        background-color: white;
+        background-color: var(--bg-card);
         padding: 1rem;
         border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 4px var(--shadow-card);
     }
 
     .loading-spinner {
@@ -181,7 +296,7 @@ def apply_custom_css() -> None:
         width: 20px;
         height: 20px;
         border: 3px solid rgba(123, 158, 168, 0.3);
-        border-top-color: #7B9EA8;
+        border-top-color: var(--accent-primary);
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
@@ -192,22 +307,65 @@ def apply_custom_css() -> None:
 
     .countdown-timer {
         font-size: 0.9rem;
-        color: #666;
+        color: var(--text-secondary);
         font-weight: 500;
         padding: 0.5rem 1rem;
-        background: #f8f9fa;
+        background: var(--bg-primary);
         border-radius: 20px;
         display: inline-block;
     }
 
     div[data-testid="stExpander"] {
-        border: 1px solid #dee2e6;
+        border: 1px solid var(--border-subtle);
         border-radius: 8px;
     }
 
     h2, h3 {
-        color: #2c3e50 !important;
+        color: var(--text-primary) !important;
         font-weight: 600 !important;
+    }
+
+    /* W2-T3: Toast notification styles */
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        pointer-events: none;
+    }
+
+    .toast {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        min-width: 240px;
+        max-width: 360px;
+        animation: toast-in 0.3s ease, toast-out 0.3s ease forwards;
+        animation-delay: 0s, var(--toast-duration);
+        pointer-events: auto;
+    }
+
+    .toast-info { background: var(--accent-primary); }
+    .toast-success { background: var(--accent-success); }
+    .toast-warning { background: var(--accent-warning); }
+    .toast-error { background: var(--accent-danger); }
+
+    @keyframes toast-in {
+        from { opacity: 0; transform: translateX(100%); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes toast-out {
+        from { opacity: 1; transform: translateX(0); }
+        to { opacity: 0; transform: translateX(100%); }
     }
     </style>
     """,
@@ -360,3 +518,131 @@ def render_footer(current_user: User | None = None) -> None:
 
     with col3:
         st.caption(f"© {datetime.now().year} DevSquad Team")
+
+
+# --- W2-T1: Dark mode toggle ---
+
+def render_theme_toggle() -> bool:
+    """Render dark mode toggle in the sidebar.
+
+    Stores the user's preference in ``st.session_state["dark_mode"]`` and
+    injects a small script to set ``<html data-theme="dark">`` so that the
+    CSS variables defined in :func:`apply_custom_css` switch accordingly.
+
+    Returns:
+        True if dark mode is enabled, False otherwise.
+    """
+    dark_mode = st.toggle(
+        "Dark Mode",
+        value=st.session_state.get("dark_mode", False),
+        key="dark_mode_toggle",
+        help="Switch between Morandi light and dark themes",
+    )
+    st.session_state["dark_mode"] = dark_mode
+
+    # Inject script to set data-theme attribute on <html>
+    theme_attr = "dark" if dark_mode else "light"
+    st.markdown(
+        f"""
+    <script>
+        (function() {{
+            var root = document.documentElement;
+            if (root) {{ root.setAttribute('data-theme', '{theme_attr}'); }}
+        }})();
+    </script>
+    """,
+        unsafe_allow_html=True,
+    )
+    return dark_mode
+
+
+# --- W2-T2: SVG role icons ---
+
+def get_role_icon(role: str, fmt: str = "svg") -> str:
+    """Return the icon for a role.
+
+    Args:
+        role: One of :attr:`DashboardConfig.CORE_ROLES`.
+        fmt: ``"svg"`` (default) returns an inline ``<svg>`` element using
+            ``currentColor`` for stroke so the icon adapts to light/dark
+            themes automatically. ``"emoji"`` returns the legacy emoji.
+
+    Returns:
+        The icon string. For unknown roles, returns a default square icon
+        (SVG) or ``"❓"`` (emoji).
+    """
+    if fmt == "emoji":
+        return DashboardConfig.ROLE_ICONS.get(role, "❓")
+
+    # SVG format (default)
+    inner = DashboardConfig.ROLE_SVG_ICONS.get(role)
+    if inner is None:
+        # Default: a simple question-mark square
+        inner = (
+            '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>'
+            '<path d="M9.5 9a2.5 2.5 0 1 1 4 2c-.5.5-1 1-1 2"/>'
+            '<line x1="12" y1="16" x2="12" y2="16"/>'
+        )
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" '
+        'viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        f'{inner}</svg>'
+    )
+
+
+# --- W2-T3: Toast notification system ---
+
+_TOAST_COUNTER_KEY = "_toast_counter"
+
+
+def show_toast(message: str, level: str = "info", duration: int = 5) -> str:
+    """Show a toast notification in the top-right corner.
+
+    Args:
+        message: The message to display (plain text; HTML is escaped).
+        level: One of ``"info"``, ``"success"``, ``"warning"``, ``"error"``.
+            Defaults to ``"info"``. Unknown levels fall back to ``"info"``.
+        duration: Time in seconds before the toast auto-dismisses.
+            Defaults to 5. Must be in [1, 30].
+
+    Returns:
+        The unique toast id (used for testing and stacking).
+
+    Note:
+        Uses CSS animation (defined in :func:`apply_custom_css`) for
+        auto-dismissal — no JavaScript timers required. Multiple toasts
+        stack vertically via the ``.toast-container``.
+    """
+    if level not in DashboardConfig.TOAST_COLORS:
+        level = "info"
+    duration = max(1, min(30, int(duration)))
+
+    # Generate a unique toast id
+    counter = st.session_state.get(_TOAST_COUNTER_KEY, 0) + 1
+    st.session_state[_TOAST_COUNTER_KEY] = counter
+    toast_id = f"toast-{counter}"
+
+    # HTML-escape the message to prevent XSS
+    safe_message = (
+        message.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
+    duration_ms = duration * 1000
+    st.markdown(
+        f"""
+    <div class="toast-container" aria-live="polite" aria-atomic="true">
+        <div id="{toast_id}" class="toast toast-{level}"
+             style="--toast-duration: {duration_ms}ms"
+             role="alert">
+            {safe_message}
+        </div>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+    return toast_id
