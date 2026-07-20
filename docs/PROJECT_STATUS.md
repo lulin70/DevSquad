@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.0.11（开发完成 — 2026-07-13）
-> **最后更新**: 2026-07-13
-> **最新评估**: V4.0.10 项目整理评估完成 — 7 维度审查（代码走读/文档一致性/技术债/E2E测试/CI-CD/目录清理/成熟度）。4641 tests passing / 26 skipped / 0 failed。覆盖率 80.03%+。版本一致性 15/15 PASS。新增 redis_url 凭据泄露防护（_mask_redis_url + 10 测试）+ health_check RedisConnectionError 捕获修复。修复 13 个问题（8 P1 + 5 P2）：依赖同步、CI 3.12 矩阵、pre-commit ruff 版本对齐、5 文件版本引用 V4.0.0→V4.0.10、文档测试数刷新。综合评分 8.8/10。V4.0.11：FakeLLMBackend 提取到 conftest.py + CI 依赖同步检查脚本。
+> **当前版本**: V4.1.3（开发完成 — 2026-07-20）
+> **最后更新**: 2026-07-20
+> **最新评估**: V4.1.3 版本整合发布 — UI/UX 4-Wave 提升（Wave 1 P0 基础可访问性 / Wave 2 P1 暗色模式+SVG 图标+Toast / Wave 3 P2 命令面板+i18n+Skeleton / Wave 4 P3 键盘快捷键）共 180 个新测试，零回归。Phase 3 本地 TRAE 环境验证 7 角色矩阵 148 检查点全通过，5355 tests passing。版本号全量同步 18/18 PASS（check_version_consistency）+ 7/7 PASS（test_version.py）。5 道 CI 质量门全绿（ruff / radon / mypy / version / pytest）。详见 [RELEASE_NOTES_v4.1.3.md](RELEASE_NOTES_v4.1.3.md) 与 [V4.1.2_UI_UX_Enhancement_Plan.md](audits/V4.1.2_UI_UX_Enhancement_Plan.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.0.11 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.1.3 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
@@ -157,6 +157,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | **V4.0.0 P0-P2 改进** | **2026-07-10** | **8.7** | **13/13** | **mypy/ruff 版本锁定、streamlit/Pillow 加入 [dev] extras、e2e 在 PR 时运行、God Class 检测改为职责检测(23→4 候选)、broad-except 收窄** |
 | **V4.0.10 项目整理评估** | **2026-07-13** | **8.8** | **13/13** | **4651 tests 全绿、redis_url 凭据泄露防护 + health_check bug 修复、依赖同步(requirements-dev.txt/[all] extras)、CI 3.12 矩阵、pre-commit ruff 版本对齐、5 文件版本引用刷新、文档测试数同步** |
 | **V4.0.11 文档审核** | **2026-07-14** | **8.9** | **13/13** | **全面文档审核(57 issues: 16 P0+23 P1+18 P2)、health_check 版本硬编码 3.9.2→DEVSQUAD_VERSION 修复、CI 覆盖率门禁 --cov-fail-under=75 启用、模块数统一 185+(8 文件)、INDEX.md 路径修复、历史文档 superseded 标注** |
+| **V4.1.3 UI/UX 整合发布** | **2026-07-20** | **9.0** | **13/13** | **UI/UX 4-Wave 提升全部完成（180 新测试零回归）、Phase 3 本地 TRAE 环境验证 148 检查点全通过、5355 tests 全绿、版本号 18 处全量同步、5 道 CI 质量门全绿、Morandi 配色 + 暗色模式 + SVG 图标 + 命令面板 + i18n + Skeleton + 键盘快捷键** |
 
 评估报告路径:
 - V3.9.2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`

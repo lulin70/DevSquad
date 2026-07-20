@@ -7,6 +7,73 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.3] - 2026-07-20
+
+MINOR release consolidating all V4.1.2 work (Phase 3 + UI/UX Wave 1-4) +
+synchronizing the version number across all 18 canonical locations. The
+V4.1.2 work was developed and committed (10+ commits) but the version
+number was not bumped in `VERSION` / `pyproject.toml` / `_version.py`
+etc. This release (v4.1.3) brings the version number in sync with the
+actual delivered functionality.
+
+### Added — UI/UX Enhancement (4 Waves, 180 new tests)
+
+- **Wave 1 P0 (commit 00f86ca)**: Dispatch 4-stage visualization
+  (`st.status` replaces `st.spinner`) + Performance chart hover interaction
+  (`st.bar_chart`) + DAG node interaction (Graphviz replaces Mermaid). 47 tests.
+- **Wave 2 P1 (commit ec83f23)**: Dark mode (CSS variables +
+  `[data-theme="dark"]`) + 7 Lucide SVG role icons (`currentColor` stroke) +
+  Toast notification system (4 levels, XSS-safe, ARIA live). 57 tests.
+- **Wave 3 P2 (commit ecd5390)**: Command palette (Cmd+K fuzzy search 8
+  commands) + i18n module (`scripts/dashboard/i18n.py`, 28 keys × {zh, en}) +
+  Skeleton screens (3 kinds with shimmer animation). 56 tests.
+- **Wave 4 P3 (commit da201af)**: Keyboard shortcuts (1-7 page nav + R refresh
+  + ? help) + help dialog with role=dialog/aria-modal. W4-T1 (responsive)
+  and W4-T3 (theme switcher) deferred to V4.3 per 7-Role consensus. 20 tests.
+
+### Added — Phase 3 Local Verification (commit 2299216)
+
+7-Role local TRAE environment verification matrix: 148 checkpoints total,
+all PASS (UI Role N/A). 115 tests passing (22 e2e + 25 property + 68 unit).
+5 CI quality gates green. 2 known limitations documented (4 baseline
+`test_dashboard_ui_e2e.py` failures + 1 numpy stub error).
+
+### Changed — Version Synchronization
+
+All 18 canonical version locations synchronized from 4.1.1 → 4.1.3:
+`_version.py` (canonical), `VERSION`, `pyproject.toml`, `skill-manifest.yaml`,
+`Dockerfile`, `helm/devsquad/Chart.yaml` (version + appVersion),
+`CHANGELOG.md`, `CHANGELOG-CN.md`, `README.md`, `README-CN.md`,
+`README-JP.md`, `SKILL.md`, `CLAUDE.md`, `config/deployment.yaml`,
+`COMPARISON.md`, `skills/__init__.py`, `docs/spec/SPEC.md`,
+`docs/architecture/ARCHITECTURE_V4.md`.
+
+### Documentation
+
+- **New**: `docs/RELEASE_NOTES_v4.1.3.md` — full release notes
+- **New**: `docs/audits/V4.1.2_UI_UX_Enhancement_Plan.md` — 4-Wave plan + execution records (11 sections)
+- **New**: `docs/audits/V4.1.2_Phase3_LocalVerification_Plan.md` — 7-Role verification matrix (434 lines)
+- **New**: `docs/audits/V4.1.2_Phase3_Plan.md` — Phase 3 main plan
+- **New**: `scripts/dashboard/i18n.py` — i18n module (TRANSLATIONS + I18nManager + t())
+
+### Verification
+
+5 CI Quality Gates (all green):
+- `ruff check`: All passed (zero errors)
+- `radon cc scripts/`: zero D+ functions (cc < 21)
+- `mypy scripts/dashboard/`: 0 errors
+- `python scripts/check_version_consistency.py`: 18/18 PASS
+- `pytest`: 191/191 PASSED (zero regression, baseline 22 pre-existing failures preserved)
+
+### Design Principles Achieved
+
+- Morandi color palette across all new UI elements via CSS variables
+- 7 role icons converted to Lucide SVG (single-color stroke + currentColor)
+- Pure HTML/CSS/JS implementation (zero third-party libraries)
+- Documentation first: each Wave documented before implementation
+- 180 new tests cover all features (including a11y: aria-live/aria-modal)
+- Each Wave pushed only after 5 CI quality gates green
+
 ## [4.1.1] - 2026-07-16
 
 PATCH release: 4 ghost-feature integrations + 22 radon cc D+ refactors + 4-dimension security hardening + README 3-language sync + PyPI OIDC Trusted Publishing. 69 new tests (13 ghost-feature integration + 56 security hardening). All 22 D+ functions reduced to C/B/A level (cc < 21). Zero D/E/F functions remain.

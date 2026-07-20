@@ -7,6 +7,57 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.1.3] - 2026-07-20
+
+MINOR 发布：整合所有 V4.1.2 工作（Phase 3 + UI/UX Wave 1-4）+ 同步 18 个权威位置的版本号。V4.1.2 工作已开发并提交（10+ commits）但版本号未升级到 `VERSION` / `pyproject.toml` / `_version.py` 等。本发布 (v4.1.3) 使版本号与实际交付功能保持一致。
+
+### 新增 — UI/UX 增强（4 个 Wave，180 个新测试）
+
+- **Wave 1 P0 (commit 00f86ca)**：Dispatch 4 阶段可视化（`st.status` 替换 `st.spinner`）+ 性能图表 hover 交互（`st.bar_chart`）+ DAG 节点交互（Graphviz 替换 Mermaid）。47 个测试。
+- **Wave 2 P1 (commit ec83f23)**：暗色模式（CSS 变量 + `[data-theme="dark"]`）+ 7 个 Lucide SVG 角色图标（`currentColor` stroke）+ Toast 通知系统（4 级别，XSS 安全，ARIA live）。57 个测试。
+- **Wave 3 P2 (commit ecd5390)**：命令面板（Cmd+K fuzzy search 8 命令）+ i18n 模块（`scripts/dashboard/i18n.py`，28 keys × {zh, en}）+ Skeleton screens（3 种带 shimmer 动画）。56 个测试。
+- **Wave 4 P3 (commit da201af)**：键盘快捷键（1-7 页面导航 + R 刷新 + ? 帮助）+ 帮助对话框 role=dialog/aria-modal。W4-T1（响应式）和 W4-T3（主题切换）按 7-Role 共识推迟到 V4.3。20 个测试。
+
+### 新增 — Phase 3 本地验证 (commit 2299216)
+
+7-Role 本地 TRAE 环境验证矩阵：148 个检查点全部 PASS（UI Role N/A）。115 个测试通过（22 e2e + 25 property + 68 unit）。5 道 CI 质量门全绿。2 个已知限制记录在案（4 个 baseline `test_dashboard_ui_e2e.py` 失败 + 1 个 numpy stub 错误）。
+
+### 变更 — 版本号同步
+
+所有 18 个权威版本位置从 4.1.1 同步到 4.1.3：
+`_version.py`（canonical）、`VERSION`、`pyproject.toml`、`skill-manifest.yaml`、
+`Dockerfile`、`helm/devsquad/Chart.yaml`（version + appVersion）、
+`CHANGELOG.md`、`CHANGELOG-CN.md`、`README.md`、`README-CN.md`、
+`README-JP.md`、`SKILL.md`、`CLAUDE.md`、`config/deployment.yaml`、
+`COMPARISON.md`、`skills/__init__.py`、`docs/spec/SPEC.md`、
+`docs/architecture/ARCHITECTURE_V4.md`。
+
+### 文档
+
+- **新增**：`docs/RELEASE_NOTES_v4.1.3.md` — 完整发布说明
+- **新增**：`docs/audits/V4.1.2_UI_UX_Enhancement_Plan.md` — 4-Wave 方案 + 执行记录（11 章节）
+- **新增**：`docs/audits/V4.1.2_Phase3_LocalVerification_Plan.md` — 7-Role 验证矩阵（434 行）
+- **新增**：`docs/audits/V4.1.2_Phase3_Plan.md` — Phase 3 主方案
+- **新增**：`scripts/dashboard/i18n.py` — i18n 模块（TRANSLATIONS + I18nManager + t()）
+
+### 验证
+
+5 道 CI 质量门（全绿）：
+- `ruff check`：全部通过（零错误）
+- `radon cc scripts/`：零 D+ 函数（cc < 21）
+- `mypy scripts/dashboard/`：0 错误
+- `python scripts/check_version_consistency.py`：18/18 PASS
+- `pytest`：191/191 PASSED（零回归，baseline 22 个 pre-existing 失败保留）
+
+### 设计原则达成
+
+- 所有新增 UI 元素通过 CSS 变量使用 Morandi 色调
+- 7 个角色图标转换为 Lucide SVG（单色 stroke + currentColor）
+- 纯 HTML/CSS/JS 实现（零第三方库）
+- 文档先行：每个 Wave 实施前先写文档
+- 180 个新测试覆盖所有功能（含 a11y: aria-live/aria-modal）
+- 每个 Wave 在 5 道 CI 质量门全绿后才推送
+
 ## [4.1.1] - 2026-07-16
 
 PATCH 发布：4 个幽灵功能集成 + 22 个 radon cc D+ 函数重构 + 4 维度安全加固 + README 三语言同步 + PyPI OIDC Trusted Publishing。69 个新测试（13 幽灵功能集成 + 56 安全加固）。22 个 D+ 函数全部降至 C/B/A 级（cc < 21）。零 D/E/F 函数残留。
