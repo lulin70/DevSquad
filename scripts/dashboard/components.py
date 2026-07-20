@@ -1033,3 +1033,171 @@ def render_skeleton(kind: str, count: int | None = None) -> None:
     """,
         unsafe_allow_html=True,
     )
+
+
+# --- W4-T2: Keyboard shortcuts ---
+
+# 9 keyboard shortcuts (1-7 page nav + R refresh + ? help)
+KEYBOARD_SHORTCUTS: dict[str, dict[str, str]] = {
+    "1": {"action": "page:Overview", "label": "Go to Overview"},
+    "2": {"action": "page:Phases", "label": "Go to Phases"},
+    "3": {"action": "page:Mapping", "label": "Go to Mapping"},
+    "4": {"action": "page:Gates", "label": "Go to Gates"},
+    "5": {"action": "page:Performance", "label": "Go to Performance"},
+    "6": {"action": "page:Task Dispatch", "label": "Go to Task Dispatch"},
+    "7": {"action": "page:DAG", "label": "Go to DAG"},
+    "r": {"action": "refresh", "label": "Refresh page"},
+    "?": {"action": "show_help", "label": "Show keyboard shortcuts help"},
+}
+
+
+def render_keyboard_shortcuts() -> None:
+    """Inject JS global keyboard shortcuts for dashboard navigation.
+
+    Shortcuts only fire when no input/textarea is focused (avoids
+    conflicting with form input). Page navigation uses the same
+    query-param mechanism as :func:`render_command_palette`.
+
+    Shortcuts (see :data:`KEYBOARD_SHORTCUTS`):
+        1-7 — jump to dashboard pages
+        R   — refresh page (st.rerun)
+        ?   — toggle keyboard help dialog
+    """
+    import json
+
+    shortcuts_json = json.dumps(KEYBOARD_SHORTCUTS)
+    # Build help dialog rows
+    help_rows = "\n".join(
+        f'<div class="kbd-help-row">'
+        f'<span class="kbd-key">{key.upper() if key != "?" else "?"}</span>'
+        f'<span class="kbd-desc">{meta["label"]}</span>'
+        f"</div>"
+        for key, meta in KEYBOARD_SHORTCUTS.items()
+    )
+
+    st.markdown(
+        f"""
+    <style>
+    .kbd-help-overlay {{
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10001;
+        display: none;
+        align-items: center; justify-content: center;
+    }}
+    .kbd-help-overlay.open {{ display: flex; }}
+    .kbd-help-modal {{
+        background: var(--bg-card, #fff);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        padding: 1.5rem 2rem;
+        width: 90%; max-width: 440px;
+        border: 1px solid var(--border-subtle, #e9ecef);
+    }}
+    .kbd-help-title {{
+        font-size: 1.25rem; font-weight: 600;
+        color: var(--text-primary, #4A4A4A);
+        margin: 0 0 1rem 0;
+    }}
+    .kbd-help-row {{
+        display: flex; align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-subtle, #e9ecef);
+    }}
+    .kbd-help-row:last-child {{ border-bottom: none; }}
+    .kbd-key {{
+        display: inline-block;
+        min-width: 2rem; text-align: center;
+        padding: 0.25rem 0.5rem;
+        background: var(--bg-primary, #F5F3F0);
+        border: 1px solid var(--border-subtle, #e9ecef);
+        border-radius: 4px;
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 0.85rem;
+        color: var(--text-primary, #4A4A4A);
+        margin-right: 1rem;
+    }}
+    .kbd-desc {{
+        color: var(--text-secondary, #666);
+        font-size: 0.9rem;
+    }}
+    </style>
+
+    <div id="kbd-help-overlay" class="kbd-help-overlay" role="dialog"
+         aria-modal="true" aria-label="Keyboard shortcuts help">
+        <div class="kbd-help-modal">
+            <h3 class="kbd-help-title">Keyboard Shortcuts</h3>
+            {help_rows}
+        </div>
+    </div>
+
+    <script>
+    (function() {{
+        var shortcuts = {shortcuts_json};
+        var helpOverlay = document.getElementById('kbd-help-overlay');
+
+        function isInputFocused() {{
+            var el = document.activeElement;
+            if (!el) return false;
+            var tag = el.tagName.toLowerCase();
+            return tag === 'input' || tag === 'textarea' || el.isContentEditable;
+        }}
+
+        function executeAction(action) {{
+            if (action === 'show_help') {{
+                helpOverlay.classList.toggle('open');
+                return;
+            }}
+            if (action === 'refresh') {{
+                window.location.reload();
+                return;
+            }}
+            // page:<Name> — use query param to signal Streamlit app
+            if (action.startsWith('page:')) {{
+                var url = new URL(window.location);
+                var parts = action.split(':');
+                url.searchParams.set('_cmd_action', parts[0]);
+                url.searchParams.set('_cmd_target', parts[1] || '');
+                window.history.pushState({{}}, '', url);
+                // Trigger Streamlit rerun
+                var btn = document.querySelector('[data-testid="stAppViewContainer"] button');
+                if (btn) btn.click();
+                else window.location.reload();
+            }}
+        }}
+
+        document.addEventListener('keydown', function(e) {{
+            // Skip if input/textarea is focused
+            if (isInputFocused()) return;
+            // Skip if any modifier (Ctrl/Meta/Alt) is pressed (let Cmd+K etc. work)
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+            var key = e.key.toLowerCase();
+            // Special case: '?' requires shift
+            if (e.key === '?' && e.shiftKey) {{
+                e.preventDefault();
+                executeAction('show_help');
+                return;
+            }}
+            if (key in shortcuts) {{
+                e.preventDefault();
+                executeAction(shortcuts[key].action);
+            }}
+        }});
+
+        // Close help on overlay click (outside modal)
+        helpOverlay.addEventListener('click', function(e) {{
+            if (e.target === helpOverlay) helpOverlay.classList.remove('open');
+        }});
+
+        // ESC closes help
+        document.addEventListener('keydown', function(e) {{
+            if (e.key === 'Escape' && helpOverlay.classList.contains('open')) {{
+                helpOverlay.classList.remove('open');
+            }}
+        }});
+    }})();
+    </script>
+    """,
+        unsafe_allow_html=True,
+    )
