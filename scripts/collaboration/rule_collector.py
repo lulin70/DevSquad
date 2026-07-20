@@ -542,13 +542,13 @@ class LocalRuleStorage:
                     data = {"_metadata": {}, "rules": {}}
                 self._cache = data
                 self._cache_time = now
-                return data  # type: ignore[no-any-return]
+                return data
             except (json.JSONDecodeError, ValueError) as e:
                 logger.error("Corrupted rules JSON: %s, resetting", e)
                 data = {"_metadata": {}, "rules": {}}
                 self._cache = data
                 self._cache_time = now
-                return data  # type: ignore[no-any-return]
+                return data
         return {"_metadata": {}, "rules": {}}
 
     def _write_data(self, data: dict) -> None:

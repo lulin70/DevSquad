@@ -356,7 +356,7 @@ class AnthropicBackend(LLMBackend):
                     _metrics.record_llm_call("anthropic", _llm_duration, True)
                 except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
-                return response.content[0].text if response.content else ""  # type: ignore[no-any-return]
+                return response.content[0].text if response.content else ""
             except _get_anthropic_retry_exceptions() as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
@@ -657,7 +657,7 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"))
         kwargs.setdefault("model", os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC))
 
-    return cls(**kwargs)  # type: ignore[no-any-return]
+    return cls(**kwargs)
 
 
 def _get_openai_retry_exceptions() -> tuple[type[BaseException], ...]:

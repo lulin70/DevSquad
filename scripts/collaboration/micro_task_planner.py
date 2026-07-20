@@ -467,7 +467,7 @@ class MicroTaskPlanner:
                 verification = (
                     "python -c \"import ast; ast.parse(open('{file}').read())\""
                 )
-                deps = [prev_id] if prev_id else []  # type: ignore[list-item]
+                deps = [prev_id] if prev_id else []
                 micro_tasks.append(
                     MicroTask(
                         id=mt_id,
@@ -505,7 +505,7 @@ class MicroTaskPlanner:
             mt_id = str(uuid.uuid4())
             title = self._title_from_sentence(sentence)
             desc = sentence.strip()
-            deps = [prev_id] if prev_id else []  # type: ignore[list-item]
+            deps = [prev_id] if prev_id else []
             micro_tasks.append(
                 MicroTask(
                     id=mt_id,

@@ -7,6 +7,38 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.1.5] - 2026-07-20
+
+PATCH 发布：CI mypy 版本漂移修复 + pip-audit setuptools CVE 修复。
+v4.1.4 tag (commit 1634e47) CI 失败的 2 个原因：
+1. mypy 版本漂移（本地 1.11.2 vs CI 2.2.0）— 为本地 mypy 添加的 type:ignore 注释被 CI 更新版 mypy 标记为 unused-ignore。
+2. pip-audit 失败：setuptools 79.0.1 有 PYSEC-2026-3447（83.0.0+ 修复）。
+
+### 修复 — mypy 版本漂移（17 个 unused-ignore errors）
+
+- **根因**：本地 mypy 1.11.2 报告 17 个 no-any-return + 2 个 list-item errors 需要 `# type: ignore[...]` 注释。CI 的 mypy 2.2.0 更智能，不需要这些注释，将其标记为 unused-ignore。
+- **修复**：移除 17 个 `# type: ignore[no-any-return]` 注释，分布在 rule_collector.py / adaptive_role_selector.py / redis_cache.py / llm_backend.py / async_llm_backend.py / worker.py。
+- **修复**：移除 2 个 `# type: ignore[list-item]` 注释，在 micro_task_planner.py:470, 508。
+- **教训**：mypy 本地与 CI 版本漂移可能导致相反行为。CI 的 mypy 2.2.0 是 0-errors 政策的权威。
+
+### 修复 — pip-audit setuptools CVE
+
+- **问题**：`pip-audit --strict` 失败，因为 GitHub Actions setup-python 安装 setuptools 79.0.1，有 PYSEC-2026-3447（83.0.0+ 修复）。
+- **修复**：在 `.github/workflows/test.yml` security job 的 `pip-audit` 之前添加 `pip install --upgrade "setuptools>=83.0.0"`。
+
+### 验证 — 5 道 CI 质量门（预期 CI 全绿）
+
+- `ruff check`：All checks passed!（本地）
+- `radon cc scripts/`：0 D+ 函数（本地）
+- `mypy scripts/collaboration/`：17 errors（本地 1.11.2 — 版本漂移；CI 2.2.0 预期无 type:ignore 通过）
+- `python scripts/check_version_consistency.py`：18/18 PASS
+- `pytest tests/`：5825 passed, 25 skipped, 0 failed（本地，零回归）
+
+### 已知问题
+
+- **PyPI Trusted Publishing**：v4.1.4 Release workflow 在 PyPI publish 步骤失败，错误 `invalid-publisher: valid token, but no corresponding publisher`。需要用户在 PyPI 注册 trusted publisher：Owner=lulin70, Repository=DevSquad, Workflow=.github/workflows/release.yml, Environment=pypi。
+- **mypy 版本漂移**：本地 mypy 1.11.2 vs CI 2.2.0 可能报告不同错误数。CI 是权威。P1 修复：在 requirements-dev.txt 固定 mypy 版本（计划 v4.2.0）。
+
 ## [4.1.4] - 2026-07-20
 
 PATCH 发布：CI 质量门修复 + 7 维度项目评估。

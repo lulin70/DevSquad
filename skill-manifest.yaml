@@ -1,7 +1,7 @@
 name: devsquad
-version: 4.1.4
+version: 4.1.5
 description: |
-  DevSquad V4.1.4 — Enterprise Multi-Role AI Task Orchestrator.
+  DevSquad V4.1.5 — Enterprise Multi-Role AI Task Orchestrator.
   One task → Multi-role AI collaboration → One conclusion.
   7 core roles (architect/pm/security/tester/coder/devops/ui), real LLM backend
   (OpenAI/Anthropic/MOKA AI), CLI + MCP + Python API + REST API + Web Dashboard.

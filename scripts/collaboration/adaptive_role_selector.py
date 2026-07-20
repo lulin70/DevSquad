@@ -253,7 +253,7 @@ class AdaptiveRoleSelector:
 
         if best_combo:
             roles = list(best_combo)[:max_roles]
-            return roles  # type: ignore[no-any-return]
+            return roles
 
         return []
 
@@ -308,6 +308,6 @@ class AdaptiveRoleSelector:
 
         if best_combo:
             roles = list(best_combo)[:max_roles]
-            return roles  # type: ignore[no-any-return]
+            return roles
 
         return []

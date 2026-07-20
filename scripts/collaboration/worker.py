@@ -555,7 +555,7 @@ class Worker:
             cached = cache.get(result.instruction, "backend", getattr(backend, "model", "unknown"))
             if cached:
                 logger.debug("  [%s] Cache hit.", _rname)
-                return cached  # type: ignore[no-any-return]
+                return cached
         except (ImportError, AttributeError, KeyError, RuntimeError) as e:
             logger.debug("Cache read failed: %s", e)
             cache = None

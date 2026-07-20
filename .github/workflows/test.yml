@@ -125,6 +125,8 @@ jobs:
         run: |
           # Scan installed dependencies for known CVEs.
           # Fails only on critical/high severity (medium/low are reported but non-blocking).
+          # Upgrade setuptools first to avoid PYSEC-2026-3447 (fixed in setuptools 83.0.0+).
+          pip install --upgrade "setuptools>=83.0.0"
           pip-audit --strict --progress-spinner off
       - name: Run gitleaks secret scan (added in V4.1.2)
         uses: gitleaks/gitleaks-action@v2

@@ -7,6 +7,54 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.5] - 2026-07-20
+
+PATCH release: CI mypy version drift fix + pip-audit setuptools CVE fix.
+The v4.1.4 tag (commit 1634e47) failed CI due to 2 issues:
+1. mypy version drift (local 1.11.2 vs CI 2.2.0) — type:ignore comments
+   added for local mypy were flagged as unused-ignore by CI's newer mypy.
+2. pip-audit failed on setuptools 79.0.1 (PYSEC-2026-3447, fixed in 83.0.0+).
+
+### Fixed — mypy Version Drift (17 unused-ignore errors)
+
+- **Root cause**: Local mypy 1.11.2 reported 17 no-any-return + 2 list-item
+  errors that needed `# type: ignore[...]` comments. CI's mypy 2.2.0 is
+  smarter and doesn't need these comments, flagging them as unused-ignore.
+- **Fix**: Removed all 17 `# type: ignore[no-any-return]` comments from
+  rule_collector.py / adaptive_role_selector.py / redis_cache.py /
+  llm_backend.py / async_llm_backend.py / worker.py.
+- **Fix**: Removed 2 `# type: ignore[list-item]` comments from
+  micro_task_planner.py:470, 508.
+- **Lesson**: mypy version drift between local and CI can cause opposite
+  behaviors. CI's mypy 2.2.0 is authoritative for the 0-errors policy.
+
+### Fixed — pip-audit setuptools CVE
+
+- **Issue**: `pip-audit --strict` failed because GitHub Actions setup-python
+  installs setuptools 79.0.1 which has PYSEC-2026-3447 (fixed in 83.0.0+).
+- **Fix**: Added `pip install --upgrade "setuptools>=83.0.0"` before
+  `pip-audit` in `.github/workflows/test.yml` security job.
+
+### Verification — 5 CI Quality Gates (expected green in CI)
+
+- `ruff check`: All checks passed! (local)
+- `radon cc scripts/`: 0 D+ functions (local)
+- `mypy scripts/collaboration/`: 17 errors (local 1.11.2 — version drift;
+  CI 2.2.0 expected to pass without type:ignore comments)
+- `python scripts/check_version_consistency.py`: 18/18 PASS
+- `pytest tests/`: 5825 passed, 25 skipped, 0 failed (local, 0 regression)
+
+### Known Issues
+
+- **PyPI Trusted Publishing**: v4.1.4 Release workflow failed at PyPI
+  publish step with `invalid-publisher: valid token, but no corresponding
+  publisher`. Requires user to register trusted publisher on PyPI for
+  Owner=lulin70, Repository=DevSquad, Workflow=.github/workflows/release.yml,
+  Environment=pypi.
+- **mypy version drift**: Local mypy 1.11.2 vs CI 2.2.0 may report different
+  error counts. CI is authoritative. P1 fix: pin mypy version in
+  requirements-dev.txt (planned for v4.2.0).
+
 ## [4.1.4] - 2026-07-20
 
 PATCH release: CI quality gate fixes + 7-dimension project assessment.

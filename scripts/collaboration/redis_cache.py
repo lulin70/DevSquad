@@ -338,7 +338,7 @@ class RedisCacheBackend(CacheBackendInterface):
             return True
 
         result = await self._execute_with_retry("SET", _do_set)
-        return result if result is not None else False  # type: ignore[no-any-return]
+        return result if result is not None else False
 
     async def delete(self, key: str) -> bool:
         """
@@ -361,7 +361,7 @@ class RedisCacheBackend(CacheBackendInterface):
             return False
 
         result = await self._execute_with_retry("DELETE", _do_delete)
-        return result if result is not None else False  # type: ignore[no-any-return]
+        return result if result is not None else False
 
     async def clear(self) -> None:
         """
@@ -431,7 +431,7 @@ class RedisCacheBackend(CacheBackendInterface):
             return deserialized
 
         result = await self._execute_with_retry("MGET", _do_mget)
-        return result if result is not None else [None] * len(keys)  # type: ignore[no-any-return]
+        return result if result is not None else [None] * len(keys)
 
     async def mset(self, mapping: dict[str, Any], ttl: int | None = None) -> bool:
         """
@@ -476,7 +476,7 @@ class RedisCacheBackend(CacheBackendInterface):
             return success
 
         result = await self._execute_with_retry("MSET", _do_mset)
-        return result if result is not None else False  # type: ignore[no-any-return]
+        return result if result is not None else False
 
     async def stats(self) -> dict[str, Any]:
         """
@@ -684,12 +684,12 @@ class SyncRedisCacheWrapper:
     def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """Set a value in Redis cache (sync)."""
         result = self._run_async(self._backend.set(key, value, ttl=ttl)) if self._backend else False
-        return result if result is not None else False  # type: ignore[no-any-return]
+        return result if result is not None else False
 
     def delete(self, key: str) -> bool:
         """Delete a key from Redis cache (sync)."""
         result = self._run_async(self._backend.delete(key)) if self._backend else False
-        return result if result is not None else False  # type: ignore[no-any-return]
+        return result if result is not None else False
 
     def clear(self) -> None:
         """Clear all keys in Redis cache (sync)."""
