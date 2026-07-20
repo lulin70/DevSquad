@@ -1,7 +1,7 @@
-# DevSquad V4.1.5 完整技术规范
+# DevSquad V4.1.6 完整技术规范
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V4.1.5 (Enterprise Edition)
+> **版本**: V4.1.6 (Enterprise Edition)
 > **成熟度**: 8.9/10 (诚实评估)
 > **最后更新**: 2026-07-19
 > **文档位置**: `docs/spec/SPEC.md`
@@ -415,7 +415,7 @@ devsquad dispatch \
   --output result.md \                    # 输出文件路径
 ```
 
-#### 4.1.5 全局选项
+#### 4.1.6 全局选项
 
 | 选项 | 环境变量 | 默认值 | 描述 |
 |------|----------|--------|------|

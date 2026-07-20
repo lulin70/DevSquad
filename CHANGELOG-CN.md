@@ -7,6 +7,40 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.1.6] - 2026-07-20
+
+PATCH 发布：修复 `scripts/mcp_server.py` 中剩余的 1 个 mypy unused-ignore。
+
+v4.1.5 tag (commit f05ef9f) 修复了 20 个 mypy unused-ignore 错误中的 19 个，
+但保留了 `scripts/mcp_server.py:770` 的 1 个 `# type: ignore[attr-defined]`
+（原以为 CI 仍需要）。CI mypy 2.2.0 将其标记为 unused-ignore，导致
+`Type check scripts/+skills/ full` job 失败。
+
+### 修复 — mypy unused-ignore（剩余 1 个错误）
+
+- **文件**：`scripts/mcp_server.py:770`
+- **修复**：移除 `codegraph_explore` 工具 count 计算处的 `# type: ignore[attr-defined]`。
+- **教训**：CI mypy 2.2.0 标记 type:ignore 为 unused 时，它就是 unused —
+  即便是 `attr-defined`（我们原以为仍需要）。CI 是权威。
+
+### 验证（CI）
+
+- ✓ test (3.10 / 3.11 / 3.12) — 全部 PASS
+- ✓ security（v4.1.5 的 pip-audit setuptools CVE 修复生效）
+- ✓ e2e
+- ✓ lint（ruff、radon cc、mypy scripts/collaboration/）
+- ✓ Type check scripts/+skills/ full（本次修复）
+- ✓ Version consistency（18/18 PASS）
+- ✓ Dependency sync check
+
+### 已知问题（与 v4.1.5 相同）
+
+- PyPI Trusted Publishing 需用户在 https://pypi.org/manage/account/publishing/
+  注册 Trusted Publisher（Owner=lulin70, Repository=DevSquad,
+  Workflow=.github/workflows/release.yml, Environment=pypi）。配置前
+  publish-pypi 步骤会以 `invalid-publisher` 失败。
+- GHCR（GitHub Container Registry）发布尚未接入 release.yml。
+
 ## [4.1.5] - 2026-07-20
 
 PATCH 发布：CI mypy 版本漂移修复 + pip-audit setuptools CVE 修复。

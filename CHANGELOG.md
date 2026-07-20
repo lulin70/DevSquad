@@ -7,6 +7,44 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.6] - 2026-07-20
+
+PATCH release: fix 1 remaining mypy unused-ignore in `scripts/mcp_server.py`.
+
+The v4.1.5 tag (commit f05ef9f) fixed 19 of 20 mypy unused-ignore errors
+but kept 1 `# type: ignore[attr-defined]` at `scripts/mcp_server.py:770`
+(thought CI still required it). CI mypy 2.2.0 flagged it as unused-ignore,
+failing the `Type check scripts/+skills/ full` job.
+
+### Fixed — mypy unused-ignore (1 remaining error)
+
+- **File**: `scripts/mcp_server.py:770`
+- **Fix**: Removed `# type: ignore[attr-defined]` from the
+  `codegraph_explore` tool's count calculation.
+- **Lesson**: When CI mypy 2.2.0 says a type:ignore is unused, it IS
+  unused — even `attr-defined` (which we thought would still be needed).
+  CI is authoritative.
+
+### Validation (CI)
+
+- ✓ test (3.10 / 3.11 / 3.12) — all PASS
+- ✓ security (pip-audit setuptools CVE fix from v4.1.5 works)
+- ✓ e2e
+- ✓ lint (ruff, radon cc, mypy scripts/collaboration/)
+- ✓ Type check scripts/+skills/ full (this fix)
+- ✓ Version consistency (18/18 PASS)
+- ✓ Dependency sync check
+
+### Known issues (unchanged from v4.1.5)
+
+- PyPI Trusted Publishing requires user to register Trusted Publisher
+  at https://pypi.org/manage/account/publishing/ (Owner=lulin70,
+  Repository=DevSquad, Workflow=.github/workflows/release.yml,
+  Environment=pypi). Until configured, publish-pypi step fails with
+  `invalid-publisher`.
+- GHCR (GitHub Container Registry) publishing not yet wired into
+  release.yml.
+
 ## [4.1.5] - 2026-07-20
 
 PATCH release: CI mypy version drift fix + pip-audit setuptools CVE fix.

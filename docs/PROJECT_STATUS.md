@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.1.5（开发完成 — 2026-07-20）
+> **当前版本**: V4.1.6（开发完成 — 2026-07-20）
 > **最后更新**: 2026-07-20
-> **最新评估**: V4.1.5 PATCH 发布 — CI mypy 版本漂移修复 + pip-audit setuptools CVE 修复。修复 v4.1.4 CI 失败的 2 个问题（17 unused-ignore + pip-audit CVE）。7 维度项目整理评估完成（V4.1.4_7D_Assessment.md），综合评分 8.9/10，7-Role 共识 7/7 通过，Beta Candidate 成熟度确认。详见 [V4.1.4_7D_Assessment.md](audits/V4.1.4_7D_Assessment.md)。
+> **最新评估**: V4.1.6 PATCH 发布 — CI mypy 版本漂移修复 + pip-audit setuptools CVE 修复。修复 v4.1.4 CI 失败的 2 个问题（17 unused-ignore + pip-audit CVE）。7 维度项目整理评估完成（V4.1.4_7D_Assessment.md），综合评分 8.9/10，7-Role 共识 7/7 通过，Beta Candidate 成熟度确认。详见 [V4.1.4_7D_Assessment.md](audits/V4.1.4_7D_Assessment.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.1.5 待发布 — 需用户配置 PyPI Trusted Publisher）
+> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.1.6 待发布 — 需用户配置 PyPI Trusted Publisher）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
