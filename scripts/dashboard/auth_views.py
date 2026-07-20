@@ -94,7 +94,7 @@ def render_admin_system_config_page(auth: AuthManager) -> None:
         },
         {"Item": "Platform", "Value": sys.platform},
         {"Item": "Working Directory", "Value": os.getcwd()},
-        {"Item": "DevSquad Version", "Value": "V4.1.0"},
+        {"Item": "DevSquad Version", "Value": "V4.1.4"},
         {"Item": "Dashboard Mode", "Value": "Production-Grade"},
     ]
     st.dataframe(sys_info, use_container_width=True, hide_index=True)
@@ -104,7 +104,7 @@ def render_admin_system_config_page(auth: AuthManager) -> None:
     st.markdown("**Configuration Status**")
 
     config_items = [
-        {"Component": "Authentication", "Status": "✅ Enabled" if auth.credentials else "⚠️ No Config"},  # noqa: F821
+        {"Component": "Authentication", "Status": "✅ Enabled" if auth.credentials else "⚠️ No Config"},
         {"Component": "Lifecycle Protocol", "Status": "✅ Loaded" if load_lifecycle_protocol() else "❌ Failed"},
         {"Component": "Multi-Agent Dispatcher", "Status": "✅ Ready" if get_dispatcher() else "❌ Not Initialized"},
         {

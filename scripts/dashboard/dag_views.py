@@ -435,19 +435,43 @@ def _render_graphviz_interactive(graph: DAGGraph, viz: DAGVisualizer) -> None:
     """
     import streamlit as st  # noqa: E402
 
-    # Build DOT with Morandi colors
     dot_text = _build_interactive_dot(graph)
+    if not _render_graphviz_chart(dot_text):
+        return
+
+    selected_id = _select_graphviz_node(graph)
+    if not selected_id:
+        return
+    node = graph.find_node(selected_id)
+    if node is None:
+        st.warning(f"Node {selected_id} not found")
+        return
+
+    col_detail, col_deps = st.columns([2, 1])
+    with col_detail:
+        _render_node_detail_panel(selected_id, node)
+    with col_deps:
+        _render_node_dependencies(graph, selected_id)
+
+
+def _render_graphviz_chart(dot_text: str) -> bool:
+    """Render graphviz chart; return False if rendering failed (fallback to DOT source)."""
+    import streamlit as st  # noqa: E402
 
     try:
         st.graphviz_chart(dot_text, use_container_width=True)
     except (AttributeError, RuntimeError, ImportError) as e:
         st.warning(f"Graphviz rendering unavailable ({e}); falling back to DOT source.")
         st.code(dot_text, language="dot")
-        return
-
-    # Node selection (interactive detail panel)
+        return False
     st.divider()
     st.markdown("**🔍 Node Details**")
+    return True
+
+
+def _select_graphviz_node(graph: DAGGraph) -> str | None:
+    """Render selectbox for node selection; return selected node_id or None."""
+    import streamlit as st  # noqa: E402
 
     node_options = [(n.node_id, f"{n.node_id}: {n.label}") for n in graph.nodes]
     selected_label = st.selectbox(
@@ -456,55 +480,51 @@ def _render_graphviz_interactive(graph: DAGGraph, viz: DAGVisualizer) -> None:
         format_func=lambda x: x,
         help="Choose a node to see its details, dependencies, and dependents",
     )
+    return next((nid for nid, label in node_options if label == selected_label), None)
 
-    # Find selected node
-    selected_id = next((nid for nid, label in node_options if label == selected_label), None)
-    if selected_id is None:
-        return
 
-    node = graph.find_node(selected_id)
-    if node is None:
-        st.warning(f"Node {selected_id} not found")
-        return
+def _render_node_detail_panel(node_id: str, node: Any) -> None:
+    """Render the detail panel for a selected node."""
+    import streamlit as st  # noqa: E402
 
-    # Render detail panel
-    col_detail, col_deps = st.columns([2, 1])
+    st.markdown(f"### {node_id}: {node.label}")
+    status_color = _GRAPHVIZ_STATUS_FILL.get(node.status, "#F5F3F0")
+    st.markdown(
+        f'<span style="background:{status_color};color:white;padding:0.35rem 0.85rem;'
+        f'border-radius:9999px;font-size:0.875rem;font-weight:600;">{node.status.upper()}</span>',
+        unsafe_allow_html=True,
+    )
+    if node.role:
+        st.markdown(f"**Role**: `{node.role}`")
+    if node.description:
+        st.markdown(f"**Description**: {node.description}")
+    st.markdown(f"**Optional**: {'✅ Yes' if node.optional else '❌ No'}")
+    st.markdown(f"**Order**: {node.order}")
 
-    with col_detail:
-        st.markdown(f"### {selected_id}: {node.label}")
-        status_color = _GRAPHVIZ_STATUS_FILL.get(node.status, "#F5F3F0")
-        st.markdown(
-            f'<span style="background:{status_color};color:white;padding:0.35rem 0.85rem;'
-            f'border-radius:9999px;font-size:0.875rem;font-weight:600;">{node.status.upper()}</span>',
-            unsafe_allow_html=True,
-        )
-        if node.role:
-            st.markdown(f"**Role**: `{node.role}`")
-        if node.description:
-            st.markdown(f"**Description**: {node.description}")
-        st.markdown(f"**Optional**: {'✅ Yes' if node.optional else '❌ No'}")
-        st.markdown(f"**Order**: {node.order}")
 
-    with col_deps:
-        st.markdown("**Dependencies** (prerequisites)")
-        deps = [e.source for e in graph.edges if e.target == selected_id]
-        if deps:
-            for dep_id in deps:
-                dep_node = graph.find_node(dep_id)
-                dep_name = dep_node.label if dep_node else dep_id
-                st.markdown(f"- `{dep_id}`: {dep_name}")
-        else:
-            st.caption("_None (entry phase)_")
+def _render_node_dependencies(graph: DAGGraph, node_id: str) -> None:
+    """Render dependencies and dependents columns for a node."""
+    import streamlit as st  # noqa: E402
 
-        st.markdown("**Dependents** (downstream)")
-        dependents = [e.target for e in graph.edges if e.source == selected_id]
-        if dependents:
-            for dep_id in dependents:
-                dep_node = graph.find_node(dep_id)
-                dep_name = dep_node.label if dep_node else dep_id
-                st.markdown(f"- `{dep_id}`: {dep_name}")
-        else:
-            st.caption("_None (terminal phase)_")
+    st.markdown("**Dependencies** (prerequisites)")
+    deps = [e.source for e in graph.edges if e.target == node_id]
+    if deps:
+        for dep_id in deps:
+            dep_node = graph.find_node(dep_id)
+            dep_name = dep_node.label if dep_node else dep_id
+            st.markdown(f"- `{dep_id}`: {dep_name}")
+    else:
+        st.caption("_None (entry phase)_")
+
+    st.markdown("**Dependents** (downstream)")
+    dependents = [e.target for e in graph.edges if e.source == node_id]
+    if dependents:
+        for dep_id in dependents:
+            dep_node = graph.find_node(dep_id)
+            dep_name = dep_node.label if dep_node else dep_id
+            st.markdown(f"- `{dep_id}`: {dep_name}")
+    else:
+        st.caption("_None (terminal phase)_")
 
 
 # 默认 11 阶段生命周期 DAG（与 dispatch_lifecycle.py 一致）

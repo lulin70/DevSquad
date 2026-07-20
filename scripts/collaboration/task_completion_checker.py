@@ -249,7 +249,7 @@ class TaskCompletionChecker:
             True when the task exists and is marked completed, False otherwise.
         """
         dispatch_data = self.progress.get("dispatches", {}).get(task_id)
-        return dispatch_data.get("is_completed", False) if dispatch_data else False
+        return bool(dispatch_data.get("is_completed", False)) if dispatch_data else False
 
     def reset_progress(self) -> None:
         """Reset all progress data to an empty state and persist it."""

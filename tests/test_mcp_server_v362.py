@@ -69,12 +69,17 @@ def mock_dispatcher():
 
 
 @pytest.fixture
-def mcp_server_with_mock(mock_dispatcher):
+def mcp_server_with_mock(mock_dispatcher, monkeypatch):
     """Create an MCP server with a mocked dispatcher.
 
     Returns (mcp, mock_dispatcher) where mcp is the FastMCP instance.
     Tool functions can be accessed via mcp._tool_manager._tools[name].fn
+
+    Sets DEV_SQUAD_MCP_USER_ROLE=admin so the fail-closed permission check
+    has a valid caller identity (V4.1.1+ MCP permission control).
     """
+    monkeypatch.setenv("DEV_SQUAD_MCP_USER_ROLE", "admin")
+    monkeypatch.setenv("DEV_SQUAD_MCP_USER_ID", "test_admin")
     with patch.object(
         __import__("scripts.mcp_server", fromlist=["DevSquadMCPServer"]).DevSquadMCPServer,
         "_get_dispatcher",
@@ -390,8 +395,10 @@ class TestMultiagentStatusTool:
         assert isinstance(data["features"], dict)
         assert "memory_bridge" in data["features"]
 
-    def test_status_handles_get_status_exception(self, mock_dispatcher):
+    def test_status_handles_get_status_exception(self, mock_dispatcher, monkeypatch):
         """Test status handles get_status exception gracefully."""
+        monkeypatch.setenv("DEV_SQUAD_MCP_USER_ROLE", "admin")
+        monkeypatch.setenv("DEV_SQUAD_MCP_USER_ID", "test_admin")
         mock_dispatcher.get_status.side_effect = Exception("Internal error")
 
         with patch.object(
@@ -602,8 +609,10 @@ class TestShutdownTool:
         data = json.loads(result)
         assert data["status"] == "shutdown_complete"
 
-    def test_shutdown_calls_server_shutdown(self, mock_dispatcher):
+    def test_shutdown_calls_server_shutdown(self, mock_dispatcher, monkeypatch):
         """Test shutdown tool calls DevSquadMCPServer.shutdown()."""
+        monkeypatch.setenv("DEV_SQUAD_MCP_USER_ROLE", "admin")
+        monkeypatch.setenv("DEV_SQUAD_MCP_USER_ID", "test_admin")
         with (
             patch.object(
                 __import__("scripts.mcp_server", fromlist=["DevSquadMCPServer"]).DevSquadMCPServer,

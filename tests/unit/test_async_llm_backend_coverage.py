@@ -804,6 +804,7 @@ class TestAsyncLLMBackendFactory:
     async def test_create_auto_with_anthropic_key_returns_fallback(self, monkeypatch):
         monkeypatch.setenv("DEVSQUAD_ANTHROPIC_API_KEY", "ant-k")
         monkeypatch.delenv("DEVSQUAD_OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("DEVSQUAD_LLM_BACKEND", raising=False)
         backend = AsyncLLMBackendFactory.create("auto")
         assert isinstance(backend, AsyncFallbackBackend)
         assert isinstance(backend._backends[0], AsyncAnthropicBackend)
@@ -813,6 +814,7 @@ class TestAsyncLLMBackendFactory:
     async def test_create_auto_with_openai_key_returns_fallback(self, monkeypatch):
         monkeypatch.setenv("DEVSQUAD_OPENAI_API_KEY", "oai-k")
         monkeypatch.delenv("DEVSQUAD_ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("DEVSQUAD_LLM_BACKEND", raising=False)
         backend = AsyncLLMBackendFactory.create("auto")
         assert isinstance(backend, AsyncFallbackBackend)
         assert isinstance(backend._backends[0], AsyncOpenAIBackend)

@@ -817,7 +817,7 @@ class UIUXAnalyzer:
 
         def to_srgb_channel(linear: float) -> float:
             linear = max(0.0, min(1.0, linear))
-            return linear if linear <= 0.0031308 else 1.055 * (linear ** (1.0 / 2.4)) - 0.055
+            return float(linear if linear <= 0.0031308 else 1.055 * (linear ** (1.0 / 2.4)) - 0.055)
 
         r = to_srgb_channel(lin_r)
         g = to_srgb_channel(lin_g)
@@ -839,7 +839,7 @@ class UIUXAnalyzer:
         """
         def to_linear(channel_8bit: int) -> float:
             s = channel_8bit / 255.0
-            return s / 12.92 if s <= 0.04045 else ((s + 0.055) / 1.055) ** 2.4
+            return float(s / 12.92 if s <= 0.04045 else ((s + 0.055) / 1.055) ** 2.4)
 
         lin_r = to_linear(r)
         lin_g = to_linear(g)
@@ -868,7 +868,7 @@ class UIUXAnalyzer:
         """WCAG 相对亮度公式。"""
         def channel(c: int) -> float:
             s = c / 255.0
-            return s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4
+            return float(s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4)
 
         r, g, b = rgb
         return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)

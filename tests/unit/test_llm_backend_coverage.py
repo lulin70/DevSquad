@@ -566,6 +566,7 @@ class TestCreateBackend:
     def test_auto_with_anthropic_key_returns_fallback(self, monkeypatch):
         monkeypatch.setenv("DEVSQUAD_ANTHROPIC_API_KEY", "ant-key")
         monkeypatch.delenv("DEVSQUAD_OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("DEVSQUAD_LLM_BACKEND", raising=False)
         backend = create_backend("auto")
         assert isinstance(backend, FallbackBackend)
         # First backend should be Anthropic, last should be Mock
@@ -575,6 +576,7 @@ class TestCreateBackend:
     def test_auto_with_openai_key_returns_fallback(self, monkeypatch):
         monkeypatch.setenv("DEVSQUAD_OPENAI_API_KEY", "oai-key")
         monkeypatch.delenv("DEVSQUAD_ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("DEVSQUAD_LLM_BACKEND", raising=False)
         backend = create_backend("auto")
         assert isinstance(backend, FallbackBackend)
         assert isinstance(backend._backends[0], OpenAIBackend)

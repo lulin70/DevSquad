@@ -278,36 +278,44 @@ def _predict_auto_roles(task_description: str, dispatcher: Any | None) -> list[s
     Returns 2-4 role IDs for visualization purposes only (actual dispatch uses
     the real auto-match result).
     """
-    if dispatcher is not None:
-        try:
-            matched = dispatcher.analyze_task(task_description)
-            if matched and isinstance(matched, list) and len(matched) > 0:
-                # Each item is {"name": role_id, "confidence": float, "reason": str}
-                role_ids = [m.get("name", "") for m in matched if isinstance(m, dict)]
-                role_ids = [r for r in role_ids if r]
-                if role_ids:
-                    return role_ids[:4]  # Cap at 4 for compact viz
-        except (AttributeError, RuntimeError, TypeError):
-            pass
+    role_ids = _try_dispatcher_analyze(task_description, dispatcher)
+    if role_ids:
+        return role_ids[:4]
+    return _keyword_fallback_roles(task_description)[:4]
 
-    # Fallback: keyword-based heuristic (must match DashboardConfig.CORE_ROLES values)
+
+def _try_dispatcher_analyze(task_description: str, dispatcher: Any | None) -> list[str]:
+    """Try to get role IDs from dispatcher.analyze_task(); return [] on failure."""
+    if dispatcher is None:
+        return []
+    try:
+        matched = dispatcher.analyze_task(task_description)
+    except (AttributeError, RuntimeError, TypeError):
+        return []
+    if not matched or not isinstance(matched, list):
+        return []
+    role_ids = [m.get("name", "") for m in matched if isinstance(m, dict)]
+    return [r for r in role_ids if r]
+
+
+# Keyword-based heuristic fallback (must match DashboardConfig.CORE_ROLES values)
+_KEYWORD_ROLE_MAP: list[tuple[tuple[str, ...], str]] = [
+    (("security", "vulnerability", "audit", "安全", "漏洞"), "security"),
+    (("test", "quality", "测试", "质量"), "tester"),
+    (("deploy", "ci", "cd", "docker", "部署"), "devops"),
+    (("ui", "frontend", "界面", "前端"), "ui-designer"),
+    (("architecture", "design", "架构", "设计"), "architect"),
+    (("requirement", "prd", "需求", "产品"), "product-manager"),
+]
+
+
+def _keyword_fallback_roles(task_description: str) -> list[str]:
+    """Return role IDs based on keyword matching; defaults to architect/tester/solo-coder."""
     text = task_description.lower()
-    fallback: list[str] = []
-    if any(k in text for k in ("security", "vulnerability", "audit", "安全", "漏洞")):
-        fallback.append("security")
-    if any(k in text for k in ("test", "quality", "测试", "质量")):
-        fallback.append("tester")
-    if any(k in text for k in ("deploy", "ci", "cd", "docker", "部署")):
-        fallback.append("devops")
-    if any(k in text for k in ("ui", "frontend", "界面", "前端")):
-        fallback.append("ui-designer")
-    if any(k in text for k in ("architecture", "design", "架构", "设计")):
-        fallback.append("architect")
-    if any(k in text for k in ("requirement", "prd", "需求", "产品")):
-        fallback.append("product-manager")
-    if not fallback:
-        fallback = ["architect", "tester", "solo-coder"]
-    return fallback[:4]
+    roles = [role for keywords, role in _KEYWORD_ROLE_MAP if any(k in text for k in keywords)]
+    if not roles:
+        roles = ["architect", "tester", "solo-coder"]
+    return roles
 
 
 def _render_role_pipeline(roles: list[str], active_idx: int, status: str) -> None:

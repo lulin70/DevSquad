@@ -29,7 +29,7 @@ Groups (43 fields + extra kwargs):
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
+from dataclasses import MISSING, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -188,7 +188,7 @@ class DispatcherConfig:
             # ``f.default_factory`` is for mutables. We handle both.
             if f.default is not field:  # dataclass.field sentinel
                 defaults[f.name] = f.default
-            elif f.default_factory is not field:
+            elif f.default_factory is not field and f.default_factory is not MISSING:
                 defaults[f.name] = f.default_factory()
             else:
                 # No default (shouldn't happen for our schema), skip.

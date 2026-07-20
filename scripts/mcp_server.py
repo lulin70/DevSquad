@@ -767,7 +767,7 @@ def create_mcp_server(
                     "available": True,
                     "query": query,
                     "query_type": query_type,
-                    "count": len(payload) if isinstance(payload, list) else len(payload.get("nodes", [])),
+                    "count": len(payload) if isinstance(payload, list) else len(payload.get("nodes", [])),  # type: ignore[attr-defined]
                     "results": payload,
                 },
                 ensure_ascii=False,

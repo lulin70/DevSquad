@@ -493,7 +493,7 @@ class ConfigManager:
         with cls._instance_lock:
             if cls._instance is None:
                 inst = super().__new__(cls)
-                inst._init(config_path)  # type: ignore[attr-defined]
+                inst._init(config_path)
                 cls._instance = inst
             return cls._instance
 

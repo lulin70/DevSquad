@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.1.3（开发完成 — 2026-07-20）
+> **当前版本**: V4.1.4（开发完成 — 2026-07-20）
 > **最后更新**: 2026-07-20
-> **最新评估**: V4.1.3 版本整合发布 — UI/UX 4-Wave 提升（Wave 1 P0 基础可访问性 / Wave 2 P1 暗色模式+SVG 图标+Toast / Wave 3 P2 命令面板+i18n+Skeleton / Wave 4 P3 键盘快捷键）共 180 个新测试，零回归。Phase 3 本地 TRAE 环境验证 7 角色矩阵 148 检查点全通过，5355 tests passing。版本号全量同步 18/18 PASS（check_version_consistency）+ 7/7 PASS（test_version.py）。5 道 CI 质量门全绿（ruff / radon / mypy / version / pytest）。详见 [RELEASE_NOTES_v4.1.3.md](RELEASE_NOTES_v4.1.3.md) 与 [V4.1.2_UI_UX_Enhancement_Plan.md](audits/V4.1.2_UI_UX_Enhancement_Plan.md)。
+> **最新评估**: V4.1.4 PATCH 发布 — CI 质量门修复 + 7 维度项目整理评估。修复 v4.1.3 CI 失败的 3 个独立问题（22 测试失败 + 2 radon D+ 函数 + 21 mypy errors），5 道 CI 质量门恢复全绿。5825 tests passed + 25 skipped + 0 failed。7-Role 共识 7/7 通过，Beta Candidate 成熟度确认（综合评分 8.9/10）。详见 [V4.1.4_7D_Assessment.md](audits/V4.1.4_7D_Assessment.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.1.3 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.0.0/（V4.0.0，V4.1.4 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---

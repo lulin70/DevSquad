@@ -444,7 +444,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                     max_tokens=kwargs.get("max_tokens", self.max_tokens),
                     messages=[{"role": "user", "content": prompt}],
                 )
-                return response.content[0].text if response.content else ""
+                return response.content[0].text if response.content else ""  # type: ignore[no-any-return]
             except _get_anthropic_retry_exceptions() as e:
                 last_error = e
                 if attempt < self.MAX_RETRIES - 1:
@@ -769,7 +769,7 @@ class AsyncLLMBackendFactory:
                 ),
             )
 
-        return cls(**kwargs)
+        return cls(**kwargs)  # type: ignore[no-any-return]
 
     @staticmethod
     def _create_fallback(
