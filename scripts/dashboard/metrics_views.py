@@ -145,6 +145,10 @@ def render_performance_panel() -> None:
                 st.metric(
                     label="Active Phases", value=metrics_data.get("running_phases", 0), help="Currently running phases"
                 )
+
+            # W1-T2: Interactive performance charts
+            st.divider()
+            _render_performance_charts(metrics_data)
         else:
             st.error("❌ **API Server 未运行**")
             st.info("""
@@ -170,3 +174,110 @@ def render_performance_panel() -> None:
                     {"Metric": "Throughput", "Value": "~120 req/s (expected)"},
                 ]
                 st.dataframe(sample_data, use_container_width=True, hide_index=True)
+
+
+# ── W1-T2: Interactive performance charts ──
+
+# Morandi color palette for charts (per user_profile: comfortable, not harsh)
+_MORANDI_CHART_COLORS: dict[str, str] = {
+    "primary": "#7B9EA8",      # Morandi blue-gray
+    "success": "#8FA886",      # Morandi sage
+    "warning": "#C9A87C",      # Morandi tan
+    "danger": "#B58484",       # Morandi rose
+    "info": "#9DB5C2",         # Morandi light blue
+    "neutral": "#B0B0B0",      # Morandi gray
+}
+
+
+def _render_performance_charts(metrics_data: dict[str, Any]) -> None:
+    """Render interactive performance charts using Streamlit native charts.
+
+    Avoids adding plotly as a hard dependency; uses st.bar_chart / st.line_chart
+    which are streamlit built-ins (Altair under the hood, hover-interactive).
+
+    Args:
+        metrics_data: Dict from /api/v1/metrics/current containing avg_response_time_ms,
+            p95_latency_ms, success_rate, throughput, cpu_usage_percent, memory_usage_percent.
+    """
+    st.markdown("### 📈 Performance Visualizations")
+
+    col_chart1, col_chart2 = st.columns(2)
+
+    with col_chart1:
+        st.markdown("**Response Time Breakdown**")
+        # Bar chart comparing avg vs P95 latency
+        avg_ms = _safe_float(metrics_data.get("avg_response_time_ms", 0))
+        p95_ms = _safe_float(metrics_data.get("p95_latency_ms", 0))
+        latency_data = [
+            {"Metric": "Avg Response", "Milliseconds": avg_ms, "Color": _MORANDI_CHART_COLORS["primary"]},
+            {"Metric": "P95 Latency", "Milliseconds": p95_ms, "Color": _MORANDI_CHART_COLORS["warning"]},
+        ]
+        st.bar_chart(
+            latency_data,
+            x="Metric",
+            y="Milliseconds",
+            color="Color",
+            use_container_width=True,
+        )
+        st.caption(f"Avg: **{avg_ms:.0f}ms** | P95: **{p95_ms:.0f}ms**")
+
+    with col_chart2:
+        st.markdown("**System Health Indicators**")
+        # Horizontal bar chart for utilization
+        cpu = _safe_float(metrics_data.get("cpu_usage_percent", 0))
+        mem = _safe_float(metrics_data.get("memory_usage_percent", 0))
+        success = _safe_float(metrics_data.get("success_rate", 100))
+        health_data = [
+            {"Resource": "CPU", "Percent": cpu},
+            {"Resource": "Memory", "Percent": mem},
+            {"Resource": "Success Rate", "Percent": success},
+        ]
+        st.bar_chart(
+            health_data,
+            x="Resource",
+            y="Percent",
+            use_container_width=True,
+        )
+        st.caption(f"CPU: **{cpu:.1f}%** | Mem: **{mem:.1f}%** | Success: **{success:.1f}%**")
+
+    # Throughput gauge (using st.metric for simplicity, no extra deps)
+    st.divider()
+    st.markdown("**Throughput & Reliability**")
+    col_t1, col_t2, col_t3 = st.columns(3)
+    throughput = _safe_float(metrics_data.get("throughput", 0))
+    with col_t1:
+        st.metric(
+            label="⚡ Throughput",
+            value=f"{throughput:.1f} req/s",
+            delta=f"{throughput * 60:.0f} req/min",
+            help="Requests processed per second",
+        )
+    with col_t2:
+        st.metric(
+            label="✅ Success Rate",
+            value=f"{success:.1f}%",
+            delta=f"{(success - 95):.1f}%" if success >= 95 else f"-{max(0, 95 - success):.1f}%",
+            delta_color="normal" if success >= 95 else "inverse",
+            help="Target: ≥95%",
+        )
+    with col_t3:
+        # P95 vs target (800ms is typical SLO)
+        p95_target = 800.0
+        delta_p95 = p95_ms - p95_target
+        st.metric(
+            label="🎯 P95 vs SLO",
+            value=f"{p95_ms:.0f}ms",
+            delta=f"{delta_p95:+.0f}ms vs {p95_target:.0f}ms SLO",
+            delta_color="inverse" if delta_p95 > 0 else "normal",
+            help="Negative = better than SLO",
+        )
+
+
+def _safe_float(value: Any) -> float:
+    """Safely convert API response value to float (handles str/int/None)."""
+    if value is None:
+        return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0

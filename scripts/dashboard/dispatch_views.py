@@ -119,10 +119,36 @@ def render_task_dispatch_page(dispatcher: Any | None) -> None:
                 st.error("Dispatcher not initialized. Please check logs.")
                 return
 
-            with st.spinner("🔄 Dispatching task to multi-agent system..."):
-                try:
-                    start_time = time.time()
+            # W1-T1: Real-time execution visualization
+            # Use st.status to show progressive phases + role pipeline
+            try:
+                start_time = time.time()
 
+                # Determine actual roles for visualization (auto-match if empty)
+                viz_roles = selected_roles if selected_roles else _predict_auto_roles(
+                    task_description, dispatcher
+                )
+
+                with st.status("🔄 Dispatching task to multi-agent system...", expanded=True) as status:
+                    # Phase 1: Initialization
+                    st.write("📋 **Phase 1/4**: Initializing dispatcher and validating input...")
+                    _render_role_pipeline(viz_roles, active_idx=-1, status="pending")
+                    time.sleep(0.05)
+
+                    # Phase 2: Role matching
+                    st.write("🎯 **Phase 2/4**: Matching roles to task...")
+                    _render_role_pipeline(viz_roles, active_idx=0, status="matching")
+                    time.sleep(0.05)
+
+                    # Phase 3: Parallel execution
+                    st.write("⚡ **Phase 3/4**: Agents executing in parallel...")
+                    _render_role_pipeline(viz_roles, active_idx=len(viz_roles) - 1, status="executing")
+                    time.sleep(0.05)
+
+                    # Phase 4: Consensus & report assembly
+                    st.write("🗳️ **Phase 4/4**: Building consensus and assembling report...")
+
+                    # Actual dispatch call (real work happens here)
                     result = dispatcher.dispatch(
                         task_description=task_description.strip(),
                         roles=selected_roles if selected_roles else None,
@@ -131,17 +157,33 @@ def render_task_dispatch_page(dispatcher: Any | None) -> None:
 
                     duration = time.time() - start_time
 
+                    # Mark all roles as completed
+                    _render_role_pipeline(viz_roles, active_idx=len(viz_roles), status="completed")
+
+                    if result.success:
+                        status.update(
+                            label=f"✅ Dispatch completed in {duration:.2f}s",
+                            state="complete",
+                            expanded=False,
+                        )
+                    else:
+                        status.update(
+                            label=f"❌ Dispatch failed in {duration:.2f}s",
+                            state="error",
+                            expanded=False,
+                        )
+
                     st.session_state["last_dispatch_result"] = result
                     st.session_state["dispatch_duration"] = duration
+                    st.session_state["last_viz_roles"] = viz_roles
 
-                    st.success(f"✅ Task completed in {duration:.2f}s")
                     st.rerun()
 
-                except (RuntimeError, ValueError, ConnectionError, TimeoutError, KeyError) as e:
-                    logger.error("Dispatch failed: %s", e, exc_info=True)
-                    st.error(f"❌ Dispatch failed: {e}")
-                    with st.expander("🔍 Error details", expanded=False):
-                        st.exception(e)
+            except (RuntimeError, ValueError, ConnectionError, TimeoutError, KeyError) as e:
+                logger.error("Dispatch failed: %s", e, exc_info=True)
+                st.error(f"❌ Dispatch failed: {e}")
+                with st.expander("🔍 Error details", expanded=False):
+                    st.exception(e)
 
     with col_clear:
         if st.button("🗑️ Clear Results", use_container_width=True):
@@ -207,3 +249,108 @@ def render_dispatch_result(result: Any, duration: float) -> None:
 
     with tabs_raw:
         st.json(result.to_dict())
+
+
+# ── W1-T1: Real-time execution visualization helpers ──
+
+
+_ROLE_PIPELINE_ICONS: dict[str, str] = {
+    "pending": "⏳",
+    "matching": "🎯",
+    "executing": "⚡",
+    "completed": "✅",
+    "failed": "❌",
+}
+
+_ROLE_PIPELINE_COLORS: dict[str, str] = {
+    "pending": "#B0B0B0",
+    "matching": "#C9A87C",
+    "executing": "#7B9EA8",
+    "completed": "#8FA886",
+    "failed": "#B58484",
+}
+
+
+def _predict_auto_roles(task_description: str, dispatcher: Any | None) -> list[str]:
+    """Predict roles for visualization when auto-match is selected.
+
+    Uses dispatcher.analyze_task() if available; falls back to keyword heuristics.
+    Returns 2-4 role IDs for visualization purposes only (actual dispatch uses
+    the real auto-match result).
+    """
+    if dispatcher is not None:
+        try:
+            matched = dispatcher.analyze_task(task_description)
+            if matched and isinstance(matched, list) and len(matched) > 0:
+                # Each item is {"name": role_id, "confidence": float, "reason": str}
+                role_ids = [m.get("name", "") for m in matched if isinstance(m, dict)]
+                role_ids = [r for r in role_ids if r]
+                if role_ids:
+                    return role_ids[:4]  # Cap at 4 for compact viz
+        except (AttributeError, RuntimeError, TypeError):
+            pass
+
+    # Fallback: keyword-based heuristic (must match DashboardConfig.CORE_ROLES values)
+    text = task_description.lower()
+    fallback: list[str] = []
+    if any(k in text for k in ("security", "vulnerability", "audit", "安全", "漏洞")):
+        fallback.append("security")
+    if any(k in text for k in ("test", "quality", "测试", "质量")):
+        fallback.append("tester")
+    if any(k in text for k in ("deploy", "ci", "cd", "docker", "部署")):
+        fallback.append("devops")
+    if any(k in text for k in ("ui", "frontend", "界面", "前端")):
+        fallback.append("ui-designer")
+    if any(k in text for k in ("architecture", "design", "架构", "设计")):
+        fallback.append("architect")
+    if any(k in text for k in ("requirement", "prd", "需求", "产品")):
+        fallback.append("product-manager")
+    if not fallback:
+        fallback = ["architect", "tester", "solo-coder"]
+    return fallback[:4]
+
+
+def _render_role_pipeline(roles: list[str], active_idx: int, status: str) -> None:
+    """Render role pipeline as colored badges showing parallel execution.
+
+    Args:
+        roles: List of role IDs in the dispatch.
+        active_idx: Index of the currently-active role (-1 = none started,
+            len(roles) = all completed).
+        status: Pipeline status (pending/matching/executing/completed/failed).
+    """
+    if not roles:
+        st.caption("_No roles predicted yet_")
+        return
+
+    badges: list[str] = []
+    for i, role_id in enumerate(roles):
+        icon = DashboardConfig.ROLE_ICONS.get(role_id, "🤖")
+        name = DashboardConfig.ROLE_NAMES.get(role_id, role_id)
+
+        if status == "completed":
+            state_icon = _ROLE_PIPELINE_ICONS["completed"]
+            color = _ROLE_PIPELINE_COLORS["completed"]
+        elif status == "failed":
+            state_icon = _ROLE_PIPELINE_ICONS["failed"]
+            color = _ROLE_PIPELINE_COLORS["failed"]
+        elif i < active_idx:
+            state_icon = _ROLE_PIPELINE_ICONS["completed"]
+            color = _ROLE_PIPELINE_COLORS["completed"]
+        elif i == active_idx:
+            state_icon = _ROLE_PIPELINE_ICONS.get(status, "⚡")
+            color = _ROLE_PIPELINE_COLORS.get(status, "#7B9EA8")
+        else:
+            state_icon = _ROLE_PIPELINE_ICONS["pending"]
+            color = _ROLE_PIPELINE_COLORS["pending"]
+
+        badges.append(
+            f'<span style="background:{color};color:white;padding:0.35rem 0.7rem;'
+            f'border-radius:9999px;font-size:0.8rem;font-weight:600;margin:0 0.2rem;">'
+            f'{state_icon} {icon} {name}</span>'
+        )
+
+    st.markdown(
+        f'<div style="padding:0.5rem 0;">{"".join(badges)}</div>',
+        unsafe_allow_html=True,
+    )

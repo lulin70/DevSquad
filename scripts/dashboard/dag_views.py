@@ -281,6 +281,9 @@ class DAGVisualizer:
 def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
     """渲染 DAG 依赖图页面（Dashboard 集成入口）。
 
+    W1-T3 enhancement: Adds interactive node selection via st.graphviz_chart
+    (replaces static Mermaid) + node detail sidebar on selection.
+
     Args:
         protocol_data: load_lifecycle_protocol() 返回的字典，可为 None。
     """
@@ -307,10 +310,18 @@ def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
         except (AttributeError, RuntimeError) as e:
             st.warning(f"Failed to load phase status: {e}")
 
-    # 格式选择
-    fmt = st.radio("Format", ["Mermaid", "JSON", "DOT"], horizontal=True, label_visibility="collapsed")
+    # W1-T3: Interactive format selector — Graphviz is now default (interactive)
+    fmt = st.radio(
+        "Format",
+        ["Graphviz (Interactive)", "Mermaid", "JSON", "DOT"],
+        horizontal=True,
+        label_visibility="collapsed",
+        help="Graphviz: click nodes to see details (interactive). Others: static export.",
+    )
 
-    if fmt == "Mermaid":
+    if fmt == "Graphviz (Interactive)":
+        _render_graphviz_interactive(graph, viz)
+    elif fmt == "Mermaid":
         mermaid_text = viz.to_mermaid(graph)
         try:
             st.mermaid(mermaid_text)  # type: ignore[attr-defined]  # st.mermaid from streamlit-mermaid extra; try/except handles missing case
@@ -358,6 +369,142 @@ def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
             f'border:1px solid #999;text-align:center;">{label}</div>',
             unsafe_allow_html=True,
         )
+
+
+# ── W1-T3: Interactive Graphviz rendering ──
+
+# Morandi-aligned fill colors for node states (per user_profile preference)
+_GRAPHVIZ_STATUS_FILL: dict[str, str] = {
+    "pending": "#F5F3F0",   # Morandi background
+    "running": "#C9A87C",   # Morandi tan (warm, active)
+    "completed": "#8FA886",  # Morandi sage (calm, done)
+    "failed": "#B58484",    # Morandi rose (alert)
+    "skipped": "#E0DDD8",   # Morandi light gray
+    "blocked": "#9B8AA4",   # Morandi muted purple
+}
+
+_GRAPHVIZ_STATUS_FONT: dict[str, str] = {
+    "pending": "#4A4A4A",
+    "running": "#FFFFFF",
+    "completed": "#FFFFFF",
+    "failed": "#FFFFFF",
+    "skipped": "#888888",
+    "blocked": "#FFFFFF",
+}
+
+
+def _build_interactive_dot(graph: DAGGraph) -> str:
+    """Build DOT string with Morandi colors for st.graphviz_chart."""
+    lines: list[str] = [
+        "digraph lifecycle {",
+        "    rankdir=TB;",
+        "    node [shape=box, style=filled, fontname='Helvetica', fontsize=10];",
+        "    edge [color='#888888', arrowsize=0.7];",
+    ]
+
+    for node in graph.nodes:
+        fill = _GRAPHVIZ_STATUS_FILL.get(node.status, "#F5F3F0")
+        font = _GRAPHVIZ_STATUS_FONT.get(node.status, "#4A4A4A")
+        safe_label = DAGVisualizer._sanitize_dot_label(node.label)
+        # Include role in label (smaller, dimmed)
+        label_text = safe_label
+        if node.role:
+            label_text += f"\\n({node.role})"
+        optional_marker = ", style=\"filled,dashed\"" if node.optional else ""
+        lines.append(
+            f'    {node.node_id} [label="{label_text}", fillcolor="{fill}", '
+            f'fontcolor="{font}"{optional_marker}];'
+        )
+
+    for edge in graph.edges:
+        if edge.label:
+            safe_label = DAGVisualizer._sanitize_dot_label(edge.label)
+            lines.append(f'    {edge.source} -> {edge.target} [label="{safe_label}"];')
+        else:
+            lines.append(f"    {edge.source} -> {edge.target};")
+
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def _render_graphviz_interactive(graph: DAGGraph, viz: DAGVisualizer) -> None:
+    """Render interactive Graphviz chart with node selection sidebar.
+
+    Uses st.graphviz_chart (streamlit built-in, no extra deps) for rendering.
+    Node selection via st.selectbox triggers detail panel update.
+    """
+    import streamlit as st  # noqa: E402
+
+    # Build DOT with Morandi colors
+    dot_text = _build_interactive_dot(graph)
+
+    try:
+        st.graphviz_chart(dot_text, use_container_width=True)
+    except (AttributeError, RuntimeError, ImportError) as e:
+        st.warning(f"Graphviz rendering unavailable ({e}); falling back to DOT source.")
+        st.code(dot_text, language="dot")
+        return
+
+    # Node selection (interactive detail panel)
+    st.divider()
+    st.markdown("**🔍 Node Details**")
+
+    node_options = [(n.node_id, f"{n.node_id}: {n.label}") for n in graph.nodes]
+    selected_label = st.selectbox(
+        "Select a phase to inspect",
+        options=[opt[1] for opt in node_options],
+        format_func=lambda x: x,
+        help="Choose a node to see its details, dependencies, and dependents",
+    )
+
+    # Find selected node
+    selected_id = next((nid for nid, label in node_options if label == selected_label), None)
+    if selected_id is None:
+        return
+
+    node = graph.find_node(selected_id)
+    if node is None:
+        st.warning(f"Node {selected_id} not found")
+        return
+
+    # Render detail panel
+    col_detail, col_deps = st.columns([2, 1])
+
+    with col_detail:
+        st.markdown(f"### {selected_id}: {node.label}")
+        status_color = _GRAPHVIZ_STATUS_FILL.get(node.status, "#F5F3F0")
+        st.markdown(
+            f'<span style="background:{status_color};color:white;padding:0.35rem 0.85rem;'
+            f'border-radius:9999px;font-size:0.875rem;font-weight:600;">{node.status.upper()}</span>',
+            unsafe_allow_html=True,
+        )
+        if node.role:
+            st.markdown(f"**Role**: `{node.role}`")
+        if node.description:
+            st.markdown(f"**Description**: {node.description}")
+        st.markdown(f"**Optional**: {'✅ Yes' if node.optional else '❌ No'}")
+        st.markdown(f"**Order**: {node.order}")
+
+    with col_deps:
+        st.markdown("**Dependencies** (prerequisites)")
+        deps = [e.source for e in graph.edges if e.target == selected_id]
+        if deps:
+            for dep_id in deps:
+                dep_node = graph.find_node(dep_id)
+                dep_name = dep_node.label if dep_node else dep_id
+                st.markdown(f"- `{dep_id}`: {dep_name}")
+        else:
+            st.caption("_None (entry phase)_")
+
+        st.markdown("**Dependents** (downstream)")
+        dependents = [e.target for e in graph.edges if e.source == selected_id]
+        if dependents:
+            for dep_id in dependents:
+                dep_node = graph.find_node(dep_id)
+                dep_name = dep_node.label if dep_node else dep_id
+                st.markdown(f"- `{dep_id}`: {dep_name}")
+        else:
+            st.caption("_None (terminal phase)_")
 
 
 # 默认 11 阶段生命周期 DAG（与 dispatch_lifecycle.py 一致）
