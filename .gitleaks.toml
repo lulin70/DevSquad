@@ -1,0 +1,22 @@
+# DevSquad gitleaks configuration
+# https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+#
+# Purpose: Configure gitleaks to scan for real secrets while ignoring
+# test fixtures containing fake credentials.
+#
+# Background: Nightly schedule scans (full history) were failing because
+# gitleaks' generic-api-key rule matched 21 test files containing fake
+# passwords/API keys (e.g., "test_password_123", SHA256 of "password").
+# These are test fixtures, not real credentials.
+#
+# Security rationale: Real secrets should never live in tests/ directories.
+# Source code (scripts/, skills/) and config files remain fully scanned.
+# This allowlist only skips test fixture paths, not real code paths.
+
+title = "DevSquad gitleaks config"
+
+[allowlist]
+description = "Ignore test directories containing fake credentials for test purposes"
+paths = [
+  '''tests/.*''',
+]
