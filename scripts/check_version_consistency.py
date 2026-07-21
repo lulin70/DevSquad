@@ -52,15 +52,26 @@ class FileSpec:
                         (use for CHANGELOG where latest entry must be current)
         "contains"    — the expected version must appear AT LEAST once
                         (use for README/SKILL/CLAUDE where historical refs are OK)
+
+    absolute_path:
+        If set, use this path instead of ``REPO_ROOT / relative_path``.
+        Used for TRAE skill cache files located outside the repo
+        (e.g., ``~/.trae-cn/skills/devsquad/``).
+
+    optional:
+        If True, a missing file is OK (reported as SKIP, not FAIL).
+        Used for TRAE cache layers that don't exist in CI environments.
     """
 
     relative_path: str
     pattern: re.Pattern[str]
     description: str
     check_mode: str = "contains"
+    absolute_path: Path | None = None
+    optional: bool = False
 
     def read_text(self) -> str | None:
-        path = REPO_ROOT / self.relative_path
+        path = self.absolute_path if self.absolute_path else REPO_ROOT / self.relative_path
         if not path.exists():
             return None
         try:
@@ -165,6 +176,51 @@ FILES_TO_CHECK: list[FileSpec] = [
         pattern=re.compile(r"V(\d+\.\d+\.\d+)", re.MULTILINE),
         description="ARCHITECTURE_V4.md version",
     ),
+    # === TRAE skill cache layers (L1/L2/L3) ===
+    # CLAUDE.md documents that TRAE reads from ~/.trae-cn/skills/devsquad/ (L1,
+    # highest priority). Failing to sync these causes the TRAE skill panel to
+    # show stale versions. See CLAUDE.md "TRAE 技能缓存层" section.
+    # All cache entries are optional=True: CI environments don't have them.
+    FileSpec(
+        relative_path="~/.trae-cn/skills/devsquad/skill-manifest.yaml",
+        pattern=re.compile(r"^version:\s*[\"']?(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="TRAE L1 cache (~/.trae-cn) skill-manifest.yaml",
+        absolute_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "skill-manifest.yaml",
+        optional=True,
+    ),
+    FileSpec(
+        relative_path="~/.trae-cn/skills/devsquad/SKILL.md",
+        pattern=re.compile(r"^version:\s*(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="TRAE L1 cache (~/.trae-cn) SKILL.md",
+        absolute_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "SKILL.md",
+        optional=True,
+    ),
+    FileSpec(
+        relative_path="~/.trae/skills/devsquad/skill-manifest.yaml",
+        pattern=re.compile(r"^version:\s*[\"']?(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="TRAE L2 cache (~/.trae) skill-manifest.yaml",
+        absolute_path=Path.home() / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
+        optional=True,
+    ),
+    FileSpec(
+        relative_path="~/.trae/skills/devsquad/SKILL.md",
+        pattern=re.compile(r"^version:\s*(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="TRAE L2 cache (~/.trae) SKILL.md",
+        absolute_path=Path.home() / ".trae" / "skills" / "devsquad" / "SKILL.md",
+        optional=True,
+    ),
+    FileSpec(
+        relative_path=".trae/skills/devsquad/skill-manifest.yaml",
+        pattern=re.compile(r"^version:\s*[\"']?(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="TRAE L3 cache (project .trae) skill-manifest.yaml",
+        optional=True,
+    ),
+    FileSpec(
+        relative_path=".trae/skills/devsquad/SKILL.md",
+        pattern=re.compile(r"^version:\s*(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="TRAE L3 cache (project .trae) SKILL.md",
+        optional=True,
+    ),
 ]
 
 
@@ -184,6 +240,14 @@ def check_file(spec: FileSpec, expected: str) -> VersionCheck:
     """Check a single file for version consistency."""
     content = spec.read_text()
     if content is None:
+        if spec.optional:
+            return VersionCheck(
+                file=spec.relative_path,
+                expected=expected,
+                found=None,
+                passed=True,
+                detail=f"SKIP (optional, not found): {spec.description}",
+            )
         return VersionCheck(
             file=spec.relative_path,
             expected=expected,
@@ -257,15 +321,21 @@ def main() -> int:
 
     results = [check_file(spec, expected) for spec in FILES_TO_CHECK]
 
-    passed = [r for r in results if r.passed]
+    skipped = [r for r in results if r.detail.startswith("SKIP")]
+    passed = [r for r in results if r.passed and not r.detail.startswith("SKIP")]
     failed = [r for r in results if not r.passed]
 
     for r in results:
-        status = "PASS" if r.passed else "FAIL"
+        if r.detail.startswith("SKIP"):
+            status = "SKIP"
+        elif r.passed:
+            status = "PASS"
+        else:
+            status = "FAIL"
         print(f"  [{status}] {r.file:<45} {r.detail}")
 
     print("-" * 70)
-    print(f"Results: {len(passed)} passed, {len(failed)} failed (out of {len(results)} checks)")
+    print(f"Results: {len(passed)} passed, {len(skipped)} skipped, {len(failed)} failed (out of {len(results)} checks)")
 
     if failed:
         print("\nVersion mismatches detected:")
@@ -274,7 +344,7 @@ def main() -> int:
             print(f"    {r.detail}")
         return 1
 
-    print(f"\nAll {len(results)} version checks passed. Version {expected} is consistent.")
+    print(f"\nAll {len(passed)} required version checks passed ({len(skipped)} optional skipped). Version {expected} is consistent.")
     return 0
 
 
