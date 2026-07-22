@@ -100,28 +100,14 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Publish to PyPI (OIDC Trusted Publishing)
-        # OIDC Trusted Publishing: no API token is stored. PyPI verifies this
-        # workflow's identity via a short-lived OIDC token issued by GitHub.
-        # Requirements (all already satisfied in this job):
-        #   - `permissions: id-token: write` (job-level, set above)
-        #   - `environment: pypi` (set above)
-        #   - A Trusted Publisher registered on PyPI at
-        #     https://pypi.org/manage/account/publishing/ matching:
-        #       Owner=lulin70, Repository=DevSquad,
-        #       Workflow=.github/workflows/release.yml, Environment=pypi
-        # When NO `password` input is given, pypa/gh-action-pypi-publish
-        # automatically authenticates via OIDC. See
-        # docs/PyPI_OIDC_Trusted_Publishing_Setup.md for full setup.
-        #
-        # FALLBACK (legacy API token): if OIDC ever breaks, restore token
-        # auth by uncommenting the `password:` line below. The action prefers
-        # an explicit password over OIDC when both are present, so providing
-        # `password` disables OIDC for that run. Do NOT set `password` to the
-        # literal string `__token__`; the secret must hold the full API token.
+      - name: Publish to PyPI (API Token)
+        # PyPI API Token authentication: uses PYPI_API_TOKEN secret.
+        # The token is scoped to the devsquad project on PyPI.
+        # When `password` is provided, pypa/gh-action-pypi-publish uses
+        # token auth instead of OIDC.
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # password: ${{ secrets.PYPI_API_TOKEN }}  # OIDC fallback (legacy)
+          password: ${{ secrets.PYPI_API_TOKEN }}
           # Idempotent: skip if version already exists on PyPI
           skip-existing: true
 
