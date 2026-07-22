@@ -94,7 +94,7 @@ def render_admin_system_config_page(auth: AuthManager) -> None:
         },
         {"Item": "Platform", "Value": sys.platform},
         {"Item": "Working Directory", "Value": os.getcwd()},
-        {"Item": "DevSquad Version", "Value": "V4.1.7"},
+        {"Item": "DevSquad Version", "Value": "V4.2.0"},
         {"Item": "Dashboard Mode", "Value": "Production-Grade"},
     ]
     st.dataframe(sys_info, use_container_width=True, hide_index=True)

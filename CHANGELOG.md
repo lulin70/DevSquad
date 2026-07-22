@@ -7,6 +7,76 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-07-22
+
+MINOR release: AI safety + consensus quality + test coverage tooling.
+
+Driven by 32-issue audit of training materials (M0-M8). Of 32 issues,
+14 already fixed, 7 partial, 7 worth implementing, 4 declined (over-engineering
+risk). This release delivers the 3 P0 items from the 7-role consensus review.
+
+### Added — P0-6: Consensus Fatigue Detector
+
+- **Module**: `scripts/collaboration/consensus.py`
+- **Problem**: Pure-AI consensus with N consecutive 100% unanimous approvals
+  may reflect "AI agreement bias" rather than genuine scrutiny.
+- **Solution**: `ConsensusEngine` now tracks `_consecutive_unanimous_count`
+  and emits a non-blocking warning in `record.warnings` when the count
+  exceeds `fatigue_threshold` (default 5). Counter resets after warning
+  or on any non-unanimous outcome (REJECTED/SPLIT/ESCALATED).
+- **API**: `ConsensusEngine(fatigue_threshold=5)` (backward compatible),
+  `engine.get_fatigue_status()` returns `{consecutive_unanimous, threshold, enabled}`.
+- **Model**: `ConsensusRecord.warnings: list[str]` field added (default empty).
+- **Tests**: 11/11 passed (`tests/test_consensus_fatigue.py`).
+
+### Added — P0-20: Async Coverage Detector
+
+- **Script**: `scripts/check_async_coverage.py`
+- **Problem**: `async def` functions are a testing blind spot — often 0%
+  coverage because async test infrastructure is easy to skip.
+- **Solution**: AST-based scanner that extracts all `async def` from source
+  directory, cross-references against test directory for direct calls,
+  attribute access, and `test_<name>` patterns. Reports uncovered async
+  functions with file:line locations.
+- **Features**: `--include-private` flag, `--json` output, `--fail-on-uncovered`
+  for CI integration, excludes `__dunder__` methods by default.
+- **Tests**: 16/16 passed (`tests/test_check_async_coverage.py`).
+
+### Added — P0-3: OutputValidator Prompt Injection Detection
+
+- **Module**: `scripts/collaboration/output_validator.py`
+- **Problem**: LLM output containing instruction-hijacking patterns (e.g.
+  "ignore previous instructions", "you are now a hacker", "DROP TABLE")
+  can manipulate downstream consumers. Previous OutputValidator only
+  detected code_injection/sensitive_info/path_leak — not prompt injection.
+- **Solution**: Added 18 regex patterns across 4 sub-categories:
+  - **ignore** (4 patterns): "ignore previous instructions", "disregard
+    prior", "forget everything", "clear context"
+  - **role-hijack** (5 patterns): "you are now a...", "act as a...",
+    "pretend you are...", "new role:", "from now on you will..."
+  - **inject** (4 patterns): fake "system:" messages, "[SYSTEM]" tags,
+    "<|system|>" special tokens, "override instructions:"
+  - **destructive** (5 patterns): "delete all", "DROP TABLE", "rm -rf /",
+    "format c:", "shutdown now"
+- **Integration**: Added `FindingCategory = "prompt_injection"`,
+  `_scan_prompt_injection()` method, all patterns are high-severity
+  (triggers `result.valid = False` + redaction).
+- **Tests**: 27/27 passed (`tests/test_output_validator_prompt_injection.py`),
+  includes false-positive safety tests (normal prose with "ignore warnings"
+  and "acts as a middleware" correctly do not trigger).
+
+### Audit Summary — 32 Training-Material Issues
+
+- 14/32 (44%) already fixed in v3.9-v4.1 iterations
+- 7/32 (22%) partially implemented (deferred to P1/P2)
+- 7/32 (22%) worth implementing (3 P0 delivered in this release, 4 P1 deferred)
+- 4/32 (12%) declined (over-engineering risk: #10 overclaim detector,
+  #14 sys.path hack detector, #16 config consumer audit, #24 checkpoint
+  remote storage, #25 version inflation monitor)
+- Key lesson reinforced: "training materials citing DevSquad pain points
+  are often based on stale data — verify current state before acting"
+  (project_memory lesson re-validated: 44% already fixed)
+
 ## [4.1.7] - 2026-07-22
 
 PATCH release: test quality uplift + bandit skip documentation +

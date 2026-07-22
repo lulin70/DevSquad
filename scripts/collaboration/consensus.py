@@ -9,6 +9,12 @@ Consensus - 共识机制
   - 简单多数(>51%) → 通过
   - 分裂/有否决 → 升级到人工决策或 Coordinator 裁决
   - 超时 → 按权重倾向决定 + 标记为 ESCALATED
+
+V4.2.0 P0-6 共识疲劳检测：
+- 纯AI共识连续N次100%通过可能反映"AI倾向于同意"而非真正共识
+- 统计连续全票通过次数，超过阈值(默认5)触发"共识疲劳"警告
+- 警告不阻断决策，写入 record.warnings，建议人工审查
+- 触发后计数器重置（避免持续警告）
 """
 
 from datetime import datetime
@@ -53,10 +59,18 @@ class ConsensusEngine:
         print(f"决策结果: {record.outcome.value}")
     """
 
-    def __init__(self) -> None:
-        """初始化共识引擎（空提案和空记录集合）"""
+    def __init__(self, fatigue_threshold: int = 5) -> None:
+        """初始化共识引擎。
+
+        Args:
+            fatigue_threshold: 连续全票通过次数阈值，超过此值触发共识疲劳
+                警告。默认5次。设为0可禁用疲劳检测。
+                V4.2.0 P0-6: 防"AI倾向性同意"导致共识形同虚设。
+        """
         self._records: dict[str, ConsensusRecord] = {}
         self._proposals: dict[str, DecisionProposal] = {}
+        self._consecutive_unanimous_count: int = 0
+        self._fatigue_threshold: int = fatigue_threshold
 
     def create_proposal(
         self,
@@ -178,11 +192,80 @@ class ConsensusEngine:
             total_weight_against=total_weight_against,
             participants=participants,
             escalation_reason=escalation_reason,
+            warnings=self._check_fatigue(
+                outcome=outcome,
+                votes_for=len(votes_for),
+                votes_against=len(votes_against),
+                votes_abstain=votes_abstain_count,
+            ),
         )
 
         self._records[record.record_id] = record
         proposal.status = "closed"
         return record
+
+    def _check_fatigue(
+        self,
+        outcome: DecisionOutcome,
+        votes_for: int,
+        votes_against: int,
+        votes_abstain: int,
+    ) -> list[str]:
+        """检查共识疲劳并返回警告列表。
+
+        V4.2.0 P0-6: 统计连续全票通过次数，超过阈值触发警告。
+        全票通过 = APPROVED 且无反对/弃权票。
+
+        Args:
+            outcome: 决策结果
+            votes_for: 赞成票数
+            votes_against: 反对票数
+            votes_abstain: 弃权票数
+
+        Returns:
+            警告列表（空列表表示无警告）
+        """
+        if self._fatigue_threshold <= 0:
+            return []
+
+        is_unanimous = (
+            outcome == DecisionOutcome.APPROVED
+            and votes_against == 0
+            and votes_abstain == 0
+            and votes_for > 0
+        )
+
+        if is_unanimous:
+            self._consecutive_unanimous_count += 1
+        else:
+            self._consecutive_unanimous_count = 0
+
+        if self._consecutive_unanimous_count >= self._fatigue_threshold:
+            warning = (
+                f"Consensus fatigue: {self._consecutive_unanimous_count} consecutive "
+                f"unanimous approvals — possible 'AI agreement bias'. "
+                f"Human review recommended."
+            )
+            # 触发后重置计数器（避免持续警告）
+            self._consecutive_unanimous_count = 0
+            return [warning]
+
+        return []
+
+    def get_fatigue_status(self) -> dict[str, int | bool]:
+        """返回当前共识疲劳状态。
+
+        Returns:
+            包含以下键的字典:
+                - consecutive_unanimous: 当前连续全票通过次数
+                - threshold: 触发阈值
+                - enabled: 是否启用疲劳检测
+        """
+        return {
+            "consecutive_unanimous": self._consecutive_unanimous_count,
+            "threshold": self._fatigue_threshold,
+            "enabled": self._fatigue_threshold > 0,
+        }
 
     def _determine_outcome(
         self,

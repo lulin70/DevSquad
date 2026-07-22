@@ -1,6 +1,6 @@
 """OutputValidator — Post-dispatch output safety validator (P1-6 skeleton).
 
-Scans worker outputs / dispatch reports for three classes of risky content
+Scans worker outputs / dispatch reports for four classes of risky content
 before they are persisted or returned to the caller:
 
 1. **Code injection** — ``eval(``, ``exec(``, ``__import__``, ``os.system``,
@@ -11,6 +11,10 @@ before they are persisted or returned to the caller:
 3. **Path leakage** — absolute POSIX paths (``/etc/``, ``/root/``,
    ``/home/``), Windows absolute paths (``C:\\``), ``~/.ssh/`` and other
    private directory references.
+4. **Prompt injection** (V4.2.0 P0-3) — LLM output containing instruction
+   hijacking patterns: "ignore previous instructions", "you are now...",
+   "system:" role injection, destructive commands. Detects attacks where
+   a Worker's LLM output tries to manipulate downstream consumers.
 
 The validator is non-blocking by default: it returns a structured
 :class:`OutputValidationResult` listing all findings, and the caller
@@ -33,7 +37,7 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 
-FindingCategory = Literal["code_injection", "sensitive_info", "path_leak"]
+FindingCategory = Literal["code_injection", "sensitive_info", "path_leak", "prompt_injection"]
 FindingSeverity = Literal["low", "medium", "high"]
 
 
@@ -181,10 +185,39 @@ class OutputValidator:
         (r"~/?\.config/gcloud/(?:credentials|application_default_credentials)\.json\b", "gcloud_credentials_file", "high"),
     ]
 
+    # V4.2.0 P0-3: Prompt injection — LLM output containing instruction
+    # hijacking patterns that try to manipulate downstream consumers.
+    # Four sub-categories: ignore / role-hijack / inject / destructive.
+    PROMPT_INJECTION_PATTERNS: list[tuple[str, str, FindingSeverity]] = [
+        # --- ignore: attempts to discard prior instructions ---
+        (r"(?i)\bignore\s+(?:all\s+)?(?:previous|prior|above|earlier)\s+instructions?\b", "ignore_prior_instructions", "high"),
+        (r"(?i)\bdisregard\s+(?:all\s+)?(?:previous|prior|above)\s+(?:instructions?|prompts?)\b", "disregard_prior", "high"),
+        (r"(?i)\bforget\s+(?:everything|all|previous|prior)\b", "forget_context", "high"),
+        (r"(?i)\b(?:clear|reset)\s+(?:your\s+)?(?:context|memory|instructions?)\b", "clear_context", "high"),
+        # --- role-hijack: attempts to change the AI's role ---
+        (r"(?i)\byou\s+are\s+now\s+(?:a|an)\s+", "role_hijack_now", "high"),
+        (r"(?i)\bact\s+as\s+(?:if\s+you\s+(?:are|were)\s+)?(?:a|an)\s+", "act_as_role", "high"),
+        (r"(?i)\bpretend\s+(?:you\s+are|to\s+be)\s+", "pretend_role", "high"),
+        (r"(?i)\b(?:new|switch\s+to|change\s+to)\s+role\s*:", "role_switch", "high"),
+        (r"(?i)\bfrom\s+now\s+on\s*,?\s+you\s+(?:are|will)\s+", "from_now_on_role", "high"),
+        # --- inject: fake system/developer messages ---
+        (r"(?i)\b(?:system|developer|admin)\s*:\s*", "fake_system_message", "high"),
+        (r"\[(?:SYSTEM|DEV|ADMIN|OVERRIDE)\]", "fake_system_tag", "high"),
+        (r"<\|?(?:system|im_start|im_end)\|?>", "special_token_injection", "high"),
+        (r"(?i)\b(?:new|override|additional)\s+instructions?\s*:", "override_instructions", "high"),
+        # --- destructive: attempts to cause harm ---
+        (r"(?i)\b(?:delete|remove|drop)\s+(?:all|every|the\s+entire)\b", "destructive_delete_all", "high"),
+        (r"(?i)\bdrop\s+table\b", "destructive_drop_table", "high"),
+        (r"(?i)\brm\s+-rf?\s+/", "destructive_rm_rf", "high"),
+        (r"(?i)\bformat\s+[a-z]:\s*", "destructive_format", "high"),
+        (r"(?i)\bshutdown\s+(?:now|immediately|-h\s+now)\b", "destructive_shutdown", "high"),
+    ]
+
     # Compiled pattern cache (class-level for reuse).
     _COMPILED_CODE_INJECTION: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
     _COMPILED_SENSITIVE_INFO: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
     _COMPILED_PATH_LEAK: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
+    _COMPILED_PROMPT_INJECTION: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
 
     def __init__(self) -> None:
         # Compile once at instance construction (deferred from class-level
@@ -198,6 +231,9 @@ class OutputValidator:
             ]
             OutputValidator._COMPILED_PATH_LEAK = [
                 (re.compile(p), name, sev) for p, name, sev in self.PATH_LEAK_PATTERNS
+            ]
+            OutputValidator._COMPILED_PROMPT_INJECTION = [
+                (re.compile(p), name, sev) for p, name, sev in self.PROMPT_INJECTION_PATTERNS
             ]
 
     # ------------------------------------------------------------------
@@ -219,6 +255,7 @@ class OutputValidator:
         findings.extend(self._scan_code_injection(text))
         findings.extend(self._scan_sensitive_info(text))
         findings.extend(self._scan_path_leak(text))
+        findings.extend(self._scan_prompt_injection(text))
 
         # Sort by span start so redaction offsets are processed left-to-right.
         findings.sort(key=lambda f: f.span[0])
@@ -247,6 +284,9 @@ class OutputValidator:
 
     def _scan_path_leak(self, text: str) -> list[OutputFinding]:
         return self._scan(text, self._COMPILED_PATH_LEAK, "path_leak")
+
+    def _scan_prompt_injection(self, text: str) -> list[OutputFinding]:
+        return self._scan(text, self._COMPILED_PROMPT_INJECTION, "prompt_injection")
 
     @staticmethod
     def _scan(

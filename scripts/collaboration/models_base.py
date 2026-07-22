@@ -464,6 +464,8 @@ class ConsensusRecord:
     participants: list[str] = field(default_factory=list)
     escalation_reason: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
+    # V4.2.0 P0-6: Non-blocking warnings (e.g. consensus fatigue alerts)
+    warnings: list[str] = field(default_factory=list)
 
 
 CONSENSUS_THRESHOLDS = {

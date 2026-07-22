@@ -7,6 +7,64 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.2.0] - 2026-07-22
+
+MINOR 发布：AI 安全 + 共识质量 + 测试覆盖工具。
+
+基于 32 个问题的审计（M0-M8 讲课材料）。32 个问题中，14 个已修复，
+7 个部分实现，7 个值得实现，4 个拒绝（过度设计风险）。本发布交付
+7 角色共识评审的 3 个 P0 项。
+
+### 新增 — P0-6：共识疲劳检测器
+
+- **模块**：`scripts/collaboration/consensus.py`
+- **问题**：纯 AI 共识连续 N 次 100% 全票通过可能反映"AI 倾向性同意"
+  而非真正审查。
+- **方案**：`ConsensusEngine` 追踪 `_consecutive_unanimous_count`，
+  超过 `fatigue_threshold`（默认 5）时在 `record.warnings` 中发出
+  非阻断警告。计数器在警告后或任何非全票结果（REJECTED/SPLIT/ESCALATED）
+  时重置。
+- **API**：`ConsensusEngine(fatigue_threshold=5)`（向后兼容），
+  `engine.get_fatigue_status()` 返回当前状态。
+- **模型**：`ConsensusRecord` 新增 `warnings: list[str]` 字段。
+- **测试**：11/11 通过（`tests/test_consensus_fatigue.py`）。
+
+### 新增 — P0-20：异步覆盖检测器
+
+- **脚本**：`scripts/check_async_coverage.py`
+- **问题**：`async def` 函数是测试盲区 — 异步测试基础设施容易跳过。
+- **方案**：基于 AST 的扫描器，提取源目录所有 `async def`，与测试目录
+  交叉引用（直接调用/属性访问/`test_<name>` 模式）。报告未覆盖的
+  异步函数及文件:行号。
+- **功能**：`--include-private` 标志、`--json` 输出、`--fail-on-uncovered`
+  CI 集成、默认排除 `__dunder__` 方法。
+- **测试**：16/16 通过（`tests/test_check_async_coverage.py`）。
+
+### 新增 — P0-3：OutputValidator Prompt Injection 检测
+
+- **模块**：`scripts/collaboration/output_validator.py`
+- **问题**：LLM 输出包含指令劫持模式（如"ignore previous instructions"、
+  "you are now a hacker"、"DROP TABLE"）可操纵下游消费者。原
+  OutputValidator 仅检测 code_injection/sensitive_info/path_leak。
+- **方案**：新增 18 个正则模式，覆盖 4 个子类别：
+  - **ignore**（4 个）：忽略先前指令、遗忘上下文
+  - **role-hijack**（5 个）：角色劫持、身份切换
+  - **inject**（4 个）：伪造 system 消息、特殊 token 注入
+  - **destructive**（5 个）：删除全部、DROP TABLE、rm -rf、关机
+- **集成**：新增 `FindingCategory = "prompt_injection"`，所有模式为
+  high 严重度（触发 `result.valid = False` + 脱敏）。
+- **测试**：27/27 通过（`tests/test_output_validator_prompt_injection.py`），
+  包含误报安全测试。
+
+### 审计总结 — 32 个讲课材料问题
+
+- 14/32 (44%) 已在 v3.9-v4.1 迭代中修复
+- 7/32 (22%) 部分实现（推迟到 P1/P2）
+- 7/32 (22%) 值得实现（3 个 P0 本发布交付，4 个 P1 推迟）
+- 4/32 (12%) 拒绝（过度设计风险）
+- 关键教训强化："讲课材料引用的 DevSquad 痛点常基于过期数据 —
+  行动前必须验证当前状态"（project_memory 教训再验证：44% 已修复）
+
 ## [4.1.7] - 2026-07-22
 
 PATCH 发布：测试质量提升 + bandit skip 文档完善 + 讲课材料 P0-P2 问题清单审计。
