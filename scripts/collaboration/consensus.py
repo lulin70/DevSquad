@@ -59,18 +59,22 @@ class ConsensusEngine:
         print(f"决策结果: {record.outcome.value}")
     """
 
-    def __init__(self, fatigue_threshold: int = 5) -> None:
+    def __init__(self, fatigue_threshold: int = 5, require_dissent: bool = False) -> None:
         """初始化共识引擎。
 
         Args:
             fatigue_threshold: 连续全票通过次数阈值，超过此值触发共识疲劳
                 警告。默认5次。设为0可禁用疲劳检测。
                 V4.2.0 P0-6: 防"AI倾向性同意"导致共识形同虚设。
+            require_dissent: 是否强制每个投票者提供至少1个风险/异议。
+                V4.2.1 P1-7: 防"全投赞成"走过场。启用时，未提供
+                risk_identified 的投票会在 warnings 中标记。
         """
         self._records: dict[str, ConsensusRecord] = {}
         self._proposals: dict[str, DecisionProposal] = {}
         self._consecutive_unanimous_count: int = 0
         self._fatigue_threshold: int = fatigue_threshold
+        self._require_dissent: bool = require_dissent
 
     def create_proposal(
         self,
@@ -197,7 +201,8 @@ class ConsensusEngine:
                 votes_for=len(votes_for),
                 votes_against=len(votes_against),
                 votes_abstain=votes_abstain_count,
-            ),
+            )
+            + self._check_dissent(proposal.votes),
         )
 
         self._records[record.record_id] = record
@@ -266,6 +271,36 @@ class ConsensusEngine:
             "threshold": self._fatigue_threshold,
             "enabled": self._fatigue_threshold > 0,
         }
+
+    def _check_dissent(self, votes: list[Vote]) -> list[str]:
+        """检查是否所有投票者都提供了风险/异议。
+
+        V4.2.1 P1-7: 防"全投赞成"走过场。当 require_dissent=True 时，
+        每个投票者必须在 vote.risk_identified 中提供至少1个潜在风险。
+        未提供的投票会在 warnings 中标记。
+
+        Args:
+            votes: 提案上的所有投票列表。
+
+        Returns:
+            警告列表（空列表表示无警告或未启用）。
+        """
+        if not self._require_dissent:
+            return []
+
+        missing = [
+            v.voter_id
+            for v in votes
+            if not v.risk_identified or not v.risk_identified.strip()
+        ]
+        if not missing:
+            return []
+
+        return [
+            f"Dissent missing: {len(missing)}/{len(votes)} voters did not "
+            f"identify a risk ({', '.join(missing)}). Consensus may lack "
+            f"genuine scrutiny — human review recommended."
+        ]
 
     def _determine_outcome(
         self,

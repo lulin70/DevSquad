@@ -394,11 +394,12 @@ class PermissionGuard:
     - auto_classify(): 5维风险评分模型（目标敏感性/破坏性/范围/来源可信度/上下文合理性）
     - 规则引擎: 30条默认规则覆盖 9种操作类型，支持 glob/前缀/regex 模式匹配
     - 审计日志: 完整的决策链路记录，支持多维度过滤查询
+    - 人类把关节点 (V4.2.1 P1-8): 高风险操作类型强制 PROMPT，防AI自主执行不可逆操作
 
     决策流程:
         BYPASS → 直接放行
         PLAN → 只读放行/写入拒绝
-        DEFAULT/AUTO → 白名单 → 规则匹配 → 风险评估 → 允许/提示/拒绝
+        DEFAULT/AUTO → 人类把关节点检查 → 白名单 → 规则匹配 → 风险评估 → 允许/提示/拒绝
 
     使用示例:
         guard = PermissionGuard(current_level=PermissionLevel.DEFAULT)
@@ -413,6 +414,16 @@ class PermissionGuard:
         if decision.outcome == DecisionOutcome.PROMPT:
             print(f"需用户确认: {decision.reason}")
     """
+
+    # V4.2.1 P1-8: Human-gate mapping — action types that always require
+    # human confirmation, regardless of current PermissionLevel (except BYPASS).
+    # These are "destructive" or "irreversible" operations where AI autonomy
+    # poses unacceptable risk (cf. Replit AI delete-db incident).
+    HUMAN_GATE_ACTIONS: set[ActionType] = {
+        ActionType.FILE_DELETE,      # Deleting files is irreversible
+        ActionType.PROCESS_SPAWN,    # Spawning processes can escape sandbox
+        ActionType.ENVIRONMENT,      # Env var changes affect all processes
+    }
 
     LEVEL_ORDER = {
         PermissionLevel.PLAN: 0,
@@ -499,103 +510,170 @@ class PermissionGuard:
         fail-open exception handling without re-indenting the decision logic.
         """
         with self._lock:
+            # Guard 1: BYPASS skips everything.
             if self.current_level == PermissionLevel.BYPASS:
                 decision = self._make_decision(action, DecisionOutcome.ALLOWED, "BYPASS模式: 跳过所有检查")
                 self._record_audit(action, decision, start)
                 return decision
 
-            if self.current_level == PermissionLevel.PLAN:
-                if action.action_type == ActionType.FILE_READ:
-                    decision = self._make_decision(action, DecisionOutcome.ALLOWED, "PLAN模式允许只读操作")
-                else:
-                    decision = self._make_decision(
-                        action, DecisionOutcome.DENIED, f"PLAN模式禁止{action.action_type.value}操作"
-                    )
-                self._record_audit(action, decision, start)
-                return decision
+            # Guard 2: PLAN mode — read-only enforced.
+            plan_decision = self._check_plan_mode(action)
+            if plan_decision is not None:
+                self._record_audit(action, plan_decision, start)
+                return plan_decision
 
+            # Guard 3 (V4.2.1 P1-8): Human-gate — irreversible actions always PROMPT.
+            gate_decision = self._check_human_gate(action)
+            if gate_decision is not None:
+                self._record_audit(action, gate_decision, start)
+                return gate_decision
+
+            # Guard 4: Whitelist shortcut.
             target_str = action.target or ""
             if target_str in self._whitelist or any(fnmatch.fnmatch(target_str, p) for p in self._whitelist):
                 decision = self._make_decision(action, DecisionOutcome.ALLOWED, "白名单匹配，直接放行")
                 self._record_audit(action, decision, start)
                 return decision
 
+            # Main path: rule-based or fallback evaluation.
             matched_rule = self._match_rule(action)
             base_risk = self._assess_base_risk(action)
-
             if matched_rule:
-                rule_level_val = self.LEVEL_ORDER.get(matched_rule.required_level, 1)
-                current_level_val = self.LEVEL_ORDER.get(self.current_level, 1)
-
-                effective_risk = min(1.0, base_risk + matched_rule.risk_boost)
-
-                if current_level_val >= rule_level_val:
-                    if effective_risk < 0.3:
-                        outcome = DecisionOutcome.ALLOWED
-                        reason = f"规则{matched_rule.rule_id}匹配, 风险低({effective_risk:.2f})"
-                    elif effective_risk < 0.7 or self.current_level == PermissionLevel.AUTO:
-                        auto_score = self.auto_classify(action)
-                        combined = (effective_risk + auto_score) / 2
-                        if combined < 0.55:
-                            outcome = DecisionOutcome.ALLOWED
-                            reason = f"规则{matched_rule.rule_id}匹配, 综合风险可接受({combined:.2f})"
-                        else:
-                            outcome = DecisionOutcome.PROMPT
-                            reason = f"规则{matched_rule.rule_id}匹配, 需确认(风险{combined:.2f})"
-                    else:
-                        outcome = DecisionOutcome.PROMPT
-                        reason = f"规则{matched_rule.rule_id}高风险, 需用户确认(风险{effective_risk:.2f})"
-                else:
-                    if matched_rule.required_level == PermissionLevel.BYPASS:
-                        outcome = DecisionOutcome.PROMPT
-                        reason = f"BYPASS级操作需人工确认(规则{matched_rule.rule_id}, 风险{effective_risk:.2f})"
-                    elif effective_risk > 0.85 and self.current_level == PermissionLevel.PLAN:
-                        outcome = DecisionOutcome.DENIED
-                        reason = f"当前级别不足且高风险(需{matched_rule.required_level.value}, 当前{self.current_level.value})"
-                    else:
-                        outcome = DecisionOutcome.PROMPT
-                        reason = f"当前级别不足(需{matched_rule.required_level.value}, 当前{self.current_level.value}), 请确认"
-
-                action.risk_score = effective_risk
-                requires_conf = outcome == DecisionOutcome.PROMPT
-                decision = PermissionDecision(
-                    action=action,
-                    outcome=outcome,
-                    matched_rule=matched_rule,
-                    reason=reason,
-                    requires_confirmation=requires_conf,
-                    confidence=max(0.1, 1.0 - effective_risk),
-                )
+                decision = self._evaluate_matched_rule(action, matched_rule, base_risk)
             else:
-                fallback_risk = base_risk
-                action.risk_score = fallback_risk
-                if fallback_risk < 0.3:
-                    outcome = DecisionOutcome.ALLOWED
-                    reason = "无匹配规则, 低风险默认允许"
-                elif self.current_level == PermissionLevel.AUTO:
-                    auto_score = self.auto_classify(action)
-                    if auto_score < 0.4:
-                        outcome = DecisionOutcome.ALLOWED
-                        reason = f"AUTO分类安全(score={auto_score:.2f})"
-                    else:
-                        outcome = DecisionOutcome.PROMPT
-                        reason = f"AUTO分类需确认(score={auto_score:.2f})"
-                else:
-                    outcome = DecisionOutcome.PROMPT
-                    reason = "无匹配规则, 默认需确认"
-
-                requires_conf = outcome == DecisionOutcome.PROMPT
-                decision = PermissionDecision(
-                    action=action,
-                    outcome=outcome,
-                    matched_rule=None,
-                    reason=reason,
-                    requires_confirmation=requires_conf,
-                    confidence=0.7,
-                )
-
+                decision = self._evaluate_no_match(action, base_risk)
             self._record_audit(action, decision, start)
             return decision
+
+    def _check_plan_mode(self, action: ProposedAction) -> PermissionDecision | None:
+        """Return a decision if current level is PLAN, else None.
+
+        PLAN allows FILE_READ only; all other action types are denied.
+        """
+        if self.current_level != PermissionLevel.PLAN:
+            return None
+        if action.action_type == ActionType.FILE_READ:
+            return self._make_decision(action, DecisionOutcome.ALLOWED, "PLAN模式允许只读操作")
+        return self._make_decision(
+            action, DecisionOutcome.DENIED, f"PLAN模式禁止{action.action_type.value}操作"
+        )
+
+    def _check_human_gate(self, action: ProposedAction) -> PermissionDecision | None:
+        """Return a PROMPT decision if action is in HUMAN_GATE_ACTIONS, else None.
+
+        V4.2.1 P1-8: High-risk action types (FILE_DELETE, PROCESS_SPAWN,
+        ENVIRONMENT) always require human confirmation, even in AUTO mode.
+        Only BYPASS can skip this gate (handled by the BYPASS guard in _check_impl).
+        """
+        if action.action_type not in self.HUMAN_GATE_ACTIONS:
+            return None
+        action.risk_score = 0.9
+        return PermissionDecision(
+            action=action,
+            outcome=DecisionOutcome.PROMPT,
+            reason=f"Human gate: {action.action_type.value} requires "
+            f"human confirmation (irreversible/destructive operation)",
+            requires_confirmation=True,
+            confidence=0.1,
+        )
+
+    def _evaluate_matched_rule(
+        self, action: ProposedAction, matched_rule: PermissionRule, base_risk: float
+    ) -> PermissionDecision:
+        """Evaluate a rule-matched action and return the decision.
+
+        Combines rule risk_boost with base_risk, then applies level-order
+        and risk-threshold logic to determine ALLOWED/PROMPT/DENIED.
+        """
+        rule_level_val = self.LEVEL_ORDER.get(matched_rule.required_level, 1)
+        current_level_val = self.LEVEL_ORDER.get(self.current_level, 1)
+        effective_risk = min(1.0, base_risk + matched_rule.risk_boost)
+
+        if current_level_val >= rule_level_val:
+            outcome, reason = self._decide_sufficient_level(action, matched_rule, effective_risk)
+        else:
+            outcome, reason = self._decide_insufficient_level(matched_rule, effective_risk)
+
+        action.risk_score = effective_risk
+        return PermissionDecision(
+            action=action,
+            outcome=outcome,
+            matched_rule=matched_rule,
+            reason=reason,
+            requires_confirmation=outcome == DecisionOutcome.PROMPT,
+            confidence=max(0.1, 1.0 - effective_risk),
+        )
+
+    def _decide_sufficient_level(
+        self, action: ProposedAction, matched_rule: PermissionRule, effective_risk: float
+    ) -> tuple[DecisionOutcome, str]:
+        """Decide outcome when current level meets or exceeds rule's required level."""
+        if effective_risk < 0.3:
+            return DecisionOutcome.ALLOWED, f"规则{matched_rule.rule_id}匹配, 风险低({effective_risk:.2f})"
+        if effective_risk < 0.7 or self.current_level == PermissionLevel.AUTO:
+            auto_score = self.auto_classify(action)
+            combined = (effective_risk + auto_score) / 2
+            if combined < 0.55:
+                return (
+                    DecisionOutcome.ALLOWED,
+                    f"规则{matched_rule.rule_id}匹配, 综合风险可接受({combined:.2f})",
+                )
+            return DecisionOutcome.PROMPT, f"规则{matched_rule.rule_id}匹配, 需确认(风险{combined:.2f})"
+        return (
+            DecisionOutcome.PROMPT,
+            f"规则{matched_rule.rule_id}高风险, 需用户确认(风险{effective_risk:.2f})",
+        )
+
+    def _decide_insufficient_level(
+        self, matched_rule: PermissionRule, effective_risk: float
+    ) -> tuple[DecisionOutcome, str]:
+        """Decide outcome when current level is below rule's required level."""
+        if matched_rule.required_level == PermissionLevel.BYPASS:
+            return (
+                DecisionOutcome.PROMPT,
+                f"BYPASS级操作需人工确认(规则{matched_rule.rule_id}, 风险{effective_risk:.2f})",
+            )
+        if effective_risk > 0.85 and self.current_level == PermissionLevel.PLAN:
+            return (
+                DecisionOutcome.DENIED,
+                f"当前级别不足且高风险(需{matched_rule.required_level.value}, 当前{self.current_level.value})",
+            )
+        return (
+            DecisionOutcome.PROMPT,
+            f"当前级别不足(需{matched_rule.required_level.value}, 当前{self.current_level.value}), 请确认",
+        )
+
+    def _evaluate_no_match(
+        self, action: ProposedAction, base_risk: float
+    ) -> PermissionDecision:
+        """Evaluate an action with no matching rule and return the decision.
+
+        Uses base_risk threshold and AUTO classifier fallback.
+        """
+        action.risk_score = base_risk
+        if base_risk < 0.3:
+            outcome = DecisionOutcome.ALLOWED
+            reason = "无匹配规则, 低风险默认允许"
+        elif self.current_level == PermissionLevel.AUTO:
+            auto_score = self.auto_classify(action)
+            if auto_score < 0.4:
+                outcome = DecisionOutcome.ALLOWED
+                reason = f"AUTO分类安全(score={auto_score:.2f})"
+            else:
+                outcome = DecisionOutcome.PROMPT
+                reason = f"AUTO分类需确认(score={auto_score:.2f})"
+        else:
+            outcome = DecisionOutcome.PROMPT
+            reason = "无匹配规则, 默认需确认"
+
+        return PermissionDecision(
+            action=action,
+            outcome=outcome,
+            matched_rule=None,
+            reason=reason,
+            requires_confirmation=outcome == DecisionOutcome.PROMPT,
+            confidence=0.7,
+        )
 
     def _handle_check_exception(
         self,

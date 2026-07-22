@@ -181,6 +181,18 @@ jobs:
           echo "OK: mypy 0 errors (scripts/ + skills/, V3.10.0 achievement maintained)"
       - name: Version consistency check (added in P2-6)
         run: python scripts/check_version_consistency.py
+      - name: Test quality check (added in V4.2.1 P1-17)
+        run: |
+          # V4.2.1 P1-17: TestQualityGuard anti-pattern CI gate
+          # Fails on MAJOR issues (bare except, missing error tests)
+          # MINOR issues (assertTrue, >0.0 thresholds) are warnings only
+          python scripts/check_test_quality.py --source tests/ --fail-on major
+      - name: Hidden content scan (added in V4.2.1 P1-4)
+        run: |
+          # V4.2.1 P1-4: Detect zero-width chars, invisible formatting,
+          # control chars, Cyrillic/Greek homoglyphs, and HTML comments
+          # that could mask malicious instructions or data exfiltration.
+          python scripts/check_hidden_content.py scripts/ tests/ skills/
       - name: Dependency sync check (added in v4.0.11)
         run: python scripts/check_dependency_sync.py
 

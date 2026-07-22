@@ -272,7 +272,7 @@ class TestStage2CodeQuality(unittest.TestCase):
 
     def test_bare_except_is_warning(self) -> None:
         """Bare except detection — warning, not critical."""
-        content = "try:\n    pass\nexcept:\n    pass\n"
+        content = "try:\n    pass\nexcept:\n    pass\n"  # noqa: test-quality — test fixture string, not real code
         code_changes = {"files": {"src/foo.py": {"content": content}}}
         result = self.gate.review(spec={}, code_changes=code_changes)
         self.assertTrue(any(f.category == "bare_except" for f in result.warnings))

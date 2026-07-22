@@ -7,6 +7,72 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.2.1] - 2026-07-22
+
+PATCH 发布：7 角色共识评审 P1 项 — 共识质量、人类把关、构造器检测、测试质量 CI 门禁、隐藏内容扫描器。
+
+### 新增 — P1-7：异议强制机制
+
+- **模块**：`consensus.py` + `models_base.py`
+- **问题**：纯 AI 共识全投赞成可能反映"走过场"而非真正审查。
+- **方案**：`ConsensusEngine(require_dissent=True)` 检查每个投票者是否
+  提供 `risk_identified` 字段。未提供的投票者在 `record.warnings` 中
+  标记为"Dissent missing"。
+- **API**：`Vote.risk_identified: str | None`（向后兼容，默认 None）。
+- **测试**：9/9 通过。
+
+### 新增 — P1-8：人类把关节点映射
+
+- **模块**：`permission_guard.py`
+- **问题**：无明确的"哪些操作类型强制人类批准"映射 — AI 可能自主
+  批准不可逆操作（参考 Replit AI 删库事件）。
+- **方案**：`HUMAN_GATE_ACTIONS` 集合定义 3 种不可逆操作类型：
+  `FILE_DELETE`、`PROCESS_SPAWN`、`ENVIRONMENT`。这些操作始终返回
+  `PROMPT`（除非 `BYPASS` 模式）。白名单不可绕过人类把关。
+- **测试**：14/14 通过。
+
+### 新增 — P1-13：构造器参数计数器
+
+- **脚本**：`scripts/check_constructor_params.py`
+- **问题**：无检测器预防未来的"上帝构造器"反模式。
+- **方案**：基于 AST 的扫描器，提取所有 `__init__` 方法，计算参数数
+  （排除 `self`），标记超过阈值（默认 >7）的构造器。
+- **测试**：12/12 通过。
+
+### 新增 — P1-17：测试质量 CI 门禁
+
+- **脚本**：`scripts/check_test_quality.py`
+- **问题**：`TestQualityGuard` 存在但未接入 CI — 弱断言（assertTrue、
+  >0.0 阈值）和裸 except 可能混入测试代码而不被发现。
+- **方案**：CLI 脚本扫描所有 `tests/test_*.py` 文件，使用
+  `AntiPatternDetector` 检测反模式。MAJOR 严重性（裸 except、
+  缺失错误测试）阻断 CI，MINOR/INFO 仅报告为警告。
+- **功能**：`--source` 目录、`--fail-on` 严重性阈值、
+  `# noqa: test-quality` 抑制注释（用于检测器测试夹具中的字符串字面量）。
+- **CI**：作为阻断步骤添加到 `test.yml`（版本一致性检查之后）。
+- **测试**：16/16 通过。
+
+### 新增 — P1-4：隐藏内容扫描器
+
+- **脚本**：`scripts/check_hidden_content.py`
+- **问题**：恶意指令或数据外泄可能通过不可见 Unicode 字符（零宽字符、
+  同形字）或 markdown 中的隐藏 HTML 注释掩盖 — 正常代码审查无法发现。
+- **方案**：扫描器检测 5 类隐藏内容：
+  (1) 零宽字符（U+200B/200C/200D/FEFF/2060），
+  (2) 不可见格式字符（U+00AD/2061-2064），
+  (3) 控制字符（U+0000-001F 除 tab/LF/CR，U+007F DEL），
+  (4) 西里尔/希腊同形字（外观类似 ASCII 字母，混淆攻击），
+  (5) markdown/HTML 文件中的 HTML 注释（`<!--...-->` 隐藏指令）。
+- **功能**：文件类型感知的 HTML 注释检测（仅 .md/.html/.rst 文件，
+  非 .py — 避免字符串字面量误报）、`--no-homoglyphs` 和
+  `--no-html-comments` 标志、目录递归扫描跳过 __pycache__/.git、
+  可配置文件扩展名过滤。
+- **开发期修复**：移除未使用的 `field` 导入；修复 `GREEK_HOMOGLYPHS`
+  重复键（0x03BF 重复，掩盖了预期的 0x03C1 希腊小写 rho）；新增
+  `_should_check_html_comments` helper 消除 Python 源码误报。
+- **CI**：作为阻断步骤添加到 `test.yml`，扫描 scripts/+tests/+skills/。
+- **测试**：51/51 通过（覆盖 Happy/Error/Boundary/Performance/Config/Integration 6 维度）。
+
 ## [4.2.0] - 2026-07-22
 
 MINOR 发布：AI 安全 + 共识质量 + 测试覆盖工具。

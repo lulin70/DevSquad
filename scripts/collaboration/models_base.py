@@ -367,6 +367,9 @@ class Vote:
     weight: float = 1.0
     confidence: float = 0.7
     timestamp: datetime = field(default_factory=datetime.now)
+    # V4.2.1 P1-7: Dissent requirement — voter must identify a risk.
+    # None = not provided (warning when require_dissent=True).
+    risk_identified: str | None = None
 
 
 @dataclass

@@ -1,4 +1,4 @@
-# DevSquad V4.0.0-Prod Deployment Configuration
+# DevSquad V4.2.1-Prod Deployment Configuration
 # ==============================================
 #
 # ⚠️  IMPORTANT: This file contains sensitive credentials!
@@ -106,7 +106,7 @@ server:
 
 # Dashboard Settings
 dashboard:
-  title: "DevSquad Lifecycle Dashboard V4.2.0"
+  title: "DevSquad Lifecycle Dashboard V4.2.1"
   layout: "wide"
   theme: "light"  # light | dark
   

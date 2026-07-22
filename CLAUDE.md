@@ -12,7 +12,7 @@
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 **Enterprise Features**: RBAC (15+ permissions), Audit Log (SHA256), Multi-Tenancy (3 isolation levels), Prometheus Monitoring (12 metrics).
 
-## Architecture (V4.2.0 Enterprise Three-Layer)
+## Architecture (V4.2.1 Enterprise Three-Layer)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

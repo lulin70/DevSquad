@@ -196,7 +196,7 @@ class T3_AntiPatternDetector(unittest.TestCase):
 
     def test_01_detect_bare_except(self):
         """验证: 裸 except 子句被检测为 MAJOR 问题"""
-        code = "try:\n    x = 1/0\nexcept:\n    pass\n"
+        code = "try:\n    x = 1/0\nexcept:\n    pass\n"  # noqa: test-quality — test fixture string, not real code
         issues = self.detector.detect_in_source(code, "bare.py")
         matching = [i for i in issues if i.category == "异常吞噬"]
         self.assertGreater(
@@ -234,7 +234,7 @@ self.assertRaises(ValueError, bad_func)
 
     def test_05_issue_has_suggestion(self):
         """验证: 每个检测到的问题都附带修复建议"""
-        code = "except:\n    pass"
+        code = "except:\n    pass"  # noqa: test-quality — test fixture string, not real code
         issues = self.detector.detect_in_source(code, "x.py")
         for issue in issues:
             if issue.suggestion:

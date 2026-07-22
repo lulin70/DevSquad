@@ -3,7 +3,7 @@
 <p align="center">
   <strong>选择最适合你的 AI Agent 编排方案</strong>
   <br>
-  <em>Last updated: 2026-07-20 | Framework versions: DevSquad V4.2.0, AutoGen V0.4, CrewAI V0.80, LangGraph V0.2</em>
+  <em>Last updated: 2026-07-20 | Framework versions: DevSquad V4.2.1, AutoGen V0.4, CrewAI V0.80, LangGraph V0.2</em>
 </p>
 
 ---
@@ -586,7 +586,7 @@ def devsquad_node(state: State):
 ### 对比基准
 
 - **测试日期**: 2026-05-23
-- **框架版本**: DevSquad V4.2.0, AutoGen V0.4.0, CrewAI V0.80.0, LangGraph V0.2.0
+- **框架版本**: DevSquad V4.2.1, AutoGen V0.4.0, CrewAI V0.80.0, LangGraph V0.2.0
 - **评估维度**: 功能完整性、易用性、性能、企业特性、生态系统
 - **主观评分**: 基于实际使用经验和社区反馈
 

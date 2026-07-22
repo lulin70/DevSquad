@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.2.0（开发完成 — 2026-07-22）
+> **当前版本**: V4.2.1（开发完成 — 2026-07-22）
 > **最后更新**: 2026-07-22
-> **最新评估**: V4.2.0 PATCH 发布 — 测试质量提升（修复荒谬恒真断言）+ bandit skip 注释完善 + 讲课材料 P0-P2 问题清单验证（6/10 已修复，4/10 评估后确认无需大改）。V4.1.6 已发布至 PyPI（API Token 方式）。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **最新评估**: V4.2.1 PATCH 发布 — P1 异议强制机制 + 人类把关节点 + 构造器参数计数器。V4.1.6 已发布至 PyPI（API Token 方式）。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.2.0 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.2.1 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---

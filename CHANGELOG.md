@@ -7,6 +7,91 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.1] - 2026-07-22
+
+PATCH release: P1 items from 7-role consensus review — consensus quality,
+human gate, constructor detection, test quality CI gate, and hidden content
+scanner.
+
+### Added — P1-7: Dissent Requirement Mechanism
+
+- **Module**: `scripts/collaboration/consensus.py` + `models_base.py`
+- **Problem**: Pure-AI consensus with all approve votes may indicate
+  "rubber-stamp" behavior rather than genuine scrutiny.
+- **Solution**: `ConsensusEngine(require_dissent=True)` checks that each
+  voter provides a `risk_identified` field. Voters without a risk are
+  listed in `record.warnings` as "Dissent missing".
+- **API**: `Vote.risk_identified: str | None` field added (backward
+  compatible, defaults None). `ConsensusEngine(require_dissent=False)`
+  default preserves existing behavior.
+- **Tests**: 9/9 passed (`tests/test_consensus_dissent.py`).
+
+### Added — P1-8: Human Gate Mapping
+
+- **Module**: `scripts/collaboration/permission_guard.py`
+- **Problem**: No explicit mapping of which action types always require
+  human confirmation — AI could auto-approve irreversible operations
+  (cf. Replit AI delete-db incident).
+- **Solution**: `PermissionGuard.HUMAN_GATE_ACTIONS` set defines 3
+  irreversible action types: `FILE_DELETE`, `PROCESS_SPAWN`,
+  `ENVIRONMENT`. These always return `PROMPT` regardless of
+  `PermissionLevel` (except `BYPASS`). Whitelist does NOT bypass
+  human gate (safety override).
+- **Tests**: 14/14 passed (`tests/test_permission_guard_human_gate.py`).
+
+### Added — P1-13: Constructor Parameter Counter
+
+- **Script**: `scripts/check_constructor_params.py`
+- **Problem**: No detector to prevent future "god constructor"
+  anti-patterns (43-param constructor was fixed, but no guardrail).
+- **Solution**: AST-based scanner extracts all `__init__` methods,
+  counts parameters (excluding `self`), flags constructors exceeding
+  threshold (default >7). Reports class name, file:line, param list.
+- **Features**: `--threshold` flag, `--json` output, detects `**kwargs`
+  and `*args`, sorts flagged by param count descending.
+- **Tests**: 12/12 passed (`tests/test_check_constructor_params.py`).
+
+### Added — P1-17: Test Quality CI Gate
+
+- **Script**: `scripts/check_test_quality.py`
+- **Problem**: `TestQualityGuard` existed but was not wired into CI —
+  weak assertions (assertTrue, >0.0 thresholds) and bare except clauses
+  could slip into test code undetected.
+- **Solution**: CLI script scans all `tests/test_*.py` files using
+  `AntiPatternDetector`. Fails CI on MAJOR severity (bare except,
+  missing error tests). MINOR/INFO issues reported as warnings.
+- **Features**: `--source` directory, `--fail-on` severity threshold,
+  `# noqa: test-quality` suppression for test fixtures (string literals
+  containing anti-pattern text as detector test input).
+- **CI**: Added as blocking step in `test.yml` after version consistency.
+- **Tests**: 16/16 passed (`tests/test_check_test_quality.py`).
+
+### Added — P1-4: Hidden Content Scanner
+
+- **Script**: `scripts/check_hidden_content.py`
+- **Problem**: Malicious instructions or data exfiltration could be masked
+  using invisible Unicode characters (zero-width chars, homoglyphs) or
+  hidden HTML comments in markdown — undetectable in normal code review.
+- **Solution**: Scanner detects 5 categories of hidden content:
+  (1) zero-width characters (U+200B/200C/200D/FEFF/2060),
+  (2) invisible formatting characters (U+00AD/2061-2064),
+  (3) control characters (U+0000-001F except tab/LF/CR, U+007F DEL),
+  (4) Cyrillic/Greek homoglyphs that look like ASCII letters (confusable
+  character attack),
+  (5) HTML comments in markdown/HTML files (``<!--...-->`` hiding
+  instructions).
+- **Features**: File-type-aware HTML comment detection (only .md/.html/.rst
+  files, not .py — prevents false positives on string literals), `--no-homoglyphs`
+  and `--no-html-comments` flags, directory tree walk with __pycache__/.git
+  skip, configurable file extension filter.
+- **Bug fixes during development**: Removed unused `field` import; fixed
+  duplicate key in `GREEK_HOMOGLYPHS` (0x03BF was duplicated, masking
+  intended 0x03C1 Greek small rho); added `_should_check_html_comments`
+  helper to eliminate false positives on Python source files.
+- **CI**: Added as blocking step in `test.yml` scanning scripts/+tests/+skills/.
+- **Tests**: 51/51 passed (`tests/test_check_hidden_content.py`) — covers
+  Happy/Error/Boundary/Performance/Config/Integration dimensions.
+
 ## [4.2.0] - 2026-07-22
 
 MINOR release: AI safety + consensus quality + test coverage tooling.
