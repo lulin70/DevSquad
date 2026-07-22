@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devsquad"
-version = "4.1.6"
+version = "4.1.7"
 description = "Production-Ready Multi-Role AI Task Orchestrator"
 readme = "README.md"
 license = {text = "MIT"}
@@ -258,4 +258,9 @@ target-version = ["py310"]
 
 [tool.bandit]
 exclude_dirs = ["tests", "scripts/collaboration/_archived"]
+# B101: assert_used — tests use assertions extensively (exclude_dirs covers tests/)
+# B311: random — non-cryptographic use (mock data, test fixtures, benchmark sampling)
+# B404/B603: subprocess — required by autonomous/git_driver.py (git operations
+#            via fixed arg lists) and output_validator.py (subprocess injection
+#            detection). All call sites use static arg lists, no shell=True.
 skips = ["B101", "B311", "B404", "B603"]

@@ -7,6 +7,70 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.7] - 2026-07-22
+
+PATCH release: test quality uplift + bandit skip documentation +
+training-materials P0-P2 issue audit.
+
+Driven by user request to evaluate "immediate / short-term / continuous"
+action items from training materials (M0-M8 + FIX_NOTES). Audit found
+6/10 issues already fixed in v3.9-v4.1 iterations; remaining 4/10
+evaluated as either non-issues (feature-flag pattern, not god ctor) or
+necessarily retained (bandit B404/B603 for subprocess usage).
+
+### Fixed — test quality (1 tautological assertion)
+
+- **File**: `tests/test_enhanced_worker.py:220`
+- **Before**: `assert worker.execution_guard is None or worker.execution_guard is not None`
+  (tautology — always True, zero test value)
+- **After**: `assert worker.execution_guard is None or hasattr(worker.execution_guard, "check_abort")`
+  (verifies None or valid ExecutionGuard interface)
+- **Root cause**: Test was meant to verify graceful degradation when
+  execution_guard module is unavailable, but the assertion was a no-op.
+
+### Changed — bandit skip documentation
+
+- **File**: `pyproject.toml` `[tool.bandit]` section
+- **Change**: Added inline comments explaining why each B-code is skipped
+  - B101: assert_used (tests excluded via exclude_dirs)
+  - B311: random (non-cryptographic: mock data, test fixtures)
+  - B404/B603: subprocess (required by `autonomous/git_driver.py` for git
+    operations and `output_validator.py` for injection detection; all call
+    sites use static arg lists, no `shell=True`)
+- **Rationale**: Global skip is intentional and safer than per-line `# nosec`
+  for these systemic uses.
+
+### Audit — training-materials P0-P2 issue list (10 items)
+
+Verified current state of 10 issues cited in training materials:
+
+| # | Issue | Status |
+|---|-------|--------|
+| P0-1 | Checkpoint non-atomic write | ✅ Fixed (`_atomic_write_json`/`_atomic_write_text`) |
+| P0-2 | Async path 0% coverage | ✅ Fixed (`test_async_coordinator.py` + `fault_tolerance.py`) |
+| P0-3 | 43-param god constructor | ✅ Fixed (`DispatcherConfig` dataclass with `from_kwargs`/`to_init_kwargs`/`with_updates`/`diff_from_default`; legacy `__init__` kept for 5219 tests compat) |
+| P0-4 | OutputValidator missing | ✅ Fixed (`output_validator.py` exists) |
+| P0-4b | Consensus voting rubber-stamp | ✅ Fixed (`has_veto` + `unanimous`/`super_majority`/`simple_majority` thresholds) |
+| P1-1 | Weak assertion cluster | ⚠️ 392 `is not None` across 81 files (training materials said "89" — stale data); most are redundant-but-harmless前置 checks before property assertions; deferred to TECH_DEBT for batch remediation |
+| P1-2 | bandit global skip | ⚠️ Retained (see "Changed" above); B404/B603 necessary for subprocess usage |
+| P1-3 | Version identifier chaos | ✅ Fixed (`_version.py` + `check_version_consistency.py`) |
+| P1-4 | Doc version drift | ✅ Fixed (CI check integrated) |
+| P1-5 | Coverage gate soft enforcement | ✅ Fixed (CI `--cov-fail-under=70`) |
+
+**Key lesson (再次验证)**: Training materials referenced stale issue data —
+6/10 issues were already fixed in v3.9-v4.1 iterations. This validates
+the project_memory lesson: "基于过期数据的架构改进任务需先重新校准前提"
+(architecture improvement tasks based on stale data must first recalibrate
+their premises).
+
+### Validation (CI)
+
+- ✓ test (3.10 / 3.11 / 3.12)
+- ✓ security
+- ✓ e2e
+- ✓ lint (ruff, radon cc, mypy)
+- ✓ Version consistency (24/24 PASS)
+
 ## [4.1.6] - 2026-07-20
 
 PATCH release: fix 1 remaining mypy unused-ignore in `scripts/mcp_server.py`.

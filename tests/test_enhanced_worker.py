@@ -215,9 +215,11 @@ class TestInit:
 
     def test_execution_guard_none_when_unavailable(self):
         worker = _make_worker()
-        # execution_guard may be None or a default ExecutionGuard
-        # depending on whether the module is importable
-        assert worker.execution_guard is None or worker.execution_guard is not None
+        # execution_guard is None (if execution_guard module unavailable)
+        # or an ExecutionGuard instance exposing check_abort interface
+        assert worker.execution_guard is None or hasattr(
+            worker.execution_guard, "check_abort"
+        )
 
 
 # ---------------------------------------------------------------------------

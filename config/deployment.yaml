@@ -106,7 +106,7 @@ server:
 
 # Dashboard Settings
 dashboard:
-  title: "DevSquad Lifecycle Dashboard V4.1.6"
+  title: "DevSquad Lifecycle Dashboard V4.1.7"
   layout: "wide"
   theme: "light"  # light | dark
   

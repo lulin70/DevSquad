@@ -1,7 +1,7 @@
 name: devsquad
-version: 4.1.6
+version: 4.1.7
 description: |
-  DevSquad V4.1.6 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.1.7 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
