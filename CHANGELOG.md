@@ -210,6 +210,48 @@ analysis, and config consistency audit.
 - **CI gates**: ruff clean, radon cc D+ clean, mypy 0 errors, version
   consistency 28/28 passed, all new tests pass.
 
+### Fixed — V4.2.1 Bugfixes: 3 Cross-Module Bugs from Integration Tests
+
+- **Bug #1: SmartCrusher marker format incompatible with Scratchpad
+  retrieval pattern** (`scripts/collaboration/coordinator.py`,
+  `scripts/collaboration/scratchpad.py`):
+  - SmartCrusher emits `retrieve full: trace_id=X` in compressed content
+    headers, but the Coordinator's `_DEVSQUAD_RETRIEVE_PATTERN` only
+    matched `devsquad_retrieve(trace_id=X, query=Y)`. Compressed
+    originals were never auto-retrieved into Worker output.
+  - Fix: Added `_RETRIEVE_FULL_PATTERN` regex to both `coordinator.py`
+    and `scratchpad.py`. `_retrieve_compressed_originals()` now scans
+    for both marker formats and auto-injects originals.
+  - Regression test: `test_content_cache_ccr_integration.py::
+    T2::test_05_retrieve_full_pattern_matches_smartcrusher_marker`.
+- **Bug #2: ContentCache.invalidate("*") silently no-ops on LLMCache
+  backend** (`scripts/collaboration/content_cache.py`):
+  - `ContentCache.invalidate(pattern)` detected that LLMCache has an
+    `invalidate()` method (hasattr=True), called it with a single
+    pattern arg, caught the TypeError (LLMCache.invalidate requires
+    3 args: prompt/backend/model), and returned 0 immediately — never
+    reaching the `clear()` fallback. Whole-cache invalidation via
+    `"*"` cleared nothing.
+  - Fix: TypeError now falls through to the `clear()` fallback instead
+    of returning 0. The `except` clause was split: AttributeError and
+    RuntimeError still return 0, but TypeError continues to the
+    `pattern == "*"` clear() fallback.
+  - Regression test: `test_content_cache_ccr_integration.py::
+    T1::test_06_invalidate_wildcard_falls_through_to_clear_on_llmcache`.
+- **Bug #3: PluginHotLoader._load_plugin_file narrow exception net**
+  (`scripts/collaboration/plugins/hot_loader.py`):
+  - `_load_plugin_file` only caught `(ImportError, AttributeError,
+    RuntimeError, OSError, SyntaxError)`. A `ValueError` or
+    `TypeError` from `create_plugin()` would propagate and crash the
+    dispatcher.
+  - Fix: Widened the exception catch to `Exception` (standard plugin
+    loader pattern — plugin failures must never crash the host;
+    excludes SystemExit, KeyboardInterrupt, GeneratorExit which
+    inherit from BaseException).
+  - Regression tests: `test_plugin_hot_loader_integration.py::
+    T7::test_06_value_error_in_create_plugin_does_not_crash_loader`
+    and `T7::test_07_type_error_in_create_plugin_does_not_crash_loader`.
+
 ### Added — P2-21 Follow-up (Batch 2): Test Pyramid Lift (Integration)
 
 - **Problem**: First batch (119 tests) lifted integration from 3.8% →

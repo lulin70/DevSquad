@@ -222,13 +222,21 @@ class ContentCache:
             return 0
 
         # Delegate to wrapped cache's invalidate() when available.
+        # V4.2.1 bugfix: LLMCache.invalidate has signature (prompt, backend, model)
+        # which raises TypeError when called with a single pattern string. Previously
+        # this TypeError was caught and returned 0 immediately, preventing the clear()
+        # fallback from running. Now we fall through to the clear() fallback on TypeError.
         if hasattr(self._wrapped, "invalidate"):
             try:
                 result = self._wrapped.invalidate(pattern)
                 return int(result) if isinstance(result, int) else 0
-            except (AttributeError, RuntimeError, TypeError) as exc:
+            except (AttributeError, RuntimeError) as exc:
                 logger.debug("Wrapped invalidate failed: %s", exc)
                 return 0
+            except TypeError as exc:
+                # Signature mismatch (e.g. LLMCache.invalidate expects 3 args).
+                # Fall through to the clear() fallback below instead of returning 0.
+                logger.debug("Wrapped invalidate signature mismatch, trying clear fallback: %s", exc)
 
         # Fallback: whole-cache clear when pattern is the wildcard.
         if pattern == "*":

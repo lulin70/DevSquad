@@ -553,6 +553,44 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
             f"Expected successful reload audit entry, got: {reload_audits}",
         )
 
+    def test_06_value_error_in_create_plugin_does_not_crash_loader(self) -> None:
+        """Verify: V4.2.1 bugfix — create_plugin() raising ValueError is caught, not propagated.
+
+        Previously _load_plugin_file only caught (ImportError, AttributeError,
+        RuntimeError, OSError, SyntaxError). A ValueError or TypeError from
+        create_plugin() would propagate and crash the dispatcher. Now Exception
+        is caught (standard plugin loader pattern).
+        """
+        fpath = self._dropin / "bad_value.py"
+        fpath.write_text(
+            "def create_plugin():\n"
+            "    raise ValueError('intentional ValueError from create_plugin')\n",
+            encoding="utf-8",
+        )
+        # scan_plugins must not crash — the ValueError is caught internally
+        self.disp.scan_plugins()
+        # Plugin should not be loaded (returned None internally)
+        self.assertIsNone(self.disp.get_plugin("bad_value"))
+        # Audit log should record the failure
+        audits = self.disp.plugin_hot_loader.get_audit_log()
+        load_audits = [a for a in audits if a["method"] == "load_plugin"
+                       and a.get("name") == "bad_value"]
+        self.assertTrue(
+            any(not a["success"] for a in load_audits),
+            f"Expected failed load audit entry for bad_value, got: {load_audits}",
+        )
+
+    def test_07_type_error_in_create_plugin_does_not_crash_loader(self) -> None:
+        """Verify: V4.2.1 bugfix — create_plugin() raising TypeError is also caught."""
+        fpath = self._dropin / "bad_type.py"
+        fpath.write_text(
+            "def create_plugin():\n"
+            "    raise TypeError('intentional TypeError from create_plugin')\n",
+            encoding="utf-8",
+        )
+        self.disp.scan_plugins()
+        self.assertIsNone(self.disp.get_plugin("bad_type"))
+
 
 if __name__ == "__main__":
     unittest.main()

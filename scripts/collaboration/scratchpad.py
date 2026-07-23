@@ -37,6 +37,12 @@ _DEVSQUAD_RETRIEVE_PATTERN = re.compile(
     r"devsquad_retrieve\(\s*trace_id\s*=\s*['\"]?([a-f0-9]+)['\"]?\s*(?:,\s*query\s*=\s*['\"]([^'\"]*)['\"]\s*)?\)"
 )
 
+# V4.2.1 Bugfix: SmartCrusher also emits ``retrieve full: trace_id=X`` in compressed
+# content headers. Coordinator scans for both formats to auto-retrieve originals.
+_RETRIEVE_FULL_PATTERN = re.compile(
+    r"retrieve full:\s*trace_id\s*=\s*([a-f0-9]+)"
+)
+
 
 class Scratchpad:
     """

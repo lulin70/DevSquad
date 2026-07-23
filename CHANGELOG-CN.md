@@ -171,6 +171,44 @@ PATCH 发布：7 角色共识评审 P1+P2 项 — 共识质量、人类把关、
 - **CI 门禁**：ruff 通过、radon cc D+ 通过、mypy 0 错误、版本一致性
   28/28 通过、所有新测试通过。
 
+### 修复 — V4.2.1 Bugfix：Integration 测试发现的 3 个跨模块 Bug
+
+- **Bug #1：SmartCrusher 标记格式与 Scratchpad 检索模式不兼容**
+  （`scripts/collaboration/coordinator.py`、`scripts/collaboration/
+  scratchpad.py`）：
+  - SmartCrusher 在压缩内容头中生成 `retrieve full: trace_id=X`，
+    但 Coordinator 的 `_DEVSQUAD_RETRIEVE_PATTERN` 只匹配
+    `devsquad_retrieve(trace_id=X, query=Y)`。压缩前的原始内容
+    从未被自动注入 Worker 输出。
+  - 修复：在 `coordinator.py` 和 `scratchpad.py` 中添加
+    `_RETRIEVE_FULL_PATTERN` 正则。`_retrieve_compressed_originals()`
+    现在扫描两种标记格式并自动注入原始内容。
+  - 回归测试：`test_content_cache_ccr_integration.py::T2::
+    test_05_retrieve_full_pattern_matches_smartcrusher_marker`。
+- **Bug #2：ContentCache.invalidate("*") 对 LLMCache 后端静默无效**
+  （`scripts/collaboration/content_cache.py`）：
+  - `ContentCache.invalidate(pattern)` 检测到 LLMCache 有 `invalidate()`
+    方法（hasattr=True），用单个 pattern 参数调用，捕获 TypeError
+    （LLMCache.invalidate 需要 3 个参数：prompt/backend/model），立即
+    返回 0 — 从未到达 `clear()` 回退。通过 `"*"` 的全缓存失效什么也
+    没清除。
+  - 修复：TypeError 现在落入 `clear()` 回退，而不是返回 0。except
+    子句拆分：AttributeError 和 RuntimeError 仍返回 0，但 TypeError
+    继续到 `pattern == "*"` 的 clear() 回退。
+  - 回归测试：`test_content_cache_ccr_integration.py::T1::
+    test_06_invalidate_wildcard_falls_through_to_clear_on_llmcache`。
+- **Bug #3：PluginHotLoader._load_plugin_file 异常捕获范围过窄**
+  （`scripts/collaboration/plugins/hot_loader.py`）：
+  - `_load_plugin_file` 只捕获 `(ImportError, AttributeError,
+    RuntimeError, OSError, SyntaxError)`。`create_plugin()` 抛出
+    `ValueError` 或 `TypeError` 会传播并导致 dispatcher 崩溃。
+  - 修复：将异常捕获范围扩大到 `Exception`（标准插件加载器模式 —
+    插件故障绝不能导致宿主崩溃；排除继承自 BaseException 的
+    SystemExit、KeyboardInterrupt、GeneratorExit）。
+  - 回归测试：`test_plugin_hot_loader_integration.py::T7::
+    test_06_value_error_in_create_plugin_does_not_crash_loader` 和
+    `T7::test_07_type_error_in_create_plugin_does_not_crash_loader`。
+
 ### 新增 — P2-21 后续（第二批）：测试金字塔提升（Integration）
 
 - **问题**：第一批（119 测试）将 integration 从 3.8% 提升至 5.1%，

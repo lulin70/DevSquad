@@ -51,7 +51,7 @@ from scripts.collaboration.content_cache import ContentCache
 from scripts.collaboration.content_crusher import SmartCrusher
 from scripts.collaboration.llm_cache import LLMCache
 from scripts.collaboration.models import CompressedScratchpadEntry, EntryType, ScratchpadEntry
-from scripts.collaboration.scratchpad import _DEVSQUAD_RETRIEVE_PATTERN, Scratchpad
+from scripts.collaboration.scratchpad import _DEVSQUAD_RETRIEVE_PATTERN, _RETRIEVE_FULL_PATTERN, Scratchpad
 
 # Regex to extract a trace_id from a SmartCrusher ``retrieve full: trace_id=X`` marker.
 _TRACE_ID_RE = re.compile(r"trace_id=([0-9a-f]+)")
@@ -153,6 +153,32 @@ class T1_ContentCacheCCRStoreSmartCrusherIntegration(unittest.TestCase):
         self.assertEqual(self._store.retrieve(trace_id), original)
         self.assertEqual(self._store.stats()["total_entries"], 1)
 
+    def test_06_invalidate_wildcard_falls_through_to_clear_on_llmcache(self) -> None:
+        """Verify: V4.2.1 bugfix — invalidate("*") on LLMCache backend falls through to clear().
+
+        Previously, ContentCache.invalidate("*") detected that LLMCache has an
+        invalidate() method (hasattr=True), called it with a single pattern arg,
+        caught the TypeError (LLMCache.invalidate requires 3 args: prompt/backend/model),
+        and returned 0 immediately — never reaching the clear() fallback. Now the
+        TypeError falls through to the clear() fallback, so the whole cache is cleared.
+        """
+        llm_cache = LLMCache(":memory:")
+        cache = ContentCache(llm_cache)
+        cache.set("prompt-a", "response-a", "openai", "gpt-4")
+        cache.set("prompt-b", "response-b", "anthropic", "claude-3")
+        # Both entries should be cached
+        self.assertEqual(cache.get("prompt-a", "openai", "gpt-4"), "response-a")
+        self.assertEqual(cache.get("prompt-b", "anthropic", "claude-3"), "response-b")
+        # invalidate("*") should clear the cache via clear() fallback
+        result = cache.invalidate("*")
+        # Should return 1 (best-effort "cleared" signal) — not 0 (old bug behavior)
+        self.assertEqual(result, 1,
+                         "invalidate('*') on LLMCache should fall through to clear() "
+                         "and return 1, not silently return 0 (V4.2.1 bugfix)")
+        # Both entries should now be gone
+        self.assertIsNone(cache.get("prompt-a", "openai", "gpt-4"))
+        self.assertIsNone(cache.get("prompt-b", "anthropic", "claude-3"))
+
 
 # ---------------------------------------------------------------------------
 # T2: Scratchpad compressed entry + CCRStore lazy retrieval
@@ -224,17 +250,24 @@ class T2_ScratchpadCCRStoreLazyRetrievalIntegration(unittest.TestCase):
         self.assertEqual(match.group(1), trace_id)
         self.assertEqual(match.group(2), "error")
 
-    def test_05_devsquad_retrieve_regex_does_not_match_smartcrusher_marker(self) -> None:
-        """Verify: _DEVSQUAD_RETRIEVE_PATTERN does NOT match SmartCrusher's 'retrieve full:' marker.
+    def test_05_retrieve_full_pattern_matches_smartcrusher_marker(self) -> None:
+        """Verify: _RETRIEVE_FULL_PATTERN matches SmartCrusher's 'retrieve full:' marker.
 
-        This documents a cross-module marker-format divergence: SmartCrusher emits
-        ``retrieve full: trace_id=X`` while the Scratchpad retrieval regex only
-        recognises ``devsquad_retrieve(trace_id=X, ...)``. The two formats are
-        incompatible — see final summary for details.
+        V4.2.1 bugfix: SmartCrusher emits ``retrieve full: trace_id=X`` in compressed
+        content headers. Previously the Coordinator only scanned for
+        ``devsquad_retrieve(trace_id=X)`` markers and missed SmartCrusher's format,
+        so compressed originals were never auto-retrieved. The _RETRIEVE_FULL_PATTERN
+        regex now detects both formats.
         """
         trace_id = "b" * 32
         smartcrusher_marker = f"[100 items compressed to 7; retrieve full: trace_id={trace_id}]"
+        # _DEVSQUAD_RETRIEVE_PATTERN still does not match (different format)
         self.assertIsNone(_DEVSQUAD_RETRIEVE_PATTERN.search(smartcrusher_marker))
+        # _RETRIEVE_FULL_PATTERN now matches (V4.2.1 bugfix)
+        match = _RETRIEVE_FULL_PATTERN.search(smartcrusher_marker)
+        self.assertIsNotNone(match)
+        assert match is not None  # for type checker
+        self.assertEqual(match.group(1), trace_id)
 
 
 # ---------------------------------------------------------------------------

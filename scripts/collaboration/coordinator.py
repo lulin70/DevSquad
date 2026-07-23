@@ -51,6 +51,13 @@ _DEVSQUAD_RETRIEVE_PATTERN = re.compile(
     r"devsquad_retrieve\(\s*trace_id\s*=\s*['\"]?([a-f0-9]+)['\"]?\s*(?:,\s*query\s*=\s*['\"]([^'\"]*)['\"]\s*)?\)"
 )
 
+# V4.2.1 Bugfix: SmartCrusher emits ``retrieve full: trace_id=X`` markers in
+# compressed content headers (e.g. ``[N items compressed to M; retrieve full: trace_id=X]``).
+# This pattern detects them so the Coordinator can auto-retrieve originals.
+_RETRIEVE_FULL_PATTERN = re.compile(
+    r"retrieve full:\s*trace_id\s*=\s*([a-f0-9]+)"
+)
+
 
 class Coordinator:
     """
@@ -517,10 +524,16 @@ class Coordinator:
     def _retrieve_compressed_originals(self, result: WorkerResult) -> WorkerResult:
         """V3.10.0 Phase 3 — Auto-inject compressed originals into Worker output.
 
-        Scans ``result.output`` for ``devsquad_retrieve(trace_id=X, query=Y)``
-        markers emitted by SmartCrusher. For each marker, retrieves the original
-        content from ``CCRStore`` and appends it after the marker so downstream
-        Workers see the full uncompressed context.
+        Scans ``result.output`` for retrieval markers emitted by SmartCrusher
+        and replaces them with the original content from ``CCRStore`` so
+        downstream Workers see the full uncompressed context.
+
+        Two marker formats are detected:
+
+        1. ``devsquad_retrieve(trace_id=X, query=Y)`` — canonical API format
+           (explicit retrieval request in Worker output).
+        2. ``retrieve full: trace_id=X`` — SmartCrusher metadata format injected
+           into compressed content headers (V4.2.1 bugfix: previously undetected).
 
         Args:
             result: WorkerResult whose ``output`` may contain retrieve markers.
@@ -546,7 +559,9 @@ class Coordinator:
                 logger.warning("Failed to retrieve trace_id=%s: %s", trace_id, e)
             return match.group(0)
 
+        # V4.2.1 bugfix: apply both marker formats — canonical API and SmartCrusher metadata.
         new_output = _DEVSQUAD_RETRIEVE_PATTERN.sub(_replace, output_str)
+        new_output = _RETRIEVE_FULL_PATTERN.sub(_replace, new_output)
         if new_output != output_str:
             result.output = new_output
         return result

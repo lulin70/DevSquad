@@ -428,7 +428,13 @@ class PluginHotLoader:
                 checksum=checksum,
             )
 
-        except (ImportError, AttributeError, RuntimeError, OSError, SyntaxError) as e:
+        except Exception as e:
+            # V4.2.1 bugfix: previously only (ImportError, AttributeError, RuntimeError,
+            # OSError, SyntaxError) were caught. But create_plugin() can raise any
+            # exception type (ValueError, TypeError, ZeroDivisionError, etc.) which
+            # would propagate and crash the dispatcher. Plugin loaders must never let
+            # plugin failures crash the host — catch Exception (excludes SystemExit,
+            # KeyboardInterrupt, GeneratorExit which inherit from BaseException).
             self._log_audit(
                 "load_plugin", name, success=False,
                 reason=str(e), path=str(filepath),
