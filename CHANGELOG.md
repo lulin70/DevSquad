@@ -173,6 +173,43 @@ analysis, and config consistency audit.
   covers dependency sync, key presence, cross-file alignment, format
   report, CLI, and real repo integration.
 
+### Added — P2-21 Follow-up: Test Pyramid Lift (Integration + Contract)
+
+- **Problem**: P2-21 analysis revealed integration at 3.8% (below 15%
+  target) and contract at 2.1% (below 5% target). High-value dispatch
+  pipeline, security chain, and provider contracts lacked integration
+  and contract coverage.
+- **Solution**: Added 4 test files (119 new tests) targeting the
+  highest-risk integration boundaries and protocol contracts:
+  - `tests/integration/test_dispatch_pipeline_integration.py` (34
+    tests) — full dispatch pipeline: role matching, coordinator-worker
+    interaction, consensus, result assembly, error handling, dry-run,
+    dispatcher status (8 test classes).
+  - `tests/integration/test_security_chain_integration.py` (22 tests)
+    — InputValidator → OperationClassifier → PermissionGuard chain:
+    validation-to-classification, classification-to-permission, full
+    pipeline, permission escalation, audit trail, fail-safe, sensitive
+    info interaction (7 test classes).
+  - `tests/contract/test_monitor_provider_contract.py` (36 tests) —
+    MonitorProvider Protocol contract for both PerformanceMonitor
+    (real) and NullMonitorProvider (degraded): record_llm_call,
+    record_agent_execution, generate_report, is_available, get_stats,
+    plus Null-specific degraded behavior (20 base + 16 impl-specific).
+    Base class uses `__test__ = False` to prevent pytest collection;
+    subclasses override with `__test__ = True`.
+  - `tests/integration/test_cross_module_integration.py` (27 tests)
+    — cross-module collaboration: EventBus pub/sub, dispatcher-eventbus
+    integration, dispatch hooks, result assembler, scratchpad shared
+    state, multiple dispatch cycles, event bus error isolation
+    (7 test classes).
+- **Result**: integration ratio 3.8% → 5.1% (+1.3%, 312/6141 tests);
+  contract ratio 2.1% → 2.3% (+0.2%, 143/6141 tests). Targets not yet
+  met (15% / 5%) but meaningful progress with highest-risk boundaries
+  covered. Further lift requires expanding e2e-to-integration migration
+  and adding contracts for CacheProvider/RetryProvider/MemoryProvider.
+- **CI gates**: ruff clean, radon cc D+ clean, mypy 0 errors, version
+  consistency 28/28 passed, all new tests pass.
+
 ## [4.2.0] - 2026-07-22
 
 MINOR release: AI safety + consensus quality + test coverage tooling.

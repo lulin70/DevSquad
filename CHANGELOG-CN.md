@@ -139,6 +139,38 @@ PATCH 发布：7 角色共识评审 P1+P2 项 — 共识质量、人类把关、
 - **测试**：23/23 通过（覆盖依赖同步、键存在、跨文件对齐、格式报告、
   CLI、真实仓库集成）。
 
+### 新增 — P2-21 后续：测试金字塔提升（Integration + Contract）
+
+- **问题**：P2-21 分析显示 integration 3.8%（低于 15% 目标）、contract
+  2.1%（低于 5% 目标）。高价值的调度管道、安全链路、Provider 契约缺乏
+  集成与契约测试覆盖。
+- **方案**：新增 4 个测试文件（119 个新测试），针对最高风险的集成边界
+  与协议契约：
+  - `tests/integration/test_dispatch_pipeline_integration.py`（34 测试）
+    — 完整调度管道：角色匹配、协调器-worker 交互、共识、结果组装、错误
+    处理、dry-run、调度器状态（8 个测试类）。
+  - `tests/integration/test_security_chain_integration.py`（22 测试）
+    — InputValidator → OperationClassifier → PermissionGuard 链路：
+    验证到分类、分类到权限、完整管道、权限升级、审计轨迹、故障安全、
+    敏感信息交互（7 个测试类）。
+  - `tests/contract/test_monitor_provider_contract.py`（36 测试）
+    — MonitorProvider Protocol 契约，覆盖 PerformanceMonitor（真实）与
+    NullMonitorProvider（降级）：record_llm_call、record_agent_execution、
+    generate_report、is_available、get_stats，以及 Null 特定降级行为
+    （20 基类 + 16 实现特定）。基类 `__test__ = False` 阻止 pytest 收集；
+    子类 `__test__ = True` 覆盖启用。
+  - `tests/integration/test_cross_module_integration.py`（27 测试）
+    — 跨模块协作：EventBus 发布/订阅、dispatcher-eventbus 集成、
+    调度钩子、结果组装器、scratchpad 共享状态、多次调度循环、事件总线
+    错误隔离（7 个测试类）。
+- **结果**：integration 比率 3.8% → 5.1%（+1.3%，312/6141 测试）；
+  contract 比率 2.1% → 2.3%（+0.2%，143/6141 测试）。目标尚未达成
+  （15% / 5%），但最高风险边界已覆盖。进一步提升需扩展 e2e 到
+  integration 迁移，并为 CacheProvider/RetryProvider/MemoryProvider
+  添加契约测试。
+- **CI 门禁**：ruff 通过、radon cc D+ 通过、mypy 0 错误、版本一致性
+  28/28 通过、所有新测试通过。
+
 ## [4.2.0] - 2026-07-22
 
 MINOR 发布：AI 安全 + 共识质量 + 测试覆盖工具。
