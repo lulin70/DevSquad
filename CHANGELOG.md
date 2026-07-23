@@ -9,9 +9,10 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [4.2.1] - 2026-07-22
 
-PATCH release: P1 items from 7-role consensus review — consensus quality,
-human gate, constructor detection, test quality CI gate, and hidden content
-scanner.
+PATCH release: P1+P2 items from 7-role consensus review — consensus quality,
+human gate, constructor detection, test quality CI gate, hidden content
+scanner, PRD-version linkage, sensitive info input interception, test pyramid
+analysis, and config consistency audit.
 
 ### Added — P1-7: Dissent Requirement Mechanism
 
@@ -91,6 +92,86 @@ scanner.
 - **CI**: Added as blocking step in `test.yml` scanning scripts/+tests/+skills/.
 - **Tests**: 51/51 passed (`tests/test_check_hidden_content.py`) — covers
   Happy/Error/Boundary/Performance/Config/Integration dimensions.
+
+### Added — P2-11: PRD-Version Linkage Check
+
+- **Script**: `scripts/check_version_consistency.py` (extended)
+- **Problem**: `docs/prd/*.md` files carry version tags in filenames
+  (e.g., `V3.9_PRD_Code_Intelligence.md`) but were not checked for internal
+  version consistency — content could drift from the declared version.
+- **Solution**: `_check_prd_files()` scans `docs/prd/*.md`, extracts the
+  version from each filename (e.g., `V3.9` → `3.9`), and verifies that
+  version appears in the file content. Uses `(?<!\d)` and `(?!\d)`
+  lookarounds instead of `\b` to correctly match `V3.9` (V is a word char,
+  so `\b` fails between V and 3).
+- **Behavior**: Non-blocking WARN-level (PRDs are historical artifacts).
+  `--strict` flag promotes WARN to FAIL. Missing/unreadable PRD files → SKIP.
+- **Tests**: 21/21 passed (`tests/test_check_version_consistency.py`) —
+  covers filename regex, happy path, warn cases, boundary (empty/missing/
+  non-versioned), digit-boundary false-positive prevention, main()
+  integration, and real PRD files.
+
+### Added — P2-5: Sensitive Info Input Interception
+
+- **Module**: `scripts/collaboration/input_validator.py`
+- **Problem**: `InputValidator` had 40 security patterns (forbidden +
+  suspicious + prompt injection) but did NOT detect sensitive information
+  (API keys, passwords, tokens) at input boundaries — secrets could leak
+  into logs, cache, and LLM backends.
+- **Solution**: `check_sensitive_info()` method integrates
+  `secret_patterns.find_secrets()` (10 patterns: openai_api_key,
+  github_token, aws_access_key, aws_secret_key, generic_api_key, password,
+  secret, bearer_token, private_key, connection_string). Returns masked
+  warning messages (first 4 chars + `*`). `ValidationResult.warnings`
+  field added (default empty list).
+- **Behavior**: Non-blocking WARNING (input remains valid=True — users may
+  legitimately discuss API key formats). Downstream modules
+  (`content_cache`, `audit_logger`) mask secrets in logs/cache.
+- **Tests**: 31/31 passed (`tests/test_input_validator_sensitive.py`) —
+  covers all 10 SECRET_PATTERNS, masking, non-blocking behavior, Unicode
+  normalization, multiple secrets, and ValidationResult field defaults.
+
+### Added — P2-21: Test Pyramid Distribution Analysis
+
+- **Script**: `scripts/check_test_pyramid.py`
+- **Problem**: With 5977 tests across 202 files, there was no visibility
+  into test composition (unit/integration/e2e ratio). A top-heavy pyramid
+  (too many e2e, too few unit) indicates slow suite and brittle tests.
+- **Solution**: `TestPyramidAnalyzer` walks `tests/` directory,
+  categorizes files by subdirectory + filename override (`*_e2e.py` → e2e),
+  counts test functions via AST (no import side effects), and reports
+  distribution against healthy pyramid ranges (unit ≥60%, integration
+  15-25%, e2e ≤10%, contract 5-10%, smoke ≤5%).
+- **Features**: `--json` output, `--strict` flag (fail on warnings), 6
+  layer categories, AST-based counting (handles async test functions).
+- **CI**: Added as non-blocking informational step in `test.yml`.
+- **Real findings**: unit 89.5% (OK), integration 3.8% (WARNING — below
+  15% target), e2e 4.0% (OK), contract 2.1% (WARNING — below 5% target).
+- **Tests**: 38/38 passed (`tests/test_check_test_pyramid.py`) — covers
+  categorization, AST counting, health assessment, format report, CLI,
+  and real tests/ directory integration.
+
+### Added — P2-15: Configuration Consistency Audit
+
+- **Script**: `scripts/check_config_consistency.py`
+- **Problem**: No tool to audit configuration drift across multiple config
+  files (VERSION ↔ Dockerfile/Chart.yaml/values.yaml, pyproject.toml ↔
+  requirements.txt, required keys in .devsquad.yaml).
+- **Solution**: `ConfigConsistencyChecker` performs 3 categories of checks:
+  (1) dependency sync (pyproject.toml → requirements.txt),
+  (2) key presence (.devsquad.yaml `quality_control`, values.yaml
+  `image.repository`/`image.tag`, deployment.yaml `authentication`),
+  (3) cross-file version alignment (VERSION ↔ Dockerfile ARG VERSION ↔
+  Chart.yaml appVersion ↔ values.yaml image.tag).
+- **Behavior**: FAIL-level issues block CI (version mismatch, missing
+  required keys); WARN-level non-blocking (values.yaml tag drift may be
+  intentional for deployment pinning); SKIP for missing optional files.
+- **CI**: Added as blocking step in `test.yml`.
+- **Real findings**: values.yaml image.tag = 4.0.0 but VERSION = 4.2.1
+  (WARN — deployment pinning or stale config).
+- **Tests**: 23/23 passed (`tests/test_check_config_consistency.py`) —
+  covers dependency sync, key presence, cross-file alignment, format
+  report, CLI, and real repo integration.
 
 ## [4.2.0] - 2026-07-22
 

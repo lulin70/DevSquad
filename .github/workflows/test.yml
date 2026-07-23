@@ -195,6 +195,19 @@ jobs:
           python scripts/check_hidden_content.py scripts/ tests/ skills/
       - name: Dependency sync check (added in v4.0.11)
         run: python scripts/check_dependency_sync.py
+      - name: Test pyramid analysis (added in V4.2.1 P2-21)
+        run: |
+          # V4.2.1 P2-21: Test pyramid distribution analysis.
+          # Informational only (non-blocking) — surfaces unit/integration/e2e
+          # ratio imbalances for human review. Does not fail CI.
+          python scripts/check_test_pyramid.py tests/ || true
+      - name: Config consistency check (added in V4.2.1 P2-15)
+        run: |
+          # V4.2.1 P2-15: Cross-file config consistency audit.
+          # Checks version alignment (VERSION ↔ Dockerfile/Chart.yaml/values.yaml),
+          # dependency sync (pyproject.toml ↔ requirements.txt), and required
+          # config key presence. FAIL-level issues block CI; WARN-level non-blocking.
+          python scripts/check_config_consistency.py
 
   build:
     runs-on: ubuntu-latest

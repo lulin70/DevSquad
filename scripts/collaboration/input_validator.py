@@ -9,7 +9,9 @@ Version: 3.7.0
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from .secret_patterns import find_secrets
 
 
 @dataclass
@@ -20,6 +22,12 @@ class ValidationResult:
     reason: str | None = None
     sanitized_input: str | None = None
     fallback_response: str | None = None
+    # P2-5: Non-blocking sensitive-info warnings (API keys, passwords, tokens).
+    # Populated by validate_task() when secret_patterns detect sensitive data
+    # in the input. The input is still valid (user may legitimately discuss
+    # key formats); downstream modules (content_cache, audit_logger) mask
+    # these patterns in logs and cache.
+    warnings: list[str] = field(default_factory=list)
 
 
 class InputValidator:
@@ -247,10 +255,18 @@ class InputValidator:
 
         sanitized = self._sanitize_input(task_normalized)
 
+        # 8. P2-5: Sensitive info detection (non-blocking WARNING).
+        # Detect API keys, passwords, tokens, etc. using secret_patterns.
+        # The input remains valid (user may legitimately discuss key formats);
+        # downstream modules mask these in logs/cache. Warnings are surfaced
+        # for human review and audit trail.
+        sensitive_warnings = self.check_sensitive_info(task_normalized)
+
         return ValidationResult(
             valid=True,
             sanitized_input=sanitized,
             fallback_response=fallback_response,
+            warnings=sensitive_warnings,
         )
 
     def validate_roles(self, roles: list[str]) -> ValidationResult:
@@ -355,6 +371,42 @@ class InputValidator:
             if match:
                 detected.append(match.group(0))
         return detected
+
+    def check_sensitive_info(self, task: str) -> list[str]:
+        """Detect sensitive info in input text (P2-5, non-blocking WARNING).
+
+        Scans for API keys, passwords, tokens, private keys, and connection
+        strings using the shared ``secret_patterns.SECRET_PATTERNS`` registry.
+        Returns a list of human-readable warning messages with the matched
+        values masked (only first 4 chars shown).
+
+        This method does NOT block input — users may legitimately discuss
+        API key formats or authentication patterns. Detected secrets are
+        masked downstream by ``content_cache`` and ``audit_logger``.
+
+        Args:
+            task: Input text to scan (task description, prompt, etc.).
+
+        Returns:
+            List of warning strings, e.g.
+            ``["Sensitive info detected: openai_api_key (sk-x****...)"]``.
+            Empty list if no sensitive patterns found.
+        """
+        if not isinstance(task, str) or not task:
+            return []
+        # Normalize to catch secrets that use Unicode look-alikes.
+        task_normalized = unicodedata.normalize("NFKC", task)
+        task_normalized = re.sub(r"[\u200b-\u200f\u2028-\u202f\ufeff]", "", task_normalized)
+        matches = find_secrets(task_normalized)
+        warnings: list[str] = []
+        for pattern_name, matched_value in matches:
+            # Mask all but the first 4 characters to avoid echoing the secret.
+            masked = matched_value[:4] + "*" * max(0, len(matched_value) - 4)
+            warnings.append(
+                f"Sensitive info detected: {pattern_name} ({masked}). "
+                f"This will be masked in logs and cache."
+            )
+        return warnings
 
 
 # 便捷函数

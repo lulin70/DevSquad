@@ -31,6 +31,11 @@ from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CANONICAL_VERSION_FILE = REPO_ROOT / "scripts" / "collaboration" / "_version.py"
+PRD_DIR = REPO_ROOT / "docs" / "prd"
+
+# Match version tags in PRD filenames: V3.9, V4.1.0, V4.2.1, etc.
+# Captures the version string without the leading "V" prefix.
+PRD_FILENAME_VERSION_RE = re.compile(r"^V(\d+\.\d+(?:\.\d+)?)")
 
 
 class VersionCheck(NamedTuple):
@@ -305,10 +310,112 @@ def check_file(spec: FileSpec, expected: str) -> VersionCheck:
     )
 
 
+def _check_prd_files() -> list[VersionCheck]:
+    """Check PRD files for internal version consistency (P2-11).
+
+    Each PRD file in ``docs/prd/`` carries a version tag in its filename
+    (e.g., ``V3.9_PRD_Code_Intelligence.md`` → version ``"3.9"``). This
+    function verifies that the filename version appears somewhere in the
+    file content. A mismatch indicates the PRD body has drifted from its
+    declared version (e.g., content was updated to reference V4.2 but the
+    filename still says V3.9).
+
+    Results are non-blocking WARN-level: PRD files are historical artifacts
+    and may legitimately reference older version tags. The check surfaces
+    drift for human review without failing CI.
+
+    Returns:
+        List of :class:`VersionCheck` results. Empty if ``docs/prd/`` does
+        not exist or contains no versioned PRD files.
+    """
+    if not PRD_DIR.exists():
+        return []
+    results: list[VersionCheck] = []
+    for prd_file in sorted(PRD_DIR.glob("*.md")):
+        match = PRD_FILENAME_VERSION_RE.match(prd_file.name)
+        if not match:
+            continue  # Skip files without a version prefix (e.g., README.md)
+        filename_version = match.group(1)
+        try:
+            content = prd_file.read_text(encoding="utf-8")
+        except OSError:
+            results.append(VersionCheck(
+                file=f"docs/prd/{prd_file.name}",
+                expected=filename_version,
+                found=None,
+                passed=True,  # non-blocking: optional PRD file unreadable
+                detail=f"SKIP (unreadable): {prd_file.name}",
+            ))
+            continue
+        # Use digit-boundary lookarounds instead of \b: PRD files typically
+        # write "V3.9" (V is a word char, so \b between V and 3 fails to
+        # match). (?<!\d) and (?!\d) correctly allow "V3.9" while rejecting
+        # "13.9" or "3.91".
+        pattern = re.compile(rf"(?<!\d){re.escape(filename_version)}(?!\d)")
+        if pattern.search(content):
+            results.append(VersionCheck(
+                file=f"docs/prd/{prd_file.name}",
+                expected=filename_version,
+                found=filename_version,
+                passed=True,
+                detail=f"PRD version {filename_version} found in content OK",
+            ))
+        else:
+            # Non-blocking WARN: PRD content does not reference its filename version.
+            # passed=True so this does not fail CI; detail prefixed with WARN for
+            # human review.
+            results.append(VersionCheck(
+                file=f"docs/prd/{prd_file.name}",
+                expected=filename_version,
+                found=None,
+                passed=True,
+                detail=f"WARN: PRD version {filename_version} not found in content "
+                       f"(filename/content drift)",
+            ))
+    return results
+
+
+def _status_label(result: VersionCheck) -> str:
+    """Derive display status label from a VersionCheck result."""
+    if result.detail.startswith("SKIP"):
+        return "SKIP"
+    if result.detail.startswith("WARN"):
+        return "WARN"
+    if result.passed:
+        return "PASS"
+    return "FAIL"
+
+
+def _print_results(results: list[VersionCheck]) -> dict[str, list[VersionCheck]]:
+    """Print per-file results and return categorized buckets.
+
+    Returns:
+        Dict with keys "passed", "skipped", "warnings", "failed".
+    """
+    skipped = [r for r in results if r.detail.startswith("SKIP")]
+    warnings = [r for r in results if r.detail.startswith("WARN")]
+    passed = [
+        r for r in results
+        if r.passed and not r.detail.startswith("SKIP") and not r.detail.startswith("WARN")
+    ]
+    failed = [r for r in results if not r.passed]
+
+    for r in results:
+        print(f"  [{_status_label(r)}] {r.file:<45} {r.detail}")
+
+    print("-" * 70)
+    print(
+        f"Results: {len(passed)} passed, {len(skipped)} skipped, "
+        f"{len(warnings)} warnings, {len(failed)} failed "
+        f"(out of {len(results)} checks)"
+    )
+    return {"passed": passed, "skipped": skipped, "warnings": warnings, "failed": failed}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check version consistency across project files.")
     parser.add_argument("--strict", action="store_true", help="fail on warnings too")
-    parser.parse_args()
+    args = parser.parse_args()
 
     expected = get_canonical_version()
     if expected is None:
@@ -321,21 +428,15 @@ def main() -> int:
 
     results = [check_file(spec, expected) for spec in FILES_TO_CHECK]
 
-    skipped = [r for r in results if r.detail.startswith("SKIP")]
-    passed = [r for r in results if r.passed and not r.detail.startswith("SKIP")]
-    failed = [r for r in results if not r.passed]
+    # P2-11: PRD internal version consistency (non-blocking WARN-level).
+    prd_results = _check_prd_files()
+    results.extend(prd_results)
 
-    for r in results:
-        if r.detail.startswith("SKIP"):
-            status = "SKIP"
-        elif r.passed:
-            status = "PASS"
-        else:
-            status = "FAIL"
-        print(f"  [{status}] {r.file:<45} {r.detail}")
-
-    print("-" * 70)
-    print(f"Results: {len(passed)} passed, {len(skipped)} skipped, {len(failed)} failed (out of {len(results)} checks)")
+    buckets = _print_results(results)
+    failed = buckets["failed"]
+    warnings = buckets["warnings"]
+    passed = buckets["passed"]
+    skipped = buckets["skipped"]
 
     if failed:
         print("\nVersion mismatches detected:")
@@ -344,7 +445,16 @@ def main() -> int:
             print(f"    {r.detail}")
         return 1
 
-    print(f"\nAll {len(passed)} required version checks passed ({len(skipped)} optional skipped). Version {expected} is consistent.")
+    if warnings and args.strict:
+        print("\nWarnings treated as failures (--strict mode):")
+        for r in warnings:
+            print(f"  - {r.file}: {r.detail}")
+        return 1
+
+    if warnings:
+        print(f"\n{len(warnings)} warning(s) (non-blocking). All {len(passed)} required version checks passed.")
+    else:
+        print(f"\nAll {len(passed)} required version checks passed ({len(skipped)} optional skipped). Version {expected} is consistent.")
     return 0
 
 

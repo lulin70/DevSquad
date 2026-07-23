@@ -9,7 +9,7 @@
 
 ## [4.2.1] - 2026-07-22
 
-PATCH 发布：7 角色共识评审 P1 项 — 共识质量、人类把关、构造器检测、测试质量 CI 门禁、隐藏内容扫描器。
+PATCH 发布：7 角色共识评审 P1+P2 项 — 共识质量、人类把关、构造器检测、测试质量 CI 门禁、隐藏内容扫描器、PRD 版本联动、敏感信息输入拦截、测试金字塔分析、配置一致性审计。
 
 ### 新增 — P1-7：异议强制机制
 
@@ -72,6 +72,72 @@ PATCH 发布：7 角色共识评审 P1 项 — 共识质量、人类把关、构
   `_should_check_html_comments` helper 消除 Python 源码误报。
 - **CI**：作为阻断步骤添加到 `test.yml`，扫描 scripts/+tests/+skills/。
 - **测试**：51/51 通过（覆盖 Happy/Error/Boundary/Performance/Config/Integration 6 维度）。
+
+### 新增 — P2-11：PRD 版本联动检查
+
+- **脚本**：`check_version_consistency.py`（扩展）
+- **问题**：`docs/prd/*.md` 文件名带版本标签（如 `V3.9_PRD_Code_Intelligence.md`），
+  但未检查内容与文件名版本的一致性 — 内容可能偏离声明的版本。
+- **方案**：`_check_prd_files()` 扫描 `docs/prd/*.md`，从文件名提取版本
+  （`V3.9` → `3.9`），验证该版本出现在文件内容中。使用 `(?<!\d)` 和
+  `(?!\d)` 替代 `\b`（V 是单词字符，`\b` 在 V 和 3 之间不成立）。
+- **行为**：非阻断 WARN 级（PRD 是历史文档）。`--strict` 提升为 FAIL。
+  缺失/不可读文件 → SKIP。
+- **测试**：21/21 通过（覆盖文件名正则、Happy Path、Warn 场景、边界条件、
+  数字边界防误报、main() 集成、真实 PRD 文件）。
+
+### 新增 — P2-5：敏感信息输入端拦截
+
+- **模块**：`input_validator.py`
+- **问题**：`InputValidator` 有 40 个安全模式（禁用+可疑+提示注入），但
+  未在输入端检测敏感信息（API key、密码、token）— 密钥可能泄露到
+  日志、缓存和 LLM 后端。
+- **方案**：`check_sensitive_info()` 方法集成 `secret_patterns.find_secrets()`
+  （10 个模式：openai_api_key、github_token、aws_access_key、aws_secret_key、
+  generic_api_key、password、secret、bearer_token、private_key、
+  connection_string）。返回掩码警告（前4字符 + `*`）。新增
+  `ValidationResult.warnings` 字段。
+- **行为**：非阻断 WARNING（输入仍 valid=True — 用户可能合法讨论 API key
+  格式）。下游模块（`content_cache`、`audit_logger`）在日志/缓存中掩码。
+- **测试**：31/31 通过（覆盖全部 10 个 SECRET_PATTERNS、掩码、非阻断行为、
+  Unicode 规范化、多密钥、ValidationResult 字段默认值）。
+
+### 新增 — P2-21：测试金字塔分布分析
+
+- **脚本**：`check_test_pyramid.py`
+- **问题**：5977 个测试跨 202 个文件，无测试组成可见性（unit/integration/e2e
+  比例）。金字塔头重脚轻（e2e 过多，unit 过少）表示测试套件慢且脆弱。
+- **方案**：`TestPyramidAnalyzer` 遍历 `tests/` 目录，按子目录+文件名覆盖
+  分类（`*_e2e.py` → e2e），AST 计数测试函数（无导入副作用），按健康
+  金字塔范围报告分布（unit ≥60%、integration 15-25%、e2e ≤10%、
+  contract 5-10%、smoke ≤5%）。
+- **特性**：`--json` 输出、`--strict` 标志、6 层分类、AST 计数（支持
+  async 测试函数）。
+- **CI**：作为非阻断信息步骤添加到 `test.yml`。
+- **真实发现**：unit 89.5%（OK）、integration 3.8%（WARNING — 低于 15%）、
+  e2e 4.0%（OK）、contract 2.1%（WARNING — 低于 5%）。
+- **测试**：38/38 通过（覆盖分类、AST 计数、健康评估、格式报告、CLI、
+  真实 tests/ 目录集成）。
+
+### 新增 — P2-15：配置一致性审计
+
+- **脚本**：`check_config_consistency.py`
+- **问题**：无工具审计多配置文件间的配置漂移（VERSION ↔ Dockerfile/
+  Chart.yaml/values.yaml、pyproject.toml ↔ requirements.txt、.devsquad.yaml
+  必需键）。
+- **方案**：`ConfigConsistencyChecker` 执行 3 类检查：
+  (1) 依赖同步（pyproject.toml → requirements.txt），
+  (2) 键存在（.devsquad.yaml `quality_control`、values.yaml
+  `image.repository`/`image.tag`、deployment.yaml `authentication`），
+  (3) 跨文件版本对齐（VERSION ↔ Dockerfile ARG VERSION ↔
+  Chart.yaml appVersion ↔ values.yaml image.tag）。
+- **行为**：FAIL 级阻断 CI（版本不匹配、缺失必需键）；WARN 级非阻断
+  （values.yaml tag 漂移可能是部署固定）；SKIP 缺失可选文件。
+- **CI**：作为阻断步骤添加到 `test.yml`。
+- **真实发现**：values.yaml image.tag = 4.0.0 但 VERSION = 4.2.1
+  （WARN — 部署固定或过期配置）。
+- **测试**：23/23 通过（覆盖依赖同步、键存在、跨文件对齐、格式报告、
+  CLI、真实仓库集成）。
 
 ## [4.2.0] - 2026-07-22
 
