@@ -210,6 +210,77 @@ analysis, and config consistency audit.
 - **CI gates**: ruff clean, radon cc D+ clean, mypy 0 errors, version
   consistency 28/28 passed, all new tests pass.
 
+### Added — P2-21 Follow-up (Batch 2): Test Pyramid Lift (Integration)
+
+- **Problem**: First batch (119 tests) lifted integration from 3.8% →
+  5.1%, still well below the 15% target. Eight high-value cross-module
+  boundaries lacked integration coverage: review pipeline, provider
+  injection, consensus voting, micro-task planning, content cache,
+  loop engineering, autonomous iteration, and plugin hot-loading.
+- **Solution**: Added 5 integration test files (260 new tests) using
+  the DevSquad 7-Role methodology with parallel subagent dispatch:
+  - `tests/integration/test_review_pipeline_integration.py` (30 tests)
+    — TwoStageReviewGate → SeverityRouter → JudgeAgent three-stage
+    review chain: full pipeline, gate-to-router, router-to-judge,
+    auto-fix loop, judge deduplication, disabled gate, edge cases
+    (7 test classes).
+  - `tests/integration/test_enhanced_worker_provider_integration.py`
+    (35 tests) — EnhancedWorker + Protocol providers injection:
+    cache/retry/monitor/memory provider integration, NullProvider
+    graceful degrade, multiple providers combined (7 test classes).
+  - `tests/integration/test_consensus_worker_integration.py` (36
+    tests) — ConsensusEngine + Worker voting: basic voting, unanimous
+    approval, split vote, veto power, weighted voting, fatigue
+    detector, edge cases (7 test classes).
+  - `tests/integration/test_micro_task_planner_integration.py` (34
+    tests) — MicroTaskPlanner + Dispatcher + YagniChecker: dispatcher
+    wiring, decomposition strategies, DAG execution flow, YagniChecker
+    SKIP propagation, execution mode classification (HITL/AFK),
+    topological sort + cycle detection, edge cases (7 test classes).
+  - `tests/integration/test_content_cache_ccr_integration.py` (33
+    tests) — ContentCache + CCRStore + Scratchpad: cache hit/miss,
+    lazy trace_id retrieval, sensitive-data filtering, TTL expiry, LRU
+    eviction, thread-safety, edge cases (7 test classes).
+  - `tests/integration/test_loop_engineering_integration.py` (32
+    tests) — LoopEngineering kernel + HandoffAdapter + CheckpointManager:
+    cycle results, handoff documents, SHA-256 integrity, lifecycle
+    persistence, auto-cleanup, ShortcutLifecycleAdapter, edge cases
+    (7 test classes).
+  - `tests/integration/test_autonomous_git_integration.py` (30 tests)
+    — AutonomousLoopController + GitDriver: iteration loop, real git
+    operations, max iterations, stop/resume, error handling, dispatcher
+    wiring, edge cases (7 test classes).
+  - `tests/integration/test_plugin_hot_loader_integration.py` (30
+    tests) — PluginHotLoader + Dispatcher: plugin discovery,
+    registration, hot-reload, no-hot-reload mode, disabled mode,
+    multiple plugins, edge cases (7 test classes).
+- **Bug fix**: `scripts/collaboration/judge_agent.py` —
+  `confidence_threshold` parameter was accepted in `__init__` but
+  never passed to `_filter_by_confidence_with_decisions()` in
+  `judge()`, always using the default 0.7. Fixed by passing
+  `self.confidence_threshold` to the filter call. 33 existing unit
+  tests verified no regression.
+- **Bugs discovered (not fixed — flagged for follow-up)**:
+  1. `SmartCrusher._inject_trace_id` emits `retrieve full: trace_id=X`
+     but `Scratchpad._DEVSQUAD_RETRIEVE_PATTERN` only matches
+     `devsquad_retrieve(trace_id=X, query=Y)` — marker formats are
+     incompatible.
+  2. `ContentCache.invalidate("*")` silently no-ops against LLMCache
+     backend (`LLMCache.invalidate` signature mismatch causes
+     swallowed `TypeError`).
+  3. `PluginHotLoader._load_plugin_file` has a narrow exception net
+     (`ImportError, AttributeError, RuntimeError, OSError, SyntaxError`)
+     — `ValueError`/`TypeError` from `create_plugin()` propagate and
+     crash the dispatcher.
+- **Result**: integration ratio 5.1% → 8.9% (+3.8%, 572/6401 tests);
+  contract ratio 2.3% → 2.2% (143/6401 — unchanged count, diluted by
+  total growth). Integration target (15%) not yet met but +3.8% lift
+  in one batch. Contract target (5%) requires dedicated contract test
+  files for CacheProvider/RetryProvider/MemoryProvider.
+- **CI gates**: ruff clean, radon cc D+ clean (judge_agent.py max
+  complexity A/3), mypy 0 errors, version consistency 28/28 passed,
+  159/159 new integration tests pass.
+
 ## [4.2.0] - 2026-07-22
 
 MINOR release: AI safety + consensus quality + test coverage tooling.

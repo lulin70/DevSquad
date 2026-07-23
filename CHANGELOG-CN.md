@@ -171,6 +171,68 @@ PATCH 发布：7 角色共识评审 P1+P2 项 — 共识质量、人类把关、
 - **CI 门禁**：ruff 通过、radon cc D+ 通过、mypy 0 错误、版本一致性
   28/28 通过、所有新测试通过。
 
+### 新增 — P2-21 后续（第二批）：测试金字塔提升（Integration）
+
+- **问题**：第一批（119 测试）将 integration 从 3.8% 提升至 5.1%，
+  仍远低于 15% 目标。八个高价值跨模块边界缺乏 integration 覆盖：
+  审查管道、provider 注入、共识投票、微任务规划、内容缓存、
+  循环工程、自主迭代、插件热加载。
+- **方案**：采用 DevSquad 7-Role 方法论 + 并行 subagent 调度，
+  新增 5 个 integration 测试文件（260 个新测试）：
+  - `tests/integration/test_review_pipeline_integration.py`（30 测试）
+    — TwoStageReviewGate → SeverityRouter → JudgeAgent 三阶段审查
+    链路：完整管道、gate-to-router、router-to-judge、自动修复循环、
+    judge 去重、禁用 gate、边界条件（7 个测试类）。
+  - `tests/integration/test_enhanced_worker_provider_integration.py`
+    （35 测试）— EnhancedWorker + Protocol providers 注入：
+    cache/retry/monitor/memory provider 集成、NullProvider 优雅降级、
+    多 provider 组合（7 个测试类）。
+  - `tests/integration/test_consensus_worker_integration.py`（36
+    测试）— ConsensusEngine + Worker 投票：基本投票、全票通过、
+    分裂投票、否决权、加权投票、疲劳检测、边界条件（7 个测试类）。
+  - `tests/integration/test_micro_task_planner_integration.py`（34
+    测试）— MicroTaskPlanner + Dispatcher + YagniChecker：dispatcher
+    接线、分解策略、DAG 执行流、YagniChecker SKIP 传播、执行模式
+    分类（HITL/AFK）、拓扑排序 + 环检测、边界条件（7 个测试类）。
+  - `tests/integration/test_content_cache_ccr_integration.py`（33
+    测试）— ContentCache + CCRStore + Scratchpad：缓存命中/未命中、
+    trace_id 惰性检索、敏感数据过滤、TTL 过期、LRU 淘汰、线程安全、
+    边界条件（7 个测试类）。
+  - `tests/integration/test_loop_engineering_integration.py`（32
+    测试）— LoopEngineering kernel + HandoffAdapter + CheckpointManager：
+    循环结果、交接文档、SHA-256 完整性、生命周期持久化、自动清理、
+    ShortcutLifecycleAdapter、边界条件（7 个测试类）。
+  - `tests/integration/test_autonomous_git_integration.py`（30 测试）
+    — AutonomousLoopController + GitDriver：迭代循环、真实 git 操作、
+    最大迭代、停止/恢复、错误处理、dispatcher 接线、边界条件
+    （7 个测试类）。
+  - `tests/integration/test_plugin_hot_loader_integration.py`（30
+    测试）— PluginHotLoader + Dispatcher：插件发现、注册、热重载、
+    非热重载模式、禁用模式、多插件、边界条件（7 个测试类）。
+- **Bug 修复**：`scripts/collaboration/judge_agent.py` —
+  `confidence_threshold` 参数在 `__init__` 中接受，但 `judge()` 调用
+  `_filter_by_confidence_with_decisions()` 时未传递，始终用默认值
+  0.7。已修复为传递 `self.confidence_threshold`。33 个现有单元测试
+  验证无回归。
+- **发现的 Bug（未修复 — 标记后续处理）**：
+  1. `SmartCrusher._inject_trace_id` 生成 `retrieve full: trace_id=X`，
+     但 `Scratchpad._DEVSQUAD_RETRIEVE_PATTERN` 只匹配
+     `devsquad_retrieve(trace_id=X, query=Y)` — 标记格式不兼容。
+  2. `ContentCache.invalidate("*")` 对 LLMCache 后端静默无效
+     （`LLMCache.invalidate` 签名不匹配导致 `TypeError` 被吞）。
+  3. `PluginHotLoader._load_plugin_file` 异常捕获范围过窄
+     （`ImportError, AttributeError, RuntimeError, OSError, SyntaxError`）
+     — `create_plugin()` 抛出 `ValueError`/`TypeError` 会传播并
+     导致 dispatcher 崩溃。
+- **结果**：integration 比率 5.1% → 8.9%（+3.8%，572/6401 测试）；
+  contract 比率 2.3% → 2.2%（143/6401 — 数量不变，被总数稀释）。
+  Integration 目标（15%）尚未达成，但单批提升 +3.8%。Contract
+  目标（5%）需要为 CacheProvider/RetryProvider/MemoryProvider 添加
+  专用契约测试文件。
+- **CI 门禁**：ruff 通过、radon cc D+ 通过（judge_agent.py 最大
+  复杂度 A/3）、mypy 0 错误、版本一致性 28/28 通过、159/159 新
+  integration 测试通过。
+
 ## [4.2.0] - 2026-07-22
 
 MINOR 发布：AI 安全 + 共识质量 + 测试覆盖工具。

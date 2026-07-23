@@ -326,7 +326,7 @@ class JudgeAgent:
 
         # Step 3: Confidence filtering
         filter_decisions, post_filter = self._filter_by_confidence_with_decisions(
-            current_findings, finding_ids
+            current_findings, finding_ids, self.confidence_threshold
         )
         decisions.extend(filter_decisions)
         current_findings = post_filter
