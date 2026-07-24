@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5250%2B%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-7400%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V4.2.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -28,7 +28,7 @@
 - **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
 - **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
 
-5250+ tests passing。
+7400+ tests passing。
 
 ### 🎯 快速开始（5种使用方式）
 
@@ -135,7 +135,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ### 🏗️ 五大能力域架构（V4.1.0）
 
-DevSquad 的 185+ 模块组织为 **5 大能力域**，各域解决特定问题：
+DevSquad 的 235 模块组织为 **5 大能力域**，各域解决特定问题：
 
 | 能力域 | 核心模块 | 解决问题 |
 |--------|---------|---------|
@@ -378,7 +378,7 @@ python scripts/cli.py lifecycle ship -t "v2.0发布"
 ```
 DevSquad/
 ├── scripts/
-│   ├── collaboration/          # 核心协作模块 (185+ 个)
+│   ├── collaboration/          # 核心协作模块 (235 个)
 │   │   ├── dispatcher.py       # 统一调度入口
 │   │   ├── coordinator.py      # 全局编排器
 │   │   ├── worker.py           # Worker执行者
@@ -391,7 +391,7 @@ DevSquad/
 │   ├── cli.py                 # 命令行界面
 │   ├── dashboard.py           # Streamlit仪表板
 │   └── api_server.py          # FastAPI服务器
-├── tests/                     # 测试套件 (5250+ CI / 66 e2e, 5355 collected)
+├── tests/                     # 测试套件 (7400+ CI / 242 e2e, 7402 collected)
 ├── docs/                      # 文档
 ├── SKILL.md                   # Skill定义
 ├── CHANGELOG.md              # 变更日志

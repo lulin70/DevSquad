@@ -81,7 +81,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
 - **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
 
-5250+ tests passing。
+7400+ tests passing。
 
 ---
 
@@ -173,7 +173,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ## 🏗️ Five Capability Domains (Architecture Overview)
 
-DevSquad's 185+ modules are organized into **5 capability domains**, each solving a specific problem:
+DevSquad's 235 modules are organized into **5 capability domains**, each solving a specific problem:
 
 ### 🎯 Domain 1: Task Orchestration Engine (Core)
 
@@ -527,7 +527,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (5250+ tests passing)
+# Run all tests (7400+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -544,7 +544,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 5250+ CI tests / 66 e2e (5355 collected)**
+**Total: 7400+ CI tests / 242 e2e (7402 collected)**
 
 Run by priority:
 ```bash
