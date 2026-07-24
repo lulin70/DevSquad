@@ -10,22 +10,40 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] - 2026-07-23
 
 This release advances V4.2+ and V4.3+ Roadmap items while keeping the version
-in the 4.2.x series. Test pyramid gaps closed, 3 V4.2+ Roadmap items (P2-1/P2-2/P2-4)
-and 3 V4.3+ Roadmap items (P2-UI-1/P2-UI-2/P2-UI-3) implemented.
+in the 4.2.x series. Test pyramid gaps closed (all layers within target ranges),
+3 V4.2+ Roadmap items (P2-1/P2-2/P2-4) and 3 V4.3+ Roadmap items
+(P2-UI-1/P2-UI-2/P2-UI-3) implemented, 4 source bugs found and fixed by
+integration tests.
 
-### Added — Test Pyramid Lift (Phase 1: Contract + Phase 2: Integration)
+### Added — Test Pyramid Lift (Phase 1: Contract + Phase 2: Integration + Phase 3: Gap Closure)
 
-- **Contract tests**: 199 → 371 (+172 tests, 3.06% → 5.09% of total)
-  - Extended TechDebtProvider/UETestProvider/LLMBackend/PermissionGuard contract
-    tests with Happy/Error/Boundary/Config/Integration dimensions
-- **Integration tests**: 575 → 957 (+382 tests, 8.84% → 13.13% of total)
-  - 9 new integration test files covering previously uncovered module chains:
-    CodeKnowledgeGraph+CodeGraphQuery+CodeGraphStorage, EventBus+DispatchHooks+
-    ResultAssembler, SkillRegistry+Skillifier+RoleSkillLoader, MemoryBridge+
-    MCEAdapter+LearnedRuleStore, LLMCache+LLMRetry+UsageTracker, FeedbackControl
-    Loop+PerformanceFingerprint+SimilarTaskRecommender, UnifiedGateEngine+
-    VerificationGate+LifecycleProtocol, PromptAssembler+AntiRationalizationEngine+
-    LearnedRuleStore, WorkflowEngine+CheckpointManager+IntentWorkflowMapper
+- **Contract tests**: 199 → 384 (+185 tests, 3.06% → 5.2% of total) ✅ target met
+  - Phase 1: Extended TechDebtProvider/UETestProvider/LLMBackend/PermissionGuard
+    contract tests with Happy/Error/Boundary/Config/Integration dimensions
+  - Phase 3: Added 69 T6_ boundary/concurrency/stress tests across all 8
+    contract test files (concurrent access, TTL edge values, empty inputs,
+    degradation mode availability, large data volume)
+- **Integration tests**: 575 → 1117 (+542 tests, 8.84% → 15.1% of total) ✅ target met
+  - Phase 2: 9 new integration test files covering previously uncovered module chains
+  - Phase 3: 4 more integration test files closing the 15% gap:
+    PerformanceMonitor+UsageTracker+HistoryManager, Dispatcher+ConsensusEngine+
+    Worker, DualLayerContextManager+MemoryBridge+MCEAdapter, TwoStageReviewGate+
+    SeverityRouter+JudgeAgent
+- **Test pyramid status**: healthy (all layers within target ranges)
+
+### Fixed — 4 Source Bugs Found by Integration Tests
+
+- **memory_serializer.py**: `_is_capturable_finding` case-sensitivity bug —
+  `EntryType.FINDING.value` is lowercase `"finding"` but code compared against
+  uppercase `"FINDING"`, causing `capture_execution()` to skip all real findings
+- **memory_index.py**: `add_to_index` did not set `_index_built` flag — only
+  `build_index()` set it, so incremental writes were never searchable
+- **memory_query.py**: `_load_any_type` did not normalize type-specific fields —
+  episodic storage uses `finding` key but `MemoryItem.from_dict()` expects
+  `title`/`content`, causing `KeyError` on recall
+- **history_manager.py**: SQLite `check_same_thread=True` defeated WAL mode —
+  WAL was configured for concurrency but default threading check blocked all
+  cross-thread access
 
 ### Added — V4.2+ Roadmap P2-4: Pre-commit Hook Version Lock
 

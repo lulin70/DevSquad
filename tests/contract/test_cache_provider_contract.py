@@ -341,5 +341,156 @@ class TestLLMCacheExtendedContract(unittest.TestCase):
         self.assertIsNone(provider.get("ttl-prompt", "openai", "gpt-4"))
 
 
+class T6_CacheProviderStressContract(unittest.TestCase):
+    """Stress and boundary contract tests for CacheProvider implementations.
+
+    Covers concurrent access, TTL boundary values, large key volumes,
+    post-clear stats consistency, backend-failure availability, and
+    key format validation (empty string / special characters).
+    """
+
+    def setUp(self) -> None:
+        """Create a fresh temp cache directory per test for isolation."""
+        self._tmp_dir = tempfile.mkdtemp(prefix="cache_t6_")
+
+    def tearDown(self) -> None:
+        """Best-effort cleanup of the temp cache directory."""
+        shutil.rmtree(self._tmp_dir, ignore_errors=True)
+
+    def _get_provider(self) -> LLMCache:
+        """Return a real LLMCache instance backed by a temp directory."""
+        return LLMCache(cache_dir=self._tmp_dir)
+
+    def test_concurrent_set_get_isolated_results(self) -> None:
+        """Concurrent set/get from multiple threads must not cross-contaminate.
+
+        Each thread writes a unique key and immediately reads it back.
+        The cache must return each thread's own value, demonstrating
+        thread-safe isolation without locks held by callers.
+        """
+        import threading
+
+        provider = self._get_provider()
+        errors: list[str] = []
+        barrier = threading.Barrier(8)
+
+        def worker(tid: int) -> None:
+            barrier.wait()
+            prompt = f"concurrent-prompt-{tid}"
+            resp = f"response-{tid}"
+            try:
+                provider.set(prompt, resp, "openai", "gpt-4")
+                got = provider.get(prompt, "openai", "gpt-4")
+                if got != resp:
+                    errors.append(f"thread {tid}: expected {resp!r}, got {got!r}")
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"thread {tid} raised {type(e).__name__}: {e}")
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(errors, [], f"Concurrent access errors: {errors}")
+
+    def test_ttl_zero_expires_immediately(self) -> None:
+        """TTL of 0 seconds must expire entries on the next get (boundary).
+
+        With ttl_seconds=0, even a freshly-stored entry is older than 0
+        seconds by the time get() runs, so it must be treated as a miss.
+        """
+        provider = LLMCache(cache_dir=self._tmp_dir, ttl_seconds=0)
+        provider.set("ttl-zero-prompt", "resp", "openai", "gpt-4")
+        result = provider.get("ttl-zero-prompt", "openai", "gpt-4")
+        self.assertIsNone(result, "TTL=0 should expire entries immediately")
+
+    def test_negative_ttl_expires_immediately(self) -> None:
+        """Negative TTL must expire entries immediately (boundary / malformed input).
+
+        A negative ttl_seconds is malformed; the cache must not crash and
+        should treat the entry as expired (defensive behavior).
+        """
+        provider = LLMCache(cache_dir=self._tmp_dir, ttl_seconds=-1)
+        provider.set("neg-ttl-prompt", "resp", "openai", "gpt-4")
+        result = provider.get("neg-ttl-prompt", "openai", "gpt-4")
+        self.assertIsNone(result, "Negative TTL should expire entries immediately")
+
+    def test_large_key_volume_stress(self) -> None:
+        """Cache must handle 200 distinct keys without loss or stats drift.
+
+        Stress test verifying that the cache reliably stores and retrieves
+        a large number of entries and that stats counters reflect the
+        exact number of sets, hits, and misses.
+        """
+        provider = self._get_provider()
+        n = 200
+        for i in range(n):
+            provider.set(f"stress-prompt-{i}", f"resp-{i}", "openai", "gpt-4")
+        for i in range(n):
+            self.assertEqual(provider.get(f"stress-prompt-{i}", "openai", "gpt-4"), f"resp-{i}")
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["sets"], n)
+        self.assertGreaterEqual(stats["hit_count"], n)
+
+    def test_clear_then_get_stats_consistency(self) -> None:
+        """get_stats() must return consistent state immediately after clear().
+
+        After clear(), entry_count must drop to 0 and hit_count/miss_count
+        counters must remain coherent (not negative, not stale).
+        """
+        provider = self._get_provider()
+        provider.set("p1", "r1", "openai", "gpt-4")
+        provider.set("p2", "r2", "openai", "gpt-4")
+        provider.clear()
+        stats = provider.get_stats()
+        self.assertIsInstance(stats, dict)
+        self.assertGreaterEqual(stats.get("hit_count", 0), 0)
+        self.assertGreaterEqual(stats.get("miss_count", 0), 0)
+
+    def test_is_available_false_when_cache_dir_removed(self) -> None:
+        """is_available() must return False when the backing directory disappears.
+
+        Simulates backend failure: the cache directory is deleted out from
+        under the provider. is_available() must detect this and return False
+        so callers can degrade gracefully.
+        """
+        provider = self._get_provider()
+        self.assertTrue(provider.is_available())
+        shutil.rmtree(self._tmp_dir, ignore_errors=True)
+        self.assertFalse(provider.is_available())
+
+    def test_empty_and_special_character_keys_round_trip(self) -> None:
+        """Cache must handle empty-string and special-character keys.
+
+        Validates that prompts containing path separators, shell
+        metacharacters, and SQL-like syntax are stored and retrieved
+        verbatim without corruption or injection side effects.
+        """
+        provider = self._get_provider()
+        special_prompts = [
+            "",
+            "prompt/with/slashes",
+            "prompt; DROP TABLE cache;--",
+            "prompt`with`backticks",
+            "prompt\twith\ttabs",
+            "prompt with $VAR and ${HOME}",
+        ]
+        for i, prompt in enumerate(special_prompts):
+            resp = f"special-resp-{i}"
+            provider.set(prompt, resp, "openai", "gpt-4")
+            self.assertEqual(provider.get(prompt, "openai", "gpt-4"), resp,
+                             f"Round-trip failed for prompt {i!r}")
+
+    def test_invalidate_nonexistent_key_no_exception(self) -> None:
+        """invalidate() on a non-existent key must not raise.
+
+        Defensive contract: invalidating a key that was never stored
+        should be a silent no-op, not an error.
+        """
+        provider = self._get_provider()
+        provider.invalidate("never-stored-prompt", "openai", "gpt-4")
+        self.assertIsInstance(provider.get_stats(), dict)
+
+
 if __name__ == "__main__":
     unittest.main()

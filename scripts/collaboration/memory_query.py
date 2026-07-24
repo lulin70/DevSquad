@@ -368,6 +368,7 @@ class MemoryQueryMixin:
         if data is not None:
             if "memory_type" not in data:
                 data["memory_type"] = guessed.value
+            self._ensure_memory_item_fields(data)
             return cast(dict, data)
         for mtype in MemoryType:
             if mtype != guessed:
@@ -375,5 +376,31 @@ class MemoryQueryMixin:
                 if data is not None:
                     if "memory_type" not in data:
                         data["memory_type"] = mtype.value
+                    self._ensure_memory_item_fields(data)
                     return cast(dict, data)
         return None
+
+    @staticmethod
+    def _ensure_memory_item_fields(data: dict) -> None:
+        """Populate title/content from type-specific fields for MemoryItem.from_dict.
+
+        Each memory type persists type-specific fields (e.g. episodic stores
+        'finding', analysis stores 'problem'/'root_cause'). MemoryItem.from_dict
+        expects generic 'title' and 'content' keys; this method bridges the gap.
+        """
+        if "title" not in data:
+            if "finding" in data:
+                data["title"] = str(data["finding"])[:60]
+            elif "name" in data:
+                data["title"] = str(data["name"])
+            elif "problem" in data:
+                data["title"] = str(data["problem"])[:60]
+            else:
+                data["title"] = ""
+        if "content" not in data:
+            if "finding" in data:
+                data["content"] = str(data["finding"])
+            elif "root_cause" in data:
+                data["content"] = str(data["root_cause"])
+            else:
+                data["content"] = ""

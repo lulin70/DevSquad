@@ -417,5 +417,171 @@ class TestUETestFrameworkExtendedContract(unittest.TestCase):
         self.assertAlmostEqual(d["overall_ue_score"], 0.78, places=3)
 
 
+class T6_UETestProviderBoundaryContract(unittest.TestCase):
+    """Boundary and stress contract tests for UETestProvider implementations.
+
+    Covers empty-scope plan generation, empty-step journey validation,
+    empty-data usability assessment, dependency-missing availability,
+    concurrent plan generation safety, and plan format validation.
+    """
+
+    def _get_framework(self) -> Any:
+        """Return a fresh UETestFramework with no LLM backend (rule-based)."""
+        from scripts.collaboration.ue_test_framework import UETestFramework
+        return UETestFramework(llm_backend=None)
+
+    def _make_persona(self) -> Any:
+        """Create a minimal persona for journey tests."""
+        from scripts.collaboration.ue_test_framework import UETestFramework
+        fw = UETestFramework()
+        return fw.define_persona(
+            name="test-user", tech_level="intermediate",
+            goals=["complete task"], frustrations=["slow UI"],
+        )
+
+    def test_generate_ue_test_plan_empty_scope(self) -> None:
+        """generate_ue_test_plan with empty-string scope must produce valid plan.
+
+        Boundary: an empty project description must still yield a plan
+        with all 10 heuristic checks and accessibility checks populated.
+        """
+        from scripts.collaboration.ue_test_framework_base import UETestPlan
+        fw = self._get_framework()
+        plan = fw.generate_ue_test_plan("")
+        self.assertIsInstance(plan, UETestPlan)
+        self.assertEqual(plan.project, "")
+        self.assertEqual(len(plan.heuristic_checks), 10)
+        self.assertGreaterEqual(len(plan.accessibility_checks), 10)
+
+    def test_validate_user_journey_empty_steps(self) -> None:
+        """validate_user_journey with zero steps must not crash.
+
+        Boundary: a journey with an empty steps list must produce a
+        JourneyValidation without ZeroDivisionError. completion_rate
+        must be handled defensively (0.0 when steps_total=0).
+        """
+        from scripts.collaboration.ue_test_framework import UserJourney
+        from scripts.collaboration.ue_test_framework_base import JourneyValidation
+        fw = self._get_framework()
+        persona = self._make_persona()
+        journey = UserJourney(name="empty-journey", persona=persona, steps=[])
+        result = fw.validate_user_journey(journey, {"steps_completed": 0, "steps_total": 0})
+        self.assertIsInstance(result, JourneyValidation)
+        self.assertEqual(result.journey_name, "empty-journey")
+
+    def test_assess_usability_empty_description(self) -> None:
+        """assess_usability with an empty description must not crash.
+
+        Boundary: an empty interface description must still produce a
+        UsabilityReport with all 10 heuristics and a valid overall_score.
+        """
+        from scripts.collaboration.ue_test_framework_base import UsabilityReport
+        fw = self._get_framework()
+        report = fw.assess_usability("")
+        self.assertIsInstance(report, UsabilityReport)
+        self.assertGreaterEqual(len(report.heuristics), 10)
+        self.assertGreaterEqual(report.overall_score, 0.0)
+        self.assertLessEqual(report.overall_score, 1.0)
+
+    def test_framework_missing_is_available_method(self) -> None:
+        """UETestFramework must NOT have is_available (documented gap).
+
+        Boundary: documents that the real implementation lacks
+        is_available(). When this gap is fixed, this test must be
+        updated to verify full Protocol compliance.
+        """
+        from scripts.collaboration.ue_test_framework import UETestFramework
+        self.assertFalse(
+            hasattr(UETestFramework, "is_available"),
+            "UETestFramework now has is_available() — update this test",
+        )
+
+    def test_concurrent_generate_ue_test_plan_safety(self) -> None:
+        """Concurrent generate_ue_test_plan calls must be thread-safe.
+
+        Stress: 5 threads generate plans simultaneously. Each must
+        return a valid UETestPlan without crashing or corrupting
+        shared framework state.
+        """
+        import threading
+
+        from scripts.collaboration.ue_test_framework_base import UETestPlan
+        fw = self._get_framework()
+        errors: list[str] = []
+        results: list = []
+
+        def worker(tid: int) -> None:
+            try:
+                plan = fw.generate_ue_test_plan(f"project-{tid}")
+                results.append(plan)
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"thread {tid} raised {type(e).__name__}: {e}")
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(errors, [], f"Concurrent generate errors: {errors}")
+        self.assertEqual(len(results), 5)
+        for plan in results:
+            self.assertIsInstance(plan, UETestPlan)
+
+    def test_plan_format_has_all_required_fields(self) -> None:
+        """UETestPlan must contain all required fields per Protocol.
+
+        Format validation: the plan must include heuristic_checks,
+        accessibility_checks, journey_tests, persona_scenarios,
+        error_recovery_tests, and cognitive_load_assessment.
+        """
+        fw = self._get_framework()
+        plan = fw.generate_ue_test_plan("format validation project")
+        d = plan.to_dict()
+        required_fields = [
+            "heuristic_checks",
+            "accessibility_checks",
+            "journey_tests",
+            "persona_scenarios",
+            "error_recovery_tests",
+            "cognitive_load_assessment",
+        ]
+        for field in required_fields:
+            self.assertIn(field, d, f"Plan missing required field: {field}")
+
+    def test_validate_user_journey_all_steps_zero_actual(self) -> None:
+        """validate_user_journey with all-zero actual_results must not crash.
+
+        Boundary: actual_results with steps_completed=0 and steps_total=0
+        must produce a valid validation without division-by-zero errors.
+        """
+        fw = self._get_framework()
+        from scripts.collaboration.ue_test_framework import (
+            JourneyStep,
+            UserJourney,
+        )
+        persona = self._make_persona()
+        steps = [
+            JourneyStep("step1", "result1", "recover1", 10.0),
+            JourneyStep("step2", "result2", "recover2", 20.0),
+        ]
+        journey = UserJourney(name="zero-actual", persona=persona, steps=steps)
+        result = fw.validate_user_journey(journey, {
+            "steps_completed": 0, "steps_total": 0,
+            "time_used_seconds": 0.0, "frustration_events": 0,
+        })
+        self.assertEqual(result.completion_rate, 0.0)
+
+    def test_assess_usability_whitespace_only_description(self) -> None:
+        """assess_usability with whitespace-only description must not crash.
+
+        Boundary: a description containing only spaces/newlines must be
+        treated as empty and produce a valid report.
+        """
+        fw = self._get_framework()
+        report = fw.assess_usability("   \n\t  ")
+        self.assertGreaterEqual(report.overall_score, 0.0)
+        self.assertLessEqual(report.overall_score, 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -342,5 +342,182 @@ class TestRetryBaseContract(unittest.TestCase):
             self.assertIn(key, stats, f"Missing stats key: {key}")
 
 
+class T6_RetryProviderBoundaryContract(unittest.TestCase):
+    """Boundary and accuracy contract tests for RetryProvider implementations.
+
+    Covers zero-retry behavior, last-attempt success, total backend
+    failure, degraded-mode availability, stats accuracy, and exception
+    type filtering (only retryable exceptions trigger retries).
+    """
+
+    def _get_null_provider(self) -> NullRetryProvider:
+        """Return a NullRetryProvider (degraded, no actual retry)."""
+        return NullRetryProvider()
+
+    def _get_manager(self) -> Any:
+        """Return a fresh LLMRetryManager for real retry-behavior tests."""
+        from scripts.collaboration.llm_retry import LLMRetryManager
+        return LLMRetryManager()
+
+    def _fast_config(self, max_retries: int = 3) -> Any:
+        """Return a RetryConfig with zero-delay backoff for fast tests."""
+        from scripts.collaboration.llm_retry_base import RetryConfig
+        return RetryConfig(
+            max_retries=max_retries,
+            initial_delay=0.0,
+            max_delay=0.0,
+            exponential_base=1.0,
+            jitter=False,
+        )
+
+    def test_null_retry_zero_max_attempts_still_executes(self) -> None:
+        """NullRetryProvider must execute the function even with max_attempts=0.
+
+        The null provider ignores max_attempts (no retry loop), but must
+        still call the function once and return its result. This verifies
+        the zero-retry boundary does not skip execution entirely.
+        """
+        provider = self._get_null_provider()
+        result = provider.retry_with_fallback(lambda: 42, max_attempts=0)
+        self.assertEqual(result, 42)
+
+    def test_manager_last_attempt_succeeds(self) -> None:
+        """LLMRetryManager must succeed when the final attempt passes.
+
+        Function fails on attempts 1..N-1 and succeeds on attempt N.
+        The manager must retry through failures and return the final
+        successful result without raising.
+        """
+        manager = self._get_manager()
+        config = self._fast_config(max_retries=3)
+        call_count = [0]
+
+        def flaky_func() -> str:
+            call_count[0] += 1
+            if call_count[0] < 3:
+                raise ConnectionError("connection timeout")
+            return "success-on-3rd"
+
+        result = manager.retry_with_fallback(
+            flaky_func, args=(), kwargs={}, config=config,
+        )
+        self.assertEqual(result, "success-on-3rd")
+        self.assertEqual(call_count[0], 3)
+        stats = manager.get_stats()
+        self.assertGreaterEqual(stats["retries"], 2)
+
+    def test_manager_all_attempts_fail_raises_last_error(self) -> None:
+        """LLMRetryManager must raise the last error when all attempts fail.
+
+        With no fallback backends, exhausting all retries must re-raise
+        the final exception so callers can handle total failure.
+        """
+        manager = self._get_manager()
+        config = self._fast_config(max_retries=2)
+
+        def always_fail() -> None:
+            raise ConnectionError("connection timeout")
+
+        with self.assertRaises(ConnectionError):
+            manager.retry_with_fallback(always_fail, args=(), kwargs={}, config=config)
+        stats = manager.get_stats()
+        self.assertGreaterEqual(stats["total_calls"], 1)
+
+    def test_null_provider_is_available_false_in_degraded_mode(self) -> None:
+        """NullRetryProvider.is_available() must return False (degraded).
+
+        In degraded mode, the retry provider reports unavailable so
+        callers know retries are not actually being attempted.
+        """
+        provider = self._get_null_provider()
+        self.assertFalse(provider.is_available())
+        # Must remain False even after multiple calls (no state change)
+        provider.retry_with_fallback(lambda: 1)
+        self.assertFalse(provider.is_available())
+
+    def test_null_provider_get_stats_accuracy_mixed_calls(self) -> None:
+        """NullRetryProvider.get_stats() must accurately count success/failure.
+
+        After a sequence of 3 successful calls and 2 failed-with-fallback
+        calls, stats must show total_attempts=5, success_count=3,
+        failure_count=2, fallback_count=2.
+        """
+        provider = self._get_null_provider()
+        # 3 successes
+        provider.retry_with_fallback(lambda: "ok1")
+        provider.retry_with_fallback(lambda: "ok2")
+        provider.retry_with_fallback(lambda: "ok3")
+
+        # 2 failures with fallback
+        def fail() -> None:
+            raise RuntimeError("fail")
+
+        provider.retry_with_fallback(fail, fallback=lambda: "fb1")
+        provider.retry_with_fallback(fail, fallback=lambda: "fb2")
+
+        stats = provider.get_stats()
+        self.assertEqual(stats["total_attempts"], 5)
+        self.assertEqual(stats["success_count"], 3)
+        self.assertEqual(stats["failure_count"], 2)
+        self.assertEqual(stats["fallback_count"], 2)
+
+    def test_manager_non_retryable_error_does_not_retry(self) -> None:
+        """LLMRetryManager must NOT retry non-retryable exceptions.
+
+        ValueError without retryable keywords is non-retryable. The
+        manager must raise immediately without incrementing the retries
+        counter, even though max_retries > 1.
+        """
+        manager = self._get_manager()
+        config = self._fast_config(max_retries=3)
+        call_count = [0]
+
+        def raises_value_error() -> None:
+            call_count[0] += 1
+            raise ValueError("invalid argument, not retryable")
+
+        with self.assertRaises(ValueError):
+            manager.retry_with_fallback(
+                raises_value_error, args=(), kwargs={}, config=config,
+            )
+        self.assertEqual(call_count[0], 1, "Non-retryable error must not trigger retries")
+        stats = manager.get_stats()
+        self.assertEqual(stats["retries"], 0)
+
+    def test_null_provider_fallback_not_called_on_success(self) -> None:
+        """NullRetryProvider must not invoke fallback when func succeeds.
+
+        Verifies the success path: fallback is only a safety net and
+        must remain untouched when the primary function returns normally.
+        """
+        provider = self._get_null_provider()
+        fallback_calls = [0]
+
+        def fallback() -> str:
+            fallback_calls[0] += 1
+            return "fallback"
+
+        result = provider.retry_with_fallback(lambda: "primary-ok", fallback=fallback)
+        self.assertEqual(result, "primary-ok")
+        self.assertEqual(fallback_calls[0], 0)
+
+    def test_null_provider_stats_avg_attempts_always_one(self) -> None:
+        """NullRetryProvider.avg_attempts must always be 1.0 (no retry).
+
+        Even after a mix of successes and failures, the null provider
+        never retries, so avg_attempts must remain exactly 1.0.
+        """
+        provider = self._get_null_provider()
+        provider.retry_with_fallback(lambda: 1)
+        provider.retry_with_fallback(lambda: 2)
+
+        def fail() -> None:
+            raise RuntimeError("fail")
+
+        provider.retry_with_fallback(fail, fallback=lambda: "fb")
+        stats = provider.get_stats()
+        self.assertEqual(stats["avg_attempts"], 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

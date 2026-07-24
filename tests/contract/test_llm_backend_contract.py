@@ -341,5 +341,145 @@ class TestBackendAvailabilityContract(unittest.TestCase):
         self.assertFalse(result)
 
 
+class T6_LLMBackendBoundaryContract(unittest.TestCase):
+    """Boundary and stress contract tests for LLMBackend implementations.
+
+    Covers empty-string prompts, very-long prompts, special-character
+    prompts, streaming interruption recovery, timeout configuration, and
+    model-name validation across MockBackend and TraeBackend.
+    """
+
+    def _get_mock(self) -> MockBackend:
+        return MockBackend()
+
+    def _get_trae(self) -> TraeBackend:
+        return TraeBackend()
+
+    def test_mock_generate_empty_string_prompt(self) -> None:
+        """MockBackend.generate with empty-string prompt must not crash.
+
+        Boundary: an empty prompt must still produce a valid mock
+        response containing the [MOCK MODE] marker and '0 chars'.
+        """
+        backend = self._get_mock()
+        result = backend.generate("")
+        self.assertIsInstance(result, str)
+        self.assertIn("[MOCK MODE]", result)
+        self.assertIn("0 chars", result)
+
+    def test_mock_generate_very_long_prompt(self) -> None:
+        """MockBackend.generate must handle a 100KB prompt without crashing.
+
+        Stress: a 100,000-character prompt must be processed and the
+        response must report the correct length.
+        """
+        backend = self._get_mock()
+        long_prompt = "x" * 100_000
+        result = backend.generate(long_prompt)
+        self.assertIn("100000 chars", result)
+
+    def test_mock_generate_special_characters_prompt(self) -> None:
+        """MockBackend.generate must handle special characters in prompts.
+
+        Boundary: prompts with null bytes, unicode control chars, SQL
+        injection syntax, and shell metacharacters must not crash the
+        backend or corrupt the response.
+        """
+        backend = self._get_mock()
+        special_prompts = [
+            "prompt\x00with\x00nulls",
+            "prompt; DROP TABLE users;--",
+            "prompt`echo hacked`",
+            "prompt\n\t\rwith\tcontrol",
+            "prompt with $HOME and ${PATH}",
+            "prompt with emoji 🚀🎉 and unicode 中文",
+        ]
+        for prompt in special_prompts:
+            result = backend.generate(prompt)
+            self.assertIsInstance(result, str)
+            self.assertIn("[MOCK MODE]", result)
+
+    def test_trae_generate_stream_interruption_recovery(self) -> None:
+        """TraeBackend.generate_stream must recover after partial consumption.
+
+        Streaming boundary: consuming part of a generator and then
+        abandoning it must not prevent subsequent generate_stream calls
+        from working correctly.
+        """
+        backend = self._get_trae()
+        gen1 = backend.generate_stream("first prompt")
+        next(gen1)  # consume one chunk
+        gen1.close()  # abandon the generator
+        # Subsequent call must work normally
+        chunks = list(backend.generate_stream("second prompt"))
+        self.assertEqual(chunks, ["second prompt"])
+
+    def test_openai_backend_timeout_configurable(self) -> None:
+        """OpenAIBackend must accept and store a custom timeout value.
+
+        Timeout boundary: the timeout parameter must be stored on the
+        instance so callers can configure per-backend timeouts.
+        """
+        from scripts.collaboration.llm_backend import OpenAIBackend
+        backend = OpenAIBackend(api_key="test-key", timeout=42.0)
+        self.assertEqual(backend.timeout, 42.0)
+
+    def test_anthropic_backend_timeout_configurable(self) -> None:
+        """AnthropicBackend must accept and store a custom timeout value.
+
+        Timeout boundary: the timeout parameter must be stored on the
+        instance so callers can configure per-backend timeouts.
+        """
+        from scripts.collaboration.llm_backend import AnthropicBackend
+        backend = AnthropicBackend(api_key="test-key", timeout=99.0)
+        self.assertEqual(backend.timeout, 99.0)
+
+    def test_openai_backend_custom_model_name(self) -> None:
+        """OpenAIBackend must accept and store a custom model name.
+
+        Model-name validation: the model parameter must be stored on the
+        instance for use in API calls.
+        """
+        from scripts.collaboration.llm_backend import OpenAIBackend
+        backend = OpenAIBackend(api_key="test-key", model="gpt-4o-mini")
+        self.assertEqual(backend.model, "gpt-4o-mini")
+
+    def test_anthropic_backend_custom_model_name(self) -> None:
+        """AnthropicBackend must accept and store a custom model name.
+
+        Model-name validation: the model parameter must be stored on the
+        instance for use in API calls.
+        """
+        from scripts.collaboration.llm_backend import AnthropicBackend
+        backend = AnthropicBackend(api_key="test-key", model="claude-3-opus")
+        self.assertEqual(backend.model, "claude-3-opus")
+
+    def test_trae_generate_empty_prompt_returns_empty(self) -> None:
+        """TraeBackend.generate with empty prompt must return empty string.
+
+        Boundary: the passthrough backend must return '' for an empty
+        prompt, preserving the input verbatim.
+        """
+        backend = self._get_trae()
+        self.assertEqual(backend.generate(""), "")
+
+    def test_mock_generate_stream_partial_then_full_consumption(self) -> None:
+        """MockBackend.generate_stream must support partial then full consumption.
+
+        Streaming boundary: two independent generate_stream calls must
+        each produce complete results, even if a previous generator was
+        only partially consumed.
+        """
+        backend = self._get_mock()
+        gen1 = backend.generate_stream("partial")
+        first_chunk = next(gen1)
+        self.assertIsInstance(first_chunk, str)
+        gen1.close()
+        # New independent call must yield all chunks
+        chunks = list(backend.generate_stream("complete"))
+        full = "".join(chunks)
+        self.assertIn("[MOCK MODE]", full)
+
+
 if __name__ == "__main__":
     unittest.main()

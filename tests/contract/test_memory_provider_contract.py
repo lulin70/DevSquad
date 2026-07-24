@@ -498,5 +498,128 @@ class TestMCEAdapterExtendedContract(unittest.TestCase):
         self.assertIsInstance(result, list)
 
 
+class T6_MemoryProviderBoundaryContract(unittest.TestCase):
+    """Boundary and edge-case contract tests for MemoryProvider implementations.
+
+    Covers empty-content rules, non-existent rule updates, double-deletes,
+    empty-query matching, empty-rule-set formatting, and pagination
+    boundary conditions.
+    """
+
+    def _get_provider(self) -> NullMemoryProvider:
+        """Return a NullMemoryProvider (degraded) for null-specific tests."""
+        return NullMemoryProvider()
+
+    def test_add_rule_empty_content_no_exception(self) -> None:
+        """add_rule with an empty rule string must not raise.
+
+        Boundary: an empty rule string is malformed input, but the
+        provider must accept it silently (no-op for Null) rather than
+        crashing the caller.
+        """
+        provider = self._get_provider()
+        provider.add_rule(user_id="test", rule="")
+        provider.add_rule(user_id="test", rule="", metadata={})
+        self.assertIsInstance(provider.get_stats(), dict)
+
+    def test_update_rule_nonexistent_id_no_exception(self) -> None:
+        """update_rule on a non-existent rule_id must not raise.
+
+        Boundary: updating a rule that was never added should be a
+        silent no-op, not an error. The provider must remain functional.
+        """
+        provider = self._get_provider()
+        provider.update_rule(user_id="test", rule_id="nonexistent-999", rule="updated")
+        self.assertIsInstance(provider.get_stats(), dict)
+
+    def test_delete_rule_already_deleted_no_exception(self) -> None:
+        """delete_rule on an already-deleted rule must not raise.
+
+        Idempotency: deleting the same rule_id twice must be safe.
+        The second delete is a no-op, not a KeyError or exception.
+        """
+        provider = self._get_provider()
+        provider.delete_rule(user_id="test", rule_id="r1")
+        provider.delete_rule(user_id="test", rule_id="r1")
+        provider.delete_rule(user_id="test", rule_id="r1")
+        self.assertIsInstance(provider.get_stats(), dict)
+
+    def test_match_rules_empty_query_returns_list(self) -> None:
+        """match_rules with an empty task description must return a list.
+
+        Boundary: an empty query string must not crash the matcher.
+        The result must be a list (empty for Null provider).
+        """
+        provider = self._get_provider()
+        result = provider.match_rules(task_description="", user_id="test")
+        self.assertIsInstance(result, list)
+
+    def test_match_rules_max_rules_zero_returns_empty(self) -> None:
+        """match_rules with max_rules=0 must return an empty list.
+
+        Boundary: requesting zero rules is a valid edge case. The
+        provider must return a list (empty) without raising.
+        """
+        provider = self._get_provider()
+        result = provider.match_rules(
+            task_description="design API", user_id="test", max_rules=0,
+        )
+        self.assertIsInstance(result, list)
+
+    def test_format_rules_as_prompt_empty_rule_set(self) -> None:
+        """format_rules_as_prompt with an empty rule list must return ''.
+
+        Boundary: no rules means nothing to inject into the prompt.
+        The result must be an empty string, not None or an error.
+        """
+        provider = self._get_provider()
+        result = provider.format_rules_as_prompt(rules=[])
+        self.assertEqual(result, "")
+
+    def test_get_rules_large_user_id_no_exception(self) -> None:
+        """get_rules with a very long user_id must not raise.
+
+        Boundary: a 10,000-character user_id stress-tests input
+        handling. The provider must return a list without crashing.
+        """
+        provider = self._get_provider()
+        long_user_id = "u" * 10000
+        result = provider.get_rules(user_id=long_user_id)
+        self.assertIsInstance(result, list)
+
+    def test_get_rules_with_none_context_no_exception(self) -> None:
+        """get_rules with context=None must not raise.
+
+        Boundary: context is optional. Passing None explicitly must
+        behave the same as omitting the argument.
+        """
+        provider = self._get_provider()
+        result = provider.get_rules(user_id="test", context=None)
+        self.assertIsInstance(result, list)
+
+    def test_mce_adapter_parse_rule_empty_string(self) -> None:
+        """MCEAdapter._parse_rule_string must handle an empty string.
+
+        Boundary: empty input must not crash the parser. It should
+        return a dict with default rule_type and an empty action.
+        """
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        result = MCEAdapter._parse_rule_string("")
+        self.assertIsInstance(result, dict)
+        self.assertIn("rule_type", result)
+
+    def test_mce_adapter_format_rules_fallback_single_rule(self) -> None:
+        """MCEAdapter._format_rules_fallback must format a single rule.
+
+        Boundary: a single-rule list must produce non-empty output
+        containing the rule type prefix.
+        """
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        rules = [{"rule_type": "always", "action": "Use SSL", "override": False}]
+        result = MCEAdapter._format_rules_fallback(rules)
+        self.assertIn("ALWAYS", result)
+        self.assertIn("Use SSL", result)
+
+
 if __name__ == "__main__":
     unittest.main()

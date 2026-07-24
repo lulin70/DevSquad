@@ -59,8 +59,9 @@ class MemoryIndexer:
         with self._lock:
             self._add_to_index_internal(item)
             self._write_count += 1
-            if self._write_count >= 50 and not self._index_built:
-                pass  # intentional no-op: incremental updates are sufficient; full rebuild deferred
+            # Incremental updates are sufficient for search; mark the index
+            # as built so search() doesn't return empty after add_to_index.
+            self._index_built = True
 
     def _add_to_index_internal(self, item: MemoryItem) -> None:
         mid = item.id

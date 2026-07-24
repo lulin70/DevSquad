@@ -470,5 +470,151 @@ class TestNullMonitorProviderExtendedContract(unittest.TestCase):
             self.assertTrue(Path(report_path).exists())
 
 
+class T6_MonitorProviderBoundaryContract(unittest.TestCase):
+    """Boundary and stress contract tests for MonitorProvider implementations.
+
+    Covers empty-metadata recording, very-long-duration boundary, empty-data
+    report generation, concurrent record safety, cumulative stats
+    consistency, and availability under resource constraints.
+    """
+
+    def _get_provider(self) -> PerformanceMonitor:
+        """Return a real PerformanceMonitor instance for behavior tests."""
+        return PerformanceMonitor(max_history=100)
+
+    def _get_null_provider(self) -> NullMonitorProvider:
+        """Return a NullMonitorProvider (degraded) for null-specific tests."""
+        return NullMonitorProvider()
+
+    def test_record_llm_call_empty_metadata_no_exception(self) -> None:
+        """record_llm_call with metadata=None must not raise.
+
+        Boundary: callers may omit metadata entirely. The monitor must
+        accept None without crashing or requiring a defensive default.
+        """
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True, metadata=None)
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True, metadata={})
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_llm_calls"], 2)
+
+    def test_record_agent_execution_very_long_duration(self) -> None:
+        """record_agent_execution must handle extremely long durations.
+
+        Boundary: a duration of 1e9 seconds (31+ years) must not cause
+        overflow, NaN, or stats corruption. The monitor must record it
+        as-is and report a valid avg_agent_duration.
+        """
+        provider = self._get_provider()
+        provider.record_agent_execution("architect", "long task", 1e9, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_agent_executions"], 1)
+        self.assertIsInstance(stats.get("avg_agent_duration", 0.0), float)
+        self.assertTrue(stats["avg_agent_duration"] > 0)
+
+    def test_generate_report_with_no_data(self) -> None:
+        """generate_report on a fresh monitor must produce a valid file.
+
+        Empty-data boundary: with zero recorded calls, the report must
+        still be written without crashing and contain non-empty content.
+        """
+        provider = self._get_provider()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = str(Path(tmpdir) / "empty_report.md")
+            provider.generate_report(report_path)
+            self.assertTrue(Path(report_path).exists())
+            content = Path(report_path).read_text(encoding="utf-8")
+            self.assertGreater(len(content), 0)
+
+    def test_concurrent_record_llm_call_safety(self) -> None:
+        """Concurrent record_llm_call from multiple threads must be safe.
+
+        Stress: 10 threads each recording 20 LLM calls simultaneously.
+        The monitor must not crash or lose entries; total_llm_calls
+        must reflect all 200 records.
+        """
+        import threading
+
+        provider = self._get_provider()
+        barrier = threading.Barrier(10)
+        errors: list[str] = []
+
+        def worker() -> None:
+            barrier.wait()
+            try:
+                for _ in range(20):
+                    provider.record_llm_call("openai", "gpt-4", 0.5, 100, True)
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"thread raised {type(e).__name__}: {e}")
+
+        threads = [threading.Thread(target=worker) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(errors, [], f"Concurrent record errors: {errors}")
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_llm_calls"], 200)
+
+    def test_get_stats_cumulative_consistency(self) -> None:
+        """get_stats() counts must be monotonically non-decreasing.
+
+        Records 3 calls, snapshots stats, records 2 more, then verifies
+        that total_llm_calls only increases (never decreases) and that
+        avg_llm_duration remains a valid finite float.
+        """
+        import math
+
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+        provider.record_llm_call("openai", "gpt-4", 2.0, 100, True)
+        provider.record_llm_call("openai", "gpt-4", 3.0, 100, True)
+        stats_mid = provider.get_stats()
+        provider.record_llm_call("openai", "gpt-4", 1.5, 100, True)
+        provider.record_llm_call("openai", "gpt-4", 2.5, 100, True)
+        stats_final = provider.get_stats()
+        self.assertGreaterEqual(
+            stats_final["total_llm_calls"], stats_mid["total_llm_calls"],
+        )
+        self.assertFalse(math.isnan(stats_final["avg_llm_duration"]))
+        self.assertFalse(math.isinf(stats_final["avg_llm_duration"]))
+
+    def test_is_available_true_even_with_tiny_history(self) -> None:
+        """PerformanceMonitor.is_available() must return True even with max_history=1.
+
+        Resource-constraint boundary: a monitor configured with the
+        smallest possible history buffer must still report available.
+        The availability contract must not depend on buffer size.
+        """
+        provider = PerformanceMonitor(max_history=1)
+        self.assertTrue(provider.is_available())
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+        self.assertTrue(provider.is_available())
+
+    def test_null_provider_is_available_false_under_any_load(self) -> None:
+        """NullMonitorProvider.is_available() must stay False under load.
+
+        Degraded-mode boundary: recording many calls must not flip the
+        null provider into an available state. It must remain False,
+        signaling that no real monitoring is happening.
+        """
+        provider = self._get_null_provider()
+        for _ in range(50):
+            provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+            provider.record_agent_execution("coder", "task", 1.0, True)
+        self.assertFalse(provider.is_available())
+
+    def test_record_llm_call_zero_token_count(self) -> None:
+        """record_llm_call with token_count=0 must not raise.
+
+        Boundary: a zero-token call (e.g. a cached response or empty
+        completion) must be recorded without error.
+        """
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 0.5, 0, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_llm_calls"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

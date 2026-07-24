@@ -287,7 +287,7 @@ class MemorySerializerMixin:
         entry_type_val = getattr(entry_type, "value", None)
         if not entry_type_val:
             entry_type_val = str(entry_type)
-        if entry_type_val != "FINDING":
+        if entry_type_val.upper() != "FINDING":
             return False
         confidence = getattr(entry, "confidence", 0.8) or 0.8
         return confidence >= 0.7

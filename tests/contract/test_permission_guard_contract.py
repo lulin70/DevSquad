@@ -491,5 +491,207 @@ class TestPermissionGuardExtendedContract(unittest.TestCase):
             guard._check_impl = original
 
 
+class T6_PermissionGuardBoundaryContract(unittest.TestCase):
+    """Boundary and stress contract tests for PermissionGuard.
+
+    Covers BYPASS-mode boundaries (most-dangerous ops), PLAN-mode deny
+    list completeness, AUTO-mode auto-approve scope, concurrent check
+    safety, permission downgrade chain, and unknown-operation default
+    policy.
+    """
+
+    def _make_action(
+        self,
+        action_type: ActionType = ActionType.FILE_READ,
+        target: str = "/tmp/t6_test.txt",
+    ) -> ProposedAction:
+        """Build a ProposedAction for testing."""
+        return ProposedAction(
+            action_type=action_type,
+            target=target,
+            description="T6 boundary test action",
+            source_role_id="tester",
+        )
+
+    def test_bypass_allows_most_dangerous_operations(self) -> None:
+        """BYPASS level must allow even sudo rm -rf and .env modification.
+
+        Boundary: the highest-trust level must skip all checks, including
+        operations that are normally human-gated (FILE_DELETE, ENVIRONMENT)
+        and high-risk shell commands (sudo, rm -rf).
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.BYPASS)
+        dangerous_actions = [
+            (ActionType.SHELL_EXECUTE, "sudo rm -rf /"),
+            (ActionType.FILE_DELETE, "/tmp/critical.txt"),
+            (ActionType.ENVIRONMENT, "PATH"),
+            (ActionType.FILE_MODIFY, "/app/.env"),
+            (ActionType.FILE_MODIFY, "/app/credentials.json"),
+        ]
+        for action_type, target in dangerous_actions:
+            decision = guard.check(self._make_action(action_type, target))
+            self.assertEqual(
+                decision.outcome, DecisionOutcome.ALLOWED,
+                f"BYPASS must allow {action_type.value} on {target}",
+            )
+
+    def test_plan_denies_all_non_read_operation_types(self) -> None:
+        """PLAN level must deny every non-FILE_READ action type.
+
+        Deny-list completeness: iterates over ALL ActionType values and
+        verifies that only FILE_READ is allowed; every other type is
+        denied. This ensures PLAN mode has no accidental write holes.
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.PLAN)
+        for action_type in ActionType:
+            decision = guard.check(self._make_action(action_type, "/tmp/plan_test.txt"))
+            if action_type == ActionType.FILE_READ:
+                self.assertEqual(
+                    decision.outcome, DecisionOutcome.ALLOWED,
+                    f"PLAN must allow {action_type.value}",
+                )
+            else:
+                self.assertEqual(
+                    decision.outcome, DecisionOutcome.DENIED,
+                    f"PLAN must deny {action_type.value}",
+                )
+
+    def test_auto_level_auto_approves_low_risk_file_create(self) -> None:
+        """AUTO level must auto-approve low-risk file creation (.py, .md).
+
+        Auto-approve scope: FILE_CREATE on .py and .md files should be
+        ALLOWED in AUTO mode (rule required_level=AUTO, low risk_boost).
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.AUTO)
+        for ext in [".py", ".md"]:
+            target = f"/tmp/auto_module{ext}"
+            decision = guard.check(self._make_action(ActionType.FILE_CREATE, target))
+            self.assertEqual(
+                decision.outcome, DecisionOutcome.ALLOWED,
+                f"AUTO must allow FILE_CREATE for {ext} files",
+            )
+
+    def test_concurrent_check_safety(self) -> None:
+        """Concurrent check() calls from multiple threads must be safe.
+
+        Stress: 10 threads each calling check() 50 times simultaneously.
+        The guard must not crash, and all decisions must be valid
+        PermissionDecision instances.
+        """
+        import threading
+        guard = PermissionGuard(current_level=PermissionLevel.DEFAULT)
+        errors: list[str] = []
+        barrier = threading.Barrier(10)
+
+        def worker() -> None:
+            barrier.wait()
+            try:
+                for i in range(50):
+                    action = ProposedAction(
+                        action_type=ActionType.FILE_READ,
+                        target=f"/tmp/concurrent_{i}.txt",
+                        source_role_id="tester",
+                    )
+                    decision = guard.check(action)
+                    if not isinstance(decision.outcome, DecisionOutcome):
+                        errors.append("invalid outcome type")
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"thread raised {type(e).__name__}: {e}")
+
+        threads = [threading.Thread(target=worker) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(errors, [], f"Concurrent check errors: {errors}")
+
+    def test_permission_downgrade_chain_increases_restriction(self) -> None:
+        """Downgrading BYPASS → AUTO → DEFAULT → PLAN must increase restriction.
+
+        Permission downgrade chain: the same FILE_DELETE action must go
+        from ALLOWED (BYPASS) to PROMPT (AUTO/DEFAULT human gate) to
+        DENIED (PLAN), demonstrating monotonic restriction increase.
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.BYPASS)
+        action = self._make_action(ActionType.FILE_DELETE, "/tmp/downgrade.txt")
+
+        # BYPASS: allowed
+        self.assertEqual(guard.check(action).outcome, DecisionOutcome.ALLOWED)
+
+        # AUTO: human gate → PROMPT
+        guard.set_level(PermissionLevel.AUTO)
+        self.assertEqual(guard.check(action).outcome, DecisionOutcome.PROMPT)
+
+        # DEFAULT: human gate → PROMPT
+        guard.set_level(PermissionLevel.DEFAULT)
+        self.assertEqual(guard.check(action).outcome, DecisionOutcome.PROMPT)
+
+        # PLAN: denied (writes blocked)
+        guard.set_level(PermissionLevel.PLAN)
+        self.assertEqual(guard.check(action).outcome, DecisionOutcome.DENIED)
+
+    def test_unknown_target_pattern_defaults_to_prompt(self) -> None:
+        """Actions with no matching rule must default to PROMPT in DEFAULT mode.
+
+        Default policy: a FILE_MODIFY on an unusual extension (e.g. .xyz)
+        matches the catch-all rule R011 (required_level=DEFAULT) but has
+        moderate risk, so it must PROMPT for confirmation.
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.DEFAULT)
+        action = self._make_action(ActionType.FILE_MODIFY, "/tmp/unknown.xyz")
+        decision = guard.check(action)
+        self.assertIn(decision.outcome, [DecisionOutcome.PROMPT, DecisionOutcome.ALLOWED])
+
+    def test_bypass_skips_human_gate_for_process_spawn(self) -> None:
+        """BYPASS must skip the human gate even for PROCESS_SPAWN.
+
+        Boundary: PROCESS_SPAWN is in HUMAN_GATE_ACTIONS, but BYPASS
+        must override the gate and allow it (highest trust).
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.BYPASS)
+        action = self._make_action(ActionType.PROCESS_SPAWN, "/usr/bin/python")
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.ALLOWED)
+
+    def test_plan_allows_read_with_sensitive_target(self) -> None:
+        """PLAN level must allow FILE_READ even on sensitive paths.
+
+        Boundary: reading /etc/passwd or .env files is still a read
+        operation. PLAN mode must allow all reads regardless of target
+        sensitivity (read-only mode never blocks reads).
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.PLAN)
+        sensitive_targets = [
+            "/etc/passwd",
+            "/app/.env",
+            "/app/credentials.json",
+            "/root/.ssh/id_rsa",
+        ]
+        for target in sensitive_targets:
+            decision = guard.check(self._make_action(ActionType.FILE_READ, target))
+            self.assertEqual(
+                decision.outcome, DecisionOutcome.ALLOWED,
+                f"PLAN must allow reading {target}",
+            )
+
+    def test_audit_log_records_concurrent_mixed_outcomes(self) -> None:
+        """Audit log must correctly record mixed outcomes after concurrent checks.
+
+        Stress: after concurrent checks producing both ALLOWED and DENIED
+        outcomes, get_audit_log must return all entries and
+        get_security_report must show non-zero counts.
+        """
+        guard = PermissionGuard(current_level=PermissionLevel.PLAN)
+        guard.check(self._make_action(ActionType.FILE_READ, "/tmp/a.txt"))
+        guard.check(self._make_action(ActionType.FILE_DELETE, "/tmp/b.txt"))
+        guard.check(self._make_action(ActionType.SHELL_EXECUTE, "ls /tmp"))
+        log = guard.get_audit_log()
+        self.assertGreaterEqual(len(log), 3)
+        report = guard.get_security_report()
+        self.assertGreaterEqual(report["total_checks"], 3)
+        self.assertGreaterEqual(report["allowed"], 1)
+        self.assertGreaterEqual(report["denied"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

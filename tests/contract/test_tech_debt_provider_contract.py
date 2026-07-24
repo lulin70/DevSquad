@@ -523,5 +523,154 @@ class TestTechDebtManagerExtendedContract(unittest.TestCase):
         self.assertNotEqual(tracked.remediated_at, "")
 
 
+class T6_TechDebtProviderStressContract(unittest.TestCase):
+    """Stress and boundary contract tests for TechDebtProvider implementations.
+
+    Covers empty-codebase scanning, large-file-volume scanning, empty-list
+    prioritization, no-debt report generation, read-only filesystem
+    behavior, and concurrent scan safety.
+    """
+
+    def _get_manager(self) -> Any:
+        """Return a fresh TechDebtManager (no persistence) for isolation."""
+        from scripts.collaboration.tech_debt_manager import TechDebtManager
+        return TechDebtManager()
+
+    def test_scan_codebase_debt_completely_empty_directory(self) -> None:
+        """scan_codebase_debt on a truly empty dir must return [].
+
+        Boundary: a directory with zero files (not even hidden ones)
+        must yield an empty debt list without raising.
+        """
+        import tempfile
+        manager = self._get_manager()
+        with tempfile.TemporaryDirectory() as tmp:
+            result = manager.scan_codebase_debt(tmp)
+            self.assertEqual(result, [])
+
+    def test_scan_codebase_debt_many_files(self) -> None:
+        """scan_codebase_debt must handle 100+ files without crashing.
+
+        Stress: creates 100 Python files each with a TODO comment and
+        verifies the scan completes and detects at least 100 debts.
+        """
+        import tempfile
+        from pathlib import Path
+        manager = self._get_manager()
+        with tempfile.TemporaryDirectory() as tmp:
+            for i in range(100):
+                (Path(tmp) / f"mod_{i}.py").write_text(
+                    f"# TODO: refactor module {i}\npass\n", encoding="utf-8",
+                )
+            debts = manager.scan_codebase_debt(tmp)
+            self.assertGreaterEqual(len(debts), 100)
+
+    def test_prioritize_empty_returns_empty_list(self) -> None:
+        """prioritize() on a manager with zero debts must return [].
+
+        Boundary: no debts registered means no debts to prioritize.
+        Must return an empty list, not None or an error.
+        """
+        manager = self._get_manager()
+        self.assertEqual(manager.prioritize(), [])
+
+    def test_get_debt_report_no_debt_returns_zeros(self) -> None:
+        """get_debt_report() with no registered debt must return all-zero fields.
+
+        Boundary: a fresh manager with zero debts must produce a report
+        with total_debts=0, empty by_category/by_severity, and
+        debt_to_value_ratio=0.0.
+        """
+        from scripts.collaboration.tech_debt_manager import DebtReport
+        manager = self._get_manager()
+        report = manager.get_debt_report()
+        self.assertIsInstance(report, DebtReport)
+        self.assertEqual(report.total_debts, 0)
+        self.assertEqual(report.by_category, {})
+        self.assertEqual(report.by_severity, {})
+        self.assertEqual(report.top_priority, [])
+        self.assertEqual(report.debt_to_value_ratio, 0.0)
+
+    def test_scan_codebase_debt_read_only_files_no_exception(self) -> None:
+        """scan_codebase_debt must not crash on read-only files.
+
+        Boundary: files without write permission must still be scannable
+        (read access is sufficient). The scan must complete without
+        PermissionError.
+        """
+        import os
+        import tempfile
+        from pathlib import Path
+        manager = self._get_manager()
+        with tempfile.TemporaryDirectory() as tmp:
+            ro_file = Path(tmp) / "readonly.py"
+            ro_file.write_text("# TODO: fix this\npass\n", encoding="utf-8")
+            os.chmod(ro_file, 0o444)  # read-only
+            try:
+                debts = manager.scan_codebase_debt(tmp)
+                self.assertIsInstance(debts, list)
+            finally:
+                os.chmod(ro_file, 0o644)  # restore for cleanup
+
+    def test_concurrent_scan_codebase_safety(self) -> None:
+        """Concurrent scan_codebase_debt calls must be thread-safe.
+
+        Stress: 5 threads scan the same directory simultaneously. No
+        thread must crash, and each must return a list (possibly with
+        overlapping debt detections).
+        """
+        import tempfile
+        import threading
+        from pathlib import Path
+        manager = self._get_manager()
+        errors: list[str] = []
+        results: list[list] = []
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "mod.py").write_text("# TODO: concurrent test\n", encoding="utf-8")
+
+            def worker() -> None:
+                try:
+                    res = manager.scan_codebase_debt(tmp)
+                    results.append(res)
+                except Exception as e:  # noqa: BLE001
+                    errors.append(f"thread raised {type(e).__name__}: {e}")
+
+            threads = [threading.Thread(target=worker) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        self.assertEqual(errors, [], f"Concurrent scan errors: {errors}")
+        self.assertEqual(len(results), 5)
+
+    def test_identify_debt_empty_description_no_exception(self) -> None:
+        """identify_debt with an empty description must not raise.
+
+        Boundary: an empty description string is malformed but must be
+        accepted. The resulting TechDebt must have description=''.
+        """
+        from scripts.collaboration.tech_debt_manager import DebtCategory
+        manager = self._get_manager()
+        debt = manager.identify_debt(
+            source="tester", category=DebtCategory.CODE_QUALITY,
+            description="", location="src/main.py",
+        )
+        self.assertEqual(debt.description, "")
+
+    def test_identify_debt_empty_location_no_exception(self) -> None:
+        """identify_debt with an empty location must not raise.
+
+        Boundary: an empty location string must be accepted. The
+        resulting TechDebt must have location=''.
+        """
+        from scripts.collaboration.tech_debt_manager import DebtCategory
+        manager = self._get_manager()
+        debt = manager.identify_debt(
+            source="tester", category=DebtCategory.CODE_QUALITY,
+            description="missing location", location="",
+        )
+        self.assertEqual(debt.location, "")
+
+
 if __name__ == "__main__":
     unittest.main()
