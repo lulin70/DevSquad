@@ -1,0 +1,97 @@
+name: prototype
+version: "4.2.1"
+description: |
+  PrototypeSkill — Rapid prototype generation for hypothesis validation.
+  Produces a minimal runnable prototype (ui/logic/api) before committing to
+  full implementation. Reuses MicroTaskPlanner's vertical-slice pattern for
+  decomposition and coordinates with Skillifier (PrototypeSkill produces
+  artifacts; Skillifier extracts patterns — no overlap with intent skill).
+entry_point: skills.prototype.handler:PrototypeSkill
+capabilities:
+  - rapid_prototyping
+  - hypothesis_validation
+  - vertical_slice_decomposition
+  - auto_type_detection
+  - mock_mode_templates
+parameters:
+  - name: hypothesis
+    type: string
+    required: true
+    description: The assumption to validate (e.g., "Users prefer single-click checkout")
+  - name: prototype_type
+    type: string
+    enum: [auto, ui, logic, api]
+    default: auto
+    description: |
+      Prototype kind. "auto" detects from hypothesis keywords:
+      界面/UI/页面/按钮/表单/checkout -> ui;
+      算法/计算/逻辑/处理/algorithm -> logic;
+      接口/API/端点/请求/endpoint -> api.
+  - name: constraints
+    type: object
+    required: false
+    description: |
+      Optional constraints dict:
+        max_files (int, default 3) — max files in prototype;
+        max_lines_per_file (int, default 50) — keep prototypes small;
+        target_framework (str, e.g., "streamlit", "flask", "plain-python");
+        vertical_slice (bool, default True) — use MicroTaskPlanner vertical-slice.
+methods:
+  generate:
+    description: Generate a minimal runnable prototype to validate a hypothesis
+    parameters: ["hypothesis", "prototype_type", "constraints"]
+    returns: "Dict with hypothesis, prototype_type, files, validation_steps, estimated_effort_minutes, assumptions_made, next_steps, vertical_slice_plan"
+  validate:
+    description: Validate whether the prototype confirmed or refuted the hypothesis
+    parameters: ["prototype_result", "actual_outcome"]
+    returns: "Dict with hypothesis_confirmed, confidence, evidence, recommendations, should_proceed_to_full_impl"
+  run:
+    description: Default entry point — delegates to generate()
+    parameters: ["hypothesis", "prototype_type", "constraints"]
+    returns: "Same as generate()"
+examples:
+  - title: "Auto-detect UI prototype"
+    code: |
+      from skills.registry import get_skill
+      prototype = get_skill("prototype")
+      result = prototype.generate("用户喜欢单击结账界面")
+      print(result["prototype_type"])  # "ui"
+      print(len(result["files"]))      # <= 3
+      print(result["estimated_effort_minutes"])  # 2-5
+
+  - title: "Logic prototype with constraints"
+    code: |
+      from skills.registry import get_skill
+      prototype = get_skill("prototype")
+      result = prototype.generate(
+          hypothesis="Sorting algorithm improves search latency",
+          prototype_type="logic",
+          constraints={"max_files": 2, "max_lines_per_file": 30},
+      )
+      for f in result["files"]:
+          print(f["path"], len(f["content"].splitlines()))
+
+  - title: "Validate hypothesis with actual outcome"
+    code: |
+      from skills.registry import get_skill
+      prototype = get_skill("prototype")
+      gen = prototype.generate("Users prefer single-click checkout", prototype_type="ui")
+      verdict = prototype.validate(
+          prototype_result=gen,
+          actual_outcome={
+              "user_feedback": "Yes, I like the single-click flow",
+              "metrics": {"completion_rate": 0.85},
+              "observed_behavior": "Users completed checkout faster",
+          },
+      )
+      print(verdict["hypothesis_confirmed"])  # True
+      print(verdict["should_proceed_to_full_impl"])  # True
+
+integration:
+  internal_imports:
+    - "scripts.collaboration.micro_task_planner.MicroTaskPlanner"
+  base_class: "skills.registry.BaseSkill"
+  version_source: "scripts.collaboration._version (4.2.1)"
+  coordination:
+    skillifier: "PrototypeSkill produces artifacts; Skillifier extracts patterns from execution history. No overlap."
+    intent_skill: "Intent skill detects user intent; PrototypeSkill produces runnable artifacts. No overlap."

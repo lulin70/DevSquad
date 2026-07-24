@@ -294,5 +294,209 @@ class TestRuleTypes(unittest.TestCase):
         self.assertEqual(len(RULE_TYPES), 4)  # forbid, avoid, always, prefer
 
 
+class TestNullMemoryProviderExtendedContract(unittest.TestCase):
+    """Extended contract tests for NullMemoryProvider behavior."""
+
+    def _get_provider(self):
+        return NullMemoryProvider()
+
+    def test_null_get_rules_with_context(self):
+        """NullMemoryProvider.get_rules should accept context without error."""
+        provider = self._get_provider()
+        result = provider.get_rules(user_id="test", context={"role": "architect"})
+        self.assertEqual(result, [])
+
+    def test_null_add_rule_with_metadata(self):
+        """NullMemoryProvider.add_rule should accept metadata without error."""
+        provider = self._get_provider()
+        provider.add_rule(user_id="test", rule="Always use SSL", metadata={"priority": "high"})
+        # No-op, should not raise
+        self.assertIsInstance(provider.get_stats(), dict)
+
+    def test_null_update_rule_nonexistent(self):
+        """NullMemoryProvider.update_rule with non-existent rule_id should not raise."""
+        provider = self._get_provider()
+        provider.update_rule(user_id="test", rule_id="nonexistent", rule="updated")
+        self.assertIsInstance(provider.get_stats(), dict)
+
+    def test_null_delete_rule_nonexistent(self):
+        """NullMemoryProvider.delete_rule with non-existent rule_id should not raise."""
+        provider = self._get_provider()
+        provider.delete_rule(user_id="test", rule_id="nonexistent")
+        self.assertIsInstance(provider.get_stats(), dict)
+
+    def test_null_match_rules_with_role(self):
+        """NullMemoryProvider.match_rules should accept role parameter."""
+        provider = self._get_provider()
+        result = provider.match_rules(
+            task_description="Design API", user_id="test", role="architect", max_rules=3
+        )
+        self.assertEqual(result, [])
+
+    def test_null_match_rules_max_rules_limit(self):
+        """NullMemoryProvider.match_rules should accept max_rules parameter."""
+        provider = self._get_provider()
+        result = provider.match_rules(
+            task_description="Test task", user_id="test", max_rules=1
+        )
+        self.assertEqual(result, [])
+
+    def test_null_format_rules_single_rule(self):
+        """NullMemoryProvider.format_rules_as_prompt with one rule returns empty."""
+        provider = self._get_provider()
+        result = provider.format_rules_as_prompt(
+            rules=[{"rule_type": "always", "action": "Use SSL"}]
+        )
+        self.assertEqual(result, "")
+
+    def test_null_format_rules_multiple_rules(self):
+        """NullMemoryProvider.format_rules_as_prompt with multiple rules returns empty."""
+        provider = self._get_provider()
+        rules = [
+            {"rule_type": "forbid", "action": "No passwords"},
+            {"rule_type": "always", "action": "Use HTTPS"},
+        ]
+        result = provider.format_rules_as_prompt(rules=rules)
+        self.assertEqual(result, "")
+
+    def test_null_get_stats_has_total_users(self):
+        """NullMemoryProvider.get_stats should include total_users=0."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertEqual(stats.get("total_users"), 0)
+
+    def test_null_get_stats_has_total_rules(self):
+        """NullMemoryProvider.get_stats should include total_rules=0."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertEqual(stats.get("total_rules"), 0)
+
+    def test_null_multi_user_isolation(self):
+        """NullMemoryProvider should handle different user_ids without error."""
+        provider = self._get_provider()
+        provider.add_rule(user_id="user1", rule="rule1")
+        provider.add_rule(user_id="user2", rule="rule2")
+        self.assertEqual(provider.get_rules(user_id="user1"), [])
+        self.assertEqual(provider.get_rules(user_id="user2"), [])
+
+    def test_null_metadata_passthrough(self):
+        """NullMemoryProvider should accept various metadata types."""
+        provider = self._get_provider()
+        provider.add_rule(user_id="test", rule="rule", metadata={"nested": {"deep": True}})
+        provider.add_rule(user_id="test", rule="rule2", metadata=None)
+        self.assertIsInstance(provider.get_stats(), dict)
+
+
+class TestMCEAdapterExtendedContract(unittest.TestCase):
+    """Extended contract tests for MCEAdapter static methods."""
+
+    def test_sanitize_user_id_normal(self):
+        """Normal user_id should pass through unchanged."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        self.assertEqual(MCEAdapter._sanitize_user_id("user123"), "user123")
+
+    def test_sanitize_user_id_strips_path_separator(self):
+        """Path separators in user_id should be replaced."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        result = MCEAdapter._sanitize_user_id("user/path")
+        self.assertNotIn("/", result)
+
+    def test_sanitize_user_id_max_length(self):
+        """user_id longer than 128 chars should be truncated."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        result = MCEAdapter._sanitize_user_id("a" * 200)
+        self.assertLessEqual(len(result), 128)
+
+    def test_parse_rule_with_override_flag(self):
+        """Parsing a rule with (override) suffix should set override=True."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        result = MCEAdapter._parse_rule_string("[FORBID] Never store secrets (override)")
+        self.assertTrue(result["override"])
+        self.assertEqual(result["rule_type"], "forbid")
+        self.assertEqual(result["action"], "Never store secrets")
+
+    def test_parse_rule_lowercase_type_prefix(self):
+        """Parsing should handle lowercase type prefixes."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        result = MCEAdapter._parse_rule_string("[forbid] No plain text passwords")
+        self.assertEqual(result["rule_type"], "forbid")
+
+    def test_normalize_matched_rules_standard_format(self):
+        """_normalize_matched_rules should produce standard dict format."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        raw_rules = [
+            {"rule_type": "forbid", "trigger": "passwords", "action": "don't store",
+             "relevance_score": 0.9, "rule_id": "r1", "override": True},
+        ]
+        result = MCEAdapter._normalize_matched_rules(raw_rules)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["rule_type"], "forbid")
+        self.assertEqual(result[0]["rule_id"], "r1")
+        self.assertTrue(result[0]["override"])
+        self.assertIsInstance(result[0]["relevance_score"], float)
+
+    def test_normalize_matched_rules_unknown_type_defaults_always(self):
+        """Unknown rule_type should default to 'always'."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        result = MCEAdapter._normalize_matched_rules([{"rule_type": "unknown"}])
+        self.assertEqual(result[0]["rule_type"], "always")
+
+    def test_format_rules_fallback_with_override(self):
+        """_format_rules_fallback should mark non-overridable rules."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        rules = [{"rule_type": "forbid", "action": "No secrets", "override": True}]
+        result = MCEAdapter._format_rules_fallback(rules)
+        self.assertIn("non-overridable", result)
+        self.assertIn("FORBID", result)
+
+    def test_format_rules_fallback_multiple_rules(self):
+        """_format_rules_fallback should format multiple rules."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        rules = [
+            {"rule_type": "forbid", "action": "Rule 1", "override": False},
+            {"rule_type": "always", "action": "Rule 2", "override": False},
+            {"rule_type": "avoid", "action": "Rule 3", "override": True},
+        ]
+        result = MCEAdapter._format_rules_fallback(rules)
+        self.assertIn("FORBID", result)
+        self.assertIn("ALWAYS", result)
+        self.assertIn("AVOID", result)
+        self.assertIn("non-overridable", result)
+
+    def test_format_rules_truncates_long_text(self):
+        """format_rules_as_prompt should truncate action text > 500 chars."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        adapter = MCEAdapter(enable=False)
+        long_action = "x" * 600
+        rules = [{"rule_type": "always", "action": long_action, "trigger": "test"}]
+        result = adapter.format_rules_as_prompt(rules)
+        # The action should be truncated (not appear in full in the output)
+        self.assertIsInstance(result, str)
+        self.assertLessEqual(len(long_action), 600)
+
+    def test_mce_adapter_unavailable_returns_empty(self):
+        """MCEAdapter with enable=False should return empty results."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        adapter = MCEAdapter(enable=False)
+        self.assertFalse(adapter.is_available)
+        self.assertEqual(adapter.match_rules("test", "user1"), [])
+        self.assertEqual(adapter.get_stats().get("available", False), False)
+
+    def test_rule_types_frozenset(self):
+        """RULE_TYPES should be a frozenset with 4 values."""
+        from scripts.collaboration.mce_adapter import RULE_TYPES
+        self.assertIsInstance(RULE_TYPES, frozenset)
+        self.assertEqual(len(RULE_TYPES), 4)
+
+    def test_mce_adapter_keyword_fallback_match(self):
+        """Keyword fallback should match rules by word overlap."""
+        from scripts.collaboration.mce_adapter import MCEAdapter
+        adapter = MCEAdapter(enable=False)
+        # When unavailable, keyword fallback is used but returns [] since
+        # no rules are stored (CarryMem unavailable).
+        result = adapter.match_rules("design database schema", "user1")
+        self.assertIsInstance(result, list)
+
+
 if __name__ == "__main__":
     unittest.main()

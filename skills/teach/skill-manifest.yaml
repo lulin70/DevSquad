@@ -1,0 +1,72 @@
+name: teach
+version: 3.7.2
+description: |
+  TeachSkill - DevSquad onboarding educational skill.
+  Guides new users through the 7-role collaboration model, 11-phase lifecycle,
+  and Iron Rules. Provides structured lessons with examples, exercises, and
+  assessment. Distinct from grilling (P0-7): TeachSkill transfers knowledge
+  rather than collecting requirements.
+entry_point: skills.teach.handler:TeachSkill
+capabilities:
+  knowledge_transfer
+  structured_lessons
+  multilingual_support (zh/en/ja)
+  assessment
+  curriculum_planning
+parameters:
+  - name: topic
+    type: string
+    required: false
+    default: overview
+    enum: [overview, seven_roles, lifecycle, iron_rules, sub_skills, glossary, quickstart, full_curriculum]
+    description: DevSquad topic to teach
+  - name: user_level
+    type: string
+    required: false
+    default: beginner
+    enum: [beginner, intermediate, advanced]
+    description: User proficiency level (controls depth and pace)
+  - name: lang
+    type: string
+    required: false
+    default: auto
+    enum: [auto, zh, en, ja]
+    description: Output language (auto defaults to zh)
+actions:
+  - name: teach
+    description: Teach a specific DevSquad topic to a new user
+    params:
+      - topic (str): One of TOPICS
+      - user_level (str): beginner | intermediate | advanced
+      - lang (str): auto | zh | en | ja
+  - name: assess
+    description: Assess user's understanding of a topic
+    params:
+      - topic (str): Topic to assess
+      - user_answers (dict): {question_id: answer}
+  - name: curriculum
+    description: Return a structured curriculum for the given user level
+    params:
+      - user_level (str): beginner | intermediate | advanced
+topics:
+  - overview: DevSquad one-sentence understanding + comparison table
+  - seven_roles: 7-role collaboration model with triggers and responsibilities
+  - lifecycle: 11-phase project lifecycle with gates and templates
+  - iron_rules: 3 Iron Rules (Documentation First / Test Iron Rules / Delivery Workflow)
+  - sub_skills: 6 atomic sub-skills (dispatch/intent/review/security/test/retrospective)
+  - glossary: DevSquad terminology from GLOSSARY.md
+  - quickstart: 5-minute quickstart guide
+  - full_curriculum: All topics taught in order
+integration:
+  - docs/spec/GLOSSARY.md (canonical terminology source)
+  - docs/guides/user_onboarding_verification.md (verification flow)
+  - SKILL.md (7 roles and Iron Rules canonical source)
+examples:
+  - command: 'skill.teach("overview")'
+    expected: title=DevSquad 概览, estimated_minutes=5, lang=zh
+  - command: 'skill.teach("seven_roles", user_level="advanced", lang="en")'
+    expected: title=7-Role Collaboration Model, estimated_minutes=5, lang=en
+  - command: 'skill.assess("overview", {"q1": "7", "q2": "consensus", "q3": "mock"})'
+    expected: score=1.0, passed=True
+  - command: 'skill.curriculum("beginner")'
+    expected: 7 modules, total_estimated_minutes=88

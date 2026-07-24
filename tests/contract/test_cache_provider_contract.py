@@ -171,5 +171,175 @@ class TestNullCacheProviderContract(TestCacheProviderContract):
         self.assertEqual(stats.get("provider_type"), "null")
 
 
+class TestLLMCacheExtendedContract(unittest.TestCase):
+    """Extended contract tests for LLMCache covering TTL, isolation, and stats."""
+
+    def setUp(self):
+        self._tmp_dir = tempfile.mkdtemp(prefix="cache_ext_contract_")
+
+    def tearDown(self):
+        shutil.rmtree(self._tmp_dir, ignore_errors=True)
+
+    def _get_provider(self):
+        return LLMCache(cache_dir=self._tmp_dir)
+
+    def test_multi_backend_isolation(self):
+        """Cache entries for different backends must not cross-contaminate."""
+        provider = self._get_provider()
+        provider.set("shared-prompt", "openai-response", "openai", "gpt-4")
+        result = provider.get("shared-prompt", "anthropic", "gpt-4")
+        self.assertIsNone(result)
+
+    def test_multi_model_isolation(self):
+        """Cache entries for different models must not cross-contaminate."""
+        provider = self._get_provider()
+        provider.set("shared-prompt", "gpt4-response", "openai", "gpt-4")
+        result = provider.get("shared-prompt", "openai", "gpt-3.5")
+        self.assertIsNone(result)
+
+    def test_empty_prompt_round_trip(self):
+        """Cache should handle empty prompt without error."""
+        provider = self._get_provider()
+        provider.set("", "empty-prompt-response", "openai", "gpt-4")
+        result = provider.get("", "openai", "gpt-4")
+        self.assertEqual(result, "empty-prompt-response")
+
+    def test_empty_response_round_trip(self):
+        """Cache should handle empty response string without error."""
+        provider = self._get_provider()
+        provider.set("empty-resp-prompt", "", "openai", "gpt-4")
+        result = provider.get("empty-resp-prompt", "openai", "gpt-4")
+        self.assertEqual(result, "")
+
+    def test_unicode_prompt_round_trip(self):
+        """Cache should handle unicode prompts correctly."""
+        provider = self._get_provider()
+        prompt = "使用中文提示词 — 日本語も — 한국어도"
+        provider.set(prompt, "unicode-response", "openai", "gpt-4")
+        result = provider.get(prompt, "openai", "gpt-4")
+        self.assertEqual(result, "unicode-response")
+
+    def test_emoji_prompt_round_trip(self):
+        """Cache should handle emoji in prompts correctly."""
+        provider = self._get_provider()
+        prompt = "Test with emojis: 🚀🎉🐍✅❌"
+        provider.set(prompt, "emoji-response", "openai", "gpt-4")
+        result = provider.get(prompt, "openai", "gpt-4")
+        self.assertEqual(result, "emoji-response")
+
+    def test_newline_prompt_round_trip(self):
+        """Cache should handle multi-line prompts with newlines."""
+        provider = self._get_provider()
+        prompt = "Line 1\nLine 2\nLine 3"
+        provider.set(prompt, "multiline-response", "openai", "gpt-4")
+        result = provider.get(prompt, "openai", "gpt-4")
+        self.assertEqual(result, "multiline-response")
+
+    def test_large_response_round_trip(self):
+        """Cache should handle large responses (10KB+)."""
+        provider = self._get_provider()
+        large_response = "x" * 10240  # 10KB
+        provider.set("large-prompt", large_response, "openai", "gpt-4")
+        result = provider.get("large-prompt", "openai", "gpt-4")
+        self.assertEqual(result, large_response)
+        self.assertGreaterEqual(len(result), 10240)
+
+    def test_stats_has_hit_count(self):
+        """get_stats() must include hit_count field."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertIn("hit_count", stats)
+
+    def test_stats_has_miss_count(self):
+        """get_stats() must include miss_count field."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertIn("miss_count", stats)
+
+    def test_stats_has_hit_rate(self):
+        """get_stats() must include hit_rate field."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertIn("hit_rate", stats)
+
+    def test_stats_hit_rate_updates_after_hit(self):
+        """hit_rate should be > 0 after a cache hit."""
+        provider = self._get_provider()
+        provider.set("rate-test", "response", "openai", "gpt-4")
+        provider.get("rate-test", "openai", "gpt-4")  # hit
+        stats = provider.get_stats()
+        self.assertGreater(stats["hit_rate"], 0.0)
+
+    def test_miss_increments_miss_count(self):
+        """Cache miss should increment miss_count in stats."""
+        provider = self._get_provider()
+        provider.get("nonexistent", "openai", "gpt-4")
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["miss_count"], 1)
+
+    def test_set_increments_sets_counter(self):
+        """set() should increment the sets counter in stats."""
+        provider = self._get_provider()
+        provider.set("sets-test", "response", "openai", "gpt-4")
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["sets"], 1)
+
+    def test_multiple_clears_no_exception(self):
+        """Calling clear() multiple times should not raise."""
+        provider = self._get_provider()
+        provider.set("p1", "r1", "openai", "gpt-4")
+        provider.clear()
+        provider.clear()
+        provider.clear()
+        # Verify still functional
+        self.assertIsInstance(provider.get_stats(), dict)
+
+    def test_repeated_set_overwrites(self):
+        """Setting the same prompt twice should overwrite the first response."""
+        provider = self._get_provider()
+        provider.set("overwrite-prompt", "first-response", "openai", "gpt-4")
+        provider.set("overwrite-prompt", "second-response", "openai", "gpt-4")
+        result = provider.get("overwrite-prompt", "openai", "gpt-4")
+        self.assertEqual(result, "second-response")
+
+    def test_is_available_false_for_deleted_dir(self):
+        """is_available() should return False when cache dir is deleted."""
+        provider = self._get_provider()
+        shutil.rmtree(self._tmp_dir, ignore_errors=True)
+        self.assertFalse(provider.is_available())
+
+    def test_cache_entry_is_expired(self):
+        """CacheEntry.is_expired() should correctly detect expiration."""
+        import time
+
+        from scripts.collaboration.llm_cache import CacheEntry
+        entry = CacheEntry(
+            prompt_hash="test",
+            response="resp",
+            backend="openai",
+            model="gpt-4",
+            timestamp=time.time() - 100,
+        )
+        self.assertTrue(entry.is_expired(50))
+        self.assertFalse(entry.is_expired(200))
+
+    def test_invalidate_removes_entry(self):
+        """invalidate() should remove a specific cached entry."""
+        provider = self._get_provider()
+        provider.set("invalidate-me", "response", "openai", "gpt-4")
+        self.assertEqual(provider.get("invalidate-me", "openai", "gpt-4"), "response")
+        provider.invalidate("invalidate-me", "openai", "gpt-4")
+        self.assertIsNone(provider.get("invalidate-me", "openai", "gpt-4"))
+
+    def test_ttl_expiration_with_short_ttl(self):
+        """Entries should expire when cache is configured with short TTL."""
+        import time
+        provider = LLMCache(cache_dir=self._tmp_dir, ttl_seconds=1)
+        provider.set("ttl-prompt", "ttl-response", "openai", "gpt-4")
+        self.assertEqual(provider.get("ttl-prompt", "openai", "gpt-4"), "ttl-response")
+        time.sleep(1.2)
+        self.assertIsNone(provider.get("ttl-prompt", "openai", "gpt-4"))
+
+
 if __name__ == "__main__":
     unittest.main()

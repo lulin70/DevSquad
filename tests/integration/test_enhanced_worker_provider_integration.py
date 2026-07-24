@@ -28,7 +28,6 @@ from scripts.collaboration.null_providers import (
 )
 from scripts.collaboration.scratchpad import Scratchpad
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -272,7 +271,7 @@ class T4_MonitorProviderIntegration(_ProviderTestBase):
         task = _make_task(description="Trigger monitor failure path unique xyz")
         self.llm_backend.generate.side_effect = RuntimeError("LLM exploded")
         worker = self._make_worker(monitor_provider=monitor)
-        try:
+        try:  # noqa: SIM105 — intentional swallow to test monitor path
             worker.execute(task)
         except Exception:
             pass

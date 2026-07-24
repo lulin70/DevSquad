@@ -110,5 +110,236 @@ class TestTraeBackendContract(TestLLMBackendContract):
         self.assertEqual(result, prompt)
 
 
+class TestLLMBackendAbstractContract(unittest.TestCase):
+    """Contract tests for the LLMBackend ABC itself.
+
+    Verifies that LLMBackend is abstract and cannot be instantiated
+    directly, and that all required abstract methods are declared.
+    """
+
+    def test_llm_backend_is_abstract_class(self):
+        """LLMBackend must be an ABC and cannot be instantiated directly."""
+        from abc import ABC
+
+        self.assertTrue(issubclass(LLMBackend, ABC))
+
+    def test_llm_backend_cannot_be_instantiated(self):
+        """Instantiating LLMBackend directly must raise TypeError."""
+        with self.assertRaises(TypeError):
+            LLMBackend()  # type: ignore[abstract]
+
+    def test_llm_backend_declares_generate_abstract(self):
+        """LLMBackend must declare generate() as an abstract method."""
+        self.assertIn("generate", LLMBackend.__abstractmethods__)
+
+    def test_llm_backend_declares_is_available_abstract(self):
+        """LLMBackend must declare is_available() as an abstract method."""
+        self.assertIn("is_available", LLMBackend.__abstractmethods__)
+
+    def test_llm_backend_provides_generate_stream_default(self):
+        """LLMBackend must provide a concrete generate_stream() default (not abstract)."""
+        # generate_stream has a default implementation, so it must NOT be abstract
+        self.assertNotIn("generate_stream", LLMBackend.__abstractmethods__)
+
+
+class TestMockBackendExtendedContract(unittest.TestCase):
+    """Extended contract tests for MockBackend behavior."""
+
+    def _get_backend(self) -> MockBackend:
+        return MockBackend()
+
+    def test_generate_includes_role_name(self):
+        """MockBackend must include role_name in output when provided via kwargs."""
+        backend = self._get_backend()
+        result = backend.generate("test", role_name="Senior Architect")
+        self.assertIn("Senior Architect", result)
+
+    def test_generate_includes_task_description(self):
+        """MockBackend must include task_description in output when provided."""
+        backend = self._get_backend()
+        result = backend.generate("test", task_description="Review PR #42")
+        self.assertIn("Review PR #42", result)
+
+    def test_generate_includes_prompt_length(self):
+        """MockBackend must report the prompt length in chars."""
+        backend = self._get_backend()
+        prompt = "abcdefghij"  # 10 chars
+        result = backend.generate(prompt)
+        self.assertIn("10 chars", result)
+
+    def test_generate_includes_separator_line(self):
+        """MockBackend output must include a separator line of '=' chars."""
+        backend = self._get_backend()
+        result = backend.generate("test")
+        self.assertIn("=" * 10, result)
+
+    def test_generate_stream_yields_at_least_one_chunk(self):
+        """MockBackend.generate_stream must yield at least one non-empty chunk."""
+        backend = self._get_backend()
+        chunks = list(backend.generate_stream("test prompt"))
+        self.assertGreaterEqual(len(chunks), 1)
+        # Concatenated chunks must contain the mock marker
+        full = "".join(chunks)
+        self.assertIn("[MOCK MODE]", full)
+
+    def test_generate_with_empty_prompt_does_not_crash(self):
+        """MockBackend.generate must handle an empty prompt gracefully."""
+        backend = self._get_backend()
+        result = backend.generate("")
+        self.assertIsInstance(result, str)
+        self.assertIn("[MOCK MODE]", result)
+        self.assertIn("0 chars", result)
+
+    def test_generate_with_unicode_prompt(self):
+        """MockBackend must handle Unicode (Chinese) prompts."""
+        backend = self._get_backend()
+        result = backend.generate("你好世界，这是测试")
+        self.assertIn("[MOCK MODE]", result)
+
+
+class TestTraeBackendExtendedContract(unittest.TestCase):
+    """Extended contract tests for TraeBackend behavior."""
+
+    def _get_backend(self) -> TraeBackend:
+        return TraeBackend()
+
+    def test_generate_ignores_kwargs(self):
+        """TraeBackend.generate must ignore all kwargs and return prompt unchanged."""
+        backend = self._get_backend()
+        prompt = "execute task"
+        result = backend.generate(prompt, role_name="X", temperature=0.5, max_tokens=100)
+        self.assertEqual(result, prompt)
+
+    def test_generate_stream_yields_single_chunk(self):
+        """TraeBackend.generate_stream must yield the prompt as a single chunk."""
+        backend = self._get_backend()
+        prompt = "stream this"
+        chunks = list(backend.generate_stream(prompt))
+        self.assertEqual(chunks, [prompt])
+
+    def test_generate_with_empty_prompt(self):
+        """TraeBackend.generate must return empty string for empty prompt."""
+        backend = self._get_backend()
+        self.assertEqual(backend.generate(""), "")
+
+    def test_generate_with_multiline_prompt(self):
+        """TraeBackend.generate must preserve multiline prompts unchanged."""
+        backend = self._get_backend()
+        prompt = "line1\nline2\nline3"
+        self.assertEqual(backend.generate(prompt), prompt)
+
+
+class TestCreateBackendFactoryContract(unittest.TestCase):
+    """Contract tests for the create_backend() factory function."""
+
+    def test_create_backend_mock_returns_mock_instance(self):
+        """create_backend('mock') must return a MockBackend instance."""
+        from scripts.collaboration.llm_backend import create_backend
+
+        backend = create_backend("mock")
+        self.assertIsInstance(backend, MockBackend)
+
+    def test_create_backend_trae_returns_trae_instance(self):
+        """create_backend('trae') must return a TraeBackend instance."""
+        from scripts.collaboration.llm_backend import create_backend
+
+        backend = create_backend("trae")
+        self.assertIsInstance(backend, TraeBackend)
+
+    def test_create_backend_unknown_type_raises_value_error(self):
+        """create_backend with an unknown type must raise ValueError."""
+        from scripts.collaboration.llm_backend import create_backend
+
+        with self.assertRaises(ValueError) as ctx:
+            create_backend("nonexistent-backend-type")
+        self.assertIn("Unknown backend type", str(ctx.exception))
+
+    def test_create_backend_auto_without_keys_returns_mock(self):
+        """create_backend('auto') with no API keys must return a MockBackend (not FallbackBackend)."""
+        import os
+        from unittest.mock import patch
+
+        from scripts.collaboration.llm_backend import (
+            MockBackend,
+            create_backend,
+        )
+
+        # Ensure no API keys in env so auto falls back to plain MockBackend
+        env_patch = {
+            "DEVSQUAD_LLM_BACKEND": "",
+            "DEVSQUAD_OPENAI_API_KEY": "",
+            "DEVSQUAD_ANTHROPIC_API_KEY": "",
+            "MOKA_API_KEY": "",
+        }
+        with patch.dict(os.environ, env_patch, clear=False):
+            backend = create_backend("auto")
+            # With no real backends, auto returns plain MockBackend
+            self.assertIsInstance(backend, MockBackend)
+
+    def test_create_backend_default_arg_is_auto(self):
+        """create_backend() with no args must default to 'auto' behavior."""
+        import os
+        from unittest.mock import patch
+
+        from scripts.collaboration.llm_backend import create_backend
+
+        env_patch = {
+            "DEVSQUAD_LLM_BACKEND": "",
+            "DEVSQUAD_OPENAI_API_KEY": "",
+            "DEVSQUAD_ANTHROPIC_API_KEY": "",
+            "MOKA_API_KEY": "",
+        }
+        with patch.dict(os.environ, env_patch, clear=False):
+            backend = create_backend()
+            # Must not raise; falls back to MockBackend when no keys present
+            self.assertTrue(backend.is_available())
+
+
+class TestBackendAvailabilityContract(unittest.TestCase):
+    """Contract tests for backend is_available() behavior across implementations."""
+
+    def test_mock_backend_always_available(self):
+        """MockBackend.is_available() must always return True (no external deps)."""
+        self.assertTrue(MockBackend().is_available())
+
+    def test_trae_backend_always_available(self):
+        """TraeBackend.is_available() must always return True inside IDE."""
+        self.assertTrue(TraeBackend().is_available())
+
+    def test_openai_backend_without_package_returns_false(self):
+        """OpenAIBackend.is_available() must return False when the openai package
+        is not installed (ImportError caught by the availability exception tuple).
+
+        Note: when the openai package IS installed but no api_key is set, the
+        OpenAI client raises OpenAIError which is NOT in the availability
+        exception tuple. That is a known source-code gap documented here; this
+        test covers the documented contract (ImportError → False).
+        """
+        import sys
+        from unittest.mock import patch
+
+        from scripts.collaboration.llm_backend import OpenAIBackend
+
+        backend = OpenAIBackend(api_key=None)
+        # Force _get_client to raise ImportError by hiding the openai module
+        with patch.dict(sys.modules, {"openai": None}):
+            result = backend.is_available()
+        self.assertFalse(result)
+
+    def test_anthropic_backend_without_package_returns_false(self):
+        """AnthropicBackend.is_available() must return False when the anthropic
+        package is not installed (ImportError caught by availability tuple).
+        """
+        import sys
+        from unittest.mock import patch
+
+        from scripts.collaboration.llm_backend import AnthropicBackend
+
+        backend = AnthropicBackend(api_key=None)
+        with patch.dict(sys.modules, {"anthropic": None}):
+            result = backend.is_available()
+        self.assertFalse(result)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -262,5 +262,213 @@ class TestNullMonitorProviderContract(MonitorProviderContractBase):
             )
 
 
+class TestPerformanceMonitorExtendedContract(unittest.TestCase):
+    """Extended contract tests for PerformanceMonitor behavior."""
+
+    def _get_provider(self) -> PerformanceMonitor:
+        return PerformanceMonitor(max_history=100)
+
+    def test_record_llm_call_openai_backend(self):
+        """record_llm_call with openai backend should not raise."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.5, 100, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_llm_calls"], 1)
+
+    def test_record_llm_call_anthropic_backend(self):
+        """record_llm_call with anthropic backend should not raise."""
+        provider = self._get_provider()
+        provider.record_llm_call("anthropic", "claude-3", 2.0, 200, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_llm_calls"], 1)
+
+    def test_record_agent_execution_architect(self):
+        """record_agent_execution with architect role should not raise."""
+        provider = self._get_provider()
+        provider.record_agent_execution("architect", "Design system", 5.0, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_agent_executions"], 1)
+
+    def test_record_agent_execution_tester(self):
+        """record_agent_execution with tester role should not raise."""
+        provider = self._get_provider()
+        provider.record_agent_execution("tester", "Run tests", 3.0, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_agent_executions"], 1)
+
+    def test_get_stats_has_avg_llm_duration(self):
+        """get_stats should include avg_llm_duration field."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+        stats = provider.get_stats()
+        self.assertIn("avg_llm_duration", stats)
+
+    def test_get_stats_has_total_agent_executions(self):
+        """get_stats should include total_agent_executions field."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertIn("total_agent_executions", stats)
+
+    def test_multiple_llm_calls_accumulate(self):
+        """Multiple record_llm_call should accumulate in stats."""
+        provider = self._get_provider()
+        for i in range(5):
+            provider.record_llm_call("openai", "gpt-4", 1.0 + i * 0.5, 100, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_llm_calls"], 5)
+
+    def test_metadata_with_error_recorded(self):
+        """record_llm_call with error metadata should not raise."""
+        provider = self._get_provider()
+        provider.record_llm_call(
+            "openai", "gpt-4", 0.5, 50, False,
+            metadata={"error": "connection timeout"},
+        )
+        # Verify errors are tracked
+        errors = provider.get_recent_errors()
+        self.assertIsInstance(errors, list)
+
+    def test_success_false_recorded(self):
+        """record_llm_call with success=False should not raise."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 0.3, 10, False)
+        stats = provider.get_stats()
+        self.assertIsInstance(stats, dict)
+
+    def test_duration_zero_boundary(self):
+        """record_llm_call with duration=0 should not raise."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 0.0, 100, True)
+        stats = provider.get_stats()
+        self.assertGreaterEqual(stats["total_llm_calls"], 1)
+
+    def test_get_stats_by_function_name(self):
+        """get_stats with function_name should return specific stats."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+        stats = provider.get_stats("llm_call:openai:gpt-4")
+        self.assertIsInstance(stats, dict)
+        self.assertIn("call_count", stats)
+
+    def test_get_stats_by_nonexistent_function(self):
+        """get_stats for unknown function should return empty dict."""
+        provider = self._get_provider()
+        stats = provider.get_stats("nonexistent:function")
+        self.assertEqual(stats, {})
+
+    def test_get_bottlenecks_returns_list(self):
+        """get_bottlenecks should return a list."""
+        provider = self._get_provider()
+        bottlenecks = provider.get_bottlenecks()
+        self.assertIsInstance(bottlenecks, list)
+
+    def test_get_slowest_functions_returns_list(self):
+        """get_slowest_functions should return a list."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 5.0, 100, True)
+        slowest = provider.get_slowest_functions(limit=5)
+        self.assertIsInstance(slowest, list)
+
+    def test_monitor_decorator_wraps_function(self):
+        """monitor decorator should wrap a function and record metrics."""
+        provider = self._get_provider()
+
+        @provider.monitor("test_func")
+        def sample_function(x):
+            return x * 2
+
+        result = sample_function(5)
+        self.assertEqual(result, 10)
+        stats = provider.get_stats("test_func")
+        self.assertGreaterEqual(stats.get("call_count", 0), 1)
+
+    def test_generate_report_content_not_empty(self):
+        """generate_report should write non-empty content."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = str(Path(tmpdir) / "report.md")
+            provider.generate_report(report_path)
+            content = Path(report_path).read_text(encoding="utf-8")
+            self.assertGreater(len(content), 0)
+
+    def test_get_stats_has_uptime_seconds(self):
+        """get_stats should include uptime_seconds field."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertIn("uptime_seconds", stats)
+
+    def test_record_metric_directly(self):
+        """record_metric should accept a PerformanceMetric directly."""
+        from scripts.collaboration.performance_monitor import PerformanceMetric
+        provider = self._get_provider()
+        metric = PerformanceMetric(
+            name="custom_op",
+            start_time=0.0,
+            end_time=1.0,
+            duration=1.0,
+            cpu_percent=10.0,
+            memory_mb=50.0,
+            success=True,
+        )
+        provider.record_metric(metric)
+        stats = provider.get_stats("custom_op")
+        self.assertGreaterEqual(stats.get("call_count", 0), 1)
+
+    def test_is_available_returns_true(self):
+        """PerformanceMonitor.is_available() should always return True."""
+        provider = self._get_provider()
+        self.assertTrue(provider.is_available())
+
+    def test_export_report_returns_string(self):
+        """export_report should return a Markdown string."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+        report = provider.export_report()
+        self.assertIsInstance(report, str)
+        self.assertGreater(len(report), 0)
+
+
+class TestNullMonitorProviderExtendedContract(unittest.TestCase):
+    """Extended contract tests for NullMonitorProvider behavior."""
+
+    def _get_provider(self) -> NullMonitorProvider:
+        return NullMonitorProvider()
+
+    def test_null_record_llm_call_no_op(self):
+        """NullMonitorProvider.record_llm_call should be a no-op."""
+        provider = self._get_provider()
+        provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
+        stats = provider.get_stats()
+        self.assertEqual(stats.get("total_llm_calls", 0), 0)
+
+    def test_null_record_agent_execution_no_op(self):
+        """NullMonitorProvider.record_agent_execution should be a no-op."""
+        provider = self._get_provider()
+        provider.record_agent_execution("architect", "task", 1.0, True)
+        stats = provider.get_stats()
+        self.assertEqual(stats.get("total_agent_executions", 0), 0)
+
+    def test_null_get_stats_has_provider_type_null(self):
+        """NullMonitorProvider.get_stats should report provider_type='null'."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertEqual(stats.get("provider_type"), "null")
+
+    def test_null_get_stats_has_avg_llm_duration_zero(self):
+        """NullMonitorProvider.get_stats should report avg_llm_duration=0.0."""
+        provider = self._get_provider()
+        stats = provider.get_stats()
+        self.assertEqual(stats.get("avg_llm_duration"), 0.0)
+
+    def test_null_generate_report_writes_file(self):
+        """NullMonitorProvider.generate_report should write a file."""
+        provider = self._get_provider()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = str(Path(tmpdir) / "null_report.md")
+            provider.generate_report(report_path)
+            self.assertTrue(Path(report_path).exists())
+
+
 if __name__ == "__main__":
     unittest.main()

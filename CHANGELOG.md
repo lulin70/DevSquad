@@ -7,6 +7,129 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-07-23
+
+This release advances V4.2+ and V4.3+ Roadmap items while keeping the version
+in the 4.2.x series. Test pyramid gaps closed, 3 V4.2+ Roadmap items (P2-1/P2-2/P2-4)
+and 3 V4.3+ Roadmap items (P2-UI-1/P2-UI-2/P2-UI-3) implemented.
+
+### Added — Test Pyramid Lift (Phase 1: Contract + Phase 2: Integration)
+
+- **Contract tests**: 199 → 371 (+172 tests, 3.06% → 5.09% of total)
+  - Extended TechDebtProvider/UETestProvider/LLMBackend/PermissionGuard contract
+    tests with Happy/Error/Boundary/Config/Integration dimensions
+- **Integration tests**: 575 → 957 (+382 tests, 8.84% → 13.13% of total)
+  - 9 new integration test files covering previously uncovered module chains:
+    CodeKnowledgeGraph+CodeGraphQuery+CodeGraphStorage, EventBus+DispatchHooks+
+    ResultAssembler, SkillRegistry+Skillifier+RoleSkillLoader, MemoryBridge+
+    MCEAdapter+LearnedRuleStore, LLMCache+LLMRetry+UsageTracker, FeedbackControl
+    Loop+PerformanceFingerprint+SimilarTaskRecommender, UnifiedGateEngine+
+    VerificationGate+LifecycleProtocol, PromptAssembler+AntiRationalizationEngine+
+    LearnedRuleStore, WorkflowEngine+CheckpointManager+IntentWorkflowMapper
+
+### Added — V4.2+ Roadmap P2-4: Pre-commit Hook Version Lock
+
+- **Script**: `scripts/check_dependency_lock.py`
+- **Problem**: Pre-commit hook versions could drift from `requirements-dev.lock`,
+  causing CI vs local behavior mismatch (per project_memory hard constraint).
+- **Solution**: Script verifies `.pre-commit-config.yaml` hook versions align
+  with `requirements-dev.lock`. PyPI-backed hooks (ruff/black) compared by
+  rev tag; `language: system` hooks (mypy) compared by `--version` output;
+  non-PyPI hooks (pre-commit-hooks) skipped with INFO log.
+- **Integration**: Added to `.pre-commit-config.yaml` as local hook and to
+  `.github/workflows/test.yml` lint job.
+- **Tests**: 34/34 passed (`tests/test_check_dependency_lock.py`).
+
+### Added — V4.2+ Roadmap P2-1: PrototypeSkill
+
+- **Module**: `skills/prototype/handler.py` + `skill-manifest.yaml`
+- **Problem**: No rapid prototype generation capability — users committed to
+  full implementation before validating hypotheses.
+- **Solution**: `PrototypeSkill` generates minimal runnable prototypes (UI/logic/
+  API types) to validate hypotheses before full implementation. Reuses
+  `MicroTaskPlanner` vertical-slice pattern; coordinates with `Skillifier`
+  (artifacts vs pattern extraction — no overlap).
+- **API**: `generate(hypothesis, prototype_type, constraints)` → files +
+  validation_steps + estimated_effort; `validate(prototype_result, actual_outcome)`
+  → hypothesis_confirmed + confidence + should_proceed_to_full_impl.
+- **Tests**: 28/28 passed (`tests/test_prototype_skill.py`).
+
+### Added — V4.2+ Roadmap P2-2: TeachSkill
+
+- **Module**: `skills/teach/handler.py` + `skill-manifest.yaml`
+- **Problem**: No structured onboarding — new users struggled to understand
+  7-role collaboration model, 11-phase lifecycle, and Iron Rules.
+- **Solution**: `TeachSkill` provides 8-topic curriculum (overview/seven_roles/
+  lifecycle/iron_rules/sub_skills/glossary/quickstart/full_curriculum) with 3
+  user levels (beginner/intermediate/advanced) and 3 languages (zh/en/ja).
+  Content sourced from SKILL.md (not memory). Distinct from `grilling` (P0-7):
+  TeachSkill is knowledge transfer, not requirements gathering.
+- **API**: `teach(topic, user_level, lang)`, `assess(topic, user_answers)`,
+  `curriculum(user_level)`.
+- **Tests**: 57/57 passed (`tests/test_teach_skill.py`).
+
+### Added — V4.3+ Roadmap P2-UI-1: CLI Command Classifier
+
+- **Module**: `scripts/collaboration/cli_command_classifier.py`
+- **Problem**: DevSquad CLI commands not assessed against a unified vocabulary
+  framework — naming consistency was ad-hoc.
+- **Solution**: `CLICommandClassifier` maps DevSquad CLI commands to impeccable
+  23-command vocabulary (7 categories: create/review/navigate/configure/execute/
+  maintain/stop). AST-based command discovery (no import side effects). Audit
+  found 12 CLI commands, 25% aligned; recommends argparse aliases (not rename).
+- **API**: `classify(command)`, `audit_cli()`, `suggest_command(intent)`.
+- **Tests**: 61/61 passed (`tests/test_cli_command_classifier.py`).
+
+### Added — V4.3+ Roadmap P2-UI-2: Dashboard Live Browser Mode
+
+- **Module**: `scripts/collaboration/dashboard_live_mode.py`
+- **Problem**: No real-time UI review iteration loop — Dashboard lacked
+  impeccable-style "review → feedback → fix → re-review" continuous cycle.
+- **Solution**: `LiveBrowserMode` provides session-based UI review loop
+  (start_session → review → suggest_fixes → re_review → end_session).
+  Coordinates UIUXAnalyzer + VisualRegressionChecker. Playwright kept as
+  soft dependency (Mock mode by default). Assessment report in module docstring.
+- **API**: `start_session(url, target_views, review_axes)`, `review(session)`,
+  `suggest_fixes(session, issues)`, `re_review(session)`, `end_session(session)`.
+- **Tests**: 28/28 passed (`tests/test_dashboard_live_mode.py`).
+
+### Added — V4.3+ Roadmap P2-UI-3: Meta-skill Layering
+
+- **Module**: `scripts/collaboration/meta_skill_layering.py`
+- **Problem**: Flat skill registry (8 skills) lacked higher-level grouping for
+  documentation, discovery, and progressive disclosure.
+- **Solution**: `MetaSkillGrouper` organizes 8 sub-skills into 6-layer
+  meta-skill architecture: Foundation(intent,teach) / Orchestration(dispatch) /
+  Quality(review,test,security) / Evolution(retrospective,prototype) /
+  Governance(reserved) / Integration(reserved). Layered on top of flat
+  registry — no replacement. Orthogonal to `standardized_role_template.py`
+  progressive disclosure (intra-skill vs inter-skill).
+- **API**: `group_skills(skill_names)`, `get_layer(layer_name)`,
+  `get_progressive_disclosure(user_level)`, `suggest_layer_for_skill(name, desc)`,
+  `audit_layering()`.
+- **Audit result**: 8/8 skills grouped (100% coverage), governance/integration
+  layers reserved for future.
+- **Tests**: 27/27 passed (`tests/test_meta_skill_layering.py`).
+
+### Changed
+
+- **Test pyramid**: Total 6501 → 7290 (+789 tests). Contract 3.06% → 5.09%,
+  Integration 8.84% → 13.13%. Both targets exceeded (4%+ and 12%+).
+- **Skills registry**: 6 → 8 sub-skills (added `prototype` and `teach`).
+- **Pre-commit config**: Added `dependency-lock-check` local hook.
+- **CI workflow**: Added dependency lock check step to lint job.
+- **ruff fixes**: 55 errors auto-fixed (import sorting I001, unused variables
+  F841, unused lambda args ARG005, SIM105 suppress pattern).
+
+### Quality Gates
+
+- **pytest**: 7265 passed, 25 skipped, 0 failed (653.93s)
+- **ruff**: All checks passed (0 errors)
+- **mypy**: Success — no issues found in 196 source files
+- **version consistency**: 28/28 passed (version 4.2.1)
+- **dependency lock**: Correctly detects mypy system vs lock drift (tool working
+  as designed; CI passes because CI installs from lock)
+
 ## [4.2.1] - 2026-07-22
 
 PATCH release: P1+P2 items from 7-role consensus review — consensus quality,

@@ -25,6 +25,7 @@ from scripts.collaboration.permission_guard import (
     PermissionDecision,
     PermissionGuard,
     PermissionLevel,
+    PermissionRule,
     ProposedAction,
 )
 
@@ -234,6 +235,260 @@ class TestPermissionGuardDefaultLevel(unittest.TestCase):
         decision = guard.check(action)
         self.assertEqual(decision.outcome, DecisionOutcome.PROMPT)
         self.assertTrue(decision.requires_confirmation)
+
+
+class TestPermissionGuardAutoLevel(unittest.TestCase):
+    """Contract tests for AUTO level (AI classifier auto-judges) behavior."""
+
+    def _get_guard(self) -> PermissionGuard:
+        return PermissionGuard(current_level=PermissionLevel.AUTO)
+
+    def test_auto_level_file_read_allowed(self):
+        """AUTO level must allow FILE_READ operations."""
+        guard = self._get_guard()
+        action = ProposedAction(
+            action_type=ActionType.FILE_READ,
+            target="/tmp/read.txt",
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.ALLOWED)
+
+    def test_auto_level_file_delete_prompts(self):
+        """AUTO level must PROMPT for FILE_DELETE (human gate)."""
+        guard = self._get_guard()
+        action = ProposedAction(
+            action_type=ActionType.FILE_DELETE,
+            target="/tmp/trash.txt",
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.PROMPT)
+
+    def test_auto_level_process_spawn_prompts(self):
+        """AUTO level must PROMPT for PROCESS_SPAWN (human gate)."""
+        guard = self._get_guard()
+        action = ProposedAction(
+            action_type=ActionType.PROCESS_SPAWN,
+            target="/usr/bin/python",
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.PROMPT)
+
+    def test_auto_level_environment_prompts(self):
+        """AUTO level must PROMPT for ENVIRONMENT changes (human gate)."""
+        guard = self._get_guard()
+        action = ProposedAction(
+            action_type=ActionType.ENVIRONMENT,
+            target="PATH",
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.PROMPT)
+
+    def test_auto_level_file_create_py_allowed(self):
+        """AUTO level must allow creating .py files (low risk)."""
+        guard = self._get_guard()
+        action = ProposedAction(
+            action_type=ActionType.FILE_CREATE,
+            target="/tmp/new_module.py",
+            source_role_id="coder",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.ALLOWED)
+
+
+class TestPermissionGuardExtendedContract(unittest.TestCase):
+    """Extended contract tests for PermissionGuard audit, rules, and state."""
+
+    def _get_guard(self) -> PermissionGuard:
+        return PermissionGuard(current_level=PermissionLevel.DEFAULT)
+
+    def test_plan_denies_file_modify(self):
+        """PLAN level must deny FILE_MODIFY operations."""
+        guard = PermissionGuard(current_level=PermissionLevel.PLAN)
+        action = ProposedAction(
+            action_type=ActionType.FILE_MODIFY,
+            target="/tmp/file.py",
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.DENIED)
+
+    def test_plan_denies_network_request(self):
+        """PLAN level must deny NETWORK_REQUEST operations."""
+        guard = PermissionGuard(current_level=PermissionLevel.PLAN)
+        action = ProposedAction(
+            action_type=ActionType.NETWORK_REQUEST,
+            target="https://api.example.com",
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.DENIED)
+
+    def test_default_file_read_allowed(self):
+        """DEFAULT level must allow FILE_READ operations."""
+        guard = self._get_guard()
+        action = ProposedAction(
+            action_type=ActionType.FILE_READ,
+            target="/tmp/read.txt",
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.ALLOWED)
+
+    def test_audit_log_records_decisions(self):
+        """Audit log should record entries after check() calls."""
+        guard = self._get_guard()
+        guard.check(ProposedAction(
+            action_type=ActionType.FILE_READ,
+            target="/tmp/a.txt",
+            source_role_id="tester",
+        ))
+        guard.check(ProposedAction(
+            action_type=ActionType.FILE_DELETE,
+            target="/tmp/b.txt",
+            source_role_id="tester",
+        ))
+        log = guard.get_audit_log()
+        self.assertGreaterEqual(len(log), 2)
+
+    def test_get_audit_log_with_outcome_filter(self):
+        """get_audit_log should filter by outcome."""
+        guard = self._get_guard()
+        guard.check(ProposedAction(
+            action_type=ActionType.FILE_READ,
+            target="/tmp/read.txt",
+            source_role_id="tester",
+        ))
+        allowed = guard.get_audit_log(outcome=DecisionOutcome.ALLOWED)
+        self.assertTrue(all(e.decision.outcome == DecisionOutcome.ALLOWED for e in allowed))
+
+    def test_add_rule_new(self):
+        """add_rule should add a new rule to the guard."""
+        guard = self._get_guard()
+        initial_count = len(guard.rules)
+        new_rule = PermissionRule(
+            rule_id="CUSTOM001",
+            action_type=ActionType.FILE_READ,
+            pattern="/custom/*",
+            required_level=PermissionLevel.PLAN,
+            description="Custom read rule",
+        )
+        guard.add_rule(new_rule)
+        self.assertEqual(len(guard.rules), initial_count + 1)
+
+    def test_remove_rule_existing(self):
+        """remove_rule should remove an existing rule and return True."""
+        guard = self._get_guard()
+        result = guard.remove_rule("R001")
+        self.assertTrue(result)
+
+    def test_remove_rule_nonexistent(self):
+        """remove_rule should return False for non-existent rule."""
+        guard = self._get_guard()
+        result = guard.remove_rule("NONEXISTENT")
+        self.assertFalse(result)
+
+    def test_set_level_changes_behavior(self):
+        """set_level should dynamically change permission behavior."""
+        guard = self._get_guard()
+        # In DEFAULT, FILE_DELETE prompts (human gate)
+        action = ProposedAction(
+            action_type=ActionType.FILE_DELETE,
+            target="/tmp/test.txt",
+            source_role_id="tester",
+        )
+        decision_default = guard.check(action)
+        self.assertEqual(decision_default.outcome, DecisionOutcome.PROMPT)
+        # Switch to BYPASS
+        guard.set_level(PermissionLevel.BYPASS)
+        decision_bypass = guard.check(action)
+        self.assertEqual(decision_bypass.outcome, DecisionOutcome.ALLOWED)
+
+    def test_whitelist_allows_action(self):
+        """add_whitelist should allow matching actions to bypass rules."""
+        guard = self._get_guard()
+        target = "/tmp/whitelisted.txt"
+        guard.add_whitelist(target)
+        action = ProposedAction(
+            action_type=ActionType.FILE_MODIFY,
+            target=target,
+            source_role_id="tester",
+        )
+        decision = guard.check(action)
+        self.assertEqual(decision.outcome, DecisionOutcome.ALLOWED)
+
+    def test_get_security_report(self):
+        """get_security_report should return a dict with expected keys."""
+        guard = self._get_guard()
+        guard.check(ProposedAction(
+            action_type=ActionType.FILE_READ,
+            target="/tmp/r.txt",
+            source_role_id="tester",
+        ))
+        report = guard.get_security_report()
+        self.assertIsInstance(report, dict)
+        self.assertIn("total_checks", report)
+        self.assertIn("allowed", report)
+        self.assertIn("denied", report)
+        self.assertIn("guard_level", report)
+
+    def test_export_state(self):
+        """export_state should return a serializable state dict."""
+        guard = self._get_guard()
+        state = guard.export_state()
+        self.assertIsInstance(state, dict)
+        self.assertIn("current_level", state)
+        self.assertIn("rules", state)
+        self.assertIn("whitelist", state)
+        self.assertIn("session_id", state)
+
+    def test_import_rules(self):
+        """import_rules should import rules from dict list."""
+        guard = self._get_guard()
+        rules_data = [
+            {
+                "rule_id": "IMP001",
+                "action_type": "file_read",
+                "pattern": "/imported/*",
+                "required_level": "plan",
+                "description": "Imported rule",
+            },
+        ]
+        count = guard.import_rules(rules_data)
+        self.assertEqual(count, 1)
+
+    def test_export_rules_returns_list(self):
+        """export_rules should return a list of rule dicts."""
+        guard = self._get_guard()
+        rules = guard.export_rules()
+        self.assertIsInstance(rules, list)
+        self.assertGreater(len(rules), 0)
+
+    def test_fail_closed_denies_on_exception(self):
+        """fail_closed=True should DENY when check raises an exception."""
+        guard = PermissionGuard(
+            current_level=PermissionLevel.DEFAULT,
+            fail_closed=True,
+            audit_log=False,
+        )
+        # Force an exception by passing an action with an invalid action_type
+        # that will cause _match_rule to fail. We use a mock approach.
+        action = ProposedAction(
+            action_type=ActionType.FILE_READ,
+            target="/tmp/test.txt",
+            source_role_id="tester",
+        )
+        # Monkey-patch _check_impl to raise
+        original = guard._check_impl
+        guard._check_impl = lambda _a, _s: (_ for _ in ()).throw(RuntimeError("forced"))
+        try:
+            decision = guard.check(action)
+            self.assertEqual(decision.outcome, DecisionOutcome.DENIED)
+        finally:
+            guard._check_impl = original
 
 
 if __name__ == "__main__":

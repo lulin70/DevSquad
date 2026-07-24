@@ -56,3 +56,13 @@ repos:
         language: system
         files: ^(scripts/collaboration/_version\.py|pyproject\.toml|scripts/check_version_consistency\.py)$
         pass_filenames: false
+
+      # Dependency lock consistency check (ROADMAP P2-4: prevent CI drift
+      # from stale pre-commit hook versions — project_memory: "pre-commit
+      # hooks 版本陈旧是 CI 漂移的根本原因").
+      - id: dependency-lock-check
+        name: dependency lock consistency
+        entry: python scripts/check_dependency_lock.py
+        language: system
+        files: ^(\.pre-commit-config\.yaml|requirements-dev\.lock|scripts/check_dependency_lock\.py)$
+        pass_filenames: false
