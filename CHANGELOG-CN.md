@@ -9,7 +9,25 @@
 
 ## [Unreleased]
 
-_无未发布变更。下一版本：V4.4.0（BenchmarkRegressionChecker + base64/Unicode 检测扩展）。_
+_无未发布变更。下一版本：V4.4.0（Autonomous Loop Enhancement + Multi-LLM Voting）。_
+
+## [4.3.1] - 2026-07-25
+
+V4.3.1 将 V4.4.0 三项待办提前到 V4.3.1 完成（用户决策 2026-07-25）：BenchmarkRegressionChecker + base64/Unicode 检测 + E2E-01/03/08 脱 xfail。这是 PATCH 发布（SemVer 合规 — 无破坏性 API 变更，仅增量功能和测试补全）。
+
+### V4.3.1 Phase 1 — BenchmarkRegressionChecker + base64/Unicode 检测 + E2E 脱 xfail
+
+- **P1-1 BenchmarkRegressionChecker**：新增 `scripts/collaboration/benchmark_regression_checker.py`（378 行）— P11 生命周期门禁检查器，通过比对当前快照与基线检测性能基准回归。`BenchmarkMetric`/`BenchmarkSnapshot`/`BenchmarkReport` dataclass + `to_markdown()` Markdown 报告渲染。`BenchmarkRegressionChecker` 类含 `compare(baseline, current)` + `run_live_benchmark()` 方法。`lifecycle_gate_check()` 模块级入口（镜像 DeploymentComplianceChecker API）。`tests/unit/test_benchmark_regression_checker.py` 20 测试 7 维度覆盖（Happy/Error/Boundary/Performance/Config/Integration/Security）。radon 复杂度最高 B(9)，全部函数 A/B 级。
+
+- **P1-2 OutputValidator base64/Unicode 检测补齐**：新增 `BASE64_ENCODED_LEAK_PATTERNS`（2 patterns：JWT token + 长 blob）+ fail-secure base64 解码升级（medium → high，当解码内容含 `sk-`/`password=`/`AKIA`）。新增 `UNICODE_HOMOGLYPH_PATTERNS`（6 patterns：Cyrillic а/е/о/р/с + Greek ο）同形字攻击检测。新增 `_scan_base64()` + `_scan_unicode_homoglyph()` 扫描方法。`validate()` 扩展为 6 类扫描（原 4 类）。`FindingCategory` Literal 扩展 `base64_encoded_leak` + `unicode_homoglyph`。`tests/unit/test_output_validator_v431.py` 11 测试 7 维度。`tests/security/red_team.py::TestRedTeamBase64Unicode` RT-21~RT-26（6 红队测试：base64 编码 key/password/blob + Cyrillic 同形字 + 混合攻击 + 误报防护）。现有 134 OutputValidator 测试零回归。
+
+- **P1-3 E2E 骨架脱 xfail**：`tests/e2e/test_user_stories_skeleton.py`：E2E-01（用户故事旅程）脱 xfail，适配实际 RequirementTracer 类 API（原骨架级模块函数契约）；E2E-03（P11 性能基线）脱 xfail，注入近基线快照（5% 回归，< 10% 阈值）→ regression_detected=False；E2E-08（基准回归警报）脱 xfail，注入 25% 慢快照 → regression_detected=True，regression_percent=25.0。E2E 套件：8 passed, 0 xfailed（原 5 passed, 3 xfailed）。
+
+- **版本升级 4.3.0 → 4.3.1**（PATCH，SemVer 合规）：VERSION、_version.py、pyproject.toml、skill-manifest.yaml、Dockerfile；helm/Chart.yaml（version + appVersion）、README×3、SKILL.md、CLAUDE.md；config/deployment.yaml、COMPARISON.md、skills/__init__.py；docs/spec/SPEC.md、docs/architecture/ARCHITECTURE_V4.md；CHANGELOG.md + CHANGELOG-CN.md 添加 [4.3.1] - 2026-07-25 条目；6 个 TRAE 缓存文件（L1/L2/L3）同步。
+
+- **验证（V4.3.1 全量回归，2026-07-25）**：pytest tests/unit/test_benchmark_regression_checker.py 20 passed；pytest tests/unit/test_output_validator_v431.py 11 passed；pytest tests/security/red_team.py::TestRedTeamBase64Unicode 6 passed；pytest tests/e2e/test_user_stories_skeleton.py 8 passed, 0 xfailed；pytest tests/（全量回归，-m "not slow and not external"，排除 smoke）8110 passed, 0 failed, 0 skipped, 46 deselected；ruff check . --ignore=E501 全部通过；mypy scripts/collaboration/ 0 errors；radon cc scripts/collaboration/ 0 D+ 函数（最高 B(9)）；version consistency 30/30 PASS（4.3.1 一致）。
+
+155+ core modules, 8110+ tests passing (local; CI authoritative)
 
 ## [4.3.0] - 2026-07-25
 

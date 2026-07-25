@@ -9,7 +9,83 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_No unreleased changes. Next: V4.4.0 (BenchmarkRegressionChecker + base64/Unicode detection)._
+_No unreleased changes. Next: V4.4.0 (Autonomous Loop Enhancement + Multi-LLM Voting)._
+
+## [4.3.1] - 2026-07-25
+
+### V4.3.1 Phase 1 — BenchmarkRegressionChecker (P1-1) Landed (2026-07-25)
+
+V4.3.1 advances the three V4.4.0 todos into V4.3.1 per user decision
+(2026-07-25): BenchmarkRegressionChecker + base64/Unicode detection +
+E2E-01/03/08 un-xfail. This is a PATCH release (SemVer compliant — no
+breaking API changes, only additive features and test completions).
+
+**Added — P1-1 BenchmarkRegressionChecker:**
+
+- New `scripts/collaboration/benchmark_regression_checker.py` (378 lines)
+  — P11 lifecycle gate checker that detects performance benchmark
+  regressions by comparing a current snapshot against a baseline.
+- `BenchmarkMetric` / `BenchmarkSnapshot` / `BenchmarkReport` dataclasses
+  with `to_markdown()` for Markdown report rendering.
+- `BenchmarkRegressionChecker` class with `compare(baseline, current)`
+  and `run_live_benchmark()` methods.
+- `lifecycle_gate_check(phase, baseline_version, current_version=None,
+  threshold_percent=10.0, baseline_snapshot=None, current_snapshot=None)`
+  module-level entry point (mirrors DeploymentComplianceChecker API).
+- New `tests/unit/test_benchmark_regression_checker.py` — 20 tests across
+  7 dimensions (Happy/Error/Boundary/Performance/Config/Integration/Security).
+- Radon complexity: max B(9) for `compare()`, all functions A/B grade.
+
+**Added — P1-2 OutputValidator base64/Unicode Detection:**
+
+- New `BASE64_ENCODED_LEAK_PATTERNS` (2 patterns: JWT token + long blob)
+  with fail-secure base64 decode escalation (medium → high when decoded
+  content contains `sk-`/`password=`/`AKIA`).
+- New `UNICODE_HOMOGLYPH_PATTERNS` (6 patterns: Cyrillic а/е/о/р/с +
+  Greek ο) for homoglyph attack detection.
+- New `_scan_base64()` and `_scan_unicode_homoglyph()` scanner methods.
+- `validate()` extended to scan 6 categories (was 4).
+- `FindingCategory` Literal extended with `base64_encoded_leak` and
+  `unicode_homoglyph`.
+- New `tests/unit/test_output_validator_v431.py` — 11 tests across 7
+  dimensions.
+- New `tests/security/red_team.py::TestRedTeamBase64Unicode` — RT-21~RT-26
+  (6 red-team tests: base64 encoded key/password/blob + Cyrillic
+  homoglyph + mixed attack + false-positive prevention).
+- Existing 134 OutputValidator tests: zero regression.
+
+**Changed — P1-3 E2E Skeletons Un-xfail:**
+
+- `tests/e2e/test_user_stories_skeleton.py`:
+  - E2E-01 (user story journey): un-xfail, aligned to actual
+    RequirementTracer class API (was skeleton-level module-function
+    contract).
+  - E2E-03 (P11 performance baseline): un-xfail, injects near-baseline
+    snapshot (5% regression, < 10% threshold) → regression_detected=False.
+  - E2E-08 (benchmark regression alert): un-xfail, injects 25%-slower
+    snapshot → regression_detected=True, regression_percent=25.0.
+- E2E suite: 8 passed, 0 xfailed (was 5 passed, 3 xfailed).
+
+**Version upgrade 4.3.0 → 4.3.1 (PATCH, SemVer compliant):**
+- VERSION, _version.py, pyproject.toml, skill-manifest.yaml, Dockerfile
+- helm/Chart.yaml (version + appVersion), README×3, SKILL.md, CLAUDE.md
+- config/deployment.yaml, COMPARISON.md, skills/__init__.py
+- docs/spec/SPEC.md, docs/architecture/ARCHITECTURE_V4.md
+- CHANGELOG.md + CHANGELOG-CN.md: [4.3.1] - 2026-07-25 section added
+- 6 TRAE cache files (L1/L2/L3) synced
+
+**Verification (V4.3.1 full regression, 2026-07-25):**
+- pytest tests/unit/test_benchmark_regression_checker.py: 20 passed
+- pytest tests/unit/test_output_validator_v431.py: 11 passed
+- pytest tests/security/red_team.py::TestRedTeamBase64Unicode: 6 passed
+- pytest tests/e2e/test_user_stories_skeleton.py: 8 passed, 0 xfailed
+- pytest tests/ (full regression, -m "not slow and not external", excl smoke): 8110 passed, 0 failed, 0 skipped, 46 deselected
+- ruff check . --ignore=E501: All checks passed
+- mypy scripts/collaboration/: 0 errors
+- radon cc scripts/collaboration/: 0 D+ functions (max B(9))
+- version consistency: 30/30 PASS (4.3.1 consistent)
+
+155+ core modules, 8110+ tests passing (local; CI authoritative)
 
 ## [4.3.0] - 2026-07-25
 

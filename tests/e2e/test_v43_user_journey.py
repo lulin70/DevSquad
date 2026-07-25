@@ -341,11 +341,17 @@ class TestV43MultiRoleCollaborationJourney:
                 pytest.fail(f"V4.3.0 模块 {mod_name} 导入失败: {exc}")
 
     def test_v43_skill_manifest_version_consistent(self) -> None:
-        """用户查看 skill-manifest.yaml，版本号为 4.2.9（V4.3.0 candidate）。"""
+        """用户查看 skill-manifest.yaml，版本号与 _version.py 一致。"""
         manifest_path = _PROJECT_ROOT / "skill-manifest.yaml"
         content = manifest_path.read_text(encoding="utf-8")
-        assert "version: 4.2.9" in content, (
-            "skill-manifest.yaml 版本号应为 4.2.9（V4.3.0 candidate 预发布）"
+        # Read canonical version from _version.py (single source of truth)
+        version_py = (_PROJECT_ROOT / "scripts" / "collaboration" / "_version.py").read_text()
+        import re
+        version_match = re.search(r'^__version__\s*=\s*"(\d+\.\d+\.\d+)"', version_py, re.MULTILINE)
+        assert version_match is not None, "_version.py must define __version__"
+        current_version = version_match.group(1)
+        assert f"version: {current_version}" in content, (
+            f"skill-manifest.yaml 版本号应为 {current_version}（与 _version.py 一致）"
         )
 
     def test_changelog_records_v429_prerelease(self) -> None:

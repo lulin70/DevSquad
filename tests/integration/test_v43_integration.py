@@ -628,17 +628,23 @@ class TestV43ModuleConsistencyIntegration:
 
     def test_version_consistent_across_files(self) -> None:
         """VERSION / pyproject.toml / _version.py / SKILL.md 版本号一致。"""
+        # Read canonical version from _version.py (single source of truth)
+        version_py_content = (_PROJECT_ROOT / "scripts" / "collaboration" / "_version.py").read_text()
+        import re
+        version_match = re.search(r'^__version__\s*=\s*"(\d+\.\d+\.\d+)"', version_py_content, re.MULTILINE)
+        assert version_match is not None, "_version.py must define __version__"
+        current_version = version_match.group(1)
+
         version_file = (_PROJECT_ROOT / "VERSION").read_text().strip()
-        assert version_file == "4.2.9"
+        assert version_file == current_version
 
         pyproject = (_PROJECT_ROOT / "pyproject.toml").read_text()
-        assert 'version = "4.2.9"' in pyproject
+        assert f'version = "{current_version}"' in pyproject
 
-        version_py = (_PROJECT_ROOT / "scripts" / "collaboration" / "_version.py").read_text()
-        assert '__version__ = "4.2.9"' in version_py
+        assert f'__version__ = "{current_version}"' in version_py_content
 
         skill_md = (_PROJECT_ROOT / "SKILL.md").read_text()
-        assert "version: 4.2.9" in skill_md
+        assert f"version: {current_version}" in skill_md
 
     def test_changelog_has_v429_section(self) -> None:
         """CHANGELOG.md 包含 V4.2.9 章节。"""

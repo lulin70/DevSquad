@@ -357,5 +357,162 @@ class RT16to20_DenialOfService(unittest.IsolatedAsyncioTestCase):
         self.assertLess(result.compressed_token_count, result.original_token_count)
 
 
+# ============================================================================
+# RT-21 to RT-26: V4.3.1 base64-encoded leak + Unicode homoglyph attacks
+# ============================================================================
+
+
+class TestRedTeamBase64Unicode(unittest.TestCase):
+    """V4.3.1 RT-21~RT-26: base64 encoding leak + Unicode homoglyph attack detection.
+
+    Tests evasive attack vectors that try to bypass OutputValidator by:
+    1. Encoding sensitive data in base64 (RT-21~RT-23)
+    2. Using Cyrillic/Greek homoglyphs to impersonate Latin chars (RT-24~RT-25)
+    3. False-positive prevention for legitimate short base64 (RT-26)
+    """
+
+    def test_rt_21_base64_encoded_openai_key_detected(self) -> None:
+        r"""RT-21: base64-encoded OpenAI API key is detected as high severity.
+
+        Scenario: Attacker encodes "sk-abc..." in base64 to bypass regex.
+        Expected: OutputValidator detects base64_long_blob + decodes + escalates to high.
+        """
+        import base64
+
+        validator = OutputValidator()
+        # Encode a fake OpenAI API key (39 bytes, multiple of 3 -> no padding)
+        encoded = base64.b64encode(
+            b"sk-abcdefghijklmnopqrstuvwxyz1234567890"
+        ).decode("ascii")
+        # Pad to >=64 chars by appending more base64 chars
+        text = f"config={encoded}{'A' * 20}="
+        result = validator.validate(text)
+        # Should detect base64 blob
+        base64_findings = [
+            f for f in result.findings if f.category == "base64_encoded_leak"
+        ]
+        assert len(base64_findings) >= 1, (
+            f"Expected base64 finding, got {result.findings}"
+        )
+        # Should escalate to high because decoded contains sk-
+        high_findings = [f for f in base64_findings if f.severity == "high"]
+        assert len(high_findings) >= 1, (
+            f"Expected high severity finding, "
+            f"got severities {[f.severity for f in base64_findings]}"
+        )
+
+    def test_rt_22_base64_encoded_password_detected(self) -> None:
+        r"""RT-22: base64-encoded password assignment is detected as high severity.
+
+        Scenario: Attacker encodes "password=secret..." in base64.
+        Input must be >=48 bytes (multiple of 3) to produce >=64 base64
+        chars without padding, ensuring the long-blob regex matches.
+        Expected: OutputValidator detects base64_long_blob + decodes +
+        escalates to high (decoded contains "password=").
+        """
+        import base64
+
+        validator = OutputValidator()
+        # 54 bytes (multiple of 3) -> 72 base64 chars, no padding
+        encoded = base64.b64encode(
+            b"password=secret" + b"0" * 39
+        ).decode("ascii")
+        text = f"data={encoded}"
+        result = validator.validate(text)
+        base64_findings = [
+            f for f in result.findings if f.category == "base64_encoded_leak"
+        ]
+        assert len(base64_findings) >= 1, (
+            f"Expected base64 finding, got {result.findings}"
+        )
+        high_findings = [f for f in base64_findings if f.severity == "high"]
+        assert len(high_findings) >= 1, (
+            f"Expected high severity (decoded contains password=), "
+            f"got {[f.severity for f in base64_findings]}"
+        )
+
+    def test_rt_23_base64_long_blob_medium_severity(self) -> None:
+        r"""RT-23: Long base64 blob without sensitive content is medium severity.
+
+        Scenario: 80 'A' chars decode to null bytes, no sensitive pattern.
+        Expected: base64_long_blob finding with medium severity (no escalation).
+        """
+        validator = OutputValidator()
+        # 80 base64 chars (decodes to null bytes, no sensitive pattern)
+        text = (
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        )
+        result = validator.validate(text)
+        base64_findings = [
+            f for f in result.findings if f.category == "base64_encoded_leak"
+        ]
+        assert len(base64_findings) >= 1, (
+            f"Expected base64 finding, got {result.findings}"
+        )
+        # Should be medium (decodes to null bytes, no sensitive pattern)
+        mediums = [f for f in base64_findings if f.severity == "medium"]
+        assert len(mediums) >= 1, (
+            f"Expected medium severity, "
+            f"got {[f.severity for f in base64_findings]}"
+        )
+
+    def test_rt_24_cyrillic_homoglyph_detected(self) -> None:
+        r"""RT-24: Cyrillic 'a' (U+0430) replacing Latin 'a' is detected.
+
+        Scenario: Attacker uses "аdmin" (Cyrillic а) to impersonate "admin".
+        Expected: OutputValidator detects unicode_homoglyph finding.
+        """
+        validator = OutputValidator()
+        # Cyrillic 'а' (U+0430) + Latin "dmin"
+        text = "\u0430dmin"  # First char is Cyrillic
+        result = validator.validate(text)
+        homoglyph_findings = [
+            f for f in result.findings if f.category == "unicode_homoglyph"
+        ]
+        assert len(homoglyph_findings) >= 1, (
+            f"Expected homoglyph finding, got {result.findings}"
+        )
+        assert any("cyrillic" in f.pattern_name for f in homoglyph_findings)
+
+    def test_rt_25_mixed_attack_base64_and_homoglyph(self) -> None:
+        r"""RT-25: Mixed attack with both base64 and Cyrillic homoglyph detected.
+
+        Scenario: Attacker combines base64 encoding with Cyrillic 'а' substitution.
+        Expected: OutputValidator detects both base64_encoded_leak and
+        unicode_homoglyph findings.
+        """
+        validator = OutputValidator()
+        # Long base64 + Cyrillic 'а' (U+0430)
+        base64_part = "A" * 80
+        text = f"config={base64_part} user=\u0430dmin"  # а is Cyrillic
+        result = validator.validate(text)
+        base64_findings = [
+            f for f in result.findings if f.category == "base64_encoded_leak"
+        ]
+        homoglyph_findings = [
+            f for f in result.findings if f.category == "unicode_homoglyph"
+        ]
+        assert len(base64_findings) >= 1, "Expected base64 finding"
+        assert len(homoglyph_findings) >= 1, "Expected homoglyph finding"
+
+    def test_rt_26_short_base64_no_false_positive(self) -> None:
+        r"""RT-26: Short base64 string (<64 chars) does NOT trigger finding.
+
+        Scenario: Legitimate short base64 like "dGVzdA==" (test) should not
+        be flagged.
+        Expected: No base64_encoded_leak finding.
+        """
+        validator = OutputValidator()
+        text = "data=dGVzdA== short"
+        result = validator.validate(text)
+        base64_findings = [
+            f for f in result.findings if f.category == "base64_encoded_leak"
+        ]
+        assert len(base64_findings) == 0, (
+            f"Short base64 should not trigger, got {base64_findings}"
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

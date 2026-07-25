@@ -187,7 +187,7 @@
 >
 > **版本**: V1.3.0
 > **创建日期**: 2026-07-15
-> **最后更新**: 2026-07-25 — V4.3.0 正式版发布：Phase 1 (DependencyHallucinationChecker) + Phase 2 (OutputValidator) + Phase 3 (Quality Hardening + User Simulation E2E) 全部落地，9320 tests passed
+> **最后更新**: 2026-07-25 — V4.3.1 PATCH 发布：BenchmarkRegressionChecker (P1-1) + OutputValidator base64/Unicode 检测 (P1-2) + E2E-01/03/08 脱 xfail (P1-3) 全部落地，8110 tests passed (local; CI authoritative)（原 V4.4.0 三项待办提前到 V4.3.1 完成）
 > **基线版本**: V4.2.1
 > **维护者**: DevSquad Team
-> **下次更新**: V4.4.0 规划启动时（BenchmarkRegressionChecker + base64/Unicode 检测扩展）
+> **下次更新**: V4.4.0 规划启动时（Autonomous Loop Enhancement + Multi-LLM Voting）

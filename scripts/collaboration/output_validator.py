@@ -29,6 +29,7 @@ deferred to Phase 3.
 
 from __future__ import annotations
 
+import base64
 import logging
 import re
 from dataclasses import dataclass, field
@@ -37,7 +38,14 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 
-FindingCategory = Literal["code_injection", "sensitive_info", "path_leak", "prompt_injection"]
+FindingCategory = Literal[
+    "code_injection",
+    "sensitive_info",
+    "path_leak",
+    "prompt_injection",
+    "base64_encoded_leak",
+    "unicode_homoglyph",
+]
 FindingSeverity = Literal["low", "medium", "high"]
 
 
@@ -213,11 +221,44 @@ class OutputValidator:
         (r"(?i)\bshutdown\s+(?:now|immediately|-h\s+now)\b", "destructive_shutdown", "high"),
     ]
 
+    # V4.3.1: Base64-encoded sensitive content leakage detection.
+    # Strategy: detect JWT-like 3-segment base64 (eyJ prefix) and long
+    # base64 blobs (>=64 chars). For long blobs, attempt to decode and
+    # check if decoded content contains known sensitive patterns.
+    BASE64_ENCODED_LEAK_PATTERNS: list[tuple[str, str, FindingSeverity]] = [
+        # JWT-like 3-segment base64 (eyJ prefix)
+        (r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\b",
+         "base64_jwt_token", "high"),
+        # Long base64 string (>=64 chars, may encode keys/credentials)
+        (r"\b[A-Za-z0-9+/]{64,}={0,2}\b", "base64_long_blob", "medium"),
+    ]
+
+    # V4.3.1: Unicode homoglyph attack detection.
+    # Strategy: detect common confusable characters (Cyrillic/Greek
+    # substitutes for Latin letters) using a static whitelist (no
+    # external dependency on a confusables database).
+    UNICODE_HOMOGLYPH_PATTERNS: list[tuple[str, str, FindingSeverity]] = [
+        # Cyrillic 'a' (U+0430 lowercase, U+0410 uppercase) for Latin 'a'
+        (r"[\u0430\u0410]", "homoglyph_cyrillic_a", "medium"),
+        # Cyrillic 'e' (U+0435 lowercase, U+0415 uppercase) for Latin 'e'
+        (r"[\u0435\u0415]", "homoglyph_cyrillic_e", "medium"),
+        # Cyrillic 'o' (U+043E lowercase, U+041E uppercase) for Latin 'o'
+        (r"[\u043e\u041e]", "homoglyph_cyrillic_o", "medium"),
+        # Cyrillic 'p' (U+0440 lowercase, U+0420 uppercase) for Latin 'p'
+        (r"[\u0440\u0420]", "homoglyph_cyrillic_p", "medium"),
+        # Cyrillic 'c' (U+0441 lowercase, U+0421 uppercase) for Latin 'c'
+        (r"[\u0441\u0421]", "homoglyph_cyrillic_c", "medium"),
+        # Greek 'o' (U+03BF lowercase, U+039F uppercase) for Latin 'o'
+        (r"[\u03bf\u039f]", "homoglyph_greek_o", "medium"),
+    ]
+
     # Compiled pattern cache (class-level for reuse).
     _COMPILED_CODE_INJECTION: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
     _COMPILED_SENSITIVE_INFO: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
     _COMPILED_PATH_LEAK: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
     _COMPILED_PROMPT_INJECTION: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
+    _COMPILED_BASE64: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
+    _COMPILED_HOMOGLYPH: list[tuple[re.Pattern[str], str, FindingSeverity]] = []
 
     def __init__(self) -> None:
         # Compile once at instance construction (deferred from class-level
@@ -234,6 +275,12 @@ class OutputValidator:
             ]
             OutputValidator._COMPILED_PROMPT_INJECTION = [
                 (re.compile(p), name, sev) for p, name, sev in self.PROMPT_INJECTION_PATTERNS
+            ]
+            OutputValidator._COMPILED_BASE64 = [
+                (re.compile(p), name, sev) for p, name, sev in self.BASE64_ENCODED_LEAK_PATTERNS
+            ]
+            OutputValidator._COMPILED_HOMOGLYPH = [
+                (re.compile(p), name, sev) for p, name, sev in self.UNICODE_HOMOGLYPH_PATTERNS
             ]
 
     # ------------------------------------------------------------------
@@ -256,6 +303,8 @@ class OutputValidator:
         findings.extend(self._scan_sensitive_info(text))
         findings.extend(self._scan_path_leak(text))
         findings.extend(self._scan_prompt_injection(text))
+        findings.extend(self._scan_base64(text))
+        findings.extend(self._scan_unicode_homoglyph(text))
 
         # Sort by span start so redaction offsets are processed left-to-right.
         findings.sort(key=lambda f: f.span[0])
@@ -287,6 +336,49 @@ class OutputValidator:
 
     def _scan_prompt_injection(self, text: str) -> list[OutputFinding]:
         return self._scan(text, self._COMPILED_PROMPT_INJECTION, "prompt_injection")
+
+    def _scan_base64(self, text: str) -> list[OutputFinding]:
+        """Scan for base64-encoded sensitive content.
+
+        For long base64 blobs, attempt to decode and check if the decoded
+        content contains known sensitive patterns (sk-/password=/AKIA...).
+        If decoded content matches sensitive patterns, escalate severity
+        from medium to high.
+
+        Fail-secure: if base64 decode fails, keep medium severity.
+        """
+        findings = self._scan(text, self._COMPILED_BASE64, "base64_encoded_leak")
+        escalated: list[OutputFinding] = []
+        for f in findings:
+            if f.pattern_name == "base64_long_blob" and f.severity == "medium":
+                try:
+                    decoded_bytes = base64.b64decode(f.matched_text, validate=True)
+                    decoded = decoded_bytes.decode("utf-8", errors="ignore")
+                    if (
+                        re.search(r"sk-[A-Za-z0-9]{20,}", decoded)
+                        or re.search(r"(?i)password\s*[=:]", decoded)
+                        or re.search(r"AKIA[0-9A-Z]{16}", decoded)
+                    ):
+                        escalated.append(
+                            OutputFinding(
+                                category=f.category,
+                                severity="high",
+                                pattern_name=f.pattern_name + "_sensitive",
+                                matched_text=f.matched_text,
+                                redacted_text=f.redacted_text,
+                                span=f.span,
+                            )
+                        )
+                        continue
+                except Exception:
+                    # Fail-secure: keep medium severity if decode fails.
+                    pass
+            escalated.append(f)
+        return escalated
+
+    def _scan_unicode_homoglyph(self, text: str) -> list[OutputFinding]:
+        """Scan for Unicode homoglyph attacks."""
+        return self._scan(text, self._COMPILED_HOMOGLYPH, "unicode_homoglyph")
 
     @staticmethod
     def _scan(
