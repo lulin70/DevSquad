@@ -210,6 +210,13 @@ jobs:
           # dependency sync (pyproject.toml ↔ requirements.txt), and required
           # config key presence. FAIL-level issues block CI; WARN-level non-blocking.
           python scripts/check_config_consistency.py
+      - name: Todo drift monitor (V4.3.0 P0-2)
+        run: |
+          # V4.3.0 P0-2: Block unregistered tech debt markers.
+          # Scans scripts/ for TODO/FIXME/HACK/XXX/WIP/待办/待修复 in Python
+          # comments (tokenize-based) and checks they are registered in
+          # docs/TECH_DEBT.md. Exit 1 blocks CI if new markers found.
+          python scripts/collaboration/todo_drift_monitor.py --format text
 
   build:
     runs-on: ubuntu-latest

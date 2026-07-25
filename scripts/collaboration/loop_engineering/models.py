@@ -35,6 +35,7 @@ class SchedulingAction(str, Enum):
     HUMAN_CHECKPOINT = "human_checkpoint"
     STOP_SUCCESS = "stop_success"
     STOP_FAILURE = "stop_failure"
+    ROLLBACK = "rollback"
 
 
 class LoopEventType(str, Enum):
@@ -62,6 +63,7 @@ class LoopEngineeringConfig:
     human_checkpoint_every: int = 5
     stop_when: str = ""
     project_root: str = "."
+    max_rollback_iterations: int = 3
 
     def validate(self) -> None:
         if self.max_iterations < 1:
@@ -70,6 +72,8 @@ class LoopEngineeringConfig:
             raise ValueError("max_tokens must be >= 1000")
         if self.human_checkpoint_every < 0 or self.human_checkpoint_every > self.max_iterations:
             raise ValueError("human_checkpoint_every must be in [0, max_iterations]")
+        if self.max_rollback_iterations < 1:
+            raise ValueError("max_rollback_iterations must be >= 1")
 
 
 @dataclass

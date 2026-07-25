@@ -8,8 +8,10 @@ Coverage:
   - Integration: PromptAssembler injects ponytail rules when enabled
   - Regression: PromptAssembler works unchanged when disabled
   - Edge cases: None config, empty config, markers disabled
+  - V4.3.0 P1-1: lite/full dual-mode + 16 red lines + violation checker
 
 Spec reference: docs/spec/v3.10.0_spec.md §5.2
+                docs/prd/V4.3.0_PRD.md §3.2 (P1-1)
 """
 
 import os
@@ -19,7 +21,10 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))  # noqa: E402
 
 from scripts.collaboration.ponytail_rule_injector import (  # noqa: E402
+    PONYTAIL_RED_LINES,
+    PONYTAIL_RED_LINES_LITE,
     PONYTAIL_RULES,
+    PONYTAIL_RULES_LITE,
     PonytailRuleInjector,
 )
 
@@ -261,6 +266,220 @@ class TestPromptAssemblerIntegration(unittest.TestCase):
 
         asm = TestAssembler()
         self.assertEqual(asm._concat_injections(), "")
+
+
+class TestPonytailLiteFullMode(unittest.TestCase):
+    """V4.3.0 P1-1: lite/full dual-mode tests."""
+
+    _ENABLED = {"quality_control": {"minimal_implementation": True}}
+
+    def test_default_mode_is_full(self):
+        # Default mode must be full (backward compatible with V3.10.0).
+        injector = PonytailRuleInjector(self._ENABLED)
+        self.assertEqual(injector.mode, "full")
+
+    def test_full_mode_returns_full_rules(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        injection = injector.build_injection()
+        self.assertIn("Minimal Implementation Rules (Ponytail)", injection)
+        # Full mode keeps the "Rules:" section (lite mode drops it).
+        self.assertIn("Rules:", injection)
+
+    def test_lite_mode_returns_lite_rules(self):
+        injector = PonytailRuleInjector(self._ENABLED, mode="lite")
+        injection = injector.build_injection()
+        self.assertIn("Ponytail — Lite", injection)
+        # Lite mode does not include the "Rules:" section header.
+        self.assertNotIn("\nRules:\n", injection)
+
+    def test_lite_mode_from_config(self):
+        config = {"quality_control": {
+            "minimal_implementation": True, "ponytail_mode": "lite",
+        }}
+        injector = PonytailRuleInjector(config)
+        self.assertEqual(injector.mode, "lite")
+        self.assertIn("Lite", injector.build_injection())
+
+    def test_full_mode_from_config(self):
+        config = {"quality_control": {
+            "minimal_implementation": True, "ponytail_mode": "full",
+        }}
+        injector = PonytailRuleInjector(config)
+        self.assertEqual(injector.mode, "full")
+
+    def test_init_mode_overrides_config(self):
+        # Explicit mode param takes precedence over config.
+        config = {"quality_control": {
+            "minimal_implementation": True, "ponytail_mode": "full",
+        }}
+        injector = PonytailRuleInjector(config, mode="lite")
+        self.assertEqual(injector.mode, "lite")
+
+    def test_build_injection_mode_overrides_init(self):
+        injector = PonytailRuleInjector(self._ENABLED, mode="full")
+        injection = injector.build_injection(mode="lite")
+        self.assertIn("Lite", injection)
+
+    def test_invalid_mode_in_init_raises(self):
+        with self.assertRaises(ValueError):
+            PonytailRuleInjector(self._ENABLED, mode="ultra")
+
+    def test_invalid_mode_in_build_injection_raises(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        with self.assertRaises(ValueError):
+            injector.build_injection(mode="ultra")
+
+    def test_no_ultra_mode_supported(self):
+        # ultra mode is dead code removed per PRD §3.2 P1-1.
+        injector = PonytailRuleInjector(self._ENABLED)
+        self.assertNotIn("ultra", injector.mode)
+
+    def test_disabled_returns_empty_even_in_lite_mode(self):
+        config = {"quality_control": {
+            "minimal_implementation": False, "ponytail_mode": "lite",
+        }}
+        injector = PonytailRuleInjector(config)
+        self.assertEqual(injector.build_injection(), "")
+
+    def test_markers_disabled_note_in_lite_mode(self):
+        config = {"quality_control": {
+            "minimal_implementation": True,
+            "ponytail_mode": "lite",
+            "ponytail_markers": False,
+        }}
+        injector = PonytailRuleInjector(config)
+        self.assertIn("markers are disabled", injector.build_injection())
+
+
+class TestPonytailRedLines(unittest.TestCase):
+    """V4.3.0 P1-1: 16 (full) / 8 (lite) red lines tests."""
+
+    def test_full_red_lines_count_is_16(self):
+        self.assertEqual(len(PONYTAIL_RED_LINES), 16)
+
+    def test_lite_red_lines_count_is_8(self):
+        self.assertEqual(len(PONYTAIL_RED_LINES_LITE), 8)
+
+    def test_full_red_lines_have_stable_ids(self):
+        ids = [line.split(":", 1)[0] for line in PONYTAIL_RED_LINES]
+        self.assertEqual(ids, [f"RL-{i:02d}" for i in range(1, 17)])
+
+    def test_lite_red_lines_subset_of_full(self):
+        full_ids = {line.split(":", 1)[0] for line in PONYTAIL_RED_LINES}
+        lite_ids = {line.split(":", 1)[0] for line in PONYTAIL_RED_LINES_LITE}
+        self.assertTrue(lite_ids.issubset(full_ids))
+
+    def test_red_lines_property_full(self):
+        injector = PonytailRuleInjector(
+            {"quality_control": {"minimal_implementation": True}}
+        )
+        self.assertEqual(len(injector.red_lines), 16)
+
+    def test_red_lines_property_lite(self):
+        injector = PonytailRuleInjector(
+            {"quality_control": {"minimal_implementation": True}}, mode="lite"
+        )
+        self.assertEqual(len(injector.red_lines), 8)
+
+    def test_lite_rules_contain_7_rungs(self):
+        # Lite mode must still contain all 7 ladder rungs.
+        rungs = ["YAGNI", "standard library", "native platform",
+                 "already-installed dependency", "one line", "minimum code"]
+        for rung in rungs:
+            self.assertIn(rung, PONYTAIL_RULES_LITE, f"Missing rung: {rung}")
+
+    def test_full_rules_contain_never_skip_section(self):
+        self.assertIn("Not lazy about", PONYTAIL_RULES)
+
+
+class TestCheckRedLineViolation(unittest.TestCase):
+    """V4.3.0 P1-1: check_red_line_violation heuristic tests."""
+
+    _ENABLED = {"quality_control": {"minimal_implementation": True}}
+
+    def test_detects_skip_input_validation(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        self.assertIn("RL-12", injector.check_red_line_violation(
+            "let's skip input validation here"))
+
+    def test_detects_ignore_security(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        self.assertIn("RL-14", injector.check_red_line_violation(
+            "ignore security for now"))
+
+    def test_detects_multiple_violations(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        violations = injector.check_red_line_violation(
+            "skip input validation and ignore security")
+        self.assertIn("RL-12", violations)
+        self.assertIn("RL-14", violations)
+
+    def test_no_violation_returns_empty(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        self.assertEqual(
+            injector.check_red_line_violation("normal code with no issues"),
+            [],
+        )
+
+    def test_empty_content_returns_empty(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        self.assertEqual(injector.check_red_line_violation(""), [])
+
+    def test_case_insensitive_detection(self):
+        injector = PonytailRuleInjector(self._ENABLED)
+        self.assertIn("RL-12", injector.check_red_line_violation(
+            "SKIP INPUT VALIDATION"))
+
+    def test_lite_mode_still_detects_rl12(self):
+        # RL-12 is in the lite red line set, so it must be detectable.
+        injector = PonytailRuleInjector(self._ENABLED, mode="lite")
+        self.assertIn("RL-12", injector.check_red_line_violation(
+            "skip input validation"))
+
+    def test_lite_mode_skips_full_only_red_lines(self):
+        # RL-13 is full-mode-only (not in PONYTAIL_RED_LINES_LITE), so a
+        # violation phrase for RL-13 must NOT be reported in lite mode.
+        injector = PonytailRuleInjector(self._ENABLED, mode="lite")
+        self.assertNotIn("RL-13", injector.check_red_line_violation(
+            "swallow exceptions"))
+
+    def test_full_mode_detects_rl13(self):
+        injector = PonytailRuleInjector(self._ENABLED, mode="full")
+        self.assertIn("RL-13", injector.check_red_line_violation(
+            "swallow exceptions"))
+
+
+class TestPonytailBackwardCompatibility(unittest.TestCase):
+    """V4.3.0 P1-1: ensure existing V3.10.0 behavior is preserved."""
+
+    def test_full_mode_default_unchanged(self):
+        # The default injection must match V3.10.0 output exactly.
+        config = {"quality_control": {"minimal_implementation": True}}
+        injector = PonytailRuleInjector(config)
+        self.assertEqual(injector.build_injection(), PONYTAIL_RULES)
+
+    def test_full_mode_with_markers_disabled_unchanged(self):
+        config = {"quality_control": {
+            "minimal_implementation": True, "ponytail_markers": False,
+        }}
+        injector = PonytailRuleInjector(config)
+        expected = PONYTAIL_RULES + "\n" + (
+            "(Note: `ponytail:` markers are disabled in config; "
+            "do not add them to output.)"
+        )
+        self.assertEqual(injector.build_injection(), expected)
+
+    def test_disabled_unchanged(self):
+        injector = PonytailRuleInjector(None)
+        self.assertFalse(injector.enabled)
+        self.assertEqual(injector.build_injection(), "")
+
+    def test_init_backward_compat_single_arg(self):
+        # Old call signature PonytailRuleInjector(config) must still work.
+        config = {"quality_control": {"minimal_implementation": True}}
+        injector = PonytailRuleInjector(config)
+        self.assertTrue(injector.enabled)
+        self.assertEqual(injector.mode, "full")
 
 
 if __name__ == "__main__":

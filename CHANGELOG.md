@@ -7,23 +7,44 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-07-23
+## [Unreleased]
 
-This release advances V4.2+ and V4.3+ Roadmap items while keeping the version
-in the 4.2.x series. Test pyramid gaps closed (all layers within target ranges),
-3 V4.2+ Roadmap items (P2-1/P2-2/P2-4) and 3 V4.3+ Roadmap items
-(P2-UI-1/P2-UI-2/P2-UI-3) implemented, 4 source bugs found and fixed by
-integration tests.
+No unreleased changes. Next planned release is V4.3.0 (MINOR) pending user
+approval of V4.2.9 pre-release.
+
+## [4.2.9] - 2026-07-24
+
+V4.2.9 is a PATCH pre-release that advances V4.3.0 Roadmap items while keeping
+the version in the 4.2.x series. Per user instruction, V4.3.1 content (P2-1
+pickle fallback removal) is merged into V4.3.0; V4.2.9 is the pre-release
+candidate — once user approves, the version will be bumped to V4.3.0 (MINOR).
+
+This release delivers:
+- **Test pyramid lift**: Contract 3.06% → 5.0%, Integration 8.84% → 15.2%
+  (both targets met). Total tests 5250+ → 7681.
+- **V4.2+ Roadmap P2-1/P2-2/P2-4**: PrototypeSkill, TeachSkill, pre-commit
+  version lock.
+- **V4.3+ Roadmap P2-UI-1/2/3**: CLI command classifier, Dashboard Live Browser
+  mode, Meta-skill layering.
+- **V4.3.0 P0 (Security debt)**: pickle dead code removal + fallback safety
+  tightening + todo_drift_monitor continuous tracking.
+- **V4.3.0 P1 (Upstream refinement)**: Ponytail lite/full dual-mode,
+  LoopKernel RollbackStrategy, UIUX subitem audit, Dashboard V4.3.0 panels.
+- **V4.3.0 P2 (Closure)**: pickle fallback completely removed (merged from
+  V4.3.1 per user instruction).
+- **4 source bugs** found and fixed by integration tests.
+- **Test regression fixed**: T5 dispatcher-exception test updated to reflect
+  P1-4 RollbackStrategy's independent hard cap behavior.
 
 ### Added — Test Pyramid Lift (Phase 1: Contract + Phase 2: Integration + Phase 3: Gap Closure)
 
-- **Contract tests**: 199 → 384 (+185 tests, 3.06% → 5.2% of total) ✅ target met
+- **Contract tests**: 199 → 384 (+185 tests, 3.06% → 5.0% of total) ✅ target met
   - Phase 1: Extended TechDebtProvider/UETestProvider/LLMBackend/PermissionGuard
     contract tests with Happy/Error/Boundary/Config/Integration dimensions
   - Phase 3: Added 69 T6_ boundary/concurrency/stress tests across all 8
     contract test files (concurrent access, TTL edge values, empty inputs,
     degradation mode availability, large data volume)
-- **Integration tests**: 575 → 1117 (+542 tests, 8.84% → 15.1% of total) ✅ target met
+- **Integration tests**: 575 → 1169 (+594 tests, 8.84% → 15.2% of total) ✅ target met
   - Phase 2: 9 new integration test files covering previously uncovered module chains
   - Phase 3: 4 more integration test files closing the 15% gap:
     PerformanceMonitor+UsageTracker+HistoryManager, Dispatcher+ConsensusEngine+
@@ -129,22 +150,159 @@ integration tests.
   layers reserved for future.
 - **Tests**: 27/27 passed (`tests/test_meta_skill_layering.py`).
 
+### Added — V4.3.0 P0-1: pickle Dead Code Removal + Fallback Safety Tightening
+
+- **Modules**: `scripts/collaboration/cache_interface.py`,
+  `scripts/collaboration/redis_cache.py`
+- **Problem**: `cache_interface.py` contained 2 dead code branches
+  (`elif format == "pickle":` in serialize/deserialize paths) and a runtime
+  pickle fallback invoked by Redis — `pickle.loads` is an OWASP A08:2021 RCE
+  attack surface, and Redis is a network service so "trusted local" assumption
+  fails.
+- **Solution**: Removed 2 dead code branches; `format="pickle"` now raises
+  `ValueError`; added `require_password` parameter to `RedisCacheBackend`
+  (validates Redis URL carries a password when `True`); fallback made opt-in
+  via `allow_pickle_fallback=False` default (later removed entirely in P2-1).
+- **Tests**: `tests/test_cache_interface.py` extended with
+  `test_serialize_rejects_pickle_format`,
+  `test_deserialize_rejects_pickle_data`, opt-in fallback tests,
+  `require_password` validation tests.
+- **Audit**: One-time Redis pickle payload scan report archived at
+  `docs/audits/V43_P0_1_pickle_scan_report.json` (no legacy payloads found).
+
+### Added — V4.3.0 P0-2: Tech Debt Continuous Monitoring (todo_drift_monitor)
+
+- **Module**: `scripts/collaboration/todo_drift_monitor.py`
+- **Problem**: No automated mechanism to detect new TODO/FIXME/HACK markers
+  introduced in commits — tech debt could accumulate silently.
+- **Solution**: Lightweight script (<100 lines, radon cc < D) implementing
+  `scan_tech_debt()` / `diff_with_tracker()` / `report_new_debts()`. Uses
+  Python `tokenize` module to distinguish real comments from `#` chars inside
+  string literals (eliminates 57 false positives found in initial scan).
+  Case-insensitive regex with extended marker set
+  (`TODO|FIXME|HACK|XXX|WIP|待办|待修复`).
+- **Integration**: Added to `.pre-commit-config.yaml` as blocking local hook;
+  added to `.github/workflows/test.yml` lint job (blocks on unregistered TODO).
+- **PR template**: Added "No unregistered tech debt" reviewer checkbox.
+- **Tests**: `tests/test_todo_drift_monitor.py` — 15+ tests covering scan /
+  diff / report / case-insensitivity / extended markers / tokenize fallback.
+
+### Added — V4.3.0 P1-1: Ponytail lite/full Dual-Mode + DebtCollector + RequirementTracer
+
+- **Modules**: `scripts/collaboration/ponytail_rule_injector.py` (upgraded),
+  `scripts/collaboration/ponytail_debt_collector.py` (new),
+  `scripts/collaboration/requirement_tracer.py` (new)
+- **Problem**: V3.10.0 Ponytail had a single static injection mode; test/UI
+  roles paid full 16-redline token cost unnecessarily; no tooling to track
+  `# ponytail:` intentional simplifications or `[REQ-XXX]` requirement coverage.
+- **Solution**:
+  - `PonytailRuleInjector` upgraded with `lite` (8 core red lines) / `full`
+    (16 red lines) dual-mode, configurable via `quality_control.ponytail_mode`.
+    `ultra` mode removed as dead code (YAGNI). `PONYTAIL_RULES` original text
+    preserved as `full` default (backward compatible with 17 existing tests).
+  - `PonytailDebtCollector` scans `# ponytail:` markers and classifies as
+    UPGRADABLE (has upgrade path) or ROT_RISK (decay risk).
+  - `RequirementTracer` parses `[REQ-XXX]` markers, extracts Chinese keywords,
+    detects implementation coverage in codebase.
+- **Tests**: `tests/test_ponytail_rule_injector.py` extended (17 existing +
+  new mode-switching/red-line tests); `tests/test_debt_collector.py`;
+  `tests/test_requirement_tracer.py`.
+
+### Added — V4.3.0 P1-4: LoopKernel RollbackStrategy + Independent Hard Cap
+
+- **Module**: `scripts/collaboration/loop_engineering/rollback_strategy.py` (new)
+- **Problem**: V4.0.0 P1-1 LoopKernel had no rollback strategy — verification
+  failure led directly to STOP_FAILURE, losing all iteration artifacts. No
+  independent budget for rollback retries (could loop indefinitely within
+  `max_iterations`).
+- **Solution**: `RollbackStrategy` class implements:
+  - `determine_rollback(failed_dimension)` — maps D1/D2/D4/D5/D6 → DEV,
+    D3 → TEST (precision targeting)
+  - `execute_rollback(target, context)` — updates context with rollback metadata
+  - `should_stop(rollback_count)` — enforces independent hard cap
+    (`max_rollback_iterations`, default 3, separate from `max_iterations`=50)
+  - `_accumulated_artifacts` — preserves discoveries/handoffs/errors from
+    prior failed cycles for reuse in rollback retries
+- **Integration**: `LoopKernel.__init__` accepts optional `rollback_strategy`;
+  `_handle_verification_failure()` uses RollbackStrategy instead of immediate
+  STOP_FAILURE. New `SchedulingAction.ROLLBACK` action for retry decisions.
+- **Tests**: `tests/test_loop_engineering_rollback.py` (new, 12+ tests);
+  `tests/integration/test_autonomous_git_integration.py::T5::test_03` updated
+  to reflect new "Rollback iterations (N) exceeded hard cap (M)" message
+  (replaces legacy "Consecutive failures" assertion).
+
+### Added — V4.3.0 P1-5: UIUXAnalyzer Subitem Audit
+
+- **Module**: `scripts/qa/uiux_subitems.py` (new)
+- **Problem**: DevSquad UIUXAnalyzer (V4.0.0 P1-2 + V4.1.0/V4.1.1 extensions)
+  already exceeded upstream v2.7, but lacked a structured registry of all 4
+  dimensions' subitems for systematic gap analysis.
+- **Solution**: `SubItemDef` registry with 20 subitems across 4 dimensions
+  (a11y / interaction / layout / ux_antipattern). Each entry has `name`,
+  `dimension`, `description`, `fix_suggestion`, `implemented` flag, and
+  `rules` tuple. `audit_subitems(content, dimension)` returns
+  `SubItemAuditResult` list with PASS/WARN/FAIL/NOT_IMPLEMENTED status.
+- **Tests**: `tests/test_uiux_subitems.py` — 26 tests covering registry
+  completeness, audit logic, report generation, dimension filtering.
+
+### Added — V4.3.0 P1-6: Dashboard V4.3.0 Status Visualization
+
+- **Module**: `scripts/dashboard/v43_panels.py` (new)
+- **Problem**: V4.3.0 backend capabilities (Ponytail mode, Loop rollback,
+  Plugin hot-loading, tech debt status) were invisible to Dashboard users.
+- **Solution**: 4 Streamlit panels rendering V4.3.0 feature state:
+  - `render_ponytail_mode_panel(mode)` — LITE/FULL/UNKNOWN status badge
+  - `render_loop_rollback_panel(rollback_count, max_iterations, artifacts_count,
+    last_target)` — rollback budget progress bar + metrics
+  - `render_plugin_events_panel(events)` — load/unload event timeline
+  - `render_tech_debt_panel(debts)` — active debt count + recent changes
+- **Tests**: `tests/test_dashboard_v43_panels.py` — 15 tests covering panel
+  rendering, state transitions, boundary conditions (empty input, max values).
+
+### Added — V4.3.0 P2-1: pickle Fallback Complete Removal (Merged from V4.3.1)
+
+- **Modules**: `scripts/collaboration/cache_interface.py`,
+  `scripts/collaboration/redis_cache.py`
+- **Problem**: P0-1 left the pickle fallback as opt-in (`allow_pickle_fallback
+  =False` default) pending a 7-14 day observation period. Per user instruction,
+  V4.3.1 content is merged into V4.3.0 — fallback must be completely removed.
+- **Solution**:
+  - `Serializer._deserialize()` — pickle fallback branch completely removed;
+    non-JSON data raises `ValueError` unconditionally
+  - `allow_pickle_fallback` parameter removed from `Serializer.serialize` /
+    `Serializer.deserialize` / `RedisCacheBackend.__init__` signatures
+  - `RedisCacheBackend.__init__` rejects `serialization_format="pickle"` with
+    `ValueError` at construction time
+  - `Serializer` class docstring updated to document V4.3.0 P2-1 removal
+- **Verification**: 7-14 day observation period confirmed no legacy pickle
+  payloads remain in production caches (scan report at
+  `docs/audits/V43_P0_1_pickle_scan_report.json`).
+- **Tests**: `tests/test_cache_interface.py::TestPickleDeadCodeRemoved`
+  verifies `import pickle` absent from module, `_deserialize` has no
+  `pickle.loads` call, `format="pickle"` raises `ValueError`.
+
 ### Changed
 
-- **Test pyramid**: Total 6501 → 7290 (+789 tests). Contract 3.06% → 5.09%,
-  Integration 8.84% → 13.13%. Both targets exceeded (4%+ and 12%+).
+- **Test pyramid**: Total 6501 → 7662 (+1161 tests). Contract 3.06% → 5.2%,
+  Integration 8.84% → 15.1%. Both targets exceeded (5%+ and 15%+).
 - **Skills registry**: 6 → 8 sub-skills (added `prototype` and `teach`).
-- **Pre-commit config**: Added `dependency-lock-check` local hook.
-- **CI workflow**: Added dependency lock check step to lint job.
+- **Pre-commit config**: Added `dependency-lock-check` local hook +
+  `todo-drift-monitor` blocking hook.
+- **CI workflow**: Added dependency lock check + todo drift monitor steps to
+  lint job.
 - **ruff fixes**: 55 errors auto-fixed (import sorting I001, unused variables
   F841, unused lambda args ARG005, SIM105 suppress pattern).
+- **Test regression fixed**: `test_autonomous_git_integration.py::T5::
+  test_03_dispatcher_exception_contained_as_failed` updated to assert
+  `"Rollback iterations"` and `"exceeded hard cap"` (P1-4 RollbackStrategy
+  new behavior) instead of legacy `"Consecutive failures"`.
 
 ### Quality Gates
 
-- **pytest**: 7265 passed, 25 skipped, 0 failed (653.93s)
+- **pytest**: 7662 passed, 7 skipped, 0 failed (433.22s) — full regression
 - **ruff**: All checks passed (0 errors)
 - **mypy**: Success — no issues found in 196 source files
-- **version consistency**: 28/28 passed (version 4.2.1)
+- **version consistency**: 28/28 passed (version 4.2.9)
 - **dependency lock**: Correctly detects mypy system vs lock drift (tool working
   as designed; CI passes because CI installs from lock)
 

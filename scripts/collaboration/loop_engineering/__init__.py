@@ -26,6 +26,7 @@ from .protocols import (
     LoopSchedulerProtocol,
     UnifiedMemoryLayerProtocol,
 )
+from .rollback_strategy import RollbackStrategy, RollbackTarget
 from .unified_memory import UnifiedMemory
 
 __all__ = [
@@ -49,4 +50,6 @@ __all__ = [
     "IndependentEvaluatorProtocol",
     "UnifiedMemoryLayerProtocol",
     "LoopSchedulerProtocol",
+    "RollbackStrategy",
+    "RollbackTarget",
 ]

@@ -7,6 +7,20 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
+## [4.2.9] - 2026-07-24
+
+V4.2.9 是 PATCH 预发布版本，推进 V4.3.0 路线图事项同时保持版本在 4.2.x 系列。按用户指示，V4.3.1 内容（P2-1 pickle fallback 移除）合并入 V4.3.0；V4.2.9 为预发布候选 — 用户批准后将升至 V4.3.0（MINOR）。
+
+本次发布内容：
+- **测试金字塔提升**：契约测试 3.06% → 5.0%，集成测试 8.84% → 15.2%（均达标），总测试数 5250+ → 7681
+- **V4.2+ 路线图 P2-1/P2-2/P2-4**：PrototypeSkill、TeachSkill、pre-commit 版本锁
+- **V4.3+ 路线图 P2-UI-1/2/3**：CLI 命令分类器、Dashboard Live Browser 模式、Meta-skill 分层
+- **V4.3.0 P0（安全债务）**：pickle 死代码移除 + fallback 安全收紧 + todo_drift_monitor 持续追踪
+- **V4.3.0 P1（上游精炼）**：Ponytail lite/full 双模式、LoopKernel RollbackStrategy、UIUX 子项审计、Dashboard V4.3.0 面板
+- **V4.3.0 P2（收尾）**：pickle fallback 完全移除（按用户指示从 V4.3.1 合并）
+- **4 个源码 bug** 由集成测试发现并修复（memory_serializer 大小写、memory_index 索引标志、memory_query 字段规范化、history_manager 线程检查）
+- **测试回归修复**：T5 dispatcher-exception 测试更新以反映 P1-4 RollbackStrategy 独立硬上限行为
+
 ## [4.2.1] - 2026-07-22
 
 PATCH 发布：7 角色共识评审 P1+P2 项 — 共识质量、人类把关、构造器检测、测试质量 CI 门禁、隐藏内容扫描器、PRD 版本联动、敏感信息输入拦截、测试金字塔分析、配置一致性审计。

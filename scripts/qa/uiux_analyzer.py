@@ -27,6 +27,12 @@ from typing import Any
 from .deterministic_rule_engine import DeterministicRuleEngine
 from .models import UIUXAuditReport, UIUXIssue
 from .taste_dials import TasteDials
+from .uiux_subitems import (
+    SubItemAuditResult,
+    SubItemDef,
+    SubItemStatus,
+    get_subitems_for_dimension,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -265,6 +271,90 @@ class UIUXAnalyzer:
             logger.warning("DeterministicRuleEngine failed: %s", exc)
 
         return UIUXAuditReport(url=url, issues=issues)
+
+    # ── V4.3.0 P1-5: Sub-item audit ────────────────────────────────────────────
+
+    def audit_subitems(
+        self,
+        dimension: str,
+        issues: list[UIUXIssue] | None = None,
+    ) -> list[SubItemAuditResult]:
+        """Audit all sub-items within a UIUX dimension.
+
+        For each registered sub-item, reports its implementation status:
+        - PASS: implemented and no matching issues found
+        - WARN: implemented, matching issues with warning/info severity
+        - FAIL: implemented, matching issues with critical/error severity
+        - NOT_IMPLEMENTED: no corresponding rule exists (auto-added)
+
+        Args:
+            dimension: One of "a11y", "interaction", "layout", "ux_antipattern".
+            issues: Optional pre-collected issues from audit_dom_data(). When
+                None, only implementation coverage is reported.
+
+        Returns:
+            List of SubItemAuditResult for every sub-item in the dimension.
+        """
+        issue_by_rule: dict[str, list[UIUXIssue]] = {}
+        if issues:
+            for issue in issues:
+                issue_by_rule.setdefault(issue.rule, []).append(issue)
+
+        results: list[SubItemAuditResult] = []
+        for sub in get_subitems_for_dimension(dimension):
+            status = self._determine_subitem_status(sub, issue_by_rule)
+            results.append(SubItemAuditResult(
+                name=sub.name,
+                dimension=sub.dimension,
+                status=status,
+                detail=self._subitem_detail(sub, status, issue_by_rule),
+                fix_suggestion=sub.fix_suggestion,
+            ))
+        return results
+
+    def _determine_subitem_status(
+        self, sub: SubItemDef, issue_by_rule: dict[str, list[UIUXIssue]]
+    ) -> SubItemStatus:
+        """Determine the audit status for a single sub-item.
+
+        Args:
+            sub: The sub-item definition.
+            issue_by_rule: Issues indexed by rule ID.
+
+        Returns:
+            One of PASS / WARN / FAIL / NOT_IMPLEMENTED.
+        """
+        if not sub.implemented:
+            return "NOT_IMPLEMENTED"
+        matching = [i for rule in sub.rules for i in issue_by_rule.get(rule, [])]
+        if not matching:
+            return "PASS"
+        if any(i.severity in ("critical", "error") for i in matching):
+            return "FAIL"
+        return "WARN"
+
+    @staticmethod
+    def _subitem_detail(
+        sub: SubItemDef,
+        status: SubItemStatus,
+        issue_by_rule: dict[str, list[UIUXIssue]],
+    ) -> str:
+        """Build a human-readable detail string for a sub-item result.
+
+        Args:
+            sub: The sub-item definition.
+            status: The computed audit status.
+            issue_by_rule: Issues indexed by rule ID.
+
+        Returns:
+            Detail string describing the sub-item's audit outcome.
+        """
+        if status == "NOT_IMPLEMENTED":
+            return f"Not yet implemented: {sub.description}"
+        if status == "PASS":
+            return f"Implemented: {sub.description}"
+        count = sum(len(issue_by_rule.get(r, [])) for r in sub.rules)
+        return f"{count} issue(s) found for {sub.name}"
 
     def _check_a11y(self, a11y: dict[str, Any]) -> list[UIUXIssue]:
         issues: list[UIUXIssue] = []

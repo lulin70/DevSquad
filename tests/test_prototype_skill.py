@@ -12,6 +12,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+from skills._version import __version__ as _SKILLS_VERSION
 from skills.prototype.handler import PrototypeSkill
 from skills.registry import get_skill, list_skills
 
@@ -287,8 +288,9 @@ class TestPrototypeSkillRunAndInfo(unittest.TestCase):
         info = self.skill.info()
         self.assertEqual(info["name"], "prototype")
         self.assertIn("prototype", info["description"].lower())
-        # Version should match the skills layer version (4.2.1).
-        self.assertEqual(info["version"], "4.2.1")
+        # Version should match the skills layer version (dynamic, sourced
+        # from scripts/collaboration/_version.py via skills/_version.py).
+        self.assertEqual(info["version"], _SKILLS_VERSION)
 
 
 class TestPrototypeSkillEdgeCases(unittest.TestCase):

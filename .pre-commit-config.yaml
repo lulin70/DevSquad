@@ -66,3 +66,15 @@ repos:
         language: system
         files: ^(\.pre-commit-config\.yaml|requirements-dev\.lock|scripts/check_dependency_lock\.py)$
         pass_filenames: false
+
+      # Todo drift monitor (V4.3.0 P0-2): block unregistered tech debt.
+      # Scans scripts/ for new TODO/FIXME/HACK/XXX/WIP/待办/待修复 markers
+      # not registered in docs/TECH_DEBT.md. Uses tokenize-based comment
+      # detection to avoid false positives from string literals.
+      - id: todo-drift-monitor
+        name: todo drift monitor
+        entry: python scripts/collaboration/todo_drift_monitor.py
+        language: system
+        files: ^scripts/.*\.py$
+        pass_filenames: false
+        always_run: true

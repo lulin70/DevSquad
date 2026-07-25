@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.2.1（开发完成 — 2026-07-22）
-> **最后更新**: 2026-07-22
-> **最新评估**: V4.2.1 PATCH 发布 — P1 异议强制机制 + 人类把关节点 + 构造器参数计数器。V4.1.6 已发布至 PyPI（API Token 方式）。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **当前版本**: V4.2.9（V4.3.0 预发布候选 — 2026-07-24）
+> **最后更新**: 2026-07-24
+> **最新评估**: V4.2.9 PATCH 预发布 — V4.3.0 P0/P1/P2 全部代码 + 文档完成，测试金字塔达标（Contract 5.2% / Integration 15.1%），7662+ tests passing。等待用户确认后升 MINOR 为 V4.3.0。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.2.1 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.2.9 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
@@ -19,7 +19,15 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**模块数**: 185+（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件总数，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 153+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+
+**V4.3.0 新增模块**:
+- `scripts/collaboration/todo_drift_monitor.py` (P0-2 技术债持续监控)
+- `scripts/collaboration/ponytail_debt_collector.py` (P1-1 Ponytail 债务收集)
+- `scripts/collaboration/requirement_tracer.py` (P1-1 需求追踪)
+- `scripts/collaboration/loop_engineering/rollback_strategy.py` (P1-4 Loop 回退策略)
+- `scripts/qa/uiux_subitems.py` (P1-5 UIUX 子项审计)
+- `scripts/dashboard/v43_panels.py` (P1-6 Dashboard V4.3.0 面板)
 
 **关键模块分类**:
 - **调度核心**: MultiAgentDispatcher, Coordinator, Worker, ConsensusEngine
@@ -29,6 +37,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 - **生命周期**: LifecycleProtocol, UnifiedGateEngine, WorkflowEngine
 - **集成**: API Server (FastAPI), Streamlit Dashboard, HistoryManager
 - **控制论增强**: FeedbackControlLoop, ExecutionGuard, AdaptiveRoleSelector
+- **V4.3.0 新增**: TodoDriftMonitor, PonytailDebtCollector, RequirementTracer, RollbackStrategy, UIUXSubitems, V43DashboardPanels
 
 ---
 
@@ -36,14 +45,19 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 4603 passed（本地 Python 3.12，含 V4.0.11 FakeLLMBackend 提取 + CI 依赖同步检查 + 全部历史特性） | ✅ 全绿 |
-| Contract 测试 | 163 passed（6 Protocol 契约合规，V4.0.8 补全） | ✅ 全绿 |
-| API 服务器测试 | 51 passed（含 V4.0.10 TestReadinessProbe 3 个新测试） | ✅ 全绿 |
-| 版本一致性 | 15 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CLAUDE/deployment.yaml/COMPARISON.md/Chart.yaml） | ✅ 全绿 |
+| 单元/集成回归 | 7662 passed, 7 skipped（本地 Python 3.12，433.22s，含 V4.3.0 P0/P1/P2 全部新特性） | ✅ 全绿 |
+| Contract 测试 | 384 passed（8 Protocol 契约合规，V4.2.1 测试金字塔提升至 5.2%） | ✅ 全绿 |
+| Integration 测试 | 1117 passed（V4.2.1 测试金字塔提升至 15.1%） | ✅ 全绿 |
+| 版本一致性 | 28 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CLAUDE/deployment.yaml/COMPARISON.md/Chart.yaml） | ✅ 全绿 |
 | 覆盖率 | 80.03%+（本地 3.12，P1-D 门禁提升至 75%） | ✅ 超过 75% 门禁 |
 | 新增安全测试 | 10 passed（TestMaskRedisUrl: redis_url 凭据脱敏） | ✅ 全绿 |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
+
+**测试金字塔达标**:
+- Contract: 3.06% → 5.2%（目标 ≥5% ✅）
+- Integration: 8.84% → 15.1%（目标 ≥15% ✅）
+- 总测试数: 5250+ → 7662+（+2412 测试）
 
 ---
 

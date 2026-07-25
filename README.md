@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.2.1 Enterprise-Ready (RBAC/Audit/Multi-Tenancy in Preview)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.2.9 Pre-release (V4.3.0 candidate — pending user approval)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5250%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.2.1-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-7681%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.2.9-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,17 +71,45 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.1.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
+## 🚀 V4.2.9 (V4.3.0 candidate): 安全债清理 + 上游精细化升级 + 测试金字塔达标
 
-**DevSquad V4.1.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
-- **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
-- **P1-2 UI/UX 巡检**: 4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff 视觉回归
-- **P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁三阶段对抗验证
-- **P2-2 DAG 可视化**: Mermaid / JSON / DOT 三种格式依赖图可视化
-- **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
-- **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
+**DevSquad V4.2.9** 是 V4.3.0 的预发布候选版本，整合技术债跟踪、pickle→JSON 迁移、上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发三方面输入，按 7-Role 共识推进：
 
-7400+ tests passing。
+### V4.3.0 P0 — 安全债清理（必做）
+- **P0-1 pickle→JSON 迁移阶段 1**: 删除 2 处 dead code + fallback 安全收紧（`require_password` 校验）
+- **P0-2 技术债持续监控**: `todo_drift_monitor.py` 自动扫描 TODO/FIXME/HACK + pre-commit 阻塞 + CI lint 集成
+
+### V4.3.0 P1 — 上游精细化升级（重要）
+- **P1-1 Ponytail lite/full 双模式**: 8 核心红线（lite）+ 16 红线（full），`# ponytail:` 债务收集 + `[REQ-XXX]` 需求追踪
+- **P1-4 LoopKernel RollbackStrategy**: D1-D6 失败精准回退 + 独立硬上限（默认 3）+ 累计上下文传递
+- **P1-5 UIUX 子项审计**: 4 维度 20 子项注册表 + PASS/WARN/FAIL/NOT_IMPLEMENTED 审计
+- **P1-6 Dashboard V4.3.0 面板**: Ponytail 模式 / Loop 回退 / Plugin 事件 / 技术债状态可视化
+
+### V4.3.0 P2 — 收尾（一般）
+- **P2-1 pickle fallback 完全移除**（用户确认从 V4.3.1 并入 V4.3.0）: `allow_pickle_fallback` 参数移除，`serialization_format="pickle"` 构造时拒绝
+
+### V4.2+ / V4.3+ Roadmap 已落地项
+- **P2-1 PrototypeSkill**: 快速原型生成验证假设
+- **P2-2 TeachSkill**: 8 主题新用户引导课程
+- **P2-4 pre-commit hooks**: 依赖版本锁检查
+- **P2-UI-1 CLI 命令词表**: 基于 impeccable 23 命令词表对齐
+- **P2-UI-2 Live Browser 模式**: 实时 UI 审查迭代闭环
+- **P2-UI-3 Meta-skills 分层**: 8 子技能 6 层架构
+
+### 测试金字塔达标
+- **Contract 测试**: 3.06% → 5.0%（目标 ≥5% ✅）
+- **Integration 测试**: 8.84% → 15.2%（目标 ≥15% ✅）
+- **总测试数**: 5250+ → 7681（+2431 测试）
+
+### 历史特性（V4.0.0-V4.2.1）
+- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
+- **V4.0.0 P1-2 UI/UX 巡检**: 4 维度审计 + PIL 像素 diff 视觉回归
+- **V4.0.0 P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁
+- **V4.0.0 P2-2 DAG 可视化**: Mermaid / JSON / DOT 三格式
+- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
+- **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
+
+7681 tests passing。
 
 ---
 
@@ -465,11 +493,11 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 4.1.0
+# Expected: devsquad 4.2.9
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 5250+ passed
+# Expected: 7681 passed
 ```
 
 ---
@@ -527,7 +555,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (7400+ tests passing)
+# Run all tests (7681 tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -544,7 +572,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 7400+ CI tests / 242 e2e (7402 collected)**
+**Total: 7681 CI tests / 266 e2e (7681 collected)**
 
 Run by priority:
 ```bash
@@ -574,6 +602,43 @@ python3 -m pytest tests/ -q --tb=line
 | [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
 | [docs/PRD.md](docs/PRD.md) | 产品需求文档 | 中文 |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 技术架构文档 | 中文 |
+| [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 统一推进方案 v1.2（7-Role 共识达成） | 中文 |
+| [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（需求/用户故事/验收标准） | 中文 |
+| [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 架构设计（模块边界/接口契约/依赖图） | 中文 |
+| [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 测试方案（测试金字塔/E2E/真实用户模拟） | 中文 |
+
+---
+
+## 🗺️ Roadmap
+
+### V4.3.0（进行中 — 7-Role 共识达成，文档先行）
+
+**版本策略**: V4.2.9 预发布（全部代码+文档+E2E 验证）→ 用户确认 → V4.3.0 正式版
+
+**整合三方面输入**:
+1. 技术债持续治理（`todo_drift_monitor` + CI 阻塞）
+2. pickle→JSON 迁移（dead code 删除 + fallback 安全收紧 + 移除）
+3. 上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发（Ponytail 双模式 / LoopKernel 回退 / UIUX 审计 / Dashboard 可视化）
+
+**V4.3.0 范围（9 项）**:
+
+| ID | 名称 | 优先级 |
+|----|------|--------|
+| P0-1 | pickle dead code 删除 + fallback 安全收紧 | P0 |
+| P0-2 | `todo_drift_monitor.py` + CI 阻塞 + PR template | P0 |
+| P1-1 | Ponytail lite/full 双模式 + DebtCollector + RequirementTracer | P1 |
+| P1-4 | LoopKernel RollbackStrategy + 独立硬上限 | P1 |
+| P1-5 | UIUXAnalyzer 子项审计 + 按需补全 | P1 |
+| P1-6 | Dashboard 状态可视化 | P1 |
+| P2-1 | pickle fallback 移除 | P2 |
+| P2-2 | Autonomous SmartConfirmation 文档补全 | P2 |
+| P2-4 | V4.3.0 发布文档同步 | P2 |
+
+**7-Role 共识**: 7/7 APPROVE_WITH_CONCERNS，按 10 项调整修订后达成共识。详见 [V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) v1.2。
+
+**项目生命周期**: 按 11-Phase 模型推进（P1 需求 → P2 架构 → P3 技术设计 → P7 测试计划 → P8 实施 → P9 测试执行 → P10 部署发布）
+
+**测试金字塔保障**: unit ≥60% / integration 15-25% / e2e ≤10% / contract 5-10% / smoke ≤5%
 
 ---
 
@@ -608,6 +673,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-07-22 | Version: V4.2.1*
+*Last updated: 2026-07-24 | Version: V4.2.1 (V4.3.0 in progress — see [Roadmap](#-roadmap))*
 
 </details>

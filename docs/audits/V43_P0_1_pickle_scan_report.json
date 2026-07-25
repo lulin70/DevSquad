@@ -1,0 +1,10 @@
+{
+  "scanned_at": "2026-07-24T13:31:28.286345+00:00",
+  "roots_scanned": [
+    "."
+  ],
+  "total_scanned_files": 2347,
+  "total_skipped_files": 31478,
+  "total_suspected_pickle_files": 0,
+  "suspected_pickle_files": []
+}

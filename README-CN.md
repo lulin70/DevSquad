@@ -3,14 +3,14 @@
 <p align="center">
   <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
   <br>
-  <em>企业级就绪 | V4.2.1</em>
+  <em>企业级就绪 | V4.2.9</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-7400%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.2.1-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-7681%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.2.9-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -391,7 +391,7 @@ DevSquad/
 │   ├── cli.py                 # 命令行界面
 │   ├── dashboard.py           # Streamlit仪表板
 │   └── api_server.py          # FastAPI服务器
-├── tests/                     # 测试套件 (7400+ CI / 242 e2e, 7402 collected)
+├── tests/                     # 测试套件 (7681 CI / 266 e2e, 7681 collected)
 ├── docs/                      # 文档
 ├── SKILL.md                   # Skill定义
 ├── CHANGELOG.md              # 变更日志

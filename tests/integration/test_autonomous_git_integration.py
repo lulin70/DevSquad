@@ -544,9 +544,10 @@ class T5_ErrorHandlingIntegration(unittest.TestCase):
         Cross-module error path: HandoffAdapter catches the dispatcher
         exception (logs WARNING, returns status='error') so it never reaches
         the controller's try/except. The LoopKernel then exhausts its
-        consecutive-failure limit and the controller maps final_status='failed'
-        to RunStatus.FAILED. The run error therefore reflects the kernel's
-        failure-limit message, not the raw dispatcher exception.
+        RollbackStrategy hard cap (V4.3.0 P1-4: independent rollback budget,
+        default 3) and the controller maps final_status='failed' to
+        RunStatus.FAILED. The run error therefore reflects the kernel's
+        rollback-cap message, not the raw dispatcher exception.
         """
         config = AutonomousConfig(
             objective="error propagation test",
@@ -559,7 +560,11 @@ class T5_ErrorHandlingIntegration(unittest.TestCase):
 
         self.assertEqual(report.state.status, RunStatus.FAILED)
         self.assertTrue(report.state.is_terminal)
-        self.assertIn("Consecutive failures", report.state.error)
+        # V4.3.0 P1-4: RollbackStrategy emits "Rollback iterations (N)
+        # exceeded hard cap (M)" when the independent rollback budget is
+        # exhausted, replacing the legacy "Consecutive failures" message.
+        self.assertIn("Rollback iterations", report.state.error)
+        self.assertIn("exceeded hard cap", report.state.error)
 
     def test_04_consensus_rejection_marks_run_failed(self) -> None:
         """Verify: a rejecting ConsensusEngine flips a completed run to FAILED."""

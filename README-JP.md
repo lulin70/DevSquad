@@ -3,14 +3,14 @@
 <p align="center">
   <strong>1つのタスク → マルチロールAIコラボレーション → 1つの結論</strong>
   <br>
-  <em>エンタープライズ対応 | V4.2.1</em>
+  <em>エンタープライズ対応 | V4.2.9</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-5250%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.2.1-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-7681%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.2.9-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -299,7 +299,7 @@ python scripts/cli.py dispatch -t "テストタスク"
 | P1 拡張モジュール (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
 | V3.6.0 新モジュール (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
 | V3.9.2 拡張モジュール (LLM フォールバック/Dashboard 分割/監査永続化) | 588 | 100% |
-| **合計** | **5250+ CI / 66 e2e (収集 5355)** | **100%** |
+| **合計** | **7681 CI / 266 e2e (収集 7681)** | **100%** |
 
 ---
 
@@ -392,7 +392,7 @@ DevSquad/
 │   ├── cli.py                 # コマンドラインインターフェース
 │   ├── dashboard.py           # Streamlitダッシュボード
 │   └── api_server.py          # FastAPIサーバー
-├── tests/                     # テストスイート (5250+ CI / 66 e2e, 5355 collected)
+├── tests/                     # テストスイート (7681 CI / 266 e2e, 7681 collected)
 ├── docs/                      # ドキュメント
 ├── SKILL.md                   # Skill定義
 ├── CHANGELOG.md              # 変更ログ

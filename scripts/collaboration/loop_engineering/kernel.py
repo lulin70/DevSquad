@@ -4,12 +4,14 @@
     Discovery → Handoff → Verification → Persistence → Scheduling
 
 LoopKernel 不直接执行业务逻辑，通过 Protocol 组合各组件。
+集成 RollbackStrategy 实现精准回退 + 独立硬上限 (V4.3.0 P1-4)。
 """
 
 from __future__ import annotations
 
 import logging
 import time
+from typing import Any
 
 from .discovery_probe import DiscoveryProbe
 from .handoff_adapter import HandoffAdapter
@@ -22,6 +24,7 @@ from .models import (
     LoopEventType,
     LoopRunReport,
     SchedulingAction,
+    SchedulingDecision,
 )
 from .protocols import (
     DiscoveryProbeProtocol,
@@ -30,6 +33,7 @@ from .protocols import (
     LoopSchedulerProtocol,
     UnifiedMemoryLayerProtocol,
 )
+from .rollback_strategy import RollbackStrategy
 from .unified_memory import UnifiedMemory
 
 logger = logging.getLogger(__name__)
@@ -46,6 +50,7 @@ class LoopKernel:
         evaluator: IndependentEvaluatorProtocol | None = None,
         memory: UnifiedMemoryLayerProtocol | None = None,
         scheduler: LoopSchedulerProtocol | None = None,
+        rollback_strategy: RollbackStrategy | None = None,
     ) -> None:
         self._config = config or LoopEngineeringConfig()
         self._config.validate()
@@ -56,12 +61,28 @@ class LoopKernel:
             mode=self._config.evaluator_mode,
         )
         self._memory = memory or UnifiedMemory()
+        self._rollback_strategy = rollback_strategy or RollbackStrategy(
+            max_rollback_iterations=self._config.max_rollback_iterations,
+        )
         self._scheduler = scheduler or LoopScheduler(
             human_checkpoint_every=self._config.human_checkpoint_every,
+            rollback_strategy=self._rollback_strategy,
         )
 
         self._stop_requested = False
         self._consecutive_failures = 0
+        self._rollback_count = 0
+        self._accumulated_artifacts: dict[str, Any] = {}
+
+    @property
+    def rollback_count(self) -> int:
+        """Number of rollbacks performed in the current run."""
+        return self._rollback_count
+
+    @property
+    def accumulated_artifacts(self) -> dict[str, Any]:
+        """Artifacts accumulated across rollback cycles."""
+        return self._accumulated_artifacts
 
     def stop(self) -> None:
         """请求停止，当前轮次完成后退出。"""
@@ -71,6 +92,8 @@ class LoopKernel:
         """启动完整 Loop Engineering 流程。"""
         start_time = time.time()
         self._config.validate()
+        self._rollback_count = 0
+        self._accumulated_artifacts = {}
 
         report = LoopRunReport(
             objective=objective,
@@ -174,6 +197,7 @@ class LoopKernel:
                 iter_index=iter_index,
             ))
             self._consecutive_failures = 0
+            self._rollback_count = 0
         else:
             events.append(LoopEvent(
                 event_type=LoopEventType.VERIFICATION_REJECTED,
@@ -198,12 +222,16 @@ class LoopKernel:
             self._memory.persist_event(event)
 
         # 5. Scheduling
-        decision = self._scheduler.decide(
-            iter_index,
-            cycle,
-            self._consecutive_failures,
-            self._config.max_iterations,
-        )
+        if passed:
+            decision = self._scheduler.decide(
+                iter_index,
+                cycle,
+                self._consecutive_failures,
+                self._config.max_iterations,
+            )
+        else:
+            decision = self._handle_verification_failure(iter_index, cycle)
+
         cycle.scheduling_decision = decision
         events.append(LoopEvent(
             event_type=LoopEventType.SCHEDULING_DECISION,
@@ -213,3 +241,65 @@ class LoopKernel:
         ))
 
         return cycle
+
+    def _handle_verification_failure(
+        self,
+        iter_index: int,
+        cycle: CycleResult,
+    ) -> SchedulingDecision:
+        """Handle verification failure via RollbackStrategy.
+
+        If the rollback hard cap is not yet reached, returns a ROLLBACK
+        decision to retry the same iteration (accumulating artifacts).
+        When the hard cap is exceeded, returns STOP_FAILURE.
+
+        Args:
+            iter_index: Current iteration index (rollback retries same index).
+            cycle: The failed cycle result whose artifacts to preserve.
+
+        Returns:
+            SchedulingDecision with action ROLLBACK or STOP_FAILURE.
+        """
+        if self._rollback_strategy.should_stop(self._rollback_count):
+            return SchedulingDecision(
+                action=SchedulingAction.STOP_FAILURE,
+                reason=(
+                    f"Rollback iterations ({self._rollback_count}) exceeded "
+                    f"hard cap ({self._config.max_rollback_iterations})"
+                ),
+            )
+        target = self._rollback_strategy.determine_rollback("D3")
+        self._rollback_count += 1
+        self._merge_artifacts(cycle)
+        rollback_context: dict[str, Any] = {}
+        self._rollback_strategy.execute_rollback(target, rollback_context)
+        return SchedulingDecision(
+            action=SchedulingAction.ROLLBACK,
+            reason=(
+                f"Rollback to {target.value} phase for D3 verification failure "
+                f"(count={self._rollback_count})"
+            ),
+            next_iteration=iter_index,
+        )
+
+    def _merge_artifacts(self, cycle: CycleResult) -> None:
+        """Merge cycle artifacts into the accumulated store for rollback context.
+
+        Preserves work from previous cycles so that rollback retries can
+        access prior discoveries, handoffs, and verification errors.
+
+        Args:
+            cycle: The failed cycle whose artifacts to accumulate.
+        """
+        if cycle.discovery:
+            self._accumulated_artifacts.setdefault("discoveries", []).append(
+                cycle.discovery,
+            )
+        if cycle.handoff:
+            self._accumulated_artifacts.setdefault("handoffs", []).append(
+                cycle.handoff,
+            )
+        if cycle.verification_errors:
+            self._accumulated_artifacts.setdefault(
+                "verification_errors", [],
+            ).extend(cycle.verification_errors)

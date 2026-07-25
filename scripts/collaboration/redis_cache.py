@@ -106,9 +106,15 @@ class RedisCacheBackend(CacheBackendInterface):
         retry_attempts: int = 3,
         retry_delay: float = 1.0,
         health_check_interval: float = 30.0,
+        require_password: bool = False,
     ) -> None:
         """
         Initialize Redis cache backend.
+
+        V4.3.0 P2-1: ``serialization_format="pickle"`` is no longer
+        accepted — passing it raises ``ValueError``. The legacy pickle
+        read-side fallback has been completely removed.
+        ``allow_pickle_fallback`` parameter has been removed.
 
         Args:
             redis_url: Redis connection URL (or REDIS_URL env var)
@@ -116,11 +122,34 @@ class RedisCacheBackend(CacheBackendInterface):
             default_ttl: Default time-to-live in seconds
             max_connections: Maximum connections in pool
             enable_compression: Enable gzip compression for values
-            serialization_format: 'json' or 'pickle'
+            serialization_format: Only ``"json"`` is supported since V4.3.0 P0-1.
+                Passing ``"pickle"`` raises ``ValueError``.
             retry_attempts: Number of retry attempts on failure
             retry_delay: Delay between retries (seconds)
             health_check_interval: Interval between health checks
+            require_password: If ``True``, validate that ``redis_url`` carries
+                a password (e.g. ``redis://:secret@host:6379/0``). Raises
+                ``ValueError`` at construction time if missing. Default
+                ``False`` for backward compatibility, but recommended in
+                production.
+
+        Raises:
+            ValueError: If ``serialization_format="pickle"``, or if
+                ``require_password=True`` and the Redis URL carries no
+                password.
         """
+        # V4.3.0 P0-1: reject pickle serialization format at construction time.
+        if serialization_format == "pickle":
+            raise ValueError(
+                "serialization_format='pickle' is no longer supported "
+                "(removed in V4.3.0 P0-1). Use serialization_format='json'."
+            )
+        if serialization_format != "json":
+            raise ValueError(
+                f"Unsupported serialization_format: {serialization_format!r}. "
+                "Only 'json' is supported since V4.3.0 P0-1."
+            )
+
         self.redis_url: str = redis_url or os.getenv("REDIS_URL") or "redis://localhost:6379/0"
         self.prefix = os.getenv("CACHE_PREFIX", prefix)
         self.default_ttl = int(os.getenv("CACHE_TTL", str(default_ttl)))
@@ -130,6 +159,18 @@ class RedisCacheBackend(CacheBackendInterface):
         self.retry_attempts = retry_attempts
         self.retry_delay = retry_delay
         self.health_check_interval = health_check_interval
+
+        # V4.3.0 P0-1 (Security): optional Redis password enforcement.
+        self.require_password = require_password
+        if require_password:
+            parsed_url = urlparse(self.redis_url)
+            if not parsed_url.password:
+                raise ValueError(
+                    "require_password=True but Redis URL carries no password. "
+                    f"Refusing to construct RedisCacheBackend with url={_mask_redis_url(self.redis_url)}. "
+                    "Pass a URL of the form redis://:password@host:port/db "
+                    "or set require_password=False."
+                )
 
         # Connection state
         self._pool: Any = None

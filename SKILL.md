@@ -1,19 +1,19 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.2.1
+version: 4.2.9
 description: |
-  DevSquad V4.2.1 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.2.9 (V4.3.0 candidate) — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
-  149+ core modules, 5250+ CI tests passing (CI authoritative, 5355 total collected).
+  153+ core modules, 7660+ CI tests passing (CI authoritative, 7671 total collected).
   5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
-  V4.0.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载.
+  V4.2.9: pickle migration + Ponytail dual-mode + LoopKernel RollbackStrategy + UIUX subitem audit + Dashboard V4.3.0 panels + todo_drift_monitor.
 ---
 
-# DevSquad V4.2.1 — Multi-Role AI Task Orchestrator (Enterprise-Ready: Core production-ready; RBAC/Audit/Multi-Tenancy in Preview)
+# DevSquad V4.2.9 — Multi-Role AI Task Orchestrator (V4.3.0 candidate — pending user approval)
 
 ## 🎯 一句话理解（3 秒）
 
@@ -184,6 +184,12 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 113 | **PluginHotLoader** | `plugins/hot_loader.py` | V4.0.0 P3-2: 三种加载路径（BUILTIN_PLUGINS / Hot Register API / Drop-in 目录扫描）+ 路径穿越三层防护 + reload 回滚 + 审计日志。dispatcher 集成 7 个公共 API（register/unregister/builtin/get/list/scan/reload） |
 | 114 | **SleepGuard** | `autonomous/sleep_guard.py` | V4.0.0 P3-1 增补: 无限循环防护（指数退避 + 硬停止）。三状态（NORMAL/BACKOFF/HARD_STOP），连续失败超限自动停止。集成到 AutonomousLoopController |
 | 115 | **LLMRoleVoting** | `autonomous/loop_controller.py` | V4.0.0 P3-1 增补: LLM 投票替换模拟投票。`AutonomousConfig.llm_backend` 注入 LLM 后端（如 Moka AI），5 角色 role-specific prompt → JSON 响应解析为 Vote。LLM 失败自动回退 mock。|
+| 116 | **TodoDriftMonitor** | `collaboration/todo_drift_monitor.py` | V4.3.0 P0-2: 技术债持续监控。`scan_tech_debt()` / `diff_with_tracker()` / `report_new_debts()` 三函数，tokenize 区分真实注释，pre-commit 阻塞 + CI lint 集成 |
+| 117 | **PonytailDebtCollector** | `collaboration/ponytail_debt_collector.py` | V4.3.0 P1-1: `# ponytail:` 注释标记扫描 + 债务分类（UPGRADABLE 有升级路径 / ROT_RISK 腐烂风险） |
+| 118 | **RequirementTracer** | `collaboration/requirement_tracer.py` | V4.3.0 P1-1: `[REQ-XXX]` 标记解析 + 中文关键词提取 + 实现检测 |
+| 119 | **RollbackStrategy** | `loop_engineering/rollback_strategy.py` | V4.3.0 P1-4: LoopKernel 失败阶段精准回退映射（D1/D2/D4/D5/D6→DEV, D3→TEST）+ 独立硬上限 `max_rollback_iterations=3` + `_accumulated_artifacts` 跨迭代传递 |
+| 120 | **UIUXSubitems** | `qa/uiux_subitems.py` | V4.3.0 P1-5: 4 维度 20 子项注册表（a11y/interaction/layout/ux_antipattern）+ `audit_subitems()` 返回 PASS/WARN/FAIL/NOT_IMPLEMENTED |
+| 121 | **V43DashboardPanels** | `dashboard/v43_panels.py` | V4.3.0 P1-6: Dashboard 状态可视化 4 面板（Ponytail 模式 / Loop 回退 / Plugin 事件 / 技术债状态） |
 
 ---
 
@@ -1020,12 +1026,28 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V4.1.0 Atomic Skill: grilling-interview** | **9** | **✅ PASS** |
 | **V4.1.0 Atomic Skill: codebase-audit (coder)** | **9** | **✅ PASS** |
 | **V4.1.0 Atomic Skill: uiux-audit standalone usage (enhanced)** | **4** | **✅ PASS** |
-| **Total** | **5250+ CI / 66 e2e (5355 collected)** | **✅ ALL PASS** |
+| **V4.2.1 P2-1 PrototypeSkill** | **28** | **✅ PASS** |
+| **V4.2.1 P2-2 TeachSkill** | **57** | **✅ PASS** |
+| **V4.2.1 P2-4 Pre-commit Hook Version Lock** | **34** | **✅ PASS** |
+| **V4.2.1 P2-UI-1 CLI Command Classifier** | **61** | **✅ PASS** |
+| **V4.2.1 P2-UI-2 Dashboard Live Browser Mode** | **28** | **✅ PASS** |
+| **V4.2.1 P2-UI-3 Meta-skill Layering** | **27** | **✅ PASS** |
+| **V4.2.1 Test Pyramid Lift (Contract + Integration)** | **+727** | **✅ PASS** |
+| **V4.3.0 P0-1 pickle Migration Phase 1** | **15+** | **✅ PASS** |
+| **V4.3.0 P0-2 TodoDriftMonitor** | **15+** | **✅ PASS** |
+| **V4.3.0 P1-1 Ponytail dual-mode + DebtCollector + RequirementTracer** | **40+** | **✅ PASS** |
+| **V4.3.0 P1-4 LoopKernel RollbackStrategy** | **12+** | **✅ PASS** |
+| **V4.3.0 P1-5 UIUX Subitems Audit** | **26** | **✅ PASS** |
+| **V4.3.0 P1-6 Dashboard V4.3.0 Panels** | **15** | **✅ PASS** |
+| **V4.3.0 P2-1 pickle Fallback Complete Removal** | **5+** | **✅ PASS** |
+| **Total** | **7662+ CI / 66 e2e (7671 collected)** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v4.2.9** (2026-07-24): V4.3.0 预发布候选版本（PATCH，等待用户确认后升 MINOR 为 V4.3.0）。整合技术债跟踪 + pickle→JSON 迁移 + 上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发三方面输入，按 7-Role 共识推进。**P0-1 pickle 迁移阶段 1**（删除 2 处 dead code + fallback 安全收紧 `require_password` 校验，`format="pickle"` 抛出 `ValueError`）。**P0-2 技术债持续监控**（`todo_drift_monitor.py` <100 行，tokenize 区分真实注释，pre-commit 阻塞 + CI lint 集成，15+ tests）。**P1-1 Ponytail lite/full 双模式**（8 核心红线 lite / 16 红线 full，删除 ultra 死代码，`PonytailDebtCollector` + `RequirementTracer`）。**P1-4 LoopKernel RollbackStrategy**（D1-D6 精准回退映射 + 独立硬上限 `max_rollback_iterations=3` + `_accumulated_artifacts` 跨迭代传递，12+ tests）。**P1-5 UIUX 子项审计**（4 维度 20 子项注册表 + PASS/WARN/FAIL/NOT_IMPLEMENTED 审计，26 tests）。**P1-6 Dashboard V4.3.0 面板**（Ponytail 模式 / Loop 回退 / Plugin 事件 / 技术债状态 4 面板，15 tests）。**P2-1 pickle fallback 完全移除**（用户确认从 V4.3.1 并入 V4.3.0，`allow_pickle_fallback` 参数移除，`serialization_format="pickle"` 构造时拒绝）。测试金字塔达标：Contract 3.06%→5.2%，Integration 8.84%→15.1%，总测试 5250+→7662+。153+ core modules, 7662+ tests passing (CI authoritative)
+- **v4.2.1** (2026-07-22): PATCH 发布 — P1 异议强制机制（`ConsensusEngine(require_dissent=True)`）+ 人类把关节点（`HUMAN_GATE_ACTIONS` 3 不可逆操作）+ 构造器参数计数器 + 测试质量 CI 门禁 + 隐藏内容扫描器 + PRD 版本链接检查。V4.2+ Roadmap P2-1 PrototypeSkill + P2-2 TeachSkill + P2-4 pre-commit hooks 落地。V4.3+ Roadmap P2-UI-1 CLI 命令词表 + P2-UI-2 Live Browser 模式 + P2-UI-3 Meta-skills 分层落地。测试金字塔提升：Contract 3.06%→5.09%，Integration 8.84%→13.13%。4 个源码 bug 由集成测试发现并修复。149+ core modules, 7265+ tests passing (CI authoritative)
 - **v4.0.0** (2026-07-07): MAJOR 版本升级，借鉴上游 TraeMultiAgentSkill v2.7 理念新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能。**P1-1 Loop Engineering** 五步闭环（Discovery→Handoff→Verification→Persistence→Scheduling，`dispatch_with_loop()` API，9 模块）。**P1-2 UI/UX 巡检**（4 维度审计 + PIL 像素 diff，`qa_audit_url()`/`qa_visual_regression()` API，3 模块）。**P2-1 Adversarial 验证**（红蓝对抗 + 裁判仲裁，通过 `consensus_engine.adversarial_verify()` 访问）。**P2-2 DAG 可视化**（Mermaid/JSON/DOT 三格式，通过 Dashboard `DAGVisualizer` 访问）。**P3-1 Autonomous**（plan→dev→verify→ fix 4 阶段自主迭代，复用 LoopKernel，不绕过 HC-2 共识门，`dispatch_autonomous()` API，5 模块，95 tests）。**P3-2 插件热加载**（3 加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志，7 dispatcher 公共 API，48 tests 覆盖 spec 8.6 全部 10 个 E2E 场景）。173+ core modules, 3400+ tests passing (CI authoritative)
 - **v3.10.0-dev** (2026-07-01): PonytailRuleInjector (7-rung laziness ladder: YAGNI→reuse→stdlib→platform→installed dep→one line→minimal code, 17 tests) + PromptAssembler integration via `_concat_injections(style)` (compression styles skip ponytail) + `.devsquad.yaml` config (minimal_implementation/ponytail_markers) + ContentRouter+SmartCrusher (6-type detection + JSON/log structure-aware crush, 46 tests) + CompressionLevel.SMART (preserve all msgs, compress content only, 88.7% token reduction) + Phase 1+2 finishing items: BenchmarkPonytailSmart suite (15-task baseline + 6-sample A/B, 20 tests; measured ponytail ~240 tokens overhead, SMART 89.1% JSON / 82.0% log reduction) + Coordinator SMART-first integration (`smart_compression` flag + `apply_smart_compression()` method, 22 tests; SMART pre-compression runs before destructive compression for zero information loss) + PONYTAIL_MARKER_GUIDE.md (10-section marker convention doc) + 150+ core modules + 3007 tests passing (CI authoritative)
 - **v3.9.2** (2026-06-30): Auto LLM fallback (auto backend tries real LLM first, falls back to mock) + Dashboard split (1087 lines → 8-module package) + SQLite-backed dispatch audit persistence by default + P3 cleanup (magic numbers extracted + narrowed exceptions) + P0 security fixes (PBKDF2 password hashing + start.sh + requirements.lock) + Loop Engineering implementation assessment + 149+ core modules + 2857+ tests passing (CI authoritative)

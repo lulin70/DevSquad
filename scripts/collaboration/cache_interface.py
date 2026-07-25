@@ -9,7 +9,8 @@ Features:
 - Abstract base class for cache backend implementations
 - Unified API: get/set/delete/clear/stats
 - TTL (Time-To-Live) support
-- Serialization/Deserialization (JSON primary, pickle fallback for legacy data)
+- Serialization/Deserialization (JSON only since V4.3.0 P2-1; legacy pickle
+  read-side fallback completely removed)
 - Async-first design
 
 Usage:
@@ -104,17 +105,24 @@ class CacheEntry:
 
 
 class Serializer:
-    """
-    Serialization utility for cache values.
+    """Serialization utility for cache values.
 
-    V3.8.1 P1: JSON is now the primary serialization format. Pickle is
-    retained solely as a read-side fallback for legacy cache entries
-    written before the migration. New writes always use JSON.
+    V4.3.0 P2-1: JSON is the only supported serialization format. The legacy
+    pickle read-side fallback has been **completely removed**.
 
-    The ``_serialize``/``_deserialize`` methods implement the JSON path
-    and are the recommended entry points for new code. The legacy
-    ``serialize``/``deserialize`` methods accept a ``format`` argument
-    for backward compatibility but default to JSON.
+    - ``format="pickle"`` is no longer accepted by ``serialize`` / ``deserialize``
+      (dead code removed in P0-1). Passing ``format="pickle"`` raises ``ValueError``.
+    - The legacy pickle **read-side fallback** in ``_deserialize`` (previously
+      opt-in via ``allow_pickle_fallback=True``) has been removed in P2-1.
+      Non-JSON cache payloads now always raise ``ValueError``. The
+      ``allow_pickle_fallback`` parameter has been removed from all methods.
+    - A 7-14 day observation period (P0-1 → P2-1) confirmed no legacy pickle
+      payloads remain in production caches.
+
+    The ``_serialize`` / ``_deserialize`` methods are the recommended entry
+    points for new code. The ``serialize`` / ``deserialize`` methods accept a
+    ``format`` argument for backward compatibility but only ``"json"`` is
+    supported.
     """
 
     # ------------------------------------------------------------------
@@ -140,79 +148,76 @@ class Serializer:
 
     @staticmethod
     def _deserialize(data: bytes | str) -> Any:
-        """Deserialize JSON bytes/str to a value, with pickle fallback.
+        """Deserialize JSON bytes/str to a value.
 
-        Attempts JSON first. If JSON parsing fails (e.g., the data was
-        written by an older pickle-based cache), falls back to pickle
-        and logs a warning. This enables transparent migration of
-        existing cache entries.
+        V4.3.0 P2-1: The legacy pickle read-side fallback has been completely
+        removed. Only JSON is attempted. Non-JSON data raises ``ValueError``.
 
         Args:
-            data: Serialized data (bytes or str).
+            data: Serialized data (bytes or str). Must be JSON-encoded.
 
         Returns:
             Deserialized value.
 
         Raises:
-            ValueError: If neither JSON nor pickle can decode the data.
+            ValueError: If JSON parsing fails. Non-JSON payloads (including
+                legacy pickle data) are rejected — callers must re-write
+                caches using JSON.
         """
-        # Try JSON first — decode bytes to str then parse
         try:
             text = data.decode("utf-8", errors="strict") if isinstance(data, bytes) else data
             return json.loads(text)
         except (json.JSONDecodeError, UnicodeDecodeError) as json_err:
-            # Legacy pickle fallback for backward compat with old cache files.
-            # Only bytes can be pickle data; str inputs have no pickle path.
             if isinstance(data, bytes):
-                try:
-                    import pickle  # nosec B403 — local import for trusted legacy cache deserialization only
-
-                    value = pickle.loads(data)  # nosec B301  # noqa: S301 - trusted local cache
-                    logger.warning(
-                        "Deserialized legacy pickle cache entry via fallback; "
-                        "it will be re-written as JSON on next set()."
-                    )
-                    return value
-                except Exception as pickle_err:  # broad: pickle can raise many errors
-                    logger.error(
-                        "Both JSON and pickle deserialization failed. "
-                        "JSON error: %s | pickle error: %s",
-                        json_err,
-                        pickle_err,
-                    )
+                logger.warning(
+                    "JSON deserialization failed for bytes payload. "
+                    "Pickle fallback removed in V4.3.0 P2-1. "
+                    "JSON error: %s",
+                    json_err,
+                )
             raise ValueError(
-                f"Unable to deserialize cache data with JSON or pickle: {json_err}"
+                f"Unable to deserialize cache data with JSON: {json_err}"
             ) from json_err
 
     # ------------------------------------------------------------------
-    # Legacy format-aware API (backward compatible)
+    # Format-aware API (backward compatible — pickle now rejected)
     # ------------------------------------------------------------------
 
     @staticmethod
-    def serialize(value: Any, format: str = "json", compress: bool = False) -> bytes:
-        """
-        Serialize value to bytes.
+    def serialize(
+        value: Any,
+        format: str = "json",
+        compress: bool = False,
+    ) -> bytes:
+        """Serialize value to bytes.
+
+        V4.3.0 P0-1: ``format="pickle"`` now raises ``ValueError``. The
+        ``format`` parameter is retained for backward API compatibility,
+        but only ``"json"`` is supported. The dead pickle serialization
+        branch has been removed.
 
         Args:
             value: Value to serialize
-            format: Serialization format ('json' default; 'pickle' deprecated)
+            format: Serialization format (only ``"json"`` is supported;
+                ``"pickle"`` raises ``ValueError``)
             compress: Whether to compress with gzip
 
         Returns:
             Serialized bytes
+
+        Raises:
+            ValueError: If ``format`` is not ``"json"``.
         """
         try:
             if format == "json":
                 data = Serializer._serialize(value)
             elif format == "pickle":
-                # Deprecated: kept for backward compat with callers that
-                # explicitly request pickle. New writes should use JSON.
-                import pickle  # nosec B403 — local import for explicit pickle format (backward compat)
-
-                logger.warning(
-                    "Pickle serialization requested (deprecated); prefer JSON."
+                # V4.3.0 P0-1: dead code removed. ``format="pickle"`` is
+                # rejected to prevent new pickle payloads from being written.
+                raise ValueError(
+                    "Pickle serialization format is no longer supported "
+                    "(removed in V4.3.0 P0-1). Use format='json' instead."
                 )
-                data = pickle.dumps(value)
             else:
                 raise ValueError(f"Unsupported serialization format: {format}")
 
@@ -225,17 +230,29 @@ class Serializer:
             raise
 
     @staticmethod
-    def deserialize(data: bytes, format: str = "json", compressed: bool = False) -> Any:
-        """
-        Deserialize bytes to value.
+    def deserialize(
+        data: bytes,
+        format: str = "json",
+        compressed: bool = False,
+    ) -> Any:
+        """Deserialize bytes to value.
+
+        V4.3.0 P2-1: ``format="pickle"`` raises ``ValueError``. The
+        ``allow_pickle_fallback`` parameter has been removed — non-JSON
+        payloads always raise ``ValueError``.
 
         Args:
             data: Serialized bytes
-            format: Serialization format ('json' default; 'pickle' deprecated)
+            format: Deserialization format (only ``"json"`` is supported;
+                ``"pickle"`` raises ``ValueError``)
             compressed: Whether data is gzip compressed
 
         Returns:
             Deserialized value
+
+        Raises:
+            ValueError: If ``format`` is not ``"json"``, or JSON parsing
+                fails.
         """
         try:
             if compressed:
@@ -244,16 +261,10 @@ class Serializer:
             if format == "json":
                 return Serializer._deserialize(data)
             elif format == "pickle":
-                # Deprecated: kept for backward compat with callers that
-                # explicitly request pickle. _deserialize already falls
-                # back to pickle for legacy data, so this branch is only
-                # reached when the caller explicitly opts in.
-                import pickle  # nosec B403 — local import for explicit pickle format (caller opts in)
-
-                logger.warning(
-                    "Pickle deserialization requested (deprecated); prefer JSON."
+                raise ValueError(
+                    "Pickle deserialization format is no longer supported "
+                    "(removed in V4.3.0 P0-1). Use format='json' instead."
                 )
-                return pickle.loads(data)  # nosec B301  # noqa: S301 - trusted local cache
             else:
                 raise ValueError(f"Unsupported deserialization format: {format}")
         except (TypeError, ValueError, OSError, json.JSONDecodeError) as e:

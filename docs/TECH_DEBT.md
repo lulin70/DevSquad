@@ -22,8 +22,8 @@
 | P0 (阻断) | 0 | — |
 | P1 (重要) | 0 | — |
 | P2 (一般) | 0 | — |
-| P3 (低)   | 1 | OPEN |
-| **总计** | **1** | |
+| P3 (低)   | 0 | — |
+| **总计** | **0** | |
 
 > **扫描说明**: 运行 `grep -rn "TODO\|FIXME\|HACK" scripts/ --include="*.py" | grep -v "test\|__pycache__"`
 > 共返回 18 行匹配。经逐行分析，其中 17 行为**技术债检测工具自身的实现代码**
@@ -43,9 +43,9 @@
   TODO/FIXME/HACK 注释。该注释**不是**待办事项标记，而是检测逻辑的功能描述，
   会被简单的关键字扫描误判为 TODO。
 - **建议方案**: 无需修改。该注释准确描述了代码意图，保留有助于可读性。
-  如希望避免未来扫描误报，可考虑改写为 `# Detect TODO/FIXME/HACK comments in source`
-  以更明确表达动作意图，但非必需。
-- **状态**: OPEN (INFORMATIONAL — 非真实技术债，仅作登记以避免重复调查)
+  V4.3.0 P0-2 todo_drift_monitor 已采用注释感知正则 (`#\s*(TODO|...)(?=[\s:]|$)`)，
+  此描述性注释 (`# TODO/FIXME/HACK comments`) 因 TODO 后跟 `/` 不再被误报。
+- **状态**: RESOLVED (V4.3.0 P0-2 — todo_drift_monitor 注释感知正则上线后自动消解)
 
 ## 扫描方法与排除项
 
@@ -100,3 +100,4 @@ cd /Users/lin/trae_projects/DevSquad && grep -rn "TODO\|FIXME\|HACK" scripts/ --
 | 日期       | 版本 | 变更                                                                     | 负责人   |
 |------------|------|--------------------------------------------------------------------------|----------|
 | 2026-07-24 | v1.0 | 初始创建；完成 `scripts/` 目录全量扫描，登记 1 项 P3 (INFORMATIONAL) | DevSquad |
+| 2026-07-24 | v1.1 | V4.3.0 P0-2: todo_drift_monitor 注释感知正则上线，TD-001 自动消解标记为 RESOLVED；总计 0→0 | DevSquad |
