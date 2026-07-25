@@ -1,8 +1,15 @@
-"""Unit tests for OutputValidator (P1-6 skeleton).
+"""Unit tests for OutputValidator (P1-6 skeleton + V4.3.0 P1-8 full integration).
 
-Covers code injection, sensitive info, and path leak detection,
-plus redaction semantics and the PostDispatchPipeline._validate_outputs
-integration shim.
+Covers code injection, sensitive info, path leak, and prompt injection
+detection, plus redaction semantics, the PostDispatchPipeline._validate_outputs
+integration, and V4.3.0 Phase 2 additions:
+  - OutputValidationPipelineResult (pipeline-level aggregate)
+  - OutputValidationBlockedError (blocking mode control flow)
+  - Dual-mode _validate_outputs (list[str] | list[dict])
+  - blocking / non_blocking mode semantics
+  - DispatchAuditLogger integration
+  - config-driven mode selection
+  - fail-secure degradation
 """
 
 from __future__ import annotations
@@ -291,14 +298,16 @@ def test_findings_sorted_by_span(validator: OutputValidator) -> None:
 def test_post_dispatch_validate_outputs_detects_risky_content() -> None:
     """PostDispatchPipeline._validate_outputs scans worker_results.
 
-    Uses a minimal PostDispatchPipeline constructed via __new__ to bypass
-    the heavy __init__ (we only need the output_validator attribute and
-    the _validate_outputs / _extract_output_text methods).
+    V4.3.0 Phase 2: returns OutputValidationPipelineResult (not list[dict]).
+    Findings from workers 0/2/3 (eval, password, /etc/passwd) are captured;
+    workers 1/4/5 (safe, non-text, empty) contribute no findings.
     """
     from scripts.collaboration.dispatch_steps import PostDispatchPipeline
 
     pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
     pipeline.output_validator = OutputValidator()
+    pipeline.output_validation_mode = "non_blocking"
+    pipeline.audit_logger = None
 
     worker_results: list[dict[str, Any]] = [
         {"output": "eval('dangerous code')"},
@@ -309,28 +318,33 @@ def test_post_dispatch_validate_outputs_detects_risky_content() -> None:
         {},  # Empty dict → skipped
     ]
 
-    findings = pipeline._validate_outputs(worker_results)
+    result = pipeline._validate_outputs(worker_results)
 
-    # At least 3 workers should have findings (idx 0, 2, 3).
-    worker_indices = {f["worker_idx"] for f in findings}
-    assert 0 in worker_indices
-    assert 2 in worker_indices
-    assert 3 in worker_indices
-    # Worker 1 (safe) and 4/5 (no text) should have no findings.
-    assert 1 not in worker_indices
-    assert 4 not in worker_indices
-    assert 5 not in worker_indices
+    # New contract: returns OutputValidationPipelineResult with findings list
+    assert hasattr(result, "blocked")
+    assert hasattr(result, "findings")
+    # At least 3 findings: eval (code_injection), password (sensitive_info),
+    # /etc/passwd (path_leak)
+    assert len(result.findings) >= 3
+    categories = {f.category for f in result.findings}
+    assert "code_injection" in categories
+    assert "sensitive_info" in categories
+    assert "path_leak" in categories
 
 
 def test_post_dispatch_validate_outputs_disabled_returns_empty() -> None:
-    """When output_validator is None, _validate_outputs returns []."""
+    """When output_validator is None, _validate_outputs returns empty result."""
     from scripts.collaboration.dispatch_steps import PostDispatchPipeline
 
     pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
     pipeline.output_validator = None
+    pipeline.output_validation_mode = "non_blocking"
+    pipeline.audit_logger = None
 
-    findings = pipeline._validate_outputs([{"output": "eval(1)"}])
-    assert findings == []
+    result = pipeline._validate_outputs([{"output": "eval(1)"}])
+    assert result.blocked is False
+    assert result.findings == []
+    assert result.audit_logged is False
 
 
 def test_extract_output_text_field_priority() -> None:
@@ -359,6 +373,357 @@ def test_extract_output_text_field_priority() -> None:
 
     # Empty dict returns "".
     assert PostDispatchPipeline._extract_output_text({}) == ""
+
+
+# ---------------------------------------------------------------------
+# V4.3.0 Phase 2 (P1-8): OutputValidationPipelineResult + blocking mode
+# ---------------------------------------------------------------------
+
+
+def _build_pipeline(**overrides: Any) -> Any:
+    """Build a minimal PostDispatchPipeline for testing _validate_outputs.
+
+    Uses __new__ to bypass the heavy __init__ (we only need
+    output_validator, audit_logger, and the mode attributes).
+    """
+    from scripts.collaboration.dispatch_steps import PostDispatchPipeline
+
+    pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
+    pipeline.output_validator = OutputValidator()
+    pipeline.output_validation_mode = overrides.get("mode", "non_blocking")
+    pipeline.audit_logger = overrides.get("audit_logger")
+    return pipeline
+
+
+class TestOutputValidationPipelineResult:
+    """Pipeline-level aggregate result data class."""
+
+    def test_01_import_from_output_validator(self) -> None:
+        from scripts.collaboration.output_validator import (
+            OutputValidationPipelineResult,
+        )
+        assert OutputValidationPipelineResult is not None
+
+    def test_02_default_values(self) -> None:
+        from scripts.collaboration.output_validator import (
+            OutputValidationPipelineResult,
+        )
+        result = OutputValidationPipelineResult()
+        assert result.blocked is False
+        assert result.findings == []
+        assert result.audit_logged is False
+        assert result.redacted_outputs == []
+
+    def test_03_field_assignment(self) -> None:
+        from scripts.collaboration.output_validator import (
+            OutputValidationPipelineResult,
+        )
+        finding = OutputFinding(
+            category="sensitive_info",
+            severity="high",
+            pattern_name="openai_api_key",
+            matched_text="sk-abc",
+            redacted_text="sk***bc",
+            span=(0, 6),
+        )
+        result = OutputValidationPipelineResult(
+            blocked=True,
+            findings=[finding],
+            audit_logged=True,
+            redacted_outputs=["***"],
+        )
+        assert result.blocked is True
+        assert len(result.findings) == 1
+        assert result.audit_logged is True
+        assert result.redacted_outputs == ["***"]
+
+    def test_04_high_severity_count_property(self) -> None:
+        from scripts.collaboration.output_validator import (
+            OutputValidationPipelineResult,
+        )
+        high_finding = OutputFinding(
+            category="sensitive_info", severity="high",
+            pattern_name="x", matched_text="x", redacted_text="x", span=(0, 1),
+        )
+        med_finding = OutputFinding(
+            category="path_leak", severity="medium",
+            pattern_name="y", matched_text="y", redacted_text="y", span=(0, 1),
+        )
+        result = OutputValidationPipelineResult(findings=[high_finding, med_finding])
+        assert result.high_severity_count == 1
+
+
+class TestOutputValidationBlockedError:
+    """Custom exception for blocking mode control flow."""
+
+    def test_01_import_from_output_validator(self) -> None:
+        from scripts.collaboration.output_validator import (
+            OutputValidationBlockedError,
+        )
+        assert issubclass(OutputValidationBlockedError, Exception)
+
+    def test_02_exception_carries_result(self) -> None:
+        from scripts.collaboration.output_validator import (
+            OutputValidationBlockedError,
+            OutputValidationPipelineResult,
+        )
+        result = OutputValidationPipelineResult(blocked=True)
+        err = OutputValidationBlockedError("blocked", result=result)
+        assert err.result is result
+        assert "blocked" in str(err)
+
+
+class TestValidateOutputsStringMode:
+    """_validate_outputs accepts list[str] (E2E-05 contract)."""
+
+    def test_01_string_list_input_accepted(self) -> None:
+        pipeline = _build_pipeline()
+        result = pipeline._validate_outputs(["normal output"])
+        # Returns OutputValidationPipelineResult, not list[dict]
+        assert hasattr(result, "blocked")
+        assert hasattr(result, "findings")
+        assert hasattr(result, "audit_logged")
+
+    def test_02_string_input_findings_captured(self) -> None:
+        pipeline = _build_pipeline()
+        leaky = "My key is sk-" + "a" * 40
+        result = pipeline._validate_outputs([leaky])
+        assert len(result.findings) >= 1
+        assert result.findings[0].category == "sensitive_info"
+
+    def test_03_multiple_string_inputs_aggregated(self) -> None:
+        pipeline = _build_pipeline()
+        result = pipeline._validate_outputs([
+            "eval('dangerous')",
+            "safe output",
+            "password=hunter2password",
+        ])
+        # Workers 0 and 2 should have findings
+        categories = {f.category for f in result.findings}
+        assert "code_injection" in categories
+        assert "sensitive_info" in categories
+
+
+class TestValidateOutputsDictMode:
+    """_validate_outputs accepts list[dict] (backward compat)."""
+
+    def test_01_dict_list_input_still_works(self) -> None:
+        pipeline = _build_pipeline()
+        worker_results: list[dict[str, Any]] = [
+            {"output": "eval('dangerous code')"},
+            {"output": "Safe output"},
+            {"raw_output": "password=hunter2password"},
+        ]
+        result = pipeline._validate_outputs(worker_results)
+        assert hasattr(result, "blocked")
+        assert len(result.findings) >= 2
+
+    def test_02_dict_field_priority_preserved(self) -> None:
+        """output > raw_output > content > report priority still works."""
+        pipeline = _build_pipeline()
+        result = pipeline._validate_outputs([
+            {"output": "eval('from_output')", "raw_output": "safe"},
+        ])
+        # Should detect eval( from 'output' field, not 'raw_output'
+        assert any(f.pattern_name == "eval_call" for f in result.findings)
+
+    def test_03_empty_dict_skipped(self) -> None:
+        pipeline = _build_pipeline()
+        result = pipeline._validate_outputs([{}, {"output": "eval(1)"}])
+        assert len(result.findings) >= 1
+
+
+class TestBlockingMode:
+    """blocking mode sets blocked=True when high-severity findings exist."""
+
+    def test_01_blocking_mode_blocks_on_high_severity(self) -> None:
+        pipeline = _build_pipeline(mode="blocking")
+        leaky = "sk-" + "a" * 40
+        result = pipeline._validate_outputs([leaky])
+        assert result.blocked is True
+
+    def test_02_blocking_mode_no_block_on_clean_output(self) -> None:
+        pipeline = _build_pipeline(mode="blocking")
+        result = pipeline._validate_outputs(["clean output"])
+        assert result.blocked is False
+        assert result.findings == []
+
+    def test_03_blocking_mode_no_block_on_medium_only(self) -> None:
+        pipeline = _build_pipeline(mode="blocking")
+        # private_ipv4 is medium severity
+        result = pipeline._validate_outputs(["connecting to 192.168.1.1"])
+        assert result.blocked is False
+
+
+class TestNonBlockingMode:
+    """non_blocking mode never sets blocked=True but records findings."""
+
+    def test_01_non_blocking_records_findings_without_blocking(self) -> None:
+        pipeline = _build_pipeline(mode="non_blocking")
+        leaky = "sk-" + "a" * 40
+        result = pipeline._validate_outputs([leaky])
+        assert result.blocked is False
+        assert len(result.findings) >= 1
+
+    def test_02_non_blocking_default_mode(self) -> None:
+        pipeline = _build_pipeline()  # default mode
+        assert pipeline.output_validation_mode == "non_blocking"
+
+
+class TestAuditLogIntegration:
+    """DispatchAuditLogger integration for high-severity findings."""
+
+    def test_01_audit_logged_when_high_severity_present(self) -> None:
+        class FakeAuditLogger:
+            def __init__(self) -> None:
+                self.events: list[dict[str, Any]] = []
+
+            def log_event(self, event_type: str, details: dict[str, Any]) -> None:
+                self.events.append({"event_type": event_type, "details": details})
+
+        fake_logger = FakeAuditLogger()
+        pipeline = _build_pipeline(audit_logger=fake_logger)
+        leaky = "sk-" + "a" * 40
+        result = pipeline._validate_outputs([leaky])
+        assert result.audit_logged is True
+        assert len(fake_logger.events) >= 1
+        assert fake_logger.events[0]["event_type"] == "output_validation_finding"
+
+    def test_02_audit_not_logged_when_no_findings(self) -> None:
+        class FakeAuditLogger:
+            def __init__(self) -> None:
+                self.events: list[dict[str, Any]] = []
+
+            def log_event(self, event_type: str, details: dict[str, Any]) -> None:
+                self.events.append({"event_type": event_type, "details": details})
+
+        fake_logger = FakeAuditLogger()
+        pipeline = _build_pipeline(audit_logger=fake_logger)
+        result = pipeline._validate_outputs(["clean output"])
+        assert result.audit_logged is False
+        assert len(fake_logger.events) == 0
+
+    def test_03_audit_logged_blocked_event_in_blocking_mode(self) -> None:
+        class FakeAuditLogger:
+            def __init__(self) -> None:
+                self.events: list[dict[str, Any]] = []
+
+            def log_event(self, event_type: str, details: dict[str, Any]) -> None:
+                self.events.append({"event_type": event_type, "details": details})
+
+        fake_logger = FakeAuditLogger()
+        pipeline = _build_pipeline(mode="blocking", audit_logger=fake_logger)
+        leaky = "sk-" + "a" * 40
+        result = pipeline._validate_outputs([leaky])
+        assert result.blocked is True
+        event_types = [e["event_type"] for e in fake_logger.events]
+        assert "output_validation_blocked" in event_types
+
+
+class TestConfigDrivenMode:
+    """config parameter drives mode selection."""
+
+    def test_01_config_blocking_mode(self) -> None:
+        from scripts.collaboration.dispatch_steps import PostDispatchPipeline
+
+        pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
+        pipeline.output_validator = OutputValidator()
+        pipeline.audit_logger = None
+        # Simulate config-driven initialization
+        PostDispatchPipeline._apply_output_validation_config(
+            pipeline, config={"output_validation": {"mode": "blocking"}}
+        )
+        assert pipeline.output_validation_mode == "blocking"
+
+    def test_02_config_non_blocking_mode(self) -> None:
+        from scripts.collaboration.dispatch_steps import PostDispatchPipeline
+
+        pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
+        pipeline.output_validator = OutputValidator()
+        pipeline.audit_logger = None
+        PostDispatchPipeline._apply_output_validation_config(
+            pipeline, config={"output_validation": {"mode": "non_blocking"}}
+        )
+        assert pipeline.output_validation_mode == "non_blocking"
+
+    def test_03_config_invalid_value_defaults_to_non_blocking(self) -> None:
+        from scripts.collaboration.dispatch_steps import PostDispatchPipeline
+
+        pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
+        pipeline.output_validator = OutputValidator()
+        pipeline.audit_logger = None
+        PostDispatchPipeline._apply_output_validation_config(
+            pipeline, config={"output_validation": {"mode": "invalid_mode"}}
+        )
+        assert pipeline.output_validation_mode == "non_blocking"
+
+    def test_04_config_missing_section_defaults_to_non_blocking(self) -> None:
+        from scripts.collaboration.dispatch_steps import PostDispatchPipeline
+
+        pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
+        pipeline.output_validator = OutputValidator()
+        pipeline.audit_logger = None
+        PostDispatchPipeline._apply_output_validation_config(pipeline, config={})
+        assert pipeline.output_validation_mode == "non_blocking"
+
+
+class TestFailSecure:
+    """fail-secure behavior on validator / audit failures."""
+
+    def test_01_validator_exception_returns_high_severity_finding(self) -> None:
+        """If OutputValidator.validate raises, fail-secure: treat as blocked."""
+        pipeline = _build_pipeline(mode="blocking")
+
+        class BoomValidator:
+            def validate(self, _text: str) -> Any:
+                raise RuntimeError("validator crashed")
+
+        pipeline.output_validator = BoomValidator()
+        result = pipeline._validate_outputs(["any output"])
+        # fail-secure: blocked=True, not fail-open
+        assert result.blocked is True
+
+    def test_02_audit_failure_does_not_lower_blocking_decision(self) -> None:
+        """Audit logger failure should not change blocking decision."""
+        class FailingAuditLogger:
+            def log_event(self, event_type: str, details: dict[str, Any]) -> None:
+                raise RuntimeError("audit db down")
+
+        pipeline = _build_pipeline(mode="blocking", audit_logger=FailingAuditLogger())
+        leaky = "sk-" + "a" * 40
+        result = pipeline._validate_outputs([leaky])
+        # blocked decision stands even if audit logging failed
+        assert result.blocked is True
+        # audit_logged reflects actual write success
+        assert result.audit_logged is False
+
+    def test_03_no_validator_returns_empty_result(self) -> None:
+        """When output_validator is None, returns empty (disabled)."""
+        pipeline = _build_pipeline()
+        pipeline.output_validator = None
+        result = pipeline._validate_outputs(["eval(1)"])
+        assert result.blocked is False
+        assert result.findings == []
+        assert result.audit_logged is False
+
+
+class TestReExportFromDispatchHooks:
+    """PostDispatchPipeline re-exported from dispatch_hooks (E2E-05 contract)."""
+
+    def test_01_import_from_dispatch_hooks_works(self) -> None:
+        from scripts.collaboration.dispatch_hooks import PostDispatchPipeline as PDP1
+        from scripts.collaboration.dispatch_steps import PostDispatchPipeline as PDP2
+        assert PDP1 is PDP2
+
+    def test_02_e2e_05_contract_satisfied(self) -> None:
+        """E2E-05 skeleton import path works."""
+        from scripts.collaboration.dispatch_hooks import PostDispatchPipeline
+
+        # E2E-05 expects: PostDispatchPipeline(config=...) constructible
+        # But __init__ requires deps; E2E-05 will use __new__ + _apply_output_validation_config
+        # The re-export itself satisfies the import contract
+        assert PostDispatchPipeline is not None
+        assert hasattr(PostDispatchPipeline, "_validate_outputs")
 
 
 # ---------------------------------------------------------------------

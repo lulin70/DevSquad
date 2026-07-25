@@ -344,5 +344,76 @@ class OutputValidator:
 __all__ = [
     "OutputFinding",
     "OutputValidationResult",
+    "OutputValidationPipelineResult",
+    "OutputValidationBlockedError",
     "OutputValidator",
 ]
+
+
+# ---------------------------------------------------------------------------
+# V4.3.0 Phase 2 (P1-8): Pipeline-level aggregate result + blocking exception
+# ---------------------------------------------------------------------------
+
+
+@dataclass(slots=True)
+class OutputValidationPipelineResult:
+    """Pipeline-level aggregate result of validating multiple worker outputs.
+
+    Distinct from :class:`OutputValidationResult` (single-scan result) — this
+    class aggregates findings across multiple worker outputs and carries
+    pipeline-level state (blocked / audit_logged / redacted_outputs).
+
+    Attributes
+    ----------
+    blocked:
+        ``True`` when the pipeline is in ``blocking`` mode AND at least one
+        high-severity finding was raised. Callers (e.g.
+        ``PostDispatchPipeline.execute()``) should raise
+        :class:`OutputValidationBlockedError` when ``blocked`` is True.
+    findings:
+        All findings (any severity) across all scanned outputs, in scan
+        order. Findings are :class:`OutputFinding` instances reused from
+        :class:`OutputValidator.validate`.
+    audit_logged:
+        ``True`` when every high-severity finding was successfully written
+        to the audit log. ``False`` when either (a) no high-severity
+        finding was raised, or (b) audit logging failed (fail-secure: the
+        blocking decision stands but ``audit_logged`` reflects actual
+        write success).
+    redacted_outputs:
+        Per-output redacted text (high-severity spans replaced by ``***``).
+        Index corresponds to input order. Empty strings for outputs that
+        had no high-severity findings (the original text is preserved).
+    """
+
+    blocked: bool = False
+    findings: list[OutputFinding] = field(default_factory=list)
+    audit_logged: bool = False
+    redacted_outputs: list[str] = field(default_factory=list)
+
+    @property
+    def high_severity_count(self) -> int:
+        """Number of high-severity findings across all outputs."""
+        return sum(1 for f in self.findings if f.severity == "high")
+
+
+class OutputValidationBlockedError(Exception):
+    """Raised when blocking mode detects high-severity findings.
+
+    Carries the :class:`OutputValidationPipelineResult` so callers can
+    inspect the findings that triggered the block.
+
+    Attributes
+    ----------
+    result:
+        The pipeline result that triggered the block (``blocked=True``).
+        May be ``None`` when raised manually without a result.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        result: OutputValidationPipelineResult | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.result = result

@@ -15,10 +15,17 @@ from datetime import datetime
 from typing import Any
 
 from .dispatch_models import DispatchResult, PerformanceMetric
+from .dispatch_steps import PostDispatchPipeline  # V4.3.0 P1-8 re-export (E2E-05 contract)
 from .models import EntryType
 from .scratchpad import ScratchpadEntry
 
 logger = logging.getLogger(__name__)
+
+
+__all__ = [
+    "DispatchHooks",
+    "PostDispatchPipeline",  # re-exported for E2E-05 contract
+]
 
 
 # V4.3.0 P1-7: Minimum worker output length to trigger dependency hallucination

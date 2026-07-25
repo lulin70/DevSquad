@@ -35,7 +35,11 @@ from .dispatch_steps_quality_mixin import PostDispatchQualityMixin
 from .dispatch_steps_services_mixin import PostDispatchServicesMixin
 from .dispatcher_base import ReportFormatterProtocol
 from .event_bus import EventBus
-from .output_validator import OutputValidator
+from .output_validator import (
+    OutputFinding,
+    OutputValidationPipelineResult,
+    OutputValidator,
+)
 from .severity_router import SeverityRouter
 from .two_stage_review_gate import TwoStageReviewGate
 from .ue_test_framework import UETestFramework
@@ -150,78 +154,279 @@ class PostDispatchPipeline(
         self.judge_agent = judge_agent
 
         # V4.1.2 P1-6: OutputValidator (non-blocking, log-only for now).
-        # Full blocking semantics deferred to Phase 3.
+        # V4.3.0 Phase 2 (P1-8): upgraded to blocking/non_blocking dual-mode
+        # with DispatchAuditLogger integration.
         self.output_validator: OutputValidator | None = OutputValidator()
+        self.output_validation_mode: str = "non_blocking"
+        self.audit_logger: Any = None
 
     # ------------------------------------------------------------------
-    # V4.1.2 P1-6: Output validation
+    # V4.1.2 P1-6 / V4.3.0 Phase 2 (P1-8): Output validation
     # ------------------------------------------------------------------
 
-    def _validate_outputs(self, worker_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Scan worker outputs for risky content (P1-6 skeleton).
+    def _validate_outputs(
+        self,
+        outputs: list[str] | list[dict[str, Any]],
+    ) -> OutputValidationPipelineResult:
+        """Scan worker outputs for risky content (V4.3.0 Phase 2 upgrade).
 
-        Non-blocking: logs findings at WARNING level and returns a list
-        of finding summaries so callers can attach them to the dispatch
-        result. Outputs are *not* modified in place — the redacted form
-        is logged for diagnosis but the original ``worker_results`` are
-        preserved so downstream steps (consensus, memory pipeline) see
-        the real content.
-
-        Args:
-            worker_results: List of worker result dicts. Each dict may
-                carry its textual payload under any of these keys
-                (checked in order): ``output``, ``raw_output``,
-                ``content``, ``report``.
+        Supports dual-mode input:
+          - ``list[str]``: each string is a worker output (E2E-05 contract)
+          - ``list[dict]``: each dict carries output/raw_output/content/report
+            (backward compat with V4.1.2 P1-6 callers)
 
         Returns:
-            A list of finding summary dicts (empty if no findings or if
-            the validator is disabled). Each dict has keys:
-            ``worker_idx``, ``category``, ``severity``, ``pattern_name``,
-            ``redacted_text``.
-        """
-        if self.output_validator is None:
-            return []
+            :class:`OutputValidationPipelineResult` with ``blocked`` /
+            ``findings`` / ``audit_logged`` / ``redacted_outputs``.
 
-        all_findings: list[dict[str, Any]] = []
-        for idx, wr in enumerate(worker_results):
-            text = self._extract_output_text(wr)
+        Blocking semantics (decision point 2 of the 7-Role review):
+          - ``blocking`` mode: ``blocked=True`` when any high-severity finding
+            is raised. ``execute()`` should raise
+            :class:`OutputValidationBlockedError` afterwards.
+          - ``non_blocking`` mode (default): ``blocked=False`` always;
+            findings are logged + audit-logged but dispatch continues.
+
+        Fail-secure (decision point 3.2 of the 7-Role review):
+          - Validator exception → ``blocked=True`` in blocking mode
+          - Audit logger failure → blocking decision stands, ``audit_logged=False``
+          - Config invalid → defaults to ``non_blocking`` + WARNING log
+        """
+        # Disabled validator → empty result
+        if self.output_validator is None or not outputs:
+            return OutputValidationPipelineResult()
+
+        # Detect input mode from the first element
+        is_string_mode = isinstance(outputs[0], str)
+
+        all_findings: list[OutputFinding] = []
+        redacted_outputs: list[str] = []
+        audit_ok = True
+        has_high = False
+
+        for idx, item in enumerate(outputs):
+            text = self._extract_text(item, is_string_mode)
             if not text:
+                redacted_outputs.append("")
                 continue
-            result = self.output_validator.validate(text)
-            if not result.findings:
-                continue
-            for finding in result.findings:
-                summary = {
-                    "worker_idx": idx,
-                    "category": finding.category,
-                    "severity": finding.severity,
-                    "pattern_name": finding.pattern_name,
-                    "redacted_text": finding.redacted_text,
-                }
-                all_findings.append(summary)
-                if finding.severity == "high":
-                    logger.warning(
-                        "OutputValidator: worker[%d] %s %s — %s",
-                        idx,
-                        finding.category,
-                        finding.severity,
-                        finding.redacted_text,
-                    )
-                else:
-                    logger.info(
-                        "OutputValidator: worker[%d] %s %s — %s",
-                        idx,
-                        finding.category,
-                        finding.severity,
-                        finding.redacted_text,
-                    )
+
+            worker_findings, redacted, worker_high, worker_audit_ok = (
+                self._validate_one_output(text, idx)
+            )
+            if worker_findings is None:
+                # Validator crashed in blocking mode → fail-secure return
+                return OutputValidationPipelineResult(
+                    blocked=True,
+                    findings=all_findings,
+                    audit_logged=False,
+                    redacted_outputs=redacted_outputs,
+                )
+
+            all_findings.extend(worker_findings)
+            redacted_outputs.append(redacted)
+            has_high = has_high or worker_high
+            audit_ok = audit_ok and worker_audit_ok
+
+        blocked = has_high and self.output_validation_mode == "blocking"
+        audit_logged = self._finalize_audit_log(
+            blocked=blocked,
+            has_high=has_high,
+            audit_ok=audit_ok,
+            all_findings=all_findings,
+        )
+
         if all_findings:
             logger.info(
-                "OutputValidator: %d finding(s) across %d worker output(s)",
+                "OutputValidator: %d finding(s) across %d worker output(s), blocked=%s",
                 len(all_findings),
-                len(worker_results),
+                len(outputs),
+                blocked,
             )
-        return all_findings
+
+        return OutputValidationPipelineResult(
+            blocked=blocked,
+            findings=all_findings,
+            audit_logged=audit_logged,
+            redacted_outputs=redacted_outputs,
+        )
+
+    @staticmethod
+    def _extract_text(item: object, is_string_mode: bool) -> str:
+        """Extract text from a worker output item based on detected mode.
+
+        Args:
+            item: Either a string (string mode) or a dict (compat mode).
+            is_string_mode: True when the input list is ``list[str]``.
+
+        Returns:
+            The textual payload, or empty string if not extractable.
+        """
+        if is_string_mode:
+            return item if isinstance(item, str) else ""
+        return PostDispatchPipeline._extract_output_text(item) if isinstance(item, dict) else ""
+
+    def _validate_one_output(
+        self,
+        text: str,
+        idx: int,
+    ) -> tuple[list[OutputFinding] | None, str, bool, bool]:
+        """Validate a single worker output (V4.3.0 Phase 2 refactor).
+
+        Args:
+            text: The worker output text to scan.
+            idx: Worker index (for logging/audit context).
+
+        Returns:
+            Tuple ``(findings, redacted_text, has_high, audit_ok)``.
+            ``findings`` is ``None`` to signal "fail-secure blocking return"
+            (validator crashed in blocking mode).
+        """
+        validator = self.output_validator
+        if validator is None:  # defensive: caller should have short-circuited
+            return [], "", False, True
+        try:
+            result = validator.validate(text)
+        except Exception as exc:
+            logger.warning(
+                "OutputValidator: worker[%d] validator crashed: %s — fail-secure",
+                idx,
+                exc,
+            )
+            if self.output_validation_mode == "blocking":
+                return None, "", False, False
+            # non_blocking: skip this output but continue
+            return [], "", False, True
+
+        has_high = not result.valid
+        audit_ok = self._audit_log_findings(idx, result.findings)
+
+        return list(result.findings), result.redacted_text, has_high, audit_ok
+
+    def _audit_log_findings(
+        self,
+        idx: int,
+        findings: list[OutputFinding],
+    ) -> bool:
+        """Log + audit each finding for a single worker output.
+
+        Args:
+            idx: Worker index.
+            findings: Findings list from the validator.
+
+        Returns:
+            ``True`` if all audit writes succeeded (or no audit logger
+            attached), ``False`` otherwise.
+        """
+        audit_ok = True
+        for finding in findings:
+            if finding.severity == "high":
+                logger.warning(
+                    "OutputValidator: worker[%d] %s %s — %s",
+                    idx,
+                    finding.category,
+                    finding.severity,
+                    finding.redacted_text,
+                )
+                if not self._write_audit_event(
+                    "output_validation_finding",
+                    {
+                        "worker_idx": idx,
+                        "category": finding.category,
+                        "severity": finding.severity,
+                        "pattern_name": finding.pattern_name,
+                        "redacted_text": finding.redacted_text,
+                        "mode": self.output_validation_mode,
+                    },
+                ):
+                    audit_ok = False
+            else:
+                logger.info(
+                    "OutputValidator: worker[%d] %s %s — %s",
+                    idx,
+                    finding.category,
+                    finding.severity,
+                    finding.redacted_text,
+                )
+        return audit_ok
+
+    def _write_audit_event(self, event_type: str, payload: dict[str, Any]) -> bool:
+        """Write a single audit log event (V4.3.0 Phase 2 helper).
+
+        Args:
+            event_type: Audit event type string.
+            payload: Event payload dict.
+
+        Returns:
+            ``True`` on success or when no audit logger is attached,
+            ``False`` on write failure.
+        """
+        if self.audit_logger is None:
+            return True
+        try:
+            self.audit_logger.log_event(event_type, payload)
+            return True
+        except Exception as audit_exc:
+            logger.warning(
+                "OutputValidator: audit log write failed: %s",
+                audit_exc,
+            )
+            return False
+
+    def _finalize_audit_log(
+        self,
+        blocked: bool,
+        has_high: bool,
+        audit_ok: bool,
+        all_findings: list[OutputFinding],
+    ) -> bool:
+        """Finalize audit log: write the blocked event if applicable.
+
+        Args:
+            blocked: Whether the dispatch is being blocked.
+            has_high: Whether any high-severity finding exists.
+            audit_ok: Cumulative audit write success so far.
+            all_findings: All findings collected across workers.
+
+        Returns:
+            Final ``audit_logged`` flag.
+        """
+        if not blocked or self.audit_logger is None:
+            return has_high and audit_ok and self.audit_logger is not None
+
+        high_count = sum(1 for f in all_findings if f.severity == "high")
+        if not self._write_audit_event(
+            "output_validation_blocked",
+            {
+                "findings_count": len(all_findings),
+                "high_severity_count": high_count,
+                "mode": self.output_validation_mode,
+            },
+        ):
+            return False
+        return audit_ok
+
+    def _apply_output_validation_config(self, config: dict[str, Any]) -> None:
+        """Apply output validation config (V4.3.0 Phase 2 P1-8).
+
+        Config priority (decision point 3 of the 7-Role review):
+          - ``config["output_validation"]["mode"]`` (explicit config dict)
+          - Default: ``non_blocking`` (fail-secure, low user friction)
+
+        Invalid values degrade to ``non_blocking`` + WARNING log.
+
+        Args:
+            config: Config dict that may carry ``output_validation.mode``.
+        """
+        ov_config = config.get("output_validation", {}) if isinstance(config, dict) else {}
+        mode = ov_config.get("mode", "non_blocking") if isinstance(ov_config, dict) else "non_blocking"
+
+        if mode not in ("blocking", "non_blocking"):
+            logger.warning(
+                "OutputValidator: invalid mode %r — defaulting to non_blocking",
+                mode,
+            )
+            mode = "non_blocking"
+
+        self.output_validation_mode = mode
 
     @staticmethod
     def _extract_output_text(worker_result: dict[str, Any]) -> str:
