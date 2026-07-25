@@ -436,5 +436,152 @@ class TestDispatcherDefaultAuditPersistence(unittest.TestCase):
                 dispatcher.shutdown()
 
 
+class TestMarkdownExport(unittest.TestCase):
+    """V4.3.0 Phase 3 P3-3: export_markdown() tests."""
+
+    def test_01_markdown_format(self) -> None:
+        """Verify Markdown contains title, table, and event type."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("user1", "test task", ["architect"])
+        # Act
+        md = logger.export_markdown()
+        # Assert
+        self.assertIn("# Dispatch Audit Report", md)
+        self.assertIn("| # | Timestamp | Event Type | User ID | Details |", md)
+        self.assertIn("|---|", md)
+        self.assertIn("dispatch_start", md)
+        self.assertIn("user1", md)
+        self.assertIn("**Total entries**: 1", md)
+
+    def test_02_empty_chain(self) -> None:
+        """Verify empty chain returns a 'No entries' notice."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        # Act
+        md = logger.export_markdown()
+        # Assert
+        self.assertIn("# Dispatch Audit Report", md)
+        self.assertIn("No entries", md)
+        self.assertIn("**Total entries**: 0", md)
+
+    def test_03_limit_respected(self) -> None:
+        """Verify the limit parameter caps the number of exported rows."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        for i in range(5):
+            logger.log_dispatch_start("u1", f"task{i}", ["architect"])
+        # Act
+        md = logger.export_markdown(limit=3)
+        # Assert — count data rows (lines starting with "| " followed by a digit).
+        data_rows = [
+            line
+            for line in md.split("\n")
+            if line.startswith("| ") and len(line) > 2 and line[2].isdigit()
+        ]
+        self.assertEqual(len(data_rows), 3)
+        # Total entries in the header should still reflect the full chain.
+        self.assertIn("**Total entries**: 5", md)
+
+
+class TestQuery(unittest.TestCase):
+    """V4.3.0 Phase 3 P3-3: query() tests."""
+
+    def test_01_filter_by_event_type(self) -> None:
+        """Verify filtering by event_type."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("u1", "task1", ["architect"])
+        logger.log_dispatch_end("u1", success=True, duration=0.5)
+        # Act
+        results = logger.query(event_type="dispatch_start")
+        # Assert
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].event_type, "dispatch_start")
+
+    def test_02_filter_by_since(self) -> None:
+        """Verify filtering by the since timestamp (inclusive)."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("u1", "task1", ["architect"])
+        time.sleep(0.01)  # ensure a measurable timestamp gap
+        t_mid = time.time()
+        time.sleep(0.01)
+        logger.log_dispatch_end("u1", success=True, duration=0.5)
+        # Act — since=t_mid should include only the second entry.
+        results = logger.query(since=t_mid)
+        # Assert
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].event_type, "dispatch_end")
+
+    def test_03_filter_by_user_id(self) -> None:
+        """Verify filtering by user_id."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("u1", "task1", ["architect"])
+        logger.log_dispatch_start("u2", "task2", ["architect"])
+        # Act
+        results = logger.query(user_id="u1")
+        # Assert
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].user_id, "u1")
+
+    def test_04_combined_filter(self) -> None:
+        """Verify combined multi-criteria filtering."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("u1", "task1", ["architect"])
+        logger.log_dispatch_end("u1", success=True, duration=0.5)
+        logger.log_dispatch_start("u2", "task2", ["architect"])
+        # Act — event_type=dispatch_start AND user_id=u1
+        results = logger.query(event_type="dispatch_start", user_id="u1")
+        # Assert
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].event_type, "dispatch_start")
+        self.assertEqual(results[0].user_id, "u1")
+
+
+class TestTamperDetection(unittest.TestCase):
+    """V4.3.0 Phase 3 P3-3: detect_tamper() tests."""
+
+    def test_01_no_tamper(self) -> None:
+        """Verify an untampered chain returns an empty list."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("u1", "task1", ["architect"])
+        logger.log_dispatch_end("u1", success=True, duration=0.5)
+        # Act
+        suspicious = logger.detect_tamper()
+        # Assert
+        self.assertEqual(suspicious, [])
+
+    def test_02_single_tamper_detected(self) -> None:
+        """Verify a single tampered entry is returned."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("u1", "task1", ["architect"])
+        logger.log_dispatch_end("u1", success=True, duration=0.5)
+        # Act — tamper with the first entry's details (content tampering).
+        logger._entries[0].details = {"tampered": True}
+        suspicious = logger.detect_tamper()
+        # Assert — only the tampered entry is flagged; the chain link to the
+        # next entry is unaffected because entry_hash field is unchanged.
+        self.assertEqual(len(suspicious), 1)
+        self.assertEqual(suspicious[0].event_type, "dispatch_start")
+
+    def test_03_hmac_failure_detected(self) -> None:
+        """Verify an entry whose stored hash diverges from the recomputed
+        HMAC is detected."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        logger.log_dispatch_start("u1", "task1", ["architect"])
+        # Act — corrupt the stored entry_hash to simulate HMAC mismatch.
+        logger._entries[0].entry_hash = "f" * 64
+        suspicious = logger.detect_tamper()
+        # Assert
+        self.assertEqual(len(suspicious), 1)
+        self.assertEqual(suspicious[0].event_type, "dispatch_start")
+
+
 if __name__ == "__main__":
     unittest.main()

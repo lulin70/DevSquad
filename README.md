@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.2.9 Pre-release (V4.3.0 candidate — pending user approval)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.3.0 Pre-release (V4.3.0 candidate — pending user approval)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-7681%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.2.9-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.3.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.2.9 (V4.3.0 candidate): 安全债清理 + 上游精细化升级 + 测试金字塔达标
+## 🚀 V4.3.0 (V4.3.0 candidate): 安全债清理 + 上游精细化升级 + 测试金字塔达标
 
-**DevSquad V4.2.9** 是 V4.3.0 的预发布候选版本，整合技术债跟踪、pickle→JSON 迁移、上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发三方面输入，按 7-Role 共识推进：
+**DevSquad V4.3.0** 是 V4.3.0 的预发布候选版本，整合技术债跟踪、pickle→JSON 迁移、上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发三方面输入，按 7-Role 共识推进：
 
 ### V4.3.0 P0 — 安全债清理（必做）
 - **P0-1 pickle→JSON 迁移阶段 1**: 删除 2 处 dead code + fallback 安全收紧（`require_password` 校验）
@@ -493,7 +493,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 4.2.9
+# Expected: devsquad 4.3.0
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -613,7 +613,7 @@ python3 -m pytest tests/ -q --tb=line
 
 ### V4.3.0（进行中 — 7-Role 共识达成，文档先行）
 
-**版本策略**: V4.2.9 预发布（全部代码+文档+E2E 验证）→ 用户确认 → V4.3.0 正式版
+**版本策略**: V4.3.0 预发布（全部代码+文档+E2E 验证）→ 用户确认 → V4.3.0 正式版
 
 **整合三方面输入**:
 1. 技术债持续治理（`todo_drift_monitor` + CI 阻塞）

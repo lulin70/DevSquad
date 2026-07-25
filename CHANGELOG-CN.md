@@ -7,19 +7,53 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 
-## [4.2.9] - 2026-07-24
+## [Unreleased]
 
-V4.2.9 是 PATCH 预发布版本，推进 V4.3.0 路线图事项同时保持版本在 4.2.x 系列。按用户指示，V4.3.1 内容（P2-1 pickle fallback 移除）合并入 V4.3.0；V4.2.9 为预发布候选 — 用户批准后将升至 V4.3.0（MINOR）。
+_无未发布变更。下一版本：V4.4.0（BenchmarkRegressionChecker + base64/Unicode 检测扩展）。_
+
+## [4.3.0] - 2026-07-25
+
+V4.3.0 是 MINOR 正式版，整合 V4.2.9 预发布内容 + Phase 0/1/2/3 全部交付。按用户指示，V4.3.1 内容（P2-1 pickle fallback 移除）合并入 V4.3.0；V4.2.9 预发布经用户确认后升 MINOR 为 V4.3.0。
 
 本次发布内容：
-- **测试金字塔提升**：契约测试 3.06% → 5.0%，集成测试 8.84% → 15.2%（均达标），总测试数 5250+ → 7681
+
+### V4.3.0 Phase 3 — 质量补强 + 用户模拟 E2E（P3-1 到 P3-6）
+
+- **P3-1 check_async_coverage 增强**：新增 `generate_markdown()` + `check_with_threshold()` + CLI `--min-coverage`/`--ignore` 参数；14 单元测试
+- **P3-2 红队用例库**：`tests/security/red_team.py` 20 用例 4 类场景（注入攻击/越权访问/数据泄露/拒绝服务），覆盖 10 模块
+- **P3-3 DispatchAuditLogger 增强**：新增 `export_markdown()` + `query()` + `detect_tamper()` 3 个 API；10 单元测试
+- **P3-4 FiveAxisConsensusEngine.evaluate()**：新增 `FiveAxisEvaluationResult` + `evaluate(artifacts)` + 5 个 heuristic 评估器；E2E-07 脱 xfail；29 单元测试
+- **P3-5 AI 模拟用户旅程 E2E**：PM/开发/运维 3 角色 × 旅程 E2E + NPS 报告（完成率 100%，NPS 9/10）
+- **P3-7 _classify_package 重构**：radon 复杂度 D(21)→C(~10)，维持 V4.1.1 zero D+ 成就
+- **Phase 3.7 全量回归**：9320 passed (7995 unit + 81 e2e + 1244 integration), 0 failed, 0 skipped, ruff/mypy/radon/version consistency 全绿
+
+### V4.3.0 Phase 2 — OutputValidator 完整集成（P1-8）
+
+- **P1-8 OutputValidator 生产级集成**：升级 V4.1.2 骨架，新增 `OutputValidationPipelineResult` + `OutputValidationBlockedError`；`PostDispatchPipeline._validate_outputs()` 支持 `list[str]`/`list[dict]` 双模式
+- **双模式语义**：blocking 模式 high-severity 阻断 + raise；non-blocking 模式 redact + 审计日志
+- **审计日志集成**：新增 `output_validation_finding` + `output_validation_blocked` 事件类型
+- **红队测试 25 用例** + **集成测试 9 类** + **E2E-05 脱 xfail**
+
+### V4.3.0 Phase 1 — DependencyHallucinationChecker（P1-7）
+
+- **P1-7 防 Slopsquatting 模块**：6 步检测流水线（黑名单>白名单>Levenshtein typo>混淆规则>后缀模式>UNKNOWN），三级分类，fail-secure
+- **静态数据集**：known_good.json (Top-5000 PyPI + Top-2000 npm) + suspicious.json (53 幻觉包) + top_targets.json (Top-120 typo 目标)
+- **SecuritySkill + Dispatch Hook 双集成点**；E2E-04 脱 xfail；103 新测试
+
+### V4.3.0 Phase 0 — DeploymentComplianceChecker + SDLC E2E 骨架（P0-3, P0-4）
+
+- **P0-3 DeploymentComplianceChecker**：3 条硬约束规则（基础版禁云端/专业版仅受控主机/nginx 默认 server 服务官网），`lifecycle_gate_check()` API，P10 Gate 集成
+- **P0-4 SDLC E2E 骨架**：8 个 xfail TDD 骨架，E2E-02/E2E-06 已脱 xfail
+
+### V4.2.9 预发布内容（已并入 V4.3.0）
+
+- **测试金字塔提升**：契约测试 3.06% → 5.0%，集成测试 8.84% → 15.2%，总测试数 5250+ → 9320+
 - **V4.2+ 路线图 P2-1/P2-2/P2-4**：PrototypeSkill、TeachSkill、pre-commit 版本锁
 - **V4.3+ 路线图 P2-UI-1/2/3**：CLI 命令分类器、Dashboard Live Browser 模式、Meta-skill 分层
 - **V4.3.0 P0（安全债务）**：pickle 死代码移除 + fallback 安全收紧 + todo_drift_monitor 持续追踪
 - **V4.3.0 P1（上游精炼）**：Ponytail lite/full 双模式、LoopKernel RollbackStrategy、UIUX 子项审计、Dashboard V4.3.0 面板
 - **V4.3.0 P2（收尾）**：pickle fallback 完全移除（按用户指示从 V4.3.1 合并）
-- **4 个源码 bug** 由集成测试发现并修复（memory_serializer 大小写、memory_index 索引标志、memory_query 字段规范化、history_manager 线程检查）
-- **测试回归修复**：T5 dispatcher-exception 测试更新以反映 P1-4 RollbackStrategy 独立硬上限行为
+- **4 个源码 bug** 由集成测试发现并修复
 
 ## [4.2.1] - 2026-07-22
 

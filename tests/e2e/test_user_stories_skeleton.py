@@ -265,11 +265,10 @@ def test_e2e_06_violating_deployment_blocked() -> None:
 
 
 # ---------------------------------------------------------------------------
-# E2E-07: P8 multi-axis review (Phase 3)
+# E2E-07: P8 multi-axis review (Phase 3, P3-4 — PASSED)
 # ---------------------------------------------------------------------------
-@pytest.mark.xfail(strict=True, reason="Phase 3: multi-axis review enhancement pending")
 def test_e2e_07_multi_axis_review_reported() -> None:
-    """E2E-07: Multi-axis review produces a structured report (Phase 3).
+    """E2E-07: Multi-axis review produces a structured report (Phase 3 P3-4).
 
     Scenario: A user runs ``devsquad run`` with 7 roles. The
     FiveAxisConsensusEngine produces a structured report with
@@ -281,19 +280,30 @@ def test_e2e_07_multi_axis_review_reported() -> None:
       all 5 axis scores populated
     - The Markdown report contains a "Five-Axis Review" section
 
-    Related PRD: Phase 3 (quality reinforcement, no new module)
+    Related PRD: Phase 3 P3-4 (FiveAxisConsensusEngine.evaluate() heuristic)
     """
-    from scripts.collaboration.five_axis_consensus import FiveAxisConsensusEngine
+    from scripts.collaboration.five_axis_consensus import (
+        FiveAxisConsensusEngine,
+        FiveAxisEvaluationResult,
+    )
 
     engine = FiveAxisConsensusEngine()
-    # Phase 3 will define the proper input contract
     result = engine.evaluate(artifacts={"code": "print('hello')"})
 
+    # Verify all 5 axis scores are populated (float, not None)
+    assert isinstance(result, FiveAxisEvaluationResult)
     assert result.correctness is not None
     assert result.readability is not None
     assert result.architecture is not None
     assert result.security is not None
     assert result.performance is not None
+    # Verify verdict is one of the allowed values
+    assert result.verdict in ("APPROVE", "CONDITIONAL", "REJECT")
+    # Verify Markdown report contains the Five-Axis Review section
+    markdown = result.to_markdown()
+    assert "Five-Axis Review" in markdown
+    assert "Correctness" in markdown
+    assert "Security" in markdown
 
 
 # ---------------------------------------------------------------------------

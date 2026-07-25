@@ -53,6 +53,7 @@ import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 __all__ = ["DispatchAuditLogger", "AuditEntry"]
@@ -607,6 +608,130 @@ class DispatchAuditLogger:
         """Return the total number of entries in the chain."""
         with self._lock:
             return len(self._entries)
+
+    def export_markdown(self, limit: int = 100) -> str:
+        """Export a Markdown audit report.
+
+        Parameters
+        ----------
+        limit:
+            Maximum number of recent entries to include (default 100).
+
+        Returns
+        -------
+        str
+            A Markdown-formatted audit report. If the chain is empty or
+            ``limit <= 0``, the report body contains a ``No entries.``
+            notice instead of a table.
+        """
+        with self._lock:
+            total = len(self._entries)
+            if total == 0 or limit <= 0:
+                return (
+                    "# Dispatch Audit Report\n\n"
+                    f"**Total entries**: {total}\n\n"
+                    "No entries.\n"
+                )
+            recent = list(reversed(self._entries[-limit:]))
+            lines = [
+                "# Dispatch Audit Report",
+                "",
+                f"**Total entries**: {total}",
+                "",
+                "| # | Timestamp | Event Type | User ID | Details |",
+                "|---|-----------|------------|---------|---------|",
+            ]
+            for idx, entry in enumerate(recent, start=1):
+                ts_str = datetime.fromtimestamp(entry.timestamp).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+                details_str = json.dumps(entry.details, sort_keys=True)
+                lines.append(
+                    f"| {idx} | {ts_str} | {entry.event_type} "
+                    f"| {entry.user_id} | {details_str} |"
+                )
+            return "\n".join(lines) + "\n"
+
+    def query(
+        self,
+        event_type: str | None = None,
+        since: float | None = None,
+        until: float | None = None,
+        user_id: str | None = None,
+        limit: int = 100,
+    ) -> list[AuditEntry]:
+        """Query audit entries by criteria.
+
+        Parameters
+        ----------
+        event_type:
+            Filter by event type (e.g. ``"dispatch_start"``). None = no filter.
+        since:
+            Inclusive lower-bound timestamp. None = unbounded.
+        until:
+            Exclusive upper-bound timestamp. None = unbounded.
+        user_id:
+            Filter by user ID. None = no filter.
+        limit:
+            Maximum number of entries to return (most recent first).
+
+        Returns
+        -------
+        list[AuditEntry]
+            Matching entries in reverse-chronological order.
+        """
+        with self._lock:
+            if limit <= 0:
+                return []
+            results: list[AuditEntry] = []
+            for entry in reversed(self._entries):
+                if event_type is not None and entry.event_type != event_type:
+                    continue
+                if since is not None and entry.timestamp < since:
+                    continue
+                if until is not None and entry.timestamp >= until:
+                    continue
+                if user_id is not None and entry.user_id != user_id:
+                    continue
+                results.append(entry)
+                if len(results) >= limit:
+                    break
+            return results
+
+    def detect_tamper(self) -> list[AuditEntry]:
+        """Detect tampered entries in the chain.
+
+        Recomputes each entry's HMAC hash and verifies the ``prev_hash``
+        link to the previous entry. Read-only: does not modify
+        ``_entries``.
+
+        Returns
+        -------
+        list[AuditEntry]
+            Suspicious entries whose ``entry_hash`` does not match the
+            recomputed HMAC, or whose ``prev_hash`` does not link to the
+            previous entry. An empty list means no tampering detected.
+        """
+        with self._lock:
+            suspicious: list[AuditEntry] = []
+            expected_prev = GENESIS_HASH
+            for entry in self._entries:
+                is_tampered = False
+                if entry.prev_hash != expected_prev:
+                    is_tampered = True
+                recomputed = self._compute_hash(
+                    event_type=entry.event_type,
+                    user_id=entry.user_id,
+                    timestamp=entry.timestamp,
+                    details=entry.details,
+                    prev_hash=entry.prev_hash,
+                )
+                if recomputed != entry.entry_hash:
+                    is_tampered = True
+                if is_tampered:
+                    suspicious.append(entry)
+                expected_prev = entry.entry_hash
+            return suspicious
 
     def close(self) -> None:
         """Close the database connection if open."""

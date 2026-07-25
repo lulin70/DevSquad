@@ -6,11 +6,19 @@ they have corresponding async tests. Reports uncovered async functions
 to prevent "0% async coverage" blind spots — a key risk area since
 async code paths are often untested.
 
+V4.1.2 Phase 3.1 enhancements:
+- ``CoverageReport.markdown_report`` field (backward-compatible default ``""``)
+- ``generate_markdown(report)`` API for Markdown rendering
+- ``check_with_threshold(source_dir, test_dir, min_coverage_percent, ignore)``
+  returns ``(report, passed)`` and populates ``report.markdown_report``
+- CLI ``--min-coverage`` and ``--ignore`` flags
+
 Usage::
 
     python scripts/check_async_coverage.py
     python scripts/check_async_coverage.py --source scripts/collaboration --tests tests
     python scripts/check_async_coverage.py --json  # machine-readable output
+    python scripts/check_async_coverage.py --min-coverage 80 --ignore _private_func
 
 Exit codes:
     0: All async functions covered (or no async functions found)
@@ -40,12 +48,27 @@ class AsyncFunction:
 
 @dataclass
 class CoverageReport:
-    """Result of async coverage analysis."""
+    """Result of async coverage analysis.
+
+    Attributes:
+        total: Total number of async functions considered.
+        covered: Names of async functions referenced in tests.
+        uncovered: AsyncFunction objects without test references.
+        coverage_percent: Percentage of covered async functions (0.0–100.0).
+        source_dir: Source directory string used for Markdown rendering.
+        test_dir: Test directory string used for Markdown rendering.
+        markdown_report: Cached Markdown report (populated by
+            ``check_with_threshold``; empty string by default for backward
+            compatibility with callers that only inspect ``to_dict()``).
+    """
 
     total: int = 0
     covered: list[str] = field(default_factory=list)
     uncovered: list[AsyncFunction] = field(default_factory=list)
     coverage_percent: float = 0.0
+    source_dir: str = ""
+    test_dir: str = ""
+    markdown_report: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -155,7 +178,11 @@ def check_async_coverage(
 
     tested_names = extract_tested_names(test_dir)
 
-    report = CoverageReport(total=len(async_funcs))
+    report = CoverageReport(
+        total=len(async_funcs),
+        source_dir=str(source_dir),
+        test_dir=str(test_dir),
+    )
     for func in async_funcs:
         if func.name in tested_names:
             report.covered.append(func.name)
@@ -166,6 +193,97 @@ def check_async_coverage(
         report.coverage_percent = (len(report.covered) / report.total) * 100
 
     return report
+
+
+def generate_markdown(report: CoverageReport) -> str:
+    """Render a CoverageReport as Markdown.
+
+    Produces a stable Markdown document with a summary section and, when
+    there are uncovered functions, a table listing them. Empty reports
+    (no uncovered functions) omit the table section.
+
+    Args:
+        report: CoverageReport to render. ``source_dir`` and ``test_dir``
+            are echoed in the header; if they were not populated, empty
+            backticks are emitted (still valid Markdown).
+
+    Returns:
+        Markdown-formatted string ending without a trailing newline.
+    """
+    lines: list[str] = [
+        "# Async Coverage Report",
+        "",
+        f"**Source**: `{report.source_dir}`",
+        f"**Tests**: `{report.test_dir}`",
+        "",
+        "## Summary",
+        "",
+        f"- Total async functions: {report.total}",
+        f"- Covered: {len(report.covered)}",
+        f"- Uncovered: {len(report.uncovered)}",
+        f"- Coverage: {report.coverage_percent:.1f}%",
+        "",
+    ]
+
+    if not report.uncovered:
+        lines.append("_No uncovered async functions._")
+        return "\n".join(lines)
+
+    lines.extend(
+        [
+            "## Uncovered Functions",
+            "",
+            "| Name | File | Line | Visibility |",
+            "|------|------|------|-----------|",
+        ]
+    )
+    for func in report.uncovered:
+        visibility = "private" if func.is_private else "public"
+        lines.append(f"| `{func.name}` | `{func.file}` | {func.line} | {visibility} |")
+    return "\n".join(lines)
+
+
+def check_with_threshold(
+    source_dir: Path,
+    test_dir: Path,
+    min_coverage_percent: float = 80.0,
+    ignore: list[str] | None = None,
+) -> tuple[CoverageReport, bool]:
+    """Check async coverage against a minimum threshold.
+
+    Runs the standard coverage check, then optionally filters out
+    functions named in ``ignore`` (removing them from both ``covered``
+    and ``uncovered`` and recomputing ``total`` / ``coverage_percent``).
+    Always populates ``report.markdown_report`` so callers can render
+    the result without a second pass.
+
+    Args:
+        source_dir: Source directory to scan for async functions.
+        test_dir: Test directory to scan for test references.
+        min_coverage_percent: Minimum coverage percent required to pass.
+        ignore: Optional list of function names to exclude from the
+            check. Ignored functions do not count against coverage.
+
+    Returns:
+        Tuple ``(report, passed)`` where ``passed`` is ``True`` when
+        ``report.coverage_percent >= min_coverage_percent``.
+    """
+    report = check_async_coverage(source_dir, test_dir)
+
+    if ignore:
+        ignore_set = set(ignore)
+        report.covered = [name for name in report.covered if name not in ignore_set]
+        report.uncovered = [f for f in report.uncovered if f.name not in ignore_set]
+        report.total = len(report.covered) + len(report.uncovered)
+        if report.total > 0:
+            report.coverage_percent = (len(report.covered) / report.total) * 100
+        else:
+            # No functions remain after ignoring — vacuously fully covered.
+            report.coverage_percent = 100.0
+
+    report.markdown_report = generate_markdown(report)
+    passed = report.coverage_percent >= min_coverage_percent
+    return report, passed
 
 
 def main() -> int:
@@ -204,6 +322,22 @@ def main() -> int:
         action="store_true",
         help="Exit with code 1 if any async function is uncovered",
     )
+    parser.add_argument(
+        "--min-coverage",
+        type=float,
+        default=0.0,
+        help="Minimum coverage percent required (default: 0.0 = no threshold). "
+        "When > 0, exits with code 1 if coverage is below the threshold.",
+    )
+    parser.add_argument(
+        "--ignore",
+        nargs="*",
+        default=None,
+        metavar="NAME",
+        help="Async function names to exclude from the coverage check "
+        "(e.g., --ignore _private_func _internal). Ignored functions do "
+        "not count against coverage.",
+    )
 
     args = parser.parse_args()
 
@@ -214,11 +348,21 @@ def main() -> int:
         print(f"Error: test directory not found: {args.tests}", file=sys.stderr)
         return 2
 
-    report = check_async_coverage(
-        source_dir=args.source,
-        test_dir=args.tests,
-        include_private=args.include_private,
-    )
+    use_threshold = args.min_coverage > 0 or bool(args.ignore)
+    if use_threshold:
+        report, passed = check_with_threshold(
+            source_dir=args.source,
+            test_dir=args.tests,
+            min_coverage_percent=args.min_coverage,
+            ignore=args.ignore,
+        )
+    else:
+        report = check_async_coverage(
+            source_dir=args.source,
+            test_dir=args.tests,
+            include_private=args.include_private,
+        )
+        passed = True
 
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
@@ -237,7 +381,9 @@ def main() -> int:
                 visibility = "private" if func.is_private else "public"
                 print(f"  - {func.name} ({visibility}) [{func.file}:{func.line}]")
 
-    if report.uncovered and args.fail_on_uncovered:
+    if args.fail_on_uncovered and report.uncovered:
+        return 1
+    if use_threshold and not passed:
         return 1
     return 0
 

@@ -616,6 +616,82 @@ def _normalize_package_name(package: str) -> list[str]:
     return unique
 
 
+def _check_suspicious_blacklist(
+    variants: list[str],
+) -> tuple[bool, str | None]:
+    """Step 1 of pipeline: check suspicious blacklist.
+
+    Returns ``(matched, suggested_fix)``. When ``matched`` is True,
+    ``suggested_fix`` may carry a replacement package name sourced from
+    the confusion_pairs dataset (or None when no pair matches).
+    """
+    assert _loaded_suspicious is not None
+    assert _loaded_confusion_pairs is not None
+
+    for variant in variants:
+        if variant in _loaded_suspicious:
+            suggested = _lookup_confusion_fix(variant)
+            return True, suggested
+    return False, None
+
+
+def _lookup_confusion_fix(hallucinated: str) -> str | None:
+    """Look up a suggested fix for a hallucinated package in confusion_pairs."""
+    assert _loaded_confusion_pairs is not None
+
+    for pair in _loaded_confusion_pairs:
+        if pair.get("hallucinated") == hallucinated:
+            components: list[str] = pair.get("real_components", [])
+            if components:
+                return str(components[0])
+            return None
+    return None
+
+
+def _check_known_good(variants: list[str]) -> bool:
+    """Step 2 of pipeline: check known-good whitelist (any variant match)."""
+    assert _loaded_known_good is not None
+
+    return any(v in _loaded_known_good for v in variants)
+
+
+def _check_confusion_rule(package: str) -> tuple[bool, str, str | None]:
+    """Step 4 of pipeline: confusion rule (concatenation of two real packages).
+
+    Returns ``(matched, reason, suggested_fix)``.
+    """
+    assert _loaded_confusion_pairs is not None
+
+    for pair in _loaded_confusion_pairs:
+        hallucinated = pair.get("hallucinated", "")
+        components = pair.get("real_components", [])
+        if package == hallucinated and len(components) >= 2:
+            reason = (
+                f"Package appears to be a confusion of real packages: "
+                f"{' + '.join(components)}"
+            )
+            return True, reason, components[0]
+    return False, "", None
+
+
+def _check_suffix_pattern(package: str) -> tuple[bool, str]:
+    """Step 5 of pipeline: high-frequency hallucination suffix pattern.
+
+    Returns ``(matched, reason)``.
+    """
+    assert _loaded_suffix_patterns is not None
+
+    pkg_lower = package.lower()
+    for suffix in _loaded_suffix_patterns:
+        if pkg_lower.endswith(suffix) and len(pkg_lower) > len(suffix):
+            reason = (
+                f"Package name ends with high-frequency hallucination "
+                f"suffix '{suffix}' — manual review required"
+            )
+            return True, reason
+    return False, ""
+
+
 def _classify_package(
     package: str,
     ecosystem: str,
@@ -629,40 +705,27 @@ def _classify_package(
     Returns:
         Tuple of (category, reason, suggested_fix)
     """
-    assert _loaded_suspicious is not None
-    assert _loaded_known_good is not None
     assert _loaded_top_targets is not None
-    assert _loaded_suffix_patterns is not None
-    assert _loaded_confusion_pairs is not None
 
     # Generate normalized variants for hyphen/underscore interchange
     variants = _normalize_package_name(package)
 
     # Step 1: Suspicious blacklist (exact match, all variants)
-    for variant in variants:
-        if variant in _loaded_suspicious:
-            # Look for a suggested fix in confusion_pairs
-            suggested = None
-            for pair in _loaded_confusion_pairs:
-                if pair.get("hallucinated") == variant:
-                    components = pair.get("real_components", [])
-                    if components:
-                        suggested = components[0]
-                    break
-            reason = (
-                "Package is in the suspicious blacklist "
-                "(known hallucination or malicious package)"
-            )
-            return DependencyCategory.SUSPICIOUS, reason, suggested
+    matched, suggested = _check_suspicious_blacklist(variants)
+    if matched:
+        reason = (
+            "Package is in the suspicious blacklist "
+            "(known hallucination or malicious package)"
+        )
+        return DependencyCategory.SUSPICIOUS, reason, suggested
 
     # Step 2: Known-good whitelist (exact match, all variants)
-    for variant in variants:
-        if variant in _loaded_known_good:
-            reason = (
-                "Package is in the known-good whitelist "
-                "(Top-N or commonly used)"
-            )
-            return DependencyCategory.KNOWN_GOOD, reason, None
+    if _check_known_good(variants):
+        reason = (
+            "Package is in the known-good whitelist "
+            "(Top-N or commonly used)"
+        )
+        return DependencyCategory.KNOWN_GOOD, reason, None
 
     # Step 3: Levenshtein typo-squatting detection
     typo_target = _find_typo_target(package, _loaded_top_targets)
@@ -675,25 +738,14 @@ def _classify_package(
         return DependencyCategory.SUSPICIOUS, reason, typo_target
 
     # Step 4: Confusion rule (two real package names concatenated)
-    for pair in _loaded_confusion_pairs:
-        hallucinated = pair.get("hallucinated", "")
-        components = pair.get("real_components", [])
-        if package == hallucinated and len(components) >= 2:
-            reason = (
-                f"Package appears to be a confusion of real packages: "
-                f"{' + '.join(components)}"
-            )
-            return DependencyCategory.SUSPICIOUS, reason, components[0]
+    matched, reason, suggested = _check_confusion_rule(package)
+    if matched:
+        return DependencyCategory.SUSPICIOUS, reason, suggested
 
     # Step 5: High-frequency hallucination suffix pattern
-    pkg_lower = package.lower()
-    for suffix in _loaded_suffix_patterns:
-        if pkg_lower.endswith(suffix) and len(pkg_lower) > len(suffix):
-            reason = (
-                f"Package name ends with high-frequency hallucination "
-                f"suffix '{suffix}' — manual review required"
-            )
-            return DependencyCategory.UNKNOWN, reason, None
+    matched, reason = _check_suffix_pattern(package)
+    if matched:
+        return DependencyCategory.UNKNOWN, reason, None
 
     # Step 6: Default to UNKNOWN (fail-secure)
     reason = (

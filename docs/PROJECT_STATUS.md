@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.2.9（V4.3.0 预发布候选 — 2026-07-24）
-> **最后更新**: 2026-07-24
-> **最新评估**: V4.2.9 PATCH 预发布 — V4.3.0 P0/P1/P2 全部代码 + 文档完成，测试金字塔达标（Contract 5.2% / Integration 15.1%），7662+ tests passing。等待用户确认后升 MINOR 为 V4.3.0。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **当前版本**: V4.3.0（正式版 — 2026-07-25）
+> **最后更新**: 2026-07-25
+> **最新评估**: V4.3.0 MINOR 正式版 — Phase 0/1/2/3 全部落地（DeploymentComplianceChecker + DependencyHallucinationChecker + OutputValidator + 质量补强 + 用户模拟 E2E），9320+ tests passing，ruff/mypy/radon/version consistency 全绿。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.2.9 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.3.0 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---

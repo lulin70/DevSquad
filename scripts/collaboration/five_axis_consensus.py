@@ -140,6 +140,219 @@ class ConsensusResult:
         }
 
 
+# ---------------------------------------------------------------------------
+# V4.3.0 Phase 3 P3-4: FiveAxisEvaluationResult + heuristic evaluators
+# (defined before FiveAxisConsensusEngine so the engine class can reference
+#  FiveAxisEvaluationResult in its method signatures without NameError.)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FiveAxisEvaluationResult:
+    """5-axis heuristic evaluation result (V4.3.0 Phase 3 P3-4).
+
+    Returned by :meth:`FiveAxisConsensusEngine.evaluate`. This is a
+    heuristic, non-LLM evaluation — it scores artifacts using simple
+    code-quality heuristics. For LLM-powered review, use
+    :meth:`compute_consensus` with reviewer-submitted
+    :class:`FiveAxisReview` objects.
+
+    Attributes
+    ----------
+    correctness:
+        Score 0.0-1.0 — presence of error handling (raise/assert/try-except).
+    readability:
+        Score 0.0-1.0 — line length, comments/docstring, snake_case naming.
+    architecture:
+        Score 0.0-1.0 — class/def layering, modular imports, no God Class.
+    security:
+        Score 0.0-1.0 — absence of eval/exec/os.system, no hardcoded secrets,
+        input validation.
+    performance:
+        Score 0.0-1.0 — no deep nesting, no O(n²) list-in-list, generator use.
+    overall:
+        Weighted overall score 0.0-1.0 using DEFAULT_AXIS_WEIGHTS.
+    verdict:
+        APPROVE / CONDITIONAL / REJECT based on overall score.
+    notes:
+        Per-axis human-readable explanation of scoring rationale.
+    """
+
+    correctness: float
+    readability: float
+    architecture: float
+    security: float
+    performance: float
+    overall: float
+    verdict: str
+    notes: dict[str, str] = field(default_factory=dict)
+
+    def to_markdown(self) -> str:
+        """Render the result as a Markdown section.
+
+        Returns
+        -------
+        str
+            Markdown-formatted five-axis review report.
+        """
+        lines = [
+            "## Five-Axis Review (heuristic, V4.3.0 Phase 3)",
+            "",
+            f"**Verdict**: `{self.verdict}`  |  **Overall**: `{self.overall:.2f}`",
+            "",
+            "| Axis | Score | Notes |",
+            "|------|-------|-------|",
+            f"| Correctness | {self.correctness:.2f} | {self.notes.get('correctness', '')} |",
+            f"| Readability | {self.readability:.2f} | {self.notes.get('readability', '')} |",
+            f"| Architecture | {self.architecture:.2f} | {self.notes.get('architecture', '')} |",
+            f"| Security | {self.security:.2f} | {self.notes.get('security', '')} |",
+            f"| Performance | {self.performance:.2f} | {self.notes.get('performance', '')} |",
+            "",
+            "_Heuristic evaluation — for LLM-powered review use `compute_consensus(reviews)`._",
+        ]
+        return "\n".join(lines)
+
+
+def _evaluate_correctness(code: str) -> tuple[float, str]:
+    """Heuristic: error-handling constructs present (V4.3.0 Phase 3)."""
+    score = 0.0
+    notes = []
+    if "raise " in code or "raise\t" in code:
+        score += 0.2
+        notes.append("raise found")
+    if "assert " in code:
+        score += 0.2
+        notes.append("assert found")
+    if "try:" in code and "except" in code:
+        score += 0.2
+        notes.append("try/except found")
+    if "pass" not in code:
+        score += 0.1
+        notes.append("no `pass` placeholder")
+    # Cap at 0.9 (heuristic, never claim perfection)
+    score = min(score, 0.9)
+    if not notes:
+        notes.append("no error-handling markers found")
+    return score, "; ".join(notes)
+
+
+def _evaluate_readability(code: str) -> tuple[float, str]:
+    """Heuristic: line length / comments / snake_case (V4.3.0 Phase 3)."""
+    score = 0.0
+    notes = []
+    lines = code.splitlines()
+    long_lines = sum(1 for ln in lines if len(ln) > 100)
+    if long_lines == 0 and lines:
+        score += 0.2
+        notes.append("lines < 100 chars")
+    if "#" in code or '"""' in code or "'''" in code:
+        score += 0.3
+        notes.append("comments/docstring present")
+    # snake_case detection: function defs use snake_case
+    import re
+
+    snake_funcs = re.findall(r"def\s+([a-z_][a-z0-9_]*)\s*\(", code)
+    if snake_funcs:
+        score += 0.2
+        notes.append(f"{len(snake_funcs)} snake_case function(s)")
+    if not notes:
+        notes.append("no readability markers")
+    return min(score, 0.9), "; ".join(notes)
+
+
+def _evaluate_architecture(code: str) -> tuple[float, str]:
+    """Heuristic: class/def layering / modular imports (V4.3.0 Phase 3)."""
+    score = 0.0
+    notes = []
+    if "class " in code and "def " in code:
+        score += 0.3
+        notes.append("class + def layering")
+    if "import " in code or "from " in code:
+        score += 0.2
+        notes.append("modular imports")
+    # God Class detection: > 500 lines in a single class block (rough heuristic)
+    if len(code.splitlines()) < 500:
+        score += 0.2
+        notes.append("no God Class (<500 lines)")
+    if not notes:
+        notes.append("no architecture markers")
+    return min(score, 0.9), "; ".join(notes)
+
+
+def _evaluate_security(code: str) -> tuple[float, str]:
+    """Heuristic: no eval/exec/os.system / no hardcoded secrets (V4.3.0 Phase 3)."""
+    score = 0.0
+    notes = []
+    dangerous = []
+    if "eval(" in code:
+        dangerous.append("eval")
+    if "exec(" in code:
+        dangerous.append("exec")
+    if "os.system(" in code:
+        dangerous.append("os.system")
+    if not dangerous:
+        score += 0.3
+        notes.append("no eval/exec/os.system")
+    else:
+        notes.append(f"dangerous: {','.join(dangerous)}")
+    # Hardcoded secret heuristic: sk-/AKIA/password=
+    import re
+
+    secret_patterns = [
+        r"sk-[a-zA-Z0-9]{20,}",
+        r"AKIA[A-Z0-9]{16}",
+        r"password\s*=\s*['\"][^'\"]+['\"]",
+    ]
+    secrets_found = sum(1 for p in secret_patterns if re.search(p, code))
+    if secrets_found == 0:
+        score += 0.3
+        notes.append("no hardcoded secrets")
+    else:
+        notes.append(f"{secrets_found} hardcoded secret pattern(s)")
+    # Input validation heuristic
+    if "validate" in code.lower() or "isinstance(" in code:
+        score += 0.2
+        notes.append("input validation present")
+    if not notes:
+        notes.append("no security markers")
+    return min(score, 0.9), "; ".join(notes)
+
+
+def _evaluate_performance(code: str) -> tuple[float, str]:
+    """Heuristic: no deep nesting / no O(n²) / generator use (V4.3.0 Phase 3)."""
+    score = 0.0
+    notes = []
+    lines = code.splitlines()
+    # Deep nesting: indent depth > 6 levels (24 spaces)
+    deep = sum(1 for ln in lines if ln.startswith(" " * 24) or ln.startswith("\t" * 6))
+    if deep == 0:
+        score += 0.2
+        notes.append("no deep nesting")
+    else:
+        notes.append(f"{deep} deep-nested line(s)")
+    # O(n²) heuristic: `for ... in` inside another `for ... in` with `in` list op
+    if "for " in code and "[x for" in code:
+        # Look for nested list comprehension
+        import re
+
+        nested = re.findall(r"\[[^\]]*for[^\]]*for[^\]]*\]", code)
+        if not nested:
+            score += 0.2
+            notes.append("no nested list comp")
+        else:
+            notes.append(f"{len(nested)} nested list comp(s)")
+    else:
+        score += 0.2
+        notes.append("no list comp nesting")
+    # Generator use
+    if "yield " in code or "yieldfrom" in code.replace(" ", ""):
+        score += 0.1
+        notes.append("generator present")
+    if not notes:
+        notes.append("no performance markers")
+    return min(score, 0.9), "; ".join(notes)
+
+
 class FiveAxisConsensusEngine:
     """
     Five-axis consensus engine for multi-dimensional code review.
@@ -310,6 +523,44 @@ class FiveAxisConsensusEngine:
         """Return current weights as string-keyed dict."""
         return {k.value: v for k, v in self._weights.items()}
 
+    def evaluate(
+        self,
+        artifacts: dict[str, Any],
+        reviewer_id: str = "heuristic",
+    ) -> FiveAxisEvaluationResult:
+        """Heuristic 5-axis evaluation of code artifacts (V4.3.0 Phase 3 P3-4).
+
+        Performs a non-LLM heuristic evaluation of the supplied artifacts
+        using the engine's configured axis weights. The evaluation scores
+        five axes (correctness / readability / architecture / security /
+        performance) via simple code-quality heuristics, then aggregates
+        them into a weighted overall score and verdict.
+
+        Args:
+            artifacts: dict with optional keys ``code`` (str), ``tests``
+                (list[str]), ``docs`` (str). At least ``code`` should be
+                provided for a meaningful evaluation; missing keys default
+                to empty.
+            reviewer_id: Identifier for the evaluation source (default
+                ``"heuristic"``). Stored in the result for traceability.
+
+        Returns:
+            :class:`FiveAxisEvaluationResult` with per-axis scores 0.0-1.0,
+            weighted overall score, verdict (APPROVE/CONDITIONAL/REJECT),
+            and per-axis notes explaining the scoring rationale.
+
+        Notes:
+            - This is a heuristic, non-LLM evaluation. For LLM-powered
+              review use :meth:`compute_consensus` with reviewer-submitted
+              :class:`FiveAxisReview` objects.
+            - Scores are capped at 0.9 to reflect heuristic uncertainty.
+            - The ``reviewer_id`` parameter is currently recorded for
+              traceability but does not affect scoring. V4.4.0 may
+              integrate it into the audit log.
+        """
+        _ = reviewer_id  # reserved for V4.4.0 audit log integration
+        return evaluate_artifacts(artifacts, weights=self._weights)
+
 
 def create_default_engine() -> FiveAxisConsensusEngine:
     """Create engine with default settings."""
@@ -375,3 +626,81 @@ def create_walkthrough_engine() -> FiveAxisConsensusEngine:
         strict_mode=True,
         replace_weights=True,
     )
+
+
+# V4.3.0 Phase 3 P3-4: evaluate_artifacts() — module-level helper invoked by
+# FiveAxisConsensusEngine.evaluate(). Defined after the engine class so it can
+# reference DEFAULT_AXIS_WEIGHTS and CONSENSUS_THRESHOLDS.
+
+
+def evaluate_artifacts(
+    artifacts: dict[str, Any],
+    weights: dict[ReviewAxis, float] | None = None,
+) -> FiveAxisEvaluationResult:
+    """Heuristic 5-axis evaluation of code artifacts (V4.3.0 Phase 3 P3-4).
+
+    Args:
+        artifacts: dict with optional keys ``code`` (str), ``tests`` (list[str]),
+            ``docs`` (str). At least ``code`` should be provided for a
+            meaningful evaluation; missing keys default to empty.
+        weights: Optional axis-weight override. Defaults to
+            :attr:`FiveAxisConsensusEngine.DEFAULT_AXIS_WEIGHTS`.
+
+    Returns:
+        :class:`FiveAxisEvaluationResult` with per-axis scores 0.0-1.0,
+        weighted overall score, and verdict.
+
+    Notes:
+        - This is a heuristic, non-LLM evaluation. For LLM-powered review
+          use :meth:`FiveAxisConsensusEngine.compute_consensus` with
+          reviewer-submitted :class:`FiveAxisReview` objects.
+        - Scores are capped at 0.9 to reflect heuristic uncertainty.
+    """
+    code = str(artifacts.get("code", "")) if artifacts.get("code") is not None else ""
+    # tests/docs are accepted but not yet scored (reserved for V4.4.0)
+    # _ = artifacts.get("tests", [])
+    # _ = artifacts.get("docs", "")
+
+    correctness, c_note = _evaluate_correctness(code)
+    readability, r_note = _evaluate_readability(code)
+    architecture, a_note = _evaluate_architecture(code)
+    security, s_note = _evaluate_security(code)
+    performance, p_note = _evaluate_performance(code)
+
+    weights = weights or FiveAxisConsensusEngine.DEFAULT_AXIS_WEIGHTS
+    overall = (
+        correctness * weights.get(ReviewAxis.CORRECTNESS, 0.0)
+        + readability * weights.get(ReviewAxis.READABILITY, 0.0)
+        + architecture * weights.get(ReviewAxis.ARCHITECTURE, 0.0)
+        + security * weights.get(ReviewAxis.SECURITY, 0.0)
+        + performance * weights.get(ReviewAxis.PERFORMANCE, 0.0)
+    )
+    # Normalize by total weight
+    total_weight = sum(weights.values()) or 1.0
+    overall = overall / total_weight
+
+    thresholds = FiveAxisConsensusEngine.CONSENSUS_THRESHOLDS
+    if overall >= thresholds["APPROVE"]:
+        verdict = "APPROVE"
+    elif overall >= thresholds["CONDITIONAL"]:
+        verdict = "CONDITIONAL"
+    else:
+        verdict = "REJECT"
+
+    return FiveAxisEvaluationResult(
+        correctness=correctness,
+        readability=readability,
+        architecture=architecture,
+        security=security,
+        performance=performance,
+        overall=overall,
+        verdict=verdict,
+        notes={
+            "correctness": c_note,
+            "readability": r_note,
+            "architecture": a_note,
+            "security": s_note,
+            "performance": p_note,
+        },
+    )
+

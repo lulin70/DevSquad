@@ -1417,12 +1417,17 @@ class TestRealMokaAIVoting:
     """Task #87: 真实 Moka AI LLM 投票验证。
 
     仅在 MOKA_API_KEY 环境变量存在且有效时运行，否则 skip。
+    标记为 ``slow`` 以便 CI 通过 ``-m "not slow"`` 过滤（保持 skip=0 硬约束）。
     """
 
-    @pytest.mark.skipif(
-        not os.environ.get("MOKA_API_KEY"),
-        reason="MOKA_API_KEY not set — skipping real LLM voting test",
-    )
+    pytestmark = [
+        pytest.mark.slow,
+        pytest.mark.skipif(
+            not os.environ.get("MOKA_API_KEY"),
+            reason="MOKA_API_KEY not set — skipping real LLM voting test",
+        ),
+    ]
+
     def test_real_moka_ai_voting(self, tmp_path: Path):
         """使用真实 Moka AI 后端进行 5 角色投票。"""
         from scripts.collaboration.llm_backend import OpenAIBackend
