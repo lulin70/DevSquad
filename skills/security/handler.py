@@ -1,15 +1,20 @@
-"""Security Audit Skill - V3.7.0
+"""Security Audit Skill - V4.3.0
 
 Encapsulates security components for comprehensive task auditing:
   - InputValidator: 21 pattern injection detection
   - OperationClassifier: Three-tier operation classification
   - PermissionGuard: Four-level permission control
+  - DependencyHallucinationChecker: Anti-Slopsquatting defense (V4.3.0 P1-7)
 
 Provides unified audit interface for secure multi-agent collaboration.
 """
 
 from typing import Any
 
+from scripts.collaboration.dependency_hallucination_checker import (
+    DependencyScanResult,
+    security_scan_dependencies,
+)
 from scripts.collaboration.input_validator import InputValidator
 from scripts.collaboration.operation_classifier import (
     OperationCategory,
@@ -25,10 +30,10 @@ from skills.registry import BaseSkill
 
 
 class SecuritySkill(BaseSkill):
-    """Security audit skill combining injection detection, operation classification, and permission control."""
+    """Security audit skill combining injection detection, operation classification, permission control, and dependency hallucination defense."""
 
     name = "security"
-    description = "Security auditing: injection detection, operation classification, permission control (V4.1.1)"
+    description = "Security auditing: injection detection, operation classification, permission control, dependency hallucination defense (V4.3.0)"
 
     INJECTION_PATTERNS_COUNT = 21
     INJECTION_CATEGORIES = {
@@ -285,6 +290,69 @@ class SecuritySkill(BaseSkill):
             "level_info": self.PERMISSION_LEVELS.get(self._guard.current_level, {}),
         }
 
+    def scan_dependencies(
+        self,
+        code: str,
+        ecosystem: str = "auto",
+        blocking: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Scan AI-generated code for dependency hallucination (Slopsquatting defense).
+
+        V4.3.0 P1-7: Detects imports of hallucinated (non-existent) packages
+        that attackers could register as malicious lookalikes. Uses a three-tier
+        classification: KNOWN_GOOD / UNKNOWN / SUSPICIOUS.
+
+        This method is the primary Skill integration point for
+        DependencyHallucinationChecker. It is invoked:
+          1. Directly by users via ``run(mode="scan_dependencies", code=...)``
+          2. Automatically by the dispatch post-worker hook on every worker
+             output containing code (see ``dispatch_hooks.py``)
+
+        Anti-ghost-feature contract:
+          - Every invocation increments the module's ``_call_counter``
+          - CI's ``check_module_activation.py`` verifies counter > 0
+          - The result's ``to_markdown()`` renders a user-visible
+            "安全检查（依赖幻觉检测）" section in dispatch reports
+
+        Args:
+            code: Source code to scan (Python or JavaScript/TypeScript)
+            ecosystem: "pypi" | "npm" | "auto" (auto-detect from code)
+            blocking: If True, raise RuntimeError on SUSPICIOUS findings
+
+        Returns:
+            Dict with scan results:
+                - is_clean: True if no SUSPICIOUS/UNKNOWN findings
+                - findings: List of per-package findings
+                - stats: Counts {known_good, unknown, suspicious}
+                - summary: One-line human-readable summary
+                - markdown: User-visible Markdown report section
+                - scan_duration_ms: Wall-clock scan duration
+                - ecosystem_detected: Detected/specified ecosystem
+
+        Raises:
+            RuntimeError: If blocking=True and SUSPICIOUS findings detected.
+            ValueError: If code is empty or ecosystem is invalid.
+
+        Related PRD: P1-7 (DependencyHallucinationChecker)
+        """
+        result: DependencyScanResult = security_scan_dependencies(
+            code=code,
+            ecosystem=ecosystem,
+            blocking=blocking,
+        )
+        return {
+            "is_clean": result.is_clean,
+            "findings": [f.to_dict() for f in result.findings],
+            "findings_count": len(result.findings),
+            "stats": result.stats,
+            "summary": result.summary,
+            "markdown": result.to_markdown(),
+            "scan_duration_ms": result.scan_duration_ms,
+            "ecosystem_detected": result.ecosystem_detected,
+            "timestamp": result.timestamp,
+        }
+
     def audit_task(self, task_description: str) -> dict[str, Any]:
         """
         Comprehensive security audit combining all three checks.
@@ -405,7 +473,8 @@ class SecuritySkill(BaseSkill):
         1. Input scanning: run(mode="scan", text="...")
         2. Operation classification: run(mode="classify", operation="...")
         3. Permission check: run(mode="check", action="...", user_role="...")
-        4. Full audit: run(mode="audit", task_description="...") or default
+        4. Dependency hallucination scan: run(mode="scan_dependencies", code="...")
+        5. Full audit: run(mode="audit", task_description="...") or default
         """
         mode = kwargs.get("mode", "audit")
 
@@ -429,6 +498,16 @@ class SecuritySkill(BaseSkill):
                 user_role=user_role,
                 target=target,
                 description=description,
+            )
+
+        elif mode == "scan_dependencies":
+            code = kwargs.get("code", "") or kwargs.get("text", "")
+            ecosystem = kwargs.get("ecosystem", "auto")
+            blocking = kwargs.get("blocking", False)
+            return self.scan_dependencies(
+                code=code,
+                ecosystem=ecosystem,
+                blocking=blocking,
             )
 
         else:

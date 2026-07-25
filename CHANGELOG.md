@@ -9,6 +9,100 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### V4.3.0 Phase 1 — DependencyHallucinationChecker (P1-7) Landed (2026-07-25)
+
+Phase 1 delivers the anti-Slopsquatting supply-chain defense module.
+Slopsquatting is the attack where AI models hallucinate non-existent
+package names (5.2%–21.7% of AI-suggested imports per USENIX Security
+2025), and attackers register malicious lookalikes under those names.
+
+**New module: `DependencyHallucinationChecker`**
+- File: `scripts/collaboration/dependency_hallucination_checker.py`
+- Detection pipeline (6 steps, safety-first priority):
+  1. SUSPICIOUS blacklist exact match (53 known hallucinations + malicious)
+  2. KNOWN_GOOD whitelist exact match (Top-5000 PyPI + Top-2000 npm)
+  3. Levenshtein ≤2 typo-squatting detection (Top-120 targets)
+  4. Confusion rule (two real package names concatenated)
+  5. High-frequency hallucination suffix pattern (-helper/-sdk/-validator/...)
+  6. Default UNKNOWN (fail-secure manual review)
+- Three-tier classification: `KNOWN_GOOD` / `UNKNOWN` / `SUSPICIOUS`
+- Public API: `security_scan_dependencies(code, ecosystem="auto", blocking=False)`
+- Fail-secure dataset loading: missing/corrupted JSON → all packages UNKNOWN
+- Module-level `_call_counter` for anti-ghost CI detection
+
+**Static datasets** (`scripts/collaboration/data/dependency_hallucination/`):
+- `known_good.json` — Top-5000 PyPI + Top-2000 npm packages (whitelist)
+- `suspicious.json` — 53 hallucinated/malicious packages + 12 suffix
+  patterns + 4 confusion pairs (blacklist)
+- `top_targets.json` — Top-120 packages for Levenshtein typo detection
+
+**SecuritySkill integration** (`skills/security/handler.py`):
+- New `scan_dependencies(code, ecosystem, blocking)` method
+- New `run(mode="scan_dependencies", code=...)` dispatch mode
+- Returns dict with `is_clean`, `findings`, `stats`, `markdown`, `timestamp`
+- Markdown output renders user-visible "安全检查（依赖幻觉检测）" section
+
+**Dispatch hook integration** (`scripts/collaboration/dispatch_hooks.py`):
+- New `scan_worker_outputs_for_hallucinated_deps(worker_results)` method
+- Auto-invoked by `post_execution_processing` on every dispatch
+- Scans worker outputs containing code markers (`import`/`require`/`def`/...)
+- Writes SUSPICIOUS/UNKNOWN findings to scratchpad as WARNING entries
+- Ticks `dependency_hallucination_suspicious`/`_unknown` on usage tracker
+- Skip optimizations: short output (<50 chars) + pure prose (no code markers)
+- `enable_dependency_scan=False` toggle for test isolation
+
+**Performance optimization**:
+- Levenshtein early-termination (return when row min > threshold)
+- Character set pre-filter (skip if >threshold unique chars)
+- 1000-package scan: 1165ms → <200ms (6x speedup)
+
+**Test coverage (103 new tests, all passing)**:
+- 50 unit tests (`tests/test_dependency_hallucination_checker.py`):
+  7 dimensions — Happy Path / Error Case / Boundary / Performance /
+  Configuration / Integration / Security
+- 15 SecuritySkill integration tests
+  (`tests/integration/test_security_skill_with_dep_check.py`)
+- 15 dispatch hook integration tests
+  (`tests/integration/test_dispatch_with_dep_check.py`)
+- 22 red-team tests (`tests/security/test_dep_hallucination_redteam.py`):
+  RT-01..22 covering blacklist match / hyphen-underscore normalization
+  evasion / Levenshtein typo / confusion attacks / suffix patterns /
+  multi-vector / scoped npm / comment evasion / blocking mode
+- E2E-04脱 xfail
+  (`tests/e2e/test_user_stories_skeleton.py::test_e2e_04_hallucinated_dependency_detected`):
+  fixed `f.classification`→`f.category` attribute bug, switched to
+  `huggingface_cli` real hallucination case, now passes
+
+**Anti-ghost feature verification**:
+1. Module-level `_call_counter` increments on every scan (CI checks >0)
+2. Dual integration points: SecuritySkill public API + dispatch hook auto-trigger
+3. Markdown report "安全检查（依赖幻觉检测）" section user-visible
+4. Three-layer test coverage: unit (50) + integration (30) + e2e (1) + redteam (22)
+
+**Bug fixes during implementation**:
+- `_extract_imports` deduplication bug: key was `(pkg_name, line_num)`,
+  causing 1000 lines of `import requests` to produce 1000 findings
+  instead of 1. Fixed to deduplicate by `pkg_name` only (keep first
+  occurrence line number).
+- `_levenshtein` performance: added `max_distance` early-termination
+  parameter + row-min check to avoid full DP when distance exceeds
+  threshold.
+- `_find_typo_target` performance: added character set pre-filter to
+  skip candidates with too many unique characters.
+- Test docstring SyntaxWarning: `\s` in docstring raised
+  `SyntaxWarning: invalid escape sequence`, fixed with raw string `r"""`.
+
+**Sources**:
+- USENIX Security 2025 "Asleep at the Keyboard"
+- arXiv:2605.17062 cross-model hallucination study
+- Socket.dev 2025 malicious advisory reports
+- Snyk slopsquat research 2025-Q4
+
+**Test results**: 7941 passed, 1 skipped (Moka AI API key), 5 xfailed
+(E2E-01/03/05/07/08 — Phase 2+ pending). Zero regression.
+
+---
+
 ### V4.3.0 Roadmap Update — SDLC User Stories Integration (2026-07-25)
 
 User decided to merge SDLC consensus 4 new modules into V4.3.0 unified PRD

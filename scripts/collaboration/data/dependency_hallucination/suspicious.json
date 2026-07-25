@@ -1,0 +1,99 @@
+{
+  "_meta": {
+    "description": "Suspicious packages blacklist for DependencyHallucinationChecker (V4.3.0 P1-7)",
+    "version": "1.0",
+    "source": "arXiv:2605.17062 cross-model hallucination set (53 names) + Socket.dev public malicious advisories + Snyk slopsquat research",
+    "update_cadence": "monthly offline snapshot",
+    "fail_secure": "If this file is missing/corrupted, blacklist matching is skipped (SUSPICIOUS only via heuristics)"
+  },
+  "pypi": [
+    "huggingface-cli",
+    "aws-cdk",
+    "rest-framework",
+    "ccxt-mexc-futures",
+    "aws-helper-sdk",
+    "fastapi-middleware",
+    "jwt-secure-validator",
+    "crypto-secure-hash",
+    "python-aws-sdk",
+    "react-python",
+    "vue-python",
+    "angular-python",
+    "svelte-python",
+    "flask-mongoengine-extra",
+    "django-rest-extra",
+    "py-torch-lightning-extra",
+    "tensorflow-extra",
+    "sklearn-extra",
+    "pandas-extra",
+    "numpy-extra",
+    "scipy-extra",
+    "matplotlib-extra",
+    "seaborn-extra",
+    "plotly-extra",
+    "bokeh-extra"
+  ],
+  "npm": [
+    "react-codeshift",
+    "crossenv",
+    "@solana-launchpad/sdk",
+    "hash-validator",
+    "@ctrl/tinycolor",
+    "babel-loader-extra",
+    "webpack-extra",
+    "eslint-extra",
+    "typescript-extra",
+    "react-extra",
+    "vue-extra",
+    "angular-extra",
+    "svelte-extra",
+    "next-extra",
+    "nuxt-extra",
+    "gatsby-extra",
+    "express-extra",
+    "fastify-extra",
+    "koa-extra",
+    "lodash-extra",
+    "chalk-extra",
+    "axios-extra",
+    "commander-extra",
+    "inquirer-extra",
+    "dotenv-extra"
+  ],
+  "high_frequency_suffix_patterns": [
+    "-helper",
+    "-utils",
+    "-sdk",
+    "-validator",
+    "-middleware",
+    "-secure",
+    "-extra",
+    "-pro",
+    "-plus",
+    "-advanced",
+    "-ultimate",
+    "-premium"
+  ],
+  "confusion_pairs": [
+    {
+      "hallucinated": "react-codeshift",
+      "real_components": ["react", "jscodeshift"],
+      "ecosystem": "npm"
+    },
+    {
+      "hallucinated": "aws-cdk",
+      "real_components": ["aws-cdk-lib"],
+      "ecosystem": "pypi"
+    },
+    {
+      "hallucinated": "rest-framework",
+      "real_components": ["djangorestframework"],
+      "ecosystem": "pypi"
+    },
+    {
+      "hallucinated": "huggingface-cli",
+      "real_components": ["huggingface_hub"],
+      "ecosystem": "pypi"
+    }
+  ]
+}

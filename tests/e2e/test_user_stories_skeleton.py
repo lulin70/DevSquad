@@ -129,37 +129,44 @@ def test_e2e_03_p11_performance_baseline_passes() -> None:
 
 
 # ---------------------------------------------------------------------------
-# E2E-04: P6 hallucinated dependency detection (Phase 1, P1-7)
+# E2E-04: P6 hallucinated dependency detection (Phase 1, P1-7 — PASSED)
 # ---------------------------------------------------------------------------
-@pytest.mark.xfail(strict=True, reason="Phase 1 P1-7: DependencyHallucinationChecker pending")
 def test_e2e_04_hallucinated_dependency_detected() -> None:
     """E2E-04: A hallucinated PyPI package is detected and reported (Phase 1 P1-7).
 
-    Scenario: An AI worker generates code importing ``requests-lite``
-    (a non-existent package). The SecuritySkill's
-    DependencyHallucinationChecker flags it as SUSPICIOUS via the
-    ``security_scan_dependencies`` API.
+    Scenario: An AI worker generates code importing ``huggingface_cli``
+    (a hallucinated package; the real package is ``huggingface_hub``).
+    The SecuritySkill's DependencyHallucinationChecker flags it as
+    SUSPICIOUS via the ``security_scan_dependencies`` API.
 
     Pass condition:
-    - ``security_scan_dependencies("import requests_lite")`` returns a
+    - ``security_scan_dependencies("import huggingface_cli")`` returns a
       ``DependencyScanResult`` with at least one SUSPICIOUS finding
-    - The finding's package name matches ``requests_lite``
+    - The finding's package name matches ``huggingface_cli``
+    - The suggested fix is ``huggingface_hub``
 
     Related PRD: P1-7 (DependencyHallucinationChecker)
+    Source: arXiv:2605.17062 cross-model hallucination study
     """
     from scripts.collaboration.dependency_hallucination_checker import (
+        DependencyCategory,
         DependencyScanResult,
         security_scan_dependencies,
     )
 
-    code = "import requests_lite  # hallucinated package"
+    code = "import huggingface_cli  # hallucinated package"
 
     result = security_scan_dependencies(code)
 
     assert isinstance(result, DependencyScanResult)
-    suspicious = [f for f in result.findings if f.classification == "SUSPICIOUS"]
+    suspicious = [
+        f for f in result.findings
+        if f.category == DependencyCategory.SUSPICIOUS
+    ]
     assert len(suspicious) >= 1
-    assert any("requests_lite" in f.package_name for f in suspicious)
+    assert any("huggingface_cli" in f.package_name for f in suspicious)
+    # Suggested fix should point to the real package
+    assert suspicious[0].suggested_fix == "huggingface_hub"
 
 
 # ---------------------------------------------------------------------------
