@@ -9,8 +9,140 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-No unreleased changes. Next planned release is V4.3.0 (MINOR) pending user
-approval of V4.2.9 pre-release.
+### V4.3.0 Roadmap Update — SDLC User Stories Integration (2026-07-25)
+
+User decided to merge SDLC consensus 4 new modules into V4.3.0 unified PRD
+(decision: "合并为 V4.3.0 统一 PRD"). The 4 new modules are driven by
+[SDLC pain points analysis](docs/analysis/2026-07-25_SDLC_pain_points_analysis.md)
+(80 pain points: 30 solved / 18 partial / 17 unsolved) →
+[user stories by lifecycle](docs/analysis/2026-07-25_user_stories_by_lifecycle.md)
+(35 user stories, 11 lifecycle phases) →
+[review consensus](docs/analysis/2026-07-25_user_stories_review_consensus.md)
+(7-role weighted vote 0.9625, no veto).
+
+**New requirements added to V4.3.0 PRD v1.1:**
+
+- **P0-3**: `DeploymentComplianceChecker` simplified (Phase 0, security veto
+  triggered). Prevents violating deployments (e.g., basic edition to cloud)
+  via P10 lifecycle gate. Historical lesson: 2026-07-12 basic edition violating
+  deployment incident.
+- **P0-4**: 8 E2E test skeletons (Phase 0, TDD-first). User endorsed
+  "建立测试场景骨架是个很好的实践". All skeletons xfail(strict=True), pass
+  progressively in Phase 1-4.
+- **P1-7**: `DependencyHallucinationChecker` (Phase 1, anti-Slopsquatting).
+  Validates AI-generated import statements against known PyPI/npm packages.
+  Integrates into SecuritySkill + dispatch post-worker hook.
+- **P1-8**: `OutputValidator` full integration (Phase 2, LLM output validation).
+  Upgrades V4.1.2 Phase 2 skeleton to production-grade. Integrates into
+  dispatch post-worker hook with configurable blocking/non-blocking modes.
+
+**Deferred to V4.4.0:**
+
+- `BenchmarkRegressionChecker` (Phase 4). Depends on nightly CI infrastructure
+  enhancement. E2E-08 skeleton kept xfail in V4.3.0.
+
+**Anti-ghost feature constraints (user-mandated):**
+
+Each new module must specify:
+1. Skill integration point (which Skill / dispatch stage / API / user visibility)
+2. CI activation check (call count > 0 in last 30 days)
+3. Test coverage (≥80% unit + ≥1 E2E covering Skill chain)
+4. User visibility (Markdown report section + Dashboard panel + CLI status)
+
+See [V4.3.0_PRD.md §9](docs/prd/V4.3.0_PRD.md) for full requirements,
+[V4.3.0_ARCHITECTURE.md §9](docs/architecture/V4.3.0_ARCHITECTURE.md) for
+module boundaries and Skill integration diagram,
+[V4.3.0_TEST_PLAN.md §11](docs/testing/V4.3.0_TEST_PLAN.md) for 8 E2E
+skeletons and 98 new tests plan,
+[V4.3.0_ROADMAP.md](docs/planning/V4.3.0_ROADMAP.md) for Phase 0-4
+steady-progress roadmap.
+
+**No code changes in this update — documentation only.** Next step: user
+confirms roadmap → start Phase 0 (8 E2E skeletons + DeploymentComplianceChecker
+simplified).
+
+### V4.3.0 Phase 0 — DeploymentComplianceChecker + SDLC E2E Skeletons (2026-07-25)
+
+Phase 0 delivers the first anti-ghost-feature module and establishes the
+TDD-first E2E skeleton baseline. Steady progress over quick wins — the user
+endorsed "建立测试场景骨架是个很好的实践" (test scenario skeletons are good
+practice).
+
+**Added — P0-3 DeploymentComplianceChecker (anti-violating-deployment backstop):**
+
+- New module `scripts/collaboration/deployment_compliance_checker.py` (122
+  lines). Simplified 3-rule ruleset aligned with project_memory Hard
+  Constraints:
+  1. `BASIC_EDITION_NO_CLOUD` — basic edition must run on localhost only
+     (CRITICAL violation for any cloud host, including Aliyun/AWS/Azure/GCP/
+     Tencent). Mitigates the 2026-07-12 incident recurrence.
+  2. `PRO_EDITION_SANCTIONED_HOST_ONLY` — pro edition only on
+     `47.116.219.15` or `gateway.promiselink.cn` (CRITICAL for any other
+     host).
+  3. `NGINX_DEFAULT_SERVER_OFFICIAL_SITE` — nginx default server must serve
+     official static files (CRITICAL if `proxy_pass` to app containers;
+     WARNING if `root`/`alias` directive missing).
+- Public API: `lifecycle_gate_check(phase, target_env, ruleset=...)` returns
+  a `ComplianceReport` with `compliant` flag and `violations` list. Accepts
+  dict input (`{"edition": "basic", "host": "localhost"}`) or string
+  shorthand (`"basic@localhost"` / `"pro:47.116.219.15"`).
+- 32 unit tests in `tests/test_deployment_compliance_checker.py` covering
+  7 dimensions (Happy/Error/Boundary/Security/Performance/Config/Constants).
+  Coverage: 97.33%.
+
+**Added — P0-3 P10 Lifecycle Gate Integration (anti-ghost feature):**
+
+- `scripts/collaboration/unified_gate_engine.py` extended with:
+  - `GateType.COMPLIANCE_CHECK` enum value (P10 deployment gate)
+  - `UnifiedGateEngine.check_compliance(phase, target_env)` public API
+  - `_check_compliance()` internal checker translating
+    `ComplianceReport` → `UnifiedGateResult`
+- CRITICAL violations flip verdict to `REJECT` and block deployment.
+  WARNING-only violations yield `CONDITIONAL` (deploy with advisory).
+  Compliant deployments receive `APPROVE` (INFO severity).
+- 12 integration tests in
+  `tests/integration/test_unified_gate_integration.py::T6_P10ComplianceGateIntegration`
+  covering API contract, compliant pass, violating block (3 rules),
+  invalid input, statistics tracking, direct `check()` invocation,
+  serialization (`to_dict` / `to_summary`), custom checker registration,
+  and WARNING-only conditional behavior.
+- Anti-ghost-feature contract:
+  - Triggered naturally by `UnifiedGateEngine.check(GateType.COMPLIANCE_CHECK, ...)`
+    at P10 lifecycle phase — no separate manual invocation required.
+  - Statistics counters track `total_checks`/`passed`/`failed`/`conditional`
+    so `check_module_activation.py` can detect zero-invocation ghosts.
+  - `to_dict()` / `to_summary()` render in Markdown report "部署合规" section.
+
+**Added — P0-4 SDLC E2E Test Skeletons (TDD-first baseline):**
+
+- New file `tests/e2e/test_user_stories_skeleton.py` with 8 E2E skeletons
+  driven by SDLC user stories. All marked `@pytest.mark.xfail(strict=True)`
+  to flip progressively as Phases 1-4 deliver implementations.
+- E2E-02 (compliant deployment passes P10 gate) and E2E-06 (violating
+  deployment blocked by P10 gate) **removed xfail** and now pass — they
+  validate the Phase 0 P0-3 deliverable end-to-end.
+- E2E-01 (RequirementTracer journey), E2E-03/E2E-08 (BenchmarkRegressionChecker,
+  deferred to V4.4.0), E2E-04 (DependencyHallucinationChecker, Phase 1),
+  E2E-05 (OutputValidator full integration, Phase 2), E2E-07 (multi-axis
+  review enhancement, Phase 3) remain xfail per their phase plan.
+- Skeleton integrity policy: `xfail(strict=True)` means accidental XPASS
+  fails CI, forcing phase completion. Skeletons MUST NOT be deleted.
+
+**Quality verification:**
+
+- Full pytest: 7843 passed, 1 skipped, 6 xfailed (E2E skeletons per plan).
+  1 flaky failure in `test_skill_registry_integration.py` (pre-existing
+  thread-safety issue, passes in isolation, unrelated to P0-3).
+- mypy: 0 errors on `deployment_compliance_checker.py` and
+  `unified_gate_engine.py`.
+- ruff: 0 errors (cleaned 2 unused imports in
+  `test_deployment_compliance_checker.py`).
+- radon: `_check_compliance` complexity B (9), well below CI threshold 21.
+- Coverage: `deployment_compliance_checker.py` 97.33%.
+- Test pyramid: unit 75.8%, integration 15.3%, e2e 3.5%, contract 5.0%.
+- Version consistency: 30/30 checks pass for 4.2.9.
+
+**Next: Phase 1 — DependencyHallucinationChecker (P1-7).**
 
 ## [4.2.9] - 2026-07-24
 

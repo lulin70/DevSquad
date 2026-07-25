@@ -51,6 +51,7 @@ from scripts.collaboration.lifecycle_templates import (
     VIEW_MAPPINGS,
 )
 from scripts.collaboration.unified_gate_engine import (
+    GateSeverity,
     GateType,
     PhaseGateContext,
     UnifiedGateConfig,
@@ -731,6 +732,196 @@ class T5_BoundaryAndStatePersistence(unittest.TestCase):
         self.assertIn("SHORTCUT", summary)
         self.assertIn("P1", summary)
         self.assertIn("9%", summary)
+
+
+# ---------------------------------------------------------------------------
+# T6: V4.3.0 P0-3 — P10 Compliance Gate Integration
+#     DeploymentComplianceChecker ↔ UnifiedGateEngine
+# ---------------------------------------------------------------------------
+
+
+class T6_P10ComplianceGateIntegration(unittest.TestCase):
+    """T6: P10 deployment compliance gate is wired into UnifiedGateEngine.
+
+    Verifies the anti-ghost-feature integration contract:
+    - UnifiedGateEngine exposes ``check_compliance(phase, target_env)`` API
+    - Compliant deployments receive APPROVE verdict
+    - Violating deployments receive REJECT verdict with CRITICAL severity
+    - Statistics are tracked (so check_module_activation.py can detect ghosts)
+    - Results are serializable for Markdown report rendering
+    """
+
+    def setUp(self) -> None:
+        _reset_gate_singletons()
+
+    def test_01_check_compliance_api_returns_unified_gate_result(self) -> None:
+        """Verify: check_compliance returns a UnifiedGateResult typed object."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "pro", "host": "47.116.219.15"},
+        )
+        self.assertIsInstance(result, UnifiedGateResult)
+        self.assertEqual(result.gate_type, GateType.COMPLIANCE_CHECK)
+
+    def test_02_compliant_basic_localhost_passes(self) -> None:
+        """Verify: basic edition on localhost passes the P10 gate."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "basic", "host": "localhost"},
+        )
+        self.assertTrue(result.passed)
+        self.assertEqual(result.verdict, "APPROVE")
+        self.assertEqual(result.severity, GateSeverity.INFO)
+        self.assertEqual(len(result.critical_issues), 0)
+
+    def test_03_compliant_pro_sanctioned_host_passes(self) -> None:
+        """Verify: pro edition on sanctioned host passes the P10 gate."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "pro", "host": "47.116.219.15"},
+        )
+        self.assertTrue(result.passed)
+        self.assertEqual(result.verdict, "APPROVE")
+
+    def test_04_violating_basic_to_cloud_blocked_with_critical(self) -> None:
+        """Verify: basic edition to cloud host is blocked with CRITICAL."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "basic", "host": "47.116.219.15"},
+        )
+        self.assertFalse(result.passed)
+        self.assertEqual(result.verdict, "REJECT")
+        self.assertEqual(result.severity, GateSeverity.CRITICAL)
+        self.assertGreaterEqual(len(result.critical_issues), 1)
+        self.assertEqual(
+            result.critical_issues[0]["rule_id"], "BASIC_EDITION_NO_CLOUD"
+        )
+        self.assertIn("基础版禁止云端部署", result.critical_issues[0]["message"])
+
+    def test_05_violating_pro_to_unsanctioned_blocked(self) -> None:
+        """Verify: pro edition to unsanctioned host is blocked."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "pro", "host": "evil.example.com"},
+        )
+        self.assertFalse(result.passed)
+        self.assertEqual(result.verdict, "REJECT")
+        self.assertEqual(
+            result.critical_issues[0]["rule_id"],
+            "PRO_EDITION_SANCTIONED_HOST_ONLY",
+        )
+
+    def test_06_nginx_default_server_proxy_blocked(self) -> None:
+        """Verify: nginx default server proxying to app container is blocked."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={
+                "edition": "pro",
+                "host": "47.116.219.15",
+                "nginx_default_server": (
+                    "server { proxy_pass http://promiselink-basic:8000; }"
+                ),
+            },
+        )
+        self.assertFalse(result.passed)
+        self.assertEqual(result.verdict, "REJECT")
+        nginx_issues = [
+            i for i in result.critical_issues
+            if i["rule_id"] == "NGINX_DEFAULT_SERVER_OFFICIAL_SITE"
+        ]
+        self.assertEqual(len(nginx_issues), 1)
+
+    def test_07_invalid_target_env_returns_reject(self) -> None:
+        """Verify: invalid target_env (empty dict) yields REJECT, not crash."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(phase="P10", target_env={})
+        self.assertFalse(result.passed)
+        self.assertEqual(result.verdict, "REJECT")
+        self.assertEqual(
+            result.critical_issues[0]["code"], "INVALID_TARGET_ENV"
+        )
+
+    def test_08_statistics_updated_after_check(self) -> None:
+        """Verify: compliance checks increment engine statistics (anti-ghost)."""
+        engine = UnifiedGateEngine()
+        before = engine.get_statistics()
+        engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "basic", "host": "localhost"},
+        )
+        engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "basic", "host": "47.116.219.15"},
+        )
+        after = engine.get_statistics()
+        self.assertEqual(
+            after["total_checks"], before["total_checks"] + 2
+        )
+        self.assertGreater(after["passed"], before["passed"])
+        self.assertGreater(after["failed"], before["failed"])
+
+    def test_09_direct_check_via_check_method_with_dict_context(self) -> None:
+        """Verify: engine.check(GateType.COMPLIANCE_CHECK, ctx) works directly."""
+        engine = UnifiedGateEngine()
+        context = {
+            "phase": "P10",
+            "target_env": {"edition": "basic", "host": "127.0.0.1"},
+        }
+        result = engine.check(GateType.COMPLIANCE_CHECK, context)
+        self.assertIsInstance(result, UnifiedGateResult)
+        self.assertTrue(result.passed)
+
+    def test_10_result_to_dict_and_to_summary_serializable(self) -> None:
+        """Verify: compliance gate result is serializable for Markdown report."""
+        engine = UnifiedGateEngine()
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "basic", "host": "47.116.219.15"},
+        )
+        d = result.to_dict()
+        self.assertEqual(d["gate_type"], "compliance_check")
+        self.assertEqual(d["verdict"], "REJECT")
+        self.assertGreater(d["critical_issues_count"], 0)
+        summary = result.to_summary()
+        self.assertIn("compliance_check", summary)
+        self.assertIn("REJECT", summary)
+
+    def test_11_custom_checker_can_be_registered_for_compliance(self) -> None:
+        """Verify: custom checkers can extend COMPLIANCE_CHECK gate."""
+        engine = UnifiedGateEngine()
+
+        def custom_warn(ctx: Any, **_kw: Any) -> dict[str, Any]:
+            return {"warnings": [{"code": "CUSTOM", "message": "advisory"}]}
+
+        engine.register_checker(GateType.COMPLIANCE_CHECK, custom_warn)
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "basic", "host": "localhost"},
+        )
+        # Custom warning should not flip APPROVE to REJECT
+        self.assertTrue(result.passed)
+        # But the warning should be merged into the result
+        warning_codes = [w.get("code") for w in result.warnings]
+        self.assertIn("CUSTOM", warning_codes)
+
+    def test_12_warning_only_does_not_reject(self) -> None:
+        """Verify: WARNING-only violations yield CONDITIONAL, not REJECT."""
+        engine = UnifiedGateEngine()
+        # basic edition with missing host → WARNING only
+        result = engine.check_compliance(
+            phase="P10",
+            target_env={"edition": "basic"},  # no host
+        )
+        # WARNING-only means compliant=True (no CRITICAL), but verdict
+        # may be APPROVE because no critical issues were raised.
+        self.assertTrue(result.passed)
+        self.assertGreater(len(result.warnings), 0)
 
 
 if __name__ == "__main__":

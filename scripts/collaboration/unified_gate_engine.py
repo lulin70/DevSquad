@@ -176,6 +176,8 @@ class UnifiedGateEngine:
             GateType.WORKER_OUTPUT: self._check_worker_output,
             # V4.1.1: Debug loop readiness (Matt Pocock red-capable)
             GateType.DEBUG_LOOP_READY: self._check_debug_loop_ready,
+            # V4.3.0 P0-3: Deployment compliance (P10 lifecycle gate)
+            GateType.COMPLIANCE_CHECK: self._check_compliance,
         }
         self._custom_checkers: dict[GateType, list[Callable]] = {}
         self._statistics: dict[str, int] = {
@@ -697,6 +699,130 @@ class UnifiedGateEngine:
             "pass_rate": ((self._statistics["passed"] / total * 100) if total > 0 else 0.0),
             "custom_checkers_registered": sum(len(checkers) for checkers in self._custom_checkers.values()),
         }
+
+    # ------------------------------------------------------------------
+    # V4.3.0 P0-3: Compliance check (P10 deployment gate)
+    # ------------------------------------------------------------------
+    def check_compliance(
+        self,
+        phase: str,
+        target_env: dict[str, Any] | str,
+    ) -> UnifiedGateResult:
+        """Run a deployment compliance check at the P10 lifecycle gate.
+
+        Convenience wrapper around :meth:`check` for the
+        ``GateType.COMPLIANCE_CHECK`` gate type. Delegates to
+        :func:`scripts.collaboration.deployment_compliance_checker.lifecycle_gate_check`
+        and translates the :class:`ComplianceReport` into a
+        :class:`UnifiedGateResult`.
+
+        Args:
+            phase: Lifecycle phase (typically ``"P10"``).
+            target_env: Target environment dict or ``edition@host`` string.
+
+        Returns:
+            UnifiedGateResult with ``gate_type=COMPLIANCE_CHECK``. CRITICAL
+            violations flip the verdict to REJECT and block deployment.
+        """
+        context = {"phase": phase, "target_env": target_env}
+        return self.check(GateType.COMPLIANCE_CHECK, context)
+
+    def _check_compliance(
+        self,
+        context: dict[str, Any],
+        **_kwargs: Any,
+    ) -> UnifiedGateResult:
+        """Internal checker for deployment compliance (V4.3.0 P0-3).
+
+        Delegates to ``deployment_compliance_checker.lifecycle_gate_check``
+        and translates the ``ComplianceReport`` into a ``UnifiedGateResult``.
+
+        Skill integration (anti-ghost feature):
+        - Triggered by UnifiedGateEngine.check(GateType.COMPLIANCE_CHECK, ...)
+        - User visibility: violations appear in Markdown report "部署合规" section
+        - CI check: module call count tracked via UnifiedGateEngine statistics
+        """
+        try:
+            from scripts.collaboration.deployment_compliance_checker import (
+                ViolationSeverity,
+                lifecycle_gate_check,
+            )
+        except ImportError:
+            logger.warning("DeploymentComplianceChecker module not available")
+            return UnifiedGateResult(
+                passed=False,
+                gate_type=GateType.COMPLIANCE_CHECK,
+                verdict="REJECT",
+                severity=GateSeverity.CRITICAL,
+                critical_issues=[
+                    {
+                        "code": "DCC_UNAVAILABLE",
+                        "message": "DeploymentComplianceChecker module not available",
+                    }
+                ],
+            )
+
+        phase = str(context.get("phase", "P10"))
+        target_env = context.get("target_env", {})
+
+        try:
+            report = lifecycle_gate_check(phase=phase, target_env=target_env)
+        except ValueError as exc:
+            return UnifiedGateResult(
+                passed=False,
+                gate_type=GateType.COMPLIANCE_CHECK,
+                verdict="REJECT",
+                severity=GateSeverity.CRITICAL,
+                critical_issues=[
+                    {
+                        "code": "INVALID_TARGET_ENV",
+                        "message": f"Cannot evaluate compliance: {exc}",
+                    }
+                ],
+            )
+
+        critical_issues: list[dict[str, Any]] = []
+        warnings: list[dict[str, Any]] = []
+        suggestions: list[str] = []
+
+        for violation in report.violations:
+            entry = {
+                "code": violation.rule_id,
+                "message": violation.message,
+                "rule_id": violation.rule_id,
+                "target_env": violation.target_env,
+            }
+            if violation.severity == ViolationSeverity.CRITICAL:
+                critical_issues.append(entry)
+            else:
+                warnings.append(entry)
+            if violation.suggestion:
+                suggestions.append(f"{violation.rule_id}: {violation.suggestion}")
+
+        if report.compliant:
+            verdict = "APPROVE"
+            severity = GateSeverity.INFO
+        elif critical_issues:
+            verdict = "REJECT"
+            severity = GateSeverity.CRITICAL
+        else:
+            verdict = "CONDITIONAL"
+            severity = GateSeverity.WARNING
+
+        checks_run = len(report.violations) if report.violations else 1
+        checks_passed = checks_run - len(critical_issues) - len(warnings)
+
+        return UnifiedGateResult(
+            passed=report.compliant,
+            gate_type=GateType.COMPLIANCE_CHECK,
+            verdict=verdict,
+            severity=severity,
+            checks_run=checks_run,
+            checks_passed=max(checks_passed, 0),
+            critical_issues=critical_issues,
+            warnings=warnings,
+            suggestions=suggestions,
+        )
 
     def reset_statistics(self) -> None:
         """Reset statistics counters."""
