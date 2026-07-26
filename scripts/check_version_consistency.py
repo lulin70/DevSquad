@@ -241,6 +241,147 @@ def get_canonical_version() -> str | None:
     return None
 
 
+# === Content diff pairs (V4.3.1 enhancement) ===
+# Pairs of (source_file, cache_file) that must be byte-identical.
+# Catches the V4.3.1 bug where only the `version:` field was synced to TRAE
+# caches but the SKILL.md body remained stale (V4.3.0 description, old test
+# counts). Version-field-only checks gave 30/30 PASS while users saw stale
+# content in the TRAE skill panel.
+@dataclass
+class ContentDiffSpec:
+    """Specification for a content diff check between source and cache file.
+
+    source_path:
+        Project-relative path of the canonical source file.
+    cache_path:
+        Absolute path of the cache file to compare against.
+    description:
+        Human-readable label shown in the report.
+    optional:
+        If True, a missing cache file is OK (reported as SKIP, not FAIL).
+        Used for L1/L2 TRAE caches that don't exist in CI environments.
+    """
+
+    source_path: str
+    cache_path: Path
+    description: str
+    optional: bool = False
+
+
+CONTENT_DIFF_PAIRS: list[ContentDiffSpec] = [
+    ContentDiffSpec(
+        source_path="SKILL.md",
+        cache_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "SKILL.md",
+        description="TRAE L1 cache (~/.trae-cn) SKILL.md content",
+        optional=True,
+    ),
+    ContentDiffSpec(
+        source_path="SKILL.md",
+        cache_path=Path.home() / ".trae" / "skills" / "devsquad" / "SKILL.md",
+        description="TRAE L2 cache (~/.trae) SKILL.md content",
+        optional=True,
+    ),
+    ContentDiffSpec(
+        source_path="SKILL.md",
+        cache_path=REPO_ROOT / ".trae" / "skills" / "devsquad" / "SKILL.md",
+        description="TRAE L3 cache (project .trae) SKILL.md content",
+        optional=True,
+    ),
+    ContentDiffSpec(
+        source_path="skill-manifest.yaml",
+        cache_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "skill-manifest.yaml",
+        description="TRAE L1 cache (~/.trae-cn) skill-manifest.yaml content",
+        optional=True,
+    ),
+    ContentDiffSpec(
+        source_path="skill-manifest.yaml",
+        cache_path=Path.home() / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
+        description="TRAE L2 cache (~/.trae) skill-manifest.yaml content",
+        optional=True,
+    ),
+    ContentDiffSpec(
+        source_path="skill-manifest.yaml",
+        cache_path=REPO_ROOT / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
+        description="TRAE L3 cache (project .trae) skill-manifest.yaml content",
+        optional=True,
+    ),
+]
+
+
+def check_content_diff(spec: ContentDiffSpec) -> VersionCheck:
+    """Verify that cache file is byte-identical to source file.
+
+    Returns a VersionCheck-like result. ``expected`` carries the source path
+    and ``found`` carries "identical" / "differs" / None for missing files.
+    """
+    source = REPO_ROOT / spec.source_path
+    if not source.exists():
+        return VersionCheck(
+            file=spec.description,
+            expected=spec.source_path,
+            found=None,
+            passed=False,
+            detail=f"source file missing: {spec.source_path}",
+        )
+    if not spec.cache_path.exists():
+        if spec.optional:
+            return VersionCheck(
+                file=spec.description,
+                expected=spec.source_path,
+                found=None,
+                passed=True,
+                detail=f"SKIP (optional cache, not found): {spec.description}",
+            )
+        return VersionCheck(
+            file=spec.description,
+            expected=spec.source_path,
+            found=None,
+            passed=False,
+            detail=f"cache file missing: {spec.cache_path}",
+        )
+    try:
+        source_content = source.read_text(encoding="utf-8")
+        cache_content = spec.cache_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return VersionCheck(
+            file=spec.description,
+            expected=spec.source_path,
+            found=None,
+            passed=False,
+            detail=f"read error: {exc}",
+        )
+    if source_content == cache_content:
+        return VersionCheck(
+            file=spec.description,
+            expected=spec.source_path,
+            found="identical",
+            passed=True,
+            detail=f"{spec.description}: identical to source OK",
+        )
+    # Compute first diverging line for actionable diagnostics
+    source_lines = source_content.splitlines()
+    cache_lines = cache_content.splitlines()
+    first_diff_line = 0
+    max_lines = max(len(source_lines), len(cache_lines))
+    for i in range(max_lines):
+        s = source_lines[i] if i < len(source_lines) else "<EOF>"
+        c = cache_lines[i] if i < len(cache_lines) else "<EOF>"
+        if s != c:
+            first_diff_line = i + 1
+            break
+    return VersionCheck(
+        file=spec.description,
+        expected=spec.source_path,
+        found="differs",
+        passed=False,
+        detail=(
+            f"{spec.description}: content differs from source "
+            f"(source={len(source_lines)}L, cache={len(cache_lines)}L, "
+            f"first diff at line {first_diff_line})"
+        ),
+    )
+
+
 def check_file(spec: FileSpec, expected: str) -> VersionCheck:
     """Check a single file for version consistency."""
     content = spec.read_text()
@@ -415,6 +556,11 @@ def _print_results(results: list[VersionCheck]) -> dict[str, list[VersionCheck]]
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check version consistency across project files.")
     parser.add_argument("--strict", action="store_true", help="fail on warnings too")
+    parser.add_argument(
+        "--no-content-diff",
+        action="store_true",
+        help="skip TRAE cache content diff checks (only run version-field checks)",
+    )
     args = parser.parse_args()
 
     expected = get_canonical_version()
@@ -432,6 +578,16 @@ def main() -> int:
     prd_results = _check_prd_files()
     results.extend(prd_results)
 
+    # V4.3.1: TRAE cache content diff (catches stale body even when version
+    # field is synced). Print a separator so the new section is visually
+    # distinguishable from the version-field checks above.
+    if not args.no_content_diff:
+        print("-" * 70)
+        print(f"Content diff checks ({len(CONTENT_DIFF_PAIRS)} TRAE cache pair(s))...")
+        print("-" * 70)
+        diff_results = [check_content_diff(spec) for spec in CONTENT_DIFF_PAIRS]
+        results.extend(diff_results)
+
     buckets = _print_results(results)
     failed = buckets["failed"]
     warnings = buckets["warnings"]
@@ -439,7 +595,7 @@ def main() -> int:
     skipped = buckets["skipped"]
 
     if failed:
-        print("\nVersion mismatches detected:")
+        print("\nVersion/content mismatches detected:")
         for r in failed:
             print(f"  - {r.file}: expected {r.expected}, found {r.found}")
             print(f"    {r.detail}")

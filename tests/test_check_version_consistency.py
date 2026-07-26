@@ -25,9 +25,12 @@ from unittest import mock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.check_version_consistency import (
+    CONTENT_DIFF_PAIRS,
     PRD_DIR,
     PRD_FILENAME_VERSION_RE,
+    ContentDiffSpec,
     _check_prd_files,
+    check_content_diff,
     main,
 )
 
@@ -354,6 +357,283 @@ class T7_RealPrdFiles(unittest.TestCase):
         # All results should be non-blocking (passed=True)
         for r in results:
             self.assertTrue(r.passed, f"PRD check should not block CI: {r.file} → {r.detail}")
+
+
+# =============================================================================
+# V4.3.1 enhancement: TRAE cache content diff checks
+# =============================================================================
+
+
+class T8_ContentDiffPairsConfig(unittest.TestCase):
+    """T8: CONTENT_DIFF_PAIRS module-level configuration sanity."""
+
+    def test_01_has_six_pairs(self) -> None:
+        """Verify: 6 cache pairs (3 layers × 2 files: SKILL.md + skill-manifest.yaml)."""
+        self.assertEqual(len(CONTENT_DIFF_PAIRS), 6)
+
+    def test_02_all_pairs_optional(self) -> None:
+        """Verify: All pairs optional=True (CI environments lack TRAE caches)."""
+        for spec in CONTENT_DIFF_PAIRS:
+            self.assertTrue(spec.optional, f"{spec.description} should be optional")
+
+    def test_03_source_paths_are_known(self) -> None:
+        """Verify: source_path is either SKILL.md or skill-manifest.yaml."""
+        valid = {"SKILL.md", "skill-manifest.yaml"}
+        for spec in CONTENT_DIFF_PAIRS:
+            self.assertIn(spec.source_path, valid)
+
+    def test_04_cache_paths_distinct(self) -> None:
+        """Verify: All cache_path values are distinct (no duplicate checks)."""
+        paths = [str(spec.cache_path) for spec in CONTENT_DIFF_PAIRS]
+        self.assertEqual(len(paths), len(set(paths)))
+
+
+class T9_CheckContentDiff_HappyPath(unittest.TestCase):
+    """T9: check_content_diff returns PASS when cache is identical to source."""
+
+    def test_01_identical_content_returns_pass(self) -> None:
+        """Verify: Byte-identical cache → passed=True, found='identical'."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "SKILL.md"
+            cache = Path(tmpdir) / "cache_SKILL.md"
+            content = "# DevSquad V4.3.1\n\nIdentical body.\n"
+            source.write_text(content, encoding="utf-8")
+            cache.write_text(content, encoding="utf-8")
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test identical",
+            )
+            # Patch REPO_ROOT so source resolution uses tmpdir parent
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertTrue(result.passed, f"Expected PASS, got: {result.detail}")
+            self.assertEqual(result.found, "identical")
+            self.assertIn("identical to source", result.detail)
+
+
+class T10_CheckContentDiff_Differs(unittest.TestCase):
+    """T10: check_content_diff returns FAIL when cache content differs."""
+
+    def test_01_different_content_returns_fail(self) -> None:
+        """Verify: Different body → passed=False, found='differs', line info given."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "SKILL.md"
+            cache = Path(tmpdir) / "cache_SKILL.md"
+            source.write_text("line1\nline2\nline3\n", encoding="utf-8")
+            cache.write_text("line1\nDIFFERENT\nline3\n", encoding="utf-8")
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test differs",
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertFalse(result.passed)
+            self.assertEqual(result.found, "differs")
+            self.assertIn("first diff at line 2", result.detail)
+            self.assertIn("source=3L", result.detail)
+            self.assertIn("cache=3L", result.detail)
+
+    def test_02_version_field_synced_but_body_differs_still_fails(self) -> None:
+        """Verify: Catches V4.3.1 bug — version synced, body stale."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "SKILL.md"
+            cache = Path(tmpdir) / "cache_SKILL.md"
+            # Both have version: 4.3.1, but body differs (the actual V4.3.1 bug)
+            source.write_text(
+                "version: 4.3.1\nV4.3.1: BenchmarkRegressionChecker\n8110+ tests\n",
+                encoding="utf-8",
+            )
+            cache.write_text(
+                "version: 4.3.1\nV4.3.0: old description\n7660+ tests\n",
+                encoding="utf-8",
+            )
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test version-synced body-drift",
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertFalse(result.passed, "Body drift must FAIL even if version field is synced")
+            self.assertEqual(result.found, "differs")
+            self.assertIn("first diff at line 2", result.detail)
+
+    def test_03_different_line_counts_reports_eof(self) -> None:
+        """Verify: When cache is shorter, diff reports EOF marker."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "SKILL.md"
+            cache = Path(tmpdir) / "cache_SKILL.md"
+            source.write_text("line1\nline2\nline3\nline4\n", encoding="utf-8")
+            cache.write_text("line1\nline2\n", encoding="utf-8")
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test EOF",
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertFalse(result.passed)
+            self.assertIn("first diff at line 3", result.detail)
+            self.assertIn("source=4L", result.detail)
+            self.assertIn("cache=2L", result.detail)
+
+
+class T11_CheckContentDiff_MissingFiles(unittest.TestCase):
+    """T11: check_content_diff handles missing files per optional flag."""
+
+    def test_01_optional_missing_cache_returns_skip(self) -> None:
+        """Verify: optional=True + missing cache → SKIP (passed=True)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "SKILL.md"
+            source.write_text("content", encoding="utf-8")
+            cache = Path(tmpdir) / "nonexistent_cache.md"
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test optional missing",
+                optional=True,
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertTrue(result.passed)
+            self.assertTrue(result.detail.startswith("SKIP"))
+
+    def test_02_required_missing_cache_returns_fail(self) -> None:
+        """Verify: optional=False + missing cache → FAIL."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "SKILL.md"
+            source.write_text("content", encoding="utf-8")
+            cache = Path(tmpdir) / "nonexistent_cache.md"
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test required missing",
+                optional=False,
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertFalse(result.passed)
+            self.assertIn("cache file missing", result.detail)
+
+    def test_03_missing_source_returns_fail(self) -> None:
+        """Verify: Missing source file → FAIL (regardless of optional)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            nonexistent_source = Path(tmpdir) / "nonexistent_source.md"
+            cache = Path(tmpdir) / "cache.md"
+            cache.write_text("content", encoding="utf-8")
+            spec = ContentDiffSpec(
+                source_path=str(nonexistent_source),
+                cache_path=cache,
+                description="test missing source",
+                optional=True,
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertFalse(result.passed)
+            self.assertIn("source file missing", result.detail)
+
+
+class T12_CheckContentDiff_Boundary(unittest.TestCase):
+    """T12: Boundary cases — empty files, single-line files."""
+
+    def test_01_both_empty_files_identical(self) -> None:
+        """Verify: Two empty files are considered identical."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "empty.md"
+            cache = Path(tmpdir) / "empty_cache.md"
+            source.write_text("", encoding="utf-8")
+            cache.write_text("", encoding="utf-8")
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test empty",
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertTrue(result.passed)
+            self.assertEqual(result.found, "identical")
+
+    def test_02_single_line_identical(self) -> None:
+        """Verify: Single-line identical content passes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "one.md"
+            cache = Path(tmpdir) / "one_cache.md"
+            source.write_text("only line", encoding="utf-8")
+            cache.write_text("only line", encoding="utf-8")
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test single",
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertTrue(result.passed)
+
+    def test_03_source_empty_cache_not_empty_fails(self) -> None:
+        """Verify: Empty source + non-empty cache → FAIL at line 1."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "empty.md"
+            cache = Path(tmpdir) / "nonempty_cache.md"
+            source.write_text("", encoding="utf-8")
+            cache.write_text("cache has content", encoding="utf-8")
+            spec = ContentDiffSpec(
+                source_path=str(source),
+                cache_path=cache,
+                description="test empty source",
+            )
+            import scripts.check_version_consistency as mod
+            with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
+                result = check_content_diff(spec)
+            self.assertFalse(result.passed)
+            self.assertIn("first diff at line 1", result.detail)
+
+
+class T13_MainIntegrationContentDiff(unittest.TestCase):
+    """T13: main() integrates content diff checks into the report."""
+
+    def test_01_main_runs_content_diff_by_default(self) -> None:
+        """Verify: main() runs content diff checks and includes them in totals."""
+        import io
+        captured = io.StringIO()
+        with mock.patch("sys.stdout", new_callable=lambda: captured), \
+             mock.patch("sys.argv", ["prog"]):
+            exit_code = main()
+        output = captured.getvalue()
+        self.assertIn("Content diff checks", output)
+        self.assertIn(exit_code, (0, 1))
+
+    def test_02_main_no_content_diff_flag_skips_diff(self) -> None:
+        """Verify: --no-content-diff flag skips the diff section entirely."""
+        import io
+        captured = io.StringIO()
+        with mock.patch("sys.stdout", new_callable=lambda: captured), \
+             mock.patch("sys.argv", ["prog", "--no-content-diff"]):
+            exit_code = main()
+        output = captured.getvalue()
+        self.assertNotIn("Content diff checks", output)
+        self.assertIn(exit_code, (0, 1))
+
+    def test_03_main_includes_content_diff_section_in_output(self) -> None:
+        """Verify: Output contains 'Content diff checks' header by default."""
+        import io
+        captured = io.StringIO()
+        with mock.patch("sys.stdout", new_callable=lambda: captured), \
+             mock.patch("sys.argv", ["prog"]):
+            exit_code = main()
+        output = captured.getvalue()
+        self.assertIn("Content diff checks", output)
+        self.assertIn(exit_code, (0, 1))
 
 
 if __name__ == "__main__":
