@@ -269,24 +269,38 @@ class ContentDiffSpec:
 
 
 CONTENT_DIFF_PAIRS: list[ContentDiffSpec] = [
+    # L1: User-level TRAE CN cache (China edition)
     ContentDiffSpec(
         source_path="SKILL.md",
         cache_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "SKILL.md",
         description="TRAE L1 cache (~/.trae-cn) SKILL.md content",
         optional=True,
     ),
+    # L2: User-level TRAE cache (International edition)
     ContentDiffSpec(
         source_path="SKILL.md",
         cache_path=Path.home() / ".trae" / "skills" / "devsquad" / "SKILL.md",
         description="TRAE L2 cache (~/.trae) SKILL.md content",
         optional=True,
     ),
+    # L3: TRAE workspace root .trae (TRAE actually reads from here!)
+    # This is /Users/lin/trae_projects/.trae/, NOT DevSquad/.trae/.
+    # Discovered 2026-07-27: Skill panel showed V4.1.7 even after DevSquad/.trae
+    # was synced, because TRAE reads from workspace root .trae, not project .trae.
+    ContentDiffSpec(
+        source_path="SKILL.md",
+        cache_path=REPO_ROOT.parent / ".trae" / "skills" / "devsquad" / "SKILL.md",
+        description="TRAE L3 cache (workspace root .trae) SKILL.md content",
+        optional=True,
+    ),
+    # L4: DevSquad project .trae (historical/backup, not read by TRAE directly)
     ContentDiffSpec(
         source_path="SKILL.md",
         cache_path=REPO_ROOT / ".trae" / "skills" / "devsquad" / "SKILL.md",
-        description="TRAE L3 cache (project .trae) SKILL.md content",
+        description="TRAE L4 cache (DevSquad .trae) SKILL.md content",
         optional=True,
     ),
+    # skill-manifest.yaml (same 4 layers)
     ContentDiffSpec(
         source_path="skill-manifest.yaml",
         cache_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "skill-manifest.yaml",
@@ -301,8 +315,14 @@ CONTENT_DIFF_PAIRS: list[ContentDiffSpec] = [
     ),
     ContentDiffSpec(
         source_path="skill-manifest.yaml",
+        cache_path=REPO_ROOT.parent / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
+        description="TRAE L3 cache (workspace root .trae) skill-manifest.yaml content",
+        optional=True,
+    ),
+    ContentDiffSpec(
+        source_path="skill-manifest.yaml",
         cache_path=REPO_ROOT / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
-        description="TRAE L3 cache (project .trae) skill-manifest.yaml content",
+        description="TRAE L4 cache (DevSquad .trae) skill-manifest.yaml content",
         optional=True,
     ),
 ]

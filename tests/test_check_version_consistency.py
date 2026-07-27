@@ -367,9 +367,9 @@ class T7_RealPrdFiles(unittest.TestCase):
 class T8_ContentDiffPairsConfig(unittest.TestCase):
     """T8: CONTENT_DIFF_PAIRS module-level configuration sanity."""
 
-    def test_01_has_six_pairs(self) -> None:
-        """Verify: 6 cache pairs (3 layers × 2 files: SKILL.md + skill-manifest.yaml)."""
-        self.assertEqual(len(CONTENT_DIFF_PAIRS), 6)
+    def test_01_has_eight_pairs(self) -> None:
+        """Verify: 8 cache pairs (4 layers × 2 files: SKILL.md + skill-manifest.yaml)."""
+        self.assertEqual(len(CONTENT_DIFF_PAIRS), 8)
 
     def test_02_all_pairs_optional(self) -> None:
         """Verify: All pairs optional=True (CI environments lack TRAE caches)."""
