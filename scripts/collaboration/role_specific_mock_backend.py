@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Role-Specific Mock Backend (V4.4.0).
+"""Role-Specific Mock Backend (V4.3.2).
 
 An independent Mock backend that produces role-specific mock output.
 Unlike the generic MockBackend, this produces differentiated content

@@ -15,6 +15,7 @@ Coverage dimensions (per DevSquad Iron Rule 3):
 
 from __future__ import annotations
 
+import contextlib
 import os
 import sys
 import tempfile
@@ -26,6 +27,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.check_version_consistency import (
     CONTENT_DIFF_PAIRS,
+    FILES_TO_CHECK,
     PRD_DIR,
     PRD_FILENAME_VERSION_RE,
     ContentDiffSpec,
@@ -33,6 +35,34 @@ from scripts.check_version_consistency import (
     check_content_diff,
     main,
 )
+
+
+@contextlib.contextmanager
+def _neutralize_trae_cache_paths(tmpdir: str):
+    """Redirect TRAE cache absolute_path entries to a non-existent tmpdir.
+
+    FILES_TO_CHECK stores TRAE L1/L2 cache paths (~/.trae-cn, ~/.trae) as
+    absolute_path at module load time. Without neutralization, local caches
+    would be scanned, making the test dependent on local environment state
+    (e.g., stale 4.4.0 caches during a version rollback).
+
+    By pointing absolute_path to a non-existent path under tmpdir,
+    FileSpec.read_text() returns None and optional=True entries become SKIP
+    (non-blocking), keeping the test a true unit test.
+
+    Restores original absolute_path values on exit for test isolation.
+    """
+    nonexistent = Path(tmpdir) / "neutralized_trae_cache"
+    saved: list[tuple[object, Path | None]] = [
+        (spec, spec.absolute_path) for spec in FILES_TO_CHECK if spec.absolute_path is not None
+    ]
+    try:
+        for spec, _ in saved:
+            spec.absolute_path = nonexistent
+        yield
+    finally:
+        for spec, original in saved:
+            spec.absolute_path = original
 
 
 class T1_FilenameVersionRegex(unittest.TestCase):
@@ -305,11 +335,14 @@ class T6_MainIntegration(unittest.TestCase):
             tmp_prd_dir = Path(tmpdir) / "prd"
             tmp_prd_dir.mkdir()
             (tmp_prd_dir / "V3.9_PRD.md").write_text("V3.9 content", encoding="utf-8")
-            with mock.patch.object(
+            # Mock TRAE cache paths to non-existent dirs (optional=True → SKIP).
+            # Without this, local L1/L2 caches (~/.trae-cn, ~/.trae) would be
+            # scanned, making the test dependent on local environment state.
+            with _neutralize_trae_cache_paths(tmpdir), mock.patch.object(
                 __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
                 "PRD_DIR",
                 tmp_prd_dir,
-            ), mock.patch("sys.argv", ["check_version_consistency.py"]):
+            ), mock.patch("sys.argv", ["check_version_consistency.py", "--no-content-diff"]):
                 exit_code = main()
             self.assertEqual(exit_code, 0)
 
@@ -320,11 +353,12 @@ class T6_MainIntegration(unittest.TestCase):
             tmp_prd_dir.mkdir()
             # WARN: content doesn't match filename version
             (tmp_prd_dir / "V3.9_Drift.md").write_text("No version here", encoding="utf-8")
-            with mock.patch.object(
+            # Mock TRAE cache paths to non-existent dirs (see test_01 for rationale).
+            with _neutralize_trae_cache_paths(tmpdir), mock.patch.object(
                 __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
                 "PRD_DIR",
                 tmp_prd_dir,
-            ), mock.patch("sys.argv", ["check_version_consistency.py"]):
+            ), mock.patch("sys.argv", ["check_version_consistency.py", "--no-content-diff"]):
                 exit_code = main()
             # WARN is non-blocking, so exit code should be 0
             self.assertEqual(exit_code, 0)

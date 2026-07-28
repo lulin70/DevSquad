@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.4.0（MINOR 版 — 2026-07-28）
+> **当前版本**: V4.3.2（PATCH 版 — 2026-07-28）
 > **最后更新**: 2026-07-28
-> **最新评估**: V4.4.0 MINOR 版 — LLM vs Mock 质量差距衡量（薄切片先行策略）落地，Gate 0 仪器校准门 + Slice 1 薄切片探针 + RoleSpecificMockBackend + CLI 报告生成器全部交付，24 新单元测试通过，8141 passed（local; CI authoritative），ruff/mypy/radon 全绿。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **最新评估**: V4.3.2 PATCH 版 — LLM vs Mock 质量差距衡量（薄切片先行策略）落地，Gate 0 仪器校准门 + Slice 1 薄切片探针 + RoleSpecificMockBackend + CLI 报告生成器全部交付，24 新单元测试通过，8141 passed（local; CI authoritative），ruff/mypy/radon 全绿。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.4.0 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.3.2 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
@@ -21,7 +21,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 **模块数**: 159+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
 
-**V4.4.0 新增模块**:
+**V4.3.2 新增模块**:
 - `scripts/collaboration/quality_calibration_gate.py` (Gate 0 仪器校准门)
 - `scripts/collaboration/role_specific_mock_backend.py` (角色特定 Mock 后端)
 - `scripts/collaboration/quality_probe_slice.py` (Slice 1 薄切片探针)

@@ -1,4 +1,4 @@
-"""Unit tests for QualityProbeSlice (V4.4.0 Slice 1).
+"""Unit tests for QualityProbeSlice (V4.3.2 Slice 1).
 
 Verifies the thin-slice quality probe that runs 3-task x 3-arm x n-samples
 comparison to measure LLM vs Mock output quality signal strength.

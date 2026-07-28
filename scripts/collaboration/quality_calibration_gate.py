@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate 0: Instrument Calibration Gate (V4.4.0).
+"""Gate 0: Instrument Calibration Gate (V4.3.2).
 
 Validates that ConfidenceScorer + FiveAxisConsensusEngine can correctly
 rank 4 known-quality outputs (gold > llm > filler > empty) with a

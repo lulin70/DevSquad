@@ -9,13 +9,13 @@
 
 ## [Unreleased]
 
-_无未发布变更。下一版本：V4.5.0（基于 V4.4.0 信号强度的全量 LLM vs Mock 对比）。_
+_无未发布变更。下一版本：V4.5.0（基于 V4.3.2 信号强度的全量 LLM vs Mock 对比）。_
 
-## [4.4.0] - 2026-07-28
+## [4.3.2] - 2026-07-28
 
-### V4.4.0 — LLM vs Mock 质量差距衡量（薄切片先行策略）(2026-07-28)
+### V4.3.2 — LLM vs Mock 质量差距衡量（薄切片先行策略）(2026-07-28)
 
-V4.4.0 实现了 7 角色 LLM 评审（7/7 条件通过）达成共识的薄切片先行策略。这是 MINOR 发布（SemVer 合规 — 增量功能，无破坏性 API 变更）。
+V4.3.2 实现了 7 角色 LLM 评审（7/7 条件通过）达成共识的薄切片先行策略。这是 PATCH 发布（SemVer 合规 — 增量内部工具，无用户可见 API 变更）。
 
 **新增 — Gate 0 仪器校准门：**
 
@@ -64,7 +64,7 @@ V4.4.0 实现了 7 角色 LLM 评审（7/7 条件通过）达成共识的薄切�
 - 新增 `docs/testing/V4.4.0_TEST_PLAN.md` — 测试计划含 ~28 测试（unit/integration/e2e 层）。
 - 新增 `docs/planning/LLM_vs_Mock_Comparison_Plan.md` v1.1 — 规划文档含 7 角色 LLM 评审结论。
 
-**版本升级 4.3.1 → 4.4.0**（MINOR，SemVer 合规）。
+**版本升级 4.3.1 → 4.3.2**（PATCH，SemVer 合规）。
 
 **全量回归：** 8141 passed, 7 failed（环境性：MOKA 连接 + start.sh Python 3.9 检测，非回归），27 skipped，ruff 0 errors，mypy 0 errors，radon 0 D+（最高 C(13)）。
 

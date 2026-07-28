@@ -9,15 +9,15 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_No unreleased changes. Next: V4.5.0 (Full LLM vs Mock comparison based on V4.4.0 signal strength)._
+_No unreleased changes. Next: V4.5.0 (Full LLM vs Mock comparison based on V4.3.2 signal strength)._
 
-## [4.4.0] - 2026-07-28
+## [4.3.2] - 2026-07-28
 
-### V4.4.0 — LLM vs Mock Quality Gap Measurement (Thin-Slice First) (2026-07-28)
+### V4.3.2 — LLM vs Mock Quality Gap Measurement (Thin-Slice First) (2026-07-28)
 
-V4.4.0 implements the thin-slice-first strategy agreed upon by the 7-Role
-LLM review (7/7 conditional approve). This is a MINOR release (SemVer
-compliant — additive features, no breaking API changes).
+V4.3.2 implements the thin-slice-first strategy agreed upon by the 7-Role
+LLM review (7/7 conditional approve). This is a PATCH release (SemVer
+compliant — additive internal tooling, no user-facing API changes).
 
 **Added — Gate 0 Instrument Calibration Gate:**
 
@@ -91,7 +91,7 @@ compliant — additive features, no breaking API changes).
 - New `docs/planning/LLM_vs_Mock_Comparison_Plan.md` v1.1 — planning
   document with 7-Role LLM review conclusions.
 
-**Version bump 4.3.1 → 4.4.0** (MINOR SemVer compliant).
+**Version bump 4.3.1 → 4.3.2** (PATCH SemVer compliant).
 
 **Full regression:** 8141 passed, 7 failed (environmental: MOKA
 connection + start.sh Python 3.9 detection, not regressions), 27

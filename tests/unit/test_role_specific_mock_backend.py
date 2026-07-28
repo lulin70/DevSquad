@@ -1,4 +1,4 @@
-"""Unit tests for RoleSpecificMockBackend (V4.4.0).
+"""Unit tests for RoleSpecificMockBackend (V4.3.2).
 
 Verifies the role-specific mock backend that produces differentiated
 content per role when role_specific=True.

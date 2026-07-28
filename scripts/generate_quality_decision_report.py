@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate LLM vs Mock Quality Decision Report (V4.4.0).
+"""Generate LLM vs Mock Quality Decision Report (V4.3.2).
 
 CLI entry point that runs Gate 0 (calibration) + Slice 1 (probe),
 then writes a Markdown decision report.
@@ -36,7 +36,7 @@ def main() -> int:
     parser.add_argument("--no-llm", action="store_true", help="Skip LLM arm (2-arm comparison only)")
     args = parser.parse_args()
 
-    print("[INFO] Starting V4.4.0 quality decision report generation...")
+    print("[INFO] Starting V4.3.2 quality decision report generation...")
 
     # Step 1: Gate 0
     print("[1/3] Running Gate 0 (calibration)...")
@@ -78,7 +78,7 @@ def main() -> int:
     content = f"""# LLM vs Mock Quality Decision Report
 
 **Date**: {time.strftime("%Y-%m-%d %H:%M:%S")}
-**Version**: V4.4.0
+**Version**: V4.3.2
 **LLM Arm**: {"Skipped" if probe_report.llm_arm_skipped else "Included"}
 
 ---

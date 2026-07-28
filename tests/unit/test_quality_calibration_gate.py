@@ -1,4 +1,4 @@
-"""Unit tests for QualityCalibrationGate (V4.4.0 Gate 0).
+"""Unit tests for QualityCalibrationGate (V4.3.2 Gate 0).
 
 Verifies the instrument calibration gate that validates whether
 ConfidenceScorer + FiveAxisConsensusEngine can correctly rank 4

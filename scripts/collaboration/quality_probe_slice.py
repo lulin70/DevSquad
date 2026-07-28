@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Slice 1: Thin-Slice Quality Probe (V4.4.0).
+"""Slice 1: Thin-Slice Quality Probe (V4.3.2).
 
 Runs a 3-task × 3-arm × n-samples comparison to measure the signal
 strength of LLM vs Mock output quality difference.
