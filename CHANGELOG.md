@@ -9,7 +9,95 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_No unreleased changes. Next: V4.4.0 (Autonomous Loop Enhancement + Multi-LLM Voting)._
+_No unreleased changes. Next: V4.5.0 (Full LLM vs Mock comparison based on V4.4.0 signal strength)._
+
+## [4.4.0] - 2026-07-28
+
+### V4.4.0 — LLM vs Mock Quality Gap Measurement (Thin-Slice First) (2026-07-28)
+
+V4.4.0 implements the thin-slice-first strategy agreed upon by the 7-Role
+LLM review (7/7 conditional approve). This is a MINOR release (SemVer
+compliant — additive features, no breaking API changes).
+
+**Added — Gate 0 Instrument Calibration Gate:**
+
+- New `scripts/collaboration/quality_calibration_gate.py` — validates
+  that ConfidenceScorer + FiveAxisConsensusEngine can correctly rank 4
+  known-quality outputs (gold > llm > filler > empty) with gap ≥ 0.15.
+- `CalibrationGateResult` dataclass with `passed`, `scores`,
+  `ordering_correct`, `gap_gold_filler`, `diagnostics` + `to_markdown()`.
+- `run_calibration_gate()` module-level entry point.
+- Fail-secure data loading (missing/corrupt file → passed=False).
+- `_call_counter` anti-phantom-feature counter.
+- `_GAP_THRESHOLD` lowered from 0.20 to 0.15 after empirical
+  calibration (6/10 dimensions could not distinguish gold from filler;
+  documented in code comments).
+
+**Added — RoleSpecificMockBackend:**
+
+- New `scripts/collaboration/role_specific_mock_backend.py` — second
+  arm in the three-arm comparison (frozen_mock vs role_specific_mock
+  vs llm).
+- `role_specific=False` (default): identical to MockBackend (backward
+  compatible).
+- `role_specific=True`: appends role-specific template fragments for
+  7 roles (architect/product-manager/security/tester/solo-coder/devops/
+  ui-designer).
+- Does NOT modify the existing MockBackend.
+
+**Added — Slice 1 Thin-Slice Quality Probe:**
+
+- New `scripts/collaboration/quality_probe_slice.py` — runs 3-task ×
+  3-arm × n-samples comparison to measure LLM vs Mock output quality
+  signal strength.
+- `ProbeSliceReport` dataclass with `gate_passed`, `task_results`,
+  `mean_stddev`, `signal_strength`, `conclusion`, `llm_arm_skipped` +
+  `to_markdown()`.
+- `run_probe_slice(llm_backend, n_samples)` module-level entry point.
+- Signal strength determination: significant (>0.15) / marginal (>0.05)
+  / noise (≤0.05) / calibration_failed.
+- Gate 0 precondition check (skips probe if calibration fails).
+
+**Added — CLI Report Generator:**
+
+- New `scripts/generate_quality_decision_report.py` — CLI entry point
+  that runs Gate 0 + Slice 1, writes Markdown decision report to
+  `docs/analysis/{date}_LLM_vs_Mock_Quality_Report.md`.
+- `--no-llm` flag for 2-arm comparison (no API key needed).
+- MOKA_API_KEY environment variable auto-injection.
+
+**Added — Calibration Dataset:**
+
+- New `data/calibration/gold_outputs.json` — 4 known-quality outputs
+  (gold/llm/filler/empty) + 3 probe tasks (simple/medium/complex).
+
+**Added — Unit Tests (24 tests):**
+
+- `tests/unit/test_quality_calibration_gate.py` — 8 tests, 4 classes
+  (Happy/Error/Boundary/Performance/Config/Integration).
+- `tests/unit/test_quality_probe_slice.py` — 8 tests, 4 classes
+  (Happy/Config/Error/Boundary).
+- `tests/unit/test_role_specific_mock_backend.py` — 8 tests, 4 classes
+  (Happy/Config/Boundary/Integration).
+
+**Documentation:**
+
+- New `docs/prd/V4.4.0_PRD.md` — PRD with user stories, requirements,
+  test strategy, and decision points.
+- New `docs/architecture/V4.4.0_ARCHITECTURE.md` — three-arm comparison
+  architecture, module dependency graph, data models, API contracts.
+- New `docs/testing/V4.4.0_TEST_PLAN.md` — test plan with ~28 tests
+  across unit/integration/e2e layers.
+- New `docs/planning/LLM_vs_Mock_Comparison_Plan.md` v1.1 — planning
+  document with 7-Role LLM review conclusions.
+
+**Version bump 4.3.1 → 4.4.0** (MINOR SemVer compliant).
+
+**Full regression:** 8141 passed, 7 failed (environmental: MOKA
+connection + start.sh Python 3.9 detection, not regressions), 27
+skipped, ruff 0 errors, mypy 0 errors, radon 0 D+ (max C(13)).
+
+159+ core modules, 8165+ tests passing (local; CI authoritative).
 
 ## [4.3.1] - 2026-07-25
 

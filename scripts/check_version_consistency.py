@@ -90,6 +90,12 @@ class FileSpec:
 # The regex MUST have a single capturing group for the version string.
 FILES_TO_CHECK: list[FileSpec] = [
     FileSpec(
+        relative_path="VERSION",
+        pattern=re.compile(r"^(\d+\.\d+\.\d+)", re.MULTILINE),
+        description="VERSION file (canonical raw version)",
+        check_mode="first_match",
+    ),
+    FileSpec(
         relative_path="pyproject.toml",
         pattern=re.compile(r'^version\s*=\s*"(\d+\.\d+\.\d+)"', re.MULTILINE),
         description="project metadata version",

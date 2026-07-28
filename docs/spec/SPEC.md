@@ -1,7 +1,7 @@
-# DevSquad V4.3.1 完整技术规范
+# DevSquad V4.4.0 完整技术规范
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V4.3.1 (Enterprise Edition)
+> **版本**: V4.4.0 (Enterprise Edition)
 > **成熟度**: 8.9/10 (诚实评估)
 > **最后更新**: 2026-07-19
 > **文档位置**: `docs/spec/SPEC.md`
@@ -511,7 +511,7 @@ class DispatchResponse(BaseModel):
 
 ### 4.3 Python API
 
-#### 4.3.1 核心类签名
+#### 4.4.0 核心类签名
 
 ```python
 # ===== 核心编排类 =====

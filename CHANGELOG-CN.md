@@ -9,7 +9,66 @@
 
 ## [Unreleased]
 
-_无未发布变更。下一版本：V4.4.0（Autonomous Loop Enhancement + Multi-LLM Voting）。_
+_无未发布变更。下一版本：V4.5.0（基于 V4.4.0 信号强度的全量 LLM vs Mock 对比）。_
+
+## [4.4.0] - 2026-07-28
+
+### V4.4.0 — LLM vs Mock 质量差距衡量（薄切片先行策略）(2026-07-28)
+
+V4.4.0 实现了 7 角色 LLM 评审（7/7 条件通过）达成共识的薄切片先行策略。这是 MINOR 发布（SemVer 合规 — 增量功能，无破坏性 API 变更）。
+
+**新增 — Gate 0 仪器校准门：**
+
+- 新增 `scripts/collaboration/quality_calibration_gate.py` — 验证 ConfidenceScorer + FiveAxisConsensusEngine 能否正确排序 4 个已知质量的输出（gold > llm > filler > empty），要求差距 ≥ 0.15。
+- `CalibrationGateResult` dataclass，含 `passed`、`scores`、`ordering_correct`、`gap_gold_filler`、`diagnostics` + `to_markdown()`。
+- `run_calibration_gate()` 模块级入口。
+- Fail-secure 数据加载（文件缺失/损坏 → passed=False）。
+- `_call_counter` 反幽灵功能计数器。
+- `_GAP_THRESHOLD` 经验校准后从 0.20 降至 0.15（6/10 维度无法区分 gold 与 filler，已在代码注释中文档化）。
+
+**新增 — RoleSpecificMockBackend：**
+
+- 新增 `scripts/collaboration/role_specific_mock_backend.py` — 三臂对比（frozen_mock vs role_specific_mock vs llm）中的第二臂。
+- `role_specific=False`（默认）：与 MockBackend 行为一致（向后兼容）。
+- `role_specific=True`：为 7 个角色（architect/product-manager/security/tester/solo-coder/devops/ui-designer）追加角色特定模板片段。
+- 不修改现有 MockBackend。
+
+**新增 — Slice 1 薄切片质量探针：**
+
+- 新增 `scripts/collaboration/quality_probe_slice.py` — 运行 3 任务 × 3 臂 × n 样本对比，衡量 LLM vs Mock 输出质量信号强度。
+- `ProbeSliceReport` dataclass，含 `gate_passed`、`task_results`、`mean_stddev`、`signal_strength`、`conclusion`、`llm_arm_skipped` + `to_markdown()`。
+- `run_probe_slice(llm_backend, n_samples)` 模块级入口。
+- 信号强度判定：显著（>0.15）/ 边际（>0.05）/ 噪声（≤0.05）/ 校准失败。
+- Gate 0 前置条件检查（校准失败时跳过探针）。
+
+**新增 — CLI 报告生成器：**
+
+- 新增 `scripts/generate_quality_decision_report.py` — CLI 入口，运行 Gate 0 + Slice 1，将 Markdown 决策报告写入 `docs/analysis/{date}_LLM_vs_Mock_Quality_Report.md`。
+- `--no-llm` 标志支持 2 臂对比（无需 API key）。
+- MOKA_API_KEY 环境变量自动注入。
+
+**新增 — 校准数据集：**
+
+- 新增 `data/calibration/gold_outputs.json` — 4 个已知质量输出（gold/llm/filler/empty）+ 3 个探针任务（simple/medium/complex）。
+
+**新增 — 单元测试（24 测试）：**
+
+- `tests/unit/test_quality_calibration_gate.py` — 8 测试，4 类（Happy/Error/Boundary/Performance/Config/Integration）。
+- `tests/unit/test_quality_probe_slice.py` — 8 测试，4 类（Happy/Config/Error/Boundary）。
+- `tests/unit/test_role_specific_mock_backend.py` — 8 测试，4 类（Happy/Config/Boundary/Integration）。
+
+**文档：**
+
+- 新增 `docs/prd/V4.4.0_PRD.md` — PRD 含用户故事、需求、测试策略和决策点。
+- 新增 `docs/architecture/V4.4.0_ARCHITECTURE.md` — 三臂对比架构、模块依赖图、数据模型、API 契约。
+- 新增 `docs/testing/V4.4.0_TEST_PLAN.md` — 测试计划含 ~28 测试（unit/integration/e2e 层）。
+- 新增 `docs/planning/LLM_vs_Mock_Comparison_Plan.md` v1.1 — 规划文档含 7 角色 LLM 评审结论。
+
+**版本升级 4.3.1 → 4.4.0**（MINOR，SemVer 合规）。
+
+**全量回归：** 8141 passed, 7 failed（环境性：MOKA 连接 + start.sh Python 3.9 检测，非回归），27 skipped，ruff 0 errors，mypy 0 errors，radon 0 D+（最高 C(13)）。
+
+159+ core modules, 8165+ tests passing (local; CI authoritative)
 
 ## [4.3.1] - 2026-07-25
 
