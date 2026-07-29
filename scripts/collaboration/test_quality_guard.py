@@ -415,6 +415,20 @@ class AntiPatternDetector:
             "severity": Severity.MINOR,
             "category": "魔法数字",
         },
+        {
+            "id": "anti-status-code-only",
+            "pattern": re.compile(r"assert.*\.status_code\s*=="),
+            "description": "仅检查 status_code 未验证副作用（DB写入/状态变更/输出内容）— 教训: '接口200'≠'功能可用'",
+            "severity": Severity.MAJOR,
+            "category": "缺失副作用验证",
+        },
+        {
+            "id": "anti-lru-cache-no-refresh",
+            "pattern": re.compile(r"@lru_cache"),
+            "description": "@lru_cache 配置类可能缺少缓存刷新机制 — 教训: 过期缓存导致静默bug",
+            "severity": Severity.MAJOR,
+            "category": "缓存刷新缺失",
+        },
     ]
 
     def detect_in_source(self, source: str, file: str) -> list[QualityIssue]:
@@ -455,6 +469,8 @@ class AntiPatternDetector:
             "anti-no-purpose-doc": "在测试函数前添加注释说明验证目的",
             "anti-bare-except": "指定具体异常类型如 except ValueError",
             "anti-magic-number": "提取为命名常量并添加注释说明来源",
+            "anti-status-code-only": "确保也验证了副作用（DB写入/状态变更/输出内容）— '接口200'≠'功能可用'",
+            "anti-lru-cache-no-refresh": "确保@lru_cache配置类有缓存刷新机制（cache_clear/invalidate）和对应测试",
         }
         return suggestions.get(pattern_id, "")
 
@@ -505,13 +521,15 @@ class TautologicalTestDetector:
         issues: list[QualityIssue] = []
         # Pattern 1: assert True / assert 1 / assert "literal"
         if isinstance(node.test, ast.Constant) and bool(node.test.value):
-            issues.append(self._make_issue(
-                "taut-constant-assert",
-                node.lineno,
-                file,
-                f"``assert {ast.unparse(node.test)}`` 是恒真常量断言，没有实际验证",
-                "替换为有意义的断言如 assertEqual(actual, expected)",
-            ))
+            issues.append(
+                self._make_issue(
+                    "taut-constant-assert",
+                    node.lineno,
+                    file,
+                    f"``assert {ast.unparse(node.test)}`` 是恒真常量断言，没有实际验证",
+                    "替换为有意义的断言如 assertEqual(actual, expected)",
+                )
+            )
         # Patterns 2, 3, 5: assert X == Y comparisons
         if isinstance(node.test, ast.Compare):
             issues.extend(self._check_compare(node.test, node.lineno, file))
@@ -534,26 +552,28 @@ class TautologicalTestDetector:
             return issues
         left, right = args[0], args[1]
         if self._ast_equal(left, right):
-            issues.append(self._make_issue(
-                "taut-self-assert-equal",
-                node.lineno,
-                file,
-                f"``{method_name}({ast.unparse(left)}, {ast.unparse(right)})`` 两参数相同，断言恒真",
-                "第二参数应为独立计算的期望值，而非复制第一参数",
-            ))
+            issues.append(
+                self._make_issue(
+                    "taut-self-assert-equal",
+                    node.lineno,
+                    file,
+                    f"``{method_name}({ast.unparse(left)}, {ast.unparse(right)})`` 两参数相同，断言恒真",
+                    "第二参数应为独立计算的期望值，而非复制第一参数",
+                )
+            )
         elif self._is_recompute_pattern(left, right):
-            issues.append(self._make_issue(
-                "taut-recompute-assert-equal",
-                node.lineno,
-                file,
-                f"``{method_name}({ast.unparse(left)}, {ast.unparse(right)})`` 右侧重算了实现逻辑",
-                "期望值应来自独立来源（如硬编码的预期值），而非重算实现逻辑",
-            ))
+            issues.append(
+                self._make_issue(
+                    "taut-recompute-assert-equal",
+                    node.lineno,
+                    file,
+                    f"``{method_name}({ast.unparse(left)}, {ast.unparse(right)})`` 右侧重算了实现逻辑",
+                    "期望值应来自独立来源（如硬编码的预期值），而非重算实现逻辑",
+                )
+            )
         return issues
 
-    def _check_compare(
-        self, cmp: ast.Compare, line: int, file: str
-    ) -> list[QualityIssue]:
+    def _check_compare(self, cmp: ast.Compare, line: int, file: str) -> list[QualityIssue]:
         """Detect assert X == Y where X and Y are equivalent expressions."""
         issues: list[QualityIssue] = []
         if len(cmp.ops) != 1 or not isinstance(cmp.ops[0], ast.Eq):
@@ -564,22 +584,26 @@ class TautologicalTestDetector:
         right = cmp.comparators[0]
         # Patterns 2 & 3: same expression both sides
         if self._ast_equal(left, right):
-            issues.append(self._make_issue(
-                "taut-self-compare",
-                line,
-                file,
-                f"``assert {ast.unparse(left)} == {ast.unparse(right)}`` 两边表达式相同，断言恒真",
-                "右侧应为独立计算的期望值",
-            ))
+            issues.append(
+                self._make_issue(
+                    "taut-self-compare",
+                    line,
+                    file,
+                    f"``assert {ast.unparse(left)} == {ast.unparse(right)}`` 两边表达式相同，断言恒真",
+                    "右侧应为独立计算的期望值",
+                )
+            )
         # Pattern 5: recompute implementation logic
         elif self._is_recompute_pattern(left, right):
-            issues.append(self._make_issue(
-                "taut-recompute-impl",
-                line,
-                file,
-                f"``assert {ast.unparse(left)} == {ast.unparse(right)}`` 右侧重算了实现逻辑",
-                "期望值应来自独立来源（如硬编码的预期值），而非重算实现逻辑",
-            ))
+            issues.append(
+                self._make_issue(
+                    "taut-recompute-impl",
+                    line,
+                    file,
+                    f"``assert {ast.unparse(left)} == {ast.unparse(right)}`` 右侧重算了实现逻辑",
+                    "期望值应来自独立来源（如硬编码的预期值），而非重算实现逻辑",
+                )
+            )
         return issues
 
     def _ast_equal(self, a: ast.AST, b: ast.AST) -> bool:
@@ -603,13 +627,9 @@ class TautologicalTestDetector:
         expected_op = self._FUNC_TO_OP.get(call.func.id.lower())
         if not expected_op or not isinstance(binop.op, expected_op):
             return False
-        return self._ast_equal(call.args[0], binop.left) and self._ast_equal(
-            call.args[1], binop.right
-        )
+        return self._ast_equal(call.args[0], binop.left) and self._ast_equal(call.args[1], binop.right)
 
-    def _make_issue(
-        self, issue_id: str, line: int, file: str, message: str, suggestion: str
-    ) -> QualityIssue:
+    def _make_issue(self, issue_id: str, line: int, file: str, message: str, suggestion: str) -> QualityIssue:
         return QualityIssue(
             id=issue_id,
             severity=Severity.MAJOR,
@@ -650,29 +670,22 @@ class SeamAnalyzer:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
                 issues.extend(self._check_class_seams(node, file))
-            elif (
-                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and node.name.startswith("test_")
-            ):
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
                 issues.extend(self._check_function_seams(node, file))
         return issues
 
-    def _check_class_seams(
-        self, node: ast.ClassDef, file: str
-    ) -> list[QualityIssue]:
+    def _check_class_seams(self, node: ast.ClassDef, file: str) -> list[QualityIssue]:
         """Check test class for missing shared seam (setUp/fixture)."""
         issues: list[QualityIssue] = []
         test_methods = [
             n
             for n in node.body
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and n.name.startswith("test_")
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name.startswith("test_")
         ]
         if len(test_methods) < 3:
             return issues
         has_setup = any(
-            isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and n.name in ("setUp", "setUpClass", "tearDown")
+            isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name in ("setUp", "setUpClass", "tearDown")
             for n in node.body
         )
         has_fixture = any(self._has_fixture_decorator(n) for n in node.body)
@@ -683,9 +696,7 @@ class SeamAnalyzer:
         for tm in test_methods:
             for sub in ast.walk(tm):
                 if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name):
-                    instantiation_counts[sub.func.id] = (
-                        instantiation_counts.get(sub.func.id, 0) + 1
-                    )
+                    instantiation_counts[sub.func.id] = instantiation_counts.get(sub.func.id, 0) + 1
         repeated = [name for name, count in instantiation_counts.items() if count >= 2]
         if repeated:
             issues.append(
@@ -699,40 +710,26 @@ class SeamAnalyzer:
                     ),
                     file=file,
                     line=node.lineno,
-                    suggestion=(
-                        f"将 ``{repeated[0]}`` 实例化提取到 setUp() 或 @pytest.fixture"
-                    ),
+                    suggestion=(f"将 ``{repeated[0]}`` 实例化提取到 setUp() 或 @pytest.fixture"),
                     auto_fixable=False,
                 )
             )
         return issues
 
-    def _check_function_seams(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef, file: str
-    ) -> list[QualityIssue]:
+    def _check_function_seams(self, node: ast.FunctionDef | ast.AsyncFunctionDef, file: str) -> list[QualityIssue]:
         """Check test function for inline mock creation (missing seam)."""
         issues: list[QualityIssue] = []
         for sub in ast.walk(node):
-            if (
-                isinstance(sub, ast.Call)
-                and isinstance(sub.func, ast.Name)
-                and sub.func.id in self._MOCK_NAMES
-            ):
+            if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id in self._MOCK_NAMES:
                 issues.append(
                     QualityIssue(
                         id="seam-inline-mock",
                         severity=Severity.MINOR,
                         category="缺失seam声明",
-                        message=(
-                            f"测试 ``{node.name}`` 内联创建 ``{sub.func.id}()``，"
-                            f"未声明为 seam"
-                        ),
+                        message=(f"测试 ``{node.name}`` 内联创建 ``{sub.func.id}()``，未声明为 seam"),
                         file=file,
                         line=sub.lineno,
-                        suggestion=(
-                            f"将 ``{sub.func.id}()`` 提取到 fixture 或 setUp，"
-                            f"使其成为可替换的 seam"
-                        ),
+                        suggestion=(f"将 ``{sub.func.id}()`` 提取到 fixture 或 setUp，使其成为可替换的 seam"),
                         auto_fixable=False,
                     )
                 )
@@ -1037,8 +1034,7 @@ class TestQualityGuard:
         anti_critical = sum(
             1
             for i in report.issues
-            if i.severity in (Severity.CRITICAL, Severity.MAJOR)
-            and i.category in ("宽松断言", "异常吞噬", "同义反复")
+            if i.severity in (Severity.CRITICAL, Severity.MAJOR) and i.category in ("宽松断言", "异常吞噬", "同义反复")
         )
         score.anti_pattern_free = max(0, 1 - anti_critical / max(report.total_tests * 0.1, 1))
 

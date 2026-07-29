@@ -2,7 +2,7 @@
 
 > **当前版本**: V4.4.0（MINOR 版 — 2026-07-29）
 > **最后更新**: 2026-07-29
-> **最新评估**: V4.4.0 MINOR 版 — P0-P3 增强模块（5 个新模块）落地，Risk Register / Viewpoint Registry / Error Budget Tracker / Gap Analyzer / DORA Metrics Collector 全部交付，13 E2E 测试从 xfail 转 xpass，8153 passed（local; CI authoritative），ruff/mypy/radon 全绿，所有 5 个模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **最新评估**: V4.4.0 MINOR 版 — P0-P3 增强模块（5 个新模块）落地，Risk Register / Viewpoint Registry / Error Budget Tracker / Gap Analyzer / DORA Metrics Collector 全部交付，13 E2E 测试从 xfail 转 xpass，8155 passed（local; CI authoritative），ruff/mypy/radon 全绿，所有 5 个模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
 > **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.4.0 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
@@ -58,7 +58,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 8153 passed, 30 skipped（本地 Python 3.12，含 V4.4.0 P0-P3 全部 5 个新模块） | ✅ 全绿 |
+| 单元/集成回归 | 8155 passed, 30 skipped（本地 Python 3.12，含 V4.4.0 P0-P3 全部 5 个新模块） | ✅ 全绿 |
 | V4.4.0 E2E | 13 passed, 0 xfail, 0 fail（xfail→xpass 全部转换完成，0.88s） | ✅ 全绿 |
 | V4.4.1 模拟用户 E2E | 17 passed, 0 fail（5 RU 场景 + 3 AC 验收，0.49s） | ✅ 全绿 |
 | Contract 测试 | 384 passed（8 Protocol 契约合规，V4.2.1 测试金字塔提升至 5.2%） | ✅ 全绿 |

@@ -58,6 +58,34 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Anti-ghost E13: 1 passed
 - Version consistency: 32/32 PASS
 
+### V4.4.1 M2b — Testing Lessons Integration (2026-07-29)
+
+**Added — 6 testing lessons reflected into tester role and test flow:**
+- SKILL.md: New Iron Rule 4 (Side-Effect Verification — never only check
+  status_code, Lesson: "接口200"≠"功能可用").
+- SKILL.md: New Iron Rule 5 (User Journey First — test from user
+  perspective, not just API perspective).
+- SKILL.md: New Iron Rule 6 (E2E Release Gate — no release without E2E,
+  user rule 3 enforcement).
+- SKILL.md: Iron Rule 2 anti-pattern table expanded with 2 new patterns:
+  `anti-status-code-only` (MAJOR) + `anti-lru-cache-no-refresh` (MAJOR).
+- SKILL.md: Iron Rule 3 dimension table expanded with Side-Effect (≥5%)
+  + Cache Invalidation dimensions.
+- SKILL.md: Delivery Workflow new Iron Rule: Deployment Checklist — all
+  platform-side configs included (nginx/CORS/DNS/cert).
+- SKILL.md: Meta Iron Rule strengthened: "Docs are living documents" (5th
+  principle of Trace Everything).
+- `scripts/collaboration/test_quality_guard.py`: AntiPatternDetector
+  SUSPICIOUS_PATTERNS expanded with 2 new detectors + suggestions.
+- `tests/test_collaboration_test_quality_guard_test.py`: 2 new tests
+  (test_06 status_code detection + test_07 lru_cache detection).
+
+**Verification:**
+- TestQualityGuard tests: 44 passed (0.31s)
+- Full E2E regression: 136 passed (17.80s, zero regression)
+- ruff: 0 errors, format OK
+- Version remains 4.4.0
+
 ### V4.4.1 M2 — Real User Simulation Testing (2026-07-29)
 
 **Added — P3-1 real user simulation E2E tests:**

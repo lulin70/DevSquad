@@ -7,7 +7,7 @@ description: |
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
-  160+ core modules, 8153+ tests passing (local; CI authoritative).
+  160+ core modules, 8155+ tests passing (local; CI authoritative).
   5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.4.0: P0-P3 enhancement modules implemented (Risk Register + Viewpoint Registry + Error Budget Tracker + Gap Analyzer + DORA Metrics Collector) with 13 E2E tests xpass + anti-ghost counters.
@@ -760,6 +760,8 @@ Common errors and handling:
 | Invalid threshold (`>0.0`) | MINOR | Must set meaningful thresholds |
 | Bare `except:` | MAJOR | Must specify exception type |
 | Magic numbers (>999) | MINOR | Extract to named constants |
+| Status-code-only assertion | MAJOR | Only checking `status_code` without verifying side-effects (DB write, state change, output) — Lesson: "接口 200" ≠ "功能可用" |
+| `@lru_cache` without refresh | MAJOR | Config class using `@lru_cache` but no cache invalidation/refresh mechanism — Lesson: stale config causes silent bugs |
 
 ### Iron Rule 3: Dimension Completeness — Never Only Test Happy Path
 
@@ -774,6 +776,8 @@ Every module's test suite **must** cover these dimensions:
 | **Configuration** | ⚙️ | ≥5% | Different config combinations |
 | **Integration** | 🔗 | ≥10% | Inter-module collaboration scenarios |
 | **Security** | 🔒 | As needed | Permission / injection / privilege escalation (if security-related) |
+| **Side-Effect** | 📌 | **≥5%** | Verify DB writes / state changes / output produced — NOT just return value or status_code (Lesson: "接口 200" ≠ "功能可用") |
+| **Cache Invalidation** | ♻️ | As needed | `@lru_cache` / cached config classes must test refresh/invalidation path (Lesson: stale cache = silent bugs) |
 
 **Auto-check tool**:
 ```python
@@ -787,6 +791,75 @@ report = guard.audit()
 print(report.to_markdown())
 # Output: Score + Issue list + Dimension coverage + Anti-pattern detection
 ```
+
+### Iron Rule 4: Side-Effect Verification — Never Only Check Status Code
+
+```
+❌ WRONG: Only assert HTTP status code, ignore actual system state
+   response = client.post("/api/users", json=payload)
+   assert response.status_code == 200          ← Side effects unverified!
+
+✅ CORRECT: Verify side-effects (DB / state / output) in addition to status
+   response = client.post("/api/users", json=payload)
+   assert response.status_code == 200
+   # Verify side-effects — Lesson: "接口 200" ≠ "功能可用"
+   user = db.query(User).filter_by(email=payload["email"]).first()
+   assert user is not None                     ← DB write verified
+   assert user.is_active is True               ← State verified
+   assert "welcome" in response.json()["message"]  ← Output verified
+```
+
+**Mandatory requirements**:
+- API tests MUST verify at least one side-effect beyond status_code (DB row, state change, output content)
+- "200 OK" only means the server didn't crash — it does NOT mean the feature works
+- Auto-detected by `AntiPatternDetector` (pattern: `anti-status-code-only`)
+
+### Iron Rule 5: User Journey First — Test From User Perspective
+
+```
+❌ WRONG: Test API endpoint in isolation, miss real-user workflow
+   def test_login_api():
+       response = client.post("/api/login", json={...})
+       assert response.status_code == 200      ← Passes, but can user actually use the app?
+
+✅ CORRECT: Design test as a user journey, not just an API call
+   def test_user_can_access_dashboard_after_login():
+       """Verify: User can log in and see their dashboard content."""
+       # Step 1: User logs in
+       login_resp = client.post("/api/login", json={...})
+       assert login_resp.status_code == 200
+       token = login_resp.json()["token"]
+       # Step 2: User accesses protected resource
+       headers = {"Authorization": f"Bearer {token}"}
+       dashboard = client.get("/api/dashboard", headers=headers)
+       assert dashboard.status_code == 200
+       # Step 3: Verify user-visible content
+       assert "welcome" in dashboard.json()["greeting"].lower()
+```
+
+**Mandatory requirements**:
+- E2E tests MUST follow real user journeys (login → action → verify outcome)
+- "接口 200" ≠ "功能可用" — API success does not guarantee user can accomplish their goal
+- Test what the USER experiences, not what the API returns
+
+### Iron Rule 6: E2E Release Gate — No Release Without E2E
+
+```
+❌ WRONG: Release after unit tests pass, skip E2E
+   pytest tests/unit/  # All pass → ship it!  ← E2E never run!
+
+✅ CORRECT: E2E is a mandatory release gate (user rule 3)
+   pytest tests/unit/           # Unit tests pass
+   pytest tests/integration/    # Integration tests pass
+   pytest tests/e2e/            # E2E tests pass ← MANDATORY before release
+   # Only release when ALL three layers pass
+```
+
+**Mandatory requirements**:
+- E2E tests are a **release gate** — no release without E2E passing (user rule 3)
+- E2E must simulate real user usage scenarios before any release (用户规则 3)
+- E2E tests must use real components (real DB, real browser) not Mock when API requires底层对象
+- Unit pass + Integration pass + E2E pass = Release ready (all three required)
 
 ### Test Function Template (Must Follow Format)
 
@@ -895,6 +968,7 @@ After any decision is made → Rationale must be traceable
 2. **Every file has an owner/purpose**: Why does this file exist? Document it.
 3. **Every change has a trail**: Git history + doc updates = full audit trail.
 4. **No stealth changes**: Nothing committed without a corresponding doc update.
+5. **Docs are living documents** (Lesson: 文档与代码必须同步): Documentation is NOT a one-time deliverable — it must be updated synchronously with code changes. Stale docs are worse than no docs because they actively mislead. Every code change MUST trigger a doc review. Version/module/test counts must be consistent across ALL docs at ALL times.
 
 ### Enforcement
 
@@ -957,6 +1031,24 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | Draft/deprecated docs | **Must delete** | `*_DRAFT.md`, `*_old.md`, `*_tmp.md` |
 | Unused placeholder code | **Must delete** or replace with real impl | `pass # TODO`, `raise NotImplementedError` |
 | Duplicate/redundant files | Merge or delete | Keep only latest version of same doc |
+
+### Iron Rule: Deployment Checklist — All Platform-Side Configs Included
+
+> **Principle: Deployment checklist must include ALL platform-side configurations.**
+> **Lesson: Missing platform config (nginx/CORS/DNS/cert) causes silent production failures.**
+
+| Checklist Item | Verify |
+|---------------|--------|
+| **Application config** | Environment variables, feature flags, secrets loaded |
+| **Platform config** | nginx routes, CORS headers, DNS records, SSL/TLS certs |
+| **Infrastructure config** | Database migrations run, Redis connected, volumes mounted |
+| **Monitoring config** | Alerts configured, dashboards deployed, log shipping active |
+| **Network config** | Firewall rules, security groups, port mappings |
+
+**Mandatory requirements**:
+- Deployment checklist must cover ALL layers: app → platform → infra → monitoring → network
+- "App starts successfully" does NOT mean deployment is complete — platform-side config matters
+- Verify each config item with a concrete check command (curl, nc, redis-cli ping, etc.)
 
 ### Annotation Standards (Language Separation)
 

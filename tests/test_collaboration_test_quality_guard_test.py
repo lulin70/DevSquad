@@ -244,6 +244,32 @@ self.assertRaises(ValueError, bad_func)
         else:
             self.fail("Expected at least one issue with suggestion")
 
+    def test_06_detect_status_code_only_assertion(self):
+        """Verify: status_code-only assertion flagged as MAJOR (Lesson: '接口200'≠'功能可用')."""
+        code = "assert response.status_code == 200"
+        issues = self.detector.detect_in_source(code, "status_code_only.py")
+        matching = [i for i in issues if i.id == "anti-status-code-only"]
+        self.assertGreater(
+            len(matching),
+            0,
+            f"Expected anti-status-code-only issue, got ids: {[i.id for i in issues]}",
+        )
+        self.assertEqual(matching[0].severity, Severity.MAJOR)
+        self.assertIn("副作用", matching[0].suggestion)
+
+    def test_07_detect_lru_cache_without_refresh(self):
+        """Verify: @lru_cache flagged as MAJOR (Lesson: stale cache = silent bugs)."""
+        code = "@lru_cache\ndef get_config():\n    return load_config()"
+        issues = self.detector.detect_in_source(code, "lru_cache.py")
+        matching = [i for i in issues if i.id == "anti-lru-cache-no-refresh"]
+        self.assertGreater(
+            len(matching),
+            0,
+            f"Expected anti-lru-cache-no-refresh issue, got ids: {[i.id for i in issues]}",
+        )
+        self.assertEqual(matching[0].severity, Severity.MAJOR)
+        self.assertIn("缓存刷新", matching[0].suggestion)
+
 
 class T4_TestPurposeParser(unittest.TestCase):
     """T4: 目的解析器 - 从测试函数中提取目的和维度"""
