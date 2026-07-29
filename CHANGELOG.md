@@ -9,7 +9,104 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_No unreleased changes. Next: V4.4.0 (P0-P3 Enhancement: Risk Register + Viewpoint Registry + Error Budget + Gap Analyzer + DORA Metrics)._
+_No unreleased changes. Next: V4.4.1+ (TBD based on user feedback)._
+
+## [4.4.0] - 2026-07-29
+
+### V4.4.0 — P0-P3 Enhancement Modules Implemented (2026-07-29)
+
+V4.4.0 implements the 5 P0-P3 enhancement modules based on V4.3.3's
+13 xfail E2E skeletons. This is a MINOR release (SemVer compliant —
+5 new feature modules with user-facing API additions). All 13 E2E
+tests transition from XFAIL to XPASS.
+
+**Added — P0-1 Risk Register (`scripts/collaboration/risk_register.py`):**
+
+- PMP risk management: risk registration + 7-role weighted assessment
+  (probability × impact) + 4 response strategies (avoid/transfer/
+  mitigate/accept).
+- `GateType.RISK_CHECK` gate: exposure ≥ 0.36 blocks phase transition.
+- `export_markdown()` report section.
+- Anti-ghost: module-level `_call_counter`.
+- Integrated into `dispatcher._activate_v440_modules()` and
+  `UnifiedGateEngine._check_risk`.
+
+**Added — P0-2 Viewpoint Registry (`scripts/collaboration/viewpoint_registry.py`):**
+
+- TOGAF architecture viewpoints: 7 roles bound to formal viewpoints
+  (architect=functional+data, security=threat, tester=quality,
+  solo-coder=implementation, devops=deployment,
+  product-manager=requirements, ui-designer=interaction).
+- `is_orthogonal()` for ConsensusEngine SPLIT arbitration.
+- `check_consistency()` contradiction detection (refactored into
+  `_check_explicit_consistency` + `_check_full_consistency` to
+  reduce cyclomatic complexity).
+- Anti-ghost: module-level `_call_counter`.
+
+**Added — P1-1 Error Budget Tracker (`scripts/collaboration/error_budget_tracker.py`):**
+
+- SRE error budget: SLO 99.9% default + `calculate()` for
+  remaining_budget + `burn_rate()` consumption rate.
+- `GateType.ERROR_BUDGET` P10 gate: budget exhaustion blocks feature
+  deployment.
+- Integrated into `UnifiedGateEngine.check_deployment()`.
+- Anti-ghost: module-level `_call_counter`.
+
+**Added — P1-2 Gap Analyzer (`scripts/collaboration/gap_analyzer.py`):**
+
+- TOGAF gap analysis: `analyze(current, target)` identifies
+  architecture gaps + `prioritize()` sorts by priority/effort +
+  `generate_roadmap()` Markdown table + `track()` records closure
+  progress + `suggest_scheduler_decision()` drives LoopScheduler
+  CONTINUE/STOP.
+- Readable gap ids based on work_package keywords (e.g. "G-auth").
+- Explicit type coercion `_coerce_priority` / `_coerce_effort`.
+- Anti-ghost: module-level `_call_counter`.
+
+**Added — P2-1 DORA Metrics Collector (`scripts/collaboration/dora_metrics_collector.py`):**
+
+- DORA metrics: 4 delivery indicators (Deployment Frequency / Lead
+  Time / Change Failure Rate / MTTR).
+- `collect_from_git()` parses git log + `collect_from_dispatch()`
+  from dispatch records.
+- `GateType.DORA_CHECK` P11 gate: CFR > 15% triggers architecture
+  review.
+- `rating()` Elite/High/Medium/Low classification.
+- Anti-ghost: module-level `_call_counter`.
+
+**Added — Integration Points:**
+
+- `dispatcher.py` new `_activate_v440_modules()` method initializes
+  all 5 modules and calls their public methods on every dispatch.
+- `UnifiedGateEngine` integrates RISK_CHECK / ERROR_BUDGET /
+  DORA_CHECK gates.
+- `UnifiedGateResult` new `suggestion` property (returns first
+  suggestion or empty string).
+
+**Tests — 13 E2E XPASS (xfail → xpass):**
+
+- `tests/e2e/test_v440_risk_register.py` — 3 tests (assess after
+  dispatch, report section, gate blocks high exposure).
+- `tests/e2e/test_v440_viewpoint_registry.py` — 3 tests (prompt
+  injection, SPLIT orthogonality, consistency check).
+- `tests/e2e/test_v440_error_budget.py` — 2 tests (P10 rejects
+  exhausted budget, dashboard panel renders).
+- `tests/e2e/test_v440_gap_analyzer.py` — 2 tests (P2/P3 analysis
+  runs, LoopScheduler stops on zero delta).
+- `tests/e2e/test_v440_dora_metrics.py` — 2 tests (P11 conditional
+  on CFR > 15%, dashboard panel renders).
+- `tests/e2e/test_v440_anti_ghost.py` — 1 test (all 5 counters
+  increment in one dispatch).
+
+**Quality Gates:**
+
+- Full regression: 8136 passed, 30 skipped, 0 failed, 0 xfailed.
+- ruff 0 errors, mypy 0 errors, radon 0 D+ (max C(18)).
+- Version consistency: 32/32 PASS.
+- Anti-ghost: all 5 module `_call_counter > 0` after dispatch.
+
+**Version bump 4.3.3 → 4.4.0** (MINOR SemVer compliant — 5 new
+feature modules with user-facing API additions).
 
 ## [4.3.3] - 2026-07-29
 

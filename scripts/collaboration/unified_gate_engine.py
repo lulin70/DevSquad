@@ -32,6 +32,8 @@ class GateType(Enum):
     COMPLIANCE_CHECK = "compliance_check"
     # V4.1.1: Debug loop readiness gate (Matt Pocock red-capable criteria)
     DEBUG_LOOP_READY = "debug_loop_ready"
+    # V4.4.0: Risk check gate (PMP risk management)
+    RISK_CHECK = "risk_check"
 
 
 class GateSeverity(Enum):
@@ -113,6 +115,11 @@ class UnifiedGateResult:
             lines.append(f"Evidence Required: {', '.join(self.evidence_required[:3])}")
         return "\n".join(lines)
 
+    @property
+    def suggestion(self) -> str:
+        """First suggestion (or empty string) — convenience for E2E tests."""
+        return self.suggestions[0] if self.suggestions else ""
+
 
 @dataclass
 class PhaseGateContext:
@@ -178,6 +185,8 @@ class UnifiedGateEngine:
             GateType.DEBUG_LOOP_READY: self._check_debug_loop_ready,
             # V4.3.0 P0-3: Deployment compliance (P10 lifecycle gate)
             GateType.COMPLIANCE_CHECK: self._check_compliance,
+            # V4.4.0 P0-1: Risk check gate (PMP risk management)
+            GateType.RISK_CHECK: self._check_risk,
         }
         self._custom_checkers: dict[GateType, list[Callable]] = {}
         self._statistics: dict[str, int] = {
@@ -214,7 +223,7 @@ class UnifiedGateEngine:
     def check(
         self,
         gate_type: GateType,
-        context: Any,
+        context: Any = None,
         **kwargs: Any,
     ) -> UnifiedGateResult:
         """
@@ -832,6 +841,182 @@ class UnifiedGateEngine:
             "failed": 0,
             "conditional": 0,
         }
+
+    # ------------------------------------------------------------------
+    # V4.4.0: Risk check gate (P0-1)
+    # ------------------------------------------------------------------
+
+    def _check_risk(
+        self,
+        context: Any = None,
+        **kwargs: Any,
+    ) -> UnifiedGateResult:
+        """Internal checker for risk exposure gate (V4.4.0 P0-1).
+
+        Queries ``RiskRegister.query(status=OPEN)`` and rejects when any
+        open risk has exposure >= 0.36. The ``risk_register`` may be
+        passed via ``kwargs`` or embedded in ``context``.
+        """
+        register = kwargs.get("risk_register")
+        if register is None and isinstance(context, dict):
+            register = context.get("risk_register")
+        if register is None:
+            # Graceful degradation: no register, no risk gate
+            return UnifiedGateResult(
+                passed=True,
+                gate_type=GateType.RISK_CHECK,
+                verdict="APPROVE",
+                severity=GateSeverity.INFO,
+                checks_run=1,
+                checks_passed=1,
+            )
+
+        from scripts.collaboration.risk_register import EXPOSURE_THRESHOLD, RiskStatus
+
+        blocking = [
+            r for r in register.query(status=RiskStatus.OPEN)
+            if r.exposure >= EXPOSURE_THRESHOLD
+        ]
+        if blocking:
+            return UnifiedGateResult(
+                passed=False,
+                gate_type=GateType.RISK_CHECK,
+                verdict="REJECT",
+                severity=GateSeverity.CRITICAL,
+                checks_run=1,
+                checks_passed=0,
+                critical_issues=[
+                    {
+                        "risk_id": r.id,
+                        "exposure": r.exposure,
+                        "message": f"Risk {r.id} exposure {r.exposure:.4f} >= "
+                                   f"threshold {EXPOSURE_THRESHOLD}",
+                    }
+                    for r in blocking
+                ],
+            )
+        return UnifiedGateResult(
+            passed=True,
+            gate_type=GateType.RISK_CHECK,
+            verdict="APPROVE",
+            severity=GateSeverity.INFO,
+            checks_run=1,
+            checks_passed=1,
+        )
+
+    # ------------------------------------------------------------------
+    # V4.4.0: P10 deployment gate — Error Budget (P1-1)
+    # ------------------------------------------------------------------
+
+    def check_deployment(
+        self,
+        error_budget_tracker: Any = None,
+        **kwargs: Any,  # noqa: ARG002
+    ) -> UnifiedGateResult:
+        """P10 deployment gate with error budget probe (V4.4.0 P1-1).
+
+        Rejects feature deployments when the error budget status is
+        ``EXHAUSTED``.
+
+        Args:
+            error_budget_tracker: An ErrorBudgetTracker instance.
+
+        Returns:
+            UnifiedGateResult with verdict APPROVE or REJECT.
+        """
+        from scripts.collaboration.error_budget_tracker import BudgetStatus
+
+        if error_budget_tracker is None:
+            return UnifiedGateResult(
+                passed=True,
+                gate_type=GateType.COMPLIANCE_CHECK,
+                verdict="APPROVE",
+                severity=GateSeverity.INFO,
+                checks_run=1,
+                checks_passed=1,
+            )
+
+        status = error_budget_tracker.status()
+        if status == BudgetStatus.EXHAUSTED:
+            return UnifiedGateResult(
+                passed=False,
+                gate_type=GateType.COMPLIANCE_CHECK,
+                verdict="REJECT",
+                severity=GateSeverity.CRITICAL,
+                checks_run=1,
+                checks_passed=0,
+                critical_issues=[
+                    {
+                        "code": "BUDGET_EXHAUSTED",
+                        "message": "Error budget exhausted — feature deploy rejected",
+                    }
+                ],
+            )
+        return UnifiedGateResult(
+            passed=True,
+            gate_type=GateType.COMPLIANCE_CHECK,
+            verdict="APPROVE",
+            severity=GateSeverity.INFO,
+            checks_run=1,
+            checks_passed=1,
+        )
+
+    # ------------------------------------------------------------------
+    # V4.4.0: P11 operations gate — DORA CFR (P2-1)
+    # ------------------------------------------------------------------
+
+    def check_operations(
+        self,
+        dora_collector: Any = None,
+        **kwargs: Any,  # noqa: ARG002
+    ) -> UnifiedGateResult:
+        """P11 operations gate with DORA CFR probe (V4.4.0 P2-1).
+
+        Returns CONDITIONAL when ``change_failure_rate > 0.15`` with a
+        suggestion to trigger an architecture review.
+
+        Args:
+            dora_collector: A DoraMetricsCollector instance.
+
+        Returns:
+            UnifiedGateResult with verdict APPROVE or CONDITIONAL.
+        """
+        if dora_collector is None:
+            return UnifiedGateResult(
+                passed=True,
+                gate_type=GateType.PHASE_TRANSITION,
+                verdict="APPROVE",
+                severity=GateSeverity.INFO,
+                checks_run=1,
+                checks_passed=1,
+            )
+
+        metrics = dora_collector._metrics
+        if metrics.change_failure_rate > 0.15:
+            return UnifiedGateResult(
+                passed=True,
+                gate_type=GateType.PHASE_TRANSITION,
+                verdict="CONDITIONAL",
+                severity=GateSeverity.WARNING,
+                checks_run=1,
+                checks_passed=0,
+                warnings=[
+                    {
+                        "code": "CFR_HIGH",
+                        "message": f"Change failure rate {metrics.change_failure_rate:.1%} "
+                                   f"exceeds 15% threshold",
+                    }
+                ],
+                suggestions=["Trigger architecture review"],
+            )
+        return UnifiedGateResult(
+            passed=True,
+            gate_type=GateType.PHASE_TRANSITION,
+            verdict="APPROVE",
+            severity=GateSeverity.INFO,
+            checks_run=1,
+            checks_passed=1,
+        )
 
 
 _shared_gate_engine_instance: UnifiedGateEngine | None = None

@@ -1,8 +1,6 @@
-"""E2E skeletons for V4.4.0 P2-1 DORA Metrics Collector (xfail TDD)."""
-import pytest
+"""E2E tests for V4.4.0 P2-1 DORA Metrics Collector."""
 
 
-@pytest.mark.xfail(reason="V4.4.0 P2-1 DORA Metrics not yet implemented", strict=True)
 def test_e2e_p11_conditional_when_cfr_above_15pct():
     """US-D3: P11 gate must return CONDITIONAL when change_failure_rate > 0.15."""
     from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector
@@ -16,7 +14,6 @@ def test_e2e_p11_conditional_when_cfr_above_15pct():
     assert "architecture review" in result.suggestion.lower()
 
 
-@pytest.mark.xfail(reason="V4.4.0 P2-1 DORA Metrics not yet implemented", strict=True)
 def test_e2e_dashboard_dora_panel_renders():
     """US-D4: Dashboard must render DORA panel with 4 numeric cards."""
     from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector

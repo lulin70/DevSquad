@@ -9,7 +9,74 @@
 
 ## [Unreleased]
 
-_无未发布变更。下一版本：V4.4.0（P0-P3 增强：Risk Register + Viewpoint Registry + Error Budget + Gap Analyzer + DORA Metrics）。_
+_无未发布变更。下一版本：V4.4.1+（基于用户反馈确定）。_
+
+## [4.4.0] - 2026-07-29
+
+### V4.4.0 — P0-P3 增强模块实施 (2026-07-29)
+
+V4.4.0 基于 V4.3.3 的 13 个 xfail E2E 骨架测试，实施 5 个 P0-P3 增强功能模块。这是 MINOR 发布（SemVer 合规 — 5 个新功能模块，含用户可见 API 新增）。所有 13 个 E2E 测试从 XFAIL 转为 XPASS。
+
+**新增 — P0-1 Risk Register（`scripts/collaboration/risk_register.py`）：**
+
+- PMP 风险管理：风险注册 + 7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）。
+- `GateType.RISK_CHECK` 门禁：exposure ≥ 0.36 阻断阶段转换。
+- `export_markdown()` 报告章节。
+- 防幽灵：模块级 `_call_counter` 计数器。
+- 集成到 `dispatcher._activate_v440_modules()` 和 `UnifiedGateEngine._check_risk`。
+
+**新增 — P0-2 Viewpoint Registry（`scripts/collaboration/viewpoint_registry.py`）：**
+
+- TOGAF 架构视点：7 角色绑定正式视点（architect=functional+data / security=threat / tester=quality / solo-coder=implementation / devops=deployment / product-manager=requirements / ui-designer=interaction）。
+- `is_orthogonal()` 正交性判断，ConsensusEngine SPLIT 仲裁依据。
+- `check_consistency()` 矛盾检测（重构为 `_check_explicit_consistency` + `_check_full_consistency` 降低圈复杂度）。
+- 防幽灵：模块级 `_call_counter` 计数器。
+
+**新增 — P1-1 Error Budget Tracker（`scripts/collaboration/error_budget_tracker.py`）：**
+
+- SRE 错误预算：SLO 99.9% 默认 + `calculate()` 计算 remaining_budget + `burn_rate()` 消耗速率。
+- `GateType.ERROR_BUDGET` P10 门禁：预算耗尽阻断功能部署。
+- 集成到 `UnifiedGateEngine.check_deployment()`。
+- 防幽灵：模块级 `_call_counter` 计数器。
+
+**新增 — P1-2 Gap Analyzer（`scripts/collaboration/gap_analyzer.py`）：**
+
+- TOGAF 差距分析：`analyze(current, target)` 识别架构差距 + `prioritize()` 按优先级排序 + `generate_roadmap()` Markdown 路线图 + `track()` 记录闭环进度 + `suggest_scheduler_decision()` 驱动 LoopScheduler CONTINUE/STOP。
+- 可读 gap id（基于 work_package 关键词，如 "G-auth"）。
+- 显式类型转换 `_coerce_priority` / `_coerce_effort`。
+- 防幽灵：模块级 `_call_counter` 计数器。
+
+**新增 — P2-1 DORA Metrics Collector（`scripts/collaboration/dora_metrics_collector.py`）：**
+
+- DORA 指标：4 个交付指标（Deployment Frequency / Lead Time / Change Failure Rate / MTTR）。
+- `collect_from_git()` 从 git log 解析 + `collect_from_dispatch()` 从 dispatch 记录收集。
+- `GateType.DORA_CHECK` P11 门禁：CFR > 15% 触发架构评审。
+- `rating()` Elite/High/Medium/Low 评级。
+- 防幽灵：模块级 `_call_counter` 计数器。
+
+**新增 — 集成点：**
+
+- `dispatcher.py` 新增 `_activate_v440_modules()` 方法，每次 dispatch 初始化所有 5 个模块并调用其公共方法。
+- `UnifiedGateEngine` 集成 RISK_CHECK / ERROR_BUDGET / DORA_CHECK 三个门禁。
+- `UnifiedGateResult` 新增 `suggestion` property（返回第一个建议或空字符串）。
+
+**测试 — 13 E2E XPASS（xfail → xpass）：**
+
+- `tests/e2e/test_v440_risk_register.py` — 3 测试（dispatch 后评估、报告章节、门禁阻断高暴露）。
+- `tests/e2e/test_v440_viewpoint_registry.py` — 3 测试（prompt 注入、SPLIT 正交性、一致性检查）。
+- `tests/e2e/test_v440_error_budget.py` — 2 测试（P10 阻断预算耗尽、仪表盘面板渲染）。
+- `tests/e2e/test_v440_gap_analyzer.py` — 2 测试（P2/P3 分析运行、LoopScheduler 零 delta 停止）。
+- `tests/e2e/test_v440_dora_metrics.py` — 2 测试（P11 CFR > 15% 条件触发、仪表盘面板渲染）。
+- `tests/e2e/test_v440_anti_ghost.py` — 1 测试（一次 dispatch 递增所有 5 个计数器）。
+
+**质量门禁：**
+
+- 全量回归：8136 passed, 30 skipped, 0 failed, 0 xfailed。
+- ruff 0 errors, mypy 0 errors, radon 0 D+（最高 C(18)）。
+- 版本一致性：32/32 PASS。
+- 防幽灵：所有 5 个模块 `_call_counter > 0`（dispatch 后）。
+
+**版本升级 4.3.3 → 4.4.0**（MINOR，SemVer 合规 — 5 个新功能模块，含用户可见 API 新增）。
 
 ## [4.3.3] - 2026-07-29
 

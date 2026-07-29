@@ -227,6 +227,8 @@ class DispatchResult:
     # V3.9-02: Audit log entries collected during dispatch (when
     # DispatchAuditLogger is configured)
     audit_entries: list[dict[str, Any]] = field(default_factory=list)
+    # V4.4.0: Risk Management Markdown section (from RiskRegister.export_markdown)
+    risk_management_md: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the dispatch result to a dictionary.
@@ -289,6 +291,7 @@ class DispatchResult:
             self._format_intent_match(),
             self._format_five_axis(),
             self._format_retrospective(),
+            self._format_risk_management(),
         ]
         lines: list[str] = []
         for section in sections:
@@ -464,3 +467,9 @@ class DispatchResult:
         else:
             lines.append(str(rr))
         return lines
+
+    def _format_risk_management(self) -> list[str]:
+        """V4.4.0: Render risk management Markdown section."""
+        if not self.risk_management_md:
+            return []
+        return ["", self.risk_management_md]

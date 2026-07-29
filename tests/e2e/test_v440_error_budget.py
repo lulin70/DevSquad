@@ -1,8 +1,6 @@
-"""E2E skeletons for V4.4.0 P1-1 Error Budget Tracker (xfail TDD)."""
-import pytest
+"""E2E tests for V4.4.0 P1-1 Error Budget Tracker."""
 
 
-@pytest.mark.xfail(reason="V4.4.0 P1-1 Error Budget not yet implemented", strict=True)
 def test_e2e_p10_rejects_when_budget_exhausted():
     """US-E2: P10 deployment gate must REJECT feature deploy when budget EXHAUSTED."""
     from scripts.collaboration.error_budget_tracker import BudgetStatus, ErrorBudgetTracker
@@ -16,7 +14,6 @@ def test_e2e_p10_rejects_when_budget_exhausted():
     assert result.verdict == "REJECT", f"Expected REJECT when budget exhausted, got {result.verdict}"
 
 
-@pytest.mark.xfail(reason="V4.4.0 P1-1 Error Budget not yet implemented", strict=True)
 def test_e2e_dashboard_error_budget_panel_renders():
     """US-E3: Dashboard must render error budget panel with progress bar + burn_rate + status."""
     from scripts.collaboration.error_budget_tracker import ErrorBudgetTracker

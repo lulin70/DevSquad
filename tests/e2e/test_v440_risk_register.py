@@ -1,14 +1,11 @@
-"""E2E skeletons for V4.4.0 P0-1 Risk Register (xfail TDD).
+"""E2E tests for V4.4.0 P0-1 Risk Register.
 
-These tests are committed in V4.3.3 as xfail and must turn xpass in V4.4.0
-when risk_register.py is implemented and integrated into the dispatch pipeline.
+Implemented in V4.4.0 — these tests were xfail in V4.3.3 and now pass
+with risk_register.py integrated into the dispatch pipeline.
 """
-import pytest
-
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 
-@pytest.mark.xfail(reason="V4.4.0 P0-1 Risk Register not yet implemented", strict=True)
 def test_e2e_risk_register_assess_after_dispatch():
     """US-R1: A full dispatch() must call RiskRegister.assess() with 7-role votes."""
     disp = MultiAgentDispatcher()
@@ -20,7 +17,6 @@ def test_e2e_risk_register_assess_after_dispatch():
     disp.shutdown()
 
 
-@pytest.mark.xfail(reason="V4.4.0 P0-1 Risk Register not yet implemented", strict=True)
 def test_e2e_risk_register_section_in_report():
     """US-R3: Dispatch report must contain ## Risk Management section with items."""
     disp = MultiAgentDispatcher()
@@ -32,7 +28,6 @@ def test_e2e_risk_register_section_in_report():
     disp.shutdown()
 
 
-@pytest.mark.xfail(reason="V4.4.0 P0-1 Risk Register not yet implemented", strict=True)
 def test_e2e_risk_check_gate_blocks_high_exposure():
     """US-R1: Phase gate must REJECT when open risk has exposure >= 0.36."""
     from scripts.collaboration.unified_gate_engine import GateType, UnifiedGateEngine

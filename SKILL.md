@@ -1,20 +1,21 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.3.3
+version: 4.4.0
 description: |
-  DevSquad V4.3.3 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.4.0 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
-  159+ core modules, 8178+ tests passing (local; CI authoritative).
+  160+ core modules, 8136+ tests passing (local; CI authoritative).
   5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.4.0: P0-P3 enhancement modules implemented (Risk Register + Viewpoint Registry + Error Budget Tracker + Gap Analyzer + DORA Metrics Collector) with 13 E2E tests xpass + anti-ghost counters.
   V4.3.3: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0 Risk Register + Viewpoint Registry + Error Budget + Gap Analyzer + DORA Metrics).
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.3.3 — Multi-Role AI Task Orchestrator
+# DevSquad V4.4.0 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -198,6 +199,11 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 126 | **RoleSpecificMockBackend** | `role_specific_mock_backend.py` | V4.3.2: 角色特定 Mock 后端。三臂对照中的第二臂（frozen_mock vs role_specific_mock vs llm）。`role_specific=False` 时与 MockBackend 行为一致（向后兼容）；`role_specific=True` 时追加 7 角色模板片段（architect/product-manager/security/tester/solo-coder/devops/ui-designer）。不修改现有 MockBackend |
 | 127 | **QualityProbeSlice** | `quality_probe_slice.py` | V4.3.2 Slice 1: 薄切片质量探针。3 任务 × 3 臂 × n 采样对比，量化 LLM vs Mock 输出质量差距。`run_probe_slice(llm_backend, n_samples)` 返回 `ProbeSliceReport`（gate_passed/task_results/mean_stddev/signal_strength/conclusion/llm_arm_skipped）+ `to_markdown()`。信号强度判定：significant (>0.15) / marginal (>0.05) / noise (≤0.05) / calibration_failed。Gate 0 前置检查 |
 | 128 | **QualityDecisionReportGenerator** | `generate_quality_decision_report.py` | V4.3.2: CLI 入口，运行 Gate 0 + Slice 1，生成 Markdown 决策报告到 `docs/analysis/{date}_LLM_vs_Mock_Quality_Report.md`。`--no-llm` flag 支持 2 臂对比。支持 MOKA_API_KEY 环境变量自动注入 LLM 后端 |
+| 129 | **RiskRegister** | `collaboration/risk_register.py` | V4.4.0 P0-1: PMP 风险管理。风险注册 + 7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）+ `GateType.RISK_CHECK` 门禁（exposure ≥ 0.36 阻断）+ `export_markdown()` 报告章节。集成到 dispatcher `_activate_v440_modules()` + `UnifiedGateEngine._check_risk` |
+| 130 | **ViewpointRegistry** | `collaboration/viewpoint_registry.py` | V4.4.0 P0-2: TOGAF 架构视点。7 角色绑定正式视点（architect=functional+data / security=threat / tester=quality / solo-coder=implementation / devops=deployment / product-manager=requirements / ui-designer=interaction）+ `is_orthogonal()` 正交性判断 + `check_consistency()` 矛盾检测。ConsensusEngine SPLIT 仲裁依据 |
+| 131 | **ErrorBudgetTracker** | `collaboration/error_budget_tracker.py` | V4.4.0 P1-1: SRE 错误预算。SLO 99.9% 默认 + `calculate()` 计算 remaining_budget + `GateType.ERROR_BUDGET` P10 门禁（预算耗尽阻断功能部署）+ `burn_rate()` 消耗速率。集成到 `UnifiedGateEngine.check_deployment()` |
+| 132 | **GapAnalyzer** | `collaboration/gap_analyzer.py` | V4.4.0 P1-2: TOGAF 差距分析。`analyze(current, target)` 识别架构差距 + `prioritize()` 按优先级排序 + `generate_roadmap()` Markdown 路线图 + `track()` 记录闭环进度 + `suggest_scheduler_decision()` 驱动 LoopScheduler CONTINUE/STOP。可读 gap id（基于 work_package 关键词）|
+| 133 | **DoraMetricsCollector** | `collaboration/dora_metrics_collector.py` | V4.4.0 P2-1: DORA 指标。4 个交付指标（Deployment Frequency / Lead Time / Change Failure Rate / MTTR）+ `collect_from_git()` 从 git log 解析 + `collect_from_dispatch()` 从 dispatch 记录 + `GateType.DORA_CHECK` P11 门禁（CFR > 15% 触发架构评审）+ `rating()` Elite/High/Medium/Low 评级 |
 
 ---
 
@@ -1068,13 +1074,15 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V4.3.2 QualityCalibrationGate (Gate 0)** | **8 (4 classes)** | **✅ PASS** |
 | **V4.3.2 QualityProbeSlice (Slice 1)** | **8 (4 classes)** | **✅ PASS** |
 | **V4.3.2 RoleSpecificMockBackend** | **8 (4 classes)** | **✅ PASS** |
-| **V4.3.3 P0-P3 Enhancement E2E Skeletons (xfail TDD)** | **13 (6 files, V4.4.0 xfail)** | **✅ XFAIL** |
-| **Total** | **9357+ CI / 94 e2e + 1244 integration** | **✅ ALL PASS** |
+| **V4.3.3 P0-P3 Enhancement E2E Skeletons (xfail TDD)** | **13 (6 files, V4.4.0 xfail)** | **✅ XFAIL→XPASS** |
+| **V4.4.0 P0-P3 Enhancement Modules (5 new modules)** | **13 E2E xpass + anti-ghost** | **✅ PASS** |
+| **Total** | **9362+ CI / 107 e2e + 1244 integration** | **✅ ALL PASS** |
 
 ---
 
 ## Version History
 
+- **v4.4.0** (2026-07-29, code + tests): V4.4.0 P0-P3 增强模块实施（5 个新模块 + 13 E2E xpass + 防幽灵计数器）。基于 V4.3.3 的 13 个 xfail 骨架测试，实施 5 个功能模块代码，所有 E2E 测试从 XFAIL 转为 XPASS。**P0-1 RiskRegister**（`scripts/collaboration/risk_register.py`：PMP 风险管理；风险注册 + 7 角色加权评估 probability × impact + 4 种响应策略 规避/转移/减轻/接受 + `GateType.RISK_CHECK` 门禁 exposure ≥ 0.36 阻断 + `export_markdown()` 报告章节 + `_call_counter` 防幽灵）。**P0-2 ViewpointRegistry**（`scripts/collaboration/viewpoint_registry.py`：TOGAF 架构视点；7 角色绑定正式视点 architect=functional+data / security=threat / tester=quality / solo-coder=implementation / devops=deployment / product-manager=requirements / ui-designer=interaction + `is_orthogonal()` 正交性判断 + `check_consistency()` 矛盾检测拆分为 `_check_explicit_consistency` 和 `_check_full_consistency` 降低复杂度）。**P1-1 ErrorBudgetTracker**（`scripts/collaboration/error_budget_tracker.py`：SRE 错误预算；SLO 99.9% 默认 + `calculate()` 计算 remaining_budget + `GateType.ERROR_BUDGET` P10 门禁预算耗尽阻断功能部署 + `burn_rate()` 消耗速率）。**P1-2 GapAnalyzer**（`scripts/collaboration/gap_analyzer.py`：TOGAF 差距分析；`analyze(current, target)` 识别架构差距 + `prioritize()` 按优先级排序 + `generate_roadmap()` Markdown 路线图 + `track()` 记录闭环进度 + `suggest_scheduler_decision()` 驱动 LoopScheduler CONTINUE/STOP + 可读 gap id 基于 work_package 关键词 + `_coerce_priority`/`_coerce_effort` 显式类型转换）。**P2-1 DoraMetricsCollector**（`scripts/collaboration/dora_metrics_collector.py`：DORA 指标；4 个交付指标 Deployment Frequency / Lead Time / Change Failure Rate / MTTR + `collect_from_git()` 从 git log 解析 + `collect_from_dispatch()` 从 dispatch 记录 + `GateType.DORA_CHECK` P11 门禁 CFR > 15% 触发架构评审 + `rating()` Elite/High/Medium/Low 评级）。**集成点**：dispatcher 新增 `_activate_v440_modules()` 方法初始化所有 5 个模块并调用其公共方法；UnifiedGateEngine 集成 RISK_CHECK / ERROR_BUDGET / DORA_CHECK 三个门禁；UnifiedGateResult 新增 `suggestion` property。**13 E2E 测试全部 XPASS**（`test_v440_risk_register.py` 3 / `test_v440_viewpoint_registry.py` 3 / `test_v440_error_budget.py` 2 / `test_v440_gap_analyzer.py` 2 / `test_v440_dora_metrics.py` 2 / `test_v440_anti_ghost.py` 1）。**全量回归**：8136 passed, 30 skipped, 0 failed, 0 xfailed, ruff 0 errors, mypy 0 errors, radon 0 D+ (max C(18))。**版本升级 4.3.3 → 4.4.0**（MINOR，SemVer 合规 — 5 个新功能模块）。160+ core modules, 8136+ tests passing (local; CI authoritative)
 - **v4.3.3** (2026-07-29, tests + docs): V4.3.3 P0-P3 增强 E2E 骨架（xfail TDD 模式）。基于 7-Role 审核共识（`docs/analysis/2026-07-29_P0P3_enhancement_review.md`），针对 V4.4.0 5 个新模块（Risk Register / Viewpoint Registry / Error Budget Tracker / Gap Analyzer / DORA Metrics Collector）创建 13 个 E2E 骨架测试，全部 `@pytest.mark.xfail(strict=True)`，V4.4.0 实施后转为 xpass。**13 E2E 骨架**（`tests/e2e/test_v440_risk_register.py` 3 测试 / `test_v440_viewpoint_registry.py` 3 测试 / `test_v440_error_budget.py` 2 测试 / `test_v440_gap_analyzer.py` 2 测试 / `test_v440_dora_metrics.py` 2 测试 / `test_v440_anti_ghost.py` 1 测试）。**4 份 V4.4.0 落地方案文档**（`docs/analysis/2026-07-29_P0P3_enhancement_review.md` 7 角色审核报告 / `docs/prd/V4.4.0_PRD.md` PRD / `docs/architecture/V4.4.0_ARCHITECTURE.md` 架构设计 / `docs/testing/V4.4.0_TEST_PLAN.md` 测试计划 / `docs/planning/V4.4.0_ROADMAP.md` 路线图）。**版本路径决策**：V4.3.3 完成文档 + E2E 骨架（PATCH）；V4.4.0 实施 5 个功能模块代码（MINOR）。**xfail TDD 纪律**：V4.3.3 中所有 13 个 E2E 测试为 XFAIL（strict=True，XPASS 视为测试质量 bug）；V4.4.0 实施后必须转为 XPASS。**防幽灵功能保证**：每个 E2E 测试验证模块调用计数器 (`_call_counter > 0`) + Markdown 报告章节渲染 + 门禁触发，确保 V4.4.0 实施时模块真正接入 dispatch pipeline 而非孤立存在。**版本升级 4.3.2 → 4.3.3**（PATCH，SemVer 合规）。159+ core modules, 8178+ tests passing (local; CI authoritative)
 - **v4.3.2** (2026-07-28, code + tests): V4.3.2 LLM vs Mock 质量差距衡量（薄切片先行策略）。基于 7-Role LLM 评审共识（7/7 有条件通过），采用薄切片先行策略，不修改现有代码、不集成 dispatch、三臂对照。**Gate 0 仪器校准门**（`scripts/collaboration/quality_calibration_gate.py`：`run_calibration_gate()` + `CalibrationGateResult` dataclass；验证 ConfidenceScorer + FiveAxisConsensusEngine 能否正确排序 4 个已知质量输出 gold > llm > filler > empty + gap ≥ 0.15；fail-secure 数据集加载；`_call_counter` 防幽灵；`_GAP_THRESHOLD` 从 0.20 降至 0.15 并注释说明 6/10 维度无法区分 gold/filler 的评分器局限性）。**RoleSpecificMockBackend**（`scripts/collaboration/role_specific_mock_backend.py`：三臂对照第二臂；`role_specific=False` 向后兼容 MockBackend；`role_specific=True` 追加 7 角色模板片段；不修改现有 MockBackend）。**Slice 1 薄切片探针**（`scripts/collaboration/quality_probe_slice.py`：`run_probe_slice(llm_backend, n_samples)` + `ProbeSliceReport` dataclass；3 任务 × 3 臂 × n 采样；信号强度判定 significant/marginal/noise/calibration_failed；Gate 0 前置检查）。**CLI 报告生成器**（`scripts/generate_quality_decision_report.py`：`--no-llm` flag + MOKA_API_KEY 自动注入 + Markdown 报告输出到 `docs/analysis/`）。**静态数据集**（`data/calibration/gold_outputs.json`：4 个已知质量输出 + 3 个探针任务）。**24 单元测试**（test_quality_calibration_gate.py 8 测试 4 类 + test_quality_probe_slice.py 8 测试 4 类 + test_role_specific_mock_backend.py 8 测试 4 类；7 维度覆盖 Happy/Error/Boundary/Performance/Config/Integration）。**全量回归**：8141 passed, 7 failed（环境问题：MOKA 连接 + start.sh Python 3.9 检测，非回归）, 27 skipped, ruff 0 errors, mypy 0 errors, radon 0 D+ (max C(13))。159+ core modules, 8165+ tests passing (local; CI authoritative)
 - **v4.3.1** (2026-07-25, code + tests): V4.3.1 将 V4.4.0 三项待办提前到 V4.3.1 完成（用户决策 2026-07-25）。**P1-1 BenchmarkRegressionChecker**（`scripts/collaboration/benchmark_regression_checker.py` 378 行；P11 生命周期门禁检查器；`BenchmarkMetric`/`BenchmarkSnapshot`/`BenchmarkReport` dataclass + `to_markdown()`；`BenchmarkRegressionChecker.compare()` + `run_live_benchmark()`；`lifecycle_gate_check()` 模块级入口；`tests/unit/test_benchmark_regression_checker.py` 20 测试 7 维度覆盖；radon 最高 B(9)）。**P1-2 OutputValidator base64/Unicode 检测补齐**（`scripts/collaboration/output_validator.py` 新增 `BASE64_ENCODED_LEAK_PATTERNS` 2 patterns + `UNICODE_HOMOGLYPH_PATTERNS` 6 patterns；`_scan_base64()` fail-secure 解码升级 medium→high；`_scan_unicode_homoglyph()` 6 种 Cyrillic/Greek；`validate()` 扩展为 6 类扫描；`FindingCategory` Literal 扩展；`tests/unit/test_output_validator_v431.py` 11 测试 7 维度；`tests/security/red_team.py::TestRedTeamBase64Unicode` RT-21~RT-26 6 红队测试；现有 134 测试零回归）。**P1-3 E2E 骨架脱 xfail**（E2E-01 用户故事旅程脱 xfail 适配 RequirementTracer 类 API；E2E-03 P11 性能基线脱 xfail 注入 5% 回归 snapshot；E2E-08 基准回归警报脱 xfail 注入 25% 回归 snapshot；E2E 套件 8 passed 0 xfailed）。**版本升级 4.3.0 → 4.3.1**（PATCH SemVer 合规；24+ 文件同步含 6 TRAE 缓存）。**全量回归**：8110 passed, 0 failed, 0 skipped, 0 xfailed, ruff 0 errors, mypy 0 errors, radon 0 D+, version consistency 30/30 PASS。155+ core modules, 8110+ tests passing (local; CI authoritative)

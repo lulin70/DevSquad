@@ -1,15 +1,12 @@
-"""E2E skeleton for V4.4.0 anti-ghost verification (xfail TDD).
+"""E2E test for V4.4.0 anti-ghost verification.
 
 Verifies that all 5 new V4.4.0 modules have their _call_counter incremented
 after a single dispatch() call, proving they are wired into the pipeline
 and not dead code.
 """
-import pytest
-
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 
-@pytest.mark.xfail(reason="V4.4.0 modules not yet implemented", strict=True)
 def test_e2e_dispatch_increments_all_five_counters():
     """AG-1/AG-2: One dispatch() call must increment all 5 module _call_counter > 0."""
     disp = MultiAgentDispatcher()

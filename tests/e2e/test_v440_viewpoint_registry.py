@@ -1,10 +1,7 @@
-"""E2E skeletons for V4.4.0 P0-2 Viewpoint Registry (xfail TDD)."""
-import pytest
-
+"""E2E tests for V4.4.0 P0-2 Viewpoint Registry."""
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 
-@pytest.mark.xfail(reason="V4.4.0 P0-2 Viewpoint Registry not yet implemented", strict=True)
 def test_e2e_viewpoint_injected_into_prompt():
     """US-V2: Assembled prompt must contain ## Viewpoint: section with concerns."""
     disp = MultiAgentDispatcher()
@@ -20,7 +17,6 @@ def test_e2e_viewpoint_injected_into_prompt():
     disp.shutdown()
 
 
-@pytest.mark.xfail(reason="V4.4.0 P0-2 Viewpoint Registry not yet implemented", strict=True)
 def test_e2e_split_resolved_by_orthogonality():
     """US-V1: SPLIT outcome with orthogonal factions must become APPROVED with warning."""
     from scripts.collaboration.viewpoint_registry import ViewpointRegistry
@@ -31,7 +27,6 @@ def test_e2e_split_resolved_by_orthogonality():
     assert registry.is_orthogonal("architect", "solo-coder") is False
 
 
-@pytest.mark.xfail(reason="V4.4.0 P0-2 Viewpoint Registry not yet implemented", strict=True)
 def test_e2e_consistency_check_flags_contradiction():
     """US-V3: Contradiction on shared model element must be listed as violation."""
     from scripts.collaboration.viewpoint_registry import ViewpointRegistry
