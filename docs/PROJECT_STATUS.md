@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.3.2（PATCH 版 — 2026-07-28）
-> **最后更新**: 2026-07-28
-> **最新评估**: V4.3.2 PATCH 版 — LLM vs Mock 质量差距衡量（薄切片先行策略）落地，Gate 0 仪器校准门 + Slice 1 薄切片探针 + RoleSpecificMockBackend + CLI 报告生成器全部交付，24 新单元测试通过，8141 passed（local; CI authoritative），ruff/mypy/radon 全绿。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **当前版本**: V4.4.0（MINOR 版 — 2026-07-29）
+> **最后更新**: 2026-07-29
+> **最新评估**: V4.4.0 MINOR 版 — P0-P3 增强模块（5 个新模块）落地，Risk Register / Viewpoint Registry / Error Budget Tracker / Gap Analyzer / DORA Metrics Collector 全部交付，13 E2E 测试从 xfail 转 xpass，8136 passed（local; CI authoritative），ruff/mypy/radon 全绿，所有 5 个模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.3.2 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.4.0 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
@@ -19,7 +19,14 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**模块数**: 159+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 164+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+
+**V4.4.0 新增模块**:
+- `scripts/collaboration/risk_register.py` (P0-1 PMP 风险管理 + 7 角色加权评估 + 4 种响应策略)
+- `scripts/collaboration/viewpoint_registry.py` (P0-2 TOGAF 视点框架 + 7 角色绑定 + 正交性判断)
+- `scripts/collaboration/error_budget_tracker.py` (P1-1 SRE 错误预算 + P10 部署门禁)
+- `scripts/collaboration/gap_analyzer.py` (P1-2 TOGAF 差距分析 + LoopScheduler 决策驱动)
+- `scripts/collaboration/dora_metrics_collector.py` (P2-1 DORA 4 指标 + P11 门禁)
 
 **V4.3.2 新增模块**:
 - `scripts/collaboration/quality_calibration_gate.py` (Gate 0 仪器校准门)
@@ -51,19 +58,21 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 7662 passed, 7 skipped（本地 Python 3.12，433.22s，含 V4.3.0 P0/P1/P2 全部新特性） | ✅ 全绿 |
+| 单元/集成回归 | 8136 passed, 30 skipped（本地 Python 3.12，含 V4.4.0 P0-P3 全部 5 个新模块） | ✅ 全绿 |
+| V4.4.0 E2E | 13 passed, 0 xfail, 0 fail（xfail→xpass 全部转换完成，0.88s） | ✅ 全绿 |
 | Contract 测试 | 384 passed（8 Protocol 契约合规，V4.2.1 测试金字塔提升至 5.2%） | ✅ 全绿 |
 | Integration 测试 | 1117 passed（V4.2.1 测试金字塔提升至 15.1%） | ✅ 全绿 |
-| 版本一致性 | 28 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CLAUDE/deployment.yaml/COMPARISON.md/Chart.yaml） | ✅ 全绿 |
+| 版本一致性 | 32 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CLAUDE/deployment.yaml/COMPARISON.md/Chart.yaml + L1/L2/L3 TRAE 缓存 + V4.4.0 PRD） | ✅ 全绿 |
 | 覆盖率 | 80.03%+（本地 3.12，P1-D 门禁提升至 75%） | ✅ 超过 75% 门禁 |
 | 新增安全测试 | 10 passed（TestMaskRedisUrl: redis_url 凭据脱敏） | ✅ 全绿 |
+| 防幽灵验证 | 5 模块 `_call_counter > 0` after dispatch（risk_register / viewpoint_registry / error_budget_tracker / gap_analyzer / dora_metrics_collector） | ✅ 全绿 |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
 
 **测试金字塔达标**:
 - Contract: 3.06% → 5.2%（目标 ≥5% ✅）
 - Integration: 8.84% → 15.1%（目标 ≥15% ✅）
-- 总测试数: 5250+ → 7662+（+2412 测试）
+- 总测试数: 5250+ → 8136+（+2886 测试）
 
 ---
 
