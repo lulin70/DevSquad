@@ -9,7 +9,49 @@
 
 ## [Unreleased]
 
-_无未发布变更。下一版本：V4.5.0（基于 V4.3.2 信号强度的全量 LLM vs Mock 对比）。_
+_无未发布变更。下一版本：V4.4.0（P0-P3 增强：Risk Register + Viewpoint Registry + Error Budget + Gap Analyzer + DORA Metrics）。_
+
+## [4.3.3] - 2026-07-29
+
+### V4.3.3 — P0-P3 增强 E2E 骨架（xfail TDD 模式）(2026-07-29)
+
+V4.3.3 基于 7-Role 审核共识，交付 V4.4.0 P0-P3 增强的文档和 E2E 骨架。这是 PATCH 发布（SemVer 合规 — 增量测试骨架 + 文档，无用户可见 API 变更，无生产代码新增）。
+
+**新增 — 7-Role 共识审核：**
+
+- 新增 `docs/analysis/2026-07-29_P0P3_enhancement_review.md` — 7 角色（architect/security/tester/coder/devops/pm/ui）对 8 个 PMP/TOGAF/SRE 候选增强的审核。共识：5 项在 V4.4.0 实施，3 项 SKIP（EVM、Mutation Testing、ADM）。
+- 每个角色的决策矩阵，含理由和风险分级（P0/P1/P2/P3 优先级）。
+
+**新增 — V4.4.0 规划文档（4 份）：**
+
+- 新增 `docs/prd/V4.4.0_PRD.md` — 产品需求文档，含用户故事（US-R/US-V/US-E/US-G/US-D）、功能/非功能需求、防幽灵功能约束。
+- 新增 `docs/architecture/V4.4.0_ARCHITECTURE.md` — 模块设计、集成点（dispatcher hooks + UnifiedGateEngine）、数据流图、技术决策（纯 stdlib，无新依赖）。
+- 新增 `docs/testing/V4.4.0_TEST_PLAN.md` — 四层测试金字塔（~115-120 测试），含每个模块的单元测试矩阵（7 维度）、契约测试、集成测试、13 个 E2E 骨架。
+- 新增 `docs/planning/V4.4.0_ROADMAP.md` — 实施顺序（P0-1→P0-2→P1-1→P1-2→P2-1）、里程碑、风险缓解。
+
+**新增 — 13 个 E2E 骨架（xfail TDD，V4.4.0 转 xpass）：**
+
+- 新增 `tests/e2e/test_v440_risk_register.py` — 3 个 xfail 测试：US-R1 dispatch 调用 RiskRegister.assess() / US-R3 报告含 `## Risk Management` / US-R1 risk-check 门禁阻断高暴露。
+- 新增 `tests/e2e/test_v440_viewpoint_registry.py` — 3 个 xfail 测试：US-V2 prompt 含 `## Viewpoint:` / US-V1 SPLIT 由正交性解决 / US-V3 一致性检查标记矛盾。
+- 新增 `tests/e2e/test_v440_error_budget.py` — 2 个 xfail 测试：US-E2 P10 在预算耗尽时 REJECT / US-E3 仪表板面板渲染。
+- 新增 `tests/e2e/test_v440_gap_analyzer.py` — 2 个 xfail 测试：US-G1 P2/P3 差距分析运行 / US-G3 LoopScheduler 在零增量时 STOP。
+- 新增 `tests/e2e/test_v440_dora_metrics.py` — 2 个 xfail 测试：US-D3 P11 在 CFR > 15% 时 CONDITIONAL / US-D4 仪表板面板渲染 4 个指标卡。
+- 新增 `tests/e2e/test_v440_anti_ghost.py` — 1 个 xfail 测试：AG-1/AG-2 单次 dispatch() 递增全部 5 个模块 `_call_counter`。
+
+所有 13 个测试使用 `@pytest.mark.xfail(strict=True)` — V4.4.0 实施前 XPASS 视为测试质量 bug。xfail TDD 纪律确保 E2E 契约在任何模块代码编写前被锁定。
+
+**版本路径决策：**
+
+- V4.3.3（本版本）：文档 + E2E 骨架（PATCH）。
+- V4.4.0（下一个 MINOR）：实施 5 个模块代码，xfail → xpass。
+
+**防幽灵功能保证：**
+
+每个 E2E 骨架断言 (1) 模块 `_call_counter > 0` 验证 dispatch pipeline 集成，(2) Markdown 报告章节渲染保证用户可见性，(3) 门禁触发行为。V4.4.0 模块不能作为孤立代码存在 — 必须接入 dispatch 流程并可观地影响输出。
+
+**版本升级 4.3.2 → 4.3.3**（PATCH，SemVer 合规）。
+
+159+ core modules, 8178+ tests passing (local; CI authoritative).
 
 ## [4.3.2] - 2026-07-28
 

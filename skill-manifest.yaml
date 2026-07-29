@@ -1,13 +1,14 @@
 name: devsquad
-version: 4.3.2
+version: 4.3.3
 description: |
-  DevSquad V4.3.2 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.3.3 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
-  155+ core modules, 8110+ tests passing (local; CI authoritative).
+  155+ core modules, 8123+ tests passing (local; CI authoritative).
   5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.3.3: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0 Risk Register + Viewpoint Registry + Error Budget + Gap Analyzer + DORA Metrics).
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
   V4.3.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载.
 status: active

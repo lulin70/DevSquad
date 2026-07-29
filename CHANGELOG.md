@@ -9,7 +9,80 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_No unreleased changes. Next: V4.5.0 (Full LLM vs Mock comparison based on V4.3.2 signal strength)._
+_No unreleased changes. Next: V4.4.0 (P0-P3 Enhancement: Risk Register + Viewpoint Registry + Error Budget + Gap Analyzer + DORA Metrics)._
+
+## [4.3.3] - 2026-07-29
+
+### V4.3.3 — P0-P3 Enhancement E2E Skeletons (xfail TDD) (2026-07-29)
+
+V4.3.3 ships the documentation and E2E skeletons for the V4.4.0 P0-P3
+enhancement based on 7-Role consensus review. This is a PATCH release
+(SemVer compliant — additive test scaffolding + documentation, no
+user-facing API changes, no production code added).
+
+**Added — 7-Role Consensus Review:**
+
+- New `docs/analysis/2026-07-29_P0P3_enhancement_review.md` — 7-Role
+  (architect/security/tester/coder/devops/pm/ui) audit of 8 PMP/TOGAF/
+  SRE candidate enhancements. Consensus: 5 to implement in V4.4.0, 3
+  SKIP (EVM, Mutation Testing, ADM).
+- Decision matrix per role with rationale and risk classification
+  (P0/P1/P2/P3 priorities).
+
+**Added — V4.4.0 Planning Documents (4 docs):**
+
+- New `docs/prd/V4.4.0_PRD.md` — Product Requirements Document with
+  user stories (US-R/US-V/US-E/US-G/US-D), functional/non-functional
+  requirements, and anti-ghost-feature constraints.
+- New `docs/architecture/V4.4.0_ARCHITECTURE.md` — Module design,
+  integration points (dispatcher hooks + UnifiedGateEngine), data flow
+  diagrams, and technology decisions (pure stdlib, no new deps).
+- New `docs/testing/V4.4.0_TEST_PLAN.md` — Four-layer test pyramid
+  (~115-120 tests) with per-module unit test matrices (7 dimensions
+  each), contract tests, integration tests, and 13 E2E skeletons.
+- New `docs/planning/V4.4.0_ROADMAP.md` — Implementation order
+  (P0-1→P0-2→P1-1→P1-2→P2-1), milestones, and risk mitigation.
+
+**Added — 13 E2E Skeletons (xfail TDD, V4.4.0 → xpass):**
+
+- New `tests/e2e/test_v440_risk_register.py` — 3 xfail tests:
+  US-R1 dispatch calls RiskRegister.assess() / US-R3 report contains
+  `## Risk Management` / US-R1 risk-check gate blocks high exposure.
+- New `tests/e2e/test_v440_viewpoint_registry.py` — 3 xfail tests:
+  US-V2 prompt contains `## Viewpoint:` / US-V1 SPLIT resolved by
+  orthogonality / US-V3 consistency check flags contradiction.
+- New `tests/e2e/test_v440_error_budget.py` — 2 xfail tests:
+  US-E2 P10 REJECT when budget EXHAUSTED / US-E3 dashboard panel
+  renders.
+- New `tests/e2e/test_v440_gap_analyzer.py` — 2 xfail tests:
+  US-G1 P2/P3 gap analysis runs / US-G3 LoopScheduler STOP on
+  zero delta.
+- New `tests/e2e/test_v440_dora_metrics.py` — 2 xfail tests:
+  US-D3 P11 CONDITIONAL when CFR > 15% / US-D4 dashboard panel
+  renders 4 metric cards.
+- New `tests/e2e/test_v440_anti_ghost.py` — 1 xfail test:
+  AG-1/AG-2 single dispatch() increments all 5 module `_call_counter`.
+
+All 13 tests use `@pytest.mark.xfail(strict=True)` — XPASS before V4.4.0
+implementation is a test-quality bug. xfail TDD discipline ensures the
+E2E contract is locked before any module code is written.
+
+**Version Path Decision:**
+
+- V4.3.3 (this release): documentation + E2E skeletons (PATCH).
+- V4.4.0 (next MINOR): implement 5 module code, turn xfail → xpass.
+
+**Anti-ghost-feature Guarantee:**
+
+Every E2E skeleton asserts (1) module `_call_counter > 0` to verify
+dispatch pipeline integration, (2) Markdown report section rendering
+for user visibility, and (3) gate trigger behavior. V4.4.0 modules
+cannot exist as isolated code — they must be wired into the dispatch
+flow and observably affect output.
+
+**Version bump 4.3.2 → 4.3.3** (PATCH SemVer compliant).
+
+159+ core modules, 8178+ tests passing (local; CI authoritative).
 
 ## [4.3.2] - 2026-07-28
 
