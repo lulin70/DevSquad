@@ -75,6 +75,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Run E2E on: PRs to main, nightly schedule, manual dispatch, or release tags (v*)
+    # P1-1 (V4.4.1): nightly schedule ensures E2E tests run daily, catching
+    # regressions even without PR activity. E2E test E13
+    # (test_e2e_dispatch_increments_all_five_counters) verifies anti-ghost
+    # counters for all V4.4.0 modules.
     if: github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     env:
       # Use "auto" so real LLM tests run when secrets are present, otherwise mock.
@@ -98,12 +102,67 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]" 2>/dev/null || pip install -e .
           pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic streamlit Pillow fakeredis redis
-      - name: Run E2E tests
+      - name: Run E2E tests (nightly + PR + release)
         run: |
+          # E2E suite includes V4.4.0 anti-ghost test E13
+          # (test_e2e_dispatch_increments_all_five_counters) which verifies
+          # all 5 new modules' _call_counter > 0 after a real dispatch.
           python -m pytest tests/e2e/ tests/integration/ \
             -q --tb=short \
             --timeout=300 \
             -m "not slow"
+      - name: Run V4.4.0 anti-ghost verification (explicit)
+        run: |
+          # Explicit anti-ghost check — fails if any V4.4.0 module has _call_counter == 0
+          python -m pytest tests/e2e/test_v440_anti_ghost.py -v --tb=short
+
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # P3-2 (V4.4.1): nightly performance regression detection.
+    # Runs performance benchmarks on nightly schedule only (not on PRs) to
+    # avoid flaky failures from GitHub Actions runner performance variance
+    # (project_memory: hosted runners are 5-10x slower than local).
+    # Results are non-blocking (informational) — stored as artifact for
+    # trend analysis. Blocking gate deferred to V4.4.2+ after baseline
+    # establishment.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    env:
+      DEVSQUAD_LLM_BACKEND: mock
+      DEVSQUAD_API_AUTH_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          pip install pytest pytest-asyncio pytest-timeout httpx2 mcp streamlit Pillow fakeredis redis
+      - name: Run performance benchmarks (non-blocking)
+        run: |
+          # Performance tests with time thresholds (e.g. under_50ms, under_2s).
+          # Non-blocking on nightly: results recorded for trend analysis.
+          # project_memory: CI runners 5-10x slower than local — thresholds
+          # may need 10x margin if promoted to blocking gate in V4.4.2+.
+          python -m pytest tests/test_performance_benchmarks.py tests/test_v39_performance.py \
+            -v --tb=short \
+            --timeout=300 \
+            -m "benchmark or not slow" \
+            --junit-xml=/tmp/performance-junit.xml \
+            2>&1 | tee /tmp/performance.log || true
+      - name: Upload performance log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-log
+          path: |
+            /tmp/performance.log
+            /tmp/performance-junit.xml
+          retention-days: 30
 
   security:
     runs-on: ubuntu-latest

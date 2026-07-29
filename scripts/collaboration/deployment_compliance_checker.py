@@ -13,7 +13,7 @@ Skill integration (anti-ghost feature):
 - Integration point: ``unified_gate_engine.py`` P10 lifecycle gate
 - Trigger: dispatcher auto-invokes via ``lifecycle_gate_check(phase="P10", ...)``
 - User visibility: Markdown report "部署合规" section + deployment block message
-- CI check: module call count > 0 (verified by ``check_module_activation.py``)
+- CI check: module call count > 0 (verified by E2E test E13: ``test_e2e_dispatch_increments_all_five_counters``)
 
 Simplified ruleset (3 rules — see ``DEFAULT_RULESET``):
 1. ``BASIC_EDITION_NO_CLOUD`` — basic edition must run on localhost only

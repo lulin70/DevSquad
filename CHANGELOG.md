@@ -9,7 +9,54 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-_No unreleased changes. Next: V4.4.1+ (TBD based on user feedback)._
+### V4.4.1 M0+M1 — CI Enhancement + Environment Fixes (2026-07-29)
+
+**Fixed — P2-1 mypy version drift:**
+- `requirements-dev.txt` and `pyproject.toml [dev]`: pinned `mypy==2.2.0`,
+  `ruff==0.15.20`, `black==26.5.1` to match `requirements-dev.lock` and CI.
+- Local `pip install -r requirements-dev.txt` now matches CI versions,
+  resolving 10 false-positive mypy errors from local 1.19.1 vs CI 2.2.0 drift.
+- Added `radon==6.0.1` to `requirements-dev.txt` for local radon availability.
+
+**Fixed — P2-2 check_module_activation.py reference cleanup:**
+- 9 active code files updated to reference E2E test E13
+  (`test_e2e_dispatch_increments_all_five_counters`) instead of the
+  non-existent `check_module_activation.py` script:
+  `quality_calibration_gate.py`, `deployment_compliance_checker.py`,
+  `benchmark_regression_checker.py`, `risk_register.py`, `dispatch_hooks.py`,
+  `dependency_hallucination_checker.py` (2 locations),
+  `skills/security/handler.py`, `tests/integration/test_unified_gate_integration.py`.
+- Historical documents (V4.3.0 docs, analysis reports, CHANGELOG) retain
+  references as historical record.
+
+**Added — P3-2 nightly performance job:**
+- New `performance` job in `.github/workflows/test.yml`: runs on nightly
+  schedule + manual dispatch, executes 23 performance tests
+  (`test_performance_benchmarks.py` + `test_v39_performance.py`).
+- Non-blocking (informational): results stored as artifact (30-day retention)
+  for trend analysis. Blocking gate deferred to V4.4.2+ after baseline
+  establishment (project_memory: CI runners 5-10x slower than local).
+
+**Enhanced — P1-1 E2E nightly verification:**
+- `e2e` job: added explicit "Run V4.4.0 anti-ghost verification" step
+  running `test_v440_anti_ghost.py` to ensure all 5 V4.4.0 modules'
+  `_call_counter > 0` after dispatch.
+
+**Documentation:**
+- `docs/planning/V4.4.1_ROADMAP.md`: new roadmap with real user testing
+  plan (P3-1: 3-5 users, 5 scenarios, NPS ≥ 7 target) and V4.4.1 milestone
+  schedule.
+- `docs/analysis/2026-07-29_V4.4.0_7dimension_assessment.md`: corrected
+  P1-1/P1-2 misjudgments (E2E nightly and radon gate were already
+  configured in CI), updated P2-1 root cause (version drift, not numpy stub),
+  recorded P2-2/P3 implementation status.
+
+**Verification:**
+- ruff: 0 errors
+- radon: 0 D+ functions
+- V4.4.0 E2E: 13 passed (0.46s)
+- Anti-ghost E13: 1 passed
+- Version consistency: 32/32 PASS
 
 ## [4.4.0] - 2026-07-29
 

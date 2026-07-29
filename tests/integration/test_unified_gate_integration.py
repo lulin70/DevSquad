@@ -747,7 +747,7 @@ class T6_P10ComplianceGateIntegration(unittest.TestCase):
     - UnifiedGateEngine exposes ``check_compliance(phase, target_env)`` API
     - Compliant deployments receive APPROVE verdict
     - Violating deployments receive REJECT verdict with CRITICAL severity
-    - Statistics are tracked (so check_module_activation.py can detect ghosts)
+    - Statistics are tracked (so E2E test E13 can detect ghosts)
     - Results are serializable for Markdown report rendering
     """
 

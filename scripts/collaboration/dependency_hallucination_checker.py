@@ -38,7 +38,7 @@ Anti-ghost-feature contract
   dispatch post-worker hook (dispatch_hooks.py). No separate manual call
   required.
 - Module-level `_call_counter` tracks invocations; CI's
-  `check_module_activation.py` reads this counter to detect zero-call
+  E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``) reads this counter to detect zero-call
   ghosts.
 - DependencyScanResult.to_markdown() renders a "安全检查" section in the
   user-visible Markdown report.
@@ -163,7 +163,7 @@ _call_counter: int = 0
 def get_call_count() -> int:
     """Return the number of times security_scan_dependencies has been called.
 
-    Used by ``scripts/check_module_activation.py`` to detect ghost features
+    Used by E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``) to detect ghost features
     (modules that exist but are never invoked).
     """
     return _call_counter

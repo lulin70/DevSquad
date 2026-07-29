@@ -311,7 +311,7 @@ class SecuritySkill(BaseSkill):
 
         Anti-ghost-feature contract:
           - Every invocation increments the module's ``_call_counter``
-          - CI's ``check_module_activation.py`` verifies counter > 0
+          - E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``) verifies counter > 0
           - The result's ``to_markdown()`` renders a user-visible
             "安全检查（依赖幻觉检测）" section in dispatch reports
 

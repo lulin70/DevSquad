@@ -12,8 +12,8 @@ Skill integration (anti-ghost feature):
 - Trigger: dispatcher auto-invokes via
   ``lifecycle_gate_check(phase="P11", ...)``
 - User visibility: Markdown report "Benchmark Regression" section
-- CI check: module call count > 0 (verified by
-  ``check_module_activation.py``)
+- CI check: module call count > 0 (verified by E2E test E13:
+  ``test_e2e_dispatch_increments_all_five_counters``)
 
 Regression model
 ----------------

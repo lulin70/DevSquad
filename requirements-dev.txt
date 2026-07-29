@@ -11,11 +11,13 @@ fakeredis>=2.30
 redis>=5.0
 hypothesis>=6.0
 
-# Code Quality
-black>=23.0
+# Code Quality (versions pinned to match requirements-dev.lock and CI;
+# update via dependabot patch-only — see project_memory)
+black==26.5.1
 flake8>=6.0
-mypy>=1.0
-ruff>=0.4.0
+mypy==2.2.0
+ruff==0.15.20
+radon==6.0.1
 
 # Visualization & QA (synced from pyproject.toml [dev])
 streamlit>=1.28.0

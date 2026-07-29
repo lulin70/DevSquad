@@ -21,7 +21,7 @@ from pathlib import Path
 from .confidence_score import ConfidenceScorer
 from .five_axis_consensus import FiveAxisConsensusEngine
 
-# Anti-phantom-feature counter (checked by check_module_activation.py)
+# Anti-phantom-feature counter (checked by E2E test E13: test_e2e_dispatch_increments_all_five_counters)
 _call_counter: int = 0
 
 _DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "calibration" / "gold_outputs.json"

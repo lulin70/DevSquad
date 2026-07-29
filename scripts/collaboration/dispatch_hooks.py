@@ -151,8 +151,8 @@ class DispatchHooks:
           - Invoked automatically by ``post_execution_processing`` on every
             dispatch (no manual trigger required)
           - Increments ``dependency_hallucination_checker._call_counter`` per
-            scanned worker output, enabling CI's ``check_module_activation.py``
-            to detect zero-call ghosts
+            scanned worker output, enabling E2E test E13
+            (``test_e2e_dispatch_increments_all_five_counters``) to detect zero-call ghosts
           - Findings are written to the scratchpad as WARNING entries so they
             appear in the user-visible Markdown report
           - Usage tracker ticks ``dependency_hallucination_detected`` when any

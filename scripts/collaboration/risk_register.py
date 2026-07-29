@@ -5,7 +5,7 @@ applies one of 4 PMP response strategies (avoid/transfer/mitigate/accept),
 and exports a Markdown "Risk Management" section for the dispatch report.
 
 Anti-ghost: module-level ``_call_counter`` increments on every public method
-call, verifiable by ``check_module_activation.py`` and E2E test E13.
+call, verifiable by E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``).
 """
 from __future__ import annotations
 
