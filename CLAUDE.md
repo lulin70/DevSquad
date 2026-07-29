@@ -8,7 +8,7 @@
 
 **6 Sub-Skills** (Layered Architecture): DispatchSkill (7-role orchestration), IntentSkill (6 intents × 3 languages), ReviewSkill (5-axis code review), SecuritySkill (input scan + op classify), TestSkill (test strategy + quality audit), RetrospectiveSkill (post-dispatch pattern extraction).
 
-**Test Coverage**: 8136+ tests passing across unit + E2E + integration suites (CI authoritative, Python 3.10+3.11+3.12 matrix; 30 skipped tests require real LLM API key or are platform-specific).
+**Test Coverage**: 8153+ tests passing across unit + E2E + integration suites (CI authoritative, Python 3.10+3.11+3.12 matrix; 30 skipped tests require real LLM API key or are platform-specific).
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 **Enterprise Features**: RBAC (15+ permissions), Audit Log (SHA256), Multi-Tenancy (3 isolation levels), Prometheus Monitoring (12 metrics).
 
@@ -161,7 +161,7 @@ DevSquad/
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
 - **Documentation**: EN (README.md/SKILL.md) + CN (README-CN.md/docs/i18n/SKILL_CN.md) + JP variants
-- **Testing**: pytest-based, 8136+ tests all passing
+- **Testing**: pytest-based, 8153+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
 - **Version**: Single source of truth in `_version.py` (`4.4.0`)
 
@@ -192,7 +192,7 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Full test suite (8136+ tests)
+# Full test suite (8153+ tests)
 python3 -m pytest scripts/collaboration/core_test.py \
   scripts/collaboration/role_mapping_test.py \
   scripts/collaboration/upstream_test.py \

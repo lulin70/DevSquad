@@ -5,7 +5,7 @@ description: |
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
-  160+ core modules, 8136+ tests passing (local; CI authoritative).
+  160+ core modules, 8153+ tests passing (local; CI authoritative).
   5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.4.0: P0-P3 enhancement modules implemented (Risk Register + Viewpoint Registry + Error Budget Tracker + Gap Analyzer + DORA Metrics Collector) with 13 E2E tests xpass + anti-ghost counters.

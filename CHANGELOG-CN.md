@@ -9,7 +9,25 @@
 
 ## [Unreleased]
 
-_无未发布变更。下一版本：V4.4.1+（基于用户反馈确定）。_
+### V4.4.1 M2 — 真实用户模拟测试 (2026-07-29)
+
+**新增 — P3-1 真实用户模拟 E2E 测试：**
+- 新增 `tests/e2e/test_v441_real_user_simulation.py`：17 个测试，模拟 `docs/planning/V4.4.1_ROADMAP.md` §2.2 定义的 5 个真实用户场景（RU-1 ~ RU-5）。
+- 场景覆盖全部 5 个 V4.4.0 模块：
+  RU-1 PM → RiskRegister，RU-2 架构师 → ViewpointRegistry，
+  RU-3 DevOps → ErrorBudgetTracker，RU-4 开发者 → GapAnalyzer，
+  RU-5 DevOps → DoraMetricsCollector。
+- 验收标准验证：AC-1 用户可见输出 (5/5)，AC-2 模拟 NPS ≥ 7 (实际 8.6)，AC-3 完成率 ≥ 80% (100%)，AC-4 无关键 UX 阻塞 (0 critical / 3 minor)，AC-5 防幽灵 (全 5 模块 `_call_counter > 0`)。
+
+**新增 — 模拟测试报告：**
+- `docs/release/V4.4.1_real_user_report.md`：完整报告，含 NPS 评分、定性反馈、UX 摩擦日志、诚实局限性说明。
+
+**验证：**
+- V4.4.0 E2E 基线：13 passed (0.60s，先决条件)
+- V4.4.1 模拟 E2E：17 passed (0.49s)
+- 全量 E2E 回归：136 passed (17.23s，零回归)
+- ruff：0 errors
+- 版本一致性：40/40 PASS（版本保持 4.4.0）
 
 ## [4.4.0] - 2026-07-29
 

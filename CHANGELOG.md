@@ -58,6 +58,31 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Anti-ghost E13: 1 passed
 - Version consistency: 32/32 PASS
 
+### V4.4.1 M2 — Real User Simulation Testing (2026-07-29)
+
+**Added — P3-1 real user simulation E2E tests:**
+- New `tests/e2e/test_v441_real_user_simulation.py`: 17 tests simulating 5
+  real-user scenarios (RU-1 ~ RU-5) from `docs/planning/V4.4.1_ROADMAP.md` §2.2.
+- Scenarios cover all 5 V4.4.0 modules:
+  RU-1 PM → RiskRegister, RU-2 Architect → ViewpointRegistry,
+  RU-3 DevOps → ErrorBudgetTracker, RU-4 Developer → GapAnalyzer,
+  RU-5 DevOps → DoraMetricsCollector.
+- Acceptance criteria verified: AC-1 user-visible output (5/5),
+  AC-2 simulated NPS ≥ 7 (actual 8.6), AC-3 completion rate ≥ 80% (100%),
+  AC-4 no critical UX blocker (0 critical / 3 minor), AC-5 anti-ghost
+  (all 5 `_call_counter > 0`).
+
+**Added — simulation report:**
+- `docs/release/V4.4.1_real_user_report.md`: full report with NPS scores,
+  qualitative feedback, UX friction log, and honest limitations.
+
+**Verification:**
+- V4.4.0 E2E baseline: 13 passed (0.60s, prerequisite)
+- V4.4.1 simulation E2E: 17 passed (0.49s)
+- Full E2E regression: 136 passed (17.23s, zero regression)
+- ruff: 0 errors
+- Version consistency: 40/40 PASS (version remains 4.4.0)
+
 ## [4.4.0] - 2026-07-29
 
 ### V4.4.0 — P0-P3 Enhancement Modules Implemented (2026-07-29)
