@@ -1,21 +1,22 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.4.0
+version: 4.4.1
 description: |
-  DevSquad V4.4.0 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.4.1 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
   160+ core modules, 8155+ tests passing (local; CI authoritative).
   5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.4.1: External docs restructure (archive orphan i18n docs, retire CHANGELOG-CN, consolidate admin credentials, renumber INSTALL methods, sync version numbers across all external docs).
   V4.4.0: P0-P3 enhancement modules implemented (Risk Register + Viewpoint Registry + Error Budget Tracker + Gap Analyzer + DORA Metrics Collector) with 13 E2E tests xpass + anti-ghost counters.
   V4.3.3: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0 Risk Register + Viewpoint Registry + Error Budget + Gap Analyzer + DORA Metrics).
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.4.0 — Multi-Role AI Task Orchestrator
+# DevSquad V4.4.1 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -405,7 +406,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend op
 streamlit run scripts/dashboard.py
 
 # Open http://localhost:8501
-# Login with: admin / admin123
+# Login with default dev credentials — see INSTALL.md "Default credentials" section
 ```
 
 **Features**:

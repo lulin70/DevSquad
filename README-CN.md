@@ -1,16 +1,16 @@
 # DevSquad — 多角色 AI 任务编排器
 
 <p align="center">
-  <strong>一个任务 → 多角色AI协作 → 一个结论</strong>
+  <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>企业级就绪 | V4.4.0</em>
+  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.4.1 (文档重构) | V4.4.0 (5 个新增增强模块)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-8155%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.4.0-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.4.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -18,39 +18,126 @@
 
 ---
 
-## 🚀 V4.1.0: Loop Engineering + UI/UX 巡检 + Adversarial 验证 + DAG 可视化 + Autonomous + 插件热加载
+## 📖 太长不看？先看这个（30 秒）
 
-**DevSquad V4.1.0** 借鉴上游 TraeMultiAgentSkill v2.7 理念，新增 6 个特性（P1-P3），全面接入 dispatch pipeline，无幽灵功能：
-- **P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
-- **P1-2 UI/UX 巡检**: 4 维度审计（a11y/interaction/layout/ux）+ PIL 像素 diff 视觉回归
-- **P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁三阶段对抗验证
-- **P2-2 DAG 可视化**: Mermaid / JSON / DOT 三种格式依赖图可视化
-- **P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代，复用 LoopKernel，不绕过共识门
-- **P3-2 插件热加载**: 三种加载路径 + 路径穿越三层防护 + reload 回滚 + 审计日志
+### DevSquad 是什么？
 
-7400+ tests passing。
+**DevSquad** 是一个多角色 AI 任务编排器。当你提交一个任务时，它不再是单个 AI 回答，而是让 **7 个专业角色**（架构师、安全专家、测试员、开发者等）**并行协作**，最后给出经过多方审核的结论。
 
-### 🎯 快速开始（5种使用方式）
-
-#### 1️⃣ 命令行界面
-```bash
-# 标准 CLI 用法
-python scripts/cli.py lifecycle build
-
-# 增强的可视化输出
-python scripts/cli.py lifecycle build --visual --verbose
+```
+传统 AI:  你 ──→ ChatGPT ──→ 一个回答（可能不全面）
+DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] ──→ 多维度共识结论
 ```
 
-#### 2️⃣ 交互式 Web 仪表板（推荐）
+### 核心优势（对比单 AI）
+
+| 痛点 | 传统单 AI | DevSquad |
+|------|----------|----------|
+| **视角单一** | 只有通用视角 | 7 个专业角色并行审视 ✅ |
+| **质量不可控** | 可能遗漏安全问题 | 多维度交叉验证 + 共识机制 ✅ |
+| **无审计追踪** | 不知道回答依据什么 | 完整审计链 + SHA256 完整性校验 ✅ |
+| **复杂任务崩溃** | 长任务容易丢失上下文 | Checkpoint 断点续传 + 工作流引擎 ✅ |
+
+### 最快上手（5 分钟）
+
 ```bash
-# 启动带认证的 Streamlit 仪表板
+# 安装
+pip install devsquad
+
+# 运行 - 让 AI 团队帮你设计认证系统
+devsquad run "设计一个安全的用户认证系统" --roles architect,security,tester,coder
+
+# 输出结构化报告：
+# ✅ 架构师建议：采用 JWT + Refresh Token 方案...
+# ✅ 安全专家审查：需防范 CSRF、XSS、SQL 注入...
+# ✅ 测试策略：单元测试覆盖率达 90%+...
+# ✅ 开发实现：提供完整代码框架...
+# 📊 共识结论：方案可行，风险可控...
+```
+
+### 什么时候用 DevSquad？
+
+| 你的需求 | 推荐方案 |
+|---------|---------|
+| 简单问答（"Python 怎么写 for 循环？"） | 直接用 ChatGPT/Claude ✅ |
+| 代码片段审查 | DevSquad 单角色模式 ✅ |
+| 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
+| 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
+
+📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [185+ 模块详细参考](SKILL.md)
+
+---
+
+<details>
+<summary>🔍 点击展开：完整功能介绍与架构详解</summary>
+
+## 🚀 V4.3.0 (V4.3.0 候选版): 安全债清理 + 上游精细化升级 + 测试金字塔达标
+
+**DevSquad V4.3.0** 是 V4.3.0 的预发布候选版本，整合技术债跟踪、pickle→JSON 迁移、上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发三方面输入，按 7-Role 共识推进：
+
+### V4.3.0 P0 — 安全债清理（必做）
+- **P0-1 pickle→JSON 迁移阶段 1**: 删除 2 处 dead code + fallback 安全收紧（`require_password` 校验）
+- **P0-2 技术债持续监控**: `todo_drift_monitor.py` 自动扫描 TODO/FIXME/HACK + pre-commit 阻塞 + CI lint 集成
+
+### V4.3.0 P1 — 上游精细化升级（重要）
+- **P1-1 Ponytail lite/full 双模式**: 8 核心红线（lite）+ 16 红线（full），`# ponytail:` 债务收集 + `[REQ-XXX]` 需求追踪
+- **P1-4 LoopKernel RollbackStrategy**: D1-D6 失败精准回退 + 独立硬上限（默认 3）+ 累计上下文传递
+- **P1-5 UIUX 子项审计**: 4 维度 20 子项注册表 + PASS/WARN/FAIL/NOT_IMPLEMENTED 审计
+- **P1-6 Dashboard V4.3.0 面板**: Ponytail 模式 / Loop 回退 / Plugin 事件 / 技术债状态可视化
+
+### V4.3.0 P2 — 收尾（一般）
+- **P2-1 pickle fallback 完全移除**（用户确认从 V4.3.1 并入 V4.3.0）: `allow_pickle_fallback` 参数移除，`serialization_format="pickle"` 构造时拒绝
+
+### V4.2+ / V4.3+ Roadmap 已落地项
+- **P2-1 PrototypeSkill**: 快速原型生成验证假设
+- **P2-2 TeachSkill**: 8 主题新用户引导课程
+- **P2-4 pre-commit hooks**: 依赖版本锁检查
+- **P2-UI-1 CLI 命令词表**: 基于 impeccable 23 命令词表对齐
+- **P2-UI-2 Live Browser 模式**: 实时 UI 审查迭代闭环
+- **P2-UI-3 Meta-skills 分层**: 8 子技能 6 层架构
+
+### 测试金字塔达标
+- **Contract 测试**: 3.06% → 5.0%（目标 ≥5% ✅）
+- **Integration 测试**: 8.84% → 15.2%（目标 ≥15% ✅）
+- **总测试数**: 5250+ → 7681（+2431 测试）
+
+### 历史特性（V4.0.0-V4.2.1）
+- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
+- **V4.0.0 P1-2 UI/UX 巡检**: 4 维度审计 + PIL 像素 diff 视觉回归
+- **V4.0.0 P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁
+- **V4.0.0 P2-2 DAG 可视化**: Mermaid / JSON / DOT 三格式
+- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
+- **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
+
+7681 tests passing。
+
+---
+
+## ⚡ 快速开始（5 种使用方式）
+
+### 方式 1: CLI（推荐新手）
+
+```bash
+# 交互式设置向导（1-2 分钟）
+python scripts/cli.py init
+
+# 然后开始协作！
+devsquad dispatch -t "你的任务描述"
+```
+
+### 方式 2: Web Dashboard（推荐团队）
+
+```bash
+# 启动带认证的 Streamlit dashboard
 streamlit run scripts/dashboard.py
 
 # 打开 http://localhost:8501
-# 使用 admin / admin123 登录
+# 使用默认 dev 凭证登录（详见 INSTALL.md "Default credentials" 章节）
+# 生产环境请修改所有默认配置
 ```
 
-#### 3️⃣ REST API 服务器
+### 方式 3: REST API（推荐集成场景）
+
 ```bash
 # 安装依赖
 pip install fastapi uvicorn
@@ -62,7 +149,8 @@ uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
 # 访问 ReDoc:      http://localhost:8000/redoc
 ```
 
-#### 4️⃣ Python API（开发者推荐）
+### 方式 4: Python API（推荐开发者）
+
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
@@ -75,33 +163,204 @@ print(result.report)
 print(result.consensus)
 ```
 
-#### 5️⃣ 一键启动脚本（V3.9.2+）
+### 方式 5: 一键启动脚本（V3.9.2+）
+
 ```bash
 # 一键启动 — 4 阶段：环境检查 → 数据库初始化 → 前端构建 → 服务启动
 ./scripts/start.sh
 
-# 启动 Streamlit 仪表板（替代 API 服务器）
+# 启动 Streamlit dashboard 替代 API 服务器
 ./scripts/start.sh --dashboard
 
 # 覆盖 API 端口
 DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
-# 查看帮助
+# 显示帮助
 ./scripts/start.sh --help
 ```
 
-`start.sh` 是 V3.9.2（P0-2）引入的统一入口脚本，一条命令完成环境校验、数据库初始化、前端构建和服务启动。配合 `requirements.lock` 可实现可复现构建（`pip install -r requirements.lock`）。
+`start.sh` 是 V3.9.2（P0-2）引入的统一入口脚本，一条命令完成环境校验、数据库初始化、前端构建和服务启动。配合 `requirements.lock` 可实现可复现构建（`pip install -r requirements.lock`）。V4.1.0 新增 Loop Engineering、UI/UX 巡检、Adversarial 验证、DAG 可视化、Autonomous 和插件热加载。
 
 ---
 
-## 🏗️ 架构概览
+## 👥 7 个核心角色
+
+| 角色 | CLI ID | 别名 | 权重 | 最适用于 |
+|------|--------|------|------|----------|
+| 🏗️ **Architect** | `arch` | `architect` | 1.5 | 系统设计、技术栈、性能/安全架构 |
+| 📋 **Product Manager** | `pm` | `product-manager` | 1.2 | 需求、用户故事、验收标准 |
+| 🛡️ **Security Expert** | `sec` | `security` | 1.1 | 威胁建模、漏洞审计、合规 |
+| 🧪 **Tester** | `test` | `tester`, `qa` | 1.0 | 测试策略、质量保证、边界用例 |
+| 💻 **Coder** | `coder` | `solo-coder`, `dev` | 1.0 | 实现、代码审查、性能优化 |
+| 🔧 **DevOps** | `infra` | `devops` | 1.0 | CI/CD、容器化、监控、基础设施 |
+| 🎨 **UI Designer** | `ui` | `ui-designer` | 0.9 | UX 流程、交互设计、可访问性 |
+
+**自动匹配**: 若未指定角色，dispatcher 会根据任务关键词自动匹配。
+
+---
+
+## 🏗️ 五大能力域（架构概览）
+
+DevSquad 的 235 个模块组织为 **5 大能力域**，各域解决特定问题：
+
+### 🎯 能力域 1: 任务编排引擎（核心）
+
+> **让 7 个角色高效协作的「指挥中心」**
+
+| 模块 | 用途 | 何时使用 |
+|------|------|----------|
+| **MultiAgentDispatcher** | 统一 dispatch 入口 | 所有任务自动调用 |
+| **Coordinator** | 任务分解 + 角色分配 | 需要拆解的复杂任务 |
+| **Scratchpad** | 实时信息交换的共享黑板 | 角色间协作 |
+| **ConsensusEngine** | 加权投票 + 否决 + 升级机制 | 安全/架构争议 |
+| **BatchScheduler** | 并行/串行混合调度 | 资源受限环境 |
+
+**核心工作流:**
+```
+User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
+           → [ThreadPoolExecutor Parallel Workers] → [Scratchpad Real-time Sharing]
+           → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
+```
+
+### 🛡️ 能力域 2: 质量保障体系
+
+> **防止 AI 「偷懒」或「幻觉」**
+
+| 模块 | 用途 | 何时使用 |
+|------|------|----------|
+| **InputValidator** | 安全校验 + 40 种模式检测（14 禁止 + 21 提示词注入 + 5 可疑） | 生产环境 |
+| **VerificationGate** | 强制证据要求 + 7 Red Flags 检测 | 关键决策场景 |
+| **AntiRationalizationEngine** | 按角色的借口→反驳表，防止质量偷工减料 | 高质量要求场景 |
+| **TestQualityGuard** | 测试质量审计（API 校验 / 反模式检测 / 维度覆盖） | 发布前验证 |
+| **PermissionGuard** | 4 级安全门（PLAN/DEFAULT/AUTO/BYPASS） | 安全敏感任务 |
+
+### ⚡ 能力域 3: 性能与可靠性
+
+> **让系统更快、更稳定、更省钱**
+
+| 模块 | 用途 | 何时使用 |
+|------|------|----------|
+| **LLMCache** | 基于 TTL 的 LRU 缓存，支持磁盘持久化（降低 60-80% 成本） | 高频使用场景 |
+| **LLMRetry** | 指数退避 + 熔断器 + 多后端 fallback | 网络不稳定场景 |
+| **FeedbackControlLoop** | 闭环反馈控制，自动迭代直至达到质量阈值 | 追求高质量输出 |
+| **ExecutionGuard** | 实时中止守护（超时/输出/关键词），保障安全执行 | 长时间运行任务 |
+| **FallbackBackend** | 带 health 监控的自动后端 failover | 高可用要求场景 |
+
+### 📊 能力域 4: 可观测性与治理
+
+> **知道系统在做什么、做得怎么样**
+
+| 模块 | 用途 | 何时使用 |
+|------|------|----------|
+| **PerformanceMonitor** | P95/P99 响应时间、CPU/内存跟踪、瓶颈检测 | 性能调优 |
+| **UsageTracker** | Token/成本使用量跟踪与报告 | 成本控制 |
+| **AuditLogger** | SHA256 完整性操作日志，支持 CSV/JSON 导出（Preview） | 合规审计 |
+| **RBAC Engine** | 15+ 细粒度权限，5 角色（SUPER_ADMIN/ADMIN/OPERATOR/ANALYST/VIEWER）（Preview） | 企业级访问控制 |
+| **Multi-Tenancy Manager** | 3 级隔离（strict/moderate/shared），租户级资源隔离（Preview） | 多租户 SaaS |
+| **Sensitive Data Masker** | PII 检测与脱敏（邮箱/手机/身份证/信用卡），可配置规则（Preview） | 数据合规 |
+| **HistoryManager** | SQLite 时序存储：指标快照、告警历史、API 日志 | 复盘分析 |
+
+### 🔌 能力域 5: 集成与扩展
+
+> **融入你的现有工具链**
+
+| 模块 | 用途 | 何时使用 |
+|------|------|----------|
+| **CLI** | 带 lifecycle 命令的命令行界面 | 开发者日常使用 |
+| **REST API (FastAPI)** | 10+ 端点，含 OpenAPI/Swagger 文档 | 微服务集成 |
+| **Dashboard (Streamlit)** | 带认证的交互式 Web dashboard | 运营团队可视化 |
+| **MCP Protocol** | 集成 TRAE/Claude Code/Cursor | AI Agent 生态 |
+| **Docker Support** | 多阶段构建用于生产部署 | 容器化环境 |
+| **GitHub Actions CI** | Python 3.10-3.11 矩阵测试 | CI/CD 流水线 |
+
+---
+
+## 🔬 控制论增强模块（V3.6.1）
+
+> **非侵入式包装设计 — 可选开关，零修改现有核心逻辑**
+
+5 个控制论模块可独立或组合工作，无需修改现有核心逻辑：
+
+```
+User Task
+    ↓
+[SimilarTaskRecommender] ← 可选：从历史推荐角色
+    ↓
+[AdaptiveRoleSelector]   ← 可选：优化角色选择
+    ↓
+[MultiAgentDispatcher]
+    ↓
+[FeedbackControlLoop]     ← 包装 dispatcher 实现自动迭代
+    ↓ [每个 worker 步骤]
+[ExecutionGuard]          ← 守护每个 worker 执行
+    ↓
+[PerformanceFingerprint]  ← dispatch 完成后记录
+```
+
+### 1️⃣ FeedbackControlLoop（反馈闭环控制器）
+- 闭环反馈控制，自动迭代直至达到质量阈值
+- 可配置质量门（`quality_gate`）和最大迭代次数
+- 轻量级质量评估（无 LLM 调用），支持 dry-run 模式
+
+### 2️⃣ ExecutionGuard（执行守护者）
+- 实时执行监控，4 种中止条件：超时、输出大小、Token 数、关键关键词
+- 轻量级检查（<1ms），零外部依赖
+- 阈值可动态配置
+
+### 3️⃣ PerformanceFingerprint（性能指纹系统）
+- 统一执行指纹记录（融合 4 种数据源）
+- 纯 Python TF-IDF 实现（不依赖 sklearn/numpy），支持中英文混合内容
+- JSON 持久化到 `.devsquad_data/fingerprints/`，支持冷启动优雅降级
+
+### 4️⃣ SimilarTaskRecommender（相似任务推荐器）
+- 基于 TF-IDF 的任务相似度搜索，提供历史成功配置推荐
+- 智能角色组合推荐、意图预测、执行时间估算
+- 置信度评分（high/medium/low），支持冷启动优雅降级
+
+### 5️⃣ AdaptiveRoleSelector（自适应角色选择器）
+- 基于历史成功率的三层选择策略
+- 可配置最小成功率和最大角色数
+- 支持手动统计更新和完整的角色效能报告
+
+**推荐用法**（渐进式采用）：
+```python
+from scripts.collaboration import (
+    MultiAgentDispatcher, FeedbackControlLoop,
+    ExecutionGuard, PerformanceFingerprint
+)
+
+dispatcher = MultiAgentDispatcher()
+guard = ExecutionGuard()
+fingerprint = PerformanceFingerprint()
+
+# 方式 1: 完整控制论栈
+loop = FeedbackControlLoop(dispatcher, quality_gate=0.7)
+result = loop.run("Your task here")
+
+# 方式 2: 仅守护（最小采用）
+result = dispatcher.dispatch("Your task")
+for w in result.worker_results:
+    abort, reason = guard.check_abort(w.output, w.duration)
+    if abort:
+        print(f"Aborted: {reason}")
+
+# 方式 3: 仅学习
+fingerprint.record_execution("task", result, result.timing, result.matched_roles)
+similar = fingerprint.find_similar("new task", top_k=3)
+```
+
+所有模块均为**可选开关** — 不启用也能完美运行 DevSquad。
+
+---
+
+## 🏗️ 架构概览（分层设计）
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    用户访问层                              │
+│                    用户访问层                               │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
 │  │ Streamlit    │ │ FastAPI REST │ │ CLI/Notebook │        │
-│  │ 仪表板       │ │ API 服务器   │ │ (现有)       │        │
+│  │ Dashboard    │ │ API Server   │ │ (现有)       │        │
 │  │ (Auth+HTTPS) │ │ (Swagger)    │ │              │        │
 │  └──────┬───────┘ └──────┬───────┘ └──────────────┘        │
 └─────────┼───────────────┼───────────────────────────────────┘
@@ -111,124 +370,45 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 │                   业务逻辑层                                │
 │  ┌─────────────┐ ┌─────────────┐           │
 │  │AuthManager  │ │HistoryMgr   │           │
-│  │(RBAC 认证)  │ │(SQLite TSDB)│           │
+│  │(RBAC Auth)  │ │(SQLite TSDB)│           │
 │  └─────────────┘ └─────────────┘           │
 │  ┌─────────────────────────────────────────────┐            │
-│  │     LifecycleProtocol (11阶段引擎)           │            │
+│  │     LifecycleProtocol (11-Phase Engine)       │            │
 │  │     UnifiedGateEngine + CheckpointManager     │            │
 │  └─────────────────────────────────────────────┘            │
 └─────────────────────────┬───────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    数据持久层                               │
+│                    数据持久层                                │
 │  ┌────────────┐ ┌────────────┐ ┌────────────────────────┐  │
-│  │ SQLite DB  │ │ YAML 配置  │ │ 检查点文件             │  │
-│  │ (历史)     │ │ (部署)      │ │ (生命周期状态)         │  │
+│  │ SQLite DB  │ │ YAML Config│ │ Checkpoint Files       │  │
+│  │ (History)  │ │ (Deploy)   │ │ (Lifecycle State)      │  │
 │  └────────────┘ └────────────┘ └────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ✨ 核心特性 (V4.1.0)
+## 🧩 分层子 Skill 架构（V3.6.0）
 
-### 🏗️ 五大能力域架构（V4.1.0）
-
-DevSquad 的 235 模块组织为 **5 大能力域**，各域解决特定问题：
-
-| 能力域 | 核心模块 | 解决问题 |
-|--------|---------|---------|
-| **任务编排引擎** | MultiAgentDispatcher / Coordinator / Scratchpad / ConsensusEngine / BatchScheduler | 7 角色协作的"指挥中心" |
-| **质量保障体系** | InputValidator / VerificationGate / AntiRationalizationEngine / TestQualityGuard / PermissionGuard | 防止 AI"偷懒"或"幻觉" |
-| **性能与可靠性** | LLMCache / LLMRetry / FeedbackControlLoop / ExecutionGuard / FallbackBackend | 更快、更稳、更省 |
-| **可观测性与治理** | PerformanceMonitor / UsageTracker / AuditLogger / RBAC Engine / Multi-Tenancy Manager | 知道系统在做什么 |
-| **集成与扩展** | CLI / REST API / Dashboard / MCP Protocol / Docker / GitHub Actions | 融入现有工具链 |
-
-### 🧩 关注点增强包 (NEW)
-领域专属知识包，根据任务内容自动增强AI角色提示词：
-- **权限设计增强包** — RBAC/ABAC/ReBAC/ACL决策框架，行级/列级权限模式，7个常见陷阱（IDOR、权限提升、缓存残留...）
-- **Web API设计增强包** — REST/GraphQL/gRPC风格选择，JWT/OAuth2/API Key认证，版本管理策略，限流，RFC 7807错误处理
-- **数据管道增强包** — 批处理/流处理/CDC管道模式，幂等性保证，数据质量框架，Schema演化，增量同步策略
-
-增强包通过关键词**自动匹配**且**可组合** — "多租户API权限"任务会同时激活权限+Web API两个增强包。
-
-### 🎯 交互式设置向导 (NEW)
-```bash
-devsquad init    # 5步引导设置（1-2分钟）
-# Step 1: 项目类型（Web API / 全栈 / CLI / ML / 库 / 通用）
-# Step 2: AI后端（Mock / OpenAI / Anthropic）
-# Step 3: 默认角色（根据项目类型自动推荐）
-# Step 4: 语言和功能
-# Step 5: 保存到 ~/.devsquad.yaml
-```
-
-### 💬 用户友好的错误提示 (NEW)
-技术错误现在翻译为人类可读的提示，附带修复建议和使用示例：
-```
-❌ 之前: "Input validation failed: Task too short (min 5 chars, got 2)"
-✅ 现在: "任务描述太短了，请详细说明你想做什么"
-         "💡 好的任务描述应该包含：做什么 + 为什么 + 有什么特殊要求"
-         "📝 示例: devsquad dispatch -t '设计一个支持手机号和邮箱登录的用户认证系统'"
-```
-
-### 📊 性能监控 (NEW)
-内置性能监控，包含滑动窗口统计、阈值告警和回归检测：
-- 每次调度自动收集指标（11步骤计时明细）
-- P50/P95/P99延迟分析
-- 性能回归检测（>20%恶化触发告警）
-- 导出指标到JSON供外部仪表盘使用
-
-### 🤖 多角色协作系统
-
-| 角色 | 职责 | 触发关键词 |
-|------|------|------------|
-| **架构师** | 架构设计、技术选型 | architecture, design, performance |
-| **产品经理** | 需求分析、PRD撰写 | requirements, PRD, user story |
-| **安全专家** | 威胁建模、安全审计 | security, vulnerability, audit |
-| **测试专家** | 测试策略、质量保证 | test, quality, automation |
-| **开发** | 功能实现、代码审查 | implementation, code, fix |
-| **运维工程师** | CI/CD、部署、监控 | CI/CD, deploy, Docker, monitoring |
-| **UI设计师** | UI设计、交互原型 | UI, interface, prototype |
-
-### 🔒 安全特性
-
-- ✅ **RBAC 认证系统** (预览): Admin / Operator / Viewer 三级角色
-- ✅ **输入验证**: 16种攻击模式检测（XSS/SQL注入/提示词注入）
-- ✅ **权限控制**: 4级权限（PLAN/DEFAULT/AUTO/BYPASS）
-- ✅ **HTTPS 支持**: TLS 1.2+ 加密传输
-- ✅ **审计日志** (预览): 完整的操作追踪记录
-- ✅ **多租户管理器** (预览): 3级隔离（严格/适度/共享），租户资源隔离
-- ✅ **敏感数据脱敏** (预览): PII检测与脱敏（邮箱/手机/身份证/信用卡），可配置规则
-
-### ⚡ 性能优化
-
-- ✅ **LLM 缓存**: 内存+磁盘双层缓存，减少API调用60-80%
-- ✅ **上下文压缩**: 4级压缩策略防止溢出
-- ✅ **并行执行**: ThreadPoolExecutor 多Worker并发
-- ✅ **启动预热**: 3层预加载机制减少冷启动延迟
-
----
-
-## 🧩 分层子Skill架构 (V3.6.0)
-
-> DevSquad 提供 **6个原子化子Skill**，可独立使用或组合调用。
-> 每个子Skill是一个轻量级包装器（约50行），导入现有核心模块 — 无重复逻辑。
+> DevSquad 提供 **6 个原子化子 Skill**，可独立使用或组合调用。
+> 每个子 Skill 是一个轻量级包装器（约 50 行），导入现有核心模块 — 无重复逻辑。
 
 ```
 skills/
-├── dispatch/       → DispatchSkill — MultiAgentDispatcher (7角色编排)
-├── intent/         → IntentSkill   — IntentWorkflowMapper (6意图 × 3语言)
-├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5轴代码审查)
+├── dispatch/       → DispatchSkill — MultiAgentDispatcher (7 角色编排)
+├── intent/         → IntentSkill   — IntentWorkflowMapper (6 意图 × 3 语言)
+├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5 轴代码审查)
 ├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
 ├── test/           → TestSkill     — TestQualityGuard + 测试策略生成
 └── retrospective/  → RetroSkill    — RetrospectiveEngine + 模式提取
 ```
 
-### 子Skill快速参考
+### 子 Skill 快速参考
 
-| Skill | 核心方法 | 包装 | Mock模式 |
-|-------|---------|------|:--------:|
+| Skill | 核心方法 | 包装 | Mock 模式 |
+|-------|---------|------|:---------:|
 | `dispatch` | `run(task, roles, mode)` | MultiAgentDispatcher | ✅ |
 | `intent` | `detect(text, lang)` | IntentWorkflowMapper | ✅ |
 | `review` | `review(code)` | FiveAxisConsensusEngine | ✅ |
@@ -239,9 +419,9 @@ skills/
 ### 使用示例
 
 ```python
-# 直接导入（推荐用于单Skill）
+# 直接导入（推荐用于单个 skill）
 from skills.dispatch.handler import DispatchSkill
-result = DispatchSkill().run("修复登录漏洞", roles=["coder", "tester"])
+result = DispatchSkill().run("修复登录 bug", roles=["coder", "tester"])
 
 # 通过注册表（动态发现）
 from skills import get_skill, list_skills
@@ -250,226 +430,249 @@ skill = get_skill("security")
 result = skill.scan_input("DROP TABLE users; --")
 ```
 
-所有子Skill在**无需任何API Key**的Mock模式下工作。
+所有子 Skill 在 **无需任何 API Key** 的 Mock 模式下工作。
 
 ---
 
-## 📦 安装与配置
+## 📋 Plan C 架构（核心引擎）
+
+**统一 Lifecycle 架构** - 解决 CLI 6 命令 vs 11 阶段 lifecycle 的映射：
+
+```
+CLI 视图层 (6 命令)             核心引擎 (11 阶段)
+┌─────────────────────┐            ┌──────────────────────────┐
+│ spec → P1, P2       │───视图 ──→│ P1: Requirements         │
+│ plan → P7           │   映射    │ P2: Architecture         │
+│ build → P8          │            │ P3: Technical Design     │
+│ test → P9           │            │ ...                      │
+│ review → P8,P6      │            │ P10: Deployment          │
+│ ship → P10          │            │ P11: Operations          │
+└─────────────────────┘            └──────────────────────────┘
+        ↓                                    ↓
+  UnifiedGateEngine                   CheckpointManager
+  (Phase + Worker 门)                 (Lifecycle 状态持久化)
+```
+
+**核心组件:**
+- ✅ **LifecycleProtocol** - 统一 lifecycle 管理的抽象接口
+- ✅ **UnifiedGateEngine** - 集成 VerificationGate + Phase 转换门
+- ✅ **FullLifecycleAdapter** - 完整 11 阶段 lifecycle，含依赖解析
+- ✅ **Enhanced CheckpointManager** - 跨会话自动保存/恢复 lifecycle 状态
+
+---
+
+## 📦 安装
 
 ### 前置条件
+- **Python 3.10+**（支持 3.10、3.11，CI 已测试）
+- **pip** 或 **pipenv** 包管理
 
-- Python 3.10+
-- pip 或 pipenv
-
-### 安装步骤
-
+### 选项 A: PyPI 安装（推荐）
 ```bash
-# 克隆仓库
+# 从 PyPI 安装 — 零配置，开箱即用
+pip install devsquad
+
+# 含可选依赖
+pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
+pip install "devsquad[all]"    # 所有可选功能
+```
+
+### 选项 B: Git Clone + 本地安装
+```bash
 git clone https://github.com/lulin70/DevSquad.git
-cd devsquad
+cd DevSquad
 
-# 创建虚拟环境（推荐）
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
+# 安装核心包（最小依赖）
+pip install -e .
 
-# 安装依赖
-pip install -r requirements.txt
+# 即可使用！
+devsquad dispatch -t "设计用户认证系统"
+```
+
+### 验证安装
+```bash
+# 检查版本
+devsquad --version
+# 预期: devsquad 4.3.0
 
 # 运行测试
-pytest tests/ -v
-
-# 启动应用
-python scripts/cli.py dispatch -t "测试任务"
+pytest tests/ -v --tb=short
+# 预期: 7681 passed
 ```
 
 ---
 
-## 🧪 测试覆盖
+## ⚙️ 配置
 
-| 类别 | 测试数 | 通过率 |
-|------|--------|--------|
-| 核心模块 (Dispatcher/Coordinator/Worker) | 39 | 100% |
-| 角色匹配 (RoleMatcher/Semantic) | 25 | 100% |
-| 上游模块 (Checkpoint/Workflow) | 35 | 100% |
-| MCEAdapter (CarryMem集成) | 30 | 100% |
-| CLI 生命周期 | 28 | 100% |
-| UX 报告格式 | 24 | 100% |
-| P0 质量框架 (AntiRationalization/VerificationGate/IntentWorkflow) | 139 | 100% |
-| P1 增强模块 (OperationClassifier/FiveAxisConsensus等) | 133 | 100% |
-| V3.6.0 新模块 (AnchorChecker/RetrospectiveEngine等) | 45 | 100% |
-| **总计** | **5250+ CI / 66 e2e (收集 5355)** | **100%** |
+在项目根目录创建 `.devsquad.yaml`：
 
----
+```yaml
+quality_control:
+  enabled: true
+  strict_mode: true
+  min_quality_score: 85
 
-## 📚 文档资源
-
-| 文档 | 语言 | 描述 |
-|------|------|------|
-| [README.md](./README.md) | English | 主文档（本文件） |
-| [README-CN.md](./README-CN.md) | 中文 | 本文档 |
-| [README-JP.md](./README-JP.md) | 日本語 | 日语版文档 |
-| [SKILL.md](./SKILL.md) | English | Skill 使用指南 |
-| [CHANGELOG.md](./CHANGELOG.md) | English | 版本变更日志 |
-| [docs/](./docs/) | English | 详细技术文档 |
-
----
-
-## 🎮 使用示例
-
-### 示例1: 快速协作（Mock模式）
-
-```python
-from scripts.collaboration.dispatcher import MultiAgentDispatcher
-
-disp = MultiAgentDispatcher()
-result = disp.dispatch("设计用户认证系统")
-print(result.to_markdown())
-disp.shutdown()
+llm:
+  backend: auto
+  base_url: ""  # 通过 DEVSQUAD_OPENAI_BASE_URL 环境变量设置
+  model: ""     # 通过 DEVSQUAD_OPENAI_MODEL 环境变量设置
+  timeout: 120
 ```
 
-### 示例2: 使用真实 LLM 后端
-
-```python
-import os
-from scripts.collaboration.dispatcher import MultiAgentDispatcher
-from scripts.collaboration.llm_backend import create_backend
-
-backend = create_backend(
-    "openai",
-    api_key=os.environ["OPENAI_API_KEY"],
-    model="gpt-4",
-)
-
-disp = MultiAgentDispatcher(llm_backend=backend)
-result = disp.dispatch("实现微服务架构", roles=["architect", "security"])
-print(result.to_markdown())
-disp.shutdown()
-```
-
-### 示例3: CLI 生命周期命令
+或使用环境变量（优先级更高）：
 
 ```bash
-# 规格阶段
-python scripts/cli.py lifecycle spec -t "电商系统需求"
+# 默认: auto 优先尝试真实后端，失败后回退到 mock
+export DEVSQUAD_LLM_BACKEND=auto
+export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
+export DEVSQUAD_OPENAI_MODEL=gpt-4
+export DEVSQUAD_OPENAI_API_KEY=sk-...
+```
 
-# 规划阶段
-python scripts/cli.py lifecycle plan -t "数据库设计方案"
+**环境变量参考：**
 
-# 构建阶段
-python scripts/cli.py lifecycle build -t "实现支付接口"
+| 变量 | 用途 | 默认值 |
+|------|------|--------|
+| `DEVSQUAD_LLM_BACKEND` | 默认后端类型（auto\|mock\|trae\|openai\|anthropic\|fallback） | `auto` |
+| `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
+| `DEVSQUAD_OPENAI_BASE_URL` | OpenAI 兼容 base URL | None |
+| `DEVSQUAD_OPENAI_MODEL` | OpenAI 模型名 | `gpt-4` |
+| `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
+| `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic 兼容 base URL | None |
+| `DEVSQUAD_ANTHROPIC_MODEL` | Anthropic 模型名 | `claude-sonnet-4-20250514` |
+| `DEVSQUAD_LOG_LEVEL` | 日志级别 | `WARNING` |
 
-# 测试阶段
-python scripts/cli.py lifecycle test -t "单元测试套件"
+---
 
-# 审查阶段
-python scripts/cli.py lifecycle review -t "代码审查"
+## 🧪 测试
 
-# 发布阶段
-python scripts/cli.py lifecycle ship -t "v2.0发布"
+### 快速冒烟测试（< 30 秒）
+```bash
+python3 scripts/cli.py --version       # 预期: DevSquad 4.1.0
+python3 scripts/cli.py status          # 预期: System ready
+python3 scripts/cli.py roles           # 预期: 列出 7 个核心角色
+```
+
+### 完整测试套件
+```bash
+# 运行所有测试（7681 tests passing）
+python3 -m pytest tests/ -q --tb=line
+
+# 含覆盖率报告
+python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
+```
+
+### 测试分层策略
+
+| 优先级 | 范围 | 示例 | 数量 |
+|--------|------|------|------|
+| **P0** | 质量框架核心 | AntiRationalization, VerificationGate, IntentWorkflowMapper, AuthManager | ~200 |
+| **P1** | 增强模块 | FiveAxisConsensus, OperationClassifier, OutputSlicer | ~150 |
+| **P1+** | 控制论（V3.6.6） | FeedbackControlLoop, ExecutionGuard, PerformanceFingerprint 等 | **110** |
+| **P2** | 集成 & E2E | 完整 lifecycle dispatch、跨模块集成 | ~200 |
+| **P3** | 模块单元 | 核心 dispatcher、RoleMapping、MCEAdapter、LLM backends | ~400+ |
+
+**总计: 7681 CI 测试 / 266 e2e（收集 7681）**
+
+按优先级运行：
+```bash
+# 仅 P0（关键路径, < 10s）
+python3 -m pytest tests/ -k "anti_ratif or verification or intent_workflow or auth" -q
+
+# P0 + P1（质量 + 增强, < 30s）
+python3 -m pytest tests/ -k "anti_ratif or verification or intent or auth or five_axis or operation" -q
+
+# 完整套件
+python3 -m pytest tests/ -q --tb=line
 ```
 
 ---
 
-## 🛠️ 开发指南
+## 📚 文档
 
-### 项目结构
-
-```
-DevSquad/
-├── scripts/
-│   ├── collaboration/          # 核心协作模块 (235 个)
-│   │   ├── dispatcher.py       # 统一调度入口
-│   │   ├── coordinator.py      # 全局编排器
-│   │   ├── worker.py           # Worker执行者
-│   │   ├── scratchpad.py       # 共享黑板
-│   │   ├── consensus.py        # 共识引擎
-│   │   ├── permission_guard.py # 权限控制
-│   │   ├── llm_cache.py        # 缓存系统
-│   │   ├── input_validator.py  # 输入验证
-│   │   └── ...
-│   ├── cli.py                 # 命令行界面
-│   ├── dashboard.py           # Streamlit仪表板
-│   └── api_server.py          # FastAPI服务器
-├── tests/                     # 测试套件 (7681 CI / 266 e2e, 7681 collected)
-├── docs/                      # 文档
-├── SKILL.md                   # Skill定义
-├── CHANGELOG.md              # 变更日志
-└── README.md                 # 英文主文档
-```
-
-### 代码规范
-
-- **类型注解**: Python 3.8+ 类型提示
-- **文档字符串**: Google风格 docstring
-- **异常处理**: 具体异常类型 + 异常链保留
-- **日志级别**: DEBUG/INFO/WARNING/ERROR/CRITICAL
+| 文档 | 描述 | 语言 |
+|------|------|------|
+| [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30 秒快速入门指南（推荐新用户）** | 中文 |
+| [SKILL.md](SKILL.md) | 完整技能手册 + 185+ 模块参考 | EN/CN/JP |
+| [GUIDE.md](GUIDE.md) | 完全用户指南 | 中文 |
+| [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
+| [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |
+| [CHANGELOG.md](CHANGELOG.md) | 版本历史记录 | EN |
+| [README-CN.md](README-CN.md) | 中文说明 | 中文 |
+| [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
+| [docs/PRD.md](docs/PRD.md) | 产品需求文档 | 中文 |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 技术架构文档 | 中文 |
+| [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 统一推进方案 v1.2（7-Role 共识达成） | 中文 |
+| [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（需求/用户故事/验收标准） | 中文 |
+| [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 架构设计（模块边界/接口契约/依赖图） | 中文 |
+| [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 测试方案（测试金字塔/E2E/真实用户模拟） | 中文 |
 
 ---
 
-## 📈 性能基准
+## 🗺️ Roadmap
 
-| 操作 | 平均耗时 | P99 | 目标 |
-|------|----------|-----|------|
-| Dispatcher 初始化 | ~1.3s | 2.5s | <2s |
-| 单次 Dispatch (Mock) | ~120ms | 250ms | <500ms |
-| Worker 执行 | ~80ms | 150ms | <200ms |
-| 共识决策 | ~45ms | 90ms | <100ms |
-| 内存占用 | ~85MB | 150MB | <200MB |
+### V4.3.0（进行中 — 7-Role 共识达成，文档先行）
+
+**版本策略**: V4.3.0 预发布（全部代码+文档+E2E 验证）→ 用户确认 → V4.3.0 正式版
+
+**整合三方面输入**:
+1. 技术债持续治理（`todo_drift_monitor` + CI 阻塞）
+2. pickle→JSON 迁移（dead code 删除 + fallback 安全收紧 + 移除）
+3. 上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发（Ponytail 双模式 / LoopKernel 回退 / UIUX 审计 / Dashboard 可视化）
+
+**V4.3.0 范围（9 项）**:
+
+| ID | 名称 | 优先级 |
+|----|------|--------|
+| P0-1 | pickle dead code 删除 + fallback 安全收紧 | P0 |
+| P0-2 | `todo_drift_monitor.py` + CI 阻塞 + PR template | P0 |
+| P1-1 | Ponytail lite/full 双模式 + DebtCollector + RequirementTracer | P1 |
+| P1-4 | LoopKernel RollbackStrategy + 独立硬上限 | P1 |
+| P1-5 | UIUXAnalyzer 子项审计 + 按需补全 | P1 |
+| P1-6 | Dashboard 状态可视化 | P1 |
+| P2-1 | pickle fallback 移除 | P2 |
+| P2-2 | Autonomous SmartConfirmation 文档补全 | P2 |
+| P2-4 | V4.3.0 发布文档同步 | P2 |
+
+**7-Role 共识**: 7/7 APPROVE_WITH_CONCERNS，按 10 项调整修订后达成共识。详见 [V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) v1.2。
+
+**项目生命周期**: 按 11-Phase 模型推进（P1 需求 → P2 架构 → P3 技术设计 → P7 测试计划 → P8 实施 → P9 测试执行 → P10 部署发布）
+
+**测试金字塔保障**: unit ≥60% / integration 15-25% / e2e ≤10% / contract 5-10% / smoke ≤5%
 
 ---
 
 ## 🤝 贡献指南
 
-我们欢迎社区贡献！请遵循以下步骤：
-
 1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 创建 Pull Request
-
-### 开发流程
-
-```bash
-# 安装开发依赖
-pip install -e ".[dev]"
-
-# 运行代码检查
-flake8 scripts/
-mypy scripts/
-
-# 运行完整测试
-pytest tests/ -v --cov=scripts/collaboration
-
-# 运行性能基准
-pytest tests/test_performance_benchmarks.py --benchmark-only
-```
+2. 创建特性分支（`git checkout -b feature/amazing-feature`）
+3. 提交更改（`git commit -m 'Add amazing feature'`）
+4. 推送到分支（`git push origin feature/amazing-feature`）
+5. 提交 Pull Request
 
 ---
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
-
----
-
-## 🙏 致谢
-
-感谢以下开源项目：
-- [FastAPI](https://fastapi.tiangolo.com/) - 现代 Web API 框架
-- [Streamlit](https://streamlit.io/) - 数据科学 Web 应用框架
-- [Pydantic](https://pydantic-docs.helpmanual.io/) - 数据验证库
-- [Click](https://click.palletsprojects.com/) - 命令行工具库
+本项目采用 MIT 许证 - 详见 [LICENSE](LICENSE) 文件。
 
 ---
 
 <p align="center">
-  <strong>Made with ❤️ by DevSquad Team</strong>
+  <strong>⭐ 如果 DevSquad 对你有帮助，请给个 Star！⭐</strong>
   <br>
-  <em>多角色AI协作，让每个任务都得到专业处理</em>
+  <em>让更多开发者享受到「AI 团队协作」的力量</em>
+  <br>
+  <br>
+  <strong>🙏 致谢</strong>
+  <br>
+  灵感来源于 <a href="https://github.com/weiransoft/TraeMultiAgentSkill">TraeMultiAgentSkill</a> 上游项目
+  <br>
+  Built with ❤️ by the DevSquad team
 </p>
 
-<p align="center">
-  <a href="#top">回到顶部 ↑</a>
-</p>
+---
+
+*最后更新：2026-07-30 | 版本：V4.4.1 (文档重构) | V4.4.0 (5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md))*
+
+</details>

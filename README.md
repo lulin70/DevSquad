@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.4.0 (5 new enhancement modules)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.4.1 (docs restructure) | V4.4.0 (5 new enhancement modules)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-8155%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.4.0-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.4.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -132,8 +132,8 @@ devsquad dispatch -t "your task description"
 streamlit run scripts/dashboard.py
 
 # Open http://localhost:8501
-# Login with default account, then change password immediately.
-# Username: admin   Password: admin123   (change in production)
+# Login with default dev credentials (see INSTALL.md "Default credentials" section).
+# Change all defaults in production.
 ```
 
 ### Method 3: REST API (Recommended for Integration)
@@ -673,6 +673,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-07-24 | Version: V4.2.1 (V4.3.0 in progress — see [Roadmap](#-roadmap))*
+*Last updated: 2026-07-30 | Version: V4.4.1 (docs restructure) | V4.4.0 (5 new enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
 
 </details>

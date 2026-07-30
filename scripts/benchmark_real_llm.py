@@ -2,9 +2,7 @@
 """Benchmark: real LLM backend dispatch performance.
 
 Usage:
-    DEVSQUAD_OPENAI_API_KEY=sk-... python scripts/benchmark_real_llm.py --backend openai --tasks 5
-    DEVSQUAD_ANTHROPIC_API_KEY=sk-... python scripts/benchmark_real_llm.py --backend anthropic --tasks 5
-    source .env && python scripts/benchmark_real_llm.py --backend moka --tasks 5
+    source .env && python scripts/benchmark_real_llm.py --tasks 5
 
 Measures:
 - Per-task latency
@@ -22,67 +20,45 @@ from typing import Any
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def create_backend(backend_type: str) -> Any:
-    """Create an LLM backend instance for the given type.
+def create_backend() -> Any:
+    """Create an LLM backend instance from MOKA_* environment variables.
 
-    Args:
-        backend_type: One of ``"openai"``, ``"anthropic"``, or ``"moka"``.
-            The corresponding API key must be set in the environment.
+    Reads ``MOKA_API_KEY``, ``MOKA_API_BASE``, and ``MOKA_MODEL`` from the
+    environment. The "moka" backend uses :class:`OpenAIBackend` with a
+    custom ``base_url``, making it compatible with any OpenAI-compatible API
+    (rsxermu666.cn, MokaAI, etc.).
 
     Returns:
         Configured LLM backend instance with max_tokens=500.
 
     Raises:
-        SystemExit: When the backend type is unknown or the required API
-            key environment variable is not set.
+        SystemExit: When ``MOKA_API_KEY`` is not set.
     """
-    if backend_type == "openai":
-        from scripts.collaboration.llm_backend import OpenAIBackend
+    from scripts.collaboration.llm_backend import OpenAIBackend
 
-        api_key = os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-        if not api_key:
-            print("Error: DEVSQUAD_OPENAI_API_KEY not set")
-            sys.exit(1)
-        return OpenAIBackend(api_key=api_key, max_tokens=500)
-    elif backend_type == "anthropic":
-        from scripts.collaboration.llm_backend import AnthropicBackend
-
-        api_key = os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
-        if not api_key:
-            print("Error: DEVSQUAD_ANTHROPIC_API_KEY not set")
-            sys.exit(1)
-        return AnthropicBackend(api_key=api_key, max_tokens=500)
-    elif backend_type == "moka":
-        from scripts.collaboration.llm_backend import OpenAIBackend
-
-        api_key = os.environ.get("MOKA_API_KEY")
-        if not api_key:
-            print("Error: MOKA_API_KEY not set")
-            sys.exit(1)
-        return OpenAIBackend(
-            api_key=api_key,
-            base_url=os.environ.get("MOKA_API_BASE", "https://api.moka-ai.com/v1"),
-            model=os.environ.get("MOKA_MODEL", "moka/claude-sonnet-4-6"),
-            max_tokens=500,
-        )
-    else:
-        print(f"Error: Unknown backend '{backend_type}'. Use 'openai', 'anthropic', or 'moka'")
+    api_key = os.environ.get("MOKA_API_KEY")
+    if not api_key:
+        print("Error: MOKA_API_KEY not set. Configure .env and run: source .env && python scripts/benchmark_real_llm.py")
         sys.exit(1)
+    return OpenAIBackend(
+        api_key=api_key,
+        base_url=os.environ.get("MOKA_API_BASE", "https://rsxermu666.cn/v1"),
+        model=os.environ.get("MOKA_MODEL", "claude-opus-5"),
+        max_tokens=500,
+    )
 
 
-def run_benchmark(backend_type: str, num_tasks: int, mode: str) -> None:
+def run_benchmark(num_tasks: int, mode: str) -> None:
     """Run a real-LLM dispatch benchmark and print latency/throughput stats.
 
     Args:
-        backend_type: LLM backend identifier (``"openai"`` or
-            ``"anthropic"``).
         num_tasks: Number of benchmark tasks to dispatch.
         mode: Dispatch mode (``"auto"``, ``"parallel"``,
             ``"sequential"``, or ``"consensus"``).
     """
     from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-    backend = create_backend(backend_type)
+    backend = create_backend()
     dispatcher = MultiAgentDispatcher(
         llm_backend=backend,
         enable_warmup=False,
@@ -105,7 +81,7 @@ def run_benchmark(backend_type: str, num_tasks: int, mode: str) -> None:
     ]
 
     print(f"\n{'=' * 60}")
-    print(f"Real LLM Benchmark: {backend_type.upper()} backend")
+    print(f"Real LLM Benchmark: MOKA backend ({os.environ.get('MOKA_API_BASE', 'N/A')})")
     print(f"Tasks: {num_tasks}, Mode: {mode}")
     print(f"{'=' * 60}")
 
@@ -149,16 +125,15 @@ def run_benchmark(backend_type: str, num_tasks: int, mode: str) -> None:
 def main() -> None:
     """Parse CLI arguments and launch the real-LLM benchmark.
 
-    Required argument: ``--backend`` (openai, anthropic, or moka). Optional
-    arguments: ``--tasks`` (default 5) and ``--mode`` (default auto).
+    Optional arguments: ``--tasks`` (default 5) and ``--mode`` (default auto).
+    Backend is configured via MOKA_* environment variables in .env.
     """
     parser = argparse.ArgumentParser(description="Benchmark real LLM backend dispatch")
-    parser.add_argument("--backend", choices=["openai", "anthropic", "moka"], required=True)
     parser.add_argument("--tasks", type=int, default=5)
     parser.add_argument("--mode", default="auto", choices=["auto", "parallel", "sequential", "consensus"])
     args = parser.parse_args()
 
-    run_benchmark(args.backend, args.tasks, args.mode)
+    run_benchmark(args.tasks, args.mode)
 
 
 if __name__ == "__main__":

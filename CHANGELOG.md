@@ -1,6 +1,11 @@
 # Changelog
 
-[中文版](CHANGELOG-CN.md) | **English**
+> **Note**: The Chinese changelog (`CHANGELOG-CN.md`) was retired in V4.4.1.
+> English is the single source of truth; please use a machine translator for
+> other languages. This decision follows the multi-language sync policy
+> adopted in `docs/analysis/2026-07-30_external_docs_restructure_plan.md`
+> (only `README.md` / `README-CN.md` / `README-JP.md` are kept trilingual;
+> all other docs are EN-only to avoid sync drift).
 
 This document records all significant changes to DevSquad.
 
@@ -8,6 +13,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.4.1] - 2026-07-30
+
+### V4.4.1 M3 — External Docs Restructure (2026-07-30)
+
+**Summary**: External documentation restructure completed. Version numbers synchronized to 4.4.1 across all external docs (Dockerfile, Helm chart, deployment.yaml, COMPARISON.md, skills/__init__.py, SPEC.md, ARCHITECTURE_V4.md). GUIDE.md §18 V4.4.0 new modules section added. EXAMPLES.md V4.4.0 module examples added.
+
+**Changes**:
+- **Archived 11 orphan i18n docs** to `docs/i18n/_archive/` (EXAMPLES_EN/JP, GUIDE_EN/JP, QUICK_START_EN/JP, REFERENCE_GUIDE_EN/JP, SKILL_CN/JP)
+- **Retired CHANGELOG-CN.md** (EN-only changelog now; CN/JP users use machine translator)
+- **Consolidated admin credentials** to INSTALL.md only (admin123/operator123/viewer123 removed from README/QUICKSTART/EXAMPLES/SKILL)
+- **Renumbered INSTALL.md methods** 0/1/5/6 → 1-7 (continuous numbering)
+- **Synced version numbers** across 7 additional files (Dockerfile, Chart.yaml, deployment.yaml, COMPARISON, skills/__init__, SPEC, ARCHITECTURE_V4) to 4.4.1
+- **Added GUIDE.md §18** V4.4.0 new modules section (RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector)
+- **Added EXAMPLES.md** V4.4.0 module examples section
+- **Updated frontmatter** for GUIDE.md/EXAMPLES.md/CONFIGURATION.md to V4.4.1
+
+**Verification**:
+- `python scripts/check_version_consistency.py`: all version references 4.4.1 (excluding TRAE caches which require manual sync)
+- TRAE L3/L4 caches synced via `cp SKILL.md .trae/skills/devsquad/SKILL.md` etc.
+
+**Version bump**: 4.4.0 → 4.4.1 (PATCH, SemVer compliant — docs restructure only, no API/code changes)
 
 ### V4.4.1 M0+M1 — CI Enhancement + Environment Fixes (2026-07-29)
 

@@ -1,8 +1,11 @@
 # DevSquad 使用指南
 
-> **版本**: V3.9.2 | **更新日期**: 2026-06-27**
+> **版本**: V4.4.1 | **更新日期**: 2026-07-30
 >
 > 本文档是 DevSquad 的完整功能手册，覆盖所有用户可感知的功能。
+>
+> **V4.4.0 新增模块**（5 个）：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector。详见 [§18. V4.4.0 新增模块](#18-v440-新增模块)。
+> 历史版本变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
@@ -25,6 +28,7 @@
 - [15. 部署方式](#15-部署方式)
 - [16. Agent 技能质量框架](#16-agent-技能质量框架)
 - [17. 常见问题](#17-常见问题)
+- [18. V4.4.0 新增模块](#18-v440-新增模块)
 - [附录 A：CarryMem 集成](#附录-acarrymem-集成)
 - [附录 B：完整模块清单](#附录-b完整模块清单)
 - [附录 C：子Skill架构](#附录-c子skill架构)
@@ -1321,6 +1325,127 @@ CLI: `--lang en`，Python: `MultiAgentDispatcher(lang="en")`
 
 ---
 
+## 18. V4.4.0 新增模块
+
+> **V4.4.0 新功能** — V4.4.0 引入 5 个增强模块（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector），全部集成到 dispatch pipeline。每个模块内置 `_call_counter` 防幽灵计数器，确保模块真正接入而非孤立存在。
+
+### 18.1 RiskRegister
+
+**模块职责**：PMP 风险管理。风险注册 + 7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）。
+
+**集成点**：dispatcher `_activate_v440_modules()` 自动激活 + UnifiedGateEngine `GateType.RISK_CHECK` 门禁（exposure ≥ 0.36 阻断）。
+
+**使用示例**：
+
+```python
+from scripts.collaboration.risk_register import RiskRegister
+
+rr = RiskRegister()
+rr.register("R-001", "API rate limit exceeded", probability=0.7, impact=0.5)
+rr.assess("R-001", role_weights={"architect": 0.3, "security": 0.2})
+print(rr.export_markdown())
+```
+
+**用户可见输出**：`export_markdown()` 输出 `## Risk Management` 章节，含风险表（id / description / probability / impact / exposure / strategy）。
+
+### 18.2 ViewpointRegistry
+
+**模块职责**：TOGAF 架构视点。7 角色绑定正式视点（architect=functional+data / security=threat / tester=quality / solo-coder=implementation / devops=deployment / product-manager=requirements / ui-designer=interaction）。
+
+**集成点**：ConsensusEngine SPLIT 仲裁依据 + `is_orthogonal()` 正交性判断 + `check_consistency()` 矛盾检测。
+
+**使用示例**：
+
+```python
+from scripts.collaboration.viewpoint_registry import ViewpointRegistry
+
+vr = ViewpointRegistry()
+print(vr.is_orthogonal("architect", "security"))  # True (functional vs threat)
+print(vr.check_consistency([{"role": "architect", "view": "..."}, ...]))
+```
+
+**用户可见输出**：dispatch 报告中角色视点冲突时的仲裁说明。
+
+### 18.3 ErrorBudgetTracker
+
+**模块职责**：SRE 错误预算。SLO 99.9% 默认 + `calculate()` 计算 remaining_budget + `burn_rate()` 消耗速率。
+
+**集成点**：UnifiedGateEngine `GateType.ERROR_BUDGET` P10 门禁（预算耗尽阻断功能部署）。
+
+**使用示例**：
+
+```python
+from scripts.collaboration.error_budget_tracker import ErrorBudgetTracker
+
+eb = ErrorBudgetTracker(slo=0.999)
+eb.record_error("2026-07-30T10:00:00Z")
+print(eb.calculate())  # remaining_budget, status
+print(eb.burn_rate())
+```
+
+**用户可见输出**：P10 gate 结果显示 budget status（HEALTHY / BURNING_FAST / EXHAUSTED）。
+
+### 18.4 GapAnalyzer
+
+**模块职责**：TOGAF 差距分析。`analyze(current, target)` 识别架构差距 + `prioritize()` 排序 + `generate_roadmap()` Markdown 路线图。
+
+**集成点**：`suggest_scheduler_decision()` 驱动 LoopScheduler CONTINUE / STOP。
+
+**使用示例**：
+
+```python
+from scripts.collaboration.gap_analyzer import GapAnalyzer
+
+ga = GapAnalyzer()
+gaps = ga.analyze(
+    current={"auth": "basic", "monitoring": "none"},
+    target={"auth": "oauth2", "monitoring": "prometheus"},
+)
+print(ga.generate_roadmap(gaps))
+```
+
+**用户可见输出**：dispatch 报告 `## Gap Analysis` 章节 + Markdown 路线图表格。
+
+### 18.5 DoraMetricsCollector
+
+**模块职责**：DORA 指标。4 个交付指标（Deployment Frequency / Lead Time / Change Failure Rate / MTTR）。
+
+**集成点**：`collect_from_git()` 从 git log 解析 + `collect_from_dispatch()` 从 dispatch 记录 + UnifiedGateEngine `GateType.DORA_CHECK` P11 门禁（CFR > 15% 触发架构评审）。
+
+**使用示例**：
+
+```python
+from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector
+
+dora = DoraMetricsCollector()
+metrics = dora.collect_from_dispatch([
+    {"timestamp": "2026-07-30T10:00:00Z", "success": True, "duration": 300},
+])
+print(dora.rating(metrics))  # "Elite" / "High" / "Medium" / "Low"
+```
+
+**用户可见输出**：P11 gate 结果显示 4 指标 + Elite / High / Medium / Low 评级。
+
+### 18.6 防幽灵功能保证
+
+所有 5 个 V4.4.0 模块均含 `_call_counter` 计数器，集成到 dispatch pipeline 后自然触发（不绕过）。E2E 测试 `test_e2e_dispatch_increments_all_five_counters` 验证 dispatch 后所有 5 个模块的 `_call_counter > 0`，确保模块真正接入而非孤立存在。
+
+```python
+# 验证防幽灵
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+disp = MultiAgentDispatcher()
+disp.dispatch("test task", roles=["architect"])
+for module_name in ["risk_register", "viewpoint_registry", "error_budget_tracker", "gap_analyzer", "dora_metrics_collector"]:
+    module = getattr(disp, f"_{module_name}", None)
+    if module and hasattr(module, "_call_counter"):
+        assert module._call_counter > 0, f"{module_name} not activated (ghost feature!)"
+```
+
+详见 [V4.4.0 PRD](docs/prd/V4.4.0_PRD.md) / [V4.4.0 Architecture](docs/architecture/V4.4.0_ARCHITECTURE.md) / [V4.4.0 Test Plan](docs/testing/V4.4.0_TEST_PLAN.md)。
+
+---
+
 ## 附录 A：CarryMem 集成
 
 CarryMem 是可选的跨会话记忆系统，集成后提供**规则注入**功能。
@@ -1468,4 +1593,4 @@ for name, skill in skills.items():
 
 ---
 
-*DevSquad V3.6.0 — 2026-05-13*
+*DevSquad V4.4.1 — 2026-07-30*

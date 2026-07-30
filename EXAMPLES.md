@@ -1,10 +1,10 @@
 # DevSquad 使用示例
 
-> 最后验证: 2026-05-20, **DevSquad V3.6.1**, backend=openai, model=gpt-4
+> **版本**: V4.4.1 | **最后验证**: 2026-07-30, DevSquad V4.4.1, backend=mock + openai(rsxermu666.cn)
 >
 > **Production Ready**: Authentication ✅ | REST API ✅ | Alert System ✅ | Historical Data ✅
 >
-> **V3.6.1 新增**: 控制论增强模块 (FeedbackControlLoop/ExecutionGuard/PerformanceFingerprint)
+> **V4.4.0 新增模块示例**: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector（见 [§V4.4.0 新模块示例](#v440-新模块示例)）
 
 ## 快速开始 (3种方式)
 
@@ -37,10 +37,8 @@ python3 scripts/cli.py dispatch -t "设计用户认证系统" --dry-run
 streamlit run scripts/dashboard.py
 
 # 打开 http://localhost:8501
-# 登录:
-#   用户名: admin      密码: admin123    (管理员 - 全部权限)
-#   用户名: operator   密码: operator123 (操作者 - 执行权限)
-#   用户名: viewer     密码: viewer123   (查看者 - 只读权限)
+# 登录: 使用默认开发凭证（见 INSTALL.md "Default credentials" 章节）
+# 生产环境必须修改所有默认密码
 ```
 
 **Dashboard功能**:
@@ -371,6 +369,150 @@ restored = ckpt_mgr.load_checkpoint(checkpoint.checkpoint_id)
 | `ANTHROPIC_MODEL` | 模型名（如 `claude-sonnet-4-20250514`） | 可选 |
 | `DEVSQUAD_LLM_BACKEND` | 默认后端（mock/openai/anthropic） | 可选 |
 | `DEVSQUAD_LOG_LEVEL` | 日志级别 | 可选 |
+
+## V4.4.0 新模块示例
+
+V4.4.0 引入 5 个增强模块（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector），覆盖 PMP 风险管理、TOGAF 视点正交性、SRE 错误预算、架构差距分析与 DORA 指标 5 个维度。全部 mock 模式可运行，无需 API key。每个模块内置模块级 `_call_counter` 反幽灵计数器，dispatch pipeline 自动激活并由 E2E 测试验证。
+
+### 示例 7：RiskRegister — 风险注册与评估
+
+PMP 风险管理：记录 probability × impact，支持 7 角色加权投票，输出 Markdown "Risk Management" 章节。
+
+```bash
+python3 -c "
+from scripts.collaboration.risk_register import RiskRegister
+rr = RiskRegister()
+# add() 返回 RiskItem，id 由 description 哈希自动生成（R-<sha256[:12]>）
+r1 = rr.add(description='API rate limit exceeded', probability=0.7, impact=0.5)
+r2 = rr.add(description='Database connection pool exhaustion', probability=0.3, impact=0.8)
+# 7-role weighted voting: role_id -> (probability, impact)
+rr.assess(r1.id, votes={'architect': (0.7, 0.5), 'security': (0.6, 0.6)})
+print(rr.export_markdown())
+"
+```
+
+预期输出（验证于 2026-07-30, V4.4.1, backend=mock）：
+```
+## Risk Management
+
+| ID | Description | Probability | Impact | Exposure | Strategy | Owner | Category |
+|---|---|---|---|---|---|---|---|
+| R-2fab1aedbad8 | API rate limit exceeded | 0.65 | 0.55 | 0.3570 | accept |  | general |
+| R-36849b6da8a4 | Database connection pool exhaustion | 0.30 | 0.80 | 0.2400 | accept |  | general |
+```
+
+### 示例 8：ViewpointRegistry — 视点正交性检查
+
+TOGAF 视点注册：7 角色绑定正式视点，`is_orthogonal()` 判断两角色视点是否无共享 concerns，供 ConsensusEngine 仲裁 SPLIT。
+
+```bash
+python3 -c "
+from scripts.collaboration.viewpoint_registry import ViewpointRegistry
+vr = ViewpointRegistry()
+# 架构师（functional+data）vs 安全专家（threat）—— 无共享 concerns，正交
+print('architect vs security orthogonal:', vr.is_orthogonal('architect', 'security'))
+# 架构师 vs 开发者（implementation）—— 共享 'interface'，部分重叠
+print('architect vs solo-coder orthogonal:', vr.is_orthogonal('architect', 'solo-coder'))
+"
+```
+
+预期输出（验证于 2026-07-30, V4.4.1, backend=mock）：
+```
+architect vs security orthogonal: True
+architect vs solo-coder orthogonal: False
+```
+
+### 示例 9：ErrorBudgetTracker — SLO 错误预算
+
+SRE 错误预算：按 SLO 目标与滚动窗口计算预算消耗，P10 部署门控当预算耗尽时阻断。
+
+```bash
+python3 -c "
+from scripts.collaboration.error_budget_tracker import ErrorBudgetTracker
+eb = ErrorBudgetTracker(slo_target=0.999, window_days=30)
+# 模拟 30 天窗口 10000 次请求中 1 次错误
+result = eb.calculate(slo_target=0.999, window_days=30, observed_errors=1, total_events=10000)
+print(f'Status: {result.status.value.upper()}')
+print(f'Remaining budget: {result.budget_remaining:.4f}')
+print(f'Burn rate: {result.burn_rate:.2f}x')
+"
+```
+
+预期输出（验证于 2026-07-30, V4.4.1, backend=mock）：
+```
+Status: HEALTHY
+Remaining budget: 0.9000
+Burn rate: 0.10x
+```
+
+### 示例 10：GapAnalyzer — 架构差距分析
+
+TOGAF 差距分析：对比 current/target 架构生成 Gap 列表，按优先级排序并输出 Markdown 路线图。
+
+```bash
+python3 -c "
+from scripts.collaboration.gap_analyzer import GapAnalyzer
+ga = GapAnalyzer()
+gaps = ga.analyze(
+    current={'auth': 'basic', 'monitoring': 'none', 'logging': 'file'},
+    target={'auth': 'oauth2', 'monitoring': 'prometheus', 'logging': 'elk'}
+)
+prioritized = ga.prioritize(gaps)
+print(ga.generate_roadmap(prioritized))
+"
+```
+
+预期输出（验证于 2026-07-30, V4.4.1, backend=mock）：
+```
+## Gap Analysis Roadmap
+
+| Phase | Gap | Priority | Effort |
+|---|---|---|---|
+| Phase 1 | Migrate auth from basic to oauth2 | medium | 5.0 |
+| Phase 2 | Migrate monitoring from none to prometheus | medium | 5.0 |
+| Phase 3 | Migrate logging from file to elk | medium | 5.0 |
+```
+
+### 示例 11：DoraMetricsCollector — DORA 指标收集
+
+DORA 4 指标（部署频率 / Lead Time / 变更失败率 / MTTR）：从 dispatch 审计日志收集，P11 门控当变更失败率 > 15% 时阻断。
+
+```bash
+python3 -c "
+from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector
+dora = DoraMetricsCollector()
+# 模拟 30 天内 10 次部署，1 次失败
+records = [{'timestamp': '2026-07-30T10:00:00Z', 'success': True, 'duration': 300}] * 9 + [{'timestamp': '2026-07-29T14:00:00Z', 'success': False, 'duration': 600}]
+metrics = dora.collect_from_dispatch(records, window_days=30)
+metric_name = 'change_failure_rate'
+print(f'Deployment Frequency: {metrics.deployment_frequency:.2f}/day')
+print(f'Lead Time: {metrics.lead_time:.1f}h')
+print(f'Change Failure Rate: {metrics.change_failure_rate:.1%}')
+print(f'MTTR: {metrics.mttr:.1f}h')
+print(f'CFR Rating: {metrics.rating(metric_name)}')
+"
+```
+
+预期输出（验证于 2026-07-30, V4.4.1, backend=mock）：
+```
+Deployment Frequency: 0.33/day
+Lead Time: 2.0h
+Change Failure Rate: 10.0%
+MTTR: 2.0h
+CFR Rating: high
+```
+
+### 防幽灵功能验证
+
+所有 5 个 V4.4.0 模块在 dispatch pipeline 中自动激活。E2E 测试 `test_v440_anti_ghost.py` 验证每个模块的 `_call_counter > 0`：
+
+```bash
+# 运行防幽灵 E2E 测试
+pytest tests/e2e/test_v440_anti_ghost.py -v
+# 预期：1 passed, 5 modules all activated
+```
+
+详见 [GUIDE.md §18. V4.4.0 新增模块](GUIDE.md#18-v440-新增模块) 完整功能说明。
 
 ## MCP 服务器（用于 OpenClaw / Cursor）
 

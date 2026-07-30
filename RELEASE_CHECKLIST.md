@@ -13,7 +13,7 @@ python scripts/check_version_consistency.py --strict
 - [ ] `SKILL.md` frontmatter 含 `version: X.Y.Z` 字段
 - [ ] `skill-manifest.yaml` 的 `version:` 与 `_version.py` 一致
 - [ ] `CLAUDE.md` 版本引用已更新
-- [ ] CHANGELOG.md / CHANGELOG-CN.md 最新条目为当前版本
+- [ ] CHANGELOG.md 最新条目为当前版本（V4.4.1+ EN-only；CHANGELOG-CN.md 已于 V4.4.1 退役）
 
 ## 2. TRAE 技能缓存同步
 

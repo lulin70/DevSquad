@@ -1,8 +1,11 @@
-# DevSquad Configuration Guide (V4.0.11)
+# DevSquad Configuration Guide
 
-> **Version**: V4.0.11 | **Updated**: 2026-07-14
+> **Version**: V4.4.1 | **Updated**: 2026-07-30
 >
 > Complete configuration reference for all DevSquad components including LLM backends (mock/openai/anthropic/moka/auto/trae/fallback), Authentication, REST API, Alerts, Historical Data Storage.
+>
+> **Note**: This file remains under `docs/guides/CONFIGURATION.md` for now.
+> V4.4.1 阶段 1 计划曾提议上移到根目录，但为减少链接断裂风险暂缓；上移将随 V4.5.0 文档体系大调整时一并执行。
 
 ## Configuration Methods
 

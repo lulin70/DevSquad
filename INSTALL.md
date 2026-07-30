@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V4.4.0)
+# DevSquad — Installation Guide (V4.4.1)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -9,6 +9,11 @@
 > # Quick check your actual path:
 > pwd   # run this inside the DevSquad directory
 > ```
+>
+> **Default credentials**: This is the **only** document that lists default
+> dev credentials (`admin/admin123`, `operator/operator123`, `viewer/viewer123`).
+> Other docs (README/QUICKSTART/EXAMPLES/SKILL) deliberately omit them and
+> refer back to this file. **Change all defaults in production.**
 
 ## Prerequisites
 
@@ -42,7 +47,7 @@ The wizard will guide you through:
 4. **Language & features** — warmup, compression, memory bridge, permission guard
 5. **Save config** — writes to `~/.devsquad.yaml`
 
-### Method 1: CLI — Recommended for most users
+### Method 2: CLI — Recommended for most users
 
 ```bash
 # Clone or download DevSquad
@@ -68,10 +73,10 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 4.4.0
+python3 scripts/cli.py --version   # 4.4.1
 ```
 
-### Method 5: Web Dashboard (V3.6.0) 🎨
+### Method 3: Web Dashboard (V3.6.0) 🎨
 
 ```bash
 # Install visualization dependencies
@@ -216,7 +221,7 @@ pip install -e ".[dev]"
 pip install -e ".[all]"
 ```
 
-### Method 2: Docker
+### Method 5: Docker
 
 ```bash
 # Build and run
@@ -249,7 +254,7 @@ devsquad:
 
 Environment variables override config file values. Priority: env > file > defaults.
 
-### Method 4: Python Import
+### Method 7: Python Import
 
 ```python
 import sys

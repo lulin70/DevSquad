@@ -132,12 +132,6 @@ FILES_TO_CHECK: list[FileSpec] = [
         check_mode="first_match",
     ),
     FileSpec(
-        relative_path="CHANGELOG-CN.md",
-        pattern=re.compile(r"^##\s*\[(\d+\.\d+\.\d+)\]", re.MULTILINE),
-        description="CHANGELOG-CN latest entry",
-        check_mode="first_match",
-    ),
-    FileSpec(
         relative_path="README.md",
         pattern=re.compile(r"V(\d+\.\d+\.\d+)", re.MULTILINE),
         description="README.md version badge",
