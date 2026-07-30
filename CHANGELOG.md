@@ -14,6 +14,47 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.4.2] - 2026-07-30
+
+### V4.4.2 — P0-P3 Enhancement (2026-07-30)
+
+**Summary**: P0-P3 enhancement landing based on 7-Role consensus (`docs/analysis/2026-07-30_7role_review_roadmap_enhancement.md`). P0 (real user testing) already completed in V4.4.1 M2. P1-1 (multilingual role prompt) and P1-2 (Dashboard 6-tab visibility) implemented. P2 (Kanban view) and P3 (ITSM integration) output evaluation reports only (deferred to V4.6.0/V5.0.0+).
+
+**P0 — Real User Testing (Already Complete)**:
+- V4.4.1 M2 delivered 17/17 PASS, NPS 8.6/10, 5 ACs met (`docs/release/V4.4.1_real_user_report.md`)
+
+**P1-1 — Multilingual Role Prompt (Implemented)**:
+- `RoleDefinition` gained `prompt_i18n: dict[str, str]` and `name_i18n: dict[str, str]` fields
+- Added `get_localized_prompt(lang)` and `get_localized_name(lang)` methods with zh fallback to existing `prompt`/`name`
+- 7 roles × 2 languages (EN/JA) prompts and names added to `ROLE_REGISTRY`
+- Module-level `_call_counter` anti-ghost mechanism
+- `dispatch_pre_steps.py` uses `get_localized_prompt(lang)` instead of `prompt` directly
+- 12 unit tests + 5 E2E tests (side-effect verification: assert worker received localized prompt)
+- Files: `scripts/collaboration/models_dispatch.py`, `scripts/collaboration/dispatch_models.py`, `scripts/collaboration/dispatch_pre_steps.py`
+
+**P1-2 — Dashboard 6-Tab Visibility (Implemented)**:
+- `render_dispatch_result` expanded from 2 tabs to 6: Worker Outputs / Consensus / Risk Management / Retrospective / Full Report / Raw Data
+- Each tab has dedicated render helper with empty-state handling (`st.info`)
+- 5 integration tests covering full result, empty result, partial results
+- Files: `scripts/dashboard/dispatch_views.py`
+
+**P2 — Kanban View (Evaluation Only)**:
+- Output: `docs/analysis/2026-07-30_V4.4.2_P2_kanban_evaluation.md`
+- Conclusion: **Defer to V4.6.0** — requires two rounds of user testing + data source definition + non-duplication proof
+
+**P3 — ITSM Integration (Evaluation Only)**:
+- Output: `docs/analysis/2026-07-30_V4.4.2_P3_itsm_evaluation.md`
+- Conclusion: **Defer to V5.0.0+** — requires enterprise user demand + business case + security assessment
+
+**Verification**:
+- 22 new tests PASS (12 unit + 5 E2E + 5 integration)
+- Full regression: see CI
+- Ruff 0 errors, Radon 0 D+
+- Anti-ghost: `_call_counter > 0` verified by E2E
+- Iron Rule 4 (side-effect): E2E asserts worker received localized prompt
+- Iron Rule 5 (user journey): E2E dispatches task → verifies prompt language
+- Iron Rule 6 (E2E gate): E2E tests pass before release
+
 ## [4.4.1] - 2026-07-30
 
 ### V4.4.1 M3 — External Docs Restructure (2026-07-30)

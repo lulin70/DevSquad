@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 「単一のAIアシスタント」を「7人AI専門チーム」にアップグレード</strong>
   <br>
-  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.4.1 (docs restructure) | V4.4.0 (5 new enhancement modules)</em>
+  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.4.2 (多言語プロンプト + 6タブダッシュボード) | V4.4.0 (5つの新規拡張モジュール)</em>
 </p>
 
 <p align="center">
@@ -673,6 +673,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最終更新: 2026-07-30 | バージョン: V4.4.1（docs restructure）| V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
+*最終更新: 2026-07-30 | バージョン: V4.4.2（多言語ロールプロンプト EN/CN/JP + ダッシュボード6タブ可視性強化）| V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
 
 </details>

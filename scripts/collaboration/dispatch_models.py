@@ -20,8 +20,17 @@ from .models import (
 )
 
 # Backward-compatible aliases from models SSOT
+# V4.4.2 P1-1: include prompt_i18n/name_i18n so downstream consumers
+# (PreDispatchPipeline, dashboard) can call get_localized_prompt/lang.
 ROLE_TEMPLATES = {
-    rid: {"name": rdef.name, "prompt": rdef.prompt, "keywords": rdef.keywords} for rid, rdef in ROLE_REGISTRY.items()
+    rid: {
+        "name": rdef.name,
+        "prompt": rdef.prompt,
+        "keywords": rdef.keywords,
+        "prompt_i18n": rdef.prompt_i18n,
+        "name_i18n": rdef.name_i18n,
+    }
+    for rid, rdef in ROLE_REGISTRY.items()
 }
 PLANNED_ROLES = {
     rid: {"name": rdef.name, "status": rdef.status, "description": rdef.description}
@@ -332,7 +341,14 @@ class DispatchResult:
         lines = ["", t["output"]]
         for wr in self.worker_results:
             role_id = wr.get("role_id", wr.get("role", "unknown"))
-            role_name = wr.get("role_name", wr.get("role", "unknown"))
+            # V4.4.2 P1-1: prefer localized role name when role is in the
+            # registry. Falls back to the worker_results role_name (which
+            # is the registry's default Chinese name) for unknown roles.
+            rdef = ROLE_REGISTRY.get(role_id)
+            if rdef is not None:
+                role_name = rdef.get_localized_name(self.lang)
+            else:
+                role_name = wr.get("role_name", wr.get("role", "unknown"))
             status_icon = "✅" if wr.get("success") else "❌"
             icon = role_icons.get(role_id, "🤖")
             output = wr.get("output", "") or ""

@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.4.1 (文档重构) | V4.4.0 (5 个新增增强模块)</em>
+  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.4.2 (多语言 prompt + 6-Tab 仪表盘) | V4.4.0 (5 个新增增强模块)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-8155%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.4.1-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.4.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -673,6 +673,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最后更新：2026-07-30 | 版本：V4.4.1 (文档重构) | V4.4.0 (5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md))*
+*最后更新：2026-07-30 | 版本：V4.4.2 (多语言角色 prompt EN/CN/JP + Dashboard 6-Tab 可见性增强) | V4.4.0 (5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md))*
 
 </details>

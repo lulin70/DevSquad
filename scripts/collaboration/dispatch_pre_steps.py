@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
-from .models import EntryType
+from .models import ROLE_REGISTRY, EntryType
 from .scratchpad import ScratchpadEntry
 from .user_friendly_error import make_user_friendly_error, translate_validation_result
 
@@ -491,7 +491,7 @@ class PreDispatchPipeline:
         self,
         task: str,
         matched_roles: list[dict[str, Any]],
-        _lang: str,
+        lang: str,
         _intent_match: Any,
         _rule_collection: Any,
         concern_enhancements: dict[str, Any],
@@ -499,6 +499,8 @@ class PreDispatchPipeline:
         """Prepare execution: warmup, prompt assembly, planning, spawn. Returns (plan, goal, timing)."""
         role_ids = [r["role_id"] for r in matched_roles]
 
+        # V4.4.2 P1-1: resolve lang here for localized prompt lookup.
+        # ``lang`` arrives already resolved (zh/en/ja) from Step 1 of execute().
         if self.warmup_manager:
             for rid in role_ids:
                 cache_key = f"role-prompt-{rid}"
@@ -514,10 +516,17 @@ class PreDispatchPipeline:
 
         available_roles: list[dict[str, Any]] = []
         for r in matched_roles:
-            template = ROLE_TEMPLATES.get(r["role_id"], {})
-            role_prompt: str = str(template.get("prompt", ""))
-
             role_id = r["role_id"]
+            # V4.4.2 P1-1: prefer RoleDefinition.get_localized_prompt so the
+            # worker receives a prompt in the dispatch language. Falls back
+            # to the legacy ROLE_TEMPLATES["prompt"] (Chinese) for any role
+            # not in the registry, preserving backward compatibility.
+            rdef = ROLE_REGISTRY.get(role_id)
+            if rdef is not None:
+                role_prompt: str = rdef.get_localized_prompt(lang)
+            else:
+                role_prompt = str(ROLE_TEMPLATES.get(role_id, {}).get("prompt", ""))
+
             if role_id in concern_enhancements:
                 enhancement = concern_enhancements[role_id]
                 if enhancement:

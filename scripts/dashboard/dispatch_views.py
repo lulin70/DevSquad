@@ -242,13 +242,122 @@ def render_dispatch_result(result: Any, duration: float) -> None:
 
     st.markdown("---")
 
-    tabs_report, tabs_raw = st.tabs(["📝 Formatted Report", "🔍 Raw Data"])
+    # V4.4.2 P1-2: Tabbed result view — split the single Formatted Report
+    # into focused sections so users can quickly locate worker outputs,
+    # consensus decisions, risk management, and retrospective data.
+    _render_result_tabs(result)
 
-    with tabs_report:
-        st.markdown(result.summary or result.to_markdown())
 
-    with tabs_raw:
-        st.json(result.to_dict())
+def _render_result_tabs(result: Any) -> None:
+    """Render dispatch result in 6 tabbed sections (V4.4.2 P1-2).
+
+    Tabs:
+        - Worker Outputs: one expander per worker with output + error
+        - Consensus: consensus_records table
+        - Risk Management: risk_management_md
+        - Retrospective: retrospective_report
+        - Full Report: summary
+        - Raw Data: details JSON
+
+    Empty sections render an ``st.info`` placeholder so the dashboard never
+    crashes on a sparse result (AC-4).
+    """
+    (tab_workers, tab_consensus, tab_risk, tab_retro, tab_report, tab_raw) = st.tabs([
+        "👥 Worker Outputs",
+        "🗳️ Consensus",
+        "🛡️ Risk Management",
+        "📊 Retrospective",
+        "📝 Full Report",
+        "🔍 Raw Data",
+    ])
+
+    _render_worker_outputs_tab(tab_workers, result)
+    _render_consensus_tab(tab_consensus, result)
+    _render_risk_management_tab(tab_risk, result)
+    _render_retrospective_tab(tab_retro, result)
+    _render_full_report_tab(tab_report, result)
+    _render_raw_data_tab(tab_raw, result)
+
+
+def _render_worker_outputs_tab(tab: Any, result: Any) -> None:
+    """Tab 1: one expander per worker_result showing output and error."""
+    with tab:
+        worker_results = result.worker_results or []
+        if not worker_results:
+            st.info("No worker outputs available.")
+            return
+        for w in worker_results:
+            role_name = w.get("role_name", w.get("role_id", "Unknown"))
+            worker_id = w.get("worker_id", "")
+            success = w.get("success", False)
+            status_icon = "✅" if success else "❌"
+            label = f"{status_icon} {role_name} — {worker_id}" if worker_id else f"{status_icon} {role_name}"
+            with st.expander(label, expanded=False):
+                output = w.get("output", "")
+                if output:
+                    st.markdown(output)
+                error = w.get("error")
+                if error:
+                    st.error(f"Error: {error}")
+
+
+def _render_consensus_tab(tab: Any, result: Any) -> None:
+    """Tab 2: consensus_records as a dataframe."""
+    with tab:
+        records = result.consensus_records or []
+        if not records:
+            st.info("No consensus records available.")
+            return
+        rows = [
+            {"Topic": r.get("topic", ""), "Outcome": r.get("outcome", "")}
+            for r in records
+        ]
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+
+
+def _render_risk_management_tab(tab: Any, result: Any) -> None:
+    """Tab 3: risk_management_md rendered as markdown."""
+    with tab:
+        risk_md = result.risk_management_md or ""
+        if not risk_md:
+            st.info("No risk management data available.")
+            return
+        st.markdown(risk_md)
+
+
+def _render_retrospective_tab(tab: Any, result: Any) -> None:
+    """Tab 4: retrospective_report summary and action items."""
+    with tab:
+        retro = result.retrospective_report
+        if not retro:
+            st.info("No retrospective report available.")
+            return
+        summary = retro.get("summary", "")
+        if summary:
+            st.markdown(f"**Summary**\n\n{summary}")
+        action_items = retro.get("action_items", "")
+        if action_items:
+            st.markdown(f"**Action Items**\n\n{action_items}")
+
+
+def _render_full_report_tab(tab: Any, result: Any) -> None:
+    """Tab 5: summary rendered as markdown."""
+    with tab:
+        summary = result.summary or ""
+        if not summary:
+            st.info("No full report available.")
+            return
+        st.markdown(summary)
+
+
+def _render_raw_data_tab(tab: Any, result: Any) -> None:
+    """Tab 6: details dict rendered as JSON."""
+    with tab:
+        details = result.details or {}
+        if not details:
+            st.info("No raw data available.")
+            return
+        st.json(details)
 
 
 # ── W1-T1: Real-time execution visualization helpers ──

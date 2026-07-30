@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**DevSquad** is a **V4.4.1 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
+**DevSquad** is a **V4.4.2 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
 
 **164+ Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**, **RiskRegister**, **ViewpointRegistry**, **ErrorBudgetTracker**, **GapAnalyzer**, **DoraMetricsCollector**.
 
@@ -12,7 +12,7 @@
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 **Enterprise Features**: RBAC (15+ permissions), Audit Log (SHA256), Multi-Tenancy (3 isolation levels), Prometheus Monitoring (12 metrics).
 
-## Architecture (V4.4.1 Enterprise Three-Layer)
+## Architecture (V4.4.2 Enterprise Three-Layer)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -76,7 +76,7 @@ python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec
 python3 scripts/cli.py dispatch -t "Design auth system" --backend openai --stream
 python3 scripts/cli.py status
 python3 scripts/cli.py roles
-python3 scripts/cli.py --version  # 4.4.1
+python3 scripts/cli.py --version  # 4.4.2
 ```
 
 ### Quick Dispatch
@@ -92,7 +92,7 @@ result = disp.quick_dispatch(task, include_action_items=True)   # auto-generate 
 DevSquad/
 ├── scripts/
 │   ├── collaboration/          # ★ Core modules (45 files)
-│   │   ├── _version.py         # Version SSOT (4.4.1)
+│   │   ├── _version.py         # Version SSOT (4.4.2)
 │   │   ├── dispatcher.py       # MultiAgentDispatcher — unified entry point
 │   │   ├── coordinator.py      # Global orchestrator
 │   │   ├── scratchpad.py       # Shared blackboard
@@ -160,10 +160,10 @@ DevSquad/
 - **Language**: All code comments and docstrings in **English**
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
-- **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`)
+- **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`); V4.4.2 added multilingual role prompts (EN/CN/JP) and Dashboard 6-tab visibility
 - **Testing**: pytest-based, 8155+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`4.4.1`)
+- **Version**: Single source of truth in `_version.py` (`4.4.2`)
 
 ## Role System (7 Core Roles)
 

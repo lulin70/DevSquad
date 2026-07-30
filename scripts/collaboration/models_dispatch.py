@@ -6,7 +6,12 @@
 角色查询辅助函数，供 Coordinator / Dispatcher 进行角色匹配与派发使用。
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+# V4.4.2 P1-1: Anti-ghost counter — incremented every time
+# ``RoleDefinition.get_localized_prompt`` is called. Tests assert this
+# counter > 0 after a dispatch to prove the i18n path is wired in.
+_call_counter: int = 0
 
 ROLE_WEIGHTS = {
     "architect": 1.5,
@@ -40,6 +45,11 @@ class RoleDefinition:
         weight: Default voting weight in consensus (e.g., 1.5 for architect)
         description: Short description of the role's responsibilities
         status: Role status ("core"=active, "planned"=future)
+        prompt_i18n: V4.4.2 P1-1 — localized prompts keyed by lang code
+            (e.g., {"en": "...", "ja": "..."}). ``zh`` falls back to
+            ``prompt``. Empty dict preserves backward compatibility.
+        name_i18n: V4.4.2 P1-1 — localized display names keyed by lang
+            code. ``zh`` falls back to ``name``.
 
     Example:
         >>> role = RoleDefinition(
@@ -59,6 +69,50 @@ class RoleDefinition:
     weight: float
     description: str
     status: str = "core"
+    # V4.4.2 P1-1: localized prompt/name. Default empty dict keeps the
+    # dataclass backward compatible (existing callers that construct
+    # RoleDefinition without these fields continue to work).
+    prompt_i18n: dict[str, str] = field(default_factory=dict)
+    name_i18n: dict[str, str] = field(default_factory=dict)
+
+    def get_localized_prompt(self, lang: str) -> str:
+        """Return the role prompt for the requested language.
+
+        Lookup order:
+        1. ``prompt_i18n[lang]`` if present
+        2. ``self.prompt`` (the original Chinese prompt) for ``zh`` and
+           any unrecognized lang — preserves backward compatibility.
+
+        Increments the module-level ``_call_counter`` on every call so
+        tests can verify the i18n code path is actually exercised.
+
+        Args:
+            lang: ISO language code ("zh", "en", "ja").
+
+        Returns:
+            Localized prompt string, or ``self.prompt`` as fallback.
+        """
+        global _call_counter
+        _call_counter += 1
+        if lang in self.prompt_i18n:
+            return self.prompt_i18n[lang]
+        return self.prompt
+
+    def get_localized_name(self, lang: str) -> str:
+        """Return the role display name for the requested language.
+
+        ``zh`` and any unrecognized lang fall back to ``self.name``,
+        preserving backward compatibility.
+
+        Args:
+            lang: ISO language code ("zh", "en", "ja").
+
+        Returns:
+            Localized name string, or ``self.name`` as fallback.
+        """
+        if lang in self.name_i18n:
+            return self.name_i18n[lang]
+        return self.name
 
 
 ROLE_REGISTRY: dict[str, RoleDefinition] = {
@@ -88,6 +142,11 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=1.5,
         description="System design, tech stack, API design, performance/security/data architecture",
         status="core",
+        prompt_i18n={
+            "en": "You are a System Architect. Responsible for:\n1. System architecture design (layering, modularization, interface definition)\n2. Technology selection and evaluation\n3. Performance architecture design (caching architecture, CDN strategies, sharding schemes)\n4. Security architecture design (authentication/authorization schemes, encryption strategies, security boundaries)\n5. Data architecture design (data models, data warehouse architecture, ETL architecture)\n6. Output: architecture documents, technical proposals, module designs",
+            "ja": "あなたはシステムアーキテクトです。担当：\n1. システムアーキテクチャ設計（レイヤリング、モジュール化、インターフェース定義）\n2. 技術選定と評価\n3. パフォーマンスアーキテクチャ設計（キャッシュアーキテクチャ、CDN戦略、シャーディング方式）\n4. セキュリティアーキテクチャ設計（認証・認可方式、暗号化戦略、セキュリティ境界）\n5. データアーキテクチャ設計（データモデル、データウェアハウスアーキテクチャ、ETLアーキテクチャ）\n6. 出力：アーキテクチャドキュメント、技術提案、モジュール設計",
+        },
+        name_i18n={"en": "Architect", "ja": "アーキテクト"},
     ),
     "product-manager": RoleDefinition(
         role_id="product-manager",
@@ -113,6 +172,11 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=1.2,
         description="Requirements analysis, user stories, acceptance criteria",
         status="core",
+        prompt_i18n={
+            "en": "You are a Product Manager. Responsible for:\n1. Requirements analysis and PRD writing\n2. User stories and acceptance criteria\n3. Competitive analysis\n4. Output: requirements documents, user stories, functional specifications",
+            "ja": "あなたはプロダクトマネージャーです。担当：\n1. 要件分析とPRD作成\n2. ユーザーストーリーと受け入れ基準\n3. 競合分析\n4. 出力：要件ドキュメント、ユーザーストーリー、機能仕様",
+        },
+        name_i18n={"en": "Product Manager", "ja": "プロダクトマネージャー"},
     ),
     "tester": RoleDefinition(
         role_id="tester",
@@ -138,6 +202,11 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=1.0,
         description="Test strategy, quality assurance, edge cases",
         status="core",
+        prompt_i18n={
+            "en": "You are a Test Expert. Responsible for:\n1. Test strategy and case design\n2. Automated testing solutions\n3. Quality assessment and defect tracking\n4. Output: test plans, test cases, quality reports",
+            "ja": "あなたはテスト専門家です。担当：\n1. テスト戦略とケース設計\n2. 自動化テスト方案\n3. 品質評価と欠陥追跡\n4. 出力：テスト計画、テストケース、品質レポート",
+        },
+        name_i18n={"en": "Test Expert", "ja": "テスト専門家"},
     ),
     "solo-coder": RoleDefinition(
         role_id="solo-coder",
@@ -165,6 +234,11 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=1.0,
         description="Implementation, code review, performance optimization, refactoring",
         status="core",
+        prompt_i18n={
+            "en": "You are a Full-Stack Developer. Responsible for:\n1. Feature implementation and code writing\n2. Code review and quality control (style consistency, best practices, design-pattern compliance)\n3. Performance optimization implementation (algorithm optimization, memory optimization, concurrency optimization, SQL tuning)\n4. Code refactoring and optimization\n5. Bug fixing\n6. Data migration implementation\n7. Output: source code, tests, technical documentation",
+            "ja": "あなたはフルスタック開発者です。担当：\n1. 機能実装とコード作成\n2. コードレビューと品質管理（スタイル一致性、ベストプラクティス、デザインパターン準拠）\n3. パフォーマンス最適化の実装（アルゴリズム最適化、メモリ最適化、並行最適化、SQLチューニング）\n4. コードリファクタリングと最適化\n5. バグ修正\n6. データ移行の実装\n7. 出力：ソースコード、テスト、技術ドキュメント",
+        },
+        name_i18n={"en": "Full-Stack Developer", "ja": "フルスタック開発者"},
     ),
     "ui-designer": RoleDefinition(
         role_id="ui-designer",
@@ -191,6 +265,11 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=0.9,
         description="UX design, interaction logic, accessibility",
         status="core",
+        prompt_i18n={
+            "en": "You are a UI/UX Designer. Responsible for:\n1. Interface design and interaction prototypes\n2. Design systems and component specifications\n3. Visual mockups and design deliverables\n4. Output: design mockups, prototypes, design specifications",
+            "ja": "あなたはUI/UXデザイナーです。担当：\n1. インターフェース設計とインタラクションプロトタイプ\n2. デザインシステムとコンポーネント仕様\n3. ビジュアルモックアップとデザイン成果物\n4. 出力：デザインモックアップ、プロトタイプ、デザイン仕様",
+        },
+        name_i18n={"en": "UI/UX Designer", "ja": "UI/UXデザイナー"},
     ),
     "devops": RoleDefinition(
         role_id="devops",
@@ -218,6 +297,11 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=1.0,
         description="CI/CD pipeline, containerization, monitoring, infrastructure",
         status="core",
+        prompt_i18n={
+            "en": "You are a DevOps Engineer. Responsible for:\n1. CI/CD pipeline design and implementation (GitHub Actions, GitLab CI, Jenkins)\n2. Containerization and orchestration (Docker, Kubernetes, Docker Compose)\n3. Infrastructure as code (Terraform, Pulumi, CloudFormation)\n4. Monitoring and alerting system setup (Prometheus, Grafana, ELK, Sentry)\n5. Deployment strategy design (blue-green deployment, canary release, rolling update)\n6. Environment management (dev/test/staging/production configuration and isolation)\n7. Output: CI/CD configs, Dockerfile, K8s manifests, monitoring configs, deployment docs",
+            "ja": "あなたはDevOpsエンジニアです。担当：\n1. CI/CDパイプライン設計と実装（GitHub Actions、GitLab CI、Jenkins）\n2. コンテナ化とオーケストレーション（Docker、Kubernetes、Docker Compose）\n3. Infrastructure as Code（Terraform、Pulumi、CloudFormation）\n4. 監視・アラート体系の構築（Prometheus、Grafana、ELK、Sentry）\n5. デプロイ戦略設計（ブルーグリーンデプロイ、カナリアリリース、ローリングアップデート）\n6. 環境管理（開発/テスト/ステージング/本番環境の設定と分離）\n7. 出力：CI/CD設定、Dockerfile、K8sマニフェスト、監視設定、デプロイドキュメント",
+        },
+        name_i18n={"en": "DevOps Engineer", "ja": "DevOpsエンジニア"},
     ),
     "security": RoleDefinition(
         role_id="security",
@@ -245,6 +329,11 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=1.1,
         description="Threat modeling, vulnerability audit, compliance, security review",
         status="core",
+        prompt_i18n={
+            "en": "You are a Security Expert. Responsible for:\n1. Threat modeling (STRIDE, DREAD attack-tree analysis)\n2. Vulnerability audit (OWASP Top 10, CWE common weakness enumeration)\n3. Authentication and authorization security review (OAuth2, JWT, RBAC/ABAC)\n4. Data security assessment (encryption schemes, key management, data masking)\n5. Dependency security scanning and supply-chain security (Snyk, Dependabot, SBOM)\n6. Compliance checks (GDPR, SOC2, HIPAA, PCI-DSS)\n7. Secure coding standards and best practices\n8. Output: threat models, vulnerability reports, security recommendations, compliance assessments",
+            "ja": "あなたはセキュリティ専門家です。担当：\n1. 脅威モデリング（STRIDE、DREAD攻撃ツリー分析）\n2. 脆弱性監査（OWASP Top 10、CWE共通弱点列挙）\n3. 認証・認可セキュリティレビュー（OAuth2、JWT、RBAC/ABAC）\n4. データセキュリティ評価（暗号化方式、鍵管理、データマスキング）\n5. 依存関係セキュリティスキャンとサプライチェーンセキュリティ（Snyk、Dependabot、SBOM）\n6. コンプライアンスチェック（GDPR、SOC2、HIPAA、PCI-DSS）\n7. セキュアコーディング規範とベストプラクティス\n8. 出力：脅威モデル、脆弱性レポート、セキュリティ推奨事項、コンプライアンス評価",
+        },
+        name_i18n={"en": "Security Expert", "ja": "セキュリティ専門家"},
     ),
 }
 

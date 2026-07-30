@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.4.0（MINOR 版 — 2026-07-29）
-> **最后更新**: 2026-07-29
-> **最新评估**: V4.4.0 MINOR 版 — P0-P3 增强模块（5 个新模块）落地，Risk Register / Viewpoint Registry / Error Budget Tracker / Gap Analyzer / DORA Metrics Collector 全部交付，13 E2E 测试从 xfail 转 xpass，8155 passed（local; CI authoritative），ruff/mypy/radon 全绿，所有 5 个模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **当前版本**: V4.4.2（PATCH 版 — 2026-07-30）
+> **最后更新**: 2026-07-30
+> **最新评估**: V4.4.2 PATCH 版 — P0-P3 增强落地（基于 7-Role 共识 `docs/analysis/2026-07-30_7role_review_roadmap_enhancement.md`）。P0（真实用户测试）已在 V4.4.1 M2 完成。P1-1（多语言角色 prompt）和 P1-2（Dashboard 6-Tab 可见性增强）已实施。P2（Kanban 视图）和 P3（ITSM 对接）仅输出评估报告（缓办至 V4.6.0/V5.0.0+）。22 新测试通过（12 unit + 5 integration + 5 e2e，含副作用验证），8177+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.4.0 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.4.2 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
@@ -20,6 +20,16 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 ## 2. 模块清单
 
 **模块数**: 164+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+
+**V4.4.2 新增/增强模块**:
+- `scripts/collaboration/models_dispatch.py` (P1-1 多语言角色 prompt — `RoleDefinition` 增加 `prompt_i18n`/`name_i18n` 字段 + `get_localized_prompt(lang)`/`get_localized_name(lang)` 方法 + 7 角色补全 EN/JP 翻译 + `_call_counter` 防幽灵)
+- `scripts/collaboration/dispatch_pre_steps.py` (P1-1 调度链路接入 `get_localized_prompt(lang)` 替代直接访问 `prompt` 字段)
+- `scripts/dashboard/dispatch_views.py` (P1-2 Dashboard 6-Tab 可见性增强 — `render_dispatch_result` 从 2 Tab 扩展为 6 Tab: Worker Outputs / Consensus / Risk Management / Retrospective / Full Report / Raw Data + 空状态处理)
+
+**V4.4.1 新增/增强模块**:
+- 外部文档重构（archive orphan i18n docs, retire CHANGELOG-CN, consolidate admin credentials, renumber INSTALL methods, sync version numbers across all external docs）
+- 6 条测试教训整合到 Tester role + 测试流程（V4.4.1 M2b: 6 testing lessons into tester role and test flow）
+- 真实用户模拟 E2E 测试 17 tests + NPS 报告（V4.4.1 M2: real user simulation E2E testing）
 
 **V4.4.0 新增模块**:
 - `scripts/collaboration/risk_register.py` (P0-1 PMP 风险管理 + 7 角色加权评估 + 4 种响应策略)
@@ -58,15 +68,16 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 8155 passed, 30 skipped（本地 Python 3.12，含 V4.4.0 P0-P3 全部 5 个新模块） | ✅ 全绿 |
+| 单元/集成回归 | 8177+ passed, 30 skipped（本地 Python 3.12，含 V4.4.0/V4.4.2 全部新模块） | ✅ 全绿 |
 | V4.4.0 E2E | 13 passed, 0 xfail, 0 fail（xfail→xpass 全部转换完成，0.88s） | ✅ 全绿 |
 | V4.4.1 模拟用户 E2E | 17 passed, 0 fail（5 RU 场景 + 3 AC 验收，0.49s） | ✅ 全绿 |
+| V4.4.2 多语言 + 6-Tab 测试 | 22 passed（12 unit + 5 integration + 5 e2e，含副作用验证 call_counter + localized prompt 实际下发） | ✅ 全绿 |
 | Contract 测试 | 384 passed（8 Protocol 契约合规，V4.2.1 测试金字塔提升至 5.2%） | ✅ 全绿 |
-| Integration 测试 | 1117 passed（V4.2.1 测试金字塔提升至 15.1%） | ✅ 全绿 |
+| Integration 测试 | 1122 passed（V4.2.1 测试金字塔提升至 15.1% + V4.4.2 +5） | ✅ 全绿 |
 | 版本一致性 | 32 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CLAUDE/deployment.yaml/COMPARISON.md/Chart.yaml + L1/L2/L3 TRAE 缓存 + V4.4.0 PRD） | ✅ 全绿 |
 | 覆盖率 | 80.03%+（本地 3.12，P1-D 门禁提升至 75%） | ✅ 超过 75% 门禁 |
 | 新增安全测试 | 10 passed（TestMaskRedisUrl: redis_url 凭据脱敏） | ✅ 全绿 |
-| 防幽灵验证 | 5 模块 `_call_counter > 0` after dispatch（risk_register / viewpoint_registry / error_budget_tracker / gap_analyzer / dora_metrics_collector） | ✅ 全绿 |
+| 防幽灵验证 | 5 模块 `_call_counter > 0` after dispatch（risk_register / viewpoint_registry / error_budget_tracker / gap_analyzer / dora_metrics_collector + V4.4.2 models_dispatch `get_localized_prompt` 调用计数器） | ✅ 全绿 |
 
 **测试铁律**: 0 违规（TestQualityGuard 审计通过）
 
@@ -188,6 +199,9 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | **V4.0.10 项目整理评估** | **2026-07-13** | **8.8** | **13/13** | **4651 tests 全绿、redis_url 凭据泄露防护 + health_check bug 修复、依赖同步(requirements-dev.txt/[all] extras)、CI 3.12 矩阵、pre-commit ruff 版本对齐、5 文件版本引用刷新、文档测试数同步** |
 | **V4.0.11 文档审核** | **2026-07-14** | **8.9** | **13/13** | **全面文档审核(57 issues: 16 P0+23 P1+18 P2)、health_check 版本硬编码 3.9.2→DEVSQUAD_VERSION 修复、CI 覆盖率门禁 --cov-fail-under=75 启用、模块数统一 185+(8 文件)、INDEX.md 路径修复、历史文档 superseded 标注** |
 | **V4.1.3 UI/UX 整合发布** | **2026-07-20** | **9.0** | **13/13** | **UI/UX 4-Wave 提升全部完成（180 新测试零回归）、Phase 3 本地 TRAE 环境验证 148 检查点全通过、5355 tests 全绿、版本号 18 处全量同步、5 道 CI 质量门全绿、Morandi 配色 + 暗色模式 + SVG 图标 + 命令面板 + i18n + Skeleton + 键盘快捷键** |
+| **V4.4.0 P0-P3 增强模块** | **2026-07-29** | **9.1** | **13/13** | **5 个新模块全部交付（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）、13 E2E 从 xfail 转 xpass、8155 tests 全绿、防幽灵 `_call_counter > 0` 验证通过、ruff/mypy/radon 全绿** |
+| **V4.4.1 文档重构 + 用户测试** | **2026-07-30** | **9.2** | **13/13** | **外部文档重构（archive orphan i18n + retire CHANGELOG-CN + consolidate admin credentials + renumber INSTALL）、17 真实用户模拟 E2E 测试通过（NPS 报告）、6 条测试教训整合到 Tester role** |
+| **V4.4.2 P0-P3 增强** | **2026-07-30** | **9.2** | **13/13** | **P1-1 多语言角色 prompt EN/CN/JP + P1-2 Dashboard 6-Tab 可见性增强 + P2/P3 评估报告（缓办至 V4.6.0/V5.0.0+）、22 新测试通过（含副作用验证 call_counter + localized prompt 实际下发）、8177+ tests 全绿、文档同步 ARCHITECTURE_V4/PROJECT_STATUS/3 README** |
 
 评估报告路径:
 - V3.9.2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`
