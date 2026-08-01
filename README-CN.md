@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8155%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8200%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V4.4.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -71,37 +71,47 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.3.0 (V4.3.0 候选版): 安全债清理 + 上游精细化升级 + 测试金字塔达标
+## 🚀 V4.4.2: P0-P3 增强 + 多语言角色 Prompt + Dashboard 6-Tab 可见性
 
-**DevSquad V4.3.0** 是 V4.3.0 的预发布候选版本，整合技术债跟踪、pickle→JSON 迁移、上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发三方面输入，按 7-Role 共识推进：
+**DevSquad V4.4.2** 在 V4.4.0/V4.4.1 基础上完成 P0-P3 增强模块、多语言角色 prompt（EN/CN/JP）、Dashboard 6-Tab 可见性、P2 Kanban 评估、P3 ITSM 评估。7 角色 AI 团队编排复杂工程任务，提供完整审计链和共识机制。
 
-### V4.3.0 P0 — 安全债清理（必做）
-- **P0-1 pickle→JSON 迁移阶段 1**: 删除 2 处 dead code + fallback 安全收紧（`require_password` 校验）
-- **P0-2 技术债持续监控**: `todo_drift_monitor.py` 自动扫描 TODO/FIXME/HACK + pre-commit 阻塞 + CI lint 集成
+### V4.4.0 — P0-P3 增强模块（5 个新模块）
+- **P0-1 RiskRegister**: PMP 风险管理；7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）+ `GateType.RISK_CHECK` 门禁（exposure ≥ 0.36 阻断）
+- **P0-2 ViewpointRegistry**: TOGAF 架构视点；7 角色绑定正式视点 + `is_orthogonal()` 正交性判断 + `check_consistency()` 矛盾检测
+- **P1-1 ErrorBudgetTracker**: SRE 错误预算；SLO 99.9% 默认 + `GateType.ERROR_BUDGET` P10 门禁（预算耗尽阻断功能部署）+ `burn_rate()` 消耗速率
+- **P1-2 GapAnalyzer**: TOGAF 差距分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` 驱动 LoopScheduler
+- **P2-1 DoraMetricsCollector**: DORA 指标（部署频率 / Lead Time / 变更失败率 / MTTR）+ `GateType.DORA_CHECK` P11 门禁（CFR > 15% 触发架构评审）+ Elite/High/Medium/Low 评级
 
-### V4.3.0 P1 — 上游精细化升级（重要）
-- **P1-1 Ponytail lite/full 双模式**: 8 核心红线（lite）+ 16 红线（full），`# ponytail:` 债务收集 + `[REQ-XXX]` 需求追踪
-- **P1-4 LoopKernel RollbackStrategy**: D1-D6 失败精准回退 + 独立硬上限（默认 3）+ 累计上下文传递
-- **P1-5 UIUX 子项审计**: 4 维度 20 子项注册表 + PASS/WARN/FAIL/NOT_IMPLEMENTED 审计
-- **P1-6 Dashboard V4.3.0 面板**: Ponytail 模式 / Loop 回退 / Plugin 事件 / 技术债状态可视化
+### V4.4.1 — 外部文档重构
+- 归档孤儿 i18n 文档（docs/i18n/ → docs/_archive/i18n/）
+- 退休 CHANGELOG-CN.md（CHANGELOG.md 成为所有语言的 SSOT）
+- 合并管理员凭证到 INSTALL.md（单一信息源）
+- 重新编号 INSTALL.md 方法为连续 1-7
+- 同步所有外部文档版本号（README/SKILL/INSTALL/CLAUDE）
 
-### V4.3.0 P2 — 收尾（一般）
-- **P2-1 pickle fallback 完全移除**（用户确认从 V4.3.1 并入 V4.3.0）: `allow_pickle_fallback` 参数移除，`serialization_format="pickle"` 构造时拒绝
+### V4.4.2 — 多语言 + Dashboard 增强
+- 多语言角色 prompt（EN/CN/JP）覆盖全部 7 角色
+- Dashboard 6-Tab 可见性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
+- P2 Kanban 评估（在制品限制 + 周期时间追踪）
+- P3 ITSM 评估（事件管理 + 变更顾问委员会模拟）
+- 13 个 E2E 测试 xpass + 防幽灵计数器
 
-### V4.2+ / V4.3+ Roadmap 已落地项
-- **P2-1 PrototypeSkill**: 快速原型生成验证假设
-- **P2-2 TeachSkill**: 8 主题新用户引导课程
-- **P2-4 pre-commit hooks**: 依赖版本锁检查
-- **P2-UI-1 CLI 命令词表**: 基于 impeccable 23 命令词表对齐
-- **P2-UI-2 Live Browser 模式**: 实时 UI 审查迭代闭环
-- **P2-UI-3 Meta-skills 分层**: 8 子技能 6 层架构
+### 防幽灵功能保证
+每个新模块包含 `_call_counter` 机制 + E2E anti_ghost 测试 + CI `check_module_activation.py` 验证。模块必须真正接入 dispatch pipeline（不仅实例化），且 Markdown 报告章节用户可见。
 
 ### 测试金字塔达标
-- **Contract 测试**: 3.06% → 5.0%（目标 ≥5% ✅）
-- **Integration 测试**: 8.84% → 15.2%（目标 ≥15% ✅）
-- **总测试数**: 5250+ → 7681（+2431 测试）
+- **Contract 测试**: 5.2%（目标 ≥5% ✅）
+- **Integration 测试**: 15.1%（目标 ≥15% ✅）
+- **总测试数**: 8200+（CI 权威）
+- **E2E 覆盖**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost
 
-### 历史特性（V4.0.0-V4.2.1）
+### 历史特性（V4.0.0-V4.3.3）
+- **V4.3.3**: P0-P3 增强 E2E 骨架（xfail TDD for V4.4.0）
+- **V4.3.2**: LLM vs Mock 质量差距衡量（校准门 + 薄切片探针）
+- **V4.3.0 Phase 3**: 质量补强 + 用户模拟 E2E（NPS 9/10）
+- **V4.3.0 Phase 2**: OutputValidator 完整集成（LLM 输出安全检测）
+- **V4.3.0 Phase 1**: DependencyHallucinationChecker（防 Slopsquatting 供应链攻击）
+- **V4.3.0 Phase 0**: DeploymentComplianceChecker（防违规部署兜底）
 - **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
 - **V4.0.0 P1-2 UI/UX 巡检**: 4 维度审计 + PIL 像素 diff 视觉回归
 - **V4.0.0 P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁
@@ -109,7 +119,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
 - **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
 
-7681 tests passing。
+8200+ tests passing（CI 权威）。
 
 ---
 

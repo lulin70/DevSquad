@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8155%20passing-brightgreen" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8200%2B%20passing-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V4.4.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -71,45 +71,55 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.3.0 (V4.3.0 candidate): 安全债清理 + 上游精细化升级 + 测试金字塔达标
+## 🚀 V4.4.2: P0-P3 Enhancement + Multilingual Role Prompts + Dashboard 6-Tab Visibility
 
-**DevSquad V4.3.0** 是 V4.3.0 的预发布候选版本，整合技术债跟踪、pickle→JSON 迁移、上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发三方面输入，按 7-Role 共识推进：
+**DevSquad V4.4.2** builds on V4.4.0/V4.4.1 with P0-P3 enhancement modules, multilingual role prompts (EN/CN/JP), Dashboard 6-tab visibility, P2 Kanban evaluation, and P3 ITSM evaluation. The 7-role AI team orchestrates complex engineering tasks with full audit trails and consensus mechanisms.
 
-### V4.3.0 P0 — 安全债清理（必做）
-- **P0-1 pickle→JSON 迁移阶段 1**: 删除 2 处 dead code + fallback 安全收紧（`require_password` 校验）
-- **P0-2 技术债持续监控**: `todo_drift_monitor.py` 自动扫描 TODO/FIXME/HACK + pre-commit 阻塞 + CI lint 集成
+### V4.4.0 — P0-P3 Enhancement Modules (5 new modules)
+- **P0-1 RiskRegister**: PMP risk management with 7-role weighted assessment (probability × impact) + 4 response strategies (avoid/transfer/mitigate/accept) + `GateType.RISK_CHECK` gate (exposure ≥ 0.36 blocks)
+- **P0-2 ViewpointRegistry**: TOGAF architecture viewpoints with 7-role bound formal viewpoints + `is_orthogonal()` orthogonality check + `check_consistency()` conflict detection
+- **P1-1 ErrorBudgetTracker**: SRE error budget with SLO 99.9% default + `GateType.ERROR_BUDGET` P10 gate (budget exhaustion blocks deployment) + `burn_rate()` consumption rate
+- **P1-2 GapAnalyzer**: TOGAF gap analysis with `analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` driving LoopScheduler
+- **P2-1 DoraMetricsCollector**: DORA metrics (Deployment Frequency / Lead Time / Change Failure Rate / MTTR) + `GateType.DORA_CHECK` P11 gate (CFR > 15% triggers architecture review) + Elite/High/Medium/Low rating
 
-### V4.3.0 P1 — 上游精细化升级（重要）
-- **P1-1 Ponytail lite/full 双模式**: 8 核心红线（lite）+ 16 红线（full），`# ponytail:` 债务收集 + `[REQ-XXX]` 需求追踪
-- **P1-4 LoopKernel RollbackStrategy**: D1-D6 失败精准回退 + 独立硬上限（默认 3）+ 累计上下文传递
-- **P1-5 UIUX 子项审计**: 4 维度 20 子项注册表 + PASS/WARN/FAIL/NOT_IMPLEMENTED 审计
-- **P1-6 Dashboard V4.3.0 面板**: Ponytail 模式 / Loop 回退 / Plugin 事件 / 技术债状态可视化
+### V4.4.1 — External Docs Restructure
+- Archived orphan i18n docs (docs/i18n/ → docs/_archive/i18n/)
+- Retired CHANGELOG-CN.md (CHANGELOG.md is now SSOT for all languages)
+- Consolidated admin credentials to INSTALL.md only (single source of truth)
+- Renumbered INSTALL.md methods to continuous 1-7
+- Synced version numbers across all external docs (README/SKILL/INSTALL/CLAUDE)
 
-### V4.3.0 P2 — 收尾（一般）
-- **P2-1 pickle fallback 完全移除**（用户确认从 V4.3.1 并入 V4.3.0）: `allow_pickle_fallback` 参数移除，`serialization_format="pickle"` 构造时拒绝
+### V4.4.2 — Multilingual + Dashboard Enhancement
+- Multilingual role prompts (EN/CN/JP) for all 7 roles
+- Dashboard 6-tab visibility (Overview/Dispatch/Lifecycle/Metrics/Audit/Settings)
+- P2 Kanban evaluation (work-in-progress limits + cycle time tracking)
+- P3 ITSM evaluation (incident management + change advisory board simulation)
+- 13 E2E tests xpass + anti-ghost counters
 
-### V4.2+ / V4.3+ Roadmap 已落地项
-- **P2-1 PrototypeSkill**: 快速原型生成验证假设
-- **P2-2 TeachSkill**: 8 主题新用户引导课程
-- **P2-4 pre-commit hooks**: 依赖版本锁检查
-- **P2-UI-1 CLI 命令词表**: 基于 impeccable 23 命令词表对齐
-- **P2-UI-2 Live Browser 模式**: 实时 UI 审查迭代闭环
-- **P2-UI-3 Meta-skills 分层**: 8 子技能 6 层架构
+### Anti-Ghost Feature Guarantee
+Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `check_module_activation.py` verification. Modules must be truly integrated into dispatch pipeline (not just instantiated), with Markdown report sections user-visible.
 
-### 测试金字塔达标
-- **Contract 测试**: 3.06% → 5.0%（目标 ≥5% ✅）
-- **Integration 测试**: 8.84% → 15.2%（目标 ≥15% ✅）
-- **总测试数**: 5250+ → 7681（+2431 测试）
+### Test Pyramid Achieved
+- **Contract tests**: 5.2% (target ≥5% ✅)
+- **Integration tests**: 15.1% (target ≥15% ✅)
+- **Total tests**: 8200+ (CI authoritative)
+- **E2E coverage**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost
 
-### 历史特性（V4.0.0-V4.2.1）
-- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
-- **V4.0.0 P1-2 UI/UX 巡检**: 4 维度审计 + PIL 像素 diff 视觉回归
-- **V4.0.0 P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁
-- **V4.0.0 P2-2 DAG 可视化**: Mermaid / JSON / DOT 三格式
-- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
-- **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
+### Historical Features (V4.0.0-V4.3.3)
+- **V4.3.3**: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0)
+- **V4.3.2**: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe)
+- **V4.3.0 Phase 3**: Quality hardening + user simulation E2E (NPS 9/10)
+- **V4.3.0 Phase 2**: OutputValidator full integration (LLM output safety detection)
+- **V4.3.0 Phase 1**: DependencyHallucinationChecker (anti-slopsquatting supply chain attack)
+- **V4.3.0 Phase 0**: DeploymentComplianceChecker (anti-violation deployment backstop)
+- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling
+- **V4.0.0 P1-2 UI/UX Patrol**: 4-dimension audit + PIL pixel diff visual regression
+- **V4.0.0 P2-1 Adversarial Verification**: red team attack + blue team defense + judge arbitration
+- **V4.0.0 P2-2 DAG Visualization**: Mermaid / JSON / DOT three formats
+- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4-stage autonomous iteration
+- **V4.0.0 P3-2 Plugin Hot-Loading**: 3 loading paths + path traversal 3-layer protection + reload rollback
 
-7681 tests passing。
+8200+ tests passing (CI authoritative).
 
 ---
 

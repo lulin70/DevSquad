@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V4.4.1)
+# DevSquad — Installation Guide (V4.4.2)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -24,9 +24,9 @@
 
 See [**Windows Support**](#windows-support) below for Windows-specific instructions.
 
-## Quick Start (6 Methods)
+## Quick Start (7 Methods)
 
-### Method 0: Interactive Setup Wizard — First time? Start here!
+### Method 1: Interactive Setup Wizard — First time? Start here!
 
 ```bash
 # Clone or download DevSquad
@@ -73,7 +73,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 4.4.1
+python3 scripts/cli.py --version   # 4.4.2
 ```
 
 ### Method 3: Web Dashboard (V3.6.0) 🎨
@@ -102,7 +102,7 @@ streamlit run scripts/dashboard.py
 
 > **Production Deployment**: See [Production Configuration](#production-configuration) below.
 
-### Method 6: REST API Server (V3.6.0) 🌐
+### Method 4: REST API Server (V3.6.0) 🌐
 
 ```bash
 # Install API server dependencies
@@ -235,7 +235,7 @@ docker run -e OPENAI_API_KEY="sk-..." devsquad dispatch -t "Design auth system" 
 docker run -it devsquad /bin/bash
 ```
 
-### Method 3: Configuration File
+### Method 6: Configuration File
 
 Create `~/.devsquad.yaml` for persistent settings:
 

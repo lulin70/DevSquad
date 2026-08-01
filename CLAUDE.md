@@ -4,11 +4,11 @@
 
 **DevSquad** is a **V4.4.2 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with ThreadPoolExecutor parallel execution.
 
-**164+ Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**, **RiskRegister**, **ViewpointRegistry**, **ErrorBudgetTracker**, **GapAnalyzer**, **DoraMetricsCollector**.
+**185+ Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**, **RiskRegister**, **ViewpointRegistry**, **ErrorBudgetTracker**, **GapAnalyzer**, **DoraMetricsCollector**.
 
 **6 Sub-Skills** (Layered Architecture): DispatchSkill (7-role orchestration), IntentSkill (6 intents × 3 languages), ReviewSkill (5-axis code review), SecuritySkill (input scan + op classify), TestSkill (test strategy + quality audit), RetrospectiveSkill (post-dispatch pattern extraction).
 
-**Test Coverage**: 8155+ tests passing across unit + E2E + integration suites (CI authoritative, Python 3.10+3.11+3.12 matrix; 30 skipped tests require real LLM API key or are platform-specific).
+**Test Coverage**: 8200+ tests passing across unit + E2E + integration suites (CI authoritative, Python 3.10+3.11+3.12 matrix; 30 skipped tests require real LLM API key or are platform-specific).
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 **Enterprise Features**: RBAC (15+ permissions), Audit Log (SHA256), Multi-Tenancy (3 isolation levels), Prometheus Monitoring (12 metrics).
 
@@ -161,7 +161,7 @@ DevSquad/
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
 - **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`); V4.4.2 added multilingual role prompts (EN/CN/JP) and Dashboard 6-tab visibility
-- **Testing**: pytest-based, 8155+ tests all passing
+- **Testing**: pytest-based, 8200+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
 - **Version**: Single source of truth in `_version.py` (`4.4.2`)
 
@@ -192,15 +192,15 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Full test suite (8155+ tests)
-python3 -m pytest scripts/collaboration/core_test.py \
-  scripts/collaboration/role_mapping_test.py \
-  scripts/collaboration/upstream_test.py \
-  scripts/collaboration/mce_adapter_test.py \
-  tests/ test_v35_integration.py -v
+# Full test suite (8200+ tests, CI authoritative)
+python3 -m pytest tests/test_collaboration_core_test.py \
+  tests/test_collaboration_role_mapping_test.py \
+  tests/test_collaboration_upstream_test.py \
+  tests/test_collaboration_mce_adapter_test.py \
+  tests/ -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 3.7.2
+python3 scripts/cli.py --version    # 4.4.2
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 ```

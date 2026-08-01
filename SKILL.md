@@ -7,7 +7,7 @@ description: |
   Not a single-capability tool: coordinates 7 roles + 6 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective).
   One task → multi-role collaboration → consensus conclusion.
-  160+ core modules, 8177+ tests passing (local; CI authoritative).
+  185+ core modules, 8200+ tests passing (local; CI authoritative).
   5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.4.2: P0-P3 enhancement (multilingual role prompt EN/CN/JP + Dashboard 6-tab visibility + P2 Kanban evaluation + P3 ITSM evaluation).
@@ -68,7 +68,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Architecture Overview (186+ Core Modules)
+## Architecture Overview (185+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -1170,7 +1170,7 @@ Implement → Test(Regression All) → Code Walkthrough → Annotate → Docs Up
 | **V4.3.2 RoleSpecificMockBackend** | **8 (4 classes)** | **✅ PASS** |
 | **V4.3.3 P0-P3 Enhancement E2E Skeletons (xfail TDD)** | **13 (6 files, V4.4.0 xfail)** | **✅ XFAIL→XPASS** |
 | **V4.4.0 P0-P3 Enhancement Modules (5 new modules)** | **13 E2E xpass + anti-ghost** | **✅ PASS** |
-| **Total** | **9362+ CI / 107 e2e + 1244 integration** | **✅ ALL PASS** |
+| **Total** | **8200+ CI / 107 e2e + 1244 integration** | **✅ ALL PASS** |
 
 ---
 

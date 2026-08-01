@@ -9,8 +9,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8155%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.4.1-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8200%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.4.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,37 +71,47 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 <details>
 <summary>🔍 クリックして展開：完全な機能紹介とアーキテクチャ詳細</summary>
 
-## 🚀 V4.3.0 (V4.3.0 candidate): セキュリティ負債クリーンアップ + 上流精緻化アップグレード + テストピラミッド達成
+## 🚀 V4.4.2: P0-P3 強化 + 多言語ロールプロンプト + Dashboard 6-Tab 可視性
 
-**DevSquad V4.3.0**はV4.3.0のプレリリース候補版で、技術負債トラッキング、pickle→JSON移行、上流TraeMultiAgentSkill v2.6-v2.8の精緻化インスピレーションの3つの入力を統合し、7-Role コンセンサスに沿って推進します：
+**DevSquad V4.4.2** は V4.4.0/V4.4.1 を基に P0-P3 強化モジュール、多言語ロールプロンプト（EN/CN/JP）、Dashboard 6-Tab 可視性、P2 Kanban 評価、P3 ITSM 評価を完了。7ロール AI チームが複雑なエンジニアリングタスクを編成し、完全な監査チェーンとコンセンサスメカニズムを提供します。
 
-### V4.3.0 P0 — セキュリティ負債クリーンアップ（必須）
-- **P0-1 pickle→JSON 移行フェーズ1**: 2箇所の dead code 削除 + fallback セキュリティ強化（`require_password` 検証）
-- **P0-2 技術負債継続監視**: `todo_drift_monitor.py` が TODO/FIXME/HACK を自動スキャン + pre-commit ブロック + CI lint 統合
+### V4.4.0 — P0-P3 強化モジュール（5新規モジュール）
+- **P0-1 RiskRegister**: PMP リスク管理；7ロール加重評価（probability × impact）+ 4対応戦略（回避/移転/軽減/受容）+ `GateType.RISK_CHECK` ゲート（exposure ≥ 0.36 でブロック）
+- **P0-2 ViewpointRegistry**: TOGAF アーキテクチャ視点；7ロール紐付け正式視点 + `is_orthogonal()` 直交性判定 + `check_consistency()` 矛盾検出
+- **P1-1 ErrorBudgetTracker**: SRE エラー予算；SLO 99.9% デフォルト + `GateType.ERROR_BUDGET` P10 ゲート（予算枯渇でデプロイブロック）+ `burn_rate()` 消費レート
+- **P1-2 GapAnalyzer**: TOGAF ギャップ分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` で LoopScheduler を駆動
+- **P2-1 DoraMetricsCollector**: DORA メトリクス（デプロイ頻度 / Lead Time / 変更失敗率 / MTTR）+ `GateType.DORA_CHECK` P11 ゲート（CFR > 15% でアーキテクチャレビュートリガー）+ Elite/High/Medium/Low 評価
 
-### V4.3.0 P1 — 上流精緻化アップグレード（重要）
-- **P1-1 Ponytail lite/full デュアルモード**: 8 コアレッドライン（lite）+ 16 レッドライン（full）、`# ponytail:` 負債収集 + `[REQ-XXX]` 要件トラッキング
-- **P1-4 LoopKernel RollbackStrategy**: D1-D6 失敗の精密ロールバック + 独立ハードリミット（デフォルト3）+ 累積コンテキスト伝達
-- **P1-5 UIUX サブ項目監査**: 4次元20サブ項目レジストリ + PASS/WARN/FAIL/NOT_IMPLEMENTED 監査
-- **P1-6 Dashboard V4.3.0 パネル**: Ponytail モード / Loop ロールバック / Plugin イベント / 技術負債状態の可視化
+### V4.4.1 — 外部ドキュメント再構築
+- 孤立 i18n ドキュメントをアーカイブ（docs/i18n/ → docs/_archive/i18n/）
+- CHANGELOG-CN.md をリタイア（CHANGELOG.md が全言語の SSOT に）
+- 管理者資格情報を INSTALL.md に統合（単一情報源）
+- INSTALL.md メソッドを連続 1-7 に再番号付け
+- 全外部ドキュメントのバージョン番号を同期（README/SKILL/INSTALL/CLAUDE）
 
-### V4.3.0 P2 — 仕上げ（一般）
-- **P2-1 pickle fallback 完全削除**（ユーザー確認で V4.3.1 から V4.3.0 へ組み込み）: `allow_pickle_fallback` パラメータ削除、`serialization_format="pickle"` 構築時拒否
+### V4.4.2 — 多言語 + Dashboard 強化
+- 多言語ロールプロンプト（EN/CN/JP）が全7ロールをカバー
+- Dashboard 6-Tab 可視性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
+- P2 Kanban 評価（WIP制限 + サイクルタイム追跡）
+- P3 ITSM 評価（インシデント管理 + 変更諮問委員会シミュレーション）
+- 13 E2E テスト xpass + アンチゴーストカウンター
 
-### V4.2+ / V4.3+ Roadmap 実装済み項目
-- **P2-1 PrototypeSkill**: 高速プロトタイプ生成で仮説検証
-- **P2-2 TeachSkill**: 8テーマの新規ユーザーオンボーディングコース
-- **P2-4 pre-commit hooks**: 依存バージョンロック検査
-- **P2-UI-1 CLI コマンド語彙表**: impeccable ベースの23コマンド語彙表アラインメント
-- **P2-UI-2 Live Browser モード**: リアルタイム UI レビュー反復クローズドループ
-- **P2-UI-3 Meta-skills 階層化**: 8 サブスキル 6層アーキテクチャ
+### アンチゴースト機能保証
+各新規モジュールは `_call_counter` メカニズム + E2E anti_ghost テスト + CI `check_module_activation.py` 検証を含みます。モジュールは dispatch pipeline に真に統合され（単なるインスタンス化ではなく）、Markdown レポートセクションがユーザーに可視である必要があります。
 
 ### テストピラミッド達成
-- **Contract テスト**: 3.06% → 5.0%（目標 ≥5% ✅）
-- **Integration テスト**: 8.84% → 15.2%（目標 ≥15% ✅）
-- **総テスト数**: 5250+ → 7681（+2431 テスト）
+- **Contract テスト**: 5.2%（目標 ≥5% ✅）
+- **Integration テスト**: 15.1%（目標 ≥15% ✅）
+- **総テスト数**: 8200+（CI 権威）
+- **E2C カバレッジ**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost
 
-### 履歴機能（V4.0.0-V4.2.1）
+### 履歴機能（V4.0.0-V4.3.3）
+- **V4.3.3**: P0-P3 強化 E2E スケルトン（xfail TDD for V4.4.0）
+- **V4.3.2**: LLM vs Mock 品質ギャップ測定（キャリブレーションゲート + シンスライスプローブ）
+- **V4.3.0 Phase 3**: 品質強化 + ユーザーシミュレーション E2E（NPS 9/10）
+- **V4.3.0 Phase 2**: OutputValidator 完全統合（LLM 出力セキュリティ検出）
+- **V4.3.0 Phase 1**: DependencyHallucinationChecker（Slopsquatting サプライチェーン攻撃対策）
+- **V4.3.0 Phase 0**: DeploymentComplianceChecker（違反デプロイ防波堤）
 - **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling の5ステップクローズドループ
 - **V4.0.0 P1-2 UI/UX 巡検**: 4次元監査 + PIL ピクセル diff ビジュアルリグレッション
 - **V4.0.0 P2-1 Adversarial 検証**: レッドチーム攻撃 + ブルーチーム防御 + 審判仲裁
@@ -109,7 +119,7 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
 - **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
 
-7681 tests passing。
+8200+ tests passing（CI 権威）。
 
 ---
 

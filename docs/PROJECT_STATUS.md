@@ -2,7 +2,7 @@
 
 > **当前版本**: V4.4.2（PATCH 版 — 2026-07-30）
 > **最后更新**: 2026-07-30
-> **最新评估**: V4.4.2 PATCH 版 — P0-P3 增强落地（基于 7-Role 共识 `docs/analysis/2026-07-30_7role_review_roadmap_enhancement.md`）。P0（真实用户测试）已在 V4.4.1 M2 完成。P1-1（多语言角色 prompt）和 P1-2（Dashboard 6-Tab 可见性增强）已实施。P2（Kanban 视图）和 P3（ITSM 对接）仅输出评估报告（缓办至 V4.6.0/V5.0.0+）。22 新测试通过（12 unit + 5 integration + 5 e2e，含副作用验证），8177+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **最新评估**: V4.4.2 PATCH 版 — P0-P3 增强落地（基于 7-Role 共识 `docs/analysis/2026-07-30_7role_review_roadmap_enhancement.md`）。P0（真实用户测试）已在 V4.4.1 M2 完成。P1-1（多语言角色 prompt）和 P1-2（Dashboard 6-Tab 可见性增强）已实施。P2（Kanban 视图）和 P3（ITSM 对接）仅输出评估报告（缓办至 V4.6.0/V5.0.0+）。22 新测试通过（12 unit + 5 integration + 5 e2e，含副作用验证），8200+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
 > **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.4.2 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
@@ -19,7 +19,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**模块数**: 164+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 185+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
 
 **V4.4.2 新增/增强模块**:
 - `scripts/collaboration/models_dispatch.py` (P1-1 多语言角色 prompt — `RoleDefinition` 增加 `prompt_i18n`/`name_i18n` 字段 + `get_localized_prompt(lang)`/`get_localized_name(lang)` 方法 + 7 角色补全 EN/JP 翻译 + `_call_counter` 防幽灵)
@@ -68,7 +68,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 8177+ passed, 30 skipped（本地 Python 3.12，含 V4.4.0/V4.4.2 全部新模块） | ✅ 全绿 |
+| 单元/集成回归 | 8200+ passed, 30 skipped（本地 Python 3.12，含 V4.4.0/V4.4.2 全部新模块） | ✅ 全绿 |
 | V4.4.0 E2E | 13 passed, 0 xfail, 0 fail（xfail→xpass 全部转换完成，0.88s） | ✅ 全绿 |
 | V4.4.1 模拟用户 E2E | 17 passed, 0 fail（5 RU 场景 + 3 AC 验收，0.49s） | ✅ 全绿 |
 | V4.4.2 多语言 + 6-Tab 测试 | 22 passed（12 unit + 5 integration + 5 e2e，含副作用验证 call_counter + localized prompt 实际下发） | ✅ 全绿 |
