@@ -242,6 +242,9 @@ class DispatchResult:
     # V4.4.4: Optional workflow trace (None preserves backward compat —
     # report formatter skips the "## Workflow Trace" section when None).
     workflow_trace: WorkflowTrace | None = None
+    # V4.4.4: Optional Git context (None when not provided to dispatch).
+    # Uses Any to avoid circular import with models_dispatch.GitContext.
+    git_context: Any = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the dispatch result to a dictionary.

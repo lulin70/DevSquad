@@ -194,6 +194,7 @@ class Worker:
                 "role_id": self.role_id,
                 "task_id": task.task_id,
                 "finding_summary": finding,
+                "agent_id": self.agent_id,  # V4.4.3: AgentIdentity (anti-ghost)
             }
 
             result = WorkerResult(

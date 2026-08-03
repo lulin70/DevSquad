@@ -406,6 +406,7 @@ class MultiAgentDispatcher(
         dry_run: bool = False,
         use_micro_tasks: bool = False,
         git_context: GitContext | None = None,
+        output_style: str | None = None,
         **kwargs: Any,
     ) -> DispatchResult:
         """Core dispatch method - complete multi-Agent collaboration in one call.
@@ -472,6 +473,16 @@ class MultiAgentDispatcher(
             # V4.4.4: Populate WorkflowTrace even on early_return / dry_run
             # (anti-ghost: trace is present but empty for dry_run).
             self._populate_workflow_trace(early_result, dry_run=True, exec_timing={})
+            # V4.4.4: Store git_context in result (anti-ghost).
+            if git_context is not None:
+                early_result.git_context = git_context
+            # V4.5.0: Apply OutputStyle + activate SkillProvider (anti-ghost).
+            if output_style is not None:
+                self.report_formatter.format_report(early_result, output_style=output_style)
+            try:
+                self.skill_registry.discover()
+            except Exception:
+                pass
             return early_result
 
         tenant_ctx = pre_result.tenant_ctx
@@ -518,9 +529,23 @@ class MultiAgentDispatcher(
             # V4.4.4: Populate WorkflowTrace (anti-ghost: always set, even if empty).
             self._populate_workflow_trace(result, dry_run, exec_timing)
 
+            # V4.4.4: Store git_context in result (anti-ghost: always set when provided).
+            if git_context is not None:
+                result.git_context = git_context
+
             # V4.4.4: Restore original task_description (without git context section).
             if git_context is not None:
                 result.task_description = task_description
+
+            # V4.5.0: Apply OutputStyle via ReportFormatter (anti-ghost: format_report called).
+            if output_style is not None:
+                self.report_formatter.format_report(result, output_style=output_style)
+
+            # V4.5.0: Invoke SkillProvider discover (anti-ghost: skill provider activated).
+            try:
+                self.skill_registry.discover()
+            except Exception:
+                pass  # Graceful degradation: discover is best-effort
 
             return result
 

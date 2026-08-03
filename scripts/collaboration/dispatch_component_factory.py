@@ -8,6 +8,7 @@ based on the provided configuration.
 
 import logging
 import os
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Any
 
@@ -96,10 +97,14 @@ class ComponentFactory:
         from .report_formatter import ReportFormatter
         from .role_matcher import RoleMatcher
         from .scratchpad import Scratchpad
+        from .scratchpad_history_store import ScratchpadHistoryStore
         from .skillifier import Skillifier
         from .test_quality_guard import TestQualityGuard
 
-        components["scratchpad"] = Scratchpad(persist_dir=config.persist_dir)
+        # V4.4.3: Initialize ScratchpadHistoryStore for cross-session search (anti-ghost).
+        history_db = str(Path(config.persist_dir) / "scratchpad_history.db")
+        history_store = ScratchpadHistoryStore(db_path=history_db)
+        components["scratchpad"] = Scratchpad(persist_dir=config.persist_dir, history_store=history_store)
 
         # Initialize ExecutionGuard if enabled (graceful degradation)
         components["execution_guard"] = None
