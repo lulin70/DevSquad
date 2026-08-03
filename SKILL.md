@@ -8,7 +8,7 @@ description: |
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   185+ core modules, 8260+ tests passing (local; CI authoritative).
-  5 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard.
+  7 entries: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.5.0: Cross-session continuity + protocol-native skills + action-first reports (ScratchpadHistoryStore + AgentIdentity + WorkflowTrace + GitContext + SkillProvider Protocol + OutputStyle + SessionResume CLI + FileBundler + SKILL.md modular split + VISION documents).
   V4.4.1: External docs restructure (archive orphan i18n docs, retire CHANGELOG-CN, consolidate admin credentials, renumber INSTALL methods, sync version numbers across all external docs).
@@ -102,7 +102,7 @@ pip install -e .
 pip install -e ".[api]"       # With API/dashboard dependencies
 ```
 
-### Method 1: One-Click Collaboration (Recommended for most scenarios)
+### Method 1: Python API — One-Click Collaboration (Recommended)
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -133,18 +133,61 @@ print(result.to_markdown())
 disp.shutdown()
 ```
 
-**CLI equivalent**:
-```bash
-export OPENAI_API_KEY="sk-..."
-python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend openai
-```
-
 **When to use Method 1**:
 - User requests like "Design XX", "Implement XX", "Analyze XX"
 - Need quick multi-role collaboration results
 - No need for fine-grained role control
 
-### Method 3: Interactive Web Dashboard (V3.6.0 NEW)
+### Method 2: CLI (Command Line Interface)
+
+```bash
+# Basic dispatch (mock mode, no API key needed)
+python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec
+
+# Real AI output with LLM backend
+export OPENAI_API_KEY="sk-..."
+python3 scripts/cli.py dispatch -t "Design auth system" -r arch sec --backend openai
+
+# V4.5.0: List recent dispatch sessions
+python3 scripts/cli.py sessions list
+
+# V4.5.0: Show details of a specific session
+python3 scripts/cli.py sessions show <session-id>
+
+# V4.5.0: Resume an interrupted dispatch
+python3 scripts/cli.py dispatch --resume <session-id>
+
+# Dry-run mode (analyze only, no execution)
+python3 scripts/cli.py dispatch -t "Test task" --dry-run
+```
+
+**When to use Method 2**:
+- Quick terminal-based dispatch without writing Python code
+- CI/CD pipeline integration via shell scripts
+- Session management (list, inspect, resume)
+
+### Method 3: MCP Server (Model Context Protocol)
+
+```bash
+# Start MCP server with stdio transport (default, for IDE integration)
+python3 scripts/mcp_server.py
+
+# Start MCP server with SSE transport (for remote access)
+python3 scripts/mcp_server.py --port 8080
+```
+
+**MCP Tools exposed**:
+- `dispatch` — trigger multi-role collaboration
+- `get_lifecycle_status` — query current lifecycle phase
+- `get_metrics` — retrieve performance metrics
+- `list_skills` — list available sub-skills
+
+**When to use Method 3**:
+- IDE integration (TRAE, Claude Desktop, Cursor) via MCP protocol
+- External tool orchestration through standardized MCP interface
+- Programmatic access from MCP-compatible clients
+
+### Method 4: Interactive Web Dashboard (V3.6.0+)
 
 ```bash
 # Start Streamlit dashboard with authentication
@@ -161,12 +204,12 @@ streamlit run scripts/dashboard.py
 - Performance metrics display
 - Role-based access control (Admin/Operator/Viewer)
 
-**When to use Method 3**:
+**When to use Method 4**:
 - Visual monitoring and management needed
 - Team collaboration with multiple users
 - Non-technical stakeholders need access
 
-### Method 4: REST API Server (V3.6.0 NEW)
+### Method 5: REST API Server (V3.6.0+)
 
 ```bash
 # Install API dependencies
@@ -192,37 +235,39 @@ curl http://localhost:8000/api/v1/gates/status | jq
 curl http://localhost:8000/api/v1/health | jq
 ```
 
-**When to use Method 4**:
+**When to use Method 5**:
 - Integration with external systems (CI/CD, monitoring)
 - Programmatic access to DevSquad capabilities
 - Building custom UIs on top of DevSquad
 
-### Method 2: Specify Roles
+### Method 6: Python API Variants
 
 ```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher, quick_collaborate
+
 disp = MultiAgentDispatcher()
+
+# Variant A: Specify Roles
 result = disp.dispatch("Design user auth system", roles=["architect", "tester"])
 print(result.to_markdown())
-disp.shutdown()
-```
 
-### Method 3: Dry-Run Simulation (Analyze only, no execution)
-
-```python
+# Variant B: Dry-Run Simulation (Analyze only, no execution)
 result = disp.dispatch("Test task", dry_run=True)
 print(result.summary)
+
+# Variant C: Convenience Function (One-liner)
+result = quick_collaborate("Help me design a microservice architecture")
+print(result.to_markdown())
+
 disp.shutdown()
 ```
 
-### Method 4: Convenience Function (One-liner)
+**When to use Method 6**:
+- Need fine-grained role control (Variant A)
+- Analysis-only mode without execution (Variant B)
+- Quick one-liner for simple tasks (Variant C)
 
-```python
-from scripts.collaboration.dispatcher import quick_collaborate
-result = quick_collaborate("Help me design a microservice architecture")
-print(result.to_markdown())
-```
-
-### Method 5: One-Click Startup Script (V3.9.2+)
+### Method 7: One-Click Startup Script (V3.9.2+)
 
 ```bash
 # One-click startup — runs 4 phases: env check → DB init → frontend build → service start
