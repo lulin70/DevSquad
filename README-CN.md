@@ -135,9 +135,13 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 ---
 
-## ⚡ 快速开始（5 种使用方式）
+## ⚡ 快速开始（7 种调用方式）
 
-### 方式 1: CLI（推荐新手）
+### 方式 1: TRAE Skill（推荐 — 您已经在使用）
+
+DevSquad 已注册为 TRAE Skill。在 TRAE IDE 对话中直接描述任务，7 角色团队将自动协作。无需 CLI 或 API 配置。
+
+### 方式 2: CLI（推荐终端用户）
 
 ```bash
 # 交互式设置向导（1-2 分钟）
@@ -147,7 +151,17 @@ python scripts/cli.py init
 devsquad dispatch -t "你的任务描述"
 ```
 
-### 方式 2: Web Dashboard（推荐团队）
+### 方式 3: MCP Server（用于 IDE / 工具集成）
+
+```bash
+# 启动 MCP 服务器（stdio 传输，用于 IDE 集成）
+python3 scripts/mcp_server.py
+
+# 或 SSE 传输（用于远程访问）
+python3 scripts/mcp_server.py --port 8080
+```
+
+### 方式 4: Web Dashboard（推荐团队）
 
 ```bash
 # 启动带认证的 Streamlit dashboard
@@ -158,7 +172,7 @@ streamlit run scripts/dashboard.py
 # 生产环境请修改所有默认配置
 ```
 
-### 方式 3: REST API（推荐集成场景）
+### 方式 5: REST API（推荐集成场景）
 
 ```bash
 # 安装依赖
@@ -171,7 +185,7 @@ uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
 # 访问 ReDoc:      http://localhost:8000/redoc
 ```
 
-### 方式 4: Python API（推荐开发者）
+### 方式 6: Python API（推荐开发者）
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -185,7 +199,7 @@ print(result.report)
 print(result.consensus)
 ```
 
-### 方式 5: 一键启动脚本（V3.9.2+）
+### 方式 7: 一键启动脚本（V3.9.2+）
 
 ```bash
 # 一键启动 — 4 阶段：环境检查 → 数据库初始化 → 前端构建 → 服务启动

@@ -135,9 +135,13 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 
 ---
 
-## ⚡ クイックスタート（DevSquadの5つの使用方法）
+## ⚡ クイックスタート（DevSquadの7つの呼び出し方法）
 
-### Method 1: CLI（初心者推奨）
+### Method 1: TRAE Skill（推奨 — すでに使用中）
+
+DevSquadはTRAE Skillとして登録されています。TRAE IDEチャットでタスクを記述するだけで、7ロールチームが自動的にコラボレーションします。CLIやAPIの設定は不要です。
+
+### Method 2: CLI（ターミナルユーザー推奨）
 
 ```bash
 # インタラクティブセットアップウィザード（1-2分）
@@ -147,7 +151,17 @@ python scripts/cli.py init
 devsquad dispatch -t "your task description"
 ```
 
-### Method 2: Web Dashboard（チーム推奨）
+### Method 3: MCP Server（IDE / ツール統合用）
+
+```bash
+# MCPサーバーを起動（stdioトランスポート、IDE統合用）
+python3 scripts/mcp_server.py
+
+# またはSSEトランスポート（リモートアクセス用）
+python3 scripts/mcp_server.py --port 8080
+```
+
+### Method 4: Web Dashboard（チーム推奨）
 
 ```bash
 # 認証付きStreamlitダッシュボードを起動
@@ -158,7 +172,7 @@ streamlit run scripts/dashboard.py
 # 本番環境では必ずすべてのデフォルトを変更してください
 ```
 
-### Method 3: REST API（統合推奨）
+### Method 5: REST API（統合推奨）
 
 ```bash
 # 依存関係をインストール
@@ -171,7 +185,7 @@ uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
 # ReDocにアクセス:      http://localhost:8000/redoc
 ```
 
-### Method 4: Python API（開発者推奨）
+### Method 6: Python API（開発者推奨）
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -185,7 +199,7 @@ print(result.report)
 print(result.consensus)
 ```
 
-### Method 5: ワンクリック起動スクリプト（V3.9.2+）
+### Method 7: ワンクリック起動スクリプト（V3.9.2+）
 
 ```bash
 # ワンクリック起動 — 4フェーズ：環境チェック → DB初期化 → フロントエンド構築 → サービス起動

@@ -135,9 +135,13 @@ Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `
 
 ---
 
-## ⚡ Quick Start (5 Ways to Use DevSquad)
+## ⚡ Quick Start (7 Ways to Invoke DevSquad)
 
-### Method 1: CLI (Recommended for Beginners)
+### Method 1: TRAE Skill (Recommended — you're already here)
+
+DevSquad is registered as a TRAE Skill. Simply describe your task in the TRAE IDE chat, and the 7-role team will collaborate automatically. No CLI or API setup needed.
+
+### Method 2: CLI (Recommended for Terminal Users)
 
 ```bash
 # Interactive setup wizard (1-2 minutes)
@@ -147,7 +151,17 @@ python scripts/cli.py init
 devsquad dispatch -t "your task description"
 ```
 
-### Method 2: Web Dashboard (Recommended for Teams)
+### Method 3: MCP Server (For IDE / Tool Integration)
+
+```bash
+# Start MCP server with stdio transport (for IDE integration)
+python3 scripts/mcp_server.py
+
+# Or SSE transport (for remote access)
+python3 scripts/mcp_server.py --port 8080
+```
+
+### Method 4: Web Dashboard (Recommended for Teams)
 
 ```bash
 # Start Streamlit dashboard with authentication
@@ -158,7 +172,7 @@ streamlit run scripts/dashboard.py
 # Change all defaults in production.
 ```
 
-### Method 3: REST API (Recommended for Integration)
+### Method 5: REST API (Recommended for Integration)
 
 ```bash
 # Install dependencies
@@ -171,7 +185,7 @@ uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000 --reload
 # Access ReDoc:      http://localhost:8000/redoc
 ```
 
-### Method 4: Python API (Recommended for Developers)
+### Method 6: Python API (Recommended for Developers)
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
@@ -185,7 +199,7 @@ print(result.report)
 print(result.consensus)
 ```
 
-### Method 5: One-Click Startup Script (V3.9.2+)
+### Method 7: One-Click Startup Script (V3.9.2+)
 
 ```bash
 # One-click startup — 4 phases: env check → DB init → frontend build → service start
