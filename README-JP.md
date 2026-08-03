@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 「単一のAIアシスタント」を「7人AI専門チーム」にアップグレード</strong>
   <br>
-  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.4.2 (多言語プロンプト + 6タブダッシュボード) | V4.4.0 (5つの新規拡張モジュール)</em>
+  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.5.0 (クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート) | V4.4.0 (5つの新規拡張モジュール)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8200%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.4.2-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8260%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,21 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 <details>
 <summary>🔍 クリックして展開：完全な機能紹介とアーキテクチャ詳細</summary>
 
-## 🚀 V4.4.2: P0-P3 強化 + 多言語ロールプロンプト + Dashboard 6-Tab 可視性
+## 🚀 V4.5.0: クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート
 
-**DevSquad V4.4.2** は V4.4.0/V4.4.1 を基に P0-P3 強化モジュール、多言語ロールプロンプト（EN/CN/JP）、Dashboard 6-Tab 可視性、P2 Kanban 評価、P3 ITSM 評価を完了。7ロール AI チームが複雑なエンジニアリングタスクを編成し、完全な監査チェーンとコンセンサスメカニズムを提供します。
+**DevSquad V4.5.0**（V4.4.3 + V4.4.4 + V4.5.0 変更を一括リリース）は、クロスセッション連続性、プロトコルネイティブSkillアーキテクチャ、アクションファーストレポート向けけ10の新機能を提供します。7ロール AI チームが複雑なエンジニアリングタスクを編成し、完全な監査チェーンとコンセンサスメカニズムを提供します。プロジェクトビジョンは [docs/VISION.md](docs/VISION.md) を参照。
+
+### V4.5.0 — 10の新機能
+- **ScratchpadHistoryStore**: SQLite-backed クロスセッション Scratchpad 検索
+- **AgentIdentity**: クロスセッショントラッキング用の決定論的 agent ID
+- **WorkflowTrace**: dispatch レポートの透過的ワークフロートレース
+- **GitContext**: Git ブランチ/commit コンテキストの dispatch への注入
+- **SkillProvider Protocol**: プロトコルネイティブ Skill アーキテクチャ（Builtin + MCP providers）
+- **OutputStyle**: アクションファーストレポート形式（i-have-adhd インサイトより）
+- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
+- **FileBundler**: review モードの決定論的ファイルバンドリング（open-code-review より）
+- **SKILL.md モジュラー分割**: 1216→282 行 + 3 リファレンスドキュメント（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
+- **VISION ドキュメント**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
 
 ### V4.4.0 — P0-P3 強化モジュール（5新規モジュール）
 - **P0-1 RiskRegister**: PMP リスク管理；7ロール加重評価（probability × impact）+ 4対応戦略（回避/移転/軽減/受容）+ `GateType.RISK_CHECK` ゲート（exposure ≥ 0.36 でブロック）
@@ -102,7 +114,7 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 ### テストピラミッド達成
 - **Contract テスト**: 5.2%（目標 ≥5% ✅）
 - **Integration テスト**: 15.1%（目標 ≥15% ✅）
-- **総テスト数**: 8200+（CI 権威）
+- **総テスト数**: 8260+（CI 権威）
 - **E2C カバレッジ**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost
 
 ### 履歴機能（V4.0.0-V4.3.3）
@@ -119,7 +131,7 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
 - **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
 
-8200+ tests passing（CI 権威）。
+8260+ tests passing（CI 権威）。
 
 ---
 
@@ -402,7 +414,7 @@ similar = fingerprint.find_similar("new task", top_k=3)
 
 ## 🧩 Layered Sub-Skill Architecture（階層化サブスキルアーキテクチャ - V3.6.0）
 
-> DevSquadは**6つのアトミックサブスキル**を提供し、独立または組み合わせて使用できます。
+> DevSquadは**8つのアトミックサブスキル**を提供し、独立または組み合わせて使用できます。
 > 各サブスキルは軽量ラッパー（約50行）で、既存のコアモジュールをインポート — 重複ロジックなし。
 
 ```
@@ -412,7 +424,9 @@ skills/
 ├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5軸コードレビュー)
 ├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
 ├── test/           → TestSkill     — TestQualityGuard + テスト戦略生成
-└── retrospective/  → RetroSkill    — RetrospectiveEngine + パターン抽出
+├── retrospective/  → RetroSkill    — RetrospectiveEngine + パターン抽出
+├── prototype/      → PrototypeSkill — 高速プロトタイプスキャフォールディング (V4.5.0)
+└── teach/          → TeachSkill     — 知識移転＆オンボーディング (V4.5.0)
 ```
 
 ### サブスキルクイックリファレンス
@@ -683,6 +697,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最終更新: 2026-07-30 | バージョン: V4.4.2（多言語ロールプロンプト EN/CN/JP + ダッシュボード6タブ可視性強化）| V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
+*最終更新: 2026-08-03 | バージョン: V4.5.0（クロスセッション連続性 + プロトコルネイティブSkillアーキテクチャ + アクションファーストレポート — 10の新機能）| V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
 
 </details>

@@ -275,11 +275,29 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
     Args:
         args: Parsed argparse namespace. Expected attributes include
             ``task``/``task_positional``, optional ``roles``, ``mode``,
-            ``format``, ``backend``, and ``quick``.
+            ``format``, ``backend``, and ``quick``. When ``args.resume`` is
+            set (V4.5.0 SessionResume), the task is reconstructed from the
+            checkpoint identified by ``args.resume`` instead of read from
+            ``-t``/positional args.
 
     Returns:
         0 on success, 1 on validation or dispatch failure.
     """
+    # V4.5.0 SessionResume (PRD §10.1.2): resume an interrupted dispatch.
+    resume_id = getattr(args, "resume", None)
+    if resume_id:
+        from .cli_sessions import load_resumable_task
+
+        persist_dir = getattr(args, "persist_dir", None)
+        task, status, err = load_resumable_task(resume_id, persist_dir)
+        if err is not None or task is None:
+            print(f"Error: resume failed — {err or 'unknown error'}", file=sys.stderr)
+            return 1
+        # Inject the reconstructed task so downstream validation/dispatch uses it.
+        args.task = task
+        args.task_positional = None
+        print(f"Resuming session '{resume_id}' (task reconstructed from checkpoint).", file=sys.stderr)
+
     task, err = _validate_dispatch_input(args)
     if err is not None or task is None:
         return err if err is not None else 1

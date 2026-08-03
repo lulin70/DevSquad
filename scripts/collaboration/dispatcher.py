@@ -41,6 +41,7 @@ from .dispatcher_status_mixin import DispatcherStatusMixin
 from .dispatcher_utils_mixin import DispatcherUtilsMixin
 from .enterprise_feature import EnterpriseFeature
 from .event_bus import EventBus
+from .models import GitContext, WorkflowStep, WorkflowTrace
 from .permission_guard import PermissionLevel
 from .usage_tracker import track_usage
 
@@ -404,6 +405,7 @@ class MultiAgentDispatcher(
         mode: str = "auto",
         dry_run: bool = False,
         use_micro_tasks: bool = False,
+        git_context: GitContext | None = None,
         **kwargs: Any,
     ) -> DispatchResult:
         """Core dispatch method - complete multi-Agent collaboration in one call.
@@ -417,6 +419,11 @@ class MultiAgentDispatcher(
                 decompose the task into 2-5 minute micro-tasks before role
                 assignment. The resulting plan is stored in
                 ``DispatchResult.micro_task_plan``.
+            git_context: V4.4.4 — Optional ``GitContext`` for Branch-as-Context
+                injection. When provided, the Git context section is appended
+                to the Coordinator prompt and a DECISION entry is written to
+                the Scratchpad. ``None`` (default) preserves existing
+                behavior (backward compatible).
             **kwargs: Additional options (tenant_id, user_id, etc.)
         """
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
@@ -443,15 +450,28 @@ class MultiAgentDispatcher(
 
         self._log_audit_dispatch_start(user_id, task_description, roles)
 
+        # V4.4.4: Inject Git context (Branch-as-Context) if provided.
+        # Augments the task description seen by the Coordinator prompt and
+        # writes a DECISION entry to the Scratchpad. When git_context is
+        # None this is a no-op (backward compatible).
+        effective_task = task_description
+        if git_context is not None:
+            effective_task = self._inject_git_context(git_context, task_description)
+
         # Pre-dispatch steps (shared with async_dispatch)
-        pre_result = self.pre_dispatch.execute(task_description, roles, mode, dry_run, start_time, phase, **kwargs)
+        pre_result = self.pre_dispatch.execute(effective_task, roles, mode, dry_run, start_time, phase, **kwargs)
         if pre_result.early_return:
             self.metrics_service.safe_record(lambda m: m.tasks_in_progress_gauge.labels(phase=phase).dec())
             self._log_dispatch_end_audit(user_id, False, time.time() - start_time)
             early_result = cast(DispatchResult, pre_result.early_return)
+            # V4.4.4: Restore original task_description (without git context).
+            early_result.task_description = task_description
             if permission_result_dict is not None:
                 early_result.permission_result = permission_result_dict
             self._attach_audit_entries(early_result)
+            # V4.4.4: Populate WorkflowTrace even on early_return / dry_run
+            # (anti-ghost: trace is present but empty for dry_run).
+            self._populate_workflow_trace(early_result, dry_run=True, exec_timing={})
             return early_result
 
         tenant_ctx = pre_result.tenant_ctx
@@ -495,6 +515,13 @@ class MultiAgentDispatcher(
             # V4.4.0: Activate 5 enhancement modules (anti-ghost + risk report).
             self._activate_v440_modules(result, task_description)
 
+            # V4.4.4: Populate WorkflowTrace (anti-ghost: always set, even if empty).
+            self._populate_workflow_trace(result, dry_run, exec_timing)
+
+            # V4.4.4: Restore original task_description (without git context section).
+            if git_context is not None:
+                result.task_description = task_description
+
             return result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
@@ -506,6 +533,107 @@ class MultiAgentDispatcher(
         except (RuntimeError, OSError, ConnectionError, TimeoutError) as e:
             self._log_dispatch_error_audit(user_id, e)
             return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang)
+
+    def _inject_git_context(
+        self,
+        git_context: GitContext,
+        task_description: str,
+    ) -> str:
+        """V4.4.4: Inject GitContext into Coordinator prompt + Scratchpad.
+
+        Appends the Git context prompt section to the task description so
+        the Coordinator (and downstream Workers) see the current branch /
+        recent commits / open issues. Also writes a DECISION entry to the
+        Scratchpad so the git context is searchable in the dispatch history.
+
+        Args:
+            git_context: Populated GitContext to inject.
+            task_description: Original task description.
+
+        Returns:
+            Augmented task description with the Git context section appended.
+        """
+        from .models import EntryType, ScratchpadEntry
+
+        section = git_context.to_prompt_section()
+        # Write a DECISION entry to the Scratchpad (Branch-as-Context).
+        entry = ScratchpadEntry(
+            worker_id="coordinator",
+            role_id="coordinator",
+            entry_type=EntryType.DECISION,
+            content=(
+                f"Git Context: branch={git_context.branch}, "
+                f"recent_commits={git_context.recent_commits[:3]}, "
+                f"open_issues={git_context.open_issues[:3]}"
+            ),
+            confidence=1.0,
+            tags=["git-context", "v4.4.4"],
+        )
+        self.scratchpad.write(entry)
+        # Augment the task description with the git context section so the
+        # Coordinator prompt includes "## Git Context".
+        return f"{task_description}\n\n{section}"
+
+    def _populate_workflow_trace(
+        self,
+        result: DispatchResult,
+        dry_run: bool,
+        exec_timing: dict[str, float],
+    ) -> None:
+        """V4.4.4: Populate WorkflowTrace on the dispatch result (anti-ghost).
+
+        Builds a ``WorkflowTrace`` from the dispatch execution and attaches
+        it to ``result.workflow_trace``. Always sets a trace (even if empty
+        for dry_run) so the report formatter renders the section and the
+        module-level ``_call_counter`` is incremented (anti-ghost).
+
+        Args:
+            result: The DispatchResult to attach the trace to.
+            dry_run: Whether this was a dry_run (no worker steps).
+            exec_timing: Per-step timing dict from ``_execute_workers``.
+        """
+        # Decomposition tree: one node per matched role.
+        decomposition_tree: list[dict] = []
+        for role_id in result.matched_roles:
+            decomposition_tree.append({
+                "task": f"{role_id} analysis",
+                "roles": [role_id],
+                "subtasks": [],
+            })
+
+        # Steps: one per worker result (skipped on dry_run).
+        steps: list[WorkflowStep] = []
+        if not dry_run:
+            for wr in result.worker_results:
+                role_id = wr.get("role_id", wr.get("role", "unknown"))
+                agent_id = wr.get("agent_id", f"agent-{role_id}-unknown")
+                status = "success" if wr.get("success") else "failed"
+                duration_ms = float(wr.get("duration_ms", 0.0))
+                steps.append(
+                    WorkflowStep(
+                        step_name=f"execute-{role_id}",
+                        role_id=role_id,
+                        agent_id=agent_id,
+                        status=status,
+                        duration_ms=duration_ms,
+                        details=(wr.get("output", "") or "")[:120],
+                    )
+                )
+
+        # Decision points: from consensus records.
+        decision_points: list[dict] = []
+        for cr in result.consensus_records:
+            decision_points.append({
+                "topic": cr.get("topic", ""),
+                "outcome": cr.get("outcome", ""),
+            })
+
+        result.workflow_trace = WorkflowTrace(
+            task_description=result.task_description,
+            decomposition_tree=decomposition_tree,
+            steps=steps,
+            decision_points=decision_points,
+        )
 
     def _activate_v440_modules(
         self,

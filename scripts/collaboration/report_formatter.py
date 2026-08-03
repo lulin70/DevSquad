@@ -70,6 +70,14 @@ _CONSENSUS_OUTCOME_BADGES: dict[str, str] = {
 }
 _ACTION_PRIORITY_BADGES: dict[str, str] = {"H": "🔴高", "M": "🟡中", "L": "🟢低"}
 
+# V4.5.0 (PRD 10.1.1) anti-ghost counter: increments on every
+# ``format_report`` dispatch call. Tests assert ``_call_counter > 0`` to
+# prove the new code path is actually exercised (not a ghost stub).
+_call_counter: int = 0
+
+# Cap for list items in action_first mode (PRD 10.1.1: "cap lists at 5").
+_ACTION_FIRST_LIST_CAP: int = 5
+
 
 class ReportFormatter:
     """Report formatting engine for DispatchResult."""
@@ -125,9 +133,106 @@ class ReportFormatter:
             self._format_system_info(result),
             self._format_timing_section(result, include_timing),
             self._format_errors_section(result),
+            self._format_workflow_trace_section(result),
         ]
         for section in sections:
             lines.extend(section)
+        return "\n".join(lines)
+
+    def format_report(self, result: Any, output_style: str = "detailed") -> str:
+        """Format a dispatch result report according to ``output_style``.
+
+        V4.5.0 (PRD 10.1.1) — OutputStyle dispatch entry point.
+
+        Routing:
+          - ``"action_first"`` → :meth:`_render_action_first` (actions first,
+            lists capped at 5, no preamble/recap/closers).
+          - ``"compact"``      → :meth:`format_compact_report` (condensed).
+          - ``"detailed"`` (default) and any other value →
+            :meth:`format_structured_report` (existing behavior, unchanged
+            for backward compatibility).
+
+        Increments the module-level ``_call_counter`` (anti-ghost) on every
+        call so tests can prove the dispatch path is exercised.
+        """
+        global _call_counter
+        _call_counter += 1
+
+        if output_style == "action_first":
+            return self._render_action_first(result)
+        if output_style == "compact":
+            return self.format_compact_report(result)
+        return self.format_structured_report(result)
+
+    def _render_action_first(self, result: Any) -> str:
+        """Render a report in ``action_first`` style (PRD 10.1.1).
+
+        Structure (no preamble, no recap, no closers):
+          1. ``## Next Actions``  — action items extracted from the dispatch
+             result (capped at ``_ACTION_FIRST_LIST_CAP``).
+          2. ``## Key Findings``  — findings per role, each capped at
+             ``_ACTION_FIRST_LIST_CAP``; overflow rendered as
+             "and N more".
+          3. ``## Next Step``     — one concrete next step.
+        """
+        cap = _ACTION_FIRST_LIST_CAP
+        lines: list[str] = []
+
+        # --- Section 1: Next Actions -------------------------------------
+        lines.append("## Next Actions")
+        lines.append("")
+        action_items = self.generate_action_items(result)
+        for i, item in enumerate(action_items[:cap], 1):
+            priority = item.get("priority", "M")
+            lines.append(f"{i}. [{priority}] {item['text']}")
+        action_overflow = len(action_items) - cap
+        if action_overflow > 0:
+            lines.append(f"_...and {action_overflow} more_")
+        lines.append("")
+
+        # --- Section 2: Key Findings (capped at 5 per role) --------------
+        lines.append("## Key Findings")
+        lines.append("")
+        if result.worker_results:
+            for wr in result.worker_results:
+                role_id = wr.get("role_id", wr.get("role", "unknown"))
+                rdef = ROLE_TEMPLATES.get(role_id, {})
+                role_name = rdef.get("name", role_id)
+                output = wr.get("output", "") or ""
+                findings = self.extract_findings(output)
+                lines.append(f"**{role_name}**:")
+                if not findings:
+                    lines.append("- (no findings)")
+                else:
+                    for i, finding in enumerate(findings[:cap], 1):
+                        lines.append(f"{i}. {finding}")
+                    finding_overflow = len(findings) - cap
+                    if finding_overflow > 0:
+                        lines.append(f"_...and {finding_overflow} more_")
+                lines.append("")
+        elif result.scratchpad_summary:
+            findings = self.extract_findings(result.scratchpad_summary)
+            if not findings:
+                lines.append("- (no findings)")
+            else:
+                for i, finding in enumerate(findings[:cap], 1):
+                    lines.append(f"{i}. {finding}")
+                finding_overflow = len(findings) - cap
+                if finding_overflow > 0:
+                    lines.append(f"_...and {finding_overflow} more_")
+            lines.append("")
+
+        # --- Section 3: Next Step (one concrete step) --------------------
+        lines.append("## Next Step")
+        lines.append("")
+        if result.suggested_next_steps:
+            next_step = result.suggested_next_steps[0]
+        elif action_items:
+            next_step = action_items[0]["text"]
+        else:
+            next_step = "Review the report and decide on the next action."
+        lines.append(next_step)
+
         return "\n".join(lines)
 
     def _format_summary_card(self, result: Any) -> list[str]:
@@ -276,6 +381,18 @@ class ReportFormatter:
         for err in result.errors[:5]:
             lines.append(f"> - {err[:150]}")
         return lines
+
+    def _format_workflow_trace_section(self, result: Any) -> list[str]:
+        """V4.4.4: Render the WorkflowTrace section in the structured report.
+
+        Returns an empty list when ``result.workflow_trace`` is ``None``
+        or absent, preserving backward compatibility for callers that
+        never set a trace.
+        """
+        trace = getattr(result, "workflow_trace", None)
+        if trace is None:
+            return []
+        return ["", trace.to_markdown(), ""]
 
     def format_compact_report(self, result: Any) -> str:
         """Generate compact report suitable for terminal quick view."""

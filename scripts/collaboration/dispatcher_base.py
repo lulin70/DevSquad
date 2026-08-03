@@ -127,7 +127,7 @@ class DispatcherBase:
 
     # Shared methods used by mixins
     def dispatch(
-        self, task_description: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, use_micro_tasks: bool = False, **kwargs: Any
+        self, task_description: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False, use_micro_tasks: bool = False, git_context: Any = None, **kwargs: Any
     ) -> DispatchResult:
         raise NotImplementedError
 

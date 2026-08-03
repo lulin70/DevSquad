@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.4.2 (multilingual prompt + 6-tab dashboard) | V4.4.0 (5 enhancement modules)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.0 (cross-session continuity + protocol-native skills + action-first reports) | V4.4.0 (5 enhancement modules)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8200%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.4.2-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8260%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,21 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.4.2: P0-P3 Enhancement + Multilingual Role Prompts + Dashboard 6-Tab Visibility
+## 🚀 V4.5.0: Cross-Session Continuity + Protocol-Native Skills + Action-First Reports
 
-**DevSquad V4.4.2** builds on V4.4.0/V4.4.1 with P0-P3 enhancement modules, multilingual role prompts (EN/CN/JP), Dashboard 6-tab visibility, P2 Kanban evaluation, and P3 ITSM evaluation. The 7-role AI team orchestrates complex engineering tasks with full audit trails and consensus mechanisms.
+**DevSquad V4.5.0** (merging V4.4.3 + V4.4.4 + V4.5.0 changes) delivers 10 new features for cross-session continuity, protocol-native skill architecture, and action-first reporting. The 7-role AI team orchestrates complex engineering tasks with full audit trails and consensus mechanisms. See [docs/VISION.md](docs/VISION.md) for the project vision.
+
+### V4.5.0 — 10 New Features
+- **ScratchpadHistoryStore**: SQLite-backed cross-session Scratchpad search
+- **AgentIdentity**: Deterministic agent ID for cross-session tracking
+- **WorkflowTrace**: Transparent workflow trace in dispatch reports
+- **GitContext**: Git branch/commit context injection into dispatch
+- **SkillProvider Protocol**: Protocol-native skill architecture (Builtin + MCP providers)
+- **OutputStyle**: Action-first report format (from i-have-adhd insights)
+- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
+- **FileBundler**: Deterministic file bundling for review mode (from open-code-review)
+- **SKILL.md Modular Split**: 1216→282 lines + 3 reference docs (MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY)
+- **VISION Documents**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
 
 ### V4.4.0 — P0-P3 Enhancement Modules (5 new modules)
 - **P0-1 RiskRegister**: PMP risk management with 7-role weighted assessment (probability × impact) + 4 response strategies (avoid/transfer/mitigate/accept) + `GateType.RISK_CHECK` gate (exposure ≥ 0.36 blocks)
@@ -102,7 +114,7 @@ Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `
 ### Test Pyramid Achieved
 - **Contract tests**: 5.2% (target ≥5% ✅)
 - **Integration tests**: 15.1% (target ≥15% ✅)
-- **Total tests**: 8200+ (CI authoritative)
+- **Total tests**: 8260+ (CI authoritative)
 - **E2E coverage**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost
 
 ### Historical Features (V4.0.0-V4.3.3)
@@ -119,7 +131,7 @@ Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4-stage autonomous iteration
 - **V4.0.0 P3-2 Plugin Hot-Loading**: 3 loading paths + path traversal 3-layer protection + reload rollback
 
-8200+ tests passing (CI authoritative).
+8260+ tests passing (CI authoritative).
 
 ---
 
@@ -402,7 +414,7 @@ All modules are **optional switches** — DevSquad works perfectly without them.
 
 ## 🧩 Layered Sub-Skill Architecture (V3.6.0)
 
-> DevSquad provides **6 atomic sub-skills** that can be used independently or together.
+> DevSquad provides **8 atomic sub-skills** that can be used independently or together.
 > Each sub-skill is a thin wrapper (~50 lines) importing existing core modules — no duplicated logic.
 
 ```
@@ -412,7 +424,9 @@ skills/
 ├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5-axis code review)
 ├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
 ├── test/           → TestSkill     — TestQualityGuard + test strategy generation
-└── retrospective/  → RetroSkill    — RetrospectiveEngine + pattern extraction
+├── retrospective/  → RetroSkill    — RetrospectiveEngine + pattern extraction
+├── prototype/      → PrototypeSkill — Rapid prototype scaffolding (V4.5.0)
+└── teach/          → TeachSkill     — Knowledge transfer & onboarding (V4.5.0)
 ```
 
 ### Sub-Skill Quick Reference
@@ -683,6 +697,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-07-30 | Version: V4.4.2 (multilingual role prompt EN/CN/JP + Dashboard 6-tab visibility) | V4.4.0 (5 enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
+*Last updated: 2026-08-03 | Version: V4.5.0 (cross-session continuity + protocol-native skills + action-first reports — 10 new features) | V4.4.0 (5 enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
 
 </details>

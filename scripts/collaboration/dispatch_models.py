@@ -16,6 +16,7 @@ from typing import Any
 
 from .models import (
     ROLE_REGISTRY,
+    WorkflowTrace,
     get_planned_roles,
 )
 
@@ -238,6 +239,9 @@ class DispatchResult:
     audit_entries: list[dict[str, Any]] = field(default_factory=list)
     # V4.4.0: Risk Management Markdown section (from RiskRegister.export_markdown)
     risk_management_md: str = ""
+    # V4.4.4: Optional workflow trace (None preserves backward compat —
+    # report formatter skips the "## Workflow Trace" section when None).
+    workflow_trace: WorkflowTrace | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the dispatch result to a dictionary.
@@ -273,6 +277,33 @@ class DispatchResult:
             "micro_task_plan": self.micro_task_plan,
             "permission_result": self.permission_result,
             "audit_entries": self.audit_entries,
+            "workflow_trace": self._serialize_workflow_trace(),
+        }
+
+    def _serialize_workflow_trace(self) -> dict[str, Any] | None:
+        """Serialize ``workflow_trace`` for ``to_dict()`` (None-safe).
+
+        Returns ``None`` when no trace is attached, so downstream JSON
+        consumers can rely on a nullable field.
+        """
+        if self.workflow_trace is None:
+            return None
+        trace = self.workflow_trace
+        return {
+            "task_description": trace.task_description,
+            "decomposition_tree": trace.decomposition_tree,
+            "steps": [
+                {
+                    "step_name": s.step_name,
+                    "role_id": s.role_id,
+                    "agent_id": s.agent_id,
+                    "status": s.status,
+                    "duration_ms": s.duration_ms,
+                    "details": s.details,
+                }
+                for s in trace.steps
+            ],
+            "decision_points": trace.decision_points,
         }
 
     def to_markdown(self) -> str:
@@ -301,11 +332,23 @@ class DispatchResult:
             self._format_five_axis(),
             self._format_retrospective(),
             self._format_risk_management(),
+            self._format_workflow_trace(),
         ]
         lines: list[str] = []
         for section in sections:
             lines.extend(section)
         return "\n".join(lines)
+
+    def _format_workflow_trace(self) -> list[str]:
+        """V4.4.4: Render the WorkflowTrace Markdown section.
+
+        Returns an empty list (no section) when ``workflow_trace`` is
+        ``None``, preserving backward compatibility for callers that never
+        set a trace.
+        """
+        if self.workflow_trace is None:
+            return []
+        return ["", self.workflow_trace.to_markdown(), ""]
 
     def _format_mock_banner(self, t: dict[str, str]) -> list[str]:
         is_mock = any("[MOCK MODE]" in (wr.get("output", "") or "") for wr in (self.worker_results or []))

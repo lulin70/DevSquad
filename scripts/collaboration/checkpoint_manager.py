@@ -16,6 +16,11 @@ from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
+# V4.5.0 Anti-ghost call counter (module-level). Incremented on every public
+# SessionResume method call so ``check_module_activation.py`` can verify the
+# module is wired into the dispatch pipeline (not a ghost feature).
+_call_counter: int = 0
+
 
 class CheckpointStatus(Enum):
     ACTIVE = "active"
@@ -847,3 +852,143 @@ class CheckpointManager:
         except (OSError, AttributeError, TypeError, KeyError, ValueError) as e:  # noqa: BLE001
             logger.warning("Failed to create checkpoint from lifecycle: %s", e)
             return None
+
+    # ========== V4.5.0 SessionResume CLI (PRD §10.1.2) ==========
+
+    def list_sessions(self, limit: int = 20) -> list[dict[str, Any]]:
+        """List recent dispatch sessions with status (V4.5.0 SessionResume).
+
+        Reuses existing checkpoint storage — no new persistence layer. Each
+        checkpoint is treated as one dispatch session. Task descriptions are
+        redacted via ``OutputValidator.redact()`` (Security action item A6)
+        before being returned, so API keys / tokens never leak into CLI output.
+
+        Args:
+            limit: Maximum number of recent sessions to return (default 20).
+
+        Returns:
+            List of dicts (newest first), each containing:
+            ``{session_id, created_at, status, task_summary}``. ``status`` is
+            one of ``"completed"`` / ``"interrupted"`` / ``"unknown"``. Returns
+            an empty list on errors (graceful — never raises).
+        """
+        global _call_counter
+        _call_counter += 1
+        try:
+            checkpoints = self.list_checkpoints()
+            sessions: list[dict[str, Any]] = []
+            for cp in checkpoints[:limit]:
+                sessions.append(
+                    {
+                        "session_id": cp.checkpoint_id,
+                        "created_at": cp.created_at,
+                        "status": self._map_session_status(cp.status),
+                        "task_summary": self._build_task_summary(cp),
+                    }
+                )
+            return sessions
+        except Exception as e:  # noqa: BLE001 — graceful: never crash CLI
+            logger.warning("Failed to list sessions: %s", e)
+            return []
+
+    def get_session_status(self, session_id: str) -> dict[str, Any]:
+        """Return detailed status of a single dispatch session.
+
+        Loads the checkpoint identified by ``session_id`` (which is the
+        ``checkpoint_id``) and returns a detailed status dict. All
+        human-displayed text fields are passed through
+        ``OutputValidator.redact()`` (Security A6).
+
+        Args:
+            session_id: Checkpoint/session identifier.
+
+        Returns:
+            Detailed dict with keys ``session_id``, ``task_id``,
+            ``created_at``, ``updated_at``, ``status``, ``checkpoint_status``,
+            ``step_name``, ``task_summary``, ``progress_percentage``,
+            ``completed_steps``, ``remaining_steps``, ``agent_id``. Returns an
+            empty dict if the checkpoint is missing, corrupted, or fails to
+            load (graceful — never raises).
+        """
+        global _call_counter
+        _call_counter += 1
+        try:
+            cp = self.load_checkpoint(session_id)
+            if cp is None:
+                return {}
+            return {
+                "session_id": cp.checkpoint_id,
+                "task_id": cp.task_id,
+                "created_at": cp.created_at,
+                "updated_at": cp.updated_at,
+                "status": self._map_session_status(cp.status),
+                "checkpoint_status": cp.status.value
+                if isinstance(cp.status, CheckpointStatus)
+                else str(cp.status),
+                "step_name": self._redact_for_display(cp.step_name),
+                "task_summary": self._build_task_summary(cp),
+                "progress_percentage": cp.progress_percentage,
+                "completed_steps": list(cp.completed_steps),
+                "remaining_steps": list(cp.remaining_steps),
+                "agent_id": cp.agent_id,
+            }
+        except Exception as e:  # noqa: BLE001 — graceful: never crash CLI
+            logger.warning("Failed to get session status: %s", e)
+            return {}
+
+    @staticmethod
+    def _map_session_status(status: Any) -> str:
+        """Map a :class:`CheckpointStatus` to a session status string.
+
+        Mapping (PRD §10.1.2):
+        - ``COMPLETED`` → ``"completed"``
+        - ``ACTIVE`` / ``FAILED`` → ``"interrupted"`` (started but not finished)
+        - ``EXPIRED`` → ``"unknown"``
+        """
+        mapping = {
+            CheckpointStatus.COMPLETED: "completed",
+            CheckpointStatus.ACTIVE: "interrupted",
+            CheckpointStatus.FAILED: "interrupted",
+            CheckpointStatus.EXPIRED: "unknown",
+        }
+        if isinstance(status, CheckpointStatus):
+            return mapping.get(status, "unknown")
+        return "unknown"
+
+    def _build_task_summary(self, checkpoint: "Checkpoint") -> str:
+        """Build a redacted human-readable task summary from a checkpoint.
+
+        Combines ``step_name`` and any task description found in
+        ``context_snapshot`` (keys ``task`` / ``task_description``), then
+        runs the result through ``OutputValidator.redact()`` (Security A6).
+        Falls back to ``task_id`` / ``checkpoint_id`` when no descriptive
+        text is available.
+        """
+        try:
+            parts: list[str] = []
+            if checkpoint.step_name:
+                parts.append(checkpoint.step_name)
+            ctx = checkpoint.context_snapshot or {}
+            task_text = ctx.get("task") or ctx.get("task_description")
+            if task_text:
+                parts.append(str(task_text))
+            summary = " | ".join(parts) if parts else (checkpoint.task_id or checkpoint.checkpoint_id)
+            return self._redact_for_display(summary)
+        except Exception:  # noqa: BLE001 — never crash summary building
+            return checkpoint.checkpoint_id
+
+    @staticmethod
+    def _redact_for_display(text: str) -> str:
+        """Redact sensitive data from ``text`` before CLI display (Security A6).
+
+        Delegates to :meth:`OutputValidator.redact`. Falls back to the
+        original text if OutputValidator is unavailable (graceful degradation).
+        """
+        if not text:
+            return text
+        try:
+            from .output_validator import OutputValidator
+
+            return OutputValidator().redact(text)
+        except Exception:  # noqa: BLE001 — graceful degradation
+            return text

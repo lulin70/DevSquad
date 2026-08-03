@@ -39,6 +39,9 @@ from dataclasses import dataclass
 __all__ = ["PromptDials"]
 
 
+_VALID_OUTPUT_STYLES = ("detailed", "action_first", "compact")
+
+
 @dataclass
 class PromptDials:
     """Three-dimension prompt tuning dials.
@@ -51,17 +54,30 @@ class PromptDials:
         1=conservative, 3=balanced, 5=innovative. Clamped to [1, 5].
     risk_tolerance:
         1=safest, 3=balanced, 5=aggressive. Clamped to [1, 5].
+    output_style:
+        Report rendering style. One of ``"detailed"`` (default, current
+        behavior — full analysis + recommendations), ``"action_first"``
+        (lead with next action, cap lists at 5, no preamble/recap/closers),
+        or ``"compact"`` (condensed format). Invalid values raise
+        ``ValueError`` in ``__post_init__``.
     """
 
     verbosity: int = 3
     creativity: int = 3
     risk_tolerance: int = 3
+    output_style: str = "detailed"
 
     def __post_init__(self) -> None:
         # Clamp values to 1-5.
         self.verbosity = max(1, min(5, self.verbosity))
         self.creativity = max(1, min(5, self.creativity))
         self.risk_tolerance = max(1, min(5, self.risk_tolerance))
+        # V4.5.0 (PRD 10.1.1): validate output_style.
+        if self.output_style not in _VALID_OUTPUT_STYLES:
+            raise ValueError(
+                f"Invalid output_style: {self.output_style!r}. "
+                f"Must be one of: {', '.join(_VALID_OUTPUT_STYLES)}"
+            )
 
     # ------------------------------------------------------------------
     # Backward compatibility with the 3-variant system
@@ -190,9 +206,10 @@ class PromptDials:
 
     @property
     def is_default(self) -> bool:
-        """True if all dials are at default (3, 3, 3)."""
+        """True if all dials are at default (3, 3, 3, "detailed")."""
         return (
             self.verbosity == 3
             and self.creativity == 3
             and self.risk_tolerance == 3
+            and self.output_style == "detailed"
         )

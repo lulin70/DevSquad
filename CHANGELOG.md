@@ -14,6 +14,26 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-08-03
+
+### V4.5.0 — Cross-Session Continuity + Protocol-Native Skills + Action-First Reports
+
+Merging V4.4.3 + V4.4.4 + V4.5.0 changes into a single release. 10 new features, 8 atomic sub-skills, 8260+ tests passing.
+
+**New Features**:
+- ScratchpadHistoryStore (SQLite cross-session Scratchpad search)
+- AgentIdentity (deterministic agent ID for cross-session tracking)
+- WorkflowTrace (transparent workflow trace in dispatch reports)
+- GitContext (Git branch/commit context injection into dispatch)
+- SkillProvider Protocol (protocol-native skill architecture, Builtin + MCP providers)
+- OutputStyle (action-first report format, from i-have-adhd insights)
+- SessionResume CLI (`devsquad sessions list` + `dispatch --resume`)
+- FileBundler (deterministic file bundling for review mode, from open-code-review)
+- SKILL.md modular split (1216→282 lines + 3 reference docs)
+- VISION documents (docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md)
+
+**Sub-Skills**: 6 → 8 (added PrototypeSkill + TeachSkill)
+
 ## [4.4.2] - 2026-07-30
 
 ### V4.4.2 — P0-P3 Enhancement (2026-07-30)

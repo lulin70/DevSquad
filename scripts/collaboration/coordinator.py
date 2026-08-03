@@ -198,6 +198,33 @@ class Coordinator:
         self.ccr_store = ccr_store
         self._used_input_tokens: int = 0
 
+    def apply_file_bundling(self, mode: str, files: list[str]) -> list[list[str]]:
+        """Apply deterministic FileBundling for review mode (V4.5.0 PRD §10.1.3).
+
+        Hardcoded guard (Architect A7): FileBundler is ONLY active in review
+        mode with >5 files. No LLM path can bypass this guard — it is a pure
+        code-level check. When the guard fails the original files are returned
+        as a single bundle (no division), preserving backward compatibility.
+
+        Args:
+            mode: Dispatch mode (e.g. ``"auto"`` / ``"review"`` / ``"consensus"``).
+            files: List of file paths in the changeset to review.
+
+        Returns:
+            List of bundles (each a list of file paths). When the guard fails
+            (non-review mode OR ≤5 files), returns ``[files]`` (a single bundle
+            — no bundling applied). When the guard passes, returns the
+            FileBundler output (multiple bundles grouped by directory + imports).
+        """
+        original_files = list(files)
+        # V4.5.0: FileBundler only active in review mode with >5 files (Architect A7)
+        if mode != "review" or len(files) <= 5:
+            return [original_files] if original_files else []
+        # Guard passed — delegate to the deterministic FileBundler (no LLM).
+        from .file_bundler import FileBundler
+
+        return FileBundler().bundle(original_files)
+
     def plan_task(
         self, task_description: str, available_roles: list[dict[str, str]], stage_id: str | None = None
     ) -> ExecutionPlan:

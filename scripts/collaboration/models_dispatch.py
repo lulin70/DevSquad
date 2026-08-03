@@ -418,3 +418,242 @@ def get_cli_role_list() -> list[str]:
     for rid, rdef in ROLE_REGISTRY.items():
         result.append(rdef.aliases[0] if rdef.aliases else rid)
     return result
+
+
+# =============================================================================
+# V4.4.4 — WorkflowTrace & GitContext (block/buzz-inspired)
+#
+# The module-level ``_call_counter`` (declared at the top of this file) is
+# shared by ``RoleDefinition.get_localized_prompt`` and the two new V4.4.4
+# dataclasses below. It is incremented on every ``WorkflowTrace`` /
+# ``GitContext`` construction and every ``GitContext.auto_detect`` call so
+# ``check_module_activation.py`` can verify the V4.4.4 code path is wired in
+# (anti-ghost guarantee).
+# =============================================================================
+
+
+@dataclass
+class WorkflowStep:
+    """Single step in a workflow trace.
+
+    Captures one unit of work executed by a Worker during a dispatch.
+
+    Attributes:
+        step_name: Human-readable name of the step (e.g. "analyze-architecture").
+        role_id: Role that executed the step (e.g. "architect").
+        agent_id: V4.4.3 AgentIdentity of the executing Worker.
+        status: Execution status — "success" / "running" / "failed".
+        duration_ms: Wall-clock duration in milliseconds.
+        details: Optional free-form detail string (default empty).
+    """
+
+    step_name: str
+    role_id: str
+    agent_id: str
+    status: str
+    duration_ms: float
+    details: str = ""
+
+
+@dataclass
+class WorkflowTrace:
+    """Trace of task decomposition + execution for transparency.
+
+    V4.4.4 — Inspired by block/buzz's workflow trace transparency: users
+    can see exactly how the agent team decomposed and executed a task.
+    Populated by the dispatch pipeline and rendered into the Markdown
+    report by ``ReportFormatter``.
+
+    Attributes:
+        task_description: Original task description provided to ``dispatch``.
+        decomposition_tree: Structured task → subtasks → roles tree.
+            Each dict has ``{"task": str, "subtasks": list, "roles": list}``.
+        steps: Ordered list of ``WorkflowStep`` execution records.
+        decision_points: List of ConsensusEngine invocation points
+            (each dict has ``{"topic": str, "outcome": str, ...}``).
+    """
+
+    task_description: str
+    decomposition_tree: list[dict] = field(default_factory=list)
+    steps: list[WorkflowStep] = field(default_factory=list)
+    decision_points: list[dict] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # Anti-ghost: increment the shared module-level counter so tests
+        # and ``check_module_activation.py`` can prove the WorkflowTrace
+        # code path was actually exercised (not dead code).
+        global _call_counter
+        _call_counter += 1
+
+    @property
+    def _call_counter_value(self) -> int:
+        """Read-only access to the module-level call counter (anti-ghost)."""
+        return _call_counter
+
+    def to_markdown(self) -> str:
+        """Render the workflow trace as a Markdown ``## Workflow Trace`` section.
+
+        The section includes:
+        - Task description header
+        - Decomposition tree (bullet list)
+        - Step execution table (step / role / agent / status / duration / details)
+        - Decision points list
+
+        Returns:
+            Markdown string. Empty steps / decision_points produce a
+            minimal-but-valid section so the report formatter can always
+            include the section when a trace is present.
+        """
+        lines: list[str] = [
+            "## 🔍 Workflow Trace",
+            "",
+            f"**Task**: {self.task_description}",
+            "",
+        ]
+
+        # Decomposition tree
+        if self.decomposition_tree:
+            lines.append("### Decomposition Tree")
+            for node in self.decomposition_tree:
+                task = node.get("task", "(unnamed)")
+                roles = node.get("roles", [])
+                role_str = ", ".join(roles) if roles else "(unassigned)"
+                lines.append(f"- **{task}** → roles: {role_str}")
+                for sub in node.get("subtasks", []):
+                    sub_str = sub if isinstance(sub, str) else sub.get("task", str(sub))
+                    lines.append(f"  - {sub_str}")
+            lines.append("")
+
+        # Steps table
+        if self.steps:
+            lines.append("### Steps")
+            lines.append("")
+            lines.append("| Step | Role | Agent | Status | Duration (ms) | Details |")
+            lines.append("|------|------|-------|--------|---------------|---------|")
+            for step in self.steps:
+                details = (step.details or "").replace("|", "\\|").replace("\n", " ")[:80]
+                lines.append(
+                    f"| {step.step_name} | {step.role_id} | {step.agent_id} "
+                    f"| {step.status} | {step.duration_ms:.1f} | {details} |"
+                )
+            lines.append("")
+
+        # Decision points
+        if self.decision_points:
+            lines.append("### Decision Points")
+            for dp in self.decision_points:
+                topic = dp.get("topic", "(unknown)")
+                outcome = dp.get("outcome", "")
+                lines.append(f"- **{topic}** — outcome: {outcome}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+
+@dataclass
+class GitContext:
+    """Git context for dispatch — Branch-as-Context from block/buzz.
+
+    V4.4.4 — When provided to ``dispatch(git_context=...)``, this is
+    injected into the Coordinator prompt so Workers can reference the
+    current branch / recent commits / open issues in their analysis.
+
+    Attributes:
+        branch: Current git branch name (empty if unknown).
+        recent_commits: List of recent commit ``oneline`` strings.
+        open_issues: List of open issue identifiers (e.g. ``#123``).
+    """
+
+    branch: str = ""
+    recent_commits: list[str] = field(default_factory=list)
+    open_issues: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # Anti-ghost: increment the shared module-level counter so tests
+        # can prove a GitContext was constructed through the dispatch path.
+        global _call_counter
+        _call_counter += 1
+
+    @property
+    def _call_counter_value(self) -> int:
+        """Read-only access to the module-level call counter (anti-ghost)."""
+        return _call_counter
+
+    @classmethod
+    def auto_detect(cls, timeout: float = 2.0) -> "GitContext | None":
+        """Auto-detect git context from the current working directory.
+
+        Uses ``git branch --show-current`` and ``git log --oneline -5``.
+        Returns ``None`` if the cwd is not a git repo, the ``git`` binary
+        is unavailable, or any other error occurs (timeout, permission, etc).
+
+        Args:
+            timeout: Subprocess timeout in seconds (default 2.0).
+
+        Returns:
+            A populated ``GitContext`` or ``None`` on any failure.
+        """
+        global _call_counter
+        _call_counter += 1
+
+        import subprocess
+
+        try:
+            branch_proc = subprocess.run(
+                ["git", "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            if branch_proc.returncode != 0:
+                return None
+            branch = branch_proc.stdout.strip()
+            if not branch:
+                return None
+
+            log_proc = subprocess.run(
+                ["git", "log", "--oneline", "-5"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            recent_commits: list[str] = []
+            if log_proc.returncode == 0:
+                recent_commits = [
+                    line.strip() for line in log_proc.stdout.splitlines() if line.strip()
+                ]
+
+            return cls(branch=branch, recent_commits=recent_commits)
+        except Exception:  # noqa: BLE001 — auto_detect must never raise
+            # Catches subprocess.TimeoutExpired, FileNotFoundError (git not
+            # installed), PermissionError, OSError, and any other unexpected
+            # failure. The contract is "return None on any failure".
+            return None
+
+    def to_prompt_section(self) -> str:
+        """Render this GitContext as a ``## Git Context`` prompt section.
+
+        Designed to be appended to the Coordinator prompt so all Workers
+        see the current branch / recent commits / open issues context.
+
+        Returns:
+            Markdown section string. Always returns a section (even if
+            some fields are empty) so callers can blindly append.
+        """
+        lines: list[str] = [
+            "## Git Context",
+            "",
+            f"- **Branch**: `{self.branch}`" if self.branch else "- **Branch**: (unknown)",
+        ]
+        if self.recent_commits:
+            lines.append("- **Recent commits**:")
+            for commit in self.recent_commits:
+                lines.append(f"  - {commit}")
+        if self.open_issues:
+            lines.append("- **Open issues**:")
+            for issue in self.open_issues:
+                lines.append(f"  - {issue}")
+        lines.append("")
+        return "\n".join(lines)

@@ -343,6 +343,47 @@ class MemoryProviderError(ProviderError):
 
 
 # ============================================================================
+# SkillProvider: skill registration/discovery/invoke interface (V4.5.0)
+# ============================================================================
+#
+# Module-level anti-ghost counter. Incremented by SkillProvider consumers to
+# prove the protocol path is exercised (not ghost code). Verified by
+# scripts/check_module_activation.py after a sample dispatch.
+_call_counter: int = 0
+
+
+@runtime_checkable
+class SkillProvider(Protocol):
+    """Protocol for skill registration/discovery/invoke (V4.5.0).
+
+    Decouples the skill layer from agent core. Agent core (Worker/Coordinator)
+    only knows this protocol, never imports concrete skills. This enables
+    swapping the skill backend (built-in import, MCP tool bridge, plugin
+    hot-loader) without touching the agent core.
+
+    Implementations:
+    - BuiltinSkillProvider (wraps existing import-based registration, backward-compatible)
+    - MCPSkillProvider (bridges MCP tools as DevSquad skills, new capability)
+    """
+
+    def register(self, name: str, skill_cls: type) -> None:
+        """Register a skill class under a name."""
+        ...
+
+    def discover(self) -> dict[str, Any]:
+        """Discover all available skills. Returns dict name -> skill info."""
+        ...
+
+    def instantiate(self, name: str) -> Any:
+        """Instantiate a skill by name. Returns a skill instance."""
+        ...
+
+    def invoke(self, name: str, **kwargs: Any) -> Any:
+        """Invoke a skill by name with keyword arguments. Returns skill result."""
+        ...
+
+
+# ============================================================================
 # Version info
 # ============================================================================
 
@@ -354,6 +395,7 @@ __all__ = [
     "MemoryProvider",
     "UETestProvider",
     "TechDebtProvider",
+    "SkillProvider",
     "ProviderError",
     "CacheError",
     "RetryError",

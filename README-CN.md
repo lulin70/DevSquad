@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.4.2 (多语言 prompt + 6-Tab 仪表盘) | V4.4.0 (5 个新增增强模块)</em>
+  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.0 (跨会话连续性 + 协议原生 Skill + 行动优先报告) | V4.4.0 (5 个新增增强模块)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8200%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.4.2-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8260%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,9 +71,21 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.4.2: P0-P3 增强 + 多语言角色 Prompt + Dashboard 6-Tab 可见性
+## 🚀 V4.5.0: 跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告
 
-**DevSquad V4.4.2** 在 V4.4.0/V4.4.1 基础上完成 P0-P3 增强模块、多语言角色 prompt（EN/CN/JP）、Dashboard 6-Tab 可见性、P2 Kanban 评估、P3 ITSM 评估。7 角色 AI 团队编排复杂工程任务，提供完整审计链和共识机制。
+**DevSquad V4.5.0**（合并 V4.4.3 + V4.4.4 + V4.5.0 变更一次性发布）交付 10 项新特性，覆盖跨会话连续性、协议原生 Skill 架构和行动优先报告。7 角色 AI 团队编排复杂工程任务，提供完整审计链和共识机制。详见 [docs/VISION.md](docs/VISION.md) 项目愿景。
+
+### V4.5.0 — 10 项新特性
+- **ScratchpadHistoryStore**: SQLite 跨会话 Scratchpad 搜索
+- **AgentIdentity**: 确定性 agent ID，用于跨会话追踪
+- **WorkflowTrace**: dispatch 报告中透明工作流追踪
+- **GitContext**: Git 分支/commit 上下文注入 dispatch
+- **SkillProvider Protocol**: 协议原生 Skill 架构（Builtin + MCP providers）
+- **OutputStyle**: 行动优先报告格式（源自 i-have-adhd 洞察）
+- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
+- **FileBundler**: review 模式确定性文件打包（源自 open-code-review）
+- **SKILL.md 模块化拆分**: 1216→282 行 + 3 参考文档（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
+- **VISION 文档**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
 
 ### V4.4.0 — P0-P3 增强模块（5 个新模块）
 - **P0-1 RiskRegister**: PMP 风险管理；7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）+ `GateType.RISK_CHECK` 门禁（exposure ≥ 0.36 阻断）
@@ -102,7 +114,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 ### 测试金字塔达标
 - **Contract 测试**: 5.2%（目标 ≥5% ✅）
 - **Integration 测试**: 15.1%（目标 ≥15% ✅）
-- **总测试数**: 8200+（CI 权威）
+- **总测试数**: 8260+（CI 权威）
 - **E2E 覆盖**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost
 
 ### 历史特性（V4.0.0-V4.3.3）
@@ -119,7 +131,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
 - **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
 
-8200+ tests passing（CI 权威）。
+8260+ tests passing（CI 权威）。
 
 ---
 
@@ -402,7 +414,7 @@ similar = fingerprint.find_similar("new task", top_k=3)
 
 ## 🧩 分层子 Skill 架构（V3.6.0）
 
-> DevSquad 提供 **6 个原子化子 Skill**，可独立使用或组合调用。
+> DevSquad 提供 **8 个原子化子 Skill**，可独立使用或组合调用。
 > 每个子 Skill 是一个轻量级包装器（约 50 行），导入现有核心模块 — 无重复逻辑。
 
 ```
@@ -412,7 +424,9 @@ skills/
 ├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5 轴代码审查)
 ├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
 ├── test/           → TestSkill     — TestQualityGuard + 测试策略生成
-└── retrospective/  → RetroSkill    — RetrospectiveEngine + 模式提取
+├── retrospective/  → RetroSkill    — RetrospectiveEngine + 模式提取
+├── prototype/      → PrototypeSkill — 快速原型脚手架 (V4.5.0)
+└── teach/          → TeachSkill     — 知识转移与新人上手 (V4.5.0)
 ```
 
 ### 子 Skill 快速参考
@@ -683,6 +697,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最后更新：2026-07-30 | 版本：V4.4.2 (多语言角色 prompt EN/CN/JP + Dashboard 6-Tab 可见性增强) | V4.4.0 (5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md))*
+*最后更新：2026-08-03 | 版本：V4.5.0 (跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告 — 10 项新特性) | V4.4.0 (5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md))*
 
 </details>

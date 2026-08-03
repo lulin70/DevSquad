@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.cli_dispatch import cmd_demo, cmd_dispatch, cmd_roles, cmd_status
 from scripts.cli_lifecycle import cmd_lifecycle
+from scripts.cli_sessions import cmd_sessions
 from scripts.cli_utils import (
     ALL_ROLE_IDS,
     BACKENDS,
@@ -431,11 +432,33 @@ Environment Variables (API keys are read from env vars only, never command line)
         default=None,
         help="AI host platform adapter (enables host-specific role mapping and output formatting)",
     )
+    p_dispatch.add_argument(
+        "--resume",
+        metavar="SESSION-ID",
+        default=None,
+        help="Resume an interrupted dispatch from a checkpoint session-id "
+        "(see `devsquad sessions list`). Loads the checkpoint and re-dispatches "
+        "the original task. Fails gracefully if the checkpoint is missing/corrupted.",
+    )
 
     subparsers.add_parser("status", aliases=["s"], help="Show system status")
 
     p_roles = subparsers.add_parser("roles", aliases=["ls"], help="List available roles")
     p_roles.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
+
+    # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
+    p_sessions = subparsers.add_parser(
+        "sessions", aliases=["sess"], help="List/show dispatch sessions (SessionResume V4.5.0)"
+    )
+    sessions_sub = p_sessions.add_subparsers(dest="sessions_command", required=True, help="Session subcommand")
+    p_sess_list = sessions_sub.add_parser("list", help="List recent dispatch sessions with status")
+    p_sess_list.add_argument("--limit", "-n", type=int, default=20, help="Max sessions to show (default 20)")
+    p_sess_list.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
+    p_sess_list.add_argument("--persist-dir", help="Custom checkpoint directory")
+    p_sess_show = sessions_sub.add_parser("show", help="Show checkpoint details for a session")
+    p_sess_show.add_argument("session_id", help="Session/checkpoint ID to inspect")
+    p_sess_show.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
+    p_sess_show.add_argument("--persist-dir", help="Custom checkpoint directory")
 
     p_lifecycle = subparsers.add_parser("lifecycle", aliases=["lc"], help="Execute lifecycle workflow command")
     p_lifecycle.add_argument("lifecycle_command", choices=LIFECYCLE_COMMANDS, help="Lifecycle command to execute")
@@ -511,6 +534,8 @@ Environment Variables (API keys are read from env vars only, never command line)
         return cmd_status(args)
     elif args.command in ("roles", "ls"):
         return cmd_roles(args)
+    elif args.command in ("sessions", "sess"):
+        return cmd_sessions(args)
     elif args.command in ("lifecycle", "lc") or args.command in LIFECYCLE_COMMANDS:
         if args.command in LIFECYCLE_COMMANDS:
             args.lifecycle_command = args.command

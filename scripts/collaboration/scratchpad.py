@@ -80,9 +80,15 @@ class Scratchpad:
         "_write_count",
         "_read_count",
         "_compressed_entries",
+        "_history_store",
     )
 
-    def __init__(self, scratchpad_id: str | None = None, persist_dir: str | None = None):
+    def __init__(
+        self,
+        scratchpad_id: str | None = None,
+        persist_dir: str | None = None,
+        history_store: Any = None,
+    ):
         """
         初始化共享黑板
 
@@ -104,6 +110,8 @@ class Scratchpad:
         # Workers read ``summary`` by default; Coordinator auto-retrieves the
         # original via ``devsquad_retrieve(trace_id=..., query=...)`` when needed.
         self._compressed_entries: list[CompressedScratchpadEntry] = []
+        # V4.4.3: Optional cross-session history store (SQLite archive).
+        self._history_store = history_store
 
         if self.persist_dir:
             os.makedirs(self.persist_dir, exist_ok=True)
@@ -134,6 +142,12 @@ class Scratchpad:
             self._entries[entry.entry_id] = entry
             self._write_count += 1
             self._persist_entry(entry)
+            # V4.4.3: Mirror to cross-session history store (SQLite archive).
+            if self._history_store is not None:
+                try:
+                    self._history_store.write(entry, self.scratchpad_id)
+                except Exception:  # noqa: BLE001 — history store is best-effort
+                    pass
             track_usage("scratchpad.write", success=True, metadata={"entry_type": entry.entry_type.value})
             return entry.entry_id
 

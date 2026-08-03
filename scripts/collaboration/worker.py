@@ -115,6 +115,26 @@ class Worker:
         self._entries_written_count = 0
         self._last_assembled_prompt: Any | None = None
 
+    @property
+    def agent_id(self) -> str:
+        """V4.4.3: Deterministic agent identity for cross-session tracking.
+
+        Derived from (role_id, backend, model) via AgentIdentity.
+        Same configuration produces the same agent_id across sessions.
+        """
+        from .agent_identity import AgentIdentity
+
+        backend_name = "mock"
+        model_name = "mock"
+        if self.llm_backend is not None:
+            backend_name = type(self.llm_backend).__name__.lower().replace("backend", "")
+            model_name = getattr(self.llm_backend, "model", "mock") or "mock"
+        return AgentIdentity.create(
+            role_id=self.role_id,
+            backend=backend_name,
+            model=str(model_name),
+        ).agent_id
+
     def reset(self) -> None:
         """Reset transient execution state for object-pool reuse.
 

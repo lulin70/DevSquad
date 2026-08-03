@@ -6,7 +6,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .protocols import SkillProvider
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +76,64 @@ class SkillRegistry:
     - Persisted to disk for cross-session reuse
     """
 
-    def __init__(self, storage_path: str = "./skills"):
+    def __init__(
+        self,
+        storage_path: str = "./skills",
+        provider: "SkillProvider | None" = None,
+    ):
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.skills: dict[str, SkillEntry] = {}
         self.handlers: dict[str, Callable] = {}
         self._load()
+        # V4.5.0: protocol-native skill provider. Default = BuiltinSkillProvider,
+        # which wraps the existing import-based registry (100% backward compatible).
+        from .skill_provider_builtin import BuiltinSkillProvider
+
+        self.provider = provider if provider is not None else BuiltinSkillProvider()
+
+    def set_provider(self, provider: "SkillProvider | None") -> None:
+        """Swap the active skill provider (V4.5.0).
+
+        Args:
+            provider: A SkillProvider implementation, or None to disable
+                protocol-based skill operations (subsequent discover/
+                instantiate/invoke calls raise ValueError).
+        """
+        self.provider = provider
+
+    def discover(self) -> dict[str, Any]:
+        """Discover available skills via the active provider (V4.5.0).
+
+        Returns:
+            Dict mapping skill name -> skill info.
+
+        Raises:
+            ValueError: When no provider is configured.
+        """
+        if self.provider is None:
+            raise ValueError("No skill provider configured (use set_provider)")
+        return self.provider.discover()
+
+    def instantiate(self, name: str) -> Any:
+        """Instantiate a skill by name via the active provider (V4.5.0).
+
+        Raises:
+            ValueError: When no provider is configured or skill not found.
+        """
+        if self.provider is None:
+            raise ValueError("No skill provider configured (use set_provider)")
+        return self.provider.instantiate(name)
+
+    def invoke(self, name: str, **kwargs: Any) -> Any:
+        """Invoke a skill by name via the active provider (V4.5.0).
+
+        Raises:
+            ValueError: When no provider is configured or skill not found.
+        """
+        if self.provider is None:
+            raise ValueError("No skill provider configured (use set_provider)")
+        return self.provider.invoke(name, **kwargs)
 
     def register(self, skill: SkillEntry, handler: Callable | None = None) -> str:
         """Register a skill and optional handler in the registry.
