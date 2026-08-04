@@ -203,7 +203,10 @@ print(json.dumps({
         env=env,
     )
     if result.returncode != 0:
-        pytest.skip(f"output_style not yet implemented in formatter: {result.stderr[:200]}")
+        pytest.fail(
+            f"output_style dispatch failed (regression — output_style IS implemented "
+            f"in ReportFormatter.format_report):\n{result.stderr[:300]}"
+        )
     data = json.loads(result.stdout)
     assert data["differs"], "action_first and detailed formats produced identical output"
 
@@ -237,7 +240,10 @@ print(json.dumps({"differs": detailed.strip() != action_first.strip()}))
         env=env,
     )
     if result.returncode != 0:
-        pytest.skip("output_style not yet implemented")
+        pytest.fail(
+            f"output_style dispatch failed (regression — output_style IS implemented "
+            f"in ReportFormatter.format_report):\n{result.stderr[:300]}"
+        )
     data = json.loads(result.stdout)
     assert data["differs"], "action_first and detailed formats produced identical output"
 

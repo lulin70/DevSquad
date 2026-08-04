@@ -95,10 +95,12 @@ def dashboard(dashboard_port: int):
     Skips the test if streamlit is not installed.
     """
     if not _streamlit_available():
-        pytest.skip("streamlit not installed in current venv")
+        pytest.fail(
+            "streamlit not installed in current venv — run: pip install streamlit"
+        )
 
     if not _DASHBOARD_PATH.exists():
-        pytest.skip(f"Dashboard entry point not found: {_DASHBOARD_PATH}")
+        pytest.fail(f"Dashboard entry point not found: {_DASHBOARD_PATH}")
 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(_PROJECT_ROOT)

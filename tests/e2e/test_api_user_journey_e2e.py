@@ -82,7 +82,9 @@ def _http_post(url: str, data: dict, timeout: int = 30) -> tuple[int, str]:
 def api_server():
     """Start FastAPI server as subprocess, yield base_url, cleanup on teardown."""
     if not _fastapi_available():
-        pytest.skip("FastAPI/uvicorn not installed")
+        pytest.fail(
+            "FastAPI/uvicorn not installed — run: pip install -e '.[api]'"
+        )
 
     port = _find_free_port()
     env = os.environ.copy()
@@ -136,12 +138,11 @@ def api_server():
 # ---------------------------------------------------------------------------
 
 def test_e2e_api_dispatch_task(api_server):
-    """Journey-1: POST /api/v1/tasks/dispatch returns valid dispatch result.
+    """Journey-1: POST /api/v1/tasks/dispatch returns a successful dispatch result.
 
-    The API server enforces RBAC fail-closed by default (HC-1), so dispatch
-    may return success=False with a permission error in test environments
-    without RBAC configured. Both outcomes are valid API responses — what
-    matters is the endpoint returns 200 with the expected result structure.
+    With DEVSQUAD_API_AUTH_DISABLED=1, the dispatcher runs in development_mode
+    (RBAC open), so dispatch should complete successfully with mock backend.
+    This verifies the full pipeline: API → Dispatcher → RBAC (dev) → Mock LLM.
     """
     status, body = _http_post(
         f"{api_server}/api/v1/tasks/dispatch",
@@ -150,7 +151,7 @@ def test_e2e_api_dispatch_task(api_server):
     )
     assert status == 200, f"Dispatch failed: {status} — {body[:300]}"
     data = json.loads(body)
-    # Valid response must contain these structural keys (regardless of success)
+    # Valid response must contain these structural keys
     required_keys = ["success", "task_description", "errors"]
     for key in required_keys:
         assert key in data, (
@@ -160,6 +161,13 @@ def test_e2e_api_dispatch_task(api_server):
     # task_description should echo the input task
     assert data["task_description"] == "Design a REST API for user management", (
         f"task_description mismatch: {data.get('task_description')}"
+    )
+    # Dispatch should succeed (RBAC dev mode + mock backend)
+    assert data["success"] is True, (
+        f"Dispatch did not succeed:\n"
+        f"success={data.get('success')}\n"
+        f"errors={data.get('errors')}\n"
+        f"body={body[:400]}"
     )
 
 

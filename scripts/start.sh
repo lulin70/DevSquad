@@ -20,6 +20,16 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# --- Venv detection (prefer project venv over system python3) ---------------
+# Without this, `python3` may resolve to system Python 3.9 instead of the
+# project's venv Python 3.12, causing version-check failures and missing
+# dependencies. We prepend venv/bin to PATH so all subsequent `python3`,
+# `streamlit`, and `uvicorn` calls resolve to the venv versions.
+VENV_BIN="$PROJECT_ROOT/.venv/bin"
+if [ -d "$VENV_BIN" ]; then
+    export PATH="$VENV_BIN:$PATH"
+fi
+
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  DevSquad 一键启动脚本 (V3.9.2)${NC}"
 echo -e "${GREEN}========================================${NC}"

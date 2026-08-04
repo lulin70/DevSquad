@@ -151,7 +151,13 @@ def test_e2e_cross_entry_cli_dispatch_to_api_history():
     else:
         proc.terminate()
         proc.wait(timeout=5)
-        pytest.skip("API server did not start")
+        stdout = proc.stdout.read() if proc.stdout else ""
+        stderr = proc.stderr.read() if proc.stderr else ""
+        pytest.fail(
+            f"API server did not start within 10s.\n"
+            f"STDOUT: {stdout[:300]}\n"
+            f"STDERR: {stderr[:300]}"
+        )
 
     try:
         # Step 3: Get history via API

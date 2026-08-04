@@ -49,12 +49,22 @@ _global_dispatcher: MultiAgentDispatcher | None = None
 
 
 def _get_dispatcher() -> MultiAgentDispatcher:
-    """Get or create the global MultiAgentDispatcher instance."""
+    """Get or create the global MultiAgentDispatcher instance.
+
+    RBAC mode is selected by environment:
+      - ``DEVSQUAD_API_AUTH_DISABLED=1`` → development_mode=True (RBAC open,
+        for E2E tests and local dev). This env var already disables API key
+        auth, so treating it as a dev/test signal is consistent.
+      - Otherwise → development_mode=False (HC-1: production RBAC fail-closed).
+    """
     global _global_dispatcher
     if _global_dispatcher is None:
         try:
             from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
+            _is_dev_mode = os.environ.get("DEVSQUAD_API_AUTH_DISABLED", "").strip() in (
+                "1", "true", "True", "TRUE",
+            )
             _global_dispatcher = MultiAgentDispatcher(
                 enable_warmup=True,
                 enable_compression=True,
@@ -62,9 +72,12 @@ def _get_dispatcher() -> MultiAgentDispatcher:
                 enable_memory=True,
                 enable_skillify=True,
                 enable_quality_guard=False,
-                development_mode=False,  # HC-1: production mode enforces RBAC fail-closed
+                development_mode=_is_dev_mode,  # HC-1: prod fail-closed; dev open
             )
-            logger.info("MultiAgentDispatcher initialized successfully")
+            logger.info(
+                "MultiAgentDispatcher initialized (development_mode=%s)",
+                _is_dev_mode,
+            )
         except (ImportError, RuntimeError) as e:
             logger.error("Failed to initialize MultiAgentDispatcher: %s", e)
             raise HTTPException(status_code=503, detail=f"Dispatcher initialization failed: {str(e)}") from None

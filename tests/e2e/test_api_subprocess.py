@@ -113,7 +113,10 @@ def api_server(api_server_port: int):
     Skips the test if fastapi/uvicorn are not installed.
     """
     if not _fastapi_available():
-        pytest.skip("fastapi + uvicorn not installed in current venv")
+        pytest.fail(
+            "fastapi + uvicorn not installed in current venv — run: "
+            "pip install -e '.[api]'"
+        )
 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(_PROJECT_ROOT)

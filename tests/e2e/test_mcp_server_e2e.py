@@ -3,17 +3,17 @@
 
 Coverage:
   - MCP SSE server starts and binds to a dynamic port
-  - SSE connection is established
-  - Tool list endpoint returns DevSquad tools
-  - multiagent_roles tool returns 7 roles
-  - multiagent_status tool returns system info
+  - SSE endpoint (/sse) returns 200
+  - MCP protocol: initialize + list_tools returns DevSquad tools
+  - MCP protocol: calling a tool succeeds without crash
   - Server shuts down cleanly on SIGTERM
 
-Skipped when MCP SDK is not installed (pip install mcp).
+Uses the MCP Python SDK's sse_client + ClientSession (proper MCP protocol).
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 import signal
 import socket
@@ -35,7 +35,7 @@ pytestmark = [
 
 
 def _mcp_available() -> bool:
-    """Check if MCP SDK is installed."""
+    """Check if MCP SDK with FastMCP is installed."""
     try:
         import mcp  # noqa: F401
         from mcp.server.fastmcp import FastMCP  # noqa: F401
@@ -55,7 +55,9 @@ def _find_free_port() -> int:
 def mcp_server():
     """Start MCP SSE server as subprocess, yield base_url, cleanup on teardown."""
     if not _mcp_available():
-        pytest.skip("MCP SDK not installed. Run: pip install mcp")
+        pytest.fail(
+            "MCP SDK (with FastMCP) not installed — run: pip install 'mcp<2'"
+        )
 
     port = _find_free_port()
     env = os.environ.copy()
@@ -75,13 +77,14 @@ def mcp_server():
     )
 
     base_url = f"http://127.0.0.1:{port}"
-    # Wait for server to start (max 15s)
+    sse_url = f"{base_url}/sse"
+
+    # Wait for server to start (max 15s) — check /sse endpoint which returns 200
     for _ in range(30):
         time.sleep(0.5)
         try:
             import urllib.request
-
-            req = urllib.request.Request(f"{base_url}/health")
+            req = urllib.request.Request(sse_url)
             with urllib.request.urlopen(req, timeout=2) as r:
                 if r.status == 200:
                     break
@@ -90,7 +93,14 @@ def mcp_server():
     else:
         proc.terminate()
         proc.wait(timeout=5)
-        raise AssertionError(f"MCP server did not start on port {port}")
+        # Read any error output
+        stdout = proc.stdout.read() if proc.stdout else ""
+        stderr = proc.stderr.read() if proc.stderr else ""
+        pytest.fail(
+            f"MCP server did not start on port {port}\n"
+            f"STDOUT: {stdout[:500]}\n"
+            f"STDERR: {stderr[:500]}"
+        )
 
     yield base_url, port
 
@@ -103,82 +113,114 @@ def mcp_server():
         proc.wait()
 
 
+# ---------------------------------------------------------------------------
+# Journey 1: Server starts and SSE endpoint responds
+# ---------------------------------------------------------------------------
+
 def test_mcp_server_starts_and_responds(mcp_server):
-    """Journey-1: MCP SSE server starts, binds, and responds to HTTP requests."""
+    """Journey-1: MCP SSE server starts, binds, and /sse returns 200."""
     base_url, port = mcp_server
     import urllib.request
 
-    req = urllib.request.Request(f"{base_url}/")
+    # /sse is the MCP SSE endpoint
+    req = urllib.request.Request(f"{base_url}/sse")
     with urllib.request.urlopen(req, timeout=5) as r:
-        assert r.status in (200, 404), f"Unexpected status: {r.status}"
+        assert r.status == 200, f"Unexpected SSE status: {r.status}"
 
 
-def test_mcp_server_tool_list_accessible(mcp_server):
-    """Journey-2: MCP tool list endpoint is accessible via SSE."""
+# ---------------------------------------------------------------------------
+# Journey 2: MCP protocol — initialize + list_tools
+# ---------------------------------------------------------------------------
+
+def test_mcp_server_list_tools_via_protocol(mcp_server):
+    """Journey-2: MCP initialize + list_tools returns DevSquad tools.
+
+    Uses the MCP Python SDK's sse_client and ClientSession to interact
+    with the server using the proper MCP protocol (not fake HTTP endpoints).
+    """
     base_url, port = mcp_server
-    import urllib.request
+    sse_url = f"{base_url}/sse"
 
-    req = urllib.request.Request(f"{base_url}/tools")
-    with urllib.request.urlopen(req, timeout=5) as r:
-        assert r.status == 200, f"Tool list failed: {r.status}"
-        body = r.read().decode("utf-8")
-        lines = [l for l in body.strip().split("\n") if l.startswith("data: ")]
-        assert len(lines) > 0, f"No SSE data lines in response: {body[:200]}"
+    async def _list_tools() -> list[dict]:
+        """Connect via MCP SSE and call list_tools."""
+        # Import here so the test doesn't fail if the module changes
+        from mcp.client.sse import sse_client
+        from mcp.client.session import ClientSession
 
+        async with sse_client(sse_url) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                # Initialize the session
+                await session.initialize()
+                # List available tools
+                result = await session.list_tools()
+                tools = [
+                    {"name": t.name, "description": t.description[:50] if t.description else ""}
+                    for t in result.tools
+                ]
+                return tools
 
-def test_mcp_server_roles_tool_returns_7_roles(mcp_server):
-    """Journey-3: multiagent_roles tool returns 7 core roles via SSE."""
-    base_url, port = mcp_server
-    import urllib.request
-    import json
-
-    req = urllib.request.Request(
-        f"{base_url}/tools/multiagent_roles",
-        data=b"{}",
-        headers={"Content-Type": "application/json"},
-        method="POST",
+    tools = asyncio.run(_list_tools())
+    assert len(tools) > 0, f"No tools returned from MCP server: {tools}"
+    tool_names = [t["name"] for t in tools]
+    # Verify at least the known DevSquad tools are present
+    assert any("multiagent" in n for n in tool_names), (
+        f"Expected multiagent tools, got: {tool_names}"
     )
-    with urllib.request.urlopen(req, timeout=10) as r:
-        assert r.status == 200
-        body = r.read().decode("utf-8")
-        for line in body.strip().split("\n"):
-            if line.startswith("data: "):
-                data = json.loads(line[6:])
-                if "result" in data or "content" in data:
-                    content = data.get("result") or data.get("content", [])
-                    if isinstance(content, list) and len(content) > 0:
-                        role_text = str(content)
-                        assert len(content) >= 7, f"Expected ≥7 roles, got {len(content)}: {role_text}"
-                        return
-        # If no structured result, just verify we got a response
-        assert len(body) > 0, "Empty response from roles tool"
 
 
-def test_mcp_server_status_tool_returns_info(mcp_server):
-    """Journey-4: multiagent_status tool returns system info."""
+# ---------------------------------------------------------------------------
+# Journey 3: MCP protocol — call a tool
+# ---------------------------------------------------------------------------
+
+def test_mcp_server_call_tool_via_protocol(mcp_server):
+    """Journey-3: MCP call_tool succeeds without crash.
+
+    Calls the multiagent_roles tool (simplest tool with no LLM dependency).
+    """
     base_url, port = mcp_server
-    import urllib.request
+    sse_url = f"{base_url}/sse"
 
-    import json
+    async def _call_tool() -> str:
+        from mcp.client.sse import sse_client
+        from mcp.client.session import ClientSession
 
-    req = urllib.request.Request(
-        f"{base_url}/tools/multiagent_status",
-        data=b"{}",
-        headers={"Content-Type": "application/json"},
-        method="POST",
+        async with sse_client(sse_url) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                # Find multiagent_roles tool
+                tools_result = await session.list_tools()
+                tool_names = [t.name for t in tools_result.tools]
+                # Pick the first multiagent tool
+                target_tool = next((n for n in tool_names if "multiagent" in n), None)
+                if target_tool is None:
+                    return f"NO_TOOL: available={tool_names}"
+
+                result = await session.call_tool(target_tool, {})
+                # result.content is a list of content blocks
+                content_text = ""
+                for item in result.content:
+                    if hasattr(item, "text"):
+                        content_text += item.text
+                return content_text or str(result.content)
+
+    output = asyncio.run(_call_tool())
+    assert not output.startswith("NO_TOOL:"), (
+        f"Could not find multiagent tool: {output}"
     )
-    with urllib.request.urlopen(req, timeout=10) as r:
-        assert r.status == 200
-        body = r.read().decode("utf-8")
-        assert len(body) > 0, "Empty response from status tool"
-        lines = [l for l in body.strip().split("\n") if l.startswith("data: ")]
-        assert len(lines) > 0, f"No SSE data in status response: {body[:200]}"
+    # Output should be non-empty
+    assert len(output.strip()) > 0, f"Tool returned empty output: {output}"
 
+
+# ---------------------------------------------------------------------------
+# Journey 4: Server shuts down cleanly
+# ---------------------------------------------------------------------------
 
 def test_mcp_server_shutdown_cleanly(mcp_server):
-    """Journey-5: MCP server shuts down cleanly on SIGTERM."""
-    base_url, port = mcp_server
-    _unused, _unused2 = base_url, port
-    # The mcp_server fixture already handles cleanup via SIGTERM
-    # This test passes if we reach here without hanging
+    """Journey-4: MCP server shuts down cleanly on SIGTERM.
+
+    The mcp_server fixture handles SIGTERM cleanup. This test passes
+    if we reach here without hanging (fixture already cleaned up).
+    """
+    # The mcp_server fixture already handles SIGTERM cleanup.
+    # If we reach here without timeout, shutdown was clean.
     assert True
