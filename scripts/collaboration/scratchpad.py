@@ -10,6 +10,7 @@ Scratchpad - 共享黑板实现
 - 存储选型（门禁3）：内存主存储 + JSON 文件持久化备份
 """
 
+import contextlib
 import json
 import logging
 import os
@@ -144,10 +145,8 @@ class Scratchpad:
             self._persist_entry(entry)
             # V4.4.3: Mirror to cross-session history store (SQLite archive).
             if self._history_store is not None:
-                try:
+                with contextlib.suppress(Exception):
                     self._history_store.write(entry, self.scratchpad_id)
-                except Exception:  # noqa: BLE001 — history store is best-effort
-                    pass
             track_usage("scratchpad.write", success=True, metadata={"entry_type": entry.entry_type.value})
             return entry.entry_id
 

@@ -11,7 +11,6 @@ Tests run always (mock backend when no API key, real backend when key present).
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys

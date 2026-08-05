@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 __all__ = ["Violation", "check_test_count_consistency", "check_module_count_consistency", "main"]

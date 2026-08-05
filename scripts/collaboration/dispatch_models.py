@@ -245,6 +245,14 @@ class DispatchResult:
     # V4.4.4: Optional Git context (None when not provided to dispatch).
     # Uses Any to avoid circular import with models_dispatch.GitContext.
     git_context: Any = None
+    # V4.5.1: Approval Gate records (empty list = no gate activated,
+    # backward compatible with V4.5.0).
+    approval_records: list[dict[str, Any]] = field(default_factory=list)
+    approval_gate_md: str = ""
+    # V4.5.1: Connector operations (empty list = no connector activated,
+    # backward compatible with V4.5.0).
+    connector_operations: list[dict[str, Any]] = field(default_factory=list)
+    connector_md: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the dispatch result to a dictionary.
@@ -281,6 +289,8 @@ class DispatchResult:
             "permission_result": self.permission_result,
             "audit_entries": self.audit_entries,
             "workflow_trace": self._serialize_workflow_trace(),
+            "approval_records": self.approval_records,
+            "connector_operations": self.connector_operations,
         }
 
     def _serialize_workflow_trace(self) -> dict[str, Any] | None:
@@ -336,6 +346,8 @@ class DispatchResult:
             self._format_retrospective(),
             self._format_risk_management(),
             self._format_workflow_trace(),
+            self._format_approval_gate(),
+            self._format_connector_operations(),
         ]
         lines: list[str] = []
         for section in sections:
@@ -535,3 +547,41 @@ class DispatchResult:
         if not self.risk_management_md:
             return []
         return ["", self.risk_management_md]
+
+    def _format_approval_gate(self) -> list[str]:
+        """V4.5.1: Render approval gate Markdown section.
+
+        Returns an empty list when no approval records exist (backward
+        compatible with V4.5.0 — the section is omitted entirely).
+        """
+        if not self.approval_records and not self.approval_gate_md:
+            return []
+        if self.approval_gate_md:
+            return ["", self.approval_gate_md]
+        # Fallback: render records inline (when md not pre-rendered).
+        lines = ["", "## Approval Gate", ""]
+        for i, rec in enumerate(self.approval_records, 1):
+            status = "APPROVED" if rec.get("approved") else "DENIED"
+            lines.append(f"{i}. **{status}** — {rec.get('operation_type', '?')}: {rec.get('description', '')}")
+        lines.append("")
+        return lines
+
+    def _format_connector_operations(self) -> list[str]:
+        """V4.5.1: Render connector operations Markdown section.
+
+        Returns an empty list when no connector operations exist (backward
+        compatible with V4.5.0 — the section is omitted entirely).
+        """
+        if not self.connector_operations and not self.connector_md:
+            return []
+        if self.connector_md:
+            return ["", self.connector_md]
+        # Fallback: render operations inline (when md not pre-rendered).
+        lines = ["", "## Connector Operations", ""]
+        for i, op in enumerate(self.connector_operations, 1):
+            status = "OK" if op.get("success") else "FAILED"
+            lines.append(
+                f"{i}. **{status}** — {op.get('operation', '?')} → {op.get('target', '?')}"
+            )
+        lines.append("")
+        return lines

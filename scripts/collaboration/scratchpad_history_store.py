@@ -15,6 +15,7 @@ Anti-ghost: module-level ``_call_counter`` increments on every public method.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -126,10 +127,8 @@ class ScratchpadHistoryStore:
         )
         self._conn.commit()
         # Set file permissions to 0600 (owner read/write only).
-        try:
+        with contextlib.suppress(OSError):
             os.chmod(self._db_path, 0o600)
-        except OSError:
-            pass  # Non-POSIX or permission issue — non-fatal
 
     def write(self, entry: ScratchpadEntry, scratchpad_id: str) -> None:
         """Mirror a Scratchpad entry to persistent storage.

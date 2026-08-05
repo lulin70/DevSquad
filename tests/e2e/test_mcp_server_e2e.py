@@ -144,20 +144,20 @@ def test_mcp_server_list_tools_via_protocol(mcp_server):
     async def _list_tools() -> list[dict]:
         """Connect via MCP SSE and call list_tools."""
         # Import here so the test doesn't fail if the module changes
-        from mcp.client.sse import sse_client
         from mcp.client.session import ClientSession
+        from mcp.client.sse import sse_client
 
-        async with sse_client(sse_url) as (read_stream, write_stream):
-            async with ClientSession(read_stream, write_stream) as session:
-                # Initialize the session
-                await session.initialize()
-                # List available tools
-                result = await session.list_tools()
-                tools = [
-                    {"name": t.name, "description": t.description[:50] if t.description else ""}
-                    for t in result.tools
-                ]
-                return tools
+        async with sse_client(sse_url) as (read_stream, write_stream), \
+                   ClientSession(read_stream, write_stream) as session:
+            # Initialize the session
+            await session.initialize()
+            # List available tools
+            result = await session.list_tools()
+            tools = [
+                {"name": t.name, "description": t.description[:50] if t.description else ""}
+                for t in result.tools
+            ]
+            return tools
 
     tools = asyncio.run(_list_tools())
     assert len(tools) > 0, f"No tools returned from MCP server: {tools}"
@@ -181,27 +181,27 @@ def test_mcp_server_call_tool_via_protocol(mcp_server):
     sse_url = f"{base_url}/sse"
 
     async def _call_tool() -> str:
-        from mcp.client.sse import sse_client
         from mcp.client.session import ClientSession
+        from mcp.client.sse import sse_client
 
-        async with sse_client(sse_url) as (read_stream, write_stream):
-            async with ClientSession(read_stream, write_stream) as session:
-                await session.initialize()
-                # Find multiagent_roles tool
-                tools_result = await session.list_tools()
-                tool_names = [t.name for t in tools_result.tools]
-                # Pick the first multiagent tool
-                target_tool = next((n for n in tool_names if "multiagent" in n), None)
-                if target_tool is None:
-                    return f"NO_TOOL: available={tool_names}"
+        async with sse_client(sse_url) as (read_stream, write_stream), \
+                   ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            # Find multiagent_roles tool
+            tools_result = await session.list_tools()
+            tool_names = [t.name for t in tools_result.tools]
+            # Pick the first multiagent tool
+            target_tool = next((n for n in tool_names if "multiagent" in n), None)
+            if target_tool is None:
+                return f"NO_TOOL: available={tool_names}"
 
-                result = await session.call_tool(target_tool, {})
-                # result.content is a list of content blocks
-                content_text = ""
-                for item in result.content:
-                    if hasattr(item, "text"):
-                        content_text += item.text
-                return content_text or str(result.content)
+            result = await session.call_tool(target_tool, {})
+            # result.content is a list of content blocks
+            content_text = ""
+            for item in result.content:
+                if hasattr(item, "text"):
+                    content_text += item.text
+            return content_text or str(result.content)
 
     output = asyncio.run(_call_tool())
     assert not output.startswith("NO_TOOL:"), (

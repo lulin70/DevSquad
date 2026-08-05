@@ -108,7 +108,11 @@ class TestCompactReportFormat(unittest.TestCase):
         result = self.dispatcher.quick_dispatch("简单任务", output_format="compact")
         report = result.to_markdown() if isinstance(result, DispatchResult) else str(result)
         lines = [line for line in report.split("\n") if line.strip()]
-        self.assertLessEqual(len(lines), 20, "Compact format should be concise")
+        # V4.5.1: threshold bumped 20 → 25 to accommodate the new
+        # "## Approval Gate" and "## Connector Operations" sections
+        # (each ~3 lines). 23 observed in practice. 25 gives headroom
+        # for future V4.5.x sections without re-tuning.
+        self.assertLessEqual(len(lines), 25, "Compact format should be concise")
 
     def test_compact_report_has_status_icon(self):
         result = self.dispatcher.quick_dispatch("测试", output_format="compact")

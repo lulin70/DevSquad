@@ -8,8 +8,8 @@ based on the provided configuration.
 
 import logging
 import os
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)

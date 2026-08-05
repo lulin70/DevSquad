@@ -17,8 +17,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -196,7 +194,7 @@ def test_e2e_start_script_api_service_startup():
         try:
             sock.connect((host, port))
             return True
-        except (socket.error, socket.timeout):
+        except (TimeoutError, OSError):
             return False
         finally:
             sock.close()
