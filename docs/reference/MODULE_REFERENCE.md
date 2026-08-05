@@ -1,8 +1,8 @@
-# Module Reference — DevSquad Core Modules (185+)
+# Module Reference — DevSquad Core Modules (187+)
 
-> This document is the authoritative reference for DevSquad's 185+ core modules, test coverage matrix, and advanced feature behaviors. It was extracted from `SKILL.md` during the V4.5.0 modular split (PRD §10.2) so that `SKILL.md` remains a concise overview.
+> This document is the authoritative reference for DevSquad's 187+ core modules, test coverage matrix, and advanced feature behaviors. It was extracted from `SKILL.md` during the V4.5.0 modular split (PRD §10.2) so that `SKILL.md` remains a concise overview.
 
-## Architecture Overview (185+ Core Modules)
+## Architecture Overview (187+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|
@@ -140,6 +140,9 @@
 | 131 | **ErrorBudgetTracker** | `collaboration/error_budget_tracker.py` | V4.4.0 P1-1: SRE 错误预算。SLO 99.9% 默认 + `calculate()` 计算 remaining_budget + `GateType.ERROR_BUDGET` P10 门禁（预算耗尽阻断功能部署）+ `burn_rate()` 消耗速率。集成到 `UnifiedGateEngine.check_deployment()` |
 | 132 | **GapAnalyzer** | `collaboration/gap_analyzer.py` | V4.4.0 P1-2: TOGAF 差距分析。`analyze(current, target)` 识别架构差距 + `prioritize()` 按优先级排序 + `generate_roadmap()` Markdown 路线图 + `track()` 记录闭环进度 + `suggest_scheduler_decision()` 驱动 LoopScheduler CONTINUE/STOP。可读 gap id（基于 work_package 关键词）|
 | 133 | **DoraMetricsCollector** | `collaboration/dora_metrics_collector.py` | V4.4.0 P2-1: DORA 指标。4 个交付指标（Deployment Frequency / Lead Time / Change Failure Rate / MTTR）+ `collect_from_git()` 从 git log 解析 + `collect_from_dispatch()` 从 dispatch 记录 + `GateType.DORA_CHECK` P11 门禁（CFR > 15% 触发架构评审）+ `rating()` Elite/High/Medium/Low 评级 |
+| 134-184 | *(V4.5.0 cross-session continuity modules)* | `collaboration/scratchpad_history_store.py` etc. | V4.5.0: ScratchpadHistoryStore / AgentIdentity / WorkflowTrace / GitContext / SkillProvider (Builtin + MCP) / OutputStyle / FileBundler / SessionResume CLI + supporting modules. See `CHANGELOG.md` [4.5.0] section for the full list. (Numbering reserved for future detailed entries; behavior documented in V4.5.0 release notes.) |
+| 186 | **ApprovalGate** | `collaboration/approval_gate.py` | V4.5.1: 用户级审批门。外部操作（PR 评论 / Issue 状态变更 / PR 评审）的用户级审批机制。`ApprovalCallback` Protocol + `ApprovalRequest`/`ApprovalResult` dataclass。回调异常时 **fail-closed**（拒绝操作并记录错误原因）。无回调配置时自动批准（向后兼容，不影响现有工作流）。所有审批决策记入 `_records` 审计链 + `export_markdown()` 报告章节。防幽灵：模块级 `_call_counter` + 16 单元测试（`tests/test_approval_gate.py`）。集成到 dispatcher `_activate_approval_gate()`（early_return + normal 双路径） |
+| 187 | **ConnectorFramework** | `collaboration/connector_framework.py` | V4.5.1: 外部系统连接器框架。Protocol-based 接口（`Connector` Protocol：`create_pr_comment` / `update_issue_state` / `submit_pr_review` / `get_operations` / `export_markdown`）。首个具体实现 `GitHubConnector` 支持 api/cli/simulation 三种模式：① `simulation=True` 强制仿真（安全，无网络）② `GITHUB_TOKEN` 环境变量或 `token` 参数 → api 模式（REST API）③ `gh` CLI 可用 → cli 模式（subprocess）④ fallback → simulation。`ConnectorOperation` dataclass 记录操作。防幽灵：模块级 `_call_counter` + 12 E2E 测试（AG-1 到 AG-8 反幽灵验证）。集成到 dispatcher `_activate_connector()`（强制 `simulation=True`，无网络调用） |
 
 ---
 

@@ -14,6 +14,48 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.1] - 2026-08-05
+
+### V4.5.1 — Approval Gate + Connector Framework + Anti-Ghost E2E
+
+PATCH-level release (SemVer compliant: new opt-in modules with backward-compatible defaults). All new modules default to safe, backward-compatible behavior (auto-approve, simulation mode).
+
+**New Modules**:
+- **ApprovalGate** (`scripts/collaboration/approval_gate.py`): User-level approval mechanism for external operations. `ApprovalCallback` Protocol + `ApprovalRequest`/`ApprovalResult` dataclasses. Fail-closed on callback exceptions. Auto-approve fallback when no callback configured (backward compatible). Anti-ghost `_call_counter` + 16 unit tests (`tests/test_approval_gate.py`).
+- **ConnectorFramework** (`scripts/collaboration/connector_framework.py`): Protocol-based interface for external system integration. `Connector` Protocol + `GitHubConnector` (api/cli/simulation modes). `simulation=True` enforced by default in dispatch pipeline. Anti-ghost `_call_counter`. Operations: `create_pr_comment`, `update_issue_state`, `submit_pr_review`. Markdown export.
+
+**Dispatch Pipeline Integration**:
+- `MultiAgentDispatcher._activate_approval_gate()` called in both `early_return` and normal paths (anti-ghost guarantee)
+- `MultiAgentDispatcher._activate_connector()` called in both paths with `simulation=True` (safe; no network)
+- Defensive coercion `task_desc_str = str(result.task_description or "")[:80]` handles None/non-str task descriptions
+- `DispatchResult` gained fields: `approval_records`, `approval_gate_md`, `connector_operations`, `connector_md`
+- `DispatchResult.to_markdown()` renders new sections: `## Approval Gate` + `## Connector Operations`
+- `DispatchResult.to_dict()` serializes new fields for API/programmatic consumers
+
+**New Tests**:
+- 12 E2E tests in `tests/e2e/test_v451_connector_framework_e2e.py` (anti-ghost AG-1 through AG-8 + dry_run early_return path activation)
+- 16 unit tests in `tests/test_approval_gate.py`
+- 11 AppTest browser-level E2E tests in `tests/e2e/test_dashboard_browser_e2e.py` (V451-7 Dashboard E2E — Streamlit AppTest replaces Playwright to avoid heavy dependencies; covers login, navigation, RBAC denial, Admin access, deterministic re-render)
+
+**ROADMAP Updates**:
+- V451-7 Dashboard browser-level E2E — ✅ Completed (11 AppTest cases)
+- V451-8 REST API end-to-end user journey E2E — ✅ Completed (190 E2E tests, `DEVSQUAD_API_AUTH_DISABLED=1` dev mode RBAC bypass, `success=True` assertions)
+- V451-9 Connector Framework anti-ghost E2E — ✅ Completed (12 E2E tests, AG-1 through AG-8)
+
+**Anti-Ghost Guarantee**:
+- Every new module increments `_call_counter` on every public method call
+- E2E tests verify `_call_counter > 0` after `dispatch()` — proves pipeline wiring is alive
+- `GitHubConnector` forces `simulation=True` in dispatch path — no real GitHub API calls during normal dispatch
+
+**Backward Compatibility**:
+- ApprovalGate: `approval_callback=None` → auto-approve (existing workflows unaffected)
+- ConnectorFramework: `simulation=True` default in dispatch → no network calls, no token required
+- No API breaking changes; new `DispatchResult` fields use `field(default_factory=...)` defaults
+
+**Test Counts**: 8392+ tests passing (CI authoritative), 25 skipped (require real LLM API key or are platform-specific)
+
+**Documentation**: Version bumped 4.5.0 → 4.5.1 across VERSION, _version.py, pyproject.toml, skill-manifest.yaml, Dockerfile, Helm Chart.yaml, CLAUDE.md, SKILL.md, README (EN/CN/JP), SPEC.md, ARCHITECTURE_V4.md, COMPARISON.md, config/deployment.yaml, skills/__init__.py, MODULE_REFERENCE.md (+2 modules → 187+), VERSION_HISTORY.md.
+
 ## [4.5.0] - 2026-08-03
 
 ### V4.5.0 — Cross-Session Continuity + Protocol-Native Skills + Action-First Reports

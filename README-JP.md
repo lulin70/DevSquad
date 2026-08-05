@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 「単一のAIアシスタント」を「7人AI専門チーム」にアップグレード</strong>
   <br>
-  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.5.0 (クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート) | V4.4.0 (5つの新規拡張モジュール)</em>
+  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.5.1 (Approval Gate + Connector Framework + アンチゴースト E2E) | V4.5.0 (クロスセッション連続性 + プロトコルネイティブSkill) | V4.4.0 (5つの新規拡張モジュール)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8260%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.0-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8392%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -64,14 +64,25 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 | 複雑なシステム設計（多視点が必要） | **DevSquad マルチロール協調** 🎯 |
 | 本番環境の自動化フロー | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **もっと深く知りたい？** → [完全クイックスタートガイド](QUICKSTART.md) | [185+ モジュール詳細リファレンス](SKILL.md)
+📚 **もっと深く知りたい？** → [完全クイックスタートガイド](QUICKSTART.md) | [187+ モジュール詳細リファレンス](SKILL.md)
 
 ---
 
 <details>
 <summary>🔍 クリックして展開：完全な機能紹介とアーキテクチャ詳細</summary>
 
-## 🚀 V4.5.0: クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート
+## 🚀 V4.5.1: Approval Gate + Connector Framework + アンチゴースト E2E
+
+**DevSquad V4.5.1**（PATCH リリース、SemVer 準拠）は2つの新規モジュールを導入し、3つの ROADMAP 項目（V451-1、V451-2、V451-7/8/9）を完了します。全新規モジュールはデフォルトで安全・後方互換の動作——API 破壊的変更なし。詳細は [docs/release_notes/V4.5.1_RELEASE_NOTES.md](docs/release_notes/V4.5.1_RELEASE_NOTES.md) を参照。
+
+### V4.5.1 — 2つの新規モジュール + 3つの ROADMAP 項目
+- **ApprovalGate**: 外部操作のユーザーレベル承認メカニズム。コールバック例外時 fail-closed。コールバック未設定時は自動承認（後方互換）。
+- **ConnectorFramework**: 外部システム統合のプロトコルインターフェース（GitHub 優先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 3モード）。dispatch pipeline はデフォルトで `simulation=True` を強制。
+- **V451-7 Dashboard ブラウザレベル E2E**: 11 AppTest ケース（Streamlit AppTest が Playwright を代替——重いブラウザ依存を回避しつつブラウザレベル DOM シミュレーションを維持）
+- **V451-8 REST API エンドツーエンドユーザージャーニー E2E**: 190 E2E テストが dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry をカバー
+- **V451-9 Connector Framework アンチゴースト E2E**: 12 E2E テスト（AG-1 〜 AG-8）が pipeline 活性化を証明
+
+### V4.5.0: クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート
 
 **DevSquad V4.5.0**（V4.4.3 + V4.4.4 + V4.5.0 変更を一括リリース）は、クロスセッション連続性、プロトコルネイティブSkillアーキテクチャ、アクションファーストレポート向けけ10の新機能を提供します。7ロール AI チームが複雑なエンジニアリングタスクを編成し、完全な監査チェーンとコンセンサスメカニズムを提供します。プロジェクトビジョンは [docs/VISION.md](docs/VISION.md) を参照。
 
@@ -109,13 +120,13 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 - 13 E2E テスト xpass + アンチゴーストカウンター
 
 ### アンチゴースト機能保証
-各新規モジュールは `_call_counter` メカニズム + E2E anti_ghost テスト + CI `check_module_activation.py` 検証を含みます。モジュールは dispatch pipeline に真に統合され（単なるインスタンス化ではなく）、Markdown レポートセクションがユーザーに可視である必要があります。
+各新規モジュールは `_call_counter` メカニズム + E2E anti_ghost テスト + CI `check_module_activation.py` 検証を含みます。モジュールは dispatch pipeline に真に統合され（単なるインスタンス化ではなく）、Markdown レポートセクションがユーザーに可視である必要があります。V4.5.1 はこのパターンを V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）から V4.5.1（ApprovalGate / ConnectorFramework）に拡張します。
 
 ### テストピラミッド達成
 - **Contract テスト**: 5.2%（目標 ≥5% ✅）
 - **Integration テスト**: 15.1%（目標 ≥15% ✅）
-- **総テスト数**: 8260+（CI 権威）
-- **E2C カバレッジ**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost
+- **総テスト数**: 8392+（CI 権威）
+- **E2C カバレッジ**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost + 12 V4.5.1 anti-ghost
 
 ### 履歴機能（V4.0.0-V4.3.3）
 - **V4.3.3**: P0-P3 強化 E2E スケルトン（xfail TDD for V4.4.0）
@@ -131,7 +142,7 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
 - **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
 
-8260+ tests passing（CI 権威）。
+8392+ tests passing（CI 権威）。
 
 ---
 
@@ -631,7 +642,7 @@ python3 -m pytest tests/ -q --tb=line
 | ドキュメント | 説明 | 言語 |
 |----------|-------------|----------|
 | [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30秒クイックスタートガイド（新規ユーザー推奨）** | 中文 |
-| [SKILL.md](SKILL.md) | 完全スキルマニュアル + 185+ モジュールリファレンス | EN/CN/JP |
+| [SKILL.md](SKILL.md) | 完全スキルマニュアル + 187+ モジュールリファレンス | EN/CN/JP |
 | [GUIDE.md](GUIDE.md) | 完全ユーザーガイド | 中文 |
 | [INSTALL.md](INSTALL.md) | インストールガイド（Unix + Windows） | EN/CN |
 | [EXAMPLES.md](EXAMPLES.md) | 実際の使用例 | EN |
@@ -711,6 +722,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最終更新: 2026-08-03 | バージョン: V4.5.0（クロスセッション連続性 + プロトコルネイティブSkillアーキテクチャ + アクションファーストレポート — 10の新機能）| V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
+*最終更新: 2026-08-05 | バージョン: V4.5.1（Approval Gate + Connector Framework + アンチゴースト E2E — 2つの新規モジュール、3つの ROADMAP 項目完了）| V4.5.0（クロスセッション連続性 + プロトコルネイティブSkillアーキテクチャ + アクションファーストレポート — 10の新機能）| V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
 
 </details>

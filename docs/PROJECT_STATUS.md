@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.5.0（2026-08-03）
-> **最后更新**: 2026-08-03
-> **最新评估**: V4.5.0 — 跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告（合并 V4.4.3 + V4.4.4 + V4.5.0 变更一次性发布）。10 项新特性交付：ScratchpadHistoryStore（SQLite 跨会话搜索）+ AgentIdentity（确定性 agent ID）+ WorkflowTrace（dispatch 报告透明工作流追踪）+ GitContext（Git 分支/commit 注入 dispatch）+ SkillProvider Protocol（Builtin + MCP providers 协议原生 Skill 架构）+ OutputStyle（行动优先报告格式）+ SessionResume CLI（`devsquad sessions list` + `dispatch --resume`）+ FileBundler（review 模式确定性文件打包）+ SKILL.md 模块化拆分（1216→282 行 + 3 参考文档）+ VISION 文档（docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md）。8 原子子 Skill（新增 prototype + teach）。8260+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **当前版本**: V4.5.1（2026-08-05）
+> **最后更新**: 2026-08-05
+> **最新评估**: V4.5.1 — Approval Gate + Connector Framework + 反幽灵 E2E（PATCH，SemVer 合规）。2 个新模块交付：ApprovalGate（用户级审批门，fail-closed，无回调时自动批准向后兼容）+ ConnectorFramework（外部系统集成协议接口，GitHub 首个实现，api/cli/simulation 三模式，dispatch 管线强制 simulation=True 安全无网络）。3 个 ROADMAP 项完成：V451-7 Dashboard 浏览器级 E2E（11 AppTest 用例）+ V451-8 REST API 端到端用户旅程 E2E（190 测试）+ V451-9 Connector 反幽灵 E2E（12 测试 AG-1 到 AG-8）。DispatchResult 新增 4 字段（approval_records/approval_gate_md/connector_operations/connector_md，全部 default_factory 向后兼容）。8392+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.0 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.1 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---
@@ -19,7 +19,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**模块数**: 185+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 187+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
 
 **V4.5.0 新增/增强模块**（合并 V4.4.3 + V4.4.4 + V4.5.0）:
 - `scripts/collaboration/scratchpad_history_store.py` (ScratchpadHistoryStore — SQLite 跨会话 Scratchpad 搜索)
@@ -80,7 +80,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
-| 单元/集成回归 | 8260+ passed, 30 skipped（本地 Python 3.12，含 V4.4.0/V4.4.2/V4.5.0 全部新模块） | ✅ 全绿 |
+| 单元/集成回归 | 8392+ passed, 25 skipped（本地 Python 3.12，含 V4.4.0/V4.4.2/V4.5.0/V4.5.1 全部新模块） | ✅ 全绿 |
 | V4.4.0 E2E | 13 passed, 0 xfail, 0 fail（xfail→xpass 全部转换完成，0.88s） | ✅ 全绿 |
 | V4.4.1 模拟用户 E2E | 17 passed, 0 fail（5 RU 场景 + 3 AC 验收，0.49s） | ✅ 全绿 |
 | V4.4.2 多语言 + 6-Tab 测试 | 22 passed（12 unit + 5 integration + 5 e2e，含副作用验证 call_counter + localized prompt 实际下发） | ✅ 全绿 |
@@ -97,7 +97,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 **测试金字塔达标**:
 - Contract: 3.06% → 5.2%（目标 ≥5% ✅）
 - Integration: 8.84% → 15.1%（目标 ≥15% ✅）
-- 总测试数: 5250+ → 8260+（+3010 测试）
+- 总测试数: 5250+ → 8392+（+3142 测试）
 
 ---
 
@@ -214,8 +214,9 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 | **V4.1.3 UI/UX 整合发布** | **2026-07-20** | **9.0** | **13/13** | **UI/UX 4-Wave 提升全部完成（180 新测试零回归）、Phase 3 本地 TRAE 环境验证 148 检查点全通过、5355 tests 全绿、版本号 18 处全量同步、5 道 CI 质量门全绿、Morandi 配色 + 暗色模式 + SVG 图标 + 命令面板 + i18n + Skeleton + 键盘快捷键** |
 | **V4.4.0 P0-P3 增强模块** | **2026-07-29** | **9.1** | **13/13** | **5 个新模块全部交付（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）、13 E2E 从 xfail 转 xpass、8155 tests 全绿、防幽灵 `_call_counter > 0` 验证通过、ruff/mypy/radon 全绿** |
 | **V4.4.1 文档重构 + 用户测试** | **2026-07-30** | **9.2** | **13/13** | **外部文档重构（archive orphan i18n + retire CHANGELOG-CN + consolidate admin credentials + renumber INSTALL）、17 真实用户模拟 E2E 测试通过（NPS 报告）、6 条测试教训整合到 Tester role** |
-| **V4.4.2 P0-P3 增强** | **2026-07-30** | **9.2** | **13/13** | **P1-1 多语言角色 prompt EN/CN/JP + P1-2 Dashboard 6-Tab 可见性增强 + P2/P3 评估报告（缓办至 V4.6.0/V5.0.0+）、22 新测试通过（含副作用验证 call_counter + localized prompt 实际下发）、8260+ tests 全绿、文档同步 ARCHITECTURE_V4/PROJECT_STATUS/3 README** |
-| **V4.5.0 跨会话 + Skill 协议** | **2026-08-03** | **9.3** | **13/13** | **10 项新特性（ScratchpadHistoryStore + AgentIdentity + WorkflowTrace + GitContext + SkillProvider Protocol + OutputStyle + SessionResume CLI + FileBundler + SKILL.md 模块化拆分 1216→282 + VISION 文档）、8 原子子 Skill（新增 prototype + teach）、8260+ tests 全绿、防幽灵 `_call_counter > 0` 验证通过、3 语言 README 同步** |
+| **V4.4.2 P0-P3 增强** | **2026-07-30** | **9.2** | **13/13** | **P1-1 多语言角色 prompt EN/CN/JP + P1-2 Dashboard 6-Tab 可见性增强 + P2/P3 评估报告（缓办至 V4.6.0/V5.0.0+）、22 新测试通过（含副作用验证 call_counter + localized prompt 实际下发）、测试全绿、文档同步 ARCHITECTURE_V4/PROJECT_STATUS/3 README** |
+| **V4.5.0 跨会话 + Skill 协议** | **2026-08-03** | **9.3** | **13/13** | **10 项新特性（ScratchpadHistoryStore + AgentIdentity + WorkflowTrace + GitContext + SkillProvider Protocol + OutputStyle + SessionResume CLI + FileBundler + SKILL.md 模块化拆分 1216→282 + VISION 文档）、8 原子子 Skill（新增 prototype + teach）、测试全绿、防幽灵 `_call_counter > 0` 验证通过、3 语言 README 同步** |
+| **V4.5.1 Approval Gate + Connector** | **2026-08-05** | **9.3** | **13/13** | **2 新模块（ApprovalGate fail-closed 用户级审批门 + ConnectorFramework GitHub 连接器 api/cli/simulation 三模式）、3 ROADMAP 项完成（V451-7 Dashboard AppTest 11 用例 + V451-8 REST API 190 E2E + V451-9 Connector 反幽灵 12 E2E）、DispatchResult +4 字段向后兼容、测试全绿、防幽灵 `_call_counter > 0` 验证通过、187+ 模块** |
 
 评估报告路径:
 - V3.9.2: `docs/_archive/assessments/PROJECT_TIDY_ASSESSMENT_V3.9.2_round*.md`

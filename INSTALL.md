@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V4.5.0)
+# DevSquad — Installation Guide (V4.5.1)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -73,7 +73,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 4.5.0
+python3 scripts/cli.py --version   # 4.5.1
 ```
 
 ### Method 3: Web Dashboard (V3.6.0) 🎨
@@ -412,7 +412,7 @@ python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests (V3.6.0)
 python3 -m pytest tests/test_production_features.py tests/test_full_lifecycle_adapter.py -v
-# Expected: 8260+ tests all passing
+# Expected: 8392+ tests all passing
 
 # 5. API Server test (if installed)
 curl http://localhost:8000/api/v1/health | jq '.status'
@@ -468,8 +468,8 @@ DevSquad/
 ├── scripts/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
-│   └── collaboration/            # ★ 185+ core modules
-│       ├── _version.py           # Version SSOT (4.4.0)
+│   └── collaboration/            # ★ 187+ core modules
+│       ├── _version.py           # Version SSOT (4.5.1)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard
@@ -498,7 +498,7 @@ DevSquad/
 │       ├── anchor_checker.py     # Goal drift detection + auto-recovery (V3.6.0)
 │       ├── retrospective.py      # Independent post-dispatch retrospective (V3.6.0)
 │       ├── feature_usage_tracker.py # Feature invocation counter + reports (V3.6.0)
-│       └── *_test.py             # Test suites (8260+ tests)
+│       └── *_test.py             # Test suites (8392+ tests)
 ├── .github/workflows/test.yml    # CI: Python 3.10-3.11 matrix
 ├── Dockerfile                    # Docker support
 ├── pyproject.toml                # pip-installable package
@@ -664,5 +664,5 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests
 python -m pytest tests/ -q
-# Expected: 8260+ tests all passing
+# Expected: 8392+ tests all passing
 ```
