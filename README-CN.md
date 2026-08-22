@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.1 (Approval Gate + Connector Framework + 反幽灵 E2E) | V4.5.0 (跨会话连续性 + 协议原生 Skill) | V4.4.0 (5 个新增增强模块)</em>
+  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.2 (Approval Gate + Connector Framework + 反幽灵 E2E) | V4.5.0 (跨会话连续性 + 协议原生 Skill) | V4.4.0 (5 个新增增强模块)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-8392%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.1-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,11 +71,11 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.5.1: Approval Gate + Connector Framework + 反幽灵 E2E
+## 🚀 V4.5.2: Approval Gate + Connector Framework + 反幽灵 E2E
 
-**DevSquad V4.5.1**（PATCH 发布，符合 SemVer）引入 2 个新模块并完成 3 个 ROADMAP 项（V451-1、V451-2、V451-7/8/9）。所有新模块默认采用安全、向后兼容的行为——无 API 破坏性变更。详见 [docs/release_notes/V4.5.1_RELEASE_NOTES.md](docs/release_notes/V4.5.1_RELEASE_NOTES.md) 完整发布说明。
+**DevSquad V4.5.2**（PATCH 发布，符合 SemVer）引入 2 个新模块并完成 3 个 ROADMAP 项（V451-1、V451-2、V451-7/8/9）。所有新模块默认采用安全、向后兼容的行为——无 API 破坏性变更。详见 [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) 完整发布说明。
 
-### V4.5.1 — 2 个新模块 + 3 个 ROADMAP 项
+### V4.5.2 — 2 个新模块 + 3 个 ROADMAP 项
 - **ApprovalGate**：外部操作的用户级审批机制。回调异常时 fail-closed。未配置回调时自动批准（向后兼容）。
 - **ConnectorFramework**：外部系统集成的协议接口（GitHub 优先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 三种模式）。调度管线默认强制 `simulation=True`。
 - **V451-7 Dashboard 浏览器级 E2E**：11 个 AppTest 用例（Streamlit AppTest 替代 Playwright——避免重浏览器依赖，仍是浏览器级 DOM 仿真）
@@ -120,13 +120,13 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - 13 个 E2E 测试 xpass + 防幽灵计数器
 
 ### 防幽灵功能保证
-每个新模块包含 `_call_counter` 机制 + E2E anti_ghost 测试 + CI `check_module_activation.py` 验证。模块必须真正接入 dispatch pipeline（不仅实例化），且 Markdown 报告章节用户可见。V4.5.1 将此模式从 V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）扩展到 V4.5.1（ApprovalGate / ConnectorFramework）。
+每个新模块包含 `_call_counter` 机制 + E2E anti_ghost 测试 + CI `check_module_activation.py` 验证。模块必须真正接入 dispatch pipeline（不仅实例化），且 Markdown 报告章节用户可见。V4.5.2 将此模式从 V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）扩展到 V4.5.2（ApprovalGate / ConnectorFramework）。
 
 ### 测试金字塔达标
 - **Contract 测试**: 5.2%（目标 ≥5% ✅）
 - **Integration 测试**: 15.1%（目标 ≥15% ✅）
 - **总测试数**: 8392+（CI 权威）
-- **E2E 覆盖**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost + 12 V4.5.1 anti-ghost
+- **E2E 覆盖**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost + 12 V4.5.2 anti-ghost
 
 ### 历史特性（V4.0.0-V4.3.3）
 - **V4.3.3**: P0-P3 增强 E2E 骨架（xfail TDD for V4.4.0）
@@ -722,6 +722,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最后更新：2026-08-05 | 版本：V4.5.1 (Approval Gate + Connector Framework + 反幽灵 E2E — 2 个新模块、3 个 ROADMAP 项完成) | V4.5.0 (跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告 — 10 项新特性) | V4.4.0 (5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md))*
+*最后更新：2026-08-05 | 版本：V4.5.2 (Approval Gate + Connector Framework + 反幽灵 E2E — 2 个新模块、3 个 ROADMAP 项完成) | V4.5.0 (跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告 — 10 项新特性) | V4.4.0 (5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md))*
 
 </details>

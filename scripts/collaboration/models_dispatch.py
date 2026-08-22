@@ -74,6 +74,12 @@ class RoleDefinition:
     # RoleDefinition without these fields continue to work).
     prompt_i18n: dict[str, str] = field(default_factory=dict)
     name_i18n: dict[str, str] = field(default_factory=dict)
+    # V4.5.2 P-3: This role prefers single-role chain execution (sequential
+    # reasoning, debug, math derivation). When True, OrderChainDetector will
+    # force single_role=True if the user requests this role (or it's auto-
+    # matched top-1 with strong-order heuristic signals). Default False
+    # preserves backward compatibility.
+    sequential_only: bool = False
 
     def get_localized_prompt(self, lang: str) -> str:
         """Return the role prompt for the requested language.
@@ -234,6 +240,10 @@ ROLE_REGISTRY: dict[str, RoleDefinition] = {
         weight=1.0,
         description="Implementation, code review, performance optimization, refactoring",
         status="core",
+        # V4.5.2 P-3: solo-coder is a strong-order role — debugging, math
+        # derivation, and incremental refactoring benefit from single-role
+        # chain execution (no multi-agent parallel noise).
+        sequential_only=True,
         prompt_i18n={
             "en": "You are a Full-Stack Developer. Responsible for:\n1. Feature implementation and code writing\n2. Code review and quality control (style consistency, best practices, design-pattern compliance)\n3. Performance optimization implementation (algorithm optimization, memory optimization, concurrency optimization, SQL tuning)\n4. Code refactoring and optimization\n5. Bug fixing\n6. Data migration implementation\n7. Output: source code, tests, technical documentation",
             "ja": "あなたはフルスタック開発者です。担当：\n1. 機能実装とコード作成\n2. コードレビューと品質管理（スタイル一致性、ベストプラクティス、デザインパターン準拠）\n3. パフォーマンス最適化の実装（アルゴリズム最適化、メモリ最適化、並行最適化、SQLチューニング）\n4. コードリファクタリングと最適化\n5. バグ修正\n6. データ移行の実装\n7. 出力：ソースコード、テスト、技術ドキュメント",

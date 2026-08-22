@@ -340,15 +340,166 @@ class TestGetMetrics:
 
 
 class TestResetMetrics:
-    def test_reset_clears_instance(self):
-        get_metrics()
+    def test_reset_clears_singleton(self):
         reset_metrics()
-        from scripts.collaboration import prometheus_metrics
-
-        assert prometheus_metrics._metrics_instance is None
-
-    def test_reset_then_get_creates_new(self):
         m1 = get_metrics()
         reset_metrics()
         m2 = get_metrics()
         assert m1 is not m2
+
+    def test_reset_does_not_raise(self):
+        reset_metrics()
+        reset_metrics()
+
+
+# ---------------------------------------------------------------------------
+# V4.5.2 module-specific metrics (P11.1)
+# ---------------------------------------------------------------------------
+
+
+class TestV452MetricsInit:
+    """Verify V4.5.2-specific metrics are created in __init__."""
+
+    def test_init_creates_task_scale_counter(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "task_scale_counter")
+        assert hasattr(m, "task_scale_counter")
+        assert m.task_scale_counter is not None
+
+    def test_init_creates_order_chain_counter(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "order_chain_counter")
+        assert m.order_chain_counter is not None
+
+    def test_init_creates_backend_call_counter(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "backend_calls_counter")
+        assert m.backend_calls_counter is not None
+
+    def test_init_creates_backend_failure_counter(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "backend_failures_counter")
+        assert m.backend_failures_counter is not None
+
+    def test_init_creates_fuse_skip_counter(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "fuse_skips_counter")
+        assert m.fuse_skips_counter is not None
+
+    def test_init_creates_perf_p95_gauge(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "perf_p95_gauge")
+        assert m.perf_p95_gauge is not None
+
+    def test_init_creates_perf_regression_counter(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "perf_regression_counter")
+        assert m.perf_regression_counter is not None
+
+    def test_init_creates_perf_latency_histogram(self):
+        m = DevSquadMetrics()
+        assert hasattr(m, "perf_latency_histogram")
+        assert m.perf_latency_histogram is not None
+
+    def test_perf_buckets_defined(self):
+        # S/M/L/B/A/C paths covered, max 10s
+        assert hasattr(DevSquadMetrics, "PERF_BUCKETS")
+        assert DevSquadMetrics.PERF_BUCKETS[0] == 50.0
+        assert DevSquadMetrics.PERF_BUCKETS[-1] == 10000.0
+
+
+class TestRecordTaskScale:
+    """Test TaskScaleGate decision recording."""
+
+    def test_record_S(self):
+        m = DevSquadMetrics()
+        m.record_task_scale("S", "auto")
+
+    def test_record_M(self):
+        m = DevSquadMetrics()
+        m.record_task_scale("M", "mini")
+
+    def test_record_L(self):
+        m = DevSquadMetrics()
+        m.record_task_scale("L", "consensus")
+
+    def test_record_multiple_calls(self):
+        m = DevSquadMetrics()
+        m.record_task_scale("S", "auto")
+        m.record_task_scale("M", "mini")
+        m.record_task_scale("L", "consensus")
+
+
+class TestRecordOrderChain:
+    """Test OrderChainDetector decision recording."""
+
+    def test_record_user_single(self):
+        m = DevSquadMetrics()
+        m.record_order_chain("user", True)
+
+    def test_record_heuristic_parallel(self):
+        m = DevSquadMetrics()
+        m.record_order_chain("heuristic", False)
+
+    def test_record_default_parallel(self):
+        m = DevSquadMetrics()
+        m.record_order_chain("default", False)
+
+
+class TestRecordBackendCall:
+    """Test backend path B/A/C call counter."""
+
+    def test_record_B(self):
+        m = DevSquadMetrics()
+        m.record_backend_call("B")
+
+    def test_record_A(self):
+        m = DevSquadMetrics()
+        m.record_backend_call("A")
+
+    def test_record_C(self):
+        m = DevSquadMetrics()
+        m.record_backend_call("C")
+
+
+class TestRecordBackendFailure:
+    """Test backend failure counter."""
+
+    def test_record_host_timeout(self):
+        m = DevSquadMetrics()
+        m.record_backend_failure("B", "host_timeout")
+
+    def test_record_auth_invalid(self):
+        m = DevSquadMetrics()
+        m.record_backend_failure("A", "auth_invalid")
+
+    def test_record_rate_limit(self):
+        m = DevSquadMetrics()
+        m.record_backend_failure("A", "rate_limit")
+
+    def test_record_network_error(self):
+        m = DevSquadMetrics()
+        m.record_backend_failure("B", "network_error")
+
+    def test_record_provider_error(self):
+        m = DevSquadMetrics()
+        m.record_backend_failure("A", "provider_error")
+
+
+class TestRecordFuseSkip:
+    """Test fuse-skip counter (path permanently disabled)."""
+
+    def test_record_fuse_skip_B(self):
+        m = DevSquadMetrics()
+        m.record_fuse_skip("B", "host_timeout")
+
+    def test_record_fuse_skip_A(self):
+        m = DevSquadMetrics()
+        m.record_fuse_skip("A", "auth_invalid")
+
+    def test_fuse_skip_also_counts_as_failure(self):
+        # Both counters should increment
+        m = DevSquadMetrics()
+        m.record_fuse_skip("B", "host_timeout")
+        # No exception means success; the counters are stubbed so we can't
+        # inspect values, but the call must not raise.

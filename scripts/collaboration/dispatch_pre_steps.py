@@ -24,7 +24,9 @@ from typing import Any, cast
 
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
 from .models import ROLE_REGISTRY, EntryType
+from .order_chain_detector import OrderChainDetector
 from .scratchpad import ScratchpadEntry
+from .task_scale_gate import TaskScale, TaskScaleGate
 from .user_friendly_error import make_user_friendly_error, translate_validation_result
 
 logger = logging.getLogger(__name__)
@@ -129,6 +131,59 @@ class PreDispatchPipeline:
                 step2_time=start_time,
             )
 
+        # V4.5.2 P-1: TaskScaleGate — first-pass routing (BEFORE match_roles).
+        # Decides S/M/L, max_roles, orchestrator. Propagated to match_roles().
+        # Coerce None/non-str task to empty string for safe downstream processing.
+        task_for_gate = str(task_description or "") if task_description is not None else ""
+        scale_gate = TaskScaleGate()
+        task_scale = scale_gate.decide(
+            task_for_gate,
+            roles=roles,
+            mode=_mode,
+            **kwargs,
+        )
+
+        # P11.1: record task_scale decision in Prometheus
+        try:
+            from .prometheus_metrics import get_metrics as _gm_metrics
+
+            _gm_metrics().record_task_scale(task_scale.level, task_scale.orchestrator)
+        except (RuntimeError, ValueError, AttributeError):
+            pass
+
+        # V4.5.2 P-3: OrderChainDetector — second-pass routing.
+        # Detects strong-order tasks (debug/math/refactor_step) and decides
+        # whether to force single-role execution.
+        chain_detector = OrderChainDetector()
+        chain_decision = chain_detector.detect(
+            task_for_gate,
+            roles=roles,
+            mode=_mode,
+            **kwargs,
+        )
+
+        # P11.1: record order_chain decision in Prometheus
+        try:
+            from .prometheus_metrics import get_metrics as _gm_metrics
+
+            _gm_metrics().record_order_chain(
+                chain_decision.source, chain_decision.single_role
+            )
+        except (RuntimeError, ValueError, AttributeError):
+            pass
+
+        # If chain detector forces single_role, override task_scale.single_role
+        # (user/heuristic signals > default scale-based decision).
+        if chain_decision.single_role:
+            task_scale = TaskScale(
+                level=task_scale.level,
+                signal=task_scale.signal,
+                max_roles=task_scale.max_roles,
+                orchestrator=task_scale.orchestrator,
+                single_role=True,
+                matched_role_id=task_scale.matched_role_id,
+            )
+
         # Step 1: Resolve language
         lang = self.resolve_language_fn(self.lang)
 
@@ -177,8 +232,8 @@ class PreDispatchPipeline:
         # Audit: dispatch start
         self.enterprise.audit_dispatch_start(task_description, **kwargs)
 
-        # Step 5: Match roles
-        matched_roles = self.match_roles(task_description, roles)
+        # Step 5: Match roles (V4.5.2: propagate task_scale for max_roles cap)
+        matched_roles = self.match_roles(task_description, roles, task_scale=task_scale)
 
         # Step 6: Validate roles and security (concern packs + dry_run)
         role_ids, concern_packs, concern_enhancements, early_return = self.validate_roles_and_security(
@@ -410,8 +465,18 @@ class PreDispatchPipeline:
 
         return intent_match
 
-    def match_roles(self, task: str, roles: list[str] | None) -> list[dict[str, Any]]:
-        """Match roles via RoleMatcher, AISemanticMatcher, and enhanced adaptive/similar recommendations."""
+    def match_roles(
+        self,
+        task: str,
+        roles: list[str] | None,
+        task_scale: Any | None = None,
+    ) -> list[dict[str, Any]]:
+        """Match roles via RoleMatcher, AISemanticMatcher, and enhanced adaptive/similar recommendations.
+
+        V4.5.2 P-1: When user did NOT specify roles, cap matched_roles to
+        task_scale.max_roles (S=1, M=2-3, L=unlimited). When user explicitly
+        specified roles, resolve_roles() is authoritative and not capped.
+        """
         matched_roles = self.analyze_task_fn(task)
 
         # Enhanced role matching: merge adaptive and similar-task recommendations
@@ -449,6 +514,11 @@ class PreDispatchPipeline:
 
         if roles:
             matched_roles = self.role_matcher.resolve_roles(roles, matched_roles)
+        elif task_scale is not None:
+            # V4.5.2 P-1: cap to max_roles from TaskScaleGate
+            cap = task_scale.max_roles
+            if cap and cap < len(matched_roles):
+                matched_roles = matched_roles[:cap]
 
         return cast(list[dict[str, Any]], matched_roles)
 

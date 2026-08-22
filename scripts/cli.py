@@ -17,6 +17,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.cli_dispatch import cmd_demo, cmd_dispatch, cmd_roles, cmd_status
+from scripts.cli_metrics import cmd_metrics
+from scripts.cli_doctor import cmd_doctor
 from scripts.cli_lifecycle import cmd_lifecycle
 from scripts.cli_sessions import cmd_sessions
 from scripts.cli_utils import (
@@ -443,8 +445,35 @@ Environment Variables (API keys are read from env vars only, never command line)
 
     subparsers.add_parser("status", aliases=["s"], help="Show system status")
 
+    # V4.5.2 P12.1.2: devsquad metrics CLI
+    p_metrics = subparsers.add_parser(
+        "metrics", aliases=["m"], help="View V4.5.2 Prometheus metrics (text/json)"
+    )
+    p_metrics.add_argument(
+        "--format", "-f", choices=["text", "json"], default="text",
+        help="Output format (default text)",
+    )
+
     p_roles = subparsers.add_parser("roles", aliases=["ls"], help="List available roles")
     p_roles.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
+
+    # V4.5.2 P12.1.4: devsquad doctor
+    p_doctor = subparsers.add_parser(
+        "doctor", help="Diagnose LLM provider connectivity (text/json)"
+    )
+    p_doctor.add_argument(
+        "--provider", "-p", default="all",
+        choices=["all", "moka", "openai", "anthropic"],
+        help="Provider to check (default: all)",
+    )
+    p_doctor.add_argument(
+        "--format", "-f", choices=["text", "json"], default="text",
+        help="Output format (default text)",
+    )
+    p_doctor.add_argument(
+        "--timeout", type=float, default=5.0,
+        help="HTTP timeout in seconds (default: 5.0)",
+    )
 
     # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
     p_sessions = subparsers.add_parser(
@@ -459,6 +488,19 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_sess_show.add_argument("session_id", help="Session/checkpoint ID to inspect")
     p_sess_show.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
     p_sess_show.add_argument("--persist-dir", help="Custom checkpoint directory")
+
+    # V4.5.2 P12.1.5: devsquad backend CLI subcommands
+    p_backend = subparsers.add_parser(
+        "backend", help="Manage LLM backend selection (set/get/list)"
+    )
+    backend_sub = p_backend.add_subparsers(dest="backend_command", help="Backend subcommand")
+    p_backend_set = backend_sub.add_parser("set", help="Set and persist backend selection")
+    p_backend_set.add_argument("provider", help=f"Backend name (one of: {', '.join(sorted(['auto','auto-fallback','mock','host','trae','openai','anthropic','moka','fallback']))})")
+    p_backend_set.add_argument("--model", help="Optional model override to persist")
+    p_backend_set.add_argument("--project", action="store_true", help="Save to ./.devsquad/config.yaml instead of user config")
+    p_backend_get = backend_sub.add_parser("get", help="Print current effective backend")
+    p_backend_get.add_argument("--project", action="store_true", help="Prefer project-level config")
+    backend_sub.add_parser("list", help="List all valid backends + current selection")
 
     p_lifecycle = subparsers.add_parser("lifecycle", aliases=["lc"], help="Execute lifecycle workflow command")
     p_lifecycle.add_argument("lifecycle_command", choices=LIFECYCLE_COMMANDS, help="Lifecycle command to execute")
@@ -532,10 +574,16 @@ Environment Variables (API keys are read from env vars only, never command line)
         return cmd_dispatch(args)
     elif args.command in ("status", "s"):
         return cmd_status(args)
+    elif args.command in ("metrics", "m"):
+        return cmd_metrics(args)
     elif args.command in ("roles", "ls"):
         return cmd_roles(args)
     elif args.command in ("sessions", "sess"):
         return cmd_sessions(args)
+    elif args.command == "doctor":
+        return cmd_doctor(args)
+    elif args.command == "backend":
+        return cmd_backend(args)
     elif args.command in ("lifecycle", "lc") or args.command in LIFECYCLE_COMMANDS:
         if args.command in LIFECYCLE_COMMANDS:
             args.lifecycle_command = args.command

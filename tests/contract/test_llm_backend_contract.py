@@ -98,9 +98,13 @@ class TestTraeBackendContract(TestLLMBackendContract):
         return TraeBackend()
 
     def test_is_available_returns_true(self):
-        """TraeBackend must always be available inside the IDE."""
+        """TraeBackend must always be available inside the IDE.
+
+        V4.5.2: TraeBackend is_available() returns False (legacy passthrough).
+        Use HostBridgeBackend for active host bridge. Tests reflect this contract.
+        """
         backend = self._get_backend()
-        self.assertTrue(backend.is_available())
+        self.assertFalse(backend.is_available())
 
     def test_generate_returns_original_prompt(self):
         """TraeBackend.generate() must return the prompt unchanged (passthrough)."""
@@ -303,8 +307,11 @@ class TestBackendAvailabilityContract(unittest.TestCase):
         self.assertTrue(MockBackend().is_available())
 
     def test_trae_backend_always_available(self):
-        """TraeBackend.is_available() must always return True inside IDE."""
-        self.assertTrue(TraeBackend().is_available())
+        """TraeBackend.is_available() returns False (V4.5.2 legacy passthrough).
+
+        Use HostBridgeBackend for active host bridge invocation.
+        """
+        self.assertFalse(TraeBackend().is_available())
 
     def test_openai_backend_without_package_returns_false(self):
         """OpenAIBackend.is_available() must return False when the openai package

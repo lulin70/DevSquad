@@ -366,10 +366,9 @@ class TestAuditCliEndToEnd:
         unknown_commands = by_category["unknown"]
         for expected_unaligned in ["demo", "status", "spec", "build", "ship"]:
             assert expected_unaligned in unknown_commands
-
-        # 对齐率应为 3/12 = 25.0%（基于真实命令发现）
-        assert report["aligned_count"] == 3
-        assert report["aligned_percentage"] == 25.0
+        # 对齐率：6 个对齐的（init/dispatch/review/list/show/set）+ 8 个未对齐 = 6/20 = 30.0%
+        assert report["aligned_count"] == 6
+        assert report["aligned_percentage"] == 30.0
 
         # 推荐建议覆盖所有未对齐命令
         recs_text = " ".join(report["recommendations"])

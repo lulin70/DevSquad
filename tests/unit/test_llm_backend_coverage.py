@@ -435,7 +435,7 @@ class TestFallbackBackendGenerate:
         fb = FallbackBackend([primary, secondary], cooldown_seconds=1000.0)
         # Mark secondary as recently failed so it should be skipped.
         fb._mark_failed(repr(secondary))
-        with pytest.raises(RuntimeError, match="primary down"):
+        with pytest.raises(RuntimeError, match="All backends failed"):
             fb.generate("p")
 
     def test_generate_raises_when_all_backends_fail(self):
@@ -444,7 +444,7 @@ class TestFallbackBackendGenerate:
         secondary = MagicMock()
         secondary.generate.side_effect = RuntimeError("s down")
         fb = FallbackBackend([primary, secondary])
-        with pytest.raises(RuntimeError, match="s down"):
+        with pytest.raises(RuntimeError, match="All backends failed"):
             fb.generate("p")
 
     def test_generate_logs_info_when_switching_to_non_primary(self, caplog):
@@ -479,7 +479,7 @@ class TestFallbackBackendStream:
         secondary = MagicMock()
         secondary.generate_stream.side_effect = RuntimeError("s stream down")
         fb = FallbackBackend([primary, secondary])
-        with pytest.raises(RuntimeError, match="s stream down"):
+        with pytest.raises(RuntimeError, match="All backends failed"):
             list(fb.generate_stream("p"))
 
     def test_generate_stream_skips_cooled_down_secondary(self):
@@ -489,7 +489,7 @@ class TestFallbackBackendStream:
         secondary.generate_stream.side_effect = RuntimeError("s stream down")
         fb = FallbackBackend([primary, secondary], cooldown_seconds=1000.0)
         fb._mark_failed(repr(secondary))
-        with pytest.raises(RuntimeError, match="p stream down"):
+        with pytest.raises(RuntimeError, match="All backends failed"):
             list(fb.generate_stream("p"))
 
 
@@ -543,7 +543,9 @@ class TestCreateBackend:
         monkeypatch.setenv("MOKA_API_BASE", "https://moka.example/v1")
         monkeypatch.setenv("MOKA_MODEL", "moka/claude-x")
         backend = create_backend("moka")
-        assert isinstance(backend, OpenAIBackend)
+        # V4.5.2 P12.1.1: explicit MokaAIBackend (no longer alias of OpenAIBackend)
+        from scripts.collaboration.moka_backend import MokaAIBackend
+        assert isinstance(backend, MokaAIBackend)
         assert backend._api_key == "moka-key"
         assert backend.base_url == "https://moka.example/v1"
         assert backend.model == "moka/claude-x"
@@ -558,29 +560,33 @@ class TestCreateBackend:
             "DEVSQUAD_OPENAI_API_KEY",
             "DEVSQUAD_ANTHROPIC_API_KEY",
             "DEVSQUAD_LLM_BACKEND",
+            "MOKA_API_KEY",
         ):
             monkeypatch.delenv(var, raising=False)
         backend = create_backend("auto")
         assert isinstance(backend, MockBackend)
 
-    def test_auto_with_anthropic_key_returns_fallback(self, monkeypatch):
+    def test_auto_with_anthropic_key_returns_anthropic(self, monkeypatch):
         monkeypatch.setenv("DEVSQUAD_ANTHROPIC_API_KEY", "ant-key")
         monkeypatch.delenv("DEVSQUAD_OPENAI_API_KEY", raising=False)
         monkeypatch.delenv("DEVSQUAD_LLM_BACKEND", raising=False)
+        monkeypatch.delenv("MOKA_API_KEY", raising=False)
         backend = create_backend("auto")
+        # V4.5.2 P-1: single key wraps with MockBackend for graceful degradation
         assert isinstance(backend, FallbackBackend)
-        # First backend should be Anthropic, last should be Mock
         assert isinstance(backend._backends[0], AnthropicBackend)
-        assert isinstance(backend._backends[-1], MockBackend)
+        assert backend._backends[0].path == "A"
 
-    def test_auto_with_openai_key_returns_fallback(self, monkeypatch):
+    def test_auto_with_openai_key_returns_openai(self, monkeypatch):
         monkeypatch.setenv("DEVSQUAD_OPENAI_API_KEY", "oai-key")
         monkeypatch.delenv("DEVSQUAD_ANTHROPIC_API_KEY", raising=False)
         monkeypatch.delenv("DEVSQUAD_LLM_BACKEND", raising=False)
+        monkeypatch.delenv("MOKA_API_KEY", raising=False)
         backend = create_backend("auto")
+        # V4.5.2 P-1: single key wraps with MockBackend for graceful degradation
         assert isinstance(backend, FallbackBackend)
         assert isinstance(backend._backends[0], OpenAIBackend)
-        assert isinstance(backend._backends[-1], MockBackend)
+        assert backend._backends[0].path == "A"
 
     def test_explicit_fallback_with_kwargs(self, monkeypatch):
         monkeypatch.delenv("DEVSQUAD_OPENAI_API_KEY", raising=False)
@@ -606,6 +612,7 @@ class TestCreateBackend:
     def test_kwargs_override_env_backend(self, monkeypatch):
         # When kwargs provided, env override should NOT trigger
         monkeypatch.setenv("DEVSQUAD_LLM_BACKEND", "mock")
+        monkeypatch.delenv("MOKA_API_KEY", raising=False)
         backend = create_backend("auto", api_key="k", model="m")
         # With kwargs, auto falls through to fallback path (no real key → mock wrap)
         assert isinstance(backend, (MockBackend, FallbackBackend))

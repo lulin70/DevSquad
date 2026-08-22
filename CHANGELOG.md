@@ -14,6 +14,38 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.2] - 2026-08-22
+
+### V4.5.2 — Experience Polish (P12.1: MOKA + Metrics CLI + GitLab + Doctor + Backend Config)
+
+MINOR-level release (backward-compatible opt-in features). Focuses on user-facing improvements (MOKA AI provider, metrics CLI, GitLab connector, doctor diagnostics, persistent backend config) and 5 core V4.5.2 modules (TaskScaleGate, OrderChainDetector, HostLLMBridge, BackendPath, PerfBaseline) with full Prometheus metrics + operational material.
+
+**P11 (Operational Assurance) — V4.5.2 Core Modules**:
+- 5 V4.5.2 core modules wired into the dispatch pipeline: TaskScaleGate, OrderChainDetector, HostLLMBridge, BackendPath, PerfBaseline.
+- 8 Prometheus metrics added (`prometheus_metrics.py`): `devsquad_v452_task_scale_total`, `devsquad_v452_order_chain_total`, `devsquad_v452_backend_calls_total`, `devsquad_v452_backend_failures_total`, `devsquad_v452_fuse_skips_total`, `devsquad_v452_perf_p95_ms`, `devsquad_v452_perf_regression_total`, `devsquad_v452_perf_latency_ms`.
+- 17 alert rules + 4 recording rules in `docs/operations/ALERT_RULES.md`.
+- 7 incident scenarios in `docs/operations/RUNBOOK.md` (MOKA API down, GitHub rate limit, host bridge timeout, etc.).
+- 3 rollback procedures in `docs/operations/ROLLBACK.md` (single-module, full-config, git revert).
+
+**P12.1 (Experience Polish)** — 5 new opt-in modules:
+- **MokaAIBackend** (`scripts/collaboration/moka_backend.py`): Explicit MOKA AI provider (OpenAI-compatible). Default base URL `https://api.moka-ai.com/v1`, default model `moka-gpt-5.5`. 3 retry attempts with exponential backoff. Replaces the previous MOKA-as-OpenAI-alias pattern. Anti-ghost `_call_counter` + 35 unit tests.
+- **Metrics CLI** (`scripts/cli_metrics.py`): `devsquad metrics [--format text|json]` exposes live Prometheus registry state for ad-hoc inspection. V452_METRICS inventory of 8 metrics with metadata + samples. + 16 unit tests.
+- **GitLabConnector** (`scripts/collaboration/gitlab_connector.py`): Second Connector implementation mirroring GitHubConnector. MR comments, issue state transitions, MR approvals. 3 modes (api/cli/simulation). `simulation=True` default in dispatch. Anti-ghost `_call_counter` + 39 unit tests.
+- **Doctor CLI** (`scripts/cli_doctor.py`): `devsquad doctor [--provider moka|openai|anthropic] [--format text|json]` for provider connectivity self-check. Lightweight `/models` API call with 5s timeout. Returns non-zero exit when configured-but-unreachable. + 23 unit tests.
+- **BackendConfig** (`scripts/collaboration/backend_config.py` + `scripts/cli_backend.py`): Persistent LLM backend selection via `~/.devsquad/config.yaml`. Priority: project config → user config → env var → "auto". 9 valid backends (auto/auto-fallback/mock/host/trae/openai/anthropic/moka/fallback). Anti-ghost `_call_counter` + 27 unit tests.
+
+**P8 Anti-Ghost CI Gate Extension**:
+- `scripts/check_module_activation.py` now verifies 8 modules (3 new P12.1 modules added): MokaAIBackend, GitLabConnector, BackendConfig.
+
+**Test Counts**: 8524+ tests passing (full regression), 140 new P12.1 tests (35+39+27+16+23), 1 skipped. ruff 0 errors, mypy 0 issues on P12.1 files.
+
+**Backward Compatibility**:
+- MOKA now explicit backend (no longer OpenAIBackend alias); existing `DEVSQUAD_LLM_BACKEND=moka` still works.
+- MOKA env vars: `MOKA_API_KEY` + `MOKA_BASE_URL` (preferred) / `MOKA_API_BASE` (legacy) + `MOKA_MODEL`.
+- All new CLI subcommands are additive; existing commands unchanged.
+
+**Documentation**: `docs/prd/V4.5.2_EXPERIENCE_PRD.md`, `docs/planning/ROADMAP_v4.5.x_P12.md`, `docs/release_notes/V4.5.2_RELEASE_NOTES.md` updated.
+
 ## [4.5.1] - 2026-08-05
 
 ### V4.5.1 — Approval Gate + Connector Framework + Anti-Ghost E2E

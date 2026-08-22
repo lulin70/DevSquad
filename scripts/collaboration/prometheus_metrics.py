@@ -123,6 +123,7 @@ class DevSquadMetrics:
 
     DISPATCH_BUCKETS = [0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0]
     LLM_BUCKETS = [0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0]
+    PERF_BUCKETS = [50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0]
 
     def __init__(self) -> None:
         """Initialize all Prometheus metrics."""
@@ -193,6 +194,144 @@ class DevSquadMetrics:
             "devsquad_build",
             "DevSquad build information",
         )
+
+        # === V4.5.2 module-specific metrics (P11.1) ===
+
+        # TaskScaleGate — counts decisions by S/M/L level
+        self.task_scale_counter = Counter(
+            "devsquad_v452_task_scale_total",
+            "V4.5.2 TaskScaleGate decisions by level (S/M/L)",
+            ["level", "orchestrator"],
+        )
+
+        # OrderChainDetector — counts decisions by source
+        self.order_chain_counter = Counter(
+            "devsquad_v452_order_chain_total",
+            "V4.5.2 OrderChainDetector decisions by source",
+            ["source", "single_role"],
+        )
+
+        # Backend path B/A/C usage
+        self.backend_calls_counter = Counter(
+            "devsquad_v452_backend_calls_total",
+            "V4.5.2 backend path invocation count by path",
+            ["path"],
+        )
+
+        # Backend failures classified by reason (drives fuse counter)
+        self.backend_failures_counter = Counter(
+            "devsquad_v452_backend_failures_total",
+            "V4.5.2 backend failure count by reason",
+            ["path", "reason"],
+        )
+
+        # Fuse skip events (path permanently skipped after N consecutive failures)
+        self.fuse_skips_counter = Counter(
+            "devsquad_v452_fuse_skips_total",
+            "V4.5.2 fuse-skip events (path permanently disabled)",
+            ["path", "reason"],
+        )
+
+        # PerfBaseline p95 gauge (latest snapshot per path)
+        self.perf_p95_gauge = Gauge(
+            "devsquad_v452_perf_p95_ms",
+            "V4.5.2 latest PerfSnapshot p95 latency in ms",
+            ["path"],
+        )
+
+        # Perf regression vs baseline (1 = within_threshold, 0 = regression blocked)
+        self.perf_regression_counter = Counter(
+            "devsquad_v452_perf_regression_total",
+            "V4.5.2 perf baseline comparison outcome (1=blocked)",
+            ["path", "outcome"],
+        )
+
+        # Perf latency histogram per path
+        self.perf_latency_histogram = Histogram(
+            "devsquad_v452_perf_latency_ms",
+            "V4.5.2 perf latency samples in ms",
+            ["path"],
+            buckets=self.PERF_BUCKETS,
+        )
+
+    # ------------------------------------------------------------------
+    # V4.5.2 module-specific recording helpers (P11.1)
+    # ------------------------------------------------------------------
+
+    def record_task_scale(self, level: str, orchestrator: str) -> None:
+        """Record TaskScaleGate.decide() outcome.
+
+        Args:
+            level: 'S' | 'M' | 'L' — scale decision
+            orchestrator: 'auto' | 'mini' | 'consensus' — coordinator mode
+        """
+        self.task_scale_counter.labels(level=level, orchestrator=orchestrator).inc()
+
+    def record_order_chain(self, source: str, single_role: bool) -> None:
+        """Record OrderChainDetector.detect() outcome.
+
+        Args:
+            source: 'user' | 'role_meta' | 'heuristic' | 'default'
+            single_role: True if chain executed sequentially
+        """
+        self.order_chain_counter.labels(
+            source=source,
+            single_role="true" if single_role else "false",
+        ).inc()
+
+    def record_backend_call(self, path: str) -> None:
+        """Record a backend path invocation.
+
+        Args:
+            path: 'B' (host bridge) | 'A' (direct API) | 'C' (mock)
+        """
+        self.backend_calls_counter.labels(path=path).inc()
+
+    def record_backend_failure(self, path: str, reason: str) -> None:
+        """Record a backend failure classified by reason.
+
+        Args:
+            path: 'B' | 'A' | 'C'
+            reason: BackendErrorReason value (host_timeout/auth_invalid/...)
+        """
+        self.backend_failures_counter.labels(path=path, reason=reason).inc()
+
+    def record_fuse_skip(self, path: str, reason: str) -> None:
+        """Record a fuse-skip event (path permanently disabled).
+
+        Args:
+            path: 'B' | 'A' | 'C'
+            reason: The reason that triggered the skip
+        """
+        self.fuse_skips_counter.labels(path=path, reason=reason).inc()
+        # Also count as a backend failure for alerting
+        self.backend_failures_counter.labels(path=path, reason=reason).inc()
+
+    def record_perf_snapshot(
+        self,
+        path: str,
+        p95_ms: float,
+        within_threshold: bool | None = None,
+        delta_p95_pct: float | None = None,
+    ) -> None:
+        """Record PerfBaseline snapshot.
+
+        Args:
+            path: 'mock' | 'host' | 'api' | 'auto_fallback'
+            p95_ms: p95 latency in ms
+            within_threshold: True/False/None — whether regression is within gate
+            delta_p95_pct: % vs baseline (None if no baseline)
+        """
+        # Note: delta_p95_pct is retained for future alerting use but not
+        # currently emitted as a metric. The gate outcome (within_threshold)
+        # is the signal consumed by Prometheus rules.
+        del delta_p95_pct
+        self.perf_p95_gauge.labels(path=path).set(p95_ms)
+        self.perf_latency_histogram.labels(path=path).observe(p95_ms)
+        if within_threshold is True:
+            self.perf_regression_counter.labels(path=path, outcome="pass").inc()
+        elif within_threshold is False:
+            self.perf_regression_counter.labels(path=path, outcome="block").inc()
 
     def record_dispatch(self, mode: str, role_count: int, duration: float) -> None:
         """

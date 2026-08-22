@@ -1,4 +1,4 @@
-# DevSquad — Installation Guide (V4.5.1)
+# DevSquad — Installation Guide (V4.5.2)
 
 > **⚠️ Path Placeholder Notice**: Throughout this guide, `/path/to/DevSquad` is a template.
 > Replace it with your actual installation path before running any command:
@@ -73,7 +73,7 @@ python3 scripts/cli.py status
 python3 scripts/cli.py roles
 
 # Show version
-python3 scripts/cli.py --version   # 4.5.1
+python3 scripts/cli.py --version   # 4.5.2
 ```
 
 ### Method 3: Web Dashboard (V3.6.0) 🎨
@@ -469,7 +469,7 @@ DevSquad/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
 │   └── collaboration/            # ★ 187+ core modules
-│       ├── _version.py           # Version SSOT (4.5.1)
+│       ├── _version.py           # Version SSOT (4.5.2)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator
 │       ├── scratchpad.py         # Shared blackboard

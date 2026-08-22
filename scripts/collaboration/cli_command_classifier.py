@@ -107,12 +107,17 @@ class CLICommandClassifier:
     #: DevSquad CLI 规范命令静态清单（AST 解析失败时的回退来源）。
     #: 源自 scripts/cli.py 的 ``subparsers.add_parser()`` 调用 +
     #: scripts/cli_utils.py 的 ``LIFECYCLE_COMMANDS``。
+    #: V4.5.2 P12.1.x: 显式列出 backend/doctor/metrics 等新命令（AST 解析之外的兜底）。
     DEVSQUAD_CLI_COMMANDS: list[str] = [
         "init",
         "demo",
         "dispatch",
         "status",
+        "metrics",
         "roles",
+        "doctor",
+        "sessions",
+        "backend",
         "lifecycle",
         "spec",
         "plan",

@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.1 (Approval Gate + Connector Framework + anti-ghost E2E) | V4.5.0 (cross-session continuity + protocol-native skills) | V4.4.0 (5 enhancement modules)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.2 (Approval Gate + Connector Framework + anti-ghost E2E) | V4.5.0 (cross-session continuity + protocol-native skills) | V4.4.0 (5 enhancement modules)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-8392%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.1-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.2-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -71,11 +71,11 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.5.1: Approval Gate + Connector Framework + Anti-Ghost E2E
+## 🚀 V4.5.2: Approval Gate + Connector Framework + Anti-Ghost E2E
 
-**DevSquad V4.5.1** (PATCH release, SemVer compliant) introduces 2 new modules and completes 3 ROADMAP items (V451-1, V451-2, V451-7/8/9). All new modules default to safe, backward-compatible behavior — no API breaking changes. See [docs/release_notes/V4.5.1_RELEASE_NOTES.md](docs/release_notes/V4.5.1_RELEASE_NOTES.md) for full release notes.
+**DevSquad V4.5.2** (PATCH release, SemVer compliant) introduces 2 new modules and completes 3 ROADMAP items (V451-1, V451-2, V451-7/8/9). All new modules default to safe, backward-compatible behavior — no API breaking changes. See [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) for full release notes.
 
-### V4.5.1 — 2 New Modules + 3 ROADMAP Items
+### V4.5.2 — 2 New Modules + 3 ROADMAP Items
 - **ApprovalGate**: User-level approval mechanism for external operations. Fail-closed on callback exceptions. Auto-approve fallback when no callback configured (backward compatible).
 - **ConnectorFramework**: Protocol-based interface for external system integration (GitHub first). `Connector` Protocol + `GitHubConnector` (api/cli/simulation modes). `simulation=True` enforced by default in dispatch pipeline.
 - **V451-7 Dashboard browser-level E2E**: 11 AppTest cases (Streamlit AppTest replaces Playwright — avoids heavy browser deps while still being browser-level DOM simulation)
@@ -120,13 +120,13 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - 13 E2E tests xpass + anti-ghost counters
 
 ### Anti-Ghost Feature Guarantee
-Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `check_module_activation.py` verification. Modules must be truly integrated into dispatch pipeline (not just instantiated), with Markdown report sections user-visible. V4.5.1 extends this pattern from V4.4.0 (RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector) to V4.5.1 (ApprovalGate / ConnectorFramework).
+Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `check_module_activation.py` verification. Modules must be truly integrated into dispatch pipeline (not just instantiated), with Markdown report sections user-visible. V4.5.2 extends this pattern from V4.4.0 (RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector) to V4.5.2 (ApprovalGate / ConnectorFramework).
 
 ### Test Pyramid Achieved
 - **Contract tests**: 5.2% (target ≥5% ✅)
 - **Integration tests**: 15.1% (target ≥15% ✅)
 - **Total tests**: 8392+ (CI authoritative)
-- **E2E coverage**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost + 12 V4.5.1 anti-ghost
+- **E2E coverage**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost + 12 V4.5.2 anti-ghost
 
 ### Historical Features (V4.0.0-V4.3.3)
 - **V4.3.3**: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0)
@@ -722,6 +722,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-08-05 | Version: V4.5.1 (Approval Gate + Connector Framework + anti-ghost E2E — 2 new modules, 3 ROADMAP items completed) | V4.5.0 (cross-session continuity + protocol-native skills + action-first reports — 10 new features) | V4.4.0 (5 enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
+*Last updated: 2026-08-05 | Version: V4.5.2 (Approval Gate + Connector Framework + anti-ghost E2E — 2 new modules, 3 ROADMAP items completed) | V4.5.0 (cross-session continuity + protocol-native skills + action-first reports — 10 new features) | V4.4.0 (5 enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
 
 </details>

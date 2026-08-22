@@ -1,0 +1,144 @@
+name: V4.5.2 Release E2E
+
+# V4.5.2 Release-Tag-Only E2E.
+#
+# Runs only when a version tag (v*) is pushed. Verifies:
+#   - Host Bridge E2E (FakeHostRunner subprocess — real file protocol)
+#   - Real LLM E2E (OpenAI / Anthropic / MOKA via release secrets)
+#   - All V4.5.2 user journey E2E
+#
+# Hard constraint (User Rule 3): "要发布前一定要做模拟真实用户使用的测试".
+# This workflow IS that constraint, codified for V4.5.2.
+#
+# This is intentionally separate from .github/workflows/test.yml to make the
+# release gate explicit and avoid accidentally running real LLM costs on PRs.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      skip_real_llm:
+        description: "Skip real LLM E2E (use only for local debugging)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  host-bridge-e2e:
+    name: Host Bridge E2E (FakeHostRunner subprocess)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEVSQUAD_LLM_BACKEND: auto
+      DEVSQUAD_API_AUTH_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          pip install pytest pytest-timeout
+
+      - name: Run Host Bridge E2E
+        # 7 cases covering: success round-trip, failure, timeout, fuse skip,
+        # create_backend host path, marker corruption, auto-fallback no-host
+        run: |
+          python -m pytest tests/e2e/test_host_bridge_e2e.py \
+            -v --tb=short --timeout=300 -m "e2e"
+
+      - name: Run user journey E2E
+        # 12 cases covering: S/M/L routing, sequential vs parallel, B/A/C paths,
+        # report visibility, no-secrets-in-logs, dry-run
+        run: |
+          python -m pytest tests/e2e/test_user_journey_dispatch.py \
+            -v --tb=short --timeout=60 -m "e2e"
+
+      - name: Run anti-ghost verification
+        # Ensures all 5 V4.5.2 modules' _call_counter > 0
+        run: |
+          python scripts/check_module_activation.py
+
+  real-llm-e2e:
+    name: Real LLM E2E (OpenAI / MOKA — release-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: host-bridge-e2e
+    # Skip if workflow_dispatch input says so (local debugging)
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.skip_real_llm)
+    env:
+      DEVSQUAD_LLM_BACKEND: auto
+      DEVSQUAD_API_AUTH_DISABLED: "1"
+      DEVSQUAD_OPENAI_API_KEY: ${{ secrets.DEVSQUAD_OPENAI_API_KEY }}
+      DEVSQUAD_OPENAI_BASE_URL: ${{ secrets.DEVSQUAD_OPENAI_BASE_URL }}
+      DEVSQUAD_OPENAI_MODEL: ${{ secrets.DEVSQUAD_OPENAI_MODEL }}
+      MOKA_API_KEY: ${{ secrets.MOKA_API_KEY }}
+      MOKA_API_BASE: ${{ secrets.MOKA_API_BASE }}
+      MOKA_MODEL: ${{ secrets.MOKA_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          pip install pytest pytest-timeout openai httpx2
+      - name: Run real LLM E2E (OpenAI)
+        # Uses marker to scope to real-LLM tests only
+        run: |
+          python -m pytest tests/external/test_real_llm_e2e.py \
+            -v --tb=short --timeout=120 -m "openai"
+        continue-on-error: false
+      - name: Run real LLM E2E (MOKA)
+        if: env.MOKA_API_KEY != ''
+        run: |
+          python -m pytest tests/external/test_real_llm_e2e.py \
+            -v --tb=short --timeout=120 -m "moka"
+        continue-on-error: false
+
+  final-gate:
+    name: V4.5.2 Final Release Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [host-bridge-e2e, real-llm-e2e]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Full regression suite
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic streamlit Pillow fakeredis redis
+      - name: Run all unit + integration + contract (no external)
+        run: |
+          python -m pytest tests/unit/ tests/integration/ tests/contract/ \
+            tests/test_*.py tests/security/ \
+            --ignore=tests/e2e \
+            --ignore=tests/external \
+            -q --tb=short --timeout=60
+      - name: Validate baseline file present
+        run: |
+          test -f docs/reference/PERFORMANCE_BASELINE.json || (
+            echo "ERROR: PERFORMANCE_BASELINE.json missing"
+            exit 1
+          )
+      - name: Validate test plan + baseline doc consistency
+        run: |
+          python scripts/check_version_consistency.py --strict

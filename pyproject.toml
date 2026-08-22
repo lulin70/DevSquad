@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devsquad"
-version = "4.5.1"
+version = "4.5.2"
 description = "Production-Ready Multi-Role AI Task Orchestrator"
 readme = "README.md"
 license = {text = "MIT"}
@@ -219,6 +219,10 @@ markers = [
     "unit: marks tests as unit tests",
     "smoke: marks tests as release smoke tests",
     "asyncio: async tests using pytest-asyncio",
+    "security: security tests (no-secrets-in-repo, redteam)",
+    "contract: cross-module API contract tests",
+    "openai: real OpenAI API tests (release-only)",
+    "moka: real MOKA AI API tests (release-only)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
