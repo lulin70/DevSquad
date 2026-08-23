@@ -161,9 +161,9 @@ DevSquad/
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
 - **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`); V4.4.2 added multilingual role prompts (EN/CN/JP) and Dashboard 6-tab visibility
-- **Testing**: pytest-based, 8392+ tests all passing
+- **Testing**: pytest-based, 8600+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`4.5.2`)
+- **Version**: Single source of truth in `_version.py` (`4.5.3`)
 
 ## Role System (7 Core Roles)
 
@@ -192,7 +192,7 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Full test suite (8392+ tests, CI authoritative)
+# Full test suite (8600+ tests, CI authoritative)
 python3 -m pytest tests/test_collaboration_core_test.py \
   tests/test_collaboration_role_mapping_test.py \
   tests/test_collaboration_upstream_test.py \

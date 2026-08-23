@@ -71,6 +71,7 @@ class Worker:
         "_notifications_lock",
         "_entries_written_count",
         "_last_assembled_prompt",
+        "_session_id",
     )
 
     def __init__(
@@ -106,6 +107,7 @@ class Worker:
         self.scratchpad = scratchpad
         self.llm_backend = llm_backend
         self.stream = stream
+        self._session_id: str | None = None  # V4.5.3 P12.2.2: dispatch session ID for artifact persistence
         # V3.8 #9: ContentCache wrapper for the LLM call path.
         self.content_cache = content_cache
         # V3.9-02: CodeKnowledgeGraph for code-structure queries.
@@ -188,6 +190,22 @@ class Worker:
                     tags=[task.task_id, task.stage_id or "", "auto"],
                 )
                 self.write_finding(entry)
+
+                # V4.5.3 P12.2.2: Persist finding to ArtifactStore (best-effort)
+                session_id = getattr(self, "_session_id", None) or task.task_id
+                try:
+                    from scripts.collaboration.artifact_store import ArtifactStore
+
+                    store = ArtifactStore()
+                    store.write(
+                        session_id=session_id,
+                        role_id=self.role_id,
+                        filename=f"{task.task_id}.md",
+                        content=finding,
+                        kind="text",
+                    )
+                except Exception:  # noqa: BLE001 — best-effort, do not fail worker
+                    pass
 
             output = {
                 "worker_id": self.worker_id,

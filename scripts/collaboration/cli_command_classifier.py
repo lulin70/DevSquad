@@ -108,6 +108,7 @@ class CLICommandClassifier:
     #: 源自 scripts/cli.py 的 ``subparsers.add_parser()`` 调用 +
     #: scripts/cli_utils.py 的 ``LIFECYCLE_COMMANDS``。
     #: V4.5.2 P12.1.x: 显式列出 backend/doctor/metrics 等新命令（AST 解析之外的兜底）。
+    #: V4.5.3 P12.2.6: 增补 audit（devsquad audit CLI）。
     DEVSQUAD_CLI_COMMANDS: list[str] = [
         "init",
         "demo",
@@ -125,6 +126,7 @@ class CLICommandClassifier:
         "test",
         "review",
         "ship",
+        "audit",
     ]
 
     #: DevSquad 领域命令 → impeccable 同义词的映射（用于未对齐命令的建议）。

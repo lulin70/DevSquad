@@ -361,14 +361,17 @@ class TestAuditCliEndToEnd:
         assert "init" in by_category["create"]
         assert "dispatch" in by_category["execute"]
         assert "review" in by_category["review"]
+        # V4.5.3 P12.2.6: audit 命令也属 review 类（对齐）
+        assert "audit" in by_category["review"]
 
         # 已知未对齐命令落入 unknown
         unknown_commands = by_category["unknown"]
         for expected_unaligned in ["demo", "status", "spec", "build", "ship"]:
             assert expected_unaligned in unknown_commands
-        # 对齐率：6 个对齐的（init/dispatch/review/list/show/set）+ 8 个未对齐 = 6/20 = 30.0%
-        assert report["aligned_count"] == 6
-        assert report["aligned_percentage"] == 30.0
+        # V4.5.3 P12.2.6: audit 命令属 review 类（对齐），总数 21，对齐 7，未对齐 14
+        # 对齐率：7 / 21 = 33.33%（aligned_count=7 audit+init/dispatch/review/list/show/set）
+        assert report["aligned_count"] == 7
+        assert report["aligned_percentage"] == 33.33
 
         # 推荐建议覆盖所有未对齐命令
         recs_text = " ".join(report["recommendations"])

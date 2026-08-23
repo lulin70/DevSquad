@@ -1,11 +1,11 @@
-# DevSquad Rollback Plan (V4.5.2 / P11.4)
+# DevSquad Rollback Plan (V4.5.3 / P11.4)
 
-> **Document Version**: V4.5.2
+> **Document Version**: V4.5.3
 > **Last Updated**: 2026-08-22
 > **Audience**: DevOps engineers, release managers
 > **Related**: [ALERT_RULES.md](ALERT_RULES.md) · [RUNBOOK.md](RUNBOOK.md) · [OPERATIONS.md](../OPERATIONS.md)
 
-This document defines the rollback strategy from **V4.5.2 → V4.5.1** when critical issues block production use. Rollback is the last resort after [RUNBOOK.md](RUNBOOK.md) mitigation steps fail.
+This document defines the rollback strategy from **V4.5.3 → V4.5.2** when critical issues block production use. Rollback is the last resort after [RUNBOOK.md](RUNBOOK.md) mitigation steps fail.
 
 ---
 
@@ -548,6 +548,112 @@ git revert <commit-hash>  # or cherry-pick revert
 # 4. Update CHANGELOG and VERSION_HISTORY to mark P12.1 as deprecated
 
 # 5. Re-run full test suite
+python3 -m pytest tests/ -q
+```
+
+**Estimated time**: 15-20 minutes (well within RTO of 30 min).
+
+---
+
+## 9. P12.2 Module Rollback (V4.5.3 addendum)
+
+### Why P12.2 Needs a Separate Rollback Path
+
+The 5 V4.5.3 modules (ArtifactStore, DispatchEffect, EffectRegistry, AuditCLI, Worker artifact integration) are **opt-in by default** — Worker integration uses try/except (best-effort), so a bad ArtifactStore write never crashes dispatch. This means P12.2 rollback can be **scoped per-module** without touching the dispatch pipeline.
+
+### P12.2.1 Rollback: Disable ArtifactStore
+
+**Symptoms**: Manifest corruption, atomic rewrite failures, file system permission errors.
+
+**Action (no code change required)**:
+```bash
+# Stop writing new artifacts (best-effort writes still happen but ignore failures)
+export DEVSQUAD_ARTIFACT_STORE_DISABLED=1
+
+# Quarantine existing artifacts (move out of root)
+mv artifacts/ artifacts-quarantine-$(date +%Y%m%d)/
+```
+
+**Code rollback** (if needed):
+```bash
+# Revert the 3 commits that introduced ArtifactStore
+git revert <commit-1> <commit-2> <commit-3>  # artifact_store.py + tests + worker integration
+```
+
+**Verification**:
+```bash
+python3 scripts/check_module_activation.py
+# ArtifactStore_P12.2.1 should show "counter=0 FAIL (ghost)" after revert
+# This is EXPECTED behavior — module is intentionally disabled.
+```
+
+### P12.2.3 Rollback: Disable DispatchEffect Protocol
+
+**Symptoms**: Effect apply/revert exceptions, EffectOutcome returning errors that break callers.
+
+**Action (no code change required)**:
+```python
+# In scripts/collaboration/artifact_store.py, comment out the effect registration block:
+# try:
+#     from scripts.collaboration.dispatch_effect import (
+#         EffectContext, WriteFileEffect,
+#     )
+#     registry = _get_global_registry()
+#     ...
+# except Exception:
+#     pass
+```
+
+**Code rollback** (if needed):
+```bash
+# Revert dispatch_effect.py + effect_registry.py
+git revert <commit>
+```
+
+### P12.2.4 Rollback: Disable EffectRegistry
+
+**Symptoms**: LIFO stack corruption, thread-safety issues, revert_all() infinite loop.
+
+**Action**: Reuse DispatchEffect rollback (registry is consumed by artifact_store.py only).
+
+### P12.2.5 Rollback: Remove Artifact↔Effect Binding
+
+Same as P12.2.1 (the binding lives inside ArtifactStore.write/delete).
+
+### P12.2.6 Rollback: Disable Audit CLI
+
+**Symptoms**: SHA-256 verify false positives, SQLite DB lock contention, sensitive data leakage in output.
+
+**Action (no code change required)**:
+```bash
+# Stop running `devsquad audit` — the dispatch audit logger continues writing to SQLite.
+# The CLI just becomes unreadable; underlying dispatch_audit.py is unaffected.
+
+# Remove audit subparser from scripts/cli.py (1 commit revert)
+git revert <cli-audit-registration-commit>
+```
+
+**Code rollback** (if audit subparser also corrupts `cli.py`):
+```bash
+# Revert scripts/cli.py to remove `from scripts.cli_audit import cmd_audit` + p_audit subparser block
+git revert <cli-audit-commit>
+```
+
+### Full P12.2 Rollback (Code-level)
+
+If all 5 V4.5.3 modules need to be removed at the code level:
+
+```bash
+# 1. Revert 5 commit chain (artifact_store + dispatch_effect + effect_registry + cli_audit + worker)
+git revert <commit-1>..<commit-5>
+
+# 2. Revert check_module_activation.py to verify only 8 modules (not 11)
+git revert <check-module-activation-v453-commit>
+
+# 3. Update CHANGELOG and VERSION_HISTORY to mark P12.2 as deprecated
+# 4. Update SKILL.md / skill-manifest.yaml description (remove V4.5.3 entry)
+
+# 5. Re-run full test suite (expect 8524+ tests instead of 8600+)
 python3 -m pytest tests/ -q
 ```
 

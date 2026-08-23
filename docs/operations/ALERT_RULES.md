@@ -1,11 +1,11 @@
-# DevSquad Alert Rules (V4.5.2 / P11.2)
+# DevSquad Alert Rules (V4.5.3 / P11.2)
 
-> **Document Version**: V4.5.2
+> **Document Version**: V4.5.3
 > **Last Updated**: 2026-08-22
 > **Audience**: SRE, DevOps, on-call engineers
-> **Related**: [RUNBOOK.md](RUNBOOK.md) (incident response) · [ROLLBACK.md](ROLLBACK.md) (V4.5.2 → V4.5.1 rollback)
+> **Related**: [RUNBOOK.md](RUNBOOK.md) (incident response) · [ROLLBACK.md](ROLLBACK.md) (V4.5.3 → V4.5.2 rollback)
 
-This document defines Prometheus alert rules for the **5 V4.5.2 modules** plus the existing core metrics. Each rule follows SRE best practices: severity, threshold rationale, runbook link, and noise budget.
+This document defines Prometheus alert rules for the **5 V4.5.2 modules + 5 V4.5.3 modules** plus the existing core metrics. Each rule follows SRE best practices: severity, threshold rationale, runbook link, and noise budget.
 
 ---
 
@@ -457,6 +457,75 @@ devsquad_v452_<module>_<entity>_<unit>[_{outcome}]
 
 > **Document End**
 >
-> **Version**: V1.0.0
+> **Version**: V1.1.0
 > **Created**: 2026-08-22 — V4.5.2 P11.2 release
+> **Updated**: 2026-08-22 — V4.5.3 P12.2 added 3 alerts (ArtifactStore full / Effect revert fail / Audit chain tamper)
 > **Next Update**: When new V4.6 modules add Prometheus metrics, append a new §3.X section
+
+## 9. V4.5.3 Module Alerts (P12.2: Artifacts + Effect)
+
+### 9.1 ArtifactStore 磁盘满
+
+```yaml
+groups:
+  - name: devsquad_v453_artifact_store
+    rules:
+      - alert: DevSquadV453ArtifactStoreFull
+        expr: |
+          (
+            sum by (instance) (node_filesystem_size_bytes{mountpoint="/artifacts"} - node_filesystem_avail_bytes{mountpoint="/artifacts"})
+            / sum by (instance) (node_filesystem_size_bytes{mountpoint="/artifacts"})
+          ) > 0.80
+        for: 30s
+        labels:
+          severity: warning
+          module: ArtifactStore
+        annotations:
+          summary: "V4.5.3 ArtifactStore 目录占用 > 80% — artifact 写入可能失败"
+          description: "instance={{ $labels.instance }} filesystem_usage={{ $value | humanizePercentage }}"
+          runbook: "docs/operations/RUNBOOK.md#v453-artifact-store-full"
+```
+
+**阈值**: 80% (warning), 95% (critical via separate record rule)
+**原因**: artifact 写入失败时 worker 仍可成功（best-effort），但磁盘满会导致 manifest 原子 rename 失败
+**runbook**: RUNBOOK.md SC-08
+
+### 9.2 Effect Revert 失败
+
+```yaml
+      - alert: DevSquadV453EffectRevertFailure
+        expr: |
+          sum(rate(devsquad_v453_effect_revert_failures_total[5m]))
+            / sum(rate(devsquad_v453_effect_revert_total[5m])) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          module: EffectRegistry
+        annotations:
+          summary: "V4.5.3 Effect revert 失败率 > 5% — 残留文件可能累积"
+          description: "revert_failures={{ $value | humanizePercentage }} of total revert attempts"
+          runbook: "docs/operations/RUNBOOK.md#v453-effect-revert-failure"
+```
+
+**阈值**: 5% 失败率（5 分钟窗口）
+**原因**: dispatch 失败时若 effect 不能 revert 会留下脏数据
+**runbook**: RUNBOOK.md SC-09
+
+### 9.3 Audit Chain 被篡改
+
+```yaml
+      - alert: DevSquadV453AuditChainTamper
+        expr: devsquad_v453_audit_chain_verified == 0
+        for: 0m
+        labels:
+          severity: critical
+          module: AuditCLI
+        annotations:
+          summary: "V4.5.3 Audit log 哈希链验证失败 — 可能被篡改"
+          description: "devsquad audit --verify 命令返回 non-zero exit code"
+          runbook: "docs/operations/RUNBOOK.md#v453-audit-chain-tamper"
+```
+
+**阈值**: 即时触发（for: 0m）
+**原因**: 合规审计要求 log 完整性 — 哈希链被破坏可能表示外部入侵
+**runbook**: RUNBOOK.md SC-10

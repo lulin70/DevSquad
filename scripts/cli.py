@@ -16,10 +16,12 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from scripts.cli_audit import cmd_audit
+from scripts.cli_backend import cmd_backend
 from scripts.cli_dispatch import cmd_demo, cmd_dispatch, cmd_roles, cmd_status
-from scripts.cli_metrics import cmd_metrics
 from scripts.cli_doctor import cmd_doctor
 from scripts.cli_lifecycle import cmd_lifecycle
+from scripts.cli_metrics import cmd_metrics
 from scripts.cli_sessions import cmd_sessions
 from scripts.cli_utils import (
     ALL_ROLE_IDS,
@@ -474,6 +476,32 @@ Environment Variables (API keys are read from env vars only, never command line)
         "--timeout", type=float, default=5.0,
         help="HTTP timeout in seconds (default: 5.0)",
     )
+
+    # V4.5.3 P12.2.6: devsquad audit CLI
+    p_audit = subparsers.add_parser(
+        "audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)"
+    )
+    p_audit.add_argument(
+        "--limit", "-n", type=int, default=20, help="Max entries to show (default 20)"
+    )
+    p_audit.add_argument(
+        "--format", "-f", choices=["text", "json"], default="text",
+        help="Output format",
+    )
+    p_audit.add_argument(
+        "--event-type", help="Filter by event type (e.g. dispatch_start)"
+    )
+    p_audit.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify SHA-256 chain integrity",
+    )
+    p_audit.add_argument(
+        "--db-path",
+        default="audit/dispatch_audit.db",
+        help="SQLite audit DB path (default: audit/dispatch_audit.db)",
+    )
+    p_audit.set_defaults(func=cmd_audit)
 
     # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
     p_sessions = subparsers.add_parser(

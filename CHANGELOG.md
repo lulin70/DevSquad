@@ -14,6 +14,59 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.3] - 2026-08-22
+
+### V4.5.3 — Artifacts + Effect (P12.2: ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI)
+
+MINOR-level release (backward-compatible opt-in features). Focuses on worker output persistence + revertible side-effects + audit CLI for compliance. 5 new modules with anti-ghost verification.
+
+**P12.2.1 — ArtifactStore** (`scripts/collaboration/artifact_store.py`, ~480 lines):
+- Persistent worker output storage: `artifacts/{session_id}/{role_id}/{filename}` with JSON manifest.
+- `write/read/list/delete` API with SHA-256 + size + kind (text/binary) tracking.
+- Atomic manifest rewrite (write-then-rename), path traversal protection, binary-safe base64 payload.
+- Anti-ghost `_call_counter` + `get_call_counter()` (29 unit tests).
+
+**P12.2.2 — Worker Artifact Integration** (`scripts/collaboration/worker.py`):
+- `Worker.execute()` now persists findings to `ArtifactStore` after `write_finding()` (best-effort, try/except).
+- `_session_id` slot added (use `task.task_id` fallback when not provided).
+- 3 integration tests verifying artifact presence + best-effort failure tolerance.
+
+**P12.2.3 — DispatchEffect Protocol** (`scripts/collaboration/dispatch_effect.py`):
+- `EffectContext` / `EffectOutcome` dataclasses + `DispatchEffect` Protocol.
+- 3 effect types: `WriteFileEffect` (revert: delete/restore) / `DeleteFileEffect` (revert: restore) / `RenameFileEffect` (revert: rename back).
+- Idempotent semantics — all effects return `EffectOutcome` instead of raising.
+- Binary content support via base64 + original_content_b64 for revert.
+
+**P12.2.4 — EffectRegistry** (`scripts/collaboration/effect_registry.py`):
+- LIFO stack of applied effects; `apply` pushes on success, `revert_all` pops in LIFO order.
+- Thread-safe with lock; revert failures captured but don't block other reverts.
+- Anti-ghost `_call_count` + `get_call_count()` (22 unit tests).
+
+**P12.2.5 — Artifact↔Effect Binding** (`scripts/collaboration/artifact_store.py`):
+- `ArtifactStore.write()` registers `WriteFileEffect` in global `EffectRegistry`.
+- `ArtifactStore.delete()` registers `DeleteFileEffect`.
+- Pre-existing content snapshotted for revert (original_content / original_content_b64).
+- Test isolation via `set_global_registry()` setter (5 binding tests).
+
+**P12.2.6 — Audit CLI** (`scripts/cli_audit.py`):
+- `devsquad audit [--limit N] [--format text|json] [--event-type TYPE] [--verify] [--db-path PATH]`.
+- SHA-256 chain integrity verification (prev_hash + len-prefixed fields).
+- Sensitive field redaction (api_key/password/secret/token/private_key, case-insensitive recursive).
+- Anti-ghost `_call_counter` + `get_call_counter()` (17 unit tests).
+- Wired into `scripts/cli.py` `audit` subparser (after `doctor`).
+
+**P8 Anti-Ghost CI Gate Extension**:
+- `scripts/check_module_activation.py` extended to 11 modules (added 3 V4.5.3 modules): ArtifactStore, EffectRegistry, AuditCLI.
+- All V4.5.3 modules pass anti-ghost check (`_call_counter > 0`).
+
+**Test Counts**: 8600+ tests passing (V4.5.2 8524+ → V4.5.3 8600+, +76 new tests: 29+22+5+3+17). 0 failed. ruff 0 errors. mypy 0 issues on P12.2 files. Anti-ghost gate 11/11 PASS.
+
+**Module Count**: 190+ core modules (V4.5.2 187+ → V4.5.3 190+, +3 modules: artifact_store, dispatch_effect, effect_registry + cli_audit wrapper).
+
+**CLI Subcommand Registration**: `audit` (V4.5.3) added to `scripts/cli.py` subparsers alongside `backend` (V4.5.2)/`doctor` (V4.5.2)/`metrics` (V4.5.2)/`sessions` (V4.5.0).
+
+**Version Upgrade 4.5.2 → 4.5.3** (MINOR SemVer compliant — all new features opt-in, backward compatible).
+
 ## [4.5.2] - 2026-08-22
 
 ### V4.5.2 — Experience Polish (P12.1: MOKA + Metrics CLI + GitLab + Doctor + Backend Config)

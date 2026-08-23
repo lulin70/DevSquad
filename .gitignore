@@ -165,3 +165,8 @@ completions_cache.json
 # --- V4.0.0 Autonomous runtime dirs (created by NotesMemory/UnifiedMemory) ---
 .devsquad_autonomous/
 .devsquad_loop/
+
+# V4.5.3 P12.2 — runtime artifacts (anti-ghost test output)
+artifacts/
+logs/
+.git_commit_msg_v453.txt

@@ -1,11 +1,11 @@
-# DevSquad Runbook (V4.5.2 / P11.3)
+# DevSquad Runbook (V4.5.3 / P11.3)
 
-> **Document Version**: V4.5.2
+> **Document Version**: V4.5.3
 > **Last Updated**: 2026-08-22
 > **Audience**: On-call SRE/DevOps engineers
-> **Related**: [ALERT_RULES.md](ALERT_RULES.md) (alert definitions) · [ROLLBACK.md](ROLLBACK.md) (V4.5.2 → V4.5.1 rollback)
+> **Related**: [ALERT_RULES.md](ALERT_RULES.md) (alert definitions) · [ROLLBACK.md](ROLLBACK.md) (V4.5.3 → V4.5.2 rollback)
 
-This runbook provides step-by-step incident response for the 5 V4.5.2 modules plus commonly encountered issues. Each scenario follows the structure: **Alert → Symptoms → Diagnosis → Mitigation → Recovery → Prevention**.
+This runbook provides step-by-step incident response for the 5 V4.5.2 modules + 5 V4.5.3 modules plus commonly encountered issues. Each scenario follows the structure: **Alert → Symptoms → Diagnosis → Mitigation → Recovery → Prevention**.
 
 ---
 
@@ -750,6 +750,6 @@ df -h ~
 
 > **Document End**
 >
-> **Version**: V1.1.0 (V4.5.2 P12.1 addendum)
+> **Version**: V1.2.0 (V4.5.3 P12.2 addendum)
 > **Created**: 2026-08-22 — V4.5.2 P11.3 release
 > **Next Update**: When new alert scenarios arise (post-incident review)
