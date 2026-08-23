@@ -1,14 +1,18 @@
-name: V4.5.2 Release E2E
+name: V4.5.3 Release E2E
 
-# V4.5.2 Release-Tag-Only E2E.
+# V4.5.3 Release-Tag-Only E2E.
 #
 # Runs only when a version tag (v*) is pushed. Verifies:
 #   - Host Bridge E2E (FakeHostRunner subprocess — real file protocol)
 #   - Real LLM E2E (OpenAI / Anthropic / MOKA via release secrets)
-#   - All V4.5.2 user journey E2E
+#   - All V4.5.3 user journey E2E
 #
 # Hard constraint (User Rule 3): "要发布前一定要做模拟真实用户使用的测试".
-# This workflow IS that constraint, codified for V4.5.2.
+# This workflow IS that constraint, codified for V4.5.3.
+#
+# V4.5.3 P12.2 additions:
+#   - ArtifactStore / DispatchEffect / EffectRegistry / Audit CLI E2E coverage
+#   - 11/11 anti-ghost module verification (V4.5.2 8 + V4.5.3 3)
 #
 # This is intentionally separate from .github/workflows/test.yml to make the
 # release gate explicit and avoid accidentally running real LLM costs on PRs.
@@ -64,7 +68,8 @@ jobs:
             -v --tb=short --timeout=60 -m "e2e"
 
       - name: Run anti-ghost verification
-        # Ensures all 5 V4.5.2 modules' _call_counter > 0
+        # Ensures all 11 V4.5.3 modules' _call_counter > 0
+        # V4.5.3 adds: ArtifactStore / EffectRegistry / AuditCLI
         run: |
           python scripts/check_module_activation.py
 
@@ -110,7 +115,7 @@ jobs:
         continue-on-error: false
 
   final-gate:
-    name: V4.5.2 Final Release Gate
+    name: V4.5.3 Final Release Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [host-bridge-e2e, real-llm-e2e]
