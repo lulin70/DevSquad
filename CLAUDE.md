@@ -163,7 +163,7 @@ DevSquad/
 - **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`); V4.4.2 added multilingual role prompts (EN/CN/JP) and Dashboard 6-tab visibility
 - **Testing**: pytest-based, 8996+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`4.5.3`)
+- **Version**: Single source of truth in `_version.py` (`4.5.4`)
 
 ## Role System (7 Core Roles)
 
@@ -200,7 +200,7 @@ python3 -m pytest tests/test_collaboration_core_test.py \
   tests/ -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 4.5.3
+python3 scripts/cli.py --version    # 4.5.4
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 ```

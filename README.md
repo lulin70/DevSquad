@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills) | V4.4.0 (5 enhancement modules)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.4 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills) | V4.4.0 (5 enhancement modules)</em>
 </p>
 
 <p align="center">

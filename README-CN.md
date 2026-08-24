@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (体验打磨: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (跨会话连续性 + 协议原生 Skill) | V4.4.0 (5 个新增增强模块)</em>
+  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.4 (Module Fiber + Coeffect: 6 状态 FSM + 拓扑激活 + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (体验打磨: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (跨会话连续性 + 协议原生 Skill) | V4.4.0 (5 个新增增强模块)</em>
 </p>
 
 <p align="center">

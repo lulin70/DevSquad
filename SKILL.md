@@ -1,16 +1,16 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.3
+version: 4.5.4
 description: |
-  DevSquad V4.5.3 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.4 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   193+ core modules, 8996+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
-  V4.5.3 P12.2: Artifacts + Effect — ArtifactStore + DispatchEffect Protocol + EffectRegistry + Audit CLI.
+  V4.5.4 P12.3: Module Fiber + Coeffect — 6-state FSM + ModuleFiberRegistry + CoeffectProvider Protocol + CoeffectResolver (Kahn topological + DFS cycle detection) + Modules CLI (status|graph|retry). V4.5.3 P12.2: Artifacts + Effect — ArtifactStore + DispatchEffect Protocol + EffectRegistry + Audit CLI.
   V4.5.2 P12.1: Experience polish — MokaAIBackend + Metrics CLI + GitLabConnector + Doctor CLI + BackendConfig (5 opt-in modules).
   V4.5.0: Cross-session continuity + protocol-native skills + action-first reports (ScratchpadHistoryStore + AgentIdentity + WorkflowTrace + GitContext + SkillProvider Protocol + OutputStyle + SessionResume CLI + FileBundler + SKILL.md modular split + VISION documents).
   V4.4.1: External docs restructure (archive orphan i18n docs, retire CHANGELOG-CN, consolidate admin credentials, renumber INSTALL methods, sync version numbers across all external docs).
