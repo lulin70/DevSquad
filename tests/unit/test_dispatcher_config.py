@@ -47,11 +47,11 @@ def _init_params() -> dict[str, inspect.Parameter]:
 class TestFieldCoverage:
     """Every ``__init__`` parameter must have a corresponding dataclass field."""
 
-    def test_init_param_count_is_43(self) -> None:
-        """Sanity check: __init__ still has 43 explicit parameters."""
+    def test_init_param_count_is_48(self) -> None:
+        """Sanity check: __init__ still has 48 explicit parameters (43 in V4.5.2 + 5 V4.5.4 P12.3)."""
         params = _init_params()
-        assert len(params) == 43, (
-            f"Expected 43 explicit params, got {len(params)}; "
+        assert len(params) == 48, (
+            f"Expected 48 explicit params, got {len(params)}; "
             f"if __init__ signature changed, update DispatcherConfig."
         )
 
@@ -375,9 +375,9 @@ class TestReprAndHelpers:
         assert "secret_token" not in repr_str
         assert "extra" not in repr_str
 
-    def test_field_names_count_is_43(self) -> None:
-        """Sanity: ``field_names()`` returns exactly 43 names (matches __init__)."""
-        assert len(DispatcherConfig.field_names()) == 43
+    def test_field_names_count_is_48(self) -> None:
+        """Sanity: ``field_names()`` returns exactly 48 names (matches __init__)."""
+        assert len(DispatcherConfig.field_names()) == 48
 
     def test_field_names_excludes_extra(self) -> None:
         assert "extra" not in DispatcherConfig.field_names()

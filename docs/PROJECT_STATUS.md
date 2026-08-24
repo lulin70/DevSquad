@@ -2,7 +2,7 @@
 
 > **当前版本**: V4.5.1（2026-08-05）
 > **最后更新**: 2026-08-05
-> **最新评估**: V4.5.1 — Approval Gate + Connector Framework + 反幽灵 E2E（PATCH，SemVer 合规）。2 个新模块交付：ApprovalGate（用户级审批门，fail-closed，无回调时自动批准向后兼容）+ ConnectorFramework（外部系统集成协议接口，GitHub 首个实现，api/cli/simulation 三模式，dispatch 管线强制 simulation=True 安全无网络）。3 个 ROADMAP 项完成：V451-7 Dashboard 浏览器级 E2E（11 AppTest 用例）+ V451-8 REST API 端到端用户旅程 E2E（190 测试）+ V451-9 Connector 反幽灵 E2E（12 测试 AG-1 到 AG-8）。DispatchResult 新增 4 字段（approval_records/approval_gate_md/connector_operations/connector_md，全部 default_factory 向后兼容）。8392+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **最新评估**: V4.5.1 — Approval Gate + Connector Framework + 反幽灵 E2E（PATCH，SemVer 合规）。2 个新模块交付：ApprovalGate（用户级审批门，fail-closed，无回调时自动批准向后兼容）+ ConnectorFramework（外部系统集成协议接口，GitHub 首个实现，api/cli/simulation 三模式，dispatch 管线强制 simulation=True 安全无网络）。3 个 ROADMAP 项完成：V451-7 Dashboard 浏览器级 E2E（11 AppTest 用例）+ V451-8 REST API 端到端用户旅程 E2E（190 测试）+ V451-9 Connector 反幽灵 E2E（12 测试 AG-1 到 AG-8）。DispatchResult 新增 4 字段（approval_records/approval_gate_md/connector_operations/connector_md，全部 default_factory 向后兼容）。8996+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
 > **硬约束通过率**: 13/13（100%）
 > **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.1 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
@@ -97,7 +97,7 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 **测试金字塔达标**:
 - Contract: 3.06% → 5.2%（目标 ≥5% ✅）
 - Integration: 8.84% → 15.1%（目标 ≥15% ✅）
-- 总测试数: 5250+ → 8392+（+3142 测试）
+- 总测试数: 5250+ → 8996+（+3746 测试）
 
 ---
 

@@ -22,6 +22,7 @@ from scripts.cli_dispatch import cmd_demo, cmd_dispatch, cmd_roles, cmd_status
 from scripts.cli_doctor import cmd_doctor
 from scripts.cli_lifecycle import cmd_lifecycle
 from scripts.cli_metrics import cmd_metrics
+from scripts.cli_modules import register_modules_subparser
 from scripts.cli_sessions import cmd_sessions
 from scripts.cli_utils import (
     ALL_ROLE_IDS,
@@ -503,6 +504,9 @@ Environment Variables (API keys are read from env vars only, never command line)
     )
     p_audit.set_defaults(func=cmd_audit)
 
+    # V4.5.4 P12.3.3: devsquad modules CLI (status/graph/retry)
+    register_modules_subparser(subparsers)
+
     # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
     p_sessions = subparsers.add_parser(
         "sessions", aliases=["sess"], help="List/show dispatch sessions (SessionResume V4.5.0)"
@@ -612,6 +616,17 @@ Environment Variables (API keys are read from env vars only, never command line)
         return cmd_doctor(args)
     elif args.command == "backend":
         return cmd_backend(args)
+    elif args.command == "modules":
+        # V4.5.4 P12.3.3: dispatch to modules subcommand function
+        from scripts.collaboration.coeffect import CoeffectResolver
+        from scripts.collaboration.module_fiber import ModuleFiberRegistry
+        if not hasattr(args, "registry"):
+            args.registry = ModuleFiberRegistry()
+        if not hasattr(args, "resolver"):
+            args.resolver = CoeffectResolver()
+        if hasattr(args, "func") and callable(args.func):
+            return args.func(args)
+        return 1
     elif args.command in ("lifecycle", "lc") or args.command in LIFECYCLE_COMMANDS:
         if args.command in LIFECYCLE_COMMANDS:
             args.lifecycle_command = args.command

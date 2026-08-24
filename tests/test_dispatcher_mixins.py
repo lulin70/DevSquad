@@ -731,3 +731,65 @@ class TestLifecycleMixin:
         # ValueError is not in (RuntimeError,), so it should propagate
         with pytest.raises(ValueError):
             mixin._shutdown_component(component, "shutdown", (RuntimeError,), "msg")
+
+
+# ---------------------------------------------------------------------------
+# V4.5.4 P12.3 — FiberMixin-style dispatch tests (5 incremental cases)
+# ---------------------------------------------------------------------------
+
+
+class TestV454FiberMixin:
+    """Incremental tests for V4.5.4 ModuleFiber + Coeffect integration."""
+
+    def test_dispatcher_attaches_module_fiber_registry(self) -> None:
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        d = MultiAgentDispatcher(
+            persist_dir="/tmp/test_v454_mixin", development_mode=True
+        )
+        assert hasattr(d, "_module_fiber_registry")
+        assert d._module_fiber_registry is not None
+
+    def test_dispatcher_attaches_coeffect_resolver(self) -> None:
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        d = MultiAgentDispatcher(
+            persist_dir="/tmp/test_v454_mixin", development_mode=True
+        )
+        assert hasattr(d, "_coeffect_resolver")
+        assert d._coeffect_resolver is not None
+
+    def test_dispatcher_attaches_module_fibers_dict(self) -> None:
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        d = MultiAgentDispatcher(
+            persist_dir="/tmp/test_v454_mixin", development_mode=True
+        )
+        assert hasattr(d, "_module_fibers")
+        assert isinstance(d._module_fibers, dict)
+        assert len(d._module_fibers) >= 1
+
+    def test_enable_fiber_false_skips_wiring(self) -> None:
+        """When enable_fiber=False, no fibers are registered."""
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        d = MultiAgentDispatcher(
+            persist_dir="/tmp/test_v454_mixin_off",
+            development_mode=True,
+            enable_fiber=False,
+            enable_coeffect=False,
+        )
+        # registry/resolver may still be None
+        assert d._module_fibers == {}
+
+    def test_resolve_activation_order_after_dispatch(self) -> None:
+        """A successful dry-run dispatch resolves the coeffect graph."""
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        d = MultiAgentDispatcher(
+            persist_dir="/tmp/test_v454_mixin_resolve",
+            development_mode=True,
+        )
+        d.dispatch("simple test", dry_run=True)
+        order = d._coeffect_resolver.resolve_activation_order()
+        assert len(order) >= 1

@@ -9,8 +9,8 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-8600%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.3-success" />
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-8996%2B%20passing-brightgreen" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.4-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -64,7 +64,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
 | 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [187+ 模块详细参考](SKILL.md)
+📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [193 模块详细参考](SKILL.md)
 
 ---
 
@@ -142,7 +142,7 @@ Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4-stage autonomous iteration
 - **V4.0.0 P3-2 Plugin Hot-Loading**: 3 loading paths + path traversal 3-layer protection + reload rollback
 
-8392+ tests passing (CI authoritative).
+8996+ tests passing (CI authoritative).
 
 ---
 

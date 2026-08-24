@@ -7,7 +7,7 @@ description: |
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
-  193+ core modules, 8600+ tests passing (local; CI authoritative).
+  193+ core modules, 8996+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.5.3 P12.2: Artifacts + Effect — ArtifactStore + DispatchEffect Protocol + EffectRegistry + Audit CLI.

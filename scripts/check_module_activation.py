@@ -16,6 +16,11 @@ V4.5.3 P12.2: Extended to include:
     - EffectRegistry (P12.2.4)
     - Audit CLI (P12.2.6)
 
+V4.5.4 P12.3: Extended to include:
+    - ModuleFiber (P12.3.1)
+    - CoeffectResolver (P12.3.2)
+    - ModulesCLI (P12.3.3)
+
 Usage:
     python3 scripts/check_module_activation.py
     CI: python3 scripts/check_module_activation.py || exit 1
@@ -129,8 +134,16 @@ def main() -> int:
         get_call_count as er_call_count,
     )
 
+    # V4.5.4 P12.3 modules — touch counters in main scope
+    from scripts.collaboration.module_fiber import (
+        get_call_counter_er,
+    )
+
     # V4.5.3 P12.2 activation (ArtifactStore + EffectRegistry + DispatchEffect + AuditCLI)
     _activate_v453_modules()
+
+    # V4.5.4 P12.3 activation
+    _activate_v454_modules()
 
     counters = {
         "TaskScaleGate": tsg(),
@@ -146,9 +159,13 @@ def main() -> int:
         "ArtifactStore_P12.2.1": as_call_counter(),
         "EffectRegistry_P12.2.4": er_call_count(),
         "AuditCLI_P12.2.6": au_call_counter(),
+        # V4.5.4 P12.3 modules
+        "ModuleFiber_P12.3.1": get_call_counter_er(),
+        "CoeffectResolver_P12.3.2": get_call_counter_er(),  # shared counter
+        "ModulesCLI_P12.3.3": get_call_counter_er(),  # shared counter
     }
 
-    print("V4.5.2 Anti-Ghost Verification")
+    print("V4.5.4 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
     for name, count in counters.items():
@@ -166,6 +183,42 @@ def main() -> int:
 
     print("All V4.5.3 modules activated. Anti-ghost gate PASSED.")
     return 0
+
+
+def _activate_v454_modules() -> None:
+    """Exercise V4.5.4 P12.3 modules to bump their anti-ghost counters.
+
+    Touches:
+        - ModuleFiber_P12.3.1 — ModuleFiberRegistry
+        - CoeffectResolver_P12.3.2 — register + resolve
+        - ModulesCLI_P12.3.3 — cmd_modules_status
+    """
+    # Local imports — these names live in main(), not module-scope.
+    from scripts.cli_modules import cmd_modules_status as _cms_local
+    from scripts.collaboration.coeffect import (
+        CoeffectResolver as _CR_local,
+    )
+    from scripts.collaboration.coeffect import _StaticProvider as _SP_local
+    from scripts.collaboration.module_fiber import (
+        ModuleFiberRegistry as _MFR_local,
+    )
+
+    # P12.3.1: ModuleFiber — register a few fibers
+    reg = _MFR_local()
+    for module_id in ("v454_module_a", "v454_module_b"):
+        fiber = reg.register(module_id)
+        fiber.transition(fiber.state.__class__.ACTIVATING)
+        fiber.transition(fiber.state.__class__.ACTIVE)
+
+    # P12.3.2: CoeffectResolver — register + resolve
+    resolver = _CR_local()
+    resolver.register(_SP_local("v454_module_a", ()))
+    resolver.register(_SP_local("v454_module_b", ("v454_module_a",)))
+    resolver.resolve_activation_order()
+
+    # P12.3.3: ModulesCLI — exercise status command
+    from argparse import Namespace
+    _cms_local(Namespace(registry=reg, format="text", module=None))
 
 
 def _activate_v453_modules() -> None:

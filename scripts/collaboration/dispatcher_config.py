@@ -117,6 +117,14 @@ class DispatcherConfig:
     # ``to_init_kwargs()`` can re-emit them into ``**kwargs``.
     extra: dict[str, Any] = field(default_factory=dict, repr=False)
 
+    # ── Group 11: Module Fiber + Coeffect (V4.5.4 P12.3) ─────────────────
+    # Feature flags + thresholds for the V4.5.4 module lifecycle wiring.
+    enable_fiber: bool = True
+    enable_coeffect: bool = True
+    enable_modules_cli: bool = True
+    coeffect_failure_strategy: str = "degrade"
+    coeffect_max_retries: int = 1
+
     # ── Conversion helpers ───────────────────────────────────────────────
 
     @classmethod

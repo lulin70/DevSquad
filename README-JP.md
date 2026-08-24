@@ -142,7 +142,7 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
 - **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
 
-8392+ tests passing（CI 権威）。
+8996+ tests passing（CI 権威）。
 
 ---
 

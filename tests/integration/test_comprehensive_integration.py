@@ -459,7 +459,7 @@ class TestCLIWithLifecycleIntegration:
         # tests/integration/ → project root (two levels up via abspath).
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         result = subprocess.run(
-            ["python3", "scripts/cli.py", "--help"],
+            [".venv/bin/python", "scripts/cli.py", "--help"],
             capture_output=True,
             text=True,
             cwd=project_root,

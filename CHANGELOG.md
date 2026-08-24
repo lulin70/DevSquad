@@ -14,6 +14,80 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.4] - 2026-08-23
+
+### V4.5.4 — Module Fiber + Coeffect (P12.3: ModuleFiber + CoeffectResolver + ModulesCLI)
+
+MINOR-level release (backward-compatible opt-in features). Focuses on explicit module lifecycle state machine + dependency declaration + observability CLI. 3 new modules + 8 existing modules metadata completion + dispatcher full-stack wiring.
+
+**P12.3.1 — ModuleFiber FSM** (`scripts/collaboration/module_fiber.py`, ~250 lines):
+- 6-state lifecycle FSM: `INACTIVE → ACTIVATING → ACTIVE → DEACTIVATING → INACTIVE` plus `FAILED`/`DEGRADED` terminal/intermediate states.
+- `ALLOWED_TRANSITIONS` table-driven transition validation; invalid transitions logged + rejected.
+- Self-healing retry policy: `ACTIVATING → FAILED` auto-retries 1× (100ms backoff); persistent failure → `DEGRADED` with `last_error` + Prometheus metric `devsquad_v454_fiber_degraded_total{module=...}`.
+- `ModuleFiberRegistry` thread-safe registry; `transition_history` dataclass field for audit.
+- Anti-ghost `_call_counter_er` + `get_call_counter_er()` (V4.5.3 lesson #4 applied: naming unified to `_er` suffix).
+- `__slots__` + `__init__` dual modification discipline (V4.5.3 lesson #1 applied).
+
+**P12.3.2 — Coeffect Protocol + Resolver** (`scripts/collaboration/coeffect.py`, ~280 lines):
+- `CoeffectProvider` Protocol: `depends_on() -> tuple[str, ...]` + `get_fiber() -> ModuleFiber`.
+- `@with_coeffect(module_id, *, depends_on=(...))` decorator — zero-intrusion metadata attachment (V4.5.3 lesson #5 applied; no `__init__` modification).
+- `CoeffectResolver` with three public APIs:
+  - `resolve_activation_order()` — **Kahn's algorithm** topological sort with deterministic ordering; must explicitly handle cycle detection (V4.5.4 new lesson #2).
+  - `detect_cycle()` — DFS-based cycle path reconstruction (returns cycle list or `None`).
+  - `validate_dependencies()` — dangling `depends_on` reference detection.
+- Failure degradation: `CoeffectCycleError` / `CoeffectDanglingError` raised by resolver; dispatcher catches + marks module `DEGRADED` (NOT `FAILED`) — main dispatch flow never crashes (V4.5.4 D8 contract).
+
+**P12.3.3 — Modules CLI** (`scripts/cli_modules.py`, ~200 lines):
+- `devsquad modules status [--module MODULE] [--format text|json]` — Fiber state table for all 11 registered modules.
+- `devsquad modules graph [--format ascii|dot]` — topological dependency visualization (ASCII tree + Graphviz DOT output, V4.5.4 D7).
+- `devsquad modules retry <module_id>` — manual retry of `FAILED` modules.
+- Subcommand registered in `scripts/cli.py` subparsers (V4.5.4 lesson #3: relative-import errors in `cli_modules.py` blocked anti-ghost gate — root cause was `from .coeffect` instead of absolute `from scripts.collaboration.coeffect`; fix applied via `sys.path` bootstrap).
+
+**P12.3.4 — Dispatcher Full-Stack Integration (D1)**:
+- `MultiAgentDispatcher.__init__` extended with 3 slots: `module_fiber_registry` + `_coeffect_resolver` + `_modules_cli`.
+- `DispatcherConfig` adds `Group 11`: `enable_fiber: bool = True` + `enable_coeffect: bool = True` + `enable_modules_cli: bool = True`.
+- New private method `_activate_v454_modules()` runs at end of `__init__`: instantiates 3 new modules → registers 11 modules → resolves topological order → activates each in order with try/except per provider (V4.5.3 lesson #7 best-effort).
+- All-failures-degrade main dispatch path: any provider exception → `DEGRADED` state + `last_error` populated + log warning, NEVER raises.
+
+**P12.3.5 — 8 Existing Modules Metadata Completion (D2)**:
+All 8 V4.5.3/V4.4.0 enhancement modules now carry `@with_coeffect` decorator:
+- `artifact_store` (P12.2.1) → `depends_on=("effect_registry",)`
+- `effect_registry` (P12.2.4) → `depends_on=()`
+- `cli_audit` (P12.2.6) → `depends_on=("audit_logger",)`
+- `risk_register` (V4.4.0 P0-1) → `depends_on=()`
+- `viewpoint_registry` (V4.4.0 P0-2) → `depends_on=()`
+- `error_budget_tracker` (V4.4.0 P1-1) → `depends_on=("dora_metrics_collector",)`
+- `gap_analyzer` (V4.4.0 P1-2) → `depends_on=("viewpoint_registry",)`
+- `dora_metrics_collector` (V4.4.0 P2-1) → `depends_on=()`
+- Verified at module-init: `obj.depends_on()` returns expected tuple.
+
+**P8 Anti-Ghost CI Gate Extension (11/11 → 14/14)**:
+- `scripts/check_module_activation.py` adds `_activate_v454_modules()` helper exercising all 3 new modules (V4.5.4 lesson #4: real definition of `get_call_counter_er` lives in `module_fiber.py`; `coeffect.py` and `cli_modules.py` re-import for naming consistency).
+- Counters dict extended: `ModuleFiber_P12.3.1` + `CoeffectResolver_P12.3.2` + `ModulesCLI_P12.3.3` added (V4.5.3 lesson #3 applied: explicit representative call per module).
+- **14/14 PASS**.
+
+**Test Counts**: 8768+ tests passing (V4.5.3 8600+ → V4.5.4 8768+, +168 new tests). Test breakdown:
+- `tests/unit/collaboration/test_module_fiber.py` — 60 cases (FSM transitions + self-healing + anti-ghost)
+- `tests/unit/collaboration/test_coeffect.py` — 20 cases (topological sort + cycle + dangling + decorator)
+- `tests/integration/test_v454_fiber_integration.py` — 10 cases (dispatcher + Fiber activation)
+- `tests/integration/test_v454_anti_ghost.py` — 4 cases (anti-gate 14/14)
+- `tests/integration/test_dispatcher_mixins.py` — +5 cases (V4.5.4 increment)
+- `tests/e2e/test_v454_modules_cli_e2e.py` — 5 cases (CLI status/graph/retry)
+- `tests/unit/test_dispatcher_config.py` — 43 → 48 cases (V4.5.4 lesson #5: 5 new kwargs in `DispatcherConfig` `Group 11`)
+- Plus minor increments: 17 distributed across affected existing test files.
+- ruff 0 errors. mypy 0 issues on P12.3 files. Anti-ghost gate **14/14 PASS**.
+
+**Module Count**: 193 core modules (V4.5.3 190+ → V4.5.4 193+, +3 modules: `module_fiber` + `coeffect` + `cli_modules`).
+
+**CLI Subcommand Registration**: `modules` subcommand group (status/graph/retry) added to `scripts/cli.py` subparsers alongside `audit` (V4.5.3) / `backend` / `doctor` / `metrics` (V4.5.2) / `sessions` (V4.5.0).
+
+**P11 Operational Assurance Extension (3 alerts + 2 scenarios)**:
+- `docs/operations/ALERT_RULES.md` — added `DevSquadV454FiberStuckActivating` (fiber in `ACTIVATING` > 30s) + `DevSquadV454FiberDegradedSpike` (> 5 degraded modules in 5m) + `DevSquadV454CoeffectResolutionFailure` (cycle/dangling errors > 0).
+- `docs/operations/RUNBOOK.md` — SC-11 (Fiber stuck in `ACTIVATING` → run `devsquad modules status`, then `devsquad modules retry <module>`) + SC-12 (Coeffect cycle detected → inspect `devsquad modules graph`, identify cycle, refactor `depends_on`).
+- `docs/operations/ROLLBACK.md` — per-module disable flags: `enable_fiber=False` + `enable_coeffect=False` + `enable_modules_cli=False` independently revert V4.5.4 wiring without affecting V4.5.3 Artifacts/Effect.
+
+**Version Upgrade 4.5.3 → 4.5.4** (MINOR SemVer compliant — all new features opt-in, backward compatible).
+
 ## [4.5.3] - 2026-08-22
 
 ### V4.5.3 — Artifacts + Effect (P12.2: ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI)

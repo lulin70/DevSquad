@@ -142,7 +142,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
 - **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
 
-8392+ tests passing（CI 权威）。
+8996+ tests passing（CI 权威）。
 
 ---
 

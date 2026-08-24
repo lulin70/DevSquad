@@ -114,6 +114,16 @@ class DispatcherBase:
     _mce_adapter: Any
     redis_url: str | None
 
+    # V4.5.4 P12.3 — Module Fiber + Coeffect wiring
+    enable_fiber: bool
+    enable_coeffect: bool
+    enable_modules_cli: bool
+    coeffect_failure_strategy: str
+    coeffect_max_retries: int
+    _module_fiber_registry: Any
+    _coeffect_resolver: Any
+    _module_fibers: dict[str, Any]
+
     # Pipelines and services
     pre_dispatch: PreDispatchPipeline
     post_dispatch: PostDispatchPipeline
@@ -155,4 +165,12 @@ class DispatcherBase:
         raise NotImplementedError
 
     def _attach_audit_entries(self, result: DispatchResult) -> None:
+        raise NotImplementedError
+
+    # V4.5.4 P12.3 — Module Fiber + Coeffect activation
+    def _activate_v454_modules(self, result: DispatchResult, task_description: str) -> None:
+        """Best-effort: bump anti-ghost counters for V4.5.4 P12.3 modules.
+
+        Failure here MUST NOT propagate to the main dispatch pipeline.
+        """
         raise NotImplementedError

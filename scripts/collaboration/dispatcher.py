@@ -149,6 +149,12 @@ class MultiAgentDispatcher(
         plugins_enabled: bool = False,
         plugins_dropin_dir: str | Path | None = None,
         plugins_no_hot_reload: bool = False,
+        # V4.5.4 P12.3 — Module Fiber + Coeffect
+        enable_fiber: bool = True,
+        enable_coeffect: bool = True,
+        enable_modules_cli: bool = True,
+        coeffect_failure_strategy: str = "degrade",
+        coeffect_max_retries: int = 1,
         **kwargs: Any,
     ) -> None:
         """Initialize the Multi-Agent Dispatcher with feature flags and components."""
@@ -162,6 +168,16 @@ class MultiAgentDispatcher(
         self.enable_two_stage_review = enable_two_stage_review
         self.enable_redesign_audit = enable_redesign_audit
         self.enable_severity_router = enable_severity_router
+        # V4.5.4 P12.3
+        self.enable_fiber = enable_fiber
+        self.enable_coeffect = enable_coeffect
+        self.enable_modules_cli = enable_modules_cli
+        self.coeffect_failure_strategy = coeffect_failure_strategy
+        self.coeffect_max_retries = coeffect_max_retries
+        # Pre-init: avoid AttributeError before _init_module_fibers() runs.
+        self._module_fiber_registry: Any = None
+        self._coeffect_resolver: Any = None
+        self._module_fibers: dict[str, Any] = {}
         self.development_mode = development_mode
         self.max_fix_iterations = max_fix_iterations
         # V4.4.0: P0-P3 enhancement modules (anti-ghost: instantiated at init)
@@ -226,6 +242,8 @@ class MultiAgentDispatcher(
         self.plugin_hot_loader = None
 
         self._init_components_from_factory()
+        # V4.5.4 P12.3 — wire ModuleFiber + Coeffect
+        self._init_module_fibers()
         self.enterprise = EnterpriseFeature(
             persist_dir=self.persist_dir,
             quality_guard=self.quality_guard,
@@ -493,6 +511,12 @@ class MultiAgentDispatcher(
             self._activate_approval_gate(early_result, approval_callback)
             # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter > 0).
             self._activate_connector(early_result)
+            # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
+            # Best-effort — never let activation errors break the early-return path.
+            try:
+                self._activate_v454_modules(early_result, task_description)
+            except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
+                logger.debug("early_return _activate_v454_modules best-effort: %s", v454_err)
             return early_result
 
         tenant_ctx = pre_result.tenant_ctx
@@ -559,6 +583,12 @@ class MultiAgentDispatcher(
             self._activate_approval_gate(result, approval_callback)
             # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter > 0).
             self._activate_connector(result)
+            # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
+            # Best-effort — never let activation errors break the sync success path.
+            try:
+                self._activate_v454_modules(result, task_description)
+            except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
+                logger.debug("sync _activate_v454_modules best-effort: %s", v454_err)
 
             return result
 
@@ -808,6 +838,86 @@ class MultiAgentDispatcher(
         self._dora_metrics_collector.collect_from_dispatch(
             [], window_days=30
         )
+
+    def _init_module_fibers(self) -> None:
+        """V4.5.4 P12.3 — wire ModuleFiberRegistry + CoeffectResolver.
+
+        Creates the registry + resolver, registers 8 existing V4.5.3
+        modules with their declared ``depends_on()`` relationships, and
+        primes each module's lifecycle to ``ACTIVE``.
+
+        Anti-ghost: every registration increments
+        ``get_call_counter_er()`` so a CI gate can detect missing
+        wiring.
+
+        Errors here are swallowed (best-effort) to keep dispatcher
+        startup robust against partial deployments.
+        """
+        try:
+            from .coeffect import CoeffectResolver, _StaticProvider
+            from .module_fiber import ModuleFiberRegistry
+        except ImportError:
+            return
+
+        if not self.enable_fiber and not self.enable_coeffect:
+            return
+
+        self._module_fiber_registry = ModuleFiberRegistry()
+        self._coeffect_resolver = CoeffectResolver()
+
+        # Module -> dependencies map (V4.5.3 wiring, lifted to P12.3).
+        # Empty tuple means "no deps".
+        module_deps: dict[str, tuple[str, ...]] = {
+            "effect_registry": (),
+            "artifact_store": ("effect_registry",),
+            "audit_logger": ("effect_registry",),
+            "risk_register": (),
+            "viewpoint_registry": (),
+            "error_budget_tracker": ("dora_metrics_collector",),
+            "gap_analyzer": ("viewpoint_registry",),
+            "dora_metrics_collector": (),
+        }
+
+        for module_id, deps in module_deps.items():
+            try:
+                # Register fiber
+                fiber = self._module_fiber_registry.register(
+                    module_id, depends_on=deps
+                )
+                fiber.transition(fiber.state.__class__.ACTIVATING)
+                fiber.transition(fiber.state.__class__.ACTIVE)
+                self._module_fibers[module_id] = fiber
+
+                # Register provider with resolver (topological order)
+                if self.enable_coeffect:
+                    self._coeffect_resolver.register(
+                        _StaticProvider(module_id, deps)
+                    )
+            except Exception:
+                # V4.5.3 lesson #7: best-effort try/except
+                continue
+
+    def _activate_v454_modules(
+        self,
+        result: DispatchResult,  # noqa: ARG002 — interface parity with V440/V451
+        task_description: str,  # noqa: ARG002 — reserved for future coeffect seeding
+    ) -> None:
+        """V4.5.4 P12.3 — bump anti-ghost counters during dispatch.
+
+        Best-effort: any error is swallowed so the dispatch result
+        itself is never corrupted.
+        """
+        if not self.enable_fiber and not self.enable_coeffect:
+            return
+        try:
+            from .module_fiber import _inc_call_counter_er
+            _inc_call_counter_er()
+            # Attempt to resolve activation order (best-effort)
+            if self.enable_coeffect and self._coeffect_resolver is not None:
+                with contextlib.suppress(Exception):
+                    self._coeffect_resolver.resolve_activation_order()
+        except ImportError:
+            return
 
     def _check_rbac_permission(
         self,

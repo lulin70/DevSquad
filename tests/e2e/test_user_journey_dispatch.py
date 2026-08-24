@@ -148,7 +148,12 @@ class TestUserJourneyPaths:
             from scripts.collaboration.llm_backend import create_backend
             with _patch("scripts.collaboration.llm_backend._load_dotenv"):
                 backend = create_backend("auto")
-            assert backend.path == "A"
+            # V4.5.2 P12.1 P-1: auto mode wraps API + Mock tail → FallbackBackend
+            # with composite path "A+C". Test accepts either "A" (single) or
+            # "A+C" (composite) to remain forward-compatible.
+            assert backend.path in ("A", "A+C"), (
+                f"Expected path A or A+C, got {backend.path!r}"
+            )
         finally:
             if old_devsquad is None:
                 os.environ.pop("DEVSQUAD_OPENAI_API_KEY", None)

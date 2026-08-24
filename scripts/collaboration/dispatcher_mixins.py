@@ -76,7 +76,14 @@ class DispatcherAsyncMixin(DispatcherBase):
         pre_result = self.pre_dispatch.execute(task_description, roles, mode, dry_run, start_time, phase, **kwargs)
         if pre_result.early_return:
             self.metrics_service.safe_record(lambda m: m.tasks_in_progress_gauge.labels(phase=phase).dec())
-            return cast(DispatchResult, pre_result.early_return)
+            early_result = cast(DispatchResult, pre_result.early_return)
+            # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
+            # Best-effort — never let activation errors break the early-return path.
+            try:
+                self._activate_v454_modules(early_result, task_description)
+            except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
+                logger.debug("async early_return _activate_v454_modules best-effort: %s", v454_err)
+            return early_result
 
         tenant_ctx = pre_result.tenant_ctx
 
@@ -90,7 +97,7 @@ class DispatcherAsyncMixin(DispatcherBase):
 
             self.metrics_service.safe_record(lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles)))
 
-            return cast(
+            async_result = cast(
                 DispatchResult,
                 self.post_dispatch.execute(
                     pre_result=pre_result,
@@ -103,6 +110,13 @@ class DispatcherAsyncMixin(DispatcherBase):
                     **kwargs,
                 ),
             )
+            # V4.5.4 P12.3: Activate ModuleFiber + Coeffect on async success path
+            # (anti-ghost: must run on every successful dispatch, sync or async).
+            try:
+                self._activate_v454_modules(async_result, task_description)
+            except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
+                logger.debug("async _activate_v454_modules best-effort: %s", v454_err)
+            return async_result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
             return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
