@@ -661,8 +661,91 @@ python3 -m pytest tests/ -q
 
 ---
 
+## 10. P12.3 Module Rollback (V4.5.4 addendum)
+
+### Module Fiber + Coeffect + Modules CLI 单模块回滚
+
+**触发条件**: 任一 V4.5.4 新模块（ModuleFiber / CoeffectResolver / Modules CLI）单独故障需回滚该模块而非整体 V4.5.4。
+
+**影响范围**:
+- ModuleFiber 故障 → 影响所有 14 个已注册模块的 FSM 状态追踪；fallback 行为为 best-effort `_activate_v454_modules()` 跳过，回归到 V4.5.3 直调模式
+- CoeffectResolver 故障 → 影响 dispatcher 的 `_coeffect_resolver.resolve_activation_order()` 调用；fallback 为跳过拓扑解析，模块按注册顺序激活
+- Modules CLI 故障 → 不影响运行时，仅影响运维可视化（`devsquad modules status|graph|retry`）；fallback 为手工执行
+
+**前置条件**:
+- 已确认 V4.5.3 tag 仍可部署
+- `_PROVIDER_REGISTRY` 状态已 dump 至 `.devsquad_cache/fiber_state.json`
+
+**回滚步骤**:
+
+```bash
+# 1. 标记目标模块为 Failed（保留 registry 元数据以便恢复）
+devsquad modules retry --module <MODULE_NAME> --mark-failed --reason "V4.5.4 P12.3 rollback"
+
+# 2. 禁用 V4.5.4 P12.3 特定模块（dispatcher 启动时跳过）
+export DEVSQUAD_V454_DISABLE_MODULE_FIBER=1
+export DEVSQUAD_V454_DISABLE_COEFFECT=1
+# Modules CLI 禁用：
+export DEVSQUAD_V454_DISABLE_MODULES_CLI=1
+
+# 3. 重新部署 dispatcher（使用 V4.5.4 但 feature-flag 关闭）
+kubectl rollout restart deployment/devsquad-dispatcher -n devsquad
+# 或:
+systemctl restart devsquad-dispatcher
+
+# 4. 验证 anti-ghost 仍 14/14（fallback 模式下所有模块 representative call 仍可触发）
+.venv/bin/python scripts/check_module_activation.py --verbose
+# 期望: 14/14 PASS (fallback path)
+
+# 5. 完整回滚（极端情况：V4.5.4 完全不能运行）
+git checkout v4.5.3
+systemctl restart devsquad-dispatcher
+.venv/bin/python -m pytest tests/ -q  # 期望 8943 passed (V4.5.3 + P12.2)
+```
+
+**验证清单**:
+- [ ] `devsquad modules status` 返回 OK（fallback 模式）
+- [ ] `check_module_activation.py` 14/14 PASS
+- [ ] `devsquad dispatcher --dry-run` 测试 1 个 mock 任务可正常完成
+- [ ] 监控 SC-11/12/13 告警在 5m 内不再触发
+- [ ] ArtifactStore 数据保留（V4.5.3 兼容格式）
+
+**Estimated time**: 10-15 分钟（feature-flag 回滚）/ 30-40 分钟（完全回滚到 V4.5.3）。
+
+### 全量 V4.5.4 → V4.5.3 回滚（紧急情况）
+
+**触发条件**: V4.5.4 P12.3 整体不兼容或 anti-ghost 持续 < 14/14。
+
+**回滚步骤**:
+
+```bash
+# 1. Revert dispatcher.py 新增 5 kwargs (`enable_fiber`, `enable_coeffect`, 等)
+git revert <v454-dispatcher-commit>
+
+# 2. Revert scripts/cli_modules.py + scripts/cli.py modules subparser
+rm scripts/cli_modules.py
+git revert <v454-cli-modules-commit>
+
+# 3. Revert check_module_activation.py to verify only 11 modules (not 14)
+git revert <v454-check-module-activation-commit>
+
+# 4. 保留 scripts/collaboration/module_fiber.py + coeffect.py（不删除，因外部模块可能 import）
+#    但 dispatcher 不再调用它们
+
+# 5. Update CHANGELOG and VERSION_HISTORY to mark P12.3 as deprecated
+# 6. Update SKILL.md / skill-manifest.yaml description (remove V4.5.4 entry)
+
+# 7. Re-run full test suite (expect 8943 tests instead of 8996+)
+.venv/bin/python -m pytest tests/ -q
+```
+
+**Estimated time**: 25-35 分钟 (well within RTO of 60 min for full version rollback).
+
+---
+
 > **Document End**
 >
-> **Version**: V1.1.0 (V4.5.2 P12.1 addendum)
+> **Version**: V1.2.0 (V4.5.4 P12.3 addendum)
 > **Created**: 2026-08-22 — V4.5.2 P11.4 release
+> **Updated**: 2026-08-23 — V4.5.4 P12.3 added §10 (per-module + full rollback)
 > **Next Update**: After first real rollback incident (post-mortem → improvements)

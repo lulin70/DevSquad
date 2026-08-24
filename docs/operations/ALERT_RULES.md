@@ -529,3 +529,100 @@ groups:
 **阈值**: 即时触发（for: 0m）
 **原因**: 合规审计要求 log 完整性 — 哈希链被破坏可能表示外部入侵
 **runbook**: RUNBOOK.md SC-10
+
+---
+
+## 10. V4.5.4 Module Alerts (P12.3: Module Fiber + Coeffect)
+
+> **Version**: V1.2.0
+> **Created**: 2026-08-23 — V4.5.4 P12.3 release
+> **Updated**: 2026-08-23 — V4.5.4 P12.3 added 3 alerts (Fiber stuck in Activating / Coeffect cycle detected / Module anti-ghost degraded)
+> **Next Update**: When new V4.6 modules add Prometheus metrics, append a new §11
+
+### 10.1 Module Fiber 长期停留在 Activating 状态
+
+```yaml
+groups:
+  - name: devsquad_v454_module_fiber
+    rules:
+      - alert: DevSquadV454FiberStuckActivating
+        expr: |
+          sum by (module) (
+            devsquad_v454_fiber_state{state="Activating"}
+          ) > 0
+          and
+          (time() - devsquad_v454_fiber_state_entered_seconds{state="Activating"} > 60)
+        for: 2m
+        labels:
+          severity: warning
+          module: ModuleFiber
+        annotations:
+          summary: "V4.5.4 Module {{ $labels.module }} 长期停留在 Activating 状态 (> 60s)"
+          description: "module={{ $labels.module }} stuck in Activating for > 60s; expected <5s"
+          runbook: "docs/operations/RUNBOOK.md#v454-fiber-stuck-activating"
+```
+
+**阈值**: 60 秒 (warning)
+**原因**: FSM 转移卡死会导致下游模块永远等待，破坏 dispatch 流水线
+**runbook**: RUNBOOK.md SC-11
+
+### 10.2 Coeffect 循环依赖被检测
+
+```yaml
+      - alert: DevSquadV454CoeffectCycleDetected
+        expr: devsquad_v454_coeffect_cycle_detected_total > 0
+        for: 0m
+        labels:
+          severity: critical
+          module: CoeffectResolver
+        annotations:
+          summary: "V4.5.4 Coeffect cycle detected — 拓扑排序失败"
+          description: "modules involved in cycle, see devsquad modules graph --cycle"
+          runbook: "docs/operations/RUNBOOK.md#v454-coeffect-cycle-detected"
+```
+
+**阈值**: 即时触发（for: 0m）
+**原因**: 模块依赖环会导致 activation order 永远无法解析；CLI 可视化诊断
+**runbook**: RUNBOOK.md SC-12
+
+### 10.3 Anti-Ghost 门禁持续失败（模块长期 Failed/Degraded）
+
+```yaml
+      - alert: DevSquadV454ModuleAntiGhostDegraded
+        expr: |
+          (
+            sum by (module) (devsquad_v454_fiber_state{state="Failed"})
+            + sum by (module) (devsquad_v454_fiber_state{state="Degraded"})
+          ) > 0
+        for: 5m
+        labels:
+          severity: warning
+          module: ModuleFiberRegistry
+        annotations:
+          summary: "V4.5.4 模块 {{ $labels.module }} 长期处于 Failed/Degraded — anti-ghost 不达标"
+          description: "module={{ $labels.module }} state in (Failed|Degraded) for > 5m; 14/14 anti-ghost degraded"
+          runbook: "docs/operations/RUNBOOK.md#v454-module-anti-ghost-degraded"
+```
+
+**阈值**: 5 分钟 (warning)
+**原因**: 14/14 Anti-Ghost 门禁要求所有模块 representative call 成功；持续 Failed 表示模块未真正接入
+**runbook**: RUNBOOK.md SC-13
+
+---
+
+## Appendix Update (V4.5.4)
+
+新增指标（V4.5.4 P12.3）:
+
+| 指标 | 类型 | 用途 |
+|------|------|------|
+| `devsquad_v454_fiber_state{module,state}` | gauge | ModuleFiber 当前 FSM 状态计数 |
+| `devsquad_v454_fiber_state_entered_seconds{module,state}` | gauge | FSM 进入当前状态的 Unix 时间 |
+| `devsquad_v454_coeffect_cycle_detected_total` | counter | 拓扑循环累计检测次数 |
+| `devsquad_v454_coeffect_resolver_seconds` | histogram | Kahn 拓扑解析耗时 |
+| `devsquad_v454_module_call_counter_er_total{module}` | counter | anti-ghost 调用计数（V4.5.3 debt 兑现） |
+
+> **Document End**
+>
+> **Version**: V1.2.0
+> **Updated**: 2026-08-23 — V4.5.4 P12.3 added §10 (3 alerts + 5 new metrics)

@@ -748,8 +748,161 @@ df -h ~
 
 ---
 
+## 6. P12.3 Module Incidents (V4.5.4 addendum)
+
+### SC-11: Fiber 卡在 Activating 状态
+
+**症状**:
+- `devsquad_v454_fiber_state{state="Activating"}` 持续 > 60s
+- 下游模块的 `_activate_v454_modules()` 永不返回
+- 告警: `DevSquadV454FiberStuckActivating` (warning)
+
+**根因假设**:
+1. ModuleFiber 的 `transition()` 死循环（检查 `ALLOWED_TRANSITIONS` 是否覆盖当前边）
+2. 外部资源（DB/Redis）阻塞导致 `activate()` 永不完成
+3. Registry 锁死锁（`threading.Lock` 递归获取）
+
+**诊断步骤**:
+
+```bash
+# 1. 查看模块当前状态
+devsquad modules status --json | jq '.[] | select(.state=="Activating")'
+
+# 2. 查看 Coeffect 依赖
+devsquad modules graph --module <MODULE_NAME>
+
+# 3. 看 traceback（如可访问 dispatcher）
+devsquad debug fiber-trace --module <MODULE_NAME>
+
+# 4. 检查外部依赖
+redis-cli ping  # or
+psql -c "SELECT 1"
+```
+
+**恢复步骤**:
+
+```bash
+# A) 强制重置卡死模块为 Failed (允许其它模块继续)
+devsquad modules retry --module <MODULE_NAME> --force
+
+# B) 如果 retry 不奏效，重启 dispatcher
+systemctl restart devsquad-dispatcher
+
+# C) 如果仍不恢复，回滚到 V4.5.3
+devsquad rollback --to v4.5.3 --preserve-artifacts
+```
+
+**预防**:
+- ALERT §10.1 触发后 2m 内通知
+- dispatcher 启动时 `ModuleFiberRegistry.health_check()` 应 ≤ 5s 完成
+
+### SC-12: Coeffect 循环依赖
+
+**症状**:
+- `devsquad_v454_coeffect_cycle_detected_total` 计数上升
+- `devsquad modules graph` 返回 `CycleError`
+- 告警: `DevSquadV454CoeffectCycleDetected` (critical, 即时)
+
+**根因假设**:
+1. 新模块 `@with_coeffect(depends_on=[X])` 错误指向被 X 也依赖的模块
+2. 模块拆分时把 X 的依赖错误地复制到 Y（实际不需要）
+3. `@with_coeffect` 装饰器参数写反（A→B 实际应为 B→A）
+
+**诊断步骤**:
+
+```bash
+# 1. 列出环中的模块
+devsquad modules graph --cycle
+
+# 输出示例:
+# CYCLE: A -> B -> C -> A
+# modules: {'A', 'B', 'C'}
+
+# 2. 查看具体依赖关系
+devsquad modules graph --json | jq '.edges[] | select(.from=="A" or .to=="A")'
+
+# 3. 读取模块元数据
+python -c "
+from scripts.collaboration.module_fiber import _PROVIDER_REGISTRY
+for name, provider in _PROVIDER_REGISTRY.items():
+    print(name, '->', list(provider.depends_on.__func__()))
+"
+```
+
+**恢复步骤**:
+
+```bash
+# A) 直接修改依赖 (修复源码中的 @with_coeffect)
+# 编辑对应模块，把错误的依赖从 depends_on 移除
+# 然后:
+devsquad modules status --module <MODULE_NAME>
+
+# B) 如修复后仍 cycle，重新解析拓扑（强制清理旧 cache）
+rm -rf .devsquad_cache/coeffect_resolver.pkl
+
+# C) 热修复：禁用循环模块
+devsquad modules retry --module <MODULE_NAME> --disable
+```
+
+**预防**:
+- 新模块引入依赖前跑 `devsquad modules graph --cycle` 静态检查
+- CI 门禁：dependency-graph 无环是 merge blocker
+
+### SC-13: Anti-Ghost 门禁降级（模块长期 Failed/Degraded）
+
+**症状**:
+- `check_module_activation.py` 输出 < 14/14
+- 告警: `DevSquadV454ModuleAntiGhostDegraded` (warning)
+- `devsquad modules status` 显示模块状态为 Failed/Degraded
+
+**根因假设**:
+1. 新版本部署后某模块未启动（import 路径变化 / 资源未就绪）
+2. 模块 representative call 函数签名变化（V4.5.3 → V4.5.4 接口调整）
+3. Anti-Ghost 计数器 `_call_counter_er` 重置但模块未真正接入
+
+**诊断步骤**:
+
+```bash
+# 1. 列出未通过门禁的模块
+devsquad modules status --degraded
+
+# 2. 单独触发该模块 representative call
+python -c "
+from scripts.collaboration.module_fiber import _PROVIDER_REGISTRY, get_call_counter_er
+print('Failed modules:', [n for n, p in _PROVIDER_REGISTRY.items() if p.state == 'Failed'])
+"
+
+# 3. 检查 anti-ghost gate 详细报告
+.venv/bin/python scripts/check_module_activation.py --verbose
+
+# 4. 检查日志中的代表性调用错误
+journalctl -u devsquad --since "5 minutes ago" | grep -i "representative"
+```
+
+**恢复步骤**:
+
+```bash
+# A) 重置 FSM 状态并重试
+devsquad modules retry --all
+
+# B) 如 retry 失败，对该模块单独重新注册
+devsquad modules retry --module <MODULE_NAME> --reset-state
+
+# C) 极端情况：单独模块禁用不影响主流程
+devsquad modules retry --module <MODULE_NAME> --disable
+# 然后在 .env 配置中: DEVSQUAD_V454_DISABLE_<MODULE_NAME>=true
+```
+
+**预防**:
+- 14/14 anti-ghost 是 merge blocker（P8 门禁）
+- 部署后 5m 内必须保持 14/14；触发 SC-13 告警说明某模块 regression
+- 每次新增模块时同步更新 `check_module_activation.py` 列表
+
+---
+
 > **Document End**
 >
-> **Version**: V1.2.0 (V4.5.3 P12.2 addendum)
+> **Version**: V1.3.0 (V4.5.4 P12.3 addendum)
 > **Created**: 2026-08-22 — V4.5.2 P11.3 release
+> **Updated**: 2026-08-23 — V4.5.4 P12.3 added §6 (SC-11/12/13)
 > **Next Update**: When new alert scenarios arise (post-incident review)
