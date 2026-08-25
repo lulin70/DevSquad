@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import json
 from argparse import Namespace
-from unittest.mock import patch
 
 from scripts.cli_metrics import (
     V452_METRICS,
-    collect_v452_metrics,
     cmd_metrics,
+    collect_v452_metrics,
     format_json,
     format_text,
 )

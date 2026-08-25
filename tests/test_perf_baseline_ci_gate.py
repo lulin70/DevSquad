@@ -14,10 +14,8 @@ These run on PR for mock path, and on release-tag for the full pipeline.
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-import tempfile
 
 import pytest
 
@@ -27,10 +25,10 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 from scripts.collaboration.perf_baseline import (
     DEFAULT_BASELINE_PATH,
     GATE_THRESHOLDS,
+    SAMPLE_COUNTS,
     PerfBaseline,
     PerfSampleCollector,
     PerfSnapshot,
-    SAMPLE_COUNTS,
     compare_to_baseline,
 )
 

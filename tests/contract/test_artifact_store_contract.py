@@ -17,10 +17,8 @@ Contracts under test:
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import tempfile
-import uuid
 from pathlib import Path
 
 import pytest
@@ -42,9 +40,8 @@ def tmp_root() -> Path:
 @pytest.fixture()
 def store(tmp_root: Path):
     """Create an isolated ArtifactStore instance with its own global EffectRegistry."""
-    from scripts.collaboration.artifact_store import ArtifactStore
+    from scripts.collaboration.artifact_store import ArtifactStore, set_global_registry
     from scripts.collaboration.effect_registry import EffectRegistry
-    from scripts.collaboration.artifact_store import set_global_registry
 
     # Isolate the global EffectRegistry so tests don't interfere.
     set_global_registry(EffectRegistry())

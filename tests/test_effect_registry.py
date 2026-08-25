@@ -20,7 +20,6 @@ sys.path.insert(0, ".")
 
 from scripts.collaboration.dispatch_effect import (  # noqa: E402
     DeleteFileEffect,
-    DispatchEffect,
     EffectContext,
     EffectOutcome,
     RenameFileEffect,
@@ -28,7 +27,6 @@ from scripts.collaboration.dispatch_effect import (  # noqa: E402
 )
 from scripts.collaboration.effect_registry import (  # noqa: E402
     EffectRegistry,
-    EffectRegistryError,
     get_call_count,
 )
 

@@ -10,7 +10,6 @@ Covers T1–T5 from V4.5.2_ARCHITECTURE.md §6.2 / V4.5.2_TEST_PLAN §3.6:
   T5 snapshot_fields: details["perf_snapshot"] 字段齐全
 """
 
-import json
 import os
 import sys
 import tempfile
@@ -23,11 +22,11 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 from scripts.collaboration.perf_baseline import (
     DEFAULT_BASELINE_PATH,
     GATE_THRESHOLDS,
+    SAMPLE_COUNTS,
+    WARMUP_DISCARD,
     PerfBaseline,
     PerfSampleCollector,
     PerfSnapshot,
-    SAMPLE_COUNTS,
-    WARMUP_DISCARD,
     compare_to_baseline,
     get_call_counter,
 )

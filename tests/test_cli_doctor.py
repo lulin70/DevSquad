@@ -6,8 +6,6 @@ import os
 from argparse import Namespace
 from unittest.mock import patch
 
-import pytest
-
 from scripts.cli_doctor import (
     PROVIDERS,
     ProviderReport,

@@ -19,18 +19,21 @@ from __future__ import annotations
 
 import os
 import sys
-import time
 
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.task_scale_gate import TaskScale, TaskScaleGate, get_call_counter as _tsg_counter
-from scripts.collaboration.order_chain_detector import OrderChainDetector, get_call_counter as _ocd_counter
-from scripts.collaboration.backend_paths import BackendPath, get_call_counter as _bp_counter
-from scripts.collaboration.host_llm_bridge import HostBridgeBackend, get_call_counter as _hbb_counter
-from scripts.collaboration.perf_baseline import PerfBaseline, get_call_counter as _pb_counter
+from scripts.collaboration.backend_paths import BackendPath
+from scripts.collaboration.backend_paths import get_call_counter as _bp_counter
+from scripts.collaboration.host_llm_bridge import HostBridgeBackend
+from scripts.collaboration.host_llm_bridge import get_call_counter as _hbb_counter
+from scripts.collaboration.order_chain_detector import OrderChainDetector
+from scripts.collaboration.order_chain_detector import get_call_counter as _ocd_counter
+from scripts.collaboration.perf_baseline import get_call_counter as _pb_counter
+from scripts.collaboration.task_scale_gate import TaskScale, TaskScaleGate
+from scripts.collaboration.task_scale_gate import get_call_counter as _tsg_counter
 
 pytestmark = pytest.mark.integration
 
@@ -61,7 +64,6 @@ class TestPipelineRoutingSteps:
 
     def test_task_scale_gate_invoked(self):
         """TaskScaleGate.decide() is called by PreDispatchPipeline.execute()."""
-        from scripts.collaboration.dispatch_pre_steps import PreDispatchPipeline
 
         before = _tsg_counter()
 
@@ -86,7 +88,6 @@ class TestPipelineRoutingSteps:
 
     def test_chain_decision_overrides_scale_to_single_role(self):
         """When chain forces single_role, task_scale.single_role must follow."""
-        from scripts.collaboration.dispatch_pre_steps import PreDispatchPipeline
 
         gate = TaskScaleGate()
         scale = gate.decide("实现一个完整功能模块")  # would normally be M
@@ -248,7 +249,10 @@ class TestBackendPathContract:
 
     def test_path_attribute_consistency(self):
         from scripts.collaboration.llm_backend import (
-            MockBackend, OpenAIBackend, AnthropicBackend, FallbackBackend,
+            AnthropicBackend,
+            FallbackBackend,
+            MockBackend,
+            OpenAIBackend,
         )
         valid = {"B", "A", "C", "B+A+C", "B-passthrough", "fallback", "host_llm"}
 
@@ -297,7 +301,7 @@ class TestAntiGhostIntegration:
 
         # backend_paths — touch classify_error + enums (counter incremented)
         from scripts.collaboration.backend_paths import (
-            BackendPath, BackendErrorReason, classify_error,
+            classify_error,
         )
         _ = BackendPath.B_HOST_BRIDGE
         _ = classify_error(TimeoutError("test"))
@@ -318,7 +322,6 @@ class TestAntiGhostIntegration:
                 f"(before={before[name]}, after={after[name]})"
             )
         # HostBridgeBackend: verify wired in via create_backend (B path resolution)
-        from scripts.collaboration.llm_backend import create_backend
         # Just verifying import works — actual generate() needs real host
         from scripts.collaboration.host_llm_bridge import HostBridgeBackend
         assert HostBridgeBackend.path == "B"

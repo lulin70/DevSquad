@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import os
 from argparse import Namespace
-from unittest.mock import patch
 
 import pytest
 
 from scripts.cli_backend import cmd_backend, cmd_backend_get, cmd_backend_list, cmd_backend_set
 from scripts.collaboration.backend_config import (
     VALID_BACKENDS,
-    _call_counter,
     _user_config_path,
     get_call_count,
     load_backend_config,

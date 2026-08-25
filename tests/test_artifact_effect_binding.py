@@ -17,15 +17,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 sys.path.insert(0, ".")
 
-from scripts.collaboration.artifact_store import ArtifactStore, get_call_counter as _as_count
-from scripts.collaboration.dispatch_effect import WriteFileEffect
+from scripts.collaboration.artifact_store import ArtifactStore
 from scripts.collaboration.effect_registry import (
     EffectRegistry,
-    get_call_count as _er_count,
 )
 
 

@@ -11,7 +11,6 @@ Integration:
 
 from __future__ import annotations
 
-import os
 import sys
 import tempfile
 import unittest
@@ -21,7 +20,7 @@ sys.path.insert(0, ".")
 
 from scripts.collaboration.artifact_store import ArtifactStore, get_call_counter
 from scripts.collaboration.effect_registry import EffectRegistry
-from scripts.collaboration.models import EntryType, ScratchpadEntry, TaskDefinition
+from scripts.collaboration.models import TaskDefinition
 from scripts.collaboration.scratchpad import Scratchpad
 from scripts.collaboration.worker import Worker
 

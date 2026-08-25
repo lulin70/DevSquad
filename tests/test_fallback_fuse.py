@@ -10,21 +10,20 @@ Covers §3.2 test cases from the test plan.
 
 import os
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
 from scripts.collaboration.backend_paths import (
+    FUSE_SKIP_AFTER_CONSECUTIVE,
     BackendErrorReason,
     classify_error,
-    FUSE_SKIP_AFTER_CONSECUTIVE,
 )
 from scripts.collaboration.llm_backend import (
     FallbackBackend,
     MockBackend,
-    OpenAIBackend,
 )
 
 pytestmark = pytest.mark.unit

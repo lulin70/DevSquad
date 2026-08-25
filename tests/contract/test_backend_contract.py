@@ -37,10 +37,14 @@ class TestBackendPathContract:
     """C1: All LLMBackend subclasses expose .path ∈ allowed values."""
 
     def test_backend_path_in_allowed_set(self):
-        from scripts.collaboration.llm_backend import (
-            MockBackend, OpenAIBackend, AnthropicBackend, FallbackBackend, TraeBackend,
-        )
         from scripts.collaboration.host_llm_bridge import HostBridgeBackend
+        from scripts.collaboration.llm_backend import (
+            AnthropicBackend,
+            FallbackBackend,
+            MockBackend,
+            OpenAIBackend,
+            TraeBackend,
+        )
 
         allowed = {"B", "A", "C", "A+C", "B+A+C", "B-passthrough", "fallback", "host_llm"}
 
@@ -56,10 +60,14 @@ class TestBackendPathContract:
 
     def test_specific_path_values(self):
         """Specific subclasses map to specific paths."""
-        from scripts.collaboration.llm_backend import (
-            MockBackend, OpenAIBackend, AnthropicBackend, FallbackBackend, TraeBackend,
-        )
         from scripts.collaboration.host_llm_bridge import HostBridgeBackend
+        from scripts.collaboration.llm_backend import (
+            AnthropicBackend,
+            FallbackBackend,
+            MockBackend,
+            OpenAIBackend,
+            TraeBackend,
+        )
 
         assert MockBackend().path == "C"
         assert OpenAIBackend.path == "A"

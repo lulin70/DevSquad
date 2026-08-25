@@ -17,7 +17,6 @@ import sqlite3
 import sys
 import tempfile
 import unittest
-from pathlib import Path
 
 sys.path.insert(0, ".")
 
@@ -116,7 +115,7 @@ class TestVerifyChain(unittest.TestCase):
             f"{len(user_id):d}:{user_id}"
             f"{ts:.6f}"
             f"{details_json}"
-        ).encode("utf-8")
+        ).encode()
         h = hashlib.sha256(payload).hexdigest()
         return {
             "event_type": event_type,
@@ -217,7 +216,6 @@ class TestCmdAudit(unittest.TestCase):
     """Verify cmd_audit end-to-end behavior."""
 
     def setUp(self):
-        from scripts.cli_audit import _call_counter as counter
         import scripts.cli_audit as mod
 
         mod._call_counter = 0

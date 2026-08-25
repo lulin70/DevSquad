@@ -47,7 +47,6 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 from pathlib import Path
 
 import pytest
@@ -60,7 +59,7 @@ pytestmark = pytest.mark.security
 
 # === Secret patterns (real-world key prefixes) ===
 
-SECRET_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = [
+SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("openai", re.compile(r"\bsk-[A-Za-z0-9]{20,}\b")),
     ("anthropic", re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{20,}\b")),
     ("anthropic-alt", re.compile(r"\bsk-ant-api03-[A-Za-z0-9_\-]{20,}\b")),
@@ -78,7 +77,7 @@ SECRET_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = [
 
 # === Allow-list for explicit placeholder/mock keys ===
 
-PLACEHOLDER_PATTERNS: list["re.Pattern[str]"] = [
+PLACEHOLDER_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"sk-test", re.IGNORECASE),
     re.compile(r"sk-fake", re.IGNORECASE),
     re.compile(r"sk-mock", re.IGNORECASE),
@@ -116,7 +115,7 @@ SCAN_EXTENSIONS: tuple[str, ...] = (
     ".sh", ".bash", ".txt", ".cfg", ".ini", ".env", ".example",
 )
 
-EXCLUDE_PATH_PATTERNS: list["re.Pattern[str]"] = [
+EXCLUDE_PATH_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"\.git/"),
     re.compile(r"__pycache__/"),
     re.compile(r"\.pytest_cache/"),

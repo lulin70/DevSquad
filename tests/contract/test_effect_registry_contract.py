@@ -56,7 +56,6 @@ class TestEffectRegistryLIFOContract:
 
     def test_apply_increments_pending_count(self, fresh_registry, tmp_dir) -> None:
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )
@@ -70,7 +69,6 @@ class TestEffectRegistryLIFOContract:
 
     def test_revert_last_pops(self, fresh_registry, tmp_dir) -> None:
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )
@@ -94,7 +92,6 @@ class TestRevertAllLIFOContract:
 
     def test_revert_all_clears_stack(self, fresh_registry, tmp_dir) -> None:
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )
@@ -114,7 +111,6 @@ class TestRevertAllLIFOContract:
 
     def test_revert_all_returns_outcomes(self, fresh_registry, tmp_dir) -> None:
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )
@@ -136,7 +132,6 @@ class TestIdempotentRevertContract:
 
     def test_double_revert_all_is_safe(self, fresh_registry, tmp_dir) -> None:
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )
@@ -163,7 +158,6 @@ class TestBinaryEffectContract:
         import base64
 
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )
@@ -187,7 +181,6 @@ class TestBinaryEffectContract:
         import base64
 
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )
@@ -239,9 +232,8 @@ class TestDeleteFileEffectAutoRegisterContract:
     def test_artifact_store_delete_registers_effect(self, tmp_path) -> None:
         """ArtifactStore.delete() must push a DeleteFileEffect onto the
         global registry, so revert_all() can roll it back."""
-        from scripts.collaboration.artifact_store import ArtifactStore
+        from scripts.collaboration.artifact_store import ArtifactStore, set_global_registry
         from scripts.collaboration.effect_registry import EffectRegistry
-        from scripts.collaboration.artifact_store import set_global_registry
 
         set_global_registry(EffectRegistry())
         store = ArtifactStore(root=tmp_path)
@@ -302,7 +294,6 @@ class TestBestEffortRevertContract:
 
     def test_revert_continues_after_failure(self, tmp_dir) -> None:
         from scripts.collaboration.dispatch_effect import (
-            DeleteFileEffect,
             EffectContext,
             WriteFileEffect,
         )

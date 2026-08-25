@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
+from scripts.collaboration.llm_backend import create_backend
 from scripts.collaboration.moka_backend import (
     MOKA_DEFAULT_BASE_URL,
     MOKA_DEFAULT_MODEL,
@@ -14,7 +15,6 @@ from scripts.collaboration.moka_backend import (
     _call_counter,
     get_call_counter,
 )
-from scripts.collaboration.llm_backend import create_backend
 
 
 @pytest.fixture(autouse=True)
@@ -251,7 +251,8 @@ class TestMokaAIBackendGenerate:
         assert get_call_counter() == before + 1
 
     def test_generate_retries_on_failure(self):
-        from unittest.mock import MagicMock, patch as mock_patch
+        from unittest.mock import MagicMock
+        from unittest.mock import patch as mock_patch
 
         b = MokaAIBackend(api_key="k")
         mock_client = MagicMock()

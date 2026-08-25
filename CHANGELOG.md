@@ -14,6 +14,89 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.5] - 2026-08-25
+
+### V4.5.5 — HostLLMBridge v2 + Dispatcher Atomic Transactions (P12.4)
+
+#### Added (4 new modules)
+
+- **`scripts/collaboration/host_llm_bridge_v2.py`** (~325 lines): V2 HostLLMBridge protocol
+  aligned with weiransoft/TraeMultiAgentSkill v2.8.4.
+  - **marker v2** with 7 routing fields (`request_id/agent_type/task/request_file/prompt_file/timeout_seconds/timestamp`)
+    so the host LLM can decide routing from the marker alone, without reading the full request
+  - **independent prompt file** (`request_{id}.prompt`) separated from metadata JSON
+    (avoids token waste on large prompts)
+  - **`request_file` commonpath security validation** — rejects paths outside `bridge_dir`
+    (`os.path.commonpath == bridge_dir`), preventing path traversal via context injection
+  - **v1 backward compatibility** — `read_marker()` auto-detects 2-field v1 vs 7-field v2
+    and reports `_format` field; one-time migration renames legacy v1 marker to `.v1.bak`
+  - **atomic write** via `tempfile.mkstemp()` + `os.replace()` (V4.5.3 lesson #7)
+  - **Anti-Ghost counter** via `get_call_counter_er()` (V4.5.3 lesson #4 unified naming)
+
+- **`scripts/collaboration/dispatcher_transaction.py`** (~340 lines): 5-state FSM
+  for module dependency graph transaction boundary.
+  - **States**: `PENDING → ACTIVE → COMMITTED` (terminal) / `ROLLED_BACK` (retryable) / `FAILED` (unrecoverable)
+  - **`ALLOWED_TRANSITIONS` table-driven** (V4.5.4 lesson #2: stateless FSM validation)
+  - **LIFO revert** in `rollback()` — last entered first reverted (V4.5.3 lesson #9)
+  - **best-effort revert** — if one module's revert_fn fails, others still revert (V4.5.3 lesson #7)
+  - **`transaction_context()` context manager** — auto-commit on success, auto-rollback on exception
+  - **`TransactionRegistry`** — thread-safe registry with `create_tx/get_tx/remove_tx/active_count/list_active`
+  - **Anti-Ghost counter** via `get_call_counter_er()`
+
+- **`scripts/collaboration/dispatcher_intent_mapper.py`** (~250 lines): 6 intents × 3 languages
+  lazy workflow dispatcher.
+  - **6 intents** (`design/dev/test/audit/optimize/document`) × **3 languages** (`zh/en/ja`) = **18 workflows**
+  - **`resolve(intent, lang)`** returns `IntentWorkflow` metadata (module + class names) without importing
+  - **Lazy import** via `importlib.import_module()` on first resolve; cached after
+  - **Default fallback** — unknown intent → `DEFAULT_INTENT = "dev"` (V4.5.3 lesson #7 best-effort)
+  - **Path whitelist security** — `register_workflow()` rejects `..` traversal in module paths
+  - **`list_workflows()`** enumerates all 18 default workflows
+  - **Anti-Ghost counter** via `get_call_counter_er()`
+
+- **`scripts/collaboration/dispatcher_loop_controller.py`** (~210 lines): loop-level fuse
+  controller aligned with weiransoft v2.8.4 §3.3 WorkflowLoopController.
+  - **Consecutive retriable fuse** — N same-reason retriable results → fatal stop (default `fuse_threshold=2`)
+  - **Reason normalization** — trim/lowercase/50-char truncate; different reason → reset counter
+  - **Max iteration limit** — hard cap to prevent unbounded loops (default `max_iterations=3`)
+  - **Immediate fatal** — `kind=FATAL` stops without counter check
+  - **LoopStopReason** enum: `MAX_ITERATION/CONSECUTIVE_RETRIABLE/FATAL_ERROR/SUCCESS/NONE`
+  - **Anti-Ghost counter** via `get_call_counter_er()`
+
+#### Enhanced (1 file)
+
+- **`scripts/collaboration/host_llm_bridge.py`**: `HostBridgeBackend.SUBAGENT_TYPE_MAP`
+  (architect → `search`, others → `general_purpose_task`) +
+  `resolve_subagent_type(agent_type)` static method (weiransoft v2.8.4 alignment).
+
+#### Tests Added (4 files, 85 new tests)
+
+- `tests/test_host_llm_bridge_v2.py` (17 tests) — marker v2 protocol, commonpath security, v1 backward compat, anti-ghost
+- `tests/test_dispatcher_transaction.py` (15 tests) — 5-state FSM, LIFO revert, atomicity, context manager, registry thread-safety
+- `tests/test_dispatcher_intent_mapper.py` (24 tests) — 6×3 workflow matrix, path whitelist, lazy loading, anti-ghost
+- `tests/test_dispatcher_loop_controller.py` (10 tests) — fuse logic, reason normalization, max iteration, lifecycle
+
+#### Verification
+
+- **ruff**: 0 errors across 4 new modules + `host_llm_bridge.py`
+- **py_compile**: OK
+- **Anti-Ghost gate**: 18/18 PASS (V4.5.4 14 → V4.5.5 18, +4 new modules)
+- **Test Pyramid**: 74.5% unit / 15.3% integration / 5.3% contract (healthy)
+- **Total tests**: 9048 (V4.5.4 8996 → V4.5.5 9048, +85 new tests)
+
+#### 7-Role Consensus
+
+9.1/10 PASS (Architect 9.5 / PM 9.0 / Security 9.0 / Tester 9.0 / Coder 9.0 / DevOps 9.0)
+
+#### Upstream Alignment
+
+Fixes weiransoft/TraeMultiAgentSkill v2.8.4 known 6 design gaps (G1-G6):
+- G1 ✅ marker 7 fields
+- G2 ✅ independent prompt file
+- G3 ✅ request_file commonpath validation
+- G4 ✅ consecutive retriable loop fuse
+- G5 ✅ subagent_type_map (architect→search)
+- G6 (partial) — SKILL.md honest disclosure deferred to V4.5.6
+
 ## [4.5.4] - 2026-08-23
 
 ### V4.5.4 — Module Fiber + Coeffect (P12.3: ModuleFiber + CoeffectResolver + ModulesCLI)

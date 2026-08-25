@@ -200,7 +200,8 @@ class TestUserJourneyReport:
     def test_u9_perf_snapshot_in_report(self):
         """A dispatch report should reference perf_snapshot when available."""
         from scripts.collaboration.perf_baseline import (
-            PerfSnapshot, compare_to_baseline,
+            PerfSnapshot,
+            compare_to_baseline,
         )
 
         snap = PerfSnapshot(
@@ -236,10 +237,14 @@ class TestUserJourneyReport:
 
     def test_u11_path_visible_in_backend(self):
         """All backends expose .path so the report can display it."""
-        from scripts.collaboration.llm_backend import (
-            MockBackend, OpenAIBackend, AnthropicBackend, FallbackBackend, TraeBackend,
-        )
         from scripts.collaboration.host_llm_bridge import HostBridgeBackend
+        from scripts.collaboration.llm_backend import (
+            AnthropicBackend,
+            FallbackBackend,
+            MockBackend,
+            OpenAIBackend,
+            TraeBackend,
+        )
 
         for backend_cls in (
             MockBackend, OpenAIBackend, AnthropicBackend,
@@ -260,8 +265,8 @@ class TestUserJourneyDryRun:
 
     def test_u12_dispatch_dry_run_e2e(self, monkeypatch):
         """dry_run still routes through scale gate and chain detector."""
-        from scripts.collaboration.task_scale_gate import TaskScaleGate
         from scripts.collaboration.order_chain_detector import OrderChainDetector
+        from scripts.collaboration.task_scale_gate import TaskScaleGate
 
         monkeypatch.delenv("TRAE_ENV", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)

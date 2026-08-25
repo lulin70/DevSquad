@@ -29,7 +29,6 @@ import sqlite3
 import sys
 import tempfile
 import threading
-import time
 from pathlib import Path
 from typing import Any
 
@@ -226,8 +225,8 @@ class TestAuditCliReadsSqliteE2E:
     """
 
     def test_cli_audit_loads_entries_from_sqlite_db(self, tmp_path: Path) -> None:
-        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
         from scripts.cli_audit import _load_entries
+        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
 
         db = tmp_path / "dispatch_audit.db"
         logger = DispatchAuditLogger(db_path=db)
@@ -309,8 +308,8 @@ class TestAuditCliReadsSqliteE2E:
         assert "Chain broken" in msg
 
     def test_cli_audit_text_format_includes_event_type_and_user(self, tmp_path: Path) -> None:
+        from scripts.cli_audit import _format_text, _load_entries
         from scripts.collaboration.dispatch_audit import DispatchAuditLogger
-        from scripts.cli_audit import cmd_audit, _format_text, _load_entries
 
         db = tmp_path / "audit_text.db"
         logger = DispatchAuditLogger(db_path=db)
@@ -323,8 +322,8 @@ class TestAuditCliReadsSqliteE2E:
         assert "alice" in text
 
     def test_cli_audit_json_format_emits_valid_json(self, tmp_path: Path) -> None:
-        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
         from scripts.cli_audit import _format_json, _load_entries
+        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
 
         db = tmp_path / "audit_json.db"
         logger = DispatchAuditLogger(db_path=db)
@@ -338,8 +337,8 @@ class TestAuditCliReadsSqliteE2E:
         assert parsed[0]["user_id"] == "bob"
 
     def test_cli_audit_redacts_sensitive_fields_in_text(self, tmp_path: Path) -> None:
-        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
         from scripts.cli_audit import _format_text, _load_entries
+        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
 
         db = tmp_path / "audit_secret.db"
         logger = DispatchAuditLogger(db_path=db)
@@ -369,8 +368,8 @@ class TestAuditCliReadsSqliteE2E:
         assert entries == []
 
     def test_cli_audit_event_type_filter_works(self, tmp_path: Path) -> None:
+        from scripts.cli_audit import _load_entries, cmd_audit
         from scripts.collaboration.dispatch_audit import DispatchAuditLogger
-        from scripts.cli_audit import cmd_audit, _load_entries
 
         db = tmp_path / "audit_filter.db"
         logger = DispatchAuditLogger(db_path=db)
@@ -394,8 +393,8 @@ class TestAuditCliReadsSqliteE2E:
         assert len(filtered) == 2
 
     def test_cli_audit_limit_truncates_output(self, tmp_path: Path) -> None:
-        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
         from scripts.cli_audit import _load_entries
+        from scripts.collaboration.dispatch_audit import DispatchAuditLogger
 
         db = tmp_path / "audit_limit.db"
         logger = DispatchAuditLogger(db_path=db)
@@ -554,7 +553,6 @@ class TestShutdownCleansEffectRegistry:
     def test_manual_effect_registry_clear_after_dispatch(self) -> None:
         """Direct test of the registry LIFO cleanup pattern that shutdown uses."""
         from scripts.collaboration import artifact_store as as_mod
-        from scripts.collaboration.dispatch_effect import WriteFileEffect
         from scripts.collaboration.effect_registry import EffectRegistry
 
         store, tmp = _fresh_artifact_store()
@@ -651,11 +649,11 @@ class TestBestEffortFailureIsolation:
         """The Worker layer (which the dispatcher orchestrates) catches
         ArtifactStoreError internally so the dispatch returns success
         even if a sub-artifact write fails."""
-        from scripts.collaboration.artifact_store import ArtifactStore, set_global_registry
-
         # Force a write into a read-only directory by overriding the store
         # to a path that will fail at I/O time.
         import tempfile as _tempfile
+
+        from scripts.collaboration.artifact_store import ArtifactStore
 
         persist_dir = _tempfile.mkdtemp(prefix="v453_int_worker_fail_")
         try:
