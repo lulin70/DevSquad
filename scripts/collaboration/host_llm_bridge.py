@@ -33,7 +33,7 @@ import time
 import uuid
 from typing import Any
 
-from .backend_paths import HOST_ENV_TRIGGERS, BackendUnavailable
+from .backend_paths import BackendUnavailable
 from .llm_backend import LLMBackend
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def _atomic_write_json(path: str, payload: dict[str, Any]) -> None:
 def _try_read_json(path: str) -> dict[str, Any] | None:
     """Read JSON file; return None on parse error (caller may retry)."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             content = f.read()
         return json.loads(content)
     except (OSError, json.JSONDecodeError):
@@ -301,7 +301,7 @@ class HostLLMBridge:
 
     def _try_read_json(self, path: str) -> dict[str, Any] | None:
         """Tolerant reader: handles partially-written JSON with retries."""
-        for attempt in range(self.MAX_JSON_RETRIES):
+        for _ in range(self.MAX_JSON_RETRIES):
             data = _try_read_json(path)
             if data is not None:
                 return data
