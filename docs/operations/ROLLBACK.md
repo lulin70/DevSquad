@@ -745,7 +745,134 @@ git revert <v454-check-module-activation-commit>
 
 > **Document End**
 >
-> **Version**: V1.2.0 (V4.5.4 P12.3 addendum)
+> **Version**: V1.3.0 (V4.5.5 P12.4 addendum)
 > **Created**: 2026-08-22 — V4.5.2 P11.4 release
-> **Updated**: 2026-08-23 — V4.5.4 P12.3 added §10 (per-module + full rollback)
+> **Updated**: 2026-08-25 — V4.5.5 P12.4 added §11 (per-module + full rollback)
 > **Next Update**: After first real rollback incident (post-mortem → improvements)
+
+---
+
+## 11. P12.4 Module Rollback (V4.5.5 addendum)
+
+### P12.4.1 Rollback: Disable HostLLMBridge v2 (回退到 v1)
+
+**触发条件**: V4.5.5 P12.4.1 marker v2 协议不兼容旧监听方。
+
+**回滚步骤**:
+
+```bash
+# 1. 关闭 v2 协议开关，回退到 v1
+echo "DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2=1" >> /etc/devsquad/devsquad.env
+
+# 2. 重启 dispatcher
+systemctl restart devsquad-dispatcher
+
+# 3. 验证 v1 协议生效
+curl http://devsquad-api:8000/metrics | grep host_bridge_protocol_version
+# 期望: v1
+```
+
+**保留内容**: `scripts/collaboration/host_llm_bridge_v2.py` 文件保留（外部模块可能 import）
+
+**验证清单**:
+- [ ] `devsquad host-bridge status` 显示 protocol=v1
+- [ ] `check_module_activation.py` 17/17 PASS (V4.5.5 18 - 1 disabled)
+- [ ] 旧监听方 marker 格式兼容
+
+**Estimated time**: 5 分钟 (feature-flag 回滚)
+
+---
+
+### P12.4.2 Rollback: Disable DispatcherTransaction
+
+**触发条件**: Transaction 5-state FSM 卡死或 rollback 风暴。
+
+**回滚步骤**:
+
+```bash
+# 1. 关闭 transaction 模块（保留模块文件，但 dispatcher 不调用）
+echo "DEVSQUAD_V455_DISABLE_TRANSACTION=1" >> /etc/devsquad/devsquad.env
+
+# 2. 重启
+systemctl restart devsquad-dispatcher
+
+# 3. 验证
+devsquad modules status --module DispatcherTransaction
+# 期望: state=Disabled
+```
+
+**保留内容**: `scripts/collaboration/dispatcher_transaction.py` 文件保留
+
+**验证清单**:
+- [ ] 17/17 anti-ghost (1 disabled)
+- [ ] dispatch 回到 V4.5.4 行为（无事务边界）
+- [ ] rollback metric 不再增加
+
+**Estimated time**: 5 分钟
+
+---
+
+### P12.4.3 Rollback: Disable IntentWorkflowMapper
+
+**触发条件**: IntentMapper resolve 失败率高，fallback 到 "dev" 后下游仍 fail。
+
+**回滚步骤**:
+
+```bash
+echo "DEVSQUAD_V455_DISABLE_INTENT=1" >> /etc/devsquad/devsquad.env
+systemctl restart devsquad-dispatcher
+devsquad modules status --module IntentWorkflowMapper
+```
+
+**保留内容**: `scripts/collaboration/dispatcher_intent_mapper.py` 保留（hardcoded DEFAULT_WORKFLOWS 数据用于 reference）
+
+**Estimated time**: 5 分钟
+
+---
+
+### P12.4.4 Rollback: Disable DispatchLoopController
+
+**触发条件**: LoopController 频繁熔断阻断正常 dispatch。
+
+**回滚步骤**:
+
+```bash
+echo "DEVSQUAD_V455_DISABLE_LOOP=1" >> /etc/devsquad/devsquad.env
+systemctl restart devsquad-dispatcher
+devsquad modules status --module DispatchLoopController
+```
+
+**保留内容**: `scripts/collaboration/dispatcher_loop_controller.py` 保留
+
+**Estimated time**: 5 分钟
+
+---
+
+### 全量 V4.5.5 → V4.5.4 回滚（紧急情况）
+
+**触发条件**: V4.5.5 P12.4 整体不兼容或 anti-ghost 持续 < 18/18。
+
+**回滚步骤**:
+
+```bash
+# 1. Revert dispatcher.py 新增 4 kwargs (`enable_host_bridge_v2`, `enable_transaction`, 等)
+git revert <v455-dispatcher-commit>
+
+# 2. Revert check_module_activation.py 到 verify 14 个模块 (not 18)
+git revert <v455-check-module-activation-commit>
+
+# 3. Revert VERSION + CHANGELOG (4.5.5 → 4.5.4)
+git revert <v455-version-sync-commit>
+
+# 4. 保留 scripts/collaboration/host_llm_bridge_v2.py + dispatcher_transaction.py +
+#    dispatcher_intent_mapper.py + dispatcher_loop_controller.py（不删除，因外部模块可能 import）
+#    但 dispatcher 不再调用它们
+
+# 5. Update CHANGELOG and VERSION_HISTORY to mark P12.4 as deprecated
+# 6. Update SKILL.md / skill-manifest.yaml description (remove V4.5.5 entry)
+
+# 7. Re-run full test suite (expect 8996 tests instead of 9048)
+.venv/bin/python -m pytest tests/ -q
+```
+
+**Estimated time**: 25-35 分钟 (well within RTO of 60 min for full version rollback).

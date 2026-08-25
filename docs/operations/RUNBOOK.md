@@ -902,7 +902,189 @@ devsquad modules retry --module <MODULE_NAME> --disable
 
 > **Document End**
 >
-> **Version**: V1.3.0 (V4.5.4 P12.3 addendum)
+> **Version**: V1.4.0 (V4.5.5 P12.4 addendum)
 > **Created**: 2026-08-22 — V4.5.2 P11.3 release
-> **Updated**: 2026-08-23 — V4.5.4 P12.3 added §6 (SC-11/12/13)
+> **Updated**: 2026-08-25 — V4.5.5 P12.4 added §7 (SC-14/15/16)
 > **Next Update**: When new alert scenarios arise (post-incident review)
+
+---
+
+## 7. P12.4 Module Incidents (V4.5.5 addendum)
+
+### SC-14: Transaction 卡在 ACTIVE 状态
+
+**症状**:
+- 告警: `DevSquadV455TransactionStuckActive` (warning)
+- 日志: `tx <tx_id>: ACTIVE for >60s, expected <5s`
+- 表现: dispatch 流水线下游模块长时间等待
+
+**根因假设**:
+1. transaction_context() 内 commit() 抛异常未捕获
+2. rollback_fn 在 revert 阶段死锁（外部资源锁）
+3. ALLOWED_TRANSITIONS 表驱动 FSM 卡在 ACTIVE → COMMITTED 转移
+
+**诊断步骤**:
+
+```bash
+# 1. 列出卡住的 transaction
+devsquad modules status --module DispatcherTransaction
+
+# 2. 查 transaction registry
+python -c "
+from scripts.collaboration.dispatcher_transaction import TransactionRegistry
+reg = TransactionRegistry()
+for tx in reg.list_active():
+    print(f'{tx.tx_id}: state={tx.state.value}, age={tx.age_seconds}s')
+"
+
+# 3. 查日志中的 commit/rollback 错误
+journalctl -u devsquad --since "5 minutes ago" | grep -E 'transaction|tx_' | head -30
+
+# 4. 检查 metrics
+curl http://devsquad-api:8000/metrics | grep devsquad_v455_tx_state
+```
+
+**恢复步骤**:
+
+```bash
+# A) 强制将卡住的 tx 标记为 FAILED（best-effort）
+python -c "
+from scripts.collaboration.dispatcher_transaction import TransactionRegistry, TxState
+reg = TransactionRegistry()
+for tx in reg.list_active():
+    if tx.age_seconds > 60:
+        tx.fail(f'forced fail after {tx.age_seconds}s stuck')
+        reg.remove_tx(tx.tx_id)
+"
+
+# B) 如频繁触发，禁用 transaction 模块（V4.5.5 feature flag）
+echo "DEVSQUAD_V455_DISABLE_TRANSACTION=1" >> /etc/devsquad/devsquad.env
+systemctl restart devsquad-dispatcher
+
+# C) 极端情况：回滚到 V4.5.4 (git checkout v4.5.4)
+git checkout v4.5.4 && systemctl restart devsquad-dispatcher
+```
+
+**预防**:
+- transaction commit timeout 默认 5s（V4.5.5 default）
+- ALLOWED_TRANSITIONS 强校验 + raise TxStateError
+- best-effort revert with `suppress(Exception)` 防二次失败
+
+---
+
+### SC-15: Transaction rollback 风暴
+
+**症状**:
+- 告警: `DevSquadV455TransactionRollbackStorm` (critical, 即时)
+- 表现: dispatch 频繁失败，user-facing 报错率高
+- 监控: `devsquad_v455_tx_rollback_total` 5 分钟内 > 25 次
+
+**根因假设**:
+1. 上游模块（intake/parse/validate）有 bug 导致 100% 失败
+2. HostLLMBridge v2 marker 校验失败（v1 兼容性问题）
+3. IntentMapper resolve 默认 fallback 到 "dev" 后下游仍 fail
+4. LoopController 熔断后触发上游 transaction rollback
+
+**诊断步骤**:
+
+```bash
+# 1. 检查 rollback rate 趋势
+curl http://devsquad-api:8000/metrics | grep devsquad_v455_tx_rollback_total
+
+# 2. 列出失败 transaction 的 reason 分布
+python -c "
+from scripts.collaboration.dispatcher_transaction import TransactionRegistry
+reg = TransactionRegistry()
+reasons = {}
+for tx in reg.list_recent(limit=100):
+    r = tx.failed_reason or 'unknown'
+    reasons[r] = reasons.get(r, 0) + 1
+for r, c in sorted(reasons.items(), key=lambda x: -x[1]):
+    print(f'{c:4d}  {r}')
+"
+
+# 3. 关联上游模块失败率
+curl http://devsquad-api:8000/metrics | grep -E 'module_failures_total|module_call_total'
+
+# 4. 检查 HostLLMBridge v2 marker 校验失败日志
+journalctl -u devsquad --since "5 minutes ago" | grep -E 'marker.*invalid|commonpath.*reject'
+```
+
+**恢复步骤**:
+
+```bash
+# A) 临时降级：禁用 transaction 模块，回到 V4.5.4 行为
+echo "DEVSQUAD_V455_DISABLE_TRANSACTION=1" >> /etc/devsquad/devsquad.env
+systemctl restart devsquad-dispatcher
+
+# B) 找出 root cause 模块并修复
+# - 如果 upstream module X 失败率高，单独 disable X
+echo "DEVSQUAD_V455_DISABLE_INTENT=1" >> /etc/devsquad/devsquad.env
+
+# C) 回滚到 V4.5.4（终极方案）
+git checkout v4.5.4 && systemctl restart devsquad-dispatcher
+```
+
+**预防**:
+- 每次 dispatch 上限 max_iterations=3（V4.5.5 默认）
+- LIFO revert 失败 best-effort 不抛
+- 上游模块失败率 > 20% 应触发熔断（与 LoopController 协同）
+
+---
+
+### SC-16: Loop Controller 熔断分析
+
+**症状**:
+- 告警: `DevSquadV455LoopControllerFused` (warning)
+- 表现: dispatcher 提前停止（连续 retriable 熔断）
+- 监控: `devsquad_v455_loop_fuse_total{reason="CONSECUTIVE_RETRIABLE"}` 增加
+
+**根因假设**:
+1. 上游模块在 retriable 错误下持续失败（超时 / 限流 / 资源未就绪）
+2. reason 标准化哈希失效（"  TIMEOUT  " vs "timeout" 算同 reason）
+3. fuse_threshold=2 默认值过低，生产环境应调高到 3-5
+
+**诊断步骤**:
+
+```bash
+# 1. 查 loop fuse 触发详情
+python -c "
+from scripts.collaboration.dispatcher_loop_controller import DispatchLoopController
+ctrl = DispatchLoopController()
+print(f'stop_reason={ctrl.stop_reason.value}, iterations={ctrl.iteration_count}')
+print(f'last_reasons={ctrl.recent_reasons}')
+"
+
+# 2. 查 reason 分布
+journalctl -u devsquad --since "10 minutes ago" | grep -E 'LoopController|consecutive_retriable' | head -20
+
+# 3. 关联上游失败模块
+# 看 SC-15 诊断的失败模块列表
+
+# 4. 检查配置
+cat /etc/devsquad/dispatcher.yaml | grep -A3 loop_controller
+```
+
+**恢复步骤**:
+
+```bash
+# A) 调高 fuse_threshold（推荐 3-5）
+# 在 /etc/devsquad/dispatcher.yaml:
+# loop_controller:
+#   fuse_threshold: 5
+#   max_iterations: 5
+systemctl restart devsquad-dispatcher
+
+# B) 临时禁用 LoopController
+echo "DEVSQUAD_V455_DISABLE_LOOP=1" >> /etc/devsquad/devsquad.env
+systemctl restart devsquad-dispatcher
+
+# C) 修复上游 retriable error root cause
+# - 通常是资源/限流问题，参考 SC-15
+```
+
+**预防**:
+- 默认 fuse_threshold=2（V4.5.5 保守值）生产建议 3-5
+- max_iterations=3 硬上限防无界循环
+- reason 标准化哈希（strip + lower + 50-truncate）防 false negative 熔断
+- Immediate FATAL kind 跳过 counter 检查

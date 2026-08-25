@@ -624,5 +624,85 @@ groups:
 
 > **Document End**
 >
-> **Version**: V1.2.0
-> **Updated**: 2026-08-23 — V4.5.4 P12.3 added §10 (3 alerts + 5 new metrics)
+> **Version**: V1.3.0
+> **Updated**: 2026-08-25 — V4.5.5 P12.4 added §11 (3 alerts + 4 new metrics)
+
+---
+
+## 11. V4.5.5 Module Alerts (P12.4: HostLLMBridge v2 + Dispatcher Transactions)
+
+### 11.1 Transaction 卡在 ACTIVE 状态 > 60s
+
+```yaml
+groups:
+  - name: devsquad_v455_dispatcher_transaction
+    rules:
+      - alert: DevSquadV455TransactionStuckActive
+        expr: |
+          sum by (tx_id) (
+            devsquad_v455_tx_state{state="ACTIVE"}
+          ) > 0
+          and
+          (time() - devsquad_v455_tx_state_entered_seconds{state="ACTIVE"} > 60)
+        for: 2m
+        labels:
+          severity: warning
+          module: DispatcherTransaction
+        annotations:
+          summary: "V4.5.5 transaction {{ $labels.tx_id }} 卡在 ACTIVE 状态 (> 60s)"
+          description: "tx={{ $labels.tx_id }} stuck in ACTIVE for > 60s; expected <5s"
+          runbook: "docs/operations/RUNBOOK.md#sc-14-transaction-stuck-active"
+```
+
+**阈值**: 60 秒 (warning)
+**原因**: Transaction 长期 ACTIVE 表明 rollback_fn 死锁或 commit 阻塞，会阻塞下游模块依赖
+**runbook**: RUNBOOK.md SC-14
+
+### 11.2 Transaction rollback 风暴（> 5 次/min）
+
+```yaml
+      - alert: DevSquadV455TransactionRollbackStorm
+        expr: rate(devsquad_v455_tx_rollback_total[1m]) > 5
+        for: 0m
+        labels:
+          severity: critical
+          module: DispatcherTransaction
+        annotations:
+          summary: "V4.5.5 transaction rollback 风暴 — {{ $value }} 次/秒"
+          description: "rollback rate > 5/min; modules failing repeatedly"
+          runbook: "docs/operations/RUNBOOK.md#sc-15-transaction-rollback-storm"
+```
+
+**阈值**: 5 次/分钟 (critical, 即时触发)
+**原因**: 频繁 rollback 表示上游模块不稳定；继续执行会放大失败
+**runbook**: RUNBOOK.md SC-15
+
+### 11.3 LoopController 触发熔断（CONSECUTIVE_RETRIABLE=2）
+
+```yaml
+      - alert: DevSquadV455LoopControllerFused
+        expr: increase(devsquad_v455_loop_fuse_total{reason="CONSECUTIVE_RETRIABLE"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          module: DispatchLoopController
+        annotations:
+          summary: "V4.5.5 LoopController 触发熔断 — {{ $value }} 次/5m"
+          description: "consecutive retriable loop fuse triggered; dispatcher stopped"
+          runbook: "docs/operations/RUNBOOK.md#sc-16-loop-controller-fused"
+```
+
+**阈值**: 5 分钟内 ≥ 1 次 (warning)
+**原因**: 连续 2 次相同 reason retriable 触发熔断；dispatcher 进入稳定失败循环
+**runbook**: RUNBOOK.md SC-16
+
+### Appendix Update (V4.5.5)
+
+新增指标（V4.5.5 P12.4）:
+
+| 指标 | 类型 | 用途 |
+|------|------|------|
+| `devsquad_v455_tx_state{tx_id,state}` | gauge | DispatchTransaction 当前 FSM 状态计数 |
+| `devsquad_v455_tx_state_entered_seconds{tx_id,state}` | gauge | FSM 进入当前状态的 Unix 时间 |
+| `devsquad_v455_tx_rollback_total` | counter | Transaction rollback 累计次数 |
+| `devsquad_v455_loop_fuse_total{reason}` | counter | LoopController 熔断累计次数（reason: CONSECUTIVE_RETRIABLE / FATAL_ERROR / MAX_ITERATION） |
