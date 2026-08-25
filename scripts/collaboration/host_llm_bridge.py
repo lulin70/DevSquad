@@ -325,6 +325,10 @@ class HostBridgeBackend(LLMBackend):
     V4.5.2: B path in B→A→C resolve order. No API key required;
     the host (Trae/ClaudeCode) executes the prompt.
 
+    V4.5.5: SUBAGENT_TYPE_MAP for resolving agent_type → TRAE Task subagent_type.
+    Architect maps to 'search' (code-search heavy), others default to
+    'general_purpose_task'.
+
     Failure semantics:
       - Single host failure: degrade gracefully (next call still uses B).
       - Consecutive same-reason failures (≥ FUSE_THRESHOLD): permanently
@@ -336,6 +340,25 @@ class HostBridgeBackend(LLMBackend):
 
     # Fuse: 2 consecutive same-reason failures → skip B
     FUSE_THRESHOLD = 2
+
+    # V4.5.5: SUBAGENT_TYPE_MAP for Task tool dispatch (weiransoft v2.8.4 §对齐)
+    SUBAGENT_TYPE_MAP: dict[str, str] = {
+        "architect": "search",  # architecture analysis needs code search
+        "product-manager": "general_purpose_task",
+        "test-expert": "general_purpose_task",
+        "solo-coder": "general_purpose_task",
+        "ui-designer": "general_purpose_task",
+    }
+
+    @staticmethod
+    def resolve_subagent_type(agent_type: str) -> str:
+        """Resolve agent_type → TRAE Task subagent_type.
+
+        Default: 'general_purpose_task'.
+        """
+        return HostBridgeBackend.SUBAGENT_TYPE_MAP.get(
+            agent_type, "general_purpose_task"
+        )
 
     def __init__(
         self,
