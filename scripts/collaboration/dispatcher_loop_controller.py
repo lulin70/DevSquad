@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dispatch Loop Controller (V4.5.5 P4-P5 Wave 3).
+"""Dispatch Loop Controller (V4.5.6 P4-P5 Wave 3).
 
 Loop-level fuse: consecutive same-reason retriable → fatal (avoid 100-min waste).
 对齐 weiransoft/TraeMultiAgentSkill v2.8.4 §3.3 WorkflowLoopController.

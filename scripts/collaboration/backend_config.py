@@ -130,11 +130,11 @@ def load_backend_config(project: bool = False) -> dict[str, Any]:
         if not os.path.exists(path):
             continue
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 content = f.read()
             parsed = _parse_yaml_simple(content)
             if parsed:
-                _inc_call_counter()
+                _inc_call_counter_er()
                 return parsed
         except OSError:
             continue
@@ -211,10 +211,10 @@ def resolve_backend(prefer_project: bool = False) -> str:
 
     env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "").strip()
     if env_backend in VALID_BACKENDS:
-        _inc_call_counter()
+        _inc_call_counter_er()
         return env_backend
 
-    _inc_call_counter()
+    _inc_call_counter_er()
     return "auto"
 
 
@@ -224,14 +224,14 @@ def get_resolved_backend(prefer_project: bool = False) -> str:
 
 
 # Anti-Ghost counter (P12.1.5): for CI gate
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 def get_call_count() -> int:
     """Return the call counter (for anti-ghost CI gate)."""
-    return _call_counter
+    return _call_counter_er
 
 
-def _inc_call_counter() -> None:
-    global _call_counter
-    _call_counter += 1
+def _inc_call_counter_er() -> None:
+    global _call_counter_er
+    _call_counter_er += 1

@@ -120,7 +120,7 @@ def test_ru_1_pm_risk_register_in_report():
 
     # Anti-ghost: RiskRegister was actually called
     register = getattr(disp, "_risk_register", None) or RiskRegister()
-    assert register._call_counter > 0, "RiskRegister not activated (ghost module)"
+    assert register._call_counter_er > 0, "RiskRegister not activated (ghost module)"
 
     disp.shutdown()
 
@@ -383,9 +383,9 @@ def test_ru_5_devops_dora_rating_levels():
 def test_ru_ac5_anti_ghost_all_modules_activated():
     """AC-5: One dispatch() call activates all 5 V4.4.0 modules.
 
-    Scenario: User runs a single dispatch and all 5 module _call_counter > 0.
+    Scenario: User runs a single dispatch and all 5 module _call_counter_er > 0.
     Expected: RiskRegister, ViewpointRegistry, ErrorBudgetTracker, GapAnalyzer,
-              DoraMetricsCollector all have _call_counter > 0.
+              DoraMetricsCollector all have _call_counter_er > 0.
     """
     disp = MultiAgentDispatcher()
     disp.dispatch("Design a payment gateway")
@@ -396,11 +396,11 @@ def test_ru_ac5_anti_ghost_all_modules_activated():
     import scripts.collaboration.risk_register as rr
     import scripts.collaboration.viewpoint_registry as vr
 
-    assert rr._call_counter > 0, "RiskRegister not activated (ghost)"
-    assert vr._call_counter > 0, "ViewpointRegistry not activated (ghost)"
-    assert ebt._call_counter > 0, "ErrorBudgetTracker not activated (ghost)"
-    assert ga._call_counter > 0, "GapAnalyzer not activated (ghost)"
-    assert dmc._call_counter > 0, "DoraMetricsCollector not activated (ghost)"
+    assert rr._call_counter_er > 0, "RiskRegister not activated (ghost)"
+    assert vr._call_counter_er > 0, "ViewpointRegistry not activated (ghost)"
+    assert ebt._call_counter_er > 0, "ErrorBudgetTracker not activated (ghost)"
+    assert ga._call_counter_er > 0, "GapAnalyzer not activated (ghost)"
+    assert dmc._call_counter_er > 0, "DoraMetricsCollector not activated (ghost)"
 
     disp.shutdown()
 

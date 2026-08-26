@@ -3,7 +3,7 @@
 Analyzes gaps between current and target architecture, prioritizes them,
 generates a roadmap, and feeds the ``LoopScheduler`` CONTINUE/STOP decision.
 
-Anti-ghost: module-level ``_call_counter`` increments on every public
+Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ from enum import Enum
 from typing import Any
 
 # Anti-ghost: module-level call counter (AG-1/AG-2)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 class GapPriority(Enum):
@@ -119,7 +119,7 @@ class Gap:
 class GapAnalyzer:
     """Analyzer for architecture gaps with roadmap generation.
 
-    Anti-ghost: every public method increments ``_call_counter``.
+    Anti-ghost: every public method increments ``_call_counter_er``.
     """
 
     def __init__(self) -> None:
@@ -150,8 +150,8 @@ class GapAnalyzer:
         Returns:
             The created Gap.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         slug = _slugify_work_package(work_package)
         gid = f"G-{slug}"
@@ -192,8 +192,8 @@ class GapAnalyzer:
         Returns:
             List of Gap objects (empty in P2 mode).
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         # Handle kwargs for E2E test compatibility
         if current is None and "current_state" in kwargs:
@@ -248,8 +248,8 @@ class GapAnalyzer:
         Returns:
             Sorted list of gaps.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if gaps is None:
             gaps = list(self._gaps.values())
@@ -267,8 +267,8 @@ class GapAnalyzer:
         Returns:
             Markdown table with columns: Phase | Gap | Priority | Effort.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if gaps is None:
             gaps = self.prioritize()
@@ -304,8 +304,8 @@ class GapAnalyzer:
         Raises:
             KeyError: If gap_id not found.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if gap_id not in self._gaps:
             raise KeyError(f"Unknown gap_id: {gap_id!r}")
@@ -323,8 +323,8 @@ class GapAnalyzer:
         Returns:
             "CONTINUE" if delta > 0, "STOP" if delta <= 0.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if gap_id not in self._gaps:
             raise KeyError(f"Unknown gap_id: {gap_id!r}")

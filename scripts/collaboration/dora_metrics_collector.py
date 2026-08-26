@@ -4,7 +4,7 @@ Collects the 4 DORA metrics (Deployment Frequency, Lead Time for Changes,
 Change Failure Rate, MTTR) from git history and dispatch records, surfaces
 them in a Dashboard panel, and gates P11 on change failure rate > 15%.
 
-Anti-ghost: module-level ``_call_counter`` increments on every public
+Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 # Anti-ghost: module-level call counter (AG-1/AG-2)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ _CFR_THRESHOLD: float = 0.15
 class DoraMetricsCollector:
     """Collector for DORA metrics from git and dispatch records.
 
-    Anti-ghost: every public method increments ``_call_counter``.
+    Anti-ghost: every public method increments ``_call_counter_er``.
     """
 
     def __init__(self) -> None:
@@ -119,8 +119,8 @@ class DoraMetricsCollector:
         Returns:
             DoraMetrics with all 4 fields populated (zeros on failure).
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         try:
             since_date = (datetime.now() - timedelta(days=window_days)).strftime(
@@ -189,8 +189,8 @@ class DoraMetricsCollector:
         Returns:
             DoraMetrics with all 4 fields populated.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if not dispatch_logs:
             self._metrics = DoraMetrics()
@@ -215,8 +215,8 @@ class DoraMetricsCollector:
         Returns:
             Markdown string with all 4 metrics + ratings.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         m = self._metrics
         return (
@@ -239,8 +239,8 @@ class DoraMetricsCollector:
         Returns:
             Markdown string with 4 numeric cards.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         m = self._metrics
         return (

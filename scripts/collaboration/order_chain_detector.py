@@ -14,7 +14,7 @@ cause multi-agent parallel to REGRESS 39-70% (upstream v2.8.4 empirical).
   ③ 任务启发式 → 累计分 ≥3 且无反例 → single_role=True
   ④ 默认 → single_role=False
 
-Anti-Ghost: _call_counter 每次 detect() 递增。
+Anti-Ghost: _call_counter_er 每次 detect() 递增。
 """
 
 from __future__ import annotations
@@ -23,17 +23,17 @@ import re
 from dataclasses import dataclass
 
 # Module-level Anti-Ghost counter (CI: check_module_activation.py asserts > 0)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return module activation counter (for Anti-Ghost verification)."""
-    return _call_counter
+    return _call_counter_er
 
 
-def _inc_call_counter() -> None:
-    global _call_counter
-    _call_counter += 1
+def _inc_call_counter_er() -> None:
+    global _call_counter_er
+    _call_counter_er += 1
 
 
 @dataclass(frozen=True)
@@ -149,7 +149,7 @@ class OrderChainDetector:
         Returns:
             OrderChainDecision with single_role/source/signal/score/role_id.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         self._local_call_count += 1
 
         # ① User explicit flag (highest priority)
@@ -254,9 +254,9 @@ class OrderChainDetector:
 __all__ = [
     "OrderChainDecision",
     "OrderChainDetector",
-    "get_call_counter",
+    "get_call_counter_er",
 ]
 
 
 # Initialize anti-ghost counter on module load
-_inc_call_counter()
+_inc_call_counter_er()

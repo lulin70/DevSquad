@@ -5,19 +5,19 @@ Iron Rules applied:
   1. Documentation-first: source (scripts/collaboration/file_bundler.py) read
      first. Documented: deterministic grouping (no LLM); same dir → same
      bundle; import chain → same bundle (via stdlib ``ast``); max_per_bundle
-     overflow → split; ALL ast exceptions caught; module-level _call_counter.
+     overflow → split; ALL ast exceptions caught; module-level _call_counter_er.
   2. Failure-means-report: REAL files on disk via tempfile, no Mock.
   3. Dimension-completeness: 7 tests (directory / imports / max / single /
      empty / invalid-python / call-counter).
   4. Side-effect-verification: invalid Python is skipped (not crashed on);
-     _call_counter increments.
+     _call_counter_er increments.
   5. User-journey-first: bundle → review-unit split mirrors the review-mode
      divide-and-conquer journey.
   6. e2e-release-gate: covered by the broader V4.5.0 e2e suite.
 
-Anti-ghost note: ``_call_counter`` is a module-level int on ``file_bundler``.
-We read it via module attribute access (``fb_module._call_counter``), NOT
-``from module import _call_counter`` (which would snapshot a stale int).
+Anti-ghost note: ``_call_counter_er`` is a module-level int on ``file_bundler``.
+We read it via module attribute access (``fb_module._call_counter_er``), NOT
+``from module import _call_counter_er`` (which would snapshot a stale int).
 """
 
 from __future__ import annotations
@@ -186,18 +186,18 @@ class TestFileBundler(unittest.TestCase):
         self.assertGreaterEqual(len(bundles), 2, f"expected ≥2 bundles, got {len(bundles)}")
 
     # ------------------------------------------------------------------
-    # 7. anti-ghost: module-level _call_counter increments
+    # 7. anti-ghost: module-level _call_counter_er increments
     # ------------------------------------------------------------------
 
-    def test_call_counter(self) -> None:
-        """Side-Effect: module-level ``_call_counter`` increments on every
+    def test_call_counter_er(self) -> None:
+        """Side-Effect: module-level ``_call_counter_er`` increments on every
         ``bundle()`` call (anti-ghost guarantee)."""
-        before = fb_module._call_counter
+        before = fb_module._call_counter_er
         self._bundler.bundle([], max_per_bundle=10)
         self._bundler.bundle(["x.py"], max_per_bundle=10)
         self._bundler.bundle(["a.py", "b.py"], max_per_bundle=5)
-        after = fb_module._call_counter
-        self.assertGreater(after, before, "module _call_counter did not increment")
+        after = fb_module._call_counter_er
+        self.assertGreater(after, before, "module _call_counter_er did not increment")
         # 3 bundle() calls => at least 3 increments.
         self.assertGreaterEqual(after - before, 3)
 

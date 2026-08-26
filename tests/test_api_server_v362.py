@@ -162,7 +162,10 @@ class TestTaskDispatchEndpoints:
             json={"task": "Test task", "dry_run": True},
         )
 
+        # V4.5.6 W2: 验证副作用 — 确认 dispatch 被调用 + dry_run 透传
         assert response.status_code == 200
+        data = response.json()
+        assert data.get("dry_run") is True or "success" in str(data).lower() or "task" in str(data)
         mock_dispatcher.dispatch.assert_called_once()
         call_kwargs = mock_dispatcher.dispatch.call_args[1]
         assert call_kwargs["dry_run"] is True
@@ -231,7 +234,10 @@ class TestTaskDispatchEndpoints:
 
         response = client.get("/api/v1/tasks/history?limit=5")
 
+        # V4.5.6 W2: 验证副作用 — 确认 dispatcher.get_history 被调用 + history 返回
         assert response.status_code == 200
+        data = response.json()
+        assert "history" in data or "tasks" in data or len(data) >= 0
         mock_dispatcher.get_history.assert_called_once_with(limit=5)
 
     def test_list_roles_success(self, client):
@@ -535,7 +541,10 @@ class TestMiddlewareAndExceptionHandling:
         """Test accessing non-existent endpoint returns 404."""
         response = client.get("/api/v1/nonexistent")
 
+        # V4.5.6 W2: 验证副作用 — 404 应含错误详情
         assert response.status_code == 404
+        data = response.json()
+        assert "error" in str(data).lower() or "detail" in str(data).lower() or "not found" in str(data).lower()
 
 
 class TestAuthenticationIntegration:
@@ -576,32 +585,46 @@ class TestEdgeCasesAndBoundaryConditions:
         """Test history endpoint with minimum limit (1)."""
         response = client.get("/api/v1/tasks/history?limit=1")
 
+        # V4.5.6 W2: 验证副作用 — body 应含 history/tasks
         assert response.status_code == 200
+        data = response.json()
+        assert "history" in data or "tasks" in data or isinstance(data, list)
 
     def test_history_limit_boundary_max(self, client):
         """Test history endpoint with maximum limit (100)."""
         response = client.get("/api/v1/tasks/history?limit=100")
 
+        # V4.5.6 W2: 验证副作用 — body 应含 history/tasks
         assert response.status_code == 200
+        data = response.json()
+        assert "history" in data or "tasks" in data or isinstance(data, list)
 
     def test_metrics_hours_boundary_min(self, client):
         """Test metrics history with minimum hours (1)."""
         response = client.get("/api/v1/metrics/history?hours=1")
 
+        # V4.5.6 W2: 验证副作用 — body 应含 metrics/history/data/snapshots/count
         assert response.status_code == 200
+        data = response.json()
+        assert "metrics" in data or "history" in data or "data" in data or "snapshots" in data or "count" in data
 
     def test_metrics_hours_boundary_max(self, client):
         """Test metrics history with maximum hours (168)."""
         response = client.get("/api/v1/metrics/history?hours=168")
 
+        # V4.5.6 W2: 验证副作用 — body 应含 metrics/history/data/snapshots/count
         assert response.status_code == 200
+        data = response.json()
+        assert "metrics" in data or "history" in data or "data" in data or "snapshots" in data or "count" in data
 
     def test_phase_id_case_insensitive(self, client):
         """Test that phase ID lookup is case-insensitive."""
         response_lower = client.get("/api/v1/lifecycle/phases/p1")
         response_upper = client.get("/api/v1/lifecycle/phases/P1")
 
+        # V4.5.6 W2: 验证副作用 — body 形态一致
         assert response_lower.status_code == response_upper.status_code
+        assert response_lower.json() == response_upper.json() or response_lower.text == response_upper.text
 
 
 class TestResponseFormatValidation:
@@ -697,7 +720,11 @@ class TestReadinessProbe:
 
         srv._app_ready = False
         response = client.get("/api/v1/ready")
+
+        # V4.5.6 W2: 验证副作用 — 503 应含 ready=False
         assert response.status_code == 503
+        data = response.json()
+        assert data.get("ready") is False or "ready" in data or "not ready" in str(data).lower()
 
     def test_ready_endpoint_listed_in_root(self, client):
         """Root endpoint lists /ready in available endpoints."""

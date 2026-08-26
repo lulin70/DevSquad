@@ -9,8 +9,8 @@ model) configuration produces the same ``agent_id`` across sessions.
 This enables answering: "which AI instance made this decision 3 weeks ago?"
 without storing any PII or reversible identity.
 
-Anti-ghost: module-level ``_call_counter`` increments on every public method
-call, verifiable via the read-only ``_call_counter`` property.
+Anti-ghost: module-level ``_call_counter_er`` increments on every public method
+call, verifiable via the read-only ``_call_counter_er`` property.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ __all__ = ["AgentIdentity", "derive_agent_id"]
 logger = __import__("logging").getLogger(__name__)
 
 # Anti-ghost call counter (module-level, incremented by every public method).
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 def derive_agent_id(role_id: str, backend: str, model: str) -> str:
@@ -45,8 +45,8 @@ def derive_agent_id(role_id: str, backend: str, model: str) -> str:
     str
         Deterministic agent_id, e.g. "agent-architect-a1b2c3d4".
     """
-    global _call_counter
-    _call_counter += 1
+    global _call_counter_er
+    _call_counter_er += 1
 
     if not role_id:
         raise ValueError("role_id must not be empty")
@@ -117,6 +117,6 @@ class AgentIdentity:
         )
 
     @property
-    def _call_counter(self) -> int:
+    def _call_counter_er(self) -> int:
         """Read-only access to the module-level call counter (anti-ghost)."""
-        return _call_counter
+        return _call_counter_er

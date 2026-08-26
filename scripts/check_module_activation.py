@@ -2,7 +2,7 @@
 """
 check_module_activation.py — V4.5.3 Anti-Ghost CI gate.
 
-Verifies that all V4.5.3 modules' _call_counter is > 0 after a representative
+Verifies that all V4.5.3 modules' _call_counter_er is > 0 after a representative
 dispatch. Used by CI to block releases of ghost modules.
 
 V4.5.2 P12.1: Extended to include:
@@ -36,7 +36,7 @@ sys.path.insert(0, ".")
 
 
 def main() -> int:
-    """Check all V4.5.2 modules' _call_counter > 0.
+    """Check all V4.5.2 modules' _call_counter_er > 0.
 
     Returns:
         0 if all modules activated (anti-ghost pass).
@@ -49,24 +49,24 @@ def main() -> int:
         resolve_backend,
     )
     from scripts.collaboration.backend_paths import classify_error
-    from scripts.collaboration.backend_paths import get_call_counter as bp
+    from scripts.collaboration.backend_paths import get_call_counter_er as bp
     from scripts.collaboration.gitlab_connector import GitLabConnector
     from scripts.collaboration.gitlab_connector import get_call_count as glc
-    from scripts.collaboration.host_llm_bridge import get_call_counter as hbb
+    from scripts.collaboration.host_llm_bridge import get_call_counter_er as hbb
 
     # V4.5.2 P12.1 modules
     from scripts.collaboration.moka_backend import MokaAIBackend
 
     # V4.5.2 P12.1 modules
-    from scripts.collaboration.moka_backend import get_call_counter as mok
+    from scripts.collaboration.moka_backend import get_call_counter_er as mok
     from scripts.collaboration.order_chain_detector import OrderChainDetector
-    from scripts.collaboration.order_chain_detector import get_call_counter as ocd
+    from scripts.collaboration.order_chain_detector import get_call_counter_er as ocd
     from scripts.collaboration.perf_baseline import PerfSampleCollector
-    from scripts.collaboration.perf_baseline import get_call_counter as pb
+    from scripts.collaboration.perf_baseline import get_call_counter_er as pb
 
     # Activate each module (representative call)
     from scripts.collaboration.task_scale_gate import TaskScaleGate
-    from scripts.collaboration.task_scale_gate import get_call_counter as tsg
+    from scripts.collaboration.task_scale_gate import get_call_counter_er as tsg
 
     TaskScaleGate().decide("anti-ghost check")
     OrderChainDetector().detect("anti-ghost check")
@@ -111,7 +111,7 @@ def main() -> int:
             create_backend("mock")  # C path
             bridge = HostLLMBridge(bridge_dir=None)
             # Directly invoke create_request — this is the only path that bumps
-            # _call_counter in production code (generate() calls it internally).
+            # _call_counter_er in production code (generate() calls it internally).
             with contextlib.suppress(OSError, ValueError):
                 # Bridge dir may not exist; the counter bump happens BEFORE that.
                 bridge.create_request(
@@ -126,12 +126,12 @@ def main() -> int:
                 os.environ[k] = v
 
     # V4.5.3 P12.2 modules — touch counters in main scope so they survive module-level imports
-    from scripts.cli_audit import get_call_counter as au_call_counter
+    from scripts.cli_audit import get_call_counter_er as au_call_counter_er
     from scripts.collaboration.artifact_store import (
-        get_call_counter as as_call_counter,
+        get_call_counter_er as as_call_counter_er,
     )
 
-    # V4.5.5 P12.4 modules — touch counters in main scope
+    # V4.5.6 P12.4 modules — touch counters in main scope
     from scripts.collaboration.dispatcher_intent_mapper import (
         get_call_counter_er as _get_intent_counter_er,
     )
@@ -159,7 +159,7 @@ def main() -> int:
     # V4.5.4 P12.3 activation
     _activate_v454_modules()
 
-    # V4.5.5 P12.4 activation (4 new modules)
+    # V4.5.6 P12.4 activation (4 new modules)
     _activate_v455_modules()
 
     counters = {
@@ -173,14 +173,14 @@ def main() -> int:
         "GitLabConnector_P12.1.3": glc(),
         "BackendConfig_P12.1.5": bcc(),
         # V4.5.3 P12.2 modules
-        "ArtifactStore_P12.2.1": as_call_counter(),
+        "ArtifactStore_P12.2.1": as_call_counter_er(),
         "EffectRegistry_P12.2.4": er_call_count(),
-        "AuditCLI_P12.2.6": au_call_counter(),
+        "AuditCLI_P12.2.6": au_call_counter_er(),
         # V4.5.4 P12.3 modules
         "ModuleFiber_P12.3.1": get_call_counter_er(),
         "CoeffectResolver_P12.3.2": get_call_counter_er(),  # shared counter
         "ModulesCLI_P12.3.3": get_call_counter_er(),  # shared counter
-        # V4.5.5 P12.4 modules
+        # V4.5.6 P12.4 modules
         "HostLLMBridgeV2_P12.4.1": _get_call_counter_er_v2(),
         "DispatcherTransaction_P12.4.2": _get_tx_counter_er(),
         "IntentWorkflowMapper_P12.4.3": _get_intent_counter_er(),
@@ -244,7 +244,7 @@ def _activate_v454_modules() -> None:
 
 
 def _activate_v455_modules() -> None:
-    """Exercise V4.5.5 P12.4 modules to bump their anti-ghost counters.
+    """Exercise V4.5.6 P12.4 modules to bump their anti-ghost counters.
 
     Touches:
         - HostLLMBridgeV2_P12.4.1 — create_request (writes marker)
@@ -294,7 +294,7 @@ def _activate_v455_modules() -> None:
 
 def _activate_v453_modules() -> None:
     """Exercise V4.5.3 P12.2 modules to bump their anti-ghost counters."""
-    from scripts.cli_audit import get_call_counter as au_call_counter
+    from scripts.cli_audit import get_call_counter_er as au_call_counter_er
     from scripts.collaboration.artifact_store import (
         ArtifactStore,
     )
@@ -322,8 +322,8 @@ def _activate_v453_modules() -> None:
     reg.apply(WriteFileEffect(), effect_ctx)
     reg.pending_count()
 
-    # P12.2.6: AuditCLI — exercise get_call_counter (cmd_audit is imported above)
-    _ = au_call_counter()
+    # P12.2.6: AuditCLI — exercise get_call_counter_er (cmd_audit is imported above)
+    _ = au_call_counter_er()
     # Exercise cmd_audit once to bump counter
     from argparse import Namespace
 

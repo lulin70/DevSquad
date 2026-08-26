@@ -9,8 +9,8 @@ Design (V451-1):
     every request — behavior is identical to V4.5.0 (backward compatible).
 
 Anti-ghost:
-    Module-level ``_call_counter`` is incremented on every public method
-    invocation. ``check_module_activation.py`` asserts ``_call_counter > 0``
+    Module-level ``_call_counter_er`` is incremented on every public method
+    invocation. ``check_module_activation.py`` asserts ``_call_counter_er > 0``
     in CI to prove the gate is wired into the dispatch pipeline.
 
 Roadmap: V4.5.1 V451-1 (Approval Gate).
@@ -26,12 +26,12 @@ from typing import Any
 # ---------------------------------------------------------------------------
 # Anti-ghost counter (incremented on every public method call).
 # ---------------------------------------------------------------------------
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 def get_call_count() -> int:
     """Return the module-level call counter (anti-ghost introspection)."""
-    return _call_counter
+    return _call_counter_er
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ class ApprovalGate:
         self._records: list[dict[str, Any]] = []
 
     # ------------------------------------------------------------------
-    # Public API (each increments _call_counter — anti-ghost)
+    # Public API (each increments _call_counter_er — anti-ghost)
     # ------------------------------------------------------------------
 
     def request_approval(
@@ -129,8 +129,8 @@ class ApprovalGate:
         result (backward compatible). When provided, delegates to the
         callback and records the decision.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         request = ApprovalRequest(
             operation_type=operation_type,
@@ -171,8 +171,8 @@ class ApprovalGate:
         Each entry is a dict with keys: operation_type, description,
         details, approved, reason, timestamp.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
         return list(self._records)
 
     def export_markdown(self) -> str:
@@ -181,8 +181,8 @@ class ApprovalGate:
         Returns an empty string when no requests were made (the report
         formatter omits the section in that case).
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if not self._records:
             return ""

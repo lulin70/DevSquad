@@ -745,18 +745,18 @@ git revert <v454-check-module-activation-commit>
 
 > **Document End**
 >
-> **Version**: V1.3.0 (V4.5.5 P12.4 addendum)
+> **Version**: V1.3.0 (V4.5.6 P12.4 addendum)
 > **Created**: 2026-08-22 — V4.5.2 P11.4 release
-> **Updated**: 2026-08-25 — V4.5.5 P12.4 added §11 (per-module + full rollback)
+> **Updated**: 2026-08-25 — V4.5.6 P12.4 added §11 (per-module + full rollback)
 > **Next Update**: After first real rollback incident (post-mortem → improvements)
 
 ---
 
-## 11. P12.4 Module Rollback (V4.5.5 addendum)
+## 11. P12.4 Module Rollback (V4.5.6 addendum)
 
 ### P12.4.1 Rollback: Disable HostLLMBridge v2 (回退到 v1)
 
-**触发条件**: V4.5.5 P12.4.1 marker v2 协议不兼容旧监听方。
+**触发条件**: V4.5.6 P12.4.1 marker v2 协议不兼容旧监听方。
 
 **回滚步骤**:
 
@@ -776,7 +776,7 @@ curl http://devsquad-api:8000/metrics | grep host_bridge_protocol_version
 
 **验证清单**:
 - [ ] `devsquad host-bridge status` 显示 protocol=v1
-- [ ] `check_module_activation.py` 17/17 PASS (V4.5.5 18 - 1 disabled)
+- [ ] `check_module_activation.py` 17/17 PASS (V4.5.6 18 - 1 disabled)
 - [ ] 旧监听方 marker 格式兼容
 
 **Estimated time**: 5 分钟 (feature-flag 回滚)
@@ -848,9 +848,9 @@ devsquad modules status --module DispatchLoopController
 
 ---
 
-### 全量 V4.5.5 → V4.5.4 回滚（紧急情况）
+### 全量 V4.5.6 → V4.5.4 回滚（紧急情况）
 
-**触发条件**: V4.5.5 P12.4 整体不兼容或 anti-ghost 持续 < 18/18。
+**触发条件**: V4.5.6 P12.4 整体不兼容或 anti-ghost 持续 < 18/18。
 
 **回滚步骤**:
 
@@ -861,7 +861,7 @@ git revert <v455-dispatcher-commit>
 # 2. Revert check_module_activation.py 到 verify 14 个模块 (not 18)
 git revert <v455-check-module-activation-commit>
 
-# 3. Revert VERSION + CHANGELOG (4.5.5 → 4.5.4)
+# 3. Revert VERSION + CHANGELOG (4.5.6 → 4.5.4)
 git revert <v455-version-sync-commit>
 
 # 4. 保留 scripts/collaboration/host_llm_bridge_v2.py + dispatcher_transaction.py +
@@ -869,7 +869,7 @@ git revert <v455-version-sync-commit>
 #    但 dispatcher 不再调用它们
 
 # 5. Update CHANGELOG and VERSION_HISTORY to mark P12.4 as deprecated
-# 6. Update SKILL.md / skill-manifest.yaml description (remove V4.5.5 entry)
+# 6. Update SKILL.md / skill-manifest.yaml description (remove V4.5.6 entry)
 
 # 7. Re-run full test suite (expect 8996 tests instead of 9048)
 .venv/bin/python -m pytest tests/ -q

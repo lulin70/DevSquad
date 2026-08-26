@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dispatcher Transaction (V4.5.5 P4-P5 Wave 2 main feature).
+"""Dispatcher Transaction (V4.5.6 P4-P5 Wave 2 main feature).
 
 5-state FSM for module dependency graph transaction boundary:
     PENDING → ACTIVE → COMMITTED (terminal)

@@ -6,7 +6,7 @@ pipeline (anti-ghost) and that user-visible artifacts (Markdown report,
 to_dict serialization) contain the expected connector output.
 
 Iron Rules (per V4.5.1 anti-ghost discipline):
-  1. ``GitHubConnector._call_counter`` MUST be > 0 after a single
+  1. ``GitHubConnector._call_counter_er`` MUST be > 0 after a single
      ``dispatch()`` call — otherwise the connector is a ghost feature.
   2. Dispatch result MUST expose ``connector_operations`` (list) and
      ``connector_md`` (str) fields, populated by ``_activate_connector``.
@@ -19,7 +19,7 @@ Iron Rules (per V4.5.1 anti-ghost discipline):
      pipeline path was exercised without touching the real GitHub API.
 
 Coverage:
-  - test_e2e_dispatch_increments_connector_call_counter  (AG-1 anti-ghost)
+  - test_e2e_dispatch_increments_connector_call_counter_er  (AG-1 anti-ghost)
   - test_e2e_dispatch_populates_connector_operations     (AG-2 integration)
   - test_e2e_dispatch_populates_connector_md             (AG-3 integration)
   - test_e2e_to_markdown_contains_connector_section      (AG-4 user-visible)
@@ -67,25 +67,25 @@ def _ensure_no_github_token(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AG-1: _call_counter increments after a single dispatch() call (anti-ghost)
+# AG-1: _call_counter_er increments after a single dispatch() call (anti-ghost)
 # ---------------------------------------------------------------------------
 
 
-def test_e2e_dispatch_increments_connector_call_counter(
+def test_e2e_dispatch_increments_connector_call_counter_er(
     dispatcher: MultiAgentDispatcher,
 ) -> None:
-    """AG-1: One dispatch() call MUST increment GitHubConnector._call_counter > 0.
+    """AG-1: One dispatch() call MUST increment GitHubConnector._call_counter_er > 0.
 
     A counter stuck at 0 means the connector is ghost code — present on disk
     but never activated by the dispatch pipeline. CI treats this as a critical
     quality defect (per V4.5.1 anti-ghost discipline).
     """
-    before = connector_module._call_counter
+    before = connector_module._call_counter_er
     dispatcher.dispatch("Design a payment gateway")
-    after = connector_module._call_counter
+    after = connector_module._call_counter_er
 
     assert after > before, (
-        f"GitHubConnector._call_counter did not increment during dispatch: "
+        f"GitHubConnector._call_counter_er did not increment during dispatch: "
         f"before={before}, after={after}. The connector is a ghost feature."
     )
     dispatcher.shutdown()
@@ -233,9 +233,9 @@ def test_e2e_dry_run_path_also_activates_connector(
     only half-wired. This test proves _activate_connector is called on BOTH
     paths (early_return and normal).
     """
-    before = connector_module._call_counter
+    before = connector_module._call_counter_er
     result = dispatcher.dispatch("Design a tokens system", dry_run=True)
-    after = connector_module._call_counter
+    after = connector_module._call_counter_er
 
     assert after > before, (
         "Connector must be activated on the dry_run / early_return path too"
@@ -343,10 +343,10 @@ def test_e2e_github_connector_invalid_review_event_validation() -> None:
 
 
 def test_e2e_get_call_count_returns_module_counter() -> None:
-    """Anti-Ghost: get_call_count() mirrors connector_module._call_counter."""
+    """Anti-Ghost: get_call_count() mirrors connector_module._call_counter_er."""
     connector = GitHubConnector()
     connector.create_pr_comment("devsquad/probe", 0, "probe")
-    module_value = connector_module._call_counter
+    module_value = connector_module._call_counter_er
     assert get_call_count() == module_value, (
-        f"get_call_count()={get_call_count()} != _call_counter={module_value}"
+        f"get_call_count()={get_call_count()} != _call_counter_er={module_value}"
     )

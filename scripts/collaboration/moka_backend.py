@@ -33,22 +33,22 @@ MOKA_MAX_RETRIES = 3
 
 
 # Anti-Ghost call counter (P12.1.1)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return the current call counter for MokaAIBackend public methods.
 
     Returns:
         Number of times MokaAIBackend.is_available() / generate() has been invoked.
         Used by Anti-Ghost CI gate to prove the module is wired in.
     """
-    return _call_counter
+    return _call_counter_er
 
 
-def _inc_call_counter() -> None:
-    global _call_counter
-    _call_counter += 1
+def _inc_call_counter_er() -> None:
+    global _call_counter_er
+    _call_counter_er += 1
 
 
 class MokaAIBackend(LLMBackend):
@@ -97,7 +97,7 @@ class MokaAIBackend(LLMBackend):
         Returns:
             True if `self._api_key` is a non-empty string.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         key = self._api_key
         if key is None:
             return False
@@ -146,7 +146,7 @@ class MokaAIBackend(LLMBackend):
         """
         import time
 
-        _inc_call_counter()
+        _inc_call_counter_er()
         client = self._get_client()
         last_error: Exception | None = None
         for attempt in range(self.MAX_RETRIES):

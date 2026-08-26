@@ -139,42 +139,42 @@ def test_callback_exception_fail_closed() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 4. _call_counter anti-ghost: increments on every public method call
+# 4. _call_counter_er anti-ghost: increments on every public method call
 # ---------------------------------------------------------------------------
 
 
 def test_call_counter_increments_on_request_approval() -> None:
-    """Anti-Ghost: _call_counter increments on request_approval()."""
-    before = approval_gate_module._call_counter
+    """Anti-Ghost: _call_counter_er increments on request_approval()."""
+    before = approval_gate_module._call_counter_er
     gate = ApprovalGate()
     gate.request_approval("write_file", "anti-ghost probe")
-    after = approval_gate_module._call_counter
+    after = approval_gate_module._call_counter_er
     assert after > before, (
-        f"_call_counter did not increment on request_approval: "
+        f"_call_counter_er did not increment on request_approval: "
         f"before={before}, after={after}"
     )
 
 
 def test_call_counter_increments_on_get_records() -> None:
-    """Anti-Ghost: _call_counter increments on get_records()."""
+    """Anti-Ghost: _call_counter_er increments on get_records()."""
     gate = ApprovalGate()
-    before = approval_gate_module._call_counter
+    before = approval_gate_module._call_counter_er
     gate.get_records()
-    after = approval_gate_module._call_counter
+    after = approval_gate_module._call_counter_er
     assert after > before, (
-        f"_call_counter did not increment on get_records: "
+        f"_call_counter_er did not increment on get_records: "
         f"before={before}, after={after}"
     )
 
 
 def test_call_counter_increments_on_export_markdown() -> None:
-    """Anti-Ghost: _call_counter increments on export_markdown()."""
+    """Anti-Ghost: _call_counter_er increments on export_markdown()."""
     gate = ApprovalGate()
-    before = approval_gate_module._call_counter
+    before = approval_gate_module._call_counter_er
     gate.export_markdown()
-    after = approval_gate_module._call_counter
+    after = approval_gate_module._call_counter_er
     assert after > before, (
-        f"_call_counter did not increment on export_markdown: "
+        f"_call_counter_er did not increment on export_markdown: "
         f"before={before}, after={after}"
     )
 
@@ -185,13 +185,13 @@ def test_call_counter_increments_on_export_markdown() -> None:
 
 
 def test_get_call_count_returns_module_counter() -> None:
-    """Anti-Ghost: get_call_count() mirrors approval_gate_module._call_counter."""
+    """Anti-Ghost: get_call_count() mirrors approval_gate_module._call_counter_er."""
     # Touch the module to bump the counter deterministically.
     gate = ApprovalGate()
     gate.request_approval("write_file", "probe for get_call_count")
-    module_value = approval_gate_module._call_counter
+    module_value = approval_gate_module._call_counter_er
     assert get_call_count() == module_value, (
-        f"get_call_count()={get_call_count()} != _call_counter={module_value}"
+        f"get_call_count()={get_call_count()} != _call_counter_er={module_value}"
     )
 
 

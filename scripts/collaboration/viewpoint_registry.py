@@ -4,7 +4,7 @@ Binds each of the 7 DevSquad roles to a formal TOGAF viewpoint, enabling
 ``ConsensusEngine`` to arbitrate SPLIT outcomes by viewpoint orthogonality
 and ``PromptAssembler`` to inject viewpoint specs into role prompts.
 
-Anti-ghost: module-level ``_call_counter`` increments on every public
+Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 # Anti-ghost: module-level call counter (AG-1/AG-2)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 @dataclass
@@ -136,7 +136,7 @@ _DEFAULT_VIEWPOINTS: dict[str, Viewpoint] = _build_default_viewpoints()
 class ViewpointRegistry:
     """Registry of 7 TOGAF viewpoints bound to DevSquad roles.
 
-    Anti-ghost: every public method increments ``_call_counter``.
+    Anti-ghost: every public method increments ``_call_counter_er``.
     """
 
     def __init__(self) -> None:
@@ -154,8 +154,8 @@ class ViewpointRegistry:
         Raises:
             KeyError: If role_id is not a known role.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         canonical = _resolve_role(role_id)
         if canonical not in self._viewpoints:
@@ -171,8 +171,8 @@ class ViewpointRegistry:
         Returns:
             List of all viewpoints, one per role.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
         return list(self._viewpoints.values())
 
     def is_orthogonal(self, role_a: str, role_b: str) -> bool:
@@ -188,8 +188,8 @@ class ViewpointRegistry:
         Returns:
             True if the viewpoints share no concerns.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         ca = _resolve_role(role_a)
         cb = _resolve_role(role_b)
@@ -230,8 +230,8 @@ class ViewpointRegistry:
         Returns:
             List of ConsistencyViolation objects.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         # Explicit mode: caller specifies the pair and stances
         if viewpoint_a is not None and viewpoint_b is not None:

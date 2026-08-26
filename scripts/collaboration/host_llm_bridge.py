@@ -19,7 +19,7 @@ File protocol:
     request_{request_id}.json     # outgoing request
     response_{request_id}.json    # incoming response
 
-Anti-Ghost: _call_counter increments on every generate() / create_request()
+Anti-Ghost: _call_counter_er increments on every generate() / create_request()
 invocation. CI (scripts/check_module_activation.py) asserts counter > 0.
 """
 
@@ -42,12 +42,12 @@ logger = logging.getLogger(__name__)
 # Module-level Anti-Ghost counter
 # ---------------------------------------------------------------------------
 # CI: scripts/check_module_activation.py checks this > 0
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return module activation counter (for Anti-Ghost verification)."""
-    return _call_counter
+    return _call_counter_er
 
 
 # ---------------------------------------------------------------------------
@@ -145,8 +145,8 @@ class HostLLMBridge:
         Raises:
             ValueError: If context is not serializable.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         request_id = f"req_{uuid.uuid4().hex[:16]}"
         self._assert_safe_id(request_id)
@@ -325,7 +325,7 @@ class HostBridgeBackend(LLMBackend):
     V4.5.2: B path in B→A→C resolve order. No API key required;
     the host (Trae/ClaudeCode) executes the prompt.
 
-    V4.5.5: SUBAGENT_TYPE_MAP for resolving agent_type → TRAE Task subagent_type.
+    V4.5.6: SUBAGENT_TYPE_MAP for resolving agent_type → TRAE Task subagent_type.
     Architect maps to 'search' (code-search heavy), others default to
     'general_purpose_task'.
 
@@ -341,7 +341,7 @@ class HostBridgeBackend(LLMBackend):
     # Fuse: 2 consecutive same-reason failures → skip B
     FUSE_THRESHOLD = 2
 
-    # V4.5.5: SUBAGENT_TYPE_MAP for Task tool dispatch (weiransoft v2.8.4 §对齐)
+    # V4.5.6: SUBAGENT_TYPE_MAP for Task tool dispatch (weiransoft v2.8.4 §对齐)
     SUBAGENT_TYPE_MAP: dict[str, str] = {
         "architect": "search",  # architecture analysis needs code search
         "product-manager": "general_purpose_task",
@@ -473,5 +473,5 @@ class HostBridgeBackend(LLMBackend):
 __all__ = [
     "HostLLMBridge",
     "HostBridgeBackend",
-    "get_call_counter",
+    "get_call_counter_er",
 ]

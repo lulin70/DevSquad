@@ -19,7 +19,7 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.perf_baseline import (
+from scripts.collaboration.perf_baseline import (  # noqa: E402
     DEFAULT_BASELINE_PATH,
     GATE_THRESHOLDS,
     SAMPLE_COUNTS,
@@ -28,7 +28,7 @@ from scripts.collaboration.perf_baseline import (
     PerfSampleCollector,
     PerfSnapshot,
     compare_to_baseline,
-    get_call_counter,
+    get_call_counter_er,
 )
 
 pytestmark = pytest.mark.unit
@@ -319,15 +319,15 @@ class TestT5SnapshotFields:
 
 class TestAntiGhostAndPathValidation:
     def test_call_counter_increments(self):
-        """collect/compare 每次让 _call_counter 增加。"""
-        before = get_call_counter()
+        """collect/compare 每次让 _call_counter_er 增加。"""
+        before = get_call_counter_er()
         collector = PerfSampleCollector("mock")
         collector.add_sample(10.0)
         collector.snapshot()
         baseline = PerfBaseline()
         snap = collector.snapshot()
         compare_to_baseline(snap, baseline)
-        after = get_call_counter()
+        after = get_call_counter_er()
         assert after > before
 
     def test_invalid_path_raises(self):

@@ -5,19 +5,19 @@ Iron Rules applied:
   1. Documentation-first: source files read first —
      - scripts/collaboration/checkpoint_manager.py (list_sessions /
        get_session_status / _map_session_status / _build_task_summary /
-       _redact_for_display / module-level _call_counter)
+       _redact_for_display / module-level _call_counter_er)
      - scripts/cli_sessions.py (cmd_sessions / load_resumable_task)
      - scripts/collaboration/output_validator.py (redact() — Security A6)
   2. Failure-means-report: REAL CheckpointManager + temp dir on disk, no Mock.
   3. Dimension-completeness: 6 tests (happy / status / detail / error /
      security / anti-ghost).
-  4. Side-effect-verification: sensitive-data redaction + _call_counter.
+  4. Side-effect-verification: sensitive-data redaction + _call_counter_er.
   5. User-journey-first: list → show → resume mirrors the CLI user journey.
   6. e2e-release-gate: covered by the broader V4.5.0 e2e suite.
 
-Anti-ghost note: ``_call_counter`` is a module-level int on
+Anti-ghost note: ``_call_counter_er`` is a module-level int on
 ``checkpoint_manager``. We read it via module attribute access
-(``cm_module._call_counter``), NOT ``from module import _call_counter``
+(``cm_module._call_counter_er``), NOT ``from module import _call_counter_er``
 (which would snapshot a stale int).
 """
 
@@ -211,19 +211,19 @@ class TestSessionResume(unittest.TestCase):
         self.assertIn("***", detail["task_summary"])
 
     # ------------------------------------------------------------------
-    # 6. anti-ghost: module-level _call_counter increments
+    # 6. anti-ghost: module-level _call_counter_er increments
     # ------------------------------------------------------------------
 
-    def test_call_counter(self) -> None:
-        """Side-Effect: module-level ``_call_counter`` increments on every
+    def test_call_counter_er(self) -> None:
+        """Side-Effect: module-level ``_call_counter_er`` increments on every
         SessionResume public method call (anti-ghost guarantee)."""
-        before = cm_module._call_counter
+        before = cm_module._call_counter_er
         self._make_checkpoint(checkpoint_id="cp-counter")
         self._manager.list_sessions(limit=5)
         self._manager.get_session_status("cp-counter")
         self._manager.get_session_status("cp-missing")  # also increments
-        after = cm_module._call_counter
-        self.assertGreater(after, before, "module _call_counter did not increment")
+        after = cm_module._call_counter_er
+        self.assertGreater(after, before, "module _call_counter_er did not increment")
         # list_sessions + get_session_status x2 => at least 3 increments
         # (save_checkpoint does not increment the SessionResume counter, which
         # is intentional — the counter tracks the new V4.5.0 surface only).

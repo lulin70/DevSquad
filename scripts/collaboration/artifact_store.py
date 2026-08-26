@@ -6,7 +6,7 @@ under ``artifacts/{session_id}/{role_id}/{filename}`` namespace with a
 JSON manifest.
 
 Design:
-    - Anti-ghost: ``_call_counter`` exposed via ``get_call_counter()``
+    - Anti-ghost: ``_call_counter_er`` exposed via ``get_call_counter_er()``
     - Best-effort: write failures do not propagate to Worker (P12.2.2
       handles this by catching at the Worker layer)
     - Manifest: ``artifacts/{session_id}/manifest.json`` with all
@@ -36,21 +36,21 @@ DEFAULT_ROOT = "artifacts"
 
 # ---------- Anti-ghost counter ----------
 
-_call_counter: int = 0
+_call_counter_er: int = 0
 _call_counter_lock = threading.Lock()
 
 
-def _inc_call_counter() -> None:
+def _inc_call_counter_er() -> None:
     """Increment the module-level call counter (thread-safe)."""
-    global _call_counter
+    global _call_counter_er
     with _call_counter_lock:
-        _call_counter += 1
+        _call_counter_er += 1
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return current anti-ghost counter value."""
     with _call_counter_lock:
-        return _call_counter
+        return _call_counter_er
 
 
 # ---------- Global registry hook (P12.2.5) ----------
@@ -151,7 +151,7 @@ class ArtifactStore:
             raise ArtifactStoreError(
                 f"Cannot create ArtifactStore root {self.root}: {exc}"
             ) from exc
-        _inc_call_counter()
+        _inc_call_counter_er()
 
     # ---- internal helpers ----
 
@@ -221,7 +221,7 @@ class ArtifactStore:
         Raises:
             ArtifactStoreError: On I/O failures.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         if kind not in ("text", "binary"):
             raise ArtifactStoreError(f"Invalid kind: {kind!r}")
 
@@ -345,7 +345,7 @@ class ArtifactStore:
         Raises:
             ArtifactStoreError: If artifact not found or read fails.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         # Find artifact across all sessions (manifest scan)
         if not self.root.exists():
             raise ArtifactStoreError(f"Artifact {artifact_id} not found")
@@ -389,7 +389,7 @@ class ArtifactStore:
         Returns:
             List of Artifact objects, empty if session has no manifest.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         try:
             manifest = self._read_manifest(session_id)
         except ArtifactStoreError:
@@ -416,7 +416,7 @@ class ArtifactStore:
         Returns:
             True if deleted, False if not found.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         if not self.root.exists():
             return False
         for session_dir in self.root.iterdir():

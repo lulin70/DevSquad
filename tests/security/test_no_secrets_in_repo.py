@@ -153,7 +153,7 @@ SecretHit = tuple[str, str, str, int]  # (kind, file, snippet, line_no)
 
 def _is_excluded_path(rel_path: str) -> bool:
     """Return True if path is in the exclusion allow-list."""
-    for pat in EXCLUDE_PATH_PATTERNS:
+    for pat in EXCLUDE_PATH_PATTERNS:  # noqa: SIM110
         if pat.search(rel_path):
             return True
     return False
@@ -161,7 +161,7 @@ def _is_excluded_path(rel_path: str) -> bool:
 
 def _is_placeholder(text: str) -> bool:
     """Return True if the matched secret line is an explicit placeholder."""
-    for pat in PLACEHOLDER_PATTERNS:
+    for pat in PLACEHOLDER_PATTERNS:  # noqa: SIM110
         if pat.search(text):
             return True
     return False

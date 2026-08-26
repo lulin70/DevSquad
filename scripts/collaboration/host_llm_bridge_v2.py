@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HostLLMBridge v2 (V4.5.5).
+"""HostLLMBridge v2 (V4.5.6).
 
 V2 协议升级（对齐 weiransoft/TraeMultiAgentSkill v2.8.4）:
 - marker 7 字段 (request_id/agent_type/task/request_file/prompt_file/timeout_seconds/timestamp)

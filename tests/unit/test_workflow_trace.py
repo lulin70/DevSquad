@@ -5,7 +5,7 @@
 2. test_trace_in_report — Side-Effect (report contains "## Workflow Trace")
 3. test_empty_workflow — Boundary (dry_run → empty trace, no steps)
 4. test_trace_to_markdown — Happy (markdown renders all sections)
-5. test_call_counter — Anti-Ghost (_call_counter increments)
+5. test_call_counter_er — Anti-Ghost (_call_counter_er increments)
 
 Uses REAL components (MultiAgentDispatcher with default mock backend),
 not Mock — per V4.4.4 implementation rules.
@@ -163,12 +163,12 @@ def test_trace_to_markdown() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_call_counter() -> None:
-    """Anti-Ghost: module-level _call_counter increments on construction."""
-    before = models_dispatch_module._call_counter
+def test_call_counter_er() -> None:
+    """Anti-Ghost: module-level _call_counter_er increments on construction."""
+    before = models_dispatch_module._call_counter_er
     # Construct a WorkflowTrace — should bump the counter.
     WorkflowTrace(task_description="anti-ghost verification")
-    after = models_dispatch_module._call_counter
+    after = models_dispatch_module._call_counter_er
     assert after > before, (
-        f"_call_counter did not increment: before={before}, after={after}"
+        f"_call_counter_er did not increment: before={before}, after={after}"
     )

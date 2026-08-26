@@ -234,10 +234,9 @@ class TestArtifactStoreSchemaContract:
         actual = {f.name for f in fields(Artifact)}
         assert required.issubset(actual)
 
-    def test_get_call_counter_exposed(self) -> None:
-        from scripts.collaboration.artifact_store import get_call_counter
-
-        assert isinstance(get_call_counter(), int)
+    def test_get_call_counter_er_exposed(self) -> None:
+        from scripts.collaboration.artifact_store import get_call_counter_er
+        assert isinstance(get_call_counter_er(), int)
 
 
 # ── A6: Manifest schema ────────────────────────────────────────────────────

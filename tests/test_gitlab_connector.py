@@ -10,7 +10,7 @@ import pytest
 from scripts.collaboration.gitlab_connector import (
     GitLabConnector,
     GitLabMRRef,
-    _call_counter,
+    _call_counter_er,
     get_call_count,
 )
 
@@ -19,9 +19,9 @@ from scripts.collaboration.gitlab_connector import (
 def reset_counter():
     """Reset module-level counter between tests."""
     import scripts.collaboration.gitlab_connector as mod
-    mod._call_counter = 0
+    mod._call_counter_er = 0
     yield
-    mod._call_counter = 0
+    mod._call_counter_er = 0
 
 
 class TestGitLabConnectorConstants:
@@ -256,7 +256,7 @@ class TestExportMarkdown:
 
 def get_call_counter_value() -> int:
     """Helper to read the current counter value."""
-    return _call_counter
+    return _call_counter_er
 
 
 class TestAntiGhost:
@@ -283,7 +283,7 @@ class TestIndependentFromGitHub:
     def test_gitlab_counter_independent(self):
         # Verify our local counter is module-level for gitlab_connector
         from scripts.collaboration import gitlab_connector as gc
-        assert gc._call_counter >= 0
+        assert gc._call_counter_er >= 0
 
     def test_construct_two_connectors_share_local_counter(self):
         # Note: local counter is module-level, shared across instances.

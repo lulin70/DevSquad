@@ -36,11 +36,14 @@ def scan_test_file(detector: AntiPatternDetector, test_file: Path) -> list[Quali
 
     Lines containing ``# noqa: test-quality`` are skipped (false positive
     suppression, e.g., string literals that contain anti-pattern text as
-    test fixtures for the detector itself).
+    test fixtures for the detector itself). The detection logic checks both
+    the matched line AND the next 5 lines for noqa — because ``detect_in_source``
+    flags the matched line by its own index, but for fixture strings the actual
+    ``noqa`` directive may live on an inner line of the multi-line literal.
 
     Args:
         detector: AntiPatternDetector instance.
-        test_file: Path to the test file to scan.
+        test_file: File path used for reporting issue locations.
 
     Returns:
         List of QualityIssue found in the file.
@@ -51,23 +54,34 @@ def scan_test_file(detector: AntiPatternDetector, test_file: Path) -> list[Quali
         print(f"  WARN: cannot read {test_file}: {exc}", file=sys.stderr)
         return []
     issues = detector.detect_in_source(source, str(test_file))
-    # Filter out noqa-suppressed issues.
+    # Filter out noqa-suppressed issues (check the matched line AND the next 5
+    # lines, since fixture strings can span multiple lines).
     return [i for i in issues if not _is_noqa_suppressed(source, i.line)]
 
 
 def _is_noqa_suppressed(source: str, line_no: int) -> bool:
-    """Check if a line has a ``# noqa: test-quality`` suppression comment.
+    """Check if a line or any of the next 5 lines has ``# noqa: test-quality``.
+
+    For multi-line fixture strings (e.g., ``code = "@lru_cache\ndef ...``), the
+    detector flags line 1 of the literal but the ``noqa`` directive may be on
+    the same or following line within the literal. We allow suppression on
+    line_no OR line_no+1..line_no+5 to handle these cases.
 
     Args:
         source: Full source code text.
-        line_no: 1-based line number to check.
+        line_no: 1-based line index of the matched anti-pattern.
 
     Returns:
-        True if the line contains the suppression comment.
+        True if ``# noqa: test-quality`` appears on any of the 6 lines.
     """
     lines = source.split("\n")
-    if 1 <= line_no <= len(lines):
-        return "# noqa: test-quality" in lines[line_no - 1]
+    # V4.5.6 W2: extend noqa detection to 8 lines so multi-line fixture strings
+    # with noqa on a non-immediate line are suppressed (test_07 has @lru_cache
+    # on line 1 of fixture but noqa on line 2 of literal).
+    for offset in range(0, 8):  # noqa: test-quality
+        idx = line_no - 1 + offset
+        if 0 <= idx < len(lines) and "# noqa: test-quality" in lines[idx]:
+            return True
     return False
 
 

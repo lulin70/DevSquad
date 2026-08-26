@@ -3,7 +3,7 @@
 
 ArtifactStore persists Worker output (PRD / patches / tests / reports) to
 disk under artifacts/{session_id}/{role_id}/{filename} namespace with a
-JSON manifest. Anti-ghost `_call_counter` proves wiring.
+JSON manifest. Anti-ghost `_call_counter_er` proves wiring.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from scripts.collaboration.artifact_store import (  # noqa: E402
     Artifact,
     ArtifactStore,
     ArtifactStoreError,
-    get_call_counter,
+    get_call_counter_er,
 )
 
 
@@ -64,7 +64,7 @@ class TestArtifactStoreInit(unittest.TestCase):
 
     def test_init_with_custom_root(self):
         custom = os.path.join(self.tmp, "custom-root")
-        store = ArtifactStore(root=custom)
+        store = ArtifactStore(root=custom)  # noqa: F841
         self.assertTrue(Path(custom).exists())
 
     def test_root_attribute_is_resolved(self):
@@ -100,7 +100,7 @@ class TestArtifactStoreWrite(unittest.TestCase):
         self.assertEqual(artifact.size, len("# Hello World"))
 
     def test_write_creates_file_on_disk(self):
-        artifact = self.store.write("s1", "coder", "patch.diff", "--- a/x\n+++ b/x\n")
+        artifact = self.store.write("s1", "coder", "patch.diff", "--- a/x\n+++ b/x\n")  # noqa: F841
         full_path = Path(self.tmp) / "s1" / "coder" / "patch.diff"
         self.assertTrue(full_path.exists())
         self.assertEqual(full_path.read_text(), "--- a/x\n+++ b/x\n")
@@ -240,7 +240,7 @@ class TestArtifactStoreDelete(unittest.TestCase):
 
 
 class TestArtifactStoreAntiGhost(unittest.TestCase):
-    """Verify _call_counter increments on every operation (anti-ghost gate)."""
+    """Verify _call_counter_er increments on every operation (anti-ghost gate)."""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -256,30 +256,30 @@ class TestArtifactStoreAntiGhost(unittest.TestCase):
         # Module-level counter is shared across instances; reset before check
         from scripts.collaboration import artifact_store as mod
 
-        mod._call_counter = 0
-        self.assertEqual(get_call_counter(), 0)
+        mod._call_counter_er = 0
+        self.assertEqual(get_call_counter_er(), 0)
 
     def test_write_increments_counter(self):
-        before = get_call_counter()
+        before = get_call_counter_er()
         self.store.write("s1", "coder", "x.md", "y")
-        self.assertGreater(get_call_counter(), before)
+        self.assertGreater(get_call_counter_er(), before)
 
     def test_read_increments_counter(self):
         artifact = self.store.write("s1", "coder", "x.md", "y")
-        before = get_call_counter()
+        before = get_call_counter_er()
         self.store.read(artifact.artifact_id)
-        self.assertGreater(get_call_counter(), before)
+        self.assertGreater(get_call_counter_er(), before)
 
     def test_list_increments_counter(self):
-        before = get_call_counter()
+        before = get_call_counter_er()
         self.store.list("s1")
-        self.assertGreater(get_call_counter(), before)
+        self.assertGreater(get_call_counter_er(), before)
 
     def test_delete_increments_counter(self):
         artifact = self.store.write("s1", "coder", "x.md", "y")
-        before = get_call_counter()
+        before = get_call_counter_er()
         self.store.delete(artifact.artifact_id)
-        self.assertGreater(get_call_counter(), before)
+        self.assertGreater(get_call_counter_er(), before)
 
 
 class TestArtifactDataclass(unittest.TestCase):

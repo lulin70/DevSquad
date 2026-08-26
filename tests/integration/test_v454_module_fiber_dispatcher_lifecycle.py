@@ -119,7 +119,7 @@ class TestFibersActiveAfterDispatch:
         d = _make_dispatcher()
         for i in range(3):
             d.dispatch(f"task #{i}", dry_run=True)
-        for module_id, fiber in d._module_fibers.items():
+        for module_id, fiber in d._module_fibers.items():  # noqa: B007
             assert fiber.state == FiberState.ACTIVE
 
     def test_module_fiber_registry_unchanged_after_dispatch(self) -> None:

@@ -15,7 +15,7 @@ Decides task scale S/M/L BEFORE RoleMatcher (per upstream §3.2 layering).
   4. S 触发: 单文件 / 小修复 / 单函数重构 / 纯问答
   5. 保底: M（宁可多验证）
 
-Anti-Ghost: _call_counter 每次 decide() 递增。
+Anti-Ghost: _call_counter_er 每次 decide() 递增。
 """
 
 from __future__ import annotations
@@ -24,17 +24,17 @@ import re
 from dataclasses import dataclass
 
 # Module-level Anti-Ghost counter (CI: check_module_activation.py asserts > 0)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return module activation counter (for Anti-Ghost verification)."""
-    return _call_counter
+    return _call_counter_er
 
 
-def _inc_call_counter() -> None:
-    global _call_counter
-    _call_counter += 1
+def _inc_call_counter_er() -> None:
+    global _call_counter_er
+    _call_counter_er += 1
 
 
 @dataclass(frozen=True)
@@ -123,8 +123,8 @@ class TaskScaleGate:
     def decide(
         self,
         task: str,
-        roles: list[str] | None = None,
-        mode: str = "auto",
+        roles: list[str] | None = None,  # noqa: ARG002
+        mode: str = "auto",  # noqa: ARG002
         **kwargs: object,
     ) -> TaskScale:
         """Decide task scale.
@@ -143,7 +143,7 @@ class TaskScaleGate:
         Returns:
             TaskScale with level/signal/max_roles/orchestrator/single_role.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         self._local_call_count += 1
 
         # ① 显式覆盖优先级最高
@@ -298,7 +298,7 @@ def _count_files(task: str) -> int:
 __all__ = [
     "TaskScale",
     "TaskScaleGate",
-    "get_call_counter",
+    "get_call_counter_er",
     "S_MAX_ROLES",
     "M_MAX_ROLES",
     "L_MAX_ROLES",
@@ -309,4 +309,4 @@ __all__ = [
 
 
 # Initialize anti-ghost counter on module load
-_inc_call_counter()
+_inc_call_counter_er()

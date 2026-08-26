@@ -28,9 +28,9 @@ from scripts.collaboration.dispatch_hooks import DispatchHooks
 from scripts.collaboration.scratchpad import ScratchpadEntry
 
 
-def _reset_call_counter() -> None:
+def _reset_call_counter_er() -> None:
     import scripts.collaboration.dependency_hallucination_checker as mod
-    mod._call_counter = 0
+    mod._call_counter_er = 0
 
 
 class _MockScratchpad:
@@ -84,7 +84,7 @@ class T1_DispatchHookAutoTriggersScan(unittest.TestCase):
     """T1: post_execution_processing auto-invokes the dependency scan."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.hooks = _make_hooks()
 
     def test_01_suspicious_package_in_worker_output_detected(self) -> None:
@@ -174,7 +174,7 @@ class T2_SkipConditions(unittest.TestCase):
     """T2: Skip conditions prevent unnecessary scans."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.hooks = _make_hooks()
 
     def test_01_short_output_skipped(self) -> None:
@@ -221,7 +221,7 @@ class T3_DisableScanToggle(unittest.TestCase):
     """T3: enable_dependency_scan=False disables the scan entirely."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.hooks = _make_hooks(enable_dependency_scan=False)
 
     def test_01_disabled_scan_returns_empty(self) -> None:
@@ -252,7 +252,7 @@ class T4_PostExecutionProcessingIntegration(unittest.TestCase):
     """T4: Full post_execution_processing pipeline includes dep scan."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.hooks = _make_hooks()
 
     def test_01_post_execution_processing_runs_dep_scan(self) -> None:
@@ -299,7 +299,7 @@ class T5_MultiWorkerScenarios(unittest.TestCase):
     """T5: Multiple workers with mixed code outputs."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.hooks = _make_hooks()
 
     def test_01_multiple_workers_one_suspicious(self) -> None:

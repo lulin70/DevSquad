@@ -8,7 +8,7 @@ Iron Rules applied:
      defaults backend/model to "mock"; None backend normalizes to "unknown".
   2. Failure-means-report: no try/except swallowing — real components only.
   3. Dimension-completeness: 13 tests across 7 dimensions (see matrix below).
-  4. Side-effect-verification: ``_call_counter`` anti-ghost verified.
+  4. Side-effect-verification: ``_call_counter_er`` anti-ghost verified.
   5. User-journey-first: Worker integration + audit-log integration mirror the
      real "which AI instance made this decision?" cross-session journey.
   6. e2e-release-gate: covered by tests/e2e/test_v443_persistence.py.
@@ -23,11 +23,11 @@ Dimension matrix (13 tests):
   Integration (3): worker_integration, audit_log_integration, query_by_agent
   Side-Effect (1): call_counter_anti_ghost
 
-Anti-ghost note: ``_call_counter`` is a module-level ``int`` rebound on every
-public call (``_call_counter += 1``). Because ints are immutable, ``from
-module import _call_counter`` binds a *snapshot* at import time and would NOT
+Anti-ghost note: ``_call_counter_er`` is a module-level ``int`` rebound on every
+public call (``_call_counter_er += 1``). Because ints are immutable, ``from
+module import _call_counter_er`` binds a *snapshot* at import time and would NOT
 reflect later increments — so we read it via module attribute access
-(``agent_identity._call_counter``), the same pattern used by the V4.4.0
+(``agent_identity._call_counter_er``), the same pattern used by the V4.4.0
 anti-ghost E2E tests.
 """
 
@@ -247,22 +247,22 @@ class TestAgentIdentity(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_call_counter_anti_ghost(self) -> None:
-        """Side-Effect: module-level _call_counter increments on every public call.
+        """Side-Effect: module-level _call_counter_er increments on every public call.
 
         Reads via module attribute access (NOT ``from import``) because the
         counter is an int rebound on each call — a from-import would capture a
         stale snapshot and give a false negative.
         """
-        before = ai_module._call_counter
+        before = ai_module._call_counter_er
         # Each public entry point increments the counter.
         AgentIdentity.create("architect", "mock", "mock")
         derive_agent_id("tester", "mock", "mock")
-        after = ai_module._call_counter
-        self.assertGreater(after, before, "module _call_counter did not increment")
+        after = ai_module._call_counter_er
+        self.assertGreater(after, before, "module _call_counter_er did not increment")
         self.assertGreaterEqual(after - before, 2, "expected at least 2 increments")
         # The instance property mirrors the module global (read at call time).
         identity = AgentIdentity.create("dev", "mock", "mock")
-        self.assertEqual(identity._call_counter, ai_module._call_counter)
+        self.assertEqual(identity._call_counter_er, ai_module._call_counter_er)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ Architecture:
                                             v
                                   skills.registry (import-based, existing)
 
-Anti-ghost: class-level ``_call_counter`` increments on every public method
+Anti-ghost: class-level ``_call_counter_er`` increments on every public method
 call, proving the provider path is exercised (not ghost code).
 """
 
@@ -43,7 +43,7 @@ class BuiltinSkillProvider:
     """
 
     # Anti-ghost counter (class-level). Incremented by every public method.
-    _call_counter: int = 0
+    _call_counter_er: int = 0
 
     def __init__(self) -> None:
         # Runtime-registered skills: name -> skill class (BaseSkill subclass).
@@ -58,7 +58,7 @@ class BuiltinSkillProvider:
                 ``name``/``description`` class attributes and a ``run()``
                 method.
         """
-        BuiltinSkillProvider._call_counter += 1
+        BuiltinSkillProvider._call_counter_er += 1
         self._extra[name] = skill_cls
         logger.debug("BuiltinSkillProvider.register: %s -> %s", name, skill_cls.__name__)
 
@@ -69,7 +69,7 @@ class BuiltinSkillProvider:
         built-in skills (loaded via ``skills.registry.list_skills``) with
         any runtime-registered skills from :meth:`register`.
         """
-        BuiltinSkillProvider._call_counter += 1
+        BuiltinSkillProvider._call_counter_er += 1
         result: dict[str, Any] = {}
         # Built-in skills (existing import-based discovery).
         for name in self._list_builtin_skills():
@@ -100,7 +100,7 @@ class BuiltinSkillProvider:
         Raises:
             ValueError: When the skill is not found.
         """
-        BuiltinSkillProvider._call_counter += 1
+        BuiltinSkillProvider._call_counter_er += 1
         return self._get_instance(name)
 
     def invoke(self, name: str, **kwargs: Any) -> Any:
@@ -116,7 +116,7 @@ class BuiltinSkillProvider:
         Raises:
             ValueError: When the skill is not found.
         """
-        BuiltinSkillProvider._call_counter += 1
+        BuiltinSkillProvider._call_counter_er += 1
         inst = self._get_instance(name)
         return inst.run(**kwargs)
 

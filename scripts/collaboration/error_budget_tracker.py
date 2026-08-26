@@ -4,7 +4,7 @@ Calculates the error budget for an SLO target over a rolling window,
 consumes budget on incidents, resets per window, and gates P10
 deployments when the budget is exhausted.
 
-Anti-ghost: module-level ``_call_counter`` increments on every public
+Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Anti-ghost: module-level call counter (AG-1/AG-2)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 class BudgetStatus(Enum):
@@ -50,7 +50,7 @@ _BURN_RATE_THRESHOLD: float = 2.0
 class ErrorBudgetTracker:
     """Tracker for SRE error budgets with P10 deployment gate integration.
 
-    Anti-ghost: every public method increments ``_call_counter``.
+    Anti-ghost: every public method increments ``_call_counter_er``.
     """
 
     def __init__(
@@ -103,8 +103,8 @@ class ErrorBudgetTracker:
         Raises:
             ValueError: If parameters are invalid.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if not 0 < slo_target < 1:
             raise ValueError(f"slo_target must be in (0, 1), got {slo_target}")
@@ -166,8 +166,8 @@ class ErrorBudgetTracker:
         Raises:
             KeyError: If budget_id not found.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if budget_id not in self._budgets:
             raise KeyError(f"Unknown budget_id: {budget_id!r}")
@@ -194,8 +194,8 @@ class ErrorBudgetTracker:
         Returns:
             Reset ErrorBudget.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if budget_id not in self._budgets:
             raise KeyError(f"Unknown budget_id: {budget_id!r}")
@@ -219,8 +219,8 @@ class ErrorBudgetTracker:
         Returns:
             Current BudgetStatus.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         # E2E test sets _status directly; prefer tracker-level state
         return self._status
@@ -231,8 +231,8 @@ class ErrorBudgetTracker:
         Returns:
             Markdown string with budget remaining, burn rate, and status.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         pct = self._budget_remaining * 100
         bar_filled = int(pct / 10)

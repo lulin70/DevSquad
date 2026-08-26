@@ -100,14 +100,14 @@ class TestRoleSpecificMockIntegration(unittest.TestCase):
     """Integration tests."""
 
     def test_08_call_counter_increments(self) -> None:
-        """Integration: _call_counter increments on each generate() call."""
+        """Integration: _call_counter_er increments on each generate() call."""
         import scripts.collaboration.role_specific_mock_backend as module
 
-        before = module._call_counter
+        before = module._call_counter_er
         backend = RoleSpecificMockBackend()
         backend.generate("test1")
         backend.generate("test2")
-        after = module._call_counter
+        after = module._call_counter_er
         self.assertGreater(after, before)
 
 

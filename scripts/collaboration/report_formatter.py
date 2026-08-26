@@ -71,9 +71,9 @@ _CONSENSUS_OUTCOME_BADGES: dict[str, str] = {
 _ACTION_PRIORITY_BADGES: dict[str, str] = {"H": "🔴高", "M": "🟡中", "L": "🟢低"}
 
 # V4.5.0 (PRD 10.1.1) anti-ghost counter: increments on every
-# ``format_report`` dispatch call. Tests assert ``_call_counter > 0`` to
+# ``format_report`` dispatch call. Tests assert ``_call_counter_er > 0`` to
 # prove the new code path is actually exercised (not a ghost stub).
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 # Cap for list items in action_first mode (PRD 10.1.1: "cap lists at 5").
 _ACTION_FIRST_LIST_CAP: int = 5
@@ -152,11 +152,11 @@ class ReportFormatter:
             :meth:`format_structured_report` (existing behavior, unchanged
             for backward compatibility).
 
-        Increments the module-level ``_call_counter`` (anti-ghost) on every
+        Increments the module-level ``_call_counter_er`` (anti-ghost) on every
         call so tests can prove the dispatch path is exercised.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if output_style == "action_first":
             return self._render_action_first(result)

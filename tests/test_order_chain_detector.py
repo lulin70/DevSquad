@@ -19,10 +19,10 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.order_chain_detector import (
+from scripts.collaboration.order_chain_detector import (  # noqa: E402
     OrderChainDecision,
     OrderChainDetector,
-    get_call_counter,
+    get_call_counter_er,
 )
 
 pytestmark = pytest.mark.unit
@@ -218,12 +218,12 @@ class TestT6Precedence:
 
 class TestAntiGhostAndRolePassthrough:
     def test_call_counter_increments(self):
-        """detect() 每次调用让 _call_counter 增加。"""
-        before = get_call_counter()
+        """detect() 每次调用让 _call_counter_er 增加。"""
+        before = get_call_counter_er()
         detector = OrderChainDetector()
         for _ in range(5):
             detector.detect("any")
-        after = get_call_counter()
+        after = get_call_counter_er()
         assert after - before == 5
 
     def test_role_id_in_decision(self):

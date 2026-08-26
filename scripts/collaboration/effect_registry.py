@@ -5,7 +5,7 @@ LIFO stack of applied effects. On dispatch failure, ``revert_all()`` rolls
 back effects in reverse order (most recent first). Recoverable: revert
 failures do not block subsequent reverts.
 
-Anti-ghost: ``_call_counter`` exposed via ``get_call_count()``.
+Anti-ghost: ``_call_counter_er`` exposed via ``get_call_count()``.
 """
 
 from __future__ import annotations
@@ -18,20 +18,20 @@ from scripts.collaboration.dispatch_effect import (
     EffectOutcome,
 )
 
-_call_counter: int = 0
+_call_counter_er: int = 0
 _call_counter_lock = threading.Lock()
 
 
-def _inc_call_counter() -> None:
-    global _call_counter
+def _inc_call_counter_er() -> None:
+    global _call_counter_er
     with _call_counter_lock:
-        _call_counter += 1
+        _call_counter_er += 1
 
 
 def get_call_count() -> int:
     """Return current anti-ghost counter value."""
     with _call_counter_lock:
-        return _call_counter
+        return _call_counter_er
 
 
 class EffectRegistryError(Exception):
@@ -50,11 +50,11 @@ class EffectRegistry:
     def __init__(self) -> None:
         self._stack: list[tuple[DispatchEffect, EffectContext]] = []
         self._lock = threading.Lock()
-        _inc_call_counter()
+        _inc_call_counter_er()
 
     def pending_count(self) -> int:
         """Return number of un-reverted effects."""
-        _inc_call_counter()
+        _inc_call_counter_er()
         with self._lock:
             return len(self._stack)
 
@@ -69,7 +69,7 @@ class EffectRegistry:
             EffectOutcome from the effect's apply(). On success, the effect
             is appended to the stack.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         outcome = effect.apply(ctx)
         if outcome.success:
             with self._lock:
@@ -82,7 +82,7 @@ class EffectRegistry:
         Returns:
             EffectOutcome, or None if the stack is empty.
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         with self._lock:
             if not self._stack:
                 return None
@@ -99,7 +99,7 @@ class EffectRegistry:
         Returns:
             List of EffectOutcome (one per applied effect, in LIFO order).
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         outcomes: list[EffectOutcome] = []
         with self._lock:
             stack_copy = list(reversed(self._stack))
@@ -117,6 +117,6 @@ class EffectRegistry:
 
         Use with caution — typically called after explicit revert_all().
         """
-        _inc_call_counter()
+        _inc_call_counter_er()
         with self._lock:
             self._stack.clear()

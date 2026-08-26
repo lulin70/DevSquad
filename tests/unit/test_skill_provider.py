@@ -6,7 +6,7 @@ section 4.1. Verifies:
   - BuiltinSkillProvider wraps the existing import-based registry (backward compat)
   - MCPSkillProvider bridges MCP tools as skills (new capability)
   - SkillRegistry delegates to the active provider and supports swapping
-  - Anti-ghost: _call_counter > 0 after operations
+  - Anti-ghost: _call_counter_er > 0 after operations
 
 Iron Rules:
   - Rule 1 (Documentation First): signatures verified against source, not memory.
@@ -245,15 +245,15 @@ def test_mcp_provider():
 # ---------------------------------------------------------------------------
 
 
-def test_call_counter():
-    """Anti-Ghost: _call_counter > 0 after operations for both providers."""
+def test_call_counter_er():
+    """Anti-Ghost: _call_counter_er > 0 after operations for both providers."""
     # Exercise BuiltinSkillProvider.
     builtin = BuiltinSkillProvider()
     builtin.register("echo", _EchoSkill)
     builtin.discover()
     builtin.instantiate("intent")
     builtin.invoke("echo", x=1)
-    assert BuiltinSkillProvider._call_counter > 0
+    assert BuiltinSkillProvider._call_counter_er > 0
     # Protocol conformance (runtime_checkable): the provider structurally
     # satisfies the SkillProvider protocol.
     assert isinstance(builtin, SkillProvider)
@@ -264,10 +264,10 @@ def test_call_counter():
     mcp.discover()
     mcp.instantiate("mcp-echo")
     mcp.invoke("mcp-echo", x=1)
-    assert MCPSkillProvider._call_counter > 0
+    assert MCPSkillProvider._call_counter_er > 0
     assert isinstance(mcp, SkillProvider)
 
     # The protocols module also exposes a module-level anti-ghost counter.
     from scripts.collaboration import protocols as protocols_mod
 
-    assert hasattr(protocols_mod, "_call_counter")
+    assert hasattr(protocols_mod, "_call_counter_er")

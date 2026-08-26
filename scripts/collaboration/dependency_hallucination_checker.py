@@ -37,7 +37,7 @@ Anti-ghost-feature contract
 - Triggered naturally by SecuritySkill.scan_dependencies() and by the
   dispatch post-worker hook (dispatch_hooks.py). No separate manual call
   required.
-- Module-level `_call_counter` tracks invocations; CI's
+- Module-level `_call_counter_er` tracks invocations; CI's
   E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``) reads this counter to detect zero-call
   ghosts.
 - DependencyScanResult.to_markdown() renders a "安全检查" section in the
@@ -157,7 +157,7 @@ _SUSPICIOUS_SUFFIXES = (
 # Module-level call counter (anti-ghost feature)
 # ---------------------------------------------------------------------------
 
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 def get_call_count() -> int:
@@ -166,7 +166,7 @@ def get_call_count() -> int:
     Used by E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``) to detect ghost features
     (modules that exist but are never invoked).
     """
-    return _call_counter
+    return _call_counter_er
 
 
 # ---------------------------------------------------------------------------
@@ -781,12 +781,12 @@ def security_scan_dependencies(
         ValueError: If code is empty or ecosystem is invalid.
 
     Anti-ghost-feature contract:
-        - Increments module-level _call_counter (CI checks > 0)
+        - Increments module-level _call_counter_er (CI checks > 0)
         - Result.to_markdown() renders user-visible "安全检查" section
         - Triggered automatically by SecuritySkill and dispatch post-worker hook
     """
-    global _call_counter
-    _call_counter += 1
+    global _call_counter_er
+    _call_counter_er += 1
 
     start_time = datetime.now()
 

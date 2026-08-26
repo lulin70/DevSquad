@@ -625,11 +625,11 @@ groups:
 > **Document End**
 >
 > **Version**: V1.3.0
-> **Updated**: 2026-08-25 — V4.5.5 P12.4 added §11 (3 alerts + 4 new metrics)
+> **Updated**: 2026-08-25 — V4.5.6 P12.4 added §11 (3 alerts + 4 new metrics)
 
 ---
 
-## 11. V4.5.5 Module Alerts (P12.4: HostLLMBridge v2 + Dispatcher Transactions)
+## 11. V4.5.6 Module Alerts (P12.4: HostLLMBridge v2 + Dispatcher Transactions)
 
 ### 11.1 Transaction 卡在 ACTIVE 状态 > 60s
 
@@ -649,7 +649,7 @@ groups:
           severity: warning
           module: DispatcherTransaction
         annotations:
-          summary: "V4.5.5 transaction {{ $labels.tx_id }} 卡在 ACTIVE 状态 (> 60s)"
+          summary: "V4.5.6 transaction {{ $labels.tx_id }} 卡在 ACTIVE 状态 (> 60s)"
           description: "tx={{ $labels.tx_id }} stuck in ACTIVE for > 60s; expected <5s"
           runbook: "docs/operations/RUNBOOK.md#sc-14-transaction-stuck-active"
 ```
@@ -668,7 +668,7 @@ groups:
           severity: critical
           module: DispatcherTransaction
         annotations:
-          summary: "V4.5.5 transaction rollback 风暴 — {{ $value }} 次/秒"
+          summary: "V4.5.6 transaction rollback 风暴 — {{ $value }} 次/秒"
           description: "rollback rate > 5/min; modules failing repeatedly"
           runbook: "docs/operations/RUNBOOK.md#sc-15-transaction-rollback-storm"
 ```
@@ -687,7 +687,7 @@ groups:
           severity: warning
           module: DispatchLoopController
         annotations:
-          summary: "V4.5.5 LoopController 触发熔断 — {{ $value }} 次/5m"
+          summary: "V4.5.6 LoopController 触发熔断 — {{ $value }} 次/5m"
           description: "consecutive retriable loop fuse triggered; dispatcher stopped"
           runbook: "docs/operations/RUNBOOK.md#sc-16-loop-controller-fused"
 ```
@@ -696,9 +696,9 @@ groups:
 **原因**: 连续 2 次相同 reason retriable 触发熔断；dispatcher 进入稳定失败循环
 **runbook**: RUNBOOK.md SC-16
 
-### Appendix Update (V4.5.5)
+### Appendix Update (V4.5.6)
 
-新增指标（V4.5.5 P12.4）:
+新增指标（V4.5.6 P12.4）:
 
 | 指标 | 类型 | 用途 |
 |------|------|------|

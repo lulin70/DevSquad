@@ -12,7 +12,7 @@ Contracts under test:
   AU4  Tampering with any entry invalidates the chain.
   AU5  Subparser registration produces an argparse subparser with the
        documented flags (--limit, --format, --event-type, --verify, --db-path).
-  AU6  Module-level anti-ghost counter exposed via get_call_counter().
+  AU6  Module-level anti-ghost counter exposed via get_call_counter_er().
 """
 
 from __future__ import annotations
@@ -123,7 +123,7 @@ class TestCmdAuditReturnCodes:
 
         # Tamper with one entry's details
         conn = sqlite3.connect(str(populated_db))
-        cur = conn.execute("UPDATE dispatch_audit SET details = ? WHERE id = 1", (json.dumps({"tampered": True}),))
+        cur = conn.execute("UPDATE dispatch_audit SET details = ? WHERE id = 1", (json.dumps({"tampered": True}),))  # noqa: F841
         conn.commit()
         conn.close()
 
@@ -287,19 +287,19 @@ class TestOutputFormatting:
 
 
 class TestAuditCliAntiGhostCounter:
-    """AU6: get_call_counter() exposes the module-level counter."""
+    """AU6: get_call_counter_er() exposes the module-level counter."""
 
     def test_counter_is_int(self) -> None:
-        from scripts.cli_audit import get_call_counter
+        from scripts.cli_audit import get_call_counter_er
 
-        assert isinstance(get_call_counter(), int)
+        assert isinstance(get_call_counter_er(), int)
 
     def test_counter_increments_on_cmd_audit(self) -> None:
-        from scripts.cli_audit import cmd_audit, get_call_counter
+        from scripts.cli_audit import cmd_audit, get_call_counter_er
 
-        before = get_call_counter()
+        before = get_call_counter_er()
         cmd_audit(_make_args(db_path=None))
-        after = get_call_counter()
+        after = get_call_counter_er()
         assert after > before
 
 

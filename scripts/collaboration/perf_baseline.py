@@ -12,7 +12,7 @@ CI gates:
   Direct API:     p95 > +20% above baseline → block PR (network slack)
   auto-fallback:  diagnostic only (no CI gate)
 
-Anti-Ghost: _call_counter 每次 collect/compare 递增。
+Anti-Ghost: _call_counter_er 每次 collect/compare 递增。
 """
 
 from __future__ import annotations
@@ -28,17 +28,17 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # Module-level Anti-Ghost counter
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return module activation counter (for Anti-Ghost verification)."""
-    return _call_counter
+    return _call_counter_er
 
 
-def _inc_call_counter() -> None:
-    global _call_counter
-    _call_counter += 1
+def _inc_call_counter_er() -> None:
+    global _call_counter_er
+    _call_counter_er += 1
 
 
 # === Sample size + thresholds (PRD §5.2) ===
@@ -104,7 +104,7 @@ class PerfSnapshot:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PerfSnapshot":
+    def from_dict(cls, data: dict[str, Any]) -> PerfSnapshot:
         """Deserialize from dict."""
         return cls(**data)
 
@@ -126,7 +126,7 @@ class PerfBaseline:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PerfBaseline":
+    def from_dict(cls, data: dict[str, Any]) -> PerfBaseline:
         return cls(
             version=data.get("version", "v4.5.2"),
             snapshots={
@@ -143,13 +143,13 @@ class PerfBaseline:
         logger.info("PerfBaseline saved: %s (%d paths)", path, len(self.snapshots))
 
     @classmethod
-    def load(cls, path: str = DEFAULT_BASELINE_PATH) -> "PerfBaseline":
+    def load(cls, path: str = DEFAULT_BASELINE_PATH) -> PerfBaseline:
         """Load baseline from JSON file. Empty baseline if missing."""
         if not os.path.exists(path):
             logger.debug("PerfBaseline not found: %s (returning empty)", path)
             return cls()
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 return cls.from_dict(json.load(f))
         except (OSError, json.JSONDecodeError) as e:
             logger.warning("PerfBaseline load failed (%s); returning empty", e)
@@ -207,7 +207,7 @@ class PerfSampleCollector:
         """Manually add a sample (e.g., from external measurement)."""
         self._samples.append(latency_ms)
 
-    def exclude(self, reason: str = "manual") -> None:
+    def exclude(self, reason: str = "manual") -> None:  # noqa: ARG002
         """Increment excluded counter (e.g., timeout, corrupted response)."""
         self._excluded += 1
 
@@ -226,7 +226,7 @@ class PerfSampleCollector:
         snapshot_id: str = "",
     ) -> PerfSnapshot:
         """Build PerfSnapshot, dropping first ``warmup_discard`` samples."""
-        _inc_call_counter()
+        _inc_call_counter_er()
 
         # Apply warmup discard
         steady = self._samples[warmup_discard:] if len(self._samples) > warmup_discard else []
@@ -292,7 +292,7 @@ def compare_to_baseline(
     Returns:
         The same snapshot, annotated.
     """
-    _inc_call_counter()
+    _inc_call_counter_er()
 
     base = baseline.snapshots.get(snapshot.path)
     if base is None:
@@ -374,7 +374,7 @@ __all__ = [
     "PerfSampleCollector",
     "compare_to_baseline",
     "collect_snapshot_for_path",
-    "get_call_counter",
+    "get_call_counter_er",
     "SAMPLE_COUNTS",
     "WARMUP_DISCARD",
     "GATE_THRESHOLDS",
@@ -390,4 +390,4 @@ def _now_iso() -> str:
 
 
 # Initialize anti-ghost counter on module load
-_inc_call_counter()
+_inc_call_counter_er()

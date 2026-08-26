@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # V4.5.0 Anti-ghost call counter (module-level). Incremented on every public
 # SessionResume method call so ``check_module_activation.py`` can verify the
 # module is wired into the dispatch pipeline (not a ghost feature).
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 class CheckpointStatus(Enum):
@@ -872,8 +872,8 @@ class CheckpointManager:
             one of ``"completed"`` / ``"interrupted"`` / ``"unknown"``. Returns
             an empty list on errors (graceful — never raises).
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
         try:
             checkpoints = self.list_checkpoints()
             sessions: list[dict[str, Any]] = []
@@ -910,8 +910,8 @@ class CheckpointManager:
             empty dict if the checkpoint is missing, corrupted, or fails to
             load (graceful — never raises).
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
         try:
             cp = self.load_checkpoint(session_id)
             if cp is None:

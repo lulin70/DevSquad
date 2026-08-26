@@ -12,8 +12,8 @@ from scripts.collaboration.moka_backend import (
     MOKA_DEFAULT_BASE_URL,
     MOKA_DEFAULT_MODEL,
     MokaAIBackend,
-    _call_counter,
-    get_call_counter,
+    _call_counter_er,
+    get_call_counter_er,
 )
 
 
@@ -21,9 +21,9 @@ from scripts.collaboration.moka_backend import (
 def reset_counter():
     """Reset module-level counter between tests."""
     import scripts.collaboration.moka_backend as mod
-    mod._call_counter = 0
+    mod._call_counter_er = 0
     yield
-    mod._call_counter = 0
+    mod._call_counter_er = 0
 
 
 # --- Class-level constants ---
@@ -143,9 +143,9 @@ class TestMokaAIBackendIsAvailable:
 
     def test_is_available_increments_counter(self):
         b = MokaAIBackend(api_key="k")
-        before = get_call_counter()
+        before = get_call_counter_er()
         b.is_available()
-        after = get_call_counter()
+        after = get_call_counter_er()
         assert after == before + 1
 
 
@@ -155,17 +155,17 @@ class TestMokaAIBackendIsAvailable:
 class TestMokaAIBackendCounter:
     def test_initial_counter_zero(self):
         # Reset by autouse fixture
-        assert get_call_counter() == 0
+        assert get_call_counter_er() == 0
 
     def test_counter_increments_on_is_available(self):
         b = MokaAIBackend(api_key="k")
         b.is_available()
         b.is_available()
         b.is_available()
-        assert get_call_counter() == 3
+        assert get_call_counter_er() == 3
 
     def test_counter_type_int(self):
-        assert isinstance(_call_counter, int)
+        assert isinstance(_call_counter_er, int)
 
 
 # --- Factory integration ---
@@ -246,9 +246,9 @@ class TestMokaAIBackendGenerate:
         mock_client.chat.completions.create.return_value = mock_response
         b._get_client = lambda: mock_client  # type: ignore[assignment]
 
-        before = get_call_counter()
+        before = get_call_counter_er()
         b.generate("hello")
-        assert get_call_counter() == before + 1
+        assert get_call_counter_er() == before + 1
 
     def test_generate_retries_on_failure(self):
         from unittest.mock import MagicMock
@@ -304,4 +304,4 @@ class TestMokaAntiGhost:
         # Simulate multiple invocations from a dispatcher
         for _ in range(5):
             b.is_available()
-        assert get_call_counter() >= 5
+        assert get_call_counter_er() >= 5

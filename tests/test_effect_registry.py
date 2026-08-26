@@ -5,7 +5,7 @@ EffectRegistry provides LIFO revert semantics for filesystem operations
 (WriteFileEffect, DeleteFileEffect, RenameFileEffect). Revert must be
 idempotent — failed reverts don't block subsequent reverts.
 
-Anti-ghost: _call_counter incremented on every registry operation.
+Anti-ghost: _call_counter_er incremented on every registry operation.
 """
 
 from __future__ import annotations
@@ -339,7 +339,7 @@ class TestEffectRegistryAntiGhost(unittest.TestCase):
     def setUp(self):
         from scripts.collaboration import effect_registry as mod
 
-        mod._call_counter = 0
+        mod._call_counter_er = 0
 
     def test_call_counter_starts_at_zero(self):
         self.assertEqual(get_call_count(), 0)

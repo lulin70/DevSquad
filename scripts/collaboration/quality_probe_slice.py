@@ -37,7 +37,7 @@ from .quality_calibration_gate import run_calibration_gate
 from .role_specific_mock_backend import RoleSpecificMockBackend
 
 # Anti-phantom-feature counter
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 _DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "calibration" / "gold_outputs.json"
 
@@ -215,8 +215,8 @@ def run_probe_slice(
         ProbeSliceReport with gate_passed, task_results, mean_stddev,
         signal_strength, and conclusion.
     """
-    global _call_counter
-    _call_counter += 1
+    global _call_counter_er
+    _call_counter_er += 1
 
     # Precondition: Gate 0 must pass
     gate_result = run_calibration_gate()

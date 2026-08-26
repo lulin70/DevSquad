@@ -1,11 +1,11 @@
-# Release Notes — v4.5.5
+# Release Notes — v4.5.6
 
 **Release Date**: 2026-08-25
 **Previous Version**: 4.5.4
-**Current Version**: 4.5.5
+**Current Version**: 4.5.6
 **Type**: MINOR release (HostLLMBridge v2 协议升级 + Dispatcher 事务主线)
 
-> **Note**: V4.5.5 是 DevSQuad **首次多目标复合迭代**（5 Wave 同推），核心目标：
+> **Note**: V4.5.6 是 DevSQuad **首次多目标复合迭代**（5 Wave 同推），核心目标：
 > 1. **HostLLMBridge v2** 与 weiransoft/TraeMultiAgentSkill v2.8.4 协议 95% 对齐
 > 2. **DispatcherTransaction** 5 状态 FSM 提供模块依赖图事务边界
 > 3. **IntentWorkflowMapper** 6×3 意图-语言 lazy 工作流
@@ -17,7 +17,7 @@
 
 ## Summary
 
-V4.5.5 完成 5 个核心 Wave 协同推进，7-Role 共识评分 **9.1/10**（历史新高，超越 V4.5.4 的 8.9）：
+V4.5.6 完成 5 个核心 Wave 协同推进，7-Role 共识评分 **9.1/10**（历史新高，超越 V4.5.4 的 8.9）：
 
 - **Wave 1 — HostLLMBridge v2**：marker 7 字段 + 独立 prompt 文件 + commonpath 安全校验 + v1 向后兼容
 - **Wave 2 — DispatcherTransaction**：5 状态 FSM (PENDING/ACTIVE/COMMITTED/ROLLED_BACK/FAILED) + ALLOWED_TRANSITIONS 表驱动 + LIFO revert + contextmanager
@@ -113,9 +113,9 @@ Loop-level 熔断控制器对齐 weiransoft v2.8.4 §3.3 WorkflowLoopController�
 
 - **ruff**: 0 errors (4 new modules + host_llm_bridge.py + 855 source files)
 - **py_compile**: OK
-- **Anti-Ghost gate**: **18/18 PASS** (V4.5.4 14 → V4.5.5 18, +4 new modules)
+- **Anti-Ghost gate**: **18/18 PASS** (V4.5.4 14 → V4.5.6 18, +4 new modules)
 - **Test Pyramid**: 74.5% unit / 15.3% integration / 5.3% contract (healthy)
-- **Total tests**: 9048 (V4.5.4 8996 → V4.5.5 9048, +52 net)
+- **Total tests**: 9048 (V4.5.4 8996 → V4.5.6 9048, +52 net)
 - **check_version_consistency**: pending P8 gate (target 47/47)
 
 ---
@@ -144,7 +144,7 @@ Loop-level 熔断控制器对齐 weiransoft v2.8.4 §3.3 WorkflowLoopController�
 | G5: 缺 Task subagent_type 映射 | ✅ `SUBAGENT_TYPE_MAP` |
 | G6: SKILL.md 缺诚实标注 | 🟡 partial → V4.5.6 closed |
 
-**V4.5.5 让 DevSquad HostLLMBridge 协议与上游 v2.8.4 95% 对齐。**
+**V4.5.6 让 DevSquad HostLLMBridge 协议与上游 v2.8.4 95% 对齐。**
 
 ---
 
@@ -175,18 +175,18 @@ Loop-level 熔断控制器对齐 weiransoft v2.8.4 §3.3 WorkflowLoopController�
 ### Modified (~20 files)
 
 - `scripts/collaboration/host_llm_bridge.py` (SUBAGENT_TYPE_MAP + resolve_subagent_type)
-- `scripts/check_module_activation.py` (4 new V4.5.5 counters)
-- `VERSION` / `pyproject.toml` / `scripts/collaboration/_version.py` (4.5.4 → 4.5.5)
+- `scripts/check_module_activation.py` (4 new V4.5.6 counters)
+- `VERSION` / `pyproject.toml` / `scripts/collaboration/_version.py` (4.5.4 → 4.5.6)
 - `skill-manifest.yaml` / `SKILL.md` / `README.md` / `README-CN.md` / `README-JP.md` / `CLAUDE.md` / `COMPARISON.md` (version sync)
 - `Dockerfile` / `helm/devsquad/Chart.yaml` / `config/deployment.yaml` (version sync)
 - `skills/__init__.py` / `docs/spec/SPEC.md` / `docs/architecture/ARCHITECTURE_V4.md` (version sync)
-- `CHANGELOG.md` (+83 lines V4.5.5 entry)
+- `CHANGELOG.md` (+83 lines V4.5.6 entry)
 
 ### New Documents (3)
 
-- `docs/prd/V4.5.5_HOST_BRIDGE_TRANSACTION_PRD.md`
-- `docs/prd/V4.5.5_CONSENSUS_RECORD.md`
-- `docs/planning/V4.5.5_DESIGN.md`
+- `docs/prd/V4.5.6_HOST_BRIDGE_TRANSACTION_PRD.md`
+- `docs/prd/V4.5.6_CONSENSUS_RECORD.md`
+- `docs/planning/V4.5.6_DESIGN.md`
 
 ---
 
@@ -203,4 +203,4 @@ V4.5.6 集中处理 backlog 闭环，让 DevSQuad V4.6.x 系列进入"零技术�
 
 ---
 
-**DevSquad V4.5.5 — 多目标复合迭代，协议升级 + 事务主线 + 意图驱动 + 熔断机制，7-Role 共识 9.1/10 历史新高**
+**DevSquad V4.5.6 — 多目标复合迭代，协议升级 + 事务主线 + 意图驱动 + 熔断机制，7-Role 共识 9.1/10 历史新高**

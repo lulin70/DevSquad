@@ -12,7 +12,7 @@ def test_e2e_risk_register_assess_after_dispatch():
     result = disp.dispatch("Design a payment gateway")
     from scripts.collaboration.risk_register import RiskRegister
     register = getattr(disp, "_risk_register", None) or RiskRegister()
-    assert register._call_counter > 0, "RiskRegister was never called during dispatch"
+    assert register._call_counter_er > 0, "RiskRegister was never called during dispatch"
     assert "## Risk Management" in result.to_markdown()
     disp.shutdown()
 

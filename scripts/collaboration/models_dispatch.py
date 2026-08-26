@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 # V4.4.2 P1-1: Anti-ghost counter — incremented every time
 # ``RoleDefinition.get_localized_prompt`` is called. Tests assert this
 # counter > 0 after a dispatch to prove the i18n path is wired in.
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 ROLE_WEIGHTS = {
     "architect": 1.5,
@@ -89,7 +89,7 @@ class RoleDefinition:
         2. ``self.prompt`` (the original Chinese prompt) for ``zh`` and
            any unrecognized lang — preserves backward compatibility.
 
-        Increments the module-level ``_call_counter`` on every call so
+        Increments the module-level ``_call_counter_er`` on every call so
         tests can verify the i18n code path is actually exercised.
 
         Args:
@@ -98,8 +98,8 @@ class RoleDefinition:
         Returns:
             Localized prompt string, or ``self.prompt`` as fallback.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
         if lang in self.prompt_i18n:
             return self.prompt_i18n[lang]
         return self.prompt
@@ -433,7 +433,7 @@ def get_cli_role_list() -> list[str]:
 # =============================================================================
 # V4.4.4 — WorkflowTrace & GitContext (block/buzz-inspired)
 #
-# The module-level ``_call_counter`` (declared at the top of this file) is
+# The module-level ``_call_counter_er`` (declared at the top of this file) is
 # shared by ``RoleDefinition.get_localized_prompt`` and the two new V4.4.4
 # dataclasses below. It is incremented on every ``WorkflowTrace`` /
 # ``GitContext`` construction and every ``GitContext.auto_detect`` call so
@@ -492,13 +492,13 @@ class WorkflowTrace:
         # Anti-ghost: increment the shared module-level counter so tests
         # and ``check_module_activation.py`` can prove the WorkflowTrace
         # code path was actually exercised (not dead code).
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
     @property
     def _call_counter_value(self) -> int:
         """Read-only access to the module-level call counter (anti-ghost)."""
-        return _call_counter
+        return _call_counter_er
 
     def to_markdown(self) -> str:
         """Render the workflow trace as a Markdown ``## Workflow Trace`` section.
@@ -581,13 +581,13 @@ class GitContext:
     def __post_init__(self) -> None:
         # Anti-ghost: increment the shared module-level counter so tests
         # can prove a GitContext was constructed through the dispatch path.
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
     @property
     def _call_counter_value(self) -> int:
         """Read-only access to the module-level call counter (anti-ghost)."""
-        return _call_counter
+        return _call_counter_er
 
     @classmethod
     def auto_detect(cls, timeout: float = 2.0) -> "GitContext | None":
@@ -603,8 +603,8 @@ class GitContext:
         Returns:
             A populated ``GitContext`` or ``None`` on any failure.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         import subprocess
 

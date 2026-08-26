@@ -19,7 +19,7 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.task_scale_gate import (
+from scripts.collaboration.task_scale_gate import (  # noqa: E402
     L_MAX_ROLES,
     M_MAX_ROLES,
     ORCHESTRATOR_AUTO,
@@ -27,7 +27,7 @@ from scripts.collaboration.task_scale_gate import (
     ORCHESTRATOR_MINI,
     S_MAX_ROLES,
     TaskScaleGate,
-    get_call_counter,
+    get_call_counter_er,
 )
 
 pytestmark = pytest.mark.unit
@@ -230,12 +230,12 @@ class TestT6Precedence:
 
 class TestAntiGhost:
     def test_call_counter_increments(self):
-        """每次 decide() 都会让 _call_counter 增加。"""
-        before = get_call_counter()
+        """每次 decide() 都会让 _call_counter_er 增加。"""
+        before = get_call_counter_er()
         gate = TaskScaleGate()
         for _ in range(5):
             gate.decide("any task")
-        after = get_call_counter()
+        after = get_call_counter_er()
         assert after - before == 5
 
     def test_signal_contains_useful_info(self):

@@ -22,7 +22,7 @@ from .confidence_score import ConfidenceScorer
 from .five_axis_consensus import FiveAxisConsensusEngine
 
 # Anti-phantom-feature counter (checked by E2E test E13: test_e2e_dispatch_increments_all_five_counters)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 _DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "calibration" / "gold_outputs.json"
 # Threshold lowered from 0.20 to 0.15 after empirical calibration:
@@ -110,8 +110,8 @@ def run_calibration_gate() -> CalibrationGateResult:
     Returns:
         CalibrationGateResult with passed, scores, ordering, gap, diagnostics.
     """
-    global _call_counter
-    _call_counter += 1
+    global _call_counter_er
+    _call_counter_er += 1
 
     # Load calibration data
     try:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Intent Workflow Mapper (V4.5.5 P4-P5 Wave 2).
+"""Intent Workflow Mapper (V4.5.6 P4-P5 Wave 2).
 
 6 intents × 3 languages lazy-loadable workflow resolver.
 

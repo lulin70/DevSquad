@@ -44,7 +44,7 @@ def _reset_state() -> None:
     """Reset module state for deterministic tests."""
     reset_dataset_cache()
     import scripts.collaboration.dependency_hallucination_checker as mod
-    mod._call_counter = 0
+    mod._call_counter_er = 0
 
 
 # ---------------------------------------------------------------------------

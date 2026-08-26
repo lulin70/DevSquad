@@ -352,13 +352,13 @@ class TestAuditCliReadsSqliteE2E:
         logger.log_error(
             "alice",
             error_type="deploy_failure",
-            context={"api_key": "sk-supersecretkey1234567890", "ok": True},
+            context={"api_key": "sk-fake-test-redaction-key-001", "ok": True},
         )
         entries = _load_entries(str(db))
         text = _format_text(entries)
         # Replaced with ***REDACTED***
         assert "***REDACTED***" in text
-        assert "sk-supersecretkey1234567890" not in text
+        assert "sk-fake-test-redaction-key-001" not in text
 
     def test_cli_audit_with_nonexistent_db_returns_empty(self) -> None:
         from scripts.cli_audit import _load_entries
@@ -423,14 +423,14 @@ class TestDispatchHitsAllV453Modules:
         instance via the ComponentFactory)."""
         from scripts.collaboration import artifact_store as as_mod
 
-        before = as_mod.get_call_counter()
+        before = as_mod.get_call_counter_er()
         d = _make_dispatcher()
-        after = as_mod.get_call_counter()
+        after = as_mod.get_call_counter_er()
         # Dispatcher init may construct ArtifactStore; counter ≥ 1
         assert after >= before, "ArtifactStore counter must not decrease"
         # Or it might be created lazily on first dispatch — confirm either way
         d.dispatch("integration test task", dry_run=True)
-        final = as_mod.get_call_counter()
+        final = as_mod.get_call_counter_er()
         assert final >= before
 
     def test_dispatch_creates_effect_registry(self) -> None:
@@ -633,7 +633,7 @@ class TestBestEffortFailureIsolation:
         from scripts.collaboration.artifact_store import ArtifactStoreError
         try:
             store.write("s-iso", "coder", "ok1.md", "first")
-            try:
+            try:  # noqa: SIM105
                 store.write("s-iso", "coder", "", "second-bad")
             except ArtifactStoreError:
                 pass
@@ -949,9 +949,9 @@ class TestAuditReportStructureStability:
         assert args.verify is True
 
     def test_cli_audit_counter_increments_on_cmd_audit_call(self) -> None:
-        from scripts.cli_audit import cmd_audit, get_call_counter
+        from scripts.cli_audit import cmd_audit, get_call_counter_er
 
-        before = get_call_counter()
+        before = get_call_counter_er()
         args = argparse.Namespace(
             limit=0,
             format="text",
@@ -960,7 +960,7 @@ class TestAuditReportStructureStability:
             db_path=None,
         )
         cmd_audit(args)
-        after = get_call_counter()
+        after = get_call_counter_er()
         assert after == before + 1
 
 
@@ -978,14 +978,14 @@ class TestFullE2EPipeline:
 
         persist_dir = _tempfile.mkdtemp(prefix="v453_int_full_")
         try:
-            from scripts.cli_audit import get_call_counter as au_counter
+            from scripts.cli_audit import get_call_counter_er as au_counter
             from scripts.collaboration import artifact_store as as_mod
             from scripts.collaboration import effect_registry as er_mod
 
             d = _make_dispatcher(persist_dir=persist_dir)
             # Init alone bumps counters (ArtifactStore + EffectRegistry instances
             # are constructed inside dispatcher's _init_components_from_factory).
-            d_init_as = as_mod.get_call_counter()
+            d_init_as = as_mod.get_call_counter_er()
             d_init_er = er_mod.get_call_count()
 
             before_au = au_counter()
@@ -1016,7 +1016,7 @@ class TestFullE2EPipeline:
 
             registry = EffectRegistry()
             as_mod.set_global_registry(registry)
-            d = _make_dispatcher(persist_dir=persist_dir)
+            d = _make_dispatcher(persist_dir=persist_dir)  # noqa: F841
 
             before = registry.pending_count()
             for i in range(3):
@@ -1041,7 +1041,7 @@ class TestFullE2EPipeline:
 
         persist_dir = _tempfile.mkdtemp(prefix="v453_int_3way_")
         try:
-            from scripts.cli_audit import get_call_counter as au_counter
+            from scripts.cli_audit import get_call_counter_er as au_counter
             from scripts.collaboration import artifact_store as as_mod
             from scripts.collaboration import effect_registry as er_mod
 

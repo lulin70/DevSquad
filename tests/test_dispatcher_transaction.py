@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for DispatcherTransaction (V4.5.5 P4-P5 Wave 2 main).
+"""Unit tests for DispatcherTransaction (V4.5.6 P4-P5 Wave 2 main).
 
 12 tests covering FSM, LIFO revert, atomicity, context manager.
 """

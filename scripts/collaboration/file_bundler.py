@@ -17,7 +17,7 @@ Bundling rules (PRD §10.1.3):
   3. Max ``max_per_bundle`` files per bundle (overflow → split).
   4. A single input file → a single bundle.
 
-Anti-ghost: module-level ``_call_counter`` increments on every public call.
+Anti-ghost: module-level ``_call_counter_er`` increments on every public call.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # V4.5.0 Anti-ghost call counter (module-level). Incremented on every public
 # FileBundler method call so ``check_module_activation.py`` can verify the
 # module is wired into the review-mode pipeline (not a ghost feature).
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 class FileBundler:
@@ -64,8 +64,8 @@ class FileBundler:
             List of bundles, each a list of file paths (sorted for determinism).
             Empty input → empty list. Order of bundles is deterministic.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if not files:
             return []

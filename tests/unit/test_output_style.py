@@ -8,7 +8,7 @@
 5. test_action_first_no_preamble — Side-Effect (no "Here is" / "In summary" / "To summarize")
 6. test_detailed_backward_compat — Backward-Compat (output_style="detailed" == existing)
 7. test_compact_mode — Happy (output_style="compact" shorter than detailed)
-8. test_call_counter — Anti-Ghost (_call_counter > 0)
+8. test_call_counter_er — Anti-Ghost (_call_counter_er > 0)
 
 Uses REAL PromptDials, ReportFormatter, and DispatchResult (no Mock) per
 V4.5.0 implementation rules.
@@ -179,15 +179,15 @@ def test_compact_mode() -> None:
     )
 
 
-def test_call_counter() -> None:
-    """Anti-ghost: module-level _call_counter > 0 after format_report calls."""
+def test_call_counter_er() -> None:
+    """Anti-ghost: module-level _call_counter_er > 0 after format_report calls."""
     # The other tests already call format_report, but exercise it again here
     # to make this test self-contained.
     formatter = ReportFormatter()
     result = _make_result()
     formatter.format_report(result, output_style="action_first")
-    assert rf_module._call_counter > 0, (
-        "_call_counter must be > 0 after format_report dispatch (anti-ghost)"
+    assert rf_module._call_counter_er > 0, (
+        "_call_counter_er must be > 0 after format_report dispatch (anti-ghost)"
     )
 
 

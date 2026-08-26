@@ -137,7 +137,7 @@ class TestCoeffectFailureDegradation:
         )
 
         with caplog.at_level(logging.WARNING):
-            r = d = _make_dispatcher()  # type: ignore[assignment]
+            r = d = _make_dispatcher()  # type: ignore[assignment]  # noqa: F841
             r._coeffect_resolver.register(_StaticProvider("cy_a", ("cy_b",)))
             r._coeffect_resolver.register(_StaticProvider("cy_b", ("cy_a",)))
             with pytest.raises(CoeffectCycleError):

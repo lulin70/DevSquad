@@ -12,7 +12,7 @@ PreDispatchPipeline.execute() flow:
   -> match_roles (capped by task_scale.max_roles)
   -> ... -> coordinator
 
-Anti-Ghost: All 6 modules' _call_counter must be > 0 after one dispatch.
+Anti-Ghost: All 6 modules' _call_counter_er must be > 0 after one dispatch.
 """
 
 from __future__ import annotations
@@ -25,15 +25,15 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.backend_paths import BackendPath
-from scripts.collaboration.backend_paths import get_call_counter as _bp_counter
-from scripts.collaboration.host_llm_bridge import HostBridgeBackend
-from scripts.collaboration.host_llm_bridge import get_call_counter as _hbb_counter
-from scripts.collaboration.order_chain_detector import OrderChainDetector
-from scripts.collaboration.order_chain_detector import get_call_counter as _ocd_counter
-from scripts.collaboration.perf_baseline import get_call_counter as _pb_counter
-from scripts.collaboration.task_scale_gate import TaskScale, TaskScaleGate
-from scripts.collaboration.task_scale_gate import get_call_counter as _tsg_counter
+from scripts.collaboration.backend_paths import BackendPath  # noqa: E402
+from scripts.collaboration.backend_paths import get_call_counter_er as _bp_counter  # noqa: E402
+from scripts.collaboration.host_llm_bridge import HostBridgeBackend  # noqa: E402
+from scripts.collaboration.host_llm_bridge import get_call_counter_er as _hbb_counter  # noqa: E402
+from scripts.collaboration.order_chain_detector import OrderChainDetector  # noqa: E402
+from scripts.collaboration.order_chain_detector import get_call_counter_er as _ocd_counter  # noqa: E402
+from scripts.collaboration.perf_baseline import get_call_counter_er as _pb_counter  # noqa: E402
+from scripts.collaboration.task_scale_gate import TaskScale, TaskScaleGate  # noqa: E402
+from scripts.collaboration.task_scale_gate import get_call_counter_er as _tsg_counter  # noqa: E402
 
 pytestmark = pytest.mark.integration
 
@@ -44,7 +44,7 @@ pytestmark = pytest.mark.integration
 
 
 def _counters() -> dict[str, int]:
-    """Capture all 5 module-level _call_counter values."""
+    """Capture all 5 module-level _call_counter_er values."""
     return {
         "TaskScaleGate": _tsg_counter(),
         "OrderChainDetector": _ocd_counter(),
@@ -285,7 +285,7 @@ class TestAntiGhostIntegration:
     def test_all_5_module_counters_incremented(self):
         """After a representative dispatch, all 5 module counters > 0.
 
-        HostBridgeBackend._call_counter is bumped by create_request() which
+        HostBridgeBackend._call_counter_er is bumped by create_request() which
         requires a real host runtime; verified separately by
         tests/test_host_bridge_unit.py::test_call_counter_increments_on_create.
         Here we verify all other 4 counters + that HostBridgeBackend is
@@ -318,7 +318,7 @@ class TestAntiGhostIntegration:
         # 4 of 5 must have incremented (HostBridgeBackend is verified separately)
         for name in ["TaskScaleGate", "OrderChainDetector", "BackendPath", "PerfBaseline"]:
             assert after[name] > before[name], (
-                f"{name}._call_counter did not increment "
+                f"{name}._call_counter_er did not increment "
                 f"(before={before[name]}, after={after[name]})"
             )
         # HostBridgeBackend: verify wired in via create_backend (B path resolution)

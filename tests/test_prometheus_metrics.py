@@ -371,7 +371,7 @@ class TestV452MetricsInit:
         assert hasattr(m, "order_chain_counter")
         assert m.order_chain_counter is not None
 
-    def test_init_creates_backend_call_counter(self):
+    def test_init_creates_backend_call_counter_er(self):
         m = DevSquadMetrics()
         assert hasattr(m, "backend_calls_counter")
         assert m.backend_calls_counter is not None

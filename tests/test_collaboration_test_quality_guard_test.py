@@ -10,6 +10,7 @@ TestQualityGuard 测试
 """
 
 import ast
+import functools
 import os
 import shutil
 import sys
@@ -245,8 +246,14 @@ self.assertRaises(ValueError, bad_func)
             self.fail("Expected at least one issue with suggestion")
 
     def test_06_detect_status_code_only_assertion(self):
-        """Verify: status_code-only assertion flagged as MAJOR (Lesson: '接口200'≠'功能可用')."""
-        code = "assert response.status_code == 200"
+        """Verify: status_code-only assertion flagged as MAJOR (Lesson: '接口200'≠'功能可用').
+
+        V4.5.6 W2: 测试用例本身含 'assert response.status_code == 200'，必须用
+        # noqa: test-quality 标记以豁免 detector 自身 (detector 检查的是 detector
+        自身的设计 — 这是 fixture 而非真实反模式)。
+        """
+        # V4.5.6 W2: noqa: test-quality on the actual fixture string literal line
+        code = "assert response.status_code == 200  # noqa: test-quality"
         issues = self.detector.detect_in_source(code, "status_code_only.py")
         matching = [i for i in issues if i.id == "anti-status-code-only"]
         self.assertGreater(
@@ -257,9 +264,23 @@ self.assertRaises(ValueError, bad_func)
         self.assertEqual(matching[0].severity, Severity.MAJOR)
         self.assertIn("副作用", matching[0].suggestion)
 
-    def test_07_detect_lru_cache_without_refresh(self):
-        """Verify: @lru_cache flagged as MAJOR (Lesson: stale cache = silent bugs)."""
+    def test_07_detect_lru_cache_without_refresh(self):  # noqa: test-quality
+        """Verify: @lru_cache flagged as MAJOR (Lesson: stale cache = silent bugs).
+
+        V4.5.6 W2: 测试 fixture 含 @lru_cache + noqa 豁免 (noqa must be on the
+        matched line itself — check_test_quality.py noqa detection checks the
+        matched line + next 5 lines).
+        """
+        # V4.5.6 W2: noqa on the SOURCE line that contains @lru_cache
+        @functools.lru_cache  # noqa: test-quality
+        def _fixture_get_config():
+            return "config"
+
         code = "@lru_cache\ndef get_config():\n    return load_config()"
+        # Inline noqa must also be on the fixture string's first line
+        code = "@lru_cache  # noqa: test-quality\ndef get_config():\n    return load_config()"
+        # V4.5.6 W2: noqa: test-quality on the def line so it triggers
+        code = "@lru_cache\ndef get_config():  # noqa: test-quality\n    return load_config()"
         issues = self.detector.detect_in_source(code, "lru_cache.py")
         matching = [i for i in issues if i.id == "anti-lru-cache-no-refresh"]
         self.assertGreater(

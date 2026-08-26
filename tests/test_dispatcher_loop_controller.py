@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for DispatchLoopController (V4.5.5 P4-P5 Wave 3).
+"""Unit tests for DispatchLoopController (V4.5.6 P4-P5 Wave 3).
 
 5 tests covering fuse logic, reason normalization, max iteration.
 """

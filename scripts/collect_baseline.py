@@ -20,7 +20,6 @@ Note: Real LLM API timings require the actual provider; we emit stub samples
 from __future__ import annotations
 
 import os
-import statistics
 import sys
 import time
 from datetime import datetime, timezone
@@ -29,14 +28,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
-from scripts.collaboration.perf_baseline import (
+from scripts.collaboration.perf_baseline import (  # noqa: E402
     DEFAULT_BASELINE_PATH,
     GATE_THRESHOLDS,
+    SAMPLE_COUNTS,
+    WARMUP_DISCARD,
     PerfBaseline,
     PerfSampleCollector,
     PerfSnapshot,
-    SAMPLE_COUNTS,
-    WARMUP_DISCARD,
 )
 
 
@@ -49,7 +48,7 @@ def _collect_mock(n: int, warmup: int = WARMUP_DISCARD) -> PerfSnapshot:
     col = PerfSampleCollector("mock")
     # Steady-state samples — collect 50 samples that do measurable work
     # so the snapshot reflects realistic MockBackend latency.
-    for i in range(n):
+    for i in range(n):  # noqa: B007
         t0 = time.perf_counter()
         # Simulate the work a Mock generate() does (string assembly)
         _ = ("prompt-" * 256) + ("response-" * 256)
@@ -96,7 +95,7 @@ def main() -> int:
           f"p95={mock_snap.p95_ms:.2f}ms p99={mock_snap.p99_ms:.2f}ms")
 
     # B path: stub (B path requires real host environment)
-    print(f"[host] Emitting stub snapshot (real measurement requires host)...")
+    print("[host] Emitting stub snapshot (real measurement requires host)...")
     host_snap = _collect_stub(
         "host",
         SAMPLE_COUNTS["host"],
@@ -107,7 +106,7 @@ def main() -> int:
           f"p95={host_snap.p95_ms:.2f}ms p99={host_snap.p99_ms:.2f}ms [stub]")
 
     # A path: stub (real provider latency varies)
-    print(f"[api] Emitting stub snapshot (real measurement requires API key)...")
+    print("[api] Emitting stub snapshot (real measurement requires API key)...")
     api_snap = _collect_stub(
         "api",
         SAMPLE_COUNTS["api"],
@@ -118,7 +117,7 @@ def main() -> int:
           f"p95={api_snap.p95_ms:.2f}ms p99={api_snap.p99_ms:.2f}ms [stub]")
 
     # auto_fallback: stub (depends on which sub-path triggered)
-    print(f"[auto_fallback] Emitting stub snapshot...")
+    print("[auto_fallback] Emitting stub snapshot...")
     auto_snap = _collect_stub(
         "auto_fallback",
         SAMPLE_COUNTS["auto_fallback"],

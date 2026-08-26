@@ -902,14 +902,14 @@ devsquad modules retry --module <MODULE_NAME> --disable
 
 > **Document End**
 >
-> **Version**: V1.4.0 (V4.5.5 P12.4 addendum)
+> **Version**: V1.4.0 (V4.5.6 P12.4 addendum)
 > **Created**: 2026-08-22 — V4.5.2 P11.3 release
-> **Updated**: 2026-08-25 — V4.5.5 P12.4 added §7 (SC-14/15/16)
+> **Updated**: 2026-08-25 — V4.5.6 P12.4 added §7 (SC-14/15/16)
 > **Next Update**: When new alert scenarios arise (post-incident review)
 
 ---
 
-## 7. P12.4 Module Incidents (V4.5.5 addendum)
+## 7. P12.4 Module Incidents (V4.5.6 addendum)
 
 ### SC-14: Transaction 卡在 ACTIVE 状态
 
@@ -957,7 +957,7 @@ for tx in reg.list_active():
         reg.remove_tx(tx.tx_id)
 "
 
-# B) 如频繁触发，禁用 transaction 模块（V4.5.5 feature flag）
+# B) 如频繁触发，禁用 transaction 模块（V4.5.6 feature flag）
 echo "DEVSQUAD_V455_DISABLE_TRANSACTION=1" >> /etc/devsquad/devsquad.env
 systemctl restart devsquad-dispatcher
 
@@ -966,7 +966,7 @@ git checkout v4.5.4 && systemctl restart devsquad-dispatcher
 ```
 
 **预防**:
-- transaction commit timeout 默认 5s（V4.5.5 default）
+- transaction commit timeout 默认 5s（V4.5.6 default）
 - ALLOWED_TRANSITIONS 强校验 + raise TxStateError
 - best-effort revert with `suppress(Exception)` 防二次失败
 
@@ -1026,7 +1026,7 @@ git checkout v4.5.4 && systemctl restart devsquad-dispatcher
 ```
 
 **预防**:
-- 每次 dispatch 上限 max_iterations=3（V4.5.5 默认）
+- 每次 dispatch 上限 max_iterations=3（V4.5.6 默认）
 - LIFO revert 失败 best-effort 不抛
 - 上游模块失败率 > 20% 应触发熔断（与 LoopController 协同）
 
@@ -1084,7 +1084,7 @@ systemctl restart devsquad-dispatcher
 ```
 
 **预防**:
-- 默认 fuse_threshold=2（V4.5.5 保守值）生产建议 3-5
+- 默认 fuse_threshold=2（V4.5.6 保守值）生产建议 3-5
 - max_iterations=3 硬上限防无界循环
 - reason 标准化哈希（strip + lower + 50-truncate）防 false negative 熔断
 - Immediate FATAL kind 跳过 counter 检查

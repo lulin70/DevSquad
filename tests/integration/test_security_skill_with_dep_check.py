@@ -23,16 +23,16 @@ from scripts.collaboration.dependency_hallucination_checker import (
 from skills.security.handler import SecuritySkill
 
 
-def _reset_call_counter() -> None:
+def _reset_call_counter_er() -> None:
     import scripts.collaboration.dependency_hallucination_checker as mod
-    mod._call_counter = 0
+    mod._call_counter_er = 0
 
 
 class T1_SecuritySkillScanDependenciesAPI(unittest.TestCase):
     """T1: SecuritySkill.scan_dependencies() public API contract."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.skill = SecuritySkill()
 
     def test_01_clean_code_returns_is_clean_true(self) -> None:
@@ -71,7 +71,7 @@ class T2_SecuritySkillRunModeDispatch(unittest.TestCase):
     """T2: SecuritySkill.run(mode='scan_dependencies', ...) dispatch."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.skill = SecuritySkill()
 
     def test_01_run_mode_scan_dependencies(self) -> None:
@@ -115,7 +115,7 @@ class T3_SecuritySkillAuditTaskIncludesDepCheck(unittest.TestCase):
     """T3: Full audit_task() flow is not broken by the new method."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.skill = SecuritySkill()
 
     def test_01_audit_task_still_works(self) -> None:
@@ -139,7 +139,7 @@ class T4_SecuritySkillModuleIntegration(unittest.TestCase):
     """T4: SecuritySkill correctly wraps the module's three-tier classification."""
 
     def setUp(self) -> None:
-        _reset_call_counter()
+        _reset_call_counter_er()
         self.skill = SecuritySkill()
 
     def test_01_typo_squatting_via_skill(self) -> None:

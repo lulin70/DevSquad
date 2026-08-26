@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for IntentWorkflowMapper (V4.5.5 P4-P5 Wave 2).
+"""Unit tests for IntentWorkflowMapper (V4.5.6 P4-P5 Wave 2).
 
 12 tests covering 6 intents × 3 languages lazy resolution.
 """

@@ -4,7 +4,7 @@ Records risks with probability × impact assessment, supports 7-role voting,
 applies one of 4 PMP response strategies (avoid/transfer/mitigate/accept),
 and exports a Markdown "Risk Management" section for the dispatch report.
 
-Anti-ghost: module-level ``_call_counter`` increments on every public method
+Anti-ghost: module-level ``_call_counter_er`` increments on every public method
 call, verifiable by E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``).
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ from enum import Enum
 from typing import Any
 
 # Anti-ghost: module-level call counter (AG-1/AG-2)
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 class ResponseStrategy(Enum):
@@ -122,17 +122,17 @@ class RiskRegister:
     """Persistent risk register with 7-role voting and Markdown export.
 
     Anti-ghost: every public method increments the module-level
-    ``_call_counter``. The read-only ``_call_counter`` property exposes
-    it on instances for E2E test verification (``register._call_counter``).
+    ``_call_counter_er``. The read-only ``_call_counter_er`` property exposes
+    it on instances for E2E test verification (``register._call_counter_er``).
     """
 
     def __init__(self) -> None:
         self._items: dict[str, RiskItem] = {}
 
     @property
-    def _call_counter(self) -> int:
+    def _call_counter_er(self) -> int:
         """Expose module-level call counter on instances (anti-ghost)."""
-        return _call_counter
+        return _call_counter_er
 
     def add(
         self,
@@ -154,8 +154,8 @@ class RiskRegister:
         Returns:
             The stored RiskItem.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if risk_item is not None:
             item = risk_item
@@ -194,8 +194,8 @@ class RiskRegister:
             KeyError: If risk_id not in register.
             ValueError: If a role_id is not in ROLE_WEIGHTS.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if risk_id not in self._items:
             raise KeyError(f"Unknown risk_id: {risk_id!r}")
@@ -241,8 +241,8 @@ class RiskRegister:
         Returns:
             Updated RiskItem.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if risk_id not in self._items:
             raise KeyError(f"Unknown risk_id: {risk_id!r}")
@@ -269,8 +269,8 @@ class RiskRegister:
         Returns:
             Updated RiskItem.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if risk_id not in self._items:
             raise KeyError(f"Unknown risk_id: {risk_id!r}")
@@ -293,8 +293,8 @@ class RiskRegister:
         Returns:
             List of matching RiskItem objects.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         target_status = _coerce_status(status) if status is not None else None
         results: list[RiskItem] = []
@@ -313,8 +313,8 @@ class RiskRegister:
             Markdown string with ``## Risk Management`` header and a table
             of open risks.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         open_risks = [r for r in self._items.values() if r.status == RiskStatus.OPEN]
         open_risks.sort(key=lambda r: r.exposure, reverse=True)

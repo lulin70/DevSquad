@@ -22,7 +22,7 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.perf_baseline import (
+from scripts.collaboration.perf_baseline import (  # noqa: E402
     DEFAULT_BASELINE_PATH,
     GATE_THRESHOLDS,
     SAMPLE_COUNTS,

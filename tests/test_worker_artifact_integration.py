@@ -3,7 +3,7 @@
 
 After Worker.execute() completes successfully, the finding must be persisted
 to ArtifactStore (best-effort: artifact write failures do NOT fail the
-worker). Anti-ghost: ArtifactStore._call_counter must increment.
+worker). Anti-ghost: ArtifactStore._call_counter_er must increment.
 
 Integration:
     Worker → write_finding(scratchpad) → ArtifactStore.write()
@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, ".")
 
-from scripts.collaboration.artifact_store import ArtifactStore, get_call_counter
+from scripts.collaboration.artifact_store import ArtifactStore, get_call_counter_er
 from scripts.collaboration.effect_registry import EffectRegistry
 from scripts.collaboration.models import TaskDefinition
 from scripts.collaboration.scratchpad import Scratchpad
@@ -51,7 +51,7 @@ class TestWorkerArtifactPersistence(unittest.TestCase):
         from scripts.collaboration import effect_registry as er_mod
 
         as_mod.set_global_registry(self.registry)
-        er_mod._call_counter = 0
+        er_mod._call_counter_er = 0
 
     def _cleanup(self):
         import shutil
@@ -79,11 +79,11 @@ class TestWorkerArtifactPersistence(unittest.TestCase):
             role_id="architect",
         )
         worker._session_id = "sess-1"  # type: ignore[attr-defined]
-        before = get_call_counter()
+        before = get_call_counter_er()
         result = worker.execute(task)
         self.assertTrue(result.success)
         # ArtifactStore was called → counter incremented
-        self.assertGreater(get_call_counter(), before)
+        self.assertGreater(get_call_counter_er(), before)
 
     def test_execute_writes_artifact_file(self):
         worker = self._make_worker(session_id="sess-1")

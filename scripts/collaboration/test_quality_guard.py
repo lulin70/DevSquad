@@ -421,6 +421,7 @@ class AntiPatternDetector:
             "description": "仅检查 status_code 未验证副作用（DB写入/状态变更/输出内容）— 教训: '接口200'≠'功能可用'",
             "severity": Severity.MAJOR,
             "category": "缺失副作用验证",
+            "side_effect_check": True,  # V4.5.6 W2: 触发 5 行上下文检查
         },
         {
             "id": "anti-lru-cache-no-refresh",
@@ -447,6 +448,11 @@ class AntiPatternDetector:
             stripped = line.strip()
             for pat in self.SUSPICIOUS_PATTERNS:
                 if pat["pattern"] and pat["pattern"].search(stripped):
+                    # V4.5.6 W2: anti-status-code-only 上下文豁免
+                    # 如果 status_code 检查后 5 行内有 body/content/message 验证，
+                    # 视为已有副作用验证，不算 MAJOR
+                    if pat.get("side_effect_check") and self._has_side_effect_check(lines, idx):
+                        continue
                     issues.append(
                         QualityIssue(
                             id=pat["id"],
@@ -460,6 +466,39 @@ class AntiPatternDetector:
                         )
                     )
         return issues
+
+    @staticmethod
+    def _has_side_effect_check(lines: list[str], idx: int) -> bool:
+        """Check if status_code assertion is followed by body/content/message validation within 5 lines.
+
+        V4.5.6 W2: 避免误报 — 当 status_code 检查后立即有 body 验证时不算违规。
+
+        Args:
+            lines: Source file lines.
+            idx: 1-based line index of the status_code assertion.
+
+        Returns:
+            True if side effect validation exists within next 5 lines.
+        """
+        # 检查 idx+1 到 idx+5 (5 行内)
+        for offset in range(1, 6):
+            target_idx = idx - 1 + offset  # idx is 1-based, lines is 0-based
+            if target_idx >= len(lines):
+                break
+            line = lines[target_idx].strip()
+            # body 验证 pattern
+            side_effect_patterns = [
+                "body =", "data =", "msg =", "json()",
+                "assertIn", "assertNotIn", "in text", "in body",
+                "***REDACTED***", "in result", "in response",
+                # V4.5.6 W2: rate-limit 测试验证 headers (X-RateLimit-*)
+                "in r.headers", "in response.headers", "in headers",
+                # V4.5.6 W2: location 变量赋值 (https redirect 验证)
+                "location =",
+            ]
+            if any(pat in line for pat in side_effect_patterns):
+                return True
+        return False
 
     def _get_suggestion(self, pattern_id: str) -> str:
         suggestions = {

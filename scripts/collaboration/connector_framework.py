@@ -15,8 +15,8 @@ Design (V451-2):
          mock dispatch.
 
 Anti-ghost:
-    Module-level ``_call_counter`` is incremented on every public method
-    invocation. ``check_module_activation.py`` asserts ``_call_counter > 0``
+    Module-level ``_call_counter_er`` is incremented on every public method
+    invocation. ``check_module_activation.py`` asserts ``_call_counter_er > 0``
     in CI to prove the connector is wired into the dispatch pipeline.
 
 Roadmap: V4.5.1 V451-2 (Connector Framework, GitHub first).
@@ -37,12 +37,12 @@ from typing import Any, Protocol, runtime_checkable
 # ---------------------------------------------------------------------------
 # Anti-ghost counter
 # ---------------------------------------------------------------------------
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 def get_call_count() -> int:
     """Return the module-level call counter (anti-ghost introspection)."""
-    return _call_counter
+    return _call_counter_er
 
 
 # ---------------------------------------------------------------------------
@@ -202,15 +202,15 @@ class GitHubConnector:
             return json.loads(body) if body else {}
 
     # ------------------------------------------------------------------
-    # Public API (each increments _call_counter — anti-ghost)
+    # Public API (each increments _call_counter_er — anti-ghost)
     # ------------------------------------------------------------------
 
     def create_pr_comment(
         self, repo: str, pr_number: int, body: str
     ) -> ConnectorOperation:
         """Post a comment on a pull request."""
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         target = f"{repo}#{pr_number}"
         if self.mode == "simulation":
@@ -239,8 +239,8 @@ class GitHubConnector:
         self, repo: str, issue_number: int, state: str
     ) -> ConnectorOperation:
         """Open or close an issue."""
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         target = f"{repo}#{issue_number}"
         state = state.lower()
@@ -277,8 +277,8 @@ class GitHubConnector:
         self, repo: str, pr_number: int, event: str, body: str
     ) -> ConnectorOperation:
         """Submit a PR review (APPROVE / REQUEST_CHANGES / COMMENT)."""
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         target = f"{repo}#{pr_number}"
         if event not in ("APPROVE", "REQUEST_CHANGES", "COMMENT"):
@@ -315,14 +315,14 @@ class GitHubConnector:
 
     def get_operations(self) -> list[dict[str, Any]]:
         """Return all recorded operations."""
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
         return [op.to_dict() for op in self._operations]
 
     def export_markdown(self) -> str:
         """Render operations as a Markdown section."""
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         if not self._operations:
             return ""

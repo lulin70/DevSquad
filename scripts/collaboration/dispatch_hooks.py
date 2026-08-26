@@ -150,7 +150,7 @@ class DispatchHooks:
         V4.3.0 P1-7 anti-ghost-feature contract:
           - Invoked automatically by ``post_execution_processing`` on every
             dispatch (no manual trigger required)
-          - Increments ``dependency_hallucination_checker._call_counter`` per
+          - Increments ``dependency_hallucination_checker._call_counter_er`` per
             scanned worker output, enabling E2E test E13
             (``test_e2e_dispatch_increments_all_five_counters``) to detect zero-call ghosts
           - Findings are written to the scratchpad as WARNING entries so they

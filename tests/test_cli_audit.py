@@ -26,7 +26,7 @@ from scripts.cli_audit import (  # noqa: E402
     _load_entries,
     _redact_sensitive,
     cmd_audit,
-    get_call_counter,
+    get_call_counter_er,
     register_subparser,
     verify_chain,
 )
@@ -155,7 +155,7 @@ class TestLoadEntries(unittest.TestCase):
     """Verify _load_entries from SQLite."""
 
     def setUp(self):
-        self.tmp = tempfile.NamedTemporaryFile(
+        self.tmp = tempfile.NamedTemporaryFile(  # noqa: SIM115
             mode="w", suffix=".db", delete=False
         )
         self.tmp.close()
@@ -218,7 +218,7 @@ class TestCmdAudit(unittest.TestCase):
     def setUp(self):
         import scripts.cli_audit as mod
 
-        mod._call_counter = 0
+        mod._call_counter_er = 0
 
     def test_no_db_path_returns_empty(self):
         import argparse
@@ -237,12 +237,12 @@ class TestCmdAudit(unittest.TestCase):
     def test_call_counter_increments(self):
         import argparse
 
-        before = get_call_counter()
+        before = get_call_counter_er()
         args = argparse.Namespace(
             db_path=None, limit=20, format="text", event_type=None, verify=False
         )
         cmd_audit(args)
-        self.assertGreater(get_call_counter(), before)
+        self.assertGreater(get_call_counter_er(), before)
 
 
 class TestRegisterSubparser(unittest.TestCase):

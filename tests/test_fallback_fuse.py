@@ -148,7 +148,7 @@ class TestFallbackFuse:
         backend = FallbackBackend([failing])
 
         # First call: timeout failure
-        try:
+        try:  # noqa: SIM105
             backend.generate("hello")
         except RuntimeError:
             pass

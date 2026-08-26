@@ -1,16 +1,18 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.5
+version: 4.5.6
 description: |
-  DevSquad V4.5.5 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.6 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
-  193+ core modules, 8996+ tests passing (local; CI authoritative).
+  193+ core modules, 9203+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
-  V4.5.5 P12.3: Module Fiber + Coeffect — 6-state FSM + ModuleFiberRegistry + CoeffectProvider Protocol + CoeffectResolver (Kahn topological + DFS cycle detection) + Modules CLI (status|graph|retry). V4.5.3 P12.2: Artifacts + Effect — ArtifactStore + DispatchEffect Protocol + EffectRegistry + Audit CLI.
+  V4.5.6 — Backlog Closure (PATCH-only, no new features): 5 Wave (counter unification + 66 MAJOR test repair + secrets + skip mode + G6 Honest Disclosure).
+  V4.5.5 P12.4: HostLLMBridge v2 + DispatcherTransaction + IntentWorkflowMapper + DispatchLoopController.
+  V4.5.4 P12.3: Module Fiber + Coeffect — 6-state FSM + ModuleFiberRegistry + CoeffectProvider Protocol + CoeffectResolver (Kahn topological + DFS cycle detection) + Modules CLI (status|graph|retry). V4.5.3 P12.2: Artifacts + Effect — ArtifactStore + DispatchEffect Protocol + EffectRegistry + Audit CLI.
   V4.5.2 P12.1: Experience polish — MokaAIBackend + Metrics CLI + GitLabConnector + Doctor CLI + BackendConfig (5 opt-in modules).
   V4.5.0: Cross-session continuity + protocol-native skills + action-first reports (ScratchpadHistoryStore + AgentIdentity + WorkflowTrace + GitContext + SkillProvider Protocol + OutputStyle + SessionResume CLI + FileBundler + SKILL.md modular split + VISION documents).
   V4.4.1: External docs restructure (archive orphan i18n docs, retire CHANGELOG-CN, consolidate admin credentials, renumber INSTALL methods, sync version numbers across all external docs).
@@ -79,6 +81,55 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 187+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
 | [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.2) | Release tracking / auditors |
+
+## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
+
+DevSquad is a **hybrid AI orchestration skill** with explicit capability boundaries. We disclose these honestly (weiransoft v2.8.4 G6 complete):
+
+### 1. Prompt-layer AI is delegated to the host LLM
+
+When you invoke DevSquad inside an AI IDE (TRAE / Cursor / Claude Desktop), the prompt composition + 7-role orchestration are executed by the **host LLM** of that IDE (Claude / GPT / Gemini / Moka). DevSquad itself does not embed an LLM — it constructs structured multi-role prompts and relies on the host's chat completion to generate role-specific responses.
+
+### 2. Script-layer deterministic tooling (Python CLI / API / MCP)
+
+The 193+ core modules are deterministic Python code:
+- `MultiAgentDispatcher` orchestrates 7 roles via `ThreadPoolExecutor` parallel workers
+- `ScratchpadHistoryStore` persists cross-role state via atomic writes
+- `ApprovalGate` enforces human-in-the-loop decisions
+- `AntiGhostChecker` ensures modules are activated (not just present)
+- `TestQualityGuard` enforces test rigor (no anti-patterns like status-code-only)
+
+These run identically regardless of host LLM, with reproducible outputs.
+
+### 3. Real-LLM backend (OpenAI / Anthropic / Moka) — opt-in only
+
+When invoked from CLI / REST API with a configured `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `MOKA_API_KEY`, DevSquad routes through real LLM backends. Without keys, the `MockBackend` is used.
+
+**V4.5.6 W4 enhancement**: Real-LLM smoke tests now auto-skip when the configured API key returns 401 (`DEVSQUAD_SKIP_INVALID_LLM_KEY=1` default). To surface key-rotation issues in CI, set `DEVSQUAD_SKIP_INVALID_LLM_KEY=0`.
+
+### 4. Offline / no-network degradation (V4.5.0+)
+
+When the host LLM is unreachable (no network, IDE in airplane mode, B-path timeout), DevSquad gracefully degrades:
+
+- **TF-IDF fallback**: `IntentMapper` falls back to TF-IDF + cosine similarity (deterministic, no LLM)
+- **Hashing fallback**: For pure routing decisions, `HashingVectorizer` (V4.4.0) provides sub-millisecond intent matching
+- **Mock response**: For role responses, `MockBackend` returns deterministic placeholder text
+- **Degraded dispatch**: `B-path` (real LLM, 600s timeout) → `A-path` (cached/template, <1s) → `C-path` (mock, instant)
+
+### 5. Outside the TRAE IDE: behavior changes
+
+If you invoke DevSquad from a **non-AI IDE shell** (e.g., bare `python3 scripts/cli.py dispatch` in a terminal without LLM):
+- `MultiAgentDispatcher.dispatch()` returns the assembled prompt structure but **does NOT execute role calls**
+- You get a structured markdown plan, not actual role output
+- For real role responses, you must be inside an AI chat session (TRAE IDE / Claude Desktop) where the host LLM completes the role prompts
+
+**Bottom line**: DevSquad is a **prompt-orchestration framework**, not a standalone AI model. Its value is in:
+1. **Structured 7-role collaboration** (deterministic prompts, consistent format)
+2. **Cross-session continuity** (Scratchpad + AgentIdentity + WorkflowTrace)
+3. **Anti-ghost guarantees** (modules activated, not just present)
+4. **Tested dispatch pipeline** (8996+ tests, 7-role consensus 9.1/10)
+
+The actual "intelligence" comes from the host LLM, which is honest and explicit.
 
 **Quick navigation:**
 - Looking for a module's file/responsibility? → [MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md)

@@ -12,7 +12,7 @@ Exposes DispatchAuditLogger as a CLI subcommand:
 Sensitive fields (api_key, password, secret, token) in details dict are
 auto-redacted in text output.
 
-Anti-ghost: get_call_counter() exposed.
+Anti-ghost: get_call_counter_er() exposed.
 """
 
 from __future__ import annotations
@@ -31,20 +31,20 @@ sys.path.insert(0, ".")
 
 # ---------- Anti-ghost counter ----------
 
-_call_counter: int = 0
+_call_counter_er: int = 0
 _call_counter_lock = threading.Lock()
 
 
-def _inc_call_counter() -> None:
-    global _call_counter
+def _inc_call_counter_er() -> None:
+    global _call_counter_er
     with _call_counter_lock:
-        _call_counter += 1
+        _call_counter_er += 1
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return current anti-ghost counter value."""
     with _call_counter_lock:
-        return _call_counter
+        return _call_counter_er
 
 
 # ---------- Sensitive field redaction ----------
@@ -193,7 +193,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
     Returns:
         Exit code (0 success, 1 verify failure).
     """
-    _inc_call_counter()
+    _inc_call_counter_er()
     entries = _load_entries(args.db_path)
     if args.event_type:
         entries = [e for e in entries if e.get("event_type") == args.event_type]

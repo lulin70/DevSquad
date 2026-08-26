@@ -10,7 +10,7 @@ Security: all content is filtered through OutputValidator.redact() before
 writing to SQLite, ensuring API keys / DB passwords / JWT tokens are never
 persisted (Security review A2).
 
-Anti-ghost: module-level ``_call_counter`` increments on every public method.
+Anti-ghost: module-level ``_call_counter_er`` increments on every public method.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ __all__ = ["ScratchpadHistoryStore"]
 logger = logging.getLogger(__name__)
 
 # Anti-ghost call counter (module-level).
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 def _redact_sensitive(content: str) -> str:
@@ -86,8 +86,8 @@ class ScratchpadHistoryStore:
         retention_days:
             Entries older than this are eligible for cleanup. Default 90.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         self._db_path = Path(db_path)
         self._retention_days = retention_days
@@ -142,8 +142,8 @@ class ScratchpadHistoryStore:
         scratchpad_id:
             ID of the Scratchpad instance this entry belongs to.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         with self._lock:
             # Filter sensitive data before persistence.
@@ -205,8 +205,8 @@ class ScratchpadHistoryStore:
         list[ScratchpadEntry]
             Matching entries, newest first.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         with self._lock:
             sql = "SELECT entry_id, scratchpad_id, worker_id, role_id, entry_type, content, confidence, tags, created_at FROM scratchpad_history WHERE 1=1"
@@ -252,8 +252,8 @@ class ScratchpadHistoryStore:
         int
             Number of entries deleted.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         with self._lock:
             cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
@@ -267,7 +267,7 @@ class ScratchpadHistoryStore:
     @property
     def _call_counter_value(self) -> int:
         """Read-only access to module-level call counter (anti-ghost)."""
-        return _call_counter
+        return _call_counter_er
 
     def close(self) -> None:
         """Close the database connection."""

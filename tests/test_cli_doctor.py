@@ -32,7 +32,7 @@ class TestProvidersRegistry:
         assert "anthropic" in PROVIDERS
 
     def test_provider_schema(self):
-        for name, cfg in PROVIDERS.items():
+        for name, cfg in PROVIDERS.items():  # noqa: B007
             assert "api_key_env" in cfg
             assert "base_url_env" in cfg
             assert "default_base_url" in cfg
@@ -123,7 +123,7 @@ class TestCheckConnectivity:
         mock_resp = MagicMock()
         mock_resp.read.return_value = b'{"data": [{"id": "model-1"}]}'
         mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = lambda s, *a: None
+        mock_resp.__exit__ = lambda s, *a: None  # noqa: ARG005
         mock_urlopen.return_value = mock_resp
 
         with patch.dict(os.environ, {"MOKA_API_KEY": "k"}):
@@ -188,12 +188,12 @@ class TestCmdDoctor:
     """Test CLI command entry point."""
 
     def test_all_providers_text(self, capsys):
-        rc = cmd_doctor(_ns("all", "text", timeout=0.1))
+        rc = cmd_doctor(_ns("all", "text", timeout=0.1))  # noqa: F841
         captured = capsys.readouterr()
         assert "DevSquad Doctor" in captured.out
 
     def test_all_providers_json(self, capsys):
-        rc = cmd_doctor(_ns("all", "json", timeout=0.1))
+        rc = cmd_doctor(_ns("all", "json", timeout=0.1))  # noqa: F841
         captured = capsys.readouterr()
         import json
         parsed = json.loads(captured.out)
@@ -202,7 +202,7 @@ class TestCmdDoctor:
     @patch("scripts.cli_doctor.diagnose_provider")
     def test_single_provider(self, mock_diag, capsys):
         mock_diag.return_value = ProviderReport("moka", True, True, 50.0, ["m1"])
-        rc = cmd_doctor(_ns("moka", "text"))
+        rc = cmd_doctor(_ns("moka", "text"))  # noqa: F841
         captured = capsys.readouterr()
         assert "[MOKA]" in captured.out
         mock_diag.assert_called_once_with("moka", 5.0)

@@ -7,7 +7,7 @@ Verifies the three V4.4.3 user-journey promises end-to-end:
   2. Agent identity is persistent across sessions — the same (role, backend,
      model) produces the same agent_id in two *separate Python processes*
      (true cross-session determinism, not just in-memory caching).
-  3. Anti-ghost — both new modules' ``_call_counter`` are > 0 after a real
+  3. Anti-ghost — both new modules' ``_call_counter_er`` are > 0 after a real
      operation, proving they are wired in and not dead code.
 
 Iron Rules:
@@ -121,15 +121,15 @@ def test_e2e_anti_ghost_all_v443_modules_activated():
     """Journey-3: a real cross-session operation activates both new modules.
 
     After writing+searching via ScratchpadHistoryStore and deriving an
-    AgentIdentity, both modules' module-level ``_call_counter`` must be > 0,
+    AgentIdentity, both modules' module-level ``_call_counter_er`` must be > 0,
     proving they executed real code paths (not ghost/dead code).
     """
     tmpdir = tempfile.mkdtemp(prefix="devsquad_e2e_ghost_")
     db_path = Path(tmpdir) / "ghost.db"
     try:
         # Snapshot counters BEFORE the operation.
-        ai_before = ai_module._call_counter
-        shs_before = shs_module._call_counter
+        ai_before = ai_module._call_counter_er
+        shs_before = shs_module._call_counter_er
 
         # Real operation exercising both modules.
         identity = AgentIdentity.create("architect", "mock", "mock")
@@ -146,7 +146,7 @@ def test_e2e_anti_ghost_all_v443_modules_activated():
         store.close()
 
         # Anti-ghost: both counters must have incremented.
-        assert ai_module._call_counter > ai_before, "AgentIdentity never activated"
-        assert shs_module._call_counter > shs_before, "ScratchpadHistoryStore never activated"
+        assert ai_module._call_counter_er > ai_before, "AgentIdentity never activated"
+        assert shs_module._call_counter_er > shs_before, "ScratchpadHistoryStore never activated"
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)

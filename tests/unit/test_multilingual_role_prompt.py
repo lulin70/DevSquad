@@ -7,7 +7,7 @@ Verifies that:
 - ``get_localized_prompt`` / ``get_localized_name`` return the correct
   translation for ``en`` / ``ja`` and fall back to the original Chinese
   ``prompt`` / ``name`` for ``zh`` and any unrecognized language.
-- The module-level ``_call_counter`` increments on every
+- The module-level ``_call_counter_er`` increments on every
   ``get_localized_prompt`` call (anti-ghost verification).
 - ``RoleDefinition`` constructed without i18n fields remains backward
   compatible (empty dicts, fallback to ``prompt``/``name``).
@@ -127,13 +127,13 @@ def test_get_localized_name_ja() -> None:
 
 
 def test_call_counter_increments() -> None:
-    """AC-6: ``_call_counter`` increments after ``get_localized_prompt``."""
+    """AC-6: ``_call_counter_er`` increments after ``get_localized_prompt``."""
     import scripts.collaboration.models_dispatch as md
 
-    before = md._call_counter
+    before = md._call_counter_er
     ROLE_REGISTRY["tester"].get_localized_prompt("en")
-    assert md._call_counter > before, (
-        f"_call_counter did not increment: before={before}, after={md._call_counter}"
+    assert md._call_counter_er > before, (
+        f"_call_counter_er did not increment: before={before}, after={md._call_counter_er}"
     )
 
 

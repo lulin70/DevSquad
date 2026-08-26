@@ -28,9 +28,9 @@ Dimension matrix (15 tests):
   Integration(3): search_across_sessions, concurrent_writes, scratchpad_integration
   Side-Effect(4): sensitive_data_redacted, cleanup_expired, db_permissions, call_counter
 
-Anti-ghost note: ``_call_counter`` is a module-level int rebound on each public
-call. We read it via module attribute access (``shs_module._call_counter``),
-NOT ``from module import _call_counter`` (which would snapshot a stale int).
+Anti-ghost note: ``_call_counter_er`` is a module-level int rebound on each public
+call. We read it via module attribute access (``shs_module._call_counter_er``),
+NOT ``from module import _call_counter_er`` (which would snapshot a stale int).
 """
 
 from __future__ import annotations
@@ -291,14 +291,14 @@ class TestScratchpadHistoryStore(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_call_counter_anti_ghost(self) -> None:
-        """Side-Effect: module-level _call_counter increments on every public call."""
-        before = shs_module._call_counter
+        """Side-Effect: module-level _call_counter_er increments on every public call."""
+        before = shs_module._call_counter_er
         store = self._new_store()
         store.write(self._entry("counter check", entry_id="cnt1"), "sp1")
         store.search_history()
         store.cleanup_expired()
-        after = shs_module._call_counter
-        self.assertGreater(after, before, "module _call_counter did not increment")
+        after = shs_module._call_counter_er
+        self.assertGreater(after, before, "module _call_counter_er did not increment")
         # __init__ + write + search + cleanup => at least 4 increments.
         self.assertGreaterEqual(after - before, 4)
 

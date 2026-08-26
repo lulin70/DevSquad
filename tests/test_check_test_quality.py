@@ -147,12 +147,21 @@ class TestNoqaSuppression:
         assert _is_noqa_suppressed(source, 1) is False
 
     def test_noqa_wrong_line(self) -> None:
-        """Verify: _is_noqa_suppressed only checks the specified line."""
+        """Verify: _is_noqa_suppressed returns False when noqa is outside the 6-line window.
+
+        V4.5.6 W2: noqa detection extends to 8 lines from the matched line, so
+        a noqa on line 2 from a matched line 1 IS in scope. To verify the
+        False case, we use lines 5+ (out of the 8-line window).
+        """
         from scripts.check_test_quality import _is_noqa_suppressed
 
-        source = 'code = "except:"\nother = "except:"  # noqa: test-quality\n'
+        # noqa on line 9 — beyond 8-line window from matched line 1
+        source = (
+            'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\n'
+            'other = "except:"  # noqa: test-quality\n'
+        )
         assert _is_noqa_suppressed(source, 1) is False
-        assert _is_noqa_suppressed(source, 2) is True
+        assert _is_noqa_suppressed(source, 9) is True
 
     def test_noqa_line_out_of_range(self) -> None:
         """Verify: _is_noqa_suppressed handles out-of-range line numbers."""

@@ -6,7 +6,7 @@ effect in the global EffectRegistry. When dispatch fails, the registry
 revert_all() must roll back all artifacts written during the failed
 session.
 
-Anti-ghost: ArtifactStore._call_counter AND EffectRegistry._call_counter
+Anti-ghost: ArtifactStore._call_counter_er AND EffectRegistry._call_counter_er
 both increment.
 """
 
@@ -37,7 +37,7 @@ class TestArtifactEffectBinding(unittest.TestCase):
         # Reset counter at start
         from scripts.collaboration import effect_registry as er_mod
 
-        er_mod._call_counter = 0
+        er_mod._call_counter_er = 0
 
     def _cleanup(self):
         import shutil
@@ -107,7 +107,7 @@ class TestArtifactEffectBindingIsolated(unittest.TestCase):
         from scripts.collaboration import artifact_store as as_mod
         from scripts.collaboration import effect_registry as er_mod
 
-        er_mod._call_counter = 0
+        er_mod._call_counter_er = 0
         reg1 = EffectRegistry()
         reg2 = EffectRegistry()
 

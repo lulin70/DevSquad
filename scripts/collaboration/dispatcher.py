@@ -507,9 +507,9 @@ class MultiAgentDispatcher(
                 self.report_formatter.format_report(early_result, output_style=output_style)
             with contextlib.suppress(Exception):
                 self.skill_registry.discover()
-            # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter > 0).
+            # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter_er > 0).
             self._activate_approval_gate(early_result, approval_callback)
-            # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter > 0).
+            # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter_er > 0).
             self._activate_connector(early_result)
             # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
             # Best-effort — never let activation errors break the early-return path.
@@ -579,9 +579,9 @@ class MultiAgentDispatcher(
             with contextlib.suppress(Exception):
                 self.skill_registry.discover()
 
-            # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter > 0).
+            # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter_er > 0).
             self._activate_approval_gate(result, approval_callback)
-            # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter > 0).
+            # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter_er > 0).
             self._activate_connector(result)
             # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
             # Best-effort — never let activation errors break the sync success path.
@@ -652,7 +652,7 @@ class MultiAgentDispatcher(
         Builds a ``WorkflowTrace`` from the dispatch execution and attaches
         it to ``result.workflow_trace``. Always sets a trace (even if empty
         for dry_run) so the report formatter renders the section and the
-        module-level ``_call_counter`` is incremented (anti-ghost).
+        module-level ``_call_counter_er`` is incremented (anti-ghost).
 
         Args:
             result: The DispatchResult to attach the trace to.
@@ -709,7 +709,7 @@ class MultiAgentDispatcher(
         """V4.5.1: Activate the Approval Gate on the dispatch result.
 
         Creates an ``ApprovalGate`` instance, performs a best-effort
-        ``request_approval`` call (to increment ``_call_counter`` —
+        ``request_approval`` call (to increment ``_call_counter_er`` —
         anti-ghost), and attaches the records + Markdown section to the
         result.
 
@@ -741,7 +741,7 @@ class MultiAgentDispatcher(
 
         Creates a ``GitHubConnector`` instance and exercises a best-effort
         simulation operation to prove the connector is wired into the
-        dispatch pipeline (anti-ghost: increments ``_call_counter``).
+        dispatch pipeline (anti-ghost: increments ``_call_counter_er``).
         Operations and the Markdown section are attached to the result.
 
         In simulation mode (no ``GITHUB_TOKEN`` / no ``gh`` CLI), this is
@@ -777,7 +777,7 @@ class MultiAgentDispatcher(
         """V4.4.0: Activate 5 enhancement modules during dispatch (anti-ghost).
 
         Instantiates and calls each module's public method once to
-        increment its module-level ``_call_counter``, proving the module
+        increment its module-level ``_call_counter_er``, proving the module
         is wired into the dispatch pipeline and not dead code. The
         RiskRegister's Markdown export is attached to the result so the
         dispatch report includes a ``## Risk Management`` section.

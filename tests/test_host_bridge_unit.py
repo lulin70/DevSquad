@@ -25,13 +25,13 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.backend_paths import BackendUnavailable
-from scripts.collaboration.host_llm_bridge import (
+from scripts.collaboration.backend_paths import BackendUnavailable  # noqa: E402
+from scripts.collaboration.host_llm_bridge import (  # noqa: E402
     HostBridgeBackend,
     HostLLMBridge,
-    get_call_counter,
+    get_call_counter_er,
 )
-from tests.fakes.fake_host_runner import FakeHostRunner
+from tests.fakes.fake_host_runner import FakeHostRunner  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -175,7 +175,7 @@ class TestT4FuseSkip:
         # Two failures with same reason
         for i in range(2):
             bridge = HostLLMBridge(bridge_dir=str(tmp_path))
-            rid = bridge.create_request(
+            rid = bridge.create_request(  # noqa: F841
                 agent_type="architect",
                 task=f"fail-{i}",
                 context={},
@@ -205,7 +205,7 @@ class TestT5SingleFailureDegrade:
 
         # 1 failure
         bridge = HostLLMBridge(bridge_dir=str(tmp_path))
-        rid = bridge.create_request(
+        rid = bridge.create_request(  # noqa: F841
             agent_type="architect",
             task="fail",
             context={},
@@ -306,14 +306,14 @@ class TestT8PathTraversalDefence:
 
 class TestAntiGhostAndPlatform:
     def test_call_counter_increments_on_create(self, tmp_path):
-        """_call_counter increments on every create_request()."""
-        before = get_call_counter()
+        """_call_counter_er increments on every create_request()."""
+        before = get_call_counter_er()
         bridge = HostLLMBridge(bridge_dir=str(tmp_path))
         for _ in range(3):
             bridge.create_request(
                 agent_type="general", task="x", context={}, prompt="x"
             )
-        after = get_call_counter()
+        after = get_call_counter_er()
         assert after - before == 3
 
     def test_platform_detection_trae(self, monkeypatch):

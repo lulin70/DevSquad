@@ -7,7 +7,7 @@
 4. test_prompt_injection — Integration (Coordinator prompt has Git Context)
 5. test_scratchpad_entry — Side-Effect (DECISION entry created)
 6. test_backward_compat — Config (git_context=None → no change)
-7. test_call_counter — Anti-Ghost (_call_counter increments)
+7. test_call_counter_er — Anti-Ghost (_call_counter_er increments)
 
 Uses REAL components (MultiAgentDispatcher with default mock backend)
 for dispatch-level tests. The timeout test uses unittest.mock.patch on
@@ -193,12 +193,12 @@ def test_backward_compat(dispatcher: MultiAgentDispatcher) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_call_counter() -> None:
-    """Anti-Ghost: module-level _call_counter increments on GitContext construction."""
-    before = models_dispatch_module._call_counter
+def test_call_counter_er() -> None:
+    """Anti-Ghost: module-level _call_counter_er increments on GitContext construction."""
+    before = models_dispatch_module._call_counter_er
     # Construct a GitContext — should bump the counter.
     GitContext(branch="test-branch")
-    after = models_dispatch_module._call_counter
+    after = models_dispatch_module._call_counter_er
     assert after > before, (
-        f"_call_counter did not increment: before={before}, after={after}"
+        f"_call_counter_er did not increment: before={before}, after={after}"
     )

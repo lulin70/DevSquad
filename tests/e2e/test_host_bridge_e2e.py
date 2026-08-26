@@ -18,9 +18,9 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-from scripts.collaboration.host_llm_bridge import HostLLMBridge
-from scripts.collaboration.llm_backend import create_backend
-from tests.fakes.fake_host_runner import FakeHostRunner
+from scripts.collaboration.host_llm_bridge import HostLLMBridge  # noqa: E402
+from scripts.collaboration.llm_backend import create_backend  # noqa: E402
+from tests.fakes.fake_host_runner import FakeHostRunner  # noqa: E402
 
 pytestmark = pytest.mark.e2e
 

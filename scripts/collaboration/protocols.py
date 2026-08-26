@@ -349,7 +349,7 @@ class MemoryProviderError(ProviderError):
 # Module-level anti-ghost counter. Incremented by SkillProvider consumers to
 # prove the protocol path is exercised (not ghost code). Verified by
 # scripts/check_module_activation.py after a sample dispatch.
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
 @runtime_checkable

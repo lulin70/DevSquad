@@ -1,10 +1,10 @@
-# DevSquad ROADMAP — P12 联动推进（V4.5.2 体验打磨 + V4.5.3 / V4.5.4 / V4.5.5）
+# DevSquad ROADMAP — P12 联动推进（V4.5.2 体验打磨 + V4.5.3 / V4.5.4 / V4.5.6）
 
 > **Document Type**: Implementation Roadmap (P12)
 > **Created**: 2026-08-22
 > **Status**: 🟡 IN PROGRESS
 > **Baseline**: V4.5.1 (commit 33ec5ac) + P11 运维物料
-> **Target**: V4.5.2 (体验打磨) → V4.5.3 (Artifacts+Effect) → V4.5.4 (Fiber+Coeffect) → V4.5.5 (atomic+意图加载)
+> **Target**: V4.5.2 (体验打磨) → V4.5.3 (Artifacts+Effect) → V4.5.4 (Fiber+Coeffect) → V4.5.6 (atomic+意图加载)
 > **决策参考**: [V4.4.2_ROADMAP.md §4](V4.4.2_ROADMAP.md) 4.5.x 收拢序列 + 用户 2026-08-22 选型确认
 
 ---
@@ -18,7 +18,7 @@
 | 1 (近期) | **V4.5.2 体验打磨** | MOKA provider + devsquad metrics CLI + GitLab connector stub | 🟡 |
 | 2 | **V4.5.3** | Finished Work Artifacts + DispatchEffect revert() | 🟡 |
 | 3 | **V4.5.4** | Module Fiber 状态机 + Coeffect 依赖声明 | 🟡 |
-| 4 (远期) | **V4.5.5** | Dispatch atomic 事务 + IntentWorkflowMapper 按意图加载 | 🟡 |
+| 4 (远期) | **V4.5.6** | Dispatch atomic 事务 + IntentWorkflowMapper 按意图加载 | 🟡 |
 
 每批独立过门禁：Anti-Ghost + 全量回归 + E2E + ruff/mypy + doc_consistency。
 
@@ -33,7 +33,7 @@ P12.2 V4.5.3 Artifacts + Effect  ← 依赖 Effect 模型承载副作用
     ↓
 P12.3 V4.5.4 Fiber + Coeffect     ← 依赖 Artifacts 副作用模型 + 模块生命周期
     ↓
-P12.4 V4.5.5 atomic + 意图加载    ← 依赖 Fiber 状态 + Coeffect 解析
+P12.4 V4.5.6 atomic + 意图加载    ← 依赖 Fiber 状态 + Coeffect 解析
 ```
 
 ---
@@ -129,7 +129,7 @@ P12.4 V4.5.5 atomic + 意图加载    ← 依赖 Fiber 状态 + Coeffect 解析
 
 ---
 
-## 6. P12.4 V4.5.5 atomic + 意图加载
+## 6. P12.4 V4.5.6 atomic + 意图加载
 
 **目标**：dispatch 事务一致性 + 按需动态加载。
 
@@ -158,11 +158,11 @@ P12.4 V4.5.5 atomic + 意图加载    ← 依赖 Fiber 状态 + Coeffect 解析
 
 ---
 
-## 7. 总体验收（V4.5.2 → V4.5.5）
+## 7. 总体验收（V4.5.2 → V4.5.6）
 
 ### 7.1 版本与文档
 
-- VERSION：4.5.1 → 4.5.2（体验打磨）→ 4.5.3 → 4.5.4 → 4.5.5
+- VERSION：4.5.1 → 4.5.2（体验打磨）→ 4.5.3 → 4.5.4 → 4.5.6
 - 每批 VERSION_HISTORY.md / CHANGELOG.md 同步
 - 每批 ROADMAP.md 状态行更新
 - 每批 release_notes/V{VER}_RELEASE_NOTES.md 新建
@@ -207,7 +207,7 @@ P12.4 V4.5.5 atomic + 意图加载    ← 依赖 Fiber 状态 + Coeffect 解析
 | P12.1 V4.5.2 体验打磨 | ~1 个工作单元 |
 | P12.2 V4.5.3 Artifacts + Effect | ~2 个工作单元 |
 | P12.3 V4.5.4 Fiber + Coeffect | ~2 个工作单元 |
-| P12.4 V4.5.5 atomic + 意图加载 | ~2 个工作单元 |
+| P12.4 V4.5.6 atomic + 意图加载 | ~2 个工作单元 |
 | **合计** | ~7 个工作单元 |
 
 ---

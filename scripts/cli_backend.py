@@ -19,7 +19,7 @@ from typing import Any
 
 from scripts.collaboration.backend_config import (
     VALID_BACKENDS,
-    _inc_call_counter,
+    _inc_call_counter_er,
     resolve_backend,
     save_backend_config,
 )
@@ -34,7 +34,7 @@ def cmd_backend_set(args: Any) -> int:
     Returns:
         Exit code (0 on success).
     """
-    _inc_call_counter()
+    _inc_call_counter_er()
     provider = args.provider
     project = getattr(args, "project", False)
 
@@ -63,7 +63,7 @@ def cmd_backend_get(args: Any) -> int:
     Returns:
         Exit code (0).
     """
-    _inc_call_counter()
+    _inc_call_counter_er()
     project = getattr(args, "project", False)
     backend = resolve_backend(prefer_project=project)
     print(f"Current backend: {backend}")
@@ -79,7 +79,7 @@ def cmd_backend_list(args: Any) -> int:
     Returns:
         Exit code (0).
     """
-    _inc_call_counter()
+    _inc_call_counter_er()
     current = resolve_backend()
     print("Available LLM backends:")
     for backend in sorted(VALID_BACKENDS):

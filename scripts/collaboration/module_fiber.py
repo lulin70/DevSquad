@@ -5,7 +5,7 @@ Lifecycle states for a single DevSquad enhancement module.
 Replaces implicit "init success = active" with explicit state tracking.
 
 V4.5.3 lesson #1 applied: __slots__ + __init__ 双修改.
-V4.5.3 lesson #4 applied: get_call_counter naming (统一 _er 后缀).
+V4.5.3 lesson #4 applied: get_call_counter_er naming (统一 _er 后缀).
 """
 
 from __future__ import annotations

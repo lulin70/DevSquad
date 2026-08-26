@@ -8,8 +8,8 @@ and error classification for HostLLMBridge + Direct API + Mock fallback.
 See docs/architecture/V4.5.2_ARCHITECTURE.md §7 for detailed design.
 """
 
-from enum import Enum
 import logging
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ def classify_error(exc: Exception) -> str:
         str: Reason string (one of BackendErrorReason constants).
     """
     # Increment anti-ghost counter on every classify call
-    _inc_call_counter()
+    _inc_call_counter_er()
 
     exc_type = type(exc).__name__
 
@@ -177,19 +177,19 @@ class BackendRateLimit(BackendUnavailable):
 
 # Anti-Ghost: increment call counter on module activation
 # CI: scripts/check_module_activation.py checks this > 0
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 
-def _inc_call_counter() -> None:
+def _inc_call_counter_er() -> None:
     """Increment module activation counter (anti-ghost)."""
-    global _call_counter
-    _call_counter += 1
+    global _call_counter_er
+    _call_counter_er += 1
 
 
-def get_call_counter() -> int:
+def get_call_counter_er() -> int:
     """Return module activation counter (for Anti-Ghost verification)."""
-    return _call_counter
+    return _call_counter_er
 
 
 # Initialize when module loaded
-_inc_call_counter()
+_inc_call_counter_er()

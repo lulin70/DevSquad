@@ -664,7 +664,7 @@ class FallbackBackend(LLMBackend):
         Returns:
             True if any backend (not fuse-skipped) reports availability.
         """
-        for i, b in enumerate(self._backends):
+        for i, b in enumerate(self._backends):  # noqa: SIM110
             if i not in self._skipped and b.is_available():
                 return True
         return False
@@ -725,10 +725,8 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     import os
 
     from .backend_paths import (
-        API_KEY_ENV_TRIGGERS,
-        BackendPath,
         HOST_ENV_TRIGGERS,
-        RESOLVE_ORDER,
+        BackendPath,
         BackendUnavailable,
     )
 

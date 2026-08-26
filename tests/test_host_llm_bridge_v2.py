@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for HostLLMBridgeV2 (V4.5.5 P4-P5 Wave 1).
+"""Unit tests for HostLLMBridgeV2 (V4.5.6 P4-P5 Wave 1).
 
 Coverage:
 - test_marker_v2_full_fields

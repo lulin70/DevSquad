@@ -16,7 +16,7 @@ Design:
     the skill class's ``run()`` method directly — enabling local testing and
     offline operation without a live MCP connection.
 
-Anti-ghost: class-level ``_call_counter`` increments on every public method
+Anti-ghost: class-level ``_call_counter_er`` increments on every public method
 call, proving the provider path is exercised (not ghost code).
 """
 
@@ -47,7 +47,7 @@ class MCPSkillProvider:
     """
 
     # Anti-ghost counter (class-level). Incremented by every public method.
-    _call_counter: int = 0
+    _call_counter_er: int = 0
 
     def __init__(self, mcp_invoker: Callable[..., Any] | None = None) -> None:
         # tool spec: name -> {name, skill_cls, description, version, mcp_server, mcp_tool}
@@ -66,7 +66,7 @@ class MCPSkillProvider:
             skill_cls: A class (typically a ``BaseSkill`` subclass) exposing
                 ``name``/``description`` attributes and a ``run()`` method.
         """
-        MCPSkillProvider._call_counter += 1
+        MCPSkillProvider._call_counter_er += 1
         self._tools[name] = {
             "name": name,
             "skill_cls": skill_cls,
@@ -88,7 +88,7 @@ class MCPSkillProvider:
         Returns a dict mapping skill name -> skill info dict, including the
         MCP binding (server/tool) and a ``source`` marker of "mcp".
         """
-        MCPSkillProvider._call_counter += 1
+        MCPSkillProvider._call_counter_er += 1
         return {
             name: {
                 "name": s["name"],
@@ -113,7 +113,7 @@ class MCPSkillProvider:
         Raises:
             ValueError: When the skill is not found.
         """
-        MCPSkillProvider._call_counter += 1
+        MCPSkillProvider._call_counter_er += 1
         return self._get_wrapper(name)
 
     def invoke(self, name: str, **kwargs: Any) -> Any:
@@ -134,7 +134,7 @@ class MCPSkillProvider:
         Raises:
             ValueError: When the skill is not found.
         """
-        MCPSkillProvider._call_counter += 1
+        MCPSkillProvider._call_counter_er += 1
         spec = self._tools.get(name)
         if spec is None:
             raise ValueError(

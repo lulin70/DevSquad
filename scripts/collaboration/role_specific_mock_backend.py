@@ -27,7 +27,7 @@ from typing import Any
 from .llm_backend import MOCK_SEPARATOR_WIDTH, LLMBackend
 
 # Anti-phantom-feature counter
-_call_counter: int = 0
+_call_counter_er: int = 0
 
 # Role-specific template fragments (appended to base mock output)
 _ROLE_TEMPLATES: dict[str, str] = {
@@ -114,8 +114,8 @@ class RoleSpecificMockBackend(LLMBackend):
             and ``role_name`` matches a known role, a role-specific
             template fragment is appended.
         """
-        global _call_counter
-        _call_counter += 1
+        global _call_counter_er
+        _call_counter_er += 1
 
         role_name = kwargs.get("role_name", "AI Assistant")
         task_desc = kwargs.get("task_description", "")

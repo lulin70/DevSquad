@@ -22,9 +22,9 @@ import scripts.collaboration.models_dispatch as _md
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 
-def _reset_call_counter() -> None:
+def _reset_call_counter_er() -> None:
     """Reset the module-level counter so each test starts from a known state."""
-    _md._call_counter = 0
+    _md._call_counter_er = 0
 
 
 def _first_worker_prompt(disp: MultiAgentDispatcher) -> str:
@@ -41,7 +41,7 @@ def _first_worker_prompt(disp: MultiAgentDispatcher) -> str:
 
 def test_e2e_chinese_task_uses_chinese_prompt() -> None:
     """AC-2: dispatch with lang='zh' → worker prompt contains '架构师'."""
-    _reset_call_counter()
+    _reset_call_counter_er()
     disp = MultiAgentDispatcher(lang="zh")
     try:
         # Pass roles=["architect"] explicitly so the test is deterministic
@@ -55,7 +55,7 @@ def test_e2e_chinese_task_uses_chinese_prompt() -> None:
 
 def test_e2e_english_task_uses_english_prompt() -> None:
     """AC-3: dispatch with lang='en' → worker prompt contains 'Architect'."""
-    _reset_call_counter()
+    _reset_call_counter_er()
     disp = MultiAgentDispatcher(lang="en")
     try:
         disp.dispatch("Design a payment gateway architecture", roles=["architect"])
@@ -69,7 +69,7 @@ def test_e2e_english_task_uses_english_prompt() -> None:
 
 def test_e2e_japanese_task_uses_japanese_prompt() -> None:
     """AC-4: dispatch with lang='ja' → worker prompt contains 'アーキテクト'."""
-    _reset_call_counter()
+    _reset_call_counter_er()
     disp = MultiAgentDispatcher(lang="ja")
     try:
         disp.dispatch("決済ゲートウェイのアーキテクチャを設計する", roles=["architect"])
@@ -82,13 +82,13 @@ def test_e2e_japanese_task_uses_japanese_prompt() -> None:
 
 
 def test_e2e_anti_ghost_counter_incremented() -> None:
-    """AC-6: after dispatch, ``models_dispatch._call_counter > 0``."""
-    _reset_call_counter()
-    assert _md._call_counter == 0, "counter not reset"
+    """AC-6: after dispatch, ``models_dispatch._call_counter_er > 0``."""
+    _reset_call_counter_er()
+    assert _md._call_counter_er == 0, "counter not reset"
     disp = MultiAgentDispatcher(lang="en")
     try:
         disp.dispatch("Design a payment gateway architecture", roles=["architect"])
-        assert _md._call_counter > 0, (
+        assert _md._call_counter_er > 0, (
             "get_localized_prompt was never called during dispatch — i18n path is dead code"
         )
     finally:
@@ -97,7 +97,7 @@ def test_e2e_anti_ghost_counter_incremented() -> None:
 
 def test_e2e_backward_compatible_default_lang() -> None:
     """AC-5: default dispatcher (lang='auto') resolves to zh prompt."""
-    _reset_call_counter()
+    _reset_call_counter_er()
     # Default constructor uses lang="auto" which _resolve_language maps to "zh".
     disp = MultiAgentDispatcher()
     try:

@@ -323,6 +323,9 @@ class TestAPIKeyAuthentication:
             headers={"X-API-Key": ""},
         )
         assert response.status_code == 401
+        # V4.5.6 W2: 验证副作用 — body 应含错误消息
+        body = response.json()
+        assert "Missing" in str(body) or "empty" in str(body).lower() or "Invalid" in str(body)
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +356,9 @@ class TestRBACPermissionEnforcement:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code == 403
+        # V4.5.6 W2: 验证 body 含权限拒绝消息
+        body = response.json()
+        assert "Permission" in str(body) or "denied" in str(body).lower()
 
     def test_viewer_cannot_execute_phase_action(self, viewer_client):
         """VIEWER role should NOT have TASK_UPDATE → 403 on lifecycle actions."""
@@ -362,6 +368,9 @@ class TestRBACPermissionEnforcement:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code == 403
+        # V4.5.6 W2: 验证 body 含权限拒绝消息
+        body = response.json()
+        assert "Permission" in str(body) or "denied" in str(body).lower()
 
     def test_viewer_can_read_roles(self, viewer_client):
         """VIEWER role should have TASK_READ → 200 on GET /roles."""
@@ -379,6 +388,9 @@ class TestRBACPermissionEnforcement:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code == 403
+        body = response.json()
+        msg = body.get("message", body.get("detail", ""))
+        assert "Permission denied" in msg or "permission" in msg.lower()
 
     def test_super_admin_can_access_all(self, secure_client):
         """SUPER_ADMIN role should have all permissions → no 403."""
@@ -633,6 +645,9 @@ class TestEndpointPermissionMapping:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code == 403
+        # V4.5.6 W2: 验证 body 含权限拒绝消息
+        body = response.json()
+        assert "Permission" in str(body) or "denied" in str(body).lower()
 
     def test_gates_status_requires_audit_read(self, viewer_client):
         """GET /gates/status requires AUDIT_READ → 403 for VIEWER."""
@@ -641,6 +656,9 @@ class TestEndpointPermissionMapping:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code == 403
+        body = response.json()
+        msg = body.get("message", body.get("detail", ""))
+        assert "Permission denied" in msg or "permission" in msg.lower()
 
     def test_gates_check_requires_audit_read(self, viewer_client):
         """POST /gates/check requires AUDIT_READ → 403 for VIEWER."""
@@ -650,6 +668,9 @@ class TestEndpointPermissionMapping:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code == 403
+        body = response.json()
+        msg = body.get("message", body.get("detail", ""))
+        assert "Permission denied" in msg or "permission" in msg.lower()
 
     def test_prometheus_metrics_requires_audit_read(self, viewer_client):
         """GET /metrics requires AUDIT_READ → 403 for VIEWER."""
@@ -658,6 +679,9 @@ class TestEndpointPermissionMapping:
             headers={"X-API-Key": viewer_client.test_api_key},
         )
         assert response.status_code == 403
+        body = response.json()
+        msg = body.get("message", body.get("detail", ""))
+        assert "Permission denied" in msg or "permission" in msg.lower()
 
     def test_lifecycle_phases_requires_task_read(self, viewer_client):
         """GET /lifecycle/phases requires TASK_READ → 200 for VIEWER."""
