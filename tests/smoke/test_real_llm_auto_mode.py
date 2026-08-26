@@ -99,6 +99,7 @@ class TestRealLLMAutoModeNoKey:
                 "DEVSQUAD_ANTHROPIC_API_KEY": "",
                 "OPENAI_API_KEY": "",
                 "ANTHROPIC_API_KEY": "",
+                "MOKA_API_KEY": "",
             },
             clear=False,
         ):

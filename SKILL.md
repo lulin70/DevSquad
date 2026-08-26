@@ -1,15 +1,16 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.6
+version: 4.5.7
 description: |
-  DevSquad V4.5.6 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.7 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   193+ core modules, 9203+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.7 — Coeffect Async + Risk Register UX CLI: AsyncCoeffectResolver (asyncio-native coeffect execution) + devsquad risks CLI (list/show/clear/export with ApprovalGate).
   V4.5.6 — Backlog Closure (PATCH-only, no new features): 5 Wave (counter unification + 66 MAJOR test repair + secrets + skip mode + G6 Honest Disclosure).
   V4.5.5 P12.4: HostLLMBridge v2 + DispatcherTransaction + IntentWorkflowMapper + DispatchLoopController.
   V4.5.4 P12.3: Module Fiber + Coeffect — 6-state FSM + ModuleFiberRegistry + CoeffectProvider Protocol + CoeffectResolver (Kahn topological + DFS cycle detection) + Modules CLI (status|graph|retry). V4.5.3 P12.2: Artifacts + Effect — ArtifactStore + DispatchEffect Protocol + EffectRegistry + Audit CLI.

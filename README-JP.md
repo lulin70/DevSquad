@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 「単一のAIアシスタント」を「7人AI専門チーム」にアップグレード</strong>
   <br>
-  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (クロスセッション連続性 + プロトコルネイティブSkill) | V4.4.0 (5つの新規拡張モジュール)</em>
+  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (クロスセッション連続性 + プロトコルネイティブSkill) | V4.4.0 (5つの新規拡張モジュール)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-8600%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.6-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.7-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />

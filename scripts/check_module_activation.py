@@ -127,8 +127,14 @@ def main() -> int:
 
     # V4.5.3 P12.2 modules — touch counters in main scope so they survive module-level imports
     from scripts.cli_audit import get_call_counter_er as au_call_counter_er
+
+    # V4.5.7 P12.5 modules — touch counters in main scope
+    from scripts.cli_risks import get_call_counter_er as _get_cli_risks_counter_er
     from scripts.collaboration.artifact_store import (
         get_call_counter_er as as_call_counter_er,
+    )
+    from scripts.collaboration.async_coeffect_resolver import (
+        get_call_counter_er as _get_async_coeffect_counter_er,
     )
 
     # V4.5.6 P12.4 modules — touch counters in main scope
@@ -162,6 +168,9 @@ def main() -> int:
     # V4.5.6 P12.4 activation (4 new modules)
     _activate_v455_modules()
 
+    # V4.5.7 P12.5 activation (2 new modules)
+    _activate_v457_modules()
+
     counters = {
         "TaskScaleGate": tsg(),
         "PerfBaseline": pb(),
@@ -185,9 +194,12 @@ def main() -> int:
         "DispatcherTransaction_P12.4.2": _get_tx_counter_er(),
         "IntentWorkflowMapper_P12.4.3": _get_intent_counter_er(),
         "DispatchLoopController_P12.4.4": _get_loop_counter_er(),
+        # V4.5.7 P12.5 modules
+        "AsyncCoeffectResolver_P12.5.1": _get_async_coeffect_counter_er(),
+        "CliRisks_P12.5.2": _get_cli_risks_counter_er(),
     }
 
-    print("V4.5.4 Anti-Ghost Verification")
+    print("V4.5.7 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
     for name, count in counters.items():
@@ -203,7 +215,7 @@ def main() -> int:
             print(f"  - {name}")
         return 1
 
-    print("All V4.5.3 modules activated. Anti-ghost gate PASSED.")
+    print("All V4.5.7 modules activated. Anti-ghost gate PASSED.")
     return 0
 
 
@@ -290,6 +302,39 @@ def _activate_v455_modules() -> None:
     ctrl.should_stop(IterationResult(IterationKind.SUCCESS))
     # Also verify the registry helper is importable
     _ = TransactionRegistry()
+
+
+def _activate_v457_modules() -> None:
+    """Exercise V4.5.7 P12.5 modules to bump their anti-ghost counters.
+
+    Touches:
+        - AsyncCoeffectResolver_P12.5.1 — sync bridge resolve() with executor
+        - CliRisks_P12.5.2 — add_risk + cmd_risks_list
+    """
+    from argparse import Namespace
+
+    # P12.5.1: AsyncCoeffectResolver — sync bridge round-trip
+    from scripts.collaboration.async_coeffect_resolver import (
+        AsyncCoeffectResolver,
+        CoeffectRequest,
+        CoeffectState,
+    )
+
+    resolver = AsyncCoeffectResolver()
+    result = resolver.resolve(
+        CoeffectRequest(
+            name="anti-ghost",
+            payload={"executor": lambda: 42},
+        )
+    )
+    assert result.state == CoeffectState.COMPLETED
+    assert result.value == 42
+
+    # P12.5.2: CliRisks — add + list round-trip (in-process store)
+    from scripts.cli_risks import add_risk, cmd_risks_list
+
+    add_risk("anti-ghost verification risk", probability=0.1, impact=0.1)
+    cmd_risks_list(Namespace(format="md", severity=None, limit=None))
 
 
 def _activate_v453_modules() -> None:

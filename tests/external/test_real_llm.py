@@ -378,6 +378,7 @@ class TestAutoBackendRealLLM:
         from unittest.mock import patch
 
         from scripts.collaboration.llm_backend import (
+            FallbackBackend,
             MockBackend,
             create_backend,
         )
@@ -391,11 +392,16 @@ class TestAutoBackendRealLLM:
                 "DEVSQUAD_ANTHROPIC_API_KEY": "",
                 "OPENAI_API_KEY": "",
                 "ANTHROPIC_API_KEY": "",
+                "MOKA_API_KEY": "",
             },
             clear=False,
         ):
             backend = create_backend("auto")
-            assert isinstance(backend, MockBackend)
+            assert isinstance(backend, MockBackend) or (
+                isinstance(backend, FallbackBackend)
+                and len(backend._backends) == 1
+                and isinstance(backend._backends[0], MockBackend)
+            )
 
     @pytest.mark.integration
     def test_auto_dispatch_with_openai_fallback_succeeds(self, openai_key):

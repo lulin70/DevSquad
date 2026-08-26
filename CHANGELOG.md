@@ -14,6 +14,62 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.7] - 2026-08-26
+
+### V4.5.7 — Coeffect Async + Risk Register UX CLI
+
+Closes the top-2 items from V4.5.6_P12_RETROSPECTIVE.md §8 backlog
+(7-Role consensus 8.79/10). Two tightly-scoped waves; `dispatcher.py`
+asyncio.gather migration deliberately deferred to V4.5.8.
+
+#### Wave 1: `AsyncCoeffectResolver` — coeffect execution goes async-native (P0)
+
+- New `scripts/collaboration/async_coeffect_resolver.py`: replaces the
+  ThreadPoolExecutor-blocking execution model with asyncio primitives
+  (`asyncio.Semaphore` concurrency cap + `asyncio.Lock` under uniform
+  sem → lock ordering, L-V457-004 deadlock prevention).
+- Dual entry points: `aresolve(req)` async primary + `resolve(req)` sync
+  bridge (L-V457-003: detects a running loop and raises an informative
+  error steering callers to `aresolve` instead of crashing with a
+  nested-`asyncio.run` RuntimeError).
+- Per-call 6-state FSM (PENDING/READY/RUNNING/COMPLETED/FAILED/CANCELLED);
+  instance state is diagnostics-only, enabling safe concurrent re-entry.
+- V4.5.4 `coeffect.py` (sync Kahn topological sort) is preserved unchanged
+  — execution concurrency and activation ordering remain separate concerns.
+- Bug fixed during P4: the original `resolve()` swallowed its own
+  informative RuntimeError in a running loop and then crashed inside
+  `asyncio.run()` with a confusing message; `_arun_one` also migrated off
+  the deprecated `asyncio.get_event_loop()`.
+
+#### Wave 2: `devsquad risks` UX CLI (P1)
+
+- New `scripts/cli_risks.py` with `list` / `show` / `clear` / `export`
+  subcommands, registered on the main CLI (`scripts/cli.py`).
+- Output formats: Markdown table (LLM-friendly, sorted by exposure
+  descending) and JSON (script-friendly); `--severity` category filter,
+  `--limit`, and file export via positional arg.
+- `clear --require-approval` integrates the V4.5.5 `ApprovalGate`
+  (auto-approve without callback; exit code 2 and fail-closed store
+  preservation when a callback denies).
+- In-process `_RISK_STORE` wiring bridges the stateless V4.5.4
+  `RiskRegister` so subcommands share items within one CLI session.
+
+#### Tests
+
+- 74 new tests across the pyramid: 39 unit + 20 integration + 8 E2E +
+  8 contract (Wave 1: 48, Wave 2: 26). E2E suites simulate real user
+  journeys: parallel role setup, fail-isolated workflows, hung-coeffect
+  timeouts, sync-script bridging, add→list→show→export→clear CLI flows.
+- `tests/smoke/test_real_llm_auto_mode.py`: NoKey case now also clears
+  `MOKA_API_KEY` — previously the test failed on machines whose `.env`
+  carried a Moka key because the fallback chain gained a MokaAIBackend.
+
+#### Gates
+
+- Anti-ghost: 21/21 modules activated (2 new: AsyncCoeffectResolver,
+  CliRisks). Test pyramid healthy (74.3% unit / 15.3% integration /
+  5.3% contract). `ruff` clean; `check_test_quality` 0 MAJOR findings.
+
 ## [4.5.6] - 2026-08-25
 
 ### V4.5.6 — Backlog Closure (PATCH-only, no new features)

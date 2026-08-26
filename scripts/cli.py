@@ -507,6 +507,10 @@ Environment Variables (API keys are read from env vars only, never command line)
     # V4.5.4 P12.3.3: devsquad modules CLI (status/graph/retry)
     register_modules_subparser(subparsers)
 
+    # V4.5.7 P12.5.2: devsquad risks CLI (list/show/clear/export)
+    from scripts.cli_risks import register_risks_subparser
+    register_risks_subparser(subparsers)
+
     # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
     p_sessions = subparsers.add_parser(
         "sessions", aliases=["sess"], help="List/show dispatch sessions (SessionResume V4.5.0)"
