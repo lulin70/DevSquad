@@ -1,19 +1,24 @@
 """Integration tests — Risk Register CLI ↔ RiskRegister ↔ ApprovalGate.
 
 Coverage (8 cases):
-- CLI add/list/show/clear operate on shared in-process store
-- ApprovalGate integration: auto-approve + denied callback (exit 2)
+- CLI add/list/show/clear operate on the shared file-backed store (tmp root)
+- ApprovalGate integration: unavailable callback fail-closed + denied callback (exit 2)
 - Exposure-descending sort in list output
 - RiskRegister.query category filter
+
+V4.5.8: ``--require-approval`` with no callback is fail-closed (exit 2);
+the V4.5.5 auto-approve fallback was removed.
 """
 
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+import scripts.cli_risks as cli_risks
 from scripts.cli_risks import (
     _RISK_STORE,
     add_risk,
@@ -28,7 +33,9 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(autouse=True)
-def _clean_store():
+def _clean_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Point every store access at a tmp root; clean before and after."""
+    monkeypatch.setattr(cli_risks, "DEFAULT_ROOT", tmp_path)
     _RISK_STORE.clear()
     yield
     _RISK_STORE.clear()
@@ -78,11 +85,14 @@ class TestCliStoreIntegration:
 
 
 class TestApprovalGateIntegration:
-    def test_gate_auto_approves_when_no_callback(self, capsys):
+    def test_gate_unavailable_fails_closed(self, capsys):
+        """V4.5.8 contract: --require-approval with no callback → exit 2, no mutation."""
         add_risk("gated risk")
         rc = cmd_risks_clear(_args(require_approval=True))
-        assert rc == 0
-        assert len(_RISK_STORE) == 0
+        err = capsys.readouterr().err
+        assert rc == 2
+        assert "approval unavailable" in err
+        assert len(_RISK_STORE) == 1
 
     def test_gate_denied_callback_returns_2(self, capsys):
         add_risk("protected risk")

@@ -21,6 +21,10 @@ V4.5.4 P12.3: Extended to include:
     - CoeffectResolver (P12.3.2)
     - ModulesCLI (P12.3.3)
 
+V4.5.8: Extended to include:
+    - FileRiskStore (file-backed risk persistence)
+    - CliRisks mutators (add/mitigate/close/list --min-exposure)
+
 Usage:
     python3 scripts/check_module_activation.py
     CI: python3 scripts/check_module_activation.py || exit 1
@@ -168,8 +172,16 @@ def main() -> int:
     # V4.5.6 P12.4 activation (4 new modules)
     _activate_v455_modules()
 
+    # V4.5.8 modules — touch counters in main scope
+    from scripts.collaboration.file_risk_store import (
+        get_call_counter_er as _get_file_risk_store_counter_er,
+    )
+
     # V4.5.7 P12.5 activation (2 new modules)
     _activate_v457_modules()
+
+    # V4.5.8 activation (FileRiskStore + CliRisks mutators)
+    _activate_v458_modules()
 
     counters = {
         "TaskScaleGate": tsg(),
@@ -197,9 +209,12 @@ def main() -> int:
         # V4.5.7 P12.5 modules
         "AsyncCoeffectResolver_P12.5.1": _get_async_coeffect_counter_er(),
         "CliRisks_P12.5.2": _get_cli_risks_counter_er(),
+        # V4.5.8 modules
+        "FileRiskStore_V458.1": _get_file_risk_store_counter_er(),
+        "CliRisksMutators_V458.2": _get_cli_risks_counter_er(),
     }
 
-    print("V4.5.7 Anti-Ghost Verification")
+    print("V4.5.8 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
     for name, count in counters.items():
@@ -215,8 +230,128 @@ def main() -> int:
             print(f"  - {name}")
         return 1
 
-    print("All V4.5.7 modules activated. Anti-ghost gate PASSED.")
+    print("All V4.5.8 modules activated. Anti-ghost gate PASSED.")
     return 0
+
+
+def _activate_v458_modules() -> None:
+    """Exercise V4.5.8 modules to bump their anti-ghost counters.
+
+    Touches:
+        - FileRiskStore — items_to_payload + transaction write + load
+          round-trip + lock_timeout lock acquisition failure
+        - CliRisks mutators — add + mitigate + close (no approval) +
+          list --min-exposure filtering
+    """
+    import io
+    import tempfile
+    from argparse import Namespace
+    from contextlib import redirect_stdout
+    from pathlib import Path
+
+    # Wave 1: FileRiskStore — full persistence round-trip
+    from scripts.collaboration.file_risk_store import (
+        FileRiskStore,
+        RiskStoreLockError,
+    )
+    from scripts.collaboration.risk_register import (
+        ResponseStrategy,
+        RiskItem,
+        RiskStatus,
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        store = FileRiskStore(root=root, lock_timeout=1.0)
+        item = RiskItem(
+            id="R-AG-1",
+            description="anti-ghost V4.5.8 risk",
+            probability=0.4,
+            impact=0.5,
+            response_strategy=ResponseStrategy.MITIGATE,
+            owner="anti-ghost",
+            status=RiskStatus.OPEN,
+            category="technical",
+        )
+        payload = store.items_to_payload("default", [item])
+        with store.transaction("default") as tx:
+            tx["items"] = payload["items"]
+        loaded = store.load("default")
+        assert loaded["version"] == 1
+        assert loaded["items"][0]["id"] == "R-AG-1"
+
+        # Lock timeout: a second store with lock_timeout=0.1 must fail while
+        # the transaction above holds the cross-process lock.
+        holder = FileRiskStore(root=root, lock_timeout=5.0)
+        with holder.transaction("default"):
+            tight = FileRiskStore(root=root, lock_timeout=0.1)
+            try:
+                tight.load("default")
+            except RiskStoreLockError:
+                pass
+            else:
+                raise AssertionError("expected RiskStoreLockError after 0.1s timeout")
+
+    # Wave 2+3: CliRisks mutators — add → mitigate → close → list filter
+    from scripts.cli_risks import (
+        cmd_risks_add,
+        cmd_risks_close,
+        cmd_risks_list,
+        cmd_risks_mitigate,
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = str(Path(tmpdir) / "risks")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            add_rc = cmd_risks_add(Namespace(
+                description="anti-ghost CLI risk",
+                probability=0.6,
+                impact=0.5,
+                category="technical",
+                owner="anti-ghost",
+                register_id="default",
+                root=root,
+            ))
+        assert add_rc == 0
+
+        # Recover the risk id from the persisted store.
+        reader = FileRiskStore(root=root)
+        risk_id = next(iter(reader.payload_to_items(reader.load("default"))))
+
+        with redirect_stdout(buf):
+            assert cmd_risks_mitigate(Namespace(
+                risk_id=risk_id,
+                strategy="mitigate",
+                owner="devops",
+                plan="anti-ghost plan",
+                register_id="default",
+                root=root,
+            )) == 0
+
+        # Close WITHOUT approval (require_approval=False → no gate).
+        with redirect_stdout(buf):
+            assert cmd_risks_close(Namespace(
+                risk_id=risk_id,
+                require_approval=False,
+                register_id="default",
+                root=root,
+            )) == 0
+
+        # --min-exposure filter: high threshold hides every row, zero shows it.
+        buf_hidden, buf_visible = io.StringIO(), io.StringIO()
+        with redirect_stdout(buf_hidden):
+            assert cmd_risks_list(Namespace(
+                register_id="default", root=root, format="md",
+                min_exposure=0.99, severity=None, category=None, limit=None,
+            )) == 0
+        assert "(none)" in buf_hidden.getvalue()
+        with redirect_stdout(buf_visible):
+            assert cmd_risks_list(Namespace(
+                register_id="default", root=root, format="md",
+                min_exposure=0.0, severity=None, category=None, limit=None,
+            )) == 0
+        assert "`R-" in buf_visible.getvalue()
 
 
 def _activate_v454_modules() -> None:

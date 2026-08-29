@@ -1,19 +1,28 @@
-"""Unit tests for cli_risks (V4.5.7 P12.5.2).
+"""Unit tests for cli_risks (V4.5.7 P12.5.2, updated for V4.5.8 contracts).
 
 Coverage (12 cases):
 - list: empty / Markdown header / JSON format / severity filter / limit
 - show: existing / missing (exit 1) / JSON format
-- clear: plain / with ApprovalGate auto-approve
+- clear: plain / --require-approval fail-closed (V4.5.8 contract)
 - export: stdout JSON / to file
+
+V4.5.8 changes:
+- The store is file-backed; each test runs against an isolated tmp root via
+  ``monkeypatch`` so the developer's real ``.devsquad_data/risks`` is never
+  touched by unit tests.
+- ``--require-approval`` with an unavailable callback is fail-closed
+  (exit 2, no mutation) — the V4.5.5 auto-approve fallback was removed.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 import pytest
 
+import scripts.cli_risks as cli_risks
 from scripts.cli_risks import (
     _RISK_STORE,
     add_risk,
@@ -23,11 +32,13 @@ from scripts.cli_risks import (
     cmd_risks_show,
     get_call_counter_er,
 )
+from scripts.collaboration.file_risk_store import FileRiskStore
 
 
 @pytest.fixture(autouse=True)
-def _clean_store():
-    """Isolate the in-process risk store between tests."""
+def _isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Point every store access at a tmp root; clean before and after."""
+    monkeypatch.setattr(cli_risks, "DEFAULT_ROOT", tmp_path)
     _RISK_STORE.clear()
     yield
     _RISK_STORE.clear()
@@ -117,13 +128,15 @@ class TestClear:
         assert "Cleared 1 risks" in out
         assert len(_RISK_STORE) == 0
 
-    def test_clear_with_approval_auto_approved(self, capsys):
+    def test_clear_with_approval_unavailable_fails_closed(self, capsys):
+        """V4.5.8 contract: --require-approval with no callback → exit 2, no mutation."""
         add_risk("gate cleared")
         rc = cmd_risks_clear(_args(require_approval=True))
-        out = capsys.readouterr().out
-        # ApprovalGate with no callback auto-approves (V4.5.5 contract)
-        assert rc == 0
-        assert "Cleared 1 risks" in out
+        err = capsys.readouterr().err
+        assert rc == 2
+        assert "approval unavailable" in err
+        # The risk must remain in the store (nothing was cleared).
+        assert len(_RISK_STORE) == 1
 
 
 class TestExport:
@@ -149,3 +162,12 @@ def test_call_counter_bumped_by_cli():
     add_risk("counter risk")
     cmd_risks_list(_args())
     assert get_call_counter_er() >= before + 2
+
+
+def test_store_uses_file_backed_root(tmp_path: Path):
+    """The compatibility proxy must reflect the FileRiskStore file contents."""
+    add_risk("file backed risk", probability=0.4, impact=0.5)
+    store = FileRiskStore(root=tmp_path)
+    payload = store.load("default")
+    assert payload["version"] == 1
+    assert payload["items"][0]["description"] == "file backed risk"

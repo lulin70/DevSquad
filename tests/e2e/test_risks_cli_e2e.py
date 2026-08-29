@@ -9,16 +9,20 @@ human-readable output formats along the way. Uses the standalone
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
+import scripts.cli_risks as cli_risks
 from scripts.cli_risks import _RISK_STORE, add_risk, main
 
 pytestmark = pytest.mark.e2e
 
 
 @pytest.fixture(autouse=True)
-def _clean_store():
+def _clean_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Isolate the file-backed store in a tmp root (never the real data dir)."""
+    monkeypatch.setattr(cli_risks, "DEFAULT_ROOT", tmp_path)
     _RISK_STORE.clear()
     yield
     _RISK_STORE.clear()

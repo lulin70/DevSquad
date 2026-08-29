@@ -94,6 +94,38 @@ class RiskItem:
         self.response_strategy = _coerce_strategy(self.response_strategy)
         self.status = _coerce_status(self.status)
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this risk item without derived exposure."""
+        return {
+            "id": self.id,
+            "description": self.description,
+            "probability": float(self.probability),
+            "impact": float(self.impact),
+            "response_strategy": self.response_strategy.value,
+            "owner": self.owner,
+            "status": self.status.value,
+            "category": self.category,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RiskItem:
+        """Deserialize a risk item from its JSON-compatible shape."""
+        if not isinstance(data, dict):
+            raise ValueError("RiskItem data must be an object")
+        try:
+            return cls(
+                id=data["id"],
+                description=data["description"],
+                probability=float(data["probability"]),
+                impact=float(data["impact"]),
+                response_strategy=data.get("response_strategy", ResponseStrategy.ACCEPT.value),
+                owner=data.get("owner", ""),
+                status=data.get("status", RiskStatus.OPEN.value),
+                category=data.get("category", "general"),
+            )
+        except KeyError as exc:
+            raise ValueError(f"RiskItem missing field: {exc.args[0]}") from exc
+
     @property
     def exposure(self) -> float:
         """Risk exposure score = probability × impact."""
@@ -133,6 +165,45 @@ class RiskRegister:
     def _call_counter_er(self) -> int:
         """Expose module-level call counter on instances (anti-ghost)."""
         return _call_counter_er
+
+    @classmethod
+    def from_items(cls, items: list[RiskItem] | tuple[RiskItem, ...] | Any) -> RiskRegister:
+        """Build an in-memory register from RiskItem objects."""
+        global _call_counter_er
+        _call_counter_er += 1
+        register = cls()
+        for item in items:
+            register.add(risk_item=item)
+        return register
+
+    @classmethod
+    def from_store(cls, store: Any, register_id: str = "default") -> RiskRegister:
+        """Load a register from a FileRiskStore-compatible backend."""
+        global _call_counter_er
+        _call_counter_er += 1
+        payload = store.load(register_id)
+        return cls.from_items(store.payload_to_items(payload).values())
+
+    def items(self) -> list[RiskItem]:
+        """Return a snapshot of the current risk items."""
+        global _call_counter_er
+        _call_counter_er += 1
+        return list(self._items.values())
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the domain model without storage metadata."""
+        global _call_counter_er
+        _call_counter_er += 1
+        return {"items": [item.to_dict() for item in self._items.values()]}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> RiskRegister:
+        """Build a register from the domain-model dictionary shape."""
+        global _call_counter_er
+        _call_counter_er += 1
+        if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+            raise ValueError("RiskRegister data must contain an 'items' list")
+        return cls.from_items(RiskItem.from_dict(raw) for raw in data["items"])
 
     def add(
         self,

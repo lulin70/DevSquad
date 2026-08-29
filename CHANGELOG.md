@@ -14,6 +14,98 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.8] - 2026-08-29
+
+### V4.5.8 — FileRiskStore Persistence + Risks CLI Completeness
+
+Delivers 3 of the 4 backlog items from V4.5.7_P12_RETROSPECTIVE.md §8
+(7-Role consensus 6.5/10, split decision). The `dispatcher.py` asyncio.gather
+migration was deliberately deferred to V4.5.9/V4.5.10 (architect score 5.5/10:
+AsyncWorkerWrapper still routes through `run_in_executor`, so a default swap
+would break the sync call boundary and the 11-Phase lifecycle).
+
+#### Wave 1: `FileRiskStore` — file-backed risk persistence (P1)
+
+- New `scripts/collaboration/file_risk_store.py`: risk registers persist as
+  JSON schema v1 under `.devsquad_data/risks/<register_id>.json`. The
+  module-level `_RISK_STORE` dict is no longer the source of truth —
+  `devsquad risks add` followed by `devsquad risks list` in another process
+  now sees the risk (V4.5.7 gap closed).
+- Safety hardening: `register_id` allowlist (`[A-Za-z0-9_-]{1,64}`),
+  `resolve()` + `commonpath` traversal checks, symlinked roots / canonical
+  files / lock paths refused, temp-file + `os.replace()` atomic writes with
+  directory fsync, corrupt JSON raises `RiskStoreCorruptError` (never
+  silently wiped).
+- Cross-process `fcntl.flock` (Unix) / `msvcrt` (Windows) exclusive lock
+  covers the whole read-modify-write via `transaction()`; `lock_timeout`
+  triggers `RiskStoreLockError`.
+- Lock deadline hardening: `lock_timeout` NaN/±Inf/negative rejected at
+  construction (a NaN deadline would hang the retry loop forever).
+- Transaction re-entry guard: `load()`/`save()` on a register_id held by an
+  active transaction of the same store instance raise `RiskStoreError`
+  instead of self-deadlocking on flock.
+
+#### Wave 2: risks CLI mutators (P2)
+
+- New subcommands `add` / `assess` / `mitigate` / `close`, mapping 1:1 onto
+  the RiskRegister Python API (`add`/`assess`/`mitigate`/`track(id, CLOSED)`);
+  `close` reuses `track` — no second status-transition vocabulary.
+- `assess` accepts votes as inline JSON or `--votes-file`; exit codes:
+  argparse/domain errors 1-2, storage corrupt / lock timeout 3, approval
+  denied or unavailable 2 — always one clean `ERROR: ...` line, no traceback.
+
+#### Wave 3: exposure filtering (P2)
+
+- `--min-exposure FLOAT` is the canonical numeric threshold
+  (`r.exposure >= threshold`, boundary inclusive, NaN/Inf/out-of-range
+  rejected) on `list`/`show`/`export`.
+- `--severity FLOAT` remains a numeric alias; `--severity <category>` keeps
+  the legacy category-match behavior with a deprecation warning;
+  `--category STRING` is the new explicit category filter.
+
+#### Breaking contract change: fail-closed approvals
+
+V4.5.5's auto-approve fallback is REMOVED on the risks CLI destructive paths.
+When `close --require-approval` / `clear --require-approval` is requested but
+no approval callback is available, the command exits 2 with
+`ERROR: approval unavailable` and the store is preserved. Additionally,
+approval handling in `close`/`clear` now runs OUTSIDE the file lock
+(existence check + count read happen before the transaction opens) — a human
+decision can no longer hold the cross-process lock (deadlock risk eliminated).
+
+#### Tests
+
+- 134 tests in the risks gate scope: 62 unit + 22 integration + 29 contract
+  + 5 E2E + 16 ApprovalGate. 91 new tests across 7 new files
+  (test_file_risk_store 37, test_cli_risks_mutators 11,
+  test_file_risk_store_integration 6, test_cli_risks_persistence 8,
+  test_file_risk_store_contract 14, test_cli_risks_v458_contract 13,
+  test_v458_risks_cli_real_user 2); the remaining 43 are V4.5.7 suites
+  updated to the file-backed contract.
+- Test isolation fix: CLI/store suites now run against `tmp_path` roots via
+  `--root`, no longer polluting the real `.devsquad_data` directory (the
+  V4.5.7 `add_risk()` default leaked state across test runs and machines).
+- E2E real-user simulation (per release rule): independent-process journey
+  add → list → show → assess → mitigate → close → export → clear, plus
+  cross-process exposure-threshold filtering (`test_v458_risks_cli_real_user`).
+
+#### Gates
+
+- Anti-ghost: 23/23 modules activated (2 new counter entries:
+  FileRiskStore_V458.1, CliRisksMutators_V458.2).
+- `ruff check scripts/ tests/` 0 errors; `check_version_consistency.py`
+  51/51 (including 4 TRAE cache content-diff pairs ×2).
+
+#### Lessons Learned
+
+- **Trae sandbox foreground hang**: long-running commands launched in the
+  Trae terminal sandbox stay in `T` (stopped) state when they would page or
+  block; all gates must run via `nohup <cmd> > /tmp/xxx.log 2>&1 & disown;
+  sleep N; tail /tmp/xxx.log` (background + poll) instead.
+- Fail-closed is a contract, not a default: auto-approve fallbacks feel
+  convenient and silently erode the human-in-the-loop guarantee — the
+  unavailable-approval path must be a loud exit code, not a shrug.
+
 ## [4.5.7] - 2026-08-26
 
 ### V4.5.7 — Coeffect Async + Risk Register UX CLI

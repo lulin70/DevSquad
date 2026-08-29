@@ -616,6 +616,10 @@ Environment Variables (API keys are read from env vars only, never command line)
         return cmd_roles(args)
     elif args.command in ("sessions", "sess"):
         return cmd_sessions(args)
+    elif args.command in ("risks", "risk"):
+        if hasattr(args, "func") and callable(args.func):
+            return args.func(args)
+        return 1
     elif args.command == "doctor":
         return cmd_doctor(args)
     elif args.command == "backend":
