@@ -1,13 +1,14 @@
 name: devsquad
-version: 4.5.8
+version: 4.5.9
 description: |
-  DevSquad V4.5.8 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.9 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   193+ core modules, 8996+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.9: Unified Gather Execution Core + Native Async Worker — single-source asyncio.gather core (Semaphore + return_exceptions=True + submission order + BaseException defense) replacing the dual-track ThreadPool/async paths + Worker.aexecute with native async backend await (AsyncOpenAI/AsyncAnthropic, httpx.AsyncClient) + AsyncWorkerWrapper native aexecute path + dispatch report executor marker.
   V4.5.8: FileRiskStore file-backed risk persistence (JSON schema v1, cross-process flock, atomic writes, transactions) + devsquad risks add/assess/mitigate/close + --min-exposure/--category exposure filtering + fail-closed approval contract (2 new modules, 23/23 anti-ghost, 134 gate tests).
   V4.5.7 P12.5: Coeffect Async + Risk Register UX CLI — AsyncCoeffectResolver (asyncio-native execution) + devsquad risks CLI (list/show/clear/export with ApprovalGate) (2 new modules, +74 tests, 21/21 anti-ghost).
   V4.5.6 P12.3: Module Fiber + Coeffect — ModuleFiber (6-state FSM) + CoeffectProvider Protocol + CoeffectResolver (Kahn + DFS cycle detection) + Modules CLI (status|graph|retry) (3 new modules, +162 tests, 14/14 anti-ghost).

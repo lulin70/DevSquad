@@ -14,6 +14,72 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.9] - 2026-08-29
+
+### V4.5.9 — Unified Gather Execution Core + Native Async Worker (执行层统一 gather 化 + Worker 原生异步)
+
+Merges the two backlogs deferred from V4.5.8 — `Coordinator._execute_parallel`
+gather migration (V4.5.9) and `Worker.execute` native async (V4.5.10) — into a
+single release (user decision 2026-08-29; three-sage consensus gate 8.9/10).
+The dual-track parallel execution (ThreadPoolExecutor sync path vs
+`asyncio.gather` async path) collapses into a single-source gather core, and
+the async path becomes truly asynchronous end to end.
+
+#### Added
+
+- New `scripts/collaboration/gather_core.py`: shared execution core
+  `execute_batch_gather()` — `asyncio.Semaphore(max_concurrency)` +
+  `asyncio.gather(..., return_exceptions=True)` (a single worker failure never
+  drops sibling results) + submission-order results + BaseException defense at
+  the task-wrapper layer (see Fixed below). Single source of truth for both
+  coordinators — no second gather implementation allowed (architect hard
+  constraint).
+- `Worker.aexecute` / `Worker._ado_work`: native async twin of `execute()`.
+  Backends implementing `AsyncLLMBackendInterface` (AsyncOpenAI /
+  AsyncAnthropic, httpx.AsyncClient core) are awaited natively with no thread
+  hop; sync backends (Mock / HostBridge) bridge via `run_in_executor`.
+  Context building / Scratchpad writes / ArtifactStore persistence are shared
+  with `execute()` (single implementation, no copy-paste drift).
+- `AsyncWorkerWrapper` native path: prefers `worker.aexecute` when available
+  (thread bridge eliminated), falls back to the legacy `run_in_executor`
+  bridge otherwise.
+- Dispatch report executor marker: execution stats now expose
+  `executor: "gather"` so the unified path is user-visible.
+
+#### Changed
+
+- `Coordinator._execute_parallel` migrated from `ThreadPoolExecutor` to
+  `asyncio.gather` via a sync bridge: running-loop detection fails fast with
+  an informative error (L-V457-002 pattern), otherwise enters the gather core
+  through `asyncio.run`. The sync API signature is unchanged — callers need
+  zero modifications.
+- `AsyncCoordinator._execute_parallel_async` delegates to the shared gather
+  core (behavior unchanged; 71 existing tests pass with zero modifications).
+- `self._executor` / thread-pool lifecycle removed from `shutdown()` — no
+  thread pool is left to manage; all other shutdown responsibilities unchanged.
+
+#### Testing
+
+- 45 new tests: 15 gather-core unit + 14 worker-async unit + 9 integration +
+  2 E2E (real-user CLI sync journey + async journey) + 5 contract.
+- `test_thread_pool_reuse` rewritten against the new gather concurrency
+  contract (registered change per PRD V4.5.9 §3.3 — no silent test edits).
+- Core 56 tests pass with zero modifications (AC-C2 hard behavior-compat gate).
+- Independent re-run: 169 passed.
+
+#### Fixed
+
+- Real E2E surfaced CPython bpo-32528: `asyncio.gather(return_exceptions=True)`
+  does not capture child-task `KeyboardInterrupt`/`SystemExit`. The defense
+  was moved into the task-wrapper layer (BaseException →
+  `WorkerResult(success=False)`), keeping the gather core semantics intact.
+- Full regression caught a latent flaw surfaced by the running-loop fail-fast
+  bridge (PRD R3): the async FastAPI endpoint `POST /api/v1/tasks/dispatch`
+  called the synchronous `dispatcher.dispatch()` directly on the uvicorn
+  event loop. `scripts/api/routes/dispatch.py` now offloads the blocking
+  call via `run_in_executor` — fixing the V4.5.9 bridge raise AND the
+  pre-existing event-loop blocking. API E2E suite 7/7 after fix.
+
 ## [4.5.8] - 2026-08-29
 
 ### V4.5.8 — FileRiskStore Persistence + Risks CLI Completeness

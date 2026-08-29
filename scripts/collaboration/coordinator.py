@@ -14,15 +14,16 @@ Core component for multi-Worker collaboration:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any
 
 from .consensus import ConsensusEngine
 from .context_compressor import CompressedContext, CompressionLevel, ContextCompressor, Message, MessageType
+from .gather_core import execute_batch_gather
 from .models import (
     BatchMode,
     ConsensusRecord,
@@ -90,7 +91,6 @@ class Coordinator:
         "consensus",
         "workers",
         "_worker_index",
-        "_executor",
         "_execution_history",
         "coordinator_id",
         "enable_compression",
@@ -159,10 +159,10 @@ class Coordinator:
         self.consensus = ConsensusEngine()
         self.workers: dict[str, Worker] = {}
         self._worker_index: dict[str, Worker] = {}
-        # P2-4 (V4.1.2): max_workers aligned with max_roles=10 (.devsquad.yaml)
-        # so the pool can accommodate up to 10 parallel Workers when needed.
-        # Previously hardcoded to 7, which undersized the pool when max_roles=10.
-        self._executor = ThreadPoolExecutor(max_workers=10)
+        # V4.5.9: ThreadPoolExecutor removed — parallel batches execute through
+        # the shared asyncio.gather core (gather_core.execute_batch_gather)
+        # via the sync bridge in _execute_parallel. The thread bridge now only
+        # exists at the sync-Worker boundary (AC-C6).
         self._execution_history: list[dict[str, Any]] = []
         self.coordinator_id = f"coord-{uuid.uuid4().hex[:8]}"
         self.enable_compression = enable_compression
@@ -716,30 +716,73 @@ class Coordinator:
         return results, errors
 
     def _execute_parallel(self, batch: TaskBatch) -> list[WorkerResult]:
-        results: list[WorkerResult] = []
+        """Execute a PARALLEL batch through the shared gather core (V4.5.9, AC-C1).
+
+        Sync bridge (AC-C4): safe to call without a running event loop (enters
+        via ``asyncio.run``); raises an informative RuntimeError when a loop is
+        already running — use AsyncCoordinator / async_dispatch instead
+        (L-V457-002 pattern).
+
+        Semantics preserved from the legacy thread-pool implementation:
+        - tasks without a matching Worker are dropped (no result);
+        - a Worker failure yields ``WorkerResult(worker_id="unknown", ...)``
+          without losing the sibling results (AC-C3);
+        - concurrency is capped by ``asyncio.Semaphore(max_concurrency)`` (AC-C5);
+        - results keep submission order (new contract, PRD V4.5.9 R1).
+        """
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError(
+                "Coordinator._execute_parallel cannot run inside a running event loop; "
+                "use AsyncCoordinator / async_dispatch in async context."
+            )
         max_workers = min(batch.max_concurrency or len(batch.tasks), len(batch.tasks))
-        if max_workers <= 0:
-            return results
-        futures = {}
-        for task in batch.tasks:
-            worker = self._get_worker_for_task(task)
-            if worker:
-                future = self._executor.submit(worker.execute, task)
-                futures[future] = task.task_id
-        for future in as_completed(futures):
-            try:
-                results.append(future.result())
-            except Exception as e:
-                # Broad catch: wraps arbitrary worker execution in thread pool
-                results.append(
-                    WorkerResult(
-                        worker_id="unknown",
-                        task_id=futures[future],
-                        success=False,
-                        error=str(e),
-                    )
-                )
+        if max_workers <= 0 or not batch.tasks:
+            return []
+        results = asyncio.run(self._aexecute_parallel(batch, max_workers))
+        # V4.5.9 (DESIGN §6): user-visible evidence of the gather executor.
+        for r in results:
+            if isinstance(r.output, dict):
+                r.output["executor"] = "gather"
         return results
+
+    async def _aexecute_parallel(self, batch: TaskBatch, max_workers: int) -> list[WorkerResult]:
+        """Async half of the sync bridge — runs inside ``asyncio.run()``."""
+        loop = asyncio.get_running_loop()
+
+        async def run_one(task: TaskDefinition) -> WorkerResult:
+            worker = self._get_worker_for_task(task)
+            if worker is None:  # unreachable: batch is pre-filtered below
+                return WorkerResult(
+                    worker_id="unknown",
+                    task_id=task.task_id,
+                    success=False,
+                    error="No worker found for task",
+                )
+            try:
+                if hasattr(worker, "aexecute"):
+                    # 真异步入口：async 后端原生 await；sync 后端在 aexecute
+                    # 内部经 run_in_executor 桥接（AC-C6/W2/W3）。
+                    return await worker.aexecute(task)
+                return await loop.run_in_executor(None, worker.execute, task)
+            except Exception as e:
+                # Broad catch: wraps arbitrary worker execution; per-task
+                # isolation aligned with the legacy thread-pool
+                # future.result() -> worker_id="unknown" path (AC-C3).
+                return WorkerResult(
+                    worker_id="unknown",
+                    task_id=task.task_id,
+                    success=False,
+                    error=str(e),
+                )
+
+        # Legacy thread-pool semantics: tasks without a matching Worker were
+        # never submitted (dropped silently) — preserve that behavior (AC-C2).
+        tasks = [t for t in batch.tasks if self._get_worker_for_task(t) is not None]
+        return await execute_batch_gather(tasks, run_one, max_workers)
 
     def _inject_briefing_to_worker(self, worker: Any) -> None:
         """Inject compressed briefing from preceding Agents into the next Worker."""
@@ -1025,7 +1068,3 @@ class Coordinator:
             duration: Any = self._execution_history[-1]["result"]["duration"]
             return float(duration)
         return 0.0
-
-    def __del__(self) -> None:
-        if hasattr(self, "_executor"):
-            self._executor.shutdown(wait=False)

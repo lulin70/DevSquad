@@ -687,6 +687,8 @@ class PostDispatchPipeline(
                     if r.output
                     else None,
                     "error": r.error,
+                    # V4.5.9 (DESIGN §6): user-visible gather-executor evidence.
+                    "executor": (r.output.get("executor", "gather") if isinstance(r.output, dict) else "gather"),
                 }
             )
         step7_time = time.time()

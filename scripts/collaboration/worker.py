@@ -6,6 +6,7 @@ Each Worker is an independent Agent instance that executes tasks
 and exchanges information with other Workers via Scratchpad.
 """
 
+import asyncio
 import sys
 import threading
 import time
@@ -13,6 +14,7 @@ from typing import Any, cast
 
 from scripts.collaboration import get_logger
 
+from .async_llm_backend import AsyncLLMBackendInterface
 from .models import (
     EntryType,
     ScratchpadEntry,
@@ -180,77 +182,124 @@ class Worker:
             context = self._build_execution_context(task)
 
             finding = self._do_work(context)
-            if finding:
-                entry = ScratchpadEntry(
-                    worker_id=self.worker_id,
+            return self._finalize_finding(task, finding, start_time)
+        except Exception as e:
+            return self._failure_result(task, e, start_time)
+
+    async def aexecute(self, task: TaskDefinition) -> WorkerResult:
+        """Async twin of execute(): identical semantics, native await for async backends.
+
+        V4.5.9 (AC-W1..W3, AC-W6):
+        - Async backends (AsyncLLMBackendInterface): build context, natively
+          await the backend (no thread involved), then share
+          ``_finalize_finding`` — single implementation with execute().
+        - Sync backends (Mock/HostBridge/None): bridge the legacy ``execute``
+          through the default executor — byte-identical legacy behavior
+          (AC-W3). Delegating to ``execute`` (not ``_do_work``) also keeps
+          subclass overrides (e.g. EnhancedWorker guard post-processing)
+          observable from the async path.
+
+        Args:
+            task: Task definition to execute.
+
+        Returns:
+            WorkerResult: Same contract as execute(); exceptions never
+            propagate into the gather (AC-W6) — they produce
+            WorkerResult(success=False) via ``_failure_result``.
+        """
+        loop = asyncio.get_running_loop()
+        if not isinstance(self.llm_backend, AsyncLLMBackendInterface):
+            # AC-W3: sync-backend fallback — exact legacy execute() semantics.
+            return await loop.run_in_executor(None, self.execute, task)
+
+        start_time = time.time()
+        try:
+            context = self._build_execution_context(task)
+            finding = await self._ado_work(context)
+            return self._finalize_finding(task, finding, start_time)
+        except Exception as e:
+            return self._failure_result(task, e, start_time)
+
+    def _finalize_finding(self, task: TaskDefinition, finding: str, start_time: float) -> WorkerResult:
+        """Shared success-path finalizer for execute()/aexecute() (V4.5.9 AC-W1).
+
+        Persists the finding (Scratchpad + ArtifactStore, best-effort) and
+        assembles the success WorkerResult. Single implementation shared by
+        both entrypoints — behavior locked by the core collaboration tests.
+        """
+        if finding:
+            entry = ScratchpadEntry(
+                worker_id=self.worker_id,
+                role_id=self.role_id,
+                entry_type=EntryType.FINDING,
+                content=finding,
+                confidence=0.7,
+                tags=[task.task_id, task.stage_id or "", "auto"],
+            )
+            self.write_finding(entry)
+
+            # V4.5.3 P12.2.2: Persist finding to ArtifactStore (best-effort)
+            session_id = getattr(self, "_session_id", None) or task.task_id
+            try:
+                from scripts.collaboration.artifact_store import ArtifactStore
+
+                store = ArtifactStore()
+                store.write(
+                    session_id=session_id,
                     role_id=self.role_id,
-                    entry_type=EntryType.FINDING,
+                    filename=f"{task.task_id}.md",
                     content=finding,
-                    confidence=0.7,
-                    tags=[task.task_id, task.stage_id or "", "auto"],
+                    kind="text",
                 )
-                self.write_finding(entry)
+            except Exception:  # noqa: BLE001 — best-effort, do not fail worker
+                pass
 
-                # V4.5.3 P12.2.2: Persist finding to ArtifactStore (best-effort)
-                session_id = getattr(self, "_session_id", None) or task.task_id
-                try:
-                    from scripts.collaboration.artifact_store import ArtifactStore
+        output = {
+            "worker_id": self.worker_id,
+            "role_id": self.role_id,
+            "task_id": task.task_id,
+            "finding_summary": finding,
+            "agent_id": self.agent_id,  # V4.4.3: AgentIdentity (anti-ghost)
+        }
 
-                    store = ArtifactStore()
-                    store.write(
-                        session_id=session_id,
-                        role_id=self.role_id,
-                        filename=f"{task.task_id}.md",
-                        content=finding,
-                        kind="text",
-                    )
-                except Exception:  # noqa: BLE001 — best-effort, do not fail worker
-                    pass
+        result = WorkerResult(
+            worker_id=self.worker_id,
+            task_id=task.task_id,
+            success=True,
+            output=output,
+            scratchpad_entries_written=self._entries_written_count,
+            notifications_sent=len(self._notifications_outbox),
+            duration_seconds=time.time() - start_time,
+        )
+        track_usage(
+            f"worker.{self.role_id}.execute",
+            success=True,
+            metadata={"task_id": task.task_id, "duration": round(time.time() - start_time, 2)},
+        )
+        return result
 
-            output = {
+    def _failure_result(self, task: TaskDefinition, e: Exception, start_time: float) -> WorkerResult:
+        """Shared failure-path finalizer for execute()/aexecute() (V4.5.9 AC-W6)."""
+        # Broad catch: top-level worker execute entry; ensures WorkerResult on failure
+        logger.error("  [Worker %s] Error: %s", self.worker_id, e)
+        track_usage(
+            f"worker.{self.role_id}.execute",
+            success=False,
+            metadata={"task_id": task.task_id, "error": str(e)[:100]},
+        )
+        return WorkerResult(
+            worker_id=self.worker_id,
+            task_id=task.task_id,
+            success=False,
+            output={
                 "worker_id": self.worker_id,
                 "role_id": self.role_id,
                 "task_id": task.task_id,
-                "finding_summary": finding,
-                "agent_id": self.agent_id,  # V4.4.3: AgentIdentity (anti-ghost)
-            }
-
-            result = WorkerResult(
-                worker_id=self.worker_id,
-                task_id=task.task_id,
-                success=True,
-                output=output,
-                scratchpad_entries_written=self._entries_written_count,
-                notifications_sent=len(self._notifications_outbox),
-                duration_seconds=time.time() - start_time,
-            )
-            track_usage(
-                f"worker.{self.role_id}.execute",
-                success=True,
-                metadata={"task_id": task.task_id, "duration": round(time.time() - start_time, 2)},
-            )
-            return result
-        except Exception as e:
-            # Broad catch: top-level worker execute entry; ensures WorkerResult on failure
-            logger.error("  [Worker %s] Error: %s", self.worker_id, e)
-            track_usage(
-                f"worker.{self.role_id}.execute",
-                success=False,
-                metadata={"task_id": task.task_id, "error": str(e)[:100]},
-            )
-            return WorkerResult(
-                worker_id=self.worker_id,
-                task_id=task.task_id,
-                success=False,
-                output={
-                    "worker_id": self.worker_id,
-                    "role_id": self.role_id,
-                    "task_id": task.task_id,
-                    "error_detail": "Execution failed",
-                },
-                error=str(e),
-                duration_seconds=time.time() - start_time,
-            )
+                "error_detail": "Execution failed",
+            },
+            error=str(e),
+            duration_seconds=time.time() - start_time,
+        )
 
     def read_scratchpad(self, query: str = "", since: Any = None, limit: int = 20) -> list[ScratchpadEntry]:
         """
@@ -572,32 +621,12 @@ class Worker:
         _rdef = _RR.get(self.role_id)
         _rname = _rdef.name if _rdef else self.role_id
 
-        # V3.8 #9: Check ContentCache first (when configured). The
-        # ContentCache wraps the existing LLMCache with SHA-256 key
-        # hashing and sensitive-data filtering, so it takes precedence
-        # over the raw global cache.
-        if self.content_cache is not None:
-            try:
-                cached = self.content_cache.get(
-                    result.instruction, "backend", getattr(backend, "model", "unknown")
-                )
-                if cached:
-                    logger.debug("  [%s] ContentCache hit.", _rname)
-                    return cast(str, cached)
-            except (AttributeError, TypeError, RuntimeError) as e:
-                logger.debug("ContentCache read failed: %s", e)
-
-        try:
-            from .llm_cache import get_llm_cache
-
-            cache = get_llm_cache()
-            cached = cache.get(result.instruction, "backend", getattr(backend, "model", "unknown"))
-            if cached:
-                logger.debug("  [%s] Cache hit.", _rname)
-                return cached
-        except (ImportError, AttributeError, KeyError, RuntimeError) as e:
-            logger.debug("Cache read failed: %s", e)
-            cache = None
+        # V3.8 #9: Check ContentCache first (when configured), then the raw
+        # global cache — shared helper with the async path (_ado_work).
+        cached = self._cache_get(result.instruction, getattr(backend, "model", "unknown"))
+        if cached:
+            logger.debug("  [%s] Cache hit.", _rname)
+            return cast(str, cached)
 
         logger.info("  [%s] Calling LLM backend...", _rname)
         try:
@@ -615,26 +644,112 @@ class Worker:
                 response = backend.generate(result.instruction)
             logger.debug("  [%s] Response received.", _rname)
 
-            # V3.8 #9: Store the response in ContentCache (when configured).
-            if self.content_cache is not None and response:
-                try:
-                    self.content_cache.set(
-                        result.instruction, response, "backend", getattr(backend, "model", "unknown")
-                    )
-                except (AttributeError, TypeError, RuntimeError) as e:
-                    logger.debug("ContentCache set failed: %s", e)
-
-            if cache and response:
-                try:
-                    cache.set(result.instruction, response, "backend", getattr(backend, "model", "unknown"))
-                except (AttributeError, TypeError, RuntimeError) as e:
-                    logger.debug("Cache set failed for instruction: %s, error: %s", result.instruction[:80], e)
+            # V3.8 #9: Store the response in the caches (when configured).
+            self._cache_put(result.instruction, response, getattr(backend, "model", "unknown"))
 
             return response
         except Exception as e:
             # Broad catch: LLM backend call; re-raises after logging
             logger.error("  [%s] LLM call failed: %s", _rname, e)
             raise
+
+    async def _ado_work(self, context: dict[str, Any]) -> str:
+        """Async core work — native await for AsyncLLMBackendInterface backends.
+
+        V4.5.9 (AC-W2): prompt assembly is pure CPU and reuses the same
+        PromptAssembler flow as ``_do_work``; cache lookups/stores are shared
+        helpers. Sync backends fall back to the legacy ``_do_work`` via the
+        default executor (``aexecute`` routes sync backends to the legacy
+        ``execute`` before reaching here; this branch keeps ``_ado_work``
+        self-contained for direct callers).
+
+        Args:
+            context: Execution context built by _build_execution_context()
+
+        Returns:
+            str: LLM response text (with backend) or assembled work instruction text (without backend)
+        """
+        from .prompt_assembler import PromptAssembler
+
+        task = context["task"]
+        assembler = PromptAssembler(role_id=self.role_id, base_prompt=context["role_prompt"])
+
+        result = assembler.assemble(
+            task_description=task.description,
+            related_findings=context.get("related_findings", []),
+            task_id=task.task_id,
+            compression_level=context.get("compression_level"),
+            code_graph_hints=context.get("code_graph_hints"),
+        )
+        self._last_assembled_prompt = result
+
+        backend = self.llm_backend
+        if isinstance(backend, AsyncLLMBackendInterface):
+            instruction = result.instruction
+            model_name = getattr(backend, "model", "unknown")
+
+            cached = self._cache_get(instruction, model_name)
+            if cached:
+                logger.debug("  [%s] Cache hit (async).", self.role_id)
+                return cast(str, cached)
+
+            logger.info("  [%s] Calling async LLM backend...", self.role_id)
+            if self.stream:
+                logger.debug("  [%s] Streaming (async)...", self.role_id)
+                chunks = [c async for c in backend.generate_stream(instruction)]
+                response = "".join(chunks)
+            else:
+                response = await backend.generate(instruction)
+            logger.debug("  [%s] Response received (async).", self.role_id)
+
+            self._cache_put(instruction, response, model_name)
+            return response
+
+        # Sync backend fallback: bridge the legacy sync work via a thread.
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self._do_work, context)
+
+    def _cache_get(self, instruction: str, backend_model: str) -> str | None:
+        """Shared cache lookup for _do_work/_ado_work (V3.8 #9).
+
+        Checks the ContentCache wrapper first (when configured), then the
+        raw global LLM cache. Returns the cached text or None.
+        """
+        if self.content_cache is not None:
+            try:
+                cached = self.content_cache.get(instruction, "backend", backend_model)
+                if cached:
+                    logger.debug("  [Worker %s] ContentCache hit.", self.worker_id)
+                    return cast(str, cached)
+            except (AttributeError, TypeError, RuntimeError) as e:
+                logger.debug("ContentCache read failed: %s", e)
+        try:
+            from .llm_cache import get_llm_cache
+
+            cache = get_llm_cache()
+            cached = cache.get(instruction, "backend", backend_model)
+            if cached:
+                return cached
+        except (ImportError, AttributeError, KeyError, RuntimeError) as e:
+            logger.debug("Cache read failed: %s", e)
+        return None
+
+    def _cache_put(self, instruction: str, response: str, backend_model: str) -> None:
+        """Shared cache store for _do_work/_ado_work (V3.8 #9, best-effort)."""
+        if self.content_cache is not None and response:
+            try:
+                self.content_cache.set(instruction, response, "backend", backend_model)
+            except (AttributeError, TypeError, RuntimeError) as e:
+                logger.debug("ContentCache set failed: %s", e)
+
+        if response:
+            try:
+                from .llm_cache import get_llm_cache
+
+                cache = get_llm_cache()
+                cache.set(instruction, response, "backend", backend_model)
+            except (ImportError, AttributeError, KeyError, RuntimeError) as e:
+                logger.debug("Cache set failed for instruction: %s, error: %s", instruction[:80], e)
 
 
 class WorkerFactory:

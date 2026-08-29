@@ -13,6 +13,8 @@ Endpoints:
 
 from __future__ import annotations
 
+import asyncio
+import functools
 import logging
 import os
 import sys
@@ -216,11 +218,19 @@ async def dispatch_task(
                 logger.warning("Failed to create LLM backend '%s': %s, using default", request.backend, backend_err)
                 pass
 
-        result = dispatcher.dispatch(
-            task_description=request.task,
-            roles=request.roles,
-            mode=request.mode,
-            dry_run=request.dry_run,
+        # V4.5.9: dispatch() is synchronous and its Coordinator raises
+        # RuntimeError inside a running event loop (fail-fast sync bridge,
+        # see PRD V4.5.9 R3). Move the blocking call off the event loop.
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,
+            functools.partial(
+                dispatcher.dispatch,
+                task_description=request.task,
+                roles=request.roles,
+                mode=request.mode,
+                dry_run=request.dry_run,
+            ),
         )
 
         response_data = _convert_dispatch_result(result)

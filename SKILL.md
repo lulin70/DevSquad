@@ -1,9 +1,9 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.8
+version: 4.5.9
 description: |
-  DevSquad V4.5.8 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.9 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
@@ -23,7 +23,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.5.2 — Multi-Role AI Task Orchestrator
+# DevSquad V4.5.9 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 

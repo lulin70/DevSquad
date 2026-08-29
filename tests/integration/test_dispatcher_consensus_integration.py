@@ -123,7 +123,9 @@ class T1_CoordinatorWorkerConsensusChain(unittest.TestCase):
         self._coord = _make_coordinator()
 
     def tearDown(self) -> None:
-        self._coord._executor.shutdown(wait=False)
+        # V4.5.9: Coordinator no longer owns a ThreadPoolExecutor — the
+        # legacy `_executor.shutdown` cleanup is gone with it (PRD §3.3).
+        pass
 
     def test_01_plan_task_creates_execution_plan_with_roles(self) -> None:
         """Verify: plan_task produces an ExecutionPlan with one task per role."""
@@ -336,7 +338,9 @@ class T3_CoordinatorConflictResolutionConsensus(unittest.TestCase):
         self._coord = _make_coordinator()
 
     def tearDown(self) -> None:
-        self._coord._executor.shutdown(wait=False)
+        # V4.5.9: Coordinator no longer owns a ThreadPoolExecutor — the
+        # legacy `_executor.shutdown` cleanup is gone with it (PRD §3.3).
+        pass
 
     def test_01_resolve_conflicts_on_empty_scratchpad_returns_empty(self) -> None:
         """Verify: resolve_conflicts with no conflicts returns an empty list."""
@@ -420,7 +424,9 @@ class T4_MultiWorkerParallelConsensusAggregation(unittest.TestCase):
         self._coord = _make_coordinator()
 
     def tearDown(self) -> None:
-        self._coord._executor.shutdown(wait=False)
+        # V4.5.9: Coordinator no longer owns a ThreadPoolExecutor — the
+        # legacy `_executor.shutdown` cleanup is gone with it (PRD §3.3).
+        pass
 
     def test_01_three_workers_execute_plan_in_parallel(self) -> None:
         """Verify: a 3-role plan executes all workers and collects 3 results."""
@@ -546,7 +552,9 @@ class T5_BoundaryAndEdgeCases(unittest.TestCase):
         self._coord = _make_coordinator()
 
     def tearDown(self) -> None:
-        self._coord._executor.shutdown(wait=False)
+        # V4.5.9: Coordinator no longer owns a ThreadPoolExecutor — the
+        # legacy `_executor.shutdown` cleanup is gone with it (PRD §3.3).
+        pass
 
     def test_01_single_role_plan_executes_successfully(self) -> None:
         """Verify: a single-role plan executes and completes one task."""
@@ -611,11 +619,10 @@ class T5_BoundaryAndEdgeCases(unittest.TestCase):
     def test_08_coordinator_with_compression_disabled(self) -> None:
         """Verify: a Coordinator with enable_compression=False has no compressor."""
         coord = _make_coordinator(enable_compression=False)
-        try:
-            self.assertIsNone(coord.compressor)
-            self.assertIsNone(coord.get_compression_stats())
-        finally:
-            coord._executor.shutdown(wait=False)
+        # V4.5.9: Coordinator no longer owns a ThreadPoolExecutor — the
+        # legacy `_executor.shutdown` cleanup is gone with it (PRD §3.3).
+        self.assertIsNone(coord.compressor)
+        self.assertIsNone(coord.get_compression_stats())
 
 
 if __name__ == "__main__":

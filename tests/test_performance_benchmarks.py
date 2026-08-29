@@ -14,6 +14,7 @@ import concurrent.futures
 import os
 import sys
 import tempfile
+import threading
 import time
 import tracemalloc
 import unittest
@@ -120,18 +121,31 @@ class TestPerformanceBenchmarks(unittest.TestCase):
         assert elapsed < 0.1, f"Worker lookup too slow: {elapsed:.3f}s for 7000 lookups"
 
     # ------------------------------------------------------------------
-    # 4. Thread Pool Reuse
+    # 4. Gather Concurrency Reuse (V4.5.9 — PRD §3.3 registered change)
     # ------------------------------------------------------------------
-    def test_thread_pool_reuse(self):
-        """Verify coordinator reuses ThreadPoolExecutor across calls."""
+    def test_gather_concurrency_reuse(self):
+        """Verify repeated parallel dispatches stay stable with no thread leak.
+
+        Registered change per PRD V4.5.9 §3.3: Coordinator._execute_parallel
+        was migrated from ThreadPoolExecutor to the shared asyncio.gather core
+        (gather_core.execute_batch_gather). The legacy thread-pool-reuse
+        assertion (id(coord._executor) stable) is therefore replaced by the
+        new contract: repeated dispatches complete consistently and do not
+        leak threads (asyncio.run joins its default executor on return).
+        """
         coord = self._create_coordinator()
         role_ids = ["architect", "pm"]
         plan = self._make_plan(coord, "Reuse test task", role_ids)
         coord.spawn_workers(plan)
-        executor_id_before = id(coord._executor)
-        coord.execute_plan(plan)
-        executor_id_after = id(coord._executor)
-        assert executor_id_before == executor_id_after, "Thread pool not reused"
+
+        threads_before = threading.active_count()
+        for _ in range(3):  # repeated concurrent dispatches — stability contract
+            result = coord.execute_plan(plan)
+            assert result.success is True, f"errors={result.errors}"
+        threads_after = threading.active_count()
+        assert threads_after <= threads_before, (
+            f"Thread leak across gather dispatches: {threads_before} -> {threads_after}"
+        )
 
     # ------------------------------------------------------------------
     # 5. Memory Usage Under Load

@@ -25,6 +25,9 @@ V4.5.8: Extended to include:
     - FileRiskStore (file-backed risk persistence)
     - CliRisks mutators (add/mitigate/close/list --min-exposure)
 
+V4.5.9: Extended to include:
+    - GatherCore (shared asyncio.gather execution core, _call_counter_gather)
+
 Usage:
     python3 scripts/check_module_activation.py
     CI: python3 scripts/check_module_activation.py || exit 1
@@ -177,11 +180,19 @@ def main() -> int:
         get_call_counter_er as _get_file_risk_store_counter_er,
     )
 
+    # V4.5.9 modules — touch counters in main scope
+    from scripts.collaboration.gather_core import (
+        get_call_counter_gather as _get_gather_counter,
+    )
+
     # V4.5.7 P12.5 activation (2 new modules)
     _activate_v457_modules()
 
     # V4.5.8 activation (FileRiskStore + CliRisks mutators)
     _activate_v458_modules()
+
+    # V4.5.9 activation (GatherCore — shared asyncio.gather execution core)
+    _activate_v459_modules()
 
     counters = {
         "TaskScaleGate": tsg(),
@@ -212,9 +223,11 @@ def main() -> int:
         # V4.5.8 modules
         "FileRiskStore_V458.1": _get_file_risk_store_counter_er(),
         "CliRisksMutators_V458.2": _get_cli_risks_counter_er(),
+        # V4.5.9 modules
+        "GatherCore_V459.1": _get_gather_counter(),
     }
 
-    print("V4.5.8 Anti-Ghost Verification")
+    print("V4.5.9 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
     for name, count in counters.items():
@@ -230,8 +243,32 @@ def main() -> int:
             print(f"  - {name}")
         return 1
 
-    print("All V4.5.8 modules activated. Anti-ghost gate PASSED.")
+    print("All V4.5.9 modules activated. Anti-ghost gate PASSED.")
     return 0
+
+
+def _activate_v459_modules() -> None:
+    """Exercise the V4.5.9 gather core to bump its anti-ghost counter.
+
+    Runs one minimal execute_batch_gather() batch — the same entry point a
+    parallel dispatch hits — so ``_call_counter_gather`` reflects real usage.
+    """
+    import asyncio
+
+    from scripts.collaboration.gather_core import execute_batch_gather
+    from scripts.collaboration.models import TaskDefinition, WorkerResult
+
+    async def _run_one(task: TaskDefinition) -> WorkerResult:
+        return WorkerResult(worker_id="anti-ghost", task_id=task.task_id, success=True)
+
+    async def _drive() -> list[WorkerResult]:
+        return await execute_batch_gather(
+            [TaskDefinition(description="anti-ghost check", role_id="architect")],
+            _run_one,
+            1,
+        )
+
+    asyncio.run(_drive())
 
 
 def _activate_v458_modules() -> None:

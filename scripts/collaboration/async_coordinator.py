@@ -37,6 +37,7 @@ from .context_compressor import (
     Message,
     MessageType,
 )
+from .gather_core import execute_batch_gather
 from .models import (
     BatchMode,
     ConsensusRecord,
@@ -75,6 +76,11 @@ class AsyncWorkerWrapper:
         """
         Execute worker task asynchronously with optional timeout.
 
+        V4.5.9 (AC-W4): when the wrapped Worker exposes ``aexecute`` (async
+        backends run natively inside it, sync backends bridge internally),
+        await it directly — no thread bridge at this layer. Otherwise fall
+        back to the legacy run_in_executor bridge.
+
         Args:
             task: Task definition to execute.
 
@@ -84,19 +90,15 @@ class AsyncWorkerWrapper:
         Raises:
             asyncio.TimeoutError: If task exceeds timeout.
         """
-        loop = asyncio.get_event_loop()
+        if hasattr(self.worker, "aexecute"):
+            coro = self.worker.aexecute(task)
+        else:
+            loop = asyncio.get_event_loop()
+            coro = loop.run_in_executor(None, self.worker.execute, task)
 
         if self.timeout:
-
-            async def _execute_with_timeout() -> WorkerResult:
-                return await asyncio.wait_for(
-                    loop.run_in_executor(None, self.worker.execute, task),
-                    timeout=self.timeout,
-                )
-
-            return await _execute_with_timeout()
-        else:
-            return await loop.run_in_executor(None, self.worker.execute, task)
+            return await asyncio.wait_for(coro, timeout=self.timeout)
+        return await coro
 
 
 class AsyncCoordinator:
@@ -425,20 +427,20 @@ class AsyncCoordinator:
 
     async def _execute_parallel_async(self, batch: TaskBatch) -> list[WorkerResult]:
         """
-        Execute tasks in parallel using asyncio.gather.
+        Execute tasks in parallel via the shared gather core (V4.5.9).
 
-        Key advantage over ThreadPoolExecutor:
-        - No thread creation/destruction overhead
-        - Single event loop context switching
-        - Better memory efficiency
-        - Natural integration with async backends
+        The gather mechanism (Semaphore cap, return_exceptions=True so one
+        Worker failure never discards sibling results, BaseException defense,
+        submission-order results) lives in ``gather_core.execute_batch_gather``
+        — the single source of truth shared with the sync Coordinator. The
+        per-task shell (worker routing, briefing, timeout/retry, per-task
+        Exception isolation) stays in ``_execute_with_semaphore`` below.
         """
         semaphore = await self._get_semaphore()
-        results: list[WorkerResult] = []
         max_workers = min(batch.max_concurrency or len(batch.tasks), len(batch.tasks))
 
         if max_workers <= 0:
-            return results
+            return []
 
         async def _execute_with_semaphore(
             task: TaskDefinition,
@@ -487,30 +489,12 @@ class AsyncCoordinator:
                         error=str(e),
                     )
 
-        tasks = [_execute_with_semaphore(task) for task in batch.tasks]
-        # P0-2 (V4.1.2): return_exceptions=True so one Worker failure does not
-        # discard the results of all other parallel Workers. The per-task
-        # _execute_with_semaphore already wraps exceptions into WorkerResult,
-        # but return_exceptions=True is the defensive belt-and-suspenders.
-        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
-        results = []
-        for r in raw_results:
-            if isinstance(r, BaseException):
-                # Defensive: should rarely hit because _execute_with_semaphore
-                # catches Exception, but KeyboardInterrupt/SystemExit could propagate.
-                logger.error(
-                    "Worker raised unexpected exception in async gather: %s", r, exc_info=r
-                )
-                results.append(
-                    WorkerResult(
-                        worker_id="<unknown>",
-                        task_id="<unknown>",
-                        success=False,
-                        error=f"Unexpected exception: {r!r}",
-                    )
-                )
-            else:
-                results.append(r)
+        results = await execute_batch_gather(batch.tasks, _execute_with_semaphore, max_workers)
+
+        # V4.5.9 (DESIGN §6): user-visible evidence of the gather executor.
+        for r in results:
+            if isinstance(r.output, dict):
+                r.output["executor"] = "gather"
 
         return results
 

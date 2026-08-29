@@ -1,7 +1,7 @@
-# DevSQuad V4.5.8 完整技术规范
+# DevSQuad V4.5.9 完整技术规范
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V4.5.8 (Enterprise Edition)
+> **版本**: V4.5.9 (Enterprise Edition)
 > **成熟度**: 9.2/10 (诚实评估)
 > **最后更新**: 2026-08-29
 > **文档位置**: `docs/spec/SPEC.md`
@@ -36,7 +36,7 @@
 | 属性 | 值 |
 |------|-----|
 | **项目名称** | DevSquad |
-| **版本号** | V4.5.8 |
+| **版本号** | V4.5.9 |
 | **成熟度等级** | 8.9/10 (honest assessment) |
 | **项目描述** | Production-Ready Multi-Role AI Task Orchestrator |
 | **开发语言** | Python 3.10+ |
@@ -1269,7 +1269,7 @@ pip install -e .
 ```bash
 # 验证安装
 devsquad --version
-# 输出: DevSquad V4.5.8
+# 输出: DevSquad V4.5.9
 
 # Mock 模式演示（无需 API Key）
 devsquad demo --scenario all
