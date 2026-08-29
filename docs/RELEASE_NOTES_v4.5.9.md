@@ -2,8 +2,8 @@
 
 > **V4.5.9 — Unified Gather Execution Core + Native Async Worker（执行层统一 gather 化 + Worker 原生异步）**
 > Released: 2026-08-29
-> Commit: TBD (P9)
-> Tag: TBD
+> Commit: 4f954a2 (main)
+> Tag: v4.5.9
 
 ---
 
