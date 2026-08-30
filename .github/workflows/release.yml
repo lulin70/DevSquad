@@ -79,10 +79,15 @@ jobs:
           name: dist
           path: dist/
 
+  release-e2e:
+    name: Release E2E gate
+    uses: ./.github/workflows/release-e2e.yml
+    secrets: inherit
+
   publish-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, release-e2e]
     timeout-minutes: 15
     environment: pypi  # requires manual approval in GitHub env protection
     permissions:
