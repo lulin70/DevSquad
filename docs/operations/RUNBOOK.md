@@ -1,11 +1,38 @@
-# DevSquad Runbook (V4.5.3 / P11.3)
+# DevSquad Runbook (V4.5.10 / P11.3)
 
-> **Document Version**: V4.5.3
-> **Last Updated**: 2026-08-22
+> **Document Version**: V4.5.10
+> **Last Updated**: 2026-08-30
 > **Audience**: On-call SRE/DevOps engineers
-> **Related**: [ALERT_RULES.md](ALERT_RULES.md) (alert definitions) · [ROLLBACK.md](ROLLBACK.md) (V4.5.3 → V4.5.2 rollback)
+> **Related**: [ALERT_RULES.md](ALERT_RULES.md) (alert definitions) · [ROLLBACK.md](ROLLBACK.md) (V4.5.10 rollback: v2→v1 protocol / async→sync)
 
 This runbook provides step-by-step incident response for the 5 V4.5.2 modules + 5 V4.5.3 modules plus commonly encountered issues. Each scenario follows the structure: **Alert → Symptoms → Diagnosis → Mitigation → Recovery → Prevention**.
+
+## V4.5.10 Scenarios — HostLLMBridge v2 / `--async`
+
+### §V4.5.10-A — HostBridgeV2WiringGhost
+
+**Symptoms**: `python3 scripts/check_module_activation.py` reports `HostBridgeV2Wiring_V4510.1 FAIL (ghost)` — `create_backend("host")` did not instantiate `HostBridgeBackendV2`.
+
+**Diagnosis**: check `DEVSQUAD_HOST_BRIDGE_VERSION` for invalid values (fail-closed `ValueError`), or a stale `scripts/collaboration/host_llm_bridge_v2.py`.
+
+**Mitigation**: fix the env value (`v1`/`v2` only) or restore the v2 module; re-run the activation check until PASS.
+
+### §V4.5.10-B — HostBridgeV2TimeoutSpike
+
+**Symptoms**: repeated `HostLLMBridge failure: timeout after Ns` with requests landing in `logs/host_llm_bridge/v2/` but no v2 listener running.
+
+**Diagnosis**: `ls logs/host_llm_bridge/v2/` — accumulating `request_*.json` + `protocol.v2.marker` with no consumer means the host runner (v2.8.4 protocol) is not listening on the v2 dir.
+
+**Mitigation**: start/repair the v2 host runner, or temporarily roll the protocol back: `export DEVSQUAD_HOST_BRIDGE_VERSION=v1` (or emergency `DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2=1`) and restart dispatch. v1 and v2 directories are fully isolated, so no in-flight v2 requests are lost or duplicated.
+
+### §V4.5.10-C — `--async` CLI failure
+
+**Symptoms**: `devsquad dispatch --async` returns `success=false` with an async pipeline error.
+
+**Diagnosis**: mock mode (no `llm_backend`) resolves the async backend as `mock`; a `ValueError: Unknown backend type` indicates `_execute_async_workers` degraded incorrectly. Check `dispatcher_mixins.py` lines ~132-143.
+
+**Mitigation**: re-run without `--async` (sync path); the sync/async output contract is identical (same exit codes, same JSON shape).
+
 
 ---
 

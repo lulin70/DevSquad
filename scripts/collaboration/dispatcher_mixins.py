@@ -131,8 +131,15 @@ class DispatcherAsyncMixin(DispatcherBase):
         """Execute workers asynchronously, falling back to sync on failure."""
         if kwargs.get('use_async_backend', False) or os.environ.get('DEVSQUAD_USE_ASYNC', '').lower() in ('1', 'true'):
             try:
-                AsyncLLMBackendFactory.create(self.llm_backend.__class__.__name__)
-            except (ImportError, AttributeError, RuntimeError):
+                # V4.5.10: llm_backend may legitimately be None (mock mode);
+                # resolve to "mock" name instead of crashing on NoneType.
+                backend_name = (
+                    self.llm_backend.__class__.__name__
+                    if self.llm_backend is not None
+                    else "mock"
+                )
+                AsyncLLMBackendFactory.create(backend_name)
+            except (ImportError, AttributeError, RuntimeError, ValueError):
                 SyncToAsyncAdapter(self.llm_backend)
         else:
             SyncToAsyncAdapter(self.llm_backend)

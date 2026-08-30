@@ -113,7 +113,8 @@ class HostLLMBridge:
 
         Args:
             bridge_dir: Override bridge directory (for tests). If None,
-                defaults to ``<project_root>/logs/host_llm_bridge``.
+                defaults to ``<project_root>/logs/host_llm_bridge/v1``
+                (V4.5.10: versioned dir keeps v1/v2 fully isolated).
         """
         if bridge_dir is None:
             bridge_dir = self._default_bridge_dir()
@@ -277,11 +278,15 @@ class HostLLMBridge:
 
     @staticmethod
     def _default_bridge_dir() -> str:
-        """Default bridge dir: <project_root>/logs/host_llm_bridge."""
+        """Default bridge dir: <project_root>/logs/host_llm_bridge/v1.
+
+        V4.5.10: versioned subdir isolates v1 protocol files from v2
+        (which uses logs/host_llm_bridge/v2 + protocol.v2.marker).
+        """
         # scripts/collaboration/host_llm_bridge.py → project root is 2 levels up
         here = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(here))
-        return os.path.join(project_root, "logs", "host_llm_bridge")
+        return os.path.join(project_root, "logs", "host_llm_bridge", "v1")
 
     @staticmethod
     def _assert_safe_id(request_id: str) -> None:
@@ -469,9 +474,43 @@ class HostBridgeBackend(LLMBackend):
         return self._fuse_skip
 
 
+class HostBridgeBackendV2(HostBridgeBackend):
+    """LLMBackend adapter for HostLLMBridgeV2 (B path, V4.5.10).
+
+    Inherits all behavior from HostBridgeBackend (platform detection, fuse,
+    SUBAGENT_TYPE_MAP, generate semantics) but uses the hardened v2 protocol:
+    versioned dir (logs/host_llm_bridge/v2), protocol.v2.marker, strict
+    7-field schema, no inline prompt in request JSON.
+
+    Selection is controlled by create_backend() via:
+      - DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2=1  → force v1 (highest priority)
+      - DEVSQUAD_HOST_BRIDGE_VERSION=v1|v2      → explicit version
+      - default                                  → v2
+    """
+
+    def __init__(
+        self,
+        bridge_dir: str | None = None,
+        timeout_seconds: int = 600,
+    ) -> None:
+        from .host_llm_bridge_v2 import HostLLMBridgeV2
+
+        self.bridge = HostLLMBridgeV2(bridge_dir=bridge_dir)
+        self.timeout = timeout_seconds
+        self._failures: dict[str, int] = {}
+        self._fuse_skip = False
+
+    def __repr__(self) -> str:
+        return (
+            f"HostBridgeBackendV2(bridge_dir={self.bridge.bridge_dir}, "
+            f"timeout={self.timeout}, fuse_skip={self._fuse_skip})"
+        )
+
+
 # Public exports
 __all__ = [
     "HostLLMBridge",
     "HostBridgeBackend",
+    "HostBridgeBackendV2",
     "get_call_counter_er",
 ]

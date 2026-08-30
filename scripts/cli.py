@@ -419,6 +419,22 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_dispatch.add_argument("--action-items", action="store_true", help="Include H/M/L action items")
     p_dispatch.add_argument("--timing", action="store_true", help="Include timing info")
     p_dispatch.add_argument("--persist-dir", help="Custom scratchpad directory")
+    # V4.5.10: explicit async selection. Priority: --async > --no-async
+    # > DEVSQUAD_USE_ASYNC env > default sync. Mutually exclusive.
+    async_group = p_dispatch.add_mutually_exclusive_group()
+    async_group.add_argument(
+        "--async",
+        action="store_true",
+        dest="use_async",
+        default=None,
+        help="Use the async dispatch pipeline (async_dispatch)",
+    )
+    async_group.add_argument(
+        "--no-async",
+        action="store_false",
+        dest="use_async",
+        help="Force sync dispatch (overrides DEVSQUAD_USE_ASYNC)",
+    )
     p_dispatch.add_argument("--no-warmup", action="store_true", help="Disable startup warmup")
     p_dispatch.add_argument("--no-compression", action="store_true", help="Disable context compression")
     p_dispatch.add_argument("--stream", action="store_true", help="Stream LLM output in real-time (requires --backend)")

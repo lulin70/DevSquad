@@ -14,6 +14,78 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.10] - 2026-08-30
+
+### V4.5.10 — HostLLMBridge v2 Production Wiring + `--async` CLI + Docs Convergence (v2 生产接线 + 显式异步 CLI + 文档收敛)
+
+Closes the two release-blocking gaps from the V4.5.9 audit — HostLLMBridgeV2
+was implemented but never wired into the production factory, and the CLI had
+no explicit async flag (P2-2 verdict). PRD passed the three-sage re-review
+(architecture 8.7 / testing 8.6 / security 8.6) after hardening decisions in
+§0 of `docs/prd/V4.5.10_PRD.md`.
+
+#### Added
+
+- `HostBridgeBackendV2(HostBridgeBackend)`: v2 protocol adapter reusing the
+  full v1 behavior surface (platform detection, fuse, SUBAGENT_TYPE_MAP,
+  generate semantics) with the hardened `HostLLMBridgeV2` bridge.
+- `create_backend("host-v1" / "host-v2")`: explicit protocol-version types.
+- Version flags (fail-closed): `DEVSQUAD_HOST_BRIDGE_VERSION` (`v1`/`v2`
+  only; invalid non-empty values raise `ValueError` — never silently
+  default) and `DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2=1` emergency rollback
+  (highest priority).
+- CLI `dispatch --async` / `--no-async` (mutually exclusive, three-state):
+  priority = explicit flag > `DEVSQUAD_USE_ASYNC` env > default sync;
+  `cmd_dispatch` actually calls `async_dispatch`/`dispatch` (spy-proven).
+- `HostLLMBridgeV2` hardening: strict 7-field marker schema (exactly the
+  upstream fields — extra/missing/mistyped fields and out-of-dir paths are
+  refused fail-closed), resource limits (`MAX_PROMPT_BYTES` 512 KB /
+  `MAX_REQUEST_JSON_BYTES` 256 KB / `MAX_RESPONSE_JSON_BYTES` 4 MB —
+  oversized prompts leave no marker), TOCTOU-safe reads (O_NOFOLLOW +
+  regular-file fstat), canonical realpath+commonpath path validation,
+  dir 0700 / file 0600 enforcement.
+- `tests/fakes/fake_host_runner_v2.py` (v2 listener; `python -m` runnable)
+  and `tests/e2e/test_host_bridge_v2_e2e.py` (real subprocess round-trip:
+  success/failure/timeout + factory journey + cross-version isolation).
+- Wiring-level anti-ghost gate `HostBridgeV2Wiring_V4510.1`:
+  `check_module_activation.py` now actually runs `create_backend("host")`
+  and asserts the instance type is `HostBridgeBackendV2`.
+
+#### Changed
+
+- `create_backend("host"/"auto"/"auto-fallback")` now defaults to the v2
+  adapter (breaking for v1 listeners — set `DEVSQUAD_HOST_BRIDGE_VERSION=v1`
+  to keep v1).
+- v1 default bridge dir moved to `logs/host_llm_bridge/v1/` (v2 lives in
+  `.../v2/` with `protocol.v2.marker`); v2 no longer migrates/renames/
+  deletes v1 markers — full cross-version isolation.
+- v2 request JSON no longer embeds the prompt (prompt lives only in
+  `request_{id}.prompt`; `prompt_file` pointer in JSON).
+- Fixed `create_backend("host")` dropping `timeout_seconds` kwargs.
+
+#### Fixed
+
+- `_execute_async_workers` crashed with an uncaught `ValueError` on
+  `NoneType` backend in mock mode (`DEVSQUAD_USE_ASYNC=1` CLI path);
+  now resolves the backend name as `"mock"` and degrades gracefully.
+
+#### Docs (P1-1 / P1-2 / P2-4 / P2-5 / P3-2 / P3-3 / P3-4 convergence)
+
+- ALERT_RULES / RUNBOOK / ROLLBACK updated to V4.5.10 with v2→v1 rollback
+  paths, v2 timeout and wiring-ghost incident scenarios, and `--async`
+  failure handling.
+- PROJECT_STATUS / README×3 / SKILL.md / skill-manifest / helm / Dockerfile
+  version sync; EXCEPTION_HANDLING_NORMALIZATION_GUIDE rewritten to the
+  V4.5.x reality (three verified `except Exception` categories); 
+  PERFORMANCE_MONITORING_INTEGRATION status aligned to delivered facts.
+- `ROADMAP_v4.5.x_P12.md` archived to
+  `docs/planning/_archive/ROADMAP_v4.5.x_P12_SUPERSEDED.md` (pointer left
+  in place); V4.4.2 Kanban evaluation formally closed (deferred, verdict
+  recorded); SmartConfirmation docs item closed (module shipped in V4.3.0,
+  honesty-disclosure framework supersedes upstream doc alignment).
+- P2-1 verdict recorded in `docs/prd/V4.5.10_PRD.md` §6: SQLite risk store
+  formally ruled JSON-only long-term.
+
 ## [4.5.9] - 2026-08-29
 
 ### V4.5.9 — Unified Gather Execution Core + Native Async Worker (执行层统一 gather 化 + Worker 原生异步)

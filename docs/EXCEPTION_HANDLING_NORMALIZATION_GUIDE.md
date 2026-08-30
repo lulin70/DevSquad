@@ -1,28 +1,32 @@
 # DevSquad 异常处理规范化指南
 
-**版本**: V3.6.0
-**日期**: 2026-05-04
-**目标**: 将40处宽泛异常处理规范化为具体异常类型
+**版本**: V4.5.10（现状重写）
+**日期**: 2026-08-30（原 V3.6.0 整改计划，2026-05-04，已收敛完成）
+**目标**: 记录 V4.5.x 异常处理现行规范与已验证例外
 
 ---
 
-## 📊 当前状态
+## 📊 当前状态（V4.5.10）
 
-### 异常处理分布
+原 V3.6.0 计划中的 40 处宽泛异常整改已在 V4.0.x–V4.5.x 迭代中收敛完成。
+现行代码中残留的 `except Exception` 均为**已验证的合法语义**，分三类：
 
-| 模块 | 数量 | 优先级 | 状态 |
-|------|------|--------|------|
-| **mce_adapter.py** | 12 | P0 | ⏳ 待规范化 |
-| **dispatcher.py** | 10 | P0 | ⏳ 待规范化 |
-| **lifecycle_protocol.py** | 8 | P1 | ⏳ 待规范化 |
-| **llm_retry.py** | 3 | P1 | ⏳ 待规范化 |
-| **workflow_engine.py** | 1 | P2 | ⏳ 待规范化 |
-| **verification_gate.py** | 1 | P2 | ⏳ 待规范化 |
-| **task_completion_checker.py** | 3 | P2 | ⏳ 待规范化 |
-| **prompt_assembler.py** | 2 | P2 | ⏳ 待规范化 |
-| **checkpoint_manager.py** | 1 | P2 | ⏳ 待规范化 |
+| 类别 | 语义 | 代表位置 | 测试证据 |
+|---|---|---|---|
+| best-effort 旁路 | 失败不得破坏主流程（如 marker 清理、ArtifactStore.write、v454 模块激活） | `host_llm_bridge_v2.py`、`dispatcher.py::_activate_v454_modules` | 对应单测覆盖 happy path；异常路径 logger.debug 可观测 |
+| 防御性隔离 | 第三方/动态代码不可信，需兜底避免进程崩溃 | worker 后端调用、plugin hot loader | fallback/fuse 测试（`test_fallback_fuse.py`） |
+| 反幻影计数器包装 | 激活检查必须捕获任意失败并 fail-closed | `check_module_activation.py` | CI 门禁自身 |
 
-**总计**: 40处
+**新代码规范**（不变）：
+1. 系统边界处捕获具体异常类型（`(ValueError, TypeError, KeyError)` / `ImportError` / `OSError` 等）
+2. 仅在上述三类已验证场景使用宽泛捕获，且必须附带日志与注释说明语义
+3. fail-closed 优先：安全相关失败（协议校验、路径校验、资源上限）必须抛出，禁止静默降级（见 `HostLLMBridgeV2Error` 家族）
+
+---
+
+## 📜 历史整改记录（V3.6.0 计划，已完成）
+
+原计划针对以下 9 个模块的 40 处宽泛异常：mce_adapter(12)、dispatcher(10)、lifecycle_protocol(8)、llm_retry(3)、workflow_engine(1)、verification_gate(1)、task_completion_checker(3)、prompt_assembler(2)、checkpoint_manager(1)。整改随 V4.0 重构与后续迭代的模块重写自然收敛，无需单独补录逐条状态。
 
 ---
 

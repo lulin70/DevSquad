@@ -739,7 +739,7 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         backend_type == "auto"
         and not kwargs
         and env_backend
-        in ("openai", "anthropic", "moka", "fallback", "auto-fallback", "mock", "trae", "host")
+        in ("openai", "anthropic", "moka", "fallback", "auto-fallback", "mock", "trae", "host", "host-v1", "host-v2")
     ):
         backend_type = env_backend
 
@@ -771,11 +771,24 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
             kwargs.setdefault("model", os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC))
         return cls(**kwargs)
 
-    # === "host" → HostBridgeBackend (always returns a backend, or raises) ===
+    # === "host-v1"/"host-v2" (V4.5.10: explicit protocol version) ===
+    if backend_type in ("host-v1", "host-v2"):
+        bridge_dir = kwargs.pop("bridge_dir", None)
+        timeout_seconds = kwargs.pop("timeout_seconds", 600)
+        from .host_llm_bridge import HostBridgeBackend, HostBridgeBackendV2
+        cls = HostBridgeBackendV2 if backend_type == "host-v2" else HostBridgeBackend
+        backend = cls(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
+        if not backend.is_available():
+            raise BackendUnavailable(
+                f"{backend_type} not available: no TRAE/ClaudeCode environment detected"
+            )
+        return backend
+
+    # === "host" → HostBridgeBackend v2 by default (V4.5.10), or raises ===
     if backend_type == "host":
         bridge_dir = kwargs.pop("bridge_dir", None)
-        from .host_llm_bridge import HostBridgeBackend
-        backend = HostBridgeBackend(bridge_dir=bridge_dir)
+        timeout_seconds = kwargs.pop("timeout_seconds", 600)
+        backend = _build_host_bridge_backend(bridge_dir, timeout_seconds)
         if not backend.is_available():
             raise BackendUnavailable("Host bridge not available: no TRAE/ClaudeCode environment detected")
         return backend
@@ -789,9 +802,8 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         bridge_dir = kwargs.pop("bridge_dir", None)
         timeout_seconds = kwargs.pop("timeout_seconds", 600)
         backends: list[LLMBackend] = []
-        # B path
-        from .host_llm_bridge import HostBridgeBackend
-        host_bridge = HostBridgeBackend(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
+        # B path (V4.5.10: v2 by default, flag-controlled)
+        host_bridge = _build_host_bridge_backend(bridge_dir, timeout_seconds)
         if host_bridge.is_available():
             backends.append(host_bridge)
         # A path
@@ -804,25 +816,24 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         return FallbackBackend(backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS))
 
     # === Catch-all for unknown backend types ===
-    known_types = {"auto", "host", "mock", "trae", "openai", "anthropic", "moka", "fallback", "auto-fallback"}
+    known_types = {"auto", "host", "host-v1", "host-v2", "mock", "trae", "openai", "anthropic", "moka", "fallback", "auto-fallback"}
     if backend_type not in known_types:
         raise ValueError(
             f"Unknown backend type: {backend_type}. "
-            f"Available: auto, host, mock, trae, openai, anthropic, moka, fallback, auto-fallback"
+            f"Available: auto, host, host-v1, host-v2, mock, trae, openai, anthropic, moka, fallback, auto-fallback"
         )
 
     # === "auto" — B→A→C single path resolution ===
     # First available wins; no chain wrapping.
     dst_path = kwargs.pop("path_only", None)  # testing override
 
-    # B path: host detection
+    # B path: host detection (V4.5.10: v2 by default, flag-controlled)
     if dst_path is None or dst_path == BackendPath.B_HOST_BRIDGE:
         for env_var in HOST_ENV_TRIGGERS:
             if os.environ.get(env_var):
-                from .host_llm_bridge import HostBridgeBackend
                 bridge_dir = kwargs.pop("bridge_dir", None)
                 timeout_seconds = kwargs.pop("timeout_seconds", 600)
-                host_backend = HostBridgeBackend(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
+                host_backend = _build_host_bridge_backend(bridge_dir, timeout_seconds)
                 if host_backend.is_available():
                     return host_backend
                 if dst_path:
@@ -851,6 +862,49 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
 
     # Unreachable (RESOLVE_ORDER covers all paths)
     raise BackendUnavailable("No available backend path")
+
+
+def _resolve_host_bridge_version() -> str:
+    """Resolve HostLLMBridge protocol version (V4.5.10, fail-closed).
+
+    Priority:
+      1. DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2=1/true → "v1" (emergency rollback)
+      2. DEVSQUAD_HOST_BRIDGE_VERSION ("v1"/"v2", case/space tolerant)
+      3. default "v2"
+
+    Raises:
+        ValueError: on invalid non-empty DEVSQUAD_HOST_BRIDGE_VERSION
+            (fail-closed; never silently defaults to v2).
+    """
+    disable = os.environ.get("DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2", "")
+    if disable.strip().lower() in ("1", "true"):
+        return "v1"
+    raw = os.environ.get("DEVSQUAD_HOST_BRIDGE_VERSION", "").strip().lower()
+    if not raw:
+        return "v2"
+    if raw in ("v1", "v2"):
+        return raw
+    raise ValueError(
+        f"Invalid DEVSQUAD_HOST_BRIDGE_VERSION={raw!r}: only 'v1' or 'v2' accepted"
+    )
+
+
+def _build_host_bridge_backend(
+    bridge_dir: str | None,
+    timeout_seconds: int = 600,
+) -> LLMBackend:
+    """Build the HostBridgeBackend for the resolved protocol version.
+
+    v2 (default) → HostBridgeBackendV2 (hardened protocol, versioned dir).
+    v1 → legacy HostBridgeBackend (explicit flag / emergency rollback only).
+    """
+    from .host_llm_bridge import HostBridgeBackend, HostBridgeBackendV2
+
+    if _resolve_host_bridge_version() == "v2":
+        return HostBridgeBackendV2(
+            bridge_dir=bridge_dir, timeout_seconds=timeout_seconds
+        )
+    return HostBridgeBackend(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
 
 
 def _build_api_backends(kwargs: dict) -> list[LLMBackend]:

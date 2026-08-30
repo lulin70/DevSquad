@@ -1,11 +1,33 @@
-# DevSquad Rollback Plan (V4.5.3 / P11.4)
+# DevSquad Rollback Plan (V4.5.10 / P11.4)
 
-> **Document Version**: V4.5.3
-> **Last Updated**: 2026-08-22
+> **Document Version**: V4.5.10
+> **Last Updated**: 2026-08-30
 > **Audience**: DevOps engineers, release managers
 > **Related**: [ALERT_RULES.md](ALERT_RULES.md) · [RUNBOOK.md](RUNBOOK.md) · [OPERATIONS.md](../OPERATIONS.md)
 
-This document defines the rollback strategy from **V4.5.3 → V4.5.2** when critical issues block production use. Rollback is the last resort after [RUNBOOK.md](RUNBOOK.md) mitigation steps fail.
+This document defines the rollback strategy when critical issues block production use. Rollback is the last resort after [RUNBOOK.md](RUNBOOK.md) mitigation steps fail.
+
+## V4.5.10 Rollback Paths
+
+### R1 — HostLLMBridge protocol v2 → v1 (no redeploy, first choice)
+
+```bash
+# Emergency: force v1 everywhere (highest priority flag)
+export DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2=1
+# Or version-pinned rollback
+export DEVSQUAD_HOST_BRIDGE_VERSION=v1
+```
+
+v1/v2 use fully isolated directories (`logs/host_llm_bridge/v1/` vs `v2/`) and distinct marker filenames; rolling back never loses or duplicates in-flight requests of either protocol.
+
+### R2 — `--async` → sync (no redeploy)
+
+Re-run dispatch without `--async`; explicitly neutralize env with `--no-async` when `DEVSQUAD_USE_ASYNC=1` is set. Sync and async share the same output contract.
+
+### R3 — Full version rollback (last resort)
+
+`git checkout v4.5.9` and reinstall, per the original V4.5.3 → V4.5.2 procedure below.
+
 
 ---
 

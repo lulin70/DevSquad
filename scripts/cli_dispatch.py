@@ -11,6 +11,7 @@ DevSquad CLI dispatch 子命令模块。
 
 import argparse
 import json
+import os
 import sys
 from typing import Any
 
@@ -269,6 +270,19 @@ def _print_host_result(args: argparse.Namespace, host_result: dict[str, Any]) ->
     return 0 if host_result["success"] else 1
 
 
+def _resolve_use_async(args: argparse.Namespace, environ: dict[str, str] | None = None) -> bool:
+    """Resolve the async/sync dispatch selection (V4.5.10).
+
+    Priority: explicit ``--async`` > explicit ``--no-async`` >
+    ``DEVSQUAD_USE_ASYNC`` env truthy > default sync.
+    """
+    env = environ if environ is not None else dict(os.environ)
+    explicit = getattr(args, "use_async", None)
+    if explicit is not None:
+        return bool(explicit)
+    return env.get("DEVSQUAD_USE_ASYNC", "").strip().lower() in ("1", "true")
+
+
 def cmd_dispatch(args: argparse.Namespace) -> int:
     """Execute the ``dispatch`` subcommand: validate and run a task.
 
@@ -325,6 +339,18 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
                 dry_run=args.dry_run,
             )
             return _print_host_result(args, host_result)
+        elif _resolve_use_async(args):
+            # V4.5.10: explicit async pipeline (P2-2裁决).
+            import asyncio
+
+            result = asyncio.run(
+                disp.async_dispatch(
+                    task,
+                    roles=args.roles,
+                    mode=args.mode,
+                    dry_run=args.dry_run,
+                )
+            )
         else:
             result = disp.dispatch(
                 task,  # 使用验证后的任务

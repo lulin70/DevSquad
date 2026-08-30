@@ -36,7 +36,9 @@ Usage:
 from __future__ import annotations
 
 import contextlib
+import os
 import sys
+from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, ".")
@@ -194,6 +196,9 @@ def main() -> int:
     # V4.5.9 activation (GatherCore — shared asyncio.gather execution core)
     _activate_v459_modules()
 
+    # V4.5.10 activation (HostBridge v2 production wiring)
+    v4510_wiring = _activate_v4510_modules()
+
     counters = {
         "TaskScaleGate": tsg(),
         "PerfBaseline": pb(),
@@ -225,9 +230,11 @@ def main() -> int:
         "CliRisksMutators_V458.2": _get_cli_risks_counter_er(),
         # V4.5.9 modules
         "GatherCore_V459.1": _get_gather_counter(),
+        # V4.5.10 modules
+        "HostBridgeV2Wiring_V4510.1": v4510_wiring,
     }
 
-    print("V4.5.9 Anti-Ghost Verification")
+    print("V4.5.10 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
     for name, count in counters.items():
@@ -243,8 +250,33 @@ def main() -> int:
             print(f"  - {name}")
         return 1
 
-    print("All V4.5.9 modules activated. Anti-ghost gate PASSED.")
+    print("All V4.5.10 modules activated. Anti-ghost gate PASSED.")
     return 0
+
+
+def _activate_v4510_modules() -> int:
+    """Exercise the V4.5.10 HostBridge v2 production wiring (AC-α-8).
+
+    Asserts create_backend("host") really instantiates HostBridgeBackendV2
+    (not just that the module exists). Returns 1 on success, 0 on failure
+    so the counter-style gate fails closed.
+    """
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        bridge_dir = str(Path(td) / "v2")
+        os.environ["TRAE_ENV"] = "1"
+        try:
+            from scripts.collaboration.host_llm_bridge import HostBridgeBackendV2
+            from scripts.collaboration.llm_backend import create_backend
+
+            backend = create_backend("host", bridge_dir=bridge_dir)
+            wired = type(backend) is HostBridgeBackendV2
+        except Exception:
+            wired = False
+        finally:
+            os.environ.pop("TRAE_ENV", None)
+    return 1 if wired else 0
 
 
 def _activate_v459_modules() -> None:

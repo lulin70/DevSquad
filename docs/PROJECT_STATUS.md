@@ -1,10 +1,11 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.5.1（2026-08-05）
-> **最后更新**: 2026-08-05
-> **最新评估**: V4.5.1 — Approval Gate + Connector Framework + 反幽灵 E2E（PATCH，SemVer 合规）。2 个新模块交付：ApprovalGate（用户级审批门，fail-closed，无回调时自动批准向后兼容）+ ConnectorFramework（外部系统集成协议接口，GitHub 首个实现，api/cli/simulation 三模式，dispatch 管线强制 simulation=True 安全无网络）。3 个 ROADMAP 项完成：V451-7 Dashboard 浏览器级 E2E（11 AppTest 用例）+ V451-8 REST API 端到端用户旅程 E2E（190 测试）+ V451-9 Connector 反幽灵 E2E（12 测试 AG-1 到 AG-8）。DispatchResult 新增 4 字段（approval_records/approval_gate_md/connector_operations/connector_md，全部 default_factory 向后兼容）。8996+ tests passing（local; CI authoritative），ruff/mypy/radon 全绿，所有新模块 `_call_counter > 0` 防幽灵验证通过。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **当前版本**: V4.5.10（2026-08-30）
+> **最后更新**: 2026-08-30
+> **最新评估**: V4.5.10 — HostLLMBridge v2 生产接线 + `--async` CLI + 文档收敛（MINOR，SemVer 合规）。核心交付：① v2 协议硬化（严格 7 字段 marker fail-closed、request JSON 不再内嵌 prompt、canonical/no-symlink/TOCTOU 路径安全、目录 0700/文件 0600、prompt/request/response 资源上限）；② v1/v2 完全隔离（`logs/host_llm_bridge/v1/` vs `v2/`、`protocol.marker` vs `protocol.v2.marker`、v2 不再迁移 v1 marker）；③ 生产接线（`create_backend("host"/"auto"/"auto-fallback")` 默认 v2 adapter，`host-v1`/`host-v2` 显式选择，`DEVSQUAD_HOST_BRIDGE_VERSION` fail-closed，`DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2` 紧急回退）；④ CLI `--async`/`--no-async`（优先级 flag > env > sync，修复 mock 模式 async 管道 NoneType 崩溃缺陷）；⑤ anti-ghost 升级为 wiring 层门禁（`HostBridgeV2Wiring_V4510.1`）。裁决记录：SQLite risk store 正式 JSON-only long-term；`_LegacyRiskStoreProxy` 清理顺延。P2-1/P2-2 正式裁决见 [V4.5.10_PRD.md §6](prd/V4.5.10_PRD.md)。详见 [CHANGELOG.md](../CHANGELOG.md)。
+> **历史评估**: V4.5.1（Approval Gate + Connector Framework，8996+ tests）→ V4.5.7（AsyncCoeffect + Risks CLI）→ V4.5.8（FileRiskStore + Risks mutators，9363 tests）→ V4.5.9（统一 gather 核 + 原生异步 Worker，9408 tests）→ V4.5.10（本版）
 > **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.1 待发布）
+> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.x 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
 
 ---

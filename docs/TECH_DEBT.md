@@ -2,8 +2,15 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-07-24
+> **最后更新**: 2026-08-30（V4.5.10）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](./TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线)
+
+## V4.5.10 技术债状态
+
+- **活跃 P0/P1 技术债**: 0
+- **已裁决关闭**: SQLite risk store（P2-1，2026-08-30 正式裁决 JSON-only long-term，见 `docs/prd/V4.5.10_PRD.md` §6）
+- **顺延项**: `_LegacyRiskStoreProxy` 删除（推迟到专门清理迭代，非阻断）；`Worker.execute`/`aexecute` 合并评估（P3）；risks CLI 输出风格统一（P3）
+- **V4.5.10 已修复**: v2 request JSON 内嵌 prompt（协议债）；v1/v2 共享 marker 丢请求风险（架构债）；async 管道 mock 模式 NoneType 崩溃（缺陷债）；`create_backend("host")` 未透传 timeout_seconds
 
 ## 范围说明
 

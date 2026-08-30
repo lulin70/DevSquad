@@ -1,9 +1,9 @@
 # DevSquad 性能监控集成方案
 
-**版本**: V4.0.11
-**日期**: 2026-07-13
+**版本**: V4.5.10（状态对齐更新）
+**日期**: 2026-08-30（原方案 V4.0.11，2026-07-13）
 **目标**: 建立完整的性能监控体系
-**更新**: V4.0.7 新增 Moka AI 后端基准数据；V4.0.10 新增 /ready 就绪探针
+**更新**: V4.0.7 新增 Moka AI 后端基准数据；V4.0.10 新增 /ready 就绪探针；V4.5.10 状态对齐——本文档描述的 Benchmark Suite、Metrics Collector、Alerts Engine、Performance Database 集成、/ready 探针与 Prometheus metrics 均已交付并有测试覆盖（`tests/test_performance_benchmarks.py`、`tests/test_perf_baseline*.py`、`tests/test_prometheus_metrics.py`、CLI `metrics` 命令），不再是 planned/in-progress 状态。V4.5.9 起 Coordinator 并行执行统一为 asyncio.gather（`tests/test_performance_benchmarks.py::test_gather_concurrency_reuse`）；V4.5.10 起 HostLLMBridge 默认 v2 协议，B 路径延迟基线监控沿用同套指标。
 
 ---
 

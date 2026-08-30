@@ -1,11 +1,18 @@
-# DevSquad Alert Rules (V4.5.3 / P11.2)
+# DevSquad Alert Rules (V4.5.10 / P11.2)
 
-> **Document Version**: V4.5.3
-> **Last Updated**: 2026-08-22
+> **Document Version**: V4.5.10
+> **Last Updated**: 2026-08-30
 > **Audience**: SRE, DevOps, on-call engineers
-> **Related**: [RUNBOOK.md](RUNBOOK.md) (incident response) · [ROLLBACK.md](ROLLBACK.md) (V4.5.3 → V4.5.2 rollback)
+> **Related**: [RUNBOOK.md](RUNBOOK.md) (incident response) · [ROLLBACK.md](ROLLBACK.md) (V4.5.10 rollback: v2→v1 protocol / async→sync)
 
 This document defines Prometheus alert rules for the **5 V4.5.2 modules + 5 V4.5.3 modules** plus the existing core metrics. Each rule follows SRE best practices: severity, threshold rationale, runbook link, and noise budget.
+
+## V4.5.10 Additions — HostLLMBridge v2 wiring
+
+| Alert | Condition | Severity | Action |
+|---|---|---|---|
+| `HostBridgeV2WiringGhost` | `check_module_activation.py` exit != 0 (HostBridgeV2Wiring_V4510.1 FAIL) | critical | Run RUNBOOK §V4.5.10-A |
+| `HostBridgeV2TimeoutSpike` | repeated `HostLLMBridge failure: timeout` in logs with v2 dir in use | warning | Run RUNBOOK §V4.5.10-B |
 
 ---
 

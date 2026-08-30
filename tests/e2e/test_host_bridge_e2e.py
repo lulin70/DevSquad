@@ -118,6 +118,9 @@ class TestT10DispatchIntegration:
         for v in ("TRAE_ENV", "TRAE_AGENT_PATH", "CLAUDE_CODE_ENV", "ANTHROPIC_ENV"):
             monkeypatch.delenv(v, raising=False)
         monkeypatch.setenv("TRAE_ENV", "1")  # Simulate host presence
+        # V4.5.10: default protocol is now v2; these tests exercise the v1
+        # protocol with the v1 FakeHostRunner, so pin v1 explicitly.
+        monkeypatch.setenv("DEVSQUAD_HOST_BRIDGE_VERSION", "v1")
 
     def _start_host(self, behaviour: str = "success", delay: float = 0.0):
         proc = multiprocessing.Process(

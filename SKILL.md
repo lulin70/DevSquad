@@ -1,15 +1,17 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.9
+version: 4.5.10
 description: |
-  DevSquad V4.5.9 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.10 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
-  193+ core modules, 9203+ tests passing (local; CI authoritative).
+  193+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.10 — HostLLMBridge v2 production wiring + --async CLI: create_backend("host"/"auto"/"auto-fallback") defaults to the hardened v2 protocol (strict 7-field marker fail-closed, no inline prompt in request JSON, canonical/no-symlink/TOCTOU path security, dir 0700 / file 0600, resource limits) + full v1/v2 directory+marker isolation + host-v1/host-v2 explicit types + DEVSQUAD_HOST_BRIDGE_VERSION fail-closed flag + DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2 emergency rollback + CLI --async/--no-async (flag > env > sync) + wiring-level anti-ghost gate; SQLite risk store formally ruled JSON-only long-term.
+  V4.5.9 — Unified Gather Execution Core + Native Async Worker: single-source asyncio.gather core (Semaphore + return_exceptions=True + submission order + BaseException defense) replacing the dual-track ThreadPool/async paths + Worker.aexecute with native async backend await + AsyncWorkerWrapper native aexecute path.
   V4.5.8 — FileRiskStore Persistence + Risks CLI Completeness: file-backed risk register (JSON schema v1 + cross-process flock + atomic writes + transactions) + devsquad risks add/assess/mitigate/close + --min-exposure/--category exposure filtering + fail-closed approval contract.
   V4.5.7 — Coeffect Async + Risk Register UX CLI: AsyncCoeffectResolver (asyncio-native coeffect execution) + devsquad risks CLI (list/show/clear/export with ApprovalGate).
   V4.5.6 — Backlog Closure (PATCH-only, no new features): 5 Wave (counter unification + 66 MAJOR test repair + secrets + skip mode + G6 Honest Disclosure).
@@ -23,7 +25,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.5.9 — Multi-Role AI Task Orchestrator
+# DevSquad V4.5.10 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 

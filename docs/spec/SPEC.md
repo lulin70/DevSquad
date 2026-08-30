@@ -1,9 +1,9 @@
-# DevSQuad V4.5.9 完整技术规范
+# DevSQuad V4.5.10 完整技术规范
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V4.5.9 (Enterprise Edition)
+> **版本**: V4.5.10 (Enterprise Edition)
 > **成熟度**: 9.2/10 (诚实评估)
-> **最后更新**: 2026-08-29
+> **最后更新**: 2026-08-30
 > **文档位置**: `docs/spec/SPEC.md`
 > **活文档原则**: 本文档与代码同步演进，每次版本发布时同步更新所有数据点。
 
@@ -1269,7 +1269,7 @@ pip install -e .
 ```bash
 # 验证安装
 devsquad --version
-# 输出: DevSquad V4.5.9
+# 输出: DevSquad V4.5.10
 
 # Mock 模式演示（无需 API Key）
 devsquad demo --scenario all

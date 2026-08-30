@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CLI = PROJECT_ROOT / "scripts" / "cli.py"
 
@@ -85,3 +84,64 @@ def test_cli_subprocess_env_is_preserved_until_async_flag_exists() -> None:
     assert payload["success"] is True
     assert payload["matched_roles"] == ["tester"]
     assert payload["report"]
+
+
+# ---------------------------------------------------------------------------
+# V4.5.10 --async / --no-async explicit CLI journeys (P2-2)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_cli_subprocess_async_flag_journey() -> None:
+    """``--async`` must succeed through the real CLI executable (AC-async-1/4)."""
+    result = _run_cli(
+        "-t",
+        "Design a small REST API",
+        "-r",
+        "architect",
+        "-f",
+        "json",
+        "--async",
+        "--no-warmup",
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["success"] is True
+    assert payload["matched_roles"] == ["architect"]
+    assert "architect" in payload["report"]
+
+
+@pytest.mark.e2e
+def test_cli_subprocess_no_async_overrides_env_journey() -> None:
+    """``--no-async`` must override DEVSQUAD_USE_ASYNC=1 and still succeed
+    through the sync path with identical output contract (AC-async-2/3/4)."""
+    result = _run_cli(
+        "-t",
+        "Design a small REST API",
+        "-r",
+        "architect",
+        "-f",
+        "json",
+        "--no-async",
+        "--no-warmup",
+        env_overrides={"DEVSQUAD_USE_ASYNC": "1"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["success"] is True
+    assert payload["matched_roles"] == ["architect"]
+
+
+@pytest.mark.e2e
+def test_cli_subprocess_async_flags_are_mutually_exclusive() -> None:
+    """Passing both --async and --no-async is a usage error (exit != 0)."""
+    result = _run_cli(
+        "-t",
+        "x",
+        "--async",
+        "--no-async",
+        "--no-warmup",
+    )
+    assert result.returncode != 0
