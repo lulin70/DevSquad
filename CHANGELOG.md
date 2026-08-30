@@ -79,6 +79,11 @@ the async path becomes truly asynchronous end to end.
   event loop. `scripts/api/routes/dispatch.py` now offloads the blocking
   call via `run_in_executor` — fixing the V4.5.9 bridge raise AND the
   pre-existing event-loop blocking. API E2E suite 7/7 after fix.
+- Post-release gate closure: `.github/workflows/release-e2e.yml` now runs as
+  a reusable workflow and is a hard dependency of PyPI publication; its
+  release path points to the existing `tests/external/test_real_llm.py`.
+  Added `tests/e2e/test_v459_cli_subprocess_journey.py` to exercise the
+  executable CLI in a separate process (2/2 passed).
 
 ## [4.5.8] - 2026-08-29
 
