@@ -2,15 +2,19 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-08-30（V4.5.10）
+> **最后更新**: 2026-08-31（V4.5.11）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](./TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线)
 
-## V4.5.10 技术债状态
+## V4.5.11 技术债状态
 
 - **活跃 P0/P1 技术债**: 0
-- **已裁决关闭**: SQLite risk store（P2-1，2026-08-30 正式裁决 JSON-only long-term，见 `docs/prd/V4.5.10_PRD.md` §6）
-- **顺延项**: `_LegacyRiskStoreProxy` 删除（推迟到专门清理迭代，非阻断）；`Worker.execute`/`aexecute` 合并评估（P3）；risks CLI 输出风格统一（P3）
-- **V4.5.10 已修复**: v2 request JSON 内嵌 prompt（协议债）；v1/v2 共享 marker 丢请求风险（架构债）；async 管道 mock 模式 NoneType 崩溃（缺陷债）；`create_backend("host")` 未透传 timeout_seconds
+- **已裁决关闭**: SQLite risk store（P2-1，维持 JSON-only long-term，重立项条件见 `docs/prd/V4.5.10_PRD.md` §6）
+- **V4.5.11 已修复**（V4.5.10 全部顺延项收官）:
+  - `_LegacyRiskStoreProxy` / `_RISK_STORE` 已删除（Breaking，测试迁移为 FileRiskStore 直读）
+  - `Worker.execute`/`aexecute` 双实现合并为 `_do_work_async` 单实现（`_ado_work` 删除）
+  - risks CLI 输出统一（`RISK_FIELD_ORDER` 规范字段序，add 与 list/show/export 同构）
+  - bridge 日志无界增长（`PRUNE_MAX_FILES` 保留策略，默认 100）
+- **剩余顺延**: 上游 trae v2.8.4 真实监听方联调（V4.5.12+）；SQLite 重立项条件监控（被动）
 
 ## 范围说明
 

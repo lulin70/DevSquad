@@ -72,6 +72,57 @@ def _atomic_write_json(path: str, payload: dict[str, Any]) -> None:
         raise
 
 
+def _prune_old_files(bridge_dir: str, max_files: int) -> int:
+    """V4.5.11: prune oldest request/response files in v1 bridge dir.
+
+    Mirrors the v2 implementation behavior:
+    - max_files == 0 disables pruning (returns 0).
+    - marker (`protocol.marker`) and `.tmp` files are not counted.
+    - only files matching ``request_*.json`` / ``response_*.json``.
+    """
+    if max_files <= 0:
+        return 0
+    if not os.path.isdir(bridge_dir):
+        return 0
+    entries: list[tuple[float, str]] = []
+    request_re = re.compile(r"^request_.+\.json$")
+    response_re = re.compile(r"^response_.+\.json$")
+    try:
+        for name in os.listdir(bridge_dir):
+            path = os.path.join(bridge_dir, name)
+            if not os.path.isfile(path):
+                continue
+            if name.startswith(".") or name.endswith(".tmp"):
+                continue
+            if name == "protocol.marker":
+                continue
+            if not (request_re.match(name) or response_re.match(name)):
+                continue
+            try:
+                entries.append((os.path.getmtime(path), path))
+            except OSError:
+                continue
+    except OSError:
+        logger.debug("HostLLMBridge._prune_old_files: iter failed for %s", bridge_dir)
+        return 0
+    excess = len(entries) - max_files
+    if excess <= 0:
+        return 0
+    entries.sort(key=lambda pair: pair[0])
+    removed = 0
+    for _, path in entries[:excess]:
+        try:
+            os.remove(path)
+            removed += 1
+        except OSError:
+            continue
+    return removed
+
+
+# Module-level default + env override (mirrors HostLLMBridgeV2)
+PRUNE_MAX_FILES_DEFAULT = 100
+
+
 def _try_read_json(path: str) -> dict[str, Any] | None:
     """Read JSON file; return None on parse error (caller may retry)."""
     try:
@@ -104,6 +155,27 @@ class HostLLMBridge:
     POLL_INTERVAL = 0.5
     MAX_JSON_RETRIES = 3
     JSON_RETRY_INTERVAL = 0.1
+
+    # V4.5.11: bridge log retention (PRUNE_MAX_FILES, default 100).
+    PRUNE_MAX_FILES_DEFAULT = 100
+
+    @classmethod
+    def _resolve_prune_max_files(cls) -> int:
+        """Resolve PRUNE_MAX_FILES from env override (fail-loud on garbage)."""
+        raw = os.environ.get("DEVSQUAD_BRIDGE_PRUNE_MAX_FILES", "").strip()
+        if not raw:
+            return cls.PRUNE_MAX_FILES_DEFAULT
+        try:
+            value = int(raw)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={raw!r}: must be int ≥ 0"
+            ) from exc
+        if value < 0:
+            raise ValueError(
+                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={value}: must be ≥ 0"
+            )
+        return value
 
     # request_id safety: only alphanumerics + underscore (prevent path traversal)
     _REQUEST_ID_RE = re.compile(r"^[a-zA-Z0-9_]{1,64}$")
@@ -172,6 +244,8 @@ class HostLLMBridge:
             {"request_id": request_id, "ts": time.time()},
         )
         logger.info("HostLLMBridge.create_request: %s (agent=%s)", request_id, agent_type)
+        # V4.5.11: prune v1 dir to PRUNE_MAX_FILES (best-effort)
+        _prune_old_files(self.bridge_dir, self._resolve_prune_max_files())
         return request_id
 
     def wait_for_response(
@@ -245,6 +319,8 @@ class HostLLMBridge:
                 os.remove(marker_path)
         except OSError as e:
             logger.debug("Marker cleanup failed (non-fatal): %s", e)
+        # V4.5.11: prune v1 dir to PRUNE_MAX_FILES (best-effort)
+        _prune_old_files(bridge_dir, HostLLMBridge._resolve_prune_max_files())
         return response_path
 
     @staticmethod

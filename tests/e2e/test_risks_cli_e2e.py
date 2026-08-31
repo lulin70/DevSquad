@@ -4,6 +4,9 @@ Simulates a real shell user invoking ``devsquad risks`` subcommands in
 sequence: add → list → show → export → clear, verifying exit codes and
 human-readable output formats along the way. Uses the standalone
 ``main()`` entry (same code path as ``python3 scripts/cli_risks.py``).
+
+V4.5.11: the V4.5.7 in-process ``_RISK_STORE`` proxy was removed; tests now
+read the file-backed store directly via FileRiskStore.
 """
 
 from __future__ import annotations
@@ -14,7 +17,8 @@ from pathlib import Path
 import pytest
 
 import scripts.cli_risks as cli_risks
-from scripts.cli_risks import _RISK_STORE, add_risk, main
+from scripts.cli_risks import add_risk, main
+from scripts.collaboration.file_risk_store import FileRiskStore
 
 pytestmark = pytest.mark.e2e
 
@@ -23,13 +27,18 @@ pytestmark = pytest.mark.e2e
 def _clean_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Isolate the file-backed store in a tmp root (never the real data dir)."""
     monkeypatch.setattr(cli_risks, "DEFAULT_ROOT", tmp_path)
-    _RISK_STORE.clear()
     yield
-    _RISK_STORE.clear()
+    store = FileRiskStore(root=tmp_path)
+    with store.transaction("default") as transaction:
+        transaction["items"] = []
+
+
+def _count(tmp_path: Path) -> int:
+    return len(FileRiskStore(root=tmp_path).load("default").get("items", []))
 
 
 class TestRisksCliUserJourney:
-    def test_user_journey_add_list_show_clear(self, capsys):
+    def test_user_journey_add_list_show_clear(self, capsys, tmp_path: Path):
         """A user registers risks from a retrospective, reviews them, inspects
         the top risk, then clears the register."""
         rid = add_risk(
@@ -50,7 +59,7 @@ class TestRisksCliUserJourney:
         # 3. clear — user wipes the register
         assert main(["risks", "clear"]) == 0
         assert "Cleared 2 risks" in capsys.readouterr().out
-        assert len(_RISK_STORE) == 0
+        assert _count(tmp_path) == 0
 
     def test_user_journey_export_to_file(self, capsys, tmp_path):
         """A user exports the register for a weekly report."""

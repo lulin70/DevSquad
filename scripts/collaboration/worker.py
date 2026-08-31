@@ -28,6 +28,35 @@ from .usage_tracker import track_usage
 logger = get_logger(__name__)
 
 
+def _run_coro_on_thread(coro: Any) -> Any:
+    """Run an awaitable on a dedicated daemon loop in a worker thread.
+
+    Used by ``Worker.execute`` when the caller is already inside a running
+    asyncio loop. Returning the coroutine's value synchronously avoids both
+    ``asyncio.run()`` recursion (RuntimeError) and a deadlock from blocking
+    the caller's event loop on the same thread.
+    """
+    result_box: dict[str, BaseException | Any] = {}
+
+    def runner() -> None:
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            try:
+                result_box["value"] = loop.run_until_complete(coro)
+            except BaseException as exc:  # noqa: BLE001 — re-raised below
+                result_box["error"] = exc
+        finally:
+            loop.close()
+
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+    thread.join()
+    if "error" in result_box:
+        raise result_box["error"]
+    return result_box.get("value")
+
+
 class Worker:
     """
     Worker Agent Instance - Execution Unit for Multi-Role Collaboration
@@ -151,37 +180,39 @@ class Worker:
         self._last_assembled_prompt = None
 
     def execute(self, task: TaskDefinition) -> WorkerResult:
-        """
-        Execute assigned task.
+        """Synchronous worker entrypoint (V4.5.11 contract).
 
-        Full execution flow:
-        1. Build execution context (read relevant findings from Scratchpad)
-        2. Call _do_work() to generate work output
-        3. Write output as FINDING to Scratchpad
-        4. Return WorkerResult with output and statistics
+        Behavior contract (AC-W, supersedes V4.5.9):
 
-        Args:
-            task: Task definition containing description, role ID, phase ID, etc.
+        * No asyncio loop is active in the caller's context (typical sync
+          callers, the CLI, scripts, and plain pytest functions):
+          the wrapper builds context, then runs the unified
+          ``_do_work_async`` inside ``asyncio.run``. Async backends
+          are awaited natively; sync backends bridge through the
+          default executor inside the unified path.
+        * An asyncio loop is already running (pytest-asyncio, an async
+          test, or another ``asyncio.run`` on the stack): the wrapper
+          runs ``_do_work_async`` on a fresh daemon loop in a worker
+          thread and blocks on the returned future. This avoids both
+          ``asyncio.run()`` recursion and a deadlock from blocking the
+          caller's loop. The unified path is used; behavior is
+          byte-identical to the no-loop case.
 
-        Returns:
-            WorkerResult: Execution result containing:
-                - success: Whether successful
-                - output: Output content dictionary
-                - error: Error message (on failure)
-                - scratchpad_entries_written: Number of entries written
-                - notifications_sent: Number of notifications sent
-                - duration_seconds: Execution duration
-
-        Note:
-            Even if _do_work() returns an empty string, execute still returns
-            success=True, just with empty output.finding_summary. Only marks
-            as failed when an exception is raised.
+        Errors at any layer are normalized through ``_failure_result``,
+        matching the V4.5.9 contract (AC-W6).
         """
         start_time = time.time()
         try:
+            try:
+                asyncio.get_running_loop()
+                in_loop = True
+            except RuntimeError:
+                in_loop = False
             context = self._build_execution_context(task)
-
-            finding = self._do_work(context)
+            if in_loop:
+                finding = _run_coro_on_thread(self._do_work_async(context))
+            else:
+                finding = asyncio.run(self._do_work_async(context))
             return self._finalize_finding(task, finding, start_time)
         except Exception as e:
             return self._failure_result(task, e, start_time)
@@ -189,15 +220,18 @@ class Worker:
     async def aexecute(self, task: TaskDefinition) -> WorkerResult:
         """Async twin of execute(): identical semantics, native await for async backends.
 
-        V4.5.9 (AC-W1..W3, AC-W6):
-        - Async backends (AsyncLLMBackendInterface): build context, natively
-          await the backend (no thread involved), then share
+        V4.5.9 (AC-W1..W3, AC-W6) / V4.5.11 (AC-W):
+
+        * Async backends (AsyncLLMBackendInterface): build context, natively
+          await the unified ``_do_work_async`` (no thread involved), then share
           ``_finalize_finding`` — single implementation with execute().
-        - Sync backends (Mock/HostBridge/None): bridge the legacy ``execute``
-          through the default executor — byte-identical legacy behavior
-          (AC-W3). Delegating to ``execute`` (not ``_do_work``) also keeps
-          subclass overrides (e.g. EnhancedWorker guard post-processing)
-          observable from the async path.
+        * Sync backends (Mock/HostBridge/None): bridge ``self.execute`` through
+          the default executor — byte-identical legacy behavior (AC-W3). The
+          bridge target is ``execute`` (not ``_do_work``) so that subclass
+          overrides of the sync entrypoint (e.g. EnhancedWorker guard
+          post-processing, slow/failing test stubs) stay observable from the
+          async path. Inside the bridged thread there is no running loop, so
+          ``execute`` safely runs the unified path via ``asyncio.run``.
 
         Args:
             task: Task definition to execute.
@@ -207,15 +241,14 @@ class Worker:
             propagate into the gather (AC-W6) — they produce
             WorkerResult(success=False) via ``_failure_result``.
         """
-        loop = asyncio.get_running_loop()
-        if not isinstance(self.llm_backend, AsyncLLMBackendInterface):
-            # AC-W3: sync-backend fallback — exact legacy execute() semantics.
-            return await loop.run_in_executor(None, self.execute, task)
-
         start_time = time.time()
         try:
+            if not isinstance(self.llm_backend, AsyncLLMBackendInterface):
+                # AC-W3: sync-backend fallback — exact legacy execute() semantics.
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, self.execute, task)
             context = self._build_execution_context(task)
-            finding = await self._ado_work(context)
+            finding = await self._do_work_async(context)
             return self._finalize_finding(task, finding, start_time)
         except Exception as e:
             return self._failure_result(task, e, start_time)
@@ -568,6 +601,63 @@ class Worker:
             logger.debug("CodeKnowledgeGraph query failed for worker %s: %s", self.worker_id, e)
             return []
 
+    async def _do_work_async(self, context: dict[str, Any]) -> str:
+        """V4.5.11 unified core work: replaces both ``_do_work`` and ``_ado_work``.
+
+        - Async backends (AsyncLLMBackendInterface): native ``await`` (no thread).
+        - Sync backends (Mock/HostBridge/None): bridge through default executor.
+        - Cache lookups/stores + streaming share the same helpers as the legacy
+          ``_do_work`` path (single source of truth).
+
+        Args:
+            context: Execution context built by _build_execution_context().
+
+        Returns:
+            str: LLM response text (with backend) or assembled instruction.
+        """
+        from .llm_backend import MockBackend
+        from .prompt_assembler import PromptAssembler
+
+        task = context["task"]
+        assembler = PromptAssembler(role_id=self.role_id, base_prompt=context["role_prompt"])
+
+        result = assembler.assemble(
+            task_description=task.description,
+            related_findings=context.get("related_findings", []),
+            task_id=task.task_id,
+            compression_level=context.get("compression_level"),
+            code_graph_hints=context.get("code_graph_hints"),
+        )
+
+        self._last_assembled_prompt = result
+
+        backend = self.llm_backend or MockBackend()
+
+        if isinstance(backend, AsyncLLMBackendInterface):
+            instruction = result.instruction
+            model_name = getattr(backend, "model", "unknown")
+
+            cached = self._cache_get(instruction, model_name)
+            if cached:
+                logger.debug("  [%s] Cache hit (async).", self.role_id)
+                return cast(str, cached)
+
+            logger.info("  [%s] Calling async LLM backend...", self.role_id)
+            if self.stream:
+                logger.debug("  [%s] Streaming (async)...", self.role_id)
+                chunks = [c async for c in backend.generate_stream(instruction)]
+                response = "".join(chunks)
+            else:
+                response = await backend.generate(instruction)
+            logger.debug("  [%s] Response received (async).", self.role_id)
+
+            self._cache_put(instruction, response, model_name)
+            return response
+
+        # Sync backend fallback: bridge the legacy sync work via a thread.
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self._do_work, context)
+
     def _do_work(self, context: dict[str, Any]) -> str:
         """
         Execute core work - dynamically assemble prompt via PromptAssembler, then execute via LLMBackend.
@@ -653,61 +743,10 @@ class Worker:
             logger.error("  [%s] LLM call failed: %s", _rname, e)
             raise
 
-    async def _ado_work(self, context: dict[str, Any]) -> str:
-        """Async core work — native await for AsyncLLMBackendInterface backends.
-
-        V4.5.9 (AC-W2): prompt assembly is pure CPU and reuses the same
-        PromptAssembler flow as ``_do_work``; cache lookups/stores are shared
-        helpers. Sync backends fall back to the legacy ``_do_work`` via the
-        default executor (``aexecute`` routes sync backends to the legacy
-        ``execute`` before reaching here; this branch keeps ``_ado_work``
-        self-contained for direct callers).
-
-        Args:
-            context: Execution context built by _build_execution_context()
-
-        Returns:
-            str: LLM response text (with backend) or assembled work instruction text (without backend)
-        """
-        from .prompt_assembler import PromptAssembler
-
-        task = context["task"]
-        assembler = PromptAssembler(role_id=self.role_id, base_prompt=context["role_prompt"])
-
-        result = assembler.assemble(
-            task_description=task.description,
-            related_findings=context.get("related_findings", []),
-            task_id=task.task_id,
-            compression_level=context.get("compression_level"),
-            code_graph_hints=context.get("code_graph_hints"),
-        )
-        self._last_assembled_prompt = result
-
-        backend = self.llm_backend
-        if isinstance(backend, AsyncLLMBackendInterface):
-            instruction = result.instruction
-            model_name = getattr(backend, "model", "unknown")
-
-            cached = self._cache_get(instruction, model_name)
-            if cached:
-                logger.debug("  [%s] Cache hit (async).", self.role_id)
-                return cast(str, cached)
-
-            logger.info("  [%s] Calling async LLM backend...", self.role_id)
-            if self.stream:
-                logger.debug("  [%s] Streaming (async)...", self.role_id)
-                chunks = [c async for c in backend.generate_stream(instruction)]
-                response = "".join(chunks)
-            else:
-                response = await backend.generate(instruction)
-            logger.debug("  [%s] Response received (async).", self.role_id)
-
-            self._cache_put(instruction, response, model_name)
-            return response
-
-        # Sync backend fallback: bridge the legacy sync work via a thread.
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self._do_work, context)
+    # V4.5.11: legacy ``_ado_work`` was removed in favor of the unified
+    # ``_do_work_async`` shared by ``execute`` and ``aexecute``. The two
+    # paths converge through ``loop.run_in_executor`` for sync backends and
+    # native ``await`` for AsyncLLMBackendInterface.
 
     def _cache_get(self, instruction: str, backend_model: str) -> str | None:
         """Shared cache lookup for _do_work/_ado_work (V3.8 #9).

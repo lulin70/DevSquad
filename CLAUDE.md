@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**DevSquad** is a **V4.5.10 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with unified asyncio.gather parallel execution (V4.5.9) and native async worker support; HostLLMBridge defaults to the hardened v2 protocol with `--async` CLI (V4.5.10).
+**DevSquad** is a **V4.5.11 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with unified asyncio.gather parallel execution (V4.5.9) and native async worker support; HostLLMBridge defaults to the hardened v2 protocol with `--async` CLI (V4.5.10); V4.5.11 adds bridge log retention, risk store cleanup, Worker unified path, and risks CLI output unification.
 
 **193 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**, **RiskRegister**, **ViewpointRegistry**, **ErrorBudgetTracker**, **GapAnalyzer**, **DoraMetricsCollector**, **ScratchpadHistoryStore**, **AgentIdentity**, **WorkflowTrace**, **GitContext**, **SkillProvider**, **OutputStyle**, **FileBundler**, **ApprovalGate**, **ConnectorFramework**, **ArtifactStore**, **DispatchEffect**, **EffectRegistry**, **AuditCLI**, **ModuleFiber**, **CoeffectResolver**, **ModulesCLI**.
 
@@ -163,7 +163,7 @@ DevSquad/
 - **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`); V4.4.2 added multilingual role prompts (EN/CN/JP) and Dashboard 6-tab visibility
 - **Testing**: pytest-based, 8996+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`4.5.10`)
+- **Version**: Single source of truth in `_version.py` (`4.5.11`)
 
 ## Role System (7 Core Roles)
 
@@ -200,7 +200,7 @@ python3 -m pytest tests/test_collaboration_core_test.py \
   tests/ -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 4.5.10
+python3 scripts/cli.py --version    # 4.5.11
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 ```

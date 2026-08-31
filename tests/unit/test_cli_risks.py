@@ -12,6 +12,10 @@ V4.5.8 changes:
   touched by unit tests.
 - ``--require-approval`` with an unavailable callback is fail-closed
   (exit 2, no mutation) — the V4.5.5 auto-approve fallback was removed.
+
+V4.5.11 changes:
+- V4.5.7's in-process ``_RISK_STORE`` proxy was removed; tests now assert
+  directly against ``FileRiskStore(root=tmp_path).transaction("default")``.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ import pytest
 
 import scripts.cli_risks as cli_risks
 from scripts.cli_risks import (
-    _RISK_STORE,
+    RISK_FIELD_ORDER,
     add_risk,
     cmd_risks_clear,
     cmd_risks_export,
@@ -39,9 +43,14 @@ from scripts.collaboration.file_risk_store import FileRiskStore
 def _isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Point every store access at a tmp root; clean before and after."""
     monkeypatch.setattr(cli_risks, "DEFAULT_ROOT", tmp_path)
-    _RISK_STORE.clear()
     yield
-    _RISK_STORE.clear()
+    store = FileRiskStore(root=tmp_path)
+    with store.transaction("default") as transaction:
+        transaction["items"] = []
+
+
+def _count(tmp_path: Path) -> int:
+    return len(FileRiskStore(root=tmp_path).load("default").get("items", []))
 
 
 def _args(**kwargs) -> argparse.Namespace:
@@ -73,6 +82,8 @@ class TestList:
         assert rc == 0
         assert isinstance(payload, list)
         assert payload[0]["description"] == "json risk"
+        # V4.5.11: list JSON uses the canonical field order.
+        assert list(payload[0].keys()) == list(RISK_FIELD_ORDER)
 
     def test_list_severity_filter(self, capsys):
         p0_id = add_risk("P0 risk", category="P0")
@@ -117,18 +128,19 @@ class TestShow:
         payload = json.loads(capsys.readouterr().out)
         assert rc == 0
         assert payload[0]["id"] == rid
+        assert list(payload[0].keys()) == list(RISK_FIELD_ORDER)
 
 
 class TestClear:
-    def test_clear_without_approval(self, capsys):
+    def test_clear_without_approval(self, capsys, tmp_path: Path):
         add_risk("to be cleared")
         rc = cmd_risks_clear(_args())
         out = capsys.readouterr().out
         assert rc == 0
         assert "Cleared 1 risks" in out
-        assert len(_RISK_STORE) == 0
+        assert _count(tmp_path) == 0
 
-    def test_clear_with_approval_unavailable_fails_closed(self, capsys):
+    def test_clear_with_approval_unavailable_fails_closed(self, capsys, tmp_path: Path):
         """V4.5.8 contract: --require-approval with no callback → exit 2, no mutation."""
         add_risk("gate cleared")
         rc = cmd_risks_clear(_args(require_approval=True))
@@ -136,7 +148,7 @@ class TestClear:
         assert rc == 2
         assert "approval unavailable" in err
         # The risk must remain in the store (nothing was cleared).
-        assert len(_RISK_STORE) == 1
+        assert _count(tmp_path) == 1
 
 
 class TestExport:
@@ -146,6 +158,7 @@ class TestExport:
         payload = json.loads(capsys.readouterr().out)
         assert rc == 0
         assert payload[0]["description"] == "exported risk"
+        assert list(payload[0].keys()) == list(RISK_FIELD_ORDER)
 
     def test_export_to_file(self, capsys, tmp_path):
         add_risk("file risk")
@@ -165,9 +178,30 @@ def test_call_counter_bumped_by_cli():
 
 
 def test_store_uses_file_backed_root(tmp_path: Path):
-    """The compatibility proxy must reflect the FileRiskStore file contents."""
+    """add_risk writes through FileRiskStore; the tmp root holds the items."""
     add_risk("file backed risk", probability=0.4, impact=0.5)
     store = FileRiskStore(root=tmp_path)
     payload = store.load("default")
     assert payload["version"] == 1
     assert payload["items"][0]["description"] == "file backed risk"
+
+
+def test_add_json_output_uses_canonical_field_order(capsys, tmp_path: Path):
+    """V4.5.11: add JSON output matches list/show field order."""
+    # add_risk returns the id only; the JSON shape is emitted by cmd_risks_add.
+    from scripts.cli_risks import cmd_risks_add
+
+    args = argparse.Namespace(
+        description="field order",
+        probability=0.2,
+        impact=0.2,
+        category="general",
+        owner="",
+        register_id="default",
+        root=None,
+    )
+    rc = cmd_risks_add(args)
+    assert rc == 0
+    out = capsys.readouterr().out
+    payload = json.loads(out)
+    assert list(payload.keys()) == list(RISK_FIELD_ORDER)

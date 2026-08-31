@@ -14,6 +14,51 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.11] - 2026-08-31
+
+### V4.5.11 — Bridge Log Retention + Risk Store Cleanup + Worker Unified Path + Risks CLI Output (清理与统一)
+
+Closes the four deferred items from the V4.5.10 retrospective (PRD
+`docs/prd/V4.5.11_PRD.md`). Patch-style hardening iteration: no new user-facing
+features, four focused internal improvements.
+
+#### Added
+
+- Bridge log retention (v1 + v2): `PRUNE_MAX_FILES` (default 100) prunes the
+  oldest `request_*.json` / `request_*.prompt` / `response_*.json` files after
+  every `create_request` / `write_response` / response cleanup. Marker and
+  `.tmp` files are never counted or removed. Override via
+  `DEVSQUAD_BRIDGE_PRUNE_MAX_FILES` (`0` disables pruning; invalid values
+  raise `ValueError` fail-loud).
+- `Worker._do_work_async`: unified core-work path shared by `execute()` and
+  `aexecute()` — async backends native await, sync backends via
+  `loop.run_in_executor`, shared cache/streaming helpers. `_ado_work` removed;
+  the v1/v2 duplicate implementation is gone.
+- `scripts.cli_risks.RISK_FIELD_ORDER`: canonical risk dict field order.
+
+#### Changed
+
+- **Breaking**: removed `scripts.cli_risks._RISK_STORE` and
+  `_LegacyRiskStoreProxy` (V4.5.7 compatibility view). Use
+  `FileRiskStore` + `transaction()` directly. Grep-verified zero external
+  callers; internal tests migrated.
+- risks CLI output unification: `add` now emits single-line JSON with the
+  canonical field order (same shape as `list`/`show`/`export` entries, kept
+  compact for scripting pipelines); all subcommands share `_risk_to_dict`
+  ordering.
+- `Worker.execute()` inside a running event loop now runs the unified path on
+  a dedicated daemon-loop thread (`_run_coro_on_thread`) instead of crashing
+  with `asyncio.run()` recursion. No-loop behavior unchanged. The V4.5.9
+  `aexecute` contract is fully preserved: sync backends still bridge through
+  `self.execute` (subclass overrides stay observable), async backends run the
+  unified `_do_work_async` natively; `tests/unit/test_v459_worker_async.py`
+  passes with zero modifications.
+
+#### Docs
+
+- PROJECT_STATUS / TECH_DEBT / VERSION_HISTORY / README×3 / SKILL.md /
+  skill-manifest / CLAUDE / COMPARISON / helm / Dockerfile synced to 4.5.11.
+
 ## [4.5.10] - 2026-08-30
 
 ### V4.5.10 — HostLLMBridge v2 Production Wiring + `--async` CLI + Docs Convergence (v2 生产接线 + 显式异步 CLI + 文档收敛)

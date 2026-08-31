@@ -117,7 +117,11 @@ class TestAexecutePathMatrix:
 
     @pytest.mark.asyncio
     async def test_aexecute_sync_backend_uses_executor(self, executor_calls):
-        """AC-W3/AC-C6: sync backend bridges through the default executor."""
+        """AC-W3/AC-C6: sync backend bridges through the default executor.
+
+        V4.5.11: bridge target remains ``execute`` (V4.5.9 contract) so
+        subclass overrides of the sync entrypoint stay observable.
+        """
         worker = _make_worker(MockBackend())
         result = await worker.aexecute(_task())
         assert len(executor_calls) == 1

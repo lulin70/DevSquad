@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Risk Register CLI with file-backed persistence (V4.5.8 Wave 2)."""
+"""Risk Register CLI with file-backed persistence (V4.5.8 Wave 2; V4.5.11
+removes the V4.5.7 in-process proxy that bridged the legacy ``_RISK_STORE``
+dict into the FileRiskStore view — V4.5.11 keeps FileRiskStore as the single
+source of truth)."""
 from __future__ import annotations
 
 import argparse
@@ -7,7 +10,7 @@ import json
 import logging
 import math
 import sys
-from collections.abc import Callable, Iterator, MutableMapping
+from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
 from typing import Any
@@ -35,8 +38,22 @@ def _inc_call_counter_er() -> None:
 
 # Output formatting
 
+# Canonical risk dict field order (V4.5.11 output unification).
+RISK_FIELD_ORDER: tuple[str, ...] = (
+    "id",
+    "description",
+    "probability",
+    "impact",
+    "exposure",
+    "response_strategy",
+    "owner",
+    "status",
+    "category",
+)
+
+
 def _risk_to_dict(risk: Any) -> dict[str, Any]:
-    return {
+    data = {
         "id": risk.id,
         "description": risk.description,
         "probability": risk.probability,
@@ -49,6 +66,7 @@ def _risk_to_dict(risk: Any) -> dict[str, Any]:
         "status": risk.status.value if hasattr(risk.status, "value") else str(risk.status),
         "category": risk.category,
     }
+    return {key: data[key] for key in RISK_FIELD_ORDER}
 
 
 def _format_markdown(risks: list[Any]) -> str:
@@ -93,47 +111,6 @@ def _format_markdown_risk(risk: Any) -> str:
 def _format_json(risks: list[Any]) -> str:
     _inc_call_counter_er()
     return json.dumps([_risk_to_dict(risk) for risk in risks], indent=2, ensure_ascii=False)
-
-
-class _LegacyRiskStoreProxy(MutableMapping[str, Any]):
-    """Compatibility view; the JSON FileRiskStore remains the source of truth."""
-
-    def _items(self) -> dict[str, Any]:
-        store = FileRiskStore(root=DEFAULT_ROOT)
-        payload = store.load("default")
-        return store.payload_to_items(payload)
-
-    def __getitem__(self, key: str) -> Any:
-        return self._items()[key]
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        store = FileRiskStore(root=DEFAULT_ROOT)
-        with store.transaction("default") as transaction:
-            items = store.payload_to_items(transaction.payload)
-            items[key] = value
-            transaction["items"] = [item.to_dict() for item in items.values()]
-
-    def __delitem__(self, key: str) -> None:
-        store = FileRiskStore(root=DEFAULT_ROOT)
-        with store.transaction("default") as transaction:
-            items = store.payload_to_items(transaction.payload)
-            del items[key]
-            transaction["items"] = [item.to_dict() for item in items.values()]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._items())
-
-    def __len__(self) -> int:
-        return len(self._items())
-
-    def clear(self) -> None:
-        store = FileRiskStore(root=DEFAULT_ROOT)
-        with store.transaction("default") as transaction:
-            transaction["items"] = []
-
-
-# Kept for V4.5.7 import compatibility. It is only a view over FileRiskStore.
-_RISK_STORE: MutableMapping[str, Any] = _LegacyRiskStoreProxy()
 
 
 def _get_store(args: argparse.Namespace | None = None) -> FileRiskStore:
@@ -281,6 +258,11 @@ def _approval_allowed(args: argparse.Namespace, operation: str, description: str
     return 0
 
 
+def _register_count(store: FileRiskStore, register_id: str) -> int:
+    """Count items in the persistent store (does not mutate)."""
+    return len(store.load(register_id).get("items", []))
+
+
 @_safe_command
 def cmd_risks_clear(args: argparse.Namespace) -> int:
     _inc_call_counter_er()
@@ -288,7 +270,7 @@ def cmd_risks_clear(args: argparse.Namespace) -> int:
     register_id = getattr(args, "register_id", "default")
     # Read count and request approval OUTSIDE the transaction: a human
     # approval must never hold the cross-process file lock (deadlock risk).
-    count = len(store.load(register_id)["items"])
+    count = _register_count(store, register_id)
     if getattr(args, "require_approval", False):
         approval_rc = _approval_allowed(
             args,
@@ -336,6 +318,8 @@ def cmd_risks_add(args: argparse.Namespace) -> int:
             owner=args.owner,
         )
         _write_register(transaction, register)
+    # V4.5.11: single-line JSON with the canonical field order (same shape
+    # as list/show/export entries; compact for scripting pipelines).
     print(json.dumps(_risk_to_dict(risk), ensure_ascii=False))
     return 0
 

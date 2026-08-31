@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HostLLMBridge v2 (V4.5.10 hardening).
+"""HostLLMBridge v2 (V4.5.10 hardening; V4.5.11 add PRUNE).
 
 V2 协议（对齐 weiransoft/TraeMultiAgentSkill v2.8.4）:
 - marker 严格 7 字段 (request_id/agent_type/task/request_file/prompt_file/timeout_seconds/timestamp)
@@ -14,6 +14,11 @@ V4.5.10 硬化（PRD docs/prd/V4.5.10_PRD.md）:
 - 权限: 目录 0700，文件 0600
 - 资源上限: prompt / request JSON / response JSON 超限 fail-closed
 - marker 严格 schema: 恰好 7 字段 + 类型校验，失败 fail-closed（拒绝处理）
+
+V4.5.11 增加（PRD docs/prd/V4.5.11_PRD.md）:
+- PRUNE_MAX_FILES（默认 100）：创建/响应/清理路径完成后按 mtime 倒序裁剪
+  v2 目录内的 request_*.json / request_*.prompt / response_*.json；marker 与
+  .tmp 不参与计数；可通过 DEVSQUAD_BRIDGE_PRUNE_MAX_FILES 覆盖；0 = 禁用裁剪。
 
 设计原则:
 - V4.5.4 lesson #4: _call_counter_er 命名统一
@@ -147,6 +152,33 @@ class HostLLMBridgeV2:
     VERSION_SUBDIR = "v2"
     MARKER_FILENAME = "protocol.v2.marker"
 
+    # V4.5.11: bridge log retention (PRUNE_MAX_FILES).
+    # Counts request_*.json + request_*.prompt + response_*.json (NOT marker/tmp).
+    PRUNE_MAX_FILES_DEFAULT = 100
+    # Filename patterns considered for retention accounting.
+    _PRUNE_FILE_PATTERNS = (
+        re.compile(r"^request_.+\.(?:json|prompt)$"),
+        re.compile(r"^response_.+\.json$"),
+    )
+
+    @classmethod
+    def _resolve_prune_max_files(cls) -> int:
+        """Resolve PRUNE_MAX_FILES from env override (fail-loud on garbage)."""
+        raw = os.environ.get("DEVSQUAD_BRIDGE_PRUNE_MAX_FILES", "").strip()
+        if not raw:
+            return cls.PRUNE_MAX_FILES_DEFAULT
+        try:
+            value = int(raw)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={raw!r}: must be int ≥ 0"
+            ) from exc
+        if value < 0:
+            raise ValueError(
+                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={value}: must be ≥ 0"
+            )
+        return value
+
     def __init__(self, bridge_dir: str | Path | None = None) -> None:
         """Initialize v2 bridge.
 
@@ -236,6 +268,9 @@ class HostLLMBridgeV2:
         )
         self._write_marker_v2(marker)
 
+        # V4.5.11: prune oldest files in the version dir to PRUNE_MAX_FILES
+        self._prune_old_files(self.bridge_dir, self._resolve_prune_max_files())
+
         logger.info(
             "HostLLMBridgeV2.create_request: %s (agent=%s, timeout=%ds)",
             request_id, agent_type, timeout,
@@ -266,6 +301,8 @@ class HostLLMBridgeV2:
             data = self._safe_read_json(response_path)
             if data is not None:
                 self._cleanup_request_files(request_id)
+                # V4.5.11: post-cleanup retention sweep
+                self._prune_old_files(self.bridge_dir, self._resolve_prune_max_files())
                 return {
                     "success": data.get("success", False),
                     "output": data.get("output", ""),
@@ -399,6 +436,58 @@ class HostLLMBridgeV2:
             )
         for key in ("request_file", "prompt_file"):
             HostLLMBridgeV2._validate_path_within(data[key], bdir)
+
+    @staticmethod
+    def _prune_old_files(bridge_dir: Path, max_files: int) -> int:
+        """Prune oldest retention-counted files down to ``max_files``.
+
+        Returns:
+            int: number of files removed.
+
+        Notes:
+            - ``max_files == 0`` disables pruning (returns 0).
+            - marker / .tmp files are not counted and not removed.
+            - Files outside the version dir are never touched.
+            - Failures (best-effort) are logged at debug level only.
+        """
+        if max_files <= 0:
+            return 0
+        if not bridge_dir.exists():
+            return 0
+        try:
+            entries: list[tuple[float, Path]] = []
+            for child in bridge_dir.iterdir():
+                if not child.is_file():
+                    continue
+                name = child.name
+                if name.startswith(".") or name.endswith(".tmp"):
+                    continue
+                if name == HostLLMBridgeV2.MARKER_FILENAME:
+                    continue
+                if not any(pattern.match(name) for pattern in HostLLMBridgeV2._PRUNE_FILE_PATTERNS):
+                    continue
+                try:
+                    entries.append((child.stat().st_mtime, child))
+                except OSError:
+                    continue
+        except OSError:
+            logger.debug("HostLLMBridgeV2._prune_old_files: iter failed for %s", bridge_dir)
+            return 0
+        excess = len(entries) - max_files
+        if excess <= 0:
+            return 0
+        # oldest first
+        entries.sort(key=lambda pair: pair[0])
+        removed = 0
+        for _, path in entries[:excess]:
+            try:
+                path.unlink()
+                removed += 1
+            except OSError as exc:
+                logger.debug(
+                    "HostLLMBridgeV2._prune_old_files: cannot remove %s: %s", path, exc
+                )
+        return removed
 
     @staticmethod
     def clear_marker(bridge_dir: str | Path | None = None) -> None:
