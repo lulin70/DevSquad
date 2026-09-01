@@ -1,0 +1,18 @@
+{
+  "request_id": "20260901_115004_0be9f74c",
+  "agent_type": "architect",
+  "marker_published_at": 1788263404.041503,
+  "finished_at": 1788263424.379971,
+  "round_trip_seconds": 20.34,
+  "response": {
+    "success": false,
+    "error": "timeout after 20s waiting for response",
+    "timeout": true,
+    "request_id": "20260901_115004_0be9f74c"
+  },
+  "status": "timeout",
+  "checks": {
+    "marker_7_fields": true,
+    "v2_timestamp_response": false
+  }
+}

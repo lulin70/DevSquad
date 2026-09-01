@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -46,30 +47,67 @@ class TestTrace5ResourceBound:
 
 class TestTrace1RoundTrip:
     def test_round_trip_with_fake_runner(self, tmp_path: Path, monkeypatch) -> None:
-        """Full round-trip using the in-process fake host (listener present)."""
+        """Full round-trip using a background fake listener (listener present)."""
+        import threading
+
         from scripts.collaboration.host_llm_bridge_v2 import HostLLMBridgeV2
+        from tests.fakes.fake_host_runner_v2 import FakeHostRunnerV2
 
         v2_dir = tmp_path / "v2"
+        bridge = HostLLMBridgeV2(bridge_dir=str(v2_dir))
         monkeypatch.setattr(collector, "DEFAULT_V2_DIR", v2_dir)
-
-        # Serve exactly one request as the fake listener would.
-        from tests.fakes.fake_host_runner_v2 import FakeHostRunnerV2
 
         runner = FakeHostRunnerV2(str(v2_dir), behaviour="success")
 
-        class _OneShotBridge(HostLLMBridgeV2):
-            _served = False
+        def _serve() -> None:
+            for _ in range(200):  # poll marker for up to ~4s like a real listener
+                if runner.process_one():
+                    return
+                time.sleep(0.02)
 
-            def wait_for_response(self, request_id, timeout=None):  # noqa: D102
-                if not self._served:
-                    self._served = True
-                    runner.process_one()
-                return super().wait_for_response(request_id, timeout=timeout or 2)
-
-        one_shot = _OneShotBridge(bridge_dir=str(v2_dir))
-        result = collector.trace_1(one_shot, wait=2)
+        server = threading.Thread(target=_serve, daemon=True)
+        server.start()
+        result = collector.trace_1(bridge, wait=5, capture_dir=tmp_path / "cap")
+        server.join(timeout=5)
         assert result["status"] == "success"
         assert result["response"]["success"] is True
+
+    def test_invalid_response_captures_raw_bytes(self, tmp_path: Path) -> None:
+        """Listener writes non-JSON response → raw bytes captured + honest status."""
+        import threading
+
+        from scripts.collaboration.host_llm_bridge_v2 import HostLLMBridgeV2
+
+        v2_dir = tmp_path / "v2"
+        bridge = HostLLMBridgeV2(bridge_dir=str(v2_dir))
+        cap = tmp_path / "cap"
+
+        def _serve_bad_json() -> None:
+            import time as t
+
+            for _ in range(200):
+                marker = v2_dir / "protocol.v2.marker"
+                if marker.exists():
+                    try:
+                        payload = json.loads(marker.read_text(encoding="utf-8"))
+                        rid = payload["request_id"]
+                        (v2_dir / f"response_{rid}.json").write_text(
+                            "the LLM answered in plain text", encoding="utf-8"
+                        )
+                        return
+                    except (json.JSONDecodeError, KeyError, OSError):
+                        pass
+                t.sleep(0.02)
+
+        server = threading.Thread(target=_serve_bad_json, daemon=True)
+        server.start()
+        result = collector.trace_1(bridge, wait=5, capture_dir=cap)
+        server.join(timeout=5)
+        assert result["status"] == "invalid_response"
+        assert result["response"]["invalid_response"] is True
+        raw_files = list(cap.glob("response_*.raw"))
+        assert len(raw_files) == 1
+        assert raw_files[0].read_text(encoding="utf-8") == "the LLM answered in plain text"
 
     def test_round_trip_timeout_without_listener(self, tmp_path: Path) -> None:
         """No listener → honest timeout status (never fake PASS)."""

@@ -23,6 +23,12 @@ Scenarios:
     3  fuse threshold: 2 un-served requests → backend fuse skip
     4  cross-version isolation: stale v1 marker untouched during v2 request
     5  resource bound: >512KB prompt fail-closed (no artifacts left)
+
+Honest status contract:
+    success | timeout | fail | fail_closed | invalid_response
+    ``invalid_response``: the real listener wrote a response file whose
+    content is not parseable JSON — the raw bytes are captured under the
+    evidence dir BEFORE any parse attempt (V4.5.13 real-listener finding).
 """
 
 from __future__ import annotations
@@ -48,6 +54,9 @@ from scripts.collaboration.llm_backend import create_backend  # noqa: E402
 EVIDENCE_ROOT = PROJECT_ROOT / "docs" / "e2e_evidence" / "V4.5.12_trae_ide_real"
 DEFAULT_V2_DIR = PROJECT_ROOT / "logs" / "host_llm_bridge" / "v2"
 DEFAULT_V1_DIR = PROJECT_ROOT / "logs" / "host_llm_bridge" / "v1"
+
+# Statuses that mean "did not verify" (never fake a PASS).
+NON_PASS_STATUSES = {"timeout", "fail", "fail_closed", "invalid_response"}
 
 TRACE_HELP = {
     1: "success round-trip (architect)",
@@ -80,16 +89,94 @@ def _write_meta(dest: Path, trace_no: int, result: dict[str, Any]) -> None:
     print(f"[trace {trace_no}] {TRACE_HELP[trace_no]}\n  -> status: {status}  dir: {dest}")
 
 
+def _wait_with_raw_capture(
+    bridge: HostLLMBridgeV2,
+    request_id: str,
+    wait: int,
+    capture_dir: Path | None,
+) -> dict[str, Any]:
+    """Poll for the response file; capture RAW bytes the moment it appears.
+
+    V4.5.13 real-listener finding: the actual TRAE listener may write a
+    response whose content is not the JSON envelope our parser expects.
+    Copy the raw bytes to ``capture_dir/response_{id}.raw`` BEFORE parsing so
+    the real upstream format is preserved as evidence. Then:
+      - parseable JSON → delegate to bridge semantics (success/fail)
+      - unparseable    → status ``invalid_response`` with parse error
+    """
+    response_path = bridge.bridge_dir / f"response_{request_id}.json"
+    deadline = time.monotonic() + wait
+    raw_captured = False
+    parse_error: str | None = None
+    data: dict[str, Any] | None = None
+
+    while time.monotonic() < deadline:
+        if response_path.exists():
+            if not raw_captured and capture_dir is not None:
+                capture_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(response_path, capture_dir / f"response_{request_id}.raw")
+                raw_captured = True
+            try:
+                data = json.loads(response_path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    break
+                parse_error = "top-level JSON value is not an object"
+            except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+                parse_error = f"{type(exc).__name__}: {exc}"
+        time.sleep(bridge.POLL_INTERVAL)
+
+    if data is None:
+        if parse_error is not None and raw_captured:
+            return {
+                "success": False, "output": "", "error": parse_error,
+                "timeout": False, "request_id": request_id,
+                "raw_captured": True, "invalid_response": True,
+            }
+        return {
+            "success": False,
+            "output": "",
+            "error": f"timeout after {wait}s waiting for response",
+            "timeout": True,
+            "request_id": request_id,
+        }
+
+    result = {
+        "success": data.get("success", False),
+        "output": data.get("output", ""),
+        "error": data.get("error", ""),
+        "timeout": False,
+        "request_id": request_id,
+        "raw_captured": raw_captured,
+    }
+    bridge._cleanup_request_files(request_id)
+    return result
+
+
 def _collect_round_trip(
-    bridge: HostLLMBridgeV2, agent_type: str, task: str, prompt: str, wait: int
+    bridge: HostLLMBridgeV2,
+    agent_type: str,
+    task: str,
+    prompt: str,
+    wait: int,
+    capture_dir: Path | None = None,
 ) -> dict[str, Any]:
     started = time.time()
     request_id = bridge.create_request(
         agent_type=agent_type, task=task, context={"source": "trace_collector"}, prompt=prompt
     )
     marker_at = time.time()
-    response = bridge.wait_for_response(request_id, timeout=wait)
+    response = _wait_with_raw_capture(bridge, request_id, wait, capture_dir)
     finished = time.time()
+    status = response.get("status")
+    if status is None:
+        if response.get("invalid_response"):
+            status = "invalid_response"
+        elif response.get("success"):
+            status = "success"
+        elif response.get("timeout"):
+            status = "timeout"
+        else:
+            status = "fail"
     return {
         "request_id": request_id,
         "agent_type": agent_type,
@@ -97,16 +184,14 @@ def _collect_round_trip(
         "finished_at": finished,
         "round_trip_seconds": round(finished - started, 3),
         "response": response,
-        "status": (
-            "success" if response.get("success") else ("timeout" if response.get("timeout") else "fail")
-        ),
+        "status": status,
     }
 
 
-def trace_1(bridge: HostLLMBridgeV2, wait: int) -> dict[str, Any]:
+def trace_1(bridge: HostLLMBridgeV2, wait: int, capture_dir: Path | None = None) -> dict[str, Any]:
     result = _collect_round_trip(
         bridge, "architect", "V4.5.13 trace 1: success round-trip",
-        "Design auth system. Reply with one line.", wait,
+        "Design auth system. Reply with one line.", wait, capture_dir,
     )
     result["checks"] = {
         "marker_7_fields": True,  # create_request publishes strict 7-field marker
@@ -115,14 +200,17 @@ def trace_1(bridge: HostLLMBridgeV2, wait: int) -> dict[str, Any]:
     return result
 
 
-def trace_2(bridge: HostLLMBridgeV2, wait: int) -> dict[str, Any]:
-    arch = _collect_round_trip(bridge, "architect", "V4.5.13 trace 2a: architect subagent", "arch prompt", wait)
-    sec = _collect_round_trip(bridge, "security", "V4.5.13 trace 2b: security subagent", "sec prompt", wait)
+def trace_2(bridge: HostLLMBridgeV2, wait: int, capture_dir: Path | None = None) -> dict[str, Any]:
+    arch = _collect_round_trip(bridge, "architect", "V4.5.13 trace 2a: architect subagent", "arch prompt", wait, capture_dir)
+    sec = _collect_round_trip(bridge, "security", "V4.5.13 trace 2b: security subagent", "sec prompt", wait, capture_dir)
     mapping = HostBridgeBackend.resolve_subagent_type("architect")
     mapping_sec = HostBridgeBackend.resolve_subagent_type("security")
     return {
-        "status": "success" if (arch["status"] == "success" and sec["status"] == "success") else
-                  ("timeout" if "timeout" in (arch["status"], sec["status"]) else "fail"),
+        "status": (
+            "success" if (arch["status"] == "success" and sec["status"] == "success")
+            else ("invalid_response" if "invalid_response" in (arch["status"], sec["status"])
+                  else ("timeout" if "timeout" in (arch["status"], sec["status"]) else "fail"))
+        ),
         "architect": arch,
         "security": sec,
         "expected_mapping": {"architect": mapping, "security": mapping_sec},
@@ -163,12 +251,12 @@ def trace_3(wait: int) -> dict[str, Any]:
         }
 
 
-def trace_4(bridge: HostLLMBridgeV2, wait: int) -> dict[str, Any]:
+def trace_4(bridge: HostLLMBridgeV2, wait: int, capture_dir: Path | None = None) -> dict[str, Any]:
     v1_marker = DEFAULT_V1_DIR / "protocol.marker"
     v1_before = v1_marker.read_text(encoding="utf-8") if v1_marker.exists() else None
     v1_mtime_before = v1_marker.stat().st_mtime if v1_marker.exists() else None
     result = _collect_round_trip(
-        bridge, "architect", "V4.5.13 trace 4: cross-version isolation", "isolation prompt", wait,
+        bridge, "architect", "V4.5.13 trace 4: cross-version isolation", "isolation prompt", wait, capture_dir,
     )
     v1_after = v1_marker.read_text(encoding="utf-8") if v1_marker.exists() else None
     v1_mtime_after = v1_marker.stat().st_mtime if v1_marker.exists() else None
@@ -233,8 +321,10 @@ def main(argv: list[str] | None = None) -> int:
         elif n == 5:
             result = trace_5(bridge)
         else:
-            result = trace_1(bridge, args.wait_seconds) if n == 1 else (
-                trace_2(bridge, args.wait_seconds) if n == 2 else trace_4(bridge, args.wait_seconds)
+            capture = dest  # raw response bytes captured here BEFORE parsing
+            result = trace_1(bridge, args.wait_seconds, capture) if n == 1 else (
+                trace_2(bridge, args.wait_seconds, capture) if n == 2
+                else trace_4(bridge, args.wait_seconds, capture)
             )
             # Archive the raw v2 dir snapshot for request/response evidence.
             _snapshot_dir_files(DEFAULT_V2_DIR, dest / "v2_snapshot", "request_*.json")
@@ -242,8 +332,8 @@ def main(argv: list[str] | None = None) -> int:
             _snapshot_dir_files(DEFAULT_V2_DIR, dest / "v2_snapshot", "response_*.json")
         _write_meta(dest, n, result)
         if result.get("status") not in ("success", "fail_closed"):
-            exit_code = 1  # timeout/fail = listener absent; keep exit honest
-    print("\nDone. Remind: timeout == no real TRAE IDE listener consuming; archive honestly.")
+            exit_code = 1  # timeout/fail/invalid_response = not verified; honest exit
+    print("\nDone. Remind: timeout/invalid_response are honest non-PASS evidence; archive as-is.")
     return exit_code
 
 
