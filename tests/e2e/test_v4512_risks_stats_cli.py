@@ -20,9 +20,9 @@ pytestmark = pytest.mark.e2e
 
 V4512_METRIC_NAMES = [
     "devsquad_v4512_risk_store_capacity",
-    "devsquad_v4512_risk_store_concurrent_writes",
-    "devsquad_v4512_risk_store_cross_host_signals",
-    "devsquad_v4512_risk_store_slow_queries",
+    "devsquad_v4512_risk_store_concurrent_writes_total",
+    "devsquad_v4512_risk_store_cross_host_signals_total",
+    "devsquad_v4512_risk_store_slow_queries_total",
 ]
 
 

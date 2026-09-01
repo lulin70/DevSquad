@@ -72,6 +72,8 @@ V452_METRICS = [
 ]
 
 # V4.5.12: SQLite re-project trigger observability metrics (AC-SQL-6).
+# V4.5.13: counter names use the explicit `_total` suffix to match the
+# prometheus_client exposition format (see prometheus_metrics.py).
 V4512_METRICS = [
     {
         "name": "devsquad_v4512_risk_store_capacity",
@@ -80,19 +82,19 @@ V4512_METRICS = [
         "label_keys": ["register_id"],
     },
     {
-        "name": "devsquad_v4512_risk_store_concurrent_writes",
+        "name": "devsquad_v4512_risk_store_concurrent_writes_total",
         "type": "counter",
         "description": "V4.5.12 risk store writes in the 60s sliding window",
         "label_keys": ["register_id"],
     },
     {
-        "name": "devsquad_v4512_risk_store_cross_host_signals",
+        "name": "devsquad_v4512_risk_store_cross_host_signals_total",
         "type": "counter",
         "description": "V4.5.12 cross-host lock acquisition signals (SQLite trigger: remote share)",
         "label_keys": [],
     },
     {
-        "name": "devsquad_v4512_risk_store_slow_queries",
+        "name": "devsquad_v4512_risk_store_slow_queries_total",
         "type": "counter",
         "description": "V4.5.12 query rounds over 50ms (SQLite trigger: complex query demand)",
         "label_keys": ["register_id"],

@@ -181,11 +181,13 @@ FILES_TO_CHECK: list[FileSpec] = [
         pattern=re.compile(r"V(\d+\.\d+\.\d+)", re.MULTILINE),
         description="ARCHITECTURE_V4.md version",
     ),
-    # === TRAE skill cache layers (L1/L2/L3) ===
-    # CLAUDE.md documents that TRAE reads from ~/.trae-cn/skills/devsquad/ (L1,
-    # highest priority). Failing to sync these causes the TRAE skill panel to
-    # show stale versions. See CLAUDE.md "TRAE 技能缓存层" section.
-    # All cache entries are optional=True: CI environments don't have them.
+    # === TRAE skill cache layers ===
+    # V4.5.13 single-source policy (user decision A): devsquad skill is
+    # registered ONLY at the workspace root cache (~/.trae/skills/../.trae/
+    # skills/devsquad — the layer TRAE actually reads). The ~/.trae-cn,
+    # ~/.trae and DevSquad/.trae duplicates were removed 2026-08-31 to fix
+    # "/" panel duplication; their entries remain optional=True so they
+    # SKIP (not FAIL) on machines that still have them.
     FileSpec(
         relative_path="~/.trae-cn/skills/devsquad/skill-manifest.yaml",
         pattern=re.compile(r"^version:\s*[\"']?(\d+\.\d+\.\d+)", re.MULTILINE),
@@ -287,6 +289,7 @@ CONTENT_DIFF_PAIRS: list[ContentDiffSpec] = [
     # This is /Users/lin/trae_projects/.trae/, NOT DevSquad/.trae/.
     # Discovered 2026-07-27: Skill panel showed V4.1.7 even after DevSquad/.trae
     # was synced, because TRAE reads from workspace root .trae, not project .trae.
+    # V4.5.13: this is now the SINGLE-SOURCE skill registration layer.
     ContentDiffSpec(
         source_path="SKILL.md",
         cache_path=REPO_ROOT.parent / ".trae" / "skills" / "devsquad" / "SKILL.md",

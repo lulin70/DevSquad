@@ -254,6 +254,62 @@ class DevSquadMetrics:
             buckets=self.PERF_BUCKETS,
         )
 
+        # === V4.5.13: risk store re-project trigger metrics (from V4.5.12 stats) ===
+
+        # V4.5.13: names carry the explicit `_total` suffix (prometheus_client
+        # normalizes Counter samples to `_total`; naming them up front keeps
+        # ALERT_RULES expressions and exposition samples identical).
+        self.risk_store_capacity_gauge = Gauge(
+            "devsquad_v4512_risk_store_capacity",
+            "V4.5.12 risk store item count at last load/save (SQLite trigger: >10k)",
+            ["register_id"],
+        )
+        self.risk_store_concurrent_writes_counter = Counter(
+            "devsquad_v4512_risk_store_concurrent_writes_total",
+            "V4.5.12 risk store writes in the 60s sliding window",
+            ["register_id"],
+        )
+        self.risk_store_cross_host_counter = Counter(
+            "devsquad_v4512_risk_store_cross_host_signals_total",
+            "V4.5.12 cross-host lock acquisition signals (SQLite trigger: remote share)",
+            ["register_id"],
+        )
+        self.risk_store_slow_queries_counter = Counter(
+            "devsquad_v4512_risk_store_slow_queries_total",
+            "V4.5.12 query rounds over 50ms (SQLite trigger: complex query demand)",
+            ["register_id"],
+        )
+
+    def record_risk_store_stats(self, stats: Any, register_id: str = "default") -> None:
+        """V4.5.13: publish a FileRiskStore.stats snapshot to Prometheus.
+
+        Counters are driven by delta against the last exported values so
+        repeated exports do not double-increment.
+        """
+        last = getattr(self, "_risk_store_stats_last", None)
+        if last is None:
+            last = self._risk_store_stats_last = {
+                "concurrent": 0,
+                "cross_host": 0,
+                "slow": 0,
+            }
+        self.risk_store_capacity_gauge.labels(register_id=register_id).set(stats.capacity)
+        if stats.concurrent_writes_1m > last["concurrent"]:
+            self.risk_store_concurrent_writes_counter.labels(register_id=register_id).inc(
+                stats.concurrent_writes_1m - last["concurrent"]
+            )
+            last["concurrent"] = stats.concurrent_writes_1m
+        if stats.cross_host_lock_signals > last["cross_host"]:
+            self.risk_store_cross_host_counter.labels(register_id=register_id).inc(
+                stats.cross_host_lock_signals - last["cross_host"]
+            )
+            last["cross_host"] = stats.cross_host_lock_signals
+        if stats.slow_query_signals > last["slow"]:
+            self.risk_store_slow_queries_counter.labels(register_id=register_id).inc(
+                stats.slow_query_signals - last["slow"]
+            )
+            last["slow"] = stats.slow_query_signals
+
     # ------------------------------------------------------------------
     # V4.5.2 module-specific recording helpers (P11.1)
     # ------------------------------------------------------------------

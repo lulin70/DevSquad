@@ -14,20 +14,22 @@
 | 4 | [trace_4_cross_version_isolation.md](trace_4_cross_version_isolation.md) | v1/v2 marker 并存 → 仅消费 v2 | AC-LA-7 |
 | 5 | [trace_5_resource_bound.md](trace_5_resource_bound.md) | >512KB prompt → MAX_PROMPT_BYTES fail-closed | AC-LA-6 |
 
-## 采集方法（每条 trace 通用）
+## 采集方法（V4.5.13 一键脚本）
 
 ```bash
-# 1. 准备隔离 bridge 目录
-export DEVSQUAD_HOST_BRIDGE_VERSION=v2
-python3 scripts/cli.py dispatch -t "<任务>" -r arch
+# 预演（不写文件）
+python3 scripts/collect_trae_traces.py --all --dry-run
 
-# 2. 在 TRAE IDE 3.3.95 集成终端观察
-ls -la logs/host_llm_bridge/v2/
-cat logs/host_llm_bridge/v2/protocol.v2.marker   # 7 字段
-cat logs/host_llm_bridge/v2/response_<id>.json   # v2 timestamp 字段
+# 采集（建议在 TRAE IDE 3.3.95 集成终端执行，确保宿主监听方在线）
+python3 scripts/collect_trae_traces.py --all --wait-seconds 20
 
-# 3. 归档本 trace 文件 + 脱敏 TRAE IDE 端日志（移除 API Key 等敏感字段）
+# 归档位置
+docs/e2e_evidence/V4.5.12_trae_ide_real/collected/trace_N/
+  result.json      # status: success | timeout | fail | fail_closed（三态诚实契约）
+  v2_snapshot/     # request_*.json / request_*.prompt / response_*.json 快照
 ```
+
+**诚实契约**：`timeout` 表示采集时真实 TRAE IDE 监听方未消费请求（"有 marker 无监听方"的有效证据），必须如实归档，不得标记 PASS。trace_3（fuse）与 trace_5（资源上限）无需监听方即可完整验证。
 
 ## 证据要求（AC-LA-9）
 

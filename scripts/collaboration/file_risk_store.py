@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import errno
 import json
 import logging
 import math
@@ -47,6 +48,33 @@ _REG_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 CAPACITY_WARNING_THRESHOLD = 10000
 SLOW_QUERY_MS_THRESHOLD = 50.0
 CONCURRENT_WINDOW_SECONDS = 60.0
+
+# V4.5.13: cross-host detection (AC-CH-1..3).
+# errnos whose semantics indicate remote/shared-storage failure rather than
+# local contention (EAGAIN == local contention is intentionally excluded).
+_REMOTE_ERRNOS: frozenset[int] = frozenset(
+    value
+    for name in ("ESTALE", "EREMOTE", "EBADRPC")
+    for value in (getattr(errno, name, None),)
+    if value is not None
+)
+# Cache "once per store instance" flag attribute name to avoid re-detecting.
+_REMOTE_FS_FLAG = "_remote_fs_recorded"
+
+
+def _looks_like_remote_fs(path: Path) -> bool:
+    """Best-effort remote-filesystem detection via statvfs ST_REMOTE.
+
+    Returns False when the platform does not expose ST_REMOTE (macOS) or
+    statvfs fails — never raises (observability must not break the store).
+    """
+    st_remote = getattr(os, "ST_REMOTE", 0)
+    if not st_remote:  # macOS/Windows: flag not defined → no-op (AC-CH-3)
+        return False
+    try:
+        return bool(os.statvfs(path).f_flag & st_remote)
+    except (OSError, AttributeError, ValueError):
+        return False
 
 
 def get_call_counter_er() -> int:
@@ -250,6 +278,16 @@ def _fcntl_lock(handle: Any, timeout: float) -> None:
                     f"Could not acquire risk store lock within {timeout:.3f}s"
                 ) from None
             time.sleep(min(0.05, max(0.001, deadline - time.monotonic())))
+        except OSError as exc:
+            # V4.5.13: remote-semantics errno → re-raise so the caller can
+            # record a cross-host signal; other OSErrors keep propagating.
+            if exc.errno in _REMOTE_ERRNOS:
+                raise
+            if time.monotonic() >= deadline:
+                raise RiskStoreLockError(
+                    f"Could not acquire risk store lock within {timeout:.3f}s"
+                ) from None
+            time.sleep(min(0.05, max(0.001, deadline - time.monotonic())))
 
 
 def _fcntl_unlock(handle: Any) -> None:
@@ -315,6 +353,10 @@ class FileRiskStore:
         self._active_transactions: set[str] = set()
         # V4.5.12: SQLite re-project trigger observability (AC-SQL-1).
         self.stats = RiskStoreStats()
+        # V4.5.13: auto cross-host signal on remote filesystem (AC-CH-1).
+        if _looks_like_remote_fs(self.root):
+            self.stats.record_cross_host_signal()
+            setattr(self, _REMOTE_FS_FLAG, True)
 
     def _paths(self, register_id: str) -> tuple[Path, Path]:
         return _safe_path(self.root, register_id), _safe_path(self.root, register_id, ".lock")
@@ -324,9 +366,19 @@ class FileRiskStore:
         self.root.mkdir(parents=True, exist_ok=True)
         if lock_path.is_symlink():
             raise RiskStoreValidationError(f"Refusing symlinked lock path: {lock_path}")
+        # V4.5.13: re-check remote fs once per instance after mount appears.
+        if not getattr(self, _REMOTE_FS_FLAG, False) and _looks_like_remote_fs(self.root):
+            self.stats.record_cross_host_signal()
+            setattr(self, _REMOTE_FS_FLAG, True)
         handle = open(lock_path, "a+b")  # noqa: SIM115
         try:
             _acquire_lock(handle, self.lock_timeout)
+        except OSError as exc:
+            # V4.5.13: remote-semantics errno → auto signal (AC-CH-2).
+            if exc.errno in _REMOTE_ERRNOS:
+                self.stats.record_cross_host_signal()
+            handle.close()
+            raise
         except Exception:
             handle.close()
             raise

@@ -14,6 +14,47 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.13] - 2026-08-31
+
+### V4.5.13 — Trace Collector Tooling + Cross-Host Auto-Signals + /metrics Exposure (联调工具化 + 信号自动化)
+
+Closes the V4.5.12+ backlog (PRD `docs/prd/V4.5.13_PRD.md`). Tooling and
+observability hardening: no breaking changes.
+
+#### Added
+
+- `scripts/collect_trae_traces.py`: one-shot collector for the 5 TRAE IDE
+  real-listener traces. Honest 3-state status contract
+  (`success | timeout | fail_closed` — timeout means the real listener was
+  absent and must be archived as such, never marked PASS). Archives
+  `result.json` + v2 file snapshots under
+  `docs/e2e_evidence/V4.5.12_trae_ide_real/collected/trace_N/`.
+- Cross-host auto-signaling in `FileRiskStore`: remote filesystem detection
+  via `os.statvfs` `ST_REMOTE` (platform-safe no-op where unavailable) and
+  remote-semantics errno reclassification (`ESTALE`/`EREMOTE`/`EBADRPC`) now
+  record `cross_host_lock_signals` automatically; local `EAGAIN` contention
+  still does not count as a cross-host signal.
+- `/metrics` (FastAPI) now exposes `devsquad_v4512_risk_store_*` series via
+  `DevSquadMetrics.record_risk_store_stats()` (delta-based counter export).
+
+#### Changed
+
+- `devsquad_v4512_risk_store_*` counter names now carry the explicit `_total`
+  suffix (matches prometheus_client exposition normalization); ALERT_RULES
+  expressions and the metrics CLI inventory updated in lockstep.
+- `check_version_consistency.py`: skill-cache layer checks updated for the
+  V4.5.13 single-source policy (devsquad skill registered only at the
+  workspace-root cache layer; other layers remain optional SKIP).
+- Environment: devsquad skill duplicates removed from `~/.trae-cn/skills`,
+  `~/.trae/skills`, `DevSquad/.trae/skills` (single-source convergence, user
+  decision A) — fixes "/" panel duplication; stale `.bak` copies cleaned.
+
+#### Docs
+
+- trace README collection method switched to the one-shot script.
+- PROJECT_STATUS / VERSION_HISTORY / README×3 / SKILL.md / skill-manifest /
+  CLAUDE / COMPARISON / helm / Dockerfile / deployment.yaml synced to 4.5.13.
+
 ## [4.5.12] - 2026-08-31
 
 ### V4.5.12 — TRAE IDE Real-Listener Evidence + Risk Store Stats Observability + `--severity` Removal (真实联调 + 监控 + 退役)

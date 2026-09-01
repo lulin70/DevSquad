@@ -14,9 +14,9 @@ Trigger conditions per `docs/prd/V4.5.10_PRD.md` §6 (SQLite stays JSON-only lon
 | Alert | Condition | Severity | Action |
 |---|---|---|---|
 | `RiskStoreCapacityHigh` | `devsquad_v4512_risk_store_capacity > 10000` for 1h | critical | Run RUNBOOK §V4.5.12-A |
-| `RiskStoreConcurrentWriteHigh` | `rate(devsquad_v4512_risk_store_concurrent_writes[5m]) * 60 > 100` for 30m | warning | Run RUNBOOK §V4.5.12-B |
-| `RiskStoreCrossHostSignal` | `increase(devsquad_v4512_risk_store_cross_host_signals[1h]) > 0` for 5m | critical | Run RUNBOOK §V4.5.12-C |
-| `RiskStoreSlowQueryHigh` | `increase(devsquad_v4512_risk_store_slow_queries[1h]) > 10` for 30m | warning | Run RUNBOOK §V4.5.12-D |
+| `RiskStoreConcurrentWriteHigh` | `rate(devsquad_v4512_risk_store_concurrent_writes_total[5m]) * 60 > 100` for 30m | warning | Run RUNBOOK §V4.5.12-B |
+| `RiskStoreCrossHostSignal` | `increase(devsquad_v4512_risk_store_cross_host_signals_total[1h]) > 0` for 5m | critical | Run RUNBOOK §V4.5.12-C |
+| `RiskStoreSlowQueryHigh` | `increase(devsquad_v4512_risk_store_slow_queries_total[1h]) > 10` for 30m | warning | Run RUNBOOK §V4.5.12-D |
 
 ```yaml
 groups:
@@ -31,7 +31,7 @@ groups:
           runbook: "docs/operations/RUNBOOK.md#v4512-a-risk-store-capacity-over-threshold"
 
       - alert: RiskStoreConcurrentWriteHigh
-        expr: rate(devsquad_v4512_risk_store_concurrent_writes[5m]) * 60 > 100
+        expr: rate(devsquad_v4512_risk_store_concurrent_writes_total[5m]) * 60 > 100
         for: 30m
         labels: { severity: warning, module: FileRiskStore }
         annotations:
@@ -39,7 +39,7 @@ groups:
           runbook: "docs/operations/RUNBOOK.md#v4512-b-sustained-concurrent-writes"
 
       - alert: RiskStoreCrossHostSignal
-        expr: increase(devsquad_v4512_risk_store_cross_host_signals[1h]) > 0
+        expr: increase(devsquad_v4512_risk_store_cross_host_signals_total[1h]) > 0
         for: 5m
         labels: { severity: critical, module: FileRiskStore }
         annotations:
@@ -47,7 +47,7 @@ groups:
           runbook: "docs/operations/RUNBOOK.md#v4512-c-cross-host-lock-signals"
 
       - alert: RiskStoreSlowQueryHigh
-        expr: increase(devsquad_v4512_risk_store_slow_queries[1h]) > 10
+        expr: increase(devsquad_v4512_risk_store_slow_queries_total[1h]) > 10
         for: 30m
         labels: { severity: warning, module: FileRiskStore }
         annotations:
