@@ -3,8 +3,8 @@
 Simulates a real user driving ``python3 -m scripts.cli_risks`` from separate
 shell invocations (independent processes each time), covering the full PRD
 journey: add → list → show → assess → mitigate → close(approval) → export →
-clear, plus the exposure-threshold UX (``--min-exposure`` / ``--severity`` /
-``--category``).
+clear, plus the exposure-threshold UX (``--min-exposure`` / ``--category``;
+V4.5.12 removed ``--severity``).
 
 Each step is a fresh subprocess — this is the release-gate proof that the
 file-backed store (V4.5.8 Wave 1) makes risk data visible across processes
@@ -156,17 +156,17 @@ class TestRealUserJourney:
         )
         assert {item["description"] for item in below_boundary} == {"high", "mid", "low"}
 
-        # Numeric --severity is equivalent to --min-exposure.
-        by_severity = json.loads(
-            _run_cli(["risks", "list", "--format", "json", "--severity", "0.36"], cwd).stdout
+        # V4.5.12: --severity removed (Breaking). Numeric filtering uses
+        # --min-exposure; string filtering uses --category.
+        by_category = json.loads(
+            _run_cli(["risks", "list", "--format", "json", "--category", "security"], cwd).stdout
         )
-        assert {item["description"] for item in by_severity} == {"high", "mid"}
+        assert {item["description"] for item in by_category} == {"high", "mid", "low"}
 
-        # Legacy category mode keeps working (with deprecation warning).
-        legacy = _run_cli(["risks", "list", "--format", "json", "--severity", "security"], cwd)
-        assert legacy.returncode == 0
-        assert "deprecated" in legacy.stderr
-        assert len(json.loads(legacy.stdout)) == 3
+        # --severity is now rejected by argparse (exit 2).
+        removed = _run_cli(["risks", "list", "--format", "json", "--severity", "0.36"], cwd)
+        assert removed.returncode == 2
+        assert "unrecognized arguments" in removed.stderr
 
         # Invalid threshold values are rejected cleanly.
         for bad in ["nan", "inf", "-0.1", "1.1"]:

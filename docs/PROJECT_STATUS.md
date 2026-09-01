@@ -1,9 +1,9 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.5.11（2026-08-31）
+> **当前版本**: V4.5.12（2026-08-31）
 > **最后更新**: 2026-08-31
-> **最新评估**: V4.5.11 — 清理与统一（无新用户功能；1 项 Breaking）。核心交付：① bridge 日志保留策略（v1/v2 `PRUNE_MAX_FILES` 默认 100，`DEVSQUAD_BRIDGE_PRUNE_MAX_FILES` 覆盖，marker/.tmp 不计数）；② 删除 `_LegacyRiskStoreProxy`/`_RISK_STORE`（Breaking，测试迁移为 FileRiskStore 直读）；③ Worker 统一异步路径（`_do_work_async` 共享于 execute/aexecute，`_ado_work` 删除，活动 loop 内 `_run_coro_on_thread` 防递归）；④ risks CLI 输出统一（`RISK_FIELD_ORDER` 规范字段序，add 与 list/show/export 同构）。4 项均为 V4.5.10 复盘顺延项收官。详见 [CHANGELOG.md](../CHANGELOG.md) 与 [RELEASE_NOTES_v4.5.11.md](RELEASE_NOTES_v4.5.11.md)。
-> **历史评估**: V4.5.1（Approval Gate + Connector Framework，8996+ tests）→ V4.5.7（AsyncCoeffect + Risks CLI）→ V4.5.8（FileRiskStore + Risks mutators，9363 tests）→ V4.5.9（统一 gather 核 + 原生异步 Worker，9408 tests）→ V4.5.10（v2 生产接线 + --async CLI，9480 tests）→ V4.5.11（本版）
+> **最新评估**: V4.5.12 — 清理与统一（无新用户功能；1 项 Breaking）。核心交付：① bridge 日志保留策略（v1/v2 `PRUNE_MAX_FILES` 默认 100，`DEVSQUAD_BRIDGE_PRUNE_MAX_FILES` 覆盖，marker/.tmp 不计数）；② 删除 `_LegacyRiskStoreProxy`/`_RISK_STORE`（Breaking，测试迁移为 FileRiskStore 直读）；③ Worker 统一异步路径（`_do_work_async` 共享于 execute/aexecute，`_ado_work` 删除，活动 loop 内 `_run_coro_on_thread` 防递归）；④ risks CLI 输出统一（`RISK_FIELD_ORDER` 规范字段序，add 与 list/show/export 同构）。4 项均为 V4.5.10 复盘顺延项收官。详见 [CHANGELOG.md](../CHANGELOG.md) 与 [RELEASE_NOTES_v4.5.12.md](RELEASE_NOTES_v4.5.12.md)。
+> **历史评估**: V4.5.1（Approval Gate + Connector Framework，8996+ tests）→ V4.5.7（AsyncCoeffect + Risks CLI）→ V4.5.8（FileRiskStore + Risks mutators，9363 tests）→ V4.5.9（统一 gather 核 + 原生异步 Worker，9408 tests）→ V4.5.10（v2 生产接线 + --async CLI，9480 tests）→ V4.5.12（本版）
 > **硬约束通过率**: 13/13（100%）
 > **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.x 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）

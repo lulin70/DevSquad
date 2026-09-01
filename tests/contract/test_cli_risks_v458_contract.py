@@ -78,7 +78,7 @@ class TestJsonSchemaContract:
         _seed(risk_store_root)
         args = argparse.Namespace(
             register_id="default", root=None,
-            format="json", min_exposure=None, severity=None,
+            format="json", min_exposure=None,
             category=None, limit=None, approval_callback=None,
             require_approval=False,
         )
@@ -92,7 +92,7 @@ class TestJsonSchemaContract:
         args = argparse.Namespace(
             register_id="default", root=None,
             risk_id="R-show", format="json",
-            min_exposure=None, severity=None, category=None,
+            min_exposure=None, category=None,
             approval_callback=None, require_approval=False,
         )
         rc = cmd_risks_show(args)
@@ -105,7 +105,7 @@ class TestJsonSchemaContract:
         args = argparse.Namespace(
             register_id="default", root=None,
             output=None, output_positional=None,
-            min_exposure=None, severity=None, category=None,
+            min_exposure=None, category=None,
             approval_callback=None, require_approval=False,
         )
         rc = cmd_risks_export(args)
@@ -145,7 +145,7 @@ class TestErrorCodeContract:
         target.write_text("{", encoding="utf-8")
         args = argparse.Namespace(
             register_id="default", root=None,
-            format="md", min_exposure=None, severity=None,
+            format="md", min_exposure=None,
             category=None, limit=None, approval_callback=None,
             require_approval=False,
         )
@@ -194,6 +194,16 @@ class TestArgumentParserContract:
 
         args = parser.parse_args(["risks", "export", "--output", "/tmp/out.json"])
         assert args.output == "/tmp/out.json"
+
+    def test_no_severity_flag(self) -> None:
+        # V4.5.12 AC-SE-3: --severity is removed (Breaking); argparse must
+        # reject it with exit code 2 for list/show/export.
+        parser = argparse.ArgumentParser()
+        register_risks_subparser(parser.add_subparsers(dest="command"))
+        for cmd, extra in [("list", []), ("show", ["R-x"]), ("export", [])]:
+            with pytest.raises(SystemExit) as exit_info:
+                parser.parse_args(["risks", cmd, "--severity", "0.5", *extra])
+            assert exit_info.value.code == 2, cmd
 
 
 class TestMutatorApiContract:

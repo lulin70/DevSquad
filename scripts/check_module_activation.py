@@ -199,6 +199,14 @@ def main() -> int:
     # V4.5.10 activation (HostBridge v2 production wiring)
     v4510_wiring = _activate_v4510_modules()
 
+    # V4.5.12 activation (RiskStoreStats + risks stats CLI)
+    _activate_v4512_modules()
+
+    # V4.5.12 stats counter — touched in main scope
+    from scripts.collaboration.file_risk_store import (
+        get_risk_store_stats_counter_er as _get_risk_store_stats_counter_er,
+    )
+
     counters = {
         "TaskScaleGate": tsg(),
         "PerfBaseline": pb(),
@@ -232,9 +240,12 @@ def main() -> int:
         "GatherCore_V459.1": _get_gather_counter(),
         # V4.5.10 modules
         "HostBridgeV2Wiring_V4510.1": v4510_wiring,
+        # V4.5.12 modules
+        "RiskStoreStats_V4512.1": _get_risk_store_stats_counter_er(),
+        "RisksStatsCli_V4512.2": _get_cli_risks_counter_er(),
     }
 
-    print("V4.5.10 Anti-Ghost Verification")
+    print("V4.5.12 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
     for name, count in counters.items():
@@ -250,8 +261,51 @@ def main() -> int:
             print(f"  - {name}")
         return 1
 
-    print("All V4.5.10 modules activated. Anti-ghost gate PASSED.")
+    print("All V4.5.12 modules activated. Anti-ghost gate PASSED.")
     return 0
+
+
+def _activate_v4512_modules() -> None:
+    """Exercise V4.5.12 modules to bump their anti-ghost counters.
+
+    Touches:
+        - RiskStoreStats_V4512.1 — FileRiskStore load/save/transaction
+          stats instrumentation (capacity + concurrent-write window)
+        - RisksStatsCli_V4512.2 — cmd_risks_stats text/json round-trip
+    """
+    import io
+    import json as _json
+    import tempfile
+    from argparse import Namespace
+    from contextlib import redirect_stdout
+
+    from scripts.cli_risks import cmd_risks_stats
+    from scripts.collaboration.file_risk_store import FileRiskStore
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = str(Path(tmpdir) / "risks")
+        store = FileRiskStore(root=root)
+        # transaction + save path bumps stats counter and records a write.
+        with store.transaction("default") as tx:
+            tx["items"] = []
+        store.save("default", {"version": 1, "register_id": "default", "items": []})
+
+        assert store.stats.capacity == 0
+        assert store.stats.concurrent_writes_1m >= 1
+
+        # risks stats CLI round-trip (text + json).
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            assert cmd_risks_stats(Namespace(
+                register_id="default", root=root, format="json",
+            )) == 0
+        payload = _json.loads(buf.getvalue())
+        assert payload["register_id"] == "default"
+        with redirect_stdout(buf):
+            assert cmd_risks_stats(Namespace(
+                register_id="default", root=root, format="text",
+            )) == 0
+        assert "Risk Store Stats" in buf.getvalue()
 
 
 def _activate_v4510_modules() -> int:
@@ -412,13 +466,13 @@ def _activate_v458_modules() -> None:
         with redirect_stdout(buf_hidden):
             assert cmd_risks_list(Namespace(
                 register_id="default", root=root, format="md",
-                min_exposure=0.99, severity=None, category=None, limit=None,
+                min_exposure=0.99, category=None, limit=None,
             )) == 0
         assert "(none)" in buf_hidden.getvalue()
         with redirect_stdout(buf_visible):
             assert cmd_risks_list(Namespace(
                 register_id="default", root=root, format="md",
-                min_exposure=0.0, severity=None, category=None, limit=None,
+                min_exposure=0.0, category=None, limit=None,
             )) == 0
         assert "`R-" in buf_visible.getvalue()
 
@@ -538,7 +592,7 @@ def _activate_v457_modules() -> None:
     from scripts.cli_risks import add_risk, cmd_risks_list
 
     add_risk("anti-ghost verification risk", probability=0.1, impact=0.1)
-    cmd_risks_list(Namespace(format="md", severity=None, limit=None))
+    cmd_risks_list(Namespace(format="md", limit=None))
 
 
 def _activate_v453_modules() -> None:

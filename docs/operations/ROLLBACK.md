@@ -1,11 +1,29 @@
-# DevSquad Rollback Plan (V4.5.10 / P11.4)
+# DevSquad Rollback Plan (V4.5.12 / P11.4)
 
-> **Document Version**: V4.5.10
-> **Last Updated**: 2026-08-30
+> **Document Version**: V4.5.12
+> **Last Updated**: 2026-08-31
 > **Audience**: DevOps engineers, release managers
 > **Related**: [ALERT_RULES.md](ALERT_RULES.md) · [RUNBOOK.md](RUNBOOK.md) · [OPERATIONS.md](../OPERATIONS.md)
 
 This document defines the rollback strategy when critical issues block production use. Rollback is the last resort after [RUNBOOK.md](RUNBOOK.md) mitigation steps fail.
+
+## V4.5.12 Rollback Paths
+
+### R1 — `--severity` removal breaks downstream scripts (no redeploy, first choice)
+
+V4.5.12 removed `risks list/show/export --severity` (Breaking). Downstream scripts calling it now get `argparse: unrecognized arguments: --severity` (exit 2).
+
+**Forward migration (preferred)**: numeric filtering → `--min-exposure <float>`; string filtering → `--category <str>`.
+
+**Immediate unblock**: if migration cannot land in time, run the affected command against a v4.5.11 checkout: `git checkout v4.5.11 -- scripts/cli_risks.py` (temporary, un-versioned; must not be committed).
+
+### R2 — V4.5.12 stats metrics interfere with Prometheus scraping (no redeploy)
+
+If `devsquad_v4512_risk_store_*` series cause scrape noise: drop them at the Prometheus layer with a `metric_relabel_configs` deny rule, or stop exposing them by removing the `V4512_METRICS` entries in `scripts/cli_metrics.py` (stats CLI `risks stats` remains functional independently).
+
+### R3 — Full version rollback (last resort)
+
+`git checkout v4.5.11` and reinstall, per the original V4.5.3 → V4.5.2 procedure below.
 
 ## V4.5.10 Rollback Paths
 

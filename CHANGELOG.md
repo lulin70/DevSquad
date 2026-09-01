@@ -14,6 +14,63 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.12] - 2026-08-31
+
+### V4.5.12 — TRAE IDE Real-Listener Evidence + Risk Store Stats Observability + `--severity` Removal (真实联调 + 监控 + 退役)
+
+Closes the V4.5.11+ backlog: upstream TraeMultiAgentSkill v2.8.4 protocol
+real-listener verification against the local TRAE IDE 3.3.95, SQLite
+re-project trigger observability (stats + Prometheus alerts, ruling unchanged:
+JSON-only long-term), and full retirement of the `--severity` CLI flag
+(PRD `docs/prd/V4.5.12_PRD.md`; three-sage review 8.8/8.7/8.6).
+
+#### Added
+
+- `RiskStoreStats` (`scripts/collaboration/file_risk_store.py`): aggregated
+  observability for the four SQLite re-project trigger conditions —
+  `capacity`, `concurrent_writes_1m` (60s sliding window),
+  `cross_host_lock_signals`, `slow_query_signals` (>50ms threshold).
+  Instrumented on `load` / `save` / `transaction` commit.
+- `risks stats` CLI subcommand (`--format text|json`): read-only exposure of
+  the trigger signals (AC-SQL-5).
+- `devsquad_v4512_risk_store_*` metrics inventory in `scripts/cli_metrics.py`
+  (capacity gauge + 3 counters) with direct-stats fallback when
+  prometheus_client is absent; `devsquad metrics` JSON version bumped to
+  V4.5.12.
+- ALERT_RULES V4.5.12 section: `RiskStoreCapacityHigh` (>10k, critical),
+  `RiskStoreConcurrentWriteHigh` (>100/min, warning),
+  `RiskStoreCrossHostSignal` (any, critical), `RiskStoreSlowQueryHigh`
+  (>10/h, warning). RUNBOOK §V4.5.12-A/B/C/D incident scenarios.
+- TRAE IDE 3.3.95 real-listener evidence framework:
+  `docs/e2e_evidence/V4.5.12_trae_ide_real/` with 5 trace templates
+  (success round-trip, subagent mapping, fuse threshold, cross-version
+  isolation, resource bound) closing the V4.5.10 PRD §1.1 G-α gap
+  documentation-wise; traces are human-collected and are not CI-blocking.
+- New tests: `test_v4512_risk_store_stats`, `test_v4512_severity_removal`,
+  `test_v4512_stats_signals`, `test_v4512_risks_stats_cli` (23 tests).
+
+#### Changed
+
+- **Breaking**: removed `risks list/show/export --severity` entirely
+  (numeric mode duplicated `--min-exposure`; string mode was a deprecated
+  alias of `--category`). The flag now fails with
+  `argparse: unrecognized arguments` (exit 2). Migration: numeric filtering
+  → `--min-exposure <float>`; string filtering → `--category <str>`.
+  ROLLBACK V4.5.12-R1 documents the emergency path.
+- `_filter_risks_measured` wraps list/show/export filter rounds with the
+  slow-query signal instrumentation.
+- Anti-ghost gate extended: `RiskStoreStats_V4512.1` +
+  `RisksStatsCli_V4512.2` counters (`check_module_activation.py`), 27/27.
+
+#### Docs
+
+- Naming disambiguation across TECH_DEBT / RETROSPECTIVE / RELEASE_NOTES:
+  "上游 trae v2.8.4" now consistently reads "weiransoft/TraeMultiAgentSkill
+  v2.8.4 protocol" (source) vs "TRAE IDE 3.3.95" (real listener target).
+- ALERT_RULES / RUNBOOK / ROLLBACK versioned to V4.5.12.
+- PROJECT_STATUS / VERSION_HISTORY / README×3 / SKILL.md / skill-manifest /
+  CLAUDE / COMPARISON / helm / Dockerfile / deployment.yaml synced to 4.5.12.
+
 ## [4.5.11] - 2026-08-31
 
 ### V4.5.11 — Bridge Log Retention + Risk Store Cleanup + Worker Unified Path + Risks CLI Output (清理与统一)

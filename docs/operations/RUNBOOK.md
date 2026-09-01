@@ -1,11 +1,47 @@
-# DevSquad Runbook (V4.5.10 / P11.3)
+# DevSquad Runbook (V4.5.12 / P11.3)
 
-> **Document Version**: V4.5.10
-> **Last Updated**: 2026-08-30
+> **Document Version**: V4.5.12
+> **Last Updated**: 2026-08-31
 > **Audience**: On-call SRE/DevOps engineers
-> **Related**: [ALERT_RULES.md](ALERT_RULES.md) (alert definitions) · [ROLLBACK.md](ROLLBACK.md) (V4.5.10 rollback: v2→v1 protocol / async→sync)
+> **Related**: [ALERT_RULES.md](ALERT_RULES.md) (alert definitions) · [ROLLBACK.md](ROLLBACK.md) (V4.5.12 rollback: --severity removal / stats metrics off-switch)
 
 This runbook provides step-by-step incident response for the 5 V4.5.2 modules + 5 V4.5.3 modules plus commonly encountered issues. Each scenario follows the structure: **Alert → Symptoms → Diagnosis → Mitigation → Recovery → Prevention**.
+
+## V4.5.12 Scenarios — SQLite re-project trigger observability
+
+The risk store stays **JSON-only long-term** (V4.5.10 P2-1 ruling). The following scenarios surface the four re-project trigger conditions from `docs/prd/V4.5.10_PRD.md` §6 — an alert firing does NOT auto-migrate to SQLite; it starts a human evaluation.
+
+### §V4.5.12-A — Risk store capacity over threshold
+
+**Symptoms**: `RiskStoreCapacityHigh` fires — `devsquad_v4512_risk_store_capacity > 10000` for 1h.
+
+**Diagnosis**: `python3 -m scripts.cli_risks risks stats --format json` — confirm `capacity`. Check which register is growing: `ls -la .devsquad_data/risks/`.
+
+**Mitigation**: (1) prune closed risks from bloated registers (`risks close` + archive export); (2) if capacity is legitimately >10k, start a SQLite re-project evaluation per PRD §6 — do NOT hand-migrate in an incident.
+
+### §V4.5.12-B — Sustained concurrent writes
+
+**Symptoms**: `RiskStoreConcurrentWriteHigh` fires — write rate >100/min for 30m.
+
+**Diagnosis**: check how many dispatcher processes/services write the same register; `concurrent_writes_1m` reflects the local sliding window only.
+
+**Mitigation**: shard registers per service (`--register-id`), or if genuine multi-service concurrency is required, start a SQLite re-project evaluation (trigger 4).
+
+### §V4.5.12-C — Cross-host lock signals
+
+**Symptoms**: `RiskStoreCrossHostSignal` fires — `cross_host_lock_signals > 0`.
+
+**Diagnosis**: flock signals mean the `.devsquad_data/risks/` directory is on remote-shared storage (NFS/CIFS) accessed by multiple hosts. Verify mount: `df -T .devsquad_data/risks/`.
+
+**Mitigation**: move the risk store to local disk per host (preferred), or accept remote sharing and start a SQLite re-project evaluation (trigger 3 — local flock is not a cross-host lock).
+
+### §V4.5.12-D — Slow queries
+
+**Symptoms**: `RiskStoreSlowQueryHigh` fires — >10 query rounds over 50ms/h.
+
+**Diagnosis**: `risks list --min-exposure ...` timing on large registers; JSON full-scan cost grows linearly with capacity.
+
+**Mitigation**: use `--limit` and narrower filters; if complex query demand is genuine (trigger 2), start a SQLite re-project evaluation.
 
 ## V4.5.10 Scenarios — HostLLMBridge v2 / `--async`
 

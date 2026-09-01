@@ -10,8 +10,11 @@ import os
 import re
 import sys
 import tempfile
+import threading
 import time
+from collections import deque
 from collections.abc import Iterator, MutableMapping
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +43,11 @@ SCHEMA_VERSION = 1
 DEFAULT_ROOT = Path(".devsquad_data") / "risks"
 _REG_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
+# V4.5.12: SQLite re-project trigger thresholds (docs/prd/V4.5.10_PRD.md §6).
+CAPACITY_WARNING_THRESHOLD = 10000
+SLOW_QUERY_MS_THRESHOLD = 50.0
+CONCURRENT_WINDOW_SECONDS = 60.0
+
 
 def get_call_counter_er() -> int:
     """Return the module-level anti-ghost counter."""
@@ -49,6 +57,90 @@ def get_call_counter_er() -> int:
 def _inc_call_counter_er() -> None:
     global _call_counter_er
     _call_counter_er += 1
+
+
+# ---------------------------------------------------------------------------
+# V4.5.12: RiskStoreStats — SQLite re-project trigger observability (AC-SQL-1..4)
+# ---------------------------------------------------------------------------
+
+_call_counter_stats_er: int = 0
+_stats_counter_lock = threading.Lock()
+
+
+def get_risk_store_stats_counter_er() -> int:
+    """Return the V4.5.12 stats activation counter (anti-ghost)."""
+    return _call_counter_stats_er
+
+
+def _inc_risk_store_stats_counter_er() -> None:
+    global _call_counter_stats_er
+    with _stats_counter_lock:
+        _call_counter_stats_er += 1
+
+
+@dataclass
+class RiskStoreStats:
+    """Aggregated observability signals for a ``FileRiskStore``.
+
+    Exposes the four SQLite re-project trigger conditions from
+    ``docs/prd/V4.5.10_PRD.md`` §6 without leaking register contents:
+
+    - ``capacity``: item count at the most recent load/save (trigger: >10k)
+    - ``concurrent_writes_1m``: writes in the last 60s sliding window
+      (trigger: sustained high rate across services)
+    - ``cross_host_lock_signals``: lock acquisitions from a different host
+      signature (trigger: remote-shared storage)
+    - ``slow_query_signals``: query+filter rounds exceeding
+      ``SLOW_QUERY_MS_THRESHOLD`` (trigger: complex query demand)
+
+    Aggregated numbers only — no risk content, register_id, or user data.
+    """
+
+    capacity: int = 0
+    concurrent_writes_1m: int = 0
+    cross_host_lock_signals: int = 0
+    slow_query_signals: int = 0
+    last_updated: float = 0.0
+    _write_times: deque[float] = field(default_factory=deque, repr=False, compare=False)
+
+    def record_write(self, item_count: int, now: float | None = None) -> None:
+        """Record a completed write with the resulting item count."""
+        now = time.monotonic() if now is None else now
+        self.capacity = item_count
+        self.last_updated = now
+        window_start = now - CONCURRENT_WINDOW_SECONDS
+        times = self._write_times
+        times.append(now)
+        while times and times[0] < window_start:
+            times.popleft()
+        self.concurrent_writes_1m = len(times)
+
+    def record_load(self, item_count: int, now: float | None = None) -> None:
+        """Record a completed load with the observed item count."""
+        now = time.monotonic() if now is None else now
+        self.capacity = item_count
+        self.last_updated = now
+
+    def record_cross_host_signal(self) -> None:
+        """Record one cross-host lock acquisition signal."""
+        self.cross_host_lock_signals += 1
+        self.last_updated = time.monotonic()
+
+    def record_slow_query(self, duration_ms: float, now: float | None = None) -> None:
+        """Record one slow-query signal when ``duration_ms`` exceeds threshold."""
+        if duration_ms > SLOW_QUERY_MS_THRESHOLD:
+            self.slow_query_signals += 1
+            self.last_updated = time.monotonic() if now is None else now
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-safe snapshot (no deque internals)."""
+        return {
+            "capacity": self.capacity,
+            "concurrent_writes_1m": self.concurrent_writes_1m,
+            "cross_host_lock_signals": self.cross_host_lock_signals,
+            "slow_query_signals": self.slow_query_signals,
+            "last_updated": self.last_updated,
+        }
 
 
 def _validate_register_id(register_id: str) -> None:
@@ -221,6 +313,8 @@ class FileRiskStore:
         # instance. flock is per-fd, so re-acquiring the same exclusive lock
         # from load()/save() inside a transaction would deadlock; guard it.
         self._active_transactions: set[str] = set()
+        # V4.5.12: SQLite re-project trigger observability (AC-SQL-1).
+        self.stats = RiskStoreStats()
 
     def _paths(self, register_id: str) -> tuple[Path, Path]:
         return _safe_path(self.root, register_id), _safe_path(self.root, register_id, ".lock")
@@ -286,11 +380,15 @@ class FileRiskStore:
     def load(self, register_id: str) -> dict[str, Any]:
         """Load a validated payload while holding the cross-process lock."""
         _inc_call_counter_er()
+        _inc_risk_store_stats_counter_er()
         self._check_not_in_transaction(register_id)
         target, lock_path = self._paths(register_id)
         handle = self._open_lock(lock_path)
         try:
-            return self._read_payload(target, register_id)
+            payload = self._read_payload(target, register_id)
+            # V4.5.12: capacity signal (AC-SQL-2).
+            self.stats.record_load(len(payload.get("items", [])))
+            return payload
         finally:
             _release_lock(handle)
             handle.close()
@@ -298,6 +396,7 @@ class FileRiskStore:
     def save(self, register_id: str, payload: dict[str, Any]) -> None:
         """Validate and atomically save a payload under the cross-process lock."""
         _inc_call_counter_er()
+        _inc_risk_store_stats_counter_er()
         _check_payload(payload, register_id)
         self._check_not_in_transaction(register_id)
         target, lock_path = self._paths(register_id)
@@ -306,6 +405,8 @@ class FileRiskStore:
             if target.is_symlink():
                 raise RiskStoreValidationError(f"Refusing symlinked canonical file: {target}")
             self._atomic_write(target, payload)
+            # V4.5.12: capacity + concurrent-write sliding window (AC-SQL-2).
+            self.stats.record_write(len(payload.get("items", [])))
         finally:
             _release_lock(handle)
             handle.close()
@@ -313,6 +414,7 @@ class FileRiskStore:
     def transaction(self, register_id: str) -> FileRiskStoreTransaction:
         """Create a context manager for one locked read-modify-write transaction."""
         _inc_call_counter_er()
+        _inc_risk_store_stats_counter_er()
         target, lock_path = self._paths(register_id)
         return FileRiskStoreTransaction(self, register_id, target, lock_path)
 
@@ -393,6 +495,8 @@ class FileRiskStoreTransaction(MutableMapping[str, Any]):
                         f"Refusing symlinked canonical file: {self._target}"
                     )
                 self._store._atomic_write(self._target, payload)
+                # V4.5.12: transaction commit is a write (AC-SQL-2).
+                self._store.stats.record_write(len(payload.get("items", [])))
         finally:
             if self._handle is not None:
                 _release_lock(self._handle)
@@ -404,13 +508,18 @@ class FileRiskStoreTransaction(MutableMapping[str, Any]):
 
 
 __all__ = [
+    "CAPACITY_WARNING_THRESHOLD",
+    "CONCURRENT_WINDOW_SECONDS",
     "DEFAULT_ROOT",
     "FileRiskStore",
     "FileRiskStoreTransaction",
     "RiskStoreCorruptError",
     "RiskStoreError",
     "RiskStoreLockError",
+    "RiskStoreStats",
     "RiskStoreValidationError",
     "SCHEMA_VERSION",
+    "SLOW_QUERY_MS_THRESHOLD",
     "get_call_counter_er",
+    "get_risk_store_stats_counter_er",
 ]

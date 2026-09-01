@@ -1,11 +1,59 @@
-# DevSquad Alert Rules (V4.5.10 / P11.2)
+# DevSquad Alert Rules (V4.5.12 / P11.2)
 
-> **Document Version**: V4.5.10
-> **Last Updated**: 2026-08-30
+> **Document Version**: V4.5.12
+> **Last Updated**: 2026-08-31
 > **Audience**: SRE, DevOps, on-call engineers
-> **Related**: [RUNBOOK.md](RUNBOOK.md) (incident response) · [ROLLBACK.md](ROLLBACK.md) (V4.5.10 rollback: v2→v1 protocol / async→sync)
+> **Related**: [RUNBOOK.md](RUNBOOK.md) (incident response) · [ROLLBACK.md](ROLLBACK.md) (V4.5.12 rollback: --severity removal / stats metrics off-switch)
 
 This document defines Prometheus alert rules for the **5 V4.5.2 modules + 5 V4.5.3 modules** plus the existing core metrics. Each rule follows SRE best practices: severity, threshold rationale, runbook link, and noise budget.
+
+## V4.5.12 Additions — SQLite re-project trigger observability
+
+Trigger conditions per `docs/prd/V4.5.10_PRD.md` §6 (SQLite stays JSON-only long-term; alerts surface the re-project triggers only):
+
+| Alert | Condition | Severity | Action |
+|---|---|---|---|
+| `RiskStoreCapacityHigh` | `devsquad_v4512_risk_store_capacity > 10000` for 1h | critical | Run RUNBOOK §V4.5.12-A |
+| `RiskStoreConcurrentWriteHigh` | `rate(devsquad_v4512_risk_store_concurrent_writes[5m]) * 60 > 100` for 30m | warning | Run RUNBOOK §V4.5.12-B |
+| `RiskStoreCrossHostSignal` | `increase(devsquad_v4512_risk_store_cross_host_signals[1h]) > 0` for 5m | critical | Run RUNBOOK §V4.5.12-C |
+| `RiskStoreSlowQueryHigh` | `increase(devsquad_v4512_risk_store_slow_queries[1h]) > 10` for 30m | warning | Run RUNBOOK §V4.5.12-D |
+
+```yaml
+groups:
+  - name: devsquad_v4512_risk_store
+    rules:
+      - alert: RiskStoreCapacityHigh
+        expr: devsquad_v4512_risk_store_capacity > 10000
+        for: 1h
+        labels: { severity: critical, module: FileRiskStore }
+        annotations:
+          summary: "Risk register capacity over 10k — SQLite re-project evaluation required"
+          runbook: "docs/operations/RUNBOOK.md#v4512-a-risk-store-capacity-over-threshold"
+
+      - alert: RiskStoreConcurrentWriteHigh
+        expr: rate(devsquad_v4512_risk_store_concurrent_writes[5m]) * 60 > 100
+        for: 30m
+        labels: { severity: warning, module: FileRiskStore }
+        annotations:
+          summary: "Risk store sustained high write rate — multi-service concurrency signal"
+          runbook: "docs/operations/RUNBOOK.md#v4512-b-sustained-concurrent-writes"
+
+      - alert: RiskStoreCrossHostSignal
+        expr: increase(devsquad_v4512_risk_store_cross_host_signals[1h]) > 0
+        for: 5m
+        labels: { severity: critical, module: FileRiskStore }
+        annotations:
+          summary: "Cross-host lock signals on risk store — remote shared storage detected"
+          runbook: "docs/operations/RUNBOOK.md#v4512-c-cross-host-lock-signals"
+
+      - alert: RiskStoreSlowQueryHigh
+        expr: increase(devsquad_v4512_risk_store_slow_queries[1h]) > 10
+        for: 30m
+        labels: { severity: warning, module: FileRiskStore }
+        annotations:
+          summary: "Risk store slow queries over 50ms — complex query demand signal"
+          runbook: "docs/operations/RUNBOOK.md#v4512-d-slow-queries"
+```
 
 ## V4.5.10 Additions — HostLLMBridge v2 wiring
 

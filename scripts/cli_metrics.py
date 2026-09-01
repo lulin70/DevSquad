@@ -71,6 +71,34 @@ V452_METRICS = [
     },
 ]
 
+# V4.5.12: SQLite re-project trigger observability metrics (AC-SQL-6).
+V4512_METRICS = [
+    {
+        "name": "devsquad_v4512_risk_store_capacity",
+        "type": "gauge",
+        "description": "V4.5.12 risk store item count at last load/save (SQLite trigger: >10k)",
+        "label_keys": ["register_id"],
+    },
+    {
+        "name": "devsquad_v4512_risk_store_concurrent_writes",
+        "type": "counter",
+        "description": "V4.5.12 risk store writes in the 60s sliding window",
+        "label_keys": ["register_id"],
+    },
+    {
+        "name": "devsquad_v4512_risk_store_cross_host_signals",
+        "type": "counter",
+        "description": "V4.5.12 cross-host lock acquisition signals (SQLite trigger: remote share)",
+        "label_keys": [],
+    },
+    {
+        "name": "devsquad_v4512_risk_store_slow_queries",
+        "type": "counter",
+        "description": "V4.5.12 query rounds over 50ms (SQLite trigger: complex query demand)",
+        "label_keys": ["register_id"],
+    },
+]
+
 
 def _collect_metric_samples(metric_name: str) -> list[dict[str, Any]]:
     """Collect live samples for a metric from the prometheus registry.
@@ -104,6 +132,50 @@ def _collect_metric_samples(metric_name: str) -> list[dict[str, Any]]:
     return samples
 
 
+def collect_v4512_metrics() -> list[dict[str, Any]]:
+    """Collect V4.5.12 risk-store metrics (AC-SQL-6).
+
+    Prefers live prometheus registry samples; falls back to a direct
+    ``FileRiskStore.stats`` read so the CLI works without prometheus_client.
+    """
+    results: list[dict[str, Any]] = []
+    for meta in V4512_METRICS:
+        metric_name = str(meta["name"])
+        samples = _collect_metric_samples(metric_name)
+        if not samples and not metric_name.endswith(("cross_host_signals", "slow_queries")):
+            # Fall back to the default store's live stats snapshot.
+            samples = _collect_stats_fallback_samples(metric_name)
+        results.append({
+            "name": metric_name,
+            "type": meta["type"],
+            "description": meta["description"],
+            "label_keys": meta["label_keys"],
+            "samples": samples,
+        })
+    return results
+
+
+def _collect_stats_fallback_samples(metric_name: str) -> list[dict[str, Any]]:
+    """Read the default FileRiskStore stats as metric samples.
+
+    Used when prometheus_client is unavailable or has no samples yet, so
+    ``devsquad metrics`` still surfaces the V4.5.12 signals.
+    """
+    try:
+        from scripts.collaboration.file_risk_store import DEFAULT_ROOT, FileRiskStore
+
+        stats = FileRiskStore(root=DEFAULT_ROOT).stats
+    except Exception:  # noqa: BLE001 — metrics must never crash the CLI
+        return []
+    value_by_metric = {
+        "devsquad_v4512_risk_store_capacity": stats.capacity,
+        "devsquad_v4512_risk_store_concurrent_writes": stats.concurrent_writes_1m,
+    }
+    if metric_name not in value_by_metric:
+        return []
+    return [{"labels": {"register_id": "default"}, "value": float(value_by_metric[metric_name])}]
+
+
 def collect_v452_metrics() -> list[dict[str, Any]]:
     """Collect V4.5.2 metrics from the live registry.
 
@@ -123,6 +195,11 @@ def collect_v452_metrics() -> list[dict[str, Any]]:
             "samples": _collect_metric_samples(metric_name),
         })
     return results
+
+
+def collect_all_metrics() -> list[dict[str, Any]]:
+    """Collect V4.5.2 + V4.5.12 metrics (V4.5.12 AC-SQL-6)."""
+    return collect_v452_metrics() + collect_v4512_metrics()
 
 
 def format_text(metrics: list[dict[str, Any]]) -> str:
@@ -155,7 +232,7 @@ def format_json(metrics: list[dict[str, Any]]) -> str:
     """Format metrics as a JSON string."""
     return json.dumps(
         {
-            "version": "V4.5.2",
+            "version": "V4.5.12",
             "metrics": metrics,
         },
         indent=2,
@@ -173,7 +250,7 @@ def cmd_metrics(args: Any) -> int:
         Exit code (0 on success).
     """
     fmt = getattr(args, "format", "text")
-    metrics = collect_v452_metrics()
+    metrics = collect_all_metrics()
     if fmt == "json":
         print(format_json(metrics))
     else:

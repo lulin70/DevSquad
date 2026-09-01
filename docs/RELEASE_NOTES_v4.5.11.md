@@ -30,5 +30,5 @@
 
 ## 已知限制
 
-- 上游 trae v2.8.4 真实监听方联调继续顺延（V4.5.12+）
+- 基于上游 TraeMultiAgentSkill v2.8.4 协议与本地 TRAE IDE 3.3.95 真实监听方联调继续顺延（V4.5.12+）
 - SQLite risk store 维持 JSON-only long-term 裁决（重立项条件见 V4.5.10 PRD §6）

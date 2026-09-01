@@ -1,16 +1,17 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.11
+version: 4.5.12
 description: |
-  DevSquad V4.5.11 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.12 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   193+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
-  V4.5.11 — Bridge log retention (PRUNE_MAX_FILES default 100, DEVSQUAD_BRIDGE_PRUNE_MAX_FILES env override, 0=disabled) + _LegacyRiskStoreProxy/_RISK_STORE removed (Breaking: use FileRiskStore) + Worker unified async path (_do_work_async shared by execute/aexecute) + risks CLI output unification (canonical RISK_FIELD_ORDER in list/show/add/export JSON).
+  V4.5.12 — TRAE IDE 3.3.95 real-listener evidence framework (docs/e2e_evidence/V4.5.12_trae_ide_real/) + RiskStoreStats observability (`risks stats` CLI + devsquad_v4512_risk_store_* metrics + 4 alert rules; SQLite stays JSON-only) + Breaking: `risks list/show/export --severity` removed (use --min-exposure / --category).
+V4.5.11 — Bridge log retention (PRUNE_MAX_FILES default 100, DEVSQUAD_BRIDGE_PRUNE_MAX_FILES env override, 0=disabled) + _LegacyRiskStoreProxy/_RISK_STORE removed (Breaking: use FileRiskStore) + Worker unified async path (_do_work_async shared by execute/aexecute) + risks CLI output unification (canonical RISK_FIELD_ORDER in list/show/add/export JSON).
   V4.5.10 — HostLLMBridge v2 production wiring + --async CLI: create_backend("host"/"auto"/"auto-fallback") defaults to the hardened v2 protocol (strict 7-field marker fail-closed, no inline prompt in request JSON, canonical/no-symlink/TOCTOU path security, dir 0700 / file 0600, resource limits) + full v1/v2 directory+marker isolation + host-v1/host-v2 explicit types + DEVSQUAD_HOST_BRIDGE_VERSION fail-closed flag + DEVSQUAD_V455_DISABLE_HOST_BRIDGE_V2 emergency rollback + CLI --async/--no-async (flag > env > sync) + wiring-level anti-ghost gate; SQLite risk store formally ruled JSON-only long-term.
   V4.5.9 — Unified Gather Execution Core + Native Async Worker: single-source asyncio.gather core (Semaphore + return_exceptions=True + submission order + BaseException defense) replacing the dual-track ThreadPool/async paths + Worker.aexecute with native async backend await + AsyncWorkerWrapper native aexecute path.
   V4.5.8 — FileRiskStore Persistence + Risks CLI Completeness: file-backed risk register (JSON schema v1 + cross-process flock + atomic writes + transactions) + devsquad risks add/assess/mitigate/close + --min-exposure/--category exposure filtering + fail-closed approval contract.

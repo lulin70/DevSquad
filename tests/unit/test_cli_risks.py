@@ -1,7 +1,7 @@
 """Unit tests for cli_risks (V4.5.7 P12.5.2, updated for V4.5.8 contracts).
 
 Coverage (12 cases):
-- list: empty / Markdown header / JSON format / severity filter / limit
+- list: empty / Markdown header / JSON format / category filter / limit
 - show: existing / missing (exit 1) / JSON format
 - clear: plain / --require-approval fail-closed (V4.5.8 contract)
 - export: stdout JSON / to file
@@ -54,7 +54,8 @@ def _count(tmp_path: Path) -> int:
 
 
 def _args(**kwargs) -> argparse.Namespace:
-    defaults = {"format": "md", "severity": None, "limit": None,
+    # V4.5.12: severity removed from defaults (--severity flag deleted).
+    defaults = {"format": "md", "limit": None,
                 "risk_id": "", "require_approval": False, "output": None}
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -85,10 +86,11 @@ class TestList:
         # V4.5.11: list JSON uses the canonical field order.
         assert list(payload[0].keys()) == list(RISK_FIELD_ORDER)
 
-    def test_list_severity_filter(self, capsys):
+    def test_list_category_filter(self, capsys):
+        # V4.5.12: was test_list_severity_filter (--severity removed; use --category).
         p0_id = add_risk("P0 risk", category="P0")
         general_id = add_risk("general risk", category="general")
-        rc = cmd_risks_list(_args(severity="P0"))
+        rc = cmd_risks_list(_args(category="P0"))
         out = capsys.readouterr().out
         assert rc == 0
         assert p0_id[:24] in out

@@ -1,5 +1,5 @@
 """
-DevSquad V4.5.11 — Layered Sub-Skill Architecture
+DevSquad V4.5.12 — Layered Sub-Skill Architecture
 
 This package provides fine-grained, independently usable skills that wrap
 DevSquad's core modules. Each sub-skill is a thin handler (~50 lines) that

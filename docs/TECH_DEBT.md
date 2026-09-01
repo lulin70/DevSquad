@@ -2,7 +2,7 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-08-31（V4.5.11）
+> **最后更新**: 2026-08-31（V4.5.12）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](./TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线)
 
 ## V4.5.11 技术债状态
@@ -14,7 +14,7 @@
   - `Worker.execute`/`aexecute` 双实现合并为 `_do_work_async` 单实现（`_ado_work` 删除）
   - risks CLI 输出统一（`RISK_FIELD_ORDER` 规范字段序，add 与 list/show/export 同构）
   - bridge 日志无界增长（`PRUNE_MAX_FILES` 保留策略，默认 100）
-- **剩余顺延**: 上游 trae v2.8.4 真实监听方联调（V4.5.12+）；SQLite 重立项条件监控（被动）
+- **剩余顺延**: 无（V4.5.12 收官：基于上游 TraeMultiAgentSkill v2.8.4 协议与本地 TRAE IDE 3.3.95 真实监听方联调证据框架落地；SQLite 重立项条件监控以 stats + Prometheus alert 双轨交付，裁决维持 JSON-only long-term；`--severity` 已完全退役）
 
 ## 范围说明
 

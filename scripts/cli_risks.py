@@ -6,6 +6,7 @@ source of truth)."""
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import math
@@ -16,7 +17,9 @@ from pathlib import Path
 from typing import Any
 
 from scripts.collaboration.file_risk_store import (
+    CAPACITY_WARNING_THRESHOLD,
     DEFAULT_ROOT,
+    SLOW_QUERY_MS_THRESHOLD,
     FileRiskStore,
     RiskStoreCorruptError,
     RiskStoreError,
@@ -183,40 +186,43 @@ def _validate_probability(value: float, field: str) -> None:
 
 
 def _filter_risks(risks: list[Any], args: argparse.Namespace) -> list[Any]:
+    # V4.5.12: --severity removed (Breaking). Numeric filtering uses
+    # --min-exposure; string filtering uses --category.
     threshold = getattr(args, "min_exposure", None)
-    severity = getattr(args, "severity", None)
     category = getattr(args, "category", None)
     if threshold is not None:
         _validate_probability(threshold, "min-exposure")
         risks = [risk for risk in risks if risk.exposure >= threshold]
-    elif severity:
-        try:
-            numeric = float(severity)
-        except ValueError:
-            category = severity
-        else:
-            _validate_probability(numeric, "severity")
-            risks = [risk for risk in risks if risk.exposure >= numeric]
     if category:
-        if severity and not _looks_numeric(severity):
-            print("WARNING: --severity category mode is deprecated; use --category", file=sys.stderr)
         risks = [risk for risk in risks if risk.category.lower() == category.lower()]
     return risks
 
 
-def _looks_numeric(value: str) -> bool:
-    try:
-        float(value)
-    except (TypeError, ValueError):
-        return False
-    return True
+def _filter_risks_measured(
+    store: FileRiskStore, risks: list[Any], args: argparse.Namespace
+) -> list[Any]:
+    """V4.5.12: ``_filter_risks`` with slow-query signal instrumentation.
+
+    Wraps the filter round in a wall-clock measurement; durations above
+    ``SLOW_QUERY_MS_THRESHOLD`` bump ``store.stats.slow_query_signals``
+    (AC-SQL-4, SQLite re-project trigger 2: complex query demand).
+    """
+    import time as _time
+
+    started = _time.perf_counter()
+    filtered = _filter_risks(risks, args)
+    duration_ms = (_time.perf_counter() - started) * 1000.0
+    with contextlib.suppress(Exception):
+        store.stats.record_slow_query(duration_ms)
+    return filtered
 
 
 @_safe_command
 def cmd_risks_list(args: argparse.Namespace) -> int:
     _inc_call_counter_er()
-    register = _get_register(getattr(args, "register_id", "default"), _get_store(args).root)
-    risks = _filter_risks(register.query(), args)
+    store = _get_store(args)
+    register = _get_register(getattr(args, "register_id", "default"), store.root)
+    risks = _filter_risks_measured(store, register.query(), args)
     limit = getattr(args, "limit", None)
     if limit is not None and limit > 0:
         risks = sorted(risks, key=lambda item: item.exposure, reverse=True)[:limit]
@@ -230,8 +236,9 @@ def cmd_risks_list(args: argparse.Namespace) -> int:
 @_safe_command
 def cmd_risks_show(args: argparse.Namespace) -> int:
     _inc_call_counter_er()
-    register = _get_register(getattr(args, "register_id", "default"), _get_store(args).root)
-    risks = _filter_risks(register.query(), args)
+    store = _get_store(args)
+    register = _get_register(getattr(args, "register_id", "default"), store.root)
+    risks = _filter_risks_measured(store, register.query(), args)
     target = next((risk for risk in risks if risk.id == args.risk_id), None)
     if target is None:
         print(f"ERROR: risk not found: {args.risk_id}", file=sys.stderr)
@@ -240,6 +247,47 @@ def cmd_risks_show(args: argparse.Namespace) -> int:
         print(_format_json([target]))
     else:
         print(_format_markdown_risk(target))
+    return 0
+
+
+def _format_stats_text(stats: Any, root: Path | str) -> str:
+    """Human-readable stats summary (AC-SQL-5)."""
+    lines = [
+        "Risk Store Stats",
+        f"  root: {root}",
+        f"  capacity: {stats.capacity} (warning threshold: {CAPACITY_WARNING_THRESHOLD})",
+        f"  concurrent_writes_1m: {stats.concurrent_writes_1m}",
+        f"  cross_host_lock_signals: {stats.cross_host_lock_signals}",
+        f"  slow_query_signals: {stats.slow_query_signals} "
+        f"(threshold: {SLOW_QUERY_MS_THRESHOLD:.0f} ms)",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+@_safe_command
+def cmd_risks_stats(args: argparse.Namespace) -> int:
+    """V4.5.12: expose SQLite re-project trigger signals (AC-SQL-5).
+
+    Read-only — never mutates the register. The stats reflect THIS store
+    instance's observed signals; capacity comes from a fresh load.
+    """
+    _inc_call_counter_er()
+    from scripts.collaboration.file_risk_store import get_risk_store_stats_counter_er
+
+    _ = get_risk_store_stats_counter_er()  # touch stats counter for anti-ghost
+    store = _get_store(args)
+    register_id = getattr(args, "register_id", "default")
+    payload = store.load(register_id)  # refreshes capacity via record_load
+    _ = len(payload.get("items", []))
+    stats = store.stats
+    fmt = getattr(args, "format", "text")
+    if fmt == "json":
+        out = stats.to_dict()
+        out["root"] = str(store.root)
+        out["register_id"] = register_id
+        print(json.dumps(out, ensure_ascii=False))
+    else:
+        print(_format_stats_text(stats, store.root))
     return 0
 
 
@@ -289,8 +337,9 @@ def cmd_risks_clear(args: argparse.Namespace) -> int:
 @_safe_command
 def cmd_risks_export(args: argparse.Namespace) -> int:
     _inc_call_counter_er()
-    register = _get_register(getattr(args, "register_id", "default"), _get_store(args).root)
-    risks = _filter_risks(register.query(), args)
+    store = _get_store(args)
+    register = _get_register(getattr(args, "register_id", "default"), store.root)
+    risks = _filter_risks_measured(store, register.query(), args)
     json_str = _format_json(risks)
     output = getattr(args, "output", None) or getattr(args, "output_positional", None)
     if output:
@@ -413,7 +462,6 @@ def register_risks_subparser(subparsers: Any) -> None:
     _add_common_arguments(p_list)
     p_list.add_argument("--format", "-f", choices=["md", "json"], default="md")
     p_list.add_argument("--min-exposure", type=float)
-    p_list.add_argument("--severity")
     p_list.add_argument("--category")
     p_list.add_argument("--limit", "-n", type=int)
     p_list.set_defaults(func=cmd_risks_list)
@@ -423,7 +471,6 @@ def register_risks_subparser(subparsers: Any) -> None:
     p_show.add_argument("risk_id")
     p_show.add_argument("--format", "-f", choices=["md", "json"], default="md")
     p_show.add_argument("--min-exposure", type=float)
-    p_show.add_argument("--severity")
     p_show.add_argument("--category")
     p_show.set_defaults(func=cmd_risks_show)
 
@@ -468,9 +515,14 @@ def register_risks_subparser(subparsers: Any) -> None:
     p_export.add_argument("output_positional", nargs="?", default=None)
     p_export.add_argument("--output", default=None)
     p_export.add_argument("--min-exposure", type=float)
-    p_export.add_argument("--severity")
     p_export.add_argument("--category")
     p_export.set_defaults(func=cmd_risks_export)
+
+    # V4.5.12: SQLite re-project trigger observability (AC-SQL-5).
+    p_stats = risks_sub.add_parser("stats", help="Show risk store observability stats")
+    _add_common_arguments(p_stats)
+    p_stats.add_argument("--format", "-f", choices=["text", "json"], default="text")
+    p_stats.set_defaults(func=cmd_risks_stats)
 
 
 def main(argv: list[str] | None = None) -> int:

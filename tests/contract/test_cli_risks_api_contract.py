@@ -46,7 +46,8 @@ def _register_items(tmp_path: Path) -> dict[str, object]:
 
 
 def _args(**kwargs):
-    defaults = {"format": "md", "severity": None, "limit": None,
+    # V4.5.12: severity removed from defaults (--severity flag deleted).
+    defaults = {"format": "md", "limit": None,
                 "risk_id": "", "require_approval": False, "output": None}
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)

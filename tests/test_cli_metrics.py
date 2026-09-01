@@ -106,7 +106,8 @@ class TestFormatJson:
         result = collect_v452_metrics()
         out = format_json(result)
         parsed = json.loads(out)
-        assert parsed["version"] == "V4.5.2"
+        # V4.5.12: metrics JSON now covers V4.5.2 + V4.5.12 inventory.
+        assert parsed["version"] == "V4.5.12"
         assert "metrics" in parsed
 
     def test_format_includes_samples_field(self):
@@ -131,7 +132,8 @@ class TestCmdMetrics:
         captured = capsys.readouterr()
         assert rc == 0
         parsed = json.loads(captured.out)
-        assert parsed["version"] == "V4.5.2"
+        # V4.5.12: metrics JSON now covers V4.5.2 + V4.5.12 inventory.
+        assert parsed["version"] == "V4.5.12"
 
     def test_default_format_is_text(self):
         # Defaults to text when no --format flag
