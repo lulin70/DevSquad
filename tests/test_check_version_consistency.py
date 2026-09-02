@@ -32,6 +32,7 @@ from scripts.check_version_consistency import (
     PRD_FILENAME_VERSION_RE,
     ContentDiffSpec,
     _check_prd_files,
+    _check_skill_frontmatter,
     check_content_diff,
     main,
 )
@@ -63,6 +64,64 @@ def _neutralize_trae_cache_paths(tmpdir: str):
     finally:
         for spec, original in saved:
             spec.absolute_path = original
+
+
+class T14_CheckSkillFrontmatter(unittest.TestCase):
+    """T14: V4.5.15 — SKILL.md frontmatter YAML parseability gate."""
+
+    def test_real_skill_md_frontmatter_parses(self) -> None:
+        results = _check_skill_frontmatter()
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0].passed, results[0].detail)
+        self.assertIn("devsquad@", results[0].found)
+
+    def test_unindented_block_scalar_line_fails(self) -> None:
+        """The V4.5.13 "/" panel root cause: unindented line inside ``|`` block."""
+        bad = (
+            "---\n"
+            "name: devsquad\n"
+            "slug: devsquad\n"
+            "version: 4.5.15\n"
+            "description: |\n"
+            "  indented line one\n"
+            "UNINDENTED line breaks the block\n"
+            "  another: value\n"
+            "---\n"
+            "body\n"
+        )
+        with mock.patch(
+            "scripts.check_version_consistency.REPO_ROOT",
+            Path(tempfile.mkdtemp()),
+        ), mock.patch.object(Path, "read_text", return_value=bad):
+            results = _check_skill_frontmatter()
+        self.assertFalse(results[0].passed)
+        self.assertIn("YAML parse error", results[0].detail)
+
+    def test_missing_required_key_fails(self) -> None:
+        ok_yaml = (
+            "---\n"
+            "name: devsquad\n"
+            "version: 4.5.15\n"
+            "description: x\n"
+            "---\n"
+            "body\n"
+        )
+        with mock.patch(
+            "scripts.check_version_consistency.REPO_ROOT",
+            Path(tempfile.mkdtemp()),
+        ), mock.patch.object(Path, "read_text", return_value=ok_yaml):
+            results = _check_skill_frontmatter()
+        self.assertFalse(results[0].passed)
+        self.assertIn("slug", results[0].detail)
+
+    def test_no_frontmatter_block_fails(self) -> None:
+        with mock.patch(
+            "scripts.check_version_consistency.REPO_ROOT",
+            Path(tempfile.mkdtemp()),
+        ), mock.patch.object(Path, "read_text", return_value="just body\n"):
+            results = _check_skill_frontmatter()
+        self.assertFalse(results[0].passed)
+        self.assertIn("no frontmatter block", results[0].detail)
 
 
 class T1_FilenameVersionRegex(unittest.TestCase):

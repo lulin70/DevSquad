@@ -539,6 +539,59 @@ def _check_prd_files() -> list[VersionCheck]:
     return results
 
 
+def _check_skill_frontmatter() -> list[VersionCheck]:
+    """V4.5.15: SKILL.md frontmatter must parse as YAML with required keys.
+
+    The V4.5.13 "/" panel root cause was an unindented line inside the
+    ``description: |`` block scalar that broke YAML parsing, so TRAE never
+    registered the skill even though every version-field check passed.
+    This gate makes frontmatter parseability a first-class blocking check.
+    """
+    path = REPO_ROOT / "SKILL.md"
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [VersionCheck(
+            file="SKILL.md (frontmatter)", expected="parsable YAML",
+            found=None, passed=False, detail=f"FAIL (unreadable): {exc}",
+        )]
+    match = re.match(r"^---\n(.*?)\n---\n", content, re.DOTALL)
+    if not match:
+        return [VersionCheck(
+            file="SKILL.md (frontmatter)", expected="parsable YAML",
+            found=None, passed=False, detail="FAIL: no frontmatter block found",
+        )]
+    try:
+        import yaml
+
+        data = yaml.safe_load(match.group(1))
+    except Exception as exc:  # noqa: BLE001 - any parse error is a FAIL
+        return [VersionCheck(
+            file="SKILL.md (frontmatter)", expected="parsable YAML",
+            found=None, passed=False,
+            detail=f"FAIL: YAML parse error: {type(exc).__name__}: "
+                   f"{str(exc)[:120]} (TRAE will not register the skill)",
+        )]
+    if not isinstance(data, dict):
+        return [VersionCheck(
+            file="SKILL.md (frontmatter)", expected="parsable YAML",
+            found=type(data).__name__, passed=False,
+            detail="FAIL: frontmatter is not a mapping",
+        )]
+    missing = [k for k in ("name", "slug", "version", "description") if k not in data]
+    if missing:
+        return [VersionCheck(
+            file="SKILL.md (frontmatter)", expected="parsable YAML",
+            found=str(sorted(data.keys())), passed=False,
+            detail=f"FAIL: missing required keys: {missing}",
+        )]
+    return [VersionCheck(
+        file="SKILL.md (frontmatter)", expected="parsable YAML",
+        found=f"{data['name']}@{data['version']}", passed=True,
+        detail="frontmatter YAML parses; name/slug/version/description present",
+    )]
+
+
 def _status_label(result: VersionCheck) -> str:
     """Derive display status label from a VersionCheck result."""
     if result.detail.startswith("SKIP"):
@@ -600,6 +653,10 @@ def main() -> int:
     # P2-11: PRD internal version consistency (non-blocking WARN-level).
     prd_results = _check_prd_files()
     results.extend(prd_results)
+
+    # V4.5.15: SKILL.md frontmatter parseability (blocking — the V4.5.13
+    # "/" panel root cause; a broken YAML block hides the skill from TRAE).
+    results.extend(_check_skill_frontmatter())
 
     # V4.3.1: TRAE cache content diff (catches stale body even when version
     # field is synced). Print a separator so the new section is visually

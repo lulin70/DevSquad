@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**DevSquad** is a **V4.5.14 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with unified asyncio.gather parallel execution (V4.5.9) and native async worker support; HostLLMBridge defaults to the hardened v2 protocol with `--async` CLI (V4.5.10); V4.5.11 added bridge log retention, risk store cleanup, Worker unified path, and risks CLI output unification; V4.5.12 added TRAE IDE real-listener evidence framework, risk store stats observability, and `--severity` removal; V4.5.13 added the one-shot trace collector script, cross-host auto-signaling, and `/metrics` exposure of risk-store series; V4.5.14 archived the real-listener trace collection (5/5), fixed trace_3 honest-status handling on BackendUnavailable, and removed the absent-file "JSON decode failed" log artifact in HostLLMBridge v2.
+**DevSquad** is a **V4.5.15 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with unified asyncio.gather parallel execution (V4.5.9) and native async worker support; HostLLMBridge defaults to the hardened v2 protocol with `--async` CLI (V4.5.10); V4.5.11 added bridge log retention, risk store cleanup, Worker unified path, and risks CLI output unification; V4.5.12 added TRAE IDE real-listener evidence framework, risk store stats observability, and `--severity` removal; V4.5.13 added the one-shot trace collector script, cross-host auto-signaling, and `/metrics` exposure of risk-store series; V4.5.14 archived the real-listener trace collection (5/5), fixed trace_3 honest-status handling on BackendUnavailable, and removed the absent-file "JSON decode failed" log artifact in HostLLMBridge v2; V4.5.15 added the SKILL.md frontmatter YAML registration gate (the true "/" panel root cause fix), the Prometheus end-to-end scrape verifier, and synced the skill pack to all three TRAE cache levels.
 
 **193 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**, **RiskRegister**, **ViewpointRegistry**, **ErrorBudgetTracker**, **GapAnalyzer**, **DoraMetricsCollector**, **ScratchpadHistoryStore**, **AgentIdentity**, **WorkflowTrace**, **GitContext**, **SkillProvider**, **OutputStyle**, **FileBundler**, **ApprovalGate**, **ConnectorFramework**, **ArtifactStore**, **DispatchEffect**, **EffectRegistry**, **AuditCLI**, **ModuleFiber**, **CoeffectResolver**, **ModulesCLI**.
 
@@ -163,7 +163,7 @@ DevSquad/
 - **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`); V4.4.2 added multilingual role prompts (EN/CN/JP) and Dashboard 6-tab visibility
 - **Testing**: pytest-based, 8996+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`4.5.14`)
+- **Version**: Single source of truth in `_version.py` (`4.5.15`)
 
 ## Role System (7 Core Roles)
 
@@ -200,7 +200,7 @@ python3 -m pytest tests/test_collaboration_core_test.py \
   tests/ -v
 
 # Quick smoke test
-python3 scripts/cli.py --version    # 4.5.14
+python3 scripts/cli.py --version    # 4.5.15
 python3 scripts/cli.py status       # System ready
 python3 scripts/cli.py roles        # List 7 roles
 ```
@@ -220,13 +220,13 @@ python3 scripts/cli.py roles        # List 7 roles
 
 ### ⚠️ TRAE 技能缓存层（更新文档时必读）
 
-修改 `skill-manifest.yaml` 或 `SKILL.md` 后**必须同步全部 3 层**，否则 TRAE 技能面板版本不会更新。
+修改 `skill-manifest.yaml` 或 `SKILL.md` 后**必须同步全部 3 层**，否则对应工作区的 TRAE 技能面板不会更新（V4.5.15 用户裁决：三层同步，任意工作区全局可用优先于面板去重）。
 
 | 层 | 路径 | 说明 |
 |---|------|------|
-| **L1 ⭐** | `~/.trae-cn/skills/devsquad/` | **TRAE 实际读取源（最高优先级）** |
-| L2 | `~/.trae/skills/devsquad/` | macOS 全局用户级 |
-| L3 | `<项目>/.trae/skills/devsquad/` | 项目级 |
+| L1 | `~/.trae-cn/skills/devsquad/` | TRAE CN 用户级（pack 结构） |
+| L2 | `~/.trae/skills/devsquad/` | macOS 全局用户级（pack 结构） |
+| **L3 ⭐** | `<工作区根>/.trae/skills/devsquad/` | **TRAE 实际读取层**（注意：是工作区根，不是项目内 `.trae`；2026-07-27 实证发现） |
 | L4 (源) | `<项目>/skill-manifest.yaml`, `<项目>/SKILL.md` | 源文件 |
 
 **一键同步命令**（在系统终端执行）：
@@ -237,7 +237,10 @@ for T in ~/.trae-cn/skills/devsquad ~/.trae/skills/devsquad <项目>/.trae/skill
 done
 ```
 
-> **经验教训(2026-05-19)**: L1(`.trae-cn`)是 TRAE CN 的实际加载路径，之前只同步了 L2(`.trae`)导致面板显示旧版本。**每次发布新版本后必须同步 L1**。
+> **经验教训**:
+> - (2026-07-27) TRAE 实际读取层是**工作区根** `.trae/skills/`，不是项目内 `.trae`，也不是 L1。
+> - (2026-09-02) SKILL.md frontmatter 必须保持 YAML 可解析——`description: |` 块内任何一行顶格都会破坏解析，导致 TRAE 不注册该技能（"/" 面板看不到 DevSquad 的真正根因）。`check_version_consistency.py` 已含 frontmatter YAML 解析阻塞门禁。
+> - `skills-index.json` 不是 TRAE 注册表（只是 trae-multi-agent 技能包自述清单），与 devsquad 注册无关。
 
 ## Agent Behavior Guidelines (Quality Control)
 

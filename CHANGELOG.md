@@ -14,6 +14,42 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.15] - 2026-09-02
+
+### V4.5.15 — Skill Registration Gate + Prometheus E2E Tooling + 3-Level Sync (注册门禁 + E2E 工具 + 三层同步)
+
+Patch release: no breaking changes, no new user-facing features.
+PRD: `docs/prd/V4.5.15_PRD.md`.
+
+#### Added
+
+- `scripts/verify_prometheus_e2e.py`: end-to-end Prometheus scrape verifier
+  with the honest `pass | fail | tool_missing` contract — real
+  `DevSquadMetrics.record_risk_store_stats` -> HTTP exposition ->
+  `promtool check metrics`/`check config` -> Prometheus scrape (1s interval)
+  -> `/api/v1/query` returns a non-empty sample -> cleanup. The real run is
+  deferred per user decision 2026-09-02 (script + unit tests delivered).
+- `check_version_consistency.py` now blocks when `SKILL.md` frontmatter
+  fails to parse as YAML or lacks `name`/`slug`/`version`/`description`.
+
+#### Fixed
+
+- **Root cause of the V4.5.13 "/" panel issue found**: an unindented line
+  inside the `description: |` block scalar broke SKILL.md frontmatter YAML
+  parsing, so TRAE never registered devsquad. Fixed in the source and
+  re-synced; a parseability gate prevents regression.
+
+#### Changed
+
+- User decisions (2026-09-02): `~/.trae-cn/skills` pack is NOT cleaned
+  (backlog closed); the devsquad skill pack is synced to ALL THREE TRAE
+  cache levels (L1 `~/.trae-cn`, L2 `~/.trae`, L3 workspace `.trae`),
+  superseding the V4.5.13 single-source policy.
+- Investigation: `skills-index.json` is NOT a TRAE registry (it is the
+  trae-multi-agent skill package self-description); the registration unit
+  is SKILL.md frontmatter and the actual read layer is the workspace root
+  `.trae/skills/`. CLAUDE.md cache-layer section corrected accordingly.
+
 ## [4.5.14] - 2026-09-02
 
 ### V4.5.14 — Real-Listener Trace Collection Archived + Honest-Status / Log-Noise Fixes (真实联调归档 + 修复)
