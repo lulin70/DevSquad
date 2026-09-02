@@ -1,0 +1,7 @@
+{
+  "request_id": "20260902_044121_77322b45",
+  "success": true,
+  "output": "[architect] Isolation confirmed: the v1 marker and its files live outside the v2 namespace; v2 handling neither reads nor mutates them. Version-scoped dirs with fixed marker filenames are the right isolation boundary.",
+  "error": "",
+  "timestamp": "2026-09-02T04:42:03.482085+00:00"
+}

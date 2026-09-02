@@ -1,0 +1,21 @@
+{
+  "request_id": "20260902_044121_77322b45",
+  "agent_type": "architect",
+  "marker_published_at": 1788324081.430476,
+  "finished_at": 1788324123.728207,
+  "round_trip_seconds": 42.3,
+  "response": {
+    "success": true,
+    "output": "[architect] Isolation confirmed: the v1 marker and its files live outside the v2 namespace; v2 handling neither reads nor mutates them. Version-scoped dirs with fixed marker filenames are the right isolation boundary.",
+    "error": "",
+    "timeout": false,
+    "request_id": "20260902_044121_77322b45",
+    "raw_captured": true
+  },
+  "status": "success",
+  "v1_marker_existed": true,
+  "v1_marker_untouched": true,
+  "checks": {
+    "v1_isolated": true
+  }
+}

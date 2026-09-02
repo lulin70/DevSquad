@@ -1,0 +1,7 @@
+{
+  "request_id": "20260902_043418_285a9455",
+  "success": true,
+  "output": "Use a stateless JWT access token (15min, RS256) + rotating refresh token stored httpOnly; authn via OIDC against the company IdP, authz via role claims checked at the API gateway; all secrets in KMS, never in code.",
+  "error": "",
+  "timestamp": "2026-09-02T04:35:06.356899+00:00"
+}

@@ -1,0 +1,7 @@
+{
+  "status": "fail_closed",
+  "error": "ResourceLimitError: prompt exceeds limit: 525312 > 524288 bytes",
+  "no_artifacts_left": true,
+  "prompt_bytes": 525312,
+  "limit_bytes": 524288
+}

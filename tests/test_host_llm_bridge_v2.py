@@ -367,6 +367,38 @@ class TestAtomicWrite:
         assert (temp_bridge_dir / f"response_{request_id}.json").exists()
 
 
+class TestSafeReadJson:
+    """V4.5.13: absent response file is normal polling, not decode failure."""
+
+    def test_absent_file_returns_none_without_warning(
+        self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path, caplog
+    ) -> None:
+        import logging
+        import time as _time
+
+        target = temp_bridge_dir / "response_does_not_exist.json"
+        start = _time.monotonic()
+        with caplog.at_level(logging.WARNING, logger="scripts.collaboration.host_llm_bridge_v2"):
+            result = bridge._safe_read_json(target)
+        elapsed = _time.monotonic() - start
+        assert result is None
+        # absent file must short-circuit: no 3× retry sleeps
+        assert elapsed < bridge.JSON_RETRY_INTERVAL * bridge.MAX_JSON_RETRIES
+        assert "JSON decode failed" not in caplog.text
+
+    def test_existing_bad_json_retries_then_warns(
+        self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path, caplog
+    ) -> None:
+        import logging
+
+        target = temp_bridge_dir / "response_bad_payload.json"
+        target.write_text("the LLM answered in plain text", encoding="utf-8")
+        with caplog.at_level(logging.WARNING, logger="scripts.collaboration.host_llm_bridge_v2"):
+            result = bridge._safe_read_json(target)
+        assert result is None
+        assert "JSON decode failed" in caplog.text
+
+
 class TestSubagentTypeMap:
     """verify subagent_type_map constants."""
 

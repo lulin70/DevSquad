@@ -1,15 +1,16 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.13
+version: 4.5.14
 description: |
-  DevSquad V4.5.13 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.14 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   193+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.14 — Real-listener trace collection archived 5/5 (4 success + expected fail_closed, docs/e2e_evidence/V4.5.12_trae_ide_real/) + collect_trae_traces trace_3 honest `fail` status on BackendUnavailable + v2 _safe_read_json absent-file fast-return (removes misleading "JSON decode failed" noise; V4.5.13 "real listener writes non-JSON" finding corrected as a log artifact).
   V4.5.13 — One-shot TRAE trace collector (scripts/collect_trae_traces.py, honest 3-state status) + cross-host auto-signaling in FileRiskStore (statvfs ST_REMOTE + remote errno detection) + /metrics now exposes devsquad_v4512_risk_store_* series.
   V4.5.12 — TRAE IDE 3.3.95 real-listener evidence framework (docs/e2e_evidence/V4.5.12_trae_ide_real/) + RiskStoreStats observability (`risks stats` CLI + devsquad_v4512_risk_store_* metrics + 4 alert rules; SQLite stays JSON-only) + Breaking: `risks list/show/export --severity` removed (use --min-exposure / --category).
 V4.5.11 — Bridge log retention (PRUNE_MAX_FILES default 100, DEVSQUAD_BRIDGE_PRUNE_MAX_FILES env override, 0=disabled) + _LegacyRiskStoreProxy/_RISK_STORE removed (Breaking: use FileRiskStore) + Worker unified async path (_do_work_async shared by execute/aexecute) + risks CLI output unification (canonical RISK_FIELD_ORDER in list/show/add/export JSON).

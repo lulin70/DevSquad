@@ -14,6 +14,44 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.14] - 2026-09-02
+
+### V4.5.14 — Real-Listener Trace Collection Archived + Honest-Status / Log-Noise Fixes (真实联调归档 + 修复)
+
+Closes the V4.5.13+ backlog item "collect traces with the real listener
+online". Patch release: no breaking changes, no new features.
+
+#### Added
+
+- Real-listener trace evidence archived under
+  `docs/e2e_evidence/V4.5.12_trae_ide_real/collected/`: traces 1/2/3/4
+  `success` + trace 5 `fail_closed` (expected). The listener is the host LLM
+  agent session itself (per L-V457-001) responding via
+  `HostLLMBridgeV2.write_response`; round-trips 18s-48s.
+
+#### Fixed
+
+- `collect_trae_traces.trace_3`: `create_backend("host")` raising
+  `BackendUnavailable` (e.g. sandbox strips `TRAE_ENV`) is now converted to
+  the honest `fail` status instead of an unhandled traceback; the fuse probe
+  also honors `--wait-seconds` via `timeout_seconds=wait` (was a fixed 600s).
+- `HostLLMBridgeV2._safe_read_json`: an ABSENT response file is normal
+  polling and returns `None` immediately without the 3-retry sleep and the
+  misleading `JSON decode failed after 3 retries` warning. Only an
+  existing-but-unparseable file is retried and warned. This corrects the
+  V4.5.13 "real listener writes non-JSON" finding: two controlled 60s probes
+  (project v2 dir + temp dir) produced no response file at all, proving no
+  background marker watcher exists; the earlier non-JSON "responses" were
+  this log artifact misread as evidence.
+
+#### Docs
+
+- trace README: V4.5.13 collection log (5/5), honest-contract note for the
+  new `invalid_response` status, and the real-listener correction.
+- VERSION_HISTORY / README×3 / SKILL.md / skill-manifest / CLAUDE /
+  COMPARISON / helm / Dockerfile / deployment.yaml / SPEC /
+  ARCHITECTURE_V4 synced to 4.5.14 (workspace cache copy re-synced).
+
 ## [4.5.13] - 2026-08-31
 
 ### V4.5.13 — Trace Collector Tooling + Cross-Host Auto-Signals + /metrics Exposure (联调工具化 + 信号自动化)

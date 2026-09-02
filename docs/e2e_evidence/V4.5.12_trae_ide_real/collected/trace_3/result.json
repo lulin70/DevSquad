@@ -1,0 +1,10 @@
+{
+  "status": "success",
+  "probe_results": [
+    "timeout",
+    "timeout"
+  ],
+  "fuse_skipped_after_2": true,
+  "third_call_outcome": "BackendUnavailable",
+  "expected": "2 timeouts then permanent skip (BackendUnavailable)"
+}

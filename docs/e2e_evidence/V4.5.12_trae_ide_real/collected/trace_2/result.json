@@ -1,0 +1,43 @@
+{
+  "status": "success",
+  "architect": {
+    "request_id": "20260902_043506_9f5eb262",
+    "agent_type": "architect",
+    "marker_published_at": 1788323706.631295,
+    "finished_at": 1788323740.9331698,
+    "round_trip_seconds": 34.305,
+    "response": {
+      "success": true,
+      "output": "[architect] Prefer a modular monolith: clean layering (api/service/repository), extract microservices only for independently scaling parts; keep the domain model in one deployable to cut cross-service latency and ops cost.",
+      "error": "",
+      "timeout": false,
+      "request_id": "20260902_043506_9f5eb262",
+      "raw_captured": true
+    },
+    "status": "success"
+  },
+  "security": {
+    "request_id": "20260902_043540_0175b6c4",
+    "agent_type": "security",
+    "marker_published_at": 1788323740.938126,
+    "finished_at": 1788323759.0753448,
+    "round_trip_seconds": 18.142,
+    "response": {
+      "success": true,
+      "output": "[security] Top risks: 1) unvalidated file paths (path traversal) — enforce canonical+commonpath checks; 2) secrets in logs — redact before sink; 3) race on shared files — use O_NOFOLLOW and atomic os.replace; fail closed on any schema violation.",
+      "error": "",
+      "timeout": false,
+      "request_id": "20260902_043540_0175b6c4",
+      "raw_captured": true
+    },
+    "status": "success"
+  },
+  "expected_mapping": {
+    "architect": "search",
+    "security": "general_purpose_task"
+  },
+  "checks": {
+    "architect_maps_to_search": true,
+    "others_map_to_general": true
+  }
+}

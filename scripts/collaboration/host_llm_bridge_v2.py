@@ -583,8 +583,15 @@ class HostLLMBridgeV2:
                     os.close(fd)
 
     def _safe_read_json(self, path: Path) -> dict[str, Any] | None:
-        """Instance wrapper with JSON retry for partially-written files."""
+        """Instance wrapper with JSON retry for partially-written files.
+
+        V4.5.13 lesson: an ABSENT file is normal polling (no listener yet),
+        not a decode failure — return immediately without retry noise.
+        Only an existing-but-unparseable file is retried and warned about.
+        """
         for _ in range(self.MAX_JSON_RETRIES):
+            if not path.exists():
+                return None
             data = self._safe_read_json_static(path)
             if data is not None:
                 return data

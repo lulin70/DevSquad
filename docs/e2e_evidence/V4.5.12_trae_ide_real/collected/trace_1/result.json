@@ -1,18 +1,20 @@
 {
-  "request_id": "20260901_115004_0be9f74c",
+  "request_id": "20260902_043418_285a9455",
   "agent_type": "architect",
-  "marker_published_at": 1788263404.041503,
-  "finished_at": 1788263424.379971,
-  "round_trip_seconds": 20.34,
+  "marker_published_at": 1788323658.235886,
+  "finished_at": 1788323706.6061141,
+  "round_trip_seconds": 48.376,
   "response": {
-    "success": false,
-    "error": "timeout after 20s waiting for response",
-    "timeout": true,
-    "request_id": "20260901_115004_0be9f74c"
+    "success": true,
+    "output": "Use a stateless JWT access token (15min, RS256) + rotating refresh token stored httpOnly; authn via OIDC against the company IdP, authz via role claims checked at the API gateway; all secrets in KMS, never in code.",
+    "error": "",
+    "timeout": false,
+    "request_id": "20260902_043418_285a9455",
+    "raw_captured": true
   },
-  "status": "timeout",
+  "status": "success",
   "checks": {
     "marker_7_fields": true,
-    "v2_timestamp_response": false
+    "v2_timestamp_response": true
   }
 }

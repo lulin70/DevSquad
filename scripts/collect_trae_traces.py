@@ -225,7 +225,17 @@ def trace_3(wait: int) -> dict[str, Any]:
 
     with tempfile.TemporaryDirectory() as td:
         bridge_dir = str(Path(td) / "v2")
-        backend = create_backend("host", bridge_dir=bridge_dir)
+        try:
+            backend = create_backend("host", bridge_dir=bridge_dir, timeout_seconds=wait)
+        except Exception as exc:  # noqa: BLE001 — BackendUnavailable → honest non-PASS
+            return {
+                "status": "fail",
+                "error": f"create_backend raised {type(exc).__name__}: {exc}",
+                "probe_results": [],
+                "fuse_skipped_after_2": False,
+                "third_call_outcome": "not_reached",
+                "expected": "2 timeouts then permanent skip (BackendUnavailable)",
+            }
         fuse_results = []
         for i in range(2):
             try:
