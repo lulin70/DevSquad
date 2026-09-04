@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-**DevSquad** is a **V4.5.15 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with unified asyncio.gather parallel execution (V4.5.9) and native async worker support; HostLLMBridge defaults to the hardened v2 protocol with `--async` CLI (V4.5.10); V4.5.11 added bridge log retention, risk store cleanup, Worker unified path, and risks CLI output unification; V4.5.12 added TRAE IDE real-listener evidence framework, risk store stats observability, and `--severity` removal; V4.5.13 added the one-shot trace collector script, cross-host auto-signaling, and `/metrics` exposure of risk-store series; V4.5.14 archived the real-listener trace collection (5/5), fixed trace_3 honest-status handling on BackendUnavailable, and removed the absent-file "JSON decode failed" log artifact in HostLLMBridge v2; V4.5.15 added the SKILL.md frontmatter YAML registration gate (the true "/" panel root cause fix), the Prometheus end-to-end scrape verifier, and synced the skill pack to all three TRAE cache levels.
+**DevSquad** is a **V4.5.16 Enterprise Multi-Role AI Task Orchestrator**. It transforms a single AI task into multi-role AI collaboration with 7 core roles. Based on the Coordinator/Worker/Scratchpad pattern with unified asyncio.gather parallel execution (V4.5.9) and native async worker support; HostLLMBridge defaults to the hardened v2 protocol with `--async` CLI (V4.5.10); V4.5.11 added bridge log retention, risk store cleanup, Worker unified path, and risks CLI output unification; V4.5.12 added TRAE IDE real-listener evidence framework, risk store stats observability, and `--severity` removal; V4.5.13 added the one-shot trace collector script, cross-host auto-signaling, and `/metrics` exposure of risk-store series; V4.5.14 archived the real-listener trace collection (5/5), fixed trace_3 honest-status handling on BackendUnavailable, and removed the absent-file "JSON decode failed" log artifact in HostLLMBridge v2; V4.5.15 added the SKILL.md frontmatter YAML registration gate (the true "/" panel root cause fix), the Prometheus end-to-end scrape verifier, and synced the skill pack to all three TRAE cache levels; V4.5.16 is a Housekeeping + Digital Truth PATCH (no new user features): closes 4 hard drifts (`_version_info` tuple, helm chart tag, publish_now.sh dead code, lint anti-ghost), syncs 18 SSOT files, unifies 8 anti-ghost counters, normalizes API route logger.exception, and ships the `scripts/sync_skill_pack.py` dry-run tool.
 
 **193 Core Modules**: MultiAgentDispatcher, Coordinator, Scratchpad, Worker, EnhancedWorker, ConsensusEngine, BatchScheduler, ContextCompressor, PermissionGuard, Skillifier, WarmupManager, MemoryBridge, TestQualityGuard, PromptAssembler, MCEAdapter, WorkBuddyClawSource, RoleMatcher, ReportFormatter, InputValidator, RuleCollector, AISemanticMatcher, CheckpointManager, WorkflowEngine, TaskCompletionChecker, CodeMapGenerator, DualLayerContextManager, SkillRegistry, IntentWorkflowMapper, OperationClassifier, FiveAxisConsensusEngine, LLMBackend, LLMCache, LLMRetry, ConfigManager, Protocols, NullProviders, PerformanceMonitor, AgentBriefing, ConfidenceScorer, UsageTracker, FeatureUsageTracker, Models, ConfigManager(YAML), LLMCacheAsync, LLMRetryAsync, IntegrationExample, AsyncIntegrationExample, LifecycleProtocol, UnifiedGateEngine, FullLifecycleAdapter, **AuthManager**, **APIServer**, **APIDataModels**, **LifecycleAPIRoutes**, **MetricsGatesAPIRoutes**, **DispatchModels**, **DispatchPerformance**, **MultiLevelCache**, **HistoryManager**, **StreamlitDashboard**, **FeedbackControlLoop**, **ExecutionGuard**, **PerformanceFingerprint**, **SimilarTaskRecommender**, **AdaptiveRoleSelector**, **RBAC Engine**, **Audit Logger**, **Multi-Tenancy Manager**, **Sensitive Data Masker**, **RiskRegister**, **ViewpointRegistry**, **ErrorBudgetTracker**, **GapAnalyzer**, **DoraMetricsCollector**, **ScratchpadHistoryStore**, **AgentIdentity**, **WorkflowTrace**, **GitContext**, **SkillProvider**, **OutputStyle**, **FileBundler**, **ApprovalGate**, **ConnectorFramework**, **ArtifactStore**, **DispatchEffect**, **EffectRegistry**, **AuditCLI**, **ModuleFiber**, **CoeffectResolver**, **ModulesCLI**.
 
 **8 Sub-Skills** (Layered Architecture): DispatchSkill (7-role orchestration), IntentSkill (6 intents × 3 languages), ReviewSkill (5-axis code review), SecuritySkill (input scan + op classify), TestSkill (test strategy + quality audit), RetrospectiveSkill (post-dispatch pattern extraction), PrototypeSkill (rapid prototype scaffolding), TeachSkill (knowledge transfer & onboarding).
 
-**Test Coverage**: 8996+ tests passing across unit + E2E + integration suites (CI authoritative, Python 3.10+3.11+3.12 matrix; 25 skipped tests require real LLM API key or are platform-specific).
+**Test Coverage**: 9400+ tests passing across unit + E2E + integration suites (CI authoritative, Python 3.10+3.11+3.12 matrix; 25 skipped tests require real LLM API key or are platform-specific).
 **Cross-Platform**: Trae IDE / Claude Code / Cursor / Any MCP client / CLI / Docker / Web Dashboard / REST API.
 **Enterprise Features**: RBAC (15+ permissions), Audit Log (SHA256), Multi-Tenancy (3 isolation levels), Prometheus Monitoring (12 metrics).
 
@@ -123,7 +123,7 @@ DevSquad/
 │   │   ├── models.py           # Shared data models and type definitions
 │   │   ├── usage_tracker.py    # Token/cost tracking
 │   │   ├── config_manager.py   # Project-level YAML config
-│   │   └── *_test.py           # Test files (8996+ tests)
+│   │   └── *_test.py           # Test files (9400+ tests)
 ├── skills/                     # ★ Layered Sub-Skill Architecture (V3.6.1)
 │   ├── __init__.py             # Package init, exports get_skill/list_skills/discover_all
 │   ├── registry.py              # BaseSkill class + lazy-loading registry
@@ -161,9 +161,9 @@ DevSquad/
 - **Output i18n**: `--lang zh/en/ja/auto` — reports in Chinese (default), English, or Japanese
 - **Business data** (ROLE_TEMPLATES prompts): Chinese (CN locale), with bilingual keyword matching
 - **Documentation**: Trilingual README (EN/CN/JP); all other docs EN-only as of V4.4.1 (see `docs/analysis/2026-07-30_external_docs_restructure_plan.md`); V4.4.2 added multilingual role prompts (EN/CN/JP) and Dashboard 6-tab visibility
-- **Testing**: pytest-based, 8996+ tests all passing
+- **Testing**: pytest-based, 9400+ tests all passing
 - **Style**: PEP 8, dataclasses for models, type hints throughout
-- **Version**: Single source of truth in `_version.py` (`4.5.15`)
+- **Version**: Single source of truth in `_version.py` (`4.5.16`)
 
 ## Role System (7 Core Roles)
 
@@ -192,7 +192,7 @@ DevSquad/
 ```bash
 cd /path/to/DevSquad
 
-# Full test suite (8996+ tests, CI authoritative)
+# Full test suite (9400+ tests, CI authoritative)
 python3 -m pytest tests/test_collaboration_core_test.py \
   tests/test_collaboration_role_mapping_test.py \
   tests/test_collaboration_upstream_test.py \
@@ -377,5 +377,5 @@ Agents should:
 
 ---
 
-**Last Updated**: 2026-05-02  
+**Last Updated**: 2026-09-03  
 **Configuration Source**: `.devsquad.yaml` + This document (belt-and-suspenders approach)

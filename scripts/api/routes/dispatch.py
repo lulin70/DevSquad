@@ -455,7 +455,7 @@ async def list_roles(
         logger.error("Failed to list roles: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}") from None
     except Exception as e:
-        logger.error("Unexpected error listing roles: %s", e, exc_info=True)
+        logger.exception("Unexpected error listing roles: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to retrieve roles: {str(e)}") from None
 
 

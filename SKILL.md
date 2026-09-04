@@ -1,9 +1,9 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.15
+version: 4.5.16
 description: |
-  DevSquad V4.5.15 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.16 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
@@ -30,7 +30,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.5.10 — Multi-Role AI Task Orchestrator
+# DevSquad V4.5.16 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -87,9 +87,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 | Reference Doc | Content | Target Audience |
 |---------------|---------|-----------------|
-| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 187+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
+| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 193+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.2) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.16) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 
@@ -136,7 +136,7 @@ If you invoke DevSquad from a **non-AI IDE shell** (e.g., bare `python3 scripts/
 1. **Structured 7-role collaboration** (deterministic prompts, consistent format)
 2. **Cross-session continuity** (Scratchpad + AgentIdentity + WorkflowTrace)
 3. **Anti-ghost guarantees** (modules activated, not just present)
-4. **Tested dispatch pipeline** (8996+ tests, 7-role consensus 9.1/10)
+4. **Tested dispatch pipeline** (9400+ tests, 7-role consensus 9.1/10)
 
 The actual "intelligence" comes from the host LLM, which is honest and explicit.
 

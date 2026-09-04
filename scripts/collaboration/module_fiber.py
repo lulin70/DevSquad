@@ -78,7 +78,7 @@ class ModuleFiber:
     __slots__ tuple and __init__ together.
 
     Note: Manual __init__ instead of @dataclass(slots=True) for cross-version
-    compat. Production code in DevSQuad (3.10+) can use @dataclass(slots=True).
+    compat. Production code in DevSquad (3.10+) can use @dataclass(slots=True).
     """
 
     __slots__ = (

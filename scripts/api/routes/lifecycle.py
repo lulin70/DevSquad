@@ -233,7 +233,7 @@ async def get_lifecycle_status(
         logger.error("Failed to get lifecycle status: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error("Unexpected error getting lifecycle status: %s", e, exc_info=True)
+        logger.exception("Unexpected error getting lifecycle status: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 
@@ -395,5 +395,5 @@ async def list_command_mappings(
         logger.error("Failed to list mappings: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error("Unexpected error listing mappings: %s", e, exc_info=True)
+        logger.exception("Unexpected error listing mappings: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from None

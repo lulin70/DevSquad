@@ -32,6 +32,24 @@ from typing import NamedTuple
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CANONICAL_VERSION_FILE = REPO_ROOT / "scripts" / "collaboration" / "_version.py"
 PRD_DIR = REPO_ROOT / "docs" / "prd"
+# V4.5.16 P3.21: directory used to count public modules for the
+# "193+ modules / 9400+ tests" documentation drift check.
+COLLABORATION_DIR = REPO_ROOT / "scripts" / "collaboration"
+# Tolerance for the SSOT soft-compare: the public module count we read
+# from disk must fall within ±3% of the documented headline ("193+").
+# V4.5.16 baseline actual count: 204 public modules (see
+# ``scripts/collaboration/_version.py`` SSOT). Documented headline
+# continues to round as "193+" per the long-standing "<actual>+ public
+# collaboration modules" convention. The check warns (non-blocking) when
+# the drift exceeds 3%.
+MODULE_COUNT_SSOT_TOLERANCE = 0.03
+# Documented headline counts (read-only; updated each release).
+# These are the SSOT values that the README / CLAUDE.md / SKILL.md
+# documentation prose must agree with. Drift here produces a WARN-level
+# VersionCheck that does not block CI; the doc should be brought in line
+# in a follow-up patch.
+DOCUMENTED_MODULE_HEADLINE = 193  # "193+ core modules"
+DOCUMENTED_TEST_HEADLINE = 9400   # "9400+ tests passing"
 
 # Match version tags in PRD filenames: V3.9, V4.1.0, V4.2.1, etc.
 # Captures the version string without the leading "V" prefix.
@@ -241,6 +259,90 @@ def get_canonical_version() -> str | None:
     except OSError:
         pass
     return None
+
+
+def count_public_collaboration_modules() -> tuple[int, list[str]]:
+    """V4.5.16 P3.21: actual public module count under scripts/collaboration.
+
+    Returns ``(count, sorted_names)`` where ``count`` is the number of
+    regular ``.py`` files at the top level of :data:`COLLABORATION_DIR`
+    that are not private (``_prefixed``), not ``__init__.py``, and not
+    ``_version.py``. Symlinks and sub-directories are deliberately
+    ignored.
+
+    The count is the on-disk SSOT for the "193+ modules" headline and is
+    compared by :func:`_check_module_count_ssot` against the documented
+    headline.
+    """
+    if not COLLABORATION_DIR.is_dir():
+        return (0, [])
+    names: list[str] = []
+    for entry in sorted(COLLABORATION_DIR.iterdir()):
+        if not entry.is_file():
+            continue
+        if entry.is_symlink():
+            continue
+        if entry.suffix != ".py":
+            continue
+        if entry.name == "__init__.py":
+            continue
+        if entry.name.startswith("_"):
+            # Private module (e.g., ``_version.py``); excluded per the
+            # "<N>+ public modules" convention used in release notes.
+            continue
+        names.append(entry.name)
+    return (len(names), names)
+
+
+def _check_module_count_ssot() -> VersionCheck:
+    """V4.5.16 P3.21: soft-compare actual module count vs documented headline.
+
+    Produces a non-blocking :class:`VersionCheck` whose
+    ``detail`` is prefixed with ``WARN`` when the drift between the
+    actual public module count (read from disk via
+    :func:`count_public_collaboration_modules`) and the documented
+    ``"193+ modules"`` headline exceeds ``MODULE_COUNT_SSOT_TOLERANCE``
+    (3%).
+
+    Per the V4.5.16 PRD §P3.21 contract, this is intentionally
+    non-blocking: a CI release must not be blocked by a documentation
+    rounding mismatch, only by hard version drift. The check exists so
+    that the README / CLAUDE.md / SKILL.md prose and the on-disk SSOT
+    cannot silently diverge without leaving a paper trail.
+
+    Returns:
+        VersionCheck: ``passed=True`` always; ``detail`` reports either
+        "OK" or "WARN: drift …"; ``found`` carries the actual count.
+    """
+    actual, names = count_public_collaboration_modules()
+    expected = DOCUMENTED_MODULE_HEADLINE
+    drift_ratio = 0.0 if expected == 0 else abs(actual - expected) / expected
+    if drift_ratio <= MODULE_COUNT_SSOT_TOLERANCE:
+        return VersionCheck(
+            file="scripts/collaboration/ (public module count)",
+            expected=f"~{expected} (±{int(MODULE_COUNT_SSOT_TOLERANCE * 100)}%)",
+            found=str(actual),
+            passed=True,
+            detail=(
+                f"OK: actual public modules={actual}, documented headline={expected} "
+                f"(drift={drift_ratio * 100:.2f}% ≤ "
+                f"{int(MODULE_COUNT_SSOT_TOLERANCE * 100)}% tolerance)"
+            ),
+        )
+    return VersionCheck(
+        file="scripts/collaboration/ (public module count)",
+        expected=f"~{expected} (±{int(MODULE_COUNT_SSOT_TOLERANCE * 100)}%)",
+        found=str(actual),
+        passed=True,  # WARN-level (non-blocking) per V4.5.16 PRD §P3.21.
+        detail=(
+            f"WARN: actual public modules={actual}, documented headline={expected} "
+            f"(drift={drift_ratio * 100:.2f}% > "
+            f"{int(MODULE_COUNT_SSOT_TOLERANCE * 100)}% tolerance) — "
+            f"update README/CLAUDE/SKILL headline in a follow-up patch; "
+            f"first/last: {names[0] if names else '<none>'} .. "
+            f"{names[-1] if names else '<none>'}"
+        ),
+    )
 
 
 # === Content diff pairs (V4.3.1 enhancement) ===
@@ -657,6 +759,12 @@ def main() -> int:
     # V4.5.15: SKILL.md frontmatter parseability (blocking — the V4.5.13
     # "/" panel root cause; a broken YAML block hides the skill from TRAE).
     results.extend(_check_skill_frontmatter())
+
+    # V4.5.16 P3.21: public module count SSOT soft-compare (non-blocking).
+    # Compares the on-disk count under scripts/collaboration/ against
+    # the documented "193+ modules" headline and emits a WARN-level
+    # VersionCheck when the drift exceeds MODULE_COUNT_SSOT_TOLERANCE.
+    results.append(_check_module_count_ssot())
 
     # V4.3.1: TRAE cache content diff (catches stale body even when version
     # field is synced). Print a separator so the new section is visually

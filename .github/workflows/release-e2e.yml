@@ -121,7 +121,7 @@ jobs:
         run: echo "External LLM E2E skipped — no provider credentials configured"
 
   final-gate:
-    name: V4.5.9 Final Release Gate
+    name: V4.5.16 Final Release Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [host-bridge-e2e]  # real-llm-e2e is conditional and not a hard gate

@@ -28,6 +28,22 @@ V4.5.8: Extended to include:
 V4.5.9: Extended to include:
     - GatherCore (shared asyncio.gather execution core, _call_counter_gather)
 
+V4.5.13: Extended to include previously-scanned but unverified counters:
+    - ApprovalGate (V4.5.1 V451-1) — request_approval (auto-approve path)
+    - ConnectorFramework (V4.5.1 V451-2) — GitHubConnector simulation probe
+    - DoraMetricsCollector (V4.4.0 P2-1) — collect_from_dispatch
+    - GapAnalyzer (V4.4.0 P1-2) — add_gap + analyze
+    - ErrorBudgetTracker (V4.4.0 P1-1) — calculate + status
+    - RiskRegister (V4.4.0 P0-1) — add + assess + export_markdown
+    - FileBundler (V4.5.0) — bundle (deterministic grouping)
+    - ScratchpadHistoryStore (V4.4.3) — write + search_history
+
+V4.5.13: Verified HostLLMBridge v1 counter is wired into HostLLMBridge
+    (file-backed protocol in logs/host_llm_bridge/v1) — previously only
+    HostBridgeBackend/HostBridgeBackendV2 + v2 were probed, leaving v1
+    ghost-prone. Direct create_request() into a temp bridge_dir now bumps
+    both v1 and v2 counters.
+
 Usage:
     python3 scripts/check_module_activation.py
     CI: python3 scripts/check_module_activation.py || exit 1
@@ -38,6 +54,7 @@ from __future__ import annotations
 import contextlib
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 # Add project root to path
@@ -52,6 +69,15 @@ def main() -> int:
         1 if any module's counter is 0 (ghost detected).
     """
     # Touch each module + ensure counter is exposed via get_call_counter
+    from scripts.collaboration import dora_metrics_collector as _dora_module
+    from scripts.collaboration import error_budget_tracker as _error_budget_module
+    from scripts.collaboration import file_bundler as _file_bundler_module
+    from scripts.collaboration import gap_analyzer as _gap_module
+    from scripts.collaboration import risk_register as _risk_register_module
+    from scripts.collaboration import scratchpad_history_store as _scratchpad_module
+    from scripts.collaboration.approval_gate import (
+        get_call_count as agc,
+    )
     from scripts.collaboration.backend_config import get_call_count as bcc
     from scripts.collaboration.backend_config import (
         load_backend_config,
@@ -59,11 +85,14 @@ def main() -> int:
     )
     from scripts.collaboration.backend_paths import classify_error
     from scripts.collaboration.backend_paths import get_call_counter_er as bp
+    from scripts.collaboration.connector_framework import (
+        get_call_count as cfc,
+    )
     from scripts.collaboration.gitlab_connector import GitLabConnector
     from scripts.collaboration.gitlab_connector import get_call_count as glc
-    from scripts.collaboration.host_llm_bridge import get_call_counter_er as hbb
 
-    # V4.5.2 P12.1 modules
+    # Activate each module (representative call)
+    from scripts.collaboration.host_llm_bridge import get_call_counter_er as hbb
     from scripts.collaboration.moka_backend import MokaAIBackend
 
     # V4.5.2 P12.1 modules
@@ -72,8 +101,6 @@ def main() -> int:
     from scripts.collaboration.order_chain_detector import get_call_counter_er as ocd
     from scripts.collaboration.perf_baseline import PerfSampleCollector
     from scripts.collaboration.perf_baseline import get_call_counter_er as pb
-
-    # Activate each module (representative call)
     from scripts.collaboration.task_scale_gate import TaskScaleGate
     from scripts.collaboration.task_scale_gate import get_call_counter_er as tsg
 
@@ -133,6 +160,20 @@ def main() -> int:
         for k, v in old_env.items():
             if v is not None:
                 os.environ[k] = v
+
+    # V4.5.13: HostLLMBridge v1 counter is bumped by HostLLMBridge.create_request
+    # (the v1 protocol class itself, not just the V2 backend). The block above
+    # already exercises that path via the unsuppressed HostLLMBridge instance,
+    # but we add a deterministic tempdir probe so the gate fails closed if the
+    # v1 wiring regresses (default bridge_dir depends on project root layout).
+    with tempfile.TemporaryDirectory() as v1_tmp:
+        v1_bridge = HostLLMBridge(bridge_dir=str(Path(v1_tmp) / "v1"))
+        v1_bridge.create_request(
+            agent_type="anti-ghost-v1",
+            task="anti-ghost v1 counter check",
+            context={},
+            prompt="v1 counter probe",
+        )
 
     # V4.5.3 P12.2 modules — touch counters in main scope so they survive module-level imports
     from scripts.cli_audit import get_call_counter_er as au_call_counter_er
@@ -207,6 +248,31 @@ def main() -> int:
         get_risk_store_stats_counter_er as _get_risk_store_stats_counter_er,
     )
 
+    # V4.5.13 activation: 8 previously-scanned but unverified counters
+    _activate_v4513_modules()
+
+    # V4.5.13 module-scope helpers — read each counter off the live module
+    # attribute (never snapshot via ``from … import _call_counter_er``, which
+    # would freeze the int at import time and break the monotonic guarantee
+    # established in L-V454-004).
+    def _get_dora_counter() -> int:
+        return _dora_module._call_counter_er
+
+    def _get_gap_counter() -> int:
+        return _gap_module._call_counter_er
+
+    def _get_error_budget_counter() -> int:
+        return _error_budget_module._call_counter_er
+
+    def _get_risk_register_counter() -> int:
+        return _risk_register_module._call_counter_er
+
+    def _get_file_bundler_counter() -> int:
+        return _file_bundler_module._call_counter_er
+
+    def _get_scratchpad_counter() -> int:
+        return _scratchpad_module._call_counter_er
+
     counters = {
         "TaskScaleGate": tsg(),
         "PerfBaseline": pb(),
@@ -243,9 +309,19 @@ def main() -> int:
         # V4.5.12 modules
         "RiskStoreStats_V4512.1": _get_risk_store_stats_counter_er(),
         "RisksStatsCli_V4512.2": _get_cli_risks_counter_er(),
+        # V4.5.13 previously-scanned counters
+        "ApprovalGate_V451.1": agc(),
+        "ConnectorFramework_V451.2": cfc(),
+        "DoraMetricsCollector_V440.P2.1": _get_dora_counter(),
+        "GapAnalyzer_V440.P1.2": _get_gap_counter(),
+        "ErrorBudgetTracker_V440.P1.1": _get_error_budget_counter(),
+        "RiskRegister_V440.P0.1": _get_risk_register_counter(),
+        "FileBundler_V450": _get_file_bundler_counter(),
+        "ScratchpadHistoryStore_V443": _get_scratchpad_counter(),
+
     }
 
-    print("V4.5.12 Anti-Ghost Verification")
+    print("V4.5.13 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
     for name, count in counters.items():
@@ -261,8 +337,133 @@ def main() -> int:
             print(f"  - {name}")
         return 1
 
-    print("All V4.5.12 modules activated. Anti-ghost gate PASSED.")
+    print("All V4.5.13 modules activated. Anti-ghost gate PASSED.")
     return 0
+
+
+def _activate_v4513_modules() -> None:
+    """Exercise V4.5.13 previously-scanned-but-unverified modules.
+
+    Touches (in order):
+        - ApprovalGate_V451.1 — request_approval (auto-approve path)
+        - ConnectorFramework_V451.2 — GitHubConnector simulation probe
+        - DoraMetricsCollector_V440.P2.1 — collect_from_dispatch
+        - GapAnalyzer_V440.P1.2 — add_gap + analyze (P2 + P3)
+        - ErrorBudgetTracker_V440.P1.1 — calculate + status
+        - RiskRegister_V440.P0.1 — add + assess + export_markdown
+        - FileBundler_V450 — bundle (deterministic, real tempdir files)
+        - ScratchpadHistoryStore_V443 — write + search_history
+
+    All operations are best-effort and never raise — failures still leave
+    the gate fail-closed via the ``counter > 0`` check in ``main()``.
+    """
+    from scripts.collaboration.approval_gate import ApprovalGate
+    from scripts.collaboration.connector_framework import GitHubConnector
+    from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector
+    from scripts.collaboration.error_budget_tracker import ErrorBudgetTracker
+    from scripts.collaboration.file_bundler import FileBundler
+    from scripts.collaboration.gap_analyzer import GapAnalyzer
+    from scripts.collaboration.models_base import EntryType, ScratchpadEntry
+    from scripts.collaboration.risk_register import RiskRegister
+    from scripts.collaboration.scratchpad_history_store import ScratchpadHistoryStore
+
+    # ApprovalGate — auto-approve (callback=None) so V4.5.0 backward-compat
+    # contracts hold; exercises request_approval + get_records + export_markdown.
+    gate = ApprovalGate()
+    gate.request_approval(
+        operation_type="anti-ghost",
+        description="anti-ghost check",
+    )
+    gate.get_records()
+    gate.export_markdown()
+
+    # ConnectorFramework — simulation probe (no real GitHub API).
+    probe = GitHubConnector(simulation=True)
+    probe.create_pr_comment(
+        repo="devsquad/anti-ghost",
+        pr_number=0,
+        body="anti-ghost probe",
+    )
+    probe.get_operations()
+    probe.export_markdown()
+
+    # DoraMetricsCollector — collect_from_dispatch with empty logs.
+    dmc = DoraMetricsCollector()
+    dmc.collect_from_dispatch([], window_days=30)
+    dmc.report()
+    dmc.to_dashboard_panel()
+
+    # GapAnalyzer — add_gap + analyze(P2) + analyze(P3 current vs target).
+    ga = GapAnalyzer()
+    ga.add_gap(
+        current_state="v4.4.0",
+        target_state="v4.5.0",
+        work_package="anti-ghost closure",
+        priority="medium",
+        effort="low",
+    )
+    ga.analyze(target={"capability": "v4.5.0"})
+    ga.analyze(
+        current={"capability": "v4.4.0"},
+        target={"capability": "v4.5.0"},
+    )
+    ga.prioritize()
+    ga.generate_roadmap()
+    ga.suggest_scheduler_decision(
+        next(iter(ga._gaps), "anti-ghost")
+        if hasattr(ga, "_gaps") and ga._gaps
+        else "anti-ghost"
+    )
+
+    # ErrorBudgetTracker — calculate + status (always-on SRE gate).
+    ebt = ErrorBudgetTracker(slo_target=0.999, window_days=30)
+    ebt.calculate(
+        slo_target=0.999,
+        window_days=30,
+        observed_errors=0,
+        total_events=100,
+    )
+    ebt.status()
+    ebt.to_dashboard_panel()
+
+    # RiskRegister — add + assess + export_markdown.
+    rr = RiskRegister()
+    risk = rr.add(
+        description="anti-ghost check risk",
+        probability=0.2,
+        impact=0.3,
+        category="delivery",
+        owner="anti-ghost",
+    )
+    rr.assess(
+        risk.id,
+        votes={"architect": (0.2, 0.3), "security": (0.1, 0.4)},
+    )
+    rr.export_markdown()
+
+    # FileBundler — deterministic grouping on real temp files.
+    with tempfile.TemporaryDirectory() as fb_tmp:
+        a = Path(fb_tmp) / "a.py"
+        b = Path(fb_tmp) / "b.py"
+        a.write_text("import b\n", encoding="utf-8")
+        b.write_text("VALUE = 1\n", encoding="utf-8")
+        FileBundler().bundle([str(a), str(b)], max_per_bundle=4)
+
+    # ScratchpadHistoryStore — write + search_history in real tempdir DB.
+    with tempfile.TemporaryDirectory() as sp_tmp:
+        store = ScratchpadHistoryStore(db_path=str(Path(sp_tmp) / "h.db"))
+        entry = ScratchpadEntry(
+            worker_id="anti-ghost",
+            role_id="architect",
+            entry_type=EntryType.FINDING,
+            content="anti-ghost check entry",
+            confidence=0.9,
+            tags=["anti-ghost"],
+        )
+        store.write(entry, scratchpad_id="scratchpad-anti-ghost")
+        store.search_history(query="anti-ghost", limit=10)
+        store.cleanup_expired()
+        store.close()
 
 
 def _activate_v4512_modules() -> None:

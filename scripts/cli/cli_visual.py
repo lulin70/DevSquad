@@ -18,6 +18,17 @@ Usage:
     vf.print_gate_status(gate_result)
 """
 
+# V4.5.16 housekeeping (P2.16): this module is still referenced at runtime
+# by ``scripts.cli_lifecycle._render_lifecycle_visual`` via a dynamic
+# ``sys.path`` insertion followed by ``from cli_visual import ...``.
+# The strict grep ``from scripts.cli.cli_visual`` therefore yields only the
+# docstring example above (no external code-path reference), but the
+# functional dependency via ``from cli_visual import ...`` is real.
+# Per the V4.5.16 P2.16 decision matrix: when an external functional
+# dependency exists via any import path, retain the file and register
+# it for explicit housekeeping confirmation. Status:
+# 已登记 V4.5.16 housekeeping 待确认 (see V4.5.16 P2.16 PRD §P2.16).
+
 from typing import Any
 
 

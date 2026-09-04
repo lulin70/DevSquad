@@ -3,7 +3,7 @@
 <p align="center">
   <strong>选择最适合你的 AI Agent 编排方案</strong>
   <br>
-  <em>Last updated: 2026-08-30 | Framework versions: DevSquad V4.5.15, AutoGen V0.4, CrewAI V0.80, LangGraph V0.2</em>
+  <em>Last updated: 2026-09-03 | Framework versions: DevSquad V4.5.16, AutoGen V0.4, CrewAI V0.80, LangGraph V0.2</em>
 </p>
 
 ---

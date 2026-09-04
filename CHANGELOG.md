@@ -14,6 +14,41 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.16] - 2026-09-03
+
+### V4.5.16 — Housekeeping + Digital Truth PATCH (文档治理 + 数字诚实 PATCH)
+
+Patch release: no breaking changes, no new user-facing features.
+PRD: `docs/prd/V4.5.16_PRD.md`.
+
+#### Fixed
+
+- **`scripts/collaboration/_version.py` 元组错位** — `__version_info__` 与 `__version__` 字符串在 V4.5.15 之前已错位 (e.g. `(4, 5, 11)` vs `"4.5.15"`); 修复为统一 `(4, 5, 16)` + `"4.5.16"`。
+- **`helm/devsquad/values.yaml` image.tag** — `"4.0.0"` → `"4.5.16"`; 防止运维误判。
+- **`helm/devsquad/Chart.yaml` version + appVersion** — `4.5.15` → `4.5.16`。
+- **删除 `scripts/publish_now.sh`** — V3.7.0 死代码,迁至 `docs/_archive/scripts/`; 现由 GitHub Actions `release.yml` 接管。
+
+#### Changed (Housekeeping)
+
+- **`scripts/check_module_activation.py` 显式覆盖 8 个新 counter** — `approval_gate`、`connector_framework`、`dora_metrics_collector`、`gap_analyzer`、`error_budget_tracker`、`risk_register`、`file_bundler`、`scratchpad_history_store` + v1 HostLLMBridge counter; 门禁 25/25+ 通过。
+- **`.github/workflows/test.yml::lint` 增 anti-ghost 步骤** — `python scripts/check_module_activation.py` 默认随 lint 跑 (之前只在 `perf-baseline.yml` nightly 触发)。
+- **`tests/e2e/test_v4515_prometheus_e2e.py`** — 从 `tests/unit/` 迁至 `tests/e2e/` 并加 `@pytest.mark.e2e / slow`, 让 `release-e2e.yml` 真正触发。
+- **`docs/release_notes/` 命名空间统一** — 顶层 `docs/RELEASE_NOTES_v4.5.{5..15}.md` (11 份) 全部 `git mv` 到 `docs/release_notes/V4.5.{5..15}_RELEASE_NOTES.md`。
+- **`scripts/api/routes/{dispatch,lifecycle,metrics_gates}.py`** — 14 处 `logger.error(..., exc_info=True)` 收紧为 `logger.exception(...)`; 健康检查 `metrics_gates.py:386` 的裸 `except` 保留为 `HealthCheck(unhealthy)` 兜底契约。
+- **`scripts/sync_skill_pack.py`** — 新工具; `--dry-run` 默认、SHA-256 校验、`--clean-extra` 显式启用、不触碰同级 pack。测试 7 项 PASS。
+- **三语 README 漂移修复** — `README.md` / `README-CN.md` / `README-JP.md` 头部版本段落、Tests badge `8600+` → `9400+`、模块参考 `187+` → `193+`、`Last updated: 2026-08-05` → `2026-09-03`、CN 行 6-7 `HostBridge` → `HostLLMBridge`、烟测预期版本 `4.1.0` → `4.5.15`。
+- **18 个 SSOT 文件版本同步到 4.5.16** — `VERSION` / `pyproject.toml` / `skill-manifest.yaml` / `Dockerfile` / `config/deployment.yaml` / `SKILL.md` / `CLAUDE.md` / `COMPARISON.md` / `INSTALL.md` / `skills/__init__.py` / `docs/spec/SPEC.md` / `docs/architecture/ARCHITECTURE_V4.md` / `docs/reference/MODULE_REFERENCE.md` / `docs/reference/VERSION_HISTORY.md` / `release-e2e.yml`。
+- **术语统一 `DevSQuad → DevSquad`** — 8 个活文件 16 行; 历史锚点 (V4.5.5/V4.5.6/V4.5.7 PRD + DESIGN + RETROSPECTIVE + 1 个 V4.0 烟测 + `docs/_archive/scripts/publish_now.sh`) 保留原样。
+- **frontmatter T15 测试补 2 用例** — `test_valid_pipe_block_with_indented_continuation` (合法 `|` 块) + `test_extreme_long_description_does_not_hang` (8KB 描述 5s 上限 watchdog)。
+
+#### Documented
+
+- 新增 `docs/prd/V4.5.14_PRD.md` (V4.5.14 真实联调迭代 stub,此前 CHANGELOG/VERSION_HISTORY 已登记但 PRD 缺失)。
+- 新增 `docs/prd/V4.5.16_PRD.md` (本轮 PATCH 设计 + 验收标准)。
+- 新增 `docs/e2e_evidence/V4.5.14_real_listener/README.md` (5/5 trace 归档索引)。
+- 新增 `docs/e2e_evidence/V4.5.15_prometheus_e2e/_pending.md` (real run 延后占位,per user decision 2026-09-02)。
+- `.github/workflows/release-e2e.yml` 工作流名 + job 名改版 (顶层 `Release E2E Gate` / `V4.5.16 Final Release Gate`)。
+
 ## [4.5.15] - 2026-09-02
 
 ### V4.5.15 — Skill Registration Gate + Prometheus E2E Tooling + 3-Level Sync (注册门禁 + E2E 工具 + 三层同步)

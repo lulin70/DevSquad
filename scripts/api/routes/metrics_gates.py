@@ -329,7 +329,7 @@ async def check_specific_gate(
         logger.error("Failed to check gate for %s: %s", request.command, e)
         raise HTTPException(status_code=500, detail=str(e)) from None
     except Exception as e:
-        logger.error("Unexpected error checking gate for %s: %s", request.command, e, exc_info=True)
+        logger.exception("Unexpected error checking gate for %s: %s", request.command, e)
         raise HTTPException(status_code=500, detail=str(e)) from None
 
 

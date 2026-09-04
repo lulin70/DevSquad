@@ -155,7 +155,7 @@ class TestCliSubprocess:
         import subprocess
         result = subprocess.run(
             [".venv/bin/python", "scripts/cli.py", "modules", "status"],
-            cwd="/Users/lin/trae_projects/DevSQuad",
+            cwd="/Users/lin/trae_projects/DevSquad",
             capture_output=True,
             text=True,
             timeout=20,

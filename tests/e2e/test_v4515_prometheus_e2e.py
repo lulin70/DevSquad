@@ -12,7 +12,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 import scripts.verify_prometheus_e2e as verifier  # noqa: E402
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.e2e, pytest.mark.slow]
 
 
 class TestFindBinaries:

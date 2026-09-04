@@ -1,13 +1,14 @@
 name: devsquad
-version: 4.5.15
+version: 4.5.16
 description: |
-  DevSquad V4.5.15 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.16 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   193+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.16: Housekeeping + Digital Truth PATCH (no new user-facing features, no breaking changes). Synchronizes VERSION / pyproject.toml / skill-manifest / Dockerfile / deployment.yaml across 18 SSOT files; unifies README EN/CN/JP badges to 9400+ and 193+ module count; updates date to 2026-09-03; repairs version drift in DevSquad/HostLLMBridge/smoke references. PRD: docs/prd/V4.5.16_PRD.md.
   V4.5.15: Skill registration gate (SKILL.md frontmatter YAML parseability is now a blocking check — the true "/" panel root cause) + Prometheus end-to-end scrape verification (scripts/verify_prometheus_e2e.py, honest pass|fail|tool_missing) + skill pack synced to all 3 TRAE cache levels (L1/L2/L3, user decision 2026-09-02, supersedes V4.5.13 single-source).
   V4.5.14: Real-listener trace collection archived 5/5 (4 success + expected fail_closed) + collect_trae_traces trace_3 honest fail status on BackendUnavailable + v2 _safe_read_json absent-file fast-return (removes misleading "JSON decode failed" noise; V4.5.13 "real listener writes non-JSON" finding corrected as a log artifact).
   V4.5.13: One-shot TRAE trace collector (scripts/collect_trae_traces.py, honest 3-state status) + cross-host auto-signaling in FileRiskStore (statvfs ST_REMOTE + remote errno detection) + /metrics exposes devsquad_v4512_risk_store_* series.
@@ -445,11 +446,11 @@ metadata:
 # SKILL.md is the concise entry-point overview; these docs hold the detailed reference material.
 reference_docs:
   - path: docs/reference/MODULE_REFERENCE.md
-    description: Full 187+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling
+    description: Full 193+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling
   - path: docs/reference/SUB_SKILLS.md
     description: 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules
   - path: docs/reference/VERSION_HISTORY.md
-    description: Version history + per-version changelog (v1.0 → v4.5.1)
+    description: Version history + per-version changelog (v1.0 → v4.5.16)
 
 created_at: "2026-03-16T00:00:00"
 updated_at: "2026-08-05"
