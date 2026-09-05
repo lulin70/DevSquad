@@ -150,6 +150,28 @@ jobs:
             echo "ERROR: PERFORMANCE_BASELINE.json missing"
             exit 1
           )
+      - name: Run perf baseline CI gate (V4.6.0-doc-governance P3, hard)
+        # V4.6.0-doc-governance P3: hard gate on release-tag pushes.
+        # Runs the full 4-path gate (mock/host/api/auto_fallback) — any
+        # regression beyond GATE_THRESHOLDS blocks the release.
+        # auto_fallback is diagnostic-only (threshold=100%).
+        run: |
+          python -m pytest tests/test_perf_baseline_ci_gate.py \
+            -q --tb=short --timeout=120 -m "unit" --maxfail=1
+      - name: Run bandit gate (V4.6.0-doc-governance P1, hard)
+        # V4.6.0-doc-governance P1: hard gate on release-tag pushes.
+        # Fails on HIGH findings (current baseline: 0) and on MEDIUM above
+        # the documented 7-finding baseline. Empty/unparseable bandit
+        # output also blocks the release (fail-closed).
+        run: |
+          python scripts/check_bandit.py \
+            --version v$(python -c "import tomllib,pathlib; t=tomllib.loads(pathlib.Path('pyproject.toml').read_text()); print(t['project']['version'])") \
+            --max-medium 7
+      - name: Run dispatcher size gate (V4.6.0-doc-governance P2, hard)
+        # V4.6.0-doc-governance P2: blocks release if any tracked file
+        # grows past the 800-line ceiling since the baseline snapshot.
+        run: |
+          python scripts/check_dispatcher_size.py --max-lines 800 --baseline docs/audits/dispatcher_size_baseline.json
       - name: Validate test plan + baseline doc consistency
         run: |
           python scripts/check_version_consistency.py --strict

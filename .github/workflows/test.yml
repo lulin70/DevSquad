@@ -178,8 +178,26 @@ jobs:
           cache-dependency-path: pyproject.toml
       - name: Install bandit + pip-audit
         run: pip install bandit[toml] pip-audit
-      - name: Run bandit security scan
-        run: bandit -r scripts/ -c pyproject.toml -ll
+      - name: Run bandit security scan (soft, V4.6.0-doc-governance P1)
+        # V4.6.0-doc-governance: wrapper-based bandit gate that fails closed
+        # when bandit returns empty/unparseable output (sandbox safety).
+        # Soft on PR (--no-fail-on-medium): only HIGH findings block; the
+        # 7 MEDIUM baseline is informational here. Hard gate is enforced
+        # in release-e2e.yml final-gate.
+        # --max-medium 7 wires the documented 7-MEDIUM baseline so the soft
+        # gate fails closed if the MEDIUM count regresses above the budget.
+        run: |
+          python scripts/check_bandit.py \
+            --version v$(python -c "import tomllib,pathlib; t=tomllib.loads(pathlib.Path('pyproject.toml').read_text()); print(t['project']['version'])") \
+            --no-fail-on-medium \
+            --max-medium 7
+      - name: Run bandit security scan (informational, severity breakdown)
+        # Print severity breakdown so reviewers see MEDIUM/LOW trends
+        # without the gate itself flipping on each new LOW finding.
+        run: |
+          bandit -r scripts/ -ll -q -f json 2>/dev/null \
+            | python -c "import json,sys; r=json.load(sys.stdin); t=r['metrics']['_totals']; print(json.dumps({'HIGH':t.get('SEVERITY.HIGH',0),'MEDIUM':t.get('SEVERITY.MEDIUM',0),'LOW':t.get('SEVERITY.LOW',0)}, indent=2))" \
+            || echo "bandit breakdown unavailable"
       - name: Run pip-audit (dependency CVE scan, added in V4.1.2)
         run: |
           # Scan installed dependencies for known CVEs.

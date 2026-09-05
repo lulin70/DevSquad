@@ -73,6 +73,9 @@ dev = [
     "fakeredis>=2.30",
     "redis>=5.0",
     "hypothesis>=6.0",
+    "bandit[toml]>=1.7",
+    "pip-audit>=2.7",
+    "radon>=6.0",
 ]
 all = [
     "openai>=1.0",
