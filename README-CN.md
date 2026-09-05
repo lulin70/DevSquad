@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/193+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI：v2 协议硬化 + factory 默认 v2 + v1/v2 隔离） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill）</em>
+  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/204+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI：v2 协议硬化 + factory 默认 v2 + v1/v2 隔离） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill）</em>
 </p>
 
 <p align="center">
@@ -64,7 +64,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
 | 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [193+ 模块详细参考](SKILL.md)
+📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [204+ 模块详细参考](SKILL.md)
 
 ---
 
@@ -248,7 +248,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ## 🏗️ 五大能力域（架构概览）
 
-DevSquad 的 193+ 个模块组织为 **5 大能力域**，各域解决特定问题：
+DevSquad 的 204+ 个模块组织为 **5 大能力域**，各域解决特定问题：
 
 ### 🎯 能力域 1: 任务编排引擎（核心）
 
@@ -642,7 +642,7 @@ python3 -m pytest tests/ -q --tb=line
 | 文档 | 描述 | 语言 |
 |------|------|------|
 | [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30 秒快速入门指南（推荐新用户）** | 中文 |
-| [SKILL.md](SKILL.md) | 完整技能手册 + 187+ 模块参考 | EN/CN/JP |
+| [SKILL.md](SKILL.md) | 完整技能手册 + 204+ 模块参考 | EN/CN/JP |
 | [GUIDE.md](GUIDE.md) | 完全用户指南 | 中文 |
 | [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
 | [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |
@@ -722,6 +722,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最后更新：2026-09-03 | 版本：V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/193+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill） | V4.4.0（5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md)）*
+*最后更新：2026-09-03 | 版本：V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/204+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill） | V4.4.0（5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md)）*
 
 </details>

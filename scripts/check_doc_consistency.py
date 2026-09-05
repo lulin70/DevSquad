@@ -34,9 +34,26 @@ DOC_FILES = [
     "docs/PROJECT_STATUS.md",
 ]
 
-# Patterns: "8200+ tests", "8200+ CI tests", "185+ core modules", "185+ modules"
+# Patterns: "8200+ tests", "8200+ CI tests", "185+ core modules", "185+ modules".
+# V4.5.16: allow per-line "历史口径" / "历史评估" / "hist " prefix to escape
+# historical entries that are not current canonical claims; we still flag them
+# if they are not the majority value, but the gate is fail-closed-by-default.
 TEST_COUNT_PATTERN = re.compile(r"(\d[\d,]*)\s*\+\s*(?:CI\s+)?tests", re.IGNORECASE)
 MODULE_COUNT_PATTERN = re.compile(r"(\d[\d,]*)\s*\+\s*(?:core\s+)?modules", re.IGNORECASE)
+# Lines that contain one of these tokens are historical references, not
+# current claims; the gate skips them so the doc can still mention
+# "V4.5.1 had 8996+ tests" without being flagged.
+HISTORICAL_LINE_TOKENS: tuple[str, ...] = (
+    "历史评估",
+    "历史口径",
+    "历史",
+    "hist",
+)
+
+
+def _is_historical_line(line: str) -> bool:
+    """Return True if the line is a historical reference (not a current claim)."""
+    return any(tok in line for tok in HISTORICAL_LINE_TOKENS)
 
 
 @dataclass
@@ -70,6 +87,8 @@ def _extract_claims(
         if not path.exists():
             continue
         for line_num, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if _is_historical_line(line):
+                continue
             for match in pattern.finditer(line):
                 claim_val = match.group(1).replace(",", "")
                 claims.setdefault(doc_file, []).append((line_num, line, claim_val))

@@ -410,9 +410,9 @@ python3 scripts/cli.py roles
 python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 # Expected: [DRY RUN] message
 
-# 4. Core tests (V3.6.0)
+# 4. Core tests (V4.5.16)
 python3 -m pytest tests/test_production_features.py tests/test_full_lifecycle_adapter.py -v
-# Expected: 8996+ tests all passing
+# Expected: 9400+ tests all passing
 
 # 5. API Server test (if installed)
 curl http://localhost:8000/api/v1/health | jq '.status'
@@ -468,7 +468,7 @@ DevSquad/
 ├── scripts/
 │   ├── cli.py                    # Primary CLI entry point
 │   ├── mcp_server.py             # MCP server (OpenClaw/Cursor)
-│   └── collaboration/            # ★ 193+ core modules
+│   └── collaboration/            # ★ 204+ core modules
 │       ├── _version.py           # Version SSOT (4.5.2)
 │       ├── dispatcher.py         # MultiAgentDispatcher
 │       ├── coordinator.py        # Global orchestrator

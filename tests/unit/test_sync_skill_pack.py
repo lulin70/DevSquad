@@ -69,15 +69,22 @@ class TestSyncSkillPackHappy(unittest.TestCase):
     def test_happy_sync_copies_new_files(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
+            # Library/fixture use (recursive mirror). For real pack-root CLI
+            # sync, only SKILL.md + skill-manifest.yaml are part of the
+            # whitelist — see ``test_pack_root_only_syncs_whitelisted_files``.
             src = _populate_source(td_path / "src", {"SKILL.md": "hello", "sub/note.md": "sub note"})
             tgt = td_path / "tgt"
 
             report = sync_skill_pack.sync_pack(src, tgt, dry_run=False)
 
             assert report.errors == []
-            assert len(report.copied) == 2
+            assert sorted([str(p) for p in report.copied]) == sorted(
+                [str(tgt / "SKILL.md"), str(tgt / "sub" / "note.md")]
+            )
             assert not report.verified_mismatch
-            assert len(report.verified_ok) == 2
+            assert sorted([str(p) for p in report.verified_ok]) == sorted(
+                [str(tgt / "SKILL.md"), str(tgt / "sub" / "note.md")]
+            )
             assert (tgt / "SKILL.md").read_text(encoding="utf-8") == "hello"
             assert (tgt / "sub" / "note.md").read_text(encoding="utf-8") == "sub note"
 
@@ -119,7 +126,12 @@ def test_dry_run_does_not_write(tmp_path) -> None:
     src = _populate_source(tmp_path / "src", {"SKILL.md": "preview"})
     tgt = tmp_path / "tgt"
 
-    report = sync_skill_pack.sync_pack(src, tgt, dry_run=True)
+    report = sync_skill_pack.sync_pack(
+        src,
+        tgt,
+        dry_run=True,
+        clean_extra=True,
+    )
 
     assert len(report.copied) == 1
     assert not tgt.exists()
@@ -417,6 +429,8 @@ class TestSyncSkillPackV4516P212(unittest.TestCase):
     def test_dry_run_does_not_write(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
+            # Library/fixture mode: no repo-root indicators, so the recursive
+            # mirror is engaged (both top-level + nested files copy).
             src = _populate_source(td_path / "src", {"SKILL.md": "preview", "sub/n.md": "n"})
             tgt = td_path / "tgt"
 
@@ -427,12 +441,17 @@ class TestSyncSkillPackV4516P212(unittest.TestCase):
             assert not (tgt / "sub" / "n.md").exists()
             assert report.verified_ok == []
             assert len(report.copied) == 2
+            self.assertEqual(sorted([str(p) for p in report.copied]),
+                             sorted([str(tgt / "SKILL.md"), str(tgt / "sub" / "n.md")]))
 
     def test_copy_mode_writes_real_bytes_with_sha256_match(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
             payload = "DevSquad V4.5.16 sync_skill_pack copy-mode test payload"
-            src = _populate_source(td_path / "src", {"SKILL.md": payload, "data.txt": "abc"})
+            src = _populate_source(
+                td_path / "src",
+                {"SKILL.md": payload, "data.txt": "abc"},
+            )
             tgt = td_path / "tgt"
 
             report = sync_skill_pack.sync_pack(src, tgt, dry_run=False)

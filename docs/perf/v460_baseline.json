@@ -1,0 +1,13 @@
+{
+  "version": "4.6.0-dev",
+  "dispatcher_creation_ms": {
+    "median": 5.3,
+    "max": 882.0
+  },
+  "dispatch_10_tasks": {
+    "total_ms": 951.3,
+    "per_task_ms": 95.1,
+    "throughput_per_sec": 10.51
+  },
+  "memory_peak_mb": 3.72
+}

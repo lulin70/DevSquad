@@ -1,9 +1,10 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.5.13（2026-08-31）
-> **最后更新**: 2026-08-31
-> **最新评估**: V4.5.13 — 清理与统一（无新用户功能；1 项 Breaking）。核心交付：① bridge 日志保留策略（v1/v2 `PRUNE_MAX_FILES` 默认 100，`DEVSQUAD_BRIDGE_PRUNE_MAX_FILES` 覆盖，marker/.tmp 不计数）；② 删除 `_LegacyRiskStoreProxy`/`_RISK_STORE`（Breaking，测试迁移为 FileRiskStore 直读）；③ Worker 统一异步路径（`_do_work_async` 共享于 execute/aexecute，`_ado_work` 删除，活动 loop 内 `_run_coro_on_thread` 防递归）；④ risks CLI 输出统一（`RISK_FIELD_ORDER` 规范字段序，add 与 list/show/export 同构）。4 项均为 V4.5.10 复盘顺延项收官。详见 [CHANGELOG.md](../CHANGELOG.md) 与 [RELEASE_NOTES_v4.5.13.md](RELEASE_NOTES_v4.5.13.md)。
-> **历史评估**: V4.5.1（Approval Gate + Connector Framework，8996+ tests）→ V4.5.7（AsyncCoeffect + Risks CLI）→ V4.5.8（FileRiskStore + Risks mutators，9363 tests）→ V4.5.9（统一 gather 核 + 原生异步 Worker，9408 tests）→ V4.5.10（v2 生产接线 + --async CLI，9480 tests）→ V4.5.13（本版）
+> **当前版本**: V4.5.16（2026-09-03，Digital Truth PATCH，已发布 + tag v4.5.16）
+> **下一版本**: V4.6.0-dev（2026-09-05，Digital Truth 续篇 + 文档治理 PATCH，WIP）
+> **最后更新**: 2026-09-05
+> **最新评估**: V4.6.0-dev — 数字 SSOT 收口 + Dashboard Login Journey + perf 复测 + 文档治理 PATCH（无新用户功能）。核心交付：① `check_version_consistency.py` 把 `DOCUMENTED_MODULE_HEADLINE` 从 193 升到 204（与磁盘实测对齐，drift 5.70% → 0.00%）；② 三层 TRAE 缓存（`~/.trae-cn` + `~/.trae` + workspace `.trae`）SKILL.md + skill-manifest.yaml 同步刷写；③ `scripts/perf_baseline.py` + `docs/perf/README.md` + `v460_baseline.json` 复测 perf 基线（dispatcher 创建 median 5.3 ms、10 任务 951.3 ms、peak 3.72 MB）；④ `tests/e2e/test_dashboard_browser_e2e.py` 新增 Journey-12 Login Form Submit（app.text_input 模拟用户输入 + form_submit_button click，ref 用户规则 3「发布前一定要做模拟真实用户使用的测试」）；⑤ README 三语 + CLAUDE.md + SKILL.md + MODULE_REFERENCE.md + PROJECT_STATUS.md + INSTALL.md + skill-manifest.yaml + check_version_consistency.py + test_check_version_consistency.py fixture 同步 193+ → 204+。详见 [RELEASE_NOTES_v4.5.16.md](RELEASE_NOTES_v4.5.16.md) 与 `docs/release_notes/V4.5.16_RELEASE_NOTES.md`。
+> **历史评估**: V4.5.1（Approval Gate + Connector Framework，历史口径 8996+ tests）→ V4.5.7（AsyncCoeffect + Risks CLI）→ V4.5.8（FileRiskStore + Risks mutators，9363 tests）→ V4.5.9（统一 gather 核 + 原生异步 Worker，9408 tests）→ V4.5.10（v2 生产接线 + --async CLI，9480 tests）→ V4.5.16（Digital Truth PATCH，统一口径 9400+ tests）→ V4.6.0-dev（数字 SSOT 收口 204+ + perf 复测 + Dashboard Login Journey，WIP）
 > **硬约束通过率**: 13/13（100%）
 > **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.x 待发布）
 > **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
@@ -20,7 +21,10 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 2. 模块清单
 
-**模块数**: 187+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 204+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+
+**V4.5.16 PATCH（Housekeeping + Digital Truth，无新用户功能）**:
+- `_version_info` 元组对齐 `(4,5,16)` + `__version__` 字符串；helm chart `image.tag` 与 `Chart.yaml` 同步；`scripts/publish_now.sh` 归档 `docs/_archive/scripts/`；`scripts/check_module_activation.py` 显式覆盖 8 个新 counter；`tests/unit/test_v4515_prometheus_e2e.py` 迁 `tests/e2e/` 并加 `@pytest.mark.e2e/slow`；`docs/release_notes/` 命名空间统一（11 份 git mv）；`scripts/api/routes/{dispatch,lifecycle,metrics_gates}.py` 14 处 `logger.error(..., exc_info=True)` 收紧为 `logger.exception`；`scripts/sync_skill_pack.py` 上线 + 7 测试；18 个 SSOT 文件版本统一到 4.5.16；`DevSQuad → DevSquad` 8 活文件 16 行；`docs/prd/V4.5.14_PRD.md` 与 `V4.5.16_PRD.md` 补全；e2e_evidence V4.5.14/V4.5.15 占位。详见 [RELEASE_NOTES_v4.5.16.md](RELEASE_NOTES_v4.5.16.md) 与 [CHANGELOG.md](../CHANGELOG.md)。
 
 **V4.5.0 新增/增强模块**（合并 V4.4.3 + V4.4.4 + V4.5.0）:
 - `scripts/collaboration/scratchpad_history_store.py` (ScratchpadHistoryStore — SQLite 跨会话 Scratchpad 搜索)

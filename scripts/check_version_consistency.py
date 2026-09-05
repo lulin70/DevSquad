@@ -39,16 +39,17 @@ COLLABORATION_DIR = REPO_ROOT / "scripts" / "collaboration"
 # from disk must fall within ±3% of the documented headline ("193+").
 # V4.5.16 baseline actual count: 204 public modules (see
 # ``scripts/collaboration/_version.py`` SSOT). Documented headline
-# continues to round as "193+" per the long-standing "<actual>+ public
+# continues to round as "204+" per the long-standing "<actual>+ public
 # collaboration modules" convention. The check warns (non-blocking) when
-# the drift exceeds 3%.
+# the drift exceeds 3%. V4.6.0-dev PATCH: bumped 193 → 204 to remove the
+# V4.5.16 WARN (drift 5.70%) — actual count and headline now aligned.
 MODULE_COUNT_SSOT_TOLERANCE = 0.03
 # Documented headline counts (read-only; updated each release).
 # These are the SSOT values that the README / CLAUDE.md / SKILL.md
 # documentation prose must agree with. Drift here produces a WARN-level
 # VersionCheck that does not block CI; the doc should be brought in line
 # in a follow-up patch.
-DOCUMENTED_MODULE_HEADLINE = 193  # "193+ core modules"
+DOCUMENTED_MODULE_HEADLINE = 204  # "204+ core modules"
 DOCUMENTED_TEST_HEADLINE = 9400   # "9400+ tests passing"
 
 # Match version tags in PRD filenames: V3.9, V4.1.0, V4.2.1, etc.
@@ -270,7 +271,7 @@ def count_public_collaboration_modules() -> tuple[int, list[str]]:
     ``_version.py``. Symlinks and sub-directories are deliberately
     ignored.
 
-    The count is the on-disk SSOT for the "193+ modules" headline and is
+    The count is the on-disk SSOT for the "204+ modules" headline and is
     compared by :func:`_check_module_count_ssot` against the documented
     headline.
     """
@@ -762,7 +763,7 @@ def main() -> int:
 
     # V4.5.16 P3.21: public module count SSOT soft-compare (non-blocking).
     # Compares the on-disk count under scripts/collaboration/ against
-    # the documented "193+ modules" headline and emits a WARN-level
+    # the documented "204+ modules" headline and emits a WARN-level
     # VersionCheck when the drift exceeds MODULE_COUNT_SSOT_TOLERANCE.
     results.append(_check_module_count_ssot())
 

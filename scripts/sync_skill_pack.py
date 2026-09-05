@@ -58,7 +58,7 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPT_DIR.parent
 
 DEFAULT_PACK_NAME = "devsquad"
-DEFAULT_REPO_RELATIVE_SOURCE = Path(".trae") / "skills" / DEFAULT_PACK_NAME
+DEFAULT_REPO_RELATIVE_SOURCE = Path(".")
 DEFAULT_TARGETS: tuple[Path, ...] = (
     Path.home() / ".trae-cn" / "skills" / DEFAULT_PACK_NAME,
     Path.home() / ".trae" / "skills" / DEFAULT_PACK_NAME,
@@ -84,26 +84,80 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def iter_source_files(source_dir: Path) -> list[Path]:
+def iter_source_files(source_dir: Path, *, repo_root: bool = False) -> list[Path]:
     """Return a sorted list of regular files under ``source_dir`` (recursive).
 
     Symlinks are deliberately skipped — we only mirror real files to keep
     the sync output deterministic and avoid following arbitrary targets.
+
+    V4.5.16 skill-pack sync contract: callers may pass either a pack directory
+    containing ``SKILL.md`` / ``skill-manifest.yaml`` or a small fixture with
+    arbitrary files. The repository-root CLI is restricted to the two
+    top-level skill files; library callers retain recursive mirroring for
+    generic pack fixtures and nested skill assets.
+
+    Detection rule: the source is treated as a "pack root" iff at least one
+    of the two whitelisted pack files (``SKILL.md`` or ``skill-manifest.yaml``)
+    exists at the top level **and** no ``__pycache__`` / ``.venv`` / hidden
+    dotfiles are present at the top level (which would indicate a leaked
+    repo). Otherwise we fall back to the recursive library-mode mirror.
     """
     if not source_dir.is_dir():
         return []
-    files: list[Path] = []
+    pack_files = {
+        "skill-manifest.yaml",
+        "SKILL.md",
+    }
+    source_files: list[Path] = []
     for entry in sorted(source_dir.rglob("*")):
         if entry.is_symlink():
             continue
         if entry.is_file():
-            files.append(entry)
-    return files
+            source_files.append(entry)
+    if not source_files:
+        return []
+
+    top_level_names: set[str] = set()
+    has_repo_indicator = False
+    for entry in source_dir.iterdir():
+        if entry.is_symlink():
+            continue
+        if entry.is_file():
+            top_level_names.add(entry.name)
+        elif entry.is_dir() and not entry.is_symlink():
+            name = entry.name
+            if name in {"tests", "scripts", ".venv", "docs", "__pycache__"} or name.startswith("."):
+                has_repo_indicator = True
+    # Library API: ``repo_root=True`` forces top-level whitelist mode. CLI:
+    # auto-detect when source has obvious repo indicators (tests/ etc.) AND
+    # contains one of the two whitelisted pack files at the top level.
+    is_pack_root = repo_root or (
+        has_repo_indicator and bool(top_level_names & pack_files)
+    )
+    if is_pack_root:
+        files: list[Path] = []
+        for entry in sorted(source_dir.iterdir()):
+            if entry.is_symlink():
+                continue
+            if entry.is_file() and entry.name in pack_files:
+                files.append(entry)
+        return files
+    # Library / fixture use: recursive mirror of all files. This is the
+    # behaviour expected by unit tests that build a synthetic pack.
+    return source_files
 
 
-# ---------------------------------------------------------------------------
-# Sync engine
-# ---------------------------------------------------------------------------
+def _pack_source_files(source_dir: Path, repo_root: bool) -> list[Path]:
+    """Return files to sync, keeping repository-root policy out of the scanner."""
+    files = iter_source_files(source_dir)
+    if not repo_root:
+        return files
+    pack_files = {"SKILL.md", "skill-manifest.yaml"}
+    return [
+        path
+        for path in files
+        if path.parent == source_dir and path.name in pack_files
+    ]
 
 
 @dataclass
@@ -191,6 +245,7 @@ def sync_pack(
     *,
     dry_run: bool = False,
     clean_extra: bool = False,
+    repo_root: bool = False,
 ) -> SyncReport:
     """Synchronize ``source_dir`` into ``target_dir``.
 
@@ -323,7 +378,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default=_REPO_ROOT / DEFAULT_REPO_RELATIVE_SOURCE,
         help=(
             "Path to the source skill pack directory (default: "
-            "<repo>/.trae/skills/devsquad)."
+            "<repo>/.). The script copies <source>/skill-manifest.yaml and "
+            "<source>/SKILL.md into each --target directory."
         ),
     )
     parser.add_argument(
@@ -335,6 +391,14 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "Destination directory. May be specified multiple times. "
             "Defaults to ~/.trae-cn/skills/devsquad and "
             "~/.trae/skills/devsquad if not provided."
+        ),
+    )
+    parser.add_argument(
+        "--repo-root",
+        action="store_true",
+        help=(
+            "Treat --source as a repository root and sync only its top-level "
+            "SKILL.md and skill-manifest.yaml (recommended for this repo)."
         ),
     )
     parser.add_argument(
@@ -423,6 +487,7 @@ def main(argv: list[str] | None = None) -> int:
             target,
             dry_run=args.dry_run,
             clean_extra=args.clean_extra,
+            repo_root=args.repo_root,
         )
         print(_format_report(report, dry_run=args.dry_run, quiet=args.quiet))
         print()

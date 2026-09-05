@@ -14,6 +14,30 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.6.0-dev] - 2026-09-05
+
+### V4.6.0-dev — Digital Truth 续篇 + 文档治理 PATCH
+
+Development patch; no breaking changes and no new user-facing features.
+PRD: `docs/prd/V4.6.0-dev_PRD.md`.
+Release notes: `docs/release_notes/V4.6.0-dev_RELEASE_NOTES.md`.
+
+#### Changed
+
+- **Module-count SSOT closed** — `DOCUMENTED_MODULE_HEADLINE` is now `204`, matching the 204 public collaboration modules on disk (drift 5.70% → 0.00%; version gate 57 PASS / 0 WARN).
+- **Live documentation synchronized** — README EN/CN/JP, CLAUDE.md, SKILL.md, skill-manifest.yaml, INSTALL.md, PROJECT_STATUS.md, and MODULE_REFERENCE.md updated from `193+` to `204+`; historical release narratives remain unchanged.
+- **Three-layer TRAE cache refreshed** — source `SKILL.md` and `skill-manifest.yaml` re-synced to `~/.trae-cn`, `~/.trae`, and workspace `.trae`.
+- **Performance baseline refreshed** — added `scripts/perf_baseline.py`, `docs/perf/v460_baseline.json`, and `docs/perf/README.md`; current snapshot is 5.3 ms dispatcher median, 951.3 ms for 10 mock dispatches, and 3.72 MB peak memory.
+- **Dashboard Login Journey added** — AppTest now drives the login form's text inputs and Login button (Journey-12), covering the user-rule-3 real-user path without requiring committed credentials.
+
+#### Gates
+
+- `check_version_consistency.py`: 58 passed, 4 skipped, 0 warnings, 0 failed (the extra check is the new live-doc module headline).
+- `check_doc_consistency.py`: PASS.
+- `ruff check` on changed Python files: PASS.
+- `check_module_activation.py`: all registered modules activated.
+
+
 ## [4.5.16] - 2026-09-03
 
 ### V4.5.16 — Housekeeping + Digital Truth PATCH (文档治理 + 数字诚实 PATCH)

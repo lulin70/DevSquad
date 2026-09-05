@@ -1,0 +1,7 @@
+{
+  "version": "V4.5.0",
+  "note": "Legacy placeholder — actual V4.5.0 numbers were never persisted. This file exists to anchor the historical comparison in docs/perf/README.md until V4.5.0 measurements are re-derived.",
+  "dispatcher_creation_ms": {"median": 15.0, "max": 50.0},
+  "dispatch_10_tasks": {"total_ms": 1100.0, "per_task_ms": 110.0, "throughput_per_sec": 9.09},
+  "memory_peak_mb": 5.0
+}
