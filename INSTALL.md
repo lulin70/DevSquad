@@ -378,7 +378,7 @@ Exposes 6 tools: `multiagent_dispatch`, `multiagent_quick`, `multiagent_roles`,
 
 ### Layered Sub-Skill Architecture (V3.6.0)
 
-DevSquad V3.6.0 introduces a **layered sub-skill system** with 6 atomic sub-skills:
+DevSquad V3.6.0 introduces a **layered sub-skill system** with 8 atomic sub-skills:
 
 | Sub-Skill | Purpose | Registry Key |
 |-----------|---------|-------------|
@@ -388,6 +388,8 @@ DevSquad V3.6.0 introduces a **layered sub-skill system** with 6 atomic sub-skil
 | `security` | Permission guard & input validation | `dss.security` |
 | `test` | Test strategy & quality assurance | `dss.test` |
 | `retrospective` | Post-dispatch analysis & pattern extraction | `dss.retrospective` |
+| `prototype` | Rapid prototyping & scaffold generation | `dss.prototype` |
+| `teach` | Knowledge transfer & guided learning | `dss.teach` |
 
 All sub-skills use **lazy-loading** via `importlib` — only loaded when invoked. They work in **Mock mode without any API keys**, making them safe for offline development and CI environments.
 
@@ -509,13 +511,10 @@ DevSquad/
 ├── CHANGELOG.md                  # Version history
 ├── INSTALL.md                    # This file
 └── docs/
-    └── i18n/                     # International docs
-        ├── README_CN.md          # 中文说明
-        ├── README_JP.md          # 日本語説明
-        ├── SKILL_CN.md           # 中文技能手册
-        ├── SKILL_JP.md           # 日本語スキルマニュアル
-        ├── GUIDE_EN.md           # English user guide
-        └── GUIDE_JP.md           # 日本語ユーザーガイド
+    ├── prd/                    # Per-version PRD documents (V4.x)
+    ├── spec/                   # Architecture / SPEC / GLOSSARY
+    ├── adr/                    # Architecture Decision Records
+    └── reference/              # Module reference / sub-skills / version history
 
 ---
 

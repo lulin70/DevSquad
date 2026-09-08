@@ -546,7 +546,7 @@ devsquad --version
 
 # 运行测试
 pytest tests/ -v --tb=short
-# 预期: 7681 passed
+# 预期: 9400+ passed
 ```
 
 ---
@@ -604,7 +604,7 @@ python3 scripts/cli.py roles           # 预期: 列出 7 个核心角色
 
 ### 完整测试套件
 ```bash
-# 运行所有测试（7681 tests passing）
+# 运行所有测试（9400+ tests passing）
 python3 -m pytest tests/ -q --tb=line
 
 # 含覆盖率报告
@@ -621,7 +621,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | 集成 & E2E | 完整 lifecycle dispatch、跨模块集成 | ~200 |
 | **P3** | 模块单元 | 核心 dispatcher、RoleMapping、MCEAdapter、LLM backends | ~400+ |
 
-**总计: 7681 CI 测试 / 266 e2e（收集 7681）**
+**总计: 9400+ CI 测试 / 266 e2e（收集 9400+）**
 
 按优先级运行：
 ```bash

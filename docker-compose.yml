@@ -17,7 +17,7 @@ services:
       - ./config:/app/config:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python3", "-c", "from scripts.collaboration._version import __version__; print(__version__)"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/v1/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

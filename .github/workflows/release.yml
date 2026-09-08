@@ -73,6 +73,38 @@ jobs:
           fi
           echo "OK: built wheel ($WHEEL_VERSION) == tag ($TAG_VERSION)"
 
+      - name: Verify built distribution metadata matches tag
+        run: |
+          python - "${{ steps.tag_version.outputs.version }}" <<'PY'
+          import email.parser
+          import pathlib
+          import sys
+          import tarfile
+          import zipfile
+
+          expected = sys.argv[1]
+          artifacts = sorted(pathlib.Path("dist").iterdir())
+          if not artifacts:
+              raise SystemExit("ERROR: no build artifacts found")
+          for artifact in artifacts:
+              if artifact.suffix == ".whl":
+                  with zipfile.ZipFile(artifact) as archive:
+                      metadata_name = next(name for name in archive.namelist() if name.endswith("/METADATA"))
+                      metadata = email.parser.Parser().parsestr(archive.read(metadata_name).decode())
+              elif artifact.name.endswith(".tar.gz"):
+                  with tarfile.open(artifact) as archive:
+                      metadata_name = next(name for name in archive.getnames() if name.endswith("/PKG-INFO"))
+                      metadata_file = archive.extractfile(metadata_name)
+                      if metadata_file is None:
+                          raise SystemExit(f"ERROR: metadata missing from {artifact.name}")
+                      metadata = email.parser.Parser().parsestr(metadata_file.read().decode())
+              else:
+                  raise SystemExit(f"ERROR: unexpected artifact: {artifact.name}")
+              if metadata.get("Name") != "devsquad" or metadata.get("Version") != expected:
+                  raise SystemExit(f"ERROR: {artifact.name} metadata does not match devsquad=={expected}")
+              print(f"OK: {artifact.name} metadata is devsquad=={expected}")
+          PY
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -105,9 +137,40 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Verify downloaded artifact metadata matches tag
+        run: |
+          python - "${GITHUB_REF_NAME#v}" <<'PY'
+          import email.parser
+          import pathlib
+          import sys
+          import tarfile
+          import zipfile
+
+          expected = sys.argv[1]
+          artifacts = sorted(pathlib.Path("dist").iterdir())
+          if not artifacts:
+              raise SystemExit("ERROR: downloaded artifact directory is empty")
+          for artifact in artifacts:
+              if artifact.suffix == ".whl":
+                  with zipfile.ZipFile(artifact) as archive:
+                      metadata_name = next(name for name in archive.namelist() if name.endswith("/METADATA"))
+                      metadata = email.parser.Parser().parsestr(archive.read(metadata_name).decode())
+              elif artifact.name.endswith(".tar.gz"):
+                  with tarfile.open(artifact) as archive:
+                      metadata_name = next(name for name in archive.getnames() if name.endswith("/PKG-INFO"))
+                      metadata_file = archive.extractfile(metadata_name)
+                      if metadata_file is None:
+                          raise SystemExit(f"ERROR: metadata missing from {artifact.name}")
+                      metadata = email.parser.Parser().parsestr(metadata_file.read().decode())
+              else:
+                  raise SystemExit(f"ERROR: unexpected artifact: {artifact.name}")
+              if metadata.get("Name") != "devsquad" or metadata.get("Version") != expected:
+                  raise SystemExit(f"ERROR: {artifact.name} metadata does not match devsquad=={expected}")
+              print(f"OK: {artifact.name} metadata is devsquad=={expected}")
+          PY
+
       - name: Publish to PyPI (API Token)
         # PyPI API Token authentication: uses PYPI_API_TOKEN secret.
-        # The token is scoped to the devsquad project on PyPI.
         # When `password` is provided, pypa/gh-action-pypi-publish uses
         # token auth instead of OIDC.
         uses: pypa/gh-action-pypi-publish@release/v1

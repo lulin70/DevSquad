@@ -57,10 +57,21 @@ def _line_count(path: Path) -> int:
 
 
 def _snapshot(source: Path) -> dict[str, int]:
-    """Build a {relative_path: loc} snapshot of all Python files under source."""
+    """Build a {relative_path: loc} snapshot of all Python files under source.
+
+    Keys are relative to ``source`` itself. The unit suite passes a synthetic
+    ``tmp_path`` fixture, while production callers pass the in-repo
+    ``scripts/`` directory; in both cases the snapshot keys line up with the
+    baseline diff in :func:`main` (which uses the same convention).
+    """
     snap: dict[str, int] = {}
     for p in _iter_python_files(source):
-        rel = str(p.relative_to(REPO_ROOT))
+        try:
+            rel = str(p.relative_to(source))
+        except ValueError:
+            # File lives outside ``source`` (shouldn't happen with rglob); fall
+            # back to the absolute path so the snapshot stays consistent.
+            rel = str(p)
         snap[rel] = _line_count(p)
     return snap
 
@@ -85,7 +96,7 @@ def _load_baseline(path: Path) -> dict[str, int] | None:
     return {str(k): int(v) for k, v in raw.items() if isinstance(v, (int, float))}
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Dispatcher / module size CI gate")
     parser.add_argument("--source", default=str(DEFAULT_SOURCE), help="Source root to scan")
     parser.add_argument(
@@ -100,7 +111,7 @@ def main() -> int:
         "--write-baseline", action="store_true",
         help="Snapshot current sizes to --baseline and exit 0 (used by first-run / refresh)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     source = Path(args.source).resolve()
     baseline_path = Path(args.baseline).resolve()
@@ -143,6 +154,8 @@ def main() -> int:
             file=sys.stderr,
         )
         # Without a baseline we cannot diff; fall back to absolute threshold only.
+        # First-run safety: surface oversize but do not block the very CI run that
+        # surfaces it (see module docstring "intentionally lenient on existing oversize").
         baseline = {}
 
     over_threshold: list[tuple[str, int]] = []
@@ -151,7 +164,11 @@ def main() -> int:
         if loc > max_lines:
             over_threshold.append((rel, loc))
             base = baseline.get(rel, 0)
-            if loc > base:
+            # Only count as net growth when the baseline is real (non-empty).
+            # Without a baseline every oversize file looks like net growth, which
+            # would block the first-run CI invocation — counter to the
+            # documented intent.
+            if baseline and loc > base:
                 new_oversize.append((rel, loc, base))
 
     print(f"\nResults: {len(over_threshold)} files exceed {max_lines} LOC")

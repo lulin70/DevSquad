@@ -546,7 +546,7 @@ devsquad --version
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 7681 passed
+# Expected: 9400+ passed
 ```
 
 ---
@@ -597,14 +597,14 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 4.1.0
+python3 scripts/cli.py --version       # Expected: DevSquad 4.5.16
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
 
 ### Full Test Suite
 ```bash
-# Run all tests (7681 tests passing)
+# Run all tests (9400+ tests passing)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -621,7 +621,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 7681 CI tests / 266 e2e (7681 collected)**
+**Total: 9400+ CI tests / 266 e2e (9400+ collected)**
 
 Run by priority:
 ```bash

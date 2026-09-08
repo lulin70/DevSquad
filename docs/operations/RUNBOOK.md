@@ -1,7 +1,7 @@
-# DevSquad Runbook (V4.5.12 / P11.3)
+# DevSquad Runbook (V4.6.0-doc-governance / P11.3)
 
-> **Document Version**: V4.5.12
-> **Last Updated**: 2026-08-31
+> **Document Version**: V4.6.0-doc-governance
+> **Last Updated**: 2026-09-08
 > **Audience**: On-call SRE/DevOps engineers
 > **Related**: [ALERT_RULES.md](ALERT_RULES.md) (alert definitions) · [ROLLBACK.md](ROLLBACK.md) (V4.5.12 rollback: --severity removal / stats metrics off-switch)
 
@@ -103,6 +103,9 @@ The risk store stays **JSON-only long-term** (V4.5.10 P2-1 ruling). The followin
 | HostBridgeBackend broken | Check [Host Bridge Down](#host-bridge-down) | § 2.4 |
 | Anti-ghost CI failing | Check [Anti-Ghost Re-verification](#anti-ghost-re-verification) | § 4.2 |
 | Perf baseline drift | Check [Baseline Reset](#baseline-reset) | § 4.1 |
+| Release bandit gate failed | Check [SC-17: Bandit Gate Failed](#sc-17-bandit-gate-failed) | § V4.6.0 |
+| Release dispatcher size gate failed | Check [SC-18: Dispatcher Size Gate Failed](#sc-18-dispatcher-size-gate-failed) | § V4.6.0 |
+| Release perf baseline gate failed | Check [SC-19: Performance Baseline Gate Failed](#sc-19-performance-baseline-gate-failed) | § V4.6.0 |
 
 ---
 
@@ -1092,6 +1095,104 @@ git checkout v4.5.4 && systemctl restart devsquad-dispatcher
 - 每次 dispatch 上限 max_iterations=3（V4.5.6 默认）
 - LIFO revert 失败 best-effort 不抛
 - 上游模块失败率 > 20% 应触发熔断（与 LoopController 协同）
+
+---
+
+## V4.6.0-doc-governance Gate Scenarios (P11.5)
+
+> **Updated**: 2026-09-08。三个场景对应 CI/release gate 失败事件，不对应当前 Prometheus runtime alert。
+
+### SC-17: Bandit Gate Failed
+
+**适用范围**: V4.6.0-doc-governance release final-gate。
+
+**症状**:
+- `release-e2e.yml` 的 `Run bandit gate` 步骤失败。
+- 报告为空/非法，或 HIGH > 0，或 MEDIUM > 7。
+
+**诊断**:
+
+```bash
+python scripts/check_bandit.py --max-medium 7
+python -m pytest tests/test_check_bandit.py -q
+```
+
+检查 CI artifact 中的 Bandit JSON 报告；确认失败是扫描器/依赖问题、真实 finding，还是基线变化。不得用空报告或伪造指标绕过 fail-closed。
+
+**处置**:
+1. 空/非法报告：修复 Bandit 安装、执行参数或报告生成，再重跑 gate。
+2. HIGH finding：在合并前修复；不得通过提高 MEDIUM 阈值绕过 HIGH。
+3. MEDIUM > 7：修复新增 finding；如确有已评审的遗留例外，更新阈值前必须保留 PR justification 和安全审批。
+
+**恢复验证**:
+
+```bash
+python scripts/check_bandit.py --max-medium 7
+python -m pytest tests/test_check_bandit.py -q
+```
+
+**预防**: 保持 `test.yml` soft 检查与 `release-e2e.yml` hard 检查命令一致，并将报告作为 CI artifact 保留。
+
+### SC-18: Dispatcher Size Gate Failed
+
+**适用范围**: V4.6.0-doc-governance release final-gate。
+
+**症状**:
+- `Run dispatcher size gate` 步骤失败。
+- 输出包含新增或相对 baseline 净增长的超大 Python 文件。
+
+**诊断**:
+
+```bash
+python scripts/check_dispatcher_size.py --max-lines 800 --baseline docs/audits/dispatcher_size_baseline.json
+```
+
+先确认失败文件和 LOC，再比较 baseline。只有代码变化已评审且决定更新锁定基线时，才运行 `--write-baseline`；历史超大文件本身不是本 PATCH 的新故障。
+
+**处置**:
+1. 新文件或净增长：优先拆分/减少职责，重新运行 gate。
+2. 误报：检查 baseline key 是否为 `scripts/` 相对路径，并确认没有把临时目录纳入扫描。
+3. 更新 baseline：必须在独立变更中说明原因、文件 LOC、评审人和后续拆分计划；禁止仅为过 gate 无审计地重写 baseline。
+
+**恢复验证**:
+
+```bash
+python scripts/check_dispatcher_size.py --max-lines 800 --baseline docs/audits/dispatcher_size_baseline.json
+python -m pytest tests/test_check_dispatcher_size.py -q
+```
+
+**预防**: 将 size gate 放在提交前检查；新增大型职责先拆模块，不把历史债伪装成 runtime 指标。
+
+### SC-19: Performance Baseline Gate Failed
+
+**适用范围**: V4.6.0-doc-governance release final-gate。
+
+**症状**:
+- `Run perf baseline CI gate` 步骤失败。
+- `tests/test_perf_baseline_ci_gate.py` 报告 mock/host/api 路径超过各自回归阈值。
+
+**诊断**:
+
+```bash
+python -m pytest tests/test_perf_baseline_ci_gate.py -q --tb=short --timeout=120 -m unit --maxfail=1
+```
+
+注意：该测试使用 `scripts.collaboration.perf_baseline` 执行比较 gate；顶层 `scripts/perf_baseline.py` 主要是重新测量并写入 `docs/perf/v460_baseline.json` 的工具，不能把重新测量结果直接当作已批准的新基线。
+
+**处置**:
+1. 先复现并区分代码回归、环境噪声和测试基线损坏。
+2. 代码回归：修复后重新运行 gate。
+3. 环境噪声：保留失败 artifact 和运行环境证据，按 release owner 决定重跑。
+4. 接受的性能变化：经评审后更新对应 baseline，并同步 release notes；不得删除 hard gate。
+5. `auto_fallback` 仅用于诊断，不得把它当作 release 通过证据。
+
+**恢复验证**:
+
+```bash
+python -m pytest tests/test_perf_baseline_ci_gate.py -q --tb=short --timeout=120 -m unit --maxfail=1
+```
+
+**预防**: 固定采样路径和阈值来源；每次 baseline 更新记录 commit、环境、原因和审批。
 
 ---
 

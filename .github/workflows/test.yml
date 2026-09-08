@@ -200,11 +200,13 @@ jobs:
             || echo "bandit breakdown unavailable"
       - name: Run pip-audit (dependency CVE scan, added in V4.1.2)
         run: |
-          # Scan installed dependencies for known CVEs.
-          # Fails only on critical/high severity (medium/low are reported but non-blocking).
+          # Audit both the installed project environment and the pinned runtime lock.
           # Upgrade setuptools first to avoid PYSEC-2026-3447 (fixed in setuptools 83.0.0+).
+          pip install -r requirements.lock
+          pip install -e .
           pip install --upgrade "setuptools>=83.0.0"
-          pip-audit --strict --progress-spinner off
+          pip-audit --local --strict --progress-spinner off
+          pip-audit -r requirements.lock --strict --progress-spinner off
       - name: Run gitleaks secret scan (added in V4.1.2)
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -297,10 +299,29 @@ jobs:
           # docs/TECH_DEBT.md. Exit 1 blocks CI if new markers found.
           python scripts/collaboration/todo_drift_monitor.py --format text
 
+  deployment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Dockerfile and Compose configuration
+        run: |
+          docker build --check .
+          docker compose config --quiet
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Lint and render Helm chart
+        run: |
+          helm lint helm/devsquad
+          helm template devsquad helm/devsquad --namespace devsquad >/tmp/devsquad-rendered.yaml
+          test -s /tmp/devsquad-rendered.yaml
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [test, lint, security]
+    needs: [test, lint, security, deployment]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

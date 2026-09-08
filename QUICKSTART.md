@@ -3,7 +3,7 @@
 <p align="center">
   <strong>把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>V4.4.1 (docs restructure) | V4.4.0 P0-P3 Enhancement Modules (Risk Register / Viewpoint Registry / Error Budget / Gap Analyzer / DORA Metrics) | One task → Multi-role AI → One conclusion</em>
+  <em>V4.6.0-doc-governance | V4.5.16 Multi-role AI Team + P12 enhancement stack | One task → Multi-role AI → One conclusion</em>
 </p>
 
 ---
@@ -201,7 +201,7 @@ devsquad ship -t "部署和发布检查"
 
 ### 质量保障
 - ✅ **E2E Test Suite**: 16 个用户旅程测试用例，100% 通过率
-- ✅ **5250+ CI Tests Passing**: 覆盖所有核心模块
+- ✅ **9400+ CI Tests Passing**: 覆盖所有核心模块
 - ✅ **72% Maturity Score (honest assessment)**: 企业级成熟度评分
 
 </details>
@@ -225,10 +225,10 @@ devsquad ship -t "部署和发布检查"
 | 文档 | 适用人群 | 内容深度 |
 |------|---------|---------|
 | [README.md](README.md) | 所有用户 | 完整功能介绍 + 架构详解 |
-| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 185+ 模块参考 |
-| [docs/i18n/SKILL_CN.md](docs/i18n/SKILL_CN.md) | 中文用户 | 中文版技能手册 |
-| [docs/PRD.md](docs/PRD.md) | 产品经理 | 产品需求文档 |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构师 | 技术架构文档 |
+| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 204+ 模块参考 |
+| [README-CN.md](README-CN.md) | 中文用户 | 中文版 README |
+| [docs/prd/](docs/prd/) | 产品经理 | 各版本 PRD 文档 |
+| [docs/spec/SPEC.md](docs/spec/SPEC.md) | 架构师 | 技术架构与规范文档 |
 | [examples/](examples/) | 开发者 | 示例代码和最佳实践 |
 
 ---
@@ -249,4 +249,4 @@ devsquad ship -t "部署和发布检查"
 
 ---
 
-*最后更新: 2026-07-30 | 版本: V4.4.1*
+*最后更新: 2026-09-07 | 版本: V4.6.0-doc-governance*

@@ -542,11 +542,11 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # バージョンを確認
 devsquad --version
-# Expected: devsquad 4.3.0
+# Expected: devsquad 4.5.16
 
 # テストを実行
 pytest tests/ -v --tb=short
-# Expected: 7681 passed
+# Expected: 9400+ passed
 ```
 
 ---
@@ -597,14 +597,14 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### クイックスモークテスト（< 30秒）
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 4.1.0
+python3 scripts/cli.py --version       # Expected: DevSquad 4.5.16
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
 
 ### フルテストスイート
 ```bash
-# 全テストを実行（7681 tests passing）
+# 全テストを実行（9400+ tests passing）
 python3 -m pytest tests/ -q --tb=line
 
 # カバレッジレポート付き
@@ -621,7 +621,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | 完全ライフサイクルディスパッチ、クロスモジュール統合 | ~200 |
 | **P3** | モジュール別ユニット | コアディスパッチャー、RoleMapping、MCEAdapter、LLMバックエンド | ~400+ |
 
-**合計: 7681 CI tests / 266 e2e（7681 collected）**
+**合計: 9400+ CI tests / 266 e2e（9400+ collected）**
 
 優先度別に実行:
 ```bash

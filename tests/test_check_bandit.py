@@ -60,8 +60,14 @@ def _make_bandit_report(high: int = 0, medium: int = 0, low: int = 0) -> dict:
 
 
 def _run_check_bandit(args: list[str], mock_proc: subprocess.CompletedProcess) -> int:
-    """Run check_bandit.main() with subprocess.run patched to return mock_proc."""
-    with patch.object(check_bandit.subprocess, "run", return_value=mock_proc):
+    """Run check_bandit.main() with bandit presence and subprocess.run patched.
+
+    ``_bandit_path`` is patched so these exit-code tests are deterministic and
+    independent of whether the host environment has bandit installed; the
+    not-installed path has its own explicit test (test_missing_bandit_exits_2).
+    """
+    with patch.object(check_bandit, "_bandit_path", return_value="bandit"), \
+         patch.object(check_bandit.subprocess, "run", return_value=mock_proc):
         return check_bandit.main(args)
 
 
@@ -160,6 +166,19 @@ class TestExitCodes:
         )
         assert rc == 1
 
+    def test_medium_budget_is_enforced_with_no_fail_on_medium(self, tmp_path):
+        report = _make_bandit_report(medium=8)
+        proc = subprocess.CompletedProcess(
+            args=["bandit"], returncode=1,
+            stdout=json.dumps(report), stderr="",
+        )
+        rc = _run_check_bandit(
+            ["--source", "scripts/", "--report", str(tmp_path / "r.json"),
+             "--no-fail-on-medium", "--max-medium", "7"],
+            proc,
+        )
+        assert rc == 1
+
     def test_empty_stdout_fails_closed(self, tmp_path):
         """Critical: bandit returns empty stdout in restricted sandboxes."""
         proc = subprocess.CompletedProcess(
@@ -226,4 +245,4 @@ class TestEndToEndWithRealBandit:
         loaded = json.loads(report_path.read_text(encoding="utf-8"))
         assert "metrics" in loaded
         totals = loaded["metrics"]["_totals"]
-        assert totals["HIGH"] == 0  # V4.6.0-doc-governance baseline promise
+        assert totals["SEVERITY.HIGH"] == 0  # V4.6.0-doc-governance baseline promise

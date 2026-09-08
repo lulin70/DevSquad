@@ -1,7 +1,7 @@
-# DevSquad Alert Rules (V4.5.12 / P11.2)
+# DevSquad Alert Rules (V4.6.0-doc-governance / P11.2)
 
-> **Document Version**: V4.5.12
-> **Last Updated**: 2026-08-31
+> **Document Version**: V4.6.0-doc-governance
+> **Last Updated**: 2026-09-08
 > **Audience**: SRE, DevOps, on-call engineers
 > **Related**: [RUNBOOK.md](RUNBOOK.md) (incident response) · [ROLLBACK.md](ROLLBACK.md) (V4.5.12 rollback: --severity removal / stats metrics off-switch)
 
@@ -761,3 +761,44 @@ groups:
 | `devsquad_v455_tx_state_entered_seconds{tx_id,state}` | gauge | FSM 进入当前状态的 Unix 时间 |
 | `devsquad_v455_tx_rollback_total` | counter | Transaction rollback 累计次数 |
 | `devsquad_v455_loop_fuse_total{reason}` | counter | LoopController 熔断累计次数（reason: CONSECUTIVE_RETRIABLE / FATAL_ERROR / MAX_ITERATION） |
+
+---
+
+## 12. V4.6.0-doc-governance Tag-Only Patch (V4.5.16 同号 patch-2)
+
+> **Version**: V1.5.0 — CI/release gate 事件说明
+> **Created**: 2026-09-05 — `tag v4.6.0-doc-governance` 推 origin
+> **Updated**: 2026-09-08 — 校正为当前已接线的 CI/release gate 语义
+> **说明**: 本节描述治理门禁失败事件，不声明当前已有对应的 Prometheus runtime exporter。线上 Prometheus 告警必须使用已实际暴露的指标；本 PATCH 的三个门禁目前由 GitHub Actions 命令和测试结果判定。
+
+### 12.1 Gate 事件总览
+
+| Gate | 实际执行入口 | 阻断范围 | 基线 | 处置 |
+|---|---|---|---|---|
+| Bandit | `python scripts/check_bandit.py --max-medium 7` | release final-gate；HIGH 必须为 0，MEDIUM 不超过 7 | Bandit JSON 报告 | 运行 RUNBOOK SC-17 |
+| Dispatcher size | `python scripts/check_dispatcher_size.py --max-lines 800 --baseline docs/audits/dispatcher_size_baseline.json` | release final-gate；仅新增或净增长的超大文件阻断 | `docs/audits/dispatcher_size_baseline.json` | 运行 RUNBOOK SC-18 |
+| Performance | `python -m pytest tests/test_perf_baseline_ci_gate.py -q --tb=short --timeout=120 -m unit --maxfail=1` | release final-gate；按 mock/host/api 阈值比较 | `scripts.collaboration.perf_baseline` 使用的性能基线 | 运行 RUNBOOK SC-19 |
+
+`test.yml` 中对应检查是 soft/informational；`release-e2e.yml` final-gate 才是 hard gate。当前没有以下已启用的 runtime metric：`devsquad_bandit_medium_total`、`devsquad_dispatcher_loc_max` 或 `devsquad:perf_baseline_p95:*`。如果未来增加 exporter，必须先补充采集实现、指标契约和真实部署 E2E，再把本节转换为 Prometheus alert rule。
+
+### 12.2 失败事件与告警路由
+
+| 事件 | Severity | 触发条件 | 通知 | Runbook |
+|---|---|---|---|---|
+| `DevSquadV460BanditGateFailed` | critical | Bandit 报告为空/非法、HIGH > 0 或 MEDIUM > 7 | CI required check + release owner | [SC-17](RUNBOOK.md#sc-17-bandit-gate-failed) |
+| `DevSquadV460DispatcherSizeGateFailed` | warning | 新增或扩大文件超过 800 个非空行 | CI required check + maintainability owner | [SC-18](RUNBOOK.md#sc-18-dispatcher-size-gate-failed) |
+| `DevSquadV460PerfBaselineGateFailed` | warning | release 性能测试超过对应回归阈值 | CI required check + performance owner | [SC-19](RUNBOOK.md#sc-19-performance-baseline-gate-failed) |
+
+这些名称是 incident/event 标识，不是当前 Prometheus alert name。不得手工向 Prometheus 注入不存在的 series 来“恢复”告警状态。
+
+### 12.3 未来 exporter 约束（未启用）
+
+若后续要将 gate 结果接入 Prometheus，必须满足：
+
+1. exporter 在代码中注册并更新指标；
+2. `metrics` 端点和真实部署 E2E 能读到指标；
+3. 记录 gate run、commit、baseline version 和 outcome，避免把一次性 CI 结果伪装成服务运行时状态；
+4. alert rule、RUNBOOK、ROLLBACK 和测试同时更新；
+5. 在确认真实数据源前，不得使用下列未接线表达式：`devsquad_bandit_medium_total`、`devsquad_dispatcher_loc_max{file}`、`devsquad:perf_baseline_p95:*`。
+
+

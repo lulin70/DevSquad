@@ -108,7 +108,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e "[dev]" 2>/dev/null || pip install -e .
+          pip install -e ".[dev]" 2>/dev/null || pip install -e .
           pip install pytest pytest-timeout openai anthropic
       - name: Run real LLM E2E when credentials are configured
         if: env.DEVSQUAD_OPENAI_API_KEY != '' || env.DEVSQUAD_ANTHROPIC_API_KEY != ''
@@ -137,6 +137,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]" 2>/dev/null || pip install -e .
           pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic streamlit Pillow fakeredis redis
+          pip install bandit[toml] pip-audit ruff==0.15.20 mypy==2.2.0
       - name: Run all unit + integration + contract (no external)
         run: |
           python -m pytest tests/unit/ tests/integration/ tests/contract/ \
@@ -158,11 +159,33 @@ jobs:
         run: |
           python -m pytest tests/test_perf_baseline_ci_gate.py \
             -q --tb=short --timeout=120 -m "unit" --maxfail=1
+      - name: Run ruff hard check
+        run: ruff check . --ignore=E501
+      - name: Run mypy hard check
+        run: mypy scripts/ skills/ --ignore-missing-imports --no-error-summary
+      - name: Run pip-audit hard check
+        run: |
+          pip install -r requirements.lock
+          pip-audit --local --strict --progress-spinner off
+          pip-audit -r requirements.lock --strict --progress-spinner off
+      - name: Run Docker and Compose checks
+        run: |
+          docker build --check .
+          docker compose config --quiet
+      - name: Run Helm lint and template checks
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+      - name: Validate Helm chart
+        run: |
+          helm lint helm/devsquad
+          helm template devsquad helm/devsquad --namespace devsquad >/tmp/devsquad-rendered.yaml
+          test -s /tmp/devsquad-rendered.yaml
+
       - name: Run bandit gate (V4.6.0-doc-governance P1, hard)
         # V4.6.0-doc-governance P1: hard gate on release-tag pushes.
-        # Fails on HIGH findings (current baseline: 0) and on MEDIUM above
-        # the documented 7-finding baseline. Empty/unparseable bandit
-        # output also blocks the release (fail-closed).
+        # Fails on HIGH findings and on MEDIUM above the documented 7-finding baseline.
+        # Empty/unparseable bandit output also blocks the release (fail-closed).
         run: |
           python scripts/check_bandit.py \
             --version v$(python -c "import tomllib,pathlib; t=tomllib.loads(pathlib.Path('pyproject.toml').read_text()); print(t['project']['version'])") \

@@ -1,11 +1,57 @@
-# DevSquad Rollback Plan (V4.5.12 / P11.4)
+# DevSquad Rollback Plan (V4.6.0-doc-governance / P11.4)
 
-> **Document Version**: V4.5.12
-> **Last Updated**: 2026-08-31
+> **Document Version**: V4.6.0-doc-governance
+> **Last Updated**: 2026-09-08
 > **Audience**: DevOps engineers, release managers
 > **Related**: [ALERT_RULES.md](ALERT_RULES.md) · [RUNBOOK.md](RUNBOOK.md) · [OPERATIONS.md](../OPERATIONS.md)
 
 This document defines the rollback strategy when critical issues block production use. Rollback is the last resort after [RUNBOOK.md](RUNBOOK.md) mitigation steps fail.
+
+## V4.6.0-doc-governance Gate Rollback Paths
+
+> These are CI/release-gate controls, not runtime service switches. Do not disable them through Prometheus or by inventing exporter metrics.
+
+### R1 — Bandit gate temporary relaxation (approval required)
+
+**Preferred action**: fix the finding or restore a valid Bandit JSON report. If release timing requires a temporary relaxation, record the incident, approver, commit, and expiry before changing the workflow command.
+
+```bash
+# PR soft gate only; HIGH remains blocking in the normal release command.
+python scripts/check_bandit.py --no-fail-on-medium --max-medium 7
+
+# Release hard gate; restore this command after the approved exception window.
+python scripts/check_bandit.py --max-medium 7
+```
+
+Never use an empty report as a pass signal and never raise the threshold without a security review. A temporary workflow change must be reverted in the same follow-up change and verified with `python -m pytest tests/test_check_bandit.py -q`.
+
+### R2 — Dispatcher size gate baseline recovery
+
+**Preferred action**: reduce the net growth or split the newly oversized file. If the baseline is corrupt or a reviewed structural change intentionally changes LOC, preserve the old file, record the reason and approval, then regenerate it:
+
+```bash
+cp docs/audits/dispatcher_size_baseline.json /tmp/dispatcher_size_baseline.json
+python scripts/check_dispatcher_size.py --write-baseline --max-lines 800
+python scripts/check_dispatcher_size.py --max-lines 800 --baseline docs/audits/dispatcher_size_baseline.json
+python -m pytest tests/test_check_dispatcher_size.py -q
+```
+
+Regenerating the baseline is not a rollback of application code. It must not be used to conceal unreviewed growth, and the generated path keys must remain relative to `scripts/`.
+
+### R3 — Performance gate recovery
+
+**Preferred action**: investigate and fix the regression. Do not treat `scripts/perf_baseline.py` measurement output as an automatic approval. If a baseline must be restored after an accidental edit, restore the reviewed file and rerun the comparison gate:
+
+```bash
+git checkout -- docs/perf/v460_baseline.json
+python -m pytest tests/test_perf_baseline_ci_gate.py -q --tb=short --timeout=120 -m unit --maxfail=1
+```
+
+If the performance change is intentional, update the baseline only through a reviewed commit that records environment, sample, rationale, and release-owner approval. `auto_fallback` remains diagnostic-only.
+
+### R4 — Full patch rollback (last resort)
+
+The governance patch has no runtime schema migration. If the release itself must be reverted, deploy the previously approved application artifact/tag and keep the gate changes documented. Re-run version, health, smoke, and relevant E2E checks after deployment. Do not delete the baseline files as an undocumented bypass.
 
 ## V4.5.12 Rollback Paths
 

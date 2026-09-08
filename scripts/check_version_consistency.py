@@ -36,7 +36,7 @@ PRD_DIR = REPO_ROOT / "docs" / "prd"
 # "193+ modules / 9400+ tests" documentation drift check.
 COLLABORATION_DIR = REPO_ROOT / "scripts" / "collaboration"
 # Tolerance for the SSOT soft-compare: the public module count we read
-# from disk must fall within ±3% of the documented headline ("193+").
+# from disk must fall within ±3% of the documented headline ("204+").
 # V4.5.16 baseline actual count: 204 public modules (see
 # ``scripts/collaboration/_version.py`` SSOT). Documented headline
 # continues to round as "204+" per the long-standing "<actual>+ public

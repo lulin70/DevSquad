@@ -3,8 +3,9 @@
 
 Wraps `bandit -r scripts/ -ll` (low + medium severity) and:
 
-- Fails CI when HIGH or MEDIUM severity issues exceed ``--fail-on-medium`` (default
-  on for CI).
+- Fails CI when HIGH findings are present. When ``--fail-on-medium`` is enabled
+  (the default), it also fails when MEDIUM findings exceed ``--max-medium``
+  when supplied; otherwise, it fails when any MEDIUM findings exist.
 - Writes a JSON report to ``docs/audits/bandit_v{version}.json`` for trend-tracking.
 - Skips files under ``scripts/collaboration/_version.py`` (artifact, not source).
 
@@ -156,17 +157,17 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
-    allowed_medium = args.max_medium if args.max_medium is not None else 0
-    if args.fail_on_medium and (high > 0 or medium > allowed_medium):
-        allowed = args.max_medium if args.max_medium is not None else 0
-        print(
-            f"FAIL: {high} HIGH + {medium} MEDIUM findings "
-            f"(allowed MEDIUM={allowed}) — address or add # nosec "
-            "with justification before merging.",
-            file=sys.stderr,
-        )
-        return 1
-    if high > 0:
+    if args.fail_on_medium or args.max_medium is not None:
+        allowed_medium = args.max_medium if args.max_medium is not None else 0
+        if high > 0 or medium > allowed_medium:
+            print(
+                f"FAIL: {high} HIGH + {medium} MEDIUM findings "
+                f"(allowed MEDIUM={allowed_medium}) — address or add # nosec "
+                "with justification before merging.",
+                file=sys.stderr,
+            )
+            return 1
+    elif high > 0:
         print(f"FAIL: {high} HIGH findings — address before merging.", file=sys.stderr)
         return 1
     print("PASS: bandit gate (HIGH=0; MEDIUM within tolerance).")

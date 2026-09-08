@@ -67,7 +67,7 @@ A future iteration should:
 |---|---|---|---|---|
 | V4.5.0 | ~15 ms | ~1100 ms | ~5 MB | legacy snapshot (cold cache) |
 | V4.5.16 | ~5 ms | ~900 ms | ~4 MB | local re-measure (warm cache) |
-| V4.6.0-dev | **4.2 ms** | **836.2 ms** | **3.73 MB** | this document |
+| V4.6.0-dev | **5.3 ms** | **951.3 ms** | **3.72 MB** | this document (re-measured via `scripts/perf_baseline.py`) |
 
 The 14-iteration gap between V4.5.0 and V4.5.16 shows the V4.5.9
 gather-core unification reduced per-task latency by ~20 %; the

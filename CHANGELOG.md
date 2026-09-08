@@ -37,6 +37,45 @@ Release notes: `docs/release_notes/V4.6.0-dev_RELEASE_NOTES.md`.
 - `ruff check` on changed Python files: PASS.
 - `check_module_activation.py`: all registered modules activated.
 
+## [4.6.0-doc-governance] - 2026-09-05
+
+### V4.6.0-doc-governance — Maintainability + Security + Performance 三合一 PATCH
+
+PATCH iterating on V4.6.0-dev; lands three new CI gates (bandit baseline, dispatcher size gate, perf baseline gate) plus the dispatcher mixin sprawl mitigation. No breaking changes, no new user-facing features.
+PRD: `docs/prd/V4.6.0-doc-governance_PRD.md`.
+Release notes: `docs/release_notes/V4.6.0-doc-governance_RELEASE_NOTES.md`.
+
+#### Added
+
+- **Bandit CI gate** — `scripts/check_bandit.py` now enforces fail-closed on empty / malformed bandit JSON and pins `--max-medium 7` as the soft ceiling.
+- **Dispatcher size gate** — `scripts/check_dispatcher_size.py` snapshots every `.py` under `scripts/` into `docs/audits/dispatcher_size_baseline.json`; net growth past 800 LOC blocks release.
+- **Perf baseline gate** — `scripts/perf_baseline.py` + `docs/perf/v460_baseline.json` (dispatcher 5.3 ms median, 951.3 ms / 10 dispatches, 3.72 MB peak).
+- **Bandit test coverage** — `tests/test_check_bandit.py` end-to-end runs against real bandit, asserts the documented HIGH=0 baseline.
+- **Size gate test coverage** — `tests/test_check_dispatcher_size.py` pins the snapshot / baseline-IO / exit-code contract.
+
+#### Changed
+
+- **Live documentation synchronized** — `QUICKSTART.md` (V4.4.1 → V4.6.0-doc-governance), `INSTALL.md` (sub-skill count 6 → 8; removed archived `docs/i18n/` paths), and the three READMEs (test count `7681` → `9400+`; version pins `4.1.0/4.3.0` → `4.5.16`).
+- **Performance README unified** — `docs/perf/README.md` historical comparison row aligned with `v460_baseline.json` (5.3 / 951.3 / 3.72).
+
+#### Fixed
+
+- **check_dispatcher_size.py unit tests** — `main()` now accepts `argv` so unit tests can call `gate.main([...])` (was `TypeError: main() takes 0 positional arguments`).
+- **check_dispatcher_size.py snapshot key** — `_snapshot()` uses `relative_to(source)` so unit-test fixtures (under pytest tmpdir) and the production `scripts/` tree produce compatible keys.
+- **check_dispatcher_size.py first-run safety** — without a baseline, every oversize file used to look like net growth and block CI; gate now only counts as `new_oversize` when the baseline is non-empty, matching the "intentionally lenient on existing oversize" contract.
+- **test_check_bandit.py dict-key bug** — real bandit report uses `SEVERITY.HIGH` (not `HIGH`) in `_totals`; assertion now matches the actual schema.
+- **check_version_consistency.py docstring** — leftover `"193+"` literal replaced with `"204+"` (the actual current headline).
+
+#### Gates
+
+- `check_version_consistency.py --strict`: 59 passed / 4 skipped / 0 failed (out of 63 checks).
+- `check_dispatcher_size.py`: PASS (297 files scanned, baseline locked).
+- `check_bandit.py --no-fail-on-medium --max-medium 7`: 0 HIGH / 7 MEDIUM / 103 LOW baseline.
+- `tests/test_check_bandit.py` + `tests/test_check_dispatcher_size.py` + `tests/test_docker_deployment.py`: 39 passed.
+- `ruff check scripts/ skills/`: PASS.
+- `mypy scripts/check_dispatcher_size.py scripts/check_bandit.py scripts/check_version_consistency.py`: no issues.
+- `check_module_activation.py`: 35/35 anti-ghost modules activated.
+
 
 ## [4.5.16] - 2026-09-03
 
