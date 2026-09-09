@@ -211,9 +211,7 @@ class TestBanditBinaryPresence:
     """T6: bandit installation is enforced (exit 2 if missing)."""
 
     def test_missing_bandit_exits_2(self, tmp_path, monkeypatch):
-        # Force shutil.which to return None for both bandit names
-        import shutil
-        monkeypatch.setattr(shutil, "which", lambda _name: None)
+        monkeypatch.setattr(check_bandit, "_bandit_path", lambda: None)
         rc = check_bandit.main([
             "--source", "scripts/",
             "--report", str(tmp_path / "r.json"),

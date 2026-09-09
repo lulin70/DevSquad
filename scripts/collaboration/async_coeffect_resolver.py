@@ -241,13 +241,14 @@ class AsyncCoeffectResolver:
         return self._state
 
     @property
-    def stats(self) -> dict[str, int]:
+    def stats(self) -> dict[str, Any]:
         """Resolver stats (for diagnostics)."""
-        return {
+        stats: dict[str, Any] = {
             "call_counter_er": _call_counter_er,
             "current_state": self._state.value,
             "max_concurrent": self._async_sem._value if hasattr(self._async_sem, "_value") else 0,
         }
+        return stats
 
 
 __all__ = [

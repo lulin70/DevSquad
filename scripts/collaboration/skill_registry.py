@@ -76,6 +76,10 @@ class SkillRegistry:
     - Persisted to disk for cross-session reuse
     """
 
+    # Optional: set_provider(None) disables protocol-based skill operations.
+    provider: "SkillProvider | None"
+
+
     def __init__(
         self,
         storage_path: str = "./skills",

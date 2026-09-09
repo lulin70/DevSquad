@@ -33,7 +33,7 @@ if _PROMETHEUS_AVAILABLE:
     from prometheus_client import REGISTRY, Counter, Gauge, Histogram, Info, generate_latest
 else:
 
-    class Counter:  # type: ignore[no-redef]
+    class Counter:  # type: ignore[no-redef]  # stub replacing prometheus_client.Counter when optional dep is absent
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
@@ -45,7 +45,7 @@ else:
             """No-op increment for the stub counter."""
             pass
 
-    class Gauge:  # type: ignore[no-redef]
+    class Gauge:  # type: ignore[no-redef]  # stub replacing prometheus_client.Gauge when optional dep is absent
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
@@ -65,7 +65,7 @@ else:
             """No-op decrement for the stub gauge."""
             pass
 
-    class Histogram:  # type: ignore[no-redef]
+    class Histogram:  # type: ignore[no-redef]  # stub replacing prometheus_client.Histogram when optional dep is absent
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
@@ -81,7 +81,7 @@ else:
             """Return a null context manager for timing when prometheus is unavailable."""
             return _NullContextManager()
 
-    class Info:  # type: ignore[no-redef]
+    class Info:  # type: ignore[no-redef]  # stub replacing prometheus_client.Info when optional dep is absent
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 

@@ -20,12 +20,15 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import logging
 import os
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, cast
+
+logger = logging.getLogger(__name__)
 
 # ---------- Public constants ----------
 
@@ -329,7 +332,7 @@ class ArtifactStore:
                     registry._stack.append((effect, effect_ctx))
         except Exception:  # noqa: BLE001 — best-effort
             # Effect registration failure must NOT break artifact write
-            pass
+            logger.debug("effect registration skipped for %s (best-effort)", artifact.artifact_id, exc_info=True)
 
         return artifact
 
@@ -460,7 +463,7 @@ class ArtifactStore:
                             payload={"path": deleted_entry["path"]},
                         )
                         registry.apply(DeleteFileEffect(), effect_ctx)
-                except Exception:  # noqa: BLE001
-                    pass
+                except Exception:  # noqa: BLE001 — best-effort, delete already succeeded on disk
+                    logger.debug("delete-effect apply skipped for %s (best-effort)", artifact_id, exc_info=True)
                 return True
         return False

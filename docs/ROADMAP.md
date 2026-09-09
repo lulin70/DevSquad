@@ -7,7 +7,7 @@
 > - [V4.1.0_PRD_Matt_Skills_Fusion.md](prd/V4.1.0_PRD_Matt_Skills_Fusion.md) — 28 项借鉴范围（P0/P1/P2）
 > - [V4.0.11_Matt_Pocock_Skills_Evaluation.md](audits/V4.0.11_Matt_Pocock_Skills_Evaluation.md) — Matt 21 技能评估
 > - [V4.1.0_UIUX_Skills_Evaluation.md](audits/V4.1.0_UIUX_Skills_Evaluation.md) — taste-skill / impeccable UI/UX 评估
-> - [ROADMAP_V3.7-V4.0.md](ROADMAP_V3.7-V4.0.md) — V3.7-V4.0 历史路线图
+> - [ROADMAP_V3.7-V4.0.md](_archive/ROADMAP_V3.7-V4.0.md) — V3.7-V4.0 历史路线图（V4.6.1 归档）
 
 ---
 

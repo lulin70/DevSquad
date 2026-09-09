@@ -14,11 +14,15 @@ import tempfile
 import time
 import tracemalloc
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
-def _make_dispatcher(prefix: str) -> MultiAgentDispatcher:  # noqa: F821
+def _make_dispatcher(prefix: str) -> MultiAgentDispatcher:
     from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
     return MultiAgentDispatcher(

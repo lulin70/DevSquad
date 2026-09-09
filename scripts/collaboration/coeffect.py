@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 from .module_fiber import ModuleFiber, _inc_call_counter_er
 
@@ -65,24 +65,28 @@ def with_coeffect(
     """
 
     def decorator(cls: type) -> type:
-        cls.__devsquad_module_id__ = module_id  # type: ignore[attr-defined]
-        cls.__devsquad_depends_on__ = depends_on  # type: ignore[attr-defined]
+        # Dynamic attribute attachment on `type` is intentional (zero-intrusion
+        # decorator per V4.5.4 D2); mypy cannot model dynamic class attributes.
+        cls.__devsquad_module_id__ = module_id  # type: ignore[attr-defined]  # dynamic class attr attached by decorator
+        cls.__devsquad_depends_on__ = depends_on  # type: ignore[attr-defined]  # dynamic class attr attached by decorator
 
         def depends_on_fn(cls_or_self: Any) -> tuple[str, ...]:
-            return cls.__devsquad_depends_on__  # type: ignore[attr-defined]
+            return cast(
+                "tuple[str, ...]", getattr(cls, "__devsquad_depends_on__", ())
+            )  # dynamic class attr attached by decorator
 
         def get_fiber_fn(self: Any) -> ModuleFiber:
             cached = getattr(self, "_fiber_cache", None)
             if cached is None:
                 cached = ModuleFiber(
-                    module_id=cls.__devsquad_module_id__,  # type: ignore[attr-defined]
-                    depends_on=cls.__devsquad_depends_on__,  # type: ignore[attr-defined]
+                    module_id=cls.__devsquad_module_id__,  # type: ignore[attr-defined]  # dynamic class attr attached by decorator
+                    depends_on=cls.__devsquad_depends_on__,  # type: ignore[attr-defined]  # dynamic class attr attached by decorator
                 )
                 self._fiber_cache = cached
             return cached
 
-        cls.depends_on = classmethod(depends_on_fn)  # type: ignore[attr-defined]
-        cls.get_fiber = get_fiber_fn  # type: ignore[attr-defined]
+        cls.depends_on = classmethod(depends_on_fn)  # type: ignore[attr-defined]  # method injection on arbitrary type (L-V454-001 classmethod wrap)
+        cls.get_fiber = get_fiber_fn  # type: ignore[attr-defined]  # method injection on arbitrary type
         return cls
 
     return decorator
@@ -101,7 +105,7 @@ class _StaticProvider:
     def depends_on(self) -> tuple[str, ...]:
         return self.__devsquad_depends_on__
 
-    def get_fiber(self) -> ModuleFiber:  # type: ignore[override]
+    def get_fiber(self) -> ModuleFiber:  # static provider has no real fiber; Protocol signature kept
         raise NotImplementedError("static provider has no fiber")
 
 

@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install .
           pip install pytest pytest-timeout
 
       - name: Verify baseline file present
@@ -94,7 +94,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          # A failed `.[dev]` install must stop the job so missing tools cannot
+          # produce a false-green validation result (V4.6.1).
+          pip install ".[dev]"
           pip install pytest pytest-timeout openai httpx2
       - name: Run full perf gate (mock + host + api)
         # On release tags, all 3 blocking paths are validated.

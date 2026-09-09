@@ -51,7 +51,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          # A failed `.[dev]` install must stop the job so missing tools cannot
+          # produce a false-green validation result (V4.6.1).
+          pip install ".[dev]"
           pip install pytest pytest-timeout
 
       - name: Run Host Bridge E2E
@@ -108,7 +110,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          pip install ".[dev]"
           pip install pytest pytest-timeout openai anthropic
       - name: Run real LLM E2E when credentials are configured
         if: env.DEVSQUAD_OPENAI_API_KEY != '' || env.DEVSQUAD_ANTHROPIC_API_KEY != ''
@@ -135,7 +137,9 @@ jobs:
       - name: Full regression suite
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          # A failed `.[dev]` install must stop the job so missing tools cannot
+          # produce a false-green validation result (V4.6.1).
+          pip install ".[dev]"
           pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic streamlit Pillow fakeredis redis
           pip install bandit[toml] pip-audit ruff==0.15.20 mypy==2.2.0
       - name: Run all unit + integration + contract (no external)
@@ -162,11 +166,14 @@ jobs:
       - name: Run ruff hard check
         run: ruff check . --ignore=E501
       - name: Run mypy hard check
-        run: mypy scripts/ skills/ --ignore-missing-imports --no-error-summary
+        run: mypy scripts/ skills/ --ignore-missing-imports --no-error-summary --no-site-packages
       - name: Run pip-audit hard check
         run: |
           pip install -r requirements.lock
-          pip-audit --local --strict --progress-spinner off
+          # Audit third-party packages from site-packages; the local project is
+          # not published on PyPI and cannot be resolved by pip-audit's --local
+          # package lookup during CI.
+          pip-audit --path "$(python -c 'import site; print(site.getsitepackages()[0])')" --strict --progress-spinner off
           pip-audit -r requirements.lock --strict --progress-spinner off
       - name: Run Docker and Compose checks
         run: |

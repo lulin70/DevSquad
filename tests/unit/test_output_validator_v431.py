@@ -56,7 +56,7 @@ class TestOutputValidatorV431(unittest.TestCase):
     def test_homoglyph_cyrillic_a_detected(self) -> None:
         """Happy: Cyrillic 'a' (U+0430) replacing Latin 'a' is detected."""
         validator = OutputValidator()
-        text = "\u0430dmin"  # Cyrillic а + Latin "dmin"
+        text = "\u0430dmin"  # Cyrillic a + Latin "dmin"
         result = validator.validate(text)
         findings = [
             f for f in result.findings
@@ -68,7 +68,7 @@ class TestOutputValidatorV431(unittest.TestCase):
     def test_homoglyph_cyrillic_o_detected(self) -> None:
         """Happy: Cyrillic 'o' (U+043E) replacing Latin 'o' is detected."""
         validator = OutputValidator()
-        text = "l\u043egin"  # Cyrillic о in "login"
+        text = "l\u043egin"  # Cyrillic o in "login"
         result = validator.validate(text)
         findings = [
             f for f in result.findings
@@ -79,7 +79,7 @@ class TestOutputValidatorV431(unittest.TestCase):
     def test_homoglyph_greek_o_detected(self) -> None:
         """Happy: Greek 'o' (U+03BF) replacing Latin 'o' is detected."""
         validator = OutputValidator()
-        text = "l\u03bfgin"  # Greek ο in "login"
+        text = "l\u03bfgin"  # Greek o in "login"
         result = validator.validate(text)
         findings = [
             f for f in result.findings

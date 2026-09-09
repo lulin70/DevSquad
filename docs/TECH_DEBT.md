@@ -3,7 +3,7 @@
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
 > **最后更新**: 2026-08-31（V4.5.12）
-> **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](./TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线)
+> **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
 
 ## V4.5.11 技术债状态
 
@@ -20,7 +20,7 @@
 
 本跟踪器专注于 `scripts/` 目录下 Python 源码中的 **TODO/FIXME/HACK/XXX/WORKAROUND** 标记的活跃跟踪。
 对于更广泛的技术债（架构、测试覆盖、`type: ignore`、文档、God Class 等），
-请参阅上方关联的 [TECH_DEBT_ASSESSMENT_V4.0.md](./TECH_DEBT_ASSESSMENT_V4.0.md)。
+请参阅上方关联的 [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md)。
 
 > **重要**: V4.0.11 评估基线 (TECH_DEBT_ASSESSMENT_V4.0.md §一) 已确认：
 > 项目在 V4.0.0 时 TODO/FIXME 数为 1 (非实际问题)，V4.0.11 已清理至 0。

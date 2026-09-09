@@ -13,6 +13,7 @@ Usage:
 import argparse
 import os
 import sys
+from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -618,46 +619,57 @@ Environment Variables (API keys are read from env vars only, never command line)
 
     args = parser.parse_args()
 
-    if args.command in ("init", "setup", "i"):
-        return cmd_init(args)
-    elif args.command in ("demo", "play", "try"):
-        return cmd_demo(args)
-    elif args.command in ("dispatch", "run", "d"):
-        return cmd_dispatch(args)
-    elif args.command in ("status", "s"):
-        return cmd_status(args)
-    elif args.command in ("metrics", "m"):
-        return cmd_metrics(args)
-    elif args.command in ("roles", "ls"):
-        return cmd_roles(args)
-    elif args.command in ("sessions", "sess"):
-        return cmd_sessions(args)
-    elif args.command in ("risks", "risk"):
-        if hasattr(args, "func") and callable(args.func):
-            return args.func(args)
-        return 1
-    elif args.command == "doctor":
-        return cmd_doctor(args)
-    elif args.command == "backend":
-        return cmd_backend(args)
-    elif args.command == "modules":
-        # V4.5.4 P12.3.3: dispatch to modules subcommand function
-        from scripts.collaboration.coeffect import CoeffectResolver
-        from scripts.collaboration.module_fiber import ModuleFiberRegistry
-        if not hasattr(args, "registry"):
-            args.registry = ModuleFiberRegistry()
-        if not hasattr(args, "resolver"):
-            args.resolver = CoeffectResolver()
-        if hasattr(args, "func") and callable(args.func):
-            return args.func(args)
-        return 1
-    elif args.command in ("lifecycle", "lc") or args.command in LIFECYCLE_COMMANDS:
-        if args.command in LIFECYCLE_COMMANDS:
-            args.lifecycle_command = args.command
+    # ── Subcommand dispatch (table-driven; radon cc D+ refactor, V4.6.1) ──
+    # Special-cased commands first (func-attach pattern / setup / aliasing),
+    # then a flat alias→handler table for the simple commands.
+    if args.command in ("risks", "risk"):
+        return args.func(args) if callable(getattr(args, "func", None)) else 1
+    if args.command == "modules":
+        return _run_modules_command(args)
+    if args.command in LIFECYCLE_COMMANDS:
+        args.lifecycle_command = args.command
         return cmd_lifecycle(args)
-    else:
-        parser.print_help()
-        return 0
+
+    handlers: dict[str, Any] = {}
+    for aliases, handler in (
+        (("init", "setup", "i"), cmd_init),
+        (("demo", "play", "try"), cmd_demo),
+        (("dispatch", "run", "d"), cmd_dispatch),
+        (("status", "s"), cmd_status),
+        (("metrics", "m"), cmd_metrics),
+        (("roles", "ls"), cmd_roles),
+        (("sessions", "sess"), cmd_sessions),
+        (("doctor",), cmd_doctor),
+        (("backend",), cmd_backend),
+        (("lifecycle", "lc"), cmd_lifecycle),
+    ):
+        for alias in aliases:
+            handlers[alias] = handler
+
+    handler = handlers.get(args.command)
+    if handler is not None:
+        return handler(args)
+
+    parser.print_help()
+    return 0
+
+
+def _run_modules_command(args: argparse.Namespace) -> int:
+    """Dispatch to the modules subcommand (V4.5.4 P12.3.3).
+
+    Attaches a ModuleFiberRegistry + CoeffectResolver when the subparser
+    did not provide them, then calls the subcommand's ``func``.
+    """
+    from scripts.collaboration.coeffect import CoeffectResolver
+    from scripts.collaboration.module_fiber import ModuleFiberRegistry
+
+    if not hasattr(args, "registry"):
+        args.registry = ModuleFiberRegistry()
+    if not hasattr(args, "resolver"):
+        args.resolver = CoeffectResolver()
+    if callable(getattr(args, "func", None)):
+        return args.func(args)
+    return 1
 
 
 if __name__ == "__main__":
