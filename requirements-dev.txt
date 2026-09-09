@@ -19,6 +19,10 @@ mypy==2.2.0
 ruff==0.15.20
 radon==6.0.1
 
+# Security audit (V4.6.1: lint job runs bandit + pip-audit; must be in dev reqs)
+bandit[toml]>=1.7
+pip-audit>=2.7
+
 # Visualization & QA (synced from pyproject.toml [dev])
 streamlit>=1.28.0
 Pillow>=10.0.0

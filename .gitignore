@@ -153,6 +153,7 @@ install.sh
 
 # --- Additional Patterns ---
 docs/audits/bandit_latest.json
+docs/audits/bandit_v*.json
 .eggs/
 *.orig
 *.log

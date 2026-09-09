@@ -58,14 +58,31 @@ def parse_requirements(path: Path) -> set[str]:
 def parse_pyproject_dev(path: Path) -> set[str]:
     """Parse pyproject.toml [project.optional-dependencies] dev list.
 
-    Uses regex to avoid a tomllib/tomli dependency, keeping the script
-    runnable on Python 3.10+ without extra installs.
+    Uses bracket matching to handle nested ``]`` inside the section body
+    robustly (e.g. extras like ``bandit[toml]`` are no longer confused with
+    section close). Python 3.10+ only, no tomllib/tomli dependency.
     """
     text = path.read_text(encoding="utf-8")
-    match = re.search(r"^dev\s*=\s*\[(.*?)\]", text, re.DOTALL | re.MULTILINE)
-    if not match:
+    # Locate the dev = [ header, scanning line-by-line so we anchor on the
+    # actual TOML key (the previous regex's lazy quantifier used DOTALL and
+    # stopped at the first ``]`` it saw, which mis-trimmed the list).
+    lines = text.splitlines()
+    start = None
+    for idx, line in enumerate(lines):
+        if re.match(r"^dev\s*=\s*\[\s*$", line):
+            start = idx + 1
+            break
+    if start is None:
         return set()
-    body = match.group(1)
+
+    body_lines: list[str] = []
+    for line in lines[start:]:
+        stripped = line.strip()
+        if stripped.startswith("]"):
+            break
+        body_lines.append(line)
+
+    body = "\n".join(body_lines)
     specs = re.findall(r'"([^"]+)"', body)
     return {normalize(s) for s in specs if normalize(s)}
 
