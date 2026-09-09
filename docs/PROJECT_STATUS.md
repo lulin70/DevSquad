@@ -84,6 +84,8 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 测试类型 | 数量 | 状态 |
 |----------|------|------|
+| V4.6.1-cleanup 本地完整回归 | 9321 passed, 6 skipped, 1 warning | ✅ 全绿 |
+| V4.6.1-cleanup 本地 E2E | 160 passed, 2 skipped, 122 deselected, 1 warning | ✅ 全绿 |
 | 单元/集成回归 | 8392+ passed, 25 skipped（本地 Python 3.12，含 V4.4.0/V4.4.2/V4.5.0/V4.5.1 全部新模块） | ✅ 全绿 |
 | V4.4.0 E2E | 13 passed, 0 xfail, 0 fail（xfail→xpass 全部转换完成，0.88s） | ✅ 全绿 |
 | V4.4.1 模拟用户 E2E | 17 passed, 0 fail（5 RU 场景 + 3 AC 验收，0.49s） | ✅ 全绿 |
