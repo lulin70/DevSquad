@@ -370,9 +370,9 @@ class OutputValidator:
                             )
                         )
                         continue
-                except Exception:
+                except Exception:  # noqa: BLE001 — fail-secure, not silent-by-design
                     # Fail-secure: keep medium severity if decode fails.
-                    pass
+                    logger.debug("sensitive-decode failed; keeping medium severity (fail-secure)", exc_info=True)
             escalated.append(f)
         return escalated
 

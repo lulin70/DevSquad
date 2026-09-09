@@ -78,7 +78,7 @@ def _is_noqa_suppressed(source: str, line_no: int) -> bool:
     # V4.5.6 W2: extend noqa detection to 8 lines so multi-line fixture strings
     # with noqa on a non-immediate line are suppressed (test_07 has @lru_cache
     # on line 1 of fixture but noqa on line 2 of literal).
-    for offset in range(0, 8):  # noqa: test-quality
+    for offset in range(0, 8):
         idx = line_no - 1 + offset
         if 0 <= idx < len(lines) and "# noqa: test-quality" in lines[idx]:
             return True

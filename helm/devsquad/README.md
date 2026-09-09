@@ -232,8 +232,8 @@ kubectl exec -it deployment/devsquad -- /bin/bash
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/lulin70/DevSquad/issues)
-- **Documentation**: [GUIDE_EN.md](../../docs/i18n/GUIDE_EN.md)
-- **Version**: DevSquad V3.9.2
+- **Documentation**: [GUIDE.md](../../GUIDE.md)
+- **Version**: DevSquad V4.5.16
 
 ## License
 

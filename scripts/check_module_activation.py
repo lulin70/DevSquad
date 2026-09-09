@@ -597,7 +597,7 @@ def _activate_v458_modules() -> None:
             status=RiskStatus.OPEN,
             category="technical",
         )
-        payload = store.items_to_payload("default", [item])
+        payload = store.items_to_payload("default", iter([item]))
         with store.transaction("default") as tx:
             tx["items"] = payload["items"]
         loaded = store.load("default")
@@ -625,7 +625,7 @@ def _activate_v458_modules() -> None:
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        root = str(Path(tmpdir) / "risks")
+        risks_root = str(Path(tmpdir) / "risks")
         buf = io.StringIO()
         with redirect_stdout(buf):
             add_rc = cmd_risks_add(Namespace(
@@ -635,12 +635,12 @@ def _activate_v458_modules() -> None:
                 category="technical",
                 owner="anti-ghost",
                 register_id="default",
-                root=root,
+                root=risks_root,
             ))
         assert add_rc == 0
 
         # Recover the risk id from the persisted store.
-        reader = FileRiskStore(root=root)
+        reader = FileRiskStore(root=risks_root)
         risk_id = next(iter(reader.payload_to_items(reader.load("default"))))
 
         with redirect_stdout(buf):
@@ -650,7 +650,7 @@ def _activate_v458_modules() -> None:
                 owner="devops",
                 plan="anti-ghost plan",
                 register_id="default",
-                root=root,
+                root=risks_root,
             )) == 0
 
         # Close WITHOUT approval (require_approval=False → no gate).
@@ -659,20 +659,20 @@ def _activate_v458_modules() -> None:
                 risk_id=risk_id,
                 require_approval=False,
                 register_id="default",
-                root=root,
+                root=risks_root,
             )) == 0
 
         # --min-exposure filter: high threshold hides every row, zero shows it.
         buf_hidden, buf_visible = io.StringIO(), io.StringIO()
         with redirect_stdout(buf_hidden):
             assert cmd_risks_list(Namespace(
-                register_id="default", root=root, format="md",
+                register_id="default", root=risks_root, format="md",
                 min_exposure=0.99, category=None, limit=None,
             )) == 0
         assert "(none)" in buf_hidden.getvalue()
         with redirect_stdout(buf_visible):
             assert cmd_risks_list(Namespace(
-                register_id="default", root=root, format="md",
+                register_id="default", root=risks_root, format="md",
                 min_exposure=0.0, category=None, limit=None,
             )) == 0
         assert "`R-" in buf_visible.getvalue()

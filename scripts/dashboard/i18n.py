@@ -114,7 +114,7 @@ class I18nManager:
         new_locale = options[selected_idx]
         if new_locale != current:
             I18nManager.set_locale(new_locale)
-        return new_locale
+        return cast(Locale, new_locale)
 
 
 def t(key: str, locale: Locale | None = None) -> str:

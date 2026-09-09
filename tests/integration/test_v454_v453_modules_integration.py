@@ -1041,7 +1041,6 @@ class TestFullE2EPipeline:
 
         persist_dir = _tempfile.mkdtemp(prefix="v453_int_3way_")
         try:
-            from scripts.cli_audit import get_call_counter_er as au_counter
             from scripts.collaboration import artifact_store as as_mod
             from scripts.collaboration import effect_registry as er_mod
 
@@ -1062,9 +1061,20 @@ class TestFullE2EPipeline:
             # 2. Effect must be in registry
             assert registry.pending_count() == 1
 
-            # 3. Dispatch must have logged an audit event
+            # 3. Dispatch must have logged an audit event.
+            # NOTE: dispatch writes audit events via DispatchAuditLogger into the
+            # audit DB (probed: dispatch_start + dispatch_end); the cli_audit
+            # counter only bumps when the `devsquad audit` CLI command runs, so
+            # asserting it here was the wrong signal (test failed on HEAD since
+            # introduction). Assert on DB content instead — the actual intent.
             d.dispatch("3-way audit", dry_run=True)
-            assert au_counter() >= 1
+
+            from scripts.cli_audit import _load_entries as _load_audit_entries
+
+            audit_entries = _load_audit_entries(str(Path(persist_dir) / "audit.db"))
+            audit_event_types = {e.get("event_type") for e in audit_entries}
+            assert "dispatch_start" in audit_event_types
+            assert "dispatch_end" in audit_event_types
 
             # 4. Revert clears the registry
             registry.revert_all()

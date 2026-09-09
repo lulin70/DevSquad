@@ -34,8 +34,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          # A failed `.[dev]` install must stop the job so missing tools cannot
+          # produce a false-green validation result (V4.6.1).
+          pip install ".[dev]"
           pip install pytest pytest-asyncio pytest-timeout httpx2 mcp streamlit Pillow fakeredis redis
+          # Fail fast with the real import error instead of a confusing
+          # "MCP SDK not installed" from 14 test files downstream (V4.6.1).
+          python -c "from mcp.server.fastmcp import FastMCP; print('mcp SDK import OK')"
 
       - name: Install coverage tool
         run: pip install pytest-cov
@@ -52,19 +57,13 @@ jobs:
             --cov-report=term-missing \
             --cov-fail-under=70
 
-      - name: Upload coverage
-        # NOTE: Codecov upload requires CODECOV_TOKEN secret for private repos / branch protection.
-        # If CODECOV_TOKEN is not configured, upload fails silently (fail_ci_if_error: false).
-        # Coverage report is still generated as coverage.xml artifact below.
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
-          # token: ${{ secrets.CODECOV_TOKEN }}  # uncomment after configuring secret
-
       - name: Upload coverage artifact
-        # Always upload coverage.xml as an artifact so coverage data is preserved
-        # even when Codecov token is not configured.
+        # Coverage is gated in-workflow via --cov-fail-under=70 above and preserved
+        # as an artifact. The codecov-action step was removed in V4.6.1-cleanup:
+        # it uploaded to a service with no configured token and no consumers
+        # (no badge in any README), failing silently on every run.
+        # To re-enable Codecov: configure CODECOV_TOKEN secret, then restore
+        # codecov/codecov-action@v4 with `token: ${{ secrets.CODECOV_TOKEN }}`.
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml-${{ matrix.python-version }}
@@ -100,7 +99,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          # A failed `.[dev]` install must stop the job so missing tools cannot
+          # produce a false-green validation result (V4.6.1).
+          pip install ".[dev]"
           pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic streamlit Pillow fakeredis redis
       - name: Run E2E tests (nightly + PR + release)
         run: |
@@ -140,8 +141,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" 2>/dev/null || pip install -e .
+          # A failed `.[dev]` install must stop the job so missing tools cannot
+          # produce a false-green validation result (V4.6.1).
+          pip install ".[dev]"
           pip install pytest pytest-asyncio pytest-timeout httpx2 mcp streamlit Pillow fakeredis redis
+          # Fail fast with the real import error instead of a confusing
+          # "MCP SDK not installed" from 14 test files downstream (V4.6.1).
+          python -c "from mcp.server.fastmcp import FastMCP; print('mcp SDK import OK')"
       - name: Run performance benchmarks (non-blocking)
         run: |
           # Performance tests with time thresholds (e.g. under_50ms, under_2s).
@@ -195,17 +201,21 @@ jobs:
         # Print severity breakdown so reviewers see MEDIUM/LOW trends
         # without the gate itself flipping on each new LOW finding.
         run: |
-          bandit -r scripts/ -ll -q -f json 2>/dev/null \
+          bandit -r scripts/ -ll -q -f json \
             | python -c "import json,sys; r=json.load(sys.stdin); t=r['metrics']['_totals']; print(json.dumps({'HIGH':t.get('SEVERITY.HIGH',0),'MEDIUM':t.get('SEVERITY.MEDIUM',0),'LOW':t.get('SEVERITY.LOW',0)}, indent=2))" \
             || echo "bandit breakdown unavailable"
       - name: Run pip-audit (dependency CVE scan, added in V4.1.2)
         run: |
-          # Audit both the installed project environment and the pinned runtime lock.
+          # Audit the installed project environment and the pinned runtime lock.
+          # A regular install keeps the project distribution auditable under --strict.
           # Upgrade setuptools first to avoid PYSEC-2026-3447 (fixed in setuptools 83.0.0+).
           pip install -r requirements.lock
-          pip install -e .
+          pip install ".[dev]"
           pip install --upgrade "setuptools>=83.0.0"
-          pip-audit --local --strict --progress-spinner off
+          # Audit third-party packages from site-packages; the local project is
+          # not published on PyPI and cannot be resolved by pip-audit's --local
+          # package lookup during CI.
+          pip-audit --path "$(python -c 'import site; print(site.getsitepackages()[0])')" --strict --progress-spinner off
           pip-audit -r requirements.lock --strict --progress-spinner off
       - name: Run gitleaks secret scan (added in V4.1.2)
         uses: gitleaks/gitleaks-action@v2
@@ -229,7 +239,7 @@ jobs:
       - name: Install project dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install .
           pip install fastapi uvicorn pydantic streamlit mcp prometheus-client psutil slack-sdk openai anthropic httpx2
       - name: Lint
         run: ruff check . --ignore=E501
@@ -245,13 +255,13 @@ jobs:
           fi
           echo "OK: radon cc zero D+ functions (V4.1.1 achievement maintained)"
       - name: Type check (blocking since V3.9.1)
-        run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary
+        run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary --no-site-packages
       # Full scripts/+skills/ mypy check (blocking since V3.10.0).
       # Achievement: 112 errors → 0 (V3.10.0, 2026-06-30).
       # skills/ added to mypy scope in V3.9.2 Round 9 (P1-1).
       - name: Type check scripts/+skills/ full (blocking)
         run: |
-          mypy scripts/ skills/ --ignore-missing-imports --no-error-summary 2>&1 | tee /tmp/mypy_full.log
+          mypy scripts/ skills/ --ignore-missing-imports --no-error-summary --no-site-packages 2>&1 | tee /tmp/mypy_full.log
           error_count=$(grep -c "error:" /tmp/mypy_full.log || echo "0")
           if [ "$error_count" -gt 0 ]; then
             echo "ERROR: mypy found $error_count error(s) — must be 0 (V3.10.0 policy)"

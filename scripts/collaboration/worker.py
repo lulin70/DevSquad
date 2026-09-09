@@ -285,7 +285,7 @@ class Worker:
                     kind="text",
                 )
             except Exception:  # noqa: BLE001 — best-effort, do not fail worker
-                pass
+                logger.debug("artifact persist skipped for %s (best-effort)", task.task_id, exc_info=True)
 
         output = {
             "worker_id": self.worker_id,
@@ -640,7 +640,7 @@ class Worker:
             cached = self._cache_get(instruction, model_name)
             if cached:
                 logger.debug("  [%s] Cache hit (async).", self.role_id)
-                return cast(str, cached)
+                return cached
 
             logger.info("  [%s] Calling async LLM backend...", self.role_id)
             if self.stream:
@@ -716,7 +716,7 @@ class Worker:
         cached = self._cache_get(result.instruction, getattr(backend, "model", "unknown"))
         if cached:
             logger.debug("  [%s] Cache hit.", _rname)
-            return cast(str, cached)
+            return cached
 
         logger.info("  [%s] Calling LLM backend...", _rname)
         try:

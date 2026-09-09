@@ -90,6 +90,7 @@ class AsyncWorkerWrapper:
         Raises:
             asyncio.TimeoutError: If task exceeds timeout.
         """
+        coro: Any
         if hasattr(self.worker, "aexecute"):
             coro = self.worker.aexecute(task)
         else:
@@ -97,8 +98,8 @@ class AsyncWorkerWrapper:
             coro = loop.run_in_executor(None, self.worker.execute, task)
 
         if self.timeout:
-            return await asyncio.wait_for(coro, timeout=self.timeout)
-        return await coro
+            return cast(WorkerResult, await asyncio.wait_for(coro, timeout=self.timeout))
+        return cast(WorkerResult, await coro)
 
 
 class AsyncCoordinator:

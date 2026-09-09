@@ -192,7 +192,7 @@ python -c "import sys; sys.path.insert(0, '/tmp/verify_devsquad_392'); from scri
 
 | # | 风险 | 状态 | 说明 |
 |---|------|------|------|
-| 1 | PyPI 发布凭证 | ✅ 已清除 | 已切换为 API token（`secrets.PYPI_API_TOKEN`），不再依赖 Trusted Publisher；token 已配置。保留 [PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md) 作为后续可选迁移方案。 |
+| 1 | PyPI 发布凭证 | ✅ 已清除 | 已切换为 API token（`secrets.PYPI_API_TOKEN`），不再依赖 Trusted Publisher；token 已配置。保留 [PYPI_TRUSTED_PUBLISHER_SETUP.md](../PYPI_TRUSTED_PUBLISHER_SETUP.md) 作为后续可选迁移方案。 |
 | 2 | 真实 LLM E2E 验证 | ✅ 已清除 | 本地 `tests/integration/test_real_llm.py` 15 passed，8 skipped（Anthropic Key 未配置）；OpenAI-compatible（moka-ai）backend 可用，streaming 空 choices 已防御。 |
 | 3 | 敏感信息明文保存 | ✅ 已清除 | 本地 `.env` 已删除；GitHub secrets 注入 CI；本地测试使用一次性环境变量，不写入仓库。 |
 | 4 | E2E/集成测试未实际执行 | ✅ 已清除（mock + real backend） | 本地实测：`tests/e2e/` + `tests/integration/` 共 45 项，27 passed，18 skipped（skipped 为需真实 LLM Key 的测试）。 |
@@ -209,7 +209,7 @@ python -c "import sys; sys.path.insert(0, '/tmp/verify_devsquad_392'); from scri
    - ✅ GitHub Actions E2E workflow 手动触发并通过：`37 passed, 8 skipped`
    - ✅ PyPI 安装验证：`pip install devsquad==3.9.2` 成功，版本号 3.9.2
    - ✅ GitHub Release：[https://github.com/lulin70/DevSquad/releases/tag/v3.9.2](https://github.com/lulin70/DevSquad/releases/tag/v3.9.2)
-   - （可选）后续仍可配置 PyPI Trusted Publisher 并移除 `PYPI_API_TOKEN`，操作清单见 [docs/PYPI_TRUSTED_PUBLISHER_SETUP.md](./PYPI_TRUSTED_PUBLISHER_SETUP.md)
+   - （可选）后续仍可配置 PyPI Trusted Publisher 并移除 `PYPI_API_TOKEN`，操作清单见 [归档的 PYPI Trusted Publisher 配置](../PYPI_TRUSTED_PUBLISHER_SETUP.md)
 2. **V3.10.0 规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)）：
    - Phase 1：PromptAssembler 注入 ponytail 式最小实现规则 + benchmark 基线
    - Phase 2：ContextCompressor 引入 ContentRouter + SmartCrusher
