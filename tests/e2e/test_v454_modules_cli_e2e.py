@@ -153,9 +153,13 @@ class TestCliSubprocess:
     def test_cli_subprocess_status(self) -> None:
         """Verify cli.py modules status runs without exception."""
         import subprocess
+        import sys
+        from pathlib import Path
+
+        project_root = str(Path(__file__).resolve().parents[2])
         result = subprocess.run(
-            [".venv/bin/python", "scripts/cli.py", "modules", "status"],
-            cwd="/Users/lin/trae_projects/DevSquad",
+            [sys.executable, "scripts/cli.py", "modules", "status"],
+            cwd=project_root,
             capture_output=True,
             text=True,
             timeout=20,
