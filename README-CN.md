@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/204+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI：v2 协议硬化 + factory 默认 v2 + v1/v2 隔离） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill）</em>
+  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.6.1（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/204+、日期 2026-09-03） | V4.6.1（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI：v2 协议硬化 + factory 默认 v2 + v1/v2 隔离） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill）</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-9400%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.16-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.6.1-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -542,7 +542,7 @@ devsquad dispatch -t "设计用户认证系统"
 ```bash
 # 检查版本
 devsquad --version
-# 预期: devsquad 4.5.16
+# 预期: devsquad 4.6.1
 
 # 运行测试
 pytest tests/ -v --tb=short
@@ -597,7 +597,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### 快速冒烟测试（< 30 秒）
 ```bash
-python3 scripts/cli.py --version       # 预期: DevSquad V4.5.16
+python3 scripts/cli.py --version       # 预期: DevSquad V4.6.1
 python3 scripts/cli.py status          # 预期: System ready
 python3 scripts/cli.py roles           # 预期: 列出 7 个核心角色
 ```
@@ -649,7 +649,7 @@ python3 -m pytest tests/ -q --tb=line
 | [CHANGELOG.md](CHANGELOG.md) | 版本历史记录 | EN |
 | [README-CN.md](README-CN.md) | 中文说明 | 中文 |
 | [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
-| [docs/prd/V4.5.16_PRD.md](docs/prd/V4.5.16_PRD.md) | 产品需求文档 | 中文 |
+| [docs/prd/V4.6.1_PRD.md](docs/prd/V4.6.1_PRD.md) | 产品需求文档 | 中文 |
 | [docs/architecture/ARCHITECTURE_V4.md](docs/architecture/ARCHITECTURE_V4.md) | 技术架构文档 | 中文 |
 | [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 统一推进方案 v1.2（7-Role 共识达成） | 中文 |
 | [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（需求/用户故事/验收标准） | 中文 |
@@ -722,6 +722,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最后更新：2026-09-03 | 版本：V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/204+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill） | V4.4.0（5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md)）*
+*最后更新：2026-09-03 | 版本：V4.6.1（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/204+、日期 2026-09-03） | V4.6.1（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill） | V4.4.0（5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md)）*
 
 </details>

@@ -14,17 +14,26 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### V4.6.1-cleanup — release-readiness follow-up
+### Added
+
+### Changed
+
+### Removed
+
+## [4.6.1] - 2026-09-14
+
+### V4.6.1-cleanup — release-readiness follow-up + CI failure repair
 
 - Removed the unused Codecov workflow step while retaining the 70% coverage gate and XML artifact.
 - Audited `type: ignore` and silent exception sites; added reasons or observable debug logging where required.
 - Archived stale top-level planning documents and repaired their references.
 - Made development-extra installation failures and Bandit diagnostics visible in release workflows.
 - Corrected operations documentation to distinguish runtime Prometheus series from CI-only governance gates.
+- Repaired PR #9 CI failures: pinned `mcp<2` across test/e2e/performance/lint jobs; added `httpx` install in e2e; pre-uninstalled local `devsquad` before pip-audit `--path site-packages`; red-team homoglyph opt-out in hidden-content check; fixed lazy-quantifier regex in `check_dependency_sync.py` (had silently dropped bandit/pip-audit).
+- Made e2e subprocess tests portable (replaced hardcoded `/Users/lin/...` paths and `.venv/bin/python` with `Path(__file__).resolve().parents[2]` and `sys.executable`).
 - Local full regression passed: `9321 passed, 6 skipped, 1 warning`.
 - Local E2E passed: `160 passed, 2 skipped, 122 deselected, 1 warning` (`tests/e2e`, `-m e2e`).
-- Commit `c49f71e` was pushed to `origin/v4.6.1-cleanup`; Docker and Helm checks remain CI-only because those tools are unavailable locally.
-- Package release remains pending until the required GitHub Actions workflows validate the latest pushed revision.
+- Authoritative CI green (run 34346508404): all 10 PR-blocking jobs passed.
 
 ## [4.6.0-dev] - 2026-09-05
 
