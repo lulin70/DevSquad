@@ -475,6 +475,8 @@ Restart API server after fix.
 **Source**: `absent(devsquad_v452_perf_p95_ms)` for >1h
 **Module**: PerfBaseline
 
+> The committed CI baseline is not a runtime Prometheus series. This alert only detects missing exporter snapshots; it does not validate CI baseline freshness.
+
 #### Symptoms
 
 - No perf snapshots in metrics endpoint

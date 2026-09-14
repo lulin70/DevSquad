@@ -256,12 +256,14 @@ groups:
 
 ### PerfBaseline Alerts
 
-| ID | Rule | Severity | Threshold | For | Rationale |
-|----|------|----------|-----------|-----|-----------|
-| PB-1 | **Perf regression PR blocked** | **critical** | any increase in `outcome="block"` | 0m | CI gate tripped — release pipeline stalled |
-| PB-2 | p95 latency spike on Mock path | warning | `devsquad_v452_perf_p95_ms{path="mock"}` > +50% baseline | 30m | Mock latency regression |
-| PB-3 | p95 latency spike on Host path | warning | `devsquad_v452_perf_p95_ms{path="host"}` > +50% baseline | 30m | Host bridge latency regression |
-| PB-4 | PerfBaseline snapshot missing | warning | `absent(devsquad_v452_perf_p95_ms)` for >1h | 1h | Collection script not running |
+> `devsquad_v452_perf_p95_ms` and `devsquad_v452_perf_regression_total` are runtime exporter metrics. The comparison baseline used by the CI gate is not exported as `devsquad:perf_baseline_p95:*`; therefore PB-2 and PB-3 remain design references until a real baseline exporter is implemented.
+
+| ID | Rule | Status | Threshold | For | Rationale |
+|----|------|--------|-----------|-----|-----------|
+| PB-1 | **Perf regression PR blocked** | active | any increase in `outcome="block"` | 0m | CI gate tripped — release pipeline stalled |
+| PB-2 | p95 latency spike on Mock path | not enabled | requires an exported mock baseline series | — | Do not compare runtime data with a non-existent recording rule |
+| PB-3 | p95 latency spike on Host path | not enabled | requires an exported host baseline series | — | Do not compare runtime data with a non-existent recording rule |
+| PB-4 | PerfBaseline snapshot missing | active | `absent(devsquad_v452_perf_p95_ms)` for >1h | 1h | Collection or exporter path is unavailable |
 
 ```yaml
 groups:
@@ -276,32 +278,16 @@ groups:
           description: "PR pipeline halted. Either accept the regression (update baseline) or investigate the regression cause."
           runbook: "docs/operations/RUNBOOK.md#perf-regression-blocked"
 
-      - alert: PerfMockLatencySpike
-        expr: |
-          devsquad_v452_perf_p95_ms{path="mock"}
-            > on() devsquad:perf_baseline_p95:mock * 1.5
-        for: 30m
-        labels: { severity: warning, module: PerfBaseline }
-        annotations:
-          summary: "Mock path p95 latency +50% above baseline"
-
-      - alert: PerfHostLatencySpike
-        expr: |
-          devsquad_v452_perf_p95_ms{path="host"}
-            > on() devsquad:perf_baseline_p95:host * 1.5
-        for: 30m
-        labels: { severity: warning, module: PerfBaseline }
-        annotations:
-          summary: "Host bridge path p95 latency +50% above baseline"
-
       - alert: PerfBaselineSnapshotMissing
         expr: absent(devsquad_v452_perf_p95_ms{path=~"mock|host|api"})
         for: 1h
         labels: { severity: warning, module: PerfBaseline }
         annotations:
-          summary: "PerfBaseline snapshots absent for >1h — collection script broken or skipped"
+          summary: "PerfBaseline snapshots absent for >1h — collection or exporter path broken"
           runbook: "docs/operations/RUNBOOK.md#perf-snapshot-missing"
 ```
+
+PB-2/PB-3 must not be enabled until the baseline series is implemented, exposed by `/metrics`, and covered by a real deployment E2E test.
 
 ---
 

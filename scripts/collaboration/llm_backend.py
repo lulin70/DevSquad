@@ -1,25 +1,9 @@
 #!/usr/bin/env python3
-"""
-LLM Backend Abstraction Layer
-
-Provides a pluggable interface for Worker to execute prompts against
-different LLM backends. Default is MockBackend (returns assembled prompt).
-
-Usage:
-    # Default (mock) - returns assembled prompt as-is
-    worker = Worker(..., llm_backend=None)
-
-    # Custom backend (API keys from environment variables)
-    from scripts.collaboration.llm_backend import OpenAIBackend
-    import os
-    backend = OpenAIBackend(api_key=os.environ["OPENAI_API_KEY"], model="gpt-4")
-    worker = Worker(..., llm_backend=backend)
-"""
 
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from .constants import (
     DEFAULT_LLM_MAX_RETRIES,
@@ -28,6 +12,9 @@ from .constants import (
     DEFAULT_LLM_TIMEOUT_SECONDS,
 )
 from .prometheus_metrics import get_metrics
+
+if TYPE_CHECKING:
+    from .moka_backend import MokaAIBackend
 
 # Shared defaults so sync and async backends stay consistent.
 # Magic numbers centralized in .constants — re-exported here for backward compatibility.
@@ -45,7 +32,7 @@ DEFAULT_MODEL_ANTHROPIC = "claude-sonnet-4-20250514"
 _MOKA_BACKEND = None
 
 
-def _get_moka_backend():
+def _get_moka_backend() -> "type[MokaAIBackend]":
     """Lazy import of MokaAIBackend to avoid circular imports."""
     global _MOKA_BACKEND
     if _MOKA_BACKEND is None:
@@ -55,74 +42,24 @@ def _get_moka_backend():
 
 
 class LLMBackend(ABC):
-    """Abstract base class for LLM execution backends.
-
-    V4.5.2: All subclasses must declare a ``path`` attribute (B/A/C)
-    for B/A/C resolve order and reporting.
-    """
-
-    # V4.5.2: Backend execution path identifier.
-    # "B" = HostLLMBridge, "A" = Direct API, "C" = Mock.
     path: str = "C"  # default for backward compat
 
     @abstractmethod
     def generate(self, prompt: str, **kwargs: Any) -> str:
-        """
-        Generate a response from the LLM given a prompt.
-
-        Args:
-            prompt: The assembled prompt/instruction text.
-            **kwargs: Backend-specific parameters (temperature, max_tokens, etc.)
-
-        Returns:
-            str: The LLM's response text.
-        """
         ...
 
     @abstractmethod
     def is_available(self) -> bool:
-        """Check if the backend is properly configured and available."""
         ...
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
-        """
-        Stream a response from the LLM, yielding chunks as they arrive.
-
-        Default implementation falls back to generate() and yields the full response.
-        Subclasses should override for true streaming support.
-
-        Args:
-            prompt: The assembled prompt/instruction text.
-            **kwargs: Backend-specific parameters.
-
-        Yields:
-            str: Chunks of the LLM's response text.
-        """
         yield self.generate(prompt, **kwargs)
 
 
 class MockBackend(LLMBackend):
-    """
-    Default backend that generates a formatted mock analysis.
-
-    Instead of returning raw prompt text, MockBackend produces a readable
-    mock analysis with [MOCK MODE] markers so users can distinguish it
-    from real LLM output.
-    """
-
-    # V4.5.2: C path (honest mock fallback)
     path = "C"
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
-        """Generate a formatted mock analysis for the prompt.
-
-        Args:
-            prompt: User prompt text.
-            **kwargs: Optional role_name and task_description for the mock header.
-
-        Returns:
-            Multi-line mock analysis string with [MOCK MODE] markers.
-        """
         role_name = kwargs.get("role_name", "AI Assistant")
         task_desc = kwargs.get("task_description", "")
         lines = [
@@ -139,48 +76,16 @@ class MockBackend(LLMBackend):
         return "\n".join(lines)
 
     def is_available(self) -> bool:
-        """Check whether this backend is available.
-
-        Returns:
-            Always True; the mock backend requires no external dependencies.
-        """
         return True
 
 
 class TraeBackend(LLMBackend):
-    """
-    Backend for Trae IDE's built-in AI.
-
-    In Trae IDE, the AI host executes the prompt. This backend is a
-    passthrough that signals the host to execute.
-
-    V4.5.2: This is a legacy passthrough backend. For new code, use
-    HostBridgeBackend (path B) instead. TraeBackend retains path
-    "B-passthrough" for backward compatibility but is_available()
-    returns False so it is never auto-selected in B→A→C resolve.
-    """
-
-    # V4.5.2: Legacy passthrough, not auto-selected.
     path = "B-passthrough"
 
     def generate(self, prompt: str, **_kwargs: Any) -> str:
-        """Return the prompt unchanged for the Trae host to execute.
-
-        Args:
-            prompt: User prompt text.
-            **_kwargs: Unused keyword arguments.
-
-        Returns:
-            The prompt string unchanged.
-        """
         return prompt
 
     def is_available(self) -> bool:
-        """Check whether this backend is available.
-
-        V4.5.2: Returns False so TraeBackend is never auto-selected
-        in B→A→C resolve. Use HostBridgeBackend for active host bridge.
-        """
         return False
 
 
@@ -506,10 +411,13 @@ class FallbackBackend(LLMBackend):
         """Check if a backend index is permanently skipped by fuse."""
         return idx in self._skipped
 
-    def _classify(self, exc: Exception) -> str:
+    def _classify(self, exc: BaseException) -> str:
         """Classify exception to a reason string for fuse counting."""
         from .backend_paths import classify_error as _ce
-        return _ce(exc)
+
+        if isinstance(exc, Exception):
+            return _ce(exc)
+        return "unknown"
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         """Generate a completion, failing over to subsequent backends on error.
@@ -670,6 +578,131 @@ class FallbackBackend(LLMBackend):
         return False
 
 
+def _apply_explicit_env_defaults(backend_type: str, kwargs: dict[str, Any]) -> None:
+    """Set env-var defaults (in place) for explicit single-type backends.
+
+    Extracted from create_backend (radon cc D+ refactor, V4.6.1): keeps the
+    moka / openai / anthropic env fallback mapping in one testable unit.
+    """
+    import os
+
+    if backend_type == "moka":
+        kwargs.setdefault("api_key", os.environ.get("MOKA_API_KEY"))
+        # Support both MOKA_BASE_URL (P12.1.1) and MOKA_API_BASE (legacy)
+        kwargs.setdefault(
+            "base_url",
+            os.environ.get("MOKA_BASE_URL") or os.environ.get("MOKA_API_BASE"),
+        )
+        kwargs.setdefault("model", os.environ.get("MOKA_MODEL"))
+    elif backend_type == "openai":
+        kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY"))
+        kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
+        kwargs.setdefault("model", os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI))
+    elif backend_type == "anthropic":
+        kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY"))
+        kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"))
+        kwargs.setdefault("model", os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC))
+
+
+def _create_host_family_backend(backend_type: str, kwargs: dict[str, Any]) -> LLMBackend | None:
+    """Create host / host-v1 / host-v2 backends (V4.5.10).
+
+    Returns None when *backend_type* is not host-family so create_backend can
+    fall through to the next branch. Raises BackendUnavailable when the host
+    bridge is requested but no TRAE/ClaudeCode environment is detected.
+    """
+    if backend_type not in ("host", "host-v1", "host-v2"):
+        return None
+    from .backend_paths import BackendUnavailable
+    from .host_llm_bridge import HostBridgeBackend, HostBridgeBackendV2
+
+    bridge_dir = kwargs.pop("bridge_dir", None)
+    timeout_seconds = kwargs.pop("timeout_seconds", 600)
+    if backend_type == "host":
+        backend = _build_host_bridge_backend(bridge_dir, timeout_seconds)
+        if not backend.is_available():
+            raise BackendUnavailable("Host bridge not available: no TRAE/ClaudeCode environment detected")
+        return backend
+    cls = HostBridgeBackendV2 if backend_type == "host-v2" else HostBridgeBackend
+    backend = cls(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
+    if not backend.is_available():
+        raise BackendUnavailable(
+            f"{backend_type} not available: no TRAE/ClaudeCode environment detected"
+        )
+    return backend
+
+
+def _build_auto_fallback_backend(kwargs: dict[str, Any]) -> LLMBackend:
+    """Build the auto-fallback B→A→C FallbackBackend chain (V4.5.2)."""
+    bridge_dir = kwargs.pop("bridge_dir", None)
+    timeout_seconds = kwargs.pop("timeout_seconds", 600)
+    backends: list[LLMBackend] = []
+    # B path (V4.5.10: v2 by default, flag-controlled)
+    host_bridge = _build_host_bridge_backend(bridge_dir, timeout_seconds)
+    if host_bridge.is_available():
+        backends.append(host_bridge)
+    # A path
+    api_backends = _build_api_backends(kwargs)
+    backends.extend(api_backends)
+    # C path
+    backends.append(MockBackend())
+    if len(backends) == 1:
+        return backends[0]
+    return FallbackBackend(
+        backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS)
+    )
+
+
+def _resolve_auto_single_path(backend_type: str, kwargs: dict[str, Any]) -> LLMBackend:
+    """Resolve 'auto' mode: B→A→C single path resolution, first available wins.
+
+    ``path_only`` (testing override) forces resolution to a specific path.
+    """
+    from .backend_paths import (
+        HOST_ENV_TRIGGERS,
+        BackendPath,
+        BackendUnavailable,
+    )
+
+    dst_path = kwargs.pop("path_only", None)  # testing override
+
+    # B path: host detection (V4.5.10: v2 by default, flag-controlled)
+    if dst_path is None or dst_path == BackendPath.B_HOST_BRIDGE:
+        for env_var in HOST_ENV_TRIGGERS:
+            if os.environ.get(env_var):
+                bridge_dir = kwargs.pop("bridge_dir", None)
+                timeout_seconds = kwargs.pop("timeout_seconds", 600)
+                host_backend = _build_host_bridge_backend(bridge_dir, timeout_seconds)
+                if host_backend.is_available():
+                    return host_backend
+                if dst_path:
+                    raise BackendUnavailable(f"Host bridge unavailable (env={env_var} set but host not ready)")
+                break  # host env set but unavailable → fall through to A
+
+    # A path: API key detection
+    if dst_path is None or dst_path == BackendPath.A_DIRECT_API:
+        api_backends = _build_api_backends(kwargs)
+        if api_backends:
+            # V4.5.2 P-1: wrap with MockBackend tail for graceful degradation.
+            # This means auto mode always returns FallbackBackend([API, Mock])
+            # when API keys are present, so a single API failure falls back
+            # to honest mock rather than raising.
+            backends_with_tail = list(api_backends) + [MockBackend()]
+            return FallbackBackend(
+                backends_with_tail,
+                cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS),
+            )
+        if dst_path:
+            raise BackendUnavailable("Direct API path unavailable: no API keys configured")
+
+    # C path: Mock
+    if dst_path is None or dst_path == BackendPath.C_MOCK:
+        return MockBackend()
+
+    # Unreachable (RESOLVE_ORDER covers all paths)
+    raise BackendUnavailable("No available backend path")
+
+
 def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     """
     Factory function to create an LLM backend by type name.
@@ -724,12 +757,6 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     """
     import os
 
-    from .backend_paths import (
-        HOST_ENV_TRIGGERS,
-        BackendPath,
-        BackendUnavailable,
-    )
-
     _load_dotenv()
 
     env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "auto").lower()
@@ -744,7 +771,9 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         backend_type = env_backend
 
     # === Explicit single-type backends (direct, no chain) ===
-    explicit_backends = {
+    # `Any` value type: entries mix concrete backend classes with the lazy
+    # MokaAIBackend factory; the call result is normalized via cast below.
+    explicit_backends: dict[str, Any] = {
         "mock": MockBackend,
         "trae": TraeBackend,
         "openai": OpenAIBackend,
@@ -752,68 +781,21 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         "moka": _get_moka_backend(),  # V4.5.2 P12.1.1: explicit MokaAIBackend
     }
     if backend_type in explicit_backends:
-        cls = explicit_backends[backend_type]
-        if backend_type == "moka":
-            kwargs.setdefault("api_key", os.environ.get("MOKA_API_KEY"))
-            # Support both MOKA_BASE_URL (P12.1.1) and MOKA_API_BASE (legacy)
-            kwargs.setdefault(
-                "base_url",
-                os.environ.get("MOKA_BASE_URL") or os.environ.get("MOKA_API_BASE"),
-            )
-            kwargs.setdefault("model", os.environ.get("MOKA_MODEL"))
-        elif cls == OpenAIBackend:
-            kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY"))
-            kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
-            kwargs.setdefault("model", os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI))
-        elif cls == AnthropicBackend:
-            kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY"))
-            kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"))
-            kwargs.setdefault("model", os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC))
-        return cls(**kwargs)
+        _apply_explicit_env_defaults(backend_type, kwargs)
+        return cast(LLMBackend, explicit_backends[backend_type](**kwargs))
 
-    # === "host-v1"/"host-v2" (V4.5.10: explicit protocol version) ===
-    if backend_type in ("host-v1", "host-v2"):
-        bridge_dir = kwargs.pop("bridge_dir", None)
-        timeout_seconds = kwargs.pop("timeout_seconds", 600)
-        from .host_llm_bridge import HostBridgeBackend, HostBridgeBackendV2
-        cls = HostBridgeBackendV2 if backend_type == "host-v2" else HostBridgeBackend
-        backend = cls(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
-        if not backend.is_available():
-            raise BackendUnavailable(
-                f"{backend_type} not available: no TRAE/ClaudeCode environment detected"
-            )
-        return backend
-
-    # === "host" → HostBridgeBackend v2 by default (V4.5.10), or raises ===
-    if backend_type == "host":
-        bridge_dir = kwargs.pop("bridge_dir", None)
-        timeout_seconds = kwargs.pop("timeout_seconds", 600)
-        backend = _build_host_bridge_backend(bridge_dir, timeout_seconds)
-        if not backend.is_available():
-            raise BackendUnavailable("Host bridge not available: no TRAE/ClaudeCode environment detected")
-        return backend
+    # === "host" / "host-v1" / "host-v2" (V4.5.10: v2 default, fail-closed flag) ===
+    host_backend = _create_host_family_backend(backend_type, kwargs)
+    if host_backend is not None:
+        return host_backend
 
     # === "fallback" (existing A→C) ===
     if backend_type == "fallback":
         return _build_fallback_backend(kwargs)
 
-    # === "auto-fallback" (new B→A→C with FallbackBackend) ===
+    # === "auto-fallback" (B→A→C with FallbackBackend) ===
     if backend_type == "auto-fallback":
-        bridge_dir = kwargs.pop("bridge_dir", None)
-        timeout_seconds = kwargs.pop("timeout_seconds", 600)
-        backends: list[LLMBackend] = []
-        # B path (V4.5.10: v2 by default, flag-controlled)
-        host_bridge = _build_host_bridge_backend(bridge_dir, timeout_seconds)
-        if host_bridge.is_available():
-            backends.append(host_bridge)
-        # A path
-        api_backends = _build_api_backends(kwargs)
-        backends.extend(api_backends)
-        # C path
-        backends.append(MockBackend())
-        if len(backends) == 1:
-            return backends[0]
-        return FallbackBackend(backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS))
+        return _build_auto_fallback_backend(kwargs)
 
     # === Catch-all for unknown backend types ===
     known_types = {"auto", "host", "host-v1", "host-v2", "mock", "trae", "openai", "anthropic", "moka", "fallback", "auto-fallback"}
@@ -823,45 +805,8 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
             f"Available: auto, host, host-v1, host-v2, mock, trae, openai, anthropic, moka, fallback, auto-fallback"
         )
 
-    # === "auto" — B→A→C single path resolution ===
-    # First available wins; no chain wrapping.
-    dst_path = kwargs.pop("path_only", None)  # testing override
-
-    # B path: host detection (V4.5.10: v2 by default, flag-controlled)
-    if dst_path is None or dst_path == BackendPath.B_HOST_BRIDGE:
-        for env_var in HOST_ENV_TRIGGERS:
-            if os.environ.get(env_var):
-                bridge_dir = kwargs.pop("bridge_dir", None)
-                timeout_seconds = kwargs.pop("timeout_seconds", 600)
-                host_backend = _build_host_bridge_backend(bridge_dir, timeout_seconds)
-                if host_backend.is_available():
-                    return host_backend
-                if dst_path:
-                    raise BackendUnavailable(f"Host bridge unavailable (env={env_var} set but host not ready)")
-                break  # host env set but unavailable → fall through to A
-
-    # A path: API key detection
-    if dst_path is None or dst_path == BackendPath.A_DIRECT_API:
-        api_backends = _build_api_backends(kwargs)
-        if api_backends:
-            # V4.5.2 P-1: wrap with MockBackend tail for graceful degradation.
-            # This means auto mode always returns FallbackBackend([API, Mock])
-            # when API keys are present, so a single API failure falls back
-            # to honest mock rather than raising.
-            backends_with_tail = list(api_backends) + [MockBackend()]
-            return FallbackBackend(
-                backends_with_tail,
-                cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS),
-            )
-        if dst_path:
-            raise BackendUnavailable("Direct API path unavailable: no API keys configured")
-
-    # C path: Mock
-    if dst_path is None or dst_path == BackendPath.C_MOCK:
-        return MockBackend()
-
-    # Unreachable (RESOLVE_ORDER covers all paths)
-    raise BackendUnavailable("No available backend path")
+    # === "auto" — B→A→C single path resolution (first available wins) ===
+    return _resolve_auto_single_path(backend_type, kwargs)
 
 
 def _resolve_host_bridge_version() -> str:

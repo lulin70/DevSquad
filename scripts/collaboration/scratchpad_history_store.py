@@ -146,6 +146,7 @@ class ScratchpadHistoryStore:
         _call_counter_er += 1
 
         with self._lock:
+            conn = self._require_conn()
             # Filter sensitive data before persistence.
             safe_content = _redact_sensitive(entry.content)
             tags_json = json.dumps(entry.tags) if entry.tags else "[]"
@@ -154,7 +155,7 @@ class ScratchpadHistoryStore:
             # present on CompressedScratchpadEntry / LearnedRule.
             created_at = entry.timestamp.isoformat() if entry.timestamp else datetime.now().isoformat()
 
-            self._conn.execute(
+            conn.execute(
                 """
                 INSERT OR REPLACE INTO scratchpad_history
                     (entry_id, scratchpad_id, worker_id, role_id, entry_type,
@@ -173,7 +174,13 @@ class ScratchpadHistoryStore:
                     created_at,
                 ),
             )
-            self._conn.commit()
+            conn.commit()
+
+    def _require_conn(self) -> sqlite3.Connection:
+        """Return the open connection or fail loud (narrow ``_conn`` for mypy)."""
+        if self._conn is None:
+            raise RuntimeError("ScratchpadHistoryStore is not open")
+        return self._conn
 
     def search_history(
         self,
@@ -228,7 +235,7 @@ class ScratchpadHistoryStore:
             sql += " ORDER BY created_at DESC LIMIT ?"
             params.append(limit)
 
-            cursor = self._conn.execute(sql, params)
+            cursor = self._require_conn().execute(sql, params)
             results: list[ScratchpadEntry] = []
             for row in cursor.fetchall():
                 entry = ScratchpadEntry(
@@ -256,12 +263,13 @@ class ScratchpadHistoryStore:
         _call_counter_er += 1
 
         with self._lock:
+            conn = self._require_conn()
             cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
-            cursor = self._conn.execute(
+            cursor = conn.execute(
                 "DELETE FROM scratchpad_history WHERE created_at < ?",
                 (cutoff,),
             )
-            self._conn.commit()
+            conn.commit()
             return cursor.rowcount
 
     @property

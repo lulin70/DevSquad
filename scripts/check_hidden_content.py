@@ -126,6 +126,24 @@ HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 # In .py files, `<!--` is just a string literal, not a real comment.
 HTML_COMMENT_EXTENSIONS = {".md", ".markdown", ".html", ".htm", ".rst", ".adoc"}
 
+# Path substrings that mark a file as a "red-team" attack-vector test.
+# Red-team tests deliberately embed homoglyphs (Cyrillic/Greek), control
+# characters, and other hidden content as attack inputs to verify the
+# detectors actually fire. These embedded attack strings are part of the
+# test contract — they MUST remain in the file to exercise the detector.
+#
+# V4.6.1 (CI hardening): callers can opt in via --allow-homoglyph-in-redteam
+# to skip homoglyph detection for files whose path contains any of these
+# markers. The default behavior (no flag) is unchanged — homoglyphs are
+# still flagged — so existing security posture is preserved unless the
+# CI workflow explicitly enables the opt-in.
+RED_TEAM_PATH_MARKERS = (
+    "red_team.py",       # tests/security/red_team.py
+    "redteam.py",        # alternative naming convention
+    "/redteam/",         # any path under a /redteam/ directory
+    "/red_team/",        # any path under a /red_team/ directory
+)
+
 
 def _should_check_html_comments(path: Path, flag: bool) -> bool:
     """Decide whether HTML comment detection applies to this file.
@@ -144,6 +162,28 @@ def _should_check_html_comments(path: Path, flag: bool) -> bool:
     if not flag:
         return False
     return path.suffix.lower() in HTML_COMMENT_EXTENSIONS
+
+
+def _is_red_team_path(path: Path) -> bool:
+    """Return True if the file path looks like a red-team attack-vector test.
+
+    Red-team tests deliberately embed hidden content (Cyrillic/Greek
+    homoglyphs, zero-width chars, etc.) as attack inputs to verify that
+    detectors actually fire. The embedded attack strings are part of the
+    test contract and MUST remain in the file.
+
+    V4.6.1 (CI hardening): the hidden-content scanner can opt to skip
+    homoglyph detection for these paths via
+    ``--allow-homoglyph-in-redteam``. Default behavior is unchanged.
+
+    Args:
+        path: File path to test.
+
+    Returns:
+        True if any RED_TEAM_PATH_MARKER substring is present in the path.
+    """
+    path_str = str(path)
+    return any(marker in path_str for marker in RED_TEAM_PATH_MARKERS)
 
 
 def _get_char_name(code: int) -> str:
@@ -167,6 +207,7 @@ def scan_line(
     line_no: int,
     check_homoglyphs: bool = True,
     check_html_comments: bool = True,
+    allow_homoglyph_in_redteam: bool = False,
 ) -> list[HiddenFinding]:
     """Scan a single line for hidden content.
 
@@ -176,6 +217,10 @@ def scan_line(
         line_no: 1-based line number.
         check_homoglyphs: Whether to check for Cyrillic/Greek homoglyphs.
         check_html_comments: Whether to check for HTML comments.
+        allow_homoglyph_in_redteam: When True, skip homoglyph detection
+            for files whose path matches a red-team marker (see
+            ``RED_TEAM_PATH_MARKERS``). Red-team tests deliberately embed
+            Cyrillic/Greek homoglyphs as attack inputs.
 
     Returns:
         List of HiddenFinding for this line.
@@ -232,6 +277,9 @@ def scan_line(
         if check_homoglyphs:
             ascii_lookalike = CYRILLIC_HOMOGLYPHS.get(code) or GREEK_HOMOGLYPHS.get(code)
             if ascii_lookalike:
+                # V4.6.1: opt-out for red-team attack-vector tests.
+                if allow_homoglyph_in_redteam and _is_red_team_path(Path(file_path)):
+                    continue
                 findings.append(HiddenFinding(
                     file=file_path, line=line_no, column=col,
                     category=HiddenCategory.HOMOGLYPH,
@@ -260,6 +308,7 @@ def scan_file(
     path: Path,
     check_homoglyphs: bool = True,
     check_html_comments: bool = True,
+    allow_homoglyph_in_redteam: bool = False,
 ) -> list[HiddenFinding]:
     """Scan a single file for hidden content.
 
@@ -269,6 +318,9 @@ def scan_file(
         check_html_comments: Whether to check for HTML comments (only
             applied to markdown/HTML file types — see
             ``_should_check_html_comments``).
+        allow_homoglyph_in_redteam: When True, skip homoglyph detection
+            for files whose path matches a red-team marker (see
+            ``RED_TEAM_PATH_MARKERS``).
 
     Returns:
         List of HiddenFinding in the file.
@@ -288,6 +340,7 @@ def scan_file(
             line, str(path), line_no,
             check_homoglyphs=check_homoglyphs,
             check_html_comments=effective_html_check,
+            allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
         ))
     return findings
 
@@ -297,6 +350,7 @@ def scan_directory(
     extensions: set[str] | None = None,
     check_homoglyphs: bool = True,
     check_html_comments: bool = True,
+    allow_homoglyph_in_redteam: bool = False,
 ) -> list[HiddenFinding]:
     """Scan all files in a directory tree for hidden content.
 
@@ -306,6 +360,9 @@ def scan_directory(
                     If None, scans all text files.
         check_homoglyphs: Whether to check for homoglyphs.
         check_html_comments: Whether to check for HTML comments.
+        allow_homoglyph_in_redteam: When True, skip homoglyph detection
+            for files whose path matches a red-team marker (see
+            ``RED_TEAM_PATH_MARKERS``).
 
     Returns:
         List of HiddenFinding across all scanned files.
@@ -326,6 +383,7 @@ def scan_directory(
         all_findings.extend(scan_file(
             path, check_homoglyphs=check_homoglyphs,
             check_html_comments=check_html_comments,
+            allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
         ))
     return all_findings
 
@@ -366,10 +424,20 @@ def main() -> int:
         action="store_true",
         help="Skip HTML comment detection",
     )
+    parser.add_argument(
+        "--allow-homoglyph-in-redteam",
+        action="store_true",
+        help=(
+            "Skip homoglyph detection for red-team test paths "
+            "(see RED_TEAM_PATH_MARKERS). Red-team tests deliberately embed "
+            "Cyrillic/Greek homoglyphs as attack inputs to verify the detector."
+        ),
+    )
     args = parser.parse_args()
 
     check_homoglyphs = not args.no_homoglyphs
     check_html_comments = not args.no_html_comments
+    allow_homoglyph_in_redteam = args.allow_homoglyph_in_redteam
 
     all_findings: list[HiddenFinding] = []
     for path_str in args.paths:
@@ -380,11 +448,13 @@ def main() -> int:
         if path.is_file():
             all_findings.extend(scan_file(
                 path, check_homoglyphs, check_html_comments,
+                allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
             ))
         else:
             all_findings.extend(scan_directory(
                 path, check_homoglyphs=check_homoglyphs,
                 check_html_comments=check_html_comments,
+                allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
             ))
 
     # Group by category.

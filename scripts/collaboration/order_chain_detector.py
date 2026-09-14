@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import cast
 
 # Module-level Anti-Ghost counter (CI: check_module_activation.py asserts > 0)
 _call_counter_er: int = 0
@@ -127,6 +128,49 @@ class OrderChainDetector:
     def __init__(self) -> None:
         self._local_call_count = 0
 
+    @staticmethod
+    def _pick_role_id(roles: list[str] | None, kwargs: dict[str, object]) -> str | None:
+        """Role to anchor a single-role decision on (user list first, then auto-match)."""
+        if roles:
+            return roles[0]
+        return cast("str | None", kwargs.get("top_matched_role"))
+
+    def _role_meta_single_role(self, roles: list[str]) -> OrderChainDecision | None:
+        """② Role metadata: user-specified role has sequential_only=True."""
+        try:
+            from .models_dispatch import ROLE_REGISTRY
+            for rid in roles:
+                rdef = ROLE_REGISTRY.get(rid)
+                if rdef and getattr(rdef, "sequential_only", False):
+                    return OrderChainDecision(
+                        single_role=True,
+                        source="role_meta",
+                        signal=f"role {rid!r} has sequential_only=True",
+                        role_id=rid,
+                    )
+        except (ImportError, AttributeError):
+            pass
+        return None
+
+    @staticmethod
+    def _heuristic_score(task: str, task_lower: str) -> tuple[int, list[str]]:
+        """③ Accumulate heuristic score from task text hints."""
+        score = 0
+        signals: list[str] = []
+        if _DEBUG_HINTS.search(task_lower):
+            score += 3
+            signals.append("debug+3")
+        if _MATH_HINTS.search(task_lower):
+            score += 3
+            signals.append("math+3")
+        if _REFACTOR_STEP_HINTS.search(task_lower):
+            score += 2
+            signals.append("refactor_step+2")
+        if _BROAD_HINTS.search(task):
+            score += 1
+            signals.append("broad+1")
+        return score, signals
+
     def detect(
         self,
         task: str,
@@ -154,12 +198,11 @@ class OrderChainDetector:
 
         # ① User explicit flag (highest priority)
         if kwargs.get("sequential") or kwargs.get("no_parallel"):
-            role_id = roles[0] if roles else kwargs.get("top_matched_role")
             return OrderChainDecision(
                 single_role=True,
                 source="user",
                 signal="explicit --sequential / sequential=True",
-                role_id=role_id,
+                role_id=self._pick_role_id(roles, kwargs),
             )
 
         if kwargs.get("allow_parallel"):
@@ -171,29 +214,18 @@ class OrderChainDetector:
 
         # mode=sequential is a strong user signal too
         if mode == "sequential":
-            role_id = roles[0] if roles else kwargs.get("top_matched_role")
             return OrderChainDecision(
                 single_role=True,
                 source="user",
                 signal="mode=sequential",
-                role_id=role_id,
+                role_id=self._pick_role_id(roles, kwargs),
             )
 
         # ② Role metadata: user-specified role has sequential_only=True
         if roles:
-            try:
-                from .models_dispatch import ROLE_REGISTRY
-                for rid in roles:
-                    rdef = ROLE_REGISTRY.get(rid)
-                    if rdef and getattr(rdef, "sequential_only", False):
-                        return OrderChainDecision(
-                            single_role=True,
-                            source="role_meta",
-                            signal=f"role {rid!r} has sequential_only=True",
-                            role_id=rid,
-                        )
-            except (ImportError, AttributeError):
-                pass
+            meta_decision = self._role_meta_single_role(roles)
+            if meta_decision is not None:
+                return meta_decision
 
         # ③ Heuristic scan
         task_lower = task.lower() if task else ""
@@ -208,30 +240,16 @@ class OrderChainDetector:
             )
 
         # Accumulate score
-        score = 0
-        signals: list[str] = []
-        if _DEBUG_HINTS.search(task_lower):
-            score += 3
-            signals.append("debug+3")
-        if _MATH_HINTS.search(task_lower):
-            score += 3
-            signals.append("math+3")
-        if _REFACTOR_STEP_HINTS.search(task_lower):
-            score += 2
-            signals.append("refactor_step+2")
-        if _BROAD_HINTS.search(task):
-            score += 1
-            signals.append("broad+1")
+        score, signals = self._heuristic_score(task, task_lower)
 
         if score >= self.HEURISTIC_THRESHOLD:
-            role_id = roles[0] if roles else kwargs.get("top_matched_role")
             signal_str = ", ".join(signals) if signals else f"score={score}"
             return OrderChainDecision(
                 single_role=True,
                 source="heuristic",
                 signal=signal_str,
                 score=score,
-                role_id=role_id,
+                role_id=self._pick_role_id(roles, kwargs),
             )
 
         # ④ Default: allow multi-agent parallel

@@ -14,6 +14,13 @@ import threading
 import time
 from typing import Any
 
+# V4.6.1: the runtime install declares httpx2 (httpx successor) as the
+# default HTTP client. The V4.5.9 async pipeline integration test injects
+# an httpx.AsyncClient into the openai SDK, which performs an
+# ``isinstance(http_client, httpx.AsyncClient)`` check and rejects
+# httpx2.AsyncClient. The CI e2e job installs both packages
+# (`httpx2` for runtime + `httpx` for this test), so importing `httpx`
+# directly here resolves to the real package.
 import httpx
 import pytest
 

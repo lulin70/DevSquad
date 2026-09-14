@@ -553,7 +553,7 @@ def render_theme_toggle() -> bool:
     """,
         unsafe_allow_html=True,
     )
-    return dark_mode
+    return bool(dark_mode)
 
 
 # --- W2-T2: SVG role icons ---

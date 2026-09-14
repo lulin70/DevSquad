@@ -162,9 +162,9 @@ class TaskScaleGate:
         # ② L 触发
         module_count = kwargs.get("module_count")
         file_count = kwargs.get("file_count")
-        if module_count is None:
+        if not isinstance(module_count, int):
             module_count = _count_modules(task)
-        if file_count is None:
+        if not isinstance(file_count, int):
             file_count = _count_files(task)
 
         if module_count >= 3 or file_count >= 5:

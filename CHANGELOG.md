@@ -14,6 +14,18 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### V4.6.1-cleanup — release-readiness follow-up
+
+- Removed the unused Codecov workflow step while retaining the 70% coverage gate and XML artifact.
+- Audited `type: ignore` and silent exception sites; added reasons or observable debug logging where required.
+- Archived stale top-level planning documents and repaired their references.
+- Made development-extra installation failures and Bandit diagnostics visible in release workflows.
+- Corrected operations documentation to distinguish runtime Prometheus series from CI-only governance gates.
+- Local full regression passed: `9321 passed, 6 skipped, 1 warning`.
+- Local E2E passed: `160 passed, 2 skipped, 122 deselected, 1 warning` (`tests/e2e`, `-m e2e`).
+- Commit `c49f71e` was pushed to `origin/v4.6.1-cleanup`; Docker and Helm checks remain CI-only because those tools are unavailable locally.
+- Package release remains pending until the required GitHub Actions workflows validate the latest pushed revision.
+
 ## [4.6.0-dev] - 2026-09-05
 
 ### V4.6.0-dev — Digital Truth 续篇 + 文档治理 PATCH

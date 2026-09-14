@@ -30,10 +30,11 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -113,7 +114,11 @@ def build_exposition_provider() -> Any:
 
     def provider() -> bytes:
         raw = metrics.generate_metrics()
-        return raw if isinstance(raw, bytes) else raw.encode("utf-8")
+        if isinstance(raw, bytes):
+            return raw
+        if isinstance(raw, str):
+            return raw.encode("utf-8")
+        return b""  # metrics unavailable in this environment (caller retries)
 
     return provider
 
@@ -161,14 +166,16 @@ def _wait_prometheus_ready(base_url: str, deadline_s: float) -> None:
 def query_series(base_url: str, query: str, timeout_s: float) -> list[dict[str, Any]]:
     """Poll /api/v1/query until the series has a sample or timeout."""
     deadline = time.monotonic() + timeout_s
-    url = f"{base_url}/api/v1/query?query={urllib.request.quote(query)}"
+    url = f"{base_url}/api/v1/query?query={urllib.parse.quote(query)}"
     last: list[dict[str, Any]] = []
     while time.monotonic() < deadline:
         try:
             with urllib.request.urlopen(url, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             if data.get("status") == "success":
-                result = data.get("data", {}).get("result", [])
+                result = cast(
+                    "list[dict[str, Any]]", data.get("data", {}).get("result", [])
+                )
                 if result:
                     return result
                 last = result

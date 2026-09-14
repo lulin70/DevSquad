@@ -603,7 +603,7 @@ v3_8:
 - 7 角色评估报告: [V3.8_Enhancement_Evaluation_7Role.md](../planning/V3.8_Enhancement_Evaluation_7Role.md)
 - 实施计划: [V3.8_Implementation_Plan.md](../planning/V3.8_Implementation_Plan.md)
 - 架构演进: [V3.8_Architecture_Evolution.md](../architecture/V3.8_Architecture_Evolution.md)
-- 现有路线图: [ROADMAP_V3.7-V4.0.md](../ROADMAP_V3.7-V4.0.md)
+- 现有路线图: [ROADMAP_V3.7-V4.0.md](../_archive/ROADMAP_V3.7-V4.0.md)
 - 成熟度评估: [MATURITY_ASSESSMENT.md](../MATURITY_ASSESSMENT.md)
 - 11 阶段定义: [lifecycle_phases_definition.md](_archive/prd/lifecycle_phases_definition.md)
 

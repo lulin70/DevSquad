@@ -532,7 +532,7 @@ def main(argv: list[str] | None = None) -> int:
     if not hasattr(args, "func"):
         parser.print_help()
         return 1
-    return args.func(args)
+    return int(args.func(args))
 
 
 if __name__ == "__main__":

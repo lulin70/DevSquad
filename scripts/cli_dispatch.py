@@ -312,13 +312,17 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         args.task_positional = None
         print(f"Resuming session '{resume_id}' (task reconstructed from checkpoint).", file=sys.stderr)
 
-    task, err = _validate_dispatch_input(args)
-    if err is not None or task is None:
-        return err if err is not None else 1
+    task, validation_err = _validate_dispatch_input(args)
+    if validation_err is not None:
+        return validation_err
+    if task is None:
+        return 1
 
-    kwargs, err = _build_dispatch_kwargs(args)
-    if err is not None or kwargs is None:
-        return err if err is not None else 1
+    kwargs, kwargs_err = _build_dispatch_kwargs(args)
+    if kwargs_err is not None:
+        return kwargs_err
+    if kwargs is None:
+        return 1
 
     disp = MultiAgentDispatcher(**kwargs)
     adapter = _create_host_adapter(args, disp)

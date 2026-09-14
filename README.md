@@ -649,8 +649,8 @@ python3 -m pytest tests/ -q --tb=line
 | [CHANGELOG.md](CHANGELOG.md) | 版本历史记录 | EN |
 | [README-CN.md](README-CN.md) | 中文说明 | 中文 |
 | [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
-| [docs/PRD.md](docs/PRD.md) | 产品需求文档 | 中文 |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 技术架构文档 | 中文 |
+| [docs/prd/V4.5.16_PRD.md](docs/prd/V4.5.16_PRD.md) | 产品需求文档 | 中文 |
+| [docs/architecture/ARCHITECTURE_V4.md](docs/architecture/ARCHITECTURE_V4.md) | 技术架构文档 | 中文 |
 | [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 统一推进方案 v1.2（7-Role 共识达成） | 中文 |
 | [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（需求/用户故事/验收标准） | 中文 |
 | [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 架构设计（模块边界/接口契约/依赖图） | 中文 |

@@ -649,7 +649,7 @@ graph TD
 - [DESIGN.md](DESIGN.md) — 设计准则 (impeccable 借鉴)
 - [../ROADMAP.md](../ROADMAP.md) — 路线图
 - [../MATURITY_ASSESSMENT.md](../MATURITY_ASSESSMENT.md) — 成熟度评估
-- [../TECH_DEBT_ASSESSMENT_V4.0.md](../TECH_DEBT_ASSESSMENT_V4.0.md) — 技术债评估
+- [_archive/TECH_DEBT_ASSESSMENT_V4.0.md](../_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 技术债评估（V4.0.11 基线；V4.6.1 归档）
 - [../PROJECT_STATUS.md](../PROJECT_STATUS.md) — 项目状态
 - [../audits/V4.1.1_WorkBuddy_Review_Action_Plan.md](../audits/V4.1.1_WorkBuddy_Review_Action_Plan.md) — V4.1.1 评审行动计划
 - [../adr/](../adr/) — Architecture Decision Records (5 个 ADR)

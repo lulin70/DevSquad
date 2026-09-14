@@ -324,7 +324,7 @@ def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
     elif fmt == "Mermaid":
         mermaid_text = viz.to_mermaid(graph)
         try:
-            st.mermaid(mermaid_text)  # type: ignore[attr-defined]  # st.mermaid from streamlit-mermaid extra; try/except handles missing case
+            st.mermaid(mermaid_text)
         except (AttributeError, RuntimeError):
             # Streamlit < 1.29 不支持 st.mermaid
             st.code(mermaid_text, language="mermaid")

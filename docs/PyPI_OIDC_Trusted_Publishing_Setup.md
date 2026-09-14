@@ -8,7 +8,7 @@
 > **PyPI project**: `devsquad`
 > **Workflow**: `.github/workflows/release.yml` (job: `publish-pypi`, environment: `pypi`)
 >
-> Related: [`docs/PYPI_TRUSTED_PUBLISHER_SETUP.md`](./PYPI_TRUSTED_PUBLISHER_SETUP.md)
+> Related: [`docs/_archive/PYPI_TRUSTED_PUBLISHER_SETUP.md`](./_archive/PYPI_TRUSTED_PUBLISHER_SETUP.md)
 > (earlier Chinese-language guide).
 
 ---
@@ -229,5 +229,5 @@ If an OIDC publish fails and you need to ship immediately:
 - [`.github/workflows/release.yml`](../.github/workflows/release.yml)
 - [`pyproject.toml`](../pyproject.toml)
 - [`scripts/check_version_consistency.py`](../scripts/check_version_consistency.py)
-- [`docs/PYPI_TRUSTED_PUBLISHER_SETUP.md`](./PYPI_TRUSTED_PUBLISHER_SETUP.md) (earlier
+- [`docs/_archive/PYPI_TRUSTED_PUBLISHER_SETUP.md`](./_archive/PYPI_TRUSTED_PUBLISHER_SETUP.md) (earlier
   Chinese-language guide)

@@ -24,7 +24,7 @@ try:
     from .permission_guard import ActionType as PGActionType
 except ImportError:
 
-    class PGActionType(Enum):  # type: ignore[no-redef]
+    class PGActionType(Enum):  # type: ignore[no-redef]  # fallback enum when permission_guard import fails; mirrors its ActionType values
         FILE_READ = "file_read"
         FILE_CREATE = "file_create"
         FILE_MODIFY = "file_modify"

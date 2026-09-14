@@ -455,11 +455,12 @@ class TestCLIWithLifecycleIntegration:
     def test_lifecycle_command_in_cli_parser(self):
         """Test lifecycle subcommand exists in CLI parser."""
         import subprocess
+        import sys
 
         # tests/integration/ → project root (two levels up via abspath).
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         result = subprocess.run(
-            [".venv/bin/python", "scripts/cli.py", "--help"],
+            [sys.executable, "scripts/cli.py", "--help"],
             capture_output=True,
             text=True,
             cwd=project_root,

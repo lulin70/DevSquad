@@ -4,7 +4,7 @@
 > **当前实际 (V4.1.1, 2026-07-19)**: 5240+ 测试 / 70.74% 行覆盖率 / 62.32% 分支覆盖率。
 > 覆盖率门禁已对齐至 70%（`pyproject.toml: fail_under = 70`），后续将通过补测 async_coordinator/llm_backend 回升至 75%。
 > 当前测试计划请参阅:
-> [PROJECT_STATUS.md](../PROJECT_STATUS.md) 第 3 节 + [V3.9_Test_Plan.md](../prd/V3.9_Test_Plan.md) + [P2_4_TEST_PLAN.md](../P2_4_TEST_PLAN.md)
+> [PROJECT_STATUS.md](../PROJECT_STATUS.md) 第 3 节 + [V3.9_Test_Plan.md](../prd/V3.9_Test_Plan.md) + [P2_4_TEST_PLAN.md](../_archive/P2_4_TEST_PLAN.md)
 
 > **文档类型**：测试计划文档
 >

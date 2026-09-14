@@ -17,7 +17,7 @@ from collections import deque
 from collections.abc import Iterator, MutableMapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -303,7 +303,7 @@ def _msvcrt_lock(handle: Any, timeout: float) -> None:
     while True:
         try:
             handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)  # type: ignore[attr-defined]  # Windows-only path; mypy's msvcrt stub lacks `locking`
             return
         except OSError:
             if time.monotonic() >= deadline:
@@ -318,7 +318,7 @@ def _msvcrt_unlock(handle: Any) -> None:
 
     try:
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]  # Windows-only path; mypy's msvcrt stub lacks `locking`
     except OSError:
         pass
 
@@ -397,7 +397,7 @@ class FileRiskStore:
         except OSError as exc:
             raise RiskStoreCorruptError(f"Cannot read risk store {target}: {exc}") from exc
         _check_payload(payload, register_id)
-        return payload
+        return cast(dict[str, Any], payload)
 
     def _atomic_write(self, target: Path, payload: dict[str, Any]) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -473,7 +473,7 @@ class FileRiskStore:
     def items_to_payload(self, register_id: str, items: dict[str, Any] | Iterator[Any]) -> dict[str, Any]:
         """Serialize RiskItem objects to schema v1."""
         _inc_call_counter_er()
-        values = items.values() if isinstance(items, dict) else items
+        values = iter(items.values()) if isinstance(items, dict) else items
         payload = _items_to_payload(register_id, values)
         _check_payload(payload, register_id)
         return payload
@@ -537,7 +537,8 @@ class FileRiskStoreTransaction(MutableMapping[str, Any]):
             raise
         return self
 
-    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        # Returning None (not False) is equivalent here: exceptions never suppressed.
         try:
             if exc_type is None:
                 payload = self.payload
@@ -556,7 +557,6 @@ class FileRiskStoreTransaction(MutableMapping[str, Any]):
                 self._handle = None
             self._payload = None
             self._store._active_transactions.discard(self.register_id)
-        return False
 
 
 __all__ = [

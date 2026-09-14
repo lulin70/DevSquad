@@ -64,4 +64,4 @@ V4.1.0 Module 6 (Matt P0-3) 引入 deletion test 作为新的架构审查工具�
 
 ---
 
-> **参考**: [Matt Pocock improve-codebase-architecture SKILL.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/improve-codebase-architecture/SKILL.md) | [D13 N-1 分析](../audits/V4.0.10_Project_Evaluation_Report.md) | [P2-2 取消记录](../P2_P3_PLAN.md)
+> **参考**: [Matt Pocock improve-codebase-architecture SKILL.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/improve-codebase-architecture/SKILL.md) | [D13 N-1 分析](../audits/V4.0.10_Project_Evaluation_Report.md) | [P2-2 取消记录](../_archive/P2_P3_PLAN.md)

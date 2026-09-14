@@ -137,7 +137,7 @@ _CODEGRAPH_AVAILABLE = importlib.util.find_spec("scripts.collaboration.code_know
 if _CODEGRAPH_AVAILABLE:
     from scripts.collaboration.code_knowledge_graph import CodeKnowledgeGraph  # noqa: E402
 else:
-    CodeKnowledgeGraph = None  # type: ignore[assignment, misc]
+    CodeKnowledgeGraph = None  # type: ignore[assignment, misc]  # graceful fallback: module missing when code_knowledge_graph extra is not installed
 
 
 def _default_codegraph_db_path() -> Path:

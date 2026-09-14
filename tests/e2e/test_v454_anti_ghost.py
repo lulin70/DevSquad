@@ -62,10 +62,13 @@ class TestAntiGhostV454:
     def test_full_anti_ghost_gate_passes(self) -> None:
         """Run check_module_activation.py and verify exit 0."""
         import subprocess
+        import sys
+        from pathlib import Path
 
+        project_root = str(Path(__file__).resolve().parents[2])
         result = subprocess.run(
-            [".venv/bin/python", "scripts/check_module_activation.py"],
-            cwd="/Users/lin/trae_projects/DevSquad",
+            [sys.executable, "scripts/check_module_activation.py"],
+            cwd=project_root,
             capture_output=True,
             text=True,
             timeout=30,
@@ -241,11 +244,14 @@ class TestAntiGhostV454:
         import sys
         import tempfile
         import textwrap
+        from pathlib import Path
+
+        project_root = str(Path(__file__).resolve().parents[2])
 
         # Pass path
         result = subprocess.run(
             [sys.executable, "scripts/check_module_activation.py"],
-            cwd="/Users/lin/trae_projects/DevSquad",
+            cwd=project_root,
             capture_output=True,
             text=True,
             timeout=30,
@@ -281,7 +287,7 @@ class TestAntiGhostV454:
             name = f.name
         fail_r = subprocess.run(
             [sys.executable, name],
-            cwd="/Users/lin/trae_projects/DevSquad",
+            cwd=project_root,
             capture_output=True,
             text=True,
             timeout=30,

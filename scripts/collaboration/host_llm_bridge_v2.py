@@ -41,7 +41,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -570,7 +570,7 @@ class HostLLMBridgeV2:
             with os.fdopen(fd, encoding="utf-8") as f:
                 content = f.read()
             fd = -1  # fdopen took ownership
-            return json.loads(content)
+            return cast("dict[str, Any]", json.loads(content))
         except json.JSONDecodeError as exc:
             logger.warning("invalid JSON in %s: %s", path, exc)
             return None

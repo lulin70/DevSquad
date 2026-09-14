@@ -31,7 +31,7 @@ import os
 import re
 import time
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from .backend_paths import BackendUnavailable
 from .llm_backend import LLMBackend
@@ -128,7 +128,7 @@ def _try_read_json(path: str) -> dict[str, Any] | None:
     try:
         with open(path, encoding="utf-8") as f:
             content = f.read()
-        return json.loads(content)
+        return cast("dict[str, Any]", json.loads(content))
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -525,7 +525,7 @@ class HostBridgeBackend(LLMBackend):
             self._record_failure(reason)
             raise RuntimeError(f"HostLLMBridge failure: {reason}")
 
-        return result.get("output", "")
+        return cast("str", result.get("output", ""))
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Any:
         """Streaming not natively supported; fall back to generate()."""
@@ -571,7 +571,8 @@ class HostBridgeBackendV2(HostBridgeBackend):
     ) -> None:
         from .host_llm_bridge_v2 import HostLLMBridgeV2
 
-        self.bridge = HostLLMBridgeV2(bridge_dir=bridge_dir)
+        # Widened on purpose: v2 backend swaps in the hardened protocol object.
+        self.bridge: Any = HostLLMBridgeV2(bridge_dir=bridge_dir)
         self.timeout = timeout_seconds
         self._failures: dict[str, int] = {}
         self._fuse_skip = False
