@@ -146,7 +146,11 @@ jobs:
           # A failed `.[dev]` install must stop the job so missing tools cannot
           # produce a false-green validation result (V4.6.1).
           pip install ".[dev]"
-          pip install pytest pytest-asyncio pytest-timeout httpx2 mcp openai anthropic streamlit Pillow fakeredis redis
+          # V4.6.1: mirror test.yml Final Release Gate — httpx is required by
+          # tests/integration/test_v459_async_pipeline.py (injects httpx.AsyncClient
+          # into the openai SDK; the SDK does isinstance(..., httpx.AsyncClient)
+          # and rejects httpx2), mcp<2 pins the FastMCP 1.x API.
+          pip install pytest pytest-asyncio pytest-timeout httpx2 httpx "mcp<2" openai anthropic streamlit Pillow fakeredis redis
           pip install bandit[toml] pip-audit ruff==0.15.20 mypy==2.2.0
       - name: Run all unit + integration + contract (no external)
         run: |
