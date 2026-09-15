@@ -20,7 +20,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
-## [4.6.1] - 2026-09-14
+## [4.5.17] - 2026-09-14
 
 ### V4.6.1-cleanup — release-readiness follow-up + CI failure repair
 

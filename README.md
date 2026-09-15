@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.6.1 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badge 9400+/204+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation) | V4.5.9 (Unified Gather Execution Core + Native Async Worker: 执行层统一 gather 化 + Worker 原生异步) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badge 9400+/204+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation) | V4.5.9 (Unified Gather Execution Core + Native Async Worker: 执行层统一 gather 化 + Worker 原生异步) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills)</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-9400%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.6.1-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.17-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -542,7 +542,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 4.6.1
+# Expected: devsquad 4.5.17
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -597,7 +597,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 4.6.1
+python3 scripts/cli.py --version       # Expected: DevSquad 4.5.17
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
@@ -649,7 +649,7 @@ python3 -m pytest tests/ -q --tb=line
 | [CHANGELOG.md](CHANGELOG.md) | 版本历史记录 | EN |
 | [README-CN.md](README-CN.md) | 中文说明 | 中文 |
 | [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
-| [docs/prd/V4.6.1_PRD.md](docs/prd/V4.6.1_PRD.md) | 产品需求文档 | 中文 |
+| [docs/prd/V4.6.1_cleanup_PRD.md](docs/prd/V4.6.1_cleanup_PRD.md) | 产品需求文档 | 中文 |
 | [docs/architecture/ARCHITECTURE_V4.md](docs/architecture/ARCHITECTURE_V4.md) | 技术架构文档 | 中文 |
 | [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 统一推进方案 v1.2（7-Role 共识达成） | 中文 |
 | [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（需求/用户故事/验收标准） | 中文 |
@@ -722,6 +722,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-09-03 | Version: V4.6.1 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badges 9400+/204+, date 2026-09-03) | V4.6.1 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI) | V4.5.9 (Unified Gather Execution Core + Native Async Worker) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills) | V4.4.0 (5 new enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
+*Last updated: 2026-09-14 | Version: V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badges 9400+/204+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI) | V4.5.9 (Unified Gather Execution Core + Native Async Worker) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills) | V4.4.0 (5 new enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
 
 </details>

@@ -71,6 +71,21 @@ class CodeGraphStorage:
         self._lock = threading.Lock()
         self._conn: sqlite3.Connection = sqlite3.connect(str(db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        # V4.5.17: WAL + NORMAL fsync + busy_timeout. Default SQLite uses
+        # journal=DELETE + full fsync, which forces a disk sync per commit.
+        # On a cold CI runner building scripts/collaboration/ (88 files ×
+        # 5+ upsert-commits per file) this pushes a single build over the
+        # 60s pytest-timeout cap and fails the perf gate. WAL keeps the
+        # journal append-only (no per-commit file rewrite) and NORMAL
+        # defers fsync to checkpoint boundary, reducing commit cost by
+        # ~10x. busy_timeout makes concurrent readers wait instead of
+        # raising immediately. The -wal/-shm sidecar files live next to
+        # the db and are cleaned by callers that rmtree the tempdir.
+        with self._lock:
+            pragma_cur = self._conn.cursor()
+            pragma_cur.execute("PRAGMA journal_mode=WAL")
+            pragma_cur.execute("PRAGMA synchronous=NORMAL")
+            pragma_cur.execute("PRAGMA busy_timeout=5000")
         self._create_tables()
 
     def _create_tables(self) -> None:
