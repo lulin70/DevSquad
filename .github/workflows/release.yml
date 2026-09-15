@@ -33,7 +33,12 @@ jobs:
       - name: Install build tooling
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          # V4.5.17: pyyaml is required by check_version_consistency.py's
+          # SKILL.md frontmatter gate (V4.5.15 skill-registration check).
+          # The build job does not install `.[dev]`, so without pyyaml the
+          # frontmatter check fails closed with ModuleNotFoundError and
+          # blocks the release.
+          pip install build twine pyyaml
 
       - name: Run version consistency check
         run: python scripts/check_version_consistency.py --strict
