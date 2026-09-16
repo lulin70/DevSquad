@@ -181,9 +181,14 @@ jobs:
         run: |
           pip install -r requirements.lock
           # Audit third-party packages from site-packages; the local project is
-          # not published on PyPI and cannot be resolved by pip-audit's --local
-          # package lookup during CI.
-          pip-audit --path "$(python -c 'import site; print(site.getsitepackages()[0])')" --strict --progress-spinner off
+          # not published on PyPI and cannot be resolved by pip-audit's package
+          # lookup during CI. --skip-editable excludes the locally installed
+          # editable `devsquad` project (installed via `pip install ".[dev]"`
+          # at L67) so pip-audit focuses only on truly external site-packages.
+          # The requirements.lock audit on the next line is unaffected because
+          # the lock file never lists devsquad itself.
+          SITE_PKG="$(python -c 'import site; print(site.getsitepackages()[0])')"
+          pip-audit --path "$SITE_PKG" --strict --skip-editable --progress-spinner off
           pip-audit -r requirements.lock --strict --progress-spinner off
       - name: Run Docker and Compose checks
         run: |
