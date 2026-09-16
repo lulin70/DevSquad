@@ -152,6 +152,12 @@ jobs:
           # and rejects httpx2), mcp<2 pins the FastMCP 1.x API.
           pip install pytest pytest-asyncio pytest-timeout httpx2 httpx "mcp<2" openai anthropic streamlit Pillow fakeredis redis
           pip install bandit[toml] pip-audit ruff==0.15.20 mypy==2.2.0
+          # V4.5.17: actions/setup-python@v5's pre-installed setuptools on the
+          # ubuntu-latest runner is pinned to 79.0.1, which has 2 known
+          # vulnerabilities (PYSEC-2026-3447, PYSEC-2026-3448, fix in 83.0.0).
+          # Upgrade before pip-audit so the requirements.lock scan does not
+          # fail-closed on a CI-base-image issue unrelated to our project.
+          pip install --upgrade "setuptools>=83"
       - name: Run all unit + integration + contract (no external)
         run: |
           python -m pytest tests/unit/ tests/integration/ tests/contract/ \
