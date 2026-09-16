@@ -180,15 +180,18 @@ jobs:
       - name: Run pip-audit hard check
         run: |
           pip install -r requirements.lock
-          # Audit third-party packages from site-packages; the local project is
-          # not published on PyPI and cannot be resolved by pip-audit's package
-          # lookup during CI. --skip-editable excludes the locally installed
-          # editable `devsquad` project (installed via `pip install ".[dev]"`
-          # at L67) so pip-audit focuses only on truly external site-packages.
-          # The requirements.lock audit on the next line is unaffected because
-          # the lock file never lists devsquad itself.
+          # The earlier `pip install ".[dev]"` registered devsquad as an
+          # editable install into site-packages. pip-audit's --strict scan
+          # resolves every site-packages project against PyPI; since 4.5.17
+          # isn't published yet, devsquad raises a ModuleNotFoundError
+          # under --strict semantics and the job fails closed. Uninstalling
+          # the editable project before the scan keeps the audit focused
+          # on third-party packages without weakening --strict coverage.
+          # The requirements.lock scan is unaffected because the lock never
+          # lists devsquad itself.
+          pip uninstall devsquad -y || true
           SITE_PKG="$(python -c 'import site; print(site.getsitepackages()[0])')"
-          pip-audit --path "$SITE_PKG" --strict --skip-editable --progress-spinner off
+          pip-audit --path "$SITE_PKG" --strict --progress-spinner off
           pip-audit -r requirements.lock --strict --progress-spinner off
       - name: Run Docker and Compose checks
         run: |
