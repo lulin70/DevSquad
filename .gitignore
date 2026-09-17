@@ -168,6 +168,10 @@ completions_cache.json
 .devsquad_autonomous/
 .devsquad_loop/
 
+# --- pytest-benchmark runtime artifacts (created by pytest --benchmark-only) ---
+.benchmarks/
+.benchmark/
+
 # V4.5.3 P12.2 — runtime artifacts (anti-ghost test output)
 artifacts/
 logs/
