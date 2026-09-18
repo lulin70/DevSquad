@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devsquad"
-version = "4.5.18"
+version = "4.5.19"
 description = "Production-Ready Multi-Role AI Task Orchestrator"
 readme = "README.md"
 license = {text = "MIT"}
@@ -63,6 +63,7 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "pytest-cov>=4.1",
+    "pytest-rerunfailures>=14.0",  # V4.5.19 — flaky-test retry support (used by `pytest.mark.flaky`)
     "ruff==0.15.20",
     "mypy==2.2.0",
     "black==26.5.1",
@@ -94,6 +95,7 @@ all = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "pytest-cov>=4.1",
+    "pytest-rerunfailures>=14.0",
     "ruff>=0.4.0",
     "mypy>=1.0",
     "black>=23.0",
@@ -218,9 +220,10 @@ addopts = [
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "external: marks tests that require external network/API access",
+    "flaky: marks tests as flaky; rerun up to N times (pytest-rerunfailures)",
     "e2e: end-to-end tests requiring full stack",
     "integration: integration tests (cross-module, no external deps)",
-    "external: tests requiring real external services (LLM API, Redis, PostgreSQL)",
     "benchmark: performance benchmark tests",
     "unit: marks tests as unit tests",
     "smoke: marks tests as release smoke tests",

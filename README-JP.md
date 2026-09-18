@@ -3,14 +3,14 @@
 <p align="center">
   <strong>🎯 「単一のAIアシスタント」を「7人AI専門チーム」にアップグレード</strong>
   <br>
-  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.5.17（V4.6.1-cleanup: PR #9 CI 修復 + e2e 移植性 + リリース準備） | V4.5.16（Housekeeping + Digital Truth PATCH：18ファイル SSOT 同期、バッジ 9400+/204+、日付 2026-09-03） | V4.5.15（Skill 登録ゲート + Prometheus E2E ツール + 3層 TRAE キャッシュ同期） | V4.5.10（HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation） | V4.5.9（Unified Gather Execution Core + Native Async Worker: 実行レイヤー統一 gather 化 + Worker ネイティブ非同期） | V4.5.8（FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters） | V4.5.7（Coeffect Async + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（クロスセッション連続性 + プロトコルネイティブSkill）</em>
+  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.5.19（Flaky テスト整理：ダッシュボード遅延ゲートを 5 回中央値 + pytest-rerunfailures に変更） | V4.5.18（パフォーマンス拡張：SQLite PRAGMA を ccr_store/history_manager へ展開 + SkillRegistry スレッドセーフティ修正） | V4.5.17（V4.6.1-cleanup: PR #9 CI 修復 + e2e 移植性 + リリース準備） | V4.5.16（Housekeeping + Digital Truth PATCH：18ファイル SSOT 同期、バッジ 9400+/204+、日付 2026-09-03） | V4.5.15（Skill 登録ゲート + Prometheus E2E ツール + 3層 TRAE キャッシュ同期） | V4.5.10（HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation） | V4.5.9（Unified Gather Execution Core + Native Async Worker: 実行レイヤー統一 gather 化 + Worker ネイティブ非同期） | V4.5.8（FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters） | V4.5.7（Coeffect Async + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（クロスセッション連続性 + プロトコルネイティブSkill）</em>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-9400%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.18-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.19-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -542,7 +542,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # バージョンを確認
 devsquad --version
-# Expected: devsquad 4.5.18
+# Expected: devsquad 4.5.19
 
 # テストを実行
 pytest tests/ -v --tb=short
@@ -597,7 +597,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### クイックスモークテスト（< 30秒）
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad V4.5.18
+python3 scripts/cli.py --version       # Expected: DevSquad V4.5.19
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```
@@ -722,6 +722,6 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最終更新: 2026-09-14 | バージョン: V4.5.17（V4.6.1-cleanup: PR #9 CI 修復 + e2e 移植性 + リリース準備） | V4.5.16（Housekeeping + Digital Truth PATCH：18ファイル SSOT 同期、バッジ 9400+/204+、日付 2026-09-03） | V4.5.15（Skill 登録ゲート + Prometheus E2E ツール + 3層 TRAE キャッシュ同期） | V4.5.10（HostLLMBridge v2 production wiring + --async CLI） | V4.5.9（Unified Gather Execution Core + Native Async Worker） | V4.5.8（FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters） | V4.5.7（Coeffect Async + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（クロスセッション連続性 + プロトコルネイティブSkill） | V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
+*最終更新: 2026-09-18 | バージョン: V4.5.19（Flaky テスト整理：ダッシュボード遅延ゲートを 5 回中央値 + pytest-rerunfailures に変更） | V4.5.18（パフォーマンス拡張：SQLite PRAGMA を ccr_store/history_manager へ展開 + SkillRegistry スレッドセーフティ修正） | V4.5.17（V4.6.1-cleanup: PR #9 CI 修復 + e2e 移植性 + リリース準備） | V4.5.16（Housekeeping + Digital Truth PATCH：18ファイル SSOT 同期、バッジ 9400+/204+、日付 2026-09-03） | V4.5.15（Skill 登録ゲート + Prometheus E2E ツール + 3層 TRAE キャッシュ同期） | V4.5.10（HostLLMBridge v2 production wiring + --async CLI） | V4.5.9（Unified Gather Execution Core + Native Async Worker） | V4.5.8（FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters） | V4.5.7（Coeffect Async + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（クロスセッション連続性 + プロトコルネイティブSkill） | V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
 
 </details>
