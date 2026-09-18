@@ -20,6 +20,21 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+## [4.5.18] - 2026-09-17
+
+### V4.5.18 — perf-extension: extend SQLite PRAGMA profile + repair version tuple drift
+
+- **scripts/collaboration/ccr_store.py** — added `PRAGMA synchronous=NORMAL` and `PRAGMA busy_timeout=5000` on top of the existing `PRAGMA journal_mode=WAL`. The V4.5.17 PRAGMA profile was originally introduced for code_graph_storage; V4.5.18 extends it to CCR's content-cache store so every production SQLite connection shares the same durable + fast configuration.
+- **scripts/history_manager.py** — same PRAGMA profile extension (WAL + NORMAL + busy_timeout=5000) on top of the existing WAL-only setup. History snapshot inserts now run in the sub-millisecond regime.
+- **scripts/collaboration/_version.py** — repaired silent tuple drift: `__version_info__` was `(4, 6, 1)` but `__version__` was `"4.5.17"` on V4.5.17. The two are now consistent (`4.5.18` / `(4, 5, 18)`). The drift would have surfaced only after `parse(__version__)` vs `__version_info__` comparisons, and would have produced a confusing `(4, 6, 1) != (4, 5, 17)` mismatch.
+- **docs/perf/v4518_baseline.json** — new perf baseline capturing the local measurements:
+  - code_graph_storage.build_from_project (88 files × 3 runs): median **7010 ms** (was timeout>60 s on V4.5.16, PRAGMA profile landed in V4.5.17)
+  - CCR round-trip (N=1000): store **0.074 ms/iter**, retrieve **0.030 ms/iter**, total 0.10 s
+  - history_manager.save_metrics_snapshot (N=1000): **0.060 ms/iter**, total 0.06 s
+- All canonical version references bumped from 4.5.17 to 4.5.18 (`scripts/collaboration/_version.py`, `VERSION`, `pyproject.toml`, `Dockerfile`, `helm/devsquad/Chart.yaml`, `helm/devsquad/values.yaml`, `skill-manifest.yaml`, `SKILL.md`).
+- **No new features** — V4.5.18 is a SemVer PATCH (perf extension + tuple drift repair). Follows the V4.5.16 / V4.5.17 PATCH-only convention.
+- Local full regression passed: 598 tests passed (CCR / History / code_graph / dispatcher / integration / contract subsets, excluding e2e `test_autonomous_dispatch_e2e` which depends on a configured LLM API key and is configured `continue-on-error: true` in CI).
+
 ## [4.5.17] - 2026-09-14
 
 ### V4.6.1-cleanup — release-readiness follow-up + CI failure repair

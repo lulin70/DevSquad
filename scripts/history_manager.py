@@ -79,7 +79,16 @@ class HistoryManager:
         """Get database connection with row factory."""
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")  # Better concurrency
+        # V4.5.18: mirror the V4.5.17 code_graph_storage PRAGMA profile.
+        # Default SQLite uses journal=DELETE + full fsync which is ~10x
+        # slower per commit and starves the perf gate on cold CI runners
+        # when history_manager is forced to record many snapshots in a
+        # single test. WAL keeps journal append-only, NORMAL defers fsync
+        # to checkpoint boundary, busy_timeout makes concurrent writers
+        # wait instead of failing-fast under the 60s pytest-timeout.
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
 

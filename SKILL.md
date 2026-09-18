@@ -1,9 +1,9 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.17
+version: 4.5.18
 description: |
-  DevSquad V4.5.17 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.18 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.

@@ -10,7 +10,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
   <img alt="Tests" src="https://img.shields.io/badge/Tests-9400%2B%20passing-brightgreen" />
-  <img alt="Version" src="https://img.shields.io/badge/V4.5.17-success" />
+  <img alt="Version" src="https://img.shields.io/badge/V4.5.18-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
   <img alt="Security" src="https://img.shields.io/badge/Security-5%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-success" />
@@ -542,7 +542,7 @@ devsquad dispatch -t "设计用户认证系统"
 ```bash
 # 检查版本
 devsquad --version
-# 预期: devsquad 4.5.17
+# 预期: devsquad 4.5.18
 
 # 运行测试
 pytest tests/ -v --tb=short
@@ -597,7 +597,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### 快速冒烟测试（< 30 秒）
 ```bash
-python3 scripts/cli.py --version       # 预期: DevSquad V4.5.17
+python3 scripts/cli.py --version       # 预期: DevSquad V4.5.18
 python3 scripts/cli.py status          # 预期: System ready
 python3 scripts/cli.py roles           # 预期: 列出 7 个核心角色
 ```

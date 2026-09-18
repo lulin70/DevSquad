@@ -66,7 +66,15 @@ class CCRStore:
             str(self._db_path),
             check_same_thread=False,
         )
+        # V4.5.18: extend the V4.5.17 PRAGMA profile (originally added for
+        # code_graph_storage) to CCR's content-cache store. WAL keeps
+        # journal append-only, NORMAL defers fsync to checkpoint (still
+        # durable on power-loss for committed transactions), and
+        # busy_timeout=5000 makes concurrent store/retrieve calls queue
+        # instead of raising immediately when the writer holds the lock.
         conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         return conn
 
     def _init_schema(self) -> None:

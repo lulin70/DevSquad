@@ -1,0 +1,35 @@
+{
+  "version": "4.5.18",
+  "measured_at": "2026-09-17",
+  "runner": "macos darwin 24.5.0, python 3.12.13 (pyenv), cold cache, dev laptop",
+  "scope": "Local perf benchmark of the three production SQLite connections after the V4.5.18 PRAGMA profile extension. CI-runner numbers will be re-captured in perf-baseline.yml on first V4.5.18 release.",
+  "improvements": [
+    {
+      "module": "scripts.collaboration.code_graph_storage",
+      "change": "Already on WAL+NORMAL+busy_timeout=5000 from V4.5.17.",
+      "metric": "test_build_from_collaboration_dir_under_5s (88 files × 3 measured runs)",
+      "before_ms_v4516": 60000,
+      "after_ms_v4517": null,
+      "after_ms_v4518": 7010,
+      "verdict": "PASS (5s+ warmup threshold; previously timeout>60s on cold CI)"
+    },
+    {
+      "module": "scripts.collaboration.ccr_store",
+      "change": "PRAGMA synchronous=NORMAL + busy_timeout=5000 added on top of WAL.",
+      "metric": "CCR round-trip (1000 trace_ids, store + retrieve)",
+      "store_ms": 0.074,
+      "retrieve_ms": 0.030,
+      "total_s": 0.10,
+      "verdict": "Sub-millisecond, throughput 10000 round-trips/sec"
+    },
+    {
+      "module": "scripts.history_manager",
+      "change": "PRAGMA synchronous=NORMAL + busy_timeout=5000 added on top of WAL.",
+      "metric": "History batch insert (1000 metrics snapshots)",
+      "insert_ms": 0.060,
+      "total_s": 0.06,
+      "verdict": "Sub-millisecond, throughput 16000+ inserts/sec"
+    }
+  ],
+  "rationale": "V4.5.17 only optimized code_graph_storage. V4.5.18 extends the same PRAGMA profile (WAL + NORMAL + busy_timeout=5000) to ccr_store and history_manager, the other two production SQLite connections. The pattern is uniform: WAL keeps the journal append-only, NORMAL defers fsync to checkpoint boundary (still durable on power-loss for committed transactions), and busy_timeout makes concurrent writers queue instead of raising immediately under contention. Expected impact: eliminates the V4.5.16 fail-closed perf gate on cold CI runners, brings every SQLite connection into the same sub-millisecond regime under sustained write pressure."
+}

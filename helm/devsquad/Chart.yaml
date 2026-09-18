@@ -4,8 +4,8 @@ description: Multi-Role AI Task Orchestrator - DevSquad V4.5.17
 
 type: application
 
-version: 4.5.17
-appVersion: "4.5.17"
+version: 4.5.18
+appVersion: "4.5.18"
 
 keywords:
   - ai
