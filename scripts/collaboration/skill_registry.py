@@ -2,6 +2,7 @@
 import hashlib
 import json
 import logging
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -12,6 +13,15 @@ if TYPE_CHECKING:
     from .protocols import SkillProvider
 
 logger = logging.getLogger(__name__)
+
+
+# V4.5.18: reentrant lock protecting the in-memory `skills` / `handlers` dicts
+# and the `_save` iteration. Without it, concurrent register()/unregister()
+# callers can race on `for s in self.skills.values()` inside `_save`,
+# raising `RuntimeError: dictionary changed size during iteration` and
+# causing the integration test
+# `tests/integration/test_skill_registry_integration.py::test_06_concurrent_register_is_thread_safe`
+# to fail intermittently on fast CI runners.
 
 
 @dataclass
@@ -89,6 +99,8 @@ class SkillRegistry:
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.skills: dict[str, SkillEntry] = {}
         self.handlers: dict[str, Callable] = {}
+        # V4.5.18: reentrant lock guarding skills/handlers mutation + _save iteration.
+        self._lock = threading.RLock()
         self._load()
         # V4.5.0: protocol-native skill provider. Default = BuiltinSkillProvider,
         # which wraps the existing import-based registry (100% backward compatible).
@@ -154,10 +166,11 @@ class SkillRegistry:
         """
         if ".." in skill.skill_id or "/" in skill.skill_id or "\\" in skill.skill_id:
             raise ValueError(f"Invalid skill_id: {skill.skill_id}")
-        self.skills[skill.skill_id] = skill
-        if handler:
-            self.handlers[skill.skill_id] = handler
-        self._save()
+        with self._lock:
+            self.skills[skill.skill_id] = skill
+            if handler:
+                self.handlers[skill.skill_id] = handler
+            self._save()
         logger.info("Skill registered: %s (%s)", skill.name, skill.skill_id)
         return skill.skill_id
 
@@ -170,12 +183,13 @@ class SkillRegistry:
         Returns:
             True when the skill existed and was removed, False otherwise.
         """
-        if skill_id in self.skills:
-            del self.skills[skill_id]
-            self.handlers.pop(skill_id, None)
-            self._save()
-            return True
-        return False
+        with self._lock:
+            if skill_id in self.skills:
+                del self.skills[skill_id]
+                self.handlers.pop(skill_id, None)
+                self._save()
+                return True
+            return False
 
     def get(self, skill_id: str) -> SkillEntry | None:
         """Retrieve a skill entry by id.
@@ -186,7 +200,8 @@ class SkillRegistry:
         Returns:
             The matching SkillEntry, or None when not found.
         """
-        return self.skills.get(skill_id)
+        with self._lock:
+            return self.skills.get(skill_id)
 
     def execute(self, skill_id: str, **kwargs: Any) -> Any:
         """Execute a registered skill by id.
@@ -201,17 +216,18 @@ class SkillRegistry:
         Raises:
             ValueError: When the skill or its handler is not found.
         """
-        skill = self.skills.get(skill_id)
-        if not skill:
-            raise ValueError(f"Skill not found: {skill_id}")
+        with self._lock:
+            skill = self.skills.get(skill_id)
+            if not skill:
+                raise ValueError(f"Skill not found: {skill_id}")
 
-        handler = self.handlers.get(skill_id)
-        if not handler:
-            raise ValueError(f"No handler for skill: {skill_id}")
+            handler = self.handlers.get(skill_id)
+            if not handler:
+                raise ValueError(f"No handler for skill: {skill_id}")
 
-        skill.usage_count += 1
-        skill.last_used = datetime.now().isoformat()
-        self._save()
+            skill.usage_count += 1
+            skill.last_used = datetime.now().isoformat()
+            self._save()
 
         return handler(**kwargs)
 
@@ -227,16 +243,17 @@ class SkillRegistry:
         Returns:
             List of matching SkillEntry objects sorted by confidence desc.
         """
-        results = list(self.skills.values())
-        if category:
-            results = [s for s in results if s.category == category]
-        if tags:
-            results = [s for s in results if any(t in s.tags for t in tags)]
-        if query:
-            q = query.lower()
-            results = [s for s in results if q in s.name.lower() or q in s.description.lower()]
-        results.sort(key=lambda s: s.confidence, reverse=True)
-        return results
+        with self._lock:
+            results = list(self.skills.values())
+            if category:
+                results = [s for s in results if s.category == category]
+            if tags:
+                results = [s for s in results if any(t in s.tags for t in tags)]
+            if query:
+                q = query.lower()
+                results = [s for s in results if q in s.name.lower() or q in s.description.lower()]
+            results.sort(key=lambda s: s.confidence, reverse=True)
+            return results
 
     def propose_from_result(
         self, name: str, description: str, category: str = "", confidence: float = 0.0, tags: list[str] | None = None
@@ -272,10 +289,11 @@ class SkillRegistry:
         Returns:
             List of skill dictionaries produced by :meth:`SkillEntry.to_dict`.
         """
-        skills = list(self.skills.values())
-        if category:
-            skills = [s for s in skills if s.category == category]
-        return [s.to_dict() for s in skills]
+        with self._lock:
+            skills = list(self.skills.values())
+            if category:
+                skills = [s for s in skills if s.category == category]
+            return [s.to_dict() for s in skills]
 
     def get_stats(self) -> dict[str, Any]:
         """Return summary statistics for the registry.
@@ -284,14 +302,15 @@ class SkillRegistry:
             Dictionary with total skill count, per-category counts, and
             the number of skills with registered handlers.
         """
-        categories: dict[str, int] = {}
-        for s in self.skills.values():
-            categories[s.category] = categories.get(s.category, 0) + 1
-        return {
-            "total_skills": len(self.skills),
-            "categories": categories,
-            "with_handlers": len(self.handlers),
-        }
+        with self._lock:
+            categories: dict[str, int] = {}
+            for s in self.skills.values():
+                categories[s.category] = categories.get(s.category, 0) + 1
+            return {
+                "total_skills": len(self.skills),
+                "categories": categories,
+                "with_handlers": len(self.handlers),
+            }
 
     def _load(self) -> None:
         registry_file = self.storage_path / "registry.json"
@@ -308,7 +327,8 @@ class SkillRegistry:
     def _save(self) -> None:
         registry_file = self.storage_path / "registry.json"
         try:
-            data = {"skills": [s.to_dict() for s in self.skills.values()]}
+            with self._lock:
+                data = {"skills": [s.to_dict() for s in self.skills.values()]}
             with open(registry_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except (OSError, TypeError, ValueError) as e:

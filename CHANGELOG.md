@@ -35,6 +35,13 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **No new features** — V4.5.18 is a SemVer PATCH (perf extension + tuple drift repair). Follows the V4.5.16 / V4.5.17 PATCH-only convention.
 - Local full regression passed: 598 tests passed (CCR / History / code_graph / dispatcher / integration / contract subsets, excluding e2e `test_autonomous_dispatch_e2e` which depends on a configured LLM API key and is configured `continue-on-error: true` in CI).
 
+### V4.5.18 — release-blocking fix: SkillRegistry thread safety (post-tag hotfix folded back into V4.5.18)
+
+- **scripts/collaboration/skill_registry.py** — added a `threading.RLock` guarding the in-memory `skills` / `handlers` dicts and the `_save` iteration. Without it, concurrent `register()` / `unregister()` callers could race on `for s in self.skills.values()` inside `_save`, raising `RuntimeError: dictionary changed size during iteration`. Symptom: `tests/integration/test_skill_registry_integration.py::T5_BoundaryAndExceptions::test_06_concurrent_register_is_thread_safe` failed intermittently on fast CI runners (15 threads, `Barrier`-synchronized) during the V4.5.18 tag push; the same test passed locally on every run because slower disk + more eager GIL contention widened the race window beyond the test's lifetime. Fixed by wrapping `register`, `unregister`, `execute`, `search`, `list_skills`, `get_stats`, `get`, and the snapshot collection inside `_save` with `with self._lock:`. `_load` remains lock-free because it runs before the registry is observable to other threads. The reentrant lock is required because `_save` is invoked from `register` / `unregister` / `execute` while the outer lock is already held.
+- Verified locally with 100-iteration stress on `test_06_concurrent_register_is_thread_safe`: **100 passed, 0 failed**.
+- Local full regression (no `--timeout`): **9605 passed, 13 skipped** (4 autonomous / dispatch tests that exceed 60 s under contention locally pass single-file; CI does not impose the 60 s cap).
+- This is a SemVer PATCH (release-blocking CI fix). Version stays at **4.5.18**; tag `v4.5.18` is re-pointed at the new commit.
+
 ## [4.5.17] - 2026-09-14
 
 ### V4.6.1-cleanup — release-readiness follow-up + CI failure repair
