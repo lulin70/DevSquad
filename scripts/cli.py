@@ -405,6 +405,13 @@ Environment Variables (API keys are read from env vars only, never command line)
         "--roles", "-r", nargs="+", choices=ALL_ROLE_IDS, help="Roles to involve (default: auto-match)"
     )
     p_dispatch.add_argument("--mode", "-m", choices=MODES, default="auto", help="Execution mode (default: auto)")
+    p_dispatch.add_argument(
+        "--changeset",
+        nargs="+",
+        default=None,
+        metavar="FILE",
+        help="File paths to review. Only used with --mode review: >5 files engage deterministic bundling (grouped by directory + imports)",
+    )
     p_dispatch.add_argument("--format", "-f", choices=FORMATS, default="markdown", help="Output format")
     p_dispatch.add_argument(
         "--backend",

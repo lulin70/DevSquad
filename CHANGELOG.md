@@ -20,6 +20,29 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+## [4.5.20] - 2026-09-22
+
+### V4.5.20 — version-SSOT truth + deterministic review bundling (MINOR)
+
+**Two outward-facing changes (must-read).**
+
+- **New dispatch mode + input contract** — `mode="review"` and `changeset` are now real inputs (`--mode review --changeset <files...>` in the CLI; `dispatch(..., mode="review", changeset=[...])` in the Python API). Neither existed before, which is why `Coordinator.apply_file_bundling()` had no production caller for 19 releases despite V4.5.0 announcing the capability. Bundle splits are observable via `result.details["review_bundles"]` and the CLI JSON output. RBAC: `review` allowed for admin/operator, viewer unchanged (`auto` only).
+- **Review-mode bundling behaviour (>5 files)** — with more than 5 files `FileBundler` now engages and groups files by directory + imports, so **the bundle count follows the grouping, not the file count** (measured: 8 files across 3 directories → 3 bundles; the same 8 files in one directory → 1 bundle). `changeset=None`, `mode != "review"`, or ≤5 files keep V4.5.19 behaviour exactly.
+
+**Fixed**
+
+- `skills/*/skill-manifest.yaml` — 11 drifted version fields (8 `version` + 3 `version_source`, up to 18 releases behind) aligned with `scripts/collaboration/_version.py`; `skills/dispatch` description corrected from "4 modes" to "5 modes".
+- `scripts/check_version_consistency.py` — new blocking checks for sub-skill manifests (`_check_sub_skill_manifests()`), manifest list read at runtime (no hard-coded count); coverage 64 → 77 checks. Negative test proves the gate goes red on drift.
+- `scripts/check_module_activation.py` — the anti-ghost gate previously bumped 30+ counters through direct calls **before** any production pipeline ran, so `counter > 0` was self-satisfying for every module (exactly why the FileBundler ghost stayed green for 19 releases). A production probe now runs first and `PRODUCTION_WIRED_COUNTERS` must be bumped by it; out-of-set modules are reported honestly as `PASS (self-call)`. Non-positive counters still fail closed — that pre-existing contract was preserved by fixing the source, not the test.
+- Test-name discipline — `check_module_activation.py` now scans the real `tests/e2e` tree and fails any test whose name claims activation without reaching a production entry point (AST-based; mentioning `dispatch()` in a docstring is not evidence). The pseudo-e2e that `import`ed `FileBundler` directly was deleted and replaced by tests that reach `dispatch()`.
+- Documentation truth — the unconditional claim ">5 files → multiple bundles" appeared in six external documents; all corrected to the measured grouping rule (README ×3, this file, EXAMPLES, INSTALL). `docs/release_notes/V4.5.0_RELEASE_NOTES.md` carries an in-place amendment to its overstated FileBundler verification.
+
+**Known boundaries** — `--dry-run` does not produce bundle splits (`prepare_execution()` is never reached); MCP `multiagent_dispatch` does not expose `changeset`; 27 anti-ghost counters remain self-call driven and are now labelled as such.
+
+**Tests** — CI-authoritative two-segment run on branch `v4.5.20-patch`: unit `2 failed, 7919 passed, 25 skipped, 6 deselected in 461.82s` (the 2 failures are `tests/external/test_real_llm.py` items that need outbound access to `api.openai.com`; `tests/external` has zero changes this release and neither tests nor source were modified), e2e+integration `1631 passed, 81 deselected in 399.19s`. Gates: `check_version_consistency.py` 73 passed / 4 skipped / 0 failed; `check_module_activation.py` 8/8 production-verified + 27 self-call verified. Real CLI walkthrough: `dispatch --mode review --changeset ... --format json` → 3 bundles, exit 0.
+
+**Version** — 4.5.19 → 4.5.20 (MINOR, SemVer-compliant: new backward-compatible inputs). Details: `docs/release_notes/V4.5.20_RELEASE_NOTES.md`, `docs/prd/V4.5.20_ocr-learnings_PRD.md`.
+
 ## [4.5.19] - 2026-09-18
 
 ### V4.5.19 — flaky-test cleanup: statistical latency gate for dashboard panels
@@ -1067,7 +1090,7 @@ Merging V4.4.3 + V4.4.4 + V4.5.0 changes into a single release. 10 new features,
 - SkillProvider Protocol (protocol-native skill architecture, Builtin + MCP providers)
 - OutputStyle (action-first report format, from i-have-adhd insights)
 - SessionResume CLI (`devsquad sessions list` + `dispatch --resume`)
-- FileBundler (deterministic file bundling for review mode, from open-code-review)
+- FileBundler (deterministic file bundling for review mode, from open-code-review; invoked via `dispatch --mode review --changeset <files...>` — **wired in V4.5.20**; >5 files engage bundling, grouped by directory + imports, so the bundle count follows the grouping and not the file count)
 - SKILL.md modular split (1216→282 lines + 3 reference docs)
 - VISION documents (docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md)
 

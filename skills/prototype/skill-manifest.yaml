@@ -1,5 +1,5 @@
 name: prototype
-version: "4.2.1"
+version: "4.5.20"
 description: |
   PrototypeSkill — Rapid prototype generation for hypothesis validation.
   Produces a minimal runnable prototype (ui/logic/api) before committing to
@@ -91,7 +91,7 @@ integration:
   internal_imports:
     - "scripts.collaboration.micro_task_planner.MicroTaskPlanner"
   base_class: "skills.registry.BaseSkill"
-  version_source: "scripts.collaboration._version (4.2.1)"
+  version_source: "scripts.collaboration._version (4.5.20)"
   coordination:
     skillifier: "PrototypeSkill produces artifacts; Skillifier extracts patterns from execution history. No overlap."
     intent_skill: "Intent skill detects user intent; PrototypeSkill produces runnable artifacts. No overlap."

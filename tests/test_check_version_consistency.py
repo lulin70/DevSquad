@@ -729,5 +729,97 @@ class T13_MainIntegrationContentDiff(unittest.TestCase):
         self.assertIn(exit_code, (0, 1))
 
 
+class T16_SubSkillManifestChecks(unittest.TestCase):
+    """T16: V4.5.20 (F2) — skills/*/skill-manifest.yaml version drift is blocking.
+
+    Before this gate existed, eight ``version:`` fields and three
+    ``version_source:`` fields drifted up to 18 releases behind the SSOT while
+    ``check_version_consistency.py`` stayed green. These tests cover the real
+    repo, a drifted ``version:``, a drifted ``version_source:``, and the
+    end-to-end exit code of ``main()``.
+    """
+
+    def _write_manifest(self, tmpdir: str, skill: str, body: str) -> None:
+        skill_dir = Path(tmpdir) / skill
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        (skill_dir / "skill-manifest.yaml").write_text(body, encoding="utf-8")
+
+    def test_real_repo_manifests_pass_and_count_is_dynamic(self) -> None:
+        import scripts.check_version_consistency as mod
+
+        expected = mod.get_canonical_version()
+        self.assertIsNotNone(expected)
+        results = mod._check_sub_skill_manifests(expected)  # type: ignore[arg-type]
+        manifests = sorted(mod.SUB_SKILL_DIR.glob("*/skill-manifest.yaml"))
+        self.assertTrue(manifests, "Expected sub-skill manifests in skills/")
+        self.assertTrue(all(r.passed for r in results), [r.detail for r in results if not r.passed])
+        # Check count is derived from disk (no hardcoded total): one per manifest
+        # plus one extra per manifest that declares version_source.
+        expected_checks = 0
+        for manifest in manifests:
+            text = manifest.read_text(encoding="utf-8")
+            expected_checks += 1
+            if mod.SUB_SKILL_VERSION_SOURCE_RE.search(text):
+                expected_checks += 1
+        self.assertEqual(len(results), expected_checks)
+        self.assertGreater(expected_checks, len(manifests))
+
+    def test_drifted_version_field_fails(self) -> None:
+        import scripts.check_version_consistency as mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._write_manifest(tmpdir, "staletool", 'name: staletool\nversion: "3.7.2"\n')
+            with mock.patch.object(mod, "SUB_SKILL_DIR", Path(tmpdir)):
+                results = mod._check_sub_skill_manifests("4.5.19")
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0].passed)
+        self.assertIn("drift", results[0].detail)
+        self.assertEqual(results[0].found, "3.7.2")
+
+    def test_drifted_version_source_field_fails(self) -> None:
+        import scripts.check_version_consistency as mod
+
+        body = (
+            "name: staletool\n"
+            'version: "4.5.19"\n'
+            "integration:\n"
+            '  version_source: "scripts.collaboration._version (3.7.2)"\n'
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._write_manifest(tmpdir, "staletool", body)
+            with mock.patch.object(mod, "SUB_SKILL_DIR", Path(tmpdir)):
+                results = mod._check_sub_skill_manifests("4.5.19")
+        self.assertEqual(len(results), 2)
+        self.assertTrue(results[0].passed, results[0].detail)
+        self.assertFalse(results[1].passed)
+        self.assertIn("version_source drift", results[1].detail)
+
+    def test_missing_version_key_fails(self) -> None:
+        import scripts.check_version_consistency as mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._write_manifest(tmpdir, "nokey", "name: nokey\n")
+            with mock.patch.object(mod, "SUB_SKILL_DIR", Path(tmpdir)):
+                results = mod._check_sub_skill_manifests("4.5.19")
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0].passed)
+
+    def test_main_exits_nonzero_when_manifest_drifts(self) -> None:
+        """Negative gate test: a tampered manifest must turn the check red."""
+        import io
+
+        import scripts.check_version_consistency as mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._write_manifest(tmpdir, "staletool", 'name: staletool\nversion: "0.0.1"\n')
+            captured = io.StringIO()
+            with mock.patch.object(mod, "SUB_SKILL_DIR", Path(tmpdir)), \
+                 mock.patch("sys.stdout", new_callable=lambda: captured), \
+                 mock.patch("sys.argv", ["prog"]):
+                exit_code = main()
+        self.assertEqual(exit_code, 1, captured.getvalue())
+        self.assertIn("staletool", captured.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

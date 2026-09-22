@@ -56,7 +56,7 @@ _load_env_file()
 ROLES = get_cli_role_list()
 ALL_ROLE_IDS = list(ROLE_REGISTRY.keys()) + ROLES
 ALL_ROLE_IDS = sorted(set(ALL_ROLE_IDS))
-MODES = ["auto", "parallel", "sequential", "consensus"]
+MODES = ["auto", "parallel", "sequential", "consensus", "review"]
 FORMATS = ["markdown", "json", "compact", "structured", "detailed"]
 BACKENDS = ["auto", "mock", "trae", "openai", "anthropic"]
 LIFECYCLE_COMMANDS = ["spec", "plan", "build", "test", "review", "ship"]

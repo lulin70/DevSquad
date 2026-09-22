@@ -291,58 +291,169 @@ print(json.dumps({"count": len(skills), "skills": list(skills.keys())[:5]}))
 # Feature 5: FileBundler
 # ---------------------------------------------------------------------------
 
-def test_e2e_file_bundler_activates_in_review_mode():
-    """Journey-7: FileBundler activates when mode='review' and changeset is large.
+def test_e2e_review_mode_bundles_via_cli_dispatch():
+    """Journey-7a: ``dispatch --mode review --changeset`` really splits files into bundles.
 
-    V4.5.0 FileBundler groups related files into review units.
-    Activates only in review mode with >5 files. The actual API is
-    ``bundle(files, max_per_bundle=10)`` returning ``list[list[str]]``.
+    V4.5.20 (F4 fix): the previous version of this test was a false E2E — it
+    imported ``FileBundler`` directly and never exercised the review pipeline.
+    This test drives the real CLI dispatch path (subprocess) and reads the
+    bundles out of the dispatch result, so a broken wiring fails the test.
+    """
+    env = os.environ.copy()
+    env["PYTHONPATH"] = _PROJECT_ROOT_STR
+    env["PYTHONUNBUFFERED"] = "1"
+    env["DEVSQUAD_LLM_BACKEND"] = "mock"
+    env["NO_COLOR"] = "1"
+    env["TERM"] = "dumb"
+
+    tmpdir = tempfile.mkdtemp(prefix="devsquad_review_bundles_")
+    try:
+        # 8 files spread across 3 directories → 3 bundles (threshold is >5 files).
+        files: list[str] = []
+        for sub, count in (("pkg_a", 3), ("pkg_b", 3), ("pkg_c", 2)):
+            for i in range(count):
+                path = Path(tmpdir) / sub / f"model_{i}.py"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(f"# {sub} model {i}\n", encoding="utf-8")
+                files.append(str(path))
+
+        cmd = [
+            sys.executable,
+            str(_CLI_PATH),
+            "dispatch",
+            "-t",
+            "review this changeset",
+            "--mode",
+            "review",
+            "--changeset",
+            *files,
+            "--format",
+            "json",
+        ]
+        result = subprocess.run(
+            cmd,
+            cwd=_PROJECT_ROOT_STR,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+        )
+        assert result.returncode == 0, (
+            f"review dispatch failed: exit={result.returncode}\nSTDERR: {result.stderr[:800]}"
+        )
+        data = json.loads(result.stdout)
+        bundles = data.get("review_bundles")
+        assert bundles, f"No review_bundles in dispatch output: {result.stdout[:500]}"
+        assert len(bundles) >= 2, f"Expected >=2 bundles for 8 files, got {len(bundles)}: {bundles}"
+        reviewed = [f for bundle in bundles for f in bundle]
+        assert sorted(reviewed) == sorted(files), (
+            f"Bundles must cover every file exactly once: {sorted(reviewed)} vs {sorted(files)}"
+        )
+
+        # Control: the same changeset without review mode produces no bundles.
+        control = subprocess.run(
+            [
+                sys.executable,
+                str(_CLI_PATH),
+                "dispatch",
+                "-t",
+                "review this changeset",
+                "--changeset",
+                *files,
+                "--format",
+                "json",
+            ],
+            cwd=_PROJECT_ROOT_STR,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+        )
+        assert control.returncode == 0, f"control dispatch failed: {control.stderr[:500]}"
+        assert json.loads(control.stdout).get("review_bundles") is None, (
+            "Non-review mode must not emit review_bundles (backward compatibility)"
+        )
+
+        # Control 2: review mode WITHOUT a changeset keeps the V4.5.19 plan.
+        no_changeset = subprocess.run(
+            [
+                sys.executable,
+                str(_CLI_PATH),
+                "dispatch",
+                "-t",
+                "review this changeset",
+                "--mode",
+                "review",
+                "--format",
+                "json",
+            ],
+            cwd=_PROJECT_ROOT_STR,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+        )
+        assert no_changeset.returncode == 0, f"no-changeset dispatch failed: {no_changeset.stderr[:500]}"
+        assert json.loads(no_changeset.stdout).get("review_bundles") is None, (
+            "review mode without --changeset must not emit review_bundles"
+        )
+    finally:
+        import shutil
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def test_e2e_review_mode_triggers_file_bundler_counter():
+    """Journey-7b: FileBundler's activation counter is incremented by the dispatch pipeline.
+
+    Anti-ghost criterion (PRD W0-4 / D7): the counter must be 0 *before* the
+    pipeline runs and >0 *after* — proving the module is reached through the
+    production path (``dispatch(mode="review", changeset=...)``), not merely
+    imported by the test itself.
     """
     env = os.environ.copy()
     env["PYTHONPATH"] = _PROJECT_ROOT_STR
     env["PYTHONUNBUFFERED"] = "1"
     env["DEVSQUAD_LLM_BACKEND"] = "mock"
 
-    tmpdir = tempfile.mkdtemp(prefix="devsquad_filebundler_")
+    tmpdir = tempfile.mkdtemp(prefix="devsquad_bundler_counter_")
     try:
-        # Create 8 fake files to trigger bundling (>5 threshold)
-        files = [f"{tmpdir}/model_{i}.py" for i in range(8)]
-        for f in files:
-            Path(f).write_text(f"# model {f}\n", encoding="utf-8")
+        files = [f"{tmpdir}/pkg_{i // 3}/model_{i}.py" for i in range(6)]
         files_list_str = ", ".join(f'"{f}"' for f in files)
-
         script = f"""
-import json, sys, os
-from scripts.collaboration.file_bundler import FileBundler
+import json
+from scripts.collaboration import file_bundler
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-bundler = FileBundler()
-# FileBundler.bundle(files, max_per_bundle=10) → list[list[str]]
-bundles = bundler.bundle(
-    files=[{files_list_str}],
-    max_per_bundle=5,
-)
+before = file_bundler._call_counter_er
+disp = MultiAgentDispatcher(enable_warmup=False)
+try:
+    result = disp.dispatch("review changeset", mode="review", changeset=[{files_list_str}])
+    after = file_bundler._call_counter_er
+    bundles = result.details.get("review_bundles")
+finally:
+    disp.shutdown()
 print(json.dumps({{
-    "bundle_count": len(bundles),
-    "files_per_bundle": [len(b) for b in bundles],
-    "total_files": sum(len(b) for b in bundles),
+    "counter_before": before,
+    "counter_after": after,
+    "success": result.success,
+    "bundle_count": len(bundles) if bundles else 0,
 }}))
 """
-        result = subprocess.run(
+        proc = subprocess.run(
             [sys.executable, "-c", script],
             cwd=_PROJECT_ROOT_STR,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=180,
             env=env,
         )
-        assert result.returncode == 0, f"FileBundler failed: {result.stderr[:300]}"
-        data = json.loads(result.stdout)
-        assert data["bundle_count"] > 0, f"No bundles created: {result.stdout}"
-        assert data["files_per_bundle"], f"Empty bundle: {result.stdout}"
-        # All 8 files should be distributed across bundles
-        assert data["total_files"] == 8, (
-            f"Expected 8 files bundled, got {data['total_files']}: {data}"
+        assert proc.returncode == 0, f"counter probe failed: {proc.stderr[:500]}"
+        data = json.loads(proc.stdout.strip().splitlines()[-1])
+        assert data["counter_before"] == 0, f"Counter should start at 0: {data}"
+        assert data["counter_after"] > data["counter_before"], (
+            f"Bundler counter was not incremented by the dispatch pipeline: {data}"
         )
+        assert data["bundle_count"] >= 2, f"Expected >=2 bundles for 6 files: {data}"
     finally:
         import shutil
         shutil.rmtree(tmpdir, ignore_errors=True)

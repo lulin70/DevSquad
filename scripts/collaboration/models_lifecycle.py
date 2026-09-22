@@ -27,6 +27,9 @@ class ExecutionPlan:
         batches: List of TaskBatch objects (parallel/sequential groups)
         total_tasks: Total number of tasks across all batches
         estimated_parallelism: Estimated parallelism level 0.0-1.0
+        review_bundles: V4.5.20 — File bundles produced by review mode
+            (``Coordinator.plan_review_bundles``). ``None`` for every other
+            dispatch mode (backward compatible).
 
     Example:
         >>> plan = ExecutionPlan(
@@ -39,6 +42,7 @@ class ExecutionPlan:
     batches: list[Any] = field(default_factory=list)
     total_tasks: int = 0
     estimated_parallelism: float = 0.0
+    review_bundles: list[list[str]] | None = None
 
 
 class BatchMode(Enum):

@@ -100,7 +100,7 @@ class DispatchRBAC:
     }
 
     # All valid dispatch modes (from SKILL.md dispatch mode table).
-    ALL_DISPATCH_MODES: set[str] = {"auto", "parallel", "sequential", "consensus"}
+    ALL_DISPATCH_MODES: set[str] = {"auto", "parallel", "sequential", "consensus", "review"}
 
     # Mapping from CLI short IDs to full role IDs (from SKILL.md).
     ROLE_ALIASES: dict[str, str] = {
@@ -124,7 +124,7 @@ class DispatchRBAC:
         ),
         "operator": (
             ALL_DISPATCH_ROLES - {"security"},
-            {"auto", "parallel", "sequential"},
+            {"auto", "parallel", "sequential", "review"},
         ),
         "viewer": (
             {"architect", "product-manager", "ui-designer"},
@@ -165,7 +165,7 @@ class DispatchRBAC:
         roles:
             List of dispatch role IDs requested (e.g. ``["architect", "coder"]``).
         mode:
-            Dispatch mode (one of auto/parallel/sequential/consensus).
+            Dispatch mode (one of auto/parallel/sequential/consensus/review).
 
         Returns
         -------

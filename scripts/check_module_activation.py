@@ -44,6 +44,22 @@ V4.5.13: Verified HostLLMBridge v1 counter is wired into HostLLMBridge
     ghost-prone. Direct create_request() into a temp bridge_dir now bumps
     both v1 and v2 counters.
 
+V4.5.20 (D7): the ``counter > 0`` assertion was vacuous — this gate bumped the
+    counters itself, so a module with no production caller still passed. A
+    production probe (real ``dispatch()`` calls, ``auto`` + ``review``) now runs
+    *before* any direct call; modules listed in ``PRODUCTION_WIRED_COUNTERS``
+    must be bumped by that probe or they are reported as
+    ``FAIL (self-call only)`` and the gate fails. All other entries keep their
+    legacy semantics but are reported as ``PASS (self-call)`` so the report no
+    longer implies production evidence it does not have.
+
+V4.5.20 (F4 delivery requirement 4): test discipline — an e2e test whose *name*
+    claims activation/wiring must reach a production entry point; a test that
+    only imports the module and calls it directly is exactly the "名为 e2e 实
+    为直接 import" defect that hid F4 for nineteen releases. The
+    ``find_unbacked_activation_claims`` scan below reports such tests and fails
+    the gate.
+
 Usage:
     python3 scripts/check_module_activation.py
     CI: python3 scripts/check_module_activation.py || exit 1
@@ -51,14 +67,195 @@ Usage:
 
 from __future__ import annotations
 
+import ast
 import contextlib
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, ".")
+
+# V4.5.20 (D7): counters that must be bumped by a *production pipeline entry
+# point*, not by this gate's own direct calls.
+#
+# Why this exists: until V4.5.19 the gate called every module directly and then
+# asserted ``_call_counter_er > 0``. The gate satisfied its own assertion, so
+# the check was vacuous — which is exactly how ``FileBundler_V450`` stayed
+# green for nineteen releases while ``Coordinator.apply_file_bundling`` had no
+# production caller (finding F4). The production probe below runs *before* any
+# direct call, so a counter already > 0 at that point can only have been bumped
+# by production code.
+#
+# Keys are the report names used in ``counters``; values are the module paths
+# whose ``_call_counter_er`` attribute is read. Only modules whose documented
+# claim is "this runs inside the dispatch pipeline" belong here.
+PRODUCTION_WIRED_COUNTERS: dict[str, str] = {
+    "DoraMetricsCollector_V440.P2.1": "scripts.collaboration.dora_metrics_collector",
+    "GapAnalyzer_V440.P1.2": "scripts.collaboration.gap_analyzer",
+    "ErrorBudgetTracker_V440.P1.1": "scripts.collaboration.error_budget_tracker",
+    "RiskRegister_V440.P0.1": "scripts.collaboration.risk_register",
+    "ScratchpadHistoryStore_V443": "scripts.collaboration.scratchpad_history_store",
+    "ApprovalGate_V451.1": "scripts.collaboration.approval_gate",
+    "ConnectorFramework_V451.2": "scripts.collaboration.connector_framework",
+    "FileBundler_V450": "scripts.collaboration.file_bundler",
+}
+
+# 6 files across 3 directories — exceeds the ``len(files) > 5`` guard inside
+# ``apply_file_bundling`` so the review-mode probe yields >= 2 bundles.
+REVIEW_PROBE_CHANGESET: list[str] = [
+    "src/pkg_0/mod_0.py",
+    "src/pkg_0/mod_1.py",
+    "src/pkg_0/mod_2.py",
+    "src/pkg_1/mod_3.py",
+    "src/pkg_1/mod_4.py",
+    "src/pkg_2/mod_5.py",
+]
+
+
+# V4.5.20 (F4 delivery requirement 4): an e2e test whose name claims
+# activation/wiring must actually reach a production entry point. Names are the
+# user-visible claim; the body is the evidence.
+E2E_TEST_DIR = Path("tests/e2e")
+ACTIVATION_CLAIM_RE = re.compile(
+    r"activates?|_wired|anti_ghost|production|increments?.{0,20}counter",
+    re.IGNORECASE,
+)
+# Concrete entry points a claim may be backed by:
+#   * ``dispatch`` / ``MultiAgentDispatcher`` / ``AsyncCoordinator`` — the
+#     dispatch pipeline itself (``AsyncCoordinator`` handles the async path).
+#   * ``Scratchpad`` — the cross-session production surface used by the
+#     V4.4.3 modules, which are not reached through ``dispatch()``.
+#   * ``subprocess`` running this gate — the anti-ghost tests verify the gate.
+PRODUCTION_ENTRY_FUNC_NAMES = frozenset({
+    "dispatch",
+    "MultiAgentDispatcher",
+    "AsyncMultiAgentDispatcher",
+    "AsyncCoordinator",
+    "Scratchpad",
+})
+PRODUCTION_ENTRY_SUBPROCESS_TARGET = "check_module_activation"
+_PRODUCTION_ENTRY_CALL_ATTRS = frozenset({"dispatch", "dispatch_sync"})
+_SUBPROCESS_CALL_ATTRS = frozenset({"run", "check_output", "Popen", "call"})
+
+
+def _referenced_names(node: ast.AST) -> set[str]:
+    """Collect every Name/Attribute/arg identifier referenced inside ``node``."""
+    found: set[str] = set()
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Name):
+            found.add(sub.id)
+        elif isinstance(sub, ast.Attribute):
+            found.add(sub.attr)
+        elif isinstance(sub, ast.arg):
+            found.add(sub.arg)
+            if sub.annotation is not None:
+                found |= _referenced_names(sub.annotation)
+    return found
+
+
+def _reaches_production_entry(fn: ast.FunctionDef) -> bool:
+    """Return True if ``fn`` can reach a production entry point.
+
+    Only real call sites / references count — a mention inside a docstring or a
+    string literal does not, which is what makes this check non-vacuous.
+    """
+    if _referenced_names(fn) & PRODUCTION_ENTRY_FUNC_NAMES:
+        return True
+    for sub in ast.walk(fn):
+        if not isinstance(sub, ast.Call):
+            continue
+        attr = getattr(sub.func, "attr", None)
+        if attr in _PRODUCTION_ENTRY_CALL_ATTRS:
+            return True
+        if attr in _SUBPROCESS_CALL_ATTRS and (
+            PRODUCTION_ENTRY_SUBPROCESS_TARGET in ast.unparse(sub)
+        ):
+            return True
+    return False
+
+
+def find_unbacked_activation_claims(
+    root: Path | None = None,
+) -> list[tuple[str, str]]:
+    """Find e2e tests whose activation claim has no production entry point.
+
+    Args:
+        root: Directory holding e2e test files. Defaults to ``tests/e2e``
+            relative to the current working directory.
+
+    Returns:
+        Sorted list of ``(relative file path, test function name)`` pairs for
+        tests that claim activation yet never reach a production entry point.
+        Files that cannot be parsed are skipped — a syntax error is pytest's
+        problem, not this gate's.
+    """
+    search_root = root if root is not None else E2E_TEST_DIR
+    violations: list[tuple[str, str]] = []
+    for path in sorted(search_root.rglob("*.py")):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except (SyntaxError, UnicodeDecodeError, OSError):
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            if not node.name.startswith("test_"):
+                continue
+            if not ACTIVATION_CLAIM_RE.search(node.name):
+                continue
+            if not _reaches_production_entry(node):
+                violations.append((str(path.relative_to(search_root.parent.parent)), node.name))
+    return sorted(violations)
+
+
+def _production_probe() -> dict[str, int]:
+    """Run real dispatch pipelines and report the counters they bumped.
+
+    Dispatch is the production entry point (``MultiAgentDispatcher.dispatch``),
+    not a module-level API call, so the deltas returned here are evidence that
+    a counter is reachable from an executing pipeline.
+
+    ``auto`` covers the V4.4.0/V4.4.3 collectors wired in the dispatch epilogue;
+    ``review`` covers the V4.5.0 file bundler wired in W0-3.
+
+    Returns:
+        Mapping of report name → counter delta caused by the probe. A 0 means
+        the production path did not reach that module.
+    """
+    import importlib
+
+    names = list(PRODUCTION_WIRED_COUNTERS)
+
+    def _read() -> dict[str, int]:
+        return {
+            name: getattr(
+                importlib.import_module(PRODUCTION_WIRED_COUNTERS[name]),
+                "_call_counter_er",
+                0,
+            )
+            for name in names
+        }
+
+    before = _read()
+    from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+    dispatcher = MultiAgentDispatcher(enable_warmup=False)
+    try:
+        dispatcher.dispatch("anti-ghost production probe", mode="auto")
+        dispatcher.dispatch(
+            "anti-ghost production probe",
+            mode="review",
+            changeset=list(REVIEW_PROBE_CHANGESET),
+        )
+    except Exception as exc:  # noqa: BLE001 — surfaced as counter deltas, not raised
+        print(f"  [warn] production probe failed: {exc!r}")
+    finally:
+        dispatcher.shutdown()
+    after = _read()
+    return {name: after[name] - before[name] for name in names}
 
 
 def main() -> int:
@@ -68,6 +265,10 @@ def main() -> int:
         0 if all modules activated (anti-ghost pass).
         1 if any module's counter is 0 (ghost detected).
     """
+    # V4.5.20 (D7): production probe FIRST — before any direct module call, so
+    # the deltas it measures cannot be contaminated by this gate's own probing.
+    production_counts = _production_probe()
+
     # Touch each module + ensure counter is exposed via get_call_counter
     from scripts.collaboration import dora_metrics_collector as _dora_module
     from scripts.collaboration import error_budget_tracker as _error_budget_module
@@ -324,20 +525,69 @@ def main() -> int:
     print("V4.5.13 Anti-Ghost Verification")
     print("=" * 60)
     failed = []
+    self_call_only = []
+    production_verified = 0
     for name, count in counters.items():
-        status = "PASS" if count > 0 else "FAIL (ghost)"
+        if name in production_counts:
+            # D7 discriminator: the assertion is only meaningful when the bump
+            # came from the production probe, not from this gate's direct call.
+            # The absolute count is still checked — a non-positive counter means
+            # the monotonic contract (L-V454-004) was violated, which must fail
+            # closed even when the production delta looks healthy.
+            delta = production_counts[name]
+            if delta <= 0:
+                status = "FAIL (self-call only)"
+                failed.append(name)
+                self_call_only.append(name)
+            elif count <= 0:
+                status = f"FAIL (non-positive counter={count})"
+                failed.append(name)
+            else:
+                production_verified += 1
+                status = f"PASS (production +{delta})"
+        else:
+            # No production claim for this module — the assertion remains
+            # gate-driven. Reported as such rather than silently counted as
+            # production evidence.
+            status = "PASS (self-call)" if count > 0 else "FAIL (ghost)"
+            if count <= 0:
+                failed.append(name)
         print(f"  {name:25s}  counter={count:>4}  [{status}]")
-        if count <= 0:
-            failed.append(name)
 
     print("=" * 60)
-    if failed:
-        print(f"GHOST DETECTED: {len(failed)} module(s) not activated:")
-        for name in failed:
-            print(f"  - {name}")
+    claim_violations = find_unbacked_activation_claims()
+    if claim_violations:
+        print(
+            f"UNBACKED ACTIVATION CLAIMS: {len(claim_violations)} e2e test(s) "
+            "claim activation without reaching a production entry point "
+            "(F4 delivery requirement 4):"
+        )
+        for rel_path, test_name in claim_violations:
+            print(f"  - {rel_path}::{test_name}")
+    else:
+        print(
+            "Activation-claim scan: all e2e activation claims are backed by a "
+            "production entry point."
+        )
+
+    if failed or claim_violations:
+        if failed:
+            print(f"GHOST DETECTED: {len(failed)} module(s) not activated:")
+            for name in failed:
+                print(f"  - {name}")
+        if self_call_only:
+            print(
+                "The above FAIL (self-call only) modules are reachable only by "
+                "this gate's own calls — the production pipeline never invokes "
+                "them (D7 self-call blind spot)."
+            )
         return 1
 
-    print("All V4.5.13 modules activated. Anti-ghost gate PASSED.")
+    print(
+        f"Anti-ghost gate PASSED: {production_verified}/"
+        f"{len(PRODUCTION_WIRED_COUNTERS)} production-verified, "
+        f"{len(counters) - len(PRODUCTION_WIRED_COUNTERS)} self-call verified."
+    )
     return 0
 
 

@@ -56,6 +56,17 @@ DOCUMENTED_TEST_HEADLINE = 9400   # "9400+ tests passing"
 # Captures the version string without the leading "V" prefix.
 PRD_FILENAME_VERSION_RE = re.compile(r"^V(\d+\.\d+(?:\.\d+)?)")
 
+# V4.5.20 (F2): sub-skill manifests under skills/*/ were a blind spot — eight
+# ``version:`` fields and three ``version_source:`` fields drifted up to 18
+# releases behind the SSOT while this gate stayed green. Both are now checked.
+SUB_SKILL_DIR = REPO_ROOT / "skills"
+# Top-level ``version:`` key only (nested indented keys cannot match ``^``).
+SUB_SKILL_VERSION_RE = re.compile(r'^version:\s*["\']?(\d+\.\d+\.\d+)', re.MULTILINE)
+# ``version_source: "..._version (X.Y.Z)"`` — the version inside the parens.
+SUB_SKILL_VERSION_SOURCE_RE = re.compile(
+    r"^\s*version_source:.*?\((\d+\.\d+\.\d+)\)", re.MULTILINE
+)
+
 
 class VersionCheck(NamedTuple):
     """Result of a single file version check."""
@@ -695,6 +706,100 @@ def _check_skill_frontmatter() -> list[VersionCheck]:
     )]
 
 
+def _check_sub_skill_manifests(expected: str) -> list[VersionCheck]:
+    """V4.5.20 (F2): sub-skill manifests must not drift from the SSOT.
+
+    ``scripts/check_version_consistency.py`` previously only checked the
+    workspace-root ``skill-manifest.yaml``, leaving ``skills/*/skill-manifest.yaml``
+    unguarded. Eight ``version:`` fields and three ``version_source:`` fields
+    drifted up to 18 releases behind ``_version.py`` while this gate stayed
+    green (PRD F1/F2). Both fields are now blocking checks.
+
+    The manifest list is read from disk (``skills/*/skill-manifest.yaml``), so
+    no count is hardcoded anywhere — adding or removing a sub-skill changes the
+    number of checks automatically.
+
+    Args:
+        expected: Canonical version from ``_version.py``.
+
+    Returns:
+        One blocking :class:`VersionCheck` per manifest for its ``version:``
+        field, plus one per manifest that also declares ``version_source:``.
+        A missing/empty ``skills/`` directory is reported as a single failure.
+    """
+    if not SUB_SKILL_DIR.is_dir():
+        return [VersionCheck(
+            file="skills/*/skill-manifest.yaml",
+            expected=expected,
+            found=None,
+            passed=False,
+            detail=f"FAIL: skills directory not found: {SUB_SKILL_DIR}",
+        )]
+
+    manifests = sorted(SUB_SKILL_DIR.glob("*/skill-manifest.yaml"))
+    if not manifests:
+        return [VersionCheck(
+            file="skills/*/skill-manifest.yaml",
+            expected=expected,
+            found=None,
+            passed=False,
+            detail="FAIL: no sub-skill manifests found",
+        )]
+
+    results: list[VersionCheck] = []
+    for manifest in manifests:
+        rel_path = (
+            manifest.relative_to(REPO_ROOT).as_posix()
+            if REPO_ROOT in manifest.parents
+            else manifest.as_posix()
+        )
+        try:
+            content = manifest.read_text(encoding="utf-8")
+        except OSError as exc:
+            results.append(VersionCheck(
+                file=rel_path, expected=expected, found=None, passed=False,
+                detail=f"FAIL (unreadable): {exc}",
+            ))
+            continue
+
+        version_matches = SUB_SKILL_VERSION_RE.findall(content)
+        if not version_matches:
+            results.append(VersionCheck(
+                file=rel_path, expected=expected, found=None, passed=False,
+                detail=f"FAIL: no top-level 'version:' key in {rel_path}",
+            ))
+        elif version_matches[0] == expected:
+            results.append(VersionCheck(
+                file=rel_path, expected=expected, found=version_matches[0], passed=True,
+                detail=f"sub-skill manifest version: {version_matches[0]} OK",
+            ))
+        else:
+            results.append(VersionCheck(
+                file=rel_path, expected=expected, found=version_matches[0], passed=False,
+                detail=(
+                    f"sub-skill manifest version drift: expected {expected}, "
+                    f"found {version_matches[0]}"
+                ),
+            ))
+
+        source_matches = SUB_SKILL_VERSION_SOURCE_RE.findall(content)
+        if source_matches:
+            if source_matches[0] == expected:
+                results.append(VersionCheck(
+                    file=rel_path, expected=expected, found=source_matches[0], passed=True,
+                    detail=f"version_source: {source_matches[0]} OK",
+                ))
+            else:
+                results.append(VersionCheck(
+                    file=rel_path, expected=expected, found=source_matches[0], passed=False,
+                    detail=(
+                        f"version_source drift: expected {expected}, "
+                        f"found {source_matches[0]}"
+                    ),
+                ))
+    return results
+
+
 def _status_label(result: VersionCheck) -> str:
     """Derive display status label from a VersionCheck result."""
     if result.detail.startswith("SKIP"):
@@ -760,6 +865,10 @@ def main() -> int:
     # V4.5.15: SKILL.md frontmatter parseability (blocking — the V4.5.13
     # "/" panel root cause; a broken YAML block hides the skill from TRAE).
     results.extend(_check_skill_frontmatter())
+
+    # V4.5.20 (F2): sub-skill manifests (skills/*/skill-manifest.yaml). Blocking
+    # — this was the blind spot that let F1 drift for 18 releases.
+    results.extend(_check_sub_skill_manifests(expected))
 
     # V4.5.16 P3.21: public module count SSOT soft-compare (non-blocking).
     # Compares the on-disk count under scripts/collaboration/ against

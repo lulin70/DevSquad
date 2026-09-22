@@ -427,6 +427,7 @@ class MultiAgentDispatcher(
         git_context: GitContext | None = None,
         output_style: str | None = None,
         approval_callback: Any | None = None,
+        changeset: list[str] | None = None,
         **kwargs: Any,
     ) -> DispatchResult:
         """Core dispatch method - complete multi-Agent collaboration in one call.
@@ -434,7 +435,7 @@ class MultiAgentDispatcher(
         Args:
             task_description: User's task in natural language
             roles: Optional role IDs (None=auto match)
-            mode: "auto"/"parallel"/"sequential"/"consensus"
+            mode: "auto"/"parallel"/"sequential"/"consensus"/"review"
             dry_run: Simulate without running Workers
             use_micro_tasks: When True and a MicroTaskPlanner is configured,
                 decompose the task into 2-5 minute micro-tasks before role
@@ -451,6 +452,15 @@ class MultiAgentDispatcher(
                 ``ApprovalRequest`` and returns an ``ApprovalResult``. When
                 ``None`` (default), all operations are auto-approved (backward
                 compatible with V4.5.0).
+            changeset: V4.5.20 — Optional list of file paths to review. Only
+                consumed when ``mode == "review"``: the changeset is split into
+                deterministic bundles (``>5`` files engages the bundler, which
+                groups by directory + import chain — so same-directory files
+                stay in one bundle; the single threshold authority being
+                ``Coordinator.apply_file_bundling``), and one bundle becomes one
+                read-only review task. Bundles are exposed as
+                ``DispatchResult.details["review_bundles"]``. ``None`` (default)
+                or any other mode preserves V4.5.19 behavior exactly.
             **kwargs: Additional options (tenant_id, user_id, etc.)
         """
         track_usage("dispatcher.dispatch", metadata={"mode": mode, "dry_run": dry_run})
@@ -486,7 +496,9 @@ class MultiAgentDispatcher(
             effective_task = self._inject_git_context(git_context, task_description)
 
         # Pre-dispatch steps (shared with async_dispatch)
-        pre_result = self.pre_dispatch.execute(effective_task, roles, mode, dry_run, start_time, phase, **kwargs)
+        pre_result = self.pre_dispatch.execute(
+            effective_task, roles, mode, dry_run, start_time, phase, changeset=changeset, **kwargs
+        )
         if pre_result.early_return:
             self.metrics_service.safe_record(lambda m: m.tasks_in_progress_gauge.labels(phase=phase).dec())
             self._log_dispatch_end_audit(user_id, False, time.time() - start_time)
@@ -551,6 +563,12 @@ class MultiAgentDispatcher(
             if micro_task_plan is not None:
                 result.micro_task_plan = micro_task_plan.to_dict()
                 result.details["micro_task_plan"] = micro_task_plan.to_dict()
+
+            # V4.5.20 (F4): expose the deterministic review bundles produced by
+            # the review-mode plan so the split is observable in the result.
+            review_bundles = getattr(pre_result.plan, "review_bundles", None)
+            if review_bundles is not None:
+                result.details["review_bundles"] = review_bundles
 
             if permission_result_dict is not None:
                 result.permission_result = permission_result_dict

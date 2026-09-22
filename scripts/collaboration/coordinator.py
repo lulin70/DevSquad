@@ -225,6 +225,75 @@ class Coordinator:
 
         return FileBundler().bundle(original_files)
 
+    def plan_review_bundles(
+        self,
+        task_description: str,
+        available_roles: list[dict[str, str]],
+        changeset: list[str],
+        stage_id: str | None = None,
+    ) -> ExecutionPlan:
+        """Build a review plan where one bundle = one task (V4.5.20, F4).
+
+        Deterministic divide-and-conquer for ``mode="review"``: the changeset is
+        split by :meth:`apply_file_bundling` (the single threshold authority —
+        ``>5`` files in review mode, guard reused, no second threshold here),
+        and each resulting bundle becomes one read-only review task whose
+        description carries that bundle's file list.
+
+        Role assignment is deterministic round-robin over ``available_roles``
+        (bundle *i* → role ``i % len(available_roles)``), so every matched role
+        participates when there are at least as many bundles as roles. No LLM
+        decides the split.
+
+        Args:
+            task_description: User's original task description.
+            available_roles: Matched roles (each with ``role_id`` / ``role_prompt``).
+            changeset: File paths to review.
+            stage_id: Optional stage identifier for multi-stage workflows.
+
+        Returns:
+            ExecutionPlan with ``total_tasks == len(bundles)`` and
+            ``review_bundles`` populated for observability.
+        """
+        bundles = self.apply_file_bundling("review", changeset)
+        roles = list(available_roles)
+
+        tasks: list[TaskDefinition] = []
+        for idx, bundle in enumerate(bundles):
+            role_cfg = roles[idx % len(roles)] if roles else {}
+            files_block = "\n".join(f"  - {path}" for path in bundle)
+            tasks.append(
+                TaskDefinition(
+                    description=(
+                        f"{task_description}\n\n"
+                        f"[Review bundle {idx + 1}/{len(bundles)}]\n"
+                        f"Files in this bundle:\n{files_block}"
+                    ),
+                    role_id=str(role_cfg.get("role_id", "")),
+                    role_prompt=str(role_cfg.get("role_prompt", "")),
+                    stage_id=stage_id,
+                    is_read_only=True,
+                )
+            )
+
+        parallel_batch = TaskBatch(
+            mode=BatchMode.PARALLEL,
+            tasks=tasks,
+            max_concurrency=len(tasks),
+        )
+        plan = ExecutionPlan(
+            batches=[parallel_batch] if tasks else [],
+            total_tasks=len(tasks),
+            estimated_parallelism=1.0 if len(tasks) > 1 else 0.0,
+            review_bundles=bundles,
+        )
+        track_usage(
+            "coordinator.plan_review_bundles",
+            success=True,
+            metadata={"changeset_size": len(changeset), "num_bundles": len(bundles)},
+        )
+        return plan
+
     def plan_task(
         self, task_description: str, available_roles: list[dict[str, str]], stage_id: str | None = None
     ) -> ExecutionPlan:

@@ -259,7 +259,14 @@ class PreDispatchPipeline:
 
         # Step 7: Prepare execution (warmup, prompts, plan, spawn, anchor, retrospective load)
         plan, structured_goal, prep_timing = self.prepare_execution(
-            task_description, matched_roles, lang, intent_match, rule_collection, concern_enhancements
+            task_description,
+            matched_roles,
+            lang,
+            intent_match,
+            rule_collection,
+            concern_enhancements,
+            mode=_mode,
+            changeset=kwargs.get("changeset"),
         )
 
         return _PreDispatchResult(
@@ -565,8 +572,18 @@ class PreDispatchPipeline:
         _intent_match: Any,
         _rule_collection: Any,
         concern_enhancements: dict[str, Any],
+        mode: str = "auto",
+        changeset: list[str] | None = None,
     ) -> tuple[Any, Any, dict[str, float]]:
-        """Prepare execution: warmup, prompt assembly, planning, spawn. Returns (plan, goal, timing)."""
+        """Prepare execution: warmup, prompt assembly, planning, spawn. Returns (plan, goal, timing).
+
+        V4.5.20 (F4): when ``mode == "review"`` and ``changeset`` is non-empty,
+        planning is delegated to :meth:`Coordinator.plan_review_bundles` (one
+        bundle = one review task) instead of the role-per-task default. The
+        ``>5`` files threshold lives only inside
+        :meth:`Coordinator.apply_file_bundling` — no second guard here. Any
+        other mode, or an empty changeset, follows the V4.5.19 path unchanged.
+        """
         role_ids = [r["role_id"] for r in matched_roles]
 
         # V4.4.2 P1-1: resolve lang here for localized prompt lookup.
@@ -611,10 +628,17 @@ class PreDispatchPipeline:
                 }
             )
 
-        plan = self.coordinator.plan_task(
-            task_description=task,
-            available_roles=available_roles,
-        )
+        if mode == "review" and changeset:
+            plan = self.coordinator.plan_review_bundles(
+                task_description=task,
+                available_roles=available_roles,
+                changeset=changeset,
+            )
+        else:
+            plan = self.coordinator.plan_task(
+                task_description=task,
+                available_roles=available_roles,
+            )
 
         step4_time = time.time()
 
