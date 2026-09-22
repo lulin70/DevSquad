@@ -167,7 +167,26 @@ class OpenAIBackend(LLMBackend):
                     _metrics.record_llm_call("openai", _llm_duration, True)
                 except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
-                return response.choices[0].message.content or ""
+                choice = response.choices[0]
+                content = choice.message.content or ""
+                if not content and getattr(choice, "finish_reason", None) == "length":
+                    # Reasoning models (e.g. deepseek-flash) emit their chain of
+                    # thought in ``reasoning_content``, but those tokens still count
+                    # against ``max_tokens``. When the budget runs out the provider
+                    # returns finish_reason='length' with an EMPTY content field, and
+                    # this method would hand back "" as if it were a valid answer.
+                    # Report-only for now: the return value is deliberately unchanged.
+                    import logging
+
+                    logging.getLogger(__name__).warning(
+                        "OpenAIBackend: empty completion with finish_reason='length' "
+                        "(model=%s, max_tokens=%s); the token budget was likely consumed "
+                        "by reasoning tokens, so the caller receives an empty string. "
+                        "Raise max_tokens or use a non-reasoning model.",
+                        kwargs.get("model", self.model),
+                        kwargs.get("max_tokens", self.max_tokens),
+                    )
+                return content
             except _get_openai_retry_exceptions() as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e

@@ -97,7 +97,12 @@ class TestOpenAIBackendGetClient:
         kwargs = fake_openai.OpenAI.call_args.kwargs
         assert kwargs["base_url"] == "https://custom/v1"
 
-    def test_get_client_omits_base_url_when_absent(self):
+    def test_get_client_omits_base_url_when_absent(self, monkeypatch):
+        # ``OpenAIBackend.__init__`` falls back to DEVSQUAD_OPENAI_BASE_URL when no
+        # base_url is passed (llm_backend.py:109), so any machine with a developer
+        # .env hits the "provided" branch instead of the "absent" branch this test
+        # targets. Clear the variable so the absence branch is what actually runs.
+        monkeypatch.delenv("DEVSQUAD_OPENAI_BASE_URL", raising=False)
         backend = OpenAIBackend(api_key="k", model="m")
         fake_openai = MagicMock()
         with patch.dict(sys.modules, {"openai": fake_openai}):
@@ -129,6 +134,50 @@ class TestOpenAIBackendGenerate:
             choices=[MagicMock(message=MagicMock(content=None))]
         )
         assert backend.generate("p") == ""
+
+    def test_generate_warns_on_empty_content_after_length_finish(self, caplog):
+        # Reasoning models (deepseek-flash) count reasoning tokens against
+        # max_tokens; exhausting the budget returns finish_reason='length' with an
+        # empty content field. The backend still returns "" (report-only policy),
+        # but it must not do so silently.
+        import logging
+
+        backend, client = self._make_backend_with_client()
+        client.chat.completions.create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content=None),
+                    finish_reason="length",
+                )
+            ]
+        )
+        with caplog.at_level(logging.WARNING):
+            result = backend.generate("p", max_tokens=100)
+
+        assert result == ""
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert "finish_reason='length'" in warnings[0].getMessage()
+        assert "max_tokens=100" in warnings[0].getMessage()
+
+    def test_generate_does_not_warn_when_content_present_after_length_finish(self, caplog):
+        # A truncated-but-non-empty answer is still usable, so it must stay quiet.
+        import logging
+
+        backend, client = self._make_backend_with_client()
+        client.chat.completions.create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content="partial answer"),
+                    finish_reason="length",
+                )
+            ]
+        )
+        with caplog.at_level(logging.WARNING):
+            result = backend.generate("p", max_tokens=100)
+
+        assert result == "partial answer"
+        assert [r for r in caplog.records if r.levelno == logging.WARNING] == []
 
     def test_generate_retries_on_transient_error_then_succeeds(self, monkeypatch):
         backend, client = self._make_backend_with_client()
