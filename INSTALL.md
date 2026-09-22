@@ -281,8 +281,9 @@ Commands:
 Dispatch Options:
   --task, -t TEXT       Task description (required)
   --roles, -r LIST      Roles: arch/pm/test/coder/ui/infra/sec (default: auto-match)
-  --mode, -m MODE       Execution mode: auto/parallel/sequential/consensus
+  --mode, -m MODE       Execution mode: auto/parallel/sequential/consensus/review
   --format, -f FORMAT   Output: markdown/json/compact/structured/detailed
+  --changeset FILES     Review mode only: files to bundle (>5 files engage bundling, grouped by directory/imports)
   --backend, -b TYPE    LLM backend: mock/trae/openai/anthropic (default: mock)
   --base-url URL        Custom API base URL (or OPENAI_BASE_URL env)
   --model NAME          Model name (or OPENAI_MODEL/ANTHROPIC_MODEL env)
