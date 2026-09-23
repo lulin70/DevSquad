@@ -13,6 +13,14 @@ TF-IDF smoothing) stay in their owning module.
 # === LLM Backend Defaults (llm_backend.py) ===
 DEFAULT_LLM_TIMEOUT_SECONDS = 120.0
 DEFAULT_LLM_MAX_TOKENS = 4096
+# V4.5.20: reasoning models (observed: deepseek-flash) emit reasoning_content
+# whose tokens still count against max_tokens, so the generic default starves
+# long-reasoning prompts (code review / diff analysis). Verified against the
+# real DeepSeek endpoint: max_tokens up to 65536 is accepted.
+DEFAULT_LLM_MAX_TOKENS_REASONING = 16384
+# Environment override for the reasoning-model budget (highest precedence
+# after an explicit max_tokens argument).
+DEVSQUAD_REASONING_MAX_TOKENS_ENV = "DEVSQUAD_REASONING_MAX_TOKENS"
 DEFAULT_LLM_TEMPERATURE = 0.7
 
 # === LLM Retry (llm_retry.py, llm_retry_base.py) ===

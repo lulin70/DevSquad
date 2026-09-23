@@ -128,9 +128,10 @@ class TestCreateBackendAuto:
         assert backend._backends[0].path == "A"
 
     def test_auto_with_both_keys_returns_fallback(self):
-        """Both keys → auto returns FallbackBackend with [Anthropic, OpenAI, Mock].
+        """Both keys → auto returns FallbackBackend with [OpenAI, Anthropic, Mock].
 
-        V4.5.2 P-1: Mock tail added for graceful degradation.
+        V4.5.20: A-path order is Moka → OpenAI → Anthropic; V4.5.2 P-1 adds the
+        Mock tail for graceful degradation.
         """
         patches = _patch_dotenv()
         with patch.dict(
@@ -150,9 +151,9 @@ class TestCreateBackendAuto:
                     p.stop()
         assert isinstance(backend, FallbackBackend)
         assert len(backend._backends) == 3
-        # Order: Anthropic first, then OpenAI, then Mock
-        assert isinstance(backend._backends[0], AnthropicBackend)
-        assert isinstance(backend._backends[1], OpenAIBackend)
+        # V4.5.20 order: OpenAI (DeepSeek) first, then Anthropic, then Mock
+        assert isinstance(backend._backends[0], OpenAIBackend)
+        assert isinstance(backend._backends[1], AnthropicBackend)
         assert isinstance(backend._backends[2], MockBackend)
 
     def test_auto_reads_backend_from_env(self):

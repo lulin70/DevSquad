@@ -176,7 +176,7 @@ monitoring:
 # NEVER hardcode API keys here.
 llm:
   default_backend: "${DEVSQUAD_LLM_BACKEND:-auto}"  # auto | mock | trae | openai | anthropic
-  # auto: tries real backends (anthropic -> openai) then falls back to mock
+  # auto: tries real backends (moka -> openai -> anthropic) then falls back to mock
   #       set DEVSQUAD_LLM_BACKEND=mock to force mock-only behavior
 
   openai:

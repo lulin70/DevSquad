@@ -185,7 +185,7 @@ export OPENAI_API_KEY="sk-..."
 
 # Then just run — no --backend flag needed
 python3 scripts/cli.py dispatch -t "Design auth system"
-# → Tries Anthropic first, falls back to OpenAI if unavailable (30s cooldown)
+# → Tries Moka first, then OpenAI (DeepSeek), then Anthropic; falls back to Mock when no key is available
 ```
 
 > **🔒 Security**: The `.env` file is automatically excluded from Git (listed in `.gitignore`). Never commit API keys to version control.
