@@ -94,10 +94,7 @@ def format_issue(issue: QualityIssue) -> str:
     Returns:
         Human-readable string with severity, file, line, and message.
     """
-    return (
-        f"  [{issue.severity.value.upper():6s}] {issue.file}:{issue.line} "
-        f"[{issue.id}] {issue.message}"
-    )
+    return f"  [{issue.severity.value.upper():6s}] {issue.file}:{issue.line} [{issue.id}] {issue.message}"
 
 
 def _report_issues(
@@ -144,9 +141,7 @@ def _report_issues(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Test quality CI gate — detects weak assertions and anti-patterns."
-    )
+    parser = argparse.ArgumentParser(description="Test quality CI gate — detects weak assertions and anti-patterns.")
     parser.add_argument(
         "--source",
         default=str(REPO_ROOT / "tests"),

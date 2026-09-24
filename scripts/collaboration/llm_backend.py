@@ -43,6 +43,7 @@ def _get_moka_backend() -> "type[MokaAIBackend]":
     global _MOKA_BACKEND
     if _MOKA_BACKEND is None:
         from .moka_backend import MokaAIBackend
+
         _MOKA_BACKEND = MokaAIBackend
     return _MOKA_BACKEND
 
@@ -51,12 +52,10 @@ class LLMBackend(ABC):
     path: str = "C"  # default for backward compat
 
     @abstractmethod
-    def generate(self, prompt: str, **kwargs: Any) -> str:
-        ...
+    def generate(self, prompt: str, **kwargs: Any) -> str: ...
 
     @abstractmethod
-    def is_available(self) -> bool:
-        ...
+    def is_available(self) -> bool: ...
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
         yield self.generate(prompt, **kwargs)
@@ -405,6 +404,7 @@ class FallbackBackend(LLMBackend):
         self._failures: dict[str, int] = {}  # reason -> count
         self._skipped: set[int] = set()  # indices skipped by fuse
         from .backend_paths import FUSE_SKIP_AFTER_CONSECUTIVE
+
         self._fuse_threshold = FUSE_SKIP_AFTER_CONSECUTIVE
 
     def __repr__(self) -> str:
@@ -434,11 +434,14 @@ class FallbackBackend(LLMBackend):
         if self._failures[key] >= self._fuse_threshold:
             self._skipped.add(idx)
             import logging
+
             logger = logging.getLogger(__name__)
             backend_repr = repr(self._backends[idx])
             logger.warning(
                 "FallbackBackend: fuse blocked %s after %d consecutive %s failures",
-                backend_repr, self._failures[key], reason,
+                backend_repr,
+                self._failures[key],
+                reason,
             )
 
     def _is_fuse_skipped(self, idx: int) -> bool:
@@ -660,9 +663,7 @@ def _create_host_family_backend(backend_type: str, kwargs: dict[str, Any]) -> LL
     cls = HostBridgeBackendV2 if backend_type == "host-v2" else HostBridgeBackend
     backend = cls(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
     if not backend.is_available():
-        raise BackendUnavailable(
-            f"{backend_type} not available: no TRAE/ClaudeCode environment detected"
-        )
+        raise BackendUnavailable(f"{backend_type} not available: no TRAE/ClaudeCode environment detected")
     return backend
 
 
@@ -682,9 +683,7 @@ def _build_auto_fallback_backend(kwargs: dict[str, Any]) -> LLMBackend:
     backends.append(MockBackend())
     if len(backends) == 1:
         return backends[0]
-    return FallbackBackend(
-        backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS)
-    )
+    return FallbackBackend(backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS))
 
 
 def _resolve_auto_single_path(backend_type: str, kwargs: dict[str, Any]) -> LLMBackend:
@@ -835,7 +834,19 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         return _build_auto_fallback_backend(kwargs)
 
     # === Catch-all for unknown backend types ===
-    known_types = {"auto", "host", "host-v1", "host-v2", "mock", "trae", "openai", "anthropic", "moka", "fallback", "auto-fallback"}
+    known_types = {
+        "auto",
+        "host",
+        "host-v1",
+        "host-v2",
+        "mock",
+        "trae",
+        "openai",
+        "anthropic",
+        "moka",
+        "fallback",
+        "auto-fallback",
+    }
     if backend_type not in known_types:
         raise ValueError(
             f"Unknown backend type: {backend_type}. "
@@ -866,9 +877,7 @@ def _resolve_host_bridge_version() -> str:
         return "v2"
     if raw in ("v1", "v2"):
         return raw
-    raise ValueError(
-        f"Invalid DEVSQUAD_HOST_BRIDGE_VERSION={raw!r}: only 'v1' or 'v2' accepted"
-    )
+    raise ValueError(f"Invalid DEVSQUAD_HOST_BRIDGE_VERSION={raw!r}: only 'v1' or 'v2' accepted")
 
 
 def _build_host_bridge_backend(
@@ -883,9 +892,7 @@ def _build_host_bridge_backend(
     from .host_llm_bridge import HostBridgeBackend, HostBridgeBackendV2
 
     if _resolve_host_bridge_version() == "v2":
-        return HostBridgeBackendV2(
-            bridge_dir=bridge_dir, timeout_seconds=timeout_seconds
-        )
+        return HostBridgeBackendV2(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
     return HostBridgeBackend(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
 
 
@@ -941,7 +948,8 @@ def _build_api_backends(kwargs: dict) -> list[LLMBackend]:
                 backends_list.append(
                     AnthropicBackend(
                         api_key=anthropic_key,
-                        base_url=kwargs.pop("anthropic_base_url", None) or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
+                        base_url=kwargs.pop("anthropic_base_url", None)
+                        or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
                         model=kwargs.pop("anthropic_model", None)
                         or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
                         max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,

@@ -43,6 +43,7 @@ class T1_FullDispatchPipeline(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_dispatch_returns_dispatch_result(self) -> None:
@@ -60,8 +61,7 @@ class T1_FullDispatchPipeline(unittest.TestCase):
         result = self.disp.dispatch("Design a secure authentication system")
         self.assertIsInstance(result.matched_roles, list)
         # Mock mode should match at least one role
-        self.assertGreater(len(result.matched_roles), 0,
-                          "Expected at least one matched role")
+        self.assertGreater(len(result.matched_roles), 0, "Expected at least one matched role")
 
     def test_04_dispatch_populates_summary(self) -> None:
         """Verify: dispatch() populates summary string."""
@@ -77,8 +77,7 @@ class T1_FullDispatchPipeline(unittest.TestCase):
         self.assertIsInstance(result.worker_results, list)
         # Mock mode should produce at least one worker result
         if result.success:
-            self.assertGreater(len(result.worker_results), 0,
-                              "Expected at least one worker result")
+            self.assertGreater(len(result.worker_results), 0, "Expected at least one worker result")
 
     def test_06_dispatch_records_duration(self) -> None:
         """Verify: dispatch() records duration_seconds."""
@@ -103,21 +102,20 @@ class T2_RoleMatchingIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_security_task_matches_security_role(self) -> None:
         """Verify: Security-related task → security role in matched_roles."""
         result = self.disp.dispatch("Audit the system for security vulnerabilities")
-        self.assertIn("security", result.matched_roles,
-                      f"Expected 'security' in matched roles: {result.matched_roles}")
+        self.assertIn("security", result.matched_roles, f"Expected 'security' in matched roles: {result.matched_roles}")
 
     def test_02_test_task_matches_tester_role(self) -> None:
         """Verify: Test-related task → tester role in matched_roles."""
         result = self.disp.dispatch("Write test cases for the authentication module")
         # Role ID may be "tester" or "test"
         role_found = any(r in result.matched_roles for r in ["tester", "test"])
-        self.assertTrue(role_found,
-                       f"Expected tester role in: {result.matched_roles}")
+        self.assertTrue(role_found, f"Expected tester role in: {result.matched_roles}")
 
     def test_03_explicit_roles_override_auto_match(self) -> None:
         """Verify: Explicit roles parameter overrides auto-matching."""
@@ -146,6 +144,7 @@ class T3_CoordinatorWorkerInteraction(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_parallel_mode_executes_all_roles(self) -> None:
@@ -157,8 +156,9 @@ class T3_CoordinatorWorkerInteraction(unittest.TestCase):
         )
         if result.success:
             # Each role should produce a worker result
-            self.assertEqual(len(result.worker_results), 3,
-                            f"Expected 3 worker results, got {len(result.worker_results)}")
+            self.assertEqual(
+                len(result.worker_results), 3, f"Expected 3 worker results, got {len(result.worker_results)}"
+            )
 
     def test_02_sequential_mode_executes_all_roles(self) -> None:
         """Verify: sequential mode → all specified roles produce results."""
@@ -176,8 +176,7 @@ class T3_CoordinatorWorkerInteraction(unittest.TestCase):
         if result.success and result.worker_results:
             for wr in result.worker_results:
                 # Worker results use 'role_id' and 'role_name', not 'role'
-                self.assertIn("role_id", wr,
-                              f"Worker result missing 'role_id' key: {wr.keys()}")
+                self.assertIn("role_id", wr, f"Worker result missing 'role_id' key: {wr.keys()}")
 
     def test_04_worker_results_contain_output_field(self) -> None:
         """Verify: Each worker result dict contains an 'output' key."""
@@ -197,6 +196,7 @@ class T4_ConsensusIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_consensus_mode_completes(self) -> None:
@@ -229,6 +229,7 @@ class T5_ResultAssemblyIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_to_markdown_produces_report(self) -> None:
@@ -244,17 +245,13 @@ class T5_ResultAssemblyIntegration(unittest.TestCase):
         result = self.disp.dispatch(task)
         report = result.to_markdown()
         # Report should reference the task
-        self.assertTrue(
-            task in report or "authentication" in report.lower(),
-            "Report should contain task description"
-        )
+        self.assertTrue(task in report or "authentication" in report.lower(), "Report should contain task description")
 
     def test_03_report_contains_role_names(self) -> None:
         """Verify: Markdown report contains matched role names."""
         result = self.disp.dispatch("Design API", roles=["architect"])
         report = result.to_markdown()
-        self.assertIn("architect", report.lower(),
-                      "Report should mention 'architect' role")
+        self.assertIn("architect", report.lower(), "Report should mention 'architect' role")
 
     def test_04_errors_list_accessible(self) -> None:
         """Verify: DispatchResult.errors is a list (even if empty)."""
@@ -272,6 +269,7 @@ class T6_ErrorHandlingPipeline(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_empty_task_does_not_crash(self) -> None:
@@ -309,6 +307,7 @@ class T7_DryRunModeIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_dry_run_returns_result(self) -> None:
@@ -327,6 +326,7 @@ class T7_DryRunModeIntegration(unittest.TestCase):
         started doing real work (e.g. instantiating workers).
         """
         import time
+
         ceiling_s = perf_ceiling_ms(5.0)
         start = time.time()
         self.disp.dispatch("Design a system", dry_run=True)
@@ -353,6 +353,7 @@ class T8_DispatcherStatusIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_get_status_returns_dict(self) -> None:
@@ -370,8 +371,7 @@ class T8_DispatcherStatusIntegration(unittest.TestCase):
         status = self.disp.get_status()
         # Should have some component-related key
         has_components = any("component" in k.lower() for k in status)
-        self.assertTrue(has_components or len(status) > 0,
-                       "Status should include component info")
+        self.assertTrue(has_components or len(status) > 0, "Status should include component info")
 
     def test_04_history_returns_list(self) -> None:
         """Verify: get_history() returns a list."""

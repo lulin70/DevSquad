@@ -78,10 +78,13 @@ class T15_SkillFrontmatterYamlParse(unittest.TestCase):
             "---\n"
             "body\n"
         )
-        with mock.patch(
-            "scripts.check_version_consistency.REPO_ROOT",
-            Path(tempfile.mkdtemp(prefix="devsquad_t15_")),
-        ), mock.patch.object(Path, "read_text", return_value=yaml_text):
+        with (
+            mock.patch(
+                "scripts.check_version_consistency.REPO_ROOT",
+                Path(tempfile.mkdtemp(prefix="devsquad_t15_")),
+            ),
+            mock.patch.object(Path, "read_text", return_value=yaml_text),
+        ):
             results = _check_skill_frontmatter()
 
         self.assertEqual(len(results), 1, "expected exactly one VersionCheck")
@@ -146,25 +149,20 @@ class T15_SkillFrontmatterYamlParse(unittest.TestCase):
         any reasonable machine, so we cap at 5 s.
         """
         long_word = "x" * 8192  # > 4 KiB by itself
-        yaml_text = (
-            "---\n"
-            "name: devsquad\n"
-            "slug: devsquad\n"
-            "version: 4.5.16\n"
-            f"description: {long_word}\n"
-            "---\n"
-            "body\n"
-        )
+        yaml_text = f"---\nname: devsquad\nslug: devsquad\nversion: 4.5.16\ndescription: {long_word}\n---\nbody\n"
         # Sanity: confirm we genuinely exceed 4096 chars.
         self.assertGreater(len(long_word), 4096)
 
         holder: dict[str, object] = {}
 
         def _run() -> None:
-            with mock.patch(
-                "scripts.check_version_consistency.REPO_ROOT",
-                Path(tempfile.mkdtemp(prefix="devsquad_t15_long_")),
-            ), mock.patch.object(Path, "read_text", return_value=yaml_text):
+            with (
+                mock.patch(
+                    "scripts.check_version_consistency.REPO_ROOT",
+                    Path(tempfile.mkdtemp(prefix="devsquad_t15_long_")),
+                ),
+                mock.patch.object(Path, "read_text", return_value=yaml_text),
+            ):
                 try:
                     holder["results"] = _check_skill_frontmatter()
                 except BaseException as exc:  # noqa: BLE001 - we want any failure

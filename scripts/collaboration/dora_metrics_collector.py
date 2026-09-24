@@ -7,6 +7,7 @@ them in a Dashboard panel, and gates P11 on change failure rate > 15%.
 Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
+
 from __future__ import annotations
 
 import logging
@@ -123,9 +124,7 @@ class DoraMetricsCollector:
         _call_counter_er += 1
 
         try:
-            since_date = (datetime.now() - timedelta(days=window_days)).strftime(
-                "%Y-%m-%d"
-            )
+            since_date = (datetime.now() - timedelta(days=window_days)).strftime("%Y-%m-%d")
             # Get deploy commits (feat: / fix: / release tags)
             result = subprocess.run(
                 [
@@ -151,8 +150,7 @@ class DoraMetricsCollector:
 
             lines = [line for line in result.stdout.strip().split("\n") if line]
             deploys = [
-                line for line in lines
-                if "feat:" in line.lower() or "fix:" in line.lower() or "release" in line.lower()
+                line for line in lines if "feat:" in line.lower() or "fix:" in line.lower() or "release" in line.lower()
             ]
             failures = [line for line in deploys if "fix:" in line.lower() or "hotfix" in line.lower()]
 

@@ -101,8 +101,7 @@ class TestPMJourney(unittest.TestCase):
         dispatcher = _make_dispatcher(self._tmp)
         try:
             prd_task = (
-                "PRD: 设计一个支持多租户的 SaaS 认证系统，"
-                "覆盖功能性、安全、性能、可观测性、运维、UI、测试 7 个维度。"
+                "PRD: 设计一个支持多租户的 SaaS 认证系统，覆盖功能性、安全、性能、可观测性、运维、UI、测试 7 个维度。"
             )
             result = dispatcher.dispatch(
                 task_description=prd_task,
@@ -152,9 +151,7 @@ class TestPMJourney(unittest.TestCase):
         self._steps_executed += 1
 
         # 报告含 7 角色中文名章节
-        missing_roles = [
-            name for name in _EXPECTED_SEVEN_ROLE_NAMES_ZH if name not in markdown
-        ]
+        missing_roles = [name for name in _EXPECTED_SEVEN_ROLE_NAMES_ZH if name not in markdown]
         self.assertEqual(
             missing_roles,
             [],
@@ -211,14 +208,7 @@ class TestDeveloperJourney(unittest.TestCase):
         before = get_call_count()
 
         # 含一个 stdlib (os/sys，应被跳过) + 一个 KNOWN_GOOD (requests) 的 Python 代码
-        code_sample = (
-            "import os\n"
-            "import sys\n"
-            "import requests\n"
-            "\n"
-            "def fetch(url):\n"
-            "    return requests.get(url)\n"
-        )
+        code_sample = "import os\nimport sys\nimport requests\n\ndef fetch(url):\n    return requests.get(url)\n"
         result = security_scan_dependencies(code_sample, ecosystem="auto")
         self._steps_executed += 1
 
@@ -348,8 +338,7 @@ class TestOpsJourney(unittest.TestCase):
 
         self.assertTrue(
             report.compliant,
-            f"基础版部署到 localhost 应合规，实际 violations: "
-            f"{[v.rule_id for v in report.violations]}",
+            f"基础版部署到 localhost 应合规，实际 violations: {[v.rule_id for v in report.violations]}",
         )
         self._steps_executed += 1
 

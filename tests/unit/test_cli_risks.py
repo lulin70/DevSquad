@@ -55,8 +55,7 @@ def _count(tmp_path: Path) -> int:
 
 def _args(**kwargs) -> argparse.Namespace:
     # V4.5.12: severity removed from defaults (--severity flag deleted).
-    defaults = {"format": "md", "limit": None,
-                "risk_id": "", "require_approval": False, "output": None}
+    defaults = {"format": "md", "limit": None, "risk_id": "", "require_approval": False, "output": None}
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
 

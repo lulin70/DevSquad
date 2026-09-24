@@ -89,36 +89,38 @@ class T14_CheckSkillFrontmatter(unittest.TestCase):
             "---\n"
             "body\n"
         )
-        with mock.patch(
-            "scripts.check_version_consistency.REPO_ROOT",
-            Path(tempfile.mkdtemp()),
-        ), mock.patch.object(Path, "read_text", return_value=bad):
+        with (
+            mock.patch(
+                "scripts.check_version_consistency.REPO_ROOT",
+                Path(tempfile.mkdtemp()),
+            ),
+            mock.patch.object(Path, "read_text", return_value=bad),
+        ):
             results = _check_skill_frontmatter()
         self.assertFalse(results[0].passed)
         self.assertIn("YAML parse error", results[0].detail)
 
     def test_missing_required_key_fails(self) -> None:
-        ok_yaml = (
-            "---\n"
-            "name: devsquad\n"
-            "version: 4.5.15\n"
-            "description: x\n"
-            "---\n"
-            "body\n"
-        )
-        with mock.patch(
-            "scripts.check_version_consistency.REPO_ROOT",
-            Path(tempfile.mkdtemp()),
-        ), mock.patch.object(Path, "read_text", return_value=ok_yaml):
+        ok_yaml = "---\nname: devsquad\nversion: 4.5.15\ndescription: x\n---\nbody\n"
+        with (
+            mock.patch(
+                "scripts.check_version_consistency.REPO_ROOT",
+                Path(tempfile.mkdtemp()),
+            ),
+            mock.patch.object(Path, "read_text", return_value=ok_yaml),
+        ):
             results = _check_skill_frontmatter()
         self.assertFalse(results[0].passed)
         self.assertIn("slug", results[0].detail)
 
     def test_no_frontmatter_block_fails(self) -> None:
-        with mock.patch(
-            "scripts.check_version_consistency.REPO_ROOT",
-            Path(tempfile.mkdtemp()),
-        ), mock.patch.object(Path, "read_text", return_value="just body\n"):
+        with (
+            mock.patch(
+                "scripts.check_version_consistency.REPO_ROOT",
+                Path(tempfile.mkdtemp()),
+            ),
+            mock.patch.object(Path, "read_text", return_value="just body\n"),
+        ):
             results = _check_skill_frontmatter()
         self.assertFalse(results[0].passed)
         self.assertIn("no frontmatter block", results[0].detail)
@@ -318,12 +320,13 @@ class T4_CheckPrdFiles_Boundary(unittest.TestCase):
             prd_file = tmp_prd_dir / "V3.9_PRD.md"
             prd_file.write_text("V3.9 content", encoding="utf-8")
             # Mock read_text to raise OSError
-            with mock.patch.object(
-                __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
-                "PRD_DIR",
-                tmp_prd_dir,
-            ), mock.patch.object(
-                Path, "read_text", side_effect=OSError("permission denied")
+            with (
+                mock.patch.object(
+                    __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
+                    "PRD_DIR",
+                    tmp_prd_dir,
+                ),
+                mock.patch.object(Path, "read_text", side_effect=OSError("permission denied")),
             ):
                 results = _check_prd_files()
             self.assertEqual(len(results), 1)
@@ -349,8 +352,9 @@ class T5_CheckPrdFiles_DigitBoundary(unittest.TestCase):
             ):
                 results = _check_prd_files()
             self.assertEqual(len(results), 1)
-            self.assertTrue(results[0].detail.startswith("WARN"),
-                            f"Should WARN on 13.9 false positive but got: {results[0].detail}")
+            self.assertTrue(
+                results[0].detail.startswith("WARN"), f"Should WARN on 13.9 false positive but got: {results[0].detail}"
+            )
 
     def test_02_rejects_version_with_trailing_digit(self) -> None:
         """Verify: '3.9' in '3.91' should NOT match (digit suffix)."""
@@ -397,11 +401,15 @@ class T6_MainIntegration(unittest.TestCase):
             # Mock TRAE cache paths to non-existent dirs (optional=True → SKIP).
             # Without this, local L1/L2 caches (~/.trae-cn, ~/.trae) would be
             # scanned, making the test dependent on local environment state.
-            with _neutralize_trae_cache_paths(tmpdir), mock.patch.object(
-                __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
-                "PRD_DIR",
-                tmp_prd_dir,
-            ), mock.patch("sys.argv", ["check_version_consistency.py", "--no-content-diff"]):
+            with (
+                _neutralize_trae_cache_paths(tmpdir),
+                mock.patch.object(
+                    __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
+                    "PRD_DIR",
+                    tmp_prd_dir,
+                ),
+                mock.patch("sys.argv", ["check_version_consistency.py", "--no-content-diff"]),
+            ):
                 exit_code = main()
             self.assertEqual(exit_code, 0)
 
@@ -413,11 +421,15 @@ class T6_MainIntegration(unittest.TestCase):
             # WARN: content doesn't match filename version
             (tmp_prd_dir / "V3.9_Drift.md").write_text("No version here", encoding="utf-8")
             # Mock TRAE cache paths to non-existent dirs (see test_01 for rationale).
-            with _neutralize_trae_cache_paths(tmpdir), mock.patch.object(
-                __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
-                "PRD_DIR",
-                tmp_prd_dir,
-            ), mock.patch("sys.argv", ["check_version_consistency.py", "--no-content-diff"]):
+            with (
+                _neutralize_trae_cache_paths(tmpdir),
+                mock.patch.object(
+                    __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
+                    "PRD_DIR",
+                    tmp_prd_dir,
+                ),
+                mock.patch("sys.argv", ["check_version_consistency.py", "--no-content-diff"]),
+            ):
                 exit_code = main()
             # WARN is non-blocking, so exit code should be 0
             self.assertEqual(exit_code, 0)
@@ -428,11 +440,14 @@ class T6_MainIntegration(unittest.TestCase):
             tmp_prd_dir = Path(tmpdir) / "prd"
             tmp_prd_dir.mkdir()
             (tmp_prd_dir / "V3.9_Drift.md").write_text("No version here", encoding="utf-8")
-            with mock.patch.object(
-                __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
-                "PRD_DIR",
-                tmp_prd_dir,
-            ), mock.patch("sys.argv", ["check_version_consistency.py", "--strict"]):
+            with (
+                mock.patch.object(
+                    __import__("scripts.check_version_consistency", fromlist=["PRD_DIR"]),
+                    "PRD_DIR",
+                    tmp_prd_dir,
+                ),
+                mock.patch("sys.argv", ["check_version_consistency.py", "--strict"]),
+            ):
                 exit_code = main()
             self.assertEqual(exit_code, 1)
 
@@ -499,6 +514,7 @@ class T9_CheckContentDiff_HappyPath(unittest.TestCase):
             )
             # Patch REPO_ROOT so source resolution uses tmpdir parent
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertTrue(result.passed, f"Expected PASS, got: {result.detail}")
@@ -522,6 +538,7 @@ class T10_CheckContentDiff_Differs(unittest.TestCase):
                 description="test differs",
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertFalse(result.passed)
@@ -550,6 +567,7 @@ class T10_CheckContentDiff_Differs(unittest.TestCase):
                 description="test version-synced body-drift",
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertFalse(result.passed, "Body drift must FAIL even if version field is synced")
@@ -569,6 +587,7 @@ class T10_CheckContentDiff_Differs(unittest.TestCase):
                 description="test EOF",
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertFalse(result.passed)
@@ -593,6 +612,7 @@ class T11_CheckContentDiff_MissingFiles(unittest.TestCase):
                 optional=True,
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertTrue(result.passed)
@@ -611,6 +631,7 @@ class T11_CheckContentDiff_MissingFiles(unittest.TestCase):
                 optional=False,
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertFalse(result.passed)
@@ -629,6 +650,7 @@ class T11_CheckContentDiff_MissingFiles(unittest.TestCase):
                 optional=True,
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertFalse(result.passed)
@@ -651,6 +673,7 @@ class T12_CheckContentDiff_Boundary(unittest.TestCase):
                 description="test empty",
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertTrue(result.passed)
@@ -669,6 +692,7 @@ class T12_CheckContentDiff_Boundary(unittest.TestCase):
                 description="test single",
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertTrue(result.passed)
@@ -686,6 +710,7 @@ class T12_CheckContentDiff_Boundary(unittest.TestCase):
                 description="test empty source",
             )
             import scripts.check_version_consistency as mod
+
             with mock.patch.object(mod, "REPO_ROOT", Path(tmpdir)):
                 result = check_content_diff(spec)
             self.assertFalse(result.passed)
@@ -698,9 +723,9 @@ class T13_MainIntegrationContentDiff(unittest.TestCase):
     def test_01_main_runs_content_diff_by_default(self) -> None:
         """Verify: main() runs content diff checks and includes them in totals."""
         import io
+
         captured = io.StringIO()
-        with mock.patch("sys.stdout", new_callable=lambda: captured), \
-             mock.patch("sys.argv", ["prog"]):
+        with mock.patch("sys.stdout", new_callable=lambda: captured), mock.patch("sys.argv", ["prog"]):
             exit_code = main()
         output = captured.getvalue()
         self.assertIn("Content diff checks", output)
@@ -709,9 +734,12 @@ class T13_MainIntegrationContentDiff(unittest.TestCase):
     def test_02_main_no_content_diff_flag_skips_diff(self) -> None:
         """Verify: --no-content-diff flag skips the diff section entirely."""
         import io
+
         captured = io.StringIO()
-        with mock.patch("sys.stdout", new_callable=lambda: captured), \
-             mock.patch("sys.argv", ["prog", "--no-content-diff"]):
+        with (
+            mock.patch("sys.stdout", new_callable=lambda: captured),
+            mock.patch("sys.argv", ["prog", "--no-content-diff"]),
+        ):
             exit_code = main()
         output = captured.getvalue()
         self.assertNotIn("Content diff checks", output)
@@ -720,9 +748,9 @@ class T13_MainIntegrationContentDiff(unittest.TestCase):
     def test_03_main_includes_content_diff_section_in_output(self) -> None:
         """Verify: Output contains 'Content diff checks' header by default."""
         import io
+
         captured = io.StringIO()
-        with mock.patch("sys.stdout", new_callable=lambda: captured), \
-             mock.patch("sys.argv", ["prog"]):
+        with mock.patch("sys.stdout", new_callable=lambda: captured), mock.patch("sys.argv", ["prog"]):
             exit_code = main()
         output = captured.getvalue()
         self.assertIn("Content diff checks", output)
@@ -813,9 +841,11 @@ class T16_SubSkillManifestChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             self._write_manifest(tmpdir, "staletool", 'name: staletool\nversion: "0.0.1"\n')
             captured = io.StringIO()
-            with mock.patch.object(mod, "SUB_SKILL_DIR", Path(tmpdir)), \
-                 mock.patch("sys.stdout", new_callable=lambda: captured), \
-                 mock.patch("sys.argv", ["prog"]):
+            with (
+                mock.patch.object(mod, "SUB_SKILL_DIR", Path(tmpdir)),
+                mock.patch("sys.stdout", new_callable=lambda: captured),
+                mock.patch("sys.argv", ["prog"]),
+            ):
                 exit_code = main()
         self.assertEqual(exit_code, 1, captured.getvalue())
         self.assertIn("staletool", captured.getvalue())

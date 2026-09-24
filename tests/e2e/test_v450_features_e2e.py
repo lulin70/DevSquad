@@ -55,17 +55,14 @@ def _run_cli_markdown(*args: str, timeout: int = 60) -> str:
         env=env,
     )
     if result.returncode not in (0, 1):
-        raise AssertionError(
-            f"CLI failed: {' '.join(args)}\n"
-            f"Exit: {result.returncode}\n"
-            f"STDERR: {result.stderr[:500]}"
-        )
+        raise AssertionError(f"CLI failed: {' '.join(args)}\nExit: {result.returncode}\nSTDERR: {result.stderr[:500]}")
     return result.stdout
 
 
 # ---------------------------------------------------------------------------
 # Feature 1: WorkflowTrace
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_workflow_trace_appears_in_report():
     """Journey-1: dispatch report includes 'Workflow Trace' section.
@@ -75,13 +72,14 @@ def test_e2e_workflow_trace_appears_in_report():
     """
     output = _run_cli_markdown(
         "dispatch",
-        "-t", "Design a simple REST API endpoint",
-        "-f", "markdown",
+        "-t",
+        "Design a simple REST API endpoint",
+        "-f",
+        "markdown",
         "--dry-run",
     )
     assert "Workflow Trace" in output or "workflow_trace" in output.lower(), (
-        f"WorkflowTrace section not found in report.\n"
-        f"Output (first 1000 chars):\n{output[:1000]}"
+        f"WorkflowTrace section not found in report.\nOutput (first 1000 chars):\n{output[:1000]}"
     )
 
 
@@ -89,7 +87,8 @@ def test_e2e_workflow_trace_has_decomposition_steps():
     """Journey-2: WorkflowTrace section shows task decomposition steps."""
     output = _run_cli_markdown(
         "dispatch",
-        "-t", "Optimize database query performance",
+        "-t",
+        "Optimize database query performance",
         "--dry-run",
     )
     has_trace = "Workflow Trace" in output or "workflow" in output.lower()
@@ -99,6 +98,7 @@ def test_e2e_workflow_trace_has_decomposition_steps():
 # ---------------------------------------------------------------------------
 # Feature 2: GitContext
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_git_context_injectable():
     """Journey-3: git_context can be injected into dispatch via Python API.
@@ -149,20 +149,15 @@ print(json.dumps({
     )
     assert result.returncode == 0, f"git_context dispatch failed: {result.stderr[:500]}"
     data = json.loads(result.stdout)
-    assert data["git_context_present"], (
-        f"git_context not stored on result: {result.stdout}"
-    )
-    assert data["branch"] == "feature/test", (
-        f"git_context branch mismatch: {data}"
-    )
-    assert data["recent_commits_count"] == 2, (
-        f"recent_commits not preserved: {data}"
-    )
+    assert data["git_context_present"], f"git_context not stored on result: {result.stdout}"
+    assert data["branch"] == "feature/test", f"git_context branch mismatch: {data}"
+    assert data["recent_commits_count"] == 2, f"recent_commits not preserved: {data}"
 
 
 # ---------------------------------------------------------------------------
 # Feature 3: OutputStyle action_first
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_output_style_action_first_changes_format():
     """Journey-4: output_style='action_first' changes report format via Python API.
@@ -252,6 +247,7 @@ print(json.dumps({"differs": detailed.strip() != action_first.strip()}))
 # Feature 4: SkillProvider discovery
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_skill_provider_discovers_skills():
     """Journey-6: SkillProvider discovers skills in full dispatch context.
 
@@ -290,6 +286,7 @@ print(json.dumps({"count": len(skills), "skills": list(skills.keys())[:5]}))
 # ---------------------------------------------------------------------------
 # Feature 5: FileBundler
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_review_mode_bundles_via_cli_dispatch():
     """Journey-7a: ``dispatch --mode review --changeset`` really splits files into bundles.
@@ -399,6 +396,7 @@ def test_e2e_review_mode_bundles_via_cli_dispatch():
         )
     finally:
         import shutil
+
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
@@ -456,12 +454,14 @@ print(json.dumps({{
         assert data["bundle_count"] >= 2, f"Expected >=2 bundles for 6 files: {data}"
     finally:
         import shutil
+
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
 # Feature 6: SessionResume CLI
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_session_resume_cli_command_exists():
     """Journey-8: devsquad sessions list command is accessible."""
@@ -480,14 +480,9 @@ def test_e2e_session_resume_cli_command_exists():
         timeout=30,
         env=env,
     )
-    assert result.returncode in (0, 1), (
-        f"sessions list crashed: {result.returncode}\n"
-        f"STDERR: {result.stderr[:300]}"
-    )
+    assert result.returncode in (0, 1), f"sessions list crashed: {result.returncode}\nSTDERR: {result.stderr[:300]}"
     output = result.stdout + result.stderr
-    assert "session" in output.lower() or "history" in output.lower(), (
-        f"No session info in output: {output[:300]}"
-    )
+    assert "session" in output.lower() or "history" in output.lower(), f"No session info in output: {output[:300]}"
 
 
 def test_e2e_checkpoint_manager_persists_session():
@@ -540,9 +535,8 @@ print(json.dumps({{
         data = json.loads(result.stdout)
         assert data["saved"], f"Checkpoint not saved: {result.stdout}"
         assert data["status_found"], f"Checkpoint status not found: {result.stdout}"
-        assert data["session_id"] == "test-session-e2e", (
-            f"session_id mismatch: {data}"
-        )
+        assert data["session_id"] == "test-session-e2e", f"session_id mismatch: {data}"
     finally:
         import shutil
+
         shutil.rmtree(tmpdir, ignore_errors=True)

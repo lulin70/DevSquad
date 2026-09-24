@@ -203,7 +203,7 @@ class DAGVisualizer:
             ]
             if node.optional:
                 attrs.append('style="filled,dashed"')
-            lines.append(f'    {node.node_id} [{", ".join(attrs)}];')
+            lines.append(f"    {node.node_id} [{', '.join(attrs)}];")
 
         # 边
         for edge in graph.edges:
@@ -374,12 +374,12 @@ def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
 
 # Morandi-aligned fill colors for node states (per user_profile preference)
 _GRAPHVIZ_STATUS_FILL: dict[str, str] = {
-    "pending": "#F5F3F0",   # Morandi background
-    "running": "#C9A87C",   # Morandi tan (warm, active)
+    "pending": "#F5F3F0",  # Morandi background
+    "running": "#C9A87C",  # Morandi tan (warm, active)
     "completed": "#8FA886",  # Morandi sage (calm, done)
-    "failed": "#B58484",    # Morandi rose (alert)
-    "skipped": "#E0DDD8",   # Morandi light gray
-    "blocked": "#9B8AA4",   # Morandi muted purple
+    "failed": "#B58484",  # Morandi rose (alert)
+    "skipped": "#E0DDD8",  # Morandi light gray
+    "blocked": "#9B8AA4",  # Morandi muted purple
 }
 
 _GRAPHVIZ_STATUS_FONT: dict[str, str] = {
@@ -409,10 +409,9 @@ def _build_interactive_dot(graph: DAGGraph) -> str:
         label_text = safe_label
         if node.role:
             label_text += f"\\n({node.role})"
-        optional_marker = ", style=\"filled,dashed\"" if node.optional else ""
+        optional_marker = ', style="filled,dashed"' if node.optional else ""
         lines.append(
-            f'    {node.node_id} [label="{label_text}", fillcolor="{fill}", '
-            f'fontcolor="{font}"{optional_marker}];'
+            f'    {node.node_id} [label="{label_text}", fillcolor="{fill}", fontcolor="{font}"{optional_marker}];'
         )
 
     for edge in graph.edges:

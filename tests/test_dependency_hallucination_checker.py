@@ -45,6 +45,7 @@ def _reset_state() -> None:
     """Reset module state for deterministic tests."""
     reset_dataset_cache()
     import scripts.collaboration.dependency_hallucination_checker as mod
+
     mod._call_counter_er = 0
 
 
@@ -103,12 +104,8 @@ class T1_HappyPath(unittest.TestCase):
         result = security_scan_dependencies(code)
         self.assertFalse(result.is_clean)
         self.assertEqual(result.stats["suspicious"], 1)
-        self.assertEqual(
-            result.findings[0].category, DependencyCategory.SUSPICIOUS
-        )
-        self.assertEqual(
-            result.findings[0].suggested_fix, "huggingface_hub"
-        )
+        self.assertEqual(result.findings[0].category, DependencyCategory.SUSPICIOUS)
+        self.assertEqual(result.findings[0].suggested_fix, "huggingface_hub")
 
     def test_07_typo_squatting_detected(self) -> None:
         """Verify: typo-squatting (Levenshtein ≤2) is SUSPICIOUS."""
@@ -124,16 +121,14 @@ class T1_HappyPath(unittest.TestCase):
         code = "import some-novel-xyz-package\n"
         result = security_scan_dependencies(code)
         self.assertEqual(result.stats["unknown"], 1)
-        self.assertEqual(
-            result.findings[0].category, DependencyCategory.UNKNOWN
-        )
+        self.assertEqual(result.findings[0].category, DependencyCategory.UNKNOWN)
 
     def test_09_findings_sorted_by_severity(self) -> None:
         """Verify: SUSPICIOUS findings appear before UNKNOWN before KNOWN_GOOD."""
         code = (
-            "import requests\n"           # KNOWN_GOOD
-            "import huggingface_cli\n"    # SUSPICIOUS
-            "import some-novel-xyz\n"     # UNKNOWN
+            "import requests\n"  # KNOWN_GOOD
+            "import huggingface_cli\n"  # SUSPICIOUS
+            "import some-novel-xyz\n"  # UNKNOWN
         )
         result = security_scan_dependencies(code)
         categories = [f.category for f in result.findings]
@@ -301,9 +296,7 @@ class T4_Performance(unittest.TestCase):
         self.assertLess(
             elapsed_ms,
             ceiling_ms,
-            (
-                f"1000-line scan {elapsed_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"
-            ),
+            (f"1000-line scan {elapsed_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"),
         )
         self.assertGreater(len(result.findings), 0)
 
@@ -450,18 +443,21 @@ class T7_Security(unittest.TestCase):
 
     def test_01_fail_secure_on_missing_dataset(self) -> None:
         """Verify: missing dataset degrades all packages to UNKNOWN."""
-        with patch(
-            "scripts.collaboration.dependency_hallucination_checker._load_json_safe"
-        ) as mock_load:
+        with patch("scripts.collaboration.dependency_hallucination_checker._load_json_safe") as mock_load:
             # Return empty datasets
-            mock_load.side_effect = lambda path, default: {
-                "pypi": [], "npm": [],
-                "high_frequency_suffix_patterns": [],
-                "confusion_pairs": [],
-            }.get(
-                "pypi" if "pypi" in str(path) else "npm",
-                default,
-            ) if "known_good" in str(path) or "top_targets" in str(path) else default
+            mock_load.side_effect = lambda path, default: (
+                {
+                    "pypi": [],
+                    "npm": [],
+                    "high_frequency_suffix_patterns": [],
+                    "confusion_pairs": [],
+                }.get(
+                    "pypi" if "pypi" in str(path) else "npm",
+                    default,
+                )
+                if "known_good" in str(path) or "top_targets" in str(path)
+                else default
+            )
             # Actually, let's use a simpler mock
             mock_load.side_effect = None
             mock_load.return_value = {
@@ -479,9 +475,7 @@ class T7_Security(unittest.TestCase):
 
     def test_02_fail_secure_on_corrupted_dataset(self) -> None:
         """Verify: corrupted JSON degrades all packages to UNKNOWN."""
-        with patch(
-            "scripts.collaboration.dependency_hallucination_checker._load_json_safe"
-        ) as mock_load:
+        with patch("scripts.collaboration.dependency_hallucination_checker._load_json_safe") as mock_load:
             mock_load.return_value = {
                 "pypi": [],
                 "npm": [],

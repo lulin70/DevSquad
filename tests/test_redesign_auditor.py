@@ -440,10 +440,7 @@ class TestRedesignAuditorPerformance(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"10 audits took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s "
-                f"(> 500ms per call)"
-            ),
+            (f"10 audits took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s (> 500ms per call)"),
         )
 
 

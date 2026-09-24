@@ -209,9 +209,7 @@ class PostDispatchPipeline(
                 redacted_outputs.append("")
                 continue
 
-            worker_findings, redacted, worker_high, worker_audit_ok = (
-                self._validate_one_output(text, idx)
-            )
+            worker_findings, redacted, worker_high, worker_audit_ok = self._validate_one_output(text, idx)
             if worker_findings is None:
                 # Validator crashed in blocking mode → fail-secure return
                 return OutputValidationPipelineResult(
@@ -477,8 +475,8 @@ class PostDispatchPipeline(
         step7_time = exec_timing.get("step7_time", step6_time)
 
         # Step 9: Post-execution processing (collect, slice, anchor check)
-        scratchpad_summary, anchor_result, collection, post_errors, post_timing = self.dispatcher.hooks.post_execution_processing(
-            worker_results, structured_goal
+        scratchpad_summary, anchor_result, collection, post_errors, post_timing = (
+            self.dispatcher.hooks.post_execution_processing(worker_results, structured_goal)
         )
         errors.extend(post_errors)
         step8_time = post_timing["step8_time"]
@@ -493,7 +491,7 @@ class PostDispatchPipeline(
         )
 
         # Step 10: Resolve consensus
-        mode = kwargs.get('mode', 'auto')
+        mode = kwargs.get("mode", "auto")
         consensus_records, compression_info = self._resolve_consensus(collection, mode)
         step9_time = time.time()
 
@@ -524,18 +522,25 @@ class PostDispatchPipeline(
 
         # Step 15.5: Pre-decision consensus gate (HC-2)
         # ConsensusEngine 前置介入关键决策点，在结果组装前进行共识检查
-        consensus_gate_result = self._run_consensus_gate(
-            task_description, worker_results
-        )
+        consensus_gate_result = self._run_consensus_gate(task_description, worker_results)
 
         # Step 16: Assemble result
         step_timings = self._build_step_timings(
-            step1_time, step2_time, step3_time, step4_time, step5_time,
-            step6_time, step7_time, step8_time, step9_time, step10_time,
-            step11_time, step12_time,
+            step1_time,
+            step2_time,
+            step3_time,
+            step4_time,
+            step5_time,
+            step6_time,
+            step7_time,
+            step8_time,
+            step9_time,
+            step10_time,
+            step11_time,
+            step12_time,
         )
         tenant_id = None
-        if hasattr(self.dispatcher, '_get_current_tenant_id'):
+        if hasattr(self.dispatcher, "_get_current_tenant_id"):
             tenant_id = self.dispatcher._get_current_tenant_id()
         assert self.result_assembler is not None
         result = self.result_assembler.assemble(
@@ -578,9 +583,7 @@ class PostDispatchPipeline(
             }
             if not consensus_gate_result.approved:
                 result.success = False
-                result.errors.append(
-                    f"Consensus gate blocked: {consensus_gate_result.reason}"
-                )
+                result.errors.append(f"Consensus gate blocked: {consensus_gate_result.reason}")
             if consensus_gate_result.needs_review:
                 result.details["needs_review"] = True
 
@@ -597,9 +600,11 @@ class PostDispatchPipeline(
         )
 
         # Step 18: Feedback loop
-        roles = kwargs.get('roles')
-        dry_run = kwargs.get('dry_run', False)
-        result = cast(DispatchResult, self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs))
+        roles = kwargs.get("roles")
+        dry_run = kwargs.get("dry_run", False)
+        result = cast(
+            DispatchResult, self._run_feedback_loop(task_description, result, lang, roles, mode, dry_run, kwargs)
+        )
 
         # Step 19: UE testing (when tester role is involved)
         ue_test_plan = self._run_ue_testing(task_description, role_ids, worker_results, lang)
@@ -614,16 +619,13 @@ class PostDispatchPipeline(
         # Step 21: V3.8 #2 — Two-stage review gate
         # Runs after consensus + tech debt scan, before final completion.
         # Critical issues block progression (recorded in errors).
-        two_stage_review_result = self._run_two_stage_review(
-            plan, worker_results, structured_goal
-        )
+        two_stage_review_result = self._run_two_stage_review(plan, worker_results, structured_goal)
         if two_stage_review_result is not None:
             result.details["two_stage_review"] = two_stage_review_result.to_dict()
             result.two_stage_review = two_stage_review_result.to_dict()
             if not two_stage_review_result.passed:
                 blocking_msgs = [
-                    f"Two-stage review blocked: {i.description}"
-                    for i in two_stage_review_result.blocking_issues
+                    f"Two-stage review blocked: {i.description}" for i in two_stage_review_result.blocking_issues
                 ]
                 errors.extend(blocking_msgs)
                 result.errors = list(errors)
@@ -632,9 +634,7 @@ class PostDispatchPipeline(
         # Step 22: V3.8 #3 — Severity router + auto-fix loop
         # Processes findings from the review gate and worker outputs.
         # Only runs in development mode (production: collect-only).
-        auto_fix_result = self._run_severity_router(
-            worker_results, two_stage_review_result
-        )
+        auto_fix_result = self._run_severity_router(worker_results, two_stage_review_result)
         if auto_fix_result is not None:
             result.details["auto_fix_result"] = auto_fix_result.to_dict()
             result.auto_fix_result = auto_fix_result.to_dict()
@@ -643,19 +643,19 @@ class PostDispatchPipeline(
         # Consolidates/deduplicates findings from the two-stage review
         # gate and severity router before reporting. Runs only when a
         # JudgeAgent is configured.
-        judge_result = self._run_judge_consolidation(
-            two_stage_review_result, auto_fix_result
-        )
+        judge_result = self._run_judge_consolidation(two_stage_review_result, auto_fix_result)
         if judge_result is not None:
             result.details["judge_result"] = judge_result.to_dict()
             result.judge_result = judge_result.to_dict()
 
         # Prometheus: record dispatch end (duration + tasks_in_progress)
-        self.metrics_service.safe_record(lambda m: (
-            m.dispatch_histogram.labels(mode=mode).observe(total_duration),
-            m.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc(),
-            m.tasks_in_progress_gauge.labels(phase=phase).dec(),
-        ))
+        self.metrics_service.safe_record(
+            lambda m: (
+                m.dispatch_histogram.labels(mode=mode).observe(total_duration),
+                m.dispatch_counter.labels(mode=mode, role_count=str(len(role_ids))).inc(),
+                m.tasks_in_progress_gauge.labels(phase=phase).dec(),
+            )
+        )
 
         # Multi-tenant context cleanup
         self.enterprise.clear_tenant_context(pre_result.tenant_ctx)
@@ -699,13 +699,34 @@ class PostDispatchPipeline(
     # ------------------------------------------------------------------
 
     def _build_step_timings(
-        self, step1: float, step2: float, step3: float, step4: float, step5: float,
-        step6: float, step7: float, step8: float, step9: float, step10: float,
-        step11: float, step12: float,
+        self,
+        step1: float,
+        step2: float,
+        step3: float,
+        step4: float,
+        step5: float,
+        step6: float,
+        step7: float,
+        step8: float,
+        step9: float,
+        step10: float,
+        step11: float,
+        step12: float,
     ) -> dict[str, float]:
         """Build step timings dict from absolute timestamps."""
-        names = ["analyze", "warmup", "plan", "spawn", "execute", "collect",
-                 "consensus", "compress", "permission", "memory", "skillify"]
+        names = [
+            "analyze",
+            "warmup",
+            "plan",
+            "spawn",
+            "execute",
+            "collect",
+            "consensus",
+            "compress",
+            "permission",
+            "memory",
+            "skillify",
+        ]
         times = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12]
         return {name: round(times[i + 1] - times[i], 3) for i, name in enumerate(names)}
 

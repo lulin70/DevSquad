@@ -70,14 +70,7 @@ class TestCheckPrematureSeamPremature(unittest.TestCase):
     def test_abc_with_one_impl_is_premature(self) -> None:
         """Verify: ABC with only 1 concrete implementation is premature."""
         checker = YagniChecker()
-        code = (
-            "from abc import ABC\n"
-            "class DataStore(ABC):\n"
-            "    pass\n"
-            "\n"
-            "class SqlStore(DataStore):\n"
-            "    pass\n"
-        )
+        code = "from abc import ABC\nclass DataStore(ABC):\n    pass\n\nclass SqlStore(DataStore):\n    pass\n"
         results = checker.check_premature_seam(code)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].seam_name, "DataStore")
@@ -258,12 +251,14 @@ class TestGetBaseName(unittest.TestCase):
     def test_name_node(self) -> None:
         """Verify: ast.Name returns the id."""
         import ast
+
         node = ast.Name(id="ABC", ctx=ast.Load())
         self.assertEqual(YagniChecker._get_base_name(node), "ABC")
 
     def test_attribute_node(self) -> None:
         """Verify: ast.Attribute returns the attr."""
         import ast
+
         node = ast.Attribute(
             value=ast.Name(id="abc", ctx=ast.Load()),
             attr="ABC",
@@ -274,6 +269,7 @@ class TestGetBaseName(unittest.TestCase):
     def test_subscript_node_recurses(self) -> None:
         """Verify: ast.Subscript recurses to get the base name."""
         import ast
+
         node = ast.Subscript(
             value=ast.Name(id="Protocol", ctx=ast.Load()),
             slice=ast.Name(id="T", ctx=ast.Load()),
@@ -293,6 +289,7 @@ class TestIsAbstractClass(unittest.TestCase):
     def test_abc_inheritance_is_abstract(self) -> None:
         """Verify: class inheriting from ABC is abstract."""
         import ast
+
         checker = YagniChecker()
         tree = ast.parse("from abc import ABC\nclass Foo(ABC):\n    pass\n")
         class_node = tree.body[1]  # type: ignore[index]
@@ -301,13 +298,10 @@ class TestIsAbstractClass(unittest.TestCase):
     def test_abstractmethod_decorator_is_abstract(self) -> None:
         """Verify: class with @abstractmethod is abstract."""
         import ast
+
         checker = YagniChecker()
         tree = ast.parse(
-            "from abc import abstractmethod\n"
-            "class Foo:\n"
-            "    @abstractmethod\n"
-            "    def bar(self):\n"
-            "        pass\n"
+            "from abc import abstractmethod\nclass Foo:\n    @abstractmethod\n    def bar(self):\n        pass\n"
         )
         class_node = tree.body[1]  # type: ignore[index]
         self.assertTrue(checker._is_abstract_class(class_node))
@@ -315,6 +309,7 @@ class TestIsAbstractClass(unittest.TestCase):
     def test_regular_class_is_not_abstract(self) -> None:
         """Verify: regular class is not abstract."""
         import ast
+
         checker = YagniChecker()
         tree = ast.parse("class Foo:\n    pass\n")
         class_node = tree.body[0]

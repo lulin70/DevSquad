@@ -70,7 +70,7 @@ MODULE_COUNT_SSOT_TOLERANCE = 0.03
 # VersionCheck that does not block CI; the doc should be brought in line
 # in a follow-up patch.
 DOCUMENTED_MODULE_HEADLINE = 204  # "204+ core modules"
-DOCUMENTED_TEST_HEADLINE = 9400   # "9400+ tests passing"
+DOCUMENTED_TEST_HEADLINE = 9400  # "9400+ tests passing"
 
 # Match version tags in PRD filenames: V3.9, V4.1.0, V4.2.1, etc.
 # Captures the version string without the leading "V" prefix.
@@ -83,9 +83,8 @@ SUB_SKILL_DIR = REPO_ROOT / "skills"
 # Top-level ``version:`` key only (nested indented keys cannot match ``^``).
 SUB_SKILL_VERSION_RE = re.compile(r'^version:\s*["\']?(\d+\.\d+\.\d+)', re.MULTILINE)
 # ``version_source: "..._version (X.Y.Z)"`` — the version inside the parens.
-SUB_SKILL_VERSION_SOURCE_RE = re.compile(
-    r"^\s*version_source:.*?\((\d+\.\d+\.\d+)\)", re.MULTILINE
-)
+SUB_SKILL_VERSION_SOURCE_RE = re.compile(r"^\s*version_source:.*?\((\d+\.\d+\.\d+)\)", re.MULTILINE)
+
 
 @dataclass
 class FileSpec:
@@ -464,13 +463,15 @@ def _check_prd_files() -> list[VersionCheck]:
         try:
             content = prd_file.read_text(encoding="utf-8")
         except OSError:
-            results.append(VersionCheck(
-                file=f"docs/prd/{prd_file.name}",
-                expected=filename_version,
-                found=None,
-                passed=True,  # non-blocking: optional PRD file unreadable
-                detail=f"SKIP (unreadable): {prd_file.name}",
-            ))
+            results.append(
+                VersionCheck(
+                    file=f"docs/prd/{prd_file.name}",
+                    expected=filename_version,
+                    found=None,
+                    passed=True,  # non-blocking: optional PRD file unreadable
+                    detail=f"SKIP (unreadable): {prd_file.name}",
+                )
+            )
             continue
         # Use digit-boundary lookarounds instead of \b: PRD files typically
         # write "V3.9" (V is a word char, so \b between V and 3 fails to
@@ -478,25 +479,28 @@ def _check_prd_files() -> list[VersionCheck]:
         # "13.9" or "3.91".
         pattern = re.compile(rf"(?<!\d){re.escape(filename_version)}(?!\d)")
         if pattern.search(content):
-            results.append(VersionCheck(
-                file=f"docs/prd/{prd_file.name}",
-                expected=filename_version,
-                found=filename_version,
-                passed=True,
-                detail=f"PRD version {filename_version} found in content OK",
-            ))
+            results.append(
+                VersionCheck(
+                    file=f"docs/prd/{prd_file.name}",
+                    expected=filename_version,
+                    found=filename_version,
+                    passed=True,
+                    detail=f"PRD version {filename_version} found in content OK",
+                )
+            )
         else:
             # Non-blocking WARN: PRD content does not reference its filename version.
             # passed=True so this does not fail CI; detail prefixed with WARN for
             # human review.
-            results.append(VersionCheck(
-                file=f"docs/prd/{prd_file.name}",
-                expected=filename_version,
-                found=None,
-                passed=True,
-                detail=f"WARN: PRD version {filename_version} not found in content "
-                       f"(filename/content drift)",
-            ))
+            results.append(
+                VersionCheck(
+                    file=f"docs/prd/{prd_file.name}",
+                    expected=filename_version,
+                    found=None,
+                    passed=True,
+                    detail=f"WARN: PRD version {filename_version} not found in content (filename/content drift)",
+                )
+            )
     return results
 
 
@@ -512,45 +516,71 @@ def _check_skill_frontmatter() -> list[VersionCheck]:
     try:
         content = path.read_text(encoding="utf-8")
     except OSError as exc:
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=None, passed=False, detail=f"FAIL (unreadable): {exc}",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=None,
+                passed=False,
+                detail=f"FAIL (unreadable): {exc}",
+            )
+        ]
     match = re.match(r"^---\n(.*?)\n---\n", content, re.DOTALL)
     if not match:
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=None, passed=False, detail="FAIL: no frontmatter block found",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=None,
+                passed=False,
+                detail="FAIL: no frontmatter block found",
+            )
+        ]
     try:
         import yaml
 
         data = yaml.safe_load(match.group(1))
     except Exception as exc:  # noqa: BLE001 - any parse error is a FAIL
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=None, passed=False,
-            detail=f"FAIL: YAML parse error: {type(exc).__name__}: "
-                   f"{str(exc)[:120]} (TRAE will not register the skill)",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=None,
+                passed=False,
+                detail=f"FAIL: YAML parse error: {type(exc).__name__}: "
+                f"{str(exc)[:120]} (TRAE will not register the skill)",
+            )
+        ]
     if not isinstance(data, dict):
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=type(data).__name__, passed=False,
-            detail="FAIL: frontmatter is not a mapping",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=type(data).__name__,
+                passed=False,
+                detail="FAIL: frontmatter is not a mapping",
+            )
+        ]
     missing = [k for k in ("name", "slug", "version", "description") if k not in data]
     if missing:
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=str(sorted(data.keys())), passed=False,
-            detail=f"FAIL: missing required keys: {missing}",
-        )]
-    return [VersionCheck(
-        file="SKILL.md (frontmatter)", expected="parsable YAML",
-        found=f"{data['name']}@{data['version']}", passed=True,
-        detail="frontmatter YAML parses; name/slug/version/description present",
-    )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=str(sorted(data.keys())),
+                passed=False,
+                detail=f"FAIL: missing required keys: {missing}",
+            )
+        ]
+    return [
+        VersionCheck(
+            file="SKILL.md (frontmatter)",
+            expected="parsable YAML",
+            found=f"{data['name']}@{data['version']}",
+            passed=True,
+            detail="frontmatter YAML parses; name/slug/version/description present",
+        )
+    ]
 
 
 def _check_sub_skill_manifests(expected: str) -> list[VersionCheck]:
@@ -575,75 +605,99 @@ def _check_sub_skill_manifests(expected: str) -> list[VersionCheck]:
         A missing/empty ``skills/`` directory is reported as a single failure.
     """
     if not SUB_SKILL_DIR.is_dir():
-        return [VersionCheck(
-            file="skills/*/skill-manifest.yaml",
-            expected=expected,
-            found=None,
-            passed=False,
-            detail=f"FAIL: skills directory not found: {SUB_SKILL_DIR}",
-        )]
+        return [
+            VersionCheck(
+                file="skills/*/skill-manifest.yaml",
+                expected=expected,
+                found=None,
+                passed=False,
+                detail=f"FAIL: skills directory not found: {SUB_SKILL_DIR}",
+            )
+        ]
 
     manifests = sorted(SUB_SKILL_DIR.glob("*/skill-manifest.yaml"))
     if not manifests:
-        return [VersionCheck(
-            file="skills/*/skill-manifest.yaml",
-            expected=expected,
-            found=None,
-            passed=False,
-            detail="FAIL: no sub-skill manifests found",
-        )]
+        return [
+            VersionCheck(
+                file="skills/*/skill-manifest.yaml",
+                expected=expected,
+                found=None,
+                passed=False,
+                detail="FAIL: no sub-skill manifests found",
+            )
+        ]
 
     results: list[VersionCheck] = []
     for manifest in manifests:
-        rel_path = (
-            manifest.relative_to(REPO_ROOT).as_posix()
-            if REPO_ROOT in manifest.parents
-            else manifest.as_posix()
-        )
+        rel_path = manifest.relative_to(REPO_ROOT).as_posix() if REPO_ROOT in manifest.parents else manifest.as_posix()
         try:
             content = manifest.read_text(encoding="utf-8")
         except OSError as exc:
-            results.append(VersionCheck(
-                file=rel_path, expected=expected, found=None, passed=False,
-                detail=f"FAIL (unreadable): {exc}",
-            ))
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=None,
+                    passed=False,
+                    detail=f"FAIL (unreadable): {exc}",
+                )
+            )
             continue
 
         version_matches = SUB_SKILL_VERSION_RE.findall(content)
         if not version_matches:
-            results.append(VersionCheck(
-                file=rel_path, expected=expected, found=None, passed=False,
-                detail=f"FAIL: no top-level 'version:' key in {rel_path}",
-            ))
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=None,
+                    passed=False,
+                    detail=f"FAIL: no top-level 'version:' key in {rel_path}",
+                )
+            )
         elif version_matches[0] == expected:
-            results.append(VersionCheck(
-                file=rel_path, expected=expected, found=version_matches[0], passed=True,
-                detail=f"sub-skill manifest version: {version_matches[0]} OK",
-            ))
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=version_matches[0],
+                    passed=True,
+                    detail=f"sub-skill manifest version: {version_matches[0]} OK",
+                )
+            )
         else:
-            results.append(VersionCheck(
-                file=rel_path, expected=expected, found=version_matches[0], passed=False,
-                detail=(
-                    f"sub-skill manifest version drift: expected {expected}, "
-                    f"found {version_matches[0]}"
-                ),
-            ))
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=version_matches[0],
+                    passed=False,
+                    detail=(f"sub-skill manifest version drift: expected {expected}, found {version_matches[0]}"),
+                )
+            )
 
         source_matches = SUB_SKILL_VERSION_SOURCE_RE.findall(content)
         if source_matches:
             if source_matches[0] == expected:
-                results.append(VersionCheck(
-                    file=rel_path, expected=expected, found=source_matches[0], passed=True,
-                    detail=f"version_source: {source_matches[0]} OK",
-                ))
+                results.append(
+                    VersionCheck(
+                        file=rel_path,
+                        expected=expected,
+                        found=source_matches[0],
+                        passed=True,
+                        detail=f"version_source: {source_matches[0]} OK",
+                    )
+                )
             else:
-                results.append(VersionCheck(
-                    file=rel_path, expected=expected, found=source_matches[0], passed=False,
-                    detail=(
-                        f"version_source drift: expected {expected}, "
-                        f"found {source_matches[0]}"
-                    ),
-                ))
+                results.append(
+                    VersionCheck(
+                        file=rel_path,
+                        expected=expected,
+                        found=source_matches[0],
+                        passed=False,
+                        detail=(f"version_source drift: expected {expected}, found {source_matches[0]}"),
+                    )
+                )
     return results
 
 
@@ -666,10 +720,7 @@ def _print_results(results: list[VersionCheck]) -> dict[str, list[VersionCheck]]
     """
     skipped = [r for r in results if r.detail.startswith("SKIP")]
     warnings = [r for r in results if r.detail.startswith("WARN")]
-    passed = [
-        r for r in results
-        if r.passed and not r.detail.startswith("SKIP") and not r.detail.startswith("WARN")
-    ]
+    passed = [r for r in results if r.passed and not r.detail.startswith("SKIP") and not r.detail.startswith("WARN")]
     failed = [r for r in results if not r.passed]
 
     for r in results:
@@ -755,7 +806,9 @@ def main() -> int:
     if warnings:
         print(f"\n{len(warnings)} warning(s) (non-blocking). All {len(passed)} required version checks passed.")
     else:
-        print(f"\nAll {len(passed)} required version checks passed ({len(skipped)} optional skipped). Version {expected} is consistent.")
+        print(
+            f"\nAll {len(passed)} required version checks passed ({len(skipped)} optional skipped). Version {expected} is consistent."
+        )
     return 0
 
 

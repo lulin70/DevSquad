@@ -52,10 +52,7 @@ class LoopScheduler:
                 reason=f"Max iterations ({max_iterations}) reached",
             )
 
-        if (
-            self._human_checkpoint_every > 0
-            and (iter_index + 1) % self._human_checkpoint_every == 0
-        ):
+        if self._human_checkpoint_every > 0 and (iter_index + 1) % self._human_checkpoint_every == 0:
             return SchedulingDecision(
                 action=SchedulingAction.HUMAN_CHECKPOINT,
                 reason=f"Human checkpoint at iteration {iter_index}",
@@ -101,10 +98,7 @@ class LoopScheduler:
         if strategy.should_stop(rollback_count):
             return SchedulingDecision(
                 action=SchedulingAction.STOP_FAILURE,
-                reason=(
-                    f"Rollback iterations ({rollback_count}) exceeded "
-                    f"hard cap ({max_rollback_iterations})"
-                ),
+                reason=(f"Rollback iterations ({rollback_count}) exceeded hard cap ({max_rollback_iterations})"),
             )
         target = strategy.determine_rollback(failed_dimension)
         if target == RollbackTarget.NONE:

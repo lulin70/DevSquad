@@ -64,10 +64,13 @@ class DispatchSkill(BaseSkill):
         >>> print(result["matched_roles"])
         >>> print(result["report"])
     """
+
     name = "dispatch"
     description = "Multi-agent task dispatch: submit a task → auto-match roles → parallel execution → structured report"
 
-    def run(self, task: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False) -> dict[str, Any]:
+    def run(
+        self, task: str, roles: list[str] | None = None, mode: str = "auto", dry_run: bool = False
+    ) -> dict[str, Any]:
         """Execute multi-agent task dispatch.
 
         Submits task to MultiAgentDispatcher and returns structured results
@@ -144,6 +147,5 @@ class DispatchSkill(BaseSkill):
         from scripts.collaboration.models_dispatch import ROLE_REGISTRY
 
         return [
-            {"id": rdef.role_id, "name": rdef.name, "keywords": rdef.keywords[:5]}
-            for rdef in ROLE_REGISTRY.values()
+            {"id": rdef.role_id, "name": rdef.name, "keywords": rdef.keywords[:5]} for rdef in ROLE_REGISTRY.values()
         ]

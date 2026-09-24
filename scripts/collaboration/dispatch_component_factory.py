@@ -111,6 +111,7 @@ class ComponentFactory:
         if config.enable_execution_guard:
             try:
                 from .execution_guard import ExecutionGuard
+
                 components["execution_guard"] = ExecutionGuard()
                 logger.info("ExecutionGuard enabled")
             except (ImportError, ModuleNotFoundError, AttributeError, RuntimeError) as e:
@@ -135,21 +136,15 @@ class ComponentFactory:
         components["report_formatter"] = ReportFormatter(lang=config.lang)
 
         components["compressor"] = (
-            ContextCompressor(token_threshold=config.compression_threshold)
-            if config.enable_compression
-            else None
+            ContextCompressor(token_threshold=config.compression_threshold) if config.enable_compression else None
         )
         components["permission_guard"] = (
-            PermissionGuard(current_level=config.permission_level)
-            if config.enable_permission
-            else None
+            PermissionGuard(current_level=config.permission_level) if config.enable_permission else None
         )
 
         components["warmup_manager"] = self._init_warmup_manager(config)
         components["memory_bridge"] = (
-            MemoryBridge(base_dir=config.memory_dir, mce_adapter=config.mce_adapter)
-            if config.enable_memory
-            else None
+            MemoryBridge(base_dir=config.memory_dir, mce_adapter=config.mce_adapter) if config.enable_memory else None
         )
         components["skillifier"] = Skillifier() if config.enable_skillify else None
         components["quality_guard"] = TestQualityGuard("", "") if config.enable_quality_guard else None
@@ -169,7 +164,10 @@ class ComponentFactory:
         from .warmup_manager import WarmupConfig, WarmupManager
 
         warmup_cfg = WarmupConfig(
-            cache_enabled=True, cache_max_size=50, cache_ttl_seconds=3600, metrics_enabled=True,
+            cache_enabled=True,
+            cache_max_size=50,
+            cache_ttl_seconds=3600,
+            metrics_enabled=True,
         )
         mgr = WarmupManager(config=warmup_cfg)
         try:
@@ -195,9 +193,8 @@ class ComponentFactory:
             return None
         try:
             from .retrospective import RetrospectiveEngine
-            return RetrospectiveEngine(
-                memory_bridge=components.get("memory_bridge") if config.enable_memory else None
-            )
+
+            return RetrospectiveEngine(memory_bridge=components.get("memory_bridge") if config.enable_memory else None)
         except (ImportError, AttributeError, RuntimeError):
             return None
 
@@ -232,9 +229,8 @@ class ComponentFactory:
             return None
         try:
             from .feature_usage_tracker import FeatureUsageTracker
-            return FeatureUsageTracker(
-                persist_path=os.path.join(config.persist_dir, "feature_usage.json")
-            )
+
+            return FeatureUsageTracker(persist_path=os.path.join(config.persist_dir, "feature_usage.json"))
         except (ImportError, AttributeError, RuntimeError):
             return None
 
@@ -246,6 +242,7 @@ class ComponentFactory:
 
         if config.loop_engineering_enabled:
             from .loop_engineering import LoopEngineeringConfig, LoopKernel
+
             loop_config = config.loop_config or LoopEngineeringConfig()
             components["loop_kernel"] = LoopKernel(config=loop_config)
 
@@ -253,6 +250,7 @@ class ComponentFactory:
         if config.qa_enabled:
             try:
                 from scripts.qa import UIUXAnalyzer, VisualRegressionChecker
+
                 components["uiux_analyzer"] = UIUXAnalyzer()
                 components["visual_regression_checker"] = VisualRegressionChecker(
                     pixel_diff_threshold=config.qa_pixel_diff_threshold,
@@ -266,6 +264,7 @@ class ComponentFactory:
             try:
                 from .autonomous import AutonomousLoopController
                 from .autonomous.loop_controller import AutonomousConfig
+
                 autonomous_config = AutonomousConfig(
                     objective="",  # 运行时由 dispatch_autonomous() 设置
                     max_iterations=config.autonomous_max_iterations,
@@ -282,9 +281,7 @@ class ComponentFactory:
             try:
                 from .plugins import PluginHotLoader
 
-                dropin_dir = config.plugins_dropin_dir or os.path.join(
-                    config.persist_dir, "plugins_extra"
-                )
+                dropin_dir = config.plugins_dropin_dir or os.path.join(config.persist_dir, "plugins_extra")
                 os.makedirs(dropin_dir, exist_ok=True)
                 components["plugin_hot_loader"] = PluginHotLoader(
                     dropin_dir=dropin_dir,
@@ -302,6 +299,7 @@ class ComponentFactory:
         """Initialize cache, monitor, and utility components."""
         if config.enable_redis_cache and config.redis_url:
             from .llm_cache import configure_redis_cache
+
             configure_redis_cache(enabled=True, url=config.redis_url)
 
         from .concern_pack_loader import ConcernPackLoader
@@ -311,23 +309,27 @@ class ComponentFactory:
         components["_concern_loader"] = ConcernPackLoader()
 
         from .dual_layer_context import DualLayerContextManager
+
         components["context_manager"] = DualLayerContextManager()
 
         from .intent_workflow_mapper import IntentWorkflowMapper
+
         components["intent_mapper"] = IntentWorkflowMapper()
 
         from .operation_classifier import OperationClassifier
+
         components["operation_classifier"] = OperationClassifier()
 
         from .skill_registry import SkillRegistry
-        components["skill_registry"] = SkillRegistry(
-            storage_path=os.path.join(config.persist_dir, "skills")
-        )
+
+        components["skill_registry"] = SkillRegistry(storage_path=os.path.join(config.persist_dir, "skills"))
 
         from .ai_semantic_matcher import AISemanticMatcher
+
         components["semantic_matcher"] = AISemanticMatcher(llm_backend=config.llm_backend)
 
         from .null_providers import get_null_cache, get_null_memory, get_null_monitor, get_null_retry
+
         components["_null_cache"] = get_null_cache()
         components["_null_retry"] = get_null_retry()
         components["_null_monitor"] = get_null_monitor()

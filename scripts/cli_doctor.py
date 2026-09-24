@@ -135,12 +135,7 @@ def _check_connectivity(provider: str, timeout: float = 5.0) -> tuple[bool, floa
                 # Provider-specific response parsing
                 if isinstance(data, dict) and "data" in data:
                     raw_models = data.get("data", [])
-                    models = [
-                        str(m.get("id", m.get("name", m)))
-                        if isinstance(m, dict)
-                        else str(m)
-                        for m in raw_models
-                    ]
+                    models = [str(m.get("id", m.get("name", m))) if isinstance(m, dict) else str(m) for m in raw_models]
                 elif isinstance(data, list):
                     models = [str(m) for m in data]
                 else:
@@ -256,11 +251,7 @@ def cmd_doctor(args: Any) -> int:
     provider = getattr(args, "provider", "all")
     timeout = getattr(args, "timeout", 5.0)
 
-    reports = (
-        diagnose_all(timeout)
-        if provider == "all"
-        else [diagnose_provider(provider, timeout)]
-    )
+    reports = diagnose_all(timeout) if provider == "all" else [diagnose_provider(provider, timeout)]
 
     if fmt == "json":
         print(format_json(reports))

@@ -5,6 +5,7 @@ def test_e2e_p11_conditional_when_cfr_above_15pct():
     """US-D3: P11 gate must return CONDITIONAL when change_failure_rate > 0.15."""
     from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector
     from scripts.collaboration.unified_gate_engine import UnifiedGateEngine
+
     engine = UnifiedGateEngine()
     collector = DoraMetricsCollector()
     # Inject a high change failure rate
@@ -17,6 +18,7 @@ def test_e2e_p11_conditional_when_cfr_above_15pct():
 def test_e2e_dashboard_dora_panel_renders():
     """US-D4: Dashboard must render DORA panel with 4 numeric cards."""
     from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector
+
     collector = DoraMetricsCollector()
     panel_md = collector.to_dashboard_panel()
     assert "deployment_frequency" in panel_md.lower() or "deployment frequency" in panel_md.lower()

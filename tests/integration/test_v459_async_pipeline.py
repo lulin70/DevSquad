@@ -240,9 +240,7 @@ class TestCoordinatorSyncBridge:
         """AC-C1: Coordinator parallel batch runs through the shared gather core."""
         from scripts.collaboration.coordinator import Coordinator
 
-        coord = Coordinator(
-            scratchpad=Scratchpad(), enable_compression=False, llm_backend=MockBackend()
-        )
+        coord = Coordinator(scratchpad=Scratchpad(), enable_compression=False, llm_backend=MockBackend())
         plan = coord.plan_task(
             "design auth",
             [

@@ -146,6 +146,7 @@ class EnhancedWorker(Worker):
                 DEFAULT_EXECUTION_GUARD_MAX_DURATION_SECONDS,
                 DEFAULT_EXECUTION_GUARD_MAX_OUTPUT_TOKENS,
             )
+
             self.execution_guard = _ExecutionGuard(
                 max_duration_sec=DEFAULT_EXECUTION_GUARD_MAX_DURATION_SECONDS,
                 max_output_tokens=DEFAULT_EXECUTION_GUARD_MAX_OUTPUT_TOKENS,
@@ -397,13 +398,12 @@ class EnhancedWorker(Worker):
             return
         output_text = result.output if isinstance(result.output, str) else str(result.output)
         try:
-            should_abort, abort_reason = self.execution_guard.check_abort(
-                output_text, elapsed_time
-            )
+            should_abort, abort_reason = self.execution_guard.check_abort(output_text, elapsed_time)
             if should_abort:
                 logger.warning(
                     "ExecutionGuard abort triggered for worker %s: %s",
-                    self.worker_id, abort_reason,
+                    self.worker_id,
+                    abort_reason,
                 )
                 if isinstance(result.output, dict):
                     result.output["execution_guard_abort"] = True
@@ -413,7 +413,8 @@ class EnhancedWorker(Worker):
             if warnings:
                 logger.warning(
                     "ExecutionGuard warnings for worker %s: %s",
-                    self.worker_id, ", ".join(warnings),
+                    self.worker_id,
+                    ", ".join(warnings),
                 )
                 if isinstance(result.output, dict):
                     result.output["execution_guard_warnings"] = warnings

@@ -104,6 +104,7 @@ class TestAgentIdentity(unittest.TestCase):
         self.assertEqual(len(hash_part), 8)
         # And it equals the documented sha256[:8] of role:backend:model.
         import hashlib
+
         expected = hashlib.sha256(b"architect:mock:mock").hexdigest()[:8]
         self.assertEqual(hash_part, expected)
 
@@ -225,11 +226,13 @@ class TestAgentIdentity(unittest.TestCase):
         tester = AgentIdentity.create("tester", "mock", "mock")
         # Record one event per agent with agent_id embedded in details.
         logger._append_entry(
-            "dispatch_start", arch.agent_id,
+            "dispatch_start",
+            arch.agent_id,
             {"agent_id": arch.agent_id, "task": "design"},
         )
         logger._append_entry(
-            "dispatch_start", tester.agent_id,
+            "dispatch_start",
+            tester.agent_id,
             {"agent_id": tester.agent_id, "task": "test"},
         )
 

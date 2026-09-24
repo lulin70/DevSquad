@@ -166,9 +166,7 @@ def test_full_strategy_within_zero_to_delay(
     # Sample several times to confirm bounds
     for _ in range(20):
         delay = manager.calculate_delay(attempt, config)
-        assert 0 <= delay <= deterministic + 1e-9, (
-            f"FULL delay {delay} out of [0, {deterministic}]"
-        )
+        assert 0 <= delay <= deterministic + 1e-9, f"FULL delay {delay} out of [0, {deterministic}]"
 
 
 @given(
@@ -202,9 +200,7 @@ def test_equal_strategy_within_half_to_full(
         delay = manager.calculate_delay(attempt, config)
         lower = deterministic / 2.0 - 1e-9
         upper = deterministic + 1e-9
-        assert lower <= delay <= upper, (
-            f"EQUAL delay {delay} out of [{lower}, {upper}] (deterministic={deterministic})"
-        )
+        assert lower <= delay <= upper, f"EQUAL delay {delay} out of [{lower}, {upper}] (deterministic={deterministic})"
 
 
 @given(
@@ -278,9 +274,7 @@ def test_jitter_disabled_returns_deterministic(
     )
     delay1 = manager.calculate_delay(attempt, config)
     delay2 = manager.calculate_delay(attempt, config)
-    assert delay1 == expected, (
-        f"jitter=False returned {delay1}, expected {expected} (strategy={strategy})"
-    )
+    assert delay1 == expected, f"jitter=False returned {delay1}, expected {expected} (strategy={strategy})"
     assert delay1 == delay2, f"jitter=False not deterministic: {delay1} != {delay2}"
 
 
@@ -333,7 +327,5 @@ def test_delay_monotonically_increases_without_jitter(
     prev_delay = -1.0
     for attempt in range(6):
         delay = manager.calculate_delay(attempt, config)
-        assert delay >= prev_delay - 1e-9, (
-            f"Delay decreased at attempt {attempt}: {delay} < {prev_delay}"
-        )
+        assert delay >= prev_delay - 1e-9, f"Delay decreased at attempt {attempt}: {delay} < {prev_delay}"
         prev_delay = delay

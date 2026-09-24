@@ -252,10 +252,7 @@ class TestTechDebtManagerExtendedContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             py_file = Path(tmp) / "mod.py"
             py_file.write_text(
-                "# TODO: refactor this\n"
-                "# FIXME: bug here\n"
-                "def hello():\n"
-                "    pass\n",
+                "# TODO: refactor this\n# FIXME: bug here\ndef hello():\n    pass\n",
                 encoding="utf-8",
             )
             debts = manager.scan_codebase_debt(tmp)
@@ -279,13 +276,21 @@ class TestTechDebtManagerExtendedContract(unittest.TestCase):
         manager = self._get_manager()
         # Low severity + epic effort -> low priority
         manager.identify_debt(
-            "s", DebtCategory.DOCUMENTATION, "low", "f1",
-            severity=DebtSeverity.LOW, effort=DebtEffort.EPIC,
+            "s",
+            DebtCategory.DOCUMENTATION,
+            "low",
+            "f1",
+            severity=DebtSeverity.LOW,
+            effort=DebtEffort.EPIC,
         )
         # Critical + trivial -> high priority
         manager.identify_debt(
-            "s", DebtCategory.SECURITY, "critical", "f2",
-            severity=DebtSeverity.CRITICAL, effort=DebtEffort.TRIVIAL,
+            "s",
+            DebtCategory.SECURITY,
+            "critical",
+            "f2",
+            severity=DebtSeverity.CRITICAL,
+            effort=DebtEffort.TRIVIAL,
         )
         prioritized = manager.prioritize()
         self.assertGreaterEqual(len(prioritized), 2)
@@ -344,15 +349,9 @@ class TestTechDebtManagerExtendedContract(unittest.TestCase):
         )
 
         manager = self._get_manager()
-        manager.identify_debt(
-            "s", DebtCategory.SECURITY, "vuln1", "f1", severity=DebtSeverity.HIGH
-        )
-        manager.identify_debt(
-            "s", DebtCategory.SECURITY, "vuln2", "f2", severity=DebtSeverity.CRITICAL
-        )
-        manager.identify_debt(
-            "s", DebtCategory.TEST_GAP, "no test", "f3", severity=DebtSeverity.MEDIUM
-        )
+        manager.identify_debt("s", DebtCategory.SECURITY, "vuln1", "f1", severity=DebtSeverity.HIGH)
+        manager.identify_debt("s", DebtCategory.SECURITY, "vuln2", "f2", severity=DebtSeverity.CRITICAL)
+        manager.identify_debt("s", DebtCategory.TEST_GAP, "no test", "f3", severity=DebtSeverity.MEDIUM)
         report = manager.get_debt_report()
         self.assertEqual(report.by_category.get("security"), 2)
         self.assertEqual(report.by_category.get("test_gap"), 1)
@@ -443,16 +442,28 @@ class TestTechDebtManagerExtendedContract(unittest.TestCase):
         manager = self._get_manager()
         # All MODERATE effort (10h) so severity is the differentiator.
         manager.identify_debt(
-            "tester", DebtCategory.TEST_GAP, "no tests for module A", "a.py",
-            severity=DebtSeverity.HIGH, effort=DebtEffort.MODERATE,
+            "tester",
+            DebtCategory.TEST_GAP,
+            "no tests for module A",
+            "a.py",
+            severity=DebtSeverity.HIGH,
+            effort=DebtEffort.MODERATE,
         )
         manager.identify_debt(
-            "architect", DebtCategory.ARCHITECTURE, "circular import X->Y->X", "core/",
-            severity=DebtSeverity.CRITICAL, effort=DebtEffort.MODERATE,
+            "architect",
+            DebtCategory.ARCHITECTURE,
+            "circular import X->Y->X",
+            "core/",
+            severity=DebtSeverity.CRITICAL,
+            effort=DebtEffort.MODERATE,
         )
         manager.identify_debt(
-            "tester", DebtCategory.SECURITY, "SQL injection in search", "api/search.py",
-            severity=DebtSeverity.CRITICAL, effort=DebtEffort.MODERATE,
+            "tester",
+            DebtCategory.SECURITY,
+            "SQL injection in search",
+            "api/search.py",
+            severity=DebtSeverity.CRITICAL,
+            effort=DebtEffort.MODERATE,
         )
         prioritized = manager.prioritize()
         self.assertEqual(len(prioritized), 3)
@@ -534,6 +545,7 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
     def _get_manager(self) -> Any:
         """Return a fresh TechDebtManager (no persistence) for isolation."""
         from scripts.collaboration.tech_debt_manager import TechDebtManager
+
         return TechDebtManager()
 
     def test_scan_codebase_debt_completely_empty_directory(self) -> None:
@@ -543,6 +555,7 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
         must yield an empty debt list without raising.
         """
         import tempfile
+
         manager = self._get_manager()
         with tempfile.TemporaryDirectory() as tmp:
             result = manager.scan_codebase_debt(tmp)
@@ -556,11 +569,13 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
         """
         import tempfile
         from pathlib import Path
+
         manager = self._get_manager()
         with tempfile.TemporaryDirectory() as tmp:
             for i in range(100):
                 (Path(tmp) / f"mod_{i}.py").write_text(
-                    f"# TODO: refactor module {i}\npass\n", encoding="utf-8",
+                    f"# TODO: refactor module {i}\npass\n",
+                    encoding="utf-8",
                 )
             debts = manager.scan_codebase_debt(tmp)
             self.assertGreaterEqual(len(debts), 100)
@@ -582,6 +597,7 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
         debt_to_value_ratio=0.0.
         """
         from scripts.collaboration.tech_debt_manager import DebtReport
+
         manager = self._get_manager()
         report = manager.get_debt_report()
         self.assertIsInstance(report, DebtReport)
@@ -601,6 +617,7 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
         import os
         import tempfile
         from pathlib import Path
+
         manager = self._get_manager()
         with tempfile.TemporaryDirectory() as tmp:
             ro_file = Path(tmp) / "readonly.py"
@@ -622,6 +639,7 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
         import tempfile
         import threading
         from pathlib import Path
+
         manager = self._get_manager()
         errors: list[str] = []
         results: list[list] = []
@@ -650,10 +668,13 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
         accepted. The resulting TechDebt must have description=''.
         """
         from scripts.collaboration.tech_debt_manager import DebtCategory
+
         manager = self._get_manager()
         debt = manager.identify_debt(
-            source="tester", category=DebtCategory.CODE_QUALITY,
-            description="", location="src/main.py",
+            source="tester",
+            category=DebtCategory.CODE_QUALITY,
+            description="",
+            location="src/main.py",
         )
         self.assertEqual(debt.description, "")
 
@@ -664,10 +685,13 @@ class T6_TechDebtProviderStressContract(unittest.TestCase):
         resulting TechDebt must have location=''.
         """
         from scripts.collaboration.tech_debt_manager import DebtCategory
+
         manager = self._get_manager()
         debt = manager.identify_debt(
-            source="tester", category=DebtCategory.CODE_QUALITY,
-            description="missing location", location="",
+            source="tester",
+            category=DebtCategory.CODE_QUALITY,
+            description="missing location",
+            location="",
         )
         self.assertEqual(debt.location, "")
 

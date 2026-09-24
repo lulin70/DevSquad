@@ -142,9 +142,18 @@ class SensitiveDataMasker:
     def __init__(self) -> None:
         self._patterns: dict[str, str] = dict(self.DEFAULT_PATTERNS)
         self._sensitive_keys: set[str] = {
-            "password", "passwd", "pwd", "secret", "token",
-            "api_key", "apikey", "access_token", "auth_token",
-            "credit_card", "ssn", "social_security",
+            "password",
+            "passwd",
+            "pwd",
+            "secret",
+            "token",
+            "api_key",
+            "apikey",
+            "access_token",
+            "auth_token",
+            "credit_card",
+            "ssn",
+            "social_security",
         }
 
     def add_pattern(self, name: str, pattern: str) -> None:
@@ -216,7 +225,7 @@ class SensitiveDataMasker:
             elif name == "email":
                 result = re.sub(
                     pattern,
-                    lambda m: f"{m.group()[0]}***{m.group().find('@') and m.group()[m.group().index('@'):]}",
+                    lambda m: f"{m.group()[0]}***{m.group().find('@') and m.group()[m.group().index('@') :]}",
                     result,
                 )
             elif name in ("credit_card", "phone"):
@@ -310,6 +319,7 @@ class AuditLogger:
         self._load_state()
 
         import atexit
+
         atexit.register(self.force_flush)
 
     def _ensure_log_dir(self) -> None:
@@ -438,9 +448,7 @@ class AuditLogger:
 
         hash_signature = ""
         if self.enable_hash_chain:
-            hash_signature = hashlib.sha256(
-                json.dumps(record_data, sort_keys=True).encode()
-            ).hexdigest()
+            hash_signature = hashlib.sha256(json.dumps(record_data, sort_keys=True).encode()).hexdigest()
 
         record = AuditRecord(
             timestamp=timestamp,
@@ -574,9 +582,16 @@ class AuditLogger:
 
         if fmt == "csv":
             fieldnames = [
-                "timestamp", "user_id", "action", "resource_type",
-                "resource_id", "details", "ip_address", "user_agent",
-                "result", "hash_signature",
+                "timestamp",
+                "user_id",
+                "action",
+                "resource_type",
+                "resource_id",
+                "details",
+                "ip_address",
+                "user_agent",
+                "result",
+                "hash_signature",
             ]
             with open(output_file, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -669,9 +684,7 @@ class AuditLogger:
                 "prev_hash": prev_hash,
             }
 
-            expected_hash = hashlib.sha256(
-                json.dumps(expected_data, sort_keys=True).encode()
-            ).hexdigest()
+            expected_hash = hashlib.sha256(json.dumps(expected_data, sort_keys=True).encode()).hexdigest()
 
             if expected_hash != record.hash_signature:
                 return {
@@ -701,9 +714,7 @@ class AuditLogger:
                 return
 
             self._rotate_if_needed()
-            filepath = self._current_file_path or (
-                self.log_dir / self._get_today_filename()
-            )
+            filepath = self._current_file_path or (self.log_dir / self._get_today_filename())
 
             if self.format == "csv":
                 self._flush_to_csv(filepath)
@@ -723,9 +734,16 @@ class AuditLogger:
             filepath: Target file path
         """
         fieldnames = [
-            "timestamp", "user_id", "action", "resource_type",
-            "resource_id", "details", "ip_address", "user_agent",
-            "result", "hash_signature",
+            "timestamp",
+            "user_id",
+            "action",
+            "resource_type",
+            "resource_id",
+            "details",
+            "ip_address",
+            "user_agent",
+            "result",
+            "hash_signature",
         ]
 
         file_exists = filepath.exists()
@@ -817,11 +835,7 @@ class AuditLogger:
             Dictionary with buffer size, file counts, etc.
         """
         total_files = len(list(self.log_dir.glob(f"audit_*.{self.format}")))
-        total_size = sum(
-            f.stat().st_size
-            for f in self.log_dir.glob(f"audit_*.{self.format}")
-            if f.exists()
-        )
+        total_size = sum(f.stat().st_size for f in self.log_dir.glob(f"audit_*.{self.format}") if f.exists())
 
         return {
             "buffer_size": len(self._buffer),

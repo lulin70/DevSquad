@@ -256,9 +256,7 @@ class TestCompressedScratchpadEntryReductionRatio(unittest.TestCase):
 
     def test_reduction_ratio_normal(self):
         """Verify: 15000 original, 60 compressed → 0.996 ratio."""
-        entry = CompressedScratchpadEntry(
-            summary="x", trace_id="t", original_size=15_000, compressed_size=60
-        )
+        entry = CompressedScratchpadEntry(summary="x", trace_id="t", original_size=15_000, compressed_size=60)
         self.assertAlmostEqual(entry.reduction_ratio, 0.996, places=3)
 
     def test_reduction_ratio_zero_original(self):
@@ -268,16 +266,12 @@ class TestCompressedScratchpadEntryReductionRatio(unittest.TestCase):
 
     def test_reduction_ratio_full_compression(self):
         """Verify: compressed_size=0 → ratio 1.0 (everything removed)."""
-        entry = CompressedScratchpadEntry(
-            summary="", trace_id="t", original_size=10_000, compressed_size=0
-        )
+        entry = CompressedScratchpadEntry(summary="", trace_id="t", original_size=10_000, compressed_size=0)
         self.assertAlmostEqual(entry.reduction_ratio, 1.0)
 
     def test_reduction_ratio_no_compression(self):
         """Verify: compressed == original → ratio 0.0."""
-        entry = CompressedScratchpadEntry(
-            summary="x" * 100, trace_id="t", original_size=100, compressed_size=100
-        )
+        entry = CompressedScratchpadEntry(summary="x" * 100, trace_id="t", original_size=100, compressed_size=100)
         self.assertAlmostEqual(entry.reduction_ratio, 0.0)
 
 

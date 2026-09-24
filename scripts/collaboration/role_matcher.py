@@ -26,6 +26,7 @@ class RoleMatcher:
         if self._fingerprint_db is None:
             try:
                 from .performance_fingerprint import PerformanceFingerprint
+
                 self._fingerprint_db = PerformanceFingerprint()
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.debug("PerformanceFingerprint unavailable: %s", e)
@@ -40,6 +41,7 @@ class RoleMatcher:
                 return None
             try:
                 from .adaptive_role_selector import AdaptiveRoleSelector
+
                 self._adaptive_selector = AdaptiveRoleSelector(fingerprint_db=fp)
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.debug("AdaptiveRoleSelector unavailable: %s", e)
@@ -54,6 +56,7 @@ class RoleMatcher:
                 return None
             try:
                 from .similar_task_recommender import SimilarTaskRecommender
+
                 self._similar_recommender = SimilarTaskRecommender(fingerprint_db=fp)
             except (ImportError, AttributeError, RuntimeError, OSError) as e:
                 logger.debug("SimilarTaskRecommender unavailable: %s", e)
@@ -208,7 +211,6 @@ class RoleMatcher:
             Final matched roles list with user overrides applied
         """
         from .models import ROLE_REGISTRY as _RR
-
 
         resolved_roles = [resolve_role_id(r) for r in roles]
         role_ids_set = set(resolved_roles)

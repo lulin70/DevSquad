@@ -114,6 +114,7 @@ class TestCreateBackendAuto:
     def test_auto_with_moka_key_returns_openai(self):
         """MOKA key only → auto returns FallbackBackend([MokaAIBackend, Mock])."""
         from scripts.collaboration.moka_backend import MokaAIBackend
+
         patches = _patch_dotenv()
         with patch.dict(os.environ, {"MOKA_API_KEY": "sk-test-moka"}, clear=True):
             for p in patches:
@@ -250,6 +251,7 @@ class TestCreateBackendExplicit:
         V4.5.2 P12.1.1: MOKA is now an explicit backend (no longer OpenAIBackend alias).
         """
         from scripts.collaboration.moka_backend import MokaAIBackend
+
         backend = create_backend("moka")
         assert isinstance(backend, MokaAIBackend)
         assert backend.path == "A"

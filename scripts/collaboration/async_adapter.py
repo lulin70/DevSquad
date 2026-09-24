@@ -92,7 +92,6 @@ class AsyncToSyncAdapter(LLMBackend):
                 return await self._async_backend.generate(prompt, **kwargs)
 
             if loop.is_running():
-
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as pool:
@@ -156,20 +155,14 @@ class SyncToAsyncAdapter(AsyncLLMBackendInterface):
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         """Execute sync generate in executor."""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None, lambda: self._sync_backend.generate(prompt, **kwargs)
-        )
+        return await loop.run_in_executor(None, lambda: self._sync_backend.generate(prompt, **kwargs))
 
     async def is_available(self) -> bool:
         """Check availability."""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None, self._sync_backend.is_available
-        )
+        return await loop.run_in_executor(None, self._sync_backend.is_available)
 
-    async def batch_generate(
-        self, prompts: list[str], **kwargs: Any
-    ) -> list[str]:
+    async def batch_generate(self, prompts: list[str], **kwargs: Any) -> list[str]:
         """Batch execute with concurrency via gather."""
         tasks = [self.generate(p, **kwargs) for p in prompts]
         return await asyncio.gather(*tasks)
@@ -209,9 +202,7 @@ class AutoBackendSelector:
             return False
 
     @staticmethod
-    def get_backend(
-        backend_type: str = "mock", **kwargs: Any
-    ) -> Any:
+    def get_backend(backend_type: str = "mock", **kwargs: Any) -> Any:
         """
         Get the optimal backend (sync or auto).
 
@@ -235,9 +226,7 @@ class AutoBackendSelector:
             return create_backend(backend_type, **kwargs)
 
 
-def get_optimal_backend(
-    backend_type: str = "mock", **kwargs: Any
-) -> Any:
+def get_optimal_backend(backend_type: str = "mock", **kwargs: Any) -> Any:
     """
     Convenience function to get the optimal backend.
 

@@ -35,8 +35,11 @@ class TestV4LoopEngineeringE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
         )
         try:
             report = dispatcher.dispatch_with_loop(
@@ -53,8 +56,11 @@ class TestV4LoopEngineeringE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
         )
         try:
             report = dispatcher.dispatch_with_loop(
@@ -71,8 +77,11 @@ class TestV4LoopEngineeringE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
         )
         try:
             report = dispatcher.dispatch_with_loop(
@@ -93,8 +102,11 @@ class TestV4UIUXInspectionE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             qa_enabled=True,
         )
         try:
@@ -111,8 +123,11 @@ class TestV4UIUXInspectionE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             qa_enabled=True,
         )
         try:
@@ -130,29 +145,34 @@ class TestV4UIUXInspectionE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
         )
         try:
             assert dispatcher.qa_enabled is False
         finally:
             dispatcher.shutdown()
 
-    def test_qa_audit_url_without_playwright_raises_e2e(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_qa_audit_url_without_playwright_raises_e2e(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """用户调用 qa_audit_url() 但 Playwright 未安装时，抛出 RuntimeError。"""
         # Simulate playwright not being installed, regardless of whether
         # it is actually present in the test environment.
         import sys
 
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
         monkeypatch.setitem(sys.modules, "playwright", None)
         monkeypatch.setitem(sys.modules, "playwright.sync_api", None)
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             qa_enabled=True,
         )
         try:
@@ -170,8 +190,11 @@ class TestV4AdversarialVerificationE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
         )
         try:
             assert dispatcher.consensus_engine is not None
@@ -236,8 +259,11 @@ class TestV4AutonomousE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             autonomous_enabled=True,
         )
         try:
@@ -256,8 +282,11 @@ class TestV4AutonomousE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
         )
         try:
             assert dispatcher.autonomous_enabled is False
@@ -272,8 +301,11 @@ class TestV4AutonomousE2E:
 
         persist_path = tmp_path / "autonomous_persist"
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(persist_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(persist_path),
+            development_mode=True,
             autonomous_enabled=True,
         )
         try:
@@ -294,8 +326,11 @@ class TestV4PluginHotLoaderE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             plugins_enabled=True,
         )
         try:
@@ -317,8 +352,11 @@ class TestV4PluginHotLoaderE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             plugins_enabled=True,
         )
         try:
@@ -335,8 +373,11 @@ class TestV4PluginHotLoaderE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             plugins_enabled=True,
         )
         try:
@@ -351,8 +392,11 @@ class TestV4PluginHotLoaderE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
         )
         try:
             assert dispatcher.plugins_enabled is False
@@ -368,16 +412,14 @@ class TestV4PluginHotLoaderE2E:
         dropin_dir = tmp_path / "plugins_extra"
         dropin_dir.mkdir()
         plugin_file = dropin_dir / "my_plugin.py"
-        plugin_file.write_text(
-            "class MyPlugin:\n"
-            "    name = 'my_plugin'\n"
-            "    def run(self):\n"
-            "        return 'hello'\n"
-        )
+        plugin_file.write_text("class MyPlugin:\n    name = 'my_plugin'\n    def run(self):\n        return 'hello'\n")
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             plugins_enabled=True,
             plugins_dropin_dir=str(dropin_dir),
         )
@@ -396,8 +438,11 @@ class TestV4FeaturesIntegrationE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             qa_enabled=True,
             autonomous_enabled=True,
             plugins_enabled=True,
@@ -417,8 +462,11 @@ class TestV4FeaturesIntegrationE2E:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
         dispatcher = MultiAgentDispatcher(
-            enable_warmup=False, enable_memory=False, enable_skillify=False,
-            persist_dir=str(tmp_path), development_mode=True,
+            enable_warmup=False,
+            enable_memory=False,
+            enable_skillify=False,
+            persist_dir=str(tmp_path),
+            development_mode=True,
             qa_enabled=True,
             autonomous_enabled=True,
             plugins_enabled=True,

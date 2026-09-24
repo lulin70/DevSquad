@@ -26,6 +26,7 @@ Usage:
                                              [--baseline docs/audits/dispatcher_size_baseline.json]
                                              [--write-baseline]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -100,15 +101,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Dispatcher / module size CI gate")
     parser.add_argument("--source", default=str(DEFAULT_SOURCE), help="Source root to scan")
     parser.add_argument(
-        "--max-lines", type=int, default=800,
+        "--max-lines",
+        type=int,
+        default=800,
         help="Maximum non-empty LOC per file (default: 800)",
     )
     parser.add_argument(
-        "--baseline", default=str(DEFAULT_BASELINE),
+        "--baseline",
+        default=str(DEFAULT_BASELINE),
         help="Baseline JSON snapshot path (default: docs/audits/dispatcher_size_baseline.json)",
     )
     parser.add_argument(
-        "--write-baseline", action="store_true",
+        "--write-baseline",
+        action="store_true",
         help="Snapshot current sizes to --baseline and exit 0 (used by first-run / refresh)",
     )
     args = parser.parse_args(argv)

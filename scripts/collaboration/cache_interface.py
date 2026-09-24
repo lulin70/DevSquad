@@ -175,9 +175,7 @@ class Serializer:
                     "JSON error: %s",
                     json_err,
                 )
-            raise ValueError(
-                f"Unable to deserialize cache data with JSON: {json_err}"
-            ) from json_err
+            raise ValueError(f"Unable to deserialize cache data with JSON: {json_err}") from json_err
 
     # ------------------------------------------------------------------
     # Format-aware API (backward compatible — pickle now rejected)
@@ -463,7 +461,9 @@ class CacheBackendInterface(abc.ABC):
         """Async context manager entry"""
         return self
 
-    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any) -> bool | None:
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
+    ) -> bool | None:
         """Async context manager exit"""
         await self.close()
         return False

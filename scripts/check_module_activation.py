@@ -149,13 +149,15 @@ ACTIVATION_CLAIM_RE = re.compile(
 #   * ``Scratchpad`` — the cross-session production surface used by the
 #     V4.4.3 modules, which are not reached through ``dispatch()``.
 #   * ``subprocess`` running this gate — the anti-ghost tests verify the gate.
-PRODUCTION_ENTRY_FUNC_NAMES = frozenset({
-    "dispatch",
-    "MultiAgentDispatcher",
-    "AsyncMultiAgentDispatcher",
-    "AsyncCoordinator",
-    "Scratchpad",
-})
+PRODUCTION_ENTRY_FUNC_NAMES = frozenset(
+    {
+        "dispatch",
+        "MultiAgentDispatcher",
+        "AsyncMultiAgentDispatcher",
+        "AsyncCoordinator",
+        "Scratchpad",
+    }
+)
 PRODUCTION_ENTRY_SUBPROCESS_TARGET = "check_module_activation"
 _PRODUCTION_ENTRY_CALL_ATTRS = frozenset({"dispatch", "dispatch_sync"})
 _SUBPROCESS_CALL_ATTRS = frozenset({"run", "check_output", "Popen", "call"})
@@ -190,9 +192,7 @@ def _reaches_production_entry(fn: ast.FunctionDef) -> bool:
         attr = getattr(sub.func, "attr", None)
         if attr in _PRODUCTION_ENTRY_CALL_ATTRS:
             return True
-        if attr in _SUBPROCESS_CALL_ATTRS and (
-            PRODUCTION_ENTRY_SUBPROCESS_TARGET in ast.unparse(sub)
-        ):
+        if attr in _SUBPROCESS_CALL_ATTRS and (PRODUCTION_ENTRY_SUBPROCESS_TARGET in ast.unparse(sub)):
             return True
     return False
 
@@ -350,18 +350,25 @@ def main() -> int:
     # HostBridgeBackend: counter is bumped by create_request().
     # Verify wiring via create_backend() which imports HostBridgeBackend internally.
     from unittest.mock import patch
+
     old_env = {
         k: os.environ.pop(k, None)
         for k in (
-            "TRAE_ENV", "CLAUDE_CODE_ENV", "TRAE_AGENT_PATH", "ANTHROPIC_ENV",
-            "DEVSQUAD_OPENAI_API_KEY", "DEVSQUAD_ANTHROPIC_API_KEY",
-            "MOKA_API_KEY", "DEVSQUAD_LLM_BACKEND",
+            "TRAE_ENV",
+            "CLAUDE_CODE_ENV",
+            "TRAE_AGENT_PATH",
+            "ANTHROPIC_ENV",
+            "DEVSQUAD_OPENAI_API_KEY",
+            "DEVSQUAD_ANTHROPIC_API_KEY",
+            "MOKA_API_KEY",
+            "DEVSQUAD_LLM_BACKEND",
         )
     }
     try:
         with patch("scripts.collaboration.llm_backend._load_dotenv"):
             from scripts.collaboration.host_llm_bridge import HostLLMBridge
             from scripts.collaboration.llm_backend import create_backend
+
             # Exercise both create_backend (auto-fallback path) and a direct bridge
             # construction to ensure the module is wired into the resolution chain.
             create_backend("mock")  # C path
@@ -538,7 +545,6 @@ def main() -> int:
         "RiskRegister_V440.P0.1": _get_risk_register_counter(),
         "FileBundler_V450": _get_file_bundler_counter(),
         "ScratchpadHistoryStore_V443": _get_scratchpad_counter(),
-
     }
 
     print("V4.5.13 Anti-Ghost Verification")
@@ -584,10 +590,7 @@ def main() -> int:
         for rel_path, test_name in claim_violations:
             print(f"  - {rel_path}::{test_name}")
     else:
-        print(
-            "Activation-claim scan: all e2e activation claims are backed by a "
-            "production entry point."
-        )
+        print("Activation-claim scan: all e2e activation claims are backed by a production entry point.")
 
     if failed or claim_violations:
         if failed:

@@ -102,21 +102,15 @@ class Connector(Protocol):
     ``GitHubConnector``; future iterations add Jira/Slack.
     """
 
-    def create_pr_comment(
-        self, repo: str, pr_number: int, body: str
-    ) -> ConnectorOperation:
+    def create_pr_comment(self, repo: str, pr_number: int, body: str) -> ConnectorOperation:
         """Post a comment on a pull request."""
         ...
 
-    def update_issue_state(
-        self, repo: str, issue_number: int, state: str
-    ) -> ConnectorOperation:
+    def update_issue_state(self, repo: str, issue_number: int, state: str) -> ConnectorOperation:
         """Open or close an issue (state = "open" or "closed")."""
         ...
 
-    def submit_pr_review(
-        self, repo: str, pr_number: int, event: str, body: str
-    ) -> ConnectorOperation:
+    def submit_pr_review(self, repo: str, pr_number: int, event: str, body: str) -> ConnectorOperation:
         """Submit a PR review (event = "APPROVE", "REQUEST_CHANGES", "COMMENT")."""
         ...
 
@@ -158,9 +152,7 @@ class GitHubConnector:
         """
         self._force_simulation: bool = simulation
         self._token: str | None = token or os.environ.get("GITHUB_TOKEN")
-        self._gh_cli: str | None = (
-            shutil.which("gh") if (not self._token and not simulation) else None
-        )
+        self._gh_cli: str | None = shutil.which("gh") if (not self._token and not simulation) else None
         self._operations: list[ConnectorOperation] = []
 
     @property
@@ -174,9 +166,7 @@ class GitHubConnector:
             return "cli"
         return "simulation"
 
-    def _record(
-        self, operation: str, target: str, success: bool, details: dict[str, Any]
-    ) -> ConnectorOperation:
+    def _record(self, operation: str, target: str, success: bool, details: dict[str, Any]) -> ConnectorOperation:
         """Record an operation and return it."""
         op = ConnectorOperation(
             connector_name=self.CONNECTOR_NAME,
@@ -205,9 +195,7 @@ class GitHubConnector:
     # Public API (each increments _call_counter_er — anti-ghost)
     # ------------------------------------------------------------------
 
-    def create_pr_comment(
-        self, repo: str, pr_number: int, body: str
-    ) -> ConnectorOperation:
+    def create_pr_comment(self, repo: str, pr_number: int, body: str) -> ConnectorOperation:
         """Post a comment on a pull request."""
         global _call_counter_er
         _call_counter_er += 1
@@ -215,7 +203,9 @@ class GitHubConnector:
         target = f"{repo}#{pr_number}"
         if self.mode == "simulation":
             return self._record(
-                "create_pr_comment", target, True,
+                "create_pr_comment",
+                target,
+                True,
                 {"simulation": True, "body": body[:200]},
             )
         try:
@@ -225,19 +215,22 @@ class GitHubConnector:
             else:
                 assert self._gh_cli is not None  # mode=="cli" implies gh on PATH
                 subprocess.run(
-                    [self._gh_cli, "pr", "comment", str(pr_number),
-                     "--repo", repo, "--body", body],
-                    check=True, capture_output=True, text=True, timeout=30,
+                    [self._gh_cli, "pr", "comment", str(pr_number), "--repo", repo, "--body", body],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
                 )
             return self._record("create_pr_comment", target, True, {"body": body[:200]})
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as exc:
             return self._record(
-                "create_pr_comment", target, False, {"error": str(exc)},
+                "create_pr_comment",
+                target,
+                False,
+                {"error": str(exc)},
             )
 
-    def update_issue_state(
-        self, repo: str, issue_number: int, state: str
-    ) -> ConnectorOperation:
+    def update_issue_state(self, repo: str, issue_number: int, state: str) -> ConnectorOperation:
         """Open or close an issue."""
         global _call_counter_er
         _call_counter_er += 1
@@ -246,12 +239,16 @@ class GitHubConnector:
         state = state.lower()
         if state not in ("open", "closed"):
             return self._record(
-                "update_issue_state", target, False,
+                "update_issue_state",
+                target,
+                False,
                 {"error": f"Invalid state: {state}"},
             )
         if self.mode == "simulation":
             return self._record(
-                "update_issue_state", target, True,
+                "update_issue_state",
+                target,
+                True,
                 {"simulation": True, "state": state},
             )
         try:
@@ -261,21 +258,34 @@ class GitHubConnector:
             else:
                 assert self._gh_cli is not None  # mode=="cli" implies gh on PATH
                 subprocess.run(
-                    [self._gh_cli, "issue", "close" if state == "closed" else "reopen",
-                     str(issue_number), "--repo", repo],
-                    check=True, capture_output=True, text=True, timeout=30,
+                    [
+                        self._gh_cli,
+                        "issue",
+                        "close" if state == "closed" else "reopen",
+                        str(issue_number),
+                        "--repo",
+                        repo,
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
                 )
             return self._record(
-                "update_issue_state", target, True, {"state": state},
+                "update_issue_state",
+                target,
+                True,
+                {"state": state},
             )
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as exc:
             return self._record(
-                "update_issue_state", target, False, {"error": str(exc)},
+                "update_issue_state",
+                target,
+                False,
+                {"error": str(exc)},
             )
 
-    def submit_pr_review(
-        self, repo: str, pr_number: int, event: str, body: str
-    ) -> ConnectorOperation:
+    def submit_pr_review(self, repo: str, pr_number: int, event: str, body: str) -> ConnectorOperation:
         """Submit a PR review (APPROVE / REQUEST_CHANGES / COMMENT)."""
         global _call_counter_er
         _call_counter_er += 1
@@ -283,12 +293,16 @@ class GitHubConnector:
         target = f"{repo}#{pr_number}"
         if event not in ("APPROVE", "REQUEST_CHANGES", "COMMENT"):
             return self._record(
-                "submit_pr_review", target, False,
+                "submit_pr_review",
+                target,
+                False,
                 {"error": f"Invalid event: {event}"},
             )
         if self.mode == "simulation":
             return self._record(
-                "submit_pr_review", target, True,
+                "submit_pr_review",
+                target,
+                True,
                 {"simulation": True, "event": event, "body": body[:200]},
             )
         try:
@@ -296,21 +310,27 @@ class GitHubConnector:
             if self.mode == "api":
                 self._api_call("POST", url, {"event": event, "body": body})
             else:
-                flag = {"APPROVE": "--approve", "REQUEST_CHANGES": "--request-changes",
-                        "COMMENT": "--comment"}[event]
+                flag = {"APPROVE": "--approve", "REQUEST_CHANGES": "--request-changes", "COMMENT": "--comment"}[event]
                 assert self._gh_cli is not None  # mode=="cli" implies gh on PATH
                 subprocess.run(
-                    [self._gh_cli, "pr", "review", str(pr_number), flag,
-                     "--repo", repo, "--body", body],
-                    check=True, capture_output=True, text=True, timeout=30,
+                    [self._gh_cli, "pr", "review", str(pr_number), flag, "--repo", repo, "--body", body],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
                 )
             return self._record(
-                "submit_pr_review", target, True,
+                "submit_pr_review",
+                target,
+                True,
                 {"event": event, "body": body[:200]},
             )
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as exc:
             return self._record(
-                "submit_pr_review", target, False, {"error": str(exc)},
+                "submit_pr_review",
+                target,
+                False,
+                {"error": str(exc)},
             )
 
     def get_operations(self) -> list[dict[str, Any]]:
@@ -332,9 +352,7 @@ class GitHubConnector:
         lines.append("")
         for i, op in enumerate(self._operations, 1):
             status = "OK" if op.success else "FAILED"
-            lines.append(
-                f"{i}. **{status}** — {op.operation} → {op.target}"
-            )
+            lines.append(f"{i}. **{status}** — {op.operation} → {op.target}")
             if op.details.get("error"):
                 lines.append(f"   - Error: {op.details['error']}")
         lines.append("")

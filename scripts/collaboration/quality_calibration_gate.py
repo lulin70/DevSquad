@@ -134,9 +134,7 @@ def run_calibration_gate() -> CalibrationGateResult:
 
     # Check ordering: gold > llm > filler > empty
     means = {oid: _mean(scores[oid]) for oid in _ORDERING}
-    ordering_correct = (
-        means["gold"] > means["llm"] > means["filler"] > means["empty"]
-    )
+    ordering_correct = means["gold"] > means["llm"] > means["filler"] > means["empty"]
 
     # Check gap: gold - filler >= 0.2
     gap = means["gold"] - means["filler"]
@@ -150,9 +148,7 @@ def run_calibration_gate() -> CalibrationGateResult:
             f"filler={means['filler']:.3f} empty={means['empty']:.3f}"
         )
     if not gap_ok:
-        diagnostics.append(
-            f"Gap insufficient: gold-filler={gap:.3f} < threshold={_GAP_THRESHOLD}"
-        )
+        diagnostics.append(f"Gap insufficient: gold-filler={gap:.3f} < threshold={_GAP_THRESHOLD}")
 
     return CalibrationGateResult(
         passed=ordering_correct and gap_ok,

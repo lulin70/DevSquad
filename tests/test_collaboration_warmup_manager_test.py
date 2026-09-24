@@ -44,7 +44,6 @@ from tests.conftest import env_perf_factor, perf_ceiling_ms
 pytestmark = pytest.mark.unit
 
 
-
 def _reset():
     WarmupManager.reset()
 
@@ -378,8 +377,7 @@ class T3EagerWarmup(unittest.TestCase):
         self.assertLess(
             results[0].duration_ms,
             ceiling_ms,
-            f"recorded task duration {results[0].duration_ms:.1f}ms exceeds "
-            f"ceiling {ceiling_ms:.1f}ms",
+            f"recorded task duration {results[0].duration_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
         )
 
     def test_07_result_cached(self):
@@ -926,8 +924,7 @@ class T7MetricsAndPerformance(unittest.TestCase):
         self.assertLess(
             m.startup_time_ms,
             ceiling_ms,
-            f"reported startup_time_ms {m.startup_time_ms:.1f}ms exceeds "
-            f"ceiling {ceiling_ms:.1f}ms",
+            f"reported startup_time_ms {m.startup_time_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
         )
 
     def test_03_hit_rate_calculation(self):
@@ -1092,8 +1089,7 @@ class IT1CoordinatorIntegration(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_ms,
-            f"Coordinator() construction {elapsed:.1f}ms exceeds ceiling "
-            f"{ceiling_ms:.1f}ms",
+            f"Coordinator() construction {elapsed:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
         )
 
     def test_02_coordinator_plan_works(self):
@@ -1126,8 +1122,7 @@ class IT1CoordinatorIntegration(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_ms,
-            f"lazy Coordinator() construction {elapsed:.1f}ms exceeds ceiling "
-            f"{ceiling_ms:.1f}ms",
+            f"lazy Coordinator() construction {elapsed:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
         )
 
     def test_04_scratchpad_shared_cache(self):
@@ -1224,8 +1219,7 @@ class E2ETests(unittest.TestCase):
         self.assertLess(
             import_start,
             ceiling_ms,
-            f"startup journey {import_start:.1f}ms exceeds ceiling "
-            f"{ceiling_ms:.1f}ms",
+            f"startup journey {import_start:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
         )
 
     def test_02_cli_fast_mode(self):
@@ -1336,8 +1330,7 @@ class E2ETests(unittest.TestCase):
         self.assertLess(
             result["p95_ms"],
             ceiling_ms,
-            f"benchmark p95_ms {result['p95_ms']:.1f}ms exceeds ceiling "
-            f"{ceiling_ms:.1f}ms",
+            f"benchmark p95_ms {result['p95_ms']:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
         )
 
     def test_08_diagnostics_completeness(self):

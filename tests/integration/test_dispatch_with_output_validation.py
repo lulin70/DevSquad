@@ -182,6 +182,7 @@ class T5_ReExportContract(unittest.TestCase):
     def test_02_import_from_dispatch_hooks_works(self) -> None:
         # E2E-05 contract: from scripts.collaboration.dispatch_hooks import PostDispatchPipeline
         from scripts.collaboration.dispatch_hooks import PostDispatchPipeline as PDP
+
         self.assertIs(PDP, _PDPSteps)
         self.assertTrue(hasattr(PDP, "_validate_outputs"))
         self.assertTrue(hasattr(PDP, "_apply_output_validation_config"))
@@ -192,23 +193,17 @@ class T6_ConfigDrivenMode(unittest.TestCase):
 
     def test_01_config_blocking(self) -> None:
         pipeline = _build_pipeline()
-        pipeline._apply_output_validation_config(
-            config={"output_validation": {"mode": "blocking"}}
-        )
+        pipeline._apply_output_validation_config(config={"output_validation": {"mode": "blocking"}})
         self.assertEqual(pipeline.output_validation_mode, "blocking")
 
     def test_02_config_non_blocking(self) -> None:
         pipeline = _build_pipeline()
-        pipeline._apply_output_validation_config(
-            config={"output_validation": {"mode": "non_blocking"}}
-        )
+        pipeline._apply_output_validation_config(config={"output_validation": {"mode": "non_blocking"}})
         self.assertEqual(pipeline.output_validation_mode, "non_blocking")
 
     def test_03_config_invalid_defaults_to_non_blocking(self) -> None:
         pipeline = _build_pipeline()
-        pipeline._apply_output_validation_config(
-            config={"output_validation": {"mode": "invalid"}}
-        )
+        pipeline._apply_output_validation_config(config={"output_validation": {"mode": "invalid"}})
         self.assertEqual(pipeline.output_validation_mode, "non_blocking")
 
     def test_04_config_missing_section_defaults_to_non_blocking(self) -> None:
@@ -292,11 +287,13 @@ class T8_BackwardCompatZeroRegression(unittest.TestCase):
 
     def test_08_multiple_workers_aggregated(self) -> None:
         pipeline = _build_pipeline()
-        result = pipeline._validate_outputs([
-            {"output": "eval(1)"},
-            {"output": "safe"},
-            {"output": "sk-" + "a" * 40},
-        ])
+        result = pipeline._validate_outputs(
+            [
+                {"output": "eval(1)"},
+                {"output": "safe"},
+                {"output": "sk-" + "a" * 40},
+            ]
+        )
         # Workers 0 and 2 should have findings
         self.assertGreaterEqual(len(result.findings), 2)
 

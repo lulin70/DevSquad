@@ -71,9 +71,7 @@ class TestKeyboardShortcuts:
         # 'k' alone is OK; what we forbid is hijacking Cmd+K
         # This test ensures we don't accidentally add a 'k' shortcut
         # that would fire when user presses just 'k' (without modifier)
-        assert "k" not in KEYBOARD_SHORTCUTS, (
-            "Plain 'k' shortcut would conflict with Cmd+K command palette"
-        )
+        assert "k" not in KEYBOARD_SHORTCUTS, "Plain 'k' shortcut would conflict with Cmd+K command palette"
 
     def test_actions_are_unique(self):
         """All shortcut actions should be unique (no two keys → same action)."""
@@ -82,11 +80,7 @@ class TestKeyboardShortcuts:
 
     def test_all_7_dashboard_pages_covered(self):
         """All 7 dashboard pages should have a 1-7 shortcut."""
-        page_actions = {
-            meta["action"]
-            for meta in KEYBOARD_SHORTCUTS.values()
-            if meta["action"].startswith("page:")
-        }
+        page_actions = {meta["action"] for meta in KEYBOARD_SHORTCUTS.values() if meta["action"].startswith("page:")}
         expected = {
             "page:Overview",
             "page:Phases",

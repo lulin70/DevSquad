@@ -6,6 +6,7 @@ generates a roadmap, and feeds the ``LoopScheduler`` CONTINUE/STOP decision.
 Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -44,10 +45,28 @@ _EFFORT_MAP: dict[str, float] = {
 }
 
 # Stop words excluded when building readable gap ids from work_package text
-_ID_STOP_WORDS: frozenset[str] = frozenset({
-    "add", "migrate", "from", "to", "the", "for", "and", "or", "with",
-    "capability", "of", "a", "an", "in", "on", "at", "by", "be",
-})
+_ID_STOP_WORDS: frozenset[str] = frozenset(
+    {
+        "add",
+        "migrate",
+        "from",
+        "to",
+        "the",
+        "for",
+        "and",
+        "or",
+        "with",
+        "capability",
+        "of",
+        "a",
+        "an",
+        "in",
+        "on",
+        "at",
+        "by",
+        "be",
+    }
+)
 
 
 def _slugify_work_package(work_package: str) -> str:
@@ -72,10 +91,7 @@ def _coerce_priority(value: Any) -> GapPriority:
         try:
             return GapPriority(value.lower())
         except ValueError as exc:
-            raise ValueError(
-                f"Unknown priority: {value!r}. "
-                f"Must be one of {[p.value for p in GapPriority]}"
-            ) from exc
+            raise ValueError(f"Unknown priority: {value!r}. Must be one of {[p.value for p in GapPriority]}") from exc
     raise TypeError(f"priority must be str or GapPriority, got {type(value)!r}")
 
 
@@ -156,9 +172,7 @@ class GapAnalyzer:
         slug = _slugify_work_package(work_package)
         gid = f"G-{slug}"
         if gid in self._gaps:
-            suffix = hashlib.sha256(
-                f"{current_state}->{target_state}".encode()
-            ).hexdigest()[:8]
+            suffix = hashlib.sha256(f"{current_state}->{target_state}".encode()).hexdigest()[:8]
             gid = f"G-{slug}-{suffix}"
         coerced_priority = _coerce_priority(priority)
         coerced_effort = _coerce_effort(effort)
@@ -280,10 +294,7 @@ class GapAnalyzer:
             "|---|---|---|---|",
         ]
         for i, gap in enumerate(gaps, start=1):
-            lines.append(
-                f"| Phase {i} | {gap.work_package} | "
-                f"{gap.priority.value} | {gap.effort} |"
-            )
+            lines.append(f"| Phase {i} | {gap.work_package} | {gap.priority.value} | {gap.effort} |")
         lines.append("")
         return "\n".join(lines)
 

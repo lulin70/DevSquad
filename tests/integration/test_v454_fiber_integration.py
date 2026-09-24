@@ -66,9 +66,7 @@ class TestDispatcherFiberWiring:
     def test_module_fiber_registry_counter_increments(self) -> None:
         d = _make_dispatcher()
         before = len(d._module_fiber_registry.all_fibers())
-        new_fiber = d._module_fiber_registry.register(
-            "new_module_test", depends_on=("artifact_store",)
-        )
+        new_fiber = d._module_fiber_registry.register("new_module_test", depends_on=("artifact_store",))
         assert new_fiber.module_id == "new_module_test"
         assert len(d._module_fiber_registry.all_fibers()) == before + 1
 
@@ -98,6 +96,7 @@ class TestDispatchActivatesFibers:
         """After a real dispatch, the module_fiber counter is bumped."""
         d = _make_dispatcher()
         from scripts.collaboration.module_fiber import get_call_counter_er
+
         before = get_call_counter_er()
         d.dispatch("simple test task", dry_run=True)
         after = get_call_counter_er()

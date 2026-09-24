@@ -234,10 +234,7 @@ class ConsensusEngine:
             return []
 
         is_unanimous = (
-            outcome == DecisionOutcome.APPROVED
-            and votes_against == 0
-            and votes_abstain == 0
-            and votes_for > 0
+            outcome == DecisionOutcome.APPROVED and votes_against == 0 and votes_abstain == 0 and votes_for > 0
         )
 
         if is_unanimous:
@@ -288,11 +285,7 @@ class ConsensusEngine:
         if not self._require_dissent:
             return []
 
-        missing = [
-            v.voter_id
-            for v in votes
-            if not v.risk_identified or not v.risk_identified.strip()
-        ]
+        missing = [v.voter_id for v in votes if not v.risk_identified or not v.risk_identified.strip()]
         if not missing:
             return []
 

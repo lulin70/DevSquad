@@ -4,6 +4,7 @@
 Proves create_backend("host"/"auto"/"auto-fallback") resolves the real
 HostBridgeBackendV2 adapter by default, with fail-closed flag handling.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -128,9 +129,7 @@ class TestCreateBackendWiring:
 
     def test_auto_fallback_b_candidate_is_v2(self, tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("TRAE_ENV", "1")
-        backend = create_backend(
-            "auto-fallback", bridge_dir=str(tmp_path / "b"), timeout_seconds=600
-        )
+        backend = create_backend("auto-fallback", bridge_dir=str(tmp_path / "b"), timeout_seconds=600)
         # auto-fallback wraps candidates in FallbackBackend; the B candidate
         # (first) must be the real v2 adapter
         assert type(backend._backends[0]) is HostBridgeBackendV2
@@ -138,9 +137,7 @@ class TestCreateBackendWiring:
     def test_auto_fallback_v1_flag(self, tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("TRAE_ENV", "1")
         monkeypatch.setenv("DEVSQUAD_HOST_BRIDGE_VERSION", "v1")
-        backend = create_backend(
-            "auto-fallback", bridge_dir=str(tmp_path / "b"), timeout_seconds=600
-        )
+        backend = create_backend("auto-fallback", bridge_dir=str(tmp_path / "b"), timeout_seconds=600)
         assert type(backend._backends[0]) is HostBridgeBackend
 
     def test_trae_passthrough_unchanged(self) -> None:
@@ -151,9 +148,7 @@ class TestCreateBackendWiring:
 
     def test_host_timeout_passthrough(self, tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("TRAE_ENV", "1")
-        backend = create_backend(
-            "host", bridge_dir=str(tmp_path / "b"), timeout_seconds=123
-        )
+        backend = create_backend("host", bridge_dir=str(tmp_path / "b"), timeout_seconds=123)
         assert backend.timeout == 123
 
     def test_host_without_env_raises(self, tmp_path) -> None:

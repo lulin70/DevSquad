@@ -220,7 +220,9 @@ class T1_VerificationGateRedFlagsAndEvidence(unittest.TestCase):
         """Verify: warning-severity flags yield CONDITIONAL, not REJECT."""
         # tests_pass_first_run: test_run_count=1, all_passed=True, has_test_changes=True
         ctx = _make_completion_context(
-            test_run_count=1, all_passed=True, has_test_changes=True,
+            test_run_count=1,
+            all_passed=True,
+            has_test_changes=True,
             evidence={"test_results": "ok", "diff_summary": "x"},
         )
         result = self.gate.check(ctx)
@@ -244,8 +246,10 @@ class T1_VerificationGateRedFlagsAndEvidence(unittest.TestCase):
     def test_08_clean_context_passes_gate(self) -> None:
         """Verify: a clean context with full evidence passes (APPROVE)."""
         ctx = _make_completion_context(
-            has_code_changes=True, has_test_changes=True,
-            test_run_count=2, all_passed=True,
+            has_code_changes=True,
+            has_test_changes=True,
+            test_run_count=2,
+            all_passed=True,
             evidence={"test_results": "5 passed", "build_status": "ok", "diff_summary": "+10/-2"},
         )
         result = self.gate.check(ctx)
@@ -256,7 +260,8 @@ class T1_VerificationGateRedFlagsAndEvidence(unittest.TestCase):
     def test_09_missing_required_evidence_rejects(self) -> None:
         """Verify: missing required evidence (test_results) causes REJECT."""
         ctx = _make_completion_context(
-            has_code_changes=True, has_test_changes=True,
+            has_code_changes=True,
+            has_test_changes=True,
             evidence={"build_status": "ok", "diff_summary": "+10/-2"},  # no test_results
         )
         result = self.gate.check(ctx)
@@ -267,7 +272,8 @@ class T1_VerificationGateRedFlagsAndEvidence(unittest.TestCase):
     def test_10_build_status_required_for_architect(self) -> None:
         """Verify: build_status is required when role_id is architect."""
         ctx = _make_completion_context(
-            role_id="architect", claims_complete=True,
+            role_id="architect",
+            claims_complete=True,
             evidence={"test_results": "ok", "diff_summary": "x"},  # no build_status
         )
         result = self.gate.check(ctx)
@@ -375,8 +381,7 @@ class T2_LifecycleProtocolTemplates(unittest.TestCase):
 
     def test_05_view_mappings_cover_six_commands(self) -> None:
         """Verify: VIEW_MAPPINGS has spec/plan/build/test/review/ship + 3 spec-*."""
-        for cmd in ["spec", "plan", "build", "test", "review", "ship",
-                    "spec-init", "spec-analyze", "spec-validate"]:
+        for cmd in ["spec", "plan", "build", "test", "review", "ship", "spec-init", "spec-analyze", "spec-validate"]:
             self.assertIn(cmd, VIEW_MAPPINGS, f"missing view mapping: {cmd}")
         spec_mapping = VIEW_MAPPINGS["spec"]
         self.assertTrue(spec_mapping.covers_phase("P1"))
@@ -445,8 +450,10 @@ class T3_UnifiedGateEngineIntegration(unittest.TestCase):
     def test_01_phase_transition_gate_approves_with_deps_met(self) -> None:
         """Verify: phase-transition gate APPROVEs when dependencies are met."""
         ctx = _make_phase_gate_context(
-            phase_id="P2", dependencies_met=True,
-            completed_phases=["P1"], reviewers_approved=["architect"],
+            phase_id="P2",
+            dependencies_met=True,
+            completed_phases=["P1"],
+            reviewers_approved=["architect"],
         )
         result = self.engine.check(GateType.PHASE_TRANSITION, ctx)
         self.assertTrue(result.passed)
@@ -456,9 +463,12 @@ class T3_UnifiedGateEngineIntegration(unittest.TestCase):
     def test_02_phase_transition_gate_rejects_with_unmet_deps(self) -> None:
         """Verify: phase-transition gate REJECTs when dependencies unmet."""
         ctx = PhaseGateContext(
-            phase_id="P2", phase_name="Architecture",
-            current_state="pending", target_state="running",
-            dependencies_met=False, completed_phases=[],
+            phase_id="P2",
+            phase_name="Architecture",
+            current_state="pending",
+            target_state="running",
+            dependencies_met=False,
+            completed_phases=[],
         )
         # Simulate unmet_dependencies attribute (set by check_gate_with_unified_engine)
         ctx.unmet_dependencies = ["P1"]  # type: ignore[attr-defined]
@@ -470,7 +480,8 @@ class T3_UnifiedGateEngineIntegration(unittest.TestCase):
     def test_03_worker_output_gate_routes_to_verification_gate(self) -> None:
         """Verify: WORKER_OUTPUT gate delegates to VerificationGate red flags."""
         ctx = _make_worker_output_context(
-            has_code_changes=True, has_test_changes=False,  # triggers no_test flag
+            has_code_changes=True,
+            has_test_changes=False,  # triggers no_test flag
         )
         result = self.engine.check(GateType.WORKER_OUTPUT, ctx)
         self.assertFalse(result.passed)
@@ -481,7 +492,8 @@ class T3_UnifiedGateEngineIntegration(unittest.TestCase):
     def test_04_worker_output_gate_clean_context_conditionals(self) -> None:
         """Verify: WORKER_OUTPUT with missing evidence yields CONDITIONAL or REJECT."""
         ctx = _make_worker_output_context(
-            has_code_changes=True, has_test_changes=True,
+            has_code_changes=True,
+            has_test_changes=True,
             claims_complete=True,  # no evidence → no_evidence_provided critical
         )
         result = self.engine.check(GateType.WORKER_OUTPUT, ctx)
@@ -512,6 +524,7 @@ class T3_UnifiedGateEngineIntegration(unittest.TestCase):
 
     def test_08_custom_checker_registered_and_merged(self) -> None:
         """Verify: register_checker adds a custom checker whose issues merge in."""
+
         def custom_checker(ctx: Any, **_: Any) -> dict[str, Any]:
             return {"critical_issues": [{"code": "CUSTOM", "message": "custom issue"}]}
 
@@ -654,6 +667,7 @@ class T5_BoundaryAndStatePersistence(unittest.TestCase):
     def test_04_shortcut_checkpoint_integration_enable(self) -> None:
         """Verify: enable_checkpoint_integration returns True when storage path valid."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             adapter = ShortcutLifecycleAdapter(use_unified_gate=False)
             enabled = adapter.enable_checkpoint_integration(tmpdir)
@@ -663,6 +677,7 @@ class T5_BoundaryAndStatePersistence(unittest.TestCase):
     def test_05_shortcut_save_restore_state_round_trip(self) -> None:
         """Verify: save_state + restore_state round-trips current phase + completed."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             adapter = ShortcutLifecycleAdapter(use_unified_gate=False)
             adapter.enable_checkpoint_integration(tmpdir)
@@ -709,8 +724,10 @@ class T5_BoundaryAndStatePersistence(unittest.TestCase):
     def test_09_gate_result_to_dict_serialization(self) -> None:
         """Verify: lifecycle GateResult.to_dict serializes counts + gap report."""
         gr = GateResult(
-            passed=False, verdict="CONDITIONAL",
-            red_flags=[{"id": "x"}], missing_evidence=[{"key": "y"}],
+            passed=False,
+            verdict="CONDITIONAL",
+            red_flags=[{"id": "x"}],
+            missing_evidence=[{"key": "y"}],
             gap_report="missing y",
         )
         d = gr.to_dict()
@@ -723,10 +740,16 @@ class T5_BoundaryAndStatePersistence(unittest.TestCase):
     def test_10_lifecycle_status_to_summary(self) -> None:
         """Verify: LifecycleStatus.to_summary produces human-readable text."""
         from scripts.collaboration.lifecycle_protocol import LifecycleStatus
+
         status = LifecycleStatus(
-            mode=LifecycleMode.SHORTCUT, current_phase="P1",
-            completed_phases=["P1"], failed_phases=[], blocked_phases=[],
-            progress_percent=9.0, can_advance=True, next_phase="P2",
+            mode=LifecycleMode.SHORTCUT,
+            current_phase="P1",
+            completed_phases=["P1"],
+            failed_phases=[],
+            blocked_phases=[],
+            progress_percent=9.0,
+            can_advance=True,
+            next_phase="P2",
         )
         summary = status.to_summary()
         self.assertIn("SHORTCUT", summary)
@@ -797,9 +820,7 @@ class T6_P10ComplianceGateIntegration(unittest.TestCase):
         self.assertEqual(result.verdict, "REJECT")
         self.assertEqual(result.severity, GateSeverity.CRITICAL)
         self.assertGreaterEqual(len(result.critical_issues), 1)
-        self.assertEqual(
-            result.critical_issues[0]["rule_id"], "BASIC_EDITION_NO_CLOUD"
-        )
+        self.assertEqual(result.critical_issues[0]["rule_id"], "BASIC_EDITION_NO_CLOUD")
         self.assertIn("基础版禁止云端部署", result.critical_issues[0]["message"])
 
     def test_05_violating_pro_to_unsanctioned_blocked(self) -> None:
@@ -824,17 +845,12 @@ class T6_P10ComplianceGateIntegration(unittest.TestCase):
             target_env={
                 "edition": "pro",
                 "host": "47.116.219.15",
-                "nginx_default_server": (
-                    "server { proxy_pass http://promiselink-basic:8000; }"
-                ),
+                "nginx_default_server": ("server { proxy_pass http://promiselink-basic:8000; }"),
             },
         )
         self.assertFalse(result.passed)
         self.assertEqual(result.verdict, "REJECT")
-        nginx_issues = [
-            i for i in result.critical_issues
-            if i["rule_id"] == "NGINX_DEFAULT_SERVER_OFFICIAL_SITE"
-        ]
+        nginx_issues = [i for i in result.critical_issues if i["rule_id"] == "NGINX_DEFAULT_SERVER_OFFICIAL_SITE"]
         self.assertEqual(len(nginx_issues), 1)
 
     def test_07_invalid_target_env_returns_reject(self) -> None:
@@ -843,9 +859,7 @@ class T6_P10ComplianceGateIntegration(unittest.TestCase):
         result = engine.check_compliance(phase="P10", target_env={})
         self.assertFalse(result.passed)
         self.assertEqual(result.verdict, "REJECT")
-        self.assertEqual(
-            result.critical_issues[0]["code"], "INVALID_TARGET_ENV"
-        )
+        self.assertEqual(result.critical_issues[0]["code"], "INVALID_TARGET_ENV")
 
     def test_08_statistics_updated_after_check(self) -> None:
         """Verify: compliance checks increment engine statistics (anti-ghost)."""
@@ -860,9 +874,7 @@ class T6_P10ComplianceGateIntegration(unittest.TestCase):
             target_env={"edition": "basic", "host": "47.116.219.15"},
         )
         after = engine.get_statistics()
-        self.assertEqual(
-            after["total_checks"], before["total_checks"] + 2
-        )
+        self.assertEqual(after["total_checks"], before["total_checks"] + 2)
         self.assertGreater(after["passed"], before["passed"])
         self.assertGreater(after["failed"], before["failed"])
 

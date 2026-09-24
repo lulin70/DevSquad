@@ -93,6 +93,7 @@ def _http_get(url: str, timeout: int = 10) -> tuple:
 # Journey 1: CLI dispatch → API history retrieval
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_cross_entry_cli_dispatch_to_api_history():
     """Journey-1: Dispatch via CLI, retrieve history via REST API.
 
@@ -103,8 +104,10 @@ def test_e2e_cross_entry_cli_dispatch_to_api_history():
     # Step 1: Dispatch via CLI
     result = _run_cli(
         "dispatch",
-        "-t", unique_task,
-        "-r", "architect",
+        "-t",
+        unique_task,
+        "-r",
+        "architect",
         "--dry-run",
     )
     assert result.returncode == 0, f"CLI dispatch failed: {result.stderr[:200]}"
@@ -127,10 +130,18 @@ def test_e2e_cross_entry_cli_dispatch_to_api_history():
     env["DEVSQUAD_API_AUTH_DISABLED"] = "1"  # Disable API key auth for E2E testing
 
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn",
-         "scripts.api_server:app",
-         "--host", "127.0.0.1", "--port", str(port),
-         "--log-level", "warning"],
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "scripts.api_server:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+            "--log-level",
+            "warning",
+        ],
         cwd=str(_PROJECT_ROOT),
         env=env,
         stdout=subprocess.PIPE,
@@ -153,11 +164,7 @@ def test_e2e_cross_entry_cli_dispatch_to_api_history():
         proc.wait(timeout=5)
         stdout = proc.stdout.read() if proc.stdout else ""
         stderr = proc.stderr.read() if proc.stderr else ""
-        pytest.fail(
-            f"API server did not start within 10s.\n"
-            f"STDOUT: {stdout[:300]}\n"
-            f"STDERR: {stderr[:300]}"
-        )
+        pytest.fail(f"API server did not start within 10s.\nSTDOUT: {stdout[:300]}\nSTDERR: {stderr[:300]}")
 
     try:
         # Step 3: Get history via API
@@ -174,6 +181,7 @@ def test_e2e_cross_entry_cli_dispatch_to_api_history():
 # ---------------------------------------------------------------------------
 # Journey 2: Multiple CLI dispatches preserve history
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_cross_entry_multiple_cli_dispatches_preserve_history():
     """Journey-2: Three consecutive CLI dispatches all appear in history."""
@@ -213,17 +221,17 @@ print(json.dumps({{"count": len(sessions), "ids": [s.get("session_id", "") for s
         )
         assert r.returncode == 0, f"Save checkpoints failed: {r.stderr[:200]}"
         data = json.loads(r.stdout)
-        assert data["count"] >= 3, (
-            f"Expected ≥3 sessions, got {data['count']}: {data.get('ids', [])}"
-        )
+        assert data["count"] >= 3, f"Expected ≥3 sessions, got {data['count']}: {data.get('ids', [])}"
     finally:
         import shutil
+
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
 # Journey 3: API dispatch → CLI sessions list consistency
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_cross_entry_api_to_cli_session_consistency():
     """Journey-3: Session created via API is visible to CLI sessions list."""
@@ -282,9 +290,8 @@ print(json.dumps({{"found": bool(status)}}))
         )
         assert r2.returncode == 0, f"CLI session read failed: {r2.stderr[:200]}"
         data = json.loads(r2.stdout)
-        assert data.get("found"), (
-            f"Session created via API not visible: {r2.stdout}"
-        )
+        assert data.get("found"), f"Session created via API not visible: {r2.stdout}"
     finally:
         import shutil
+
         shutil.rmtree(tmpdir, ignore_errors=True)

@@ -137,9 +137,7 @@ class MCPSkillProvider:
         MCPSkillProvider._call_counter_er += 1
         spec = self._tools.get(name)
         if spec is None:
-            raise ValueError(
-                f"MCP skill '{name}' not found. Available: {sorted(self._tools.keys())}"
-            )
+            raise ValueError(f"MCP skill '{name}' not found. Available: {sorted(self._tools.keys())}")
         if self._mcp_invoker is not None and spec["mcp_server"]:
             return self._mcp_invoker(spec["mcp_server"], spec["mcp_tool"], kwargs)
         # Local fallback: instantiate and run (no live MCP connection needed).
@@ -154,9 +152,7 @@ class MCPSkillProvider:
         """Resolve a skill instance for an MCP-tool skill by name."""
         spec = self._tools.get(name)
         if spec is None:
-            raise ValueError(
-                f"MCP skill '{name}' not found. Available: {sorted(self._tools.keys())}"
-            )
+            raise ValueError(f"MCP skill '{name}' not found. Available: {sorted(self._tools.keys())}")
         return spec["skill_cls"]()
 
 

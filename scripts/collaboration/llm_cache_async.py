@@ -102,7 +102,9 @@ class AsyncLLMCache(LLMCacheBase):
         # Lock for thread safety
         self._lock = asyncio.Lock()
 
-        logger.info("AsyncLLMCache initialized: dir=%s, ttl=%ss, max_memory=%s", cache_dir, ttl_seconds, max_memory_entries)
+        logger.info(
+            "AsyncLLMCache initialized: dir=%s, ttl=%ss, max_memory=%s", cache_dir, ttl_seconds, max_memory_entries
+        )
 
     def _generate_cache_key(self, prompt: str, backend: str, model: str) -> str:
         """Generate cache key from prompt, backend, and model.

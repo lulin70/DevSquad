@@ -169,9 +169,7 @@ class T4_ActivationClaimDiscipline(unittest.TestCase):
     def test_gate_main_fails_when_claim_is_unbacked(self) -> None:
         """``main()`` must fail closed on an unbacked activation claim."""
         fake = [("tests/e2e/test_synthetic.py", "test_thing_activates")]
-        with mock.patch.object(
-            gate, "find_unbacked_activation_claims", return_value=fake
-        ):
+        with mock.patch.object(gate, "find_unbacked_activation_claims", return_value=fake):
             rc, out = _run_main_capturing_output()
         self.assertEqual(rc, 1, out[-2000:])
         self.assertIn("UNBACKED ACTIVATION CLAIMS", out)

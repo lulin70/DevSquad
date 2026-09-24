@@ -230,6 +230,7 @@ class TestWithCoeffectDecorator:
 
     def test_real_artifact_store_class_meta(self):
         """Test that the decorator pattern would work on a real class."""
+
         @with_coeffect("artifact_store_test", depends_on=("effect_registry",))
         class ArtifactStoreTest:
             pass

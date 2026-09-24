@@ -82,6 +82,7 @@ class TestScratchpadHistoryStore(unittest.TestCase):
             with contextlib.suppress(Exception):
                 store.close()
         import shutil
+
         shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def _new_store(self, retention_days: int = 90) -> ScratchpadHistoryStore:
@@ -210,8 +211,7 @@ class TestScratchpadHistoryStore(unittest.TestCase):
         self.assertEqual(len(results), 1)
         persisted = results[0].content
         # The original secret MUST NOT be present in the persisted content.
-        self.assertNotIn(_SENSITIVE_API_KEY, persisted,
-                         "API key was persisted in cleartext — redaction failed")
+        self.assertNotIn(_SENSITIVE_API_KEY, persisted, "API key was persisted in cleartext — redaction failed")
         # The redaction marker (OutputValidator emits "***") must be present.
         self.assertIn("***", persisted)
         # Non-sensitive context survives.
@@ -359,12 +359,8 @@ class TestScratchpadHistoryStore(unittest.TestCase):
                 )
                 """
             )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_control_role ON control_history(role_id)"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_control_type ON control_history(entry_type)"
-            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_control_role ON control_history(role_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_control_type ON control_history(entry_type)")
             conn.commit()
 
             timings: list[float] = []
@@ -372,8 +368,7 @@ class TestScratchpadHistoryStore(unittest.TestCase):
                 start = time.perf_counter()
                 for i in range(200):
                     conn.execute(
-                        "INSERT OR REPLACE INTO control_history VALUES "
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT OR REPLACE INTO control_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             f"perf-{i}",
                             "sp-perf",

@@ -88,7 +88,10 @@ class NullRetryProvider:
         logger.info("NullRetryProvider initialized (degraded mode)")
 
     def retry_with_fallback(
-        self, func: Callable[[], Any], max_attempts: int = 3, fallback: Callable[[], Any] | None = None  # noqa: ARG002
+        self,
+        func: Callable[[], Any],
+        max_attempts: int = 3,  # noqa: ARG002
+        fallback: Callable[[], Any] | None = None,  # noqa: ARG002
     ) -> Any:
         """Execute function without retry. Falls back on failure."""
         self._call_count += 1
@@ -155,7 +158,12 @@ class NullMonitorProvider:
         logger.debug("NullMonitorProvider.record_llm_call() called (no-op) - call #%d", self._llm_call_count)
 
     def record_agent_execution(
-        self, agent_role: str, task: str, duration: float, success: bool, metadata: dict[str, Any] | None = None  # noqa: ARG002
+        self,
+        agent_role: str,  # noqa: ARG002
+        task: str,  # noqa: ARG002
+        duration: float,  # noqa: ARG002
+        success: bool,  # noqa: ARG002
+        metadata: dict[str, Any] | None = None,  # noqa: ARG002
     ) -> None:
         """Record agent execution (no-op)."""
         self._agent_execution_count += 1
@@ -251,7 +259,11 @@ class NullMemoryProvider:
         }
 
     def match_rules(
-        self, task_description: str, user_id: str, role: str | None = None, max_rules: int = 5  # noqa: ARG002
+        self,
+        task_description: str,  # noqa: ARG002
+        user_id: str,
+        role: str | None = None,  # noqa: ARG002
+        max_rules: int = 5,  # noqa: ARG002
     ) -> list[dict[str, Any]]:
         """Match rules based on task description (always returns empty list)."""
         self._call_count += 1

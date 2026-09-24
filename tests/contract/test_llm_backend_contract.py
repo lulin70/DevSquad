@@ -428,6 +428,7 @@ class T6_LLMBackendBoundaryContract(unittest.TestCase):
         instance so callers can configure per-backend timeouts.
         """
         from scripts.collaboration.llm_backend import OpenAIBackend
+
         backend = OpenAIBackend(api_key="test-key", timeout=42.0)
         self.assertEqual(backend.timeout, 42.0)
 
@@ -438,6 +439,7 @@ class T6_LLMBackendBoundaryContract(unittest.TestCase):
         instance so callers can configure per-backend timeouts.
         """
         from scripts.collaboration.llm_backend import AnthropicBackend
+
         backend = AnthropicBackend(api_key="test-key", timeout=99.0)
         self.assertEqual(backend.timeout, 99.0)
 
@@ -448,6 +450,7 @@ class T6_LLMBackendBoundaryContract(unittest.TestCase):
         instance for use in API calls.
         """
         from scripts.collaboration.llm_backend import OpenAIBackend
+
         backend = OpenAIBackend(api_key="test-key", model="gpt-4o-mini")
         self.assertEqual(backend.model, "gpt-4o-mini")
 
@@ -458,6 +461,7 @@ class T6_LLMBackendBoundaryContract(unittest.TestCase):
         instance for use in API calls.
         """
         from scripts.collaboration.llm_backend import AnthropicBackend
+
         backend = AnthropicBackend(api_key="test-key", model="claude-3-opus")
         self.assertEqual(backend.model, "claude-3-opus")
 

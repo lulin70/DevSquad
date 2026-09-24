@@ -104,19 +104,13 @@ def test_e2e_dispatch_populates_connector_operations(
     assert isinstance(result.connector_operations, list), (
         f"connector_operations must be a list, got: {type(result.connector_operations)}"
     )
-    assert len(result.connector_operations) >= 1, (
-        "connector_operations must be populated (≥1 probe op) after dispatch"
-    )
+    assert len(result.connector_operations) >= 1, "connector_operations must be populated (≥1 probe op) after dispatch"
     op = result.connector_operations[0]
-    assert op["connector_name"] == "github", (
-        f"connector_name must be 'github', got: {op['connector_name']!r}"
-    )
+    assert op["connector_name"] == "github", f"connector_name must be 'github', got: {op['connector_name']!r}"
     assert op["operation"] == "create_pr_comment", (
         f"operation must be 'create_pr_comment' (probe), got: {op['operation']!r}"
     )
-    assert op["success"] is True, (
-        f"simulation-mode probe must succeed, got success={op['success']}"
-    )
+    assert op["success"] is True, f"simulation-mode probe must succeed, got success={op['success']}"
     dispatcher.shutdown()
 
 
@@ -130,12 +124,8 @@ def test_e2e_dispatch_populates_connector_md(
 ) -> None:
     """AG-3: dispatch() MUST populate result.connector_md (non-empty str)."""
     result = dispatcher.dispatch("Build a search index")
-    assert isinstance(result.connector_md, str), (
-        f"connector_md must be a str, got: {type(result.connector_md)}"
-    )
-    assert result.connector_md != "", (
-        "connector_md must be non-empty after dispatch (probe op recorded)"
-    )
+    assert isinstance(result.connector_md, str), f"connector_md must be a str, got: {type(result.connector_md)}"
+    assert result.connector_md != "", "connector_md must be non-empty after dispatch (probe op recorded)"
     assert "## Connector Operations" in result.connector_md, (
         "connector_md must contain the '## Connector Operations' header"
     )
@@ -158,9 +148,7 @@ def test_e2e_to_markdown_contains_connector_section(
     """
     result = dispatcher.dispatch("Design a cache layer")
     md = result.to_markdown()
-    assert "## Connector Operations" in md, (
-        "to_markdown() must contain '## Connector Operations' section"
-    )
+    assert "## Connector Operations" in md, "to_markdown() must contain '## Connector Operations' section"
     # The markdown must reference the github connector and its mode.
     assert "github" in md.lower(), "to_markdown() must mention the 'github' connector"
     # Simulation-mode probe must be reported as OK.
@@ -179,13 +167,9 @@ def test_e2e_to_dict_contains_connector_operations_key(
     """AG-5: to_dict() MUST include 'connector_operations' for JSON consumers."""
     result = dispatcher.dispatch("Design a queue system")
     d = result.to_dict()
-    assert "connector_operations" in d, (
-        "to_dict() must contain 'connector_operations' key"
-    )
+    assert "connector_operations" in d, "to_dict() must contain 'connector_operations' key"
     assert isinstance(d["connector_operations"], list)
-    assert len(d["connector_operations"]) >= 1, (
-        "connector_operations in to_dict() must be populated after dispatch"
-    )
+    assert len(d["connector_operations"]) >= 1, "connector_operations in to_dict() must be populated after dispatch"
     dispatcher.shutdown()
 
 
@@ -207,14 +191,10 @@ def test_e2e_simulation_operation_recorded_successfully(
     assert len(result.connector_operations) >= 1
     op = result.connector_operations[0]
     assert op["success"] is True, "simulation-mode probe must succeed"
-    assert op["details"].get("simulation") is True, (
-        f"simulation flag must be True in details, got: {op['details']}"
-    )
+    assert op["details"].get("simulation") is True, f"simulation flag must be True in details, got: {op['details']}"
     # The body must be a non-empty string (truncated to 200 chars).
     body = op["details"].get("body", "")
-    assert isinstance(body, str) and body, (
-        f"simulation body must be a non-empty str, got: {body!r}"
-    )
+    assert isinstance(body, str) and body, f"simulation body must be a non-empty str, got: {body!r}"
     dispatcher.shutdown()
 
 
@@ -237,16 +217,10 @@ def test_e2e_dry_run_path_also_activates_connector(
     result = dispatcher.dispatch("Design a tokens system", dry_run=True)
     after = connector_module._call_counter_er
 
-    assert after > before, (
-        "Connector must be activated on the dry_run / early_return path too"
-    )
+    assert after > before, "Connector must be activated on the dry_run / early_return path too"
     # And the result must still carry the connector artifacts.
-    assert len(result.connector_operations) >= 1, (
-        "dry_run result must still populate connector_operations"
-    )
-    assert result.connector_md != "", (
-        "dry_run result must still populate connector_md"
-    )
+    assert len(result.connector_operations) >= 1, "dry_run result must still populate connector_operations"
+    assert result.connector_md != "", "dry_run result must still populate connector_md"
     dispatcher.shutdown()
 
 
@@ -272,16 +246,10 @@ def test_e2e_connector_md_has_github_header(
     assert md.startswith("## Connector Operations"), (
         f"connector_md must start with '## Connector Operations', got: {md[:60]!r}"
     )
-    assert "**Connector**: github" in md, (
-        "connector_md must render the 'Connector: github' label line"
-    )
-    assert "mode: simulation" in md, (
-        "connector_md must render the simulation mode label"
-    )
+    assert "**Connector**: github" in md, "connector_md must render the 'Connector: github' label line"
+    assert "mode: simulation" in md, "connector_md must render the simulation mode label"
     # The probe op target must be 'devsquad/internal#0' (per _activate_connector).
-    assert "devsquad/internal#0" in md, (
-        "connector_md must reference the probe target 'devsquad/internal#0'"
-    )
+    assert "devsquad/internal#0" in md, "connector_md must reference the probe target 'devsquad/internal#0'"
     dispatcher.shutdown()
 
 
@@ -298,9 +266,7 @@ def test_e2e_github_connector_simulation_mode_default() -> None:
     to prove the public API works end-to-end in simulation mode.
     """
     connector = GitHubConnector()
-    assert connector.mode == "simulation", (
-        f"default mode must be 'simulation', got: {connector.mode!r}"
-    )
+    assert connector.mode == "simulation", f"default mode must be 'simulation', got: {connector.mode!r}"
 
     op = connector.create_pr_comment("devsquad/test", 1, "hello world")
     assert op.success is True
@@ -347,6 +313,4 @@ def test_e2e_get_call_count_returns_module_counter() -> None:
     connector = GitHubConnector()
     connector.create_pr_comment("devsquad/probe", 0, "probe")
     module_value = connector_module._call_counter_er
-    assert get_call_count() == module_value, (
-        f"get_call_count()={get_call_count()} != _call_counter_er={module_value}"
-    )
+    assert get_call_count() == module_value, f"get_call_count()={get_call_count()} != _call_counter_er={module_value}"

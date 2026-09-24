@@ -480,12 +480,15 @@ class T4_MultiWorkerParallelConsensusAggregation(unittest.TestCase):
         self._coord.spawn_workers(plan)
         worker = list(self._coord.workers.values())[0]
         from scripts.collaboration.models import TaskNotification
-        worker.send_notification(TaskNotification(
-            from_worker=worker.worker_id,
-            to_workers=["tester"],
-            notification_type="question",
-            summary="need test plan",
-        ))
+
+        worker.send_notification(
+            TaskNotification(
+                from_worker=worker.worker_id,
+                to_workers=["tester"],
+                notification_type="question",
+                summary="need test plan",
+            )
+        )
         collection = self._coord.collect_results()
         self.assertGreaterEqual(len(collection["notifications"]), 1)
 

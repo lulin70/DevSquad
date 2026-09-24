@@ -92,9 +92,12 @@ class T1_DataModels(unittest.TestCase):
         Expected: context == "".
         """
         f = HiddenFinding(
-            file="x.py", line=1, column=1,
+            file="x.py",
+            line=1,
+            column=1,
             category=HiddenCategory.HOMOGLYPH,
-            char_code="U+0430", char_name="test",
+            char_code="U+0430",
+            char_name="test",
         )
         self.assertEqual(f.context, "")
 
@@ -320,6 +323,7 @@ class T8_ScanFile(unittest.TestCase):
 
     def tearDown(self) -> None:
         import shutil
+
         shutil.rmtree(self.tmpdir_path, ignore_errors=True)
 
     def _write_file(self, name: str, content: str) -> Path:
@@ -386,14 +390,13 @@ class T9_ScanDirectory(unittest.TestCase):
 
     def tearDown(self) -> None:
         import shutil
+
         shutil.rmtree(self.tmpdir_path, ignore_errors=True)
 
     def test_01_directory_with_hidden_content(self) -> None:
         """Verify: scan_directory finds hidden char across multiple files."""
-        (self.tmpdir_path / "a.py").write_text(
-            "x = 1\ny = 'a" + chr(0x200B) + "b'\n", encoding="utf-8")
-        (self.tmpdir_path / "b.md").write_text(
-            "# Doc\n<!-- comment -->\n", encoding="utf-8")
+        (self.tmpdir_path / "a.py").write_text("x = 1\ny = 'a" + chr(0x200B) + "b'\n", encoding="utf-8")
+        (self.tmpdir_path / "b.md").write_text("# Doc\n<!-- comment -->\n", encoding="utf-8")
         findings = scan_directory(self.tmpdir_path)
         self.assertEqual(len(findings), 2)
         categories = {f.category for f in findings}
@@ -404,8 +407,7 @@ class T9_ScanDirectory(unittest.TestCase):
         pycache = self.tmpdir_path / "__pycache__"
         pycache.mkdir()
         # Place a file with hidden char in __pycache__ — should be skipped.
-        (pycache / "cached.py").write_text(
-            "x = '" + chr(0x200B) + "'\n", encoding="utf-8")
+        (pycache / "cached.py").write_text("x = '" + chr(0x200B) + "'\n", encoding="utf-8")
         findings = scan_directory(self.tmpdir_path)
         self.assertEqual(findings, [])
 
@@ -413,27 +415,23 @@ class T9_ScanDirectory(unittest.TestCase):
         """Verify: .git directories are skipped."""
         gitdir = self.tmpdir_path / ".git"
         gitdir.mkdir()
-        (gitdir / "config").write_text(
-            "secret" + chr(0x200B) + "\n", encoding="utf-8")
+        (gitdir / "config").write_text("secret" + chr(0x200B) + "\n", encoding="utf-8")
         findings = scan_directory(self.tmpdir_path)
         self.assertEqual(findings, [])
 
     def test_04_extension_filter(self) -> None:
         """Verify: Only files with allowed extensions are scanned."""
         # .log file with hidden char — not in default extensions, skipped.
-        (self.tmpdir_path / "app.log").write_text(
-            "log" + chr(0x200B) + "\n", encoding="utf-8")
+        (self.tmpdir_path / "app.log").write_text("log" + chr(0x200B) + "\n", encoding="utf-8")
         # .py file with hidden char — included.
-        (self.tmpdir_path / "app.py").write_text(
-            "x = '" + chr(0x200B) + "'\n", encoding="utf-8")
+        (self.tmpdir_path / "app.py").write_text("x = '" + chr(0x200B) + "'\n", encoding="utf-8")
         findings = scan_directory(self.tmpdir_path)
         self.assertEqual(len(findings), 1)
         self.assertTrue(findings[0].file.endswith("app.py"))
 
     def test_05_custom_extensions(self) -> None:
         """Verify: Custom extensions override default set."""
-        (self.tmpdir_path / "app.log").write_text(
-            "log" + chr(0x200B) + "\n", encoding="utf-8")
+        (self.tmpdir_path / "app.log").write_text("log" + chr(0x200B) + "\n", encoding="utf-8")
         # Scan only .log files.
         findings = scan_directory(self.tmpdir_path, extensions={".log"})
         self.assertEqual(len(findings), 1)
@@ -446,9 +444,12 @@ class T10_FormatFinding(unittest.TestCase):
     def test_01_format_includes_category_file_line(self) -> None:
         """Verify: format_finding output contains key fields."""
         f = HiddenFinding(
-            file="src/app.py", line=42, column=7,
+            file="src/app.py",
+            line=42,
+            column=7,
             category=HiddenCategory.ZERO_WIDTH,
-            char_code="U+200B", char_name="ZERO WIDTH SPACE",
+            char_code="U+200B",
+            char_name="ZERO WIDTH SPACE",
         )
         s = format_finding(f)
         self.assertIn("ZERO_WIDTH", s)
@@ -470,11 +471,13 @@ class T11_CLI(unittest.TestCase):
     def tearDown(self) -> None:
         sys.argv = self._orig_argv
         import shutil
+
         shutil.rmtree(self.tmpdir_path, ignore_errors=True)
 
     def _run_main(self, *args: str) -> int:
         """Helper: invoke main() with given argv and return exit code."""
         from scripts.check_hidden_content import main
+
         sys.argv = ["check_hidden_content.py", *args]
         return main()
 
@@ -517,8 +520,7 @@ class T11_CLI(unittest.TestCase):
 
     def test_06_directory_arg_scanned(self) -> None:
         """Verify: Directory argument triggers recursive scan."""
-        (self.tmpdir_path / "hidden.py").write_text(
-            "x = '" + chr(0x200B) + "'\n", encoding="utf-8")
+        (self.tmpdir_path / "hidden.py").write_text("x = '" + chr(0x200B) + "'\n", encoding="utf-8")
         rc = self._run_main(str(self.tmpdir_path))
         self.assertEqual(rc, 1)
 
@@ -542,9 +544,7 @@ class T12_Performance(unittest.TestCase):
         scanning) still trips it.
         """
         ceiling_ms = perf_ceiling_ms(500.0)
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False, encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
             for i in range(10000):
                 f.write(f"x_{i} = {i}\n")
             large_path = Path(f.name)
@@ -556,9 +556,7 @@ class T12_Performance(unittest.TestCase):
             self.assertLess(
                 elapsed_ms,
                 ceiling_ms,
-                (
-                    f"Scan took {elapsed_ms:.1f}ms, exceeds ceiling {ceiling_ms:.1f}ms"
-                ),
+                (f"Scan took {elapsed_ms:.1f}ms, exceeds ceiling {ceiling_ms:.1f}ms"),
             )
         finally:
             large_path.unlink(missing_ok=True)

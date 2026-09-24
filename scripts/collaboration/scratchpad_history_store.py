@@ -116,15 +116,9 @@ class ScratchpadHistoryStore:
                 PRIMARY KEY (entry_id, scratchpad_id)
             )
         """)
-        self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_history_role ON scratchpad_history(role_id)"
-        )
-        self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_history_type ON scratchpad_history(entry_type)"
-        )
-        self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_history_time ON scratchpad_history(created_at)"
-        )
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_history_role ON scratchpad_history(role_id)")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_history_type ON scratchpad_history(entry_type)")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_history_time ON scratchpad_history(created_at)")
         self._conn.commit()
         # Set file permissions to 0600 (owner read/write only).
         with contextlib.suppress(OSError):

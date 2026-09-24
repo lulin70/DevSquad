@@ -473,11 +473,12 @@ Environment Variables (API keys are read from env vars only, never command line)
     subparsers.add_parser("status", aliases=["s"], help="Show system status")
 
     # V4.5.2 P12.1.2: devsquad metrics CLI
-    p_metrics = subparsers.add_parser(
-        "metrics", aliases=["m"], help="View V4.5.2 Prometheus metrics (text/json)"
-    )
+    p_metrics = subparsers.add_parser("metrics", aliases=["m"], help="View V4.5.2 Prometheus metrics (text/json)")
     p_metrics.add_argument(
-        "--format", "-f", choices=["text", "json"], default="text",
+        "--format",
+        "-f",
+        choices=["text", "json"],
+        default="text",
         help="Output format (default text)",
     )
 
@@ -485,37 +486,39 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_roles.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
 
     # V4.5.2 P12.1.4: devsquad doctor
-    p_doctor = subparsers.add_parser(
-        "doctor", help="Diagnose LLM provider connectivity (text/json)"
-    )
+    p_doctor = subparsers.add_parser("doctor", help="Diagnose LLM provider connectivity (text/json)")
     p_doctor.add_argument(
-        "--provider", "-p", default="all",
+        "--provider",
+        "-p",
+        default="all",
         choices=["all", "moka", "openai", "anthropic"],
         help="Provider to check (default: all)",
     )
     p_doctor.add_argument(
-        "--format", "-f", choices=["text", "json"], default="text",
+        "--format",
+        "-f",
+        choices=["text", "json"],
+        default="text",
         help="Output format (default text)",
     )
     p_doctor.add_argument(
-        "--timeout", type=float, default=5.0,
+        "--timeout",
+        type=float,
+        default=5.0,
         help="HTTP timeout in seconds (default: 5.0)",
     )
 
     # V4.5.3 P12.2.6: devsquad audit CLI
-    p_audit = subparsers.add_parser(
-        "audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)"
-    )
+    p_audit = subparsers.add_parser("audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)")
+    p_audit.add_argument("--limit", "-n", type=int, default=20, help="Max entries to show (default 20)")
     p_audit.add_argument(
-        "--limit", "-n", type=int, default=20, help="Max entries to show (default 20)"
-    )
-    p_audit.add_argument(
-        "--format", "-f", choices=["text", "json"], default="text",
+        "--format",
+        "-f",
+        choices=["text", "json"],
+        default="text",
         help="Output format",
     )
-    p_audit.add_argument(
-        "--event-type", help="Filter by event type (e.g. dispatch_start)"
-    )
+    p_audit.add_argument("--event-type", help="Filter by event type (e.g. dispatch_start)")
     p_audit.add_argument(
         "--verify",
         action="store_true",
@@ -533,6 +536,7 @@ Environment Variables (API keys are read from env vars only, never command line)
 
     # V4.5.7 P12.5.2: devsquad risks CLI (list/show/clear/export)
     from scripts.cli_risks import register_risks_subparser
+
     register_risks_subparser(subparsers)
 
     # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
@@ -550,14 +554,17 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_sess_show.add_argument("--persist-dir", help="Custom checkpoint directory")
 
     # V4.5.2 P12.1.5: devsquad backend CLI subcommands
-    p_backend = subparsers.add_parser(
-        "backend", help="Manage LLM backend selection (set/get/list)"
-    )
+    p_backend = subparsers.add_parser("backend", help="Manage LLM backend selection (set/get/list)")
     backend_sub = p_backend.add_subparsers(dest="backend_command", help="Backend subcommand")
     p_backend_set = backend_sub.add_parser("set", help="Set and persist backend selection")
-    p_backend_set.add_argument("provider", help=f"Backend name (one of: {', '.join(sorted(['auto','auto-fallback','mock','host','trae','openai','anthropic','moka','fallback']))})")
+    p_backend_set.add_argument(
+        "provider",
+        help=f"Backend name (one of: {', '.join(sorted(['auto', 'auto-fallback', 'mock', 'host', 'trae', 'openai', 'anthropic', 'moka', 'fallback']))})",
+    )
     p_backend_set.add_argument("--model", help="Optional model override to persist")
-    p_backend_set.add_argument("--project", action="store_true", help="Save to ./.devsquad/config.yaml instead of user config")
+    p_backend_set.add_argument(
+        "--project", action="store_true", help="Save to ./.devsquad/config.yaml instead of user config"
+    )
     p_backend_get = backend_sub.add_parser("get", help="Print current effective backend")
     p_backend_get.add_argument("--project", action="store_true", help="Prefer project-level config")
     backend_sub.add_parser("list", help="List all valid backends + current selection")

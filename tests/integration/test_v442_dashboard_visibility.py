@@ -15,6 +15,7 @@ require an active Streamlit runtime.
 
 Test plan reference: docs/prd/V4.4.2_PRD.md §4.3 (AC-1..AC-4).
 """
+
 from __future__ import annotations
 
 import os

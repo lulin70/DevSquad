@@ -211,10 +211,7 @@ class TestAnchorCheckerPerformance(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"Anchor check took {elapsed * 1000:.1f}ms, exceeds ceiling "
-                f"{ceiling_s * 1000:.1f}ms"
-            ),
+            (f"Anchor check took {elapsed * 1000:.1f}ms, exceeds ceiling {ceiling_s * 1000:.1f}ms"),
         )
 
 
@@ -396,10 +393,7 @@ class TestRetrospectiveEnginePerformance(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"Retrospective took {elapsed * 1000:.1f}ms, exceeds ceiling "
-                f"{ceiling_s * 1000:.1f}ms"
-            ),
+            (f"Retrospective took {elapsed * 1000:.1f}ms, exceeds ceiling {ceiling_s * 1000:.1f}ms"),
         )
 
 

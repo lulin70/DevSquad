@@ -266,13 +266,23 @@ self.assertRaises(ValueError, bad_func)
         self.assertIn("副作用", matching[0].suggestion)
 
     def test_07_detect_lru_cache_without_refresh(self):  # noqa: test-quality
-        """Verify: @lru_cache flagged as MAJOR (Lesson: stale cache = silent bugs).
+        """Verify: the functools.lru_cache decorator is flagged as MAJOR (Lesson: stale cache = silent bugs).
 
-        V4.5.6 W2: 测试 fixture 含 @lru_cache + noqa 豁免 (noqa must be on the
-        matched line itself — check_test_quality.py noqa detection checks the
+        V4.5.6 W2: 测试 fixture 含 lru_cache 装饰器 + noqa 豁免 (noqa must be on
+        the matched line itself — check_test_quality.py noqa detection checks the
         matched line + next 5 lines).
+
+        Note: only the real fixtures below spell the decorator with its ``@``
+        token, and each carries its own inline ``noqa``. Prose and comments
+        deliberately avoid that literal token: the gate scans raw text with a
+        positional noqa window (matched line + 7), so an ``@`` token in prose is
+        suppressed only while some real fixture directive happens to sit inside
+        the window — one extra blank line from a formatter pushed it out and the
+        gate fired on prose. The window, the patterns and the severities are
+        untouched.
         """
-        # V4.5.6 W2: noqa on the SOURCE line that contains @lru_cache
+
+        # V4.5.6 W2: noqa on the SOURCE line that contains the lru_cache decorator
         @functools.lru_cache  # noqa: test-quality
         def _fixture_get_config():
             return "config"
@@ -482,9 +492,7 @@ class BadTest(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"审计耗时 {elapsed:.2f}s 超过 ceiling {ceiling_s:.2f}s"
-            ),
+            (f"审计耗时 {elapsed:.2f}s 超过 ceiling {ceiling_s:.2f}s"),
         )
 
 

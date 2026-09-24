@@ -161,9 +161,7 @@ def save_backend_config(
         raise ValueError("Config must contain 'backend' key")
     backend = data["backend"]
     if backend not in VALID_BACKENDS:
-        raise ValueError(
-            f"Invalid backend '{backend}'. Valid: {sorted(VALID_BACKENDS)}"
-        )
+        raise ValueError(f"Invalid backend '{backend}'. Valid: {sorted(VALID_BACKENDS)}")
 
     path = _project_config_path() if project else _user_config_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)

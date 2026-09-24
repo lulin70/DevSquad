@@ -473,16 +473,16 @@ class MultiAgentDispatcher(
         user_id = str(kwargs.get("user_id", "anonymous"))
 
         # V3.9-02: RBAC permission check (before any work begins).
-        permission_result_dict, denied_result = self._check_rbac_permission(
-            user_id, roles, mode, task_description
-        )
+        permission_result_dict, denied_result = self._check_rbac_permission(user_id, roles, mode, task_description)
         if denied_result is not None:
             return denied_result
 
-        self.metrics_service.safe_record(lambda m: (
-            m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
-            m.tasks_in_progress_gauge.labels(phase=phase).inc(),
-        ))
+        self.metrics_service.safe_record(
+            lambda m: (
+                m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
+                m.tasks_in_progress_gauge.labels(phase=phase).inc(),
+            )
+        )
 
         if self.usage_tracker:
             self.usage_tracker.tick("dispatch")
@@ -536,16 +536,20 @@ class MultiAgentDispatcher(
         tenant_ctx = pre_result.tenant_ctx
 
         # V3.8 #7: Micro-task decomposition (after task analysis, before role assignment)
-        micro_task_plan = self._maybe_decompose_task(
-            task_description, use_micro_tasks, kwargs
-        )
+        micro_task_plan = self._maybe_decompose_task(task_description, use_micro_tasks, kwargs)
 
         try:
             # Step 8: Execute workers (sync path)
             matched_roles = pre_result.matched_roles
-            self.metrics_service.safe_record(lambda m: m.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles)))
-            exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(pre_result.plan, task_description)
-            self.metrics_service.safe_record(lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles)))
+            self.metrics_service.safe_record(
+                lambda m: m.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
+            )
+            exec_result, worker_results, exec_errors, exec_timing = self._execute_workers(
+                pre_result.plan, task_description
+            )
+            self.metrics_service.safe_record(
+                lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
+            )
 
             # Post-dispatch steps (shared with async_dispatch)
             result = cast(
@@ -614,10 +618,14 @@ class MultiAgentDispatcher(
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
             self._log_dispatch_error_audit(user_id, dispatch_err)
-            return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
+            return self._handle_dispatch_error(
+                dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang
+            )
         except (ImportError, ModuleNotFoundError) as import_err:
             self._log_dispatch_error_audit(user_id, import_err)
-            return self._handle_dispatch_error(import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang)
+            return self._handle_dispatch_error(
+                import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang
+            )
         except (RuntimeError, OSError, ConnectionError, TimeoutError) as e:
             self._log_dispatch_error_audit(user_id, e)
             return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang)
@@ -681,11 +689,13 @@ class MultiAgentDispatcher(
         # Decomposition tree: one node per matched role.
         decomposition_tree: list[dict] = []
         for role_id in result.matched_roles:
-            decomposition_tree.append({
-                "task": f"{role_id} analysis",
-                "roles": [role_id],
-                "subtasks": [],
-            })
+            decomposition_tree.append(
+                {
+                    "task": f"{role_id} analysis",
+                    "roles": [role_id],
+                    "subtasks": [],
+                }
+            )
 
         # Steps: one per worker result (skipped on dry_run).
         steps: list[WorkflowStep] = []
@@ -709,10 +719,12 @@ class MultiAgentDispatcher(
         # Decision points: from consensus records.
         decision_points: list[dict] = []
         for cr in result.consensus_records:
-            decision_points.append({
-                "topic": cr.get("topic", ""),
-                "outcome": cr.get("outcome", ""),
-            })
+            decision_points.append(
+                {
+                    "topic": cr.get("topic", ""),
+                    "outcome": cr.get("outcome", ""),
+                }
+            )
 
         result.workflow_trace = WorkflowTrace(
             task_description=result.task_description,
@@ -834,9 +846,7 @@ class MultiAgentDispatcher(
         self._viewpoint_registry.is_orthogonal("architect", "security")
 
         # P1-1: Error Budget Tracker — activate calculate() + status().
-        self._error_budget_tracker = ErrorBudgetTracker(
-            slo_target=0.999, window_days=30
-        )
+        self._error_budget_tracker = ErrorBudgetTracker(slo_target=0.999, window_days=30)
         self._error_budget_tracker.calculate(
             slo_target=0.999,
             window_days=30,
@@ -855,9 +865,7 @@ class MultiAgentDispatcher(
 
         # P2-1: DORA Metrics Collector — activate collect_from_dispatch().
         self._dora_metrics_collector = DoraMetricsCollector()
-        self._dora_metrics_collector.collect_from_dispatch(
-            [], window_days=30
-        )
+        self._dora_metrics_collector.collect_from_dispatch([], window_days=30)
 
     def _init_module_fibers(self) -> None:
         """V4.5.4 P12.3 — wire ModuleFiberRegistry + CoeffectResolver.
@@ -901,18 +909,14 @@ class MultiAgentDispatcher(
         for module_id, deps in module_deps.items():
             try:
                 # Register fiber
-                fiber = self._module_fiber_registry.register(
-                    module_id, depends_on=deps
-                )
+                fiber = self._module_fiber_registry.register(module_id, depends_on=deps)
                 fiber.transition(fiber.state.__class__.ACTIVATING)
                 fiber.transition(fiber.state.__class__.ACTIVE)
                 self._module_fibers[module_id] = fiber
 
                 # Register provider with resolver (topological order)
                 if self.enable_coeffect:
-                    self._coeffect_resolver.register(
-                        _StaticProvider(module_id, deps)
-                    )
+                    self._coeffect_resolver.register(_StaticProvider(module_id, deps))
             except Exception:
                 # V4.5.3 lesson #7: best-effort try/except
                 continue
@@ -931,6 +935,7 @@ class MultiAgentDispatcher(
             return
         try:
             from .module_fiber import _inc_call_counter_er
+
             _inc_call_counter_er()
             # Attempt to resolve activation order (best-effort)
             if self.enable_coeffect and self._coeffect_resolver is not None:
@@ -989,9 +994,9 @@ class MultiAgentDispatcher(
             }
             if not perm.allowed:
                 self._log_audit_permission_denied(user_id, perm.reason)
-                self.metrics_service.safe_record(lambda m: (
-                    m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
-                ))
+                self.metrics_service.safe_record(
+                    lambda m: (m.dispatch_counter.labels(mode=mode, role_count="0").inc(),)
+                )
                 denied_result = DispatchResult(
                     success=False,
                     task_description=task_description,
@@ -1014,9 +1019,7 @@ class MultiAgentDispatcher(
         rbac_err: Exception,
     ) -> tuple[dict[str, Any], DispatchResult]:
         """Build the fail-closed denial result when RBAC itself errors."""
-        self._log_audit_permission_denied(
-            user_id, f"RBAC infrastructure error: {rbac_err}"
-        )
+        self._log_audit_permission_denied(user_id, f"RBAC infrastructure error: {rbac_err}")
         permission_result_dict = {
             "allowed": False,
             "reason": str(rbac_err),
@@ -1039,10 +1042,7 @@ class MultiAgentDispatcher(
         task_description: str,
     ) -> tuple[dict[str, Any], DispatchResult]:
         """Build the denial result when no RBAC is configured in production."""
-        logger.warning(
-            "Dispatch denied: no RBAC configured (fail-closed mode, "
-            "user=%s, production mode)"
-        )
+        logger.warning("Dispatch denied: no RBAC configured (fail-closed mode, user=%s, production mode)")
         permission_result_dict = {
             "allowed": False,
             "reason": "No RBAC configured (fail-closed mode denies all)",
@@ -1050,9 +1050,7 @@ class MultiAgentDispatcher(
             "requested_roles": list(roles) if roles else [],
             "requested_mode": mode,
         }
-        self._log_audit_permission_denied(
-            user_id, "No RBAC configured (fail-closed mode denies all)"
-        )
+        self._log_audit_permission_denied(user_id, "No RBAC configured (fail-closed mode denies all)")
         denied_result = DispatchResult(
             success=False,
             task_description=task_description,
@@ -1142,9 +1140,7 @@ class MultiAgentDispatcher(
             RuntimeError: qa_enabled=False 或 Playwright 未安装。
         """
         if not hasattr(self, "uiux_analyzer") or self.uiux_analyzer is None:
-            raise RuntimeError(
-                "UIUXAnalyzer not enabled. Initialize dispatcher with qa_enabled=True."
-            )
+            raise RuntimeError("UIUXAnalyzer not enabled. Initialize dispatcher with qa_enabled=True.")
         try:
             from playwright.sync_api import sync_playwright
         except ImportError as exc:
@@ -1172,9 +1168,7 @@ class MultiAgentDispatcher(
             DiffResult。若 visual_regression_checker 未启用，抛出 RuntimeError。
         """
         if not hasattr(self, "visual_regression_checker") or self.visual_regression_checker is None:
-            raise RuntimeError(
-                "VisualRegressionChecker not enabled. Initialize dispatcher with qa_enabled=True."
-            )
+            raise RuntimeError("VisualRegressionChecker not enabled. Initialize dispatcher with qa_enabled=True.")
         return self.visual_regression_checker.compare(baseline, current)
 
     # V4.0.0 P3-1: Autonomous 自主迭代模式
@@ -1204,8 +1198,7 @@ class MultiAgentDispatcher(
         """
         if not self.autonomous_enabled or self.autonomous_controller is None:
             raise RuntimeError(
-                "AutonomousLoopController not enabled. "
-                "Initialize dispatcher with autonomous_enabled=True."
+                "AutonomousLoopController not enabled. Initialize dispatcher with autonomous_enabled=True."
             )
 
         from .autonomous.loop_controller import AutonomousConfig, AutonomousLoopController

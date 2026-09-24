@@ -41,32 +41,47 @@ CLI = PROJECT_ROOT / "scripts" / "cli.py"
 
 class TestRisksStatsCliJourney:
     def test_stats_text_journey(self, tmp_path: Path) -> None:
-        proc = _run_cli(["-m", "scripts.cli_risks", "risks", "stats", "--format", "text",
-                         "--root", str(tmp_path)], PROJECT_ROOT)
+        proc = _run_cli(
+            ["-m", "scripts.cli_risks", "risks", "stats", "--format", "text", "--root", str(tmp_path)], PROJECT_ROOT
+        )
         assert proc.returncode == 0, proc.stderr
         assert "Risk Store Stats" in proc.stdout
         assert "capacity:" in proc.stdout
 
     def test_stats_json_journey(self, tmp_path: Path) -> None:
-        proc = _run_cli(["-m", "scripts.cli_risks", "risks", "stats", "--format", "json",
-                         "--root", str(tmp_path)], PROJECT_ROOT)
+        proc = _run_cli(
+            ["-m", "scripts.cli_risks", "risks", "stats", "--format", "json", "--root", str(tmp_path)], PROJECT_ROOT
+        )
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout)
-        for key in ("capacity", "concurrent_writes_1m", "cross_host_lock_signals",
-                    "slow_query_signals"):
+        for key in ("capacity", "concurrent_writes_1m", "cross_host_lock_signals", "slow_query_signals"):
             assert key in payload
 
     def test_add_then_stats_capacity_visible(self, tmp_path: Path) -> None:
         add = _run_cli(
-            ["-m", "scripts.cli_risks", "risks", "add", "e2e risk",
-             "--probability", "0.5", "--impact", "0.5",
-             "--category", "general", "--owner", "architect",
-             "--root", str(tmp_path)],
+            [
+                "-m",
+                "scripts.cli_risks",
+                "risks",
+                "add",
+                "e2e risk",
+                "--probability",
+                "0.5",
+                "--impact",
+                "0.5",
+                "--category",
+                "general",
+                "--owner",
+                "architect",
+                "--root",
+                str(tmp_path),
+            ],
             PROJECT_ROOT,
         )
         assert add.returncode == 0, add.stderr
-        stats = _run_cli(["-m", "scripts.cli_risks", "risks", "stats", "--format", "json",
-                          "--root", str(tmp_path)], PROJECT_ROOT)
+        stats = _run_cli(
+            ["-m", "scripts.cli_risks", "risks", "stats", "--format", "json", "--root", str(tmp_path)], PROJECT_ROOT
+        )
         assert stats.returncode == 0, stats.stderr
         payload = json.loads(stats.stdout)
         assert payload["capacity"] == 1

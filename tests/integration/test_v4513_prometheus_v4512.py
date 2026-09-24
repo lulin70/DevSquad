@@ -24,9 +24,16 @@ def _payload(items: int) -> dict:
         "version": 1,
         "register_id": "default",
         "items": [
-            {"id": f"R-{i}", "description": f"r{i}", "probability": 0.5, "impact": 0.5,
-             "response_strategy": "accept", "owner": "architect", "status": "open",
-             "category": "general"}
+            {
+                "id": f"R-{i}",
+                "description": f"r{i}",
+                "probability": 0.5,
+                "impact": 0.5,
+                "response_strategy": "accept",
+                "owner": "architect",
+                "status": "open",
+                "category": "general",
+            }
             for i in range(items)
         ],
     }
@@ -61,8 +68,7 @@ class TestRegistryExposition:
         metrics.record_risk_store_stats(store.stats)  # same snapshot → no extra inc
         body = _body_text(metrics)
         line = next(
-            ln for ln in body.splitlines()
-            if ln.startswith("devsquad_v4512_risk_store_concurrent_writes_total{")
+            ln for ln in body.splitlines() if ln.startswith("devsquad_v4512_risk_store_concurrent_writes_total{")
         )
         assert line.rstrip().endswith("1.0")
 
@@ -74,10 +80,7 @@ class TestRegistryExposition:
         store.save("default", _payload(7))
         metrics.record_risk_store_stats(store.stats)
         body = _body_text(metrics)
-        line = next(
-            ln for ln in body.splitlines()
-            if ln.startswith("devsquad_v4512_risk_store_capacity{")
-        )
+        line = next(ln for ln in body.splitlines() if ln.startswith("devsquad_v4512_risk_store_capacity{"))
         assert line.rstrip().endswith("7.0")
 
 

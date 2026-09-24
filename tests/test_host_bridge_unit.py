@@ -52,8 +52,13 @@ def _write_response(bridge_dir: str, request_id: str, **kwargs: dict) -> str:
     )
 
 
-def _drive_runner(bridge_dir: str, behaviour: str = "success", delay: float = 0.0,
-                  poll_interval: float = 0.05, max_iterations: int = 200) -> None:
+def _drive_runner(
+    bridge_dir: str,
+    behaviour: str = "success",
+    delay: float = 0.0,
+    poll_interval: float = 0.05,
+    max_iterations: int = 200,
+) -> None:
     """Drive FakeHostRunner synchronously until request is answered or timeout."""
     runner = FakeHostRunner(
         bridge_dir=bridge_dir,
@@ -310,9 +315,7 @@ class TestAntiGhostAndPlatform:
         before = get_call_counter_er()
         bridge = HostLLMBridge(bridge_dir=str(tmp_path))
         for _ in range(3):
-            bridge.create_request(
-                agent_type="general", task="x", context={}, prompt="x"
-            )
+            bridge.create_request(agent_type="general", task="x", context={}, prompt="x")
         after = get_call_counter_er()
         assert after - before == 3
 

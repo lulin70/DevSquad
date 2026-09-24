@@ -165,9 +165,7 @@ class AISecurityGuardConfig(BaseModel):
     def _validate_permission_level(cls, v: str) -> str:
         allowed = {"PLAN", "DEFAULT", "AUTO", "BYPASS"}
         if v not in allowed:
-            raise ValueError(
-                f"permission_level must be one of {allowed!r}, got {v!r}"
-            )
+            raise ValueError(f"permission_level must be one of {allowed!r}, got {v!r}")
         return v
 
 
@@ -270,9 +268,7 @@ class QualityControlConfig(BaseModel):
     ponytail_markers: bool = True
     ai_quality_control: AIQualityControlConfig = Field(default_factory=AIQualityControlConfig)
     ai_security_guard: AISecurityGuardConfig = Field(default_factory=AISecurityGuardConfig)
-    ai_team_collaboration: AITeamCollaborationConfig = Field(
-        default_factory=AITeamCollaborationConfig
-    )
+    ai_team_collaboration: AITeamCollaborationConfig = Field(default_factory=AITeamCollaborationConfig)
 
 
 # ---------------------------------------------------------------------------
@@ -336,9 +332,7 @@ class DevSquadConfig(BaseModel):
     def _validate_backend(cls, v: str) -> str:
         allowed = {"mock", "openai", "anthropic", "moka", "trae", "fallback", "auto"}
         if v not in allowed:
-            raise ValueError(
-                f"backend must be one of {allowed!r}, got {v!r}"
-            )
+            raise ValueError(f"backend must be one of {allowed!r}, got {v!r}")
         return v
 
     @field_validator("output_format")
@@ -346,9 +340,7 @@ class DevSquadConfig(BaseModel):
     def _validate_output_format(cls, v: str) -> str:
         allowed = {"structured", "compact", "detailed", "json"}
         if v not in allowed:
-            raise ValueError(
-                f"output_format must be one of {allowed!r}, got {v!r}"
-            )
+            raise ValueError(f"output_format must be one of {allowed!r}, got {v!r}")
         return v
 
     @field_validator("log_level")
@@ -357,9 +349,7 @@ class DevSquadConfig(BaseModel):
         allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         v_upper = v.upper()
         if v_upper not in allowed:
-            raise ValueError(
-                f"log_level must be one of {allowed!r}, got {v!r}"
-            )
+            raise ValueError(f"log_level must be one of {allowed!r}, got {v!r}")
         return v_upper
 
     # ------------------------------------------------------------------
@@ -399,8 +389,7 @@ class DevSquadConfig(BaseModel):
             data = yaml.safe_load(f) or {}
         if not isinstance(data, dict):
             raise ValueError(
-                f"Config file {path} must contain a YAML mapping at the top level, "
-                f"got {type(data).__name__}"
+                f"Config file {path} must contain a YAML mapping at the top level, got {type(data).__name__}"
             )
         return cls.from_dict(data)
 
@@ -516,9 +505,7 @@ class ConfigManager:
                 # No config file found — use defaults
                 self._config_path = None
                 self._config = DevSquadConfig()
-                logger.debug(
-                    "No .devsquad.yaml found in search paths; using default config"
-                )
+                logger.debug("No .devsquad.yaml found in search paths; using default config")
 
     @property
     def config(self) -> DevSquadConfig:

@@ -30,7 +30,6 @@ from scripts.collaboration.models import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestRoleAliases(unittest.TestCase):
     """Test ROLE_ALIASES mapping correctness."""
 

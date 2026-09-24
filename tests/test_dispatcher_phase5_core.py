@@ -32,7 +32,6 @@ from scripts.collaboration.performance_monitor import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestDispatchInputValidation:
     """dispatch() 方法输入验证测试"""
 

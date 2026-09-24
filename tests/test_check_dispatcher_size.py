@@ -11,6 +11,7 @@ These tests pin the contract:
   6. Empty files and __pycache__ are excluded.
   7. Line counts ignore blank lines (non-empty LOC).
 """
+
 from __future__ import annotations
 
 import json
@@ -119,11 +120,15 @@ class TestMainExitCodes:
 
     def test_write_baseline_creates_file_and_exits_zero(self, fake_source, tmp_path):
         baseline = tmp_path / "out" / "snap.json"
-        rc = gate.main([
-            "--source", str(fake_source),
-            "--baseline", str(baseline),
-            "--write-baseline",
-        ])
+        rc = gate.main(
+            [
+                "--source",
+                str(fake_source),
+                "--baseline",
+                str(baseline),
+                "--write-baseline",
+            ]
+        )
         assert rc == 0
         assert baseline.exists()
         data = json.loads(baseline.read_text(encoding="utf-8"))
@@ -145,17 +150,22 @@ class TestMainExitCodes:
         # Write baseline that under-reports big.py (e.g., 500 instead of 900).
         # The snapshot keys use paths relative to gate.REPO_ROOT, so we
         # patch REPO_ROOT to tmp_path so the keys line up.
-        baseline.write_text(json.dumps({
-            "version": "v4.6.0-doc-governance",
-            "max_lines": 800,
-            "generated_at": "2026-09-05T00:00:00Z",
-            "files": {
-                "src/small.py": 2,
-                "src/medium.py": 50,
-                "src/big.py": 500,  # under-report (current is 900)
-                "src/blank_lines.py": 2,
-            },
-        }), encoding="utf-8")
+        baseline.write_text(
+            json.dumps(
+                {
+                    "version": "v4.6.0-doc-governance",
+                    "max_lines": 800,
+                    "generated_at": "2026-09-05T00:00:00Z",
+                    "files": {
+                        "src/small.py": 2,
+                        "src/medium.py": 50,
+                        "src/big.py": 500,  # under-report (current is 900)
+                        "src/blank_lines.py": 2,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
 
         original_root = gate.REPO_ROOT
         gate.REPO_ROOT = tmp_path
@@ -168,9 +178,14 @@ class TestMainExitCodes:
 
     def test_missing_baseline_falls_back_to_absolute_threshold(self, fake_source, tmp_path):
         # No baseline file → gate warns but does not block on existing oversize.
-        rc = gate.main([
-            "--source", str(fake_source),
-            "--baseline", str(tmp_path / "no_baseline.json"),
-            "--max-lines", "1000",  # high ceiling so existing files don't trip
-        ])
+        rc = gate.main(
+            [
+                "--source",
+                str(fake_source),
+                "--baseline",
+                str(tmp_path / "no_baseline.json"),
+                "--max-lines",
+                "1000",  # high ceiling so existing files don't trip
+            ]
+        )
         assert rc == 0

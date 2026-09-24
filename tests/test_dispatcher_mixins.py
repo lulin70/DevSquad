@@ -744,27 +744,21 @@ class TestV454FiberMixin:
     def test_dispatcher_attaches_module_fiber_registry(self) -> None:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-        d = MultiAgentDispatcher(
-            persist_dir="/tmp/test_v454_mixin", development_mode=True
-        )
+        d = MultiAgentDispatcher(persist_dir="/tmp/test_v454_mixin", development_mode=True)
         assert hasattr(d, "_module_fiber_registry")
         assert d._module_fiber_registry is not None
 
     def test_dispatcher_attaches_coeffect_resolver(self) -> None:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-        d = MultiAgentDispatcher(
-            persist_dir="/tmp/test_v454_mixin", development_mode=True
-        )
+        d = MultiAgentDispatcher(persist_dir="/tmp/test_v454_mixin", development_mode=True)
         assert hasattr(d, "_coeffect_resolver")
         assert d._coeffect_resolver is not None
 
     def test_dispatcher_attaches_module_fibers_dict(self) -> None:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-        d = MultiAgentDispatcher(
-            persist_dir="/tmp/test_v454_mixin", development_mode=True
-        )
+        d = MultiAgentDispatcher(persist_dir="/tmp/test_v454_mixin", development_mode=True)
         assert hasattr(d, "_module_fibers")
         assert isinstance(d._module_fibers, dict)
         assert len(d._module_fibers) >= 1

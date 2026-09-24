@@ -55,9 +55,14 @@ class TestBaselineFileIntegrity:
             version="v4.5.2",
             snapshots={
                 path: PerfSnapshot(
-                    path=path, call_count=10,
-                    p50_ms=10, p95_ms=20, p99_ms=30,
-                    avg_ms=15, min_ms=5, max_ms=40,
+                    path=path,
+                    call_count=10,
+                    p50_ms=10,
+                    p95_ms=20,
+                    p99_ms=30,
+                    avg_ms=15,
+                    min_ms=5,
+                    max_ms=40,
                     snapshot_id="test",
                 )
                 for path in ["mock", "host", "api", "auto_fallback"]
@@ -94,9 +99,14 @@ class TestThresholdEnforcement:
         return PerfBaseline(
             snapshots={
                 path: PerfSnapshot(
-                    path=path, call_count=10,
-                    p50_ms=p95 * 0.5, p95_ms=p95, p99_ms=p95 * 1.5,
-                    avg_ms=p95 * 0.7, min_ms=1, max_ms=p95 * 2,
+                    path=path,
+                    call_count=10,
+                    p50_ms=p95 * 0.5,
+                    p95_ms=p95,
+                    p99_ms=p95 * 1.5,
+                    avg_ms=p95 * 0.7,
+                    min_ms=1,
+                    max_ms=p95 * 2,
                     snapshot_id="baseline",
                 ),
             },
@@ -106,9 +116,14 @@ class TestThresholdEnforcement:
         """Mock path: >10% p95 regression → within_threshold=False."""
         baseline = self._make_baseline_p95("mock", 100.0)
         current = PerfSnapshot(
-            path="mock", call_count=10,
-            p50_ms=60, p95_ms=111, p99_ms=170,  # +11%
-            avg_ms=80, min_ms=5, max_ms=250,
+            path="mock",
+            call_count=10,
+            p50_ms=60,
+            p95_ms=111,
+            p99_ms=170,  # +11%
+            avg_ms=80,
+            min_ms=5,
+            max_ms=250,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -119,9 +134,14 @@ class TestThresholdEnforcement:
         """Mock path: <10% p95 regression → within_threshold=True."""
         baseline = self._make_baseline_p95("mock", 100.0)
         current = PerfSnapshot(
-            path="mock", call_count=10,
-            p50_ms=55, p95_ms=109, p99_ms=160,  # +9%
-            avg_ms=75, min_ms=5, max_ms=240,
+            path="mock",
+            call_count=10,
+            p50_ms=55,
+            p95_ms=109,
+            p99_ms=160,  # +9%
+            avg_ms=75,
+            min_ms=5,
+            max_ms=240,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -132,9 +152,14 @@ class TestThresholdEnforcement:
         """Host Bridge path: >10% p95 regression → within_threshold=False."""
         baseline = self._make_baseline_p95("host", 500.0)
         current = PerfSnapshot(
-            path="host", call_count=10,
-            p50_ms=270, p95_ms=560, p99_ms=800,  # +12%
-            avg_ms=400, min_ms=10, max_ms=1100,
+            path="host",
+            call_count=10,
+            p50_ms=270,
+            p95_ms=560,
+            p99_ms=800,  # +12%
+            avg_ms=400,
+            min_ms=10,
+            max_ms=1100,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -144,9 +169,14 @@ class TestThresholdEnforcement:
         """Direct API path: <20% p95 regression → within_threshold=True (more lax)."""
         baseline = self._make_baseline_p95("api", 1000.0)
         current = PerfSnapshot(
-            path="api", call_count=10,
-            p50_ms=550, p95_ms=1150, p99_ms=1600,  # +15%
-            avg_ms=850, min_ms=100, max_ms=2200,
+            path="api",
+            call_count=10,
+            p50_ms=550,
+            p95_ms=1150,
+            p99_ms=1600,  # +15%
+            avg_ms=850,
+            min_ms=100,
+            max_ms=2200,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -156,9 +186,14 @@ class TestThresholdEnforcement:
         """Direct API path: >20% p95 regression → within_threshold=False."""
         baseline = self._make_baseline_p95("api", 1000.0)
         current = PerfSnapshot(
-            path="api", call_count=10,
-            p50_ms=600, p95_ms=1250, p99_ms=1700,  # +25%
-            avg_ms=900, min_ms=100, max_ms=2400,
+            path="api",
+            call_count=10,
+            p50_ms=600,
+            p95_ms=1250,
+            p99_ms=1700,  # +25%
+            avg_ms=900,
+            min_ms=100,
+            max_ms=2400,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -179,19 +214,31 @@ class TestAutoFallbackDiagnosticOnly:
 
     def test_auto_fallback_huge_regression_still_passes(self):
         """Even +500% regression on auto_fallback passes (diagnostic only)."""
-        baseline = PerfBaseline(snapshots={
-            "auto_fallback": PerfSnapshot(
-                path="auto_fallback", call_count=10,
-                p50_ms=10, p95_ms=20, p99_ms=30,
-                avg_ms=15, min_ms=5, max_ms=40,
-                snapshot_id="baseline",
-            ),
-        })
+        baseline = PerfBaseline(
+            snapshots={
+                "auto_fallback": PerfSnapshot(
+                    path="auto_fallback",
+                    call_count=10,
+                    p50_ms=10,
+                    p95_ms=20,
+                    p99_ms=30,
+                    avg_ms=15,
+                    min_ms=5,
+                    max_ms=40,
+                    snapshot_id="baseline",
+                ),
+            }
+        )
         # +90% regression (under 100% threshold = diagnostic-only)
         current = PerfSnapshot(
-            path="auto_fallback", call_count=10,
-            p50_ms=20, p95_ms=38, p99_ms=60,
-            avg_ms=30, min_ms=10, max_ms=80,
+            path="auto_fallback",
+            call_count=10,
+            p50_ms=20,
+            p95_ms=38,
+            p99_ms=60,
+            avg_ms=30,
+            min_ms=10,
+            max_ms=80,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -212,14 +259,21 @@ class TestCIGateEndToEnd:
         """Mock path: collect N samples, compare against baseline, decide block."""
         baseline_path = tmp_path / "baseline.json"
         # Save a baseline with p95 = 100ms
-        baseline = PerfBaseline(snapshots={
-            "mock": PerfSnapshot(
-                path="mock", call_count=50,
-                p50_ms=50, p95_ms=100, p99_ms=150,
-                avg_ms=60, min_ms=10, max_ms=200,
-                snapshot_id="baseline",
-            ),
-        })
+        baseline = PerfBaseline(
+            snapshots={
+                "mock": PerfSnapshot(
+                    path="mock",
+                    call_count=50,
+                    p50_ms=50,
+                    p95_ms=100,
+                    p99_ms=150,
+                    avg_ms=60,
+                    min_ms=10,
+                    max_ms=200,
+                    snapshot_id="baseline",
+                ),
+            }
+        )
         baseline.save(str(baseline_path))
 
         # Simulate current run with ~110ms p95 (10% regression - boundary)

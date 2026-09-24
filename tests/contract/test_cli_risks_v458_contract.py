@@ -68,18 +68,22 @@ def _seed(root: Path, rid: str = "R-seed") -> RiskItem:
                 category="technical",
             ).to_dict()
         ]
-    return RiskItem.from_dict(
-        store.load("default")["items"][0]
-    )
+    return RiskItem.from_dict(store.load("default")["items"][0])
 
 
 class TestJsonSchemaContract:
-    def test_list_json_contains_required_fields(self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_list_json_contains_required_fields(
+        self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         _seed(risk_store_root)
         args = argparse.Namespace(
-            register_id="default", root=None,
-            format="json", min_exposure=None,
-            category=None, limit=None, approval_callback=None,
+            register_id="default",
+            root=None,
+            format="json",
+            min_exposure=None,
+            category=None,
+            limit=None,
+            approval_callback=None,
             require_approval=False,
         )
         rc = cmd_risks_list(args)
@@ -87,13 +91,19 @@ class TestJsonSchemaContract:
         payload = json.loads(capsys.readouterr().out)
         assert set(payload[0]) == REQUIRED_FIELDS
 
-    def test_show_json_contains_required_fields(self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_show_json_contains_required_fields(
+        self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         _seed(risk_store_root, rid="R-show")
         args = argparse.Namespace(
-            register_id="default", root=None,
-            risk_id="R-show", format="json",
-            min_exposure=None, category=None,
-            approval_callback=None, require_approval=False,
+            register_id="default",
+            root=None,
+            risk_id="R-show",
+            format="json",
+            min_exposure=None,
+            category=None,
+            approval_callback=None,
+            require_approval=False,
         )
         rc = cmd_risks_show(args)
         assert rc == 0
@@ -103,10 +113,14 @@ class TestJsonSchemaContract:
     def test_export_json_matches_v457_shape(self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
         _seed(risk_store_root)
         args = argparse.Namespace(
-            register_id="default", root=None,
-            output=None, output_positional=None,
-            min_exposure=None, category=None,
-            approval_callback=None, require_approval=False,
+            register_id="default",
+            root=None,
+            output=None,
+            output_positional=None,
+            min_exposure=None,
+            category=None,
+            approval_callback=None,
+            require_approval=False,
         )
         rc = cmd_risks_export(args)
         assert rc == 0
@@ -115,7 +129,9 @@ class TestJsonSchemaContract:
 
 
 class TestErrorCodeContract:
-    def test_argparse_missing_required_returns_2(self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_argparse_missing_required_returns_2(
+        self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         # ``risks add`` requires --probability etc. → argparse error → exit 2.
         with pytest.raises(SystemExit) as exit_info:
             main(["risks", "add", "no-required-flags"])
@@ -126,9 +142,17 @@ class TestErrorCodeContract:
     def test_unknown_strategy_returns_2(self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
         rc = main(
             [
-                "risks", "add", "x",
-                "--probability", "0.4", "--impact", "0.5",
-                "--category", "general", "--owner", "architect",
+                "risks",
+                "add",
+                "x",
+                "--probability",
+                "0.4",
+                "--impact",
+                "0.5",
+                "--category",
+                "general",
+                "--owner",
+                "architect",
             ]
         )
         assert rc == 0
@@ -144,9 +168,13 @@ class TestErrorCodeContract:
         target = risk_store_root / "default.json"
         target.write_text("{", encoding="utf-8")
         args = argparse.Namespace(
-            register_id="default", root=None,
-            format="md", min_exposure=None,
-            category=None, limit=None, approval_callback=None,
+            register_id="default",
+            root=None,
+            format="md",
+            min_exposure=None,
+            category=None,
+            limit=None,
+            approval_callback=None,
             require_approval=False,
         )
         rc = cmd_risks_list(args)
@@ -210,10 +238,15 @@ class TestMutatorApiContract:
     def test_add_assess_mitigate_close_chain(self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
         add = cmd_risks_add(
             argparse.Namespace(
-                register_id="default", root=None,
-                description="chain", probability=0.6, impact=0.7,
-                category="general", owner="architect",
-                approval_callback=None, require_approval=False,
+                register_id="default",
+                root=None,
+                description="chain",
+                probability=0.6,
+                impact=0.7,
+                category="general",
+                owner="architect",
+                approval_callback=None,
+                require_approval=False,
             )
         )
         assert add == 0
@@ -221,9 +254,13 @@ class TestMutatorApiContract:
 
         rc = cmd_risks_assess(
             argparse.Namespace(
-                register_id="default", root=None,
-                risk_id=rid, votes='{"architect":[0.7,0.8]}', votes_file=None,
-                approval_callback=None, require_approval=False,
+                register_id="default",
+                root=None,
+                risk_id=rid,
+                votes='{"architect":[0.7,0.8]}',
+                votes_file=None,
+                approval_callback=None,
+                require_approval=False,
             )
         )
         assert rc == 0
@@ -232,9 +269,14 @@ class TestMutatorApiContract:
 
         rc = cmd_risks_mitigate(
             argparse.Namespace(
-                register_id="default", root=None,
-                risk_id=rid, strategy="mitigate", owner="devops", plan="",
-                approval_callback=None, require_approval=False,
+                register_id="default",
+                root=None,
+                risk_id=rid,
+                strategy="mitigate",
+                owner="devops",
+                plan="",
+                approval_callback=None,
+                require_approval=False,
             )
         )
         assert rc == 0
@@ -244,8 +286,10 @@ class TestMutatorApiContract:
 
         rc = cmd_risks_close(
             argparse.Namespace(
-                register_id="default", root=None,
-                risk_id=rid, require_approval=False,
+                register_id="default",
+                root=None,
+                risk_id=rid,
+                require_approval=False,
                 approval_callback=None,
             )
         )
@@ -258,8 +302,10 @@ class TestClearApprovalContract:
     def test_clear_without_approval_succeeds(self, risk_store_root: Path, capsys: pytest.CaptureFixture[str]) -> None:
         _seed(risk_store_root)
         args = argparse.Namespace(
-            register_id="default", root=None,
-            require_approval=False, approval_callback=None,
+            register_id="default",
+            root=None,
+            require_approval=False,
+            approval_callback=None,
         )
         assert cmd_risks_clear(args) == 0
         assert "Cleared" in capsys.readouterr().out
@@ -269,8 +315,10 @@ class TestClearApprovalContract:
     ) -> None:
         _seed(risk_store_root)
         args = argparse.Namespace(
-            register_id="default", root=None,
-            require_approval=True, approval_callback=None,
+            register_id="default",
+            root=None,
+            require_approval=True,
+            approval_callback=None,
         )
         assert cmd_risks_clear(args) == 2
         assert "approval unavailable" in capsys.readouterr().err
@@ -278,4 +326,3 @@ class TestClearApprovalContract:
         store = FileRiskStore(root=risk_store_root)
         items = store.payload_to_items(store.load("default"))
         assert len(items) == 1
-

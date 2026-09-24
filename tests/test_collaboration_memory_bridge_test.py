@@ -54,7 +54,6 @@ from tests.conftest import perf_ceiling_ms
 pytestmark = pytest.mark.unit
 
 
-
 class T1DataModels(unittest.TestCase):
     def test_01_memory_type_enum(self):
         types = [t.value for t in MemoryType]
@@ -518,10 +517,7 @@ class T5MemoryBridgeCore(unittest.TestCase):
         self.assertLess(
             result.query_time_ms,
             ceiling_ms,
-            (
-                f"recall query_time_ms {result.query_time_ms:.1f}ms exceeds ceiling "
-                f"{ceiling_ms:.1f}ms"
-            ),
+            (f"recall query_time_ms {result.query_time_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"),
         )
 
     def test_03_recall_empty(self):
@@ -982,10 +978,7 @@ class T8EdgeCases(unittest.TestCase):
         self.assertLess(
             write_time + rebuild_time,
             ceiling_ms,
-            (
-                f"200 writes + rebuild {write_time + rebuild_time:.1f}ms exceeds "
-                f"ceiling {ceiling_ms:.1f}ms"
-            ),
+            (f"200 writes + rebuild {write_time + rebuild_time:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"),
         )
 
     def test_10_null_domain_memory_item(self):
@@ -1262,10 +1255,7 @@ class E2ETests(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_ms,
-            (
-                f"recall on 100-item index {elapsed:.1f}ms exceeds ceiling "
-                f"{ceiling_ms:.1f}ms"
-            ),
+            (f"recall on 100-item index {elapsed:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"),
         )
 
     def test_07_mixed_language_query(self):

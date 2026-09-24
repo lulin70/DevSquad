@@ -103,10 +103,12 @@ class TestDiscoveryProbe:
     def test_fix_errors_discovery(self):
         probe = DiscoveryProbe()
         memory = UnifiedMemory(storage_dir="/tmp/test_loop_discovery")
-        memory._cycles = [{
-            "verification_errors": ["error1"],
-            "completed_items": [],
-        }]
+        memory._cycles = [
+            {
+                "verification_errors": ["error1"],
+                "completed_items": [],
+            }
+        ]
         result = probe.discover("build feature X", 1, memory=memory)
         assert "fix_errors" in result["tasks"]
         assert result["errors_to_fix"] == ["error1"]
@@ -114,10 +116,12 @@ class TestDiscoveryProbe:
     def test_done_discovery(self):
         probe = DiscoveryProbe()
         memory = UnifiedMemory(storage_dir="/tmp/test_loop_done")
-        memory._cycles = [{
-            "verification_errors": [],
-            "completed_items": ["implement", "test", "review"],
-        }]
+        memory._cycles = [
+            {
+                "verification_errors": [],
+                "completed_items": ["implement", "test", "review"],
+            }
+        ]
         result = probe.discover("build feature X", 2, memory=memory)
         assert result.get("done") is True
 
@@ -141,6 +145,7 @@ class TestHandoffAdapter:
             def dispatch(self, _task):
                 class R:
                     summary = "done"
+
                 return R()
 
         adapter = HandoffAdapter(dispatcher=MockDispatcher())
@@ -243,11 +248,13 @@ class TestUnifiedMemory:
 
     def test_clear(self, tmp_path):
         memory = UnifiedMemory(storage_dir=str(tmp_path / "mem"))
-        memory.persist_event(LoopEvent(
-            event_type=LoopEventType.LOOP_COMPLETED,
-            phase="scheduling",
-            iter_index=0,
-        ))
+        memory.persist_event(
+            LoopEvent(
+                event_type=LoopEventType.LOOP_COMPLETED,
+                phase="scheduling",
+                iter_index=0,
+            )
+        )
         memory.clear()
         assert len(memory._events) == 0
 

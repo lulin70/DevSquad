@@ -166,9 +166,7 @@ class PreDispatchPipeline:
         try:
             from .prometheus_metrics import get_metrics as _gm_metrics
 
-            _gm_metrics().record_order_chain(
-                chain_decision.source, chain_decision.single_role
-            )
+            _gm_metrics().record_order_chain(chain_decision.source, chain_decision.single_role)
         except (RuntimeError, ValueError, AttributeError):
             pass
 

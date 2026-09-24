@@ -24,12 +24,14 @@ class TestHistoryManagerPersistence:
     def test_metrics_snapshot_round_trip(self, tmp_path: Path):
         db_path = tmp_path / "history.db"
         history = HistoryManager(db_path=str(db_path))
-        history.save_metrics_snapshot({
-            "total_phases": 10,
-            "completed_phases": 7,
-            "completion_rate": 70.0,
-            "custom_field": "custom_value",
-        })
+        history.save_metrics_snapshot(
+            {
+                "total_phases": 10,
+                "completed_phases": 7,
+                "completion_rate": 70.0,
+                "custom_field": "custom_value",
+            }
+        )
         rows = history.get_metrics_history(hours=1, include_custom=True)
         assert len(rows) == 1
         assert rows[0]["completion_rate"] == pytest.approx(70.0)
@@ -99,12 +101,8 @@ class TestCheckpointManagerPersistence:
 
     def test_list_and_delete_checkpoints(self, tmp_path: Path):
         manager = CheckpointManager(storage_path=str(tmp_path))
-        manager.create_checkpoint_from_dispatch(
-            "task-1", "s1", "agent-1", ["a"], ["b"]
-        )
-        cp2 = manager.create_checkpoint_from_dispatch(
-            "task-2", "s1", "agent-1", ["a"], ["b"]
-        )
+        manager.create_checkpoint_from_dispatch("task-1", "s1", "agent-1", ["a"], ["b"])
+        cp2 = manager.create_checkpoint_from_dispatch("task-2", "s1", "agent-1", ["a"], ["b"])
         assert len(manager.list_checkpoints()) == 2
         assert len(manager.list_checkpoints(task_id="task-1")) == 1
         assert manager.delete_checkpoint(cp2.checkpoint_id) is True
@@ -130,9 +128,7 @@ class TestCheckpointManagerPersistence:
 
     def test_handoff_save_and_load(self, tmp_path: Path):
         manager = CheckpointManager(storage_path=str(tmp_path))
-        handoff = HandoffDocument(
-            task_id="task-1", from_agent="architect", to_agent="coder"
-        )
+        handoff = HandoffDocument(task_id="task-1", from_agent="architect", to_agent="coder")
         assert manager.save_handoff(handoff) is True
         loaded = manager.load_handoff(handoff.handoff_id)
         assert loaded is not None
@@ -141,13 +137,16 @@ class TestCheckpointManagerPersistence:
 
     def test_lifecycle_state_round_trip(self, tmp_path: Path):
         manager = CheckpointManager(storage_path=str(tmp_path))
-        assert manager.save_lifecycle_state(
-            task_id="task-1",
-            current_phase="P2",
-            phase_states={"P1": "completed"},
-            completed_phases=["P1"],
-            mode="shortcut",
-        ) is True
+        assert (
+            manager.save_lifecycle_state(
+                task_id="task-1",
+                current_phase="P2",
+                phase_states={"P1": "completed"},
+                completed_phases=["P1"],
+                mode="shortcut",
+            )
+            is True
+        )
         state = manager.load_lifecycle_state("task-1")
         assert state is not None
         assert state["current_phase"] == "P2"
@@ -158,9 +157,13 @@ class TestCheckpointManagerPersistence:
     def test_checkpoint_from_dispatch_progress(self, tmp_path: Path):
         manager = CheckpointManager(storage_path=str(tmp_path))
         cp = manager.create_checkpoint_from_dispatch(
-            "task-1", "design", "architect",
-            ["discover", "design"], ["implement", "test"],
-            context={"goal": "ship"}, outputs={"schema": "users"},
+            "task-1",
+            "design",
+            "architect",
+            ["discover", "design"],
+            ["implement", "test"],
+            context={"goal": "ship"},
+            outputs={"schema": "users"},
         )
         assert cp.status == CheckpointStatus.ACTIVE
         assert cp.progress_percentage == pytest.approx(0.5)

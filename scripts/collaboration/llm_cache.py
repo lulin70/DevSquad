@@ -114,6 +114,7 @@ class LLMCache(LLMCacheBase):
                 if enable_redis and redis_url:
                     try:
                         from .redis_cache_backend import RedisCacheBackend
+
                         l2 = RedisCacheBackend(redis_url=redis_url)
                     except (ImportError, AttributeError, RuntimeError, OSError) as e:
                         logger.warning("Redis L2 backend for MultiLevelCache init failed: %s", e)
@@ -152,6 +153,7 @@ class LLMCache(LLMCacheBase):
         if not use_multi_level_cache and enable_redis and redis_url:
             try:
                 from .redis_cache import SyncRedisCacheWrapper
+
                 self._redis_cache = SyncRedisCacheWrapper(
                     redis_url=redis_url,
                     prefix="devsquad:llm:",
@@ -181,6 +183,7 @@ class LLMCache(LLMCacheBase):
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                     future = pool.submit(asyncio.run, coro)
                     return future.result(timeout=30)

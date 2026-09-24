@@ -922,9 +922,7 @@ class CheckpointManager:
                 "created_at": cp.created_at,
                 "updated_at": cp.updated_at,
                 "status": self._map_session_status(cp.status),
-                "checkpoint_status": cp.status.value
-                if isinstance(cp.status, CheckpointStatus)
-                else str(cp.status),
+                "checkpoint_status": cp.status.value if isinstance(cp.status, CheckpointStatus) else str(cp.status),
                 "step_name": self._redact_for_display(cp.step_name),
                 "task_summary": self._build_task_summary(cp),
                 "progress_percentage": cp.progress_percentage,

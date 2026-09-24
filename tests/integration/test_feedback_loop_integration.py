@@ -67,9 +67,7 @@ class _FakeDispatcher:
         self.received_roles: list[list[str] | None] = []
         self.received_modes: list[str] = []
 
-    def dispatch(
-        self, task: str, roles: list[str] | None = None, mode: str = "auto", **_kwargs: Any
-    ) -> DispatchResult:
+    def dispatch(self, task: str, roles: list[str] | None = None, mode: str = "auto", **_kwargs: Any) -> DispatchResult:
         self._call_count += 1
         self.received_tasks.append(task)
         self.received_roles.append(roles)

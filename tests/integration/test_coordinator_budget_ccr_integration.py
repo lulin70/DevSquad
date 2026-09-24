@@ -156,7 +156,7 @@ class TestCoordinatorRetrieveCompressedOriginals(unittest.TestCase):
                 worker_id="w1",
                 task_id="t1",
                 success=True,
-                output=f"devsquad_retrieve(trace_id={trace_id}, query=\"important\")",
+                output=f'devsquad_retrieve(trace_id={trace_id}, query="important")',
             )
             returned = coord._retrieve_compressed_originals(result)
             # Should contain the matching line.

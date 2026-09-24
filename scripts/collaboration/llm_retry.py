@@ -297,6 +297,7 @@ def retry_with_fallback(
         Returns:
             Wrapped callable that retries on failure and falls back across backends.
         """
+
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Invoke the wrapped function with retry and fallback handling."""

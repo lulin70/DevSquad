@@ -328,9 +328,7 @@ class T5_MemoryProviderIntegration(_ProviderTestBase):
     def test_get_rules_called_when_no_match_method(self) -> None:
         """Verify: get_rules is called when match_rules is not present on provider."""
         # Use spec to exclude match_rules from the mock's interface
-        memory = mock.MagicMock(
-            spec=["is_available", "get_rules", "get_stats", "format_rules_as_prompt"]
-        )
+        memory = mock.MagicMock(spec=["is_available", "get_rules", "get_stats", "format_rules_as_prompt"])
         memory.is_available.return_value = True
         memory.get_rules.return_value = ["Use SSL for all connections"]
         worker = self._make_worker(memory_provider=memory)

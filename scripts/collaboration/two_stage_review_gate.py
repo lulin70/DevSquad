@@ -84,8 +84,8 @@ class ReviewStage(Enum):
     """Identifier for which review stage produced a finding."""
 
     SPEC_COMPLIANCE = "spec_compliance"  # Stage 1: Does code match the plan/spec?
-    CODE_QUALITY = "code_quality"        # Stage 2: Is the code quality acceptable?
-    REDESIGN = "redesign"                # Stage 3 (V3.9): Can the code be simpler?
+    CODE_QUALITY = "code_quality"  # Stage 2: Is the code quality acceptable?
+    REDESIGN = "redesign"  # Stage 3 (V3.9): Can the code be simpler?
 
 
 class StageResult(Enum):
@@ -359,19 +359,13 @@ class TwoStageReviewGate:
             return TwoStageReviewResult()
 
         # Normalize inputs — support both new and legacy calling conventions.
-        spec, code_changes = self._normalize_inputs(
-            spec, code_changes, plan, worker_results, spec_requirements
-        )
+        spec, code_changes = self._normalize_inputs(spec, code_changes, plan, worker_results, spec_requirements)
 
         # Stage 1: spec compliance (delegated to ReviewCheckers)
-        stage1_result, stage1_findings = self._checkers.check_spec_compliance(
-            spec, code_changes
-        )
+        stage1_result, stage1_findings = self._checkers.check_spec_compliance(spec, code_changes)
 
         # Stage 2: code quality (delegated to ReviewCheckers)
-        stage2_result, stage2_findings = self._checkers.check_code_quality(
-            code_changes
-        )
+        stage2_result, stage2_findings = self._checkers.check_code_quality(code_changes)
 
         all_findings = stage1_findings + stage2_findings
 
@@ -382,9 +376,7 @@ class TwoStageReviewGate:
         stage3_findings: list[ReviewFinding] = []
         redesign_findings_raw: list[Any] = []
         if self.enable_redesign_audit:
-            stage3_result, stage3_findings, redesign_findings_raw = self._run_redesign_audit(
-                code_changes
-            )
+            stage3_result, stage3_findings, redesign_findings_raw = self._run_redesign_audit(code_changes)
             all_findings.extend(stage3_findings)
 
         blocking = [f for f in all_findings if f.is_critical()]
@@ -394,9 +386,7 @@ class TwoStageReviewGate:
             and stage3_result != StageResult.FAIL
         )
 
-        summary = self._build_summary(
-            stage1_result, stage2_result, stage3_result, all_findings, blocking
-        )
+        summary = self._build_summary(stage1_result, stage2_result, stage3_result, all_findings, blocking)
 
         result = TwoStageReviewResult(
             stage1_result=stage1_result,
@@ -495,9 +485,7 @@ class TwoStageReviewGate:
             self._redesign_auditor = RedesignAuditor()
         return self._redesign_auditor
 
-    def _run_redesign_audit(
-        self, code_changes: dict[str, Any]
-    ) -> tuple[StageResult, list[ReviewFinding], list[Any]]:
+    def _run_redesign_audit(self, code_changes: dict[str, Any]) -> tuple[StageResult, list[ReviewFinding], list[Any]]:
         """Run Stage 3: RedesignAuditor on the combined code.
 
         Concatenates all file contents from ``code_changes['files']``
@@ -541,9 +529,7 @@ class TwoStageReviewGate:
                 )
             )
 
-        stage_result = StageResult.FAIL if has_critical else (
-            StageResult.WARN if review_findings else StageResult.PASS
-        )
+        stage_result = StageResult.FAIL if has_critical else (StageResult.WARN if review_findings else StageResult.PASS)
         return stage_result, review_findings, raw_findings
 
     @staticmethod
@@ -693,10 +679,7 @@ class TwoStageReviewGate:
                 current = getattr(rf, "current", "")
                 suggested = getattr(rf, "suggested", "")
                 saving = getattr(rf, "saving_lines", 0)
-                lines.append(
-                    f"- **[{severity}/{category}]** {current} → {suggested}"
-                    f" (saves ~{saving} lines)"
-                )
+                lines.append(f"- **[{severity}/{category}]** {current} → {suggested} (saves ~{saving} lines)")
             lines.append("")
 
         lines.append("## Summary")

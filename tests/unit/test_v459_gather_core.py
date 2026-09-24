@@ -22,9 +22,7 @@ from scripts.collaboration.models import TaskDefinition, WorkerResult
 
 
 def _task(tid: str) -> TaskDefinition:
-    return TaskDefinition(
-        task_id=tid, description=f"task {tid}", role_id="architect", role_prompt="p"
-    )
+    return TaskDefinition(task_id=tid, description=f"task {tid}", role_id="architect", role_prompt="p")
 
 
 async def _ok(task: TaskDefinition) -> WorkerResult:
@@ -40,13 +38,9 @@ class TestGatherSemantics:
             # Later tasks finish first — order must still follow submission.
             delay = {"t1": 0.03, "t2": 0.02, "t3": 0.01}[task.task_id]
             await asyncio.sleep(delay)
-            return WorkerResult(
-                worker_id=f"w-{task.task_id}", task_id=task.task_id, success=True
-            )
+            return WorkerResult(worker_id=f"w-{task.task_id}", task_id=task.task_id, success=True)
 
-        results = await execute_batch_gather(
-            [_task("t1"), _task("t2"), _task("t3")], run_one, 3
-        )
+        results = await execute_batch_gather([_task("t1"), _task("t2"), _task("t3")], run_one, 3)
         assert [r.task_id for r in results] == ["t1", "t2", "t3"]
 
     @pytest.mark.asyncio
@@ -84,13 +78,9 @@ class TestGatherFaultTolerance:
                     raise RuntimeError("boom")
                 return await _ok(task)
             except Exception as e:
-                return WorkerResult(
-                    worker_id="unknown", task_id=task.task_id, success=False, error=str(e)
-                )
+                return WorkerResult(worker_id="unknown", task_id=task.task_id, success=False, error=str(e))
 
-        results = await execute_batch_gather(
-            [_task("t1"), _task("t2"), _task("t3")], run_one, 3
-        )
+        results = await execute_batch_gather([_task("t1"), _task("t2"), _task("t3")], run_one, 3)
         assert len(results) == 3
         by_id = {r.task_id: r for r in results}
         assert by_id["t1"].success is True
@@ -108,13 +98,9 @@ class TestGatherFaultTolerance:
                     raise RuntimeError("mid failure")
                 return await _ok(task)
             except Exception as e:
-                return WorkerResult(
-                    worker_id="unknown", task_id=task.task_id, success=False, error=str(e)
-                )
+                return WorkerResult(worker_id="unknown", task_id=task.task_id, success=False, error=str(e))
 
-        results = await execute_batch_gather(
-            [_task("t1"), _task("t2"), _task("t3")], run_one, 3
-        )
+        results = await execute_batch_gather([_task("t1"), _task("t2"), _task("t3")], run_one, 3)
         assert [r.task_id for r in results] == ["t1", "t2", "t3"]
 
     @pytest.mark.asyncio
@@ -123,9 +109,7 @@ class TestGatherFaultTolerance:
             try:
                 raise ValueError("always fails")
             except Exception as e:
-                return WorkerResult(
-                    worker_id="unknown", task_id=task.task_id, success=False, error=str(e)
-                )
+                return WorkerResult(worker_id="unknown", task_id=task.task_id, success=False, error=str(e))
 
         results = await execute_batch_gather([_task("x"), _task("y")], run_one, 2)
         assert len(results) == 2
@@ -141,9 +125,7 @@ class TestGatherFaultTolerance:
                 raise RuntimeError("rogue boom")
             return await _ok(task)
 
-        results = await execute_batch_gather(
-            [_task("t1"), _task("t2"), _task("t3")], run_one, 3
-        )
+        results = await execute_batch_gather([_task("t1"), _task("t2"), _task("t3")], run_one, 3)
         assert len(results) == 3
         assert results[0].success is True
         assert results[2].success is True
@@ -162,9 +144,7 @@ class TestGatherFaultTolerance:
                 raise KeyboardInterrupt
             return await _ok(task)
 
-        results = await execute_batch_gather(
-            [_task("t1"), _task("t2"), _task("t3")], run_one, 3
-        )
+        results = await execute_batch_gather([_task("t1"), _task("t2"), _task("t3")], run_one, 3)
         assert len(results) == 3
         assert results[0].success is True
         assert results[2].success is True

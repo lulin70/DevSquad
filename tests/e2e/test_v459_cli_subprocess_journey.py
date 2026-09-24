@@ -6,6 +6,7 @@ actual executable entry point, argument parsing, exit codes, and JSON output.
 The explicit CLI async flag is a V4.5.10 item; it is not asserted here before
 that interface exists.
 """
+
 from __future__ import annotations
 
 import json

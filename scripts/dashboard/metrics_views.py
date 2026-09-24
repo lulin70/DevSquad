@@ -44,9 +44,7 @@ def render_metrics_overview(protocol_data: dict[str, Any] | None) -> None:
             )
 
         with col2:
-            delta_color: Literal["normal", "inverse"] = (
-                "normal" if completion_rate >= 50 else "inverse"
-            )
+            delta_color: Literal["normal", "inverse"] = "normal" if completion_rate >= 50 else "inverse"
             st.metric(
                 label="Completed",
                 value=f"{completed}",
@@ -180,12 +178,12 @@ def render_performance_panel() -> None:
 
 # Morandi color palette for charts (per user_profile: comfortable, not harsh)
 _MORANDI_CHART_COLORS: dict[str, str] = {
-    "primary": "#7B9EA8",      # Morandi blue-gray
-    "success": "#8FA886",      # Morandi sage
-    "warning": "#C9A87C",      # Morandi tan
-    "danger": "#B58484",       # Morandi rose
-    "info": "#9DB5C2",         # Morandi light blue
-    "neutral": "#B0B0B0",      # Morandi gray
+    "primary": "#7B9EA8",  # Morandi blue-gray
+    "success": "#8FA886",  # Morandi sage
+    "warning": "#C9A87C",  # Morandi tan
+    "danger": "#B58484",  # Morandi rose
+    "info": "#9DB5C2",  # Morandi light blue
+    "neutral": "#B0B0B0",  # Morandi gray
 }
 
 

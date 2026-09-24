@@ -267,12 +267,18 @@ class T2_CheckpointManager(unittest.TestCase):
     def test_07_list_checkpoints_filtered_by_task(self) -> None:
         """Verify: list_checkpoints filters by task_id."""
         self.manager.create_checkpoint_from_dispatch(
-            task_id="task-A", step_name="S1", agent_id="a",
-            completed_steps=["x"], remaining_steps=["y"],
+            task_id="task-A",
+            step_name="S1",
+            agent_id="a",
+            completed_steps=["x"],
+            remaining_steps=["y"],
         )
         self.manager.create_checkpoint_from_dispatch(
-            task_id="task-B", step_name="S1", agent_id="b",
-            completed_steps=["x"], remaining_steps=["y"],
+            task_id="task-B",
+            step_name="S1",
+            agent_id="b",
+            completed_steps=["x"],
+            remaining_steps=["y"],
         )
         task_a_cps = self.manager.list_checkpoints(task_id="task-A")
         self.assertEqual(len(task_a_cps), 1)
@@ -530,7 +536,10 @@ class T5_WorkflowIntegration(unittest.TestCase):
         assert handoff is not None
         self.assertEqual(handoff.from_agent, "product-manager")
         self.assertEqual(handoff.to_agent, "architect")
-        self.assertIn(instance.instance_id, [h.task_id for h in self.engine.checkpoint_manager.get_task_handoffs(instance.instance_id)])
+        self.assertIn(
+            instance.instance_id,
+            [h.task_id for h in self.engine.checkpoint_manager.get_task_handoffs(instance.instance_id)],
+        )
 
     def test_04_change_request_during_running_workflow(self) -> None:
         """Verify: submit_change_request returns affected (uncompleted) phases."""

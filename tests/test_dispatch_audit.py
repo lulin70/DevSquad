@@ -36,7 +36,6 @@ from tests.conftest import perf_ceiling_ms
 pytestmark = pytest.mark.unit
 
 
-
 class TestAuditEntryDataclass(unittest.TestCase):
     """Verify AuditEntry dataclass stores all fields."""
 
@@ -340,10 +339,7 @@ class TestDispatchAuditLoggerPerformance(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"1000 logs took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s "
-                f"(> 5ms per call)"
-            ),
+            (f"1000 logs took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s (> 5ms per call)"),
         )
 
     def test_verify_chain_fast_for_100_entries(self) -> None:
@@ -372,9 +368,7 @@ class TestDispatchAuditLoggerPerformance(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"verify_chain took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s"
-            ),
+            (f"verify_chain took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s"),
         )
 
 
@@ -509,11 +503,7 @@ class TestMarkdownExport(unittest.TestCase):
         # Act
         md = logger.export_markdown(limit=3)
         # Assert — count data rows (lines starting with "| " followed by a digit).
-        data_rows = [
-            line
-            for line in md.split("\n")
-            if line.startswith("| ") and len(line) > 2 and line[2].isdigit()
-        ]
+        data_rows = [line for line in md.split("\n") if line.startswith("| ") and len(line) > 2 and line[2].isdigit()]
         self.assertEqual(len(data_rows), 3)
         # Total entries in the header should still reflect the full chain.
         self.assertIn("**Total entries**: 5", md)

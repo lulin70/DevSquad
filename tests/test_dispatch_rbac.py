@@ -29,7 +29,6 @@ from tests.conftest import perf_ceiling_ms
 pytestmark = pytest.mark.unit
 
 
-
 @dataclass
 class MockAuthManager:
     """Mock AuthManager with a credentials dict (matches AuthManager API)."""
@@ -296,10 +295,7 @@ class TestDispatchRBACPerformance(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"1000 checks took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s "
-                f"(> 5ms per call)"
-            ),
+            (f"1000 checks took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s (> 5ms per call)"),
         )
 
 

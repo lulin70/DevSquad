@@ -57,9 +57,7 @@ class TestCCRStoreStoreRetrieve(unittest.TestCase):
     def test_store_with_metadata(self):
         """Verify: metadata is accepted without error (stored as JSON)."""
         with CCRStore(":memory:") as store:
-            trace_id = store.store(
-                "content", metadata={"source": "smart_crusher", "type": "json_array"}
-            )
+            trace_id = store.store("content", metadata={"source": "smart_crusher", "type": "json_array"})
             self.assertEqual(store.retrieve(trace_id), "content")
 
 

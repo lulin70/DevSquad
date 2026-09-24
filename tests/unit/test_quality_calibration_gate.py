@@ -49,8 +49,16 @@ class TestCalibrationGateHappyPath(unittest.TestCase):
         """Config: each of 4 outputs has 10 dimension scores (5 factor + 5 axis)."""
         result = run_calibration_gate()
         expected_dims = {
-            "completeness", "certainty", "specificity", "consistency", "model_quality",
-            "correctness", "readability", "architecture", "security", "performance",
+            "completeness",
+            "certainty",
+            "specificity",
+            "consistency",
+            "model_quality",
+            "correctness",
+            "readability",
+            "architecture",
+            "security",
+            "performance",
         }
         for output_id in _ORDERING:
             dims = result.scores.get(output_id, {})
@@ -123,8 +131,7 @@ class TestCalibrationGateErrorHandling(unittest.TestCase):
     def test_07_gate_fails_when_gap_insufficient(self) -> None:
         """Boundary: gold and filler identical -> gap=0 < threshold -> passed=False."""
         identical = (
-            "## Good design\n\nDetailed content with code.\n\n"
-            "```python\nx = 1\n```\n\nError handling with try/except."
+            "## Good design\n\nDetailed content with code.\n\n```python\nx = 1\n```\n\nError handling with try/except."
         )
         fd, tmp_path = tempfile.mkstemp(suffix=".json")
         try:

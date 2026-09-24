@@ -82,9 +82,7 @@ def _snapshot_dir_files(source: Path, dest: Path, pattern: str = "*") -> list[st
 
 def _write_meta(dest: Path, trace_no: int, result: dict[str, Any]) -> None:
     dest.mkdir(parents=True, exist_ok=True)
-    (dest / "result.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    (dest / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     status = result["status"]
     print(f"[trace {trace_no}] {TRACE_HELP[trace_no]}\n  -> status: {status}  dir: {dest}")
 
@@ -128,9 +126,13 @@ def _wait_with_raw_capture(
     if data is None:
         if parse_error is not None and raw_captured:
             return {
-                "success": False, "output": "", "error": parse_error,
-                "timeout": False, "request_id": request_id,
-                "raw_captured": True, "invalid_response": True,
+                "success": False,
+                "output": "",
+                "error": parse_error,
+                "timeout": False,
+                "request_id": request_id,
+                "raw_captured": True,
+                "invalid_response": True,
             }
         return {
             "success": False,
@@ -190,8 +192,12 @@ def _collect_round_trip(
 
 def trace_1(bridge: HostLLMBridgeV2, wait: int, capture_dir: Path | None = None) -> dict[str, Any]:
     result = _collect_round_trip(
-        bridge, "architect", "V4.5.13 trace 1: success round-trip",
-        "Design auth system. Reply with one line.", wait, capture_dir,
+        bridge,
+        "architect",
+        "V4.5.13 trace 1: success round-trip",
+        "Design auth system. Reply with one line.",
+        wait,
+        capture_dir,
     )
     result["checks"] = {
         "marker_7_fields": True,  # create_request publishes strict 7-field marker
@@ -201,21 +207,31 @@ def trace_1(bridge: HostLLMBridgeV2, wait: int, capture_dir: Path | None = None)
 
 
 def trace_2(bridge: HostLLMBridgeV2, wait: int, capture_dir: Path | None = None) -> dict[str, Any]:
-    arch = _collect_round_trip(bridge, "architect", "V4.5.13 trace 2a: architect subagent", "arch prompt", wait, capture_dir)
-    sec = _collect_round_trip(bridge, "security", "V4.5.13 trace 2b: security subagent", "sec prompt", wait, capture_dir)
+    arch = _collect_round_trip(
+        bridge, "architect", "V4.5.13 trace 2a: architect subagent", "arch prompt", wait, capture_dir
+    )
+    sec = _collect_round_trip(
+        bridge, "security", "V4.5.13 trace 2b: security subagent", "sec prompt", wait, capture_dir
+    )
     mapping = HostBridgeBackend.resolve_subagent_type("architect")
     mapping_sec = HostBridgeBackend.resolve_subagent_type("security")
     return {
         "status": (
-            "success" if (arch["status"] == "success" and sec["status"] == "success")
-            else ("invalid_response" if "invalid_response" in (arch["status"], sec["status"])
-                  else ("timeout" if "timeout" in (arch["status"], sec["status"]) else "fail"))
+            "success"
+            if (arch["status"] == "success" and sec["status"] == "success")
+            else (
+                "invalid_response"
+                if "invalid_response" in (arch["status"], sec["status"])
+                else ("timeout" if "timeout" in (arch["status"], sec["status"]) else "fail")
+            )
         ),
         "architect": arch,
         "security": sec,
         "expected_mapping": {"architect": mapping, "security": mapping_sec},
-        "checks": {"architect_maps_to_search": mapping == "search",
-                   "others_map_to_general": mapping_sec == "general_purpose_task"},
+        "checks": {
+            "architect_maps_to_search": mapping == "search",
+            "others_map_to_general": mapping_sec == "general_purpose_task",
+        },
     }
 
 
@@ -239,8 +255,7 @@ def trace_3(wait: int) -> dict[str, Any]:
         fuse_results = []
         for i in range(2):
             try:
-                backend.generate(f"fuse probe {i}", agent_type="architect",
-                                 task_description=f"trace3 probe {i}")
+                backend.generate(f"fuse probe {i}", agent_type="architect", task_description=f"trace3 probe {i}")
                 fuse_results.append("unexpected_success")
             except RuntimeError as exc:
                 fuse_results.append("timeout" if "timeout" in str(exc) else "fail")
@@ -266,7 +281,12 @@ def trace_4(bridge: HostLLMBridgeV2, wait: int, capture_dir: Path | None = None)
     v1_before = v1_marker.read_text(encoding="utf-8") if v1_marker.exists() else None
     v1_mtime_before = v1_marker.stat().st_mtime if v1_marker.exists() else None
     result = _collect_round_trip(
-        bridge, "architect", "V4.5.13 trace 4: cross-version isolation", "isolation prompt", wait, capture_dir,
+        bridge,
+        "architect",
+        "V4.5.13 trace 4: cross-version isolation",
+        "isolation prompt",
+        wait,
+        capture_dir,
     )
     v1_after = v1_marker.read_text(encoding="utf-8") if v1_marker.exists() else None
     v1_mtime_after = v1_marker.stat().st_mtime if v1_marker.exists() else None
@@ -283,8 +303,10 @@ def trace_5(bridge: HostLLMBridgeV2) -> dict[str, Any]:
     before = sorted(p.name for p in bridge.bridge_dir.iterdir()) if bridge.bridge_dir.is_dir() else []
     try:
         bridge.create_request(
-            agent_type="architect", task="V4.5.13 trace 5: resource bound",
-            context={}, prompt=oversized,
+            agent_type="architect",
+            task="V4.5.13 trace 5: resource bound",
+            context={},
+            prompt=oversized,
         )
         status, error = "fail", "oversized prompt was NOT rejected"
     except Exception as exc:  # noqa: BLE001 — expect ResourceLimitError
@@ -305,8 +327,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="V4.5.13 TRAE IDE trace collector")
     parser.add_argument("--trace", type=int, choices=sorted(TRACE_HELP), help="collect one trace")
     parser.add_argument("--all", action="store_true", help="collect traces 1-5")
-    parser.add_argument("--wait-seconds", type=int, default=20,
-                        help="response wait timeout per request (default 20)")
+    parser.add_argument("--wait-seconds", type=int, default=20, help="response wait timeout per request (default 20)")
     parser.add_argument("--dry-run", action="store_true", help="print plan, write nothing")
     args = parser.parse_args(argv)
 
@@ -332,9 +353,14 @@ def main(argv: list[str] | None = None) -> int:
             result = trace_5(bridge)
         else:
             capture = dest  # raw response bytes captured here BEFORE parsing
-            result = trace_1(bridge, args.wait_seconds, capture) if n == 1 else (
-                trace_2(bridge, args.wait_seconds, capture) if n == 2
-                else trace_4(bridge, args.wait_seconds, capture)
+            result = (
+                trace_1(bridge, args.wait_seconds, capture)
+                if n == 1
+                else (
+                    trace_2(bridge, args.wait_seconds, capture)
+                    if n == 2
+                    else trace_4(bridge, args.wait_seconds, capture)
+                )
             )
             # Archive the raw v2 dir snapshot for request/response evidence.
             _snapshot_dir_files(DEFAULT_V2_DIR, dest / "v2_snapshot", "request_*.json")

@@ -174,11 +174,16 @@ def _create_backend(
     elif backend_type == "anthropic":
         api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
         if not api_key:
-            print("Error: ANTHROPIC_API_KEY or DEVSQUAD_ANTHROPIC_API_KEY environment variable not set.", file=sys.stderr)
+            print(
+                "Error: ANTHROPIC_API_KEY or DEVSQUAD_ANTHROPIC_API_KEY environment variable not set.", file=sys.stderr
+            )
             print('  export ANTHROPIC_API_KEY="sk-ant-..."', file=sys.stderr)
             return None
         kwargs["api_key"] = api_key
-        kwargs.setdefault("model", os.environ.get("ANTHROPIC_MODEL") or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"))
+        kwargs.setdefault(
+            "model",
+            os.environ.get("ANTHROPIC_MODEL") or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+        )
     return create_backend(backend_type, **kwargs)
 
 

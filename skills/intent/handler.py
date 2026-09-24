@@ -51,6 +51,7 @@ class IntentSkill(BaseSkill):
         >>> print(f"Confidence: {result['confidence']}")
         >>> print(f"Roles needed: {result['required_roles']}")
     """
+
     name = "intent"
     description = "Detect user intent from natural language and map to workflow chain (6 intents × 3 languages)"
 

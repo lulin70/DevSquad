@@ -64,11 +64,7 @@ class TestGradientText:
 
 class TestGlassmorphismOveruse:
     def test_detects_overuse(self):
-        css = (
-            ".a { backdrop-filter: blur(10px); }"
-            ".b { backdrop-filter: blur(8px); }"
-            ".c { backdrop-filter: blur(12px); }"
-        )
+        css = ".a { backdrop-filter: blur(10px); }.b { backdrop-filter: blur(8px); }.c { backdrop-filter: blur(12px); }"
         analyzer = UIUXAnalyzer()
         issues = analyzer._check_glassmorphism_overuse(css)
         assert len(issues) == 1
@@ -121,9 +117,7 @@ class TestOverusedFonts:
 
 class TestPurpleBlueGradient:
     def test_detects_purple_blue_gradient(self):
-        css = (
-            ".hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }"
-        )
+        css = ".hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }"
         analyzer = UIUXAnalyzer()
         issues = analyzer._check_purple_blue_gradient(css)
         assert len(issues) == 1

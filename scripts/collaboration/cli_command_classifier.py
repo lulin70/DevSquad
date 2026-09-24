@@ -267,13 +267,9 @@ class CLICommandClassifier:
             cmd = str(res["command"])
             alias = res.get("suggested_alias")
             if alias:
-                recs.append(
-                    f"Add impeccable alias '{alias}' for command '{cmd}' to improve vocabulary alignment."
-                )
+                recs.append(f"Add impeccable alias '{alias}' for command '{cmd}' to improve vocabulary alignment.")
             else:
-                recs.append(
-                    f"Command '{cmd}' has no direct impeccable synonym; consider documenting its category."
-                )
+                recs.append(f"Command '{cmd}' has no direct impeccable synonym; consider documenting its category.")
         if recs:
             recs.append(
                 "Do NOT rename canonical commands (backward compatibility). "
@@ -313,11 +309,7 @@ class CLICommandClassifier:
             if node.func.attr != "add_parser" or not node.args:
                 continue
             first = node.args[0]
-            if (
-                isinstance(first, ast.Constant)
-                and isinstance(first.value, str)
-                and first.value not in found
-            ):
+            if isinstance(first, ast.Constant) and isinstance(first.value, str) and first.value not in found:
                 found.append(first.value)
         return found
 
@@ -325,26 +317,18 @@ class CLICommandClassifier:
     def _extract_lifecycle_commands(utils_path: Path) -> list[str]:
         """Extract command names from the ``LIFECYCLE_COMMANDS`` list in cli_utils.py."""
         try:
-            utils_tree = ast.parse(
-                utils_path.read_text(encoding="utf-8"), filename=str(utils_path)
-            )
+            utils_tree = ast.parse(utils_path.read_text(encoding="utf-8"), filename=str(utils_path))
         except (OSError, SyntaxError):
             return []
         found: list[str] = []
         for node in ast.walk(utils_tree):
             if not isinstance(node, ast.Assign):
                 continue
-            if not any(
-                isinstance(t, ast.Name) and t.id == "LIFECYCLE_COMMANDS" for t in node.targets
-            ):
+            if not any(isinstance(t, ast.Name) and t.id == "LIFECYCLE_COMMANDS" for t in node.targets):
                 continue
             if not isinstance(node.value, ast.List):
                 continue
             for elt in node.value.elts:
-                if (
-                    isinstance(elt, ast.Constant)
-                    and isinstance(elt.value, str)
-                    and elt.value not in found
-                ):
+                if isinstance(elt, ast.Constant) and isinstance(elt.value, str) and elt.value not in found:
                     found.append(elt.value)
         return found

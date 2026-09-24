@@ -24,7 +24,6 @@ from scripts.collaboration.worker import Worker, WorkerFactory
 pytestmark = pytest.mark.unit
 
 
-
 class TestScratchpad:
     def setup_method(self):
         self.sp = Scratchpad()

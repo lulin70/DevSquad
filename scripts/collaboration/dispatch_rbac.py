@@ -34,6 +34,7 @@ Usage::
 
     # Integrated mode (with AuthManager)
     from scripts.auth import AuthManager
+
     auth = AuthManager(config_path="config/deployment.yaml")
     rbac = DispatchRBAC(auth_manager=auth)
     result = rbac.check_dispatch_permission("admin", ["coder"], "parallel")
@@ -187,10 +188,7 @@ class DispatchRBAC:
                     requested_roles=list(roles),
                     requested_mode=mode,
                 )
-            logger.warning(
-                "DispatchRBAC running in OPEN mode (no AuthManager configured) "
-                "— all operations allowed"
-            )
+            logger.warning("DispatchRBAC running in OPEN mode (no AuthManager configured) — all operations allowed")
             return PermissionResult(
                 allowed=True,
                 reason="No RBAC configured (open mode)",
@@ -229,10 +227,7 @@ class DispatchRBAC:
             if normalized_role not in allowed_roles:
                 return PermissionResult(
                     allowed=False,
-                    reason=(
-                        f"User '{user_id}' (role={user_role}) is not permitted "
-                        f"to dispatch with role '{role}'"
-                    ),
+                    reason=(f"User '{user_id}' (role={user_role}) is not permitted to dispatch with role '{role}'"),
                     user_id=user_id,
                     requested_roles=list(roles),
                     requested_mode=mode,
@@ -242,10 +237,7 @@ class DispatchRBAC:
         if mode not in allowed_modes:
             return PermissionResult(
                 allowed=False,
-                reason=(
-                    f"User '{user_id}' (role={user_role}) is not permitted "
-                    f"to use dispatch mode '{mode}'"
-                ),
+                reason=(f"User '{user_id}' (role={user_role}) is not permitted to use dispatch mode '{mode}'"),
                 user_id=user_id,
                 requested_roles=list(roles),
                 requested_mode=mode,

@@ -92,13 +92,13 @@ class T1_MicroTaskPlannerDispatcherIntegration(unittest.TestCase):
     def tearDown(self) -> None:
         self.disp.shutdown()
         import shutil
+
         shutil.rmtree(self._work_dir, ignore_errors=True)
 
     def test_01_dispatch_without_use_micro_tasks_has_no_plan(self) -> None:
         """Verify: dispatch() without use_micro_tasks leaves micro_task_plan=None."""
         result = self.disp.dispatch("Design a user authentication system")
-        self.assertIsNone(result.micro_task_plan,
-                          "use_micro_tasks=False must not populate micro_task_plan")
+        self.assertIsNone(result.micro_task_plan, "use_micro_tasks=False must not populate micro_task_plan")
 
     def test_02_dispatch_with_use_micro_tasks_populates_plan(self) -> None:
         """Verify: dispatch(use_micro_tasks=True) populates micro_task_plan dict."""
@@ -107,8 +107,7 @@ class T1_MicroTaskPlannerDispatcherIntegration(unittest.TestCase):
             use_micro_tasks=True,
             files=["src/auth.py", "tests/test_auth.py"],
         )
-        self.assertIsNotNone(result.micro_task_plan,
-                             "use_micro_tasks=True must populate micro_task_plan")
+        self.assertIsNotNone(result.micro_task_plan, "use_micro_tasks=True must populate micro_task_plan")
         self.assertIsInstance(result.micro_task_plan, dict)
         self.assertIn("micro_tasks", result.micro_task_plan)
         self.assertGreater(len(result.micro_task_plan["micro_tasks"]), 0)
@@ -124,8 +123,7 @@ class T1_MicroTaskPlannerDispatcherIntegration(unittest.TestCase):
         self.assertIsNotNone(plan)
         file_lists = [mt["file_paths"] for mt in plan["micro_tasks"]]
         flat_files = [f for sublist in file_lists for f in sublist]
-        self.assertIn("src/payment.py", flat_files,
-                      "files= spec must reach the planner")
+        self.assertIn("src/payment.py", flat_files, "files= spec must reach the planner")
 
     def test_04_decompose_task_direct_method(self) -> None:
         """Verify: dispatcher.decompose_task() delegates to planner.plan()."""
@@ -147,11 +145,11 @@ class T1_MicroTaskPlannerDispatcherIntegration(unittest.TestCase):
                 use_micro_tasks=True,
                 files=["src/foo.py"],
             )
-            self.assertIsNone(result.micro_task_plan,
-                              "No planner configured → micro_task_plan must stay None")
+            self.assertIsNone(result.micro_task_plan, "No planner configured → micro_task_plan must stay None")
             disp.shutdown()
         finally:
             import shutil
+
             shutil.rmtree(work_dir, ignore_errors=True)
 
 
@@ -212,9 +210,7 @@ class T2_DecompositionStrategiesIntegration(unittest.TestCase):
 
     def test_04_sentence_based_decomposition_fallback(self) -> None:
         """Verify: no files/functions → heuristic sentence split."""
-        plan = self.planner.plan(
-            "Do thing one. Do thing two! Do thing three?"
-        )
+        plan = self.planner.plan("Do thing one. Do thing two! Do thing three?")
         self.assertGreaterEqual(len(plan.micro_tasks), 3)
         # Each task is bounded by min_duration_minutes
         for mt in plan.micro_tasks:
@@ -227,8 +223,7 @@ class T2_DecompositionStrategiesIntegration(unittest.TestCase):
             spec={"files": ["src/foo.py"], "tests": ["tests/test_foo.py"]},
         )
         impl_task = next(mt for mt in plan.micro_tasks if "src/foo.py" in mt.file_paths)
-        self.assertIn("pytest", impl_task.verification_cmd,
-                      "Matching test file should produce pytest verification cmd")
+        self.assertIn("pytest", impl_task.verification_cmd, "Matching test file should produce pytest verification cmd")
 
 
 # ---------------------------------------------------------------------------
@@ -265,8 +260,7 @@ class T3_DAGExecutionFlowIntegration(unittest.TestCase):
         self.assertEqual(first.result, "done")
         # Next batch should now be ready
         second_batch = self.planner.get_next_ready(self.plan)
-        self.assertGreater(len(second_batch), 0,
-                           "Completing first task should unlock dependents")
+        self.assertGreater(len(second_batch), 0, "Completing first task should unlock dependents")
 
     def test_03_mark_failed_records_error(self) -> None:
         """Verify: mark_failed sets FAILED status with error message."""
@@ -296,11 +290,9 @@ class T3_DAGExecutionFlowIntegration(unittest.TestCase):
             for mt in ready:
                 self.planner.mark_completed(self.plan, mt.id, f"done-{mt.id}")
                 completed += 1
-        self.assertEqual(completed, len(self.plan.micro_tasks),
-                         "All planned micro-tasks should be completable")
+        self.assertEqual(completed, len(self.plan.micro_tasks), "All planned micro-tasks should be completable")
         # After full drain, no PLANNED tasks remain
-        remaining_planned = [mt for mt in self.plan.micro_tasks
-                             if mt.status == MicroTaskStatus.PLANNED]
+        remaining_planned = [mt for mt in self.plan.micro_tasks if mt.status == MicroTaskStatus.PLANNED]
         self.assertEqual(remaining_planned, [])
 
 
@@ -335,8 +327,9 @@ class T4_YagniCheckerIntegration(unittest.TestCase):
             spec={"files": ["src/a.py", "src/b.py"]},
         )
         skipped = [mt for mt in plan.micro_tasks if mt.status == MicroTaskStatus.SKIPPED]
-        self.assertEqual(len(skipped), len(plan.micro_tasks),
-                         "All tasks should be marked SKIPPED when checker returns SKIP")
+        self.assertEqual(
+            len(skipped), len(plan.micro_tasks), "All tasks should be marked SKIPPED when checker returns SKIP"
+        )
 
     def test_03_skipped_tasks_count_as_satisfied_dependencies(self) -> None:
         """Verify: get_next_ready treats SKIPPED deps as satisfied (V3.9-03)."""
@@ -348,8 +341,7 @@ class T4_YagniCheckerIntegration(unittest.TestCase):
         # Both tasks skipped — none should be returned by get_next_ready
         # (only PLANNED tasks are returned, not SKIPPED).
         ready = self.planner.get_next_ready(plan)
-        self.assertEqual(ready, [],
-                         "Skipped tasks are not PLANNED — should not be returned")
+        self.assertEqual(ready, [], "Skipped tasks are not PLANNED — should not be returned")
 
     def test_04_yagni_checker_exception_is_swallowed(self) -> None:
         """Verify: YagniChecker raising → planner logs warning, continues."""
@@ -438,8 +430,7 @@ class T6_TopologicalSortAndCyclesIntegration(unittest.TestCase):
         t2 = MicroTask(id="t2", title="t2", description="", dependencies=["t1"])
         ordered = self.planner.order_by_dependencies([t2, t1, t0])
         ids = [mt.id for mt in ordered]
-        self.assertEqual(ids, ["t0", "t1", "t2"],
-                         "Topological sort should put t0 → t1 → t2 in order")
+        self.assertEqual(ids, ["t0", "t1", "t2"], "Topological sort should put t0 → t1 → t2 in order")
 
     def test_02_cycle_detection_returns_original_order(self) -> None:
         """Verify: cycle → order_by_dependencies preserves input order + logs warning."""
@@ -455,28 +446,27 @@ class T6_TopologicalSortAndCyclesIntegration(unittest.TestCase):
         plan = MicroTaskPlan(
             task_id="t-parent",
             micro_tasks=[
-                MicroTask(id="t0", title="t0", description="", verification_cmd="echo ok",
-                          dependencies=["nonexistent"]),
+                MicroTask(
+                    id="t0", title="t0", description="", verification_cmd="echo ok", dependencies=["nonexistent"]
+                ),
             ],
         )
         errors = self.planner._validate_plan_detailed(plan)
-        self.assertTrue(any("non-existent task id=nonexistent" in e for e in errors),
-                        f"Expected missing-dep error, got: {errors}")
+        self.assertTrue(
+            any("non-existent task id=nonexistent" in e for e in errors), f"Expected missing-dep error, got: {errors}"
+        )
 
     def test_04_cycle_detected_by_validate_plan(self) -> None:
         """Verify: _validate_plan_detailed flags a cycle."""
         plan = MicroTaskPlan(
             task_id="t-parent",
             micro_tasks=[
-                MicroTask(id="t0", title="t0", description="", verification_cmd="echo",
-                          dependencies=["t1"]),
-                MicroTask(id="t1", title="t1", description="", verification_cmd="echo",
-                          dependencies=["t0"]),
+                MicroTask(id="t0", title="t0", description="", verification_cmd="echo", dependencies=["t1"]),
+                MicroTask(id="t1", title="t1", description="", verification_cmd="echo", dependencies=["t0"]),
             ],
         )
         errors = self.planner._validate_plan_detailed(plan)
-        self.assertTrue(any("cycle" in e.lower() for e in errors),
-                        f"Expected cycle error, got: {errors}")
+        self.assertTrue(any("cycle" in e.lower() for e in errors), f"Expected cycle error, got: {errors}")
 
 
 # ---------------------------------------------------------------------------
@@ -539,11 +529,11 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
                 files=["src/foo.py"],
             )
             # _maybe_decompose_task swallows the exception → plan stays None
-            self.assertIsNone(result.micro_task_plan,
-                              "Planner failure should degrade to None, not crash")
+            self.assertIsNone(result.micro_task_plan, "Planner failure should degrade to None, not crash")
             disp.shutdown()
         finally:
             import shutil
+
             shutil.rmtree(work_dir, ignore_errors=True)
 
 

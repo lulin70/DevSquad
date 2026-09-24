@@ -48,8 +48,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         text = "eyJabcdefgh.ijklmnopqr.stuvwxyz12"
         result = validator.validate(text)
         jwt_findings = [
-            f for f in result.findings
-            if f.category == "base64_encoded_leak" and f.pattern_name == "base64_jwt_token"
+            f for f in result.findings if f.category == "base64_encoded_leak" and f.pattern_name == "base64_jwt_token"
         ]
         self.assertGreaterEqual(len(jwt_findings), 1)
         self.assertEqual(jwt_findings[0].severity, "high")
@@ -60,8 +59,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         text = "\u0430dmin"  # Cyrillic a + Latin "dmin"
         result = validator.validate(text)
         findings = [
-            f for f in result.findings
-            if f.category == "unicode_homoglyph" and f.pattern_name == "homoglyph_cyrillic_a"
+            f for f in result.findings if f.category == "unicode_homoglyph" and f.pattern_name == "homoglyph_cyrillic_a"
         ]
         self.assertGreaterEqual(len(findings), 1)
         self.assertEqual(findings[0].severity, "medium")
@@ -72,8 +70,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         text = "l\u043egin"  # Cyrillic o in "login"
         result = validator.validate(text)
         findings = [
-            f for f in result.findings
-            if f.category == "unicode_homoglyph" and f.pattern_name == "homoglyph_cyrillic_o"
+            f for f in result.findings if f.category == "unicode_homoglyph" and f.pattern_name == "homoglyph_cyrillic_o"
         ]
         self.assertGreaterEqual(len(findings), 1)
 
@@ -83,8 +80,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         text = "l\u03bfgin"  # Greek o in "login"
         result = validator.validate(text)
         findings = [
-            f for f in result.findings
-            if f.category == "unicode_homoglyph" and f.pattern_name == "homoglyph_greek_o"
+            f for f in result.findings if f.category == "unicode_homoglyph" and f.pattern_name == "homoglyph_greek_o"
         ]
         self.assertGreaterEqual(len(findings), 1)
 
@@ -97,9 +93,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         validator = OutputValidator()
         text = "data=dGVzdA== short"
         result = validator.validate(text)
-        base64_findings = [
-            f for f in result.findings if f.category == "base64_encoded_leak"
-        ]
+        base64_findings = [f for f in result.findings if f.category == "base64_encoded_leak"]
         self.assertEqual(len(base64_findings), 0)
 
     def test_base64_exactly_64_chars_detected(self) -> None:
@@ -111,9 +105,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         validator = OutputValidator()
         text = "B" * 64
         result = validator.validate(text)
-        base64_findings = [
-            f for f in result.findings if f.category == "base64_encoded_leak"
-        ]
+        base64_findings = [f for f in result.findings if f.category == "base64_encoded_leak"]
         self.assertGreaterEqual(len(base64_findings), 1)
         self.assertEqual(base64_findings[0].severity, "medium")
         self.assertEqual(base64_findings[0].pattern_name, "base64_long_blob")
@@ -132,9 +124,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         # 65 'A' chars: regex matches {64,} but decode fails (65 mod 4 = 1)
         text = "A" * 65
         result = validator.validate(text)
-        base64_findings = [
-            f for f in result.findings if f.category == "base64_encoded_leak"
-        ]
+        base64_findings = [f for f in result.findings if f.category == "base64_encoded_leak"]
         self.assertGreaterEqual(len(base64_findings), 1)
         # Decode failure -> no escalation -> stays medium
         self.assertEqual(base64_findings[0].severity, "medium")
@@ -172,12 +162,8 @@ class TestOutputValidatorV431(unittest.TestCase):
         base64_part = "A" * 80
         text = f"config={base64_part} user=\u0430dmin"
         result = validator.validate(text)
-        base64_findings = [
-            f for f in result.findings if f.category == "base64_encoded_leak"
-        ]
-        homoglyph_findings = [
-            f for f in result.findings if f.category == "unicode_homoglyph"
-        ]
+        base64_findings = [f for f in result.findings if f.category == "base64_encoded_leak"]
+        homoglyph_findings = [f for f in result.findings if f.category == "unicode_homoglyph"]
         self.assertGreaterEqual(len(base64_findings), 1)
         self.assertGreaterEqual(len(homoglyph_findings), 1)
 
@@ -192,14 +178,10 @@ class TestOutputValidatorV431(unittest.TestCase):
         Decoded content contains "password=" -> severity escalates to high.
         """
         validator = OutputValidator()
-        encoded = base64_module.b64encode(
-            b"password=secret" + b"0" * 39
-        ).decode("ascii")
+        encoded = base64_module.b64encode(b"password=secret" + b"0" * 39).decode("ascii")
         text = f"data={encoded}"
         result = validator.validate(text)
-        base64_findings = [
-            f for f in result.findings if f.category == "base64_encoded_leak"
-        ]
+        base64_findings = [f for f in result.findings if f.category == "base64_encoded_leak"]
         self.assertGreaterEqual(len(base64_findings), 1)
         high_findings = [f for f in base64_findings if f.severity == "high"]
         self.assertGreaterEqual(len(high_findings), 1)
@@ -239,10 +221,7 @@ class TestOutputValidatorV431(unittest.TestCase):
         self.assertLess(
             elapsed,
             ceiling_s,
-            (
-                f"validate() took {elapsed:.4f}s, expected < {ceiling_s:.4f}s "
-                f"(host factor {env_perf_factor():.2f}x)"
-            ),
+            (f"validate() took {elapsed:.4f}s, expected < {ceiling_s:.4f}s (host factor {env_perf_factor():.2f}x)"),
         )
         # Should have no findings (clean text)
         self.assertEqual(len(result.findings), 0)

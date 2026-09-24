@@ -144,7 +144,9 @@ class ResultAssembler:
             "intent_type": intent_match.intent_type,
             "workflow_chain": list(intent_match.workflow_chain),
             "confidence": intent_match.confidence,
-            "suggested_next_steps": list(intent_match.suggested_next_steps) if hasattr(intent_match, 'suggested_next_steps') else [],
+            "suggested_next_steps": list(intent_match.suggested_next_steps)
+            if hasattr(intent_match, "suggested_next_steps")
+            else [],
         }
 
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
@@ -153,13 +155,33 @@ class ResultAssembler:
 
     @staticmethod
     def build_step_timings(
-        step1: float, step2: float, step3: float, step4: float, step5: float,
-        step6: float, step7: float, step8: float, step9: float, step10: float,
-        step11: float, step12: float,
+        step1: float,
+        step2: float,
+        step3: float,
+        step4: float,
+        step5: float,
+        step6: float,
+        step7: float,
+        step8: float,
+        step9: float,
+        step10: float,
+        step11: float,
+        step12: float,
     ) -> dict[str, float]:
         """Build step timings dict from absolute timestamps."""
-        names = ["analyze", "warmup", "plan", "spawn", "execute", "collect",
-                 "consensus", "compress", "permission", "memory", "skillify"]
+        names = [
+            "analyze",
+            "warmup",
+            "plan",
+            "spawn",
+            "execute",
+            "collect",
+            "consensus",
+            "compress",
+            "permission",
+            "memory",
+            "skillify",
+        ]
         times = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12]
         return {name: round(times[i + 1] - times[i], 3) for i, name in enumerate(names)}
 

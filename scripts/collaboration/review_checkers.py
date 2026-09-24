@@ -166,15 +166,9 @@ class ReviewCheckers:
         files = code_changes.get("files") or {}
         # Build a combined content blob from all files
         if isinstance(files, dict):
-            combined = "\n".join(
-                str(f.get("content", "")) if isinstance(f, dict) else str(f)
-                for f in files.values()
-            )
+            combined = "\n".join(str(f.get("content", "")) if isinstance(f, dict) else str(f) for f in files.values())
         else:
-            combined = "\n".join(
-                str(f.get("content", "")) if isinstance(f, dict) else str(f)
-                for f in files
-            )
+            combined = "\n".join(str(f.get("content", "")) if isinstance(f, dict) else str(f) for f in files)
         # Also include worker outputs (legacy)
         outputs = code_changes.get("outputs") or ""
         combined = f"{combined}\n{outputs}"
@@ -182,9 +176,7 @@ class ReviewCheckers:
         findings: list[ReviewFinding] = []
         for fn_name in planned_fns:
             # Match `def fn_name(` or `class FnName` or `async def fn_name(`
-            pattern = re.compile(
-                rf"\b(?:async\s+def|def|class)\s+{re.escape(fn_name)}\s*[\(:]"
-            )
+            pattern = re.compile(rf"\b(?:async\s+def|def|class)\s+{re.escape(fn_name)}\s*[\(:]")
             if not pattern.search(combined):
                 severity = "critical" if self.strict_mode else "warning"
                 findings.append(
@@ -192,9 +184,7 @@ class ReviewCheckers:
                         stage=ReviewStage.SPEC_COMPLIANCE,
                         severity=severity,
                         category="missing_function",
-                        description=(
-                            f"Planned function/class not found in code changes: {fn_name}"
-                        ),
+                        description=(f"Planned function/class not found in code changes: {fn_name}"),
                         suggestion=f"Implement `{fn_name}` as specified in the plan.",
                     )
                 )
@@ -250,9 +240,7 @@ class ReviewCheckers:
         if not required_roles:
             return []
         worker_results = code_changes.get("worker_results") or []
-        present_roles = {
-            wr.get("role_id") for wr in worker_results if wr.get("role_id")
-        }
+        present_roles = {wr.get("role_id") for wr in worker_results if wr.get("role_id")}
         findings: list[ReviewFinding] = []
         for role in required_roles:
             if role not in present_roles:
@@ -279,15 +267,9 @@ class ReviewCheckers:
         # Build combined output text
         files = code_changes.get("files") or {}
         if isinstance(files, dict):
-            combined = " ".join(
-                str(f.get("content", "")) if isinstance(f, dict) else str(f)
-                for f in files.values()
-            )
+            combined = " ".join(str(f.get("content", "")) if isinstance(f, dict) else str(f) for f in files.values())
         else:
-            combined = " ".join(
-                str(f.get("content", "")) if isinstance(f, dict) else str(f)
-                for f in files
-            )
+            combined = " ".join(str(f.get("content", "")) if isinstance(f, dict) else str(f) for f in files)
         outputs = code_changes.get("outputs") or ""
         combined = f"{combined} {outputs}".lower()
 
@@ -300,9 +282,7 @@ class ReviewCheckers:
                         stage=ReviewStage.SPEC_COMPLIANCE,
                         severity="warning",  # criteria match is heuristic
                         category="acceptance_criteria_not_evident",
-                        description=(
-                            f"Acceptance criterion not evident in outputs: {criterion}"
-                        ),
+                        description=(f"Acceptance criterion not evident in outputs: {criterion}"),
                         suggestion=f"Verify the implementation satisfies: {criterion}",
                     )
                 )
@@ -331,9 +311,7 @@ class ReviewCheckers:
             return StageResult.WARN, findings
         return StageResult.PASS, findings
 
-    def _iter_file_contents(
-        self, code_changes: dict[str, Any]
-    ) -> list[tuple[str, str]]:
+    def _iter_file_contents(self, code_changes: dict[str, Any]) -> list[tuple[str, str]]:
         """Yield (file_path, content) tuples from code_changes."""
         files = code_changes.get("files") or {}
         result: list[tuple[str, str]] = []
@@ -354,9 +332,7 @@ class ReviewCheckers:
                     result.append((path, str(content)))
         return result
 
-    def _check_security(
-        self, code_changes: dict[str, Any]
-    ) -> list[ReviewFinding]:
+    def _check_security(self, code_changes: dict[str, Any]) -> list[ReviewFinding]:
         """Basic security checks: hardcoded secrets, SQL injection patterns."""
         findings: list[ReviewFinding] = []
         for file_path, content in self._iter_file_contents(code_changes):
@@ -368,10 +344,7 @@ class ReviewCheckers:
                             stage=ReviewStage.CODE_QUALITY,
                             severity="critical",
                             category=f"security_{name}",
-                            description=(
-                                f"Potential {name} detected {len(matches)} time(s) "
-                                f"in {file_path}"
-                            ),
+                            description=(f"Potential {name} detected {len(matches)} time(s) in {file_path}"),
                             file_path=file_path,
                             suggestion="Move secrets to environment variables or a secret manager.",
                         )
@@ -384,19 +357,14 @@ class ReviewCheckers:
                             stage=ReviewStage.CODE_QUALITY,
                             severity="critical",
                             category=f"security_{name}",
-                            description=(
-                                f"Potential {name} detected {len(matches)} time(s) "
-                                f"in {file_path}"
-                            ),
+                            description=(f"Potential {name} detected {len(matches)} time(s) in {file_path}"),
                             file_path=file_path,
                             suggestion="Use parameterized queries instead of string formatting.",
                         )
                     )
         return findings
 
-    def _check_error_handling(
-        self, code_changes: dict[str, Any]
-    ) -> list[ReviewFinding]:
+    def _check_error_handling(self, code_changes: dict[str, Any]) -> list[ReviewFinding]:
         """Check for bare except, missing error handling."""
         findings: list[ReviewFinding] = []
         for file_path, content in self._iter_file_contents(code_changes):
@@ -409,10 +377,7 @@ class ReviewCheckers:
                         stage=ReviewStage.CODE_QUALITY,
                         severity="warning",
                         category="bare_except",
-                        description=(
-                            f"Bare except clause detected {len(matches)} time(s) "
-                            f"in {file_path}"
-                        ),
+                        description=(f"Bare except clause detected {len(matches)} time(s) in {file_path}"),
                         file_path=file_path,
                         suggestion="Catch specific exceptions instead of bare `except:`.",
                     )
@@ -429,19 +394,14 @@ class ReviewCheckers:
                             stage=ReviewStage.CODE_QUALITY,
                             severity="critical",
                             category=f"anti_pattern_{name}",
-                            description=(
-                                f"Anti-pattern '{name}' detected {len(matches)} time(s) "
-                                f"in {file_path}"
-                            ),
+                            description=(f"Anti-pattern '{name}' detected {len(matches)} time(s) in {file_path}"),
                             file_path=file_path,
                             suggestion=f"Avoid {name} — it is a security risk.",
                         )
                     )
         return findings
 
-    def _check_test_coverage(
-        self, code_changes: dict[str, Any]
-    ) -> list[ReviewFinding]:
+    def _check_test_coverage(self, code_changes: dict[str, Any]) -> list[ReviewFinding]:
         """Check if new code has corresponding tests."""
         findings: list[ReviewFinding] = []
         files = code_changes.get("files") or {}
@@ -454,9 +414,7 @@ class ReviewCheckers:
         has_any_test = len(test_files) > 0
         combined_test_content = "\n".join(c for _, c in test_files).lower()
         for path, content in code_files:
-            finding = self._check_single_file_coverage(
-                path, content, has_any_test, combined_test_content
-            )
+            finding = self._check_single_file_coverage(path, content, has_any_test, combined_test_content)
             if finding is not None:
                 findings.append(finding)
         return findings
@@ -471,10 +429,7 @@ class ReviewCheckers:
         if isinstance(files, dict):
             items: Iterable[tuple[str, Any]] = files.items()
         else:
-            items = (
-                (f.get("path", "<unknown>"), f) if isinstance(f, dict) else ("<unknown>", f)
-                for f in files
-            )
+            items = ((f.get("path", "<unknown>"), f) if isinstance(f, dict) else ("<unknown>", f) for f in files)
         for path, info in items:
             content = info.get("content", "") if isinstance(info, dict) else str(info)
             if not content:
@@ -501,8 +456,7 @@ class ReviewCheckers:
         if not has_code:
             return None
         has_test_keywords = any(
-            kw in content.lower()
-            for kw in ("test", "spec", "assert", "pytest", "unittest", "describe(")
+            kw in content.lower() for kw in ("test", "spec", "assert", "pytest", "unittest", "describe(")
         )
         if has_test_keywords:
             return None  # Inline tests present
@@ -511,9 +465,7 @@ class ReviewCheckers:
                 stage=ReviewStage.CODE_QUALITY,
                 severity="critical",
                 category="missing_test",
-                description=(
-                    f"Code changes in {path} have no corresponding test files"
-                ),
+                description=(f"Code changes in {path} have no corresponding test files"),
                 file_path=path,
                 suggestion="Add a test file covering the new code paths.",
             )
@@ -527,18 +479,13 @@ class ReviewCheckers:
                 stage=ReviewStage.CODE_QUALITY,
                 severity="warning",
                 category="test_coverage_gap",
-                description=(
-                    f"Test files exist but do not appear to reference "
-                    f"module '{module_name}' ({path})"
-                ),
+                description=(f"Test files exist but do not appear to reference module '{module_name}' ({path})"),
                 file_path=path,
                 suggestion=f"Add tests that import and exercise {module_name}.",
             )
         return None
 
-    def _check_anti_patterns(
-        self, code_changes: dict[str, Any]
-    ) -> list[ReviewFinding]:
+    def _check_anti_patterns(self, code_changes: dict[str, Any]) -> list[ReviewFinding]:
         """Check for TODO/FIXME, print debugging, etc. (warnings)."""
         findings: list[ReviewFinding] = []
         for file_path, content in self._iter_file_contents(code_changes):
@@ -553,19 +500,14 @@ class ReviewCheckers:
                             stage=ReviewStage.CODE_QUALITY,
                             severity="warning",
                             category=f"anti_pattern_{name}",
-                            description=(
-                                f"Anti-pattern '{name}' detected {len(matches)} time(s) "
-                                f"in {file_path}"
-                            ),
+                            description=(f"Anti-pattern '{name}' detected {len(matches)} time(s) in {file_path}"),
                             file_path=file_path,
                             suggestion=f"Resolve the {name} anti-pattern before merge.",
                         )
                     )
         return findings
 
-    def _check_oversized_outputs(
-        self, code_changes: dict[str, Any]
-    ) -> list[ReviewFinding]:
+    def _check_oversized_outputs(self, code_changes: dict[str, Any]) -> list[ReviewFinding]:
         """Flag outputs exceeding 200 lines (warning)."""
         findings: list[ReviewFinding] = []
         for file_path, content in self._iter_file_contents(code_changes):
@@ -576,9 +518,7 @@ class ReviewCheckers:
                         stage=ReviewStage.CODE_QUALITY,
                         severity="warning",
                         category="oversized_output",
-                        description=(
-                            f"{file_path} is {line_count} lines (>200) — consider slicing"
-                        ),
+                        description=(f"{file_path} is {line_count} lines (>200) — consider slicing"),
                         file_path=file_path,
                         suggestion="Split large files into smaller, focused modules.",
                     )

@@ -102,9 +102,16 @@ def build_exposition_provider() -> Any:
         "version": 1,
         "register_id": "default",
         "items": [
-            {"id": "R-1", "description": "e2e", "probability": 0.5, "impact": 0.5,
-             "response_strategy": "accept", "owner": "architect", "status": "open",
-             "category": "general"},
+            {
+                "id": "R-1",
+                "description": "e2e",
+                "probability": 0.5,
+                "impact": 0.5,
+                "response_strategy": "accept",
+                "owner": "architect",
+                "status": "open",
+                "category": "general",
+            },
         ],
     }
     store.save("default", payload)
@@ -173,9 +180,7 @@ def query_series(base_url: str, query: str, timeout_s: float) -> list[dict[str, 
             with urllib.request.urlopen(url, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             if data.get("status") == "success":
-                result = cast(
-                    "list[dict[str, Any]]", data.get("data", {}).get("result", [])
-                )
+                result = cast("list[dict[str, Any]]", data.get("data", {}).get("result", []))
                 if result:
                     return result
                 last = result
@@ -191,9 +196,7 @@ def run_e2e() -> dict[str, Any]:
     if not binaries["prometheus"] or not binaries["promtool"]:
         return {
             "status": "tool_missing",
-            "error": (
-                "prometheus/promtool not found; install with: brew install prometheus"
-            ),
+            "error": ("prometheus/promtool not found; install with: brew install prometheus"),
             "binaries": binaries,
         }
 
@@ -214,7 +217,9 @@ def run_e2e() -> dict[str, Any]:
         # promtool: lint the exposition format itself (stdin)
         lint = subprocess.run(
             [binaries["promtool"], "check", "metrics"],
-            input=exposition, capture_output=True, timeout=30,
+            input=exposition,
+            capture_output=True,
+            timeout=30,
         )
         result["checks"]["promtool_check_metrics_rc"] = lint.returncode
         if lint.returncode != 0:
@@ -224,7 +229,8 @@ def run_e2e() -> dict[str, Any]:
         # promtool: validate the scrape config
         cfg = subprocess.run(
             [binaries["promtool"], "check", "config", str(config)],
-            capture_output=True, timeout=30,
+            capture_output=True,
+            timeout=30,
         )
         result["checks"]["promtool_check_config_rc"] = cfg.returncode
         if cfg.returncode != 0:
@@ -239,7 +245,8 @@ def run_e2e() -> dict[str, Any]:
                 f"--storage.tsdb.path={workdir / 'tsdb'}",
                 f"--web.listen-address=127.0.0.1:{listen_port}",
             ],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         base_url = f"http://127.0.0.1:{listen_port}"
         _wait_prometheus_ready(base_url, PROMETHEUS_START_TIMEOUT_S)
@@ -277,9 +284,7 @@ def main(argv: list[str] | None = None) -> int:
 
     result = run_e2e()
     args.evidence_dir.mkdir(parents=True, exist_ok=True)
-    (args.evidence_dir / "result.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    (args.evidence_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[prometheus-e2e] status: {result['status']}")
     if result["status"] != "pass":
         print(f"  error: {result.get('error', '')}")

@@ -29,7 +29,6 @@ from scripts.collaboration.permission_guard import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestPermissionLevelEnum:
     """权限级别枚举测试"""
 

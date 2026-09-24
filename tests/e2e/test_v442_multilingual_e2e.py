@@ -16,6 +16,7 @@ users call — and inspect the resulting worker state.
 Test plan reference: docs/prd/V4.4.2_PRD.md §3.3 (AC-2..AC-6) and §7
 (E2E user journey).
 """
+
 from __future__ import annotations
 
 import scripts.collaboration.models_dispatch as _md
@@ -104,8 +105,6 @@ def test_e2e_backward_compatible_default_lang() -> None:
         disp.dispatch("设计一个支付网关的架构", roles=["architect"])
         prompt = _first_worker_prompt(disp)
         # Default lang is "zh" → prompt must be the original Chinese prompt.
-        assert "架构师" in prompt, (
-            f"expected Chinese prompt for default lang, got: {prompt[:80]!r}"
-        )
+        assert "架构师" in prompt, f"expected Chinese prompt for default lang, got: {prompt[:80]!r}"
     finally:
         disp.shutdown()

@@ -105,12 +105,14 @@ class StubConsensusEngine:
                 self.status = "open"
 
         proposal = StubProposal(proposal_id, topic, proposer_id, content)
-        self.proposals.append({
-            "proposal_id": proposal_id,
-            "topic": topic,
-            "proposer_id": proposer_id,
-            "content": content,
-        })
+        self.proposals.append(
+            {
+                "proposal_id": proposal_id,
+                "topic": topic,
+                "proposer_id": proposer_id,
+                "content": content,
+            }
+        )
         self._votes[proposal_id] = []
         return proposal
 
@@ -468,20 +470,14 @@ class TestSmartConfirmation:
         # 自定义白名单覆盖默认
         assert confirmer.evaluate("my_op").verdict == ConfirmationVerdict.APPROVE
         # 默认白名单的 read 不再被批准
-        assert (
-            confirmer.evaluate("read config").verdict
-            == ConfirmationVerdict.REQUIRE_CONFIRMATION
-        )
+        assert confirmer.evaluate("read config").verdict == ConfirmationVerdict.REQUIRE_CONFIRMATION
 
     def test_custom_blacklist(self):
         confirmer = SmartConfirmation(
             mode=ConfirmationMode.BLACKLIST_ONLY,
             custom_blacklist={"dangerous_op"},
         )
-        assert (
-            confirmer.evaluate("dangerous_op").verdict
-            == ConfirmationVerdict.REQUIRE_CONFIRMATION
-        )
+        assert confirmer.evaluate("dangerous_op").verdict == ConfirmationVerdict.REQUIRE_CONFIRMATION
         # 默认黑名单的 delete 不再触发确认
         assert confirmer.evaluate("delete file").verdict == ConfirmationVerdict.APPROVE
 
@@ -524,11 +520,17 @@ def _init_real_git_repo(repo_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=str(repo_path), check=True, env=env, capture_output=True)
     subprocess.run(
         ["git", "config", "user.name", "Test"],
-        cwd=str(repo_path), check=True, env=env, capture_output=True,
+        cwd=str(repo_path),
+        check=True,
+        env=env,
+        capture_output=True,
     )
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
-        cwd=str(repo_path), check=True, env=env, capture_output=True,
+        cwd=str(repo_path),
+        check=True,
+        env=env,
+        capture_output=True,
     )
 
 
@@ -583,7 +585,10 @@ class TestGitDriver:
         # 验证提交确实发生
         log = subprocess.run(
             ["git", "log", "--oneline"],
-            cwd=str(tmp_path), capture_output=True, text=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            text=True,
+            check=True,
         )
         assert "test: add file" in log.stdout
 
@@ -602,7 +607,10 @@ class TestGitDriver:
         # 验证确实未提交
         log = subprocess.run(
             ["git", "log", "--oneline"],
-            cwd=str(tmp_path), capture_output=True, text=True, check=False,
+            cwd=str(tmp_path),
+            capture_output=True,
+            text=True,
+            check=False,
         )
         assert log.stdout == ""
 
@@ -612,11 +620,15 @@ class TestGitDriver:
         (tmp_path / "init.txt").write_text("init", encoding="utf-8")
         subprocess.run(
             ["git", "add", "init.txt"],
-            cwd=str(tmp_path), capture_output=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            check=True,
         )
         subprocess.run(
             ["git", "commit", "-m", "init"],
-            cwd=str(tmp_path), capture_output=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            check=True,
         )
 
         driver = GitDriver(repo_path=tmp_path, auto_confirm=True)
@@ -626,7 +638,10 @@ class TestGitDriver:
         # 验证当前分支
         branch = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=str(tmp_path), capture_output=True, text=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            text=True,
+            check=True,
         )
         assert branch.stdout.strip() == "feature-x"
 
@@ -644,7 +659,10 @@ class TestGitDriver:
         # 验证 tag 存在
         tags = subprocess.run(
             ["git", "tag", "-l"],
-            cwd=str(tmp_path), capture_output=True, text=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            text=True,
+            check=True,
         )
         assert "v1.0.0" in tags.stdout
 
@@ -788,12 +806,14 @@ class TestAutonomousLoopController:
 
         # 第一次运行：写入一个 PAUSED 状态
         memory = NotesMemory(storage_dir=str(notes_dir))
-        memory.save(RunState(
-            run_id="resumable",
-            objective="resume test",
-            status=RunStatus.PAUSED,
-            current_iteration=2,
-        ))
+        memory.save(
+            RunState(
+                run_id="resumable",
+                objective="resume test",
+                status=RunStatus.PAUSED,
+                current_iteration=2,
+            )
+        )
 
         # 第二次运行：auto_resume=True
         config = AutonomousConfig(
@@ -814,11 +834,13 @@ class TestAutonomousLoopController:
         """auto_resume=False 时即使有 PAUSED 状态也不恢复。"""
         notes_dir = tmp_path / "no-resume"
         memory = NotesMemory(storage_dir=str(notes_dir))
-        memory.save(RunState(
-            run_id="paused-but-no-resume",
-            objective="t",
-            status=RunStatus.PAUSED,
-        ))
+        memory.save(
+            RunState(
+                run_id="paused-but-no-resume",
+                objective="t",
+                status=RunStatus.PAUSED,
+            )
+        )
 
         config = AutonomousConfig(
             objective="t",
@@ -852,6 +874,7 @@ class TestAutonomousLoopController:
 
         # 构造一个 final_status="completed" 的 LoopRunReport
         from scripts.collaboration.loop_engineering import LoopRunReport
+
         completed_report = LoopRunReport(
             objective="consensus test",
             total_iterations=1,
@@ -1209,6 +1232,7 @@ class StubLLMBackend:
 def _make_completed_loop_report():
     """构造一个 final_status='completed' 的 LoopRunReport。"""
     from scripts.collaboration.loop_engineering import LoopRunReport
+
     return LoopRunReport(
         objective="llm voting test",
         total_iterations=3,
@@ -1498,6 +1522,7 @@ class TestDispatchAutonomousLLMWiring:
         assert backend is not None
         # 验证是 OpenAIBackend 实例（不调用 API，只验证类型）
         from scripts.collaboration.llm_backend import OpenAIBackend
+
         assert isinstance(backend, OpenAIBackend)
 
     def test_dispatch_autonomous_wires_llm_backend_from_env(self, monkeypatch: pytest.MonkeyPatch):
@@ -1539,6 +1564,7 @@ class TestDispatchAutonomousLLMWiring:
         # 核心断言：llm_backend 已装配（不是 None）
         assert config.llm_backend is not None
         from scripts.collaboration.llm_backend import OpenAIBackend
+
         assert isinstance(config.llm_backend, OpenAIBackend)
 
     def test_dispatch_autonomous_prefers_explicit_backend(self, monkeypatch: pytest.MonkeyPatch):

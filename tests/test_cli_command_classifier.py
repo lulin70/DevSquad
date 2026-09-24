@@ -254,9 +254,7 @@ class TestSuggestCommand:
         assert suggestions == []
 
     def test_suggestions_are_from_impeccable_vocabulary(self):
-        all_words = {
-            w for words in CLICommandClassifier.COMMAND_CATEGORIES.values() for w in words
-        }
+        all_words = {w for words in CLICommandClassifier.COMMAND_CATEGORIES.values() for w in words}
         suggestions = self.clf.suggest_command("I want to create and run something")
         for s in suggestions:
             assert s in all_words
@@ -278,9 +276,7 @@ class TestCommandCategoriesCardinality:
         assert total == 27  # 6 categories × 4 + 1 category × 3
 
     def test_no_duplicate_words_across_categories(self):
-        all_words = [
-            w for words in CLICommandClassifier.COMMAND_CATEGORIES.values() for w in words
-        ]
+        all_words = [w for words in CLICommandClassifier.COMMAND_CATEGORIES.values() for w in words]
         assert len(all_words) == len(set(all_words))
 
     def test_categories_match_expected_names(self):

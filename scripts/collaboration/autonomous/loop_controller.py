@@ -277,7 +277,9 @@ class AutonomousLoopController:
             record = self._config.consensus_engine.reach_consensus(proposal.proposal_id)
             logger.info(
                 "Consensus gate: outcome=%s, for=%d, against=%d",
-                record.outcome, record.votes_for, record.votes_against,
+                record.outcome,
+                record.votes_for,
+                record.votes_against,
             )
             return bool(record.outcome.value == "approved")
         except (AttributeError, RuntimeError, ValueError) as e:
@@ -390,7 +392,9 @@ class AutonomousLoopController:
             prompt = self._build_vote_prompt(role, role_def, loop_report)
             try:
                 response = self._config.llm_backend.generate(
-                    prompt, temperature=0.3, max_tokens=200,
+                    prompt,
+                    temperature=0.3,
+                    max_tokens=200,
                 )
                 vote = self._parse_llm_vote(response, role, role_def)
                 if vote is not None:

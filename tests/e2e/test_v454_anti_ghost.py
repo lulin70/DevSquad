@@ -51,9 +51,7 @@ class TestAntiGhostV454:
         """Dispatcher's _init_module_fibers creates all 3 P12.3 components."""
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-        d = MultiAgentDispatcher(
-            persist_dir="/tmp/test_v454_anti_ghost", development_mode=True
-        )
+        d = MultiAgentDispatcher(persist_dir="/tmp/test_v454_anti_ghost", development_mode=True)
         # 3 P12.3 modules must be wired
         assert d._module_fiber_registry is not None
         assert d._coeffect_resolver is not None
@@ -74,9 +72,7 @@ class TestAntiGhostV454:
             timeout=30,
         )
         # Gate must pass (exit 0)
-        assert result.returncode == 0, (
-            f"Anti-ghost gate failed:\n{result.stdout}\n{result.stderr}"
-        )
+        assert result.returncode == 0, f"Anti-ghost gate failed:\n{result.stdout}\n{result.stderr}"
 
     # ------------------------------------------------------------------
     # V4.5.13: 8 previously-scanned-but-unverified counters
@@ -292,6 +288,4 @@ class TestAntiGhostV454:
             text=True,
             timeout=30,
         )
-        assert fail_r.returncode == 1, (
-            f"fail-closed contract broken:\n{fail_r.stdout}\n{fail_r.stderr}"
-        )
+        assert fail_r.returncode == 1, f"fail-closed contract broken:\n{fail_r.stdout}\n{fail_r.stderr}"

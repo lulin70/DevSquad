@@ -104,18 +104,14 @@ class TestDevSquadConfigLoading:
         assert config.max_roles == 5
         assert config.log_level == "DEBUG"
 
-    def test_from_dict_preserves_nested_quality_control(
-        self, sample_yaml_dict: dict[str, Any]
-    ) -> None:
+    def test_from_dict_preserves_nested_quality_control(self, sample_yaml_dict: dict[str, Any]) -> None:
         """from_dict() preserves nested quality_control structure."""
         config = DevSquadConfig.from_dict(sample_yaml_dict)
         assert config.quality_control.enabled is True
         assert config.quality_control.strict_mode is False
         assert config.quality_control.min_quality_score == 90
 
-    def test_from_dict_preserves_deeply_nested_consensus(
-        self, sample_yaml_dict: dict[str, Any]
-    ) -> None:
+    def test_from_dict_preserves_deeply_nested_consensus(self, sample_yaml_dict: dict[str, Any]) -> None:
         """from_dict() preserves deeply nested consensus config."""
         config = DevSquadConfig.from_dict(sample_yaml_dict)
         consensus = config.quality_control.ai_team_collaboration.consensus
@@ -174,25 +170,19 @@ class TestDevSquadConfigLoading:
 class TestEnvOverrides:
     """Tests for environment variable overrides in from_dict()."""
 
-    def test_env_override_backend(
-        self, sample_yaml_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_env_override_backend(self, sample_yaml_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
         """DEVSQUAD_BACKEND overrides the backend flat key."""
         monkeypatch.setenv("DEVSQUAD_BACKEND", "anthropic")
         config = DevSquadConfig.from_dict(sample_yaml_dict)
         assert config.backend == "anthropic"
 
-    def test_env_override_timeout(
-        self, sample_yaml_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_env_override_timeout(self, sample_yaml_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
         """DEVSQUAD_TIMEOUT overrides the timeout flat key (int conversion)."""
         monkeypatch.setenv("DEVSQUAD_TIMEOUT", "30")
         config = DevSquadConfig.from_dict(sample_yaml_dict)
         assert config.timeout == 30
 
-    def test_env_override_max_roles(
-        self, sample_yaml_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_env_override_max_roles(self, sample_yaml_dict: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
         """DEVSQUAD_MAX_ROLES overrides max_roles (int conversion)."""
         monkeypatch.setenv("DEVSQUAD_MAX_ROLES", "3")
         config = DevSquadConfig.from_dict(sample_yaml_dict)
@@ -293,9 +283,7 @@ class TestConfigValidation:
     def test_min_quality_score_out_of_range_raises(self) -> None:
         """min_quality_score > 100 raises ValidationError."""
         with pytest.raises(ValidationError):
-            DevSquadConfig.from_dict(
-                {"quality_control": {"min_quality_score": 150}}
-            )
+            DevSquadConfig.from_dict({"quality_control": {"min_quality_score": 150}})
 
 
 # ---------------------------------------------------------------------------
@@ -353,12 +341,8 @@ class TestConfigDefaults:
         assert isinstance(config.quality_control, QualityControlConfig)
         assert isinstance(config.quality_control.ai_quality_control, AIQualityControlConfig)
         assert isinstance(config.quality_control.ai_security_guard, AISecurityGuardConfig)
-        assert isinstance(
-            config.quality_control.ai_team_collaboration, AITeamCollaborationConfig
-        )
-        assert isinstance(
-            config.quality_control.ai_team_collaboration.consensus, ConsensusConfig
-        )
+        assert isinstance(config.quality_control.ai_team_collaboration, AITeamCollaborationConfig)
+        assert isinstance(config.quality_control.ai_team_collaboration.consensus, ConsensusConfig)
         assert isinstance(config.timeout, int)
         assert isinstance(config.max_roles, int)
         assert isinstance(config.backend, str)

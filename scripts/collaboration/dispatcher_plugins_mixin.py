@@ -39,10 +39,7 @@ class DispatcherPluginsMixin(DispatcherBase):
             RuntimeError: plugins_enabled=False。
         """
         if not self.plugins_enabled or self.plugin_hot_loader is None:
-            raise RuntimeError(
-                "PluginHotLoader not enabled. "
-                "Initialize dispatcher with plugins_enabled=True."
-            )
+            raise RuntimeError("PluginHotLoader not enabled. Initialize dispatcher with plugins_enabled=True.")
         return bool(self.plugin_hot_loader.hot_register(name, plugin))
 
     def unregister_plugin(self, name: str) -> bool:
@@ -58,10 +55,7 @@ class DispatcherPluginsMixin(DispatcherBase):
             RuntimeError: plugins_enabled=False。
         """
         if not self.plugins_enabled or self.plugin_hot_loader is None:
-            raise RuntimeError(
-                "PluginHotLoader not enabled. "
-                "Initialize dispatcher with plugins_enabled=True."
-            )
+            raise RuntimeError("PluginHotLoader not enabled. Initialize dispatcher with plugins_enabled=True.")
         return bool(self.plugin_hot_loader.hot_unregister(name))
 
     def register_builtin_plugin(self, name: str, plugin: Any) -> bool:
@@ -78,10 +72,7 @@ class DispatcherPluginsMixin(DispatcherBase):
             RuntimeError: plugins_enabled=False。
         """
         if not self.plugins_enabled or self.plugin_hot_loader is None:
-            raise RuntimeError(
-                "PluginHotLoader not enabled. "
-                "Initialize dispatcher with plugins_enabled=True."
-            )
+            raise RuntimeError("PluginHotLoader not enabled. Initialize dispatcher with plugins_enabled=True.")
         return bool(self.plugin_hot_loader.register_builtin(name, plugin))
 
     def get_plugin(self, name: str) -> Any | None:
@@ -97,10 +88,7 @@ class DispatcherPluginsMixin(DispatcherBase):
             RuntimeError: plugins_enabled=False。
         """
         if not self.plugins_enabled or self.plugin_hot_loader is None:
-            raise RuntimeError(
-                "PluginHotLoader not enabled. "
-                "Initialize dispatcher with plugins_enabled=True."
-            )
+            raise RuntimeError("PluginHotLoader not enabled. Initialize dispatcher with plugins_enabled=True.")
         return self.plugin_hot_loader.get_plugin(name)
 
     def list_plugins(self) -> list[str]:
@@ -113,10 +101,7 @@ class DispatcherPluginsMixin(DispatcherBase):
             RuntimeError: plugins_enabled=False。
         """
         if not self.plugins_enabled or self.plugin_hot_loader is None:
-            raise RuntimeError(
-                "PluginHotLoader not enabled. "
-                "Initialize dispatcher with plugins_enabled=True."
-            )
+            raise RuntimeError("PluginHotLoader not enabled. Initialize dispatcher with plugins_enabled=True.")
         return list(self.plugin_hot_loader.list_plugins())
 
     def scan_plugins(self) -> list[Any]:
@@ -129,10 +114,7 @@ class DispatcherPluginsMixin(DispatcherBase):
             RuntimeError: plugins_enabled=False。
         """
         if not self.plugins_enabled or self.plugin_hot_loader is None:
-            raise RuntimeError(
-                "PluginHotLoader not enabled. "
-                "Initialize dispatcher with plugins_enabled=True."
-            )
+            raise RuntimeError("PluginHotLoader not enabled. Initialize dispatcher with plugins_enabled=True.")
         return list(self.plugin_hot_loader.scan_dropin_dir())
 
     def reload_plugins(self) -> list[str]:
@@ -145,10 +127,7 @@ class DispatcherPluginsMixin(DispatcherBase):
             RuntimeError: plugins_enabled=False。
         """
         if not self.plugins_enabled or self.plugin_hot_loader is None:
-            raise RuntimeError(
-                "PluginHotLoader not enabled. "
-                "Initialize dispatcher with plugins_enabled=True."
-            )
+            raise RuntimeError("PluginHotLoader not enabled. Initialize dispatcher with plugins_enabled=True.")
         return list(self.plugin_hot_loader.reload_if_changed())
 
 

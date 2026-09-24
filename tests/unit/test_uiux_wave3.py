@@ -76,9 +76,7 @@ class TestCommandPaletteItems:
 
     def test_toggle_command_hint_is_d(self):
         """Toggle dark mode hint should be 'D'."""
-        toggle_item = next(
-            it for it in COMMAND_PALETTE_ITEMS if it["action"] == "toggle:dark_mode"
-        )
+        toggle_item = next(it for it in COMMAND_PALETTE_ITEMS if it["action"] == "toggle:dark_mode")
         assert toggle_item["hint"] == "D"
 
     def test_all_7_core_pages_covered(self):

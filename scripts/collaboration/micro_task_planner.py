@@ -290,17 +290,14 @@ class MicroTaskPlanner:
         # Enforce max micro-tasks (truncate with a warning).
         if len(micro_tasks) > self.max_micro_tasks:
             logger.warning(
-                "MicroTaskPlanner: task produced %d micro-tasks, truncating to %d. "
-                "Consider splitting the parent task.",
+                "MicroTaskPlanner: task produced %d micro-tasks, truncating to %d. Consider splitting the parent task.",
                 len(micro_tasks),
                 self.max_micro_tasks,
             )
             micro_tasks = micro_tasks[: self.max_micro_tasks]
 
         # Validate the plan.
-        errors = self._validate_plan_detailed(
-            MicroTaskPlan(task_id=task_id, micro_tasks=micro_tasks)
-        )
+        errors = self._validate_plan_detailed(MicroTaskPlan(task_id=task_id, micro_tasks=micro_tasks))
         for err in errors:
             logger.warning("MicroTaskPlanner: %s", err)
 
@@ -407,8 +404,11 @@ class MicroTaskPlanner:
                         verification_cmd=verification,
                         estimated_minutes=self._estimate_duration(
                             MicroTask(
-                                id=mt_id, title=title, description=desc,
-                                file_paths=[path], verification_cmd=verification,
+                                id=mt_id,
+                                title=title,
+                                description=desc,
+                                file_paths=[path],
+                                verification_cmd=verification,
                             )
                         ),
                         dependencies=deps,
@@ -423,10 +423,7 @@ class MicroTaskPlanner:
                     MicroTask(
                         id=test_id,
                         title="Run verification tests",
-                        description=(
-                            f"Run the following test files to verify the "
-                            f"implementation: {', '.join(tests)}"
-                        ),
+                        description=(f"Run the following test files to verify the implementation: {', '.join(tests)}"),
                         file_paths=list(tests),
                         verification_cmd=self._verification_for_tests(tests),
                         estimated_minutes=3,
@@ -441,10 +438,7 @@ class MicroTaskPlanner:
                     MicroTask(
                         id=crit_id,
                         title="Verify acceptance criteria",
-                        description=(
-                            "Verify each acceptance criterion is met: "
-                            + "; ".join(criteria)
-                        ),
+                        description=("Verify each acceptance criterion is met: " + "; ".join(criteria)),
                         file_paths=[],
                         verification_cmd="echo 'Manually verify acceptance criteria'",
                         estimated_minutes=2,
@@ -460,13 +454,8 @@ class MicroTaskPlanner:
             for fn in functions:
                 mt_id = str(uuid.uuid4())
                 title = f"Implement {fn}"
-                desc = (
-                    f"Implement the `{fn}` function/class as required by "
-                    f"the task: {task_description[:120]}"
-                )
-                verification = (
-                    "python -c \"import ast; ast.parse(open('{file}').read())\""
-                )
+                desc = f"Implement the `{fn}` function/class as required by the task: {task_description[:120]}"
+                verification = "python -c \"import ast; ast.parse(open('{file}').read())\""
                 deps = [prev_id] if prev_id else []
                 micro_tasks.append(
                     MicroTask(
@@ -538,14 +527,9 @@ class MicroTaskPlanner:
 
     def _description_for_file(self, path: str, task: str) -> str:
         """Generate a description for a file-based micro-task."""
-        return (
-            f"Create or modify `{path}` as required by the task: "
-            f"{task[:160]}"
-        )
+        return f"Create or modify `{path}` as required by the task: {task[:160]}"
 
-    def _verification_for_file(
-        self, path: str, tests: list[str]
-    ) -> str:
+    def _verification_for_file(self, path: str, tests: list[str]) -> str:
         """Generate a verification command for a file-based micro-task."""
         # If there's a matching test file, use it.
         basename = path.rsplit("/", 1)[-1]
@@ -625,30 +609,22 @@ class MicroTaskPlanner:
         # Check max micro-tasks.
         if len(plan.micro_tasks) > self.max_micro_tasks:
             errors.append(
-                f"Plan has {len(plan.micro_tasks)} micro-tasks, exceeding "
-                f"the limit of {self.max_micro_tasks}."
+                f"Plan has {len(plan.micro_tasks)} micro-tasks, exceeding the limit of {self.max_micro_tasks}."
             )
         # Check all micro-tasks have a verification command.
         for mt in plan.micro_tasks:
             if not mt.verification_cmd:
-                errors.append(
-                    f"Micro-task '{mt.title}' (id={mt.id}) has no verification_cmd."
-                )
+                errors.append(f"Micro-task '{mt.title}' (id={mt.id}) has no verification_cmd.")
         # Check for cycles.
         cycle = self._detect_cycle(plan.micro_tasks)
         if cycle:
-            errors.append(
-                f"Dependency cycle detected: {' -> '.join(cycle)}"
-            )
+            errors.append(f"Dependency cycle detected: {' -> '.join(cycle)}")
         # Check all dependencies reference existing micro-task IDs.
         ids = {mt.id for mt in plan.micro_tasks}
         for mt in plan.micro_tasks:
             for dep in mt.dependencies:
                 if dep not in ids:
-                    errors.append(
-                        f"Micro-task '{mt.title}' (id={mt.id}) depends on "
-                        f"non-existent task id={dep}."
-                    )
+                    errors.append(f"Micro-task '{mt.title}' (id={mt.id}) depends on non-existent task id={dep}.")
         return errors
 
     @staticmethod
@@ -695,9 +671,7 @@ class MicroTaskPlanner:
     # Topological sort
     # ------------------------------------------------------------------
 
-    def _topological_sort(
-        self, micro_tasks: list[MicroTask]
-    ) -> list[MicroTask]:
+    def _topological_sort(self, micro_tasks: list[MicroTask]) -> list[MicroTask]:
         """Sort micro-tasks by dependencies (Kahn's algorithm).
 
         Tasks with no dependencies come first. The sort is stable
@@ -779,9 +753,7 @@ class MicroTaskPlanner:
             return "HITL"
         return "AFK"
 
-    def order_by_dependencies(
-        self, tasks: list[MicroTask]
-    ) -> list[MicroTask]:
+    def order_by_dependencies(self, tasks: list[MicroTask]) -> list[MicroTask]:
         """Order tasks topologically: dependencies first, dependents after.
 
         Performs a stable topological sort so that every task appears
@@ -800,8 +772,7 @@ class MicroTaskPlanner:
         cycle = self._detect_cycle(tasks)
         if cycle:
             logger.warning(
-                "order_by_dependencies: dependency cycle detected (%s); "
-                "preserving original order.",
+                "order_by_dependencies: dependency cycle detected (%s); preserving original order.",
                 " -> ".join(cycle),
             )
             return list(tasks)
@@ -820,8 +791,7 @@ class MicroTaskPlanner:
         """
         # V3.9-03: SKIPPED tasks count as satisfied dependencies.
         satisfied_ids = {
-            mt.id for mt in plan.micro_tasks
-            if mt.status in (MicroTaskStatus.COMPLETED, MicroTaskStatus.SKIPPED)
+            mt.id for mt in plan.micro_tasks if mt.status in (MicroTaskStatus.COMPLETED, MicroTaskStatus.SKIPPED)
         }
         ready: list[MicroTask] = []
         for mt in plan.micro_tasks:
@@ -880,12 +850,8 @@ class MicroTaskPlanner:
             f"**Max:** {plan.max_micro_tasks}"
         )
         lines.append("")
-        lines.append(
-            "| # | ID (short) | Title | Files | Est (min) | Deps | Status | Verification |"
-        )
-        lines.append(
-            "|---|------------|-------|-------|-----------|------|--------|--------------|"
-        )
+        lines.append("| # | ID (short) | Title | Files | Est (min) | Deps | Status | Verification |")
+        lines.append("|---|------------|-------|-------|-----------|------|--------|--------------|")
         for i, mt in enumerate(plan.micro_tasks, 1):
             short_id = mt.id[:8]
             files = ", ".join(mt.file_paths) if mt.file_paths else "—"

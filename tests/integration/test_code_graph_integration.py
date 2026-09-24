@@ -177,32 +177,40 @@ class T1_CodeGraphStorageCRUDIntegration(unittest.TestCase):
 
     def test_03_delete_symbols_for_file_removes_only_that_file(self) -> None:
         """Verify: delete_symbols_for_file removes symbols for one file only."""
-        self._store.upsert_symbols([
-            _make_symbol(name="f1", file_path="a.py", line_start=1),
-            _make_symbol(name="f2", file_path="b.py", line_start=1),
-        ])
+        self._store.upsert_symbols(
+            [
+                _make_symbol(name="f1", file_path="a.py", line_start=1),
+                _make_symbol(name="f2", file_path="b.py", line_start=1),
+            ]
+        )
         self.assertEqual(self._store.delete_symbols_for_file("a.py"), 1)
         self.assertEqual(self._store.get_stats()["symbols"], 1)
 
     def test_04_upsert_call_edge_and_query_callers_callees(self) -> None:
         """Verify: a call edge lets query_callers and query_callees resolve."""
-        self._store.upsert_symbols([
-            _make_symbol(name="caller_fn", file_path="m.py", line_start=1),
-            _make_symbol(name="callee_fn", file_path="m.py", line_start=5),
-        ])
-        self.assertTrue(self._store.upsert_call_edge(
-            _make_call_edge(caller="caller_fn", callee="callee_fn", file_path="m.py", line=2)
-        ))
+        self._store.upsert_symbols(
+            [
+                _make_symbol(name="caller_fn", file_path="m.py", line_start=1),
+                _make_symbol(name="callee_fn", file_path="m.py", line_start=5),
+            ]
+        )
+        self.assertTrue(
+            self._store.upsert_call_edge(
+                _make_call_edge(caller="caller_fn", callee="callee_fn", file_path="m.py", line=2)
+            )
+        )
         self.assertEqual([s.name for s in self._store.query_callers("callee_fn")], ["caller_fn"])
         self.assertEqual([s.name for s in self._store.query_callees("caller_fn")], ["callee_fn"])
 
     def test_05_upsert_call_edges_batch(self) -> None:
         """Verify: upsert_call_edges batch-inserts edges and returns count."""
-        self._store.upsert_symbols([
-            _make_symbol(name="a", file_path="m.py", line_start=1),
-            _make_symbol(name="b", file_path="m.py", line_start=2),
-            _make_symbol(name="c", file_path="m.py", line_start=3),
-        ])
+        self._store.upsert_symbols(
+            [
+                _make_symbol(name="a", file_path="m.py", line_start=1),
+                _make_symbol(name="b", file_path="m.py", line_start=2),
+                _make_symbol(name="c", file_path="m.py", line_start=3),
+            ]
+        )
         edges = [
             _make_call_edge(caller="a", callee="b", file_path="m.py", line=1),
             _make_call_edge(caller="a", callee="c", file_path="m.py", line=2),
@@ -212,9 +220,9 @@ class T1_CodeGraphStorageCRUDIntegration(unittest.TestCase):
 
     def test_06_upsert_dependency_and_query(self) -> None:
         """Verify: upsert_dependency stores an import edge queryable by source."""
-        self.assertTrue(self._store.upsert_dependency(
-            _make_dependency(source_module="src/main.py", target_module="os")
-        ))
+        self.assertTrue(
+            self._store.upsert_dependency(_make_dependency(source_module="src/main.py", target_module="os"))
+        )
         deps = self._store.query_dependencies("src/main.py")
         self.assertEqual(len(deps), 1)
         self.assertEqual(deps[0].target_module, "os")
@@ -227,11 +235,13 @@ class T1_CodeGraphStorageCRUDIntegration(unittest.TestCase):
 
     def test_08_query_symbols_by_type(self) -> None:
         """Verify: query_symbols_by_type filters by function/class/method."""
-        self._store.upsert_symbols([
-            _make_symbol(name="fn", symbol_type="function", file_path="m.py", line_start=1),
-            _make_symbol(name="Cls", symbol_type="class", file_path="m.py", line_start=5),
-            _make_symbol(name="m", symbol_type="method", file_path="m.py", line_start=7),
-        ])
+        self._store.upsert_symbols(
+            [
+                _make_symbol(name="fn", symbol_type="function", file_path="m.py", line_start=1),
+                _make_symbol(name="Cls", symbol_type="class", file_path="m.py", line_start=5),
+                _make_symbol(name="m", symbol_type="method", file_path="m.py", line_start=7),
+            ]
+        )
         self.assertEqual(len(self._store.query_symbols_by_type("function")), 1)
         self.assertEqual(len(self._store.query_symbols_by_type("class")), 1)
         self.assertEqual(len(self._store.query_symbols_by_type("method")), 1)
@@ -298,9 +308,7 @@ class T2_CodeKnowledgeGraphIncrementalUpdate(unittest.TestCase):
         self._graph.build_from_project(self._proj)
         main_py = self._proj / "main.py"
         main_py.write_text(
-            '"""Changed main."""\n'
-            "def new_func(n):\n"
-            "    return n\n",
+            '"""Changed main."""\ndef new_func(n):\n    return n\n',
             encoding="utf-8",
         )
         self.assertTrue(self._graph.update_file(main_py))
@@ -314,9 +322,7 @@ class T2_CodeKnowledgeGraphIncrementalUpdate(unittest.TestCase):
         """Verify: update_project after a single change reports exactly one update."""
         self._graph.build_from_project(self._proj)
         (self._proj / "helper.py").write_text(
-            '"""Changed helper."""\n'
-            "def brand_new():\n"
-            "    return 0\n",
+            '"""Changed helper."""\ndef brand_new():\n    return 0\n',
             encoding="utf-8",
         )
         self.assertEqual(self._graph.update_project(self._proj), 1)
@@ -339,19 +345,21 @@ class T3_CodeGraphQueryChain(unittest.TestCase):
         self._tmp = tempfile.mkdtemp(prefix="cgraph_t3_")
         self._db = Path(self._tmp) / "q.db"
         self._store = CodeGraphStorage(self._db)
-        self._store.upsert_symbols([
-            _make_symbol(name="entry", file_path="m.py", line_start=1, signature="entry(a, b)"),
-            _make_symbol(name="worker", file_path="m.py", line_start=5, signature="worker(a, b)"),
-            _make_symbol(name="util", file_path="m.py", line_start=10, signature="util(c)"),
-        ])
-        self._store.upsert_call_edges([
-            _make_call_edge(caller="entry", callee="worker", file_path="m.py", line=2),
-            _make_call_edge(caller="entry", callee="util", file_path="m.py", line=3),
-            _make_call_edge(caller="worker", callee="util", file_path="m.py", line=6),
-        ])
-        self._store.upsert_dependency(
-            _make_dependency(source_module="m.py", target_module="os")
+        self._store.upsert_symbols(
+            [
+                _make_symbol(name="entry", file_path="m.py", line_start=1, signature="entry(a, b)"),
+                _make_symbol(name="worker", file_path="m.py", line_start=5, signature="worker(a, b)"),
+                _make_symbol(name="util", file_path="m.py", line_start=10, signature="util(c)"),
+            ]
         )
+        self._store.upsert_call_edges(
+            [
+                _make_call_edge(caller="entry", callee="worker", file_path="m.py", line=2),
+                _make_call_edge(caller="entry", callee="util", file_path="m.py", line=3),
+                _make_call_edge(caller="worker", callee="util", file_path="m.py", line=6),
+            ]
+        )
+        self._store.upsert_dependency(_make_dependency(source_module="m.py", target_module="os"))
         self._query = CodeGraphQuery(self._store)
 
     def tearDown(self) -> None:
@@ -449,7 +457,8 @@ class T4_EndToEndParseIndexQuery(unittest.TestCase):
         q = self._graph.query()
         for name in ("alpha", "beta", "baz", "qux"):
             self.assertGreaterEqual(
-                len(q.find_symbol(name)), 1,
+                len(q.find_symbol(name)),
+                1,
                 f"symbol {name!r} should be indexed after build",
             )
 
@@ -543,10 +552,12 @@ class T5_BoundaryAndExceptions(unittest.TestCase):
         """Verify: upserting the same call edge twice does not duplicate rows."""
         store = CodeGraphStorage(self._db)
         try:
-            store.upsert_symbols([
-                _make_symbol(name="a", file_path="m.py", line_start=1),
-                _make_symbol(name="b", file_path="m.py", line_start=2),
-            ])
+            store.upsert_symbols(
+                [
+                    _make_symbol(name="a", file_path="m.py", line_start=1),
+                    _make_symbol(name="b", file_path="m.py", line_start=2),
+                ]
+            )
             edge = _make_call_edge(caller="a", callee="b", file_path="m.py", line=1)
             store.upsert_call_edge(edge)
             store.upsert_call_edge(edge)
@@ -560,12 +571,11 @@ class T5_BoundaryAndExceptions(unittest.TestCase):
         errors: list[Exception] = []
         barrier = threading.Barrier(20)
         try:
+
             def worker(idx: int) -> None:
                 try:
                     barrier.wait()
-                    store.upsert_symbol(_make_symbol(
-                        name=f"fn_{idx}", file_path=f"f_{idx}.py", line_start=1
-                    ))
+                    store.upsert_symbol(_make_symbol(name=f"fn_{idx}", file_path=f"f_{idx}.py", line_start=1))
                 except Exception as exc:  # noqa: BLE001
                     errors.append(exc)
 

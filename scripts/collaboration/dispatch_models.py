@@ -580,8 +580,6 @@ class DispatchResult:
         lines = ["", "## Connector Operations", ""]
         for i, op in enumerate(self.connector_operations, 1):
             status = "OK" if op.get("success") else "FAILED"
-            lines.append(
-                f"{i}. **{status}** — {op.get('operation', '?')} → {op.get('target', '?')}"
-            )
+            lines.append(f"{i}. **{status}** — {op.get('operation', '?')} → {op.get('target', '?')}")
         lines.append("")
         return lines

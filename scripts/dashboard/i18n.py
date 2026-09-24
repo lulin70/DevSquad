@@ -86,9 +86,7 @@ class I18nManager:
     def set_locale(locale: Locale) -> None:
         """Persist the active locale to session_state."""
         if locale not in _SUPPORTED_LOCALES:
-            raise ValueError(
-                f"Unsupported locale: {locale!r}. Supported: {_SUPPORTED_LOCALES}"
-            )
+            raise ValueError(f"Unsupported locale: {locale!r}. Supported: {_SUPPORTED_LOCALES}")
         st.session_state[_LOCALE_KEY] = locale
 
     @staticmethod

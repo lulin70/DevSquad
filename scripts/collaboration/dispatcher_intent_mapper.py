@@ -10,6 +10,7 @@
 
 Anti-Ghost: _intent_call_counter_er 递增 on resolve().
 """
+
 from __future__ import annotations
 
 import importlib
@@ -47,12 +48,12 @@ def get_call_counter_er() -> int:
 
 
 SUPPORTED_INTENTS: tuple[str, ...] = (
-    "design",       # 架构设计
-    "dev",          # 功能开发
-    "test",         # 测试设计
-    "audit",        # 代码审查
-    "optimize",     # 性能优化
-    "document",     # 文档生成
+    "design",  # 架构设计
+    "dev",  # 功能开发
+    "test",  # 测试设计
+    "audit",  # 代码审查
+    "optimize",  # 性能优化
+    "document",  # 文档生成
 )
 
 SUPPORTED_LANGS: tuple[str, ...] = ("zh", "en", "ja")
@@ -158,7 +159,8 @@ class IntentWorkflowMapper:
                 return self._cache[cache_key]
         # Build metadata
         workflows_for_intent = self._registered_workflows.get(
-            normalized_intent, self._registered_workflows[DEFAULT_INTENT],
+            normalized_intent,
+            self._registered_workflows[DEFAULT_INTENT],
         )
         dotted_path = workflows_for_intent.get(lang, workflows_for_intent["zh"])
         module_path, _, class_name = dotted_path.rpartition(".")
@@ -188,9 +190,7 @@ class IntentWorkflowMapper:
             module = importlib.import_module(wf.workflow_module)
             return getattr(module, wf.workflow_class)
         except (ImportError, AttributeError) as exc:
-            raise IntentError(
-                f"failed to load workflow {wf.workflow_module}.{wf.workflow_class}: {exc}"
-            ) from exc
+            raise IntentError(f"failed to load workflow {wf.workflow_module}.{wf.workflow_class}: {exc}") from exc
 
     def list_workflows(self) -> list[IntentWorkflow]:
         """List all registered workflows (cached + uncached)."""
@@ -220,9 +220,7 @@ class IntentWorkflowMapper:
         if ".." in workflow_module or workflow_module.startswith("."):
             raise IntentError(f"invalid module path: {workflow_module}")
         with self._lock:
-            self._registered_workflows.setdefault(intent, {})[lang] = (
-                f"{workflow_module}.{workflow_class}"
-            )
+            self._registered_workflows.setdefault(intent, {})[lang] = f"{workflow_module}.{workflow_class}"
             self._cache.pop((intent, lang), None)
 
 

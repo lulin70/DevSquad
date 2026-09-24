@@ -124,8 +124,7 @@ class InputValidator:
         "plain, goal-oriented description."
     )
     PROMPT_INJECTION_FALLBACK_TEMPLATE_ZH = (
-        "安全降级：请求包含试图覆盖系统提示的指令，已被拦截。"
-        "请用平实的、目标导向的描述重新表述您的任务。"
+        "安全降级：请求包含试图覆盖系统提示的指令，已被拦截。请用平实的、目标导向的描述重新表述您的任务。"
     )
     PROMPT_INJECTION_FALLBACK_TEMPLATE_JA = (
         "セキュリティフォールバック: システムプロンプトを上書きしようとする指示が"
@@ -403,8 +402,7 @@ class InputValidator:
             # Mask all but the first 4 characters to avoid echoing the secret.
             masked = matched_value[:4] + "*" * max(0, len(matched_value) - 4)
             warnings.append(
-                f"Sensitive info detected: {pattern_name} ({masked}). "
-                f"This will be masked in logs and cache."
+                f"Sensitive info detected: {pattern_name} ({masked}). This will be masked in logs and cache."
             )
         return warnings
 

@@ -32,9 +32,7 @@ _DEVSQUAD_RETRIEVE_PATTERN = re.compile(
 # V4.2.1 Bugfix: SmartCrusher emits ``retrieve full: trace_id=X`` markers in
 # compressed content headers (e.g. ``[N items compressed to M; retrieve full: trace_id=X]``).
 # This pattern detects them so the Coordinator can auto-retrieve originals.
-_RETRIEVE_FULL_PATTERN = re.compile(
-    r"retrieve full:\s*trace_id\s*=\s*([a-f0-9]+)"
-)
+_RETRIEVE_FULL_PATTERN = re.compile(r"retrieve full:\s*trace_id\s*=\s*([a-f0-9]+)")
 
 
 class CoordinatorCompressionMixin:
@@ -91,9 +89,7 @@ class CoordinatorCompressionMixin:
         """
         if not self.compressor or not self._message_buffer:
             return None
-        smart_ctx = self.compressor.check_and_compress(
-            self._message_buffer, force_level=CompressionLevel.SMART
-        )
+        smart_ctx = self.compressor.check_and_compress(self._message_buffer, force_level=CompressionLevel.SMART)
         crushed_count = smart_ctx.stats.get("smart_crush_applied", 0)
         if crushed_count > 0:
             # Replace buffer with SMART-compressed messages so later automatic
@@ -128,9 +124,7 @@ class CoordinatorCompressionMixin:
                 self._used_input_tokens,
                 self.token_budget.total_input_budget,
             )
-            self.compressor.check_and_compress(
-                self._message_buffer, force_level=CompressionLevel.FULL_COMPACT
-            )
+            self.compressor.check_and_compress(self._message_buffer, force_level=CompressionLevel.FULL_COMPACT)
         elif self.token_budget.is_warning(self._used_input_tokens):
             logger.info(
                 "Token budget warning (%d/%d) — forcing SMART compression",
@@ -246,13 +240,15 @@ class CoordinatorCompressionMixin:
             }
         total_original = sum(e.get("original_tokens", 0) for e in compression_events)
         total_compressed = sum(e.get("compressed_tokens", 0) for e in compression_events)
-        avg_reduction = sum(e.get("reduction_pct", 0) for e in compression_events) / len(compression_events) if compression_events else 0.0
+        avg_reduction = (
+            sum(e.get("reduction_pct", 0) for e in compression_events) / len(compression_events)
+            if compression_events
+            else 0.0
+        )
         smart_tokens_before = sum(e.get("tokens_before", 0) for e in smart_events)
         smart_tokens_after = sum(e.get("tokens_after", 0) for e in smart_events)
         smart_avg_reduction = (
-            sum(e.get("reduction_pct", 0) for e in smart_events) / len(smart_events)
-            if smart_events
-            else 0.0
+            sum(e.get("reduction_pct", 0) for e in smart_events) / len(smart_events) if smart_events else 0.0
         )
         return {
             "total_compressions": len(compression_events),

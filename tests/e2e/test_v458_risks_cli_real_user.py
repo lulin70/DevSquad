@@ -56,9 +56,17 @@ class TestRealUserJourney:
         # 1. Process A: register a risk.
         add = _run_cli(
             [
-                "risks", "add", "数据丢失风险",
-                "--probability", "0.7", "--impact", "0.9",
-                "--category", "technical", "--owner", "devops",
+                "risks",
+                "add",
+                "数据丢失风险",
+                "--probability",
+                "0.7",
+                "--impact",
+                "0.9",
+                "--category",
+                "technical",
+                "--owner",
+                "devops",
             ],
             cwd,
         )
@@ -89,8 +97,7 @@ class TestRealUserJourney:
 
         # 5. Process C: set the response strategy.
         mitigate = _run_cli(
-            ["risks", "mitigate", rid, "--strategy", "mitigate",
-             "--owner", "devops", "--plan", "add backup"],
+            ["risks", "mitigate", rid, "--strategy", "mitigate", "--owner", "devops", "--plan", "add backup"],
             cwd,
         )
         assert mitigate.returncode == 0, mitigate.stderr
@@ -139,16 +146,13 @@ class TestRealUserJourney:
         cwd = workspace
         for desc, p, i in [("low", "0.7", "0.5"), ("mid", "0.36", "1.0"), ("high", "0.9", "0.9")]:
             proc = _run_cli(
-                ["risks", "add", desc, "--probability", p, "--impact", i,
-                 "--category", "security", "--owner", "sec"],
+                ["risks", "add", desc, "--probability", p, "--impact", i, "--category", "security", "--owner", "sec"],
                 cwd,
             )
             assert proc.returncode == 0, proc.stderr
 
         # exposures: low=0.175, mid=0.36, high=0.81 (JSON output is unordered)
-        at_boundary = json.loads(
-            _run_cli(["risks", "list", "--format", "json", "--min-exposure", "0.36"], cwd).stdout
-        )
+        at_boundary = json.loads(_run_cli(["risks", "list", "--format", "json", "--min-exposure", "0.36"], cwd).stdout)
         assert {item["description"] for item in at_boundary} == {"high", "mid"}
 
         below_boundary = json.loads(
@@ -158,9 +162,7 @@ class TestRealUserJourney:
 
         # V4.5.12: --severity removed (Breaking). Numeric filtering uses
         # --min-exposure; string filtering uses --category.
-        by_category = json.loads(
-            _run_cli(["risks", "list", "--format", "json", "--category", "security"], cwd).stdout
-        )
+        by_category = json.loads(_run_cli(["risks", "list", "--format", "json", "--category", "security"], cwd).stdout)
         assert {item["description"] for item in by_category} == {"high", "mid", "low"}
 
         # --severity is now rejected by argparse (exit 2).

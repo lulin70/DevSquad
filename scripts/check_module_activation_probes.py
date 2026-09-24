@@ -88,9 +88,7 @@ def _activate_v4513_modules() -> None:
     ga.prioritize()
     ga.generate_roadmap()
     ga.suggest_scheduler_decision(
-        next(iter(ga._gaps), "anti-ghost")
-        if hasattr(ga, "_gaps") and ga._gaps
-        else "anti-ghost"
+        next(iter(ga._gaps), "anti-ghost") if hasattr(ga, "_gaps") and ga._gaps else "anti-ghost"
     )
 
     # ErrorBudgetTracker — calculate + status (always-on SRE gate).
@@ -175,15 +173,29 @@ def _activate_v4512_modules() -> None:
         # risks stats CLI round-trip (text + json).
         buf = io.StringIO()
         with redirect_stdout(buf):
-            assert cmd_risks_stats(Namespace(
-                register_id="default", root=root, format="json",
-            )) == 0
+            assert (
+                cmd_risks_stats(
+                    Namespace(
+                        register_id="default",
+                        root=root,
+                        format="json",
+                    )
+                )
+                == 0
+            )
         payload = _json.loads(buf.getvalue())
         assert payload["register_id"] == "default"
         with redirect_stdout(buf):
-            assert cmd_risks_stats(Namespace(
-                register_id="default", root=root, format="text",
-            )) == 0
+            assert (
+                cmd_risks_stats(
+                    Namespace(
+                        register_id="default",
+                        root=root,
+                        format="text",
+                    )
+                )
+                == 0
+            )
         assert "Risk Store Stats" in buf.getvalue()
 
 
@@ -306,15 +318,17 @@ def _activate_v458_modules() -> None:
         risks_root = str(Path(tmpdir) / "risks")
         buf = io.StringIO()
         with redirect_stdout(buf):
-            add_rc = cmd_risks_add(Namespace(
-                description="anti-ghost CLI risk",
-                probability=0.6,
-                impact=0.5,
-                category="technical",
-                owner="anti-ghost",
-                register_id="default",
-                root=risks_root,
-            ))
+            add_rc = cmd_risks_add(
+                Namespace(
+                    description="anti-ghost CLI risk",
+                    probability=0.6,
+                    impact=0.5,
+                    category="technical",
+                    owner="anti-ghost",
+                    register_id="default",
+                    root=risks_root,
+                )
+            )
         assert add_rc == 0
 
         # Recover the risk id from the persisted store.
@@ -322,37 +336,65 @@ def _activate_v458_modules() -> None:
         risk_id = next(iter(reader.payload_to_items(reader.load("default"))))
 
         with redirect_stdout(buf):
-            assert cmd_risks_mitigate(Namespace(
-                risk_id=risk_id,
-                strategy="mitigate",
-                owner="devops",
-                plan="anti-ghost plan",
-                register_id="default",
-                root=risks_root,
-            )) == 0
+            assert (
+                cmd_risks_mitigate(
+                    Namespace(
+                        risk_id=risk_id,
+                        strategy="mitigate",
+                        owner="devops",
+                        plan="anti-ghost plan",
+                        register_id="default",
+                        root=risks_root,
+                    )
+                )
+                == 0
+            )
 
         # Close WITHOUT approval (require_approval=False → no gate).
         with redirect_stdout(buf):
-            assert cmd_risks_close(Namespace(
-                risk_id=risk_id,
-                require_approval=False,
-                register_id="default",
-                root=risks_root,
-            )) == 0
+            assert (
+                cmd_risks_close(
+                    Namespace(
+                        risk_id=risk_id,
+                        require_approval=False,
+                        register_id="default",
+                        root=risks_root,
+                    )
+                )
+                == 0
+            )
 
         # --min-exposure filter: high threshold hides every row, zero shows it.
         buf_hidden, buf_visible = io.StringIO(), io.StringIO()
         with redirect_stdout(buf_hidden):
-            assert cmd_risks_list(Namespace(
-                register_id="default", root=risks_root, format="md",
-                min_exposure=0.99, category=None, limit=None,
-            )) == 0
+            assert (
+                cmd_risks_list(
+                    Namespace(
+                        register_id="default",
+                        root=risks_root,
+                        format="md",
+                        min_exposure=0.99,
+                        category=None,
+                        limit=None,
+                    )
+                )
+                == 0
+            )
         assert "(none)" in buf_hidden.getvalue()
         with redirect_stdout(buf_visible):
-            assert cmd_risks_list(Namespace(
-                register_id="default", root=risks_root, format="md",
-                min_exposure=0.0, category=None, limit=None,
-            )) == 0
+            assert (
+                cmd_risks_list(
+                    Namespace(
+                        register_id="default",
+                        root=risks_root,
+                        format="md",
+                        min_exposure=0.0,
+                        category=None,
+                        limit=None,
+                    )
+                )
+                == 0
+            )
         assert "`R-" in buf_visible.getvalue()
 
 
@@ -389,6 +431,7 @@ def _activate_v454_modules() -> None:
 
     # P12.3.3: ModulesCLI — exercise status command
     from argparse import Namespace
+
     _cms_local(Namespace(registry=reg, format="text", module=None))
 
 
@@ -415,6 +458,7 @@ def _activate_v455_modules() -> None:
         TransactionRegistry,
     )
     from scripts.collaboration.host_llm_bridge_v2 import HostLLMBridgeV2
+
     with _tf.TemporaryDirectory() as tmpdir:
         bridge = HostLLMBridgeV2(bridge_dir=tmpdir)
         bridge.create_request(
@@ -490,9 +534,7 @@ def _activate_v453_modules() -> None:
 
     # P12.2.1: ArtifactStore — exercise write + list
     store = ArtifactStore()
-    store.write(
-        "anti-ghost-session", "anti-ghost-role", "ghost.md", "anti-ghost content"
-    )
+    store.write("anti-ghost-session", "anti-ghost-role", "ghost.md", "anti-ghost content")
 
     # P12.2.3 + P12.2.4: DispatchEffect + EffectRegistry — apply + revert
     reg = EffectRegistry()

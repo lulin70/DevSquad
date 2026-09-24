@@ -172,14 +172,20 @@ class TestBenchmarkRegressionCheckerCompare(unittest.TestCase):
 
     def test_11_compare_multiple_metrics_one_regressed(self) -> None:
         """Integration: 2 metrics, 1 regressed 25%, 1 unchanged."""
-        baseline = _snapshot("4.2.9", [
-            BenchmarkMetric("dispatch_p95_ms", 100.0, "ms"),
-            BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
-        ])
-        current = _snapshot("4.3.0", [
-            BenchmarkMetric("dispatch_p95_ms", 125.0, "ms"),
-            BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
-        ])
+        baseline = _snapshot(
+            "4.2.9",
+            [
+                BenchmarkMetric("dispatch_p95_ms", 100.0, "ms"),
+                BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
+            ],
+        )
+        current = _snapshot(
+            "4.3.0",
+            [
+                BenchmarkMetric("dispatch_p95_ms", 125.0, "ms"),
+                BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
+            ],
+        )
         checker = BenchmarkRegressionChecker(threshold_percent=10.0)
         report = checker.compare(baseline, current)
         self.assertTrue(report.regression_detected)
@@ -208,9 +214,7 @@ class TestBenchmarkRegressionCheckerCompare(unittest.TestCase):
         metric count (e.g. an O(n^2) pairing) still fails.
         """
         baseline_metrics = [BenchmarkMetric(f"metric_{i}", float(i), "x") for i in range(1000)]
-        current_metrics = [
-            BenchmarkMetric(f"metric_{i}", float(i) * 1.05, "x") for i in range(1000)
-        ]
+        current_metrics = [BenchmarkMetric(f"metric_{i}", float(i) * 1.05, "x") for i in range(1000)]
         baseline = _snapshot("4.2.9", baseline_metrics)
         current = _snapshot("4.3.0", current_metrics)
         checker = BenchmarkRegressionChecker(threshold_percent=10.0)
@@ -235,12 +239,8 @@ class TestLifecycleGateCheck(unittest.TestCase):
 
     def test_12_lifecycle_gate_check_p11_normal(self) -> None:
         """Happy: phase=P11 with injected snapshots returns a report."""
-        baseline = BenchmarkSnapshot(
-            "4.2.9", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")]
-        )
-        current = BenchmarkSnapshot(
-            "4.3.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")]
-        )
+        baseline = BenchmarkSnapshot("4.2.9", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")])
+        current = BenchmarkSnapshot("4.3.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")])
         report = lifecycle_gate_check(
             phase="P11",
             baseline_version="4.2.9",
@@ -258,12 +258,8 @@ class TestLifecycleGateCheck(unittest.TestCase):
 
     def test_14_lifecycle_gate_check_injected_snapshots(self) -> None:
         """Config: injected snapshots are used; parameter versions win."""
-        baseline = BenchmarkSnapshot(
-            "4.0.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")]
-        )
-        current = BenchmarkSnapshot(
-            "4.5.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 130.0, "ms")]
-        )
+        baseline = BenchmarkSnapshot("4.0.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")])
+        current = BenchmarkSnapshot("4.5.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 130.0, "ms")])
         report = lifecycle_gate_check(
             phase="P11",
             baseline_version="4.2.9",

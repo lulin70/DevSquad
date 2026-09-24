@@ -340,8 +340,7 @@ class LLMRetryBase:
                 logger.info("Circuit breaker for %s entering half-open state", backend)
             else:
                 raise CircuitBreakerError(
-                    f"Circuit breaker open for {backend}. "
-                    f"Retry after {cb.timeout_seconds - elapsed:.0f}s"
+                    f"Circuit breaker open for {backend}. Retry after {cb.timeout_seconds - elapsed:.0f}s"
                 )
 
     def record_success(self, backend: str) -> None:

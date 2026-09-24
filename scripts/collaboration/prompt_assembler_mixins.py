@@ -119,9 +119,7 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
             parts.append(
                 f"  . Every technical decision MUST present >={oc.get('require_alternatives_min', 2)} alternatives with pros/cons"
             )
-            parts.append(
-                f"  . Must list >={oc.get('require_failure_scenarios_min', 3)} potential failure scenarios"
-            )
+            parts.append(f"  . Must list >={oc.get('require_failure_scenarios_min', 3)} potential failure scenarios")
             if oc.get("acknowledge_tradeoffs"):
                 parts.append("  . Always acknowledge limitations and trade-offs")
 
@@ -282,9 +280,7 @@ class PromptAssemblerFormattingMixin(PromptAssemblerBase):
         base = "\n".join(parts)
         return base + self._concat_injections(style)
 
-    def _build_direct(
-        self, task_description: str, role_display: str, findings: list[str], style: str
-    ) -> str:
+    def _build_direct(self, task_description: str, role_display: str, findings: list[str], style: str) -> str:
         """Build the direct-style instruction body (with injections)."""
         user_rules = self._get_user_rules_injection(task_description)
         base = (
@@ -938,9 +934,7 @@ class PromptAssemblerValidationMixin(PromptAssemblerBase):
             bonus += 0.1
         return bonus
 
-    def _classify_by_scores(
-        self, final_simple: float, final_complex: float, desc_len: int
-    ) -> TaskComplexity:
+    def _classify_by_scores(self, final_simple: float, final_complex: float, desc_len: int) -> TaskComplexity:
         """Classify complexity from the final simple/complex scores and length."""
         if desc_len < 15:
             return TaskComplexity.SIMPLE

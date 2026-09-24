@@ -167,7 +167,11 @@ class LearnedRuleStore:
         qc = config.setdefault("quality_control", {})
         rules = qc.setdefault("learned_rules", [])
         rule_hash = hashlib.sha256(rule_dict.get("rule", "").encode()).hexdigest()[:16]
-        if any(hashlib.sha256(r.get("rule", "").encode()).hexdigest()[:16] == rule_hash for r in rules if isinstance(r, dict)):
+        if any(
+            hashlib.sha256(r.get("rule", "").encode()).hexdigest()[:16] == rule_hash
+            for r in rules
+            if isinstance(r, dict)
+        ):
             logger.debug("Tier1 rule already exists (hash=%s), skip", rule_hash)
             return
         rules.append(rule_dict)
@@ -177,7 +181,11 @@ class LearnedRuleStore:
     def _write_tier2(self, rule: LearnedRule) -> None:
         rules = self._read_tier2_raw()
         rule_hash = hashlib.sha256(rule.rule_text.encode()).hexdigest()[:16]
-        if any(hashlib.sha256(r.get("rule", "").encode()).hexdigest()[:16] == rule_hash for r in rules if isinstance(r, dict)):
+        if any(
+            hashlib.sha256(r.get("rule", "").encode()).hexdigest()[:16] == rule_hash
+            for r in rules
+            if isinstance(r, dict)
+        ):
             logger.debug("Tier2 rule already exists (hash=%s), skip", rule_hash)
             return
         rules.append(rule.to_dict())

@@ -13,7 +13,6 @@ from scripts.collaboration.llm_retry_base import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestJitterStrategyEnum:
     """Verify JitterStrategy enum values."""
 

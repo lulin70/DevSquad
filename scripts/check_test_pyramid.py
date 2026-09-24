@@ -42,9 +42,9 @@ DEFAULT_TESTS_DIR = REPO_ROOT / "tests"
 class LayerStats:
     """Statistics for a single test pyramid layer."""
 
-    layer: str          # "unit", "integration", etc.
-    file_count: int     # Number of test files
-    test_count: int     # Number of test functions/methods
+    layer: str  # "unit", "integration", etc.
+    file_count: int  # Number of test files
+    test_count: int  # Number of test functions/methods
     ratio: float = 0.0  # Percentage of total (0.0-1.0)
 
 
@@ -62,12 +62,12 @@ class PyramidReport:
 # Healthy ratio ranges per test pyramid layer (lower, upper).
 # Reference: https://martinfowler.com/bliki/TestPyramid.html
 HEALTHY_RANGES: dict[str, tuple[float, float]] = {
-    "unit": (0.60, 1.00),         # >=60% (numerous, fast, isolated)
+    "unit": (0.60, 1.00),  # >=60% (numerous, fast, isolated)
     "integration": (0.15, 0.25),  # 15-25% (module interaction)
-    "e2e": (0.00, 0.10),          # <=10% (slow, brittle, few)
-    "contract": (0.05, 0.10),     # 5-10% (interface verification)
-    "smoke": (0.00, 0.05),        # <=5% (deployment verification)
-    "external": (0.00, 0.05),     # <=5% (external API tests)
+    "e2e": (0.00, 0.10),  # <=10% (slow, brittle, few)
+    "contract": (0.05, 0.10),  # 5-10% (interface verification)
+    "smoke": (0.00, 0.05),  # <=5% (deployment verification)
+    "external": (0.00, 0.05),  # <=5% (external API tests)
 }
 
 # Display order for reports.
@@ -103,8 +103,9 @@ class TestPyramidAnalyzer:
             :class:`PyramidReport` with per-layer stats and health assessment.
         """
         if not tests_dir.exists():
-            return PyramidReport(total_tests=0, total_files=0, assessment="warning",
-                                 issues=[f"tests directory not found: {tests_dir}"])
+            return PyramidReport(
+                total_tests=0, total_files=0, assessment="warning", issues=[f"tests directory not found: {tests_dir}"]
+            )
 
         # Categorize files by layer.
         layer_files: dict[str, list[Path]] = {layer: [] for layer in LAYER_ORDER}
@@ -119,11 +120,13 @@ class TestPyramidAnalyzer:
         for layer in LAYER_ORDER:
             files = layer_files[layer]
             test_count = sum(self._count_tests(f) for f in files)
-            layer_stats.append(LayerStats(
-                layer=layer,
-                file_count=len(files),
-                test_count=test_count,
-            ))
+            layer_stats.append(
+                LayerStats(
+                    layer=layer,
+                    file_count=len(files),
+                    test_count=test_count,
+                )
+            )
             total_tests += test_count
             total_files += len(files)
 
@@ -241,7 +244,12 @@ class TestPyramidAnalyzer:
 
         count = 0
         for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_") or isinstance(node, ast.AsyncFunctionDef) and node.name.startswith("test_"):
+            if (
+                isinstance(node, ast.FunctionDef)
+                and node.name.startswith("test_")
+                or isinstance(node, ast.AsyncFunctionDef)
+                and node.name.startswith("test_")
+            ):
                 count += 1
         return count
 
@@ -269,10 +277,7 @@ def format_report(report: PyramidReport) -> str:
             status = "WARNING"
         else:
             status = "OK"
-        lines.append(
-            f"  {stat.layer:<14} {stat.file_count:>6} {stat.test_count:>7} "
-            f"{stat.ratio:>7.1%}   {status}"
-        )
+        lines.append(f"  {stat.layer:<14} {stat.file_count:>6} {stat.test_count:>7} {stat.ratio:>7.1%}   {status}")
     lines.append(f"  {'-' * 50}")
     lines.append("")
     if report.issues:

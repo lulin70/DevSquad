@@ -104,9 +104,13 @@ class TestTypographyRules(unittest.TestCase):
 
     def test_line_height_below_minimum_detected(self) -> None:
         """Verify: line-height < 1.4 is flagged."""
-        probes = {"typography": {"text_styles": [
-            {"tag": "p", "line_height": 1.2},
-        ]}}
+        probes = {
+            "typography": {
+                "text_styles": [
+                    {"tag": "p", "line_height": 1.2},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         lh_issues = [i for i in issues if i.rule == "typography_line_height"]
         self.assertEqual(len(lh_issues), 1)
@@ -114,28 +118,40 @@ class TestTypographyRules(unittest.TestCase):
 
     def test_line_height_ok_no_issue(self) -> None:
         """Verify: line-height >= 1.4 produces no issue."""
-        probes = {"typography": {"text_styles": [
-            {"tag": "p", "line_height": 1.5},
-        ]}}
+        probes = {
+            "typography": {
+                "text_styles": [
+                    {"tag": "p", "line_height": 1.5},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         lh_issues = [i for i in issues if i.rule == "typography_line_height"]
         self.assertEqual(len(lh_issues), 0)
 
     def test_font_size_below_minimum_detected(self) -> None:
         """Verify: font-size < 14px is flagged."""
-        probes = {"typography": {"text_styles": [
-            {"tag": "span", "font_size_px": 11},
-        ]}}
+        probes = {
+            "typography": {
+                "text_styles": [
+                    {"tag": "span", "font_size_px": 11},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         fs_issues = [i for i in issues if i.rule == "typography_font_size_min"]
         self.assertEqual(len(fs_issues), 1)
 
     def test_heading_hierarchy_skip_detected(self) -> None:
         """Verify: h1→h3 skip is flagged."""
-        probes = {"typography": {"headings": [
-            {"level": 1, "text": "Title"},
-            {"level": 3, "text": "Section"},
-        ]}}
+        probes = {
+            "typography": {
+                "headings": [
+                    {"level": 1, "text": "Title"},
+                    {"level": 3, "text": "Section"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         hh_issues = [i for i in issues if i.rule == "typography_heading_hierarchy"]
         self.assertEqual(len(hh_issues), 1)
@@ -144,9 +160,13 @@ class TestTypographyRules(unittest.TestCase):
 
     def test_banned_font_detected(self) -> None:
         """Verify: Inter/Roboto/Arial fonts are flagged."""
-        probes = {"typography": {"text_styles": [
-            {"tag": "body", "font_family": "Inter, sans-serif"},
-        ]}}
+        probes = {
+            "typography": {
+                "text_styles": [
+                    {"tag": "body", "font_family": "Inter, sans-serif"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         font_issues = [i for i in issues if i.rule == "typography_font_family_banned"]
         self.assertEqual(len(font_issues), 1)
@@ -154,9 +174,13 @@ class TestTypographyRules(unittest.TestCase):
 
     def test_text_alignment_justified_detected(self) -> None:
         """Verify: text-align: justify is flagged."""
-        probes = {"typography": {"text_styles": [
-            {"tag": "p", "text_align": "justify"},
-        ]}}
+        probes = {
+            "typography": {
+                "text_styles": [
+                    {"tag": "p", "text_align": "justify"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         align_issues = [i for i in issues if i.rule == "typography_text_alignment"]
         self.assertEqual(len(align_issues), 1)
@@ -170,9 +194,13 @@ class TestColorRules(unittest.TestCase):
 
     def test_contrast_normal_below_wcag_aa_detected(self) -> None:
         """Verify: contrast ratio < 4.5 is flagged as critical."""
-        probes = {"a11y": {"text_contrast": [
-            {"text": "Hello", "contrast_ratio": 3.0},
-        ]}}
+        probes = {
+            "a11y": {
+                "text_contrast": [
+                    {"text": "Hello", "contrast_ratio": 3.0},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         c_issues = [i for i in issues if i.rule == "color_contrast_ratio_normal"]
         self.assertEqual(len(c_issues), 1)
@@ -180,18 +208,26 @@ class TestColorRules(unittest.TestCase):
 
     def test_contrast_normal_ok_no_issue(self) -> None:
         """Verify: contrast ratio >= 4.5 produces no issue."""
-        probes = {"a11y": {"text_contrast": [
-            {"text": "Hello", "contrast_ratio": 7.0},
-        ]}}
+        probes = {
+            "a11y": {
+                "text_contrast": [
+                    {"text": "Hello", "contrast_ratio": 7.0},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         c_issues = [i for i in issues if i.rule == "color_contrast_ratio_normal"]
         self.assertEqual(len(c_issues), 0)
 
     def test_harsh_saturation_detected(self) -> None:
         """Verify: HSV saturation > 0.6 is flagged."""
-        probes = {"color": {"palette": [
-            {"hex": "#FF0000", "hsv_saturation": 0.9},
-        ]}}
+        probes = {
+            "color": {
+                "palette": [
+                    {"hex": "#FF0000", "hsv_saturation": 0.9},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         sat_issues = [i for i in issues if i.rule == "color_harsh_saturation"]
         self.assertEqual(len(sat_issues), 1)
@@ -199,18 +235,20 @@ class TestColorRules(unittest.TestCase):
 
     def test_palette_count_exceeded_detected(self) -> None:
         """Verify: palette with >5 colors is flagged."""
-        probes = {"color": {"palette": [
-            {"hex": f"#00000{i}"} for i in range(7)
-        ]}}
+        probes = {"color": {"palette": [{"hex": f"#00000{i}"} for i in range(7)]}}
         issues = self.engine.check(probes)
         pc_issues = [i for i in issues if i.rule == "color_palette_count"]
         self.assertEqual(len(pc_issues), 1)
 
     def test_oklch_not_used_detected(self) -> None:
         """Verify: no OKLCH colors is flagged as info."""
-        probes = {"color": {"palette": [
-            {"hex": "#333333", "color_space": "hex"},
-        ]}}
+        probes = {
+            "color": {
+                "palette": [
+                    {"hex": "#333333", "color_space": "hex"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         oklch_issues = [i for i in issues if i.rule == "color_oklch_usage"]
         self.assertEqual(len(oklch_issues), 1)
@@ -218,9 +256,13 @@ class TestColorRules(unittest.TestCase):
 
     def test_oklch_used_no_issue(self) -> None:
         """Verify: OKLCH colors present produces no issue."""
-        probes = {"color": {"palette": [
-            {"hex": "#333333", "color_space": "oklch"},
-        ]}}
+        probes = {
+            "color": {
+                "palette": [
+                    {"hex": "#333333", "color_space": "oklch"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         oklch_issues = [i for i in issues if i.rule == "color_oklch_usage"]
         self.assertEqual(len(oklch_issues), 0)
@@ -234,18 +276,26 @@ class TestSpatialRules(unittest.TestCase):
 
     def test_non_4pt_grid_spacing_detected(self) -> None:
         """Verify: spacing value not on 4pt grid is flagged."""
-        probes = {"spatial": {"spacing_values": [
-            {"property": "margin", "value": 7},
-        ]}}
+        probes = {
+            "spatial": {
+                "spacing_values": [
+                    {"property": "margin", "value": 7},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         grid_issues = [i for i in issues if i.rule == "spatial_4pt_grid"]
         self.assertEqual(len(grid_issues), 1)
 
     def test_4pt_grid_spacing_ok_no_issue(self) -> None:
         """Verify: 4pt grid value produces no issue."""
-        probes = {"spatial": {"spacing_values": [
-            {"property": "margin", "value": 16},
-        ]}}
+        probes = {
+            "spatial": {
+                "spacing_values": [
+                    {"property": "margin", "value": 16},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         grid_issues = [i for i in issues if i.rule == "spatial_4pt_grid"]
         self.assertEqual(len(grid_issues), 0)
@@ -260,9 +310,13 @@ class TestSpatialRules(unittest.TestCase):
 
     def test_padding_below_min_detected(self) -> None:
         """Verify: padding < 8px is flagged."""
-        probes = {"spatial": {"padding_values": [
-            {"tag": "div", "padding": 4},
-        ]}}
+        probes = {
+            "spatial": {
+                "padding_values": [
+                    {"tag": "div", "padding": 4},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         pad_issues = [i for i in issues if i.rule == "spatial_padding_min"]
         self.assertEqual(len(pad_issues), 1)
@@ -284,9 +338,13 @@ class TestResponsivenessRules(unittest.TestCase):
 
     def test_touch_target_too_small_detected(self) -> None:
         """Verify: touch target < 44px is flagged."""
-        probes = {"interaction": {"buttons": [
-            {"text": "OK", "width": 30, "height": 30},
-        ]}}
+        probes = {
+            "interaction": {
+                "buttons": [
+                    {"text": "OK", "width": 30, "height": 30},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         touch_issues = [i for i in issues if i.rule == "responsive_touch_target"]
         self.assertEqual(len(touch_issues), 1)
@@ -316,18 +374,26 @@ class TestInteractionRules(unittest.TestCase):
 
     def test_button_too_small_detected(self) -> None:
         """Verify: button with too_small=True is flagged."""
-        probes = {"interaction": {"buttons": [
-            {"text": "Submit", "width": 30, "height": 20, "too_small": True},
-        ]}}
+        probes = {
+            "interaction": {
+                "buttons": [
+                    {"text": "Submit", "width": 30, "height": 20, "too_small": True},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         btn_issues = [i for i in issues if i.rule == "interaction_button_min_size"]
         self.assertEqual(len(btn_issues), 1)
 
     def test_focus_outline_removed_detected(self) -> None:
         """Verify: removed focus outline is flagged as critical."""
-        probes = {"interaction": {"focus_styles": [
-            {"outline_removed": True},
-        ]}}
+        probes = {
+            "interaction": {
+                "focus_styles": [
+                    {"outline_removed": True},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         focus_issues = [i for i in issues if i.rule == "interaction_focus_visible"]
         self.assertEqual(len(focus_issues), 1)
@@ -335,9 +401,13 @@ class TestInteractionRules(unittest.TestCase):
 
     def test_destructive_without_confirm_detected(self) -> None:
         """Verify: destructive action without confirm is flagged as critical."""
-        probes = {"ux": {"destructive_without_confirm": [
-            {"text": "Delete Account", "tag": "button"},
-        ]}}
+        probes = {
+            "ux": {
+                "destructive_without_confirm": [
+                    {"text": "Delete Account", "tag": "button"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         dest_issues = [i for i in issues if i.rule == "interaction_destructive_confirm"]
         self.assertEqual(len(dest_issues), 1)
@@ -345,9 +415,13 @@ class TestInteractionRules(unittest.TestCase):
 
     def test_form_without_validation_detected(self) -> None:
         """Verify: form with inputs but no required fields is flagged."""
-        probes = {"ux": {"forms": [
-            {"action": "/submit", "input_count": 3, "required_count": 0, "no_validation": True},
-        ]}}
+        probes = {
+            "ux": {
+                "forms": [
+                    {"action": "/submit", "input_count": 3, "required_count": 0, "no_validation": True},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         form_issues = [i for i in issues if i.rule == "interaction_form_validation"]
         self.assertEqual(len(form_issues), 1)
@@ -361,27 +435,39 @@ class TestMotionRules(unittest.TestCase):
 
     def test_animation_duration_too_long_detected(self) -> None:
         """Verify: animation duration > 1000ms is flagged."""
-        probes = {"motion": {"animations": [
-            {"property": "opacity", "duration_ms": 2000, "easing": "ease"},
-        ]}}
+        probes = {
+            "motion": {
+                "animations": [
+                    {"property": "opacity", "duration_ms": 2000, "easing": "ease"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         dur_issues = [i for i in issues if i.rule == "motion_duration_max"]
         self.assertEqual(len(dur_issues), 1)
 
     def test_bounce_easing_detected(self) -> None:
         """Verify: bounce easing is flagged."""
-        probes = {"motion": {"animations": [
-            {"property": "transform", "duration_ms": 500, "easing": "cubic-bezier(bounce)"},
-        ]}}
+        probes = {
+            "motion": {
+                "animations": [
+                    {"property": "transform", "duration_ms": 500, "easing": "cubic-bezier(bounce)"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         bounce_issues = [i for i in issues if i.rule == "motion_no_bounce_easing"]
         self.assertEqual(len(bounce_issues), 1)
 
     def test_width_height_animation_detected(self) -> None:
         """Verify: animating width/height is flagged."""
-        probes = {"motion": {"animations": [
-            {"property": "width", "duration_ms": 300, "easing": "ease-out"},
-        ]}}
+        probes = {
+            "motion": {
+                "animations": [
+                    {"property": "width", "duration_ms": 300, "easing": "ease-out"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         wh_issues = [i for i in issues if i.rule == "motion_no_width_height_anim"]
         self.assertEqual(len(wh_issues), 1)
@@ -420,45 +506,65 @@ class TestUXWritingRules(unittest.TestCase):
 
     def test_vague_button_text_detected(self) -> None:
         """Verify: vague button text 'Click Here' is flagged."""
-        probes = {"interaction": {"buttons": [
-            {"text": "Click Here", "width": 100, "height": 44},
-        ]}}
+        probes = {
+            "interaction": {
+                "buttons": [
+                    {"text": "Click Here", "width": 100, "height": 44},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         btn_issues = [i for i in issues if i.rule == "ux_button_text_clarity"]
         self.assertEqual(len(btn_issues), 1)
 
     def test_actionable_button_text_no_issue(self) -> None:
         """Verify: actionable button text produces no issue."""
-        probes = {"interaction": {"buttons": [
-            {"text": "Save Changes", "width": 100, "height": 44},
-        ]}}
+        probes = {
+            "interaction": {
+                "buttons": [
+                    {"text": "Save Changes", "width": 100, "height": 44},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         btn_issues = [i for i in issues if i.rule == "ux_button_text_clarity"]
         self.assertEqual(len(btn_issues), 0)
 
     def test_unhelpful_error_message_detected(self) -> None:
         """Verify: unhelpful error message 'Error' is flagged."""
-        probes = {"ux": {"error_messages": [
-            {"text": "Error"},
-        ]}}
+        probes = {
+            "ux": {
+                "error_messages": [
+                    {"text": "Error"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         err_issues = [i for i in issues if i.rule == "ux_error_message_clarity"]
         self.assertEqual(len(err_issues), 1)
 
     def test_vague_link_text_detected(self) -> None:
         """Verify: vague link text 'Read More' is flagged."""
-        probes = {"ux": {"links": [
-            {"text": "Read More"},
-        ]}}
+        probes = {
+            "ux": {
+                "links": [
+                    {"text": "Read More"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         link_issues = [i for i in issues if i.rule == "ux_link_text_descriptive"]
         self.assertEqual(len(link_issues), 1)
 
     def test_vague_heading_detected(self) -> None:
         """Verify: vague heading 'Title' is flagged."""
-        probes = {"typography": {"headings": [
-            {"level": 1, "text": "Title"},
-        ]}}
+        probes = {
+            "typography": {
+                "headings": [
+                    {"level": 1, "text": "Title"},
+                ]
+            }
+        }
         issues = self.engine.check(probes)
         h_issues = [i for i in issues if i.rule == "ux_heading_descriptive"]
         self.assertEqual(len(h_issues), 1)
@@ -477,9 +583,13 @@ class TestTasteDialsIntegration(unittest.TestCase):
         critical design principle. Even with visual_density=1.0, the contrast
         threshold remains 4.5:1.
         """
-        probes = {"a11y": {"text_contrast": [
-            {"text": "Hello", "contrast_ratio": 4.0},
-        ]}}
+        probes = {
+            "a11y": {
+                "text_contrast": [
+                    {"text": "Hello", "contrast_ratio": 4.0},
+                ]
+            }
+        }
         # Default dials — should flag (4.0 < 4.5)
         issues_default = self.engine.check(probes, dials=TasteDials())
         # High density dials — should STILL flag (a11y not adjusted)
@@ -517,9 +627,13 @@ class TestTasteDialsIntegration(unittest.TestCase):
         relaxed (1000ms * 1.3 = 1300ms), so 1100ms should NOT be flagged.
         With default dials, 1100ms SHOULD be flagged (1100 > 1000).
         """
-        probes = {"motion": {"animations": [
-            {"property": "opacity", "duration_ms": 1100, "easing": "ease"},
-        ]}}
+        probes = {
+            "motion": {
+                "animations": [
+                    {"property": "opacity", "duration_ms": 1100, "easing": "ease"},
+                ]
+            }
+        }
         # Default dials — should flag (1100 > 1000)
         issues_default = self.engine.check(probes, dials=TasteDials())
         # High motion dials — should NOT flag (1100 < 1300)
@@ -628,19 +742,11 @@ class TestSeveritySorting(unittest.TestCase):
         self.assertIn(SEVERITY_WARNING, severities)
         self.assertIn(SEVERITY_INFO, severities)
         # Verify sorting: all criticals before warnings before infos
-        first_warning_idx = next(
-            (i for i, s in enumerate(severities) if s == SEVERITY_WARNING), len(severities)
-        )
-        first_info_idx = next(
-            (i for i, s in enumerate(severities) if s == SEVERITY_INFO), len(severities)
-        )
-        last_critical_idx = max(
-            (i for i, s in enumerate(severities) if s == SEVERITY_ERROR), default=-1
-        )
-        self.assertLess(last_critical_idx, first_warning_idx,
-                        "Critical issues must come before warnings")
-        self.assertLess(first_warning_idx, first_info_idx,
-                        "Warning issues must come before infos")
+        first_warning_idx = next((i for i, s in enumerate(severities) if s == SEVERITY_WARNING), len(severities))
+        first_info_idx = next((i for i, s in enumerate(severities) if s == SEVERITY_INFO), len(severities))
+        last_critical_idx = max((i for i, s in enumerate(severities) if s == SEVERITY_ERROR), default=-1)
+        self.assertLess(last_critical_idx, first_warning_idx, "Critical issues must come before warnings")
+        self.assertLess(first_warning_idx, first_info_idx, "Warning issues must come before infos")
 
 
 class TestPillarToCategoryMapping(unittest.TestCase):
@@ -649,15 +755,13 @@ class TestPillarToCategoryMapping(unittest.TestCase):
     def test_all_pillars_have_category_mapping(self) -> None:
         """Verify: every pillar in SEVEN_PILLARS has a category mapping."""
         for pillar in SEVEN_PILLARS:
-            self.assertIn(pillar, PILLAR_TO_CATEGORY,
-                          f"Pillar '{pillar}' missing from PILLAR_TO_CATEGORY")
+            self.assertIn(pillar, PILLAR_TO_CATEGORY, f"Pillar '{pillar}' missing from PILLAR_TO_CATEGORY")
 
     def test_all_categories_are_valid(self) -> None:
         """Verify: all mapped categories are valid DevSquad categories."""
         valid_categories = {"a11y", "interaction", "layout", "ux_antipattern"}
         for pillar, category in PILLAR_TO_CATEGORY.items():
-            self.assertIn(category, valid_categories,
-                          f"Pillar '{pillar}' maps to invalid category '{category}'")
+            self.assertIn(category, valid_categories, f"Pillar '{pillar}' maps to invalid category '{category}'")
 
 
 class TestRealWorldScenarios(unittest.TestCase):
@@ -671,58 +775,56 @@ class TestRealWorldScenarios(unittest.TestCase):
         probes = {
             "a11y": {
                 "text_contrast": [{"text": "Hello", "contrast_ratio": 7.0}],
-                "inputs": [{"type": "text", "has_label": True, "id": "email",
-                            "label_text": "Email Address"}],
+                "inputs": [{"type": "text", "has_label": True, "id": "email", "label_text": "Email Address"}],
             },
             "interaction": {
-                "buttons": [{"text": "Save Changes", "width": 120, "height": 44,
-                             "too_small": False}],
+                "buttons": [{"text": "Save Changes", "width": 120, "height": 44, "too_small": False}],
                 "focus_styles": [{"outline_removed": False}],
             },
             "layout": {"viewport_overflow": False, "element_count": 20},
-            "ux": {"forms": [{"action": "/save", "input_count": 2,
-                              "required_count": 1, "no_validation": False}],
-                   "destructive_without_confirm": []},
-            "typography": {"text_styles": [
-                {"tag": "p", "line_height": 1.6, "font_size_px": 16,
-                 "text_align": "left", "color": "#666666"},
-            ]},
+            "ux": {
+                "forms": [{"action": "/save", "input_count": 2, "required_count": 1, "no_validation": False}],
+                "destructive_without_confirm": [],
+            },
+            "typography": {
+                "text_styles": [
+                    {"tag": "p", "line_height": 1.6, "font_size_px": 16, "text_align": "left", "color": "#666666"},
+                ]
+            },
         }
         issues = self.engine.check(probes)
-        self.assertEqual(len(issues), 0,
-                         f"Clean page should produce 0 issues, got {len(issues)}: "
-                         f"{[i.rule for i in issues]}")
+        self.assertEqual(
+            len(issues), 0, f"Clean page should produce 0 issues, got {len(issues)}: {[i.rule for i in issues]}"
+        )
 
     def test_problematic_page_produces_multiple_issues(self) -> None:
         """Verify: a problematic page produces multiple issues across pillars."""
         probes = {
             "a11y": {
                 "text_contrast": [{"text": "low", "contrast_ratio": 2.0}],
-                "inputs": [{"type": "text", "has_label": False, "id": "field1",
-                            "label_text": "Field 1"}],
+                "inputs": [{"type": "text", "has_label": False, "id": "field1", "label_text": "Field 1"}],
             },
             "interaction": {
-                "buttons": [{"text": "Click Here", "width": 30, "height": 20,
-                             "too_small": True}],
+                "buttons": [{"text": "Click Here", "width": 30, "height": 20, "too_small": True}],
                 "focus_styles": [{"outline_removed": True}],
             },
             "layout": {"viewport_overflow": True, "element_count": 80},
-            "ux": {"forms": [{"action": "/submit", "input_count": 3,
-                              "required_count": 0, "no_validation": True}],
-                   "destructive_without_confirm": [
-                       {"text": "Delete Account", "tag": "button"}]},
-            "motion": {"animations": [
-                {"property": "width", "duration_ms": 2000, "easing": "bounce"},
-            ]},
+            "ux": {
+                "forms": [{"action": "/submit", "input_count": 3, "required_count": 0, "no_validation": True}],
+                "destructive_without_confirm": [{"text": "Delete Account", "tag": "button"}],
+            },
+            "motion": {
+                "animations": [
+                    {"property": "width", "duration_ms": 2000, "easing": "bounce"},
+                ]
+            },
         }
         issues = self.engine.check(probes)
         # Should have multiple issues
-        self.assertGreater(len(issues), 5,
-                           f"Problematic page should produce >5 issues, got {len(issues)}")
+        self.assertGreater(len(issues), 5, f"Problematic page should produce >5 issues, got {len(issues)}")
         # Should have at least one critical
         self.assertGreater(
-            sum(1 for i in issues if i.severity == SEVERITY_ERROR), 0,
-            "Should have at least one critical issue"
+            sum(1 for i in issues if i.severity == SEVERITY_ERROR), 0, "Should have at least one critical issue"
         )
 
 
