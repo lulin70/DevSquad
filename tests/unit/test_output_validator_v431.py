@@ -31,6 +31,7 @@ if _PROJECT_ROOT not in sys.path:
 from scripts.collaboration.output_validator import (  # noqa: E402
     OutputValidator,
 )
+from tests.conftest import env_perf_factor, perf_ceiling_ms  # noqa: E402
 
 
 class TestOutputValidatorV431(unittest.TestCase):
@@ -213,6 +214,17 @@ class TestOutputValidatorV431(unittest.TestCase):
 
         Uses a warmup call to eliminate first-call regex overhead from
         the timing measurement.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) using an
+        *operation-independent* reference-workload control. The factor is 1.0 on
+        the calibration host so the ceiling equals the original 0.1 s budget
+        there. The control must not touch the code under test: a same-code-path
+        control (e.g. ``validate()`` on 150 lines, 1/10 the input) would inflate
+        along with a regression, grow the ceiling in lockstep, and the gate could
+        no longer fail. ``perf_ceiling_ms`` is unit-agnostic, so passing the
+        original 0.1 returns a ceiling in seconds. The gate keeps its intent: a
+        validator that became super-linear in input length (e.g. a new O(n^2)
+        regex) still fails.
         """
         validator = OutputValidator()
         large_text = "Normal output line with no risky content.\n" * 1500
@@ -220,10 +232,18 @@ class TestOutputValidatorV431(unittest.TestCase):
         self.assertGreater(len(large_text), 50_000)
         # Warmup: eliminates first-call overhead from timing
         validator.validate("warmup text")
+        ceiling_s = perf_ceiling_ms(0.1)
         start = time.perf_counter()
         result = validator.validate(large_text)
         elapsed = time.perf_counter() - start
-        self.assertLess(elapsed, 0.1, f"validate() took {elapsed:.3f}s, expected < 0.1s")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (
+                f"validate() took {elapsed:.4f}s, expected < {ceiling_s:.4f}s "
+                f"(host factor {env_perf_factor():.2f}x)"
+            ),
+        )
         # Should have no findings (clean text)
         self.assertEqual(len(result.findings), 0)
 

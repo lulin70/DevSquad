@@ -43,6 +43,7 @@ from scripts.check_hidden_content import (
     scan_file,
     scan_line,
 )
+from tests.conftest import perf_ceiling_ms
 
 
 class T1_DataModels(unittest.TestCase):
@@ -530,7 +531,17 @@ class T12_Performance(unittest.TestCase):
 
         Scenario: Large clean file should scan quickly.
         Expected: Wall time < 500ms (generous baseline; typically <50ms).
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 500 ms budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never scans a file, so a
+        regression that inflates the scan (e.g. an O(n^2) rewrite of per-line
+        scanning) still trips it.
         """
+        ceiling_ms = perf_ceiling_ms(500.0)
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".py", delete=False, encoding="utf-8"
         ) as f:
@@ -542,8 +553,13 @@ class T12_Performance(unittest.TestCase):
             findings = scan_file(large_path)
             elapsed_ms = (time.perf_counter() - start) * 1000
             self.assertEqual(findings, [])
-            self.assertLess(elapsed_ms, 500.0,
-                            f"Scan took {elapsed_ms:.1f}ms, expected <500ms")
+            self.assertLess(
+                elapsed_ms,
+                ceiling_ms,
+                (
+                    f"Scan took {elapsed_ms:.1f}ms, exceeds ceiling {ceiling_ms:.1f}ms"
+                ),
+            )
         finally:
             large_path.unlink(missing_ok=True)
 

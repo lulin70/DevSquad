@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
+from tests.conftest import perf_ceiling_ms  # noqa: E402
 
 
 class T1_FullDispatchPipeline(unittest.TestCase):
@@ -316,12 +317,25 @@ class T7_DryRunModeIntegration(unittest.TestCase):
         self.assertIsInstance(result, DispatchResult)
 
     def test_02_dry_run_completes_quickly(self) -> None:
-        """Verify: dry_run=True completes in < 2 seconds (no real execution)."""
+        """Verify: dry_run=True completes in < 2 seconds (no real execution).
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) via the
+        operation-independent reference workload — ``dispatch(dry_run=True)`` is
+        a one-shot with no smaller same-code-path variant. On the calibration
+        host the factor is 1.0, so the ceiling equals the original 5 s budget;
+        elsewhere it scales with the host. The gate still catches a dry-run that
+        started doing real work (e.g. instantiating workers).
+        """
         import time
+        ceiling_s = perf_ceiling_ms(5.0)
         start = time.time()
         self.disp.dispatch("Design a system", dry_run=True)
         elapsed = time.time() - start
-        self.assertLess(elapsed, 5.0, f"Dry-run took {elapsed:.2f}s, expected < 5s")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            f"Dry-run took {elapsed:.2f}s, expected < {ceiling_s:.2f}s",
+        )
 
     def test_03_dry_run_still_matches_roles(self) -> None:
         """Verify: dry_run=True still performs role matching."""

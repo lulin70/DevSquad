@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 import pytest
 
 from scripts.collaboration.dispatch_rbac import DispatchRBAC, PermissionResult
+from tests.conftest import perf_ceiling_ms
 
 pytestmark = pytest.mark.unit
 
@@ -271,8 +272,19 @@ class TestDispatchRBACPerformance(unittest.TestCase):
     """Performance baseline — check should be fast."""
 
     def test_check_completes_under_5ms(self) -> None:
-        """Verify: a single check completes in < 5ms."""
+        """Verify: a single check completes in < 5ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 5.0 s budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never checks a permission,
+        so a regression that inflates the 1000-call path (e.g. a super-linear
+        credentials/role scan per check) still trips it.
+        """
         # Arrange
+        ceiling_s = perf_ceiling_ms(5.0)
         auth = MockAuthManager(credentials={"admin": {"role": "admin"}})
         rbac = DispatchRBAC(auth_manager=auth)
         # Act
@@ -281,7 +293,14 @@ class TestDispatchRBACPerformance(unittest.TestCase):
             rbac.check_dispatch_permission("admin", ["architect", "coder"], "parallel")
         elapsed = time.perf_counter() - start
         # Assert
-        self.assertLess(elapsed, 5.0, f"1000 checks took {elapsed:.3f}s (> 5ms per call)")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (
+                f"1000 checks took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s "
+                f"(> 5ms per call)"
+            ),
+        )
 
 
 if __name__ == "__main__":

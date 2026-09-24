@@ -30,6 +30,7 @@ from scripts.collaboration.models import (
     WorkerResult,
 )
 from scripts.collaboration.scratchpad import Scratchpad
+from tests.conftest import env_perf_factor, perf_ceiling_ms
 
 # =====================================================================
 # Coordinator: TokenBudget integration
@@ -313,15 +314,35 @@ class TestBudgetStatusPerformance(unittest.TestCase):
     """``get_budget_status`` runs in <1ms — safe for dashboard polling."""
 
     def test_budget_status_under_1ms(self) -> None:
+        """``get_budget_status`` stays cheap for dashboard polling (1000 calls < 100 ms).
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) using an
+        *operation-independent* reference-workload control. The factor is 1.0 on
+        the calibration host so the ceiling equals the original 100 ms budget
+        there. The control must not touch the code under test: a same-code-path
+        control (e.g. 100 ``get_budget_status`` calls) would inflate along with a
+        regression, grow the ceiling in lockstep, and the gate could no longer
+        fail. The gate keeps its intent: a ``get_budget_status`` that became
+        super-linear in the polled counters (e.g. an O(n) scan per call) still
+        fails.
+        """
         import time
 
+        ceiling_ms = perf_ceiling_ms(100.0)
         budget = TokenBudget(total_input_budget=100_000, warning_ratio=0.8)
         coord = Coordinator(token_budget=budget, enable_compression=True)
         start = time.perf_counter()
         for _ in range(1000):
             coord.get_budget_status()
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 100)  # <0.1ms per call on average
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            (
+                f"get_budget_status x1000 too slow: {elapsed_ms:.3f}ms exceeds ceiling "
+                f"{ceiling_ms:.3f}ms (host factor {env_perf_factor():.2f}x)"
+            ),
+        )
 
 
 if __name__ == "__main__":

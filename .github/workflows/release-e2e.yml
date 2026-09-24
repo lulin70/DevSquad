@@ -182,7 +182,11 @@ jobs:
       - name: Run ruff hard check
         run: ruff check . --ignore=E501
       - name: Run mypy hard check
-        run: mypy scripts/ skills/ --ignore-missing-imports --no-error-summary --no-site-packages
+        # V4.5.20: `--no-site-packages` removed — it degraded every installed
+        # third-party return value to `Any`, which masked 3 real type errors
+        # (test.yml explains the full finding). Keep this gate's scope identical
+        # to CI's, otherwise release could pass what CI rejects.
+        run: mypy scripts/ skills/ --ignore-missing-imports --no-error-summary
       - name: Run pip-audit hard check
         run: |
           pip install -r requirements.lock

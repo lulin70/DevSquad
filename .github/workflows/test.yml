@@ -273,13 +273,21 @@ jobs:
           fi
           echo "OK: radon cc zero D+ functions (V4.1.1 achievement maintained)"
       - name: Type check (blocking since V3.9.1)
-        run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary --no-site-packages
+        # V4.5.20: `--no-site-packages` removed. It hid every installed
+        # third-party stub, degrading third-party return values to `Any` — and
+        # those `Any` values silently absorbed 3 real type errors
+        # (config_manager redundant-cast, i18n redundant-cast, st.mermaid
+        # attr-defined). A green gate must actually check the code it claims to
+        # check; masking stubs is the same false-green class as a gate skipped
+        # by an earlier failure.
+        run: mypy scripts/collaboration/ --ignore-missing-imports --no-error-summary
       # Full scripts/+skills/ mypy check (blocking since V3.10.0).
       # Achievement: 112 errors → 0 (V3.10.0, 2026-06-30).
       # skills/ added to mypy scope in V3.9.2 Round 9 (P1-1).
+      # V4.5.20: `--no-site-packages` removed here too (see note above).
       - name: Type check scripts/+skills/ full (blocking)
         run: |
-          mypy scripts/ skills/ --ignore-missing-imports --no-error-summary --no-site-packages 2>&1 | tee /tmp/mypy_full.log
+          mypy scripts/ skills/ --ignore-missing-imports --no-error-summary 2>&1 | tee /tmp/mypy_full.log
           error_count=$(grep -c "error:" /tmp/mypy_full.log || echo "0")
           if [ "$error_count" -gt 0 ]; then
             echo "ERROR: mypy found $error_count error(s) — must be 0 (V3.10.0 policy)"

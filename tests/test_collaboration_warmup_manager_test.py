@@ -39,6 +39,7 @@ from scripts.collaboration.warmup_manager import (
     WarmupStatus,
     WarmupTask,
 )
+from tests.conftest import env_perf_factor, perf_ceiling_ms
 
 pytestmark = pytest.mark.unit
 
@@ -351,6 +352,15 @@ class T3EagerWarmup(unittest.TestCase):
         self.assertEqual(results, [])
 
     def test_06_duration_recorded(self):
+        """Verify: a task's measured duration is recorded.
+
+        V4.5.20 P1-2: ``results[0].duration_ms`` is an internal measurement
+        reported by the object under test, so it has no smaller same-code-path
+        variant; the budget is scaled with the generic reference-workload
+        control (tests/conftest.py). On the calibration host the factor is 1.0
+        and the ceiling stays exactly 5000 ms. The gate keeps its intent: an
+        executor that hangs (e.g. an accidental busy-wait) still trips it.
+        """
         wm = WarmupManager.instance(WarmupConfig.fast())
         wm._tasks.clear()
         wm._results.clear()
@@ -362,9 +372,15 @@ class T3EagerWarmup(unittest.TestCase):
             timeout_ms=5000,
         )
         wm.register_task(task)
+        ceiling_ms = perf_ceiling_ms(5000.0)
         results = wm.warmup_eager()
         self.assertGreater(results[0].duration_ms, 5)
-        self.assertLess(results[0].duration_ms, 5000)
+        self.assertLess(
+            results[0].duration_ms,
+            ceiling_ms,
+            f"recorded task duration {results[0].duration_ms:.1f}ms exceeds "
+            f"ceiling {ceiling_ms:.1f}ms",
+        )
 
     def test_07_result_cached(self):
         wm = WarmupManager.instance(WarmupConfig.fast())
@@ -404,6 +420,19 @@ class T4AsyncWarmup(unittest.TestCase):
         _reset()
 
     def test_01_returns_immediately(self):
+        """Verify: async warmup returns immediately (<100ms).
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) using an
+        *operation-independent* reference-workload control. Factor is 1.0 on the
+        calibration host so the ceiling stays exactly 100 ms. The control must
+        not touch the code under test: a same-code-path control would inflate
+        along with a regression, grow the ceiling in lockstep, and the gate could
+        no longer fail. The gate keeps its intent: a regression that blocks on the
+        task (e.g. calling ``future.result()`` inline) inflates the sleep(2)
+        operation but not the independent control, so it still fails, as the
+        injected regression shows.
+        """
+        ceiling_ms = perf_ceiling_ms(100.0)
         wm = WarmupManager.instance(WarmupConfig.default())
         wm._tasks.clear()
         wm._results.clear()
@@ -419,7 +448,12 @@ class T4AsyncWarmup(unittest.TestCase):
         start = time.perf_counter()
         wm.warmup_async()
         elapsed = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed, 100)
+        self.assertLess(
+            elapsed,
+            ceiling_ms,
+            f"warmup_async dispatch {elapsed:.3f}ms exceeds ceiling "
+            f"{ceiling_ms:.1f}ms (host factor {env_perf_factor():.2f}x)",
+        )
 
     def test_02_eventually_completes(self):
         wm = WarmupManager.instance(WarmupConfig.default())
@@ -745,6 +779,19 @@ class T5CacheManagement(unittest.TestCase):
         self.assertLessEqual(len(wm._cache), 5)
 
     def test_14_large_scale_performance(self):
+        """Verify: 500 cache writes + 500 reads complete in <500ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) using an
+        *operation-independent* reference-workload control. Factor is 1.0 on the
+        calibration host so the ceiling stays exactly 500 ms. The control must
+        not touch the code under test: a same-code-path control would inflate
+        along with a regression, grow the ceiling in lockstep, and the gate could
+        no longer fail. The gate keeps its intent: a regression whose per-insert
+        cost grows with cache size — a linear-scan eviction, or an O(n) lookup —
+        inflates the 500-entry operation while leaving the independent control
+        unchanged, as the injected regression shows.
+        """
+        ceiling_ms = perf_ceiling_ms(500.0)
         wm = WarmupManager.instance(WarmupConfig.full())
         start = time.perf_counter()
         for i in range(500):
@@ -752,7 +799,12 @@ class T5CacheManagement(unittest.TestCase):
         for i in range(500):
             wm.get(f"perf-{i}")
         elapsed = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed, 500)
+        self.assertLess(
+            elapsed,
+            ceiling_ms,
+            f"500 set + 500 get {elapsed:.1f}ms exceeds ceiling "
+            f"{ceiling_ms:.1f}ms (host factor {env_perf_factor():.2f}x)",
+        )
 
 
 class T6DependencyResolution(unittest.TestCase):
@@ -856,12 +908,27 @@ class T7MetricsAndPerformance(unittest.TestCase):
         self.assertIsInstance(m.cache_size, int)
 
     def test_02_startup_time_reasonable(self):
+        """Verify: reported startup time is a sane bound (<30000ms).
+
+        V4.5.20 P1-2: ``m.startup_time_ms`` is an internal measurement reported
+        by the object under test, so it has no smaller same-code-path variant;
+        the budget is scaled with the generic reference-workload control
+        (tests/conftest.py). Factor is 1.0 on the calibration host so the ceiling
+        stays exactly 30000 ms. The gate keeps its intent: a warmup that hung or
+        accumulated unbounded work would still blow past it.
+        """
         cfg = WarmupConfig(metrics_enabled=True)
         wm = WarmupManager.instance(cfg)
         wm.warmup(layers=[WarmupLayer.EAGER])
+        ceiling_ms = perf_ceiling_ms(30000.0)
         m = wm.get_metrics()
         self.assertGreater(m.startup_time_ms, 0)
-        self.assertLess(m.startup_time_ms, 30000)
+        self.assertLess(
+            m.startup_time_ms,
+            ceiling_ms,
+            f"reported startup_time_ms {m.startup_time_ms:.1f}ms exceeds "
+            f"ceiling {ceiling_ms:.1f}ms",
+        )
 
     def test_03_hit_rate_calculation(self):
         cfg = WarmupConfig(metrics_enabled=True)
@@ -1005,14 +1072,29 @@ class IT1CoordinatorIntegration(unittest.TestCase):
         _reset()
 
     def test_01_fast_coordinator_creation_after_warmup(self):
+        """Verify: Coordinator() construction after warmup completes in <200ms.
+
+        V4.5.20 P1-2: constructing a Coordinator is a genuine one-shot with no
+        smaller same-code-path variant, so the budget is scaled with the generic
+        reference-workload control (tests/conftest.py). Factor is 1.0 on the
+        calibration host so the ceiling stays exactly 200 ms. The gate keeps its
+        intent: construction that started doing heavy work (imports, I/O) would
+        still trip it.
+        """
         wm = WarmupManager.instance(WarmupConfig.fast())
         wm.warmup(layers=[WarmupLayer.EAGER])
         from scripts.collaboration.coordinator import Coordinator
 
+        ceiling_ms = perf_ceiling_ms(200.0)
         start = time.perf_counter()
         Coordinator()
         elapsed = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed, 200)
+        self.assertLess(
+            elapsed,
+            ceiling_ms,
+            f"Coordinator() construction {elapsed:.1f}ms exceeds ceiling "
+            f"{ceiling_ms:.1f}ms",
+        )
 
     def test_02_coordinator_plan_works(self):
         wm = WarmupManager.instance(WarmupConfig.fast())
@@ -1025,14 +1107,28 @@ class IT1CoordinatorIntegration(unittest.TestCase):
         self.assertGreater(plan.total_tasks, 0)
 
     def test_03_lazy_coordinator_without_warmup(self):
+        """Verify: Coordinator() construction without prior warmup is <500ms.
+
+        V4.5.20 P1-2: constructing a Coordinator is a genuine one-shot with no
+        smaller same-code-path variant, so the budget is scaled with the generic
+        reference-workload control (tests/conftest.py). Factor is 1.0 on the
+        calibration host so the ceiling stays exactly 500 ms. The gate keeps its
+        intent: the cold (un-warmed) construction path must not become heavy.
+        """
         _reset()
         WarmupManager.instance(WarmupConfig.fast())
         from scripts.collaboration.coordinator import Coordinator
 
+        ceiling_ms = perf_ceiling_ms(500.0)
         start = time.perf_counter()
         Coordinator()
         elapsed = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed, 500)
+        self.assertLess(
+            elapsed,
+            ceiling_ms,
+            f"lazy Coordinator() construction {elapsed:.1f}ms exceeds ceiling "
+            f"{ceiling_ms:.1f}ms",
+        )
 
     def test_04_scratchpad_shared_cache(self):
         WarmupManager.instance(WarmupConfig.fast())
@@ -1107,7 +1203,17 @@ class E2ETests(unittest.TestCase):
         _reset()
 
     def test_01_web_service_startup_journey(self):
+        """Verify: the full warmup startup journey completes in <3000ms.
+
+        V4.5.20 P1-2: a full startup journey (warmup + wait for completion) is a
+        genuine one-shot with no smaller same-code-path variant, so the budget is
+        scaled with the generic reference-workload control (tests/conftest.py).
+        Factor is 1.0 on the calibration host so the ceiling stays exactly
+        3000 ms. The gate keeps its intent: a startup that blocked or never
+        reached "fully warmed" would still trip it.
+        """
         wm = WarmupManager.instance(WarmupConfig.default())
+        ceiling_ms = perf_ceiling_ms(3000.0)
         t_start = time.perf_counter()
         wm.warmup()
         max_wait = wm.config.async_timeout_ms / 1000.0 + 2.0
@@ -1115,18 +1221,36 @@ class E2ETests(unittest.TestCase):
         while not wm.is_fully_warmed() and time.monotonic() < deadline:
             time.sleep(0.01)
         import_start = (time.perf_counter() - t_start) * 1000
-        self.assertLess(import_start, 3000)
+        self.assertLess(
+            import_start,
+            ceiling_ms,
+            f"startup journey {import_start:.1f}ms exceeds ceiling "
+            f"{ceiling_ms:.1f}ms",
+        )
 
     def test_02_cli_fast_mode(self):
+        """Verify: FAST-mode warmup completes in <200ms.
+
+        V4.5.20 P1-2: a single warmup() call under FAST config is a genuine
+        one-shot (it runs once at startup), so the budget is scaled with the
+        generic reference-workload control (tests/conftest.py). Factor is 1.0 on
+        the calibration host so the ceiling stays exactly 200 ms. The gate keeps
+        its intent: a regression that made the fast path slow would still trip it.
+        """
         old = os.environ.get("WARMUP_MODE")
         try:
             os.environ["WARMUP_MODE"] = "FAST"
             _reset()
             wm = WarmupManager.instance()
+            ceiling_ms = perf_ceiling_ms(200.0)
             t_start = time.perf_counter()
             wm.warmup()
             elapsed = (time.perf_counter() - t_start) * 1000
-            self.assertLess(elapsed, 200)
+            self.assertLess(
+                elapsed,
+                ceiling_ms,
+                f"FAST warmup {elapsed:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
+            )
         finally:
             if old is None:
                 os.environ.pop("WARMUP_MODE", None)
@@ -1196,10 +1320,25 @@ class E2ETests(unittest.TestCase):
         self.assertLess(len(wm._cache), 15)
 
     def test_07benchmark_regression_baseline(self):
+        """Verify: benchmark p95 warmup latency stays under a sane bound.
+
+        V4.5.20 P1-2: ``result["p95_ms"]`` is an internal measurement reported by
+        the object under test, so it has no smaller same-code-path variant; the
+        budget is scaled with the generic reference-workload control
+        (tests/conftest.py). Factor is 1.0 on the calibration host so the ceiling
+        stays exactly 5000 ms. The gate keeps its intent: a warmup that regressed
+        by orders of magnitude would still trip it.
+        """
         wm = WarmupManager.instance(WarmupConfig.fast())
+        ceiling_ms = perf_ceiling_ms(5000.0)
         result = wm.benchmark(iterations=3)
         self.assertIn("p95_ms", result)
-        self.assertLess(result["p95_ms"], 5000)
+        self.assertLess(
+            result["p95_ms"],
+            ceiling_ms,
+            f"benchmark p95_ms {result['p95_ms']:.1f}ms exceeds ceiling "
+            f"{ceiling_ms:.1f}ms",
+        )
 
     def test_08_diagnostics_completeness(self):
         wm = WarmupManager.instance(WarmupConfig.fast())

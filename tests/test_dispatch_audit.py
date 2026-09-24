@@ -31,6 +31,7 @@ from scripts.collaboration.dispatch_audit import (
     AuditEntry,
     DispatchAuditLogger,
 )
+from tests.conftest import perf_ceiling_ms
 
 pytestmark = pytest.mark.unit
 
@@ -317,8 +318,18 @@ class TestDispatchAuditLoggerPerformance(unittest.TestCase):
 
         Scenario: DispatchAuditLogger uses SHA-256 hashing, which should be fast.
         Expected: 1000 logs complete in well under 5s, so each call is < 5ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 5.0 s budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never logs, so a regression
+        that inflates the 1000-call path (e.g. an O(n^2) chain re-hash per
+        append) still trips it.
         """
         # Arrange
+        ceiling_s = perf_ceiling_ms(5.0)
         logger = DispatchAuditLogger()
         # Act
         start = time.perf_counter()
@@ -326,11 +337,29 @@ class TestDispatchAuditLoggerPerformance(unittest.TestCase):
             logger.log_dispatch_start("u1", f"task{i}", ["architect"])
         elapsed = time.perf_counter() - start
         # Assert
-        self.assertLess(elapsed, 5.0, f"1000 logs took {elapsed:.3f}s (> 5ms per call)")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (
+                f"1000 logs took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s "
+                f"(> 5ms per call)"
+            ),
+        )
 
     def test_verify_chain_fast_for_100_entries(self) -> None:
-        """Verify: verify_chain on 100 entries completes in < 100ms."""
+        """Verify: verify_chain on 100 entries completes in < 100ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 0.5 s budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never verifies a chain, so
+        a regression that inflates verification (e.g. a super-linear re-hash of
+        the whole chain per entry) still trips it.
+        """
         # Arrange
+        ceiling_s = perf_ceiling_ms(0.5)
         logger = DispatchAuditLogger()
         for i in range(100):
             logger.log_dispatch_start("u1", f"task{i}", ["architect"])
@@ -340,7 +369,13 @@ class TestDispatchAuditLoggerPerformance(unittest.TestCase):
         elapsed = time.perf_counter() - start
         # Assert
         self.assertTrue(result)
-        self.assertLess(elapsed, 0.5, f"verify_chain took {elapsed:.3f}s (> 500ms)")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (
+                f"verify_chain took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s"
+            ),
+        )
 
 
 class TestDispatcherDefaultAuditPersistence(unittest.TestCase):

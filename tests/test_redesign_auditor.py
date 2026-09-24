@@ -22,6 +22,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.collaboration.redesign_auditor import RedesignAuditor, RedesignFinding
+from tests.conftest import perf_ceiling_ms
 
 
 class TestRedesignFindingDataclass(unittest.TestCase):
@@ -406,6 +407,15 @@ class TestRedesignAuditorPerformance(unittest.TestCase):
         Scenario: RedesignAuditor uses regex matching, which should be fast.
         Expected: 100 iterations complete in well under 10s, so each
         call is < 100ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 5.0 s budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never audits the snippet,
+        so a regression that inflates the 10-audit path (e.g. per-call state
+        that grows super-linearly) still trips it.
         """
         # Arrange
         code = (
@@ -420,13 +430,21 @@ class TestRedesignAuditorPerformance(unittest.TestCase):
             "    def build():\n"
             "        pass\n"
         ) * 100
+        ceiling_s = perf_ceiling_ms(5.0)
         # Act
         start = time.perf_counter()
         for _ in range(10):
             self.auditor.audit(code)
         elapsed = time.perf_counter() - start
         # Assert
-        self.assertLess(elapsed, 5.0, f"10 audits took {elapsed:.3f}s (> 500ms per call)")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (
+                f"10 audits took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s "
+                f"(> 500ms per call)"
+            ),
+        )
 
 
 class TestRedesignAuditorIntegration(unittest.TestCase):

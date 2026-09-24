@@ -19,9 +19,9 @@ import unittest
 import pytest
 
 from scripts.collaboration.models import CompressedScratchpadEntry, TokenBudget
+from tests.conftest import perf_ceiling_ms
 
 pytestmark = pytest.mark.unit
-
 
 
 class TestTokenBudgetDefaults(unittest.TestCase):
@@ -186,16 +186,38 @@ class TestTokenBudgetSerialization(unittest.TestCase):
 
 
 class TestTokenBudgetPerformance(unittest.TestCase):
-    """Verify: threshold checks complete in <1ms (called per-Worker in hot path)."""
+    """Verify: threshold checks complete in <1ms (called per-Worker in hot path).
+
+    V4.5.20 P1-2: the budget is environment-scaled (tests/conftest.py), i.e.
+    ``budget * env_perf_factor()`` where the factor comes from an
+    **operation-independent** reference workload (a CPU-only proxy that does not
+    touch TokenBudget). On the calibration host the factor is exactly ``1.0``, so
+    the ceiling equals the original 50 ms budget. The control must not exercise
+    the code under test: a same-code-path control grows in lockstep with a
+    regression, so the ceiling would grow too and the gate could no longer fail.
+    """
 
     def test_is_warning_fast(self):
-        """Verify: 1000 is_warning calls complete in <50ms total."""
+        """Verify: 1000 is_warning calls complete in <50ms total.
+
+        V4.5.20 P1-2: environment-scaled ceiling via the operation-independent
+        reference-workload control; the factor is 1.0 on the calibration host, so
+        the ceiling equals the original 50 ms budget there. The control must not
+        touch the code under test — a same-code-path control makes the ceiling
+        grow with the regression, so the gate can no longer fail.
+        """
         budget = TokenBudget()
+        ceiling_ms = perf_ceiling_ms(50.0)
+
         start = time.perf_counter()
         for i in range(1000):
             budget.is_warning(i * 100)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 50, f"is_warning too slow: {elapsed_ms:.2f}ms")
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            f"is_warning too slow: {elapsed_ms:.2f}ms exceeds ceiling {ceiling_ms:.2f}ms",
+        )
 
 
 # ============================================================

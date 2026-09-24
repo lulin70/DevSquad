@@ -35,6 +35,7 @@ from scripts.collaboration.test_quality_guard import (
     project_audit,
     quick_audit,
 )
+from tests.conftest import perf_ceiling_ms
 
 
 class T1_DataModels(unittest.TestCase):
@@ -463,14 +464,28 @@ class BadTest(unittest.TestCase):
         self.assertIn("TestQualityGuard", md)
 
     def test_05_audit_performance(self):
-        """验证: 审计操作在合理时间内完成（< 1s for small files）"""
+        """验证: 审计操作在合理时间内完成（< 2s for 50 函数 / 30 测试）
+
+        V4.5.20 P1-2: 预算随环境缩放（tests/conftest.py），对照是与受测代码无关的
+        reference-workload；标定机上因子为 1.0，故 ceiling 等于原始 2.0s 预算。
+        对照绝不能触碰受测代码——同代码路径对照会随回归一同膨胀，使 ceiling 同步
+        增大、门禁再也无法失败。对照不审计文件，故任何使审计变慢的绝对/算法回归
+        （例如引入超线性遍历）仍会触发失败。
+        """
         src = "\n".join([f"def func{i}(x): return x" for i in range(50)])
         tst = "\n".join([f"class T(unittest.TestCase):\n    def test_{i}(self): pass" for i in range(30)])
+        ceiling_s = perf_ceiling_ms(2.0)
         sp, tp = self._write_files(src, tst)
         start = time.perf_counter()
         TestQualityGuard(sp, tp).audit()
         elapsed = time.perf_counter() - start
-        self.assertLess(elapsed, 2.0, f"审计耗时 {elapsed:.2f}s 过长")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (
+                f"审计耗时 {elapsed:.2f}s 超过 ceiling {ceiling_s:.2f}s"
+            ),
+        )
 
 
 class T6_TemplateGeneration(unittest.TestCase):

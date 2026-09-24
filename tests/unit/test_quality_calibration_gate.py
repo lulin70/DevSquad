@@ -29,6 +29,7 @@ from scripts.collaboration.quality_calibration_gate import (  # noqa: E402
     CalibrationGateResult,
     run_calibration_gate,
 )
+from tests.conftest import perf_ceiling_ms  # noqa: E402
 
 
 class TestCalibrationGateHappyPath(unittest.TestCase):
@@ -155,11 +156,24 @@ class TestCalibrationGatePerformance(unittest.TestCase):
     """Performance tests."""
 
     def test_08_gate_completes_within_5_seconds(self) -> None:
-        """Performance: Gate 0 execution < 5 seconds."""
+        """Performance: Gate 0 execution < 5 seconds.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) via the
+        operation-independent reference workload — ``run_calibration_gate()`` is
+        a one-shot over a fixed dataset with no smaller same-code-path variant.
+        On the calibration host the factor is 1.0, so the ceiling equals the
+        original 5 s budget; elsewhere it scales with the host. The gate still
+        catches a calibration pipeline whose scoring became pathologically slow.
+        """
+        ceiling_s = perf_ceiling_ms(5.0)
         start = time.time()
         result = run_calibration_gate()
         elapsed = time.time() - start
-        self.assertLess(elapsed, 5.0, f"Gate took {elapsed:.2f}s, expected < 5s")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            f"Gate took {elapsed:.2f}s, expected < {ceiling_s:.2f}s",
+        )
         self.assertIsInstance(result, CalibrationGateResult)
 
 

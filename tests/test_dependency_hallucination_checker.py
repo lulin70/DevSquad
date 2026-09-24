@@ -38,6 +38,7 @@ from scripts.collaboration.dependency_hallucination_checker import (
     reset_dataset_cache,
     security_scan_dependencies,
 )
+from tests.conftest import perf_ceiling_ms
 
 
 def _reset_state() -> None:
@@ -276,22 +277,55 @@ class T4_Performance(unittest.TestCase):
         _ensure_datasets_loaded()
 
     def test_01_scan_1000_lines_under_200ms(self) -> None:
-        """Verify: scanning 1000-line code completes in <200ms."""
+        """Verify: scanning 1000-line code completes in <200ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) via the
+        operation-independent reference workload. CI measured 406.5 ms for this
+        operation on a run with zero source changes, while the calibration host
+        medians 40.7 ms — a 9.9x host difference the absolute 200 ms budget could
+        not express. On the calibration host the ceiling equals the original
+        200 ms; elsewhere it scales with the measured host slowdown. The gate
+        still catches any algorithmic regression of the scanner, which is
+        verified by an injected super-linear regression. A same-code-path control
+        would not: it inflates with the regression and the gate can no longer
+        fail (see tests/conftest.py).
+        """
         lines = [f"import package_{i}" for i in range(1000)]
         code = "\n".join(lines)
+
+        ceiling_ms = perf_ceiling_ms(200.0)
+
         start = time.perf_counter()
         result = security_scan_dependencies(code)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 200.0)
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            (
+                f"1000-line scan {elapsed_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"
+            ),
+        )
         self.assertGreater(len(result.findings), 0)
 
     def test_02_dataset_load_under_50ms(self) -> None:
-        """Verify: dataset loading completes in <50ms."""
+        """Verify: dataset loading completes in <50ms.
+
+        V4.5.20 P1-2: environment-scaled via the generic reference-workload
+        control — a one-shot cache load has no smaller same-code-path variant.
+        Ceiling equals 50 ms on the calibration host. The gate still catches a
+        dataset loader that became pathologically slow (e.g. re-reading and
+        re-parsing every file on each call).
+        """
         reset_dataset_cache()
+        ceiling_ms = perf_ceiling_ms(50.0)
         start = time.perf_counter()
         _ensure_datasets_loaded()
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 50.0)
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            f"dataset load {elapsed_ms:.3f}ms exceeds ceiling {ceiling_ms:.1f}ms",
+        )
 
 
 # ---------------------------------------------------------------------------
