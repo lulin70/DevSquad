@@ -323,14 +323,18 @@ def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
         _render_graphviz_interactive(graph, viz)
     elif fmt == "Mermaid":
         mermaid_text = viz.to_mermaid(graph)
-        # Probed dynamically on purpose: the pinned Streamlit (1.57.0) has no
-        # `st.mermaid`, and neither the runtime nor its type stubs expose one, so a
-        # plain `st.mermaid(...)` is both a type error and an AttributeError. The
-        # lookup keeps the branch working if a future Streamlit adds it, and falls
-        # back to a code block otherwise.
+        # Probed dynamically because the pinned Streamlit (1.57.0) has no
+        # `st.mermaid` — neither at runtime nor in its type stubs — so a plain
+        # `st.mermaid(...)` is both a type error and an AttributeError. The lookup
+        # uses `st.mermaid` when a future Streamlit provides it, and the original
+        # `except RuntimeError` fallback is kept: a renderer that exists but fails
+        # still degrades to a code block instead of propagating.
         mermaid_renderer = getattr(st, "mermaid", None)
         if callable(mermaid_renderer):
-            mermaid_renderer(mermaid_text)
+            try:
+                mermaid_renderer(mermaid_text)
+            except RuntimeError:
+                st.code(mermaid_text, language="mermaid")
         else:
             st.code(mermaid_text, language="mermaid")
         with st.expander("Raw Mermaid"):
