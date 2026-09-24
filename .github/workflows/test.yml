@@ -261,6 +261,17 @@ jobs:
           pip install fastapi uvicorn pydantic streamlit "mcp<2" prometheus-client psutil slack-sdk openai anthropic httpx2
       - name: Lint
         run: ruff check . --ignore=E501
+      - name: Format check (ruff format, blocking since V4.5.20)
+        # V4.5.20: the repo had NO formatter in any gate — black was a dev
+        # dependency with no CI or pre-commit wiring, so `black --check .`
+        # reported 455/246 files needing reformatting while every gate stayed
+        # green. That is the same false-green class as a gate whose scope is
+        # narrowed by a flag. `ruff` was already the linter, so `ruff format`
+        # is the single formatter and this step is the gate that enforces it;
+        # the one-off whole-repo reformat landed in the same batch. Locally
+        # reproduced: `ruff format --check .` → `703 files already formatted`
+        # (exit 0), and injecting one badly formatted file turns this step red.
+        run: ruff format --check .
       - name: Complexity check (radon cc, blocking since V4.1.1)
         run: |
           # radon cc -nd shows only D/E/F grade functions (complexity >= 16)

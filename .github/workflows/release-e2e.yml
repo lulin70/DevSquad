@@ -181,6 +181,11 @@ jobs:
             -q --tb=short --timeout=120 -m "unit" --maxfail=1
       - name: Run ruff hard check
         run: ruff check . --ignore=E501
+      - name: Run ruff format hard check
+        # V4.5.20: mirrors the `Format check` step in test.yml::lint. Both gates
+        # must stay identical, otherwise a release could pass formatting that CI
+        # rejects (the same divergence the mypy step above already guards).
+        run: ruff format --check .
       - name: Run mypy hard check
         # V4.5.20: `--no-site-packages` removed — it degraded every installed
         # third-party return value to `Any`, which masked 3 real type errors
