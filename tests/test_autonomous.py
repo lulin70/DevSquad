@@ -49,6 +49,7 @@ from scripts.collaboration.loop_engineering import (
     LoopType,
     UnifiedMemory,
 )
+from tests.conftest import isolated_provider_env
 
 # ---------------------------------------------------------------------------
 # Test fixtures: 最小 stub，符合 Protocol 但不启动真实 dispatcher
@@ -1138,15 +1139,18 @@ class TestAutonomousIntegration:
         from scripts.collaboration.autonomous.loop_controller import AutonomousRunReport
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-        d = MultiAgentDispatcher(
-            persist_dir=str(tmp_path / "disp"),
-            enable_warmup=False,
-            enable_memory=False,
-            enable_skillify=False,
-            autonomous_enabled=True,
-            autonomous_max_iterations=1,
-        )
-        report = d.dispatch_autonomous("integration test objective")
+        # 隔离 provider 凭据：CI 无 .env，auto 链恒为 mock；本机 .env 会让
+        # _llm_role_votes 对 5 个角色串行发起真实调用（PRD §6 (8) P2-4）。
+        with isolated_provider_env():
+            d = MultiAgentDispatcher(
+                persist_dir=str(tmp_path / "disp"),
+                enable_warmup=False,
+                enable_memory=False,
+                enable_skillify=False,
+                autonomous_enabled=True,
+                autonomous_max_iterations=1,
+            )
+            report = d.dispatch_autonomous("integration test objective")
         assert isinstance(report, AutonomousRunReport)
         assert report.objective == "integration test objective"
         # stub dispatcher（MultiAgentDispatcher 自身）无法让 loop 真正完成
@@ -1157,15 +1161,17 @@ class TestAutonomousIntegration:
         """dispatch_autonomous 支持自定义 run_id。"""
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-        d = MultiAgentDispatcher(
-            persist_dir=str(tmp_path / "disp"),
-            enable_warmup=False,
-            enable_memory=False,
-            enable_skillify=False,
-            autonomous_enabled=True,
-            autonomous_max_iterations=1,
-        )
-        report = d.dispatch_autonomous("test", run_id="custom-integration-id")
+        # 同上：run_id 走的是同一条 loop 路径，同样会对 5 个角色发起真实调用。
+        with isolated_provider_env():
+            d = MultiAgentDispatcher(
+                persist_dir=str(tmp_path / "disp"),
+                enable_warmup=False,
+                enable_memory=False,
+                enable_skillify=False,
+                autonomous_enabled=True,
+                autonomous_max_iterations=1,
+            )
+            report = d.dispatch_autonomous("test", run_id="custom-integration-id")
         assert report.run_id == "custom-integration-id"
 
 

@@ -5,7 +5,7 @@
 - 三种格式输出: Mermaid / JSON / DOT
 - 节点状态实时更新 (pending/running/completed/failed/skipped/blocked)
 
-集成到 Dashboard "DAG View" 页面 (使用 st.mermaid 渲染)。
+集成到 Dashboard "DAG View" 页面 (Mermaid 以代码块导出)。
 """
 
 from __future__ import annotations
@@ -74,7 +74,7 @@ class DAGVisualizer:
     """DAG 依赖图可视化器。
 
     支持三种输出格式：
-    - Mermaid: 用于 Dashboard st.mermaid() 渲染
+    - Mermaid: 用于 Dashboard 代码块导出（无 Streamlit 版本提供 st.mermaid）
     - JSON: 用于 API 端点 /api/v1/dag
     - DOT: 用于 Graphviz 渲染
 
@@ -323,20 +323,10 @@ def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
         _render_graphviz_interactive(graph, viz)
     elif fmt == "Mermaid":
         mermaid_text = viz.to_mermaid(graph)
-        # Probed dynamically because the pinned Streamlit (1.57.0) has no
-        # `st.mermaid` — neither at runtime nor in its type stubs — so a plain
-        # `st.mermaid(...)` is both a type error and an AttributeError. The lookup
-        # uses `st.mermaid` when a future Streamlit provides it, and the original
-        # `except RuntimeError` fallback is kept: a renderer that exists but fails
-        # still degrades to a code block instead of propagating.
-        mermaid_renderer = getattr(st, "mermaid", None)
-        if callable(mermaid_renderer):
-            try:
-                mermaid_renderer(mermaid_text)
-            except RuntimeError:
-                st.code(mermaid_text, language="mermaid")
-        else:
-            st.code(mermaid_text, language="mermaid")
+        # No Streamlit release ships `st.mermaid` (checked against the local
+        # 1.59.0 install and CI's 1.64.0), and the project does not pin Streamlit
+        # (`streamlit>=1.28.0`), so this format is always exported as a code block.
+        st.code(mermaid_text, language="mermaid")
         with st.expander("Raw Mermaid"):
             st.code(mermaid_text, language="mermaid")
 

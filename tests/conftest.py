@@ -69,8 +69,12 @@ Calibration host (recorded 2026-09-24, Python 3.12.13, CI-equivalent pins):
 
 from __future__ import annotations
 
+import os
 import statistics
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
+from unittest import mock
 
 #: Median milliseconds of :func:`reference_workload_ms` on the calibration host
 #: (2026-09-24, Python 3.12.13, CI-equivalent dependency pins). See module
@@ -81,8 +85,10 @@ REFERENCE_WORKLOAD_MS_DEV: float = 0.982
 _REFERENCE_CALLS: int = 4000
 
 __all__ = [
+    "PROVIDER_ENV_VARS",
     "REFERENCE_WORKLOAD_MS_DEV",
     "env_perf_factor",
+    "isolated_provider_env",
     "perf_ceiling_ms",
     "reference_workload_ms",
 ]
@@ -125,3 +131,57 @@ def perf_ceiling_ms(budget_ms: float) -> float:
     (milliseconds or seconds — the factor is dimensionless).
     """
     return budget_ms * env_perf_factor()
+
+
+# ---------------------------------------------------------------------------
+# Provider-credential isolation (PRD §6 (8) P2-4)
+# ---------------------------------------------------------------------------
+#
+# CI's runners have no ``.env``, so ``create_backend("auto")`` always builds the
+# mock chain there. A developer machine does have one, which silently switches
+# any test that creates the ``auto`` chain onto live provider calls — 5 serial
+# role votes in the autonomous loop, ~10.7 s per ``generate()`` once a provider
+# key is stale, against a 60 s ``--timeout``. Those tests then pass or fail
+# depending on the host's ``.env`` and on how loaded the machine is, which is
+# exactly what a gate must not depend on. See :func:`isolated_provider_env`.
+
+#: Credentials that make ``create_backend("auto")`` reach a real provider.
+PROVIDER_ENV_VARS: tuple[str, ...] = (
+    "OPENAI_API_KEY",
+    "OPENAI_BASE_URL",
+    "OPENAI_MODEL",
+    "DEVSQUAD_OPENAI_API_KEY",
+    "DEVSQUAD_OPENAI_BASE_URL",
+    "DEVSQUAD_OPENAI_MODEL",
+    "MOKA_API_KEY",
+    "MOKA_API_BASE",
+    "MOKA_BASE_URL",
+    "MOKA_MODEL",
+    "ANTHROPIC_API_KEY",
+    "DEVSQUAD_ANTHROPIC_API_KEY",
+)
+
+
+@contextmanager
+def isolated_provider_env() -> Iterator[None]:
+    """Run the block as CI does: no provider credentials, mock LLM chain.
+
+    The variables are *removed*, not blanked — ``create_backend`` treats a
+    present-but-empty ``OPENAI_BASE_URL`` as "base_url configured" and fails
+    with ``APIConnectionError`` instead of degrading to the mock backend.
+
+    ``llm_backend._load_dotenv`` is disabled for the duration as well. It has a
+    once-per-process sentinel, so in a full-suite run it is normally already
+    spent by the time these tests execute — but relying on that would make the
+    isolation depend on collection order, and on a targeted run
+    (``pytest tests/test_autonomous.py``) it would re-read ``.env`` and restore
+    every credential removed here.
+    """
+    saved = {name: os.environ.pop(name) for name in PROVIDER_ENV_VARS if name in os.environ}
+    patcher = mock.patch("scripts.collaboration.llm_backend._load_dotenv", lambda: None)
+    patcher.start()
+    try:
+        yield
+    finally:
+        patcher.stop()
+        os.environ.update(saved)
