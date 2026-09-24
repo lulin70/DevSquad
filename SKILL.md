@@ -145,10 +145,45 @@ If you invoke DevSquad from a **non-AI IDE shell** (e.g., bare `python3 scripts/
 
 The actual "intelligence" comes from the host LLM, which is honest and explicit.
 
+## 📜 Deterministic-Layer Contract (V4.5.20 W1-0)
+
+The script layer above is deterministic — but only if you know what it promises.
+Three commitments decide which mode you should use; read them before choosing:
+
+1. **Delegation requires no API key.** Delegated mode (`host`) reads **no** API-key
+   environment variable — it works with `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and
+   `MOKA_API_KEY` all unset. DevSquad supplies the deterministic scaffolding, the
+   host Agent supplies the LLM, and the output quality is the host Agent's.
+   *This is a boundary, not a free model*: no key does not mean DevSquad generates
+   real LLM output itself. Protocol violations raise rather than silently falling
+   back to the mock backend.
+2. **Incomplete coverage exits non-zero.** If part of the requested code was never
+   examined, DevSquad does **not** return `0` with a partial report — the build must
+   not pass while code went unread. Interactive callers who want the partial result
+   should read it as data and ignore the exit code. Every failed role is named
+   individually, because *which* role failed decides what you do next.
+3. **`review --preview` makes zero LLM calls.** It prints the plan — what will be
+   reviewed and what was dropped, by which gate — so you can price a review without
+   paying for it. Sensitive paths are redacted or reduced to counts; output is
+   summary-first, with `--verbose` for per-path detail.
+
+The full contract — the eight named filter gates, the four-layer rule chain and its
+first-match semantics, and the delegation protocol boundary — is in
+[docs/reference/DETERMINISTIC_CONTRACT.md](docs/reference/DETERMINISTIC_CONTRACT.md).
+Each clause there carries an `Effective` wave, so nothing is promised ahead of the
+code that ships it.
+
+> **Status honesty (V4.5.20 W1-0)**: this section is the *spec* written ahead of the
+> implementation, by design. Commitment 1 is shipped; 2 lands with W2 and 3 with
+> W1-4; the rule-chain and gate detail lands with W1-1 … W1-3. `Effective` in the
+> contract doc is authoritative for what is live today. Drift is checked by
+> `scripts/check_skill_contract.py`, which verifies *presence*, not behaviour.
+
 **Quick navigation:**
 - Looking for a module's file/responsibility? → [MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md)
 - Looking for sub-skill usage or test iron rules? → [SUB_SKILLS.md](docs/reference/SUB_SKILLS.md)
 - Looking for what changed in a version? → [VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md)
+- Looking for the deterministic-layer contract? → [DETERMINISTIC_CONTRACT.md](docs/reference/DETERMINISTIC_CONTRACT.md)
 
 ---
 

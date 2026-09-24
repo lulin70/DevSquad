@@ -238,3 +238,10 @@ jobs:
       - name: Validate test plan + baseline doc consistency
         run: |
           python scripts/check_version_consistency.py --strict
+      - name: Skill contract drift check (V4.5.20 W1-0, hard)
+        # Mirrors the `Skill contract drift check` step in test.yml::lint. Both
+        # gates must stay identical, or a release could pass a contract that CI
+        # rejects (the same divergence the mypy/ruff-format steps above guard).
+        # Presence-only: it proves the contract has NOT drifted, never that the
+        # code honours it.
+        run: python scripts/check_skill_contract.py

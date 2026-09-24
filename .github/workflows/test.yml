@@ -307,6 +307,17 @@ jobs:
           echo "OK: mypy 0 errors (scripts/ + skills/, V3.10.0 achievement maintained)"
       - name: Version consistency check (added in P2-6)
         run: python scripts/check_version_consistency.py
+      - name: Skill contract drift check (V4.5.20 W1-0)
+        # V4.5.20 W1-0: the deterministic-layer contract (SKILL.md +
+        # docs/reference/DETERMINISTIC_CONTRACT.md) is the spec for W1-1..W1-7
+        # and was written *before* the implementation, by maintainer ruling.
+        # Ungated, it would drift like every other document (F1/F4). Kept as a
+        # separate script from check_version_consistency.py above (PRD E7):
+        # that gate owns version numbers, this one owns the contract, and a
+        # contract failure must not look like a release-version failure.
+        # Presence-only: it proves the contract has NOT drifted, never that the
+        # code honours it — the clause's own tests are the evidence for that.
+        run: python scripts/check_skill_contract.py
       - name: Anti-ghost module activation check (V4.5.16)
         run: python scripts/check_module_activation.py
       - name: Check pre-commit hook versions aligned with requirements-dev.lock (P2-4)
