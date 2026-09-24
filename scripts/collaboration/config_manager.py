@@ -41,7 +41,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -377,7 +377,8 @@ class DevSquadConfig(BaseModel):
         # Defensive copy so we don't mutate caller's dict
         merged = dict(data)
         cls._apply_env_overrides(merged)
-        return cast(DevSquadConfig, cls.model_validate(merged))
+        validated: DevSquadConfig = cls.model_validate(merged)
+        return validated
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> DevSquadConfig:
