@@ -24,6 +24,7 @@ from scripts.cli_doctor import cmd_doctor
 from scripts.cli_lifecycle import cmd_lifecycle
 from scripts.cli_metrics import cmd_metrics
 from scripts.cli_modules import register_modules_subparser
+from scripts.cli_rules import register_rules_subparser
 from scripts.cli_sessions import cmd_sessions
 from scripts.cli_utils import (
     ALL_ROLE_IDS,
@@ -534,6 +535,9 @@ Environment Variables (API keys are read from env vars only, never command line)
     # V4.5.4 P12.3.3: devsquad modules CLI (status/graph/retry)
     register_modules_subparser(subparsers)
 
+    # V4.5.20 W1-2: explain deterministic rule resolution
+    register_rules_subparser(subparsers)
+
     # V4.5.7 P12.5.2: devsquad risks CLI (list/show/clear/export)
     from scripts.cli_risks import register_risks_subparser
 
@@ -637,6 +641,8 @@ Environment Variables (API keys are read from env vars only, never command line)
     # Special-cased commands first (func-attach pattern / setup / aliasing),
     # then a flat alias→handler table for the simple commands.
     if args.command in ("risks", "risk"):
+        return args.func(args) if callable(getattr(args, "func", None)) else 1
+    if args.command == "rules":
         return args.func(args) if callable(getattr(args, "func", None)) else 1
     if args.command == "modules":
         return _run_modules_command(args)

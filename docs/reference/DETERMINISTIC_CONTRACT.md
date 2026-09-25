@@ -190,8 +190,9 @@ that matched, and the **rule body**. For the same path under different layer
 configurations it must print different output — a command that always prints the
 same thing explains nothing.
 
-**Proven by** `tests/test_rule_engine.py`: same path, two configurations, two
-different printed layers.
+**Proven by** `tests/test_cli_rules.py` and
+`tests/e2e/test_rules_cli_e2e.py`: the subprocess command prints the winning
+layer, pattern, origin, and body, and changes when the selected layer changes.
 
 ---
 
