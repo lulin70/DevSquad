@@ -111,10 +111,17 @@ CONTRACT_CLAUSES: tuple[Clause, ...] = (
     Clause("gate.exports_are_not_gates", ("kept + dropped", "deliberately listed"), "W1-3"),
     Clause(
         "rule.four_layer_chain",
-        ("--rule <path>", ".devsquad/rule.json", "~/.devsquad/rule.json", "system_rules.json"),
+        (
+            "--rule <path>",
+            ".devsquad/rule.json",
+            "~/.devsquad/rule.json",
+            "system_rules.json",
+            "RuleConfigError",
+            "right-anchored",
+        ),
         "W1-1",
     ),
-    Clause("rule.first_match_wins", ("wins", "no merge", "no override"), "W1-1"),
+    Clause("rule.first_match_wins", ("wins", "no merge", "no override", "file order"), "W1-1"),
     Clause(
         "rule.system_layer_always_exists",
         ("always present", "no rule found", "system default"),

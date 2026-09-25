@@ -122,6 +122,11 @@ include = ["scripts*", "skills*"]
 [tool.setuptools.package-data]
 "skills" = ["*.yaml", "*.yml", "*.md"]
 "scripts" = ["*.yaml", "*.yml", "*.md"]
+# V4.5.20 W1-1: the rule engine's system layer ships as data, not as a Python
+# literal, so that the lowest-priority rule set in the contract (C4) is a file a
+# reader can open. Without this entry the package installs without it and
+# `resolve()` loses its catch-all (C6).
+"scripts.collaboration" = ["*.json"]
 
 # ============ Code Quality Tools ============
 

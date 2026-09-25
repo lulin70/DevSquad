@@ -134,13 +134,22 @@ decisions were not inspectable, and `rules check` is the answer to it.
 **A missing layer is skipped silently**, not reported as an error: layers 1–3 are
 optional, and their absence is the normal case.
 
+**A layer that exists but cannot be parsed is an error** (`RuleConfigError`), not a
+silent skip. Only *absence* is silent — a corrupt `rule.json` would otherwise drop
+the caller's rules without saying so.
+
+**Matching** uses `pathlib` glob semantics (`PurePath.match`, right-anchored), with
+one extension: a leading `**/` may also match zero directories, so `**/*.py` covers
+a top-level Python file as well as a nested one.
+
 **Proven by** `tests/test_rule_engine.py` (one case per layer).
 
 ### C5 `rule.first_match_wins`
 
 **Rule.** The **first** layer whose pattern matches wins. There is **no merge and
 no override**. A lower layer cannot contribute half a rule, and a higher layer
-cannot add one field to a lower layer's rule.
+cannot add one field to a lower layer's rule. **Within** a layer, **file order**
+decides: the first matching entry wins.
 
 **Why not merge.** Merging makes the effective rule a function of the entire
 configuration stack, so reasoning about "what will happen" requires reading every
