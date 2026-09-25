@@ -205,8 +205,7 @@ class DispatchAuditLogger:
         if self._conn is None:
             return
         cursor = self._conn.execute(
-            "SELECT event_type, user_id, timestamp, details, prev_hash, entry_hash "
-            "FROM dispatch_audit ORDER BY id ASC"
+            "SELECT event_type, user_id, timestamp, details, prev_hash, entry_hash FROM dispatch_audit ORDER BY id ASC"
         )
         for row in cursor:
             entry = AuditEntry(
@@ -289,9 +288,7 @@ class DispatchAuditLogger:
         str
             The 64-character hex HMAC-SHA256 digest.
         """
-        payload = self._build_hash_payload(
-            event_type, user_id, timestamp, details, prev_hash
-        )
+        payload = self._build_hash_payload(event_type, user_id, timestamp, details, prev_hash)
         key = self._get_hmac_key()
         return hmac.new(key, payload, hashlib.sha256).hexdigest()
 
@@ -309,9 +306,7 @@ class DispatchAuditLogger:
         entries written before the HMAC upgrade. New entries always use
         :meth:`_compute_hash` (HMAC).
         """
-        payload = self._build_hash_payload(
-            event_type, user_id, timestamp, details, prev_hash
-        )
+        payload = self._build_hash_payload(event_type, user_id, timestamp, details, prev_hash)
         return hashlib.sha256(payload).hexdigest()
 
     def _append_entry(
@@ -627,11 +622,7 @@ class DispatchAuditLogger:
         with self._lock:
             total = len(self._entries)
             if total == 0 or limit <= 0:
-                return (
-                    "# Dispatch Audit Report\n\n"
-                    f"**Total entries**: {total}\n\n"
-                    "No entries.\n"
-                )
+                return f"# Dispatch Audit Report\n\n**Total entries**: {total}\n\nNo entries.\n"
             recent = list(reversed(self._entries[-limit:]))
             lines = [
                 "# Dispatch Audit Report",
@@ -642,14 +633,9 @@ class DispatchAuditLogger:
                 "|---|-----------|------------|---------|---------|",
             ]
             for idx, entry in enumerate(recent, start=1):
-                ts_str = datetime.fromtimestamp(entry.timestamp).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+                ts_str = datetime.fromtimestamp(entry.timestamp).strftime("%Y-%m-%d %H:%M:%S")
                 details_str = json.dumps(entry.details, sort_keys=True)
-                lines.append(
-                    f"| {idx} | {ts_str} | {entry.event_type} "
-                    f"| {entry.user_id} | {details_str} |"
-                )
+                lines.append(f"| {idx} | {ts_str} | {entry.event_type} | {entry.user_id} | {details_str} |")
             return "\n".join(lines) + "\n"
 
     def query(

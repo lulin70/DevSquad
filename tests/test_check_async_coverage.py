@@ -163,9 +163,7 @@ class TestCheckAsyncCoverage:
 
         tests = tmp_path / "tests"
         tests.mkdir()
-        (tests / "test_mod.py").write_text(
-            "async def test_fetch():\n    await fetch()\n"
-        )
+        (tests / "test_mod.py").write_text("async def test_fetch():\n    await fetch()\n")
 
         report = check_async_coverage(src, tests)
         assert report.total == 1
@@ -193,15 +191,11 @@ class TestCheckAsyncCoverage:
         """Some async functions covered."""
         src = tmp_path / "src"
         src.mkdir()
-        (src / "mod.py").write_text(
-            "async def fetch():\n    pass\n\nasync def process():\n    pass\n"
-        )
+        (src / "mod.py").write_text("async def fetch():\n    pass\n\nasync def process():\n    pass\n")
 
         tests = tmp_path / "tests"
         tests.mkdir()
-        (tests / "test_mod.py").write_text(
-            "async def test_fetch():\n    await fetch()\n"
-        )
+        (tests / "test_mod.py").write_text("async def test_fetch():\n    await fetch()\n")
 
         report = check_async_coverage(src, tests)
         assert report.total == 2
@@ -213,9 +207,7 @@ class TestCheckAsyncCoverage:
         """Private functions excluded by default."""
         src = tmp_path / "src"
         src.mkdir()
-        (src / "mod.py").write_text(
-            "async def public_func():\n    pass\n\nasync def _private_func():\n    pass\n"
-        )
+        (src / "mod.py").write_text("async def public_func():\n    pass\n\nasync def _private_func():\n    pass\n")
 
         tests = tmp_path / "tests"
         tests.mkdir()
@@ -229,9 +221,7 @@ class TestCheckAsyncCoverage:
         """Private functions included when flag set."""
         src = tmp_path / "src"
         src.mkdir()
-        (src / "mod.py").write_text(
-            "async def public_func():\n    pass\n\nasync def _private_func():\n    pass\n"
-        )
+        (src / "mod.py").write_text("async def public_func():\n    pass\n\nasync def _private_func():\n    pass\n")
 
         tests = tmp_path / "tests"
         tests.mkdir()

@@ -34,9 +34,7 @@ def _req(
     executor: object = lambda: 42,  # noqa: E731 — test default
     timeout: float = 5.0,
 ) -> CoeffectRequest:
-    return CoeffectRequest(
-        name=name, payload={"executor": executor}, timeout=timeout
-    )
+    return CoeffectRequest(name=name, payload={"executor": executor}, timeout=timeout)
 
 
 # ── 1. FSM transition table ─────────────────────────────────────────────────
@@ -69,7 +67,12 @@ class TestFsmTransitions:
 
     def test_six_states_exist(self):
         assert {s.value for s in CoeffectState} == {
-            "pending", "ready", "running", "completed", "failed", "cancelled",
+            "pending",
+            "ready",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
         }
 
 
@@ -91,9 +94,7 @@ class TestAResolve:
 
     async def test_timeout_fails(self):
         r = AsyncCoeffectResolver()
-        result = await r.aresolve(
-            _req(executor=lambda: time.sleep(0.3), timeout=0.05)
-        )
+        result = await r.aresolve(_req(executor=lambda: time.sleep(0.3), timeout=0.05))
         assert result.state == CoeffectState.FAILED
         assert "timeout" in (result.error or "")
 
@@ -115,17 +116,13 @@ class TestAResolve:
 
     async def test_non_callable_executor_fails(self):
         r = AsyncCoeffectResolver()
-        result = await r.aresolve(
-            CoeffectRequest(name="badexec", payload={"executor": 42})
-        )
+        result = await r.aresolve(CoeffectRequest(name="badexec", payload={"executor": 42}))
         assert result.state == CoeffectState.FAILED
         assert "callable" in (result.error or "")
 
     async def test_cancellation_via_task_cancel(self):
         r = AsyncCoeffectResolver()
-        task = asyncio.ensure_future(
-            r.aresolve(_req(executor=lambda: time.sleep(1.0)))
-        )
+        task = asyncio.ensure_future(r.aresolve(_req(executor=lambda: time.sleep(1.0))))
         await asyncio.sleep(0.05)
         task.cancel()
         result = await task
@@ -151,19 +148,13 @@ class TestConcurrency:
             active -= 1
             return peak
 
-        results = await asyncio.gather(
-            *[r.aresolve(_req(name=f"m{i}", executor=tracked_executor))
-              for i in range(6)]
-        )
+        results = await asyncio.gather(*[r.aresolve(_req(name=f"m{i}", executor=tracked_executor)) for i in range(6)])
         assert all(res.state == CoeffectState.COMPLETED for res in results)
         assert peak <= max_concurrent
 
     async def test_gather_many_all_complete(self):
         r = AsyncCoeffectResolver(max_concurrent=4)
-        results = await asyncio.gather(
-            *[r.aresolve(_req(name=f"n{i}", executor=lambda i=i: i * 2))
-              for i in range(10)]
-        )
+        results = await asyncio.gather(*[r.aresolve(_req(name=f"n{i}", executor=lambda i=i: i * 2)) for i in range(10)])
         assert all(res.state == CoeffectState.COMPLETED for res in results)
         assert sorted(res.value for res in results) == [i * 2 for i in range(10)]
 
@@ -172,10 +163,7 @@ class TestConcurrency:
         # finish well within the generous 3s bound instead of deadlocking.
         r = AsyncCoeffectResolver(max_concurrent=3)
         results = await asyncio.wait_for(
-            asyncio.gather(
-                *[r.aresolve(_req(name=f"c{i}", executor=lambda i=i: i))
-                  for i in range(12)]
-            ),
+            asyncio.gather(*[r.aresolve(_req(name=f"c{i}", executor=lambda i=i: i)) for i in range(12)]),
             timeout=3.0,
         )
         assert len(results) == 12

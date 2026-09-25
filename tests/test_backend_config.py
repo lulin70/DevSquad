@@ -22,6 +22,7 @@ from scripts.collaboration.backend_config import (
 def reset_counter():
     """Reset module-level counter between tests."""
     import scripts.collaboration.backend_config as mod
+
     mod._call_counter_er = 0
     yield
     mod._call_counter_er = 0

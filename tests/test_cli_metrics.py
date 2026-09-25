@@ -86,13 +86,15 @@ class TestFormatText:
         assert "no samples recorded" in out
 
     def test_format_renders_samples(self):
-        metrics = [{
+        metrics = [
+            {
                 "name": "test_metric",
                 "type": "counter",
                 "description": "test desc",
                 "label_keys": ["label1"],
                 "samples": [{"labels": {"label1": "v1"}, "value": 3.0}],
-            }]
+            }
+        ]
         out = format_text(metrics)
         assert "test_metric" in out
         assert "label1=v1" in out
@@ -149,4 +151,5 @@ class TestMetricsImportable:
 
     def test_cmd_metrics_is_callable(self):
         from scripts.cli_metrics import cmd_metrics
+
         assert callable(cmd_metrics)

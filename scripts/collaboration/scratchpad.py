@@ -32,6 +32,54 @@ logger = logging.getLogger(__name__)
 
 MAX_ENTRIES_DEFAULT = 1000
 
+# Auto-generated session ids look like ``scratchpad-YYYYmmdd-HHMMSS`` and double
+# as the JSONL file stem, so a persist_dir is a set of sessions. Regex-guarded so
+# only our own file names can ever be adopted as an id (path-traversal safe).
+_SESSION_ID_RE = re.compile(r"^scratchpad-\d{8}-\d{6}$")
+
+
+def _newest_session_id(persist_dir: str) -> str | None:
+    """Return the newest ``scratchpad-<timestamp>`` session stored in ``persist_dir``.
+
+    Returns ``None`` when the directory is missing, unlistable, or holds no
+    session file — callers then start a fresh timestamped session.
+    """
+    try:
+        names = os.listdir(persist_dir)
+    except OSError:
+        return None
+    sessions = []
+    for name in names:
+        if not name.endswith(".jsonl"):
+            continue
+        stem = name[: -len(".jsonl")]
+        if not _SESSION_ID_RE.match(stem):
+            continue
+        try:
+            sessions.append((os.path.getmtime(os.path.join(persist_dir, name)), stem))
+        except OSError:
+            continue
+    if not sessions:
+        return None
+    return max(sessions)[1]
+
+
+def _default_scratchpad_id(persist_dir: str | None) -> str:
+    """Pick the id for a Scratchpad created without one.
+
+    With a ``persist_dir`` the directory *is* the session storage, so an existing
+    session is resumed. Without that, US-1.6 / AC-1.6.3 ("destroy and re-create
+    with the same persist_dir must load the previous entries") would silently
+    recover zero entries whenever the two constructions land in different
+    wall-clock seconds — the timestamped id used to name the file too.
+    """
+    if persist_dir:
+        resumed = _newest_session_id(persist_dir)
+        if resumed:
+            return resumed
+    return f"scratchpad-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+
 # Regex for ``devsquad_retrieve(trace_id=X, query=Y)`` markers emitted by SmartCrusher.
 # Used by Coordinator to auto-inject original content into Worker output.
 _DEVSQUAD_RETRIEVE_PATTERN = re.compile(
@@ -40,9 +88,7 @@ _DEVSQUAD_RETRIEVE_PATTERN = re.compile(
 
 # V4.2.1 Bugfix: SmartCrusher also emits ``retrieve full: trace_id=X`` in compressed
 # content headers. Coordinator scans for both formats to auto-retrieve originals.
-_RETRIEVE_FULL_PATTERN = re.compile(
-    r"retrieve full:\s*trace_id\s*=\s*([a-f0-9]+)"
-)
+_RETRIEVE_FULL_PATTERN = re.compile(r"retrieve full:\s*trace_id\s*=\s*([a-f0-9]+)")
 
 
 class Scratchpad:
@@ -94,10 +140,11 @@ class Scratchpad:
         初始化共享黑板
 
         Args:
-            scratchpad_id: 黑板唯一标识（自动生成时间戳ID如未提供）
+            scratchpad_id: 黑板唯一标识（未提供时：有 persist_dir 则续用该目录里
+                最新的会话文件，否则自动生成时间戳ID如 scratchpad-20260924-232331）
             persist_dir: 持久化目录路径（为空则不持久化，纯内存模式）
         """
-        self.scratchpad_id = scratchpad_id or f"scratchpad-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        self.scratchpad_id = scratchpad_id or _default_scratchpad_id(persist_dir)
         if ".." in self.scratchpad_id or "/" in self.scratchpad_id or "\\" in self.scratchpad_id:
             raise ValueError(f"Invalid scratchpad_id (path traversal detected): {self.scratchpad_id}")
         self.persist_dir = persist_dir

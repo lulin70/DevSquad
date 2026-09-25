@@ -105,9 +105,7 @@ class CodeMapGenerator:
         """Return the format-appropriate empty code map."""
         return "" if output_format == "markdown" else {}
 
-    def _collect_modules_with_parsers(
-        self, scan_dir: Path, languages: list[str] | None
-    ) -> dict[str, Any]:
+    def _collect_modules_with_parsers(self, scan_dir: Path, languages: list[str] | None) -> dict[str, Any]:
         """Scan ``scan_dir`` using registered parsers, optionally filtered by language."""
         modules: dict[str, Any] = {}
         for parser in self._parsers or []:

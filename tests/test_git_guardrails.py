@@ -54,10 +54,7 @@ class TestForbiddenGitCommands:
         assert classifier.classify_git_command("git push -f origin main") == FORBIDDEN
 
     def test_force_with_lease_to_main(self, classifier: OperationClassifier):
-        assert (
-            classifier.classify_git_command("git push --force-with-lease origin main")
-            == FORBIDDEN
-        )
+        assert classifier.classify_git_command("git push --force-with-lease origin main") == FORBIDDEN
 
     def test_force_push_complex_args_to_master(self, classifier: OperationClassifier):
         # Complex argument combination from the task spec.
@@ -71,10 +68,7 @@ class TestForbiddenGitCommands:
         assert classifier.classify_git_command("git push --force origin :main") == FORBIDDEN
 
     def test_force_push_refs_heads_main(self, classifier: OperationClassifier):
-        assert (
-            classifier.classify_git_command("git push --force origin refs/heads/main")
-            == FORBIDDEN
-        )
+        assert classifier.classify_git_command("git push --force origin refs/heads/main") == FORBIDDEN
 
     def test_reset_hard(self, classifier: OperationClassifier):
         assert classifier.classify_git_command("git reset --hard") == FORBIDDEN
@@ -110,18 +104,10 @@ class TestNeedsReviewGitCommands:
         assert classifier.classify_git_command("git push origin main") == NEEDS_REVIEW
 
     def test_force_push_to_feature_branch(self, classifier: OperationClassifier):
-        assert (
-            classifier.classify_git_command("git push --force origin feature/new-api")
-            == NEEDS_REVIEW
-        )
+        assert classifier.classify_git_command("git push --force origin feature/new-api") == NEEDS_REVIEW
 
     def test_force_with_lease_to_feature(self, classifier: OperationClassifier):
-        assert (
-            classifier.classify_git_command(
-                "git push --force-with-lease origin feature/y"
-            )
-            == NEEDS_REVIEW
-        )
+        assert classifier.classify_git_command("git push --force-with-lease origin feature/y") == NEEDS_REVIEW
 
     def test_merge(self, classifier: OperationClassifier):
         assert classifier.classify_git_command("git merge feature/x") == NEEDS_REVIEW
@@ -136,9 +122,7 @@ class TestNeedsReviewGitCommands:
         assert classifier.classify_git_command("git commit --amend") == NEEDS_REVIEW
 
     def test_commit_amend_with_message(self, classifier: OperationClassifier):
-        assert (
-            classifier.classify_git_command("git commit --amend -m 'new msg'") == NEEDS_REVIEW
-        )
+        assert classifier.classify_git_command("git commit --amend -m 'new msg'") == NEEDS_REVIEW
 
     def test_stash_drop(self, classifier: OperationClassifier):
         assert classifier.classify_git_command("git stash drop") == NEEDS_REVIEW
@@ -239,10 +223,7 @@ class TestEdgeCases:
 
     def test_malformed_quoting_falls_back(self, classifier: OperationClassifier):
         # Unbalanced quote — shlex raises, fallback split still classifies.
-        assert (
-            classifier.classify_git_command("git status 'unclosed quote")
-            == ALWAYS_SAFE
-        )
+        assert classifier.classify_git_command("git status 'unclosed quote") == ALWAYS_SAFE
 
     def test_returns_are_uppercase_category_names(self, classifier: OperationClassifier):
         for cmd in (
@@ -260,10 +241,7 @@ class TestForceFlagDetection:
 
     def test_force_equals_form(self, classifier: OperationClassifier):
         # ``--force=`` is still a force flag (used with refspec aliases).
-        assert (
-            classifier.classify_git_command("git push --force=if:has:remote origin main")
-            == FORBIDDEN
-        )
+        assert classifier.classify_git_command("git push --force=if:has:remote origin main") == FORBIDDEN
 
     def test_force_flag_after_positional(self, classifier: OperationClassifier):
         # Flags may appear after the remote/branch positionally.
@@ -272,10 +250,7 @@ class TestForceFlagDetection:
     def test_force_with_lease_equals_refspec(self, classifier: OperationClassifier):
         # ``--force-with-lease=main:abc123`` to a feature branch → review.
         assert (
-            classifier.classify_git_command(
-                "git push --force-with-lease=main:abc123 origin feature/x"
-            )
-            == NEEDS_REVIEW
+            classifier.classify_git_command("git push --force-with-lease=main:abc123 origin feature/x") == NEEDS_REVIEW
         )
 
 

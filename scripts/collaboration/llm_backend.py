@@ -12,9 +12,15 @@ from .constants import (
     DEFAULT_LLM_TIMEOUT_SECONDS,
 )
 from .prometheus_metrics import get_metrics
+from .reasoning_budget import resolve_max_tokens
 
 if TYPE_CHECKING:
     from .moka_backend import MokaAIBackend
+
+# V4.5.20: single ordered source of truth for the A-path (direct API) order.
+# Maintainer-confirmed: Moka → DeepSeek/OpenAI → Anthropic (Mock always last);
+# auto/auto-fallback read this tuple, never the textual order of ``if`` blocks.
+API_BACKEND_ORDER: tuple[str, ...] = ("moka", "openai", "anthropic")
 
 # Shared defaults so sync and async backends stay consistent.
 # Magic numbers centralized in .constants — re-exported here for backward compatibility.
@@ -37,6 +43,7 @@ def _get_moka_backend() -> "type[MokaAIBackend]":
     global _MOKA_BACKEND
     if _MOKA_BACKEND is None:
         from .moka_backend import MokaAIBackend
+
         _MOKA_BACKEND = MokaAIBackend
     return _MOKA_BACKEND
 
@@ -45,12 +52,10 @@ class LLMBackend(ABC):
     path: str = "C"  # default for backward compat
 
     @abstractmethod
-    def generate(self, prompt: str, **kwargs: Any) -> str:
-        ...
+    def generate(self, prompt: str, **kwargs: Any) -> str: ...
 
     @abstractmethod
-    def is_available(self) -> bool:
-        ...
+    def is_available(self) -> bool: ...
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
         yield self.generate(prompt, **kwargs)
@@ -101,14 +106,15 @@ class OpenAIBackend(LLMBackend):
         model: str | None = None,
         base_url: str | None = None,
         temperature: float = DEFAULT_TEMPERATURE,
-        max_tokens: int = DEFAULT_MAX_TOKENS,
+        max_tokens: int | None = None,
         timeout: float | None = None,
     ) -> None:
         self._api_key = api_key or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
         self.model = model or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI)
         self.base_url = base_url or os.environ.get("DEVSQUAD_OPENAI_BASE_URL")
         self.temperature = temperature
-        self.max_tokens = max_tokens
+        # V4.5.20: None → resolve per-model (reasoning models get a larger budget).
+        self.max_tokens = resolve_max_tokens(self.model, max_tokens)
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self._client: Any | None = None
         self._client_lock = __import__("threading").Lock()
@@ -142,10 +148,13 @@ class OpenAIBackend(LLMBackend):
             **kwargs: Optional overrides for model, temperature, and max_tokens.
 
         Returns:
-            The generated completion text.
+            The generated completion text. A truncated-but-non-empty answer
+            (``finish_reason='length'`` with content) is still returned as-is.
 
         Raises:
-            RuntimeError: If all retry attempts fail.
+            RuntimeError: If all retry attempts fail, or the provider returns
+                ``finish_reason='length'`` with empty content (the budget was
+                consumed by reasoning tokens) — never treated as success.
         """
         import time
 
@@ -161,13 +170,37 @@ class OpenAIBackend(LLMBackend):
                     max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 )
                 _llm_duration = time.time() - _llm_start
-                # Prometheus: record successful LLM call
+                choice = response.choices[0]
+                content = choice.message.content or ""
+                effective_max_tokens = kwargs.get("max_tokens", self.max_tokens)
+                if not content and getattr(choice, "finish_reason", None) == "length":
+                    # Reasoning models (e.g. deepseek-flash) emit their chain of
+                    # thought in ``reasoning_content``, but those tokens still count
+                    # against ``max_tokens``. When the budget runs out the provider
+                    # returns finish_reason='length' with an EMPTY content field.
+                    # V4.5.20: this is NOT a success — warn, then raise so
+                    # FallbackBackend degrades to the next backend (Mock last).
+                    import logging
+
+                    logging.getLogger(__name__).warning(
+                        "OpenAIBackend: empty completion with finish_reason='length' "
+                        "(model=%s, max_tokens=%s); the token budget was consumed by "
+                        "reasoning tokens. Raising so the chain degrades to the next "
+                        "backend. Raise max_tokens or use a non-reasoning model.",
+                        kwargs.get("model", self.model),
+                        effective_max_tokens,
+                    )
+                    raise RuntimeError(
+                        "OpenAIBackend: empty completion with finish_reason='length' "
+                        f"(model={kwargs.get('model', self.model)}, max_tokens={effective_max_tokens})"
+                    )
+                # Prometheus: record success only past the empty-length raise above.
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, True)
                 except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
-                return response.choices[0].message.content or ""
+                return content
             except _get_openai_retry_exceptions() as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
@@ -371,6 +404,7 @@ class FallbackBackend(LLMBackend):
         self._failures: dict[str, int] = {}  # reason -> count
         self._skipped: set[int] = set()  # indices skipped by fuse
         from .backend_paths import FUSE_SKIP_AFTER_CONSECUTIVE
+
         self._fuse_threshold = FUSE_SKIP_AFTER_CONSECUTIVE
 
     def __repr__(self) -> str:
@@ -400,11 +434,14 @@ class FallbackBackend(LLMBackend):
         if self._failures[key] >= self._fuse_threshold:
             self._skipped.add(idx)
             import logging
+
             logger = logging.getLogger(__name__)
             backend_repr = repr(self._backends[idx])
             logger.warning(
                 "FallbackBackend: fuse blocked %s after %d consecutive %s failures",
-                backend_repr, self._failures[key], reason,
+                backend_repr,
+                self._failures[key],
+                reason,
             )
 
     def _is_fuse_skipped(self, idx: int) -> bool:
@@ -626,9 +663,7 @@ def _create_host_family_backend(backend_type: str, kwargs: dict[str, Any]) -> LL
     cls = HostBridgeBackendV2 if backend_type == "host-v2" else HostBridgeBackend
     backend = cls(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
     if not backend.is_available():
-        raise BackendUnavailable(
-            f"{backend_type} not available: no TRAE/ClaudeCode environment detected"
-        )
+        raise BackendUnavailable(f"{backend_type} not available: no TRAE/ClaudeCode environment detected")
     return backend
 
 
@@ -648,9 +683,7 @@ def _build_auto_fallback_backend(kwargs: dict[str, Any]) -> LLMBackend:
     backends.append(MockBackend())
     if len(backends) == 1:
         return backends[0]
-    return FallbackBackend(
-        backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS)
-    )
+    return FallbackBackend(backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS))
 
 
 def _resolve_auto_single_path(backend_type: str, kwargs: dict[str, Any]) -> LLMBackend:
@@ -709,6 +742,9 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
 
     V4.5.2 B/A/C resolve order: B (Host Bridge) → A (Direct API) → C (Mock).
     ``auto`` mode resolves to the first available path per RESOLVE_ORDER.
+    Within the A path, candidates follow ``API_BACKEND_ORDER`` =
+    Moka → OpenAI(DeepSeek) → Anthropic, with Mock always last; ``auto`` and
+    ``auto-fallback`` share this order.
 
     Automatically reads configuration from environment variables when not
     explicitly provided via kwargs. Supports .env file loading.
@@ -798,7 +834,19 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         return _build_auto_fallback_backend(kwargs)
 
     # === Catch-all for unknown backend types ===
-    known_types = {"auto", "host", "host-v1", "host-v2", "mock", "trae", "openai", "anthropic", "moka", "fallback", "auto-fallback"}
+    known_types = {
+        "auto",
+        "host",
+        "host-v1",
+        "host-v2",
+        "mock",
+        "trae",
+        "openai",
+        "anthropic",
+        "moka",
+        "fallback",
+        "auto-fallback",
+    }
     if backend_type not in known_types:
         raise ValueError(
             f"Unknown backend type: {backend_type}. "
@@ -829,9 +877,7 @@ def _resolve_host_bridge_version() -> str:
         return "v2"
     if raw in ("v1", "v2"):
         return raw
-    raise ValueError(
-        f"Invalid DEVSQUAD_HOST_BRIDGE_VERSION={raw!r}: only 'v1' or 'v2' accepted"
-    )
+    raise ValueError(f"Invalid DEVSQUAD_HOST_BRIDGE_VERSION={raw!r}: only 'v1' or 'v2' accepted")
 
 
 def _build_host_bridge_backend(
@@ -846,69 +892,78 @@ def _build_host_bridge_backend(
     from .host_llm_bridge import HostBridgeBackend, HostBridgeBackendV2
 
     if _resolve_host_bridge_version() == "v2":
-        return HostBridgeBackendV2(
-            bridge_dir=bridge_dir, timeout_seconds=timeout_seconds
-        )
+        return HostBridgeBackendV2(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
     return HostBridgeBackend(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
 
 
 def _build_api_backends(kwargs: dict) -> list[LLMBackend]:
-    """Build a list of API backends from available keys.
+    """Build the A-path API backends for whichever keys are configured.
+
+    Candidate order is driven by the single source of truth ``API_BACKEND_ORDER``
+    (Moka → OpenAI/DeepSeek → Anthropic); callers append ``MockBackend`` and it is
+    always last. An unspecified ``max_tokens`` is forwarded as ``None`` to
+    ``OpenAIBackend`` so it resolves its own per-model budget; the other providers
+    fall back to ``DEFAULT_MAX_TOKENS``.
 
     Returns:
-        list of (OpenAI, Anthropic, MOKA) backends for which keys are available.
-        Empty list means no API keys found.
+        Available backends in ``API_BACKEND_ORDER`` order; empty when no keys set.
     """
     import os
 
+    max_tokens = kwargs.pop("max_tokens", None)
+    timeout = kwargs.pop("timeout", None)
     backends_list: list[LLMBackend] = []
-    anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
-    openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-    moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY")
-
-    if anthropic_key:
-        backends_list.append(
-            AnthropicBackend(
-                api_key=anthropic_key,
-                base_url=kwargs.pop("anthropic_base_url", None) or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
-                model=kwargs.pop("anthropic_model", None)
-                or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
-                max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
-                timeout=kwargs.pop("timeout", None),
-            )
-        )
-    if openai_key:
-        backends_list.append(
-            OpenAIBackend(
-                api_key=openai_key,
-                base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
-                model=kwargs.pop("openai_model", None)
-                or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
-                max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
-                timeout=kwargs.pop("timeout", None),
-            )
-        )
-    if moka_key:
-        # V4.5.2 P12.1.1: Use explicit MokaAIBackend instead of OpenAIBackend
-        backends_list.append(
-            _get_moka_backend()(
-                api_key=moka_key,
-                base_url=kwargs.pop("moka_base_url", None)
-                or os.environ.get("MOKA_BASE_URL")
-                or os.environ.get("MOKA_API_BASE"),
-                model=kwargs.pop("moka_model", None)
-                or os.environ.get("MOKA_MODEL"),
-                max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
-                timeout=kwargs.pop("timeout", None),
-            )
-        )
+    for name in API_BACKEND_ORDER:
+        if name == "moka":
+            moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY")
+            if moka_key:
+                # V4.5.2 P12.1.1: Use explicit MokaAIBackend instead of OpenAIBackend
+                backends_list.append(
+                    _get_moka_backend()(
+                        api_key=moka_key,
+                        base_url=kwargs.pop("moka_base_url", None)
+                        or os.environ.get("MOKA_BASE_URL")
+                        or os.environ.get("MOKA_API_BASE"),
+                        model=kwargs.pop("moka_model", None) or os.environ.get("MOKA_MODEL"),
+                        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
+                        timeout=timeout,
+                    )
+                )
+        elif name == "openai":
+            openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
+            if openai_key:
+                backends_list.append(
+                    OpenAIBackend(
+                        api_key=openai_key,
+                        base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
+                        model=kwargs.pop("openai_model", None)
+                        or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
+                        max_tokens=max_tokens,  # None → per-model resolution
+                        timeout=timeout,
+                    )
+                )
+        elif name == "anthropic":
+            anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
+            if anthropic_key:
+                backends_list.append(
+                    AnthropicBackend(
+                        api_key=anthropic_key,
+                        base_url=kwargs.pop("anthropic_base_url", None)
+                        or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
+                        model=kwargs.pop("anthropic_model", None)
+                        or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
+                        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
+                        timeout=timeout,
+                    )
+                )
     return backends_list
 
 
 def _build_fallback_backend(kwargs: dict) -> LLMBackend:
     """Build a FallbackBackend with A→C (existing behavior).
 
-    For backward compatibility: returns FallbackBackend([API_backend(s), MockBackend]).
+    For backward compatibility: returns FallbackBackend([API_backend(s), MockBackend])
+    where the API backends follow the shared ``API_BACKEND_ORDER``.
     If no API keys, returns plain MockBackend.
     """
     backends_list = _build_api_backends(kwargs)

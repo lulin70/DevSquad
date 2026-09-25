@@ -52,6 +52,7 @@ def main() -> int:
         api_key = os.environ.get("MOKA_API_KEY")
         if api_key:
             from scripts.collaboration.llm_backend import OpenAIBackend
+
             llm_backend = OpenAIBackend(
                 api_key=api_key,
                 base_url=os.environ.get("MOKA_API_BASE", "https://api.moka-ai.com/v1"),

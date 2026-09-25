@@ -37,22 +37,49 @@ class ConfirmationDecision:
 
 # 高风险操作关键词（需确认）
 _HIGH_RISK_KEYWORDS = {
-    "delete", "drop", "truncate", "force", "reset", "wipe",
-    "production", "prod", "release", "deploy", "publish",
-    "migration", "schema_change", "rollback",
+    "delete",
+    "drop",
+    "truncate",
+    "force",
+    "reset",
+    "wipe",
+    "production",
+    "prod",
+    "release",
+    "deploy",
+    "publish",
+    "migration",
+    "schema_change",
+    "rollback",
 }
 
 # 中风险操作关键词
 _MEDIUM_RISK_KEYWORDS = {
-    "commit", "push", "merge", "tag", "branch",
-    "install", "uninstall", "upgrade", "downgrade",
-    "config_change", "env_change",
+    "commit",
+    "push",
+    "merge",
+    "tag",
+    "branch",
+    "install",
+    "uninstall",
+    "upgrade",
+    "downgrade",
+    "config_change",
+    "env_change",
 }
 
 # 白名单（自动批准）
 _WHITELIST_OPERATIONS = {
-    "read", "list", "status", "query", "test", "lint", "format",
-    "analyze", "discover", "validate",
+    "read",
+    "list",
+    "status",
+    "query",
+    "test",
+    "lint",
+    "format",
+    "analyze",
+    "discover",
+    "validate",
 }
 
 
@@ -100,9 +127,7 @@ class SmartConfirmation:
             return "medium"
         return "low"
 
-    def _evaluate_whitelist(
-        self, op_lower: str, operation: str, risk: str
-    ) -> ConfirmationDecision:
+    def _evaluate_whitelist(self, op_lower: str, operation: str, risk: str) -> ConfirmationDecision:
         """WHITELIST_ONLY: 仅白名单自动执行。"""
         if any(kw in op_lower for kw in self._whitelist):
             return ConfirmationDecision(
@@ -118,9 +143,7 @@ class SmartConfirmation:
             risk_level=risk,
         )
 
-    def _evaluate_blacklist(
-        self, op_lower: str, operation: str, risk: str
-    ) -> ConfirmationDecision:
+    def _evaluate_blacklist(self, op_lower: str, operation: str, risk: str) -> ConfirmationDecision:
         """BLACKLIST_ONLY: 仅黑名单需确认。"""
         if any(kw in op_lower for kw in self._blacklist):
             return ConfirmationDecision(
@@ -136,9 +159,7 @@ class SmartConfirmation:
             risk_level=risk,
         )
 
-    def _evaluate_smart(
-        self, op_lower: str, operation: str, risk: str
-    ) -> ConfirmationDecision:
+    def _evaluate_smart(self, op_lower: str, operation: str, risk: str) -> ConfirmationDecision:
         """SMART: 基于风险等级智能判断。"""
         if risk == "high":
             return ConfirmationDecision(

@@ -53,9 +53,7 @@ class TestDebtCollectorClassify(unittest.TestCase):
     def test_high_severity_marker_fixme(self):
         # FIXME is the highest-severity marker (weight 4).
         collector = DebtCollector(now=time.time())
-        debt = collector.classify(
-            _make_entry(marker="FIXME", file_path="scripts/foo.py")
-        )
+        debt = collector.classify(_make_entry(marker="FIXME", file_path="scripts/foo.py"))
         # FIXME alone (score 2) → MEDIUM; with no other signals.
         self.assertIn(debt.rot_risk, ("MEDIUM", "HIGH"))
         self.assertTrue(any("FIXME" in r for r in debt.reasons))
@@ -66,9 +64,7 @@ class TestDebtCollectorClassify(unittest.TestCase):
         markers = ["FIXME", "HACK", "TODO", "XXX", "WIP"]
         scores = []
         for m in markers:
-            debt = collector.classify(
-                _make_entry(marker=m, file_path="scripts/foo.py")
-            )
+            debt = collector.classify(_make_entry(marker=m, file_path="scripts/foo.py"))
             # Map risk to numeric for comparison.
             scores.append({"LOW": 0, "MEDIUM": 1, "HIGH": 2}[debt.rot_risk])
         # FIXME/HACK (weight >= 3) score higher than XXX/WIP (weight <= 1).
@@ -77,62 +73,46 @@ class TestDebtCollectorClassify(unittest.TestCase):
     def test_critical_path_adds_risk(self):
         # Debt in security/cache/auth paths gets +2 score.
         collector = DebtCollector(now=time.time())
-        debt = collector.classify(
-            _make_entry(marker="FIXME", file_path="scripts/security/auth.py")
-        )
+        debt = collector.classify(_make_entry(marker="FIXME", file_path="scripts/security/auth.py"))
         self.assertEqual(debt.rot_risk, "HIGH")
         self.assertIn("in critical module path", debt.reasons)
 
     def test_non_critical_path_no_critical_reason(self):
         collector = DebtCollector(now=time.time())
-        debt = collector.classify(
-            _make_entry(marker="TODO", file_path="scripts/utils/helpers.py")
-        )
+        debt = collector.classify(_make_entry(marker="TODO", file_path="scripts/utils/helpers.py"))
         self.assertNotIn("in critical module path", debt.reasons)
 
     def test_old_file_adds_risk(self):
         # Simulate an old file by setting `now` far in the future.
         collector = DebtCollector(now=time.time() + 100 * 24 * 3600)
         # Use a real file so _file_age works (this test file itself).
-        debt = collector.classify(
-            _make_entry(marker="FIXME", file_path=__file__)
-        )
+        debt = collector.classify(_make_entry(marker="FIXME", file_path=__file__))
         self.assertIn(debt.rot_risk, ("HIGH", "MEDIUM"))
         self.assertTrue(any("older than" in r for r in debt.reasons))
 
     def test_missing_file_age_zero(self):
         # Missing file → age 0 → no age-based score.
         collector = DebtCollector(now=time.time())
-        debt = collector.classify(
-            _make_entry(marker="WIP", file_path="/nonexistent/path.py")
-        )
+        debt = collector.classify(_make_entry(marker="WIP", file_path="/nonexistent/path.py"))
         self.assertEqual(debt.rot_risk, "LOW")
         self.assertEqual(debt.reasons, [])
 
     def test_low_risk_wip_non_critical_recent(self):
         collector = DebtCollector(now=time.time())
-        debt = collector.classify(
-            _make_entry(marker="WIP", file_path="/nonexistent/x.py")
-        )
+        debt = collector.classify(_make_entry(marker="WIP", file_path="/nonexistent/x.py"))
         self.assertEqual(debt.rot_risk, "LOW")
 
     def test_high_risk_fixme_critical_old(self):
         # FIXME (weight 4 → score 2) + critical path (score 2) = 4 → HIGH.
         # File age is 0 (path doesn't exist) but marker+critical suffice.
         collector = DebtCollector(now=time.time())
-        debt = collector.classify(
-            _make_entry(marker="FIXME", file_path="scripts/security/auth.py")
-        )
+        debt = collector.classify(_make_entry(marker="FIXME", file_path="scripts/security/auth.py"))
         self.assertEqual(debt.rot_risk, "HIGH")
 
     def test_classify_custom_critical_paths(self):
         # Custom critical paths should be respected.
-        collector = DebtCollector(
-            now=time.time(), critical_paths=("custom_module",)
-        )
-        debt = collector.classify(
-            _make_entry(marker="FIXME", file_path="scripts/custom_module/x.py")
-        )
+        collector = DebtCollector(now=time.time(), critical_paths=("custom_module",))
+        debt = collector.classify(_make_entry(marker="FIXME", file_path="scripts/custom_module/x.py"))
         self.assertEqual(debt.rot_risk, "HIGH")
         self.assertIn("in critical module path", debt.reasons)
 
@@ -168,9 +148,9 @@ class TestDebtCollectorCollect(unittest.TestCase):
 
     def test_collect_sorted_by_risk_desc(self):
         entries = [
-            _make_entry(file_path="scripts/z.py", marker="WIP"),       # LOW
+            _make_entry(file_path="scripts/z.py", marker="WIP"),  # LOW
             _make_entry(file_path="scripts/security/a.py", marker="FIXME"),  # HIGH
-            _make_entry(file_path="scripts/m.py", marker="TODO"),      # MEDIUM/LOW
+            _make_entry(file_path="scripts/m.py", marker="TODO"),  # MEDIUM/LOW
         ]
         with patch(
             "scripts.collaboration.debt_collector.scan_tech_debt",

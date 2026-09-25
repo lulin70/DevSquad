@@ -10,6 +10,7 @@ Coverage focus (≥10 cases):
 - transaction commit / rollback semantics
 - call counter anti-ghost gate
 """
+
 from __future__ import annotations
 
 import json

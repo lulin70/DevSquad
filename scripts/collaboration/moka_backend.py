@@ -79,9 +79,7 @@ class MokaAIBackend(LLMBackend):
     ) -> None:
         self._api_key = api_key or os.environ.get("MOKA_API_KEY")
         self.model = model or os.environ.get("MOKA_MODEL", MOKA_DEFAULT_MODEL)
-        self.base_url = (
-            base_url or os.environ.get("MOKA_BASE_URL", MOKA_DEFAULT_BASE_URL)
-        )
+        self.base_url = base_url or os.environ.get("MOKA_BASE_URL", MOKA_DEFAULT_BASE_URL)
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout or self.DEFAULT_TIMEOUT
@@ -126,9 +124,7 @@ class MokaAIBackend(LLMBackend):
                             client_kwargs["base_url"] = self.base_url
                         self._client = OpenAI(**client_kwargs)
                     except ImportError:
-                        raise ImportError(
-                            "openai package required for MokaAIBackend: pip install openai"
-                        ) from None
+                        raise ImportError("openai package required for MokaAIBackend: pip install openai") from None
         return self._client
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
@@ -164,14 +160,10 @@ class MokaAIBackend(LLMBackend):
             except Exception as exc:  # pragma: no cover - network path
                 last_error = exc
                 if attempt < self.MAX_RETRIES - 1:
-                    backoff = min(8.0, 0.5 * (2 ** attempt))
+                    backoff = min(8.0, 0.5 * (2**attempt))
                     time.sleep(backoff)
                     continue
-                raise RuntimeError(
-                    f"MokaAIBackend.generate failed after {self.MAX_RETRIES} attempts: {exc}"
-                ) from exc
+                raise RuntimeError(f"MokaAIBackend.generate failed after {self.MAX_RETRIES} attempts: {exc}") from exc
         if last_error is not None:
-            raise RuntimeError(
-                f"MokaAIBackend.generate failed: {last_error}"
-            ) from last_error
+            raise RuntimeError(f"MokaAIBackend.generate failed: {last_error}") from last_error
         return ""  # unreachable

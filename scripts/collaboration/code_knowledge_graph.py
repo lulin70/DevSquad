@@ -190,9 +190,7 @@ class CodeKnowledgeGraph:
 
         return symbols, call_edges, deps
 
-    def _extract_from_module_info(
-        self, module_info: dict, file_path: str
-    ) -> tuple[list[SymbolInfo], list[CallEdge]]:
+    def _extract_from_module_info(self, module_info: dict, file_path: str) -> tuple[list[SymbolInfo], list[CallEdge]]:
         """Extract symbols and call edges from CodeMapGenerator output.
 
         Args:
@@ -343,4 +341,3 @@ class CodeKnowledgeGraph:
             return hash_val, line_count
         except (OSError, UnicodeDecodeError):
             return "", 0
-

@@ -6,6 +6,7 @@ directory. Tests prove: actual adapter type, actual version dir + marker
 name, actual prompt-file consumption, success/timeout/failure paths, and
 cross-version isolation (v1 runner cannot see v2 requests).
 """
+
 from __future__ import annotations
 
 import json
@@ -36,8 +37,11 @@ def _spawn_runner(bridge_dir: Path, behaviour: str):
     """Spawn a real subprocess running FakeHostRunnerV2.run_forever()."""
     return subprocess.Popen(
         [
-            sys.executable, "-m", "tests.fakes.fake_host_runner_v2",
-            str(bridge_dir), behaviour,
+            sys.executable,
+            "-m",
+            "tests.fakes.fake_host_runner_v2",
+            str(bridge_dir),
+            behaviour,
         ],
         cwd=str(PROJECT_ROOT),
         stdout=subprocess.DEVNULL,
@@ -114,9 +118,7 @@ class TestV2FactorySubprocessJourney:
         try:
             backend = create_backend("host", bridge_dir=str(v2_dir))
             assert type(backend) is HostBridgeBackendV2
-            output = backend.generate(
-                "hello v2", agent_type="solo-coder", task_description="t"
-            )
+            output = backend.generate("hello v2", agent_type="solo-coder", task_description="t")
         finally:
             proc.terminate()
             proc.wait(timeout=10)
@@ -142,9 +144,7 @@ class TestCrossVersionIsolation:
 
     def test_v2_request_files_confined_to_v2_dir(self, v2_dir: Path) -> None:
         backend = HostBridgeBackendV2(bridge_dir=str(v2_dir), timeout_seconds=30)
-        request_id = backend.bridge.create_request(
-            agent_type="architect", task="t", context=None, prompt="p"
-        )
+        request_id = backend.bridge.create_request(agent_type="architect", task="t", context=None, prompt="p")
         parent = v2_dir.parent
         v2_files = [p.name for p in v2_dir.iterdir()]
         assert f"request_{request_id}.json" in v2_files

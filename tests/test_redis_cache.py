@@ -21,7 +21,6 @@ from scripts.collaboration.redis_cache import (
 pytestmark = pytest.mark.unit
 
 
-
 @pytest.fixture
 async def redis_backend():
     """Create a RedisCacheBackend backed by fakeredis."""

@@ -254,6 +254,7 @@ class TestBackendPathContract:
             MockBackend,
             OpenAIBackend,
         )
+
         valid = {"B", "A", "C", "B+A+C", "B-passthrough", "fallback", "host_llm"}
 
         mock = MockBackend()
@@ -269,6 +270,7 @@ class TestBackendPathContract:
 
     def test_backend_path_constant_bac(self):
         from scripts.collaboration.backend_paths import RESOLVE_ORDER
+
         assert RESOLVE_ORDER[0].value == "B"
         assert RESOLVE_ORDER[1].value == "A"
         assert RESOLVE_ORDER[2].value == "C"
@@ -303,11 +305,13 @@ class TestAntiGhostIntegration:
         from scripts.collaboration.backend_paths import (
             classify_error,
         )
+
         _ = BackendPath.B_HOST_BRIDGE
         _ = classify_error(TimeoutError("test"))
 
         # PerfBaseline — simulate a snapshot
         from scripts.collaboration.perf_baseline import PerfSampleCollector
+
         col = PerfSampleCollector("mock")
         for i in range(10):
             col.add_sample(float(i))
@@ -318,12 +322,12 @@ class TestAntiGhostIntegration:
         # 4 of 5 must have incremented (HostBridgeBackend is verified separately)
         for name in ["TaskScaleGate", "OrderChainDetector", "BackendPath", "PerfBaseline"]:
             assert after[name] > before[name], (
-                f"{name}._call_counter_er did not increment "
-                f"(before={before[name]}, after={after[name]})"
+                f"{name}._call_counter_er did not increment (before={before[name]}, after={after[name]})"
             )
         # HostBridgeBackend: verify wired in via create_backend (B path resolution)
         # Just verifying import works — actual generate() needs real host
         from scripts.collaboration.host_llm_bridge import HostBridgeBackend
+
         assert HostBridgeBackend.path == "B"
 
     def test_host_bridge_backend_class_attribute(self):

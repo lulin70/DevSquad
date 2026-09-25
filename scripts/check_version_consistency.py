@@ -18,6 +18,15 @@ Exit codes:
 
 Added in P2-6 (V3.9.2) to prevent the version-drift issues that occurred
 during V3.6.x/V3.7.x/V3.8.x -> V3.9.2 migration.
+
+Implementation notes (V4.5.20 size-gate refactor):
+    - the TRAE cache content-diff checks live in
+      ``scripts/check_version_consistency_content_diff.py``;
+    - the shared ``VersionCheck`` result model lives in
+      ``scripts/check_version_consistency_types.py``.
+    Both are re-exported here, so the CLI, its exit codes and its public names
+    (``CONTENT_DIFF_PAIRS``, ``ContentDiffSpec``, ``check_content_diff``, ...)
+    are unchanged.
 """
 
 from __future__ import annotations
@@ -27,7 +36,18 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NamedTuple
+
+# WHY: the repo root must be importable for the sibling modules below. This gate
+# is also run directly (``python scripts/check_version_consistency.py``) from CI,
+# where ``sys.path[0]`` is ``scripts/`` and ``scripts.*`` would not resolve.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.check_version_consistency_content_diff import (  # noqa: E402
+    CONTENT_DIFF_PAIRS,
+    ContentDiffSpec,  # noqa: F401 — re-exported for test/back-compat imports
+    check_content_diff,
+)
+from scripts.check_version_consistency_types import VersionCheck  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CANONICAL_VERSION_FILE = REPO_ROOT / "scripts" / "collaboration" / "_version.py"
@@ -50,21 +70,20 @@ MODULE_COUNT_SSOT_TOLERANCE = 0.03
 # VersionCheck that does not block CI; the doc should be brought in line
 # in a follow-up patch.
 DOCUMENTED_MODULE_HEADLINE = 204  # "204+ core modules"
-DOCUMENTED_TEST_HEADLINE = 9400   # "9400+ tests passing"
+DOCUMENTED_TEST_HEADLINE = 9400  # "9400+ tests passing"
 
 # Match version tags in PRD filenames: V3.9, V4.1.0, V4.2.1, etc.
 # Captures the version string without the leading "V" prefix.
 PRD_FILENAME_VERSION_RE = re.compile(r"^V(\d+\.\d+(?:\.\d+)?)")
 
-
-class VersionCheck(NamedTuple):
-    """Result of a single file version check."""
-
-    file: str
-    expected: str
-    found: str | None
-    passed: bool
-    detail: str = ""
+# V4.5.20 (F2): sub-skill manifests under skills/*/ were a blind spot — eight
+# ``version:`` fields and three ``version_source:`` fields drifted up to 18
+# releases behind the SSOT while this gate stayed green. Both are now checked.
+SUB_SKILL_DIR = REPO_ROOT / "skills"
+# Top-level ``version:`` key only (nested indented keys cannot match ``^``).
+SUB_SKILL_VERSION_RE = re.compile(r'^version:\s*["\']?(\d+\.\d+\.\d+)', re.MULTILINE)
+# ``version_source: "..._version (X.Y.Z)"`` — the version inside the parens.
+SUB_SKILL_VERSION_SOURCE_RE = re.compile(r"^\s*version_source:.*?\((\d+\.\d+\.\d+)\)", re.MULTILINE)
 
 
 @dataclass
@@ -346,168 +365,6 @@ def _check_module_count_ssot() -> VersionCheck:
     )
 
 
-# === Content diff pairs (V4.3.1 enhancement) ===
-# Pairs of (source_file, cache_file) that must be byte-identical.
-# Catches the V4.3.1 bug where only the `version:` field was synced to TRAE
-# caches but the SKILL.md body remained stale (V4.3.0 description, old test
-# counts). Version-field-only checks gave 30/30 PASS while users saw stale
-# content in the TRAE skill panel.
-@dataclass
-class ContentDiffSpec:
-    """Specification for a content diff check between source and cache file.
-
-    source_path:
-        Project-relative path of the canonical source file.
-    cache_path:
-        Absolute path of the cache file to compare against.
-    description:
-        Human-readable label shown in the report.
-    optional:
-        If True, a missing cache file is OK (reported as SKIP, not FAIL).
-        Used for L1/L2 TRAE caches that don't exist in CI environments.
-    """
-
-    source_path: str
-    cache_path: Path
-    description: str
-    optional: bool = False
-
-
-CONTENT_DIFF_PAIRS: list[ContentDiffSpec] = [
-    # L1: User-level TRAE CN cache (China edition)
-    ContentDiffSpec(
-        source_path="SKILL.md",
-        cache_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "SKILL.md",
-        description="TRAE L1 cache (~/.trae-cn) SKILL.md content",
-        optional=True,
-    ),
-    # L2: User-level TRAE cache (International edition)
-    ContentDiffSpec(
-        source_path="SKILL.md",
-        cache_path=Path.home() / ".trae" / "skills" / "devsquad" / "SKILL.md",
-        description="TRAE L2 cache (~/.trae) SKILL.md content",
-        optional=True,
-    ),
-    # L3: TRAE workspace root .trae (TRAE actually reads from here!)
-    # This is /Users/lin/trae_projects/.trae/, NOT DevSquad/.trae/.
-    # Discovered 2026-07-27: Skill panel showed V4.1.7 even after DevSquad/.trae
-    # was synced, because TRAE reads from workspace root .trae, not project .trae.
-    # V4.5.13: this is now the SINGLE-SOURCE skill registration layer.
-    ContentDiffSpec(
-        source_path="SKILL.md",
-        cache_path=REPO_ROOT.parent / ".trae" / "skills" / "devsquad" / "SKILL.md",
-        description="TRAE L3 cache (workspace root .trae) SKILL.md content",
-        optional=True,
-    ),
-    # L4: DevSquad project .trae (historical/backup, not read by TRAE directly)
-    ContentDiffSpec(
-        source_path="SKILL.md",
-        cache_path=REPO_ROOT / ".trae" / "skills" / "devsquad" / "SKILL.md",
-        description="TRAE L4 cache (DevSquad .trae) SKILL.md content",
-        optional=True,
-    ),
-    # skill-manifest.yaml (same 4 layers)
-    ContentDiffSpec(
-        source_path="skill-manifest.yaml",
-        cache_path=Path.home() / ".trae-cn" / "skills" / "devsquad" / "skill-manifest.yaml",
-        description="TRAE L1 cache (~/.trae-cn) skill-manifest.yaml content",
-        optional=True,
-    ),
-    ContentDiffSpec(
-        source_path="skill-manifest.yaml",
-        cache_path=Path.home() / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
-        description="TRAE L2 cache (~/.trae) skill-manifest.yaml content",
-        optional=True,
-    ),
-    ContentDiffSpec(
-        source_path="skill-manifest.yaml",
-        cache_path=REPO_ROOT.parent / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
-        description="TRAE L3 cache (workspace root .trae) skill-manifest.yaml content",
-        optional=True,
-    ),
-    ContentDiffSpec(
-        source_path="skill-manifest.yaml",
-        cache_path=REPO_ROOT / ".trae" / "skills" / "devsquad" / "skill-manifest.yaml",
-        description="TRAE L4 cache (DevSquad .trae) skill-manifest.yaml content",
-        optional=True,
-    ),
-]
-
-
-def check_content_diff(spec: ContentDiffSpec) -> VersionCheck:
-    """Verify that cache file is byte-identical to source file.
-
-    Returns a VersionCheck-like result. ``expected`` carries the source path
-    and ``found`` carries "identical" / "differs" / None for missing files.
-    """
-    source = REPO_ROOT / spec.source_path
-    if not source.exists():
-        return VersionCheck(
-            file=spec.description,
-            expected=spec.source_path,
-            found=None,
-            passed=False,
-            detail=f"source file missing: {spec.source_path}",
-        )
-    if not spec.cache_path.exists():
-        if spec.optional:
-            return VersionCheck(
-                file=spec.description,
-                expected=spec.source_path,
-                found=None,
-                passed=True,
-                detail=f"SKIP (optional cache, not found): {spec.description}",
-            )
-        return VersionCheck(
-            file=spec.description,
-            expected=spec.source_path,
-            found=None,
-            passed=False,
-            detail=f"cache file missing: {spec.cache_path}",
-        )
-    try:
-        source_content = source.read_text(encoding="utf-8")
-        cache_content = spec.cache_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return VersionCheck(
-            file=spec.description,
-            expected=spec.source_path,
-            found=None,
-            passed=False,
-            detail=f"read error: {exc}",
-        )
-    if source_content == cache_content:
-        return VersionCheck(
-            file=spec.description,
-            expected=spec.source_path,
-            found="identical",
-            passed=True,
-            detail=f"{spec.description}: identical to source OK",
-        )
-    # Compute first diverging line for actionable diagnostics
-    source_lines = source_content.splitlines()
-    cache_lines = cache_content.splitlines()
-    first_diff_line = 0
-    max_lines = max(len(source_lines), len(cache_lines))
-    for i in range(max_lines):
-        s = source_lines[i] if i < len(source_lines) else "<EOF>"
-        c = cache_lines[i] if i < len(cache_lines) else "<EOF>"
-        if s != c:
-            first_diff_line = i + 1
-            break
-    return VersionCheck(
-        file=spec.description,
-        expected=spec.source_path,
-        found="differs",
-        passed=False,
-        detail=(
-            f"{spec.description}: content differs from source "
-            f"(source={len(source_lines)}L, cache={len(cache_lines)}L, "
-            f"first diff at line {first_diff_line})"
-        ),
-    )
-
-
 def check_file(spec: FileSpec, expected: str) -> VersionCheck:
     """Check a single file for version consistency."""
     content = spec.read_text()
@@ -606,13 +463,15 @@ def _check_prd_files() -> list[VersionCheck]:
         try:
             content = prd_file.read_text(encoding="utf-8")
         except OSError:
-            results.append(VersionCheck(
-                file=f"docs/prd/{prd_file.name}",
-                expected=filename_version,
-                found=None,
-                passed=True,  # non-blocking: optional PRD file unreadable
-                detail=f"SKIP (unreadable): {prd_file.name}",
-            ))
+            results.append(
+                VersionCheck(
+                    file=f"docs/prd/{prd_file.name}",
+                    expected=filename_version,
+                    found=None,
+                    passed=True,  # non-blocking: optional PRD file unreadable
+                    detail=f"SKIP (unreadable): {prd_file.name}",
+                )
+            )
             continue
         # Use digit-boundary lookarounds instead of \b: PRD files typically
         # write "V3.9" (V is a word char, so \b between V and 3 fails to
@@ -620,25 +479,28 @@ def _check_prd_files() -> list[VersionCheck]:
         # "13.9" or "3.91".
         pattern = re.compile(rf"(?<!\d){re.escape(filename_version)}(?!\d)")
         if pattern.search(content):
-            results.append(VersionCheck(
-                file=f"docs/prd/{prd_file.name}",
-                expected=filename_version,
-                found=filename_version,
-                passed=True,
-                detail=f"PRD version {filename_version} found in content OK",
-            ))
+            results.append(
+                VersionCheck(
+                    file=f"docs/prd/{prd_file.name}",
+                    expected=filename_version,
+                    found=filename_version,
+                    passed=True,
+                    detail=f"PRD version {filename_version} found in content OK",
+                )
+            )
         else:
             # Non-blocking WARN: PRD content does not reference its filename version.
             # passed=True so this does not fail CI; detail prefixed with WARN for
             # human review.
-            results.append(VersionCheck(
-                file=f"docs/prd/{prd_file.name}",
-                expected=filename_version,
-                found=None,
-                passed=True,
-                detail=f"WARN: PRD version {filename_version} not found in content "
-                       f"(filename/content drift)",
-            ))
+            results.append(
+                VersionCheck(
+                    file=f"docs/prd/{prd_file.name}",
+                    expected=filename_version,
+                    found=None,
+                    passed=True,
+                    detail=f"WARN: PRD version {filename_version} not found in content (filename/content drift)",
+                )
+            )
     return results
 
 
@@ -654,45 +516,189 @@ def _check_skill_frontmatter() -> list[VersionCheck]:
     try:
         content = path.read_text(encoding="utf-8")
     except OSError as exc:
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=None, passed=False, detail=f"FAIL (unreadable): {exc}",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=None,
+                passed=False,
+                detail=f"FAIL (unreadable): {exc}",
+            )
+        ]
     match = re.match(r"^---\n(.*?)\n---\n", content, re.DOTALL)
     if not match:
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=None, passed=False, detail="FAIL: no frontmatter block found",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=None,
+                passed=False,
+                detail="FAIL: no frontmatter block found",
+            )
+        ]
     try:
         import yaml
 
         data = yaml.safe_load(match.group(1))
     except Exception as exc:  # noqa: BLE001 - any parse error is a FAIL
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=None, passed=False,
-            detail=f"FAIL: YAML parse error: {type(exc).__name__}: "
-                   f"{str(exc)[:120]} (TRAE will not register the skill)",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=None,
+                passed=False,
+                detail=f"FAIL: YAML parse error: {type(exc).__name__}: "
+                f"{str(exc)[:120]} (TRAE will not register the skill)",
+            )
+        ]
     if not isinstance(data, dict):
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=type(data).__name__, passed=False,
-            detail="FAIL: frontmatter is not a mapping",
-        )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=type(data).__name__,
+                passed=False,
+                detail="FAIL: frontmatter is not a mapping",
+            )
+        ]
     missing = [k for k in ("name", "slug", "version", "description") if k not in data]
     if missing:
-        return [VersionCheck(
-            file="SKILL.md (frontmatter)", expected="parsable YAML",
-            found=str(sorted(data.keys())), passed=False,
-            detail=f"FAIL: missing required keys: {missing}",
-        )]
-    return [VersionCheck(
-        file="SKILL.md (frontmatter)", expected="parsable YAML",
-        found=f"{data['name']}@{data['version']}", passed=True,
-        detail="frontmatter YAML parses; name/slug/version/description present",
-    )]
+        return [
+            VersionCheck(
+                file="SKILL.md (frontmatter)",
+                expected="parsable YAML",
+                found=str(sorted(data.keys())),
+                passed=False,
+                detail=f"FAIL: missing required keys: {missing}",
+            )
+        ]
+    return [
+        VersionCheck(
+            file="SKILL.md (frontmatter)",
+            expected="parsable YAML",
+            found=f"{data['name']}@{data['version']}",
+            passed=True,
+            detail="frontmatter YAML parses; name/slug/version/description present",
+        )
+    ]
+
+
+def _check_sub_skill_manifests(expected: str) -> list[VersionCheck]:
+    """V4.5.20 (F2): sub-skill manifests must not drift from the SSOT.
+
+    ``scripts/check_version_consistency.py`` previously only checked the
+    workspace-root ``skill-manifest.yaml``, leaving ``skills/*/skill-manifest.yaml``
+    unguarded. Eight ``version:`` fields and three ``version_source:`` fields
+    drifted up to 18 releases behind ``_version.py`` while this gate stayed
+    green (PRD F1/F2). Both fields are now blocking checks.
+
+    The manifest list is read from disk (``skills/*/skill-manifest.yaml``), so
+    no count is hardcoded anywhere — adding or removing a sub-skill changes the
+    number of checks automatically.
+
+    Args:
+        expected: Canonical version from ``_version.py``.
+
+    Returns:
+        One blocking :class:`VersionCheck` per manifest for its ``version:``
+        field, plus one per manifest that also declares ``version_source:``.
+        A missing/empty ``skills/`` directory is reported as a single failure.
+    """
+    if not SUB_SKILL_DIR.is_dir():
+        return [
+            VersionCheck(
+                file="skills/*/skill-manifest.yaml",
+                expected=expected,
+                found=None,
+                passed=False,
+                detail=f"FAIL: skills directory not found: {SUB_SKILL_DIR}",
+            )
+        ]
+
+    manifests = sorted(SUB_SKILL_DIR.glob("*/skill-manifest.yaml"))
+    if not manifests:
+        return [
+            VersionCheck(
+                file="skills/*/skill-manifest.yaml",
+                expected=expected,
+                found=None,
+                passed=False,
+                detail="FAIL: no sub-skill manifests found",
+            )
+        ]
+
+    results: list[VersionCheck] = []
+    for manifest in manifests:
+        rel_path = manifest.relative_to(REPO_ROOT).as_posix() if REPO_ROOT in manifest.parents else manifest.as_posix()
+        try:
+            content = manifest.read_text(encoding="utf-8")
+        except OSError as exc:
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=None,
+                    passed=False,
+                    detail=f"FAIL (unreadable): {exc}",
+                )
+            )
+            continue
+
+        version_matches = SUB_SKILL_VERSION_RE.findall(content)
+        if not version_matches:
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=None,
+                    passed=False,
+                    detail=f"FAIL: no top-level 'version:' key in {rel_path}",
+                )
+            )
+        elif version_matches[0] == expected:
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=version_matches[0],
+                    passed=True,
+                    detail=f"sub-skill manifest version: {version_matches[0]} OK",
+                )
+            )
+        else:
+            results.append(
+                VersionCheck(
+                    file=rel_path,
+                    expected=expected,
+                    found=version_matches[0],
+                    passed=False,
+                    detail=(f"sub-skill manifest version drift: expected {expected}, found {version_matches[0]}"),
+                )
+            )
+
+        source_matches = SUB_SKILL_VERSION_SOURCE_RE.findall(content)
+        if source_matches:
+            if source_matches[0] == expected:
+                results.append(
+                    VersionCheck(
+                        file=rel_path,
+                        expected=expected,
+                        found=source_matches[0],
+                        passed=True,
+                        detail=f"version_source: {source_matches[0]} OK",
+                    )
+                )
+            else:
+                results.append(
+                    VersionCheck(
+                        file=rel_path,
+                        expected=expected,
+                        found=source_matches[0],
+                        passed=False,
+                        detail=(f"version_source drift: expected {expected}, found {source_matches[0]}"),
+                    )
+                )
+    return results
 
 
 def _status_label(result: VersionCheck) -> str:
@@ -714,10 +720,7 @@ def _print_results(results: list[VersionCheck]) -> dict[str, list[VersionCheck]]
     """
     skipped = [r for r in results if r.detail.startswith("SKIP")]
     warnings = [r for r in results if r.detail.startswith("WARN")]
-    passed = [
-        r for r in results
-        if r.passed and not r.detail.startswith("SKIP") and not r.detail.startswith("WARN")
-    ]
+    passed = [r for r in results if r.passed and not r.detail.startswith("SKIP") and not r.detail.startswith("WARN")]
     failed = [r for r in results if not r.passed]
 
     for r in results:
@@ -761,6 +764,10 @@ def main() -> int:
     # "/" panel root cause; a broken YAML block hides the skill from TRAE).
     results.extend(_check_skill_frontmatter())
 
+    # V4.5.20 (F2): sub-skill manifests (skills/*/skill-manifest.yaml). Blocking
+    # — this was the blind spot that let F1 drift for 18 releases.
+    results.extend(_check_sub_skill_manifests(expected))
+
     # V4.5.16 P3.21: public module count SSOT soft-compare (non-blocking).
     # Compares the on-disk count under scripts/collaboration/ against
     # the documented "204+ modules" headline and emits a WARN-level
@@ -799,7 +806,9 @@ def main() -> int:
     if warnings:
         print(f"\n{len(warnings)} warning(s) (non-blocking). All {len(passed)} required version checks passed.")
     else:
-        print(f"\nAll {len(passed)} required version checks passed ({len(skipped)} optional skipped). Version {expected} is consistent.")
+        print(
+            f"\nAll {len(passed)} required version checks passed ({len(skipped)} optional skipped). Version {expected} is consistent."
+        )
     return 0
 
 

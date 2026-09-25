@@ -4,6 +4,7 @@ Verifies that all 5 new V4.4.0 modules have their _call_counter_er incremented
 after a single dispatch() call, proving they are wired into the pipeline
 and not dead code.
 """
+
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 

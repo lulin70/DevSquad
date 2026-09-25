@@ -42,15 +42,17 @@ DEFAULT_RATE_LIMIT_PER_MINUTE = 60
 DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 60
 
 # Paths exempt from rate limiting (monitoring must always work)
-RATE_LIMIT_EXEMPT_PATHS: frozenset[str] = frozenset({
-    "/api/v1/health",
-    "/healthz",
-    "/metrics",
-    "/",            # Root info endpoint
-    "/docs",        # Swagger UI
-    "/redoc",       # ReDoc
-    "/openapi.json",
-})
+RATE_LIMIT_EXEMPT_PATHS: frozenset[str] = frozenset(
+    {
+        "/api/v1/health",
+        "/healthz",
+        "/metrics",
+        "/",  # Root info endpoint
+        "/docs",  # Swagger UI
+        "/redoc",  # ReDoc
+        "/openapi.json",
+    }
+)
 
 
 def _is_rate_limit_enabled() -> bool:

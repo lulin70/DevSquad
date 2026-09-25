@@ -109,13 +109,48 @@ class WorkflowEngineLifecycleMixin(WorkflowEngineBase):
         (triggered only when all of the kinds are set).
         """
         specs: list[tuple[list[str], str, tuple[str, str, str, str]]] = [
-            (["product", "architecture"], "any", ("Requirements Analysis", "Analyze task requirements and create detailed specification", "product-manager", "analyze_requirements")),
-            (["architecture"], "any", ("Architecture Design", "Design system architecture and technology selection", "architect", "design_architecture")),
-            (["security"], "any", ("Security Review", "Review security implications and recommend protections", "security", "security_review")),
-            (["ui_design"], "any", ("UI Design", "Design user interface and interaction flow", "ui-designer", "design_ui")),
+            (
+                ["product", "architecture"],
+                "any",
+                (
+                    "Requirements Analysis",
+                    "Analyze task requirements and create detailed specification",
+                    "product-manager",
+                    "analyze_requirements",
+                ),
+            ),
+            (
+                ["architecture"],
+                "any",
+                (
+                    "Architecture Design",
+                    "Design system architecture and technology selection",
+                    "architect",
+                    "design_architecture",
+                ),
+            ),
+            (
+                ["security"],
+                "any",
+                (
+                    "Security Review",
+                    "Review security implications and recommend protections",
+                    "security",
+                    "security_review",
+                ),
+            ),
+            (
+                ["ui_design"],
+                "any",
+                ("UI Design", "Design user interface and interaction flow", "ui-designer", "design_ui"),
+            ),
             (["testing"], "any", ("Test Design", "Create test strategy and test cases", "tester", "design_tests")),
             (["development"], "any", ("Development", "Implement feature code", "solo-coder", "develop")),
-            (["testing", "development"], "all", ("Test Execution", "Execute test cases and verify functionality", "tester", "execute_tests")),
+            (
+                ["testing", "development"],
+                "all",
+                ("Test Execution", "Execute test cases and verify functionality", "tester", "execute_tests"),
+            ),
             (["deployment"], "any", ("Deployment", "Deploy and release the system", "devops", "deploy")),
         ]
         steps: list[WorkflowStep] = []
@@ -433,10 +468,7 @@ class WorkflowEngineStateMixin(WorkflowEngineBase):
             "deterministic_pct": pct(det),
             "llm_pct": pct(llm),
             "hybrid_pct": pct(hybrid),
-            "by_step": [
-                {"step_id": s.step_id, "name": s.name, "node_type": s.node_type.value}
-                for s in steps
-            ],
+            "by_step": [{"step_id": s.step_id, "name": s.name, "node_type": s.node_type.value} for s in steps],
         }
 
     def get_step_summary(self, workflow_id: str | None = None) -> dict[str, int]:

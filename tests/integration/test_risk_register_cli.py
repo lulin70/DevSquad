@@ -57,8 +57,7 @@ def _register_items(tmp_path: Path) -> dict[str, object]:
 
 def _args(**kwargs):
     # V4.5.12: severity removed from defaults (--severity flag deleted).
-    defaults = {"format": "md", "limit": None,
-                "risk_id": "", "require_approval": False, "output": None}
+    defaults = {"format": "md", "limit": None, "risk_id": "", "require_approval": False, "output": None}
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
 
@@ -121,9 +120,7 @@ class TestApprovalGateIntegration:
 
         # cli_risks lazy-imports ApprovalGate at call time, so patching the
         # module attribute is enough to inject the denying gate.
-        with patch(
-            "scripts.collaboration.approval_gate.ApprovalGate", DenyingGate
-        ):
+        with patch("scripts.collaboration.approval_gate.ApprovalGate", DenyingGate):
             rc = cmd_risks_clear(_args(require_approval=True))
 
         err = capsys.readouterr().err
@@ -136,9 +133,9 @@ class TestApprovalGateIntegration:
 
 class TestRiskRegisterIntegration:
     def test_list_sorted_by_exposure_descending(self, capsys):
-        add_risk("low risk", probability=0.1, impact=0.1)     # 0.01
-        add_risk("high risk", probability=0.9, impact=0.9)    # 0.81
-        add_risk("mid risk", probability=0.5, impact=0.5)     # 0.25
+        add_risk("low risk", probability=0.1, impact=0.1)  # 0.01
+        add_risk("high risk", probability=0.9, impact=0.9)  # 0.81
+        add_risk("mid risk", probability=0.5, impact=0.5)  # 0.25
         cmd_risks_list(_args())
         out = capsys.readouterr().out
         data = [ln for ln in out.splitlines() if ln.startswith("| `")]

@@ -275,9 +275,7 @@ class TestEffectRegistryLIFO(unittest.TestCase):
         for name in ("a", "b", "c"):
             path = os.path.join(self.tmp, name)
             paths.append(path)
-            ctx = EffectContext(
-                f"e-{name}", "write_file", {"path": path, "content": name}
-            )
+            ctx = EffectContext(f"e-{name}", "write_file", {"path": path, "content": name})
             effects.append(WriteFileEffect())
             contexts.append(ctx)
             self.registry.apply(WriteFileEffect(), ctx)
@@ -310,17 +308,13 @@ class TestEffectRegistryFailureTolerance(unittest.TestCase):
         bad_path = os.path.join(self.tmp, "bad.txt")  # intentionally not created
 
         # Apply 2 effects
-        ctx_good = EffectContext(
-            "e-good", "write_file", {"path": good_path, "content": "ok"}
-        )
+        ctx_good = EffectContext("e-good", "write_file", {"path": good_path, "content": "ok"})
         self.registry.apply(WriteFileEffect(), ctx_good)
 
         # Inject a failing effect manually
         from scripts.collaboration.dispatch_effect import DeleteFileEffect
 
-        ctx_bad = EffectContext(
-            "e-bad", "delete_file", {"path": bad_path, "original_content": "ORIG"}
-        )
+        ctx_bad = EffectContext("e-bad", "delete_file", {"path": bad_path, "original_content": "ORIG"})
         # Apply with no original_content (revert will fail gracefully)
         ctx_bad.payload = {"path": bad_path}  # missing original_content
         self.registry.apply(DeleteFileEffect(), ctx_bad)

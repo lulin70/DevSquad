@@ -181,8 +181,17 @@ jobs:
             -q --tb=short --timeout=120 -m "unit" --maxfail=1
       - name: Run ruff hard check
         run: ruff check . --ignore=E501
+      - name: Run ruff format hard check
+        # V4.5.20: mirrors the `Format check` step in test.yml::lint. Both gates
+        # must stay identical, otherwise a release could pass formatting that CI
+        # rejects (the same divergence the mypy step above already guards).
+        run: ruff format --check .
       - name: Run mypy hard check
-        run: mypy scripts/ skills/ --ignore-missing-imports --no-error-summary --no-site-packages
+        # V4.5.20: `--no-site-packages` removed — it degraded every installed
+        # third-party return value to `Any`, which masked 3 real type errors
+        # (test.yml explains the full finding). Keep this gate's scope identical
+        # to CI's, otherwise release could pass what CI rejects.
+        run: mypy scripts/ skills/ --ignore-missing-imports --no-error-summary
       - name: Run pip-audit hard check
         run: |
           pip install -r requirements.lock
@@ -229,3 +238,10 @@ jobs:
       - name: Validate test plan + baseline doc consistency
         run: |
           python scripts/check_version_consistency.py --strict
+      - name: Skill contract drift check (V4.5.20 W1-0, hard)
+        # Mirrors the `Skill contract drift check` step in test.yml::lint. Both
+        # gates must stay identical, or a release could pass a contract that CI
+        # rejects (the same divergence the mypy/ruff-format steps above guard).
+        # Presence-only: it proves the contract has NOT drifted, never that the
+        # code honours it.
+        run: python scripts/check_skill_contract.py

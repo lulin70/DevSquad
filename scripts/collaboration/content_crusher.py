@@ -147,9 +147,7 @@ class SmartCrusher:
 
         # CCR marker: store original + inject trace_id when compression happened
         if self._ccr_store is not None and crushed != text:
-            trace_id = self._ccr_store.store(
-                text, metadata={"content_type": content_type.value}
-            )
+            trace_id = self._ccr_store.store(text, metadata={"content_type": content_type.value})
             crushed = self._inject_trace_id(crushed, trace_id)
         return crushed
 

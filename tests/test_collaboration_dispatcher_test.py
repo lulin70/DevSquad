@@ -31,7 +31,6 @@ from scripts.collaboration.dispatcher import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestT1_DispatcherDataModels:
     """T1: 数据模型测试"""
 
@@ -362,6 +361,7 @@ class TestT5_StatusAndHistory:
     def test_01_get_status_basic(self, dispatcher):
         status = dispatcher.get_status()
         from scripts.collaboration._version import __version__
+
         assert status["version"] == __version__
         assert "components" in status
         assert "dispatch_count" in status

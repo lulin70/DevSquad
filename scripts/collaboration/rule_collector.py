@@ -523,7 +523,9 @@ class LocalRuleStorage:
                     continue
                 if r.get("confidence", 0) < min_confidence:
                     continue
-                if trigger_keywords and not any(kw in r.get("trigger", "") or kw in r.get("action", "") for kw in trigger_keywords):
+                if trigger_keywords and not any(
+                    kw in r.get("trigger", "") or kw in r.get("action", "") for kw in trigger_keywords
+                ):
                     continue
                 results.append({"rule_id": rid, **r})
             results.sort(key=lambda x: RULE_TYPE_PRIORITY.get(x.get("type", "prefer"), 0), reverse=True)
@@ -1109,9 +1111,7 @@ class GrillingMode:
             a completed flag, a mapping of question text to explored answers,
             and a deduplicated/sorted list of glossary term candidates.
         """
-        explored = {
-            q.question: q.explored_answer for q in self._questions if q.explored_answer
-        }
+        explored = {q.question: q.explored_answer for q in self._questions if q.explored_answer}
         return GrillingResult(
             questions=list(self._questions),
             completed=self.is_complete(),

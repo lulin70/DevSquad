@@ -106,11 +106,7 @@ class TestTautologicalTestDetector(unittest.TestCase):
 
     def test_recompute_assert_equal_detected(self) -> None:
         """Verify: ``self.assertEqual(add(a, b), a + b)`` is flagged."""
-        source = (
-            "class TestT(unittest.TestCase):\n"
-            "    def test_x(self):\n"
-            "        self.assertEqual(add(a, b), a + b)\n"
-        )
+        source = "class TestT(unittest.TestCase):\n    def test_x(self):\n        self.assertEqual(add(a, b), a + b)\n"
         tree = _parse(source)
         issues = self.detector.detect_in_ast(tree, self.file)
         ids = [i.id for i in issues]
@@ -125,11 +121,7 @@ class TestTautologicalTestDetector(unittest.TestCase):
 
     def test_assert_equal_different_args_not_flagged(self) -> None:
         """Verify: ``self.assertEqual(result, 42)`` is NOT flagged."""
-        source = (
-            "class TestT(unittest.TestCase):\n"
-            "    def test_x(self):\n"
-            "        self.assertEqual(result, 42)\n"
-        )
+        source = "class TestT(unittest.TestCase):\n    def test_x(self):\n        self.assertEqual(result, 42)\n"
         tree = _parse(source)
         issues = self.detector.detect_in_ast(tree, self.file)
         self.assertEqual(len(issues), 0)
@@ -265,9 +257,7 @@ class TestSeamAnalyzer(unittest.TestCase):
 class TestIntegrationWithAudit(unittest.TestCase):
     """T3: Integration — TestQualityGuard.audit() detects tautological + seams."""
 
-    def _write_temp_files(
-        self, source_code: str, test_code: str
-    ) -> tuple[Path, Path]:
+    def _write_temp_files(self, source_code: str, test_code: str) -> tuple[Path, Path]:
         """Create temp source and test files, return their paths."""
         tmpdir = Path(tempfile.mkdtemp(prefix="taut_test_"))
         src_path = tmpdir / "sample.py"

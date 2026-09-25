@@ -8,6 +8,7 @@ Coverage focus (≥6 cases):
 - Symlink targets refused at the canonical file boundary.
 - Atomic write survives concurrent writers via the shared lock.
 """
+
 from __future__ import annotations
 
 import json
@@ -64,8 +65,7 @@ def _join_or_fail(proc: mp.process.BaseProcess, timeout: float = 60.0) -> None:
         proc.terminate()
         proc.join(timeout=5)
         pytest.fail(
-            f"{proc.name} did not exit within {timeout}s "
-            "(spawn boot timeout under load; not a store assertion failure)"
+            f"{proc.name} did not exit within {timeout}s (spawn boot timeout under load; not a store assertion failure)"
         )
     assert proc.exitcode == 0
 
@@ -95,10 +95,7 @@ def _transaction_worker(root: str, register_id: str, idx: int) -> None:
 class TestConcurrentWriters:
     def test_concurrent_transactions_do_not_lose_entries(self, tmp_path: Path) -> None:
         ctx = mp.get_context("spawn")
-        procs = [
-            ctx.Process(target=_transaction_worker, args=(str(tmp_path), "default", i))
-            for i in range(4)
-        ]
+        procs = [ctx.Process(target=_transaction_worker, args=(str(tmp_path), "default", i)) for i in range(4)]
         for proc in procs:
             proc.start()
         for proc in procs:

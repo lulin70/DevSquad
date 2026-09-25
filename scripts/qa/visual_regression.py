@@ -56,9 +56,7 @@ class VisualRegressionChecker:
         try:
             from PIL import Image, ImageChops
         except ImportError as exc:
-            raise RuntimeError(
-                "Pillow is required for visual regression. Install with: pip install Pillow"
-            ) from exc
+            raise RuntimeError("Pillow is required for visual regression. Install with: pip install Pillow") from exc
 
         baseline_path = Path(baseline)
         current_path = Path(current)
@@ -96,20 +94,14 @@ class VisualRegressionChecker:
 
         # 统计差异像素（任一通道差异 > 阈值）
         diff_threshold = 16
-        diff_pixels = sum(
-            1 for r, g, b in diff_data
-            if r > diff_threshold or g > diff_threshold or b > diff_threshold
-        )
+        diff_pixels = sum(1 for r, g, b in diff_data if r > diff_threshold or g > diff_threshold or b > diff_threshold)
         pixel_diff_ratio = diff_pixels / total_pixels
 
         # 区域检测：网格扫描
         changed_regions = self._detect_regions(diff, img_a.size)
 
         # 显示错误：尺寸不匹配 或 大面积变化
-        has_display_error = (
-            size_a != size_b
-            or pixel_diff_ratio > self._display_error_ratio
-        )
+        has_display_error = size_a != size_b or pixel_diff_ratio > self._display_error_ratio
 
         return DiffResult(
             pixel_diff_ratio=pixel_diff_ratio,
@@ -121,10 +113,7 @@ class VisualRegressionChecker:
 
     def is_regression(self, result: DiffResult) -> bool:
         """判断是否为视觉回归。"""
-        return (
-            result.pixel_diff_ratio > self._pixel_diff_threshold
-            or result.has_display_error
-        )
+        return result.pixel_diff_ratio > self._pixel_diff_threshold or result.has_display_error
 
     def _detect_regions(self, diff_img: Any, size: tuple[int, int]) -> list[ChangedRegion]:
         """网格扫描检测变化区域。
@@ -168,12 +157,14 @@ class VisualRegressionChecker:
 
                 ratio = cell_diff / cell_total
                 if ratio > cell_pixel_threshold:
-                    regions.append(ChangedRegion(
-                        x=x0,
-                        y=y0,
-                        width=x1 - x0,
-                        height=y1 - y0,
-                        diff_ratio=round(ratio, 3),
-                    ))
+                    regions.append(
+                        ChangedRegion(
+                            x=x0,
+                            y=y0,
+                            width=x1 - x0,
+                            height=y1 - y0,
+                            diff_ratio=round(ratio, 3),
+                        )
+                    )
 
         return regions

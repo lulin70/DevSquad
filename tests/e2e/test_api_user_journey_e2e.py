@@ -40,6 +40,7 @@ def _fastapi_available() -> bool:
     try:
         import fastapi  # noqa: F401
         import uvicorn  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -82,9 +83,7 @@ def _http_post(url: str, data: dict, timeout: int = 30) -> tuple[int, str]:
 def api_server():
     """Start FastAPI server as subprocess, yield base_url, cleanup on teardown."""
     if not _fastapi_available():
-        pytest.fail(
-            "FastAPI/uvicorn not installed — run: pip install -e '.[api]'"
-        )
+        pytest.fail("FastAPI/uvicorn not installed — run: pip install -e '.[api]'")
 
     port = _find_free_port()
     env = os.environ.copy()
@@ -96,11 +95,18 @@ def api_server():
     env["DEVSQUAD_API_AUTH_DISABLED"] = "1"  # Disable API key auth for E2E testing
 
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn",
-         "scripts.api_server:app",
-         "--host", "127.0.0.1",
-         "--port", str(port),
-         "--log-level", "warning"],
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "scripts.api_server:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+            "--log-level",
+            "warning",
+        ],
         cwd=str(_PROJECT_ROOT),
         env=env,
         stdout=subprocess.PIPE,
@@ -137,6 +143,7 @@ def api_server():
 # Journey 1: Full dispatch — POST /api/v1/tasks/dispatch
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_api_dispatch_task(api_server):
     """Journey-1: POST /api/v1/tasks/dispatch returns a successful dispatch result.
 
@@ -154,26 +161,21 @@ def test_e2e_api_dispatch_task(api_server):
     # Valid response must contain these structural keys
     required_keys = ["success", "task_description", "errors"]
     for key in required_keys:
-        assert key in data, (
-            f"Missing required key '{key}' in dispatch result. "
-            f"Keys: {list(data.keys())}"
-        )
+        assert key in data, f"Missing required key '{key}' in dispatch result. Keys: {list(data.keys())}"
     # task_description should echo the input task
     assert data["task_description"] == "Design a REST API for user management", (
         f"task_description mismatch: {data.get('task_description')}"
     )
     # Dispatch should succeed (RBAC dev mode + mock backend)
     assert data["success"] is True, (
-        f"Dispatch did not succeed:\n"
-        f"success={data.get('success')}\n"
-        f"errors={data.get('errors')}\n"
-        f"body={body[:400]}"
+        f"Dispatch did not succeed:\nsuccess={data.get('success')}\nerrors={data.get('errors')}\nbody={body[:400]}"
     )
 
 
 # ---------------------------------------------------------------------------
 # Journey 2: Dispatch history — GET /api/v1/tasks/history
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_api_get_dispatch_history(api_server):
     """Journey-2: GET /api/v1/tasks/history returns history list."""
@@ -186,6 +188,7 @@ def test_e2e_api_get_dispatch_history(api_server):
 # ---------------------------------------------------------------------------
 # Journey 3: List roles — GET /api/v1/roles
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_api_list_roles(api_server):
     """Journey-3: GET /api/v1/roles returns 7 core roles."""
@@ -200,6 +203,7 @@ def test_e2e_api_list_roles(api_server):
 # ---------------------------------------------------------------------------
 # Journey 4: Quick dispatch — POST /api/v1/tasks/quick
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_api_quick_dispatch(api_server):
     """Journey-4: POST /api/v1/tasks/quick returns simplified result."""
@@ -217,6 +221,7 @@ def test_e2e_api_quick_dispatch(api_server):
 # Journey 5: Error handling — 404 for nonexistent endpoint
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_api_error_handling_404(api_server):
     """Journey-5: Server returns 404 for nonexistent endpoints."""
     status, body = _http_get(f"{api_server}/api/v1/nonexistent", timeout=5)
@@ -226,6 +231,7 @@ def test_e2e_api_error_handling_404(api_server):
 # ---------------------------------------------------------------------------
 # Journey 6: Lifecycle phases — GET /api/v1/lifecycle/phases
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_api_lifecycle_phases(api_server):
     """Journey-6: GET /api/v1/lifecycle/phases returns phase list."""
@@ -238,6 +244,7 @@ def test_e2e_api_lifecycle_phases(api_server):
 # ---------------------------------------------------------------------------
 # Journey 7: End-to-end — dispatch → history chain
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_api_dispatch_then_history(api_server):
     """Journey-7: dispatch → get history → verify recent task appears."""

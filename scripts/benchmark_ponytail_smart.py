@@ -52,17 +52,53 @@ BENCHMARK_TASKS: list[dict[str, str]] = [
     {"id": "S4", "complexity": "simple", "description": "Rename variable from x to user_count."},
     {"id": "S5", "complexity": "simple", "description": "Add docstring to parse_config function."},
     # Medium tasks (multi-step, single module)
-    {"id": "M1", "complexity": "medium", "description": "Implement user registration with email validation and password hashing using PBKDF2."},
-    {"id": "M2", "complexity": "medium", "description": "Add retry logic with exponential backoff to the HTTP client for transient failures."},
-    {"id": "M3", "complexity": "medium", "description": "Create a CLI command to export database records to CSV with column filtering."},
-    {"id": "M4", "complexity": "medium", "description": "Implement cache invalidation strategy for the user profile service."},
+    {
+        "id": "M1",
+        "complexity": "medium",
+        "description": "Implement user registration with email validation and password hashing using PBKDF2.",
+    },
+    {
+        "id": "M2",
+        "complexity": "medium",
+        "description": "Add retry logic with exponential backoff to the HTTP client for transient failures.",
+    },
+    {
+        "id": "M3",
+        "complexity": "medium",
+        "description": "Create a CLI command to export database records to CSV with column filtering.",
+    },
+    {
+        "id": "M4",
+        "complexity": "medium",
+        "description": "Implement cache invalidation strategy for the user profile service.",
+    },
     {"id": "M5", "complexity": "medium", "description": "Add request rate limiting middleware with per-user tracking."},
     # Complex tasks (cross-module, architectural)
-    {"id": "C1", "complexity": "complex", "description": "Design and implement a multi-tenant architecture with row-level security, tenant isolation, and per-tenant rate limiting across all API endpoints."},
-    {"id": "C2", "complexity": "complex", "description": "Implement a distributed task queue with priority support, dead-letter queues, retry policies, and observability metrics. Integrate with existing worker pool."},
-    {"id": "C3", "complexity": "complex", "description": "Migrate from monolithic database to read replicas with connection pooling, automatic failover, and query-level routing based on read/write intent."},
-    {"id": "C4", "complexity": "complex", "description": "Build a real-time collaboration layer with CRDT-based conflict resolution, presence awareness, and offline sync for the document editor."},
-    {"id": "C5", "complexity": "complex", "description": "Implement end-to-end encryption for messaging with key rotation, forward secrecy, and multi-device sync. Integrate with existing auth system."},
+    {
+        "id": "C1",
+        "complexity": "complex",
+        "description": "Design and implement a multi-tenant architecture with row-level security, tenant isolation, and per-tenant rate limiting across all API endpoints.",
+    },
+    {
+        "id": "C2",
+        "complexity": "complex",
+        "description": "Implement a distributed task queue with priority support, dead-letter queues, retry policies, and observability metrics. Integrate with existing worker pool.",
+    },
+    {
+        "id": "C3",
+        "complexity": "complex",
+        "description": "Migrate from monolithic database to read replicas with connection pooling, automatic failover, and query-level routing based on read/write intent.",
+    },
+    {
+        "id": "C4",
+        "complexity": "complex",
+        "description": "Build a real-time collaboration layer with CRDT-based conflict resolution, presence awareness, and offline sync for the document editor.",
+    },
+    {
+        "id": "C5",
+        "complexity": "complex",
+        "description": "Implement end-to-end encryption for messaging with key rotation, forward secrecy, and multi-device sync. Integrate with existing auth system.",
+    },
 ]
 
 ROLE_TEMPLATES = {
@@ -134,7 +170,9 @@ def run_ponytail_benchmark(tasks: list[dict[str, str]]) -> list[PonytailMetric]:
         config_without_path = config_without.name
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as config_with:
-        config_with.write("quality_control:\n  enabled: true\n  minimal_implementation: true\n  ponytail_markers: true\n")
+        config_with.write(
+            "quality_control:\n  enabled: true\n  minimal_implementation: true\n  ponytail_markers: true\n"
+        )
         config_with_path = config_with.name
 
     try:
@@ -351,27 +389,39 @@ def print_report(report: BenchmarkReport) -> None:
     print(f"{'Task':<8} {'Complexity':<10} {'Without':>10} {'With':>10} {'Overhead':>10} {'%':>8}")
     print("-" * 60)
     for m in report.ponytail_metrics:
-        print(f"{m.task_id:<8} {m.complexity:<10} {m.prompt_tokens_without:>10} {m.prompt_tokens_with:>10} {m.injection_overhead_tokens:>10} {m.injection_overhead_pct:>7.1f}%")
+        print(
+            f"{m.task_id:<8} {m.complexity:<10} {m.prompt_tokens_without:>10} {m.prompt_tokens_with:>10} {m.injection_overhead_tokens:>10} {m.injection_overhead_pct:>7.1f}%"
+        )
 
     s = report.ponytail_summary
     print(f"\nOverall avg overhead: {s.get('overall_avg_overhead_pct', 0.0)}%")
     for tier in ["simple", "medium", "complex"]:
         if tier in s:
             t = s[tier]
-            print(f"  {tier}: {t['count']} tasks, avg {t['avg_overhead_pct']}% overhead ({t['avg_tokens_without']}→{t['avg_tokens_with']} tokens)")
+            print(
+                f"  {tier}: {t['count']} tasks, avg {t['avg_overhead_pct']}% overhead ({t['avg_tokens_without']}→{t['avg_tokens_with']} tokens)"
+            )
 
     print("\n--- Phase 2: SMART Compression A/B ---")
-    print(f"{'Sample':<12} {'Type':<8} {'Original':>10} {'SMART':>10} {'SNIP':>10} {'SMART%':>8} {'SNIP%':>8} {'Preserved':>10} {'Correct':>8}")
+    print(
+        f"{'Sample':<12} {'Type':<8} {'Original':>10} {'SMART':>10} {'SNIP':>10} {'SMART%':>8} {'SNIP%':>8} {'Preserved':>10} {'Correct':>8}"
+    )
     print("-" * 90)
     for sm in report.smart_metrics:
-        print(f"{sm.sample_id:<12} {sm.content_type:<8} {sm.original_tokens:>10} {sm.smart_tokens:>10} {sm.snip_tokens:>10} {sm.smart_reduction_pct:>7.1f}% {sm.snip_reduction_pct:>7.1f}% {sm.smart_messages_preserved:>10} {sm.smart_correctness_score:>8.2f}")
+        print(
+            f"{sm.sample_id:<12} {sm.content_type:<8} {sm.original_tokens:>10} {sm.smart_tokens:>10} {sm.snip_tokens:>10} {sm.smart_reduction_pct:>7.1f}% {sm.snip_reduction_pct:>7.1f}% {sm.smart_messages_preserved:>10} {sm.smart_correctness_score:>8.2f}"
+        )
 
     s = report.smart_summary
-    print(f"\nOverall avg reduction — SMART: {s.get('overall_avg_smart_reduction_pct', 0.0)}% | SNIP: {s.get('overall_avg_snip_reduction_pct', 0.0)}%")
+    print(
+        f"\nOverall avg reduction — SMART: {s.get('overall_avg_smart_reduction_pct', 0.0)}% | SNIP: {s.get('overall_avg_snip_reduction_pct', 0.0)}%"
+    )
     for ctype in ["json", "log", "code", "plain"]:
         if ctype in s:
             c = s[ctype]
-            print(f"  {ctype}: {c['count']} samples, SMART {c['avg_smart_reduction_pct']}% / SNIP {c['avg_snip_reduction_pct']}%, correctness {c['avg_correctness']}, preserved={c['all_messages_preserved']}")
+            print(
+                f"  {ctype}: {c['count']} samples, SMART {c['avg_smart_reduction_pct']}% / SNIP {c['avg_snip_reduction_pct']}%, correctness {c['avg_correctness']}, preserved={c['all_messages_preserved']}"
+            )
 
     print("\n" + "=" * 70)
 
@@ -389,7 +439,9 @@ def main() -> int:
     """
     parser = argparse.ArgumentParser(description="Ponytail + SMART compression A/B benchmark")
     parser.add_argument("--output", "-o", help="Output JSON report path (default: stdout only)")
-    parser.add_argument("--tasks", choices=["all", "simple", "medium", "complex"], default="all", help="Task tier to benchmark")
+    parser.add_argument(
+        "--tasks", choices=["all", "simple", "medium", "complex"], default="all", help="Task tier to benchmark"
+    )
     args = parser.parse_args()
 
     tasks = BENCHMARK_TASKS

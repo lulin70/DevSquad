@@ -37,7 +37,11 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3] if (Path(__file__).resolve().parents[3] / "scripts").exists() else Path(__file__).resolve().parents[2]
+REPO_ROOT = (
+    Path(__file__).resolve().parents[3]
+    if (Path(__file__).resolve().parents[3] / "scripts").exists()
+    else Path(__file__).resolve().parents[2]
+)
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -68,6 +72,7 @@ def _fresh_artifact_store(root: str | None = None) -> tuple[Any, str]:
 
 def _fresh_registry() -> Any:
     from scripts.collaboration.effect_registry import EffectRegistry
+
     return EffectRegistry()
 
 
@@ -94,12 +99,10 @@ class TestArtifactEffectBindingE2E:
             before = registry.pending_count()
             store.write("s-write-1", "tester", "int_plan.md", "integration test plan")
             after = registry.pending_count()
-            assert after == before + 1, (
-                f"EffectRegistry should gain 1 pending effect, "
-                f"got {before} → {after}"
-            )
+            assert after == before + 1, f"EffectRegistry should gain 1 pending effect, got {before} → {after}"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_write_then_delete_pushes_both_effects(self) -> None:
@@ -114,6 +117,7 @@ class TestArtifactEffectBindingE2E:
             assert registry.pending_count() == 2
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_revert_all_actually_removes_files_on_disk(self) -> None:
@@ -136,20 +140,17 @@ class TestArtifactEffectBindingE2E:
 
             outcomes = registry.revert_all()
             assert len(outcomes) == 3
-            assert all(o.success for o in outcomes), (
-                f"All reverts should succeed: {outcomes}"
-            )
+            assert all(o.success for o in outcomes), f"All reverts should succeed: {outcomes}"
             for role, fn in (
                 ("architect", "prd.md"),
                 ("tester", "tests.md"),
                 ("coder", "patch.diff"),
             ):
                 p = Path(tmp) / "s-rb-1" / role / fn
-                assert not p.exists(), (
-                    f"{p} should be gone after revert_all"
-                )
+                assert not p.exists(), f"{p} should be gone after revert_all"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_overwrite_preserves_previous_content_for_revert(self) -> None:
@@ -171,6 +172,7 @@ class TestArtifactEffectBindingE2E:
             assert not (Path(tmp) / "s-ow-1" / "coder" / "f.txt").exists()
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_binary_payload_round_trips_via_base64(self) -> None:
@@ -185,6 +187,7 @@ class TestArtifactEffectBindingE2E:
             assert registry.pending_count() == 1
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_path_traversal_filename_rejected(self) -> None:
@@ -192,11 +195,13 @@ class TestArtifactEffectBindingE2E:
         registry = _fresh_registry()
         _wire(store, registry)
         from scripts.collaboration.artifact_store import ArtifactStoreError
+
         try:
             with pytest.raises(ArtifactStoreError):
                 store.write("s-sec", "coder", "../escape.md", "nope")
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_manifest_atomic_rewrite_after_every_write(self) -> None:
@@ -213,6 +218,7 @@ class TestArtifactEffectBindingE2E:
             assert len(data["artifacts"]) == 3
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
 
@@ -253,16 +259,8 @@ class TestAuditCliReadsSqliteE2E:
             et = "dispatch_start"
             uid = f"u{i}"
             details = {"i": i}
-            details_json = json.dumps(
-                details, sort_keys=True, separators=(",", ":")
-            )
-            payload = (
-                f"{prev_hash}"
-                f"{len(et):d}:{et}"
-                f"{len(uid):d}:{uid}"
-                f"{ts:.6f}"
-                f"{details_json}"
-            ).encode()
+            details_json = json.dumps(details, sort_keys=True, separators=(",", ":"))
+            payload = (f"{prev_hash}{len(et):d}:{et}{len(uid):d}:{uid}{ts:.6f}{details_json}").encode()
             entry_hash = hashlib.sha256(payload).hexdigest()
             entries.append(
                 {
@@ -444,9 +442,7 @@ class TestDispatchHitsAllV453Modules:
         after = er_mod.get_call_count()
         assert after >= before
 
-    def test_dispatch_audit_logger_persists_dispatch_start_to_sqlite(
-        self, tmp_path: Path
-    ) -> None:
+    def test_dispatch_audit_logger_persists_dispatch_start_to_sqlite(self, tmp_path: Path) -> None:
         db_path = tmp_path / "dispatch_audit_e2e.db"
         d = _make_dispatcher(audit_db_path=str(db_path))
         d.dispatch("integration e2e audit", dry_run=True)
@@ -459,9 +455,7 @@ class TestDispatchHitsAllV453Modules:
         # We expect at least dispatch_start to have been logged
         assert "dispatch_start" in types
 
-    def test_dispatch_audit_db_populated_after_dispatch(
-        self, tmp_path: Path
-    ) -> None:
+    def test_dispatch_audit_db_populated_after_dispatch(self, tmp_path: Path) -> None:
         """After dispatch, the audit DB must contain entries that the cli_audit
         loader can read back. The loader's _load_entries returns dicts that
         include all the expected fields for downstream cmd_audit formatting."""
@@ -500,13 +494,12 @@ class TestDispatchHitsAllV453Modules:
             assert result.success is False
             # Audit logged a permission_denied
             with sqlite3.connect(str(db_path)) as conn:
-                cur = conn.execute(
-                    "SELECT event_type FROM dispatch_audit WHERE event_type='permission_denied'"
-                )
+                cur = conn.execute("SELECT event_type FROM dispatch_audit WHERE event_type='permission_denied'")
                 rows = cur.fetchall()
             assert len(rows) >= 1
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
     def test_dispatch_attach_audit_entries_into_result(self) -> None:
@@ -523,6 +516,7 @@ class TestDispatchHitsAllV453Modules:
             assert isinstance(result.audit_entries, list)
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
 
@@ -548,6 +542,7 @@ class TestShutdownCleansEffectRegistry:
             d.shutdown()
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
     def test_manual_effect_registry_clear_after_dispatch(self) -> None:
@@ -571,6 +566,7 @@ class TestShutdownCleansEffectRegistry:
             assert registry.revert_all() == []  # already empty
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_shutdown_closes_audit_db_connection(self) -> None:
@@ -579,9 +575,7 @@ class TestShutdownCleansEffectRegistry:
         persist_dir = _tempfile.mkdtemp(prefix="v453_int_auditshutdown_")
         try:
             db_path = Path(persist_dir) / "audit.db"
-            d = _make_dispatcher(
-                persist_dir=persist_dir, audit_db_path=str(db_path)
-            )
+            d = _make_dispatcher(persist_dir=persist_dir, audit_db_path=str(db_path))
             d.dispatch("audit pre-close", dry_run=True)
             d.shutdown()
             # After shutdown, audit logger's DB connection should be closed
@@ -591,6 +585,7 @@ class TestShutdownCleansEffectRegistry:
             assert d._audit_logger._conn is None
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
 
@@ -622,6 +617,7 @@ class TestBestEffortFailureIsolation:
             assert art.artifact_id
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_write_failure_does_not_corrupt_existing_manifest(self) -> None:
@@ -631,6 +627,7 @@ class TestBestEffortFailureIsolation:
         registry = _fresh_registry()
         _wire(store, registry)
         from scripts.collaboration.artifact_store import ArtifactStoreError
+
         try:
             store.write("s-iso", "coder", "ok1.md", "first")
             try:  # noqa: SIM105
@@ -643,6 +640,7 @@ class TestBestEffortFailureIsolation:
             assert listed[0].filename == "ok1.md"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_dispatch_artifact_write_failure_does_not_break_dispatch(self) -> None:
@@ -668,6 +666,7 @@ class TestBestEffortFailureIsolation:
                 return original_write(self, *args, **kwargs)
 
             from scripts.collaboration import artifact_store as as_mod
+
             as_mod.ArtifactStore.write = maybe_failing_write  # type: ignore[assignment]
             try:
                 store = ArtifactStore(root=os.path.join(persist_dir, "art"))
@@ -680,6 +679,7 @@ class TestBestEffortFailureIsolation:
                 as_mod.ArtifactStore.write = original_write  # type: ignore[assignment]
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
 
@@ -738,12 +738,11 @@ class TestConcurrentRevertAllThreadSafety:
             # Now revert_all from main thread
             outcomes = registry.revert_all()
             assert len(outcomes) == 20
-            assert all(o.success for o in outcomes), (
-                f"Some reverts failed: {[o for o in outcomes if not o.success]}"
-            )
+            assert all(o.success for o in outcomes), f"Some reverts failed: {[o for o in outcomes if not o.success]}"
             assert registry.pending_count() == 0
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_concurrent_revert_all_only_succeeds_for_one_caller(self) -> None:
@@ -777,12 +776,11 @@ class TestConcurrentRevertAllThreadSafety:
 
             total = len(results["a"]) + len(results["b"])
             # Exactly 5 effects should have been reverted (no double-revert)
-            assert total == 5, (
-                f"Concurrent revert_all must total exactly 5 outcomes, got {total}"
-            )
+            assert total == 5, f"Concurrent revert_all must total exactly 5 outcomes, got {total}"
             assert registry.pending_count() == 0
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_pending_count_is_thread_safe_under_load(self) -> None:
@@ -835,6 +833,7 @@ class TestConcurrentRevertAllThreadSafety:
             assert not errors, f"Thread safety violation: {errors}"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
 
@@ -882,8 +881,7 @@ class TestAuditReportStructureStability:
         # Markdown table rows count: 3 entries + 1 separator + 1 header = 5 lines
         # that start with "| ". We assert at least 3 data rows are present.
         table_lines = [
-            line for line in md.splitlines()
-            if line.startswith("| ") and "---" not in line and "Timestamp" not in line
+            line for line in md.splitlines() if line.startswith("| ") and "---" not in line and "Timestamp" not in line
         ]
         assert len(table_lines) == 3
 
@@ -930,9 +928,7 @@ class TestAuditReportStructureStability:
         registered = register_subparser(sub)
         assert registered is not None
 
-        args = registered.parse_args(
-            ["--limit", "5", "--format", "json", "--event-type", "dispatch_start"]
-        )
+        args = registered.parse_args(["--limit", "5", "--format", "json", "--event-type", "dispatch_start"])
         assert args.limit == 5
         assert args.format == "json"
         assert args.event_type == "dispatch_start"
@@ -1000,6 +996,7 @@ class TestFullE2EPipeline:
             assert after_au >= before_au
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
     def test_multiple_dispatches_accumulate_effects(self) -> None:
@@ -1022,14 +1019,13 @@ class TestFullE2EPipeline:
             for i in range(3):
                 # Manually push a write effect per dispatch cycle to
                 # simulate Worker artifact writes.
-                as_mod.ArtifactStore(root=os.path.join(persist_dir, "art")).write(
-                    "s-acc", "coder", f"f{i}.md", f"b{i}"
-                )
+                as_mod.ArtifactStore(root=os.path.join(persist_dir, "art")).write("s-acc", "coder", f"f{i}.md", f"b{i}")
             after = registry.pending_count()
             assert after == before + 3
             assert get_call_count() >= 1
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
     def test_artifact_effect_audit_three_way_binding(self) -> None:
@@ -1081,6 +1077,7 @@ class TestFullE2EPipeline:
             assert registry.pending_count() == 0
         finally:
             import shutil
+
             shutil.rmtree(persist_dir, ignore_errors=True)
 
 
@@ -1101,6 +1098,7 @@ class TestExtraArtifactStoreE2E:
             assert store.read(art.artifact_id) == "report body"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_list_filters_by_role(self) -> None:
@@ -1116,6 +1114,7 @@ class TestExtraArtifactStoreE2E:
             assert arch[0].role_id == "architect"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_read_missing_id_raises(self) -> None:
@@ -1129,6 +1128,7 @@ class TestExtraArtifactStoreE2E:
                 store.read("art-does-not-exist")
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_delete_returns_true_for_existing(self) -> None:
@@ -1140,6 +1140,7 @@ class TestExtraArtifactStoreE2E:
             assert store.delete(art.artifact_id) is True
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_delete_returns_false_for_missing(self) -> None:
@@ -1150,6 +1151,7 @@ class TestExtraArtifactStoreE2E:
             assert store.delete("art-nonexistent") is False
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_kind_text_roundtrip(self) -> None:
@@ -1162,6 +1164,7 @@ class TestExtraArtifactStoreE2E:
             assert store.read(art.artifact_id) == "hello"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_kind_binary_roundtrip(self) -> None:
@@ -1174,6 +1177,7 @@ class TestExtraArtifactStoreE2E:
             assert store.read(art.artifact_id) == b"\x00\x01\x02"
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_invalid_kind_raises(self) -> None:
@@ -1187,6 +1191,7 @@ class TestExtraArtifactStoreE2E:
                 store.write("s-ik-1", "coder", "x", "y", kind="unknown")
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
     def test_artifact_invalid_content_type_raises(self) -> None:
@@ -1200,6 +1205,7 @@ class TestExtraArtifactStoreE2E:
                 store.write("s-ic-1", "coder", "x", content=12345)  # type: ignore[arg-type]
         finally:
             import shutil
+
             shutil.rmtree(tmp, ignore_errors=True)
 
 

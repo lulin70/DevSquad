@@ -91,9 +91,7 @@ class TestTrace1RoundTrip:
                     try:
                         payload = json.loads(marker.read_text(encoding="utf-8"))
                         rid = payload["request_id"]
-                        (v2_dir / f"response_{rid}.json").write_text(
-                            "the LLM answered in plain text", encoding="utf-8"
-                        )
+                        (v2_dir / f"response_{rid}.json").write_text("the LLM answered in plain text", encoding="utf-8")
                         return
                     except (json.JSONDecodeError, KeyError, OSError):
                         pass
@@ -133,8 +131,10 @@ class TestStatusContract:
         bridge = HostLLMBridgeV2(bridge_dir=str(v2_dir))
         try:
             bridge.create_request(
-                agent_type="architect", task="marker fields probe",
-                context={}, prompt="p",
+                agent_type="architect",
+                task="marker fields probe",
+                context={},
+                prompt="p",
             )
             marker = json.loads((v2_dir / "protocol.v2.marker").read_text(encoding="utf-8"))
             assert set(marker.keys()) == set(MARKER_V2_FIELDS)

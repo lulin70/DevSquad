@@ -123,9 +123,7 @@ class BenchmarkReport:
             status line.
         """
         status = "REGRESSION DETECTED" if self.regression_detected else "OK"
-        regressed_str = (
-            ", ".join(self.regressed_metrics) if self.regressed_metrics else "(none)"
-        )
+        regressed_str = ", ".join(self.regressed_metrics) if self.regressed_metrics else "(none)"
         lines = [
             "## Benchmark Regression",
             "",
@@ -182,12 +180,20 @@ class BenchmarkRegressionChecker:
     Example
     -------
     >>> checker = BenchmarkRegressionChecker(threshold_percent=10.0)
-    >>> baseline = BenchmarkSnapshot("4.2.9", 0.0, [
-    ...     BenchmarkMetric("dispatch_p95_ms", 100.0, "ms"),
-    ... ])
-    >>> current = BenchmarkSnapshot("4.3.0", 0.0, [
-    ...     BenchmarkMetric("dispatch_p95_ms", 125.0, "ms"),
-    ... ])
+    >>> baseline = BenchmarkSnapshot(
+    ...     "4.2.9",
+    ...     0.0,
+    ...     [
+    ...         BenchmarkMetric("dispatch_p95_ms", 100.0, "ms"),
+    ...     ],
+    ... )
+    >>> current = BenchmarkSnapshot(
+    ...     "4.3.0",
+    ...     0.0,
+    ...     [
+    ...         BenchmarkMetric("dispatch_p95_ms", 125.0, "ms"),
+    ...     ],
+    ... )
     >>> report = checker.compare(baseline, current)
     >>> report.regression_detected
     True
@@ -239,9 +245,7 @@ class BenchmarkRegressionChecker:
             regressed_names: list[str] = []
         else:
             max_regression = max(r for _, r in regressions)
-            regressed_names = [
-                name for name, r in regressions if r > self.threshold_percent
-            ]
+            regressed_names = [name for name, r in regressions if r > self.threshold_percent]
 
         return BenchmarkReport(
             regression_detected=len(regressed_names) > 0,
@@ -346,19 +350,9 @@ def lifecycle_gate_check(
     if phase != "P11":
         raise ValueError("BenchmarkRegressionChecker only supports P11 phase")
 
-    resolved_current_version = (
-        current_version if current_version is not None else __version__
-    )
-    baseline = (
-        baseline_snapshot
-        if baseline_snapshot is not None
-        else _default_baseline(baseline_version)
-    )
-    current = (
-        current_snapshot
-        if current_snapshot is not None
-        else BenchmarkRegressionChecker().run_live_benchmark()
-    )
+    resolved_current_version = current_version if current_version is not None else __version__
+    baseline = baseline_snapshot if baseline_snapshot is not None else _default_baseline(baseline_version)
+    current = current_snapshot if current_snapshot is not None else BenchmarkRegressionChecker().run_live_benchmark()
 
     checker = BenchmarkRegressionChecker(threshold_percent)
     report = checker.compare(baseline, current)

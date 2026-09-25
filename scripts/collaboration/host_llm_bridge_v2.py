@@ -26,6 +26,7 @@ V4.5.11 增加（PRD docs/prd/V4.5.11_PRD.md）:
 
 Anti-Ghost: _call_counter_er 递增 on create_request/write_response/read_request。
 """
+
 from __future__ import annotations
 
 import json
@@ -170,13 +171,9 @@ class HostLLMBridgeV2:
         try:
             value = int(raw)
         except ValueError as exc:
-            raise ValueError(
-                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={raw!r}: must be int ≥ 0"
-            ) from exc
+            raise ValueError(f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={raw!r}: must be int ≥ 0") from exc
         if value < 0:
-            raise ValueError(
-                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={value}: must be ≥ 0"
-            )
+            raise ValueError(f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={value}: must be ≥ 0")
         return value
 
     def __init__(self, bridge_dir: str | Path | None = None) -> None:
@@ -233,9 +230,7 @@ class HostLLMBridgeV2:
 
         prompt_bytes = len(prompt.encode("utf-8"))
         if prompt_bytes > MAX_PROMPT_BYTES:
-            raise ResourceLimitError(
-                f"prompt exceeds limit: {prompt_bytes} > {MAX_PROMPT_BYTES} bytes"
-            )
+            raise ResourceLimitError(f"prompt exceeds limit: {prompt_bytes} > {MAX_PROMPT_BYTES} bytes")
 
         request_path = self._request_path(request_id)
         prompt_path = self._prompt_path(request_id)
@@ -273,7 +268,9 @@ class HostLLMBridgeV2:
 
         logger.info(
             "HostLLMBridgeV2.create_request: %s (agent=%s, timeout=%ds)",
-            request_id, agent_type, timeout,
+            request_id,
+            agent_type,
+            timeout,
         )
         return request_id
 
@@ -336,14 +333,9 @@ class HostLLMBridgeV2:
         payload_bytes = len((output + error).encode("utf-8"))
         if payload_bytes > MAX_RESPONSE_JSON_BYTES:
             raise ResourceLimitError(
-                f"response payload exceeds limit: {payload_bytes} > "
-                f"{MAX_RESPONSE_JSON_BYTES} bytes"
+                f"response payload exceeds limit: {payload_bytes} > {MAX_RESPONSE_JSON_BYTES} bytes"
             )
-        bdir = (
-            Path(bridge_dir)
-            if bridge_dir
-            else HostLLMBridgeV2._default_bridge_dir()
-        )
+        bdir = Path(bridge_dir) if bridge_dir else HostLLMBridgeV2._default_bridge_dir()
         HostLLMBridgeV2._ensure_private_dir(bdir)
         response_path = bdir / f"response_{request_id}.json"
         response_data = {
@@ -369,11 +361,7 @@ class HostLLMBridgeV2:
         _inc_call_counter_er()
         if not HostLLMBridgeV2.validate_request_id(request_id):
             raise InvalidRequestIdError(f"invalid request_id: {request_id!r}")
-        bdir = (
-            Path(bridge_dir)
-            if bridge_dir
-            else HostLLMBridgeV2._default_bridge_dir()
-        )
+        bdir = Path(bridge_dir) if bridge_dir else HostLLMBridgeV2._default_bridge_dir()
         request_path = bdir / f"request_{request_id}.json"
         data = HostLLMBridgeV2._safe_read_json_static(request_path)
         if data is None:
@@ -396,11 +384,7 @@ class HostLLMBridgeV2:
         v1-format markers are never processed by the v2 reader.
         """
         _inc_call_counter_er()
-        bdir = (
-            Path(bridge_dir)
-            if bridge_dir
-            else HostLLMBridgeV2._default_bridge_dir()
-        )
+        bdir = Path(bridge_dir) if bridge_dir else HostLLMBridgeV2._default_bridge_dir()
         marker_path = bdir / HostLLMBridgeV2.MARKER_FILENAME
         data = HostLLMBridgeV2._safe_read_json_static(marker_path)
         if data is None:
@@ -419,21 +403,16 @@ class HostLLMBridgeV2:
         expected = set(MARKER_V2_FIELDS)
         if keys != expected:
             raise HostLLMBridgeV2Error(
-                f"marker schema mismatch: missing={sorted(expected - keys)} "
-                f"extra={sorted(keys - expected)}"
+                f"marker schema mismatch: missing={sorted(expected - keys)} extra={sorted(keys - expected)}"
             )
         for key in ("request_id", "agent_type", "task", "timestamp"):
             if not isinstance(data[key], str) or not data[key]:
                 raise HostLLMBridgeV2Error(f"marker field {key!r} must be non-empty str")
         timeout = data["timeout_seconds"]
         if isinstance(timeout, bool) or not isinstance(timeout, int) or timeout <= 0:
-            raise HostLLMBridgeV2Error(
-                f"marker field 'timeout_seconds' must be positive int, got {timeout!r}"
-            )
+            raise HostLLMBridgeV2Error(f"marker field 'timeout_seconds' must be positive int, got {timeout!r}")
         if not HostLLMBridgeV2.validate_request_id(data["request_id"]):
-            raise HostLLMBridgeV2Error(
-                f"marker request_id invalid: {data['request_id']!r}"
-            )
+            raise HostLLMBridgeV2Error(f"marker request_id invalid: {data['request_id']!r}")
         for key in ("request_file", "prompt_file"):
             HostLLMBridgeV2._validate_path_within(data[key], bdir)
 
@@ -484,19 +463,13 @@ class HostLLMBridgeV2:
                 path.unlink()
                 removed += 1
             except OSError as exc:
-                logger.debug(
-                    "HostLLMBridgeV2._prune_old_files: cannot remove %s: %s", path, exc
-                )
+                logger.debug("HostLLMBridgeV2._prune_old_files: cannot remove %s: %s", path, exc)
         return removed
 
     @staticmethod
     def clear_marker(bridge_dir: str | Path | None = None) -> None:
         """Clear the v2 marker file (best-effort)."""
-        bdir = (
-            Path(bridge_dir)
-            if bridge_dir
-            else HostLLMBridgeV2._default_bridge_dir()
-        )
+        bdir = Path(bridge_dir) if bridge_dir else HostLLMBridgeV2._default_bridge_dir()
         marker_path = bdir / HostLLMBridgeV2.MARKER_FILENAME
         with suppress(OSError):
             marker_path.unlink(missing_ok=True)
@@ -523,13 +496,9 @@ class HostLLMBridgeV2:
             real_base = os.path.realpath(str(base_dir))
             common = os.path.commonpath([real_target, real_base])
             if common != real_base:
-                raise RequestFilePathError(
-                    f"path outside version dir: {path_str}"
-                )
+                raise RequestFilePathError(f"path outside version dir: {path_str}")
         except ValueError as exc:
-            raise RequestFilePathError(
-                f"path validation failed: {path_str}: {exc}"
-            ) from exc
+            raise RequestFilePathError(f"path validation failed: {path_str}: {exc}") from exc
 
     @staticmethod
     def _safe_open(path: Path, flags: int) -> int:
@@ -596,9 +565,7 @@ class HostLLMBridgeV2:
             if data is not None:
                 return data
             time.sleep(self.JSON_RETRY_INTERVAL)
-        logger.warning(
-            "JSON decode failed after %d retries: %s", self.MAX_JSON_RETRIES, path
-        )
+        logger.warning("JSON decode failed after %d retries: %s", self.MAX_JSON_RETRIES, path)
         return None
 
     # ---- private helpers ----
@@ -652,13 +619,8 @@ class HostLLMBridgeV2:
         payload = json.dumps(data, ensure_ascii=False, indent=2)
         payload_bytes = len(payload.encode("utf-8"))
         if payload_bytes > MAX_REQUEST_JSON_BYTES:
-            raise ResourceLimitError(
-                f"JSON payload exceeds limit: {payload_bytes} > "
-                f"{MAX_REQUEST_JSON_BYTES} bytes"
-            )
-        fd, tmp_str = tempfile.mkstemp(
-            dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp"
-        )
+            raise ResourceLimitError(f"JSON payload exceeds limit: {payload_bytes} > {MAX_REQUEST_JSON_BYTES} bytes")
+        fd, tmp_str = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(payload)
@@ -678,9 +640,7 @@ class HostLLMBridgeV2:
     @staticmethod
     def _assert_safe_id(request_id: str) -> None:
         if not HostLLMBridgeV2.validate_request_id(request_id):
-            raise InvalidRequestIdError(
-                f"invalid request_id (must match [a-zA-Z0-9_]{{1,128}}): {request_id!r}"
-            )
+            raise InvalidRequestIdError(f"invalid request_id (must match [a-zA-Z0-9_]{{1,128}}): {request_id!r}")
 
 
 __all__ = [

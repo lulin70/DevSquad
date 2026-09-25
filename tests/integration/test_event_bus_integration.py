@@ -59,6 +59,7 @@ from scripts.collaboration.scratchpad import Scratchpad
 
 class _StubSeverity(Enum):
     """Stub for AnchorSeverity used by ResultAssembler._build_anchor_dict."""
+
     OK = "ok"
     WARN = "warn"
     CRITICAL = "critical"
@@ -67,6 +68,7 @@ class _StubSeverity(Enum):
 @dataclass
 class _AnchorResult:
     """Stub for AnchorChecker.check() return value."""
+
     aligned: bool = True
     coverage: float = 1.0
     drift_score: float = 0.0
@@ -81,9 +83,13 @@ class _StubAnchorChecker:
         self.check_calls: list[dict[str, Any]] = []
 
     def check(self, goal: Any, current_output: str, trigger: Any) -> _AnchorResult:
-        self.check_calls.append({
-            "goal": goal, "current_output": current_output, "trigger": trigger,
-        })
+        self.check_calls.append(
+            {
+                "goal": goal,
+                "current_output": current_output,
+                "trigger": trigger,
+            }
+        )
         return self._result
 
 
@@ -193,8 +199,16 @@ def _make_hooks(
     enable_quality_guard: bool = True,
     anchor_aligned: bool = True,
     max_history: int = 5,
-) -> tuple[DispatchHooks, _StubCoordinator, _StubEnterprise, _StubPerfMonitor,
-          _StubAnchorChecker, _StubOutputSlicer, _StubUsageTracker, list]:
+) -> tuple[
+    DispatchHooks,
+    _StubCoordinator,
+    _StubEnterprise,
+    _StubPerfMonitor,
+    _StubAnchorChecker,
+    _StubOutputSlicer,
+    _StubUsageTracker,
+    list,
+]:
     """Build a DispatchHooks wired with stub collaborators. Returns the hooks
     plus the stubs so tests can assert on their state."""
     coordinator = _StubCoordinator()
@@ -217,12 +231,12 @@ def _make_hooks(
         max_history=max_history,
         enable_quality_guard=enable_quality_guard,
     )
-    return (hooks, coordinator, enterprise, perf_monitor, anchor_checker,
-            slicer, usage_tracker, history)
+    return (hooks, coordinator, enterprise, perf_monitor, anchor_checker, slicer, usage_tracker, history)
 
 
-def _make_result(success: bool = True, timing: dict[str, float] | None = None,
-                 errors: list[str] | None = None) -> DispatchResult:
+def _make_result(
+    success: bool = True, timing: dict[str, float] | None = None, errors: list[str] | None = None
+) -> DispatchResult:
     """Build a minimal DispatchResult for hook/assembler tests."""
     return DispatchResult(
         success=success,
@@ -330,7 +344,7 @@ class T2_DispatchHooksIntegration(unittest.TestCase):
 
     def test_01_post_dispatch_hooks_appends_to_history(self) -> None:
         """Verify: post_dispatch_hooks records the result in dispatch_history."""
-        hooks, *_ , history = _make_hooks()
+        hooks, *_, history = _make_hooks()
         result = _make_result()
         hooks.post_dispatch_hooks(result, task="t", role_ids=["architect"], total_duration=1.2)
         self.assertEqual(len(history), 1)
@@ -416,16 +430,12 @@ class T2_DispatchHooksIntegration(unittest.TestCase):
         """Verify: with anchor_checker=None the drift check returns None."""
         hooks, *_ = _make_hooks()
         hooks.anchor_checker = None
-        self.assertIsNone(
-            hooks.check_anchor_drift([], structured_goal="g", scratchpad_summary="")
-        )
+        self.assertIsNone(hooks.check_anchor_drift([], structured_goal="g", scratchpad_summary=""))
 
     def test_11_check_anchor_drift_no_goal_returns_none(self) -> None:
         """Verify: with structured_goal falsy the drift check returns None."""
         hooks, *_ = _make_hooks()
-        self.assertIsNone(
-            hooks.check_anchor_drift([], structured_goal=None, scratchpad_summary="")
-        )
+        self.assertIsNone(hooks.check_anchor_drift([], structured_goal=None, scratchpad_summary=""))
 
     def test_12_post_execution_processing_returns_summary_and_collection(self) -> None:
         """Verify: post_execution_processing returns (summary, anchor, collection, errors, timing)."""
@@ -571,16 +581,29 @@ class T3_ResultAssemblerIntegration(unittest.TestCase):
     def test_05_assemble_builds_anchor_dict_when_present(self) -> None:
         """Verify: assemble converts an anchor_result object into a dict on the result."""
         assembler = _make_assembler()
-        anchor = _AnchorResult(aligned=False, coverage=0.4, drift_score=0.6,
-                               recommendation="realign")
+        anchor = _AnchorResult(aligned=False, coverage=0.4, drift_score=0.6, recommendation="realign")
         result = assembler.assemble(
-            task_description="t", role_ids=[], exec_result=_StubExecResult(),
-            scratchpad_summary="", consensus_records=[], compression_info=None,
-            memory_stats=None, permission_checks=[], skill_proposals=[],
-            anchor_result=anchor, retrospective_report=None, intent_match=None,
-            five_axis_result=None, errors=[], lang="zh", concern_packs=None,
-            total_duration=0.0, plan=_StubPlan(), step_timings={},
-            worker_results=[], coordinator=_StubCoordinator(),
+            task_description="t",
+            role_ids=[],
+            exec_result=_StubExecResult(),
+            scratchpad_summary="",
+            consensus_records=[],
+            compression_info=None,
+            memory_stats=None,
+            permission_checks=[],
+            skill_proposals=[],
+            anchor_result=anchor,
+            retrospective_report=None,
+            intent_match=None,
+            five_axis_result=None,
+            errors=[],
+            lang="zh",
+            concern_packs=None,
+            total_duration=0.0,
+            plan=_StubPlan(),
+            step_timings={},
+            worker_results=[],
+            coordinator=_StubCoordinator(),
         )
         self.assertIsNotNone(result.anchor_result)
         self.assertFalse(result.anchor_result["aligned"])
@@ -590,13 +613,27 @@ class T3_ResultAssemblerIntegration(unittest.TestCase):
         """Verify: concern_packs are resolved through the concern_loader."""
         assembler = _make_assembler()
         result = assembler.assemble(
-            task_description="t", role_ids=[], exec_result=_StubExecResult(),
-            scratchpad_summary="", consensus_records=[], compression_info=None,
-            memory_stats=None, permission_checks=[], skill_proposals=[],
-            anchor_result=None, retrospective_report=None, intent_match=None,
-            five_axis_result=None, errors=[], lang="zh", concern_packs="some-pack",
-            total_duration=0.0, plan=_StubPlan(), step_timings={},
-            worker_results=[], coordinator=_StubCoordinator(),
+            task_description="t",
+            role_ids=[],
+            exec_result=_StubExecResult(),
+            scratchpad_summary="",
+            consensus_records=[],
+            compression_info=None,
+            memory_stats=None,
+            permission_checks=[],
+            skill_proposals=[],
+            anchor_result=None,
+            retrospective_report=None,
+            intent_match=None,
+            five_axis_result=None,
+            errors=[],
+            lang="zh",
+            concern_packs="some-pack",
+            total_duration=0.0,
+            plan=_StubPlan(),
+            step_timings={},
+            worker_results=[],
+            coordinator=_StubCoordinator(),
         )
         self.assertEqual(len(result.concern_packs), 1)
         self.assertEqual(result.concern_packs[0]["name"], "pack1")
@@ -607,8 +644,17 @@ class T3_ResultAssemblerIntegration(unittest.TestCase):
         times = [float(i) for i in range(12)]
         timings = ResultAssembler.build_step_timings(*times)
         expected_names = {
-            "analyze", "warmup", "plan", "spawn", "execute", "collect",
-            "consensus", "compress", "permission", "memory", "skillify",
+            "analyze",
+            "warmup",
+            "plan",
+            "spawn",
+            "execute",
+            "collect",
+            "consensus",
+            "compress",
+            "permission",
+            "memory",
+            "skillify",
         }
         self.assertEqual(set(timings.keys()), expected_names)
         for v in timings.values():
@@ -616,9 +662,14 @@ class T3_ResultAssemblerIntegration(unittest.TestCase):
 
     def test_08_build_lifecycle_trace_aggregates_phases(self) -> None:
         """Verify: build_lifecycle_trace maps steps to lifecycle phases."""
-        trace = ResultAssembler.build_lifecycle_trace({
-            "analyze": 1.0, "execute": 2.0, "collect": 0.5, "permission": 0.2,
-        })
+        trace = ResultAssembler.build_lifecycle_trace(
+            {
+                "analyze": 1.0,
+                "execute": 2.0,
+                "collect": 0.5,
+                "permission": 0.2,
+            }
+        )
         self.assertEqual(trace["mapping_version"], "1.0")
         # analyze → P1, execute → P3, collect → P4, permission → P6.
         self.assertIn("P1_Requirements", trace["lifecycle_phases"])
@@ -653,13 +704,19 @@ class T4_EndToEndEventHookAssemble(unittest.TestCase):
     def test_01_emit_dispatch_completed_triggers_post_dispatch_hooks(self) -> None:
         """Verify: emitting dispatch.completed fires post_dispatch_hooks via the bus."""
         bus = EventBus()
-        hooks, *_ , history, = _make_hooks()
+        (
+            hooks,
+            *_,
+            history,
+        ) = _make_hooks()
         result = _make_result()
         try:
-            bus.on("dispatch.completed",
-                   lambda **kw: hooks.post_dispatch_hooks(
-                       result, task=kw["task"], role_ids=kw["roles"],
-                       total_duration=kw["duration"]))
+            bus.on(
+                "dispatch.completed",
+                lambda **kw: hooks.post_dispatch_hooks(
+                    result, task=kw["task"], role_ids=kw["roles"], total_duration=kw["duration"]
+                ),
+            )
             bus.emit("dispatch.completed", task="t", roles=["architect"], duration=1.5)
             self.assertEqual(len(history), 1)
             self.assertIs(history[0], result)
@@ -709,9 +766,12 @@ class T4_EndToEndEventHookAssemble(unittest.TestCase):
         events: list[str] = []
         try:
             bus.on("dispatch.executing", lambda **_kw: events.append("executing"))
-            bus.on("dispatch.completed",
-                   lambda **kw: hooks.post_dispatch_hooks(
-                       _make_result(), task=kw["task"], role_ids=[], total_duration=0.1))
+            bus.on(
+                "dispatch.completed",
+                lambda **kw: hooks.post_dispatch_hooks(
+                    _make_result(), task=kw["task"], role_ids=[], total_duration=0.1
+                ),
+            )
             bus.emit("dispatch.executing")
             bus.emit("dispatch.completed", task="t")
             self.assertEqual(events, ["executing"])
@@ -727,13 +787,27 @@ class T4_EndToEndEventHookAssemble(unittest.TestCase):
             worker_results=[{"output": "drifted"}], structured_goal="goal"
         )
         result = assembler.assemble(
-            task_description="t", role_ids=[], exec_result=_StubExecResult(),
-            scratchpad_summary="sp", consensus_records=[], compression_info=None,
-            memory_stats=None, permission_checks=[], skill_proposals=[],
-            anchor_result=anchor, retrospective_report=None, intent_match=None,
-            five_axis_result=None, errors=errors, lang="zh", concern_packs=None,
-            total_duration=0.0, plan=_StubPlan(), step_timings=timing,
-            worker_results=[], coordinator=coordinator,
+            task_description="t",
+            role_ids=[],
+            exec_result=_StubExecResult(),
+            scratchpad_summary="sp",
+            consensus_records=[],
+            compression_info=None,
+            memory_stats=None,
+            permission_checks=[],
+            skill_proposals=[],
+            anchor_result=anchor,
+            retrospective_report=None,
+            intent_match=None,
+            five_axis_result=None,
+            errors=errors,
+            lang="zh",
+            concern_packs=None,
+            total_duration=0.0,
+            plan=_StubPlan(),
+            step_timings=timing,
+            worker_results=[],
+            coordinator=coordinator,
         )
         self.assertFalse(result.anchor_result["aligned"])
 
@@ -770,6 +844,7 @@ class T5_BoundaryAndExceptions(unittest.TestCase):
 
     def test_02_handler_raising_type_error_is_swallowed(self) -> None:
         """Verify: a handler raising TypeError is swallowed by emit()."""
+
         def bad(**kw: Any) -> None:
             raise TypeError("type boom")
 
@@ -803,9 +878,11 @@ class T5_BoundaryAndExceptions(unittest.TestCase):
 
         def registrar(idx: int) -> None:
             try:
+
                 def h(**kw: Any) -> None:
                     with lock:
                         calls.append(1)
+
                 self._bus.on("e", h)
             except Exception as exc:  # noqa: BLE001
                 errors.append(exc)
@@ -843,13 +920,27 @@ class T5_BoundaryAndExceptions(unittest.TestCase):
         """Verify: assemble tolerates None intent_match and retrospective_report."""
         assembler = _make_assembler()
         result = assembler.assemble(
-            task_description="t", role_ids=[], exec_result=_StubExecResult(),
-            scratchpad_summary="", consensus_records=[], compression_info=None,
-            memory_stats=None, permission_checks=[], skill_proposals=[],
-            anchor_result=None, retrospective_report=None, intent_match=None,
-            five_axis_result=None, errors=[], lang="zh", concern_packs=None,
-            total_duration=0.0, plan=_StubPlan(), step_timings={},
-            worker_results=[], coordinator=_StubCoordinator(),
+            task_description="t",
+            role_ids=[],
+            exec_result=_StubExecResult(),
+            scratchpad_summary="",
+            consensus_records=[],
+            compression_info=None,
+            memory_stats=None,
+            permission_checks=[],
+            skill_proposals=[],
+            anchor_result=None,
+            retrospective_report=None,
+            intent_match=None,
+            five_axis_result=None,
+            errors=[],
+            lang="zh",
+            concern_packs=None,
+            total_duration=0.0,
+            plan=_StubPlan(),
+            step_timings={},
+            worker_results=[],
+            coordinator=_StubCoordinator(),
         )
         self.assertIsNone(result.intent_match)
         self.assertIsNone(result.retrospective_report)

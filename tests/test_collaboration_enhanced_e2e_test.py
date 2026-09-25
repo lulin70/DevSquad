@@ -1036,6 +1036,33 @@ class TestIntegration:
         finally:
             shutil.rmtree(tmpdir)
 
+    def test_it_5b_persistence_auto_id_survives_second_boundary(self):
+        """自动 id 的持久化必须跨"损坏并重建"存活，即使两次构造落在不同的墙钟秒。
+
+        US-1.6 / AC-1.6.3 的原文场景是：指定 persist_dir → 写入 → 销毁并重建
+        （同一 persist_dir）→ 自动加载之前的条目。旧实现里自动 id 既是
+        秒级时间戳、又是文件名，于是重建时去找的是**另一个文件**，静默恢复
+        0 条 —— test_e2e_6_persistence_recovery 因此在全量套件（--cov 把该用例
+        耗时从 6ms 放大到 ~210ms）里约 20% 概率变红。
+
+        这里不靠运气：sleep 1.1s > 1s，两次构造的整数秒必然不同，所以这是一条
+        确定性回归门（旧代码必红）。
+        """
+        tmpdir = tempfile.mkdtemp()
+        try:
+            first = Scratchpad(persist_dir=tmpdir)
+            for i in range(5):
+                first.write(ScratchpadEntry(content=f"persist-{i}"))
+            before = first.get_stats()["total_entries"]
+            del first
+
+            time.sleep(1.1)  # > 1s，保证下一次构造落在另一个整数秒
+
+            second = Scratchpad(persist_dir=tmpdir)
+            assert second.get_stats()["total_entries"] == before
+        finally:
+            shutil.rmtree(tmpdir)
+
     def test_it_6_context_aware_worker(self):
         """Worker 上下文感知执行"""
         sp = Scratchpad()

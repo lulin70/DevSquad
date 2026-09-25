@@ -150,7 +150,7 @@ async def get_phase(
         status = protocol.get_status()
         completed = set(status.completed_phases or [])
         failed = set(status.failed_phases or [])
-        running = set(getattr(status, 'running_phases', None) or [])
+        running = set(getattr(status, "running_phases", None) or [])
 
         if phase.phase_id in completed:
             current_status = PhaseStatus.COMPLETED
@@ -211,13 +211,15 @@ async def get_lifecycle_status(
         all_phases_list = protocol.get_all_phases()
 
         return {
-            "mode": status.mode.value if hasattr(status.mode, 'value') else str(status.mode),
+            "mode": status.mode.value if hasattr(status.mode, "value") else str(status.mode),
             "current_phase": status.current_phase or "none",
             "total_phases": len(all_phases_list),
             "completed_phases": status.completed_phases or [],
             "running_phases": [],
             "failed_phases": status.failed_phases or [],
-            "pending_phases": [p.phase_id for p in all_phases_list if p.phase_id not in (status.completed_phases or [])],
+            "pending_phases": [
+                p.phase_id for p in all_phases_list if p.phase_id not in (status.completed_phases or [])
+            ],
             "progress_percent": status.progress_percent,
             "is_complete": len(status.completed_phases or []) == len(all_phases_list),
             "timestamp": None,

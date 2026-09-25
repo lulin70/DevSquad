@@ -25,6 +25,7 @@ from skills.security.handler import SecuritySkill
 
 def _reset_call_counter_er() -> None:
     import scripts.collaboration.dependency_hallucination_checker as mod
+
     mod._call_counter_er = 0
 
 
@@ -157,9 +158,9 @@ class T4_SecuritySkillModuleIntegration(unittest.TestCase):
     def test_03_mixed_findings_via_skill(self) -> None:
         """Verify: mixed KNOWN_GOOD + SUSPICIOUS + UNKNOWN classified correctly."""
         code = (
-            "import requests\n"           # KNOWN_GOOD
-            "import huggingface_cli\n"    # SUSPICIOUS
-            "import zzz-novel-xyz\n"      # UNKNOWN
+            "import requests\n"  # KNOWN_GOOD
+            "import huggingface_cli\n"  # SUSPICIOUS
+            "import zzz-novel-xyz\n"  # UNKNOWN
         )
         result = self.skill.scan_dependencies(code)
         self.assertFalse(result["is_clean"])
@@ -170,9 +171,7 @@ class T4_SecuritySkillModuleIntegration(unittest.TestCase):
     def test_04_blocking_mode_raises_with_package_name(self) -> None:
         """Verify: blocking mode error message includes package name."""
         with self.assertRaises(RuntimeError) as ctx:
-            self.skill.scan_dependencies(
-                "import huggingface_cli\n", blocking=True
-            )
+            self.skill.scan_dependencies("import huggingface_cli\n", blocking=True)
         self.assertIn("huggingface_cli", str(ctx.exception))
 
 

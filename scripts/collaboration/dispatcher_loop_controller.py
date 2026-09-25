@@ -13,6 +13,7 @@ Loop-level fuse: consecutive same-reason retriable → fatal (avoid 100-min wast
 
 Anti-Ghost: _loop_call_counter_er 递增 on should_stop().
 """
+
 from __future__ import annotations
 
 import logging
@@ -160,7 +161,8 @@ class DispatchLoopController:
                 self._stop_reason = LoopStopReason.FATAL_ERROR
             logger.error(
                 "loop: FATAL at iter %d: %s",
-                self._current_iteration, iter_result.reason,
+                self._current_iteration,
+                iter_result.reason,
             )
             return True
 
@@ -169,7 +171,8 @@ class DispatchLoopController:
             with self._lock:
                 self._stop_reason = LoopStopReason.MAX_ITERATION
             logger.warning(
-                "loop: max iterations reached (%d)", self._max_iterations,
+                "loop: max iterations reached (%d)",
+                self._max_iterations,
             )
             return True
 
@@ -193,7 +196,8 @@ class DispatchLoopController:
                     self._last_retriable_reason = normalized_reason
                 logger.info(
                     "loop: retriable #%d (reason=%s)",
-                    self._consecutive_retriable_count, normalized_reason,
+                    self._consecutive_retriable_count,
+                    normalized_reason,
                 )
             return False
 

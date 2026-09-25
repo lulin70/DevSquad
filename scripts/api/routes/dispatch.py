@@ -65,7 +65,10 @@ def _get_dispatcher() -> MultiAgentDispatcher:
             from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
             _is_dev_mode = os.environ.get("DEVSQUAD_API_AUTH_DISABLED", "").strip() in (
-                "1", "true", "True", "TRUE",
+                "1",
+                "true",
+                "True",
+                "TRUE",
             )
             _global_dispatcher = MultiAgentDispatcher(
                 enable_warmup=True,
@@ -195,15 +198,15 @@ async def dispatch_task(
         validator = InputValidator()
         task_validation = validator.validate_task(request.task)
         if not task_validation.valid:
-            audit_log(user_id, "task:dispatch", "task", result="rejected",
-                      details={"reason": task_validation.reason})
+            audit_log(user_id, "task:dispatch", "task", result="rejected", details={"reason": task_validation.reason})
             raise HTTPException(status_code=422, detail=f"Input validation failed: {task_validation.reason}")
 
         if request.roles:
             roles_validation = validator.validate_roles(request.roles)
             if not roles_validation.valid:
-                audit_log(user_id, "task:dispatch", "task", result="rejected",
-                          details={"reason": roles_validation.reason})
+                audit_log(
+                    user_id, "task:dispatch", "task", result="rejected", details={"reason": roles_validation.reason}
+                )
                 raise HTTPException(status_code=422, detail=f"Roles validation failed: {roles_validation.reason}")
 
         dispatcher = _get_dispatcher()
@@ -300,8 +303,9 @@ async def quick_dispatch(
         validator = InputValidator()
         task_validation = validator.validate_task(request.task)
         if not task_validation.valid:
-            audit_log(user_id, "task:quick_dispatch", "task", result="rejected",
-                      details={"reason": task_validation.reason})
+            audit_log(
+                user_id, "task:quick_dispatch", "task", result="rejected", details={"reason": task_validation.reason}
+            )
             raise HTTPException(status_code=422, detail=f"Input validation failed: {task_validation.reason}")
 
         dispatcher = _get_dispatcher()

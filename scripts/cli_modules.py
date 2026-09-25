@@ -72,14 +72,9 @@ def cmd_modules_status(args: argparse.Namespace) -> int:
             for f in fibers:
                 deps_str = ",".join(f.depends_on)[:14] if f.depends_on else "-"
                 err_str = (
-                    (f.last_error[:30] + "...")
-                    if f.last_error and len(f.last_error) > 30
-                    else (f.last_error or "-")
+                    (f.last_error[:30] + "...") if f.last_error and len(f.last_error) > 30 else (f.last_error or "-")
                 )
-                print(
-                    f"{f.module_id:<25} {f.state.value:<12} "
-                    f"{deps_str:<14} {f.retry_count:<6} {err_str}"
-                )
+                print(f"{f.module_id:<25} {f.state.value:<12} {deps_str:<14} {f.retry_count:<6} {err_str}")
     except Exception as exc:  # noqa: BLE001 — best-effort CLI
         print(f"Error reading module status: {exc}", file=sys.stderr)
         return 1

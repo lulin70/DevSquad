@@ -420,9 +420,9 @@ class PermissionGuard:
     # These are "destructive" or "irreversible" operations where AI autonomy
     # poses unacceptable risk (cf. Replit AI delete-db incident).
     HUMAN_GATE_ACTIONS: set[ActionType] = {
-        ActionType.FILE_DELETE,      # Deleting files is irreversible
-        ActionType.PROCESS_SPAWN,    # Spawning processes can escape sandbox
-        ActionType.ENVIRONMENT,      # Env var changes affect all processes
+        ActionType.FILE_DELETE,  # Deleting files is irreversible
+        ActionType.PROCESS_SPAWN,  # Spawning processes can escape sandbox
+        ActionType.ENVIRONMENT,  # Env var changes affect all processes
     }
 
     LEVEL_ORDER = {
@@ -554,9 +554,7 @@ class PermissionGuard:
             return None
         if action.action_type == ActionType.FILE_READ:
             return self._make_decision(action, DecisionOutcome.ALLOWED, "PLAN模式允许只读操作")
-        return self._make_decision(
-            action, DecisionOutcome.DENIED, f"PLAN模式禁止{action.action_type.value}操作"
-        )
+        return self._make_decision(action, DecisionOutcome.DENIED, f"PLAN模式禁止{action.action_type.value}操作")
 
     def _check_human_gate(self, action: ProposedAction) -> PermissionDecision | None:
         """Return a PROMPT decision if action is in HUMAN_GATE_ACTIONS, else None.
@@ -643,9 +641,7 @@ class PermissionGuard:
             f"当前级别不足(需{matched_rule.required_level.value}, 当前{self.current_level.value}), 请确认",
         )
 
-    def _evaluate_no_match(
-        self, action: ProposedAction, base_risk: float
-    ) -> PermissionDecision:
+    def _evaluate_no_match(self, action: ProposedAction, base_risk: float) -> PermissionDecision:
         """Evaluate an action with no matching rule and return the decision.
 
         Uses base_risk threshold and AUTO classifier fallback.

@@ -16,6 +16,7 @@ Verifies that:
 
 Test plan reference: docs/prd/V4.4.2_PRD.md §3.3 (AC-1, AC-5, AC-6).
 """
+
 from __future__ import annotations
 
 import os
@@ -51,9 +52,7 @@ def test_role_has_en_ja_prompts() -> None:
     """AC-1: every role has prompt_i18n with exactly {"en", "ja"} keys."""
     for rid in _EXPECTED_ROLES:
         rdef = ROLE_REGISTRY[rid]
-        assert len(rdef.prompt_i18n) == 2, (
-            f"role {rid} prompt_i18n should have 2 entries, got {len(rdef.prompt_i18n)}"
-        )
+        assert len(rdef.prompt_i18n) == 2, f"role {rid} prompt_i18n should have 2 entries, got {len(rdef.prompt_i18n)}"
         assert set(rdef.prompt_i18n.keys()) == {"en", "ja"}, (
             f"role {rid} prompt_i18n keys should be {{'en', 'ja'}}, got {set(rdef.prompt_i18n.keys())}"
         )
@@ -63,9 +62,7 @@ def test_role_has_en_ja_names() -> None:
     """AC-1: every role has name_i18n with exactly {"en", "ja"} keys."""
     for rid in _EXPECTED_ROLES:
         rdef = ROLE_REGISTRY[rid]
-        assert len(rdef.name_i18n) == 2, (
-            f"role {rid} name_i18n should have 2 entries, got {len(rdef.name_i18n)}"
-        )
+        assert len(rdef.name_i18n) == 2, f"role {rid} name_i18n should have 2 entries, got {len(rdef.name_i18n)}"
         assert set(rdef.name_i18n.keys()) == {"en", "ja"}, (
             f"role {rid} name_i18n keys should be {{'en', 'ja'}}, got {set(rdef.name_i18n.keys())}"
         )

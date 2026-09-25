@@ -50,7 +50,7 @@ def register_debug_tag(tag: str) -> None:
     clean = tag.strip().upper()
     # Strip [DEBUG- prefix and ] suffix if present.
     if clean.startswith("[DEBUG-"):
-        clean = clean[len("[DEBUG-"):]
+        clean = clean[len("[DEBUG-") :]
     if clean.endswith("]"):
         clean = clean[:-1]
     if clean:

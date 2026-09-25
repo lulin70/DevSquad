@@ -105,7 +105,9 @@ class TestRedCapableGate(unittest.TestCase):
 
     def test_multiple_criteria_failures_reported(self) -> None:
         """Verify: multiple failures are all listed in failed_criteria."""
-        result = self.gate.verify_debug_loop_ready("x = input('enter: ')\nimport random\nassert x == random.randint(1, 9)")
+        result = self.gate.verify_debug_loop_ready(
+            "x = input('enter: ')\nimport random\nassert x == random.randint(1, 9)"
+        )
         self.assertFalse(result.passed)
         self.assertIn("on-deterministic", result.failed_criteria)
         self.assertIn("on-agent-runnable", result.failed_criteria)
@@ -202,11 +204,7 @@ class TestDebugTagCleanup(unittest.TestCase):
 
     def test_find_multiple_tags(self) -> None:
         """Verify: multiple distinct tags are found and sorted."""
-        output = (
-            "[DEBUG-ZERO_CHECK] value=0\n"
-            "[DEBUG-NULL_PTR] ptr=None\n"
-            "[DEBUG-OFF_BY_ONE] i=1\n"
-        )
+        output = "[DEBUG-ZERO_CHECK] value=0\n[DEBUG-NULL_PTR] ptr=None\n[DEBUG-OFF_BY_ONE] i=1\n"
         tags = cleanup_debug_tags(output)
         self.assertEqual(tags, ["NULL_PTR", "OFF_BY_ONE", "ZERO_CHECK"])
 

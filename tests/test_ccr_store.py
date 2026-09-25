@@ -17,6 +17,7 @@ import time
 import unittest
 
 from scripts.collaboration.ccr_store import CCRStore
+from tests.conftest import perf_ceiling_ms
 
 
 class TestCCRStoreStoreRetrieve(unittest.TestCase):
@@ -56,9 +57,7 @@ class TestCCRStoreStoreRetrieve(unittest.TestCase):
     def test_store_with_metadata(self):
         """Verify: metadata is accepted without error (stored as JSON)."""
         with CCRStore(":memory:") as store:
-            trace_id = store.store(
-                "content", metadata={"source": "smart_crusher", "type": "json_array"}
-            )
+            trace_id = store.store("content", metadata={"source": "smart_crusher", "type": "json_array"})
             self.assertEqual(store.retrieve(trace_id), "content")
 
 
@@ -261,10 +260,28 @@ class TestCCRStoreContextManager(unittest.TestCase):
 
 
 class TestCCRStorePerformance(unittest.TestCase):
-    """Verify: store+retrieve meets performance targets."""
+    """Verify: store+retrieve meets performance targets.
+
+    V4.5.20 P1-2: the budget is environment-scaled (tests/conftest.py), i.e.
+    ``budget * env_perf_factor()`` where the factor comes from an
+    **operation-independent** reference workload (a CPU-only proxy that does not
+    touch CCRStore). On the calibration host the factor is exactly ``1.0``, so the
+    ceiling equals the original 500 ms budget. The control must not exercise the
+    code under test: a same-code-path control grows in lockstep with a regression,
+    so the ceiling would grow too and the gate could no longer fail.
+    """
 
     def test_store_retrieve_100_entries_under_500ms(self):
-        """Verify: 100 store+retrieve cycles complete in <500ms."""
+        """Verify: 100 store+retrieve cycles complete in <500ms.
+
+        V4.5.20 P1-2: environment-scaled ceiling via the operation-independent
+        reference-workload control; the factor is 1.0 on the calibration host, so
+        the ceiling equals the original 500 ms budget there. The control must not
+        touch the code under test — a same-code-path control makes the ceiling
+        grow with the regression, so the gate can no longer fail.
+        """
+        ceiling_ms = perf_ceiling_ms(500.0)
+
         with CCRStore(":memory:") as store:
             start = time.perf_counter()
             trace_ids = []
@@ -274,7 +291,11 @@ class TestCCRStorePerformance(unittest.TestCase):
             for tid in trace_ids:
                 store.retrieve(tid)
             elapsed_ms = (time.perf_counter() - start) * 1000
-            self.assertLess(elapsed_ms, 500, f"too slow: {elapsed_ms:.1f}ms")
+            self.assertLess(
+                elapsed_ms,
+                ceiling_ms,
+                f"too slow: {elapsed_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms",
+            )
 
 
 if __name__ == "__main__":

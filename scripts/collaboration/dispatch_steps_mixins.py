@@ -27,9 +27,7 @@ logger = logging.getLogger(__name__)
 class PostDispatchConsensusMixin(PostDispatchBase):
     """Provides consensus resolution and five-axis consensus helpers."""
 
-    def _resolve_consensus(
-        self, collection: Any, mode: str
-    ) -> tuple[list[dict[str, Any]], Any]:
+    def _resolve_consensus(self, collection: Any, mode: str) -> tuple[list[dict[str, Any]], Any]:
         """Resolve consensus and get compression info. Returns (consensus_records, compression_info)."""
         consensus_records: list[dict[str, Any]] = []
         conflicts_count = collection.get("conflicts_count", 0)
@@ -76,14 +74,25 @@ class PostDispatchConsensusMixin(PostDispatchBase):
                 FIVE_AXIS_SECURITY_CONFIDENCE,
                 FIVE_AXIS_SECURITY_SCORE,
             )
+
             for wr in worker_results:
                 output_text = wr.get("output") or wr.get("error") or ""
                 if output_text:
-                    fa_engine.add_axis_vote(review, ReviewAxis.CORRECTNESS, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE)
-                    fa_engine.add_axis_vote(review, ReviewAxis.READABILITY, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE)
-                    fa_engine.add_axis_vote(review, ReviewAxis.ARCHITECTURE, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE)
-                    fa_engine.add_axis_vote(review, ReviewAxis.SECURITY, FIVE_AXIS_SECURITY_SCORE, FIVE_AXIS_SECURITY_CONFIDENCE)
-                    fa_engine.add_axis_vote(review, ReviewAxis.PERFORMANCE, FIVE_AXIS_PERFORMANCE_SCORE, FIVE_AXIS_PERFORMANCE_CONFIDENCE)
+                    fa_engine.add_axis_vote(
+                        review, ReviewAxis.CORRECTNESS, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE
+                    )
+                    fa_engine.add_axis_vote(
+                        review, ReviewAxis.READABILITY, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE
+                    )
+                    fa_engine.add_axis_vote(
+                        review, ReviewAxis.ARCHITECTURE, FIVE_AXIS_DEFAULT_SCORE, FIVE_AXIS_DEFAULT_CONFIDENCE
+                    )
+                    fa_engine.add_axis_vote(
+                        review, ReviewAxis.SECURITY, FIVE_AXIS_SECURITY_SCORE, FIVE_AXIS_SECURITY_CONFIDENCE
+                    )
+                    fa_engine.add_axis_vote(
+                        review, ReviewAxis.PERFORMANCE, FIVE_AXIS_PERFORMANCE_SCORE, FIVE_AXIS_PERFORMANCE_CONFIDENCE
+                    )
                     break
             fa_result = fa_engine.compute_consensus([review])
             five_axis_result = {
@@ -186,6 +195,7 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
         if self.enable_feedback_loop == "auto":
             try:
                 from .feedback_control_loop import FeedbackControlLoop
+
                 loop = FeedbackControlLoop(dispatcher=self.dispatcher)
                 first_quality = loop._assess_quality(result)
                 if first_quality >= 0.5:
@@ -244,16 +254,14 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
         Returns:
             Dict with ue_test_plan data, or None if tester role not involved.
         """
-        tester_involved = any(
-            rid in ("tester", "product-manager", "ui-designer")
-            for rid in role_ids
-        )
+        tester_involved = any(rid in ("tester", "product-manager", "ui-designer") for rid in role_ids)
         if not tester_involved:
             return None
 
         try:
             if self._ue_framework is None:
                 from .ue_test_framework import UETestFramework
+
                 self._ue_framework = UETestFramework(llm_backend=self.llm_backend)
             framework = self._ue_framework
             plan = framework.generate_ue_test_plan(task)
@@ -296,8 +304,7 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
                 "persona_scenarios": plan.persona_scenarios,
                 "journey_tests": plan.journey_tests,
                 "heuristic_checks": [
-                    {"name": h.name, "description": h.description, "passed": h.passed}
-                    for h in plan.heuristic_checks
+                    {"name": h.name, "description": h.description, "passed": h.passed} for h in plan.heuristic_checks
                 ],
                 "accessibility_checks": plan.accessibility_checks,
                 "cognitive_load_assessment": plan.cognitive_load_assessment,
@@ -321,10 +328,7 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
         """
         try:
             # Skip if no tester or architect role involved
-            has_relevant_role = any(
-                wr.get("role_id") in ("tester", "architect")
-                for wr in worker_results
-            )
+            has_relevant_role = any(wr.get("role_id") in ("tester", "architect") for wr in worker_results)
             if not has_relevant_role:
                 return None
 
@@ -373,6 +377,7 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
     def _extract_test_debts(self, manager: Any, output: str, task: str) -> None:
         """Extract test-gap debts from tester output."""
         from .tech_debt_manager import DebtCategory, DebtEffort, DebtSeverity
+
         lower = output.lower()
         if "missing test" in lower or "no test" in lower or "untested" in lower:
             manager.identify_debt(
@@ -398,6 +403,7 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
     def _extract_arch_debts(self, manager: Any, output: str, task: str) -> None:
         """Extract architecture debts from architect output."""
         from .tech_debt_manager import DebtCategory, DebtEffort, DebtSeverity
+
         lower = output.lower()
         if "circular" in lower or "cyclic" in lower:
             manager.identify_debt(
@@ -463,9 +469,7 @@ class PostDispatchQualityMixin(PostDispatchBase):
             retrospective_report = self.retrospective_engine.run(
                 goal=structured_goal,
                 anchor_history=anchor_history,
-                worker_outputs={
-                    wr["role_id"]: wr.get("output", "") for wr in worker_results if wr.get("output")
-                },
+                worker_outputs={wr["role_id"]: wr.get("output", "") for wr in worker_results if wr.get("output")},
                 task_duration_seconds=total_duration,
             )
 
@@ -494,8 +498,7 @@ class PostDispatchQualityMixin(PostDispatchBase):
                 )
             else:
                 logger.debug(
-                    "RetrospectiveSkill ran but LearnedRuleStore is None — "
-                    "rules not persisted (ghost-feature risk)"
+                    "RetrospectiveSkill ran but LearnedRuleStore is None — rules not persisted (ghost-feature risk)"
                 )
 
             return retrospective_report

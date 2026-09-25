@@ -251,6 +251,9 @@ def _print_dispatch_result(args: argparse.Namespace, result: DispatchResult) -> 
             "summary": result.summary,
             "report": result.to_markdown(),
             "timing": getattr(result, "timing", None),
+            # V4.5.20 (F4): deterministic review bundles (only present in
+            # --mode review with a changeset; None otherwise).
+            "review_bundles": result.details.get("review_bundles"),
         }
         print(json.dumps(output, ensure_ascii=False, indent=2))
     elif args.format == "compact":
@@ -341,6 +344,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
                 roles=args.roles,
                 mode=args.mode,
                 dry_run=args.dry_run,
+                changeset=getattr(args, "changeset", None),
             )
             return _print_host_result(args, host_result)
         elif _resolve_use_async(args):
@@ -353,6 +357,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
                     roles=args.roles,
                     mode=args.mode,
                     dry_run=args.dry_run,
+                    changeset=getattr(args, "changeset", None),
                 )
             )
         else:
@@ -361,6 +366,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
                 roles=args.roles,
                 mode=args.mode,
                 dry_run=args.dry_run,
+                changeset=getattr(args, "changeset", None),
             )
 
         _print_dispatch_result(args, result)

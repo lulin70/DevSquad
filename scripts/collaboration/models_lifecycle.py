@@ -27,6 +27,9 @@ class ExecutionPlan:
         batches: List of TaskBatch objects (parallel/sequential groups)
         total_tasks: Total number of tasks across all batches
         estimated_parallelism: Estimated parallelism level 0.0-1.0
+        review_bundles: V4.5.20 — File bundles produced by review mode
+            (``Coordinator.plan_review_bundles``). ``None`` for every other
+            dispatch mode (backward compatible).
 
     Example:
         >>> plan = ExecutionPlan(
@@ -35,10 +38,12 @@ class ExecutionPlan:
         ...     estimated_parallelism=1.0,
         ... )
     """
+
     plan_id: str = field(default_factory=lambda: f"plan-{uuid.uuid4().hex[:8]}")
     batches: list[Any] = field(default_factory=list)
     total_tasks: int = 0
     estimated_parallelism: float = 0.0
+    review_bundles: list[list[str]] | None = None
 
 
 class BatchMode(Enum):
@@ -50,6 +55,7 @@ class BatchMode(Enum):
         PARALLEL: Execute all tasks concurrently (up to max_concurrency)
         SERIAL: Execute tasks one-by-one in order with retry support
     """
+
     PARALLEL = "parallel"
     SERIAL = "serial"
 
@@ -76,6 +82,7 @@ class TaskBatch:
         ...     max_concurrency=3,
         ... )
     """
+
     batch_id: str = field(default_factory=lambda: f"batch-{uuid.uuid4().hex[:8]}")
     mode: BatchMode = BatchMode.PARALLEL
     tasks: list[TaskDefinition] = field(default_factory=list)
@@ -109,6 +116,7 @@ class ScheduleResult:
         ...     duration_seconds=5.2,
         ... )
     """
+
     success: bool = False
     total_tasks: int = 0
     completed_tasks: int = 0
@@ -134,6 +142,7 @@ class GoalItemStatus(Enum):
         FULLY_COVERED: Goal item completely satisfied
         EXCEEDED: Goal exceeded expectations
     """
+
     PENDING = "pending"
     PARTIALLY_COVERED = "partially_covered"
     FULLY_COVERED = "fully_covered"
@@ -152,6 +161,7 @@ class AnchorTrigger(Enum):
         CONFLICT: When conflict is detected between Workers
         MILESTONE: At predefined milestone markers
     """
+
     STEP_COMPLETE = "step_complete"
     PHASE_GATE = "phase_gate"
     DIRECTION_CHANGE = "direction_change"
@@ -171,6 +181,7 @@ class DriftSeverity(Enum):
         HIGH: Significant drift, corrective action recommended
         CRITICAL: Severe drift, immediate intervention required
     """
+
     NONE = "none"
     LOW = "low"
     MEDIUM = "medium"
@@ -193,6 +204,7 @@ class GoalItem:
         coverage_score: Coverage level 0.0-1.0 (default: 0.0)
         evidence: List of evidence strings proving coverage (default: empty)
     """
+
     item_id: str
     description: str
     keywords: list[str] = field(default_factory=list)
@@ -218,6 +230,7 @@ class StructuredGoal:
         overall_coverage: Average coverage across all items (0.0-1.0)
         uncovered_items: List of items not yet fully covered
     """
+
     goal_id: str = ""
     original_description: str = ""
     items: list[GoalItem] = field(default_factory=list)
@@ -259,6 +272,7 @@ class DriftItem:
         severity: Severity level (default: LOW)
         reason: Explanation of why this is considered drift
     """
+
     content: str
     severity: DriftSeverity = DriftSeverity.LOW
     reason: str = ""
@@ -284,6 +298,7 @@ class AnchorResult:
     Properties:
         severity: Computed DriftSeverity based on drift_score threshold
     """
+
     aligned: bool = True
     trigger: AnchorTrigger = AnchorTrigger.STEP_COMPLETE
     coverage: float = 1.0
@@ -332,6 +347,7 @@ class DeviationRecord:
         impact: Assessment of the deviation's effect (default: empty)
         suggestion: Recommended corrective action (default: empty)
     """
+
     step_description: str
     deviation_type: str
     reason: str
@@ -362,6 +378,7 @@ class RetrospectiveReport:
         to_dict(): Convert report to dictionary for JSON serialization
         to_markdown(): Generate Markdown formatted report for display
     """
+
     task_goal: str = ""
     goal_id: str = ""
     deviations: list[DeviationRecord] = field(default_factory=list)

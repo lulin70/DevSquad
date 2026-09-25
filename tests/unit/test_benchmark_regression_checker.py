@@ -31,6 +31,7 @@ from scripts.collaboration.benchmark_regression_checker import (  # noqa: E402
     BenchmarkSnapshot,
     lifecycle_gate_check,
 )
+from tests.conftest import env_perf_factor, perf_ceiling_ms  # noqa: E402
 
 
 def _snapshot(version: str, metrics: list[BenchmarkMetric]) -> BenchmarkSnapshot:
@@ -171,14 +172,20 @@ class TestBenchmarkRegressionCheckerCompare(unittest.TestCase):
 
     def test_11_compare_multiple_metrics_one_regressed(self) -> None:
         """Integration: 2 metrics, 1 regressed 25%, 1 unchanged."""
-        baseline = _snapshot("4.2.9", [
-            BenchmarkMetric("dispatch_p95_ms", 100.0, "ms"),
-            BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
-        ])
-        current = _snapshot("4.3.0", [
-            BenchmarkMetric("dispatch_p95_ms", 125.0, "ms"),
-            BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
-        ])
+        baseline = _snapshot(
+            "4.2.9",
+            [
+                BenchmarkMetric("dispatch_p95_ms", 100.0, "ms"),
+                BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
+            ],
+        )
+        current = _snapshot(
+            "4.3.0",
+            [
+                BenchmarkMetric("dispatch_p95_ms", 125.0, "ms"),
+                BenchmarkMetric("memory_peak_mb", 200.0, "MB"),
+            ],
+        )
         checker = BenchmarkRegressionChecker(threshold_percent=10.0)
         report = checker.compare(baseline, current)
         self.assertTrue(report.regression_detected)
@@ -195,18 +202,34 @@ class TestBenchmarkRegressionCheckerCompare(unittest.TestCase):
         self.assertAlmostEqual(report.regression_percent, 10.0)
 
     def test_18_compare_performance_1000_metrics(self) -> None:
-        """Performance: comparing 1000 metrics completes in < 100ms."""
+        """Performance: comparing 1000 metrics completes in < 100ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) using an
+        *operation-independent* reference-workload control. The factor is 1.0 on
+        the calibration host so the ceiling equals the original 100 ms budget
+        there. The control must not touch the code under test: a same-code-path
+        control (e.g. ``compare`` of 100 metrics) would inflate along with a
+        regression, grow the ceiling in lockstep, and the gate could no longer
+        fail. The gate keeps its intent: a ``compare`` that became super-linear in
+        metric count (e.g. an O(n^2) pairing) still fails.
+        """
         baseline_metrics = [BenchmarkMetric(f"metric_{i}", float(i), "x") for i in range(1000)]
-        current_metrics = [
-            BenchmarkMetric(f"metric_{i}", float(i) * 1.05, "x") for i in range(1000)
-        ]
+        current_metrics = [BenchmarkMetric(f"metric_{i}", float(i) * 1.05, "x") for i in range(1000)]
         baseline = _snapshot("4.2.9", baseline_metrics)
         current = _snapshot("4.3.0", current_metrics)
         checker = BenchmarkRegressionChecker(threshold_percent=10.0)
+        ceiling_ms = perf_ceiling_ms(100.0)
         start = time.perf_counter()
         report = checker.compare(baseline, current)
         elapsed_ms = (time.perf_counter() - start) * 1000.0
-        self.assertLess(elapsed_ms, 100.0)
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            (
+                f"compare(1000 metrics) too slow: {elapsed_ms:.3f}ms exceeds ceiling "
+                f"{ceiling_ms:.3f}ms (host factor {env_perf_factor():.2f}x)"
+            ),
+        )
         # All metrics regressed by 5%, which is below the 10% threshold.
         self.assertFalse(report.regression_detected)
 
@@ -216,12 +239,8 @@ class TestLifecycleGateCheck(unittest.TestCase):
 
     def test_12_lifecycle_gate_check_p11_normal(self) -> None:
         """Happy: phase=P11 with injected snapshots returns a report."""
-        baseline = BenchmarkSnapshot(
-            "4.2.9", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")]
-        )
-        current = BenchmarkSnapshot(
-            "4.3.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")]
-        )
+        baseline = BenchmarkSnapshot("4.2.9", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")])
+        current = BenchmarkSnapshot("4.3.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")])
         report = lifecycle_gate_check(
             phase="P11",
             baseline_version="4.2.9",
@@ -239,12 +258,8 @@ class TestLifecycleGateCheck(unittest.TestCase):
 
     def test_14_lifecycle_gate_check_injected_snapshots(self) -> None:
         """Config: injected snapshots are used; parameter versions win."""
-        baseline = BenchmarkSnapshot(
-            "4.0.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")]
-        )
-        current = BenchmarkSnapshot(
-            "4.5.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 130.0, "ms")]
-        )
+        baseline = BenchmarkSnapshot("4.0.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 100.0, "ms")])
+        current = BenchmarkSnapshot("4.5.0", 0.0, [BenchmarkMetric("dispatch_p95_ms", 130.0, "ms")])
         report = lifecycle_gate_check(
             phase="P11",
             baseline_version="4.2.9",

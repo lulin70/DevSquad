@@ -24,7 +24,6 @@ from scripts.collaboration.worker import Worker, WorkerFactory
 pytestmark = pytest.mark.unit
 
 
-
 class TestScratchpad:
     def setup_method(self):
         self.sp = Scratchpad()
@@ -487,6 +486,57 @@ class TestCoordinator:
         report = self.coord.generate_report()
         assert isinstance(report, str)
         assert len(report) > 0
+
+
+class TestReviewModeBundling:
+    """V4.5.20 (F4): Coordinator.plan_review_bundles — one bundle = one review task."""
+
+    def setup_method(self):
+        self.sp = Scratchpad()
+        self.coord = Coordinator(scratchpad=self.sp, enable_compression=False)
+        self.available_roles = [
+            {"role_id": "architect", "name": "Architect", "role_prompt": "You are an architect."},
+            {"role_id": "tester", "name": "Tester", "role_prompt": "You are a tester."},
+        ]
+
+    def test_plan_review_bundles_one_task_per_bundle(self):
+        changeset = [
+            "src/pkg_a/model_0.py",
+            "src/pkg_a/model_1.py",
+            "src/pkg_a/model_2.py",
+            "src/pkg_b/model_0.py",
+            "src/pkg_b/model_1.py",
+            "src/pkg_c/model_0.py",
+        ]
+        plan = self.coord.plan_review_bundles(
+            task_description="Review this changeset",
+            available_roles=self.available_roles,
+            changeset=changeset,
+        )
+        assert plan.review_bundles is not None
+        assert len(plan.review_bundles) >= 2, f"Expected >=2 bundles: {plan.review_bundles}"
+        # One bundle → one task; total_tasks must track the bundle count.
+        assert plan.total_tasks == len(plan.review_bundles)
+        assert sum(len(b) for b in plan.review_bundles) == len(changeset)
+        # Every task description carries only its own bundle's files.
+        for task, bundle in zip(plan.batches[0].tasks, plan.review_bundles, strict=True):
+            for path in bundle:
+                assert path in task.description
+
+    def test_plan_review_bundles_keeps_small_changeset_as_single_bundle(self):
+        changeset = ["src/a.py", "src/b.py", "src/c.py", "src/d.py", "src/e.py"]
+        plan = self.coord.plan_review_bundles(
+            task_description="Review this changeset",
+            available_roles=self.available_roles,
+            changeset=changeset,
+        )
+        # The >5-file threshold is owned by apply_file_bundling; not duplicated here.
+        assert plan.review_bundles == [changeset]
+        assert plan.total_tasks == 1
+
+    def test_apply_file_bundling_guard_still_rejects_non_review_mode(self):
+        changeset = [f"src/file_{i}.py" for i in range(8)]
+        assert self.coord.apply_file_bundling("auto", changeset) == [changeset]
 
 
 class TestInputValidatorIntegration:

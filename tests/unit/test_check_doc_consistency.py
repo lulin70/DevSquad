@@ -47,6 +47,7 @@ class TestCheckDocConsistency(unittest.TestCase):
     def tearDown(self) -> None:
         cdc_module.DOC_FILES = self._original_doc_files
         import shutil
+
         shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def _write_doc(self, name: str, content: str) -> str:

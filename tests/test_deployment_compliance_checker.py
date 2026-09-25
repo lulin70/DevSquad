@@ -245,9 +245,7 @@ class TestSecurity:
             target_env={
                 "edition": "pro",
                 "host": "47.116.219.15",
-                "nginx_default_server": (
-                    "server { proxy_pass http://promiselink-basic:8000; }"
-                ),
+                "nginx_default_server": ("server { proxy_pass http://promiselink-basic:8000; }"),
             },
         )
         assert report.compliant is False
@@ -266,8 +264,7 @@ class TestSecurity:
         )
         assert report.compliant is True  # WARNING only
         assert any(
-            v.rule_id == "NGINX_DEFAULT_SERVER_OFFICIAL_SITE"
-            and v.severity == ViolationSeverity.WARNING
+            v.rule_id == "NGINX_DEFAULT_SERVER_OFFICIAL_SITE" and v.severity == ViolationSeverity.WARNING
             for v in report.violations
         )
 

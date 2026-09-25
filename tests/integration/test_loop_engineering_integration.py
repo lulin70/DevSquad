@@ -193,21 +193,18 @@ class T1_LoopKernelCheckpointIntegration(unittest.TestCase):
 
         cycle = report.cycles[0]
         cp = _make_checkpoint_from_cycle(cycle)
-        self.assertTrue(self.manager.save_checkpoint(cp),
-                        "save_checkpoint must succeed for cycle-derived checkpoint")
+        self.assertTrue(self.manager.save_checkpoint(cp), "save_checkpoint must succeed for cycle-derived checkpoint")
         loaded = self.manager.load_checkpoint(cp.checkpoint_id)
         self.assertIsNotNone(loaded, "load_checkpoint must return the saved checkpoint")
         self.assertEqual(loaded.task_id, cp.task_id)
-        self.assertEqual(loaded.context_snapshot["verification_passed"],
-                         cycle.verification_passed)
+        self.assertEqual(loaded.context_snapshot["verification_passed"], cycle.verification_passed)
 
     def test_02_completing_loop_final_cycle_carries_done_flag(self) -> None:
         """Verify: completing loop's final cycle discovery has done=True, persisted in checkpoint."""
         kernel = self._make_kernel()
         report = kernel.run("Build feature Y")
         final_cycle = report.cycles[-1]
-        self.assertTrue(final_cycle.discovery.get("done"),
-                        "Final cycle discovery must carry done=True")
+        self.assertTrue(final_cycle.discovery.get("done"), "Final cycle discovery must carry done=True")
 
         cp = _make_checkpoint_from_cycle(final_cycle, task_id="final-task")
         cp.context_snapshot["done"] = final_cycle.discovery.get("done")
@@ -229,8 +226,7 @@ class T1_LoopKernelCheckpointIntegration(unittest.TestCase):
             saved_ids.append(cp.checkpoint_id)
 
         listed = self.manager.list_checkpoints(task_id="multi-task")
-        self.assertEqual(len(listed), len(saved_ids),
-                         "list_checkpoints must return one entry per saved checkpoint")
+        self.assertEqual(len(listed), len(saved_ids), "list_checkpoints must return one entry per saved checkpoint")
         listed_ids = {cp.checkpoint_id for cp in listed}
         self.assertEqual(listed_ids, set(saved_ids))
 
@@ -270,8 +266,11 @@ class T1_LoopKernelCheckpointIntegration(unittest.TestCase):
 
         latest = self.manager.get_latest_checkpoint("latest-task")
         self.assertIsNotNone(latest)
-        self.assertEqual(latest.checkpoint_id, last_cp.checkpoint_id,
-                         "get_latest_checkpoint must return the most recently saved checkpoint")
+        self.assertEqual(
+            latest.checkpoint_id,
+            last_cp.checkpoint_id,
+            "get_latest_checkpoint must return the most recently saved checkpoint",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -309,8 +308,7 @@ class T2_HandoffDocumentIntegration(unittest.TestCase):
         self.assertIn("status", cycle.handoff)
 
         doc = _make_handoff_from_cycle(cycle, task_id="handoff-task")
-        self.assertTrue(self.manager.save_handoff(doc),
-                        "save_handoff must succeed for cycle-derived handoff")
+        self.assertTrue(self.manager.save_handoff(doc), "save_handoff must succeed for cycle-derived handoff")
         loaded = self.manager.load_handoff(doc.handoff_id)
         self.assertIsNotNone(loaded)
         self.assertEqual(loaded.task_id, "handoff-task")
@@ -339,8 +337,9 @@ class T2_HandoffDocumentIntegration(unittest.TestCase):
             saved_ids.append(doc.handoff_id)
 
         handoffs = self.manager.get_task_handoffs("list-task")
-        self.assertEqual(len(handoffs), len(saved_ids),
-                         "get_task_handoffs must return every saved handoff for the task")
+        self.assertEqual(
+            len(handoffs), len(saved_ids), "get_task_handoffs must return every saved handoff for the task"
+        )
         returned_ids = {h.handoff_id for h in handoffs}
         self.assertEqual(returned_ids, set(saved_ids))
 
@@ -470,18 +469,27 @@ class T4_LifecycleStatePersistenceIntegration(unittest.TestCase):
     def test_02_list_lifecycle_states_multiple_tasks(self) -> None:
         """Verify: list_lifecycle_states returns all saved tasks, sorted by saved_at descending."""
         self.manager.save_lifecycle_state(
-            task_id="task-a", current_phase="P1", phase_states={"P1": "running"},
-            completed_phases=[], mode="shortcut",
+            task_id="task-a",
+            current_phase="P1",
+            phase_states={"P1": "running"},
+            completed_phases=[],
+            mode="shortcut",
         )
         time.sleep(0.02)
         self.manager.save_lifecycle_state(
-            task_id="task-b", current_phase="P2", phase_states={"P2": "running"},
-            completed_phases=["P1"], mode="full",
+            task_id="task-b",
+            current_phase="P2",
+            phase_states={"P2": "running"},
+            completed_phases=["P1"],
+            mode="full",
         )
         time.sleep(0.02)
         self.manager.save_lifecycle_state(
-            task_id="task-c", current_phase="P3", phase_states={"P3": "running"},
-            completed_phases=["P1", "P2"], mode="shortcut",
+            task_id="task-c",
+            current_phase="P3",
+            phase_states={"P3": "running"},
+            completed_phases=["P1", "P2"],
+            mode="shortcut",
         )
 
         states = self.manager.list_lifecycle_states()
@@ -496,13 +504,15 @@ class T4_LifecycleStatePersistenceIntegration(unittest.TestCase):
     def test_03_delete_lifecycle_state(self) -> None:
         """Verify: delete_lifecycle_state removes state; subsequent load returns None."""
         self.manager.save_lifecycle_state(
-            task_id="task-del", current_phase="P1", phase_states={"P1": "running"},
-            completed_phases=[], mode="shortcut",
+            task_id="task-del",
+            current_phase="P1",
+            phase_states={"P1": "running"},
+            completed_phases=[],
+            mode="shortcut",
         )
         self.assertIsNotNone(self.manager.load_lifecycle_state("task-del"))
         self.assertTrue(self.manager.delete_lifecycle_state("task-del"))
-        self.assertIsNone(self.manager.load_lifecycle_state("task-del"),
-                          "After delete, load must return None")
+        self.assertIsNone(self.manager.load_lifecycle_state("task-del"), "After delete, load must return None")
         # Deleting again returns False (already gone)
         self.assertFalse(self.manager.delete_lifecycle_state("task-del"))
 
@@ -511,10 +521,13 @@ class T4_LifecycleStatePersistenceIntegration(unittest.TestCase):
         gate_results = {"P1": {"passed": True, "verdict": "APPROVE"}}
         metadata = {"adapter_type": "full", "execution_order": ["P1", "P2", "P3"]}
         self.manager.save_lifecycle_state(
-            task_id="task-meta", current_phase="P2",
+            task_id="task-meta",
+            current_phase="P2",
             phase_states={"P1": "completed", "P2": "running"},
-            completed_phases=["P1"], mode="full",
-            gate_results=gate_results, metadata=metadata,
+            completed_phases=["P1"],
+            mode="full",
+            gate_results=gate_results,
+            metadata=metadata,
         )
         loaded = self.manager.load_lifecycle_state("task-meta")
         self.assertIsNotNone(loaded)
@@ -564,8 +577,9 @@ class T5_AutoCleanupIntegration(unittest.TestCase):
         removed = self.manager.cleanup_expired_checkpoints(max_age_hours=24)
         self.assertEqual(removed, 1, "Exactly one old checkpoint should be removed")
         self.assertIsNone(self.manager.load_checkpoint(old_cp.checkpoint_id))
-        self.assertIsNotNone(self.manager.load_checkpoint(recent_cp.checkpoint_id),
-                             "Recent checkpoint must survive cleanup")
+        self.assertIsNotNone(
+            self.manager.load_checkpoint(recent_cp.checkpoint_id), "Recent checkpoint must survive cleanup"
+        )
 
     def test_02_cleanup_keeps_recent_checkpoints(self) -> None:
         """Verify: checkpoints newer than max_age_hours are retained."""
@@ -609,8 +623,10 @@ class T6_ShortcutLifecycleAdapterIntegration(unittest.TestCase):
 
     def _make_adapter(self, task_id: str) -> ShortcutLifecycleAdapter:
         adapter = ShortcutLifecycleAdapter(use_unified_gate=False)
-        self.assertTrue(adapter.enable_checkpoint_integration(storage_path=self._work_dir),
-                        "enable_checkpoint_integration must succeed with a valid path")
+        self.assertTrue(
+            adapter.enable_checkpoint_integration(storage_path=self._work_dir),
+            "enable_checkpoint_integration must succeed with a valid path",
+        )
         adapter.set_task_id(task_id)
         return adapter
 
@@ -643,8 +659,9 @@ class T6_ShortcutLifecycleAdapterIntegration(unittest.TestCase):
         # New adapter instance representing a fresh session
         adapter2 = self._make_adapter("task-advance")
         self.assertTrue(adapter2.restore_state(), "restore_state must succeed on fresh adapter")
-        self.assertEqual(adapter2.get_status().current_phase, target,
-                         "Restored adapter must have the same current_phase")
+        self.assertEqual(
+            adapter2.get_status().current_phase, target, "Restored adapter must have the same current_phase"
+        )
 
     def test_03_complete_phase_persisted_across_sessions(self) -> None:
         """Verify: complete_phase → save → restore → completed_phases preserved."""
@@ -657,8 +674,9 @@ class T6_ShortcutLifecycleAdapterIntegration(unittest.TestCase):
 
         adapter2 = self._make_adapter("task-complete")
         self.assertTrue(adapter2.restore_state())
-        self.assertIn(target, adapter2.get_status().completed_phases,
-                      "Completed phase must survive save/restore across sessions")
+        self.assertIn(
+            target, adapter2.get_status().completed_phases, "Completed phase must survive save/restore across sessions"
+        )
 
     def test_04_create_checkpoint_from_lifecycle_protocol(self) -> None:
         """Verify: create_checkpoint_from_lifecycle bridges protocol state → Checkpoint."""
@@ -671,8 +689,7 @@ class T6_ShortcutLifecycleAdapterIntegration(unittest.TestCase):
         cp = manager.create_checkpoint_from_lifecycle("task-bridge", protocol=adapter)
         self.assertIsNotNone(cp, "create_checkpoint_from_lifecycle must produce a Checkpoint")
         self.assertEqual(cp.task_id, "task-bridge")
-        self.assertIn(target, cp.completed_steps,
-                      "Completed phase must appear in checkpoint.completed_steps")
+        self.assertIn(target, cp.completed_steps, "Completed phase must appear in checkpoint.completed_steps")
         # Checkpoint is persisted — load it back
         loaded = manager.load_checkpoint(cp.checkpoint_id)
         self.assertIsNotNone(loaded, "Lifecycle-derived checkpoint must persist and load")
@@ -730,7 +747,8 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
         failing_dispatcher.dispatch.side_effect = RuntimeError("external service down")
         adapter = HandoffAdapter(dispatcher=failing_dispatcher)
         result = adapter.dispatch(
-            {"tasks": ["implement"], "focus": "do work", "iter_index": 0}, 0,
+            {"tasks": ["implement"], "focus": "do work", "iter_index": 0},
+            0,
         )
         self.assertEqual(result["status"], "error")
         self.assertIn("external service down", result["error"])
@@ -759,10 +777,12 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
         """Verify: checkpoint IDs with path traversal separators are rejected (load returns None)."""
         # load_checkpoint catches the ValueError from _validate_id and returns
         # None gracefully — callers never see path-traversal files leak through.
-        self.assertIsNone(self.manager.load_checkpoint("../etc/passwd"),
-                          "Path-traversal ID must be rejected (load returns None)")
-        self.assertIsNone(self.manager.load_checkpoint("sub/dir"),
-                          "Slash-containing ID must be rejected (load returns None)")
+        self.assertIsNone(
+            self.manager.load_checkpoint("../etc/passwd"), "Path-traversal ID must be rejected (load returns None)"
+        )
+        self.assertIsNone(
+            self.manager.load_checkpoint("sub/dir"), "Slash-containing ID must be rejected (load returns None)"
+        )
         # The internal validator raises ValueError directly (defence in depth)
         with self.assertRaises(ValueError):
             self.manager._validate_id("../etc/passwd")
@@ -781,12 +801,9 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
         self.assertTrue(self.manager.save_handoff(doc))
         md_path = self.manager.handoffs_dir / f"{doc.handoff_id}.md"
         md_content = md_path.read_text(encoding="utf-8")
-        self.assertNotIn("sk-secret-key-12345", md_content,
-                         "API key must be redacted from handoff Markdown")
-        self.assertNotIn("admin@example.com", md_content,
-                         "Email must be masked in handoff Markdown")
-        self.assertNotIn("hunter2", md_content,
-                         "Password must be redacted from handoff Markdown")
+        self.assertNotIn("sk-secret-key-12345", md_content, "API key must be redacted from handoff Markdown")
+        self.assertNotIn("admin@example.com", md_content, "Email must be masked in handoff Markdown")
+        self.assertNotIn("hunter2", md_content, "Password must be redacted from handoff Markdown")
 
 
 if __name__ == "__main__":

@@ -66,10 +66,10 @@ class SeverityLevel(Enum):
     """Finding severity levels (ordered from most to least severe)."""
 
     CRITICAL = "critical"  # Must fix immediately, blocks progression
-    HIGH = "high"          # Should fix before merge, auto-fix triggered
-    MEDIUM = "medium"      # Should fix, tracked but non-blocking
-    LOW = "low"            # Nice to fix, informational
-    INFO = "info"          # Informational only
+    HIGH = "high"  # Should fix before merge, auto-fix triggered
+    MEDIUM = "medium"  # Should fix, tracked but non-blocking
+    LOW = "low"  # Nice to fix, informational
+    INFO = "info"  # Informational only
 
     @classmethod
     def from_string(cls, value: str) -> SeverityLevel:
@@ -396,11 +396,7 @@ class SeverityRouter:
 
             if severity == SeverityLevel.CRITICAL:
                 blocked = True
-            elif (
-                severity == SeverityLevel.HIGH
-                and action.auto_fixable
-                and self.development_mode
-            ):
+            elif severity == SeverityLevel.HIGH and action.auto_fixable and self.development_mode:
                 # Attempt auto-fix immediately (single round)
                 fixed = self._trigger_auto_fix(action, context)
                 if fixed:
@@ -483,9 +479,7 @@ class SeverityRouter:
         severity = SeverityRouter._classify_severity(finding)
         return severity in (SeverityLevel.CRITICAL, SeverityLevel.HIGH)
 
-    def _is_auto_fixable(
-        self, finding: ReviewFinding, severity: SeverityLevel
-    ) -> bool:
+    def _is_auto_fixable(self, finding: ReviewFinding, severity: SeverityLevel) -> bool:
         """Determine if a finding is auto-fixable.
 
         Only HIGH-severity findings with known auto-fixable categories
@@ -501,9 +495,7 @@ class SeverityRouter:
     # Auto-fix
     # ------------------------------------------------------------------
 
-    def _trigger_auto_fix(
-        self, action: FixAction, context: dict[str, Any]
-    ) -> bool:
+    def _trigger_auto_fix(self, action: FixAction, context: dict[str, Any]) -> bool:
         """Trigger a fix for the given action.
 
         When an ``auto_fix_callable`` is configured, it is invoked.
@@ -603,34 +595,28 @@ class SeverityRouter:
         # If nothing blocking, we're done.
         blocking = [a for a in result.actions if a.is_blocking()]
         if not blocking:
-            result.summary = self._build_summary(
-                result.actions, result.blocked, False, 0
-            )
+            result.summary = self._build_summary(result.actions, result.blocked, False, 0)
             return result
 
         # CRITICAL findings always block — no auto-fix loop for them.
         critical = [a for a in blocking if a.severity == SeverityLevel.CRITICAL]
         if critical:
             result.blocked = True
-            result.summary = self._build_summary(
-                result.actions, True, False, 0
-            )
+            result.summary = self._build_summary(result.actions, True, False, 0)
             return result
 
         # Production mode: do not auto-fix
         if not self.development_mode:
-            result.summary = self._build_summary(
-                result.actions, False, False, 0
-            ) + "\n(production mode — auto-fix skipped)"
+            result.summary = (
+                self._build_summary(result.actions, False, False, 0) + "\n(production mode — auto-fix skipped)"
+            )
             return result
 
         # Auto-fix loop for HIGH-severity findings
         round_num = 0
         while round_num < effective_max:
             round_num += 1
-            current_blocking = [
-                a for a in result.actions if a.is_blocking() and not a.fix_applied
-            ]
+            current_blocking = [a for a in result.actions if a.is_blocking() and not a.fix_applied]
             if not current_blocking:
                 break
 
@@ -641,9 +627,7 @@ class SeverityRouter:
                 len(current_blocking),
             )
 
-            early_result = self._run_fix_round(
-                result, current_blocking, fix_callable, context, round_num
-            )
+            early_result = self._run_fix_round(result, current_blocking, fix_callable, context, round_num)
             if early_result is not None:
                 return early_result
 
@@ -673,9 +657,7 @@ class SeverityRouter:
         failure, or None to continue the loop.
         """
         if fix_callable is not None:
-            return self._apply_legacy_fix_callable(
-                result, current_blocking, fix_callable, round_num
-            )
+            return self._apply_legacy_fix_callable(result, current_blocking, fix_callable, round_num)
         # New signature: trigger auto-fix per action
         for action in current_blocking:
             if action.auto_fixable:
@@ -694,9 +676,7 @@ class SeverityRouter:
         """Legacy signature: fix_callable takes a list and returns the list of remaining (unfixed) actions."""
         try:
             remaining = fix_callable(list(current_blocking))
-            remaining_ids = {
-                getattr(a, "finding_id", id(a)) for a in (remaining or [])
-            }
+            remaining_ids = {getattr(a, "finding_id", id(a)) for a in (remaining or [])}
             for action in current_blocking:
                 if action.finding_id not in remaining_ids:
                     action.fix_applied = True
@@ -705,9 +685,7 @@ class SeverityRouter:
         except (RuntimeError, ValueError, AttributeError, OSError) as exc:
             logger.warning("SeverityRouter: fix_callable failed: %s", exc)
             result.fix_round = round_num
-            result.summary = self._build_summary(
-                result.actions, result.blocked, True, round_num
-            )
+            result.summary = self._build_summary(result.actions, result.blocked, True, round_num)
             return result
 
     def _run_ci_check(
@@ -729,13 +707,9 @@ class SeverityRouter:
             logger.warning("SeverityRouter: CI check failed: %s", exc)
             ci_passed = False
         if not ci_passed:
-            logger.warning(
-                "SeverityRouter: CI check failed after round %d", round_num
-            )
+            logger.warning("SeverityRouter: CI check failed after round %d", round_num)
             result.fix_round = round_num
-            result.summary = self._build_summary(
-                result.actions, result.blocked, True, round_num
-            )
+            result.summary = self._build_summary(result.actions, result.blocked, True, round_num)
             return result
         return None
 

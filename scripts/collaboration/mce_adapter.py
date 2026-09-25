@@ -242,7 +242,16 @@ class MCEAdapter:
                 self._status.classify_count += 1
                 return result
 
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except (
+                ConnectionError,
+                TimeoutError,
+                OSError,
+                ValueError,
+                KeyError,
+                TypeError,
+                AttributeError,
+                RuntimeError,
+            ) as e:
                 logger.debug("MCE classify failed: %s", e)
                 self._status.classify_fail_count += 1
                 return None
@@ -279,7 +288,16 @@ class MCEAdapter:
                     return False
                 result = self._carrymem.classify_and_remember(message, context=context)
                 return result.get("stored", False)
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except (
+                ConnectionError,
+                TimeoutError,
+                OSError,
+                ValueError,
+                KeyError,
+                TypeError,
+                AttributeError,
+                RuntimeError,
+            ) as e:
                 logger.debug("MCE store_memory failed: %s", e)
                 return False
 
@@ -311,7 +329,16 @@ class MCEAdapter:
                     limit=limit,
                 )
                 return results if isinstance(results, list) else []
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except (
+                ConnectionError,
+                TimeoutError,
+                OSError,
+                ValueError,
+                KeyError,
+                TypeError,
+                AttributeError,
+                RuntimeError,
+            ) as e:
                 logger.debug("MCE retrieve_memories failed: %s", e)
                 return []
 
@@ -420,7 +447,16 @@ class MCEAdapter:
                 if isinstance(result, list):
                     return self._normalize_matched_rules(result)
                 return []
-            except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+            except (
+                ConnectionError,
+                TimeoutError,
+                OSError,
+                ValueError,
+                KeyError,
+                TypeError,
+                AttributeError,
+                RuntimeError,
+            ) as e:
                 logger.warning("CarryMem match_rules failed: %s", e)
                 return self._keyword_fallback_match(task_description, safe_user_id, role, max_rules)
 
@@ -472,7 +508,16 @@ class MCEAdapter:
                             rule_type=rule_type,
                             confidence=confidence,
                         )
-                except (ConnectionError, TimeoutError, OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as e:
+                except (
+                    ConnectionError,
+                    TimeoutError,
+                    OSError,
+                    ValueError,
+                    KeyError,
+                    TypeError,
+                    AttributeError,
+                    RuntimeError,
+                ) as e:
                     logger.warning("CarryMem add_rule failed: %s", e)
 
         logger.info("CarryMem add_rule unavailable, storing locally")

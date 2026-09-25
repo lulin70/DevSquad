@@ -214,18 +214,14 @@ class TestMCPCheckPermission:
     def test_none_role_in_context_denied(self):
         """User context with no role → DENY."""
         server = DevSquadMCPServer()
-        result = server._check_mcp_permission(
-            "multiagent_status", {"user_id": "u1"}
-        )
+        result = server._check_mcp_permission("multiagent_status", {"user_id": "u1"})
         assert result.allowed is False
         assert "role" in result.reason.lower()
 
     def test_unknown_role_denied(self):
         """Unknown role string → DENY (fail-closed)."""
         server = DevSquadMCPServer()
-        result = server._check_mcp_permission(
-            "multiagent_status", {"role": "superuser", "user_id": "u1"}
-        )
+        result = server._check_mcp_permission("multiagent_status", {"role": "superuser", "user_id": "u1"})
         assert result.allowed is False
         assert "unknown role" in result.reason.lower()
 
@@ -342,9 +338,7 @@ class TestMCPRBACIntegration:
         """Dispatch tool with fail-closed RBAC → denied by RBAC."""
         # Admin passes MCP check, but fail-closed RBAC denies all.
         server = DevSquadMCPServer(rbac=DispatchRBAC(fail_closed=True))
-        result = server._enforce_tool_permission(
-            "multiagent_dispatch", roles=["architect"], mode="auto"
-        )
+        result = server._enforce_tool_permission("multiagent_dispatch", roles=["architect"], mode="auto")
         assert result is not None
         data = json.loads(result)
         assert data["denied"] is True
@@ -353,45 +347,31 @@ class TestMCPRBACIntegration:
         """Dispatch tool with open-mode RBAC → allowed."""
         # Default RBAC (no auth_manager) is open mode.
         server = DevSquadMCPServer()
-        result = server._enforce_tool_permission(
-            "multiagent_dispatch", roles=["architect"], mode="auto"
-        )
+        result = server._enforce_tool_permission("multiagent_dispatch", roles=["architect"], mode="auto")
         assert result is None
 
     def test_rbac_denies_operator_security_role(self, mcp_env_operator):
         """Operator passes MCP check (WRITE) but RBAC denies security role."""
         # AuthManager has an operator user who cannot dispatch security.
-        auth = MockAuthManager(
-            credentials={"op_user": {"role": "operator", "name": "Op"}}
-        )
+        auth = MockAuthManager(credentials={"op_user": {"role": "operator", "name": "Op"}})
         server = DevSquadMCPServer(auth_manager=auth)
-        result = server._enforce_tool_permission(
-            "multiagent_dispatch", roles=["security"], mode="auto"
-        )
+        result = server._enforce_tool_permission("multiagent_dispatch", roles=["security"], mode="auto")
         assert result is not None
         data = json.loads(result)
         assert data["denied"] is True
 
     def test_rbac_allows_operator_coder_role(self, mcp_env_operator):
         """Operator passes MCP check and RBAC allows coder + parallel."""
-        auth = MockAuthManager(
-            credentials={"op_user": {"role": "operator", "name": "Op"}}
-        )
+        auth = MockAuthManager(credentials={"op_user": {"role": "operator", "name": "Op"}})
         server = DevSquadMCPServer(auth_manager=auth)
-        result = server._enforce_tool_permission(
-            "multiagent_dispatch", roles=["coder"], mode="parallel"
-        )
+        result = server._enforce_tool_permission("multiagent_dispatch", roles=["coder"], mode="parallel")
         assert result is None
 
     def test_rbac_denies_operator_consensus_mode(self, mcp_env_operator):
         """Operator passes MCP check but RBAC denies consensus mode."""
-        auth = MockAuthManager(
-            credentials={"op_user": {"role": "operator", "name": "Op"}}
-        )
+        auth = MockAuthManager(credentials={"op_user": {"role": "operator", "name": "Op"}})
         server = DevSquadMCPServer(auth_manager=auth)
-        result = server._enforce_tool_permission(
-            "multiagent_dispatch", roles=["coder"], mode="consensus"
-        )
+        result = server._enforce_tool_permission("multiagent_dispatch", roles=["coder"], mode="consensus")
         assert result is not None
         data = json.loads(result)
         assert data["denied"] is True
@@ -408,9 +388,7 @@ class TestMCPRBACIntegration:
     def test_quick_dispatch_also_rbac_guarded(self, mcp_env_admin):
         """multiagent_quick is in _RBAC_GUARDED_TOOLS and triggers RBAC."""
         server = DevSquadMCPServer(rbac=DispatchRBAC(fail_closed=True))
-        result = server._enforce_tool_permission(
-            "multiagent_quick", roles=["architect"], mode="auto"
-        )
+        result = server._enforce_tool_permission("multiagent_quick", roles=["architect"], mode="auto")
         assert result is not None
         data = json.loads(result)
         assert data["denied"] is True
@@ -496,15 +474,11 @@ class TestAuditHMACChain:
         """Different HMAC keys produce different hashes for same payload."""
         monkeypatch.setenv("DEV_SQUAD_AUDIT_HMAC_KEY", "key-a")
         logger_a = DispatchAuditLogger()
-        hash_a = logger_a._compute_hash(
-            "dispatch_start", "u1", 1000.0, {"task": "x"}, GENESIS_HASH
-        )
+        hash_a = logger_a._compute_hash("dispatch_start", "u1", 1000.0, {"task": "x"}, GENESIS_HASH)
 
         monkeypatch.setenv("DEV_SQUAD_AUDIT_HMAC_KEY", "key-b")
         logger_b = DispatchAuditLogger()
-        hash_b = logger_b._compute_hash(
-            "dispatch_start", "u1", 1000.0, {"task": "x"}, GENESIS_HASH
-        )
+        hash_b = logger_b._compute_hash("dispatch_start", "u1", 1000.0, {"task": "x"}, GENESIS_HASH)
         assert hash_a != hash_b
 
     def test_verify_hmac_chain_with_explicit_entries(self, monkeypatch, clean_hmac_cache):
@@ -529,9 +503,7 @@ class TestAuditLegacyBackwardCompat:
         monkeypatch.setenv("DEV_SQUAD_AUDIT_HMAC_KEY", "hmac-key")
         logger = DispatchAuditLogger()
         # Manually create a legacy entry using plain SHA-256.
-        legacy_hash = logger._compute_legacy_hash(
-            "dispatch_start", "u1", 1000.0, {"task": "legacy"}, GENESIS_HASH
-        )
+        legacy_hash = logger._compute_legacy_hash("dispatch_start", "u1", 1000.0, {"task": "legacy"}, GENESIS_HASH)
         entry = AuditEntry(
             event_type="dispatch_start",
             user_id="u1",
@@ -549,9 +521,7 @@ class TestAuditLegacyBackwardCompat:
         """Legacy SHA-256 entry fails verify_hmac_chain (strict, no fallback)."""
         monkeypatch.setenv("DEV_SQUAD_AUDIT_HMAC_KEY", "hmac-key")
         logger = DispatchAuditLogger()
-        legacy_hash = logger._compute_legacy_hash(
-            "dispatch_start", "u1", 1000.0, {"task": "legacy"}, GENESIS_HASH
-        )
+        legacy_hash = logger._compute_legacy_hash("dispatch_start", "u1", 1000.0, {"task": "legacy"}, GENESIS_HASH)
         entry = AuditEntry(
             event_type="dispatch_start",
             user_id="u1",
@@ -569,9 +539,7 @@ class TestAuditLegacyBackwardCompat:
         monkeypatch.setenv("DEV_SQUAD_AUDIT_HMAC_KEY", "hmac-key")
         logger = DispatchAuditLogger()
         # Legacy first entry.
-        legacy_hash = logger._compute_legacy_hash(
-            "dispatch_start", "u1", 1000.0, {"task": "legacy"}, GENESIS_HASH
-        )
+        legacy_hash = logger._compute_legacy_hash("dispatch_start", "u1", 1000.0, {"task": "legacy"}, GENESIS_HASH)
         legacy_entry = AuditEntry(
             event_type="dispatch_start",
             user_id="u1",
@@ -596,8 +564,11 @@ class TestAuditLegacyBackwardCompat:
         entry = logger._entries[0]
         # Compute what the legacy hash would be.
         legacy = logger._compute_legacy_hash(
-            entry.event_type, entry.user_id, entry.timestamp,
-            entry.details, entry.prev_hash,
+            entry.event_type,
+            entry.user_id,
+            entry.timestamp,
+            entry.details,
+            entry.prev_hash,
         )
         # The stored hash should NOT match legacy (it should be HMAC).
         assert entry.entry_hash != legacy
@@ -665,12 +636,8 @@ class TestPermissionGuardFailClosed:
 
     def test_normal_check_unaffected_when_no_exception(self):
         """Normal check (no exception) works regardless of fail_closed."""
-        guard_closed = PermissionGuard(
-            current_level=PermissionLevel.BYPASS, fail_closed=True
-        )
-        guard_open = PermissionGuard(
-            current_level=PermissionLevel.BYPASS, fail_closed=False
-        )
+        guard_closed = PermissionGuard(current_level=PermissionLevel.BYPASS, fail_closed=True)
+        guard_open = PermissionGuard(current_level=PermissionLevel.BYPASS, fail_closed=False)
         action = ProposedAction(
             action_type=ActionType.FILE_READ,
             target="test.txt",
@@ -714,22 +681,16 @@ class TestPermissionGuardFailClosed:
             RuntimeError("runtime error"),
             OSError("os error"),
         ]:
-            with patch.object(
-                PermissionGuard, "_check_impl", side_effect=exc
-            ):
+            with patch.object(PermissionGuard, "_check_impl", side_effect=exc):
                 decision = guard.check(action)
-            assert decision.outcome == DecisionOutcome.DENIED, (
-                f"Should DENY for {type(exc).__name__}"
-            )
+            assert decision.outcome == DecisionOutcome.DENIED, f"Should DENY for {type(exc).__name__}"
 
     def test_fail_open_handles_various_exception_types(self):
         """fail-open allows on any exception type (insecure, debug only)."""
         guard = PermissionGuard(fail_closed=False)
         action = ProposedAction(target="test.txt")
         for exc in [ValueError("bad"), TypeError("bad"), KeyError("bad")]:
-            with patch.object(
-                PermissionGuard, "_check_impl", side_effect=exc
-            ):
+            with patch.object(PermissionGuard, "_check_impl", side_effect=exc):
                 decision = guard.check(action)
             assert decision.outcome == DecisionOutcome.ALLOWED
 
@@ -739,9 +700,7 @@ class TestPermissionGuardFailClosedIntegration:
 
     def test_bypass_mode_does_not_trigger_fail_closed(self):
         """BYPASS mode short-circuits before any exception-prone logic."""
-        guard = PermissionGuard(
-            current_level=PermissionLevel.BYPASS, fail_closed=True
-        )
+        guard = PermissionGuard(current_level=PermissionLevel.BYPASS, fail_closed=True)
         action = ProposedAction(
             action_type=ActionType.SHELL_EXECUTE,
             target="rm -rf /",
@@ -753,9 +712,7 @@ class TestPermissionGuardFailClosedIntegration:
 
     def test_plan_mode_denies_writes_without_exception(self):
         """PLAN mode denies writes through normal logic, not fail-closed."""
-        guard = PermissionGuard(
-            current_level=PermissionLevel.PLAN, fail_closed=True
-        )
+        guard = PermissionGuard(current_level=PermissionLevel.PLAN, fail_closed=True)
         action = ProposedAction(
             action_type=ActionType.FILE_DELETE,
             target="file.txt",

@@ -32,20 +32,68 @@ logger = logging.getLogger(__name__)
 # ============================================================
 
 WCAG_AA_CHECKS: list[dict[str, str]] = [
-    {"check": "1.1.1 Non-text Content", "category": "perceivable", "description": "All non-text content has text alternatives"},
-    {"check": "1.3.1 Info and Relationships", "category": "perceivable", "description": "Information conveyed through presentation is also available in text"},
-    {"check": "1.4.3 Contrast (Minimum)", "category": "perceivable", "description": "Text contrast ratio at least 4.5:1 for normal text"},
-    {"check": "1.4.11 Non-text Contrast", "category": "perceivable", "description": "UI components and graphical objects contrast ratio at least 3:1"},
+    {
+        "check": "1.1.1 Non-text Content",
+        "category": "perceivable",
+        "description": "All non-text content has text alternatives",
+    },
+    {
+        "check": "1.3.1 Info and Relationships",
+        "category": "perceivable",
+        "description": "Information conveyed through presentation is also available in text",
+    },
+    {
+        "check": "1.4.3 Contrast (Minimum)",
+        "category": "perceivable",
+        "description": "Text contrast ratio at least 4.5:1 for normal text",
+    },
+    {
+        "check": "1.4.11 Non-text Contrast",
+        "category": "perceivable",
+        "description": "UI components and graphical objects contrast ratio at least 3:1",
+    },
     {"check": "2.1.1 Keyboard", "category": "operable", "description": "All functionality available from keyboard"},
-    {"check": "2.4.3 Focus Order", "category": "operable", "description": "Focus order preserves meaning and operability"},
-    {"check": "2.4.6 Headings and Labels", "category": "operable", "description": "Headings and labels describe topic or purpose"},
+    {
+        "check": "2.4.3 Focus Order",
+        "category": "operable",
+        "description": "Focus order preserves meaning and operability",
+    },
+    {
+        "check": "2.4.6 Headings and Labels",
+        "category": "operable",
+        "description": "Headings and labels describe topic or purpose",
+    },
     {"check": "2.4.7 Focus Visible", "category": "operable", "description": "Keyboard focus indicator always visible"},
-    {"check": "3.1.1 Language of Page", "category": "understandable", "description": "Default human language of page determinable"},
-    {"check": "3.2.2 On Input", "category": "understandable", "description": "Changing input setting does not automatically change context"},
-    {"check": "3.3.1 Error Identification", "category": "understandable", "description": "Errors automatically detected and described in text"},
-    {"check": "3.3.2 Labels or Instructions", "category": "understandable", "description": "Labels provided when user input required"},
-    {"check": "4.1.2 Name Role Value", "category": "robust", "description": "Name and role determinable, states can be set programmatically"},
-    {"check": "4.1.3 Status Messages", "category": "robust", "description": "Status messages can be programmatically determined"},
+    {
+        "check": "3.1.1 Language of Page",
+        "category": "understandable",
+        "description": "Default human language of page determinable",
+    },
+    {
+        "check": "3.2.2 On Input",
+        "category": "understandable",
+        "description": "Changing input setting does not automatically change context",
+    },
+    {
+        "check": "3.3.1 Error Identification",
+        "category": "understandable",
+        "description": "Errors automatically detected and described in text",
+    },
+    {
+        "check": "3.3.2 Labels or Instructions",
+        "category": "understandable",
+        "description": "Labels provided when user input required",
+    },
+    {
+        "check": "4.1.2 Name Role Value",
+        "category": "robust",
+        "description": "Name and role determinable, states can be set programmatically",
+    },
+    {
+        "check": "4.1.3 Status Messages",
+        "category": "robust",
+        "description": "Status messages can be programmatically determined",
+    },
 ]
 
 
@@ -141,9 +189,7 @@ class UETestHeuristicMixin(UETestFrameworkBase):
             return self._assess_rule_based(interface_description)
 
     def _build_usability_prompt(self, description: str) -> str:
-        heuristic_list = "\n".join(
-            f"{i+1}. {h.name}: {h.description}" for i, h in enumerate(self._heuristics)
-        )
+        heuristic_list = "\n".join(f"{i + 1}. {h.name}: {h.description}" for i, h in enumerate(self._heuristics))
         return (
             f"Assess the following interface against Nielsen's 10 usability heuristics.\n"
             f"Interface description:\n{description}\n\n"
@@ -246,7 +292,12 @@ class UETestHeuristicMixin(UETestFrameworkBase):
             "recognition_rather_than_recall": ["visible", "icon", "menu", "dropdown", "suggestion", "autocomplete"],
             "flexibility_and_efficiency_of_use": ["shortcut", "keyboard", "macro", "template", "accelerator"],
             "aesthetic_and_minimalist_design": ["clean", "minimal", "simple", "focused", "uncluttered"],
-            "help_users_recognize_diagnose_and_recover_from_errors": ["error message", "helpful", "suggestion", "recovery"],
+            "help_users_recognize_diagnose_and_recover_from_errors": [
+                "error message",
+                "helpful",
+                "suggestion",
+                "recovery",
+            ],
             "help_and_documentation": ["help", "documentation", "tooltip", "guide", "tutorial", "search"],
         }
         return keyword_map.get(name, [])
@@ -263,7 +314,12 @@ class UETestHeuristicMixin(UETestFrameworkBase):
             "recognition_rather_than_recall": ["remember", "hidden", "memorize", "invisible", "not visible"],
             "flexibility_and_efficiency_of_use": ["no shortcut", "slow", "tedious", "repetitive", "manual"],
             "aesthetic_and_minimalist_design": ["cluttered", "overwhelming", "busy", "too much", "crowded"],
-            "help_users_recognize_diagnose_and_recover_from_errors": ["cryptic error", "error code", "unhelpful", "generic error"],
+            "help_users_recognize_diagnose_and_recover_from_errors": [
+                "cryptic error",
+                "error code",
+                "unhelpful",
+                "generic error",
+            ],
             "help_and_documentation": ["no help", "no documentation", "no tooltip", "no guide"],
         }
         return keyword_map.get(name, [])

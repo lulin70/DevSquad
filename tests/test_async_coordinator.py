@@ -478,9 +478,7 @@ class TestExecuteParallelAsync:
                 scratchpad=w.scratchpad,
                 llm_backend=MockBackend(),
             )
-            coord._async_workers[wid] = AsyncWorkerWrapper(
-                coord.workers[wid], timeout=coord.task_timeout
-            )
+            coord._async_workers[wid] = AsyncWorkerWrapper(coord.workers[wid], timeout=coord.task_timeout)
         results = await coord._execute_parallel_async(plan.batches[0])
         assert len(results) == 1
         assert results[0].success is False
@@ -571,9 +569,7 @@ class TestCompression:
         # Add some messages to buffer
         from scripts.collaboration.context_compressor import Message, MessageType
 
-        coord._message_buffer.append(
-            Message(role="user", content="hello", msg_type=MessageType.USER)
-        )
+        coord._message_buffer.append(Message(role="user", content="hello", msg_type=MessageType.USER))
         result = await coord.compress_context()
         # May or may not compress depending on threshold, but should not raise
         assert result is not None or result is None

@@ -105,8 +105,8 @@ class TestCreateBackendAuto:
         assert backend._backends[0].__class__.__name__ == "AnthropicBackend"
         assert isinstance(backend._backends[1], MockBackend)
 
-    def test_auto_with_both_keys_prefers_anthropic_then_openai_then_mock(self):
-        """Both keys -> order is Anthropic, OpenAI, Mock."""
+    def test_auto_with_both_keys_prefers_openai_then_anthropic_then_mock(self):
+        """Both keys -> order is OpenAI (DeepSeek), Anthropic, Mock (V4.5.20)."""
         patches = _patch_dotenv()
         with patch.dict(
             os.environ,
@@ -126,8 +126,8 @@ class TestCreateBackendAuto:
                     p.stop()
         assert isinstance(backend, FallbackBackend)
         assert len(backend._backends) == 3
-        assert backend._backends[0].__class__.__name__ == "AnthropicBackend"
-        assert backend._backends[1].__class__.__name__ == "OpenAIBackend"
+        assert backend._backends[0].__class__.__name__ == "OpenAIBackend"
+        assert backend._backends[1].__class__.__name__ == "AnthropicBackend"
         assert isinstance(backend._backends[2], MockBackend)
 
     def test_auto_reads_backend_from_env(self):

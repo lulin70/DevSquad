@@ -21,6 +21,7 @@ class BackendPath(str, Enum):
     A:  Direct API (OpenAI/Anthropic/MOKA, requires API key)
     C:  Honest Mock fallback (always available, always [MOCK MODE] marked)
     """
+
     B_HOST_BRIDGE = "B"
     A_DIRECT_API = "A"
     C_MOCK = "C"
@@ -65,6 +66,7 @@ FUSE_SKIP_AFTER_CONSECUTIVE = 2
 # === Error classification for fuse counting ===
 # Same reason → count toward fuse skip; different reason → reset count.
 # Why: consecutive "host_timeout" means B is permanently down, not transient.
+
 
 class BackendErrorReason:
     """Classify backend failure reason for fuse counting."""
@@ -150,6 +152,7 @@ def _try_extract_status_code(exc: Exception) -> int | None:
 
 # === Custom Exceptions for B/A/C paths ===
 
+
 class BackendUnavailable(Exception):
     """Raised when no backend path is available.
 
@@ -157,21 +160,25 @@ class BackendUnavailable(Exception):
     - User explicitly requested "host" but host is not available
     - All paths failed and we reached the end of B/A/C
     """
+
     pass
 
 
 class BackendTimeout(BackendUnavailable):
     """Raised when a backend request times out (only for B/A paths)."""
+
     pass
 
 
 class BackendAuthError(BackendUnavailable):
     """Raised when authentication fails (only for A paths)."""
+
     pass
 
 
 class BackendRateLimit(BackendUnavailable):
     """Raised when rate limit is hit (only for A paths)."""
+
     pass
 
 

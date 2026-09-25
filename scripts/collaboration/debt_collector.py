@@ -35,7 +35,11 @@ _MARKER_WEIGHT: dict[str, int] = {
 }
 # Critical module path substrings — debt in these files rots faster.
 _CRITICAL_PATHS: tuple[str, ...] = (
-    "security", "cache", "auth", "permission", "rbac",
+    "security",
+    "cache",
+    "auth",
+    "permission",
+    "rbac",
 )
 # File age thresholds (seconds). Older files rot faster.
 _OLD_AGE_SEC = 90 * 24 * 3600  # 90 days
@@ -100,9 +104,7 @@ class DebtCollector:
         """
         entries = scan_tech_debt(str(self._root))
         debts = [self.classify(e) for e in entries]
-        debts.sort(
-            key=lambda d: (_RANK.get(d.rot_risk, 3), d.entry.file_path)
-        )
+        debts.sort(key=lambda d: (_RANK.get(d.rot_risk, 3), d.entry.file_path))
         return debts
 
     def classify(self, entry: TechDebtEntry) -> ClassifiedDebt:
@@ -171,22 +173,16 @@ class DebtCollector:
         low = [d for d in debts if d.rot_risk == "LOW"]
         lines = [
             f"## Debt Collector Report (root: {self._root})",
-            f"- Total: {len(debts)} "
-            f"(HIGH: {len(high)}, MEDIUM: {len(med)}, LOW: {len(low)})",
+            f"- Total: {len(debts)} (HIGH: {len(high)}, MEDIUM: {len(med)}, LOW: {len(low)})",
             "",
         ]
-        for risk_name, group in (
-            ("HIGH", high), ("MEDIUM", med), ("LOW", low)
-        ):
+        for risk_name, group in (("HIGH", high), ("MEDIUM", med), ("LOW", low)):
             if not group:
                 continue
             lines.append(f"### {risk_name} ({len(group)})")
             for d in group:
                 e = d.entry
                 reason_str = "; ".join(d.reasons) if d.reasons else "n/a"
-                lines.append(
-                    f"- {e.file_path}:{e.line_number} [{e.marker}] "
-                    f"({reason_str}) — {e.content[:60]}"
-                )
+                lines.append(f"- {e.file_path}:{e.line_number} [{e.marker}] ({reason_str}) — {e.content[:60]}")
             lines.append("")
         return "\n".join(lines)

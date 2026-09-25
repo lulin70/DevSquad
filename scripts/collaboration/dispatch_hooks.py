@@ -38,7 +38,13 @@ _MIN_OUTPUT_LEN_FOR_DEP_SCAN = 50
 # This is a performance optimization; the checker itself handles pure prose
 # correctly (returns zero findings) but we avoid the call entirely.
 _CODE_MARKERS = (
-    "import ", "from ", "require(", "def ", "class ", "const ", "let ",
+    "import ",
+    "from ",
+    "require(",
+    "def ",
+    "class ",
+    "const ",
+    "let ",
 )
 
 
@@ -134,17 +140,21 @@ class DispatchHooks:
 
         step8_time = time.time()
 
-        return scratchpad_summary, anchor_result, collection, errors, {
-            "step8_time": step8_time,
-        }
+        return (
+            scratchpad_summary,
+            anchor_result,
+            collection,
+            errors,
+            {
+                "step8_time": step8_time,
+            },
+        )
 
     # ------------------------------------------------------------------
     # V4.3.0 P1-7: Dependency hallucination scan (post-worker hook)
     # ------------------------------------------------------------------
 
-    def scan_worker_outputs_for_hallucinated_deps(
-        self, worker_results: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def scan_worker_outputs_for_hallucinated_deps(self, worker_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Scan worker outputs for hallucinated dependencies (Slopsquatting).
 
         V4.3.0 P1-7 anti-ghost-feature contract:
@@ -194,9 +204,7 @@ class DispatchHooks:
             try:
                 result = security_scan_dependencies(output, ecosystem="auto")
             except (ValueError, RuntimeError) as e:
-                logger.warning(
-                    "Dependency scan failed for worker %s: %s", role_id, e
-                )
+                logger.warning("Dependency scan failed for worker %s: %s", role_id, e)
                 continue
 
             suspicious_count = result.stats.get("suspicious", 0)
@@ -225,8 +233,7 @@ class DispatchHooks:
                             content=(
                                 f"[Dependency Hallucination] worker={role_id} "
                                 f"suspicious={suspicious_count} "
-                                f"unknown={unknown_count}\n"
-                                + "\n".join(finding_lines)
+                                f"unknown={unknown_count}\n" + "\n".join(finding_lines)
                             ),
                             confidence=0.9,
                             tags=["dependency-hallucination", "v4.3.0", "p1-7"],
@@ -267,6 +274,7 @@ class DispatchHooks:
 
         # V4.1.1: Strip [DEBUG-xxx] tags from worker output
         from .execution_guard import ExecutionGuard
+
         for wr in worker_results:
             output = wr.get("output")
             if output:

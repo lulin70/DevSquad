@@ -3,6 +3,7 @@
 
 12 tests covering 6 intents × 3 languages lazy resolution.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -77,8 +78,10 @@ class TestIntentMapperRegistration:
     def test_register_workflow_override(self, mapper: IntentWorkflowMapper) -> None:
         """Custom workflow registration overrides default."""
         mapper.register_workflow(
-            intent="dev", lang="zh",
-            workflow_module="custom.dev_zh", workflow_class="CustomDevWorkflow",
+            intent="dev",
+            lang="zh",
+            workflow_module="custom.dev_zh",
+            workflow_class="CustomDevWorkflow",
         )
         wf = mapper.resolve("dev", "zh")
         assert wf.workflow_module == "custom.dev_zh"
@@ -91,15 +94,19 @@ class TestIntentMapperRegistration:
         """Path traversal in module name is rejected (Security)."""
         with pytest.raises(IntentError):
             mapper.register_workflow(
-                intent="dev", lang="zh",
-                workflow_module="..malicious.module", workflow_class="Evil",
+                intent="dev",
+                lang="zh",
+                workflow_module="..malicious.module",
+                workflow_class="Evil",
             )
 
     def test_register_workflow_rejects_invalid_intent(self, mapper: IntentWorkflowMapper) -> None:
         with pytest.raises(IntentError):
             mapper.register_workflow(
-                intent="nonexistent", lang="zh",
-                workflow_module="custom.x", workflow_class="X",
+                intent="nonexistent",
+                lang="zh",
+                workflow_module="custom.x",
+                workflow_class="X",
             )
 
 

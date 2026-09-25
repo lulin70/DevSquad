@@ -28,13 +28,15 @@ class UnifiedMemory:
         return list(self._cycles)
 
     def persist_cycle(self, cycle: CycleResult) -> None:
-        self._cycles.append({
-            "iter_index": cycle.iter_index,
-            "verification_passed": cycle.verification_passed,
-            "verification_errors": cycle.verification_errors,
-            "discovery": cycle.discovery,
-            "handoff": cycle.handoff,
-        })
+        self._cycles.append(
+            {
+                "iter_index": cycle.iter_index,
+                "verification_passed": cycle.verification_passed,
+                "verification_errors": cycle.verification_errors,
+                "discovery": cycle.discovery,
+                "handoff": cycle.handoff,
+            }
+        )
 
     def save_to_disk(self, objective: str) -> Path:
         filepath = self._storage_dir / f"loop_{hash(objective) % 100000}.json"

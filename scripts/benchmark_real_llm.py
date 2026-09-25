@@ -38,7 +38,9 @@ def create_backend() -> Any:
 
     api_key = os.environ.get("MOKA_API_KEY")
     if not api_key:
-        print("Error: MOKA_API_KEY not set. Configure .env and run: source .env && python scripts/benchmark_real_llm.py")
+        print(
+            "Error: MOKA_API_KEY not set. Configure .env and run: source .env && python scripts/benchmark_real_llm.py"
+        )
         sys.exit(1)
     return OpenAIBackend(
         api_key=api_key,

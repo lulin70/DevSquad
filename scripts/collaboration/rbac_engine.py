@@ -79,10 +79,10 @@ class UserRole(Enum):
     """
 
     SUPER_ADMIN = "super_admin"  # All permissions
-    ADMIN = "admin"              # Management + task permissions
-    OPERATOR = "operator"         # Task execution permissions
-    ANALYST = "analyst"           # Read-only + analysis permissions
-    VIEWER = "viewer"             # View-only permissions
+    ADMIN = "admin"  # Management + task permissions
+    OPERATOR = "operator"  # Task execution permissions
+    ANALYST = "analyst"  # Read-only + analysis permissions
+    VIEWER = "viewer"  # View-only permissions
 
 
 class PermissionDeniedError(Exception):
@@ -261,30 +261,34 @@ class RBACEngine:
         """
         self._role_permissions = {
             UserRole.SUPER_ADMIN: set(Permission),  # All permissions
-
             UserRole.ADMIN: {
                 # Task operations (all)
-                Permission.TASK_CREATE, Permission.TASK_READ,
-                Permission.TASK_UPDATE, Permission.TASK_DELETE,
+                Permission.TASK_CREATE,
+                Permission.TASK_READ,
+                Permission.TASK_UPDATE,
+                Permission.TASK_DELETE,
                 Permission.TASK_EXECUTE,
                 # User management (read + create/update, NO delete)
-                Permission.USER_CREATE, Permission.USER_READ,
+                Permission.USER_CREATE,
+                Permission.USER_READ,
                 Permission.USER_UPDATE,
                 # Configuration
-                Permission.CONFIG_READ, Permission.CONFIG_UPDATE,
+                Permission.CONFIG_READ,
+                Permission.CONFIG_UPDATE,
                 # Audit & export
-                Permission.AUDIT_READ, Permission.DATA_EXPORT,
+                Permission.AUDIT_READ,
+                Permission.DATA_EXPORT,
             },
-
             UserRole.OPERATOR: {
                 # Task operations (CRUD + execute)
-                Permission.TASK_CREATE, Permission.TASK_READ,
-                Permission.TASK_UPDATE, Permission.TASK_DELETE,
+                Permission.TASK_CREATE,
+                Permission.TASK_READ,
+                Permission.TASK_UPDATE,
+                Permission.TASK_DELETE,
                 Permission.TASK_EXECUTE,
                 # Read-only config
                 Permission.CONFIG_READ,
             },
-
             UserRole.ANALYST: {
                 # Read-only tasks
                 Permission.TASK_READ,
@@ -293,7 +297,6 @@ class RBACEngine:
                 # Audit access
                 Permission.AUDIT_READ,
             },
-
             UserRole.VIEWER: {
                 # Minimal read access
                 Permission.TASK_READ,
@@ -602,9 +605,7 @@ class RBACEngine:
             "prev_hash": self._prev_hash,
         }
 
-        record_hash = hashlib.sha256(
-            json.dumps(record_data, sort_keys=True).encode()
-        ).hexdigest()
+        record_hash = hashlib.sha256(json.dumps(record_data, sort_keys=True).encode()).hexdigest()
 
         record = AuditRecord(
             timestamp=timestamp,
@@ -653,17 +654,17 @@ class RBACEngine:
                     "prev_hash": prev_hash,
                 }
 
-                expected_hash = hashlib.sha256(
-                    json.dumps(record_data, sort_keys=True).encode()
-                ).hexdigest()
+                expected_hash = hashlib.sha256(json.dumps(record_data, sort_keys=True).encode()).hexdigest()
 
                 is_valid = expected_hash == record.hash_signature
-                results.append({
-                    "index": idx,
-                    "valid": is_valid,
-                    "expected": expected_hash,
-                    "actual": record.hash_signature,
-                })
+                results.append(
+                    {
+                        "index": idx,
+                        "valid": is_valid,
+                        "expected": expected_hash,
+                        "actual": record.hash_signature,
+                    }
+                )
 
                 if not is_valid and "first_violation" not in locals():
                     first_violation = idx
@@ -728,7 +729,5 @@ class RBACEngine:
             "plan": UserRole.VIEWER,
         }
         if level_name not in mapping:
-            raise ValueError(f"Unknown legacy level: '{level_name}'. "
-                           f"Valid values: {list(mapping.keys())}")
+            raise ValueError(f"Unknown legacy level: '{level_name}'. Valid values: {list(mapping.keys())}")
         return mapping[level_name]
-

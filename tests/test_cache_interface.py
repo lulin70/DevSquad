@@ -120,14 +120,11 @@ class TestPickleDeadCodeRemoved:
         )
         inner_src = inspect.getsource(Serializer._deserialize)
         assert "pickle.loads" not in inner_src, (
-            "Serializer._deserialize still contains pickle.loads — "
-            "P2-1 fallback removal incomplete."
+            "Serializer._deserialize still contains pickle.loads — P2-1 fallback removal incomplete."
         )
         # V4.3.0 P2-1: no pickle import anywhere in the module.
         module_src = inspect.getsource(cache_interface)
-        assert "import pickle" not in module_src, (
-            "Pickle import must be removed from cache_interface.py (P2-1)."
-        )
+        assert "import pickle" not in module_src, "Pickle import must be removed from cache_interface.py (P2-1)."
 
 
 # ---------------------------------------------------------------------------
@@ -232,19 +229,14 @@ class TestPickleFallbackRemoved:
         with caplog.at_level(logging.WARNING), pytest.raises(ValueError):
             Serializer._deserialize(payload)
 
-        assert not _RCE_MALICIOUS_TRIGGERED[0], (
-            "pickle.loads was invoked — RCE attack surface not closed."
-        )
+        assert not _RCE_MALICIOUS_TRIGGERED[0], "pickle.loads was invoked — RCE attack surface not closed."
 
     def test_pickle_rejection_logs_warning_on_bytes(self, caplog) -> None:
         """Bytes payload that fails JSON parsing logs a warning mentioning P2-1."""
         payload = self._make_pickle_payload({"k": "v"})
         with caplog.at_level(logging.WARNING), pytest.raises(ValueError):
             Serializer._deserialize(payload)
-        assert any(
-            "Pickle fallback removed in V4.3.0 P2-1" in rec.message
-            for rec in caplog.records
-        )
+        assert any("Pickle fallback removed in V4.3.0 P2-1" in rec.message for rec in caplog.records)
 
     def test_non_json_str_rejected(self) -> None:
         """Non-JSON str input raises ``ValueError`` — no pickle path for str."""

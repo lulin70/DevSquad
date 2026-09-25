@@ -84,9 +84,7 @@ class TestClassifyFlowVsStandalone:
 
     def test_classify_mixed_keywords_returns_flow(self):
         """When both flow and standalone markers exist, flow wins."""
-        result = self.mapper.classify_flow_vs_standalone(
-            "Implement login feature, then deploy to production"
-        )
+        result = self.mapper.classify_flow_vs_standalone("Implement login feature, then deploy to production")
         assert result == "flow"
 
     def test_classify_case_insensitive(self):
@@ -104,9 +102,7 @@ class TestClassifyFlowVsStandalone:
 
     def test_classify_word_boundary_avoids_false_positive(self):
         """'then' inside 'authentication' must not trigger flow."""
-        result = self.mapper.classify_flow_vs_standalone(
-            "Implement a new user authentication feature"
-        )
+        result = self.mapper.classify_flow_vs_standalone("Implement a new user authentication feature")
         assert result == "standalone"
 
 

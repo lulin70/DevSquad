@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devsquad"
-version = "4.5.19"
+version = "4.5.20"
 description = "Production-Ready Multi-Role AI Task Orchestrator"
 readme = "README.md"
 license = {text = "MIT"}
@@ -122,6 +122,11 @@ include = ["scripts*", "skills*"]
 [tool.setuptools.package-data]
 "skills" = ["*.yaml", "*.yml", "*.md"]
 "scripts" = ["*.yaml", "*.yml", "*.md"]
+# V4.5.20 W1-1: the rule engine's system layer ships as data, not as a Python
+# literal, so that the lowest-priority rule set in the contract (C4) is a file a
+# reader can open. Without this entry the package installs without it and
+# `resolve()` loses its catch-all (C6).
+"scripts.collaboration" = ["*.json"]
 
 # ============ Code Quality Tools ============
 
@@ -164,7 +169,19 @@ indent-style = "space"
 docstring-code-format = true
 
 [tool.mypy]
-python_version = "3.10"
+# V4.5.20: bumped 3.10 -> 3.12 together with the removal of
+# `--no-site-packages` from the CI mypy steps. Removing that flag means mypy
+# now parses the installed third-party stubs, and numpy >= 2.5 ships
+# `numpy/__init__.pyi` with a PEP 695 `type` statement (line 737) that only
+# parses for a >= 3.12 target — under 3.10 the lint job died with
+# `error: Type statement is only supported in Python 3.12 and greater [syntax]`.
+# Per-module overrides for numpy.* (follow_imports=skip / ignore_errors) were
+# measured NOT to suppress it; a target bump does. Accepted trade-off: mypy no
+# longer enforces 3.10-level language compatibility for project code, while
+# `requires-python` stays >= 3.10. Streamlit stubs remain live under the new
+# target (`reveal_type(st.selectbox(...))` -> `str`), so the class of errors
+# that `--no-site-packages` used to mask stays detectable.
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

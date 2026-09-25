@@ -119,9 +119,7 @@ def test_password_assignment_detected(validator: OutputValidator) -> None:
 
 
 def test_bearer_token_detected(validator: OutputValidator) -> None:
-    result = validator.validate(
-        "Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890"
-    )
+    result = validator.validate("Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890")
     finding = _find_pattern(result, "bearer_token")
     assert finding is not None
 
@@ -134,9 +132,7 @@ def test_aws_access_key_id_detected(validator: OutputValidator) -> None:
 
 def test_jwt_token_detected(validator: OutputValidator) -> None:
     # eyJ + 8 chars . 8 chars . 8 chars
-    result = validator.validate(
-        "eyJabcdefgh" + "." + "ijklmnopqr" + "." + "stuvwxyz12"
-    )
+    result = validator.validate("eyJabcdefgh" + "." + "ijklmnopqr" + "." + "stuvwxyz12")
     finding = _find_pattern(result, "jwt_token")
     assert finding is not None
 
@@ -402,12 +398,14 @@ class TestOutputValidationPipelineResult:
         from scripts.collaboration.output_validator import (
             OutputValidationPipelineResult,
         )
+
         assert OutputValidationPipelineResult is not None
 
     def test_02_default_values(self) -> None:
         from scripts.collaboration.output_validator import (
             OutputValidationPipelineResult,
         )
+
         result = OutputValidationPipelineResult()
         assert result.blocked is False
         assert result.findings == []
@@ -418,6 +416,7 @@ class TestOutputValidationPipelineResult:
         from scripts.collaboration.output_validator import (
             OutputValidationPipelineResult,
         )
+
         finding = OutputFinding(
             category="sensitive_info",
             severity="high",
@@ -441,13 +440,22 @@ class TestOutputValidationPipelineResult:
         from scripts.collaboration.output_validator import (
             OutputValidationPipelineResult,
         )
+
         high_finding = OutputFinding(
-            category="sensitive_info", severity="high",
-            pattern_name="x", matched_text="x", redacted_text="x", span=(0, 1),
+            category="sensitive_info",
+            severity="high",
+            pattern_name="x",
+            matched_text="x",
+            redacted_text="x",
+            span=(0, 1),
         )
         med_finding = OutputFinding(
-            category="path_leak", severity="medium",
-            pattern_name="y", matched_text="y", redacted_text="y", span=(0, 1),
+            category="path_leak",
+            severity="medium",
+            pattern_name="y",
+            matched_text="y",
+            redacted_text="y",
+            span=(0, 1),
         )
         result = OutputValidationPipelineResult(findings=[high_finding, med_finding])
         assert result.high_severity_count == 1
@@ -460,6 +468,7 @@ class TestOutputValidationBlockedError:
         from scripts.collaboration.output_validator import (
             OutputValidationBlockedError,
         )
+
         assert issubclass(OutputValidationBlockedError, Exception)
 
     def test_02_exception_carries_result(self) -> None:
@@ -467,6 +476,7 @@ class TestOutputValidationBlockedError:
             OutputValidationBlockedError,
             OutputValidationPipelineResult,
         )
+
         result = OutputValidationPipelineResult(blocked=True)
         err = OutputValidationBlockedError("blocked", result=result)
         assert err.result is result
@@ -493,11 +503,13 @@ class TestValidateOutputsStringMode:
 
     def test_03_multiple_string_inputs_aggregated(self) -> None:
         pipeline = _build_pipeline()
-        result = pipeline._validate_outputs([
-            "eval('dangerous')",
-            "safe output",
-            "password=hunter2password",
-        ])
+        result = pipeline._validate_outputs(
+            [
+                "eval('dangerous')",
+                "safe output",
+                "password=hunter2password",
+            ]
+        )
         # Workers 0 and 2 should have findings
         categories = {f.category for f in result.findings}
         assert "code_injection" in categories
@@ -521,9 +533,11 @@ class TestValidateOutputsDictMode:
     def test_02_dict_field_priority_preserved(self) -> None:
         """output > raw_output > content > report priority still works."""
         pipeline = _build_pipeline()
-        result = pipeline._validate_outputs([
-            {"output": "eval('from_output')", "raw_output": "safe"},
-        ])
+        result = pipeline._validate_outputs(
+            [
+                {"output": "eval('from_output')", "raw_output": "safe"},
+            ]
+        )
         # Should detect eval( from 'output' field, not 'raw_output'
         assert any(f.pattern_name == "eval_call" for f in result.findings)
 
@@ -685,6 +699,7 @@ class TestFailSecure:
 
     def test_02_audit_failure_does_not_lower_blocking_decision(self) -> None:
         """Audit logger failure should not change blocking decision."""
+
         class FailingAuditLogger:
             def log_event(self, event_type: str, details: dict[str, Any]) -> None:
                 raise RuntimeError("audit db down")
@@ -713,6 +728,7 @@ class TestReExportFromDispatchHooks:
     def test_01_import_from_dispatch_hooks_works(self) -> None:
         from scripts.collaboration.dispatch_hooks import PostDispatchPipeline as PDP1
         from scripts.collaboration.dispatch_steps import PostDispatchPipeline as PDP2
+
         assert PDP1 is PDP2
 
     def test_02_e2e_05_contract_satisfied(self) -> None:

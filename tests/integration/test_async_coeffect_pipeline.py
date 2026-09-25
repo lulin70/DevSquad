@@ -31,9 +31,7 @@ def _req(name: str, executor, timeout: float = 5.0) -> CoeffectRequest:
 class TestGatherCoordination:
     async def test_gather_all_complete(self):
         r = AsyncCoeffectResolver()
-        results = await asyncio.gather(
-            *[r.aresolve(_req(f"m{i}", lambda i=i: i + 100)) for i in range(5)]
-        )
+        results = await asyncio.gather(*[r.aresolve(_req(f"m{i}", lambda i=i: i + 100)) for i in range(5)])
         assert sorted(res.value for res in results) == [100, 101, 102, 103, 104]
 
     async def test_gather_mixed_success_and_failure(self):
@@ -92,8 +90,7 @@ class TestPipelinePatterns:
             return f"ready:{role_name}"
 
         results = await asyncio.gather(
-            *[r.aresolve(_req(f"setup-{role}", lambda rl=role: setup(rl)))
-              for role in roles]
+            *[r.aresolve(_req(f"setup-{role}", lambda rl=role: setup(rl))) for role in roles]
         )
         assert {res.value for res in results} == {f"ready:{role}" for role in roles}
         assert all(res.state == CoeffectState.COMPLETED for res in results)
@@ -110,9 +107,7 @@ class TestPipelinePatterns:
     async def test_call_counter_bumped_across_pipeline(self):
         before = get_call_counter_er()
         r = AsyncCoeffectResolver()
-        await asyncio.gather(
-            *[r.aresolve(_req(f"cnt-{i}", lambda i=i: i)) for i in range(4)]
-        )
+        await asyncio.gather(*[r.aresolve(_req(f"cnt-{i}", lambda i=i: i)) for i in range(4)])
         assert get_call_counter_er() >= before + 5  # init + 4 aresolve
 
 
@@ -149,9 +144,7 @@ class TestSyncAsyncCoexistence:
 
         async_resolver = AsyncCoeffectResolver(max_concurrent=4)
         results = await asyncio.gather(
-            *[async_resolver.aresolve(
-                _req(f"activate-{m}", lambda m=m: f"activated:{m}")
-            ) for m in order]
+            *[async_resolver.aresolve(_req(f"activate-{m}", lambda m=m: f"activated:{m}")) for m in order]
         )
         assert all(res.state == CoeffectState.COMPLETED for res in results)
         assert {res.value for res in results} == {f"activated:{m}" for m in order}

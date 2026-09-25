@@ -20,7 +20,6 @@ from scripts.collaboration.workflow_engine_base import WorkflowDefinition, Workf
 pytestmark = pytest.mark.unit
 
 
-
 class TestWorkflowEngineInit(unittest.TestCase):
     """WorkflowEngine.__init__ tests."""
 

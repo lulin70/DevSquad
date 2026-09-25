@@ -8,6 +8,7 @@ Coverage:
 - v1/v2 isolation (no migration, version-scoped marker)
 - request_id security / atomic write / anti-ghost counter
 """
+
 from __future__ import annotations
 
 import json
@@ -143,9 +144,7 @@ class TestStrictMarkerSchema:
 class TestPromptFileSeparate:
     """V4.5.10 AC-β-1/2: prompt lives only in the .prompt file."""
 
-    def test_request_json_has_no_inline_prompt(
-        self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path
-    ) -> None:
+    def test_request_json_has_no_inline_prompt(self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path) -> None:
         prompt_text = "Long prompt with\nmultiple\nlines and special chars: {}"
         request_id = bridge.create_request(
             agent_type="solo-coder",
@@ -156,19 +155,13 @@ class TestPromptFileSeparate:
         prompt_path = temp_bridge_dir / f"request_{request_id}.prompt"
         assert prompt_path.exists()
         assert prompt_path.read_text(encoding="utf-8") == prompt_text
-        request_data = json.loads(
-            (temp_bridge_dir / f"request_{request_id}.json").read_text(encoding="utf-8")
-        )
+        request_data = json.loads((temp_bridge_dir / f"request_{request_id}.json").read_text(encoding="utf-8"))
         assert "prompt" not in request_data, "request JSON must not embed prompt"
         assert request_data["prompt_file"].endswith(f"request_{request_id}.prompt")
 
-    def test_prompt_file_is_canonical_source(
-        self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path
-    ) -> None:
+    def test_prompt_file_is_canonical_source(self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path) -> None:
         prompt_text = "canonical prompt source"
-        request_id = bridge.create_request(
-            agent_type="architect", task="t", context=None, prompt=prompt_text
-        )
+        request_id = bridge.create_request(agent_type="architect", task="t", context=None, prompt=prompt_text)
         request_data = HostLLMBridgeV2.read_request(request_id, bridge_dir=temp_bridge_dir)
         assert request_data is not None
         prompt_file = request_data["prompt_file"]
@@ -211,9 +204,7 @@ class TestPathSecurity:
     """V4.5.10 R-path: canonical paths, traversal, symlink refusal."""
 
     def test_request_file_path_within_bridge_dir(self, bridge: HostLLMBridgeV2) -> None:
-        request_id = bridge.create_request(
-            agent_type="architect", task="test", context=None, prompt="x"
-        )
+        request_id = bridge.create_request(agent_type="architect", task="test", context=None, prompt="x")
         data = HostLLMBridgeV2.read_request(request_id, bridge_dir=bridge.bridge_dir)
         assert data is not None
         assert data["request_id"] == request_id
@@ -231,9 +222,7 @@ class TestPathSecurity:
 
     def test_symlink_refused_on_read(self, bridge: HostLLMBridgeV2, tmp_path: Path) -> None:
         """A symlink pointing to a real JSON must be refused (O_NOFOLLOW)."""
-        request_id = bridge.create_request(
-            agent_type="architect", task="t", context=None, prompt="secret"
-        )
+        request_id = bridge.create_request(agent_type="architect", task="t", context=None, prompt="secret")
         # Symlink request file → outside secret file
         outside = tmp_path / "secret.json"
         outside.write_text(json.dumps({"prompt": "leaked"}))
@@ -273,9 +262,7 @@ class TestPermissionsAndIsolation:
 
     @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions")
     def test_file_permissions_0600(self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path) -> None:
-        request_id = bridge.create_request(
-            agent_type="architect", task="t", context=None, prompt="p"
-        )
+        request_id = bridge.create_request(agent_type="architect", task="t", context=None, prompt="p")
         for name in (
             f"request_{request_id}.json",
             f"request_{request_id}.prompt",
@@ -299,12 +286,8 @@ class TestPermissionsAndIsolation:
         v2_bridge = HostLLMBridgeV2(bridge_dir=root / "v2")
         v1_marker_dir = root / "v1"
         v1_marker_dir.mkdir(parents=True)
-        (v1_marker_dir / "protocol.marker").write_text(
-            json.dumps({"request_id": "v1req", "ts": 1.0})
-        )
-        request_id = v2_bridge.create_request(
-            agent_type="architect", task="t", context=None, prompt="p"
-        )
+        (v1_marker_dir / "protocol.marker").write_text(json.dumps({"request_id": "v1req", "ts": 1.0}))
+        request_id = v2_bridge.create_request(agent_type="architect", task="t", context=None, prompt="p")
         # v2 files are all inside v2 dir
         assert (root / "v2" / f"request_{request_id}.json").exists()
         assert (root / "v2" / HostLLMBridgeV2.MARKER_FILENAME).exists()
@@ -313,9 +296,7 @@ class TestPermissionsAndIsolation:
         assert not list(v1_marker_dir.glob(f"request_{request_id}*"))
 
     def test_cleanup_is_version_scoped(self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path) -> None:
-        request_id = bridge.create_request(
-            agent_type="architect", task="t", context=None, prompt="p"
-        )
+        request_id = bridge.create_request(agent_type="architect", task="t", context=None, prompt="p")
         HostLLMBridgeV2.write_response(
             request_id=request_id,
             success=True,
@@ -386,9 +367,7 @@ class TestSafeReadJson:
         assert elapsed < bridge.JSON_RETRY_INTERVAL * bridge.MAX_JSON_RETRIES
         assert "JSON decode failed" not in caplog.text
 
-    def test_existing_bad_json_retries_then_warns(
-        self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path, caplog
-    ) -> None:
+    def test_existing_bad_json_retries_then_warns(self, bridge: HostLLMBridgeV2, temp_bridge_dir: Path, caplog) -> None:
         import logging
 
         target = temp_bridge_dir / "response_bad_payload.json"
@@ -404,10 +383,12 @@ class TestSubagentTypeMap:
 
     def test_subagent_type_map_architect_to_search(self) -> None:
         from scripts.collaboration.host_llm_bridge import HostBridgeBackend
+
         assert HostBridgeBackend.resolve_subagent_type("architect") == "search"
 
     def test_subagent_type_map_default_general_purpose_task(self) -> None:
         from scripts.collaboration.host_llm_bridge import HostBridgeBackend
+
         assert HostBridgeBackend.resolve_subagent_type("solo-coder") == "general_purpose_task"
         assert HostBridgeBackend.resolve_subagent_type("test-expert") == "general_purpose_task"
         assert HostBridgeBackend.resolve_subagent_type("ui-designer") == "general_purpose_task"

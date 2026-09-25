@@ -11,6 +11,7 @@ Goal (TD-3): raise llm_backend.py coverage from 58% to >=65%.
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from collections.abc import Generator
@@ -97,7 +98,12 @@ class TestOpenAIBackendGetClient:
         kwargs = fake_openai.OpenAI.call_args.kwargs
         assert kwargs["base_url"] == "https://custom/v1"
 
-    def test_get_client_omits_base_url_when_absent(self):
+    def test_get_client_omits_base_url_when_absent(self, monkeypatch):
+        # ``OpenAIBackend.__init__`` falls back to DEVSQUAD_OPENAI_BASE_URL when no
+        # base_url is passed (llm_backend.py:109), so any machine with a developer
+        # .env hits the "provided" branch instead of the "absent" branch this test
+        # targets. Clear the variable so the absence branch is what actually runs.
+        monkeypatch.delenv("DEVSQUAD_OPENAI_BASE_URL", raising=False)
         backend = OpenAIBackend(api_key="k", model="m")
         fake_openai = MagicMock()
         with patch.dict(sys.modules, {"openai": fake_openai}):
@@ -125,10 +131,51 @@ class TestOpenAIBackendGenerate:
 
     def test_generate_returns_empty_string_when_content_none(self):
         backend, client = self._make_backend_with_client()
-        client.chat.completions.create.return_value = MagicMock(
-            choices=[MagicMock(message=MagicMock(content=None))]
-        )
+        client.chat.completions.create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content=None))])
         assert backend.generate("p") == ""
+
+    def test_generate_raises_and_warns_on_empty_content_after_length_finish(self, caplog):
+        # Reasoning models (deepseek-flash) count reasoning tokens against
+        # max_tokens; exhausting the budget returns finish_reason='length' with an
+        # empty content field. V4.5.20 contract: this is NOT success — the backend
+        # warns and raises so the fallback chain degrades to the next backend.
+        import logging
+
+        backend, client = self._make_backend_with_client()
+        client.chat.completions.create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content=None),
+                    finish_reason="length",
+                )
+            ]
+        )
+        with caplog.at_level(logging.WARNING), pytest.raises(RuntimeError, match="finish_reason='length'"):
+            backend.generate("p", max_tokens=100)
+
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert "finish_reason='length'" in warnings[0].getMessage()
+        assert "max_tokens=100" in warnings[0].getMessage()
+
+    def test_generate_does_not_warn_when_content_present_after_length_finish(self, caplog):
+        # A truncated-but-non-empty answer is still usable, so it must stay quiet.
+        import logging
+
+        backend, client = self._make_backend_with_client()
+        client.chat.completions.create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content="partial answer"),
+                    finish_reason="length",
+                )
+            ]
+        )
+        with caplog.at_level(logging.WARNING):
+            result = backend.generate("p", max_tokens=100)
+
+        assert result == "partial answer"
+        assert [r for r in caplog.records if r.levelno == logging.WARNING] == []
 
     def test_generate_retries_on_transient_error_then_succeeds(self, monkeypatch):
         backend, client = self._make_backend_with_client()
@@ -140,9 +187,7 @@ class TestOpenAIBackendGenerate:
         # to OS-level errors when openai is missing).
         transient_exc = _get_openai_retry_exceptions()[0]
 
-        success_resp = MagicMock(
-            choices=[MagicMock(message=MagicMock(content="ok"))]
-        )
+        success_resp = MagicMock(choices=[MagicMock(message=MagicMock(content="ok"))])
         client.chat.completions.create.side_effect = [
             transient_exc("boom"),
             success_resp,
@@ -164,9 +209,7 @@ class TestOpenAIBackendGenerate:
 
     def test_generate_forwards_kwargs(self):
         backend, client = self._make_backend_with_client()
-        client.chat.completions.create.return_value = MagicMock(
-            choices=[MagicMock(message=MagicMock(content="x"))]
-        )
+        client.chat.completions.create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="x"))])
         backend.generate(
             "p",
             model="override-model",
@@ -190,9 +233,7 @@ class TestOpenAIBackendStream:
         chunk3 = MagicMock(choices=[MagicMock(delta=MagicMock(content=" world"))])
         # Empty choices chunk should be skipped, not crash.
         chunk_empty = MagicMock(choices=[])
-        fake_client.chat.completions.create.return_value = iter(
-            [chunk_empty, chunk1, chunk2, chunk3]
-        )
+        fake_client.chat.completions.create.return_value = iter([chunk_empty, chunk1, chunk2, chunk3])
         chunks = list(backend.generate_stream("p"))
         assert chunks == ["hello", " world"]
 
@@ -293,9 +334,7 @@ class TestAnthropicBackendGenerate:
 
     def test_generate_returns_text(self):
         backend, client = self._make_backend_with_client()
-        client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text="hello ant")]
-        )
+        client.messages.create.return_value = MagicMock(content=[MagicMock(text="hello ant")])
         assert backend.generate("p") == "hello ant"
 
     def test_generate_returns_empty_when_no_content(self):
@@ -525,9 +564,7 @@ class TestCreateBackend:
         assert isinstance(backend, TraeBackend)
 
     def test_creates_openai_backend_with_kwargs(self):
-        backend = create_backend(
-            "openai", api_key="k", model="m", base_url="https://x"
-        )
+        backend = create_backend("openai", api_key="k", model="m", base_url="https://x")
         assert isinstance(backend, OpenAIBackend)
         assert backend._api_key == "k"
         assert backend.model == "m"
@@ -545,6 +582,7 @@ class TestCreateBackend:
         backend = create_backend("moka")
         # V4.5.2 P12.1.1: explicit MokaAIBackend (no longer alias of OpenAIBackend)
         from scripts.collaboration.moka_backend import MokaAIBackend
+
         assert isinstance(backend, MokaAIBackend)
         assert backend._api_key == "moka-key"
         assert backend.base_url == "https://moka.example/v1"
@@ -718,3 +756,169 @@ def test_generate_stream_default_returns_generator():
     backend = MockBackend()
     result = backend.generate_stream("p")
     assert isinstance(result, Generator)
+
+
+# ---------------------------------------------------------------------------
+# V4.5.20: A-path order (single source of truth) — Moka → OpenAI → Anthropic
+# ---------------------------------------------------------------------------
+
+
+def _patch_dotenv():
+    """Disable .env loading so the controlled os.environ is what runs."""
+    return patch("scripts.collaboration.llm_backend._load_dotenv")
+
+
+def _create_auto(env: dict) -> Any:
+    with patch.dict(os.environ, env, clear=True), _patch_dotenv():
+        return create_backend("auto")
+
+
+class TestApiBackendOrder:
+    """The A-path order is read from API_BACKEND_ORDER, not from code order."""
+
+    def test_three_keys_yield_moka_openai_anthropic_mock(self):
+        from scripts.collaboration.moka_backend import MokaAIBackend
+
+        backend = _create_auto(
+            {
+                "MOKA_API_KEY": "m",
+                "DEVSQUAD_OPENAI_API_KEY": "o",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "a",
+            }
+        )
+        assert isinstance(backend, FallbackBackend)
+        assert [type(b).__name__ for b in backend._backends] == [
+            "MokaAIBackend",
+            "OpenAIBackend",
+            "AnthropicBackend",
+            "MockBackend",
+        ]
+        assert isinstance(backend._backends[0], MokaAIBackend)
+
+    def test_deepseek_only_yields_openai_then_mock(self):
+        backend = _create_auto({"DEVSQUAD_OPENAI_API_KEY": "o"})
+        assert isinstance(backend, FallbackBackend)
+        assert [type(b).__name__ for b in backend._backends] == [
+            "OpenAIBackend",
+            "MockBackend",
+        ]
+
+    def test_no_keys_yields_mock_without_error(self):
+        backend = _create_auto({})
+        assert isinstance(backend, MockBackend)
+
+    def test_auto_and_auto_fallback_share_the_same_a_path_order(self):
+        env = {
+            "MOKA_API_KEY": "m",
+            "DEVSQUAD_OPENAI_API_KEY": "o",
+            "DEVSQUAD_ANTHROPIC_API_KEY": "a",
+        }
+        with patch.dict(os.environ, env, clear=True), _patch_dotenv():
+            auto = create_backend("auto")
+            auto_fb = create_backend("auto-fallback")
+        assert [type(b).__name__ for b in auto._backends] == [type(b).__name__ for b in auto_fb._backends]
+
+    def test_order_is_expressed_by_a_single_tuple(self):
+        from scripts.collaboration.llm_backend import API_BACKEND_ORDER
+
+        assert API_BACKEND_ORDER == ("moka", "openai", "anthropic")
+
+
+# ---------------------------------------------------------------------------
+# V4.5.20: reasoning-model budget + empty-content contract
+# ---------------------------------------------------------------------------
+
+
+class TestReasoningModelBudget:
+    @pytest.mark.parametrize(
+        ("model", "expected"),
+        [
+            ("deepseek-flash", True),
+            ("deepseek-reasoner", True),
+            ("deepseek-r1", True),
+            ("some-reasoning-model", True),
+            ("claude-3-7-sonnet-thinking", True),
+            ("gpt-4", False),
+            ("claude-sonnet-4-20250514", False),
+            ("moka-gpt-5.5", False),
+            (None, False),
+            ("", False),
+        ],
+    )
+    def test_is_reasoning_model_table(self, model, expected):
+        from scripts.collaboration.reasoning_budget import is_reasoning_model
+
+        assert is_reasoning_model(model) is expected
+
+    def test_explicit_max_tokens_always_wins(self):
+        from scripts.collaboration.reasoning_budget import resolve_max_tokens
+
+        assert resolve_max_tokens("deepseek-flash", 123) == 123
+
+    def test_env_override_beats_per_model_budget(self, monkeypatch):
+        from scripts.collaboration.reasoning_budget import resolve_max_tokens
+
+        monkeypatch.setenv("DEVSQUAD_REASONING_MAX_TOKENS", "9999")
+        assert resolve_max_tokens("deepseek-flash") == 9999
+        assert resolve_max_tokens("gpt-4") == 9999
+        assert resolve_max_tokens("deepseek-flash", 50) == 50
+
+    def test_reasoning_model_gets_high_budget(self, monkeypatch):
+        from scripts.collaboration.constants import DEFAULT_LLM_MAX_TOKENS_REASONING
+        from scripts.collaboration.reasoning_budget import resolve_max_tokens
+
+        monkeypatch.delenv("DEVSQUAD_REASONING_MAX_TOKENS", raising=False)
+        assert resolve_max_tokens("deepseek-flash") == DEFAULT_LLM_MAX_TOKENS_REASONING
+
+    def test_non_reasoning_model_keeps_default(self, monkeypatch):
+        from scripts.collaboration.constants import DEFAULT_LLM_MAX_TOKENS
+        from scripts.collaboration.reasoning_budget import resolve_max_tokens
+
+        monkeypatch.delenv("DEVSQUAD_REASONING_MAX_TOKENS", raising=False)
+        assert resolve_max_tokens("gpt-4") == DEFAULT_LLM_MAX_TOKENS
+
+    def test_openai_backend_resolves_reasoning_budget(self, monkeypatch):
+        from scripts.collaboration.constants import DEFAULT_LLM_MAX_TOKENS_REASONING
+
+        monkeypatch.delenv("DEVSQUAD_REASONING_MAX_TOKENS", raising=False)
+        backend = OpenAIBackend(api_key="k", model="deepseek-flash")
+        assert backend.max_tokens == DEFAULT_LLM_MAX_TOKENS_REASONING
+
+    def test_openai_backend_explicit_value_respected(self):
+        backend = OpenAIBackend(api_key="k", model="deepseek-flash", max_tokens=64)
+        assert backend.max_tokens == 64
+
+
+class TestFallbackDegradesOnEmptyLength:
+    """The empty-content RuntimeError must degrade the chain, not surface ""."""
+
+    def test_real_openai_empty_length_degrades_to_honest_mock(self):
+        openai = OpenAIBackend(api_key="k", model="deepseek-flash")
+        client = MagicMock()
+        client.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content=None), finish_reason="length")]
+        )
+        openai._client = client
+        fb = FallbackBackend([openai, MockBackend()])
+
+        result = fb.generate("p", max_tokens=64)
+
+        assert isinstance(result, str)
+        assert result != ""
+        assert "[MOCK MODE]" in result
+
+    def test_moka_openai_mock_chain_ends_at_mock(self):
+        from scripts.collaboration.moka_backend import MokaAIBackend
+
+        err = "OpenAIBackend: empty completion with finish_reason='length' (model=m, max_tokens=64)"
+        moka = MokaAIBackend(api_key="k")
+        moka.generate = MagicMock(side_effect=RuntimeError(err))  # type: ignore[method-assign]
+        openai = OpenAIBackend(api_key="k")
+        openai.generate = MagicMock(side_effect=RuntimeError(err))  # type: ignore[method-assign]
+
+        fb = FallbackBackend([moka, openai, MockBackend()])
+        result = fb.generate("p", max_tokens=64)
+
+        assert isinstance(result, str)
+        assert result != ""
+        assert "[MOCK MODE]" in result

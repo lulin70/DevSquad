@@ -18,6 +18,7 @@
 
 Anti-Ghost: _tx_call_counter_er 递增 on begin/commit/rollback/retry。
 """
+
 from __future__ import annotations
 
 import logging
@@ -59,11 +60,11 @@ def get_call_counter_er() -> int:
 class TxState(str, Enum):
     """5-state transaction FSM."""
 
-    PENDING = "PENDING"          # declared, not started
-    ACTIVE = "ACTIVE"            # executing modules
-    COMMITTED = "COMMITTED"      # all success (terminal)
+    PENDING = "PENDING"  # declared, not started
+    ACTIVE = "ACTIVE"  # executing modules
+    COMMITTED = "COMMITTED"  # all success (terminal)
     ROLLED_BACK = "ROLLED_BACK"  # failure reverted (retryable)
-    FAILED = "FAILED"            # unrecoverable (terminal)
+    FAILED = "FAILED"  # unrecoverable (terminal)
 
 
 # V4.5.4 lesson #2: ALLOWED_TRANSITIONS 表驱动
@@ -83,9 +84,7 @@ class TxStateError(RuntimeError):
 def _validate_transition(from_state: TxState, to_state: TxState) -> None:
     """Validate FSM transition; raise TxStateError if not allowed."""
     if to_state not in ALLOWED_TRANSITIONS[from_state]:
-        raise TxStateError(
-            f"invalid transaction transition: {from_state.value} → {to_state.value}"
-        )
+        raise TxStateError(f"invalid transaction transition: {from_state.value} → {to_state.value}")
 
 
 # ---------------------------------------------------------------------------
@@ -198,15 +197,13 @@ class DispatchTransaction:
         """
         with self._modules_lock:
             if self._state not in (TxState.PENDING, TxState.ROLLED_BACK):
-                raise TxStateError(
-                    f"cannot register in state {self._state.value}"
-                )
-            self._modules.append(
-                TxModule(name=name, enter_fn=enter_fn, revert_fn=revert_fn)
-            )
+                raise TxStateError(f"cannot register in state {self._state.value}")
+            self._modules.append(TxModule(name=name, enter_fn=enter_fn, revert_fn=revert_fn))
             logger.debug(
                 "tx %s: registered module %s (total=%d)",
-                self._tx_id, name, len(self._modules),
+                self._tx_id,
+                name,
+                len(self._modules),
             )
 
     def begin(self) -> None:
@@ -241,7 +238,9 @@ class DispatchTransaction:
             except Exception as exc:
                 logger.error(
                     "tx %s: enter %s failed: %s",
-                    self._tx_id, module.name, exc,
+                    self._tx_id,
+                    module.name,
+                    exc,
                 )
                 self.failed_reason = f"{module.name}: {exc}"
                 self.rollback()
@@ -254,7 +253,8 @@ class DispatchTransaction:
         self._commit_at = datetime.now(timezone.utc).isoformat()
         logger.info(
             "tx %s: COMMIT (%d modules committed)",
-            self._tx_id, self._entered_count,
+            self._tx_id,
+            self._entered_count,
         )
 
     def rollback(self) -> None:
@@ -281,7 +281,9 @@ class DispatchTransaction:
                 # V4.5.3 lesson #7: best-effort, don't block
                 logger.error(
                     "tx %s: revert %s failed (best-effort): %s",
-                    self._tx_id, module.name, exc,
+                    self._tx_id,
+                    module.name,
+                    exc,
                 )
                 # Mark as reverted even on failure to avoid double-revert
                 module.reverted = True
@@ -355,18 +357,12 @@ class TransactionRegistry:
         Active = PENDING or ACTIVE (i.e., not yet terminal).
         """
         with self._lock:
-            return sum(
-                1 for tx in self._txs.values()
-                if tx.state in (TxState.PENDING, TxState.ACTIVE)
-            )
+            return sum(1 for tx in self._txs.values() if tx.state in (TxState.PENDING, TxState.ACTIVE))
 
     def list_active(self) -> list[str]:
         """Snapshot of active transaction IDs."""
         with self._lock:
-            return [
-                tx.tx_id for tx in self._txs.values()
-                if tx.state in (TxState.PENDING, TxState.ACTIVE)
-            ]
+            return [tx.tx_id for tx in self._txs.values() if tx.state in (TxState.PENDING, TxState.ACTIVE)]
 
 
 # ---------------------------------------------------------------------------

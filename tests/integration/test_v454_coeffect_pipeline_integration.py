@@ -85,8 +85,7 @@ class TestCoeffectEmbeddedInDispatcher:
                 assert dep in pos, f"dependency {dep!r} for {module_id} missing from order"
                 # dep must appear before the dependent module
                 assert pos[dep] < pos[module_id], (
-                    f"{dep!r} (dep of {module_id}) must precede it in order; "
-                    f"got order={order}"
+                    f"{dep!r} (dep of {module_id}) must precede it in order; got order={order}"
                 )
 
 
@@ -175,9 +174,7 @@ class TestCoeffectFiberActivationCoupling:
         assert len(fibers) == len(EXPECTED_MODULE_IDS)
         for module_id in EXPECTED_MODULE_IDS:
             fiber = fibers[module_id]
-            assert fiber.state == FiberState.ACTIVE, (
-                f"Fiber {module_id!r} expected ACTIVE, got {fiber.state.value}"
-            )
+            assert fiber.state == FiberState.ACTIVE, f"Fiber {module_id!r} expected ACTIVE, got {fiber.state.value}"
 
     def test_activation_order_subset_of_fibers(self) -> None:
         """resolve_activation_order() must only reference fibers that are

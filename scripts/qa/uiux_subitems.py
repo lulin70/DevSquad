@@ -46,32 +46,133 @@ class SubItemAuditResult:
 # analyzer has no corresponding rule yet (auto-added as NOT_IMPLEMENTED).
 _REGISTRY: dict[str, list[SubItemDef]] = {
     "a11y": [
-        SubItemDef("color_contrast_ratio", "a11y", "WCAG AA contrast ratio check", "Ensure text/background contrast >= 4.5:1", True, ("wcag_contrast", "hsv_harsh_combination")),
-        SubItemDef("aria_labels_presence", "a11y", "ARIA labels on form inputs", "Add aria-label or <label for> to inputs", True, ("input_missing_label",)),
-        SubItemDef("keyboard_navigation_support", "a11y", "Keyboard navigation support", "Ensure all interactive elements are keyboard reachable", False),
-        SubItemDef("focus_visibility", "a11y", "Focus indicator visibility", "Provide visible :focus outline", True, ("focus_outline_removed",)),
-        SubItemDef("image_alt_text", "a11y", "Image alt text presence", "Add descriptive alt attributes", True, ("img_missing_alt",)),
+        SubItemDef(
+            "color_contrast_ratio",
+            "a11y",
+            "WCAG AA contrast ratio check",
+            "Ensure text/background contrast >= 4.5:1",
+            True,
+            ("wcag_contrast", "hsv_harsh_combination"),
+        ),
+        SubItemDef(
+            "aria_labels_presence",
+            "a11y",
+            "ARIA labels on form inputs",
+            "Add aria-label or <label for> to inputs",
+            True,
+            ("input_missing_label",),
+        ),
+        SubItemDef(
+            "keyboard_navigation_support",
+            "a11y",
+            "Keyboard navigation support",
+            "Ensure all interactive elements are keyboard reachable",
+            False,
+        ),
+        SubItemDef(
+            "focus_visibility",
+            "a11y",
+            "Focus indicator visibility",
+            "Provide visible :focus outline",
+            True,
+            ("focus_outline_removed",),
+        ),
+        SubItemDef(
+            "image_alt_text",
+            "a11y",
+            "Image alt text presence",
+            "Add descriptive alt attributes",
+            True,
+            ("img_missing_alt",),
+        ),
     ],
     "interaction": [
-        SubItemDef("click_target_size", "interaction", "Click target >= 44px", "Increase touch target to >= 44x44px", True, ("button_too_small",)),
-        SubItemDef("hover_focus_feedback", "interaction", "Hover/focus visual feedback", "Add :hover and :focus styles", False),
-        SubItemDef("form_validation_feedback", "interaction", "Form validation feedback", "Add required attrs and validation messages", True, ("form_no_validation",)),
-        SubItemDef("loading_state_indication", "interaction", "Loading state indication", "Show spinner or skeleton during async ops", False),
+        SubItemDef(
+            "click_target_size",
+            "interaction",
+            "Click target >= 44px",
+            "Increase touch target to >= 44x44px",
+            True,
+            ("button_too_small",),
+        ),
+        SubItemDef(
+            "hover_focus_feedback", "interaction", "Hover/focus visual feedback", "Add :hover and :focus styles", False
+        ),
+        SubItemDef(
+            "form_validation_feedback",
+            "interaction",
+            "Form validation feedback",
+            "Add required attrs and validation messages",
+            True,
+            ("form_no_validation",),
+        ),
+        SubItemDef(
+            "loading_state_indication",
+            "interaction",
+            "Loading state indication",
+            "Show spinner or skeleton during async ops",
+            False,
+        ),
         SubItemDef("error_recovery_path", "interaction", "Error recovery path", "Provide retry/undo on failure", False),
     ],
     "layout": [
-        SubItemDef("4pt_grid_spacing_compliance", "layout", "4pt grid spacing (V4.1.0 P2-UI-4)", "Use multiples of 4 for spacing", True, ("spacing_4pt_grid",)),
-        SubItemDef("responsive_breakpoint_coverage", "layout", "Responsive breakpoint coverage", "Add media queries for common breakpoints", False),
-        SubItemDef("container_overflow_check", "layout", "Container overflow check", "Prevent horizontal viewport overflow", True, ("viewport_overflow", "element_overlap")),
-        SubItemDef("text_truncation_detection", "layout", "Text truncation detection", "Add tooltips for truncated text", True, ("text_truncation",)),
-        SubItemDef("z_index_stacking_order", "layout", "Z-index stacking order", "Document and constrain z-index layers", False),
+        SubItemDef(
+            "4pt_grid_spacing_compliance",
+            "layout",
+            "4pt grid spacing (V4.1.0 P2-UI-4)",
+            "Use multiples of 4 for spacing",
+            True,
+            ("spacing_4pt_grid",),
+        ),
+        SubItemDef(
+            "responsive_breakpoint_coverage",
+            "layout",
+            "Responsive breakpoint coverage",
+            "Add media queries for common breakpoints",
+            False,
+        ),
+        SubItemDef(
+            "container_overflow_check",
+            "layout",
+            "Container overflow check",
+            "Prevent horizontal viewport overflow",
+            True,
+            ("viewport_overflow", "element_overlap"),
+        ),
+        SubItemDef(
+            "text_truncation_detection",
+            "layout",
+            "Text truncation detection",
+            "Add tooltips for truncated text",
+            True,
+            ("text_truncation",),
+        ),
+        SubItemDef(
+            "z_index_stacking_order", "layout", "Z-index stacking order", "Document and constrain z-index layers", False
+        ),
     ],
     "ux_antipattern": [
-        SubItemDef("oklch_color_space_compliance", "ux_antipattern", "OKLCH color space support (V4.1.0 P1-UI-3)", "Use oklch() for perceptual color mixing", True),
-        SubItemDef("dark_mode_support", "ux_antipattern", "Dark mode support", "Add prefers-color-scheme media query", False),
+        SubItemDef(
+            "oklch_color_space_compliance",
+            "ux_antipattern",
+            "OKLCH color space support (V4.1.0 P1-UI-3)",
+            "Use oklch() for perceptual color mixing",
+            True,
+        ),
+        SubItemDef(
+            "dark_mode_support", "ux_antipattern", "Dark mode support", "Add prefers-color-scheme media query", False
+        ),
         SubItemDef("empty_state_design", "ux_antipattern", "Empty state design", "Design helpful empty states", False),
-        SubItemDef("error_message_clarity", "ux_antipattern", "Error message clarity", "Write actionable error messages", False),
-        SubItemDef("progressive_disclosure", "ux_antipattern", "Progressive disclosure", "Reveal advanced options progressively", False),
+        SubItemDef(
+            "error_message_clarity", "ux_antipattern", "Error message clarity", "Write actionable error messages", False
+        ),
+        SubItemDef(
+            "progressive_disclosure",
+            "ux_antipattern",
+            "Progressive disclosure",
+            "Reveal advanced options progressively",
+            False,
+        ),
     ],
 }
 

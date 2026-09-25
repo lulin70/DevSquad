@@ -169,18 +169,14 @@ class TestSelectByIntent:
             _make_case(roles=["architect", "coder"], success=True, intent="design"),
             _make_case(roles=["architect", "coder"], success=True, intent="design"),
         ]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints))
         result = selector.select_roles("task", intent="design")
         assert "architect" in result
         assert "coder" in result
 
     def test_intent_no_matches_returns_empty(self):
         fingerprints = [_make_case(roles=["architect"], success=True, intent="design")]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints))
         result = selector.select_roles("task", intent="coding")
         assert result == []
 
@@ -190,9 +186,7 @@ class TestSelectByIntent:
             _make_case(roles=["architect", "coder"], success=False, intent="design"),
             _make_case(roles=["architect", "coder"], success=False, intent="design"),
         ]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints))
         result = selector.select_roles("task", intent="design", min_success_rate=0.5)
         assert result == []
 
@@ -200,9 +194,7 @@ class TestSelectByIntent:
         fingerprints = [
             _make_case(roles=["a", "b", "c", "d", "e", "f"], success=True, intent="x"),
         ]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints))
         result = selector.select_roles("task", intent="x", max_roles=2)
         assert len(result) <= 2
 
@@ -212,9 +204,7 @@ class TestSelectByIntent:
             _make_case(roles=["architect", "coder"], success=True, intent="design"),
             _make_case(roles=["tester", "coder"], success=True, intent="design"),
         ]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints))
         result = selector.select_roles("task", intent="design")
         assert "architect" in result
 
@@ -223,9 +213,7 @@ class TestSelectByIntent:
             _make_case(roles=[], success=True, intent="design"),
             _make_case(roles=["architect"], success=True, intent="design"),
         ]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=[], fingerprints=fingerprints))
         result = selector.select_roles("task", intent="design")
         assert "architect" in result
 
@@ -242,18 +230,14 @@ class TestSelectFallback:
         assert result == []
 
     def test_returns_empty_when_no_data_with_intent(self):
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(fingerprints=[])
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(fingerprints=[]))
         result = selector.select_roles("task", intent="design")
         assert result == []
 
     def test_similar_takes_precedence_over_intent(self):
         similar = [_make_case(roles=["architect"], success=True, similarity=0.9)]
         fingerprints = [_make_case(roles=["coder"], success=True, intent="design")]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=similar, fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=similar, fingerprints=fingerprints))
         result = selector.select_roles("task", intent="design")
         assert "architect" in result
         assert "coder" not in result
@@ -261,9 +245,7 @@ class TestSelectFallback:
     def test_falls_to_intent_when_similar_returns_empty(self):
         similar = [_make_case(roles=["architect"], success=False)]
         fingerprints = [_make_case(roles=["coder"], success=True, intent="design")]
-        selector = AdaptiveRoleSelector(
-            fingerprint_db=StubFingerprint(similar=similar, fingerprints=fingerprints)
-        )
+        selector = AdaptiveRoleSelector(fingerprint_db=StubFingerprint(similar=similar, fingerprints=fingerprints))
         result = selector.select_roles("task", intent="design")
         assert "coder" in result
 

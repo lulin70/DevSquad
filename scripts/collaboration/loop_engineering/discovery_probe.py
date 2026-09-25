@@ -13,9 +13,7 @@ class DiscoveryProbe:
 
     def discover(self, objective: str, iter_index: int, memory: Any) -> dict[str, Any]:
         history = memory.load_history(objective) if memory else []
-        completed_items = {
-            item for entry in history for item in entry.get("completed_items", [])
-        }
+        completed_items = {item for entry in history for item in entry.get("completed_items", [])}
 
         if iter_index == 0:
             return {

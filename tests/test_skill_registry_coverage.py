@@ -239,9 +239,36 @@ class TestSkillRegistrySearch(unittest.TestCase):
     def setUp(self) -> None:
         self.tmpdir = tempfile.mkdtemp()
         self.registry = SkillRegistry(storage_path=self.tmpdir)
-        self.registry.register(SkillEntry(skill_id="a", name="Deploy App", description="deploy to prod", category="devops", tags=["k8s"], confidence=0.5))
-        self.registry.register(SkillEntry(skill_id="b", name="Code Review", description="review code", category="quality", tags=["review"], confidence=0.9))
-        self.registry.register(SkillEntry(skill_id="c", name="Test Runner", description="run tests", category="quality", tags=["test", "ci"], confidence=0.7))
+        self.registry.register(
+            SkillEntry(
+                skill_id="a",
+                name="Deploy App",
+                description="deploy to prod",
+                category="devops",
+                tags=["k8s"],
+                confidence=0.5,
+            )
+        )
+        self.registry.register(
+            SkillEntry(
+                skill_id="b",
+                name="Code Review",
+                description="review code",
+                category="quality",
+                tags=["review"],
+                confidence=0.9,
+            )
+        )
+        self.registry.register(
+            SkillEntry(
+                skill_id="c",
+                name="Test Runner",
+                description="run tests",
+                category="quality",
+                tags=["test", "ci"],
+                confidence=0.7,
+            )
+        )
 
     def test_search_no_filters_returns_all(self) -> None:
         results = self.registry.search()

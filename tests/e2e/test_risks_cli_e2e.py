@@ -41,9 +41,7 @@ class TestRisksCliUserJourney:
     def test_user_journey_add_list_show_clear(self, capsys, tmp_path: Path):
         """A user registers risks from a retrospective, reviews them, inspects
         the top risk, then clears the register."""
-        rid = add_risk(
-            "async lock ordering regression", probability=0.6, impact=0.8
-        )
+        rid = add_risk("async lock ordering regression", probability=0.6, impact=0.8)
         add_risk("cli export path traversal", probability=0.2, impact=0.5)
 
         # 1. list — user sees a Markdown table

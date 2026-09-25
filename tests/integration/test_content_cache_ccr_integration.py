@@ -172,9 +172,12 @@ class T1_ContentCacheCCRStoreSmartCrusherIntegration(unittest.TestCase):
         # invalidate("*") should clear the cache via clear() fallback
         result = cache.invalidate("*")
         # Should return 1 (best-effort "cleared" signal) — not 0 (old bug behavior)
-        self.assertEqual(result, 1,
-                         "invalidate('*') on LLMCache should fall through to clear() "
-                         "and return 1, not silently return 0 (V4.2.1 bugfix)")
+        self.assertEqual(
+            result,
+            1,
+            "invalidate('*') on LLMCache should fall through to clear() "
+            "and return 1, not silently return 0 (V4.2.1 bugfix)",
+        )
         # Both entries should now be gone
         self.assertIsNone(cache.get("prompt-a", "openai", "gpt-4"))
         self.assertIsNone(cache.get("prompt-b", "anthropic", "claude-3"))
@@ -495,6 +498,7 @@ class T6_ThreadSafetyIntegration(unittest.TestCase):
         sp = Scratchpad()
         errors: list[Exception] = []
         try:
+
             def worker(idx: int) -> None:
                 try:
                     tid = self._store.store(f"orig-{idx}")

@@ -163,9 +163,7 @@ class TestRedTeam:
 class TestBlueTeam:
     def test_counterexample_response_not_conceded(self):
         blue = BlueTeam()
-        challenge = AdversarialChallenge(
-            "c1", "counterexample", "empty input", "critical"
-        )
+        challenge = AdversarialChallenge("c1", "counterexample", "empty input", "critical")
         defenses = blue.respond([challenge])
         assert len(defenses) == 1
         assert defenses[0].conceded is False
@@ -173,17 +171,13 @@ class TestBlueTeam:
 
     def test_incompleteness_response_conceded(self):
         blue = BlueTeam()
-        challenge = AdversarialChallenge(
-            "c1", "incompleteness", "no error handling", "critical"
-        )
+        challenge = AdversarialChallenge("c1", "incompleteness", "no error handling", "critical")
         defenses = blue.respond([challenge])
         assert defenses[0].conceded is True
 
     def test_edge_case_response_with_locking(self):
         blue = BlueTeam()
-        challenge = AdversarialChallenge(
-            "c1", "edge_case", "concurrent access", "warning"
-        )
+        challenge = AdversarialChallenge("c1", "edge_case", "concurrent access", "warning")
         defenses = blue.respond([challenge])
         assert "Lock" in defenses[0].mitigation or "lock" in defenses[0].mitigation
 
@@ -192,9 +186,11 @@ class TestBlueTeam:
             return [AdversarialDefense(c.challenge_id, "custom", conceded=True) for c in challenges]
 
         blue = BlueTeam(responder=custom_respond)
-        defenses = blue.respond([
-            AdversarialChallenge("c1", "test", "test", "info"),
-        ])
+        defenses = blue.respond(
+            [
+                AdversarialChallenge("c1", "test", "test", "info"),
+            ]
+        )
         assert defenses[0].conceded is True
 
 
@@ -288,9 +284,7 @@ class TestAdversarialVerifyMode:
         # Proposal without "error"/"exception"/"fail" keywords triggers incompleteness
         result = mode.execute("build user feature with input validation")
         # Incompleteness challenge fires because "error" not in proposal
-        incompleteness = [
-            c for c in result.challenges if c.challenge_type == "incompleteness"
-        ]
+        incompleteness = [c for c in result.challenges if c.challenge_type == "incompleteness"]
         assert len(incompleteness) >= 1
         # Blue concedes incompleteness → red wins
         assert result.passed is False
@@ -314,12 +308,14 @@ class TestAdversarialVerifyMode:
 
     def test_custom_teams_injection(self):
         """自定义红蓝裁判注入。"""
-        custom_red = RedTeam(challenge_generator=lambda _p: [
-            AdversarialChallenge("custom", "custom", "custom", "critical"),
-        ])
-        custom_blue = BlueTeam(responder=lambda cs: [
-            AdversarialDefense(c.challenge_id, "ok", conceded=False) for c in cs
-        ])
+        custom_red = RedTeam(
+            challenge_generator=lambda _p: [
+                AdversarialChallenge("custom", "custom", "custom", "critical"),
+            ]
+        )
+        custom_blue = BlueTeam(
+            responder=lambda cs: [AdversarialDefense(c.challenge_id, "ok", conceded=False) for c in cs]
+        )
         custom_judge = Judge()
 
         mode = AdversarialVerifyMode(

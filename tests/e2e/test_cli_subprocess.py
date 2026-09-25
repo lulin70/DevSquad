@@ -97,9 +97,13 @@ class TestCLISubprocessDispatch:
         """``devsquad dispatch -t "..." --dry-run`` produces Markdown report."""
         result = _run_cli(
             "dispatch",
-            "-t", "Design a simple user authentication system",
-            "--roles", "architect", "coder",
-            "--mode", "parallel",
+            "-t",
+            "Design a simple user authentication system",
+            "--roles",
+            "architect",
+            "coder",
+            "--mode",
+            "parallel",
             "--dry-run",
             timeout=90,  # dry-run still spins up Coordinator
         )
@@ -115,8 +119,10 @@ class TestCLISubprocessDispatch:
         # Ensure no API keys in env (already set by _run_cli default env.copy)
         result = _run_cli(
             "dispatch",
-            "-t", "Test task for mock backend",
-            "--backend", "mock",
+            "-t",
+            "Test task for mock backend",
+            "--backend",
+            "mock",
             "--dry-run",
             timeout=60,
         )
@@ -126,8 +132,10 @@ class TestCLISubprocessDispatch:
         """``--format compact`` produces compact output (not full Markdown)."""
         result = _run_cli(
             "dispatch",
-            "-t", "Compact format test",
-            "--format", "compact",
+            "-t",
+            "Compact format test",
+            "--format",
+            "compact",
             "--dry-run",
             timeout=60,
         )
@@ -156,8 +164,7 @@ class TestCLISubprocessInfo:
                     found.append(sid)
                     break
         assert len(found) == 7, (
-            f"Expected all 7 short role IDs in output, found {len(found)}: {found}\n"
-            f"stdout: {result.stdout[:500]}"
+            f"Expected all 7 short role IDs in output, found {len(found)}: {found}\nstdout: {result.stdout[:500]}"
         )
 
     def test_cli_status_reports_system_state(self) -> None:
@@ -173,9 +180,7 @@ class TestCLISubprocessInfo:
     def test_cli_demo_runs_in_mock_mode(self) -> None:
         """``devsquad demo`` runs all scenarios in mock mode without errors."""
         result = _run_cli("demo", timeout=90)  # demo may take time
-        assert result.returncode == 0, (
-            f"demo failed (exit {result.returncode})\nstderr: {result.stderr[:500]}"
-        )
+        assert result.returncode == 0, f"demo failed (exit {result.returncode})\nstderr: {result.stderr[:500]}"
         # Demo produces meaningful output (not empty)
         assert len(result.stdout) > 50, f"Demo output too short: {result.stdout!r}"
 

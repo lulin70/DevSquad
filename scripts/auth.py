@@ -190,14 +190,12 @@ class AuthManager:
             )
         if not cookie_httponly:
             warnings.append(
-                "Cookie 'httponly' is false — JavaScript can access the cookie (XSS risk). "
-                "Set httponly=true."
+                "Cookie 'httponly' is false — JavaScript can access the cookie (XSS risk). Set httponly=true."
             )
         valid_samesite = {"Lax", "Strict", "None"}
         if cookie_samesite not in valid_samesite:
             warnings.append(
-                f"Cookie 'samesite'={cookie_samesite!r} is invalid. "
-                f"Must be one of {sorted(valid_samesite)}."
+                f"Cookie 'samesite'={cookie_samesite!r} is invalid. Must be one of {sorted(valid_samesite)}."
             )
         elif cookie_samesite == "None":
             warnings.append(
@@ -228,9 +226,7 @@ class AuthManager:
         """
         iterations = 390000  # OWASP 2023 recommended minimum
         salt = secrets.token_bytes(16)  # 128-bit salt
-        hash_bytes = hashlib.pbkdf2_hmac(
-            "sha256", password.encode("utf-8"), salt, iterations
-        )
+        hash_bytes = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
         return f"pbkdf2_sha256${iterations}${salt.hex()}${hash_bytes.hex()}"
 
     def _verify_password(self, password: str, stored_hash: str) -> bool:
@@ -256,9 +252,7 @@ class AuthManager:
                 iterations = int(iterations_str)
                 salt = bytes.fromhex(salt_hex)
                 expected = bytes.fromhex(hash_hex)
-                actual = hashlib.pbkdf2_hmac(
-                    "sha256", password.encode("utf-8"), salt, iterations
-                )
+                actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
                 return secrets.compare_digest(actual, expected)
             except (ValueError, IndexError):
                 return False
@@ -357,8 +351,7 @@ class AuthManager:
                         session_id="no_auth_mode",
                     )
                     _logger.warning(
-                        "Auth disabled: granting VIEWER role (not admin). "
-                        "Enable authentication for admin access."
+                        "Auth disabled: granting VIEWER role (not admin). Enable authentication for admin access."
                     )
                 return
 

@@ -51,6 +51,7 @@ from scripts.collaboration.agent_identity import (  # noqa: E402
 from scripts.collaboration.dispatch_audit import DispatchAuditLogger  # noqa: E402
 from scripts.collaboration.scratchpad import Scratchpad  # noqa: E402
 from scripts.collaboration.worker import Worker  # noqa: E402
+from tests.conftest import env_perf_factor, perf_ceiling_ms  # noqa: E402
 
 
 class TestAgentIdentity(unittest.TestCase):
@@ -103,6 +104,7 @@ class TestAgentIdentity(unittest.TestCase):
         self.assertEqual(len(hash_part), 8)
         # And it equals the documented sha256[:8] of role:backend:model.
         import hashlib
+
         expected = hashlib.sha256(b"architect:mock:mock").hexdigest()[:8]
         self.assertEqual(hash_part, expected)
 
@@ -137,12 +139,30 @@ class TestAgentIdentity(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_derive_agent_id_performance(self) -> None:
-        """Performance: 2000 derivations complete in < 100ms (sha256 is fast)."""
+        """Performance: 2000 derivations complete in < 100ms (sha256 is fast).
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) using an
+        *operation-independent* reference-workload control. The factor is 1.0 on
+        the calibration host so the ceiling equals the original 100 ms budget
+        there. The control must not touch the code under test: a same-code-path
+        control (e.g. 200 derivations) would inflate along with a regression,
+        grow the ceiling in lockstep, and the gate could no longer fail. The gate
+        keeps its intent: a ``derive_agent_id`` that became super-linear in the
+        loop (e.g. hashing the whole call history) still fails.
+        """
+        ceiling_ms = perf_ceiling_ms(100.0)
         start = time.perf_counter()
         for i in range(2000):
             derive_agent_id("architect", "mock", f"model-{i}")
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 100.0, f"derive_agent_id too slow: {elapsed_ms:.2f}ms")
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            (
+                f"derive_agent_id too slow: {elapsed_ms:.2f}ms exceeds ceiling "
+                f"{ceiling_ms:.2f}ms (host factor {env_perf_factor():.2f}x)"
+            ),
+        )
 
     # ------------------------------------------------------------------
     # Integration: Worker.agent_id
@@ -206,11 +226,13 @@ class TestAgentIdentity(unittest.TestCase):
         tester = AgentIdentity.create("tester", "mock", "mock")
         # Record one event per agent with agent_id embedded in details.
         logger._append_entry(
-            "dispatch_start", arch.agent_id,
+            "dispatch_start",
+            arch.agent_id,
             {"agent_id": arch.agent_id, "task": "design"},
         )
         logger._append_entry(
-            "dispatch_start", tester.agent_id,
+            "dispatch_start",
+            tester.agent_id,
             {"agent_id": tester.agent_id, "task": "test"},
         )
 

@@ -7,6 +7,7 @@ and exports a Markdown "Risk Management" section for the dispatch report.
 Anti-ghost: module-level ``_call_counter_er`` increments on every public method
 call, verifiable by E2E test E13 (``test_e2e_dispatch_increments_all_five_counters``).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -44,8 +45,7 @@ def _coerce_strategy(value: Any) -> ResponseStrategy:
             return ResponseStrategy(value.lower())
         except ValueError as exc:
             raise ValueError(
-                f"Unknown response_strategy: {value!r}. "
-                f"Must be one of {[s.value for s in ResponseStrategy]}"
+                f"Unknown response_strategy: {value!r}. Must be one of {[s.value for s in ResponseStrategy]}"
             ) from exc
     raise TypeError(f"response_strategy must be str or ResponseStrategy, got {type(value)!r}")
 
@@ -58,10 +58,7 @@ def _coerce_status(value: Any) -> RiskStatus:
         try:
             return RiskStatus(value.lower())
         except ValueError as exc:
-            raise ValueError(
-                f"Unknown status: {value!r}. "
-                f"Must be one of {[s.value for s in RiskStatus]}"
-            ) from exc
+            raise ValueError(f"Unknown status: {value!r}. Must be one of {[s.value for s in RiskStatus]}") from exc
     raise TypeError(f"status must be str or RiskStatus, got {type(value)!r}")
 
 
@@ -280,10 +277,7 @@ class RiskRegister:
         for role_id, (p, i) in votes.items():
             weight = ROLE_WEIGHTS.get(role_id)
             if weight is None:
-                raise ValueError(
-                    f"Unknown role_id: {role_id!r}. "
-                    f"Must be one of {list(ROLE_WEIGHTS.keys())}"
-                )
+                raise ValueError(f"Unknown role_id: {role_id!r}. Must be one of {list(ROLE_WEIGHTS.keys())}")
             total_weight += weight
             sum_p += weight * p
             sum_i += weight * i

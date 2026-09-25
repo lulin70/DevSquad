@@ -151,9 +151,7 @@ class ArtifactStore:
         try:
             self.root.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            raise ArtifactStoreError(
-                f"Cannot create ArtifactStore root {self.root}: {exc}"
-            ) from exc
+            raise ArtifactStoreError(f"Cannot create ArtifactStore root {self.root}: {exc}") from exc
         _inc_call_counter_er()
 
     # ---- internal helpers ----
@@ -174,9 +172,7 @@ class ArtifactStore:
         try:
             return cast(dict[str, Any], json.loads(manifest_path.read_text(encoding="utf-8")))
         except (OSError, json.JSONDecodeError) as exc:
-            raise ArtifactStoreError(
-                f"Cannot read manifest {manifest_path}: {exc}"
-            ) from exc
+            raise ArtifactStoreError(f"Cannot read manifest {manifest_path}: {exc}") from exc
 
     def _write_manifest(self, session_id: str, manifest: dict[str, Any]) -> None:
         manifest_path = self._manifest_path(session_id)
@@ -188,9 +184,7 @@ class ArtifactStore:
             )
             os.replace(tmp_path, manifest_path)
         except OSError as exc:
-            raise ArtifactStoreError(
-                f"Cannot write manifest {manifest_path}: {exc}"
-            ) from exc
+            raise ArtifactStoreError(f"Cannot write manifest {manifest_path}: {exc}") from exc
 
     def _compute_sha256(self, data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
@@ -234,16 +228,12 @@ class ArtifactStore:
         elif isinstance(content, bytes):
             data = content
         else:
-            raise ArtifactStoreError(
-                f"content must be str or bytes, got {type(content).__name__}"
-            )
+            raise ArtifactStoreError(f"content must be str or bytes, got {type(content).__name__}")
 
         # Snapshot existing content for revert (P12.2.5)
         # Validate filename first (no path traversal)
         if os.path.sep in filename or (os.path.altsep and os.path.altsep in filename):
-            raise ArtifactStoreError(
-                f"filename must not contain path separators: {filename!r}"
-            )
+            raise ArtifactStoreError(f"filename must not contain path separators: {filename!r}")
         if filename in ("", ".", ".."):
             raise ArtifactStoreError(f"Invalid filename: {filename!r}")
 
@@ -252,9 +242,7 @@ class ArtifactStore:
         try:
             role_dir.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            raise ArtifactStoreError(
-                f"Cannot create role directory {role_dir}: {exc}"
-            ) from exc
+            raise ArtifactStoreError(f"Cannot create role directory {role_dir}: {exc}") from exc
 
         # Snapshot existing content (for revert — P12.2.5)
         _pre_existing_bytes: bytes | None = None
@@ -274,9 +262,7 @@ class ArtifactStore:
         except OSError as exc:
             with contextlib.suppress(OSError):
                 tmp_path.unlink()
-            raise ArtifactStoreError(
-                f"Cannot write artifact {file_path}: {exc}"
-            ) from exc
+            raise ArtifactStoreError(f"Cannot write artifact {file_path}: {exc}") from exc
 
         # Build artifact descriptor
         artifact = Artifact(
@@ -294,8 +280,7 @@ class ArtifactStore:
         manifest = self._read_manifest(session_id)
         # Remove any prior entry for same path (overwrite semantics)
         manifest["artifacts"] = [
-            a for a in manifest["artifacts"] if a["filename"] != filename
-            or a["role_id"] != role_id
+            a for a in manifest["artifacts"] if a["filename"] != filename or a["role_id"] != role_id
         ]
         manifest["artifacts"].append(asdict(artifact))
         self._write_manifest(session_id, manifest)
@@ -366,23 +351,17 @@ class ArtifactStore:
                 if entry.get("artifact_id") == artifact_id:
                     file_path = Path(entry["path"])
                     if not file_path.exists():
-                        raise ArtifactStoreError(
-                            f"Artifact file missing: {file_path}"
-                        )
+                        raise ArtifactStoreError(f"Artifact file missing: {file_path}")
                     try:
                         data = file_path.read_bytes()
                     except OSError as exc:
-                        raise ArtifactStoreError(
-                            f"Cannot read artifact {file_path}: {exc}"
-                        ) from exc
+                        raise ArtifactStoreError(f"Cannot read artifact {file_path}: {exc}") from exc
                     if entry.get("kind") == "binary":
                         return data
                     return data.decode("utf-8")
         raise ArtifactStoreError(f"Artifact {artifact_id} not found")
 
-    def list(
-        self, session_id: str, *, role_id: str | None = None
-    ) -> list[Artifact]:
+    def list(self, session_id: str, *, role_id: str | None = None) -> list[Artifact]:
         """List artifacts in a session, optionally filtered by role.
 
         Args:

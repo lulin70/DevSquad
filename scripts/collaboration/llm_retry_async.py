@@ -292,6 +292,7 @@ def async_retry_with_fallback(
             Wrapped async callable that retries on failure and falls back
             across backends.
         """
+
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Invoke the wrapped async function with retry and fallback handling."""
@@ -318,6 +319,7 @@ if __name__ == "__main__":
     # Example usage
     async def main() -> None:
         """Run an example demonstrating async retry-with-fallback behavior."""
+
         @async_retry_with_fallback(max_retries=3, fallback_backends=["backup"])
         async def test_func(value: int, backend: str = "primary") -> str:
             """Example function that fails for values below 3 to demonstrate retries."""

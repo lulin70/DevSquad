@@ -198,9 +198,7 @@ class CoeffectResolver:
             if color[start] != WHITE:
                 continue
             # Iterative DFS using a stack of (node, neighbor_iter)
-            stack: list[tuple[str, Any]] = [
-                (start, iter(sorted(self._graph.get(start, set()))))
-            ]
+            stack: list[tuple[str, Any]] = [(start, iter(sorted(self._graph.get(start, set()))))]
             color[start] = GRAY
             while stack:
                 node, neighbors = stack[-1]
@@ -236,8 +234,6 @@ class CoeffectResolver:
                 for dep in deps:
                     if dep not in self._modules:
                         errors.append(
-                            CoeffectDanglingError(
-                                f"{module_id}.depends_on() references unregistered module {dep!r}"
-                            )
+                            CoeffectDanglingError(f"{module_id}.depends_on() references unregistered module {dep!r}")
                         )
         return errors

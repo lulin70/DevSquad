@@ -761,9 +761,7 @@ class TestRuleCollectorProcess:
         )
         from scripts.collaboration.rule_collector import ExtractionResult as ExtResult
 
-        collector._extractor.extract = MagicMock(
-            return_value=ExtResult(success=True, rule_data=low_conf_rule)
-        )
+        collector._extractor.extract = MagicMock(return_value=ExtResult(success=True, rule_data=low_conf_rule))
         result = collector.process("记住规则: x, ok")
         assert result.rule_detected
         assert result.rule_result is None
@@ -875,10 +873,7 @@ class TestRuleCollectorFormatting:
 
     def test_format_list_response_truncates_to_20(self):
         collector = RuleCollector()
-        rules = [
-            {"rule_id": f"R{i}", "type": "always", "action": "a", "trigger": "t"}
-            for i in range(25)
-        ]
+        rules = [{"rule_id": f"R{i}", "type": "always", "action": "a", "trigger": "t"} for i in range(25)]
         msg = collector._format_list_response(rules, "en")
         assert msg.count("R") < 30
 

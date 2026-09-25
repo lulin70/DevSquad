@@ -570,10 +570,36 @@ class Worker:
             candidates = set(_re.findall(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b", task_description))
             # Filter out common English words (very short heuristic stoplist).
             stoplist = {
-                "the", "and", "for", "with", "that", "this", "from", "have",
-                "will", "your", "their", "they", "are", "was", "were", "been",
-                "should", "would", "could", "must", "shall", "may", "might",
-                "can", "into", "onto", "over", "under", "between", "through",
+                "the",
+                "and",
+                "for",
+                "with",
+                "that",
+                "this",
+                "from",
+                "have",
+                "will",
+                "your",
+                "their",
+                "they",
+                "are",
+                "was",
+                "were",
+                "been",
+                "should",
+                "would",
+                "could",
+                "must",
+                "shall",
+                "may",
+                "might",
+                "can",
+                "into",
+                "onto",
+                "over",
+                "under",
+                "between",
+                "through",
             }
             candidates = {c for c in candidates if c.lower() not in stoplist}
 
@@ -588,14 +614,16 @@ class Worker:
                 except (AttributeError, ValueError, RuntimeError):
                     continue
                 for sym in symbols[:3]:  # Max 3 hits per name.
-                    hints.append({
-                        "name": sym.name,
-                        "type": getattr(sym, "symbol_type", "unknown"),
-                        "file": getattr(sym, "file_path", ""),
-                        "line_start": getattr(sym, "line_start", 0),
-                        "line_end": getattr(sym, "line_end", 0),
-                        "signature": getattr(sym, "signature", ""),
-                    })
+                    hints.append(
+                        {
+                            "name": sym.name,
+                            "type": getattr(sym, "symbol_type", "unknown"),
+                            "file": getattr(sym, "file_path", ""),
+                            "line_start": getattr(sym, "line_start", 0),
+                            "line_end": getattr(sym, "line_end", 0),
+                            "signature": getattr(sym, "signature", ""),
+                        }
+                    )
             return hints
         except (AttributeError, ValueError, TypeError, RuntimeError) as e:
             logger.debug("CodeKnowledgeGraph query failed for worker %s: %s", self.worker_id, e)
@@ -809,7 +837,14 @@ class WorkerFactory:
 
     @staticmethod
     def create(
-        worker_id: str, role_id: str, role_prompt: str, scratchpad: Scratchpad, llm_backend: Any = None, stream: bool = False, content_cache: Any = None, code_graph: Any = None
+        worker_id: str,
+        role_id: str,
+        role_prompt: str,
+        scratchpad: Scratchpad,
+        llm_backend: Any = None,
+        stream: bool = False,
+        content_cache: Any = None,
+        code_graph: Any = None,
     ) -> Worker:
         """
         Create a single Worker instance.
@@ -827,10 +862,21 @@ class WorkerFactory:
         Returns:
             Worker: Newly created Worker instance
         """
-        return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend, stream=stream, content_cache=content_cache, code_graph=code_graph)
+        return Worker(
+            worker_id,
+            role_id,
+            role_prompt,
+            scratchpad,
+            llm_backend,
+            stream=stream,
+            content_cache=content_cache,
+            code_graph=code_graph,
+        )
 
     @staticmethod
-    def create_batch(workers_config: list[dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None) -> list[Worker]:
+    def create_batch(
+        workers_config: list[dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None
+    ) -> list[Worker]:
         """
         Batch create Worker instances.
 

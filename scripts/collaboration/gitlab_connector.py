@@ -98,12 +98,8 @@ class GitLabConnector:
         """
         self._force_simulation: bool = simulation
         self._token: str | None = token or os.environ.get("GITLAB_TOKEN")
-        self._base_url: str = (
-            (base_url or os.environ.get("GITLAB_BASE_URL") or self.DEFAULT_BASE_URL).rstrip("/")
-        )
-        self._glab_cli: str | None = (
-            shutil.which("glab") if (not self._token and not simulation) else None
-        )
+        self._base_url: str = (base_url or os.environ.get("GITLAB_BASE_URL") or self.DEFAULT_BASE_URL).rstrip("/")
+        self._glab_cli: str | None = shutil.which("glab") if (not self._token and not simulation) else None
         self._operations: list[ConnectorOperation] = []
 
     @property
@@ -122,9 +118,7 @@ class GitLabConnector:
         """Public accessor for the configured base URL."""
         return self._base_url
 
-    def _record(
-        self, operation: str, target: str, success: bool, details: dict[str, Any]
-    ) -> ConnectorOperation:
+    def _record(self, operation: str, target: str, success: bool, details: dict[str, Any]) -> ConnectorOperation:
         """Record an operation and return it."""
         op = ConnectorOperation(
             connector_name=self.CONNECTOR_NAME,
@@ -153,9 +147,7 @@ class GitLabConnector:
     # Public API (each increments _call_counter_er — anti-ghost)
     # ------------------------------------------------------------------
 
-    def create_mr_comment(
-        self, project: str, mr_iid: int, body: str
-    ) -> ConnectorOperation:
+    def create_mr_comment(self, project: str, mr_iid: int, body: str) -> ConnectorOperation:
         """Post a comment on a GitLab merge request.
 
         Args:
@@ -172,11 +164,14 @@ class GitLabConnector:
         ref = GitLabMRRef(project=project, mr_iid=mr_iid)
         if self.mode == "simulation":
             return self._record(
-                "create_mr_comment", ref.target, True,
+                "create_mr_comment",
+                ref.target,
+                True,
                 {"simulation": True, "body": body[:200]},
             )
         try:
             import urllib.parse
+
             url = (
                 f"{self._base_url}/api/{self.PROJECT_API_VERSION}"
                 f"/projects/{urllib.parse.quote(project, safe='/')}"
@@ -187,21 +182,27 @@ class GitLabConnector:
             else:
                 assert self._glab_cli is not None
                 subprocess.run(
-                    [self._glab_cli, "mr", "note", str(mr_iid),
-                     "--project", project, "--message", body],
-                    check=True, capture_output=True, text=True, timeout=30,
+                    [self._glab_cli, "mr", "note", str(mr_iid), "--project", project, "--message", body],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
                 )
             return self._record(
-                "create_mr_comment", ref.target, True, {"body": body[:200]},
+                "create_mr_comment",
+                ref.target,
+                True,
+                {"body": body[:200]},
             )
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as exc:
             return self._record(
-                "create_mr_comment", ref.target, False, {"error": str(exc)},
+                "create_mr_comment",
+                ref.target,
+                False,
+                {"error": str(exc)},
             )
 
-    def update_issue_state(
-        self, project: str, issue_iid: int, state: str
-    ) -> ConnectorOperation:
+    def update_issue_state(self, project: str, issue_iid: int, state: str) -> ConnectorOperation:
         """Open or close a GitLab issue.
 
         Args:
@@ -219,16 +220,21 @@ class GitLabConnector:
         state = state.lower()
         if state not in ("open", "closed"):
             return self._record(
-                "update_issue_state", target, False,
+                "update_issue_state",
+                target,
+                False,
                 {"error": f"Invalid state: {state}"},
             )
         if self.mode == "simulation":
             return self._record(
-                "update_issue_state", target, True,
+                "update_issue_state",
+                target,
+                True,
                 {"simulation": True, "state": state},
             )
         try:
             import urllib.parse
+
             url = (
                 f"{self._base_url}/api/{self.PROJECT_API_VERSION}"
                 f"/projects/{urllib.parse.quote(project, safe='/')}"
@@ -245,16 +251,20 @@ class GitLabConnector:
                 )
                 subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=30)
             return self._record(
-                "update_issue_state", target, True, {"state": state},
+                "update_issue_state",
+                target,
+                True,
+                {"state": state},
             )
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as exc:
             return self._record(
-                "update_issue_state", target, False, {"error": str(exc)},
+                "update_issue_state",
+                target,
+                False,
+                {"error": str(exc)},
             )
 
-    def submit_mr_review(
-        self, project: str, mr_iid: int, event: str, body: str
-    ) -> ConnectorOperation:
+    def submit_mr_review(self, project: str, mr_iid: int, event: str, body: str) -> ConnectorOperation:
         """Submit a GitLab MR approval / unapproval.
 
         GitLab uses a binary approve/unapprove model. We map:
@@ -277,16 +287,21 @@ class GitLabConnector:
         ref = GitLabMRRef(project=project, mr_iid=mr_iid)
         if event not in ("APPROVE", "REQUEST_CHANGES", "COMMENT"):
             return self._record(
-                "submit_mr_review", ref.target, False,
+                "submit_mr_review",
+                ref.target,
+                False,
                 {"error": f"Invalid event: {event}"},
             )
         if self.mode == "simulation":
             return self._record(
-                "submit_mr_review", ref.target, True,
+                "submit_mr_review",
+                ref.target,
+                True,
                 {"simulation": True, "event": event, "body": body[:200]},
             )
         try:
             import urllib.parse
+
             project_enc = urllib.parse.quote(project, safe="/")
             if self.mode == "api":
                 if event == "APPROVE":
@@ -306,21 +321,31 @@ class GitLabConnector:
                 if event == "APPROVE":
                     subprocess.run(
                         [self._glab_cli, "mr", "approve", str(mr_iid), "--project", project],
-                        check=True, capture_output=True, text=True, timeout=30,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
                     )
                 else:
                     subprocess.run(
-                        [self._glab_cli, "mr", "note", str(mr_iid),
-                         "--project", project, "--message", body],
-                        check=True, capture_output=True, text=True, timeout=30,
+                        [self._glab_cli, "mr", "note", str(mr_iid), "--project", project, "--message", body],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
                     )
             return self._record(
-                "submit_mr_review", ref.target, True,
+                "submit_mr_review",
+                ref.target,
+                True,
                 {"event": event, "body": body[:200]},
             )
         except (urllib.error.URLError, subprocess.CalledProcessError, OSError) as exc:
             return self._record(
-                "submit_mr_review", ref.target, False, {"error": str(exc)},
+                "submit_mr_review",
+                ref.target,
+                False,
+                {"error": str(exc)},
             )
 
     def get_operations(self) -> list[dict[str, Any]]:
@@ -340,9 +365,7 @@ class GitLabConnector:
         lines.append("")
         for i, op in enumerate(self._operations, 1):
             status = "OK" if op.success else "FAILED"
-            lines.append(
-                f"{i}. **{status}** — {op.operation} → {op.target}"
-            )
+            lines.append(f"{i}. **{status}** — {op.operation} → {op.target}")
             if op.details.get("error"):
                 lines.append(f"   - Error: {op.details['error']}")
         lines.append("")

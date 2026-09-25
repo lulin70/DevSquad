@@ -395,6 +395,7 @@ class TestConnectionManagement:
 
         def should_not_crash():
             return history_manager.get_database_size()
+
         try:
             result = should_not_crash()
             assert isinstance(result, dict) or result is None

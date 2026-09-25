@@ -79,6 +79,7 @@ class TestBackendPathContract:
     def test_backend_path_attribute_exists_on_abc(self):
         """LLMBackend ABC declares path attribute (default 'C')."""
         from scripts.collaboration.llm_backend import LLMBackend
+
         assert hasattr(LLMBackend, "path")
         assert LLMBackend.path == "C"
 
@@ -93,6 +94,7 @@ class TestRoleSequentialOnlyContract:
 
     def test_sequential_only_field_exists(self):
         from scripts.collaboration.models_dispatch import RoleDefinition
+
         field_names = {f.name for f in fields(RoleDefinition)}
         assert "sequential_only" in field_names
 
@@ -132,8 +134,14 @@ class TestPerfSnapshotFieldContract:
 
         field_names = {f.name for f in fields(PerfSnapshot)}
         required = {
-            "path", "call_count", "p50_ms", "p95_ms", "p99_ms",
-            "avg_ms", "min_ms", "max_ms",
+            "path",
+            "call_count",
+            "p50_ms",
+            "p95_ms",
+            "p99_ms",
+            "avg_ms",
+            "min_ms",
+            "max_ms",
         }
         missing = required - field_names
         assert not missing, f"PerfSnapshot missing required fields: {missing}"
@@ -144,8 +152,12 @@ class TestPerfSnapshotFieldContract:
 
         field_names = {f.name for f in fields(PerfSnapshot)}
         optional = {
-            "excluded_count", "snapshot_id", "timestamp",
-            "baseline_p95_ms", "delta_p95_pct", "within_threshold",
+            "excluded_count",
+            "snapshot_id",
+            "timestamp",
+            "baseline_p95_ms",
+            "delta_p95_pct",
+            "within_threshold",
         }
         missing = optional - field_names
         assert not missing, f"PerfSnapshot missing optional fields: {missing}"
@@ -154,9 +166,14 @@ class TestPerfSnapshotFieldContract:
         from scripts.collaboration.perf_baseline import PerfSnapshot
 
         snap = PerfSnapshot(
-            path="mock", call_count=50,
-            p50_ms=10.0, p95_ms=20.0, p99_ms=30.0,
-            avg_ms=15.0, min_ms=5.0, max_ms=40.0,
+            path="mock",
+            call_count=50,
+            p50_ms=10.0,
+            p95_ms=20.0,
+            p99_ms=30.0,
+            avg_ms=15.0,
+            min_ms=5.0,
+            max_ms=40.0,
             excluded_count=3,
             snapshot_id="v452",
             timestamp="2026-08-20T10:00:00",
@@ -185,30 +202,26 @@ class TestRequestIdValidationContract:
 
         bridge = HostLLMBridge()
         for valid_id in ["abc", "req_123", "A" * 64, "0_a_z_Z_9", "x"]:
-            assert bridge.validate_request_id(valid_id) is True, (
-                f"valid id {valid_id!r} should be accepted"
-            )
+            assert bridge.validate_request_id(valid_id) is True, f"valid id {valid_id!r} should be accepted"
 
     def test_invalid_ids_rejected(self):
         from scripts.collaboration.host_llm_bridge import HostLLMBridge
 
         bridge = HostLLMBridge()
         for bad_id in [
-            "../etc/passwd",       # path traversal
-            "/etc/passwd",         # absolute path
-            "id-with-dash",        # dash not allowed
-            "id with space",       # space
-            "id.with.dot",         # dot
-            "id/with/slash",       # slash
-            "id\\with\\backslash", # backslash
-            "id\nwith\nnewline",   # newline
-            "A" * 65,              # too long
-            "",                    # empty
-            "\x00null",            # null byte
+            "../etc/passwd",  # path traversal
+            "/etc/passwd",  # absolute path
+            "id-with-dash",  # dash not allowed
+            "id with space",  # space
+            "id.with.dot",  # dot
+            "id/with/slash",  # slash
+            "id\\with\\backslash",  # backslash
+            "id\nwith\nnewline",  # newline
+            "A" * 65,  # too long
+            "",  # empty
+            "\x00null",  # null byte
         ]:
-            assert bridge.validate_request_id(bad_id) is False, (
-                f"invalid id {bad_id!r} should be rejected"
-            )
+            assert bridge.validate_request_id(bad_id) is False, f"invalid id {bad_id!r} should be rejected"
 
 
 # ---------------------------------------------------------------------------
@@ -221,6 +234,7 @@ class TestTaskScaleOrchestratorContract:
 
     def test_orchestrator_field_exists(self):
         from scripts.collaboration.task_scale_gate import TaskScale
+
         field_names = {f.name for f in fields(TaskScale)}
         assert "orchestrator" in field_names
 
@@ -237,9 +251,7 @@ class TestTaskScaleOrchestratorContract:
             "debug 并发根因",
         ]:
             scale = TaskScaleGate().decide(task)
-            assert scale.orchestrator in allowed, (
-                f"task={task!r} produced orchestrator={scale.orchestrator!r}"
-            )
+            assert scale.orchestrator in allowed, f"task={task!r} produced orchestrator={scale.orchestrator!r}"
 
     def test_level_field_in_allowed_set(self):
         """TaskScale.level ∈ {"S", "M", "L"}."""

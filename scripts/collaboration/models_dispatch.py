@@ -61,6 +61,7 @@ class RoleDefinition:
         ...     weight=1.5,
         ... )
     """
+
     role_id: str
     name: str
     aliases: list[str]
@@ -631,9 +632,7 @@ class GitContext:
             )
             recent_commits: list[str] = []
             if log_proc.returncode == 0:
-                recent_commits = [
-                    line.strip() for line in log_proc.stdout.splitlines() if line.strip()
-                ]
+                recent_commits = [line.strip() for line in log_proc.stdout.splitlines() if line.strip()]
 
             return cls(branch=branch, recent_commits=recent_commits)
         except Exception:  # noqa: BLE001 — auto_detect must never raise

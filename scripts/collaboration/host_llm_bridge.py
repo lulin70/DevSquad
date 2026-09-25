@@ -168,13 +168,9 @@ class HostLLMBridge:
         try:
             value = int(raw)
         except ValueError as exc:
-            raise ValueError(
-                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={raw!r}: must be int ≥ 0"
-            ) from exc
+            raise ValueError(f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={raw!r}: must be int ≥ 0") from exc
         if value < 0:
-            raise ValueError(
-                f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={value}: must be ≥ 0"
-            )
+            raise ValueError(f"Invalid DEVSQUAD_BRIDGE_PRUNE_MAX_FILES={value}: must be ≥ 0")
         return value
 
     # request_id safety: only alphanumerics + underscore (prevent path traversal)
@@ -367,9 +363,7 @@ class HostLLMBridge:
     @staticmethod
     def _assert_safe_id(request_id: str) -> None:
         if not HostLLMBridge.validate_request_id(request_id):
-            raise ValueError(
-                f"Invalid request_id (must match [a-zA-Z0-9_]{{1,64}}): {request_id!r}"
-            )
+            raise ValueError(f"Invalid request_id (must match [a-zA-Z0-9_]{{1,64}}): {request_id!r}")
 
     def _request_path(self, request_id: str) -> str:
         return os.path.join(self.bridge_dir, f"request_{request_id}.json")
@@ -437,9 +431,7 @@ class HostBridgeBackend(LLMBackend):
 
         Default: 'general_purpose_task'.
         """
-        return HostBridgeBackend.SUBAGENT_TYPE_MAP.get(
-            agent_type, "general_purpose_task"
-        )
+        return HostBridgeBackend.SUBAGENT_TYPE_MAP.get(agent_type, "general_purpose_task")
 
     def __init__(
         self,
@@ -501,9 +493,7 @@ class HostBridgeBackend(LLMBackend):
             RuntimeError: If host reports failure (error wrapped for fuse counting).
         """
         if not self.is_available():
-            raise BackendUnavailable(
-                "Host Bridge 不可用（未检测到编程 AI 宿主 或 B 路径已熔断）"
-            )
+            raise BackendUnavailable("Host Bridge 不可用（未检测到编程 AI 宿主 或 B 路径已熔断）")
 
         agent_type = kwargs.get("agent_type") or kwargs.get("role_name") or "general"
         task = kwargs.get("task_description", "")

@@ -1,15 +1,16 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.19
+version: 4.5.20
 description: |
-  DevSquad V4.5.19 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.20 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   204+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.20 — Version-SSOT truth + deterministic review bundling (MINOR): the review-mode bundling announced in V4.5.0 was a contract-level ghost — neither `mode="review"` nor a `changeset` input existed anywhere in the dispatch pipeline, so `Coordinator.apply_file_bundling()` had no production caller for 19 releases. Both inputs now exist (`dispatch --mode review --changeset <files...>`, or `dispatch(..., mode="review", changeset=[...])`), routed via `PreDispatchPipeline.prepare_execution()` → `Coordinator.plan_review_bundles()`, with splits observable in `result.details["review_bundles"]` and the CLI JSON output. **Behaviour addition to note**: review mode with more than 5 files now yields one bundle per file group (grouped by directory + imports, so the bundle count follows the grouping and not the file count); `changeset=None`, non-review modes and ≤5 files behave exactly as V4.5.19. Also aligns 11 drifted `skills/*/skill-manifest.yaml` version fields and closes the version-gate blind spot for sub-skill manifests (64 → 77 checks), and replaces the anti-ghost gate's self-satisfying `counter > 0` assertion with a production probe (27 out-of-set counters are now honestly reported as `PASS (self-call)`). Known boundaries: `--dry-run` produces no bundle split, and the MCP tool does not expose `changeset`.
   V4.5.19 — Flaky-test cleanup PATCH (no new features): converts tests/test_dashboard_v43_panels.py::TestStatusUpdateLatency::test_status_update_latency from a single-shot `< 100ms` assertion into a 5-run median gate with a 150ms ceiling, plus `@pytest.mark.flaky(max_runs=3, min_passes=1)` backed by the newly-added pytest-rerunfailures dependency. The V4.5.18 tag-push CI run on the Python 3.10 matrix measured 281.65ms for the same four panel renders that finish in <10ms on a developer host, i.e. the assertion was measuring runner scheduler contention rather than panel cost. No production module changed → SemVer PATCH.
   V4.5.18 — Perf-extension + release-blocking hotfix PATCH (no new features): extends the V4.5.17 PRAGMA profile (WAL + synchronous=NORMAL + busy_timeout=5000) from code_graph_storage to ccr_store and history_manager; repairs the silent tuple drift in scripts/collaboration/_version.py (__version_info__ was (4, 6, 1) while __version__ was "4.5.17"); fixes a SkillRegistry thread-safety race (threading.RLock) that made test_06_concurrent_register_is_thread_safe fail intermittently on CI runners. Local benchmark: code_graph build 88-file median ~7s (was timeout>60s), CCR round-trip 0.074 ms/iter store + 0.030 ms/iter retrieve, History insert 0.060 ms/iter.
   V4.5.17 — PATCH cleanup (no new features): PR #9 CI failure repair (`mcp<2` pin + `httpx` install + pre-uninstall for pip-audit `--path site-packages` + red-team homoglyph opt-out + check_dependency_sync.py lazy-quantifier fix that had silently dropped bandit/pip-audit) + e2e subprocess portability (Path(__file__).resolve().parents[2] / sys.executable replaces hardcoded /Users/lin/.../.venv/bin/python) + release-readiness audit (`type: ignore` reasons + Bandit diagnostics + Codecov 70% gate retained) + archived stale planning docs. No semantic version bump rationale: 0 new features → SemVer PATCH. PRD: docs/prd/V4.6.1_cleanup_PRD.md.
@@ -34,7 +35,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.5.19 — Multi-Role AI Task Orchestrator
+# DevSquad V4.5.20 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -93,7 +94,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 204+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.19) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.20) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 
@@ -144,10 +145,45 @@ If you invoke DevSquad from a **non-AI IDE shell** (e.g., bare `python3 scripts/
 
 The actual "intelligence" comes from the host LLM, which is honest and explicit.
 
+## 📜 Deterministic-Layer Contract (V4.5.20 W1-0)
+
+The script layer above is deterministic — but only if you know what it promises.
+Three commitments decide which mode you should use; read them before choosing:
+
+1. **Delegation requires no API key.** Delegated mode (`host`) reads **no** API-key
+   environment variable — it works with `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and
+   `MOKA_API_KEY` all unset. DevSquad supplies the deterministic scaffolding, the
+   host Agent supplies the LLM, and the output quality is the host Agent's.
+   *This is a boundary, not a free model*: no key does not mean DevSquad generates
+   real LLM output itself. Protocol violations raise rather than silently falling
+   back to the mock backend.
+2. **Incomplete coverage exits non-zero.** If part of the requested code was never
+   examined, DevSquad does **not** return `0` with a partial report — the build must
+   not pass while code went unread. Interactive callers who want the partial result
+   should read it as data and ignore the exit code. Every failed role is named
+   individually, because *which* role failed decides what you do next.
+3. **`review --preview` makes zero LLM calls.** It prints the plan — what will be
+   reviewed and what was dropped, by which gate — so you can price a review without
+   paying for it. Sensitive paths are redacted or reduced to counts; output is
+   summary-first, with `--verbose` for per-path detail.
+
+The full contract — the eight named filter gates, the four-layer rule chain and its
+first-match semantics, and the delegation protocol boundary — is in
+[docs/reference/DETERMINISTIC_CONTRACT.md](docs/reference/DETERMINISTIC_CONTRACT.md).
+Each clause there carries an `Effective` wave, so nothing is promised ahead of the
+code that ships it.
+
+> **Status honesty (V4.5.20 W1-0)**: this section is the *spec* written ahead of the
+> implementation, by design. Commitment 1 is shipped; 2 lands with W2 and 3 with
+> W1-4; the rule-chain and gate detail lands with W1-1 … W1-3. `Effective` in the
+> contract doc is authoritative for what is live today. Drift is checked by
+> `scripts/check_skill_contract.py`, which verifies *presence*, not behaviour.
+
 **Quick navigation:**
 - Looking for a module's file/responsibility? → [MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md)
 - Looking for sub-skill usage or test iron rules? → [SUB_SKILLS.md](docs/reference/SUB_SKILLS.md)
 - Looking for what changed in a version? → [VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md)
+- Looking for the deterministic-layer contract? → [DETERMINISTIC_CONTRACT.md](docs/reference/DETERMINISTIC_CONTRACT.md)
 
 ---
 

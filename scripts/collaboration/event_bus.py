@@ -1,4 +1,5 @@
 """Lightweight event bus for dispatch pipeline decoupling."""
+
 import logging
 from collections import defaultdict
 from collections.abc import Callable

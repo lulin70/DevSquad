@@ -161,8 +161,7 @@ def save_lifecycle_state_to_checkpoint(
 
     try:
         phase_states_str = {
-            pid: (state.value if hasattr(state, "value") else str(state))
-            for pid, state in phase_states.items()
+            pid: (state.value if hasattr(state, "value") else str(state)) for pid, state in phase_states.items()
         }
         mode_str = mode.value if hasattr(mode, "value") else str(mode)
 
@@ -326,9 +325,7 @@ def check_phase_gate(
         return GateResult(passed=True, verdict="APPROVE")
 
     if not phase_def:
-        return GateResult(
-            passed=False, verdict="REJECT", gap_report=f"Phase {target} not found"
-        )
+        return GateResult(passed=False, verdict="REJECT", gap_report=f"Phase {target} not found")
 
     # Use UnifiedGateEngine if available
     if use_unified_gate and gate_engine:
@@ -346,9 +343,7 @@ def check_phase_gate(
             logger.warning("UnifiedGateEngine failed, falling back: %s", e)
 
     # Fallback to basic gate checks
-    return check_gate_basic(
-        target, phase_def, phase_states, completed_phases, strict_optional=strict_optional
-    )
+    return check_gate_basic(target, phase_def, phase_states, completed_phases, strict_optional=strict_optional)
 
 
 # ---------------------------------------------------------------------------
@@ -511,9 +506,7 @@ def analyze_source_directory(
             "total_classes": sum(m.get("total_classes", 0) for m in code_map.values()),
             "total_functions": sum(m.get("total_functions", 0) for m in code_map.values()),
             "dependencies": dep_graph,
-            "languages": list(
-                {m.get("language", "python") for m in code_map.values() if isinstance(m, dict)}
-            ),
+            "languages": list({m.get("language", "python") for m in code_map.values() if isinstance(m, dict)}),
         }
 
         return {"success": True, "analysis": analysis, "template_id": template_id}
@@ -575,9 +568,7 @@ def validate_spec_data(
         check = rule.get("check", "")
         severity = rule.get("severity", "warning")
         value = sections.get(field_name, spec_data.get(field_name, ""))
-        if check == "not_empty" and (
-            not value or (isinstance(value, str) and not value.strip())
-        ):
+        if check == "not_empty" and (not value or (isinstance(value, str) and not value.strip())):
             results["warnings"].append(
                 {
                     "field": field_name,

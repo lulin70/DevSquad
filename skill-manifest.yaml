@@ -1,13 +1,14 @@
 name: devsquad
-version: 4.5.19
+version: 4.5.20
 description: |
-  DevSquad V4.5.19 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.20 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   204+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.20 (version-SSOT truth + deterministic review bundling): MINOR — the review-mode bundling announced in V4.5.0 was a contract-level ghost: neither `mode="review"` nor a `changeset` input existed anywhere in the dispatch pipeline, so Coordinator.apply_file_bundling() had no production caller for 19 releases. Both inputs now exist (`dispatch --mode review --changeset <files...>`, or `dispatch(..., mode="review", changeset=[...])`), routed via PreDispatchPipeline.prepare_execution() → Coordinator.plan_review_bundles(), with splits observable in result.details["review_bundles"] and in CLI JSON output. Behaviour addition: review mode with more than 5 files now yields one bundle per file group (grouped by directory + imports — the bundle count follows the grouping, not the file count); changeset=None, non-review modes and ≤5 files stay byte-identical to V4.5.19. Also aligns 11 drifted skills/*/skill-manifest.yaml version fields, closes the version-gate blind spot for sub-skill manifests (64 → 77 checks), and replaces the anti-ghost gate's self-satisfying `counter > 0` assertion with a production probe (27 out-of-set counters are now honestly reported as self-call). Known boundaries: --dry-run produces no bundle split, and the MCP tool does not expose changeset.
   V4.5.19 (flaky-test cleanup): PATCH no new features — converts tests/test_dashboard_v43_panels.py::TestStatusUpdateLatency::test_status_update_latency from a single-shot `< 100ms` assertion into a 5-run median gate with a 150ms ceiling, plus `@pytest.mark.flaky(max_runs=3, min_passes=1)` via the newly-added pytest-rerunfailures dependency. Root cause: the V4.5.18 tag-push CI run on the Python 3.10 matrix measured 281.65ms for the same four panel renders that finish in <10ms on a developer host — the assertion was measuring GitHub-runner scheduler contention, not panel cost. No production module changed. No new features → SemVer PATCH.
   V4.5.18 (perf-extension + release-blocking hotfix): PATCH no new features — extends the V4.5.17 PRAGMA profile (WAL + synchronous=NORMAL + busy_timeout=5000) from code_graph_storage to ccr_store and history_manager, the other two production SQLite connections. Local benchmark: code_graph build 88-file median ~7s (was timeout>60s), CCR round-trip 0.074 ms/iter store + 0.030 ms/iter retrieve, History insert 0.060 ms/iter. Also repairs the silent tuple drift in scripts/collaboration/_version.py (__version_info__ was (4, 6, 1) while __version__ was "4.5.17" on V4.5.17), and fixes a SkillRegistry thread-safety race (threading.RLock around register/unregister/execute/search/list_skills/get_stats/get and the _save snapshot) that failed tests/integration/test_skill_registry_integration.py::test_06_concurrent_register_is_thread_safe intermittently on CI runners.
   V4.5.17: PATCH cleanup (no new features): PR #9 CI failure repair (`mcp<2` pin + `httpx` install + pre-uninstall for pip-audit `--path site-packages` + red-team homoglyph opt-out + check_dependency_sync.py lazy-quantifier fix that had silently dropped bandit/pip-audit) + e2e subprocess portability (Path(__file__).resolve().parents[2] / sys.executable replaces hardcoded /Users/lin/.../.venv/bin/python) + release-readiness audit (`type: ignore` reasons + Bandit diagnostics + Codecov 70% gate retained) + archived stale planning docs. No semantic version bump rationale: 0 new features → SemVer PATCH. PRD: docs/prd/V4.6.1_cleanup_PRD.md.
@@ -453,7 +454,7 @@ reference_docs:
   - path: docs/reference/SUB_SKILLS.md
     description: 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules
   - path: docs/reference/VERSION_HISTORY.md
-    description: Version history + per-version changelog (v1.0 → v4.5.19)
+    description: Version history + per-version changelog (v1.0 → v4.5.20)
 
 created_at: "2026-03-16T00:00:00"
 updated_at: "2026-09-18"

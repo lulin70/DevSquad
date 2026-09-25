@@ -99,11 +99,19 @@ def test_e2e_agent_identity_persistent_across_sessions():
 
     proc1 = subprocess.run(
         [sys.executable, "-c", script],
-        capture_output=True, text=True, env=env, cwd=_PROJECT_ROOT, timeout=30,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=_PROJECT_ROOT,
+        timeout=30,
     )
     proc2 = subprocess.run(
         [sys.executable, "-c", script],
-        capture_output=True, text=True, env=env, cwd=_PROJECT_ROOT, timeout=30,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=_PROJECT_ROOT,
+        timeout=30,
     )
 
     assert proc1.returncode == 0, f"session-1 subprocess failed: {proc1.stderr}"
@@ -135,12 +143,14 @@ def test_e2e_anti_ghost_all_v443_modules_activated():
         identity = AgentIdentity.create("architect", "mock", "mock")
         store = ScratchpadHistoryStore(db_path)
         sp = Scratchpad(scratchpad_id="ghost-session", history_store=store)
-        sp.write(ScratchpadEntry(
-            worker_id="arch-1",
-            role_id="architect",
-            entry_type=EntryType.FINDING,
-            content=f"Finding recorded by {identity.agent_id}",
-        ))
+        sp.write(
+            ScratchpadEntry(
+                worker_id="arch-1",
+                role_id="architect",
+                entry_type=EntryType.FINDING,
+                content=f"Finding recorded by {identity.agent_id}",
+            )
+        )
         results = store.search_history(query="Finding")
         assert len(results) == 1
         store.close()

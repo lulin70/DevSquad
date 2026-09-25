@@ -111,8 +111,19 @@ SCAN_DIRS: list[str] = [
 ]
 
 SCAN_EXTENSIONS: tuple[str, ...] = (
-    ".py", ".md", ".yaml", ".yml", ".json", ".toml",
-    ".sh", ".bash", ".txt", ".cfg", ".ini", ".env", ".example",
+    ".py",
+    ".md",
+    ".yaml",
+    ".yml",
+    ".json",
+    ".toml",
+    ".sh",
+    ".bash",
+    ".txt",
+    ".cfg",
+    ".ini",
+    ".env",
+    ".example",
 )
 
 EXCLUDE_PATH_PATTERNS: list[re.Pattern[str]] = [
@@ -278,9 +289,7 @@ class TestT1CodeNoPlaintextKey:
         if hits:
             report_lines = ["Found potential secrets in repo:"]
             for kind, file, snippet, line_no in hits[:20]:
-                report_lines.append(
-                    f"  [{kind}] {file}:{line_no}: {snippet[:32]}..."
-                )
+                report_lines.append(f"  [{kind}] {file}:{line_no}: {snippet[:32]}...")
             report = "\n".join(report_lines)
             pytest.fail(f"{len(hits)} potential secret(s) found:\n{report}")
 

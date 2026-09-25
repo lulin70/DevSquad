@@ -100,6 +100,7 @@ class TestFallbackFuse:
 
     def test_classify_error_auth(self):
         """Auth error (401) → auth_invalid."""
+
         # Create an exception with status_code attribute (like openai.APIError)
         class MockAuthError(Exception):
             status_code = 401
@@ -109,6 +110,7 @@ class TestFallbackFuse:
 
     def test_classify_error_rate_limit(self):
         """Rate limit (429) → rate_limit."""
+
         class MockRateLimitError(Exception):
             status_code = 429
 

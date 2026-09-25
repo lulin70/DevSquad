@@ -30,6 +30,7 @@ from scripts.collaboration.scratchpad import ScratchpadEntry
 
 def _reset_call_counter_er() -> None:
     import scripts.collaboration.dependency_hallucination_checker as mod
+
     mod._call_counter_er = 0
 
 
@@ -92,12 +93,7 @@ class T1_DispatchHookAutoTriggersScan(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "Here is the implementation:\n"
-                    "import huggingface_cli\n"
-                    "print('done')\n"
-                    "# end of code"
-                ),
+                "output": ("Here is the implementation:\nimport huggingface_cli\nprint('done')\n# end of code"),
             }
         ]
         results = self.hooks.scan_worker_outputs_for_hallucinated_deps(worker_results)
@@ -123,10 +119,7 @@ class T1_DispatchHookAutoTriggersScan(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "import huggingface_cli\n"
-                    "# more code here to pass length threshold"
-                ),
+                "output": ("import huggingface_cli\n# more code here to pass length threshold"),
             }
         ]
         self.hooks.scan_worker_outputs_for_hallucinated_deps(worker_results)
@@ -140,10 +133,7 @@ class T1_DispatchHookAutoTriggersScan(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "import huggingface_cli\n"
-                    "# more code here to pass length threshold"
-                ),
+                "output": ("import huggingface_cli\n# more code here to pass length threshold"),
             }
         ]
         self.hooks.scan_worker_outputs_for_hallucinated_deps(worker_results)
@@ -157,11 +147,7 @@ class T1_DispatchHookAutoTriggersScan(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "import requests\n"
-                    "import numpy\n"
-                    "# more code here to pass length threshold"
-                ),
+                "output": ("import requests\nimport numpy\n# more code here to pass length threshold"),
             }
         ]
         results = self.hooks.scan_worker_outputs_for_hallucinated_deps(worker_results)
@@ -260,10 +246,7 @@ class T4_PostExecutionProcessingIntegration(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "import huggingface_cli\n"
-                    "# implementation here to reach length threshold"
-                ),
+                "output": ("import huggingface_cli\n# implementation here to reach length threshold"),
             }
         ]
         before = get_call_count()
@@ -279,17 +262,12 @@ class T4_PostExecutionProcessingIntegration(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "import requests\n"
-                    "# implementation here to reach length threshold"
-                ),
+                "output": ("import requests\n# implementation here to reach length threshold"),
             }
         ]
         # Should not raise
-        summary, anchor, collection, errors, timing = (
-            self.hooks.post_execution_processing(
-                worker_results, structured_goal=None
-            )
+        summary, anchor, collection, errors, timing = self.hooks.post_execution_processing(
+            worker_results, structured_goal=None
         )
         self.assertIsInstance(errors, list)
         self.assertIn("step8_time", timing)
@@ -307,17 +285,11 @@ class T5_MultiWorkerScenarios(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "import requests\n"
-                    "# clean implementation here to reach length threshold"
-                ),
+                "output": ("import requests\n# clean implementation here to reach length threshold"),
             },
             {
                 "role_id": "architect",
-                "output": (
-                    "import huggingface_cli\n"
-                    "# suspicious code here to reach length threshold"
-                ),
+                "output": ("import huggingface_cli\n# suspicious code here to reach length threshold"),
             },
         ]
         results = self.hooks.scan_worker_outputs_for_hallucinated_deps(worker_results)
@@ -331,17 +303,11 @@ class T5_MultiWorkerScenarios(unittest.TestCase):
         worker_results = [
             {
                 "role_id": "coder",
-                "output": (
-                    "import huggingface_cli\n"
-                    "# code here to reach length threshold"
-                ),
+                "output": ("import huggingface_cli\n# code here to reach length threshold"),
             },
             {
                 "role_id": "architect",
-                "output": (
-                    "import aws-cdk\n"
-                    "# code here to reach length threshold"
-                ),
+                "output": ("import aws-cdk\n# code here to reach length threshold"),
             },
         ]
         results = self.hooks.scan_worker_outputs_for_hallucinated_deps(worker_results)

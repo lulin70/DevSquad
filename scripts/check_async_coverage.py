@@ -76,10 +76,7 @@ class CoverageReport:
             "covered_count": len(self.covered),
             "uncovered_count": len(self.uncovered),
             "coverage_percent": round(self.coverage_percent, 1),
-            "uncovered": [
-                {"name": f.name, "file": str(f.file), "line": f.line}
-                for f in self.uncovered
-            ],
+            "uncovered": [{"name": f.name, "file": str(f.file), "line": f.line} for f in self.uncovered],
         }
 
 
@@ -146,14 +143,14 @@ def extract_tested_names(test_dir: Path) -> set[str]:
                     tested_names.add(node.func.attr)
             # Test function names: test_<function_name>
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
-                    # Extract the function name being tested
-                    # e.g., test_reach_consensus → reach_consensus
-                    tested_part = node.name[5:]  # strip "test_"
-                    tested_names.add(tested_part)
-                    # Also handle test_<func>_xxx patterns
-                    parts = tested_part.split("_")
-                    for i in range(1, len(parts) + 1):
-                        tested_names.add("_".join(parts[:i]))
+                # Extract the function name being tested
+                # e.g., test_reach_consensus → reach_consensus
+                tested_part = node.name[5:]  # strip "test_"
+                tested_names.add(tested_part)
+                # Also handle test_<func>_xxx patterns
+                parts = tested_part.split("_")
+                for i in range(1, len(parts) + 1):
+                    tested_names.add("_".join(parts[:i]))
     return tested_names
 
 
@@ -292,9 +289,7 @@ def main() -> int:
     Returns:
         0 if all covered, 1 if some uncovered, 2 if invalid args.
     """
-    parser = argparse.ArgumentParser(
-        description="V4.2.0 P0-20: Detect async functions without test coverage."
-    )
+    parser = argparse.ArgumentParser(description="V4.2.0 P0-20: Detect async functions without test coverage.")
     parser.add_argument(
         "--source",
         type=Path,

@@ -10,7 +10,6 @@ from scripts.collaboration.audit_logger import AuditLogger, AuditRecord, Sensiti
 pytestmark = pytest.mark.unit
 
 
-
 class TestAuditLogger:
     def setup_method(self):
         self.tmpdir = tempfile.mkdtemp()

@@ -185,9 +185,7 @@ class RequirementTracer:
             matched_lines=matched_lines,
         )
 
-    def _scan_file_for_id(
-        self, path: Path, requirement_id: str
-    ) -> list[str]:
+    def _scan_file_for_id(self, path: Path, requirement_id: str) -> list[str]:
         """Scan a single file for references to a requirement ID."""
         if path.suffix not in _CODE_EXTS:
             return []
@@ -208,8 +206,6 @@ class RequirementTracer:
             List of :class:`TraceResult` sorted by requirement ID. Empty
             if :meth:`parse_requirements` has not been called.
         """
-        results = [
-            self.find_implementations(r.req_id) for r in self._requirements
-        ]
+        results = [self.find_implementations(r.req_id) for r in self._requirements]
         results.sort(key=lambda t: t.requirement.req_id)
         return results

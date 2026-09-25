@@ -91,9 +91,7 @@ class CCRStore:
                 )
                 """
             )
-            self._conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_ccr_created_at ON ccr_entries(created_at)"
-            )
+            self._conn.execute("CREATE INDEX IF NOT EXISTS idx_ccr_created_at ON ccr_entries(created_at)")
             self._conn.commit()
 
     # ------------------------------------------------------------------
@@ -157,16 +155,12 @@ class CCRStore:
         """
         cutoff = (datetime.now() - timedelta(days=ttl_days)).isoformat()
         with self._lock:
-            cursor = self._conn.execute(
-                "DELETE FROM ccr_entries WHERE created_at < ?", (cutoff,)
-            )
+            cursor = self._conn.execute("DELETE FROM ccr_entries WHERE created_at < ?", (cutoff,))
             deleted = cursor.rowcount
             self._conn.commit()
             # Purge LRU entries no longer in DB (simpler: rebuild from survivors)
             if deleted > 0:
-                survivor_rows = self._conn.execute(
-                    "SELECT trace_id, original FROM ccr_entries"
-                ).fetchall()
+                survivor_rows = self._conn.execute("SELECT trace_id, original FROM ccr_entries").fetchall()
                 survivor_ids = {row[0] for row in survivor_rows}
                 for stale_id in list(self._lru.keys()):
                     if stale_id not in survivor_ids:
@@ -217,9 +211,7 @@ class CCRStore:
                 self._touch_db(trace_id)
                 return self._lru[trace_id]
             # LRU miss → SQLite
-            row = self._conn.execute(
-                "SELECT original FROM ccr_entries WHERE trace_id = ?", (trace_id,)
-            ).fetchone()
+            row = self._conn.execute("SELECT original FROM ccr_entries WHERE trace_id = ?", (trace_id,)).fetchone()
             if row is None:
                 return None
             original = cast(str, row[0])
@@ -233,8 +225,7 @@ class CCRStore:
         """Update last_accessed + access_count in SQLite (best-effort)."""
         now_iso = datetime.now().isoformat()
         self._conn.execute(
-            "UPDATE ccr_entries SET last_accessed = ?, access_count = access_count + 1 "
-            "WHERE trace_id = ?",
+            "UPDATE ccr_entries SET last_accessed = ?, access_count = access_count + 1 WHERE trace_id = ?",
             (now_iso, trace_id),
         )
         self._conn.commit()
@@ -255,7 +246,5 @@ class CCRStore:
         if not terms:
             return original
         lines = original.splitlines()
-        matched = [
-            line for line in lines if any(term in line.lower() for term in terms)
-        ]
+        matched = [line for line in lines if any(term in line.lower() for term in terms)]
         return "\n".join(matched) if matched else original

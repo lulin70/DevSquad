@@ -62,9 +62,7 @@ def test_auto_approve_when_callback_none() -> None:
     result = gate.request_approval("write_file", "Write output.py")
 
     assert result.approved is True, "auto-approve must return approved=True"
-    assert "auto" in result.reason.lower(), (
-        f"reason should mention auto-approve, got: {result.reason!r}"
-    )
+    assert "auto" in result.reason.lower(), f"reason should mention auto-approve, got: {result.reason!r}"
     # A record must still be collected even when auto-approving.
     records = gate.get_records()
     assert len(records) == 1, f"expected 1 record, got {len(records)}"
@@ -149,10 +147,7 @@ def test_call_counter_increments_on_request_approval() -> None:
     gate = ApprovalGate()
     gate.request_approval("write_file", "anti-ghost probe")
     after = approval_gate_module._call_counter_er
-    assert after > before, (
-        f"_call_counter_er did not increment on request_approval: "
-        f"before={before}, after={after}"
-    )
+    assert after > before, f"_call_counter_er did not increment on request_approval: before={before}, after={after}"
 
 
 def test_call_counter_increments_on_get_records() -> None:
@@ -161,10 +156,7 @@ def test_call_counter_increments_on_get_records() -> None:
     before = approval_gate_module._call_counter_er
     gate.get_records()
     after = approval_gate_module._call_counter_er
-    assert after > before, (
-        f"_call_counter_er did not increment on get_records: "
-        f"before={before}, after={after}"
-    )
+    assert after > before, f"_call_counter_er did not increment on get_records: before={before}, after={after}"
 
 
 def test_call_counter_increments_on_export_markdown() -> None:
@@ -173,10 +165,7 @@ def test_call_counter_increments_on_export_markdown() -> None:
     before = approval_gate_module._call_counter_er
     gate.export_markdown()
     after = approval_gate_module._call_counter_er
-    assert after > before, (
-        f"_call_counter_er did not increment on export_markdown: "
-        f"before={before}, after={after}"
-    )
+    assert after > before, f"_call_counter_er did not increment on export_markdown: before={before}, after={after}"
 
 
 # ---------------------------------------------------------------------------
@@ -190,9 +179,7 @@ def test_get_call_count_returns_module_counter() -> None:
     gate = ApprovalGate()
     gate.request_approval("write_file", "probe for get_call_count")
     module_value = approval_gate_module._call_counter_er
-    assert get_call_count() == module_value, (
-        f"get_call_count()={get_call_count()} != _call_counter_er={module_value}"
-    )
+    assert get_call_count() == module_value, f"get_call_count()={get_call_count()} != _call_counter_er={module_value}"
 
 
 # ---------------------------------------------------------------------------
@@ -277,9 +264,7 @@ def test_approval_result_dataclass_fields_and_to_dict() -> None:
 
     # to_dict() must contain exactly the 3 required keys with correct values.
     d = res2.to_dict()
-    assert set(d.keys()) == {"approved", "reason", "timestamp"}, (
-        f"to_dict() keys mismatch: {set(d.keys())}"
-    )
+    assert set(d.keys()) == {"approved", "reason", "timestamp"}, f"to_dict() keys mismatch: {set(d.keys())}"
     assert d["approved"] is False
     assert d["reason"] == "Denied by policy"
     assert d["timestamp"] == 99.0
@@ -314,18 +299,14 @@ def test_dispatch_with_callback_populates_records_and_md(
 
     # result.approval_records is populated.
     assert isinstance(result.approval_records, list)
-    assert len(result.approval_records) >= 1, (
-        "approval_records must be populated when approval_callback is provided"
-    )
+    assert len(result.approval_records) >= 1, "approval_records must be populated when approval_callback is provided"
     rec = result.approval_records[0]
     assert rec["approved"] is True
     assert rec["reason"] == "user OK"
     assert rec["operation_type"] == "dispatch_complete"
 
     # result.approval_gate_md is populated and non-empty.
-    assert result.approval_gate_md != "", (
-        "approval_gate_md must be populated when approval_callback is provided"
-    )
+    assert result.approval_gate_md != "", "approval_gate_md must be populated when approval_callback is provided"
     assert "## Approval Gate" in result.approval_gate_md
     assert "APPROVED" in result.approval_gate_md
 
@@ -344,20 +325,14 @@ def test_dispatch_without_callback_backward_compat(
 
     # Backward compat: records are populated even without a callback (auto-approve).
     assert isinstance(result.approval_records, list)
-    assert len(result.approval_records) >= 1, (
-        "approval_records must be populated (auto-approve) even without callback"
-    )
+    assert len(result.approval_records) >= 1, "approval_records must be populated (auto-approve) even without callback"
     rec = result.approval_records[0]
     assert rec["approved"] is True, "auto-approve record must be approved=True"
-    assert "auto" in rec["reason"].lower(), (
-        f"auto-approve reason must mention 'auto', got: {rec['reason']!r}"
-    )
+    assert "auto" in rec["reason"].lower(), f"auto-approve reason must mention 'auto', got: {rec['reason']!r}"
     assert rec["operation_type"] == "dispatch_complete"
 
     # approval_gate_md is also populated (non-empty) under auto-approve.
-    assert result.approval_gate_md != "", (
-        "approval_gate_md must be populated even under auto-approve (backward compat)"
-    )
+    assert result.approval_gate_md != "", "approval_gate_md must be populated even under auto-approve (backward compat)"
     assert "## Approval Gate" in result.approval_gate_md
 
 
@@ -373,9 +348,7 @@ def test_dispatch_to_markdown_contains_approval_gate_section(
     """Integration: to_markdown() contains '## Approval Gate' when records exist."""
     result = dispatcher.dispatch("Design a payment gateway", dry_run=True)
     md = result.to_markdown()
-    assert "## Approval Gate" in md, (
-        "to_markdown() must contain '## Approval Gate' section when records exist"
-    )
+    assert "## Approval Gate" in md, "to_markdown() must contain '## Approval Gate' section when records exist"
     # The status line should be present.
     assert "APPROVED" in md, "to_markdown() must render the approval status"
 
@@ -393,6 +366,4 @@ def test_dispatch_to_dict_contains_approval_records_key(
     d = result.to_dict()
     assert "approval_records" in d, "to_dict() must contain 'approval_records' key"
     assert isinstance(d["approval_records"], list)
-    assert len(d["approval_records"]) >= 1, (
-        "approval_records in to_dict() must be populated after dispatch"
-    )
+    assert len(d["approval_records"]) >= 1, "approval_records in to_dict() must be populated after dispatch"

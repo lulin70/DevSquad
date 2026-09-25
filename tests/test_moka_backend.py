@@ -21,6 +21,7 @@ from scripts.collaboration.moka_backend import (
 def reset_counter():
     """Reset module-level counter between tests."""
     import scripts.collaboration.moka_backend as mod
+
     mod._call_counter_er = 0
     yield
     mod._call_counter_er = 0
@@ -48,6 +49,7 @@ class TestMokaAIBackendInit:
     def setup_method(self):
         # Wipe MOKA env vars for deterministic defaults
         import os
+
         for k in ("MOKA_API_KEY", "MOKA_MODEL", "MOKA_BASE_URL"):
             os.environ.pop(k, None)
 
@@ -83,9 +85,7 @@ class TestMokaAIBackendInit:
             assert b.model == "moka-env-model"
 
     def test_init_env_base_url_override(self):
-        with patch.dict(
-            os.environ, {"MOKA_BASE_URL": "https://env.moka.ai/v1"}, clear=True
-        ):
+        with patch.dict(os.environ, {"MOKA_BASE_URL": "https://env.moka.ai/v1"}, clear=True):
             b = MokaAIBackend(api_key="k")
             assert b.base_url == "https://env.moka.ai/v1"
 

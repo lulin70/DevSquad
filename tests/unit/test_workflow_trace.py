@@ -44,16 +44,12 @@ def test_trace_populated(dispatcher: MultiAgentDispatcher) -> None:
     """Happy: dispatch → result.workflow_trace has ≥1 step."""
     result = dispatcher.dispatch("Design a REST API for user management", dry_run=False)
     assert result.workflow_trace is not None, "workflow_trace must be set after dispatch"
-    assert len(result.workflow_trace.steps) >= 1, (
-        f"expected ≥1 step, got {len(result.workflow_trace.steps)}"
-    )
+    assert len(result.workflow_trace.steps) >= 1, f"expected ≥1 step, got {len(result.workflow_trace.steps)}"
     # Each step should have the required fields populated.
     step = result.workflow_trace.steps[0]
     assert step.step_name, "step_name must be non-empty"
     assert step.role_id, "role_id must be non-empty"
-    assert step.status in ("success", "failed", "running"), (
-        f"unexpected status: {step.status}"
-    )
+    assert step.status in ("success", "failed", "running"), f"unexpected status: {step.status}"
 
 
 # ---------------------------------------------------------------------------
@@ -79,9 +75,7 @@ def test_empty_workflow(dispatcher: MultiAgentDispatcher) -> None:
     """Boundary: dry_run=True → trace exists but has 0 steps."""
     result = dispatcher.dispatch("Design something", dry_run=True)
     # Trace must still be set (anti-ghost: always present, even if empty).
-    assert result.workflow_trace is not None, (
-        "workflow_trace must be set even on dry_run (anti-ghost)"
-    )
+    assert result.workflow_trace is not None, "workflow_trace must be set even on dry_run (anti-ghost)"
     assert len(result.workflow_trace.steps) == 0, (
         f"dry_run must produce 0 steps, got {len(result.workflow_trace.steps)}"
     )
@@ -169,6 +163,4 @@ def test_call_counter_er() -> None:
     # Construct a WorkflowTrace — should bump the counter.
     WorkflowTrace(task_description="anti-ghost verification")
     after = models_dispatch_module._call_counter_er
-    assert after > before, (
-        f"_call_counter_er did not increment: before={before}, after={after}"
-    )
+    assert after > before, f"_call_counter_er did not increment: before={before}, after={after}"

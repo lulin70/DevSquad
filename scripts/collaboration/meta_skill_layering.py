@@ -223,9 +223,9 @@ class MetaSkillGrouper:
 
     # Progressive disclosure user-level → max disclosure_level shown.
     _USER_LEVEL_MAX_DISCLOSURE: dict[str, int] = {
-        "beginner": 2,       # Foundation + Orchestration
-        "intermediate": 4,   # + Quality + Evolution
-        "advanced": 6,       # All layers
+        "beginner": 2,  # Foundation + Orchestration
+        "intermediate": 4,  # + Quality + Evolution
+        "advanced": 6,  # All layers
     }
 
     def _resolve_skill_names(self, skill_names: list[str] | None) -> list[str]:
@@ -337,10 +337,7 @@ class MetaSkillGrouper:
             ValueError: When layer_name is not a recognized meta-skill layer.
         """
         if layer_name not in self.META_LAYERS:
-            raise ValueError(
-                f"Unknown meta-skill layer: {layer_name!r}. "
-                f"Valid layers: {list(self.META_LAYERS.keys())}"
-            )
+            raise ValueError(f"Unknown meta-skill layer: {layer_name!r}. Valid layers: {list(self.META_LAYERS.keys())}")
         info = self.META_LAYERS[layer_name]
         return {
             "description": info["description"],
@@ -364,8 +361,7 @@ class MetaSkillGrouper:
         """
         if user_level not in self._USER_LEVEL_MAX_DISCLOSURE:
             raise ValueError(
-                f"Unknown user_level: {user_level!r}. "
-                f"Valid levels: {list(self._USER_LEVEL_MAX_DISCLOSURE.keys())}"
+                f"Unknown user_level: {user_level!r}. Valid levels: {list(self._USER_LEVEL_MAX_DISCLOSURE.keys())}"
             )
         max_level = self._USER_LEVEL_MAX_DISCLOSURE[user_level]
 
@@ -432,11 +428,7 @@ class MetaSkillGrouper:
         grouped_count = total_skills - len(ungrouped)
         coverage_pct = round((grouped_count / total_skills) * 100, 2) if total_skills > 0 else 0.0
 
-        empty_layers = [
-            layer_name
-            for layer_name, info in self.META_LAYERS.items()
-            if len(info["skills"]) == 0
-        ]
+        empty_layers = [layer_name for layer_name, info in self.META_LAYERS.items() if len(info["skills"]) == 0]
 
         recommendations: list[str] = []
         if ungrouped:
@@ -451,13 +443,10 @@ class MetaSkillGrouper:
             )
         if coverage_pct < 80.0:
             recommendations.append(
-                f"Coverage is {coverage_pct}% (< 80%). Review skill-to-layer mapping "
-                "to improve grouping."
+                f"Coverage is {coverage_pct}% (< 80%). Review skill-to-layer mapping to improve grouping."
             )
         if not recommendations:
-            recommendations.append(
-                "Layering is healthy: all known skills grouped, coverage >= 80%."
-            )
+            recommendations.append("Layering is healthy: all known skills grouped, coverage >= 80%.")
 
         return {
             "total_skills": total_skills,

@@ -624,28 +624,41 @@ class Skillifier:
     # ------------------------------------------------------------------
 
     # Categories that suggest broad, general-purpose skills.
-    _MODEL_INVOKED_CATEGORIES: frozenset[str] = frozenset({
-        SkillCategory.CODE_GENERATION.value,
-        SkillCategory.CODE_REVIEW.value,
-        SkillCategory.TESTING.value,
-        SkillCategory.ANALYSIS.value,
-        SkillCategory.REFACTORING.value,
-    })
+    _MODEL_INVOKED_CATEGORIES: frozenset[str] = frozenset(
+        {
+            SkillCategory.CODE_GENERATION.value,
+            SkillCategory.CODE_REVIEW.value,
+            SkillCategory.TESTING.value,
+            SkillCategory.ANALYSIS.value,
+            SkillCategory.REFACTORING.value,
+        }
+    )
 
     # Categories that suggest specific, user-triggered skills.
-    _USER_INVOKED_CATEGORIES: frozenset[str] = frozenset({
-        SkillCategory.DEPLOYMENT.value,
-        SkillCategory.SECURITY.value,
-        SkillCategory.DOCUMENTATION.value,
-        SkillCategory.INTEGRATION.value,
-        SkillCategory.PERFORMANCE.value,
-    })
+    _USER_INVOKED_CATEGORIES: frozenset[str] = frozenset(
+        {
+            SkillCategory.DEPLOYMENT.value,
+            SkillCategory.SECURITY.value,
+            SkillCategory.DOCUMENTATION.value,
+            SkillCategory.INTEGRATION.value,
+            SkillCategory.PERFORMANCE.value,
+        }
+    )
 
     # Trigger keywords that suggest user-initiated invocation.
-    _USER_TRIGGER_KEYWORDS: frozenset[str] = frozenset({
-        "deploy", "publish", "release", "audit", "security",
-        "migrate", "rollback", "production", "staging",
-    })
+    _USER_TRIGGER_KEYWORDS: frozenset[str] = frozenset(
+        {
+            "deploy",
+            "publish",
+            "release",
+            "audit",
+            "security",
+            "migrate",
+            "rollback",
+            "production",
+            "staging",
+        }
+    )
 
     def classify_invocation_type(self, proposal: SkillProposal) -> str:
         """Classify how a skill should be invoked (Matt P0-6).

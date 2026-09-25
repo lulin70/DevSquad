@@ -41,8 +41,7 @@ class TestLoadGlossaryDefaultPath(unittest.TestCase):
         """Verify: GLOSSARY.md contains key Matt Pocock + DevSquad terms."""
         content = self.loader.load_glossary()
         # Matt Pocock terms
-        for term in ["Deep module", "Shallow module", "Seam", "Deletion test",
-                      "Red-capable", "Grilling", "ADR"]:
+        for term in ["Deep module", "Shallow module", "Seam", "Deletion test", "Red-capable", "Grilling", "ADR"]:
             self.assertIn(term, content, f"GLOSSARY should contain '{term}'")
         # DevSquad terms
         for term in ["Consensus", "Gate", "Worker", "Iron Rule"]:
@@ -53,11 +52,13 @@ class TestLoadGlossaryDefaultPath(unittest.TestCase):
         content = self.loader.load_glossary()
         # Count bold terms (lines with | **Term** | pattern)
         import re
+
         bold_terms = re.findall(r"\|\s*\*\*([^*]+)\*\*\s*\|", content)
         # Deduplicate (some terms may appear in multiple sections)
         unique_terms = {t.strip() for t in bold_terms}
         self.assertGreaterEqual(
-            len(unique_terms), 30,
+            len(unique_terms),
+            30,
             f"GLOSSARY should have >=30 terms, found {len(unique_terms)}: {unique_terms}",
         )
 
@@ -67,9 +68,7 @@ class TestLoadGlossaryCustomPath(unittest.TestCase):
 
     def test_loads_custom_glossary(self) -> None:
         """Verify: load_glossary(custom_path) reads the specified file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".md", delete=False, encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False, encoding="utf-8") as f:
             f.write("# Custom Glossary\n\n| **Term** | Definition |\n|---|---|\n| **Foo** | Bar |")
             f.flush()
             custom_path = f.name
@@ -90,9 +89,7 @@ class TestLoadGlossaryCustomPath(unittest.TestCase):
 
     def test_empty_glossary_returns_empty(self) -> None:
         """Verify: load_glossary returns empty string for empty file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".md", delete=False, encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False, encoding="utf-8") as f:
             f.write("")
             f.flush()
             empty_path = f.name
@@ -111,6 +108,7 @@ class TestGlossaryIntegration(unittest.TestCase):
     def test_loader_singleton_can_load_glossary(self) -> None:
         """Verify: shared loader singleton can load GLOSSARY."""
         from scripts.collaboration.role_skill_loader import get_shared_loader
+
         loader = get_shared_loader()
         content = loader.load_glossary()
         self.assertTrue(content)
@@ -141,7 +139,8 @@ class TestADRSystem(unittest.TestCase):
         adr_dir = self._get_project_root() / "docs" / "adr"
         adr_files = list(adr_dir.glob("ADR-*.md"))
         self.assertGreaterEqual(
-            len(adr_files), 5,
+            len(adr_files),
+            5,
             f"Should have >=5 ADR files, found {len(adr_files)}: {[f.name for f in adr_files]}",
         )
 

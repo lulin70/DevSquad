@@ -116,7 +116,9 @@ class ReportFormatter:
             parts.append(t["sp_findings"].format(sp=sp_summary[:200]))
         return "\n".join(parts)
 
-    def format_structured_report(self, result: Any, include_action_items: bool = True, include_timing: bool = False) -> str:
+    def format_structured_report(
+        self, result: Any, include_action_items: bool = True, include_timing: bool = False
+    ) -> str:
         """
         Generate structured report (v3.2 UI Designer spec).
 

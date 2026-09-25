@@ -135,8 +135,7 @@ class MonitorProviderContractBase(unittest.TestCase):
             report_path = str(Path(tmpdir) / "report.md")
             provider.generate_report(report_path)
             # File should exist after generate_report()
-            self.assertTrue(Path(report_path).exists(),
-                            f"Report file not created at {report_path}")
+            self.assertTrue(Path(report_path).exists(), f"Report file not created at {report_path}")
 
     def test_16_record_llm_call_with_metadata(self) -> None:
         """Verify: record_llm_call() accepts optional metadata dict."""
@@ -180,8 +179,7 @@ class MonitorProviderContractBase(unittest.TestCase):
         if provider.is_available():
             # Real provider should show accumulated count
             llm_count = stats.get("total_llm_calls", 0)
-            self.assertGreaterEqual(llm_count, 3,
-                                    f"Expected >=3 LLM calls in stats, got {llm_count}")
+            self.assertGreaterEqual(llm_count, 3, f"Expected >=3 LLM calls in stats, got {llm_count}")
 
     def test_19_generate_report_to_invalid_path_does_not_raise(self) -> None:
         """Verify: generate_report() to invalid path handles gracefully (no raise)."""
@@ -227,16 +225,14 @@ class TestNullMonitorProviderContract(MonitorProviderContractBase):
     def test_30_null_is_available_returns_false(self) -> None:
         """Verify: NullMonitorProvider.is_available() returns False (degraded)."""
         provider = self._get_provider()
-        self.assertFalse(provider.is_available(),
-                        "NullMonitorProvider should report unavailable (degraded)")
+        self.assertFalse(provider.is_available(), "NullMonitorProvider should report unavailable (degraded)")
 
     def test_31_null_get_stats_includes_degraded_flag(self) -> None:
         """Verify: NullMonitorProvider.get_stats() includes degraded=True."""
         provider = self._get_provider()
         stats = provider.get_stats()
         self.assertIn("degraded", stats, "NullMonitorProvider stats should include 'degraded' flag")
-        self.assertTrue(stats.get("degraded", False),
-                       "NullMonitorProvider 'degraded' flag should be True")
+        self.assertTrue(stats.get("degraded", False), "NullMonitorProvider 'degraded' flag should be True")
 
     def test_32_null_get_stats_has_zero_counts(self) -> None:
         """Verify: NullMonitorProvider.get_stats() returns zero counts."""
@@ -244,8 +240,11 @@ class TestNullMonitorProviderContract(MonitorProviderContractBase):
         # Even after recording, null provider reports zeros (degraded)
         provider.record_llm_call("openai", "gpt-4", 1.0, 100, True)
         stats_after = provider.get_stats()
-        self.assertEqual(stats_after.get("total_llm_calls", 0), 0,
-                        "NullMonitorProvider should report 0 LLM calls in stats (degraded)")
+        self.assertEqual(
+            stats_after.get("total_llm_calls", 0),
+            0,
+            "NullMonitorProvider should report 0 LLM calls in stats (degraded)",
+        )
 
     def test_33_null_generate_report_writes_degraded_message(self) -> None:
         """Verify: NullMonitorProvider.generate_report() writes degraded notice."""
@@ -321,7 +320,11 @@ class TestPerformanceMonitorExtendedContract(unittest.TestCase):
         """record_llm_call with error metadata should not raise."""
         provider = self._get_provider()
         provider.record_llm_call(
-            "openai", "gpt-4", 0.5, 50, False,
+            "openai",
+            "gpt-4",
+            0.5,
+            50,
+            False,
             metadata={"error": "connection timeout"},
         )
         # Verify errors are tracked
@@ -401,6 +404,7 @@ class TestPerformanceMonitorExtendedContract(unittest.TestCase):
     def test_record_metric_directly(self):
         """record_metric should accept a PerformanceMetric directly."""
         from scripts.collaboration.performance_monitor import PerformanceMetric
+
         provider = self._get_provider()
         metric = PerformanceMetric(
             name="custom_op",
@@ -574,7 +578,8 @@ class T6_MonitorProviderBoundaryContract(unittest.TestCase):
         provider.record_llm_call("openai", "gpt-4", 2.5, 100, True)
         stats_final = provider.get_stats()
         self.assertGreaterEqual(
-            stats_final["total_llm_calls"], stats_mid["total_llm_calls"],
+            stats_final["total_llm_calls"],
+            stats_mid["total_llm_calls"],
         )
         self.assertFalse(math.isnan(stats_final["avg_llm_duration"]))
         self.assertFalse(math.isinf(stats_final["avg_llm_duration"]))

@@ -563,8 +563,7 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
         """
         fpath = self._dropin / "bad_value.py"
         fpath.write_text(
-            "def create_plugin():\n"
-            "    raise ValueError('intentional ValueError from create_plugin')\n",
+            "def create_plugin():\n    raise ValueError('intentional ValueError from create_plugin')\n",
             encoding="utf-8",
         )
         # scan_plugins must not crash — the ValueError is caught internally
@@ -573,8 +572,7 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
         self.assertIsNone(self.disp.get_plugin("bad_value"))
         # Audit log should record the failure
         audits = self.disp.plugin_hot_loader.get_audit_log()
-        load_audits = [a for a in audits if a["method"] == "load_plugin"
-                       and a.get("name") == "bad_value"]
+        load_audits = [a for a in audits if a["method"] == "load_plugin" and a.get("name") == "bad_value"]
         self.assertTrue(
             any(not a["success"] for a in load_audits),
             f"Expected failed load audit entry for bad_value, got: {load_audits}",
@@ -584,8 +582,7 @@ class T7_EdgeCasesAndGracefulDegradationIntegration(unittest.TestCase):
         """Verify: V4.2.1 bugfix — create_plugin() raising TypeError is also caught."""
         fpath = self._dropin / "bad_type.py"
         fpath.write_text(
-            "def create_plugin():\n"
-            "    raise TypeError('intentional TypeError from create_plugin')\n",
+            "def create_plugin():\n    raise TypeError('intentional TypeError from create_plugin')\n",
             encoding="utf-8",
         )
         self.disp.scan_plugins()

@@ -286,9 +286,7 @@ class TestSmartFirstStrategy(unittest.TestCase):
         self.assertIsNotNone(smart_ctx)
 
         # Then destructive (force SNIP to guarantee it triggers)
-        destructive_ctx = coord.compressor.check_and_compress(
-            coord._message_buffer, force_level=CompressionLevel.SNIP
-        )
+        destructive_ctx = coord.compressor.check_and_compress(coord._message_buffer, force_level=CompressionLevel.SNIP)
         self.assertIsNotNone(destructive_ctx)
         # Destructive compression may further reduce message count
         self.assertLessEqual(len(destructive_ctx.messages), len(coord._message_buffer))

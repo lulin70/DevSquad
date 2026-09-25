@@ -60,9 +60,17 @@ class TestCrossProcessPersistence:
         _clean_store(isolated_store)
         add_proc = _run_cli(
             [
-                "risks", "add", "cross-process risk",
-                "--probability", "0.5", "--impact", "0.6",
-                "--category", "security", "--owner", "architect",
+                "risks",
+                "add",
+                "cross-process risk",
+                "--probability",
+                "0.5",
+                "--impact",
+                "0.6",
+                "--category",
+                "security",
+                "--owner",
+                "architect",
             ],
             cwd,
         )
@@ -79,9 +87,17 @@ class TestCrossProcessPersistence:
         _clean_store(isolated_store)
         add_proc = _run_cli(
             [
-                "risks", "add", "show-after-add",
-                "--probability", "0.3", "--impact", "0.4",
-                "--category", "technical", "--owner", "devops",
+                "risks",
+                "add",
+                "show-after-add",
+                "--probability",
+                "0.3",
+                "--impact",
+                "0.4",
+                "--category",
+                "technical",
+                "--owner",
+                "devops",
             ],
             cwd,
         )
@@ -97,9 +113,17 @@ class TestCrossProcessPersistence:
 
         add_proc = _run_cli(
             [
-                "risks", "add", "lifecycle",
-                "--probability", "0.4", "--impact", "0.5",
-                "--category", "general", "--owner", "architect",
+                "risks",
+                "add",
+                "lifecycle",
+                "--probability",
+                "0.4",
+                "--impact",
+                "0.5",
+                "--category",
+                "general",
+                "--owner",
+                "architect",
             ],
             cwd,
         )
@@ -108,8 +132,11 @@ class TestCrossProcessPersistence:
 
         assess_proc = _run_cli(
             [
-                "risks", "assess", rid,
-                "--votes", '{"architect":[0.7,0.8],"security":[0.6,0.7]}',
+                "risks",
+                "assess",
+                rid,
+                "--votes",
+                '{"architect":[0.7,0.8],"security":[0.6,0.7]}',
             ],
             cwd,
         )
@@ -117,8 +144,15 @@ class TestCrossProcessPersistence:
 
         mitigate_proc = _run_cli(
             [
-                "risks", "mitigate", rid,
-                "--strategy", "mitigate", "--owner", "devops", "--plan", "add backup",
+                "risks",
+                "mitigate",
+                rid,
+                "--strategy",
+                "mitigate",
+                "--owner",
+                "devops",
+                "--plan",
+                "add backup",
             ],
             cwd,
         )
@@ -137,7 +171,8 @@ class TestCrossProcessPersistence:
         # Clear after approval gate succeeds (callback provided through env).
         env_proc = subprocess.run(
             [
-                _python(), "-c",
+                _python(),
+                "-c",
                 (
                     f"import os, sys; sys.path.insert(0, {str(PROJECT_ROOT)!r}); os.chdir({str(cwd)!r}); "
                     "from scripts.cli_risks import main; "
@@ -160,9 +195,17 @@ class TestApprovalFailClosed:
         _clean_store(isolated_store)
         add_proc = _run_cli(
             [
-                "risks", "add", "close-gated",
-                "--probability", "0.4", "--impact", "0.5",
-                "--category", "general", "--owner", "architect",
+                "risks",
+                "add",
+                "close-gated",
+                "--probability",
+                "0.4",
+                "--impact",
+                "0.5",
+                "--category",
+                "general",
+                "--owner",
+                "architect",
             ],
             cwd,
         )
@@ -179,9 +222,17 @@ class TestApprovalFailClosed:
         _clean_store(isolated_store)
         _run_cli(
             [
-                "risks", "add", "keep-me",
-                "--probability", "0.4", "--impact", "0.5",
-                "--category", "general", "--owner", "architect",
+                "risks",
+                "add",
+                "keep-me",
+                "--probability",
+                "0.4",
+                "--impact",
+                "0.5",
+                "--category",
+                "general",
+                "--owner",
+                "architect",
             ],
             cwd,
         )
@@ -199,9 +250,17 @@ class TestCorruptStoreErrorCode:
         # Seed valid state.
         _run_cli(
             [
-                "risks", "add", "seed",
-                "--probability", "0.4", "--impact", "0.5",
-                "--category", "general", "--owner", "architect",
+                "risks",
+                "add",
+                "seed",
+                "--probability",
+                "0.4",
+                "--impact",
+                "0.5",
+                "--category",
+                "general",
+                "--owner",
+                "architect",
             ],
             cwd,
         )
@@ -218,4 +277,3 @@ class TestCorruptStoreErrorCode:
         proc = _run_cli(["risks", "add"], cwd)  # missing required args
         assert proc.returncode == 2
         assert "Traceback" not in proc.stderr
-

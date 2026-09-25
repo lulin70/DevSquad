@@ -88,9 +88,7 @@ class AsyncLLMBackendInterface(ABC):
         """
         ...
 
-    async def generate_stream(
-        self, prompt: str, **kwargs: Any
-    ) -> AsyncGenerator[str, None]:
+    async def generate_stream(self, prompt: str, **kwargs: Any) -> AsyncGenerator[str, None]:
         """
         Stream a response from the LLM, yielding chunks as they arrive.
 
@@ -252,9 +250,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
                             client_kwargs["base_url"] = self.base_url
                         self._client = AsyncOpenAI(**client_kwargs)
                     except ImportError:
-                        raise ImportError(
-                            "openai package required: pip install openai"
-                        ) from None
+                        raise ImportError("openai package required: pip install openai") from None
         return self._client
 
     async def _get_semaphore(self) -> asyncio.Semaphore:
@@ -292,13 +288,9 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
                 if attempt < self.MAX_RETRIES - 1:
                     await asyncio.sleep(DEFAULT_BACKOFF_BASE**attempt)
 
-        raise last_error or RuntimeError(
-            f"OpenAI generate failed after {self.MAX_RETRIES} attempts"
-        )
+        raise last_error or RuntimeError(f"OpenAI generate failed after {self.MAX_RETRIES} attempts")
 
-    async def generate_stream(
-        self, prompt: str, **kwargs: Any
-    ) -> AsyncGenerator[str, None]:
+    async def generate_stream(self, prompt: str, **kwargs: Any) -> AsyncGenerator[str, None]:
         """Stream a completion chunk-by-chunk from the OpenAI API.
 
         Args:
@@ -321,9 +313,7 @@ class AsyncOpenAIBackend(AsyncLLMBackendInterface):
             if content:
                 yield content
 
-    async def batch_generate(
-        self, prompts: list[str], **kwargs: Any
-    ) -> list[str]:
+    async def batch_generate(self, prompts: list[str], **kwargs: Any) -> list[str]:
         """Generate completions for multiple prompts concurrently.
 
         Args:
@@ -411,9 +401,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                             client_kwargs["base_url"] = self.base_url
                         self._client = AsyncAnthropic(**client_kwargs)
                     except ImportError:
-                        raise ImportError(
-                            "anthropic package required: pip install anthropic"
-                        ) from None
+                        raise ImportError("anthropic package required: pip install anthropic") from None
         return self._client
 
     async def _get_semaphore(self) -> asyncio.Semaphore:
@@ -450,13 +438,9 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
                 if attempt < self.MAX_RETRIES - 1:
                     await asyncio.sleep(DEFAULT_BACKOFF_BASE**attempt)
 
-        raise last_error or RuntimeError(
-            f"Anthropic generate failed after {self.MAX_RETRIES} attempts"
-        )
+        raise last_error or RuntimeError(f"Anthropic generate failed after {self.MAX_RETRIES} attempts")
 
-    async def generate_stream(
-        self, prompt: str, **kwargs: Any
-    ) -> AsyncGenerator[str, None]:
+    async def generate_stream(self, prompt: str, **kwargs: Any) -> AsyncGenerator[str, None]:
         """Stream a completion chunk-by-chunk from the Anthropic API.
 
         Args:
@@ -475,9 +459,7 @@ class AsyncAnthropicBackend(AsyncLLMBackendInterface):
             async for text in stream.text_stream:
                 yield text
 
-    async def batch_generate(
-        self, prompts: list[str], **kwargs: Any
-    ) -> list[str]:
+    async def batch_generate(self, prompts: list[str], **kwargs: Any) -> list[str]:
         """Generate completions for multiple prompts concurrently.
 
         Args:
@@ -529,9 +511,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
         cooldown_seconds: float = DEFAULT_COOLDOWN_SECONDS,
     ) -> None:
         if not backends:
-            raise ValueError(
-                "AsyncFallbackBackend requires at least one backend"
-            )
+            raise ValueError("AsyncFallbackBackend requires at least one backend")
         self._backends = backends
         self._cooldown_seconds = cooldown_seconds
         self._failed_at: dict[str, float] = {}
@@ -578,9 +558,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
             backend = self._backends[idx]
             backend_repr = repr(backend)
 
-            if idx != self._active_index and not self._is_cooled_down(
-                backend_repr
-            ):
+            if idx != self._active_index and not self._is_cooled_down(backend_repr):
                 continue
 
             try:
@@ -588,9 +566,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
                 async with lock:
                     self._active_index = idx
                 if idx != 0:
-                    logger.info(
-                        "AsyncFallbackBackend: switched to %s", backend_repr
-                    )
+                    logger.info("AsyncFallbackBackend: switched to %s", backend_repr)
                 return result
             except _get_fallback_exceptions() as e:  # backend failure -> try next backend
                 last_error = e
@@ -601,13 +577,9 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
                     type(e).__name__,
                 )
 
-        raise last_error or RuntimeError(
-            "All backends failed with no specific error"
-        )
+        raise last_error or RuntimeError("All backends failed with no specific error")
 
-    async def generate_stream(
-        self, prompt: str, **kwargs: Any
-    ) -> AsyncGenerator[str, None]:
+    async def generate_stream(self, prompt: str, **kwargs: Any) -> AsyncGenerator[str, None]:
         """Stream a completion, failing over to subsequent backends on error.
 
         Args:
@@ -631,9 +603,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
             backend = self._backends[idx]
             backend_repr = repr(backend)
 
-            if idx != self._active_index and not self._is_cooled_down(
-                backend_repr
-            ):
+            if idx != self._active_index and not self._is_cooled_down(backend_repr):
                 continue
 
             try:
@@ -651,13 +621,9 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
                     type(e).__name__,
                 )
 
-        raise last_error or RuntimeError(
-            "All backends failed with no specific error"
-        )
+        raise last_error or RuntimeError("All backends failed with no specific error")
 
-    async def batch_generate(
-        self, prompts: list[str], **kwargs: Any
-    ) -> list[str]:
+    async def batch_generate(self, prompts: list[str], **kwargs: Any) -> list[str]:
         """Generate completions for multiple prompts concurrently.
 
         Args:
@@ -676,9 +642,7 @@ class AsyncFallbackBackend(AsyncLLMBackendInterface):
         Returns:
             True if any backend reports availability, False otherwise.
         """
-        results = await asyncio.gather(
-            *[b.is_available() for b in self._backends]
-        )
+        results = await asyncio.gather(*[b.is_available() for b in self._backends])
         return any(results)
 
     async def close(self) -> None:
@@ -696,9 +660,7 @@ class AsyncLLMBackendFactory:
     """
 
     @staticmethod
-    def create(
-        backend_type: str = "auto", **kwargs: Any
-    ) -> AsyncLLMBackendInterface:
+    def create(backend_type: str = "auto", **kwargs: Any) -> AsyncLLMBackendInterface:
         """
         Create an async LLM backend by type name.
 
@@ -717,9 +679,7 @@ class AsyncLLMBackendFactory:
 
         _load_dotenv_async()
 
-        env_backend = os.environ.get(
-            "DEVSQUAD_LLM_BACKEND", "auto"
-        ).lower()
+        env_backend = os.environ.get("DEVSQUAD_LLM_BACKEND", "auto").lower()
 
         if backend_type == "auto" and not kwargs and env_backend in ("openai", "anthropic", "fallback", "mock", "trae"):
             backend_type = env_backend
@@ -738,29 +698,18 @@ class AsyncLLMBackendFactory:
         }
         cls = backends.get(backend_type.lower())
         if cls is None:
-            raise ValueError(
-                f"Unknown backend type: {backend_type}. "
-                f"Available: {list(backends.keys())}"
-            )
+            raise ValueError(f"Unknown backend type: {backend_type}. Available: {list(backends.keys())}")
 
         if cls == AsyncOpenAIBackend:
-            kwargs.setdefault(
-                "api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-            )
-            kwargs.setdefault(
-                "base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL")
-            )
+            kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY"))
+            kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
             kwargs.setdefault(
                 "model",
                 os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
             )
         elif cls == AsyncAnthropicBackend:
-            kwargs.setdefault(
-                "api_key", os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
-            )
-            kwargs.setdefault(
-                "base_url", os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL")
-            )
+            kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY"))
+            kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"))
             kwargs.setdefault(
                 "model",
                 os.environ.get(
@@ -772,25 +721,18 @@ class AsyncLLMBackendFactory:
         return cls(**kwargs)
 
     @staticmethod
-    def _create_fallback(
-        backend_type: str = "fallback", **kwargs: Any
-    ) -> AsyncLLMBackendInterface:
+    def _create_fallback(backend_type: str = "fallback", **kwargs: Any) -> AsyncLLMBackendInterface:
         import os
 
-        anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get(
-            "DEVSQUAD_ANTHROPIC_API_KEY"
-        )
-        openai_key = kwargs.pop("openai_api_key", None) or os.environ.get(
-            "DEVSQUAD_OPENAI_API_KEY"
-        )
+        anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
+        openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
         backends_list: list[AsyncLLMBackendInterface] = []
 
         if anthropic_key:
             backends_list.append(
                 AsyncAnthropicBackend(
                     api_key=anthropic_key,
-                    base_url=kwargs.pop("anthropic_base_url", None)
-                    or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
+                    base_url=kwargs.pop("anthropic_base_url", None) or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
                     model=kwargs.pop("anthropic_model", None)
                     or os.environ.get(
                         "DEVSQUAD_ANTHROPIC_MODEL",
@@ -805,8 +747,7 @@ class AsyncLLMBackendFactory:
             backends_list.append(
                 AsyncOpenAIBackend(
                     api_key=openai_key,
-                    base_url=kwargs.pop("openai_base_url", None)
-                    or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
+                    base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
                     model=kwargs.pop("openai_model", None)
                     or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
                     max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
