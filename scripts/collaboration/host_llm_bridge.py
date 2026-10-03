@@ -33,7 +33,8 @@ import time
 import uuid
 from typing import Any, cast
 
-from .backend_paths import BackendUnavailable
+from .backend_paths import BackendProtocolViolation, BackendUnavailable
+from .host_llm_bridge_v2 import HostLLMBridgeV2Error
 from .llm_backend import LLMBackend
 
 logger = logging.getLogger(__name__)
@@ -358,6 +359,9 @@ class HostLLMBridge:
         # scripts/collaboration/host_llm_bridge.py → project root is 2 levels up
         here = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(here))
+        bridge_root = os.environ.get("DEVSQUAD_HOST_BRIDGE_ROOT")
+        if bridge_root:
+            return os.path.join(bridge_root, "v1")
         return os.path.join(project_root, "logs", "host_llm_bridge", "v1")
 
     @staticmethod
@@ -412,6 +416,7 @@ class HostBridgeBackend(LLMBackend):
 
     # V4.5.2: B path
     path = "B"
+    backend_id = "host-v1"
 
     # Fuse: 2 consecutive same-reason failures → skip B
     FUSE_THRESHOLD = 2
@@ -496,19 +501,22 @@ class HostBridgeBackend(LLMBackend):
             raise BackendUnavailable("Host Bridge 不可用（未检测到编程 AI 宿主 或 B 路径已熔断）")
 
         agent_type = kwargs.get("agent_type") or kwargs.get("role_name") or "general"
-        task = kwargs.get("task_description", "")
+        task = kwargs.get("task_description") or kwargs.get("task") or "DevSquad host delegation"
         extra_context: dict[str, Any] = kwargs.get("context", {}) or {}
         if "role_name" in kwargs:
             extra_context.setdefault("role_name", kwargs["role_name"])
 
-        request_id = self.bridge.create_request(
-            agent_type=agent_type,
-            task=task,
-            context=extra_context,
-            prompt=prompt,
-            timeout_seconds=self.timeout,
-        )
-        result = self.bridge.wait_for_response(request_id, timeout=self.timeout)
+        try:
+            request_id = self.bridge.create_request(
+                agent_type=agent_type,
+                task=task,
+                context=extra_context,
+                prompt=prompt,
+                timeout_seconds=self.timeout,
+            )
+            result = self.bridge.wait_for_response(request_id, timeout=self.timeout)
+        except HostLLMBridgeV2Error as exc:
+            raise BackendProtocolViolation(f"Host bridge protocol violation: {exc}") from exc
 
         if not result.get("success"):
             reason = result.get("error", "unknown")
@@ -553,6 +561,8 @@ class HostBridgeBackendV2(HostBridgeBackend):
       - DEVSQUAD_HOST_BRIDGE_VERSION=v1|v2      → explicit version
       - default                                  → v2
     """
+
+    backend_id = "host-v2"
 
     def __init__(
         self,

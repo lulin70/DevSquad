@@ -226,6 +226,56 @@ class TestCmdLifecycle:
         assert "tester" in called_roles
 
     @patch("scripts.cli_lifecycle.MultiAgentDispatcher")
+    def test_review_command_forwards_diff_file_to_dispatch(self, MockDispatcher, tmp_path):
+        diff_file = tmp_path / "changes.diff"
+        diff_file.write_text(
+            "diff --git a/src/main.py b/src/main.py\n--- a/src/main.py\n+++ b/src/main.py\n@@ -1 +1 @@\n-old\n+new\n",
+            encoding="utf-8",
+        )
+        mock_disp = MagicMock()
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.summary = "Review completed"
+        mock_result.to_markdown.return_value = "# Review Report"
+        MockDispatcher.return_value = mock_disp
+        mock_disp.dispatch.return_value = mock_result
+
+        args = MagicMock()
+        args.lifecycle_command = "review"
+        args.task = "Review the diff"
+        args.task_positional = None
+        args.format = "markdown"
+        args.backend = "mock"
+        args.base_url = None
+        args.model = None
+        args.dry_run = False
+        args.persist_dir = None
+        args.no_warmup = False
+        args.no_compression = False
+        args.stream = False
+        args.lang = "auto"
+        args.skip_permission = False
+        args.no_memory = False
+        args.no_skillify = False
+        args.changeset = None
+        args.diff_file = str(diff_file)
+        args.include = ()
+        args.exclude = ()
+        args.max_file_size = 10 * 1024 * 1024
+        args.repo_root = str(tmp_path)
+        args.rule = None
+        args.deleted = ()
+        args.preview = False
+        args.verbose = False
+        args.visual = False
+
+        with patch("sys.stdout", new=StringIO()):
+            result = cmd_lifecycle(args)
+
+        assert result == 0
+        assert mock_disp.dispatch.call_args.kwargs["diff"].startswith("diff --git")
+
+    @patch("scripts.cli_lifecycle.MultiAgentDispatcher")
     def test_ship_command_uses_sequential_mode(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()

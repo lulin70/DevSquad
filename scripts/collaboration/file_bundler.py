@@ -44,7 +44,12 @@ class FileBundler:
     DETERMINISTIC — no LLM involved in bundling decisions.
     """
 
-    def bundle(self, files: list[str], max_per_bundle: int = 10) -> list[list[str]]:
+    def bundle(
+        self,
+        files: list[str],
+        max_per_bundle: int = 10,
+        root: str | Path | None = None,
+    ) -> list[list[str]]:
         """Group files by path prefix + import relationship.
 
         Rules:
@@ -75,7 +80,7 @@ class FileBundler:
         # Step 1: group by parent directory.
         dir_groups = self._group_by_directory(files)
         # Step 2: merge groups connected by import relationships.
-        merged = self._merge_by_imports(dir_groups)
+        merged = self._merge_by_imports(dir_groups, root=root)
         # Step 3: split any bundle exceeding the max size.
         split = self._split_oversized(merged, max_per_bundle)
         # Deterministic output: sort within each bundle and sort bundles.
@@ -99,7 +104,11 @@ class FileBundler:
             groups.setdefault(parent, []).append(f)
         return groups
 
-    def _merge_by_imports(self, groups: dict[str, list[str]]) -> list[list[str]]:
+    def _merge_by_imports(
+        self,
+        groups: dict[str, list[str]],
+        root: str | Path | None = None,
+    ) -> list[list[str]]:
         """Merge groups that have import relationships using the ``ast`` module.
 
         Builds a file→imported-modules map by parsing each Python file with
@@ -129,7 +138,7 @@ class FileBundler:
         # Parse imports for each file (catch ALL exceptions per file).
         file_to_imported_files: dict[str, set[str]] = {}
         for f in all_files:
-            imported = self._extract_imported_files(f, stem_to_file, dotted_to_file)
+            imported = self._extract_imported_files(f, stem_to_file, dotted_to_file, root=root)
             if imported:
                 file_to_imported_files[f] = imported
 
@@ -211,6 +220,7 @@ class FileBundler:
         file_path: str,
         stem_to_file: dict[str, str],
         dotted_to_file: dict[str, str],
+        root: str | Path | None = None,
     ) -> set[str]:
         """Parse ``file_path`` with ``ast`` and return the set of input files
         it imports.
@@ -223,7 +233,10 @@ class FileBundler:
         imported: set[str] = set()
         # Catch ALL exceptions during ast parsing (per the task requirement).
         try:
-            with open(file_path, encoding="utf-8") as fh:
+            path = Path(file_path)
+            if root is not None and not path.is_absolute():
+                path = Path(root) / path
+            with open(path, encoding="utf-8") as fh:
                 source = fh.read()
             tree = ast.parse(source, filename=file_path)
         except Exception:  # noqa: BLE001 — intentionally broad: any parse failure

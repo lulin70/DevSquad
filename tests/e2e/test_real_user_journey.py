@@ -123,6 +123,20 @@ class TestPMJourney(unittest.TestCase):
                 )
             self._steps_executed += 1
 
+            candidates = result.details.get("role_candidates")
+            self.assertIsInstance(candidates, list)
+            self.assertEqual(
+                {item["candidate"] for item in candidates},
+                set(_EXPECTED_SEVEN_ROLES),
+            )
+            for candidate in candidates:
+                self.assertEqual(candidate["candidate"], candidate["role_id"])
+                self.assertIsInstance(candidate["score"], float)
+                self.assertEqual(candidate["score"], candidate["confidence"])
+                self.assertTrue(candidate["reason"])
+                self.assertIsInstance(candidate["matched_keywords"], list)
+            self._steps_executed += 1
+
             # 缓存给 test_02 使用（同进程内 unittest 默认按方法名顺序执行）
             self.__class__._pm_result = result  # type: ignore[attr-defined]
         finally:

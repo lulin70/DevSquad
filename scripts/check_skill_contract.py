@@ -148,13 +148,21 @@ CONTRACT_CLAUSES: tuple[Clause, ...] = (
         ("seven-field marker", "Fail-closed"),
         "shipped in V4.5.10",
     ),
-    Clause("delegate.degradation_ladder", ("auto-fallback", "visible to the user"), "W1-6"),
+    Clause(
+        "delegate.degradation_ladder",
+        ("auto-fallback", "visible to the user"),
+        "shipped in V4.5.20 W1-6",
+    ),
     Clause(
         "delegate.no_silent_mock_fallback",
         ("never quietly falls back", "MockBackend"),
-        "W1-6",
+        "shipped in V4.5.20 W1-6",
     ),
-    Clause("review.multifile_input_contract", ("diff or multiple files", "unchanged"), "W1-5"),
+    Clause(
+        "review.multifile_input_contract",
+        ("diff or multiple files", "unchanged"),
+        "shipped in V4.5.20 W1-5",
+    ),
 )
 
 # R9 split: SKILL.md carries only what a caller must know before choosing a mode.

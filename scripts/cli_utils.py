@@ -58,7 +58,19 @@ ALL_ROLE_IDS = list(ROLE_REGISTRY.keys()) + ROLES
 ALL_ROLE_IDS = sorted(set(ALL_ROLE_IDS))
 MODES = ["auto", "parallel", "sequential", "consensus", "review"]
 FORMATS = ["markdown", "json", "compact", "structured", "detailed"]
-BACKENDS = ["auto", "mock", "trae", "openai", "anthropic"]
+BACKENDS = [
+    "auto",
+    "auto-fallback",
+    "host",
+    "host-v1",
+    "host-v2",
+    "mock",
+    "trae",
+    "openai",
+    "anthropic",
+    "moka",
+    "fallback",
+]
 LIFECYCLE_COMMANDS = ["spec", "plan", "build", "test", "review", "ship"]
 
 VERSION = __version__
@@ -157,10 +169,19 @@ def _create_backend(
         kwargs["model"] = model
 
     if backend_type == "auto":
-        # Auto mode: create_backend() will build a FallbackBackend that tries
-        # real LLMs first and degrades to MockBackend on failure. No API key
-        # check here; absence of keys simply means the chain collapses to mock.
+        # Auto selects the first available path: host delegation, direct API,
+        # or mock. If an API path is selected, its status records any fallback
+        # to mock; host protocol violations remain fail-closed.
         return create_backend("auto", **kwargs)
+
+    if backend_type in ("host", "host-v1", "host-v2"):
+        # Host modes delegate to the detected host bridge and never read
+        # provider API keys. Protocol violations are not converted to mock.
+        return create_backend(backend_type, **kwargs)
+
+    if backend_type == "auto-fallback":
+        # Keep the complete host → API → mock chain for runtime failover.
+        return create_backend("auto-fallback", **kwargs)
 
     if backend_type == "openai":
         api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("DEVSQUAD_OPENAI_API_KEY")

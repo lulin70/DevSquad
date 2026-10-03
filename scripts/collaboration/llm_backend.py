@@ -3,6 +3,7 @@
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 from .constants import (
@@ -48,8 +49,42 @@ def _get_moka_backend() -> "type[MokaAIBackend]":
     return _MOKA_BACKEND
 
 
+@dataclass(frozen=True, slots=True)
+class BackendStatus:
+    """Observable backend selection and degradation state."""
+
+    requested: str
+    selected_path: str
+    state: str
+    chain: tuple[str, ...]
+    degradation_reason: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "requested": self.requested,
+            "selected_path": self.selected_path,
+            "state": self.state,
+            "chain": list(self.chain),
+            "degradation_reason": self.degradation_reason,
+        }
+
+
 class LLMBackend(ABC):
     path: str = "C"  # default for backward compat
+    backend_id: str = "mock"
+    _requested_backend: str = "auto"
+    _selected_path: str = "C"
+    _degradation_reason: str | None = None
+
+    def backend_status(self) -> BackendStatus:
+        """Return the current selected/degraded path for user-visible reporting."""
+        return BackendStatus(
+            requested=self._requested_backend,
+            selected_path=self._selected_path,
+            state="degraded" if self._degradation_reason else "selected",
+            chain=(self.backend_id,),
+            degradation_reason=self._degradation_reason,
+        )
 
     @abstractmethod
     def generate(self, prompt: str, **kwargs: Any) -> str: ...
@@ -63,6 +98,7 @@ class LLMBackend(ABC):
 
 class MockBackend(LLMBackend):
     path = "C"
+    backend_id = "mock"
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         role_name = kwargs.get("role_name", "AI Assistant")
@@ -86,6 +122,7 @@ class MockBackend(LLMBackend):
 
 class TraeBackend(LLMBackend):
     path = "B-passthrough"
+    backend_id = "trae-passthrough"
 
     def generate(self, prompt: str, **_kwargs: Any) -> str:
         return prompt
@@ -97,6 +134,7 @@ class TraeBackend(LLMBackend):
 class OpenAIBackend(LLMBackend):
     # V4.5.2: A path (direct API)
     path = "A"
+    backend_id = "openai"
     DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
     MAX_RETRIES = DEFAULT_MAX_RETRIES
 
@@ -257,6 +295,7 @@ class OpenAIBackend(LLMBackend):
 class AnthropicBackend(LLMBackend):
     # V4.5.2: A path (direct API)
     path = "A"
+    backend_id = "anthropic"
     DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
     MAX_RETRIES = DEFAULT_MAX_RETRIES
 
@@ -376,6 +415,7 @@ class AnthropicBackend(LLMBackend):
 
 class FallbackBackend(LLMBackend):
     """
+    Composite backend that provides ordered failover and fuse-based failure isolation.
     Backend with automatic failover across multiple backends and fuse logic.
 
     V4.5.2 additions:
@@ -406,6 +446,18 @@ class FallbackBackend(LLMBackend):
         from .backend_paths import FUSE_SKIP_AFTER_CONSECUTIVE
 
         self._fuse_threshold = FUSE_SKIP_AFTER_CONSECUTIVE
+        self._selected_path = getattr(self._backends[0], "backend_id", getattr(self._backends[0], "path", "?"))
+        self._chain = tuple(getattr(backend, "backend_id", getattr(backend, "path", "?")) for backend in self._backends)
+
+    def backend_status(self) -> BackendStatus:
+        """Return the active backend and any recorded degradation reason."""
+        return BackendStatus(
+            requested=self._requested_backend,
+            selected_path=self._selected_path,
+            state="degraded" if self._degradation_reason else "selected",
+            chain=self._chain,
+            degradation_reason=self._degradation_reason,
+        )
 
     def __repr__(self) -> str:
         names = [type(b).__name__ for b in self._backends]
@@ -477,6 +529,7 @@ class FallbackBackend(LLMBackend):
 
         logger = logging.getLogger(__name__)
         last_error = None
+        last_failure: tuple[str, str] | None = None
 
         with self._lock:
             ordered = list(range(len(self._backends)))
@@ -490,7 +543,11 @@ class FallbackBackend(LLMBackend):
             backend = self._backends[idx]
             backend_repr = repr(backend)
             backend_name = type(backend).__name__.replace("Backend", "").lower()
-            backend_path = getattr(backend, "path", "?")
+            backend_path = getattr(
+                backend,
+                "backend_id",
+                getattr(backend, "path", "?"),
+            )
 
             # P11.1: record backend path invocation
             try:
@@ -510,7 +567,13 @@ class FallbackBackend(LLMBackend):
                 _llm_duration = time.time() - _llm_start
                 with self._lock:
                     self._active_index = idx
+                self._selected_path = backend_path
                 if idx != 0:
+                    if last_failure is not None:
+                        failed_backend, failure_kind = last_failure
+                        self._degradation_reason = f"{failed_backend} failed ({failure_kind})"
+                    else:
+                        self._degradation_reason = f"fell back to {backend_path}"
                     logger.info("FallbackBackend: switched to %s", backend_repr)
                 # Prometheus: record successful LLM call
                 try:
@@ -525,6 +588,9 @@ class FallbackBackend(LLMBackend):
                 self._mark_failed(backend_repr)
                 # V4.5.2: record failure for fuse tracking
                 reason = self._classify(e)
+                last_failure = (backend_path, reason)
+                failure_reason = f"{backend_path} failed ({reason})"
+                self._degradation_reason = failure_reason
                 self._record_failure(idx, reason)
                 # P11.1: record backend failure (per path+reason)
                 try:
@@ -736,6 +802,14 @@ def _resolve_auto_single_path(backend_type: str, kwargs: dict[str, Any]) -> LLMB
     raise BackendUnavailable("No available backend path")
 
 
+def _annotate_backend(backend: LLMBackend, requested: str) -> LLMBackend:
+    """Attach the requested mode without changing backend compatibility APIs."""
+    backend._requested_backend = requested
+    if not isinstance(backend, FallbackBackend):
+        backend._selected_path = backend.backend_id
+    return backend
+
+
 def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     """
     Factory function to create an LLM backend by type name.
@@ -818,20 +892,20 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     }
     if backend_type in explicit_backends:
         _apply_explicit_env_defaults(backend_type, kwargs)
-        return cast(LLMBackend, explicit_backends[backend_type](**kwargs))
+        return _annotate_backend(cast(LLMBackend, explicit_backends[backend_type](**kwargs)), backend_type)
 
     # === "host" / "host-v1" / "host-v2" (V4.5.10: v2 default, fail-closed flag) ===
     host_backend = _create_host_family_backend(backend_type, kwargs)
     if host_backend is not None:
-        return host_backend
+        return _annotate_backend(host_backend, backend_type)
 
     # === "fallback" (existing A→C) ===
     if backend_type == "fallback":
-        return _build_fallback_backend(kwargs)
+        return _annotate_backend(_build_fallback_backend(kwargs), backend_type)
 
     # === "auto-fallback" (B→A→C with FallbackBackend) ===
     if backend_type == "auto-fallback":
-        return _build_auto_fallback_backend(kwargs)
+        return _annotate_backend(_build_auto_fallback_backend(kwargs), backend_type)
 
     # === Catch-all for unknown backend types ===
     known_types = {
@@ -854,7 +928,7 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         )
 
     # === "auto" — B→A→C single path resolution (first available wins) ===
-    return _resolve_auto_single_path(backend_type, kwargs)
+    return _annotate_backend(_resolve_auto_single_path(backend_type, kwargs), backend_type)
 
 
 def _resolve_host_bridge_version() -> str:

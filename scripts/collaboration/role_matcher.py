@@ -11,6 +11,8 @@ ROLE_TEMPLATES = {
     rid: {"name": rdef.name, "prompt": rdef.prompt, "keywords": rdef.keywords} for rid, rdef in ROLE_REGISTRY.items()
 }
 
+CANDIDATE_SOURCES = ("keyword", "adaptive", "similar", "semantic", "explicit", "fallback")
+
 
 class RoleMatcher:
     """Role matching engine based on keyword analysis, enhanced with adaptive and similarity-based recommendations."""
@@ -63,53 +65,93 @@ class RoleMatcher:
                 self._similar_recommender = False
         return self._similar_recommender if self._similar_recommender is not False else None
 
+    @staticmethod
+    def _candidate(
+        role_id: str,
+        *,
+        name: str | None = None,
+        score: float,
+        reason: str,
+        source: str,
+        matched_keywords: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Build one normalized, backward-compatible role candidate."""
+        if source not in CANDIDATE_SOURCES:
+            raise ValueError(f"unsupported candidate source: {source}")
+        normalized_score = float(score)
+        return {
+            "candidate": role_id,
+            "role_id": role_id,
+            "name": name or ROLE_TEMPLATES.get(role_id, {}).get("name", role_id),
+            "score": normalized_score,
+            "confidence": normalized_score,
+            "reason": reason or "候选角色匹配",
+            "source": source,
+            "matched_keywords": list(matched_keywords or []),
+        }
+
+    @classmethod
+    def normalize_candidates(cls, candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Deduplicate candidates and apply deterministic score ordering."""
+        return cls._merge_candidates(candidates)
+
+    @staticmethod
+    def _merge_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Deduplicate candidates and apply deterministic score ordering."""
+        merged: dict[str, dict[str, Any]] = {}
+        for candidate in candidates:
+            role_id = str(candidate.get("candidate") or candidate.get("role_id") or "")
+            if not role_id:
+                continue
+            score = float(candidate.get("score", candidate.get("confidence", 0.0)))
+            normalized = {
+                **candidate,
+                "candidate": role_id,
+                "role_id": role_id,
+                "score": score,
+                "confidence": score,
+                "name": candidate.get("name") or ROLE_TEMPLATES.get(role_id, {}).get("name", role_id),
+                "reason": str(candidate.get("reason") or "候选角色匹配"),
+                "source": candidate.get("source", "fallback"),
+                "matched_keywords": list(candidate.get("matched_keywords", [])),
+            }
+            current = merged.get(role_id)
+            if current is None or score > current["score"]:
+                merged[role_id] = normalized
+        return sorted(merged.values(), key=lambda item: (-item["score"], item["candidate"]))
+
     def analyze_task(self, task_description: str) -> list[dict[str, Any]]:
-        """
-        Analyze a task description and match appropriate roles.
-
-        Args:
-            task_description: Task description text
-
-        Returns:
-            List of matched roles: [{"role_id": "...", "name": "...", "reason": "..."}]
-        """
+        """Analyze a task description and return normalized keyword candidates."""
         task_lower = task_description.lower()
         matched: list[dict[str, Any]] = []
 
         for role_id, role_info in ROLE_TEMPLATES.items():
-            score = 0
-            matched_keywords = []
-            for kw in role_info["keywords"]:
-                if kw in task_lower:
-                    score += 1
-                    matched_keywords.append(kw)
-
-            if score > 0:
-                confidence = min(score / len(role_info["keywords"]), 1.0)
+            matched_keywords = [kw for kw in role_info["keywords"] if kw in task_lower]
+            if matched_keywords:
+                score = min(len(matched_keywords) / len(role_info["keywords"]), 1.0)
                 matched.append(
-                    {
-                        "role_id": role_id,
-                        "name": role_info["name"],
-                        "confidence": confidence,
-                        "matched_keywords": matched_keywords,
-                        "reason": f"匹配关键词: {', '.join(matched_keywords)}",
-                    }
+                    self._candidate(
+                        role_id,
+                        name=str(role_info["name"]),
+                        score=score,
+                        reason=f"匹配关键词: {', '.join(matched_keywords)}",
+                        source="keyword",
+                        matched_keywords=matched_keywords,
+                    )
                 )
-
-        matched.sort(key=lambda x: x["confidence"], reverse=True)
 
         if not matched:
             matched.append(
-                {
-                    "role_id": "solo-coder",
-                    "name": "独立开发者",
-                    "confidence": 0.5,
-                    "matched_keywords": [],
-                    "reason": "默认角色：无明确关键词匹配",
-                }
+                self._candidate(
+                    "solo-coder",
+                    name="独立开发者",
+                    score=0.5,
+                    reason="默认角色：无明确关键词匹配",
+                    source="fallback",
+                )
             )
 
-        return matched
+        return self._merge_candidates(matched)
 
     def analyze_task_enhanced(self, task_description: str) -> list[dict[str, Any]]:
         """
@@ -132,7 +174,7 @@ class RoleMatcher:
         """
         # Step 1: Keyword-based matching (always runs)
         matched = self.analyze_task(task_description)
-        existing_ids = {r["role_id"] for r in matched}
+        existing_ids = {r["candidate"] for r in matched}
 
         # Step 2: Adaptive role selection based on historical success rates
         adaptive_roles = []
@@ -164,14 +206,14 @@ class RoleMatcher:
             if role_name not in existing_ids:
                 template = ROLE_TEMPLATES.get(role_name, {"name": role_name})
                 matched.append(
-                    {
-                        "role_id": role_name,
-                        "name": template.get("name", role_name),
-                        "confidence": 0.4,
-                        "matched_keywords": [],
-                        "reason": "历史成功率推荐（AdaptiveRoleSelector）",
-                        "source": "adaptive",
-                    }
+                    self._candidate(
+                        role_name,
+                        name=str(template.get("name", role_name)),
+                        score=0.4,
+                        matched_keywords=[],
+                        reason="历史成功率推荐（AdaptiveRoleSelector）",
+                        source="adaptive",
+                    )
                 )
                 existing_ids.add(role_name)
 
@@ -181,25 +223,21 @@ class RoleMatcher:
                 template = ROLE_TEMPLATES.get(role_name, {"name": role_name})
                 conf = confidence_map.get(similar_confidence, 0.3)
                 matched.append(
-                    {
-                        "role_id": role_name,
-                        "name": template.get("name", role_name),
-                        "confidence": conf,
-                        "matched_keywords": [],
-                        "reason": f"相似任务推荐（SimilarTaskRecommender，置信度: {similar_confidence}）",
-                        "source": "similar",
-                    }
+                    self._candidate(
+                        role_name,
+                        name=str(template.get("name", role_name)),
+                        score=conf,
+                        matched_keywords=[],
+                        reason=f"相似任务推荐（SimilarTaskRecommender，置信度: {similar_confidence}）",
+                        source="similar",
+                    )
                 )
                 existing_ids.add(role_name)
 
-        # Re-sort by confidence (keyword results keep their original confidence,
-        # enhanced results have lower confidence)
-        matched.sort(key=lambda x: x.get("confidence", 0), reverse=True)
-
-        return matched
+        return self._merge_candidates(matched)
 
     @staticmethod
-    def resolve_roles(roles: list[str], matched_roles: list[dict]) -> list[dict]:
+    def resolve_roles(roles: list[str], _matched_roles: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Resolve user-specified roles, merging with auto-matched results.
 
@@ -213,25 +251,23 @@ class RoleMatcher:
         from .models import ROLE_REGISTRY as _RR
 
         resolved_roles = [resolve_role_id(r) for r in roles]
-        role_ids_set = set(resolved_roles)
-        final = [r for r in matched_roles if r["role_id"] in role_ids_set]
-
-        for rid, _original_rid in zip(resolved_roles, roles):
-            if not any(r["role_id"] == rid for r in final):
-                template = ROLE_TEMPLATES.get(rid, {"name": rid, "prompt": ""})
-                rdef = _RR.get(rid)
-                if rdef and rdef.status == "planned":
-                    reason = f"用户指定（{rdef.name} - 规划中角色，暂无完整模板）"
-                else:
-                    reason = "用户指定"
-                final.append(
-                    {
-                        "role_id": rid,
-                        "name": template.get("name", rid),
-                        "confidence": 1.0,
-                        "matched_keywords": [],
-                        "reason": reason,
-                    }
+        final: list[dict[str, Any]] = []
+        for rid in resolved_roles:
+            template = ROLE_TEMPLATES.get(rid, {"name": rid, "prompt": ""})
+            rdef = _RR.get(rid)
+            if rdef and rdef.status == "planned":
+                reason = f"用户指定（{rdef.name} - 规划中角色，暂无完整模板）"
+            else:
+                reason = "用户指定"
+            final.append(
+                RoleMatcher._candidate(
+                    rid,
+                    name=str(template.get("name", rid)),
+                    score=1.0,
+                    matched_keywords=[],
+                    reason=reason,
+                    source="explicit",
                 )
+            )
 
         return final

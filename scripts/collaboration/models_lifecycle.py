@@ -44,6 +44,7 @@ class ExecutionPlan:
     total_tasks: int = 0
     estimated_parallelism: float = 0.0
     review_bundles: list[list[str]] | None = None
+    review_filter: dict[str, Any] | None = None
 
 
 class BatchMode(Enum):

@@ -751,7 +751,11 @@ class Worker:
             if self.stream and hasattr(backend, "generate_stream"):
                 logger.debug("  [%s] Streaming...", _rname)
                 chunks = []
-                for chunk in backend.generate_stream(result.instruction):
+                for chunk in backend.generate_stream(
+                    result.instruction,
+                    role_name=_rname,
+                    task_description=task.description,
+                ):
                     sys.stderr.write(chunk)
                     sys.stderr.flush()
                     chunks.append(chunk)
@@ -759,7 +763,11 @@ class Worker:
                 sys.stderr.flush()
                 response = "".join(chunks)
             else:
-                response = backend.generate(result.instruction)
+                response = backend.generate(
+                    result.instruction,
+                    role_name=_rname,
+                    task_description=task.description,
+                )
             logger.debug("  [%s] Response received.", _rname)
 
             # V3.8 #9: Store the response in the caches (when configured).

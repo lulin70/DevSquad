@@ -65,6 +65,7 @@ class MokaAIBackend(LLMBackend):
     """
 
     path = "A"
+    backend_id = "moka"
     DEFAULT_TIMEOUT = MOKA_DEFAULT_TIMEOUT
     MAX_RETRIES = MOKA_MAX_RETRIES
 

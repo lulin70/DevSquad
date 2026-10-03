@@ -18,8 +18,10 @@ Run standalone (used by subprocess/multiprocessing):
 
 from __future__ import annotations
 
+import json
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 from tests.fakes.fake_host_runner import DEFAULT_POLL_INTERVAL
@@ -77,6 +79,13 @@ class FakeHostRunnerV2:
             time.sleep(self.delay_seconds)
 
         if self.behaviour == "timeout":
+            return True
+
+        if self.behaviour == "invalid-marker":
+            marker_path = Path(self.bridge_dir) / self._bridge.MARKER_FILENAME
+            invalid = json.loads(marker_path.read_text(encoding="utf-8"))
+            invalid["protocol_version"] = 2
+            marker_path.write_text(json.dumps(invalid), encoding="utf-8")
             return True
 
         if self.behaviour == "fail":

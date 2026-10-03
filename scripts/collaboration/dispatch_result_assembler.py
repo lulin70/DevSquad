@@ -83,6 +83,8 @@ class ResultAssembler:
         coordinator: Any,
         tenant_id: str | None = None,
         enterprise: Any = None,
+        backend_status: dict[str, Any] | None = None,
+        role_candidates: list[dict[str, Any]] | None = None,
     ) -> DispatchResult:
         """Assemble the final DispatchResult from all step results."""
         report = coordinator.generate_report()
@@ -103,6 +105,8 @@ class ResultAssembler:
                 "report": report,
                 "timing": step_timings,
                 "tenant_id": tenant_id,
+                "role_candidates": list(role_candidates or []),
+                **({"backend_status": backend_status} if backend_status is not None else {}),
             },
             scratchpad_summary=scratchpad_summary,
             consensus_records=consensus_records,

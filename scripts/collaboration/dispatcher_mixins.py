@@ -116,6 +116,7 @@ class DispatcherAsyncMixin(DispatcherBase):
                     **kwargs,
                 ),
             )
+            self._attach_review_metadata(async_result, pre_result.plan)
             # V4.5.4 P12.3: Activate ModuleFiber + Coeffect on async success path
             # (anti-ghost: must run on every successful dispatch, sync or async).
             try:
@@ -555,6 +556,15 @@ class DispatcherUtilsMixin(DispatcherBase):
         except (ValueError, TypeError, OSError) as e:
             logger.debug("Locale detection failed, using default language: %s", e)
             return "zh"
+
+    def _attach_review_metadata(self, result: DispatchResult, plan: Any) -> None:
+        """Expose deterministic review metadata when a review plan provides it."""
+        review_bundles = getattr(plan, "review_bundles", None)
+        if review_bundles is not None:
+            result.details["review_bundles"] = review_bundles
+        review_filter = getattr(plan, "review_filter", None)
+        if review_filter is not None:
+            result.details["review_filter"] = review_filter
 
     def _execute_workers(
         self, plan: Any, _task_description: str

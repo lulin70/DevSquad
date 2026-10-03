@@ -74,7 +74,7 @@ class T15_SkillFrontmatterYamlParse(unittest.TestCase):
             "  Not a single-capability tool: coordinates 7 roles + 8 atomic\n"
             "    indented continuation remains part of the block.\n"
             "  One task → multi-role collaboration → consensus conclusion.\n"
-            "  204+ core modules, 9400+ tests passing (local; CI authoritative).\n"
+            "  211+ core modules, 9400+ tests passing (local; CI authoritative).\n"
             "---\n"
             "body\n"
         )

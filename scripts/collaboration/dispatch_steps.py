@@ -567,6 +567,12 @@ class PostDispatchPipeline(
             coordinator=self.coordinator,
             tenant_id=tenant_id,
             enterprise=self.enterprise,
+            role_candidates=matched_roles,
+            backend_status=(
+                self.dispatcher.llm_backend.backend_status().to_dict()
+                if self.dispatcher.llm_backend is not None and hasattr(self.dispatcher.llm_backend, "backend_status")
+                else None
+            ),
         )
 
         # Lifecycle phase trace

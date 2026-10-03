@@ -570,11 +570,8 @@ class MultiAgentDispatcher(
                 result.micro_task_plan = micro_task_plan.to_dict()
                 result.details["micro_task_plan"] = micro_task_plan.to_dict()
 
-            # V4.5.20 (F4): expose the deterministic review bundles produced by
-            # the review-mode plan so the split is observable in the result.
-            review_bundles = getattr(pre_result.plan, "review_bundles", None)
-            if review_bundles is not None:
-                result.details["review_bundles"] = review_bundles
+            # V4.5.20 (F4): expose deterministic review metadata.
+            self._attach_review_metadata(result, pre_result.plan)
 
             if permission_result_dict is not None:
                 result.permission_result = permission_result_dict

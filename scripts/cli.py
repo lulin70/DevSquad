@@ -367,8 +367,11 @@ Lifecycle Commands (P0-4 Agent Skills Integration):
   ship      Pre-launch checklist + deployment prep (devops + security + architect)
 
 Environment Variables (API keys are read from env vars only, never command line):
-  DEVSQUAD_LLM_BACKEND   Default LLM backend (auto/mock/openai/anthropic)
-                         'auto' tries real backends first, falls back to mock
+  DEVSQUAD_LLM_BACKEND   Default LLM backend
+                         'host'/'host-v1'/'host-v2' delegate to the host bridge
+                         'auto' selects the first available host/API/mock path
+                         'auto-fallback' keeps host → API → mock failover enabled
+                         Host protocol violations are fail-closed (never mock fallback)
   OPENAI_API_KEY         OpenAI API key (required for --backend openai)
   OPENAI_BASE_URL        Custom API endpoint (for OpenAI-compatible APIs)
   OPENAI_MODEL           Model name (default: gpt-4)
@@ -413,13 +416,71 @@ Environment Variables (API keys are read from env vars only, never command line)
         metavar="FILE",
         help="File paths to review. Only used with --mode review: >5 files engage deterministic bundling (grouped by directory + imports)",
     )
+    p_dispatch.add_argument(
+        "--diff-file",
+        default=None,
+        metavar="PATH",
+        help="Read a unified diff from PATH for review; mutually exclusive with --changeset",
+    )
+    p_dispatch.add_argument(
+        "--include",
+        nargs="+",
+        default=(),
+        metavar="PATTERN",
+        help="Glob patterns to force-include in review (secret paths remain excluded)",
+    )
+    p_dispatch.add_argument(
+        "--exclude",
+        nargs="+",
+        default=(),
+        metavar="PATTERN",
+        help="Glob patterns to exclude from review",
+    )
+    p_dispatch.add_argument(
+        "--max-file-size",
+        type=int,
+        default=10 * 1024 * 1024,
+        metavar="BYTES",
+        help="Maximum reviewable file size in bytes",
+    )
+    p_dispatch.add_argument(
+        "--repo-root",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Repository root used to read review file contents and project rules",
+    )
+    p_dispatch.add_argument(
+        "--rule",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="CLI rule.json source with highest rule priority",
+    )
+    p_dispatch.add_argument(
+        "--deleted",
+        nargs="+",
+        default=(),
+        metavar="FILE",
+        help="Paths explicitly marked deleted in the review changeset",
+    )
+    p_dispatch.add_argument(
+        "--preview",
+        action="store_true",
+        help="Preview deterministic review filtering and bundles without LLM or dispatcher initialization",
+    )
+    p_dispatch.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Include per-path and per-bundle details in review preview output",
+    )
     p_dispatch.add_argument("--format", "-f", choices=FORMATS, default="markdown", help="Output format")
     p_dispatch.add_argument(
         "--backend",
         "-b",
         choices=BACKENDS,
         default=os.environ.get("DEVSQUAD_LLM_BACKEND", "auto"),
-        help="LLM backend (default: auto, or DEVSQUAD_LLM_BACKEND env; auto tries real LLM then falls back to mock)",
+        help="Backend: host delegation, auto first-available host/API/mock, or auto-fallback host→API→mock (protocol violations fail closed)",
     )
     p_dispatch.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
     p_dispatch.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
@@ -619,7 +680,7 @@ Environment Variables (API keys are read from env vars only, never command line)
             "-b",
             choices=BACKENDS,
             default=os.environ.get("DEVSQUAD_LLM_BACKEND", "auto"),
-            help="LLM backend (default: auto, or DEVSQUAD_LLM_BACKEND env; auto tries real LLM then falls back to mock)",
+            help="Backend: host delegation, auto first-available host/API/mock, or auto-fallback host→API→mock (protocol violations fail closed)",
         )
         p_cmd.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
         p_cmd.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
@@ -634,6 +695,28 @@ Environment Variables (API keys are read from env vars only, never command line)
         p_cmd.add_argument("--skip-permission", action="store_true", help="Skip permission checks")
         p_cmd.add_argument("--no-memory", action="store_true", help="Disable memory bridge")
         p_cmd.add_argument("--no-skillify", action="store_true", help="Disable skill learning")
+        if cmd_name == "review":
+            p_cmd.add_argument(
+                "--changeset",
+                nargs="+",
+                default=None,
+                metavar="FILE",
+                help="File paths to review in deterministic preview mode",
+            )
+            p_cmd.add_argument(
+                "--diff-file",
+                default=None,
+                metavar="PATH",
+                help="Read a unified diff from PATH for review; mutually exclusive with --changeset",
+            )
+            p_cmd.add_argument("--include", nargs="+", default=(), metavar="PATTERN")
+            p_cmd.add_argument("--exclude", nargs="+", default=(), metavar="PATTERN")
+            p_cmd.add_argument("--max-file-size", type=int, default=10 * 1024 * 1024, metavar="BYTES")
+            p_cmd.add_argument("--repo-root", type=str, default=None, metavar="PATH")
+            p_cmd.add_argument("--rule", type=str, default=None, metavar="PATH")
+            p_cmd.add_argument("--deleted", nargs="+", default=(), metavar="FILE")
+            p_cmd.add_argument("--preview", action="store_true", help="Preview without LLM calls")
+            p_cmd.add_argument("--verbose", action="store_true", help="Include per-path preview details")
 
     args = parser.parse_args()
 

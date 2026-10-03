@@ -69,7 +69,7 @@ MODULE_COUNT_SSOT_TOLERANCE = 0.03
 # documentation prose must agree with. Drift here produces a WARN-level
 # VersionCheck that does not block CI; the doc should be brought in line
 # in a follow-up patch.
-DOCUMENTED_MODULE_HEADLINE = 204  # "204+ core modules"
+DOCUMENTED_MODULE_HEADLINE = 211  # "211+ core modules"
 DOCUMENTED_TEST_HEADLINE = 9400  # "9400+ tests passing"
 
 # Match version tags in PRD filenames: V3.9, V4.1.0, V4.2.1, etc.

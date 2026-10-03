@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -27,11 +28,13 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 
 from scripts.collaboration.backend_paths import BackendPath  # noqa: E402
 from scripts.collaboration.backend_paths import get_call_counter_er as _bp_counter  # noqa: E402
+from scripts.collaboration.dispatch_pre_steps import PreDispatchPipeline  # noqa: E402
 from scripts.collaboration.host_llm_bridge import HostBridgeBackend  # noqa: E402
 from scripts.collaboration.host_llm_bridge import get_call_counter_er as _hbb_counter  # noqa: E402
 from scripts.collaboration.order_chain_detector import OrderChainDetector  # noqa: E402
 from scripts.collaboration.order_chain_detector import get_call_counter_er as _ocd_counter  # noqa: E402
 from scripts.collaboration.perf_baseline import get_call_counter_er as _pb_counter  # noqa: E402
+from scripts.collaboration.role_matcher import RoleMatcher  # noqa: E402
 from scripts.collaboration.task_scale_gate import TaskScale, TaskScaleGate  # noqa: E402
 from scripts.collaboration.task_scale_gate import get_call_counter_er as _tsg_counter  # noqa: E402
 
@@ -111,6 +114,73 @@ class TestPipelineRoutingSteps:
             new_scale = scale
 
         assert new_scale.single_role is True
+
+
+# ---------------------------------------------------------------------------
+# W1-7: Role candidate propagation and cap ordering
+# ---------------------------------------------------------------------------
+
+
+class TestRoleCandidatePipeline:
+    """Verify candidate normalization reaches the real pre-dispatch method."""
+
+    @staticmethod
+    def _pipeline() -> PreDispatchPipeline:
+        pipeline = PreDispatchPipeline.__new__(PreDispatchPipeline)
+        pipeline.role_matcher = RoleMatcher()
+        pipeline.semantic_matcher = None
+        pipeline.llm_backend = None
+        pipeline.usage_tracker = None
+        pipeline.analyze_task_fn = lambda _task: [
+            RoleMatcher._candidate(
+                "architect",
+                score=0.4,
+                reason="keyword",
+                source="keyword",
+            ),
+            RoleMatcher._candidate(
+                "tester",
+                score=0.9,
+                reason="keyword",
+                source="keyword",
+            ),
+            RoleMatcher._candidate(
+                "solo-coder",
+                score=0.6,
+                reason="keyword",
+                source="keyword",
+            ),
+        ]
+        pipeline.role_matcher.analyze_task_enhanced = lambda _task: []
+        return pipeline
+
+    def test_normalize_before_task_scale_cap(self):
+        pipeline = self._pipeline()
+        scale = SimpleNamespace(max_roles=2)
+        matched = pipeline.match_roles("任务", roles=None, task_scale=scale)
+        assert [candidate["candidate"] for candidate in matched] == [
+            "tester",
+            "solo-coder",
+        ]
+        assert [candidate["role_id"] for candidate in matched] == [
+            "tester",
+            "solo-coder",
+        ]
+
+    def test_explicit_roles_bypass_automatic_cap(self):
+        pipeline = self._pipeline()
+        scale = SimpleNamespace(max_roles=1)
+        matched = pipeline.match_roles(
+            "任务",
+            roles=["architect", "security", "tester"],
+            task_scale=scale,
+        )
+        assert [candidate["candidate"] for candidate in matched] == [
+            "architect",
+            "security",
+            "tester",
+        ]
+        assert all(candidate["source"] == "explicit" for candidate in matched)
 
 
 # ---------------------------------------------------------------------------

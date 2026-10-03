@@ -62,6 +62,7 @@ I18N = {
         "no_output": "*(无输出)*",
         "no_summary": "(无摘要)",
         "next_steps": "## 🔄 建议下一步",
+        "backend_status": "## 🔌 Backend Status",
     },
     "en": {
         "title": "# 🤖 Multi-Agent Collaboration Result",
@@ -86,6 +87,7 @@ I18N = {
         "no_output": "*(no output)*",
         "no_summary": "(no summary)",
         "next_steps": "## 🔄 Suggested Next Steps",
+        "backend_status": "## 🔌 Backend Status",
     },
     "ja": {
         "title": "# 🤖 マルチエージェントコラボレーション結果",
@@ -110,6 +112,7 @@ I18N = {
         "no_output": "*(出力なし)*",
         "no_summary": "(サマリーなし)",
         "next_steps": "## 🔄 次のステップ",
+        "backend_status": "## 🔌 Backend Status",
     },
 }
 
@@ -329,6 +332,9 @@ class DispatchResult:
         sections = [
             self._format_mock_banner(t),
             self._format_header(t),
+            self._format_backend_status(t),
+            self._format_role_candidates(),
+            self._format_review_filter(),
             self._format_worker_results(t),
             self._format_scratchpad(t),
             self._format_consensus(t),
@@ -383,6 +389,64 @@ class DispatchResult:
             t["summary"],
             self.summary or t["no_summary"],
         ]
+
+    def _format_backend_status(self, t: dict[str, str]) -> list[str]:
+        status = self.details.get("backend_status")
+        if not isinstance(status, dict):
+            return []
+        chain = status.get("chain", [])
+        chain_text = " → ".join(str(path) for path in chain) if isinstance(chain, (list, tuple)) else str(chain)
+        lines = [
+            "",
+            t["backend_status"],
+            f"- Requested: {status.get('requested', 'N/A')}",
+            f"- Selected path: {status.get('selected_path', 'N/A')}",
+            f"- State: {status.get('state', 'N/A')}",
+            f"- Chain: {chain_text or 'N/A'}",
+        ]
+        degradation_reason = status.get("degradation_reason")
+        if degradation_reason:
+            lines.append(f"- Degradation reason: {degradation_reason}")
+        return lines
+
+    def _format_role_candidates(self) -> list[str]:
+        """Render matched role candidates and their deterministic evidence."""
+        candidates = self.details.get("role_candidates")
+        if not isinstance(candidates, list) or not candidates:
+            return []
+        lines = ["", "## 🎯 Role Candidates"]
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            role_id = candidate.get("candidate", candidate.get("role_id", "unknown"))
+            score = candidate.get("score", candidate.get("confidence", 0.0))
+            source = candidate.get("source", "unknown")
+            reason = candidate.get("reason", "")
+            keywords = candidate.get("matched_keywords", [])
+            keyword_text = f"; keywords: {', '.join(str(item) for item in keywords)}" if keywords else ""
+            lines.append(f"- `{role_id}` — score={score}; source={source}; {reason}{keyword_text}")
+        return lines
+
+    def _format_review_filter(self) -> list[str]:
+        """Render deterministic review filtering decisions when present."""
+        details = self.details.get("review_filter")
+        if not isinstance(details, dict):
+            return []
+        lines = ["", "## 🔍 Review Filter", f"- Candidates: {details.get('candidate_count', 0)}"]
+        lines.append(f"- Retained: {len(details.get('retained_paths', []))}")
+        lines.append(f"- Excluded: {len(details.get('excluded_paths', []))}")
+        gate_counts = details.get("gate_counts", {})
+        if isinstance(gate_counts, dict):
+            for gate, count in gate_counts.items():
+                if count:
+                    lines.append(f"- `{gate}`: {count}")
+        for item in details.get("excluded_paths", []):
+            if isinstance(item, dict):
+                path = item.get("path", "")
+                gate = item.get("gate", "")
+                reason = item.get("reason", "")
+                lines.append(f"  - `{path}` — {gate}: {reason}")
+        return lines
 
     def _format_worker_results(self, t: dict[str, str]) -> list[str]:
         if not self.worker_results:

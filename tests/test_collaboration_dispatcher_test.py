@@ -10,6 +10,7 @@ V3 Dispatcher 集成测试
 - 错误处理和边界条件
 """
 
+import math
 import os
 import shutil
 import sys
@@ -27,6 +28,7 @@ from scripts.collaboration.dispatcher import (
     create_dispatcher,
     quick_collaborate,
 )
+from scripts.collaboration.role_matcher import CANDIDATE_SOURCES, RoleMatcher
 
 pytestmark = pytest.mark.unit
 
@@ -165,6 +167,55 @@ class TestT2_TaskAnalysis:
         result = dispatcher.dispatch("测试任务描述", roles=["architect"])
         assert "architect" in result.matched_roles
 
+    def test_11_candidate_contract_is_typed_and_complete(self, dispatcher):
+        candidates = dispatcher.analyze_task("设计微服务架构并编写测试")
+        assert candidates
+        for candidate in candidates:
+            assert candidate["candidate"] == candidate["role_id"]
+            assert isinstance(candidate["score"], float)
+            assert math.isfinite(candidate["score"])
+            assert candidate["confidence"] == candidate["score"]
+            assert candidate["reason"]
+            assert candidate["source"] in CANDIDATE_SOURCES
+            assert isinstance(candidate["matched_keywords"], list)
+
+    def test_12_candidate_normalization_deduplicates_and_stably_sorts(self):
+        candidates = [
+            RoleMatcher._candidate(
+                "tester",
+                score=0.8,
+                reason="semantic",
+                source="semantic",
+            ),
+            RoleMatcher._candidate(
+                "architect",
+                score=0.8,
+                reason="keyword",
+                source="keyword",
+            ),
+            RoleMatcher._candidate(
+                "tester",
+                score=0.9,
+                reason="keyword",
+                source="keyword",
+                matched_keywords=["测试"],
+            ),
+        ]
+        normalized = RoleMatcher.normalize_candidates(candidates)
+        assert [item["candidate"] for item in normalized] == ["tester", "architect"]
+        assert normalized[0]["score"] == 0.9
+        assert normalized[0]["confidence"] == 0.9
+        assert normalized[0]["source"] == "keyword"
+        assert normalized[0]["matched_keywords"] == ["测试"]
+
+    def test_13_equal_scores_sort_by_role_id(self):
+        candidates = [
+            RoleMatcher._candidate("tester", score=0.5, reason="x", source="fallback"),
+            RoleMatcher._candidate("architect", score=0.5, reason="x", source="fallback"),
+        ]
+        normalized = RoleMatcher.normalize_candidates(candidates)
+        assert [item["candidate"] for item in normalized] == ["architect", "tester"]
+
 
 class TestT3_FullDispatch:
     """T3: 完整调度流程"""
@@ -218,7 +269,14 @@ class TestT3_FullDispatch:
         assert "#" in md
         assert len(md) > 50
 
-    def test_07_timing_info_present(self, dispatcher):
+    def test_07_dispatch_exposes_role_candidates(self, dispatcher):
+        result = dispatcher.dispatch("设计架构并编写测试", roles=["architect", "tester"])
+        candidates = result.details["role_candidates"]
+        assert [item["candidate"] for item in candidates] == ["architect", "tester"]
+        assert result.matched_roles == ["architect", "tester"]
+        assert "Role Candidates" in result.to_markdown()
+
+    def test_08_timing_info_present(self, dispatcher):
         result = dispatcher.dispatch("计时性能测试")
         assert "timing" in result.details
         assert isinstance(result.details["timing"], dict)
@@ -226,17 +284,17 @@ class TestT3_FullDispatch:
         assert "analyze" in timing
         assert "execute" in timing
 
-    def test_08_dry_run_mode(self, dispatcher):
+    def test_09_dry_run_mode(self, dispatcher):
         result = dispatcher.dispatch("模拟运行任务", dry_run=True)
         assert result.success
         assert "DRY RUN" in result.summary
         assert len(result.worker_results) == 0
 
-    def test_09_consensus_mode(self, dispatcher):
+    def test_10_consensus_mode(self, dispatcher):
         result = dispatcher.dispatch("需要共识的决策", mode="consensus")
         assert isinstance(result.consensus_records, list)
 
-    def test_10_sequential_mode(self, dispatcher):
+    def test_11_sequential_mode(self, dispatcher):
         result = dispatcher.dispatch("顺序执行任务", mode="sequential")
         assert isinstance(result, DispatchResult)
 

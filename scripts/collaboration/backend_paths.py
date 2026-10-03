@@ -164,6 +164,16 @@ class BackendUnavailable(Exception):
     pass
 
 
+class BackendProtocolViolation(Exception):
+    """Raised when a host backend violates its wire protocol.
+
+    Protocol violations are not ordinary availability failures: the caller
+    must fail closed instead of silently degrading to MockBackend.
+    """
+
+    pass
+
+
 class BackendTimeout(BackendUnavailable):
     """Raised when a backend request times out (only for B/A paths)."""
 

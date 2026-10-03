@@ -111,7 +111,25 @@ class TestFileBundler(unittest.TestCase):
         )
 
     # ------------------------------------------------------------------
-    # 3. max_per_bundle: 15 files, max=10 → at least 2 bundles
+    # 3. explicit repository root resolves relative import sources
+    # ------------------------------------------------------------------
+
+    def test_bundle_with_explicit_root(self) -> None:
+        """Boundary: relative input paths are read under the supplied root."""
+        self._write("utils/helper.py", "def assist():\n    return 42\n")
+        self._write(
+            "services/importer.py",
+            "import helper\n\n\ndef run():\n    return helper.assist()\n",
+        )
+
+        files = ["utils/helper.py", "services/importer.py"]
+        bundles = self._bundler.bundle(files, max_per_bundle=10, root=self._tmpdir)
+
+        self.assertEqual(len(bundles), 1, f"root-relative imports not resolved: {bundles}")
+        self.assertTrue(self._bundles_contain_together(bundles, *files))
+
+    # ------------------------------------------------------------------
+    # 4. max_per_bundle: 15 files, max=10 → at least 2 bundles
     # ------------------------------------------------------------------
 
     def test_max_per_bundle(self) -> None:

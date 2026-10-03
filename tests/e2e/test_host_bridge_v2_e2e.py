@@ -20,6 +20,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from scripts.collaboration.backend_paths import BackendProtocolViolation  # noqa: E402
 from scripts.collaboration.host_llm_bridge import HostBridgeBackendV2  # noqa: E402
 from scripts.collaboration.host_llm_bridge_v2 import HostLLMBridgeV2  # noqa: E402
 
@@ -104,6 +105,18 @@ class TestV2SubprocessRoundTrip:
             proc.wait(timeout=10)
         # Request files remain (no fake success), and fuse trips after 2nd failure
         assert backend._failures
+
+    def test_invalid_marker_fails_closed_before_mock_fallback(self, v2_dir: Path) -> None:
+        proc = _spawn_runner(v2_dir, "invalid-marker")
+        _wait_boot()
+        backend = HostBridgeBackendV2(bridge_dir=str(v2_dir), timeout_seconds=5)
+        try:
+            with pytest.raises(BackendProtocolViolation, match="invalid v2 marker"):
+                backend.generate("p", agent_type="architect", task_description="t")
+        finally:
+            proc.terminate()
+            proc.wait(timeout=10)
+        assert backend.backend_id == "host-v2"
 
 
 class TestV2FactorySubprocessJourney:

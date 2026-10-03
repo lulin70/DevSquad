@@ -1,7 +1,8 @@
 # Deterministic / Agent Boundary — Engineering Contract
 
-> **Status**: W1-0 (V4.5.20). Written **before** the implementation, as the spec for
-> W1-1 … W1-7, per the maintainer's ruling that the contract comes first.
+> **Status**: W1-7 complete (V4.5.20). This document was written before the
+implementation as the specification for W1-1 … W1-7; its `Effective` markers now
+identify the shipped waves. C9/C10 remain deferred to W2.
 > **Source**: `docs/prd/V4.5.20_ocr-learnings_PRD.md` — E7 (this document), E1, E2,
 > E3, E5, E8.
 > **Drift gate**: `scripts/check_skill_contract.py` reverse-checks every clause below.
@@ -55,9 +56,9 @@ the same defect as a documented feature that never ran (PRD F4).
 | C13 | `preview.path_redaction` | Preview | W1-4 |
 | C14 | `delegate.zero_api_key` | Delegation | shipped in V4.5.10 |
 | C15 | `delegate.strict_marker_fail_closed` | Delegation | shipped in V4.5.10 |
-| C16 | `delegate.degradation_ladder` | Delegation | W1-6 |
-| C17 | `delegate.no_silent_mock_fallback` | Delegation | W1-6 |
-| C18 | `review.multifile_input_contract` | Review input | W1-5 |
+| C16 | `delegate.degradation_ladder` | Delegation | shipped in V4.5.20 W1-6 |
+| C17 | `delegate.no_silent_mock_fallback` | Delegation | shipped in V4.5.20 W1-6 |
+| C18 | `review.multifile_input_contract` | Review input | shipped in V4.5.20 W1-5 |
 
 ---
 
@@ -79,8 +80,11 @@ local config file can switch off is not a protection — it is a default. This i
 same hard constraint as `InputValidator` and `rbac_fail_closed=True`: forbidden to
 fail open.
 
-**Proven by** `tests/test_review_preview.py` (negative case: a config that
-`include`s a secret path must still see it excluded).
+**Proven by** `tests/test_review_filter.py`,
+`tests/integration/test_review_filter_dispatch_integration.py`, and
+`tests/e2e/test_review_filter_e2e.py`: a config that `include`s a secret path
+still sees it excluded, and the real review pipeline never passes it to a bundle.
+Sensitive paths are redacted in serialized JSON and Markdown output.
 
 ### C2 `gate.named_exclusion_reasons`
 
@@ -101,16 +105,54 @@ fail open.
 and in `--preview` output, and callers may match on them. Renaming one is a
 breaking change.
 
-**Proven by** one test per gate in `tests/test_review_preview.py`.
+**Proven by** `tests/test_review_filter.py` (one test per gate, plus
+security-wall, malformed-rule, duplicate-candidate, and redaction cases),
+`tests/integration/test_review_filter_dispatch_integration.py` (sync and async
+production dispatch), and `tests/e2e/test_review_filter_e2e.py` (subprocess CLI
+path).
+
+The production order is:
+
+```text
+secret_exclude → deleted → binary → rule resolution → too_large
+→ user_exclude → user_include → default_path → unsupported_ext / retained
+```
+
+The filter runs in `PreDispatchPipeline.prepare_execution()` before
+`Coordinator.plan_review_bundles()`, `FileBundler`, review task creation, and
+worker execution. The CLI review path accepts `--include`, `--exclude`,
+`--max-file-size`, `--repo-root`, `--rule`, and `--deleted`; deleted paths are
+explicitly supplied through the changeset input contract and are reported as the
+`deleted` gate.
 
 ### C3 `gate.exports_are_not_gates`
 
 **Rule.** A path that is *kept* is not reported as passing a gate. `user_include`
-above is the exception and is deliberately listed, because an explicit `include` is
-a user decision worth confirming; the other seven describe drops only.
+above is the exception and is deliberately listed, because an explicit `include` is a user decision worth confirming; the other seven describe drops only.
+`user_include` is therefore a retained-path marker, not an exclusion count. The
+candidate accounting is **kept + dropped**, with `user_include` included in kept
+rather than counted as dropped.
 
-**Proven by** the summary counts in `tests/test_review_preview.py`: kept + dropped
-must equal the candidate total, exactly once each.
+The conservation invariant is:
+
+```python
+sum(
+    count
+    for gate, count in result.gate_counts.items()
+    if gate != "user_include"
+) + len(result.retained_paths) == result.candidate_count
+```
+
+Each normalized candidate receives at most one final decision; duplicate path
+spellings are de-duplicated before counting. Sensitive-path details are emitted
+as `[REDACTED sensitive path]` with the generic reason `sensitive path excluded
+before user configuration`.
+
+**Proven by** `tests/test_review_filter.py` (count conservation, one final
+decision per candidate, duplicate normalization, and redaction),
+`tests/integration/test_review_filter_dispatch_integration.py` (report and
+bundle assertions), and `tests/e2e/test_review_filter_e2e.py` (real CLI JSON and
+Markdown output).
 
 ---
 
@@ -236,9 +278,22 @@ worker: the report must contain that role's name and its reason.
 files will be reviewed, which were dropped, and under which gate — and nothing else.
 It exists so a caller can find out what a review would cost *without* paying for it.
 
-**Proven by** test that patches the **underlying HTTP client** (`httpx` /
-`requests` send methods) and asserts zero invocations. Patching only the backend
-layer is explicitly insufficient: a `MockBackend` call counter proves the backend
+**Implementation shape (W1-4).** The preview is an early deterministic CLI branch in
+`scripts/collaboration/review_preview.py`, reached from **both** entries:
+`devsquad dispatch --mode review --preview` and `devsquad review --preview`. It runs
+after task validation but **before** backend construction, dispatcher
+instantiation, and every sync/async dispatch path — `dry_run` cannot substitute
+because it returns before review filtering and bundling.
+
+**Proven by** `tests/integration/test_review_preview_no_http.py`, which traps the
+**underlying transport and constructors** (`httpx.Client.send`,
+`httpx.AsyncClient.send`, `openai.OpenAI.__init__`, `anthropic.Anthropic.__init__`,
+`MultiAgentDispatcher.__init__`) and asserts zero violations; plus the subprocess
+probe `tests/e2e/test_review_preview_e2e.py::test_preview_does_not_call_http`,
+which launches the CLI with `--backend openai`, a fake key, and a closed-port base
+URL — the same command without `--preview` exits 1 with `APIConnectionError`, so
+preview's exit 0 is discriminating evidence. Patching only the backend interface
+is explicitly insufficient: a `MockBackend` call counter proves the backend
 interface was not entered, not that no request left the process.
 
 ### C12 `preview.summary_by_default`
@@ -247,7 +302,9 @@ interface was not entered, not that no request left the process.
 to the per-path detail. A large repository must not turn a preview into hundreds of
 lines of output.
 
-**Proven by** test asserting the default output has no per-path lines.
+**Proven by** `tests/test_review_preview.py::test_summary_shape_is_default` (no
+per-path keys by default, details appear with `verbose`) and the subprocess
+assertions in `tests/e2e/test_review_preview_e2e.py::test_preview_json_summary_is_default`.
 
 ### C13 `preview.path_redaction`
 
@@ -260,8 +317,10 @@ and pasted — that is its purpose. Output designed to be pasted into an issue i
 exactly where a leaked path does damage, so redaction belongs in the feature, not in
 a follow-up.
 
-**Proven by** test asserting the sensitive path from a fixture appears in no
-plaintext form in preview output.
+**Proven by** `tests/test_review_preview.py::test_secret_path_is_redacted_even_in_verbose`
+and the subprocess assertion in
+`tests/e2e/test_review_preview_e2e.py::test_preview_redacts_secret_paths`: the
+fixture sensitive path appears in no plaintext form, including with `--verbose`.
 
 ---
 
@@ -299,7 +358,7 @@ guess-and-continue.
 visible to the user**. Silent degradation is what makes a caller believe it is
 talking to the host Agent when it is not.
 
-**Proven by** one test per step asserting the user-visible notice.
+**Proven by** `tests/test_llm_auto_fallback.py` and `tests/test_llm_backend_resolve.py` (host precedence, `auto`, and complete `auto-fallback` chain), plus `tests/e2e/test_cli_subprocess.py::TestCLISubprocessHostDelegation` for real JSON and Markdown CLI output through a spawned v2 host process. The backend status is observable as `requested`, `selected_path`, `state`, `chain`, and optional `degradation_reason`.
 
 ### C17 `delegate.no_silent_mock_fallback`
 
@@ -308,8 +367,7 @@ talking to the host Agent when it is not.
 the user believes the host Agent wrote it — the most damaging possible failure for
 this mode, because it is undetectable from the output.
 
-**Proven by** negative test forging a bad marker and asserting an error, not a mock
-response.
+**Proven by** `tests/test_host_llm_bridge_v2.py`, `tests/test_host_bridge_unit.py`, and `tests/e2e/test_host_bridge_v2_e2e.py::test_invalid_marker_fails_closed_before_mock_fallback`: a malformed v2 marker raises `BackendProtocolViolation`, the Mock backend is not called, and the failure is observed through a real host subprocess path.
 
 ### C18 `review.multifile_input_contract`
 
@@ -318,10 +376,38 @@ response.
 requirement, not a courtesy: callers pinned to the single-string form must not have
 to change.
 
-**Proven by** a back-compat test asserting the single-`code` call behaves as before,
-alongside the new multi-file tests.
+**Proven by** `tests/unit/test_review_input.py`,
+`tests/test_cli_lifecycle.py`,
+`tests/integration/test_review_filter_dispatch_integration.py`, and
+`tests/e2e/test_review_preview_e2e.py`: malformed diff input exits non-zero without a
+traceback; sync and async dispatch have parity; the legacy `code` string API remains
+compatible; and the original diff text is not copied into output metadata.
 
 ---
+
+## 真实用户路径证据（W1 收口前置条件）
+
+**本轮实测日期：2026-10-01。** 在临时真实仓库中完成了一次模拟真实用户的 CLI E2E 运行。临时真实仓库包含：`src/keep.py`、`docs/readme.md`、`.env`、`.devsquad/rule.json`。项目 `rule.json` 为：`**/*.py => {review:true, kind:source}`；`**/*.md => {review:false, kind:unclaimed}`；`** => {review:false, kind:unclaimed}`。
+
+用户风格命令（实际用 `.venv/bin/python` 执行）为：
+
+```text
+.venv/bin/python scripts/cli.py dispatch -t "review changed files" --mode review --changeset src/keep.py docs/readme.md .env --repo-root <temporary-repo> --format json --backend mock
+```
+
+provider keys 在子进程中显式置空；`returncode=0`。关键输出事实为：`retained_paths=["src/keep.py"]`；gate counts = `secret_exclude:1, binary:0, unsupported_ext:1, too_large:0, user_exclude:0, user_include:0, default_path:0, deleted:0`；`bundles=[["src/keep.py"]]`；`report_has_review=true`。
+
+这证明了真实 CLI 的 **filtering → rule matching → review → report** 链路：`src/keep.py` 命中项目规则并保留；`docs/readme.md` 命中项目规则但 `kind=unclaimed`，因此由 `unsupported_ext` 排除；`.env` 在用户配置之前由 `secret_exclude` 排除；只有保留文件进入 bundling/review/report，正常报告生成。
+
+同一运行有两个非阻断环境提示：`prometheus-client not installed`；`DEV_SQUAD_AUDIT_HMAC_KEY` 未设置，当前进程生成随机 HMAC key，因此跨进程审计链验证会失败。它们没有改变退出码或过滤、规则、审查、报告结果；这是本地证据运行的环境限制，不是产品功能通过证明，也未为此安装依赖。
+
+这次证据证明 W1-5/C18 的真实用户路径；C16/C17 已在 W1-6 的独立 host subprocess E2E 中证明；W1-7 的角色候选生产路径及 CLI 可见性已由 W1-7 定向联合测试证明。W1 已整体完成；C9/C10 仍延后至 W2。
+
+## W1-7 角色候选可观测性
+
+**Effective: W1-7.** Existing role-matching sources share one normalized candidate contract and are visible through real Dispatch, `DispatchResult.details["role_candidates"]`, CLI JSON, and Markdown. Candidates are deduplicated by role, retain the highest score and its source, and use deterministic score/role-ID ordering; automatic caps apply after normalization while explicit roles remain authoritative.
+
+**Proven by** `tests/test_collaboration_dispatcher_test.py`, `tests/integration/test_pipeline_integration.py`, `tests/e2e/test_cli_subprocess.py`, and `tests/e2e/test_real_user_journey.py` — **115 passed, 1 warning**.
 
 ## 9. Delegation is the default path
 

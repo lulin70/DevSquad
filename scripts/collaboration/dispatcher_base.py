@@ -86,6 +86,10 @@ class DispatcherBase:
     _result_assembler: Any
     _audit_logger: Any
 
+    def _attach_review_metadata(self, result: DispatchResult, plan: Any) -> None:
+        """Expose deterministic review metadata on dispatch results."""
+        raise NotImplementedError
+
     # Configuration / state
     persist_dir: str
     memory_dir: str

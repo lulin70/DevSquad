@@ -193,6 +193,9 @@ class HostLLMBridgeV2:
     @classmethod
     def _default_bridge_dir(cls) -> Path:
         """Default v2 dir: <project_root>/logs/host_llm_bridge/v2."""
+        bridge_root = os.environ.get("DEVSQUAD_HOST_BRIDGE_ROOT")
+        if bridge_root:
+            return Path(bridge_root) / cls.VERSION_SUBDIR
         here = Path(__file__).resolve().parent.parent.parent
         return here / "logs" / "host_llm_bridge" / cls.VERSION_SUBDIR
 
@@ -307,6 +310,9 @@ class HostLLMBridgeV2:
                     "timeout": False,
                     "request_id": request_id,
                 }
+            marker_path = self._marker_path()
+            if marker_path.exists() and self.read_marker(bridge_dir=self.bridge_dir) is None:
+                raise HostLLMBridgeV2Error(f"invalid v2 marker for request {request_id}")
             time.sleep(self.POLL_INTERVAL)
         return {
             "success": False,

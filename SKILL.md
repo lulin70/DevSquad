@@ -7,14 +7,14 @@ description: |
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
-  204+ core modules, 9400+ tests passing (local; CI authoritative).
+  211+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.5.20 — Version-SSOT truth + deterministic review bundling (MINOR): the review-mode bundling announced in V4.5.0 was a contract-level ghost — neither `mode="review"` nor a `changeset` input existed anywhere in the dispatch pipeline, so `Coordinator.apply_file_bundling()` had no production caller for 19 releases. Both inputs now exist (`dispatch --mode review --changeset <files...>`, or `dispatch(..., mode="review", changeset=[...])`), routed via `PreDispatchPipeline.prepare_execution()` → `Coordinator.plan_review_bundles()`, with splits observable in `result.details["review_bundles"]` and the CLI JSON output. **Behaviour addition to note**: review mode with more than 5 files now yields one bundle per file group (grouped by directory + imports, so the bundle count follows the grouping and not the file count); `changeset=None`, non-review modes and ≤5 files behave exactly as V4.5.19. Also aligns 11 drifted `skills/*/skill-manifest.yaml` version fields and closes the version-gate blind spot for sub-skill manifests (64 → 77 checks), and replaces the anti-ghost gate's self-satisfying `counter > 0` assertion with a production probe (27 out-of-set counters are now honestly reported as `PASS (self-call)`). Known boundaries: `--dry-run` produces no bundle split, and the MCP tool does not expose `changeset`.
   V4.5.19 — Flaky-test cleanup PATCH (no new features): converts tests/test_dashboard_v43_panels.py::TestStatusUpdateLatency::test_status_update_latency from a single-shot `< 100ms` assertion into a 5-run median gate with a 150ms ceiling, plus `@pytest.mark.flaky(max_runs=3, min_passes=1)` backed by the newly-added pytest-rerunfailures dependency. The V4.5.18 tag-push CI run on the Python 3.10 matrix measured 281.65ms for the same four panel renders that finish in <10ms on a developer host, i.e. the assertion was measuring runner scheduler contention rather than panel cost. No production module changed → SemVer PATCH.
   V4.5.18 — Perf-extension + release-blocking hotfix PATCH (no new features): extends the V4.5.17 PRAGMA profile (WAL + synchronous=NORMAL + busy_timeout=5000) from code_graph_storage to ccr_store and history_manager; repairs the silent tuple drift in scripts/collaboration/_version.py (__version_info__ was (4, 6, 1) while __version__ was "4.5.17"); fixes a SkillRegistry thread-safety race (threading.RLock) that made test_06_concurrent_register_is_thread_safe fail intermittently on CI runners. Local benchmark: code_graph build 88-file median ~7s (was timeout>60s), CCR round-trip 0.074 ms/iter store + 0.030 ms/iter retrieve, History insert 0.060 ms/iter.
   V4.5.17 — PATCH cleanup (no new features): PR #9 CI failure repair (`mcp<2` pin + `httpx` install + pre-uninstall for pip-audit `--path site-packages` + red-team homoglyph opt-out + check_dependency_sync.py lazy-quantifier fix that had silently dropped bandit/pip-audit) + e2e subprocess portability (Path(__file__).resolve().parents[2] / sys.executable replaces hardcoded /Users/lin/.../.venv/bin/python) + release-readiness audit (`type: ignore` reasons + Bandit diagnostics + Codecov 70% gate retained) + archived stale planning docs. No semantic version bump rationale: 0 new features → SemVer PATCH. PRD: docs/prd/V4.6.1_cleanup_PRD.md.
-  V4.5.16 — Housekeeping + Digital Truth PATCH (no new user-facing features, no breaking changes). Synchronizes VERSION / pyproject.toml / skill-manifest / Dockerfile / deployment.yaml across 18 SSOT files; unifies README EN/CN/JP badges to 9400+ and 204+ module count; updates date to 2026-09-03; repairs version drift in DevSquad/HostLLMBridge/smoke references. PRD: docs/prd/V4.5.16_PRD.md.
+  V4.5.16 — Housekeeping + Digital Truth PATCH (no new user-facing features, no breaking changes). Synchronizes VERSION / pyproject.toml / skill-manifest / Dockerfile / deployment.yaml across 18 SSOT files; unifies README EN/CN/JP badges to 9400+ and 211+ module count; updates date to 2026-09-03; repairs version drift in DevSquad/HostLLMBridge/smoke references. PRD: docs/prd/V4.5.16_PRD.md.
   V4.5.15 — Skill registration gate (SKILL.md frontmatter YAML parseability is now a blocking check — the true "/" panel root cause) + Prometheus end-to-end scrape verification (scripts/verify_prometheus_e2e.py, honest pass|fail|tool_missing) + skill pack synced to all 3 TRAE cache levels (L1/L2/L3, user decision 2026-09-02, supersedes V4.5.13 single-source).
   V4.5.14 — Real-listener trace collection archived 5/5 (4 success + expected fail_closed, docs/e2e_evidence/V4.5.12_trae_ide_real/) + collect_trae_traces trace_3 honest `fail` status on BackendUnavailable + v2 _safe_read_json absent-file fast-return (removes misleading "JSON decode failed" noise; V4.5.13 "real listener writes non-JSON" finding corrected as a log artifact).
   V4.5.13 — One-shot TRAE trace collector (scripts/collect_trae_traces.py, honest 3-state status) + cross-host auto-signaling in FileRiskStore (statvfs ST_REMOTE + remote errno detection) + /metrics now exposes devsquad_v4512_risk_store_* series.
@@ -92,7 +92,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 | Reference Doc | Content | Target Audience |
 |---------------|---------|-----------------|
-| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 204+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
+| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 211+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
 | [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.20) | Release tracking / auditors |
 
@@ -106,7 +106,7 @@ When you invoke DevSquad inside an AI IDE (TRAE / Cursor / Claude Desktop), the 
 
 ### 2. Script-layer deterministic tooling (Python CLI / API / MCP)
 
-The 204+ core modules are deterministic Python code:
+The 211+ core modules are deterministic Python code:
 - `MultiAgentDispatcher` orchestrates 7 roles via `ThreadPoolExecutor` parallel workers
 - `ScratchpadHistoryStore` persists cross-role state via atomic writes
 - `ApprovalGate` enforces human-in-the-loop decisions
@@ -173,9 +173,14 @@ first-match semantics, and the delegation protocol boundary — is in
 Each clause there carries an `Effective` wave, so nothing is promised ahead of the
 code that ships it.
 
-> **Status honesty (V4.5.20 W1-0)**: this section is the *spec* written ahead of the
-> implementation, by design. Commitment 1 is shipped; 2 lands with W2 and 3 with
-> W1-4; the rule-chain and gate detail lands with W1-1 … W1-3. `Effective` in the
+> **Status honesty (V4.5.20 W1-7)**: this section was written ahead of the
+> implementation, by design, and is now synchronized with the shipped waves.
+> Shipped: commitment 1; commitment 3 (`review --preview`); the rule-chain + gate
+> detail (W1-1 … W1-4); W1-5/C18 (review input contract); W1-6/C16-C17
+> (host delegation selection, observable degradation, strict fail-closed protocol
+> handling, and no silent Mock fallback); and W1-7 (unified role-candidate
+> fields, deterministic deduplication/order, and production Dispatch/CLI
+> visibility). Commitment 2/C9-C10 remains deferred to W2. `Effective` in the
 > contract doc is authoritative for what is live today. Drift is checked by
 > `scripts/check_skill_contract.py`, which verifies *presence*, not behaviour.
 

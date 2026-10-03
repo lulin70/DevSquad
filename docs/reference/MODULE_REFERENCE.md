@@ -1,8 +1,8 @@
-# Module Reference — DevSquad Core Modules (204+)
+# Module Reference — DevSquad Core Modules (211+)
 
-> This document is the authoritative reference for DevSquad's 204+ core modules, test coverage matrix, and advanced feature behaviors. It was extracted from `SKILL.md` during the V4.5.0 modular split (PRD §10.2) so that `SKILL.md` remains a concise overview.
+> This document is the authoritative reference for DevSquad's 211+ core modules, test coverage matrix, and advanced feature behaviors. It was extracted from `SKILL.md` during the V4.5.0 modular split (PRD §10.2) so that `SKILL.md` remains a concise overview.
 
-## Architecture Overview (204+ Core Modules)
+## Architecture Overview (211+ Core Modules)
 
 | # | Module | File | Responsibility |
 |---|-------|------|---------------|

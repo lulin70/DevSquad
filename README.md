@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.20 (Version-SSOT truth + deterministic review bundling MINOR: `--mode review --changeset` wired to real bundling, sub-skill manifest gate closed, anti-ghost production probe) | V4.5.19 (Flaky-test cleanup: dashboard latency gate → 5-run median + pytest-rerunfailures) | V4.5.18 (Perf-extension: SQLite PRAGMA to ccr_store/history_manager + SkillRegistry thread-safety hotfix) | V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badge 9400+/204+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation) | V4.5.9 (Unified Gather Execution Core + Native Async Worker: 执行层统一 gather 化 + Worker 原生异步) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills)</em>
+  <em>One task → Multi-role AI collaboration → One conclusion | V4.5.20 (Version-SSOT truth + deterministic review bundling MINOR: `--mode review --changeset` wired to real bundling, sub-skill manifest gate closed, anti-ghost production probe) | V4.5.19 (Flaky-test cleanup: dashboard latency gate → 5-run median + pytest-rerunfailures) | V4.5.18 (Perf-extension: SQLite PRAGMA to ccr_store/history_manager + SkillRegistry thread-safety hotfix) | V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badge 9400+/211+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation) | V4.5.9 (Unified Gather Execution Core + Native Async Worker: 执行层统一 gather 化 + Worker 原生异步) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills)</em>
 </p>
 
 <p align="center">
@@ -64,7 +64,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 | 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
 | 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [204+ 模块详细参考](SKILL.md)
+📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [211+ 模块详细参考](SKILL.md)
 
 ---
 
@@ -248,7 +248,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ## 🏗️ Five Capability Domains (Architecture Overview)
 
-DevSquad's 204+ modules are organized into **5 capability domains**, each solving a specific problem:
+DevSquad's 211+ modules are organized into **5 capability domains**, each solving a specific problem:
 
 ### 🎯 Domain 1: Task Orchestration Engine (Core)
 
@@ -642,7 +642,7 @@ python3 -m pytest tests/ -q --tb=line
 | Document | Description | Language |
 |----------|-------------|----------|
 | [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30 秒快速入门指南（推荐新用户）** | 中文 |
-| [SKILL.md](SKILL.md) | 完整技能手册 + 204+ 模块参考 | EN/CN/JP |
+| [SKILL.md](SKILL.md) | 完整技能手册 + 211+ 模块参考 | EN/CN/JP |
 | [GUIDE.md](GUIDE.md) | 完全用户指南 | 中文 |
 | [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
 | [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |

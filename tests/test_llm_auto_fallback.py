@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
+from scripts.collaboration.backend_paths import BackendProtocolViolation
 from scripts.collaboration.llm_backend import (
     FallbackBackend,
     MockBackend,
@@ -237,6 +238,35 @@ class TestCreateBackendDefault:
 
 class TestFallbackBehavior:
     """Tests that FallbackBackend actually falls back to mock on real failure."""
+
+    def test_status_identifies_failed_provider_and_selected_mock(self):
+        real_backend = MagicMock()
+        real_backend.backend_id = "openai"
+        real_backend.path = "A"
+        real_backend.generate = MagicMock(side_effect=RuntimeError("provider down"))
+        real_backend.is_available = MagicMock(return_value=True)
+
+        backend = FallbackBackend([real_backend, MockBackend()])
+        result = backend.generate("hello")
+
+        assert "[MOCK MODE]" in result
+        status = backend.backend_status().to_dict()
+        assert status["selected_path"] == "mock"
+        assert status["chain"] == ["openai", "mock"]
+        assert status["degradation_reason"] == "openai failed (provider_error)"
+
+    def test_protocol_violation_escapes_without_mock_fallback(self):
+        real_backend = MagicMock()
+        real_backend.backend_id = "host-v2"
+        real_backend.path = "B"
+        real_backend.generate = MagicMock(side_effect=BackendProtocolViolation("invalid marker"))
+        real_backend.is_available = MagicMock(return_value=True)
+        mock_backend = MagicMock(wraps=MockBackend())
+
+        backend = FallbackBackend([real_backend, mock_backend])
+        with pytest.raises(BackendProtocolViolation, match="invalid marker"):
+            backend.generate("hello")
+        mock_backend.generate.assert_not_called()
 
     def test_fallback_to_mock_when_real_backend_fails(self):
         """Real backend raises -> FallbackBackend uses MockBackend."""
