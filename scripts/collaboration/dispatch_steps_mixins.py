@@ -188,10 +188,10 @@ class PostDispatchFeedbackMixin(PostDispatchBase):
             "auto": Only trigger when first-pass quality < 0.5 (critical failure)
             False: Never run feedback loop
         """
-        if self.enable_feedback_loop is False or dry_run:
+        if self.enable_feedback_loop is False or dry_run or not getattr(result, "success", False):
             return result
 
-        # Auto mode: assess first-pass quality, only trigger on critical failure
+        # Auto mode: assess first-pass quality only for successful results.
         if self.enable_feedback_loop == "auto":
             try:
                 from .feedback_control_loop import FeedbackControlLoop

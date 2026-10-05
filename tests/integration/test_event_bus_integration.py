@@ -481,7 +481,10 @@ class T3_ResultAssemblerIntegration(unittest.TestCase):
             total_duration=4.2,
             plan=_StubPlan(total_tasks=3),
             step_timings={"execute": 1.0},
-            worker_results=[{"role_id": "architect", "output": "ok", "success": True}],
+            worker_results=[
+                {"role_id": "architect", "output": "ok", "success": True},
+                {"role_id": "tester", "output": "ok", "success": True},
+            ],
             coordinator=_StubCoordinator(),
         )
         self.assertTrue(result.success)
@@ -491,7 +494,101 @@ class T3_ResultAssemblerIntegration(unittest.TestCase):
         self.assertEqual(result.duration_seconds, 4.2)
         self.assertEqual(result.suggested_next_steps, ["next"])
 
-    def test_02_assemble_marks_failed_when_errors_present(self) -> None:
+    def test_02_partial_failure_reports_failed_role_and_incomplete_coverage(self) -> None:
+        assembler = _make_assembler()
+        result = assembler.assemble(
+            task_description="partial failure",
+            role_ids=["architect", "tester"],
+            exec_result=_StubExecResult(success=True, completed_tasks=1, failed_tasks=1),
+            scratchpad_summary="",
+            consensus_records=[],
+            compression_info=None,
+            memory_stats=None,
+            permission_checks=[],
+            skill_proposals=[],
+            anchor_result=None,
+            retrospective_report=None,
+            intent_match=None,
+            five_axis_result=None,
+            errors=[],
+            lang="en",
+            concern_packs=None,
+            total_duration=0.1,
+            plan=_StubPlan(total_tasks=2),
+            step_timings={},
+            worker_results=[
+                {"role_id": "architect", "role_name": "Architect", "success": True},
+                {"role_id": "tester", "role_name": "Tester", "success": False, "error": "tester unavailable"},
+            ],
+            coordinator=_StubCoordinator(),
+        )
+        self.assertFalse(result.success)
+        self.assertEqual(
+            result.details["coverage"],
+            {
+                "requested": 2,
+                "completed": 1,
+                "failed": 1,
+                "missing": 0,
+                "ratio": 0.5,
+                "complete": False,
+            },
+        )
+        self.assertEqual(
+            result.details["failed_roles"],
+            [
+                {
+                    "role_id": "tester",
+                    "role_name": "Tester",
+                    "reason": "tester unavailable",
+                }
+            ],
+        )
+        self.assertEqual(result.details["missing_roles"], [])
+        report = result.to_markdown()
+        self.assertIn("tester unavailable", report)
+        self.assertIn("`tester`", report)
+
+    def test_03_missing_role_reports_missing_coverage(self) -> None:
+        assembler = _make_assembler()
+        result = assembler.assemble(
+            task_description="missing role",
+            role_ids=["architect", "tester"],
+            exec_result=_StubExecResult(success=True, completed_tasks=1, failed_tasks=0),
+            scratchpad_summary="",
+            consensus_records=[],
+            compression_info=None,
+            memory_stats=None,
+            permission_checks=[],
+            skill_proposals=[],
+            anchor_result=None,
+            retrospective_report=None,
+            intent_match=None,
+            five_axis_result=None,
+            errors=[],
+            lang="en",
+            concern_packs=None,
+            total_duration=0.1,
+            plan=_StubPlan(total_tasks=2),
+            step_timings={},
+            worker_results=[{"role_id": "architect", "role_name": "Architect", "success": True}],
+            coordinator=_StubCoordinator(),
+        )
+        self.assertFalse(result.success)
+        self.assertEqual(result.details["coverage"]["missing"], 1)
+        self.assertEqual(
+            result.details["missing_roles"],
+            [
+                {
+                    "role_id": "tester",
+                    "role_name": "测试专家",
+                    "reason": "No worker result returned",
+                }
+            ],
+        )
+        self.assertIn("No worker result returned", result.to_markdown())
+
+    def test_04_assemble_marks_failed_when_errors_present(self) -> None:
         """Verify: assemble sets success=False when the errors list is non-empty."""
         assembler = _make_assembler()
         result = assembler.assemble(

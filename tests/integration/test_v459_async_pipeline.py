@@ -14,13 +14,6 @@ import threading
 import time
 from typing import Any
 
-# V4.6.1: the runtime install declares httpx2 (httpx successor) as the
-# default HTTP client. The V4.5.9 async pipeline integration test injects
-# an httpx.AsyncClient into the openai SDK, which performs an
-# ``isinstance(http_client, httpx.AsyncClient)`` check and rejects
-# httpx2.AsyncClient. The CI e2e job installs both packages
-# (`httpx2` for runtime + `httpx` for this test), so importing `httpx`
-# directly here resolves to the real package.
 import httpx
 import pytest
 
@@ -61,8 +54,8 @@ class CountingAsyncBackend(AsyncLLMBackendInterface):
         return [await self.generate(p, **kwargs) for p in prompts]
 
 
-def _openai_backend_with_mock_transport() -> AsyncOpenAIBackend:
-    """AsyncOpenAIBackend with a mock httpx transport injected into _client."""
+async def _openai_backend_with_mock_transport() -> AsyncOpenAIBackend:
+    """Create an AsyncOpenAIBackend with a loop-bound mock HTTP client."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
@@ -83,11 +76,19 @@ def _openai_backend_with_mock_transport() -> AsyncOpenAIBackend:
             },
         )
 
-    backend = AsyncOpenAIBackend(api_key="test-key", model="gpt-mock")
+    backend = AsyncOpenAIBackend(
+        api_key="test-key",
+        model="gpt-mock",
+        base_url="https://mock.openai.test/v1",
+    )
     http_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     from openai import AsyncOpenAI
 
-    backend._client = AsyncOpenAI(api_key="test-key", http_client=http_client)
+    backend._client = AsyncOpenAI(
+        api_key="test-key",
+        base_url="https://mock.openai.test/v1",
+        http_client=http_client,
+    )
     return backend
 
 
@@ -146,27 +147,28 @@ class TestTrueAsyncPipeline:
         """AsyncOpenAIBackend (httpx.MockTransport) drives Worker.aexecute natively."""
         from scripts.collaboration.worker import WorkerFactory
 
-        backend = _openai_backend_with_mock_transport()
-        worker = WorkerFactory.create(
-            worker_id="arch-mock",
-            role_id="architect",
-            role_prompt="p",
-            scratchpad=Scratchpad(),
-            llm_backend=backend,
-        )
-        task = TaskDefinition(description="analyze auth", role_id="architect")
-
         async def drive():
-            return await worker.aexecute(task)
+            backend = await _openai_backend_with_mock_transport()
+            worker = WorkerFactory.create(
+                worker_id="arch-mock",
+                role_id="architect",
+                role_prompt="p",
+                scratchpad=Scratchpad(),
+                llm_backend=backend,
+            )
+            task = TaskDefinition(description="analyze auth", role_id="architect")
+            try:
+                return await worker.aexecute(task)
+            finally:
+                await backend.close()
 
         result = asyncio.run(drive())
         assert result.success is True
         assert "mock-llm analysis" in result.output["finding_summary"]
 
     def test_async_openai_backend_via_async_coordinator(self):
-        backend = _openai_backend_with_mock_transport()
-
         async def run_pipeline():
+            backend = await _openai_backend_with_mock_transport()
             coord = AsyncCoordinator(
                 scratchpad=Scratchpad(),
                 enable_compression=False,
@@ -177,7 +179,10 @@ class TestTrueAsyncPipeline:
                 [{"role_id": "architect", "role_prompt": "p"}],
             )
             coord.spawn_workers(plan)
-            return await coord.execute_plan(plan)
+            try:
+                return await coord.execute_plan(plan)
+            finally:
+                await backend.close()
 
         result = asyncio.run(run_pipeline())
         assert result.completed_tasks == 1

@@ -133,8 +133,16 @@ CONTRACT_CLAUSES: tuple[Clause, ...] = (
         "W1-1",
     ),
     Clause("rule.explain_command", ("devsquad rules check <path>", "winning layer"), "W1-2"),
-    Clause("coverage.nonzero_exit", ("non-zero", "exits 0", "three assertions"), "W2-2"),
-    Clause("coverage.named_failed_roles", ("by name", "which"), "W2-1"),
+    Clause(
+        "coverage.nonzero_exit",
+        ("non-zero", "exits 0", "DispatchResult.success"),
+        "shipped in V4.5.20 W1",
+    ),
+    Clause(
+        "coverage.named_failed_roles",
+        ("by name", "which", "role_id", "role_name"),
+        "shipped in V4.5.20 W1",
+    ),
     Clause("preview.zero_llm_calls", ("zero LLM calls", "httpx", "MockBackend"), "W1-4"),
     Clause("preview.summary_by_default", ("counts per gate", "--verbose"), "W1-4"),
     Clause("preview.path_redaction", ("redacted", ".env.production"), "W1-4"),

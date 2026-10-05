@@ -676,10 +676,17 @@ class PostDispatchPipeline(
         """Collect worker results from execution result into standardized dicts."""
         step6_time = time.time()
         worker_results: list[dict[str, Any]] = []
-        for r in exec_result.results:
-            role_id = r.worker_id.split("-")[0] if "-" in r.worker_id else r.worker_id
-            from .models import ROLE_REGISTRY
+        from .models import ROLE_REGISTRY
 
+        for r in exec_result.results:
+            role_id = next(
+                (
+                    candidate
+                    for candidate in sorted(ROLE_REGISTRY, key=len, reverse=True)
+                    if r.worker_id == candidate or r.worker_id.startswith(f"{candidate}-")
+                ),
+                r.worker_id.rsplit("-", 1)[0] if "-" in r.worker_id else r.worker_id,
+            )
             rdef = ROLE_REGISTRY.get(role_id)
             role_name = rdef.name if rdef else role_id
             worker_results.append(

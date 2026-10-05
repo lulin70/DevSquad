@@ -26,6 +26,8 @@ from .async_llm_backend import AsyncLLMBackendFactory
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
 from .dispatcher_base import DispatcherBase
 from .llm_cache_async import AsyncLLMCache
+from .models_base import WorkerResult
+from .models_lifecycle import ScheduleResult
 from .rbac_engine import Permission, PermissionDeniedError
 from .usage_tracker import track_usage
 from .user_friendly_error import make_user_friendly_error
@@ -60,7 +62,7 @@ class DispatcherAsyncMixin(DispatcherBase):
         dry_run: bool = False,
         **kwargs: Any,
     ) -> DispatchResult:
-        """Async version of dispatch() using AsyncCoordinator. Falls back to sync on failure."""
+        """Async version of dispatch() using AsyncCoordinator."""
         track_usage("dispatcher.async_dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
         phase = "async_dispatch"
@@ -96,7 +98,7 @@ class DispatcherAsyncMixin(DispatcherBase):
             )
 
             exec_result, worker_results, exec_errors, exec_timing = await self._execute_async_workers(
-                pre_result.plan, task_description, matched_roles, kwargs
+                task_description, matched_roles, kwargs
             )
 
             self.metrics_service.safe_record(
@@ -139,9 +141,9 @@ class DispatcherAsyncMixin(DispatcherBase):
             )
 
     async def _execute_async_workers(
-        self, plan: Any, task_description: str, matched_roles: list[dict[str, Any]], kwargs: dict[str, Any]
+        self, task_description: str, matched_roles: list[dict[str, Any]], kwargs: dict[str, Any]
     ) -> tuple[Any, list[dict[str, Any]], list[str], dict[str, float]]:
-        """Execute workers asynchronously, falling back to sync on failure."""
+        """Execute workers asynchronously and preserve failures for assembly."""
         if kwargs.get("use_async_backend", False) or os.environ.get("DEVSQUAD_USE_ASYNC", "").lower() in ("1", "true"):
             try:
                 # V4.5.10: llm_backend may legitimately be None (mock mode);
@@ -194,8 +196,34 @@ class DispatcherAsyncMixin(DispatcherBase):
             return exec_result, worker_results, exec_errors, {"step6_time": step6_time, "step7_time": step7_time}
 
         except (ImportError, RuntimeError, AttributeError, OSError) as async_err:
-            logger.warning("Async dispatch failed, falling back to sync: %s", async_err)
-            return self._execute_workers(plan, task_description)
+            logger.warning("Async dispatch failed without sync fallback: %s", async_err)
+            failed_results = [
+                WorkerResult(
+                    worker_id=f"{role['role_id']}-async-failed",
+                    task_id=f"{role['role_id']}-async-failed",
+                    success=False,
+                    error=str(async_err),
+                )
+                for role in matched_roles
+            ]
+            exec_result = ScheduleResult(
+                success=False,
+                total_tasks=len(matched_roles),
+                completed_tasks=0,
+                failed_tasks=len(failed_results),
+                results=failed_results,
+                errors=[str(async_err)],
+            )
+            worker_results, step6_time, step7_time = self.post_dispatch._collect_worker_results(exec_result)
+            return (
+                exec_result,
+                worker_results,
+                list(exec_result.errors),
+                {
+                    "step6_time": step6_time,
+                    "step7_time": step7_time,
+                },
+            )
 
 
 class DispatcherAuditMixin(DispatcherBase):

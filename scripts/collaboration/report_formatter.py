@@ -274,11 +274,13 @@ class ReportFormatter:
             "|------|------|----------------|",
         ]
         for wr in result.worker_results:
-            role_name = wr.get("role", "unknown")
-            role_display = ROLE_TEMPLATES.get(role_name, {}).get("name", role_name)
+            role_id = wr.get("role_id", wr.get("role", "unknown"))
+            role_display = wr.get("role_name") or ROLE_TEMPLATES.get(role_id, {}).get("name", role_id)
             status_icon = "✅" if wr.get("success") else "❌"
             output_preview = (wr.get("output") or "(无输出)")[:80].replace("\n", " ")
-            lines.append(f"| **{role_display}** | {status_icon} | {output_preview} |")
+            if not wr.get("success") and wr.get("error"):
+                output_preview = f"失败原因: {wr['error']}"
+            lines.append(f"| **{role_display}** (`{role_id}`) | {status_icon} | {output_preview} |")
         lines.extend(["", "---", ""])
         return lines
 
@@ -411,6 +413,13 @@ class ReportFormatter:
             done = sum(1 for w in result.worker_results if w.get("success"))
             parts.append(f"Worker: {done}/{len(result.worker_results)} 成功")
 
+        coverage = result.details.get("coverage", {})
+        if isinstance(coverage, dict):
+            parts.append(
+                f"Coverage: {coverage.get('completed', 0)}/{coverage.get('requested', 0)} "
+                f"({coverage.get('ratio', 0):.0%})"
+            )
+
         if result.scratchpad_summary:
             parts.append(f"发现: {result.scratchpad_summary[:120]}")
 
@@ -479,12 +488,22 @@ class ReportFormatter:
                 }
             )
 
-        failed_workers = [w for w in result.worker_results if not w.get("success")]
-        if failed_workers:
-            roles_failed = [
-                ROLE_TEMPLATES.get(w.get("role", ""), {}).get("name", w.get("role", "")) for w in failed_workers
+        failed_roles = result.details.get("failed_roles", [])
+        if failed_roles:
+            reasons = [
+                f"{item.get('role_name', item.get('role_id', 'unknown'))}: {item.get('reason', '未知原因')}"
+                for item in failed_roles
+                if isinstance(item, dict)
             ]
-            items.append({"priority": "M", "text": f"排查以下角色执行失败原因: {', '.join(roles_failed[:3])}"})
+            items.append({"priority": "M", "text": f"排查角色执行失败原因: {'; '.join(reasons)}"})
+        else:
+            failed_workers = [w for w in result.worker_results if not w.get("success")]
+            if failed_workers:
+                reasons = [
+                    f"{w.get('role_name', w.get('role_id', w.get('role', 'unknown')))}: {w.get('error', '未知原因')}"
+                    for w in failed_workers
+                ]
+                items.append({"priority": "M", "text": f"排查角色执行失败原因: {'; '.join(reasons)}"})
 
         if result.success and not result.errors:
             if result.memory_stats and result.memory_stats.get("total_memories", 0) > 0:

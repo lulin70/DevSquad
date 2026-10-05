@@ -137,6 +137,17 @@ class TestPMJourney(unittest.TestCase):
                 self.assertIsInstance(candidate["matched_keywords"], list)
             self._steps_executed += 1
 
+            coverage = result.details.get("coverage")
+            self.assertIsInstance(coverage, dict)
+            self.assertTrue(coverage["complete"])
+            self.assertEqual(coverage["requested"], coverage["completed"])
+            self.assertEqual(coverage["failed"], 0)
+            self.assertEqual(coverage["missing"], 0)
+            self.assertTrue(result.success)
+            self.assertEqual(result.details.get("failed_roles"), [])
+            self.assertEqual(result.details.get("missing_roles"), [])
+            self._steps_executed += 1
+
             # 缓存给 test_02 使用（同进程内 unittest 默认按方法名顺序执行）
             self.__class__._pm_result = result  # type: ignore[attr-defined]
         finally:

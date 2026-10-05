@@ -481,14 +481,21 @@ class Coordinator(CoordinatorCompressionMixin):
                 if self.token_budget is not None:
                     self._used_input_tokens = compressed.compressed_token_count
 
+        failed_results = [r for r in results if not r.success]
+        errors.extend(
+            message
+            for message in (r.error or f"Task {r.task_id} failed" for r in failed_results)
+            if message not in errors
+        )
+
         duration = time.time() - start_time
         success_count = sum(1 for r in results if r.success)
 
         result = ScheduleResult(
-            success=len(errors) == 0,
+            success=len(errors) == 0 and not failed_results,
             total_tasks=sum(len(b.tasks) for b in plan.batches),
             completed_tasks=success_count,
-            failed_tasks=len(errors),
+            failed_tasks=len(failed_results),
             results=results,
             duration_seconds=duration,
             errors=errors,
@@ -537,27 +544,27 @@ class Coordinator(CoordinatorCompressionMixin):
                         results.append(r)
                         if self.briefing_mode:
                             self._collect_briefing_from_worker(worker)
+                    else:
+                        results.append(
+                            WorkerResult(
+                                worker_id=f"{task.role_id}-missing",
+                                task_id=task.task_id,
+                                success=False,
+                                error="No worker found for task",
+                            )
+                        )
                 except Exception as e:
-                    # Broad catch: wraps arbitrary worker execution; per-task isolation
                     errors.append(f"Task {task.task_id} failed: {e}")
+                    results.append(
+                        WorkerResult(
+                            worker_id=f"{task.role_id}-failed", task_id=task.task_id, success=False, error=str(e)
+                        )
+                    )
 
         return results, errors
 
     def _execute_parallel(self, batch: TaskBatch) -> list[WorkerResult]:
-        """Execute a PARALLEL batch through the shared gather core (V4.5.9, AC-C1).
-
-        Sync bridge (AC-C4): safe to call without a running event loop (enters
-        via ``asyncio.run``); raises an informative RuntimeError when a loop is
-        already running — use AsyncCoordinator / async_dispatch instead
-        (L-V457-002 pattern).
-
-        Semantics preserved from the legacy thread-pool implementation:
-        - tasks without a matching Worker are dropped (no result);
-        - a Worker failure yields ``WorkerResult(worker_id="unknown", ...)``
-          without losing the sibling results (AC-C3);
-        - concurrency is capped by ``asyncio.Semaphore(max_concurrency)`` (AC-C5);
-        - results keep submission order (new contract, PRD V4.5.9 R1).
-        """
+        # A synchronous bridge cannot be nested inside an active event loop.
         try:
             asyncio.get_running_loop()
         except RuntimeError:
@@ -583,9 +590,9 @@ class Coordinator(CoordinatorCompressionMixin):
 
         async def run_one(task: TaskDefinition) -> WorkerResult:
             worker = self._get_worker_for_task(task)
-            if worker is None:  # unreachable: batch is pre-filtered below
+            if worker is None:
                 return WorkerResult(
-                    worker_id="unknown",
+                    worker_id=f"{task.role_id}-missing",
                     task_id=task.task_id,
                     success=False,
                     error="No worker found for task",
@@ -597,20 +604,9 @@ class Coordinator(CoordinatorCompressionMixin):
                     return await worker.aexecute(task)
                 return await loop.run_in_executor(None, worker.execute, task)
             except Exception as e:
-                # Broad catch: wraps arbitrary worker execution; per-task
-                # isolation aligned with the legacy thread-pool
-                # future.result() -> worker_id="unknown" path (AC-C3).
-                return WorkerResult(
-                    worker_id="unknown",
-                    task_id=task.task_id,
-                    success=False,
-                    error=str(e),
-                )
+                return WorkerResult(worker_id=worker.worker_id, task_id=task.task_id, success=False, error=str(e))
 
-        # Legacy thread-pool semantics: tasks without a matching Worker were
-        # never submitted (dropped silently) — preserve that behavior (AC-C2).
-        tasks = [t for t in batch.tasks if self._get_worker_for_task(t) is not None]
-        return await execute_batch_gather(tasks, run_one, max_workers)
+        return await execute_batch_gather(batch.tasks, run_one, max_workers)
 
     def _inject_briefing_to_worker(self, worker: Any) -> None:
         """Inject compressed briefing from preceding Agents into the next Worker."""

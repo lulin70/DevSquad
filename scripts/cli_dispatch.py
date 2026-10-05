@@ -259,6 +259,9 @@ def _print_dispatch_result(args: argparse.Namespace, result: DispatchResult) -> 
             "review_filter": result.details.get("review_filter"),
             "backend_status": result.details.get("backend_status"),
             "role_candidates": result.details.get("role_candidates", []),
+            "coverage": result.details.get("coverage"),
+            "failed_roles": result.details.get("failed_roles", []),
+            "missing_roles": result.details.get("missing_roles", []),
         }
         print(json.dumps(output, ensure_ascii=False, indent=2))
     elif args.format == "compact":

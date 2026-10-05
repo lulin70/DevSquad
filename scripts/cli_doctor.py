@@ -114,7 +114,7 @@ def _check_connectivity(provider: str, timeout: float = 5.0) -> tuple[bool, floa
         return False, 0.0, [], f"Unknown provider: {provider}"
 
     api_key = os.environ.get(cfg["api_key_env"], "")
-    base_url = os.environ.get(cfg["base_url_env"], cfg["default_base_url"]).rstrip("/")
+    base_url = (os.environ.get(cfg["base_url_env"]) or cfg["default_base_url"]).rstrip("/")
     url = base_url + cfg["model_list_path"]
 
     headers: dict[str, str] = {"Accept": "application/json"}

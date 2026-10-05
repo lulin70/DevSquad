@@ -139,9 +139,7 @@ class Worker:
         self.llm_backend = llm_backend
         self.stream = stream
         self._session_id: str | None = None  # V4.5.3 P12.2.2: dispatch session ID for artifact persistence
-        # V3.8 #9: ContentCache wrapper for the LLM call path.
         self.content_cache = content_cache
-        # V3.9-02: CodeKnowledgeGraph for code-structure queries.
         self.code_graph = code_graph
         self._notifications_outbox: list[TaskNotification] = []
         self._notifications_lock = threading.Lock()
@@ -244,7 +242,6 @@ class Worker:
         start_time = time.time()
         try:
             if not isinstance(self.llm_backend, AsyncLLMBackendInterface):
-                # AC-W3: sync-backend fallback — exact legacy execute() semantics.
                 loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, self.execute, task)
             context = self._build_execution_context(task)
@@ -271,7 +268,6 @@ class Worker:
             )
             self.write_finding(entry)
 
-            # V4.5.3 P12.2.2: Persist finding to ArtifactStore (best-effort)
             session_id = getattr(self, "_session_id", None) or task.task_id
             try:
                 from scripts.collaboration.artifact_store import ArtifactStore
@@ -313,7 +309,6 @@ class Worker:
 
     def _failure_result(self, task: TaskDefinition, e: Exception, start_time: float) -> WorkerResult:
         """Shared failure-path finalizer for execute()/aexecute() (V4.5.9 AC-W6)."""
-        # Broad catch: top-level worker execute entry; ensures WorkerResult on failure
         logger.error("  [Worker %s] Error: %s", self.worker_id, e)
         track_usage(
             f"worker.{self.role_id}.execute",
@@ -682,7 +677,6 @@ class Worker:
             self._cache_put(instruction, response, model_name)
             return response
 
-        # Sync backend fallback: bridge the legacy sync work via a thread.
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self._do_work, context)
 
@@ -715,8 +709,6 @@ class Worker:
             related_findings=context.get("related_findings", []),
             task_id=task.task_id,
             compression_level=context.get("compression_level"),
-            # V3.9-02: Pass code-graph hints so the assembler can inject
-            # them into the worker briefing (reduces Read/Grep usage).
             code_graph_hints=context.get("code_graph_hints"),
         )
 
@@ -730,6 +722,7 @@ class Worker:
             role_name = rdef.name if rdef else self.role_id
             return backend.generate(
                 result.instruction,
+                role_id=self.role_id,
                 role_name=role_name,
                 task_description=task.description,
             )
@@ -739,8 +732,6 @@ class Worker:
         _rdef = _RR.get(self.role_id)
         _rname = _rdef.name if _rdef else self.role_id
 
-        # V3.8 #9: Check ContentCache first (when configured), then the raw
-        # global cache — shared helper with the async path (_ado_work).
         cached = self._cache_get(result.instruction, getattr(backend, "model", "unknown"))
         if cached:
             logger.debug("  [%s] Cache hit.", _rname)
@@ -753,6 +744,7 @@ class Worker:
                 chunks = []
                 for chunk in backend.generate_stream(
                     result.instruction,
+                    role_id=self.role_id,
                     role_name=_rname,
                     task_description=task.description,
                 ):
@@ -765,24 +757,18 @@ class Worker:
             else:
                 response = backend.generate(
                     result.instruction,
+                    role_id=self.role_id,
                     role_name=_rname,
                     task_description=task.description,
                 )
             logger.debug("  [%s] Response received.", _rname)
 
-            # V3.8 #9: Store the response in the caches (when configured).
             self._cache_put(result.instruction, response, getattr(backend, "model", "unknown"))
 
             return response
         except Exception as e:
-            # Broad catch: LLM backend call; re-raises after logging
             logger.error("  [%s] LLM call failed: %s", _rname, e)
             raise
-
-    # V4.5.11: legacy ``_ado_work`` was removed in favor of the unified
-    # ``_do_work_async`` shared by ``execute`` and ``aexecute``. The two
-    # paths converge through ``loop.run_in_executor`` for sync backends and
-    # native ``await`` for AsyncLLMBackendInterface.
 
     def _cache_get(self, instruction: str, backend_model: str) -> str | None:
         """Shared cache lookup for _do_work/_ado_work (V3.8 #9).

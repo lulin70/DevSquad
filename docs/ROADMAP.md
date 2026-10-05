@@ -19,7 +19,15 @@
 4. [已落地条目](#已落地条目)
 
 ---
+## V4.5.20 W1 当前状态（2026-10-04）
 
+- W1-1 至 W1-7 已完成并接入生产 Dispatch 路径。
+- C9/C10 已完成：请求角色未全部成功时，DispatchResult、Markdown、CLI JSON 与 CLI 退出码均 fail-closed；显式失败与缺失 Worker 结果均提供角色 ID、角色名和具体原因。
+- 同步/异步 CLI subprocess E2E、单元/集成测试和模拟真实用户路径均已验证；provider key 隔离、全仓 `ruff format --check .` 和 mypy 门禁已纳入本批验收。
+- P2-4 的当前结论不是功能缺失：pre-commit 能力已落地，历史本地失败源于 provider key 被 `.env` 重新注入；测试入口已改为显式隔离 provider 环境。
+- Black 全仓失败的根因是历史代码未被任何阻断格式门禁覆盖；本批采用 `ruff format` 作为唯一格式化门禁并完成一次全仓 reformat。
+
+---
 ## V4.2+ Roadmap（Matt Pocock 工程理念学习项）
 
 > 来源：V4.1.0 PRD §3.3 P2 学习项（Matt 4 项中 P2-3 git-guardrails 已于 V4.1.0 落地）。

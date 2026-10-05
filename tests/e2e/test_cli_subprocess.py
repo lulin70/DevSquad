@@ -291,6 +291,65 @@ class TestCLISubprocessDispatch:
         assert "`tester`" in result.stdout
         assert "source=explicit" in result.stdout
 
+    @pytest.mark.parametrize("use_async", [False, True], ids=["sync", "async"])
+    def test_cli_dispatch_partial_failure_is_nonzero_and_attributed(self, use_async: bool) -> None:
+        """Incomplete role coverage fails closed with deterministic attribution."""
+        async_args = ("--async",) if use_async else ("--no-async",)
+        result = _run_cli(
+            "dispatch",
+            "-t",
+            "Design and test authentication",
+            "--roles",
+            "architect",
+            "tester",
+            "--backend",
+            "mock",
+            "--format",
+            "json",
+            *async_args,
+            "--no-warmup",
+            "--no-compression",
+            "--no-memory",
+            "--no-skillify",
+            timeout=90,
+            env_overrides={
+                "DEVSQUAD_MOCK_FAIL_ROLES": "tester",
+                "DEVSQUAD_MOCK_FAIL_REASON": "tester injected failure",
+                "OPENAI_API_KEY": "",
+                "DEVSQUAD_OPENAI_API_KEY": "",
+                "OPENAI_BASE_URL": "",
+                "DEVSQUAD_OPENAI_BASE_URL": "",
+                "MOKA_API_KEY": "",
+                "MOKA_API_BASE": "",
+                "ANTHROPIC_API_KEY": "",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "",
+            },
+        )
+
+        assert result.returncode != 0, (
+            f"{('async' if use_async else 'sync')} partial failure must exit non-zero\\n"
+            f"stdout: {result.stdout[:1000]}\\nstderr: {result.stderr[:1000]}"
+        )
+        payload = json.loads(result.stdout)
+        assert payload["success"] is False
+        assert payload["coverage"] == {
+            "requested": 2,
+            "completed": 1,
+            "failed": 1,
+            "missing": 0,
+            "ratio": 0.5,
+            "complete": False,
+        }
+        assert payload["missing_roles"] == []
+        assert payload["failed_roles"] == [
+            {
+                "role_id": "tester",
+                "role_name": "测试专家",
+                "reason": "tester injected failure",
+            }
+        ]
+        assert "**测试专家** (`tester`): tester injected failure" in payload["report"]
+
     def test_cli_dispatch_compact_format(self) -> None:
         """``--format compact`` produces compact output (not full Markdown)."""
         result = _run_cli(

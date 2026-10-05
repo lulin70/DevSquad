@@ -173,16 +173,17 @@ first-match semantics, and the delegation protocol boundary — is in
 Each clause there carries an `Effective` wave, so nothing is promised ahead of the
 code that ships it.
 
-> **Status honesty (V4.5.20 W1-7)**: this section was written ahead of the
+> **Status honesty (V4.5.20 W1 + C9/C10)**: this section was written ahead of the
 > implementation, by design, and is now synchronized with the shipped waves.
-> Shipped: commitment 1; commitment 3 (`review --preview`); the rule-chain + gate
+> Shipped: commitment 1; commitment 2 (C9/C10 incomplete-coverage enforcement and
+> named failure attribution); commitment 3 (`review --preview`); the rule-chain + gate
 > detail (W1-1 … W1-4); W1-5/C18 (review input contract); W1-6/C16-C17
 > (host delegation selection, observable degradation, strict fail-closed protocol
 > handling, and no silent Mock fallback); and W1-7 (unified role-candidate
 > fields, deterministic deduplication/order, and production Dispatch/CLI
-> visibility). Commitment 2/C9-C10 remains deferred to W2. `Effective` in the
-> contract doc is authoritative for what is live today. Drift is checked by
-> `scripts/check_skill_contract.py`, which verifies *presence*, not behaviour.
+> visibility). `Effective` in the contract doc is authoritative for what is live
+> today. Drift is checked by `scripts/check_skill_contract.py`, which verifies
+> *presence*, not behaviour.
 
 **Quick navigation:**
 - Looking for a module's file/responsibility? → [MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md)

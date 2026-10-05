@@ -335,6 +335,7 @@ class DispatchResult:
             self._format_backend_status(t),
             self._format_role_candidates(),
             self._format_review_filter(),
+            self._format_coverage(),
             self._format_worker_results(t),
             self._format_scratchpad(t),
             self._format_consensus(t),
@@ -478,6 +479,34 @@ class DispatchResult:
             lines.append(f"### {icon} {role_name} [{status_icon}]")
             lines.append("---")
             lines.append(output if output else t["no_output"])
+            if not wr.get("success") and wr.get("error"):
+                lines.append(f"**Error:** {wr['error']}")
+        return lines
+
+    def _format_coverage(self) -> list[str]:
+        coverage = self.details.get("coverage")
+        failed_roles = self.details.get("failed_roles", [])
+        missing_roles = self.details.get("missing_roles", [])
+        if not isinstance(coverage, dict) and not failed_roles and not missing_roles:
+            return []
+        lines = ["", "## Coverage"]
+        if isinstance(coverage, dict):
+            lines.append(
+                f"- Completed: {coverage.get('completed', 0)}/{coverage.get('requested', 0)} "
+                f"({coverage.get('ratio', 0):.0%})"
+            )
+        for failed in failed_roles:
+            if isinstance(failed, dict):
+                lines.append(
+                    f"- ❌ **{failed.get('role_name', failed.get('role_id', 'unknown'))}** "
+                    f"(`{failed.get('role_id', 'unknown')}`): {failed.get('reason', 'Unknown failure')}"
+                )
+        for missing in missing_roles:
+            if isinstance(missing, dict):
+                lines.append(
+                    f"- ⚠️ **{missing.get('role_name', missing.get('role_id', 'unknown'))}** "
+                    f"(`{missing.get('role_id', 'unknown')}`): {missing.get('reason', 'No worker result returned')}"
+                )
         return lines
 
     def _format_scratchpad(self, t: dict[str, str]) -> list[str]:

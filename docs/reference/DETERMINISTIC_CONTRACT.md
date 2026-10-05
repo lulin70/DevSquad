@@ -1,8 +1,9 @@
 # Deterministic / Agent Boundary — Engineering Contract
 
-> **Status**: W1-7 complete (V4.5.20). This document was written before the
-implementation as the specification for W1-1 … W1-7; its `Effective` markers now
-identify the shipped waves. C9/C10 remain deferred to W2.
+> **Status**: W1-7 plus C9/C10 complete (V4.5.20). This document was written before the
+> implementation as the specification for W1-1 … W1-7; its `Effective` markers now
+> identify the shipped waves. C9/C10 are shipped in the current working tree and
+> are enforced by the dispatch result, Markdown report, and CLI exit contract.
 > **Source**: `docs/prd/V4.5.20_ocr-learnings_PRD.md` — E7 (this document), E1, E2,
 > E3, E5, E8.
 > **Drift gate**: `scripts/check_skill_contract.py` reverse-checks every clause below.
@@ -49,8 +50,8 @@ the same defect as a documented feature that never ran (PRD F4).
 | C6 | `rule.system_layer_always_exists` | Rule resolution | W1-1 |
 | C7 | `rule.security_exemption_hardcoded` | Rule resolution | W1-1 |
 | C8 | `rule.explain_command` | Rule resolution | W1-2 |
-| C9 | `coverage.nonzero_exit` | Coverage | W2-2 |
-| C10 | `coverage.named_failed_roles` | Coverage | W2-1 |
+| C9 | `coverage.nonzero_exit` | Coverage | shipped in V4.5.20 W1 |
+| C10 | `coverage.named_failed_roles` | Coverage | shipped in V4.5.20 W1 |
 | C11 | `preview.zero_llm_calls` | Preview | W1-4 |
 | C12 | `preview.summary_by_default` | Preview | W1-4 |
 | C13 | `preview.path_redaction` | Preview | W1-4 |
@@ -254,10 +255,11 @@ A caller that wants the interactive behaviour should treat the partial result as
 data and ignore the exit code. The default must be the safe one, because the
 dangerous consumer (CI) is the one that will not read the report.
 
-**Proven by** `tests/test_coverage_exit_codes.py`, three assertions together: all
-succeed → `0`; some roles fail → non-zero **and** the report names them; the
-infrastructure fails → non-zero. One assertion alone cannot distinguish "the
-contract works" from "something happened to fail".
+**Proven by** `tests/e2e/test_cli_subprocess.py`, `tests/e2e/test_real_user_journey.py`,
+`tests/test_dispatch_steps.py`, and `tests/test_async_coordinator.py`: all requested
+roles succeed → exit `0`; an explicit role failure or missing Worker result →
+`DispatchResult.success == False`, non-zero CLI exit, and role-level attribution;
+sync and async paths preserve the same semantics.
 
 ### C10 `coverage.named_failed_roles`
 
@@ -265,8 +267,10 @@ contract works" from "something happened to fail".
 failures is not sufficient: the caller's next action (re-run, narrow the request,
 fix a credential) depends on *which* role failed.
 
-**Proven by** `tests/test_report_formatter.py` with an injected always-failing
-worker: the report must contain that role's name and its reason.
+**Proven by** `tests/e2e/test_cli_subprocess.py`, `tests/e2e/test_real_user_journey.py`,
+`tests/test_dispatch_steps.py`, and `tests/test_async_coordinator.py`: every explicit
+failure and missing result is emitted with `role_id`, localized `role_name`, and a
+concrete reason in `DispatchResult.details`, JSON, and Markdown.
 
 ---
 
@@ -401,7 +405,7 @@ provider keys 在子进程中显式置空；`returncode=0`。关键输出事实�
 
 同一运行有两个非阻断环境提示：`prometheus-client not installed`；`DEV_SQUAD_AUDIT_HMAC_KEY` 未设置，当前进程生成随机 HMAC key，因此跨进程审计链验证会失败。它们没有改变退出码或过滤、规则、审查、报告结果；这是本地证据运行的环境限制，不是产品功能通过证明，也未为此安装依赖。
 
-这次证据证明 W1-5/C18 的真实用户路径；C16/C17 已在 W1-6 的独立 host subprocess E2E 中证明；W1-7 的角色候选生产路径及 CLI 可见性已由 W1-7 定向联合测试证明。W1 已整体完成；C9/C10 仍延后至 W2。
+这次证据证明 W1-5/C18 的真实用户路径；C16/C17 已在 W1-6 的独立 host subprocess E2E 中证明；W1-7 的角色候选生产路径及 CLI 可见性已由 W1-7 定向联合测试证明；C9/C10 已由同步/异步失败归因、CLI subprocess E2E 与模拟真实用户路径验证。W1 与 C9/C10 均已完成。
 
 ## W1-7 角色候选可观测性
 

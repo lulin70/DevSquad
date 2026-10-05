@@ -51,11 +51,11 @@ pytest tests/test_consensus.py -q
 ## 4. 代码质量
 
 ```bash
-# Lint
-ruff check scripts/ tests/
+# Lint（全仓）
+ruff check .
 
-# 格式检查
-ruff format --check scripts/ tests/
+# 格式检查（全仓唯一格式化门禁）
+ruff format --check .
 ```
 
 - [ ] ruff 无错误
@@ -82,14 +82,14 @@ ruff format --check scripts/ tests/
 # 确认工作树状态
 git status
 
-# 确认无未推送的 commit
-git log origin/main..HEAD --oneline
+# 确认目标分支上的未推送 commit
+git log origin/v4.5.20-patch..HEAD --oneline
 ```
 
 - [ ] 工作树干净（无未提交的修改）
-- [ ] 所有 commit 已推送到 origin/main
-- [ ] Git tag 已创建（`git tag vX.Y.Z`）
-- [ ] GitHub Release 已发布（含 CHANGELOG 摘要）
+- [ ] 本批 commit 已推送到 `origin/v4.5.20-patch`
+- [ ] 本批**不创建 Git tag**；按用户决议在 W1 后统一处理
+- [ ] GitHub Release / tag 按独立发布决策执行，不作为本批验收条件
 
 ## 8. 发布后验证
 

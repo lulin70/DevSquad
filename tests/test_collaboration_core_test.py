@@ -696,7 +696,10 @@ class TestCoordinatorEdgeCases:
             max_concurrency=0,
         )
         results = coord._execute_parallel(batch)
-        assert results == []
+        assert len(results) == 1
+        assert results[0].success is False
+        assert results[0].worker_id == "architect-missing"
+        assert results[0].error == "No worker found for task"
 
     def test_compress_context_and_stats_when_disabled(self):
         coord = Coordinator(enable_compression=False)
