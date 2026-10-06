@@ -407,91 +407,93 @@ class Coordinator(CoordinatorCompressionMixin):
         return list(self.workers.values())
 
     def execute_plan(self, plan: ExecutionPlan) -> ScheduleResult:
-        """
-        执行完整的协作计划
-
-        按批次顺序执行计划中的所有任务。对于每个批次：
-        - PARALLEL 模式: 并行执行所有任务
-        - SEQUENTIAL 模式: 串行逐个执行
-        执行过程中自动进行上下文压缩（如启用）。
-
-        Args:
-            plan: 执行计划（由 plan_task + spawn_workers 准备）
-
-        Returns:
-            ScheduleResult: 包含成功/失败统计、各 Worker 结果、耗时、错误列表
-        """
+        """执行完整的协作计划。"""
         start_time = time.time()
-        results = []
-        errors = []
+        results, errors = self._execute_plan_batches(plan)
+        failed_results = self._collect_failed_results(results, errors)
+        result = self._build_schedule_result(plan, results, errors, failed_results, start_time)
+        self._finish_execution(result)
+        return result
 
+    def _execute_plan_batches(self, plan: ExecutionPlan) -> tuple[list[WorkerResult], list[str]]:
+        results: list[WorkerResult] = []
+        errors: list[str] = []
         for batch_idx, batch in enumerate(plan.batches):
-            # V3.10.0 Phase 3: Token budget pre-batch check.
-            # On warning: force SMART compression (preserves all messages,
-            # only crushes structured content). On exceed: force destructive
-            # FULL_COMPACT to free token budget before the next batch runs.
-            self._check_token_budget_before_batch()
-
-            batch_results, batch_errors = self._execute_batch(batch)
-            # V3.10.0 Phase 3: Auto-retrieve compressed originals.
-            # If Worker output contains ``devsquad_retrieve(trace_id=...)``
-            # markers and a CCRStore is configured, replace the marker with
-            # the original content so downstream Workers see full context.
-            if self.ccr_store is not None:
-                batch_results = [self._retrieve_compressed_originals(r) for r in batch_results]
+            batch_results, batch_errors = self._execute_plan_batch(batch)
             results.extend(batch_results)
             errors.extend(batch_errors)
+            self._compress_between_batches(batch_results, batch_idx, len(plan.batches))
+        return results, errors
 
-            if self.compressor and batch_idx < len(plan.batches) - 1:
-                self._buffer_worker_messages(batch_results)
-                # V3.10.0: SMART pre-compression — structure-aware content compression
-                # that preserves all messages. Runs before destructive compression
-                # (SNIP/SESSION_MEMORY/FULL_COMPACT) so structured content (JSON/logs/
-                # code) is crushed first; if tokens still exceed threshold, the
-                # destructive level runs next on the already-reduced buffer.
-                if self.smart_compression:
-                    smart_ctx = self.apply_smart_compression()
-                    if smart_ctx is not None and smart_ctx.stats.get("smart_crush_applied", 0) > 0:
-                        self._execution_history.append(
-                            {
-                                "timestamp": time.time(),
-                                "smart_precompression": {
-                                    "messages_crushed": smart_ctx.stats.get("smart_crush_applied", 0),
-                                    "tokens_before": smart_ctx.original_token_count,
-                                    "tokens_after": smart_ctx.compressed_token_count,
-                                    "reduction_pct": round(smart_ctx.reduction_percent, 1),
-                                },
-                            }
-                        )
-                compressed = self.compressor.check_and_compress(self._message_buffer)
-                if compressed.compression_level != CompressionLevel.NONE:
-                    self._execution_history.append(
-                        {
-                            "timestamp": time.time(),
-                            "compression": {
-                                "level": compressed.compression_level.value,
-                                "original_tokens": compressed.original_token_count,
-                                "compressed_tokens": compressed.compressed_token_count,
-                                "reduction_pct": round(compressed.reduction_percent, 1),
-                                "summary": compressed.summary[:200],
-                            },
-                        }
-                    )
-                # V3.10.0 Phase 3: Update used_input_tokens from compressed result.
-                if self.token_budget is not None:
-                    self._used_input_tokens = compressed.compressed_token_count
+    def _execute_plan_batch(self, batch: TaskBatch) -> tuple[list[WorkerResult], list[str]]:
+        self._check_token_budget_before_batch()
+        batch_results, batch_errors = self._execute_batch(batch)
+        if self.ccr_store is not None:
+            batch_results = [self._retrieve_compressed_originals(r) for r in batch_results]
+        return batch_results, batch_errors
 
+    def _compress_between_batches(self, batch_results: list[WorkerResult], batch_idx: int, batch_count: int) -> None:
+        if not self.compressor or batch_idx >= batch_count - 1:
+            return
+        self._buffer_worker_messages(batch_results)
+        if self.smart_compression:
+            self._record_smart_precompression()
+        compressed = self.compressor.check_and_compress(self._message_buffer)
+        if compressed.compression_level != CompressionLevel.NONE:
+            self._record_compression(compressed)
+        if self.token_budget is not None:
+            self._used_input_tokens = compressed.compressed_token_count
+
+    def _record_smart_precompression(self) -> None:
+        smart_ctx = self.apply_smart_compression()
+        if smart_ctx is None or smart_ctx.stats.get("smart_crush_applied", 0) <= 0:
+            return
+        self._execution_history.append(
+            {
+                "timestamp": time.time(),
+                "smart_precompression": {
+                    "messages_crushed": smart_ctx.stats.get("smart_crush_applied", 0),
+                    "tokens_before": smart_ctx.original_token_count,
+                    "tokens_after": smart_ctx.compressed_token_count,
+                    "reduction_pct": round(smart_ctx.reduction_percent, 1),
+                },
+            }
+        )
+
+    def _record_compression(self, compressed: Any) -> None:
+        self._execution_history.append(
+            {
+                "timestamp": time.time(),
+                "compression": {
+                    "level": compressed.compression_level.value,
+                    "original_tokens": compressed.original_token_count,
+                    "compressed_tokens": compressed.compressed_token_count,
+                    "reduction_pct": round(compressed.reduction_percent, 1),
+                    "summary": compressed.summary[:200],
+                },
+            }
+        )
+
+    def _collect_failed_results(self, results: list[WorkerResult], errors: list[str]) -> list[WorkerResult]:
         failed_results = [r for r in results if not r.success]
         errors.extend(
             message
             for message in (r.error or f"Task {r.task_id} failed" for r in failed_results)
             if message not in errors
         )
+        return failed_results
 
+    def _build_schedule_result(
+        self,
+        plan: ExecutionPlan,
+        results: list[WorkerResult],
+        errors: list[str],
+        failed_results: list[WorkerResult],
+        start_time: float,
+    ) -> ScheduleResult:
         duration = time.time() - start_time
         success_count = sum(1 for r in results if r.success)
-
-        result = ScheduleResult(
+        return ScheduleResult(
             success=len(errors) == 0 and not failed_results,
             total_tasks=sum(len(b.tasks) for b in plan.batches),
             completed_tasks=success_count,
@@ -501,6 +503,7 @@ class Coordinator(CoordinatorCompressionMixin):
             errors=errors,
         )
 
+    def _finish_execution(self, result: ScheduleResult) -> None:
         self._record_execution(result)
         self._message_buffer.clear()
         track_usage(
@@ -510,10 +513,9 @@ class Coordinator(CoordinatorCompressionMixin):
                 "total_tasks": result.total_tasks,
                 "completed": result.completed_tasks,
                 "failed": result.failed_tasks,
-                "duration": round(duration, 2),
+                "duration": round(result.duration_seconds, 2),
             },
         )
-        return result
 
     def _buffer_worker_messages(self, batch_results: list[WorkerResult]) -> None:
         for r in batch_results:

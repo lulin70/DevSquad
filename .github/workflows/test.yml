@@ -234,6 +234,7 @@ jobs:
           # package lookup during CI.
           pip-audit --path "$(python -c 'import site; print(site.getsitepackages()[0])')" --strict --progress-spinner off
           pip-audit -r requirements.lock --strict --progress-spinner off
+          pip-audit -r requirements-dev.lock --strict --progress-spinner off
       - name: Run gitleaks secret scan (added in V4.1.2)
         uses: gitleaks/gitleaks-action@v2
         env:

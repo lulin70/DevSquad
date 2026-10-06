@@ -148,7 +148,9 @@ class ComponentFactory:
         )
         components["skillifier"] = Skillifier() if config.enable_skillify else None
         components["quality_guard"] = TestQualityGuard("", "") if config.enable_quality_guard else None
-        components["anchor_checker"] = self._try_import_component("anchor_checker", "AnchorChecker")
+        components["anchor_checker"] = (
+            self._try_import_component("anchor_checker", "AnchorChecker") if config.enable_anchor_check else None
+        )
         components["retrospective_engine"] = self._init_retrospective_engine(config, components)
         components["learned_rule_store"] = self._init_learned_rule_store(config)
         components["usage_tracker"] = self._init_usage_tracker(config)

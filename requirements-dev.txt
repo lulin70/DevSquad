@@ -5,7 +5,7 @@
 # Testing
 pytest>=7.0
 pytest-asyncio>=0.21
-pytest-cov>=3.0
+pytest-cov>=4.1
 pytest-rerunfailures>=14.0
 httpx2>=2.12.0
 fakeredis>=2.30
@@ -13,7 +13,7 @@ redis>=5.0
 hypothesis>=6.0
 
 # Code Quality (versions pinned to match requirements-dev.lock and CI;
-# update via dependabot patch-only — see project_memory)
+# Dependabot updates are reviewed through protected main)
 black==26.5.1
 flake8>=6.0
 mypy==2.2.0
