@@ -35,10 +35,11 @@ from datetime import datetime
 import json
 import hashlib
 
+
 @dataclass
 class AgentBriefing:
     """Agent 间传递的压缩状态
-    
+
     Attributes:
         schema_version: Schema 版本号（语义化版本）
         agent_id: 生成此 briefing 的 Agent ID
@@ -54,158 +55,155 @@ class AgentBriefing:
         timestamp: 生成时间戳（ISO 8601 格式）
         metadata: 可选的元数据（如 token 数量、执行时长）
     """
-    
+
     # Schema 版本（必须）
     schema_version: str = "1.0.0"
-    
+
     # Agent 信息（必须）
     agent_id: str = ""
     agent_role: str = ""
-    
+
     # 任务信息（必须）
     task_summary: str = ""
-    
+
     # 决策和待办（必须）
     key_decisions: List[str] = field(default_factory=list)
     pending_items: List[str] = field(default_factory=list)
-    
+
     # 规则和结果（必须）
     rules_applied: List[str] = field(default_factory=list)
     result_summary: str = ""
-    
+
     # 置信度和风险（必须）
     confidence: float = 1.0
     assumptions: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
-    
+
     # 时间戳（必须）
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-    
+
     # 元数据（可选）
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __post_init__(self):
         """数据验证"""
         # 验证 schema_version
         if not self.schema_version:
             raise ValueError("schema_version is required")
-        
+
         # 验证长度限制
         if len(self.task_summary) > 200:
             raise ValueError(f"task_summary too long: {len(self.task_summary)} > 200")
-        
+
         if len(self.result_summary) > 300:
             raise ValueError(f"result_summary too long: {len(self.result_summary)} > 300")
-        
+
         # 验证列表长度
         if len(self.key_decisions) > 5:
             raise ValueError(f"Too many key_decisions: {len(self.key_decisions)} > 5")
-        
+
         if len(self.pending_items) > 10:
             raise ValueError(f"Too many pending_items: {len(self.pending_items)} > 10")
-        
+
         # 验证置信度范围
         if not 0 <= self.confidence <= 1:
             raise ValueError(f"confidence must be in [0, 1]: {self.confidence}")
-    
+
     def to_json(self, indent: Optional[int] = None, sanitize: bool = False) -> str:
         """序列化为 JSON
-        
+
         Args:
             indent: 缩进空格数，None 表示紧凑格式
             sanitize: 是否脱敏敏感数据
-        
+
         Returns:
             JSON 字符串
-        
+
         Example:
             >>> briefing = AgentBriefing(
-            ...     agent_id="arch_001",
-            ...     agent_role="Architect",
-            ...     task_summary="Design REST API",
-            ...     confidence=0.85
+            ...     agent_id="arch_001", agent_role="Architect", task_summary="Design REST API", confidence=0.85
             ... )
             >>> json_str = briefing.to_json(indent=2)
         """
         data = asdict(self)
-        
+
         if sanitize:
             data = self._sanitize(data)
-        
+
         return json.dumps(data, indent=indent, ensure_ascii=False)
-    
+
     @classmethod
     def from_json(cls, json_str: str) -> "AgentBriefing":
         """从 JSON 反序列化
-        
+
         Args:
             json_str: JSON 字符串
-        
+
         Returns:
             AgentBriefing 实例
-        
+
         Raises:
             ValueError: JSON 格式错误或版本不兼容
-        
+
         Example:
             >>> json_str = '{"schema_version": "1.0.0", ...}'
             >>> briefing = AgentBriefing.from_json(json_str)
         """
         data = json.loads(json_str)
-        
+
         # 检查 schema 版本
         schema_version = data.get("schema_version", "1.0.0")
         if not cls._is_compatible(schema_version):
             raise ValueError(f"Incompatible schema version: {schema_version}")
-        
+
         return cls(**data)
-    
+
     def to_prompt(self, max_length: int = 500) -> str:
         """转换为 prompt 文本（用于传递给下一个 Agent）
-        
+
         Args:
             max_length: 最大长度（字符数）
-        
+
         Returns:
             格式化的 prompt 文本
-        
+
         Example:
             >>> prompt = briefing.to_prompt()
             >>> print(prompt)
             ## 前序任务摘要
             Design REST API for user management
-            
+
             ## 关键决策
             - Use FastAPI framework
             - Implement JWT authentication
             ...
         """
         lines = []
-        
+
         # 任务摘要
         lines.append("## 前序任务摘要")
         lines.append(self.task_summary)
         lines.append("")
-        
+
         # 关键决策
         if self.key_decisions:
             lines.append("## 关键决策")
             for decision in self.key_decisions:
                 lines.append(f"- {decision}")
             lines.append("")
-        
+
         # 待处理事项
         if self.pending_items:
             lines.append("## 待处理事项")
             for item in self.pending_items:
                 lines.append(f"- {item}")
             lines.append("")
-        
+
         # 执行结果
         lines.append("## 执行结果")
         lines.append(self.result_summary)
         lines.append("")
-        
+
         # 置信度和警告
         if self.confidence < 0.7 or self.warnings:
             lines.append("## ⚠️ 注意事项")
@@ -214,44 +212,44 @@ class AgentBriefing:
             for warning in self.warnings:
                 lines.append(f"- {warning}")
             lines.append("")
-        
+
         # 假设前提
         if self.assumptions:
             lines.append("## 假设前提")
             for assumption in self.assumptions:
                 lines.append(f"- {assumption}")
             lines.append("")
-        
+
         prompt = "\n".join(lines)
-        
+
         # 截断过长的 prompt
         if len(prompt) > max_length:
             prompt = prompt[:max_length] + "\n...(truncated)"
-        
+
         return prompt
-    
+
     def estimate_tokens(self) -> int:
         """估算 token 数量（粗略估算）
-        
+
         Returns:
             估算的 token 数量
-        
+
         Note:
             使用简单的启发式规则：1 token ≈ 4 字符
-        
+
         Example:
             >>> briefing.estimate_tokens()
             125
         """
         prompt = self.to_prompt()
         return len(prompt) // 4
-    
+
     def get_hash(self) -> str:
         """计算 briefing 的哈希值（用于缓存键）
-        
+
         Returns:
             SHA256 哈希值（16 进制字符串）
-        
+
         Example:
             >>> briefing.get_hash()
             "a3f5b2c1..."
@@ -262,68 +260,64 @@ class AgentBriefing:
             "agent_role": self.agent_role,
             "task_summary": self.task_summary,
             "key_decisions": self.key_decisions,
-            "result_summary": self.result_summary
+            "result_summary": self.result_summary,
         }
         json_str = json.dumps(key_data, sort_keys=True)
         return hashlib.sha256(json_str.encode()).hexdigest()[:16]
-    
+
     def _sanitize(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """脱敏敏感数据
-        
+
         Args:
             data: 原始数据字典
-        
+
         Returns:
             脱敏后的数据字典
         """
         import re
-        
+
         # 脱敏文件路径
         for key in ["task_summary", "result_summary"]:
             if key in data:
                 # /Users/username/ → /Users/***/
-                data[key] = re.sub(r'/Users/\w+/', '/Users/***/', data[key])
+                data[key] = re.sub(r"/Users/\w+/", "/Users/***/", data[key])
                 # /home/username/ → /home/***/
-                data[key] = re.sub(r'/home/\w+/', '/home/***/', data[key])
-        
+                data[key] = re.sub(r"/home/\w+/", "/home/***/", data[key])
+
         # 脱敏 API key
         for key in ["task_summary", "result_summary"]:
             if key in data:
                 # sk-... → sk-***
-                data[key] = re.sub(r'sk-[a-zA-Z0-9]{48}', 'sk-***', data[key])
+                data[key] = re.sub(r"sk-[a-zA-Z0-9]{48}", "sk-***", data[key])
                 # Bearer ... → Bearer ***
-                data[key] = re.sub(r'Bearer [a-zA-Z0-9]+', 'Bearer ***', data[key])
-        
+                data[key] = re.sub(r"Bearer [a-zA-Z0-9]+", "Bearer ***", data[key])
+
         # 脱敏 IP 地址
         for key in ["task_summary", "result_summary"]:
             if key in data:
                 # 192.168.1.1 → ***.***.***.***
-                data[key] = re.sub(
-                    r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',
-                    '***.***.***.***',
-                    data[key]
-                )
-        
+                data[key] = re.sub(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", "***.***.***.***", data[key])
+
         return data
-    
+
     @staticmethod
     def _is_compatible(schema_version: str) -> bool:
         """检查 schema 版本是否兼容
-        
+
         Args:
             schema_version: 要检查的版本号
-        
+
         Returns:
             True 表示兼容，False 表示不兼容
-        
+
         Note:
             只检查主版本号，主版本号相同即兼容
         """
         from packaging import version
-        
+
         current_major = version.parse("1.0.0").major
         target_major = version.parse(schema_version).major
-        
+
         return current_major == target_major
 ```
 
@@ -443,18 +437,19 @@ class AgentBriefing:
 ```python
 import jsonschema
 
+
 def validate_briefing(briefing_json: str) -> bool:
     """验证 briefing JSON 是否符合 schema
-    
+
     Args:
         briefing_json: JSON 字符串
-    
+
     Returns:
         True 表示有效，False 表示无效
-    
+
     Raises:
         jsonschema.ValidationError: 验证失败
-    
+
     Example:
         >>> json_str = briefing.to_json()
         >>> validate_briefing(json_str)
@@ -463,7 +458,7 @@ def validate_briefing(briefing_json: str) -> bool:
     schema = {
         # ... (完整 schema，见上文)
     }
-    
+
     data = json.loads(briefing_json)
     jsonschema.validate(instance=data, schema=schema)
     return True
@@ -580,15 +575,16 @@ def validate_briefing(briefing_json: str) -> bool:
 @dataclass
 class AgentBriefing:
     # ... 原有字段
-    
+
     # 新增字段（可选）
     execution_time: Optional[float] = None  # v1.1.0 新增
+
 
 # v1.1.0 → v2.0.0（不兼容）
 @dataclass
 class AgentBriefing:
     # ... 原有字段
-    
+
     # 修改字段类型
     confidence: Dict[str, float] = field(default_factory=dict)  # 从 float 改为 dict
 ```
@@ -623,15 +619,17 @@ class AgentBriefing:
 import gzip
 import base64
 
+
 def compress_briefing(briefing: AgentBriefing) -> str:
     """压缩 briefing（用于网络传输或持久化）
-    
+
     Returns:
         Base64 编码的 gzip 压缩数据
     """
     json_str = briefing.to_json()
     compressed = gzip.compress(json_str.encode())
     return base64.b64encode(compressed).decode()
+
 
 def decompress_briefing(compressed_str: str) -> AgentBriefing:
     """解压 briefing"""
@@ -665,7 +663,7 @@ class DevSquadAgent:
             result_summary=self._summarize_result(max_length=300),
             confidence=self._calculate_confidence(),
             assumptions=self._assumptions,
-            warnings=self._warnings
+            warnings=self._warnings,
         )
 ```
 
@@ -718,19 +716,15 @@ class DevSquadOrchestrator:
 def test_serialization():
     """测试序列化/反序列化"""
     briefing = AgentBriefing(
-        agent_id="test",
-        agent_role="Architect",
-        task_summary="Test task",
-        result_summary="Test result",
-        confidence=0.9
+        agent_id="test", agent_role="Architect", task_summary="Test task", result_summary="Test result", confidence=0.9
     )
-    
+
     # 序列化
     json_str = briefing.to_json()
-    
+
     # 反序列化
     briefing2 = AgentBriefing.from_json(json_str)
-    
+
     # 验证
     assert briefing.agent_id == briefing2.agent_id
     assert briefing.confidence == briefing2.confidence

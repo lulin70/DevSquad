@@ -229,16 +229,13 @@ python3 scripts/trae_agent_dispatch_v2.py \
 ```python
 from agent_loop_controller_v2 import AgentLoopControllerV2
 
-controller = AgentLoopControllerV2(
-    project_root=".",
-    max_iterations=100
-)
+controller = AgentLoopControllerV2(project_root=".", max_iterations=100)
 
 tasks = [
     {"id": "TASK-001", "description": "需求分析"},
     {"id": "TASK-002", "description": "架构设计"},
     {"id": "TASK-003", "description": "代码实现"},
-    {"id": "TASK-004", "description": "测试验证"}
+    {"id": "TASK-004", "description": "测试验证"},
 ]
 
 result = controller.run_loop(tasks)
@@ -391,10 +388,7 @@ from agent_loop_controller_v2 import AgentLoopControllerV2
 
 controller = AgentLoopControllerV2(project_root=".")
 
-tasks = [
-    {"id": "TASK-001", "description": "需求分析"},
-    {"id": "TASK-002", "description": "架构设计"}
-]
+tasks = [{"id": "TASK-001", "description": "需求分析"}, {"id": "TASK-002", "description": "架构设计"}]
 
 result = controller.run_loop(tasks)
 ```
@@ -404,41 +398,22 @@ result = controller.run_loop(tasks)
 #### 双层上下文管理器
 
 ```python
-from dual_layer_context_manager import (
-    DualLayerContextManager,
-    TaskDefinition,
-    UserProfile
-)
+from dual_layer_context_manager import DualLayerContextManager, TaskDefinition, UserProfile
 
 # 创建管理器
-manager = DualLayerContextManager(
-    project_root=".",
-    skill_root="."
-)
+manager = DualLayerContextManager(project_root=".", skill_root=".")
 
 # 设置用户画像
 manager.global_context.set_user_profile(
-    UserProfile(
-        user_id="default",
-        identity="架构师",
-        preferences={"language": "zh"},
-        expertise=["Java", "Spring Boot"]
-    )
+    UserProfile(user_id="default", identity="架构师", preferences={"language": "zh"}, expertise=["Java", "Spring Boot"])
 )
 
 # 开始任务（自动注入知识）
-task_def = TaskDefinition(
-    task_id="TASK-001",
-    title="设计架构",
-    description="设计微服务架构"
-)
+task_def = TaskDefinition(task_id="TASK-001", title="设计架构", description="设计微服务架构")
 task_ctx = manager.start_task(task_def)
 
 # 添加工件
-task_ctx.add_artifact("ARCHITECTURE", {
-    "style": "微服务",
-    "components": ["API Gateway", "Service Registry"]
-})
+task_ctx.add_artifact("ARCHITECTURE", {"style": "微服务", "components": ["API Gateway", "Service Registry"]})
 
 # 完成任务（自动沉淀经验）
 manager.complete_task("TASK-001")
@@ -461,11 +436,7 @@ for role in roles:
     matcher.register_role(role)
 
 # 创建需求
-requirement = TaskRequirement(
-    task_id="TASK-001",
-    title="设计数据库",
-    description="设计高并发数据库架构"
-)
+requirement = TaskRequirement(task_id="TASK-001", title="设计数据库", description="设计高并发数据库架构")
 
 # 匹配角色
 results = matcher.match(requirement, top_k=3)
@@ -484,10 +455,12 @@ engine = WorkflowEngine(storage_path=".")
 # 创建默认工作流
 engine.create_default_workflows()
 
+
 # 注册执行器
 def my_executor(step, inputs, instance):
     print(f"执行：{step.name}")
     return {"status": "success"}
+
 
 engine.register_executor("design_architecture", my_executor)
 

@@ -63,27 +63,25 @@ Memory Classification Engine 与 DevSquad 的深度集成架构。
 ```python
 # 用户偏好识别
 preference_patterns = [
-    '我喜欢', '我不喜欢', '我偏好', '我希望', '我习惯',
-    'i prefer', 'i like', 'i want', 'my preference'
+    "我喜欢",
+    "我不喜欢",
+    "我偏好",
+    "我希望",
+    "我习惯",
+    "i prefer",
+    "i like",
+    "i want",
+    "my preference",
 ]
 
 # 纠正信号识别
-correction_patterns = [
-    '不对', '错了', '不是这样', '应该是', '纠正',
-    'wrong', 'incorrect', 'should be', 'correction'
-]
+correction_patterns = ["不对", "错了", "不是这样", "应该是", "纠正", "wrong", "incorrect", "should be", "correction"]
 
 # 事实声明识别
-fact_patterns = [
-    '我是', '我们公司', '我的团队', '我们的项目',
-    'i am', 'my company', 'my team', 'our project'
-]
+fact_patterns = ["我是", "我们公司", "我的团队", "我们的项目", "i am", "my company", "my team", "our project"]
 
 # 决策记录识别
-decision_patterns = [
-    '决定', '选择', '确定', '就这个了', '最终方案',
-    'decided', 'chosen', 'final decision', 'we will'
-]
+decision_patterns = ["决定", "选择", "确定", "就这个了", "最终方案", "decided", "chosen", "final decision", "we will"]
 ```
 
 ---
@@ -135,7 +133,7 @@ decision_patterns = [
 ### 4.1 加权衰减算法
 
 ```python
-weight = base_weight * decay_factor^(age/interval) * access_frequency
+weight = base_weight * decay_factor ^ (age / interval) * access_frequency
 
 # 参数说明:
 # - base_weight: 初始权重 (默认 1.0)
@@ -163,14 +161,13 @@ if weight < min_weight:
 class MemoryAdapter:
     def process_message(message: str, context: Dict) -> Optional[MemoryItem]:
         """处理消息并返回记忆项（如果值得记忆）"""
-        
-    def retrieve_memories(query: str, tier: MemoryTier, 
-                         memory_type: MemoryType, limit: int) -> List[MemoryItem]:
+
+    def retrieve_memories(query: str, tier: MemoryTier, memory_type: MemoryType, limit: int) -> List[MemoryItem]:
         """检索记忆"""
-        
+
     def apply_forgetting(decay_factor: float, min_weight: float) -> int:
         """应用遗忘机制，返回遗忘的记忆数量"""
-        
+
     def get_statistics() -> Dict[str, Any]:
         """获取记忆统计信息"""
 ```

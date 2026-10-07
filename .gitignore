@@ -176,3 +176,8 @@ completions_cache.json
 artifacts/
 logs/
 .git_commit_msg_v453.txt
+
+# --- hypothesis + sqlite-artifact hygiene (2026-10-07 assessment) ---
+.hypothesis/
+:memory:
+:memory:*

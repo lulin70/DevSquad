@@ -95,11 +95,12 @@
 
 import asyncio
 
+
 class AsyncLLMCache:
     async def get(self, prompt: str, backend: str, model: str):
         # 异步实现
         pass
-    
+
     async def set(self, prompt: str, response: str, backend: str, model: str):
         # 异步实现
         pass
@@ -120,17 +121,22 @@ import logging
 import json
 from datetime import datetime
 
+
 class StructuredLogger:
     def __init__(self, name: str):
         self.logger = logging.getLogger(name)
-    
+
     def log_cache_hit(self, prompt_hash: str, backend: str):
-        self.logger.info(json.dumps({
-            "event": "cache_hit",
-            "prompt_hash": prompt_hash,
-            "backend": backend,
-            "timestamp": datetime.now().isoformat()
-        }))
+        self.logger.info(
+            json.dumps(
+                {
+                    "event": "cache_hit",
+                    "prompt_hash": prompt_hash,
+                    "backend": backend,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+        )
 ```
 
 **优先级**: P2 - 中低优先级
@@ -177,16 +183,12 @@ monitor:
 ```python
 class AlertManager:
     def __init__(self):
-        self.thresholds = {
-            "cache_hit_rate": 0.6,
-            "error_rate": 0.01,
-            "p99_latency_ms": 5000
-        }
-    
+        self.thresholds = {"cache_hit_rate": 0.6, "error_rate": 0.01, "p99_latency_ms": 5000}
+
     def check_and_alert(self):
         # 检查指标并发送告警
         cache_stats = get_llm_cache().get_stats()
-        if cache_stats['hit_rate'] < self.thresholds['cache_hit_rate']:
+        if cache_stats["hit_rate"] < self.thresholds["cache_hit_rate"]:
             self.send_alert("Low cache hit rate", cache_stats)
 ```
 

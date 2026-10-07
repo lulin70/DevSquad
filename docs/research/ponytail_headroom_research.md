@@ -210,10 +210,11 @@ Headroom 提供 `SharedContext` API，让不同 Agent 之间共享压缩后的�
 
 ```python
 from headroom import SharedContext
+
 ctx = SharedContext()
-ctx.put("research", big_agent_output)      # Agent A 写入（已压缩）
-summary = ctx.get("research")               # Agent B 读取（约小 80%）
-full = ctx.get("research", full=True)       # Agent B 按需取原文
+ctx.put("research", big_agent_output)  # Agent A 写入（已压缩）
+summary = ctx.get("research")  # Agent B 读取（约小 80%）
+full = ctx.get("research", full=True)  # Agent B 按需取原文
 ```
 
 该机制支持 Claude、Codex、Gemini 等 Agent 之间的记忆共享，并自动去重（[来源](https://pypi.org/project/headroom-ai/0.5.24/)）。

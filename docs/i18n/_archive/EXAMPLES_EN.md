@@ -232,6 +232,7 @@ disp = MultiAgentDispatcher(llm_backend=backend)
 
 # Use streaming Worker
 from scripts.collaboration.worker import Worker
+
 worker = Worker(role="architect", backend=backend, stream=True)
 # Worker prints LLM response chunks in real-time
 

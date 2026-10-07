@@ -92,6 +92,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, asdict
 
+
 @dataclass
 class CacheEntry:
     prompt_hash: str
@@ -100,25 +101,26 @@ class CacheEntry:
     model: str
     timestamp: float
     hit_count: int = 0
-    
+
+
 class LLMCache:
     """LLM 响应缓存，支持持久化和 TTL"""
-    
+
     def __init__(self, cache_dir: Optional[str] = None, ttl_seconds: int = 86400):
         self.cache_dir = Path(cache_dir or "data/llm_cache")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.ttl = ttl_seconds
         self.memory_cache: Dict[str, CacheEntry] = {}
-        
+
     def _hash_prompt(self, prompt: str, backend: str, model: str) -> str:
         """生成缓存键"""
         key = f"{backend}:{model}:{prompt}"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
-    
+
     def get(self, prompt: str, backend: str, model: str) -> Optional[str]:
         """获取缓存响应"""
         cache_key = self._hash_prompt(prompt, backend, model)
-        
+
         # 1. 检查内存缓存
         if cache_key in self.memory_cache:
             entry = self.memory_cache[cache_key]
@@ -127,7 +129,7 @@ class LLMCache:
                 return entry.response
             else:
                 del self.memory_cache[cache_key]
-        
+
         # 2. 检查磁盘缓存
         cache_file = self.cache_dir / f"{cache_key}.json"
         if cache_file.exists():
@@ -144,28 +146,23 @@ class LLMCache:
                     cache_file.unlink()  # 过期删除
             except Exception:
                 pass
-        
+
         return None
-    
+
     def set(self, prompt: str, response: str, backend: str, model: str):
         """保存响应到缓存"""
         cache_key = self._hash_prompt(prompt, backend, model)
         entry = CacheEntry(
-            prompt_hash=cache_key,
-            response=response,
-            backend=backend,
-            model=model,
-            timestamp=time.time(),
-            hit_count=0
+            prompt_hash=cache_key, response=response, backend=backend, model=model, timestamp=time.time(), hit_count=0
         )
-        
+
         # 保存到内存
         self.memory_cache[cache_key] = entry
-        
+
         # 保存到磁盘
         cache_file = self.cache_dir / f"{cache_key}.json"
         cache_file.write_text(json.dumps(asdict(entry)))
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """获取缓存统计"""
         total_entries = len(list(self.cache_dir.glob("*.json")))
@@ -176,15 +173,17 @@ class LLMCache:
             "total_hits": total_hits,
             "cache_dir": str(self.cache_dir),
         }
-    
+
     def clear(self):
         """清空缓存"""
         for f in self.cache_dir.glob("*.json"):
             f.unlink()
         self.memory_cache.clear()
 
+
 # 全局单例
 _cache_instance: Optional[LLMCache] = None
+
 
 def get_llm_cache() -> LLMCache:
     global _cache_instance
@@ -256,39 +255,41 @@ def generate(self, prompt: str, **kwargs) -> str:
 import time
 from typing import Optional, Callable
 
+
 class LLMBackend(ABC):
     def __init__(self):
         self.max_retries = 3
         self.retry_delay = 1.0  # 秒
-        self.fallback_backend: Optional['LLMBackend'] = None
-    
+        self.fallback_backend: Optional["LLMBackend"] = None
+
     def generate_with_retry(self, prompt: str, **kwargs) -> str:
         """带重试的生成"""
         last_or = None
-        
+
         for attempt in range(self.max_retries):
             try:
                 return self.generate(prompt, **kwargs)
             except Exception as e:
                 last_error = e
                 if attempt < self.max_retries - 1:
-                    wait_time = self.retry_delay * (2 ** attempt)  # 指数退避
+                    wait_time = self.retry_delay * (2**attempt)  # 指数退避
                     time.sleep(wait_time)
                     continue
-        
+
         # 所有重试失败，尝试降级
         if self.fallback_backend:
             try:
                 return self.fallback_backend.generate(prompt, **kwargs)
             except Exception:
                 pass
-        
+
         # 最终降级到 Mock
         return f"[LLM Error: {last_error}] Mock response for: {prompt[:100]}..."
-    
-    def set_fallback(self, backend: 'LLMBackend'):
+
+    def set_fallback(self, backend: "LLMBackend"):
         """设置降级后端"""
         self.fallback_backend = backend
+
 
 # 使用示例
 openai_backend = OpenAIBackend()
@@ -369,17 +370,17 @@ class TaskAnalyzer:
 ```python
 # scripts/collaboration/role_matcher.py
 
+
 class RoleMatcher:
     """角色匹配器：根据任务匹配最合适的角色"""
-    
-    def match(self, task_analysis: Dict[str, Any], 
-              explicit_roles: Optional[List[str]] = None) -> List[str]:
+
+    def match(self, task_analysis: Dict[str, Any], explicit_roles: Optional[List[str]] = None) -> List[str]:
         """匹配角色"""
         if explicit_roles:
             return [resolve_role_id(r) for r in explicit_roles]
-        
+
         return self._auto_match(task_analysis)
-    
+
     def _auto_match(self, analysis: Dict[str, Any]) -> List[str]:
         # 从 dispatcher.py 迁移 analyze_task() 逻辑
         pass
@@ -580,28 +581,29 @@ def get_monitor() -> PerformanceMonitor:
 # 在 dispatcher.py 中使用
 from .performance_monitor import get_monitor
 
+
 def dispatch(self, task: str, roles: List[str] = None):
     monitor = get_monitor()
-    
+
     with monitor.track("dispatch", task_length=len(task)):
-   
         result = self._do_dispatch(task, roles)
-    
+
     return result
+
 
 # 在 llm_backend.py 中追踪成本
 def generate(self, prompt: str, **kwargs):
     response = self._call_api(prompt, **kwargs)
-    
+
     # 追踪成本
     monitor = get_monitor()
     monitor.track_llm_cost(
         backend="openai",
         model=self.model,
         prompt_tokens=len(prompt) // 4,  # 粗略估算
-        completion_tokens=len(response) // 4
+        completion_tokens=len(response) // 4,
     )
-    
+
     return response
 ```
 

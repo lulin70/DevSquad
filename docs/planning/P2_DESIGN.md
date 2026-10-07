@@ -261,27 +261,29 @@ Exit codes:
 ```python
 @dataclass
 class LayerStats:
-    layer: str          # "unit", "integration", etc.
-    file_count: int     # Number of test files
-    test_count: int     # Number of test functions
-    ratio: float        # Percentage of total
+    layer: str  # "unit", "integration", etc.
+    file_count: int  # Number of test files
+    test_count: int  # Number of test functions
+    ratio: float  # Percentage of total
+
 
 @dataclass
 class PyramidReport:
     total_tests: int
     total_files: int
     layers: list[LayerStats]
-    assessment: str     # "healthy" / "warning"
-    issues: list[str]   # Specific issues found
+    assessment: str  # "healthy" / "warning"
+    issues: list[str]  # Specific issues found
+
 
 class TestPyramidAnalyzer:
     HEALTHY_RANGES = {
-        "unit": (0.60, 1.00),        # ≥60%
-        "integration": (0.15, 0.25), # 15-25%
-        "e2e": (0.00, 0.10),         # ≤10%
-        "contract": (0.05, 0.10),    # 5-10%
-        "smoke": (0.00, 0.05),       # ≤5%
-        "external": (0.00, 0.05),    # ≤5%
+        "unit": (0.60, 1.00),  # ≥60%
+        "integration": (0.15, 0.25),  # 15-25%
+        "e2e": (0.00, 0.10),  # ≤10%
+        "contract": (0.05, 0.10),  # 5-10%
+        "smoke": (0.00, 0.05),  # ≤5%
+        "external": (0.00, 0.05),  # ≤5%
     }
 
     def analyze(self, tests_dir: Path) -> PyramidReport: ...
@@ -371,10 +373,11 @@ Exit codes:
 ```python
 @dataclass
 class ConfigCheck:
-    name: str           # "requirements_lock_sync"
-    category: str       # "dependency" / "key_presence" / "cross_file"
-    status: str         # "pass" / "fail" / "warn"
-    message: str        # Human-readable result
+    name: str  # "requirements_lock_sync"
+    category: str  # "dependency" / "key_presence" / "cross_file"
+    status: str  # "pass" / "fail" / "warn"
+    message: str  # Human-readable result
+
 
 class ConfigConsistencyChecker:
     def check_all(self) -> list[ConfigCheck]: ...

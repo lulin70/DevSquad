@@ -340,50 +340,50 @@ class TestE2EEnterpriseIntegration:
 class TestE2EUserJourneyDeveloperOnboarding:
     """
     用户旅程 1: 开发者首次使用 DevSquad
-    
+
     故事: Alice 是一名 Python 开发者，听说 DevSquad 可以让 AI 团队协助开发，
     决定尝试用它来帮助设计一个 REST API。
-    
+
     目标: 验证新用户从零开始到成功运行第一个任务的完整体验。
     """
-    
+
     def test_uj1_1_installation_from_pypi(self):
         """
         Step UJ1.1: 从 PyPI 安装 DevSquad
-        
+
         用户行为:
         $ pip install devsquad
-        
+
         验证点:
         ✅ 安装成功，无依赖冲突
         ✅ CLI 命令 `devsquad --version` 可用
         ✅ 版本号显示正确 (V3.6.6)
         """
-        
+
     def test_uj1_2_quick_initialization(self):
         """
         Step UJ1.2: 快速初始化项目
-        
+
         用户行为:
         $ cd my-project
         $ devsquad init
-        
+
         验证点:
         ✅ 交互式向导启动
         ✅ 创建 .devsquad.yaml 配置文件
         ✅ 可选创建 .env 文件（引导填写 API Key）
-        ✅ 显示 "Project initialized successfully" 
+        ✅ 显示 "Project initialized successfully"
         """
-        
+
     def test_uj1_3_first_task_execution(self):
         """
         Step UJ1.3: 执行第一个任务
-        
+
         用户行为:
         $ devsquad run "Design a user authentication REST API" \
             --roles architect,coder,tester \
             --mode parallel
-        
+
         验证点:
         ✅ 任务被接收并分配给 3 个角色
         ✅ 各角色并行执行（非串行等待）
@@ -391,16 +391,16 @@ class TestE2EUserJourneyDeveloperOnboarding:
         ✅ 最终输出结构化报告（包含各角色建议）
         ✅ 共识结论明确给出（通过/需改进/拒绝）
         """
-        
+
     def test_uj1_4_view_results_and_learn(self):
         """
         Step UJ1.4: 查看结果并学习
-        
+
         用户行为:
         - 阅读控制台输出的报告
         - 尝试理解各角色的输出格式
         - 使用 --help 了解更多命令
-        
+
         验证点:
         ✅ 报告格式清晰易读（Markdown 或表格）
         ✅ 各角色输出有明显分隔

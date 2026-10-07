@@ -77,14 +77,15 @@
 ```python
 class LifecycleMode(Enum):
     SHORTCUT = "shortcut"  # CLI 6命令模式（简化视图）
-    FULL = "full"         # 11阶段完整模式
-    CUSTOM = "custom"     # 自定义流程模式
+    FULL = "full"  # 11阶段完整模式
+    CUSTOM = "custom"  # 自定义流程模式
 ```
 
 #### Component 2: LifecycleProtocol 接口
 ```python
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
+
 
 class LifecycleProtocol(ABC):
     """Abstract interface for lifecycle management."""
@@ -130,7 +131,7 @@ class LifecycleProtocol(ABC):
 PHASE_VIEW_MAPPING: Dict[str, ViewMapping] = {
     # CLI command → 11阶段映射
     "spec": ViewMapping(
-        phases=["P1", "P2"],              # 覆盖的11阶段
+        phases=["P1", "P2"],  # 覆盖的11阶段
         mode=LifecycleMode.SHORTCUT,
         description="需求分析 + 架构设计",
         required_roles=["architect", "product-manager"],
@@ -210,7 +211,7 @@ def cmd_lifecycle(args):
             "mode": "shortcut",
             "view_command": args.lifecycle_command,
             "target_phases": view_mapping.phases,
-        }
+        },
     )
 ```
 

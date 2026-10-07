@@ -93,10 +93,7 @@ briefing.update_briefing("capabilities", "System design")
 briefing.update_briefing("constraints", "Must use Python 3.8+")
 
 # Generate briefing
-content = briefing.generate_briefing(
-    task="Design authentication system",
-    context={"priority": "high"}
-)
+content = briefing.generate_briefing(task="Design authentication system", context={"priority": "high"})
 
 print("✅ AgentBriefing test passed")
 print(f"  Briefing length: {len(content)}")
@@ -133,9 +130,7 @@ Security considerations:
 """
 
 score = scorer.calculate_confidence(
-    prompt="Design a REST API",
-    response=response,
-    metadata={"model": "gpt-4", "temperature": 0.7}
+    prompt="Design a REST API", response=response, metadata={"model": "gpt-4", "temperature": 0.7}
 )
 
 print("✅ ConfidenceScore test passed")
@@ -163,11 +158,7 @@ worker = create_enhanced_worker(
     enable_confidence=True,
 )
 
-task = TaskDefinition(
-    task_id="task-001",
-    description="Design a simple REST API",
-    role_id="architect"
-)
+task = TaskDefinition(task_id="task-001", description="Design a simple REST API", role_id="architect")
 
 result = worker.execute(task)
 

@@ -93,6 +93,7 @@ class MemoryQuery:
     min_relevance: float = 0.3
     time_range: Optional[Tuple[datetime, datetime]] = None
 
+
 @dataclass
 class MemoryRecallResult:
     memories: List[MemoryItem]
@@ -100,11 +101,11 @@ class MemoryRecallResult:
     query_time_ms: float
     hit_memory_types: Dict[str, int]
 
+
 class MemoryBridge:
     """记忆桥接器 - 协作系统与持久记忆层之间的桥梁"""
 
-    def __init__(self, base_dir: Optional[str] = None,
-                 config: Optional[MemoryConfig] = None):
+    def __init__(self, base_dir: Optional[str] = None, config: Optional[MemoryConfig] = None):
         self.writer: MemoryWriter = ...
         self.reader: MemoryReader = ...
         self.indexer: MemoryIndexer = ...
@@ -113,8 +114,7 @@ class MemoryBridge:
     def recall(self, query: MemoryQuery) -> MemoryRecallResult:
         """根据查询召回相关记忆"""
 
-    def capture_execution(self, execution: ExecutionRecord,
-                          scratchpad_entries: List[ScratchpadEntry]) -> str:
+    def capture_execution(self, execution: ExecutionRecord, scratchpad_entries: List[ScratchpadEntry]) -> str:
         """捕获执行过程中的洞察并写入记忆"""
 
     def record_feedback(self, feedback: UserFeedback) -> str:
@@ -129,8 +129,7 @@ class MemoryBridge:
     def get_statistics(self) -> MemoryStats:
         """获取记忆库统计信息"""
 
-    def search_knowledge(self, keywords: List[str],
-                         domain: Optional[str] = None) -> List[KnowledgeItem]:
+    def search_knowledge(self, keywords: List[str], domain: Optional[str] = None) -> List[KnowledgeItem]:
         """关键词搜索知识库"""
 
     def get_recent_history(self, n: int = 10) -> List[EpisodicMemory]:
@@ -141,13 +140,13 @@ class MemoryBridge:
 
 ```python
 class MemoryType(Enum):
-    KNOWLEDGE = "knowledge"       # 领域知识（事实性）
-    EPISODIC = "episodic"         # 情景记忆（事件性）
-    SEMANTIC = "semantic"         # 语义记忆（概念性）
-    FEEDBACK = "feedback"         # 用户反馈
-    PATTERN = "pattern"           # 成功模式（来自 Skillifier）
-    ANALYSIS = "analysis"         # 分析案例（5-Why）
-    CORRECTION = "correction"     # 纠正记录（来自 tier2）
+    KNOWLEDGE = "knowledge"  # 领域知识（事实性）
+    EPISODIC = "episodic"  # 情景记忆（事件性）
+    SEMANTIC = "semantic"  # 语义记忆（概念性）
+    FEEDBACK = "feedback"  # 用户反馈
+    PATTERN = "pattern"  # 成功模式（来自 Skillifier）
+    ANALYSIS = "analysis"  # 分析案例（5-Why）
+    CORRECTION = "correction"  # 纠正记录（来自 tier2）
 ```
 
 ### 2.3 MemoryItem（统一记忆项）
@@ -161,8 +160,8 @@ class MemoryItem:
     content: str
     domain: Optional[str]
     tags: List[str]
-    source: str                    # 来源模块: coordinator/skillifier/user/manual
-    relevance_score: float = 0.0   # 查询时的相关度 [0,1]
+    source: str  # 来源模块: coordinator/skillifier/user/manual
+    relevance_score: float = 0.0  # 查询时的相关度 [0,1]
     created_at: datetime
     last_accessed: datetime
     access_count: int = 0
@@ -203,12 +202,10 @@ class MemoryReader:
     def read_knowledge(self, domain: Optional[str] = None) -> List[KnowledgeItem]:
         """读取知识库条目"""
 
-    def read_episodic(self, limit: int = 50,
-                       since: Optional[datetime] = None) -> List[EpisodicMemory]:
+    def read_episodic(self, limit: int = 50, since: Optional[datetime] = None) -> List[EpisodicMemory]:
         """读取情景记忆"""
 
-    def read_feedback(self, status: Optional[str] = None,
-                      feedback_type: Optional[str] = None) -> List[UserFeedback]:
+    def read_feedback(self, status: Optional[str] = None, feedback_type: Optional[str] = None) -> List[UserFeedback]:
         """读取用户反馈"""
 
     def read_patterns(self, category: Optional[str] = None) -> List[PersistedPattern]:
@@ -226,10 +223,10 @@ class MemoryIndexer:
 
     def __init__(self):
         self._inverted_index: Dict[str, Set[str]] = {}  # word → {memory_id}
-        self._domain_index: Dict[str, Set[str]] = {}     # domain → {memory_id}
-        self._tag_index: Dict[str, Set[str]] = {}        # tag → {memory_id}
-        self._type_index: Dict[MemoryType, Set[str]] = {} # type → {memory_id}
-        self._tf_cache: Dict[str, Counter] = {}          # memory_id → word frequencies
+        self._domain_index: Dict[str, Set[str]] = {}  # domain → {memory_id}
+        self._tag_index: Dict[str, Set[str]] = {}  # tag → {memory_id}
+        self._type_index: Dict[MemoryType, Set[str]] = {}  # type → {memory_id}
+        self._tf_cache: Dict[str, Counter] = {}  # memory_id → word frequencies
         self._index_built: bool = False
 
     def build_index(self, items: List[MemoryItem]) -> None:
@@ -241,18 +238,19 @@ class MemoryIndexer:
     def remove_from_index(self, memory_id: str) -> None:
         """从索引移除"""
 
-    def search(self, query_text: str,
-               type_filter: Optional[MemoryType] = None,
-               domain_filter: Optional[str] = None,
-               limit: int = 10) -> List[Tuple[str, float]]:
+    def search(
+        self,
+        query_text: str,
+        type_filter: Optional[MemoryType] = None,
+        domain_filter: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[Tuple[str, float]]:
         """搜索返回 [(memory_id, relevance_score), ...]"""
 
-    def keyword_search(self, keywords: List[str],
-                       domain: Optional[str] = None) -> List[Tuple[str, float]]:
+    def keyword_search(self, keywords: List[str], domain: Optional[str] = None) -> List[Tuple[str, float]]:
         """精确关键词搜索"""
 
-    def _compute_relevance(self, query_tokens: List[str],
-                           doc_id: str) -> float:
+    def _compute_relevance(self, query_tokens: List[str], doc_id: str) -> float:
         """TF-IDF 相关度计算"""
 
     def _tokenize(self, text: str) -> List[str]:
@@ -268,13 +266,11 @@ class MemoryStore(ABC):
         """保存数据，返回 ID"""
 
     @abstractmethod
-    def load(self, memory_type: MemoryType,
-              item_id: str) -> Optional[Dict]:
+    def load(self, memory_type: MemoryType, item_id: str) -> Optional[Dict]:
         """加载数据"""
 
     @abstractmethod
-    def list_all(self, memory_type: MemoryType,
-                 filters: Optional[Dict] = None) -> List[Dict]:
+    def list_all(self, memory_type: MemoryType, filters: Optional[Dict] = None) -> List[Dict]:
         """列出所有匹配项"""
 
     @abstractmethod
@@ -284,6 +280,7 @@ class MemoryStore(ABC):
 
 class JsonMemoryStore(MemoryStore):
     """JSON 文件存储（用于 knowledge/feedback/analysis/pattern）"""
+
 
 class SqliteMemoryStore(MemoryStore):
     """SQLite 存储（用于 episodic/semantic）"""
@@ -299,31 +296,28 @@ class CompositeMemoryStore(MemoryStore):
 @dataclass
 class MemoryConfig:
     enabled: bool = True
-    base_dir: Optional[str] = None          # 默认 data/memory-bank/
-    auto_capture: bool = True               # 自动捕获执行洞察
-    auto_index: bool = True                 # 写入后自动更新索引
-    max_episodic_memories: int = 1000       # 最大情景记忆数
-    max_knowledge_items: int = 5000         # 最大知识条目数
-    index_rebuild_threshold: int = 50       # 每 N 条写入后重建索引
-    relevance_threshold: float = 0.3        # 最低相关度阈值
-    retention_days: int = 90               # 记忆保留天数
-    compress_old_memories: bool = True      # 压缩旧记忆
-    enable_semantic_search: bool = False    # 语义搜索（需嵌入模型）
+    base_dir: Optional[str] = None  # 默认 data/memory-bank/
+    auto_capture: bool = True  # 自动捕获执行洞察
+    auto_index: bool = True  # 写入后自动更新索引
+    max_episodic_memories: int = 1000  # 最大情景记忆数
+    max_knowledge_items: int = 5000  # 最大知识条目数
+    index_rebuild_threshold: int = 50  # 每 N 条写入后重建索引
+    relevance_threshold: float = 0.3  # 最低相关度阈值
+    retention_days: int = 90  # 记忆保留天数
+    compress_old_memories: bool = True  # 压缩旧记忆
+    enable_semantic_search: bool = False  # 语义搜索（需嵌入模型）
 
     @classmethod
-    def default(cls) -> 'MemoryConfig':
+    def default(cls) -> "MemoryConfig":
         return cls()
 
     @classmethod
-    def lightweight(cls) -> 'MemoryConfig':
-        return cls(auto_capture=False, auto_index=False,
-                    max_episodic_memories=100)
+    def lightweight(cls) -> "MemoryConfig":
+        return cls(auto_capture=False, auto_index=False, max_episodic_memories=100)
 
     @classmethod
-    def full(cls) -> 'MemoryConfig':
-        return cls(max_episodic_memories=5000,
-                    max_knowledge_items=20000,
-                    enable_semantic_search=True)
+    def full(cls) -> "MemoryConfig":
+        return cls(max_episodic_memories=5000, max_knowledge_items=20000, enable_semantic_search=True)
 ```
 
 ---
@@ -336,10 +330,7 @@ class MemoryConfig:
 # Coordinator.plan_task() 增强
 def plan_task_with_memory(self, task_description, roles, bridge=None):
     if bridge:
-        context = bridge.recall(MemoryQuery(
-            query_text=task_description,
-            limit=5
-        ))
+        context = bridge.recall(MemoryQuery(query_text=task_description, limit=5))
         enriched_desc = f"{task_description}\n\n历史经验:\n"
         for m in context.memories[:3]:
             enriched_desc += f"- [{m.domain}] {m.title}: {m.content[:100]}...\n"
@@ -353,12 +344,14 @@ def plan_task_with_memory(self, task_description, roles, bridge=None):
 # Skillifier.generate_skill() 后自动调用
 def on_skill_generated(self, proposal: SkillProposal, bridge=None):
     if bridge and proposal.quality_score >= 70:
-        bridge.persist_pattern(SuccessPattern(
-            name=proposal.name,
-            steps_template=[s.to_dict() for s in proposal.steps],
-            trigger_keywords=proposal.trigger_conditions,
-            confidence=proposal.quality_score / 100.0,
-        ))
+        bridge.persist_pattern(
+            SuccessPattern(
+                name=proposal.name,
+                steps_template=[s.to_dict() for s in proposal.steps],
+                trigger_keywords=proposal.trigger_conditions,
+                confidence=proposal.quality_score / 100.0,
+            )
+        )
 ```
 
 ### 3.3 Scratchpad 集成：洞察自动捕获
@@ -381,11 +374,13 @@ def capture_scratchpad_insights(self, scratchpad, bridge=None):
 def on_permission_decision(self, decision, bridge=None):
     if decision.outcome == DecisionOutcome.ALLOWED:
         if decision.risk_score > 0.7:
-            bridge.record_feedback(UserFeedback(
-                type="permission_whitelist_candidate",
-                content=f"用户允许了高风险操作: {action.target}",
-                context={"risk": decision.risk_score},
-            ))
+            bridge.record_feedback(
+                UserFeedback(
+                    type="permission_whitelist_candidate",
+                    content=f"用户允许了高风险操作: {action.target}",
+                    context={"risk": decision.risk_score},
+                )
+            )
 ```
 
 ---

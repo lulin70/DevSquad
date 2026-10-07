@@ -268,13 +268,13 @@ logger = logging.getLogger(__name__)
 def safe_operation(param: str) -> Optional[Any]:
     """
     安全执行操作的模板函数
-    
+
     Args:
         param: 操作参数
-        
+
     Returns:
         操作结果或None
-        
+
     Raises:
         ValueError: 参数无效
         ConnectionError: 连接失败
@@ -284,38 +284,34 @@ def safe_operation(param: str) -> Optional[Any]:
         # 1. 参数验证
         if not param or not isinstance(param, str):
             raise ValueError(f"Invalid parameter: expected non-empty string, got {type(param)}")
-        
+
         # 2. 执行核心逻辑
         result = core_logic(param)
-        
+
         # 3. 返回结果
         return result
-        
+
     except ValueError as ve:
         # 参数问题 - 直接抛出给调用者
         logger.warning(f"Parameter validation failed: {ve}")
         raise
-        
+
     except (ConnectionError, TimeoutError) as ce:
         # 网络问题 - 包装后重抛
         logger.error(f"Network operation failed: {ce}", exc_info=True)
         raise OperationError(f"Cannot connect to service: {ce}") from ce
-        
+
     except (KeyError, IndexError) as ke:
         # 数据访问问题 - 包装后重抛
         logger.error(f"Data access error: {ke}", exc_info=True)
         raise OperationError(f"Data structure mismatch: {ke}") from ke
-        
+
     except Exception as e:
         # 未预期的严重错误 - 记录并包装
         logger.critical(
-            f"UNEXPECTED ERROR in safe_operation: "
-            f"type={type(e).__name__}, param={param!r}, error={e}",
-            exc_info=True
+            f"UNEXPECTED ERROR in safe_operation: type={type(e).__name__}, param={param!r}, error={e}", exc_info=True
         )
-        raise OperationError(
-            f"Unexpected error during operation: {type(e).__name__}: {e}"
-        ) from e
+        raise OperationError(f"Unexpected error during operation: {type(e).__name__}: {e}") from e
 ```
 
 ---

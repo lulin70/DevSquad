@@ -74,20 +74,22 @@
 class WarmupTask:
     task_id: str
     name: str
-    priority: int              # 0=关键, 1=高, 2=中, 3=低
-    layer: WarmupLayer         # EAGER / ASYNC / LAZY
-    dependencies: List[str]    # 依赖的其他 task_id
-    executor: Callable         # 实际执行的函数
+    priority: int  # 0=关键, 1=高, 2=中, 3=低
+    layer: WarmupLayer  # EAGER / ASYNC / LAZY
+    dependencies: List[str]  # 依赖的其他 task_id
+    executor: Callable  # 实际执行的函数
     timeout_ms: int = 5000
     retry_count: int = 1
+
 
 @dataclass
 class WarmupResult:
     task_id: str
-    status: WarmupStatus       # SUCCESS / TIMEOUT / ERROR / SKIPPED
+    status: WarmupStatus  # SUCCESS / TIMEOUT / ERROR / SKIPPED
     duration_ms: float
     error: Optional[str] = None
     cache_hit: bool = False
+
 
 @dataclass
 class WarmupReport:
@@ -99,10 +101,12 @@ class WarmupReport:
     tasks: List[WarmupResult]
     timestamp: datetime
 
+
 class WarmupLayer(Enum):
-    EAGER = "eager"     # 同步阻塞，导入时立即执行
-    ASYNC = "async"     # 后台线程异步执行
-    LAZY = "lazy"       # 首次访问时按需触发
+    EAGER = "eager"  # 同步阻塞，导入时立即执行
+    ASYNC = "async"  # 后台线程异步执行
+    LAZY = "lazy"  # 首次访问时按需触发
+
 
 class WarmupStatus(Enum):
     SUCCESS = "success"
@@ -111,17 +115,18 @@ class WarmupStatus(Enum):
     SKIPPED = "skipped"
     PENDING = "pending"
 
+
 class WarmupManager:
     """启动预热管理器 - 分层预热 + 进程级缓存"""
 
-    _instance: ClassVar[Optional['WarmupManager']] = None
+    _instance: ClassVar[Optional["WarmupManager"]] = None
     _lock: ClassVar[threading.RLock] = threading.RLock()
 
     def __init__(self, config: Optional[WarmupConfig] = None):
         self.config = config or WarmupConfig.default()
         self._tasks: Dict[str, WarmupTask] = {}
         self._results: Dict[str, WarmupResult] = {}
-        self._cache: Dict[str, Any] = {}          # 进程级缓存
+        self._cache: Dict[str, Any] = {}  # 进程级缓存
         self._ready_flags: Dict[str, threading.Event] = {}
         self._executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
         self._start_time: float = 0
@@ -161,7 +166,7 @@ class WarmupManager:
         """清空所有缓存"""
 
     @classmethod
-    def instance(cls) -> 'WarmupManager':
+    def instance(cls) -> "WarmupManager":
         """进程级单例"""
 
     def shutdown(self) -> None:
@@ -174,27 +179,26 @@ class WarmupManager:
 @dataclass
 class WarmupConfig:
     enabled: bool = True
-    eager_timeout_ms: int = 200          # L1 超时
-    async_timeout_ms: int = 5000         # L2 超时
-    async_workers: int = 4               # 异步线程数
+    eager_timeout_ms: int = 200  # L1 超时
+    async_timeout_ms: int = 5000  # L2 超时
+    async_workers: int = 4  # 异步线程数
     cache_enabled: bool = True
-    cache_max_size: int = 200             # 最大缓存条目
-    cache_ttl_seconds: int = 3600        # 缓存过期时间(秒)
-    preload_roles: List[str] = None      # 预加载的角色列表(None=auto top3)
-    preload_stages: List[str] = None     # 预加载的阶段列表(None=auto current)
-    lazy_load_threshold: int = 3         # 访问N次后才考虑预热
-    metrics_enabled: bool = False        # 是否收集性能指标
+    cache_max_size: int = 200  # 最大缓存条目
+    cache_ttl_seconds: int = 3600  # 缓存过期时间(秒)
+    preload_roles: List[str] = None  # 预加载的角色列表(None=auto top3)
+    preload_stages: List[str] = None  # 预加载的阶段列表(None=auto current)
+    lazy_load_threshold: int = 3  # 访问N次后才考虑预热
+    metrics_enabled: bool = False  # 是否收集性能指标
 
     @classmethod
-    def default(cls) -> 'WarmupConfig':
-        ...
+    def default(cls) -> "WarmupConfig": ...
 
     @classmethod
-    def fast(cls) -> 'WarmupConfig':
+    def fast(cls) -> "WarmupConfig":
         """快速模式：最小预热"""
 
     @classmethod
-    def full(cls) -> 'WarmupConfig':
+    def full(cls) -> "WarmupConfig":
         """全量模式：最大化预热"""
 ```
 
@@ -205,12 +209,12 @@ class WarmupConfig:
 class CacheEntry:
     key: str
     value: Any
-    created_at: float           # time.time()
+    created_at: float  # time.time()
     last_accessed: float
     access_count: int = 0
     size_bytes: int = 0
     ttl_seconds: float = 3600
-    source: str = ""            # 标识来源（便于调试）
+    source: str = ""  # 标识来源（便于调试）
 
     @property
     def is_expired(self) -> bool:
@@ -288,11 +292,11 @@ WarmupManager 内置以下预热任务（按优先级排序）：
 
 ```python
 class WarmupManager:
-    _instance: ClassVar[Optional['WarmupManager']] = None
+    _instance: ClassVar[Optional["WarmupManager"]] = None
     _lock: ClassVar[threading.RLock] = threading.RLock()
 
     @classmethod
-    def instance(cls, config: Optional[WarmupConfig] = None) -> 'WarmupManager':
+    def instance(cls, config: Optional[WarmupConfig] = None) -> "WarmupManager":
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls(config=config)
@@ -325,20 +329,18 @@ def warmup_eager(self) -> List[WarmupResult]:
             result = task.executor()
             duration = (time.perf_counter() - start) * 1000
             self._cache[task.task_id] = CacheEntry(
-                key=task.task_id, value=result,
-                created_at=time.time(), last_accessed=time.time(),
-                source=f"eager:{task.name}"
+                key=task.task_id,
+                value=result,
+                created_at=time.time(),
+                last_accessed=time.time(),
+                source=f"eager:{task.name}",
             )
-            results.append(WarmupResult(
-                task_id=task.task_id, status=WarmupStatus.SUCCESS,
-                duration_ms=duration
-            ))
+            results.append(WarmupResult(task_id=task.task_id, status=WarmupStatus.SUCCESS, duration_ms=duration))
         except Exception as e:
             duration = (time.perf_counter() - start) * 1000
-            results.append(WarmupResult(
-                task_id=task.task_id, status=WarmupStatus.ERROR,
-                duration_ms=duration, error=str(e)
-            ))
+            results.append(
+                WarmupResult(task_id=task.task_id, status=WarmupStatus.ERROR, duration_ms=duration, error=str(e))
+            )
 
     self._start_time = time.perf_counter()
     return results
@@ -356,8 +358,7 @@ def warmup_async(self) -> None:
     sorted_tasks = self._topological_sort(async_tasks)
 
     self._executor = concurrent.futures.ThreadPoolExecutor(
-        max_workers=self.config.async_workers,
-        thread_name_prefix="warmup"
+        max_workers=self.config.async_workers, thread_name_prefix="warmup"
     )
     self._is_warming_up = True
 
@@ -393,8 +394,8 @@ def get(self, key: str, default: Any = None) -> Any:
     entry.access_count += 1
     return entry.value
 
-def get_or_load(self, key: str, loader: Callable[[], Any],
-                layer: WarmupLayer = WarmupLayer.LAZY) -> Any:
+
+def get_or_load(self, key: str, loader: Callable[[], Any], layer: WarmupLayer = WarmupLayer.LAZY) -> Any:
     """获取或按需加载（带防抖动）"""
     value = self.get(key)
     if value is not None:
@@ -408,14 +409,13 @@ def get_or_load(self, key: str, loader: Callable[[], Any],
             if not self._ready_flags[key].is_set():
                 result = loader()
                 self._cache[key] = CacheEntry(
-                    key=key, value=result,
-                    created_at=time.time(), last_accessed=time.time(),
-                    source=f"lazy:{key}"
+                    key=key, value=result, created_at=time.time(), last_accessed=time.time(), source=f"lazy:{key}"
                 )
                 self._ready_flags[key].set()
 
     self._ready_flags[key].wait(timeout=30)
     return self.get(key)
+
 
 def _evict_if_needed(self) -> None:
     """LRU + TTL 淘汰策略"""
@@ -427,10 +427,7 @@ def _evict_if_needed(self) -> None:
         del self._cache[k]
 
     if len(self._cache) > self.config.cache_max_size:
-        sorted_by_lru = sorted(
-            self._cache.items(),
-            key=lambda x: x[1].last_accessed
-        )
+        sorted_by_lru = sorted(self._cache.items(), key=lambda x: x[1].last_accessed)
         excess = len(self._cache) - self.config.cache_max_size
         for k, _ in sorted_by_lru[:excess]:
             del self._cache[k]
@@ -533,8 +530,10 @@ def __getattr__(name):
 # WarmupManager 内置任务: registry-instance
 def _load_registry():
     from prompts.registry import PromptRegistry
+
     registry = PromptRegistry()
     return registry
+
 
 task = WarmupTask(
     task_id="registry-instance",
@@ -583,6 +582,7 @@ class WarmupMetrics:
     tasks_failed: int
     lazy_loads_triggered: int
 
+
 class WarmupManager:
     def get_metrics(self) -> WarmupMetrics:
         """收集当前性能指标"""
@@ -592,16 +592,15 @@ class WarmupManager:
 
         return WarmupMetrics(
             startup_time_ms=(time.perf_counter() - self._start_time) * 1000,
-            eager_duration=sum(r.duration_ms for r in self._results.values()
-                             if r.task_id in self._eager_task_ids),
+            eager_duration=sum(r.duration_ms for r in self._results.values() if r.task_id in self._eager_task_ids),
             async_duration=...,
             cache_hit_rate=hit_rate,
             cache_size=len(self._cache),
             memory_usage_mb=self._estimate_memory(),
-            tasks_completed=sum(1 for r in self._results.values()
-                               if r.status == WarmupStatus.SUCCESS),
-            tasks_failed=sum(1 for r in self._results.values()
-                            if r.status in (WarmupStatus.ERROR, WarmupStatus.TIMEOUT)),
+            tasks_completed=sum(1 for r in self._results.values() if r.status == WarmupStatus.SUCCESS),
+            tasks_failed=sum(
+                1 for r in self._results.values() if r.status in (WarmupStatus.ERROR, WarmupStatus.TIMEOUT)
+            ),
             lazy_loads_triggered=self._lazy_load_count,
         )
 
@@ -614,7 +613,7 @@ class WarmupManager:
             f"Eager: {m.eager_duration_ms:.1f}ms | Async: {m.async_duration_ms:.1f}ms",
             f"Cache: {m.cache_size} entries | Hit Rate: {m.cache_hit_rate:.1%}",
             f"Memory: {m.memory_usage_mb:.1f}MB",
-            f"Tasks: {m.tasks_completed}/{m.tasks_completed+m.tasks_failed}",
+            f"Tasks: {m.tasks_completed}/{m.tasks_completed + m.tasks_failed}",
             f"Lazy loads triggered: {m.lazy_loads_triggered}",
         ]
         for rid, result in sorted(self._results.items()):

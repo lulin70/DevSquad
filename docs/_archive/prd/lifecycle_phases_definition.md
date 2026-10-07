@@ -573,13 +573,13 @@ engine.create_lifecycle("full")  # 完整11阶段
 ```python
 class RequirementChange:
     change_id: str
-    description: str          # 变更描述
-    reason: str               # 变更理由
-    requested_by: str         # 发起人
-    impact_analysis: dict     # 影响分析结果
-    affected_phases: list     # 受影响阶段
-    review_result: str        # 评审结论: approved/rejected/modified
-    rollback_to: str          # 回退到哪个阶段
+    description: str  # 变更描述
+    reason: str  # 变更理由
+    requested_by: str  # 发起人
+    impact_analysis: dict  # 影响分析结果
+    affected_phases: list  # 受影响阶段
+    review_result: str  # 评审结论: approved/rejected/modified
+    rollback_to: str  # 回退到哪个阶段
 ```
 
 ---

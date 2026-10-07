@@ -258,7 +258,8 @@ Environment variables override config file values. Priority: env > file > defaul
 
 ```python
 import sys
-sys.path.insert(0, '/path/to/DevSquad')
+
+sys.path.insert(0, "/path/to/DevSquad")
 
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
@@ -586,7 +587,8 @@ python scripts\cli.py dispatch -t "Analyze requirements" -r arch
 
 ```python
 import sys, os
-sys.path.insert(0, r'C:\DevSquad')
+
+sys.path.insert(0, r"C:\DevSquad")
 
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 

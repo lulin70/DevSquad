@@ -417,10 +417,10 @@ Prevent Workers from skipping critical steps by injecting pre-written "excuse �
 class AntiRationalizationEngine:
     """
     Stores and retrieves anti-rationalization tables per role.
-    
+
     Integration point: Called by PromptAssembler._build_role_prompt()
     to inject anti-rationalization content into each Worker's system prompt.
-    
+
     Design principles borrowed from Agent Skills (addyosmani/agent-skills):
     - Each role has domain-specific rationalizations
     - Universal rationalizations apply to all roles
@@ -446,57 +446,49 @@ class AntiRationalizationEngine:
         "architect": [
             RationalizationRow(
                 excuse="This architecture is good enough",
-                reality="'Good enough' without peer review hides technical debt "
-                        "that compounds exponentially",
+                reality="'Good enough' without peer review hides technical debt that compounds exponentially",
             ),
             RationalizationRow(
                 excuse="I'll optimize performance later",
                 reality="Architecture decisions lock in performance characteristics. "
-                        "Optimize now or document explicit trade-off",
+                "Optimize now or document explicit trade-off",
             ),
             RationalizationRow(
                 excuse="Over-engineering shows thoroughness",
-                reality="YAGNI (You Aren't Gonna Need It). Solve the actual problem, "
-                        "not hypothetical futures",
+                reality="YAGNI (You Aren't Gonna Need It). Solve the actual problem, not hypothetical futures",
             ),
         ],
         "product-manager": [
             RationalizationRow(
                 excuse="Requirements are clear enough from context",
-                reality="Ambiguous requirements cause 70% of project failures. "
-                        "Write explicit acceptance criteria",
+                reality="Ambiguous requirements cause 70% of project failures. Write explicit acceptance criteria",
             ),
             RationalizationRow(
                 excuse="User will tell us if we got it wrong",
-                reality="Late discovery costs 100x early validation. "
-                        "Clarify assumptions upfront",
+                reality="Late discovery costs 100x early validation. Clarify assumptions upfront",
             ),
         ],
         "security": [
             RationalizationRow(
                 excuse="This is an internal tool, security doesn't matter",
                 reality="Internal tools get compromised. Attackers target the weakest link. "
-                        "Security habits apply everywhere",
+                "Security habits apply everywhere",
             ),
             RationalizationRow(
                 excuse="We'll add security later",
-                reality="Security retrofitting is 10x harder than building it in. "
-                        "Add it now",
+                reality="Security retrofitting is 10x harder than building it in. Add it now",
             ),
             RationalizationRow(
                 excuse="No one would try to exploit this",
-                reality="Automated scanners find everything. "
-                        "Security by obscurity is not security",
+                reality="Automated scanners find everything. Security by obscurity is not security",
             ),
             RationalizationRow(
                 excuse="The framework handles security",
-                reality="Frameworks provide tools, not guarantees. "
-                        "You must use them correctly",
+                reality="Frameworks provide tools, not guarantees. You must use them correctly",
             ),
             RationalizationRow(
                 excuse="It's just a prototype",
-                reality="Prototypes become production code. "
-                        "Security habits from day one prevent 'test debt'",
+                reality="Prototypes become production code. Security habits from day one prevent 'test debt'",
             ),
         ],
         "tester": [
@@ -528,24 +520,22 @@ class AntiRationalizationEngine:
         "solo-coder": [
             RationalizationRow(
                 excuse="It works, that's good enough",
-                reality="Working but unreadable/insecure/architecturally wrong code "
-                        "creates compound technical debt",
+                reality="Working but unreadable/insecure/architecturally wrong code creates compound technical debt",
             ),
             RationalizationRow(
                 excuse="I wrote it, so I know it's correct",
-                reality="Authors are blind to their own assumptions. "
-                        "Every change benefits from another perspective",
+                reality="Authors are blind to their own assumptions. Every change benefits from another perspective",
             ),
             RationalizationRow(
                 excuse="AI-generated code is probably fine",
                 reality="AI code needs MORE scrutiny, not less. "
-                        "It's confident and plausible, even when wrong. "
-                        "This is the most dangerous rationalization in multi-AI systems",
+                "It's confident and plausible, even when wrong. "
+                "This is the most dangerous rationalization in multi-AI systems",
             ),
             RationalizationRow(
                 excuse="The tests pass, so it's good",
                 reality="Tests are necessary but insufficient. "
-                        "They don't catch architecture, security, or readability issues",
+                "They don't catch architecture, security, or readability issues",
             ),
             RationalizationRow(
                 excuse="We'll clean it up later",
@@ -554,7 +544,7 @@ class AntiRationalizationEngine:
             RationalizationRow(
                 excuse="Fewer lines is simpler",
                 reality="A 1-line nested ternary is NOT simpler than 5-line if/else. "
-                        "Simplicity = comprehension speed, not line count",
+                "Simplicity = comprehension speed, not line count",
             ),
         ],
         "devops": [
@@ -575,12 +565,11 @@ class AntiRationalizationEngine:
             RationalizationRow(
                 excuse="It looks fine on my screen",
                 reality="Test on real devices, screen readers, and slow networks. "
-                        "'Fine on my screen' excludes most users",
+                "'Fine on my screen' excludes most users",
             ),
             RationalizationRow(
                 excuse="Accessibility can wait",
-                reality="Retrofitting accessibility is 10x harder than building it in. "
-                        "WCAG 2.1 AA from day one",
+                reality="Retrofitting accessibility is 10x harder than building it in. WCAG 2.1 AA from day one",
             ),
             RationalizationRow(
                 excuse="Users won't notice this detail",
@@ -605,8 +594,10 @@ class AntiRationalizationEngine:
         lines.append("|---|---|")
         for row in rows:
             lines.append(f"| {row.excuse} | {row.reality} |")
-        lines.append("\n**Rule**: If you catch yourself thinking any left-column thought, "
-                     "stop and follow the right-column guidance instead.\n")
+        lines.append(
+            "\n**Rule**: If you catch yourself thinking any left-column thought, "
+            "stop and follow the right-column guidance instead.\n"
+        )
         return "\n".join(lines)
 
 
@@ -625,15 +616,16 @@ Location: After role description block, before task instructions:
 ```python
 def _build_role_prompt(self, role_id: str, task_context: dict) -> str:
     # ... existing role prompt construction ...
-    
+
     # NEW: Inject AntiRationalization Engine (P0-1)
     from scripts.collaboration.anti_rationalization import AntiRationalizationEngine
-    if not hasattr(self, '_ar_engine'):
+
+    if not hasattr(self, "_ar_engine"):
         self._ar_engine = AntiRationalizationEngine()
     ar_content = self._ar_engine.format_for_prompt(role_id)
     if ar_content:
         sections.append(ar_content)
-    
+
     # ... rest of prompt assembly ...
 ```
 
@@ -827,15 +819,16 @@ Add VerificationGate check after existing logic:
 ```python
 def check_completion(self, result: DispatchResult) -> CompletionStatus:
     # ... existing completion tracking logic ...
-    
+
     # NEW: Apply Verification Gate (P0-2)
     from scripts.collaboration.verification_gate import VerificationGate
+
     gate = VerificationGate()
-    
+
     for wr in result.worker_results:
         ctx = self._build_completion_context(wr)
         gate_result = gate.check(ctx)
-        
+
         if not gate_result.passed:
             wr["verification"] = {
                 "passed": False,
@@ -847,7 +840,7 @@ def check_completion(self, result: DispatchResult) -> CompletionStatus:
             result.blocked_workers.add(wr.get("role", "unknown"))
         else:
             wr["verification"] = {"passed": True, "verdict": "APPROVE"}
-    
+
     # ... rest of completion checking ...
 ```
 
@@ -857,9 +850,8 @@ Workers with REJECTED verification gates are excluded from consensus voting:
 
 ```python
 # In consensus.py, before vote():
-blocked = getattr(result, 'blocked_workers', set())
-eligible_results = [wr for wr in worker_results 
-                   if wr.get('role') not in blocked]
+blocked = getattr(result, "blocked_workers", set())
+eligible_results = [wr for wr in worker_results if wr.get("role") not in blocked]
 if not eligible_results:
     return ConsensusResult(verdict="BLOCKED", reason="All workers blocked by verification gate")
 ```
@@ -878,10 +870,10 @@ Extend RoleMatcher beyond keyword matching to understand user INTENT and automat
 class IntentWorkflowMapper:
     """
     Maps user intent to workflow chains and required roles.
-    
+
     Extends RoleMatcher with semantic understanding of WHAT user wants to do,
     not just WHICH keywords they used.
-    
+
     Inspired by AGENTS.md intent mapping from Agent Skills.
     """
 
@@ -893,8 +885,8 @@ class IntentWorkflowMapper:
                 "ja": ["修正", "バグ", "エラー", "失敗", "異常", "クラッシュ"],
             },
             "workflow_chain": [
-                "debugging_and_error_recovery",   # Step 1: Reproduce, localize, reduce
-                "test_driven_development",         # Step 2: Prove-It pattern
+                "debugging_and_error_recovery",  # Step 1: Reproduce, localize, reduce
+                "test_driven_development",  # Step 2: Prove-It pattern
             ],
             "required_roles": ["solo-coder", "tester"],
             "optional_roles": ["security"],  # Add if bug involves auth/data
@@ -909,10 +901,10 @@ class IntentWorkflowMapper:
                 "ja": ["実装", "開発", "追加", "作成", "構築", "機能", "新規"],
             },
             "workflow_chain": [
-                "spec_driven_development",         # Step 1: Write spec first
-                "planning_and_task_breakdown",     # Step 2: Break into atomic tasks
-                "incremental_implementation",      # Step 3: Build incrementally
-                "test_driven_development",         # Step 4: TDD cycle
+                "spec_driven_development",  # Step 1: Write spec first
+                "planning_and_task_breakdown",  # Step 2: Break into atomic tasks
+                "incremental_implementation",  # Step 3: Build incrementally
+                "test_driven_development",  # Step 4: TDD cycle
             ],
             "required_roles": ["architect", "solo-coder", "tester"],
             "optional_roles": ["product-manager", "ui-designer"],
@@ -923,14 +915,12 @@ class IntentWorkflowMapper:
         "security_review": {
             "trigger_keywords": {
                 "zh": ["安全", "漏洞", "渗透", "审计", "加固", "注入", "XSS", "SQL注入"],
-                "en": ["security", "vulnerability", "penetration", "audit", "harden",
-                       "injection", "XSS", "OWASP"],
-                "ja": ["セキュリティ", "脆弱性", "侵入", "監査", "強化",
-                       "インジェクション", "OWASP"],
+                "en": ["security", "vulnerability", "penetration", "audit", "harden", "injection", "XSS", "OWASP"],
+                "ja": ["セキュリティ", "脆弱性", "侵入", "監査", "強化", "インジェクション", "OWASP"],
             },
             "workflow_chain": [
-                "security_and_hardening",          # Step 1: Three-tier boundary check
-                "code_review_and_quality",         # Step 2: Five-axis security review
+                "security_and_hardening",  # Step 1: Three-tier boundary check
+                "code_review_and_quality",  # Step 2: Five-axis security review
             ],
             "required_roles": ["security", "architect"],
             "optional_roles": ["solo-coder"],
@@ -945,8 +935,8 @@ class IntentWorkflowMapper:
                 "ja": ["レビュー", "コード品質", "リファクタ", "最適化", "単純化"],
             },
             "workflow_chain": [
-                "code_review_and_quality",         # Step 1: Five-axis review
-                "code_simplification",             # Step 2: If complexity detected
+                "code_review_and_quality",  # Step 1: Five-axis review
+                "code_simplification",  # Step 2: If complexity detected
             ],
             "required_roles": ["solo-coder", "security", "tester"],
             "optional_roles": ["architect"],
@@ -957,14 +947,12 @@ class IntentWorkflowMapper:
         "performance_optimization": {
             "trigger_keywords": {
                 "zh": ["性能", "优化", "慢", "加速", "延迟", "吞吐", "瓶颈"],
-                "en": ["performance", "optimize", "slow", "speedup", "latency",
-                       "throughput", "bottleneck"],
-                "ja": ["パフォーマンス", "最適化", "遅い", "高速化", "レイテンシ",
-                       "スループット", "ボトルネック"],
+                "en": ["performance", "optimize", "slow", "speedup", "latency", "throughput", "bottleneck"],
+                "ja": ["パフォーマンス", "最適化", "遅い", "高速化", "レイテンシ", "スループット", "ボトルネック"],
             },
             "workflow_chain": [
-                "performance_optimization",         # Step 1: Measure first
-                "code_review_and_quality",          # Step 2: Validate optimization
+                "performance_optimization",  # Step 1: Measure first
+                "code_review_and_quality",  # Step 2: Validate optimization
             ],
             "required_roles": ["architect", "devops"],
             "optional_roles": ["solo-coder"],
@@ -979,8 +967,8 @@ class IntentWorkflowMapper:
                 "ja": ["デプロイ", "リリース", "公開", "CI", "CD"],
             },
             "workflow_chain": [
-                "ci_cd_and_automation",             # Step 1: Pipeline verification
-                "shipping_and_launch",             # Step 2: Pre-launch checklist
+                "ci_cd_and_automation",  # Step 1: Pipeline verification
+                "shipping_and_launch",  # Step 2: Pre-launch checklist
             ],
             "required_roles": ["devops", "security"],
             "optional_roles": ["architect"],
@@ -993,7 +981,7 @@ class IntentWorkflowMapper:
     def detect_intent(self, task_description: str, lang: str = "zh") -> Optional[IntentMatch]:
         """
         Detect user intent from task description.
-        
+
         Returns IntentMatch with:
         - intent_type: str (e.g., "bug_fix")
         - confidence: float
@@ -1005,16 +993,16 @@ class IntentWorkflowMapper:
         - anti_skip_message: str
         """
         task_lower = task_description.lower()
-        
+
         best_match = None
         best_score = 0.0
-        
+
         for intent_type, chain_def in self.WORKFLOW_CHAINS.items():
             keywords = chain_def["trigger_keywords"].get(lang, [])
             keywords += chain_def["trigger_keywords"].get("en", [])  # Fallback
-            
+
             matches = sum(1 for kw in keywords if kw.lower() in task_lower)
-            
+
             if matches > 0:
                 score = min(matches / max(len(keywords), 1), 1.0)
                 if score > best_score:
@@ -1029,7 +1017,7 @@ class IntentWorkflowMapper:
                         gate_description=chain_def.get("gate_description", ""),
                         anti_skip_message=chain_def.get("anti_skip", ""),
                     )
-        
+
         return best_match
 
 
@@ -1122,9 +1110,7 @@ LIFECYCLE_PRESETS = {
         "required_roles": ["architect", "product-manager"],
         "mode": "auto",
         "gate": "task_breakdown_complete",
-        "pre_dispatch_message": (
-            "Decomposing into atomic tasks with acceptance criteria and dependency ordering."
-        ),
+        "pre_dispatch_message": ("Decomposing into atomic tasks with acceptance criteria and dependency ordering."),
     },
     "build": {
         "description": "Implement incrementally with TDD discipline",
@@ -1199,9 +1185,10 @@ Add operation classification to existing 4-level permission model:
 
 ```python
 class OperationCategory(Enum):
-    ALWAYS_SAFE = "always_safe"      # Read-only, local queries
-    NEEDS_REVIEW = "needs_review"    # Write ops, external API calls
-    FORBIDDEN = "forbidden"          # Dangerous ops (delete, secrets, eval)
+    ALWAYS_SAFE = "always_safe"  # Read-only, local queries
+    NEEDS_REVIEW = "needs_review"  # Write ops, external API calls
+    FORBIDDEN = "forbidden"  # Dangerous ops (delete, secrets, eval)
+
 
 OPERATION_CLASSIFICATION = {
     "read_config": OperationCategory.ALWAYS_SAFE,
@@ -1220,26 +1207,25 @@ Add incremental output capability:
 ```python
 class EnhancedWorker(Worker):
     MAX_SLICE_LINES = 100  # Configurable
-    
+
     def execute_with_slicing(self, task):
         """Execute task and output in slices of MAX_SLICE_LINES."""
         result = self.execute(task)
-        lines = result.split('\n')
+        lines = result.split("\n")
         if len(lines) <= self.MAX_SLICE_LINES:
             return result
-        
+
         slices = []
         for i in range(0, len(lines), self.MAX_SLICE_LINES):
-            slice_lines = lines[i:i + self.MAX_SLICE_LINES]
+            slice_lines = lines[i : i + self.MAX_SLICE_LINES]
             slice_num = i // self.MAX_SLICE_LINES + 1
             slice_total = (len(lines) + self.MAX_SLICE_LINES - 1) // self.MAX_SLICE_LINES
             slice_header = f"\n--- Slice {slice_num}/{slice_total} ---\n"
-            slices.append(slice_header + '\n'.join(slice_lines))
+            slices.append(slice_header + "\n".join(slice_lines))
             # Write intermediate slice to scratchpad
-            self.scratchpad.write(f"{self.role_id}/slice_{slice_num}", 
-                                  ''.join(slices[-1:]))
-        
-        return '\n'.join(slices)
+            self.scratchpad.write(f"{self.role_id}/slice_{slice_num}", "".join(slices[-1:]))
+
+        return "\n".join(slices)
 ```
 
 ### 7.4 P1-4: ConsensusEngine Five-Axis Extension
@@ -1248,11 +1234,11 @@ Extend voting dimensions from generic to five-axis:
 
 ```python
 AXES_WEIGHTS = {
-    "correctness": 1.0,     # Does it do what it claims?
-    "readability": 0.8,     # Can others understand it?
-    "architecture": 0.9,    # Does it fit the system?
-    "security": 1.1,        # Any vulnerabilities?
-    "performance": 0.85,    # Any bottlenecks?
+    "correctness": 1.0,  # Does it do what it claims?
+    "readability": 0.8,  # Can others understand it?
+    "architecture": 0.9,  # Does it fit the system?
+    "security": 1.1,  # Any vulnerabilities?
+    "performance": 0.85,  # Any bottlenecks?
 }
 ```
 

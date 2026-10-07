@@ -225,10 +225,10 @@ TRAE: [直接从本地读取已验证的新闻摘要]
 class WorkBuddyClawSource:
     """
     WorkBuddy (Claw) 记忆数据源 - 只读桥接器
-    
-    从 /Users/lin/WorkBuddy/Claw/.memory/ 和 .workbuddy/memory/ 
+
+    从 /Users/lin/WorkBuddy/Claw/.memory/ 和 .workbuddy/memory/
     读取结构化记忆文件，转换为标准 MemoryItem 列表。
-    
+
     数据映射规则:
       .memory/SOUL.md       → MemoryType.SEMANTIC (人格矩阵)
       .memory/USER.md       → MemoryType.KNOWLEDGE (用户画像)
@@ -237,18 +237,18 @@ class WorkBuddyClawSource:
       .memory/PROMPT.md     → MemoryType.PATTERN (提示词优化规则)
       .memory/EXP.md        → MemoryType.EPISODIC (经验系统)
       .workbuddy/memory/*.md → MemoryType.EPISODIC (每日工作记忆)
-    
+
     设计约束:
       - 只读访问，绝不写入 Claw 目录
       - 路径硬编码为 /Users/lin/WorkBuddy/Claw (可通过构造函数覆盖)
       - 缓存 INDEX.md 解析结果避免重复 IO
       - 所有异常内部捕获，不影响主流程
     """
-    
+
     CLAW_BASE_PATH = "/Users/lin/WorkBuddy/Claw"
     MEMORY_DIR = ".memory"
     WORKBUDDY_MEMORY_DIR = ".workbuddy/memory"
-    
+
     CORE_FILE_MAPPING = {
         "SOUL.md": ("AI人格矩阵(OCEAN模型)", MemoryType.SEMANTIC),
         "USER.md": ("用户画像(背景/偏好/通信)", MemoryType.KNOWLEDGE),
@@ -257,17 +257,17 @@ class WorkBuddyClawSource:
         "PROMPT.md": ("提示词优化规则", MemoryType.PATTERN),
         "HEALTH.md": ("健康监控状态", MemoryType.SEMANTIC),
     }
-    
+
     def __init__(self, base_path: Optional[str] = None):
         self.base_path = Path(base_path or self.CLAW_BASE_PATH)
         self._memory_dir = self.base_path / self.MEMORY_DIR
         self._wb_memory_dir = self.base_path / self.WORKBUDDY_MEMORY_DIR
         self._index_cache: Optional[Dict[str, List[str]]] = None
-    
+
     @property
     def is_available(self) -> bool:
         return self.base_path.exists() and self._memory_dir.exists()
-    
+
     def load_all_memories(self) -> List[MemoryItem]:
         items = []
         if not self.is_available:
@@ -277,29 +277,31 @@ class WorkBuddyClawSource:
         for item in items:
             item.source = "workbuddy-claw"
         return items
-    
+
     def _load_core_memories(self) -> List[MemoryItem]:
         items = []
         for filename, (title, mtype) in self.CORE_FILE_MAPPING.items():
             filepath = self._memory_dir / filename
             if filepath.exists():
                 content = filepath.read_text(encoding="utf-8")
-                items.append(MemoryItem(
-                    id=f"wb-core-{filename.replace('.md', '')}",
-                    memory_type=mtype,
-                    title=title,
-                    content=content,
-                    domain="user-profile" if "USER" in filename else "claw-core",
-                    tags=self._extract_tags(content),
-                    source="workbuddy-claw",
-                ))
+                items.append(
+                    MemoryItem(
+                        id=f"wb-core-{filename.replace('.md', '')}",
+                        memory_type=mtype,
+                        title=title,
+                        content=content,
+                        domain="user-profile" if "USER" in filename else "claw-core",
+                        tags=self._extract_tags(content),
+                        source="workbuddy-claw",
+                    )
+                )
         return items
-    
+
     def _load_workbuddy_daily_memories(self) -> List[MemoryItem]:
         items = []
         if not self._wb_memory_dir.exists():
             return items
-        
+
         md_files = sorted(
             self._wb_memory_dir.glob("2026-*.md"),
             key=lambda p: p.name,
@@ -308,26 +310,28 @@ class WorkBuddyClawSource:
         for filepath in md_files[:30]:
             date_str = filepath.stem
             content = filepath.read_text(encoding="utf-8")
-            items.append(MemoryItem(
-                id=f"wb-daily-{date_str}",
-                memory_type=MemoryType.EPISODIC,
-                title=f"工作记忆 {date_str}",
-                content=content,
-                domain="daily-log",
-                tags=["workbuddy", "daily", date_str] + self._extract_tags(content),
-                source="workbuddy-claw",
-            ))
+            items.append(
+                MemoryItem(
+                    id=f"wb-daily-{date_str}",
+                    memory_type=MemoryType.EPISODIC,
+                    title=f"工作记忆 {date_str}",
+                    content=content,
+                    domain="daily-log",
+                    tags=["workbuddy", "daily", date_str] + self._extract_tags(content),
+                    source="workbuddy-claw",
+                )
+            )
         return items
-    
+
     def search_by_index(self, query: str, limit: int = 5) -> List[MemoryItem]:
         """
         利用 Claw INDEX.md 的关键词倒排索引快速检索。
-        
+
         INDEX.md 格式示例:
         | 关键词 | 位置 |
         | 复旦/学历 | USER.md#基本背景 |
         | QQ/微信 | USER.md#通信通道 |
-        
+
         性能:
           - 命中索引时: O(1) 查找 + 1次文件读取
           - 未命中时: fallback 到全文扫描
@@ -335,24 +339,24 @@ class WorkBuddyClawSource:
         index_path = self._memory_dir / "INDEX.md"
         if not index_path.exists():
             return self._fallback_search(query, limit)
-        
+
         if self._index_cache is None:
             self._index_cache = self._parse_index(index_path)
-        
+
         query_tokens = set(query.lower().split())
         matched_files = set()
         for token in query_tokens:
             if token in self._index_cache:
                 for entry in self._index_cache[token]:
                     matched_files.add(entry)
-        
+
         results = []
         for file_ref in list(matched_files)[:limit]:
             item = self._load_memory_by_index_ref(file_ref)
             if item:
                 results.append(item)
         return results
-    
+
     def _parse_index(self, index_path: Path) -> Dict[str, List[str]]:
         """解析 INDEX.md 表格为 {keyword: [file_ref]} 字典"""
         result: Dict[str, List[str]] = {}
@@ -372,23 +376,23 @@ class WorkBuddyClawSource:
                             if kw:
                                 result.setdefault(kw, []).append(file_ref)
         return result
-    
+
     def _load_memory_by_index_ref(self, ref: str) -> Optional[MemoryItem]:
         """根据INDEX中的引用加载对应片段"""
         if "#" in ref:
             filename, section = ref.split("#", 1)
         else:
             filename, section = ref, None
-        
+
         filepath = self._memory_dir / filename
         if not filepath.exists():
             return None
-        
+
         content = filepath.read_text(encoding="utf-8")
         if section:
             extracted = self._extract_section(content, section)
             content = extracted if extracted is not None else content[:500]
-        
+
         type_map = {
             "SOUL": MemoryType.SEMANTIC,
             "USER": MemoryType.KNOWLEDGE,
@@ -397,7 +401,7 @@ class WorkBuddyClawSource:
             "PROMPT": MemoryType.PATTERN,
         }
         mtype = next((t for k, t in type_map.items() if k in filename.upper()), MemoryType.KNOWLEDGE)
-        
+
         return MemoryItem(
             id=f"wb-index-{filename.replace('.md', '').replace('/', '-')}",
             memory_type=mtype,
@@ -406,23 +410,23 @@ class WorkBuddyClawSource:
             source="workbuddy-claw",
             relevance_score=0.9,
         )
-    
+
     @staticmethod
     def _extract_section(content: str, anchor: str) -> Optional[str]:
-        pattern = rf'(?:^|\n)#+\s*.*{re.escape(anchor)}'
+        pattern = rf"(?:^|\n)#+\s*.*{re.escape(anchor)}"
         match = re.search(pattern, content, re.MULTILINE | re.IGNORECASE)
         if not match:
             return None
         start = match.start()
-        next_heading = re.search(r'\n#+\s+', content[start + 1:])
+        next_heading = re.search(r"\n#+\s+", content[start + 1 :])
         end = (next_heading.start() + start + 1) if next_heading else len(content)
         return content[start:end].strip()
-    
+
     @staticmethod
     def _extract_tags(text: str) -> List[str]:
-        words = re.findall(r'[\u4e00-\u9fff]{2,}|[a-zA-Z]{3,}', text)
+        words = re.findall(r"[\u4e00-\u9fff]{2,}|[a-zA-Z]{3,}", text)
         return list(set(words))[:15]
-    
+
     def _fallback_search(self, query: str, limit: int = 5) -> List[MemoryItem]:
         all_items = self.load_all_memories()
         query_lower = query.lower()
@@ -442,14 +446,14 @@ class WorkBuddyClawSource:
         return scored[:limit]
 
     # ========== 方案 B: 自动化任务信息流消费 ==========
-    
+
     def get_latest_ai_news(self, days: int = 7) -> List[MemoryItem]:
         """
         读取每日AI新闻自动化任务的执行记录。
-        
+
         数据源: .codebuddy/automations/ai/memory.md
         返回: 最近N天的新闻条目，每个日期段作为一个 MemoryItem
-        
+
         每个 MemoryItem.metadata 中包含:
           - sources: 信息来源列表
           - topics: 核心主题列表
@@ -458,34 +462,36 @@ class WorkBuddyClawSource:
         ai_memory_path = self.base_path / ".codebuddy" / "automations" / "ai" / "memory.md"
         if not ai_memory_path.exists():
             return []
-        
+
         content = ai_memory_path.read_text(encoding="utf-8")
         entries = self._parse_automation_log(content)
-        
+
         items = []
         cutoff = datetime.now() - timedelta(days=days)
         for entry in entries:
             if entry["date"] >= cutoff:
-                items.append(MemoryItem(
-                    id=f"wb-news-{entry['date'].strftime('%Y%m%d')}",
-                    memory_type=MemoryType.EPISODIC,
-                    title=f"AI动态 {entry['date'].strftime('%Y-%m-%d')}",
-                    content=entry["content"],
-                    domain="ai-news",
-                    tags=["ai-news", "daily-push", "automation"] + self._extract_tags(entry["content"]),
-                    source="workbuddy-claw-automation",
-                    metadata={
-                        "sources": entry.get("sources", []),
-                        "core_topics": entry.get("topics", []),
-                        "status": entry.get("status", ""),
-                    },
-                ))
+                items.append(
+                    MemoryItem(
+                        id=f"wb-news-{entry['date'].strftime('%Y%m%d')}",
+                        memory_type=MemoryType.EPISODIC,
+                        title=f"AI动态 {entry['date'].strftime('%Y-%m-%d')}",
+                        content=entry["content"],
+                        domain="ai-news",
+                        tags=["ai-news", "daily-push", "automation"] + self._extract_tags(entry["content"]),
+                        source="workbuddy-claw-automation",
+                        metadata={
+                            "sources": entry.get("sources", []),
+                            "core_topics": entry.get("topics", []),
+                            "status": entry.get("status", ""),
+                        },
+                    )
+                )
         return items
-    
+
     def _parse_automation_log(self, content: str) -> List[Dict]:
         """
         解析 automation memory.md 格式。
-        
+
         输入格式:
         ## YYYY-MM-DD HH:MM
         **执行状态**: 成功
@@ -495,14 +501,14 @@ class WorkBuddyClawSource:
         - topic1
         - topic2
         **备注**: notes
-        
+
         输出:
         [{date: datetime, content: str, sources: [], topics: [], status: str}, ...]
         """
         entries = []
-        date_pattern = re.compile(r'^## (\d{4}-\d{2}-\d{2})')
+        date_pattern = re.compile(r"^## (\d{4}-\d{2}-\d{2})")
         current_entry = None
-        
+
         for line in content.splitlines():
             date_match = date_pattern.match(line)
             if date_match:
@@ -520,22 +526,22 @@ class WorkBuddyClawSource:
                     continue
             elif current_entry is not None:
                 current_entry["content"] += line + "\n"
-                
-                src_match = re.match(r'\*\*信息来源\*\*:\s*(.+)', line)
+
+                src_match = re.match(r"\*\*信息来源\*\*:\s*(.+)", line)
                 if src_match:
                     current_entry["sources"].append(src_match.group(1))
-                
-                topics_match = re.match(r'\*\*核心主题\*\*:\s*(.+)', line)
+
+                topics_match = re.match(r"\*\*核心主题\*\*:\s*(.+)", line)
                 if topics_match:
                     current_entry["topics"].append(topics_match.group(1))
-                
-                status_match = re.match(r'\*\*执行状态\*\*:\s*(\S+)', line)
+
+                status_match = re.match(r"\*\*执行状态\*\*:\s*(\S+)", line)
                 if status_match:
                     current_entry["status"] = status_match.group(1)
-        
+
         if current_entry:
             entries.append(current_entry)
-        
+
         return entries
 ```
 
@@ -581,7 +587,7 @@ if claw_items:
         mt = ci.memory_type.value
         hit_types[mt] = hit_types.get(mt, 0) + 1
     memories.sort(key=lambda x: x.relevance_score, reverse=True)
-    memories = memories[:query.limit]
+    memories = memories[: query.limit]
 ```
 
 ### 4.5 CHG-04：MemoryStats 添加字段
@@ -617,7 +623,9 @@ lines.append(f"--- WorkBuddy (Claw) Bridge ---")
 lines.append(f"  Available: {'Yes' if self._claw_enabled else 'No'}")
 if self._claw_source:
     all_claw = self._claw_source.load_all_memories()
-    lines.append(f"  Items: {len(all_claw)} ({sum(1 for a in all_claw if a.memory_type == MemoryType.EPISODIC)} episodic)")
+    lines.append(
+        f"  Items: {len(all_claw)} ({sum(1 for a in all_claw if a.memory_type == MemoryType.EPISODIC)} episodic)"
+    )
 ```
 
 ### 4.8 CHG-09：MemoryBridge 新增公开方法
@@ -657,10 +665,22 @@ def get_workbuddy_ai_news(self, days: int = 7) -> List[MemoryItem]:
 
 ```python
 AI_NEWS_KEYWORDS = [
-    "ai新闻", "行业动态", "最新进展", "trend", "news",
-    "ai coding", "具身智能", "大模型", "llm",
-    "cursor", "claude", "gpt", "deepseek", "anthropic",
+    "ai新闻",
+    "行业动态",
+    "最新进展",
+    "trend",
+    "news",
+    "ai coding",
+    "具身智能",
+    "大模型",
+    "llm",
+    "cursor",
+    "claude",
+    "gpt",
+    "deepseek",
+    "anthropic",
 ]
+
 
 def _should_inject_news(task_description: str) -> bool:
     lower = task_description.lower()
@@ -673,10 +693,7 @@ def _should_inject_news(task_description: str) -> bool:
 if _should_inject_news(user_task) and bridge:
     news_items = bridge.get_workbuddy_ai_news(days=3)
     if news_items:
-        news_summary = "\n".join(
-            f"- [{n.title}] {n.content[:200]}..." 
-            for n in news_items[:3]
-        )
+        news_summary = "\n".join(f"- [{n.title}] {n.content[:200]}..." for n in news_items[:3])
         scratchpad.write(
             ScratchpadEntry(
                 worker_id="system",

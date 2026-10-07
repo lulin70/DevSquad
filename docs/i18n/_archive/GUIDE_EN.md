@@ -242,11 +242,13 @@ result = disp.quick_dispatch(task, output_format="detailed")
 from scripts.collaboration.batch_scheduler import BatchScheduler
 
 scheduler = BatchScheduler()
-results = scheduler.schedule([
-    "Design user authentication system",
-    "Optimize database queries",
-    "Implement REST API",
-])
+results = scheduler.schedule(
+    [
+        "Design user authentication system",
+        "Optimize database queries",
+        "Implement REST API",
+    ]
+)
 ```
 
 ### 3.4 Workflow Engine
@@ -411,11 +413,14 @@ from scripts.collaboration.checkpoint_manager import CheckpointManager
 cm = CheckpointManager()
 
 # Save checkpoint
-cm.save("architecture_complete", {
-    "task_id": "t1",
-    "phase": "architecture",
-    "output": arch_result,
-})
+cm.save(
+    "architecture_complete",
+    {
+        "task_id": "t1",
+        "phase": "architecture",
+        "output": arch_result,
+    },
+)
 
 # Restore checkpoint (resume from breakpoint)
 state = cm.load("architecture_complete")
@@ -659,8 +664,8 @@ Injection order: Role Prompt → **Rule Injection** → Related Findings → **Q
 from scripts.collaboration.coordinator import Coordinator
 
 coord = Coordinator(
-    briefing_mode=True,        # Enable briefing mode
-    memory_provider=adapter,   # Rule preloading
+    briefing_mode=True,  # Enable briefing mode
+    memory_provider=adapter,  # Rule preloading
 )
 
 # Preload rules
@@ -680,10 +685,10 @@ from scripts.collaboration.enhanced_worker import EnhancedWorker
 worker = EnhancedWorker(
     worker_id="arch-1",
     role_id="architect",
-    cache_provider=LLMCache(),           # LLM response cache (TTL expiration)
-    retry_provider=LLMRetryManager(),     # Auto-retry + fallback
-    monitor_provider=PerformanceMonitor(),# Performance monitoring
-    memory_provider=mce_adapter,          # Rule injection (optional)
+    cache_provider=LLMCache(),  # LLM response cache (TTL expiration)
+    retry_provider=LLMRetryManager(),  # Auto-retry + fallback
+    monitor_provider=PerformanceMonitor(),  # Performance monitoring
+    memory_provider=mce_adapter,  # Rule injection (optional)
 )
 
 # During task execution, automatically:
@@ -1251,12 +1256,12 @@ mapper = get_shared_mapper()
 # Detect intent from task description
 match = mapper.detect_intent("Fix login page crash", lang="en")
 if match:
-    print(f"Intent: {match.intent_type}")           # "bug_fix"
-    print(f"Confidence: {match.confidence:.2f}")     # 0.85
-    print(f"Workflow: {match.workflow_chain}")        # ["debugging_and_error_recovery", "test_driven_development"]
-    print(f"Roles: {match.required_roles}")           # ["solo-coder", "tester"]
-    print(f"Gate: {match.gate}")                      # "prove_it_pattern"
-    print(f"Message: {match.anti_skip_message}")      # "Do NOT implement fix first..."
+    print(f"Intent: {match.intent_type}")  # "bug_fix"
+    print(f"Confidence: {match.confidence:.2f}")  # 0.85
+    print(f"Workflow: {match.workflow_chain}")  # ["debugging_and_error_recovery", "test_driven_development"]
+    print(f"Roles: {match.required_roles}")  # ["solo-coder", "tester"]
+    print(f"Gate: {match.gate}")  # "prove_it_pattern"
+    print(f"Message: {match.anti_skip_message}")  # "Do NOT implement fix first..."
 ```
 
 **Supported Intents (6 types × 3 languages):**
@@ -1340,10 +1345,8 @@ from scripts.collaboration.mce_adapter import MCEAdapter
 adapter = MCEAdapter(enable=True)  # Auto-detects DevSquadAdapter
 
 # Add rules
-adapter.add_rule("user1", "Always use SSL",
-                 metadata={"rule_type": "always", "trigger": "database"})
-adapter.add_rule("user1", "No plain text passwords",
-                 metadata={"rule_type": "forbid", "trigger": "password"})
+adapter.add_rule("user1", "Always use SSL", metadata={"rule_type": "always", "trigger": "database"})
+adapter.add_rule("user1", "No plain text passwords", metadata={"rule_type": "forbid", "trigger": "password"})
 
 # Match rules
 rules = adapter.match_rules("Design DB schema with password", "user1", role="architect")
@@ -1452,6 +1455,7 @@ from skills.intent.handler import IntentSkill
 
 # Method 2: Dynamic discovery via registry
 from skills import get_skill, list_skills, discover_all
+
 skills = discover_all()  # Get all sub-skill instances
 for name, skill in skills.items():
     print(f"{name}: {skill.info()['description']}")

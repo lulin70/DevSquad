@@ -61,10 +61,7 @@ briefing.update_briefing("capabilities", "API design")
 briefing.update_briefing("constraints", "Must use Python 3.8+")
 
 # Generate briefing for task
-content = briefing.generate_briefing(
-    task="Design authentication system",
-    context={"priority": "high"}
-)
+content = briefing.generate_briefing(task="Design authentication system", context={"priority": "high"})
 ```
 
 **Features**:
@@ -84,15 +81,13 @@ scorer = get_confidence_scorer()
 
 # Calculate confidence
 score = scorer.calculate_confidence(
-    prompt="Design a REST API",
-    response=llm_response,
-    metadata={"model": "gpt-4", "temperature": 0.7}
+    prompt="Design a REST API", response=llm_response, metadata={"model": "gpt-4", "temperature": 0.7}
 )
 
 print(f"Confidence: {score.overall_score:.2f}")  # 0.89
-print(f"Level: {score.level.value}")             # "high"
-print(f"Factors: {score.factors}")               # 5 factors
-print(f"Reasoning: {score.reasoning}")           # Detailed reasons
+print(f"Level: {score.level.value}")  # "high"
+print(f"Factors: {score.factors}")  # 5 factors
+print(f"Reasoning: {score.reasoning}")  # Detailed reasons
 ```
 
 **Features**:
@@ -131,10 +126,7 @@ worker = create_enhanced_worker(
     enable_briefing=True,
     enable_confidence=True,
     max_retries=2,
-    project_context={
-        "name": "DevSquad",
-        "version": "3.5"
-    }
+    project_context={"name": "DevSquad", "version": "3.5"},
 )
 
 # Execute task (with automatic quality assurance)
@@ -329,11 +321,7 @@ worker = create_enhanced_worker(
 )
 
 # Execute task
-task = TaskDefinition(
-    task_id="task-001",
-    description="Design a REST API for user management",
-    role_id="architect"
-)
+task = TaskDefinition(task_id="task-001", description="Design a REST API for user management", role_id="architect")
 
 result = worker.execute(task)
 
@@ -377,15 +365,11 @@ workers = {
 
 # Execute workflow
 for role, worker in workers.items():
-    task = TaskDefinition(
-        task_id=f"task-{role}",
-        description=f"{role.capitalize()} phase of the project",
-        role_id=role
-    )
-    
+    task = TaskDefinition(task_id=f"task-{role}", description=f"{role.capitalize()} phase of the project", role_id=role)
+
     result = worker.execute(task)
-    
-    if not result.success or result.output['confidence_score'] < 0.7:
+
+    if not result.success or result.output["confidence_score"] < 0.7:
         print(f"⚠️ {role} needs review")
         break
 ```
@@ -395,12 +379,8 @@ for role, worker in workers.items():
 ```python
 # Execute multiple tasks
 for i in range(10):
-    task = TaskDefinition(
-        task_id=f"task-{i}",
-        description=f"Task {i} description",
-        role_id="developer"
-    )
-    
+    task = TaskDefinition(task_id=f"task-{i}", description=f"Task {i} description", role_id="developer")
+
     result = worker.execute(task)
 
 # Get confidence statistics
@@ -414,12 +394,12 @@ print(f"Low Confidence Count: {stats['low_confidence_count']}")
 
 # Level distribution
 print("\nConfidence Level Distribution:")
-for level, count in stats['level_distribution'].items():
+for level, count in stats["level_distribution"].items():
     print(f"  {level}: {count}")
 
 # Factor averages
 print("\nFactor Averages:")
-for factor, avg in stats['factor_averages'].items():
+for factor, avg in stats["factor_averages"].items():
     print(f"  {factor}: {avg:.2f}")
 ```
 

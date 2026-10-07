@@ -371,10 +371,7 @@ User Task
 
 **推奨使用法**（段階的導入）:
 ```python
-from scripts.collaboration import (
-    MultiAgentDispatcher, FeedbackControlLoop,
-    ExecutionGuard, PerformanceFingerprint
-)
+from scripts.collaboration import MultiAgentDispatcher, FeedbackControlLoop, ExecutionGuard, PerformanceFingerprint
 
 dispatcher = MultiAgentDispatcher()
 guard = ExecutionGuard()
@@ -470,10 +467,12 @@ skills/
 ```python
 # 直接インポート（単一Skill推奨）
 from skills.dispatch.handler import DispatchSkill
+
 result = DispatchSkill().run("Fix login bug", roles=["coder", "tester"])
 
 # レジストリ経由（動的発見）
 from skills import get_skill, list_skills
+
 print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
 skill = get_skill("security")
 result = skill.scan_input("DROP TABLE users; --")

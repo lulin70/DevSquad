@@ -46,109 +46,107 @@ from collections import defaultdict
 
 class UsageTracker:
     """轻量级功能使用追踪器"""
-    
+
     def __init__(self, persist_file: Optional[str] = None):
-        self.stats: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
-            "count": 0,
-            "first_used": None,
-            "last_used": None,
-            "errors": 0,
-        })
+        self.stats: Dict[str, Dict[str, Any]] = defaultdict(
+            lambda: {
+                "count": 0,
+                "first_used": None,
+                "last_used": None,
+                "errors": 0,
+            }
+        )
         self.persist_file = persist_file or ".usage_stats.json"
         self._lock = threading.RLock()
         self._load_stats()
-    
+
     def track(self, feature_name: str, success: bool = True, metadata: Optional[Dict] = None):
         """追踪功能使用"""
         with self._lock:
             stat = self.stats[feature_name]
             stat["count"] += 1
-            
+
             now = datetime.now().isoformat()
             if stat["first_used"] is None:
                 stat["first_used"] = now
             stat["last_used"] = now
-            
+
             if not success:
                 stat["errors"] += 1
-            
+
             if metadata:
                 if "metadata" not in stat:
                     stat["metadata"] = []
                 stat["metadata"].append(metadata)
                 # 只保留最近 10 条
                 stat["metadata"] = stat["metadata"][-10:]
-    
+
     def get_stats(self, feature_name: Optional[str] = None) -> Dict:
         """获取统计数据"""
         with self._lock:
             if feature_name:
                 return dict(self.stats.get(feature_name, {}))
             return {k: dict(v) for k, v in self.stats.items()}
-    
+
     def get_top_features(self, limit: int = 10) -> list:
         """获取使用最多的功能"""
         with self._lock:
-            sorted_features = sorted(
-                self.stats.items(),
-                key=lambda x: x[1]["count"],
-                reverse=True
-            )
+            sorted_features = sorted(self.stats.items(), key=lambda x: x[1]["count"], reverse=True)
             return [(name, stats["count"]) for name, stats in sorted_features[:limit]]
-    
+
     def get_unused_features(self, all_features: list) -> list:
         """获取从未使用的功能"""
         with self._lock:
             used = set(self.stats.keys())
             return [f for f in all_features if f not in used]
-    
+
     def generate_report(self) -> str:
         """生成使用报告"""
         with self._lock:
             total_calls = sum(s["count"] for s in self.stats.values())
             total_errors = sum(s["errors"] for s in self.stats.values())
-            
+
             lines = [
                 "# DevSquad 功能使用报告",
                 f"\n**生成时间**: {datetime.now().isoformat()}",
                 f"**追踪功能数**: {len(self.stats)}",
                 f"**总调用次数**: {total_calls}",
                 f"**总错误次数**: {total_errors}",
-                f"**错误率**: {(total_errors/max(1,total_calls)*100):.2f}%",
+                f"**错误率**: {(total_errors / max(1, total_calls) * 100):.2f}%",
                 "\n## Top 10 最常用功能\n",
             ]
-            
+
             for name, count in self.get_top_features(10):
                 stat = self.stats[name]
                 error_rate = (stat["errors"] / max(1, stat["count"])) * 100
                 lines.append(f"- **{name}**: {count} 次调用, 错误率 {error_rate:.1f}%")
-            
+
             # 按类别分组
             lines.append("\n## 按组件分类\n")
             by_component = defaultdict(int)
             for name, stat in self.stats.items():
                 component = name.split(".")[0] if "." in name else "other"
                 by_component[component] += stat["count"]
-            
+
             for component, count in sorted(by_component.items(), key=lambda x: x[1], reverse=True):
                 lines.append(f"- **{component}**: {count} 次调用")
-            
+
             return "\n".join(lines)
-    
+
     def save(self):
         """保存统计数据到文件"""
         with self._lock:
             try:
-                with open(self.persist_file, 'w', encoding='utf-8') as f:
+                with open(self.persist_file, "w", encoding="utf-8") as f:
                     json.dump(dict(self.stats), f, indent=2, ensure_ascii=False)
             except Exception as e:
                 print(f"Failed to save usage stats: {e}")
-    
+
     def _load_stats(self):
         """从文件加载统计数据"""
         try:
             if Path(self.persist_file).exists():
-                with open(self.persist_file, 'r', encoding='utf-8') as f:
+                with open(self.persist_file, "r", encoding="utf-8") as f:
                     loaded = json.load(f)
                     self.stats.update(loaded)
         except Exception as e:
@@ -182,11 +180,12 @@ def track_usage(feature_name: str, success: bool = True, metadata: Optional[Dict
 
 from .usage_tracker import track_usage
 
+
 class MultiAgentDispatcher:
     def dispatch(self, task: str, **kwargs):
         track_usage("dispatcher.dispatch")
         # ... 原有代码
-        
+
     def analyze_task(self, task: str):
         track_usage("dispatcher.analyze_task")
         # ... 原有代码
@@ -197,6 +196,7 @@ class MultiAgentDispatcher:
 # scripts/collaboration/coordinator.py
 
 from .usage_tracker import track_usage
+
 
 class Coordinator:
     def coordinate(self, task: str, roles: list):
@@ -209,6 +209,7 @@ class Coordinator:
 # scripts/collaboration/worker.py
 
 from .usage_tracker import track_usage
+
 
 class Worker:
     def execute(self, task: str):
@@ -260,18 +261,18 @@ from scripts.collaboration.usage_tracker import get_tracker
 
 def main():
     tracker = get_tracker()
-    
+
     # 生成报告
     report = tracker.generate_report()
-    
+
     # 保存到文件
     output_file = "docs/USAGE_REPORT.md"
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         f.write(report)
-    
+
     print(f"✅ 使用报告已生成: {output_file}")
     print(f"\n{report}")
-    
+
     # 保存统计数据
     tracker.save()
 
@@ -445,17 +446,20 @@ if __name__ == "__main__":
 ```python
 # tests/test_usage_tracker.py
 
+
 def test_track_usage():
     tracker = UsageTracker(persist_file=":memory:")
     tracker.track("test.feature")
     stats = tracker.get_stats("test.feature")
     assert stats["count"] == 1
 
+
 def test_track_error():
     tracker = UsageTracker(persist_file=":memory:")
     tracker.track("test.feature", success=False)
     stats = tracker.get_stats("test.feature")
     assert stats["errors"] == 1
+
 
 def test_get_top_features():
     tracker = UsageTracker(persist_file=":memory:")
@@ -465,6 +469,7 @@ def test_get_top_features():
     top = tracker.get_top_features(2)
     assert top[0][0] == "feature1"
     assert top[0][1] == 2
+
 
 def test_generate_report():
     tracker = UsageTracker(persist_file=":memory:")
@@ -479,10 +484,11 @@ def test_generate_report():
 ```python
 # tests/test_usage_integration.py
 
+
 def test_dispatcher_tracking():
     disp = MultiAgentDispatcher()
     disp.dispatch("测试任务")
-    
+
     tracker = get_tracker()
     stats = tracker.get_stats("dispatcher.dispatch")
     assert stats["count"] >= 1

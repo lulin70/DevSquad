@@ -83,9 +83,9 @@ DevSquad Performance Benchmarks
 
 运行方式:
     python -m pytest tests/test_performance_benchmarks.py --benchmark-only
-    
+
 输出:
-    tests/test_performance_benchmarks.py::test_dispatch_latency 
+    tests/test_performance_benchmarks.py::test_dispatch_latency
     -----------------------------------------------------------
     Mean ± StdDev     123.4 ms ± 12.3 ms
     Median             118.7 ms
@@ -100,7 +100,7 @@ from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 class TestDispatchPerformance:
     """Dispatcher 性能基准测试"""
-    
+
     @pytest.fixture(autouse=True)
     def setup_dispatcher(self):
         self.dispatcher = MultiAgentDispatcher(
@@ -112,7 +112,7 @@ class TestDispatchPerformance:
         )
         yield self.dispatcher
         self.dispatcher.shutdown()
-    
+
     @pytest.mark.benchmark(
         min_rounds=5,
         max_time=1.0,
@@ -121,13 +121,14 @@ class TestDispatchPerformance:
     )
     def test_dispatch_latency(self, benchmark):
         """单次 dispatch 耗时"""
+
         @benchmark
         def dispatch():
             return self.dispatcher.quick_dispatch("性能测试任务")
-        
+
         result = dispatch()
         assert result.success or True  # Mock mode may fail
-        
+
     @pytest.mark.benchmark(
         min_rounds=5,
         max_time=0.5,
@@ -135,13 +136,14 @@ class TestDispatchPerformance:
     )
     def test_quick_dispatch(self, benchmark):
         """quick_dispatch 快速路径"""
+
         @benchmark
         def quick():
             return self.dispatcher.quick_dispatch("快速任务")
-        
+
         result = quick()
         assert isinstance(result, type(result))
-    
+
     @pytest.mark.benchmark(
         min_rounds=3,
         max_time=2.0,
@@ -150,7 +152,7 @@ class TestDispatchPerformance:
     def test_parallel_dispatch(self, benchmark):
         """并行 dispatch 多个任务"""
         tasks = [f"并行任务_{i}" for i in range(5)]
-        
+
         @benchmark
         def parallel():
             results = []
@@ -158,34 +160,34 @@ class TestDispatchPerformance:
                 r = self.dispatcher.quick_dispatch(task)
                 results.append(r)
             return results
-        
+
         results = parallel()
         assert len(results) == 5
 
 
 class TestWorkerPerformance:
     """Worker 执行性能基准"""
-    
+
     @pytest.fixture(autouse=True)
     def setup_worker(self):
         from scripts.collaboration.coordinator import Coordinator
         from scripts.collaboration.scratchpad import Scratchpad
-        
+
         sp = Scratchpad()
         coord = Coordinator()
         plan = coord.plan_task("Worker性能测试", [{"role_id": "architect"}])
         workers = coord.spawn_workers(plan)
-        
+
         self.workers = workers
         self.sp = sp
         yield workers, coord, sp
-        
+
         for w in workers:
             try:
                 w.shutdown()
             except Exception:
                 pass
-    
+
     @pytest.mark.benchmark(
         min_rounds=5,
         max_time=0.5,
@@ -194,27 +196,29 @@ class TestWorkerPerformance:
     def test_worker_creation(self, benchmark, setup_worker):
         """Worker 创建耗时"""
         workers, coord, sp = setup_worker
-        
+
         @benchmark
         def create():
             from scripts.collaboration.worker import Worker
+
             w = Worker(f"perf_test_{time.time_ns()}", "architect", "你是架构师", sp)
             return w
-        
+
         worker = create()
         assert worker is not None
 
 
 class TestMemoryPerformance:
     """内存使用基准测试"""
-    
+
     @pytest.fixture(autouse=True)
     def setup_memory(self):
         import tracemalloc
+
         tracemalloc.start()
         yield tracemalloc
         tracemalloc.stop()
-    
+
     @pytest.mark.benchmark(
         min_rounds=3,
         max_time=2.0,
@@ -223,16 +227,20 @@ class TestMemoryPerformance:
     def test_dispatcher_memory(self, benchmark, setup_memory):
         """Dispatcher 内存占用"""
         tracemalloc = setup_memory
-        
+
         @benchmark
         def create_and_destroy():
-            d = MultiAgentDispatcher(enable_warmup=False, enable_compression=False,
-                                   enable_permission=False, enable_memory=False,
-                                   enable_skillify=False)
+            d = MultiAgentDispatcher(
+                enable_warmup=False,
+                enable_compression=False,
+                enable_permission=False,
+                enable_memory=False,
+                enable_skillify=False,
+            )
             d.dispatch("内存测试")
             d.shutdown()
             del d
-        
+
         create_and_destroy()
 
 
@@ -274,6 +282,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MetricPoint:
     """单个数据点"""
+
     name: str
     value: float
     unit: str = "ms"
@@ -284,9 +293,10 @@ class MetricPoint:
 @dataclass
 class PerformanceSnapshot:
     """性能快照"""
+
     timestamp: float
     metrics: List[MetricPoint] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "timestamp": self.timestamp,
@@ -297,15 +307,15 @@ class PerformanceSnapshot:
 
 class PerformanceMonitor:
     """性能监控器"""
-    
+
     def __init__(self, output_dir: Optional[str] = None):
         self.output_dir = Path(output_dir) if output_dir else Path("./performance_metrics")
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self._metrics_history: List[PerformanceSnapshot] = []
         self._current_snapshot: Optional[PerformanceSnapshot] = None
         self._lock = threading.Lock()
-        
+
         # 预定义的指标名称
         self.METRIC_NAMES = {
             "dispatch_latency": "Dispatch Latency",
@@ -315,12 +325,12 @@ class PerformanceMonitor:
             "memory_usage": "Memory Usage (MB)",
             "startup_time": "Startup Time",
         }
-    
+
     @contextmanager
     def measure(self, metric_name: str, unit: str = "ms", **tags):
         """
         上下文管理器，用于测量代码块执行时间
-        
+
         使用方法:
             with monitor.measure("my_operation"):
                 # ... 要测量的代码 ...
@@ -331,26 +341,26 @@ class PerformanceMonitor:
             yield
         finally:
             elapsed = (time.perf_counter() - start) * 1000  # Convert to ms
-            
+
             metric = MetricPoint(
                 name=metric_name,
                 value=elapsed,
                 unit=unit,
                 tags=tags,
             )
-            
+
             with self._lock:
                 if self._current_snapshot is None:
                     self._current_snapshot = PerformanceSnapshot(timestamp=time.time())
-                
+
                 self._current_snapshot.metrics.append(metric)
-            
+
             logger.debug(f"Metric {metric_name}: {elapsed:.2f}{unit}")
-    
+
     def record_metric(self, metric_name: str, value: float, unit: str = "", **tags):
         """
         手动记录一个指标
-        
+
         Args:
             metric_name: 指标名称
             value: 指标值
@@ -363,18 +373,18 @@ class PerformanceMonitor:
             unit=unit,
             tags=tags,
         )
-        
+
         with self._lock:
             if self._current_snapshot is None:
                 self._current_snapshot = PerformanceSnapshot(timestamp=time.time())
-            
+
             self._current_snapshot.metrics.append(metric)
-    
+
     def start_snapshot(self):
         """开始一个新的快照"""
         with self._lock:
             self._current_snapshot = PerformanceSnapshot(timestamp=time.time())
-    
+
     def end_snapshot(self) -> PerformanceSnapshot:
         """结束当前快照并保存"""
         with self._lock:
@@ -385,49 +395,47 @@ class PerformanceMonitor:
                 self._current_snapshot = None
             else:
                 snapshot = PerformanceSnapshot(timestamp=time.time())
-            
+
             return snapshot
-    
+
     def _save_snapshot(self, snapshot: PerformanceSnapshot):
         """保存快照到文件"""
-        timestamp_str = datetime.fromtimestamp(
-            snapshot.timestamp, tz=timezone.utc
-        ).strftime("%Y%m%d_%H%M%S")
-        
+        timestamp_str = datetime.fromtimestamp(snapshot.timestamp, tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+
         filepath = self.output_dir / f"snapshot_{timestamp_str}.json"
-        
-        with open(filepath, 'w', encoding='utf-8') as f:
+
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(snapshot.to_dict(), f, indent=2, ensure_ascii=False)
-        
+
         logger.info(f"Saved performance snapshot to {filepath}")
-    
+
     def get_latest_snapshot(self) -> Optional[PerformanceSnapshot]:
         """获取最新的快照"""
         with self._lock:
             return self._metrics_history[-1] if self._metrics_history else None
-    
+
     def get_statistics(self, metric_name: str, last_n: int = 100) -> Dict[str, Any]:
         """
         获取指定指标的统计信息
-        
+
         Returns:
             包含 mean, median, min, max, p95, p99, count 的字典
         """
         values = []
-        
+
         with self._lock:
             for snapshot in reversed(self._metrics_history[:last_n]):
                 for m in snapshot.metrics:
                     if m.name == metric_name:
                         values.append(m.value)
                         break
-        
+
         if not values:
             return {"error": f"No data found for metric: {metric_name}"}
-        
+
         sorted_values = sorted(values)
         n = len(sorted_values)
-        
+
         return {
             "metric": metric_name,
             "count": n,
@@ -438,11 +446,11 @@ class PerformanceMonitor:
             "p95": sorted_values[int(n * 0.95)] if n >= 20 else sorted_values[-1],
             "p99": sorted_values[int(n * 0.99)] if n >= 100 else sorted_values[-1],
         }
-    
+
     def generate_report(self, output_file: Optional[str] = None) -> str:
         """
         生成性能报告
-        
+
         Returns:
             Markdown格式的报告内容
         """
@@ -454,32 +462,34 @@ class PerformanceMonitor:
             f"**Total Snapshots**: {len(self._metrics_history)}",
             "",
         ]
-        
+
         # 统计各指标
         for metric_name in self.METRIC_NAMES.keys():
             stats = self.get_statistics(metric_name)
             if "error" not in stats:
-                lines.extend([
-                    f"## {self.METRIC_NAMES.get(metric_name, metric_name)}",
-                    "",
-                    f"- **Mean**: {stats['mean']:.2f} {self._get_unit(metric_name)}",
-                    f"- **Median**: {stats['median']:.2f} {self._get_unit(metric_name)}",
-                    f"- **P95**: {stats['p95']:.2f} {self._get_unit(metric_name)}",
-                    f"- **P99**: {stats['p99']:.2f} {self._get_unit(metric_name)}",
-                    f"- **Min/Max**: {stats['min']:.2f} / {stats['max']:.2f}",
-                    f"- **Samples**: {stats['count']}",
-                    "",
-                ])
-        
+                lines.extend(
+                    [
+                        f"## {self.METRIC_NAMES.get(metric_name, metric_name)}",
+                        "",
+                        f"- **Mean**: {stats['mean']:.2f} {self._get_unit(metric_name)}",
+                        f"- **Median**: {stats['median']:.2f} {self._get_unit(metric_name)}",
+                        f"- **P95**: {stats['p95']:.2f} {self._get_unit(metric_name)}",
+                        f"- **P99**: {stats['p99']:.2f} {self._get_unit(metric_name)}",
+                        f"- **Min/Max**: {stats['min']:.2f} / {stats['max']:.2f}",
+                        f"- **Samples**: {stats['count']}",
+                        "",
+                    ]
+                )
+
         report_content = "\n".join(lines)
-        
+
         if output_file:
             filepath = Path(output_file)
-            filepath.write_text(report_content, encoding='utf-8')
+            filepath.write_text(report_content, encoding="utf-8")
             logger.info(f"Saved performance report to {filepath}")
-        
+
         return report_content
-    
+
     def _get_unit(self, metric_name: str) -> str:
         """获取指标默认单位"""
         units = {
@@ -497,14 +507,15 @@ class PerformanceMonitor:
 _monitor_instance = None
 _monitor_lock = threading.Lock()
 
+
 def get_performance_monitor() -> PerformanceMonitor:
     """获取全局性能监控器实例"""
     global _monitor_instance
-    
+
     with _monitor_lock:
         if _monitor_instance is None:
             _monitor_instance = PerformanceMonitor()
-        
+
         return _monitor_instance
 ```
 
@@ -518,6 +529,7 @@ def get_performance_monitor() -> PerformanceMonitor:
 @dataclass
 class AlertRule:
     """告警规则"""
+
     name: str
     metric: str
     condition: str  # gt, lt, eq, gte, lte

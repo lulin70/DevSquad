@@ -230,10 +230,12 @@
 ```python
 # 当前：紧耦合，难以替换
 from scripts.collaboration import LLMCache
+
 cache = LLMCache()  # 只能用这个实现
 
 # 期望：松耦合，易于替换
 from scripts.collaboration import CacheProvider, LLMCache, RedisCache
+
 cache: CacheProvider = LLMCache()  # 或 RedisCache()
 ```
 
@@ -263,6 +265,7 @@ cache: CacheProvider = LLMCache()  # 或 RedisCache()
 def test_agent():
     agent = DevSquadAgent(cache=LLMCache())  # 需要真实缓存
     result = agent.execute(task)
+
 
 # 期望：测试使用 Null Provider，快速且稳定
 def test_agent():

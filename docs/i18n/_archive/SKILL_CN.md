@@ -166,8 +166,8 @@ result = skill.run("your task")
 
 # 真实模式（需要 API Key）
 import os
-result = skill.run("your task", backend="openai",
-                    api_key=os.environ["OPENAI_API_KEY"])
+
+result = skill.run("your task", backend="openai", api_key=os.environ["OPENAI_API_KEY"])
 ```
 
 ### 使用示例
@@ -175,11 +175,13 @@ result = skill.run("your task", backend="openai",
 ```python
 # 方法 A：直接导入（推荐单技能使用场景）
 from skills.dispatch.handler import DispatchSkill
+
 result = DispatchSkill().run("修复登录漏洞", roles=["coder", "tester"])
 print(result["success"])  # True
 
 # 方法 B：通过注册表（推荐动态/发现式使用）
 from skills import get_skill, list_skills
+
 print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
 
 skill = get_skill("security")
@@ -188,6 +190,7 @@ print(result["risk_level"])  # "critical"
 
 # 方法 C：快速一行调用
 from skills.intent.handler import IntentSkill
+
 intent = IntentSkill().detect("修复登录漏洞", lang="zh")
 print(intent["intent"])  # "bug_fix"
 ```
@@ -196,6 +199,7 @@ print(intent["intent"])  # "bug_fix"
 
 ```python
 from skills import discover_all
+
 all_skills = discover_all()  # {"dispatch": <DispatchSkill>, ...}
 for name, skill in all_skills.items():
     print(f"{name}: {skill.info()['description']}")
@@ -220,8 +224,11 @@ for name, skill in all_skills.items():
 
 ```python
 from scripts.collaboration import (
-    FeedbackControlLoop, PerformanceFingerprint,
-    SimilarTaskRecommender, AdaptiveRoleSelector, ExecutionGuard
+    FeedbackControlLoop,
+    PerformanceFingerprint,
+    SimilarTaskRecommender,
+    AdaptiveRoleSelector,
+    ExecutionGuard,
 )
 
 # 反馈循环（自动重试直到质量门控通过）
@@ -378,6 +385,7 @@ disp.shutdown()
 
 ```python
 from scripts.collaboration.dispatcher import quick_collaborate
+
 result = quick_collaborate("帮我设计微服务架构")
 print(result.to_markdown())
 ```
@@ -434,9 +442,9 @@ for role in matched:
 ```python
 result = disp.dispatch(
     task_description=user_task,
-    roles=None,          # None=自动匹配，或指定 ["architect", "tester"]
-    mode="auto",         # auto/parallel/sequential/consensus
-    dry_run=False,       # True=仅模拟
+    roles=None,  # None=自动匹配，或指定 ["architect", "tester"]
+    mode="auto",  # auto/parallel/sequential/consensus
+    dry_run=False,  # True=仅模拟
 )
 ```
 

@@ -228,6 +228,7 @@ backend = create_backend("openai", api_key=os.environ["OPENAI_API_KEY"])
 disp = MultiAgentDispatcher(llm_backend=backend)
 
 from scripts.collaboration.worker import Worker
+
 worker = Worker(role="architect", backend=backend, stream=True)
 
 result = disp.dispatch("認証システムを設計", roles=["architect"])

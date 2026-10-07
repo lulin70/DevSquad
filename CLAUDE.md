@@ -63,6 +63,7 @@ disp.shutdown()
 
 # With LLM backend
 from scripts.collaboration.llm_backend import create_backend
+
 backend = create_backend("openai", api_key="sk-...", base_url="https://api.openai.com/v1")
 disp = MultiAgentDispatcher(llm_backend=backend)
 result = disp.dispatch("Design auth system", roles=["architect", "security"])
@@ -83,7 +84,7 @@ python3 scripts/cli.py --version  # 4.5.2
 
 ```python
 result = disp.quick_dispatch(task, output_format="structured")  # structured / compact / detailed
-result = disp.quick_dispatch(task, include_action_items=True)   # auto-generate H/M/L action items
+result = disp.quick_dispatch(task, include_action_items=True)  # auto-generate H/M/L action items
 ```
 
 ## Directory Structure

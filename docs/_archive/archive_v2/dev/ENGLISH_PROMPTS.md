@@ -313,15 +313,19 @@ if (condition)
 class UserService:
     pass
 
+
 def get_user_name():
     pass
 
+
 MAX_COUNT = 100
-user_name = 'John'
+user_name = "John"
+
 
 # ❌ Incorrect
 class userService:
     pass
+
 
 def getUser():
     pass
@@ -341,10 +345,11 @@ def calculate(a, b):
     result = a + b
     return result
 
+
 # ❌ Incorrect
-def calculate(a,b):
-  result = a+b
-  return result
+def calculate(a, b):
+    result = a + b
+    return result
 ```
 
 #### 6.1.4 Go Standards (Google Go Code Review Comments)

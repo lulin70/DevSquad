@@ -196,9 +196,9 @@ user_proxy.initiate_chat(assistant, message="Design auth system.")
 ```python
 from crewai import Agent, Task, Crew
 
-researcher = Agent(role='Researcher', goal='Research auth systems', backstory='Expert researcher')
-writer = Agent(role='Writer', goal='Write about auth', backstory='Technical writer')
-task = Task(description='Research and write about authentication', agent=researcher)
+researcher = Agent(role="Researcher", goal="Research auth systems", backstory="Expert researcher")
+writer = Agent(role="Writer", goal="Write about auth", backstory="Technical writer")
+task = Task(description="Research and write about authentication", agent=researcher)
 crew = Crew(agents=[researcher, writer], tasks=[task])
 result = crew.kickoff()
 ```
@@ -209,14 +209,18 @@ from typing import TypedDict, Annotated
 import operator
 from langgraph.graph import StateGraph, END
 
+
 class State(TypedDict):
     messages: Annotated[list, operator.add]
+
 
 def node_a(state: State):
     return {"messages": ["I'm node A"]}
 
+
 def node_b(state: State):
     return {"messages": ["I'm node B"]}
+
 
 workflow = StateGraph(State)
 workflow.add_node("a", node_a)
@@ -385,7 +389,7 @@ dispatcher = MultiAgentDispatcher()
 result = dispatcher.dispatch(
     task="Review src/api/users.py for security and quality",
     roles=["architect", "security", "tester"],  # 3 个专家并行
-    mode="consensus"  # 要求达成共识
+    mode="consensus",  # 要求达成共识
 )
 
 # 输出：
@@ -419,13 +423,13 @@ tester = autogen.AssistantAgent(...)
 
 **CrewAI 实现**（推荐）：
 ```python
-researcher = Agent(role='Tech Researcher', goal='Gather latest trends')
-writer = Agent(role='Tech Writer', goal='Write engaging blog post')
-editor = Agent(role='Editor', goal='Ensure clarity and accuracy')
+researcher = Agent(role="Tech Researcher", goal="Gather latest trends")
+writer = Agent(role="Tech Writer", goal="Write engaging blog post")
+editor = Agent(role="Editor", goal="Ensure clarity and accuracy")
 
-task1 = Task(description='Research AI agents in 2026', agent=researcher)
-task2 = Task(description='Write blog post based on research', agent=writer)
-task3 = Task(description='Edit and polish the article', agent=editor)
+task1 = Task(description="Research AI agents in 2026", agent=researcher)
+task2 = Task(description="Write blog post based on research", agent=writer)
+task3 = Task(description="Edit and polish the article", agent=editor)
 
 crew = Crew(agents=[researcher, writer, editor], tasks=[task1, task2, task3])
 result = crew.kickoff()
@@ -458,6 +462,7 @@ class State(TypedDict):
     status: str
     approvals: list
 
+
 def check_amount(state: State):
     if state["amount"] < 1000:
         return "auto_approve"
@@ -465,6 +470,7 @@ def check_amount(state: State):
         return "manager_review"
     else:
         return "director_review"
+
 
 workflow = StateGraph(State)
 workflow.add_node("auto_approve", auto_approve_fn)
@@ -519,14 +525,17 @@ class CustomWorker(Worker):
     def execute(self, task):
         # 使用 AutoGen 处理子任务
         import autogen
+
         # ... AutoGen 逻辑
         return result
+
 
 # 方案 2：将 DevSquad 作为 LangGraph 的节点
 def devsquad_node(state: State):
     dispatcher = MultiAgentDispatcher()
     result = dispatcher.dispatch(state["task"], roles=["architect", "coder"])
     return {"devsquad_result": result.report}
+
 
 # 方案 3：混合架构
 # - DevSquad: 代码审查、安全审计

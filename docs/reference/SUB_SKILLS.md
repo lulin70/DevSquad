@@ -55,8 +55,8 @@ result = skill.run("your task")
 
 # Real mode (requires API key)
 import os
-result = skill.run("your task", backend="openai",
-                    api_key=os.environ["OPENAI_API_KEY"])
+
+result = skill.run("your task", backend="openai", api_key=os.environ["OPENAI_API_KEY"])
 ```
 
 ### Usage Examples
@@ -64,11 +64,13 @@ result = skill.run("your task", backend="openai",
 ```python
 # Method A: Direct import (recommended for single skill use)
 from skills.dispatch.handler import DispatchSkill
+
 result = DispatchSkill().run("Fix login bug", roles=["coder", "tester"])
 print(result["success"])  # True
 
 # Method B: Via registry (recommended for dynamic/discovery use)
 from skills import get_skill, list_skills
+
 print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
 
 skill = get_skill("security")
@@ -77,6 +79,7 @@ print(result["risk_level"])  # "critical"
 
 # Method C: Quick one-liners
 from skills.intent.handler import IntentSkill
+
 intent = IntentSkill().detect("修复登录漏洞", lang="zh")
 print(intent["intent"])  # "bug_fix"
 ```
@@ -85,6 +88,7 @@ print(intent["intent"])  # "bug_fix"
 
 ```python
 from skills import discover_all
+
 all_skills = discover_all()  # {"dispatch": <DispatchSkill>, ...}
 for name, skill in all_skills.items():
     print(f"{name}: {skill.info()['description']}")
@@ -124,9 +128,9 @@ for role in matched:
 ```python
 result = disp.dispatch(
     task_description=user_task,
-    roles=None,          # None=auto match, or specify ["architect", "tester"]
-    mode="auto",         # auto/parallel/sequential/consensus/review
-    dry_run=False,       # True=simulation only
+    roles=None,  # None=auto match, or specify ["architect", "tester"]
+    mode="auto",  # auto/parallel/sequential/consensus/review
+    dry_run=False,  # True=simulation only
 )
 ```
 

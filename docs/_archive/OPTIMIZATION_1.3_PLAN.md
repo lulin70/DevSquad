@@ -98,24 +98,28 @@ scripts/collaboration/
    def setUp(self):
        self.tmp = tempfile.mkdtemp()
        self.disp = MultiAgentDispatcher(persist_dir=self.tmp)
-   
+
+
    def tearDown(self):
        self.disp.shutdown()
        shutil.rmtree(self.tmp)
-   
+
+
    # pytest 风格（使用 fixture）
    @pytest.fixture
    def tmp_dir():
        tmp = tempfile.mkdtemp()
        yield tmp
        shutil.rmtree(tmp, ignore_errors=True)
-   
+
+
    @pytest.fixture
    def dispatcher(tmp_dir):
        disp = MultiAgentDispatcher(persist_dir=tmp_dir)
        yield disp
        disp.shutdown()
-   
+
+
    def test_01_dispatch_result_default(dispatcher):
        # 使用 fixture
        pass
@@ -257,12 +261,14 @@ import tempfile
 import shutil
 from pathlib import Path
 
+
 @pytest.fixture
 def tmp_dir():
     """临时目录 fixture"""
     tmp = tempfile.mkdtemp(prefix="test_")
     yield Path(tmp)
     shutil.rmtree(tmp, ignore_errors=True)
+
 
 @pytest.fixture
 def dispatcher(tmp_dir):
@@ -271,10 +277,12 @@ def dispatcher(tmp_dir):
     yield disp
     disp.shutdown()
 
+
 @pytest.fixture
 def sample_task():
     """示例任务 fixture"""
     return "设计用户认证系统"
+
 
 # 使用 fixture
 def test_dispatch_basic(dispatcher, sample_task):
@@ -288,12 +296,16 @@ def test_dispatch_basic(dispatcher, sample_task):
 ```python
 import pytest
 
-@pytest.mark.parametrize("task,expected_role", [
-    ("设计架构", "architect"),
-    ("编写测试", "tester"),
-    ("实现功能", "solo-coder"),
-    ("设计UI", "ui-designer"),
-])
+
+@pytest.mark.parametrize(
+    "task,expected_role",
+    [
+        ("设计架构", "architect"),
+        ("编写测试", "tester"),
+        ("实现功能", "solo-coder"),
+        ("设计UI", "ui-designer"),
+    ],
+)
 def test_role_matching(dispatcher, task, expected_role):
     roles = dispatcher.analyze_task(task)
     role_ids = [r["role_id"] for r in roles]

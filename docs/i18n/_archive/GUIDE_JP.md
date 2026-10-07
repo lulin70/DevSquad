@@ -242,11 +242,13 @@ result = disp.quick_dispatch(task, output_format="detailed")
 from scripts.collaboration.batch_scheduler import BatchScheduler
 
 scheduler = BatchScheduler()
-results = scheduler.schedule([
-    "ユーザー認証システムを設計する",
-    "データベースクエリを最適化する",
-    "REST APIを実装する",
-])
+results = scheduler.schedule(
+    [
+        "ユーザー認証システムを設計する",
+        "データベースクエリを最適化する",
+        "REST APIを実装する",
+    ]
+)
 ```
 
 ### 3.4 ワークフローエンジン
@@ -411,11 +413,14 @@ from scripts.collaboration.checkpoint_manager import CheckpointManager
 cm = CheckpointManager()
 
 # チェックポイントの保存
-cm.save("architecture_complete", {
-    "task_id": "t1",
-    "phase": "architecture",
-    "output": arch_result,
-})
+cm.save(
+    "architecture_complete",
+    {
+        "task_id": "t1",
+        "phase": "architecture",
+        "output": arch_result,
+    },
+)
 
 # チェックポイントの復元（ブレークポイントから再開）
 state = cm.load("architecture_complete")
@@ -659,8 +664,8 @@ quality_control:
 from scripts.collaboration.coordinator import Coordinator
 
 coord = Coordinator(
-    briefing_mode=True,        # ブリーフィングモード有効
-    memory_provider=adapter,   # ルール事前読み込み
+    briefing_mode=True,  # ブリーフィングモード有効
+    memory_provider=adapter,  # ルール事前読み込み
 )
 
 # ルールの事前読み込み
@@ -680,10 +685,10 @@ from scripts.collaboration.enhanced_worker import EnhancedWorker
 worker = EnhancedWorker(
     worker_id="arch-1",
     role_id="architect",
-    cache_provider=LLMCache(),           # LLMレスポンスキャッシュ（TTL期限切れ）
-    retry_provider=LLMRetryManager(),     # 自動リトライ + フォールバック
-    monitor_provider=PerformanceMonitor(),# パフォーマンスモニタリング
-    memory_provider=mce_adapter,          # ルール注入（オプション）
+    cache_provider=LLMCache(),  # LLMレスポンスキャッシュ（TTL期限切れ）
+    retry_provider=LLMRetryManager(),  # 自動リトライ + フォールバック
+    monitor_provider=PerformanceMonitor(),  # パフォーマンスモニタリング
+    memory_provider=mce_adapter,  # ルール注入（オプション）
 )
 
 # タスク実行時に自動的に:
@@ -1224,12 +1229,12 @@ mapper = get_shared_mapper()
 # タスク説明からインテントを検出
 match = mapper.detect_intent("Fix login page crash", lang="en")
 if match:
-    print(f"Intent: {match.intent_type}")           # "bug_fix"
-    print(f"Confidence: {match.confidence:.2f}")     # 0.85
-    print(f"Workflow: {match.workflow_chain}")        # ["debugging_and_error_recovery", "test_driven_development"]
-    print(f"Roles: {match.required_roles}")           # ["solo-coder", "tester"]
-    print(f"Gate: {match.gate}")                      # "prove_it_pattern"
-    print(f"Message: {match.anti_skip_message}")      # "Do NOT implement fix first..."
+    print(f"Intent: {match.intent_type}")  # "bug_fix"
+    print(f"Confidence: {match.confidence:.2f}")  # 0.85
+    print(f"Workflow: {match.workflow_chain}")  # ["debugging_and_error_recovery", "test_driven_development"]
+    print(f"Roles: {match.required_roles}")  # ["solo-coder", "tester"]
+    print(f"Gate: {match.gate}")  # "prove_it_pattern"
+    print(f"Message: {match.anti_skip_message}")  # "Do NOT implement fix first..."
 ```
 
 **サポートされるインテント（6種類 × 3言語）:**
@@ -1313,10 +1318,8 @@ from scripts.collaboration.mce_adapter import MCEAdapter
 adapter = MCEAdapter(enable=True)  # DevSquadAdapterを自動検出
 
 # ルールの追加
-adapter.add_rule("user1", "Always use SSL",
-                 metadata={"rule_type": "always", "trigger": "database"})
-adapter.add_rule("user1", "No plain text passwords",
-                 metadata={"rule_type": "forbid", "trigger": "password"})
+adapter.add_rule("user1", "Always use SSL", metadata={"rule_type": "always", "trigger": "database"})
+adapter.add_rule("user1", "No plain text passwords", metadata={"rule_type": "forbid", "trigger": "password"})
 
 # ルールのマッチング
 rules = adapter.match_rules("Design DB schema with password", "user1", role="architect")
@@ -1427,10 +1430,12 @@ skills/
 # 方法1: 直接インポート
 from skills.dispatch.handler import DispatchSkill
 from skills.security.handler import SecuritySkill
+
 result = SecuritySkill().scan_input("DROP TABLE users")
 
 # 方法2: レジストリ経由動的発見
 from skills import get_skill, list_skills, discover_all
+
 skills = discover_all()
 for name, skill in skills.items():
     print(f"{name}: {skill.info()['description']}")
