@@ -589,6 +589,7 @@ from datetime import datetime
 @dataclass
 class SkillCapability:
     """技能能力定义"""
+
     id: str
     name: str
     description: str
@@ -599,6 +600,7 @@ class SkillCapability:
 @dataclass
 class SkillRole:
     """技能角色定义"""
+
     id: str
     name: str
     description: str
@@ -609,6 +611,7 @@ class SkillRole:
 @dataclass
 class SkillWorkflow:
     """技能工作流定义"""
+
     id: str
     name: str
     description: str
@@ -618,6 +621,7 @@ class SkillWorkflow:
 @dataclass
 class SkillManifest:
     """技能清单"""
+
     name: str
     version: str
     description: str
@@ -633,7 +637,7 @@ class SkillManifest:
 class SkillRegistry:
     """
     技能注册中心
-    
+
     功能：
     1. 技能清单加载和解析
     2. 技能能力注册和发现
@@ -641,11 +645,11 @@ class SkillRegistry:
     4. 工作流定义和编排
     5. 技能版本管理
     """
-    
+
     def __init__(self, skill_root: str = "."):
         """
         初始化技能注册中心
-        
+
         Args:
             skill_root: 技能根目录
         """
@@ -654,198 +658,198 @@ class SkillRegistry:
         self.capabilities_index: Dict[str, SkillCapability] = {}
         self.roles_index: Dict[str, SkillRole] = {}
         self.workflows_index: Dict[str, SkillWorkflow] = {}
-        
+
     def load_manifest(self, manifest_file: str = "skill-manifest.yaml") -> bool:
         """
         加载技能清单
-        
+
         Args:
             manifest_file: 清单文件名
-            
+
         Returns:
             bool: 加载是否成功
         """
         manifest_path = self.skill_root / manifest_file
-        
+
         if not manifest_path.exists():
             print(f"❌ 技能清单不存在：{manifest_path}")
             return False
-        
+
         try:
-            with open(manifest_path, 'r', encoding='utf-8') as f:
+            with open(manifest_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-            
+
             # 解析清单
             self.manifest = self._parse_manifest(data)
-            
+
             # 构建索引
             self._build_indices()
-            
+
             print(f"✅ 技能清单加载成功：{self.manifest.name} v{self.manifest.version}")
             return True
-            
+
         except Exception as e:
             print(f"❌ 加载技能清单失败：{e}")
             return False
-    
+
     def _parse_manifest(self, data: Dict) -> SkillManifest:
         """解析清单数据"""
         # 解析能力
         capabilities = []
-        for cap_data in data.get('skill', {}).get('capabilities', []):
+        for cap_data in data.get("skill", {}).get("capabilities", []):
             cap = SkillCapability(
-                id=cap_data['id'],
-                name=cap_data['name'],
-                description=cap_data['description'],
-                input_schema=cap_data.get('input', {}),
-                output_schema=cap_data.get('output', {})
+                id=cap_data["id"],
+                name=cap_data["name"],
+                description=cap_data["description"],
+                input_schema=cap_data.get("input", {}),
+                output_schema=cap_data.get("output", {}),
             )
             capabilities.append(cap)
-        
+
         # 解析角色
         roles = []
-        for role_data in data.get('skill', {}).get('roles', []):
+        for role_data in data.get("skill", {}).get("roles", []):
             role = SkillRole(
-                id=role_data['id'],
-                name=role_data['name'],
-                description=role_data['description'],
-                prompt_template=role_data.get('prompt_template', ''),
-                output_template=role_data.get('output_template', '')
+                id=role_data["id"],
+                name=role_data["name"],
+                description=role_data["description"],
+                prompt_template=role_data.get("prompt_template", ""),
+                output_template=role_data.get("output_template", ""),
             )
             roles.append(role)
-        
+
         # 解析工作流
         workflows = []
-        for wf_data in data.get('skill', {}).get('workflows', []):
+        for wf_data in data.get("skill", {}).get("workflows", []):
             wf = SkillWorkflow(
-                id=wf_data['id'],
-                name=wf_data['name'],
-                description=wf_data['description'],
-                steps=wf_data.get('steps', [])
+                id=wf_data["id"],
+                name=wf_data["name"],
+                description=wf_data["description"],
+                steps=wf_data.get("steps", []),
             )
             workflows.append(wf)
-        
+
         # 构建清单对象
-        skill_data = data.get('skill', {})
+        skill_data = data.get("skill", {})
         manifest = SkillManifest(
-            name=skill_data.get('name', 'unknown'),
-            version=skill_data.get('version', '1.0.0'),
-            description=skill_data.get('description', ''),
-            author=skill_data.get('author', {}),
-            license=skill_data.get('license', 'MIT'),
+            name=skill_data.get("name", "unknown"),
+            version=skill_data.get("version", "1.0.0"),
+            description=skill_data.get("description", ""),
+            author=skill_data.get("author", {}),
+            license=skill_data.get("license", "MIT"),
             capabilities=capabilities,
             roles=roles,
-            dependencies=skill_data.get('dependencies', []),
+            dependencies=skill_data.get("dependencies", []),
             workflows=workflows,
-            config=skill_data.get('config', {})
+            config=skill_data.get("config", {}),
         )
-        
+
         return manifest
-    
+
     def _build_indices(self):
         """构建索引"""
         if not self.manifest:
             return
-        
+
         # 能力索引
         for cap in self.manifest.capabilities:
             self.capabilities_index[cap.id] = cap
-        
+
         # 角色索引
         for role in self.manifest.roles:
             self.roles_index[role.id] = role
-        
+
         # 工作流索引
         for wf in self.manifest.workflows:
             self.workflows_index[wf.id] = wf
-    
+
     def get_capability(self, capability_id: str) -> Optional[SkillCapability]:
         """获取能力定义"""
         return self.capabilities_index.get(capability_id)
-    
+
     def get_role(self, role_id: str) -> Optional[SkillRole]:
         """获取角色定义"""
         return self.roles_index.get(role_id)
-    
+
     def get_workflow(self, workflow_id: str) -> Optional[SkillWorkflow]:
         """获取工作流定义"""
         return self.workflows_index.get(workflow_id)
-    
+
     def list_capabilities(self) -> List[str]:
         """列出所有能力"""
         return list(self.capabilities_index.keys())
-    
+
     def list_roles(self) -> List[str]:
         """列出所有角色"""
         return list(self.roles_index.keys())
-    
+
     def list_workflows(self) -> List[str]:
         """列出所有工作流"""
         return list(self.workflows_index.keys())
-    
+
     def validate_manifest(self) -> List[str]:
         """
         验证清单完整性
-        
+
         Returns:
             List[str]: 验证问题列表
         """
         issues = []
-        
+
         if not self.manifest:
             issues.append("技能清单未加载")
             return issues
-        
+
         # 检查必填字段
         if not self.manifest.name:
             issues.append("缺少技能名称")
-        
+
         if not self.manifest.version:
             issues.append("缺少版本号")
-        
+
         # 检查能力定义
         if not self.manifest.capabilities:
             issues.append("未定义任何能力")
-        
+
         # 检查角色定义
         if not self.manifest.roles:
             issues.append("未定义任何角色")
-        
+
         # 检查模板文件
         for role in self.manifest.roles:
             prompt_path = self.skill_root / role.prompt_template
             if not prompt_path.exists():
                 issues.append(f"角色 Prompt 模板不存在：{role.prompt_template}")
-            
+
             output_path = self.skill_root / role.output_template
             if not output_path.exists():
                 issues.append(f"角色输出模板不存在：{role.output_template}")
-        
+
         return issues
-    
+
     def export_manifest_json(self, output_file: str = "skill-manifest.json") -> bool:
         """
         导出清单为 JSON 格式
-        
+
         Args:
             output_file: 输出文件名
-            
+
         Returns:
             bool: 导出是否成功
         """
         if not self.manifest:
             return False
-        
+
         try:
             output_path = self.skill_root / output_file
             manifest_dict = asdict(self.manifest)
-            
-            with open(output_path, 'w', encoding='utf-8') as f:
+
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(manifest_dict, f, indent=2, ensure_ascii=False)
-            
+
             print(f"✅ 技能清单已导出：{output_path}")
             return True
-            
+
         except Exception as e:
             print(f"❌ 导出技能清单失败：{e}")
             return False
@@ -854,19 +858,19 @@ class SkillRegistry:
 def main():
     """主函数"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="技能注册中心")
     parser.add_argument("--skill-root", default=".", help="技能根目录")
     parser.add_argument("--validate", action="store_true", help="验证清单")
     parser.add_argument("--export", action="store_true", help="导出 JSON")
-    
+
     args = parser.parse_args()
-    
+
     registry = SkillRegistry(args.skill_root)
-    
+
     if not registry.load_manifest():
         return 1
-    
+
     if args.validate:
         issues = registry.validate_manifest()
         if issues:
@@ -876,10 +880,10 @@ def main():
             return 1
         else:
             print("\n✅ 清单验证通过")
-    
+
     if args.export:
         registry.export_manifest_json()
-    
+
     # 显示技能信息
     print(f"\n📦 技能信息:")
     print(f"  名称：{registry.manifest.name}")
@@ -898,7 +902,7 @@ def main():
     for wf_id in registry.list_workflows():
         wf = registry.get_workflow(wf_id)
         print(f"  - {wf_id}: {wf.name}")
-    
+
     return 0
 
 
@@ -930,6 +934,7 @@ from pathlib import Path
 @dataclass
 class RoleMatch:
     """角色匹配结果"""
+
     role_id: str
     role_name: str
     confidence: float
@@ -940,188 +945,185 @@ class RoleMatch:
 class RoleMatcher:
     """
     角色匹配器
-    
+
     使用多层匹配策略：
     1. 关键词匹配（基础）
     2. 语义相似度（进阶）
     3. 上下文感知（高级）
     4. 历史学习（优化）
     """
-    
+
     def __init__(self, skill_root: str = "."):
         """
         初始化匹配器
-        
+
         Args:
             skill_root: 技能根目录
         """
         self.skill_root = Path(skill_root)
-        
+
         # 角色关键词定义（从 skill-manifest.yaml 加载或硬编码）
         self.role_keywords = {
-            'architect': {
-                'primary': ['架构', '设计', '选型', '模块', '接口', '部署', '性能', '瓶颈', '扩展', '微服务'],
-                'secondary': ['技术栈', '框架', '数据库', '中间件', '云原生', '容器化'],
-                'weight_primary': 1.0,
-                'weight_secondary': 0.5
+            "architect": {
+                "primary": ["架构", "设计", "选型", "模块", "接口", "部署", "性能", "瓶颈", "扩展", "微服务"],
+                "secondary": ["技术栈", "框架", "数据库", "中间件", "云原生", "容器化"],
+                "weight_primary": 1.0,
+                "weight_secondary": 0.5,
             },
-            'product-manager': {
-                'primary': ['需求', 'PRD', '用户故事', '竞品', '市场', '调研', '验收', 'UAT', '体验'],
-                'secondary': ['功能', '流程', '原型', '交互', '业务', '价值', '场景'],
-                'weight_primary': 1.0,
-                'weight_secondary': 0.5
+            "product-manager": {
+                "primary": ["需求", "PRD", "用户故事", "竞品", "市场", "调研", "验收", "UAT", "体验"],
+                "secondary": ["功能", "流程", "原型", "交互", "业务", "价值", "场景"],
+                "weight_primary": 1.0,
+                "weight_secondary": 0.5,
             },
-            'test-expert': {
-                'primary': ['测试', '质量', '验收', '自动化', '性能测试', '缺陷', '评审', '门禁'],
-                'secondary': ['用例', '覆盖', '回归', '集成测试', '单元测试', 'E2E'],
-                'weight_primary': 1.0,
-                'weight_secondary': 0.5
+            "test-expert": {
+                "primary": ["测试", "质量", "验收", "自动化", "性能测试", "缺陷", "评审", "门禁"],
+                "secondary": ["用例", "覆盖", "回归", "集成测试", "单元测试", "E2E"],
+                "weight_primary": 1.0,
+                "weight_secondary": 0.5,
             },
-            'solo-coder': {
-                'primary': ['实现', '开发', '代码', '修复', '优化', '重构', '单元测试', '文档'],
-                'secondary': ['功能', '模块', '接口', 'API', 'Bug', 'Issue'],
-                'weight_primary': 1.0,
-                'weight_secondary': 0.5
+            "solo-coder": {
+                "primary": ["实现", "开发", "代码", "修复", "优化", "重构", "单元测试", "文档"],
+                "secondary": ["功能", "模块", "接口", "API", "Bug", "Issue"],
+                "weight_primary": 1.0,
+                "weight_secondary": 0.5,
             },
-            'ui-designer': {
-                'primary': ['UI 设计', '界面设计', '前端设计', '视觉设计', 'UI/UX', 'UI 原型', '界面美化'],
-                'secondary': ['CSS', '样式', '布局', '配色', '字体', '动画', '交互', '响应式'],
-                'weight_primary': 1.0,
-                'weight_secondary': 0.5
-            }
+            "ui-designer": {
+                "primary": ["UI 设计", "界面设计", "前端设计", "视觉设计", "UI/UX", "UI 原型", "界面美化"],
+                "secondary": ["CSS", "样式", "布局", "配色", "字体", "动画", "交互", "响应式"],
+                "weight_primary": 1.0,
+                "weight_secondary": 0.5,
+            },
         }
-        
+
         # 加载角色定义
         self.roles = self._load_roles()
-    
+
     def _load_roles(self) -> Dict[str, Dict]:
         """加载角色定义"""
         # 从 skill-manifest.yaml 加载，如果不存在则使用默认值
         return self.role_keywords
-    
+
     def match_role(self, task_description: str, context: Optional[Dict] = None) -> List[RoleMatch]:
         """
         匹配最适合的角色
-        
+
         Args:
             task_description: 任务描述
             context: 上下文信息（可选）
-            
+
         Returns:
             List[RoleMatch]: 匹配结果列表（按置信度降序）
         """
         matches = []
-        
+
         for role_id, keywords in self.role_keywords.items():
             # 关键词匹配
             matched_primary = []
             matched_secondary = []
-            
+
             task_lower = task_description.lower()
-            
+
             # 匹配主要关键词
-            for keyword in keywords['primary']:
+            for keyword in keywords["primary"]:
                 if keyword.lower() in task_lower:
                     matched_primary.append(keyword)
-            
+
             # 匹配次要关键词
-            for keyword in keywords['secondary']:
+            for keyword in keywords["secondary"]:
                 if keyword.lower() in task_lower:
                     matched_secondary.append(keyword)
-            
+
             # 计算置信度
-            primary_score = len(matched_primary) * keywords['weight_primary']
-            secondary_score = len(matched_secondary) * keywords['weight_secondary']
-            
+            primary_score = len(matched_primary) * keywords["weight_primary"]
+            secondary_score = len(matched_secondary) * keywords["weight_secondary"]
+
             total_score = primary_score + secondary_score
-            
+
             # 置信度归一化（0-1）
-            max_possible = len(keywords['primary']) * keywords['weight_primary'] + \
-                          len(keywords['secondary']) * keywords['weight_secondary']
-            
-            confidence = min(total_score / max_possible, 1.0) if max_possible > 0 else 0.0
-            
-            # 生成推理
-            reasoning = self._generate_reasoning(
-                role_id, matched_primary, matched_secondary, confidence
+            max_possible = (
+                len(keywords["primary"]) * keywords["weight_primary"]
+                + len(keywords["secondary"]) * keywords["weight_secondary"]
             )
-            
+
+            confidence = min(total_score / max_possible, 1.0) if max_possible > 0 else 0.0
+
+            # 生成推理
+            reasoning = self._generate_reasoning(role_id, matched_primary, matched_secondary, confidence)
+
             # 获取角色名称
-            role_name = role_id.replace('-', ' ').title()
-            
+            role_name = role_id.replace("-", " ").title()
+
             if confidence > 0.0:  # 只返回有匹配的角色
                 match = RoleMatch(
                     role_id=role_id,
                     role_name=role_name,
                     confidence=confidence,
                     matched_keywords=matched_primary + matched_secondary,
-                    reasoning=reasoning
+                    reasoning=reasoning,
                 )
                 matches.append(match)
-        
+
         # 按置信度降序排序
         matches.sort(key=lambda m: m.confidence, reverse=True)
-        
+
         return matches
-    
-    def _generate_reasoning(self, role_id: str, primary: List[str], 
-                           secondary: List[str], confidence: float) -> str:
+
+    def _generate_reasoning(self, role_id: str, primary: List[str], secondary: List[str], confidence: float) -> str:
         """生成匹配推理"""
         if not primary and not secondary:
             return "未找到匹配的关键词"
-        
+
         reasoning_parts = []
-        
+
         if primary:
             reasoning_parts.append(f"匹配到关键指标：{', '.join(primary)}")
-        
+
         if secondary:
             reasoning_parts.append(f"匹配到相关指标：{', '.join(secondary)}")
-        
+
         reasoning_parts.append(f"置信度：{confidence:.2f}")
-        
+
         return "; ".join(reasoning_parts)
-    
-    def get_best_match(self, task_description: str, 
-                       threshold: float = 0.3,
-                       context: Optional[Dict] = None) -> Optional[RoleMatch]:
+
+    def get_best_match(
+        self, task_description: str, threshold: float = 0.3, context: Optional[Dict] = None
+    ) -> Optional[RoleMatch]:
         """
         获取最佳匹配角色
-        
+
         Args:
             task_description: 任务描述
             threshold: 置信度阈值
             context: 上下文信息
-            
+
         Returns:
             Optional[RoleMatch]: 最佳匹配，如果低于阈值则返回 None
         """
         matches = self.match_role(task_description, context)
-        
+
         if matches and matches[0].confidence >= threshold:
             return matches[0]
-        
+
         return None
-    
-    def suggest_multi_role(self, task_description: str, 
-                          top_n: int = 3,
-                          threshold: float = 0.2) -> List[RoleMatch]:
+
+    def suggest_multi_role(self, task_description: str, top_n: int = 3, threshold: float = 0.2) -> List[RoleMatch]:
         """
         推荐多角色协作
-        
+
         Args:
             task_description: 任务描述
             top_n: 推荐数量
             threshold: 置信度阈值
-            
+
         Returns:
             List[RoleMatch]: 推荐的角色列表
         """
         matches = self.match_role(task_description)
-        
+
         # 过滤低于阈值的匹配
         filtered = [m for m in matches if m.confidence >= threshold]
-        
+
         # 返回前 N 个
         return filtered[:top_n]
 
@@ -1129,21 +1131,21 @@ class RoleMatcher:
 def main():
     """测试主函数"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="角色匹配器")
     parser.add_argument("--task", required=True, help="任务描述")
     parser.add_argument("--skill-root", default=".", help="技能根目录")
     parser.add_argument("--threshold", type=float, default=0.3, help="置信度阈值")
-    
+
     args = parser.parse_args()
-    
+
     matcher = RoleMatcher(args.skill_root)
-    
+
     print(f"📝 任务描述：{args.task}\n")
-    
+
     # 获取最佳匹配
     best = matcher.get_best_match(args.task, threshold=args.threshold)
-    
+
     if best:
         print(f"✅ 最佳匹配角色：{best.role_name}")
         print(f"   置信度：{best.confidence:.2f}")
@@ -1151,10 +1153,10 @@ def main():
         print(f"   推理：{best.reasoning}")
     else:
         print(f"⚠️  未找到合适的角色（置信度低于 {args.threshold}）")
-    
+
     print(f"\n🎯 推荐的多角色协作:")
     suggestions = matcher.suggest_multi_role(args.task, top_n=3, threshold=0.2)
-    
+
     for i, match in enumerate(suggestions, 1):
         print(f"  {i}. {match.role_name} (置信度：{match.confidence:.2f})")
         print(f"     关键词：{', '.join(match.matched_keywords)}")
@@ -1233,6 +1235,7 @@ from dataclasses import dataclass, asdict
 @dataclass
 class ContextSnapshot:
     """上下文快照"""
+
     id: str
     timestamp: str
     version: str
@@ -1245,7 +1248,7 @@ class ContextSnapshot:
 class ContextManager:
     """
     上下文管理器
-    
+
     功能：
     1. 上下文统一存储
     2. 版本控制和快照
@@ -1253,71 +1256,71 @@ class ContextManager:
     4. 上下文压缩和摘要
     5. 上下文检索和查询
     """
-    
+
     def __init__(self, project_root: str = ".", skill_root: str = "."):
         """
         初始化上下文管理器
-        
+
         Args:
             project_root: 项目根目录
             skill_root: 技能根目录
         """
         self.project_root = Path(project_root)
         self.skill_root = Path(skill_root)
-        
+
         # 上下文存储目录
         self.context_dir = self.skill_root / "context"
         self.context_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 当前上下文
         self.current_context: Dict[str, Any] = {}
-        
+
         # 上下文历史
         self.context_history: List[ContextSnapshot] = []
-        
+
         # 加载现有上下文
         self._load_context()
-    
+
     def _load_context(self):
         """加载现有上下文"""
         context_file = self.context_dir / "current_context.json"
-        
+
         if context_file.exists():
             try:
-                with open(context_file, 'r', encoding='utf-8') as f:
+                with open(context_file, "r", encoding="utf-8") as f:
                     self.current_context = json.load(f)
             except Exception as e:
                 print(f"加载上下文失败：{e}")
                 self.current_context = {}
-    
+
     def _save_context(self):
         """保存当前上下文"""
         context_file = self.context_dir / "current_context.json"
-        
+
         try:
-            with open(context_file, 'w', encoding='utf-8') as f:
+            with open(context_file, "w", encoding="utf-8") as f:
                 json.dump(self.current_context, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存上下文失败：{e}")
-    
+
     def _generate_snapshot_id(self, data: Dict) -> str:
         """生成快照 ID"""
         content = json.dumps(data, sort_keys=True)
         return hashlib.md5(content.encode()).hexdigest()[:12]
-    
+
     def _compute_checksum(self, data: Dict) -> str:
         """计算校验和"""
         content = json.dumps(data, sort_keys=True)
         return hashlib.sha256(content.encode()).hexdigest()
-    
+
     def create_snapshot(self, role: str, task_id: str) -> ContextSnapshot:
         """
         创建上下文快照
-        
+
         Args:
             role: 角色 ID
             task_id: 任务 ID
-            
+
         Returns:
             ContextSnapshot: 上下文快照
         """
@@ -1325,7 +1328,7 @@ class ContextManager:
         timestamp = datetime.now().isoformat()
         version = f"v{len(self.context_history) + 1}"
         checksum = self._compute_checksum(self.current_context)
-        
+
         snapshot = ContextSnapshot(
             id=snapshot_id,
             timestamp=timestamp,
@@ -1333,25 +1336,25 @@ class ContextManager:
             role=role,
             task_id=task_id,
             data=self.current_context.copy(),
-            checksum=checksum
+            checksum=checksum,
         )
-        
+
         self.context_history.append(snapshot)
-        
+
         # 保存快照
         snapshot_file = self.context_dir / f"snapshot_{snapshot_id}.json"
         try:
-            with open(snapshot_file, 'w', encoding='utf-8') as f:
+            with open(snapshot_file, "w", encoding="utf-8") as f:
                 json.dump(asdict(snapshot), f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存快照失败：{e}")
-        
+
         return snapshot
-    
+
     def update_context(self, key: str, value: Any, role: str = None):
         """
         更新上下文
-        
+
         Args:
             key: 键
             value: 值
@@ -1359,113 +1362,112 @@ class ContextManager:
         """
         if role:
             # 按角色存储
-            if 'by_role' not in self.current_context:
-                self.current_context['by_role'] = {}
-            
-            if role not in self.current_context['by_role']:
-                self.current_context['by_role'][role] = {}
-            
-            self.current_context['by_role'][role][key] = value
+            if "by_role" not in self.current_context:
+                self.current_context["by_role"] = {}
+
+            if role not in self.current_context["by_role"]:
+                self.current_context["by_role"][role] = {}
+
+            self.current_context["by_role"][role][key] = value
         else:
             # 全局存储
             self.current_context[key] = value
-        
+
         self._save_context()
-    
+
     def get_context(self, key: str = None, role: str = None) -> Any:
         """
         获取上下文
-        
+
         Args:
             key: 键（可选，不指定则返回全部）
             role: 角色 ID（可选）
-            
+
         Returns:
             Any: 上下文数据
         """
-        if role and 'by_role' in self.current_context:
-            role_context = self.current_context['by_role'].get(role, {})
+        if role and "by_role" in self.current_context:
+            role_context = self.current_context["by_role"].get(role, {})
             if key:
                 return role_context.get(key)
             return role_context
-        
+
         if key:
             return self.current_context.get(key)
-        
+
         return self.current_context
-    
+
     def get_artifact(self, artifact_type: str, role: str = None) -> Optional[Dict]:
         """
         获取工件（如 PRD、架构设计等）
-        
+
         Args:
             artifact_type: 工件类型（PRD, ARCHITECTURE, UI_DESIGN, 等）
             role: 创建角色 ID
-            
+
         Returns:
             Optional[Dict]: 工件内容
         """
-        if 'artifacts' not in self.current_context:
+        if "artifacts" not in self.current_context:
             return None
-        
-        artifacts = self.current_context['artifacts']
-        
+
+        artifacts = self.current_context["artifacts"]
+
         if artifact_type in artifacts:
             artifact = artifacts[artifact_type]
-            
+
             # 如果指定了角色，验证创建者
-            if role and artifact.get('created_by') != role:
+            if role and artifact.get("created_by") != role:
                 return None
-            
+
             return artifact
-        
+
         return None
-    
+
     def add_artifact(self, artifact_type: str, artifact_data: Dict, role: str):
         """
         添加工件
-        
+
         Args:
             artifact_type: 工件类型
             artifact_data: 工件数据
             role: 创建角色 ID
         """
-        if 'artifacts' not in self.current_context:
-            self.current_context['artifacts'] = {}
-        
+        if "artifacts" not in self.current_context:
+            self.current_context["artifacts"] = {}
+
         # 添加工件元数据
-        artifact_data['created_by'] = role
-        artifact_data['created_at'] = datetime.now().isoformat()
-        
-        self.current_context['artifacts'][artifact_type] = artifact_data
-        
+        artifact_data["created_by"] = role
+        artifact_data["created_at"] = datetime.now().isoformat()
+
+        self.current_context["artifacts"][artifact_type] = artifact_data
+
         self._save_context()
-    
+
     def get_decision_history(self, topic: str = None) -> List[Dict]:
         """
         获取决策历史
-        
+
         Args:
             topic: 主题（可选）
-            
+
         Returns:
             List[Dict]: 决策列表
         """
-        if 'decisions' not in self.current_context:
+        if "decisions" not in self.current_context:
             return []
-        
-        decisions = self.current_context['decisions']
-        
+
+        decisions = self.current_context["decisions"]
+
         if topic:
-            return [d for d in decisions if d.get('topic') == topic]
-        
+            return [d for d in decisions if d.get("topic") == topic]
+
         return decisions
-    
-    def add_decision(self, topic: str, decision: str, rationale: str, 
-                    participants: List[str], role: str):
+
+    def add_decision(self, topic: str, decision: str, rationale: str, participants: List[str], role: str):
         """
         添加决策记录
-        
+
         Args:
             topic: 决策主题
             decision: 决策内容
@@ -1473,125 +1475,124 @@ class ContextManager:
             participants: 参与者
             role: 记录角色 ID
         """
-        if 'decisions' not in self.current_context:
-            self.current_context['decisions'] = []
-        
+        if "decisions" not in self.current_context:
+            self.current_context["decisions"] = []
+
         decision_record = {
-            'topic': topic,
-            'decision': decision,
-            'rationale': rationale,
-            'participants': participants,
-            'created_by': role,
-            'created_at': datetime.now().isoformat()
+            "topic": topic,
+            "decision": decision,
+            "rationale": rationale,
+            "participants": participants,
+            "created_by": role,
+            "created_at": datetime.now().isoformat(),
         }
-        
-        self.current_context['decisions'].append(decision_record)
-        
+
+        self.current_context["decisions"].append(decision_record)
+
         self._save_context()
-    
+
     def get_constraints(self) -> List[Dict]:
         """获取所有约束条件"""
-        return self.current_context.get('constraints', [])
-    
-    def add_constraint(self, constraint_type: str, description: str, 
-                      source: str, role: str):
+        return self.current_context.get("constraints", [])
+
+    def add_constraint(self, constraint_type: str, description: str, source: str, role: str):
         """
         添加约束条件
-        
+
         Args:
             constraint_type: 约束类型（技术、业务、流程）
             description: 约束描述
             source: 约束来源
             role: 添加角色 ID
         """
-        if 'constraints' not in self.current_context:
-            self.current_context['constraints'] = []
-        
+        if "constraints" not in self.current_context:
+            self.current_context["constraints"] = []
+
         constraint = {
-            'type': constraint_type,
-            'description': description,
-            'source': source,
-            'added_by': role,
-            'added_at': datetime.now().isoformat()
+            "type": constraint_type,
+            "description": description,
+            "source": source,
+            "added_by": role,
+            "added_at": datetime.now().isoformat(),
         }
-        
-        self.current_context['constraints'].append(constraint)
-        
+
+        self.current_context["constraints"].append(constraint)
+
         self._save_context()
-    
+
     def get_summary(self) -> Dict:
         """
         获取上下文摘要
-        
+
         Returns:
             Dict: 上下文摘要
         """
         return {
-            'version': f"v{len(self.context_history) + 1}",
-            'last_update': self.current_context.get('last_update'),
-            'artifacts_count': len(self.current_context.get('artifacts', {})),
-            'decisions_count': len(self.current_context.get('decisions', [])),
-            'constraints_count': len(self.current_context.get('constraints', [])),
-            'roles_active': list(self.current_context.get('by_role', {}).keys()),
-            'snapshots_count': len(self.context_history)
+            "version": f"v{len(self.context_history) + 1}",
+            "last_update": self.current_context.get("last_update"),
+            "artifacts_count": len(self.current_context.get("artifacts", {})),
+            "decisions_count": len(self.current_context.get("decisions", [])),
+            "constraints_count": len(self.current_context.get("constraints", [])),
+            "roles_active": list(self.current_context.get("by_role", {}).keys()),
+            "snapshots_count": len(self.context_history),
         }
-    
+
     def restore_snapshot(self, snapshot_id: str) -> bool:
         """
         恢复快照
-        
+
         Args:
             snapshot_id: 快照 ID
-            
+
         Returns:
             bool: 恢复是否成功
         """
         snapshot_file = self.context_dir / f"snapshot_{snapshot_id}.json"
-        
+
         if not snapshot_file.exists():
             print(f"快照不存在：{snapshot_id}")
             return False
-        
+
         try:
-            with open(snapshot_file, 'r', encoding='utf-8') as f:
+            with open(snapshot_file, "r", encoding="utf-8") as f:
                 snapshot_data = json.load(f)
-            
+
             # 恢复数据
-            self.current_context = snapshot_data.get('data', {})
+            self.current_context = snapshot_data.get("data", {})
             self._save_context()
-            
+
             print(f"✅ 上下文已恢复到快照：{snapshot_id}")
             return True
-            
+
         except Exception as e:
             print(f"恢复快照失败：{e}")
             return False
-    
+
     def export_context(self, output_file: str = "context_export.json") -> bool:
         """
         导出上下文
-        
+
         Args:
             output_file: 输出文件名
-            
+
         Returns:
             bool: 导出是否成功
         """
         try:
             output_path = self.context_dir / output_file
-            
+
             export_data = {
-                'current_context': self.current_context,
-                'history': [asdict(s) for s in self.context_history],
-                'exported_at': datetime.now().isoformat()
+                "current_context": self.current_context,
+                "history": [asdict(s) for s in self.context_history],
+                "exported_at": datetime.now().isoformat(),
             }
-            
-            with open(output_path, 'w', encoding='utf-8') as f:
+
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, ensure_ascii=False, indent=2)
-            
+
             print(f"✅ 上下文已导出：{output_path}")
             return True
-            
+
         except Exception as e:
             print(f"导出上下文失败：{e}")
             return False
@@ -1600,23 +1601,23 @@ class ContextManager:
 def main():
     """主函数"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="上下文管理器")
     parser.add_argument("--project-root", default=".", help="项目根目录")
     parser.add_argument("--skill-root", default=".", help="技能根目录")
     parser.add_argument("--summary", action="store_true", help="显示摘要")
     parser.add_argument("--export", action="store_true", help="导出上下文")
-    
+
     args = parser.parse_args()
-    
+
     manager = ContextManager(args.project_root, args.skill_root)
-    
+
     if args.summary:
         summary = manager.get_summary()
         print("📊 上下文摘要:")
         for key, value in summary.items():
             print(f"  {key}: {value}")
-    
+
     if args.export:
         manager.export_context()
 
@@ -1648,6 +1649,7 @@ import json
 
 class WorkflowStepStatus(Enum):
     """工作流步骤状态"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -1658,6 +1660,7 @@ class WorkflowStepStatus(Enum):
 @dataclass
 class WorkflowStep:
     """工作流步骤"""
+
     id: str
     role: str
     action: str
@@ -1670,6 +1673,7 @@ class WorkflowStep:
 @dataclass
 class WorkflowInstance:
     """工作流实例"""
+
     id: str
     workflow_id: str
     steps: List[WorkflowStep]
@@ -1680,7 +1684,7 @@ class WorkflowInstance:
 class WorkflowEngine:
     """
     工作流编排引擎
-    
+
     功能：
     1. 工作流定义和解析
     2. 步骤执行和状态管理
@@ -1688,113 +1692,107 @@ class WorkflowEngine:
     4. 异常处理和回滚
     5. 执行监控和日志
     """
-    
+
     def __init__(self):
         """初始化引擎"""
         self.workflows: Dict[str, Dict] = {}
         self.instances: Dict[str, WorkflowInstance] = {}
         self.step_executors: Dict[str, Callable] = {}
-        
+
         # 注册默认步骤执行器
         self._register_default_executors()
-    
+
     def _register_default_executors(self):
         """注册默认步骤执行器"""
         # 这些执行器应该调用实际的角色 Prompt
-        self.step_executors['requirements-analysis'] = self._execute_requirements_analysis
-        self.step_executors['architecture-design'] = self._execute_architecture_design
-        self.step_executors['ui-design'] = self._execute_ui_design
-        self.step_executors['test-planning'] = self._execute_test_planning
-        self.step_executors['task-breakdown'] = self._execute_task_breakdown
-        self.step_executors['implementation'] = self._execute_implementation
-        self.step_executors['testing'] = self._execute_testing
-        self.step_executors['review'] = self._execute_review
-    
+        self.step_executors["requirements-analysis"] = self._execute_requirements_analysis
+        self.step_executors["architecture-design"] = self._execute_architecture_design
+        self.step_executors["ui-design"] = self._execute_ui_design
+        self.step_executors["test-planning"] = self._execute_test_planning
+        self.step_executors["task-breakdown"] = self._execute_task_breakdown
+        self.step_executors["implementation"] = self._execute_implementation
+        self.step_executors["testing"] = self._execute_testing
+        self.step_executors["review"] = self._execute_review
+
     def register_workflow(self, workflow_def: Dict):
         """
         注册工作流定义
-        
+
         Args:
             workflow_def: 工作流定义
         """
-        workflow_id = workflow_def.get('id')
+        workflow_id = workflow_def.get("id")
         if not workflow_id:
             raise ValueError("工作流定义缺少 ID")
-        
+
         self.workflows[workflow_id] = workflow_def
-    
-    def start_workflow(self, workflow_id: str, 
-                      initial_context: Dict = None) -> WorkflowInstance:
+
+    def start_workflow(self, workflow_id: str, initial_context: Dict = None) -> WorkflowInstance:
         """
         启动工作流
-        
+
         Args:
             workflow_id: 工作流 ID
             initial_context: 初始上下文
-            
+
         Returns:
             WorkflowInstance: 工作流实例
         """
         if workflow_id not in self.workflows:
             raise ValueError(f"工作流不存在：{workflow_id}")
-        
+
         workflow_def = self.workflows[workflow_id]
-        
+
         # 创建步骤
         steps = []
-        for i, step_def in enumerate(workflow_def.get('steps', [])):
+        for i, step_def in enumerate(workflow_def.get("steps", [])):
             step = WorkflowStep(
-                id=f"step-{i+1}",
-                role=step_def.get('role'),
-                action=step_def.get('action'),
-                input_artifacts=step_def.get('input', '').split(',') if step_def.get('input') else [],
-                output_artifacts=step_def.get('output', '').split(',') if step_def.get('output') else []
+                id=f"step-{i + 1}",
+                role=step_def.get("role"),
+                action=step_def.get("action"),
+                input_artifacts=step_def.get("input", "").split(",") if step_def.get("input") else [],
+                output_artifacts=step_def.get("output", "").split(",") if step_def.get("output") else [],
             )
             steps.append(step)
-        
+
         # 创建实例
         instance_id = f"{workflow_id}-{len(self.instances) + 1}"
-        instance = WorkflowInstance(
-            id=instance_id,
-            workflow_id=workflow_id,
-            steps=steps
-        )
-        
+        instance = WorkflowInstance(id=instance_id, workflow_id=workflow_id, steps=steps)
+
         self.instances[instance_id] = instance
-        
+
         print(f"🚀 工作流实例启动：{instance_id}")
         return instance
-    
+
     def execute_next_step(self, instance_id: str, context: Dict) -> bool:
         """
         执行下一步骤
-        
+
         Args:
             instance_id: 实例 ID
             context: 上下文（包含所有工件）
-            
+
         Returns:
             bool: 执行是否成功
         """
         if instance_id not in self.instances:
             print(f"❌ 实例不存在：{instance_id}")
             return False
-        
+
         instance = self.instances[instance_id]
-        
+
         # 检查是否已完成
         if instance.current_step >= len(instance.steps):
             print(f"✅ 工作流已完成：{instance_id}")
             instance.status = WorkflowStepStatus.COMPLETED
             return True
-        
+
         # 获取当前步骤
         step = instance.steps[instance.current_step]
         step.status = WorkflowStepStatus.RUNNING
-        
-        print(f"🔄 执行步骤 {instance.current_step + 1}/{len(instance.steps)}: "
-              f"{step.action} (角色：{step.role})")
-        
+
+        print(f"🔄 执行步骤 {instance.current_step + 1}/{len(instance.steps)}: {step.action} (角色：{step.role})")
+
         # 准备输入
         input_data = {}
         for artifact_name in step.input_artifacts:
@@ -1802,121 +1800,126 @@ class WorkflowEngine:
                 input_data[artifact_name] = context[artifact_name]
             else:
                 print(f"⚠️  输入工件不存在：{artifact_name}")
-        
+
         # 执行步骤
         executor = self.step_executors.get(step.action)
         if not executor:
             print(f"❌ 步骤执行器不存在：{step.action}")
             step.status = WorkflowStepStatus.FAILED
             return False
-        
+
         try:
             result = executor(input_data, context)
             step.result = result
             step.status = WorkflowStepStatus.COMPLETED
-            
+
             # 保存输出工件
             for artifact_name in step.output_artifacts:
                 if artifact_name in result:
                     context[artifact_name] = result[artifact_name]
-            
+
             instance.current_step += 1
             return True
-            
+
         except Exception as e:
             print(f"❌ 步骤执行失败：{e}")
             step.status = WorkflowStepStatus.FAILED
             return False
-    
+
     def execute_workflow(self, workflow_id: str, context: Dict) -> bool:
         """
         执行完整工作流
-        
+
         Args:
             workflow_id: 工作流 ID
             context: 上下文
-            
+
         Returns:
             bool: 执行是否成功
         """
         instance = self.start_workflow(workflow_id, context)
-        
+
         while instance.current_step < len(instance.steps):
             success = self.execute_next_step(instance.id, context)
             if not success:
                 return False
-        
+
         return True
-    
+
     # 默认步骤执行器（需要替换为实际的角色调用）
     def _execute_requirements_analysis(self, input_data: Dict, context: Dict) -> Dict:
         """执行需求分析"""
         print("   📋 执行需求分析（产品经理）")
         # 实际应该调用产品经理角色
-        return {'PRD': {'status': 'completed'}}
-    
+        return {"PRD": {"status": "completed"}}
+
     def _execute_architecture_design(self, input_data: Dict, context: Dict) -> Dict:
         """执行架构设计"""
         print("   🏗️  执行架构设计（架构师）")
-        return {'ARCHITECTURE': {'status': 'completed'}}
-    
+        return {"ARCHITECTURE": {"status": "completed"}}
+
     def _execute_ui_design(self, input_data: Dict, context: Dict) -> Dict:
         """执行 UI 设计"""
         print("   🎨 执行 UI 设计（UI 设计师）")
-        return {'UI_DESIGN': {'status': 'completed'}}
-    
+        return {"UI_DESIGN": {"status": "completed"}}
+
     def _execute_test_planning(self, input_data: Dict, context: Dict) -> Dict:
         """执行测试计划"""
         print("   🧪 执行测试计划（测试专家）")
-        return {'TEST_PLAN': {'status': 'completed'}}
-    
+        return {"TEST_PLAN": {"status": "completed"}}
+
     def _execute_task_breakdown(self, input_data: Dict, context: Dict) -> Dict:
         """执行任务分解"""
         print("   📝 执行任务分解（独立开发者）")
-        return {'TASKS': {'status': 'completed'}}
-    
+        return {"TASKS": {"status": "completed"}}
+
     def _execute_implementation(self, input_data: Dict, context: Dict) -> Dict:
         """执行实现"""
         print("   💻 执行实现（独立开发者）")
-        return {'CODE': {'status': 'completed'}}
-    
+        return {"CODE": {"status": "completed"}}
+
     def _execute_testing(self, input_data: Dict, context: Dict) -> Dict:
         """执行测试"""
         print("   ✅ 执行测试（测试专家）")
-        return {'TEST_REPORT': {'status': 'completed'}}
-    
+        return {"TEST_REPORT": {"status": "completed"}}
+
     def _execute_review(self, input_data: Dict, context: Dict) -> Dict:
         """执行评审"""
         print("   🔍 执行评审（多角色）")
-        return {'REVIEW_REPORT': {'status': 'completed'}}
+        return {"REVIEW_REPORT": {"status": "completed"}}
 
 
 def main():
     """主函数"""
     engine = WorkflowEngine()
-    
+
     # 注册完整项目生命周期工作流
     full_lifecycle = {
-        'id': 'full-lifecycle',
-        'name': '完整项目生命周期',
-        'steps': [
-            {'role': 'product-manager', 'action': 'requirements-analysis', 'input': '', 'output': 'PRD'},
-            {'role': 'architect', 'action': 'architecture-design', 'input': 'PRD', 'output': 'ARCHITECTURE'},
-            {'role': 'ui-designer', 'action': 'ui-design', 'input': 'PRD', 'output': 'UI_DESIGN'},
-            {'role': 'test-expert', 'action': 'test-planning', 'input': 'PRD,ARCHITECTURE', 'output': 'TEST_PLAN'},
-            {'role': 'solo-coder', 'action': 'task-breakdown', 'input': 'PRD,ARCHITECTURE,UI_DESIGN', 'output': 'TASKS'},
-            {'role': 'solo-coder', 'action': 'implementation', 'input': 'TASKS', 'output': 'CODE'},
-            {'role': 'test-expert', 'action': 'testing', 'input': 'CODE,TEST_PLAN', 'output': 'TEST_REPORT'},
-            {'role': 'all', 'action': 'review', 'input': 'ALL_ARTIFACTS', 'output': 'REVIEW_REPORT'}
-        ]
+        "id": "full-lifecycle",
+        "name": "完整项目生命周期",
+        "steps": [
+            {"role": "product-manager", "action": "requirements-analysis", "input": "", "output": "PRD"},
+            {"role": "architect", "action": "architecture-design", "input": "PRD", "output": "ARCHITECTURE"},
+            {"role": "ui-designer", "action": "ui-design", "input": "PRD", "output": "UI_DESIGN"},
+            {"role": "test-expert", "action": "test-planning", "input": "PRD,ARCHITECTURE", "output": "TEST_PLAN"},
+            {
+                "role": "solo-coder",
+                "action": "task-breakdown",
+                "input": "PRD,ARCHITECTURE,UI_DESIGN",
+                "output": "TASKS",
+            },
+            {"role": "solo-coder", "action": "implementation", "input": "TASKS", "output": "CODE"},
+            {"role": "test-expert", "action": "testing", "input": "CODE,TEST_PLAN", "output": "TEST_REPORT"},
+            {"role": "all", "action": "review", "input": "ALL_ARTIFACTS", "output": "REVIEW_REPORT"},
+        ],
     }
-    
+
     engine.register_workflow(full_lifecycle)
-    
+
     # 执行工作流
     context = {}
-    success = engine.execute_workflow('full-lifecycle', context)
-    
+    success = engine.execute_workflow("full-lifecycle", context)
+
     if success:
         print("\n✅ 工作流执行成功！")
     else:

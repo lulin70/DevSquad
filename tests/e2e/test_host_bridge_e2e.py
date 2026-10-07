@@ -172,7 +172,17 @@ class TestT10DispatchIntegration:
             proc.join(timeout=3)
 
     def test_create_backend_host_fuse_skip(self, tmp_path, monkeypatch):
-        """2 consecutive failures → B path is fuse-skipped."""
+        """2 consecutive failures → B path is fuse-skipped.
+
+        2026-10-07 hardening (the only full-suite red at ac17e0c): on macOS the
+        subprocess host is spawn-started and under full-suite load its startup
+        can exceed this test's 3 s request timeout. The first measured failure
+        then becomes a *timeout* — a different fuse reason from the host's
+        marker failure — so the same-reason counter never reaches 2 and the
+        fuse never trips. A warm-up call through a throwaway backend (generous
+        timeout) pins host readiness first; the measured backend is created
+        fresh afterwards so its two failures share one reason deterministically.
+        """
         backend = create_backend(
             "host",
             bridge_dir=self.bridge_dir,
@@ -182,6 +192,15 @@ class TestT10DispatchIntegration:
 
         proc = self._start_host("fail")
         try:
+            warmup = create_backend(
+                "host",
+                bridge_dir=self.bridge_dir,
+                timeout_seconds=15,
+            )
+            with pytest.raises(RuntimeError):
+                warmup.generate("warm-up", role_name="architect")
+            del warmup  # discard its failure history
+
             for _ in range(2):
                 with pytest.raises(RuntimeError):
                     backend.generate("fail", role_name="architect")

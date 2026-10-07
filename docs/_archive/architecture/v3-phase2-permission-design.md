@@ -58,10 +58,10 @@
 
 ```python
 class PermissionLevel(Enum):
-    DEFAULT = "default"     # 默认级别: 危险操作逐个提示用户确认
-    PLAN     = "plan"       # 计划模式: 只读，禁止所有写操作
-    AUTO     = "auto"       # 自动模式: AI分类器自动判断 + 白名单
-    BYPASS   = "bypass"     # 绕过模式: 完全跳过检查（仅限最高信任度场景）
+    DEFAULT = "default"  # 默认级别: 危险操作逐个提示用户确认
+    PLAN = "plan"  # 计划模式: 只读，禁止所有写操作
+    AUTO = "auto"  # 自动模式: AI分类器自动判断 + 白名单
+    BYPASS = "bypass"  # 绕过模式: 完全跳过检查（仅限最高信任度场景）
 ```
 
 **各级别语义**:
@@ -77,15 +77,15 @@ class PermissionLevel(Enum):
 
 ```python
 class ActionType(Enum):
-    FILE_READ      = "file_read"        # 读取文件
-    FILE_CREATE    = "file_create"      # 创建新文件
-    FILE_MODIFY    = "file_modify"      # 修改已有文件
-    FILE_DELETE    = "file_delete"      # 删除文件
-    SHELL_EXECUTE  = "shell_execute"    # 执行Shell命令
-    NETWORK_REQUEST = "network_request" # 网络请求
-    GIT_OPERATION  = "git_operation"    # Git操作（commit/push/merge）
-    ENVIRONMENT    = "environment"      # 环境变量修改
-    PROCESS_SPAWN  = "process_spawn"    # 启动子进程
+    FILE_READ = "file_read"  # 读取文件
+    FILE_CREATE = "file_create"  # 创建新文件
+    FILE_MODIFY = "file_modify"  # 修改已有文件
+    FILE_DELETE = "file_delete"  # 删除文件
+    SHELL_EXECUTE = "shell_execute"  # 执行Shell命令
+    NETWORK_REQUEST = "network_request"  # 网络请求
+    GIT_OPERATION = "git_operation"  # Git操作（commit/push/merge）
+    ENVIRONMENT = "environment"  # 环境变量修改
+    PROCESS_SPAWN = "process_spawn"  # 启动子进程
 ```
 
 ### 2.3 核心组件
@@ -95,12 +95,12 @@ class ActionType(Enum):
 ```python
 @dataclass
 class ProposedAction:
-    action_type: ActionType           # 操作类型
-    target: str                       # 操作目标（文件路径/命令/URL等）
-    description: str                  # 操作描述
-    source_worker_id: Optional[str]   # 发起操作的Worker ID
-    source_role_id: Optional[str]     # 发起操作的角色ID
-    risk_score: float = 0.0           # 风险评分 [0.0-1.0]
+    action_type: ActionType  # 操作类型
+    target: str  # 操作目标（文件路径/命令/URL等）
+    description: str  # 操作描述
+    source_worker_id: Optional[str]  # 发起操作的Worker ID
+    source_role_id: Optional[str]  # 发起操作的角色ID
+    risk_score: float = 0.0  # 风险评分 [0.0-1.0]
     metadata: Dict[str, Any] = field(default_factory=dict)  # 额外上下文
     timestamp: datetime = field(default_factory=datetime.now)
 ```
@@ -110,33 +110,34 @@ class ProposedAction:
 ```python
 @dataclass
 class PermissionRule:
-    rule_id: str                      # 规则ID
-    action_type: ActionType           # 适用动作类型
-    pattern: str                      # 匹配模式（glob/regex/前缀匹配）
-    required_level: PermissionLevel   # 所需最低权限级别
-    description: str                  # 规则说明
-    risk_boost: float = 0.0           # 风险加分
+    rule_id: str  # 规则ID
+    action_type: ActionType  # 适用动作类型
+    pattern: str  # 匹配模式（glob/regex/前缀匹配）
+    required_level: PermissionLevel  # 所需最低权限级别
+    description: str  # 规则说明
+    risk_boost: float = 0.0  # 风险加分
     tags: List[str] = field(default_factory=list)  # 标签
-    enabled: bool = True              # 是否启用
+    enabled: bool = True  # 是否启用
 ```
 
 #### 2.3.3 PermissionDecision — 权限决策结果
 
 ```python
 class DecisionOutcome(Enum):
-    ALLOWED    = "allowed"            # 允许执行
-    DENIED     = "denied"             # 明确拒绝
-    PROMPT     = "prompt"             # 需要用户确认
-    ESCALATED  = "escalated"          # 升级处理（超出当前级别能力）
+    ALLOWED = "allowed"  # 允许执行
+    DENIED = "denied"  # 明确拒绝
+    PROMPT = "prompt"  # 需要用户确认
+    ESCALATED = "escalated"  # 升级处理（超出当前级别能力）
+
 
 @dataclass
 class PermissionDecision:
-    action: ProposedAction            # 原始操作
-    outcome: DecisionOutcome          # 决策结果
+    action: ProposedAction  # 原始操作
+    outcome: DecisionOutcome  # 决策结果
     matched_rule: Optional[PermissionRule]  # 命中的规则
-    reason: str                       # 决策原因
-    requires_confirmation: bool       # 是否需要用户交互
-    confidence: float = 1.0           # 决策置信度
+    reason: str  # 决策原因
+    requires_confirmation: bool  # 是否需要用户交互
+    confidence: float = 1.0  # 决策置信度
     decided_at: datetime = field(default_factory=datetime.now)
     decision_id: str = field(default_factory=lambda: f"pd-{uuid.uuid4().hex[:12]}")
 ```
@@ -214,80 +215,68 @@ ProposedAction 进入
 ```python
 DEFAULT_RULES = [
     # ===== 文件读取 (低风险) =====
-    PermissionRule("R001", ActionType.FILE_READ, "**/*",
-                   PermissionLevel.PLAN, "读取任何文件", risk_boost=0.0),
-
+    PermissionRule("R001", ActionType.FILE_READ, "**/*", PermissionLevel.PLAN, "读取任何文件", risk_boost=0.0),
     # ===== 文件创建 (中风险) =====
-    PermissionRule("R002", ActionType.FILE_CREATE, "*.py",
-                   PermissionLevel.AUTO, "创建Python文件", risk_boost=0.1),
-    PermissionRule("R003", ActionType.FILE_CREATE, "*.md",
-                   PermissionLevel.AUTO, "创建文档文件", risk_boost=0.05),
-    PermissionRule("R004", ActionType.FILE_CREATE, "*.json",
-                   PermissionLevel.DEFAULT, "创建JSON数据文件", risk_boost=0.15),
-    PermissionRule("R005", ActionType.FILE_CREATE, "*",
-                   PermissionLevel.DEFAULT, "创建其他类型文件", risk_boost=0.2),
-
+    PermissionRule("R002", ActionType.FILE_CREATE, "*.py", PermissionLevel.AUTO, "创建Python文件", risk_boost=0.1),
+    PermissionRule("R003", ActionType.FILE_CREATE, "*.md", PermissionLevel.AUTO, "创建文档文件", risk_boost=0.05),
+    PermissionRule(
+        "R004", ActionType.FILE_CREATE, "*.json", PermissionLevel.DEFAULT, "创建JSON数据文件", risk_boost=0.15
+    ),
+    PermissionRule("R005", ActionType.FILE_CREATE, "*", PermissionLevel.DEFAULT, "创建其他类型文件", risk_boost=0.2),
     # ===== 文件修改 (中风险) =====
-    PermissionRule("R006", ActionType.FILE_MODIFY, "*.py",
-                   PermissionLevel.AUTO, "修改Python源码", risk_boost=0.2),
-    PermissionRule("R007", ActionType.FILE_MODIFY, "*.md",
-                   PermissionLevel.AUTO, "修改文档", risk_boost=0.1),
-    PermissionRule("R008", ActionType.FILE_MODIFY, "*.json",
-                   PermissionLevel.DEFAULT, "修改配置文件", risk_boost=0.25),
-    PermissionRule("R009", ActionType.FILE_MODIFY, ".env*",
-                   PermissionLevel.BYPASS, "修改环境变量文件", risk_boost=0.8),
-    PermissionRule("R010", ActionType.FILE_MODIFY, "*/credentials*",
-                   PermissionLevel.BYPASS, "修改凭据文件", risk_boost=0.95),
-    PermissionRule("R011", ActionType.FILE_MODIFY, "*",
-                   PermissionLevel.DEFAULT, "修改其他文件", risk_boost=0.25),
-
+    PermissionRule("R006", ActionType.FILE_MODIFY, "*.py", PermissionLevel.AUTO, "修改Python源码", risk_boost=0.2),
+    PermissionRule("R007", ActionType.FILE_MODIFY, "*.md", PermissionLevel.AUTO, "修改文档", risk_boost=0.1),
+    PermissionRule("R008", ActionType.FILE_MODIFY, "*.json", PermissionLevel.DEFAULT, "修改配置文件", risk_boost=0.25),
+    PermissionRule("R009", ActionType.FILE_MODIFY, ".env*", PermissionLevel.BYPASS, "修改环境变量文件", risk_boost=0.8),
+    PermissionRule(
+        "R010", ActionType.FILE_MODIFY, "*/credentials*", PermissionLevel.BYPASS, "修改凭据文件", risk_boost=0.95
+    ),
+    PermissionRule("R011", ActionType.FILE_MODIFY, "*", PermissionLevel.DEFAULT, "修改其他文件", risk_boost=0.25),
     # ===== 文件删除 (高风险) =====
-    PermissionRule("R012", ActionType.FILE_DELETE, "__pycache__/**",
-                   PermissionLevel.AUTO, "删除Python缓存", risk_boost=0.1),
-    PermissionRule("R013", ActionType.FILE_DELETE, "*.pyc",
-                   PermissionLevel.AUTO, "删除编译缓存", risk_boost=0.1),
-    PermissionRule("R014", ActionType.FILE_DELETE, ".git/**",
-                   PermissionLevel.BYPASS, "删除Git目录内容", risk_boost=0.99),
-    PermissionRule("R015", ActionType.FILE_DELETE, "*",
-                   PermissionLevel.BYPASS, "删除任意文件", risk_boost=0.9),
-
+    PermissionRule(
+        "R012", ActionType.FILE_DELETE, "__pycache__/**", PermissionLevel.AUTO, "删除Python缓存", risk_boost=0.1
+    ),
+    PermissionRule("R013", ActionType.FILE_DELETE, "*.pyc", PermissionLevel.AUTO, "删除编译缓存", risk_boost=0.1),
+    PermissionRule(
+        "R014", ActionType.FILE_DELETE, ".git/**", PermissionLevel.BYPASS, "删除Git目录内容", risk_boost=0.99
+    ),
+    PermissionRule("R015", ActionType.FILE_DELETE, "*", PermissionLevel.BYPASS, "删除任意文件", risk_boost=0.9),
     # ===== Shell命令 (极高风险) =====
-    PermissionRule("R016", ActionType.SHELL_EXECUTE, "cat *",
-                   PermissionLevel.AUTO, "查看文件内容", risk_boost=0.05),
-    PermissionRule("R017", ActionType.SHELL_EXECUTE, "ls *",
-                   PermissionLevel.AUTO, "列出目录", risk_boost=0.05),
-    PermissionRule("R018", ActionType.SHELL_EXECUTE, "git *",
-                   PermissionLevel.AUTO, "Git只读命令", risk_boost=0.1),
-    PermissionRule("R019", ActionType.SHELL_EXECUTE, "pip install *",
-                   PermissionLevel.DEFAULT, "安装Python包", risk_boost=0.5),
-    PermissionRule("R020", ActionType.SHELL_EXECUTE, "rm *",
-                   PermissionLevel.BYPASS, "删除命令", risk_boost=0.95),
-    PermissionRule("R021", ActionType.SHELL_EXECUTE, "sudo *",
-                   PermissionLevel.BYPASS, "提权命令", risk_boost=1.0),
-    PermissionRule("R022", ActionType.SHELL_EXECUTE, "*",
-                   PermissionLevel.DEFAULT, "其他Shell命令", risk_boost=0.6),
-
+    PermissionRule("R016", ActionType.SHELL_EXECUTE, "cat *", PermissionLevel.AUTO, "查看文件内容", risk_boost=0.05),
+    PermissionRule("R017", ActionType.SHELL_EXECUTE, "ls *", PermissionLevel.AUTO, "列出目录", risk_boost=0.05),
+    PermissionRule("R018", ActionType.SHELL_EXECUTE, "git *", PermissionLevel.AUTO, "Git只读命令", risk_boost=0.1),
+    PermissionRule(
+        "R019", ActionType.SHELL_EXECUTE, "pip install *", PermissionLevel.DEFAULT, "安装Python包", risk_boost=0.5
+    ),
+    PermissionRule("R020", ActionType.SHELL_EXECUTE, "rm *", PermissionLevel.BYPASS, "删除命令", risk_boost=0.95),
+    PermissionRule("R021", ActionType.SHELL_EXECUTE, "sudo *", PermissionLevel.BYPASS, "提权命令", risk_boost=1.0),
+    PermissionRule("R022", ActionType.SHELL_EXECUTE, "*", PermissionLevel.DEFAULT, "其他Shell命令", risk_boost=0.6),
     # ===== 网络请求 (中高风险) =====
-    PermissionRule("R023", ActionType.NETWORK_REQUEST, "https://pypi.org/**",
-                   PermissionLevel.AUTO, "PyPI包下载", risk_boost=0.15),
-    PermissionRule("R024", ActionType.NETWORK_REQUEST, "https://github.com/**",
-                   PermissionLevel.DEFAULT, "GitHub API访问", risk_boost=0.3),
-    PermissionRule("R025", ActionType.NETWORK_REQUEST, "*",
-                   PermissionLevel.DEFAULT, "其他网络请求", risk_boost=0.5),
-
+    PermissionRule(
+        "R023", ActionType.NETWORK_REQUEST, "https://pypi.org/**", PermissionLevel.AUTO, "PyPI包下载", risk_boost=0.15
+    ),
+    PermissionRule(
+        "R024",
+        ActionType.NETWORK_REQUEST,
+        "https://github.com/**",
+        PermissionLevel.DEFAULT,
+        "GitHub API访问",
+        risk_boost=0.3,
+    ),
+    PermissionRule("R025", ActionType.NETWORK_REQUEST, "*", PermissionLevel.DEFAULT, "其他网络请求", risk_boost=0.5),
     # ===== Git操作 =====
-    PermissionRule("R026", ActionType.GIT_OPERATION, "status/diff/log/branch",
-                   PermissionLevel.AUTO, "Git只读操作", risk_boost=0.05),
-    PermissionRule("R027", ActionType.GIT_OPERATION, "commit/add",
-                   PermissionLevel.DEFAULT, "Git提交操作", risk_boost=0.3),
-    PermissionRule("R028", ActionType.GIT_OPERATION, "push",
-                   PermissionLevel.DEFAULT, "Git推送操作", risk_boost=0.4),
-    PermissionRule("R029", ActionType.GIT_OPERATION, "reset/rebase/force",
-                   PermissionLevel.BYPASS, "Git危险操作", risk_boost=0.9),
-
+    PermissionRule(
+        "R026", ActionType.GIT_OPERATION, "status/diff/log/branch", PermissionLevel.AUTO, "Git只读操作", risk_boost=0.05
+    ),
+    PermissionRule(
+        "R027", ActionType.GIT_OPERATION, "commit/add", PermissionLevel.DEFAULT, "Git提交操作", risk_boost=0.3
+    ),
+    PermissionRule("R028", ActionType.GIT_OPERATION, "push", PermissionLevel.DEFAULT, "Git推送操作", risk_boost=0.4),
+    PermissionRule(
+        "R029", ActionType.GIT_OPERATION, "reset/rebase/force", PermissionLevel.BYPASS, "Git危险操作", risk_boost=0.9
+    ),
     # ===== 环境变量 =====
-    PermissionRule("R030", ActionType.ENVIRONMENT, "*",
-                   PermissionLevel.BYPASS, "修改环境变量", risk_boost=0.7),
+    PermissionRule("R030", ActionType.ENVIRONMENT, "*", PermissionLevel.BYPASS, "修改环境变量", risk_boost=0.7),
 ]
 ```
 
@@ -381,10 +370,10 @@ class AuditEntry:
     entry_id: str
     action: ProposedAction
     decision: PermissionDecision
-    duration_ms: int                    # 决策耗时
-    guard_level: PermissionLevel        # 当时的权限级别
-    user_response: Optional[str]        # 用户响应（如有）
-    session_id: str                     # 会话ID
+    duration_ms: int  # 决策耗时
+    guard_level: PermissionLevel  # 当时的权限级别
+    user_response: Optional[str]  # 用户响应（如有）
+    session_id: str  # 会话ID
     timestamp: datetime
 ```
 

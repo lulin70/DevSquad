@@ -151,11 +151,13 @@ result = disp.quick_dispatch("データベース設計", output_format="structur
 from scripts.collaboration.batch_scheduler import BatchScheduler
 
 scheduler = BatchScheduler()
-results = scheduler.schedule([
-    "ユーザー認証システム設計",
-    "データベースクエリ最適化",
-    "REST API実装",
-])
+results = scheduler.schedule(
+    [
+        "ユーザー認証システム設計",
+        "データベースクエリ最適化",
+        "REST API実装",
+    ]
+)
 ```
 
 ### 2.4 ワークフローエンジン
@@ -434,6 +436,7 @@ DevSquadは完全なオーケストレーションパイプラインから独立
 ```python
 from skills import get_skill, list_skills
 from skills.security.handler import SecuritySkill
+
 risk = SecuritySkill().scan_input("不審な入力")
 ```
 

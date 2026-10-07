@@ -75,29 +75,30 @@
 ```python
 @dataclass
 class ExecutionRecord:
-    record_id: str                           # 唯一ID
-    task_description: str                    # 任务描述
-    start_time: datetime                     # 开始时间
-    end_time: datetime                       # 结束时间
-    duration_seconds: float                  # 执行时长
-    success: bool                            # 是否成功
-    worker_id: str                           # 执行Worker
-    role_id: str                             # 角色ID
-    steps: List[ExecutionStep]              # 执行步骤列表
-    results: List[WorkerResult]             # 结果列表
-    artifacts: List[str]                    # 产出物路径
-    metadata: Dict[str, Any]               # 额外元数据
+    record_id: str  # 唯一ID
+    task_description: str  # 任务描述
+    start_time: datetime  # 开始时间
+    end_time: datetime  # 结束时间
+    duration_seconds: float  # 执行时长
+    success: bool  # 是否成功
+    worker_id: str  # 执行Worker
+    role_id: str  # 角色ID
+    steps: List[ExecutionStep]  # 执行步骤列表
+    results: List[WorkerResult]  # 结果列表
+    artifacts: List[str]  # 产出物路径
+    metadata: Dict[str, Any]  # 额外元数据
+
 
 @dataclass
 class ExecutionStep:
-    step_order: int                          # 步骤序号
-    action_type: ActionType                # 操作类型 (from PermissionGuard)
-    target: str                             # 操作目标
-    description: str                        # 步骤描述
-    outcome: str                             # 结果 (success/error/skipped)
-    duration_ms: int                        # 耗时
-    input_data: Optional[str] = None        # 输入数据摘要
-    output_data: Optional[str] = None       # 输出数据摘要
+    step_order: int  # 步骤序号
+    action_type: ActionType  # 操作类型 (from PermissionGuard)
+    target: str  # 操作目标
+    description: str  # 步骤描述
+    outcome: str  # 结果 (success/error/skipped)
+    duration_ms: int  # 耗时
+    input_data: Optional[str] = None  # 输入数据摘要
+    output_data: Optional[str] = None  # 输出数据摘要
 ```
 
 #### 2.2.2 SuccessPattern — 成功模式
@@ -105,25 +106,26 @@ class ExecutionStep:
 ```python
 @dataclass
 class SuccessPattern:
-    pattern_id: str                          # 模式ID
-    name: str                                # 模式名称
-    description: str                         # 描述
-    source_records: List[str]               # 来源执行记录ID列表
-    steps_template: List[PatternStep]       # 步骤模板(泛化后)
-    trigger_keywords: List[str]             # 触发关键词
-    applicable_roles: List[str]             # 适用角色
-    frequency: int                          # 出现频次
-    confidence: float                       # 置信度 [0.0-1.0]
-    avg_success_rate: float                 # 平均成功率
+    pattern_id: str  # 模式ID
+    name: str  # 模式名称
+    description: str  # 描述
+    source_records: List[str]  # 来源执行记录ID列表
+    steps_template: List[PatternStep]  # 步骤模板(泛化后)
+    trigger_keywords: List[str]  # 触发关键词
+    applicable_roles: List[str]  # 适用角色
+    frequency: int  # 出现频次
+    confidence: float  # 置信度 [0.0-1.0]
+    avg_success_rate: float  # 平均成功率
     created_at: datetime = field(default_factory=datetime.now)
+
 
 @dataclass
 class PatternStep:
-    action_type: ActionType                # 操作类型
-    target_pattern: str                      # 目标模式(泛化,如 "*.py")
-    description_template: str                # 描述模板
-    is_required: bool = True                # 是否必需步骤
-    estimated_risk: float = 0.0             # 预估风险分
+    action_type: ActionType  # 操作类型
+    target_pattern: str  # 目标模式(泛化,如 "*.py")
+    description_template: str  # 描述模板
+    is_required: bool = True  # 是否必需步骤
+    estimated_risk: float = 0.0  # 预估风险分
 ```
 
 #### 2.2.3 SkillProposal — 技能提案
@@ -131,25 +133,26 @@ class PatternStep:
 ```python
 @dataclass
 class SkillProposal:
-    proposal_id: str                         # 提案ID
-    name: str                                # Skill名称
-    slug: str                                # URL友好标识
-    version: str = "1.0.0"                   # 版本
-    description: str                         # 描述
-    category: str = "auto-generated"         # 分类
-    trigger_conditions: List[str]           # 触发条件
-    steps: List[SkillStepDef]              # 步骤定义
-    required_roles: List[str]              # 需要的角色
-    input_schema: Dict[str, Any]           # 输入Schema
-    output_schema: Dict[str, Any]          # 输出Schema
-    acceptance_criteria: List[str]         # 验收标准
-    source_pattern: Optional[str] = None   # 来源模式ID
-    quality_score: float = 0.0             # 质量评分 [0-100]
+    proposal_id: str  # 提案ID
+    name: str  # Skill名称
+    slug: str  # URL友好标识
+    version: str = "1.0.0"  # 版本
+    description: str  # 描述
+    category: str = "auto-generated"  # 分类
+    trigger_conditions: List[str]  # 触发条件
+    steps: List[SkillStepDef]  # 步骤定义
+    required_roles: List[str]  # 需要的角色
+    input_schema: Dict[str, Any]  # 输入Schema
+    output_schema: Dict[str, Any]  # 输出Schema
+    acceptance_criteria: List[str]  # 验收标准
+    source_pattern: Optional[str] = None  # 来源模式ID
+    quality_score: float = 0.0  # 质量评分 [0-100]
     validation_result: Optional[ValidationResult] = None
     status: ProposalStatus = ProposalStatus.DRAFT
     created_at: datetime = field(default_factory=datetime.now)
     approved_by: Optional[str] = None
     published_at: Optional[datetime] = None
+
 
 class ProposalStatus(Enum):
     DRAFT = "draft"
@@ -158,13 +161,14 @@ class ProposalStatus(Enum):
     PUBLISHED = "published"
     REJECTED = "rejected"
 
+
 @dataclass
 class ValidationResult:
-    score: float                             # 总分 [0-100]
-    completeness: float                      # 完整性 [0-100]
-    specificity: float                       # 特异性 [0-100]
-    repeatability: float                     # 可重复性 [0-100]
-    safety: float                            # 安全性 [0-100]
+    score: float  # 总分 [0-100]
+    completeness: float  # 完整性 [0-100]
+    specificity: float  # 特异性 [0-100]
+    repeatability: float  # 可重复性 [0-100]
+    safety: float  # 安全性 [0-100]
     issues: List[str] = field(default_factory=list)  # 问题列表
     suggestions: List[str] = field(default_factory=list)  # 改进建议
 ```
@@ -282,8 +286,7 @@ def step_similarity(a: ExecutionStep, b: ExecutionStep) -> float:
     return min(1.0, score)
 
 
-def sequence_similarity(seq_a: List[ExecutionStep],
-                       seq_b: List[ExecutionStep]) -> float:
+def sequence_similarity(seq_a: List[ExecutionStep], seq_b: List[ExecutionStep]) -> float:
     """两条步骤序列的相似度 [0.0, 1.0](编辑距离加权)"""
     # 使用动态规划计算最优对齐的相似度
     ...
@@ -332,17 +335,17 @@ pattern.source_records           →    元数据(可追溯)
 
 ```python
 class SkillCategory(Enum):
-    CODE_GENERATION = "code-generation"       # 代码生成
-    CODE_REVIEW = "code-review"               # 代码审查
-    TESTING = "testing"                         # 测试相关
-    DEPLOYMENT = "deployment"                   # 部署发布
-    REFACTORING = "refactoring"               # 重构优化
-    DOCUMENTATION = "documentation"           # 文档生成
-    ANALYSIS = "analysis"                       # 分析诊断
-    INTEGRATION = "integration"               # 集成配置
-    SECURITY = "security"                     # 安全检查
-    PERFORMANCE = "performance"               # 性能优化
-    AUTO_GENERATED = "auto-generated"         # 自动生成
+    CODE_GENERATION = "code-generation"  # 代码生成
+    CODE_REVIEW = "code-review"  # 代码审查
+    TESTING = "testing"  # 测试相关
+    DEPLOYMENT = "deployment"  # 部署发布
+    REFACTORING = "refactoring"  # 重构优化
+    DOCUMENTATION = "documentation"  # 文档生成
+    ANALYSIS = "analysis"  # 分析诊断
+    INTEGRATION = "integration"  # 集成配置
+    SECURITY = "security"  # 安全检查
+    PERFORMANCE = "performance"  # 性能优化
+    AUTO_GENERATED = "auto-generated"  # 自动生成
 ```
 
 ---

@@ -146,6 +146,7 @@ DevSquad also provides **6 atomic sub-skills** (`skills/` package) that can be u
 ```python
 from skills import get_skill, list_skills
 from skills.security.handler import SecuritySkill
+
 risk = SecuritySkill().scan_input("suspicious input")
 ```
 

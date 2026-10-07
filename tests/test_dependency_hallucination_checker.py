@@ -20,6 +20,8 @@ import os
 import sys
 import time
 import unittest
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -39,6 +41,25 @@ from scripts.collaboration.dependency_hallucination_checker import (
     security_scan_dependencies,
 )
 from tests.conftest import perf_ceiling_ms
+
+
+def _best_of_n_ms(fn: Callable[[], Any], runs: int = 3) -> tuple[float, Any]:
+    """Return ``(min elapsed ms, last result)`` over *runs* invocations.
+
+    min-of-N is the standard noise-robust statistic for micro-benchmarks:
+    scheduler contention can inflate a single CI run but cannot deflate the
+    minimum, while an algorithmic regression slows every run and still fails
+    the gate. Motivated by the CI red at ac17e0c: a one-shot 344 ms scan
+    against a 200 ms ceiling whose reference-workload calibration reported
+    factor 1.0 — reference and target sampled under independent noise.
+    """
+    best = float("inf")
+    result: Any = None
+    for _ in range(runs):
+        start = time.perf_counter()
+        result = fn()
+        best = min(best, (time.perf_counter() - start) * 1000)
+    return best, result
 
 
 def _reset_state() -> None:
@@ -284,15 +305,17 @@ class T4_Performance(unittest.TestCase):
         verified by an injected super-linear regression. A same-code-path control
         would not: it inflates with the regression and the gate can no longer
         fail (see tests/conftest.py).
+
+        2026-10-07: measurement hardened to min-of-3 (see _best_of_n_ms) after
+        the ac17e0c CI red — a one-shot 344 ms sample under a factor-1.0
+        calibration ceiling. The scanner itself is uncached, so every run
+        re-measures the real scan.
         """
         lines = [f"import package_{i}" for i in range(1000)]
         code = "\n".join(lines)
 
         ceiling_ms = perf_ceiling_ms(200.0)
-
-        start = time.perf_counter()
-        result = security_scan_dependencies(code)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+        elapsed_ms, result = _best_of_n_ms(lambda: security_scan_dependencies(code))
         self.assertLess(
             elapsed_ms,
             ceiling_ms,
@@ -308,12 +331,18 @@ class T4_Performance(unittest.TestCase):
         Ceiling equals 50 ms on the calibration host. The gate still catches a
         dataset loader that became pathologically slow (e.g. re-reading and
         re-parsing every file on each call).
+
+        2026-10-07: measurement hardened to min-of-3 (see _best_of_n_ms), same
+        CI red as test_01. The cache is reset before every run so each sample
+        measures a real cold load, not a cache hit.
         """
-        reset_dataset_cache()
         ceiling_ms = perf_ceiling_ms(50.0)
-        start = time.perf_counter()
-        _ensure_datasets_loaded()
-        elapsed_ms = (time.perf_counter() - start) * 1000
+
+        def _cold_load() -> object:
+            reset_dataset_cache()
+            return _ensure_datasets_loaded()
+
+        elapsed_ms, _ = _best_of_n_ms(_cold_load)
         self.assertLess(
             elapsed_ms,
             ceiling_ms,

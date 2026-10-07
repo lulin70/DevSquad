@@ -146,6 +146,7 @@ DevSquadは **6つの原子サブスキル** (`skills/` パッケージ) を独�
 ```python
 from skills import get_skill, list_skills
 from skills.security.handler import SecuritySkill
+
 risk = SecuritySkill().scan_input("不審な入力")
 ```
 

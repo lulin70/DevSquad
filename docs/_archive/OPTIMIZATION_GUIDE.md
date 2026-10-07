@@ -32,6 +32,7 @@ from scripts.collaboration.performance_monitor import monitor_performance
 # 1. 启用缓存
 cache = get_llm_cache()
 
+
 # 2. 添加重试和监控装饰器
 @monitor_performance("my_llm_call")
 @retry_with_fallback(max_retries=3, fallback_backends=["openai", "anthropic"])
@@ -40,10 +41,10 @@ def call_llm(prompt: str, backend: str = "openai"):
     cached = cache.get(prompt, backend, "gpt-4")
     if cached:
         return cached
-    
+
     # 调用 API
     response = your_api_call(prompt)
-    
+
     # 保存到缓存
     cache.set(prompt, response, backend, "gpt-4")
     return response
@@ -71,8 +72,8 @@ from scripts.collaboration.llm_cache import LLMCache
 
 cache = LLMCache(
     cache_dir="data/llm_cache",  # 缓存目录
-    ttl_seconds=86400,           # 24 小时过期
-    max_memory_entries=1000      # 内存最多保存 1000 条
+    ttl_seconds=86400,  # 24 小时过期
+    max_memory_entries=1000,  # 内存最多保存 1000 条
 )
 ```
 
@@ -118,11 +119,12 @@ report = cache.export_stats_report()
 ```python
 from scripts.collaboration.llm_retry import retry_with_fallback
 
+
 @retry_with_fallback(
-    max_retries=3,              # 最多重试 3 次
-    initial_delay=1.0,          # 初始延迟 1 秒
-    max_delay=60.0,             # 最大延迟 60 秒
-    fallback_backends=["openai", "anthropic", "zhipu"]  # 故障转移后端
+    max_retries=3,  # 最多重试 3 次
+    initial_delay=1.0,  # 初始延迟 1 秒
+    max_delay=60.0,  # 最大延迟 60 秒
+    fallback_backends=["openai", "anthropic", "zhipu"],  # 故障转移后端
 )
 def call_llm(prompt: str, backend: str = "openai"):
     return api_call(prompt, backend)
@@ -142,7 +144,7 @@ result = manager.retry_with_fallback(
     kwargs={"backend": "openai"},
     config=config,
     fallback_backends=["anthropic", "zhipu"],
-    current_backend="openai"
+    current_backend="openai",
 )
 ```
 
@@ -183,6 +185,7 @@ manager.reset_circuit_breaker("openai")
 
 ```python
 from scripts.collaboration.performance_monitor import monitor_performance
+
 
 @monitor_performance("function_name")
 def my_function():
@@ -228,19 +231,20 @@ from scripts.collaboration.llm_cache import get_llm_cache
 from scripts.collaboration.llm_retry import retry_with_fallback
 from scripts.collaboration.performance_monitor import monitor_performance
 
+
 @monitor_performance("llm_call")
 @retry_with_fallback(max_retries=3, fallback_backends=["openai", "anthropic"])
 def call_llm(prompt: str, backend: str = "openai", model: str = "gpt-4"):
     cache = get_llm_cache()
-    
+
     # 尝试缓存
     cached = cache.get(prompt, backend, model)
     if cached:
         return cached
-    
+
     # 调用 API
     response = your_api_call(prompt, backend, model)
-    
+
     # 保存缓存
     cache.set(prompt, response, backend, model)
     return response
@@ -274,11 +278,13 @@ def process_batch(prompts: list):
 import schedule
 import time
 
+
 def cleanup_old_cache():
     """清理 7 天前的缓存"""
     cache = get_llm_cache()
     cache.clear(older_than_hours=168)  # 7 * 24 = 168 小时
     print("Old cache cleaned")
+
 
 # 每天凌晨 2 点清理
 schedule.every().day.at("02:00").do(cleanup_old_cache)
@@ -422,6 +428,7 @@ def cleanup():
 def normalize_prompt(prompt: str) -> str:
     return prompt.strip().lower()
 
+
 # 2. 增加 TTL
 cache = LLMCache(ttl_seconds=86400 * 7)  # 7 天
 
@@ -479,6 +486,7 @@ slowest = monitor.get_slowest_functions(limit=5)
 # 3. 优化或异步化慢函数
 import asyncio
 
+
 async def async_call_llm(prompt: str):
     # 异步实现
     pass
@@ -510,6 +518,7 @@ cache.clear(older_than_hours=24)
 ```python
 import hashlib
 
+
 def custom_cache_key(prompt: str, **kwargs) -> str:
     """自定义缓存键生成"""
     # 只考虑 prompt 的语义，忽略格式差异
@@ -525,9 +534,7 @@ def should_retry(error: Exception) -> bool:
     """自定义重试条件"""
     error_msg = str(error).lower()
     # 只对特定错误重试
-    return any(pattern in error_msg for pattern in [
-        "timeout", "connection", "503", "502"
-    ])
+    return any(pattern in error_msg for pattern in ["timeout", "connection", "503", "502"])
 ```
 
 ### 自定义监控指标
@@ -536,6 +543,7 @@ def should_retry(error: Exception) -> bool:
 from scripts.collaboration.performance_monitor import get_monitor
 
 monitor = get_monitor()
+
 
 # 添加自定义指标
 def track_custom_metric(name: str, value: float):

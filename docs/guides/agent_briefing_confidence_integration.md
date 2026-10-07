@@ -32,10 +32,7 @@ from scripts.collaboration.confidence_score import get_confidence_scorer
 briefing = get_agent_briefing("Architect")
 
 # 2. Generate briefing for task
-briefing_content = briefing.generate_briefing(
-    task="Design authentication system",
-    context={"priority": "high"}
-)
+briefing_content = briefing.generate_briefing(task="Design authentication system", context={"priority": "high"})
 
 # 3. Get LLM response (with briefing as context)
 response = llm.generate(prompt=f"{briefing_content}\n\n{user_request}")
@@ -43,9 +40,7 @@ response = llm.generate(prompt=f"{briefing_content}\n\n{user_request}")
 # 4. Calculate confidence
 scorer = get_confidence_scorer()
 score = scorer.calculate_confidence(
-    prompt=briefing_content,
-    response=response,
-    metadata={"model": "gpt-4", "temperature": 0.7}
+    prompt=briefing_content, response=response, metadata={"model": "gpt-4", "temperature": 0.7}
 )
 
 # 5. Decision making
@@ -73,8 +68,8 @@ briefing = AgentBriefing(
         "name": "DevSquad",
         "version": "3.5",
         "tech_stack": ["Python", "FastAPI", "PostgreSQL"],
-        "architecture": "Microservices"
-    }
+        "architecture": "Microservices",
+    },
 )
 ```
 
@@ -110,7 +105,7 @@ briefing.add_section(
     - Use Redis for caching layer
     - PostgreSQL for persistent storage
     """,
-    priority=1  # High priority
+    priority=1,  # High priority
 )
 
 # Add medium-priority coding standards
@@ -122,7 +117,7 @@ briefing.add_section(
     - Write docstrings for public APIs
     - Maintain test coverage > 80%
     """,
-    priority=2  # Medium priority
+    priority=2,  # Medium priority
 )
 ```
 
@@ -132,11 +127,7 @@ briefing.add_section(
 # Generate briefing for specific task
 content = briefing.generate_briefing(
     task="Design Protocol interface system",
-    context={
-        "priority": "high",
-        "deadline": "Week 4",
-        "dependencies": ["Python 3.8+", "typing module"]
-    }
+    context={"priority": "high", "deadline": "Week 4", "dependencies": ["Python 3.8+", "typing module"]},
 )
 
 print(content)
@@ -371,11 +362,11 @@ print(f"Recent Average (last 10): {stats['recent_average']:.2f}")
 print(f"Trend: {stats['trend']}")
 
 print("\nLevel Distribution:")
-for level, count in stats['level_distribution'].items():
+for level, count in stats["level_distribution"].items():
     print(f"  - {level}: {count}")
 
 print("\nFactor Averages:")
-for factor, avg in stats['factor_averages'].items():
+for factor, avg in stats["factor_averages"].items():
     print(f"  - {factor}: {avg:.2f}")
 ```
 
@@ -386,12 +377,12 @@ for factor, avg in stats['factor_averages'].items():
 custom_scorer = ConfidenceScorer(
     weights={
         "completeness": 0.30,  # Emphasize completeness
-        "certainty": 0.30,     # Emphasize certainty
+        "certainty": 0.30,  # Emphasize certainty
         "specificity": 0.20,
         "consistency": 0.10,
-        "model_quality": 0.10
+        "model_quality": 0.10,
     },
-    min_response_length=100  # Require longer responses
+    min_response_length=100,  # Require longer responses
 )
 
 score = custom_scorer.calculate_confidence(prompt, response, metadata)
@@ -406,39 +397,30 @@ score = custom_scorer.calculate_confidence(prompt, response, metadata)
 ```python
 def agent_workflow(agent_role: str, task: str, user_request: str):
     """Basic agent workflow with briefing and confidence"""
-    
+
     # 1. Get agent briefing
     briefing = get_agent_briefing(agent_role)
-    briefing_content = briefing.generate_briefing(
-        task=task,
-        context={"user_request": user_request}
-    )
-    
+    briefing_content = briefing.generate_briefing(task=task, context={"user_request": user_request})
+
     # 2. Generate response
     full_prompt = f"{briefing_content}\n\n---\n\n{user_request}"
     response = llm.generate(prompt=full_prompt)
-    
+
     # 3. Calculate confidence
     scorer = get_confidence_scorer()
     score = scorer.calculate_confidence(
-        prompt=full_prompt,
-        response=response,
-        metadata={"model": "gpt-4", "temperature": 0.7}
+        prompt=full_prompt, response=response, metadata={"model": "gpt-4", "temperature": 0.7}
     )
-    
+
     # 4. Decision making
     if score.is_confident(threshold=0.7):
-        return {
-            "status": "approved",
-            "response": response,
-            "confidence": score.overall_score
-        }
+        return {"status": "approved", "response": response, "confidence": score.overall_score}
     else:
         return {
             "status": "review_required",
             "response": response,
             "confidence": score.overall_score,
-            "reasoning": score.reasoning
+            "reasoning": score.reasoning,
         }
 ```
 
@@ -447,56 +429,43 @@ def agent_workflow(agent_role: str, task: str, user_request: str):
 ```python
 def multi_agent_collaboration(task: str):
     """Multi-agent workflow with briefings and confidence tracking"""
-    
+
     agents = ["Architect", "Developer", "Reviewer"]
     results = []
-    
+
     for agent_role in agents:
         # Get agent briefing
         briefing = get_agent_briefing(agent_role)
-        
+
         # Add previous results to context
-        context = {
-            "task": task,
-            "previous_results": results
-        }
-        
-        briefing_content = briefing.generate_briefing(
-            task=f"{agent_role} phase",
-            context=context
-        )
-        
+        context = {"task": task, "previous_results": results}
+
+        briefing_content = briefing.generate_briefing(task=f"{agent_role} phase", context=context)
+
         # Generate response
         response = llm.generate(prompt=briefing_content)
-        
+
         # Calculate confidence
         scorer = get_confidence_scorer()
         score = scorer.calculate_confidence(
-            prompt=briefing_content,
-            response=response,
-            metadata={"model": "gpt-4", "agent": agent_role}
+            prompt=briefing_content, response=response, metadata={"model": "gpt-4", "agent": agent_role}
         )
-        
+
         # Store result
-        results.append({
-            "agent": agent_role,
-            "response": response,
-            "confidence": score.overall_score,
-            "level": score.level.value
-        })
-        
+        results.append(
+            {"agent": agent_role, "response": response, "confidence": score.overall_score, "level": score.level.value}
+        )
+
         # Update briefing with outcome
         briefing.update_briefing(
-            key="last_task",
-            value=f"Completed with confidence {score.overall_score:.2f}",
-            section="History"
+            key="last_task", value=f"Completed with confidence {score.overall_score:.2f}", section="History"
         )
-        
+
         # Stop if confidence too low
         if not score.is_confident(threshold=0.6):
             print(f"⚠️ {agent_role} confidence too low - stopping workflow")
             break
-    
+
     return results
 ```
 
@@ -505,30 +474,25 @@ def multi_agent_collaboration(task: str):
 ```python
 def iterative_refinement(task: str, max_iterations: int = 3):
     """Iteratively refine response until confidence threshold met"""
-    
+
     briefing = get_agent_briefing("Developer")
     scorer = get_confidence_scorer()
-    
+
     for iteration in range(max_iterations):
         # Generate briefing
-        context = {
-            "iteration": iteration + 1,
-            "max_iterations": max_iterations
-        }
+        context = {"iteration": iteration + 1, "max_iterations": max_iterations}
         briefing_content = briefing.generate_briefing(task=task, context=context)
-        
+
         # Generate response
         response = llm.generate(prompt=briefing_content)
-        
+
         # Calculate confidence
         score = scorer.calculate_confidence(
-            prompt=briefing_content,
-            response=response,
-            metadata={"model": "gpt-4", "iteration": iteration}
+            prompt=briefing_content, response=response, metadata={"model": "gpt-4", "iteration": iteration}
         )
-        
+
         print(f"Iteration {iteration + 1}: Confidence = {score.overall_score:.2f}")
-        
+
         # Check if confidence threshold met
         if score.is_confident(threshold=0.8):
             print(f"✅ High confidence achieved in {iteration + 1} iterations")
@@ -536,23 +500,22 @@ def iterative_refinement(task: str, max_iterations: int = 3):
                 "status": "success",
                 "response": response,
                 "iterations": iteration + 1,
-                "confidence": score.overall_score
+                "confidence": score.overall_score,
             }
-        
+
         # Add feedback for next iteration
         briefing.add_section(
             title=f"Iteration {iteration + 1} Feedback",
-            content=f"Previous confidence: {score.overall_score:.2f}\n" +
-                   f"Issues: {', '.join(score.reasoning)}",
-            priority=1
+            content=f"Previous confidence: {score.overall_score:.2f}\n" + f"Issues: {', '.join(score.reasoning)}",
+            priority=1,
         )
-    
+
     print(f"⚠️ Max iterations reached - confidence: {score.overall_score:.2f}")
     return {
         "status": "max_iterations",
         "response": response,
         "iterations": max_iterations,
-        "confidence": score.overall_score
+        "confidence": score.overall_score,
     }
 ```
 
@@ -561,34 +524,30 @@ def iterative_refinement(task: str, max_iterations: int = 3):
 ```python
 def quality_gate_workflow(task: str):
     """Implement quality gates based on confidence scores"""
-    
+
     briefing = get_agent_briefing("Developer")
     scorer = get_confidence_scorer()
-    
+
     # Generate response
     briefing_content = briefing.generate_briefing(task=task)
     response = llm.generate(prompt=briefing_content)
-    
+
     # Calculate confidence
-    score = scorer.calculate_confidence(
-        prompt=briefing_content,
-        response=response,
-        metadata={"model": "gpt-4"}
-    )
-    
+    score = scorer.calculate_confidence(prompt=briefing_content, response=response, metadata={"model": "gpt-4"})
+
     # Quality gates
     if score.overall_score >= 0.9:
         # Gate 1: Auto-approve
         return auto_approve(response)
-    
+
     elif score.overall_score >= 0.7:
         # Gate 2: Peer review
         return peer_review(response, score)
-    
+
     elif score.overall_score >= 0.5:
         # Gate 3: Senior review
         return senior_review(response, score)
-    
+
     else:
         # Gate 4: Reject and regenerate
         return regenerate_with_feedback(task, score)
@@ -602,11 +561,7 @@ def quality_gate_workflow(task: str):
 
 ```python
 # ✅ DO: Keep briefings focused and relevant
-briefing.add_section(
-    title="Current Sprint Goals",
-    content="Focus on authentication and authorization",
-    priority=1
-)
+briefing.add_section(title="Current Sprint Goals", content="Focus on authentication and authorization", priority=1)
 
 # ❌ DON'T: Add too much irrelevant information
 # briefing.add_section(
@@ -620,7 +575,7 @@ briefing.update_briefing("constraints", "New security requirement: MFA")
 
 # ✅ DO: Use priority levels effectively
 briefing.add_section("Critical Bug", "Fix auth bypass", priority=1)  # High
-briefing.add_section("Nice to Have", "Add dark mode", priority=3)   # Low
+briefing.add_section("Nice to Have", "Add dark mode", priority=3)  # Low
 ```
 
 ### 2. Confidence Thresholds
@@ -628,10 +583,10 @@ briefing.add_section("Nice to Have", "Add dark mode", priority=3)   # Low
 ```python
 # ✅ DO: Use appropriate thresholds for different tasks
 THRESHOLDS = {
-    "critical": 0.9,      # Security, data integrity
-    "important": 0.7,     # Core features
-    "standard": 0.5,      # Regular tasks
-    "experimental": 0.3   # Prototypes, POCs
+    "critical": 0.9,  # Security, data integrity
+    "important": 0.7,  # Core features
+    "standard": 0.5,  # Regular tasks
+    "experimental": 0.3,  # Prototypes, POCs
 }
 
 task_type = "critical"
@@ -649,17 +604,14 @@ else:
 # ✅ DO: Handle low confidence gracefully
 try:
     score = scorer.calculate_confidence(prompt, response, metadata)
-    
+
     if not score.is_confident(threshold=0.7):
         # Log low confidence
-        logger.warning(
-            f"Low confidence: {score.overall_score:.2f}",
-            extra={"reasoning": score.reasoning}
-        )
-        
+        logger.warning(f"Low confidence: {score.overall_score:.2f}", extra={"reasoning": score.reasoning})
+
         # Request human review
         request_review(response, score)
-        
+
 except Exception as e:
     logger.error(f"Confidence calculation failed: {e}")
     # Fallback to human review
@@ -672,19 +624,19 @@ except Exception as e:
 # ✅ DO: Track confidence metrics over time
 def log_confidence_metrics(agent_role: str, score: ConfidenceScore):
     """Log confidence metrics for monitoring"""
-    
+
     metrics = {
         "timestamp": score.timestamp,
         "agent": agent_role,
         "overall_score": score.overall_score,
         "level": score.level.value,
         "factors": score.factors,
-        "metadata": score.metadata
+        "metadata": score.metadata,
     }
-    
+
     # Log to monitoring system
     logger.info("confidence_score", extra=metrics)
-    
+
     # Alert if confidence declining
     scorer = get_confidence_scorer()
     trend = scorer.get_confidence_trend()
@@ -701,47 +653,42 @@ def log_confidence_metrics(agent_role: str, score: ConfidenceScore):
 ```python
 class ContextAwareAgent:
     """Agent with briefing and confidence tracking"""
-    
+
     def __init__(self, role: str):
         self.role = role
         self.briefing = get_agent_briefing(role)
         self.scorer = get_confidence_scorer()
-    
+
     def execute_task(self, task: str, context: dict) -> dict:
         """Execute task with confidence tracking"""
-        
+
         # Generate briefing
-        briefing_content = self.briefing.generate_briefing(
-            task=task,
-            context=context
-        )
-        
+        briefing_content = self.briefing.generate_briefing(task=task, context=context)
+
         # Generate response
         response = self._generate_response(briefing_content)
-        
+
         # Calculate confidence
         score = self.scorer.calculate_confidence(
-            prompt=briefing_content,
-            response=response,
-            metadata={"model": "gpt-4", "agent": self.role}
+            prompt=briefing_content, response=response, metadata={"model": "gpt-4", "agent": self.role}
         )
-        
+
         # Update briefing with result
         self._update_history(task, score)
-        
+
         return {
             "response": response,
             "confidence": score.overall_score,
             "level": score.level.value,
             "factors": score.factors,
-            "reasoning": score.reasoning
+            "reasoning": score.reasoning,
         }
-    
+
     def _generate_response(self, prompt: str) -> str:
         """Generate LLM response"""
         # Implementation depends on LLM provider
         return llm.generate(prompt=prompt)
-    
+
     def _update_history(self, task: str, score: ConfidenceScore):
         """Update briefing history"""
         self.briefing.update_briefing(
@@ -750,9 +697,9 @@ class ContextAwareAgent:
                 "task": task,
                 "confidence": score.overall_score,
                 "level": score.level.value,
-                "timestamp": score.timestamp
+                "timestamp": score.timestamp,
             },
-            section="History"
+            section="History",
         )
 ```
 
@@ -788,45 +735,39 @@ def confidence_based_routing(task: str, response: str, score: ConfidenceScore):
 ```python
 def adaptive_temperature_generation(task: str, max_attempts: int = 3):
     """Adjust temperature based on confidence scores"""
-    
+
     briefing = get_agent_briefing("Developer")
     scorer = get_confidence_scorer()
-    
+
     temperatures = [0.3, 0.5, 0.7]  # Start conservative, increase if needed
-    
+
     for attempt, temperature in enumerate(temperatures):
         # Generate response
         briefing_content = briefing.generate_briefing(task=task)
-        response = llm.generate(
-            prompt=briefing_content,
-            temperature=temperature
-        )
-        
+        response = llm.generate(prompt=briefing_content, temperature=temperature)
+
         # Calculate confidence
         score = scorer.calculate_confidence(
-            prompt=briefing_content,
-            response=response,
-            metadata={"model": "gpt-4", "temperature": temperature}
+            prompt=briefing_content, response=response, metadata={"model": "gpt-4", "temperature": temperature}
         )
-        
-        print(f"Attempt {attempt + 1} (temp={temperature}): " +
-              f"Confidence = {score.overall_score:.2f}")
-        
+
+        print(f"Attempt {attempt + 1} (temp={temperature}): " + f"Confidence = {score.overall_score:.2f}")
+
         # Check if acceptable
         if score.is_confident(threshold=0.7):
             return {
                 "status": "success",
                 "response": response,
                 "temperature": temperature,
-                "confidence": score.overall_score
+                "confidence": score.overall_score,
             }
-    
+
     # All attempts failed
     return {
         "status": "failed",
         "response": response,
         "confidence": score.overall_score,
-        "message": "Could not achieve acceptable confidence"
+        "message": "Could not achieve acceptable confidence",
     }
 ```
 

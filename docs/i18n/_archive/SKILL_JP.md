@@ -116,6 +116,7 @@ pip install "devsquad[all]"
 
 ```python
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
 disp = MultiAgentDispatcher()
 result = disp.dispatch("ユーザーのタスク")
 print(result.to_markdown())
@@ -144,6 +145,7 @@ result = disp.dispatch("テストタスク", dry_run=True)
 
 ```python
 from scripts.collaboration.dispatcher import quick_collaborate
+
 result = quick_collaborate("マイクロサービス設計を手伝って")
 ```
 
@@ -197,9 +199,9 @@ for role in matched:
 ```python
 result = disp.dispatch(
     task_description=user_task,
-    roles=None,          # None=自動マッチ、または ["architect", "tester"] 指定
-    mode="auto",         # auto/parallel/sequential/consensus
-    dry_run=False,       # True=シミュレーションのみ
+    roles=None,  # None=自動マッチ、または ["architect", "tester"] 指定
+    mode="auto",  # auto/parallel/sequential/consensus
+    dry_run=False,  # True=シミュレーションのみ
 )
 ```
 
@@ -581,8 +583,8 @@ result = skill.run("your task")
 
 # リアルモード（APIキー必要）
 import os
-result = skill.run("your task", backend="openai",
-                    api_key=os.environ["OPENAI_API_KEY"])
+
+result = skill.run("your task", backend="openai", api_key=os.environ["OPENAI_API_KEY"])
 ```
 
 ### クイックスタート
@@ -595,6 +597,7 @@ from skills.intent.handler import IntentSkill
 
 # 方法2: レジストリ経由で動的発見
 from skills import get_skill, list_skills, discover_all
+
 skills = discover_all()  # 全サブスキルインスタンスを取得
 for name, skill in skills.items():
     print(f"{name}: {skill.info()['description']}")
@@ -628,8 +631,11 @@ for name, skill in skills.items():
 
 ```python
 from scripts.collaboration import (
-    FeedbackControlLoop, PerformanceFingerprint,
-    SimilarTaskRecommender, AdaptiveRoleSelector, ExecutionGuard
+    FeedbackControlLoop,
+    PerformanceFingerprint,
+    SimilarTaskRecommender,
+    AdaptiveRoleSelector,
+    ExecutionGuard,
 )
 
 # フィードバックループ（品質ゲート通過まで自動リトライ）

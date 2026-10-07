@@ -371,10 +371,7 @@ User Task
 
 **Recommended usage** (progressive adoption):
 ```python
-from scripts.collaboration import (
-    MultiAgentDispatcher, FeedbackControlLoop,
-    ExecutionGuard, PerformanceFingerprint
-)
+from scripts.collaboration import MultiAgentDispatcher, FeedbackControlLoop, ExecutionGuard, PerformanceFingerprint
 
 dispatcher = MultiAgentDispatcher()
 guard = ExecutionGuard()
@@ -470,10 +467,12 @@ skills/
 ```python
 # Direct import (recommended for single skill)
 from skills.dispatch.handler import DispatchSkill
+
 result = DispatchSkill().run("Fix login bug", roles=["coder", "tester"])
 
 # Via registry (dynamic discovery)
 from skills import get_skill, list_skills
+
 print(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective']
 skill = get_skill("security")
 result = skill.scan_input("DROP TABLE users; --")

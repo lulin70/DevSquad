@@ -121,9 +121,7 @@ manager = ContextManager(project_root=".", skill_root=".")
 
 # 保存工件
 manager.add_artifact(
-    artifact_type="PRD",
-    artifact_data={"title": "产品需求文档", "content": "..."},
-    role="product-manager"
+    artifact_type="PRD", artifact_data={"title": "产品需求文档", "content": "..."}, role="product-manager"
 )
 
 # 获取工件
@@ -136,7 +134,7 @@ manager.add_decision(
     decision="使用 Spring Boot 3.2",
     rationale="云原生支持更好",
     participants=["architect", "solo-coder"],
-    role="architect"
+    role="architect",
 )
 
 # 创建快照
@@ -164,18 +162,18 @@ engine = WorkflowEngine()
 
 # 注册工作流
 workflow_def = {
-    'id': 'full-lifecycle',
-    'steps': [
-        {'role': 'product-manager', 'action': 'requirements-analysis', 'output': 'PRD'},
-        {'role': 'architect', 'action': 'architecture-design', 'input': 'PRD', 'output': 'ARCHITECTURE'},
+    "id": "full-lifecycle",
+    "steps": [
+        {"role": "product-manager", "action": "requirements-analysis", "output": "PRD"},
+        {"role": "architect", "action": "architecture-design", "input": "PRD", "output": "ARCHITECTURE"},
         # ... 更多步骤
-    ]
+    ],
 }
 engine.register_workflow(workflow_def)
 
 # 执行工作流
 context = {}  # 共享上下文
-success = engine.execute_workflow('full-lifecycle', context)
+success = engine.execute_workflow("full-lifecycle", context)
 
 if success:
     print("✅ 工作流执行完成")
@@ -289,21 +287,22 @@ python3 scripts/role_matcher.py \
 from skill_registry import SkillRegistry
 from role_matcher import RoleMatcher
 
+
 # 在 dispatch_agent 函数中使用新组件
 def dispatch_agent(task, explicit_agent=None):
     registry = SkillRegistry()
     registry.load_manifest()
-    
+
     matcher = RoleMatcher()
-    
+
     if explicit_agent:
         # 使用指定的角色
         agent = explicit_agent
     else:
         # 使用智能匹配
         best = matcher.get_best_match(task)
-        agent = best.role_id if best else 'solo-coder'
-    
+        agent = best.role_id if best else "solo-coder"
+
     # ... 继续执行
 ```
 

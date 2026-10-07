@@ -250,10 +250,10 @@ from scripts.collaboration.unified_gate_engine import (
 
 # 配置引擎
 config = UnifiedGateConfig(
-    strict_mode=True,          # 严格模式
+    strict_mode=True,  # 严格模式
     allowed_critical_flags=0,  # 允许的关键问题数
-    max_output_lines=100,      # 最大输出行数
-    min_test_coverage=0.8,     # 最小测试覆盖率
+    max_output_lines=100,  # 最大输出行数
+    min_test_coverage=0.8,  # 最小测试覆盖率
 )
 
 engine = UnifiedGateEngine(config=config)
@@ -323,11 +323,13 @@ from scripts.collaboration.lifecycle_protocol import FullLifecycleAdapter
 app = FastAPI()
 lifecycle = FullLifecycleAdapter()
 
+
 @app.post("/projects/{project_id}/advance")
 async def advance_phase(project_id: str, phase_id: str):
     lifecycle.set_task_id(project_id)
     result = lifecycle.advance_to_phase(phase_id)
     return {"success": result.success, "phase": phase_id}
+
 
 @app.get("/projects/{project_id}/status")
 async def get_status(project_id: str):
@@ -373,6 +375,7 @@ jobs:
 
    # ❌ 差
    from scripts.collaboration.lifecycle_protocol import FullLifecycleAdapter
+
    adapter = FullLifecycleAdapter()  # 直接实例化也可以，但工厂更灵活
    ```
 
@@ -496,6 +499,7 @@ print([issue["message"] for issue in gate_result.red_flags])
 ```python
 # 检查checkpoint目录是否存在
 import os
+
 assert os.path.exists("./checkpoints/lifecycle"), "Checkpoint dir missing"
 
 # 尝试手动创建
@@ -733,13 +737,15 @@ from scripts.history_manager import HistoryManager
 history = HistoryManager()
 
 # 保存指标快照
-history.save_metrics_snapshot({
-    "total_phases": 11,
-    "completed_phases": 7,
-    "completion_rate": 63.6,
-    "avg_response_time_ms": 150.5,
-    "cpu_usage_percent": 45.2
-})
+history.save_metrics_snapshot(
+    {
+        "total_phases": 11,
+        "completed_phases": 7,
+        "completion_rate": 63.6,
+        "avg_response_time_ms": 150.5,
+        "cpu_usage_percent": 45.2,
+    }
+)
 
 # 查询历史数据
 data = history.get_metrics_history(hours=24, interval_minutes=60)

@@ -127,34 +127,36 @@ class Coordinator:
 ```python
 class ScratchpadEntry:
     """共享黑板条目"""
+
     entry_id: str
-    worker_id: str              # 哪个Worker写入
-    role_id: str                 # 角色
+    worker_id: str  # 哪个Worker写入
+    role_id: str  # 角色
     timestamp: datetime
-    entry_type: EntryType       # FINDING / DECISION / CONFLICT / QUESTION
-    content: str                # 内容
-    confidence: float           # 信心度 0-1
-    tags: List[str]             # 标签（便于检索）
-    references: List[str]       # 引用的其他条目
-    status: EntryStatus         # ACTIVE / RESOLVED / SUPERSEDED
+    entry_type: EntryType  # FINDING / DECISION / CONFLICT / QUESTION
+    content: str  # 内容
+    confidence: float  # 信心度 0-1
+    tags: List[str]  # 标签（便于检索）
+    references: List[str]  # 引用的其他条目
+    status: EntryStatus  # ACTIVE / RESOLVED / SUPERSEDED
+
 
 class Scratchpad:
     """共享工作区 - 所有Worker读写"""
-    
+
     entries: Dict[str, ScratchpadEntry]
-    
+
     def write(self, worker_id: str, entry: ScratchpadEntry) -> str:
         """Worker写入发现"""
-        
+
     def read(self, query: str, since: datetime = None) -> List[ScratchpadEntry]:
         """按查询读取相关条目"""
-        
+
     def resolve(self, entry_id: str, resolution: str):
         """标记条目为已解决"""
-        
+
     def get_conflicts(self) -> List[ScratchpadEntry]:
         """获取所有未解决的冲突"""
-        
+
     def get_summary(self, for_role: str = None) -> str:
         """生成摘要（可按角色定制视角）"""
 ```
@@ -164,21 +166,21 @@ class Scratchpad:
 ```python
 class Worker:
     """工作者 - 执行具体任务的Agent实例"""
-    
+
     worker_id: str
-    role_id: str                  # 角色
-    role_prompt: str               # 角色提示词（含生命周期感知）
-    scratchpad: Scratchpad         # 共享黑板
-    
+    role_id: str  # 角色
+    role_prompt: str  # 角色提示词（含生命周期感知）
+    scratchpad: Scratchpad  # 共享黑板
+
     def execute(self, task: TaskDefinition) -> WorkerResult:
         """执行任务，过程中读写Scratchpad"""
-        
+
     def read_scratchpad(self, query: str) -> List[ScratchpadEntry]:
         """读取其他Worker的发现"""
-        
+
     def write_finding(self, finding: Finding):
         """写入自己的发现到Scratchpad"""
-        
+
     def vote_on_decision(self, decision_proposal: DecisionProposal) -> Vote:
         """对协调者的决策提议投票"""
 ```
@@ -219,18 +221,18 @@ class Worker:
 ```python
 class BatchScheduler:
     """批处理调度器 - 混合并行/串行"""
-    
+
     @dataclass
     class TaskBatch:
         batch_id: str
-        mode: BatchMode             # PARALLEL or SERIAL
+        mode: BatchMode  # PARALLEL or SERIAL
         tasks: List[TaskDefinition]
-        max_concurrency: int        # PARALLEL模式下最大并发数
-        dependencies: List[str]    # 依赖的其他batch_id
-        
+        max_concurrency: int  # PARALLEL模式下最大并发数
+        dependencies: List[str]  # 依赖的其他batch_id
+
     def schedule(self, batches: List[TaskBatch]) -> ScheduleResult:
         """执行调度计划"""
-        
+
     def is_concurrency_safe(self, task: TaskDefinition) -> bool:
         """判断任务是否可以安全并行执行"""
         # 只读任务（代码走读、文档审查）→ 可并行
@@ -303,29 +305,31 @@ class ContextCompressor:
 
 ```python
 class PermissionLevel(Enum):
-    DEFAULT = "default"     # 危险操作逐个提示用户
-    PLAN = "plan"           # 只读模式，禁止所有写操作
-    AUTO = "auto"           # AI分类器自动判断 + 白名单
-    BYPASS = "bypass"       # 完全跳过（仅限最高信任度）
+    DEFAULT = "default"  # 危险操作逐个提示用户
+    PLAN = "plan"  # 只读模式，禁止所有写操作
+    AUTO = "auto"  # AI分类器自动判断 + 白名单
+    BYPASS = "bypass"  # 完全跳过（仅限最高信任度）
+
 
 @dataclass
 class PermissionRule:
-    action_type: ActionType       # FILE_WRITE / NETWORK / EXECUTE / DELETE
-    pattern: str                 # 匹配模式（glob）
+    action_type: ActionType  # FILE_WRITE / NETWORK / EXECUTE / DELETE
+    pattern: str  # 匹配模式（glob）
     required_level: PermissionLevel
     description: str
 
+
 class PermissionGuard:
     """权限守卫"""
-    
+
     rules: List[PermissionRule]
-    
+
     def check(self, action: ProposedAction) -> PermissionDecision:
         """检查操作是否允许"""
-        
+
     def prompt_user(self, action: ProposedAction) -> bool:
         """提示用户确认危险操作"""
-        
+
     def auto_classify(self, action: ProposedAction) -> bool:
         """AI自动判断操作安全性"""
 ```
@@ -384,13 +388,13 @@ class Skillifier:
 ```python
 class WarmupManager:
     """启动预热管理器"""
-    
+
     async def warmup(self):
         """预热关键资源"""
-        await self._preload_common_roles()      # 预加载高频角色提示词
-        await self._preload_stage_templates()    # 预加载当前阶段模板
-        await self._init_registry_cache()        # 初始化注册表缓存
-        await self._preload_embedding_model()    # 预热嵌入模型（如使用）
+        await self._preload_common_roles()  # 预加载高频角色提示词
+        await self._preload_stage_templates()  # 预加载当前阶段模板
+        await self._init_registry_cache()  # 初始化注册表缓存
+        await self._preload_embedding_model()  # 预热嵌入模型（如使用）
 ```
 
 **预热策略**：
@@ -544,14 +548,14 @@ class WarmupManager:
 MemoryBridge(
     base_dir="...",
     mce_engine=Optional[MemoryClassificationEngine],  # 可选注入
-    enable_mce_classify=False,                       # 配置开关
-    enable_mce_recall_filter=False,                  # 召回过滤开关
+    enable_mce_classify=False,  # 配置开关
+    enable_mce_recall_filter=False,  # 召回过滤开关
 )
 
 # Dispatcher 扩展
 MultiAgentDispatcher(
-    mce_engine=Optional[MCE],                        # 可选注入
-    enable_mce=True,                                 # 全局开关
+    mce_engine=Optional[MCE],  # 可选注入
+    enable_mce=True,  # 全局开关
 )
 ```
 

@@ -160,11 +160,13 @@ result = disp.quick_dispatch("Design database", output_format="structured")
 from scripts.collaboration.batch_scheduler import BatchScheduler
 
 scheduler = BatchScheduler()
-results = scheduler.schedule([
-    "Design user authentication system",
-    "Optimize database queries",
-    "Implement REST API",
-])
+results = scheduler.schedule(
+    [
+        "Design user authentication system",
+        "Optimize database queries",
+        "Implement REST API",
+    ]
+)
 ```
 
 ### 2.4 Workflow Engine
@@ -460,6 +462,7 @@ Each sub-skill is a ~50-line wrapper around core modules, working in Mock mode w
 ```python
 from skills import get_skill, list_skills
 from skills.security.handler import SecuritySkill
+
 risk = SecuritySkill().scan_input("suspicious input")
 ```
 

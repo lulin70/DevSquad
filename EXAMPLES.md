@@ -286,6 +286,7 @@ disp = MultiAgentDispatcher(llm_backend=backend)
 
 # 使用流式 Worker
 from scripts.collaboration.worker import Worker
+
 worker = Worker(role="architect", backend=backend, stream=True)
 # Worker 会实时打印 LLM 响应块
 

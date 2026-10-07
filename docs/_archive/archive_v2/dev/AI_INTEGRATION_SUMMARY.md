@@ -194,11 +194,7 @@ similarity = len(intersection) / len(union)
 **AI 增强方式**:
 ```python
 # AI 深层语义理解
-ai_results = ai_matcher.match(
-    task_title="设计微服务架构",
-    task_description="支持高并发、弹性扩展",
-    roles=roles
-)
+ai_results = ai_matcher.match(task_title="设计微服务架构", task_description="支持高并发、弹性扩展", roles=roles)
 # 理解"高并发"→负载均衡、分布式
 # 理解"弹性扩展"→自动扩缩容、容器化
 ```
@@ -267,11 +263,7 @@ print(response.content)
 
 # 使用语义匹配器
 matcher = get_semantic_matcher()
-results = matcher.match(
-    task_title="设计系统架构",
-    task_description="需要高可用设计",
-    roles=roles
-)
+results = matcher.match(task_title="设计系统架构", task_description="需要高可用设计", roles=roles)
 ```
 
 ### 角色匹配
@@ -288,10 +280,7 @@ matcher.register_role(developer_role)
 
 # 匹配
 requirement = TaskRequirement(
-    task_id="1",
-    title="设计微服务架构",
-    description="支持高并发",
-    required_capabilities=["architecture_design"]
+    task_id="1", title="设计微服务架构", description="支持高并发", required_capabilities=["architecture_design"]
 )
 
 results = matcher.match(requirement, top_k=3)
@@ -315,11 +304,7 @@ def calculate_sum(numbers):
     return total
 """
 
-response = ai.review_code(
-    code, 
-    language="python",
-    focus=["quality", "performance", "security"]
-)
+response = ai.review_code(code, language="python", focus=["quality", "performance", "security"])
 
 print(response.content)
 print(f"置信度：{response.confidence}")

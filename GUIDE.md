@@ -260,11 +260,13 @@ result = disp.quick_dispatch(task, output_format="detailed")
 from scripts.collaboration.batch_scheduler import BatchScheduler
 
 scheduler = BatchScheduler()
-results = scheduler.schedule([
-    "设计用户认证系统",
-    "优化数据库查询",
-    "实现REST API",
-])
+results = scheduler.schedule(
+    [
+        "设计用户认证系统",
+        "优化数据库查询",
+        "实现REST API",
+    ]
+)
 ```
 
 ### 3.4 工作流引擎
@@ -429,11 +431,14 @@ from scripts.collaboration.checkpoint_manager import CheckpointManager
 cm = CheckpointManager()
 
 # 保存检查点
-cm.save("architecture_complete", {
-    "task_id": "t1",
-    "phase": "architecture",
-    "output": arch_result,
-})
+cm.save(
+    "architecture_complete",
+    {
+        "task_id": "t1",
+        "phase": "architecture",
+        "output": arch_result,
+    },
+)
 
 # 恢复检查点（从断点继续）
 state = cm.load("architecture_complete")
@@ -677,8 +682,8 @@ quality_control:
 from scripts.collaboration.coordinator import Coordinator
 
 coord = Coordinator(
-    briefing_mode=True,        # 启用简报模式
-    memory_provider=adapter,   # 规则预加载
+    briefing_mode=True,  # 启用简报模式
+    memory_provider=adapter,  # 规则预加载
 )
 
 # 预加载规则
@@ -698,10 +703,10 @@ from scripts.collaboration.enhanced_worker import EnhancedWorker
 worker = EnhancedWorker(
     worker_id="arch-1",
     role_id="architect",
-    cache_provider=LLMCache(),           # LLM响应缓存（TTL过期）
-    retry_provider=LLMRetryManager(),     # 自动重试 + 降级
-    monitor_provider=PerformanceMonitor(),# 性能监控
-    memory_provider=mce_adapter,          # 规则注入（可选）
+    cache_provider=LLMCache(),  # LLM响应缓存（TTL过期）
+    retry_provider=LLMRetryManager(),  # 自动重试 + 降级
+    monitor_provider=PerformanceMonitor(),  # 性能监控
+    memory_provider=mce_adapter,  # 规则注入（可选）
 )
 
 # 执行任务时自动:
@@ -1241,12 +1246,12 @@ mapper = get_shared_mapper()
 # 从任务描述检测意图
 match = mapper.detect_intent("Fix login page crash", lang="en")
 if match:
-    print(f"Intent: {match.intent_type}")           # "bug_fix"
-    print(f"Confidence: {match.confidence:.2f}")     # 0.85
-    print(f"Workflow: {match.workflow_chain}")        # ["debugging_and_error_recovery", "test_driven_development"]
-    print(f"Roles: {match.required_roles}")           # ["solo-coder", "tester"]
-    print(f"Gate: {match.gate}")                      # "prove_it_pattern"
-    print(f"Message: {match.anti_skip_message}")      # "Do NOT implement fix first..."
+    print(f"Intent: {match.intent_type}")  # "bug_fix"
+    print(f"Confidence: {match.confidence:.2f}")  # 0.85
+    print(f"Workflow: {match.workflow_chain}")  # ["debugging_and_error_recovery", "test_driven_development"]
+    print(f"Roles: {match.required_roles}")  # ["solo-coder", "tester"]
+    print(f"Gate: {match.gate}")  # "prove_it_pattern"
+    print(f"Message: {match.anti_skip_message}")  # "Do NOT implement fix first..."
 ```
 
 **支持的意图（6 类型 × 3 语言）：**
@@ -1418,9 +1423,11 @@ print(ga.generate_roadmap(gaps))
 from scripts.collaboration.dora_metrics_collector import DoraMetricsCollector
 
 dora = DoraMetricsCollector()
-metrics = dora.collect_from_dispatch([
-    {"timestamp": "2026-07-30T10:00:00Z", "success": True, "duration": 300},
-])
+metrics = dora.collect_from_dispatch(
+    [
+        {"timestamp": "2026-07-30T10:00:00Z", "success": True, "duration": 300},
+    ]
+)
 print(dora.rating(metrics))  # "Elite" / "High" / "Medium" / "Low"
 ```
 
@@ -1436,7 +1443,13 @@ from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 disp = MultiAgentDispatcher()
 disp.dispatch("test task", roles=["architect"])
-for module_name in ["risk_register", "viewpoint_registry", "error_budget_tracker", "gap_analyzer", "dora_metrics_collector"]:
+for module_name in [
+    "risk_register",
+    "viewpoint_registry",
+    "error_budget_tracker",
+    "gap_analyzer",
+    "dora_metrics_collector",
+]:
     module = getattr(disp, f"_{module_name}", None)
     if module and hasattr(module, "_call_counter"):
         assert module._call_counter > 0, f"{module_name} not activated (ghost feature!)"
@@ -1460,10 +1473,8 @@ from scripts.collaboration.mce_adapter import MCEAdapter
 adapter = MCEAdapter(enable=True)  # 自动检测 DevSquadAdapter
 
 # 添加规则
-adapter.add_rule("user1", "Always use SSL",
-                 metadata={"rule_type": "always", "trigger": "database"})
-adapter.add_rule("user1", "No plain text passwords",
-                 metadata={"rule_type": "forbid", "trigger": "password"})
+adapter.add_rule("user1", "Always use SSL", metadata={"rule_type": "always", "trigger": "database"})
+adapter.add_rule("user1", "No plain text passwords", metadata={"rule_type": "forbid", "trigger": "password"})
 
 # 匹配规则
 rules = adapter.match_rules("Design DB schema with password", "user1", role="architect")
@@ -1578,6 +1589,7 @@ from skills.intent.handler import IntentSkill
 
 # 方式2: 通过注册表动态发现
 from skills import get_skill, list_skills, discover_all
+
 skills = discover_all()  # 获取所有子Skill实例
 for name, skill in skills.items():
     print(f"{name}: {skill.info()['description']}")

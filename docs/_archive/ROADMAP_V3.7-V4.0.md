@@ -293,6 +293,7 @@ Phase 6: Test Coverage Enhancement
 import pytest
 from playwright.sync_api import sync_playwright
 
+
 class TestDashboardE2E:
     """Dashboard 端到端测试"""
 
@@ -320,26 +321,22 @@ import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+
 class TestMCPServerIntegration:
     """MCP Server 集成测试"""
 
     @pytest.fixture
     def mcp_client(self):
-        server_params = StdioServerParameters(
-            command="python",
-            args=["scripts/mcp_server.py"]
-        )
+        server_params = StdioServerParameters(command="python", args=["scripts/mcp_server.py"])
         with stdio_client(server_params) as (read, write):
             with ClientSession(read, write) as session:
                 yield session
 
     async def test_multiagent_dispatch_tool(self, mcp_client):
         """验证 dispatch tool 正确执行"""
-        result = await mcp_client.call_tool("multiagent_dispatch", {
-            "task": "test task",
-            "roles": ["architect"],
-            "mode": "auto"
-        })
+        result = await mcp_client.call_tool(
+            "multiagent_dispatch", {"task": "test task", "roles": ["architect"], "mode": "auto"}
+        )
         assert len(result.content) > 0
         assert "finding" in result.content[0].text.lower()
 
@@ -358,6 +355,7 @@ from scripts.api_server import app
 
 client = TestClient(app)
 
+
 class TestAPIRoutes:
     """FastAPI 路由测试"""
 
@@ -370,12 +368,9 @@ class TestAPIRoutes:
 
     def test_dispatch_endpoint(self):
         """调度端点完整流程"""
-        response = client.post("/api/v1/dispatch", json={
-            "task": "test task",
-            "roles": ["architect"],
-            "mode": "auto",
-            "backend": "mock"
-        })
+        response = client.post(
+            "/api/v1/dispatch", json={"task": "test task", "roles": ["architect"], "mode": "auto", "backend": "mock"}
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
@@ -465,6 +460,7 @@ import statistics
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class BenchmarkResult:
     scenario: str
@@ -477,6 +473,7 @@ class BenchmarkResult:
     max_ms: float
     throughput_qps: float
     memory_mb: float
+
 
 class PerformanceBenchmark:
     """自动化性能基准测试"""
@@ -504,13 +501,13 @@ class PerformanceBenchmark:
         return BenchmarkResult(
             scenario=scenario,
             iterations=iterations,
-            p50_ms=times[len(times)//2],
-            p95_ms=times[int(len(times)*0.95)],
-            p99_ms=times[int(len(times)*0.99)] if len(times) > 1 else times[-1],
+            p50_ms=times[len(times) // 2],
+            p95_ms=times[int(len(times) * 0.95)],
+            p99_ms=times[int(len(times) * 0.99)] if len(times) > 1 else times[-1],
             mean_ms=statistics.mean(times),
             min_ms=min(times),
             max_ms=max(times),
-            throughput_qps=iterations / (sum(times)/1000),
+            throughput_qps=iterations / (sum(times) / 1000),
             memory_mb=self._get_memory_usage(),
         )
 
@@ -578,6 +575,7 @@ import asyncio
 from typing import Any
 import aiohttp
 from scripts.collaboration.llm_backend import LLMBackend, LLMResponse
+
 
 class AsyncLLMBackend:
     """High-performance async LLM backend using aiohttp.
@@ -651,13 +649,9 @@ class AsyncLLMBackend:
 
         try:
             if self.backend_type == "openai":
-                response = await self._call_openai_async(
-                    prompt, system_prompt, temperature, max_tokens
-                )
+                response = await self._call_openai_async(prompt, system_prompt, temperature, max_tokens)
             elif self.backend_type == "anthropic":
-                response = await self._call_anthropic_async(
-                    prompt, system_prompt, temperature, max_tokens
-                )
+                response = await self._call_anthropic_async(prompt, system_prompt, temperature, max_tokens)
             else:
                 raise ValueError(f"Unsupported backend: {self.backend_type}")
 
@@ -723,9 +717,7 @@ class AsyncLLMBackend:
         """Get performance statistics."""
         stats = self._stats.copy()
         if stats["requests_success"] > 0:
-            stats["avg_latency_ms"] = (
-                stats["total_latency_ms"] / stats["requests_success"]
-            )
+            stats["avg_latency_ms"] = stats["total_latency_ms"] / stats["requests_success"]
         return stats
 ```
 
@@ -896,7 +888,7 @@ cache:
 # Optimal connection pool settings for different backends
 CONNECTION_POOL_CONFIG = {
     "openai": {
-        "limit": 20,           # Max connections
+        "limit": 20,  # Max connections
         "limit_per_host": 10,  # Per-host limit
         "ttl_dns_cache": 300,  # DNS cache TTL
         "enable_cleanup_closed": True,
@@ -1017,6 +1009,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 import uuid
 
+
 class StructuredFormatter(logging.Formatter):
     """JSON structured log formatter.
 
@@ -1044,7 +1037,7 @@ class StructuredFormatter(logging.Formatter):
             }
 
         if record.args:
-            log_entry["args"] = {k: str(v) for k, v in record._args.items()} if hasattr(record, '_args') else {}
+            log_entry["args"] = {k: str(v) for k, v in record._args.items()} if hasattr(record, "_args") else {}
 
         return json.dumps(log_entry, ensure_ascii=False)
 
@@ -1072,9 +1065,7 @@ def setup_structured_logging(
     if format == "json":
         formatter = StructuredFormatter()
     else:
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     if output == "file" and file_path:
         handler = logging.FileHandler(file_path)
@@ -1183,10 +1174,12 @@ app_info = Info(
     "DevSquad application information",
 )
 
-app_info.info({
-    "version": "3.7.0",
-    "environment": "production",
-})
+app_info.info(
+    {
+        "version": "3.7.0",
+        "environment": "production",
+    }
+)
 
 
 @router.get("")
@@ -1295,6 +1288,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.aiohttp_client import AiohttpInstrumentor
 from opentelemetry.semconv.resource import ResourceAttributes
 
+
 def setup_tracing(
     service_name: str = "devsquad-api",
     otlp_endpoint: str = "http://localhost:4317",
@@ -1307,11 +1301,13 @@ def setup_tracing(
         otlp_endpoint: OTLP collector endpoint
         environment: Environment tag (dev/staging/prod)
     """
-    resource = Resource.create({
-        ResourceAttributes.SERVICE_NAME: service_name,
-        ResourceAttributes.DEPLOYMENT_ENVIRONMENT: environment,
-        ResourceAttributes.SERVICE_VERSION: "3.7.0",
-    })
+    resource = Resource.create(
+        {
+            ResourceAttributes.SERVICE_NAME: service_name,
+            ResourceAttributes.DEPLOYMENT_ENVIRONMENT: environment,
+            ResourceAttributes.SERVICE_VERSION: "3.7.0",
+        }
+    )
 
     provider = TracerProvider(resource=resource)
     exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
@@ -1326,6 +1322,7 @@ def setup_tracing(
 
 # Usage example in dispatcher
 tracer = trace.get_tracer(__name__)
+
 
 async def traced_dispatch(task: str, roles: list[str]):
     """Traced dispatch function."""
@@ -1671,9 +1668,7 @@ class RBACEngine:
     def require_permission(self, user: User, permission: Permission):
         """Raise exception if permission denied."""
         if not self.check_access(user, permission):
-            raise PermissionDeniedError(
-                f"User '{user.username}' lacks permission: {permission.value}"
-            )
+            raise PermissionDeniedError(f"User '{user.username}' lacks permission: {permission.value}")
 ```
 
 ### 6.3 Audit Log 审计日志系统
@@ -1779,9 +1774,7 @@ class AuditLogger:
         # Add cryptographic chain link
         entry_dict = asdict(entry)
         entry_dict["prev_hash"] = self._last_hash
-        entry_hash = hashlib.sha256(
-            json.dumps(entry_dict, sort_keys=True).encode()
-        ).hexdigest()
+        entry_hash = hashlib.sha256(json.dumps(entry_dict, sort_keys=True).encode()).hexdigest()
         entry_dict["hash"] = entry_hash
         self._last_hash = entry_hash
 
@@ -1871,11 +1864,20 @@ class AuditLogger:
         entries = self.query(start_time=start_time, end_time=end_time, limit=100000)
 
         with open(output_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=[
-                "entry_id", "timestamp", "user_id", "action",
-                "resource_type", "resource_id", "success",
-                "ip_address", "details"
-            ])
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "entry_id",
+                    "timestamp",
+                    "user_id",
+                    "action",
+                    "resource_type",
+                    "resource_id",
+                    "success",
+                    "ip_address",
+                    "details",
+                ],
+            )
             writer.writeheader()
             for entry in entries:
                 row = asdict(entry)
@@ -1899,9 +1901,7 @@ class AuditLogger:
                     try:
                         entry = json.loads(line.strip())
                         if prev_hash and entry.get("prev_hash") != prev_hash:
-                            issues.append(
-                                f"Chain broken at {log_file.name}:{line_num}"
-                            )
+                            issues.append(f"Chain broken at {log_file.name}:{line_num}")
                         prev_hash = entry.get("hash")
                     except (json.JSONDecodeError, KeyError):
                         issues.append(f"Invalid entry at {log_file.name}:{line_num}")

@@ -97,44 +97,53 @@ Markdown 报告"安全检查"章节 + 审计日志
 ```python
 # scripts/collaboration/dependency_hallucination_checker.py
 
+
 class DependencyCategory(Enum):
     """Three-tier classification for imported packages."""
-    KNOWN_GOOD = "known_good"      # In whitelist (Top-N or project lockfile)
-    UNKNOWN = "unknown"            # Not in whitelist/blacklist, no heuristic hit
-    SUSPICIOUS = "suspicious"      # In blacklist or heuristic hit (typo/confusion)
+
+    KNOWN_GOOD = "known_good"  # In whitelist (Top-N or project lockfile)
+    UNKNOWN = "unknown"  # Not in whitelist/blacklist, no heuristic hit
+    SUSPICIOUS = "suspicious"  # In blacklist or heuristic hit (typo/confusion)
+
 
 class DependencySeverity(Enum):
     """Severity levels for dependency findings."""
-    INFO = "info"                  # KNOWN_GOOD
-    WARNING = "warning"            # UNKNOWN
-    CRITICAL = "critical"          # SUSPICIOUS
+
+    INFO = "info"  # KNOWN_GOOD
+    WARNING = "warning"  # UNKNOWN
+    CRITICAL = "critical"  # SUSPICIOUS
+
 
 @dataclass
 class DependencyFinding:
     """Single dependency finding."""
+
     package_name: str
-    ecosystem: str                  # "pypi" | "npm"
+    ecosystem: str  # "pypi" | "npm"
     category: DependencyCategory
     severity: DependencySeverity
-    import_statement: str           # Original import line
+    import_statement: str  # Original import line
     line_number: int
-    reason: str                     # Why this classification
-    suggested_fix: str | None       # Suggested real package (if known)
+    reason: str  # Why this classification
+    suggested_fix: str | None  # Suggested real package (if known)
+
 
 @dataclass
 class DependencyScanResult:
     """Result of dependency hallucination scan."""
-    is_clean: bool                  # True if no SUSPICIOUS/UNKNOWN
+
+    is_clean: bool  # True if no SUSPICIOUS/UNKNOWN
     findings: list[DependencyFinding]
     summary: str
-    stats: dict[str, int]           # {"known_good": N, "unknown": N, "suspicious": N}
+    stats: dict[str, int]  # {"known_good": N, "unknown": N, "suspicious": N}
     scan_duration_ms: float
     timestamp: str
 
+
 def security_scan_dependencies(
     code: str,
-    ecosystem: str = "auto",        # "pypi" | "npm" | "auto" (detect from code)
-    blocking: bool = False,         # If True, SUSPICIOUS raises RuntimeError
+    ecosystem: str = "auto",  # "pypi" | "npm" | "auto" (detect from code)
+    blocking: bool = False,  # If True, SUSPICIOUS raises RuntimeError
 ) -> DependencyScanResult:
     """
     Scan code for dependency hallucination (Slopsquatting attack).
@@ -182,8 +191,8 @@ def security_scan_dependencies(
 **Python**:
 ```python
 PATTERNS_PYTHON = [
-    r"^\s*import\s+([a-zA-Z_][a-zA-Z0-9_]*)",           # import foo
-    r"^\s*from\s+([a-zA-Z_][a-zA-Z0-9_.]*)\s+import",   # from foo.bar import baz
+    r"^\s*import\s+([a-zA-Z_][a-zA-Z0-9_]*)",  # import foo
+    r"^\s*from\s+([a-zA-Z_][a-zA-Z0-9_.]*)\s+import",  # from foo.bar import baz
 ]
 ```
 
@@ -191,7 +200,7 @@ PATTERNS_PYTHON = [
 ```python
 PATTERNS_JS = [
     r"^\s*import\s+.*\s+from\s+['\"]([^'\"./]+)['\"]",  # import x from 'pkg'
-    r"^\s*require\(\s*['\"]([^'\"./]+)['\"]\s*\)",       # require('pkg')
+    r"^\s*require\(\s*['\"]([^'\"./]+)['\"]\s*\)",  # require('pkg')
 ]
 ```
 

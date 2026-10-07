@@ -30,6 +30,7 @@ The assertion recomputes the function's known formula:
 def test_add():
     assert add(2, 3) == 2 + 3  # Re-computes the implementation
 
+
 # GOOD — behavioral
 def test_add():
     assert add(2, 3) == 5  # Hard-coded expected value
@@ -44,6 +45,7 @@ The test passes the test's own input as the expected output:
 def test_transform(data):
     result = transform(data)
     assert result == transform(data)  # Calls the same function
+
 
 # GOOD — behavioral
 def test_transform():
@@ -61,6 +63,7 @@ def test_parse():
     expected = parse("input")
     actual = parse("input")
     assert actual == expected  # Always true
+
 
 # GOOD — behavioral
 def test_parse():
@@ -86,6 +89,7 @@ def test_nothing():
 def test_is_valid():
     assertTrue(is_valid(data))  # If is_valid returns True, this passes
     # Should assert specific properties instead
+
 
 # GOOD — behavioral
 def test_is_valid():

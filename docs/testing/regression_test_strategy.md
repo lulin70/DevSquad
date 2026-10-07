@@ -166,41 +166,44 @@ import time
 import psutil
 import pytest
 
+
 def test_agent_execution_performance():
     """测试 Agent 执行性能"""
     agent = ArchitectAgent()
-    
+
     start = time.time()
     result = agent.execute("Simple task")
     duration = time.time() - start
-    
+
     # 不应超过 v3.4 基线的 110%
     assert duration <= 2.75, f"Performance regression: {duration}s > 2.75s"
+
 
 def test_cache_read_performance():
     """测试缓存读取性能"""
     cache = LLMCache()
     cache.set("key", "value")
-    
+
     start = time.time()
     for _ in range(1000):
         cache.get("key")
     duration = (time.time() - start) / 1000
-    
-    assert duration <= 0.0055, f"Cache read regression: {duration*1000}ms > 5.5ms"
+
+    assert duration <= 0.0055, f"Cache read regression: {duration * 1000}ms > 5.5ms"
+
 
 def test_memory_usage():
     """测试内存占用"""
     process = psutil.Process()
     baseline = process.memory_info().rss / 1024 / 1024  # MB
-    
+
     # 执行典型工作负载
     orchestrator = Orchestrator([...])
     orchestrator.execute("Complex task")
-    
+
     current = process.memory_info().rss / 1024 / 1024
     increase = current - baseline
-    
+
     assert increase <= 165, f"Memory regression: {increase}MB > 165MB"
 ```
 
@@ -219,15 +222,15 @@ def test_memory_usage():
 def test_llm_cache_api_compatibility():
     """测试 LLMCache API 兼容性"""
     cache = LLMCache()
-    
+
     # v3.4 API（必须保留）
-    assert hasattr(cache, 'get')
-    assert hasattr(cache, 'set')
-    assert hasattr(cache, 'clear')
-    
+    assert hasattr(cache, "get")
+    assert hasattr(cache, "set")
+    assert hasattr(cache, "clear")
+
     # v3.5 新增 API（可选）
-    assert hasattr(cache, 'version')
-    assert hasattr(cache, 'is_available')
+    assert hasattr(cache, "version")
+    assert hasattr(cache, "is_available")
 ```
 
 #### LLMRetry API
@@ -235,14 +238,14 @@ def test_llm_cache_api_compatibility():
 def test_llm_retry_api_compatibility():
     """测试 LLMRetry API 兼容性"""
     retry = LLMRetry()
-    
+
     # v3.4 API
-    assert hasattr(retry, 'retry_with_fallback')
-    assert hasattr(retry, 'get_stats')
-    
+    assert hasattr(retry, "retry_with_fallback")
+    assert hasattr(retry, "get_stats")
+
     # v3.5 新增 API
-    assert hasattr(retry, 'version')
-    assert hasattr(cache, 'is_available')
+    assert hasattr(retry, "version")
+    assert hasattr(cache, "is_available")
 ```
 
 ### 4.2 配置兼容性测试
@@ -255,13 +258,13 @@ def test_config_backward_compatibility():
     """测试配置文件向后兼容性"""
     # 加载 v3.4 配置文件
     config = load_config("config/v3.4_config.yaml")
-    
+
     # 应该能正常解析
-    assert config['llm']['model'] == 'gpt-4'
-    assert config['cache']['enabled'] == True
-    
+    assert config["llm"]["model"] == "gpt-4"
+    assert config["cache"]["enabled"] == True
+
     # v3.5 新增字段应该有默认值
-    assert config.get('providers', {}).get('cache', {}).get('type') == 'memory'
+    assert config.get("providers", {}).get("cache", {}).get("type") == "memory"
 ```
 
 ---
@@ -383,29 +386,27 @@ jobs:
 import json
 import sys
 
+
 def check_performance_regression():
     """检查性能回归"""
     # 加载 v3.4 基线
     with open("benchmarks/v3.4_baseline.json") as f:
         baseline = json.load(f)
-    
+
     # 运行 v3.5 性能测试
     current = run_performance_tests()
-    
+
     # 对比
     regressions = []
     for metric, baseline_value in baseline.items():
         current_value = current[metric]
         increase = (current_value - baseline_value) / baseline_value
-        
+
         if increase > 0.1:  # 超过 10%
-            regressions.append({
-                "metric": metric,
-                "baseline": baseline_value,
-                "current": current_value,
-                "increase": f"{increase:.1%}"
-            })
-    
+            regressions.append(
+                {"metric": metric, "baseline": baseline_value, "current": current_value, "increase": f"{increase:.1%}"}
+            )
+
     if regressions:
         print("❌ Performance regressions detected:")
         for r in regressions:
@@ -414,6 +415,7 @@ def check_performance_regression():
     else:
         print("✅ No performance regressions detected")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     check_performance_regression()

@@ -350,8 +350,11 @@ Consensus records in `result.consensus_records`.
 
 ```python
 from scripts.collaboration import (
-    FeedbackControlLoop, PerformanceFingerprint,
-    SimilarTaskRecommender, AdaptiveRoleSelector, ExecutionGuard
+    FeedbackControlLoop,
+    PerformanceFingerprint,
+    SimilarTaskRecommender,
+    AdaptiveRoleSelector,
+    ExecutionGuard,
 )
 
 # Feedback loop (auto-retry until quality gate passes)

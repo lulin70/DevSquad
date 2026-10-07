@@ -137,11 +137,9 @@ rather than counted as dropped.
 The conservation invariant is:
 
 ```python
-sum(
-    count
-    for gate, count in result.gate_counts.items()
-    if gate != "user_include"
-) + len(result.retained_paths) == result.candidate_count
+sum(count for gate, count in result.gate_counts.items() if gate != "user_include") + len(
+    result.retained_paths
+) == result.candidate_count
 ```
 
 Each normalized candidate receives at most one final decision; duplicate path

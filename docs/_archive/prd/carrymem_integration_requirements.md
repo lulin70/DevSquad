@@ -69,11 +69,7 @@ class CarryMemAdapter(Protocol):
         ...
 
     def match_rules(
-        self,
-        task_description: str,
-        user_id: str,
-        role: Optional[str] = None,
-        max_rules: int = 5
+        self, task_description: str, user_id: str, role: Optional[str] = None, max_rules: int = 5
     ) -> List[Dict]:
         """
         Match user rules based on task description.
@@ -99,7 +95,7 @@ class CarryMemAdapter(Protocol):
         task: str,
         rules_applied: List[str],
         outcome: str,
-        user_feedback: Optional[str] = None
+        user_feedback: Optional[str] = None,
     ) -> str:
         """Log execution experience. Returns experience ID."""
         ...
@@ -173,7 +169,9 @@ assert isinstance(prompt_text, str)
 assert len(prompt_text) > 0
 
 # 5. Experience logging
-exp_id = adapter.log_experience(user_id="user1", role="architect", task="Design API", rules_applied=["r1"], outcome="Success")
+exp_id = adapter.log_experience(
+    user_id="user1", role="architect", task="Design API", rules_applied=["r1"], outcome="Success"
+)
 assert isinstance(exp_id, str)
 
 # 6. Graceful degradation

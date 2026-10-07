@@ -45,20 +45,27 @@
 # 1. 为核心模块定义 Protocol 接口
 from typing import Protocol
 
+
 class CacheProvider(Protocol):
     """缓存提供者接口——允许多种实现"""
+
     def is_available(self) -> bool: ...
     def get(self, key: str) -> Any | None: ...
     def set(self, key: str, value: Any) -> bool: ...
 
+
 class NullCacheProvider:
     """空缓存实现——降级时使用"""
+
     def is_available(self) -> bool:
         return False
+
     def get(self, key: str) -> Any | None:
         return None
+
     def set(self, key: str, value: Any) -> bool:
         return True  # 静默成功
+
 
 # 2. Agent 基类支持可选增强
 class DevSquadAgent:
@@ -68,7 +75,7 @@ class DevSquadAgent:
         role: str,
         cache: CacheProvider | None = None,  # 可选
         monitor: PerformanceMonitor | None = None,  # 可选
-        retry: RetryManager | None = None  # 可选
+        retry: RetryManager | None = None,  # 可选
     ):
         self.cache = cache or NullCacheProvider()
         self.monitor = monitor or NullMonitor()
@@ -98,7 +105,7 @@ class DevSquadAgent:
 next_agent.context = {
     "task": task,
     "previous_results": all_previous_results,  # ❌ 可能很大
-    "message_history": full_history  # ❌ 逐级膨胀
+    "message_history": full_history,  # ❌ 逐级膨胀
 }
 ```
 
@@ -117,13 +124,14 @@ next_agent.context = {
 @dataclass
 class AgentBriefing:
     """Agent 间传递的压缩状态"""
-    task_summary: str          # 1-2 句话
-    key_decisions: list[str]   # 最多 5 条
-    pending_items: list[str]   # 待处理事项
-    rules_applied: list[str]   # 应用的规则 ID
-    result_summary: str        # 执行结果摘要
-    confidence: float          # 0-1，置信度
-    
+
+    task_summary: str  # 1-2 句话
+    key_decisions: list[str]  # 最多 5 条
+    pending_items: list[str]  # 待处理事项
+    rules_applied: list[str]  # 应用的规则 ID
+    result_summary: str  # 执行结果摘要
+    confidence: float  # 0-1，置信度
+
     def to_prompt(self) -> str:
         """转换为下一个 Agent 的 prompt 输入"""
         return f"""
@@ -140,6 +148,7 @@ class AgentBriefing:
 {self.result_summary}
 """
 
+
 class DevSquadAgent:
     def compress_to_briefing(self) -> AgentBriefing:
         """将执行结果压缩为 briefing"""
@@ -149,7 +158,7 @@ class DevSquadAgent:
             pending_items=self._extract_pending(),
             rules_applied=self._rules_applied,
             result_summary=self._summarize_result(max_length=200),
-            confidence=self._calculate_confidence()
+            confidence=self._calculate_confidence(),
         )
 ```
 
@@ -178,16 +187,17 @@ DevSquad 的 Agent 输出没有置信度标记，下游 Agent 无法判断上游
 @dataclass
 class AgentResult:
     """Agent 执行结果"""
+
     summary: str
-    confidence: float           # 0-1，Agent 对结果的置信度
-    assumptions: list[str]      # 本次执行中的假设前提
-    warnings: list[str]         # 潜在问题警告
-    rules_applied: list[str]    # 应用的规则 ID
-    
+    confidence: float  # 0-1，Agent 对结果的置信度
+    assumptions: list[str]  # 本次执行中的假设前提
+    warnings: list[str]  # 潜在问题警告
+    rules_applied: list[str]  # 应用的规则 ID
+
     def is_reliable(self) -> bool:
         """结果是否可靠（置信度 >= 0.7）"""
         return self.confidence >= 0.7
-    
+
     def get_risk_level(self) -> str:
         """风险等级"""
         if self.confidence >= 0.9:
@@ -197,26 +207,27 @@ class AgentResult:
         else:
             return "HIGH"
 
+
 class DevSquadAgent:
     def _calculate_confidence(self) -> float:
         """计算置信度"""
         factors = []
-        
+
         # 因素1：数据来源可靠性
         if self._data_from_verified_source:
             factors.append(0.3)
-        
+
         # 因素2：假设数量（假设越多，置信度越低）
         assumption_penalty = len(self._assumptions) * 0.05
         factors.append(max(0, 0.3 - assumption_penalty))
-        
+
         # 因素3：规则覆盖度
         if self._rules_applied:
             factors.append(0.2)
-        
+
         # 因素4：历史成功率
         factors.append(self._historical_success_rate * 0.2)
-        
+
         return min(1.0, sum(factors))
 ```
 
@@ -226,14 +237,14 @@ class DevSquadAgent:
 class DevSquadOrchestrator:
     async def execute_workflow(self, task: Task) -> WorkflowResult:
         """执行工作流——考虑置信度"""
-        
+
         results = []
         for agent in self.agents:
             # 传递前序 Agent 的 briefing
             if results:
                 prev_briefing = results[-1].compress_to_briefing()
                 agent.receive_briefing(prev_briefing)
-                
+
                 # ⚠️ 低置信度警告
                 if prev_briefing.confidence < 0.7:
                     agent.add_warning(f"""
@@ -241,18 +252,16 @@ class DevSquadOrchestrator:
 以下假设可能不准确，请在执行中验证：
 {chr(10).join(f"  - {a}" for a in prev_briefing.assumptions)}
 """)
-            
+
             result = await agent.execute(task)
             results.append(result)
-            
+
             # 🚨 极低置信度时中断流程
             if result.confidence < 0.5:
                 return WorkflowResult(
-                    status="PAUSED",
-                    reason=f"{agent.role} 的结果置信度过低，需要人工介入",
-                    results=results
+                    status="PAUSED", reason=f"{agent.role} 的结果置信度过低，需要人工介入", results=results
                 )
-        
+
         return WorkflowResult(status="COMPLETED", results=results)
 ```
 
@@ -272,29 +281,38 @@ class DevSquadOrchestrator:
 
 ```python
 """DevSquad 核心接口定义"""
+
 from typing import Protocol, Any
+
 
 class CacheProvider(Protocol):
     """缓存提供者接口"""
+
     def is_available(self) -> bool: ...
     def get(self, key: str) -> Any | None: ...
     def set(self, key: str, value: Any, ttl: int = 86400) -> bool: ...
     def clear(self) -> bool: ...
 
+
 class RetryProvider(Protocol):
     """重试提供者接口"""
+
     def is_available(self) -> bool: ...
     def retry_with_fallback(self, func, *args, **kwargs) -> Any: ...
     def get_stats(self) -> dict: ...
 
+
 class MonitorProvider(Protocol):
     """监控提供者接口"""
+
     def is_available(self) -> bool: ...
     def track(self, func_name: str, duration: float, success: bool): ...
     def get_stats(self) -> dict: ...
 
+
 class MemoryProvider(Protocol):
     """记忆提供者接口（为 CarryMem 预留）"""
+
     def is_available(self) -> bool: ...
     def match_rules(self, task: str, user_id: str, role: str) -> list[dict]: ...
     def log_experience(self, user_id: str, task: str, outcome: str): ...
@@ -305,23 +323,31 @@ class MemoryProvider(Protocol):
 ```python
 """空实现——用于降级"""
 
+
 class NullCacheProvider:
     def is_available(self) -> bool:
         return False
+
     def get(self, key: str) -> None:
         return None
+
     def set(self, key: str, value: Any, ttl: int = 86400) -> bool:
         return True
+
     def clear(self) -> bool:
         return True
+
 
 class NullRetryProvider:
     def is_available(self) -> bool:
         return False
+
     def retry_with_fallback(self, func, *args, **kwargs):
         return func(*args, **kwargs)  # 直接执行，不重试
+
     def get_stats(self) -> dict:
         return {}
+
 
 # ... 其他 Null 实现
 ```
@@ -344,12 +370,15 @@ class NullRetryProvider:
 
 ```python
 """Agent 间传递的压缩状态"""
+
 from dataclasses import dataclass
 from typing import List
+
 
 @dataclass
 class AgentBriefing:
     """Agent 执行结果的压缩表示"""
+
     task_summary: str
     key_decisions: List[str]
     pending_items: List[str]
@@ -357,12 +386,12 @@ class AgentBriefing:
     result_summary: str
     confidence: float
     assumptions: List[str]
-    
+
     def to_prompt(self, max_length: int = 500) -> str:
         """转换为 prompt 文本"""
         # 实现略
         pass
-    
+
     def estimate_tokens(self) -> int:
         """估算 token 数量"""
         return len(self.to_prompt()) // 4  # 粗略估算

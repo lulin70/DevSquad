@@ -151,7 +151,8 @@
        disp = MultiAgentDispatcher()
        result = disp.dispatch("test task")
        assert result.success == True
-   
+
+
    # 使用 pytest fixtures
    @pytest.fixture
    def dispatcher():
@@ -244,7 +245,8 @@
                return self._session_memory()
            elif level == 3:
                return self._full_compact()
-   
+
+
    # 优化后: 2 级压缩
    class ContextCompressor:
        def compress(self, aggressive=False):
@@ -311,14 +313,15 @@
 1. **添加简单的使用统计**:
    ```python
    # scripts/collaboration/usage_tracker.py
-   
+
+
    class UsageTracker:
        def __init__(self):
            self.stats = {}
-       
+
        def track(self, feature_name):
            self.stats[feature_name] = self.stats.get(feature_name, 0) + 1
-       
+
        def report(self):
            # 生成使用报告
            pass
@@ -328,7 +331,8 @@
    ```python
    # dispatcher.py
    from .usage_tracker import tracker
-   
+
+
    def dispatch(self, task):
        tracker.track("dispatcher.dispatch")
        # ...

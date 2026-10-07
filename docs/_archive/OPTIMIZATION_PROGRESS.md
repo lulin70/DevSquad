@@ -148,10 +148,10 @@ Commit 5 (856394e): 优化 1.3 Phase 4-7 - TestT4-T7（28测试）
    compressor.compress(level=1)  # SNIP
    compressor.compress(level=2)  # SessionMemory
    compressor.compress(level=3)  # FullCompact
-   
+
    # 优化后: 2 级压缩
    compressor.compress(aggressive=False)  # Light (SNIP)
-   compressor.compress(aggressive=True)   # Deep (SessionMemory + FullCompact)
+   compressor.compress(aggressive=True)  # Deep (SessionMemory + FullCompact)
    ```
 
 3. **实施重构**
@@ -187,14 +187,15 @@ Commit 5 (856394e): 优化 1.3 Phase 4-7 - TestT4-T7（28测试）
 1. **实现使用统计**
    ```python
    # scripts/collaboration/usage_tracker.py
-   
+
+
    class UsageTracker:
        def __init__(self):
            self.stats = {}
-       
+
        def track(self, feature_name):
            self.stats[feature_name] = self.stats.get(feature_name, 0) + 1
-       
+
        def report(self):
            # 生成使用报告
            pass

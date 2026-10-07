@@ -283,9 +283,7 @@ assert result.audit_logged is True
 - `OutputValidationPipelineResult` 使用 `@dataclass(slots=True)`（与现有 `OutputValidationResult` 一致）
 - `_validate_outputs` 重载签名：
   ```python
-  def _validate_outputs(
-      self, outputs: list[str] | list[dict[str, Any]]
-  ) -> OutputValidationPipelineResult: ...
+  def _validate_outputs(self, outputs: list[str] | list[dict[str, Any]]) -> OutputValidationPipelineResult: ...
   ```
 
 ### 5.3 错误处理

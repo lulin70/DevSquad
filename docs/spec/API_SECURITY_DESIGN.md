@@ -155,8 +155,7 @@ async def dispatch_task(
 @router.get("/phases")
 async def list_phases(
     user_id: str = Depends(require_permission(Permission.TASK_READ)),
-):
-    ...
+): ...
 ```
 
 ```python

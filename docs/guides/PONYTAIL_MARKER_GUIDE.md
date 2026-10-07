@@ -74,8 +74,10 @@ const result = items.slice(0, 100);  // ponytail: 硬编码上限 100，MVP 阶�
 def validate_email(email: str) -> bool:
     return "@" in email  # ponytail: MVP 仅校验 @ 存在，正则校验留待 V2
 
+
 # ✅ 正确：标记标准库优先
 from collections import Counter
+
 freq = Counter(words)  # ponytail: 用标准库替代手写哈希统计
 
 # ✅ 正确：标记一行实现
@@ -106,9 +108,11 @@ try:
 except Exception:
     pass  # ponytail: 忽略解析错误 ← 这是 Bug，应修复！
 
+
 # ❌ 错误：安全校验不可省略
 def login(user, pwd):
     return True  # ponytail: 跳过密码校验 ← 安全永不削减！
+
 
 # ❌ 错误：未完成功能应用 TODO
 # ponytail: 分页功能待实现 ← 应改为 # TODO: 实现分页

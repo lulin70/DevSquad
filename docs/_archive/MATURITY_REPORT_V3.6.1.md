@@ -140,11 +140,11 @@ High Coverage:   scratchpad(91%), verification_gate(97%), test_quality_guard(92%
 **监控指标**:
 ```python
 # 关键指标暴露
-- dispatch_count          # 任务调度次数
-- success_rate            # 成功率
-- avg_latency_ms          # 平均延迟
-- cache_hit_rate          # 缓存命中率
-- active_workers          # 活跃 Worker 数
+-dispatch_count  # 任务调度次数
+-success_rate  # 成功率
+-avg_latency_ms  # 平均延迟
+-cache_hit_rate  # 缓存命中率
+-active_workers  # 活跃 Worker 数
 ```
 
 **待增强**:

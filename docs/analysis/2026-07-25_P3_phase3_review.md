@@ -58,8 +58,10 @@ class CoverageReport:
     # ... 现有字段
     markdown_report: str = ""  # 新增
 
+
 def generate_markdown(report: CoverageReport) -> str:
     """生成 Markdown 覆盖率报告。"""
+
 
 def check_with_threshold(
     source_dir: Path,
@@ -108,8 +110,14 @@ def check_with_threshold(
 ```python
 # tests/security/red_team.py
 class RT01to05_InjectionAttacks(unittest.TestCase): ...
+
+
 class RT06to09_PrivilegeEscalation(unittest.TestCase): ...
+
+
 class RT10to15_DataLeakage(unittest.TestCase): ...
+
+
 class RT16to20_DenialOfService(unittest.TestCase): ...
 ```
 
@@ -123,6 +131,7 @@ class RT16to20_DenialOfService(unittest.TestCase): ...
 def export_markdown(self, limit: int = 100) -> str:
     """导出 Markdown 审计报告。"""
 
+
 def query(
     self,
     event_type: str | None = None,
@@ -132,6 +141,7 @@ def query(
     limit: int = 100,
 ) -> list[AuditEntry]:
     """按条件查询审计条目。"""
+
 
 def detect_tamper(self) -> list[AuditEntry]:
     """检测链中篡改条目（返回可疑条目列表，空列表表示无篡改）。"""
@@ -155,17 +165,19 @@ def detect_tamper(self) -> list[AuditEntry]:
 @dataclass
 class FiveAxisEvaluationResult:
     """5 轴评估结果（heuristic，无 LLM 调用）。"""
-    correctness: float    # 0.0-1.0
+
+    correctness: float  # 0.0-1.0
     readability: float
     architecture: float
     security: float
     performance: float
     overall: float
-    verdict: str          # APPROVE / CONDITIONAL / REJECT
+    verdict: str  # APPROVE / CONDITIONAL / REJECT
     notes: dict[str, str] = field(default_factory=dict)
 
     def to_markdown(self) -> str:
         """生成 Markdown 报告章节。"""
+
 
 class FiveAxisConsensusEngine:
     def evaluate(
@@ -235,7 +247,11 @@ assert result.performance is not None
 
 ```python
 class TestPMJourney(unittest.TestCase): ...
+
+
 class TestDeveloperJourney(unittest.TestCase): ...
+
+
 class TestOpsJourney(unittest.TestCase): ...
 ```
 

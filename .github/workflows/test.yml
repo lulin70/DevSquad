@@ -1,5 +1,11 @@
 name: CI
 
+# 2026-10-07 assessment: CI needs no repo-write scopes. `actions: write`
+# covers pip cache + upload-artifact only; everything else inherits nothing.
+permissions:
+  contents: read
+  actions: write
+
 on:
   push:
     branches: [main]

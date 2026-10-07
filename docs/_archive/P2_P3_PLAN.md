@@ -54,9 +54,11 @@ def analyze_task(self, task_description: str) -> list[dict[str, str]]:
 ```python
 from typing import Protocol
 
+
 class RoleMatcherProtocol(Protocol):
     def analyze_task(self, task_description: str) -> list[dict[str, str]]: ...
     def resolve_roles(self, roles: list[str], matched: list[dict[str, Any]]) -> list[dict[str, Any]]: ...
+
 
 class DispatcherUtilsMixin(DispatcherBase):
     role_matcher: RoleMatcherProtocol  # 替代 Any

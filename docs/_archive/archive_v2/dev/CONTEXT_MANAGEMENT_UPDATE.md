@@ -218,29 +218,18 @@ class DualLayerContextManager:
 ### 完整工作流
 
 ```python
-from dual_layer_context_manager import (
-    DualLayerContextManager,
-    TaskDefinition,
-    UserProfile
-)
+from dual_layer_context_manager import DualLayerContextManager, TaskDefinition, UserProfile
 
 # 1. 创建管理器
-manager = DualLayerContextManager(
-    project_root=".",
-    skill_root="."
-)
+manager = DualLayerContextManager(project_root=".", skill_root=".")
 
 # 2. 初始化用户画像
 manager.global_context.set_user_profile(
     UserProfile(
         user_id="default",
         identity="架构师",
-        preferences={
-            "language": "zh",
-            "detail_level": "high",
-            "architecture_style": "微服务"
-        },
-        expertise=["Java", "Spring Boot", "微服务"]
+        preferences={"language": "zh", "detail_level": "high", "architecture_style": "微服务"},
+        expertise=["Java", "Spring Boot", "微服务"],
     )
 )
 
@@ -250,7 +239,7 @@ task_def = TaskDefinition(
     title="设计系统架构",
     description="设计一个高可用的微服务架构",
     goals=["高可用", "可扩展", "易维护"],
-    constraints=["Java 21", "Spring Boot 3"]
+    constraints=["Java 21", "Spring Boot 3"],
 )
 
 task_ctx = manager.start_task(task_def)
@@ -265,19 +254,14 @@ task_ctx.add_thought(
     role="architect",
     thought_type="analysis",
     content="考虑到系统需要高可用，建议采用微服务架构",
-    context={"alternatives": ["单体架构", "SOA"]}
+    context={"alternatives": ["单体架构", "SOA"]},
 )
 
 # 5. 添加工件
-task_ctx.add_artifact("ARCHITECTURE", {
-    "style": "微服务",
-    "components": [
-        "API Gateway",
-        "Service Registry",
-        "Config Server",
-        "Load Balancer"
-    ]
-})
+task_ctx.add_artifact(
+    "ARCHITECTURE",
+    {"style": "微服务", "components": ["API Gateway", "Service Registry", "Config Server", "Load Balancer"]},
+)
 
 # 6. 完成任务（自动沉淀经验）
 success = manager.complete_task("ARCH-001")
@@ -298,11 +282,7 @@ print(f"经验库条目：{stats['global_context']['experience_count']}")
 
 ```python
 # 开始新任务时，自动注入相关知识
-task_def2 = TaskDefinition(
-    task_id="ARCH-002",
-    title="设计数据库架构",
-    description="设计支持高并发的数据库架构"
-)
+task_def2 = TaskDefinition(task_id="ARCH-002", title="设计数据库架构", description="设计支持高并发的数据库架构")
 
 task_ctx2 = manager.start_task(task_def2)
 
@@ -392,10 +372,7 @@ touch dual_layer_context_manager.py
 from dual_layer_context_manager import DualLayerContextManager
 
 # 替换原有的 ContextManager
-context_manager = DualLayerContextManager(
-    project_root=project_root,
-    skill_root=skill_root
-)
+context_manager = DualLayerContextManager(project_root=project_root, skill_root=skill_root)
 ```
 
 ### 步骤 4: 测试验证

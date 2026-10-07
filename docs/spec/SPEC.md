@@ -486,28 +486,28 @@ devsquad dispatch \
 **TaskDispatchRequest**:
 ```python
 class TaskDispatchRequest(BaseModel):
-    task: str                              # 任务描述
-    roles: list[str] | None = None         # 角色列表（可选）
-    mode: str = "auto"                     # 执行模式
-    output_format: str = "markdown"        # 输出格式
-    backend: str = "mock"                  # LLM 后端
-    dry_run: bool = False                  # 干跑模式
+    task: str  # 任务描述
+    roles: list[str] | None = None  # 角色列表（可选）
+    mode: str = "auto"  # 执行模式
+    output_format: str = "markdown"  # 输出格式
+    backend: str = "mock"  # LLM 后端
+    dry_run: bool = False  # 干跑模式
 ```
 
 **DispatchResponse**:
 ```python
 class DispatchResponse(BaseModel):
-    success: bool                          # 是否成功
-    task_description: str                  # 任务描述
-    matched_roles: list[str]               # 匹配的角色
-    summary: str                           # 摘要
-    duration_seconds: float                # 总耗时
-    worker_results: list[WorkerResultItem] # Worker 结果列表
-    errors: list[str]                      # 错误列表
-    intent_match: IntentMatchInfo | None   # 意图匹配
-    five_axis_result: FiveAxisResult | None # 五轴共识结果
-    anchor_result: AnchorResult | None     # 锚定结果
-    timestamp: str                         # 完成时间戳
+    success: bool  # 是否成功
+    task_description: str  # 任务描述
+    matched_roles: list[str]  # 匹配的角色
+    summary: str  # 摘要
+    duration_seconds: float  # 总耗时
+    worker_results: list[WorkerResultItem]  # Worker 结果列表
+    errors: list[str]  # 错误列表
+    intent_match: IntentMatchInfo | None  # 意图匹配
+    five_axis_result: FiveAxisResult | None  # 五轴共识结果
+    anchor_result: AnchorResult | None  # 锚定结果
+    timestamp: str  # 完成时间戳
 ```
 
 ---
@@ -518,6 +518,7 @@ class DispatchResponse(BaseModel):
 
 ```python
 # ===== 核心编排类 =====
+
 
 class MultiAgentDispatcher:
     """多智能体调度器 - 统一入口"""
@@ -674,6 +675,7 @@ class BatchScheduler:
 
 # ===== 控制论增强类 (V3.6.0) =====
 
+
 class AnchorChecker:
     """目标锚定器 - 检测目标偏移"""
 
@@ -700,14 +702,15 @@ class RetrospectiveEngine:
 
 # ===== 安全与验证类 =====
 
+
 class PermissionGuard:
     """权限守卫 - 4级权限控制"""
 
     class PermissionLevel(Enum):
-        DEFAULT = "default"    # 默认：写操作需确认
-        PLAN = "plan"          # 计划：只读操作
-        AUTO = "auto"          # 自动：AI 分类器自动判断
-        BYPASS = "bypass"      # 绕过：完全跳过（最高信任）
+        DEFAULT = "default"  # 默认：写操作需确认
+        PLAN = "plan"  # 计划：只读操作
+        AUTO = "auto"  # 自动：AI 分类器自动判断
+        BYPASS = "bypass"  # 绕过：完全跳过（最高信任）
 
     def check_permission(
         self,
@@ -753,28 +756,21 @@ class VerificationGate:
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 # 创建调度器实例
-dispatcher = MultiAgentDispatcher(
-    backend_type="openai",
-    model="gpt-4"
-)
+dispatcher = MultiAgentDispatcher(backend_type="openai", model="gpt-4")
 
 # 执行完整协作任务
 result = dispatcher.dispatch(
     task="设计用户认证系统的微服务架构",
     roles=["architect", "security", "devops"],
     mode="consensus",
-    output_format="json"
+    output_format="json",
 )
 
 # 快速调度
-quick_result = dispatcher.quick_dispatch(
-    task="review code quality"
-)
+quick_result = dispatcher.quick_dispatch(task="review code quality")
 
 # 意图分析（干跑）
-analysis = dispatcher.analyze_intent(
-    task="优化数据库查询性能"
-)
+analysis = dispatcher.analyze_intent(task="优化数据库查询性能")
 
 # 获取系统状态
 status = dispatcher.get_status()
@@ -909,17 +905,17 @@ python scripts/mcp_server.py --port 8080
 ```python
 @dataclass
 class ScratchpadEntry:
-    entry_id: str                                    # 唯一标识（自动生成）
-    worker_id: str = ""                              # 创建者 Worker ID
-    role_id: str = ""                                # 角色标识
-    timestamp: datetime                              # 创建时间
-    entry_type: EntryType = EntryType.FINDING        # 类型分类
-    content: str = ""                                # 主内容
-    confidence: float = 0.5                          # 置信度 0.0-1.0
-    tags: list[str]                                  # 可搜索标签
-    references: list[Reference]                      # 交叉引用
-    status: EntryStatus = EntryStatus.ACTIVE         # 生命周期状态
-    version: int = 1                                 # 版本号（冲突解决）
+    entry_id: str  # 唯一标识（自动生成）
+    worker_id: str = ""  # 创建者 Worker ID
+    role_id: str = ""  # 角色标识
+    timestamp: datetime  # 创建时间
+    entry_type: EntryType = EntryType.FINDING  # 类型分类
+    content: str = ""  # 主内容
+    confidence: float = 0.5  # 置信度 0.0-1.0
+    tags: list[str]  # 可搜索标签
+    references: list[Reference]  # 交叉引用
+    status: EntryStatus = EntryStatus.ACTIVE  # 生命周期状态
+    version: int = 1  # 版本号（冲突解决）
 ```
 
 #### TaskDefinition - 任务定义
@@ -927,16 +923,16 @@ class ScratchpadEntry:
 ```python
 @dataclass
 class TaskDefinition:
-    task_id: str                                     # 唯一标识（自动生成）
-    description: str                                 # 任务描述
-    role_id: str                                     # 目标角色 ID
-    role_prompt: str = ""                            # 角色指令
-    stage_id: str | None = None                      # 工作流阶段
-    input_data: dict[str, Any]                       # 附加上下文
-    dependencies: list[str]                          # 前置任务 ID
-    is_read_only: bool = True                        # 是否只读
-    timeout_seconds: int = 300                       # 超时时间（秒）
-    retry_count: int = 3                             # 重试次数
+    task_id: str  # 唯一标识（自动生成）
+    description: str  # 任务描述
+    role_id: str  # 目标角色 ID
+    role_prompt: str = ""  # 角色指令
+    stage_id: str | None = None  # 工作流阶段
+    input_data: dict[str, Any]  # 附加上下文
+    dependencies: list[str]  # 前置任务 ID
+    is_read_only: bool = True  # 是否只读
+    timeout_seconds: int = 300  # 超时时间（秒）
+    retry_count: int = 3  # 重试次数
 ```
 
 #### WorkerResult - Worker 结果
@@ -944,14 +940,14 @@ class TaskDefinition:
 ```python
 @dataclass
 class WorkerResult:
-    worker_id: str                                   # Worker ID
-    task_id: str                                     # 任务 ID
-    success: bool                                    # 是否成功
-    output: Any = None                               # 输出内容
-    error: str | None = None                         # 错误信息
-    scratchpad_entries_written: int = 0              # 写入的记录数
-    notifications_sent: int = 0                      # 发送的通知数
-    duration_seconds: float = 0.0                    # 执行耗时
+    worker_id: str  # Worker ID
+    task_id: str  # 任务 ID
+    success: bool  # 是否成功
+    output: Any = None  # 输出内容
+    error: str | None = None  # 错误信息
+    scratchpad_entries_written: int = 0  # 写入的记录数
+    notifications_sent: int = 0  # 发送的通知数
+    duration_seconds: float = 0.0  # 执行耗时
 ```
 
 #### Vote - 共识投票
@@ -959,13 +955,13 @@ class WorkerResult:
 ```python
 @dataclass
 class Vote:
-    voter_id: str                                    # 投票者 ID
-    voter_role: str                                  # 投票者角色
-    decision: bool                                   # 决策方向（True=赞成）
-    reason: str = ""                                 # 投票理由
-    weight: float = 1.0                              # 投票权重
-    confidence: float = 0.7                          # 置信度
-    timestamp: datetime                              # 投票时间
+    voter_id: str  # 投票者 ID
+    voter_role: str  # 投票者角色
+    decision: bool  # 决策方向（True=赞成）
+    reason: str = ""  # 投票理由
+    weight: float = 1.0  # 投票权重
+    confidence: float = 0.7  # 置信度
+    timestamp: datetime  # 投票时间
 ```
 
 #### DecisionProposal - 决策提案
@@ -973,14 +969,14 @@ class Vote:
 ```python
 @dataclass
 class DecisionProposal:
-    proposal_id: str                                 # 唯一标识
-    topic: str                                       # 提案主题
-    proposer_id: str                                 # 提案人 ID
-    proposal_content: str                            # 提案内容
-    options: list[str]                               # 投票选项
-    deadline: datetime | None = None                 # 投票截止时间
-    votes: list[Vote]                                # 已投票列表
-    status: str = "open"                             # 状态（open/closed/cancelled）
+    proposal_id: str  # 唯一标识
+    topic: str  # 提案主题
+    proposer_id: str  # 提案人 ID
+    proposal_content: str  # 提案内容
+    options: list[str]  # 投票选项
+    deadline: datetime | None = None  # 投票截止时间
+    votes: list[Vote]  # 已投票列表
+    status: str = "open"  # 状态（open/closed/cancelled）
 ```
 
 #### ConsensusRecord - 共识记录
@@ -988,18 +984,18 @@ class DecisionProposal:
 ```python
 @dataclass
 class ConsensusRecord:
-    record_id: str                                   # 记录 ID
-    topic: str                                       # 决策主题
-    outcome: DecisionOutcome                         # 最终结果
-    final_decision: str                              # 最终决策摘要
-    votes_for: int                                   # 赞成票数
-    votes_against: int                               # 反对票数
-    votes_abstain: int                               # 弃权票数
-    total_weight_for: float                          # 赞成权重和
-    total_weight_against: float                      # 反对权重和
-    participants: list[str]                          # 参与者列表
-    escalation_reason: str | None = None             # 升级原因
-    timestamp: datetime                              # 达成时间
+    record_id: str  # 记录 ID
+    topic: str  # 决策主题
+    outcome: DecisionOutcome  # 最终结果
+    final_decision: str  # 最终决策摘要
+    votes_for: int  # 赞成票数
+    votes_against: int  # 反对票数
+    votes_abstain: int  # 弃权票数
+    total_weight_for: float  # 赞成权重和
+    total_weight_against: float  # 反对权重和
+    participants: list[str]  # 参与者列表
+    escalation_reason: str | None = None  # 升级原因
+    timestamp: datetime  # 达成时间
 ```
 
 #### ExecutionPlan - 执行计划
@@ -1007,10 +1003,10 @@ class ConsensusRecord:
 ```python
 @dataclass
 class ExecutionPlan:
-    plan_id: str                                     # 计划 ID
-    batches: list[Any]                               # 任务批次列表
-    total_tasks: int                                 # 总任务数
-    estimated_parallelism: float                     # 预估并行度 0.0-1.0
+    plan_id: str  # 计划 ID
+    batches: list[Any]  # 任务批次列表
+    total_tasks: int  # 总任务数
+    estimated_parallelism: float  # 预估并行度 0.0-1.0
 ```
 
 #### TaskBatch - 任务批次
@@ -1018,12 +1014,12 @@ class ExecutionPlan:
 ```python
 @dataclass
 class TaskBatch:
-    batch_id: str                                    # 批次 ID
-    mode: BatchMode = BatchMode.PARALLEL             # 执行模式
-    tasks: list[TaskDefinition]                      # 任务列表
-    max_concurrency: int = 5                         # 最大并行数
-    dependencies: list[str]                          # 前置批次 ID
-    timeout_seconds: int = 600                       # 批次超时
+    batch_id: str  # 批次 ID
+    mode: BatchMode = BatchMode.PARALLEL  # 执行模式
+    tasks: list[TaskDefinition]  # 任务列表
+    max_concurrency: int = 5  # 最大并行数
+    dependencies: list[str]  # 前置批次 ID
+    timeout_seconds: int = 600  # 批次超时
 ```
 
 #### ScheduleResult - 调度结果
@@ -1031,13 +1027,13 @@ class TaskBatch:
 ```python
 @dataclass
 class ScheduleResult:
-    success: bool = False                            # 是否全部成功
-    total_tasks: int = 0                             # 总任务数
-    completed_tasks: int = 0                         # 已完成任务
-    failed_tasks: int = 0                            # 失败任务数
-    results: list[WorkerResult]                      # 结果列表
-    duration_seconds: float = 0.0                    # 总耗时
-    errors: list[str]                                # 错误列表
+    success: bool = False  # 是否全部成功
+    total_tasks: int = 0  # 总任务数
+    completed_tasks: int = 0  # 已完成任务
+    failed_tasks: int = 0  # 失败任务数
+    results: list[WorkerResult]  # 结果列表
+    duration_seconds: float = 0.0  # 总耗时
+    errors: list[str]  # 错误列表
 ```
 
 ### 5.3 V3.6.0 新增数据模型 (Cybernetics Enhancement)
@@ -1047,16 +1043,16 @@ class ScheduleResult:
 ```python
 @dataclass
 class StructuredGoal:
-    goal_id: str = ""                                # 目标 ID
-    original_description: str = ""                   # 原始描述
-    items: list[GoalItem]                            # 目标项列表
-    created_at: str = ""                             # 创建时间
+    goal_id: str = ""  # 目标 ID
+    original_description: str = ""  # 原始描述
+    items: list[GoalItem]  # 目标项列表
+    created_at: str = ""  # 创建时间
 
     @property
-    def overall_coverage(self) -> float: ...         # 平均覆盖率 0.0-1.0
+    def overall_coverage(self) -> float: ...  # 平均覆盖率 0.0-1.0
 
     @property
-    def uncovered_items(self) -> list[GoalItem]: ... # 未覆盖项列表
+    def uncovered_items(self) -> list[GoalItem]: ...  # 未覆盖项列表
 ```
 
 #### GoalItem - 目标项
@@ -1064,12 +1060,12 @@ class StructuredGoal:
 ```python
 @dataclass
 class GoalItem:
-    item_id: str                                     # 项 ID
-    description: str                                 # 描述
-    keywords: list[str]                              # 匹配关键词
+    item_id: str  # 项 ID
+    description: str  # 描述
+    keywords: list[str]  # 匹配关键词
     status: GoalItemStatus = GoalItemStatus.PENDING  # 状态
-    coverage_score: float = 0.0                      # 覆盖分数 0.0-1.0
-    evidence: list[str]                              # 证据列表
+    coverage_score: float = 0.0  # 覆盖分数 0.0-1.0
+    evidence: list[str]  # 证据列表
 ```
 
 #### AnchorResult - 锚定结果
@@ -1077,17 +1073,17 @@ class GoalItem:
 ```python
 @dataclass
 class AnchorResult:
-    aligned: bool = True                             # 是否对齐
+    aligned: bool = True  # 是否对齐
     trigger: AnchorTrigger = AnchorTrigger.STEP_COMPLETE  # 触发事件
-    coverage: float = 1.0                            # 当前覆盖率
-    drift_score: float = 0.0                         # 偏移分数
-    drifts: list[DriftItem]                          # 偏移列表
-    uncovered_goals: list[str]                        # 未覆盖目标
-    recommendation: str = ""                         # 建议措施
-    checked_at: str = ""                             # 检查时间
+    coverage: float = 1.0  # 当前覆盖率
+    drift_score: float = 0.0  # 偏移分数
+    drifts: list[DriftItem]  # 偏移列表
+    uncovered_goals: list[str]  # 未覆盖目标
+    recommendation: str = ""  # 建议措施
+    checked_at: str = ""  # 检查时间
 
     @property
-    def severity(self) -> DriftSeverity: ...         # 计算严重程度
+    def severity(self) -> DriftSeverity: ...  # 计算严重程度
 ```
 
 #### RetrospectiveReport - 回顾报告
@@ -1095,20 +1091,20 @@ class AnchorResult:
 ```python
 @dataclass
 class RetrospectiveReport:
-    task_goal: str = ""                              # 任务目标
-    goal_id: str = ""                                # 目标 ID
-    deviations: list[DeviationRecord]                 # 偏差列表
-    redundant_steps: list[str]                        # 冗余步骤
-    improvements: list[str]                           # 改进建议
-    anchor_check_count: int = 0                      # 锚定检查次数
-    anchor_drift_count: int = 0                      # 偏移检测次数
-    final_coverage: float = 1.0                      # 最终覆盖率
-    summary: str = ""                                # 执行摘要
-    created_at: str = ""                             # 创建时间
+    task_goal: str = ""  # 任务目标
+    goal_id: str = ""  # 目标 ID
+    deviations: list[DeviationRecord]  # 偏差列表
+    redundant_steps: list[str]  # 冗余步骤
+    improvements: list[str]  # 改进建议
+    anchor_check_count: int = 0  # 锚定检查次数
+    anchor_drift_count: int = 0  # 偏移检测次数
+    final_coverage: float = 1.0  # 最终覆盖率
+    summary: str = ""  # 执行摘要
+    created_at: str = ""  # 创建时间
 
-    def to_dict(self) -> dict[str, Any]: ...         # 序列化为字典
+    def to_dict(self) -> dict[str, Any]: ...  # 序列化为字典
 
-    def to_markdown(self) -> str: ...                # 生成 Markdown 报告
+    def to_markdown(self) -> str: ...  # 生成 Markdown 报告
 ```
 
 ### 5.4 角色定义 (Role Registry)
@@ -1635,21 +1631,19 @@ result = dispatcher.dispatch(task="test task")
 # PerformanceMonitor 暴露的核心指标
 METRICS = {
     # 业务指标
-    "dispatch_count": "counter",           # 总调度次数
-    "success_rate": "gauge",               # 成功率 (0.0-1.0)
-    "avg_latency_ms": "histogram",         # 平均延迟分布
-    "cache_hit_rate": "gauge",             # 缓存命中率
-
+    "dispatch_count": "counter",  # 总调度次数
+    "success_rate": "gauge",  # 成功率 (0.0-1.0)
+    "avg_latency_ms": "histogram",  # 平均延迟分布
+    "cache_hit_rate": "gauge",  # 缓存命中率
     # 资源指标
-    "active_workers": "gauge",             # 活跃 Worker 数
-    "queue_depth": "gauge",                # 任务队列深度
-    "memory_usage_mb": "gauge",            # 内存使用 (MB)
-    "cpu_usage_percent": "gauge",          # CPU 使用率 (%)
-
+    "active_workers": "gauge",  # 活跃 Worker 数
+    "queue_depth": "gauge",  # 任务队列深度
+    "memory_usage_mb": "gauge",  # 内存使用 (MB)
+    "cpu_usage_percent": "gauge",  # CPU 使用率 (%)
     # 质量指标
-    "consensus_rounds": "counter",         # 共识轮次
-    "conflict_count": "counter",           # 冲突次数
-    "escalation_count": "counter",         # 升级次数
+    "consensus_rounds": "counter",  # 共识轮次
+    "conflict_count": "counter",  # 冲突次数
+    "escalation_count": "counter",  # 升级次数
 }
 ```
 
@@ -1681,10 +1675,10 @@ METRICS = {
 
 ```python
 class PermissionLevel(Enum):
-    DEFAULT = "default"    # 默认：写操作需确认
-    PLAN = "plan"          # 计划：只读操作
-    AUTO = "auto"          # 自动：AI 分类器自动判断
-    BYPASS = "bypass"      # 绕过：完全跳过（最高信任）
+    DEFAULT = "default"  # 默认：写操作需确认
+    PLAN = "plan"  # 计划：只读操作
+    AUTO = "auto"  # 自动：AI 分类器自动判断
+    BYPASS = "bypass"  # 绕过：完全跳过（最高信任）
 ```
 
 **权限矩阵**:
