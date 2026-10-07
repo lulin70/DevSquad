@@ -22,10 +22,10 @@ jobs:
       DEVSQUAD_API_AUTH_DISABLED: "1"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -68,7 +68,7 @@ jobs:
         # (no badge in any README), failing silently on every run.
         # To re-enable Codecov: configure CODECOV_TOKEN secret, then restore
         # codecov/codecov-action@v4 with `token: ${{ secrets.CODECOV_TOKEN }}`.
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-xml-${{ matrix.python-version }}
           path: ./coverage.xml
@@ -94,8 +94,8 @@ jobs:
       DEVSQUAD_ANTHROPIC_BASE_URL: ${{ secrets.DEVSQUAD_ANTHROPIC_BASE_URL }}
       DEVSQUAD_ANTHROPIC_MODEL: ${{ secrets.DEVSQUAD_ANTHROPIC_MODEL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -142,8 +142,8 @@ jobs:
       DEVSQUAD_LLM_BACKEND: mock
       DEVSQUAD_API_AUTH_DISABLED: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -173,7 +173,7 @@ jobs:
             2>&1 | tee /tmp/performance.log || true
       - name: Upload performance log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: performance-log
           path: |
@@ -185,10 +185,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # gitleaks needs full history for PR diff scan
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -236,7 +236,7 @@ jobs:
           pip-audit -r requirements.lock --strict --progress-spinner off
           pip-audit -r requirements-dev.lock --strict --progress-spinner off
       - name: Run gitleaks secret scan (added in V4.1.2)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: "true"
@@ -246,8 +246,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -367,13 +367,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate Dockerfile and Compose configuration
         run: |
           docker build --check .
           docker compose config --quiet
       - name: Install Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
         with:
           version: v3.17.3
       - name: Lint and render Helm chart
@@ -387,8 +387,8 @@ jobs:
     timeout-minutes: 15
     needs: [test, lint, security, deployment]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
