@@ -16,8 +16,8 @@ hypothesis>=6.0
 # Dependabot updates are reviewed through protected main)
 black==26.5.1
 flake8>=6.0
-mypy==2.2.0
-ruff==0.15.20
+mypy==2.4.0
+ruff==0.16.10
 radon==6.0.1
 
 # Security audit (V4.6.1: lint job runs bandit + pip-audit; must be in dev reqs)
