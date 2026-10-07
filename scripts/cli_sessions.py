@@ -61,10 +61,7 @@ def cmd_sessions(args: argparse.Namespace) -> int:
                 print(f"{'SESSION ID':<20} {'STATUS':<14} {'CREATED':<26} SUMMARY")
                 print("-" * 90)
                 for s in sessions:
-                    print(
-                        f"{s['session_id']:<20} {s['status']:<14} "
-                        f"{s['created_at']:<26} {s['task_summary']}"
-                    )
+                    print(f"{s['session_id']:<20} {s['status']:<14} {s['created_at']:<26} {s['task_summary']}")
         return 0
 
     if sub == "show":
@@ -99,7 +96,9 @@ def cmd_sessions(args: argparse.Namespace) -> int:
     return 1
 
 
-def load_resumable_task(session_id: str, persist_dir: str | None = None) -> tuple[str | None, dict[str, Any] | None, str | None]:
+def load_resumable_task(
+    session_id: str, persist_dir: str | None = None
+) -> tuple[str | None, dict[str, Any] | None, str | None]:
     """Load a checkpoint and reconstruct the task for ``dispatch --resume``.
 
     Used by :func:`scripts.cli_dispatch.cmd_dispatch` when ``--resume`` is set.
@@ -127,9 +126,13 @@ def load_resumable_task(session_id: str, persist_dir: str | None = None) -> tupl
         ctx = cp.context_snapshot or {}
         task_text = ctx.get("task") or ctx.get("task_description")
         if not task_text:
-            return None, status, (
-                f"session '{session_id}' has no task description in its checkpoint "
-                "(cannot resume — original task text not persisted)"
+            return (
+                None,
+                status,
+                (
+                    f"session '{session_id}' has no task description in its checkpoint "
+                    "(cannot resume — original task text not persisted)"
+                ),
             )
         return str(task_text), status, None
     except Exception as e:  # noqa: BLE001 — graceful: never crash CLI

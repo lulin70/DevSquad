@@ -200,9 +200,7 @@ def _check_pro_edition_sanctioned_host_only(
             message="专业版部署缺少 host 字段，无法验证受控主机约束",
             severity=ViolationSeverity.WARNING,
             target_env=target_env,
-            suggestion=(
-                "专业版必须部署到受控主机：47.116.219.15 或 gateway.promiselink.cn"
-            ),
+            suggestion=("专业版必须部署到受控主机：47.116.219.15 或 gateway.promiselink.cn"),
         )
 
     if host in PRO_EDITION_SANCTIONED_HOSTS:
@@ -211,8 +209,7 @@ def _check_pro_edition_sanctioned_host_only(
     return Violation(
         rule_id="PRO_EDITION_SANCTIONED_HOST_ONLY",
         message=(
-            f"专业版部署到未授权主机 {host}（违反硬约束：专业版仅允许部署到 "
-            "47.116.219.15 或 gateway.promiselink.cn）"
+            f"专业版部署到未授权主机 {host}（违反硬约束：专业版仅允许部署到 47.116.219.15 或 gateway.promiselink.cn）"
         ),
         severity=ViolationSeverity.CRITICAL,
         target_env=target_env,
@@ -254,8 +251,7 @@ def _check_nginx_default_server_official_site(
                 severity=ViolationSeverity.CRITICAL,
                 target_env=target_env,
                 suggestion=(
-                    "默认 server 块应 root 到官网静态文件目录；"
-                    "/health 可代理到专业版网关 promiselink-pro:8001"
+                    "默认 server 块应 root 到官网静态文件目录；/health 可代理到专业版网关 promiselink-pro:8001"
                 ),
             )
 
@@ -263,9 +259,7 @@ def _check_nginx_default_server_official_site(
     if "root " not in config_str and "alias " not in config_str:
         return Violation(
             rule_id="NGINX_DEFAULT_SERVER_OFFICIAL_SITE",
-            message=(
-                "nginx 默认 server 块必须包含 root 或 alias 指令以服务官网静态文件"
-            ),
+            message=("nginx 默认 server 块必须包含 root 或 alias 指令以服务官网静态文件"),
             severity=ViolationSeverity.WARNING,
             target_env=target_env,
             suggestion="添加 root /var/www/promiselink; 或等价指令",
@@ -323,15 +317,11 @@ def lifecycle_gate_check(
         Violations appear in the Markdown report "部署合规" section.
     """
     if phase != "P10":
-        logger.warning(
-            "DeploymentComplianceChecker invoked at phase %s (expected P10)", phase
-        )
+        logger.warning("DeploymentComplianceChecker invoked at phase %s (expected P10)", phase)
 
     normalized_env = _normalize_target_env(target_env)
     if not normalized_env:
-        raise ValueError(
-            f"Cannot normalize target_env: {target_env!r} (expected dict or 'edition@host')"
-        )
+        raise ValueError(f"Cannot normalize target_env: {target_env!r} (expected dict or 'edition@host')")
 
     violations: list[Violation] = []
     for rule in ruleset:

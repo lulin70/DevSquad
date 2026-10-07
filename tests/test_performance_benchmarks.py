@@ -27,6 +27,7 @@ from scripts.collaboration.coordinator import Coordinator
 from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.scratchpad import Scratchpad
+from tests.conftest import isolated_provider_env
 
 
 @pytest.mark.benchmark
@@ -71,17 +72,24 @@ class TestPerformanceBenchmarks(unittest.TestCase):
         available_roles = [{"role_id": rid, "role_prompt": f"Prompt for {rid}"} for rid in role_ids]
         return coord.plan_task(task_description, available_roles)
 
+    # All three dispatching tests in this class run under
+    # isolated_provider_env(): this host has a `.env`, CI does not, and with real
+    # credentials `dispatch()` takes the live chain instead of the mock one
+    # (78 s vs 1.4 s on the two tests registered as P2-4 in PRD §6 (8)). A
+    # benchmark that measures host credentials is not a benchmark.
+
     # ------------------------------------------------------------------
     # 1. Concurrent Dispatch Stability
     # ------------------------------------------------------------------
     def test_concurrent_dispatch_stability(self):
         """Verify dispatcher handles 5 concurrent tasks without errors."""
-        disp = self._create_dispatcher()
-        tasks = [f"Analyze task {i}" for i in range(5)]
+        with isolated_provider_env():
+            disp = self._create_dispatcher()
+            tasks = [f"Analyze task {i}" for i in range(5)]
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(disp.dispatch, task) for task in tasks]
-            results = [f.result(timeout=120) for f in futures]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                futures = [executor.submit(disp.dispatch, task) for task in tasks]
+                results = [f.result(timeout=120) for f in futures]
 
         for r in results:
             assert isinstance(r, DispatchResult)
@@ -92,10 +100,11 @@ class TestPerformanceBenchmarks(unittest.TestCase):
     # ------------------------------------------------------------------
     def test_large_task_handling(self):
         """Verify dispatcher handles a large task description (under MAX_TASK_LENGTH)."""
-        disp = self._create_dispatcher()
-        # InputValidator MAX_TASK_LENGTH = 10000; stay just under the limit
-        large_task = "Analyze this project: " + "x" * 9000
-        result = disp.dispatch(large_task)
+        with isolated_provider_env():
+            disp = self._create_dispatcher()
+            # InputValidator MAX_TASK_LENGTH = 10000; stay just under the limit
+            large_task = "Analyze this project: " + "x" * 9000
+            result = disp.dispatch(large_task)
         assert isinstance(result, DispatchResult)
 
     # ------------------------------------------------------------------
@@ -152,16 +161,17 @@ class TestPerformanceBenchmarks(unittest.TestCase):
     # ------------------------------------------------------------------
     def test_memory_usage_under_load(self):
         """Verify memory doesn't grow unboundedly over 10 dispatches."""
-        disp = self._create_dispatcher()
-        tracemalloc.start()
-        # Reset peak after dispatcher creation overhead
-        tracemalloc.reset_peak()
+        with isolated_provider_env():
+            disp = self._create_dispatcher()
+            tracemalloc.start()
+            # Reset peak after dispatcher creation overhead
+            tracemalloc.reset_peak()
 
-        for i in range(10):
-            disp.dispatch(f"Quick analysis task {i}")
+            for i in range(10):
+                disp.dispatch(f"Quick analysis task {i}")
 
-        current, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
+            current, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
         # Peak should be under 50MB for 10 dispatches
         assert peak < 50 * 1024 * 1024, f"Memory peak too high: {peak / 1024 / 1024:.1f}MB"
 

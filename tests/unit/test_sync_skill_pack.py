@@ -28,6 +28,7 @@ convention so both the ``pytest`` and the
 ``python3 -m unittest tests.unit.test_sync_skill_pack`` entry points
 discover and execute them.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -237,9 +238,7 @@ def test_symlinked_target_refused(tmp_path) -> None:
 
     report = sync_skill_pack.sync_pack(src, link, dry_run=False)
     assert report.errors
-    assert any("refusing to sync" in e for e in report.errors), (
-        f"expected refusal error, got: {report.errors}"
-    )
+    assert any("refusing to sync" in e for e in report.errors), f"expected refusal error, got: {report.errors}"
     # Nothing was written into the symlink target.
     assert not (real_dir / "SKILL.md").exists()
 
@@ -386,19 +385,13 @@ def test_clean_extra_removes_destination_only_v4516(tmp_path, monkeypatch) -> No
         (target / "keepme.md").write_text("not in source; must be removed", encoding="utf-8")
     monkeypatch.setattr(sync_skill_pack, "DEFAULT_TARGETS", targets)
 
-    rc = sync_skill_pack.main(
-        ["--source", str(src), "--clean-extra", "--quiet"]
-    )
+    rc = sync_skill_pack.main(["--source", str(src), "--clean-extra", "--quiet"])
 
     # No real ~/.trae-cn or ~/.trae was used (monkeypatched).
     for target in targets:
         assert (target / "SKILL.md").read_text(encoding="utf-8") == "current"
-        assert not (target / "stale.md").exists(), (
-            f"destination-only file should be removed under {target}"
-        )
-        assert not (target / "keepme.md").exists(), (
-            f"destination-only file should be removed under {target}"
-        )
+        assert not (target / "stale.md").exists(), f"destination-only file should be removed under {target}"
+        assert not (target / "keepme.md").exists(), f"destination-only file should be removed under {target}"
     assert rc == 0
 
 
@@ -441,8 +434,9 @@ class TestSyncSkillPackV4516P212(unittest.TestCase):
             assert not (tgt / "sub" / "n.md").exists()
             assert report.verified_ok == []
             assert len(report.copied) == 2
-            self.assertEqual(sorted([str(p) for p in report.copied]),
-                             sorted([str(tgt / "SKILL.md"), str(tgt / "sub" / "n.md")]))
+            self.assertEqual(
+                sorted([str(p) for p in report.copied]), sorted([str(tgt / "SKILL.md"), str(tgt / "sub" / "n.md")])
+            )
 
     def test_copy_mode_writes_real_bytes_with_sha256_match(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -488,9 +482,7 @@ class TestSyncSkillPackV4516P212(unittest.TestCase):
             original = sync_skill_pack.DEFAULT_TARGETS
             sync_skill_pack.DEFAULT_TARGETS = targets
             try:
-                rc = sync_skill_pack.main(
-                    ["--source", str(src), "--clean-extra", "--quiet"]
-                )
+                rc = sync_skill_pack.main(["--source", str(src), "--clean-extra", "--quiet"])
             finally:
                 sync_skill_pack.DEFAULT_TARGETS = original
 

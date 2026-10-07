@@ -50,9 +50,7 @@ def get_call_counter_er() -> int:
 # ---------- Sensitive field redaction ----------
 
 
-_SENSITIVE_KEYS = frozenset(
-    {"api_key", "apikey", "password", "passwd", "secret", "token", "private_key"}
-)
+_SENSITIVE_KEYS = frozenset({"api_key", "apikey", "password", "passwd", "secret", "token", "private_key"})
 
 
 def _redact_sensitive(value: Any) -> Any:
@@ -116,16 +114,8 @@ def verify_chain(entries: list[dict[str, Any]]) -> tuple[bool, str]:
         ts = entry.get("timestamp", 0)
         et = entry.get("event_type", "")
         uid = entry.get("user_id", "")
-        details_json = json.dumps(
-            entry.get("details", {}), sort_keys=True, separators=(",", ":")
-        )
-        payload = (
-            f"{prev_hash}"
-            f"{len(et):d}:{et}"
-            f"{len(uid):d}:{uid}"
-            f"{ts:.6f}"
-            f"{details_json}"
-        ).encode()
+        details_json = json.dumps(entry.get("details", {}), sort_keys=True, separators=(",", ":"))
+        payload = (f"{prev_hash}{len(et):d}:{et}{len(uid):d}:{uid}{ts:.6f}{details_json}").encode()
         expected = hashlib.sha256(payload).hexdigest()
         actual = entry.get("entry_hash")
         if actual != expected:
@@ -229,12 +219,8 @@ def register_subparser(
     Returns:
         The audit subparser.
     """
-    p = subparsers.add_parser(
-        "audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)"
-    )
-    p.add_argument(
-        "--limit", "-n", type=int, default=20, help="Max entries to show (default 20)"
-    )
+    p = subparsers.add_parser("audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)")
+    p.add_argument("--limit", "-n", type=int, default=20, help="Max entries to show (default 20)")
     p.add_argument(
         "--format",
         "-f",

@@ -20,9 +20,11 @@ Skipped when CLI dependencies are missing (e.g., in minimal venv).
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -36,13 +38,21 @@ pytestmark = [
 ]
 
 
-def _run_cli(*args: str, timeout: int = 60, cwd: str | None = None) -> subprocess.CompletedProcess[str]:
+def _run_cli(
+    *args: str,
+    timeout: int = 60,
+    cwd: str | None = None,
+    backend: str = "mock",
+    env_overrides: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     """Run the DevSquad CLI as a real subprocess.
 
     Args:
         *args: CLI arguments (e.g., "dispatch", "-t", "task text").
         timeout: Subprocess timeout in seconds (default 60).
         cwd: Working directory (defaults to project root).
+        backend: Backend selected through the environment by default.
+        env_overrides: Additional environment values for the subprocess.
 
     Returns:
         CompletedProcess with captured stdout/stderr.
@@ -50,9 +60,11 @@ def _run_cli(*args: str, timeout: int = 60, cwd: str | None = None) -> subproces
     env = os.environ.copy()
     env["PYTHONPATH"] = str(_PROJECT_ROOT)
     env["PYTHONUNBUFFERED"] = "1"
-    env["DEVSQUAD_LLM_BACKEND"] = "mock"
+    env["DEVSQUAD_LLM_BACKEND"] = backend
     env["NO_COLOR"] = "1"
     env["TERM"] = "dumb"
+    if env_overrides:
+        env.update(env_overrides)
 
     cmd = [sys.executable, str(_CLI_PATH), *args]
     return subprocess.run(
@@ -90,6 +102,82 @@ class TestCLISubprocessBasic:
         assert len(result.stderr) > 0, "Expected error message on stderr"
 
 
+class TestCLISubprocessHostDelegation:
+    """Real-user CLI journey through a spawned v2 host process."""
+
+    @pytest.mark.parametrize("output_format", ["json", "markdown"])
+    def test_cli_host_delegation_reports_backend_status(
+        self,
+        tmp_path: Path,
+        output_format: str,
+    ) -> None:
+        """Host delegation works keyless and exposes selection in reports."""
+        bridge_root = tmp_path / "host-bridge"
+        runner = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "tests.fakes.fake_host_runner_v2",
+                str(bridge_root / "v2"),
+                "success",
+            ],
+            cwd=str(_PROJECT_ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        try:
+            time.sleep(1.5)
+            result = _run_cli(
+                "dispatch",
+                "-t",
+                "Review the authentication flow",
+                "--roles",
+                "solo-coder",
+                "--backend",
+                "host",
+                "--format",
+                output_format,
+                "--no-warmup",
+                "--no-compression",
+                "--no-memory",
+                "--no-skillify",
+                timeout=60,
+                env_overrides={
+                    "TRAE_ENV": "1",
+                    "DEVSQUAD_HOST_BRIDGE_VERSION": "v2",
+                    "DEVSQUAD_HOST_BRIDGE_ROOT": str(bridge_root),
+                    "OPENAI_API_KEY": "",
+                    "DEVSQUAD_OPENAI_API_KEY": "",
+                    "MOKA_API_KEY": "",
+                    "ANTHROPIC_API_KEY": "",
+                    "DEVSQUAD_ANTHROPIC_API_KEY": "",
+                },
+            )
+        finally:
+            runner.terminate()
+            runner.wait(timeout=10)
+
+        assert result.returncode == 0, (
+            f"Host CLI failed (exit {result.returncode})\n"
+            f"stdout: {result.stdout[:1000]}\n"
+            f"stderr: {result.stderr[:1000]}"
+        )
+        if output_format == "json":
+            payload = json.loads(result.stdout)
+            status = payload["backend_status"]
+            assert status["requested"] == "host"
+            assert status["selected_path"] == "host-v2"
+            assert status["state"] == "selected"
+            assert status["chain"] == ["host-v2"]
+            assert status["degradation_reason"] is None
+        else:
+            assert "Backend Status" in result.stdout
+            assert "- Requested: host" in result.stdout
+            assert "- Selected path: host-v2" in result.stdout
+            assert "- State: selected" in result.stdout
+            assert "- Chain: host-v2" in result.stdout
+
+
 class TestCLISubprocessDispatch:
     """Dispatch command subprocess tests using mock backend + dry-run."""
 
@@ -97,9 +185,13 @@ class TestCLISubprocessDispatch:
         """``devsquad dispatch -t "..." --dry-run`` produces Markdown report."""
         result = _run_cli(
             "dispatch",
-            "-t", "Design a simple user authentication system",
-            "--roles", "architect", "coder",
-            "--mode", "parallel",
+            "-t",
+            "Design a simple user authentication system",
+            "--roles",
+            "architect",
+            "coder",
+            "--mode",
+            "parallel",
             "--dry-run",
             timeout=90,  # dry-run still spins up Coordinator
         )
@@ -115,19 +207,157 @@ class TestCLISubprocessDispatch:
         # Ensure no API keys in env (already set by _run_cli default env.copy)
         result = _run_cli(
             "dispatch",
-            "-t", "Test task for mock backend",
-            "--backend", "mock",
+            "-t",
+            "Test task for mock backend",
+            "--backend",
+            "mock",
             "--dry-run",
             timeout=60,
         )
         assert result.returncode == 0, f"Mock dispatch failed: {result.stderr[:300]}"
 
+    def test_cli_dispatch_json_exposes_role_candidates(self) -> None:
+        """A real mock dispatch exposes typed candidates in CLI JSON."""
+        result = _run_cli(
+            "dispatch",
+            "-t",
+            "设计架构并编写测试",
+            "--roles",
+            "architect",
+            "tester",
+            "--backend",
+            "mock",
+            "--format",
+            "json",
+            "--no-warmup",
+            "--no-compression",
+            "--no-memory",
+            "--no-skillify",
+            timeout=90,
+            env_overrides={
+                "OPENAI_API_KEY": "",
+                "DEVSQUAD_OPENAI_API_KEY": "",
+                "MOKA_API_KEY": "",
+                "ANTHROPIC_API_KEY": "",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "",
+            },
+        )
+        assert result.returncode == 0, (
+            f"Candidate JSON dispatch failed (exit {result.returncode})\n"
+            f"stdout: {result.stdout[:1000]}\nstderr: {result.stderr[:1000]}"
+        )
+        payload = json.loads(result.stdout)
+        assert isinstance(payload["matched_roles"], list)
+        assert payload["matched_roles"] == ["architect", "tester"]
+        candidates = payload["role_candidates"]
+        assert [item["candidate"] for item in candidates] == ["architect", "tester"]
+        assert all(item["candidate"] == item["role_id"] for item in candidates)
+        assert all(isinstance(item["score"], float) for item in candidates)
+        assert all(item["score"] == item["confidence"] for item in candidates)
+        assert all(item["reason"] and isinstance(item["matched_keywords"], list) for item in candidates)
+
+    def test_cli_dispatch_markdown_exposes_role_candidates(self) -> None:
+        """A real mock dispatch renders candidate evidence in Markdown."""
+        result = _run_cli(
+            "dispatch",
+            "-t",
+            "设计架构并编写测试",
+            "--roles",
+            "architect",
+            "tester",
+            "--backend",
+            "mock",
+            "--format",
+            "markdown",
+            "--no-warmup",
+            "--no-compression",
+            "--no-memory",
+            "--no-skillify",
+            timeout=90,
+            env_overrides={
+                "OPENAI_API_KEY": "",
+                "DEVSQUAD_OPENAI_API_KEY": "",
+                "MOKA_API_KEY": "",
+                "ANTHROPIC_API_KEY": "",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "",
+            },
+        )
+        assert result.returncode == 0, (
+            f"Candidate Markdown dispatch failed (exit {result.returncode})\n"
+            f"stdout: {result.stdout[:1000]}\nstderr: {result.stderr[:1000]}"
+        )
+        assert "Role Candidates" in result.stdout
+        assert "`architect`" in result.stdout
+        assert "`tester`" in result.stdout
+        assert "source=explicit" in result.stdout
+
+    @pytest.mark.parametrize("use_async", [False, True], ids=["sync", "async"])
+    def test_cli_dispatch_partial_failure_is_nonzero_and_attributed(self, use_async: bool) -> None:
+        """Incomplete role coverage fails closed with deterministic attribution."""
+        async_args = ("--async",) if use_async else ("--no-async",)
+        result = _run_cli(
+            "dispatch",
+            "-t",
+            "Design and test authentication",
+            "--roles",
+            "architect",
+            "tester",
+            "--backend",
+            "mock",
+            "--format",
+            "json",
+            *async_args,
+            "--no-warmup",
+            "--no-compression",
+            "--no-memory",
+            "--no-skillify",
+            timeout=90,
+            env_overrides={
+                "DEVSQUAD_MOCK_FAIL_ROLES": "tester",
+                "DEVSQUAD_MOCK_FAIL_REASON": "tester injected failure",
+                "OPENAI_API_KEY": "",
+                "DEVSQUAD_OPENAI_API_KEY": "",
+                "OPENAI_BASE_URL": "",
+                "DEVSQUAD_OPENAI_BASE_URL": "",
+                "MOKA_API_KEY": "",
+                "MOKA_API_BASE": "",
+                "ANTHROPIC_API_KEY": "",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "",
+            },
+        )
+
+        assert result.returncode != 0, (
+            f"{('async' if use_async else 'sync')} partial failure must exit non-zero\\n"
+            f"stdout: {result.stdout[:1000]}\\nstderr: {result.stderr[:1000]}"
+        )
+        payload = json.loads(result.stdout)
+        assert payload["success"] is False
+        assert payload["coverage"] == {
+            "requested": 2,
+            "completed": 1,
+            "failed": 1,
+            "missing": 0,
+            "ratio": 0.5,
+            "complete": False,
+        }
+        assert payload["missing_roles"] == []
+        assert payload["failed_roles"] == [
+            {
+                "role_id": "tester",
+                "role_name": "测试专家",
+                "reason": "tester injected failure",
+            }
+        ]
+        assert "**测试专家** (`tester`): tester injected failure" in payload["report"]
+
     def test_cli_dispatch_compact_format(self) -> None:
         """``--format compact`` produces compact output (not full Markdown)."""
         result = _run_cli(
             "dispatch",
-            "-t", "Compact format test",
-            "--format", "compact",
+            "-t",
+            "Compact format test",
+            "--format",
+            "compact",
             "--dry-run",
             timeout=60,
         )
@@ -156,8 +386,7 @@ class TestCLISubprocessInfo:
                     found.append(sid)
                     break
         assert len(found) == 7, (
-            f"Expected all 7 short role IDs in output, found {len(found)}: {found}\n"
-            f"stdout: {result.stdout[:500]}"
+            f"Expected all 7 short role IDs in output, found {len(found)}: {found}\nstdout: {result.stdout[:500]}"
         )
 
     def test_cli_status_reports_system_state(self) -> None:
@@ -173,9 +402,7 @@ class TestCLISubprocessInfo:
     def test_cli_demo_runs_in_mock_mode(self) -> None:
         """``devsquad demo`` runs all scenarios in mock mode without errors."""
         result = _run_cli("demo", timeout=90)  # demo may take time
-        assert result.returncode == 0, (
-            f"demo failed (exit {result.returncode})\nstderr: {result.stderr[:500]}"
-        )
+        assert result.returncode == 0, f"demo failed (exit {result.returncode})\nstderr: {result.stderr[:500]}"
         # Demo produces meaningful output (not empty)
         assert len(result.stdout) > 50, f"Demo output too short: {result.stdout!r}"
 

@@ -76,8 +76,7 @@ def _fast_retry_config(max_retries: int = 3) -> RetryConfig:
 class _FlakyFunc:
     """Callable that fails N times then succeeds (or always fails)."""
 
-    def __init__(self, fail_times: int, error_msg: str = "connection timeout",
-                 success_value: str = "ok") -> None:
+    def __init__(self, fail_times: int, error_msg: str = "connection timeout", success_value: str = "ok") -> None:
         self.fail_times = fail_times
         self.error_msg = error_msg
         self.success_value = success_value
@@ -135,8 +134,7 @@ class T1_CacheRetryCoordinationIntegration(unittest.TestCase):
         """Verify: retry returns success after one transient timeout."""
         flaky = _FlakyFunc(fail_times=1, success_value="recovered-response")
         config = _fast_retry_config(max_retries=3)
-        result = self.retry.retry_with_fallback(
-            flaky, args=(), kwargs={}, config=config, current_backend="openai")
+        result = self.retry.retry_with_fallback(flaky, args=(), kwargs={}, config=config, current_backend="openai")
         self.assertEqual(result, "recovered-response")
         self.assertEqual(self.retry.stats["retries"], 1)
         self.assertEqual(self.retry.stats["successful_calls"], 1)
@@ -146,8 +144,7 @@ class T1_CacheRetryCoordinationIntegration(unittest.TestCase):
         always_fail = _AlwaysFailFunc("connection timeout")
         config = _fast_retry_config(max_retries=2)
         with self.assertRaises(ConnectionError):
-            self.retry.retry_with_fallback(
-                always_fail, args=(), kwargs={}, config=config, current_backend="openai")
+            self.retry.retry_with_fallback(always_fail, args=(), kwargs={}, config=config, current_backend="openai")
         self.assertEqual(always_fail.call_count, 2)
         self.assertEqual(self.retry.stats["failed_calls"], 2)
 
@@ -160,7 +157,8 @@ class T1_CacheRetryCoordinationIntegration(unittest.TestCase):
         config = _fast_retry_config(max_retries=3)
         with self.assertRaises(ValueError):
             self.retry.retry_with_fallback(
-                raise_value_error, args=(), kwargs={}, config=config, current_backend="openai")
+                raise_value_error, args=(), kwargs={}, config=config, current_backend="openai"
+            )
         # Non-retryable → only 1 attempt, no retries.
         self.assertEqual(self.retry.stats["retries"], 0)
 
@@ -390,8 +388,12 @@ class T4_EndToEndCallChainIntegration(unittest.TestCase):
         # Backend call (no retry needed — succeeds first try)
         config = _fast_retry_config(max_retries=2)
         response = self.retry.retry_with_fallback(
-            backend.generate, args=(prompt,), kwargs={"role_name": "Architect"},
-            config=config, current_backend=backend_name)
+            backend.generate,
+            args=(prompt,),
+            kwargs={"role_name": "Architect"},
+            config=config,
+            current_backend=backend_name,
+        )
         self.assertIn("[MOCK MODE]", response)
 
         # Cache set + track usage
@@ -413,8 +415,7 @@ class T4_EndToEndCallChainIntegration(unittest.TestCase):
         self.assertIsNone(self.cache.get(prompt, "flaky", "v1"))
 
         # Retry recovers
-        response = self.retry.retry_with_fallback(
-            flaky, args=(), kwargs={}, config=config, current_backend="flaky")
+        response = self.retry.retry_with_fallback(flaky, args=(), kwargs={}, config=config, current_backend="flaky")
         self.assertEqual(response, "recovered")
 
         # Cache set
@@ -427,8 +428,7 @@ class T4_EndToEndCallChainIntegration(unittest.TestCase):
         always_fail = _AlwaysFailFunc("connection timeout")
         config = _fast_retry_config(max_retries=2)
         with self.assertRaises(ConnectionError):
-            self.retry.retry_with_fallback(
-                always_fail, args=(), kwargs={}, config=config, current_backend="openai")
+            self.retry.retry_with_fallback(always_fail, args=(), kwargs={}, config=config, current_backend="openai")
         # Track failure
         self.tracker.track("llm.call", success=False, metadata={"error": "timeout"})
         # Nothing cached
@@ -450,8 +450,8 @@ class T4_EndToEndCallChainIntegration(unittest.TestCase):
         config = _fast_retry_config(max_retries=1)
 
         response = self.retry.retry_with_fallback(
-            fb.generate, args=(prompt,), kwargs={},
-            config=config, fallback_backends=["mock"], current_backend="primary")
+            fb.generate, args=(prompt,), kwargs={}, config=config, fallback_backends=["mock"], current_backend="primary"
+        )
         self.assertIn("[MOCK MODE]", response)
         self.cache.set(prompt, response, "fallback", "v1")
         self.assertEqual(self.cache.get(prompt, "fallback", "v1"), response)
@@ -533,8 +533,7 @@ class T5_BoundaryAndEdgeCasesIntegration(unittest.TestCase):
         # 5 failures → failure_count reaches threshold (5) → circuit opens.
         for _ in range(5):
             with self.assertRaises(ConnectionError):
-                self.retry.retry_with_fallback(
-                    always_fail, args=(), kwargs={}, config=config, current_backend="openai")
+                self.retry.retry_with_fallback(always_fail, args=(), kwargs={}, config=config, current_backend="openai")
         cb = self.retry.get_circuit_breaker("openai")
         self.assertEqual(cb.state, "open")
 
@@ -544,12 +543,10 @@ class T5_BoundaryAndEdgeCasesIntegration(unittest.TestCase):
         config = _fast_retry_config(max_retries=1)
         for _ in range(5):
             with self.assertRaises(ConnectionError):
-                self.retry.retry_with_fallback(
-                    always_fail, args=(), kwargs={}, config=config, current_backend="openai")
+                self.retry.retry_with_fallback(always_fail, args=(), kwargs={}, config=config, current_backend="openai")
         # 6th call → circuit open → CircuitBreakerError (no fallback backends).
         with self.assertRaises(CircuitBreakerError):
-            self.retry.retry_with_fallback(
-                always_fail, args=(), kwargs={}, config=config, current_backend="openai")
+            self.retry.retry_with_fallback(always_fail, args=(), kwargs={}, config=config, current_backend="openai")
 
     def test_07_rate_limit_error_triples_delay(self) -> None:
         """Verify: get_enhanced_delay triples delay for rate-limit errors."""
@@ -597,8 +594,9 @@ class T5_BoundaryAndEdgeCasesIntegration(unittest.TestCase):
 
     def test_11_jitter_strategy_none_returns_deterministic_delay(self) -> None:
         """Verify: JitterStrategy.NONE produces deterministic exponential backoff."""
-        config = RetryConfig(max_retries=3, initial_delay=1.0, max_delay=60.0,
-                             jitter=True, jitter_strategy=JitterStrategy.NONE)
+        config = RetryConfig(
+            max_retries=3, initial_delay=1.0, max_delay=60.0, jitter=True, jitter_strategy=JitterStrategy.NONE
+        )
         delay_attempt0 = self.retry.calculate_delay(0, config)
         delay_attempt1 = self.retry.calculate_delay(1, config)
         # No jitter → delay == initial_delay * base^attempt

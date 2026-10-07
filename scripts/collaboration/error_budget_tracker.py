@@ -7,6 +7,7 @@ deployments when the budget is exhausted.
 Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

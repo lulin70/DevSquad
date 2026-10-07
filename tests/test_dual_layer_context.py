@@ -89,9 +89,7 @@ class TestProjectLayer:
     def test_get_expired_returns_default_and_deletes(self):
         mgr = DualLayerContextManager()
         old_time = (datetime.now() - timedelta(seconds=120)).isoformat()
-        mgr.project_context["k"] = ContextEntry(
-            key="k", value="v", layer="project", ttl=60, timestamp=old_time
-        )
+        mgr.project_context["k"] = ContextEntry(key="k", value="v", layer="project", ttl=60, timestamp=old_time)
         assert mgr.get_project("k", "default") == "default"
         assert "k" not in mgr.project_context
 
@@ -131,9 +129,7 @@ class TestTaskLayer:
     def test_get_expired_returns_default_and_deletes(self):
         mgr = DualLayerContextManager()
         old_time = (datetime.now() - timedelta(seconds=120)).isoformat()
-        mgr.task_context["k"] = ContextEntry(
-            key="k", value="v", layer="task", ttl=60, timestamp=old_time
-        )
+        mgr.task_context["k"] = ContextEntry(key="k", value="v", layer="task", ttl=60, timestamp=old_time)
         assert mgr.get_task("k", "default") == "default"
         assert "k" not in mgr.task_context
 
@@ -192,9 +188,7 @@ class TestGetCombined:
         mgr = DualLayerContextManager()
         mgr.set_project("a", 1)
         old_time = (datetime.now() - timedelta(seconds=120)).isoformat()
-        mgr.project_context["b"] = ContextEntry(
-            key="b", value=2, layer="project", ttl=60, timestamp=old_time
-        )
+        mgr.project_context["b"] = ContextEntry(key="b", value=2, layer="project", ttl=60, timestamp=old_time)
         assert mgr.get_combined() == {"a": 1}
 
 
@@ -235,9 +229,7 @@ class TestBuildPromptContext:
         mgr = DualLayerContextManager()
         mgr.set_project("a", 1)
         old_time = (datetime.now() - timedelta(seconds=120)).isoformat()
-        mgr.project_context["b"] = ContextEntry(
-            key="b", value=2, layer="project", ttl=60, timestamp=old_time
-        )
+        mgr.project_context["b"] = ContextEntry(key="b", value=2, layer="project", ttl=60, timestamp=old_time)
         result = mgr.build_prompt_context()
         assert "a" in result
         assert "b" not in result
@@ -282,9 +274,7 @@ class TestCleanupExpired:
         mgr = DualLayerContextManager()
         mgr.set_project("a", 1)
         old_time = (datetime.now() - timedelta(seconds=120)).isoformat()
-        mgr.project_context["b"] = ContextEntry(
-            key="b", value=2, layer="project", ttl=60, timestamp=old_time
-        )
+        mgr.project_context["b"] = ContextEntry(key="b", value=2, layer="project", ttl=60, timestamp=old_time)
         assert mgr.cleanup_expired() == 1
         assert "b" not in mgr.project_context
 
@@ -292,21 +282,15 @@ class TestCleanupExpired:
         mgr = DualLayerContextManager()
         mgr.set_task("a", 1)
         old_time = (datetime.now() - timedelta(seconds=120)).isoformat()
-        mgr.task_context["b"] = ContextEntry(
-            key="b", value=2, layer="task", ttl=60, timestamp=old_time
-        )
+        mgr.task_context["b"] = ContextEntry(key="b", value=2, layer="task", ttl=60, timestamp=old_time)
         assert mgr.cleanup_expired() == 1
         assert "b" not in mgr.task_context
 
     def test_cleans_both_layers(self):
         mgr = DualLayerContextManager()
         old_time = (datetime.now() - timedelta(seconds=120)).isoformat()
-        mgr.project_context["p"] = ContextEntry(
-            key="p", value=1, layer="project", ttl=60, timestamp=old_time
-        )
-        mgr.task_context["t"] = ContextEntry(
-            key="t", value=2, layer="task", ttl=60, timestamp=old_time
-        )
+        mgr.project_context["p"] = ContextEntry(key="p", value=1, layer="project", ttl=60, timestamp=old_time)
+        mgr.task_context["t"] = ContextEntry(key="t", value=2, layer="task", ttl=60, timestamp=old_time)
         assert mgr.cleanup_expired() == 2
 
 

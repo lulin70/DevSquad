@@ -13,7 +13,6 @@ from scripts.collaboration.multi_tenant import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestIsolationLevel:
     def test_isolation_levels_exist(self):
         assert IsolationLevel.SHARED_DATABASE is not None

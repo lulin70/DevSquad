@@ -159,7 +159,11 @@ class IntentWorkflowMapper:
             gate="spec_first",
             gate_description=("Must produce or validate a spec before writing implementation code"),
             anti_skip_message=("Do NOT start coding until the spec is reviewed and approved."),
-            suggested_next_steps=["Write user stories and acceptance criteria", "Design system architecture", "Plan test strategy"],
+            suggested_next_steps=[
+                "Write user stories and acceptance criteria",
+                "Design system architecture",
+                "Plan test strategy",
+            ],
         ),
         "security_review": WorkflowChainDef(
             trigger_keywords={
@@ -241,7 +245,11 @@ class IntentWorkflowMapper:
             gate="change_size_limit",
             gate_description="Changes must be ~100 lines or split into smaller reviews",
             anti_skip_message="Do NOT approve large changesets without splitting.",
-            suggested_next_steps=["Implement suggested improvements", "Refactor flagged code smells", "Add missing tests"],
+            suggested_next_steps=[
+                "Implement suggested improvements",
+                "Refactor flagged code smells",
+                "Add missing tests",
+            ],
         ),
         "performance_optimization": WorkflowChainDef(
             trigger_keywords={
@@ -285,7 +293,11 @@ class IntentWorkflowMapper:
             gate="measure_first",
             gate_description="Must have baseline measurements before optimizing",
             anti_skip_message=("Do NOT optimize without measurements. You're likely optimizing the wrong thing."),
-            suggested_next_steps=["Implement recommended optimizations", "Set up performance monitoring", "Create performance baseline tests"],
+            suggested_next_steps=[
+                "Implement recommended optimizations",
+                "Set up performance monitoring",
+                "Create performance baseline tests",
+            ],
         ),
         "deployment": WorkflowChainDef(
             trigger_keywords={

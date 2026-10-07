@@ -205,9 +205,7 @@ class TestPonytailInjectionIntegration:
         from scripts.collaboration.ponytail_rule_injector import PonytailRuleInjector
 
         for expected_mode in ("lite", "full"):
-            config = {"quality_control": {
-                "minimal_implementation": True, "ponytail_mode": expected_mode
-            }}
+            config = {"quality_control": {"minimal_implementation": True, "ponytail_mode": expected_mode}}
             injector = PonytailRuleInjector(qc_config=config)
             assert injector.mode == expected_mode
 
@@ -215,9 +213,7 @@ class TestPonytailInjectionIntegration:
         """无效模式抛出 ValueError。"""
         from scripts.collaboration.ponytail_rule_injector import PonytailRuleInjector
 
-        config = {"quality_control": {
-            "minimal_implementation": True, "ponytail_mode": "ultra"
-        }}
+        config = {"quality_control": {"minimal_implementation": True, "ponytail_mode": "ultra"}}
         with pytest.raises(ValueError):
             PonytailRuleInjector(qc_config=config)
 
@@ -234,9 +230,7 @@ class TestPonytailInjectionIntegration:
         """markers_enabled 属性反映 ponytail_markers 配置。"""
         from scripts.collaboration.ponytail_rule_injector import PonytailRuleInjector
 
-        config = {"quality_control": {
-            "minimal_implementation": True, "ponytail_markers": False
-        }}
+        config = {"quality_control": {"minimal_implementation": True, "ponytail_markers": False}}
         injector = PonytailRuleInjector(qc_config=config)
         assert injector.markers_enabled is False
 
@@ -442,10 +436,7 @@ class TestDashboardV43PanelsIntegration:
         """Plugin 事件流面板接受大量事件（100 个）。"""
         from scripts.dashboard.v43_panels import render_plugin_events_panel
 
-        events = [
-            {"event": "loaded", "plugin": f"plugin_{i}", "timestamp": "2026-07-24T10:00:00Z"}
-            for i in range(100)
-        ]
+        events = [{"event": "loaded", "plugin": f"plugin_{i}", "timestamp": "2026-07-24T10:00:00Z"} for i in range(100)]
         try:
             render_plugin_events_panel(events, container=_StreamlitFake())
         except Exception as exc:  # noqa: BLE001
@@ -500,9 +491,7 @@ class TestCrossModuleScanningIntegration:
         entries = scan_tech_debt(root_dir=str(target_dir))
         # 过滤出 cache_interface.py 的条目
         ci_entries = [e for e in entries if "cache_interface.py" in e.file_path]
-        assert len(ci_entries) < 5, (
-            f"cache_interface.py 误报 {len(ci_entries)} 个标记"
-        )
+        assert len(ci_entries) < 5, f"cache_interface.py 误报 {len(ci_entries)} 个标记"
 
     def test_scan_ponytail_injector_no_false_positive(self) -> None:
         """扫描 ponytail_rule_injector.py 不应误报。"""
@@ -519,9 +508,7 @@ class TestCrossModuleScanningIntegration:
 
         target_dir = _PROJECT_ROOT / "scripts" / "collaboration"
         entries = scan_tech_debt(root_dir=str(target_dir))
-        rs_entries = [
-            e for e in entries if "rollback_strategy.py" in e.file_path
-        ]
+        rs_entries = [e for e in entries if "rollback_strategy.py" in e.file_path]
         assert len(rs_entries) < 5
 
     def test_scan_v43_panels_no_false_positive(self) -> None:
@@ -631,6 +618,7 @@ class TestV43ModuleConsistencyIntegration:
         # Read canonical version from _version.py (single source of truth)
         version_py_content = (_PROJECT_ROOT / "scripts" / "collaboration" / "_version.py").read_text()
         import re
+
         version_match = re.search(r'^__version__\s*=\s*"(\d+\.\d+\.\d+)"', version_py_content, re.MULTILINE)
         assert version_match is not None, "_version.py must define __version__"
         current_version = version_match.group(1)

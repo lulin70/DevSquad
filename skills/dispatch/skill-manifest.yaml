@@ -1,9 +1,9 @@
 name: dispatch
-version: 3.7.2
+version: 4.5.20
 description: |
   DevSquad Dispatch — One task in, multi-AI collaboration out.
   Auto-detects intent, matches roles, runs parallel agents, produces report.
-  Supports 7 core roles, 4 modes (auto/parallel/sequential/consensus), 3 languages.
+  Supports 7 core roles, 5 modes (auto/parallel/sequential/consensus/review), 3 languages.
 entry_point: skills.dispatch.handler:DispatchSkill
 capabilities:
   - multi_agent_dispatch

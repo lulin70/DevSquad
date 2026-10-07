@@ -27,8 +27,14 @@ def _isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def _root_args(**kwargs) -> Namespace:
-    defaults = {"format": "md", "min_exposure": None, "category": None,
-                "limit": None, "register_id": "default", "root": None}
+    defaults = {
+        "format": "md",
+        "min_exposure": None,
+        "category": None,
+        "limit": None,
+        "register_id": "default",
+        "root": None,
+    }
     defaults.update(kwargs)
     return Namespace(**defaults)
 
@@ -37,11 +43,17 @@ class TestSlowQuerySignal:
     def test_list_bumps_slow_query_signal_on_slow_filter(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
     ) -> None:
-        cmd_risks_add(Namespace(
-            description="slow risk", probability=0.5, impact=0.5,
-            category="general", owner="architect", register_id="default",
-            root=str(tmp_path),
-        ))
+        cmd_risks_add(
+            Namespace(
+                description="slow risk",
+                probability=0.5,
+                impact=0.5,
+                category="general",
+                owner="architect",
+                register_id="default",
+                root=str(tmp_path),
+            )
+        )
         capsys.readouterr()
 
         class _SlowPerf:

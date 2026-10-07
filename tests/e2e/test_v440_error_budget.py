@@ -5,6 +5,7 @@ def test_e2e_p10_rejects_when_budget_exhausted():
     """US-E2: P10 deployment gate must REJECT feature deploy when budget EXHAUSTED."""
     from scripts.collaboration.error_budget_tracker import BudgetStatus, ErrorBudgetTracker
     from scripts.collaboration.unified_gate_engine import UnifiedGateEngine
+
     engine = UnifiedGateEngine()
     tracker = ErrorBudgetTracker(slo_target=0.999, window_days=30)
     # Exhaust the budget
@@ -17,6 +18,7 @@ def test_e2e_p10_rejects_when_budget_exhausted():
 def test_e2e_dashboard_error_budget_panel_renders():
     """US-E3: Dashboard must render error budget panel with progress bar + burn_rate + status."""
     from scripts.collaboration.error_budget_tracker import ErrorBudgetTracker
+
     tracker = ErrorBudgetTracker(slo_target=0.999, window_days=30)
     panel_md = tracker.to_dashboard_panel()
     assert "budget" in panel_md.lower()

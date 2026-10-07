@@ -24,7 +24,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 pytestmark = pytest.mark.unit
 
 
-
 def _import_cli_module():
     """Import scripts.cli.py directly to avoid package conflict."""
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

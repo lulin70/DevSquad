@@ -285,9 +285,7 @@ class TestUETestFrameworkExtendedContract(unittest.TestCase):
     def test_assess_usability_detects_violations(self):
         """assess_usability must flag heuristics when negative keywords are present."""
         fw = self._get_framework()
-        report = fw.assess_usability(
-            "cluttered interface with no undo, no validation, and cryptic error messages"
-        )
+        report = fw.assess_usability("cluttered interface with no undo, no validation, and cryptic error messages")
         # At least one heuristic must be flagged as failed
         failed = [h for h in report.heuristics if h.passed is False]
         self.assertGreaterEqual(len(failed), 1)
@@ -428,15 +426,19 @@ class T6_UETestProviderBoundaryContract(unittest.TestCase):
     def _get_framework(self) -> Any:
         """Return a fresh UETestFramework with no LLM backend (rule-based)."""
         from scripts.collaboration.ue_test_framework import UETestFramework
+
         return UETestFramework(llm_backend=None)
 
     def _make_persona(self) -> Any:
         """Create a minimal persona for journey tests."""
         from scripts.collaboration.ue_test_framework import UETestFramework
+
         fw = UETestFramework()
         return fw.define_persona(
-            name="test-user", tech_level="intermediate",
-            goals=["complete task"], frustrations=["slow UI"],
+            name="test-user",
+            tech_level="intermediate",
+            goals=["complete task"],
+            frustrations=["slow UI"],
         )
 
     def test_generate_ue_test_plan_empty_scope(self) -> None:
@@ -446,6 +448,7 @@ class T6_UETestProviderBoundaryContract(unittest.TestCase):
         with all 10 heuristic checks and accessibility checks populated.
         """
         from scripts.collaboration.ue_test_framework_base import UETestPlan
+
         fw = self._get_framework()
         plan = fw.generate_ue_test_plan("")
         self.assertIsInstance(plan, UETestPlan)
@@ -462,6 +465,7 @@ class T6_UETestProviderBoundaryContract(unittest.TestCase):
         """
         from scripts.collaboration.ue_test_framework import UserJourney
         from scripts.collaboration.ue_test_framework_base import JourneyValidation
+
         fw = self._get_framework()
         persona = self._make_persona()
         journey = UserJourney(name="empty-journey", persona=persona, steps=[])
@@ -476,6 +480,7 @@ class T6_UETestProviderBoundaryContract(unittest.TestCase):
         UsabilityReport with all 10 heuristics and a valid overall_score.
         """
         from scripts.collaboration.ue_test_framework_base import UsabilityReport
+
         fw = self._get_framework()
         report = fw.assess_usability("")
         self.assertIsInstance(report, UsabilityReport)
@@ -491,6 +496,7 @@ class T6_UETestProviderBoundaryContract(unittest.TestCase):
         updated to verify full Protocol compliance.
         """
         from scripts.collaboration.ue_test_framework import UETestFramework
+
         self.assertFalse(
             hasattr(UETestFramework, "is_available"),
             "UETestFramework now has is_available() — update this test",
@@ -506,6 +512,7 @@ class T6_UETestProviderBoundaryContract(unittest.TestCase):
         import threading
 
         from scripts.collaboration.ue_test_framework_base import UETestPlan
+
         fw = self._get_framework()
         errors: list[str] = []
         results: list = []
@@ -559,16 +566,22 @@ class T6_UETestProviderBoundaryContract(unittest.TestCase):
             JourneyStep,
             UserJourney,
         )
+
         persona = self._make_persona()
         steps = [
             JourneyStep("step1", "result1", "recover1", 10.0),
             JourneyStep("step2", "result2", "recover2", 20.0),
         ]
         journey = UserJourney(name="zero-actual", persona=persona, steps=steps)
-        result = fw.validate_user_journey(journey, {
-            "steps_completed": 0, "steps_total": 0,
-            "time_used_seconds": 0.0, "frustration_events": 0,
-        })
+        result = fw.validate_user_journey(
+            journey,
+            {
+                "steps_completed": 0,
+                "steps_total": 0,
+                "time_used_seconds": 0.0,
+                "frustration_events": 0,
+            },
+        )
         self.assertEqual(result.completion_rate, 0.0)
 
     def test_assess_usability_whitespace_only_description(self) -> None:

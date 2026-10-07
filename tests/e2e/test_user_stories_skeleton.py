@@ -191,10 +191,7 @@ def test_e2e_04_hallucinated_dependency_detected() -> None:
     result = security_scan_dependencies(code)
 
     assert isinstance(result, DependencyScanResult)
-    suspicious = [
-        f for f in result.findings
-        if f.category == DependencyCategory.SUSPICIOUS
-    ]
+    suspicious = [f for f in result.findings if f.category == DependencyCategory.SUSPICIOUS]
     assert len(suspicious) >= 1
     assert any("huggingface_cli" in f.package_name for f in suspicious)
     # Suggested fix should point to the real package
@@ -237,9 +234,7 @@ def test_e2e_05_sensitive_llm_output_blocked() -> None:
     pipeline = PostDispatchPipeline.__new__(PostDispatchPipeline)
     pipeline.output_validator = OutputValidator()
     pipeline.audit_logger = _FakeAuditLogger()
-    pipeline._apply_output_validation_config(
-        config={"output_validation": {"mode": "blocking"}}
-    )
+    pipeline._apply_output_validation_config(config={"output_validation": {"mode": "blocking"}})
 
     leaky_output = "My key is sk-abcdefghijklmnopqrstuvwxyz123456"
 

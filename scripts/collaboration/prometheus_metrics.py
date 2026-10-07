@@ -128,10 +128,7 @@ class DevSquadMetrics:
     def __init__(self) -> None:
         """Initialize all Prometheus metrics."""
         if not _PROMETHEUS_AVAILABLE:
-            logger.warning(
-                "prometheus-client not installed. "
-                "Install with: pip install prometheus-client"
-            )
+            logger.warning("prometheus-client not installed. Install with: pip install prometheus-client")
 
         self.dispatch_counter = Counter(
             "devsquad_dispatch_total",

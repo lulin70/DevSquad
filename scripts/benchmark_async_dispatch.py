@@ -35,7 +35,9 @@ def run_sync_benchmark(dispatcher: MultiAgentDispatcher, task_descriptions: list
     return elapsed, results
 
 
-async def run_async_benchmark(dispatcher: MultiAgentDispatcher, task_descriptions: list[str]) -> tuple[float, list[Any]]:
+async def run_async_benchmark(
+    dispatcher: MultiAgentDispatcher, task_descriptions: list[str]
+) -> tuple[float, list[Any]]:
     """Run N tasks with async dispatch."""
     start = time.time()
     results: list[Any] = []
@@ -73,8 +75,7 @@ def main() -> None:
     )
 
     task_descriptions = [
-        f"Benchmark task {i}: Analyze the requirements for a microservice architecture"
-        for i in range(args.tasks)
+        f"Benchmark task {i}: Analyze the requirements for a microservice architecture" for i in range(args.tasks)
     ]
 
     # Warmup
@@ -95,7 +96,7 @@ def main() -> None:
     async_success = sum(1 for r in async_results if r.success)
 
     # Results
-    speedup = sync_time / async_time if async_time > 0 else float('inf')
+    speedup = sync_time / async_time if async_time > 0 else float("inf")
 
     print("\n" + "=" * 60)
     print("BENCHMARK RESULTS")
@@ -105,7 +106,7 @@ def main() -> None:
     print(f"{'Total time (s)':<30} {sync_time:>12.3f} {async_time:>12.3f}")
     print(f"{'Throughput (tasks/s)':<30} {sync_throughput:>12.2f} {async_throughput:>12.2f}")
     print(f"{'Success rate':<30} {sync_success}/{args.tasks:>10} {async_success}/{args.tasks:>9}")
-    print(f"{'Avg time per task (s)':<30} {sync_time/args.tasks:>12.4f} {async_time/args.tasks:>12.4f}")
+    print(f"{'Avg time per task (s)':<30} {sync_time / args.tasks:>12.4f} {async_time / args.tasks:>12.4f}")
     print("-" * 60)
     print(f"{'Speedup ratio':<30} {speedup:>12.2f}x")
     print("=" * 60)
@@ -113,7 +114,7 @@ def main() -> None:
     if speedup > 1.0:
         print(f"\n✓ Async dispatch is {speedup:.2f}x faster than sync dispatch")
     else:
-        print(f"\n✗ Async dispatch is {1/speedup:.2f}x slower than sync dispatch")
+        print(f"\n✗ Async dispatch is {1 / speedup:.2f}x slower than sync dispatch")
         print("  Note: With mock backend, async overhead may outweigh benefits.")
         print("  Real LLM backends with network I/O should show improvement.")
 

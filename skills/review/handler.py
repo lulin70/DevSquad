@@ -331,11 +331,19 @@ class ReviewSkill(BaseSkill):
                 scores["security"]["comment"] = f"Dangerous pattern found: {pattern}"
                 break
 
-        if ("password" in code.lower() or "secret" in code.lower() or "api_key" in code.lower()) and "=" in code and ('"' in code or "'" in code):
+        if (
+            ("password" in code.lower() or "secret" in code.lower() or "api_key" in code.lower())
+            and "=" in code
+            and ('"' in code or "'" in code)
+        ):
             scores["security"]["score"] -= 0.3
             scores["security"]["comment"] = "Possible hardcoded credentials detected"
 
-        if "sql" in code.lower() and ("SELECT" in code or "INSERT" in code) and ('f"' in code or "f'" in code or "%" in code or ".format(" in code):
+        if (
+            "sql" in code.lower()
+            and ("SELECT" in code or "INSERT" in code)
+            and ('f"' in code or "f'" in code or "%" in code or ".format(" in code)
+        ):
             scores["security"]["score"] -= 0.15
             scores["security"]["comment"] += "; Possible SQL injection risk"
 

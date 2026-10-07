@@ -32,6 +32,7 @@ class EntryType(Enum):
         SUGGESTION: Improvement proposal or recommendation
         WARNING: Alert or caution notice
     """
+
     FINDING = "finding"
     DECISION = "decision"
     CONFLICT = "conflict"
@@ -51,6 +52,7 @@ class EntryStatus(Enum):
         SUPERSEDED: Entry replaced by newer version
         REJECTED: Entry invalidated or dismissed
     """
+
     ACTIVE = "active"
     RESOLVED = "resolved"
     SUPERSEDED = "superseded"
@@ -68,6 +70,7 @@ class ReferenceType(Enum):
         EXTENDS: Entry builds upon or expands target
         CLARIFIES: Entry provides clarification for target
     """
+
     SUPPORTS = "supports"
     CONTRADICTS = "contradicts"
     EXTENDS = "extends"
@@ -85,6 +88,7 @@ class Reference:
         target_entry_id: ID of the referenced entry
         summary: Brief description of the relationship (default: empty)
     """
+
     reference_type: ReferenceType
     target_entry_id: str
     summary: str = ""
@@ -120,6 +124,7 @@ class ScratchpadEntry:
         ... )
         >>> sp.write(entry)
     """
+
     entry_id: str = field(default_factory=lambda: f"entry-{uuid.uuid4().hex[:12]}")
     worker_id: str = ""
     role_id: str = ""
@@ -225,6 +230,7 @@ class TaskNotification:
         ...     summary="需要确认数据库选型",
         ... )
     """
+
     from_worker: str
     to_workers: list[str]
     notification_type: str
@@ -287,6 +293,7 @@ class TaskDefinition:
         ...     stage_id="phase1",
         ... )
     """
+
     task_id: str = field(default_factory=lambda: f"task-{uuid.uuid4().hex[:8]}")
     description: str = ""
     role_id: str = ""
@@ -325,6 +332,7 @@ class WorkerResult:
         ...     duration_seconds=2.5,
         ... )
     """
+
     worker_id: str
     task_id: str
     success: bool
@@ -360,6 +368,7 @@ class Vote:
         ...     weight=1.5,
         ... )
     """
+
     voter_id: str
     voter_role: str
     decision: bool
@@ -397,6 +406,7 @@ class DecisionProposal:
         ...     options=["PostgreSQL", "MySQL", "MongoDB"],
         ... )
     """
+
     proposal_id: str = field(default_factory=lambda: f"prop-{uuid.uuid4().hex[:8]}")
     topic: str = ""
     proposer_id: str = ""
@@ -420,6 +430,7 @@ class DecisionOutcome(Enum):
         ESCALATED: Veto detected or irreconcilable conflict, needs human intervention
         TIMEOUT: No votes cast within deadline, auto-resolved
     """
+
     APPROVED = "approved"
     REJECTED = "rejected"
     SPLIT = "split"
@@ -455,6 +466,7 @@ class ConsensusRecord:
         ...     final_decision="采用 PostgreSQL",
         ... )
     """
+
     record_id: str = field(default_factory=lambda: f"consensus-{uuid.uuid4().hex[:8]}")
     topic: str = ""
     outcome: DecisionOutcome = DecisionOutcome.APPROVED
@@ -606,11 +618,7 @@ class CompressedScratchpadEntry:
             trace_id=data.get("trace_id", ""),
             original_size=data.get("original_size", 0),
             compressed_size=data.get("compressed_size", 0),
-            created_at=(
-                datetime.fromisoformat(data["created_at"])
-                if "created_at" in data
-                else datetime.now()
-            ),
+            created_at=(datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now()),
         )
 
 
@@ -671,9 +679,5 @@ class LearnedRule:
             trigger_condition=data.get("trigger", data.get("trigger_condition", "")),
             confidence=float(data.get("confidence", 0.0)),
             source_task_id=data.get("source_task_id", ""),
-            created_at=(
-                datetime.fromisoformat(data["created_at"])
-                if "created_at" in data
-                else datetime.now()
-            ),
+            created_at=(datetime.fromisoformat(data["created_at"]) if "created_at" in data else datetime.now()),
         )

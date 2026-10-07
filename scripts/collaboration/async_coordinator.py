@@ -365,14 +365,20 @@ class AsyncCoordinator:
                         }
                     )
 
+        failed_results = [r for r in results if not r.success]
+        for failed_result in failed_results:
+            message = failed_result.error or f"Task {failed_result.task_id} failed"
+            if message not in errors:
+                errors.append(message)
+
         duration = time.time() - start_time
         success_count = sum(1 for r in results if r.success)
 
         result = ScheduleResult(
-            success=len(errors) == 0,
+            success=len(errors) == 0 and not failed_results,
             total_tasks=sum(len(b.tasks) for b in plan.batches),
             completed_tasks=success_count,
-            failed_tasks=len(errors),
+            failed_tasks=len(failed_results),
             results=results,
             duration_seconds=duration,
             errors=errors,
@@ -404,11 +410,13 @@ class AsyncCoordinator:
                 try:
                     worker = self._get_worker_for_task(task)
                     if worker:
-                        async_worker = self._async_workers.get(
-                            f"{task.role_id}-"
-                            f"{[k for k in self._async_workers if k.startswith(task.role_id)][0].split('-')[-1]}"
-                            if any(k.startswith(task.role_id) for k in self._async_workers)
-                            else ""
+                        async_worker = next(
+                            (
+                                candidate
+                                for worker_id, candidate in self._async_workers.items()
+                                if worker_id == worker.worker_id
+                            ),
+                            None,
                         )
                         if async_worker is None:
                             async_worker = AsyncWorkerWrapper(worker, timeout=self.task_timeout)
@@ -418,11 +426,38 @@ class AsyncCoordinator:
                         results.append(r)
                         if self.briefing_mode:
                             self._collect_briefing_from_worker(worker)
+                    else:
+                        results.append(
+                            WorkerResult(
+                                worker_id=f"{task.role_id}-missing",
+                                task_id=task.task_id,
+                                success=False,
+                                error="No worker found for task",
+                            )
+                        )
                 except asyncio.TimeoutError:
-                    errors.append(f"Task {task.task_id} timed out after {self.task_timeout}s")
+                    error = f"Task {task.task_id} timed out after {self.task_timeout}s"
+                    errors.append(error)
+                    results.append(
+                        WorkerResult(
+                            worker_id=f"{task.role_id}-failed",
+                            task_id=task.task_id,
+                            success=False,
+                            error=error,
+                        )
+                    )
                 except Exception as e:
                     # Per-task isolation: one task failure doesn't abort the batch
-                    errors.append(f"Task {task.task_id} failed: {e}")
+                    error = f"Task {task.task_id} failed: {e}"
+                    errors.append(error)
+                    results.append(
+                        WorkerResult(
+                            worker_id=f"{task.role_id}-failed",
+                            task_id=task.task_id,
+                            success=False,
+                            error=str(e),
+                        )
+                    )
 
         return results, errors
 
@@ -450,7 +485,7 @@ class AsyncCoordinator:
                 worker = self._get_worker_for_task(task)
                 if not worker:
                     return WorkerResult(
-                        worker_id="unknown",
+                        worker_id=f"{task.role_id}-missing",
                         task_id=task.task_id,
                         success=False,
                         error="No worker found for task",

@@ -30,7 +30,6 @@ from scripts.collaboration.performance_monitor import PerformanceMonitor
 pytestmark = pytest.mark.unit
 
 
-
 class TestContentCacheKeyGeneration(unittest.TestCase):
     """Verify unified SHA-256 cache key generation."""
 

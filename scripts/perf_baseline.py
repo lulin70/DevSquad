@@ -6,6 +6,7 @@ iterations": dispatcher creation time, simple-dispatch throughput, and
 peak memory over 10 dispatches. Output is appended to docs/perf/baseline
 .md as a comparison point. Run on demand, not in CI (CI may be slower).
 """
+
 from __future__ import annotations
 
 import json

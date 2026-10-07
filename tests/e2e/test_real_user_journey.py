@@ -101,8 +101,7 @@ class TestPMJourney(unittest.TestCase):
         dispatcher = _make_dispatcher(self._tmp)
         try:
             prd_task = (
-                "PRD: 设计一个支持多租户的 SaaS 认证系统，"
-                "覆盖功能性、安全、性能、可观测性、运维、UI、测试 7 个维度。"
+                "PRD: 设计一个支持多租户的 SaaS 认证系统，覆盖功能性、安全、性能、可观测性、运维、UI、测试 7 个维度。"
             )
             result = dispatcher.dispatch(
                 task_description=prd_task,
@@ -122,6 +121,31 @@ class TestPMJourney(unittest.TestCase):
                     result.matched_roles,
                     f"matched_roles 缺失角色: {rid}",
                 )
+            self._steps_executed += 1
+
+            candidates = result.details.get("role_candidates")
+            self.assertIsInstance(candidates, list)
+            self.assertEqual(
+                {item["candidate"] for item in candidates},
+                set(_EXPECTED_SEVEN_ROLES),
+            )
+            for candidate in candidates:
+                self.assertEqual(candidate["candidate"], candidate["role_id"])
+                self.assertIsInstance(candidate["score"], float)
+                self.assertEqual(candidate["score"], candidate["confidence"])
+                self.assertTrue(candidate["reason"])
+                self.assertIsInstance(candidate["matched_keywords"], list)
+            self._steps_executed += 1
+
+            coverage = result.details.get("coverage")
+            self.assertIsInstance(coverage, dict)
+            self.assertTrue(coverage["complete"])
+            self.assertEqual(coverage["requested"], coverage["completed"])
+            self.assertEqual(coverage["failed"], 0)
+            self.assertEqual(coverage["missing"], 0)
+            self.assertTrue(result.success)
+            self.assertEqual(result.details.get("failed_roles"), [])
+            self.assertEqual(result.details.get("missing_roles"), [])
             self._steps_executed += 1
 
             # 缓存给 test_02 使用（同进程内 unittest 默认按方法名顺序执行）
@@ -152,9 +176,7 @@ class TestPMJourney(unittest.TestCase):
         self._steps_executed += 1
 
         # 报告含 7 角色中文名章节
-        missing_roles = [
-            name for name in _EXPECTED_SEVEN_ROLE_NAMES_ZH if name not in markdown
-        ]
+        missing_roles = [name for name in _EXPECTED_SEVEN_ROLE_NAMES_ZH if name not in markdown]
         self.assertEqual(
             missing_roles,
             [],
@@ -211,14 +233,7 @@ class TestDeveloperJourney(unittest.TestCase):
         before = get_call_count()
 
         # 含一个 stdlib (os/sys，应被跳过) + 一个 KNOWN_GOOD (requests) 的 Python 代码
-        code_sample = (
-            "import os\n"
-            "import sys\n"
-            "import requests\n"
-            "\n"
-            "def fetch(url):\n"
-            "    return requests.get(url)\n"
-        )
+        code_sample = "import os\nimport sys\nimport requests\n\ndef fetch(url):\n    return requests.get(url)\n"
         result = security_scan_dependencies(code_sample, ecosystem="auto")
         self._steps_executed += 1
 
@@ -348,8 +363,7 @@ class TestOpsJourney(unittest.TestCase):
 
         self.assertTrue(
             report.compliant,
-            f"基础版部署到 localhost 应合规，实际 violations: "
-            f"{[v.rule_id for v in report.violations]}",
+            f"基础版部署到 localhost 应合规，实际 violations: {[v.rule_id for v in report.violations]}",
         )
         self._steps_executed += 1
 

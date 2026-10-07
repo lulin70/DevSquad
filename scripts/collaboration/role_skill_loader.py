@@ -26,6 +26,7 @@ _SKILLS_BASE_DIR = Path(__file__).parent / "role_skills"
 @dataclass
 class SkillContent:
     """Parsed content of a single SKILL.md file."""
+
     skill_id: str
     name: str
     description: str
@@ -47,7 +48,7 @@ def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     Returns (metadata_dict, body_text).
     If no frontmatter found, returns ({}, full_content).
     """
-    match = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL)
+    match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)", content, re.DOTALL)
     if not match:
         return {}, content
 
@@ -56,10 +57,10 @@ def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
 
     # Simple YAML parsing (no dependency on pyyaml for this)
     metadata: dict[str, Any] = {}
-    for line in frontmatter_text.split('\n'):
+    for line in frontmatter_text.split("\n"):
         line = line.strip()
-        if ':' in line and not line.startswith('#'):
-            key, _, value = line.partition(':')
+        if ":" in line and not line.startswith("#"):
+            key, _, value = line.partition(":")
             key = key.strip()
             value = value.strip().strip('"').strip("'")
             if value:
@@ -114,11 +115,15 @@ class RoleSkillLoader:
         findings = []
         for pattern, issue_type in RoleSkillLoader._SECURITY_PATTERNS:
             if re.search(pattern, content, re.IGNORECASE):
-                findings.append({
-                    "type": issue_type,
-                    "pattern": pattern,
-                    "severity": "critical" if issue_type in ("code_injection", "destructive_command", "credential_exposure") else "warning",
-                })
+                findings.append(
+                    {
+                        "type": issue_type,
+                        "pattern": pattern,
+                        "severity": "critical"
+                        if issue_type in ("code_injection", "destructive_command", "credential_exposure")
+                        else "warning",
+                    }
+                )
         return findings
 
     def load_skills(self, role_id: str, *, no_cache: bool = False) -> list[SkillContent]:
@@ -157,13 +162,15 @@ class RoleSkillLoader:
                 if critical_findings:
                     logger.warning(
                         "SKILL.md %s has critical security issues: %s — SKIPPED",
-                        skill_file, [f["type"] for f in critical_findings],
+                        skill_file,
+                        [f["type"] for f in critical_findings],
                     )
                     continue
                 elif security_findings:
                     logger.warning(
                         "SKILL.md %s has security warnings: %s",
-                        skill_file, [f["type"] for f in security_findings],
+                        skill_file,
+                        [f["type"] for f in security_findings],
                     )
 
                 metadata, body = _parse_frontmatter(content)

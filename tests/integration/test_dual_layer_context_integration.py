@@ -227,9 +227,11 @@ class T2_MemoryBridgeMCEAdapterRuleRetrieval(unittest.TestCase):
 
     def test_06_memory_bridge_recall_finds_written_episodic(self) -> None:
         """Verify: after writing an episodic memory, recall finds it by keyword."""
-        self._bridge.writer.write_episodic(_make_episodic(
-            finding="Implement retry pattern for flaky API calls in integration tests",
-        ))
+        self._bridge.writer.write_episodic(
+            _make_episodic(
+                finding="Implement retry pattern for flaky API calls in integration tests",
+            )
+        )
         result = self._bridge.recall(MemoryQuery(query_text="retry flaky API", limit=5, min_relevance=0.01))
         self.assertGreaterEqual(len(result.memories), 1)
 
@@ -370,9 +372,7 @@ class T4_TTLExpiryAndContextRefresh(unittest.TestCase):
         """Verify: cleanup_expired removes expired entries, keeps fresh ones."""
         self._ctx.set_project("fresh", "1", ttl=60)
         self._ctx.set_project("old", "2", ttl=1)
-        self._ctx.project_context["old"].timestamp = (
-            datetime.now() - timedelta(seconds=100)
-        ).isoformat()
+        self._ctx.project_context["old"].timestamp = (datetime.now() - timedelta(seconds=100)).isoformat()
         removed = self._ctx.cleanup_expired()
         self.assertEqual(removed, 1)
         self.assertIsNotNone(self._ctx.get_project("fresh"))
@@ -380,9 +380,7 @@ class T4_TTLExpiryAndContextRefresh(unittest.TestCase):
     def test_05_get_project_on_expired_entry_deletes_it(self) -> None:
         """Verify: accessing an expired project entry triggers its deletion."""
         self._ctx.set_project("temp", "val", ttl=1)
-        self._ctx.project_context["temp"].timestamp = (
-            datetime.now() - timedelta(seconds=50)
-        ).isoformat()
+        self._ctx.project_context["temp"].timestamp = (datetime.now() - timedelta(seconds=50)).isoformat()
         self._ctx.get_project("temp")
         self.assertNotIn("temp", self._ctx.project_context)
 
@@ -390,9 +388,7 @@ class T4_TTLExpiryAndContextRefresh(unittest.TestCase):
         """Verify: get_combined skips entries whose TTL has expired."""
         self._ctx.set_project("alive", "1", ttl=60)
         self._ctx.set_project("dead", "2", ttl=1)
-        self._ctx.project_context["dead"].timestamp = (
-            datetime.now() - timedelta(seconds=50)
-        ).isoformat()
+        self._ctx.project_context["dead"].timestamp = (datetime.now() - timedelta(seconds=50)).isoformat()
         combined = self._ctx.get_combined()
         self.assertIn("alive", combined)
         self.assertNotIn("dead", combined)
@@ -401,9 +397,7 @@ class T4_TTLExpiryAndContextRefresh(unittest.TestCase):
         """Verify: build_prompt_context omits expired entries."""
         self._ctx.set_project("alive", "visible", ttl=60)
         self._ctx.set_project("dead", "hidden", ttl=1)
-        self._ctx.project_context["dead"].timestamp = (
-            datetime.now() - timedelta(seconds=50)
-        ).isoformat()
+        self._ctx.project_context["dead"].timestamp = (datetime.now() - timedelta(seconds=50)).isoformat()
         prompt = self._ctx.build_prompt_context()
         self.assertIn("visible", prompt)
         self.assertNotIn("hidden", prompt)
@@ -411,9 +405,7 @@ class T4_TTLExpiryAndContextRefresh(unittest.TestCase):
     def test_08_refresh_entry_by_re_setting_extends_ttl(self) -> None:
         """Verify: re-setting an entry refreshes its timestamp and TTL."""
         self._ctx.set_project("refreshed", "v1", ttl=1)
-        self._ctx.project_context["refreshed"].timestamp = (
-            datetime.now() - timedelta(seconds=50)
-        ).isoformat()
+        self._ctx.project_context["refreshed"].timestamp = (datetime.now() - timedelta(seconds=50)).isoformat()
         self._ctx.set_project("refreshed", "v2", ttl=60)
         self.assertEqual(self._ctx.get_project("refreshed"), "v2")
 
@@ -449,6 +441,7 @@ class T5_BoundaryAndEdgeCases(unittest.TestCase):
 
     def test_05_concurrent_set_task_from_multiple_threads(self) -> None:
         """Verify: concurrent set_task calls from many threads don't corrupt."""
+
         def _writer(idx: int) -> None:
             self._ctx.set_task(f"key-{idx}", idx)
 
@@ -464,6 +457,7 @@ class T5_BoundaryAndEdgeCases(unittest.TestCase):
         self._ctx.set_task("instant", "val", ttl=0)
         # TTL=0 means any elapsed time > 0 expires it; sleep briefly.
         import time
+
         time.sleep(0.01)
         self.assertIsNone(self._ctx.get_task("instant"))
 

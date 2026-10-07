@@ -69,8 +69,7 @@ class TestAllFibersActiveAfterInit:
         d = _make_dispatcher()
         for module_id, fiber in d._module_fibers.items():
             assert fiber.state == FiberState.ACTIVE, (
-                f"Fiber {module_id!r} expected ACTIVE after init, "
-                f"got {fiber.state.value}"
+                f"Fiber {module_id!r} expected ACTIVE after init, got {fiber.state.value}"
             )
 
     def test_all_fibers_usable(self) -> None:
@@ -81,17 +80,13 @@ class TestAllFibersActiveAfterInit:
     def test_fibers_have_no_errors_after_init(self) -> None:
         d = _make_dispatcher()
         for module_id, fiber in d._module_fibers.items():
-            assert fiber.last_error is None, (
-                f"Fiber {module_id!r} has unexpected last_error={fiber.last_error!r}"
-            )
+            assert fiber.last_error is None, f"Fiber {module_id!r} has unexpected last_error={fiber.last_error!r}"
 
     def test_transition_history_has_activating_then_active(self) -> None:
         d = _make_dispatcher()
         for module_id, fiber in d._module_fibers.items():
             history = fiber.transition_history
-            assert len(history) >= 2, (
-                f"Fiber {module_id!r} history too short: {history}"
-            )
+            assert len(history) >= 2, f"Fiber {module_id!r} history too short: {history}"
             assert history[0]["from"] == "inactive"
             assert history[0]["to"] == "activating"
             assert history[1]["to"] == "active"
@@ -162,10 +157,7 @@ class TestFibersShutdownLifecycle:
                 FiberState.ACTIVE,
                 FiberState.DEACTIVATING,
                 FiberState.INACTIVE,
-            ), (
-                f"Fiber {module_id!r} in unexpected state {fiber.state.value} "
-                f"after shutdown"
-            )
+            ), f"Fiber {module_id!r} in unexpected state {fiber.state.value} after shutdown"
 
     def test_shutdown_is_idempotent(self) -> None:
         """Calling shutdown() twice must not raise."""
@@ -237,6 +229,5 @@ class TestFiberRegistryAndResolverConsistency:
                 fiber_deps = d._module_fibers[module_id].depends_on
                 resolver_deps = modules[module_id].depends_on()
                 assert fiber_deps == resolver_deps, (
-                    f"deps mismatch for {module_id}: "
-                    f"fiber={fiber_deps} resolver={resolver_deps}"
+                    f"deps mismatch for {module_id}: fiber={fiber_deps} resolver={resolver_deps}"
                 )

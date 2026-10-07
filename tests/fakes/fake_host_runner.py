@@ -64,6 +64,7 @@ class FakeHostRunner:
         self.poll_interval = poll_interval
         # Lazy import to avoid forcing host_llm_bridge path at module import
         from scripts.collaboration.host_llm_bridge import HostLLMBridge
+
         self._bridge = HostLLMBridge
 
     # ---- file helpers ----
@@ -182,8 +183,7 @@ def _main(bridge_dir: str, behaviour: str, delay_seconds: float = 0.0) -> None:
 if __name__ == "__main__":
     # CLI usage: python fake_host_runner.py <bridge_dir> <behaviour> [delay]
     if len(sys.argv) < 3:
-        print("Usage: fake_host_runner.py <bridge_dir> <behaviour> [delay_seconds]",
-              file=sys.stderr)
+        print("Usage: fake_host_runner.py <bridge_dir> <behaviour> [delay_seconds]", file=sys.stderr)
         sys.exit(2)
     _main(
         bridge_dir=sys.argv[1],

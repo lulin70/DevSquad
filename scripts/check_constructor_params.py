@@ -141,9 +141,7 @@ def main() -> int:
     Returns:
         0 if no constructors flagged, 1 if any flagged, 2 if invalid args.
     """
-    parser = argparse.ArgumentParser(
-        description="V4.2.1 P1-13: Detect constructors with too many parameters."
-    )
+    parser = argparse.ArgumentParser(description="V4.2.1 P1-13: Detect constructors with too many parameters.")
     parser.add_argument(
         "--source",
         type=Path,

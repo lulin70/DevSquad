@@ -20,7 +20,6 @@ from scripts.collaboration.models import TaskDefinition
 pytestmark = pytest.mark.unit
 
 
-
 class TestValidateInjectedRules(unittest.TestCase):
     """Test _validate_injected_rules() security validation."""
 

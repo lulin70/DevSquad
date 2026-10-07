@@ -121,14 +121,7 @@ class TestEvaluateCorrectness(unittest.TestCase):
     def test_05_score_capped_at_0_9(self) -> None:
         # All markers present: raise(0.2)+assert(0.2)+try/except(0.2)+no-pass(0.1)=0.7.
         # Cap is 0.9 — verify the score never exceeds 0.9 even with all markers.
-        code_with_all = (
-            "raise ValueError('x')\n"
-            "assert x > 0\n"
-            "try:\n"
-            "    x = 1\n"
-            "except Exception:\n"
-            "    x = 0\n"
-        )
+        code_with_all = "raise ValueError('x')\nassert x > 0\ntry:\n    x = 1\nexcept Exception:\n    x = 0\n"
         score, _ = _evaluate_correctness(code_with_all)
         self.assertLessEqual(score, 0.9)
         self.assertAlmostEqual(score, 0.7, places=5)
@@ -317,9 +310,7 @@ class TestEngineEvaluate(unittest.TestCase):
             ReviewAxis.ARCHITECTURE: 0.05,
             ReviewAxis.PERFORMANCE: 0.05,
         }
-        engine = FiveAxisConsensusEngine(
-            custom_weights=custom_weights, replace_weights=True
-        )
+        engine = FiveAxisConsensusEngine(custom_weights=custom_weights, replace_weights=True)
         engine_result = engine.evaluate({"code": code})
         direct_result = evaluate_artifacts({"code": code}, weights=custom_weights)
         self.assertAlmostEqual(engine_result.overall, direct_result.overall, places=5)

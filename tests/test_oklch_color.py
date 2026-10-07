@@ -148,9 +148,7 @@ class TestParseColorWithOklch:
 
     def test_contrast_ratio_with_oklch(self):
         # white vs black expressed as oklch
-        ratio = UIUXAnalyzer._compute_contrast_ratio(
-            "oklch(1.0 0.0 0.0)", "oklch(0.0 0.0 0.0)"
-        )
+        ratio = UIUXAnalyzer._compute_contrast_ratio("oklch(1.0 0.0 0.0)", "oklch(0.0 0.0 0.0)")
         assert ratio is not None
         assert ratio > 20.0  # near max contrast (21)
 

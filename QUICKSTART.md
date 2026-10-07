@@ -225,7 +225,7 @@ devsquad ship -t "部署和发布检查"
 | 文档 | 适用人群 | 内容深度 |
 |------|---------|---------|
 | [README.md](README.md) | 所有用户 | 完整功能介绍 + 架构详解 |
-| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 204+ 模块参考 |
+| [SKILL.md](SKILL.md) | TRAE 用户 | 技能使用手册 + 211+ 模块参考 |
 | [README-CN.md](README-CN.md) | 中文用户 | 中文版 README |
 | [docs/prd/](docs/prd/) | 产品经理 | 各版本 PRD 文档 |
 | [docs/spec/SPEC.md](docs/spec/SPEC.md) | 架构师 | 技术架构与规范文档 |

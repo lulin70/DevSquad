@@ -8,7 +8,6 @@ from scripts.collaboration.role_skill_loader import RoleSkillLoader
 pytestmark = pytest.mark.unit
 
 
-
 class TestSkillSecurityScanning:
     """Tests for _scan_skill_content security scanner."""
 

@@ -24,6 +24,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from scripts.collaboration.yagni_checker import YagniChecker, YagniResult
+from tests.conftest import perf_ceiling_ms
 
 
 class TestYagniResultDataclass(unittest.TestCase):
@@ -347,16 +348,30 @@ class TestYagniCheckerPerformance(unittest.TestCase):
         Scenario: YagniChecker uses regex matching, which should be fast.
         Expected: 1000 iterations complete in well under 5s, so each
         call is < 5ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 5.0 s budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never checks the task, so a
+        regression that inflates the 1000-call path (e.g. a super-linear pattern
+        scan per check) still trips it.
         """
         # Arrange
         task = "Implement the user authentication module with OAuth2"
+        ceiling_s = perf_ceiling_ms(5.0)
         # Act
         start = time.perf_counter()
         for _ in range(1000):
             self.checker.check(task)
         elapsed = time.perf_counter() - start
         # Assert
-        self.assertLess(elapsed, 5.0, f"1000 checks took {elapsed:.3f}s (> 5ms per call)")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (f"1000 checks took {elapsed:.3f}s exceeds ceiling {ceiling_s:.3f}s (> 5ms per call)"),
+        )
 
 
 class TestYagniCheckerMicroTaskIntegration(unittest.TestCase):

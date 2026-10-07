@@ -50,16 +50,18 @@ PICKLE_MAGIC_PROTOCOL_5 = b"\x80\x05"
 PICKLE_MAGIC_BYTES = (PICKLE_MAGIC_PROTOCOL_4, PICKLE_MAGIC_PROTOCOL_5)
 
 # Directories that are never scanned (third-party, caches, etc.).
-DEFAULT_EXCLUDE_DIRS = frozenset({
-    ".venv",
-    ".mypy_cache",
-    ".pytest_cache",
-    "__pycache__",
-    ".git",
-    "node_modules",
-    ".hypothesis",
-    ".ruff_cache",
-})
+DEFAULT_EXCLUDE_DIRS = frozenset(
+    {
+        ".venv",
+        ".mypy_cache",
+        ".pytest_cache",
+        "__pycache__",
+        ".git",
+        "node_modules",
+        ".hypothesis",
+        ".ruff_cache",
+    }
+)
 
 
 @dataclass
@@ -197,9 +199,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Write JSON report to this path (default: stdout summary).",
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Verbose logging."
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging.")
     args = parser.parse_args(argv)
 
     logging.basicConfig(

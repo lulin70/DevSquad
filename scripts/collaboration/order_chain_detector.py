@@ -57,10 +57,7 @@ class OrderChainDecision:
 
     def __post_init__(self) -> None:
         if self.source not in ("user", "role_meta", "heuristic", "default"):
-            raise ValueError(
-                f"Invalid source: {self.source!r} "
-                f"(must be user/role_meta/heuristic/default)"
-            )
+            raise ValueError(f"Invalid source: {self.source!r} (must be user/role_meta/heuristic/default)")
 
 
 # === Heuristic patterns ===
@@ -139,6 +136,7 @@ class OrderChainDetector:
         """② Role metadata: user-specified role has sequential_only=True."""
         try:
             from .models_dispatch import ROLE_REGISTRY
+
             for rid in roles:
                 rdef = ROLE_REGISTRY.get(rid)
                 if rdef and getattr(rdef, "sequential_only", False):

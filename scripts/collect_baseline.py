@@ -88,22 +88,19 @@ def main() -> int:
     print("=" * 60)
 
     # C path: actually measured
-    print(f"[mock] Collecting {SAMPLE_COUNTS['mock']} samples "
-          f"(+{WARMUP_DISCARD} warmup discarded)...")
+    print(f"[mock] Collecting {SAMPLE_COUNTS['mock']} samples (+{WARMUP_DISCARD} warmup discarded)...")
     mock_snap = _collect_mock(SAMPLE_COUNTS["mock"])
-    print(f"  mock: p50={mock_snap.p50_ms:.2f}ms "
-          f"p95={mock_snap.p95_ms:.2f}ms p99={mock_snap.p99_ms:.2f}ms")
+    print(f"  mock: p50={mock_snap.p50_ms:.2f}ms p95={mock_snap.p95_ms:.2f}ms p99={mock_snap.p99_ms:.2f}ms")
 
     # B path: stub (B path requires real host environment)
     print("[host] Emitting stub snapshot (real measurement requires host)...")
     host_snap = _collect_stub(
         "host",
         SAMPLE_COUNTS["host"],
-        avg_ms=200.0,   # typical file-protocol roundtrip
+        avg_ms=200.0,  # typical file-protocol roundtrip
         jitter_ms=80.0,
     )
-    print(f"  host: p50={host_snap.p50_ms:.2f}ms "
-          f"p95={host_snap.p95_ms:.2f}ms p99={host_snap.p99_ms:.2f}ms [stub]")
+    print(f"  host: p50={host_snap.p50_ms:.2f}ms p95={host_snap.p95_ms:.2f}ms p99={host_snap.p99_ms:.2f}ms [stub]")
 
     # A path: stub (real provider latency varies)
     print("[api] Emitting stub snapshot (real measurement requires API key)...")
@@ -113,8 +110,7 @@ def main() -> int:
         avg_ms=1500.0,  # typical LLM API call
         jitter_ms=400.0,
     )
-    print(f"  api: p50={api_snap.p50_ms:.2f}ms "
-          f"p95={api_snap.p95_ms:.2f}ms p99={api_snap.p99_ms:.2f}ms [stub]")
+    print(f"  api: p50={api_snap.p50_ms:.2f}ms p95={api_snap.p95_ms:.2f}ms p99={api_snap.p99_ms:.2f}ms [stub]")
 
     # auto_fallback: stub (depends on which sub-path triggered)
     print("[auto_fallback] Emitting stub snapshot...")
@@ -124,8 +120,10 @@ def main() -> int:
         avg_ms=800.0,
         jitter_ms=300.0,
     )
-    print(f"  auto_fallback: p50={auto_snap.p50_ms:.2f}ms "
-          f"p95={auto_snap.p95_ms:.2f}ms p99={auto_snap.p99_ms:.2f}ms [stub]")
+    print(
+        f"  auto_fallback: p50={auto_snap.p50_ms:.2f}ms "
+        f"p95={auto_snap.p95_ms:.2f}ms p99={auto_snap.p99_ms:.2f}ms [stub]"
+    )
 
     # Assemble + save
     baseline = PerfBaseline(

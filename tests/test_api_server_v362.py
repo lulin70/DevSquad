@@ -32,7 +32,6 @@ from scripts.api_server import app
 pytestmark = pytest.mark.unit
 
 
-
 @pytest.fixture
 def client(monkeypatch):
     """Create a FastAPI TestClient for API testing.

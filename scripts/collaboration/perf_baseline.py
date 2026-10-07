@@ -53,9 +53,9 @@ WARMUP_DISCARD = 5  # cold-start samples are dropped
 
 # CI thresholds: regression threshold per path
 GATE_THRESHOLDS: dict[str, float] = {
-    "mock": 0.10,           # +10% p95 → block
-    "host": 0.10,           # +10% p95 → block
-    "api": 0.20,            # +20% p95 → block (network slack)
+    "mock": 0.10,  # +10% p95 → block
+    "host": 0.10,  # +10% p95 → block
+    "api": 0.20,  # +20% p95 → block (network slack)
     "auto_fallback": 1.00,  # diagnostic only (no block)
 }
 
@@ -129,10 +129,7 @@ class PerfBaseline:
     def from_dict(cls, data: dict[str, Any]) -> PerfBaseline:
         return cls(
             version=data.get("version", "v4.5.2"),
-            snapshots={
-                p: PerfSnapshot.from_dict(s)
-                for p, s in data.get("snapshots", {}).items()
-            },
+            snapshots={p: PerfSnapshot.from_dict(s) for p, s in data.get("snapshots", {}).items()},
         )
 
     def save(self, path: str = DEFAULT_BASELINE_PATH) -> None:
@@ -177,9 +174,7 @@ class PerfSampleCollector:
 
     def __init__(self, path: str, exclude_failures: bool = True) -> None:
         if path not in SAMPLE_COUNTS:
-            raise ValueError(
-                f"Unknown path: {path!r} (expected one of {list(SAMPLE_COUNTS)})"
-            )
+            raise ValueError(f"Unknown path: {path!r} (expected one of {list(SAMPLE_COUNTS)})")
         self.path = path
         self.exclude_failures = exclude_failures
         self._samples: list[float] = []
@@ -313,7 +308,9 @@ def compare_to_baseline(
         from .prometheus_metrics import get_metrics as _gm
 
         _gm().record_perf_snapshot(
-            snapshot.path, snapshot.p95_ms, delta_p95_pct=delta_pct,
+            snapshot.path,
+            snapshot.p95_ms,
+            delta_p95_pct=delta_pct,
             within_threshold=within_threshold,
         )
     except (RuntimeError, ValueError, AttributeError):

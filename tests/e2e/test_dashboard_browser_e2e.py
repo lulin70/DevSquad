@@ -80,6 +80,7 @@ def _run_dashboard(role: str = "viewer") -> AppTest:
 # Journey 1: Login + Overview page
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_dashboard_login_and_overview_renders():
     """Journey-1: User logs in, overview page renders with key elements."""
     app = _run_dashboard(role="operator")
@@ -90,24 +91,20 @@ def test_e2e_dashboard_login_and_overview_renders():
     headers = app.header
     titles = app.title
     total_elements = len(markdowns) + len(headers) + len(titles)
-    assert total_elements > 0, (
-        "Dashboard rendered no markdown/header/title elements. "
-        f"Exception: {app.exception}"
-    )
+    assert total_elements > 0, f"Dashboard rendered no markdown/header/title elements. Exception: {app.exception}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 2: Navigation — sidebar switches pages
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_dashboard_navigation_sidebar_pages():
     """Journey-2: User navigates through sidebar pages without crash."""
     app = _run_dashboard(role="operator")
     # AppTest exposes sidebar widgets; verify no exception after initial render.
     # Note: app.exception is an ElementList (empty when no exception, not None).
-    assert not app.exception, (
-        f"Dashboard raised exception during render: {app.exception}"
-    )
+    assert not app.exception, f"Dashboard raised exception during render: {app.exception}"
     # Verify sidebar radio widget exists (navigation control)
     radio_list = app.sidebar.radio
     pages_found = 0
@@ -140,47 +137,40 @@ def test_e2e_dashboard_navigation_sidebar_pages():
 # Journey 3: Viewer role — read-only, no dispatch button
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_dashboard_viewer_role_readonly():
     """Journey-3: VIEWER role sees read-only content, no action panel."""
     app = _run_dashboard(role="viewer")
     # VIEWER should NOT see dispatch/action button
     buttons = app.button
     button_labels = [b.label for b in buttons if hasattr(b, "label")]
-    dispatch_buttons = [
-        lbl for lbl in button_labels
-        if lbl and ("dispatch" in lbl.lower() or "submit" in lbl.lower())
-    ]
-    assert len(dispatch_buttons) == 0, (
-        f"VIEWER should not see dispatch buttons, found: {dispatch_buttons}"
-    )
+    dispatch_buttons = [lbl for lbl in button_labels if lbl and ("dispatch" in lbl.lower() or "submit" in lbl.lower())]
+    assert len(dispatch_buttons) == 0, f"VIEWER should not see dispatch buttons, found: {dispatch_buttons}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 4: Operator role — sees action panel
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_dashboard_operator_role_has_action_panel():
     """Journey-4: OPERATOR role sees action/control elements."""
     app = _run_dashboard(role="operator")
     has_input = len(app.text_input) > 0 or len(app.button) > 0
-    assert has_input, (
-        f"OPERATOR dashboard has no input or action elements. "
-        f"Exception: {app.exception}"
-    )
+    assert has_input, f"OPERATOR dashboard has no input or action elements. Exception: {app.exception}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 5: View dispatch history
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_dashboard_dispatch_history_accessible():
     """Journey-5: Dashboard dispatch history section is accessible."""
     app = _run_dashboard(role="operator")
     # Try to find history-related content
     markdowns = app.markdown
-    text_content = " ".join(
-        m.value for m in markdowns if hasattr(m, "value") and m.value
-    )
+    text_content = " ".join(m.value for m in markdowns if hasattr(m, "value") and m.value)
     # Dashboard should render some content (history or empty state)
     assert isinstance(text_content, str), "History content is not text"
     # Should not raise an exception
@@ -191,13 +181,12 @@ def test_e2e_dashboard_dispatch_history_accessible():
 # Journey 6: Phase timeline renders
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_dashboard_phase_timeline_renders():
     """Journey-6: Phase timeline section renders without crash."""
     app = _run_dashboard(role="operator")
     # Verify no exception during render (app.exception is ElementList, not None)
-    assert not app.exception, (
-        f"Phase timeline render raised exception: {app.exception}"
-    )
+    assert not app.exception, f"Phase timeline render raised exception: {app.exception}"
     # Something should have rendered
     total_elements = len(app.markdown) + len(app.subheader) + len(app.caption)
     assert total_elements > 0, "Phase timeline rendered no content"
@@ -207,22 +196,15 @@ def test_e2e_dashboard_phase_timeline_renders():
 # Journey 7: Gate status panel renders
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_dashboard_gate_status_panel_renders():
     """Journey-7: Gate status panel renders without crash."""
     app = _run_dashboard(role="operator")
     # Verify no exception during render
-    assert not app.exception, (
-        f"Gate status panel render raised exception: {app.exception}"
-    )
+    assert not app.exception, f"Gate status panel render raised exception: {app.exception}"
     # Verify some content elements rendered (containers may not be directly
     # accessible via AppTest, so check the union of common element types)
-    total_elements = (
-        len(app.markdown)
-        + len(app.subheader)
-        + len(app.caption)
-        + len(app.button)
-        + len(app.metric)
-    )
+    total_elements = len(app.markdown) + len(app.subheader) + len(app.caption) + len(app.button) + len(app.metric)
     assert total_elements > 0, "Gate status panel rendered no content"
 
 
@@ -251,9 +233,7 @@ def test_e2e_dashboard_operator_can_navigate_to_task_dispatch():
         # the initial render at least didn't crash.
         pass
     # No exception after navigation attempt.
-    assert not app.exception, (
-        f"Task Dispatch navigation raised exception: {app.exception}"
-    )
+    assert not app.exception, f"Task Dispatch navigation raised exception: {app.exception}"
 
 
 # ---------------------------------------------------------------------------
@@ -277,15 +257,11 @@ def test_e2e_dashboard_viewer_denied_task_dispatch():
         except Exception:
             pass
     # Render must not crash.
-    assert not app.exception, (
-        f"Viewer Task Dispatch navigation raised exception: {app.exception}"
-    )
+    assert not app.exception, f"Viewer Task Dispatch navigation raised exception: {app.exception}"
     # Either the page renders the denial message, or viewer doesn't see the
     # option at all (both are valid RBAC behaviors).
     markdowns = app.markdown
-    text_content = " ".join(
-        m.value for m in markdowns if hasattr(m, "value") and m.value
-    )
+    text_content = " ".join(m.value for m in markdowns if hasattr(m, "value") and m.value)
     # If the page rendered, it should contain a "requires" denial notice.
     # If it didn't render at all (option hidden), text_content may be empty —
     # both are acceptable as long as no exception occurred.
@@ -309,16 +285,9 @@ def test_e2e_dashboard_admin_role_can_access_admin_pages():
     """
     app = _run_dashboard(role="admin")
     # Admin should render without exception.
-    assert not app.exception, (
-        f"Admin dashboard render raised exception: {app.exception}"
-    )
+    assert not app.exception, f"Admin dashboard render raised exception: {app.exception}"
     # Admin should see at least the same elements as operator.
-    total_elements = (
-        len(app.markdown)
-        + len(app.header)
-        + len(app.button)
-        + len(app.text_input)
-    )
+    total_elements = len(app.markdown) + len(app.header) + len(app.button) + len(app.text_input)
     assert total_elements > 0, "Admin dashboard rendered no content"
 
 
@@ -340,13 +309,11 @@ def test_e2e_dashboard_render_is_deterministic_across_runs():
     count2 = len(app2.markdown) + len(app2.header) + len(app2.button)
     # Counts should be equal (deterministic render).
     assert count1 == count2, (
-        f"Dashboard rendered different element counts on two runs: "
-        f"{count1} vs {count2} (flaky state suspected)"
+        f"Dashboard rendered different element counts on two runs: {count1} vs {count2} (flaky state suspected)"
     )
     # Neither run should have raised an exception.
     assert not app1.exception and not app2.exception, (
-        f"Dashboard raised exception on re-render: app1={app1.exception}, "
-        f"app2={app2.exception}"
+        f"Dashboard raised exception on re-render: app1={app1.exception}, app2={app2.exception}"
     )
 
 
@@ -411,9 +378,7 @@ def test_e2e_dashboard_login_form_submit_with_valid_credentials():
 
     # After submission with invalid creds, dashboard re-renders the login form
     # and shows an error message — neither outcome should crash the app.
-    assert not app.exception, (
-        f"Dashboard raised exception during login form submit: {app.exception}"
-    )
+    assert not app.exception, f"Dashboard raised exception during login form submit: {app.exception}"
     # We assert that the click was attempted (submitted=True) — exact auth
     # outcome depends on configured credentials, which is out of scope.
     assert submitted, "Could not locate Login button to click"

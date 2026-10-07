@@ -83,11 +83,13 @@ class TestAsyncCoordinatorFaultTolerance:
         worker_c = _make_worker("sec-1", result_c)
 
         # Wire _get_worker_for_task by task_id (TaskDefinition is unhashable).
-        coordinator._get_worker_for_task = MagicMock(side_effect=lambda t: {  # type: ignore[assignment]
-            "task-a": worker_a,
-            "task-b": worker_b,
-            "task-c": worker_c,
-        }.get(t.task_id))
+        coordinator._get_worker_for_task = MagicMock(
+            side_effect=lambda t: {  # type: ignore[assignment]
+                "task-a": worker_a,
+                "task-b": worker_b,
+                "task-c": worker_c,
+            }.get(t.task_id)
+        )
 
         # Force the AsyncWorkerWrapper for B to raise, simulating mid-execution failure.
         async def _failing_async_worker(worker: MagicMock, task: TaskDefinition) -> WorkerResult:
@@ -124,10 +126,12 @@ class TestAsyncCoordinatorFaultTolerance:
         worker_a = _make_worker("arch-1", result_a)
         worker_b = _make_worker("test-1", result_b)
 
-        coordinator._get_worker_for_task = MagicMock(side_effect=lambda t: {  # type: ignore[assignment]
-            "task-a": worker_a,
-            "task-b": worker_b,
-        }.get(t.task_id))
+        coordinator._get_worker_for_task = MagicMock(
+            side_effect=lambda t: {  # type: ignore[assignment]
+                "task-a": worker_a,
+                "task-b": worker_b,
+            }.get(t.task_id)
+        )
         coordinator._get_async_worker = MagicMock(side_effect=lambda w: _AsyncWorkerStub(w, None))  # type: ignore[assignment]
 
         results = await coordinator._execute_parallel_async(batch)

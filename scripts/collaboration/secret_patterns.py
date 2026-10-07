@@ -41,9 +41,9 @@ SQL_INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 # Combined pattern for quick "does this text contain anything sensitive?" check
 _SENSITIVE_QUICK_CHECK = re.compile(
     r"(?i)"
-    r"(?:sk-[a-zA-Z0-9]{20,})"           # OpenAI key
-    r"|(?:ghp_[a-zA-Z0-9]{36,})"         # GitHub token
-    r"|(?:AKIA[0-9A-Z]{16})"             # AWS access key
+    r"(?:sk-[a-zA-Z0-9]{20,})"  # OpenAI key
+    r"|(?:ghp_[a-zA-Z0-9]{36,})"  # GitHub token
+    r"|(?:AKIA[0-9A-Z]{16})"  # AWS access key
     r"|(?:password|passwd|pwd|secret|token|api[_-]?key)\s*[:=]"  # Generic secret assignment
     r"|(?:-----BEGIN.*PRIVATE KEY-----)"  # Private key
 )

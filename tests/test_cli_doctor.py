@@ -161,8 +161,7 @@ class TestFormatText:
         assert "100ms" in out or "100" in out
 
     def test_format_includes_unconfigured_marker(self):
-        reports = [ProviderReport("moka", False, False, error="not configured",
-                                    fix_hint="Set MOKA_API_KEY")]
+        reports = [ProviderReport("moka", False, False, error="not configured", fix_hint="Set MOKA_API_KEY")]
         out = format_text(reports)
         assert "NOT configured" in out
         assert "Set MOKA_API_KEY" in out
@@ -179,6 +178,7 @@ class TestFormatJson:
         reports = [ProviderReport("moka", True, True, 50.0, ["m1"])]
         out = format_json(reports)
         import json
+
         parsed = json.loads(out)
         assert parsed["version"] == "V4.5.2"
         assert len(parsed["reports"]) == 1
@@ -196,6 +196,7 @@ class TestCmdDoctor:
         rc = cmd_doctor(_ns("all", "json", timeout=0.1))  # noqa: F841
         captured = capsys.readouterr()
         import json
+
         parsed = json.loads(captured.out)
         assert parsed["version"] == "V4.5.2"
 
@@ -209,16 +210,12 @@ class TestCmdDoctor:
 
     @patch("scripts.cli_doctor.diagnose_provider")
     def test_unreachable_returns_exit_1(self, mock_diag, capsys):
-        mock_diag.return_value = ProviderReport(
-            "moka", True, False, error="connection failed"
-        )
+        mock_diag.return_value = ProviderReport("moka", True, False, error="connection failed")
         rc = cmd_doctor(_ns("moka", "text"))
         assert rc == 1
 
     @patch("scripts.cli_doctor.diagnose_provider")
     def test_unconfigured_returns_exit_0(self, mock_diag, capsys):
-        mock_diag.return_value = ProviderReport(
-            "moka", False, False, fix_hint="Set MOKA_API_KEY"
-        )
+        mock_diag.return_value = ProviderReport("moka", False, False, fix_hint="Set MOKA_API_KEY")
         rc = cmd_doctor(_ns("moka", "text"))
         assert rc == 0

@@ -132,25 +132,19 @@ class TestCheckThresholds:
 
     def test_step_warning(self):
         mon = DispatchPerformanceMonitor()
-        warnings, criticals = mon._check_thresholds(
-            _make_metric(step_timings={"analyze": 2.5})
-        )
+        warnings, criticals = mon._check_thresholds(_make_metric(step_timings={"analyze": 2.5}))
         assert len(warnings) >= 1
         assert any("step_analyze" in w["type"] for w in warnings)
 
     def test_step_critical(self):
         mon = DispatchPerformanceMonitor()
-        warnings, criticals = mon._check_thresholds(
-            _make_metric(step_timings={"analyze": 10.0})
-        )
+        warnings, criticals = mon._check_thresholds(_make_metric(step_timings={"analyze": 10.0}))
         assert len(criticals) >= 1
         assert any("step_analyze" in c["type"] for c in criticals)
 
     def test_step_no_threshold_no_violation(self):
         mon = DispatchPerformanceMonitor()
-        warnings, criticals = mon._check_thresholds(
-            _make_metric(step_timings={"unknown_step": 100.0})
-        )
+        warnings, criticals = mon._check_thresholds(_make_metric(step_timings={"unknown_step": 100.0}))
         assert all("unknown_step" not in w["type"] for w in warnings)
         assert all("unknown_step" not in c["type"] for c in criticals)
 

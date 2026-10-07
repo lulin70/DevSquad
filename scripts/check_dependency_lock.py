@@ -30,7 +30,9 @@ Exit codes:
 
 from __future__ import annotations
 
+import importlib.util
 import re
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -177,9 +179,17 @@ def get_system_version(command: str) -> str | None:
     cmd = tokens[0] if tokens else ""
     if not cmd:
         return None
+    resolved = shutil.which(cmd)
+    if resolved:
+        command_args = [resolved, "--version"]
+    else:
+        module_name = cmd.replace("-", "_")
+        if importlib.util.find_spec(module_name) is None:
+            return None
+        command_args = [sys.executable, "-m", cmd, "--version"]
     try:
         result = subprocess.run(  # noqa: S603 — fixed arg list, no shell
-            [cmd, "--version"],
+            command_args,
             capture_output=True,
             text=True,
             timeout=10,

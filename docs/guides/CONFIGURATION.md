@@ -164,6 +164,69 @@ docker run --env-file .env devsquad dispatch -t "task"
 | `DEVSQUAD_CHECKPOINT_ENABLED` | Enable checkpoints | `true` |
 | `DEVSQUAD_CACHE_ENABLED` | Enable LLM cache | `true` |
 
+## Real Provider Verification (OpenAI-compatible / DeepSeek)
+
+DevSquad drives any OpenAI-compatible endpoint through two code paths, and they do
+**not** read the same environment variables:
+
+| Path | Entry point | Variables read |
+|------|-------------|----------------|
+| CLI | `devsquad dispatch --backend openai` | `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL`, falling back to the `DEVSQUAD_OPENAI_*` names |
+| Library | `create_backend()`, `devsquad doctor` | `DEVSQUAD_OPENAI_API_KEY` / `DEVSQUAD_OPENAI_BASE_URL` / `DEVSQUAD_OPENAI_MODEL` |
+
+Setting only one pair is a real trap: configure **both** when you point DevSquad at a
+non-OpenAI host (for example DeepSeek), or the CLI and the library will disagree about
+which endpoint and model are in play.
+
+### Reasoning models: reasoning tokens count against `max_tokens`
+
+`deepseek-flash` is a reasoning model. It returns its chain of thought in a separate
+`reasoning_content` field, but those tokens are still billed into `max_tokens`. A
+long-reasoning prompt (code review / diff analysis — DevSquad's main workload) can
+therefore consume the entire budget and come back with `finish_reason='length'` and an
+**empty** `content`, even though the request "succeeded". Raise `max_tokens` for these
+models, and prefer a non-reasoning model when a small, hard budget is required.
+
+The effective budget is resolved as: explicit `max_tokens` argument →
+`DEVSQUAD_REASONING_MAX_TOKENS` (env override, applied to any model) →
+`DEFAULT_LLM_MAX_TOKENS_REASONING` (`16384`, applied when the model name matches the
+reasoning-model markers in `scripts/collaboration/reasoning_budget.py`) →
+`DEFAULT_LLM_MAX_TOKENS` (`4096`).
+
+An empty `content` with `finish_reason='length'` is **not** treated as success:
+`OpenAIBackend.generate()` logs a WARNING naming the model and the effective `max_tokens`,
+then raises, so the fallback chain degrades to the next backend instead of returning an
+empty answer. A truncated-but-non-empty answer is still returned unchanged.
+
+### List the provider's available models
+
+Ask the provider directly instead of guessing the model id:
+
+```bash
+# The key is read from the environment/.env — never passed on the command line.
+set -a; source .env; set +a
+curl -sS -H "Authorization: Bearer $DEVSQUAD_OPENAI_API_KEY" \
+  "$DEVSQUAD_OPENAI_BASE_URL/models" \
+  | python3 -c 'import json, sys; print([m["id"] for m in json.load(sys.stdin)["data"]])'
+```
+
+The current provider (DeepSeek, `https://api.deepseek.com/v1`) offers
+`deepseek-flash` and `deepseek-v4-pro`.
+
+### Re-runnable smoke check
+
+The same contract is asserted by the `external` test lane. It skips cleanly when no key
+is configured and makes no network call in that case:
+
+```bash
+# Library path (reads DEVSQUAD_OPENAI_*; conftest.py auto-loads .env).
+python3 -m pytest tests/external -q -p no:randomly
+
+# CLI path (reads OPENAI_*): source the env first, then run a real dispatch.
+set -a; source .env; set +a
+python3 scripts/cli.py dispatch -t "reply with the single word: pong" --backend openai
+```
+
 ## Troubleshooting
 
 ### Config file not loaded

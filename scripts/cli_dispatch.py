@@ -21,6 +21,8 @@ from scripts.collaboration.input_validator import InputValidator
 from scripts.collaboration.models import ROLE_REGISTRY, resolve_role_id
 from scripts.collaboration.multi_host_adapter import HostType, MultiHostAdapter
 from scripts.collaboration.permission_guard import PermissionLevel
+from scripts.collaboration.review_input import ReviewInputError, read_diff_file
+from scripts.collaboration.review_preview import build_review_preview, print_review_preview
 
 from .cli_utils import (
     MODES,
@@ -251,6 +253,15 @@ def _print_dispatch_result(args: argparse.Namespace, result: DispatchResult) -> 
             "summary": result.summary,
             "report": result.to_markdown(),
             "timing": getattr(result, "timing", None),
+            # V4.5.20 (F4): deterministic review bundles (only present in
+            # --mode review with a changeset; None otherwise).
+            "review_bundles": result.details.get("review_bundles"),
+            "review_filter": result.details.get("review_filter"),
+            "backend_status": result.details.get("backend_status"),
+            "role_candidates": result.details.get("role_candidates", []),
+            "coverage": result.details.get("coverage"),
+            "failed_roles": result.details.get("failed_roles", []),
+            "missing_roles": result.details.get("missing_roles", []),
         }
         print(json.dumps(output, ensure_ascii=False, indent=2))
     elif args.format == "compact":
@@ -283,40 +294,120 @@ def _resolve_use_async(args: argparse.Namespace, environ: dict[str, str] | None 
     return env.get("DEVSQUAD_USE_ASYNC", "").strip().lower() in ("1", "true")
 
 
-def cmd_dispatch(args: argparse.Namespace) -> int:
-    """Execute the ``dispatch`` subcommand: validate and run a task.
+def _execute_dispatch(
+    args: argparse.Namespace,
+    task: str,
+    diff_text: str | None,
+    disp: MultiAgentDispatcher,
+    adapter: MultiHostAdapter | None,
+) -> DispatchResult | int:
+    """Execute the selected dispatch path and return its result or exit code."""
+    common = {
+        "roles": args.roles,
+        "mode": args.mode,
+        "dry_run": args.dry_run,
+        "changeset": getattr(args, "changeset", None),
+        "include": getattr(args, "include", ()),
+        "exclude": getattr(args, "exclude", ()),
+        "max_file_size": getattr(args, "max_file_size", 10 * 1024 * 1024),
+        "repo_root": getattr(args, "repo_root", None),
+        "rule": getattr(args, "rule", None),
+        "deleted_paths": getattr(args, "deleted", ()),
+        "diff": diff_text,
+    }
+    if args.quick:
+        return disp.quick_dispatch(
+            task,
+            output_format=args.format if args.format in ("structured", "compact", "detailed") else "structured",
+            include_action_items=args.action_items,
+            include_timing=args.timing,
+        )
+    if adapter is not None:
+        return _print_host_result(args, adapter.dispatch(task, **common))
+    if _resolve_use_async(args):
+        import asyncio
 
-    Args:
-        args: Parsed argparse namespace. Expected attributes include
-            ``task``/``task_positional``, optional ``roles``, ``mode``,
-            ``format``, ``backend``, and ``quick``. When ``args.resume`` is
-            set (V4.5.0 SessionResume), the task is reconstructed from the
-            checkpoint identified by ``args.resume`` instead of read from
-            ``-t``/positional args.
+        return asyncio.run(disp.async_dispatch(task, **common))
+    return disp.dispatch(task, **common)
 
-    Returns:
-        0 on success, 1 on validation or dispatch failure.
-    """
-    # V4.5.0 SessionResume (PRD §10.1.2): resume an interrupted dispatch.
+
+def _load_dispatch_request(args: argparse.Namespace) -> tuple[str | None, str | None, int | None]:
+    """Validate the dispatch task and load its optional diff input."""
     resume_id = getattr(args, "resume", None)
     if resume_id:
         from .cli_sessions import load_resumable_task
 
-        persist_dir = getattr(args, "persist_dir", None)
-        task, status, err = load_resumable_task(resume_id, persist_dir)
+        task, _status, err = load_resumable_task(resume_id, getattr(args, "persist_dir", None))
         if err is not None or task is None:
             print(f"Error: resume failed — {err or 'unknown error'}", file=sys.stderr)
-            return 1
-        # Inject the reconstructed task so downstream validation/dispatch uses it.
+            return None, None, 1
         args.task = task
         args.task_positional = None
         print(f"Resuming session '{resume_id}' (task reconstructed from checkpoint).", file=sys.stderr)
 
     task, validation_err = _validate_dispatch_input(args)
-    if validation_err is not None:
-        return validation_err
+    if validation_err is not None or task is None:
+        return task, None, validation_err or 1
+
+    diff_text = None
+    diff_file = getattr(args, "diff_file", None)
+    if diff_file:
+        try:
+            diff_text = read_diff_file(diff_file)
+        except ReviewInputError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return None, None, 1
+
+    if getattr(args, "changeset", None) and diff_text is not None:
+        print("Error: --changeset and --diff-file are mutually exclusive.", file=sys.stderr)
+        return None, None, 1
+    return task, diff_text, None
+
+
+def _run_dispatch_preview(args: argparse.Namespace, task: str, diff_text: str | None) -> int | None:
+    """Run deterministic review preview, or return ``None`` when inactive."""
+    if not getattr(args, "preview", False):
+        return None
+    if args.mode != "review":
+        print("Error: --preview requires --mode review.", file=sys.stderr)
+        return 1
+    if args.quick or getattr(args, "host", None):
+        print("Error: --preview is incompatible with --quick and --host.", file=sys.stderr)
+        return 1
+    if not getattr(args, "changeset", None) and not diff_text:
+        print("Error: --preview requires --changeset or --diff-file.", file=sys.stderr)
+        return 1
+    try:
+        payload = build_review_preview(
+            task,
+            changeset=args.changeset,
+            repo_root=getattr(args, "repo_root", None),
+            include=getattr(args, "include", ()),
+            exclude=getattr(args, "exclude", ()),
+            max_file_size=getattr(args, "max_file_size", 10 * 1024 * 1024),
+            rule=getattr(args, "rule", None),
+            deleted_paths=getattr(args, "deleted", ()),
+            verbose=getattr(args, "verbose", False),
+            diff=diff_text,
+        )
+    except ReviewInputError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print_review_preview(payload, args.format)
+    return 0
+
+
+def cmd_dispatch(args: argparse.Namespace) -> int:
+    """Execute the ``dispatch`` subcommand: validate and run a task."""
+    task, diff_text, request_error = _load_dispatch_request(args)
+    if request_error is not None:
+        return request_error
     if task is None:
         return 1
+
+    preview_result = _run_dispatch_preview(args, task, diff_text)
+    if preview_result is not None:
+        return preview_result
 
     kwargs, kwargs_err = _build_dispatch_kwargs(args)
     if kwargs_err is not None:
@@ -326,45 +417,15 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
 
     disp = MultiAgentDispatcher(**kwargs)
     adapter = _create_host_adapter(args, disp)
-
     try:
-        if args.quick:
-            result = disp.quick_dispatch(
-                task,  # 使用验证后的任务
-                output_format=args.format if args.format in ("structured", "compact", "detailed") else "structured",
-                include_action_items=args.action_items,
-                include_timing=args.timing,
-            )
-        elif adapter is not None:
-            host_result = adapter.dispatch(
-                task,
-                roles=args.roles,
-                mode=args.mode,
-                dry_run=args.dry_run,
-            )
-            return _print_host_result(args, host_result)
-        elif _resolve_use_async(args):
-            # V4.5.10: explicit async pipeline (P2-2裁决).
-            import asyncio
-
-            result = asyncio.run(
-                disp.async_dispatch(
-                    task,
-                    roles=args.roles,
-                    mode=args.mode,
-                    dry_run=args.dry_run,
-                )
-            )
-        else:
-            result = disp.dispatch(
-                task,  # 使用验证后的任务
-                roles=args.roles,
-                mode=args.mode,
-                dry_run=args.dry_run,
-            )
-
-        _print_dispatch_result(args, result)
-        return 0 if result.success else 1
+        dispatch_result = _execute_dispatch(args, task, diff_text, disp, adapter)
+        if isinstance(dispatch_result, int):
+            return dispatch_result
+        _print_dispatch_result(args, dispatch_result)
+        return 0 if dispatch_result.success else 1
+    except ReviewInputError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     finally:
         disp.shutdown()
 

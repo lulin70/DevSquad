@@ -34,9 +34,7 @@ class TestRealUserWorkflowE2E:
         roles = ["architect", "security", "tester", "coder", "devops", "ui", "pm"]
 
         results = await asyncio.gather(
-            *[resolver.aresolve(
-                _req(f"setup-{r}", lambda role=r: {"role": role, "ready": True})
-            ) for r in roles]
+            *[resolver.aresolve(_req(f"setup-{r}", lambda role=r: {"role": role, "ready": True})) for r in roles]
         )
 
         readiness = {res.value["role"]: res.value["ready"] for res in results}
@@ -46,6 +44,7 @@ class TestRealUserWorkflowE2E:
     async def test_user_workflow_survives_role_failure(self):
         """One role's setup crashes; the workflow still finishes and reports
         the failure instead of aborting everything (fail-isolated)."""
+
         def broken_security_setup():
             raise ConnectionError("security scanner unreachable")
 
@@ -66,6 +65,7 @@ class TestRealUserWorkflowE2E:
     async def test_user_workflow_hung_coeffect_times_out(self):
         """A hung coeffect (e.g. deadlocked external call) is cut off at the
         configured timeout; the workflow returns within bounded time."""
+
         def hang_forever():
             time.sleep(3.0)  # would stall the workflow without timeout
 
@@ -98,10 +98,12 @@ class TestRealUserWorkflowE2E:
         """User aborts a long-running dispatch; in-flight coeffects land in
         CANCELLED instead of leaking or corrupting the resolver."""
         resolver = AsyncCoeffectResolver(max_concurrent=2)
-        task = asyncio.ensure_future(asyncio.gather(
-            resolver.aresolve(_req("long-analysis", lambda: time.sleep(2.0))),
-            resolver.aresolve(_req("quick-check", lambda: "done")),
-        ))
+        task = asyncio.ensure_future(
+            asyncio.gather(
+                resolver.aresolve(_req("long-analysis", lambda: time.sleep(2.0))),
+                resolver.aresolve(_req("quick-check", lambda: "done")),
+            )
+        )
         await asyncio.sleep(0.1)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):

@@ -343,9 +343,7 @@ class TestThresholdCheck(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            report, passed = check_with_threshold(
-                src, tests, min_coverage_percent=80.0, ignore=["bar"]
-            )
+            report, passed = check_with_threshold(src, tests, min_coverage_percent=80.0, ignore=["bar"])
             self.assertTrue(passed)
             # ``bar`` is excluded → total drops from 2 to 1.
             self.assertEqual(report.total, 1)

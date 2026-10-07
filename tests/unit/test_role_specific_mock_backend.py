@@ -28,9 +28,7 @@ class TestRoleSpecificMockDefaultMode(unittest.TestCase):
     def test_01_default_mode_produces_mock_header(self) -> None:
         """Happy: role_specific=False -> output contains [MOCK MODE] header."""
         backend = RoleSpecificMockBackend(role_specific=False)
-        output = backend.generate(
-            "test prompt", role_name="Architect", task_description="design"
-        )
+        output = backend.generate("test prompt", role_name="Architect", task_description="design")
         self.assertIn("[MOCK MODE]", output)
         self.assertIn("Architect", output)
         self.assertIn("design", output)

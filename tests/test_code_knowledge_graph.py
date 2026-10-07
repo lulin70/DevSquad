@@ -18,6 +18,7 @@ from scripts.collaboration.code_graph_storage import (
     SymbolInfo,
 )
 from scripts.collaboration.code_knowledge_graph import CodeKnowledgeGraph
+from tests.conftest import perf_ceiling_ms
 
 
 def _make_project(root: Path) -> Path:
@@ -117,7 +118,17 @@ def func_d():
 
 
 class TestCodeGraphStorage(unittest.TestCase):
-    """Tests for CodeGraphStorage — SQLite storage layer."""
+    """Tests for CodeGraphStorage — SQLite storage layer.
+
+    V4.5.20 P1-2: the two performance tests below use environment-scaled
+    ceilings (tests/conftest.py), ``budget * env_perf_factor()`` where the factor
+    comes from an **operation-independent** reference workload (a CPU-only proxy
+    that does not touch CodeGraphStorage/CodeKnowledgeGraph). On the calibration
+    host the factor is exactly ``1.0``, so each ceiling equals its original budget
+    (50 ms / 500 ms). The control must not exercise the code under test: a
+    same-code-path control grows in lockstep with a regression, so the ceiling
+    would grow too and the gate could no longer fail.
+    """
 
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -530,6 +541,12 @@ class TestCodeGraphStorage(unittest.TestCase):
 
         Scenario: A project with multiple files is indexed, then queried.
         Expected: find_symbol completes in <50ms.
+
+        V4.5.20 P1-2: environment-scaled ceiling via the operation-independent
+        reference-workload control; the factor is 1.0 on the calibration host, so
+        the ceiling equals the original 50 ms budget there. The control must not
+        touch the code under test — a same-code-path control makes the ceiling
+        grow with the regression, so the gate can no longer fail.
         """
         # Arrange
         project = Path(self.tmpdir.name) / "perf_project"
@@ -537,6 +554,8 @@ class TestCodeGraphStorage(unittest.TestCase):
         graph = CodeKnowledgeGraph(Path(self.tmpdir.name) / "perf.db")
         graph.build_from_project(project)
         query = graph.query()
+
+        ceiling_ms = perf_ceiling_ms(50.0)
 
         # Act
         start = time.perf_counter()
@@ -547,7 +566,11 @@ class TestCodeGraphStorage(unittest.TestCase):
         elapsed = (time.perf_counter() - start) * 1000  # ms
 
         # Assert
-        self.assertLess(elapsed, 50.0, f"Query took {elapsed:.2f}ms, expected <50ms")
+        self.assertLess(
+            elapsed,
+            ceiling_ms,
+            f"Query took {elapsed:.2f}ms, exceeds ceiling {ceiling_ms:.2f}ms",
+        )
         graph.close()
 
     def test_incremental_update_performance_under_500ms(self):
@@ -555,12 +578,20 @@ class TestCodeGraphStorage(unittest.TestCase):
 
         Scenario: A project is built, then update_project is called (all files unchanged).
         Expected: update_project completes in <500ms and returns 0 (no files changed).
+
+        V4.5.20 P1-2: environment-scaled ceiling via the operation-independent
+        reference-workload control; the factor is 1.0 on the calibration host, so
+        the ceiling equals the original 500 ms budget there. The control must not
+        touch the code under test — a same-code-path control makes the ceiling
+        grow with the regression, so the gate can no longer fail.
         """
         # Arrange
         project = Path(self.tmpdir.name) / "incr_perf_project"
         _make_project(project)
         graph = CodeKnowledgeGraph(Path(self.tmpdir.name) / "incr_perf.db")
         graph.build_from_project(project)
+
+        ceiling_ms = perf_ceiling_ms(500.0)
 
         # Act
         start = time.perf_counter()
@@ -569,7 +600,11 @@ class TestCodeGraphStorage(unittest.TestCase):
 
         # Assert
         self.assertEqual(updated, 0)
-        self.assertLess(elapsed, 500.0, f"Update took {elapsed:.2f}ms, expected <500ms")
+        self.assertLess(
+            elapsed,
+            ceiling_ms,
+            f"Update took {elapsed:.2f}ms, exceeds ceiling {ceiling_ms:.2f}ms",
+        )
         graph.close()
 
     # === Integration (≥10%) ===

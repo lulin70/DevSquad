@@ -91,14 +91,16 @@ DEFAULT_TARGET_VIEWS: tuple[str, ...] = ("main",)
 
 # 可自动修复的规则集合（基于规则 ID 判定）
 # 这些规则的修复通常是机械的、可脚本化的（加 alt、调尺寸、修溢出等）
-_AUTO_FIXABLE_RULES: frozenset[str] = frozenset({
-    "img_missing_alt",
-    "input_missing_label",
-    "button_too_small",
-    "viewport_overflow",
-    "form_no_validation",
-    "spacing_4pt_grid",
-})
+_AUTO_FIXABLE_RULES: frozenset[str] = frozenset(
+    {
+        "img_missing_alt",
+        "input_missing_label",
+        "button_too_small",
+        "viewport_overflow",
+        "form_no_validation",
+        "spacing_4pt_grid",
+    }
+)
 
 # severity → 修复优先级
 _SEVERITY_PRIORITY: dict[str, str] = {
@@ -428,12 +430,14 @@ class LiveBrowserMode:
             rule = issue.get("rule", "unknown")
             issue_id = issue.get("issue_id", rule)
             template = _FIX_SUGGESTIONS.get(rule, _FIX_SUGGESTIONS["__default__"])
-            suggestions.append({
-                "issue_id": issue_id,
-                "fix_description": template["fix_description"],
-                "priority": _severity_to_priority(issue.get("severity", "info")),
-                "estimated_effort": template["estimated_effort"],
-            })
+            suggestions.append(
+                {
+                    "issue_id": issue_id,
+                    "fix_description": template["fix_description"],
+                    "priority": _severity_to_priority(issue.get("severity", "info")),
+                    "estimated_effort": template["estimated_effort"],
+                }
+            )
             if rule in _AUTO_FIXABLE_RULES:
                 auto_fixable.append(issue_id)
             else:
@@ -626,26 +630,32 @@ class LiveBrowserMode:
         baseline = session.get("visual_baseline")
         current = session.get("visual_current")
         if baseline is None or current is None:
-            return [{
-                "status": "no_baseline",
-                "message": "No visual baseline established; visual regression skipped",
-            }]
+            return [
+                {
+                    "status": "no_baseline",
+                    "message": "No visual baseline established; visual regression skipped",
+                }
+            ]
 
         checker = self._get_visual_checker()
         if checker is None:
-            return [{
-                "status": "unavailable",
-                "message": "VisualRegressionChecker unavailable (Pillow not installed)",
-            }]
+            return [
+                {
+                    "status": "unavailable",
+                    "message": "VisualRegressionChecker unavailable (Pillow not installed)",
+                }
+            ]
 
         try:
             result = checker.compare(baseline, current)
-            return [{
-                "status": "regression" if checker.is_regression(result) else "ok",
-                "pixel_diff_ratio": result.pixel_diff_ratio,
-                "has_display_error": result.has_display_error,
-                "changed_regions": len(result.changed_regions),
-            }]
+            return [
+                {
+                    "status": "regression" if checker.is_regression(result) else "ok",
+                    "pixel_diff_ratio": result.pixel_diff_ratio,
+                    "has_display_error": result.has_display_error,
+                    "changed_regions": len(result.changed_regions),
+                }
+            ]
         except Exception as exc:  # noqa: BLE001 — Diff 异常不应中断 review 闭环
             logger.warning("Visual regression failed: %s", exc)
             return [{"status": "error", "message": str(exc)}]

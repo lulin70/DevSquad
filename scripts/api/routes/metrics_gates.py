@@ -135,7 +135,6 @@ async def get_current_metrics(
         mem_usage, mem_estimated = _get_real_memory_usage()
         avg_resp, p95_resp, resp_estimated = _get_real_response_time()
 
-
         return MetricsSnapshot(
             timestamp=datetime.now(),
             total_phases=total_phases,

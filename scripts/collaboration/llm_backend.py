@@ -3,6 +3,7 @@
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 from .constants import (
@@ -12,12 +13,13 @@ from .constants import (
     DEFAULT_LLM_TIMEOUT_SECONDS,
 )
 from .prometheus_metrics import get_metrics
+from .reasoning_budget import resolve_max_tokens
 
 if TYPE_CHECKING:
     from .moka_backend import MokaAIBackend
 
-# Shared defaults so sync and async backends stay consistent.
-# Magic numbers centralized in .constants — re-exported here for backward compatibility.
+API_BACKEND_ORDER: tuple[str, ...] = ("moka", "openai", "anthropic")
+
 DEFAULT_TIMEOUT = DEFAULT_LLM_TIMEOUT_SECONDS
 DEFAULT_MAX_TOKENS = DEFAULT_LLM_MAX_TOKENS
 DEFAULT_TEMPERATURE = DEFAULT_LLM_TEMPERATURE
@@ -28,7 +30,6 @@ MOCK_SEPARATOR_WIDTH = 50
 DEFAULT_MODEL_OPENAI = "gpt-4"
 DEFAULT_MODEL_ANTHROPIC = "claude-sonnet-4-20250514"
 
-# V4.5.2 P12.1.1: Lazy import for MokaAIBackend to avoid circular imports
 _MOKA_BACKEND = None
 
 
@@ -37,20 +38,53 @@ def _get_moka_backend() -> "type[MokaAIBackend]":
     global _MOKA_BACKEND
     if _MOKA_BACKEND is None:
         from .moka_backend import MokaAIBackend
+
         _MOKA_BACKEND = MokaAIBackend
     return _MOKA_BACKEND
 
 
+@dataclass(frozen=True, slots=True)
+class BackendStatus:
+    """Observable backend selection and degradation state."""
+
+    requested: str
+    selected_path: str
+    state: str
+    chain: tuple[str, ...]
+    degradation_reason: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "requested": self.requested,
+            "selected_path": self.selected_path,
+            "state": self.state,
+            "chain": list(self.chain),
+            "degradation_reason": self.degradation_reason,
+        }
+
+
 class LLMBackend(ABC):
     path: str = "C"  # default for backward compat
+    backend_id: str = "mock"
+    _requested_backend: str = "auto"
+    _selected_path: str = "C"
+    _degradation_reason: str | None = None
+
+    def backend_status(self) -> BackendStatus:
+        """Return the current selected/degraded path for user-visible reporting."""
+        return BackendStatus(
+            requested=self._requested_backend,
+            selected_path=self._selected_path,
+            state="degraded" if self._degradation_reason else "selected",
+            chain=(self.backend_id,),
+            degradation_reason=self._degradation_reason,
+        )
 
     @abstractmethod
-    def generate(self, prompt: str, **kwargs: Any) -> str:
-        ...
+    def generate(self, prompt: str, **kwargs: Any) -> str: ...
 
     @abstractmethod
-    def is_available(self) -> bool:
-        ...
+    def is_available(self) -> bool: ...
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
         yield self.generate(prompt, **kwargs)
@@ -58,8 +92,20 @@ class LLMBackend(ABC):
 
 class MockBackend(LLMBackend):
     path = "C"
+    backend_id = "mock"
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
+        role_id = str(kwargs.get("role_id", "")).strip()
+        injected_roles = {
+            item.strip() for item in os.environ.get("DEVSQUAD_MOCK_FAIL_ROLES", "").split(",") if item.strip()
+        }
+        if role_id and role_id in injected_roles:
+            reason = os.environ.get(
+                "DEVSQUAD_MOCK_FAIL_REASON",
+                f"Injected mock failure for role {role_id}",
+            )
+            raise RuntimeError(reason)
+
         role_name = kwargs.get("role_name", "AI Assistant")
         task_desc = kwargs.get("task_description", "")
         lines = [
@@ -81,6 +127,7 @@ class MockBackend(LLMBackend):
 
 class TraeBackend(LLMBackend):
     path = "B-passthrough"
+    backend_id = "trae-passthrough"
 
     def generate(self, prompt: str, **_kwargs: Any) -> str:
         return prompt
@@ -90,8 +137,8 @@ class TraeBackend(LLMBackend):
 
 
 class OpenAIBackend(LLMBackend):
-    # V4.5.2: A path (direct API)
     path = "A"
+    backend_id = "openai"
     DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
     MAX_RETRIES = DEFAULT_MAX_RETRIES
 
@@ -101,14 +148,14 @@ class OpenAIBackend(LLMBackend):
         model: str | None = None,
         base_url: str | None = None,
         temperature: float = DEFAULT_TEMPERATURE,
-        max_tokens: int = DEFAULT_MAX_TOKENS,
+        max_tokens: int | None = None,
         timeout: float | None = None,
     ) -> None:
         self._api_key = api_key or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
         self.model = model or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI)
         self.base_url = base_url or os.environ.get("DEVSQUAD_OPENAI_BASE_URL")
         self.temperature = temperature
-        self.max_tokens = max_tokens
+        self.max_tokens = resolve_max_tokens(self.model, max_tokens)
         self.timeout = timeout or self.DEFAULT_TIMEOUT
         self._client: Any | None = None
         self._client_lock = __import__("threading").Lock()
@@ -142,10 +189,13 @@ class OpenAIBackend(LLMBackend):
             **kwargs: Optional overrides for model, temperature, and max_tokens.
 
         Returns:
-            The generated completion text.
+            The generated completion text. A truncated-but-non-empty answer
+            (``finish_reason='length'`` with content) is still returned as-is.
 
         Raises:
-            RuntimeError: If all retry attempts fail.
+            RuntimeError: If all retry attempts fail, or the provider returns
+                ``finish_reason='length'`` with empty content (the budget was
+                consumed by reasoning tokens) — never treated as success.
         """
         import time
 
@@ -161,17 +211,33 @@ class OpenAIBackend(LLMBackend):
                     max_tokens=kwargs.get("max_tokens", self.max_tokens),
                 )
                 _llm_duration = time.time() - _llm_start
-                # Prometheus: record successful LLM call
+                choice = response.choices[0]
+                content = choice.message.content or ""
+                effective_max_tokens = kwargs.get("max_tokens", self.max_tokens)
+                if not content and getattr(choice, "finish_reason", None) == "length":
+                    import logging
+
+                    logging.getLogger(__name__).warning(
+                        "OpenAIBackend: empty completion with finish_reason='length' "
+                        "(model=%s, max_tokens=%s); the token budget was consumed by "
+                        "reasoning tokens. Raising so the chain degrades to the next "
+                        "backend. Raise max_tokens or use a non-reasoning model.",
+                        kwargs.get("model", self.model),
+                        effective_max_tokens,
+                    )
+                    raise RuntimeError(
+                        "OpenAIBackend: empty completion with finish_reason='length' "
+                        f"(model={kwargs.get('model', self.model)}, max_tokens={effective_max_tokens})"
+                    )
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, True)
                 except (RuntimeError, ValueError, AttributeError):  # optional metrics must never break LLM calls
                     pass
-                return response.choices[0].message.content or ""
+                return content
             except _get_openai_retry_exceptions() as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
-                # Prometheus: record failed LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("openai", _llm_duration, False)
@@ -200,8 +266,6 @@ class OpenAIBackend(LLMBackend):
             stream=True,
         )
         for chunk in stream:
-            # Some OpenAI-compatible providers emit empty choices during stream setup;
-            # skip them instead of crashing.
             if not chunk.choices:
                 continue
             content = chunk.choices[0].delta.content
@@ -222,8 +286,8 @@ class OpenAIBackend(LLMBackend):
 
 
 class AnthropicBackend(LLMBackend):
-    # V4.5.2: A path (direct API)
     path = "A"
+    backend_id = "anthropic"
     DEFAULT_TIMEOUT = DEFAULT_TIMEOUT
     MAX_RETRIES = DEFAULT_MAX_RETRIES
 
@@ -290,7 +354,6 @@ class AnthropicBackend(LLMBackend):
                     messages=[{"role": "user", "content": prompt}],
                 )
                 _llm_duration = time.time() - _llm_start
-                # Prometheus: record successful LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, True)
@@ -300,7 +363,6 @@ class AnthropicBackend(LLMBackend):
             except _get_anthropic_retry_exceptions() as e:
                 _llm_duration = time.time() - _llm_start
                 last_error = e
-                # Prometheus: record failed LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call("anthropic", _llm_duration, False)
@@ -342,21 +404,6 @@ class AnthropicBackend(LLMBackend):
 
 
 class FallbackBackend(LLMBackend):
-    """
-    Backend with automatic failover across multiple backends and fuse logic.
-
-    V4.5.2 additions:
-    - Fuse skip: consecutive same-reason failures permanently skip the backend.
-    - ``path`` attribute exposes the resolved path for reporting.
-    - Single failure degrades to the next backend (no fatal, continue).
-
-    Usage:
-        primary = AnthropicBackend(api_key="...", model="claude-sonnet-4-6")
-        fallback = OpenAIBackend(api_key="...", model="gpt-5.5")
-        backend = FallbackBackend([primary, fallback])
-    """
-
-    # V4.5.2: Composite path — actual path depends on available backends
     path = "A+C"
 
     def __init__(self, backends: list[Any], cooldown_seconds: float = DEFAULT_COOLDOWN_SECONDS) -> None:
@@ -367,11 +414,22 @@ class FallbackBackend(LLMBackend):
         self._failed_at: dict[str, float] = {}
         self._active_index = 0
         self._lock = __import__("threading").Lock()
-        # V4.5.2: fuse tracking — skip index after N consecutive same-reason failures
-        self._failures: dict[str, int] = {}  # reason -> count
-        self._skipped: set[int] = set()  # indices skipped by fuse
+        self._failures: dict[str, int] = {}
+        self._skipped: set[int] = set()
         from .backend_paths import FUSE_SKIP_AFTER_CONSECUTIVE
+
         self._fuse_threshold = FUSE_SKIP_AFTER_CONSECUTIVE
+        self._selected_path = getattr(self._backends[0], "backend_id", getattr(self._backends[0], "path", "?"))
+        self._chain = tuple(getattr(backend, "backend_id", getattr(backend, "path", "?")) for backend in self._backends)
+
+    def backend_status(self) -> BackendStatus:
+        return BackendStatus(
+            requested=self._requested_backend,
+            selected_path=self._selected_path,
+            state="degraded" if self._degradation_reason else "selected",
+            chain=self._chain,
+            degradation_reason=self._degradation_reason,
+        )
 
     def __repr__(self) -> str:
         names = [type(b).__name__ for b in self._backends]
@@ -380,88 +438,69 @@ class FallbackBackend(LLMBackend):
     def _is_cooled_down(self, backend_repr: str) -> bool:
         import time
 
-        failed_time = self._failed_at.get(backend_repr, 0)
-        return (time.time() - failed_time) > self._cooldown_seconds
+        return (time.time() - self._failed_at.get(backend_repr, 0)) > self._cooldown_seconds
 
     def _mark_failed(self, backend_repr: str) -> None:
         import time
 
         self._failed_at[backend_repr] = time.time()
 
-    # V4.5.2: fuse tracking helpers
     def _record_failure(self, idx: int, reason: str) -> None:
-        """Record a backend failure and skip if threshold reached.
-
-        Same reason string → increment count toward fuse skip.
-        Different reason → reset count (it's a different failure mode).
-        """
         key = f"{idx}:{reason}"
         self._failures[key] = self._failures.get(key, 0) + 1
         if self._failures[key] >= self._fuse_threshold:
             self._skipped.add(idx)
             import logging
+
             logger = logging.getLogger(__name__)
             backend_repr = repr(self._backends[idx])
             logger.warning(
                 "FallbackBackend: fuse blocked %s after %d consecutive %s failures",
-                backend_repr, self._failures[key], reason,
+                backend_repr,
+                self._failures[key],
+                reason,
             )
 
     def _is_fuse_skipped(self, idx: int) -> bool:
-        """Check if a backend index is permanently skipped by fuse."""
         return idx in self._skipped
 
     def _classify(self, exc: BaseException) -> str:
-        """Classify exception to a reason string for fuse counting."""
         from .backend_paths import classify_error as _ce
 
-        if isinstance(exc, Exception):
-            return _ce(exc)
-        return "unknown"
+        return _ce(exc) if isinstance(exc, Exception) else "unknown"
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
-        """Generate a completion, failing over to subsequent backends on error.
-
-        V4.5.2: single failure → degrade to next backend.
-        Consecutive same-reason failures → fuse skip the backend permanently.
-
-        Args:
-            prompt: User prompt text.
-            **kwargs: Optional overrides forwarded to each backend.
-
-        Returns:
-            The first successful completion text.
-
-        Raises:
-            RuntimeError: If all backends fail.
-        """
         import logging
         import time
 
         logger = logging.getLogger(__name__)
         last_error = None
+        last_failure: tuple[str, str] | None = None
 
         with self._lock:
             ordered = list(range(len(self._backends)))
             ordered.sort(key=lambda i: (i != self._active_index, i))
 
         for idx in ordered:
-            # V4.5.2: skip fuse-blocked backends
             if self._is_fuse_skipped(idx):
                 continue
 
             backend = self._backends[idx]
             backend_repr = repr(backend)
+            if not backend.is_available():
+                continue
             backend_name = type(backend).__name__.replace("Backend", "").lower()
-            backend_path = getattr(backend, "path", "?")
+            backend_path = getattr(
+                backend,
+                "backend_id",
+                getattr(backend, "path", "?"),
+            )
 
-            # P11.1: record backend path invocation
             try:
                 from .prometheus_metrics import get_metrics as _gm_metrics
 
                 _gm_metrics().record_backend_call(backend_path)
             except (RuntimeError, ValueError, AttributeError, NameError):
-                # Metrics are best-effort; never break backend flow
                 pass
 
             if idx != self._active_index and not self._is_cooled_down(backend_repr):
@@ -473,9 +512,14 @@ class FallbackBackend(LLMBackend):
                 _llm_duration = time.time() - _llm_start
                 with self._lock:
                     self._active_index = idx
+                self._selected_path = backend_path
                 if idx != 0:
+                    if last_failure is not None:
+                        failed_backend, failure_kind = last_failure
+                        self._degradation_reason = f"{failed_backend} failed ({failure_kind})"
+                    else:
+                        self._degradation_reason = f"fell back to {backend_path}"
                     logger.info("FallbackBackend: switched to %s", backend_repr)
-                # Prometheus: record successful LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, True)
@@ -486,17 +530,16 @@ class FallbackBackend(LLMBackend):
                 last_error = e
                 _llm_duration = time.time() - _llm_start if "_llm_start" in dir() else 0
                 self._mark_failed(backend_repr)
-                # V4.5.2: record failure for fuse tracking
                 reason = self._classify(e)
+                last_failure = (backend_path, reason)
+                failure_reason = f"{backend_path} failed ({reason})"
+                self._degradation_reason = failure_reason
                 self._record_failure(idx, reason)
-                # P11.1: record backend failure (per path+reason)
                 try:
                     from .prometheus_metrics import get_metrics as _gm
 
                     _gm().record_backend_failure(backend_path, reason)
                 except (RuntimeError, ValueError, AttributeError, NameError):
-                    # backend_path may be undefined if exception happened during setup;
-                    # metrics are best-effort.
                     pass
                 logger.warning(
                     "FallbackBackend: %s failed (%s, reason=%s), trying next",
@@ -504,7 +547,6 @@ class FallbackBackend(LLMBackend):
                     type(e).__name__,
                     reason,
                 )
-                # Prometheus: record failed LLM call
                 try:
                     _metrics = get_metrics()
                     _metrics.record_llm_call(backend_name, _llm_duration, False)
@@ -514,20 +556,6 @@ class FallbackBackend(LLMBackend):
         raise RuntimeError("All backends failed with no specific error") from last_error
 
     def generate_stream(self, prompt: str, **kwargs: Any) -> Generator[str, None, None]:
-        """Stream a completion, failing over to subsequent backends on error.
-
-        V4.5.2: same fuse logic as generate().
-
-        Args:
-            prompt: User prompt text.
-            **kwargs: Optional overrides forwarded to each backend.
-
-        Yields:
-            str: Content chunks from the first backend that streams successfully.
-
-        Raises:
-            RuntimeError: If all backends fail.
-        """
         import logging
 
         logger = logging.getLogger(__name__)
@@ -567,15 +595,7 @@ class FallbackBackend(LLMBackend):
         raise RuntimeError("All backends failed with no specific error") from last_error
 
     def is_available(self) -> bool:
-        """Check whether at least one non-fuse-skipped backend is available.
-
-        Returns:
-            True if any backend (not fuse-skipped) reports availability.
-        """
-        for i, b in enumerate(self._backends):  # noqa: SIM110
-            if i not in self._skipped and b.is_available():
-                return True
-        return False
+        return any(i not in self._skipped and b.is_available() for i, b in enumerate(self._backends))
 
 
 def _apply_explicit_env_defaults(backend_type: str, kwargs: dict[str, Any]) -> None:
@@ -588,7 +608,6 @@ def _apply_explicit_env_defaults(backend_type: str, kwargs: dict[str, Any]) -> N
 
     if backend_type == "moka":
         kwargs.setdefault("api_key", os.environ.get("MOKA_API_KEY"))
-        # Support both MOKA_BASE_URL (P12.1.1) and MOKA_API_BASE (legacy)
         kwargs.setdefault(
             "base_url",
             os.environ.get("MOKA_BASE_URL") or os.environ.get("MOKA_API_BASE"),
@@ -626,9 +645,7 @@ def _create_host_family_backend(backend_type: str, kwargs: dict[str, Any]) -> LL
     cls = HostBridgeBackendV2 if backend_type == "host-v2" else HostBridgeBackend
     backend = cls(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
     if not backend.is_available():
-        raise BackendUnavailable(
-            f"{backend_type} not available: no TRAE/ClaudeCode environment detected"
-        )
+        raise BackendUnavailable(f"{backend_type} not available: no TRAE/ClaudeCode environment detected")
     return backend
 
 
@@ -637,20 +654,15 @@ def _build_auto_fallback_backend(kwargs: dict[str, Any]) -> LLMBackend:
     bridge_dir = kwargs.pop("bridge_dir", None)
     timeout_seconds = kwargs.pop("timeout_seconds", 600)
     backends: list[LLMBackend] = []
-    # B path (V4.5.10: v2 by default, flag-controlled)
     host_bridge = _build_host_bridge_backend(bridge_dir, timeout_seconds)
     if host_bridge.is_available():
         backends.append(host_bridge)
-    # A path
     api_backends = _build_api_backends(kwargs)
     backends.extend(api_backends)
-    # C path
     backends.append(MockBackend())
     if len(backends) == 1:
         return backends[0]
-    return FallbackBackend(
-        backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS)
-    )
+    return FallbackBackend(backends, cooldown_seconds=kwargs.pop("cooldown_seconds", DEFAULT_COOLDOWN_SECONDS))
 
 
 def _resolve_auto_single_path(backend_type: str, kwargs: dict[str, Any]) -> LLMBackend:
@@ -703,12 +715,23 @@ def _resolve_auto_single_path(backend_type: str, kwargs: dict[str, Any]) -> LLMB
     raise BackendUnavailable("No available backend path")
 
 
+def _annotate_backend(backend: LLMBackend, requested: str) -> LLMBackend:
+    """Attach the requested mode without changing backend compatibility APIs."""
+    backend._requested_backend = requested
+    if not isinstance(backend, FallbackBackend):
+        backend._selected_path = backend.backend_id
+    return backend
+
+
 def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     """
     Factory function to create an LLM backend by type name.
 
     V4.5.2 B/A/C resolve order: B (Host Bridge) → A (Direct API) → C (Mock).
     ``auto`` mode resolves to the first available path per RESOLVE_ORDER.
+    Within the A path, candidates follow ``API_BACKEND_ORDER`` =
+    Moka → OpenAI(DeepSeek) → Anthropic, with Mock always last; ``auto`` and
+    ``auto-fallback`` share this order.
 
     Automatically reads configuration from environment variables when not
     explicitly provided via kwargs. Supports .env file loading.
@@ -782,23 +805,35 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
     }
     if backend_type in explicit_backends:
         _apply_explicit_env_defaults(backend_type, kwargs)
-        return cast(LLMBackend, explicit_backends[backend_type](**kwargs))
+        return _annotate_backend(cast(LLMBackend, explicit_backends[backend_type](**kwargs)), backend_type)
 
     # === "host" / "host-v1" / "host-v2" (V4.5.10: v2 default, fail-closed flag) ===
     host_backend = _create_host_family_backend(backend_type, kwargs)
     if host_backend is not None:
-        return host_backend
+        return _annotate_backend(host_backend, backend_type)
 
     # === "fallback" (existing A→C) ===
     if backend_type == "fallback":
-        return _build_fallback_backend(kwargs)
+        return _annotate_backend(_build_fallback_backend(kwargs), backend_type)
 
     # === "auto-fallback" (B→A→C with FallbackBackend) ===
     if backend_type == "auto-fallback":
-        return _build_auto_fallback_backend(kwargs)
+        return _annotate_backend(_build_auto_fallback_backend(kwargs), backend_type)
 
     # === Catch-all for unknown backend types ===
-    known_types = {"auto", "host", "host-v1", "host-v2", "mock", "trae", "openai", "anthropic", "moka", "fallback", "auto-fallback"}
+    known_types = {
+        "auto",
+        "host",
+        "host-v1",
+        "host-v2",
+        "mock",
+        "trae",
+        "openai",
+        "anthropic",
+        "moka",
+        "fallback",
+        "auto-fallback",
+    }
     if backend_type not in known_types:
         raise ValueError(
             f"Unknown backend type: {backend_type}. "
@@ -806,7 +841,7 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         )
 
     # === "auto" — B→A→C single path resolution (first available wins) ===
-    return _resolve_auto_single_path(backend_type, kwargs)
+    return _annotate_backend(_resolve_auto_single_path(backend_type, kwargs), backend_type)
 
 
 def _resolve_host_bridge_version() -> str:
@@ -829,9 +864,7 @@ def _resolve_host_bridge_version() -> str:
         return "v2"
     if raw in ("v1", "v2"):
         return raw
-    raise ValueError(
-        f"Invalid DEVSQUAD_HOST_BRIDGE_VERSION={raw!r}: only 'v1' or 'v2' accepted"
-    )
+    raise ValueError(f"Invalid DEVSQUAD_HOST_BRIDGE_VERSION={raw!r}: only 'v1' or 'v2' accepted")
 
 
 def _build_host_bridge_backend(
@@ -846,69 +879,78 @@ def _build_host_bridge_backend(
     from .host_llm_bridge import HostBridgeBackend, HostBridgeBackendV2
 
     if _resolve_host_bridge_version() == "v2":
-        return HostBridgeBackendV2(
-            bridge_dir=bridge_dir, timeout_seconds=timeout_seconds
-        )
+        return HostBridgeBackendV2(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
     return HostBridgeBackend(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
 
 
 def _build_api_backends(kwargs: dict) -> list[LLMBackend]:
-    """Build a list of API backends from available keys.
+    """Build the A-path API backends for whichever keys are configured.
+
+    Candidate order is driven by the single source of truth ``API_BACKEND_ORDER``
+    (Moka → OpenAI/DeepSeek → Anthropic); callers append ``MockBackend`` and it is
+    always last. An unspecified ``max_tokens`` is forwarded as ``None`` to
+    ``OpenAIBackend`` so it resolves its own per-model budget; the other providers
+    fall back to ``DEFAULT_MAX_TOKENS``.
 
     Returns:
-        list of (OpenAI, Anthropic, MOKA) backends for which keys are available.
-        Empty list means no API keys found.
+        Available backends in ``API_BACKEND_ORDER`` order; empty when no keys set.
     """
     import os
 
+    max_tokens = kwargs.pop("max_tokens", None)
+    timeout = kwargs.pop("timeout", None)
     backends_list: list[LLMBackend] = []
-    anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
-    openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-    moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY")
-
-    if anthropic_key:
-        backends_list.append(
-            AnthropicBackend(
-                api_key=anthropic_key,
-                base_url=kwargs.pop("anthropic_base_url", None) or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
-                model=kwargs.pop("anthropic_model", None)
-                or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
-                max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
-                timeout=kwargs.pop("timeout", None),
-            )
-        )
-    if openai_key:
-        backends_list.append(
-            OpenAIBackend(
-                api_key=openai_key,
-                base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
-                model=kwargs.pop("openai_model", None)
-                or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
-                max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
-                timeout=kwargs.pop("timeout", None),
-            )
-        )
-    if moka_key:
-        # V4.5.2 P12.1.1: Use explicit MokaAIBackend instead of OpenAIBackend
-        backends_list.append(
-            _get_moka_backend()(
-                api_key=moka_key,
-                base_url=kwargs.pop("moka_base_url", None)
-                or os.environ.get("MOKA_BASE_URL")
-                or os.environ.get("MOKA_API_BASE"),
-                model=kwargs.pop("moka_model", None)
-                or os.environ.get("MOKA_MODEL"),
-                max_tokens=kwargs.pop("max_tokens", DEFAULT_MAX_TOKENS),
-                timeout=kwargs.pop("timeout", None),
-            )
-        )
+    for name in API_BACKEND_ORDER:
+        if name == "moka":
+            moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY")
+            if moka_key:
+                # V4.5.2 P12.1.1: Use explicit MokaAIBackend instead of OpenAIBackend
+                backends_list.append(
+                    _get_moka_backend()(
+                        api_key=moka_key,
+                        base_url=kwargs.pop("moka_base_url", None)
+                        or os.environ.get("MOKA_BASE_URL")
+                        or os.environ.get("MOKA_API_BASE"),
+                        model=kwargs.pop("moka_model", None) or os.environ.get("MOKA_MODEL"),
+                        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
+                        timeout=timeout,
+                    )
+                )
+        elif name == "openai":
+            openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
+            if openai_key:
+                backends_list.append(
+                    OpenAIBackend(
+                        api_key=openai_key,
+                        base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
+                        model=kwargs.pop("openai_model", None)
+                        or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
+                        max_tokens=max_tokens,  # None → per-model resolution
+                        timeout=timeout,
+                    )
+                )
+        elif name == "anthropic":
+            anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
+            if anthropic_key:
+                backends_list.append(
+                    AnthropicBackend(
+                        api_key=anthropic_key,
+                        base_url=kwargs.pop("anthropic_base_url", None)
+                        or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
+                        model=kwargs.pop("anthropic_model", None)
+                        or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
+                        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
+                        timeout=timeout,
+                    )
+                )
     return backends_list
 
 
 def _build_fallback_backend(kwargs: dict) -> LLMBackend:
     """Build a FallbackBackend with A→C (existing behavior).
 
-    For backward compatibility: returns FallbackBackend([API_backend(s), MockBackend]).
+    For backward compatibility: returns FallbackBackend([API_backend(s), MockBackend])
+    where the API backends follow the shared ``API_BACKEND_ORDER``.
     If no API keys, returns plain MockBackend.
     """
     backends_list = _build_api_backends(kwargs)

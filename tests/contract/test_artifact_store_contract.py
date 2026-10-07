@@ -231,11 +231,13 @@ class TestArtifactStoreSchemaContract:
             "created_at",
         }
         from dataclasses import fields
+
         actual = {f.name for f in fields(Artifact)}
         assert required.issubset(actual)
 
     def test_get_call_counter_er_exposed(self) -> None:
         from scripts.collaboration.artifact_store import get_call_counter_er
+
         assert isinstance(get_call_counter_er(), int)
 
 

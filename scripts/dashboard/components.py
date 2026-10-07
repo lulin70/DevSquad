@@ -70,10 +70,10 @@ class DashboardConfig:
 
     # W2-T3: Toast notification colors (4 levels, Morandi-aligned)
     TOAST_COLORS = {
-        "info": "#9DB5C2",     # Morandi info
+        "info": "#9DB5C2",  # Morandi info
         "success": "#8FA886",  # Morandi success
         "warning": "#C9A87C",  # Morandi warning
-        "error": "#B58484",    # Morandi danger
+        "error": "#B58484",  # Morandi danger
     }
 
     CORE_ROLES = [
@@ -127,16 +127,9 @@ class DashboardConfig:
             '<path d="M14 9.3a6.5 6.5 0 1 1-4 0"/>'
             '<path d="M5.52 16h12.96"/>'
         ),
-        "solo-coder": (
-            '<path d="m18 16 4-4-4-4"/>'
-            '<path d="m6 8-4 4 4 4"/>'
-            '<path d="m14.5 4-5 16"/>'
-        ),
+        "solo-coder": ('<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>'),
         "devops": (
-            '<path d="M20 7h-9"/>'
-            '<path d="M14 17H5"/>'
-            '<circle cx="17" cy="17" r="3"/>'
-            '<circle cx="7" cy="7" r="3"/>'
+            '<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>'
         ),
         "ui-designer": (
             '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>'
@@ -522,6 +515,7 @@ def render_footer(current_user: User | None = None) -> None:
 
 # --- W2-T1: Dark mode toggle ---
 
+
 def render_theme_toggle() -> bool:
     """Render dark mode toggle in the sidebar.
 
@@ -558,6 +552,7 @@ def render_theme_toggle() -> bool:
 
 # --- W2-T2: SVG role icons ---
 
+
 def get_role_icon(role: str, fmt: str = "svg") -> str:
     """Return the icon for a role.
 
@@ -587,7 +582,7 @@ def get_role_icon(role: str, fmt: str = "svg") -> str:
         '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" '
         'viewBox="0 0 24 24" fill="none" stroke="currentColor" '
         'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-        f'{inner}</svg>'
+        f"{inner}</svg>"
     )
 
 
@@ -870,9 +865,9 @@ def render_command_palette() -> None:
 
 # 3 skeleton kinds with predefined element counts
 SKELETON_KINDS: dict[str, int] = {
-    "metric": 4,      # top metric cards
-    "phase_row": 5,   # phase timeline rows
-    "chart": 1,       # single chart placeholder
+    "metric": 4,  # top metric cards
+    "phase_row": 5,  # phase timeline rows
+    "chart": 1,  # single chart placeholder
 }
 
 

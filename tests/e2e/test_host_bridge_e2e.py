@@ -192,9 +192,15 @@ class TestT10DispatchIntegration:
 
     def test_create_backend_auto_no_host_returns_mock(self, monkeypatch):
         """When no host env and no API keys, create_backend('auto') returns MockBackend (C path)."""
-        for v in ("TRAE_ENV", "TRAE_AGENT_PATH", "CLAUDE_CODE_ENV",
-                  "ANTHROPIC_ENV", "DEVSQUAD_OPENAI_API_KEY",
-                  "DEVSQUAD_ANTHROPIC_API_KEY", "MOKA_API_KEY"):
+        for v in (
+            "TRAE_ENV",
+            "TRAE_AGENT_PATH",
+            "CLAUDE_CODE_ENV",
+            "ANTHROPIC_ENV",
+            "DEVSQUAD_OPENAI_API_KEY",
+            "DEVSQUAD_ANTHROPIC_API_KEY",
+            "MOKA_API_KEY",
+        ):
             monkeypatch.delenv(v, raising=False)
         backend = create_backend("auto")
         assert backend.path == "C"

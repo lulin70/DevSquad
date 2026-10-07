@@ -166,10 +166,12 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """Verify: code matching the spec with tests passes all stages."""
         gate = _make_gate()
         spec = _make_spec(planned_files=["src/main.py"], planned_functions=["main"])
-        code = _make_code_changes({
-            "src/main.py": "def main():\n    return None\n",
-            "tests/test_main.py": "def test_main():\n    assert main() is None\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/main.py": "def main():\n    return None\n",
+                "tests/test_main.py": "def test_main():\n    assert main() is None\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertTrue(result.overall_passed)
         self.assertEqual(result.stage1_result, StageResult.PASS)
@@ -180,13 +182,14 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """Verify: a SQL injection pattern produces a critical Stage 2 FAIL."""
         gate = _make_gate()
         spec = _make_spec(planned_files=["src/db.py"], planned_functions=["query"])
-        code = _make_code_changes({
-            "src/db.py": (
-                "def query(user_input):\n"
-                "    cursor.execute(f\"SELECT * FROM users WHERE id={user_input}\")\n"
-            ),
-            "tests/test_db.py": "def test_query():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/db.py": (
+                    'def query(user_input):\n    cursor.execute(f"SELECT * FROM users WHERE id={user_input}")\n'
+                ),
+                "tests/test_db.py": "def test_query():\n    assert True\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertFalse(result.overall_passed)
         self.assertEqual(result.stage2_result, StageResult.FAIL)
@@ -196,10 +199,12 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """Verify: an empty finding set produces a PASS summary string."""
         gate = _make_gate()
         spec = _make_spec(planned_files=["src/x.py"], planned_functions=["x"])
-        code = _make_code_changes({
-            "src/x.py": "def x():\n    pass\n",
-            "tests/test_x.py": "def test_x():\n    assert x() is None\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/x.py": "def x():\n    pass\n",
+                "tests/test_x.py": "def test_x():\n    assert x() is None\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertIn("PASSED", result.summary)
         self.assertEqual(len(result.findings), 0)
@@ -212,16 +217,12 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """
         gate = _make_gate()
         spec = _make_spec(planned_files=["src/h.py"], planned_functions=["handle"])
-        code = _make_code_changes({
-            "src/h.py": (
-                "def handle():\n"
-                "    try:\n"
-                "        do_thing()\n"
-                "    except:\n"
-                "        pass\n"
-            ),
-            "tests/test_h.py": "def test_handle():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/h.py": ("def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"),
+                "tests/test_h.py": "def test_handle():\n    assert True\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertEqual(result.stage1_result, StageResult.PASS)
         self.assertEqual(result.stage2_result, StageResult.WARN)
@@ -243,10 +244,12 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """Verify: a missing planned function yields a critical Stage 1 finding."""
         gate = _make_gate(strict_mode=True)
         spec = _make_spec(planned_files=["src/svc.py"], planned_functions=["login"])
-        code = _make_code_changes({
-            "src/svc.py": "def logout():\n    pass\n",
-            "tests/test_svc.py": "def test_logout():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/svc.py": "def logout():\n    pass\n",
+                "tests/test_svc.py": "def test_logout():\n    assert True\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertEqual(result.stage1_result, StageResult.FAIL)
         fn_findings = [f for f in result.findings if f.category == "missing_function"]
@@ -259,12 +262,14 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
             planned_files=["src/a.py", "src/b.py"],
             planned_functions=["a_func", "b_func"],
         )
-        code = _make_code_changes({
-            "src/a.py": "def a_func():\n    pass\n",
-            "src/b.py": "def b_func():\n    pass\n",
-            "tests/test_a.py": "def test_a():\n    assert True\n",
-            "tests/test_b.py": "def test_b():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/a.py": "def a_func():\n    pass\n",
+                "src/b.py": "def b_func():\n    pass\n",
+                "tests/test_a.py": "def test_a():\n    assert True\n",
+                "tests/test_b.py": "def test_b():\n    assert True\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertTrue(result.overall_passed)
         self.assertEqual(result.stage1_result, StageResult.PASS)
@@ -273,10 +278,12 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """Verify: ``eval()`` usage is flagged critical and blocks Stage 2."""
         gate = _make_gate()
         spec = _make_spec(planned_files=["src/calc.py"], planned_functions=["compute"])
-        code = _make_code_changes({
-            "src/calc.py": "def compute(expr):\n    return eval(expr)\n",
-            "tests/test_calc.py": "def test_compute():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/calc.py": "def compute(expr):\n    return eval(expr)\n",
+                "tests/test_calc.py": "def test_compute():\n    assert True\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertEqual(result.stage2_result, StageResult.FAIL)
         eval_findings = [f for f in result.findings if "eval" in f.category]
@@ -292,10 +299,12 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
             total_tasks=5,
             completed_tasks=3,
         )
-        code = _make_code_changes({
-            "src/t.py": "def t():\n    pass\n",
-            "tests/test_t.py": "def test_t():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/t.py": "def t():\n    pass\n",
+                "tests/test_t.py": "def test_t():\n    assert True\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         self.assertEqual(result.stage1_result, StageResult.FAIL)
         incomplete = [f for f in result.findings if f.category == "incomplete_plan"]
@@ -305,10 +314,12 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """Verify: format_report renders a Markdown document for any result."""
         gate = _make_gate()
         spec = _make_spec(planned_files=["src/r.py"], planned_functions=["r"])
-        code = _make_code_changes({
-            "src/r.py": "def r():\n    pass\n",
-            "tests/test_r.py": "def test_r():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/r.py": "def r():\n    pass\n",
+                "tests/test_r.py": "def test_r():\n    assert True\n",
+            }
+        )
         result = gate.review(spec=spec, code_changes=code)
         report = gate.format_report(result)
         self.assertIn("# Two-Stage Code Review Report", report)
@@ -360,9 +371,14 @@ class T2_SeverityRouterRouting(unittest.TestCase):
         self.assertTrue(result.blocked)
         self.assertEqual(len(result.actions), 3)
         severities = {a.severity for a in result.actions}
-        self.assertEqual(severities, {
-            SeverityLevel.CRITICAL, SeverityLevel.HIGH, SeverityLevel.INFO,
-        })
+        self.assertEqual(
+            severities,
+            {
+                SeverityLevel.CRITICAL,
+                SeverityLevel.HIGH,
+                SeverityLevel.INFO,
+            },
+        )
 
     def test_05_bare_except_triggers_auto_fix_in_dev_mode(self) -> None:
         """Verify: a HIGH+auto_fixable bare_except finding triggers auto-fix."""
@@ -371,10 +387,13 @@ class T2_SeverityRouterRouting(unittest.TestCase):
             development_mode=True,
             auto_fix_callable=fixer,
         )
-        findings = [_make_finding(
-            severity="warning", category="bare_except",
-            description="Bare except clause detected",
-        )]
+        findings = [
+            _make_finding(
+                severity="warning",
+                category="bare_except",
+                description="Bare except clause detected",
+            )
+        ]
         result = router.route(findings, context={"task": "fix"})
         self.assertTrue(result.auto_fix_triggered)
         self.assertEqual(len(fixer.calls), 1)
@@ -388,10 +407,13 @@ class T2_SeverityRouterRouting(unittest.TestCase):
             max_rounds=2,
             auto_fix_callable=fixer,
         )
-        findings = [_make_finding(
-            severity="warning", category="bare_except",
-            description="Bare except in handler",
-        )]
+        findings = [
+            _make_finding(
+                severity="warning",
+                category="bare_except",
+                description="Bare except in handler",
+            )
+        ]
         result = router.run_fix_loop(findings, context={})
         self.assertLessEqual(result.fix_round, router.max_rounds)
         self.assertFalse(result.all_fixed)
@@ -404,10 +426,13 @@ class T2_SeverityRouterRouting(unittest.TestCase):
             max_rounds=3,
             auto_fix_callable=fixer,
         )
-        findings = [_make_finding(
-            severity="warning", category="bare_except",
-            description="Bare except in main",
-        )]
+        findings = [
+            _make_finding(
+                severity="warning",
+                category="bare_except",
+                description="Bare except in main",
+            )
+        ]
         result = router.run_fix_loop(findings, context={})
         self.assertTrue(result.actions[0].fix_applied)
         self.assertTrue(result.actions[0].fix_verified)
@@ -420,10 +445,13 @@ class T2_SeverityRouterRouting(unittest.TestCase):
             development_mode=False,
             auto_fix_callable=fixer,
         )
-        findings = [_make_finding(
-            severity="warning", category="bare_except",
-            description="Bare except in prod",
-        )]
+        findings = [
+            _make_finding(
+                severity="warning",
+                category="bare_except",
+                description="Bare except in prod",
+            )
+        ]
         result = router.run_fix_loop(findings, context={})
         self.assertFalse(result.auto_fix_triggered)
         self.assertEqual(len(fixer.calls), 0)
@@ -436,8 +464,7 @@ class T2_SeverityRouterRouting(unittest.TestCase):
             {
                 "role_id": "security",
                 "findings": [
-                    {"severity": "critical", "description": "SQL injection",
-                     "file_path": "db.py"},
+                    {"severity": "critical", "description": "SQL injection", "file_path": "db.py"},
                     {"severity": "warning", "description": "Long line"},
                 ],
             },
@@ -478,12 +505,18 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
         """Verify: two findings with identical description+severity are merged."""
         judge = JudgeAgent(confidence_threshold=0.1, similarity_threshold=0.85)
         findings = [
-            _make_finding(severity="warning", category="style",
-                          description="Line too long at src/main.py:10",
-                          file_path="src/main.py"),
-            _make_finding(severity="warning", category="style",
-                          description="Line too long at src/main.py:10",
-                          file_path="src/main.py"),
+            _make_finding(
+                severity="warning",
+                category="style",
+                description="Line too long at src/main.py:10",
+                file_path="src/main.py",
+            ),
+            _make_finding(
+                severity="warning",
+                category="style",
+                description="Line too long at src/main.py:10",
+                file_path="src/main.py",
+            ),
         ]
         result = judge.judge(findings, context={})
         self.assertGreaterEqual(result.merged_count, 1)
@@ -493,15 +526,11 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
         """Verify: same issue with conflicting severity is upgraded to critical."""
         judge = JudgeAgent(confidence_threshold=0.1, similarity_threshold=0.80)
         findings = [
-            _make_finding(severity="warning", category="security",
-                          description="SQL injection in login function"),
-            _make_finding(severity="critical", category="security",
-                          description="SQL injection in login function"),
+            _make_finding(severity="warning", category="security", description="SQL injection in login function"),
+            _make_finding(severity="critical", category="security", description="SQL injection in login function"),
         ]
         result = judge.judge(findings, context={})
-        upgrade_decisions = [
-            d for d in result.decisions if d.action == JudgeAction.UPGRADE
-        ]
+        upgrade_decisions = [d for d in result.decisions if d.action == JudgeAction.UPGRADE]
         self.assertGreaterEqual(len(upgrade_decisions), 1)
         accepted = result.accepted_findings
         self.assertTrue(all(f.severity == "critical" for f in accepted))
@@ -531,8 +560,7 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
         """Verify: critical findings are always kept (confidence 1.0)."""
         judge = JudgeAgent(confidence_threshold=0.9)
         findings = [
-            _make_finding(severity="critical", category="security",
-                          description="SQL injection"),
+            _make_finding(severity="critical", category="security", description="SQL injection"),
         ]
         result = judge.judge(findings, context={})
         self.assertEqual(len(result.accepted_findings), 1)
@@ -545,21 +573,24 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
             similarity_threshold=0.70,
             enable_history=True,
         )
-        judge._history.append(HistoryRecord(
-            finding_text="SQL injection in login function",
-            category="security",
-            severity="critical",
-            action=JudgeAction.REJECT.value,
-        ))
-        findings = [_make_finding(
-            severity="critical", category="security",
-            description="SQL injection in login function",
-        )]
+        judge._history.append(
+            HistoryRecord(
+                finding_text="SQL injection in login function",
+                category="security",
+                severity="critical",
+                action=JudgeAction.REJECT.value,
+            )
+        )
+        findings = [
+            _make_finding(
+                severity="critical",
+                category="security",
+                description="SQL injection in login function",
+            )
+        ]
         result = judge.judge(findings, context={})
         self.assertTrue(result.history_used)
-        defer_decisions = [
-            d for d in result.decisions if d.action == JudgeAction.DEFER
-        ]
+        defer_decisions = [d for d in result.decisions if d.action == JudgeAction.DEFER]
         self.assertGreaterEqual(len(defer_decisions), 1)
 
     def test_06_empty_input_returns_empty_result(self) -> None:
@@ -575,14 +606,20 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
         judge = JudgeAgent(confidence_threshold=0.9)
         findings = [
             ReviewFinding(
-                stage=ReviewStage.CODE_QUALITY, severity="warning",
-                category="misc", description="Vague issue A",
-                file_path="", suggestion="",
+                stage=ReviewStage.CODE_QUALITY,
+                severity="warning",
+                category="misc",
+                description="Vague issue A",
+                file_path="",
+                suggestion="",
             ),
             ReviewFinding(
-                stage=ReviewStage.CODE_QUALITY, severity="warning",
-                category="misc", description="Vague issue B",
-                file_path="", suggestion="",
+                stage=ReviewStage.CODE_QUALITY,
+                severity="warning",
+                category="misc",
+                description="Vague issue B",
+                file_path="",
+                suggestion="",
             ),
         ]
         result = judge.judge(findings, context={})
@@ -593,12 +630,16 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
         """Verify: genuinely different findings are all accepted."""
         judge = JudgeAgent(confidence_threshold=0.5)
         findings = [
-            _make_finding(severity="critical", category="security",
-                          description="SQL injection in db.py",
-                          file_path="db.py"),
-            _make_finding(severity="warning", category="style",
-                          description="Function too complex",
-                          file_path="svc.py", suggestion="Refactor"),
+            _make_finding(
+                severity="critical", category="security", description="SQL injection in db.py", file_path="db.py"
+            ),
+            _make_finding(
+                severity="warning",
+                category="style",
+                description="Function too complex",
+                file_path="svc.py",
+                suggestion="Refactor",
+            ),
         ]
         result = judge.judge(findings, context={})
         self.assertEqual(len(result.accepted_findings), 2)
@@ -615,7 +656,8 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
                 rationale="Accepted critical finding",
                 confidence=0.95,
                 merged_finding=_make_finding(
-                    severity="critical", description="SQL injection",
+                    severity="critical",
+                    description="SQL injection",
                 ),
             )
             judge.record_decision(decision, human_override=False)
@@ -628,13 +670,15 @@ class T3_JudgeAgentArbitration(unittest.TestCase):
         """Verify: a mix of accept/reject/merge produces correct counts."""
         judge = JudgeAgent(confidence_threshold=0.5, similarity_threshold=0.85)
         findings = [
-            _make_finding(severity="critical", category="security",
-                          description="SQL injection in login", file_path="a.py"),
-            _make_finding(severity="critical", category="security",
-                          description="SQL injection in login", file_path="a.py"),
-            _make_finding(severity="warning", category="style",
-                          description="Long line", file_path="b.py",
-                          suggestion="Split"),
+            _make_finding(
+                severity="critical", category="security", description="SQL injection in login", file_path="a.py"
+            ),
+            _make_finding(
+                severity="critical", category="security", description="SQL injection in login", file_path="a.py"
+            ),
+            _make_finding(
+                severity="warning", category="style", description="Long line", file_path="b.py", suggestion="Split"
+            ),
         ]
         result = judge.judge(findings, context={})
         self.assertGreaterEqual(result.merged_count, 1)
@@ -656,17 +700,18 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
         router = SeverityRouter(development_mode=True)
         judge = JudgeAgent()
         spec = _make_spec(planned_files=["src/main.py"], planned_functions=["main"])
-        code = _make_code_changes({
-            "src/main.py": "def main():\n    return None\n",
-            "tests/test_main.py": "def test_main():\n    assert main() is None\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/main.py": "def main():\n    return None\n",
+                "tests/test_main.py": "def test_main():\n    assert main() is None\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         router_result = router.route(gate_result.findings, context={})
         judge_result = judge.judge(gate_result.findings, context={})
         self.assertTrue(gate_result.overall_passed)
         self.assertFalse(router_result.blocked)
-        self.assertEqual(len(judge_result.accepted_findings),
-                         len(gate_result.findings))
+        self.assertEqual(len(judge_result.accepted_findings), len(gate_result.findings))
 
     def test_02_critical_finding_blocks_at_router(self) -> None:
         """Verify: a critical finding from the gate blocks at the router.
@@ -677,13 +722,12 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
         gate = _make_gate()
         router = SeverityRouter(development_mode=True)
         spec = _make_spec(planned_files=["src/db.py"], planned_functions=["query"])
-        code = _make_code_changes({
-            "src/db.py": (
-                "def query(uid):\n"
-                "    cursor.execute(f\"SELECT * FROM t WHERE id={uid}\")\n"
-            ),
-            "tests/test_db.py": "def test_query():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/db.py": ('def query(uid):\n    cursor.execute(f"SELECT * FROM t WHERE id={uid}")\n'),
+                "tests/test_db.py": "def test_query():\n    assert True\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         router_result = router.route(gate_result.findings, context={})
         self.assertFalse(gate_result.overall_passed)
@@ -704,16 +748,12 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
             auto_fix_callable=fixer,
         )
         spec = _make_spec(planned_files=["src/h.py"], planned_functions=["handle"])
-        code = _make_code_changes({
-            "src/h.py": (
-                "def handle():\n"
-                "    try:\n"
-                "        do_thing()\n"
-                "    except:\n"
-                "        pass\n"
-            ),
-            "tests/test_h.py": "def test_handle():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/h.py": ("def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"),
+                "tests/test_h.py": "def test_handle():\n    assert True\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         router_result = router.run_fix_loop(gate_result.findings, context={})
         self.assertTrue(router_result.auto_fix_triggered)
@@ -729,16 +769,12 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
             auto_fix_callable=fixer,
         )
         spec = _make_spec(planned_files=["src/h.py"], planned_functions=["handle"])
-        code = _make_code_changes({
-            "src/h.py": (
-                "def handle():\n"
-                "    try:\n"
-                "        do_thing()\n"
-                "    except:\n"
-                "        pass\n"
-            ),
-            "tests/test_h.py": "def test_handle():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/h.py": ("def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"),
+                "tests/test_h.py": "def test_handle():\n    assert True\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         router_result = router.run_fix_loop(gate_result.findings, context={})
         self.assertFalse(router_result.all_fixed)
@@ -752,17 +788,17 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
             planned_files=["src/a.py", "src/b.py"],
             planned_functions=["a", "b"],
         )
-        code = _make_code_changes({
-            "src/a.py": "def a():\n    pass\n",
-            "src/b.py": "def b():\n    pass\n",
-            "tests/test_a.py": "def test_a():\n    assert True\n",
-            "tests/test_b.py": "def test_b():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/a.py": "def a():\n    pass\n",
+                "src/b.py": "def b():\n    pass\n",
+                "tests/test_a.py": "def test_a():\n    assert True\n",
+                "tests/test_b.py": "def test_b():\n    assert True\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         judge_result = judge.judge(gate_result.findings, context={})
-        self.assertLessEqual(
-            len(judge_result.accepted_findings), len(gate_result.findings)
-        )
+        self.assertLessEqual(len(judge_result.accepted_findings), len(gate_result.findings))
 
     def test_06_full_pipeline_preserves_finding_metadata(self) -> None:
         """Verify: finding category/severity survive the full pipeline."""
@@ -770,24 +806,18 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
         router = SeverityRouter(development_mode=True)
         judge = JudgeAgent(confidence_threshold=0.1)
         spec = _make_spec(planned_files=["src/db.py"], planned_functions=["query"])
-        code = _make_code_changes({
-            "src/db.py": (
-                "def query(uid):\n"
-                "    cursor.execute(f\"SELECT * FROM t WHERE id={uid}\")\n"
-            ),
-            "tests/test_db.py": "def test_query():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/db.py": ('def query(uid):\n    cursor.execute(f"SELECT * FROM t WHERE id={uid}")\n'),
+                "tests/test_db.py": "def test_query():\n    assert True\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         router_result = router.route(gate_result.findings, context={})
         judge_result = judge.judge(gate_result.findings, context={})
-        critical_actions = [
-            a for a in router_result.actions
-            if a.severity == SeverityLevel.CRITICAL
-        ]
+        critical_actions = [a for a in router_result.actions if a.severity == SeverityLevel.CRITICAL]
         self.assertGreater(len(critical_actions), 0)
-        accepted_critical = [
-            f for f in judge_result.accepted_findings if f.is_critical()
-        ]
+        accepted_critical = [f for f in judge_result.accepted_findings if f.is_critical()]
         self.assertGreater(len(accepted_critical), 0)
 
     def test_07_router_actions_match_gate_findings_count(self) -> None:
@@ -798,12 +828,14 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
             planned_files=["src/a.py", "src/b.py"],
             planned_functions=["a", "b"],
         )
-        code = _make_code_changes({
-            "src/a.py": "def a():\n    pass\n",
-            "src/b.py": "def b():\n    pass\n",
-            "tests/test_a.py": "def test_a():\n    assert True\n",
-            "tests/test_b.py": "def test_b():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/a.py": "def a():\n    pass\n",
+                "src/b.py": "def b():\n    pass\n",
+                "tests/test_a.py": "def test_a():\n    assert True\n",
+                "tests/test_b.py": "def test_b():\n    assert True\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         router_result = router.route(gate_result.findings, context={})
         self.assertEqual(len(router_result.actions), len(gate_result.findings))
@@ -813,13 +845,12 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
         gate = _make_gate()
         judge = JudgeAgent(confidence_threshold=0.1, similarity_threshold=0.80)
         spec = _make_spec(planned_files=["src/db.py"], planned_functions=["query"])
-        code = _make_code_changes({
-            "src/db.py": (
-                "def query(uid):\n"
-                "    cursor.execute(f\"SELECT * FROM t WHERE id={uid}\")\n"
-            ),
-            "tests/test_db.py": "def test_query():\n    assert True\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/db.py": ('def query(uid):\n    cursor.execute(f"SELECT * FROM t WHERE id={uid}")\n'),
+                "tests/test_db.py": "def test_query():\n    assert True\n",
+            }
+        )
         gate_result = gate.review(spec=spec, code_changes=code)
         judge_result = judge.judge(gate_result.findings, context={})
         self.assertIn("accepted", judge_result.summary)
@@ -838,12 +869,15 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
             )
             judge.enable_history_learning(path)
             spec = _make_spec(
-                planned_files=["src/main.py"], planned_functions=["main"],
+                planned_files=["src/main.py"],
+                planned_functions=["main"],
             )
-            code = _make_code_changes({
-                "src/main.py": "def main():\n    return None\n",
-                "tests/test_main.py": "def test_main():\n    assert True\n",
-            })
+            code = _make_code_changes(
+                {
+                    "src/main.py": "def main():\n    return None\n",
+                    "tests/test_main.py": "def test_main():\n    assert True\n",
+                }
+            )
             gate_result = gate.review(spec=spec, code_changes=code)
             router_result = router.route(gate_result.findings, context={})
             judge_result = judge.judge(gate_result.findings, context={})

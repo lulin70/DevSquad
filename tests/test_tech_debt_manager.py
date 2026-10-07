@@ -589,6 +589,7 @@ class TestGodClassDetection:
 
     def test_god_class_detected_with_multiple_domains(self):
         from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+
         scanner = CodebaseDebtScanner()
         source = self._make_god_class_source()
         debts = scanner._detect_god_classes(source, "test.py", "test")
@@ -599,6 +600,7 @@ class TestGodClassDetection:
 
     def test_focused_class_not_flagged(self):
         from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+
         scanner = CodebaseDebtScanner()
         source = self._make_focused_class_source()
         debts = scanner._detect_god_classes(source, "test.py", "test")
@@ -606,6 +608,7 @@ class TestGodClassDetection:
 
     def test_small_class_not_flagged(self):
         from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+
         scanner = CodebaseDebtScanner()
         # Small class with many domains but too few lines
         source = (
@@ -622,6 +625,7 @@ class TestGodClassDetection:
 
     def test_class_with_few_methods_not_flagged(self):
         from scripts.collaboration.tech_debt_manager import CodebaseDebtScanner
+
         scanner = CodebaseDebtScanner()
         # 200+ lines but only 3 public methods
         lines = [
@@ -653,10 +657,7 @@ class TestGodClassDetection:
         )
         tree = _ast.parse(source)
         class_node = next(n for n in _ast.walk(tree) if isinstance(n, _ast.ClassDef))
-        methods = [
-            n for n in class_node.body
-            if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))
-        ]
+        methods = [n for n in class_node.body if isinstance(n, (_ast.FunctionDef, _ast.AsyncFunctionDef))]
         domains = scanner._classify_method_domains(methods)
         assert "access" in domains
         assert "persistence" in domains

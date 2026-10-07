@@ -207,10 +207,7 @@ class YagniChecker:
         if never_skip_hint is not None:
             return YagniResult(
                 verdict="NECESSARY",
-                reason=(
-                    f"Task matches never-skip pattern (security/error/test/a11y): "
-                    f"{never_skip_hint}"
-                ),
+                reason=(f"Task matches never-skip pattern (security/error/test/a11y): {never_skip_hint}"),
                 upgrade_path=(
                     "Implement fully — trust-boundary, data-loss, security, "
                     "and accessibility tasks are never on the chopping block."
@@ -256,10 +253,7 @@ class YagniChecker:
             return YagniResult(
                 verdict="ONE_LINER",
                 reason="Task can be completed in a single line of code.",
-                upgrade_path=(
-                    "Implement as a one-liner; no abstraction, no helper, "
-                    "no wrapper needed."
-                ),
+                upgrade_path=("Implement as a one-liner; no abstraction, no helper, no wrapper needed."),
                 shortcut_marker="shortcut: one-liner implementation",
             )
 
@@ -326,10 +320,12 @@ class YagniChecker:
             tree = ast.parse(code)
         except SyntaxError as e:
             location = f"{file_path}:" if file_path else ""
-            return [PrematureSeamResult(
-                seam_name="<syntax_error>",
-                reason=f"Could not parse code at {location}{e.lineno}:{e.offset}: {e.msg}",
-            )]
+            return [
+                PrematureSeamResult(
+                    seam_name="<syntax_error>",
+                    reason=f"Could not parse code at {location}{e.lineno}:{e.offset}: {e.msg}",
+                )
+            ]
 
         # Find abstract base classes (inherit from ABC/Protocol/ABCMeta
         # or contain @abstractmethod).
@@ -365,17 +361,16 @@ class YagniChecker:
                     f"two adapters = real seam."
                 )
             else:
-                reason = (
-                    f"Real seam: '{seam_name}' has {adapter_count} adapters "
-                    f"({', '.join(impls)})."
+                reason = f"Real seam: '{seam_name}' has {adapter_count} adapters ({', '.join(impls)})."
+            results.append(
+                PrematureSeamResult(
+                    seam_name=seam_name,
+                    adapter_count=adapter_count,
+                    is_premature=is_premature,
+                    adapters=list(impls),
+                    reason=reason,
                 )
-            results.append(PrematureSeamResult(
-                seam_name=seam_name,
-                adapter_count=adapter_count,
-                is_premature=is_premature,
-                adapters=list(impls),
-                reason=reason,
-            ))
+            )
 
         return results
 
@@ -440,17 +435,21 @@ class YagniChecker:
         if not stripped:
             return False
         # Match against one-liner patterns AND keep it short (single step).
-        return any(
-            re.search(p, stripped) for p in self.ONE_LINER_PATTERNS
-        ) and len(stripped) <= 80
+        return any(re.search(p, stripped) for p in self.ONE_LINER_PATTERNS) and len(stripped) <= 80
 
     # ------------------------------------------------------------------
     # P0-5 helpers: deep/shallow + premature seam detection
     # ------------------------------------------------------------------
 
-    _ABSTRACT_BASE_NAMES: frozenset[str] = frozenset({
-        "ABC", "Protocol", "ABCMeta", "Interface", "ABCInterface",
-    })
+    _ABSTRACT_BASE_NAMES: frozenset[str] = frozenset(
+        {
+            "ABC",
+            "Protocol",
+            "ABCMeta",
+            "Interface",
+            "ABCInterface",
+        }
+    )
 
     @staticmethod
     def _get_base_name(base: ast.expr) -> str:

@@ -130,10 +130,7 @@ class TestFindSecrets:
         assert "openai_api_key" in names
 
     def test_finds_multiple_secrets(self):
-        text = (
-            "openai: sk-abcdefghijklmnopqrstuvwxyz1234567890 "
-            "github: ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD"
-        )
+        text = "openai: sk-abcdefghijklmnopqrstuvwxyz1234567890 github: ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD"
         results = find_secrets(text)
         assert len(results) >= 2
 
@@ -196,10 +193,7 @@ class TestMaskSecrets:
         assert "*" in masked
 
     def test_masks_multiple_secrets(self):
-        text = (
-            "openai: sk-abcdefghijklmnopqrstuvwxyz1234567890 "
-            "github: ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD"
-        )
+        text = "openai: sk-abcdefghijklmnopqrstuvwxyz1234567890 github: ghp_abcdefghijklmnopqrstuvwxyz0123456789ABCD"
         masked = mask_secrets(text)
         assert "sk-" not in masked
         assert "ghp_" not in masked

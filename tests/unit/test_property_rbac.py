@@ -51,9 +51,7 @@ _user_ids = st.text(
 
 @given(user_id=_user_ids, permission=_all_permissions)
 @settings(max_examples=50, deadline=None)
-def test_check_permission_unknown_user_returns_bool(
-    user_id: str, permission: Permission
-) -> None:
+def test_check_permission_unknown_user_returns_bool(user_id: str, permission: Permission) -> None:
     """check_permission() for unknown users must return False (a bool)."""
     engine = RBACEngine()
     result = engine.check_permission(user_id, permission)
@@ -142,13 +140,9 @@ def test_super_admin_has_all_permissions(
     """A user with SUPER_ADMIN role must have ALL permissions."""
     engine = RBACEngine()
     roles_with_admin = roles | {UserRole.SUPER_ADMIN}
-    engine.add_user(
-        RBACUser(user_id=user_id, username=username, roles=roles_with_admin, is_active=True)
-    )
+    engine.add_user(RBACUser(user_id=user_id, username=username, roles=roles_with_admin, is_active=True))
     for permission in Permission:
-        assert engine.check_permission(user_id, permission) is True, (
-            f"SUPER_ADMIN missing permission: {permission}"
-        )
+        assert engine.check_permission(user_id, permission) is True, f"SUPER_ADMIN missing permission: {permission}"
 
 
 @given(

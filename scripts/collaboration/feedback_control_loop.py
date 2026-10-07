@@ -286,9 +286,7 @@ class FeedbackControlLoop:
         if not worker_results:
             adjustments.append("Task may be too vague. Add specific acceptance criteria and expected outputs")
 
-        adjustments.extend(
-            self._adjustment_for_success_rate(successful_workers, failed_workers, worker_results)
-        )
+        adjustments.extend(self._adjustment_for_success_rate(successful_workers, failed_workers, worker_results))
         adjustments.extend(self._adjustment_for_quality(quality))
 
         if not adjustments:
@@ -311,9 +309,7 @@ class FeedbackControlLoop:
             role = list(failed_roles)[0]
             return [f"Add additional review from {role} role or simplify requirements for {role}"]
         roles_str = ", ".join(sorted(failed_roles))
-        return [
-            f"Address failures in roles: {roles_str}. Consider breaking down task into smaller sub-tasks"
-        ]
+        return [f"Address failures in roles: {roles_str}. Consider breaking down task into smaller sub-tasks"]
 
     def _adjustment_for_errors(self, errors: list[str]) -> list[str]:
         """Classify error strings and emit one adjustment per detected type."""
@@ -350,9 +346,7 @@ class FeedbackControlLoop:
         success_count = len(successful_workers)
         total = len(worker_results)
         if success_count / total < 0.5:
-            return [
-                "Low success rate detected. Consider reducing number of roles or simplifying task scope"
-            ]
+            return ["Low success rate detected. Consider reducing number of roles or simplifying task scope"]
         return []
 
     def _adjustment_for_quality(self, quality: float) -> list[str]:
@@ -360,9 +354,7 @@ class FeedbackControlLoop:
         if quality < 0.4:
             return ["Quality critically low. Recommend complete task reformulation with clearer objectives"]
         if quality < 0.6:
-            return [
-                "Quality below acceptable level. Strengthen task description with examples and constraints"
-            ]
+            return ["Quality below acceptable level. Strengthen task description with examples and constraints"]
         return []
 
     def _refine_task(self, task: str, adjustment: str) -> str:

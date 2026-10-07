@@ -1,5 +1,5 @@
 name: review
-version: "3.9.2"
+version: "4.5.20"
 description: "Five-axis code review skill for comprehensive code quality assessment across correctness, readability, architecture, security, and performance dimensions"
 
 axes:
@@ -143,4 +143,4 @@ integration:
   internal_import: "scripts.collaboration.five_axis_consensus.FiveAxisConsensusEngine"
   dispatcher_mode: "consensus"
   base_class: "skills.registry.BaseSkill"
-  version_source: "scripts.collaboration._version (3.7.2)"
+  version_source: "scripts.collaboration._version (4.5.20)"

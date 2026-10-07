@@ -63,9 +63,7 @@ def test_auto_detect() -> None:
     assert ctx.branch, f"branch must be non-empty, got {ctx.branch!r}"
     # recent_commits may be empty if the repo has no commits, but the
     # DevSquad repo has commits, so we expect ≥1.
-    assert len(ctx.recent_commits) >= 1, (
-        f"expected ≥1 recent commit, got {ctx.recent_commits}"
-    )
+    assert len(ctx.recent_commits) >= 1, f"expected ≥1 recent commit, got {ctx.recent_commits}"
 
 
 # ---------------------------------------------------------------------------
@@ -130,9 +128,7 @@ def test_prompt_injection(dispatcher: MultiAgentDispatcher) -> None:
     decisions = dispatcher.scratchpad.read(entry_type=EntryType.DECISION)
     git_decisions = [d for d in decisions if "Git Context" in d.content]
     assert len(git_decisions) >= 1, "expected ≥1 Git Context DECISION entry"
-    assert "feature/test-branch" in git_decisions[0].content, (
-        "DECISION entry must mention the branch name"
-    )
+    assert "feature/test-branch" in git_decisions[0].content, "DECISION entry must mention the branch name"
 
 
 # ---------------------------------------------------------------------------
@@ -161,9 +157,7 @@ def test_scratchpad_entry(dispatcher: MultiAgentDispatcher) -> None:
     entry = git_entries[-1]
     assert "Git Context" in entry.content
     assert "bugfix/issue-99" in entry.content
-    assert entry.role_id == "coordinator", (
-        f"DECISION entry role_id must be 'coordinator', got {entry.role_id}"
-    )
+    assert entry.role_id == "coordinator", f"DECISION entry role_id must be 'coordinator', got {entry.role_id}"
 
 
 # ---------------------------------------------------------------------------
@@ -177,9 +171,7 @@ def test_backward_compat(dispatcher: MultiAgentDispatcher) -> None:
     # No git-context DECISION entry should exist.
     decisions = dispatcher.scratchpad.read(entry_type=EntryType.DECISION)
     git_decisions = [d for d in decisions if "git-context" in d.tags]
-    assert len(git_decisions) == 0, (
-        "git_context=None must not write any git-context DECISION entry"
-    )
+    assert len(git_decisions) == 0, "git_context=None must not write any git-context DECISION entry"
     # The result task_description should not contain the Git Context section.
     assert "## Git Context" not in result.task_description, (
         "task_description must not contain Git Context when git_context=None"
@@ -199,6 +191,4 @@ def test_call_counter_er() -> None:
     # Construct a GitContext — should bump the counter.
     GitContext(branch="test-branch")
     after = models_dispatch_module._call_counter_er
-    assert after > before, (
-        f"_call_counter_er did not increment: before={before}, after={after}"
-    )
+    assert after > before, f"_call_counter_er did not increment: before={before}, after={after}"

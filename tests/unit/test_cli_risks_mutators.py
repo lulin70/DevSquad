@@ -92,7 +92,9 @@ class TestAssessCommand:
         assert payload["probability"] == pytest.approx(0.6)
         assert payload["impact"] == pytest.approx(0.8)
 
-    def test_assess_with_votes_file(self, risk_store_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_assess_with_votes_file(
+        self, risk_store_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         store = FileRiskStore(root=risk_store_root)
         with store.transaction("default") as tx:
             tx["items"] = [RiskItem(id="R-file", description="seed", probability=0.0, impact=0.0).to_dict()]

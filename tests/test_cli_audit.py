@@ -41,9 +41,7 @@ class TestRedactSensitive(unittest.TestCase):
         self.assertEqual(result["user"], "alice")
 
     def test_redacts_nested(self):
-        result = _redact_sensitive(
-            {"details": {"password": "secret", "info": "public"}}
-        )
+        result = _redact_sensitive({"details": {"password": "secret", "info": "public"}})
         self.assertEqual(result["details"]["password"], "***REDACTED***")
         self.assertEqual(result["details"]["info"], "public")
 
@@ -110,11 +108,7 @@ class TestVerifyChain(unittest.TestCase):
 
         details_json = json.dumps(details, sort_keys=True, separators=(",", ":"))
         payload = (
-            f"{prev_hash}"
-            f"{len(event_type):d}:{event_type}"
-            f"{len(user_id):d}:{user_id}"
-            f"{ts:.6f}"
-            f"{details_json}"
+            f"{prev_hash}{len(event_type):d}:{event_type}{len(user_id):d}:{user_id}{ts:.6f}{details_json}"
         ).encode()
         h = hashlib.sha256(payload).hexdigest()
         return {
@@ -128,9 +122,7 @@ class TestVerifyChain(unittest.TestCase):
 
     def test_valid_chain(self):
         e1 = self._make_entry("0" * 64, "dispatch_start", "alice", 100.0, {"k": 1})
-        e2 = self._make_entry(
-            e1["entry_hash"], "dispatch_end", "alice", 101.0, {"k": 2}
-        )
+        e2 = self._make_entry(e1["entry_hash"], "dispatch_end", "alice", 101.0, {"k": 2})
         ok, msg = verify_chain([e1, e2])
         self.assertTrue(ok)
         self.assertEqual(msg, "OK")
@@ -141,9 +133,7 @@ class TestVerifyChain(unittest.TestCase):
 
     def test_tampered_chain_detected(self):
         e1 = self._make_entry("0" * 64, "dispatch_start", "alice", 100.0, {"k": 1})
-        e2 = self._make_entry(
-            e1["entry_hash"], "dispatch_end", "alice", 101.0, {"k": 2}
-        )
+        e2 = self._make_entry(e1["entry_hash"], "dispatch_end", "alice", 101.0, {"k": 2})
         # Tamper with e2's details
         e2["details"] = {"k": 999}
         ok, msg = verify_chain([e1, e2])
@@ -238,9 +228,7 @@ class TestCmdAudit(unittest.TestCase):
         import argparse
 
         before = get_call_counter_er()
-        args = argparse.Namespace(
-            db_path=None, limit=20, format="text", event_type=None, verify=False
-        )
+        args = argparse.Namespace(db_path=None, limit=20, format="text", event_type=None, verify=False)
         cmd_audit(args)
         self.assertGreater(get_call_counter_er(), before)
 

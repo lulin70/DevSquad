@@ -116,7 +116,9 @@ class ReportFormatter:
             parts.append(t["sp_findings"].format(sp=sp_summary[:200]))
         return "\n".join(parts)
 
-    def format_structured_report(self, result: Any, include_action_items: bool = True, include_timing: bool = False) -> str:
+    def format_structured_report(
+        self, result: Any, include_action_items: bool = True, include_timing: bool = False
+    ) -> str:
         """
         Generate structured report (v3.2 UI Designer spec).
 
@@ -272,11 +274,13 @@ class ReportFormatter:
             "|------|------|----------------|",
         ]
         for wr in result.worker_results:
-            role_name = wr.get("role", "unknown")
-            role_display = ROLE_TEMPLATES.get(role_name, {}).get("name", role_name)
+            role_id = wr.get("role_id", wr.get("role", "unknown"))
+            role_display = wr.get("role_name") or ROLE_TEMPLATES.get(role_id, {}).get("name", role_id)
             status_icon = "✅" if wr.get("success") else "❌"
             output_preview = (wr.get("output") or "(无输出)")[:80].replace("\n", " ")
-            lines.append(f"| **{role_display}** | {status_icon} | {output_preview} |")
+            if not wr.get("success") and wr.get("error"):
+                output_preview = f"失败原因: {wr['error']}"
+            lines.append(f"| **{role_display}** (`{role_id}`) | {status_icon} | {output_preview} |")
         lines.extend(["", "---", ""])
         return lines
 
@@ -409,6 +413,13 @@ class ReportFormatter:
             done = sum(1 for w in result.worker_results if w.get("success"))
             parts.append(f"Worker: {done}/{len(result.worker_results)} 成功")
 
+        coverage = result.details.get("coverage", {})
+        if isinstance(coverage, dict):
+            parts.append(
+                f"Coverage: {coverage.get('completed', 0)}/{coverage.get('requested', 0)} "
+                f"({coverage.get('ratio', 0):.0%})"
+            )
+
         if result.scratchpad_summary:
             parts.append(f"发现: {result.scratchpad_summary[:120]}")
 
@@ -452,59 +463,74 @@ class ReportFormatter:
         return findings[:8]
 
     def generate_action_items(self, result: Any) -> list[dict[str, str]]:
-        """
-        Auto-generate action item suggestions based on dispatch result.
+        """Auto-generate action item suggestions based on dispatch result."""
+        items: list[dict[str, str]] = []
+        error_item = self._error_action_item(result)
+        if error_item:
+            items.append(error_item)
+        unresolved_item = self._unresolved_consensus_action_item(result)
+        if unresolved_item:
+            items.append(unresolved_item)
+        failure_item = self._failed_role_action_item(result)
+        if failure_item:
+            items.append(failure_item)
+        if result.success and not result.errors:
+            items.extend(self._successful_follow_up_items(result))
+        if not items:
+            items.append(self._default_action_item())
+        return items[:6]
 
-        Rules:
-        - Errors -> High priority fix suggestions
-        - Unresolved conflicts -> Medium priority manual review
-        - All success -> Low priority follow-up optimization
-        - Memory data -> Suggest reviewing historical decisions
-        """
-        items = []
+    def _error_action_item(self, result: Any) -> dict[str, str] | None:
+        if not result.errors:
+            return None
+        return {"priority": "H", "text": f"修复 {len(result.errors)} 个执行错误，首要关注: {result.errors[0][:80]}"}
 
-        if result.errors:
-            items.append(
-                {"priority": "H", "text": f"修复 {len(result.errors)} 个执行错误，首要关注: {result.errors[0][:80]}"}
-            )
-
+    def _unresolved_consensus_action_item(self, result: Any) -> dict[str, str] | None:
         unresolved = [c for c in result.consensus_records if c.get("outcome") in ("SPLIT", "ESCALATED", "TIMEOUT")]
-        if unresolved:
+        if not unresolved:
+            return None
+        return {
+            "priority": "H" if len(unresolved) > 2 else "M",
+            "text": f"人工审核 {len(unresolved)} 个未决共识议题: {', '.join([u.get('topic', '') for u in unresolved[:3]])}",
+        }
+
+    def _failed_role_action_item(self, result: Any) -> dict[str, str] | None:
+        failed_roles = result.details.get("failed_roles", [])
+        if failed_roles:
+            reasons = [
+                f"{item.get('role_name', item.get('role_id', 'unknown'))}: {item.get('reason', '未知原因')}"
+                for item in failed_roles
+                if isinstance(item, dict)
+            ]
+        else:
+            failed_workers = [w for w in result.worker_results if not w.get("success")]
+            if not failed_workers:
+                return None
+            reasons = [
+                f"{w.get('role_name', w.get('role_id', w.get('role', 'unknown')))}: {w.get('error', '未知原因')}"
+                for w in failed_workers
+            ]
+        return {"priority": "M", "text": f"排查角色执行失败原因: {'; '.join(reasons)}"}
+
+    def _successful_follow_up_items(self, result: Any) -> list[dict[str, str]]:
+        items: list[dict[str, str]] = []
+        if result.memory_stats and result.memory_stats.get("total_memories", 0) > 0:
             items.append(
                 {
-                    "priority": "H" if len(unresolved) > 2 else "M",
-                    "text": f"人工审核 {len(unresolved)} 个未决共识议题: {', '.join([u.get('topic', '') for u in unresolved[:3]])}",
+                    "priority": "L",
+                    "text": f"回顾历史记忆 (共{result.memory_stats['total_memories']}条)，提取可复用经验",
                 }
             )
+        if result.skill_proposals and len(result.skill_proposals) > 0:
+            top_proposal = result.skill_proposals[0]
+            items.append(
+                {
+                    "priority": "L",
+                    "text": f"评估新技能提案「{top_proposal.get('title', '')}」(置信度{top_proposal.get('confidence', 0):.0%})是否值得固化",
+                }
+            )
+        items.append({"priority": "L", "text": "任务已完成，可归档此协作记录供未来参考"})
+        return items
 
-        failed_workers = [w for w in result.worker_results if not w.get("success")]
-        if failed_workers:
-            roles_failed = [
-                ROLE_TEMPLATES.get(w.get("role", ""), {}).get("name", w.get("role", "")) for w in failed_workers
-            ]
-            items.append({"priority": "M", "text": f"排查以下角色执行失败原因: {', '.join(roles_failed[:3])}"})
-
-        if result.success and not result.errors:
-            if result.memory_stats and result.memory_stats.get("total_memories", 0) > 0:
-                items.append(
-                    {
-                        "priority": "L",
-                        "text": f"回顾历史记忆 (共{result.memory_stats['total_memories']}条)，提取可复用经验",
-                    }
-                )
-
-            if result.skill_proposals and len(result.skill_proposals) > 0:
-                top_proposal = result.skill_proposals[0]
-                items.append(
-                    {
-                        "priority": "L",
-                        "text": f"评估新技能提案「{top_proposal.get('title', '')}」(置信度{top_proposal.get('confidence', 0):.0%})是否值得固化",
-                    }
-                )
-
-            items.append({"priority": "L", "text": "任务已完成，可归档此协作记录供未来参考"})
-
-        if not items:
-            items.append({"priority": "M", "text": "审查各角色产出内容，确认是否符合预期"})
-
-        return items[:6]
+    def _default_action_item(self) -> dict[str, str]:
+        return {"priority": "M", "text": "审查各角色产出内容，确认是否符合预期"}

@@ -538,9 +538,7 @@ class T5_PromptAssemblerIntegration(unittest.TestCase):
     def test_07_anti_rationalization_injected_for_structured_style(self) -> None:
         """Verify: AR table injected for MEDIUM/COMPLEX (structured) tasks."""
         assembler = self._make_assembler()
-        result = assembler.assemble(
-            task_description="Design a medium-complexity feature with trade-offs."
-        )
+        result = assembler.assemble(task_description="Design a medium-complexity feature with trade-offs.")
         # Structured style includes the Quality Guardrails header from AR engine.
         self.assertIn("Quality Guardrails", result.instruction)
 
@@ -548,9 +546,7 @@ class T5_PromptAssemblerIntegration(unittest.TestCase):
         """Verify: ponytail manifesto injected when minimal_implementation enabled."""
         config = _make_qc_config(enabled=True, minimal_implementation=True)
         assembler = self._make_assembler(config)
-        result = assembler.assemble(
-            task_description="Design a medium-complexity feature with trade-offs."
-        )
+        result = assembler.assemble(task_description="Design a medium-complexity feature with trade-offs.")
         self.assertIn("Minimal Implementation Rules", result.instruction)
         self.assertIn("lazy senior developer", result.instruction)
 
@@ -566,9 +562,7 @@ class T5_PromptAssemblerIntegration(unittest.TestCase):
             ],
         )
         assembler = self._make_assembler(config)
-        result = assembler.assemble(
-            task_description="Design a medium-complexity feature with trade-offs."
-        )
+        result = assembler.assemble(task_description="Design a medium-complexity feature with trade-offs.")
         self.assertIn("Learned Rules", result.instruction)
         self.assertIn("prefer pathlib", result.instruction)
 
@@ -595,9 +589,7 @@ class T5_PromptAssemblerIntegration(unittest.TestCase):
     def test_12_assemble_metadata_records_token_estimate(self) -> None:
         """Verify: tokens_estimate is roughly len(instruction) // 3."""
         assembler = self._make_assembler()
-        result = assembler.assemble(
-            task_description="Design a medium-complexity feature with trade-offs."
-        )
+        result = assembler.assemble(task_description="Design a medium-complexity feature with trade-offs.")
         expected = len(result.instruction) // 3
         self.assertEqual(result.tokens_estimate, expected)
         self.assertGreater(result.tokens_estimate, 0)

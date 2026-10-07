@@ -63,13 +63,15 @@ def _make_report(deviation_type: str = "goal_uncovered") -> RetrospectiveReport:
     return RetrospectiveReport(
         task_goal="test goal",
         goal_id="goal_test",
-        deviations=[DeviationRecord(
-            step_description="step1",
-            deviation_type=deviation_type,
-            reason="test",
-            impact="test",
-            suggestion="test",
-        )],
+        deviations=[
+            DeviationRecord(
+                step_description="step1",
+                deviation_type=deviation_type,
+                reason="test",
+                impact="test",
+                suggestion="test",
+            )
+        ],
         redundant_steps=[],
         improvements=[],
         anchor_check_count=3,

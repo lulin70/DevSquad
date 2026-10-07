@@ -31,7 +31,6 @@ from scripts.collaboration.dispatcher import MultiAgentDispatcher
 pytestmark = pytest.mark.unit
 
 
-
 class TestRbacFailClosedDefault(unittest.TestCase):
     """Layer 1: Verify default parameter value enforces fail-closed."""
 

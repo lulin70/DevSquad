@@ -35,10 +35,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 class ConfigCheck:
     """Result of a single configuration consistency check."""
 
-    name: str           # e.g., "requirements_lock_sync"
-    category: str       # "dependency" / "key_presence" / "cross_file"
-    status: str         # "pass" / "fail" / "warn" / "skip"
-    message: str        # Human-readable result detail
+    name: str  # e.g., "requirements_lock_sync"
+    category: str  # "dependency" / "key_presence" / "cross_file"
+    status: str  # "pass" / "fail" / "warn" / "skip"
+    message: str  # Human-readable result detail
 
 
 class ConfigConsistencyChecker:
@@ -76,21 +76,25 @@ class ConfigConsistencyChecker:
         requirements_path = self.repo_root / "requirements.txt"
 
         if not pyproject_path.exists():
-            results.append(ConfigCheck(
-                name="pyproject_exists",
-                category="dependency",
-                status="skip",
-                message=f"pyproject.toml not found at {pyproject_path}",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="pyproject_exists",
+                    category="dependency",
+                    status="skip",
+                    message=f"pyproject.toml not found at {pyproject_path}",
+                )
+            )
             return results
 
         if not requirements_path.exists():
-            results.append(ConfigCheck(
-                name="requirements_exists",
-                category="dependency",
-                status="skip",
-                message=f"requirements.txt not found at {requirements_path}",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="requirements_exists",
+                    category="dependency",
+                    status="skip",
+                    message=f"requirements.txt not found at {requirements_path}",
+                )
+            )
             return results
 
         # Extract dependencies from pyproject.toml [project.dependencies]
@@ -107,20 +111,24 @@ class ConfigConsistencyChecker:
                 missing.append(dep)
 
         if missing:
-            results.append(ConfigCheck(
-                name="pyproject_to_requirements_sync",
-                category="dependency",
-                status="fail",
-                message=f"{len(missing)} dependency(s) in pyproject.toml missing from "
-                        f"requirements.txt: {', '.join(missing[:5])}",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="pyproject_to_requirements_sync",
+                    category="dependency",
+                    status="fail",
+                    message=f"{len(missing)} dependency(s) in pyproject.toml missing from "
+                    f"requirements.txt: {', '.join(missing[:5])}",
+                )
+            )
         else:
-            results.append(ConfigCheck(
-                name="pyproject_to_requirements_sync",
-                category="dependency",
-                status="pass",
-                message=f"All {len(pyproject_deps)} pyproject.toml dependencies present in requirements.txt",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="pyproject_to_requirements_sync",
+                    category="dependency",
+                    status="pass",
+                    message=f"All {len(pyproject_deps)} pyproject.toml dependencies present in requirements.txt",
+                )
+            )
         return results
 
     def _extract_pyproject_dependencies(self, path: Path) -> list[str]:
@@ -169,26 +177,32 @@ class ConfigConsistencyChecker:
         if devsquad_path.exists():
             content = devsquad_path.read_text(encoding="utf-8")
             if re.search(r"^quality_control\s*:", content, re.MULTILINE):
-                results.append(ConfigCheck(
-                    name="devsquad_yaml_quality_control",
-                    category="key_presence",
-                    status="pass",
-                    message=".devsquad.yaml has quality_control section",
-                ))
+                results.append(
+                    ConfigCheck(
+                        name="devsquad_yaml_quality_control",
+                        category="key_presence",
+                        status="pass",
+                        message=".devsquad.yaml has quality_control section",
+                    )
+                )
             else:
-                results.append(ConfigCheck(
-                    name="devsquad_yaml_quality_control",
-                    category="key_presence",
-                    status="fail",
-                    message=".devsquad.yaml missing required 'quality_control' section",
-                ))
+                results.append(
+                    ConfigCheck(
+                        name="devsquad_yaml_quality_control",
+                        category="key_presence",
+                        status="fail",
+                        message=".devsquad.yaml missing required 'quality_control' section",
+                    )
+                )
         else:
-            results.append(ConfigCheck(
-                name="devsquad_yaml_exists",
-                category="key_presence",
-                status="skip",
-                message=".devsquad.yaml not found",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="devsquad_yaml_exists",
+                    category="key_presence",
+                    status="skip",
+                    message=".devsquad.yaml not found",
+                )
+            )
 
         # helm/devsquad/values.yaml must have image.repository and image.tag
         values_path = self.repo_root / "helm" / "devsquad" / "values.yaml"
@@ -197,57 +211,69 @@ class ConfigConsistencyChecker:
             has_repo = bool(re.search(r"^image\s*:", content, re.MULTILINE))
             has_tag = bool(re.search(r"^\s+tag\s*:", content, re.MULTILINE))
             if has_repo and has_tag:
-                results.append(ConfigCheck(
-                    name="values_yaml_image_keys",
-                    category="key_presence",
-                    status="pass",
-                    message="values.yaml has image.repository and image.tag",
-                ))
+                results.append(
+                    ConfigCheck(
+                        name="values_yaml_image_keys",
+                        category="key_presence",
+                        status="pass",
+                        message="values.yaml has image.repository and image.tag",
+                    )
+                )
             else:
                 missing_keys = []
                 if not has_repo:
                     missing_keys.append("image")
                 if not has_tag:
                     missing_keys.append("image.tag")
-                results.append(ConfigCheck(
-                    name="values_yaml_image_keys",
-                    category="key_presence",
-                    status="fail",
-                    message=f"values.yaml missing required keys: {', '.join(missing_keys)}",
-                ))
+                results.append(
+                    ConfigCheck(
+                        name="values_yaml_image_keys",
+                        category="key_presence",
+                        status="fail",
+                        message=f"values.yaml missing required keys: {', '.join(missing_keys)}",
+                    )
+                )
         else:
-            results.append(ConfigCheck(
-                name="values_yaml_exists",
-                category="key_presence",
-                status="skip",
-                message="helm/devsquad/values.yaml not found",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="values_yaml_exists",
+                    category="key_presence",
+                    status="skip",
+                    message="helm/devsquad/values.yaml not found",
+                )
+            )
 
         # config/deployment.yaml must have authentication section
         deployment_path = self.repo_root / "config" / "deployment.yaml"
         if deployment_path.exists():
             content = deployment_path.read_text(encoding="utf-8")
             if re.search(r"^authentication\s*:", content, re.MULTILINE):
-                results.append(ConfigCheck(
-                    name="deployment_yaml_auth",
-                    category="key_presence",
-                    status="pass",
-                    message="deployment.yaml has authentication section",
-                ))
+                results.append(
+                    ConfigCheck(
+                        name="deployment_yaml_auth",
+                        category="key_presence",
+                        status="pass",
+                        message="deployment.yaml has authentication section",
+                    )
+                )
             else:
-                results.append(ConfigCheck(
-                    name="deployment_yaml_auth",
-                    category="key_presence",
-                    status="warn",
-                    message="deployment.yaml missing 'authentication' section (security-relevant)",
-                ))
+                results.append(
+                    ConfigCheck(
+                        name="deployment_yaml_auth",
+                        category="key_presence",
+                        status="warn",
+                        message="deployment.yaml missing 'authentication' section (security-relevant)",
+                    )
+                )
         else:
-            results.append(ConfigCheck(
-                name="deployment_yaml_exists",
-                category="key_presence",
-                status="skip",
-                message="config/deployment.yaml not found",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="deployment_yaml_exists",
+                    category="key_presence",
+                    status="skip",
+                    message="config/deployment.yaml not found",
+                )
+            )
 
         return results
 
@@ -263,12 +289,14 @@ class ConfigConsistencyChecker:
         if version_path.exists():
             canonical_version = version_path.read_text(encoding="utf-8").strip()
         if not canonical_version:
-            results.append(ConfigCheck(
-                name="version_file_readable",
-                category="cross_file",
-                status="fail",
-                message="VERSION file not found or empty",
-            ))
+            results.append(
+                ConfigCheck(
+                    name="version_file_readable",
+                    category="cross_file",
+                    status="fail",
+                    message="VERSION file not found or empty",
+                )
+            )
             return results
 
         # Dockerfile ARG VERSION must match VERSION file
@@ -279,26 +307,32 @@ class ConfigConsistencyChecker:
             if match:
                 dockerfile_version = match.group(1)
                 if dockerfile_version == canonical_version:
-                    results.append(ConfigCheck(
-                        name="dockerfile_version_match",
-                        category="cross_file",
-                        status="pass",
-                        message=f"Dockerfile ARG VERSION = {dockerfile_version} (matches VERSION file)",
-                    ))
+                    results.append(
+                        ConfigCheck(
+                            name="dockerfile_version_match",
+                            category="cross_file",
+                            status="pass",
+                            message=f"Dockerfile ARG VERSION = {dockerfile_version} (matches VERSION file)",
+                        )
+                    )
                 else:
-                    results.append(ConfigCheck(
+                    results.append(
+                        ConfigCheck(
+                            name="dockerfile_version_match",
+                            category="cross_file",
+                            status="fail",
+                            message=f"Dockerfile ARG VERSION = {dockerfile_version} but VERSION file = {canonical_version}",
+                        )
+                    )
+            else:
+                results.append(
+                    ConfigCheck(
                         name="dockerfile_version_match",
                         category="cross_file",
-                        status="fail",
-                        message=f"Dockerfile ARG VERSION = {dockerfile_version} but VERSION file = {canonical_version}",
-                    ))
-            else:
-                results.append(ConfigCheck(
-                    name="dockerfile_version_match",
-                    category="cross_file",
-                    status="warn",
-                    message="Dockerfile does not contain 'ARG VERSION' directive",
-                ))
+                        status="warn",
+                        message="Dockerfile does not contain 'ARG VERSION' directive",
+                    )
+                )
 
         # Chart.yaml appVersion must match VERSION file
         chart_path = self.repo_root / "helm" / "devsquad" / "Chart.yaml"
@@ -308,26 +342,32 @@ class ConfigConsistencyChecker:
             if match:
                 chart_version = match.group(1)
                 if chart_version == canonical_version:
-                    results.append(ConfigCheck(
-                        name="chart_appversion_match",
-                        category="cross_file",
-                        status="pass",
-                        message=f"Chart.yaml appVersion = {chart_version} (matches VERSION file)",
-                    ))
+                    results.append(
+                        ConfigCheck(
+                            name="chart_appversion_match",
+                            category="cross_file",
+                            status="pass",
+                            message=f"Chart.yaml appVersion = {chart_version} (matches VERSION file)",
+                        )
+                    )
                 else:
-                    results.append(ConfigCheck(
+                    results.append(
+                        ConfigCheck(
+                            name="chart_appversion_match",
+                            category="cross_file",
+                            status="fail",
+                            message=f"Chart.yaml appVersion = {chart_version} but VERSION file = {canonical_version}",
+                        )
+                    )
+            else:
+                results.append(
+                    ConfigCheck(
                         name="chart_appversion_match",
                         category="cross_file",
-                        status="fail",
-                        message=f"Chart.yaml appVersion = {chart_version} but VERSION file = {canonical_version}",
-                    ))
-            else:
-                results.append(ConfigCheck(
-                    name="chart_appversion_match",
-                    category="cross_file",
-                    status="warn",
-                    message="Chart.yaml does not contain appVersion field",
-                ))
+                        status="warn",
+                        message="Chart.yaml does not contain appVersion field",
+                    )
+                )
 
         # values.yaml image.tag should match VERSION file (WARN, not FAIL —
         # values.yaml tag may intentionally lag for deployment pinning)
@@ -338,27 +378,33 @@ class ConfigConsistencyChecker:
             if match:
                 values_tag = match.group(1)
                 if values_tag == canonical_version:
-                    results.append(ConfigCheck(
-                        name="values_yaml_tag_match",
-                        category="cross_file",
-                        status="pass",
-                        message=f"values.yaml image.tag = {values_tag} (matches VERSION file)",
-                    ))
+                    results.append(
+                        ConfigCheck(
+                            name="values_yaml_tag_match",
+                            category="cross_file",
+                            status="pass",
+                            message=f"values.yaml image.tag = {values_tag} (matches VERSION file)",
+                        )
+                    )
                 else:
-                    results.append(ConfigCheck(
+                    results.append(
+                        ConfigCheck(
+                            name="values_yaml_tag_match",
+                            category="cross_file",
+                            status="warn",
+                            message=f"values.yaml image.tag = {values_tag} but VERSION file = {canonical_version} "
+                            f"(may be intentional for deployment pinning)",
+                        )
+                    )
+            else:
+                results.append(
+                    ConfigCheck(
                         name="values_yaml_tag_match",
                         category="cross_file",
                         status="warn",
-                        message=f"values.yaml image.tag = {values_tag} but VERSION file = {canonical_version} "
-                                f"(may be intentional for deployment pinning)",
-                    ))
-            else:
-                results.append(ConfigCheck(
-                    name="values_yaml_tag_match",
-                    category="cross_file",
-                    status="warn",
-                    message="values.yaml does not contain image.tag field",
-                ))
+                        message="values.yaml does not contain image.tag field",
+                    )
+                )
 
         return results
 
@@ -380,8 +426,7 @@ def format_report(checks: list[ConfigCheck]) -> str:
     lines: list[str] = []
     lines.append("Configuration Consistency Report (V4.2.1 P2-15)")
     lines.append(
-        f"  Checks: {len(passed)} passed, {len(failed)} failed, "
-        f"{len(warnings)} warnings, {len(skipped)} skipped"
+        f"  Checks: {len(passed)} passed, {len(failed)} failed, {len(warnings)} warnings, {len(skipped)} skipped"
     )
     lines.append("")
 
@@ -398,9 +443,7 @@ def format_report(checks: list[ConfigCheck]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Audit configuration consistency across project config files."
-    )
+    parser = argparse.ArgumentParser(description="Audit configuration consistency across project config files.")
     parser.add_argument("--strict", action="store_true", help="fail on warnings too")
     args = parser.parse_args()
 

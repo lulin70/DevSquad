@@ -90,9 +90,7 @@ class WriteFileEffect:
         if not isinstance(path_str, str) or not path_str:
             return EffectOutcome(success=False, error="missing or invalid 'path'")
         if not isinstance(content, (str, bytes)):
-            return EffectOutcome(
-                success=False, error=f"content must be str/bytes, got {type(content).__name__}"
-            )
+            return EffectOutcome(success=False, error=f"content must be str/bytes, got {type(content).__name__}")
 
         path = Path(path_str)
         original_existed = path.exists()
@@ -108,9 +106,7 @@ class WriteFileEffect:
 
         import hashlib
 
-        sha = hashlib.sha256(
-            content.encode("utf-8") if isinstance(content, str) else content
-        ).hexdigest()
+        sha = hashlib.sha256(content.encode("utf-8") if isinstance(content, str) else content).hexdigest()
         return EffectOutcome(
             success=True,
             side_data={

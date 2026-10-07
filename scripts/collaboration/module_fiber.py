@@ -107,9 +107,7 @@ class ModuleFiber:
         self.last_error = last_error
         self.retry_count = retry_count
         self.activated_at = activated_at
-        self.transition_history = (
-            transition_history if transition_history is not None else []
-        )
+        self.transition_history = transition_history if transition_history is not None else []
 
     def transition(self, target: FiberState, *, reason: str = "") -> bool:
         """FSM transition. Returns True on success, False on invalid transition.

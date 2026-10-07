@@ -106,9 +106,7 @@ def test_save_checkpoint_no_tmp_file_left_on_success(manager: CheckpointManager)
     assert tmp_files == [], f"Unexpected .tmp files left behind: {tmp_files}"
 
 
-def test_save_checkpoint_failure_leaves_no_corrupt_file(
-    manager: CheckpointManager, tmp_path: Path
-) -> None:
+def test_save_checkpoint_failure_leaves_no_corrupt_file(manager: CheckpointManager, tmp_path: Path) -> None:
     """If json.dump raises mid-write, the target file is not created/truncated.
 
     We force a TypeError by passing a non-serializable object via a patched

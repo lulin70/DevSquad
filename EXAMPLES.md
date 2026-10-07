@@ -340,12 +340,13 @@ restored = ckpt_mgr.load_checkpoint(checkpoint.checkpoint_id)
 |------|------|--------|------|
 | `--task`, `-t` | string | 必填 | 任务描述 |
 | `--roles`, `-r` | list | auto | 角色（短 ID: arch/pm/test/coder/ui/infra/sec） |
-| `--mode`, `-m` | enum | auto | 执行模式: auto/parallel/sequential/consensus |
+| `--mode`, `-m` | enum | auto | 执行模式: auto/parallel/sequential/consensus/review |
 | `--backend`, `-b` | enum | mock | LLM 后端: mock/trae/openai/anthropic |
 | `--base-url` | string | env | 自定义 API 地址（或 OPENAI_BASE_URL 环境变量） |
 | `--model` | string | env | 模型名（或 OPENAI_MODEL/ANTHROPIC_MODEL 环境变量） |
 | `--stream` | flag | false | 实时流式输出 LLM 响应（需 --backend） |
 | `--format`, `-f` | enum | markdown | 输出: markdown/json/compact/structured/detailed |
+| `--changeset` | list | 无 | 仅 `--mode review` 生效：待审查文件列表。>5 个文件时按"同目录 / import 关系"分组为多个 review bundle（bundle 数由分组决定，不由文件数决定）；划分结果见 `result.details["review_bundles"]` |
 | `--dry-run` | flag | false | 模拟不执行 |
 | `--quick`, `-q` | flag | false | 使用 quick_dispatch（3 种格式） |
 | `--action-items` | flag | false | 包含 H/M/L 优先级行动项 |

@@ -138,10 +138,10 @@ HTML_COMMENT_EXTENSIONS = {".md", ".markdown", ".html", ".htm", ".rst", ".adoc"}
 # still flagged — so existing security posture is preserved unless the
 # CI workflow explicitly enables the opt-in.
 RED_TEAM_PATH_MARKERS = (
-    "red_team.py",       # tests/security/red_team.py
-    "redteam.py",        # alternative naming convention
-    "/redteam/",         # any path under a /redteam/ directory
-    "/red_team/",        # any path under a /red_team/ directory
+    "red_team.py",  # tests/security/red_team.py
+    "redteam.py",  # alternative naming convention
+    "/redteam/",  # any path under a /redteam/ directory
+    "/red_team/",  # any path under a /red_team/ directory
 )
 
 
@@ -232,45 +232,61 @@ def scan_line(
 
         # Check zero-width characters.
         if code in ZERO_WIDTH_CHARS:
-            findings.append(HiddenFinding(
-                file=file_path, line=line_no, column=col,
-                category=HiddenCategory.ZERO_WIDTH,
-                char_code=f"U+{code:04X}",
-                char_name=ZERO_WIDTH_CHARS[code],
-                context=line[max(0, col - 10):col + 10],
-            ))
+            findings.append(
+                HiddenFinding(
+                    file=file_path,
+                    line=line_no,
+                    column=col,
+                    category=HiddenCategory.ZERO_WIDTH,
+                    char_code=f"U+{code:04X}",
+                    char_name=ZERO_WIDTH_CHARS[code],
+                    context=line[max(0, col - 10) : col + 10],
+                )
+            )
             continue
 
         # Check invisible format characters.
         if code in INVISIBLE_FORMAT_CHARS:
-            findings.append(HiddenFinding(
-                file=file_path, line=line_no, column=col,
-                category=HiddenCategory.INVISIBLE_FORMAT,
-                char_code=f"U+{code:04X}",
-                char_name=INVISIBLE_FORMAT_CHARS[code],
-                context=line[max(0, col - 10):col + 10],
-            ))
+            findings.append(
+                HiddenFinding(
+                    file=file_path,
+                    line=line_no,
+                    column=col,
+                    category=HiddenCategory.INVISIBLE_FORMAT,
+                    char_code=f"U+{code:04X}",
+                    char_name=INVISIBLE_FORMAT_CHARS[code],
+                    context=line[max(0, col - 10) : col + 10],
+                )
+            )
             continue
 
         # Check control characters (except allowed: tab, newline, CR).
         if code < 0x20 and code not in ALLOWED_CONTROL:
-            findings.append(HiddenFinding(
-                file=file_path, line=line_no, column=col,
-                category=HiddenCategory.CONTROL_CHAR,
-                char_code=f"U+{code:04X}",
-                char_name=_get_char_name(code),
-                context=line[max(0, col - 10):col + 10],
-            ))
+            findings.append(
+                HiddenFinding(
+                    file=file_path,
+                    line=line_no,
+                    column=col,
+                    category=HiddenCategory.CONTROL_CHAR,
+                    char_code=f"U+{code:04X}",
+                    char_name=_get_char_name(code),
+                    context=line[max(0, col - 10) : col + 10],
+                )
+            )
             continue
 
         if code == 0x7F:  # DEL character
-            findings.append(HiddenFinding(
-                file=file_path, line=line_no, column=col,
-                category=HiddenCategory.CONTROL_CHAR,
-                char_code="U+007F",
-                char_name="DELETE",
-                context=line[max(0, col - 10):col + 10],
-            ))
+            findings.append(
+                HiddenFinding(
+                    file=file_path,
+                    line=line_no,
+                    column=col,
+                    category=HiddenCategory.CONTROL_CHAR,
+                    char_code="U+007F",
+                    char_name="DELETE",
+                    context=line[max(0, col - 10) : col + 10],
+                )
+            )
             continue
 
         # Check homoglyphs.
@@ -280,26 +296,34 @@ def scan_line(
                 # V4.6.1: opt-out for red-team attack-vector tests.
                 if allow_homoglyph_in_redteam and _is_red_team_path(Path(file_path)):
                     continue
-                findings.append(HiddenFinding(
-                    file=file_path, line=line_no, column=col,
-                    category=HiddenCategory.HOMOGLYPH,
-                    char_code=f"U+{code:04X}",
-                    char_name=f"{_get_char_name(code)} (looks like ASCII '{ascii_lookalike}')",
-                    context=line[max(0, col - 10):col + 10],
-                ))
+                findings.append(
+                    HiddenFinding(
+                        file=file_path,
+                        line=line_no,
+                        column=col,
+                        category=HiddenCategory.HOMOGLYPH,
+                        char_code=f"U+{code:04X}",
+                        char_name=f"{_get_char_name(code)} (looks like ASCII '{ascii_lookalike}')",
+                        context=line[max(0, col - 10) : col + 10],
+                    )
+                )
 
     # Check HTML comments.
     if check_html_comments:
         for match in HTML_COMMENT_RE.finditer(line):
             col = match.start() + 1
             comment_text = match.group()[:60]
-            findings.append(HiddenFinding(
-                file=file_path, line=line_no, column=col,
-                category=HiddenCategory.HTML_COMMENT,
-                char_code="N/A",
-                char_name=f"HTML comment: {comment_text}",
-                context=line[max(0, col - 10):col + 40],
-            ))
+            findings.append(
+                HiddenFinding(
+                    file=file_path,
+                    line=line_no,
+                    column=col,
+                    category=HiddenCategory.HTML_COMMENT,
+                    char_code="N/A",
+                    char_name=f"HTML comment: {comment_text}",
+                    context=line[max(0, col - 10) : col + 40],
+                )
+            )
 
     return findings
 
@@ -336,12 +360,16 @@ def scan_file(
 
     findings: list[HiddenFinding] = []
     for line_no, line in enumerate(content.split("\n"), 1):
-        findings.extend(scan_line(
-            line, str(path), line_no,
-            check_homoglyphs=check_homoglyphs,
-            check_html_comments=effective_html_check,
-            allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
-        ))
+        findings.extend(
+            scan_line(
+                line,
+                str(path),
+                line_no,
+                check_homoglyphs=check_homoglyphs,
+                check_html_comments=effective_html_check,
+                allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
+            )
+        )
     return findings
 
 
@@ -377,14 +405,16 @@ def scan_directory(
         if path.suffix not in extensions:
             continue
         # Skip common non-source directories.
-        if any(part in {".git", "__pycache__", ".mypy_cache", ".hypothesis", "node_modules"}
-               for part in path.parts):
+        if any(part in {".git", "__pycache__", ".mypy_cache", ".hypothesis", "node_modules"} for part in path.parts):
             continue
-        all_findings.extend(scan_file(
-            path, check_homoglyphs=check_homoglyphs,
-            check_html_comments=check_html_comments,
-            allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
-        ))
+        all_findings.extend(
+            scan_file(
+                path,
+                check_homoglyphs=check_homoglyphs,
+                check_html_comments=check_html_comments,
+                allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
+            )
+        )
     return all_findings
 
 
@@ -397,10 +427,7 @@ def format_finding(f: HiddenFinding) -> str:
     Returns:
         Human-readable string with category, file, line, column, and details.
     """
-    return (
-        f"  [{f.category.value.upper():16s}] {f.file}:{f.line}:{f.column} "
-        f"{f.char_code} {f.char_name}"
-    )
+    return f"  [{f.category.value.upper():16s}] {f.file}:{f.line}:{f.column} {f.char_code} {f.char_name}"
 
 
 def main() -> int:
@@ -446,16 +473,23 @@ def main() -> int:
             print(f"ERROR: path not found: {path}")
             return 2
         if path.is_file():
-            all_findings.extend(scan_file(
-                path, check_homoglyphs, check_html_comments,
-                allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
-            ))
+            all_findings.extend(
+                scan_file(
+                    path,
+                    check_homoglyphs,
+                    check_html_comments,
+                    allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
+                )
+            )
         else:
-            all_findings.extend(scan_directory(
-                path, check_homoglyphs=check_homoglyphs,
-                check_html_comments=check_html_comments,
-                allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
-            ))
+            all_findings.extend(
+                scan_directory(
+                    path,
+                    check_homoglyphs=check_homoglyphs,
+                    check_html_comments=check_html_comments,
+                    allow_homoglyph_in_redteam=allow_homoglyph_in_redteam,
+                )
+            )
 
     # Group by category.
     by_cat: dict[HiddenCategory, list[HiddenFinding]] = {}

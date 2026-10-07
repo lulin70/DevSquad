@@ -112,14 +112,21 @@ class TestUserJourneyPaths:
         old_env = {
             k: os.environ.pop(k, None)
             for k in (
-                "TRAE_ENV", "CLAUDE_CODE_ENV", "TRAE_AGENT_PATH", "ANTHROPIC_ENV",
-                "DEVSQUAD_OPENAI_API_KEY", "DEVSQUAD_ANTHROPIC_API_KEY",
-                "MOKA_API_KEY", "DEVSQUAD_LLM_BACKEND",
-                "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                "TRAE_ENV",
+                "CLAUDE_CODE_ENV",
+                "TRAE_AGENT_PATH",
+                "ANTHROPIC_ENV",
+                "DEVSQUAD_OPENAI_API_KEY",
+                "DEVSQUAD_ANTHROPIC_API_KEY",
+                "MOKA_API_KEY",
+                "DEVSQUAD_LLM_BACKEND",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
             )
         }
         try:
             from scripts.collaboration.llm_backend import create_backend
+
             with _patch("scripts.collaboration.llm_backend._load_dotenv"):
                 backend = create_backend("auto")
             # No host env + no API key → must fall back to C (Mock)
@@ -137,23 +144,28 @@ class TestUserJourneyPaths:
         old_keys = {
             k: os.environ.pop(k, None)
             for k in (
-                "TRAE_ENV", "CLAUDE_CODE_ENV", "TRAE_AGENT_PATH", "ANTHROPIC_ENV",
-                "DEVSQUAD_ANTHROPIC_API_KEY", "MOKA_API_KEY", "DEVSQUAD_LLM_BACKEND",
-                "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                "TRAE_ENV",
+                "CLAUDE_CODE_ENV",
+                "TRAE_AGENT_PATH",
+                "ANTHROPIC_ENV",
+                "DEVSQUAD_ANTHROPIC_API_KEY",
+                "MOKA_API_KEY",
+                "DEVSQUAD_LLM_BACKEND",
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
             )
         }
         old_devsquad = os.environ.get("DEVSQUAD_OPENAI_API_KEY")
         os.environ["DEVSQUAD_OPENAI_API_KEY"] = "sk-test-not-a-real-key-1234567890"
         try:
             from scripts.collaboration.llm_backend import create_backend
+
             with _patch("scripts.collaboration.llm_backend._load_dotenv"):
                 backend = create_backend("auto")
             # V4.5.2 P12.1 P-1: auto mode wraps API + Mock tail → FallbackBackend
             # with composite path "A+C". Test accepts either "A" (single) or
             # "A+C" (composite) to remain forward-compatible.
-            assert backend.path in ("A", "A+C"), (
-                f"Expected path A or A+C, got {backend.path!r}"
-            )
+            assert backend.path in ("A", "A+C"), f"Expected path A or A+C, got {backend.path!r}"
         finally:
             if old_devsquad is None:
                 os.environ.pop("DEVSQUAD_OPENAI_API_KEY", None)
@@ -170,9 +182,13 @@ class TestUserJourneyPaths:
         old_env = {
             k: os.environ.pop(k, None)
             for k in (
-                "TRAE_ENV", "CLAUDE_CODE_ENV",
-                "OPENAI_API_KEY", "MOKA_API_KEY", "ANTHROPIC_API_KEY",
-                "DEVSQUAD_OPENAI_API_KEY", "DEVSQUAD_ANTHROPIC_API_KEY",
+                "TRAE_ENV",
+                "CLAUDE_CODE_ENV",
+                "OPENAI_API_KEY",
+                "MOKA_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "DEVSQUAD_OPENAI_API_KEY",
+                "DEVSQUAD_ANTHROPIC_API_KEY",
                 "DEVSQUAD_LLM_BACKEND",
             )
         }
@@ -205,14 +221,20 @@ class TestUserJourneyReport:
         )
 
         snap = PerfSnapshot(
-            path="mock", call_count=50,
-            p50_ms=10, p95_ms=20, p99_ms=30,
-            avg_ms=15, min_ms=5, max_ms=40,
+            path="mock",
+            call_count=50,
+            p50_ms=10,
+            p95_ms=20,
+            p99_ms=30,
+            avg_ms=15,
+            min_ms=5,
+            max_ms=40,
             snapshot_id="v452",
         )
         # Annotate with comparison result
         annotated = compare_to_baseline(
-            snap, type("B", (), {"snapshots": {}})(),
+            snap,
+            type("B", (), {"snapshots": {}})(),
         )
         # Within-threshold should be None (no baseline); fields exist
         assert annotated.baseline_p95_ms is None
@@ -222,18 +244,18 @@ class TestUserJourneyReport:
     def test_u10_no_secrets_in_logs(self, monkeypatch, caplog):
         """Logs MUST NOT contain plaintext API keys."""
         import logging
+
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test-must-not-appear-12345678901234567890")
 
         # Trigger some logging
         caplog.set_level(logging.DEBUG)
         from scripts.collaboration.llm_backend import create_backend
+
         _ = create_backend("auto")
 
         # Check no log message leaks the key
         for record in caplog.records:
-            assert "sk-test-must-not-appear" not in record.getMessage(), (
-                f"Log leaks key: {record.getMessage()}"
-            )
+            assert "sk-test-must-not-appear" not in record.getMessage(), f"Log leaks key: {record.getMessage()}"
 
     def test_u11_path_visible_in_backend(self):
         """All backends expose .path so the report can display it."""
@@ -247,12 +269,14 @@ class TestUserJourneyReport:
         )
 
         for backend_cls in (
-            MockBackend, OpenAIBackend, AnthropicBackend,
-            FallbackBackend, TraeBackend, HostBridgeBackend,
+            MockBackend,
+            OpenAIBackend,
+            AnthropicBackend,
+            FallbackBackend,
+            TraeBackend,
+            HostBridgeBackend,
         ):
-            assert hasattr(backend_cls, "path"), (
-                f"{backend_cls.__name__} missing .path attribute"
-            )
+            assert hasattr(backend_cls, "path"), f"{backend_cls.__name__} missing .path attribute"
 
 
 # ---------------------------------------------------------------------------

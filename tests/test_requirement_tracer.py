@@ -42,8 +42,7 @@ class TestParseRequirements(unittest.TestCase):
     def test_parses_simple_requirement_ids(self):
         prd = _write(
             Path(self.tmpdir.name) / "prd.md",
-            "# PRD\n\n#### P0-1: First requirement\nSome text.\n"
-            "#### P1-4: Second requirement\n",
+            "# PRD\n\n#### P0-1: First requirement\nSome text.\n#### P1-4: Second requirement\n",
         )
         tracer = RequirementTracer(codebase_root=self.tmpdir.name)
         reqs = tracer.parse_requirements(prd)
@@ -110,9 +109,7 @@ class TestParseRequirements(unittest.TestCase):
 
     def test_description_truncated_to_120(self):
         long_line = "P0-1: " + "x" * 200
-        prd = _write(
-            Path(self.tmpdir.name) / "prd.md", long_line + "\n"
-        )
+        prd = _write(Path(self.tmpdir.name) / "prd.md", long_line + "\n")
         tracer = RequirementTracer(codebase_root=self.tmpdir.name)
         reqs = tracer.parse_requirements(prd)
         self.assertLessEqual(len(reqs[0].description), 120)

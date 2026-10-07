@@ -113,9 +113,7 @@ class WorkflowStep:
             "reviewers": self.reviewers,
             "optional": self.optional,
             "skip_reason": self.skip_reason,
-            "node_type": self.node_type.value
-            if isinstance(self.node_type, NodeType)
-            else self.node_type,
+            "node_type": self.node_type.value if isinstance(self.node_type, NodeType) else self.node_type,
         }
         return d
 

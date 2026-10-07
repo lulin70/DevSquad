@@ -381,7 +381,9 @@ class ConfidenceScorer:
         else:
             return ConfidenceLevel.VERY_LOW
 
-    def score_response(self, response: str, prompt: str = "", metadata: dict[str, Any] | None = None) -> ConfidenceScore:
+    def score_response(
+        self, response: str, prompt: str = "", metadata: dict[str, Any] | None = None
+    ) -> ConfidenceScore:
         """
         Score a response for confidence (convenience wrapper).
 

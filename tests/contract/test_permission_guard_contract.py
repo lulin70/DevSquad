@@ -341,27 +341,33 @@ class TestPermissionGuardExtendedContract(unittest.TestCase):
     def test_audit_log_records_decisions(self):
         """Audit log should record entries after check() calls."""
         guard = self._get_guard()
-        guard.check(ProposedAction(
-            action_type=ActionType.FILE_READ,
-            target="/tmp/a.txt",
-            source_role_id="tester",
-        ))
-        guard.check(ProposedAction(
-            action_type=ActionType.FILE_DELETE,
-            target="/tmp/b.txt",
-            source_role_id="tester",
-        ))
+        guard.check(
+            ProposedAction(
+                action_type=ActionType.FILE_READ,
+                target="/tmp/a.txt",
+                source_role_id="tester",
+            )
+        )
+        guard.check(
+            ProposedAction(
+                action_type=ActionType.FILE_DELETE,
+                target="/tmp/b.txt",
+                source_role_id="tester",
+            )
+        )
         log = guard.get_audit_log()
         self.assertGreaterEqual(len(log), 2)
 
     def test_get_audit_log_with_outcome_filter(self):
         """get_audit_log should filter by outcome."""
         guard = self._get_guard()
-        guard.check(ProposedAction(
-            action_type=ActionType.FILE_READ,
-            target="/tmp/read.txt",
-            source_role_id="tester",
-        ))
+        guard.check(
+            ProposedAction(
+                action_type=ActionType.FILE_READ,
+                target="/tmp/read.txt",
+                source_role_id="tester",
+            )
+        )
         allowed = guard.get_audit_log(outcome=DecisionOutcome.ALLOWED)
         self.assertTrue(all(e.decision.outcome == DecisionOutcome.ALLOWED for e in allowed))
 
@@ -423,11 +429,13 @@ class TestPermissionGuardExtendedContract(unittest.TestCase):
     def test_get_security_report(self):
         """get_security_report should return a dict with expected keys."""
         guard = self._get_guard()
-        guard.check(ProposedAction(
-            action_type=ActionType.FILE_READ,
-            target="/tmp/r.txt",
-            source_role_id="tester",
-        ))
+        guard.check(
+            ProposedAction(
+                action_type=ActionType.FILE_READ,
+                target="/tmp/r.txt",
+                source_role_id="tester",
+            )
+        )
         report = guard.get_security_report()
         self.assertIsInstance(report, dict)
         self.assertIn("total_checks", report)
@@ -531,7 +539,8 @@ class T6_PermissionGuardBoundaryContract(unittest.TestCase):
         for action_type, target in dangerous_actions:
             decision = guard.check(self._make_action(action_type, target))
             self.assertEqual(
-                decision.outcome, DecisionOutcome.ALLOWED,
+                decision.outcome,
+                DecisionOutcome.ALLOWED,
                 f"BYPASS must allow {action_type.value} on {target}",
             )
 
@@ -547,12 +556,14 @@ class T6_PermissionGuardBoundaryContract(unittest.TestCase):
             decision = guard.check(self._make_action(action_type, "/tmp/plan_test.txt"))
             if action_type == ActionType.FILE_READ:
                 self.assertEqual(
-                    decision.outcome, DecisionOutcome.ALLOWED,
+                    decision.outcome,
+                    DecisionOutcome.ALLOWED,
                     f"PLAN must allow {action_type.value}",
                 )
             else:
                 self.assertEqual(
-                    decision.outcome, DecisionOutcome.DENIED,
+                    decision.outcome,
+                    DecisionOutcome.DENIED,
                     f"PLAN must deny {action_type.value}",
                 )
 
@@ -567,7 +578,8 @@ class T6_PermissionGuardBoundaryContract(unittest.TestCase):
             target = f"/tmp/auto_module{ext}"
             decision = guard.check(self._make_action(ActionType.FILE_CREATE, target))
             self.assertEqual(
-                decision.outcome, DecisionOutcome.ALLOWED,
+                decision.outcome,
+                DecisionOutcome.ALLOWED,
                 f"AUTO must allow FILE_CREATE for {ext} files",
             )
 
@@ -579,6 +591,7 @@ class T6_PermissionGuardBoundaryContract(unittest.TestCase):
         PermissionDecision instances.
         """
         import threading
+
         guard = PermissionGuard(current_level=PermissionLevel.DEFAULT)
         errors: list[str] = []
         barrier = threading.Barrier(10)
@@ -670,7 +683,8 @@ class T6_PermissionGuardBoundaryContract(unittest.TestCase):
         for target in sensitive_targets:
             decision = guard.check(self._make_action(ActionType.FILE_READ, target))
             self.assertEqual(
-                decision.outcome, DecisionOutcome.ALLOWED,
+                decision.outcome,
+                DecisionOutcome.ALLOWED,
                 f"PLAN must allow reading {target}",
             )
 

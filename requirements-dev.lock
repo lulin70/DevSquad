@@ -1,46 +1,97 @@
-# DevSquad Development Dependency Lock File (V4.0.0)
+# DevSquad Development Dependency Lock File (V4.5.20)
 # =====================================================
-# This file locks all development dependencies to specific versions for
-# reproducible development environments.
+# Generated from requirements-dev.txt in a clean Python 3.12 environment.
+# Install with: pip install -r requirements-dev.lock
 #
-# Usage:
-#   pip install -r requirements-dev.lock
-#
-# Generation:
-#   Based on requirements-dev.txt, pinned to exact versions installed in the
-#   lock generation environment.
-#
-# Regenerate:
-#   pip install -r requirements-dev.txt
-#   pip freeze > requirements-dev.lock
-#   (then keep only dev + transitive deps)
+# Keep this file resolver-consistent. Dependabot may update these pins, but
+# every update must remain installable and pass pip-audit before merge.
 # =====================================================
 
-# --- Direct dev dependencies (from requirements-dev.txt) ---
+altair==6.3.0
+anyio==4.15.1
+ast_serialize==0.12.1
+attrs==26.1.0
+bandit==1.9.4
 black==26.5.1
-flake8==7.3.0
-httpx2==2.5.0
+boolean.py==5.0
+CacheControl==0.14.4
+certifi==2026.7.22
+charset-normalizer==3.5.2
+click==8.5.0
+colorama==0.4.6
+coverage==7.16.2
+cyclonedx-python-lib==11.12.0
+defusedxml==0.7.1
+fakeredis==2.39.0
+filelock==4.0.12
+flake8==7.4.1
+h11==0.16.0
+httpcore2==2.13.1
+httptools==0.8.0
+httpx2==2.13.1
+hypothesis==6.168.5
+idna==3.20
+iniconfig==2.3.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+librt==0.16.0
+license-expression==30.4.4
+mando==0.7.1
+markdown-it-py==4.2.0
+MarkupSafe==3.0.4
+mccabe==0.7.0
+mdurl==0.1.2
+msgpack==1.2.3
 mypy==2.2.0
-pytest==9.0.3
+mypy_extensions==1.1.0
+narwhals==2.26.0
+numpy==2.4.6
+packageurl-python==0.17.6
+packaging==26.3
+pandas==3.0.6
+pathspec==1.1.1
+pillow==12.3.0
+pip-api==0.0.35
+pip-audit==2.10.1
+pip-requirements-parser==32.0.1
+platformdirs==4.12.3
+pluggy==1.6.0
+protobuf==7.36.2
+pyarrow==25.0.1
+pycodestyle==2.15.0
+py-serializable==2.1.0
+pydeck==0.9.3
+pyflakes==4.0.2
+Pygments==2.21.0
+pyparsing==3.3.3
+pytest==9.1.1
 pytest-asyncio==1.4.0
 pytest-cov==7.1.0
 pytest-rerunfailures==16.7
+python-dateutil==2.9.0.post0
+python-multipart==0.0.32
+pytokens==0.4.1
+PyYAML==6.0.3
+radon==6.0.1
+redis==8.1.0
+referencing==0.37.0
+requests==2.34.2
+rich==15.0.0
+rpds-py==2026.9.1
 ruff==0.15.20
-
-# --- Transitive dependencies ---
-click==8.3.3
-coverage==7.14.0
-h11==0.16.0
-httpcore2==2.5.0
-idna==3.10
-iniconfig==2.3.0
-mccabe==0.7.0
-mypy_extensions==1.1.0
-packaging==26.2
-pathspec==1.1.1
-platformdirs==4.9.6
-pluggy==1.6.0
-pycodestyle==2.14.0
-pyflakes==3.4.0
+six==1.17.0
+sortedcontainers==2.4.0
+starlette==1.7.0
+stevedore==5.9.1
+streamlit==1.65.0
+toml==0.10.2
+tomli==2.4.1
+tomli_w==1.2.0
 truststore==0.10.4
-typing_extensions==4.15.0
+typing_extensions==4.16.0
+urllib3==2.8.0
+uvicorn==0.54.0
+watchdog==6.0.0
+websockets==17.2

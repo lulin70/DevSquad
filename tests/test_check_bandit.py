@@ -16,6 +16,7 @@ Test isolation:
   - Temporary JSON report paths in tmp_path keep the artifacts in pytest's
     auto-cleaned tmp tree.
 """
+
 from __future__ import annotations
 
 import json
@@ -66,8 +67,10 @@ def _run_check_bandit(args: list[str], mock_proc: subprocess.CompletedProcess) -
     independent of whether the host environment has bandit installed; the
     not-installed path has its own explicit test (test_missing_bandit_exits_2).
     """
-    with patch.object(check_bandit, "_bandit_path", return_value="bandit"), \
-         patch.object(check_bandit.subprocess, "run", return_value=mock_proc):
+    with (
+        patch.object(check_bandit, "_bandit_path", return_value="bandit"),
+        patch.object(check_bandit.subprocess, "run", return_value=mock_proc),
+    ):
         return check_bandit.main(args)
 
 
@@ -101,9 +104,7 @@ class TestSummarize:
         assert (high, medium, low_count) == (0, 0, 0)
 
     def test_with_findings(self):
-        high, medium, low_count = check_bandit._summarize(
-            _make_bandit_report(high=2, medium=5, low=101)
-        )
+        high, medium, low_count = check_bandit._summarize(_make_bandit_report(high=2, medium=5, low=101))
         assert (high, medium, low_count) == (2, 5, 101)
 
     def test_missing_totals_returns_zeros(self):
@@ -118,8 +119,10 @@ class TestExitCodes:
     def test_clean_report_with_no_findings_exits_zero(self, tmp_path):
         report = _make_bandit_report()
         proc = subprocess.CompletedProcess(
-            args=["bandit"], returncode=0,
-            stdout=json.dumps(report), stderr="",
+            args=["bandit"],
+            returncode=0,
+            stdout=json.dumps(report),
+            stderr="",
         )
         rc = _run_check_bandit(
             ["--source", "scripts/", "--report", str(tmp_path / "r.json")],
@@ -131,8 +134,10 @@ class TestExitCodes:
         """LOW severity is reported but not blocking by default."""
         report = _make_bandit_report(low=101)
         proc = subprocess.CompletedProcess(
-            args=["bandit"], returncode=0,
-            stdout=json.dumps(report), stderr="",
+            args=["bandit"],
+            returncode=0,
+            stdout=json.dumps(report),
+            stderr="",
         )
         rc = _run_check_bandit(
             ["--source", "scripts/", "--report", str(tmp_path / "r.json")],
@@ -143,8 +148,10 @@ class TestExitCodes:
     def test_medium_findings_block_with_fail_on_medium(self, tmp_path):
         report = _make_bandit_report(medium=1)
         proc = subprocess.CompletedProcess(
-            args=["bandit"], returncode=1,
-            stdout=json.dumps(report), stderr="",
+            args=["bandit"],
+            returncode=1,
+            stdout=json.dumps(report),
+            stderr="",
         )
         rc = _run_check_bandit(
             ["--source", "scripts/", "--report", str(tmp_path / "r.json")],
@@ -155,13 +162,14 @@ class TestExitCodes:
     def test_high_findings_always_block(self, tmp_path):
         report = _make_bandit_report(high=1)
         proc = subprocess.CompletedProcess(
-            args=["bandit"], returncode=1,
-            stdout=json.dumps(report), stderr="",
+            args=["bandit"],
+            returncode=1,
+            stdout=json.dumps(report),
+            stderr="",
         )
         # Even with --no-fail-on-medium, HIGH blocks
         rc = _run_check_bandit(
-            ["--source", "scripts/", "--report", str(tmp_path / "r.json"),
-             "--no-fail-on-medium"],
+            ["--source", "scripts/", "--report", str(tmp_path / "r.json"), "--no-fail-on-medium"],
             proc,
         )
         assert rc == 1
@@ -169,12 +177,13 @@ class TestExitCodes:
     def test_medium_budget_is_enforced_with_no_fail_on_medium(self, tmp_path):
         report = _make_bandit_report(medium=8)
         proc = subprocess.CompletedProcess(
-            args=["bandit"], returncode=1,
-            stdout=json.dumps(report), stderr="",
+            args=["bandit"],
+            returncode=1,
+            stdout=json.dumps(report),
+            stderr="",
         )
         rc = _run_check_bandit(
-            ["--source", "scripts/", "--report", str(tmp_path / "r.json"),
-             "--no-fail-on-medium", "--max-medium", "7"],
+            ["--source", "scripts/", "--report", str(tmp_path / "r.json"), "--no-fail-on-medium", "--max-medium", "7"],
             proc,
         )
         assert rc == 1
@@ -182,8 +191,10 @@ class TestExitCodes:
     def test_empty_stdout_fails_closed(self, tmp_path):
         """Critical: bandit returns empty stdout in restricted sandboxes."""
         proc = subprocess.CompletedProcess(
-            args=["bandit"], returncode=1,
-            stdout="", stderr="bandit crashed",
+            args=["bandit"],
+            returncode=1,
+            stdout="",
+            stderr="bandit crashed",
         )
         rc = _run_check_bandit(
             ["--source", "scripts/", "--report", str(tmp_path / "r.json")],
@@ -197,8 +208,10 @@ class TestExitCodes:
     def test_unparseable_json_fails_closed(self, tmp_path):
         """Bandit returned something, but not valid JSON."""
         proc = subprocess.CompletedProcess(
-            args=["bandit"], returncode=1,
-            stdout="this is not json at all {{{", stderr="",
+            args=["bandit"],
+            returncode=1,
+            stdout="this is not json at all {{{",
+            stderr="",
         )
         rc = _run_check_bandit(
             ["--source", "scripts/", "--report", str(tmp_path / "r.json")],
@@ -212,10 +225,14 @@ class TestBanditBinaryPresence:
 
     def test_missing_bandit_exits_2(self, tmp_path, monkeypatch):
         monkeypatch.setattr(check_bandit, "_bandit_path", lambda: None)
-        rc = check_bandit.main([
-            "--source", "scripts/",
-            "--report", str(tmp_path / "r.json"),
-        ])
+        rc = check_bandit.main(
+            [
+                "--source",
+                "scripts/",
+                "--report",
+                str(tmp_path / "r.json"),
+            ]
+        )
         assert rc == 2
 
 
@@ -232,11 +249,15 @@ class TestEndToEndWithRealBandit:
     )
     def test_real_bandit_run_writes_report(self, tmp_path):
         report_path = tmp_path / "real.json"
-        rc = check_bandit.main([
-            "--source", str(REPO_ROOT / "scripts"),
-            "--report", str(report_path),
-            "--no-fail-on-medium",  # tolerate our known 7 MEDIUM/101 LOW
-        ])
+        rc = check_bandit.main(
+            [
+                "--source",
+                str(REPO_ROOT / "scripts"),
+                "--report",
+                str(report_path),
+                "--no-fail-on-medium",  # tolerate our known 7 MEDIUM/101 LOW
+            ]
+        )
         # Should be 0 (no HIGH) when LOW+MEDIUM are tolerated
         assert rc == 0
         assert report_path.exists()

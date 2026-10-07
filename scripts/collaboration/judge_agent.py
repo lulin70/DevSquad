@@ -30,7 +30,8 @@ Usage::
 
     from scripts.collaboration.judge_agent import JudgeAgent
     from scripts.collaboration.two_stage_review_gate import (
-        ReviewFinding, ReviewStage,
+        ReviewFinding,
+        ReviewStage,
     )
 
     judge = JudgeAgent()
@@ -70,12 +71,12 @@ logger = logging.getLogger(__name__)
 class JudgeAction(Enum):
     """Actions the judge can take on a finding (or group of findings)."""
 
-    ACCEPT = "accept"        # Finding accepted, will be reported
-    REJECT = "reject"        # Finding rejected (duplicate, false positive)
-    MERGE = "merge"          # Findings merged into one
+    ACCEPT = "accept"  # Finding accepted, will be reported
+    REJECT = "reject"  # Finding rejected (duplicate, false positive)
+    MERGE = "merge"  # Findings merged into one
     DOWNGRADE = "downgrade"  # Severity reduced
-    UPGRADE = "upgrade"      # Severity increased
-    DEFER = "defer"          # Defer to human judgment
+    UPGRADE = "upgrade"  # Severity increased
+    DEFER = "defer"  # Defer to human judgment
 
 
 # ---------------------------------------------------------------------------
@@ -303,23 +304,17 @@ class JudgeAgent:
         # a side-channel dict because ReviewFinding is a frozen-ish
         # dataclass (it isn't actually frozen, but we don't want to
         # mutate the input).
-        finding_ids: dict[int, str] = {
-            id(f): str(uuid.uuid4()) for f in findings
-        }
+        finding_ids: dict[int, str] = {id(f): str(uuid.uuid4()) for f in findings}
 
         decisions: list[JudgeDecision] = []
         history_used = False
 
         # Step 1: Deduplication
-        dedup_decisions, unique_findings = self._deduplicate_with_decisions(
-            findings, finding_ids
-        )
+        dedup_decisions, unique_findings = self._deduplicate_with_decisions(findings, finding_ids)
         decisions.extend(dedup_decisions)
 
         # Step 2: Conflict resolution
-        conflict_decisions, post_conflict = self._resolve_conflicts_with_decisions(
-            unique_findings, finding_ids
-        )
+        conflict_decisions, post_conflict = self._resolve_conflicts_with_decisions(unique_findings, finding_ids)
         decisions.extend(conflict_decisions)
         # post_conflict may have updated severities — use it going forward.
         current_findings = post_conflict
@@ -333,9 +328,7 @@ class JudgeAgent:
 
         # Step 4: Historical learning (suggest only)
         if self.history_enabled and self._history:
-            history_decisions, history_used = self._apply_history_with_decisions(
-                current_findings, finding_ids
-            )
+            history_decisions, history_used = self._apply_history_with_decisions(current_findings, finding_ids)
             decisions.extend(history_decisions)
 
         # Accepted findings = those that survived all stages and were
@@ -348,9 +341,9 @@ class JudgeAgent:
             elif d.action == JudgeAction.DEFER:
                 deferred_ids.update(d.finding_ids)
         accepted = [
-            f for f in current_findings
-            if finding_ids[id(f)] not in rejected_ids
-            and finding_ids[id(f)] not in deferred_ids
+            f
+            for f in current_findings
+            if finding_ids[id(f)] not in rejected_ids and finding_ids[id(f)] not in deferred_ids
         ]
 
         rejected_count = len(rejected_ids)
@@ -380,9 +373,7 @@ class JudgeAgent:
     # Deduplication
     # ------------------------------------------------------------------
 
-    def _deduplicate(
-        self, findings: list[ReviewFinding]
-    ) -> list[JudgeDecision]:
+    def _deduplicate(self, findings: list[ReviewFinding]) -> list[JudgeDecision]:
         """Detect duplicates via text similarity.
 
         Returns a list of MERGE/REJECT decisions. Findings above the
@@ -390,9 +381,7 @@ class JudgeAgent:
         """
         # We need IDs — but _deduplicate is the legacy signature that
         # doesn't take IDs. Delegate to the new signature with synthetic IDs.
-        finding_ids: dict[int, str] = {
-            id(f): str(uuid.uuid4()) for f in findings
-        }
+        finding_ids: dict[int, str] = {id(f): str(uuid.uuid4()) for f in findings}
         return self._deduplicate_with_decisions(findings, finding_ids)[0]
 
     def _deduplicate_with_decisions(
@@ -448,10 +437,7 @@ class JudgeAgent:
                     JudgeDecision(
                         action=JudgeAction.MERGE,
                         finding_ids=list(ids),
-                        rationale=(
-                            f"Merged {len(ids)} duplicate findings on "
-                            f"'{canon.description[:60]}'"
-                        ),
+                        rationale=(f"Merged {len(ids)} duplicate findings on '{canon.description[:60]}'"),
                         confidence=0.9,
                         merged_finding=merged_finding,
                     )
@@ -470,9 +456,7 @@ class JudgeAgent:
 
         return decisions, unique
 
-    def _is_duplicate(
-        self, a: ReviewFinding, b: ReviewFinding
-    ) -> bool:
+    def _is_duplicate(self, a: ReviewFinding, b: ReviewFinding) -> bool:
         """Return True if two findings are duplicates.
 
         Two findings are duplicates when:
@@ -513,13 +497,9 @@ class JudgeAgent:
     # Conflict resolution
     # ------------------------------------------------------------------
 
-    def _resolve_conflicts(
-        self, findings: list[ReviewFinding]
-    ) -> list[JudgeDecision]:
+    def _resolve_conflicts(self, findings: list[ReviewFinding]) -> list[JudgeDecision]:
         """Resolve conflicting findings (legacy signature)."""
-        finding_ids: dict[int, str] = {
-            id(f): str(uuid.uuid4()) for f in findings
-        }
+        finding_ids: dict[int, str] = {id(f): str(uuid.uuid4()) for f in findings}
         return self._resolve_conflicts_with_decisions(findings, finding_ids)[0]
 
     def _resolve_conflicts_with_decisions(
@@ -541,16 +521,16 @@ class JudgeAgent:
         # Work on a copy so we can mutate severities.
         updated: list[ReviewFinding] = list(findings)
 
-        severity_rank = {"info": 0, "low": 1, "warning": 2, "medium": 2,
-                         "high": 3, "critical": 4}
+        severity_rank = {"info": 0, "low": 1, "warning": 2, "medium": 2, "high": 3, "critical": 4}
 
         for i, a in enumerate(updated):
             for j in range(i + 1, len(updated)):
                 b = updated[j]
                 # Same issue but different severity → conflict.
-                if (a.severity != b.severity
-                        and self._text_similarity(a.description, b.description)
-                        >= self.similarity_threshold):
+                if (
+                    a.severity != b.severity
+                    and self._text_similarity(a.description, b.description) >= self.similarity_threshold
+                ):
                     # Pick the higher severity.
                     rank_a = severity_rank.get(a.severity, 0)
                     rank_b = severity_rank.get(b.severity, 0)
@@ -604,12 +584,8 @@ class JudgeAgent:
         threshold: float = 0.7,
     ) -> list[JudgeDecision]:
         """Filter low-confidence findings (legacy signature)."""
-        finding_ids: dict[int, str] = {
-            id(f): str(uuid.uuid4()) for f in findings
-        }
-        return self._filter_by_confidence_with_decisions(
-            findings, finding_ids, threshold
-        )[0]
+        finding_ids: dict[int, str] = {id(f): str(uuid.uuid4()) for f in findings}
+        return self._filter_by_confidence_with_decisions(findings, finding_ids, threshold)[0]
 
     def _filter_by_confidence_with_decisions(
         self,
@@ -639,10 +615,7 @@ class JudgeAgent:
                     JudgeDecision(
                         action=JudgeAction.REJECT,
                         finding_ids=[finding_ids[id(f)]],
-                        rationale=(
-                            f"Confidence {conf:.2f} below threshold "
-                            f"{threshold:.2f}."
-                        ),
+                        rationale=(f"Confidence {conf:.2f} below threshold {threshold:.2f}."),
                         confidence=conf,
                     )
                 )
@@ -667,13 +640,9 @@ class JudgeAgent:
     # Historical learning
     # ------------------------------------------------------------------
 
-    def _apply_history(
-        self, findings: list[ReviewFinding]
-    ) -> list[JudgeDecision]:
+    def _apply_history(self, findings: list[ReviewFinding]) -> list[JudgeDecision]:
         """Apply historical patterns (legacy signature)."""
-        finding_ids: dict[int, str] = {
-            id(f): str(uuid.uuid4()) for f in findings
-        }
+        finding_ids: dict[int, str] = {id(f): str(uuid.uuid4()) for f in findings}
         return self._apply_history_with_decisions(findings, finding_ids)[0]
 
     def _apply_history_with_decisions(
@@ -718,18 +687,13 @@ class JudgeAgent:
                     JudgeDecision(
                         action=JudgeAction.ACCEPT,
                         finding_ids=[finding_ids[id(f)]],
-                        rationale=(
-                            f"Similar past finding was accepted "
-                            f"(similarity={best_sim:.2f})."
-                        ),
+                        rationale=(f"Similar past finding was accepted (similarity={best_sim:.2f})."),
                         confidence=best_sim,
                     )
                 )
         return decisions, history_used
 
-    def _find_similar_history(
-        self, finding: ReviewFinding
-    ) -> tuple[HistoryRecord | None, float]:
+    def _find_similar_history(self, finding: ReviewFinding) -> tuple[HistoryRecord | None, float]:
         """Find the most similar historical record for a finding.
 
         Returns (best_record, best_similarity). If no history exists,
@@ -783,8 +747,7 @@ class JudgeAgent:
                 return []
             return [HistoryRecord.from_dict(d) for d in data if isinstance(d, dict)]
         except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
-            logger.warning("JudgeAgent: failed to load history from %s: %s",
-                           self._storage_path, exc)
+            logger.warning("JudgeAgent: failed to load history from %s: %s", self._storage_path, exc)
             return []
 
     def _save_history(self) -> None:
@@ -795,8 +758,7 @@ class JudgeAgent:
             with open(self._storage_path, "w", encoding="utf-8") as f:
                 json.dump([r.to_dict() for r in self._history], f, indent=2)
         except (OSError, TypeError, ValueError) as exc:
-            logger.warning("JudgeAgent: failed to save history to %s: %s",
-                           self._storage_path, exc)
+            logger.warning("JudgeAgent: failed to save history to %s: %s", self._storage_path, exc)
 
     def record_decision(
         self,

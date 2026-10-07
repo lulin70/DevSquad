@@ -41,7 +41,9 @@ class TestRealLLMAutoMode:
         assert isinstance(backend, FallbackBackend)
         assert len(backend._backends) >= 2
         first_class = backend._backends[0].__class__.__name__
-        assert first_class in ("OpenAIBackend", "AnthropicBackend")
+        # V4.5.20: A-path order is Moka → DeepSeek(OpenAI) → Anthropic, so a
+        # configured Moka key wins the head of the chain.
+        assert first_class in ("MokaAIBackend", "OpenAIBackend", "AnthropicBackend")
 
     def test_auto_backend_ends_with_mock_fallback(self) -> None:
         """Verify the auto backend chain always terminates with MockBackend."""

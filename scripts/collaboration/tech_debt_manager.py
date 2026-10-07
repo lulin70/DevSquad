@@ -41,33 +41,33 @@ from typing import Any
 class DebtCategory(Enum):
     """技术债务类别。"""
 
-    ARCHITECTURE = "architecture"      # 结构问题、上帝类、循环依赖
-    CODE_QUALITY = "code_quality"      # 代码风格、复杂度、死代码
-    TEST_GAP = "test_gap"             # 缺失测试、弱断言
-    SECURITY = "security"             # 安全漏洞、缺失验证
-    DOCUMENTATION = "documentation"    # 缺失/过时文档
-    PERFORMANCE = "performance"        # N+1 查询、缺失索引
-    DEPENDENCY = "dependency"          # 过时依赖、版本冲突
-    CONFIGURATION = "configuration"    # 硬编码值、缺失配置
+    ARCHITECTURE = "architecture"  # 结构问题、上帝类、循环依赖
+    CODE_QUALITY = "code_quality"  # 代码风格、复杂度、死代码
+    TEST_GAP = "test_gap"  # 缺失测试、弱断言
+    SECURITY = "security"  # 安全漏洞、缺失验证
+    DOCUMENTATION = "documentation"  # 缺失/过时文档
+    PERFORMANCE = "performance"  # N+1 查询、缺失索引
+    DEPENDENCY = "dependency"  # 过时依赖、版本冲突
+    CONFIGURATION = "configuration"  # 硬编码值、缺失配置
 
 
 class DebtSeverity(Enum):
     """技术债务严重程度。"""
 
-    LOW = "low"              # 外观问题，无功能影响
-    MEDIUM = "medium"        # 降低质量，有变通方案
-    HIGH = "high"            # 重大影响，无简单变通方案
-    CRITICAL = "critical"    # 阻碍进度或导致数据丢失
+    LOW = "low"  # 外观问题，无功能影响
+    MEDIUM = "medium"  # 降低质量，有变通方案
+    HIGH = "high"  # 重大影响，无简单变通方案
+    CRITICAL = "critical"  # 阻碍进度或导致数据丢失
 
 
 class DebtEffort(Enum):
     """修复工作量。"""
 
-    TRIVIAL = "trivial"      # < 1 小时
-    MINOR = "minor"          # 1-4 小时
-    MODERATE = "moderate"    # 4-16 小时
-    MAJOR = "major"          # 16-40 小时
-    EPIC = "epic"            # > 40 小时
+    TRIVIAL = "trivial"  # < 1 小时
+    MINOR = "minor"  # 1-4 小时
+    MODERATE = "moderate"  # 4-16 小时
+    MAJOR = "major"  # 16-40 小时
+    EPIC = "epic"  # > 40 小时
 
 
 class DebtStatus(Enum):
@@ -101,14 +101,14 @@ SEVERITY_WEIGHT: dict[DebtSeverity, float] = {
 }
 
 CATEGORY_INTEREST_RATE: dict[DebtCategory, float] = {
-    DebtCategory.ARCHITECTURE: 0.8,    # 高利息：随时间恶化
-    DebtCategory.CODE_QUALITY: 0.2,    # 低利息：不会变得更糟
-    DebtCategory.TEST_GAP: 0.5,        # 中等利息：回归风险增加
-    DebtCategory.SECURITY: 1.0,        # 关键利息：漏洞会被利用
-    DebtCategory.DOCUMENTATION: 0.1,   # 低利息
-    DebtCategory.PERFORMANCE: 0.4,     # 中等利息：随数据量恶化
-    DebtCategory.DEPENDENCY: 0.3,      # 中低利息
-    DebtCategory.CONFIGURATION: 0.2,   # 低利息
+    DebtCategory.ARCHITECTURE: 0.8,  # 高利息：随时间恶化
+    DebtCategory.CODE_QUALITY: 0.2,  # 低利息：不会变得更糟
+    DebtCategory.TEST_GAP: 0.5,  # 中等利息：回归风险增加
+    DebtCategory.SECURITY: 1.0,  # 关键利息：漏洞会被利用
+    DebtCategory.DOCUMENTATION: 0.1,  # 低利息
+    DebtCategory.PERFORMANCE: 0.4,  # 中等利息：随数据量恶化
+    DebtCategory.DEPENDENCY: 0.3,  # 中低利息
+    DebtCategory.CONFIGURATION: 0.2,  # 低利息
 }
 
 
@@ -406,22 +406,55 @@ class CodebaseDebtScanner:
     # Method name prefix → responsibility domain mapping.
     # Used to infer whether a class spans multiple distinct responsibilities.
     _METHOD_DOMAIN_MAP: dict[str, str] = {
-        "save": "persistence", "load": "persistence", "store": "persistence",
-        "fetch": "persistence", "persist": "persistence", "dump": "persistence",
+        "save": "persistence",
+        "load": "persistence",
+        "store": "persistence",
+        "fetch": "persistence",
+        "persist": "persistence",
+        "dump": "persistence",
         "restore": "persistence",
-        "validate": "validation", "check": "validation", "verify": "validation",
-        "render": "presentation", "draw": "presentation", "display": "presentation",
-        "show": "presentation", "format": "presentation", "print": "presentation",
-        "parse": "parsing", "read": "parsing", "scan": "parsing", "extract": "parsing",
-        "start": "lifecycle", "stop": "lifecycle", "shutdown": "lifecycle",
-        "close": "lifecycle", "open": "lifecycle", "setup": "lifecycle",
-        "calculate": "computation", "compute": "computation", "process": "computation",
-        "transform": "computation", "convert": "computation", "evaluate": "computation",
-        "send": "communication", "receive": "communication", "notify": "communication",
-        "emit": "communication", "dispatch": "communication", "broadcast": "communication",
-        "get": "access", "set": "access", "is": "access", "has": "access",
-        "add": "mutation", "remove": "mutation", "delete": "mutation",
-        "update": "mutation", "insert": "mutation", "clear": "mutation", "reset": "mutation",
+        "validate": "validation",
+        "check": "validation",
+        "verify": "validation",
+        "render": "presentation",
+        "draw": "presentation",
+        "display": "presentation",
+        "show": "presentation",
+        "format": "presentation",
+        "print": "presentation",
+        "parse": "parsing",
+        "read": "parsing",
+        "scan": "parsing",
+        "extract": "parsing",
+        "start": "lifecycle",
+        "stop": "lifecycle",
+        "shutdown": "lifecycle",
+        "close": "lifecycle",
+        "open": "lifecycle",
+        "setup": "lifecycle",
+        "calculate": "computation",
+        "compute": "computation",
+        "process": "computation",
+        "transform": "computation",
+        "convert": "computation",
+        "evaluate": "computation",
+        "send": "communication",
+        "receive": "communication",
+        "notify": "communication",
+        "emit": "communication",
+        "dispatch": "communication",
+        "broadcast": "communication",
+        "get": "access",
+        "set": "access",
+        "is": "access",
+        "has": "access",
+        "add": "mutation",
+        "remove": "mutation",
+        "delete": "mutation",
+        "update": "mutation",
+        "insert": "mutation",
+        "clear": "mutation",
+        "reset": "mutation",
     }
 
     TODO_PATTERN = re.compile(r"#\s*(TODO|FIXME|HACK|XXX|WORKAROUND)", re.IGNORECASE)
@@ -496,9 +529,7 @@ class CodebaseDebtScanner:
 
         return debts
 
-    def _detect_god_classes(
-        self, source: str, rel_path: str, prefix: str
-    ) -> list[TechDebt]:
+    def _detect_god_classes(self, source: str, rel_path: str, prefix: str) -> list[TechDebt]:
         """Detect God Classes using responsibility-based detection.
 
         A God Class is identified by multiple distinct responsibility domains
@@ -528,9 +559,9 @@ class CodebaseDebtScanner:
 
             # Collect public methods (skip __dunder__ and _private)
             public_methods = [
-                n for n in node.body
-                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and not n.name.startswith("_")
+                n
+                for n in node.body
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and not n.name.startswith("_")
             ]
 
             if len(public_methods) < self.GOD_CLASS_MIN_PUBLIC_METHODS:
@@ -541,9 +572,7 @@ class CodebaseDebtScanner:
 
             # God Class: multiple distinct responsibility domains
             if len(domains) >= self.GOD_CLASS_MIN_DOMAINS:
-                domain_summary = ", ".join(
-                    f"{domain}({len(methods)})" for domain, methods in sorted(domains.items())
-                )
+                domain_summary = ", ".join(f"{domain}({len(methods)})" for domain, methods in sorted(domains.items()))
                 debts.append(
                     TechDebt(
                         id=f"{prefix}-god-{node.name}",
@@ -562,9 +591,7 @@ class CodebaseDebtScanner:
                 )
         return debts
 
-    def _classify_method_domains(
-        self, methods: list[ast.FunctionDef | ast.AsyncFunctionDef]
-    ) -> dict[str, list[str]]:
+    def _classify_method_domains(self, methods: list[ast.FunctionDef | ast.AsyncFunctionDef]) -> dict[str, list[str]]:
         """Classify methods into responsibility domains by name prefix.
 
         Args:
@@ -595,9 +622,7 @@ class CodebaseDebtScanner:
             domains[domain].append(name)
         return domains
 
-    def _detect_todos(
-        self, source: str, rel_path: str, prefix: str
-    ) -> list[TechDebt]:
+    def _detect_todos(self, source: str, rel_path: str, prefix: str) -> list[TechDebt]:
         """Detect TODO/FIXME/HACK comments."""
         debts = []
         for match in self.TODO_PATTERN.finditer(source):
@@ -618,9 +643,7 @@ class CodebaseDebtScanner:
             )
         return debts
 
-    def _detect_broad_except(
-        self, source: str, rel_path: str, prefix: str
-    ) -> list[TechDebt]:
+    def _detect_broad_except(self, source: str, rel_path: str, prefix: str) -> list[TechDebt]:
         """Detect broad exception handling."""
         debts = []
         for pattern, label in [
@@ -643,9 +666,7 @@ class CodebaseDebtScanner:
                 )
         return debts
 
-    def _detect_hardcoded(
-        self, source: str, rel_path: str, prefix: str
-    ) -> list[TechDebt]:
+    def _detect_hardcoded(self, source: str, rel_path: str, prefix: str) -> list[TechDebt]:
         """Detect hardcoded configuration values."""
         debts = []
         for match in self.HARDCODED_PATTERN.finditer(source):
@@ -664,9 +685,7 @@ class CodebaseDebtScanner:
             )
         return debts
 
-    def _detect_missing_docstrings(
-        self, source: str, rel_path: str, prefix: str
-    ) -> list[TechDebt]:
+    def _detect_missing_docstrings(self, source: str, rel_path: str, prefix: str) -> list[TechDebt]:
         """Detect public methods missing docstrings."""
         debts: list[TechDebt] = []
         try:
@@ -694,9 +713,7 @@ class CodebaseDebtScanner:
                     )
         return debts
 
-    def _detect_unused_imports(
-        self, source: str, rel_path: str, prefix: str
-    ) -> list[TechDebt]:
+    def _detect_unused_imports(self, source: str, rel_path: str, prefix: str) -> list[TechDebt]:
         """Detect potentially unused imports."""
         debts: list[TechDebt] = []
         try:
@@ -850,15 +867,10 @@ class TechDebtManager:
         Returns:
             List of TechDebt items sorted by priority (highest first).
         """
-        active = [
-            d for d in self._debts
-            if d.status not in (DebtStatus.REMEDIATED, DebtStatus.WONT_FIX)
-        ]
+        active = [d for d in self._debts if d.status not in (DebtStatus.REMEDIATED, DebtStatus.WONT_FIX)]
         return sorted(active, key=lambda d: d.priority_score, reverse=True)
 
-    def generate_remediation_plan(
-        self, budget_hours: float = 40.0
-    ) -> RemediationPlan:
+    def generate_remediation_plan(self, budget_hours: float = 40.0) -> RemediationPlan:
         """Generate a prioritized remediation plan within budget.
 
         Uses knapsack-style optimization to maximize debt reduction
@@ -893,11 +905,7 @@ class TechDebtManager:
 
         total_active = len(prioritized)
         total_severity = sum(d.severity_weight for d in prioritized)
-        planned_severity = sum(
-            d.severity_weight
-            for d in prioritized
-            if d.id in {p["debt_id"] for p in planned}
-        )
+        planned_severity = sum(d.severity_weight for d in prioritized if d.id in {p["debt_id"] for p in planned})
         reduction = planned_severity / max(total_severity, 1.0)
 
         return RemediationPlan(

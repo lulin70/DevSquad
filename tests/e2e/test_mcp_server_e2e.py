@@ -39,6 +39,7 @@ def _mcp_available() -> bool:
     try:
         import mcp  # noqa: F401
         from mcp.server.fastmcp import FastMCP  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -55,9 +56,7 @@ def _find_free_port() -> int:
 def mcp_server():
     """Start MCP SSE server as subprocess, yield base_url, cleanup on teardown."""
     if not _mcp_available():
-        pytest.fail(
-            "MCP SDK (with FastMCP) not installed — run: pip install 'mcp<2'"
-        )
+        pytest.fail("MCP SDK (with FastMCP) not installed — run: pip install 'mcp<2'")
 
     port = _find_free_port()
     env = os.environ.copy()
@@ -84,6 +83,7 @@ def mcp_server():
         time.sleep(0.5)
         try:
             import urllib.request
+
             req = urllib.request.Request(sse_url)
             with urllib.request.urlopen(req, timeout=2) as r:
                 if r.status == 200:
@@ -96,11 +96,7 @@ def mcp_server():
         # Read any error output
         stdout = proc.stdout.read() if proc.stdout else ""
         stderr = proc.stderr.read() if proc.stderr else ""
-        pytest.fail(
-            f"MCP server did not start on port {port}\n"
-            f"STDOUT: {stdout[:500]}\n"
-            f"STDERR: {stderr[:500]}"
-        )
+        pytest.fail(f"MCP server did not start on port {port}\nSTDOUT: {stdout[:500]}\nSTDERR: {stderr[:500]}")
 
     yield base_url, port
 
@@ -117,6 +113,7 @@ def mcp_server():
 # Journey 1: Server starts and SSE endpoint responds
 # ---------------------------------------------------------------------------
 
+
 def test_mcp_server_starts_and_responds(mcp_server):
     """Journey-1: MCP SSE server starts, binds, and /sse returns 200."""
     base_url, port = mcp_server
@@ -131,6 +128,7 @@ def test_mcp_server_starts_and_responds(mcp_server):
 # ---------------------------------------------------------------------------
 # Journey 2: MCP protocol — initialize + list_tools
 # ---------------------------------------------------------------------------
+
 
 def test_mcp_server_list_tools_via_protocol(mcp_server):
     """Journey-2: MCP initialize + list_tools returns DevSquad tools.
@@ -147,30 +145,28 @@ def test_mcp_server_list_tools_via_protocol(mcp_server):
         from mcp.client.session import ClientSession
         from mcp.client.sse import sse_client
 
-        async with sse_client(sse_url) as (read_stream, write_stream), \
-                   ClientSession(read_stream, write_stream) as session:
+        async with (
+            sse_client(sse_url) as (read_stream, write_stream),
+            ClientSession(read_stream, write_stream) as session,
+        ):
             # Initialize the session
             await session.initialize()
             # List available tools
             result = await session.list_tools()
-            tools = [
-                {"name": t.name, "description": t.description[:50] if t.description else ""}
-                for t in result.tools
-            ]
+            tools = [{"name": t.name, "description": t.description[:50] if t.description else ""} for t in result.tools]
             return tools
 
     tools = asyncio.run(_list_tools())
     assert len(tools) > 0, f"No tools returned from MCP server: {tools}"
     tool_names = [t["name"] for t in tools]
     # Verify at least the known DevSquad tools are present
-    assert any("multiagent" in n for n in tool_names), (
-        f"Expected multiagent tools, got: {tool_names}"
-    )
+    assert any("multiagent" in n for n in tool_names), f"Expected multiagent tools, got: {tool_names}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 3: MCP protocol — call a tool
 # ---------------------------------------------------------------------------
+
 
 def test_mcp_server_call_tool_via_protocol(mcp_server):
     """Journey-3: MCP call_tool succeeds without crash.
@@ -184,8 +180,10 @@ def test_mcp_server_call_tool_via_protocol(mcp_server):
         from mcp.client.session import ClientSession
         from mcp.client.sse import sse_client
 
-        async with sse_client(sse_url) as (read_stream, write_stream), \
-                   ClientSession(read_stream, write_stream) as session:
+        async with (
+            sse_client(sse_url) as (read_stream, write_stream),
+            ClientSession(read_stream, write_stream) as session,
+        ):
             await session.initialize()
             # Find multiagent_roles tool
             tools_result = await session.list_tools()
@@ -204,9 +202,7 @@ def test_mcp_server_call_tool_via_protocol(mcp_server):
             return content_text or str(result.content)
 
     output = asyncio.run(_call_tool())
-    assert not output.startswith("NO_TOOL:"), (
-        f"Could not find multiagent tool: {output}"
-    )
+    assert not output.startswith("NO_TOOL:"), f"Could not find multiagent tool: {output}"
     # Output should be non-empty
     assert len(output.strip()) > 0, f"Tool returned empty output: {output}"
 
@@ -214,6 +210,7 @@ def test_mcp_server_call_tool_via_protocol(mcp_server):
 # ---------------------------------------------------------------------------
 # Journey 4: Server shuts down cleanly
 # ---------------------------------------------------------------------------
+
 
 def test_mcp_server_shutdown_cleanly(mcp_server):
     """Journey-4: MCP server shuts down cleanly on SIGTERM.

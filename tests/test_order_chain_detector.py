@@ -67,6 +67,7 @@ class TestT2RoleMetadata:
     def test_solo_coder_sequential_only(self):
         """solo-coder has sequential_only=True (per V4.5.2 model)."""
         from scripts.collaboration.models_dispatch import ROLE_REGISTRY
+
         assert ROLE_REGISTRY["solo-coder"].sequential_only is True
 
     def test_user_specifies_solo_coder_triggers_single_role(self):

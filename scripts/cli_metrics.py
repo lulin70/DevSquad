@@ -124,10 +124,12 @@ def _collect_metric_samples(metric_name: str) -> list[dict[str, Any]]:
                 if metric.name != metric_name:
                     continue
                 for sample in metric.samples:
-                    samples.append({
-                        "labels": dict(sample.labels),
-                        "value": float(sample.value),
-                    })
+                    samples.append(
+                        {
+                            "labels": dict(sample.labels),
+                            "value": float(sample.value),
+                        }
+                    )
         except (AttributeError, StopIteration):
             # Some collectors don't support .collect() (e.g. internal ones)
             continue
@@ -147,13 +149,15 @@ def collect_v4512_metrics() -> list[dict[str, Any]]:
         if not samples and not metric_name.endswith(("cross_host_signals", "slow_queries")):
             # Fall back to the default store's live stats snapshot.
             samples = _collect_stats_fallback_samples(metric_name)
-        results.append({
-            "name": metric_name,
-            "type": meta["type"],
-            "description": meta["description"],
-            "label_keys": meta["label_keys"],
-            "samples": samples,
-        })
+        results.append(
+            {
+                "name": metric_name,
+                "type": meta["type"],
+                "description": meta["description"],
+                "label_keys": meta["label_keys"],
+                "samples": samples,
+            }
+        )
     return results
 
 
@@ -189,13 +193,15 @@ def collect_v452_metrics() -> list[dict[str, Any]]:
     for meta in V452_METRICS:
         meta_dict: dict[str, Any] = meta
         metric_name = str(meta_dict["name"])
-        results.append({
-            "name": metric_name,
-            "type": meta_dict["type"],
-            "description": meta_dict["description"],
-            "label_keys": meta_dict["label_keys"],
-            "samples": _collect_metric_samples(metric_name),
-        })
+        results.append(
+            {
+                "name": metric_name,
+                "type": meta_dict["type"],
+                "description": meta_dict["description"],
+                "label_keys": meta_dict["label_keys"],
+                "samples": _collect_metric_samples(metric_name),
+            }
+        )
     return results
 
 

@@ -17,7 +17,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
-from scripts.collaboration.backend_paths import BackendPath, BackendUnavailable
+from scripts.collaboration.backend_paths import (
+    BackendPath,
+    BackendUnavailable,
+)
 from scripts.collaboration.host_llm_bridge import HostBridgeBackend
 from scripts.collaboration.llm_backend import (
     AnthropicBackend,
@@ -61,7 +64,7 @@ class TestCreateBackendAuto:
         assert backend.path == "C"
 
     def test_auto_with_host_env_returns_host_bridge(self):
-        """TRAE_ENV set → auto returns HostBridgeBackend (B path)."""
+        """TRAE_ENV set → auto selects HostBridgeBackend first (B path)."""
         patches = _patch_dotenv()
         with patch.dict(os.environ, {"TRAE_ENV": "1"}, clear=True):
             for p in patches:
@@ -73,6 +76,32 @@ class TestCreateBackendAuto:
                     p.stop()
         assert isinstance(backend, HostBridgeBackend)
         assert backend.path == "B"
+        assert backend.backend_id == "host-v2"
+        assert backend.backend_status().selected_path == "host-v2"
+
+    def test_auto_with_host_ignores_provider_keys(self):
+        """Host selection is independent of all direct-provider credentials."""
+        patches = _patch_dotenv()
+        with patch.dict(
+            os.environ,
+            {
+                "TRAE_ENV": "1",
+                "MOKA_API_KEY": "sk-moka",
+                "DEVSQUAD_OPENAI_API_KEY": "sk-openai",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "sk-anthropic",
+            },
+            clear=True,
+        ):
+            for p in patches:
+                p.start()
+            try:
+                backend = create_backend("auto")
+            finally:
+                for p in reversed(patches):
+                    p.stop()
+        assert isinstance(backend, HostBridgeBackend)
+        assert backend.backend_id == "host-v2"
+        assert backend.backend_status().chain == ("host-v2",)
 
     def test_auto_with_openai_key_returns_openai(self):
         """OpenAI key only → auto returns FallbackBackend([OpenAIBackend, Mock]).
@@ -114,6 +143,7 @@ class TestCreateBackendAuto:
     def test_auto_with_moka_key_returns_openai(self):
         """MOKA key only → auto returns FallbackBackend([MokaAIBackend, Mock])."""
         from scripts.collaboration.moka_backend import MokaAIBackend
+
         patches = _patch_dotenv()
         with patch.dict(os.environ, {"MOKA_API_KEY": "sk-test-moka"}, clear=True):
             for p in patches:
@@ -128,9 +158,10 @@ class TestCreateBackendAuto:
         assert backend._backends[0].path == "A"
 
     def test_auto_with_both_keys_returns_fallback(self):
-        """Both keys → auto returns FallbackBackend with [Anthropic, OpenAI, Mock].
+        """Both keys → auto returns FallbackBackend with [OpenAI, Anthropic, Mock].
 
-        V4.5.2 P-1: Mock tail added for graceful degradation.
+        V4.5.20: A-path order is Moka → OpenAI → Anthropic; V4.5.2 P-1 adds the
+        Mock tail for graceful degradation.
         """
         patches = _patch_dotenv()
         with patch.dict(
@@ -150,9 +181,9 @@ class TestCreateBackendAuto:
                     p.stop()
         assert isinstance(backend, FallbackBackend)
         assert len(backend._backends) == 3
-        # Order: Anthropic first, then OpenAI, then Mock
-        assert isinstance(backend._backends[0], AnthropicBackend)
-        assert isinstance(backend._backends[1], OpenAIBackend)
+        # V4.5.20 order: OpenAI (DeepSeek) first, then Anthropic, then Mock
+        assert isinstance(backend._backends[0], OpenAIBackend)
+        assert isinstance(backend._backends[1], AnthropicBackend)
         assert isinstance(backend._backends[2], MockBackend)
 
     def test_auto_reads_backend_from_env(self):
@@ -249,6 +280,7 @@ class TestCreateBackendExplicit:
         V4.5.2 P12.1.1: MOKA is now an explicit backend (no longer OpenAIBackend alias).
         """
         from scripts.collaboration.moka_backend import MokaAIBackend
+
         backend = create_backend("moka")
         assert isinstance(backend, MokaAIBackend)
         assert backend.path == "A"
@@ -315,7 +347,10 @@ class TestCreateBackendAutoFallback:
         assert isinstance(backend, MockBackend)
 
     def test_auto_fallback_with_openai_key(self):
-        """auto-fallback with OpenAI key → FallbackBackend([OpenAI, Mock])."""
+        """auto-fallback with OpenAI key → FallbackBackend([OpenAI, Mock]).
+
+        V4.5.2 P-1: graceful degradation falls back to MockBackend on failure.
+        """
         patches = _patch_dotenv()
         with patch.dict(
             os.environ,
@@ -333,6 +368,32 @@ class TestCreateBackendAutoFallback:
         assert len(backend._backends) == 2
         assert isinstance(backend._backends[0], OpenAIBackend)
         assert isinstance(backend._backends[1], MockBackend)
+
+    def test_auto_fallback_exposes_distinct_bac_identities(self):
+        """Host, direct providers, and mock remain distinguishable in status."""
+        patches = _patch_dotenv()
+        with patch.dict(
+            os.environ,
+            {
+                "TRAE_ENV": "1",
+                "MOKA_API_KEY": "sk-moka",
+                "DEVSQUAD_OPENAI_API_KEY": "sk-openai",
+                "DEVSQUAD_ANTHROPIC_API_KEY": "sk-anthropic",
+            },
+            clear=True,
+        ):
+            for p in patches:
+                p.start()
+            try:
+                backend = create_backend("auto-fallback")
+            finally:
+                for p in reversed(patches):
+                    p.stop()
+        assert isinstance(backend, FallbackBackend)
+        status = backend.backend_status().to_dict()
+        assert status["requested"] == "auto-fallback"
+        assert status["chain"] == ["host-v2", "moka", "openai", "anthropic", "mock"]
+        assert status["selected_path"] == "host-v2"
 
 
 class TestBackendPathAttribute:

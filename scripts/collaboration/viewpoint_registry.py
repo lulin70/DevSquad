@@ -7,6 +7,7 @@ and ``PromptAssembler`` to inject viewpoint specs into role prompts.
 Anti-ghost: module-level ``_call_counter_er`` increments on every public
 method call.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -159,10 +160,7 @@ class ViewpointRegistry:
 
         canonical = _resolve_role(role_id)
         if canonical not in self._viewpoints:
-            raise KeyError(
-                f"Unknown role_id: {role_id!r}. "
-                f"Known roles: {list(self._viewpoints.keys())}"
-            )
+            raise KeyError(f"Unknown role_id: {role_id!r}. Known roles: {list(self._viewpoints.keys())}")
         return self._viewpoints[canonical]
 
     def all(self) -> list[Viewpoint]:
@@ -235,9 +233,7 @@ class ViewpointRegistry:
 
         # Explicit mode: caller specifies the pair and stances
         if viewpoint_a is not None and viewpoint_b is not None:
-            return self._check_explicit_consistency(
-                viewpoint_a, viewpoint_b, shared_element, stance_a, stance_b
-            )
+            return self._check_explicit_consistency(viewpoint_a, viewpoint_b, shared_element, stance_a, stance_b)
 
         # Full mode: compare all non-orthogonal pairs
         if outputs is None:
@@ -266,11 +262,7 @@ class ViewpointRegistry:
 
         # If stances disagree and the viewpoints share any model element,
         # flag a consistency violation.
-        stances_disagree = (
-            stance_a is not None
-            and stance_b is not None
-            and stance_a != stance_b
-        )
+        stances_disagree = stance_a is not None and stance_b is not None and stance_a != stance_b
         if not stances_disagree:
             return []
 
@@ -313,9 +305,7 @@ class ViewpointRegistry:
                     text_a = outputs[ra].lower()
                     text_b = outputs[rb].lower()
                     # Simple contradiction heuristic: one says "yes" other says "no"
-                    if ("yes" in text_a and "no" in text_b) or (
-                        "no" in text_a and "yes" in text_b
-                    ):
+                    if ("yes" in text_a and "no" in text_b) or ("no" in text_a and "yes" in text_b):
                         violations.append(
                             ConsistencyViolation(
                                 role_a=ca,

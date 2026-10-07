@@ -157,7 +157,14 @@ class TestMultiTurnConversation:
         """Test multi-turn conversation with OpenAI backend."""
         from scripts.collaboration.llm_backend import OpenAIBackend
 
-        backend = OpenAIBackend(api_key=openai_key, max_tokens=100)
+        # No explicit max_tokens: let the backend resolve the per-model budget.
+        # A hard-coded tiny cap (e.g. 100) is wrong for a reasoning model such as
+        # the configured ``deepseek-flash``: its reasoning tokens count against
+        # ``max_tokens``, a 100-token cap is consumed entirely by reasoning, and
+        # the provider then returns finish_reason='length' with empty content —
+        # which the V4.5.20 contract raises on. This test asserts that multi-turn
+        # generate() returns non-empty text, not anything about token caps.
+        backend = OpenAIBackend(api_key=openai_key)
         # First turn
         response1 = backend.generate("My name is Alice. Remember it.")
         assert isinstance(response1, str)
@@ -330,7 +337,7 @@ class TestAutoBackendRealLLM:
     """Verify the new 'auto' backend behaves correctly with real API keys."""
 
     @pytest.mark.integration
-    def test_auto_with_openai_key_uses_real_backend(self, openai_key):
+    def test_auto_with_openai_key_uses_real_backend(self, openai_key, monkeypatch):
         """With a real OpenAI key, auto should build a FallbackBackend chain."""
         from scripts.collaboration.llm_backend import (
             FallbackBackend,
@@ -338,6 +345,18 @@ class TestAutoBackendRealLLM:
             OpenAIBackend,
             create_backend,
         )
+
+        # Isolation: ``_build_api_backends`` also reads MOKA_*/ANTHROPIC_* from the
+        # environment, and this machine's developer .env (auto-loaded by the root
+        # conftest) sets them — which would yield a 3-backend chain whose head is
+        # MokaAIBackend instead of the 2-backend OpenAI chain asserted below. Clear
+        # the other providers' vars (and disable .env re-loading) so the scenario
+        # this test claims to test is the scenario that actually runs.
+        monkeypatch.delenv("MOKA_API_KEY", raising=False)
+        monkeypatch.delenv("MOKA_API_BASE", raising=False)
+        monkeypatch.delenv("MOKA_BASE_URL", raising=False)
+        monkeypatch.delenv("DEVSQUAD_ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.setattr("scripts.collaboration.llm_backend._load_dotenv", lambda: None)
 
         backend = create_backend(
             "auto",
@@ -351,7 +370,7 @@ class TestAutoBackendRealLLM:
         assert isinstance(backend._backends[1], MockBackend)
 
     @pytest.mark.integration
-    def test_auto_with_anthropic_key_uses_real_backend(self, anthropic_key):
+    def test_auto_with_anthropic_key_uses_real_backend(self, anthropic_key, monkeypatch):
         """With a real Anthropic key, auto should build a FallbackBackend chain."""
         from scripts.collaboration.llm_backend import (
             AnthropicBackend,
@@ -359,6 +378,17 @@ class TestAutoBackendRealLLM:
             MockBackend,
             create_backend,
         )
+
+        # Same isolation as the OpenAI case above: without clearing MOKA_* and the
+        # OpenAI vars the chain would carry extra backends (this machine's .env
+        # sets MOKA_*), so the 2-backend Anthropic chain asserted below would not
+        # be what actually runs.
+        monkeypatch.delenv("MOKA_API_KEY", raising=False)
+        monkeypatch.delenv("MOKA_API_BASE", raising=False)
+        monkeypatch.delenv("MOKA_BASE_URL", raising=False)
+        monkeypatch.delenv("DEVSQUAD_OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("DEVSQUAD_OPENAI_BASE_URL", raising=False)
+        monkeypatch.setattr("scripts.collaboration.llm_backend._load_dotenv", lambda: None)
 
         backend = create_backend(
             "auto",
@@ -434,3 +464,65 @@ class TestAutoBackendRealLLM:
             assert result.success is True
         finally:
             dispatcher.shutdown()
+
+
+# ── DeepSeek / OpenAI-compatible configuration contract ──
+
+
+class TestDeepSeekConfigContract:
+    """Re-runnable version of the one-off real-provider verification.
+
+    The project has twice shipped a mismatch between the variables the CLI reads
+    (``OPENAI_*``) and the ones the library path reads (``DEVSQUAD_OPENAI_*``),
+    and once shipped a provider host that no longer served the configured model.
+    These tests pin that wiring down so it can be re-checked without a hand-edited
+    script or a key pasted on the command line.
+
+    They read the *effective* ``base_url`` / ``model`` off the backend rather than
+    hardcoding a provider host, so they still mean something if the provider
+    changes. The ``openai_key`` fixture skips (and makes no network call) when
+    ``DEVSQUAD_OPENAI_API_KEY`` is unset.
+    """
+
+    @pytest.mark.integration
+    def test_module_is_marked_external(self):
+        """Guard: these tests must stay in the external (release) lane."""
+        marks = pytestmark if isinstance(pytestmark, list) else [pytestmark]
+        assert {getattr(m, "name", None) for m in marks} == {"external"}, (
+            f"expected module-level pytest.mark.external, found {marks!r}"
+        )
+
+    @pytest.mark.integration
+    def test_configured_model_is_listed_by_provider(self, openai_key):
+        """``GET /models`` on the configured base_url must offer the configured model."""
+        from scripts.collaboration.llm_backend import OpenAIBackend
+
+        backend = OpenAIBackend(api_key=openai_key)
+        client = backend._get_client()  # the exact client the backend calls
+        model_id = backend.model
+        base_url = backend.base_url or "https://api.openai.com/v1 (SDK default)"
+
+        listed = [m.id for m in client.models.list().data]
+        assert listed, f"provider at {base_url} returned an empty model list"
+        assert model_id in listed, (
+            f"configured model {model_id!r} is not offered by the provider at "
+            f"{base_url}; models returned: {sorted(listed)!r}"
+        )
+
+    @pytest.mark.integration
+    def test_configured_model_returns_non_empty_completion(self, openai_key):
+        """A real completion from the configured model must be a non-empty string."""
+        from scripts.collaboration.llm_backend import OpenAIBackend
+
+        # No explicit max_tokens: let the backend resolve the per-model budget so a
+        # reasoning model is not starved by the generic default.
+        backend = OpenAIBackend(api_key=openai_key)
+        result = backend.generate("Reply with the single word: pong")
+
+        assert isinstance(result, str), f"expected str, got {type(result).__name__}"
+        assert result.strip(), (
+            f"empty completion from model {backend.model!r} at "
+            f"{backend.base_url or '(SDK default base_url)'} with "
+            f"max_tokens={backend.max_tokens}; reasoning tokens may have "
+            "consumed the whole budget"
+        )

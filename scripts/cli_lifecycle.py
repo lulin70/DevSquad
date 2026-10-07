@@ -17,6 +17,8 @@ from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.input_validator import InputValidator
 from scripts.collaboration.lifecycle_protocol import LifecycleProtocol
 from scripts.collaboration.lifecycle_templates import ViewMapping
+from scripts.collaboration.review_input import ReviewInputError, read_diff_file
+from scripts.collaboration.review_preview import build_review_preview, print_review_preview
 
 from .cli_utils import LIFECYCLE_COMMANDS, LIFECYCLE_PRESETS, LifecyclePreset, _create_backend
 
@@ -203,6 +205,65 @@ def _print_lifecycle_result(
         print(result.to_markdown())
 
 
+def _load_review_inputs(
+    args: argparse.Namespace,
+    command: str,
+) -> tuple[list[str] | None, str | None, int | None]:
+    """Load and validate the review-only changeset and diff inputs."""
+    diff_file = getattr(args, "diff_file", None)
+    diff_file = diff_file if isinstance(diff_file, str) else None
+    raw_changeset = getattr(args, "changeset", None)
+    if isinstance(raw_changeset, (list, tuple)) and all(isinstance(item, str) for item in raw_changeset):
+        changeset = list(raw_changeset)
+    else:
+        changeset = None
+
+    diff_text = None
+    if command == "review" and diff_file:
+        try:
+            diff_text = read_diff_file(diff_file)
+        except ReviewInputError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return changeset, None, 1
+
+    if command == "review" and changeset and diff_text is not None:
+        print("Error: --changeset and --diff-file are mutually exclusive.", file=sys.stderr)
+        return changeset, diff_text, 1
+    return changeset, diff_text, None
+
+
+def _run_lifecycle_preview(
+    args: argparse.Namespace,
+    task: str,
+    changeset: list[str] | None,
+    diff_text: str | None,
+) -> int | None:
+    """Render a deterministic review preview, or return ``None`` when inactive."""
+    if args.lifecycle_command != "review" or not getattr(args, "preview", False):
+        return None
+    if not changeset and diff_text is None:
+        print("Error: --preview requires --changeset or --diff-file.", file=sys.stderr)
+        return 1
+    try:
+        payload = build_review_preview(
+            task,
+            changeset=changeset,
+            repo_root=getattr(args, "repo_root", None),
+            include=getattr(args, "include", ()),
+            exclude=getattr(args, "exclude", ()),
+            max_file_size=getattr(args, "max_file_size", 10 * 1024 * 1024),
+            rule=getattr(args, "rule", None),
+            deleted_paths=getattr(args, "deleted", ()),
+            verbose=getattr(args, "verbose", False),
+            diff=diff_text,
+        )
+    except ReviewInputError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print_review_preview(payload, args.format)
+    return 0
+
+
 def cmd_lifecycle(args: argparse.Namespace) -> int:
     """Handle lifecycle commands (spec/plan/build/test/review/ship) as View Layer over 11-phase lifecycle."""
     command = args.lifecycle_command
@@ -226,6 +287,12 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
         return 1
 
     task = task_result.sanitized_input or task_text
+    changeset, diff_text, input_error = _load_review_inputs(args, command)
+    if input_error is not None:
+        return input_error
+    preview_result = _run_lifecycle_preview(args, task, changeset, diff_text)
+    if preview_result is not None:
+        return preview_result
 
     # Check for visual mode
     use_visual = getattr(args, "visual", False)
@@ -256,10 +323,21 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
             roles=preset["required_roles"],
             mode=preset["mode"],
             dry_run=args.dry_run,
+            changeset=changeset,
+            include=getattr(args, "include", ()),
+            diff=diff_text,
+            exclude=getattr(args, "exclude", ()),
+            max_file_size=getattr(args, "max_file_size", 10 * 1024 * 1024),
+            repo_root=getattr(args, "repo_root", None),
+            rule=getattr(args, "rule", None),
+            deleted_paths=getattr(args, "deleted", ()),
         )
 
         _print_lifecycle_result(args, command, preset, result)
 
         return 0 if result.success else 1
+    except ReviewInputError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     finally:
         disp.shutdown()

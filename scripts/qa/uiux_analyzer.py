@@ -303,18 +303,18 @@ class UIUXAnalyzer:
         results: list[SubItemAuditResult] = []
         for sub in get_subitems_for_dimension(dimension):
             status = self._determine_subitem_status(sub, issue_by_rule)
-            results.append(SubItemAuditResult(
-                name=sub.name,
-                dimension=sub.dimension,
-                status=status,
-                detail=self._subitem_detail(sub, status, issue_by_rule),
-                fix_suggestion=sub.fix_suggestion,
-            ))
+            results.append(
+                SubItemAuditResult(
+                    name=sub.name,
+                    dimension=sub.dimension,
+                    status=status,
+                    detail=self._subitem_detail(sub, status, issue_by_rule),
+                    fix_suggestion=sub.fix_suggestion,
+                )
+            )
         return results
 
-    def _determine_subitem_status(
-        self, sub: SubItemDef, issue_by_rule: dict[str, list[UIUXIssue]]
-    ) -> SubItemStatus:
+    def _determine_subitem_status(self, sub: SubItemDef, issue_by_rule: dict[str, list[UIUXIssue]]) -> SubItemStatus:
         """Determine the audit status for a single sub-item.
 
         Args:
@@ -360,38 +360,44 @@ class UIUXAnalyzer:
         issues: list[UIUXIssue] = []
         for img in a11y.get("images", []):
             if not img.get("has_alt"):
-                issues.append(UIUXIssue(
-                    severity="critical",
-                    category="a11y",
-                    rule="img_missing_alt",
-                    element=f"img[src='{img.get('src', '')[:40]}']",
-                    message="Image missing alt attribute",
-                    fix="Add alt attribute describing the image purpose",
-                    metric={"src": img.get("src", "")[:80]},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="critical",
+                        category="a11y",
+                        rule="img_missing_alt",
+                        element=f"img[src='{img.get('src', '')[:40]}']",
+                        message="Image missing alt attribute",
+                        fix="Add alt attribute describing the image purpose",
+                        metric={"src": img.get("src", "")[:80]},
+                    )
+                )
 
         for inp in a11y.get("inputs", []):
             if not inp.get("has_label"):
-                issues.append(UIUXIssue(
-                    severity="critical",
-                    category="a11y",
-                    rule="input_missing_label",
-                    element=f"input#{inp.get('id', '')}[type={inp.get('type', '')}]",
-                    message="Form input missing associated label",
-                    fix="Add <label for=...> or aria-label attribute",
-                    metric={"type": inp.get("type", "")},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="critical",
+                        category="a11y",
+                        rule="input_missing_label",
+                        element=f"input#{inp.get('id', '')}[type={inp.get('type', '')}]",
+                        message="Form input missing associated label",
+                        fix="Add <label for=...> or aria-label attribute",
+                        metric={"type": inp.get("type", "")},
+                    )
+                )
 
         for div_btn in a11y.get("div_buttons", []):
-            issues.append(UIUXIssue(
-                severity="warning",
-                category="a11y",
-                rule="div_with_button_role",
-                element=f"div[role=button]: '{div_btn.get('text', '')}'",
-                message="Using <div role=button> instead of semantic <button>",
-                fix="Use <button> element for accessibility",
-                metric={},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity="warning",
+                    category="a11y",
+                    rule="div_with_button_role",
+                    element=f"div[role=button]: '{div_btn.get('text', '')}'",
+                    message="Using <div role=button> instead of semantic <button>",
+                    fix="Use <button> element for accessibility",
+                    metric={},
+                )
+            )
 
         for text_item in a11y.get("text_contrast", []):
             ratio = self._compute_contrast_ratio(
@@ -399,15 +405,17 @@ class UIUXAnalyzer:
                 text_item.get("background", ""),
             )
             if ratio is not None and ratio < self._contrast_threshold:
-                issues.append(UIUXIssue(
-                    severity="warning",
-                    category="a11y",
-                    rule="wcag_contrast",
-                    element=f"text: '{text_item.get('text', '')}'",
-                    message=f"Contrast ratio {ratio:.2f} below WCAG AA {self._contrast_threshold}",
-                    fix="Increase color contrast between text and background",
-                    metric={"ratio": round(ratio, 2), "required": self._contrast_threshold},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="warning",
+                        category="a11y",
+                        rule="wcag_contrast",
+                        element=f"text: '{text_item.get('text', '')}'",
+                        message=f"Contrast ratio {ratio:.2f} below WCAG AA {self._contrast_threshold}",
+                        fix="Increase color contrast between text and background",
+                        metric={"ratio": round(ratio, 2), "required": self._contrast_threshold},
+                    )
+                )
 
             hsv_issue = self._check_hsv_harsh_combination(
                 text_item.get("color", ""),
@@ -486,31 +494,35 @@ class UIUXAnalyzer:
         issues: list[UIUXIssue] = []
         for btn in interaction.get("buttons", []):
             if btn.get("too_small"):
-                issues.append(UIUXIssue(
-                    severity="warning",
-                    category="interaction",
-                    rule="button_too_small",
-                    element=f"button: '{btn.get('text', '')}'",
-                    message=f"Button size {btn.get('width', 0)}x{btn.get('height', 0)} below {self._min_button_size}px",
-                    fix="Increase button size to at least 44x44 pixels for touch targets",
-                    metric={
-                        "width": btn.get("width", 0),
-                        "height": btn.get("height", 0),
-                        "required": self._min_button_size,
-                    },
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="warning",
+                        category="interaction",
+                        rule="button_too_small",
+                        element=f"button: '{btn.get('text', '')}'",
+                        message=f"Button size {btn.get('width', 0)}x{btn.get('height', 0)} below {self._min_button_size}px",
+                        fix="Increase button size to at least 44x44 pixels for touch targets",
+                        metric={
+                            "width": btn.get("width", 0),
+                            "height": btn.get("height", 0),
+                            "required": self._min_button_size,
+                        },
+                    )
+                )
 
         for focus in interaction.get("focus_styles", []):
             if focus.get("outline_removed"):
-                issues.append(UIUXIssue(
-                    severity="warning",
-                    category="interaction",
-                    rule="focus_outline_removed",
-                    element=":focus",
-                    message="Focus outline removed without replacement",
-                    fix="Provide alternative focus indicator (box-shadow, border, etc.)",
-                    metric={},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="warning",
+                        category="interaction",
+                        rule="focus_outline_removed",
+                        element=":focus",
+                        message="Focus outline removed without replacement",
+                        fix="Provide alternative focus indicator (box-shadow, border, etc.)",
+                        metric={},
+                    )
+                )
 
         return issues
 
@@ -519,40 +531,46 @@ class UIUXAnalyzer:
 
         overlap_count = len(layout.get("overlapping", []))
         if overlap_count > 0:
-            issues.append(UIUXIssue(
-                severity="critical",
-                category="layout",
-                rule="element_overlap",
-                element="multiple",
-                message=f"{overlap_count} overlapping element pairs detected",
-                fix="Adjust layout to prevent element overlap",
-                metric={"overlap_count": overlap_count},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity="critical",
+                    category="layout",
+                    rule="element_overlap",
+                    element="multiple",
+                    message=f"{overlap_count} overlapping element pairs detected",
+                    fix="Adjust layout to prevent element overlap",
+                    metric={"overlap_count": overlap_count},
+                )
+            )
 
         for trunc in layout.get("truncated", []):
-            issues.append(UIUXIssue(
-                severity="info",
-                category="layout",
-                rule="text_truncation",
-                element=f"{trunc.get('tag', '')}: '{trunc.get('text', '')}'",
-                message="Text truncation in use — verify content is not hidden",
-                fix="Ensure truncated text has tooltip or expandable view",
-                metric={},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity="info",
+                    category="layout",
+                    rule="text_truncation",
+                    element=f"{trunc.get('tag', '')}: '{trunc.get('text', '')}'",
+                    message="Text truncation in use — verify content is not hidden",
+                    fix="Ensure truncated text has tooltip or expandable view",
+                    metric={},
+                )
+            )
 
         if layout.get("viewport_overflow"):
-            issues.append(UIUXIssue(
-                severity="critical",
-                category="layout",
-                rule="viewport_overflow",
-                element="body",
-                message="Horizontal viewport overflow detected",
-                fix="Ensure content fits within viewport or use responsive layout",
-                metric={
-                    "scroll_width": "overflow",
-                    "client_width": "viewport",
-                },
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity="critical",
+                    category="layout",
+                    rule="viewport_overflow",
+                    element="body",
+                    message="Horizontal viewport overflow detected",
+                    fix="Ensure content fits within viewport or use responsive layout",
+                    metric={
+                        "scroll_width": "overflow",
+                        "client_width": "viewport",
+                    },
+                )
+            )
 
         return issues
 
@@ -561,26 +579,30 @@ class UIUXAnalyzer:
 
         for form in ux.get("forms", []):
             if form.get("no_validation"):
-                issues.append(UIUXIssue(
-                    severity="warning",
-                    category="ux_antipattern",
-                    rule="form_no_validation",
-                    element=f"form[action={form.get('action', '')}]",
-                    message=f"Form with {form.get('input_count', 0)} inputs has no required fields",
-                    fix="Add required attribute or client-side validation",
-                    metric={"input_count": form.get("input_count", 0)},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="warning",
+                        category="ux_antipattern",
+                        rule="form_no_validation",
+                        element=f"form[action={form.get('action', '')}]",
+                        message=f"Form with {form.get('input_count', 0)} inputs has no required fields",
+                        fix="Add required attribute or client-side validation",
+                        metric={"input_count": form.get("input_count", 0)},
+                    )
+                )
 
         for destructive in ux.get("destructive_without_confirm", []):
-            issues.append(UIUXIssue(
-                severity="critical",
-                category="ux_antipattern",
-                rule="destructive_no_confirm",
-                element=f"{destructive.get('tag', '')}: '{destructive.get('text', '')}'",
-                message="Destructive action without confirmation",
-                fix="Add confirm dialog or data-confirm attribute",
-                metric={},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity="critical",
+                    category="ux_antipattern",
+                    rule="destructive_no_confirm",
+                    element=f"{destructive.get('tag', '')}: '{destructive.get('text', '')}'",
+                    message="Destructive action without confirmation",
+                    fix="Add confirm dialog or data-confirm attribute",
+                    metric={},
+                )
+            )
 
         # V4.1.0 P1-UI-1: taste-skill Anti-pattern Bans (6 CSS rules)
         css_text = ux.get("css_text", "") or ux.get("css", "")
@@ -628,18 +650,20 @@ class UIUXAnalyzer:
         for match in pattern.finditer(css_text):
             width = int(match.group(1))
             if width >= 2:  # only flag visible accent stripes (>=2px)
-                issues.append(UIUXIssue(
-                    severity="warning",
-                    category="ux_antipattern",
-                    rule="border_left_accent_stripes",
-                    element=f"border-left:{width}px solid {match.group(2).strip()}",
-                    message=(
-                        "border-left accent stripe is an overused AI pattern; "
-                        "use a dedicated callout component instead"
-                    ),
-                    fix="Replace left-accent stripe with a structured callout/banner component",
-                    metric={"width": width, "color": match.group(2).strip()},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="warning",
+                        category="ux_antipattern",
+                        rule="border_left_accent_stripes",
+                        element=f"border-left:{width}px solid {match.group(2).strip()}",
+                        message=(
+                            "border-left accent stripe is an overused AI pattern; "
+                            "use a dedicated callout component instead"
+                        ),
+                        fix="Replace left-accent stripe with a structured callout/banner component",
+                        metric={"width": width, "color": match.group(2).strip()},
+                    )
+                )
         return issues
 
     def _check_gradient_text(self, css_text: str) -> list[UIUXIssue]:
@@ -655,18 +679,20 @@ class UIUXAnalyzer:
                 # Extract the gradient for the metric
                 grad_match = re.search(r"(linear|radial|conic)-gradient\([^)]*\)", body, re.IGNORECASE)
                 gradient_value = grad_match.group(0) if grad_match else "gradient"
-                issues.append(UIUXIssue(
-                    severity="error",
-                    category="ux_antipattern",
-                    rule="gradient_text",
-                    element=selector.strip()[:60] or "selector",
-                    message=(
-                        "Gradient text (background-clip: text + gradient) is banned; "
-                        "reduces readability and accessibility"
-                    ),
-                    fix="Use a solid color or a subtle text-shadow instead of gradient text",
-                    metric={"gradient": gradient_value[:80]},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="error",
+                        category="ux_antipattern",
+                        rule="gradient_text",
+                        element=selector.strip()[:60] or "selector",
+                        message=(
+                            "Gradient text (background-clip: text + gradient) is banned; "
+                            "reduces readability and accessibility"
+                        ),
+                        fix="Use a solid color or a subtle text-shadow instead of gradient text",
+                        metric={"gradient": gradient_value[:80]},
+                    )
+                )
         return issues
 
     def _check_glassmorphism_overuse(self, css_text: str) -> list[UIUXIssue]:
@@ -675,18 +701,20 @@ class UIUXAnalyzer:
         matches = re.findall(r"backdrop-filter\s*:\s*blur\(", css_text, re.IGNORECASE)
         count = len(matches)
         if count > 2:
-            issues.append(UIUXIssue(
-                severity="warning",
-                category="ux_antipattern",
-                rule="glassmorphism_overuse",
-                element="backdrop-filter",
-                message=(
-                    f"Glassmorphism used {count} times, max 2 recommended; "
-                    "overuse hurts readability and performance"
-                ),
-                fix="Limit backdrop-filter: blur() to at most 2 instances per page",
-                metric={"count": count, "max_recommended": 2},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity="warning",
+                    category="ux_antipattern",
+                    rule="glassmorphism_overuse",
+                    element="backdrop-filter",
+                    message=(
+                        f"Glassmorphism used {count} times, max 2 recommended; "
+                        "overuse hurts readability and performance"
+                    ),
+                    fix="Limit backdrop-filter: blur() to at most 2 instances per page",
+                    metric={"count": count, "max_recommended": 2},
+                )
+            )
         return issues
 
     def _check_overused_fonts(self, css_text: str) -> list[UIUXIssue]:
@@ -697,18 +725,17 @@ class UIUXAnalyzer:
             family_decl = match.group(1).strip().strip('"').strip("'").lower()
             for banned in _BANNED_FONT_FAMILIES:
                 if banned in family_decl:
-                    issues.append(UIUXIssue(
-                        severity="warning",
-                        category="ux_antipattern",
-                        rule="overused_fonts",
-                        element=f"font-family: {match.group(1).strip()[:60]}",
-                        message=(
-                            f"Overused font '{banned}' detected; "
-                            "these fonts signal generic AI-generated UI"
-                        ),
-                        fix="Choose a more distinctive font family that matches the brand",
-                        metric={"font": banned, "declaration": match.group(1).strip()[:80]},
-                    ))
+                    issues.append(
+                        UIUXIssue(
+                            severity="warning",
+                            category="ux_antipattern",
+                            rule="overused_fonts",
+                            element=f"font-family: {match.group(1).strip()[:60]}",
+                            message=(f"Overused font '{banned}' detected; these fonts signal generic AI-generated UI"),
+                            fix="Choose a more distinctive font family that matches the brand",
+                            metric={"font": banned, "declaration": match.group(1).strip()[:80]},
+                        )
+                    )
                     break  # one banned font per declaration is enough
         return issues
 
@@ -755,18 +782,20 @@ class UIUXAnalyzer:
                     has_blue = True
             if has_purple and has_blue:
                 full_gradient = f"{grad_type}-gradient({grad_body})"[:80]
-                issues.append(UIUXIssue(
-                    severity="warning",
-                    category="ux_antipattern",
-                    rule="purple_blue_gradient",
-                    element=full_gradient,
-                    message=(
-                        "Purple-blue gradient is the signature AI-generated UI pattern; "
-                        "use a more intentional palette"
-                    ),
-                    fix="Replace purple-blue gradient with a brand-aligned color pair",
-                    metric={"gradient": full_gradient},
-                ))
+                issues.append(
+                    UIUXIssue(
+                        severity="warning",
+                        category="ux_antipattern",
+                        rule="purple_blue_gradient",
+                        element=full_gradient,
+                        message=(
+                            "Purple-blue gradient is the signature AI-generated UI pattern; "
+                            "use a more intentional palette"
+                        ),
+                        fix="Replace purple-blue gradient with a brand-aligned color pair",
+                        metric={"gradient": full_gradient},
+                    )
+                )
         return issues
 
     def _check_nested_cards(self, css_text: str) -> list[UIUXIssue]:
@@ -777,18 +806,20 @@ class UIUXAnalyzer:
         for match in pattern.finditer(css_text):
             selector = match.group(2)
             nesting_level = selector.count(".card")
-            issues.append(UIUXIssue(
-                severity="warning",
-                category="ux_antipattern",
-                rule="nested_cards",
-                element=selector,
-                message=(
-                    f"Nested .card selector (depth {nesting_level}) detected; "
-                    "card-in-card layout breaks visual hierarchy"
-                ),
-                fix="Use distinct component types (e.g. .card > .panel) instead of nested cards",
-                metric={"nesting_level": nesting_level, "selector": selector},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity="warning",
+                    category="ux_antipattern",
+                    rule="nested_cards",
+                    element=selector,
+                    message=(
+                        f"Nested .card selector (depth {nesting_level}) detected; "
+                        "card-in-card layout breaks visual hierarchy"
+                    ),
+                    fix="Use distinct component types (e.g. .card > .panel) instead of nested cards",
+                    metric={"nesting_level": nesting_level, "selector": selector},
+                )
+            )
         return issues
 
     @staticmethod
@@ -816,7 +847,7 @@ class UIUXAnalyzer:
         color = color.strip()
         if color.startswith("rgb"):
             try:
-                parts = color[color.index("(") + 1:color.rindex(")")].split(",")
+                parts = color[color.index("(") + 1 : color.rindex(")")].split(",")
                 return (int(parts[0]), int(parts[1]), int(parts[2]))
             except (ValueError, IndexError):
                 return None
@@ -852,7 +883,7 @@ class UIUXAnalyzer:
         if not text.lower().startswith("oklch"):
             return None
         try:
-            inner = text[text.index("(") + 1:text.rindex(")")]
+            inner = text[text.index("(") + 1 : text.rindex(")")]
         except ValueError:
             return None
         parts = [p.strip() for p in inner.split() if p.strip()]
@@ -874,9 +905,7 @@ class UIUXAnalyzer:
         return (l_raw, c_raw, h_raw)
 
     @staticmethod
-    def _oklch_to_rgb(
-        lightness: float, chroma: float, h_deg: float
-    ) -> tuple[int, int, int]:
+    def _oklch_to_rgb(lightness: float, chroma: float, h_deg: float) -> tuple[int, int, int]:
         """Convert OKLCH (L, C, H) to 8-bit sRGB (r, g, b).
 
         Pipeline: OKLCH → OKLab → l'ms' (cube roots) → LMS (cube) → linear
@@ -896,9 +925,9 @@ class UIUXAnalyzer:
         s_prime = lab_l - 0.0894841775 * lab_a - 1.2914855480 * lab_b
 
         # Cube l'ms' to get LMS
-        l_cubed = l_prime ** 3
-        m_cubed = m_prime ** 3
-        s_cubed = s_prime ** 3
+        l_cubed = l_prime**3
+        m_cubed = m_prime**3
+        s_cubed = s_prime**3
 
         # LMS → linear sRGB
         lin_r = +4.0767416621 * l_cubed - 3.3077115913 * m_cubed + 0.2309699292 * s_cubed
@@ -919,14 +948,13 @@ class UIUXAnalyzer:
         )
 
     @staticmethod
-    def _rgb_to_oklch(
-        r: int, g: int, b: int
-    ) -> tuple[float, float, float]:
+    def _rgb_to_oklch(r: int, g: int, b: int) -> tuple[float, float, float]:
         """Convert 8-bit sRGB (r, g, b) to OKLCH (L, C, H).
 
         Pipeline: sRGB → linear sRGB → OKLab → OKLCH. The reverse of
         :meth:`_oklch_to_rgb`. Simplified approximation.
         """
+
         def to_linear(channel_8bit: int) -> float:
             s = channel_8bit / 255.0
             return float(s / 12.92 if s <= 0.04045 else ((s + 0.055) / 1.055) ** 2.4)
@@ -956,6 +984,7 @@ class UIUXAnalyzer:
     @staticmethod
     def _relative_luminance(rgb: tuple[int, int, int]) -> float:
         """WCAG 相对亮度公式。"""
+
         def channel(c: int) -> float:
             s = c / 255.0
             return float(s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4)
@@ -1037,23 +1066,22 @@ class UIUXAnalyzer:
                 if px_value == 0:
                     continue
                 if px_value % _4PT_GRID_UNIT != 0:
-                    issues.append(UIUXIssue(
-                        severity="warning",
-                        category="layout",
-                        rule="spacing_4pt_grid",
-                        element=f"{prop}: {token}",
-                        message=(
-                            f"Spacing {token} ({px_value}px) is not on the "
-                            "4pt grid (use multiples of 4)"
-                        ),
-                        fix="Use 4pt grid values: 4, 8, 12, 16, 20, 24, 28, 32, ...",
-                        metric={
-                            "property": prop,
-                            "token": token,
-                            "px": px_value,
-                            "grid_unit": _4PT_GRID_UNIT,
-                        },
-                    ))
+                    issues.append(
+                        UIUXIssue(
+                            severity="warning",
+                            category="layout",
+                            rule="spacing_4pt_grid",
+                            element=f"{prop}: {token}",
+                            message=(f"Spacing {token} ({px_value}px) is not on the 4pt grid (use multiples of 4)"),
+                            fix="Use 4pt grid values: 4, 8, 12, 16, 20, 24, 28, 32, ...",
+                            metric={
+                                "property": prop,
+                                "token": token,
+                                "px": px_value,
+                                "grid_unit": _4PT_GRID_UNIT,
+                            },
+                        )
+                    )
         return issues
 
     @staticmethod

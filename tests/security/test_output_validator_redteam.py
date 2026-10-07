@@ -68,7 +68,7 @@ class RT01to05_CodeInjection(unittest.TestCase):
 
     def test_rt_01_eval_call_with_payload(self) -> None:
         """RT-01: eval() with malicious payload must be blocked."""
-        result = _scan("result = eval('__import__(\"os\").system(\"rm -rf /\")')")
+        result = _scan('result = eval(\'__import__("os").system("rm -rf /")\')')
         self.assertTrue(_has_pattern(result, "eval_call"))
         self.assertTrue(result.blocked)
 
@@ -242,6 +242,7 @@ class RT21to25_EvasiveAttacks(unittest.TestCase):
         V4.4.0 extension: add base64 decoding pass before regex matching.
         """
         import base64
+
         real_key = "sk-" + "a" * 40
         encoded = base64.b64encode(real_key.encode()).decode()
         result = _scan(f"config = {{'key': '{encoded}'}}")

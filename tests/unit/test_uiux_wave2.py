@@ -33,9 +33,7 @@ class TestDarkModeColors:
     def test_dark_mode_has_8_colors(self):
         """DARK_MODE_COLORS should define 8 color tokens (same keys as light)."""
         assert len(DashboardConfig.DARK_MODE_COLORS) == 8
-        assert set(DashboardConfig.LIGHT_MODE_COLORS.keys()) == set(
-            DashboardConfig.DARK_MODE_COLORS.keys()
-        )
+        assert set(DashboardConfig.LIGHT_MODE_COLORS.keys()) == set(DashboardConfig.DARK_MODE_COLORS.keys())
 
     def test_light_mode_colors_are_hex(self):
         """All light mode colors must be valid hex strings."""
@@ -159,9 +157,7 @@ class TestRoleSvgIcons:
         """Each SVG inner content should contain at least one geometry element."""
         geometry_tags = ("<path", "<line", "<circle", "<rect", "<polygon", "<polyline")
         for role, inner in DashboardConfig.ROLE_SVG_ICONS.items():
-            assert any(tag in inner for tag in geometry_tags), (
-                f"Role {role} SVG has no geometry elements"
-            )
+            assert any(tag in inner for tag in geometry_tags), f"Role {role} SVG has no geometry elements"
 
     def test_no_svg_uses_fill_black_or_fill_white(self):
         """SVG icons should be single-color stroke (no hardcoded fill), except palette dots."""

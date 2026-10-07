@@ -873,10 +873,7 @@ class UnifiedGateEngine:
 
         from scripts.collaboration.risk_register import EXPOSURE_THRESHOLD, RiskStatus
 
-        blocking = [
-            r for r in register.query(status=RiskStatus.OPEN)
-            if r.exposure >= EXPOSURE_THRESHOLD
-        ]
+        blocking = [r for r in register.query(status=RiskStatus.OPEN) if r.exposure >= EXPOSURE_THRESHOLD]
         if blocking:
             return UnifiedGateResult(
                 passed=False,
@@ -889,8 +886,7 @@ class UnifiedGateEngine:
                     {
                         "risk_id": r.id,
                         "exposure": r.exposure,
-                        "message": f"Risk {r.id} exposure {r.exposure:.4f} >= "
-                                   f"threshold {EXPOSURE_THRESHOLD}",
+                        "message": f"Risk {r.id} exposure {r.exposure:.4f} >= threshold {EXPOSURE_THRESHOLD}",
                     }
                     for r in blocking
                 ],
@@ -1003,8 +999,7 @@ class UnifiedGateEngine:
                 warnings=[
                     {
                         "code": "CFR_HIGH",
-                        "message": f"Change failure rate {metrics.change_failure_rate:.1%} "
-                                   f"exceeds 15% threshold",
+                        "message": f"Change failure rate {metrics.change_failure_rate:.1%} exceeds 15% threshold",
                     }
                 ],
                 suggestions=["Trigger architecture review"],

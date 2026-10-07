@@ -79,9 +79,7 @@ class TestAllowedTransitionsContract:
         from scripts.collaboration.module_fiber import ALLOWED_TRANSITIONS
 
         for state, targets in ALLOWED_TRANSITIONS.items():
-            assert state not in targets, (
-                f"Self-transition {state} -> {state} would cause infinite loop"
-            )
+            assert state not in targets, f"Self-transition {state} -> {state} would cause infinite loop"
 
 
 # ── C3: ModuleFiber exposed attributes ────────────────────────────────────

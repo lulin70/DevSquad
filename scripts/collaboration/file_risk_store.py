@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """V4.5.8 Wave 1 file-backed persistence for risk registers."""
+
 from __future__ import annotations
 
 import contextlib
@@ -53,10 +54,7 @@ CONCURRENT_WINDOW_SECONDS = 60.0
 # errnos whose semantics indicate remote/shared-storage failure rather than
 # local contention (EAGAIN == local contention is intentionally excluded).
 _REMOTE_ERRNOS: frozenset[int] = frozenset(
-    value
-    for name in ("ESTALE", "EREMOTE", "EBADRPC")
-    for value in (getattr(errno, name, None),)
-    if value is not None
+    value for name in ("ESTALE", "EREMOTE", "EBADRPC") for value in (getattr(errno, name, None),) if value is not None
 )
 # Cache "once per store instance" flag attribute name to avoid re-detecting.
 _REMOTE_FS_FLAG = "_remote_fs_recorded"
@@ -173,9 +171,7 @@ class RiskStoreStats:
 
 def _validate_register_id(register_id: str) -> None:
     if not isinstance(register_id, str) or _REG_ID_PATTERN.fullmatch(register_id) is None:
-        raise RiskStoreValidationError(
-            f"register_id {register_id!r} must match [A-Za-z0-9_-]{{1,64}}"
-        )
+        raise RiskStoreValidationError(f"register_id {register_id!r} must match [A-Za-z0-9_-]{{1,64}}")
 
 
 def _resolved_root(root: Path) -> Path:
@@ -274,9 +270,7 @@ def _fcntl_lock(handle: Any, timeout: float) -> None:
             return
         except BlockingIOError:
             if time.monotonic() >= deadline:
-                raise RiskStoreLockError(
-                    f"Could not acquire risk store lock within {timeout:.3f}s"
-                ) from None
+                raise RiskStoreLockError(f"Could not acquire risk store lock within {timeout:.3f}s") from None
             time.sleep(min(0.05, max(0.001, deadline - time.monotonic())))
         except OSError as exc:
             # V4.5.13: remote-semantics errno → re-raise so the caller can
@@ -284,9 +278,7 @@ def _fcntl_lock(handle: Any, timeout: float) -> None:
             if exc.errno in _REMOTE_ERRNOS:
                 raise
             if time.monotonic() >= deadline:
-                raise RiskStoreLockError(
-                    f"Could not acquire risk store lock within {timeout:.3f}s"
-                ) from None
+                raise RiskStoreLockError(f"Could not acquire risk store lock within {timeout:.3f}s") from None
             time.sleep(min(0.05, max(0.001, deadline - time.monotonic())))
 
 
@@ -307,9 +299,7 @@ def _msvcrt_lock(handle: Any, timeout: float) -> None:
             return
         except OSError:
             if time.monotonic() >= deadline:
-                raise RiskStoreLockError(
-                    f"Could not acquire risk store lock within {timeout:.3f}s"
-                ) from None
+                raise RiskStoreLockError(f"Could not acquire risk store lock within {timeout:.3f}s") from None
             time.sleep(min(0.05, max(0.001, deadline - time.monotonic())))
 
 
@@ -544,9 +534,7 @@ class FileRiskStoreTransaction(MutableMapping[str, Any]):
                 payload = self.payload
                 _check_payload(payload, self.register_id)
                 if self._target.is_symlink():
-                    raise RiskStoreValidationError(
-                        f"Refusing symlinked canonical file: {self._target}"
-                    )
+                    raise RiskStoreValidationError(f"Refusing symlinked canonical file: {self._target}")
                 self._store._atomic_write(self._target, payload)
                 # V4.5.12: transaction commit is a write (AC-SQL-2).
                 self._store.stats.record_write(len(payload.get("items", [])))

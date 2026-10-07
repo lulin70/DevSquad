@@ -58,11 +58,7 @@ class TestDeletionTestPassThrough(unittest.TestCase):
 
     def test_docstring_plus_return_call_is_pass_through(self) -> None:
         """Verify: docstring followed by ``return call()`` is still pass-through."""
-        code = (
-            "def wrapper():\n"
-            '    """Doc."""\n'
-            "    return int('42')\n"
-        )
+        code = 'def wrapper():\n    """Doc."""\n    return int(\'42\')\n'
         findings = self.auditor.deletion_test(code)
         pass_through = [f for f in findings if "pass-through" in f.current]
         self.assertEqual(len(pass_through), 1)
@@ -76,11 +72,7 @@ class TestDeletionTestPassThrough(unittest.TestCase):
 
     def test_multi_statement_function_not_pass_through(self) -> None:
         """Verify: function with multiple statements is NOT pass-through."""
-        code = (
-            "def real_work(x):\n"
-            "    y = x + 1\n"
-            "    return y * 2\n"
-        )
+        code = "def real_work(x):\n    y = x + 1\n    return y * 2\n"
         findings = self.auditor.deletion_test(code)
         pass_through = [f for f in findings if "pass-through" in f.current]
         self.assertEqual(len(pass_through), 0)
@@ -111,13 +103,7 @@ class TestDeletionTestDeadCode(unittest.TestCase):
 
     def test_dunder_methods_not_flagged(self) -> None:
         """Verify: dunder methods (__init__, __str__) are skipped."""
-        code = (
-            "class Foo:\n"
-            "    def __init__(self):\n"
-            "        pass\n"
-            "    def __str__(self):\n"
-            "        return 'Foo'\n"
-        )
+        code = "class Foo:\n    def __init__(self):\n        pass\n    def __str__(self):\n        return 'Foo'\n"
         findings = self.auditor.deletion_test(code)
         dunder_findings = [f for f in findings if "__" in f.current]
         self.assertEqual(len(dunder_findings), 0)
@@ -131,12 +117,7 @@ class TestDeletionTestSingleUse(unittest.TestCase):
 
     def test_single_call_function_flagged_low(self) -> None:
         """Verify: function called exactly once is flagged LOW (inlining candidate)."""
-        code = (
-            "def helper():\n"
-            "    return 42\n"
-            "def caller():\n"
-            "    return helper()\n"
-        )
+        code = "def helper():\n    return 42\ndef caller():\n    return helper()\n"
         findings = self.auditor.deletion_test(code)
         single_use = [f for f in findings if "called only once" in f.current]
         self.assertEqual(len(single_use), 1)
@@ -146,12 +127,7 @@ class TestDeletionTestSingleUse(unittest.TestCase):
     def test_multi_call_function_not_flagged(self) -> None:
         """Verify: function called 2+ times is NOT flagged for inlining."""
         code = (
-            "def helper():\n"
-            "    return 42\n"
-            "def caller_a():\n"
-            "    return helper()\n"
-            "def caller_b():\n"
-            "    return helper()\n"
+            "def helper():\n    return 42\ndef caller_a():\n    return helper()\ndef caller_b():\n    return helper()\n"
         )
         findings = self.auditor.deletion_test(code)
         single_use = [f for f in findings if "called only once" in f.current]
@@ -331,12 +307,7 @@ class TestAuditIntegration(unittest.TestCase):
 
     def test_deletion_findings_appear_in_audit(self) -> None:
         """Verify: ``audit()`` returns DELETION_TEST category findings."""
-        code = (
-            "def wrapper(x):\n"
-            "    return list(x)\n"
-            "def unused():\n"
-            "    return 42\n"
-        )
+        code = "def wrapper(x):\n    return list(x)\ndef unused():\n    return 42\n"
         findings = self.auditor.audit(code)
         deletion = [f for f in findings if f.category == "DELETION_TEST"]
         self.assertGreater(len(deletion), 0)

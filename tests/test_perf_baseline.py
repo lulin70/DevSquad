@@ -93,7 +93,7 @@ class TestT2ExcludeFailures:
 
         snap = collector.snapshot()
         assert snap.excluded_count == 5  # warmup failures excluded
-        assert snap.call_count == 45     # 50 ok - 5 warmup discard
+        assert snap.call_count == 45  # 50 ok - 5 warmup discard
 
     def test_manual_exclude_call(self):
         """collector.exclude() 增加排除计数（用于超时/熔断等外部事件）."""
@@ -129,19 +129,31 @@ class TestT2ExcludeFailures:
 class TestT3MockBaselineGate:
     def test_within_threshold_passes(self):
         """P95 上升 <10% → within_threshold=True."""
-        baseline = PerfBaseline(snapshots={
-            "mock": PerfSnapshot(
-                path="mock", call_count=50,
-                p50_ms=25.0, p95_ms=50.0, p99_ms=70.0,
-                avg_ms=30.0, min_ms=10.0, max_ms=80.0,
-                snapshot_id="v452_baseline",
-            ),
-        })
+        baseline = PerfBaseline(
+            snapshots={
+                "mock": PerfSnapshot(
+                    path="mock",
+                    call_count=50,
+                    p50_ms=25.0,
+                    p95_ms=50.0,
+                    p99_ms=70.0,
+                    avg_ms=30.0,
+                    min_ms=10.0,
+                    max_ms=80.0,
+                    snapshot_id="v452_baseline",
+                ),
+            }
+        )
         # +6% (within 10% gate)
         current = PerfSnapshot(
-            path="mock", call_count=50,
-            p50_ms=26.0, p95_ms=53.0, p99_ms=72.0,
-            avg_ms=31.0, min_ms=11.0, max_ms=85.0,
+            path="mock",
+            call_count=50,
+            p50_ms=26.0,
+            p95_ms=53.0,
+            p99_ms=72.0,
+            avg_ms=31.0,
+            min_ms=11.0,
+            max_ms=85.0,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -150,19 +162,31 @@ class TestT3MockBaselineGate:
 
     def test_exceeds_threshold_blocks(self):
         """P95 上升 >10% → within_threshold=False."""
-        baseline = PerfBaseline(snapshots={
-            "mock": PerfSnapshot(
-                path="mock", call_count=50,
-                p50_ms=25.0, p95_ms=50.0, p99_ms=70.0,
-                avg_ms=30.0, min_ms=10.0, max_ms=80.0,
-                snapshot_id="v452_baseline",
-            ),
-        })
+        baseline = PerfBaseline(
+            snapshots={
+                "mock": PerfSnapshot(
+                    path="mock",
+                    call_count=50,
+                    p50_ms=25.0,
+                    p95_ms=50.0,
+                    p99_ms=70.0,
+                    avg_ms=30.0,
+                    min_ms=10.0,
+                    max_ms=80.0,
+                    snapshot_id="v452_baseline",
+                ),
+            }
+        )
         # +50% (way over 10% gate)
         current = PerfSnapshot(
-            path="mock", call_count=50,
-            p50_ms=30.0, p95_ms=75.0, p99_ms=100.0,
-            avg_ms=45.0, min_ms=15.0, max_ms=120.0,
+            path="mock",
+            call_count=50,
+            p50_ms=30.0,
+            p95_ms=75.0,
+            p99_ms=100.0,
+            avg_ms=45.0,
+            min_ms=15.0,
+            max_ms=120.0,
             snapshot_id="current",
         )
         result = compare_to_baseline(current, baseline)
@@ -264,15 +288,25 @@ class TestT5SnapshotFields:
                 version="v4.5.2",
                 snapshots={
                     "mock": PerfSnapshot(
-                        path="mock", call_count=50,
-                        p50_ms=10, p95_ms=20, p99_ms=30,
-                        avg_ms=15, min_ms=5, max_ms=40,
+                        path="mock",
+                        call_count=50,
+                        p50_ms=10,
+                        p95_ms=20,
+                        p99_ms=30,
+                        avg_ms=15,
+                        min_ms=5,
+                        max_ms=40,
                         snapshot_id="test_baseline",
                     ),
                     "host": PerfSnapshot(
-                        path="host", call_count=50,
-                        p50_ms=20, p95_ms=40, p99_ms=60,
-                        avg_ms=30, min_ms=10, max_ms=80,
+                        path="host",
+                        call_count=50,
+                        p50_ms=20,
+                        p95_ms=40,
+                        p99_ms=60,
+                        avg_ms=30,
+                        min_ms=10,
+                        max_ms=80,
                         snapshot_id="test_baseline",
                     ),
                 },
@@ -301,9 +335,14 @@ class TestT5SnapshotFields:
         """compare_to_baseline 对缺失路径保持原 snapshot（不做 delta 计算）."""
         baseline = PerfBaseline(snapshots={})  # no entries
         snap = PerfSnapshot(
-            path="mock", call_count=10,
-            p50_ms=10, p95_ms=20, p99_ms=30,
-            avg_ms=15, min_ms=5, max_ms=40,
+            path="mock",
+            call_count=10,
+            p50_ms=10,
+            p95_ms=20,
+            p99_ms=30,
+            avg_ms=15,
+            min_ms=5,
+            max_ms=40,
         )
         result = compare_to_baseline(snap, baseline)
         # Should be unchanged (delta_p95_pct=None)

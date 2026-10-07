@@ -34,23 +34,22 @@ class TestFindBinaries:
 class TestRunE2EStatuses:
     def test_tool_missing_is_honest_non_pass(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            verifier, "find_binaries",
+            verifier,
+            "find_binaries",
             lambda: {"prometheus": None, "promtool": None},
         )
         result = verifier.run_e2e()
         assert result["status"] == "tool_missing"
         assert "brew install prometheus" in result["error"]
 
-    def test_fail_contract_never_reports_pass_without_samples(
-        self, monkeypatch, tmp_path: Path
-    ) -> None:
+    def test_fail_contract_never_reports_pass_without_samples(self, monkeypatch, tmp_path: Path) -> None:
         """query_series returning only errors must NOT be treated as pass."""
         monkeypatch.setattr(
-            verifier, "find_binaries",
+            verifier,
+            "find_binaries",
             lambda: {"prometheus": "prom", "promtool": "tool"},
         )
-        monkeypatch.setattr(
-            verifier, "build_exposition_provider", lambda: (lambda: b""))
+        monkeypatch.setattr(verifier, "build_exposition_provider", lambda: lambda: b"")
 
         def _fake_config(_wd: Path, _ep: int, _lp: int) -> Path:
             return Path(_wd) / "prometheus.yml"
@@ -69,7 +68,8 @@ class TestRunE2EStatuses:
                 pass
 
         monkeypatch.setattr(
-            verifier, "serve_exposition",
+            verifier,
+            "serve_exposition",
             lambda _p: (None, 19999),
         )
         monkeypatch.setattr(verifier, "write_prometheus_config", _fake_config)
@@ -77,11 +77,13 @@ class TestRunE2EStatuses:
         monkeypatch.setattr(verifier.subprocess, "run", _fake_run)
         monkeypatch.setattr(verifier.subprocess, "Popen", lambda *_a, **_k: _FakeProc())
         monkeypatch.setattr(
-            verifier, "_wait_prometheus_ready",
+            verifier,
+            "_wait_prometheus_ready",
             lambda *_a: None,
         )
         monkeypatch.setattr(
-            verifier, "query_series",
+            verifier,
+            "query_series",
             lambda *_a: [{"error": "no sample"}],
         )
         monkeypatch.setattr(verifier.shutil, "rmtree", lambda *_a, **_k: None)
@@ -91,9 +93,7 @@ class TestRunE2EStatuses:
 
 
 class TestExpositionAndConfig:
-    def test_exposition_provider_contains_risk_store_series(
-        self, tmp_path: Path
-    ) -> None:
+    def test_exposition_provider_contains_risk_store_series(self, tmp_path: Path) -> None:
         from scripts.collaboration.prometheus_metrics import get_metrics
 
         if not get_metrics().is_available():
@@ -112,11 +112,10 @@ class TestExpositionAndConfig:
 
 
 class TestMainContract:
-    def test_tool_missing_exits_1_and_writes_evidence(
-        self, tmp_path: Path, monkeypatch, capsys
-    ) -> None:
+    def test_tool_missing_exits_1_and_writes_evidence(self, tmp_path: Path, monkeypatch, capsys) -> None:
         monkeypatch.setattr(
-            verifier, "find_binaries",
+            verifier,
+            "find_binaries",
             lambda: {"prometheus": None, "promtool": None},
         )
         evidence = tmp_path / "evidence"

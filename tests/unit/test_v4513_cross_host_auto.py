@@ -20,9 +20,7 @@ pytestmark = pytest.mark.unit
 class TestRemoteFsDetection:
     def test_st_remote_set_records_signal_at_init(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(os, "ST_REMOTE", 1 << 25, raising=False)
-        monkeypatch.setattr(
-            os, "statvfs", lambda _p: type("SV", (), {"f_flag": 1 << 25})(), raising=False
-        )
+        monkeypatch.setattr(os, "statvfs", lambda _p: type("SV", (), {"f_flag": 1 << 25})(), raising=False)
         store = FileRiskStore(root=tmp_path)
         assert store.stats.cross_host_lock_signals == 1
 

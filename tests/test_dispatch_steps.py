@@ -458,6 +458,30 @@ class TestCollectWorkerResults:
         results, _, _ = pipeline._collect_worker_results(exec_result)
         assert results[0]["role_id"] == "coder"
 
+    @pytest.mark.parametrize(
+        ("worker_id", "role_id"),
+        [
+            ("product-manager-0", "product-manager"),
+            ("solo-coder-0", "solo-coder"),
+            ("ui-designer-0", "ui-designer"),
+        ],
+    )
+    def test_hyphenated_role_ids_are_preserved(self, worker_id: str, role_id: str) -> None:
+        """Worker IDs retain the complete canonical role ID before the suffix."""
+        pipeline = _make_pipeline()
+        wr = _make_worker_result(
+            worker_id=worker_id,
+            success=False,
+            output=None,
+            error="worker failed precisely",
+        )
+        exec_result = _make_exec_result(results=[wr])
+        results, _, _ = pipeline._collect_worker_results(exec_result)
+        assert results[0]["role_id"] == role_id
+        assert results[0]["role_name"] is not None
+        assert results[0]["success"] is False
+        assert results[0]["error"] == "worker failed precisely"
+
     def test_output_none(self) -> None:
         """None output is handled gracefully."""
         pipeline = _make_pipeline()
@@ -613,6 +637,26 @@ class TestExecute:
             phase="test",
         )
         assert result is not None
+
+    def test_failed_result_skips_feedback_loop(self) -> None:
+        """A failed dispatch must not recursively start another dispatch."""
+        pipeline = self._setup_pipeline_for_execute(enable_feedback_loop=True)
+        failed_result = MagicMock(success=False, errors=["worker failed"], details={})
+        pipeline.result_assembler.assemble.return_value = failed_result
+        pipeline.dispatcher.dispatch = MagicMock(side_effect=AssertionError("recursive dispatch"))
+
+        result = pipeline.execute(
+            pre_result=_make_pre_result(),
+            exec_result=_make_exec_result(success=False),
+            worker_results=[],
+            exec_errors=["worker failed"],
+            exec_timing={},
+            start_time=time.time(),
+            phase="test",
+        )
+
+        assert result is failed_result
+        pipeline.dispatcher.dispatch.assert_not_called()
 
     def test_execute_calls_post_execution_processing(self) -> None:
         """execute() calls dispatcher.hooks.post_execution_processing."""

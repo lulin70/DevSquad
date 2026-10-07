@@ -3,6 +3,7 @@
 
 12 tests covering FSM, LIFO revert, atomicity, context manager.
 """
+
 from __future__ import annotations
 
 import threading

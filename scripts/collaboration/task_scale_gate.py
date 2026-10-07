@@ -65,9 +65,9 @@ class TaskScale:
 
 
 # === Orchestrator modes ===
-ORCHESTRATOR_AUTO = "auto"           # S: 单 worker
-ORCHESTRATOR_MINI = "mini"           # M: 轻量迷你流
-ORCHESTRATOR_CONSENSUS = "consensus" # L: 完整共识
+ORCHESTRATOR_AUTO = "auto"  # S: 单 worker
+ORCHESTRATOR_MINI = "mini"  # M: 轻量迷你流
+ORCHESTRATOR_CONSENSUS = "consensus"  # L: 完整共识
 
 # === Unbounded roles for L ===
 L_MAX_ROLES = 999

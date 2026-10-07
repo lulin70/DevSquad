@@ -75,12 +75,7 @@ class TestNoOpTest(unittest.TestCase):
 
     def test_multiple_no_ops_detected(self) -> None:
         """Verify: multiple no-op lines are all found."""
-        content = (
-            "Be helpful\n"
-            "Do your best\n"
-            "Follow best practices\n"
-            "1. Analyze code\n"
-        )
+        content = "Be helpful\nDo your best\nFollow best practices\n1. Analyze code\n"
         findings = apply_no_op_test(content)
         self.assertEqual(len(findings), 3)
 
@@ -162,11 +157,7 @@ class TestFailureModes(unittest.TestCase):
 
     def test_detects_duplication(self) -> None:
         """Verify: repeated 4-word phrases trigger duplication."""
-        content = (
-            "Check the input validation\n"
-            "Check the input validation\n"
-            "Check the input validation\n"
-        )
+        content = "Check the input validation\nCheck the input validation\nCheck the input validation\n"
         findings = detect_failure_modes(content)
         duplication = [f for f in findings if f.mode == "duplication"]
         self.assertEqual(len(duplication), 1)

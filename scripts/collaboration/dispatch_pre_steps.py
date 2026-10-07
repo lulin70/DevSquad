@@ -25,6 +25,9 @@ from typing import Any, cast
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
 from .models import ROLE_REGISTRY, EntryType
 from .order_chain_detector import OrderChainDetector
+from .review_filter import ReviewFilterConfig, filter_review_paths
+from .review_input import normalize_review_input
+from .rule_engine import RuleSources, default_sources
 from .scratchpad import ScratchpadEntry
 from .task_scale_gate import TaskScale, TaskScaleGate
 from .user_friendly_error import make_user_friendly_error, translate_validation_result
@@ -166,9 +169,7 @@ class PreDispatchPipeline:
         try:
             from .prometheus_metrics import get_metrics as _gm_metrics
 
-            _gm_metrics().record_order_chain(
-                chain_decision.source, chain_decision.single_role
-            )
+            _gm_metrics().record_order_chain(chain_decision.source, chain_decision.single_role)
         except (RuntimeError, ValueError, AttributeError):
             pass
 
@@ -259,7 +260,16 @@ class PreDispatchPipeline:
 
         # Step 7: Prepare execution (warmup, prompts, plan, spawn, anchor, retrospective load)
         plan, structured_goal, prep_timing = self.prepare_execution(
-            task_description, matched_roles, lang, intent_match, rule_collection, concern_enhancements
+            task_description,
+            matched_roles,
+            lang,
+            intent_match,
+            rule_collection,
+            concern_enhancements,
+            mode=_mode,
+            changeset=kwargs.get("changeset"),
+            diff=kwargs.get("diff"),
+            review_filter_options=kwargs,
         )
 
         return _PreDispatchResult(
@@ -477,45 +487,45 @@ class PreDispatchPipeline:
         task_scale.max_roles (S=1, M=2-3, L=unlimited). When user explicitly
         specified roles, resolve_roles() is authoritative and not capped.
         """
-        matched_roles = self.analyze_task_fn(task)
+        matched_roles = list(self.analyze_task_fn(task))
 
-        # Enhanced role matching: merge adaptive and similar-task recommendations
+        # Enhanced role matching: merge adaptive and similar-task recommendations.
         try:
             enhanced_roles = self.role_matcher.analyze_task_enhanced(task)
             if enhanced_roles:
-                existing_ids = {r["role_id"] for r in matched_roles}
-                for er in enhanced_roles:
-                    if er["role_id"] not in existing_ids:
-                        matched_roles.append(er)
-                        existing_ids.add(er["role_id"])
+                matched_roles.extend(enhanced_roles)
         except (ValueError, AttributeError, RuntimeError, OSError) as enhanced_err:
             logger.debug("Enhanced role matching failed, using keyword-only results: %s", enhanced_err)
 
         if self.semantic_matcher and self.llm_backend:
             try:
                 semantic_results = self.semantic_matcher.match(task)
-                if semantic_results:
-                    existing_ids = {r["role_id"] for r in matched_roles}
-                    for sr in semantic_results:
-                        if sr.role_id not in existing_ids and sr.confidence > 0.5:
-                            matched_roles.append(
-                                {
-                                    "role_id": sr.role_id,
-                                    "name": sr.role_name,
-                                    "reason": sr.reasoning,
-                                    "confidence": str(sr.confidence),
-                                }
-                            )
-                            existing_ids.add(sr.role_id)
-                    if self.usage_tracker:
-                        self.usage_tracker.tick("semantic_matcher")
+                for sr in semantic_results or []:
+                    if sr.confidence > 0.5:
+                        matched_roles.append(
+                            {
+                                "candidate": sr.role_id,
+                                "role_id": sr.role_id,
+                                "name": sr.role_name,
+                                "score": float(sr.confidence),
+                                "confidence": float(sr.confidence),
+                                "reason": sr.reasoning or "语义匹配",
+                                "source": "semantic",
+                                "matched_keywords": list(sr.matched_capabilities),
+                            }
+                        )
+                if semantic_results and self.usage_tracker:
+                    self.usage_tracker.tick("semantic_matcher")
             except (ValueError, AttributeError, RuntimeError, ConnectionError) as sem_err:
                 logger.debug("Semantic matching failed: %s", sem_err)
 
+        matched_roles = self.role_matcher.normalize_candidates(matched_roles)
         if roles:
+            # Explicit roles are authoritative and are never subject to the
+            # automatic TaskScaleGate cap.
             matched_roles = self.role_matcher.resolve_roles(roles, matched_roles)
         elif task_scale is not None:
-            # V4.5.2 P-1: cap to max_roles from TaskScaleGate
+            # V4.5.2 P-1: cap after deterministic deduplication and sorting.
             cap = task_scale.max_roles
             if cap and cap < len(matched_roles):
                 matched_roles = matched_roles[:cap]
@@ -565,8 +575,20 @@ class PreDispatchPipeline:
         _intent_match: Any,
         _rule_collection: Any,
         concern_enhancements: dict[str, Any],
+        mode: str = "auto",
+        changeset: list[str] | None = None,
+        diff: str | None = None,
+        review_filter_options: dict[str, Any] | None = None,
     ) -> tuple[Any, Any, dict[str, float]]:
-        """Prepare execution: warmup, prompt assembly, planning, spawn. Returns (plan, goal, timing)."""
+        """Prepare execution: warmup, prompt assembly, planning, spawn. Returns (plan, goal, timing).
+
+        V4.5.20 (F4): when ``mode == "review"`` and ``changeset`` is non-empty,
+        planning is delegated to :meth:`Coordinator.plan_review_bundles` (one
+        bundle = one review task) instead of the role-per-task default. The
+        ``>5`` files threshold lives only inside
+        :meth:`Coordinator.apply_file_bundling` — no second guard here. Any
+        other mode, or an empty changeset, follows the V4.5.19 path unchanged.
+        """
         role_ids = [r["role_id"] for r in matched_roles]
 
         # V4.4.2 P1-1: resolve lang here for localized prompt lookup.
@@ -611,10 +633,30 @@ class PreDispatchPipeline:
                 }
             )
 
-        plan = self.coordinator.plan_task(
-            task_description=task,
-            available_roles=available_roles,
-        )
+        if mode == "review" and (changeset or diff is not None):
+            normalized = normalize_review_input(
+                changeset=changeset,
+                diff=diff,
+                deleted_paths=(review_filter_options or {}).get("deleted_paths", ()),
+            )
+            filter_result = self._filter_review_changeset(
+                list(normalized.paths),
+                {
+                    **(review_filter_options or {}),
+                    "deleted_paths": normalized.deleted_paths,
+                },
+            )
+            plan = self.coordinator.plan_review_bundles(
+                task_description=task,
+                available_roles=available_roles,
+                changeset=filter_result.retained_paths,
+            )
+            plan.review_filter = filter_result.to_dict()
+        else:
+            plan = self.coordinator.plan_task(
+                task_description=task,
+                available_roles=available_roles,
+            )
 
         step4_time = time.time()
 
@@ -640,6 +682,33 @@ class PreDispatchPipeline:
                 "step4_time": step4_time,
                 "step5_time": step5_time,
             },
+        )
+
+    def _filter_review_changeset(
+        self,
+        changeset: list[str],
+        options: dict[str, Any],
+    ) -> Any:
+        """Apply the deterministic W1-3 gates before review planning."""
+        repo_root = options.get("repo_root") or os.getcwd()
+        cli_rule = options.get("rule")
+        rule_sources = options.get("rule_sources")
+        if not isinstance(rule_sources, RuleSources):
+            rule_sources = default_sources(repo_root=repo_root, cli_rule=cli_rule)
+        max_file_size = options.get("max_file_size", 10 * 1024 * 1024)
+        include = tuple(options.get("include", ()) or ())
+        exclude = tuple(options.get("exclude", ()) or ())
+        config = ReviewFilterConfig(
+            max_size_bytes=max_file_size,
+            user_include=include,
+            user_exclude=exclude,
+            root=repo_root,
+            rule_sources=rule_sources,
+        )
+        return filter_review_paths(
+            changeset,
+            deleted_paths=options.get("deleted_paths", ()) or (),
+            config=config,
         )
 
     def load_historical_retrospectives(self, task: str) -> None:

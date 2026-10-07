@@ -36,6 +36,7 @@ NOT ``from module import _call_counter_er`` (which would snapshot a stale int).
 from __future__ import annotations
 
 import os
+import sqlite3
 import sys
 import tempfile
 import threading
@@ -63,6 +64,12 @@ _SENSITIVE_API_KEY = "sk-" + "a" * 40
 class TestScratchpadHistoryStore(unittest.TestCase):
     """V4.4.3 ScratchpadHistoryStore unit tests (15 tests, 7 dimensions)."""
 
+    # ``test_write_performance`` budget, see that test's docstring for the
+    # rationale and the measurements behind these numbers.
+    _budget_floor_ms: float = 1000.0
+    _budget_ratio: float = 5.0
+    _budget_runs: int = 3
+
     def setUp(self) -> None:
         self._tmpdir = tempfile.mkdtemp(prefix="devsquad_shs_")
         self._db_path = Path(self._tmpdir) / "history.db"
@@ -75,6 +82,7 @@ class TestScratchpadHistoryStore(unittest.TestCase):
             with contextlib.suppress(Exception):
                 store.close()
         import shutil
+
         shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def _new_store(self, retention_days: int = 90) -> ScratchpadHistoryStore:
@@ -203,8 +211,7 @@ class TestScratchpadHistoryStore(unittest.TestCase):
         self.assertEqual(len(results), 1)
         persisted = results[0].content
         # The original secret MUST NOT be present in the persisted content.
-        self.assertNotIn(_SENSITIVE_API_KEY, persisted,
-                         "API key was persisted in cleartext — redaction failed")
+        self.assertNotIn(_SENSITIVE_API_KEY, persisted, "API key was persisted in cleartext — redaction failed")
         # The redaction marker (OutputValidator emits "***") must be present.
         self.assertIn("***", persisted)
         # Non-sensitive context survives.
@@ -276,15 +283,110 @@ class TestScratchpadHistoryStore(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_write_performance(self) -> None:
-        """Performance: 200 writes complete in < 1000ms."""
+        """Performance: 200 writes stay within budget relative to this host's I/O floor.
+
+        V4.5.20 post-release flaky fix: the original assertion was a single-shot absolute
+        wall-clock budget (``elapsed_ms < 1000.0``). ``write()`` commits once per
+        entry, so 200 writes are 200 fsyncs and the measured time is dominated by
+        the machine's disk/fsync path, not by store logic. Measured spread:
+        median 90.4 ms on a developer host vs 3823.6 ms on a GitHub runner
+        (shared I/O), i.e. ~42x. An absolute budget cannot be both meaningful and
+        stable across that spread, so the budget is now derived from a control
+        measurement taken in the same environment:
+
+            control_ms = 200 raw (INSERT + commit) rows, same dir, same DDL shape
+            ceiling_ms = max(1000.0, 5.0 * control_ms)
+            assert median_of_3_bench_runs <= ceiling_ms
+
+        The 1000 ms floor keeps the original strength on fast machines, while the
+        ratio catches real per-write regressions (extra queries, index rebuilds,
+        O(n^2) scans) on slow ones. The median of 3 runs absorbs a single
+        scheduler/IO hiccup. This is a fix to the test criterion, not a relaxation
+        of it: raising the constant until CI passed would have removed the gate.
+        """
         store = self._new_store()
-        start = time.perf_counter()
-        for i in range(200):
-            store.write(self._entry(f"perf entry {i}", entry_id=f"perf-{i}"), "sp-perf")
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 1000.0, f"200 writes too slow: {elapsed_ms:.1f}ms")
+
+        bench_timings: list[float] = []
+        for _ in range(self._budget_runs):
+            start = time.perf_counter()
+            for i in range(200):
+                store.write(self._entry(f"perf entry {i}", entry_id=f"perf-{i}"), "sp-perf")
+            bench_timings.append((time.perf_counter() - start) * 1000.0)
+        bench_timings.sort()
+        bench_ms = bench_timings[len(bench_timings) // 2]
+
+        control_ms = self._raw_commit_floor_ms()
+        ceiling_ms = max(self._budget_floor_ms, self._budget_ratio * control_ms)
+
+        self.assertLessEqual(
+            bench_ms,
+            ceiling_ms,
+            (
+                f"200 writes too slow: bench={bench_ms:.1f}ms "
+                f"control={control_ms:.1f}ms ratio={bench_ms / max(control_ms, 0.001):.2f}x "
+                f"ceiling={ceiling_ms:.1f}ms (floor={self._budget_floor_ms:.0f}ms, "
+                f"k={self._budget_ratio}); bench runs={[round(t, 1) for t in bench_timings]}"
+            ),
+        )
         # All 200 persisted.
         self.assertEqual(len(store.search_history(limit=500)), 200)
+
+    def _raw_commit_floor_ms(self) -> float:
+        """Median ms for 200 raw (INSERT + commit) rows in this environment.
+
+        Mirrors the store's table shape (two of its three indexes) and its
+        commit-per-write pattern without the redaction/locking work, giving an
+        environment-local I/O floor. This is a control measurement, not a second
+        unit under test — it deliberately does NOT call
+        ``ScratchpadHistoryStore`` (using the store here would make the ratio
+        ~1 by construction and the gate toothless).
+        """
+        conn = sqlite3.connect(str(Path(self._tmpdir) / "control.db"))
+        try:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS control_history (
+                    entry_id TEXT NOT NULL,
+                    scratchpad_id TEXT NOT NULL,
+                    worker_id TEXT,
+                    role_id TEXT,
+                    entry_type TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    confidence REAL,
+                    tags TEXT,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (entry_id, scratchpad_id)
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_control_role ON control_history(role_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_control_type ON control_history(entry_type)")
+            conn.commit()
+
+            timings: list[float] = []
+            for _ in range(self._budget_runs):
+                start = time.perf_counter()
+                for i in range(200):
+                    conn.execute(
+                        "INSERT OR REPLACE INTO control_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            f"perf-{i}",
+                            "sp-perf",
+                            "w-1",
+                            "architect",
+                            EntryType.FINDING.value,
+                            f"perf entry {i}",
+                            0.8,
+                            "[]",
+                            "2026-01-01T00:00:00",
+                        ),
+                    )
+                    conn.commit()
+                timings.append((time.perf_counter() - start) * 1000.0)
+            timings.sort()
+            return timings[len(timings) // 2]
+        finally:
+            conn.close()
 
     # ------------------------------------------------------------------
     # Side-Effect: anti-ghost call counter

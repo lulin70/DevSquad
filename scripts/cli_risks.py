@@ -3,6 +3,7 @@
 removes the V4.5.7 in-process proxy that bridged the legacy ``_RISK_STORE``
 dict into the FileRiskStore view — V4.5.11 keeps FileRiskStore as the single
 source of truth)."""
+
 from __future__ import annotations
 
 import argparse
@@ -198,9 +199,7 @@ def _filter_risks(risks: list[Any], args: argparse.Namespace) -> list[Any]:
     return risks
 
 
-def _filter_risks_measured(
-    store: FileRiskStore, risks: list[Any], args: argparse.Namespace
-) -> list[Any]:
+def _filter_risks_measured(store: FileRiskStore, risks: list[Any], args: argparse.Namespace) -> list[Any]:
     """V4.5.12: ``_filter_risks`` with slow-query signal instrumentation.
 
     Wraps the filter round in a wall-clock measurement; durations above
@@ -258,8 +257,7 @@ def _format_stats_text(stats: Any, root: Path | str) -> str:
         f"  capacity: {stats.capacity} (warning threshold: {CAPACITY_WARNING_THRESHOLD})",
         f"  concurrent_writes_1m: {stats.concurrent_writes_1m}",
         f"  cross_host_lock_signals: {stats.cross_host_lock_signals}",
-        f"  slow_query_signals: {stats.slow_query_signals} "
-        f"(threshold: {SLOW_QUERY_MS_THRESHOLD:.0f} ms)",
+        f"  slow_query_signals: {stats.slow_query_signals} (threshold: {SLOW_QUERY_MS_THRESHOLD:.0f} ms)",
     ]
     return "\n".join(lines) + "\n"
 

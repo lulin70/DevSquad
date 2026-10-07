@@ -7,10 +7,7 @@ from scripts.qa.uiux_analyzer import UIUXAnalyzer
 
 class Test4ptGridValidValues:
     def test_valid_4pt_values_pass(self):
-        css = (
-            ".a { margin: 4px; padding: 8px; gap: 16px; }"
-            ".b { margin: 24px; padding: 32px; }"
-        )
+        css = ".a { margin: 4px; padding: 8px; gap: 16px; }.b { margin: 24px; padding: 32px; }"
         analyzer = UIUXAnalyzer()
         issues = analyzer._check_4pt_grid(css)
         assert issues == []
@@ -95,11 +92,7 @@ class Test4ptGridShorthandAndMultiple:
         assert properties == {"margin", "padding", "gap"}
 
     def test_multiple_selectors(self):
-        css = (
-            ".a { margin: 5px; }"
-            ".b { padding: 9px; }"
-            ".c { gap: 11px; }"
-        )
+        css = ".a { margin: 5px; }.b { padding: 9px; }.c { gap: 11px; }"
         analyzer = UIUXAnalyzer()
         issues = analyzer._check_4pt_grid(css)
         assert len(issues) == 3

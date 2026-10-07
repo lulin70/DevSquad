@@ -190,7 +190,11 @@ class OutputValidator:
         (r"\b[A-Z]:\\(?:Users|Program Files|Windows|inetpub)\\[^\s'\"]+", "windows_abs_path", "medium"),
         # Cloud-provider credential paths
         (r"~/?\.aws/credentials\b", "aws_credentials_file", "high"),
-        (r"~/?\.config/gcloud/(?:credentials|application_default_credentials)\.json\b", "gcloud_credentials_file", "high"),
+        (
+            r"~/?\.config/gcloud/(?:credentials|application_default_credentials)\.json\b",
+            "gcloud_credentials_file",
+            "high",
+        ),
     ]
 
     # V4.2.0 P0-3: Prompt injection — LLM output containing instruction
@@ -198,8 +202,16 @@ class OutputValidator:
     # Four sub-categories: ignore / role-hijack / inject / destructive.
     PROMPT_INJECTION_PATTERNS: list[tuple[str, str, FindingSeverity]] = [
         # --- ignore: attempts to discard prior instructions ---
-        (r"(?i)\bignore\s+(?:all\s+)?(?:previous|prior|above|earlier)\s+instructions?\b", "ignore_prior_instructions", "high"),
-        (r"(?i)\bdisregard\s+(?:all\s+)?(?:previous|prior|above)\s+(?:instructions?|prompts?)\b", "disregard_prior", "high"),
+        (
+            r"(?i)\bignore\s+(?:all\s+)?(?:previous|prior|above|earlier)\s+instructions?\b",
+            "ignore_prior_instructions",
+            "high",
+        ),
+        (
+            r"(?i)\bdisregard\s+(?:all\s+)?(?:previous|prior|above)\s+(?:instructions?|prompts?)\b",
+            "disregard_prior",
+            "high",
+        ),
         (r"(?i)\bforget\s+(?:everything|all|previous|prior)\b", "forget_context", "high"),
         (r"(?i)\b(?:clear|reset)\s+(?:your\s+)?(?:context|memory|instructions?)\b", "clear_context", "high"),
         # --- role-hijack: attempts to change the AI's role ---
@@ -227,8 +239,7 @@ class OutputValidator:
     # check if decoded content contains known sensitive patterns.
     BASE64_ENCODED_LEAK_PATTERNS: list[tuple[str, str, FindingSeverity]] = [
         # JWT-like 3-segment base64 (eyJ prefix)
-        (r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\b",
-         "base64_jwt_token", "high"),
+        (r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\b", "base64_jwt_token", "high"),
         # Long base64 string (>=64 chars, may encode keys/credentials)
         (r"\b[A-Za-z0-9+/]{64,}={0,2}\b", "base64_long_blob", "medium"),
     ]

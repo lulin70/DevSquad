@@ -231,11 +231,7 @@ def diff_with_tracker(
 
     removed_registered = sorted(registered - scanned_locations)
 
-    files_count = (
-        total_files_scanned
-        if total_files_scanned is not None
-        else len({e.file_path for e in scanned})
-    )
+    files_count = total_files_scanned if total_files_scanned is not None else len({e.file_path for e in scanned})
 
     return DriftReport(
         scanned_files=files_count,
@@ -328,11 +324,7 @@ def main(argv: list[str] | None = None) -> int:
         scanned = scan_tech_debt(args.root)
         # Count total files scanned (not just files with markers) for accurate reporting.
         exclude_set = set(DEFAULT_EXCLUDE_DIRS)
-        total_files = sum(
-            1
-            for p in Path(args.root).rglob("*.py")
-            if not any(part in exclude_set for part in p.parts)
-        )
+        total_files = sum(1 for p in Path(args.root).rglob("*.py") if not any(part in exclude_set for part in p.parts))
         report = diff_with_tracker(scanned, args.tracker, total_files_scanned=total_files)
     except FileNotFoundError as e:
         print(f"ERROR: {e}", file=sys.stderr)

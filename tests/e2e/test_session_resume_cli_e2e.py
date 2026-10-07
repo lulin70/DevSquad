@@ -65,22 +65,19 @@ def _run_cli(
 # Journey 1: sessions list — empty history
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_sessions_list_empty_history():
     """Journey-1: sessions list runs without crash on empty history."""
     result = _run_cli("sessions", "list", check=False)
-    assert result.returncode in (0, 1), (
-        f"sessions list crashed: {result.returncode}\n"
-        f"STDERR: {result.stderr[:300]}"
-    )
+    assert result.returncode in (0, 1), f"sessions list crashed: {result.returncode}\nSTDERR: {result.stderr[:300]}"
     output = result.stdout + result.stderr
-    assert "session" in output.lower() or "history" in output.lower(), (
-        f"No session info in output: {output[:300]}"
-    )
+    assert "session" in output.lower() or "history" in output.lower(), f"No session info in output: {output[:300]}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 2: sessions list — returns structured data
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_sessions_list_returns_structured_output():
     """Journey-2: sessions list returns structured output (JSON or text table)."""
@@ -91,42 +88,39 @@ def test_e2e_sessions_list_returns_structured_output():
         data = json.loads(output)
         assert isinstance(data, (dict, list)), "sessions list JSON should be dict or list"
     except json.JSONDecodeError:
-        assert "error" not in output.lower() or result.returncode == 0, (
-            f"sessions list returned error: {output[:300]}"
-        )
+        assert "error" not in output.lower() or result.returncode == 0, f"sessions list returned error: {output[:300]}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 3: dispatch --resume with nonexistent session
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_resume_nonexistent_session_handles_gracefully():
     """Journey-3: --resume with bad session ID exits with clear error."""
     result = _run_cli(
         "dispatch",
-        "--resume", "nonexistent-session-id-12345",
+        "--resume",
+        "nonexistent-session-id-12345",
         "--dry-run",
         check=False,
     )
     output = result.stdout + result.stderr
-    is_error_response = (
-        result.returncode != 0 and (
-            "not found" in output.lower() or
-            "invalid" in output.lower() or
-            "does not exist" in output.lower() or
-            "unknown" in output.lower()
-        )
+    is_error_response = result.returncode != 0 and (
+        "not found" in output.lower()
+        or "invalid" in output.lower()
+        or "does not exist" in output.lower()
+        or "unknown" in output.lower()
     )
     assert is_error_response or result.returncode in (0, 1), (
-        f"--resume with bad ID should return clear error, got:\n"
-        f"Exit: {result.returncode}\n"
-        f"Output: {output[:300]}"
+        f"--resume with bad ID should return clear error, got:\nExit: {result.returncode}\nOutput: {output[:300]}"
     )
 
 
 # ---------------------------------------------------------------------------
 # Journey 4: checkpoint persistence across processes
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_checkpoint_persists_across_processes():
     """Journey-4: CheckpointManager saves/loads session across separate processes."""
@@ -189,12 +183,14 @@ print(json.dumps({{"found": bool(status)}}))
         assert data.get("found"), f"Checkpoint not found in process 2: {r2.stdout}"
     finally:
         import shutil
+
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
 # Journey 5: sessions list shows recent sessions
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_sessions_list_includes_recent_sessions():
     """Journey-5: After creating a checkpoint, sessions list shows it."""
@@ -248,9 +244,8 @@ print(f"session_count={{len(sessions)}}")
             env=env,
         )
         assert r3.returncode == 0, f"list_sessions failed: {r3.stderr[:200]}"
-        assert "session_count=" in r3.stdout, (
-            f"list_sessions did not return count: {r3.stdout}"
-        )
+        assert "session_count=" in r3.stdout, f"list_sessions did not return count: {r3.stdout}"
     finally:
         import shutil
+
         shutil.rmtree(tmpdir, ignore_errors=True)

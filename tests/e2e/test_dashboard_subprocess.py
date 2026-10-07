@@ -41,6 +41,7 @@ def _streamlit_available() -> bool:
     """Check if streamlit is installed."""
     try:
         import streamlit  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -95,9 +96,7 @@ def dashboard(dashboard_port: int):
     Skips the test if streamlit is not installed.
     """
     if not _streamlit_available():
-        pytest.fail(
-            "streamlit not installed in current venv — run: pip install streamlit"
-        )
+        pytest.fail("streamlit not installed in current venv — run: pip install streamlit")
 
     if not _DASHBOARD_PATH.exists():
         pytest.fail(f"Dashboard entry point not found: {_DASHBOARD_PATH}")
@@ -110,13 +109,21 @@ def dashboard(dashboard_port: int):
     env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
 
     cmd = [
-        sys.executable, "-m", "streamlit",
-        "run", str(_DASHBOARD_PATH),
-        "--server.port", str(dashboard_port),
-        "--server.address", "127.0.0.1",
-        "--server.headless", "true",
-        "--browser.gatherUsageStats", "false",
-        "--logger.level", "warning",
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(_DASHBOARD_PATH),
+        "--server.port",
+        str(dashboard_port),
+        "--server.address",
+        "127.0.0.1",
+        "--server.headless",
+        "true",
+        "--browser.gatherUsageStats",
+        "false",
+        "--logger.level",
+        "warning",
     ]
 
     proc = subprocess.Popen(
@@ -132,8 +139,7 @@ def dashboard(dashboard_port: int):
         if not _wait_for_dashboard(dashboard_port, timeout=40.0):
             stdout, stderr = proc.communicate(timeout=2)
             pytest.fail(
-                f"Dashboard failed to start on port {dashboard_port}\n"
-                f"stdout: {stdout[:500]}\nstderr: {stderr[:500]}"
+                f"Dashboard failed to start on port {dashboard_port}\nstdout: {stdout[:500]}\nstderr: {stderr[:500]}"
             )
         yield dashboard_port
     finally:
@@ -157,9 +163,7 @@ class TestDashboardSubprocessStartup:
         try:
             with urlopen(req, timeout=5) as resp:
                 # Streamlit may return 200 (app) or redirect to append url
-                assert resp.status < 500, (
-                    f"Expected HTTP < 500, got {resp.status}"
-                )
+                assert resp.status < 500, f"Expected HTTP < 500, got {resp.status}"
         except HTTPError as e:
             # 4xx is still a "server is up" signal
             assert e.code < 500, f"Expected HTTP < 500, got {e.code}"

@@ -138,8 +138,7 @@ class T2_DispatcherEventBusIntegration(unittest.TestCase):
         """Verify: MultiAgentDispatcher has an EventBus instance."""
         # Dispatcher should have an event_bus attribute or similar
         has_event_bus = hasattr(self.disp, "event_bus") or hasattr(self.disp, "_event_bus")
-        self.assertTrue(has_event_bus or True,
-                        "Dispatcher should have EventBus (or use internal event mechanism)")
+        self.assertTrue(has_event_bus or True, "Dispatcher should have EventBus (or use internal event mechanism)")
 
     def test_02_dispatch_completes_with_event_system(self) -> None:
         """Verify: dispatch() completes successfully with event system active."""
@@ -197,8 +196,7 @@ class T4_DispatcherResultAssemblerIntegration(unittest.TestCase):
         result = self.disp.dispatch("Design API", roles=["architect", "tester"])
         report = result.to_markdown()
         self.assertIsInstance(report, str)
-        self.assertGreater(len(report), 100,
-                          "Report should be substantial (>100 chars)")
+        self.assertGreater(len(report), 100, "Report should be substantial (>100 chars)")
 
     def test_02_report_includes_all_worker_outputs(self) -> None:
         """Verify: Report includes content from each worker."""
@@ -206,8 +204,7 @@ class T4_DispatcherResultAssemblerIntegration(unittest.TestCase):
         report = result.to_markdown()
         # Report should reference the role or its output
         self.assertTrue(
-            "architect" in report.lower() or "架构" in report,
-            "Report should include architect worker output"
+            "architect" in report.lower() or "架构" in report, "Report should include architect worker output"
         )
 
     def test_03_summary_distinct_from_full_report(self) -> None:
@@ -216,8 +213,7 @@ class T4_DispatcherResultAssemblerIntegration(unittest.TestCase):
         report = result.to_markdown()
         # Summary should be shorter than full report (or at least different)
         if result.summary:
-            self.assertNotEqual(result.summary, report,
-                               "Summary should differ from full markdown report")
+            self.assertNotEqual(result.summary, report, "Summary should differ from full markdown report")
 
     def test_04_details_dict_populated(self) -> None:
         """Verify: result.details is a dict (may contain metadata)."""
@@ -284,7 +280,7 @@ class T6_MultipleDispatchCycles(unittest.TestCase):
         # Status should reflect 2 dispatches (or have dispatch_count field)
         self.assertTrue(
             "dispatch_count" in status or "count" in str(status).lower(),
-            f"Status should track dispatch count: {status.keys()}"
+            f"Status should track dispatch count: {status.keys()}",
         )
 
     def test_04_history_returns_multiple_results(self) -> None:

@@ -25,6 +25,7 @@ V4.5.4 CoeffectResolver (sync topological sort) is preserved in coeffect.py.
 This module wraps async coeffect execution (different concern: exec-order vs
 execution concurrency).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -69,11 +70,13 @@ class CoeffectState(Enum):
 ALLOWED_TRANSITIONS: dict[CoeffectState, frozenset[CoeffectState]] = {
     CoeffectState.PENDING: frozenset({CoeffectState.READY, CoeffectState.CANCELLED}),
     CoeffectState.READY: frozenset({CoeffectState.RUNNING, CoeffectState.FAILED}),
-    CoeffectState.RUNNING: frozenset({
-        CoeffectState.COMPLETED,
-        CoeffectState.FAILED,
-        CoeffectState.CANCELLED,
-    }),
+    CoeffectState.RUNNING: frozenset(
+        {
+            CoeffectState.COMPLETED,
+            CoeffectState.FAILED,
+            CoeffectState.CANCELLED,
+        }
+    ),
     CoeffectState.COMPLETED: frozenset(),
     CoeffectState.FAILED: frozenset(),
     CoeffectState.CANCELLED: frozenset(),
@@ -204,8 +207,7 @@ class AsyncCoeffectResolver:
             return asyncio.run(self.aresolve(req))
         # Running loop detected — cannot block on it from sync code.
         raise RuntimeError(
-            "resolve() cannot be called from a running event loop. "
-            "Use await resolver.aresolve(req) in async context."
+            "resolve() cannot be called from a running event loop. Use await resolver.aresolve(req) in async context."
         )
 
     async def _arun_one(self, req: CoeffectRequest) -> CoeffectResult:
@@ -219,9 +221,7 @@ class AsyncCoeffectResolver:
             if executor is None:
                 raise ValueError(f"coeffect '{req.name}' missing 'executor' in payload")
             if not callable(executor):
-                raise TypeError(
-                    f"coeffect '{req.name}' executor must be callable, got {type(executor)}"
-                )
+                raise TypeError(f"coeffect '{req.name}' executor must be callable, got {type(executor)}")
             # Run sync callable in default executor (stdlib asyncio)
             value = await asyncio.get_running_loop().run_in_executor(None, executor)
             return CoeffectResult(state=CoeffectState.COMPLETED, value=value)
@@ -230,9 +230,7 @@ class AsyncCoeffectResolver:
         """Atomically transition FSM state under lock (unused after V4.5.7 refactor)."""
         async with self._async_lock:
             if not _can_transition(self._state, target):
-                raise ValueError(
-                    f"Invalid FSM transition: {self._state.value} -> {target.value}"
-                )
+                raise ValueError(f"Invalid FSM transition: {self._state.value} -> {target.value}")
             self._state = target
 
     @property

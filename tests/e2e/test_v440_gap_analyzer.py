@@ -4,6 +4,7 @@
 def test_e2e_p2_p3_gap_analysis_runs():
     """US-G1: P2 calls analyze(target); P3 calls analyze(current, target) to find gaps."""
     from scripts.collaboration.gap_analyzer import GapAnalyzer
+
     analyzer = GapAnalyzer()
     # P2: define target architecture
     target = {"auth": "oauth2", "db": "postgres", "cache": "redis"}
@@ -21,6 +22,7 @@ def test_e2e_p2_p3_gap_analysis_runs():
 def test_e2e_loopscheduler_stops_on_zero_delta():
     """US-G3: LoopScheduler must STOP when gap closure delta <= 0."""
     from scripts.collaboration.gap_analyzer import GapAnalyzer
+
     analyzer = GapAnalyzer()
     # Track a gap with no progress (delta = 0)
     gap = analyzer.add_gap(

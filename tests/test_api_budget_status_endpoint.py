@@ -22,7 +22,6 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
-
 class TestBudgetStatusEndpointRegistration(unittest.TestCase):
     """The /api/v1/budget/status endpoint is registered in the dispatch router."""
 

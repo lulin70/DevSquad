@@ -98,10 +98,12 @@ class T1_FullReviewPipelineIntegration(unittest.TestCase):
         """Verify: Clean code with tests passes gate, router has no blockers."""
         # Gate in strict_mode requires test files for code changes.
         spec = _make_spec(planned_files=["src/main.py"], planned_functions=["main"])
-        code = _make_code_changes({
-            "src/main.py": "def main():\n    pass\n",
-            "tests/test_main.py": "def test_main():\n    assert main() is None\n",
-        })
+        code = _make_code_changes(
+            {
+                "src/main.py": "def main():\n    pass\n",
+                "tests/test_main.py": "def test_main():\n    assert main() is None\n",
+            }
+        )
         gate_result = self.gate.review(spec=spec, code_changes=code)
         router_result = self.router.route(gate_result.findings, context={})
         judge_result = self.judge.judge(gate_result.findings, context={})
@@ -126,8 +128,7 @@ class T1_FullReviewPipelineIntegration(unittest.TestCase):
         """Verify: Critical findings from gate cause router to block."""
         # Create findings directly to control severity
         findings = [
-            _make_finding(severity="critical", category="security",
-                          description="SQL injection vulnerability"),
+            _make_finding(severity="critical", category="security", description="SQL injection vulnerability"),
         ]
         router_result = self.router.route(findings, context={})
         self.assertTrue(router_result.blocked)
@@ -145,15 +146,13 @@ class T1_FullReviewPipelineIntegration(unittest.TestCase):
     def test_05_pipeline_preserves_finding_metadata(self) -> None:
         """Verify: Finding metadata (category, severity) preserved through pipeline."""
         findings = [
-            _make_finding(severity="warning", category="style",
-                          description="Line too long", file_path="src/main.py"),
+            _make_finding(severity="warning", category="style", description="Line too long", file_path="src/main.py"),
         ]
         router_result = self.router.route(findings, context={})
         judge_result = self.judge.judge(findings, context={})
         # Router should have at least one action
         if router_result.actions:
-            self.assertEqual(router_result.actions[0].description,
-                             "Line too long")
+            self.assertEqual(router_result.actions[0].description, "Line too long")
         # Judge should accept the finding
         if judge_result.accepted_findings:
             self.assertEqual(judge_result.accepted_findings[0].category, "style")
@@ -291,6 +290,7 @@ class T4_AutoFixLoopIntegration(unittest.TestCase):
 
     def test_02_fix_loop_exhausted_escalates(self) -> None:
         """Verify: When auto-fix fails, findings remain unfixed."""
+
         def always_fail(action: Any, context: dict[str, Any]) -> bool:
             return False  # Fix always fails
 

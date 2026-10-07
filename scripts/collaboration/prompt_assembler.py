@@ -305,8 +305,7 @@ def inject_grilling_discipline(
         "\n\n## Grilling Discipline (Matt P0-7)",
         f"- Ask AT MOST {max_questions_per_turn} question(s) per turn. "
         "Asking multiple questions simultaneously overwhelms the user.",
-        "- For each question, provide a recommended answer so the user can "
-        "confirm rather than reason from scratch.",
+        "- For each question, provide a recommended answer so the user can confirm rather than reason from scratch.",
         "- Walk down each branch of the design tree sequentially — do not "
         "skip ahead to later branches before resolving the current one.",
     ]

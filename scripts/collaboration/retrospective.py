@@ -310,52 +310,64 @@ class RetrospectiveEngine:
         deviation_types = {d.deviation_type for d in report.deviations}
 
         if "goal_uncovered" in deviation_types:
-            rules.append(LearnedRule(
-                rule_text="Decompose tasks into smaller sub-tasks, each mapping to specific goal items, before dispatching to Workers",
-                trigger_condition="task_decomposition",
-                confidence=0.85,
-                source_task_id=task_id,
-            ))
+            rules.append(
+                LearnedRule(
+                    rule_text="Decompose tasks into smaller sub-tasks, each mapping to specific goal items, before dispatching to Workers",
+                    trigger_condition="task_decomposition",
+                    confidence=0.85,
+                    source_task_id=task_id,
+                )
+            )
         if "goal_drift" in deviation_types:
-            rules.append(LearnedRule(
-                rule_text="Add anchor checks at direction-change points to catch goal drift before it compounds",
-                trigger_condition="anchor_check_scheduling",
-                confidence=0.80,
-                source_task_id=task_id,
-            ))
+            rules.append(
+                LearnedRule(
+                    rule_text="Add anchor checks at direction-change points to catch goal drift before it compounds",
+                    trigger_condition="anchor_check_scheduling",
+                    confidence=0.80,
+                    source_task_id=task_id,
+                )
+            )
         if "sustained_drift" in deviation_types:
-            rules.append(LearnedRule(
-                rule_text="When drift exceeds 3 consecutive checks, pause and re-align with original goal before continuing",
-                trigger_condition="sustained_drift_threshold",
-                confidence=0.90,
-                source_task_id=task_id,
-            ))
+            rules.append(
+                LearnedRule(
+                    rule_text="When drift exceeds 3 consecutive checks, pause and re-align with original goal before continuing",
+                    trigger_condition="sustained_drift_threshold",
+                    confidence=0.90,
+                    source_task_id=task_id,
+                )
+            )
 
         if report.anchor_drift_count == 0 and report.deviations:
-            rules.append(LearnedRule(
-                rule_text="Anchor checks are not catching detected deviations — increase check frequency or add pre-execution anchors",
-                trigger_condition="anchor_coverage_gap",
-                confidence=0.65,
-                source_task_id=task_id,
-            ))
+            rules.append(
+                LearnedRule(
+                    rule_text="Anchor checks are not catching detected deviations — increase check frequency or add pre-execution anchors",
+                    trigger_condition="anchor_coverage_gap",
+                    confidence=0.65,
+                    source_task_id=task_id,
+                )
+            )
 
         if report.final_coverage < 0.5 and report.deviations:
-            rules.append(LearnedRule(
-                rule_text="Task coverage below 50% — verify goal decomposition is complete before Worker assignment",
-                trigger_condition="low_coverage_detection",
-                confidence=0.55,
-                source_task_id=task_id,
-            ))
+            rules.append(
+                LearnedRule(
+                    rule_text="Task coverage below 50% — verify goal decomposition is complete before Worker assignment",
+                    trigger_condition="low_coverage_detection",
+                    confidence=0.55,
+                    source_task_id=task_id,
+                )
+            )
 
         for imp in report.improvements[:2]:
             if imp.startswith("First drift") or imp.startswith("Prioritize"):
                 continue
-            rules.append(LearnedRule(
-                rule_text=imp,
-                trigger_condition="retrospective_improvement",
-                confidence=0.60,
-                source_task_id=task_id,
-            ))
+            rules.append(
+                LearnedRule(
+                    rule_text=imp,
+                    trigger_condition="retrospective_improvement",
+                    confidence=0.60,
+                    source_task_id=task_id,
+                )
+            )
 
         logger.info(
             "Extracted %d LearnedRule entries from retrospective (task_id=%s, deviations=%d)",

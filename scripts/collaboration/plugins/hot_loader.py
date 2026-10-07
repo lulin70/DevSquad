@@ -123,9 +123,7 @@ class PluginHotLoader:
         with self._lock:
             existing = self._plugins.get(name)
             if existing is not None:
-                self._log_audit(
-                    "hot_register", name, success=False, reason="plugin already registered"
-                )
+                self._log_audit("hot_register", name, success=False, reason="plugin already registered")
                 logger.warning("Plugin %s already registered", name)
                 return False
 
@@ -304,10 +302,7 @@ class PluginHotLoader:
 
                 # 检查 mtime 和 checksum
                 current_checksum = self._compute_checksum(filepath)
-                if (
-                    stat.st_mtime == entry.mtime
-                    and current_checksum == entry.checksum
-                ):
+                if stat.st_mtime == entry.mtime and current_checksum == entry.checksum:
                     continue  # 未变化
 
                 # reload，失败则保留旧实例
@@ -319,19 +314,22 @@ class PluginHotLoader:
                     self._checksums[plugin_name] = new_entry.checksum
                     reloaded.append(plugin_name)
                     self._log_audit(
-                        "reload", plugin_name, success=True,
-                        old_mtime=old_entry.mtime, new_mtime=new_entry.mtime,
+                        "reload",
+                        plugin_name,
+                        success=True,
+                        old_mtime=old_entry.mtime,
+                        new_mtime=new_entry.mtime,
                     )
                     logger.info("Reloaded plugin: %s", plugin_name)
                 else:
                     # 回滚：保留旧实例
                     self._log_audit(
-                        "reload", plugin_name, success=False,
+                        "reload",
+                        plugin_name,
+                        success=False,
                         reason="load failed, kept old instance",
                     )
-                    logger.warning(
-                        "Reload %s failed, kept old instance (rollback)", plugin_name
-                    )
+                    logger.warning("Reload %s failed, kept old instance (rollback)", plugin_name)
 
         return reloaded
 
@@ -357,8 +355,11 @@ class PluginHotLoader:
             resolved.relative_to(self._dropin_dir)
         except ValueError:
             self._log_audit(
-                "validate_path", filepath.name, success=False,
-                reason="path traversal blocked", path=str(resolved),
+                "validate_path",
+                filepath.name,
+                success=False,
+                reason="path traversal blocked",
+                path=str(resolved),
             )
             logger.warning("Path traversal blocked: %s not in %s", resolved, self._dropin_dir)
             return False
@@ -366,7 +367,9 @@ class PluginHotLoader:
         # 防护 2：后缀检查
         if resolved.suffix != self._ALLOWED_SUFFIX:
             self._log_audit(
-                "validate_path", filepath.name, success=False,
+                "validate_path",
+                filepath.name,
+                success=False,
                 reason=f"invalid suffix: {resolved.suffix}",
             )
             logger.warning("Invalid suffix: %s", resolved)
@@ -381,7 +384,9 @@ class PluginHotLoader:
 
         if size > self._MAX_FILE_SIZE:
             self._log_audit(
-                "validate_path", filepath.name, success=False,
+                "validate_path",
+                filepath.name,
+                success=False,
                 reason=f"file too large: {size} bytes",
             )
             logger.warning("File too large: %s (%d bytes)", resolved, size)
@@ -410,9 +415,7 @@ class PluginHotLoader:
 
             # 约定：插件文件必须暴露 create_plugin() 函数
             if not hasattr(module, "create_plugin"):
-                raise RuntimeError(
-                    f"Plugin {name} missing create_plugin() function"
-                )
+                raise RuntimeError(f"Plugin {name} missing create_plugin() function")
 
             plugin_instance = module.create_plugin()
             if plugin_instance is None:
@@ -436,8 +439,11 @@ class PluginHotLoader:
             # plugin failures crash the host — catch Exception (excludes SystemExit,
             # KeyboardInterrupt, GeneratorExit which inherit from BaseException).
             self._log_audit(
-                "load_plugin", name, success=False,
-                reason=str(e), path=str(filepath),
+                "load_plugin",
+                name,
+                success=False,
+                reason=str(e),
+                path=str(filepath),
             )
             logger.error("Failed to load plugin %s from %s: %s", name, filepath, e)
             return None
@@ -471,9 +477,7 @@ class PluginHotLoader:
         # 同步到外部审计日志器（如有）
         if self._external_audit_logger is not None:
             try:
-                self._external_audit_logger.log_plugin_op(
-                    method=method, name=name, success=success, **extra
-                )
+                self._external_audit_logger.log_plugin_op(method=method, name=name, success=success, **extra)
             except (AttributeError, RuntimeError, OSError) as e:
                 logger.warning("External audit log failed: %s", e)
 

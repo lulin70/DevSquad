@@ -26,6 +26,8 @@ from .async_llm_backend import AsyncLLMBackendFactory
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
 from .dispatcher_base import DispatcherBase
 from .llm_cache_async import AsyncLLMCache
+from .models_base import WorkerResult
+from .models_lifecycle import ScheduleResult
 from .rbac_engine import Permission, PermissionDeniedError
 from .usage_tracker import track_usage
 from .user_friendly_error import make_user_friendly_error
@@ -60,15 +62,17 @@ class DispatcherAsyncMixin(DispatcherBase):
         dry_run: bool = False,
         **kwargs: Any,
     ) -> DispatchResult:
-        """Async version of dispatch() using AsyncCoordinator. Falls back to sync on failure."""
+        """Async version of dispatch() using AsyncCoordinator."""
         track_usage("dispatcher.async_dispatch", metadata={"mode": mode, "dry_run": dry_run})
         start_time = time.time()
         phase = "async_dispatch"
 
-        self.metrics_service.safe_record(lambda m: (
-            m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
-            m.tasks_in_progress_gauge.labels(phase=phase).inc(),
-        ))
+        self.metrics_service.safe_record(
+            lambda m: (
+                m.dispatch_counter.labels(mode=mode, role_count="0").inc(),
+                m.tasks_in_progress_gauge.labels(phase=phase).inc(),
+            )
+        )
 
         if self.usage_tracker:
             self.usage_tracker.tick("async_dispatch")
@@ -89,13 +93,17 @@ class DispatcherAsyncMixin(DispatcherBase):
 
         try:
             matched_roles = pre_result.matched_roles
-            self.metrics_service.safe_record(lambda m: m.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles)))
-
-            exec_result, worker_results, exec_errors, exec_timing = await self._execute_async_workers(
-                pre_result.plan, task_description, matched_roles, kwargs
+            self.metrics_service.safe_record(
+                lambda m: m.workers_active_gauge.labels(worker_type="agent").inc(len(matched_roles))
             )
 
-            self.metrics_service.safe_record(lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles)))
+            exec_result, worker_results, exec_errors, exec_timing = await self._execute_async_workers(
+                task_description, matched_roles, kwargs
+            )
+
+            self.metrics_service.safe_record(
+                lambda m: m.workers_active_gauge.labels(worker_type="agent").dec(len(matched_roles))
+            )
 
             async_result = cast(
                 DispatchResult,
@@ -110,6 +118,7 @@ class DispatcherAsyncMixin(DispatcherBase):
                     **kwargs,
                 ),
             )
+            self._attach_review_metadata(async_result, pre_result.plan)
             # V4.5.4 P12.3: Activate ModuleFiber + Coeffect on async success path
             # (anti-ghost: must run on every successful dispatch, sync or async).
             try:
@@ -119,32 +128,34 @@ class DispatcherAsyncMixin(DispatcherBase):
             return async_result
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
-            return self._handle_dispatch_error(dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
+            return self._handle_dispatch_error(
+                dispatch_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True
+            )
         except (ImportError, ModuleNotFoundError) as import_err:
-            return self._handle_dispatch_error(import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
+            return self._handle_dispatch_error(
+                import_err, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True
+            )
         except (RuntimeError, OSError, ConnectionError, TimeoutError) as e:
-            return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True)
+            return self._handle_dispatch_error(
+                e, task_description, tenant_ctx, phase, start_time, pre_result.lang, is_async=True
+            )
 
     async def _execute_async_workers(
-        self, plan: Any, task_description: str, matched_roles: list[dict[str, Any]], kwargs: dict[str, Any]
+        self, task_description: str, matched_roles: list[dict[str, Any]], kwargs: dict[str, Any]
     ) -> tuple[Any, list[dict[str, Any]], list[str], dict[str, float]]:
-        """Execute workers asynchronously, falling back to sync on failure."""
-        if kwargs.get('use_async_backend', False) or os.environ.get('DEVSQUAD_USE_ASYNC', '').lower() in ('1', 'true'):
+        """Execute workers asynchronously and preserve failures for assembly."""
+        if kwargs.get("use_async_backend", False) or os.environ.get("DEVSQUAD_USE_ASYNC", "").lower() in ("1", "true"):
             try:
                 # V4.5.10: llm_backend may legitimately be None (mock mode);
                 # resolve to "mock" name instead of crashing on NoneType.
-                backend_name = (
-                    self.llm_backend.__class__.__name__
-                    if self.llm_backend is not None
-                    else "mock"
-                )
+                backend_name = self.llm_backend.__class__.__name__ if self.llm_backend is not None else "mock"
                 AsyncLLMBackendFactory.create(backend_name)
             except (ImportError, AttributeError, RuntimeError, ValueError):
                 SyncToAsyncAdapter(self.llm_backend)
         else:
             SyncToAsyncAdapter(self.llm_backend)
 
-        if kwargs.get('use_async_cache', False):
+        if kwargs.get("use_async_cache", False):
             try:
                 AsyncLLMCache(cache_dir=self.persist_dir or "data/llm_cache")
             except (ImportError, AttributeError, OSError) as e:
@@ -185,8 +196,34 @@ class DispatcherAsyncMixin(DispatcherBase):
             return exec_result, worker_results, exec_errors, {"step6_time": step6_time, "step7_time": step7_time}
 
         except (ImportError, RuntimeError, AttributeError, OSError) as async_err:
-            logger.warning("Async dispatch failed, falling back to sync: %s", async_err)
-            return self._execute_workers(plan, task_description)
+            logger.warning("Async dispatch failed without sync fallback: %s", async_err)
+            failed_results = [
+                WorkerResult(
+                    worker_id=f"{role['role_id']}-async-failed",
+                    task_id=f"{role['role_id']}-async-failed",
+                    success=False,
+                    error=str(async_err),
+                )
+                for role in matched_roles
+            ]
+            exec_result = ScheduleResult(
+                success=False,
+                total_tasks=len(matched_roles),
+                completed_tasks=0,
+                failed_tasks=len(failed_results),
+                results=failed_results,
+                errors=[str(async_err)],
+            )
+            worker_results, step6_time, step7_time = self.post_dispatch._collect_worker_results(exec_result)
+            return (
+                exec_result,
+                worker_results,
+                list(exec_result.errors),
+                {
+                    "step6_time": step6_time,
+                    "step7_time": step7_time,
+                },
+            )
 
 
 class DispatcherAuditMixin(DispatcherBase):
@@ -194,9 +231,7 @@ class DispatcherAuditMixin(DispatcherBase):
 
     _audit_logger: Any
 
-    def _log_dispatch_end_audit(
-        self, user_id: str, success: bool, duration: float
-    ) -> None:
+    def _log_dispatch_end_audit(self, user_id: str, success: bool, duration: float) -> None:
         """Log dispatch_end event to the audit logger (if configured)."""
         if self._audit_logger is None:
             return
@@ -209,9 +244,7 @@ class DispatcherAuditMixin(DispatcherBase):
         except (ValueError, RuntimeError, OSError) as audit_err:
             logger.warning("Audit log_dispatch_end failed: %s", audit_err)
 
-    def _log_dispatch_error_audit(
-        self, user_id: str, error: Exception
-    ) -> None:
+    def _log_dispatch_error_audit(self, user_id: str, error: Exception) -> None:
         """Log an error event to the audit logger (if configured)."""
         if self._audit_logger is None:
             return
@@ -265,27 +298,40 @@ class DispatcherErrorMixin(DispatcherBase):
         if isinstance(error, (ValueError, TypeError, AttributeError)):
             logger.error(
                 "%sdispatch validation error for task '%s': %s - %s",
-                prefix, task_description[:50], type(error).__name__, error, exc_info=True,
+                prefix,
+                task_description[:50],
+                type(error).__name__,
+                error,
+                exc_info=True,
             )
             error_key, metrics_label = "dispatch_failed", "validation"
         elif isinstance(error, (ImportError, ModuleNotFoundError)):
             logger.error(
                 "Missing dependency during %sdispatch of task '%s': %s",
-                prefix.lower(), task_description[:50], error, exc_info=True,
+                prefix.lower(),
+                task_description[:50],
+                error,
+                exc_info=True,
             )
             error_key, metrics_label = "backend_unavailable", "dependency"
         else:
             logger.critical(
                 "UNEXPECTED ERROR in %sdispatch task '%s': %s - %s",
-                prefix.lower(), task_description[:50], type(error).__name__, error, exc_info=True,
+                prefix.lower(),
+                task_description[:50],
+                type(error).__name__,
+                error,
+                exc_info=True,
             )
             error_key, metrics_label = "dispatch_failed", "unknown"
 
         self.enterprise.clear_tenant_context(tenant_ctx)
-        self.metrics_service.safe_record(lambda m: (
-            m.record_error(metrics_label, "dispatcher"),
-            m.tasks_in_progress_gauge.labels(phase=phase).dec(),
-        ))
+        self.metrics_service.safe_record(
+            lambda m: (
+                m.record_error(metrics_label, "dispatcher"),
+                m.tasks_in_progress_gauge.labels(phase=phase).dec(),
+            )
+        )
         friendly = make_user_friendly_error(error_key, original_error=error)
         return DispatchResult(
             success=False,
@@ -310,23 +356,29 @@ class DispatcherLifecycleMixin(DispatcherBase):
     def shutdown(self) -> None:
         """Gracefully shut down all components."""
         self._shutdown_component(
-            self.warmup_manager, "shutdown",
-            (RuntimeError, OSError, AttributeError), "Warmup shutdown failed")
+            self.warmup_manager, "shutdown", (RuntimeError, OSError, AttributeError), "Warmup shutdown failed"
+        )
         self._shutdown_component(
-            self.memory_bridge, "cleanup_expired_memories",
-            (OSError, AttributeError, RuntimeError), "Memory cleanup failed")
+            self.memory_bridge,
+            "cleanup_expired_memories",
+            (OSError, AttributeError, RuntimeError),
+            "Memory cleanup failed",
+        )
         self._shutdown_component(
-            self.usage_tracker, "persist",
-            (OSError, ValueError, AttributeError), "Usage tracker persist failed")
+            self.usage_tracker, "persist", (OSError, ValueError, AttributeError), "Usage tracker persist failed"
+        )
         self._shutdown_component(
-            self.enterprise.audit_logger, "force_flush",
-            (OSError, AttributeError, RuntimeError), "Audit flush failed")
+            self.enterprise.audit_logger, "force_flush", (OSError, AttributeError, RuntimeError), "Audit flush failed"
+        )
         self._shutdown_component(
-            self._audit_logger, "close",
-            (OSError, AttributeError, RuntimeError), "Dispatch audit close failed")
+            self._audit_logger, "close", (OSError, AttributeError, RuntimeError), "Dispatch audit close failed"
+        )
         self._shutdown_component(
-            self.enterprise.tenant_manager, "clear_context",
-            (AttributeError, RuntimeError, OSError), "Tenant cleanup failed")
+            self.enterprise.tenant_manager,
+            "clear_context",
+            (AttributeError, RuntimeError, OSError),
+            "Tenant cleanup failed",
+        )
 
     def _shutdown_component(
         self, component: Any, method: str, exc_types: tuple[type[BaseException], ...], msg: str
@@ -428,7 +480,7 @@ class DispatcherStatusMixin(DispatcherBase):
         """Get dispatch history."""
         if self.enterprise.rbac_engine:
             try:
-                user_id = kwargs.get('user_id', 'default')
+                user_id = kwargs.get("user_id", "default")
                 self.enterprise.rbac_engine.enforce(user_id, Permission.TASK_READ)
             except PermissionDeniedError as e:
                 logger.warning("RBAC denied: %s", e)
@@ -502,8 +554,7 @@ class DispatcherUtilsMixin(DispatcherBase):
             plan = self.decompose_task(task_description, spec=spec or None)
             if plan is not None:
                 logger.info(
-                    "MicroTaskPlanner decomposed task into %d micro-tasks "
-                    "(est. %d min)",
+                    "MicroTaskPlanner decomposed task into %d micro-tasks (est. %d min)",
                     len(plan.micro_tasks),
                     plan.total_estimated_minutes,
                 )
@@ -534,6 +585,15 @@ class DispatcherUtilsMixin(DispatcherBase):
             logger.debug("Locale detection failed, using default language: %s", e)
             return "zh"
 
+    def _attach_review_metadata(self, result: DispatchResult, plan: Any) -> None:
+        """Expose deterministic review metadata when a review plan provides it."""
+        review_bundles = getattr(plan, "review_bundles", None)
+        if review_bundles is not None:
+            result.details["review_bundles"] = review_bundles
+        review_filter = getattr(plan, "review_filter", None)
+        if review_filter is not None:
+            result.details["review_filter"] = review_filter
+
     def _execute_workers(
         self, plan: Any, _task_description: str
     ) -> tuple[Any, list[dict[str, Any]], list[str], dict[str, float]]:
@@ -541,10 +601,15 @@ class DispatcherUtilsMixin(DispatcherBase):
         exec_result = self.coordinator.execute_plan(plan)
         worker_results, step6_time, step7_time = self.post_dispatch._collect_worker_results(exec_result)
         exec_errors = list(exec_result.errors) if exec_result.errors else []
-        return exec_result, worker_results, exec_errors, {
-            "step6_time": step6_time,
-            "step7_time": step7_time,
-        }
+        return (
+            exec_result,
+            worker_results,
+            exec_errors,
+            {
+                "step6_time": step6_time,
+                "step7_time": step7_time,
+            },
+        )
 
     def _get_current_tenant_id(self) -> str:
         """Get current tenant_id for data isolation, defaults to 'default'."""

@@ -63,11 +63,7 @@ class TestScanTestFile:
         from scripts.collaboration.test_quality_guard import AntiPatternDetector
 
         test_file = tmp_path / "test_example.py"
-        test_file.write_text(
-            "def test_foo():\n"
-            "    result = True\n"
-            "    self.assertTrue(result)\n"
-        )
+        test_file.write_text("def test_foo():\n    result = True\n    self.assertTrue(result)\n")
         detector = AntiPatternDetector()
         issues = scan_test_file(detector, test_file)
         minor_issues = [i for i in issues if i.severity.value == "minor"]
@@ -84,11 +80,7 @@ class TestScanTestFile:
         from scripts.collaboration.test_quality_guard import AntiPatternDetector
 
         test_file = tmp_path / "test_example.py"
-        test_file.write_text(
-            'def test_foo():\n'
-            '    code = "except:"  # noqa: test-quality\n'
-            '    pass\n'
-        )
+        test_file.write_text('def test_foo():\n    code = "except:"  # noqa: test-quality\n    pass\n')
         detector = AntiPatternDetector()
         issues = scan_test_file(detector, test_file)
         major_issues = [i for i in issues if i.severity.value == "major"]
@@ -104,11 +96,7 @@ class TestScanTestFile:
         from scripts.collaboration.test_quality_guard import AntiPatternDetector
 
         test_file = tmp_path / "test_example.py"
-        test_file.write_text(
-            "def test_foo():\n"
-            "    result = 42\n"
-            "    assert result == 42\n"
-        )
+        test_file.write_text("def test_foo():\n    result = 42\n    assert result == 42\n")
         detector = AntiPatternDetector()
         issues = scan_test_file(detector, test_file)
         assert len(issues) == 0, f"Expected 0 issues for clean file, got {len(issues)}"
@@ -156,10 +144,7 @@ class TestNoqaSuppression:
         from scripts.check_test_quality import _is_noqa_suppressed
 
         # noqa on line 9 — beyond 8-line window from matched line 1
-        source = (
-            'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\n'
-            'other = "except:"  # noqa: test-quality\n'
-        )
+        source = 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nother = "except:"  # noqa: test-quality\n'
         assert _is_noqa_suppressed(source, 1) is False
         assert _is_noqa_suppressed(source, 9) is True
 
@@ -234,11 +219,7 @@ class TestScriptCLI:
         """
         test_dir = tmp_path / "tests"
         test_dir.mkdir()
-        (test_dir / "test_minor.py").write_text(
-            "def test_foo():\n"
-            "    result = True\n"
-            "    self.assertTrue(result)\n"
-        )
+        (test_dir / "test_minor.py").write_text("def test_foo():\n    result = True\n    self.assertTrue(result)\n")
         exit_code, stdout, _ = _run_script("--source", str(test_dir))
         assert exit_code == 0
         assert "MINOR" in stdout
@@ -251,11 +232,7 @@ class TestScriptCLI:
         """
         test_dir = tmp_path / "tests"
         test_dir.mkdir()
-        (test_dir / "test_minor.py").write_text(
-            "def test_foo():\n"
-            "    result = True\n"
-            "    self.assertTrue(result)\n"
-        )
+        (test_dir / "test_minor.py").write_text("def test_foo():\n    result = True\n    self.assertTrue(result)\n")
         exit_code, _, _ = _run_script("--source", str(test_dir), "--fail-on", "minor")
         assert exit_code == 1
 
@@ -269,9 +246,7 @@ class TestScriptCLI:
         test_dir = tmp_path / "tests"
         test_dir.mkdir()
         (test_dir / "test_suppressed.py").write_text(
-            'def test_foo():\n'
-            '    code = "except:"  # noqa: test-quality\n'
-            '    pass\n'
+            'def test_foo():\n    code = "except:"  # noqa: test-quality\n    pass\n'
         )
         exit_code, stdout, _ = _run_script("--source", str(test_dir))
         assert exit_code == 0

@@ -96,13 +96,17 @@ class TestSmartCompressionBenchmark(unittest.TestCase):
         """JSON samples should have >80% SMART reduction."""
         json_metrics = [m for m in self.metrics if m.content_type == "json"]
         for m in json_metrics:
-            self.assertGreater(m.smart_reduction_pct, 80.0, f"JSON sample {m.sample_id} should have >80% SMART reduction")
+            self.assertGreater(
+                m.smart_reduction_pct, 80.0, f"JSON sample {m.sample_id} should have >80% SMART reduction"
+            )
 
     def test_log_samples_have_high_reduction(self):
         """Log samples should have >70% SMART reduction."""
         log_metrics = [m for m in self.metrics if m.content_type == "log"]
         for m in log_metrics:
-            self.assertGreater(m.smart_reduction_pct, 70.0, f"Log sample {m.sample_id} should have >70% SMART reduction")
+            self.assertGreater(
+                m.smart_reduction_pct, 70.0, f"Log sample {m.sample_id} should have >70% SMART reduction"
+            )
 
     def test_smart_preserves_all_messages(self):
         """SMART compression must preserve all messages (no deletion)."""
@@ -112,7 +116,9 @@ class TestSmartCompressionBenchmark(unittest.TestCase):
     def test_smart_correctness_is_high(self):
         """SMART should preserve structured content markers (correctness >= 0.8)."""
         for m in self.metrics:
-            self.assertGreaterEqual(m.smart_correctness_score, 0.8, f"Sample {m.sample_id} correctness should be >= 0.8")
+            self.assertGreaterEqual(
+                m.smart_correctness_score, 0.8, f"Sample {m.sample_id} correctness should be >= 0.8"
+            )
 
     def test_all_content_types_present(self):
         types = {m.content_type for m in self.metrics}

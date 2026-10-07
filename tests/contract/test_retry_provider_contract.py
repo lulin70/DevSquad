@@ -239,6 +239,7 @@ class TestRetryBaseContract(unittest.TestCase):
 
     def _get_manager(self):
         from scripts.collaboration.llm_retry import LLMRetryManager
+
         return LLMRetryManager()
 
     def test_is_retryable_connection_error(self):
@@ -275,6 +276,7 @@ class TestRetryBaseContract(unittest.TestCase):
     def test_calculate_delay_increases_with_attempts(self):
         """Exponential backoff delay should increase with attempt number."""
         from scripts.collaboration.llm_retry_base import RetryConfig
+
         manager = self._get_manager()
         config = RetryConfig(initial_delay=1.0, exponential_base=2.0, jitter=False)
         delay_0 = manager.calculate_delay(0, config)
@@ -286,6 +288,7 @@ class TestRetryBaseContract(unittest.TestCase):
     def test_calculate_delay_capped_at_max(self):
         """Delay should be capped at config.max_delay."""
         from scripts.collaboration.llm_retry_base import RetryConfig
+
         manager = self._get_manager()
         config = RetryConfig(initial_delay=1.0, exponential_base=2.0, max_delay=10.0, jitter=False)
         delay = manager.calculate_delay(20, config)
@@ -294,10 +297,14 @@ class TestRetryBaseContract(unittest.TestCase):
     def test_jitter_strategy_none_is_deterministic(self):
         """JitterStrategy.NONE should produce deterministic delay (no jitter)."""
         from scripts.collaboration.llm_retry_base import JitterStrategy, RetryConfig
+
         manager = self._get_manager()
         config = RetryConfig(
-            initial_delay=2.0, exponential_base=2.0, max_delay=60.0,
-            jitter=True, jitter_strategy=JitterStrategy.NONE,
+            initial_delay=2.0,
+            exponential_base=2.0,
+            max_delay=60.0,
+            jitter=True,
+            jitter_strategy=JitterStrategy.NONE,
         )
         delay1 = manager.calculate_delay(1, config)
         delay2 = manager.calculate_delay(1, config)
@@ -306,6 +313,7 @@ class TestRetryBaseContract(unittest.TestCase):
     def test_retry_config_default_values(self):
         """RetryConfig should have sensible default values."""
         from scripts.collaboration.llm_retry_base import RetryConfig
+
         config = RetryConfig()
         self.assertEqual(config.max_retries, 3)
         self.assertEqual(config.initial_delay, 1.0)
@@ -357,11 +365,13 @@ class T6_RetryProviderBoundaryContract(unittest.TestCase):
     def _get_manager(self) -> Any:
         """Return a fresh LLMRetryManager for real retry-behavior tests."""
         from scripts.collaboration.llm_retry import LLMRetryManager
+
         return LLMRetryManager()
 
     def _fast_config(self, max_retries: int = 3) -> Any:
         """Return a RetryConfig with zero-delay backoff for fast tests."""
         from scripts.collaboration.llm_retry_base import RetryConfig
+
         return RetryConfig(
             max_retries=max_retries,
             initial_delay=0.0,
@@ -399,7 +409,10 @@ class T6_RetryProviderBoundaryContract(unittest.TestCase):
             return "success-on-3rd"
 
         result = manager.retry_with_fallback(
-            flaky_func, args=(), kwargs={}, config=config,
+            flaky_func,
+            args=(),
+            kwargs={},
+            config=config,
         )
         self.assertEqual(result, "success-on-3rd")
         self.assertEqual(call_count[0], 3)
@@ -478,7 +491,10 @@ class T6_RetryProviderBoundaryContract(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             manager.retry_with_fallback(
-                raises_value_error, args=(), kwargs={}, config=config,
+                raises_value_error,
+                args=(),
+                kwargs={},
+                config=config,
             )
         self.assertEqual(call_count[0], 1, "Non-retryable error must not trigger retries")
         stats = manager.get_stats()

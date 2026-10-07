@@ -58,10 +58,29 @@ class PrototypeSkill(BaseSkill):
 
     # Feedback keywords for the validate() heuristic (mock mode, no LLM).
     POSITIVE_FEEDBACK_KEYWORDS: list[str] = [
-        "yes", "like", "good", "prefer", "符合", "喜欢", "好", "满意", "确认", "accept", "works",
+        "yes",
+        "like",
+        "good",
+        "prefer",
+        "符合",
+        "喜欢",
+        "好",
+        "满意",
+        "确认",
+        "accept",
+        "works",
     ]
     NEGATIVE_FEEDBACK_KEYWORDS: list[str] = [
-        "no", "dislike", "bad", "不符合", "不喜欢", "差", "不满意", "拒绝", "reject", "broken",
+        "no",
+        "dislike",
+        "bad",
+        "不符合",
+        "不喜欢",
+        "差",
+        "不满意",
+        "拒绝",
+        "reject",
+        "broken",
     ]
 
     DEFAULT_MAX_FILES = 3
@@ -115,9 +134,7 @@ class PrototypeSkill(BaseSkill):
 
         valid_types = {"ui", "logic", "api", "auto"}
         if prototype_type not in valid_types:
-            raise ValueError(
-                f"prototype_type must be one of {sorted(valid_types)}, got {prototype_type!r}"
-            )
+            raise ValueError(f"prototype_type must be one of {sorted(valid_types)}, got {prototype_type!r}")
 
         # --- Resolve constraints --------------------------------------------
         constraints = constraints or {}
@@ -128,14 +145,8 @@ class PrototypeSkill(BaseSkill):
 
         if not isinstance(max_files, int) or isinstance(max_files, bool) or max_files <= 0:
             raise ValueError(f"max_files must be a positive integer, got {max_files!r}")
-        if (
-            not isinstance(max_lines, int)
-            or isinstance(max_lines, bool)
-            or max_lines <= 0
-        ):
-            raise ValueError(
-                f"max_lines_per_file must be a positive integer, got {max_lines!r}"
-            )
+        if not isinstance(max_lines, int) or isinstance(max_lines, bool) or max_lines <= 0:
+            raise ValueError(f"max_lines_per_file must be a positive integer, got {max_lines!r}")
 
         # --- Auto-detect prototype type -------------------------------------
         detected_type = prototype_type
@@ -240,9 +251,7 @@ class PrototypeSkill(BaseSkill):
             overlap = hyp_words & obs_words
             if len(overlap) >= 2:
                 positive_signals += 1
-                evidence.append(
-                    f"Observed behavior aligns with hypothesis (overlap: {sorted(overlap)})"
-                )
+                evidence.append(f"Observed behavior aligns with hypothesis (overlap: {sorted(overlap)})")
 
         # --- Compute confidence ---------------------------------------------
         total_signals = positive_signals + negative_signals
@@ -260,23 +269,13 @@ class PrototypeSkill(BaseSkill):
         # --- Recommendations ------------------------------------------------
         recommendations: list[str] = []
         if should_proceed:
-            recommendations.append(
-                "Hypothesis validated — proceed to full implementation"
-            )
-            recommendations.append(
-                "Use the prototype as reference for production code"
-            )
+            recommendations.append("Hypothesis validated — proceed to full implementation")
+            recommendations.append("Use the prototype as reference for production code")
         elif confirmed:
-            recommendations.append(
-                "Hypothesis weakly validated — iterate on prototype before full implementation"
-            )
+            recommendations.append("Hypothesis weakly validated — iterate on prototype before full implementation")
         else:
-            recommendations.append(
-                "Hypothesis refuted — revise or abandon before full implementation"
-            )
-            recommendations.append(
-                "Consider alternative hypotheses based on observed behavior"
-            )
+            recommendations.append("Hypothesis refuted — revise or abandon before full implementation")
+            recommendations.append("Consider alternative hypotheses based on observed behavior")
 
         return {
             "hypothesis_confirmed": confirmed,
@@ -339,9 +338,7 @@ class PrototypeSkill(BaseSkill):
                 f["content"] = "\n".join(lines[: max_lines - 1]) + "\n# ... (truncated)"
         return files
 
-    def _generate_ui_files(
-        self, hypothesis: str, target_framework: str
-    ) -> list[dict[str, str]]:
+    def _generate_ui_files(self, hypothesis: str, target_framework: str) -> list[dict[str, str]]:
         """Generate UI prototype files (streamlit by default)."""
         framework = target_framework or "streamlit"
         main_py = (
@@ -385,9 +382,7 @@ class PrototypeSkill(BaseSkill):
             {"path": "test_prototype_ui.py", "content": test_py, "purpose": "Smoke test"},
         ]
 
-    def _generate_logic_files(
-        self, hypothesis: str, target_framework: str
-    ) -> list[dict[str, str]]:
+    def _generate_logic_files(self, hypothesis: str, target_framework: str) -> list[dict[str, str]]:
         """Generate logic prototype files (plain Python)."""
         framework_note = f" (framework: {target_framework})" if target_framework else ""
         main_py = (
@@ -419,9 +414,7 @@ class PrototypeSkill(BaseSkill):
             {"path": "test_prototype_logic.py", "content": test_py, "purpose": "Smoke test"},
         ]
 
-    def _generate_api_files(
-        self, hypothesis: str, target_framework: str
-    ) -> list[dict[str, str]]:
+    def _generate_api_files(self, hypothesis: str, target_framework: str) -> list[dict[str, str]]:
         """Generate API prototype files (Flask by default)."""
         framework = target_framework or "flask"
         main_py = (
@@ -494,9 +487,7 @@ class PrototypeSkill(BaseSkill):
             est = 5
         return max(2, min(5, est))
 
-    def _build_validation_steps(
-        self, prototype_type: str, hypothesis: str
-    ) -> list[str]:
+    def _build_validation_steps(self, prototype_type: str, hypothesis: str) -> list[str]:
         """Build executable validation steps for the prototype."""
         return [
             f"Run the main prototype file (e.g., python prototype_{prototype_type}.py)",

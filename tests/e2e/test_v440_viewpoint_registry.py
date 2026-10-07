@@ -1,4 +1,5 @@
 """E2E tests for V4.4.0 P0-2 Viewpoint Registry."""
+
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
 
@@ -9,6 +10,7 @@ def test_e2e_viewpoint_injected_into_prompt():
     disp.dispatch("Design a payment gateway", roles=["architect"])
     # The worker prompt should have been assembled with viewpoint injection
     from scripts.collaboration.viewpoint_registry import ViewpointRegistry
+
     registry = ViewpointRegistry()
     vp = registry.get("architect")
     assert vp is not None
@@ -20,6 +22,7 @@ def test_e2e_viewpoint_injected_into_prompt():
 def test_e2e_split_resolved_by_orthogonality():
     """US-V1: SPLIT outcome with orthogonal factions must become APPROVED with warning."""
     from scripts.collaboration.viewpoint_registry import ViewpointRegistry
+
     registry = ViewpointRegistry()
     # architect and security have orthogonal concerns (no shared model elements)
     assert registry.is_orthogonal("architect", "security") is True
@@ -30,6 +33,7 @@ def test_e2e_split_resolved_by_orthogonality():
 def test_e2e_consistency_check_flags_contradiction():
     """US-V3: Contradiction on shared model element must be listed as violation."""
     from scripts.collaboration.viewpoint_registry import ViewpointRegistry
+
     registry = ViewpointRegistry()
     # Two viewpoints disagree on a shared element
     violations = registry.check_consistency(

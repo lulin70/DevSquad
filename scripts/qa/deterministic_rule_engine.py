@@ -113,14 +113,17 @@ def _check_typography_line_height(
     for el in elements:
         lh = el.get("line_height", 0)
         if lh and lh < adjusted_min:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="a11y",
-                rule="typography_line_height",
-                element=el.get("tag", "unknown"),
-                message=f"line-height {lh:.2f} below minimum {adjusted_min:.2f}",
-                fix="Increase line-height to at least 1.4 for readability.",
-                metric={"line_height": lh, "min_required": adjusted_min},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="a11y",
+                    rule="typography_line_height",
+                    element=el.get("tag", "unknown"),
+                    message=f"line-height {lh:.2f} below minimum {adjusted_min:.2f}",
+                    fix="Increase line-height to at least 1.4 for readability.",
+                    metric={"line_height": lh, "min_required": adjusted_min},
+                )
+            )
     return issues
 
 
@@ -137,14 +140,17 @@ def _check_typography_font_size_min(
     for el in elements:
         size = el.get("font_size_px", 0)
         if size and size < adjusted_min:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="a11y",
-                rule="typography_font_size_min",
-                element=el.get("tag", "unknown"),
-                message=f"font-size {size}px below minimum {adjusted_min:.0f}px",
-                fix="Increase font-size to at least 14px.",
-                metric={"font_size": size, "min_required": adjusted_min},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="a11y",
+                    rule="typography_font_size_min",
+                    element=el.get("tag", "unknown"),
+                    message=f"font-size {size}px below minimum {adjusted_min:.0f}px",
+                    fix="Increase font-size to at least 14px.",
+                    metric={"font_size": size, "min_required": adjusted_min},
+                )
+            )
     return issues
 
 
@@ -160,14 +166,17 @@ def _check_typography_heading_hierarchy(
     for h in headings:
         level = h.get("level", 0)
         if prev_level > 0 and level > prev_level + 1:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="a11y",
-                rule="typography_heading_hierarchy",
-                element=f"h{level}",
-                message=f"Heading level skipped: h{prev_level} → h{level}",
-                fix="Don't skip heading levels (e.g. h1→h2, not h1→h3).",
-                metric={"prev": prev_level, "current": level},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="a11y",
+                    rule="typography_heading_hierarchy",
+                    element=f"h{level}",
+                    message=f"Heading level skipped: h{prev_level} → h{level}",
+                    fix="Don't skip heading levels (e.g. h1→h2, not h1→h3).",
+                    metric={"prev": prev_level, "current": level},
+                )
+            )
         prev_level = level
     return issues
 
@@ -184,14 +193,17 @@ def _check_typography_banned_fonts(
     for el in elements:
         family = el.get("font_family", "").lower()
         if any(b in family for b in banned):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="a11y",
-                rule="typography_font_family_banned",
-                element=el.get("tag", "unknown"),
-                message=f"Banned font family: {el.get('font_family', '')}",
-                fix="Use a distinctive font, not overused Inter/Roboto/Arial.",
-                metric={"font_family": el.get("font_family", "")},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="a11y",
+                    rule="typography_font_family_banned",
+                    element=el.get("tag", "unknown"),
+                    message=f"Banned font family: {el.get('font_family', '')}",
+                    fix="Use a distinctive font, not overused Inter/Roboto/Arial.",
+                    metric={"font_family": el.get("font_family", "")},
+                )
+            )
     return issues
 
 
@@ -208,14 +220,17 @@ def _check_typography_max_line_length(
     for el in elements:
         width = el.get("line_length_ch", 0)
         if width and width > adjusted_max:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="a11y",
-                rule="typography_max_line_length",
-                element=el.get("tag", "unknown"),
-                message=f"Line length {width}ch exceeds max {adjusted_max:.0f}ch",
-                fix="Limit line length to ~80 characters for readability.",
-                metric={"line_length": width, "max_recommended": adjusted_max},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="a11y",
+                    rule="typography_max_line_length",
+                    element=el.get("tag", "unknown"),
+                    message=f"Line length {width}ch exceeds max {adjusted_max:.0f}ch",
+                    fix="Limit line length to ~80 characters for readability.",
+                    metric={"line_length": width, "max_recommended": adjusted_max},
+                )
+            )
     return issues
 
 
@@ -230,14 +245,17 @@ def _check_typography_letter_spacing(
     for el in elements:
         ls = el.get("letter_spacing_em")
         if ls is not None and (ls < -0.05 or ls > 0.1):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="a11y",
-                rule="typography_letter_spacing",
-                element=el.get("tag", "unknown"),
-                message=f"letter-spacing {ls}em outside normal range",
-                fix="Keep letter-spacing between -0.05em and 0.1em.",
-                metric={"letter_spacing": ls},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="a11y",
+                    rule="typography_letter_spacing",
+                    element=el.get("tag", "unknown"),
+                    message=f"letter-spacing {ls}em outside normal range",
+                    fix="Keep letter-spacing between -0.05em and 0.1em.",
+                    metric={"letter_spacing": ls},
+                )
+            )
     return issues
 
 
@@ -254,14 +272,17 @@ def _check_typography_font_weight_contrast(
     for h in headings:
         hw = h.get("font_weight", 400)
         if abs(hw - body_weight) < 200:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="a11y",
-                rule="typography_font_weight_contrast",
-                element=f"h{h.get('level', '?')}",
-                message=f"Heading weight {hw} too close to body {body_weight}",
-                fix="Increase heading font-weight contrast (≥200 difference).",
-                metric={"heading_weight": hw, "body_weight": body_weight},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="a11y",
+                    rule="typography_font_weight_contrast",
+                    element=f"h{h.get('level', '?')}",
+                    message=f"Heading weight {hw} too close to body {body_weight}",
+                    fix="Increase heading font-weight contrast (≥200 difference).",
+                    metric={"heading_weight": hw, "body_weight": body_weight},
+                )
+            )
     return issues
 
 
@@ -276,23 +297,24 @@ def _check_typography_text_alignment(
     for el in elements:
         align = el.get("text_align", "")
         if align == "justify":
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="a11y",
-                rule="typography_text_alignment",
-                element=el.get("tag", "unknown"),
-                message="Body text is justified, causing irregular spacing",
-                fix="Use left-align for body text instead of justify.",
-                metric={"text_align": align},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="a11y",
+                    rule="typography_text_alignment",
+                    element=el.get("tag", "unknown"),
+                    message="Body text is justified, causing irregular spacing",
+                    fix="Use left-align for body text instead of justify.",
+                    metric={"text_align": align},
+                )
+            )
     return issues
 
 
 # ── Color Rules (8) ───────────────────────────────────────────────────────────
 
 
-def _check_color_contrast_normal(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_color_contrast_normal(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check WCAG AA contrast ratio for normal text (≥4.5:1). a11y — never adjusted."""
     items = _safe_get(probes, "a11y", "text_contrast", default=[])
     if not items:
@@ -303,20 +325,21 @@ def _check_color_contrast_normal(
     for item in items:
         ratio = item.get("contrast_ratio", 0)
         if ratio and ratio < min_ratio:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_ERROR, category="a11y",
-                rule="color_contrast_ratio_normal",
-                element=item.get("text", "")[:30],
-                message=f"Contrast ratio {ratio:.1f} below WCAG AA 4.5:1",
-                fix="Increase color contrast to at least 4.5:1.",
-                metric={"ratio": ratio, "min_required": min_ratio},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_ERROR,
+                    category="a11y",
+                    rule="color_contrast_ratio_normal",
+                    element=item.get("text", "")[:30],
+                    message=f"Contrast ratio {ratio:.1f} below WCAG AA 4.5:1",
+                    fix="Increase color contrast to at least 4.5:1.",
+                    metric={"ratio": ratio, "min_required": min_ratio},
+                )
+            )
     return issues
 
 
-def _check_color_contrast_large(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_color_contrast_large(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check WCAG AA contrast for large text (≥3:1). a11y — never adjusted."""
     items = _safe_get(probes, "color", "large_text_contrast", default=[])
     if not items:
@@ -326,20 +349,21 @@ def _check_color_contrast_large(
     for item in items:
         ratio = item.get("contrast_ratio", 0)
         if ratio and ratio < min_ratio:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_ERROR, category="a11y",
-                rule="color_contrast_ratio_large",
-                element=item.get("text", "")[:30],
-                message=f"Large text contrast {ratio:.1f} below 3:1",
-                fix="Increase contrast to at least 3:1 for large text.",
-                metric={"ratio": ratio, "min_required": min_ratio},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_ERROR,
+                    category="a11y",
+                    rule="color_contrast_ratio_large",
+                    element=item.get("text", "")[:30],
+                    message=f"Large text contrast {ratio:.1f} below 3:1",
+                    fix="Increase contrast to at least 3:1 for large text.",
+                    metric={"ratio": ratio, "min_required": min_ratio},
+                )
+            )
     return issues
 
 
-def _check_color_contrast_ui(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_color_contrast_ui(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check WCAG AA contrast for UI components (≥3:1). a11y — never adjusted."""
     items = _safe_get(probes, "color", "ui_component_contrast", default=[])
     if not items:
@@ -349,14 +373,17 @@ def _check_color_contrast_ui(
     for item in items:
         ratio = item.get("contrast_ratio", 0)
         if ratio and ratio < min_ratio:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_ERROR, category="a11y",
-                rule="color_contrast_ratio_ui",
-                element=item.get("element", "ui-component"),
-                message=f"UI contrast {ratio:.1f} below 3:1",
-                fix="Increase UI component contrast to at least 3:1.",
-                metric={"ratio": ratio, "min_required": min_ratio},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_ERROR,
+                    category="a11y",
+                    rule="color_contrast_ratio_ui",
+                    element=item.get("element", "ui-component"),
+                    message=f"UI contrast {ratio:.1f} below 3:1",
+                    fix="Increase UI component contrast to at least 3:1.",
+                    metric={"ratio": ratio, "min_required": min_ratio},
+                )
+            )
     return issues
 
 
@@ -373,20 +400,21 @@ def _check_color_harsh_saturation(
     for c in colors:
         sat = c.get("hsv_saturation", 0)
         if sat > adjusted_max:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="a11y",
-                rule="color_harsh_saturation",
-                element=c.get("hex", "#unknown"),
-                message=f"HSV saturation {sat:.2f} exceeds {adjusted_max:.2f}",
-                fix="Use softer (Morandi-style) colors with lower saturation.",
-                metric={"saturation": sat, "max_recommended": adjusted_max},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="a11y",
+                    rule="color_harsh_saturation",
+                    element=c.get("hex", "#unknown"),
+                    message=f"HSV saturation {sat:.2f} exceeds {adjusted_max:.2f}",
+                    fix="Use softer (Morandi-style) colors with lower saturation.",
+                    metric={"saturation": sat, "max_recommended": adjusted_max},
+                )
+            )
     return issues
 
 
-def _check_color_palette_count(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_color_palette_count(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check color palette has ≤5 distinct colors."""
     colors = _safe_get(probes, "color", "palette", default=[])
     if not colors:
@@ -395,34 +423,38 @@ def _check_color_palette_count(
     adjusted_max = dials.adjust_threshold("layout_density", base_max)
     count = len(colors)
     if count > adjusted_max:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="a11y",
-            rule="color_palette_count",
-            element="color-palette",
-            message=f"Palette has {count} colors, max {adjusted_max:.0f} recommended",
-            fix="Limit palette to 5 distinct colors.",
-            metric={"count": count, "max_recommended": adjusted_max},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="a11y",
+                rule="color_palette_count",
+                element="color-palette",
+                message=f"Palette has {count} colors, max {adjusted_max:.0f} recommended",
+                fix="Limit palette to 5 distinct colors.",
+                metric={"count": count, "max_recommended": adjusted_max},
+            )
+        ]
     return []
 
 
-def _check_color_oklch_usage(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_color_oklch_usage(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check if OKLCH color space is used (recommended)."""
     colors = _safe_get(probes, "color", "palette", default=[])
     if not colors:
         return []
     has_oklch = any(c.get("color_space") == "oklch" for c in colors)
     if not has_oklch:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="a11y",
-            rule="color_oklch_usage",
-            element="color-palette",
-            message="No OKLCH colors detected",
-            fix="Consider using OKLCH color space for perceptual uniformity.",
-            metric={"has_oklch": False},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="a11y",
+                rule="color_oklch_usage",
+                element="color-palette",
+                message="No OKLCH colors detected",
+                fix="Consider using OKLCH color space for perceptual uniformity.",
+                metric={"has_oklch": False},
+            )
+        ]
     return []
 
 
@@ -434,19 +466,23 @@ def _check_color_grayscale_secondary(
     if not text_styles:
         return []
     has_grayscale = any(
-        "gray" in str(t.get("color", "")).lower() or "#666" in str(t.get("color", ""))
+        "gray" in str(t.get("color", "")).lower()
+        or "#666" in str(t.get("color", ""))
         or "#999" in str(t.get("color", ""))
         for t in text_styles
     )
     if not has_grayscale:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="a11y",
-            rule="color_grayscale_secondary",
-            element="secondary-text",
-            message="No grayscale detected for secondary text",
-            fix="Use grayscale tones for secondary/supporting text.",
-            metric={"has_grayscale": False},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="a11y",
+                rule="color_grayscale_secondary",
+                element="secondary-text",
+                message="No grayscale detected for secondary text",
+                fix="Use grayscale tones for secondary/supporting text.",
+                metric={"has_grayscale": False},
+            )
+        ]
     return []
 
 
@@ -460,23 +496,24 @@ def _check_color_background_contrast(
     ratio = bg.get("contrast_ratio", 0)
     min_ratio = 4.5
     if ratio and ratio < min_ratio:
-        return [UIUXIssue(
-            severity=SEVERITY_ERROR, category="a11y",
-            rule="color_background_contrast",
-            element="body-background",
-            message=f"Background contrast {ratio:.1f} below {min_ratio}:1",
-            fix="Increase background-to-content contrast.",
-            metric={"ratio": ratio, "min_required": min_ratio},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_ERROR,
+                category="a11y",
+                rule="color_background_contrast",
+                element="body-background",
+                message=f"Background contrast {ratio:.1f} below {min_ratio}:1",
+                fix="Increase background-to-content contrast.",
+                metric={"ratio": ratio, "min_required": min_ratio},
+            )
+        ]
     return []
 
 
 # ── Spatial Design Rules (6) ──────────────────────────────────────────────────
 
 
-def _check_spatial_4pt_grid(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_spatial_4pt_grid(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check spacing follows 4pt grid (4/8/16/24/32/48)."""
     spacings = _safe_get(probes, "spatial", "spacing_values", default=[])
     if not spacings:
@@ -486,14 +523,17 @@ def _check_spatial_4pt_grid(
     for s in spacings:
         val = s.get("value", 0)
         if val and val not in valid:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="layout",
-                rule="spatial_4pt_grid",
-                element=s.get("property", "spacing"),
-                message=f"Spacing {val}px not on 4pt grid",
-                fix="Use 4pt grid values: 4, 8, 16, 24, 32, 48.",
-                metric={"value": val},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="layout",
+                    rule="spatial_4pt_grid",
+                    element=s.get("property", "spacing"),
+                    message=f"Spacing {val}px not on 4pt grid",
+                    fix="Use 4pt grid values: 4, 8, 16, 24, 32, 48.",
+                    metric={"value": val},
+                )
+            )
     return issues
 
 
@@ -507,20 +547,21 @@ def _check_spatial_element_density(
     base_max = 50.0
     adjusted_max = dials.adjust_threshold("layout_density", base_max)
     if count > adjusted_max:
-        return [UIUXIssue(
-            severity=SEVERITY_WARNING, category="layout",
-            rule="spatial_element_density",
-            element="viewport",
-            message=f"Element count {count} exceeds max {adjusted_max:.0f}",
-            fix="Reduce element count or increase whitespace.",
-            metric={"count": count, "max_recommended": adjusted_max},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_WARNING,
+                category="layout",
+                rule="spatial_element_density",
+                element="viewport",
+                message=f"Element count {count} exceeds max {adjusted_max:.0f}",
+                fix="Reduce element count or increase whitespace.",
+                metric={"count": count, "max_recommended": adjusted_max},
+            )
+        ]
     return []
 
 
-def _check_spatial_padding_min(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_spatial_padding_min(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check minimum padding is 8px."""
     elements = _safe_get(probes, "spatial", "padding_values", default=[])
     if not elements:
@@ -531,14 +572,17 @@ def _check_spatial_padding_min(
     for el in elements:
         pad = el.get("padding", 0)
         if pad and pad < adjusted_min:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="layout",
-                rule="spatial_padding_min",
-                element=el.get("tag", "unknown"),
-                message=f"Padding {pad}px below min {adjusted_min:.0f}px",
-                fix="Increase padding to at least 8px.",
-                metric={"padding": pad, "min_required": adjusted_min},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="layout",
+                    rule="spatial_padding_min",
+                    element=el.get("tag", "unknown"),
+                    message=f"Padding {pad}px below min {adjusted_min:.0f}px",
+                    fix="Increase padding to at least 8px.",
+                    metric={"padding": pad, "min_required": adjusted_min},
+                )
+            )
     return issues
 
 
@@ -553,14 +597,17 @@ def _check_spatial_margin_consistency(
     base_max = 3.0
     adjusted_max = dials.adjust_threshold("variance_consistency", base_max)
     if len(distinct) > adjusted_max:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="layout",
-            rule="spatial_margin_consistency",
-            element="margins",
-            message=f"{len(distinct)} distinct margin values, max {adjusted_max:.0f}",
-            fix="Standardize margins to ≤3 distinct values.",
-            metric={"distinct_count": len(distinct), "max_recommended": adjusted_max},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="layout",
+                rule="spatial_margin_consistency",
+                element="margins",
+                message=f"{len(distinct)} distinct margin values, max {adjusted_max:.0f}",
+                fix="Standardize margins to ≤3 distinct values.",
+                metric={"distinct_count": len(distinct), "max_recommended": adjusted_max},
+            )
+        ]
     return []
 
 
@@ -574,34 +621,38 @@ def _check_spatial_whitespace_ratio(
     base_min = 0.3
     adjusted_min = dials.adjust_threshold("layout_spacing", base_min)
     if ratio < adjusted_min:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="layout",
-            rule="spatial_whitespace_ratio",
-            element="viewport",
-            message=f"Whitespace ratio {ratio:.0%} below {adjusted_min:.0%}",
-            fix="Increase whitespace to at least 30% of viewport.",
-            metric={"ratio": ratio, "min_recommended": adjusted_min},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="layout",
+                rule="spatial_whitespace_ratio",
+                element="viewport",
+                message=f"Whitespace ratio {ratio:.0%} below {adjusted_min:.0%}",
+                fix="Increase whitespace to at least 30% of viewport.",
+                metric={"ratio": ratio, "min_recommended": adjusted_min},
+            )
+        ]
     return []
 
 
-def _check_spatial_card_spacing(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_spatial_card_spacing(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check card spacing is consistent."""
     cards = _safe_get(probes, "spatial", "card_spacings", default=[])
     if len(cards) < 2:
         return []
     values = [c.get("spacing", 0) for c in cards]
     if len(set(values)) > 2:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="layout",
-            rule="spatial_card_spacing",
-            element="cards",
-            message=f"Inconsistent card spacing: {set(values)}",
-            fix="Use consistent spacing between cards.",
-            metric={"spacings": list(set(values))},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="layout",
+                rule="spatial_card_spacing",
+                element="cards",
+                message=f"Inconsistent card spacing: {set(values)}",
+                fix="Use consistent spacing between cards.",
+                metric={"spacings": list(set(values))},
+            )
+        ]
     return []
 
 
@@ -614,14 +665,17 @@ def _check_responsive_viewport_overflow(
     """Check no horizontal scroll (viewport overflow)."""
     overflow = _safe_get(probes, "layout", "viewport_overflow")
     if overflow:
-        return [UIUXIssue(
-            severity=SEVERITY_ERROR, category="layout",
-            rule="responsive_viewport_overflow",
-            element="body",
-            message="Horizontal scroll detected (viewport overflow)",
-            fix="Prevent content from exceeding viewport width.",
-            metric={"viewport_overflow": True},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_ERROR,
+                category="layout",
+                rule="responsive_viewport_overflow",
+                element="body",
+                message="Horizontal scroll detected (viewport overflow)",
+                fix="Prevent content from exceeding viewport width.",
+                metric={"viewport_overflow": True},
+            )
+        ]
     return []
 
 
@@ -639,14 +693,17 @@ def _check_responsive_touch_target(
         w = btn.get("width", 0)
         h = btn.get("height", 0)
         if w < adjusted_min or h < adjusted_min:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="interaction",
-                rule="responsive_touch_target",
-                element=btn.get("text", "")[:20],
-                message=f"Touch target {w}×{h}px below {adjusted_min:.0f}px",
-                fix="Increase touch target to at least 44×44px.",
-                metric={"width": w, "height": h, "min_required": adjusted_min},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="interaction",
+                    rule="responsive_touch_target",
+                    element=btn.get("text", "")[:20],
+                    message=f"Touch target {w}×{h}px below {adjusted_min:.0f}px",
+                    fix="Increase touch target to at least 44×44px.",
+                    metric={"width": w, "height": h, "min_required": adjusted_min},
+                )
+            )
     return issues
 
 
@@ -660,14 +717,17 @@ def _check_responsive_image_max_width(
     issues = []
     for img in images:
         if not img.get("has_max_width"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="layout",
-                rule="responsive_image_max_width",
-                element=img.get("src", "")[:30],
-                message="Image missing max-width: 100%",
-                fix="Add max-width: 100% to images for responsive layout.",
-                metric={"has_max_width": False},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="layout",
+                    rule="responsive_image_max_width",
+                    element=img.get("src", "")[:30],
+                    message="Image missing max-width: 100%",
+                    fix="Add max-width: 100% to images for responsive layout.",
+                    metric={"has_max_width": False},
+                )
+            )
     return issues
 
 
@@ -680,14 +740,17 @@ def _check_responsive_text_overflow(
         return []
     issues = []
     for el in truncated:
-        issues.append(UIUXIssue(
-            severity=SEVERITY_INFO, category="layout",
-            rule="responsive_text_overflow",
-            element=el.get("tag", "unknown"),
-            message="Text truncation detected",
-            fix="Avoid truncating important text on smaller screens.",
-            metric={"truncated": True},
-        ))
+        issues.append(
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="layout",
+                rule="responsive_text_overflow",
+                element=el.get("tag", "unknown"),
+                message="Text truncation detected",
+                fix="Avoid truncating important text on smaller screens.",
+                metric={"truncated": True},
+            )
+        )
     return issues
 
 
@@ -702,20 +765,21 @@ def _check_responsive_breakpoint_coverage(
     found = set(breakpoints)
     missing = required - found
     if missing:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="layout",
-            rule="responsive_breakpoint_coverage",
-            element="breakpoints",
-            message=f"Missing breakpoints: {missing}",
-            fix="Add responsive breakpoints for sm/md/lg/xl.",
-            metric={"missing": list(missing)},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="layout",
+                rule="responsive_breakpoint_coverage",
+                element="breakpoints",
+                message=f"Missing breakpoints: {missing}",
+                fix="Add responsive breakpoints for sm/md/lg/xl.",
+                metric={"missing": list(missing)},
+            )
+        ]
     return []
 
 
-def _check_responsive_grid_adapt(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_responsive_grid_adapt(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check grid layout adapts to viewport."""
     grids = _safe_get(probes, "responsiveness", "grid_layouts", default=[])
     if not grids:
@@ -723,14 +787,17 @@ def _check_responsive_grid_adapt(
     issues = []
     for grid in grids:
         if not grid.get("has_media_query"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="layout",
-                rule="responsive_grid_adapt",
-                element="grid",
-                message="Grid layout missing media query adaptation",
-                fix="Add media queries to adapt grid columns.",
-                metric={"has_media_query": False},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="layout",
+                    rule="responsive_grid_adapt",
+                    element="grid",
+                    message="Grid layout missing media query adaptation",
+                    fix="Add media queries to adapt grid columns.",
+                    metric={"has_media_query": False},
+                )
+            )
     return issues
 
 
@@ -749,14 +816,17 @@ def _check_interaction_button_min_size(
     issues = []
     for btn in buttons:
         if btn.get("too_small"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="interaction",
-                rule="interaction_button_min_size",
-                element=btn.get("text", "")[:20],
-                message=f"Button {btn.get('width', 0)}×{btn.get('height', 0)}px too small",
-                fix=f"Increase button size to at least {adjusted_min:.0f}×{adjusted_min:.0f}px.",
-                metric={"width": btn.get("width"), "height": btn.get("height")},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="interaction",
+                    rule="interaction_button_min_size",
+                    element=btn.get("text", "")[:20],
+                    message=f"Button {btn.get('width', 0)}×{btn.get('height', 0)}px too small",
+                    fix=f"Increase button size to at least {adjusted_min:.0f}×{adjusted_min:.0f}px.",
+                    metric={"width": btn.get("width"), "height": btn.get("height")},
+                )
+            )
     return issues
 
 
@@ -770,14 +840,17 @@ def _check_interaction_focus_visible(
     issues = []
     for fs in focus_styles:
         if fs.get("outline_removed"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_ERROR, category="interaction",
-                rule="interaction_focus_visible",
-                element=":focus",
-                message="Focus outline removed — keyboard accessibility violation",
-                fix="Don't remove focus outlines; style them instead.",
-                metric={"outline_removed": True},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_ERROR,
+                    category="interaction",
+                    rule="interaction_focus_visible",
+                    element=":focus",
+                    message="Focus outline removed — keyboard accessibility violation",
+                    fix="Don't remove focus outlines; style them instead.",
+                    metric={"outline_removed": True},
+                )
+            )
     return issues
 
 
@@ -791,14 +864,17 @@ def _check_interaction_hover_feedback(
     issues = []
     for el in elements:
         if not el.get("has_hover"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="interaction",
-                rule="interaction_hover_feedback",
-                element=el.get("tag", "unknown"),
-                message="Interactive element missing hover state",
-                fix="Add :hover state for interactive elements.",
-                metric={"has_hover": False},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="interaction",
+                    rule="interaction_hover_feedback",
+                    element=el.get("tag", "unknown"),
+                    message="Interactive element missing hover state",
+                    fix="Add :hover state for interactive elements.",
+                    metric={"has_hover": False},
+                )
+            )
     return issues
 
 
@@ -812,14 +888,17 @@ def _check_interaction_active_state(
     issues = []
     for el in elements:
         if not el.get("has_active"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="interaction",
-                rule="interaction_active_state",
-                element=el.get("tag", "unknown"),
-                message="Interactive element missing :active state",
-                fix="Add :active state for tactile feedback.",
-                metric={"has_active": False},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="interaction",
+                    rule="interaction_active_state",
+                    element=el.get("tag", "unknown"),
+                    message="Interactive element missing :active state",
+                    fix="Add :active state for tactile feedback.",
+                    metric={"has_active": False},
+                )
+            )
     return issues
 
 
@@ -833,14 +912,17 @@ def _check_interaction_disabled_state(
     issues = []
     for el in elements:
         if not el.get("has_disabled_style"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="interaction",
-                rule="interaction_disabled_state",
-                element=el.get("tag", "unknown"),
-                message="Disabled element lacks visual distinction",
-                fix="Style :disabled state with reduced opacity/cursor.",
-                metric={"has_disabled_style": False},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="interaction",
+                    rule="interaction_disabled_state",
+                    element=el.get("tag", "unknown"),
+                    message="Disabled element lacks visual distinction",
+                    fix="Style :disabled state with reduced opacity/cursor.",
+                    metric={"has_disabled_style": False},
+                )
+            )
     return issues
 
 
@@ -854,14 +936,17 @@ def _check_interaction_loading_feedback(
     issues = []
     for op in async_ops:
         if not op.get("has_loading_state"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="interaction",
-                rule="interaction_loading_feedback",
-                element=op.get("action", "unknown"),
-                message="Async operation missing loading feedback",
-                fix="Show loading spinner/skeleton for async operations.",
-                metric={"has_loading_state": False},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="interaction",
+                    rule="interaction_loading_feedback",
+                    element=op.get("action", "unknown"),
+                    message="Async operation missing loading feedback",
+                    fix="Show loading spinner/skeleton for async operations.",
+                    metric={"has_loading_state": False},
+                )
+            )
     return issues
 
 
@@ -874,14 +959,17 @@ def _check_interaction_destructive_confirm(
         return []
     issues = []
     for el in destructive:
-        issues.append(UIUXIssue(
-            severity=SEVERITY_ERROR, category="ux_antipattern",
-            rule="interaction_destructive_confirm",
-            element=el.get("text", "")[:20],
-            message="Destructive action without confirmation dialog",
-            fix="Add confirmation dialog for destructive actions.",
-            metric={"has_confirm": False},
-        ))
+        issues.append(
+            UIUXIssue(
+                severity=SEVERITY_ERROR,
+                category="ux_antipattern",
+                rule="interaction_destructive_confirm",
+                element=el.get("text", "")[:20],
+                message="Destructive action without confirmation dialog",
+                fix="Add confirmation dialog for destructive actions.",
+                metric={"has_confirm": False},
+            )
+        )
     return issues
 
 
@@ -895,24 +983,24 @@ def _check_interaction_form_validation(
     issues = []
     for form in forms:
         if form.get("no_validation"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="ux_antipattern",
-                rule="interaction_form_validation",
-                element=form.get("action", "")[:20],
-                message="Form has inputs but no required fields/validation",
-                fix="Add form validation (required fields, type checks).",
-                metric={"input_count": form.get("input_count"),
-                        "required_count": form.get("required_count")},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="ux_antipattern",
+                    rule="interaction_form_validation",
+                    element=form.get("action", "")[:20],
+                    message="Form has inputs but no required fields/validation",
+                    fix="Add form validation (required fields, type checks).",
+                    metric={"input_count": form.get("input_count"), "required_count": form.get("required_count")},
+                )
+            )
     return issues
 
 
 # ── Motion Rules (5) ──────────────────────────────────────────────────────────
 
 
-def _check_motion_duration_max(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_motion_duration_max(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check animation duration ≤1s."""
     animations = _safe_get(probes, "motion", "animations", default=[])
     if not animations:
@@ -923,14 +1011,17 @@ def _check_motion_duration_max(
     for anim in animations:
         dur = anim.get("duration_ms", 0)
         if dur and dur > adjusted_max:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="interaction",
-                rule="motion_duration_max",
-                element=anim.get("property", "animation"),
-                message=f"Animation duration {dur}ms exceeds {adjusted_max:.0f}ms",
-                fix="Keep animation duration under 1 second.",
-                metric={"duration": dur, "max_recommended": adjusted_max},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="interaction",
+                    rule="motion_duration_max",
+                    element=anim.get("property", "animation"),
+                    message=f"Animation duration {dur}ms exceeds {adjusted_max:.0f}ms",
+                    fix="Keep animation duration under 1 second.",
+                    metric={"duration": dur, "max_recommended": adjusted_max},
+                )
+            )
     return issues
 
 
@@ -946,14 +1037,17 @@ def _check_motion_no_bounce_easing(
     for anim in animations:
         easing = str(anim.get("easing", "")).lower()
         if any(kw in easing for kw in bounce_keywords):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="interaction",
-                rule="motion_no_bounce_easing",
-                element=anim.get("property", "animation"),
-                message=f"Bounce easing detected: {easing}",
-                fix="Avoid bounce/elastic easing; use ease-out instead.",
-                metric={"easing": easing},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="interaction",
+                    rule="motion_no_bounce_easing",
+                    element=anim.get("property", "animation"),
+                    message=f"Bounce easing detected: {easing}",
+                    fix="Avoid bounce/elastic easing; use ease-out instead.",
+                    metric={"easing": easing},
+                )
+            )
     return issues
 
 
@@ -968,14 +1062,17 @@ def _check_motion_no_width_height_anim(
     for anim in animations:
         prop = str(anim.get("property", "")).lower()
         if prop in ("width", "height"):
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="interaction",
-                rule="motion_no_width_height_anim",
-                element=prop,
-                message=f"Animating {prop} causes layout thrashing",
-                fix=f"Use transform: scale() instead of animating {prop}.",
-                metric={"property": prop},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="interaction",
+                    rule="motion_no_width_height_anim",
+                    element=prop,
+                    message=f"Animating {prop} causes layout thrashing",
+                    fix=f"Use transform: scale() instead of animating {prop}.",
+                    metric={"property": prop},
+                )
+            )
     return issues
 
 
@@ -989,32 +1086,36 @@ def _check_motion_no_glassmorphism_overuse(
     base_max = 2.0
     adjusted_max = dials.adjust_threshold("layout_density", base_max)
     if glass > adjusted_max:
-        return [UIUXIssue(
-            severity=SEVERITY_INFO, category="interaction",
-            rule="motion_no_glassmorphism_overuse",
-            element="glassmorphism",
-            message=f"Glassmorphism used {glass} times, max {adjusted_max:.0f}",
-            fix="Limit glassmorphism to ≤2 instances per page.",
-            metric={"count": glass, "max_recommended": adjusted_max},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_INFO,
+                category="interaction",
+                rule="motion_no_glassmorphism_overuse",
+                element="glassmorphism",
+                message=f"Glassmorphism used {glass} times, max {adjusted_max:.0f}",
+                fix="Limit glassmorphism to ≤2 instances per page.",
+                metric={"count": glass, "max_recommended": adjusted_max},
+            )
+        ]
     return []
 
 
-def _check_motion_reduced_motion(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_motion_reduced_motion(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check prefers-reduced-motion is respected."""
     has_animations = bool(_safe_get(probes, "motion", "animations", default=[]))
     has_reduced = _safe_get(probes, "motion", "has_reduced_motion_query")
     if has_animations and has_reduced is False:
-        return [UIUXIssue(
-            severity=SEVERITY_WARNING, category="interaction",
-            rule="motion_reduced_motion",
-            element="@media",
-            message="Animations present but prefers-reduced-motion not handled",
-            fix="Add @media (prefers-reduced-motion: reduce) query.",
-            metric={"has_reduced_motion_query": False},
-        )]
+        return [
+            UIUXIssue(
+                severity=SEVERITY_WARNING,
+                category="interaction",
+                rule="motion_reduced_motion",
+                element="@media",
+                message="Animations present but prefers-reduced-motion not handled",
+                fix="Add @media (prefers-reduced-motion: reduce) query.",
+                metric={"has_reduced_motion_query": False},
+            )
+        ]
     return []
 
 
@@ -1033,14 +1134,17 @@ def _check_ux_button_text_clarity(
     for btn in buttons:
         text = str(btn.get("text", "")).lower().strip()
         if text in vague:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="ux_antipattern",
-                rule="ux_button_text_clarity",
-                element=btn.get("text", "")[:20],
-                message=f"Vague button text: '{text}'",
-                fix="Use action-oriented text (e.g. 'Save Changes', 'Delete Account').",
-                metric={"text": text},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="ux_antipattern",
+                    rule="ux_button_text_clarity",
+                    element=btn.get("text", "")[:20],
+                    message=f"Vague button text: '{text}'",
+                    fix="Use action-oriented text (e.g. 'Save Changes', 'Delete Account').",
+                    metric={"text": text},
+                )
+            )
     return issues
 
 
@@ -1056,20 +1160,21 @@ def _check_ux_error_message_clarity(
     for err in errors:
         text = str(err.get("text", "")).lower().strip()
         if text in unhelpful:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_WARNING, category="ux_antipattern",
-                rule="ux_error_message_clarity",
-                element=err.get("text", "")[:20],
-                message=f"Unhelpful error message: '{text}'",
-                fix="Explain what went wrong and how to fix it.",
-                metric={"text": text},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_WARNING,
+                    category="ux_antipattern",
+                    rule="ux_error_message_clarity",
+                    element=err.get("text", "")[:20],
+                    message=f"Unhelpful error message: '{text}'",
+                    fix="Explain what went wrong and how to fix it.",
+                    metric={"text": text},
+                )
+            )
     return issues
 
 
-def _check_ux_form_label_clarity(
-    probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]
-) -> list[UIUXIssue]:
+def _check_ux_form_label_clarity(probes: dict[str, Any], dials: TasteDials, context: dict[str, Any]) -> list[UIUXIssue]:
     """Check form labels are clear (not just 'Field 1')."""
     inputs = _safe_get(probes, "a11y", "inputs", default=[])
     if not inputs:
@@ -1078,14 +1183,17 @@ def _check_ux_form_label_clarity(
     for inp in inputs:
         label = str(inp.get("label_text", "")).lower().strip()
         if label.startswith("field ") or label in {"input", "text", "value"}:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="ux_antipattern",
-                rule="ux_form_label_clarity",
-                element=inp.get("id", "input"),
-                message=f"Unclear form label: '{label}'",
-                fix="Use descriptive labels (e.g. 'Email Address', not 'Field 1').",
-                metric={"label": label},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="ux_antipattern",
+                    rule="ux_form_label_clarity",
+                    element=inp.get("id", "input"),
+                    message=f"Unclear form label: '{label}'",
+                    fix="Use descriptive labels (e.g. 'Email Address', not 'Field 1').",
+                    metric={"label": label},
+                )
+            )
     return issues
 
 
@@ -1101,14 +1209,17 @@ def _check_ux_link_text_descriptive(
     for link in links:
         text = str(link.get("text", "")).lower().strip()
         if text in vague:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="ux_antipattern",
-                rule="ux_link_text_descriptive",
-                element=link.get("text", "")[:20],
-                message=f"Vague link text: '{text}'",
-                fix="Use descriptive link text (e.g. 'Read API Guide').",
-                metric={"text": text},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="ux_antipattern",
+                    rule="ux_link_text_descriptive",
+                    element=link.get("text", "")[:20],
+                    message=f"Vague link text: '{text}'",
+                    fix="Use descriptive link text (e.g. 'Read API Guide').",
+                    metric={"text": text},
+                )
+            )
     return issues
 
 
@@ -1124,14 +1235,17 @@ def _check_ux_heading_descriptive(
     for h in headings:
         text = str(h.get("text", "")).lower().strip()
         if text in vague:
-            issues.append(UIUXIssue(
-                severity=SEVERITY_INFO, category="ux_antipattern",
-                rule="ux_heading_descriptive",
-                element=f"h{h.get('level', '?')}",
-                message=f"Vague heading: '{text}'",
-                fix="Use descriptive headings that convey content meaning.",
-                metric={"text": text},
-            ))
+            issues.append(
+                UIUXIssue(
+                    severity=SEVERITY_INFO,
+                    category="ux_antipattern",
+                    rule="ux_heading_descriptive",
+                    element=f"h{h.get('level', '?')}",
+                    message=f"Vague heading: '{text}'",
+                    fix="Use descriptive headings that convey content meaning.",
+                    metric={"text": text},
+                )
+            )
     return issues
 
 
@@ -1295,7 +1409,6 @@ class DeterministicRuleEngine:
                 check_fn=_check_typography_text_alignment,
                 fix_hint="Use left-align for body text instead of justify.",
             ),
-
             # ── Color (8) ──
             DesignRule(
                 rule_id="color_contrast_ratio_normal",
@@ -1353,7 +1466,6 @@ class DeterministicRuleEngine:
                 check_fn=_check_color_background_contrast,
                 fix_hint="Increase background-to-content contrast.",
             ),
-
             # ── Spatial Design (6) ──
             DesignRule(
                 rule_id="spatial_4pt_grid",
@@ -1397,7 +1509,6 @@ class DeterministicRuleEngine:
                 check_fn=_check_spatial_card_spacing,
                 fix_hint="Use consistent spacing between cards.",
             ),
-
             # ── Responsiveness (6) ──
             DesignRule(
                 rule_id="responsive_viewport_overflow",
@@ -1441,7 +1552,6 @@ class DeterministicRuleEngine:
                 check_fn=_check_responsive_grid_adapt,
                 fix_hint="Add media queries to adapt grid columns.",
             ),
-
             # ── Interactions (8) ──
             DesignRule(
                 rule_id="interaction_button_min_size",
@@ -1499,7 +1609,6 @@ class DeterministicRuleEngine:
                 check_fn=_check_interaction_form_validation,
                 fix_hint="Add form validation (required fields, type checks).",
             ),
-
             # ── Motion (5) ──
             DesignRule(
                 rule_id="motion_duration_max",
@@ -1536,7 +1645,6 @@ class DeterministicRuleEngine:
                 check_fn=_check_motion_reduced_motion,
                 fix_hint="Add @media (prefers-reduced-motion: reduce) query.",
             ),
-
             # ── UX Writing (5) ──
             DesignRule(
                 rule_id="ux_button_text_clarity",

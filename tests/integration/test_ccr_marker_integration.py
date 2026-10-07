@@ -69,7 +69,7 @@ class TestSmartCrusherCCRMarker(unittest.TestCase):
             # Extract trace_id from marker
             marker_prefix = "trace_id="
             idx = crushed.index(marker_prefix)
-            trace_id = crushed[idx + len(marker_prefix):].split("]")[0].split("\n")[0]
+            trace_id = crushed[idx + len(marker_prefix) :].split("]")[0].split("\n")[0]
             self.assertEqual(store.retrieve(trace_id), original)
 
     def test_no_ccr_store_no_marker(self):
@@ -166,6 +166,7 @@ class TestCCRMarkerRetrievalRoundTrip(unittest.TestCase):
             crushed = crusher.crush(original)
             # Extract trace_id
             import re
+
             match = re.search(r"trace_id=([0-9a-f]+)", crushed)
             self.assertIsNotNone(match, "trace_id not found in crushed output")
             trace_id = match.group(1)
@@ -179,6 +180,7 @@ class TestCCRMarkerRetrievalRoundTrip(unittest.TestCase):
             original = _make_log(200)
             crushed = crusher.crush(original)
             import re
+
             match = re.search(r"trace_id=([0-9a-f]+)", crushed)
             self.assertIsNotNone(match)
             trace_id = match.group(1)
@@ -192,6 +194,7 @@ class TestCCRMarkerRetrievalRoundTrip(unittest.TestCase):
             original = _make_log(200)
             crushed = crusher.crush(original)
             import re
+
             match = re.search(r"trace_id=([0-9a-f]+)", crushed)
             trace_id = match.group(1)
             excerpt = store.retrieve(trace_id, query="ERROR")

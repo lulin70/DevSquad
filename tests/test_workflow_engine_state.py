@@ -35,7 +35,6 @@ from scripts.collaboration.workflow_engine_transition_mixin import (
 pytestmark = pytest.mark.unit
 
 
-
 class _Engine(
     WorkflowEngineLifecycleMixin,
     WorkflowEngineTransitionMixin,

@@ -238,9 +238,7 @@ class RedesignAuditor:
     # Module 6 (Matt P0-3): Deletion Test
     # ------------------------------------------------------------------
 
-    def deletion_test(
-        self, code: str, file_path: str = ""
-    ) -> list[RedesignFinding]:
+    def deletion_test(self, code: str, file_path: str = "") -> list[RedesignFinding]:
         """Run Matt Pocock's deletion test on source code.
 
         For each function/class, asks: "If I delete this, what breaks?"
@@ -293,12 +291,10 @@ class RedesignAuditor:
                         category=self.CATEGORY_DELETION_TEST,
                         current=(
                             f"Function ``{name}`` is a pass-through "
-                            f"(body just delegates to another call)"
-                            + (f" in {file_path}" if file_path else "")
+                            f"(body just delegates to another call)" + (f" in {file_path}" if file_path else "")
                         ),
                         suggested=(
-                            f"Delete ``{name}`` and call the delegated "
-                            f"function directly, or deepen it with real logic"
+                            f"Delete ``{name}`` and call the delegated function directly, or deepen it with real logic"
                         ),
                         saving_lines=body_lines,
                     )
@@ -317,14 +313,8 @@ class RedesignAuditor:
                     RedesignFinding(
                         severity=self.SEVERITY_HIGH,
                         category=self.CATEGORY_DELETION_TEST,
-                        current=(
-                            f"Function/class ``{name}`` is defined but never "
-                            f"referenced in the same file"
-                        ),
-                        suggested=(
-                            f"Delete ``{name}`` if truly unused. "
-                            f"Verify cross-file references before deleting."
-                        ),
+                        current=(f"Function/class ``{name}`` is defined but never referenced in the same file"),
+                        suggested=(f"Delete ``{name}`` if truly unused. Verify cross-file references before deleting."),
                         saving_lines=3,
                     )
                 )
@@ -333,23 +323,15 @@ class RedesignAuditor:
                     RedesignFinding(
                         severity=self.SEVERITY_LOW,
                         category=self.CATEGORY_DELETION_TEST,
-                        current=(
-                            f"Function/class ``{name}`` is called only once "
-                            f"— inlining candidate"
-                        ),
-                        suggested=(
-                            f"Consider inlining ``{name}`` at the call site "
-                            f"to reduce indirection"
-                        ),
+                        current=(f"Function/class ``{name}`` is called only once — inlining candidate"),
+                        suggested=(f"Consider inlining ``{name}`` at the call site to reduce indirection"),
                         saving_lines=2,
                     )
                 )
 
         return findings
 
-    def _is_pass_through(
-        self, node: ast.FunctionDef | ast.AsyncFunctionDef
-    ) -> bool:
+    def _is_pass_through(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         """Check if a function is a pass-through (body just delegates).
 
         A pass-through function has a body consisting of only a docstring
@@ -366,11 +348,7 @@ class RedesignAuditor:
         body = [
             n
             for n in node.body
-            if not (
-                isinstance(n, ast.Expr)
-                and isinstance(n.value, ast.Constant)
-                and isinstance(n.value.value, str)
-            )
+            if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str))
         ]
         if len(body) != 1:
             return False
@@ -409,9 +387,7 @@ class RedesignAuditor:
             "LOW": "#2563eb",
         }
         severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
-        sorted_findings = sorted(
-            findings, key=lambda f: severity_order.get(f.severity, 99)
-        )
+        sorted_findings = sorted(findings, key=lambda f: severity_order.get(f.severity, 99))
 
         rows_html: list[str] = []
         for f in sorted_findings:
@@ -431,10 +407,7 @@ class RedesignAuditor:
         for f in findings:
             by_category[f.category] = by_category.get(f.category, 0) + 1
 
-        summary_items = [
-            f"<li>{escape(cat)}: {count}</li>"
-            for cat, count in sorted(by_category.items())
-        ]
+        summary_items = [f"<li>{escape(cat)}: {count}</li>" for cat, count in sorted(by_category.items())]
 
         return (
             "<!DOCTYPE html>\n"
@@ -463,9 +436,7 @@ class RedesignAuditor:
             "<th>Severity</th><th>Category</th><th>Current</th>"
             "<th>Suggested</th><th>Lines Saved</th>"
             "</tr></thead>\n"
-            "<tbody>\n"
-            + "\n".join(rows_html)
-            + "\n</tbody>\n"
+            "<tbody>\n" + "\n".join(rows_html) + "\n</tbody>\n"
             "</table>\n"
             "</body>\n"
             "</html>"

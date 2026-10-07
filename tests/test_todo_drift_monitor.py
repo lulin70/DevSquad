@@ -170,9 +170,7 @@ class TestScanTechDebt:
         # The tests/test_something.py TODO should not appear — check path
         # components, not substring (tmp_path may contain "tests" in its name)
         for e in entries:
-            assert "tests" not in Path(e.file_path).parts, (
-                f"Excluded file leaked into scan results: {e.file_path}"
-            )
+            assert "tests" not in Path(e.file_path).parts, f"Excluded file leaked into scan results: {e.file_path}"
 
     def test_entries_sorted_by_file_and_line(self, sample_source_tree: Path) -> None:
         entries = scan_tech_debt(sample_source_tree)
@@ -219,10 +217,7 @@ class TestScanTechDebt:
         root = tmp_path / "scripts"
         root.mkdir()
         (root / "strings.py").write_text(
-            'x = "## Todo Drift Report"\n'
-            'y = "# TODO: not a real comment"\n'
-            '# TODO: real comment\n'
-            'z = 1\n',
+            'x = "## Todo Drift Report"\ny = "# TODO: not a real comment"\n# TODO: real comment\nz = 1\n',
             encoding="utf-8",
         )
         entries = scan_tech_debt(root)
@@ -241,9 +236,7 @@ class TestScanTechDebt:
         root = tmp_path / "scripts"
         root.mkdir()
         (root / "descriptive.py").write_text(
-            '# TODO/FIXME/HACK comments\n'
-            '# Detect TODO/FIXME in source code\n'
-            '# TODO: real marker\n',
+            "# TODO/FIXME/HACK comments\n# Detect TODO/FIXME in source code\n# TODO: real marker\n",
             encoding="utf-8",
         )
         entries = scan_tech_debt(root)
@@ -267,21 +260,16 @@ class TestScanTechDebt:
 
 
 class TestDiffWithTracker:
-    def test_identifies_new_unregistered(
-        self, sample_source_tree: Path, tracker_with_a_registered: Path
-    ) -> None:
+    def test_identifies_new_unregistered(self, sample_source_tree: Path, tracker_with_a_registered: Path) -> None:
         entries = scan_tech_debt(sample_source_tree)
         report = diff_with_tracker(entries, tracker_with_a_registered)
         # module_a.py:1 is registered; the rest are new
         assert len(report.new_unregistered) >= 4
         assert all(
-            e.file_path != f"{sample_source_tree}/module_a.py" or e.line_number != 1
-            for e in report.new_unregistered
+            e.file_path != f"{sample_source_tree}/module_a.py" or e.line_number != 1 for e in report.new_unregistered
         )
 
-    def test_registered_count_matches_tracker(
-        self, sample_source_tree: Path, tracker_with_a_registered: Path
-    ) -> None:
+    def test_registered_count_matches_tracker(self, sample_source_tree: Path, tracker_with_a_registered: Path) -> None:
         entries = scan_tech_debt(sample_source_tree)
         report = diff_with_tracker(entries, tracker_with_a_registered)
         # Tracker has 1 registered location
@@ -293,8 +281,7 @@ class TestDiffWithTracker:
         # Add a tracker entry for a location that doesn't exist in source
         tracker = tracker_with_a_registered
         tracker.write_text(
-            tracker.read_text(encoding="utf-8")
-            + f"\n## TD-999\n- Location: {sample_source_tree}/nonexistent.py:42\n",
+            tracker.read_text(encoding="utf-8") + f"\n## TD-999\n- Location: {sample_source_tree}/nonexistent.py:42\n",
             encoding="utf-8",
         )
         entries = scan_tech_debt(sample_source_tree)
@@ -306,9 +293,7 @@ class TestDiffWithTracker:
         with pytest.raises(FileNotFoundError, match="Tech debt tracker not found"):
             diff_with_tracker(entries, tmp_path / "missing.md")
 
-    def test_empty_diff_when_all_registered(
-        self, sample_source_tree: Path, tmp_path: Path
-    ) -> None:
+    def test_empty_diff_when_all_registered(self, sample_source_tree: Path, tmp_path: Path) -> None:
         # Register every marker found in the source tree
         entries = scan_tech_debt(sample_source_tree)
         tracker = tmp_path / "TECH_DEBT.md"
@@ -400,12 +385,8 @@ class TestMainIntegration:
         captured = capsys.readouterr()
         assert "new unregistered" in captured.out
 
-    def test_main_returns_2_on_missing_tracker(
-        self, sample_source_tree: Path, tmp_path: Path, capsys
-    ) -> None:
-        exit_code = main(
-            ["--root", str(sample_source_tree), "--tracker", str(tmp_path / "missing.md")]
-        )
+    def test_main_returns_2_on_missing_tracker(self, sample_source_tree: Path, tmp_path: Path, capsys) -> None:
+        exit_code = main(["--root", str(sample_source_tree), "--tracker", str(tmp_path / "missing.md")])
         assert exit_code == 2
         captured = capsys.readouterr()
         assert "ERROR" in captured.err
@@ -415,22 +396,32 @@ class TestMainIntegration:
         assert exit_code == 2
 
     def test_main_json_output(self, sample_source_tree: Path, tracker_with_a_registered: Path, capsys) -> None:
-        main([
-            "--root", str(sample_source_tree),
-            "--tracker", str(tracker_with_a_registered),
-            "--format", "json",
-        ])
+        main(
+            [
+                "--root",
+                str(sample_source_tree),
+                "--tracker",
+                str(tracker_with_a_registered),
+                "--format",
+                "json",
+            ]
+        )
         captured = capsys.readouterr()
         data = json.loads(captured.out)
         assert "new_unregistered" in data
         assert "scanned_files" in data
 
     def test_main_markdown_output(self, sample_source_tree: Path, tracker_with_a_registered: Path, capsys) -> None:
-        main([
-            "--root", str(sample_source_tree),
-            "--tracker", str(tracker_with_a_registered),
-            "--format", "markdown",
-        ])
+        main(
+            [
+                "--root",
+                str(sample_source_tree),
+                "--tracker",
+                str(tracker_with_a_registered),
+                "--format",
+                "markdown",
+            ]
+        )
         captured = capsys.readouterr()
         assert "## Todo Drift Report" in captured.out
 
@@ -443,9 +434,7 @@ class TestMainIntegration:
 class TestPreCommitHookIntegration:
     """Simulate the pre-commit hook behavior — blocking new TODOs."""
 
-    def test_blocks_commit_with_new_todo(
-        self, sample_source_tree: Path, tracker_with_a_registered: Path
-    ) -> None:
+    def test_blocks_commit_with_new_todo(self, sample_source_tree: Path, tracker_with_a_registered: Path) -> None:
         """If scan finds new markers, pre-commit hook must block (exit 1)."""
         entries = scan_tech_debt(sample_source_tree)
         report = diff_with_tracker(entries, tracker_with_a_registered)
@@ -453,9 +442,7 @@ class TestPreCommitHookIntegration:
         # main() should return 1 — pre-commit interprets non-zero as block
         assert main(["--root", str(sample_source_tree), "--tracker", str(tracker_with_a_registered)]) == 1
 
-    def test_allows_commit_when_all_registered(
-        self, sample_source_tree: Path, tracker_with_a_registered: Path
-    ) -> None:
+    def test_allows_commit_when_all_registered(self, sample_source_tree: Path, tracker_with_a_registered: Path) -> None:
         """If all markers are registered, pre-commit hook allows (exit 0)."""
         entries = scan_tech_debt(sample_source_tree)
         tracker = tracker_with_a_registered

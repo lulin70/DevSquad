@@ -93,7 +93,7 @@ class CodeGraphStorage:
         with self._lock:
             cur = self._conn.cursor()
             cur.executescript(
-            """
+                """
             CREATE TABLE IF NOT EXISTS symbols (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -259,10 +259,7 @@ class CodeGraphStorage:
             return 0
         with self._lock:
             cur = self._conn.cursor()
-            rows = [
-                (e.caller, e.callee, e.file_path, e.line)
-                for e in edges
-            ]
+            rows = [(e.caller, e.callee, e.file_path, e.line) for e in edges]
             cur.executemany(
                 """
                 INSERT INTO edges (edge_type, source, target, file_path, line, import_type)

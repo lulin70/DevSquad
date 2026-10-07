@@ -27,9 +27,7 @@ def _read_text(rel_path: str) -> str:
 def test_version_file_matches_package_version():
     """根目录 VERSION 文件中的版本号必须与 _version.py 一致。"""
     version_text = _read_text("VERSION").strip()
-    assert version_text == __version__, (
-        f"VERSION file ({version_text}) does not match package version ({__version__})"
-    )
+    assert version_text == __version__, f"VERSION file ({version_text}) does not match package version ({__version__})"
 
 
 def test_pyproject_version_matches_package_version():
@@ -45,39 +43,31 @@ def test_pyproject_version_matches_package_version():
 def test_readme_contains_package_version():
     """README.md 必须包含当前版本号。"""
     readme_text = _read_text("README.md")
-    assert __version__ in readme_text, (
-        f"README.md does not contain version {__version__}"
-    )
+    assert __version__ in readme_text, f"README.md does not contain version {__version__}"
 
 
 def test_skill_doc_contains_package_version():
     """SKILL.md 必须包含当前版本号。"""
     skill_text = _read_text("SKILL.md")
-    assert __version__ in skill_text, (
-        f"SKILL.md does not contain version {__version__}"
-    )
+    assert __version__ in skill_text, f"SKILL.md does not contain version {__version__}"
 
 
 def test_changelog_contains_package_version():
     """CHANGELOG.md 必须包含当前版本号的最新条目。"""
     changelog_text = _read_text("CHANGELOG.md")
-    assert __version__ in changelog_text, (
-        f"CHANGELOG.md does not contain version {__version__}"
-    )
+    assert __version__ in changelog_text, f"CHANGELOG.md does not contain version {__version__}"
 
 
 def test_dockerfile_label_uses_package_version():
     """Dockerfile 中的版本标签必须与当前版本号一致。"""
     dockerfile_text = _read_text("Dockerfile")
-    assert __version__ in dockerfile_text, (
-        f"Dockerfile does not contain version {__version__}"
-    )
+    assert __version__ in dockerfile_text, f"Dockerfile does not contain version {__version__}"
 
 
 def test_skill_manifest_uses_package_version():
     """skill-manifest.yaml 中的版本号必须与 _version.py 一致。"""
     manifest_text = _read_text("skill-manifest.yaml")
-    match = re.search(r'^version:\s*([0-9.]+)', manifest_text, re.MULTILINE)
+    match = re.search(r"^version:\s*([0-9.]+)", manifest_text, re.MULTILINE)
     assert match, "Could not find version in skill-manifest.yaml"
     assert match.group(1) == __version__, (
         f"skill-manifest.yaml version ({match.group(1)}) does not match package version ({__version__})"

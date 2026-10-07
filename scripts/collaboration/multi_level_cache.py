@@ -71,6 +71,7 @@ class LevelStats:
 @dataclass
 class NullValue:
     """Sentinel for null values to prevent cache penetration"""
+
     pass  # intentional no-op: marker class with no behavior
 
 
@@ -289,8 +290,7 @@ class MultiLevelCacheCoordinator:
         self._null_keys: dict[str, float] = {}
 
         logger.info(
-            "MultiLevelCacheCoordinator initialized: "
-            "L1=%s, L2=%s, L3=%s",
+            "MultiLevelCacheCoordinator initialized: L1=%s, L2=%s, L3=%s",
             "enabled" if self.l1 else "disabled",
             "enabled" if self.l2 else "disabled",
             "configured" if self.l3_fallback else "not configured",
@@ -302,6 +302,7 @@ class MultiLevelCacheCoordinator:
             return None
 
         import random
+
         jitter = int(ttl * self.ttl_jitter_range * (random.random() * 2 - 1))
         return max(1, ttl + jitter)
 
@@ -551,7 +552,7 @@ class MultiLevelCacheCoordinator:
             return count
 
         # Try to scan L2 if it supports it
-        if hasattr(self.l2, 'scan_keys'):
+        if hasattr(self.l2, "scan_keys"):
             try:
                 keys = await self.l2.scan_keys(pattern)
                 for key in keys:
@@ -599,9 +600,7 @@ class MultiLevelCacheCoordinator:
         total_ops = self.l1_stats.operations + self.l2_stats.operations + self.l3_stats.operations
         if total_ops > 0:
             total_latency = (
-                self.l1_stats.total_latency_ms +
-                self.l2_stats.total_latency_ms +
-                self.l3_stats.total_latency_ms
+                self.l1_stats.total_latency_ms + self.l2_stats.total_latency_ms + self.l3_stats.total_latency_ms
             )
             avg_latency = total_latency / total_ops
 
@@ -735,10 +734,12 @@ async def test_multi_level_cache() -> bool:
     except (AssertionError, RuntimeError, ValueError, KeyError, OSError, AttributeError) as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(test_multi_level_cache())

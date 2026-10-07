@@ -36,9 +36,7 @@ from scripts.check_test_pyramid import (
 
 def _make_test_file(path: Path, test_names: tuple[str, ...] = ("test_a",)) -> None:
     """Create a minimal test file with the given test function names."""
-    funcs = "\n".join(
-        f"def {name}():\n    pass\n" for name in test_names
-    )
+    funcs = "\n".join(f"def {name}():\n    pass\n" for name in test_names)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(funcs, encoding="utf-8")
 
@@ -171,9 +169,7 @@ class T5_CountTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             f = Path(tmpdir) / "test_x.py"
             f.write_text(
-                "def test_a():\n    pass\n"
-                "def test_b():\n    pass\n"
-                "def helper():\n    pass\n",
+                "def test_a():\n    pass\ndef test_b():\n    pass\ndef helper():\n    pass\n",
                 encoding="utf-8",
             )
             self.assertEqual(self.analyzer._count_tests(f), 2)
@@ -183,8 +179,7 @@ class T5_CountTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             f = Path(tmpdir) / "test_async.py"
             f.write_text(
-                "async def test_async_a():\n    pass\n"
-                "async def test_async_b():\n    pass\n",
+                "async def test_async_a():\n    pass\nasync def test_async_b():\n    pass\n",
                 encoding="utf-8",
             )
             self.assertEqual(self.analyzer._count_tests(f), 2)
@@ -350,8 +345,7 @@ class T8_FormatReport(unittest.TestCase):
         report = PyramidReport(
             total_tests=100,
             total_files=10,
-            layers=[LayerStats(layer=layer, file_count=1, test_count=10, ratio=0.1)
-                    for layer in LAYER_ORDER],
+            layers=[LayerStats(layer=layer, file_count=1, test_count=10, ratio=0.1) for layer in LAYER_ORDER],
         )
         text = format_report(report)
         for layer in LAYER_ORDER:
@@ -432,6 +426,7 @@ class T9_MainCLI(unittest.TestCase):
             with mock.patch("sys.argv", ["check_test_pyramid.py", str(tests_dir), "--json"]):
                 import io
                 from contextlib import redirect_stdout
+
                 buf = io.StringIO()
                 with redirect_stdout(buf):
                     exit_code = main()

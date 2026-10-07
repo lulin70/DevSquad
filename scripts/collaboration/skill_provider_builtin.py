@@ -146,9 +146,7 @@ class BuiltinSkillProvider:
             return self._get_builtin_instance(name)
         except ValueError:
             available = sorted(set(self._extra.keys()) | set(self._list_builtin_skills()))
-            raise ValueError(
-                f"Skill '{name}' not found. Available: {available}"
-            ) from None
+            raise ValueError(f"Skill '{name}' not found. Available: {available}") from None
 
 
 __version__ = "1.0.0"

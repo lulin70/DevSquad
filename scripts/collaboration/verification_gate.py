@@ -231,7 +231,9 @@ class VerificationGate:
         """Check which mandatory evidence items are missing."""
         missing = []
         for item in self.MANDATORY_EVIDENCE:
-            if (item.required or item.required_for and context.role_id in item.required_for) and item.key not in context.evidence:
+            if (
+                item.required or item.required_for and context.role_id in item.required_for
+            ) and item.key not in context.evidence:
                 missing.append(item)
         return missing
 

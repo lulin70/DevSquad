@@ -98,9 +98,7 @@ class TestV43CachePickleMigrationJourney:
         """E2E 安全断言：cache_interface.py 源码中不应再 import pickle。"""
         src_path = _PROJECT_ROOT / "scripts" / "collaboration" / "cache_interface.py"
         source = src_path.read_text(encoding="utf-8")
-        assert "import pickle" not in source, (
-            "cache_interface.py 不应再 import pickle（P2-1 已完全移除 fallback）"
-        )
+        assert "import pickle" not in source, "cache_interface.py 不应再 import pickle（P2-1 已完全移除 fallback）"
 
 
 class TestV43PonytailModeSwitchJourney:
@@ -321,9 +319,7 @@ class TestV43MultiRoleCollaborationJourney:
         # V4.3.0 仓库应保持技术债基线干净（允许有已登记的，但不应有大量未登记）
         assert isinstance(entries, list)
         # 总数应在合理范围（<200，过滤后真实 TODO/FIXME/HACK/XXX/WIP）
-        assert len(entries) < 200, (
-            f"扫描到 {len(entries)} 个标记，疑似未过滤的误报，请检查 regex"
-        )
+        assert len(entries) < 200, f"扫描到 {len(entries)} 个标记，疑似未过滤的误报，请检查 regex"
 
     def test_v43_modules_importable(self) -> None:
         """用户可导入所有 V4.3.0 新模块（无幽灵功能、无 import 错误）。"""
@@ -347,6 +343,7 @@ class TestV43MultiRoleCollaborationJourney:
         # Read canonical version from _version.py (single source of truth)
         version_py = (_PROJECT_ROOT / "scripts" / "collaboration" / "_version.py").read_text()
         import re
+
         version_match = re.search(r'^__version__\s*=\s*"(\d+\.\d+\.\d+)"', version_py, re.MULTILINE)
         assert version_match is not None, "_version.py must define __version__"
         current_version = version_match.group(1)

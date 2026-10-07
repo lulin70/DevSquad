@@ -34,6 +34,7 @@ Usage::
 
     # Integrated mode (with AuthManager)
     from scripts.auth import AuthManager
+
     auth = AuthManager(config_path="config/deployment.yaml")
     rbac = DispatchRBAC(auth_manager=auth)
     result = rbac.check_dispatch_permission("admin", ["coder"], "parallel")
@@ -100,7 +101,7 @@ class DispatchRBAC:
     }
 
     # All valid dispatch modes (from SKILL.md dispatch mode table).
-    ALL_DISPATCH_MODES: set[str] = {"auto", "parallel", "sequential", "consensus"}
+    ALL_DISPATCH_MODES: set[str] = {"auto", "parallel", "sequential", "consensus", "review"}
 
     # Mapping from CLI short IDs to full role IDs (from SKILL.md).
     ROLE_ALIASES: dict[str, str] = {
@@ -124,7 +125,7 @@ class DispatchRBAC:
         ),
         "operator": (
             ALL_DISPATCH_ROLES - {"security"},
-            {"auto", "parallel", "sequential"},
+            {"auto", "parallel", "sequential", "review"},
         ),
         "viewer": (
             {"architect", "product-manager", "ui-designer"},
@@ -165,7 +166,7 @@ class DispatchRBAC:
         roles:
             List of dispatch role IDs requested (e.g. ``["architect", "coder"]``).
         mode:
-            Dispatch mode (one of auto/parallel/sequential/consensus).
+            Dispatch mode (one of auto/parallel/sequential/consensus/review).
 
         Returns
         -------
@@ -187,10 +188,7 @@ class DispatchRBAC:
                     requested_roles=list(roles),
                     requested_mode=mode,
                 )
-            logger.warning(
-                "DispatchRBAC running in OPEN mode (no AuthManager configured) "
-                "— all operations allowed"
-            )
+            logger.warning("DispatchRBAC running in OPEN mode (no AuthManager configured) — all operations allowed")
             return PermissionResult(
                 allowed=True,
                 reason="No RBAC configured (open mode)",
@@ -229,10 +227,7 @@ class DispatchRBAC:
             if normalized_role not in allowed_roles:
                 return PermissionResult(
                     allowed=False,
-                    reason=(
-                        f"User '{user_id}' (role={user_role}) is not permitted "
-                        f"to dispatch with role '{role}'"
-                    ),
+                    reason=(f"User '{user_id}' (role={user_role}) is not permitted to dispatch with role '{role}'"),
                     user_id=user_id,
                     requested_roles=list(roles),
                     requested_mode=mode,
@@ -242,10 +237,7 @@ class DispatchRBAC:
         if mode not in allowed_modes:
             return PermissionResult(
                 allowed=False,
-                reason=(
-                    f"User '{user_id}' (role={user_role}) is not permitted "
-                    f"to use dispatch mode '{mode}'"
-                ),
+                reason=(f"User '{user_id}' (role={user_role}) is not permitted to use dispatch mode '{mode}'"),
                 user_id=user_id,
                 requested_roles=list(roles),
                 requested_mode=mode,

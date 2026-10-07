@@ -20,7 +20,6 @@ from scripts.collaboration.workflow_engine import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestCheckpointManager:
     def setup_method(self):
         self.tmpdir = tempfile.mkdtemp()

@@ -120,8 +120,7 @@ PONYTAIL_RED_LINES_LITE: tuple[str, ...] = (
     "RL-05: Use already-installed dependencies.",
     "RL-06: Make it one line if possible.",
     "RL-07: Write the minimum code/doc that works.",
-    "RL-12: Never skip input validation, error handling, security, "
-    "accessibility, or explicitly requested items.",
+    "RL-12: Never skip input validation, error handling, security, accessibility, or explicitly requested items.",
 )
 
 # V4.3.0 P1-1: Supported modes. ``ultra`` is intentionally absent — it was
@@ -188,10 +187,7 @@ class PonytailRuleInjector:
         configured_mode = qc.get("ponytail_mode", "full")
         self._mode = mode if mode is not None else configured_mode
         if self._mode not in _SUPPORTED_MODES:
-            raise ValueError(
-                f"Unsupported ponytail_mode: {self._mode!r}. "
-                f"Supported: {_SUPPORTED_MODES}"
-            )
+            raise ValueError(f"Unsupported ponytail_mode: {self._mode!r}. Supported: {_SUPPORTED_MODES}")
 
     @property
     def enabled(self) -> bool:
@@ -211,9 +207,7 @@ class PonytailRuleInjector:
     @property
     def red_lines(self) -> tuple[str, ...]:
         """Red lines for the active mode (8 for lite, 16 for full)."""
-        return (
-            PONYTAIL_RED_LINES_LITE if self._mode == "lite" else PONYTAIL_RED_LINES
-        )
+        return PONYTAIL_RED_LINES_LITE if self._mode == "lite" else PONYTAIL_RED_LINES
 
     def build_injection(self, mode: str | None = None) -> str:
         """Build the ponytail rule injection text.
@@ -231,15 +225,10 @@ class PonytailRuleInjector:
         if not self._enabled:
             return ""
         active_mode = self._resolve_mode(mode)
-        rules_text = (
-            PONYTAIL_RULES_LITE if active_mode == "lite" else PONYTAIL_RULES
-        )
+        rules_text = PONYTAIL_RULES_LITE if active_mode == "lite" else PONYTAIL_RULES
         parts = [rules_text]
         if not self._markers:
-            parts.append(
-                "(Note: `ponytail:` markers are disabled in config; "
-                "do not add them to output.)"
-            )
+            parts.append("(Note: `ponytail:` markers are disabled in config; do not add them to output.)")
         return "\n".join(parts)
 
     def _resolve_mode(self, mode: str | None) -> str:
@@ -257,10 +246,7 @@ class PonytailRuleInjector:
         if mode is None:
             return self._mode
         if mode not in _SUPPORTED_MODES:
-            raise ValueError(
-                f"Unsupported ponytail mode: {mode!r}. "
-                f"Supported: {_SUPPORTED_MODES}"
-            )
+            raise ValueError(f"Unsupported ponytail mode: {mode!r}. Supported: {_SUPPORTED_MODES}")
         return mode
 
     def check_red_line_violation(self, content: str) -> list[str]:
@@ -278,8 +264,7 @@ class PonytailRuleInjector:
             Empty list if no violations detected.
 
         Example:
-            >>> injector = PonytailRuleInjector(
-            ...     {"quality_control": {"minimal_implementation": True}})
+            >>> injector = PonytailRuleInjector({"quality_control": {"minimal_implementation": True}})
             >>> injector.check_red_line_violation("let's skip input validation")
             ['RL-12']
         """

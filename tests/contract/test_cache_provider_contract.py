@@ -313,6 +313,7 @@ class TestLLMCacheExtendedContract(unittest.TestCase):
         import time
 
         from scripts.collaboration.llm_cache import CacheEntry
+
         entry = CacheEntry(
             prompt_hash="test",
             response="resp",
@@ -334,6 +335,7 @@ class TestLLMCacheExtendedContract(unittest.TestCase):
     def test_ttl_expiration_with_short_ttl(self):
         """Entries should expire when cache is configured with short TTL."""
         import time
+
         provider = LLMCache(cache_dir=self._tmp_dir, ttl_seconds=1)
         provider.set("ttl-prompt", "ttl-response", "openai", "gpt-4")
         self.assertEqual(provider.get("ttl-prompt", "openai", "gpt-4"), "ttl-response")
@@ -478,8 +480,7 @@ class T6_CacheProviderStressContract(unittest.TestCase):
         for i, prompt in enumerate(special_prompts):
             resp = f"special-resp-{i}"
             provider.set(prompt, resp, "openai", "gpt-4")
-            self.assertEqual(provider.get(prompt, "openai", "gpt-4"), resp,
-                             f"Round-trip failed for prompt {i!r}")
+            self.assertEqual(provider.get(prompt, "openai", "gpt-4"), resp, f"Round-trip failed for prompt {i!r}")
 
     def test_invalidate_nonexistent_key_no_exception(self) -> None:
         """invalidate() on a non-existent key must not raise.

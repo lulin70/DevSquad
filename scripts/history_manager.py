@@ -257,7 +257,10 @@ class HistoryManager:
             return False
 
     def get_metrics_history(
-        self, hours: int = 24, interval_minutes: int = 60, include_custom: bool = False  # noqa: ARG002
+        self,
+        hours: int = 24,
+        interval_minutes: int = 60,  # noqa: ARG002
+        include_custom: bool = False,  # noqa: ARG002
     ) -> list[dict[str, Any]]:
         """
         Retrieve metrics history.

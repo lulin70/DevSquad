@@ -146,16 +146,20 @@ def _determine_signal_strength(
         (signal_strength, conclusion_text)
     """
     if not gate_passed:
-        return ("calibration_failed",
-                "Gate 0 calibration failed. Scoring instruments cannot "
-                "reliably distinguish output quality levels. Slice 1 skipped. "
-                "Recommendation: improve scoring instruments before re-evaluating.")
+        return (
+            "calibration_failed",
+            "Gate 0 calibration failed. Scoring instruments cannot "
+            "reliably distinguish output quality levels. Slice 1 skipped. "
+            "Recommendation: improve scoring instruments before re-evaluating.",
+        )
 
     if llm_skipped:
-        return ("noise",
-                "LLM arm skipped (no API key). Only frozen_mock vs "
-                "role_specific_mock compared. Cannot assess LLM vs Mock gap. "
-                "Recommendation: re-run with API key for full comparison.")
+        return (
+            "noise",
+            "LLM arm skipped (no API key). Only frozen_mock vs "
+            "role_specific_mock compared. Cannot assess LLM vs Mock gap. "
+            "Recommendation: re-run with API key for full comparison.",
+        )
 
     # Collect per-task deltas: llm_mean - max(mock_means)
     deltas: list[float] = []
@@ -194,7 +198,9 @@ def _determine_signal_strength(
     if strength == "significant":
         conclusion += "LLM provides substantial quality advantage. Recommend full comparison in V4.5.0."
     elif strength == "marginal":
-        conclusion += "LLM provides modest advantage. Recommend targeted LLM-as-judge evaluation before full investment."
+        conclusion += (
+            "LLM provides modest advantage. Recommend targeted LLM-as-judge evaluation before full investment."
+        )
     else:
         conclusion += "LLM advantage is within noise band. DevSquad may not need LLM for typical tasks."
 

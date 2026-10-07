@@ -217,9 +217,7 @@ class TestInit:
         worker = _make_worker()
         # execution_guard is None (if execution_guard module unavailable)
         # or an ExecutionGuard instance exposing check_abort interface
-        assert worker.execution_guard is None or hasattr(
-            worker.execution_guard, "check_abort"
-        )
+        assert worker.execution_guard is None or hasattr(worker.execution_guard, "check_abort")
 
 
 # ---------------------------------------------------------------------------
@@ -384,7 +382,12 @@ class TestInjectRules:
 
     def test_match_rules_success(self):
         rules = [
-            {"rule_type": "always", "trigger": "database", "action": "Always validate database migrations before deployment", "rule_id": "r1"},
+            {
+                "rule_type": "always",
+                "trigger": "database",
+                "action": "Always validate database migrations before deployment",
+                "rule_id": "r1",
+            },
         ]
         memory = StubMemoryProvider(available=True, rules=rules, use_match=True)
         worker = _make_worker(memory_provider=memory)
@@ -397,7 +400,11 @@ class TestInjectRules:
         memory = StubMemoryProvider(
             available=True,
             rules=[
-                {"rule_type": "always", "trigger": "code review", "action": "Always perform code review before merging"},
+                {
+                    "rule_type": "always",
+                    "trigger": "code review",
+                    "action": "Always perform code review before merging",
+                },
             ],
             use_match=False,
         )
@@ -409,7 +416,12 @@ class TestInjectRules:
 
     def test_rules_applied_tracked(self):
         rules = [
-            {"rule_type": "always", "trigger": "testing", "action": "Always write unit tests for new functions", "rule_id": "r1"},
+            {
+                "rule_type": "always",
+                "trigger": "testing",
+                "action": "Always write unit tests for new functions",
+                "rule_id": "r1",
+            },
         ]
         memory = StubMemoryProvider(available=True, rules=rules)
         worker = _make_worker(memory_provider=memory)
@@ -453,7 +465,13 @@ class TestValidateInjectedRules:
     def test_unicode_normalization(self):
         worker = _make_worker()
         worker._validator = None
-        rules = [{"rule_type": "always", "trigger": "ｄａｔａｂａｓｅ", "action": "Always validate ｄａｔａｂａｓｅ migrations"}]
+        rules = [
+            {
+                "rule_type": "always",
+                "trigger": "ｄａｔａｂａｓｅ",
+                "action": "Always validate ｄａｔａｂａｓｅ migrations",
+            }
+        ]
         result = worker._validate_injected_rules(rules)
         assert result[0]["trigger"] == "database"
 
@@ -467,9 +485,7 @@ class TestCheckForbidViolations:
     def test_no_forbid_rules_returns_empty(self):
         worker = _make_worker()
         worker._injected_rules = [{"rule_type": "always", "trigger": "x", "action": "y"}]
-        result = WorkerResult(
-            worker_id="w1", task_id="t1", success=True, output="some output"
-        )
+        result = WorkerResult(worker_id="w1", task_id="t1", success=True, output="some output")
         violations = worker._check_forbid_violations(result)
         assert violations == []
 
@@ -478,9 +494,7 @@ class TestCheckForbidViolations:
         worker._injected_rules = [
             {"rule_type": "forbid", "trigger": "secret", "action": "never output secret", "rule_id": "f1"},
         ]
-        result = WorkerResult(
-            worker_id="w1", task_id="t1", success=True, output="this contains secret data"
-        )
+        result = WorkerResult(worker_id="w1", task_id="t1", success=True, output="this contains secret data")
         violations = worker._check_forbid_violations(result)
         assert len(violations) == 1
         assert violations[0]["rule_id"] == "f1"
@@ -490,9 +504,7 @@ class TestCheckForbidViolations:
         worker._injected_rules = [
             {"rule_type": "forbid", "trigger": "", "action": "a", "rule_id": "f1"},
         ]
-        result = WorkerResult(
-            worker_id="w1", task_id="t1", success=True, output="some output"
-        )
+        result = WorkerResult(worker_id="w1", task_id="t1", success=True, output="some output")
         violations = worker._check_forbid_violations(result)
         assert violations == []
 
@@ -507,9 +519,7 @@ class TestCheckForbidViolations:
                 "override": True,
             },
         ]
-        result = WorkerResult(
-            worker_id="w1", task_id="t1", success=True, output="this is bad"
-        )
+        result = WorkerResult(worker_id="w1", task_id="t1", success=True, output="this is bad")
         violations = worker._check_forbid_violations(result)
         assert violations[0]["severity"] == "high"
 

@@ -270,9 +270,7 @@ class TestEffectRegistryThreadSafetyContract:
                 with tempfile.NamedTemporaryFile(delete=False) as t:
                     t.write(b"x")
                     path = t.name
-                ctx = EffectContext(
-                    f"e{i}", "write_file", {"path": path, "content": "x"}
-                )
+                ctx = EffectContext(f"e{i}", "write_file", {"path": path, "content": "x"})
                 registry.apply(WriteFileEffect(), ctx)
             except Exception as e:  # noqa: BLE001
                 errors.append(e)

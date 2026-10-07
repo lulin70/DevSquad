@@ -421,9 +421,11 @@ class TestExecuteBatchSequential:
         task = TaskDefinition(description="task", role_id="nonexistent", role_prompt="p")
         batch = TaskBatch(mode=BatchMode.SERIAL, tasks=[task], max_concurrency=1)
         results, errors = await coord._execute_batch(batch)
-        # With no worker, results empty and errors empty (worker not found path)
-        assert isinstance(results, list)
-        assert isinstance(errors, list)
+        assert len(results) == 1
+        assert results[0].success is False
+        assert results[0].worker_id == "nonexistent-missing"
+        assert results[0].error == "No worker found for task"
+        assert errors == []
 
 
 # ---------------------------------------------------------------------------
@@ -449,6 +451,45 @@ class TestExecuteParallelAsync:
         assert results == []
 
     @pytest.mark.asyncio
+    async def test_execute_plan_marks_partial_failure_and_counts_each_failed_task(self):
+        coord = _make_coordinator()
+
+        class FailingWorker(Worker):
+            def execute(self, _task):
+                raise RuntimeError("same failure")
+
+        plan = ExecutionPlan(
+            batches=[
+                TaskBatch(
+                    mode=BatchMode.PARALLEL,
+                    tasks=[
+                        TaskDefinition(description="one", role_id="architect"),
+                        TaskDefinition(description="two", role_id="tester"),
+                    ],
+                    max_concurrency=2,
+                )
+            ],
+            total_tasks=2,
+            estimated_parallelism=2.0,
+        )
+        coord.spawn_workers(plan)
+        for wid, worker in list(coord.workers.items()):
+            coord.workers[wid] = FailingWorker(
+                worker_id=worker.worker_id,
+                role_id=worker.role_id,
+                role_prompt=worker.role_prompt,
+                scratchpad=worker.scratchpad,
+                llm_backend=MockBackend(),
+            )
+            coord._async_workers[wid] = AsyncWorkerWrapper(coord.workers[wid], timeout=coord.task_timeout)
+
+        result = await coord.execute_plan(plan)
+        assert result.success is False
+        assert result.failed_tasks == 2
+        assert len(result.results) == 2
+        assert all(item.error == "same failure" for item in result.results)
+        assert len(result.errors) == 1
+
     async def test_parallel_no_worker_returns_failure_result(self):
         coord = _make_coordinator()
         task = TaskDefinition(description="task", role_id="nonexistent", role_prompt="p")
@@ -478,9 +519,7 @@ class TestExecuteParallelAsync:
                 scratchpad=w.scratchpad,
                 llm_backend=MockBackend(),
             )
-            coord._async_workers[wid] = AsyncWorkerWrapper(
-                coord.workers[wid], timeout=coord.task_timeout
-            )
+            coord._async_workers[wid] = AsyncWorkerWrapper(coord.workers[wid], timeout=coord.task_timeout)
         results = await coord._execute_parallel_async(plan.batches[0])
         assert len(results) == 1
         assert results[0].success is False
@@ -571,9 +610,7 @@ class TestCompression:
         # Add some messages to buffer
         from scripts.collaboration.context_compressor import Message, MessageType
 
-        coord._message_buffer.append(
-            Message(role="user", content="hello", msg_type=MessageType.USER)
-        )
+        coord._message_buffer.append(Message(role="user", content="hello", msg_type=MessageType.USER))
         result = await coord.compress_context()
         # May or may not compress depending on threshold, but should not raise
         assert result is not None or result is None

@@ -4,6 +4,7 @@
 Proves: three-state flag semantics, env priority, and that the dispatch
 command ACTUALLY calls async_dispatch (spy), not just parses the flag.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -85,19 +86,14 @@ class TestCmdDispatchActualPath:
     def test_async_flag_calls_async_dispatch(self) -> None:
         ns = self._base_args()
         ns.use_async = True
-        with patch(
-            "scripts.cli_dispatch.MultiAgentDispatcher"
-        ) as disp_cls, patch(
-            "scripts.cli_dispatch._create_host_adapter", return_value=None
+        with (
+            patch("scripts.cli_dispatch.MultiAgentDispatcher") as disp_cls,
+            patch("scripts.cli_dispatch._create_host_adapter", return_value=None),
         ):
             disp = disp_cls.return_value
-            async_spy = unittest.mock.MagicMock(
-                side_effect=lambda *_a, **_k: _coro(_fake_result())
-            )
+            async_spy = unittest.mock.MagicMock(side_effect=lambda *_a, **_k: _coro(_fake_result()))
             disp.async_dispatch = async_spy
-            disp.dispatch.side_effect = AssertionError(
-                "sync dispatch must not be called with --async"
-            )
+            disp.dispatch.side_effect = AssertionError("sync dispatch must not be called with --async")
             rc = cmd_dispatch(ns)
             assert rc == 0
             assert async_spy.called
@@ -106,10 +102,9 @@ class TestCmdDispatchActualPath:
     def test_no_async_flag_calls_sync_dispatch(self) -> None:
         ns = self._base_args()
         ns.use_async = False
-        with patch(
-            "scripts.cli_dispatch.MultiAgentDispatcher"
-        ) as disp_cls, patch(
-            "scripts.cli_dispatch._create_host_adapter", return_value=None
+        with (
+            patch("scripts.cli_dispatch.MultiAgentDispatcher") as disp_cls,
+            patch("scripts.cli_dispatch._create_host_adapter", return_value=None),
         ):
             disp = disp_cls.return_value
             disp.dispatch.return_value = _fake_result()

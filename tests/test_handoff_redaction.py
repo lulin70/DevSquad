@@ -81,10 +81,7 @@ class TestRedactSensitiveInfo(unittest.TestCase):
 
     def test_multiple_sensitive_patterns_redacted_together(self) -> None:
         """Verify: multiple secret types in one string are all redacted."""
-        text = (
-            "Use sk-live_key_abc; api_key: kv_secret; "
-            "token: tok_99; password: pw123; admin@admin.io"
-        )
+        text = "Use sk-live_key_abc; api_key: kv_secret; token: tok_99; password: pw123; admin@admin.io"
         redacted = CheckpointManager._redact_sensitive_info(text)
         self.assertNotIn("sk-live_key_abc", redacted)
         self.assertNotIn("kv_secret", redacted)

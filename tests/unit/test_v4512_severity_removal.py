@@ -72,6 +72,11 @@ class TestRisksStatsCli:
         payload = json.loads(capsys.readouterr().out)
         assert rc == 0
         assert payload["register_id"] == "default"
-        for key in ("capacity", "concurrent_writes_1m", "cross_host_lock_signals",
-                    "slow_query_signals", "last_updated"):
+        for key in (
+            "capacity",
+            "concurrent_writes_1m",
+            "cross_host_lock_signals",
+            "slow_query_signals",
+            "last_updated",
+        ):
             assert key in payload

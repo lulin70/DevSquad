@@ -139,9 +139,7 @@ class Worker:
         self.llm_backend = llm_backend
         self.stream = stream
         self._session_id: str | None = None  # V4.5.3 P12.2.2: dispatch session ID for artifact persistence
-        # V3.8 #9: ContentCache wrapper for the LLM call path.
         self.content_cache = content_cache
-        # V3.9-02: CodeKnowledgeGraph for code-structure queries.
         self.code_graph = code_graph
         self._notifications_outbox: list[TaskNotification] = []
         self._notifications_lock = threading.Lock()
@@ -244,7 +242,6 @@ class Worker:
         start_time = time.time()
         try:
             if not isinstance(self.llm_backend, AsyncLLMBackendInterface):
-                # AC-W3: sync-backend fallback — exact legacy execute() semantics.
                 loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, self.execute, task)
             context = self._build_execution_context(task)
@@ -271,7 +268,6 @@ class Worker:
             )
             self.write_finding(entry)
 
-            # V4.5.3 P12.2.2: Persist finding to ArtifactStore (best-effort)
             session_id = getattr(self, "_session_id", None) or task.task_id
             try:
                 from scripts.collaboration.artifact_store import ArtifactStore
@@ -313,7 +309,6 @@ class Worker:
 
     def _failure_result(self, task: TaskDefinition, e: Exception, start_time: float) -> WorkerResult:
         """Shared failure-path finalizer for execute()/aexecute() (V4.5.9 AC-W6)."""
-        # Broad catch: top-level worker execute entry; ensures WorkerResult on failure
         logger.error("  [Worker %s] Error: %s", self.worker_id, e)
         track_usage(
             f"worker.{self.role_id}.execute",
@@ -570,10 +565,36 @@ class Worker:
             candidates = set(_re.findall(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b", task_description))
             # Filter out common English words (very short heuristic stoplist).
             stoplist = {
-                "the", "and", "for", "with", "that", "this", "from", "have",
-                "will", "your", "their", "they", "are", "was", "were", "been",
-                "should", "would", "could", "must", "shall", "may", "might",
-                "can", "into", "onto", "over", "under", "between", "through",
+                "the",
+                "and",
+                "for",
+                "with",
+                "that",
+                "this",
+                "from",
+                "have",
+                "will",
+                "your",
+                "their",
+                "they",
+                "are",
+                "was",
+                "were",
+                "been",
+                "should",
+                "would",
+                "could",
+                "must",
+                "shall",
+                "may",
+                "might",
+                "can",
+                "into",
+                "onto",
+                "over",
+                "under",
+                "between",
+                "through",
             }
             candidates = {c for c in candidates if c.lower() not in stoplist}
 
@@ -588,14 +609,16 @@ class Worker:
                 except (AttributeError, ValueError, RuntimeError):
                     continue
                 for sym in symbols[:3]:  # Max 3 hits per name.
-                    hints.append({
-                        "name": sym.name,
-                        "type": getattr(sym, "symbol_type", "unknown"),
-                        "file": getattr(sym, "file_path", ""),
-                        "line_start": getattr(sym, "line_start", 0),
-                        "line_end": getattr(sym, "line_end", 0),
-                        "signature": getattr(sym, "signature", ""),
-                    })
+                    hints.append(
+                        {
+                            "name": sym.name,
+                            "type": getattr(sym, "symbol_type", "unknown"),
+                            "file": getattr(sym, "file_path", ""),
+                            "line_start": getattr(sym, "line_start", 0),
+                            "line_end": getattr(sym, "line_end", 0),
+                            "signature": getattr(sym, "signature", ""),
+                        }
+                    )
             return hints
         except (AttributeError, ValueError, TypeError, RuntimeError) as e:
             logger.debug("CodeKnowledgeGraph query failed for worker %s: %s", self.worker_id, e)
@@ -654,7 +677,6 @@ class Worker:
             self._cache_put(instruction, response, model_name)
             return response
 
-        # Sync backend fallback: bridge the legacy sync work via a thread.
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self._do_work, context)
 
@@ -687,8 +709,6 @@ class Worker:
             related_findings=context.get("related_findings", []),
             task_id=task.task_id,
             compression_level=context.get("compression_level"),
-            # V3.9-02: Pass code-graph hints so the assembler can inject
-            # them into the worker briefing (reduces Read/Grep usage).
             code_graph_hints=context.get("code_graph_hints"),
         )
 
@@ -702,6 +722,7 @@ class Worker:
             role_name = rdef.name if rdef else self.role_id
             return backend.generate(
                 result.instruction,
+                role_id=self.role_id,
                 role_name=role_name,
                 task_description=task.description,
             )
@@ -711,8 +732,6 @@ class Worker:
         _rdef = _RR.get(self.role_id)
         _rname = _rdef.name if _rdef else self.role_id
 
-        # V3.8 #9: Check ContentCache first (when configured), then the raw
-        # global cache — shared helper with the async path (_ado_work).
         cached = self._cache_get(result.instruction, getattr(backend, "model", "unknown"))
         if cached:
             logger.debug("  [%s] Cache hit.", _rname)
@@ -723,7 +742,12 @@ class Worker:
             if self.stream and hasattr(backend, "generate_stream"):
                 logger.debug("  [%s] Streaming...", _rname)
                 chunks = []
-                for chunk in backend.generate_stream(result.instruction):
+                for chunk in backend.generate_stream(
+                    result.instruction,
+                    role_id=self.role_id,
+                    role_name=_rname,
+                    task_description=task.description,
+                ):
                     sys.stderr.write(chunk)
                     sys.stderr.flush()
                     chunks.append(chunk)
@@ -731,22 +755,20 @@ class Worker:
                 sys.stderr.flush()
                 response = "".join(chunks)
             else:
-                response = backend.generate(result.instruction)
+                response = backend.generate(
+                    result.instruction,
+                    role_id=self.role_id,
+                    role_name=_rname,
+                    task_description=task.description,
+                )
             logger.debug("  [%s] Response received.", _rname)
 
-            # V3.8 #9: Store the response in the caches (when configured).
             self._cache_put(result.instruction, response, getattr(backend, "model", "unknown"))
 
             return response
         except Exception as e:
-            # Broad catch: LLM backend call; re-raises after logging
             logger.error("  [%s] LLM call failed: %s", _rname, e)
             raise
-
-    # V4.5.11: legacy ``_ado_work`` was removed in favor of the unified
-    # ``_do_work_async`` shared by ``execute`` and ``aexecute``. The two
-    # paths converge through ``loop.run_in_executor`` for sync backends and
-    # native ``await`` for AsyncLLMBackendInterface.
 
     def _cache_get(self, instruction: str, backend_model: str) -> str | None:
         """Shared cache lookup for _do_work/_ado_work (V3.8 #9).
@@ -809,7 +831,14 @@ class WorkerFactory:
 
     @staticmethod
     def create(
-        worker_id: str, role_id: str, role_prompt: str, scratchpad: Scratchpad, llm_backend: Any = None, stream: bool = False, content_cache: Any = None, code_graph: Any = None
+        worker_id: str,
+        role_id: str,
+        role_prompt: str,
+        scratchpad: Scratchpad,
+        llm_backend: Any = None,
+        stream: bool = False,
+        content_cache: Any = None,
+        code_graph: Any = None,
     ) -> Worker:
         """
         Create a single Worker instance.
@@ -827,10 +856,21 @@ class WorkerFactory:
         Returns:
             Worker: Newly created Worker instance
         """
-        return Worker(worker_id, role_id, role_prompt, scratchpad, llm_backend, stream=stream, content_cache=content_cache, code_graph=code_graph)
+        return Worker(
+            worker_id,
+            role_id,
+            role_prompt,
+            scratchpad,
+            llm_backend,
+            stream=stream,
+            content_cache=content_cache,
+            code_graph=code_graph,
+        )
 
     @staticmethod
-    def create_batch(workers_config: list[dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None) -> list[Worker]:
+    def create_batch(
+        workers_config: list[dict[str, str]], scratchpad: Scratchpad, llm_backend: Any = None
+    ) -> list[Worker]:
         """
         Batch create Worker instances.
 

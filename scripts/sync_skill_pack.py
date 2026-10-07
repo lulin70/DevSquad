@@ -32,6 +32,7 @@ Typical usage::
 CLI exits 0 on success (including dry-run), 1 on any I/O / verification
 failure (including target being a symlink — refused for safety).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -131,9 +132,7 @@ def iter_source_files(source_dir: Path, *, repo_root: bool = False) -> list[Path
     # Library API: ``repo_root=True`` forces top-level whitelist mode. CLI:
     # auto-detect when source has obvious repo indicators (tests/ etc.) AND
     # contains one of the two whitelisted pack files at the top level.
-    is_pack_root = repo_root or (
-        has_repo_indicator and bool(top_level_names & pack_files)
-    )
+    is_pack_root = repo_root or (has_repo_indicator and bool(top_level_names & pack_files))
     if is_pack_root:
         files: list[Path] = []
         for entry in sorted(source_dir.iterdir()):
@@ -153,11 +152,7 @@ def _pack_source_files(source_dir: Path, repo_root: bool) -> list[Path]:
     if not repo_root:
         return files
     pack_files = {"SKILL.md", "skill-manifest.yaml"}
-    return [
-        path
-        for path in files
-        if path.parent == source_dir and path.name in pack_files
-    ]
+    return [path for path in files if path.parent == source_dir and path.name in pack_files]
 
 
 @dataclass
@@ -176,11 +171,7 @@ class SyncReport:
 
     @property
     def total_actions(self) -> int:
-        return (
-            len(self.copied)
-            + len(self.overwritten)
-            + len(self.removed)
-        )
+        return len(self.copied) + len(self.overwritten) + len(self.removed)
 
 
 def _resolve_target(target: Path, dry_run: bool) -> Path:
@@ -261,9 +252,7 @@ def sync_pack(
 
     # Refuse symlinked target pack dir for safety.
     if target_dir.exists() and target_dir.is_symlink():
-        report.errors.append(
-            f"refusing to sync: target is a symlink: {target_dir}"
-        )
+        report.errors.append(f"refusing to sync: target is a symlink: {target_dir}")
         return report
 
     # Collect source files (relative paths for comparison).
@@ -287,25 +276,19 @@ def sync_pack(
         keep_names.add(relpath.parts[0])
         try:
             if dst_path.exists() and dst_path.is_symlink():
-                report.errors.append(
-                    f"refusing to overwrite symlink: {dst_path}"
-                )
+                report.errors.append(f"refusing to overwrite symlink: {dst_path}")
                 continue
 
             src_sha = sha256_file(src_path)
 
             if dst_path.exists():
                 if not dst_path.is_file():
-                    report.errors.append(
-                        f"destination exists but is not a regular file: {dst_path}"
-                    )
+                    report.errors.append(f"destination exists but is not a regular file: {dst_path}")
                     continue
                 try:
                     dst_sha = sha256_file(dst_path)
                 except OSError as exc:
-                    report.errors.append(
-                        f"failed to read destination for sha256: {dst_path}: {exc}"
-                    )
+                    report.errors.append(f"failed to read destination for sha256: {dst_path}: {exc}")
                     continue
                 if dst_sha == src_sha:
                     report.skipped_unchanged.append(dst_path)
@@ -322,23 +305,17 @@ def sync_pack(
             try:
                 _atomic_copy(src_path, dst_path)
             except OSError as exc:
-                report.errors.append(
-                    f"failed to copy {src_path} -> {dst_path}: {exc}"
-                )
+                report.errors.append(f"failed to copy {src_path} -> {dst_path}: {exc}")
                 continue
 
             # Verify by reading back.
             try:
                 verified_sha = sha256_file(dst_path)
             except OSError as exc:
-                report.errors.append(
-                    f"failed to verify sha256 after copy: {dst_path}: {exc}"
-                )
+                report.errors.append(f"failed to verify sha256 after copy: {dst_path}: {exc}")
                 continue
             if verified_sha != src_sha:
-                report.verified_mismatch.append(
-                    f"{dst_path} (expected {src_sha}, got {verified_sha})"
-                )
+                report.verified_mismatch.append(f"{dst_path} (expected {src_sha}, got {verified_sha})")
                 continue
             bucket.append(dst_path)
             report.verified_ok.append(dst_path)
@@ -347,9 +324,7 @@ def sync_pack(
 
     # Optional cleanup of destination-only entries. Disabled by default.
     if clean_extra:
-        removed = _safe_rmtree_children(
-            target_dir, keep_names=keep_names, dry_run=dry_run
-        )
+        removed = _safe_rmtree_children(target_dir, keep_names=keep_names, dry_run=dry_run)
         report.removed.extend(removed)
 
     return report
@@ -404,10 +379,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--pack-name",
         default=DEFAULT_PACK_NAME,
-        help=(
-            "Pack name used for documentation only; does not change "
-            "paths. Default: 'devsquad'."
-        ),
+        help=("Pack name used for documentation only; does not change paths. Default: 'devsquad'."),
     )
     parser.add_argument(
         "--dry-run",
@@ -434,10 +406,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 def _format_report(report: SyncReport, *, dry_run: bool, quiet: bool) -> str:
     tag = "[DRY-RUN] " if dry_run else ""
     lines: list[str] = []
-    lines.append(
-        f"{tag}Source: {report.source}\n"
-        f"{tag}Target: {report.target}"
-    )
+    lines.append(f"{tag}Source: {report.source}\n{tag}Target: {report.target}")
     if not quiet:
         if report.copied:
             lines.append(f"{tag}  copy ({len(report.copied)}):")
@@ -448,10 +417,7 @@ def _format_report(report: SyncReport, *, dry_run: bool, quiet: bool) -> str:
             for p in report.overwritten:
                 lines.append(f"    ~ {p}")
         if report.skipped_unchanged:
-            lines.append(
-                f"{tag}  unchanged ({len(report.skipped_unchanged)}): "
-                "(sha256 match)"
-            )
+            lines.append(f"{tag}  unchanged ({len(report.skipped_unchanged)}): (sha256 match)")
         if report.removed:
             lines.append(f"{tag}  remove ({len(report.removed)}):")
             for p in report.removed:

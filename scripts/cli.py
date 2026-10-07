@@ -24,6 +24,7 @@ from scripts.cli_doctor import cmd_doctor
 from scripts.cli_lifecycle import cmd_lifecycle
 from scripts.cli_metrics import cmd_metrics
 from scripts.cli_modules import register_modules_subparser
+from scripts.cli_rules import register_rules_subparser
 from scripts.cli_sessions import cmd_sessions
 from scripts.cli_utils import (
     ALL_ROLE_IDS,
@@ -366,8 +367,11 @@ Lifecycle Commands (P0-4 Agent Skills Integration):
   ship      Pre-launch checklist + deployment prep (devops + security + architect)
 
 Environment Variables (API keys are read from env vars only, never command line):
-  DEVSQUAD_LLM_BACKEND   Default LLM backend (auto/mock/openai/anthropic)
-                         'auto' tries real backends first, falls back to mock
+  DEVSQUAD_LLM_BACKEND   Default LLM backend
+                         'host'/'host-v1'/'host-v2' delegate to the host bridge
+                         'auto' selects the first available host/API/mock path
+                         'auto-fallback' keeps host → API → mock failover enabled
+                         Host protocol violations are fail-closed (never mock fallback)
   OPENAI_API_KEY         OpenAI API key (required for --backend openai)
   OPENAI_BASE_URL        Custom API endpoint (for OpenAI-compatible APIs)
   OPENAI_MODEL           Model name (default: gpt-4)
@@ -405,13 +409,78 @@ Environment Variables (API keys are read from env vars only, never command line)
         "--roles", "-r", nargs="+", choices=ALL_ROLE_IDS, help="Roles to involve (default: auto-match)"
     )
     p_dispatch.add_argument("--mode", "-m", choices=MODES, default="auto", help="Execution mode (default: auto)")
+    p_dispatch.add_argument(
+        "--changeset",
+        nargs="+",
+        default=None,
+        metavar="FILE",
+        help="File paths to review. Only used with --mode review: >5 files engage deterministic bundling (grouped by directory + imports)",
+    )
+    p_dispatch.add_argument(
+        "--diff-file",
+        default=None,
+        metavar="PATH",
+        help="Read a unified diff from PATH for review; mutually exclusive with --changeset",
+    )
+    p_dispatch.add_argument(
+        "--include",
+        nargs="+",
+        default=(),
+        metavar="PATTERN",
+        help="Glob patterns to force-include in review (secret paths remain excluded)",
+    )
+    p_dispatch.add_argument(
+        "--exclude",
+        nargs="+",
+        default=(),
+        metavar="PATTERN",
+        help="Glob patterns to exclude from review",
+    )
+    p_dispatch.add_argument(
+        "--max-file-size",
+        type=int,
+        default=10 * 1024 * 1024,
+        metavar="BYTES",
+        help="Maximum reviewable file size in bytes",
+    )
+    p_dispatch.add_argument(
+        "--repo-root",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Repository root used to read review file contents and project rules",
+    )
+    p_dispatch.add_argument(
+        "--rule",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="CLI rule.json source with highest rule priority",
+    )
+    p_dispatch.add_argument(
+        "--deleted",
+        nargs="+",
+        default=(),
+        metavar="FILE",
+        help="Paths explicitly marked deleted in the review changeset",
+    )
+    p_dispatch.add_argument(
+        "--preview",
+        action="store_true",
+        help="Preview deterministic review filtering and bundles without LLM or dispatcher initialization",
+    )
+    p_dispatch.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Include per-path and per-bundle details in review preview output",
+    )
     p_dispatch.add_argument("--format", "-f", choices=FORMATS, default="markdown", help="Output format")
     p_dispatch.add_argument(
         "--backend",
         "-b",
         choices=BACKENDS,
         default=os.environ.get("DEVSQUAD_LLM_BACKEND", "auto"),
-        help="LLM backend (default: auto, or DEVSQUAD_LLM_BACKEND env; auto tries real LLM then falls back to mock)",
+        help="Backend: host delegation, auto first-available host/API/mock, or auto-fallback host→API→mock (protocol violations fail closed)",
     )
     p_dispatch.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
     p_dispatch.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
@@ -466,11 +535,12 @@ Environment Variables (API keys are read from env vars only, never command line)
     subparsers.add_parser("status", aliases=["s"], help="Show system status")
 
     # V4.5.2 P12.1.2: devsquad metrics CLI
-    p_metrics = subparsers.add_parser(
-        "metrics", aliases=["m"], help="View V4.5.2 Prometheus metrics (text/json)"
-    )
+    p_metrics = subparsers.add_parser("metrics", aliases=["m"], help="View V4.5.2 Prometheus metrics (text/json)")
     p_metrics.add_argument(
-        "--format", "-f", choices=["text", "json"], default="text",
+        "--format",
+        "-f",
+        choices=["text", "json"],
+        default="text",
         help="Output format (default text)",
     )
 
@@ -478,37 +548,39 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_roles.add_argument("--format", "-f", choices=["text", "json"], default="text", help="Output format")
 
     # V4.5.2 P12.1.4: devsquad doctor
-    p_doctor = subparsers.add_parser(
-        "doctor", help="Diagnose LLM provider connectivity (text/json)"
-    )
+    p_doctor = subparsers.add_parser("doctor", help="Diagnose LLM provider connectivity (text/json)")
     p_doctor.add_argument(
-        "--provider", "-p", default="all",
+        "--provider",
+        "-p",
+        default="all",
         choices=["all", "moka", "openai", "anthropic"],
         help="Provider to check (default: all)",
     )
     p_doctor.add_argument(
-        "--format", "-f", choices=["text", "json"], default="text",
+        "--format",
+        "-f",
+        choices=["text", "json"],
+        default="text",
         help="Output format (default text)",
     )
     p_doctor.add_argument(
-        "--timeout", type=float, default=5.0,
+        "--timeout",
+        type=float,
+        default=5.0,
         help="HTTP timeout in seconds (default: 5.0)",
     )
 
     # V4.5.3 P12.2.6: devsquad audit CLI
-    p_audit = subparsers.add_parser(
-        "audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)"
-    )
+    p_audit = subparsers.add_parser("audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)")
+    p_audit.add_argument("--limit", "-n", type=int, default=20, help="Max entries to show (default 20)")
     p_audit.add_argument(
-        "--limit", "-n", type=int, default=20, help="Max entries to show (default 20)"
-    )
-    p_audit.add_argument(
-        "--format", "-f", choices=["text", "json"], default="text",
+        "--format",
+        "-f",
+        choices=["text", "json"],
+        default="text",
         help="Output format",
     )
-    p_audit.add_argument(
-        "--event-type", help="Filter by event type (e.g. dispatch_start)"
-    )
+    p_audit.add_argument("--event-type", help="Filter by event type (e.g. dispatch_start)")
     p_audit.add_argument(
         "--verify",
         action="store_true",
@@ -524,8 +596,12 @@ Environment Variables (API keys are read from env vars only, never command line)
     # V4.5.4 P12.3.3: devsquad modules CLI (status/graph/retry)
     register_modules_subparser(subparsers)
 
+    # V4.5.20 W1-2: explain deterministic rule resolution
+    register_rules_subparser(subparsers)
+
     # V4.5.7 P12.5.2: devsquad risks CLI (list/show/clear/export)
     from scripts.cli_risks import register_risks_subparser
+
     register_risks_subparser(subparsers)
 
     # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
@@ -543,14 +619,17 @@ Environment Variables (API keys are read from env vars only, never command line)
     p_sess_show.add_argument("--persist-dir", help="Custom checkpoint directory")
 
     # V4.5.2 P12.1.5: devsquad backend CLI subcommands
-    p_backend = subparsers.add_parser(
-        "backend", help="Manage LLM backend selection (set/get/list)"
-    )
+    p_backend = subparsers.add_parser("backend", help="Manage LLM backend selection (set/get/list)")
     backend_sub = p_backend.add_subparsers(dest="backend_command", help="Backend subcommand")
     p_backend_set = backend_sub.add_parser("set", help="Set and persist backend selection")
-    p_backend_set.add_argument("provider", help=f"Backend name (one of: {', '.join(sorted(['auto','auto-fallback','mock','host','trae','openai','anthropic','moka','fallback']))})")
+    p_backend_set.add_argument(
+        "provider",
+        help=f"Backend name (one of: {', '.join(sorted(['auto', 'auto-fallback', 'mock', 'host', 'trae', 'openai', 'anthropic', 'moka', 'fallback']))})",
+    )
     p_backend_set.add_argument("--model", help="Optional model override to persist")
-    p_backend_set.add_argument("--project", action="store_true", help="Save to ./.devsquad/config.yaml instead of user config")
+    p_backend_set.add_argument(
+        "--project", action="store_true", help="Save to ./.devsquad/config.yaml instead of user config"
+    )
     p_backend_get = backend_sub.add_parser("get", help="Print current effective backend")
     p_backend_get.add_argument("--project", action="store_true", help="Prefer project-level config")
     backend_sub.add_parser("list", help="List all valid backends + current selection")
@@ -601,7 +680,7 @@ Environment Variables (API keys are read from env vars only, never command line)
             "-b",
             choices=BACKENDS,
             default=os.environ.get("DEVSQUAD_LLM_BACKEND", "auto"),
-            help="LLM backend (default: auto, or DEVSQUAD_LLM_BACKEND env; auto tries real LLM then falls back to mock)",
+            help="Backend: host delegation, auto first-available host/API/mock, or auto-fallback host→API→mock (protocol violations fail closed)",
         )
         p_cmd.add_argument("--base-url", help="Custom API base URL (or use OPENAI_BASE_URL env)")
         p_cmd.add_argument("--model", help="Model name (or use OPENAI_MODEL/ANTHROPIC_MODEL env)")
@@ -616,6 +695,28 @@ Environment Variables (API keys are read from env vars only, never command line)
         p_cmd.add_argument("--skip-permission", action="store_true", help="Skip permission checks")
         p_cmd.add_argument("--no-memory", action="store_true", help="Disable memory bridge")
         p_cmd.add_argument("--no-skillify", action="store_true", help="Disable skill learning")
+        if cmd_name == "review":
+            p_cmd.add_argument(
+                "--changeset",
+                nargs="+",
+                default=None,
+                metavar="FILE",
+                help="File paths to review in deterministic preview mode",
+            )
+            p_cmd.add_argument(
+                "--diff-file",
+                default=None,
+                metavar="PATH",
+                help="Read a unified diff from PATH for review; mutually exclusive with --changeset",
+            )
+            p_cmd.add_argument("--include", nargs="+", default=(), metavar="PATTERN")
+            p_cmd.add_argument("--exclude", nargs="+", default=(), metavar="PATTERN")
+            p_cmd.add_argument("--max-file-size", type=int, default=10 * 1024 * 1024, metavar="BYTES")
+            p_cmd.add_argument("--repo-root", type=str, default=None, metavar="PATH")
+            p_cmd.add_argument("--rule", type=str, default=None, metavar="PATH")
+            p_cmd.add_argument("--deleted", nargs="+", default=(), metavar="FILE")
+            p_cmd.add_argument("--preview", action="store_true", help="Preview without LLM calls")
+            p_cmd.add_argument("--verbose", action="store_true", help="Include per-path preview details")
 
     args = parser.parse_args()
 
@@ -623,6 +724,8 @@ Environment Variables (API keys are read from env vars only, never command line)
     # Special-cased commands first (func-attach pattern / setup / aliasing),
     # then a flat alias→handler table for the simple commands.
     if args.command in ("risks", "risk"):
+        return args.func(args) if callable(getattr(args, "func", None)) else 1
+    if args.command == "rules":
         return args.func(args) if callable(getattr(args, "func", None)) else 1
     if args.command == "modules":
         return _run_modules_command(args)

@@ -49,9 +49,9 @@ from scripts.collaboration.memory_bridge import (
     PersistedPattern,
     UserFeedback,
 )
+from tests.conftest import perf_ceiling_ms
 
 pytestmark = pytest.mark.unit
-
 
 
 class T1DataModels(unittest.TestCase):
@@ -493,6 +493,17 @@ class T5MemoryBridgeCore(unittest.TestCase):
         self.assertGreater(result.total_found, 0)
 
     def test_02_recall_latency(self):
+        """Verify: recall reports query_time_ms under the latency budget.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 200 ms budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The generic control never sees the
+        recall work, so a recall that became pathologically slow (e.g. an extra
+        full-index scan per query) still trips it.
+        """
         self.bridge.writer.write_knowledge(
             KnowledgeItem(
                 id="rl1",
@@ -501,8 +512,13 @@ class T5MemoryBridgeCore(unittest.TestCase):
                 content="test data",
             )
         )
+        ceiling_ms = perf_ceiling_ms(200)
         result = self.bridge.recall(MemoryQuery(query_text="Latency Test"))
-        self.assertLess(result.query_time_ms, 200)
+        self.assertLess(
+            result.query_time_ms,
+            ceiling_ms,
+            (f"recall query_time_ms {result.query_time_ms:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"),
+        )
 
     def test_03_recall_empty(self):
         result = self.bridge.recall(MemoryQuery(query_text="nothing matches this xyz"))
@@ -932,6 +948,18 @@ class T8EdgeCases(unittest.TestCase):
         self.assertEqual(result.total_found, 0)
 
     def test_09_large_scale_performance(self):
+        """Verify: writing 200 items + index rebuild completes in <5000ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 5000 ms budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never writes 200 items, so
+        a regression that inflates the 200-write path (e.g. an O(n^2) index
+        rebuild) still trips it.
+        """
+        ceiling_ms = perf_ceiling_ms(5000)
         start = time.perf_counter()
         for i in range(200):
             self.bridge.writer.write_knowledge(
@@ -947,7 +975,11 @@ class T8EdgeCases(unittest.TestCase):
         self.bridge.rebuild_index()
         rebuild_time = (time.perf_counter() - start) * 1000 - write_time
         self.bridge.recall(MemoryQuery(query_text="Performance Item"))
-        self.assertLess(write_time + rebuild_time, 5000)
+        self.assertLess(
+            write_time + rebuild_time,
+            ceiling_ms,
+            (f"200 writes + rebuild {write_time + rebuild_time:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"),
+        )
 
     def test_10_null_domain_memory_item(self):
         item = MemoryItem(id="nd1", memory_type=MemoryType.FEEDBACK, title="No Domain", content="test", domain=None)
@@ -1195,6 +1227,18 @@ class E2ETests(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_06_large_scale_performance(self):
+        """Verify: recall against a 100-item index completes in <200ms.
+
+        V4.5.20 P1-2: budget is environment-scaled (tests/conftest.py) by the
+        operation-independent reference-workload control; the factor is 1.0 on
+        the calibration host so the ceiling equals the original 200 ms budget
+        there. The control must not touch the code under test — a same-code-path
+        control inflates with the regression, so the ceiling grows in lockstep
+        and the gate can no longer fail. The control never recalls the 100-item
+        index, so a regression that inflates recall (e.g. a scores rewrite that
+        is super-linear in index size) still trips it.
+        """
+        ceiling_ms = perf_ceiling_ms(200)
         for i in range(100):
             self.bridge.writer.write_knowledge(
                 KnowledgeItem(
@@ -1208,7 +1252,11 @@ class E2ETests(unittest.TestCase):
         start = time.perf_counter()
         self.bridge.recall(MemoryQuery(query_text="Scale Item", limit=10))
         elapsed = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed, 200)
+        self.assertLess(
+            elapsed,
+            ceiling_ms,
+            (f"recall on 100-item index {elapsed:.1f}ms exceeds ceiling {ceiling_ms:.1f}ms"),
+        )
 
     def test_07_mixed_language_query(self):
         self.bridge.writer.write_knowledge(

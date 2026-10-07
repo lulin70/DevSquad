@@ -351,8 +351,9 @@ class T2_MCEAdapterIntegration(unittest.TestCase):
 
     def test_14_mceresult_to_dict_round_trip(self) -> None:
         """Verify: MCEResult serializes type/confidence/tier/metadata."""
-        result = MCEResult(memory_type="knowledge", confidence=0.87654, tier="tier1",
-                           metadata={"carrymem_type": "fact_declaration"})
+        result = MCEResult(
+            memory_type="knowledge", confidence=0.87654, tier="tier1", metadata={"carrymem_type": "fact_declaration"}
+        )
         d = result.to_dict()
         self.assertEqual(d["type"], "knowledge")
         self.assertEqual(d["confidence"], 0.8765)  # rounded to 4 decimals
@@ -378,27 +379,33 @@ class T3_LearnedRuleStoreIntegration(unittest.TestCase):
 
     def test_01_tier1_high_confidence_rule_persisted(self) -> None:
         """Verify: confidence >= 0.8 routes to tier1 and returns 'tier1'."""
-        rule = LearnedRule(rule_text="Always prefer pathlib over os.path",
-                           trigger_condition="file_path_manipulation",
-                           confidence=0.85, source_task_id="task_001")
+        rule = LearnedRule(
+            rule_text="Always prefer pathlib over os.path",
+            trigger_condition="file_path_manipulation",
+            confidence=0.85,
+            source_task_id="task_001",
+        )
         tier = self.store.add_rule(rule)
         self.assertEqual(tier, "tier1")
         self.assertTrue(os.path.exists(self.config_path))
 
     def test_02_tier2_medium_confidence_rule_persisted(self) -> None:
         """Verify: confidence 0.5-0.8 routes to tier2 candidate pool."""
-        rule = LearnedRule(rule_text="Consider dataclass for DTOs",
-                           trigger_condition="dto_definition",
-                           confidence=0.65, source_task_id="task_002")
+        rule = LearnedRule(
+            rule_text="Consider dataclass for DTOs",
+            trigger_condition="dto_definition",
+            confidence=0.65,
+            source_task_id="task_002",
+        )
         tier = self.store.add_rule(rule)
         self.assertEqual(tier, "tier2")
         self.assertTrue(os.path.exists(self.tier2_path))
 
     def test_03_rejected_low_confidence_rule_not_persisted(self) -> None:
         """Verify: confidence < 0.5 is rejected and writes nothing."""
-        rule = LearnedRule(rule_text="Maybe add a comment",
-                           trigger_condition="cosmetic",
-                           confidence=0.3, source_task_id="task_003")
+        rule = LearnedRule(
+            rule_text="Maybe add a comment", trigger_condition="cosmetic", confidence=0.3, source_task_id="task_003"
+        )
         tier = self.store.add_rule(rule)
         self.assertEqual(tier, "rejected")
         self.assertFalse(os.path.exists(self.config_path))
@@ -406,9 +413,12 @@ class T3_LearnedRuleStoreIntegration(unittest.TestCase):
 
     def test_04_load_tier1_rules_round_trip(self) -> None:
         """Verify: load_tier1_rules reconstructs persisted rules."""
-        rule = LearnedRule(rule_text="Use type hints everywhere",
-                           trigger_condition="python_typing",
-                           confidence=0.9, source_task_id="task_004")
+        rule = LearnedRule(
+            rule_text="Use type hints everywhere",
+            trigger_condition="python_typing",
+            confidence=0.9,
+            source_task_id="task_004",
+        )
         self.store.add_rule(rule)
         loaded = self.store.load_tier1_rules()
         self.assertEqual(len(loaded), 1)
@@ -417,9 +427,12 @@ class T3_LearnedRuleStoreIntegration(unittest.TestCase):
 
     def test_05_load_tier2_rules_round_trip(self) -> None:
         """Verify: load_tier2_rules reconstructs candidate rules."""
-        rule = LearnedRule(rule_text="Draft: prefer explicit imports",
-                           trigger_condition="import_style",
-                           confidence=0.55, source_task_id="task_005")
+        rule = LearnedRule(
+            rule_text="Draft: prefer explicit imports",
+            trigger_condition="import_style",
+            confidence=0.55,
+            source_task_id="task_005",
+        )
         self.store.add_rule(rule)
         loaded = self.store.load_tier2_rules()
         self.assertEqual(len(loaded), 1)
@@ -427,9 +440,9 @@ class T3_LearnedRuleStoreIntegration(unittest.TestCase):
 
     def test_06_promote_tier2_to_tier1(self) -> None:
         """Verify: promote_tier2_to_tier1 moves a candidate to tier1 and removes from tier2."""
-        rule = LearnedRule(rule_text="Promote me to tier1",
-                           trigger_condition="promotion",
-                           confidence=0.6, source_task_id="task_006")
+        rule = LearnedRule(
+            rule_text="Promote me to tier1", trigger_condition="promotion", confidence=0.6, source_task_id="task_006"
+        )
         self.store.add_rule(rule)
         self.assertEqual(len(self.store.load_tier2_rules()), 1)
         self.assertTrue(self.store.promote_tier2_to_tier1("Promote me to tier1"))
@@ -444,9 +457,9 @@ class T3_LearnedRuleStoreIntegration(unittest.TestCase):
 
     def test_08_tier1_dedup_by_rule_hash(self) -> None:
         """Verify: adding the same tier1 rule twice does not duplicate it."""
-        rule = LearnedRule(rule_text="Dedup this rule",
-                           trigger_condition="dedup",
-                           confidence=0.88, source_task_id="task_007")
+        rule = LearnedRule(
+            rule_text="Dedup this rule", trigger_condition="dedup", confidence=0.88, source_task_id="task_007"
+        )
         self.store.add_rule(rule)
         self.store.add_rule(rule)
         loaded = self.store.load_tier1_rules()
@@ -454,9 +467,9 @@ class T3_LearnedRuleStoreIntegration(unittest.TestCase):
 
     def test_09_tier2_dedup_by_rule_hash(self) -> None:
         """Verify: adding the same tier2 rule twice does not duplicate it."""
-        rule = LearnedRule(rule_text="Dedup tier2 rule",
-                           trigger_condition="dedup2",
-                           confidence=0.55, source_task_id="task_008")
+        rule = LearnedRule(
+            rule_text="Dedup tier2 rule", trigger_condition="dedup2", confidence=0.55, source_task_id="task_008"
+        )
         self.store.add_rule(rule)
         self.store.add_rule(rule)
         loaded = self.store.load_tier2_rules()
@@ -464,8 +477,7 @@ class T3_LearnedRuleStoreIntegration(unittest.TestCase):
 
     def test_10_load_tier1_from_missing_file_returns_empty(self) -> None:
         """Verify: load_tier1_rules on a non-existent config returns empty list."""
-        store = LearnedRuleStore(config_path="/nonexistent/path/.devsquad.yaml",
-                                 tier2_path="/nonexistent/tier2/c.json")
+        store = LearnedRuleStore(config_path="/nonexistent/path/.devsquad.yaml", tier2_path="/nonexistent/tier2/c.json")
         self.assertEqual(store.load_tier1_rules(), [])
 
 
@@ -567,15 +579,18 @@ class T4_EndToEndStoreIndexQueryIntegration(unittest.TestCase):
         """Verify: compress_old_memories truncates episodic entries older than 60 days."""
         old_created = (datetime.now() - timedelta(days=70)).isoformat()
         long_finding = "x" * 500
-        self.bridge.store.save(MemoryType.EPISODIC, {
-            "id": "epi_old_001",
-            "task_description": "old task",
-            "finding": long_finding,
-            "worker_id": "w",
-            "confidence": 0.7,
-            "tags": [],
-            "created_at": old_created,
-        })
+        self.bridge.store.save(
+            MemoryType.EPISODIC,
+            {
+                "id": "epi_old_001",
+                "task_description": "old task",
+                "finding": long_finding,
+                "worker_id": "w",
+                "confidence": 0.7,
+                "tags": [],
+                "created_at": old_created,
+            },
+        )
         compressed = self.bridge.compress_old_memories()
         self.assertGreaterEqual(compressed, 1)
         loaded = self.bridge.store.load(MemoryType.EPISODIC, "epi_old_001")
@@ -588,15 +603,18 @@ class T4_EndToEndStoreIndexQueryIntegration(unittest.TestCase):
         config = MemoryConfig.default()
         config.retention_days = 10
         old_created = (datetime.now() - timedelta(days=30)).isoformat()
-        self.bridge.store.save(MemoryType.EPISODIC, {
-            "id": "epi_expired_001",
-            "task_description": "expired task",
-            "finding": "old",
-            "worker_id": "w",
-            "confidence": 0.5,
-            "tags": [],
-            "created_at": old_created,
-        })
+        self.bridge.store.save(
+            MemoryType.EPISODIC,
+            {
+                "id": "epi_expired_001",
+                "task_description": "expired task",
+                "finding": "old",
+                "worker_id": "w",
+                "confidence": 0.5,
+                "tags": [],
+                "created_at": old_created,
+            },
+        )
         removed = cleanup_expired_memories(self.bridge.store, config, self.bridge.indexer)
         self.assertGreaterEqual(removed, 1)
         self.assertIsNone(self.bridge.store.load(MemoryType.EPISODIC, "epi_expired_001"))
@@ -663,8 +681,9 @@ class T5_BoundaryAndEdgeCasesIntegration(unittest.TestCase):
 
     def test_07_index_remove_then_search_returns_empty(self) -> None:
         """Verify: removing an item from the index makes it unsearchable."""
-        item = MemoryItem(id="removable_001", memory_type=MemoryType.KNOWLEDGE,
-                          title="To be removed", content="searchable text")
+        item = MemoryItem(
+            id="removable_001", memory_type=MemoryType.KNOWLEDGE, title="To be removed", content="searchable text"
+        )
         self.bridge.indexer.build_index([item])
         self.assertEqual(self.bridge.indexer.size, 1)
         self.bridge.indexer.remove_from_index("removable_001")
@@ -695,13 +714,18 @@ class T5_BoundaryAndEdgeCasesIntegration(unittest.TestCase):
         def writer(start: int) -> None:
             try:
                 for i in range(start, start + 5):
-                    self.bridge.writer.batch_write([MemoryItem(
-                        id=f"know_conc_{i:03d}",
-                        memory_type=MemoryType.KNOWLEDGE,
-                        title=f"Concurrent item {i}",
-                        content=f"content {i} microservice design architecture",
-                        domain="general",
-                        tags=["concurrent"])])
+                    self.bridge.writer.batch_write(
+                        [
+                            MemoryItem(
+                                id=f"know_conc_{i:03d}",
+                                memory_type=MemoryType.KNOWLEDGE,
+                                title=f"Concurrent item {i}",
+                                content=f"content {i} microservice design architecture",
+                                domain="general",
+                                tags=["concurrent"],
+                            )
+                        ]
+                    )
             except Exception as exc:  # noqa: BLE001
                 errors.append(exc)
 

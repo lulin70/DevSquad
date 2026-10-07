@@ -66,13 +66,7 @@ def populated_db(tmp_path) -> Path:
     prev_hash = "0" * 64
     for et, uid, ts, details in raw_entries:
         details_json = json.dumps(details, sort_keys=True, separators=(",", ":"))
-        payload = (
-            f"{prev_hash}"
-            f"{len(et)}:{et}"
-            f"{len(uid)}:{uid}"
-            f"{ts:.6f}"
-            f"{details_json}"
-        ).encode()
+        payload = (f"{prev_hash}{len(et)}:{et}{len(uid)}:{uid}{ts:.6f}{details_json}").encode()
         entry_hash = hashlib.sha256(payload).hexdigest()
         conn.execute(
             "INSERT INTO dispatch_audit (event_type, user_id, timestamp, details, prev_hash, entry_hash) "
@@ -141,9 +135,7 @@ class TestSensitiveFieldRedaction:
     def test_redact_dict_top_level(self) -> None:
         from scripts.cli_audit import _redact_sensitive
 
-        out = _redact_sensitive(
-            {"api_key": "AKIA...", "password": "p", "name": "alice"}
-        )
+        out = _redact_sensitive({"api_key": "AKIA...", "password": "p", "name": "alice"})
         assert out["api_key"] == "***REDACTED***"
         assert out["password"] == "***REDACTED***"
         assert out["name"] == "alice"
@@ -172,9 +164,7 @@ class TestSensitiveFieldRedaction:
     def test_redact_variants(self) -> None:
         from scripts.cli_audit import _redact_sensitive
 
-        out = _redact_sensitive(
-            {"apikey": "k", "passwd": "p", "private_key": "pk"}
-        )
+        out = _redact_sensitive({"apikey": "k", "passwd": "p", "private_key": "pk"})
         assert out["apikey"] == "***REDACTED***"
         assert out["passwd"] == "***REDACTED***"
         assert out["private_key"] == "***REDACTED***"
@@ -241,9 +231,7 @@ class TestSubparserRegistration:
         subparsers = parser.add_subparsers(dest="command")
         p = register_subparser(subparsers)
 
-        args = p.parse_args(
-            ["--limit", "50", "--format", "json", "--event-type", "dispatch_start", "--verify"]
-        )
+        args = p.parse_args(["--limit", "50", "--format", "json", "--event-type", "dispatch_start", "--verify"])
         assert args.limit == 50
         assert args.format == "json"
         assert args.event_type == "dispatch_start"

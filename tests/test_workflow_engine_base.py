@@ -27,7 +27,6 @@ from scripts.collaboration.workflow_engine_base import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestWorkflowStatusEnum(unittest.TestCase):
     """WorkflowStatus enum values."""
 

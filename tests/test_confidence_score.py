@@ -10,7 +10,6 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
-
 @pytest.fixture
 def scorer():
     """Create ConfidenceScorer instance"""

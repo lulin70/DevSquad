@@ -137,14 +137,10 @@ def test_action_first_caps_lists() -> None:
     assert blocks, "Report should contain at least one block"
     for block in blocks:
         numbered = _count_numbered_items(block)
-        assert numbered <= 5, (
-            f"action_first block exceeds 5-item cap ({numbered} items):\n{block}"
-        )
+        assert numbered <= 5, f"action_first block exceeds 5-item cap ({numbered} items):\n{block}"
 
     # architect worker had 7 findings → must be capped with "and 2 more".
-    assert "and 2 more" in report, (
-        "Expected 'and 2 more' overflow marker for architect (7 findings → 5 shown)."
-    )
+    assert "and 2 more" in report, "Expected 'and 2 more' overflow marker for architect (7 findings → 5 shown)."
 
 
 def test_action_first_no_preamble() -> None:
@@ -162,9 +158,7 @@ def test_detailed_backward_compat() -> None:
     result = _make_result()
     via_style = formatter.format_report(result, output_style="detailed")
     existing = formatter.format_structured_report(result)
-    assert via_style == existing, (
-        "output_style='detailed' must preserve existing format_structured_report output 100%"
-    )
+    assert via_style == existing, "output_style='detailed' must preserve existing format_structured_report output 100%"
 
 
 def test_compact_mode() -> None:
@@ -174,8 +168,7 @@ def test_compact_mode() -> None:
     compact = formatter.format_report(result, output_style="compact")
     detailed = formatter.format_report(result, output_style="detailed")
     assert len(compact) < len(detailed), (
-        f"compact ({len(compact)} chars) should be shorter than "
-        f"detailed ({len(detailed)} chars)"
+        f"compact ({len(compact)} chars) should be shorter than detailed ({len(detailed)} chars)"
     )
 
 
@@ -186,14 +179,13 @@ def test_call_counter_er() -> None:
     formatter = ReportFormatter()
     result = _make_result()
     formatter.format_report(result, output_style="action_first")
-    assert rf_module._call_counter_er > 0, (
-        "_call_counter_er must be > 0 after format_report dispatch (anti-ghost)"
-    )
+    assert rf_module._call_counter_er > 0, "_call_counter_er must be > 0 after format_report dispatch (anti-ghost)"
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _split_blocks(report: str) -> list[str]:
     """Split a report into blocks for per-list cap checking.

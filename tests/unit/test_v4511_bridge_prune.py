@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """V4.5.11 HostLLMBridge retention / PRUNE_MAX_FILES unit tests."""
+
 from __future__ import annotations
 
 import os
@@ -82,17 +83,13 @@ def test_v2_prune_skips_marker_and_tmp(tmp_path: Path) -> None:
     assert tmp_file.exists()
 
 
-def test_v2_resolve_prune_max_files_rejects_negative(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_v2_resolve_prune_max_files_rejects_negative(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEVSQUAD_BRIDGE_PRUNE_MAX_FILES", "-1")
     with pytest.raises(ValueError):
         HostLLMBridgeV2._resolve_prune_max_files()
 
 
-def test_v2_resolve_prune_max_files_rejects_garbage(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_v2_resolve_prune_max_files_rejects_garbage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEVSQUAD_BRIDGE_PRUNE_MAX_FILES", "abc")
     with pytest.raises(ValueError):
         HostLLMBridgeV2._resolve_prune_max_files()
@@ -127,9 +124,7 @@ def test_v1_prune_helper_zero_disables(tmp_path: Path) -> None:
     assert len(list(bridge_dir.iterdir())) == 10
 
 
-def test_v1_create_request_invokes_prune(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_v1_create_request_invokes_prune(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEVSQUAD_BRIDGE_PRUNE_MAX_FILES", "3")
     bridge_dir = tmp_path / "v1"
     bridge_dir.mkdir()
@@ -146,10 +141,7 @@ def test_v1_create_request_invokes_prune(
         timeout_seconds=10,
     )
     # 5 old + 1 new + marker = at least 7 entries before prune
-    json_files = [
-        p for p in bridge_dir.iterdir()
-        if p.name.startswith("request_") and p.name.endswith(".json")
-    ]
+    json_files = [p for p in bridge_dir.iterdir() if p.name.startswith("request_") and p.name.endswith(".json")]
     assert len(json_files) == 3
     newest = max(p.name for p in json_files)
     assert newest.startswith(f"request_{request_id}")

@@ -80,10 +80,7 @@ class AdversarialResult:
     def critical_challenges_unresolved(self) -> int:
         """未解决的关键挑战数。"""
         conceded_ids = {d.challenge_id for d in self.defenses if d.conceded}
-        return sum(
-            1 for c in self.challenges
-            if c.severity == "critical" and c.challenge_id in conceded_ids
-        )
+        return sum(1 for c in self.challenges if c.severity == "critical" and c.challenge_id in conceded_ids)
 
 
 # ============================================================
@@ -115,50 +112,60 @@ class RedTeam:
         prop_lower = proposal.lower()
 
         # 1. 反例：输入边界
-        challenges.append(AdversarialChallenge(
-            challenge_id=self._make_id(proposal, "counterexample"),
-            challenge_type="counterexample",
-            description="What happens with empty/null/invalid input?",
-            severity="critical",
-            counterexample="Empty input, None value, malformed data",
-        ))
+        challenges.append(
+            AdversarialChallenge(
+                challenge_id=self._make_id(proposal, "counterexample"),
+                challenge_type="counterexample",
+                description="What happens with empty/null/invalid input?",
+                severity="critical",
+                counterexample="Empty input, None value, malformed data",
+            )
+        )
 
         # 2. 边界 case：并发
         if any(kw in prop_lower for kw in ["api", "service", "endpoint", "server", "request"]):
-            challenges.append(AdversarialChallenge(
-                challenge_id=self._make_id(proposal, "edge_case_concurrent"),
-                challenge_type="edge_case",
-                description="How does this handle concurrent access and race conditions?",
-                severity="warning",
-                counterexample="Two requests modifying same resource simultaneously",
-            ))
+            challenges.append(
+                AdversarialChallenge(
+                    challenge_id=self._make_id(proposal, "edge_case_concurrent"),
+                    challenge_type="edge_case",
+                    description="How does this handle concurrent access and race conditions?",
+                    severity="warning",
+                    counterexample="Two requests modifying same resource simultaneously",
+                )
+            )
 
         # 3. 目标偏移
         if len(proposal) > 200 or any(kw in prop_lower for kw in ["also", "additionally", "furthermore"]):
-            challenges.append(AdversarialChallenge(
-                challenge_id=self._make_id(proposal, "goal_drift"),
-                challenge_type="goal_drift",
-                description="Proposal may contain scope creep — verify each part addresses the original goal",
-                severity="warning",
-            ))
+            challenges.append(
+                AdversarialChallenge(
+                    challenge_id=self._make_id(proposal, "goal_drift"),
+                    challenge_type="goal_drift",
+                    description="Proposal may contain scope creep — verify each part addresses the original goal",
+                    severity="warning",
+                )
+            )
 
         # 4. 完整性：错误处理
         if "error" not in prop_lower and "exception" not in prop_lower and "fail" not in prop_lower:
-            challenges.append(AdversarialChallenge(
-                challenge_id=self._make_id(proposal, "incompleteness_error"),
-                challenge_type="incompleteness",
-                description="Error handling not mentioned — what happens on failure?",
-                severity="critical",
-            ))
+            challenges.append(
+                AdversarialChallenge(
+                    challenge_id=self._make_id(proposal, "incompleteness_error"),
+                    challenge_type="incompleteness",
+                    description="Error handling not mentioned — what happens on failure?",
+                    severity="critical",
+                )
+            )
 
         # 5. 偏差：过度工程
         if any(kw in prop_lower for kw in ["abstract", "factory", "plugin", "extensible", "future-proof"]):
-            challenges.append(AdversarialChallenge(
-                challenge_id=self._make_id(proposal, "bias_overengineer"),
-                challenge_type="bias",
-                description="Possible over-engineering — is this abstraction needed now?",
-                severity="info",
-            ))
+            challenges.append(
+                AdversarialChallenge(
+                    challenge_id=self._make_id(proposal, "bias_overengineer"),
+                    challenge_type="bias",
+                    description="Possible over-engineering — is this abstraction needed now?",
+                    severity="info",
+                )
+            )
 
         return challenges
 
@@ -177,7 +184,9 @@ class BlueTeam:
     - 对过度工程警告接受
     """
 
-    def __init__(self, responder: Callable[[list[AdversarialChallenge]], list[AdversarialDefense]] | None = None) -> None:
+    def __init__(
+        self, responder: Callable[[list[AdversarialChallenge]], list[AdversarialDefense]] | None = None
+    ) -> None:
         self._responder = responder
 
     def respond(self, challenges: list[AdversarialChallenge]) -> list[AdversarialDefense]:
@@ -239,7 +248,8 @@ class Judge:
 
     def __init__(
         self,
-        evaluator: Callable[[str, list[AdversarialChallenge], list[AdversarialDefense]], AdversarialVerdict] | None = None,
+        evaluator: Callable[[str, list[AdversarialChallenge], list[AdversarialDefense]], AdversarialVerdict]
+        | None = None,
     ) -> None:
         self._evaluator = evaluator
 
@@ -270,9 +280,7 @@ class Judge:
             if challenge.severity == "critical":
                 if defense is None or defense.conceded:
                     critical_unresolved += 1
-                    improvements.append(
-                        f"Resolve critical challenge: {challenge.description}"
-                    )
+                    improvements.append(f"Resolve critical challenge: {challenge.description}")
                 else:
                     critical_resolved += 1
 

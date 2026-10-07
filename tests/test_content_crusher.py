@@ -33,6 +33,7 @@ from scripts.collaboration.context_compressor import (  # noqa: E402
     Message,
     MessageType,
 )
+from tests.conftest import perf_ceiling_ms  # noqa: E402
 
 
 class TestContentRouter(unittest.TestCase):
@@ -322,37 +323,90 @@ class TestContextCompressorSmartIntegration(unittest.TestCase):
 
 
 class TestPerformance(unittest.TestCase):
-    """Performance: crush operations complete within 100ms."""
+    """Performance: crush operations complete within 100ms.
+
+    V4.5.20 P1-2: budgets are environment-scaled (tests/conftest.py) so a slower
+    CI host cannot fail the gate while an algorithmic regression still can. Each
+    ceiling is ``budget * env_perf_factor()``, and the factor comes from an
+    **operation-independent** reference workload (a CPU-only proxy that does not
+    touch ContentRouter/SmartCrusher). On the calibration host the factor is
+    exactly ``1.0``, so each ceiling equals its original budget (100/100/50 ms).
+    The control must not exercise the code under test: a same-code-path control
+    grows in lockstep with a regression, so the ceiling would grow too and the
+    gate could no longer fail.
+    """
 
     def test_crush_large_json_under_100ms(self):
-        """Verify: crushing 10000-item JSON array completes <100ms."""
+        """Verify: crushing 10000-item JSON array completes <100ms.
+
+        V4.5.20 P1-2: environment-scaled ceiling via the operation-independent
+        reference-workload control; the factor is 1.0 on the calibration host, so
+        the ceiling equals the original 100 ms budget there. The control must not
+        touch the code under test — a same-code-path control makes the ceiling
+        grow with the regression, so the gate can no longer fail.
+        """
         items = [{"id": i, "name": "task", "status": "ok", "data": f"payload-{i}"} for i in range(10000)]
         text = json.dumps(items)
         crusher = SmartCrusher()
+
+        ceiling_ms = perf_ceiling_ms(100.0)
+
         start = time.perf_counter()
         crusher.crush(text)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 100, f"Took {elapsed_ms:.1f}ms")
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            f"JSON crush took {elapsed_ms:.1f}ms, exceeds ceiling {ceiling_ms:.1f}ms",
+        )
 
     def test_crush_large_log_under_100ms(self):
-        """Verify: crushing 5000-line log completes <100ms."""
+        """Verify: crushing 5000-line log completes <100ms.
+
+        V4.5.20 P1-2: environment-scaled ceiling via the operation-independent
+        reference-workload control; the factor is 1.0 on the calibration host, so
+        the ceiling equals the original 100 ms budget there. The control must not
+        touch the code under test — a same-code-path control makes the ceiling
+        grow with the regression, so the gate can no longer fail.
+        """
         lines = [f"2026-07-01 10:00:{i % 60:02d} INFO processing line {i}" for i in range(5000)]
         lines[2500] = "2026-07-01 10:41:00 ERROR critical failure"
         text = "\n".join(lines)
         crusher = SmartCrusher()
+
+        ceiling_ms = perf_ceiling_ms(100.0)
+
         start = time.perf_counter()
         crusher.crush(text)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 100, f"Took {elapsed_ms:.1f}ms")
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            f"Log crush took {elapsed_ms:.1f}ms, exceeds ceiling {ceiling_ms:.1f}ms",
+        )
 
     def test_detect_large_text_under_50ms(self):
-        """Verify: content detection on 50KB text completes <50ms."""
+        """Verify: content detection on 50KB text completes <50ms.
+
+        V4.5.20 P1-2: environment-scaled ceiling via the operation-independent
+        reference-workload control; the factor is 1.0 on the calibration host, so
+        the ceiling equals the original 50 ms budget there. The control must not
+        touch the code under test — a same-code-path control makes the ceiling
+        grow with the regression, so the gate can no longer fail.
+        """
         text = "2026-07-01 10:00:00 INFO line\n" * 2000
         router = ContentRouter()
+
+        ceiling_ms = perf_ceiling_ms(50.0)
+
         start = time.perf_counter()
         router.detect(text)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        self.assertLess(elapsed_ms, 50, f"Took {elapsed_ms:.1f}ms")
+        self.assertLess(
+            elapsed_ms,
+            ceiling_ms,
+            f"Detect took {elapsed_ms:.2f}ms, exceeds ceiling {ceiling_ms:.2f}ms",
+        )
 
 
 class TestEdgeCases(unittest.TestCase):

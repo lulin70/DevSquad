@@ -192,9 +192,7 @@ class TestAsyncOpenAIBackendGenerate:
     async def test_generate_returns_content(self):
         backend, client = self._make_backend_with_client()
         client.chat.completions.create = AsyncMock(
-            return_value=MagicMock(
-                choices=[MagicMock(message=MagicMock(content="hi"))]
-            )
+            return_value=MagicMock(choices=[MagicMock(message=MagicMock(content="hi"))])
         )
         assert await backend.generate("p") == "hi"
 
@@ -202,9 +200,7 @@ class TestAsyncOpenAIBackendGenerate:
     async def test_generate_returns_empty_when_content_none(self):
         backend, client = self._make_backend_with_client()
         client.chat.completions.create = AsyncMock(
-            return_value=MagicMock(
-                choices=[MagicMock(message=MagicMock(content=None))]
-            )
+            return_value=MagicMock(choices=[MagicMock(message=MagicMock(content=None))])
         )
         assert await backend.generate("p") == ""
 
@@ -242,9 +238,7 @@ class TestAsyncOpenAIBackendGenerate:
 
         transient_exc = _get_openai_retry_exceptions()[0]
 
-        client.chat.completions.create = AsyncMock(
-            side_effect=transient_exc("x")
-        )
+        client.chat.completions.create = AsyncMock(side_effect=transient_exc("x"))
         with pytest.raises(transient_exc):
             await backend.generate("p")
         assert client.chat.completions.create.call_count == backend.MAX_RETRIES
@@ -276,9 +270,7 @@ class TestAsyncOpenAIBackendStream:
         chunk1 = MagicMock(choices=[MagicMock(delta=MagicMock(content="a"))])
         chunk2 = MagicMock(choices=[MagicMock(delta=MagicMock(content=""))])
         chunk3 = MagicMock(choices=[MagicMock(delta=MagicMock(content="b"))])
-        fake_client.chat.completions.create = AsyncMock(
-            return_value=_AsyncIter([chunk1, chunk2, chunk3])
-        )
+        fake_client.chat.completions.create = AsyncMock(return_value=_AsyncIter([chunk1, chunk2, chunk3]))
         chunks = []
         async for c in backend.generate_stream("p"):
             chunks.append(c)
@@ -406,9 +398,7 @@ class TestAsyncAnthropicBackendGenerate:
     @pytest.mark.asyncio
     async def test_generate_returns_text(self):
         backend, client = self._make_backend_with_client()
-        client.messages.create = AsyncMock(
-            return_value=MagicMock(content=[MagicMock(text="hi")])
-        )
+        client.messages.create = AsyncMock(return_value=MagicMock(content=[MagicMock(text="hi")]))
         assert await backend.generate("p") == "hi"
 
     @pytest.mark.asyncio
@@ -451,9 +441,7 @@ class TestAsyncAnthropicBackendGenerate:
 
         transient_exc = _get_anthropic_retry_exceptions()[0]
 
-        client.messages.create = AsyncMock(
-            side_effect=transient_exc("x")
-        )
+        client.messages.create = AsyncMock(side_effect=transient_exc("x"))
         with pytest.raises(transient_exc):
             await backend.generate("p")
         assert client.messages.create.call_count == backend.MAX_RETRIES
@@ -769,18 +757,14 @@ class TestAsyncLLMBackendFactory:
 
     @pytest.mark.asyncio
     async def test_create_openai_with_kwargs(self):
-        backend = AsyncLLMBackendFactory.create(
-            "openai", api_key="k", model="m", _force_type=True
-        )
+        backend = AsyncLLMBackendFactory.create("openai", api_key="k", model="m", _force_type=True)
         assert isinstance(backend, AsyncOpenAIBackend)
         assert backend._api_key == "k"
         assert backend.model == "m"
 
     @pytest.mark.asyncio
     async def test_create_anthropic_with_kwargs(self):
-        backend = AsyncLLMBackendFactory.create(
-            "anthropic", api_key="k", model="m", _force_type=True
-        )
+        backend = AsyncLLMBackendFactory.create("anthropic", api_key="k", model="m", _force_type=True)
         assert isinstance(backend, AsyncAnthropicBackend)
         assert backend._api_key == "k"
 

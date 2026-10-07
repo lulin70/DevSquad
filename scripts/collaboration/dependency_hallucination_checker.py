@@ -71,11 +71,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-_DATA_DIR = (
-    Path(__file__).resolve().parent
-    / "data"
-    / "dependency_hallucination"
-)
+_DATA_DIR = Path(__file__).resolve().parent / "data" / "dependency_hallucination"
 _KNOWN_GOOD_PATH = _DATA_DIR / "known_good.json"
 _SUSPICIOUS_PATH = _DATA_DIR / "suspicious.json"
 _TOP_TARGETS_PATH = _DATA_DIR / "top_targets.json"
@@ -89,33 +85,151 @@ _MAX_CODE_BYTES = 256 * 1024
 # Python standard library modules (3.12+) — never flagged
 _PYTHON_STDLIB = frozenset(
     {
-        "os", "sys", "json", "re", "io", "pathlib", "collections", "typing",
-        "datetime", "time", "math", "random", "itertools", "functools",
-        "operator", "dataclasses", "enum", "abc", "copy", "pickle",
-        "shelve", "sqlite3", "csv", "xml", "html", "http", "urllib",
-        "socket", "ssl", "asyncio", "threading", "multiprocessing",
-        "logging", "warnings", "unittest", "doctest", "pdb", "profile",
-        "timeit", "trace", "argparse", "getopt", "configparser", "netrc",
-        "os.path", "subprocess", "signal", "mmap", "ctypes", "struct",
-        "codecs", "unicodedata", "stringprep", "rlcompleter", "linecache",
-        "tokenize", "keyword", "token", "tabnanny", "compileall", "dis",
-        "inspect", "types", "traceback", "gc", "sysconfig", "builtins",
-        "importlib", "pkgutil", "modulefinder", "runpy", "atexit", "hashlib", "hmac", "secrets", "base64", "binascii", "quopri",
-        "uu", "binhex", "crypt", "fractions", "decimal",
-        "statistics", "numbers", "cmath", "array", "bisect", "heapq", "queue", "weakref", "errno", "select", "selectors", "contextlib", "contextvars", "tomllib", "uuid", "graphlib",
+        "os",
+        "sys",
+        "json",
+        "re",
+        "io",
+        "pathlib",
+        "collections",
+        "typing",
+        "datetime",
+        "time",
+        "math",
+        "random",
+        "itertools",
+        "functools",
+        "operator",
+        "dataclasses",
+        "enum",
+        "abc",
+        "copy",
+        "pickle",
+        "shelve",
+        "sqlite3",
+        "csv",
+        "xml",
+        "html",
+        "http",
+        "urllib",
+        "socket",
+        "ssl",
+        "asyncio",
+        "threading",
+        "multiprocessing",
+        "logging",
+        "warnings",
+        "unittest",
+        "doctest",
+        "pdb",
+        "profile",
+        "timeit",
+        "trace",
+        "argparse",
+        "getopt",
+        "configparser",
+        "netrc",
+        "os.path",
+        "subprocess",
+        "signal",
+        "mmap",
+        "ctypes",
+        "struct",
+        "codecs",
+        "unicodedata",
+        "stringprep",
+        "rlcompleter",
+        "linecache",
+        "tokenize",
+        "keyword",
+        "token",
+        "tabnanny",
+        "compileall",
+        "dis",
+        "inspect",
+        "types",
+        "traceback",
+        "gc",
+        "sysconfig",
+        "builtins",
+        "importlib",
+        "pkgutil",
+        "modulefinder",
+        "runpy",
+        "atexit",
+        "hashlib",
+        "hmac",
+        "secrets",
+        "base64",
+        "binascii",
+        "quopri",
+        "uu",
+        "binhex",
+        "crypt",
+        "fractions",
+        "decimal",
+        "statistics",
+        "numbers",
+        "cmath",
+        "array",
+        "bisect",
+        "heapq",
+        "queue",
+        "weakref",
+        "errno",
+        "select",
+        "selectors",
+        "contextlib",
+        "contextvars",
+        "tomllib",
+        "uuid",
+        "graphlib",
     }
 )
 
 # Node.js built-in modules — never flagged
 _NODE_BUILTINS = frozenset(
     {
-        "assert", "buffer", "child_process", "cluster", "console",
-        "constants", "crypto", "dgram", "diagnostics_channel", "dns",
-        "events", "fs", "http", "http2", "https", "inspector", "module",
-        "net", "os", "path", "perf_hooks", "process", "punycode",
-        "querystring", "readline", "repl", "stream", "string_decoder",
-        "sys", "timers", "tls", "trace_events", "tty", "url", "util",
-        "v8", "vm", "wasi", "worker_threads", "zlib",
+        "assert",
+        "buffer",
+        "child_process",
+        "cluster",
+        "console",
+        "constants",
+        "crypto",
+        "dgram",
+        "diagnostics_channel",
+        "dns",
+        "events",
+        "fs",
+        "http",
+        "http2",
+        "https",
+        "inspector",
+        "module",
+        "net",
+        "os",
+        "path",
+        "perf_hooks",
+        "process",
+        "punycode",
+        "querystring",
+        "readline",
+        "repl",
+        "stream",
+        "string_decoder",
+        "sys",
+        "timers",
+        "tls",
+        "trace_events",
+        "tty",
+        "url",
+        "util",
+        "v8",
+        "vm",
+        "wasi",
+        "worker_threads",
+        "zlib",
     }
 )
 
@@ -147,9 +261,18 @@ _JS_IMPORT_PATTERNS = (
 
 # High-frequency hallucination suffix patterns (from Snyk/Socket research)
 _SUSPICIOUS_SUFFIXES = (
-    "-helper", "-utils", "-sdk", "-validator", "-middleware",
-    "-secure", "-extra", "-pro", "-plus", "-advanced",
-    "-ultimate", "-premium",
+    "-helper",
+    "-utils",
+    "-sdk",
+    "-validator",
+    "-middleware",
+    "-secure",
+    "-extra",
+    "-pro",
+    "-plus",
+    "-advanced",
+    "-ultimate",
+    "-premium",
 )
 
 
@@ -189,7 +312,7 @@ class DependencyCategory(Enum):
 class DependencySeverity(Enum):
     """Severity levels for dependency findings."""
 
-    INFO = "info"        # KNOWN_GOOD
+    INFO = "info"  # KNOWN_GOOD
     WARNING = "warning"  # UNKNOWN
     CRITICAL = "critical"  # SUSPICIOUS
 
@@ -251,9 +374,7 @@ class DependencyScanResult:
     summary: str
     stats: dict[str, int] = field(default_factory=dict)
     scan_duration_ms: float = 0.0
-    timestamp: str = field(
-        default_factory=lambda: datetime.now().isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     ecosystem_detected: str = "unknown"
 
     def to_dict(self) -> dict[str, Any]:
@@ -294,40 +415,23 @@ class DependencyScanResult:
             lines.append("✅ 所有 import 均为已知良好包，未检测到幻觉风险。")
             return "\n".join(lines)
 
-        suspicious = [
-            f for f in self.findings
-            if f.category == DependencyCategory.SUSPICIOUS
-        ]
-        unknown = [
-            f for f in self.findings
-            if f.category == DependencyCategory.UNKNOWN
-        ]
+        suspicious = [f for f in self.findings if f.category == DependencyCategory.SUSPICIOUS]
+        unknown = [f for f in self.findings if f.category == DependencyCategory.UNKNOWN]
         if suspicious:
             lines.append(f"### 🚨 SUSPICIOUS ({len(suspicious)} 项)")
             lines.append("")
             for f in suspicious:
-                fix = (
-                    f" → 建议替换为 `{f.suggested_fix}`"
-                    if f.suggested_fix
-                    else ""
-                )
-                lines.append(
-                    f"- **L{f.line_number} `{f.package_name}`** "
-                    f"({f.ecosystem}): {f.reason}{fix}"
-                )
+                fix = f" → 建议替换为 `{f.suggested_fix}`" if f.suggested_fix else ""
+                lines.append(f"- **L{f.line_number} `{f.package_name}`** ({f.ecosystem}): {f.reason}{fix}")
             lines.append("")
         if unknown:
             lines.append(f"### ⚠️ UNKNOWN ({len(unknown)} 项)")
             lines.append("")
             for f in unknown:
-                lines.append(
-                    f"- **L{f.line_number} `{f.package_name}`** "
-                    f"({f.ecosystem}): {f.reason}"
-                )
+                lines.append(f"- **L{f.line_number} `{f.package_name}`** ({f.ecosystem}): {f.reason}")
             lines.append("")
         lines.append(
-            "> 详见 [Slopsquatting 防御文档]"
-            "(docs/analysis/2026-07-25_P1-7_dependency_hallucination_review.md)"
+            "> 详见 [Slopsquatting 防御文档](docs/analysis/2026-07-25_P1-7_dependency_hallucination_review.md)"
         )
         return "\n".join(lines)
 
@@ -356,9 +460,7 @@ def _load_json_safe(path: Path, default: Any) -> Any:
         with path.open("r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError, ValueError) as e:
-        logger.warning(
-            "Dataset corrupted %s: %s — using fail-secure default", path, e
-        )
+        logger.warning("Dataset corrupted %s: %s — using fail-secure default", path, e)
         return default
 
 
@@ -384,22 +486,12 @@ def _ensure_datasets_loaded() -> None:
             "confusion_pairs": [],
         },
     )
-    top_targets_data = _load_json_safe(
-        _TOP_TARGETS_PATH, {"pypi": [], "npm": []}
-    )
+    top_targets_data = _load_json_safe(_TOP_TARGETS_PATH, {"pypi": [], "npm": []})
 
-    _loaded_known_good = set(known_good_data.get("pypi", [])) | set(
-        known_good_data.get("npm", [])
-    )
-    _loaded_suspicious = set(suspicious_data.get("pypi", [])) | set(
-        suspicious_data.get("npm", [])
-    )
-    _loaded_top_targets = set(top_targets_data.get("pypi", [])) | set(
-        top_targets_data.get("npm", [])
-    )
-    _loaded_suffix_patterns = tuple(
-        suspicious_data.get("high_frequency_suffix_patterns", [])
-    )
+    _loaded_known_good = set(known_good_data.get("pypi", [])) | set(known_good_data.get("npm", []))
+    _loaded_suspicious = set(suspicious_data.get("pypi", [])) | set(suspicious_data.get("npm", []))
+    _loaded_top_targets = set(top_targets_data.get("pypi", [])) | set(top_targets_data.get("npm", []))
+    _loaded_suffix_patterns = tuple(suspicious_data.get("high_frequency_suffix_patterns", []))
     _loaded_confusion_pairs = suspicious_data.get("confusion_pairs", [])
 
 
@@ -456,9 +548,7 @@ def _extract_imports(
     # produce 1000 findings instead of 1.
     seen_packages: set[str] = set()
 
-    patterns = (
-        _PYTHON_IMPORT_PATTERNS if ecosystem == "pypi" else _JS_IMPORT_PATTERNS
-    )
+    patterns = _PYTHON_IMPORT_PATTERNS if ecosystem == "pypi" else _JS_IMPORT_PATTERNS
     stdlib = _PYTHON_STDLIB if ecosystem == "pypi" else _NODE_BUILTINS
 
     for pattern in patterns:
@@ -666,10 +756,7 @@ def _check_confusion_rule(package: str) -> tuple[bool, str, str | None]:
         hallucinated = pair.get("hallucinated", "")
         components = pair.get("real_components", [])
         if package == hallucinated and len(components) >= 2:
-            reason = (
-                f"Package appears to be a confusion of real packages: "
-                f"{' + '.join(components)}"
-            )
+            reason = f"Package appears to be a confusion of real packages: {' + '.join(components)}"
             return True, reason, components[0]
     return False, "", None
 
@@ -684,10 +771,7 @@ def _check_suffix_pattern(package: str) -> tuple[bool, str]:
     pkg_lower = package.lower()
     for suffix in _loaded_suffix_patterns:
         if pkg_lower.endswith(suffix) and len(pkg_lower) > len(suffix):
-            reason = (
-                f"Package name ends with high-frequency hallucination "
-                f"suffix '{suffix}' — manual review required"
-            )
+            reason = f"Package name ends with high-frequency hallucination suffix '{suffix}' — manual review required"
             return True, reason
     return False, ""
 
@@ -713,18 +797,12 @@ def _classify_package(
     # Step 1: Suspicious blacklist (exact match, all variants)
     matched, suggested = _check_suspicious_blacklist(variants)
     if matched:
-        reason = (
-            "Package is in the suspicious blacklist "
-            "(known hallucination or malicious package)"
-        )
+        reason = "Package is in the suspicious blacklist (known hallucination or malicious package)"
         return DependencyCategory.SUSPICIOUS, reason, suggested
 
     # Step 2: Known-good whitelist (exact match, all variants)
     if _check_known_good(variants):
-        reason = (
-            "Package is in the known-good whitelist "
-            "(Top-N or commonly used)"
-        )
+        reason = "Package is in the known-good whitelist (Top-N or commonly used)"
         return DependencyCategory.KNOWN_GOOD, reason, None
 
     # Step 3: Levenshtein typo-squatting detection
@@ -748,10 +826,7 @@ def _classify_package(
         return DependencyCategory.UNKNOWN, reason, None
 
     # Step 6: Default to UNKNOWN (fail-secure)
-    reason = (
-        "Package not found in whitelist or blacklist — "
-        "manual review required"
-    )
+    reason = "Package not found in whitelist or blacklist — manual review required"
     return DependencyCategory.UNKNOWN, reason, None
 
 
@@ -794,9 +869,7 @@ def security_scan_dependencies(
     if not code or not isinstance(code, str):
         raise ValueError("code must be a non-empty string")
     if len(code.encode("utf-8")) > _MAX_CODE_BYTES:
-        raise ValueError(
-            f"code exceeds maximum size of {_MAX_CODE_BYTES} bytes"
-        )
+        raise ValueError(f"code exceeds maximum size of {_MAX_CODE_BYTES} bytes")
 
     # Ecosystem detection
     if ecosystem == "auto":
@@ -804,9 +877,7 @@ def security_scan_dependencies(
     elif ecosystem in ("pypi", "npm"):
         detected = ecosystem
     else:
-        raise ValueError(
-            f"ecosystem must be 'pypi', 'npm', or 'auto'; got '{ecosystem}'"
-        )
+        raise ValueError(f"ecosystem must be 'pypi', 'npm', or 'auto'; got '{ecosystem}'")
 
     # Ensure datasets are loaded (fail-secure if missing)
     _ensure_datasets_loaded()
@@ -855,9 +926,7 @@ def security_scan_dependencies(
     is_clean = stats["suspicious"] == 0 and stats["unknown"] == 0
 
     if is_clean:
-        summary = (
-            f"Scanned {len(findings)} import(s); all known-good."
-        )
+        summary = f"Scanned {len(findings)} import(s); all known-good."
     else:
         summary = (
             f"Scanned {len(findings)} import(s); "
@@ -877,11 +946,7 @@ def security_scan_dependencies(
 
     # Blocking mode: raise if SUSPICIOUS found
     if blocking and stats["suspicious"] > 0:
-        suspicious_names = [
-            f.package_name
-            for f in findings
-            if f.category == DependencyCategory.SUSPICIOUS
-        ]
+        suspicious_names = [f.package_name for f in findings if f.category == DependencyCategory.SUSPICIOUS]
         raise RuntimeError(
             f"Dependency hallucination check failed (blocking mode): "
             f"{len(suspicious_names)} SUSPICIOUS package(s) found: "

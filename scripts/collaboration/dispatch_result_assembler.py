@@ -11,6 +11,7 @@ from typing import Any
 from .concern_pack_loader import ConcernPackLoader
 from .dispatch_models import DispatchResult
 from .dispatcher_base import ReportFormatterProtocol
+from .models import ROLE_REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,8 @@ class ResultAssembler:
         coordinator: Any,
         tenant_id: str | None = None,
         enterprise: Any = None,
+        backend_status: dict[str, Any] | None = None,
+        role_candidates: list[dict[str, Any]] | None = None,
     ) -> DispatchResult:
         """Assemble the final DispatchResult from all step results."""
         report = coordinator.generate_report()
@@ -91,8 +94,11 @@ class ResultAssembler:
         if enterprise is not None:
             scratchpad_summary = enterprise.apply_data_masking(scratchpad_summary)
 
+        coverage, failed_roles, missing_roles = self._build_coverage(role_ids, worker_results)
+        dispatch_success = exec_result.success and len(errors) == 0 and coverage["complete"]
+
         return DispatchResult(
-            success=exec_result.success and len(errors) == 0,
+            success=dispatch_success,
             task_description=task_description,
             matched_roles=role_ids,
             summary=self._build_summary(task_description, role_ids, exec_result, scratchpad_summary),
@@ -103,6 +109,11 @@ class ResultAssembler:
                 "report": report,
                 "timing": step_timings,
                 "tenant_id": tenant_id,
+                "coverage": coverage,
+                "failed_roles": failed_roles,
+                "missing_roles": missing_roles,
+                "role_candidates": list(role_candidates or []),
+                **({"backend_status": backend_status} if backend_status is not None else {}),
             },
             scratchpad_summary=scratchpad_summary,
             consensus_records=consensus_records,
@@ -121,6 +132,56 @@ class ResultAssembler:
             intent_match=self._build_intent_dict(intent_match),
             five_axis_result=five_axis_result,
         )
+
+    @staticmethod
+    def _build_coverage(
+        role_ids: list[str], worker_results: list[dict[str, Any]]
+    ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+        requested_roles = list(dict.fromkeys(role_ids))
+        successful_roles = {
+            str(result.get("role_id")) for result in worker_results if result.get("success") and result.get("role_id")
+        }
+        failed_by_role: dict[str, dict[str, Any]] = {}
+        for result in worker_results:
+            role_id = result.get("role_id")
+            if not role_id or result.get("success") or role_id in successful_roles:
+                continue
+            failed_by_role.setdefault(
+                str(role_id),
+                {
+                    "role_id": role_id,
+                    "role_name": result.get(
+                        "role_name",
+                        ROLE_REGISTRY[role_id].name if role_id in ROLE_REGISTRY else role_id,
+                    ),
+                    "reason": result.get("error") or "Worker execution failed",
+                },
+            )
+
+        failed_roles = [failed_by_role[role_id] for role_id in requested_roles if role_id in failed_by_role]
+        missing_roles = [
+            {
+                "role_id": role_id,
+                "role_name": ROLE_REGISTRY[role_id].name if role_id in ROLE_REGISTRY else role_id,
+                "reason": "No worker result returned",
+            }
+            for role_id in requested_roles
+            if role_id not in successful_roles and role_id not in failed_by_role
+        ]
+
+        completed = len(successful_roles.intersection(requested_roles))
+        failed = len(failed_roles)
+        missing = len(missing_roles)
+        requested = len(requested_roles)
+        coverage = {
+            "requested": requested,
+            "completed": completed,
+            "failed": failed,
+            "missing": missing,
+            "ratio": completed / requested if requested else 1.0,
+            "complete": completed == requested and failed == 0 and missing == 0,
+        }
+        return coverage, failed_roles, missing_roles
 
     @staticmethod
     def _build_anchor_dict(anchor_result: Any) -> dict[str, Any] | None:
@@ -144,7 +205,9 @@ class ResultAssembler:
             "intent_type": intent_match.intent_type,
             "workflow_chain": list(intent_match.workflow_chain),
             "confidence": intent_match.confidence,
-            "suggested_next_steps": list(intent_match.suggested_next_steps) if hasattr(intent_match, 'suggested_next_steps') else [],
+            "suggested_next_steps": list(intent_match.suggested_next_steps)
+            if hasattr(intent_match, "suggested_next_steps")
+            else [],
         }
 
     def _build_summary(self, task: str, roles: list[str], exec_result: Any, sp_summary: str) -> str:
@@ -153,13 +216,33 @@ class ResultAssembler:
 
     @staticmethod
     def build_step_timings(
-        step1: float, step2: float, step3: float, step4: float, step5: float,
-        step6: float, step7: float, step8: float, step9: float, step10: float,
-        step11: float, step12: float,
+        step1: float,
+        step2: float,
+        step3: float,
+        step4: float,
+        step5: float,
+        step6: float,
+        step7: float,
+        step8: float,
+        step9: float,
+        step10: float,
+        step11: float,
+        step12: float,
     ) -> dict[str, float]:
         """Build step timings dict from absolute timestamps."""
-        names = ["analyze", "warmup", "plan", "spawn", "execute", "collect",
-                 "consensus", "compress", "permission", "memory", "skillify"]
+        names = [
+            "analyze",
+            "warmup",
+            "plan",
+            "spawn",
+            "execute",
+            "collect",
+            "consensus",
+            "compress",
+            "permission",
+            "memory",
+            "skillify",
+        ]
         times = [step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12]
         return {name: round(times[i + 1] - times[i], 3) for i, name in enumerate(names)}
 

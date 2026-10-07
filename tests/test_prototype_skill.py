@@ -94,9 +94,7 @@ class TestPrototypeSkillGenerateConstraints(unittest.TestCase):
             )
 
     def test_t8_vertical_slice_calls_micro_task_planner(self) -> None:
-        with patch(
-            "scripts.collaboration.micro_task_planner.MicroTaskPlanner"
-        ) as mock_planner_cls:
+        with patch("scripts.collaboration.micro_task_planner.MicroTaskPlanner") as mock_planner_cls:
             mock_planner = MagicMock()
             mock_planner_cls.return_value = mock_planner
             # plan() returns a MagicMock; .to_dict() returns a dict.
@@ -113,9 +111,7 @@ class TestPrototypeSkillGenerateConstraints(unittest.TestCase):
             )
 
     def test_t8b_vertical_slice_disabled_skips_planner(self) -> None:
-        with patch(
-            "scripts.collaboration.micro_task_planner.MicroTaskPlanner"
-        ) as mock_planner_cls:
+        with patch("scripts.collaboration.micro_task_planner.MicroTaskPlanner") as mock_planner_cls:
             result = self.skill.generate(
                 "Test hypothesis",
                 prototype_type="logic",
@@ -188,9 +184,7 @@ class TestPrototypeSkillValidate(unittest.TestCase):
 
     def setUp(self) -> None:
         self.skill = PrototypeSkill()
-        self.prototype_result = self.skill.generate(
-            "Users prefer single-click checkout", prototype_type="ui"
-        )
+        self.prototype_result = self.skill.generate("Users prefer single-click checkout", prototype_type="ui")
 
     def test_t14_validate_hypothesis_confirmed_true(self) -> None:
         outcome = {

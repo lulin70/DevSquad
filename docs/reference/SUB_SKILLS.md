@@ -125,7 +125,7 @@ for role in matched:
 result = disp.dispatch(
     task_description=user_task,
     roles=None,          # None=auto match, or specify ["architect", "tester"]
-    mode="auto",         # auto/parallel/sequential/consensus
+    mode="auto",         # auto/parallel/sequential/consensus/review
     dry_run=False,       # True=simulation only
 )
 ```

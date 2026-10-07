@@ -1,10 +1,10 @@
-# DevSquad V4.5.19 完整技术规范
+# DevSquad V4.5.20 完整技术规范
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **规范名称**: DevSquad V4.5.19
+> **规范名称**: DevSquad V4.5.20
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V4.5.19 (Enterprise Edition)
+> **版本**: V4.5.20 (Enterprise Edition)
 > **成熟度**: 9.2/10 (诚实评估)
 > **最后更新**: 2026-08-30
 > **文档位置**: `docs/spec/SPEC.md`
@@ -39,7 +39,7 @@
 | 属性 | 值 |
 |------|-----|
 | **项目名称** | DevSquad |
-| **版本号** | V4.5.19 |
+| **版本号** | V4.5.20 |
 | **成熟度等级** | 8.9/10 (honest assessment) |
 | **项目描述** | Production-Ready Multi-Role AI Task Orchestrator |
 | **开发语言** | Python 3.10+ |
@@ -52,7 +52,7 @@
 DevSquad 是一个**生产级多角色 AI 任务编排框架**，采用**控制论增强的多智能体协作范式**，实现：
 
 - **7 个专业角色**协作（架构师、产品经理、安全专家、测试专家、独立开发者、DevOps工程师、UI设计师）
-- **4 种执行模式**（auto/parallel/sequential/consensus）
+- **5 种执行模式**（auto/parallel/sequential/consensus/review）
 - **5 轴共识机制**（正确性/可读性/架构/安全性/性能）
 - **11 阶段生命周期管理**（P1:需求分析 → P2:架构设计 → P3:技术设计 → P4:数据设计(opt) → P5:交互设计(opt) → P6:安全审查(opt) → P7:测试规划 → P8:实现 → P9:测试执行 → P10:部署发布 → P11:运维保障(opt)）
 - **5 种生命周期模板**（full/backend/frontend/internal_tool/minimal）
@@ -407,7 +407,7 @@ devsquad [COMMAND] [OPTIONS]
 devsquad dispatch \
   -t "任务描述" \                          # 必需：任务文本
   -r architect coder tester \             # 可选：角色列表（空格分隔）
-  -m auto \                               # 模式：auto/parallel/sequential/consensus
+  -m auto \                               # 模式：auto/parallel/sequential/consensus/review
   -f markdown \                           # 输出格式：markdown/json/compact/structured/detailed
   --backend mock \                        # LLM后端：mock/openai/anthropic
   --base-url https://api.openai.com \     # 自定义 API 地址
@@ -1272,7 +1272,7 @@ pip install -e .
 ```bash
 # 验证安装
 devsquad --version
-# 输出: DevSQuad V4.5.19
+# 输出: DevSQuad V4.5.20
 
 # Mock 模式演示（无需 API Key）
 devsquad demo --scenario all

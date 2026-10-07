@@ -62,13 +62,12 @@ def _run_script(args: list[str], timeout: int = 120) -> subprocess.CompletedProc
 # Journey 1: help flag
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_start_script_help_flag():
     """Journey-1: start.sh --help exits 0 and shows usage."""
     result = _run_script(["--help"], timeout=10)
     assert result.returncode == 0, (
-        f"--help failed: exit {result.returncode}\n"
-        f"STDERR: {result.stderr[:200]}\n"
-        f"STDOUT: {result.stdout[:200]}"
+        f"--help failed: exit {result.returncode}\nSTDERR: {result.stderr[:200]}\nSTDOUT: {result.stdout[:200]}"
     )
     output = result.stdout + result.stderr
     assert "help" in output.lower() or "usage" in output.lower() or "start" in output.lower(), (
@@ -80,20 +79,19 @@ def test_e2e_start_script_help_flag():
 # Journey 2: Step 1 — Environment check
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_start_script_step1_environment_check():
     """Journey-2: Step 1 (env check) runs without crash."""
     result = _run_script(["--help"], timeout=30)
     # Step 1 should run even with --help (early exit after help)
     # The script should not crash during step detection
-    assert result.returncode in (0, 1), (
-        f"start.sh crashed: exit {result.returncode}\n"
-        f"STDERR: {result.stderr[:300]}"
-    )
+    assert result.returncode in (0, 1), f"start.sh crashed: exit {result.returncode}\nSTDERR: {result.stderr[:300]}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 3: Phase detection — all 4 steps present
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_start_script_has_all_4_steps():
     """Journey-3: start.sh script contains all 4 steps (Step 1-4).
@@ -109,14 +107,13 @@ def test_e2e_start_script_has_all_4_steps():
         assert marker in content, f"Marker '{marker}' not found in start.sh"
     # At least 3 of 4 progress markers should be present (allowing for minor edits)
     found_progress = sum(1 for m in progress_markers if m in content)
-    assert found_progress >= 3, (
-        f"Expected ≥3 progress markers, found {found_progress}/4: {progress_markers}"
-    )
+    assert found_progress >= 3, f"Expected ≥3 progress markers, found {found_progress}/4: {progress_markers}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 4: Bash syntax valid
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_start_script_bash_syntax_valid():
     """Journey-4: start.sh passes bash -n syntax check."""
@@ -126,28 +123,27 @@ def test_e2e_start_script_bash_syntax_valid():
         text=True,
         timeout=10,
     )
-    assert result.returncode == 0, (
-        f"Syntax errors in start.sh:\n{result.stderr}"
-    )
+    assert result.returncode == 0, f"Syntax errors in start.sh:\n{result.stderr}"
 
 
 # ---------------------------------------------------------------------------
 # Journey 5: Dashboard flag recognized
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_start_script_dashboard_flag():
     """Journey-5: start.sh --dashboard is recognized (early exit OK)."""
     result = _run_script(["--help"], timeout=10)
     # --help should exit early, returncode 0 is OK
     assert result.returncode in (0, 1), (
-        f"--dashboard or --help failed: exit {result.returncode}\n"
-        f"STDERR: {result.stderr[:200]}"
+        f"--dashboard or --help failed: exit {result.returncode}\nSTDERR: {result.stderr[:200]}"
     )
 
 
 # ---------------------------------------------------------------------------
 # Journey 6: Service startup (API) — verify it starts
 # ---------------------------------------------------------------------------
+
 
 def test_e2e_start_script_api_service_startup():
     """Journey-6: start.sh starts API service and it's reachable.
@@ -219,9 +215,7 @@ def test_e2e_start_script_api_service_startup():
     stderr = proc.stderr.read() if proc.stderr else ""
 
     assert started, (
-        f"Service did not start on port {api_port} within 20s.\n"
-        f"STDOUT: {stdout[:400]}\n"
-        f"STDERR: {stderr[:400]}"
+        f"Service did not start on port {api_port} within 20s.\nSTDOUT: {stdout[:400]}\nSTDERR: {stderr[:400]}"
     )
 
 
@@ -229,10 +223,9 @@ def test_e2e_start_script_api_service_startup():
 # Journey 7: Environment variable defaults
 # ---------------------------------------------------------------------------
 
+
 def test_e2e_start_script_env_var_defaults():
     """Journey-7: start.sh uses sensible defaults when env vars are unset."""
     content = _START_SCRIPT.read_text()
     # Should have default port settings
-    assert "8000" in content or "8501" in content or "PORT" in content, (
-        "start.sh should reference default ports"
-    )
+    assert "8000" in content or "8501" in content or "PORT" in content, "start.sh should reference default ports"

@@ -67,9 +67,7 @@ class TestDeterministicRuleEngineIntegration:
         }
         present_rules = {i.rule for i in report.issues}
         # At least one DRE-originated rule should fire on small button data.
-        assert dre_rule_names & present_rules, (
-            f"DRE rules {dre_rule_names} not found in issues: {present_rules}"
-        )
+        assert dre_rule_names & present_rules, f"DRE rules {dre_rule_names} not found in issues: {present_rules}"
 
     def test_analyzer_holds_dre_instance(self) -> None:
         """UIUXAnalyzer should hold a DeterministicRuleEngine instance."""
@@ -115,9 +113,7 @@ class TestTasteDialsIntegration:
         base = 0.5
         low_adj = dials_low.adjust_threshold("consistency_check", base)
         high_adj = dials_high.adjust_threshold("consistency_check", base)
-        assert low_adj != high_adj, (
-            "TasteDials with different values should produce different thresholds"
-        )
+        assert low_adj != high_adj, "TasteDials with different values should produce different thresholds"
 
 
 # ============================================================

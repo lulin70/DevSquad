@@ -72,10 +72,7 @@ class NotesMemory:
 
     def list_runs(self) -> list[str]:
         """列出所有运行 ID。"""
-        return [
-            f.stem.replace("run_", "")
-            for f in self._storage_dir.glob("run_*.json")
-        ]
+        return [f.stem.replace("run_", "") for f in self._storage_dir.glob("run_*.json")]
 
     def delete(self, run_id: str) -> bool:
         """删除运行状态。"""

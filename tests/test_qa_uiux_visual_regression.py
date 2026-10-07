@@ -17,6 +17,7 @@ from scripts.qa import (
 # UIUXAnalyzer 测试
 # ============================================================
 
+
 class TestUIUXIssueModel:
     def test_issue_creation(self):
         issue = UIUXIssue(
@@ -323,9 +324,7 @@ class TestUIUXAnalyzerHSV:
     def test_hsv_detects_red_green_harsh_combination(self):
         """检测红绿刺眼配色（高饱和度）。"""
         analyzer = UIUXAnalyzer()
-        issue = analyzer._check_hsv_harsh_combination(
-            "rgb(255, 0, 0)", "rgb(0, 255, 0)", "test text"
-        )
+        issue = analyzer._check_hsv_harsh_combination("rgb(255, 0, 0)", "rgb(0, 255, 0)", "test text")
         assert issue is not None
         assert issue.rule == "hsv_harsh_combination"
         assert "red-green" in issue.message or "green-red" in issue.message
@@ -333,26 +332,20 @@ class TestUIUXAnalyzerHSV:
     def test_hsv_detects_yellow_blue_harsh_combination(self):
         """检测黄蓝刺眼配色。"""
         analyzer = UIUXAnalyzer()
-        issue = analyzer._check_hsv_harsh_combination(
-            "rgb(255, 255, 0)", "rgb(0, 0, 255)", "test text"
-        )
+        issue = analyzer._check_hsv_harsh_combination("rgb(255, 255, 0)", "rgb(0, 0, 255)", "test text")
         assert issue is not None
         assert issue.rule == "hsv_harsh_combination"
 
     def test_hsv_no_issue_for_low_saturation(self):
         """低饱和度配色不触发 HSV 检测。"""
         analyzer = UIUXAnalyzer()
-        issue = analyzer._check_hsv_harsh_combination(
-            "rgb(200, 200, 200)", "rgb(100, 100, 100)", "gray text"
-        )
+        issue = analyzer._check_hsv_harsh_combination("rgb(200, 200, 200)", "rgb(100, 100, 100)", "gray text")
         assert issue is None
 
     def test_hsv_no_issue_for_similar_hues(self):
         """相似色相不触发刺眼配色检测。"""
         analyzer = UIUXAnalyzer()
-        issue = analyzer._check_hsv_harsh_combination(
-            "rgb(255, 0, 0)", "rgb(255, 50, 0)", "red text"
-        )
+        issue = analyzer._check_hsv_harsh_combination("rgb(255, 0, 0)", "rgb(255, 50, 0)", "red text")
         assert issue is None
 
     def test_hsv_no_issue_for_invalid_colors(self):
@@ -364,9 +357,7 @@ class TestUIUXAnalyzerHSV:
     def test_hsv_issue_has_correct_metrics(self):
         """HSV issue 包含正确的 metric 数据。"""
         analyzer = UIUXAnalyzer()
-        issue = analyzer._check_hsv_harsh_combination(
-            "rgb(255, 0, 0)", "rgb(0, 255, 0)", "test"
-        )
+        issue = analyzer._check_hsv_harsh_combination("rgb(255, 0, 0)", "rgb(0, 255, 0)", "test")
         assert issue is not None
         assert "hue_fg" in issue.metric
         assert "hue_bg" in issue.metric
@@ -408,6 +399,7 @@ class TestUIUXAnalyzerWithMockPage:
 # ============================================================
 # VisualRegressionChecker 测试
 # ============================================================
+
 
 class TestVisualRegressionModels:
     def test_changed_region(self):

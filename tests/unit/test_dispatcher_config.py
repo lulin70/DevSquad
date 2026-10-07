@@ -37,11 +37,7 @@ pytestmark = [pytest.mark.unit]
 def _init_params() -> dict[str, inspect.Parameter]:
     """Return the parameter map for ``MultiAgentDispatcher.__init__``."""
     sig = inspect.signature(MultiAgentDispatcher.__init__)
-    return {
-        name: p
-        for name, p in sig.parameters.items()
-        if name not in ("self", "kwargs") and p.kind != p.VAR_KEYWORD
-    }
+    return {name: p for name, p in sig.parameters.items() if name not in ("self", "kwargs") and p.kind != p.VAR_KEYWORD}
 
 
 class TestFieldCoverage:
@@ -51,8 +47,7 @@ class TestFieldCoverage:
         """Sanity check: __init__ still has 48 explicit parameters (43 in V4.5.2 + 5 V4.5.4 P12.3)."""
         params = _init_params()
         assert len(params) == 48, (
-            f"Expected 48 explicit params, got {len(params)}; "
-            f"if __init__ signature changed, update DispatcherConfig."
+            f"Expected 48 explicit params, got {len(params)}; if __init__ signature changed, update DispatcherConfig."
         )
 
     def test_every_init_param_is_a_dataclass_field(self) -> None:
@@ -60,18 +55,14 @@ class TestFieldCoverage:
         params = _init_params()
         field_names = DispatcherConfig.field_names()
         missing = set(params) - field_names
-        assert not missing, (
-            f"__init__ params missing from DispatcherConfig: {sorted(missing)}"
-        )
+        assert not missing, f"__init__ params missing from DispatcherConfig: {sorted(missing)}"
 
     def test_every_dataclass_field_is_an_init_param(self) -> None:
         """No extra dataclass fields (except ``extra``) beyond __init__ params."""
         params = _init_params()
         field_names = DispatcherConfig.field_names()
         extras = field_names - set(params)
-        assert not extras, (
-            f"DispatcherConfig fields not in __init__: {sorted(extras)}"
-        )
+        assert not extras, f"DispatcherConfig fields not in __init__: {sorted(extras)}"
 
 
 # ---------------------------------------------------------------------------
@@ -95,9 +86,7 @@ class TestDefaultParity:
             config_value = getattr(config, name)
             # Compare by value; PermissionLevel is an Enum so == works.
             if config_value != init_default:
-                mismatches.append(
-                    f"{name}: __init__={init_default!r} vs config={config_value!r}"
-                )
+                mismatches.append(f"{name}: __init__={init_default!r} vs config={config_value!r}")
         assert not mismatches, "Default mismatches:\n  " + "\n  ".join(mismatches)
 
     def test_extra_is_empty_dict_by_default(self) -> None:

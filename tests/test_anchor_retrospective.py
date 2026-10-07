@@ -19,6 +19,7 @@ from scripts.collaboration.models import (
     StructuredGoal,
 )
 from scripts.collaboration.retrospective import RetrospectiveEngine
+from tests.conftest import perf_ceiling_ms
 
 
 class TestTokenization(unittest.TestCase):
@@ -189,16 +190,29 @@ class TestAnchorCheckerCheck(unittest.TestCase):
 
 class TestAnchorCheckerPerformance(unittest.TestCase):
     def test_check_under_50ms(self):
+        """V4.5.20 P1-2: environment-scaled ceiling (seconds). The budget is
+        scaled by the operation-independent reference-workload control; the factor
+        is 1.0 on the calibration host, so the ceiling equals the original 0.05 s
+        there. The control must not touch the code under test — a same-code-path
+        control makes the ceiling grow with the regression, so the gate can no
+        longer fail.
+        """
         checker = AnchorChecker()
         goal = checker.parse_goal(
             "Design a scalable microservice architecture with API gateway, "
             "service discovery, load balancing, circuit breaker, and monitoring"
         )
+        ceiling_s = perf_ceiling_ms(0.05)
+
         start = time.time()
         for _ in range(10):
             checker.check(goal, "Designed microservice architecture with all components")
         elapsed = (time.time() - start) / 10
-        self.assertLess(elapsed, 0.05, f"Anchor check took {elapsed * 1000:.1f}ms, expected <50ms")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (f"Anchor check took {elapsed * 1000:.1f}ms, exceeds ceiling {ceiling_s * 1000:.1f}ms"),
+        )
 
 
 class TestStructuredGoal(unittest.TestCase):
@@ -343,6 +357,13 @@ class TestRetrospectiveEngine(unittest.TestCase):
 
 class TestRetrospectiveEnginePerformance(unittest.TestCase):
     def test_run_under_200ms(self):
+        """V4.5.20 P1-2: environment-scaled ceiling (seconds). The budget is
+        scaled by the operation-independent reference-workload control; the factor
+        is 1.0 on the calibration host, so the ceiling equals the original 0.2 s
+        there. The control must not touch the code under test — a same-code-path
+        control makes the ceiling grow with the regression, so the gate can no
+        longer fail.
+        """
         engine = RetrospectiveEngine(memory_bridge=None)
         goal = StructuredGoal(
             goal_id="test",
@@ -363,10 +384,17 @@ class TestRetrospectiveEnginePerformance(unittest.TestCase):
             )
             for i in range(10)
         ]
+
+        ceiling_s = perf_ceiling_ms(0.2)
+
         start = time.time()
         engine.run(goal, anchor_history=anchor_history)
         elapsed = time.time() - start
-        self.assertLess(elapsed, 0.2, f"Retrospective took {elapsed * 1000:.1f}ms, expected <200ms")
+        self.assertLess(
+            elapsed,
+            ceiling_s,
+            (f"Retrospective took {elapsed * 1000:.1f}ms, exceeds ceiling {ceiling_s * 1000:.1f}ms"),
+        )
 
 
 class TestAnchorCheckerConfiguration(unittest.TestCase):

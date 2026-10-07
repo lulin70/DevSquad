@@ -143,18 +143,22 @@ class LoopKernel:
         events: list[LoopEvent] = []
 
         # 1. Discovery
-        events.append(LoopEvent(
-            event_type=LoopEventType.DISCOVERY_STARTED,
-            phase="discovery",
-            iter_index=iter_index,
-        ))
+        events.append(
+            LoopEvent(
+                event_type=LoopEventType.DISCOVERY_STARTED,
+                phase="discovery",
+                iter_index=iter_index,
+            )
+        )
         discovery = self._discovery_probe.discover(objective, iter_index, self._memory)
-        events.append(LoopEvent(
-            event_type=LoopEventType.DISCOVERY_COMPLETED,
-            phase="discovery",
-            iter_index=iter_index,
-            payload=discovery,
-        ))
+        events.append(
+            LoopEvent(
+                event_type=LoopEventType.DISCOVERY_COMPLETED,
+                phase="discovery",
+                iter_index=iter_index,
+                payload=discovery,
+            )
+        )
 
         if discovery.get("done"):
             return CycleResult(
@@ -181,30 +185,36 @@ class LoopKernel:
 
         # 2. Handoff
         handoff = self._handoff_adapter.dispatch(discovery, iter_index)
-        events.append(LoopEvent(
-            event_type=LoopEventType.HANDOFF_DISPATCHED,
-            phase="handoff",
-            iter_index=iter_index,
-            payload={"status": handoff.get("status")},
-        ))
+        events.append(
+            LoopEvent(
+                event_type=LoopEventType.HANDOFF_DISPATCHED,
+                phase="handoff",
+                iter_index=iter_index,
+                payload={"status": handoff.get("status")},
+            )
+        )
 
         # 3. Verification
         passed, errors = self._evaluator.evaluate(objective, handoff, iter_index)
         if passed:
-            events.append(LoopEvent(
-                event_type=LoopEventType.VERIFICATION_PASSED,
-                phase="verification",
-                iter_index=iter_index,
-            ))
+            events.append(
+                LoopEvent(
+                    event_type=LoopEventType.VERIFICATION_PASSED,
+                    phase="verification",
+                    iter_index=iter_index,
+                )
+            )
             self._consecutive_failures = 0
             self._rollback_count = 0
         else:
-            events.append(LoopEvent(
-                event_type=LoopEventType.VERIFICATION_REJECTED,
-                phase="verification",
-                iter_index=iter_index,
-                payload={"errors": errors},
-            ))
+            events.append(
+                LoopEvent(
+                    event_type=LoopEventType.VERIFICATION_REJECTED,
+                    phase="verification",
+                    iter_index=iter_index,
+                    payload={"errors": errors},
+                )
+            )
             self._consecutive_failures += 1
 
         # 4. Persistence
@@ -233,12 +243,14 @@ class LoopKernel:
             decision = self._handle_verification_failure(iter_index, cycle)
 
         cycle.scheduling_decision = decision
-        events.append(LoopEvent(
-            event_type=LoopEventType.SCHEDULING_DECISION,
-            phase="scheduling",
-            iter_index=iter_index,
-            payload={"action": decision.action.value, "reason": decision.reason},
-        ))
+        events.append(
+            LoopEvent(
+                event_type=LoopEventType.SCHEDULING_DECISION,
+                phase="scheduling",
+                iter_index=iter_index,
+                payload={"action": decision.action.value, "reason": decision.reason},
+            )
+        )
 
         return cycle
 
@@ -275,10 +287,7 @@ class LoopKernel:
         self._rollback_strategy.execute_rollback(target, rollback_context)
         return SchedulingDecision(
             action=SchedulingAction.ROLLBACK,
-            reason=(
-                f"Rollback to {target.value} phase for D3 verification failure "
-                f"(count={self._rollback_count})"
-            ),
+            reason=(f"Rollback to {target.value} phase for D3 verification failure (count={self._rollback_count})"),
             next_iteration=iter_index,
         )
 
@@ -301,5 +310,6 @@ class LoopKernel:
             )
         if cycle.verification_errors:
             self._accumulated_artifacts.setdefault(
-                "verification_errors", [],
+                "verification_errors",
+                [],
             ).extend(cycle.verification_errors)

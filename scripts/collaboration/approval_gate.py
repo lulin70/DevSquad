@@ -154,14 +154,16 @@ class ApprovalGate:
                 )
 
         # Record the interaction for the dispatch report.
-        self._records.append({
-            "operation_type": request.operation_type,
-            "description": request.description,
-            "details": request.details,
-            "approved": result.approved,
-            "reason": result.reason,
-            "timestamp": result.timestamp,
-        })
+        self._records.append(
+            {
+                "operation_type": request.operation_type,
+                "description": request.description,
+                "details": request.details,
+                "approved": result.approved,
+                "reason": result.reason,
+                "timestamp": result.timestamp,
+            }
+        )
 
         return result
 

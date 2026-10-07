@@ -102,9 +102,7 @@ MCP_ROLE_LEVELS: dict[str, MCPPermissionLevel] = {
 
 # Tools that trigger dispatch operations and require RBAC checks in
 # addition to the permission-level check (Dimension 2).
-_RBAC_GUARDED_TOOLS: frozenset[str] = frozenset(
-    {"multiagent_dispatch", "multiagent_quick"}
-)
+_RBAC_GUARDED_TOOLS: frozenset[str] = frozenset({"multiagent_dispatch", "multiagent_quick"})
 
 
 @dataclass
@@ -130,6 +128,7 @@ class MCPPermissionResult:
     tool_name: str
     required_level: MCPPermissionLevel
     user_level: MCPPermissionLevel | None
+
 
 # V3.9-02: CodeKnowledgeGraph integration (graceful fallback when unavailable).
 _CODEGRAPH_AVAILABLE = importlib.util.find_spec("scripts.collaboration.code_knowledge_graph") is not None
@@ -304,10 +303,7 @@ class DevSquadMCPServer:
 
         return MCPPermissionResult(
             allowed=False,
-            reason=(
-                f"Role '{role}' (level={user_level.name}) insufficient for "
-                f"{tool_name} (required={required.name})"
-            ),
+            reason=(f"Role '{role}' (level={user_level.name}) insufficient for {tool_name} (required={required.name})"),
             tool_name=tool_name,
             required_level=required,
             user_level=user_level,
@@ -622,9 +618,7 @@ def create_mcp_server(
             )
         except (AttributeError, RuntimeError) as e:
             logger.error("Status check failed: %s", e, exc_info=True)
-            return json.dumps(
-                {"name": "DevSquad", "version": DEVSQUAD_VERSION, "status": "error", "error": str(e)}
-            )
+            return json.dumps({"name": "DevSquad", "version": DEVSQUAD_VERSION, "status": "error", "error": str(e)})
         except Exception as e:
             logger.error("Unexpected error in status check: %s", e, exc_info=True)
             return json.dumps(

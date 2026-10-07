@@ -28,9 +28,7 @@ def quick_collaborate(task: str, **kwargs: Any) -> DispatchResult:
     return result
 
 
-async def async_quick_collaborate(
-    task: str, roles: list[str] | None = None, **kwargs: Any
-) -> DispatchResult:
+async def async_quick_collaborate(task: str, roles: list[str] | None = None, **kwargs: Any) -> DispatchResult:
     """Async version of quick_collaborate()."""
     disp = create_dispatcher(**kwargs)
     result = await disp.async_dispatch(task, roles=roles, **kwargs)

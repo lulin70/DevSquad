@@ -284,7 +284,7 @@ class TestGrillingModeExtractSearchTerms(unittest.TestCase):
 
     def test_extracts_quoted_terms(self) -> None:
         """Verify: quoted terms like 'structlog' are extracted."""
-        terms = GrillingMode._extract_search_terms('Should I use "structlog" or \'logging\'?')
+        terms = GrillingMode._extract_search_terms("Should I use \"structlog\" or 'logging'?")
         self.assertIn("structlog", terms)
         self.assertIn("logging", terms)
 

@@ -1,0 +1,7 @@
+{
+  "rules": [
+    {"pattern": "**/*.py", "body": {"review": true, "kind": "source"}},
+    {"pattern": "**/*.md", "body": {"review": true, "kind": "document"}},
+    {"pattern": "**", "body": {"review": false, "kind": "unclaimed"}}
+  ]
+}

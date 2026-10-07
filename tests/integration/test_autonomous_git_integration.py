@@ -128,12 +128,14 @@ class StubConsensusEngine:
                 self.votes: list[Any] = []
                 self.status = "open"
 
-        self.proposals.append({
-            "proposal_id": proposal_id,
-            "topic": topic,
-            "proposer_id": proposer_id,
-            "content": content,
-        })
+        self.proposals.append(
+            {
+                "proposal_id": proposal_id,
+                "topic": topic,
+                "proposer_id": proposer_id,
+                "content": content,
+            }
+        )
         self._votes[proposal_id] = []
         return StubProposal(proposal_id, topic, proposer_id, content)
 
@@ -171,11 +173,17 @@ def _init_real_git_repo(repo_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=str(repo_path), check=True, env=env, capture_output=True)
     subprocess.run(
         ["git", "config", "user.name", "Test"],
-        cwd=str(repo_path), check=True, env=env, capture_output=True,
+        cwd=str(repo_path),
+        check=True,
+        env=env,
+        capture_output=True,
     )
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
-        cwd=str(repo_path), check=True, env=env, capture_output=True,
+        cwd=str(repo_path),
+        check=True,
+        env=env,
+        capture_output=True,
     )
 
 
@@ -203,7 +211,9 @@ class T1_AutonomousLoopControllerIterationLoop(unittest.TestCase):
         shutil.rmtree(self._notes_dir, ignore_errors=True)
 
     def _make_controller(
-        self, objective: str = "build feature X", max_iterations: int = 2,
+        self,
+        objective: str = "build feature X",
+        max_iterations: int = 2,
     ) -> AutonomousLoopController:
         config = AutonomousConfig(
             objective=objective,
@@ -279,7 +289,10 @@ class T2_GitDriverRealGitIntegration(unittest.TestCase):
         self.assertTrue(result.confirmed)
         log = subprocess.run(
             ["git", "log", "--oneline"],
-            cwd=self._repo_dir, capture_output=True, text=True, check=True,
+            cwd=self._repo_dir,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         self.assertIn("implement feature module", log.stdout)
 
@@ -299,10 +312,16 @@ class T2_GitDriverRealGitIntegration(unittest.TestCase):
         # An initial commit is required before branching/tagging.
         (Path(self._repo_dir) / "init.txt").write_text("init", encoding="utf-8")
         subprocess.run(
-            ["git", "add", "init.txt"], cwd=self._repo_dir, capture_output=True, check=True,
+            ["git", "add", "init.txt"],
+            cwd=self._repo_dir,
+            capture_output=True,
+            check=True,
         )
         subprocess.run(
-            ["git", "commit", "-m", "init"], cwd=self._repo_dir, capture_output=True, check=True,
+            ["git", "commit", "-m", "init"],
+            cwd=self._repo_dir,
+            capture_output=True,
+            check=True,
         )
 
         driver = GitDriver(repo_path=self._repo_dir, auto_confirm=True)
@@ -314,7 +333,10 @@ class T2_GitDriverRealGitIntegration(unittest.TestCase):
 
         tags = subprocess.run(
             ["git", "tag", "-l"],
-            cwd=self._repo_dir, capture_output=True, text=True, check=True,
+            cwd=self._repo_dir,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         self.assertIn("v1.2.3", tags.stdout)
 
@@ -332,7 +354,10 @@ class T2_GitDriverRealGitIntegration(unittest.TestCase):
         # No commit must have been created.
         log = subprocess.run(
             ["git", "log", "--oneline"],
-            cwd=self._repo_dir, capture_output=True, text=True, check=False,
+            cwd=self._repo_dir,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         self.assertEqual(log.stdout, "")
 
@@ -433,7 +458,9 @@ class T4_StopConditionAndResumeIntegration(unittest.TestCase):
         )
         controller = AutonomousLoopController(config=config)
         controller._state = RunState(
-            run_id="t4-pause", objective="pause test", status=RunStatus.PLANNING,
+            run_id="t4-pause",
+            objective="pause test",
+            status=RunStatus.PLANNING,
         )
         controller.pause()
         self.assertEqual(controller.get_state().status, RunStatus.PAUSED)
@@ -448,7 +475,9 @@ class T4_StopConditionAndResumeIntegration(unittest.TestCase):
         )
         controller = AutonomousLoopController(config=config)
         controller._state = RunState(
-            run_id="t4-stop", objective="stop test", status=RunStatus.VERIFYING,
+            run_id="t4-stop",
+            objective="stop test",
+            status=RunStatus.VERIFYING,
         )
         controller.stop()
         self.assertEqual(controller.get_state().status, RunStatus.STOPPED)
@@ -457,12 +486,14 @@ class T4_StopConditionAndResumeIntegration(unittest.TestCase):
     def test_03_auto_resume_continues_from_paused_checkpoint(self) -> None:
         """Verify: auto_resume=True resumes a previously PAUSED run (notes persisted)."""
         memory = NotesMemory(storage_dir=self._notes_dir)
-        memory.save(RunState(
-            run_id="t4-resumable",
-            objective="resume test",
-            status=RunStatus.PAUSED,
-            current_iteration=2,
-        ))
+        memory.save(
+            RunState(
+                run_id="t4-resumable",
+                objective="resume test",
+                status=RunStatus.PAUSED,
+                current_iteration=2,
+            )
+        )
 
         config = AutonomousConfig(
             objective="resume test",
@@ -480,11 +511,13 @@ class T4_StopConditionAndResumeIntegration(unittest.TestCase):
     def test_04_no_auto_resume_when_flag_off(self) -> None:
         """Verify: auto_resume=False starts a fresh run even if a PAUSED checkpoint exists."""
         memory = NotesMemory(storage_dir=self._notes_dir)
-        memory.save(RunState(
-            run_id="t4-no-resume",
-            objective="t",
-            status=RunStatus.PAUSED,
-        ))
+        memory.save(
+            RunState(
+                run_id="t4-no-resume",
+                objective="t",
+                status=RunStatus.PAUSED,
+            )
+        )
 
         config = AutonomousConfig(
             objective="t",
@@ -623,7 +656,8 @@ class T6_DispatcherWiringIntegration(unittest.TestCase):
     def test_02_autonomous_enabled_instantiates_controller(self) -> None:
         """Verify: autonomous_enabled=True wires a non-None autonomous_controller."""
         disp = self._make_dispatcher(
-            autonomous_enabled=True, autonomous_max_iterations=4,
+            autonomous_enabled=True,
+            autonomous_max_iterations=4,
         )
         try:
             self.assertTrue(disp.autonomous_enabled)
@@ -644,7 +678,8 @@ class T6_DispatcherWiringIntegration(unittest.TestCase):
     def test_04_dispatch_autonomous_returns_report_when_enabled(self) -> None:
         """Verify: dispatch_autonomous returns an AutonomousRunReport when enabled."""
         disp = self._make_dispatcher(
-            autonomous_enabled=True, autonomous_max_iterations=1,
+            autonomous_enabled=True,
+            autonomous_max_iterations=1,
         )
         try:
             report = disp.dispatch_autonomous("integration objective")
@@ -657,7 +692,8 @@ class T6_DispatcherWiringIntegration(unittest.TestCase):
     def test_05_dispatch_autonomous_run_id_propagated(self) -> None:
         """Verify: dispatch_autonomous forwards run_id through the wiring."""
         disp = self._make_dispatcher(
-            autonomous_enabled=True, autonomous_max_iterations=1,
+            autonomous_enabled=True,
+            autonomous_max_iterations=1,
         )
         try:
             report = disp.dispatch_autonomous("run id objective", run_id="t6-custom-id")
@@ -697,7 +733,9 @@ class T7_EdgeCasesAndGracefulDegradation(unittest.TestCase):
         self.assertEqual(decision.verdict, ConfirmationVerdict.REQUIRE_CONFIRMATION)
         # A GitDriver using this confirmer must therefore refuse the commit.
         driver = GitDriver(
-            repo_path=self._repo_dir, confirmer=confirmer, auto_confirm=False,
+            repo_path=self._repo_dir,
+            confirmer=confirmer,
+            auto_confirm=False,
         )
         (Path(self._repo_dir) / "w.txt").write_text("z", encoding="utf-8")
         result = driver.commit("update module", files=["w.txt"])

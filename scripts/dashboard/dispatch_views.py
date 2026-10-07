@@ -125,9 +125,7 @@ def render_task_dispatch_page(dispatcher: Any | None) -> None:
                 start_time = time.time()
 
                 # Determine actual roles for visualization (auto-match if empty)
-                viz_roles = selected_roles if selected_roles else _predict_auto_roles(
-                    task_description, dispatcher
-                )
+                viz_roles = selected_roles if selected_roles else _predict_auto_roles(task_description, dispatcher)
 
                 with st.status("🔄 Dispatching task to multi-agent system...", expanded=True) as status:
                     # Phase 1: Initialization
@@ -262,14 +260,16 @@ def _render_result_tabs(result: Any) -> None:
     Empty sections render an ``st.info`` placeholder so the dashboard never
     crashes on a sparse result (AC-4).
     """
-    (tab_workers, tab_consensus, tab_risk, tab_retro, tab_report, tab_raw) = st.tabs([
-        "👥 Worker Outputs",
-        "🗳️ Consensus",
-        "🛡️ Risk Management",
-        "📊 Retrospective",
-        "📝 Full Report",
-        "🔍 Raw Data",
-    ])
+    (tab_workers, tab_consensus, tab_risk, tab_retro, tab_report, tab_raw) = st.tabs(
+        [
+            "👥 Worker Outputs",
+            "🗳️ Consensus",
+            "🛡️ Risk Management",
+            "📊 Retrospective",
+            "📝 Full Report",
+            "🔍 Raw Data",
+        ]
+    )
 
     _render_worker_outputs_tab(tab_workers, result)
     _render_consensus_tab(tab_consensus, result)
@@ -308,10 +308,7 @@ def _render_consensus_tab(tab: Any, result: Any) -> None:
         if not records:
             st.info("No consensus records available.")
             return
-        rows = [
-            {"Topic": r.get("topic", ""), "Outcome": r.get("outcome", "")}
-            for r in records
-        ]
+        rows = [{"Topic": r.get("topic", ""), "Outcome": r.get("outcome", "")} for r in records]
         st.dataframe(rows, use_container_width=True, hide_index=True)
 
 
@@ -464,7 +461,7 @@ def _render_role_pipeline(roles: list[str], active_idx: int, status: str) -> Non
         badges.append(
             f'<span style="background:{color};color:white;padding:0.35rem 0.7rem;'
             f'border-radius:9999px;font-size:0.8rem;font-weight:600;margin:0 0.2rem;">'
-            f'{state_icon} {icon} {name}</span>'
+            f"{state_icon} {icon} {name}</span>"
         )
 
     st.markdown(

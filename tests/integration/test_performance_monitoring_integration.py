@@ -102,11 +102,13 @@ class _MonitoringPipeline:
         self.perf.record_metric(metric)
         self.usage.track(name, success=success, metadata={"duration": duration})
         with self._history_lock:
-            self.history.save_metrics_snapshot({
-                "avg_response_time_ms": duration * 1000,
-                "success_rate": 1.0 if success else 0.0,
-                "custom_operation": name,
-            })
+            self.history.save_metrics_snapshot(
+                {
+                    "avg_response_time_ms": duration * 1000,
+                    "success_rate": 1.0 if success else 0.0,
+                    "custom_operation": name,
+                }
+            )
 
 
 def _make_pipeline() -> tuple[_MonitoringPipeline, PerformanceMonitor, UsageTracker, HistoryManager, str]:
@@ -185,6 +187,7 @@ class T1_PerfMonitorUsageTrackerLinkage(unittest.TestCase):
 
     def test_05_monitor_decorator_records_perf_only(self) -> None:
         """Verify: the monitor decorator records a metric on each decorated call."""
+
         @self._perf.monitor("decorated_fn")
         def _fast() -> str:
             return "done"
@@ -234,10 +237,12 @@ class T2_PerfMonitorHistoryManagerPersistence(unittest.TestCase):
 
     def test_01_save_metrics_snapshot_returns_true(self) -> None:
         """Verify: save_metrics_snapshot succeeds and returns True."""
-        ok = self._history.save_metrics_snapshot({
-            "completion_rate": 75.0,
-            "avg_response_time_ms": 120.5,
-        })
+        ok = self._history.save_metrics_snapshot(
+            {
+                "completion_rate": 75.0,
+                "avg_response_time_ms": 120.5,
+            }
+        )
         self.assertTrue(ok)
 
     def test_02_get_metrics_history_retrieves_saved_snapshot(self) -> None:
@@ -261,10 +266,12 @@ class T2_PerfMonitorHistoryManagerPersistence(unittest.TestCase):
 
     def test_05_custom_data_stored_as_json_blob(self) -> None:
         """Verify: unknown fields are stored in the custom_data JSON column."""
-        self._history.save_metrics_snapshot({
-            "avg_response_time_ms": 10.0,
-            "custom_tag": "nightly",
-        })
+        self._history.save_metrics_snapshot(
+            {
+                "avg_response_time_ms": 10.0,
+                "custom_tag": "nightly",
+            }
+        )
         rows = self._history.get_metrics_history(hours=1, include_custom=True)
         self.assertEqual(rows[0]["custom_data"]["custom_tag"], "nightly")
 
@@ -279,10 +286,12 @@ class T2_PerfMonitorHistoryManagerPersistence(unittest.TestCase):
 
     def test_07_include_custom_flag_parses_json(self) -> None:
         """Verify: include_custom=True parses the custom_data JSON into a dict."""
-        self._history.save_metrics_snapshot({
-            "completion_rate": 1.0,
-            "extra": {"k": "v"},
-        })
+        self._history.save_metrics_snapshot(
+            {
+                "completion_rate": 1.0,
+                "extra": {"k": "v"},
+            }
+        )
         rows = self._history.get_metrics_history(hours=1, include_custom=True)
         self.assertIsInstance(rows[0]["custom_data"], dict)
         self.assertEqual(rows[0]["custom_data"]["extra"], {"k": "v"})
@@ -408,10 +417,12 @@ class T4_EndToEndRecordTrackSaveLoadReport(unittest.TestCase):
         """Verify: LLM call → save → load → get_stats reflects the call."""
         self._perf.record_llm_call("anthropic", "claude", duration=0.8, token_count=100, success=True)
         self._usage.track("llm_call:anthropic:claude", success=True)
-        self._history.save_metrics_snapshot({
-            "avg_response_time_ms": 800.0,
-            "total_llm_calls": self._perf.get_stats()["total_llm_calls"],
-        })
+        self._history.save_metrics_snapshot(
+            {
+                "avg_response_time_ms": 800.0,
+                "total_llm_calls": self._perf.get_stats()["total_llm_calls"],
+            }
+        )
         # total_llm_calls is not a known column; it lands in custom_data JSON.
         rows = self._history.get_metrics_history(hours=1, include_custom=True)
         self.assertEqual(rows[0]["custom_data"]["total_llm_calls"], 1)
@@ -444,6 +455,7 @@ class T4_EndToEndRecordTrackSaveLoadReport(unittest.TestCase):
 
     def test_06_concurrent_records_all_saved_to_history(self) -> None:
         """Verify: concurrent record_operation calls all produce history snapshots."""
+
         def _worker(idx: int) -> None:
             self._pipeline.record_operation(f"concurrent.{idx}", 0.01)
 
@@ -459,9 +471,11 @@ class T4_EndToEndRecordTrackSaveLoadReport(unittest.TestCase):
         """Verify: a detected bottleneck is persisted via save_metrics_snapshot."""
         self._perf.record_metric(_make_metric("slow.fn", duration=1.5, success=True))
         bottlenecks = self._perf.get_bottlenecks(threshold_ms=1000)
-        self._history.save_metrics_snapshot({
-            "avg_response_time_ms": bottlenecks[0]["avg_duration_ms"],
-        })
+        self._history.save_metrics_snapshot(
+            {
+                "avg_response_time_ms": bottlenecks[0]["avg_duration_ms"],
+            }
+        )
         rows = self._history.get_metrics_history(hours=1)
         self.assertGreater(rows[0]["avg_response_time_ms"], 1000.0)
 
@@ -508,6 +522,7 @@ class T5_BoundaryAndEdgeCases(unittest.TestCase):
 
     def test_04_concurrent_track_calls_are_thread_safe(self) -> None:
         """Verify: concurrent UsageTracker.track calls don't lose counts."""
+
         def _track(idx: int) -> None:
             self._usage.track("concurrent.track", success=True)
 
@@ -520,6 +535,7 @@ class T5_BoundaryAndEdgeCases(unittest.TestCase):
 
     def test_05_concurrent_record_metric_calls_are_safe(self) -> None:
         """Verify: concurrent PerformanceMonitor.record_metric calls don't lose metrics."""
+
         def _record(idx: int) -> None:
             self._perf.record_metric(_make_metric("concurrent.metric", duration=0.01))
 
@@ -533,10 +549,12 @@ class T5_BoundaryAndEdgeCases(unittest.TestCase):
     def test_06_huge_metrics_custom_data_saved_and_loaded(self) -> None:
         """Verify: a large custom_data payload survives the save → load roundtrip."""
         big_payload = {"big": "x" * 5000}
-        self._history.save_metrics_snapshot({
-            "completion_rate": 1.0,
-            **big_payload,
-        })
+        self._history.save_metrics_snapshot(
+            {
+                "completion_rate": 1.0,
+                **big_payload,
+            }
+        )
         rows = self._history.get_metrics_history(hours=1, include_custom=True)
         self.assertEqual(len(rows[0]["custom_data"]["big"]), 5000)
 

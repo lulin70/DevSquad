@@ -86,9 +86,7 @@ class I18nManager:
     def set_locale(locale: Locale) -> None:
         """Persist the active locale to session_state."""
         if locale not in _SUPPORTED_LOCALES:
-            raise ValueError(
-                f"Unsupported locale: {locale!r}. Supported: {_SUPPORTED_LOCALES}"
-            )
+            raise ValueError(f"Unsupported locale: {locale!r}. Supported: {_SUPPORTED_LOCALES}")
         st.session_state[_LOCALE_KEY] = locale
 
     @staticmethod
@@ -111,10 +109,14 @@ class I18nManager:
             index=current_idx,
             key="_i18n_locale_select",
         )
-        new_locale = options[selected_idx]
+        # Annotated explicitly: with Streamlit's type stubs available `selectbox`
+        # returns `int`, but without them it degrades to `Any`, and indexing a
+        # `list[Locale]` with an `Any` index widens the result back to `Any`.
+        # The annotation keeps the return type honest in both configurations.
+        new_locale: Locale = options[selected_idx]
         if new_locale != current:
             I18nManager.set_locale(new_locale)
-        return cast(Locale, new_locale)
+        return new_locale
 
 
 def t(key: str, locale: Locale | None = None) -> str:

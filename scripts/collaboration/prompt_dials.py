@@ -75,8 +75,7 @@ class PromptDials:
         # V4.5.0 (PRD 10.1.1): validate output_style.
         if self.output_style not in _VALID_OUTPUT_STYLES:
             raise ValueError(
-                f"Invalid output_style: {self.output_style!r}. "
-                f"Must be one of: {', '.join(_VALID_OUTPUT_STYLES)}"
+                f"Invalid output_style: {self.output_style!r}. Must be one of: {', '.join(_VALID_OUTPUT_STYLES)}"
             )
 
     # ------------------------------------------------------------------

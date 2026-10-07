@@ -46,6 +46,7 @@ def _fastapi_available() -> bool:
     try:
         import fastapi  # noqa: F401
         import uvicorn  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -113,10 +114,7 @@ def api_server(api_server_port: int):
     Skips the test if fastapi/uvicorn are not installed.
     """
     if not _fastapi_available():
-        pytest.fail(
-            "fastapi + uvicorn not installed in current venv — run: "
-            "pip install -e '.[api]'"
-        )
+        pytest.fail("fastapi + uvicorn not installed in current venv — run: pip install -e '.[api]'")
 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(_PROJECT_ROOT)
@@ -127,11 +125,16 @@ def api_server(api_server_port: int):
     env["DEVSQUAD_API_AUTH_DISABLED"] = "1"
 
     cmd = [
-        sys.executable, "-m", "uvicorn",
+        sys.executable,
+        "-m",
+        "uvicorn",
         "scripts.api_server:app",
-        "--host", "127.0.0.1",
-        "--port", str(api_server_port),
-        "--log-level", "warning",  # reduce log noise in CI
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(api_server_port),
+        "--log-level",
+        "warning",  # reduce log noise in CI
     ]
 
     proc = subprocess.Popen(
@@ -148,8 +151,7 @@ def api_server(api_server_port: int):
             # Server failed to start; surface stderr for debugging
             stdout, stderr = proc.communicate(timeout=2)
             pytest.fail(
-                f"API server failed to start on port {api_server_port}\n"
-                f"stdout: {stdout[:500]}\nstderr: {stderr[:500]}"
+                f"API server failed to start on port {api_server_port}\nstdout: {stdout[:500]}\nstderr: {stderr[:500]}"
             )
         yield api_server_port
     finally:
@@ -181,9 +183,7 @@ class TestAPISubprocessHealth:
         assert isinstance(body, dict), f"Expected JSON, got: {body!r}"
         assert "info" in body, "OpenAPI spec missing 'info' section"
         assert "title" in body["info"], "OpenAPI info missing 'title'"
-        assert "DevSquad" in body["info"]["title"], (
-            f"Expected 'DevSquad' in API title, got: {body['info']['title']!r}"
-        )
+        assert "DevSquad" in body["info"]["title"], f"Expected 'DevSquad' in API title, got: {body['info']['title']!r}"
 
     def test_unknown_endpoint_returns_404(self, api_server: int) -> None:
         """``GET /api/v1/nonexistent`` returns 404."""

@@ -6,6 +6,7 @@ Coverage focus (≥4 cases):
 - Transaction behaves as a Mapping[str, Any] context manager.
 - Public surface is stable for downstream callers.
 """
+
 from __future__ import annotations
 
 import json

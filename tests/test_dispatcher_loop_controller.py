@@ -3,6 +3,7 @@
 
 5 tests covering fuse logic, reason normalization, max iteration.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -71,13 +72,9 @@ class TestLoopControllerNormalization:
         triggers on the 2nd same-reason call.
         """
         # First retriable (with whitespace + uppercase): count = 1, don't stop
-        assert not ctrl.should_stop(
-            IterationResult(IterationKind.RETRIABLE, reason="  TIMEOUT  ")
-        )
+        assert not ctrl.should_stop(IterationResult(IterationKind.RETRIABLE, reason="  TIMEOUT  "))
         # Second (already-normalized "timeout"): same after normalization → count = 2 → fuse
-        assert ctrl.should_stop(
-            IterationResult(IterationKind.RETRIABLE, reason="timeout")
-        )
+        assert ctrl.should_stop(IterationResult(IterationKind.RETRIABLE, reason="timeout"))
         assert ctrl.consecutive_retriable_count == 2
         assert ctrl.stop_reason == LoopStopReason.CONSECUTIVE_RETRIABLE
 

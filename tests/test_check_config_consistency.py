@@ -55,7 +55,9 @@ class T2_DependencySync(unittest.TestCase):
         """Verify: All pyproject.toml deps in requirements.txt → PASS."""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            _write(root / "pyproject.toml", """
+            _write(
+                root / "pyproject.toml",
+                """
 [project]
 name = "test"
 version = "1.0.0"
@@ -63,7 +65,8 @@ dependencies = [
     "fastapi>=0.100.0",
     "pyyaml>=6.0",
 ]
-""")
+""",
+            )
             _write(root / "requirements.txt", "fastapi>=0.100.0\npyyaml>=6.0\n")
             checker = ConfigConsistencyChecker(repo_root=root)
             results = checker._check_dependency_sync()
@@ -74,7 +77,9 @@ dependencies = [
         """Verify: pyproject.toml dep missing from requirements.txt → FAIL."""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            _write(root / "pyproject.toml", """
+            _write(
+                root / "pyproject.toml",
+                """
 [project]
 name = "test"
 version = "1.0.0"
@@ -82,7 +87,8 @@ dependencies = [
     "fastapi>=0.100.0",
     "pyyaml>=6.0",
 ]
-""")
+""",
+            )
             _write(root / "requirements.txt", "fastapi>=0.100.0\n")  # missing pyyaml
             checker = ConfigConsistencyChecker(repo_root=root)
             results = checker._check_dependency_sync()
@@ -104,10 +110,13 @@ dependencies = [
         """Verify: Missing requirements.txt → SKIP."""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            _write(root / "pyproject.toml", """
+            _write(
+                root / "pyproject.toml",
+                """
 [project]
 dependencies = ["fastapi"]
-""")
+""",
+            )
             checker = ConfigConsistencyChecker(repo_root=root)
             results = checker._check_dependency_sync()
             self.assertEqual(len(results), 1)
@@ -141,7 +150,7 @@ class T3_KeyPresence(unittest.TestCase):
         """Verify: values.yaml with image: and tag: → PASS."""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            _write(root / "helm/devsquad/values.yaml", "image:\n  repository: foo\n  tag: \"1.0.0\"\n")
+            _write(root / "helm/devsquad/values.yaml", 'image:\n  repository: foo\n  tag: "1.0.0"\n')
             checker = ConfigConsistencyChecker(repo_root=root)
             results = checker._check_key_presence()
             img_check = next(c for c in results if c.name == "values_yaml_image_keys")
@@ -180,10 +189,14 @@ class T3_KeyPresence(unittest.TestCase):
 class T4_CrossFileVersionAlignment(unittest.TestCase):
     """T4: _check_cross_file() version alignment across files."""
 
-    def _setup_version_files(self, root: Path, version: str = "1.0.0",
-                              dockerfile_ver: str | None = "1.0.0",
-                              chart_ver: str | None = "1.0.0",
-                              values_ver: str | None = "1.0.0") -> None:
+    def _setup_version_files(
+        self,
+        root: Path,
+        version: str = "1.0.0",
+        dockerfile_ver: str | None = "1.0.0",
+        chart_ver: str | None = "1.0.0",
+        values_ver: str | None = "1.0.0",
+    ) -> None:
         """Helper: create VERSION + Dockerfile + Chart.yaml + values.yaml."""
         _write(root / "VERSION", version)
         if dockerfile_ver is not None:
@@ -264,7 +277,7 @@ class T5_CheckAll(unittest.TestCase):
             root = Path(tmpdir)
             _write(root / "VERSION", "1.0.0")
             _write(root / "Dockerfile", "ARG VERSION=1.0.0\n")
-            _write(root / "pyproject.toml", '[project]\ndependencies = []\n')
+            _write(root / "pyproject.toml", "[project]\ndependencies = []\n")
             _write(root / "requirements.txt", "")
             _write(root / ".devsquad.yaml", "quality_control:\n  enabled: true\n")
             _write(root / "helm/devsquad/values.yaml", 'image:\n  repository: foo\n  tag: "1.0.0"\n')
@@ -314,12 +327,13 @@ class T7_MainCLI(unittest.TestCase):
             _write(root / "Dockerfile", "ARG VERSION=1.0.0\n")
             _write(root / "helm/devsquad/Chart.yaml", 'version: 1.0.0\nappVersion: "1.0.0"\n')
             _write(root / "helm/devsquad/values.yaml", 'image:\n  repository: foo\n  tag: "1.0.0"\n')
-            _write(root / "pyproject.toml", '[project]\ndependencies = []\n')
+            _write(root / "pyproject.toml", "[project]\ndependencies = []\n")
             _write(root / "requirements.txt", "")
             _write(root / ".devsquad.yaml", "quality_control:\n  enabled: true\n")
             _write(root / "config/deployment.yaml", "authentication:\n  enabled: true\n")
-            with mock.patch("sys.argv", ["check_config_consistency.py"]), mock.patch(
-                "scripts.check_config_consistency.REPO_ROOT", root
+            with (
+                mock.patch("sys.argv", ["check_config_consistency.py"]),
+                mock.patch("scripts.check_config_consistency.REPO_ROOT", root),
             ):
                 exit_code = main()
             # May have warnings but no failures → exit 0
@@ -331,10 +345,11 @@ class T7_MainCLI(unittest.TestCase):
             root = Path(tmpdir)
             _write(root / "VERSION", "1.0.0")
             _write(root / "Dockerfile", "ARG VERSION=2.0.0\n")  # mismatch → FAIL
-            _write(root / "pyproject.toml", '[project]\ndependencies = []\n')
+            _write(root / "pyproject.toml", "[project]\ndependencies = []\n")
             _write(root / "requirements.txt", "")
-            with mock.patch("sys.argv", ["check_config_consistency.py"]), mock.patch(
-                "scripts.check_config_consistency.REPO_ROOT", root
+            with (
+                mock.patch("sys.argv", ["check_config_consistency.py"]),
+                mock.patch("scripts.check_config_consistency.REPO_ROOT", root),
             ):
                 exit_code = main()
             self.assertEqual(exit_code, 1)

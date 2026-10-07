@@ -325,10 +325,7 @@ class T11_BoundaryAndErrorCases(unittest.TestCase):
     def test_04_multiple_secrets_in_one_input(self) -> None:
         """Verify: Multiple secrets in one input → multiple warnings."""
         v = InputValidator()
-        task = (
-            f"Keys: sk-{'a' * 24} and ghp_{'b' * 36} "
-            f"and postgres://u:p@host:5432/db"
-        )
+        task = f"Keys: sk-{'a' * 24} and ghp_{'b' * 36} and postgres://u:p@host:5432/db"
         warnings = v.check_sensitive_info(task)
         # Should detect at least 2 distinct patterns (may be 3 with connection_string)
         self.assertGreaterEqual(len(warnings), 2)

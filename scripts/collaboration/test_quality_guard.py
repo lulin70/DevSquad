@@ -488,11 +488,21 @@ class AntiPatternDetector:
             line = lines[target_idx].strip()
             # body 验证 pattern
             side_effect_patterns = [
-                "body =", "data =", "msg =", "json()",
-                "assertIn", "assertNotIn", "in text", "in body",
-                "***REDACTED***", "in result", "in response",
+                "body =",
+                "data =",
+                "msg =",
+                "json()",
+                "assertIn",
+                "assertNotIn",
+                "in text",
+                "in body",
+                "***REDACTED***",
+                "in result",
+                "in response",
                 # V4.5.6 W2: rate-limit 测试验证 headers (X-RateLimit-*)
-                "in r.headers", "in response.headers", "in headers",
+                "in r.headers",
+                "in response.headers",
+                "in headers",
                 # V4.5.6 W2: location 变量赋值 (https redirect 验证)
                 "location =",
             ]

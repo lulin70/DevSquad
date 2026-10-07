@@ -21,6 +21,7 @@ Exit codes:
 Usage:
     python scripts/check_bandit.py [--source scripts/] [--report docs/audits/bandit_vX.json]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -59,19 +60,17 @@ def _parse_json_report(output: str) -> dict:
 def _run_bandit(source: str, json_report: Path) -> tuple[int, dict]:
     """Invoke bandit and return (exit_code, parsed_json_report)."""
     executable = _bandit_path()
-    cmd = (
-        [executable, "-m", "bandit"]
-        if executable == sys.executable
-        else [executable or "bandit"]
+    cmd = [executable, "-m", "bandit"] if executable == sys.executable else [executable or "bandit"]
+    cmd.extend(
+        [
+            "-q",
+            "-r",
+            source,
+            "-ll",  # report low + medium + high
+            "-f",
+            "json",
+        ]
     )
-    cmd.extend([
-        "-q",
-        "-r",
-        source,
-        "-ll",  # report low + medium + high
-        "-f",
-        "json",
-    ])
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     json_report.parent.mkdir(parents=True, exist_ok=True)
     json_report.write_text(proc.stdout or "{}", encoding="utf-8")

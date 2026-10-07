@@ -362,18 +362,13 @@ def _detect_static_only_classes(code: str, severity: str, category: str) -> list
         methods = re.findall(r"^\s+def\s+(\w+)\s*\(", body, re.MULTILINE)
         if not methods:
             continue
-        static_decorators = re.findall(
-            r"^\s*@(?:staticmethod|classmethod)\s*$", body, re.MULTILINE
-        )
+        static_decorators = re.findall(r"^\s*@(?:staticmethod|classmethod)\s*$", body, re.MULTILINE)
         if len(static_decorators) == len(methods) and len(methods) >= 2:
             findings.append(
                 RedesignFinding(
                     severity=severity,
                     category=category,
-                    current=(
-                        f"Class '{class_name}' has only static/class methods "
-                        f"({len(methods)} methods)"
-                    ),
+                    current=(f"Class '{class_name}' has only static/class methods ({len(methods)} methods)"),
                     suggested=f"Replace class '{class_name}' with module-level functions",
                     saving_lines=5 + len(methods),
                 )
@@ -401,14 +396,8 @@ def _detect_excessive_params(code: str, severity: str, category: str, threshold:
                 RedesignFinding(
                     severity=severity,
                     category=category,
-                    current=(
-                        f"Function '{func_name}' has {len(params)} parameters "
-                        f"(threshold: {threshold})"
-                    ),
-                    suggested=(
-                        f"Group related parameters into a dataclass or "
-                        f"reduce parameter count in '{func_name}'"
-                    ),
+                    current=(f"Function '{func_name}' has {len(params)} parameters (threshold: {threshold})"),
+                    suggested=(f"Group related parameters into a dataclass or reduce parameter count in '{func_name}'"),
                     saving_lines=0,
                 )
             )

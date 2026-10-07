@@ -2,8 +2,15 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-08-31（V4.5.12）
+> **最后更新**: 2026-10-04（V4.5.20 W1 技术债收口）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
+
+## V4.5.20 W1 技术债状态
+
+- **C9/C10 覆盖度与失败归因**: RESOLVED。同步/异步执行、DispatchResult、CLI JSON/Markdown 和非零退出语义已统一，并由 unit、integration、subprocess E2E 与模拟真实用户测试覆盖。
+- **P2-4 provider key 隔离**: RESOLVED。根因是本地 `.env` 在删除变量后重新注入 provider key，导致测试意外走真实 provider；测试现在显式置空/禁用 dotenv 加载，入口行为与 CI mock 模式一致。
+- **Black 全仓格式失败**: RESOLVED。根因是 Black 未接入阻断 CI/pre-commit 门禁，历史格式漂移长期未被发现；已采用 `ruff format` 作为唯一格式化门禁并完成全仓 reformat。
+- **当前未关闭的结构性债务**: D9（测试质量检测器对源码格式的脆弱耦合）和 D10（两个因 reformat 首次超过 800 行的文件拆分）仍登记在 PRD 中，未在本批扩大范围处理。
 
 ## V4.5.11 技术债状态
 

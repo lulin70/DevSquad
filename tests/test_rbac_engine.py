@@ -13,7 +13,6 @@ from scripts.collaboration.rbac_engine import (
 pytestmark = pytest.mark.unit
 
 
-
 class TestRBACEngine:
     def setup_method(self):
         self.engine = RBACEngine()

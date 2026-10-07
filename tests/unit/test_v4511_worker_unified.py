@@ -3,6 +3,7 @@
 without breaking the V4.5.9 aexecute contract (covered in
 tests/unit/test_v459_worker_async.py).
 """
+
 from __future__ import annotations
 
 import asyncio

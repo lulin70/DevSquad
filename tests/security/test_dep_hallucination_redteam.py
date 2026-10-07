@@ -42,8 +42,10 @@ def _reset_state() -> None:
     from scripts.collaboration.dependency_hallucination_checker import (
         reset_dataset_cache,
     )
+
     reset_dataset_cache()
     import scripts.collaboration.dependency_hallucination_checker as mod
+
     mod._call_counter_er = 0
 
 
@@ -218,11 +220,7 @@ class RT18to20_MultiVectorAndMixedEcosystem(unittest.TestCase):
 
     def test_rt_18_multiple_suspicious_in_one_file(self) -> None:
         """RT-18: Multiple hallucinated packages in a single file."""
-        code = (
-            "import huggingface_cli\n"
-            "import aws-cdk\n"
-            "import rest-framework\n"
-        )
+        code = "import huggingface_cli\nimport aws-cdk\nimport rest-framework\n"
         result = security_scan_dependencies(code)
         suspicious = [f for f in result.findings if f.category == DependencyCategory.SUSPICIOUS]
         self.assertEqual(len(suspicious), 3)
@@ -230,8 +228,8 @@ class RT18to20_MultiVectorAndMixedEcosystem(unittest.TestCase):
     def test_rt_19_mixed_suspicious_and_unknown(self) -> None:
         """RT-19: Mix of SUSPICIOUS (blacklist) and UNKNOWN (suffix)."""
         code = (
-            "import huggingface_cli\n"        # SUSPICIOUS
-            "import django-helper\n"          # UNKNOWN (suffix)
+            "import huggingface_cli\n"  # SUSPICIOUS
+            "import django-helper\n"  # UNKNOWN (suffix)
         )
         result = security_scan_dependencies(code)
         suspicious = [f for f in result.findings if f.category == DependencyCategory.SUSPICIOUS]

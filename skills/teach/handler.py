@@ -101,17 +101,94 @@ SEVEN_ROLES = [
 
 
 LIFECYCLE_PHASES = [
-    {"phase": "P1", "name": "Requirements Analysis", "lead": "pm", "reviewers": "arch+test+sec+ui", "optional": False, "gate": "Acceptance criteria quantifiable"},
-    {"phase": "P2", "name": "Architecture Design", "lead": "arch", "reviewers": "pm+sec+infra", "optional": False, "gate": "Weighted consensus >=70%"},
-    {"phase": "P3", "name": "Technical Design", "lead": "arch+coder", "reviewers": "coder+test", "optional": False, "gate": "API specs unambiguous"},
-    {"phase": "P4", "name": "Data Design", "lead": "arch+coder", "reviewers": "arch+sec", "optional": True, "gate": "3NF or denormalization justified"},
-    {"phase": "P5", "name": "Interaction Design", "lead": "ui", "reviewers": "pm+test+sec", "optional": True, "gate": "Core flow usability verified"},
-    {"phase": "P6", "name": "Security Review", "lead": "sec", "reviewers": "arch+infra", "optional": True, "gate": "No P0/P1 vulns, compliance green"},
-    {"phase": "P7", "name": "Test Planning", "lead": "test", "reviewers": "arch+sec+infra+pm", "optional": False, "gate": "Test plan review passed"},
-    {"phase": "P8", "name": "Implementation", "lead": "coder", "reviewers": "arch+sec+test+coder", "optional": False, "gate": "Code review passed, no P0 defects"},
-    {"phase": "P9", "name": "Test Execution", "lead": "test", "reviewers": "arch+pm+sec+infra", "optional": False, "gate": "Coverage>=80% + P7 plan 100% executed"},
-    {"phase": "P10", "name": "Deployment & Release", "lead": "infra", "reviewers": "arch+sec+test", "optional": False, "gate": "Deployment drill passed"},
-    {"phase": "P11", "name": "Operations & Assurance", "lead": "infra+sec", "reviewers": "arch+infra", "optional": True, "gate": "P99<target, alerts 100%"},
+    {
+        "phase": "P1",
+        "name": "Requirements Analysis",
+        "lead": "pm",
+        "reviewers": "arch+test+sec+ui",
+        "optional": False,
+        "gate": "Acceptance criteria quantifiable",
+    },
+    {
+        "phase": "P2",
+        "name": "Architecture Design",
+        "lead": "arch",
+        "reviewers": "pm+sec+infra",
+        "optional": False,
+        "gate": "Weighted consensus >=70%",
+    },
+    {
+        "phase": "P3",
+        "name": "Technical Design",
+        "lead": "arch+coder",
+        "reviewers": "coder+test",
+        "optional": False,
+        "gate": "API specs unambiguous",
+    },
+    {
+        "phase": "P4",
+        "name": "Data Design",
+        "lead": "arch+coder",
+        "reviewers": "arch+sec",
+        "optional": True,
+        "gate": "3NF or denormalization justified",
+    },
+    {
+        "phase": "P5",
+        "name": "Interaction Design",
+        "lead": "ui",
+        "reviewers": "pm+test+sec",
+        "optional": True,
+        "gate": "Core flow usability verified",
+    },
+    {
+        "phase": "P6",
+        "name": "Security Review",
+        "lead": "sec",
+        "reviewers": "arch+infra",
+        "optional": True,
+        "gate": "No P0/P1 vulns, compliance green",
+    },
+    {
+        "phase": "P7",
+        "name": "Test Planning",
+        "lead": "test",
+        "reviewers": "arch+sec+infra+pm",
+        "optional": False,
+        "gate": "Test plan review passed",
+    },
+    {
+        "phase": "P8",
+        "name": "Implementation",
+        "lead": "coder",
+        "reviewers": "arch+sec+test+coder",
+        "optional": False,
+        "gate": "Code review passed, no P0 defects",
+    },
+    {
+        "phase": "P9",
+        "name": "Test Execution",
+        "lead": "test",
+        "reviewers": "arch+pm+sec+infra",
+        "optional": False,
+        "gate": "Coverage>=80% + P7 plan 100% executed",
+    },
+    {
+        "phase": "P10",
+        "name": "Deployment & Release",
+        "lead": "infra",
+        "reviewers": "arch+sec+test",
+        "optional": False,
+        "gate": "Deployment drill passed",
+    },
+    {
+        "phase": "P11",
+        "name": "Operations & Assurance",
+        "lead": "infra+sec",
+        "reviewers": "arch+infra",
+        "optional": True,
+        "gate": "P99<target, alerts 100%",
+    },
 ]
 
 
@@ -156,42 +233,123 @@ IRON_RULES = [
 
 
 SUB_SKILLS = [
-    {"name": "dispatch", "class": "DispatchSkill", "core_method": "run(task, roles, mode)", "wraps": "MultiAgentDispatcher", "description": "7-role orchestration entry point"},
-    {"name": "intent", "class": "IntentSkill", "core_method": "detect(text, lang)", "wraps": "IntentWorkflowMapper", "description": "6 intents x 3 languages detection"},
-    {"name": "review", "class": "ReviewSkill", "core_method": "review(code, axes)", "wraps": "FiveAxisConsensusEngine", "description": "5-axis code review"},
-    {"name": "security", "class": "SecuritySkill", "core_method": "scan_input(text)", "wraps": "InputValidator + OpClassifier", "description": "40-pattern security scan"},
-    {"name": "test", "class": "TestSkill", "core_method": "generate_strategy(module)", "wraps": "TestQualityGuard", "description": "Test strategy + quality audit"},
-    {"name": "retrospective", "class": "RetrospectiveSkill", "core_method": "run_retrospective(results)", "wraps": "RetrospectiveEngine", "description": "Post-dispatch pattern extraction"},
+    {
+        "name": "dispatch",
+        "class": "DispatchSkill",
+        "core_method": "run(task, roles, mode)",
+        "wraps": "MultiAgentDispatcher",
+        "description": "7-role orchestration entry point",
+    },
+    {
+        "name": "intent",
+        "class": "IntentSkill",
+        "core_method": "detect(text, lang)",
+        "wraps": "IntentWorkflowMapper",
+        "description": "6 intents x 3 languages detection",
+    },
+    {
+        "name": "review",
+        "class": "ReviewSkill",
+        "core_method": "review(code, axes)",
+        "wraps": "FiveAxisConsensusEngine",
+        "description": "5-axis code review",
+    },
+    {
+        "name": "security",
+        "class": "SecuritySkill",
+        "core_method": "scan_input(text)",
+        "wraps": "InputValidator + OpClassifier",
+        "description": "40-pattern security scan",
+    },
+    {
+        "name": "test",
+        "class": "TestSkill",
+        "core_method": "generate_strategy(module)",
+        "wraps": "TestQualityGuard",
+        "description": "Test strategy + quality audit",
+    },
+    {
+        "name": "retrospective",
+        "class": "RetrospectiveSkill",
+        "core_method": "run_retrospective(results)",
+        "wraps": "RetrospectiveEngine",
+        "description": "Post-dispatch pattern extraction",
+    },
 ]
 
 
 # Built-in glossary (fallback if GLOSSARY.md not parseable)
 BUILTIN_GLOSSARY = [
-    {"term": "Coordinator", "definition": "Global orchestrator: decompose tasks, assign Workers, collect results, resolve conflicts."},
-    {"term": "Worker", "definition": "Working unit, one instance per role, independent execution with Scratchpad writes."},
+    {
+        "term": "Coordinator",
+        "definition": "Global orchestrator: decompose tasks, assign Workers, collect results, resolve conflicts.",
+    },
+    {
+        "term": "Worker",
+        "definition": "Working unit, one instance per role, independent execution with Scratchpad writes.",
+    },
     {"term": "Scratchpad", "definition": "Shared blackboard for real-time info exchange between Workers."},
     {"term": "ConsensusEngine", "definition": "Consensus engine: weighted voting + veto power + escalation mechanism."},
     {"term": "DispatchResult", "definition": "Dispatch result containing worker_results/consensus_records/errors etc."},
-    {"term": "Iron Rule", "definition": "Ironclad rule that cannot be violated. e.g., 'Documentation First', 'Failure Means Report'."},
+    {
+        "term": "Iron Rule",
+        "definition": "Ironclad rule that cannot be violated. e.g., 'Documentation First', 'Failure Means Report'.",
+    },
     {"term": "Gate", "definition": "Phase gate, evidence-driven acceptance. P1-P11 each has a gate."},
-    {"term": "Anchor", "definition": "Goal anchoring, real-time detection of task execution deviation from original goal."},
-    {"term": "Loop Engineering", "definition": "Five-step closed loop: Discovery -> Handoff -> Verification -> Persistence -> Scheduling."},
+    {
+        "term": "Anchor",
+        "definition": "Goal anchoring, real-time detection of task execution deviation from original goal.",
+    },
+    {
+        "term": "Loop Engineering",
+        "definition": "Five-step closed loop: Discovery -> Handoff -> Verification -> Persistence -> Scheduling.",
+    },
     {"term": "Adversarial Verify", "definition": "Red-blue team + judge arbitration three-stage verification."},
     {"term": "DAG Visualizer", "definition": "Mermaid/JSON/DOT three-format dependency graph visualization."},
     {"term": "Autonomous Loop", "definition": "plan -> dev -> verify -> fix 4-stage autonomous iteration."},
     {"term": "Plugin Hot Loader", "definition": "Plugin hot loading, 3 loading paths + path traversal protection."},
-    {"term": "Deep module", "definition": "Small interface + large implementation, high leverage + high locality. Optimal module design."},
-    {"term": "Shallow module", "definition": "Large interface + small implementation, pass-through. Should be avoided."},
-    {"term": "Seam", "definition": "A place where behavior can be changed without editing in-place. Key for testing and refactoring."},
-    {"term": "Deletion test", "definition": "Imagine deleting a module; if complexity disappears, it is pass-through (shallow)."},
-    {"term": "Red-capable", "definition": "Able to turn red on a specific bug. Debug commands must be red-capable to be valid."},
-    {"term": "Tautological test", "definition": "Assertion re-computes implementation logic, always passes but valueless. Test anti-pattern."},
-    {"term": "Grilling", "definition": "one-question-at-a-time interview method with recommended-answer. For requirement alignment."},
-    {"term": "ADR", "definition": "Architecture Decision Record. Write only when all 3 criteria met: affects multi-modules, has alternatives, may be overturned in future."},
+    {
+        "term": "Deep module",
+        "definition": "Small interface + large implementation, high leverage + high locality. Optimal module design.",
+    },
+    {
+        "term": "Shallow module",
+        "definition": "Large interface + small implementation, pass-through. Should be avoided.",
+    },
+    {
+        "term": "Seam",
+        "definition": "A place where behavior can be changed without editing in-place. Key for testing and refactoring.",
+    },
+    {
+        "term": "Deletion test",
+        "definition": "Imagine deleting a module; if complexity disappears, it is pass-through (shallow).",
+    },
+    {
+        "term": "Red-capable",
+        "definition": "Able to turn red on a specific bug. Debug commands must be red-capable to be valid.",
+    },
+    {
+        "term": "Tautological test",
+        "definition": "Assertion re-computes implementation logic, always passes but valueless. Test anti-pattern.",
+    },
+    {
+        "term": "Grilling",
+        "definition": "one-question-at-a-time interview method with recommended-answer. For requirement alignment.",
+    },
+    {
+        "term": "ADR",
+        "definition": "Architecture Decision Record. Write only when all 3 criteria met: affects multi-modules, has alternatives, may be overturned in future.",
+    },
     {"term": "HITL", "definition": "Human-In-The-Loop. Steps requiring human confirmation."},
     {"term": "AFK", "definition": "Away-From-Keyboard. Steps that can be executed asynchronously."},
-    {"term": "Vertical slice", "definition": "End-to-end functional slice (UI+logic+data), not horizontal layering. Task decomposition method."},
-    {"term": "Progressive disclosure", "definition": "Layered information presentation: overview first, expand details on demand. Avoids information overload."},
+    {
+        "term": "Vertical slice",
+        "definition": "End-to-end functional slice (UI+logic+data), not horizontal layering. Task decomposition method.",
+    },
+    {
+        "term": "Progressive disclosure",
+        "definition": "Layered information presentation: overview first, expand details on demand. Avoids information overload.",
+    },
 ]
 
 
@@ -207,9 +365,17 @@ CURRICULUM_ORDER = [
 
 
 TOPIC_TITLES = {
-    "overview": {"zh": "DevSquad 概览：一句话理解", "en": "DevSquad Overview: One-Sentence Understanding", "ja": "DevSquad概要：一文理解"},
+    "overview": {
+        "zh": "DevSquad 概览：一句话理解",
+        "en": "DevSquad Overview: One-Sentence Understanding",
+        "ja": "DevSquad概要：一文理解",
+    },
     "seven_roles": {"zh": "7 角色协作模型", "en": "7-Role Collaboration Model", "ja": "7役割協力モデル"},
-    "lifecycle": {"zh": "11 阶段项目生命周期", "en": "11-Phase Project Lifecycle", "ja": "11フェーズプロジェクトライフサイクル"},
+    "lifecycle": {
+        "zh": "11 阶段项目生命周期",
+        "en": "11-Phase Project Lifecycle",
+        "ja": "11フェーズプロジェクトライフサイクル",
+    },
     "iron_rules": {"zh": "三大 Iron Rules 铁律", "en": "Three Iron Rules", "ja": "三大鉄則"},
     "sub_skills": {"zh": "6 个原子 Sub-Skill", "en": "6 Atomic Sub-Skills", "ja": "6個の原子サブスキル"},
     "glossary": {"zh": "术语表 Glossary", "en": "Glossary", "ja": "用語集"},
@@ -264,7 +430,9 @@ class TeachSkill(BaseSkill):
     """
 
     name = "teach"
-    description = "DevSquad onboarding - guide new users through 7-role collaboration model, 11-phase lifecycle, and Iron Rules"
+    description = (
+        "DevSquad onboarding - guide new users through 7-role collaboration model, 11-phase lifecycle, and Iron Rules"
+    )
 
     TOPICS = [
         "overview",
@@ -428,12 +596,14 @@ class TeachSkill(BaseSkill):
         for i, topic in enumerate(module_topics):
             prereqs = [module_topics[j] for j in range(i)] if i > 0 else []
             minutes = TOPIC_MINUTES[topic][user_level]
-            modules.append({
-                "topic": topic,
-                "title": TOPIC_TITLES[topic]["zh"],
-                "estimated_minutes": minutes,
-                "prerequisites": prereqs,
-            })
+            modules.append(
+                {
+                    "topic": topic,
+                    "title": TOPIC_TITLES[topic]["zh"],
+                    "estimated_minutes": minutes,
+                    "prerequisites": prereqs,
+                }
+            )
             total += minutes
 
         graduation_criteria = self._graduation_criteria(user_level)
@@ -488,7 +658,9 @@ class TeachSkill(BaseSkill):
             elif user_level == "intermediate":
                 base += "\n## Key Insight\n\nDevSquad shifts from single-role Q&A to multi-role consensus, ensuring completeness on complex tasks.\n"
             else:
-                base += "\n## TL;DR\n\nMulti-role consensus orchestration with full audit trail. Mock-mode by default.\n"
+                base += (
+                    "\n## TL;DR\n\nMulti-role consensus orchestration with full audit trail. Mock-mode by default.\n"
+                )
             return base
         if lang == "ja":
             base = "# DevSquad概要\n\n**DevSquad = 単一のAIアシスタントを7人のAIプロチームにアップグレード。**\n\n"
@@ -571,7 +743,9 @@ class TeachSkill(BaseSkill):
             table_header = "| # | フェーズ | リード | レビューアー | オプション | ゲート |\n|---|---------|--------|-------------|-----------|--------|\n"
             dep_header = "\n## 依存グラフ\n\n```\n"
             template_header = "\n## ライフサイクルテンプレート\n\n"
-            template_table_header = "| テンプレート | フェーズ | ユースケース |\n|-------------|---------|-------------|\n"
+            template_table_header = (
+                "| テンプレート | フェーズ | ユースケース |\n|-------------|---------|-------------|\n"
+            )
         else:
             header = "# 11 阶段项目生命周期\n\nDevSquad 项目遵循 11 阶段生命周期，每阶段有强制门禁。\n\n"
             table_header = "| # | 阶段 | 主导 | 评审人 | 可选 | 门禁 |\n|---|------|------|--------|------|------|\n"
@@ -603,11 +777,23 @@ class TeachSkill(BaseSkill):
         else:
             notes = "\n11 phases, 5 templates (full/backend/frontend/internal_tool/minimal). Gates non-blocking with gap reports.\n"
 
-        return header + table_header + rows + dep_header + dep_graph + template_header + template_table_header + template_rows + notes
+        return (
+            header
+            + table_header
+            + rows
+            + dep_header
+            + dep_graph
+            + template_header
+            + template_table_header
+            + template_rows
+            + notes
+        )
 
     def _content_iron_rules(self, user_level: str, lang: str) -> str:
         if lang == "en":
-            header = "# Three Iron Rules\n\nDevSquad enforces three Iron Rules. Violating any rule is a serious error.\n\n"
+            header = (
+                "# Three Iron Rules\n\nDevSquad enforces three Iron Rules. Violating any rule is a serious error.\n\n"
+            )
             rule_template = "## Iron Rule {n}: {name}\n\n**Core Principle**: {principle}\n\n**Violation Consequence**: {consequence}\n\n"
             closing = "## Why Iron Rules?\n\nIron Rules prevent: undocumented changes, hidden bugs via assertion modification, and happy-path-only tests that miss 50%+ of issues.\n"
         elif lang == "ja":
@@ -645,7 +831,9 @@ class TeachSkill(BaseSkill):
             usage = "\n## 使用方法\n\n```python\nfrom skills import get_skill, list_skills\nprint(list_skills())\n\nskill = get_skill('security')\nresult = skill.scan_input('DROP TABLE users; --')\nprint(result['risk_level'])  # 'critical'\n```\n"
         else:
             header = "# 6 个原子 Sub-Skill\n\nDevSquad 提供 6 个原子 sub-skill，可独立或组合使用。每个是 ~50 行的薄包装，导入现有核心模块。\n\n"
-            table_header = "| Skill | Class | Core Method | Wraps | 描述 |\n|-------|-------|-------------|-------|------|\n"
+            table_header = (
+                "| Skill | Class | Core Method | Wraps | 描述 |\n|-------|-------|-------------|-------|------|\n"
+            )
             usage = "\n## 使用示例\n\n```python\nfrom skills import get_skill, list_skills\nprint(list_skills())  # ['dispatch', 'intent', 'review', 'security', 'test', 'retrospective', 'teach']\n\nskill = get_skill('security')\nresult = skill.scan_input('DROP TABLE users; --')\nprint(result['risk_level'])  # 'critical'\n```\n"
 
         rows = ""
@@ -677,11 +865,25 @@ class TeachSkill(BaseSkill):
         terms = self._load_glossary_terms()
         # For advanced, show only DevSquad-specific terms (skip UI/UX and architecture vocabulary)
         if user_level == "advanced":
-            terms = [t for t in terms if t["term"] in (
-                "Coordinator", "Worker", "Scratchpad", "ConsensusEngine",
-                "Iron Rule", "Gate", "Loop Engineering", "Adversarial Verify",
-                "Autonomous Loop", "Plugin Hot Loader", "DispatchResult", "Anchor",
-            )]
+            terms = [
+                t
+                for t in terms
+                if t["term"]
+                in (
+                    "Coordinator",
+                    "Worker",
+                    "Scratchpad",
+                    "ConsensusEngine",
+                    "Iron Rule",
+                    "Gate",
+                    "Loop Engineering",
+                    "Adversarial Verify",
+                    "Autonomous Loop",
+                    "Plugin Hot Loader",
+                    "DispatchResult",
+                    "Anchor",
+                )
+            ]
 
         rows = ""
         for t in terms:
