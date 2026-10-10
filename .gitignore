@@ -181,3 +181,6 @@ logs/
 .hypothesis/
 :memory:
 :memory:*
+
+# MOKA AI credentials (local only, never commit; read by llm_backend for explicit moka requests)
+moka_ai.json

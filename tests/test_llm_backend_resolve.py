@@ -9,6 +9,7 @@ Note: These tests intentionally avoid real network calls by monkeypatching
 env vars and importing HostBridgeBackend with mock host detection.
 """
 
+import json
 import os
 import sys
 from unittest.mock import patch
@@ -28,6 +29,8 @@ from scripts.collaboration.llm_backend import (
     MockBackend,
     OpenAIBackend,
     TraeBackend,
+    _apply_explicit_env_defaults,
+    _moka_file_config,
     create_backend,
 )
 
@@ -429,3 +432,90 @@ class TestResolveOrderBAC:
         assert RESOLVE_ORDER[0] == BackendPath.B_HOST_BRIDGE
         assert RESOLVE_ORDER[1] == BackendPath.A_DIRECT_API
         assert RESOLVE_ORDER[2] == BackendPath.C_MOCK
+
+
+class TestMokaFileConfig:
+    """Tests for the gitignored moka_ai.json credentials file.
+
+    All tests bypass the default repo-root path (the maintainer may have a
+    real credentials file there) by either passing an explicit ``path`` or
+    monkeypatching ``_MOKA_FILE_CONFIG_CACHE``.
+    """
+
+    def test_moka_file_config_reads_url_model_key(self, tmp_path):
+        """A well-formed moka_ai.json yields its url/model/key values."""
+        cfg_file = tmp_path / "moka_ai.json"
+        cfg_file.write_text(
+            json.dumps({"url": "http://127.0.0.1:8787/v1", "model": "moka/glm-5.3", "key": "sk-test"}),
+            encoding="utf-8",
+        )
+        cfg = _moka_file_config(path=cfg_file)
+        assert cfg == {
+            "url": "http://127.0.0.1:8787/v1",
+            "model": "moka/glm-5.3",
+            "key": "sk-test",
+        }
+
+    def test_moka_file_config_absent_is_empty(self, tmp_path):
+        """Missing file → empty dict (fail-quiet, never a crash source)."""
+        assert _moka_file_config(path=tmp_path / "nope.json") == {}
+
+    def test_moka_file_config_malformed_warns_empty(self, tmp_path, caplog):
+        """Bad JSON → empty dict + warning, no raise."""
+        import logging
+
+        cfg_file = tmp_path / "moka_ai.json"
+        cfg_file.write_text("{not valid json", encoding="utf-8")
+        with caplog.at_level(logging.WARNING, logger="scripts.collaboration.llm_backend"):
+            cfg = _moka_file_config(path=cfg_file)
+        assert cfg == {}
+        assert any("moka_ai.json" in record.message for record in caplog.records)
+
+    def test_moka_env_overrides_file_config(self, monkeypatch):
+        """Env keys beat file values for explicit moka requests."""
+        import scripts.collaboration.llm_backend as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_MOKA_FILE_CONFIG_CACHE",
+            {"key": "sk-file", "url": "http://file:1/v1", "model": "file-model"},
+        )
+        kwargs: dict = {"extra": "keep"}
+        with patch.dict(os.environ, {"MOKA_API_KEY": "sk-env"}, clear=True):
+            _apply_explicit_env_defaults("moka", kwargs)
+        assert kwargs["api_key"] == "sk-env"
+        assert kwargs["base_url"] == "http://file:1/v1"
+        assert kwargs["model"] == "file-model"
+        assert kwargs["extra"] == "keep"
+
+    def test_moka_file_used_when_env_absent(self, monkeypatch):
+        """File values apply when the env vars are unset."""
+        import scripts.collaboration.llm_backend as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_MOKA_FILE_CONFIG_CACHE",
+            {"key": "sk-file", "url": "http://file:1/v1", "model": "file-model"},
+        )
+        kwargs: dict = {}
+        with patch.dict(os.environ, {}, clear=True):
+            _apply_explicit_env_defaults("moka", kwargs)
+        assert kwargs["api_key"] == "sk-file"
+        assert kwargs["base_url"] == "http://file:1/v1"
+        assert kwargs["model"] == "file-model"
+
+    def test_moka_caller_kwargs_beat_env_and_file(self, monkeypatch):
+        """Explicit caller kwargs win over both env and file."""
+        import scripts.collaboration.llm_backend as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_MOKA_FILE_CONFIG_CACHE",
+            {"key": "sk-file", "url": "http://file:1/v1", "model": "file-model"},
+        )
+        kwargs: dict = {"api_key": "sk-caller", "base_url": "http://caller:1/v1", "model": "caller-model"}
+        with patch.dict(os.environ, {"MOKA_API_KEY": "sk-env"}, clear=True):
+            _apply_explicit_env_defaults("moka", kwargs)
+        assert kwargs["api_key"] == "sk-caller"
+        assert kwargs["base_url"] == "http://caller:1/v1"
+        assert kwargs["model"] == "caller-model"

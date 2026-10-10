@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import json
+import logging
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from .constants import (
@@ -19,6 +22,8 @@ if TYPE_CHECKING:
     from .moka_backend import MokaAIBackend
 
 API_BACKEND_ORDER: tuple[str, ...] = ("moka", "openai", "anthropic")
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = DEFAULT_LLM_TIMEOUT_SECONDS
 DEFAULT_MAX_TOKENS = DEFAULT_LLM_MAX_TOKENS
@@ -598,6 +603,52 @@ class FallbackBackend(LLMBackend):
         return any(i not in self._skipped and b.is_available() for i, b in enumerate(self._backends))
 
 
+_MOKA_CONFIG_FILENAME = "moka_ai.json"
+_MOKA_FILE_CONFIG_CACHE: dict[str, str] | None = None  # None = not loaded yet
+
+
+def _read_moka_config_file(path: Path) -> dict[str, str]:
+    """Read a ``moka_ai.json``-style credentials file. Fail-quiet.
+
+    Missing file → ``{}``; malformed JSON or non-dict content → warn + ``{}``
+    (the file is a convenience, never a crash source). Only string/int values
+    are kept so a stray nested object cannot leak into backend kwargs.
+    """
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        logger.warning("Ignoring malformed %s: %s", path.name, exc)
+        return {}
+    if not isinstance(data, dict):
+        logger.warning("Ignoring %s: top-level value is not an object", path.name)
+        return {}
+    return {str(k): str(v) for k, v in data.items() if isinstance(v, (str, int))}
+
+
+def _moka_file_config(path: Path | None = None) -> dict[str, str]:
+    """MOKA credentials from the gitignored ``moka_ai.json`` (repo root).
+
+    Precedence for explicit ``create_backend("moka")`` calls is
+    **caller kwargs > environment > this file > built-in defaults**. The file
+    deliberately does NOT feed the ``auto`` chain — that chain is env-key
+    gated, so a locally present file can never silently switch a test or an
+    ``auto`` dispatch onto live provider calls.
+
+    The repo-root file is read once and cached. Passing ``path`` explicitly
+    bypasses the cache (test hook); tests can also monkeypatch
+    ``_MOKA_FILE_CONFIG_CACHE`` to simulate a file without touching disk.
+    """
+    if path is not None:
+        return _read_moka_config_file(path)
+    global _MOKA_FILE_CONFIG_CACHE
+    if _MOKA_FILE_CONFIG_CACHE is None:
+        repo_root = Path(__file__).resolve().parents[2]
+        _MOKA_FILE_CONFIG_CACHE = _read_moka_config_file(repo_root / _MOKA_CONFIG_FILENAME)
+    return _MOKA_FILE_CONFIG_CACHE
+
+
 def _apply_explicit_env_defaults(backend_type: str, kwargs: dict[str, Any]) -> None:
     """Set env-var defaults (in place) for explicit single-type backends.
 
@@ -607,12 +658,13 @@ def _apply_explicit_env_defaults(backend_type: str, kwargs: dict[str, Any]) -> N
     import os
 
     if backend_type == "moka":
-        kwargs.setdefault("api_key", os.environ.get("MOKA_API_KEY"))
+        file_cfg = _moka_file_config()
+        kwargs.setdefault("api_key", os.environ.get("MOKA_API_KEY") or file_cfg.get("key"))
         kwargs.setdefault(
             "base_url",
-            os.environ.get("MOKA_BASE_URL") or os.environ.get("MOKA_API_BASE"),
+            os.environ.get("MOKA_BASE_URL") or os.environ.get("MOKA_API_BASE") or file_cfg.get("url"),
         )
-        kwargs.setdefault("model", os.environ.get("MOKA_MODEL"))
+        kwargs.setdefault("model", os.environ.get("MOKA_MODEL") or file_cfg.get("model"))
     elif backend_type == "openai":
         kwargs.setdefault("api_key", os.environ.get("DEVSQUAD_OPENAI_API_KEY"))
         kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
@@ -748,6 +800,9 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         MOKA_API_BASE: Moka AI base URL (default: https://api.moka-ai.com/v1)
         MOKA_BASE_URL: Alias for MOKA_API_BASE (preferred in P12.1.1+)
         MOKA_MODEL: Moka AI model name (default: moka/claude-sonnet-4-6)
+            moka_ai.json (gitignored, repo root): local credentials file with
+            {"url", "model", "key"} — lowest-priority fallback for explicit
+            'moka' requests only (env vars win; never feeds the auto chain)
         TRAE_ENV: Triggers B path (host bridge detection)
         TRAE_AGENT_PATH: Triggers B path (host bridge detection)
         CLAUDE_CODE_ENV: Triggers B path (host bridge detection)
