@@ -76,6 +76,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest import mock
 
+import pytest
+
 #: Median milliseconds of :func:`reference_workload_ms` on the calibration host
 #: (2026-09-24, Python 3.12.13, CI-equivalent dependency pins). See module
 #: docstring.
@@ -185,3 +187,27 @@ def isolated_provider_env() -> Iterator[None]:
     finally:
         patcher.stop()
         os.environ.update(saved)
+
+
+# ---------------------------------------------------------------------------
+# moka_ai.json isolation (V4.5.22)
+# ---------------------------------------------------------------------------
+#
+# Since V4.5.22 the gitignored repo-root ``moka_ai.json`` feeds the Moka
+# candidate of the ``auto`` / ``auto-fallback`` chains. A maintainer's local
+# credentials file would otherwise silently change what every test that builds
+# the auto chain observes (e.g. ``create_backend("auto")`` with cleared env
+# would return a MokaAIBackend instead of a MockBackend on the maintainer's
+# machine but a MockBackend on CI) — the same class of host-dependent
+# nondeterminism that :func:`isolated_provider_env` guards against.
+#
+# The autouse fixture below empties the module-level cache for every test, so
+# the suite behaves as if no file exists. Tests that exercise the file path
+# monkeypatch ``_MOKA_FILE_CONFIG_CACHE`` (or pass an explicit ``path``) inside
+# the test body, which overrides the fixture's empty dict.
+
+
+@pytest.fixture(autouse=True)
+def _isolate_moka_file_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the local ``moka_ai.json`` out of every test's backend chain."""
+    monkeypatch.setattr("scripts.collaboration.llm_backend._MOKA_FILE_CONFIG_CACHE", {})

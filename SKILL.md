@@ -118,7 +118,7 @@ These run identically regardless of host LLM, with reproducible outputs.
 
 ### 3. Real-LLM backend (OpenAI / Anthropic / Moka) — opt-in only
 
-When invoked from CLI / REST API with a configured `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `MOKA_API_KEY`, DevSquad routes through real LLM backends. Without keys, the `MockBackend` is used.
+When invoked from CLI / REST API with a configured `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `MOKA_API_KEY`, DevSquad routes through real LLM backends. Without keys, the `MockBackend` is used. Since V4.5.22, Moka credentials may also come from a gitignored repo-root `moka_ai.json` (`{"url", "model", "key"}`) — the lowest-priority source: env vars and caller kwargs always win.
 
 **V4.5.6 W4 enhancement**: Real-LLM smoke tests now auto-skip when the configured API key returns 401 (`DEVSQUAD_SKIP_INVALID_LLM_KEY=1` default). To surface key-rotation issues in CI, set `DEVSQUAD_SKIP_INVALID_LLM_KEY=0`.
 

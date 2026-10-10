@@ -630,15 +630,18 @@ def _read_moka_config_file(path: Path) -> dict[str, str]:
 def _moka_file_config(path: Path | None = None) -> dict[str, str]:
     """MOKA credentials from the gitignored ``moka_ai.json`` (repo root).
 
-    Precedence for explicit ``create_backend("moka")`` calls is
-    **caller kwargs > environment > this file > built-in defaults**. The file
-    deliberately does NOT feed the ``auto`` chain — that chain is env-key
-    gated, so a locally present file can never silently switch a test or an
-    ``auto`` dispatch onto live provider calls.
+    Precedence is **caller kwargs > environment > this file > built-in
+    defaults**, uniformly for explicit ``create_backend("moka")`` calls and
+    for the Moka candidate of the ``auto`` / ``auto-fallback`` chains
+    (V4.5.22). The file is the lowest-priority source: it can never override
+    an env var or a caller-supplied value.
 
     The repo-root file is read once and cached. Passing ``path`` explicitly
-    bypasses the cache (test hook); tests can also monkeypatch
-    ``_MOKA_FILE_CONFIG_CACHE`` to simulate a file without touching disk.
+    bypasses the cache (test hook). The test suite globally empties
+    ``_MOKA_FILE_CONFIG_CACHE`` via an autouse fixture in ``tests/conftest.py``
+    so a maintainer's local credentials file cannot silently change what the
+    ``auto`` chain builds during tests; tests that exercise the file path
+    monkeypatch the cache (or pass ``path``) explicitly.
     """
     if path is not None:
         return _read_moka_config_file(path)
@@ -801,8 +804,9 @@ def create_backend(backend_type: str = "auto", **kwargs: Any) -> LLMBackend:
         MOKA_BASE_URL: Alias for MOKA_API_BASE (preferred in P12.1.1+)
         MOKA_MODEL: Moka AI model name (default: moka/claude-sonnet-4-6)
             moka_ai.json (gitignored, repo root): local credentials file with
-            {"url", "model", "key"} — lowest-priority fallback for explicit
-            'moka' requests only (env vars win; never feeds the auto chain)
+            {"url", "model", "key"} — lowest-priority fallback for both
+            explicit 'moka' requests and the Moka candidate of the
+            auto/auto-fallback chains (env vars and caller kwargs win)
         TRAE_ENV: Triggers B path (host bridge detection)
         TRAE_AGENT_PATH: Triggers B path (host bridge detection)
         CLAUDE_CODE_ENV: Triggers B path (host bridge detection)
@@ -957,7 +961,10 @@ def _build_api_backends(kwargs: dict) -> list[LLMBackend]:
     backends_list: list[LLMBackend] = []
     for name in API_BACKEND_ORDER:
         if name == "moka":
-            moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY")
+            # V4.5.22: the gitignored moka_ai.json now feeds the auto chain as
+            # the lowest-priority source (env still wins) — see _moka_file_config.
+            file_cfg = _moka_file_config()
+            moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY") or file_cfg.get("key")
             if moka_key:
                 # V4.5.2 P12.1.1: Use explicit MokaAIBackend instead of OpenAIBackend
                 backends_list.append(
@@ -965,8 +972,9 @@ def _build_api_backends(kwargs: dict) -> list[LLMBackend]:
                         api_key=moka_key,
                         base_url=kwargs.pop("moka_base_url", None)
                         or os.environ.get("MOKA_BASE_URL")
-                        or os.environ.get("MOKA_API_BASE"),
-                        model=kwargs.pop("moka_model", None) or os.environ.get("MOKA_MODEL"),
+                        or os.environ.get("MOKA_API_BASE")
+                        or file_cfg.get("url"),
+                        model=kwargs.pop("moka_model", None) or os.environ.get("MOKA_MODEL") or file_cfg.get("model"),
                         max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
                         timeout=timeout,
                     )

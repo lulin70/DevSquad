@@ -519,3 +519,96 @@ class TestMokaFileConfig:
         assert kwargs["api_key"] == "sk-caller"
         assert kwargs["base_url"] == "http://caller:1/v1"
         assert kwargs["model"] == "caller-model"
+
+    # -- V4.5.22: the file feeds the auto / auto-fallback chains ------------
+
+    def test_auto_chain_includes_moka_from_file(self, monkeypatch):
+        """File credentials alone put Moka first in the auto A-path chain."""
+        import scripts.collaboration.llm_backend as mod
+        from scripts.collaboration.moka_backend import MokaAIBackend
+
+        monkeypatch.setattr(
+            mod,
+            "_MOKA_FILE_CONFIG_CACHE",
+            {"key": "sk-file", "url": "http://file:1/v1", "model": "file-model"},
+        )
+        patches = _patch_dotenv()
+        with patch.dict(os.environ, {}, clear=True):
+            for p in patches:
+                p.start()
+            try:
+                backend = create_backend("auto-fallback")
+            finally:
+                for p in reversed(patches):
+                    p.stop()
+        assert isinstance(backend, FallbackBackend)
+        assert isinstance(backend._backends[0], MokaAIBackend)
+        assert backend._backends[0]._api_key == "sk-file"
+        assert backend._backends[0].base_url == "http://file:1/v1"
+        assert backend._backends[0].model == "file-model"
+        assert isinstance(backend._backends[-1], MockBackend)
+
+    def test_auto_chain_moka_precedes_deepseek_per_design_order(self, monkeypatch):
+        """Design order: Moka candidate sits before the OpenAI/DeepSeek one."""
+        import scripts.collaboration.llm_backend as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_MOKA_FILE_CONFIG_CACHE",
+            {"key": "sk-file", "url": "http://file:1/v1", "model": "file-model"},
+        )
+        patches = _patch_dotenv()
+        with patch.dict(os.environ, {"DEVSQUAD_OPENAI_API_KEY": "sk-deepseek"}, clear=True):
+            for p in patches:
+                p.start()
+            try:
+                backend = create_backend("auto-fallback")
+            finally:
+                for p in reversed(patches):
+                    p.stop()
+        assert isinstance(backend, FallbackBackend)
+        kinds = [type(b).__name__ for b in backend._backends]
+        assert kinds == ["MokaAIBackend", "OpenAIBackend", "MockBackend"]
+
+    def test_auto_chain_env_moka_key_beats_file(self, monkeypatch):
+        """Env MOKA_API_KEY still wins over file values inside the auto chain."""
+        import scripts.collaboration.llm_backend as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_MOKA_FILE_CONFIG_CACHE",
+            {"key": "sk-file", "url": "http://file:1/v1", "model": "file-model"},
+        )
+        patches = _patch_dotenv()
+        with patch.dict(
+            os.environ,
+            {"MOKA_API_KEY": "sk-env", "MOKA_BASE_URL": "http://env:1/v1"},
+            clear=True,
+        ):
+            for p in patches:
+                p.start()
+            try:
+                backend = create_backend("auto-fallback")
+            finally:
+                for p in reversed(patches):
+                    p.stop()
+        moka = backend._backends[0]
+        assert moka._api_key == "sk-env"
+        assert moka.base_url == "http://env:1/v1"
+        assert moka.model == "file-model"  # env MOKA_MODEL unset → file value
+
+    def test_auto_chain_without_file_or_keys_still_mock(self, monkeypatch):
+        """Empty file cache + no env keys → MockBackend (regression guard)."""
+        import scripts.collaboration.llm_backend as mod
+
+        monkeypatch.setattr(mod, "_MOKA_FILE_CONFIG_CACHE", {})
+        patches = _patch_dotenv()
+        with patch.dict(os.environ, {}, clear=True):
+            for p in patches:
+                p.start()
+            try:
+                backend = create_backend("auto-fallback")
+            finally:
+                for p in reversed(patches):
+                    p.stop()
+        assert isinstance(backend, MockBackend)
