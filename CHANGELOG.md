@@ -134,6 +134,22 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **W1-1 gates re-run on this change** (each executed here, not quoted): `ruff check . --ignore=E501 --no-cache` → `All checks passed!` (exit 0); `ruff format --check .` → exit 0; `python scripts/check_skill_contract.py` → `PASS: all clauses intact; future waves resolved: W1-1, W1-2, W1-3, W1-4, W1-5, W1-6, W2-1, W2-2` (exit 0); `tests/unit/test_check_skill_contract.py` → `23 passed`; `radon cc scripts/collaboration/rule_engine.py -nd -s` → no output (0 D+ blocks); `mypy scripts/ skills/ --ignore-missing-imports --no-error-summary` → no output (0 errors); `check_test_quality.py --fail-on major` → `OK: no issues at or above MAJOR severity` (exit 0); `check_module_activation.py`, `check_dependency_lock.py`, `check_dependency_sync.py`, `check_config_consistency.py`, `todo_drift_monitor.py --format text`, `check_dispatcher_size.py`, `check_version_consistency.py --strict` → all exit 0; `check_hidden_content.py --allow-homoglyph-in-redteam` → `OK: no hidden content found`. **No new gate was added and no existing gate was changed for W1-1** — the contract gate was already wired in W1-0.
 - **Full CI-equivalent suite after the Scratchpad source fix** — pytest itself completed successfully: **`8010 passed, 14 skipped, 6 deselected, 1 warning in 448.73s (0:07:28)`**, `Required test coverage of 70% reached`, `Total coverage: 79.70%`. The wrapper command returned exit 1 only afterward because its intentional negative sandbox probe attempted forbidden `/invalid` and `/nonexistent` paths; that is not a test failure. The previously red `test_e2e_6_persistence_recovery` is green in this run.
 
+## [4.5.22] - 2026-10-10
+
+### Backend Configuration (PATCH — no new features, no breaking changes)
+
+- **`moka_ai.json` feeds the auto chain** — the gitignored repo-root credentials file (`{"url", "model", "key"}`, never committed; introduced in V4.5.21-line for explicit `moka` requests only) now also feeds the **Moka candidate** of the `auto` / `auto-fallback` chains: it enters the chain when either `MOKA_API_KEY` env or the file supplies a key. This restores the design order **Moka → OpenAI(DeepSeek) → Anthropic** with the file as the single editable credentials source — previously, disabling the `MOKA_*` env vars (to let the file win) silently degraded the real chain to Host → DeepSeek → Mock because the auto chain was env-gated only. Precedence is uniform and unchanged: **caller kwargs > env > file > built-in defaults**; the file can never override env or kwargs.
+- **Test determinism guard** — new autouse fixture in `tests/conftest.py` (`_isolate_moka_file_config`) empties `llm_backend._MOKA_FILE_CONFIG_CACHE` for every test, so a maintainer's local credentials file cannot silently change what auto-chain tests observe (e.g. `create_backend("auto")` with cleared env returning a `MokaAIBackend` locally but a `MockBackend` on CI). CI, which has no file, is unaffected. Tests exercising the file monkeypatch the cache or pass an explicit `path`.
+
+### Fixed
+
+- **Radon cc gate** — adding the file fallback pushed `_build_api_backends` to D (23 ≥ 16), failing the lint gate on main. The A-path candidates now live in per-provider helpers (`_build_moka_api_backend` / `_build_openai_api_backend` / `_build_anthropic_api_backend`) wired through `_API_BACKEND_BUILDERS`; `_build_api_backends` is a thin ordered loop. Zero behavior change; module max complexity C (13).
+- **Pre-existing failure registered** — `tests/external/test_real_llm.py::test_dispatch_with_openai` fails identically on main (live-LLM dependent, not executed in CI, unrelated to this batch); left for separate attribution.
+
+**Tests** — targeted `tests/test_llm_backend_resolve.py` 39 passed; backend-related selection 350 passed; full non-external regression `9806 passed, 14 skipped`. Local smoke: `create_backend("auto-fallback")` chain = `[MokaAIBackend, OpenAIBackend, MockBackend]`, `selected=moka`.
+
+**Version** — 4.5.21 → 4.5.22 (PATCH; configuration plumbing and a behavior-neutral refactor only).
+
 ## [4.5.21] - 2026-10-07
 
 ### Security & Governance (PATCH — no new features, no breaking changes)

@@ -1,15 +1,16 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.21
+version: 4.5.22
 description: |
-  DevSquad V4.5.21 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.22 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   211+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.22 — Backend-config PATCH (no new features, no breaking changes): the gitignored repo-root `moka_ai.json` (`{"url","model","key"}`, never committed) now feeds the Moka candidate of the `auto`/`auto-fallback` chains as the lowest-priority source (caller kwargs > env > file > built-in defaults), restoring the design order Moka → OpenAI(DeepSeek) → Anthropic with the file as the single editable credentials source; a `tests/conftest.py` autouse fixture empties the file cache so maintainer-local credentials cannot change what auto-chain tests observe (CI unaffected); `_build_api_backends` decomposed into per-provider builders after the radon cc gate flagged D (23), module max complexity C (13). SemVer PATCH.
   V4.5.21 — Security + toolchain PATCH (no new features): closes the Dependabot vulnerability batch (numpy lock fix unblocking the Python 3.11 security job; dev lock rebuilt and `pip-audit -r requirements-dev.lock` added to the CI security job) and tightens governance (main branch protection: admin enforcement + 1 approval + last-push-approval, no bypass actors; CI least-privilege — `test.yml` declares `contents: read` + `actions: write`). Toolchain aligned to ruff 0.16.10 / mypy 2.4.0 across all four copies (requirements-dev.txt, requirements-dev.lock, pre-commit rev, CI pins — the Dependabot blind spot documented in the lint job). Flaky tests hardened, not relaxed: 1000-line scan and dataset-load latency asserts sample min-of-3 (scanner uncached, dataset cache reset per run, so algorithmic regressions still fail); host-bridge fuse E2E warms up via a throwaway backend (15 s) because spawn-started hosts can exceed the 3 s request timeout under full-suite load, splitting the fuse's same-reason counter. Product fix: `enable_anchor_check=False` now actually prevents `AnchorChecker` construction in `ComponentFactory` (the flag reached `ComponentConfig` but the factory ignored it — root cause of the intermittent concurrent-dispatch anchor-drift failure). Radon D-level refactors: `Coordinator.execute_plan` and `ReportFormatter.generate_action_items` decomposed into helpers, zero D+ functions maintained. SemVer PATCH.
   V4.5.20 — Version-SSOT truth + deterministic review bundling (MINOR): the review-mode bundling announced in V4.5.0 was a contract-level ghost — neither `mode="review"` nor a `changeset` input existed anywhere in the dispatch pipeline, so `Coordinator.apply_file_bundling()` had no production caller for 19 releases. Both inputs now exist (`dispatch --mode review --changeset <files...>`, or `dispatch(..., mode="review", changeset=[...])`), routed via `PreDispatchPipeline.prepare_execution()` → `Coordinator.plan_review_bundles()`, with splits observable in `result.details["review_bundles"]` and the CLI JSON output. **Behaviour addition to note**: review mode with more than 5 files now yields one bundle per file group (grouped by directory + imports, so the bundle count follows the grouping and not the file count); `changeset=None`, non-review modes and ≤5 files behave exactly as V4.5.19. Also aligns 11 drifted `skills/*/skill-manifest.yaml` version fields and closes the version-gate blind spot for sub-skill manifests (64 → 77 checks), and replaces the anti-ghost gate's self-satisfying `counter > 0` assertion with a production probe (27 out-of-set counters are now honestly reported as `PASS (self-call)`). Known boundaries: `--dry-run` produces no bundle split, and the MCP tool does not expose `changeset`.
   V4.5.19 — Flaky-test cleanup PATCH (no new features): converts tests/test_dashboard_v43_panels.py::TestStatusUpdateLatency::test_status_update_latency from a single-shot `< 100ms` assertion into a 5-run median gate with a 150ms ceiling, plus `@pytest.mark.flaky(max_runs=3, min_passes=1)` backed by the newly-added pytest-rerunfailures dependency. The V4.5.18 tag-push CI run on the Python 3.10 matrix measured 281.65ms for the same four panel renders that finish in <10ms on a developer host, i.e. the assertion was measuring runner scheduler contention rather than panel cost. No production module changed → SemVer PATCH.
@@ -36,7 +37,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.5.21 — Multi-Role AI Task Orchestrator
+# DevSquad V4.5.22 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -95,7 +96,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 211+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.21) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.22) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 

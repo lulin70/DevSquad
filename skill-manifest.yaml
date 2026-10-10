@@ -1,13 +1,14 @@
 name: devsquad
-version: 4.5.21
+version: 4.5.22
 description: |
-  DevSquad V4.5.21 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.22 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   204+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.22 (backend-config): PATCH no new features, no breaking changes — the gitignored repo-root `moka_ai.json` (`{"url","model","key"}`, never committed) now feeds the Moka candidate of the auto/auto-fallback chains as the lowest-priority source (caller kwargs > env > file > built-in defaults), restoring the design order Moka → OpenAI(DeepSeek) → Anthropic with the file as the single editable credentials source; a tests/conftest.py autouse fixture empties the file cache so maintainer-local credentials cannot change what auto-chain tests observe (CI unaffected); `_build_api_backends` decomposed into per-provider builders after the radon cc gate flagged D (23), module max complexity C (13). SemVer PATCH.
   V4.5.21 (security + toolchain): PATCH no new features — closes the Dependabot vulnerability batch (numpy lock fix unblocking the Python 3.11 security job; dev lock rebuilt and `pip-audit -r requirements-dev.lock` added to the CI security job), tightens governance (main branch protection: admin enforcement + 1 approval + last-push-approval, no bypass actors; `test.yml` declares least-privilege `permissions: contents: read + actions: write`), aligns the toolchain to ruff 0.16.10 / mypy 2.4.0 across all four copies (requirements-dev.txt, requirements-dev.lock, pre-commit rev, CI pins), hardens two flaky tests without relaxing their gates (min-of-3 latency sampling with per-run cache reset; host-bridge fuse E2E warm-up via a throwaway 15 s backend), fixes the `enable_anchor_check=False` factory leak (root cause of the intermittent concurrent-dispatch anchor-drift failure), and maintains zero Radon D+ functions (`Coordinator.execute_plan` / `ReportFormatter.generate_action_items` decomposed into helpers). SemVer PATCH.
   V4.5.20 (version-SSOT truth + deterministic review bundling): MINOR — the review-mode bundling announced in V4.5.0 was a contract-level ghost: neither `mode="review"` nor a `changeset` input existed anywhere in the dispatch pipeline, so Coordinator.apply_file_bundling() had no production caller for 19 releases. Both inputs now exist (`dispatch --mode review --changeset <files...>`, or `dispatch(..., mode="review", changeset=[...])`), routed via PreDispatchPipeline.prepare_execution() → Coordinator.plan_review_bundles(), with splits observable in result.details["review_bundles"] and in CLI JSON output. Behaviour addition: review mode with more than 5 files now yields one bundle per file group (grouped by directory + imports — the bundle count follows the grouping, not the file count); changeset=None, non-review modes and ≤5 files stay byte-identical to V4.5.19. Also aligns 11 drifted skills/*/skill-manifest.yaml version fields, closes the version-gate blind spot for sub-skill manifests (64 → 77 checks), and replaces the anti-ghost gate's self-satisfying `counter > 0` assertion with a production probe (27 out-of-set counters are now honestly reported as self-call). Known boundaries: --dry-run produces no bundle split, and the MCP tool does not expose changeset.
   V4.5.19 (flaky-test cleanup): PATCH no new features — converts tests/test_dashboard_v43_panels.py::TestStatusUpdateLatency::test_status_update_latency from a single-shot `< 100ms` assertion into a 5-run median gate with a 150ms ceiling, plus `@pytest.mark.flaky(max_runs=3, min_passes=1)` via the newly-added pytest-rerunfailures dependency. Root cause: the V4.5.18 tag-push CI run on the Python 3.10 matrix measured 281.65ms for the same four panel renders that finish in <10ms on a developer host — the assertion was measuring GitHub-runner scheduler contention, not panel cost. No production module changed. No new features → SemVer PATCH.
@@ -377,7 +378,7 @@ metadata:
         - StructuredGoal — Structured goal management with hierarchical decomposition
         - FallbackBackend — Automatic LLM backend failover with health monitoring
         - 1662+ tests all passing
-      - 47 core modules
+        - 47 core modules
 
     - version: 3.6.0
       date: "2026-05-05"
