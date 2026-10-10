@@ -942,70 +942,93 @@ def _build_host_bridge_backend(
     return HostBridgeBackend(bridge_dir=bridge_dir, timeout_seconds=timeout_seconds)
 
 
+def _build_moka_api_backend(kwargs: dict, max_tokens: int | None, timeout: float | None) -> LLMBackend | None:
+    """Build the Moka candidate for the A path, or ``None`` when unconfigured.
+
+    V4.5.22: the gitignored moka_ai.json feeds this candidate as the
+    lowest-priority source (env vars and caller kwargs win) — see
+    ``_moka_file_config``. V4.5.2 P12.1.1: explicit MokaAIBackend, not an
+    OpenAIBackend alias.
+    """
+    import os
+
+    file_cfg = _moka_file_config()
+    moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY") or file_cfg.get("key")
+    if not moka_key:
+        return None
+    return _get_moka_backend()(
+        api_key=moka_key,
+        base_url=kwargs.pop("moka_base_url", None)
+        or os.environ.get("MOKA_BASE_URL")
+        or os.environ.get("MOKA_API_BASE")
+        or file_cfg.get("url"),
+        model=kwargs.pop("moka_model", None) or os.environ.get("MOKA_MODEL") or file_cfg.get("model"),
+        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
+        timeout=timeout,
+    )
+
+
+def _build_openai_api_backend(kwargs: dict, max_tokens: int | None, timeout: float | None) -> LLMBackend | None:
+    """Build the OpenAI-compatible (DeepSeek) candidate, or ``None`` when unconfigured."""
+    import os
+
+    openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
+    if not openai_key:
+        return None
+    return OpenAIBackend(
+        api_key=openai_key,
+        base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
+        model=kwargs.pop("openai_model", None) or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
+        max_tokens=max_tokens,  # None → per-model resolution
+        timeout=timeout,
+    )
+
+
+def _build_anthropic_api_backend(kwargs: dict, max_tokens: int | None, timeout: float | None) -> LLMBackend | None:
+    """Build the Anthropic candidate, or ``None`` when unconfigured."""
+    import os
+
+    anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
+    if not anthropic_key:
+        return None
+    return AnthropicBackend(
+        api_key=anthropic_key,
+        base_url=kwargs.pop("anthropic_base_url", None) or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
+        model=kwargs.pop("anthropic_model", None)
+        or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
+        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
+        timeout=timeout,
+    )
+
+
+_API_BACKEND_BUILDERS = {
+    "moka": _build_moka_api_backend,
+    "openai": _build_openai_api_backend,
+    "anthropic": _build_anthropic_api_backend,
+}
+
+
 def _build_api_backends(kwargs: dict) -> list[LLMBackend]:
     """Build the A-path API backends for whichever keys are configured.
 
     Candidate order is driven by the single source of truth ``API_BACKEND_ORDER``
     (Moka → OpenAI/DeepSeek → Anthropic); callers append ``MockBackend`` and it is
-    always last. An unspecified ``max_tokens`` is forwarded as ``None`` to
-    ``OpenAIBackend`` so it resolves its own per-model budget; the other providers
-    fall back to ``DEFAULT_MAX_TOKENS``.
+    always last. Each candidate is built by its own small helper (radon cc gate,
+    V4.5.22 refactor) — see ``_API_BACKEND_BUILDERS``. An unspecified
+    ``max_tokens`` is forwarded as ``None`` to ``OpenAIBackend`` so it resolves
+    its own per-model budget; the other providers fall back to
+    ``DEFAULT_MAX_TOKENS``.
 
     Returns:
         Available backends in ``API_BACKEND_ORDER`` order; empty when no keys set.
     """
-    import os
-
     max_tokens = kwargs.pop("max_tokens", None)
     timeout = kwargs.pop("timeout", None)
     backends_list: list[LLMBackend] = []
     for name in API_BACKEND_ORDER:
-        if name == "moka":
-            # V4.5.22: the gitignored moka_ai.json now feeds the auto chain as
-            # the lowest-priority source (env still wins) — see _moka_file_config.
-            file_cfg = _moka_file_config()
-            moka_key = kwargs.pop("moka_api_key", None) or os.environ.get("MOKA_API_KEY") or file_cfg.get("key")
-            if moka_key:
-                # V4.5.2 P12.1.1: Use explicit MokaAIBackend instead of OpenAIBackend
-                backends_list.append(
-                    _get_moka_backend()(
-                        api_key=moka_key,
-                        base_url=kwargs.pop("moka_base_url", None)
-                        or os.environ.get("MOKA_BASE_URL")
-                        or os.environ.get("MOKA_API_BASE")
-                        or file_cfg.get("url"),
-                        model=kwargs.pop("moka_model", None) or os.environ.get("MOKA_MODEL") or file_cfg.get("model"),
-                        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
-                        timeout=timeout,
-                    )
-                )
-        elif name == "openai":
-            openai_key = kwargs.pop("openai_api_key", None) or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-            if openai_key:
-                backends_list.append(
-                    OpenAIBackend(
-                        api_key=openai_key,
-                        base_url=kwargs.pop("openai_base_url", None) or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"),
-                        model=kwargs.pop("openai_model", None)
-                        or os.environ.get("DEVSQUAD_OPENAI_MODEL", DEFAULT_MODEL_OPENAI),
-                        max_tokens=max_tokens,  # None → per-model resolution
-                        timeout=timeout,
-                    )
-                )
-        elif name == "anthropic":
-            anthropic_key = kwargs.pop("anthropic_api_key", None) or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
-            if anthropic_key:
-                backends_list.append(
-                    AnthropicBackend(
-                        api_key=anthropic_key,
-                        base_url=kwargs.pop("anthropic_base_url", None)
-                        or os.environ.get("DEVSQUAD_ANTHROPIC_BASE_URL"),
-                        model=kwargs.pop("anthropic_model", None)
-                        or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", DEFAULT_MODEL_ANTHROPIC),
-                        max_tokens=max_tokens if max_tokens is not None else DEFAULT_MAX_TOKENS,
-                        timeout=timeout,
-                    )
-                )
+        backend = _API_BACKEND_BUILDERS[name](kwargs, max_tokens, timeout)
+        if backend is not None:
+            backends_list.append(backend)
     return backends_list
 
 
