@@ -249,7 +249,14 @@ class TestDispatcherRealLLM:
         from scripts.collaboration.dispatcher import MultiAgentDispatcher
         from scripts.collaboration.llm_backend import OpenAIBackend
 
-        backend = OpenAIBackend(api_key=openai_key, max_tokens=500)
+        # No explicit max_tokens: deepseek-flash (a reasoning model, see
+        # reasoning_budget.REASONING_MODEL_MARKERS) spends its budget on
+        # reasoning_content first, so a hard 500-token cap left zero content
+        # tokens (finish_reason='length') and the backend correctly raised —
+        # the dispatch failed with coverage=0 (attributed 2026-10-11, session
+        # dispatch-success-false). Let resolve_max_tokens apply the per-model
+        # reasoning budget instead.
+        backend = OpenAIBackend(api_key=openai_key)
         dispatcher = MultiAgentDispatcher(
             llm_backend=backend,
             enable_warmup=False,
