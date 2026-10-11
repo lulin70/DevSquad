@@ -29,6 +29,7 @@ Usage:
 import asyncio
 import json
 import logging
+import tempfile
 import time
 from collections import OrderedDict
 from dataclasses import asdict, dataclass
@@ -93,8 +94,15 @@ class AsyncLLMCache(LLMCacheBase):
             max_memory_entries=max_memory_entries,
         )
 
-        self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        if cache_dir == ":memory:":
+            # SQLite ":memory:" convention: in-memory only, no persistent disk
+            # cache; the disk layer stays functional but ephemeral in a private
+            # temp dir so Path(":memory:").mkdir() can never create a literal
+            # ":memory:" directory in the working directory (V4.5.23).
+            self.cache_dir = Path(tempfile.mkdtemp(prefix="devsquad_llm_cache_"))
+        else:
+            self.cache_dir = Path(cache_dir)
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Memory cache (LRU)
         self._memory_cache: OrderedDict[str, CacheEntry] = OrderedDict()

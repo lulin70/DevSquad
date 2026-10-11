@@ -1,0 +1,4 @@
+# V4.5.23: document ownership. Solo-maintainer repo — the single approver
+# required by protected main is the owner, so this file adds no new gate;
+# it makes ownership explicit for future collaborators and audit tooling.
+* @lulin70

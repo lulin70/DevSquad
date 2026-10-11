@@ -27,6 +27,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import tempfile
 import threading
 import time
 from dataclasses import asdict, dataclass
@@ -140,8 +141,16 @@ class LLMCache(LLMCacheBase):
             max_memory_entries=max_memory_entries,
         )
 
-        self.cache_dir = Path(cache_dir or "data/llm_cache")
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        if cache_dir == ":memory:":
+            # SQLite ":memory:" convention: in-memory only, no persistent disk
+            # cache. The disk layer stays functional but ephemeral in a private
+            # temp dir so no caller can pollute the working directory (the
+            # historical bug: Path(":memory:").mkdir() created a literal
+            # ":memory:" directory in the repo root — V4.5.23).
+            self.cache_dir = Path(tempfile.mkdtemp(prefix="devsquad_llm_cache_"))
+        else:
+            self.cache_dir = Path(cache_dir or "data/llm_cache")
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.memory_cache: dict[str, CacheEntry] = {}
         self._lock = threading.RLock()
 
