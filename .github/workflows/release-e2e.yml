@@ -41,8 +41,8 @@ jobs:
       DEVSQUAD_LLM_BACKEND: auto
       DEVSQUAD_API_AUTH_DISABLED: "1"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.11"
           cache: pip
@@ -106,8 +106,8 @@ jobs:
       MOKA_MODEL: ${{ secrets.MOKA_MODEL }}
       DEVSQUAD_ANTHROPIC_API_KEY: ${{ secrets.DEVSQUAD_ANTHROPIC_API_KEY }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.11"
           cache: pip
@@ -134,8 +134,8 @@ jobs:
     timeout-minutes: 15
     needs: [host-bridge-e2e]  # real-llm-e2e is conditional and not a hard gate
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.11"
           cache: pip
@@ -151,7 +151,12 @@ jobs:
           # into the openai SDK; the SDK does isinstance(..., httpx.AsyncClient)
           # and rejects httpx2), mcp<2 pins the FastMCP 1.x API.
           pip install pytest pytest-asyncio pytest-timeout httpx2 httpx "mcp<2" openai anthropic streamlit Pillow fakeredis redis
-          pip install bandit[toml] pip-audit ruff==0.16.10 mypy==2.4.0
+          # V4.5.23: ruff/mypy read from requirements-dev.lock (single copy of
+          # the tool versions; the hardcoded pins here were a Dependabot blind
+          # spot — same fix as test.yml::lint).
+          pip install bandit[toml] pip-audit \
+            "ruff==$(sed -n 's/^ruff==//p' requirements-dev.lock)" \
+            "mypy==$(sed -n 's/^mypy==//p' requirements-dev.lock)"
           # V4.5.17: actions/setup-python@v5's pre-installed setuptools on the
           # ubuntu-latest runner is pinned to 79.0.1, which has 2 known
           # vulnerabilities (PYSEC-2026-3447, PYSEC-2026-3448, fix in 83.0.0).
@@ -213,7 +218,7 @@ jobs:
           docker build --check .
           docker compose config --quiet
       - name: Run Helm lint and template checks
-        uses: azure/setup-helm@v5
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5
         with:
           version: v3.17.3
       - name: Validate Helm chart

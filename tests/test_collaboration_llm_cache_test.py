@@ -237,6 +237,41 @@ class TestLLMCache:
         assert "openai:gpt-4" in report
 
 
+class TestMemoryFlagSemantics:
+    """':memory:' follows the SQLite convention: in-memory only, never a literal
+    directory in the working directory (V4.5.23 root-cause fix: the disk layer
+    moves to a private ephemeral temp dir instead of mkdir(":memory:"))."""
+
+    def test_memory_flag_never_creates_directory(self, tmp_path, monkeypatch):
+        """LLMCache(':memory:') must not create a ':memory:' directory in cwd."""
+        monkeypatch.chdir(tmp_path)
+        cache = LLMCache(":memory:")
+        cache.set("prompt-a", "resp-a", "openai", "gpt-4")
+        assert cache.get("prompt-a", "openai", "gpt-4") == "resp-a"
+        assert not (tmp_path / ":memory:").exists()
+        assert str(cache.cache_dir).startswith(tempfile.gettempdir())
+
+    def test_memory_flag_disk_layer_ephemeral_and_functional(self, tmp_path, monkeypatch):
+        """Disk layer keeps working inside the private temp dir (stats readable)."""
+        monkeypatch.chdir(tmp_path)
+        cache = LLMCache(":memory:")
+        cache.set("prompt-b", "resp-b", "openai", "gpt-4")
+        stats = cache.get_stats()
+        assert stats["disk_entries"] >= 1
+        assert ":memory:" not in str(cache.cache_dir)
+
+    async def test_memory_flag_async_never_creates_directory(self, tmp_path, monkeypatch):
+        """AsyncLLMCache(':memory:') must not create a ':memory:' directory in cwd."""
+        from scripts.collaboration.llm_cache_async import AsyncLLMCache
+
+        monkeypatch.chdir(tmp_path)
+        cache = AsyncLLMCache(":memory:")
+        await cache.set("prompt-c", "resp-c", "openai", "gpt-4")
+        assert await cache.get("prompt-c", "openai", "gpt-4") == "resp-c"
+        assert not (tmp_path / ":memory:").exists()
+        assert str(cache.cache_dir).startswith(tempfile.gettempdir())
+
+
 class TestGlobalCache:
     """测试全局缓存单例"""
 
