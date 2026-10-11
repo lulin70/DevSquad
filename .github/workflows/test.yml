@@ -323,6 +323,16 @@ jobs:
           echo "OK: mypy 0 errors (scripts/ + skills/, V3.10.0 achievement maintained)"
       - name: Version consistency check (added in P2-6)
         run: python scripts/check_version_consistency.py
+      - name: Module size baseline check (V4.5.24, maintainer-approved)
+        # V4.5.24: this gate previously ran ONLY in release-e2e.yml
+        # (release-blocking), so the 2026-09-24 baseline went silently stale
+        # across several PRs and the tag-time release failed twice before the
+        # baseline was refreshed (PR #22). Running the identical command here
+        # makes net LOC growth fail the PR itself: an author who grows a file
+        # past its baseline must consciously refresh the snapshot
+        # (`--write-baseline`) in the same PR instead of discovering it at
+        # tag time. Same threshold/command as the release gate — no drift.
+        run: python scripts/check_dispatcher_size.py --max-lines 800 --baseline docs/audits/dispatcher_size_baseline.json
       - name: Skill contract drift check (V4.5.20 W1-0)
         # V4.5.20 W1-0: the deterministic-layer contract (SKILL.md +
         # docs/reference/DETERMINISTIC_CONTRACT.md) is the spec for W1-1..W1-7
