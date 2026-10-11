@@ -134,6 +134,21 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **W1-1 gates re-run on this change** (each executed here, not quoted): `ruff check . --ignore=E501 --no-cache` → `All checks passed!` (exit 0); `ruff format --check .` → exit 0; `python scripts/check_skill_contract.py` → `PASS: all clauses intact; future waves resolved: W1-1, W1-2, W1-3, W1-4, W1-5, W1-6, W2-1, W2-2` (exit 0); `tests/unit/test_check_skill_contract.py` → `23 passed`; `radon cc scripts/collaboration/rule_engine.py -nd -s` → no output (0 D+ blocks); `mypy scripts/ skills/ --ignore-missing-imports --no-error-summary` → no output (0 errors); `check_test_quality.py --fail-on major` → `OK: no issues at or above MAJOR severity` (exit 0); `check_module_activation.py`, `check_dependency_lock.py`, `check_dependency_sync.py`, `check_config_consistency.py`, `todo_drift_monitor.py --format text`, `check_dispatcher_size.py`, `check_version_consistency.py --strict` → all exit 0; `check_hidden_content.py --allow-homoglyph-in-redteam` → `OK: no hidden content found`. **No new gate was added and no existing gate was changed for W1-1** — the contract gate was already wired in W1-0.
 - **Full CI-equivalent suite after the Scratchpad source fix** — pytest itself completed successfully: **`8010 passed, 14 skipped, 6 deselected, 1 warning in 448.73s (0:07:28)`**, `Required test coverage of 70% reached`, `Total coverage: 79.70%`. The wrapper command returned exit 1 only afterward because its intentional negative sandbox probe attempted forbidden `/invalid` and `/nonexistent` paths; that is not a test failure. The previously red `test_e2e_6_persistence_recovery` is green in this run.
 
+## [4.5.23] - 2026-10-10
+
+### Governance & Supply Chain (PATCH — no new features, no breaking changes)
+
+- **CI tool pins read from the lock (P1)** — the lint job (`test.yml`) and `release-e2e.yml` installed hardcoded `ruff`/`mypy` pins that Dependabot cannot update (it only bumps `requirements-dev.txt`), a fourth copy of the tool versions that drifted from the lock on every bump until hand-edited. Both now extract ruff/mypy/radon versions from `requirements-dev.lock` at run time (`sed -n 's/^ruff==//p' …`), leaving the lock as the single authoritative copy.
+- **All referenced GitHub Actions SHA-pinned (P3-a)** — 8 action refs across `test.yml` / `release.yml` / `release-e2e.yml` / `no-secrets.yml` / `perf-baseline.yml` (checkout, setup-python, upload/download-artifact, setup-helm, gitleaks-action, gh-action-pypi-publish, action-gh-release) are pinned to full commit SHAs with the version kept as a comment. The `allowed-actions` policy is org/enterprise-only and not applicable to a personal repo; SHA pinning is the compensating control. `.github/CODEOWNERS` added to document ownership (adds no new gate for a solo maintainer).
+
+### Fixed
+
+- **`:memory:` directory root cause (P3-b)** — the recurring empty `:memory:` directory in the repo root is attributed with hard evidence: an instrumented `Path.mkdir` stack caught `tests/integration/test_content_cache_ccr_integration.py::test_06_invalidate_wildcard_falls_through_to_clear_on_llmcache` calling `LLMCache(":memory:")`, whose `__init__` ran `self.cache_dir.mkdir(parents=True, exist_ok=True)` with no `:memory:` guard (`ccr_store.py` has one; `llm_cache.py` did not). Appearance was order-dependent because pytest-randomly reshuffles tests. `LLMCache` and `AsyncLLMCache` now honor the SQLite `:memory:` convention: memory-only, with the disk layer kept functional but ephemeral in a private temp dir — no working-directory pollution, no changes to the 6 disk-layer code sites. 3 regression tests added (sync ×2, async ×1, each asserting no `:memory:` directory is created in cwd).
+
+**Tests** — cache selection 370 passed; full non-external regression `9809 passed, 14 skipped`; dependency lock/sync gates OK; all 5 workflow YAMLs parse.
+
+**Version** — 4.5.22 → 4.5.23 (PATCH; CI governance, supply-chain pinning and a localized cache-constructor fix only).
+
 ## [4.5.22] - 2026-10-10
 
 ### Backend Configuration (PATCH — no new features, no breaking changes)
