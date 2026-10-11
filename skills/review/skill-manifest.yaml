@@ -1,5 +1,5 @@
 name: review
-version: 4.5.23
+version: 4.5.24
 description: "Five-axis code review skill for comprehensive code quality assessment across correctness, readability, architecture, security, and performance dimensions"
 
 axes:
@@ -101,12 +101,12 @@ examples:
       from skills.registry import get_skill
       review = get_skill("review")
       result = review.review(code='''
-def calculate_total(items: list[dict]) -> float:
-    """Calculate total price from items."""
-    total = 0.0
-    for item in items:
-        total += item.get("price", 0) * item.get("quantity", 1)
-    return round(total, 2)
+      def calculate_total(items: list[dict]) -> float:
+          """Calculate total price from items."""
+          total = 0.0
+          for item in items:
+              total += item.get("price", 0) * item.get("quantity", 1)
+          return round(total, 2)
       ''', strict_mode=False)
       print(result["verdict"])  # APPROVE/CONDITIONAL/REJECT
       print(result["axis_consensus"])
@@ -116,8 +116,8 @@ def calculate_total(items: list[dict]) -> float:
       from skills.registry import get_skill
       review = get_skill("review")
       result = review.quick_review('''
-x = [i**2 for i in range(1000)]
-print(sum(x))
+      x = [i**2 for i in range(1000)]
+      print(sum(x))
       ''')
       print(result["status"])  # PASS/WARN/FAIL
       print(result["issues"])
@@ -143,4 +143,4 @@ integration:
   internal_import: "scripts.collaboration.five_axis_consensus.FiveAxisConsensusEngine"
   dispatcher_mode: "consensus"
   base_class: "skills.registry.BaseSkill"
-  version_source: "scripts.collaboration._version (4.5.23)"
+  version_source: "scripts.collaboration._version (4.5.24)"

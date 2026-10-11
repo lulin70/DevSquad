@@ -1,5 +1,5 @@
 name: dispatch
-version: 4.5.23
+version: 4.5.24
 description: |
   DevSquad Dispatch — One task in, multi-AI collaboration out.
   Auto-detects intent, matches roles, runs parallel agents, produces report.
@@ -19,7 +19,7 @@ parameters:
   - name: roles
     type: array
     required: false
-    description: Role IDs to include (default: auto-match)
+    description: "Role IDs to include (default: auto-match)"
   - name: mode
     type: string
     enum: [auto, parallel, sequential, consensus]

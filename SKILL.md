@@ -1,15 +1,16 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.23
+version: 4.5.24
 description: |
-  DevSquad V4.5.23 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.5.24 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   211+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.5.24 — CI-gate PATCH (no product code changes): the dispatcher size baseline gate (`check_dispatcher_size.py --max-lines 800 --baseline`) now also runs in PR CI (`test.yml::lint`) with the identical release-gate command, so net LOC growth past the baseline fails the PR itself instead of the tag-time release (the twice-failed v4.5.23 release — Docker Hub transient 500, then a stale 2026-09-24 baseline — taught this); `release-e2e.yml` keeps the same gate as release-blocking. SemVer PATCH.
   V4.5.23 — Governance + root-cause PATCH (no new features, no breaking changes): CI lint tools (ruff/mypy/radon) are read from requirements-dev.lock at run time, eliminating the fourth copy of the tool versions Dependabot cannot update; all 8 referenced GitHub Actions are pinned to full commit SHAs (supply-chain hardening — the allowed-actions policy is org/enterprise-only, so SHA pinning is the compensating control for personal repos) and `.github/CODEOWNERS` documents ownership; the recurring empty `:memory:` directory in the repo root is root-caused via an instrumented `Path.mkdir` stack (`LLMCache(":memory:")` mkdir without a guard, hit by test ordering) — `LLMCache`/`AsyncLLMCache` now honor the SQLite `:memory:` convention with the disk layer ephemeral in a private temp dir; 3 regression tests added. SemVer PATCH.
   V4.5.22 — Backend-config PATCH (no new features, no breaking changes): the gitignored repo-root `moka_ai.json` (`{"url","model","key"}`, never committed) now feeds the Moka candidate of the `auto`/`auto-fallback` chains as the lowest-priority source (caller kwargs > env > file > built-in defaults), restoring the design order Moka → OpenAI(DeepSeek) → Anthropic with the file as the single editable credentials source; a `tests/conftest.py` autouse fixture empties the file cache so maintainer-local credentials cannot change what auto-chain tests observe (CI unaffected); `_build_api_backends` decomposed into per-provider builders after the radon cc gate flagged D (23), module max complexity C (13). SemVer PATCH.
   V4.5.21 — Security + toolchain PATCH (no new features): closes the Dependabot vulnerability batch (numpy lock fix unblocking the Python 3.11 security job; dev lock rebuilt and `pip-audit -r requirements-dev.lock` added to the CI security job) and tightens governance (main branch protection: admin enforcement + 1 approval + last-push-approval, no bypass actors; CI least-privilege — `test.yml` declares `contents: read` + `actions: write`). Toolchain aligned to ruff 0.16.10 / mypy 2.4.0 across all four copies (requirements-dev.txt, requirements-dev.lock, pre-commit rev, CI pins — the Dependabot blind spot documented in the lint job). Flaky tests hardened, not relaxed: 1000-line scan and dataset-load latency asserts sample min-of-3 (scanner uncached, dataset cache reset per run, so algorithmic regressions still fail); host-bridge fuse E2E warms up via a throwaway backend (15 s) because spawn-started hosts can exceed the 3 s request timeout under full-suite load, splitting the fuse's same-reason counter. Product fix: `enable_anchor_check=False` now actually prevents `AnchorChecker` construction in `ComponentFactory` (the flag reached `ComponentConfig` but the factory ignored it — root cause of the intermittent concurrent-dispatch anchor-drift failure). Radon D-level refactors: `Coordinator.execute_plan` and `ReportFormatter.generate_action_items` decomposed into helpers, zero D+ functions maintained. SemVer PATCH.
@@ -38,7 +39,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.5.23 — Multi-Role AI Task Orchestrator
+# DevSquad V4.5.24 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -97,7 +98,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 211+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.23) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.24) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 
@@ -120,7 +121,7 @@ These run identically regardless of host LLM, with reproducible outputs.
 
 ### 3. Real-LLM backend (OpenAI / Anthropic / Moka) — opt-in only
 
-When invoked from CLI / REST API with a configured `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `MOKA_API_KEY`, DevSquad routes through real LLM backends. Without keys, the `MockBackend` is used. Since V4.5.23, Moka credentials may also come from a gitignored repo-root `moka_ai.json` (`{"url", "model", "key"}`) — the lowest-priority source: env vars and caller kwargs always win.
+When invoked from CLI / REST API with a configured `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `MOKA_API_KEY`, DevSquad routes through real LLM backends. Without keys, the `MockBackend` is used. Since V4.5.24, Moka credentials may also come from a gitignored repo-root `moka_ai.json` (`{"url", "model", "key"}`) — the lowest-priority source: env vars and caller kwargs always win.
 
 **V4.5.6 W4 enhancement**: Real-LLM smoke tests now auto-skip when the configured API key returns 401 (`DEVSQUAD_SKIP_INVALID_LLM_KEY=1` default). To surface key-rotation issues in CI, set `DEVSQUAD_SKIP_INVALID_LLM_KEY=0`.
 
