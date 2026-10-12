@@ -10,11 +10,25 @@ service" tests. See ``docs/audits/V4.1.2_Phase3_Plan.md`` §2.4.
 Set environment variables to enable:
     DEVSQUAD_OPENAI_API_KEY=sk-...     # For OpenAI tests
     DEVSQUAD_ANTHROPIC_API_KEY=sk-...  # For Anthropic tests
+
+The judgement assertions in ``TestJudgeSemanticAssertions`` need a second,
+independent judge model. They skip (blocked) when it is not configured:
+    DEVSQUAD_JUDGE_API_KEY=...         # Judge credentials (never the author's)
+    DEVSQUAD_JUDGE_BACKEND=openai      # openai | anthropic | moka
+    DEVSQUAD_JUDGE_BASE_URL=...        # optional
+    DEVSQUAD_JUDGE_MODEL=...           # optional
 """
 
 import os
 
 import pytest
+
+from tests.external._judge import (
+    JUDGE_CRITERIA,
+    JudgeVerdict,
+    judge_text,
+    load_judge_config,
+)
 
 # Mark entire module as external (real LLM API calls).
 pytestmark = pytest.mark.external
@@ -533,3 +547,110 @@ class TestDeepSeekConfigContract:
             f"max_tokens={backend.max_tokens}; reasoning tokens may have "
             "consumed the whole budget"
         )
+
+
+# ── Independent judge semantic assertions (V4.6.0 P2-a) ──
+
+
+def _run_role_and_return_output(backend, role: str) -> str:
+    """Dispatch one role and return its output once the structural checks pass.
+
+    The structural assertions (dispatch success, non-empty role output) run
+    here, first. The caller consults the judge only after this function
+    returns, so a judge problem can never hide a structural failure
+    (docs/planning/V4.6.0_W2_DESIGN.md §3.1).
+    """
+    from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+    dispatcher = MultiAgentDispatcher(
+        llm_backend=backend,
+        enable_warmup=False,
+        enable_compression=False,
+        enable_permission=False,
+        enable_memory=False,
+        enable_skillify=False,
+        enable_anchor_check=False,
+        enable_retrospective=False,
+        enable_usage_tracker=False,
+    )
+    try:
+        result = dispatcher.dispatch(
+            "Design the persistence layer for a task queue. State the trade-offs.",
+            roles=[role],
+            mode="auto",
+        )
+    finally:
+        dispatcher.shutdown()
+
+    # ── Structural layer: deterministic, never skipped ──
+    assert result.success is True, f"dispatch failed: {result.errors}"
+    outputs = [
+        wr.get("output")
+        for wr in result.worker_results
+        if wr.get("output") and (wr.get("role_id") == role or str(wr.get("worker_id", "")).startswith(role))
+    ]
+    assert outputs, f"role {role!r} produced no output: {result.worker_results!r}"
+    return outputs[0]
+
+
+def _enforce_judge_verdict(verdict: JudgeVerdict, label: str) -> None:
+    """Turn a judge verdict into a test outcome.
+
+    ``blocked`` becomes a skip: the judge is unavailable, and CI must not read
+    that as a product regression (design §3.5). ``fail`` becomes a real test
+    failure carrying the judge's reason.
+    """
+    if verdict.outcome == "blocked":
+        pytest.skip(f"environment_blocked: judge for {label} unavailable — {verdict.reason}")
+    if verdict.outcome == "fail":
+        pytest.fail(f"judge rejected {label} output: {verdict.reason}")
+
+
+class TestJudgeSemanticAssertions:
+    """Semantic layer for real LLM output (V4.6.0 P2-a).
+
+    The structural tests above prove the pipeline returned *something*. These
+    prove the something answers the question — a greeting-only reply passes
+    every structural check and fails here. One judge call per provider keeps
+    the cost at the budget in docs/planning/V4.6.0_W2_DESIGN.md §3.8.
+
+    When ``DEVSQUAD_JUDGE_API_KEY`` is unset, the semantic check reports
+    ``blocked`` and skips. The structural assertions still run first.
+    """
+
+    @pytest.mark.integration
+    def test_openai_architect_output_satisfies_criterion(self, openai_key):
+        from scripts.collaboration.llm_backend import OpenAIBackend
+
+        backend = OpenAIBackend(api_key=openai_key)
+        output = _run_role_and_return_output(backend, "architect")
+
+        verdict = judge_text(output, JUDGE_CRITERIA["architect"], load_judge_config())
+        _enforce_judge_verdict(verdict, "openai/architect")
+
+    @pytest.mark.integration
+    def test_anthropic_coder_output_satisfies_criterion(self, anthropic_key):
+        from scripts.collaboration.llm_backend import AnthropicBackend
+
+        backend = AnthropicBackend(api_key=anthropic_key)
+        output = _run_role_and_return_output(backend, "solo-coder")
+
+        verdict = judge_text(output, JUDGE_CRITERIA["solo-coder"], load_judge_config())
+        _enforce_judge_verdict(verdict, "anthropic/solo-coder")
+
+    @pytest.mark.integration
+    def test_missing_judge_key_reports_blocked(self, openai_key, monkeypatch):
+        """The judge is unavailable: structural passes, the judge says blocked.
+
+        This is the observable degradation the design promises — not a silent
+        pass and not a false red.
+        """
+        from scripts.collaboration.llm_backend import OpenAIBackend
+
+        monkeypatch.delenv("DEVSQUAD_JUDGE_API_KEY", raising=False)
+        backend = OpenAIBackend(api_key=openai_key)
+        output = _run_role_and_return_output(backend, "architect")
+
+        verdict = judge_text(output, JUDGE_CRITERIA["architect"], load_judge_config())
+        assert verdict.outcome == "blocked"
+        assert "environment_blocked" in verdict.reason
