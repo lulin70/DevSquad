@@ -37,6 +37,7 @@ from .context_compressor import (
     Message,
     MessageType,
 )
+from .failure_taxonomy import format_worker_error as _format_worker_error
 from .gather_core import execute_batch_gather
 from .models import (
     BatchMode,
@@ -455,7 +456,7 @@ class AsyncCoordinator:
                             worker_id=f"{task.role_id}-failed",
                             task_id=task.task_id,
                             success=False,
-                            error=str(e),
+                            error=_format_worker_error(e),  # V4.6.0 P1-b (C19)
                         )
                     )
 
@@ -522,7 +523,7 @@ class AsyncCoordinator:
                         worker_id=worker.worker_id,
                         task_id=task.task_id,
                         success=False,
-                        error=str(e),
+                        error=_format_worker_error(e),  # V4.6.0 P1-b (C19)
                     )
 
         results = await execute_batch_gather(batch.tasks, _execute_with_semaphore, max_workers)

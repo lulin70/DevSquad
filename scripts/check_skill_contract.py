@@ -171,10 +171,22 @@ CONTRACT_CLAUSES: tuple[Clause, ...] = (
         ("diff or multiple files", "unchanged"),
         "shipped in V4.5.20 W1-5",
     ),
+    Clause(
+        "failure.failure_taxonomy",
+        (
+            "failure_class",
+            "product_failed",
+            "environment_blocked",
+            "exits `1`",
+            "`2` for `environment_blocked`",
+            "fail-closed",
+        ),
+        "shipped in V4.6.0 W1",
+    ),
 )
 
 # R9 split: SKILL.md carries only what a caller must know before choosing a mode.
-# The 18 clauses above stay in docs/reference/ so SKILL.md does not grow without
+# The 19 clauses above stay in docs/reference/ so SKILL.md does not grow without
 # bound.
 SKILL_COMMITMENTS: tuple[Commitment, ...] = (
     Commitment("skill.delegate_zero_key", ("no API key", "MOKA_API_KEY")),

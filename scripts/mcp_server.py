@@ -493,12 +493,18 @@ def create_mcp_server(
                 dry_run=dry_run,
             )
             if output_format == "json":
+                # C19: read failure_class defensively — details may not be a
+                # dict on non-standard results (e.g. test doubles).
+                details = getattr(result, "details", None)
+                failure_class = details.get("failure_class") if isinstance(details, dict) else None
                 return json.dumps(
                     {
                         "success": result.success,
                         "matched_roles": getattr(result, "matched_roles", None),
                         "summary": result.summary,
                         "report": result.to_markdown(),
+                        # V4.6.0 P1-b (C19): failure class of a failed dispatch.
+                        "failure_class": failure_class,
                     },
                     ensure_ascii=False,
                     indent=2,

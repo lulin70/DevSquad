@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 from .consensus import ConsensusEngine
 from .context_compressor import CompressionLevel, ContextCompressor, Message, MessageType
 from .coordinator_compression_mixin import CoordinatorCompressionMixin
+from .failure_taxonomy import format_worker_error as _format_worker_error
 from .gather_core import execute_batch_gather
 from .models import (
     BatchMode,
@@ -559,7 +560,10 @@ class Coordinator(CoordinatorCompressionMixin):
                     errors.append(f"Task {task.task_id} failed: {e}")
                     results.append(
                         WorkerResult(
-                            worker_id=f"{task.role_id}-failed", task_id=task.task_id, success=False, error=str(e)
+                            worker_id=f"{task.role_id}-failed",
+                            task_id=task.task_id,
+                            success=False,
+                            error=_format_worker_error(e),  # V4.6.0 P1-b (C19)
                         )
                     )
 
@@ -606,7 +610,12 @@ class Coordinator(CoordinatorCompressionMixin):
                     return await worker.aexecute(task)
                 return await loop.run_in_executor(None, worker.execute, task)
             except Exception as e:
-                return WorkerResult(worker_id=worker.worker_id, task_id=task.task_id, success=False, error=str(e))
+                return WorkerResult(
+                    worker_id=worker.worker_id,
+                    task_id=task.task_id,
+                    success=False,
+                    error=_format_worker_error(e),  # V4.6.0 P1-b (C19)
+                )
 
         return await execute_batch_gather(batch.tasks, run_one, max_workers)
 

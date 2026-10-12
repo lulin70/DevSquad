@@ -264,6 +264,8 @@ def _print_dispatch_result(args: argparse.Namespace, result: DispatchResult) -> 
             "missing_roles": result.details.get("missing_roles", []),
             # V4.6.0 P1-a: replay-cache ratio (None when replay mode is off).
             "replay_cache": result.details.get("replay_cache"),
+            # V4.6.0 P1-b (C19): failure class of a failed dispatch.
+            "failure_class": result.details.get("failure_class"),
         }
         print(json.dumps(output, ensure_ascii=False, indent=2))
     elif args.format == "compact":
@@ -424,10 +426,23 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         if isinstance(dispatch_result, int):
             return dispatch_result
         _print_dispatch_result(args, dispatch_result)
-        return 0 if dispatch_result.success else 1
+        # V4.6.0 P1-b (C19): 0 success / 1 product_failed / 2 environment_blocked.
+        from scripts.collaboration.failure_taxonomy import dispatch_exit_code
+
+        return dispatch_exit_code(dispatch_result)
     except ReviewInputError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
+    except Exception as exc:
+        # V4.6.0 P1-b (C19): exceptions escaping the pipeline (e.g. a provider
+        # outage during pre-dispatch role matching) are still attributed —
+        # blocked-type errors exit 2, unknown ones stay at exit 1 (fail-closed).
+        import traceback
+
+        traceback.print_exc()
+        from scripts.collaboration.failure_taxonomy import exit_code_for_exception
+
+        return exit_code_for_exception(exc)
     finally:
         disp.shutdown()
 

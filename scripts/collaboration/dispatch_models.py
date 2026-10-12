@@ -356,6 +356,7 @@ class DispatchResult:
             self._format_approval_gate(),
             self._format_connector_operations(),
             self._format_replay_cache(),
+            self._format_failure_class(),
         ]
         lines: list[str] = []
         for section in sections:
@@ -390,6 +391,26 @@ class DispatchResult:
             f" · {replay.get('writes', 0)} recorded (mode={replay.get('mode', 'off')})",
             "",
         ]
+
+    def _format_failure_class(self) -> list[str]:
+        """V4.6.0 P1-b (C19): show WHY a dispatch failed.
+
+        tester-army/e2e separates ``failed`` (product verdict) from
+        ``blocked`` (environment) — the distinction decides retry vs red.
+        Omitted for successful dispatches (class ``none``).
+        """
+        failure_class = self.details.get("failure_class")
+        if not failure_class or failure_class == "none":
+            return []
+        if failure_class == "environment_blocked":
+            text = (
+                "> 🚧 **Failure class**: `environment_blocked` — a prerequisite outside"
+                " the product stopped the run (credentials / network / quota / timeout)."
+                " Retry is appropriate; this is not a product regression."
+            )
+        else:
+            text = "> ❌ **Failure class**: `product_failed` — the product's own judgment said no."
+        return ["", text, ""]
 
     def _format_mock_banner(self, t: dict[str, str]) -> list[str]:
         is_mock = any("[MOCK MODE]" in (wr.get("output", "") or "") for wr in (self.worker_results or []))

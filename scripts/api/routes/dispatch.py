@@ -140,6 +140,8 @@ def _convert_dispatch_result(result: DispatchResult) -> dict[str, Any]:
         "duration_seconds": round(result.duration_seconds, 2),
         "worker_results": worker_results,
         "errors": result.errors or [],
+        # V4.6.0 P1-b (C19): failure class of a failed dispatch (None-able).
+        "failure_class": result.details.get("failure_class"),
         "intent_match": intent_match,
         "five_axis_result": five_axis_result,
         "anchor_result": anchor_result,
@@ -245,7 +247,11 @@ async def dispatch_task(
             resource_type="task",
             resource_id=response_data.get("task_description", "")[:100],
             result="success" if result.success else "failure",
-            details={"roles": result.matched_roles, "duration": result.duration_seconds},
+            details={
+                "roles": result.matched_roles,
+                "duration": result.duration_seconds,
+                "failure_class": result.details.get("failure_class"),  # V4.6.0 P1-b (C19)
+            },
         )
 
         return DispatchResponse(**response_data)

@@ -97,6 +97,16 @@ class ResultAssembler:
         coverage, failed_roles, missing_roles = self._build_coverage(role_ids, worker_results)
         dispatch_success = exec_result.success and len(errors) == 0 and coverage["complete"]
 
+        # V4.6.0 P1-b (contract C19): classify the failure — environment
+        # blocked (credentials/network/quota/timeout) vs product failed.
+        # Any environment-classified failure wins: the environment is the
+        # cause, the coverage gap it produces is the effect.
+        from .failure_taxonomy import FailureClass, failure_class_for_dispatch
+
+        failure_class = (
+            FailureClass.NONE.value if dispatch_success else failure_class_for_dispatch(worker_results, errors).value
+        )
+
         return DispatchResult(
             success=dispatch_success,
             task_description=task_description,
@@ -112,6 +122,7 @@ class ResultAssembler:
                 "coverage": coverage,
                 "failed_roles": failed_roles,
                 "missing_roles": missing_roles,
+                "failure_class": failure_class,
                 "role_candidates": list(role_candidates or []),
                 **({"backend_status": backend_status} if backend_status is not None else {}),
             },

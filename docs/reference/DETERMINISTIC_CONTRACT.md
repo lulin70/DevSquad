@@ -60,6 +60,7 @@ the same defect as a documented feature that never ran (PRD F4).
 | C16 | `delegate.degradation_ladder` | Delegation | shipped in V4.5.20 W1-6 |
 | C17 | `delegate.no_silent_mock_fallback` | Delegation | shipped in V4.5.20 W1-6 |
 | C18 | `review.multifile_input_contract` | Review input | shipped in V4.5.20 W1-5 |
+| C19 | `failure.failure_taxonomy` | Failure attribution | shipped in V4.6.0 W1 |
 
 ---
 
@@ -384,6 +385,44 @@ to change.
 `tests/e2e/test_review_preview_e2e.py`: malformed diff input exits non-zero without a
 traceback; sync and async dispatch have parity; the legacy `code` string API remains
 compatible; and the original diff text is not copied into output metadata.
+
+---
+
+## 8b. Failure attribution (V4.6.0 W1)
+
+### C19 `failure.failure_taxonomy`
+
+**Rule.** Every failed dispatch carries a `failure_class` in
+`DispatchResult.details` with exactly one of two values: `product_failed`
+(the product's own judgment said no — schema violation, empty content,
+incomplete coverage, consensus rejection) or `environment_blocked`
+(a prerequisite outside the product stopped the run — credentials, network,
+quota, provider 5xx, timeout). The CLI exits `1` for `product_failed` and
+`2` for `environment_blocked`; both remain non-zero, so C9/C10's
+"incomplete coverage exits non-zero" promise is untouched. Inspired by
+tester-army/e2e's three-verdict model (`docs/prd/V4.6.0_e2e-inspired-testing_PRD.md` §5).
+
+The same attribution covers exceptions that escape the pipeline entirely:
+a provider outage during pre-dispatch (RBAC, role matching) never reaches a
+`DispatchResult`, so the CLI catch sites classify the raw exception text and
+print a `failure_class:` disclosure to stderr before exiting (`exit_code_for_exception`).
+
+CLI provider env vars are product-namespace-first: `DEVSQUAD_OPENAI_*` /
+`DEVSQUAD_ANTHROPIC_*` win over the generic `OPENAI_*` / `ANTHROPIC_*`
+fallbacks. A generic value loaded from `.env` must never silently override an
+explicit product-level setting.
+
+**Why blocked is never the default.** Attribution must be earned: an error the
+taxonomy cannot recognize classifies as `product_failed` (fail-closed). Claiming
+"blocked" without a known environment marker would turn retry into a way to hide
+product regressions.
+
+**Proven by** `tests/unit/test_failure_taxonomy.py` (exception/message mapping
+table, aggregation precedence, exit-code mapping, escaped-exception
+attribution), `tests/integration/test_failure_class_propagation.py`
+(failure_class reaches JSON, Markdown, REST, and MCP), and
+`tests/e2e/test_failure_taxonomy_e2e.py` (the blocked journey through the real
+CLI subprocess: invalid credential → exit 2 + `environment_blocked` disclosure).
 
 ---
 
