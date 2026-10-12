@@ -1,15 +1,16 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.5.24
+version: 4.6.0
 description: |
-  DevSquad V4.5.24 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.6.0 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
   211+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
+  V4.6.0 — E2E-inspired testing infrastructure MINOR (PRD: docs/prd/V4.6.0_e2e-inspired-testing_PRD.md): (P1-a) LLM replay cache — `DEVSQUAD_LLM_REPLAY_CACHE` off/read/read-write (default off, zero production change), versioned replay keys with Task-ID normalization, 10-year replay TTL, replay stats disclosed in the Markdown report and CLI JSON, actions/cache persists `data/llm_cache` only on job success (verified-before-save); (P1-b) failure taxonomy — `FailureClass` product_failed/environment_blocked, exit 2 for environment_blocked (CLI exit-code semantics {0,1} → {0,1,2}), fail-closed attribution, CLI/REST/MCP disclosure, deterministic contract C19; (P2-a) independent judge semantic assertions for real-LLM tests (`DEVSQUAD_JUDGE_*` namespace, never falls back to the author backend, three-state verdict pass/fail/blocked, structural assertions always run first so judge-blocked cannot mask product regressions); (P2-b) e2e failure auto-comment on PRs (4 structured fields + run URL, `--edit-last` idempotent). Known debt: TD-002 — the host-delegation path still returns 0/1 without the exit 2 distinction. SemVer MINOR.
   V4.5.24 — CI-gate PATCH (no product code changes): the dispatcher size baseline gate (`check_dispatcher_size.py --max-lines 800 --baseline`) now also runs in PR CI (`test.yml::lint`) with the identical release-gate command, so net LOC growth past the baseline fails the PR itself instead of the tag-time release (the twice-failed v4.5.23 release — Docker Hub transient 500, then a stale 2026-09-24 baseline — taught this); `release-e2e.yml` keeps the same gate as release-blocking. SemVer PATCH.
   V4.5.23 — Governance + root-cause PATCH (no new features, no breaking changes): CI lint tools (ruff/mypy/radon) are read from requirements-dev.lock at run time, eliminating the fourth copy of the tool versions Dependabot cannot update; all 8 referenced GitHub Actions are pinned to full commit SHAs (supply-chain hardening — the allowed-actions policy is org/enterprise-only, so SHA pinning is the compensating control for personal repos) and `.github/CODEOWNERS` documents ownership; the recurring empty `:memory:` directory in the repo root is root-caused via an instrumented `Path.mkdir` stack (`LLMCache(":memory:")` mkdir without a guard, hit by test ordering) — `LLMCache`/`AsyncLLMCache` now honor the SQLite `:memory:` convention with the disk layer ephemeral in a private temp dir; 3 regression tests added. SemVer PATCH.
   V4.5.22 — Backend-config PATCH (no new features, no breaking changes): the gitignored repo-root `moka_ai.json` (`{"url","model","key"}`, never committed) now feeds the Moka candidate of the `auto`/`auto-fallback` chains as the lowest-priority source (caller kwargs > env > file > built-in defaults), restoring the design order Moka → OpenAI(DeepSeek) → Anthropic with the file as the single editable credentials source; a `tests/conftest.py` autouse fixture empties the file cache so maintainer-local credentials cannot change what auto-chain tests observe (CI unaffected); `_build_api_backends` decomposed into per-provider builders after the radon cc gate flagged D (23), module max complexity C (13). SemVer PATCH.
@@ -39,7 +40,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.5.24 — Multi-Role AI Task Orchestrator
+# DevSquad V4.6.0 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -98,7 +99,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 211+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.5.24) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.6.0) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 
