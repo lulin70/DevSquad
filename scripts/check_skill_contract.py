@@ -173,7 +173,14 @@ CONTRACT_CLAUSES: tuple[Clause, ...] = (
     ),
     Clause(
         "failure.failure_taxonomy",
-        ("failure_class", "product_failed", "environment_blocked", "exits `1`", "`2` for `environment_blocked`", "fail-closed"),
+        (
+            "failure_class",
+            "product_failed",
+            "environment_blocked",
+            "exits `1`",
+            "`2` for `environment_blocked`",
+            "fail-closed",
+        ),
         "shipped in V4.6.0 W1",
     ),
 )
