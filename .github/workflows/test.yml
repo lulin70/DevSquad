@@ -1,10 +1,12 @@
 name: CI
 
-# 2026-10-07 assessment: CI needs no repo-write scopes. `actions: write`
-# covers pip cache + upload-artifact only; everything else inherits nothing.
+# Scope note (updated V4.6.0 P2-b): `actions: write` covers the pip cache and
+# upload-artifact; `pull-requests: write` is needed by exactly one step — the
+# e2e failure summary comment (`gh pr comment`). Every other step is read-only.
 permissions:
   contents: read
   actions: write
+  pull-requests: write
 
 on:
   push:
@@ -156,6 +158,58 @@ jobs:
         run: |
           # Explicit anti-ghost check — fails if any V4.4.0 module has _call_counter == 0
           python -m pytest tests/e2e/test_v440_anti_ghost.py -v --tb=short
+
+      # ── V4.6.0 P2-b: failure summary comment on the PR ──
+      # Only the *structured* CLI fields are published (PRD §6): coverage,
+      # failed_roles, failure_class, replay_cache. No free LLM text, no secrets.
+      # Every step below is failure-scoped and non-blocking, so it can never
+      # change the job's own red/green state.
+      - name: Produce dispatch summary for the failure comment
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          # read-write: the P1-a replay cache above is restored in this job, so
+          # an unchanged prompt replays at ~zero model cost (PRD §4.2).
+          DEVSQUAD_LLM_REPLAY_CACHE: read-write
+        run: |
+          python scripts/cli.py dispatch \
+            -t "State the trade-offs of an append-only event log for a task queue." \
+            -r architect -f json > /tmp/dispatch-summary.json || true
+          # A truncated or non-JSON file must not break the comment step.
+          jq -e . /tmp/dispatch-summary.json > /dev/null 2>&1 || echo "{}" > /tmp/dispatch-summary.json
+
+      - name: Build E2E failure summary (comment body)
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          {
+            echo "## E2E 失败摘要"
+            echo ""
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo ""
+            if [ -f /tmp/dispatch-summary.json ]; then
+              jq -r '
+                "- failure_class: \(.failure_class // "n/a")",
+                "- coverage: \(.coverage // "n/a")",
+                "- failed_roles: \((.failed_roles // []) | if length > 0 then join(", ") else "none" end)",
+                "- replay_cache: \((.replay_cache // {}) | tostring)"
+              ' /tmp/dispatch-summary.json
+            else
+              echo "- dispatch summary: not produced (see job log)"
+            fi
+          } > /tmp/e2e-comment.md
+
+      - name: Comment E2E failure on PR
+        # Sticky comment: --edit-last updates this job's previous comment
+        # instead of adding one per rerun (--create-if-none covers the case
+        # where it was deleted by hand).
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body-file /tmp/e2e-comment.md --edit-last --create-if-none
 
   performance:
     runs-on: ubuntu-latest
