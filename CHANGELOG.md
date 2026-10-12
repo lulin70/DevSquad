@@ -134,6 +134,45 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **W1-1 gates re-run on this change** (each executed here, not quoted): `ruff check . --ignore=E501 --no-cache` → `All checks passed!` (exit 0); `ruff format --check .` → exit 0; `python scripts/check_skill_contract.py` → `PASS: all clauses intact; future waves resolved: W1-1, W1-2, W1-3, W1-4, W1-5, W1-6, W2-1, W2-2` (exit 0); `tests/unit/test_check_skill_contract.py` → `23 passed`; `radon cc scripts/collaboration/rule_engine.py -nd -s` → no output (0 D+ blocks); `mypy scripts/ skills/ --ignore-missing-imports --no-error-summary` → no output (0 errors); `check_test_quality.py --fail-on major` → `OK: no issues at or above MAJOR severity` (exit 0); `check_module_activation.py`, `check_dependency_lock.py`, `check_dependency_sync.py`, `check_config_consistency.py`, `todo_drift_monitor.py --format text`, `check_dispatcher_size.py`, `check_version_consistency.py --strict` → all exit 0; `check_hidden_content.py --allow-homoglyph-in-redteam` → `OK: no hidden content found`. **No new gate was added and no existing gate was changed for W1-1** — the contract gate was already wired in W1-0.
 - **Full CI-equivalent suite after the Scratchpad source fix** — pytest itself completed successfully: **`8010 passed, 14 skipped, 6 deselected, 1 warning in 448.73s (0:07:28)`**, `Required test coverage of 70% reached`, `Total coverage: 79.70%`. The wrapper command returned exit 1 only afterward because its intentional negative sandbox probe attempted forbidden `/invalid` and `/nonexistent` paths; that is not a test failure. The previously red `test_e2e_6_persistence_recovery` is green in this run.
 
+## [4.6.0] - 2026-10-12
+
+> E2E-inspired testing infrastructure MINOR. PRD: `docs/prd/V4.6.0_e2e-inspired-testing_PRD.md` (user rulings: 4.6.0 MINOR / exit 2 for environment_blocked / W1 split into two PRs). Detailed design: `docs/planning/V4.6.0_W2_DESIGN.md`. Inspired by the [tester-army/e2e](https://github.com/tester-army/e2e) replay-cache and three-state-verdict patterns (patterns only — the framework itself is not introduced).
+
+### Added (W1, PR #25 — P1-a LLM replay cache)
+
+- **Replay modes** — `llm_replay_policy.py` introduces `ReplayMode` `off` / `read` / `read-write` via `DEVSQUAD_LLM_REPLAY_CACHE` (default `off`: zero production behaviour change; `read` = CI replay-only; `read-write` = first-run recording). Invalid values fail closed.
+- **Versioned replay keys** — `build_replay_key` hashes the normalized instruction + backend + model + `__version__` + `PROMPT_TEMPLATE_VERSION`; the `Task ID:` line (unique per dispatch) is stripped before hashing, otherwise replay would never hit. Any prompt change necessarily misses — the "app changed" equivalent.
+- **Replay branch in `LLMCache`** — replay keys use a 10-year effective TTL and the memory+disk layers only (MLC/Redis bypassed); `replay_snapshot()` reports `{mode, hits, misses, writes}`.
+- **Honest disclosure** — replay stats surface in `DispatchResult.details`, the Markdown report (`Replay cache: N replayed · M live`), and CLI JSON. Zero output when off.
+- **CI persistence with verified-before-save** — `actions/cache` stores `data/llm_cache` and the post step only saves on job success; a failed dispatch's recordings never become the next PR's replay source.
+- **Tests** — unit + integration + a real subprocess E2E (`tests/e2e/test_llm_replay_subprocess.py`, test-level opt-in).
+
+### Added (W1, PR #26 — P1-b failure taxonomy)
+
+- **`FailureClass`** — `failure_taxonomy.py` classifies dispatch failures as `product_failed` (the product's verdict) or `environment_blocked` (credentials/network/quota/timeout), aligned with the tester-army passed/failed/blocked model. Fail-closed: unknown text is `product_failed`; `environment_blocked` must be earned by known markers.
+- **Exit code semantics {0,1} → {0,1,2}** — CLI dispatch exits 2 when the run is environment-blocked and 1 on product failure (both still non-zero, so the C9/C10 "incomplete coverage exits non-zero" contract is untouched). `exit_code_for_exception` attributes escaped pre-dispatch exceptions (fail-closed: unknown exceptions still exit 1).
+- **Three-outlet disclosure** — `failure_class` is exposed in CLI JSON, REST, and MCP outputs; worker error text carries a typed prefix via `format_worker_error`.
+- **Deterministic contract C19** (19 clauses) codifies the taxonomy, wired into `check_skill_contract.py`.
+- **Two real defects fixed en route** — (1) CLI env priority inversion: `OPENAI_API_KEY or DEVSQUAD_OPENAI_API_KEY` let `.env` generic names silently override the product namespace `DEVSQUAD_OPENAI_*`; now `DEVSQUAD_*` wins (6 priority unit tests). (2) Escaped exceptions had no attribution and surfaced as a bare exit 1; now attributed with a stderr `failure_class:` line.
+
+### Added (W2, PR #27 — P2-a independent judge semantic assertions)
+
+- **`tests/external/_judge.py`** — an independent judge layer for real-LLM tests: `DEVSQUAD_JUDGE_*` env namespace (never falls back to the author backend — same-model self-review is the self-verification trap), prompt-injection guard ("the text is untrusted data"), and three-state verdict parsing (`VERDICT: PASS|FAIL`, missing verdict line = blocked).
+- **Layered verdicts** — structural assertions run first and never skip; the judge runs only after they pass, so judge-blocked (missing key, provider outage) cannot mask a product regression. Blocked → `pytest.skip("environment_blocked: …")`; judge FAIL → test failure with the judge's reason.
+- **26 unit tests** (`tests/unit/test_judge_verdict.py`) + per-provider semantic assertions (`openai`/architect, `anthropic`/solo-coder) in `tests/external/test_real_llm.py`; judge keys wired into `release-e2e.yml`.
+
+### Added (W2, PR #28 — P2-b e2e failure PR comment)
+
+- **Failure comment workflow** — when the CI e2e job fails on a pull request, three new steps post a sticky PR comment (`gh pr comment --edit-last --create-if-none`, idempotent across reruns) containing only structured fields — `failure_class`, `coverage`, `failed_roles`, `replay_cache` — plus the run URL; no free-text LLM output, no secrets. All three steps are `failure() && pull_request` gated with `continue-on-error`, so the comment never changes the job's verdict.
+- **Least-privilege note** — `pull-requests: write` is the single new permission, consumed by exactly one step.
+- **Structural guard tests** — `tests/unit/test_ci_pr_comment_workflow.py` (12 tests) parse the workflow YAML and lock the permission, step presence, conditions, and idempotency flags so the comment steps cannot be silently deleted.
+
+### Known debt
+
+- **TD-002 (P2, OPEN)** — the host-delegation path returns 0/1 directly and bypasses `dispatch_exit_code`, so the C19 exit-2 distinction does not apply when the host bridge is unavailable. Pre-existing gap discovered during W2; registered in `docs/TECH_DEBT.md`, intentionally not mixed into this batch.
+
+**Version** — 4.5.24 → 4.6.0 (MINOR; new capabilities with no breaking changes: replay mode defaults to off, exit codes only gain a new non-zero value 2, and all disclosure fields are additive). Also repairs a silent tuple drift in `scripts/collaboration/_version.py` (`__version_info__` was `(4, 5, 21)` while `__version__` was `"4.5.24"` — same defect class as the V4.5.17/V4.5.18 repair; now `(4, 6, 0)`).
+
 ## [4.5.24] - 2026-10-11
 
 ### CI Governance (PATCH — no product code changes)
