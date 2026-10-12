@@ -579,6 +579,14 @@ class PostDispatchPipeline(
         lifecycle_trace = self._build_lifecycle_trace(step_timings)
         result.details["lifecycle_trace"] = lifecycle_trace
 
+        # V4.6.0 P1-a: disclose the replay-cache ratio (only when replay is
+        # on — off-mode reports stay byte-identical to V4.5.24).
+        from .llm_cache import get_llm_cache
+
+        replay_snapshot = get_llm_cache().replay_snapshot()
+        if replay_snapshot.get("mode") != "off":
+            result.details["replay_cache"] = replay_snapshot
+
         # HC-2: Apply consensus gate result
         if consensus_gate_result is not None:
             result.details["consensus_gate"] = {

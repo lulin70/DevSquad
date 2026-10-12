@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from .llm_cache_base import LLMCacheBase
+from .llm_replay_policy import REPLAY_TTL_SECONDS, ReplayMode, build_replay_key, resolve_replay_mode
 from .prometheus_metrics import get_metrics
 
 logger = logging.getLogger(__name__)
@@ -157,6 +158,22 @@ class LLMCache(LLMCacheBase):
         # Extend base stats with sync-specific "expirations" counter
         self.stats["expirations"] = 0
 
+        # V4.6.0 P1-a: replay cache mode (off by default — zero behavior
+        # change). In read/read-write modes the cache key binds the DevSquad
+        # version and PROMPT_TEMPLATE_VERSION (see llm_replay_policy) and
+        # entries effectively never expire, so a verified recording answers
+        # later runs without a model call until the prompt-producing code
+        # changes. MLC and Redis layers are bypassed in replay mode: the
+        # replay consumer is local test runs, and the disk layer is the only
+        # thing CI persists (actions/cache).
+        self.replay_mode = resolve_replay_mode()
+        self.replay_stats: dict[str, Any] = {
+            "mode": self.replay_mode.value,
+            "hits": 0,
+            "misses": 0,
+            "writes": 0,
+        }
+
         # Redis L2 缓存
         self._redis_cache = None
         if not use_multi_level_cache and enable_redis and redis_url:
@@ -214,6 +231,11 @@ class LLMCache(LLMCacheBase):
         Returns:
             缓存的响应，如果未找到或已过期则返回 None
         """
+        # V4.6.0 P1-a replay path: version-bound key, no-expiry lookup, and
+        # replay-scoped stats. MLC/Redis layers are bypassed (see __init__).
+        if self.replay_mode is not ReplayMode.OFF:
+            return self._get_replay(prompt, backend, model)
+
         # MultiLevelCacheCoordinator backend path
         if self.use_multi_level_cache and self._mlc is not None:
             mlc_result = self._get_from_mlc(prompt, backend, model)
@@ -243,6 +265,32 @@ class LLMCache(LLMCacheBase):
             self.stats["misses"] += 1
         self._record_prometheus_miss("l1")
         return None
+
+    def _get_replay(self, prompt: str, backend: str, model: str) -> str | None:
+        """Replay-mode lookup: version-bound key, effectively no expiry."""
+        cache_key = build_replay_key(prompt, backend, model)
+
+        memory_hit = self._get_from_memory(cache_key, ttl_override=REPLAY_TTL_SECONDS)
+        if memory_hit is not None:
+            with self._lock:
+                self.replay_stats["hits"] += 1
+            return memory_hit
+
+        disk_hit = self._get_from_disk(cache_key, ttl_override=REPLAY_TTL_SECONDS)
+        if disk_hit is not None:
+            with self._lock:
+                self.replay_stats["hits"] += 1
+            return disk_hit
+
+        with self._lock:
+            self.stats["misses"] += 1
+            self.replay_stats["misses"] += 1
+        return None
+
+    def replay_snapshot(self) -> dict[str, Any]:
+        """Return a copy of the replay-scoped stats for report disclosure."""
+        with self._lock:
+            return dict(self.replay_stats)
 
     @staticmethod
     def _record_prometheus_hit(level: str) -> None:
@@ -283,13 +331,18 @@ class LLMCache(LLMCacheBase):
         self._record_prometheus_miss("l1")
         return None
 
-    def _get_from_memory(self, cache_key: str) -> str | None:
-        """Return a non-expired response from the in-memory cache, else None."""
+    def _get_from_memory(self, cache_key: str, ttl_override: int | None = None) -> str | None:
+        """Return a non-expired response from the in-memory cache, else None.
+
+        ``ttl_override`` (V4.6.0 P1-a) replaces the instance TTL for the
+        replay path, whose entries must outlive any test cycle.
+        """
+        effective_ttl = self.ttl if ttl_override is None else ttl_override
         with self._lock:
             if cache_key not in self.memory_cache:
                 return None
             entry = self.memory_cache[cache_key]
-            if entry.is_expired(self.ttl):
+            if entry.is_expired(effective_ttl):
                 del self.memory_cache[cache_key]
                 self.stats["expirations"] += 1
                 return None
@@ -300,8 +353,13 @@ class LLMCache(LLMCacheBase):
             self._record_prometheus_hit("l1")
             return entry.response
 
-    def _get_from_disk(self, cache_key: str) -> str | None:
-        """Return a non-expired response from the on-disk cache, else None."""
+    def _get_from_disk(self, cache_key: str, ttl_override: int | None = None) -> str | None:
+        """Return a non-expired response from the on-disk cache, else None.
+
+        ``ttl_override`` (V4.6.0 P1-a) replaces the instance TTL for the
+        replay path, whose entries must outlive any test cycle.
+        """
+        effective_ttl = self.ttl if ttl_override is None else ttl_override
         cache_file = self.cache_dir / f"{cache_key}.json"
         if not cache_file.exists():
             return None
@@ -316,7 +374,7 @@ class LLMCache(LLMCacheBase):
                 logger.debug("Failed to delete corrupt cache file: %s", e2)
             return None
 
-        if entry.is_expired(self.ttl):
+        if entry.is_expired(effective_ttl):
             try:
                 cache_file.unlink()
             except OSError as e:
@@ -380,6 +438,15 @@ class LLMCache(LLMCacheBase):
         """
         cache_key = self._hash_prompt(prompt, backend, model)
 
+        # V4.6.0 P1-a replay path: version-bound key, memory+disk only.
+        # READ never writes; only READ_WRITE records (verified responses —
+        # callers only reach set() after a successful backend call).
+        if self.replay_mode is not ReplayMode.OFF:
+            if self.replay_mode is ReplayMode.READ:
+                return
+            self._set_replay(prompt, response, backend, model)
+            return
+
         # MultiLevelCacheCoordinator backend path
         if self.use_multi_level_cache and self._mlc is not None:
             try:
@@ -419,6 +486,29 @@ class LLMCache(LLMCacheBase):
                 self._redis_cache.set(redis_key, response, ttl=ttl or 3600)
             except (ConnectionError, TimeoutError, OSError, RuntimeError) as e:
                 logger.debug("Redis L2 cache write failed: %s", e)
+
+    def _set_replay(self, prompt: str, response: str, backend: str, model: str) -> None:
+        """Replay-mode write: version-bound key, memory + disk only."""
+        cache_key = build_replay_key(prompt, backend, model)
+        entry = CacheEntry(
+            prompt_hash=cache_key,
+            response=response,
+            backend=backend,
+            model=model,
+            timestamp=time.time(),
+            hit_count=0,
+            last_accessed=time.time(),
+        )
+        with self._lock:
+            self._add_to_memory(cache_key, entry)
+            self.stats["sets"] += 1
+            self.replay_stats["writes"] += 1
+
+        cache_file = self.cache_dir / f"{cache_key}.json"
+        try:
+            cache_file.write_text(json.dumps(asdict(entry)), encoding="utf-8")
+        except (OSError, ValueError) as e:
+            logger.warning("Replay cache write failed: %s", e)
 
     def _add_to_memory(self, key: str, entry: CacheEntry) -> None:
         """添加到内存缓存，必要时执行 LRU 淘汰"""

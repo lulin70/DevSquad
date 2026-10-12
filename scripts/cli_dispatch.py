@@ -262,6 +262,8 @@ def _print_dispatch_result(args: argparse.Namespace, result: DispatchResult) -> 
             "coverage": result.details.get("coverage"),
             "failed_roles": result.details.get("failed_roles", []),
             "missing_roles": result.details.get("missing_roles", []),
+            # V4.6.0 P1-a: replay-cache ratio (None when replay mode is off).
+            "replay_cache": result.details.get("replay_cache"),
         }
         print(json.dumps(output, ensure_ascii=False, indent=2))
     elif args.format == "compact":
