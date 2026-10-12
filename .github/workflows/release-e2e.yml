@@ -105,6 +105,16 @@ jobs:
       MOKA_API_BASE: ${{ secrets.MOKA_API_BASE }}
       MOKA_MODEL: ${{ secrets.MOKA_MODEL }}
       DEVSQUAD_ANTHROPIC_API_KEY: ${{ secrets.DEVSQUAD_ANTHROPIC_API_KEY }}
+      # V4.6.0 P2-a: the semantic judge must be an independent model. The author
+      # chain leads with Moka, so the judge rides on the Anthropic credentials
+      # already declared here — no new secret (design §10 Q3). Residual risk,
+      # disclosed in the design doc: if the author chain falls back to
+      # Anthropic, judge independence weakens. Unset values keep the judge
+      # unconfigured, and the judge assertions then report `blocked`.
+      DEVSQUAD_JUDGE_BACKEND: anthropic
+      DEVSQUAD_JUDGE_API_KEY: ${{ secrets.DEVSQUAD_ANTHROPIC_API_KEY }}
+      DEVSQUAD_JUDGE_BASE_URL: ${{ secrets.DEVSQUAD_ANTHROPIC_BASE_URL }}
+      DEVSQUAD_JUDGE_MODEL: ${{ secrets.DEVSQUAD_ANTHROPIC_MODEL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7

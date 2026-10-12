@@ -2,8 +2,13 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-10-04（V4.5.20 W1 技术债收口）
+> **最后更新**: 2026-10-12（V4.6.0 W2 技术债登记：TD-002）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
+
+## V4.6.0 W2 技术债状态
+
+- **新登记**: TD-002（P2）—— host 委托路径不返回 exit 2。来源：`docs/planning/V4.6.0_W2_DESIGN.md` §9 实施期审计项。
+- **不留债声明**: W2 的 P2-a / P2-b 本身无遗留项——两侧均有测试覆盖（`tests/unit/test_judge_verdict.py`、`tests/unit/test_ci_pr_comment_workflow.py`）并有真实 PR 验证（设计 §6.2）。TD-002 是 W2 期间**发现**的既有缺口，不在 W2 变更范围内（Surgical Changes），故登记而非混合修复。
 
 ## V4.5.20 W1 技术债状态
 
@@ -39,9 +44,9 @@
 |--------|------|------|
 | P0 (阻断) | 0 | — |
 | P1 (重要) | 0 | — |
-| P2 (一般) | 0 | — |
+| P2 (一般) | 1 | OPEN (TD-002) |
 | P3 (低)   | 0 | — |
-| **总计** | **0** | |
+| **总计** | **1** | |
 
 > **扫描说明**: 运行 `grep -rn "TODO\|FIXME\|HACK" scripts/ --include="*.py" | grep -v "test\|__pycache__"`
 > 共返回 18 行匹配。经逐行分析，其中 17 行为**技术债检测工具自身的实现代码**
@@ -64,6 +69,22 @@
   V4.3.0 P0-2 todo_drift_monitor 已采用注释感知正则 (`#\s*(TODO|...)(?=[\s:]|$)`)，
   此描述性注释 (`# TODO/FIXME/HACK comments`) 因 TODO 后跟 `/` 不再被误报。
 - **状态**: RESOLVED (V4.3.0 P0-2 — todo_drift_monitor 注释感知正则上线后自动消解)
+
+### TD-002: host 委托路径不返回 exit 2（环境阻断无法区分）
+
+- **优先级**: P2
+- **位置**: `scripts/cli_dispatch.py:277-285`（`_print_host_result` 返回 0/1）与 `scripts/cli_dispatch.py:425-427`（`cmd_dispatch` 在 host 适配器分支直接 `return dispatch_result`）
+- **类型**: 契约缺口（C19 覆盖不全）
+- **描述**: C19 承诺「`environment_blocked` 与 `product_failed` 在 CLI 上以退出码 2/1 区分」。
+  真实 LLM 路径满足此承诺（`dispatch_exit_code`）。但 host 适配器分支在 `_execute_dispatch`
+  内直接 `_print_host_result(...)` 并返回其 0/1，绕过了 `dispatch_exit_code`，因此 host 桥
+  不可用时（应属 `environment_blocked`）只得到 exit 1。
+- **影响面**: 仅 host 委托路径（无 API key 的委托模式）。真实 LLM CI 与非委托调用不受影响。
+  `!= 0` 判定仍然正确（两种失败都非零），只有「区分 1 与 2」的调用方受影响。
+- **建议方案**: 让 host 分支经 `failure_taxonomy` 归因后再决定退出码（例如对
+  `HostBridgeUnavailable` 类错误走 `exit_code_for_exception`），并补一条 subprocess 级 E2E
+  断言 host 桥缺失时 exit 为 2。
+- **状态**: OPEN（V4.6.0 W2 期间发现；不与 W2 混合，见设计文档 §9 与 §10 Q5）
 
 ## 扫描方法与排除项
 
@@ -119,3 +140,4 @@ cd /Users/lin/trae_projects/DevSquad && grep -rn "TODO\|FIXME\|HACK" scripts/ --
 |------------|------|--------------------------------------------------------------------------|----------|
 | 2026-07-24 | v1.0 | 初始创建；完成 `scripts/` 目录全量扫描，登记 1 项 P3 (INFORMATIONAL) | DevSquad |
 | 2026-07-24 | v1.1 | V4.3.0 P0-2: todo_drift_monitor 注释感知正则上线，TD-001 自动消解标记为 RESOLVED；总计 0→0 | DevSquad |
+| 2026-10-12 | v1.2 | V4.6.0 W2: 登记 TD-002（host 委托路径不返回 exit 2，P2/OPEN）；总计 0→1 | DevSquad |
