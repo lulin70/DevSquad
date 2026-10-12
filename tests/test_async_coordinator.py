@@ -487,7 +487,9 @@ class TestExecuteParallelAsync:
         assert result.success is False
         assert result.failed_tasks == 2
         assert len(result.results) == 2
-        assert all(item.error == "same failure" for item in result.results)
+        # V4.6.0 P1-b (C19): worker errors carry the exception-type prefix so
+        # the failure taxonomy can classify them from the text.
+        assert all(item.error == "RuntimeError: same failure" for item in result.results)
         assert len(result.errors) == 1
 
     async def test_parallel_no_worker_returns_failure_result(self):

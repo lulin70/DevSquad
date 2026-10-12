@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 from .consensus import ConsensusEngine
 from .context_compressor import CompressionLevel, ContextCompressor, Message, MessageType
 from .coordinator_compression_mixin import CoordinatorCompressionMixin
+from .failure_taxonomy import format_worker_error as _format_worker_error
 from .gather_core import execute_batch_gather
 from .models import (
     BatchMode,
@@ -39,7 +40,6 @@ from .models import (
 from .scratchpad import Scratchpad
 from .usage_tracker import track_usage
 from .worker import Worker, WorkerFactory
-from .failure_taxonomy import format_worker_error as _format_worker_error
 
 if TYPE_CHECKING:
     from .ccr_store import CCRStore

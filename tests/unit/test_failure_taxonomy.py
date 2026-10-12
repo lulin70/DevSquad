@@ -137,10 +137,13 @@ class TestExitCodeForException:
 
     def test_provider_connection_error_exits_two(self):
         # The J3 blocked journey: APIConnectionError raised by pre-dispatch
-        # role matching before any worker exists.
-        import openai
+        # role matching before any worker exists. Classification is
+        # text-based, so a same-named local stub stands in for the provider
+        # SDK class (openai is not installed in every CI env).
+        class APIConnectionError(Exception):
+            pass
 
-        assert exit_code_for_exception(openai.APIConnectionError(request=None)) == EXIT_ENVIRONMENT_BLOCKED
+        assert exit_code_for_exception(APIConnectionError("Connection error.")) == EXIT_ENVIRONMENT_BLOCKED
 
     def test_unknown_exception_exits_one(self):
         # Fail-closed: an exception with no environment marker is a product

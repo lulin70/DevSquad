@@ -37,6 +37,7 @@ from .context_compressor import (
     Message,
     MessageType,
 )
+from .failure_taxonomy import format_worker_error as _format_worker_error
 from .gather_core import execute_batch_gather
 from .models import (
     BatchMode,
@@ -52,7 +53,6 @@ from .models import (
 from .scratchpad import Scratchpad
 from .usage_tracker import track_usage
 from .worker import Worker, WorkerFactory
-from .failure_taxonomy import format_worker_error as _format_worker_error
 
 logger = logging.getLogger(__name__)
 

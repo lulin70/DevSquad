@@ -104,9 +104,7 @@ class ResultAssembler:
         from .failure_taxonomy import FailureClass, failure_class_for_dispatch
 
         failure_class = (
-            FailureClass.NONE.value
-            if dispatch_success
-            else failure_class_for_dispatch(worker_results, errors).value
+            FailureClass.NONE.value if dispatch_success else failure_class_for_dispatch(worker_results, errors).value
         )
 
         return DispatchResult(
