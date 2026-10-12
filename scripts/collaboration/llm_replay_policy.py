@@ -25,7 +25,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-from enum import StrEnum
+from enum import Enum
 
 from ._version import __version__
 
@@ -40,12 +40,18 @@ __all__ = [
 ]
 
 
-class ReplayMode(StrEnum):
+class ReplayMode(str, Enum):
     """Replay cache operating mode.
 
     - ``OFF``: replay disabled (default) — existing cache behavior only.
     - ``READ``: serve hits from the replay cache; never write.
     - ``READ_WRITE``: serve hits and record verified responses.
+
+    ``(str, Enum)`` rather than ``StrEnum``: StrEnum requires Python 3.11+
+    and the support matrix is 3.10–3.12. Because ``str(member)`` on a
+    ``(str, Enum)`` member yields ``"ReplayMode.READ"`` (not the value),
+    :func:`resolve_replay_mode` fast-paths members instead of stringifying
+    them.
     """
 
     OFF = "off"
@@ -92,6 +98,8 @@ def resolve_replay_mode(explicit: ReplayMode | str | None = None) -> ReplayMode:
     ``ReplayMode.OFF``. Invalid values raise ``ReplayPolicyError`` (fail-closed)
     instead of silently falling back to OFF.
     """
+    if isinstance(explicit, ReplayMode):
+        return explicit
     raw = str(explicit).strip().lower() if explicit is not None else os.environ.get(REPLAY_ENV_VAR, "").strip().lower()
     if not raw:
         return ReplayMode.OFF
