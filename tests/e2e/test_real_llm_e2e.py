@@ -82,7 +82,9 @@ def test_e2e_dispatch_completes_via_cli():
 
     # If a real API key is available, additionally exercise real backends.
     # Real-backend failures are tolerated (network/auth/quota) — the mock
-    # baseline above already proves the CLI pipeline works.
+    # baseline above already proves the CLI pipeline works. V4.6.0 P1-b
+    # (C19): a blocked real-backend run must now say so — exit 2 with the
+    # environment_blocked disclosure, never a silent unclassified failure.
     if _has_api_key():
         for backend in ["openai", "anthropic"]:
             try:
@@ -93,6 +95,13 @@ def test_e2e_dispatch_completes_via_cli():
             if result.returncode in (0, 1):
                 output = result.stdout + result.stderr
                 assert len(output) > 0, f"Empty output from {backend}: {output[:100]}"
+            elif result.returncode == 2:
+                # Blocked (C19): the failure must be attributed as
+                # environment_blocked in the visible output.
+                output = result.stdout + result.stderr
+                assert "environment_blocked" in output, (
+                    f"exit 2 must carry the environment_blocked disclosure: {output[:300]}"
+                )
 
 
 # ---------------------------------------------------------------------------

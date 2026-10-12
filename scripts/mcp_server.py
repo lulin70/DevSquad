@@ -499,6 +499,8 @@ def create_mcp_server(
                         "matched_roles": getattr(result, "matched_roles", None),
                         "summary": result.summary,
                         "report": result.to_markdown(),
+                        # V4.6.0 P1-b (C19): failure class of a failed dispatch.
+                        "failure_class": getattr(result, "details", {}).get("failure_class"),
                     },
                     ensure_ascii=False,
                     indent=2,

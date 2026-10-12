@@ -335,9 +335,22 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
 
         _print_lifecycle_result(args, command, preset, result)
 
-        return 0 if result.success else 1
+        # V4.6.0 P1-b (C19): 0 success / 1 product_failed / 2 environment_blocked.
+        from scripts.collaboration.failure_taxonomy import dispatch_exit_code
+
+        return dispatch_exit_code(result)
     except ReviewInputError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
+    except Exception as exc:
+        # V4.6.0 P1-b (C19): exceptions escaping the pipeline (e.g. a provider
+        # outage during pre-dispatch role matching) are still attributed —
+        # blocked-type errors exit 2, unknown ones stay at exit 1 (fail-closed).
+        import traceback
+
+        traceback.print_exc()
+        from scripts.collaboration.failure_taxonomy import exit_code_for_exception
+
+        return exit_code_for_exception(exc)
     finally:
         disp.shutdown()

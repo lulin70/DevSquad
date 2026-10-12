@@ -184,16 +184,19 @@ def _create_backend(
         return create_backend("auto-fallback", **kwargs)
 
     if backend_type == "openai":
-        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("DEVSQUAD_OPENAI_API_KEY")
+        # DEVSQUAD_* (product namespace, documented in cli_doctor) wins over
+        # the generic OPENAI_* fallback. A generic value loaded from .env must
+        # never silently override an explicit product-level setting.
+        api_key = os.environ.get("DEVSQUAD_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
         if not api_key:
             print("Error: OPENAI_API_KEY or DEVSQUAD_OPENAI_API_KEY environment variable not set.", file=sys.stderr)
             print('  export OPENAI_API_KEY="sk-..."', file=sys.stderr)
             return None
         kwargs["api_key"] = api_key
-        kwargs.setdefault("base_url", os.environ.get("OPENAI_BASE_URL") or os.environ.get("DEVSQUAD_OPENAI_BASE_URL"))
-        kwargs.setdefault("model", os.environ.get("OPENAI_MODEL") or os.environ.get("DEVSQUAD_OPENAI_MODEL", "gpt-4"))
+        kwargs.setdefault("base_url", os.environ.get("DEVSQUAD_OPENAI_BASE_URL") or os.environ.get("OPENAI_BASE_URL"))
+        kwargs.setdefault("model", os.environ.get("DEVSQUAD_OPENAI_MODEL") or os.environ.get("OPENAI_MODEL", "gpt-4"))
     elif backend_type == "anthropic":
-        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
+        api_key = os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             print(
                 "Error: ANTHROPIC_API_KEY or DEVSQUAD_ANTHROPIC_API_KEY environment variable not set.", file=sys.stderr
@@ -203,7 +206,7 @@ def _create_backend(
         kwargs["api_key"] = api_key
         kwargs.setdefault(
             "model",
-            os.environ.get("ANTHROPIC_MODEL") or os.environ.get("DEVSQUAD_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+            os.environ.get("DEVSQUAD_ANTHROPIC_MODEL") or os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
         )
     return create_backend(backend_type, **kwargs)
 

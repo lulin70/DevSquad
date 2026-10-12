@@ -309,6 +309,8 @@ class Worker:
 
     def _failure_result(self, task: TaskDefinition, e: Exception, start_time: float) -> WorkerResult:
         """Shared failure-path finalizer for execute()/aexecute() (V4.5.9 AC-W6)."""
+        from .failure_taxonomy import format_worker_error
+
         logger.error("  [Worker %s] Error: %s", self.worker_id, e)
         track_usage(
             f"worker.{self.role_id}.execute",
@@ -325,7 +327,8 @@ class Worker:
                 "task_id": task.task_id,
                 "error_detail": "Execution failed",
             },
-            error=str(e),
+            # V4.6.0 P1-b: type-name prefix feeds failure_taxonomy (C19).
+            error=format_worker_error(e),
             duration_seconds=time.time() - start_time,
         )
 
