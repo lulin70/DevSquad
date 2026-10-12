@@ -1,6 +1,6 @@
 {
   "version": "v4.6.0-doc-governance",
-  "generated_at": "2026-10-12T06:45:04.327876+00:00",
+  "generated_at": "2026-10-12T07:00:27.559716+00:00",
   "max_lines": 800,
   "files": {
     "__init__.py": 0,
@@ -111,7 +111,7 @@
     "collaboration/dispatch_performance.py": 194,
     "collaboration/dispatch_pre_steps.py": 661,
     "collaboration/dispatch_rbac.py": 244,
-    "collaboration/dispatch_result_assembler.py": 267,
+    "collaboration/dispatch_result_assembler.py": 265,
     "collaboration/dispatch_services.py": 257,
     "collaboration/dispatch_steps.py": 696,
     "collaboration/dispatch_steps_base.py": 52,
@@ -300,7 +300,7 @@
     "generate_benchmark_report.py": 700,
     "generate_quality_decision_report.py": 87,
     "history_manager.py": 540,
-    "mcp_server.py": 823,
+    "mcp_server.py": 827,
     "perf_baseline.py": 76,
     "qa/__init__.py": 22,
     "qa/deterministic_rule_engine.py": 1534,
