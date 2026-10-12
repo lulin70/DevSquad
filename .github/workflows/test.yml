@@ -135,16 +135,15 @@ jobs:
           # check and rejects httpx2.AsyncClient. We keep httpx2 as the runtime
           # dep (httpx successor) but install the original package for tests.
           pip install pytest pytest-asyncio pytest-timeout httpx2 "mcp<2" openai anthropic httpx streamlit Pillow fakeredis redis
-        env:
-          # Replay env is consumed at LLMCache construction; nothing here
-          # affects the install itself (kept separate so install stays cached
-          # and secret-expression failures fail loudly at run time, not silently).
-          DEVSQUAD_LLM_REPLAY_CACHE: off
       - name: Run E2E tests (nightly + PR + release)
-        env:
-          # Replay on only when a real key exists (read-write records verified
-          # responses); otherwise off, preserving the all-mock behavior.
-          DEVSQUAD_LLM_REPLAY_CACHE: ${{ secrets.DEVSQUAD_OPENAI_API_KEY != '' && 'read-write' || 'off' }}
+        # NOTE (V4.6.0 P1-a): replay mode is intentionally NOT set job-wide.
+        # A job-wide DEVSQUAD_LLM_REPLAY_CACHE leaked into the legacy
+        # cache-semantics tests in this job (invalidate/TTL/ContentCache
+        # assert legacy keys and expiry) — the same cross-test env-leak
+        # lesson as the _isolate_moka_file_config fixture. Replay is opt-in
+        # per test: tests/e2e/test_llm_replay_subprocess.py sets the env for
+        # its own subprocesses, records real responses on its first run, and
+        # every later PR replays them from the restored cache above.
         run: |
           # E2E suite includes V4.4.0 anti-ghost test E13
           # (test_e2e_dispatch_increments_all_five_counters) which verifies
