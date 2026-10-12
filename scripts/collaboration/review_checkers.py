@@ -29,6 +29,8 @@ import re
 from collections.abc import Iterable
 from typing import Any
 
+from .review_taxonomy import BV_CATEGORIES, classify_input
+from .review_taxonomy import check as check_break_vuln
 from .two_stage_review_gate import ReviewFinding, ReviewStage, StageResult
 
 
@@ -303,6 +305,7 @@ class ReviewCheckers:
         findings.extend(self._check_test_coverage(code_changes))
         findings.extend(self._check_anti_patterns(code_changes))
         findings.extend(self._check_oversized_outputs(code_changes))
+        findings.extend(self._check_break_vuln(code_changes))
 
         has_critical = any(f.is_critical() for f in findings)
         if has_critical:
@@ -331,6 +334,68 @@ class ReviewCheckers:
                 if content:
                     result.append((path, str(content)))
         return result
+
+    def _check_break_vuln(self, code_changes: dict[str, Any]) -> list[ReviewFinding]:
+        """Run the V4.7.0 BREAK/VULN taxonomy with honest scope disclosure."""
+        raw_files = code_changes.get("files")
+        files = self._iter_file_contents(code_changes)
+        invalid_list = isinstance(raw_files, list) and any(not isinstance(item, (dict, tuple)) for item in raw_files)
+        if (
+            isinstance(raw_files, str)
+            or (raw_files is not None and not isinstance(raw_files, (dict, list)))
+            or invalid_list
+        ):
+            verdict = "unparseable"
+        else:
+            verdict = classify_input(files)
+        if verdict == "empty":
+            if self._is_documentation_only(raw_files):
+                return [self._bv_scope_finding("not_applicable: no route/navigation patterns in changeset")]
+            return []
+        if verdict == "unparseable":
+            return [self._bv_scope_finding("unparseable_input: files payload had no readable content")]
+
+        def line_scan(_path: str, content: str) -> list[tuple[int, str]]:
+            return list(enumerate(content.splitlines(), 1))
+
+        findings: list[ReviewFinding] = []
+        for category_code, _rule_id, line_number, description, path in check_break_vuln(files, line_scan=line_scan):
+            category = next(item for item in BV_CATEGORIES if item.code == category_code)
+            findings.append(
+                ReviewFinding(
+                    stage=ReviewStage.CODE_QUALITY,
+                    severity=category.severity,
+                    category=category_code,
+                    description=description,
+                    file_path=path,
+                    line_range=str(line_number),
+                    suggestion=f"Review and fix {category_code}: {category.description_en}.",
+                )
+            )
+        if not findings:
+            return [self._bv_scope_finding("checked 10 BREAK/VULN categories, 0 findings")]
+        return findings
+
+    @staticmethod
+    def _is_documentation_only(raw_files: Any) -> bool:
+        if not raw_files:
+            return False
+        paths = (
+            raw_files.keys()
+            if isinstance(raw_files, dict)
+            else (item.get("path", "") for item in raw_files if isinstance(item, dict))
+        )
+        return all(str(path).lower().endswith((".md", ".rst", ".txt")) for path in paths)
+
+    @staticmethod
+    def _bv_scope_finding(description: str) -> ReviewFinding:
+        return ReviewFinding(
+            stage=ReviewStage.CODE_QUALITY,
+            severity="info",
+            category="break_vuln_scope",
+            description=description,
+            suggestion="Treat this scope disclosure as informational; it does not block review.",
+        )
 
     def _check_security(self, code_changes: dict[str, Any]) -> list[ReviewFinding]:
         """Basic security checks: hardcoded secrets, SQL injection patterns."""
