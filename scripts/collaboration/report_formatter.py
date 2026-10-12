@@ -136,6 +136,7 @@ class ReportFormatter:
             self._format_timing_section(result, include_timing),
             self._format_errors_section(result),
             self._format_workflow_trace_section(result),
+            self._format_replay_cache_section(result),
         ]
         for section in sections:
             lines.extend(section)
@@ -397,6 +398,25 @@ class ReportFormatter:
         if trace is None:
             return []
         return ["", trace.to_markdown(), ""]
+
+    def _format_replay_cache_section(self, result: Any) -> list[str]:
+        """V4.6.0 P1-a: disclose the replay-cache ratio honestly.
+
+        tester-army/e2e prints ``AI 2 model calls · Cache 4 replayed`` — a
+        replay ratio nobody can see is the same defect class as a gate that
+        was skipped. Omitted entirely when replay mode is off, so production
+        reports are byte-identical to V4.5.24.
+        """
+        details = getattr(result, "details", None) or {}
+        replay = details.get("replay_cache")
+        if not replay or replay.get("mode", "off") == "off":
+            return []
+        return [
+            "",
+            f"> 🔁 **Replay cache**: {replay.get('hits', 0)} replayed · {replay.get('misses', 0)} live"
+            f" · {replay.get('writes', 0)} recorded (mode={replay.get('mode', 'off')})",
+            "",
+        ]
 
     def format_compact_report(self, result: Any) -> str:
         """Generate compact report suitable for terminal quick view."""

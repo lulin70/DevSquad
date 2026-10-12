@@ -101,6 +101,22 @@ jobs:
       DEVSQUAD_ANTHROPIC_MODEL: ${{ secrets.DEVSQUAD_ANTHROPIC_MODEL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Restore LLM replay cache (V4.6.0 P1-a)
+        # Verified-then-saved: actions/cache's post step writes this directory
+        # back ONLY when the e2e job succeeds, so a failing dispatch's
+        # recordings never become the next PR's replay source (PRD
+        # V4.6.0 §4.2 dual gate — worker-level + CI-level). The replay key
+        # binds the DevSquad version and PROMPT_TEMPLATE_VERSION, so changed
+        # prompts miss (one real call) while unchanged prompts replay at
+        # ~zero cost. restore-keys lets an old snapshot serve the prompts
+        # that did not change; replayed responses themselves never expire
+        # (REPLAY_TTL_SECONDS).
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: data/llm_cache
+          key: llm-replay-${{ runner.os }}-${{ hashFiles('scripts/collaboration/**/*.py') }}-v1
+          restore-keys: |
+            llm-replay-${{ runner.os }}-
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.11"
@@ -120,6 +136,14 @@ jobs:
           # dep (httpx successor) but install the original package for tests.
           pip install pytest pytest-asyncio pytest-timeout httpx2 "mcp<2" openai anthropic httpx streamlit Pillow fakeredis redis
       - name: Run E2E tests (nightly + PR + release)
+        # NOTE (V4.6.0 P1-a): replay mode is intentionally NOT set job-wide.
+        # A job-wide DEVSQUAD_LLM_REPLAY_CACHE leaked into the legacy
+        # cache-semantics tests in this job (invalidate/TTL/ContentCache
+        # assert legacy keys and expiry) — the same cross-test env-leak
+        # lesson as the _isolate_moka_file_config fixture. Replay is opt-in
+        # per test: tests/e2e/test_llm_replay_subprocess.py sets the env for
+        # its own subprocesses, records real responses on its first run, and
+        # every later PR replays them from the restored cache above.
         run: |
           # E2E suite includes V4.4.0 anti-ghost test E13
           # (test_e2e_dispatch_increments_all_five_counters) which verifies
