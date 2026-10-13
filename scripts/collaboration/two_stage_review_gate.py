@@ -647,6 +647,8 @@ class TwoStageReviewGate:
                 lines.append(f"- **[{f.category}]** {f.description}")
                 if f.file_path:
                     lines.append(f"  - File: `{f.file_path}`")
+                if f.line_range:
+                    lines.append(f"  - Line: `{f.line_range}`")
                 if f.suggestion:
                     lines.append(f"  - Suggestion: {f.suggestion}")
             lines.append("")
@@ -659,6 +661,8 @@ class TwoStageReviewGate:
                 lines.append(f"- **[{f.category}]** {f.description}")
                 if f.file_path:
                     lines.append(f"  - File: `{f.file_path}`")
+                if f.line_range:
+                    lines.append(f"  - Line: `{f.line_range}`")
             lines.append("")
 
         infos = [f for f in result.findings if f.severity == "info"]
