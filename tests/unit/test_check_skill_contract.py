@@ -56,7 +56,7 @@ from scripts.check_skill_contract import (  # noqa: E402
 )
 
 # The three documents the gate reads, copied into a temp root per test.
-_DOC_RELATIVE_PATHS = (SKILL_DOC, CONTRACT_DOC, PRD_DOC)
+_DOC_RELATIVE_PATHS = (SKILL_DOC, CONTRACT_DOC, PRD_DOC, csc.BREAK_VULN_MODULE, csc.BREAK_VULN_CHECKERS)
 
 
 class _DocRoot:
@@ -197,6 +197,18 @@ class T3_DriftDetection(unittest.TestCase):
         self.root.replace(CONTRACT_DOC, "unsupported_ext", "unsupported_type")
         with redirect_stdout(io.StringIO()):
             self.assertEqual(main(["--root", str(self.root.path)]), 1)
+
+    def test_11b_removed_taxonomy_category_is_reported(self) -> None:
+        """Verify: deleting a category fails the reverse implementation gate."""
+        self.root.replace(csc.BREAK_VULN_MODULE, '"BREAK-5"', '"REMOVED"')
+        problems = run(self.root.path)
+        self.assertTrue(any("category BREAK-5 is missing" in problem for problem in problems))
+
+    def test_11c_removed_stage2_wiring_is_reported(self) -> None:
+        """Verify: deleting the checker delegation fails the reverse gate."""
+        self.root.replace(csc.BREAK_VULN_CHECKERS, "check_break_vuln", "removed_checker")
+        problems = run(self.root.path)
+        self.assertTrue(any("Stage 2 wiring is missing" in problem for problem in problems))
 
 
 class T4_SkillCommitments(unittest.TestCase):

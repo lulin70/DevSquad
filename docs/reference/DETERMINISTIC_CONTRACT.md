@@ -61,6 +61,7 @@ the same defect as a documented feature that never ran (PRD F4).
 | C17 | `delegate.no_silent_mock_fallback` | Delegation | shipped in V4.5.20 W1-6 |
 | C18 | `review.multifile_input_contract` | Review input | shipped in V4.5.20 W1-5 |
 | C19 | `failure.failure_taxonomy` | Failure attribution | shipped in V4.6.0 W1 |
+| C20 | `review.break_vuln_taxonomy` | Review design findings | shipped in V4.7.0 W1 |
 
 ---
 
@@ -385,6 +386,22 @@ to change.
 `tests/e2e/test_review_preview_e2e.py`: malformed diff input exits non-zero without a
 traceback; sync and async dispatch have parity; the legacy `code` string API remains
 compatible; and the original diff text is not copied into output metadata.
+
+---
+
+## 8c. Review design findings (V4.7.0 W1)
+
+### C20 `review.break_vuln_taxonomy`
+
+**Rule.** The deterministic review layer uses a closed ten-category taxonomy adapted from upstream page-level analysis to changeset-level evidence. It reports `BREAK-1` through `BREAK-5` and `VULN-1` through `VULN-5`. `BREAK-1`, `BREAK-5`, `VULN-1`, and `VULN-4` are `critical`; the other six categories are `warning`. The severity comes from the category table and cannot be overridden by a caller.
+
+The checker runs only on route, navigation, or URLconf objects visible in the current changeset. It performs conservative same-file or same-changeset pattern checks. It does not claim whole-system coverage, infer hidden routes, or run an LLM. Each finding carries a stable rule id, the source `file_path`, and a `line_range` evidence field.
+
+Scope is disclosed honestly: `applicable` runs the ten checks; a documentation-only or empty changeset is `not_applicable`; an unreadable or malformed files payload is `unparseable_input` and must never be presented as not applicable. A valid applicable changeset with no hits reports that the ten categories were checked and found no findings.
+
+**Semantic adaptation.** Upstream categories describe page-level business flows. This contract adapts them to changeset-level Web route/navigation evidence. It does not promise Playwright crawling, BFS traversal, database introspection, or cross-file semantic inference.
+
+**Proven by** `tests/unit/test_review_taxonomy.py`, `tests/integration/test_review_taxonomy_dispatch.py`, and `tests/e2e/test_review_taxonomy_e2e.py`.
 
 ---
 

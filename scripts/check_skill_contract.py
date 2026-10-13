@@ -54,6 +54,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_DOC = "SKILL.md"
 CONTRACT_DOC = "docs/reference/DETERMINISTIC_CONTRACT.md"
 PRD_DOC = "docs/prd/V4.5.20_ocr-learnings_PRD.md"
+BREAK_VULN_MODULE = "scripts/collaboration/review_taxonomy.py"
+BREAK_VULN_CHECKERS = "scripts/collaboration/review_checkers.py"
 
 # A wave token such as ``W1-3`` must appear in the PRD as a standalone token,
 # not as a prefix of a longer identifier.
@@ -183,6 +185,22 @@ CONTRACT_CLAUSES: tuple[Clause, ...] = (
         ),
         "shipped in V4.6.0 W1",
     ),
+    Clause(
+        "review.break_vuln_taxonomy",
+        (
+            "BREAK-1",
+            "BREAK-5",
+            "VULN-1",
+            "VULN-4",
+            "critical",
+            "warning",
+            "applicable",
+            "unparseable",
+            "changeset",
+            "line_range",
+        ),
+        "shipped in V4.7.0 W1",
+    ),
 )
 
 # R9 split: SKILL.md carries only what a caller must know before choosing a mode.
@@ -263,12 +281,35 @@ def run(root: Path) -> list[str]:
     contract_text = _read(root, CONTRACT_DOC)
     prd_text = _read(root, PRD_DOC)
     skill_text = _read(root, SKILL_DOC)
+    taxonomy_text = _read(root, BREAK_VULN_MODULE)
+    checker_text = _read(root, BREAK_VULN_CHECKERS)
 
     problems: list[str] = []
     for clause in CONTRACT_CLAUSES:
         problems.extend(check_clause(clause, contract_text, prd_text))
     for commitment in SKILL_COMMITMENTS:
         problems.extend(check_commitment(commitment, skill_text))
+
+    if "BV_CATEGORIES" not in taxonomy_text or "_RULE_TABLE" not in taxonomy_text:
+        problems.append(
+            f"[review.break_vuln_taxonomy] closed category table or rule registry is missing from {BREAK_VULN_MODULE}"
+        )
+    for code in (
+        "BREAK-1",
+        "BREAK-2",
+        "BREAK-3",
+        "BREAK-4",
+        "BREAK-5",
+        "VULN-1",
+        "VULN-2",
+        "VULN-3",
+        "VULN-4",
+        "VULN-5",
+    ):
+        if code not in taxonomy_text:
+            problems.append(f"[review.break_vuln_taxonomy] category {code} is missing from {BREAK_VULN_MODULE}")
+    if "_check_break_vuln" not in checker_text or "check_break_vuln" not in checker_text:
+        problems.append(f"[review.break_vuln_taxonomy] Stage 2 wiring is missing from {BREAK_VULN_CHECKERS}")
     return problems
 
 
