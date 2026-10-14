@@ -325,7 +325,7 @@ class TestT5SnapshotFields:
             path = os.path.join(tmp, "nonexistent.json")
             baseline = PerfBaseline.load(path)
             assert baseline.snapshots == {}
-            assert baseline.version == "v4.5.2"
+            assert baseline.version == "v4.7.0"
 
     def test_default_baseline_path_constant(self):
         """DEFAULT_BASELINE_PATH 指向 docs/reference/."""

@@ -4,10 +4,10 @@ slug: devsquad
 version: 4.7.0
 description: |
   DevSquad V4.7.0 — Multi-Role AI Orchestration Skill.
-  Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
+  Not a single-capability tool: coordinates 7 available roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
-  One task → multi-role collaboration → consensus conclusion.
-  218+ core modules, 9400+ tests passing (local; CI authoritative).
+  One task → task-matched multi-role collaboration → consensus conclusion.
+  219 public core modules; current test counts are reported by the local and CI runs.
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.6.0 — E2E-inspired testing infrastructure MINOR (PRD: docs/prd/V4.6.0_e2e-inspired-testing_PRD.md): (P1-a) LLM replay cache — `DEVSQUAD_LLM_REPLAY_CACHE` off/read/read-write (default off, zero production change), versioned replay keys with Task-ID normalization, 10-year replay TTL, replay stats disclosed in the Markdown report and CLI JSON, actions/cache persists `data/llm_cache` only on job success (verified-before-save); (P1-b) failure taxonomy — `FailureClass` product_failed/environment_blocked, exit 2 for environment_blocked (CLI exit-code semantics {0,1} → {0,1,2}), fail-closed attribution, CLI/REST/MCP disclosure, deterministic contract C19; (P2-a) independent judge semantic assertions for real-LLM tests (`DEVSQUAD_JUDGE_*` namespace, never falls back to the author backend, three-state verdict pass/fail/blocked, structural assertions always run first so judge-blocked cannot mask product regressions); (P2-b) e2e failure auto-comment on PRs (4 structured fields + run URL, `--edit-last` idempotent). Known debt: TD-002 — the host-delegation path still returns 0/1 without the exit 2 distinction. SemVer MINOR.
@@ -59,7 +59,7 @@ This Skill upgrades Trae from a "single AI assistant" to a "multi-AI team". When
 
 ```
 User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
-           → [ThreadPoolExecutor Parallel Workers] → [Scratchpad Real-time Sharing]
+           → [Sync/Async Worker Execution] → [Scratchpad Real-time Sharing]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
@@ -67,7 +67,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 
 | 维度 | 单个 AI (ChatGPT/Claude) | DevSquad |
 |------|---------------------------|----------|
-| 视角 | 一个角色回答 | **7 个专业角色并行** |
+| 视角 | 一个角色回答 | **按任务匹配多个专业角色** |
 | 质量 | 可能遗漏安全/测试 | **多维度交叉验证** |
 | 可追溯 | 无 | **完整审计链 (SHA256)** |
 | 适用场景 | 简单问答 | **复杂工程任务** |
@@ -79,7 +79,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 pip install devsquad
 
 # 运行 - 让 AI 团队帮你设计认证系统
-devsquad run "设计一个安全的用户认证系统" --roles architect,security,tester,coder
+devsquad run "设计一个安全的用户认证系统" --roles architect security tester coder
 
 # 输出结构化报告：
 # ✅ 架构师建议：采用 JWT + Refresh Token 方案...
@@ -112,7 +112,7 @@ When you invoke DevSquad inside an AI IDE (TRAE / Cursor / Claude Desktop), the 
 ### 2. Script-layer deterministic tooling (Python CLI / API / MCP)
 
 The 218+ core modules are deterministic Python code:
-- `MultiAgentDispatcher` orchestrates 7 roles via `ThreadPoolExecutor` parallel workers
+- `MultiAgentDispatcher` matches the required roles and executes them through the current sync/async worker paths
 - `ScratchpadHistoryStore` persists cross-role state via atomic writes
 - `ApprovalGate` enforces human-in-the-loop decisions
 - `AntiGhostChecker` ensures modules are activated (not just present)
@@ -143,10 +143,10 @@ If you invoke DevSquad from a **non-AI IDE shell** (e.g., bare `python3 scripts/
 - For real role responses, you must be inside an AI chat session (TRAE IDE / Claude Desktop) where the host LLM completes the role prompts
 
 **Bottom line**: DevSquad is a **prompt-orchestration framework**, not a standalone AI model. Its value is in:
-1. **Structured 7-role collaboration** (deterministic prompts, consistent format)
+1. **Structured multi-role collaboration** (deterministic prompts, consistent format)
 2. **Cross-session continuity** (Scratchpad + AgentIdentity + WorkflowTrace)
 3. **Anti-ghost guarantees** (modules activated, not just present)
-4. **Tested dispatch pipeline** (9400+ tests, 7-role consensus 9.1/10)
+4. **Tested dispatch pipeline** (current quality gates report findings without claiming unverified totals)
 
 The actual "intelligence" comes from the host LLM, which is honest and explicit.
 
@@ -386,7 +386,7 @@ disp.shutdown()
 # One-click startup — runs 4 phases: env check → DB init → frontend build → service start
 ./scripts/start.sh
 
-# Launch Streamlit dashboard instead of API server
+# Launch the API and Streamlit dashboard together
 ./scripts/start.sh --dashboard
 
 # Override API port

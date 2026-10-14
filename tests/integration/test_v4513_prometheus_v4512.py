@@ -98,4 +98,7 @@ class TestMetricsEndpointSmoke:
         client = TestClient(app)
         resp = client.get("/metrics")
         assert resp.status_code == 200
-        assert "devsquad_v4512_risk_store_capacity" in resp.text
+        body = resp.text
+        assert resp.headers["content-type"].startswith("text/plain")
+        assert "# HELP devsquad_v4512_risk_store_capacity" in body
+        assert "devsquad_v4512_risk_store_capacity" in body

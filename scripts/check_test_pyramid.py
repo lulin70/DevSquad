@@ -2,8 +2,8 @@
 """Test Pyramid Distribution Analyzer (V4.2.1 P2-21).
 
 Analyzes the test suite composition (unit / integration / e2e / contract /
-smoke / external) and reports distribution ratios against healthy pyramid
-ranges. A top-heavy pyramid (too many e2e, too few unit) indicates a slow
+security / smoke / external) and reports distribution ratios against healthy
+pyramid ranges. A top-heavy pyramid (too many e2e, too few unit) indicates a slow
 test suite and brittle tests.
 
 Usage:
@@ -20,6 +20,9 @@ Categorization rules (applied in priority order):
     1. Path-based: tests/unit/ → unit, tests/integration/ → integration, etc.
     2. Filename-based: *_e2e.py / *_e2e_test.py → e2e (override root default)
     3. Root default: tests/test_*.py (no subdir) → unit (per convention)
+
+Security tests use the explicit ``tests/security/`` layer. Unknown directories
+remain ``unclassified`` so directory hygiene problems stay visible.
 
 Test function counting uses AST parsing to count ``test_*`` functions and
 ``Test*`` class methods, avoiding import side effects.
@@ -66,12 +69,23 @@ HEALTHY_RANGES: dict[str, tuple[float, float]] = {
     "integration": (0.15, 0.25),  # 15-25% (module interaction)
     "e2e": (0.00, 0.10),  # <=10% (slow, brittle, few)
     "contract": (0.05, 0.10),  # 5-10% (interface verification)
+    "security": (0.00, 0.05),  # <=5% (security and red-team verification)
     "smoke": (0.00, 0.05),  # <=5% (deployment verification)
     "external": (0.00, 0.05),  # <=5% (external API tests)
+    "unclassified": (0.00, 0.00),  # no tests should use an unknown directory
 }
 
 # Display order for reports.
-LAYER_ORDER: list[str] = ["unit", "integration", "e2e", "contract", "smoke", "external"]
+LAYER_ORDER: list[str] = [
+    "unit",
+    "integration",
+    "e2e",
+    "contract",
+    "security",
+    "smoke",
+    "external",
+    "unclassified",
+]
 
 # Filename patterns that override root-level default categorization.
 E2E_FILENAME_PATTERNS: tuple[str, ...] = ("_e2e.py", "_e2e_test.py")
@@ -208,8 +222,8 @@ class TestPyramidAnalyzer:
             subdir = parts[0].lower()
             if subdir in LAYER_ORDER:
                 return subdir
-            # Unknown subdir defaults to unit.
-            return "unit"
+            # Do not hide directory hygiene problems as unit tests.
+            return "unclassified"
 
         # Root-level file: check filename overrides first.
         name_lower = path.name.lower()
@@ -291,7 +305,7 @@ def format_report(report: PyramidReport) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Analyze test pyramid distribution (unit/integration/e2e/contract/smoke/external)."
+        description="Analyze test pyramid distribution (unit/integration/e2e/contract/security/smoke/external)."
     )
     parser.add_argument(
         "tests_dir",

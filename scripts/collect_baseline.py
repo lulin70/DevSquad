@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """
-collect_baseline.py — V4.5.2 Performance Baseline Collector (one-shot script).
+collect_baseline.py — V4.7.0 Performance Baseline Collector (one-shot script).
 
-Runs representative samples for each execution path (Mock / Host Bridge stub /
-API stub) and writes them to docs/reference/PERFORMANCE_BASELINE.json.
+Runs representative samples for each execution path and writes them to
+docs/reference/PERFORMANCE_BASELINE.json.
+
+- mock:          measured — real MockBackend.generate() calls via
+                 collect_snapshot_for_path (warmup discarded, failures excluded)
+- host:          stub — real measurement requires the host bridge environment
+- api:           stub — real measurement requires a live provider API key
+- auto_fallback: stub — depends on which sub-path triggers
 
 Run locally once to seed the baseline file:
 
@@ -21,13 +27,13 @@ from __future__ import annotations
 
 import os
 import sys
-import time
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
+from scripts.collaboration.llm_backend import create_backend  # noqa: E402
 from scripts.collaboration.perf_baseline import (  # noqa: E402
     DEFAULT_BASELINE_PATH,
     GATE_THRESHOLDS,
@@ -36,6 +42,7 @@ from scripts.collaboration.perf_baseline import (  # noqa: E402
     PerfBaseline,
     PerfSampleCollector,
     PerfSnapshot,
+    collect_snapshot_for_path,
 )
 
 
@@ -43,18 +50,16 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _collect_mock(n: int, warmup: int = WARMUP_DISCARD) -> PerfSnapshot:
-    """Collect n warmup-discarded samples for the C path (Mock backend)."""
-    col = PerfSampleCollector("mock")
-    # Steady-state samples — collect 50 samples that do measurable work
-    # so the snapshot reflects realistic MockBackend latency.
-    for i in range(n):  # noqa: B007
-        t0 = time.perf_counter()
-        # Simulate the work a Mock generate() does (string assembly)
-        _ = ("prompt-" * 256) + ("response-" * 256)
-        col.add_sample((time.perf_counter() - t0) * 1000.0)
-
-    snap = col.snapshot(warmup_discard=0, snapshot_id="v452_baseline")
+def _collect_mock() -> PerfSnapshot:
+    """Collect measured samples for the C path (real MockBackend.generate calls)."""
+    backend = create_backend("mock")
+    snap = collect_snapshot_for_path(
+        "mock",
+        backend,
+        prompt="baseline ping",
+        role_name="perf",
+        snapshot_id="v470_baseline",
+    )
     snap.timestamp = _now_iso()
     return snap
 
@@ -76,7 +81,7 @@ def _collect_stub(path: str, n: int, avg_ms: float, jitter_ms: float) -> PerfSna
         val = avg_ms + ((i - n / 2) * step)
         col.add_sample(val)
 
-    snap = col.snapshot(snapshot_id=f"v452_baseline_{path}_stub")
+    snap = col.snapshot(snapshot_id=f"v470_baseline_{path}_stub")
     snap.timestamp = _now_iso()
     snap.excluded_count = 0
     return snap
@@ -84,13 +89,13 @@ def _collect_stub(path: str, n: int, avg_ms: float, jitter_ms: float) -> PerfSna
 
 def main() -> int:
     """Collect baseline for all 4 paths and write to docs/reference/."""
-    print("V4.5.2 Performance Baseline Collector")
+    print("V4.7.0 Performance Baseline Collector")
     print("=" * 60)
 
-    # C path: actually measured
+    # C path: actually measured (real MockBackend.generate calls)
     print(f"[mock] Collecting {SAMPLE_COUNTS['mock']} samples (+{WARMUP_DISCARD} warmup discarded)...")
-    mock_snap = _collect_mock(SAMPLE_COUNTS["mock"])
-    print(f"  mock: p50={mock_snap.p50_ms:.2f}ms p95={mock_snap.p95_ms:.2f}ms p99={mock_snap.p99_ms:.2f}ms")
+    mock_snap = _collect_mock()
+    print(f"  mock: p50={mock_snap.p50_ms:.2f}ms p95={mock_snap.p95_ms:.2f}ms p99={mock_snap.p99_ms:.2f}ms [measured]")
 
     # B path: stub (B path requires real host environment)
     print("[host] Emitting stub snapshot (real measurement requires host)...")
@@ -127,7 +132,7 @@ def main() -> int:
 
     # Assemble + save
     baseline = PerfBaseline(
-        version="v4.5.2",
+        version="v4.7.0",
         snapshots={
             "mock": mock_snap,
             "host": host_snap,

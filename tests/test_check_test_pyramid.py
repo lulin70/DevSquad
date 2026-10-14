@@ -149,13 +149,21 @@ class T4_CategorizeFile(unittest.TestCase):
             _make_test_file(f)
             self.assertEqual(self.analyzer._categorize_file(f, tests_dir), "e2e")
 
-    def test_07_unknown_subdir_defaults_unit(self) -> None:
-        """Verify: tests/unknown/test.py → unit (fallback)."""
+    def test_07_security_subdir_is_security(self) -> None:
+        """Verify: tests/security/test.py → security."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tests_dir = Path(tmpdir)
+            f = tests_dir / "security" / "test.py"
+            _make_test_file(f)
+            self.assertEqual(self.analyzer._categorize_file(f, tests_dir), "security")
+
+    def test_08_unknown_subdir_is_unclassified(self) -> None:
+        """Verify: tests/unknown/test.py → unclassified, not unit."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tests_dir = Path(tmpdir)
             f = tests_dir / "unknown" / "test.py"
             _make_test_file(f)
-            self.assertEqual(self.analyzer._categorize_file(f, tests_dir), "unit")
+            self.assertEqual(self.analyzer._categorize_file(f, tests_dir), "unclassified")
 
 
 class T5_CountTests(unittest.TestCase):

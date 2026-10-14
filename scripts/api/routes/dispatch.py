@@ -50,26 +50,44 @@ router = APIRouter(tags=["Task Dispatch"])
 _global_dispatcher: MultiAgentDispatcher | None = None
 
 
-def _get_dispatcher() -> MultiAgentDispatcher:
-    """Get or create the global MultiAgentDispatcher instance.
+def _get_dispatcher(backend: str | None = None) -> MultiAgentDispatcher:
+    """Get the shared dispatcher or a request-local dispatcher for a backend.
 
-    RBAC mode is selected by environment:
-      - ``DEVSQUAD_API_AUTH_DISABLED=1`` → development_mode=True (RBAC open,
-        for E2E tests and local dev). This env var already disables API key
-        auth, so treating it as a dev/test signal is consistent.
-      - Otherwise → development_mode=False (HC-1: production RBAC fail-closed).
+    Custom backends are attached to a request-local dispatcher so selecting a
+    backend for one REST request never mutates the shared dispatcher used by
+    other concurrent requests.
     """
     global _global_dispatcher
-    if _global_dispatcher is None:
-        try:
-            from scripts.collaboration.dispatcher import MultiAgentDispatcher
 
-            _is_dev_mode = os.environ.get("DEVSQUAD_API_AUTH_DISABLED", "").strip() in (
-                "1",
-                "true",
-                "True",
-                "TRUE",
+    backend_name = (backend or "").strip().lower()
+    try:
+        from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+        _is_dev_mode = os.environ.get("DEVSQUAD_API_AUTH_DISABLED", "").strip() in (
+            "1",
+            "true",
+            "True",
+            "TRUE",
+        )
+
+        if backend_name not in ("", "none", "mock"):
+            from scripts.collaboration.llm_backend import create_backend
+
+            llm_backend = create_backend(backend_name)
+            dispatcher = MultiAgentDispatcher(
+                llm_backend=llm_backend,
+                enable_warmup=True,
+                enable_compression=True,
+                enable_permission=True,
+                enable_memory=True,
+                enable_skillify=True,
+                enable_quality_guard=False,
+                development_mode=_is_dev_mode,
             )
+            logger.info("Request-local MultiAgentDispatcher initialized with backend=%s", backend_name)
+            return dispatcher
+
+        if _global_dispatcher is None:
             _global_dispatcher = MultiAgentDispatcher(
                 enable_warmup=True,
                 enable_compression=True,
@@ -83,10 +101,10 @@ def _get_dispatcher() -> MultiAgentDispatcher:
                 "MultiAgentDispatcher initialized (development_mode=%s)",
                 _is_dev_mode,
             )
-        except (ImportError, RuntimeError) as e:
-            logger.error("Failed to initialize MultiAgentDispatcher: %s", e)
-            raise HTTPException(status_code=503, detail=f"Dispatcher initialization failed: {str(e)}") from None
-    return _global_dispatcher
+        return _global_dispatcher
+    except (ImportError, RuntimeError) as e:
+        logger.error("Failed to initialize MultiAgentDispatcher: %s", e)
+        raise HTTPException(status_code=503, detail=f"Dispatcher initialization failed: {str(e)}") from None
 
 
 def _convert_dispatch_result(result: DispatchResult) -> dict[str, Any]:
@@ -211,32 +229,29 @@ async def dispatch_task(
                 )
                 raise HTTPException(status_code=422, detail=f"Roles validation failed: {roles_validation.reason}")
 
-        dispatcher = _get_dispatcher()
+        dispatcher = _get_dispatcher(request.backend)
+        request_local = bool(request.backend and request.backend.strip().lower() not in ("none", "mock", ""))
+        if request_local:
+            logger.info("Using request-scoped LLM backend: %s", request.backend)
 
-        if request.backend and request.backend.lower() not in ("none", "mock", ""):
-            try:
-                from scripts.collaboration.llm_backend import create_backend
-
-                create_backend(request.backend.lower())
-                logger.info("Using LLM backend: %s", request.backend)
-            except (ImportError, ValueError, RuntimeError, AttributeError) as backend_err:
-                logger.warning("Failed to create LLM backend '%s': %s, using default", request.backend, backend_err)
-                pass
-
-        # V4.5.9: dispatch() is synchronous and its Coordinator raises
-        # RuntimeError inside a running event loop (fail-fast sync bridge,
-        # see PRD V4.5.9 R3). Move the blocking call off the event loop.
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None,
-            functools.partial(
-                dispatcher.dispatch,
-                task_description=request.task,
-                roles=request.roles,
-                mode=request.mode,
-                dry_run=request.dry_run,
-            ),
-        )
+        try:
+            # V4.5.9: dispatch() is synchronous and its Coordinator raises
+            # RuntimeError inside a running event loop (fail-fast sync bridge,
+            # see PRD V4.5.9 R3). Move the blocking call off the event loop.
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,
+                functools.partial(
+                    dispatcher.dispatch,
+                    task_description=request.task,
+                    roles=request.roles,
+                    mode=request.mode,
+                    dry_run=request.dry_run,
+                ),
+            )
+        finally:
+            if request_local:
+                dispatcher.shutdown()
 
         response_data = _convert_dispatch_result(result)
 

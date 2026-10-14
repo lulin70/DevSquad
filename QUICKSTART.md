@@ -10,7 +10,7 @@
 
 ## 🎯 我是谁？
 
-**DevSquad** 是一个多角色 AI 任务编排器。当你提交一个任务时，它不再是单个 AI 回答，而是让 **7 个专业角色**（架构师、安全专家、测试员、开发者等）**并行协作**，最后给出经过多方审核的结论。
+**DevSquad** 是一个多角色 AI 任务编排器。当你提交一个任务时，它不再是单个 AI 回答，而是按任务匹配多个专业角色协作，最后给出经过多方审核的结论。
 
 ### 核心价值（3 秒理解）
 
@@ -25,7 +25,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 
 | 痛点 | 传统单 AI | DevSquad |
 |------|----------|----------|
-| **视角单一** | 只有通用视角 | 7 个专业角色并行审视 |
+| **视角单一** | 只有通用视角 | 按任务匹配多个专业角色协作 |
 | **质量不可控** | 可能遗漏安全/性能问题 | 多维度交叉验证 + 共识机制 |
 | **无审计追踪** | 不知道回答依据什么 | 完整审计链 + SHA256 完整性校验 |
 | **复杂任务崩溃** | 长任务容易丢失上下文 | Checkpoint 断点续传 + 工作流引擎 |
@@ -41,7 +41,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 pip install devsquad
 
 # 运行 - 让 AI 团队帮你设计认证系统
-devsquad run "设计一个安全的用户认证系统" --roles architect,security,tester,coder
+devsquad run "设计一个安全的用户认证系统" --roles architect security tester coder
 
 # 输出结构化报告：
 # ✅ 架构师建议：采用 JWT + Refresh Token 双 token 方案...
@@ -103,7 +103,7 @@ curl -X POST http://localhost:8000/api/v1/dispatch \
 devsquad run "审查这段代码的安全性" --roles security
 
 # DevSquad：多维度审查
-devsquad run "审查 src/auth.py 的安全性" --roles architect,security,tester
+devsquad run "审查 src/auth.py 的安全性" --roles architect security tester
 ```
 
 **输出示例：**
@@ -129,7 +129,7 @@ devsquad run "审查 src/auth.py 的安全性" --roles architect,security,tester
 
 ```bash
 devsquad run "评估微服务 vs 单体架构的优劣" \
-  --roles architect,pm,devops \
+  --roles architect pm devops \
   --mode consensus  # 强制要求达成共识
 ```
 
@@ -200,9 +200,10 @@ devsquad ship -t "部署和发布检查"
 - ✅ **Prometheus Monitoring**: 12 个核心指标，`/metrics` 端点
 
 ### 质量保障
-- ✅ **E2E Test Suite**: 16 个用户旅程测试用例，100% 通过率
-- ✅ **9400+ CI Tests Passing**: 覆盖所有核心模块
-- ✅ **72% Maturity Score (honest assessment)**: 企业级成熟度评分
+- ✅ **E2E Test Suite**: 用户旅程测试位于 `tests/e2e/`，最终通过数以当前 CI 为准
+- ✅ **Test Quality Gate**: 当前本地扫描 403 个测试文件，0 个 MAJOR 问题
+- ⚠️ **Integration Ratio**: 当前本地测试金字塔为 14.9%，低于 15% 目标，未隐藏该警告
+- ⚠️ **Maturity**: 发布成熟度仍需等待全量回归、性能基线和权威 CI 结果
 
 </details>
 

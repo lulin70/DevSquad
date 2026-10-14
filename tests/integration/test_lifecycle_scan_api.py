@@ -42,3 +42,6 @@ def test_lifecycle_scan_api_rejects_path_outside_project_root(tmp_path, monkeypa
         json={"phase_id": "P1", "documents": [{"path": str(document)}]},
     )
     assert response.status_code == 400
+    error = response.json()
+    assert error["message"]
+    assert error["path"] == "/api/v1/lifecycle/scan"

@@ -67,8 +67,8 @@ jobs:
       - name: Verify built distribution version matches tag
         run: |
           TAG_VERSION="${{ steps.tag_version.outputs.version }}"
-          # Read version from built wheel metadata
-          BUILT_VERSION=$(twine check dist/* 2>&1 | head -1 || true)
+          # Validate built package metadata before extracting the wheel version.
+          twine check dist/*
           # Extract version from wheel filename: devsquad-3.9.2-py3-none-any.whl
           WHEEL_VERSION=$(ls dist/*.whl | sed -E 's/.*devsquad-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
           echo "Wheel version: $WHEEL_VERSION"

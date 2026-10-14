@@ -130,6 +130,45 @@ class TestTaskDispatchEndpoints:
         assert "architect" in data["matched_roles"]
 
     @patch("scripts.api.routes.dispatch._get_dispatcher")
+    def test_dispatch_task_passes_requested_backend(self, mock_get_dispatcher, client):
+        """Test that a requested backend selects the dispatcher used for dispatch."""
+        mock_dispatcher = MagicMock()
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.task_description = "Use OpenAI"
+        mock_result.matched_roles = []
+        mock_result.summary = "Completed"
+        mock_result.duration_seconds = 0.1
+        mock_result.worker_results = []
+        mock_result.errors = []
+        mock_result.intent_match = None
+        mock_result.five_axis_result = None
+        mock_result.anchor_result = None
+        mock_result.scratchpad_summary = None
+        mock_result.consensus_records = []
+        mock_result.compression_info = {}
+        mock_result.memory_stats = {}
+        mock_result.permission_checks = []
+        mock_result.skill_proposals = []
+        mock_result.quality_report = None
+        mock_result.retrospective_report = None
+        mock_result.details = {}
+        mock_dispatcher.dispatch.return_value = mock_result
+        mock_get_dispatcher.return_value = mock_dispatcher
+
+        response = client.post(
+            "/api/v1/tasks/dispatch",
+            json={"task": "Use OpenAI", "backend": "openai"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["task_description"] == "Use OpenAI"
+        mock_get_dispatcher.assert_called_once_with("openai")
+        mock_dispatcher.dispatch.assert_called_once()
+
+    @patch("scripts.api.routes.dispatch._get_dispatcher")
     def test_dispatch_task_with_dry_run(self, mock_get_dispatcher, client):
         """Test dispatch with dry_run=True performs simulation only."""
         mock_dispatcher = MagicMock()
