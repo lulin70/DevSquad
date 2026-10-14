@@ -31,6 +31,7 @@ from scripts.check_version_consistency import (
     PRD_DIR,
     PRD_FILENAME_VERSION_RE,
     ContentDiffSpec,
+    _check_canonical_version_info,
     _check_prd_files,
     _check_skill_frontmatter,
     check_content_diff,
@@ -64,6 +65,39 @@ def _neutralize_trae_cache_paths(tmpdir: str):
     finally:
         for spec, original in saved:
             spec.absolute_path = original
+
+
+class T17_CanonicalVersionInfo(unittest.TestCase):
+    """T17: __version_info__ must match the canonical __version__ string."""
+
+    def test_real_canonical_tuple_matches(self) -> None:
+        import scripts.check_version_consistency as mod
+
+        expected = mod.get_canonical_version()
+        self.assertIsNotNone(expected)
+        result = _check_canonical_version_info(expected)  # type: ignore[arg-type]
+        self.assertTrue(result.passed, result.detail)
+        self.assertEqual(result.found, expected)
+
+    def test_drifted_tuple_fails(self) -> None:
+        import scripts.check_version_consistency as mod
+
+        with (
+            mock.patch.object(
+                mod,
+                "CANONICAL_VERSION_FILE",
+                Path("/tmp/version-drift-test.py"),
+            ),
+            mock.patch.object(
+                Path,
+                "read_text",
+                return_value='__version__ = "4.7.0"\n__version_info__ = (4, 6, 0)\n',
+            ),
+        ):
+            result = _check_canonical_version_info("4.7.0")
+        self.assertFalse(result.passed)
+        self.assertEqual(result.found, "4.6.0")
+        self.assertIn("drift", result.detail)
 
 
 class T14_CheckSkillFrontmatter(unittest.TestCase):

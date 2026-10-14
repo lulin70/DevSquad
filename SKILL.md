@@ -1,13 +1,13 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.6.0
+version: 4.7.0
 description: |
-  DevSquad V4.6.0 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.7.0 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
-  211+ core modules, 9400+ tests passing (local; CI authoritative).
+  218+ core modules, 9400+ tests passing (local; CI authoritative).
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
   V4.6.0 — E2E-inspired testing infrastructure MINOR (PRD: docs/prd/V4.6.0_e2e-inspired-testing_PRD.md): (P1-a) LLM replay cache — `DEVSQUAD_LLM_REPLAY_CACHE` off/read/read-write (default off, zero production change), versioned replay keys with Task-ID normalization, 10-year replay TTL, replay stats disclosed in the Markdown report and CLI JSON, actions/cache persists `data/llm_cache` only on job success (verified-before-save); (P1-b) failure taxonomy — `FailureClass` product_failed/environment_blocked, exit 2 for environment_blocked (CLI exit-code semantics {0,1} → {0,1,2}), fail-closed attribution, CLI/REST/MCP disclosure, deterministic contract C19; (P2-a) independent judge semantic assertions for real-LLM tests (`DEVSQUAD_JUDGE_*` namespace, never falls back to the author backend, three-state verdict pass/fail/blocked, structural assertions always run first so judge-blocked cannot mask product regressions); (P2-b) e2e failure auto-comment on PRs (4 structured fields + run URL, `--edit-last` idempotent). Known debt: TD-002 — the host-delegation path still returns 0/1 without the exit 2 distinction. SemVer MINOR.
@@ -40,7 +40,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.6.0 — Multi-Role AI Task Orchestrator
+# DevSquad V4.7.0 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -97,9 +97,9 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 
 | Reference Doc | Content | Target Audience |
 |---------------|---------|-----------------|
-| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 211+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
+| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 218+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version history + per-version changelog (v1.0 → v4.6.0) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v4.7.0) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 
@@ -111,7 +111,7 @@ When you invoke DevSquad inside an AI IDE (TRAE / Cursor / Claude Desktop), the 
 
 ### 2. Script-layer deterministic tooling (Python CLI / API / MCP)
 
-The 211+ core modules are deterministic Python code:
+The 218+ core modules are deterministic Python code:
 - `MultiAgentDispatcher` orchestrates 7 roles via `ThreadPoolExecutor` parallel workers
 - `ScratchpadHistoryStore` persists cross-role state via atomic writes
 - `ApprovalGate` enforces human-in-the-loop decisions

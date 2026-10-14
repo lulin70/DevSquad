@@ -6,6 +6,7 @@ Also contains step timing and lifecycle trace building helpers.
 """
 
 import logging
+import re
 from typing import Any
 
 from .concern_pack_loader import ConcernPackLoader
@@ -145,6 +146,13 @@ class ResultAssembler:
         )
 
     @staticmethod
+    def _public_failure_reason(error: str | None) -> str:
+        """Return a concise user-facing reason while keeping typed worker errors internal."""
+        if not error:
+            return "Worker execution failed"
+        return re.sub(r"^[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception):\s*", "", error)
+
+    @staticmethod
     def _build_coverage(
         role_ids: list[str], worker_results: list[dict[str, Any]]
     ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -165,7 +173,7 @@ class ResultAssembler:
                         "role_name",
                         ROLE_REGISTRY[role_id].name if role_id in ROLE_REGISTRY else role_id,
                     ),
-                    "reason": result.get("error") or "Worker execution failed",
+                    "reason": ResultAssembler._public_failure_reason(result.get("error")),
                 },
             )
 

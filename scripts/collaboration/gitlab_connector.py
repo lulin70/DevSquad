@@ -26,6 +26,7 @@ import os
 import shutil
 import subprocess
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
@@ -138,8 +139,11 @@ class GitLabConnector:
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme != "https" or parsed.netloc != urllib.parse.urlparse(self._base_url).netloc:
+            raise ValueError("GitLab API URL must use the configured HTTPS host")
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 - configured GitLab HTTPS host
             body = resp.read().decode("utf-8")
             return json.loads(body) if body else {}
 

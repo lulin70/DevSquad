@@ -36,6 +36,15 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any, cast
 
+
+def _http_urlopen(url: str, timeout: float) -> Any:
+    """Open a local HTTP endpoint used by the Prometheus E2E harness."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"}:
+        raise ValueError("Prometheus E2E URL must target localhost over HTTP")
+    return urllib.request.urlopen(url, timeout=timeout)  # nosec B310 - localhost-only E2E
+
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -161,7 +170,7 @@ def _wait_prometheus_ready(base_url: str, deadline_s: float) -> None:
     last_err = ""
     while time.monotonic() < deadline:
         try:
-            with urllib.request.urlopen(f"{base_url}/-/ready", timeout=2) as resp:
+            with _http_urlopen(f"{base_url}/-/ready", timeout=2) as resp:
                 if resp.status == 200:
                     return
         except (urllib.error.URLError, OSError) as exc:
@@ -177,7 +186,7 @@ def query_series(base_url: str, query: str, timeout_s: float) -> list[dict[str, 
     last: list[dict[str, Any]] = []
     while time.monotonic() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=3) as resp:
+            with _http_urlopen(url, timeout=3) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             if data.get("status") == "success":
                 result = cast("list[dict[str, Any]]", data.get("data", {}).get("result", []))

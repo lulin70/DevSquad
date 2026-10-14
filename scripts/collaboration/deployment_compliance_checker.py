@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 BASIC_EDITION_ALLOWED_HOSTS: tuple[str, ...] = (
     "localhost",
     "127.0.0.1",
-    "0.0.0.0",  # local binding
+    "0.0.0.0",  # nosec B104 - explicit local-server binding policy
     "::1",
 )
 

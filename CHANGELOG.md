@@ -12,6 +12,15 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-10-13
+
+### Delivered
+
+- **W1 BREAK/VULN deterministic review taxonomy** — delivered ten deterministic review categories, contract C20, the reverse gate, real review-gate subprocess E2E, and simulated real-user validation through PR #34 and PR #35.
+- **Version and release metadata** — upgraded the 4.7.0 version SSOT, build/deployment metadata, current public documentation, and existing TRAE skill caches.
+
+This is a **MINOR** version upgrade. No tag was created.
+
 ## [Unreleased]
 
 > **Version discipline (user ruling, 2026-09-24)**: the minor version is frozen — no MINOR bump may be applied without the maintainer's explicit approval. This section therefore targets a `4.5.x` PATCH release. On the tag question the maintainer has now ruled: **do not cut a tag for this batch — tag once after W1** ("本批不打，W1 后一并打"). `VERSION` therefore stays `4.5.20` and no tag was created. See `docs/prd/V4.5.20_CONSENSUS_RECORD.md` (rounds 9 and 11).

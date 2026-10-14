@@ -30,6 +30,7 @@ import shutil
 import subprocess
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
@@ -186,8 +187,11 @@ class GitHubConnector:
             "Accept": "application/vnd.github+json",
             "Content-Type": "application/json",
         }
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme != "https" or parsed.netloc != "api.github.com":
+            raise ValueError("GitHub API URL must use https://api.github.com")
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 - fixed GitHub HTTPS host
             body = resp.read().decode("utf-8")
             return json.loads(body) if body else {}
 

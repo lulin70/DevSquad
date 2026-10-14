@@ -39,6 +39,7 @@ bash scripts/sync_trae_skill.sh
 pytest tests/ -q
 
 # 关键模块测试
+pytest tests/e2e/test_lifecycle_cli_scan_e2e.py tests/e2e/test_remediation_patch_e2e.py -q
 pytest tests/test_autonomous.py -q
 pytest tests/test_dispatcher.py -q
 pytest tests/test_consensus.py -q
@@ -98,6 +99,8 @@ git log origin/v4.5.20-patch..HEAD --oneline
 - [ ] `devsquad demo` 可正常运行
 - [ ] TRAE 技能列表显示正确版本号
 - [ ] E2E：模拟真实用户使用流程（CLI + TRAE skill 调用）
+- [ ] 生命周期扫描 E2E：CLI/REST 显式文档扫描和 JUnit 证据适配通过
+- [ ] 修复建议 E2E：未批准不写文件；批准后测试/重扫通过；失败回滚
 
 ---
 

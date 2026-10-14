@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+"""Lifecycle gate helpers for deterministic lifecycle findings and phase transitions.
 Lifecycle Gate - Gate 机制实现
 
 提供阶段转换的门控检查能力：
@@ -12,15 +12,24 @@ Lifecycle Gate - Gate 机制实现
 Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from .lifecycle_protocol import GateResult, PhaseDefinition, PhaseState
+from .lifecycle_finding_producers import produce_phase_findings
 
 if TYPE_CHECKING:
-    pass  # intentional no-op: reserved for future type-only imports
+    from .lifecycle_protocol import GateResult, PhaseDefinition, PhaseState
 
 logger = logging.getLogger(__name__)
+
+
+def _merge_findings(result: GateResult, target: str, artifacts: Mapping[str, Any] | None) -> GateResult:
+    """Attach deterministic lifecycle findings to a gate result."""
+    result.lifecycle_findings.extend(produce_phase_findings(target, artifacts))
+    return result
 
 
 def check_gate_basic(
@@ -30,6 +39,7 @@ def check_gate_basic(
     completed_phases: list[str],
     *,
     strict_optional: bool = False,
+    artifacts: Mapping[str, Any] | None = None,
 ) -> GateResult:
     """
     Basic fallback gate check without UnifiedGateEngine.
@@ -40,40 +50,48 @@ def check_gate_basic(
         phase_states: Current phase state mapping.
         completed_phases: List of completed phase IDs.
         strict_optional: If True, enforce dependency checks strictly for non-optional phases
-            (used by FullLifecycleAdapter). If False (ShortcutLifecycleAdapter), only check
-            that the phase is not blocked/completed.
+            (used by FullLifecycleAdapter). If False (ShortcutLifecycleAdapter), report unmet
+            dependencies conditionally while still handling blocked/completed phases.
+        artifacts: Optional artifact mapping used to produce lifecycle findings.
 
     Returns:
         GateResult indicating whether the gate passed.
     """
+    from .lifecycle_protocol import GateResult, PhaseState
+
     if strict_optional and not phase_def.optional:
         for dep in phase_def.dependencies:
             if dep not in completed_phases:
                 dep_state = phase_states.get(dep, PhaseState.PENDING)
                 if dep_state != PhaseState.COMPLETED:
-                    return GateResult(
-                        passed=False,
-                        verdict="BLOCKED",
-                        gap_report=f"Unmet dependencies: {dep}",
+                    return _merge_findings(
+                        GateResult(passed=False, verdict="BLOCKED", gap_report=f"Unmet dependencies: {dep}"),
+                        target,
+                        artifacts,
                     )
     current_state = phase_states.get(target, PhaseState.PENDING)
     if current_state == PhaseState.BLOCKED:
-        return GateResult(passed=False, verdict="BLOCKED", gap_report="Phase is blocked")
+        return _merge_findings(
+            GateResult(passed=False, verdict="BLOCKED", gap_report="Phase is blocked"), target, artifacts
+        )
     if current_state == PhaseState.COMPLETED:
-        return GateResult(passed=True, verdict="APPROVE")
+        return _merge_findings(GateResult(passed=True, verdict="APPROVE"), target, artifacts)
 
-    # Check dependencies (non-strict path used by ShortcutLifecycleAdapter)
     if not strict_optional:
         unmet_deps = [d for d in phase_def.dependencies if d not in completed_phases]
         if unmet_deps:
-            return GateResult(
-                passed=False,
-                verdict="CONDITIONAL",
-                missing_evidence=[{"dependency": d} for d in unmet_deps],
-                gap_report=f"Unmet dependencies: {', '.join(unmet_deps)}",
+            return _merge_findings(
+                GateResult(
+                    passed=False,
+                    verdict="CONDITIONAL",
+                    missing_evidence=[{"dependency": d} for d in unmet_deps],
+                    gap_report=f"Unmet dependencies: {', '.join(unmet_deps)}",
+                ),
+                target,
+                artifacts,
             )
 
-    return GateResult(passed=True, verdict="APPROVE")
+    return _merge_findings(GateResult(passed=True, verdict="APPROVE"), target, artifacts)
 
 
 def check_gate_with_unified_engine(
@@ -84,6 +102,8 @@ def check_gate_with_unified_engine(
     gate_engine: Any,
     gate_type: Any,
     phase_gate_context_cls: Any,
+    *,
+    artifacts: Mapping[str, Any] | None = None,
 ) -> GateResult:
     """
     Check gate using UnifiedGateEngine.
@@ -100,6 +120,8 @@ def check_gate_with_unified_engine(
     Returns:
         GateResult converted from the unified gate result.
     """
+    from .lifecycle_protocol import GateResult, PhaseState
+
     unmet_deps = [d for d in phase_def.dependencies if d not in completed_phases]
 
     context = phase_gate_context_cls(
@@ -117,20 +139,24 @@ def check_gate_with_unified_engine(
         context=context,
     )
 
-    return GateResult(
-        passed=unified_result.passed,
-        verdict=unified_result.verdict,
-        red_flags=[
-            {"id": issue.get("code", "unknown"), "severity": "critical", **issue}
-            for issue in unified_result.critical_issues
-        ],
-        missing_evidence=[{"key": ev, "required": True} for ev in unified_result.evidence_required],
-        gap_report="\n".join(
-            [
-                f"- [{issue.get('severity', 'unknown')}] {issue.get('message', '')}"
-                for issue in unified_result.critical_issues + unified_result.warnings
-            ]
-        )
-        if (unified_result.critical_issues or unified_result.warnings)
-        else "",
+    return _merge_findings(
+        GateResult(
+            passed=unified_result.passed,
+            verdict=unified_result.verdict,
+            red_flags=[
+                {"id": issue.get("code", "unknown"), "severity": "critical", **issue}
+                for issue in unified_result.critical_issues
+            ],
+            missing_evidence=[{"key": ev, "required": True} for ev in unified_result.evidence_required],
+            gap_report="\n".join(
+                [
+                    f"- [{issue.get('severity', 'unknown')}] {issue.get('message', '')}"
+                    for issue in unified_result.critical_issues + unified_result.warnings
+                ]
+            )
+            if (unified_result.critical_issues or unified_result.warnings)
+            else "",
+        ),
+        target,
+        artifacts,
     )

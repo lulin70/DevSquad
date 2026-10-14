@@ -62,6 +62,10 @@ the same defect as a documented feature that never ran (PRD F4).
 | C18 | `review.multifile_input_contract` | Review input | shipped in V4.5.20 W1-5 |
 | C19 | `failure.failure_taxonomy` | Failure attribution | shipped in V4.6.0 W1 |
 | C20 | `review.break_vuln_taxonomy` | Review design findings | shipped in V4.7.0 W1 |
+| C21 | `lifecycle.break_vuln_findings` | Lifecycle finding model and phase mapping | shipped in V4.7.0 W1 |
+| C22 | `lifecycle.phase_finding_producers` | Deterministic P1-P11 finding producers and gate output | shipped in V4.7.0 W1 |
+| C23 | `lifecycle.document_scan` | Deterministic read-only document scanning for explicitly supplied files; no SU/SFD | shipped in V4.7.0 W1 |
+| C24 | `lifecycle.remediation_proposal` | Approval-gated remediation proposals with explicit approval, verified patch application, and no auto-fix | shipped in V4.7.0 W1 |
 
 ---
 
@@ -402,6 +406,40 @@ Scope is disclosed honestly: `applicable` runs the ten checks; a documentation-o
 **Semantic adaptation.** Upstream categories describe page-level business flows. This contract adapts them to changeset-level Web route/navigation evidence. It does not promise Playwright crawling, BFS traversal, database introspection, or cross-file semantic inference.
 
 **Proven by** `tests/unit/test_review_taxonomy.py`, `tests/integration/test_review_taxonomy_dispatch.py`, and `tests/e2e/test_review_taxonomy_e2e.py`.
+
+### C21 `lifecycle.break_vuln_findings`
+
+**Rule.** `LifecycleFinding` is the stable data model for BREAK/VULN findings. The deterministic mapping layer assigns the ten closed categories to their declared lifecycle phases and supports conversion to and from `ReviewFinding`. Gate results expose serialized `lifecycle_findings` and their count without changing existing gate field semantics.
+
+This is a finding data model and deterministic phase mapping. `BREAK_VULN_PHASES` defines the category-to-phase mapping. It does not claim that the complete lifecycle is collected, nor that SU/SFD black-box traversal is implemented. The mapping preserves review location and description evidence and uses conservative phase assignments.
+
+**Proven by** `tests/unit/test_lifecycle_break_vuln.py`.
+
+### C22 `lifecycle.phase_finding_producers`
+
+**Rule.** `PHASE_PRODUCERS` is a closed P1-P11 registry. Producers are deterministic,
+use no LLM, network, SU, or SFD black-box collection, and emit findings only when
+`artifacts` explicitly reports a missing artifact, failed check, failure, or applicable
+`ReviewFinding`. Empty or absent artifacts produce no inference. Gate checks accept
+optional artifacts and merge producer output into `GateResult.lifecycle_findings`.
+The input contract preserves category, phase, rule, artifact, evidence, file path, and
+line range; invalid phases or categories fail closed.
+
+**Proven by** `tests/unit/test_lifecycle_finding_producers.py`,
+`tests/integration/test_lifecycle_finding_gate.py`, and
+`tests/e2e/test_lifecycle_finding_producer_e2e.py`.
+
+### C23 `lifecycle.document_scan`
+
+**Rule.** `DocumentScanResult`, `scan_document`, and `scan_phase_documents` provide a deterministic, read-only scan of only the explicitly supplied document paths. Markdown headings and YAML/JSON dotted keys are checked without directory traversal, network access, or SU/SFD collection. Parse and decode failures are reported as stable errors, and missing sections or keys produce conservative lifecycle findings only after phase/category validation.
+
+**Proven by** `tests/unit/test_document_scanner.py` and `tests/integration/test_document_scan_lifecycle.py`.
+
+### C24 `lifecycle.remediation_proposal`
+
+**Rule.** `RemediationProposal`, `proposal_from_finding`, and `approval_required` generate stable, approval-gated suggestions. A patch preview is created before any write. `ApprovalRecord` is required before patch application. Application runs caller-supplied tests and a rescan; either failure rolls the target back. Findings become `resolved` only after both checks pass. No auto-fix or implicit approval is allowed.
+
+**Proven by** `tests/unit/test_remediation.py`, `tests/e2e/test_document_scan_remediation_e2e.py`, and `tests/e2e/test_remediation_patch_e2e.py`.
 
 ---
 
