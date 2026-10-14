@@ -1,10 +1,10 @@
 # DevSquad 项目状态
 
-> **代码版本**: V4.7.0（仓库元数据已统一；当前分支为 `chore/v470-version-bump`）
-> **发布状态**: 仓库代码已完成 V4.7.0 生命周期与修复流程，但尚未创建 `v4.7.0` tag 或 GitHub Release。
+> **代码版本**: V4.7.0（仓库元数据已统一；PR #37 已合并到 main，merge commit `e3a0bcf`）
+> **发布状态**: 仓库代码已完成 V4.7.0 生命周期与修复流程，权威 CI 已全绿；尚未创建 `v4.7.0` tag 或 GitHub Release（发布决策待定）。
 > **最后更新**: 2026-10-14
-> **最新评估**: 七维度项目整理已完成运行时契约修复、用户文档校正、测试质量门修复、CI 阻塞语义收紧和质量门标记迁移（`# noqa: test-quality` → `# test-quality: ignore`，25 处）。静态检查链全部通过；主测试全量回归已完成（8312 passed，覆盖率 79.48%）；E2E + integration 全量与性能基线刷新仍在进行。
-> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（80/80）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM/100 LOW）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）均已通过。性能基线仍是历史 V4.5.2 数据，权威 CI 确认和正式发布决策未完成。
+> **最新评估**: 七维度项目整理已完成运行时契约修复、用户文档校正、测试质量门修复、CI 阻塞语义收紧和质量门标记迁移（`# noqa: test-quality` → `# test-quality: ignore`，25 处）。本地全量验证完成（主测试 8312 passed / 覆盖率 79.48%；E2E+integration 1670 passed；Dashboard 用户旅程 96 passed；性能基准 23 passed；性能基线已刷新至 v4.7.0）。PR #37 权威 CI 全绿（CI 主矩阵 + Perf Baseline + No Secrets 均 success）并已按单维护者流程合并。
+> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（80/80）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM/100 LOW）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）本地与权威 CI 均已通过。性能基线 mock 路径已真实测量；host/api 路径仍为 stub（发布 tag 前需真实环境替换）。
 > **PyPI**: 当前已观察到的最新发布版本为 [4.6.0](https://pypi.org/project/devsquad/4.6.0/)；V4.7.0 尚未发布。
 > **GitHub Release**: 当前没有 V4.7.0 release；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
 
@@ -103,7 +103,8 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | 性能基准（CI performance job 同款命令） | 23 passed | ✅ 通过 |
 | 性能基线文件 | 已刷新为 V4.7.0：mock 路径真实测量（50 样本 + 5 warmup 丢弃，p95≈0.0015ms）；host/api/auto_fallback 仍为 stub（snapshot_id 带 `_stub` 标记，发布 tag 时需真实环境替换） | ✅ mock 已测量；⚠️ host/api 为 stub |
 | E2E + integration 全量 | 1670 passed, 4 skipped（1 failed 为 `test_llm_replay_subprocess` 偶发超时，单独重跑 211s 通过，非产品回归） | ✅ 通过 |
-| 权威 CI | 尚未触发本轮最终确认 | ⏳ 待执行 |
+| Dashboard 用户旅程（含 slow 标记，CI `-m "not slow"` 不覆盖） | 96 passed, 1 skipped（12 个浏览器级旅程：登录/导航/RBAC/Task Dispatch/确定性渲染） | ✅ 通过 |
+| 权威 CI（PR #37） | CI 主矩阵 + Perf Baseline + No Secrets 三个 workflow 全部 success；PR 已按单维护者流程合并（`e3a0bcf`） | ✅ 全绿 |
 
 **测试质量说明**: 质量门不再把嵌套测试目录遗漏。测试中的 `assertTrue` 等 MINOR 项仍需持续治理，但当前不构成 MAJOR 阻断。
 
