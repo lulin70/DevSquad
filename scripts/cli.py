@@ -668,6 +668,20 @@ Environment Variables (API keys are read from env vars only, never command line)
         help="Enable enhanced visual output (colored progress, icons, formatted tables)",
     )
     p_lifecycle.add_argument("--verbose", action="store_true", help="Show detailed phase information and gate status")
+    p_lifecycle.add_argument(
+        "--document",
+        action="append",
+        default=[],
+        metavar="PHASE=PATH",
+        help="Explicit lifecycle document to scan, for example P1=/path/requirements.md (repeatable)",
+    )
+    p_lifecycle.add_argument(
+        "--junit",
+        action="append",
+        default=[],
+        metavar="PHASE=PATH",
+        help="Explicit JUnit XML evidence to adapt, for example P9=/path/junit.xml (repeatable)",
+    )
 
     for cmd_name in LIFECYCLE_COMMANDS:
         cmd_help = LIFECYCLE_PRESETS[cmd_name]["description"]
@@ -717,6 +731,20 @@ Environment Variables (API keys are read from env vars only, never command line)
             p_cmd.add_argument("--deleted", nargs="+", default=(), metavar="FILE")
             p_cmd.add_argument("--preview", action="store_true", help="Preview without LLM calls")
             p_cmd.add_argument("--verbose", action="store_true", help="Include per-path preview details")
+        p_cmd.add_argument(
+            "--document",
+            action="append",
+            default=[],
+            metavar="PHASE=PATH",
+            help="Explicit lifecycle document to scan, for example P1=/path/requirements.md (repeatable)",
+        )
+        p_cmd.add_argument(
+            "--junit",
+            action="append",
+            default=[],
+            metavar="PHASE=PATH",
+            help="Explicit JUnit XML evidence to adapt, for example P9=/path/junit.xml (repeatable)",
+        )
 
     args = parser.parse_args()
 

@@ -14,9 +14,12 @@ from typing import Any
 
 from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
+from scripts.collaboration.document_scanner import scan_document
 from scripts.collaboration.input_validator import InputValidator
+from scripts.collaboration.lifecycle_evidence import findings_from_junit_xml
 from scripts.collaboration.lifecycle_protocol import LifecycleProtocol
 from scripts.collaboration.lifecycle_templates import ViewMapping
+from scripts.collaboration.remediation import proposals_from_findings
 from scripts.collaboration.review_input import ReviewInputError, read_diff_file
 from scripts.collaboration.review_preview import build_review_preview, print_review_preview
 
@@ -182,6 +185,45 @@ def _build_lifecycle_kwargs(args: argparse.Namespace) -> dict[str, Any]:
     return kwargs
 
 
+def _parse_document_specs(specs: list[str]) -> list[tuple[str, str]]:
+    """Parse repeatable PHASE=PATH document specifications."""
+    documents: list[tuple[str, str]] = []
+    for spec in specs:
+        phase, separator, path = spec.partition("=")
+        phase = phase.strip().upper()
+        path = path.strip()
+        if not separator or phase not in {f"P{index}" for index in range(1, 12)} or not path:
+            raise ValueError(f"Invalid --document value: {spec!r}; expected PHASE=PATH")
+        documents.append((phase, path))
+    return documents
+
+
+def _scan_lifecycle_documents(
+    args: argparse.Namespace,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    """Scan explicit documents and JUnit reports; return serializable evidence."""
+    scan_results: list[dict[str, Any]] = []
+    all_findings: list[Any] = []
+    errors: list[str] = []
+    for phase_id, path in _parse_document_specs(getattr(args, "document", [])):
+        result = scan_document(path, phase_id)
+        scan_results.append(result.to_dict())
+        all_findings.extend(result.findings)
+        errors.extend(result.errors)
+    for phase_id, path in _parse_document_specs(getattr(args, "junit", [])):
+        try:
+            all_findings.extend(findings_from_junit_xml(path, phase_id))
+        except ValueError as exc:
+            errors.append(f"{path}: {exc}")
+    proposals = proposals_from_findings(all_findings)
+    return (
+        scan_results,
+        [finding.to_dict() for finding in all_findings],
+        [proposal.to_dict() for proposal in proposals],
+        errors,
+    )
+
+
 def _print_lifecycle_result(
     args: argparse.Namespace,
     command: str,
@@ -190,6 +232,9 @@ def _print_lifecycle_result(
 ) -> None:
     """Print lifecycle dispatch result according to args.format."""
     if args.format == "json":
+        details = getattr(result, "details", {})
+        if not isinstance(details, dict):
+            details = {}
         output = {
             "lifecycle_command": command,
             "gate": preset["gate"],
@@ -197,6 +242,10 @@ def _print_lifecycle_result(
             "matched_roles": getattr(result, "matched_roles", None),
             "summary": result.summary,
             "report": result.to_markdown(),
+            "document_scans": details.get("document_scans", []),
+            "lifecycle_findings": details.get("lifecycle_findings", []),
+            "remediation_proposals": details.get("remediation_proposals", []),
+            "document_scan_errors": details.get("document_scan_errors", []),
         }
         print(json.dumps(output, ensure_ascii=False, indent=2))
     elif args.format == "compact":
@@ -287,6 +336,13 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
         return 1
 
     task = task_result.sanitized_input or task_text
+    try:
+        document_scans, lifecycle_findings, remediation_proposals, document_scan_errors = _scan_lifecycle_documents(
+            args
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     changeset, diff_text, input_error = _load_review_inputs(args, command)
     if input_error is not None:
         return input_error
@@ -298,17 +354,20 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
     use_visual = getattr(args, "visual", False)
     use_verbose = getattr(args, "verbose", False)
 
+    # Structured JSON output must remain machine-readable.
+    render_view = args.format != "json"
+
     # Show view layer mapping information (Plan C: CLI as View Layer)
     try:
         from scripts.collaboration.lifecycle_protocol import VIEW_MAPPINGS, get_shared_protocol
 
         mapping = VIEW_MAPPINGS.get(command)
 
-        if use_visual:
+        if render_view and use_visual:
             _render_lifecycle_visual(command, mapping, preset, task, use_verbose, get_shared_protocol)
-        elif use_verbose:
+        elif render_view and use_verbose:
             _render_lifecycle_verbose(command, mapping, preset, get_shared_protocol)
-        else:
+        elif render_view:
             _render_lifecycle_simple(command, mapping, preset)
     except (KeyError, ValueError, AttributeError, RuntimeError) as e:
         _render_lifecycle_error(command, preset, e)
@@ -333,6 +392,10 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
             deleted_paths=getattr(args, "deleted", ()),
         )
 
+        result.details["document_scans"] = document_scans
+        result.details["lifecycle_findings"] = lifecycle_findings
+        result.details["remediation_proposals"] = remediation_proposals
+        result.details["document_scan_errors"] = document_scan_errors
         _print_lifecycle_result(args, command, preset, result)
 
         # V4.6.0 P1-b (C19): 0 success / 1 product_failed / 2 environment_blocked.

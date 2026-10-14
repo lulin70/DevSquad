@@ -82,6 +82,14 @@ jobs:
           python -m pytest tests/e2e/test_v459_cli_subprocess_journey.py \
             -v --tb=short --timeout=60 -m "e2e"
 
+      - name: Run lifecycle scan and remediation E2E
+        run: |
+          python -m pytest \
+            tests/e2e/test_lifecycle_cli_scan_e2e.py \
+            tests/e2e/test_document_scan_remediation_e2e.py \
+            tests/e2e/test_remediation_patch_e2e.py \
+            -v --tb=short --timeout=60 -m "e2e"
+
       - name: Run anti-ghost verification
         # Ensures all 11 V4.5.3 modules' _call_counter > 0
         # V4.5.3 adds: ArtifactStore / EffectRegistry / AuditCLI

@@ -164,6 +164,32 @@ class PhaseActionRequest(BaseModel):
     reason: str | None = Field(None, description="Reason for forced action")
 
 
+class DocumentScanItem(BaseModel):
+    """One explicitly supplied lifecycle document scan request."""
+
+    path: str = Field(..., min_length=1, description="Explicit document path")
+    required_sections: dict[str, str] = Field(default_factory=dict)
+    required_keys: dict[str, str] = Field(default_factory=dict)
+
+
+class DocumentScanRequest(BaseModel):
+    """Read-only lifecycle document scan request."""
+
+    phase_id: str = Field(..., pattern=r"^P([1-9]|1[01])$")
+    documents: list[DocumentScanItem] = Field(..., min_length=1)
+
+
+class DocumentScanResponse(BaseModel):
+    """Structured document scan and approval-gated proposal response."""
+
+    phase_id: str
+    parsed: bool
+    scan_results: list[dict[str, Any]] = Field(default_factory=list)
+    lifecycle_findings: list[dict[str, Any]] = Field(default_factory=list)
+    remediation_proposals: list[dict[str, Any]] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+
+
 class PhaseActionResult(BaseModel):
     """Phase action result model."""
 

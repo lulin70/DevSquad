@@ -21,11 +21,51 @@ Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from .lifecycle_shortcut_adapter import (
+        FullLifecycleAdapter,
+        ShortcutLifecycleAdapter,
+        create_lifecycle_protocol,
+        get_shared_protocol,
+    )
+    from .lifecycle_templates import SPEC_TEMPLATES, VIEW_MAPPINGS, SpecTemplate, ViewMapping
+
+from .document_scanner import (  # noqa: E402
+    DocumentScanResult,
+    scan_document,
+    scan_phase_documents,
+)
+from .lifecycle_break_vuln import (  # noqa: E402
+    BREAK_VULN_PHASES,
+    categories_for_phase,
+    lifecycle_finding_from_review,
+    map_findings_to_phase,
+    phases_for_category,
+    review_finding_from_lifecycle,
+)
+from .lifecycle_evidence import findings_from_junit_xml, findings_from_runtime_evidence  # noqa: E402
+from .lifecycle_finding_producers import PHASE_PRODUCERS, produce_phase_findings  # noqa: E402
+from .models_lifecycle import LifecycleFinding  # noqa: E402
+from .remediation import (  # noqa: E402
+    ApprovalRecord,
+    PatchPreview,
+    RemediationProposal,
+    apply_approved_patch,
+    approve_proposal,
+    create_patch_preview,
+    proposal_from_finding,
+    proposals_from_findings,
+    render_proposals_json,
+    render_proposals_markdown,
+    resolve_finding_after_verification,
+)
 
 
 class LifecycleMode(Enum):
@@ -80,6 +120,7 @@ class GateResult:
     red_flags: list[dict[str, Any]] = field(default_factory=list)
     missing_evidence: list[dict[str, Any]] = field(default_factory=list)
     gap_report: str = ""
+    lifecycle_findings: list[LifecycleFinding] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the gate result to a dictionary.
@@ -94,6 +135,8 @@ class GateResult:
             "red_flags_count": len(self.red_flags),
             "missing_evidence_count": len(self.missing_evidence),
             "gap_report": self.gap_report[:200] if self.gap_report else "",
+            "lifecycle_findings": [finding.to_dict() for finding in self.lifecycle_findings],
+            "lifecycle_findings_count": len(self.lifecycle_findings),
         }
 
 
@@ -276,7 +319,12 @@ class LifecycleProtocol(ABC):
         ...
 
     @abstractmethod
-    def check_gate(self, phase_id: str | None = None) -> GateResult:
+    def check_gate(
+        self,
+        phase_id: str | None = None,
+        *,
+        artifacts: Mapping[str, Any] | None = None,
+    ) -> GateResult:
         """Check gate conditions for phase (default: current)."""
         ...
 
@@ -286,7 +334,7 @@ class LifecycleProtocol(ABC):
         ...
 
     @abstractmethod
-    def get_view_mapping(self, command: str) -> "ViewMapping | None":
+    def get_view_mapping(self, command: str) -> Any:
         """Get view mapping for a CLI command (SHORTCUT mode only)."""
         ...
 
@@ -296,23 +344,23 @@ class LifecycleProtocol(ABC):
         ...
 
 
-# ============================================================================
-# Backward-compatible re-exports
-# ============================================================================
-# Templates (SpecTemplate, SPEC_TEMPLATES, ViewMapping, VIEW_MAPPINGS)
-# Adapters and factory functions
-from .lifecycle_shortcut_adapter import (  # noqa: E402
-    FullLifecycleAdapter,
-    ShortcutLifecycleAdapter,
-    create_lifecycle_protocol,
-    get_shared_protocol,
-)
-from .lifecycle_templates import (  # noqa: E402
-    SPEC_TEMPLATES,
-    VIEW_MAPPINGS,
-    SpecTemplate,
-    ViewMapping,
-)
+# ---------------------------------------------------------------------------
+# Backward-compatible lazy re-exports
+# ---------------------------------------------------------------------------
+
+
+def __getattr__(name: str) -> Any:
+    """Load adapter and template re-exports without import cycles."""
+    if name in {"FullLifecycleAdapter", "ShortcutLifecycleAdapter", "create_lifecycle_protocol", "get_shared_protocol"}:
+        from . import lifecycle_shortcut_adapter
+
+        return getattr(lifecycle_shortcut_adapter, name)
+    if name in {"SPEC_TEMPLATES", "VIEW_MAPPINGS", "SpecTemplate", "ViewMapping"}:
+        from . import lifecycle_templates
+
+        return getattr(lifecycle_templates, name)
+    raise AttributeError(name)
+
 
 __all__ = [
     # Core types
@@ -320,6 +368,21 @@ __all__ = [
     "PhaseDefinition",
     "PhaseState",
     "GateResult",
+    "LifecycleFinding",
+    "DocumentScanResult",
+    "scan_document",
+    "scan_phase_documents",
+    "ApprovalRecord",
+    "PatchPreview",
+    "RemediationProposal",
+    "apply_approved_patch",
+    "approve_proposal",
+    "create_patch_preview",
+    "proposal_from_finding",
+    "resolve_finding_after_verification",
+    "proposals_from_findings",
+    "render_proposals_markdown",
+    "render_proposals_json",
     "PhaseResult",
     "LifecycleStatus",
     "LifecycleProtocol",
@@ -336,4 +399,15 @@ __all__ = [
     "FullLifecycleAdapter",
     "create_lifecycle_protocol",
     "get_shared_protocol",
+    # BREAK/VULN lifecycle mapping
+    "BREAK_VULN_PHASES",
+    "phases_for_category",
+    "categories_for_phase",
+    "lifecycle_finding_from_review",
+    "review_finding_from_lifecycle",
+    "map_findings_to_phase",
+    "PHASE_PRODUCERS",
+    "produce_phase_findings",
+    "findings_from_junit_xml",
+    "findings_from_runtime_evidence",
 ]

@@ -541,7 +541,7 @@ def _activate_v453_modules() -> None:
     effect_ctx = EffectContext(
         effect_id="anti-ghost",
         effect_type="write_file",
-        payload={"path": "/tmp/anti-ghost-test.txt", "content": "ghost"},
+        payload={"path": str(Path(tempfile.gettempdir()) / "anti-ghost-test.txt"), "content": "ghost"},
     )
     reg.apply(WriteFileEffect(), effect_ctx)
     reg.pending_count()

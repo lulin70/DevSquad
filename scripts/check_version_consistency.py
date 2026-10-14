@@ -5,7 +5,7 @@ Version Consistency Checker
 Validates that the project version number is consistent across all canonical
 locations. Run this before any release to catch version drift early.
 
-Canonical source: scripts/collaboration/_version.py (__version__ string)
+Canonical source: scripts/collaboration/_version.py (__version__ string and __version_info__ tuple)
 
 Usage:
     python scripts/check_version_consistency.py
@@ -53,13 +53,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CANONICAL_VERSION_FILE = REPO_ROOT / "scripts" / "collaboration" / "_version.py"
 PRD_DIR = REPO_ROOT / "docs" / "prd"
 # V4.5.16 P3.21: directory used to count public modules for the
-# "193+ modules / 9400+ tests" documentation drift check.
+# "218+ modules / 9400+ tests" documentation drift check.
 COLLABORATION_DIR = REPO_ROOT / "scripts" / "collaboration"
 # Tolerance for the SSOT soft-compare: the public module count we read
-# from disk must fall within ±3% of the documented headline ("204+").
+# from disk must fall within ±3% of the documented headline ("218+").
 # V4.5.16 baseline actual count: 204 public modules (see
 # ``scripts/collaboration/_version.py`` SSOT). Documented headline
-# continues to round as "204+" per the long-standing "<actual>+ public
+# continues to round as "218+" per the long-standing "<actual>+ public
 # collaboration modules" convention. The check warns (non-blocking) when
 # the drift exceeds 3%. V4.6.0-dev PATCH: bumped 193 → 204 to remove the
 # V4.5.16 WARN (drift 5.70%) — actual count and headline now aligned.
@@ -69,7 +69,7 @@ MODULE_COUNT_SSOT_TOLERANCE = 0.03
 # documentation prose must agree with. Drift here produces a WARN-level
 # VersionCheck that does not block CI; the doc should be brought in line
 # in a follow-up patch.
-DOCUMENTED_MODULE_HEADLINE = 211  # "211+ core modules"
+DOCUMENTED_MODULE_HEADLINE = 218  # "218+ core modules"
 DOCUMENTED_TEST_HEADLINE = 9400  # "9400+ tests passing"
 
 # Match version tags in PRD filenames: V3.9, V4.1.0, V4.2.1, etc.
@@ -281,6 +281,47 @@ def get_canonical_version() -> str | None:
     return None
 
 
+def _check_canonical_version_info(expected: str) -> VersionCheck:
+    """Verify __version_info__ matches the canonical __version__ string."""
+    try:
+        content = CANONICAL_VERSION_FILE.read_text(encoding="utf-8")
+    except OSError as exc:
+        return VersionCheck(
+            file="scripts/collaboration/_version.py (__version_info__)",
+            expected=expected,
+            found=None,
+            passed=False,
+            detail=f"unable to read canonical version tuple: {exc}",
+        )
+
+    match = re.search(r"^__version_info__\s*=\s*\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)\)", content, re.MULTILINE)
+    if not match:
+        return VersionCheck(
+            file="scripts/collaboration/_version.py (__version_info__)",
+            expected=expected,
+            found=None,
+            passed=False,
+            detail="__version_info__ tuple not found or is malformed",
+        )
+
+    found = ".".join(match.groups())
+    if found == expected:
+        return VersionCheck(
+            file="scripts/collaboration/_version.py (__version_info__)",
+            expected=expected,
+            found=found,
+            passed=True,
+            detail=f"__version_info__ matches __version__: {found} OK",
+        )
+    return VersionCheck(
+        file="scripts/collaboration/_version.py (__version_info__)",
+        expected=expected,
+        found=found,
+        passed=False,
+        detail=f"__version_info__ drift: expected {expected}, found {found}",
+    )
+
+
 def count_public_collaboration_modules() -> tuple[int, list[str]]:
     """V4.5.16 P3.21: actual public module count under scripts/collaboration.
 
@@ -290,7 +331,7 @@ def count_public_collaboration_modules() -> tuple[int, list[str]]:
     ``_version.py``. Symlinks and sub-directories are deliberately
     ignored.
 
-    The count is the on-disk SSOT for the "204+ modules" headline and is
+    The count is the on-disk SSOT for the "218+ modules" headline and is
     compared by :func:`_check_module_count_ssot` against the documented
     headline.
     """
@@ -321,7 +362,7 @@ def _check_module_count_ssot() -> VersionCheck:
     ``detail`` is prefixed with ``WARN`` when the drift between the
     actual public module count (read from disk via
     :func:`count_public_collaboration_modules`) and the documented
-    ``"193+ modules"`` headline exceeds ``MODULE_COUNT_SSOT_TOLERANCE``
+    ``"218+ modules"`` headline exceeds ``MODULE_COUNT_SSOT_TOLERANCE``
     (3%).
 
     Per the V4.5.16 PRD §P3.21 contract, this is intentionally
@@ -755,6 +796,7 @@ def main() -> int:
     print("-" * 70)
 
     results = [check_file(spec, expected) for spec in FILES_TO_CHECK]
+    results.append(_check_canonical_version_info(expected))
 
     # P2-11: PRD internal version consistency (non-blocking WARN-level).
     prd_results = _check_prd_files()
@@ -770,7 +812,7 @@ def main() -> int:
 
     # V4.5.16 P3.21: public module count SSOT soft-compare (non-blocking).
     # Compares the on-disk count under scripts/collaboration/ against
-    # the documented "204+ modules" headline and emits a WARN-level
+    # the documented "218+ modules" headline and emits a WARN-level
     # VersionCheck when the drift exceeds MODULE_COUNT_SSOT_TOLERANCE.
     results.append(_check_module_count_ssot())
 

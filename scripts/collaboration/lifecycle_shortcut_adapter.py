@@ -24,6 +24,7 @@ Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 """
 
 import logging
+from collections.abc import Mapping
 from typing import Any, cast
 
 from . import lifecycle_shortcut_helpers as helpers
@@ -35,6 +36,7 @@ from .lifecycle_protocol import (
     PhaseDefinition,
     PhaseResult,
     PhaseState,
+    produce_phase_findings,
 )
 from .lifecycle_templates import ViewMapping
 
@@ -278,7 +280,12 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         # Auto-save state on completion
         self.save_state()
 
-    def check_gate(self, phase_id: str | None = None) -> GateResult:
+    def check_gate(
+        self,
+        phase_id: str | None = None,
+        *,
+        artifacts: Mapping[str, Any] | None = None,
+    ) -> GateResult:
         """Check the gate conditions for a phase.
 
         Args:
@@ -300,6 +307,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
             self._GateType,
             self._PhaseGateContext,
             strict_optional=False,
+            artifacts=artifacts,
         )
 
     def get_status(self) -> LifecycleStatus:
@@ -358,68 +366,18 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         """
         return helpers.resolve_command_to_phase_definitions(command)
 
-    def check_command_gate(self, command: str) -> GateResult:
-        """Aggregate gate check across all phases covered by a CLI command.
+    def check_command_gate(
+        self,
+        command: str,
+        *,
+        artifacts_by_phase: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> GateResult:
+        """Aggregate gate results for a CLI command."""
+        return helpers.check_command_gate(self, command, artifacts_by_phase=artifacts_by_phase)
 
-        Resolves ``command`` to its covered phases (e.g. "build" →
-        implementation / verification phases) and runs :meth:`check_gate`
-        against each. The aggregate verdict is REJECT if any phase is
-        rejected, CONDITIONAL if any phase is conditional (and none
-        rejected), otherwise APPROVE.
-
-        Args:
-            command: CLI command name (spec/plan/build/test/review/ship).
-
-        Returns:
-            GateResult with aggregated passed flag, verdict, red_flags,
-            missing_evidence and gap_report across all covered phases.
-            Unknown commands return a REJECT result.
-        """
-        phases = self.resolve_command_to_phases(command)
-        if not phases:
-            return GateResult(
-                passed=False,
-                verdict="REJECT",
-                gap_report=f"Unknown command: {command}",
-            )
-
-        aggregate_red_flags: list[dict[str, Any]] = []
-        aggregate_missing: list[dict[str, Any]] = []
-        gap_lines: list[str] = []
-        any_rejected = False
-        any_conditional = False
-
-        for phase in phases:
-            result = self.check_gate(phase.phase_id)
-            if result.red_flags:
-                aggregate_red_flags.extend(result.red_flags)
-            if result.missing_evidence:
-                aggregate_missing.extend(result.missing_evidence)
-            if not result.passed:
-                if result.verdict == "REJECT":
-                    any_rejected = True
-                elif result.verdict == "CONDITIONAL":
-                    any_conditional = True
-                if result.gap_report:
-                    gap_lines.append(f"[{phase.phase_id}] {result.gap_report}")
-
-        if any_rejected:
-            verdict = "REJECT"
-            passed = False
-        elif any_conditional:
-            verdict = "CONDITIONAL"
-            passed = False
-        else:
-            verdict = "APPROVE"
-            passed = True
-
-        return GateResult(
-            passed=passed,
-            verdict=verdict,
-            red_flags=aggregate_red_flags,
-            missing_evidence=aggregate_missing,
-            gap_report="; ".join(gap_lines) if gap_lines else "",
-        )
+    def produce_findings(self, phase_id: str, artifacts: Mapping[str, Any] | None = None) -> list[Any]:
+        """Produce deterministic findings for a lifecycle phase."""
+        return produce_phase_findings(phase_id, artifacts)
 
     def _get_current_mapping(self) -> ViewMapping | None:
         return helpers.find_current_mapping(self._current_phase)
@@ -747,7 +705,12 @@ class FullLifecycleAdapter(LifecycleProtocol):
             self._completed_phases.append(phase_id)
         self.save_state()
 
-    def check_gate(self, phase_id: str | None = None) -> GateResult:
+    def check_gate(
+        self,
+        phase_id: str | None = None,
+        *,
+        artifacts: Mapping[str, Any] | None = None,
+    ) -> GateResult:
         """Check the gate conditions for a phase using strict optional rules.
 
         Args:
@@ -769,7 +732,12 @@ class FullLifecycleAdapter(LifecycleProtocol):
             self._GateType,
             self._PhaseGateContext,
             strict_optional=True,
+            artifacts=artifacts,
         )
+
+    def produce_findings(self, phase_id: str, artifacts: Mapping[str, Any] | None = None) -> list[Any]:
+        """Produce deterministic findings for a lifecycle phase."""
+        return produce_phase_findings(phase_id, artifacts)
 
     def get_status(self) -> LifecycleStatus:
         """Return the overall lifecycle status.

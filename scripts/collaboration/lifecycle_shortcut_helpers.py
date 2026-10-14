@@ -28,6 +28,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -304,6 +305,7 @@ def check_phase_gate(
     gate_type: Any,
     phase_gate_context: Any,
     strict_optional: bool = False,
+    artifacts: Mapping[str, Any] | None = None,
 ) -> GateResult:
     """Check the gate conditions for a phase.
 
@@ -338,12 +340,20 @@ def check_phase_gate(
                 gate_engine,
                 gate_type,
                 phase_gate_context,
+                artifacts=artifacts,
             )
         except Exception as e:  # Broad catch: unpredictable gate engine
             logger.warning("UnifiedGateEngine failed, falling back: %s", e)
 
     # Fallback to basic gate checks
-    return check_gate_basic(target, phase_def, phase_states, completed_phases, strict_optional=strict_optional)
+    return check_gate_basic(
+        target,
+        phase_def,
+        phase_states,
+        completed_phases,
+        strict_optional=strict_optional,
+        artifacts=artifacts,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -394,6 +404,44 @@ def resolve_command_to_phase_definitions(command: str) -> list[PhaseDefinition]:
     if not mapping:
         return []
     return [p for p in get_all_phase_definitions() if mapping.covers_phase(p.phase_id)]
+
+
+def check_command_gate(
+    adapter: Any,
+    command: str,
+    *,
+    artifacts_by_phase: Mapping[str, Mapping[str, Any]] | None = None,
+) -> GateResult:
+    """Aggregate gate results across phases covered by a CLI command."""
+    phases = adapter.resolve_command_to_phases(command)
+    if not phases:
+        return GateResult(passed=False, verdict="REJECT", gap_report=f"Unknown command: {command}")
+
+    red_flags: list[dict[str, Any]] = []
+    missing: list[dict[str, Any]] = []
+    findings = []
+    gaps: list[str] = []
+    rejected = conditional = False
+    for phase in phases:
+        result = adapter.check_gate(phase.phase_id, artifacts=(artifacts_by_phase or {}).get(phase.phase_id))
+        red_flags.extend(result.red_flags)
+        missing.extend(result.missing_evidence)
+        findings.extend(result.lifecycle_findings)
+        if not result.passed:
+            rejected |= result.verdict == "REJECT"
+            conditional |= result.verdict == "CONDITIONAL"
+            if result.gap_report:
+                gaps.append(f"[{phase.phase_id}] {result.gap_report}")
+
+    verdict = "REJECT" if rejected else "CONDITIONAL" if conditional else "APPROVE"
+    return GateResult(
+        passed=verdict == "APPROVE",
+        verdict=verdict,
+        red_flags=red_flags,
+        missing_evidence=missing,
+        gap_report="; ".join(gaps),
+        lifecycle_findings=findings,
+    )
 
 
 # ---------------------------------------------------------------------------

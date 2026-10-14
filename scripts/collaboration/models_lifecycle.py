@@ -14,6 +14,66 @@ from typing import Any
 
 from .models_base import TaskDefinition, WorkerResult
 
+_LIFECYCLE_FINDING_CATEGORIES = frozenset(
+    {
+        "BREAK-1",
+        "BREAK-2",
+        "BREAK-3",
+        "BREAK-4",
+        "BREAK-5",
+        "VULN-1",
+        "VULN-2",
+        "VULN-3",
+        "VULN-4",
+        "VULN-5",
+    }
+)
+_LIFECYCLE_PHASES = frozenset(f"P{index}" for index in range(1, 12))
+_LIFECYCLE_FINDING_STATUSES = frozenset({"planned", "detected", "resolved", "accepted"})
+
+
+@dataclass
+class LifecycleFinding:
+    """A finding with a deterministic lifecycle phase assignment."""
+
+    category: str = "BREAK-1"
+    rule_id: str = ""
+    severity: str = "info"
+    lifecycle_phase: str = "P1"
+    artifact: str = ""
+    status: str = "planned"
+    description: str = ""
+    evidence: list[Any] = field(default_factory=list)
+    file_path: str = ""
+    line_range: str = ""
+    suggestion: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate the closed lifecycle finding vocabularies."""
+        if self.category not in _LIFECYCLE_FINDING_CATEGORIES:
+            raise ValueError(f"Unknown lifecycle finding category: {self.category}")
+        if self.lifecycle_phase not in _LIFECYCLE_PHASES:
+            raise ValueError(f"Unknown lifecycle phase: {self.lifecycle_phase}")
+        if self.status not in _LIFECYCLE_FINDING_STATUSES:
+            raise ValueError(f"Unknown lifecycle finding status: {self.status}")
+        self.evidence = list(self.evidence)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the finding to a JSON-compatible dictionary."""
+        return {
+            "category": self.category,
+            "rule_id": self.rule_id,
+            "severity": self.severity,
+            "lifecycle_phase": self.lifecycle_phase,
+            "artifact": self.artifact,
+            "status": self.status,
+            "description": self.description,
+            "evidence": self.evidence,
+            "file_path": self.file_path,
+            "line_range": self.line_range,
+            "suggestion": self.suggestion,
+        }
+
 
 @dataclass
 class ExecutionPlan:

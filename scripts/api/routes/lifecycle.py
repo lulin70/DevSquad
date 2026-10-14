@@ -15,6 +15,7 @@ Endpoints:
 import logging
 import os
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -23,6 +24,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from scripts.api.models import (
     CommandMapping,
+    DocumentScanRequest,
+    DocumentScanResponse,
     LifecyclePhase,
     PhaseActionRequest,
     PhaseActionResult,
@@ -36,6 +39,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/lifecycle", tags=["Lifecycle Management"])
+
+
+def _safe_document_path(path: str) -> Path:
+    """Allow explicit regular files under the configured project root only."""
+    project_root = Path(os.environ.get("DEVSQUAD_PROJECT_ROOT", os.getcwd())).resolve()
+    candidate = Path(path).expanduser()
+    resolved = candidate.resolve()
+    if candidate.is_symlink() or not resolved.is_relative_to(project_root):
+        raise ValueError("Document path must be a non-symlink file under the project root")
+    if not resolved.is_file():
+        raise ValueError("Document path must point to a regular file")
+    return resolved
 
 
 @router.get(
@@ -237,6 +252,52 @@ async def get_lifecycle_status(
     except Exception as e:
         logger.exception("Unexpected error getting lifecycle status: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from None
+
+
+@router.post(
+    "/scan",
+    response_model=DocumentScanResponse,
+    summary="Scan explicit lifecycle documents",
+    description="Read-only scan of explicitly supplied documents. It never changes lifecycle state or files.",
+)
+async def scan_lifecycle_documents(
+    request: DocumentScanRequest,
+    user_id: str = Depends(require_permission("TASK_READ")),
+) -> DocumentScanResponse:
+    """Scan explicit documents and return findings plus approval-gated proposals."""
+    del user_id
+    try:
+        from scripts.collaboration.document_scanner import scan_document
+        from scripts.collaboration.remediation import proposals_from_findings
+
+        scan_results = []
+        findings = []
+        errors = []
+        for item in request.documents:
+            path = _safe_document_path(item.path)
+            result = scan_document(
+                path,
+                request.phase_id,
+                required_sections=item.required_sections,
+                required_keys=item.required_keys,
+            )
+            scan_results.append(result.to_dict())
+            findings.extend(result.findings)
+            errors.extend(result.errors)
+        proposals = proposals_from_findings(findings)
+        return DocumentScanResponse(
+            phase_id=request.phase_id,
+            parsed=bool(scan_results) and all(item["parsed"] for item in scan_results),
+            scan_results=scan_results,
+            lifecycle_findings=[finding.to_dict() for finding in findings],
+            remediation_proposals=[proposal.to_dict() for proposal in proposals],
+            errors=errors,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except OSError as exc:
+        logger.warning("Document scan failed: %s", exc)
+        raise HTTPException(status_code=400, detail="Document cannot be read") from None
 
 
 @router.post(

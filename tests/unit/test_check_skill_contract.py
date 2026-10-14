@@ -55,8 +55,21 @@ from scripts.check_skill_contract import (  # noqa: E402
     run,
 )
 
-# The three documents the gate reads, copied into a temp root per test.
-_DOC_RELATIVE_PATHS = (SKILL_DOC, CONTRACT_DOC, PRD_DOC, csc.BREAK_VULN_MODULE, csc.BREAK_VULN_CHECKERS)
+# The documents the gate reads, copied into a temp root per test.
+_DOC_RELATIVE_PATHS = (
+    SKILL_DOC,
+    CONTRACT_DOC,
+    PRD_DOC,
+    csc.BREAK_VULN_MODULE,
+    csc.BREAK_VULN_CHECKERS,
+    csc.LIFECYCLE_MODEL,
+    csc.LIFECYCLE_BREAK_VULN,
+    csc.LIFECYCLE_PROTOCOL,
+    csc.LIFECYCLE_PRODUCERS,
+    csc.LIFECYCLE_SCANNER,
+    csc.LIFECYCLE_REMEDIATION,
+    csc.LIFECYCLE_EVIDENCE,
+)
 
 
 class _DocRoot:
@@ -123,6 +136,28 @@ class T2_ClauseIntegrity(unittest.TestCase):
         """Verify: SKILL.md commitment ids are unique too."""
         ids = [commitment.id for commitment in SKILL_COMMITMENTS]
         self.assertEqual(len(ids), len(set(ids)))
+
+    def test_06b_c21_clause_is_present_and_shipped(self) -> None:
+        """Verify: C21 is a shipped clause, not a dangling PRD wave."""
+        clause = next(clause for clause in CONTRACT_CLAUSES if clause.id == "lifecycle.break_vuln_findings")
+        self.assertIn("LifecycleFinding", clause.keywords)
+        self.assertEqual(clause.effective, "shipped in V4.7.0 W1")
+        self.assertEqual(clause.is_wave, False)
+
+    def test_06c_c22_clause_is_present_and_shipped(self) -> None:
+        """Verify: C22 protects the closed producer registry contract."""
+        clause = next(clause for clause in CONTRACT_CLAUSES if clause.id == "lifecycle.phase_finding_producers")
+        self.assertIn("PHASE_PRODUCERS", clause.keywords)
+        self.assertEqual(clause.effective, "shipped in V4.7.0 W1")
+        self.assertFalse(clause.is_wave)
+
+    def test_06d_c23_and_c24_are_shipped(self) -> None:
+        """Verify: document scan and proposal clauses are shipped, not future waves."""
+        clauses = {clause.id: clause for clause in CONTRACT_CLAUSES}
+        self.assertIn("DocumentScanResult", clauses["lifecycle.document_scan"].keywords)
+        self.assertIn("RemediationProposal", clauses["lifecycle.remediation_proposal"].keywords)
+        self.assertEqual(clauses["lifecycle.document_scan"].effective, "shipped in V4.7.0 W1")
+        self.assertEqual(clauses["lifecycle.remediation_proposal"].effective, "shipped in V4.7.0 W1")
 
 
 class T3_DriftDetection(unittest.TestCase):
@@ -209,6 +244,18 @@ class T3_DriftDetection(unittest.TestCase):
         self.root.replace(csc.BREAK_VULN_CHECKERS, "check_break_vuln", "removed_checker")
         problems = run(self.root.path)
         self.assertTrue(any("Stage 2 wiring is missing" in problem for problem in problems))
+
+    def test_11d_removed_lifecycle_symbol_is_reported(self) -> None:
+        """Verify: deleting a lifecycle mapping symbol fails the C21 reverse gate."""
+        self.root.replace(csc.LIFECYCLE_BREAK_VULN, "map_findings_to_phase", "removed_mapping")
+        problems = run(self.root.path)
+        self.assertTrue(any("[lifecycle.break_vuln_findings]" in problem for problem in problems))
+
+    def test_11e_removed_producer_symbol_is_reported(self) -> None:
+        """Verify: deleting a producer symbol fails the C22 reverse gate."""
+        self.root.replace(csc.LIFECYCLE_PRODUCERS, "PHASE_PRODUCERS", "removed_registry")
+        problems = run(self.root.path)
+        self.assertTrue(any("[lifecycle.phase_finding_producers]" in problem for problem in problems))
 
 
 class T4_SkillCommitments(unittest.TestCase):

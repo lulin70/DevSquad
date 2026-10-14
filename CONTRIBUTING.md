@@ -144,6 +144,28 @@ Commit message prefixes:
 - `test:` Test addition/fix
 - `chore:` Build/maintenance
 
+## Single-Maintainer Pull Request Workflow
+
+The repository currently has one maintainer. This process remains valid while no second maintainer is available:
+
+1. Create a feature branch. Do not work directly on `main`.
+2. Open a Pull Request for every change.
+3. Run the local test and quality gates before pushing.
+4. Perform a self-review. Check the diff, tests, documentation, security, and release impact.
+5. Wait for all required GitHub Actions checks to pass.
+6. Resolve all Pull Request conversations.
+7. Merge the Pull Request as the maintainer. A second approval is not required.
+
+The `main` branch keeps these protections:
+
+- Pull Requests remain mandatory.
+- CI and security checks remain mandatory.
+- Conversation resolution remains mandatory.
+- Force-push and branch deletion remain disabled.
+- An approval from another maintainer is not required while the project has one maintainer.
+
+If a second maintainer is added, restore the required approval count to `1` before that maintainer reviews changes.
+
 ## Testing Standards
 
 - Every new module must have a corresponding `*_test.py` file

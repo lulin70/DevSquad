@@ -56,6 +56,13 @@ CONTRACT_DOC = "docs/reference/DETERMINISTIC_CONTRACT.md"
 PRD_DOC = "docs/prd/V4.5.20_ocr-learnings_PRD.md"
 BREAK_VULN_MODULE = "scripts/collaboration/review_taxonomy.py"
 BREAK_VULN_CHECKERS = "scripts/collaboration/review_checkers.py"
+LIFECYCLE_MODEL = "scripts/collaboration/models_lifecycle.py"
+LIFECYCLE_BREAK_VULN = "scripts/collaboration/lifecycle_break_vuln.py"
+LIFECYCLE_PROTOCOL = "scripts/collaboration/lifecycle_protocol.py"
+LIFECYCLE_PRODUCERS = "scripts/collaboration/lifecycle_finding_producers.py"
+LIFECYCLE_SCANNER = "scripts/collaboration/document_scanner.py"
+LIFECYCLE_REMEDIATION = "scripts/collaboration/remediation.py"
+LIFECYCLE_EVIDENCE = "scripts/collaboration/lifecycle_evidence.py"
 
 # A wave token such as ``W1-3`` must appear in the PRD as a standalone token,
 # not as a prefix of a longer identifier.
@@ -201,10 +208,58 @@ CONTRACT_CLAUSES: tuple[Clause, ...] = (
         ),
         "shipped in V4.7.0 W1",
     ),
+    Clause(
+        "lifecycle.break_vuln_findings",
+        (
+            "LifecycleFinding",
+            "BREAK_VULN_PHASES",
+            "ReviewFinding",
+            "lifecycle_findings",
+            "SU/SFD",
+            "black-box",
+        ),
+        "shipped in V4.7.0 W1",
+    ),
+    Clause(
+        "lifecycle.phase_finding_producers",
+        (
+            "PHASE_PRODUCERS",
+            "P1-P11",
+            "artifacts",
+            "no LLM",
+            "lifecycle_findings",
+            "SU",
+            "SFD",
+            "black-box",
+        ),
+        "shipped in V4.7.0 W1",
+    ),
+    Clause(
+        "lifecycle.document_scan",
+        (
+            "DocumentScanResult",
+            "scan_document",
+            "scan_phase_documents",
+            "read-only",
+            "no SU/SFD",
+        ),
+        "shipped in V4.7.0 W1",
+    ),
+    Clause(
+        "lifecycle.remediation_proposal",
+        (
+            "RemediationProposal",
+            "proposal_from_finding",
+            "approval_required",
+            "explicit approval",
+            "no auto-fix",
+        ),
+        "shipped in V4.7.0 W1",
+    ),
 )
 
 # R9 split: SKILL.md carries only what a caller must know before choosing a mode.
-# The 19 clauses above stay in docs/reference/ so SKILL.md does not grow without
+# The 21 clauses above stay in docs/reference/ so SKILL.md does not grow without
 # bound.
 SKILL_COMMITMENTS: tuple[Commitment, ...] = (
     Commitment("skill.delegate_zero_key", ("no API key", "MOKA_API_KEY")),
@@ -276,6 +331,98 @@ def check_commitment(commitment: Commitment, skill_text: str) -> list[str]:
     ]
 
 
+def check_lifecycle_break_vuln_implementation(
+    model_text: str, mapping_text: str, protocol_text: str, producer_text: str
+) -> list[str]:
+    """Return missing implementation symbols for the lifecycle BREAK/VULN contract."""
+    problems: list[str] = []
+    for symbol in ("class LifecycleFinding",):
+        if symbol not in model_text:
+            problems.append(
+                f"[lifecycle.break_vuln_findings] implementation symbol {symbol!r} is missing from {LIFECYCLE_MODEL}"
+            )
+    for symbol in (
+        "BREAK_VULN_PHASES",
+        "lifecycle_finding_from_review",
+        "review_finding_from_lifecycle",
+        "map_findings_to_phase",
+    ):
+        if symbol not in mapping_text:
+            problems.append(
+                f"[lifecycle.break_vuln_findings] implementation symbol {symbol!r} is missing from {LIFECYCLE_BREAK_VULN}"
+            )
+    if "lifecycle_findings" not in protocol_text:
+        problems.append(
+            f"[lifecycle.break_vuln_findings] implementation symbol 'lifecycle_findings' is missing from {LIFECYCLE_PROTOCOL}"
+        )
+    for symbol in (
+        "PHASE_PRODUCERS",
+        "produce_phase_findings",
+        "produce_p1_findings",
+        "produce_p11_findings",
+    ):
+        if symbol not in producer_text:
+            problems.append(
+                f"[lifecycle.phase_finding_producers] implementation symbol {symbol!r} is missing from {LIFECYCLE_PRODUCERS}"
+            )
+    return problems
+
+
+def check_lifecycle_document_implementation(
+    scanner_text: str, remediation_text: str, protocol_text: str, evidence_text: str
+) -> list[str]:
+    """Return missing implementation symbols for C23/C24 and W4 evidence."""
+    problems: list[str] = []
+    scanner_symbols = ("DocumentScanResult", "scan_document", "scan_phase_documents", "read_text")
+    for symbol in scanner_symbols:
+        if symbol not in scanner_text:
+            problems.append(
+                f"[lifecycle.document_scan] implementation symbol {symbol!r} is missing from {LIFECYCLE_SCANNER}"
+            )
+    for phrase in ("no SU/SFD", "read-only"):
+        if phrase not in scanner_text:
+            problems.append(f"[lifecycle.document_scan] boundary {phrase!r} is missing from {LIFECYCLE_SCANNER}")
+    remediation_symbols = (
+        "RemediationProposal",
+        "proposal_from_finding",
+        "approval_required",
+        "ApprovalRecord",
+        "create_patch_preview",
+        "apply_approved_patch",
+        "resolve_finding_after_verification",
+    )
+    for symbol in remediation_symbols:
+        if symbol not in remediation_text:
+            problems.append(
+                f"[lifecycle.remediation_proposal] implementation symbol {symbol!r} is missing from {LIFECYCLE_REMEDIATION}"
+            )
+    for phrase in ("explicit approval", "no auto-fix"):
+        if phrase not in remediation_text:
+            problems.append(
+                f"[lifecycle.remediation_proposal] boundary {phrase!r} is missing from {LIFECYCLE_REMEDIATION}"
+            )
+    for symbol in ("findings_from_junit_xml", "findings_from_runtime_evidence"):
+        if symbol not in evidence_text:
+            problems.append(
+                f"[lifecycle.evidence] implementation symbol {symbol!r} is missing from {LIFECYCLE_EVIDENCE}"
+            )
+    for symbol in (
+        "DocumentScanResult",
+        "scan_document",
+        "scan_phase_documents",
+        "RemediationProposal",
+        "proposal_from_finding",
+        "render_proposals_json",
+        "ApprovalRecord",
+        "create_patch_preview",
+        "apply_approved_patch",
+        "resolve_finding_after_verification",
+    ):
+        if symbol not in protocol_text:
+            problems.append(f"[lifecycle.protocol] re-export {symbol!r} is missing from {LIFECYCLE_PROTOCOL}")
+    return problems
+
+
 def run(root: Path) -> list[str]:
     """Run every check and return all problems (empty means pass)."""
     contract_text = _read(root, CONTRACT_DOC)
@@ -283,6 +430,13 @@ def run(root: Path) -> list[str]:
     skill_text = _read(root, SKILL_DOC)
     taxonomy_text = _read(root, BREAK_VULN_MODULE)
     checker_text = _read(root, BREAK_VULN_CHECKERS)
+    lifecycle_model_text = _read(root, LIFECYCLE_MODEL)
+    lifecycle_break_vuln_text = _read(root, LIFECYCLE_BREAK_VULN)
+    lifecycle_protocol_text = _read(root, LIFECYCLE_PROTOCOL)
+    lifecycle_producer_text = _read(root, LIFECYCLE_PRODUCERS)
+    lifecycle_scanner_text = _read(root, LIFECYCLE_SCANNER)
+    lifecycle_remediation_text = _read(root, LIFECYCLE_REMEDIATION)
+    lifecycle_evidence_text = _read(root, LIFECYCLE_EVIDENCE)
 
     problems: list[str] = []
     for clause in CONTRACT_CLAUSES:
@@ -310,6 +464,22 @@ def run(root: Path) -> list[str]:
             problems.append(f"[review.break_vuln_taxonomy] category {code} is missing from {BREAK_VULN_MODULE}")
     if "_check_break_vuln" not in checker_text or "check_break_vuln" not in checker_text:
         problems.append(f"[review.break_vuln_taxonomy] Stage 2 wiring is missing from {BREAK_VULN_CHECKERS}")
+    problems.extend(
+        check_lifecycle_break_vuln_implementation(
+            lifecycle_model_text,
+            lifecycle_break_vuln_text,
+            lifecycle_protocol_text,
+            lifecycle_producer_text,
+        )
+    )
+    problems.extend(
+        check_lifecycle_document_implementation(
+            lifecycle_scanner_text,
+            lifecycle_remediation_text,
+            lifecycle_protocol_text,
+            lifecycle_evidence_text,
+        )
+    )
     return problems
 
 

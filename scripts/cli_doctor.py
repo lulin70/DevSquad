@@ -28,6 +28,7 @@ import json
 import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any
@@ -115,6 +116,9 @@ def _check_connectivity(provider: str, timeout: float = 5.0) -> tuple[bool, floa
 
     api_key = os.environ.get(cfg["api_key_env"], "")
     base_url = (os.environ.get(cfg["base_url_env"]) or cfg["default_base_url"]).rstrip("/")
+    parsed = urllib.parse.urlparse(base_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False, 0.0, [], "Provider base URL must use http or https"
     url = base_url + cfg["model_list_path"]
 
     headers: dict[str, str] = {"Accept": "application/json"}
@@ -127,7 +131,7 @@ def _check_connectivity(provider: str, timeout: float = 5.0) -> tuple[bool, floa
     req = urllib.request.Request(url, headers=headers, method="GET")
     start = time.time()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310 - validated provider HTTP(S) URL
             body = resp.read().decode("utf-8")
             latency = (time.time() - start) * 1000.0
             try:
