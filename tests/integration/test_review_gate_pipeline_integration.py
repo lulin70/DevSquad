@@ -213,13 +213,15 @@ class T1_TwoStageReviewGateBasics(unittest.TestCase):
         """Verify: spec compliance passes while code quality emits warnings.
 
         A bare ``except:`` clause is a warning (not critical), so Stage 1
-        passes and Stage 2 returns WARN — the overall result still passes.
+        passes and Stage 2 returns WARN — the overall result still passes.  # test-quality: ignore
         """
         gate = _make_gate()
         spec = _make_spec(planned_files=["src/h.py"], planned_functions=["handle"])
         code = _make_code_changes(
             {
-                "src/h.py": ("def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"),
+                "src/h.py": (
+                    "def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"
+                ),  # test-quality: ignore — fixture intentionally tests bare except
                 "tests/test_h.py": "def test_handle():\n    assert True\n",
             }
         )
@@ -737,7 +739,7 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
     def test_03_auto_fixable_finding_resolved_by_loop(self) -> None:
         """Verify: a HIGH+auto_fixable finding is resolved by the fix loop.
 
-        A bare ``except:`` produces a HIGH-severity auto-fixable action.
+        A bare ``except:`` produces a HIGH-severity auto-fixable action.  # test-quality: ignore
         With a succeeding auto_fix_callable, run_fix_loop resolves it.
         """
         gate = _make_gate()
@@ -750,7 +752,9 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
         spec = _make_spec(planned_files=["src/h.py"], planned_functions=["handle"])
         code = _make_code_changes(
             {
-                "src/h.py": ("def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"),
+                "src/h.py": (
+                    "def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"
+                ),  # test-quality: ignore — fixture intentionally tests bare except
                 "tests/test_h.py": "def test_handle():\n    assert True\n",
             }
         )
@@ -771,7 +775,9 @@ class T4_ThreeModuleEndToEnd(unittest.TestCase):
         spec = _make_spec(planned_files=["src/h.py"], planned_functions=["handle"])
         code = _make_code_changes(
             {
-                "src/h.py": ("def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"),
+                "src/h.py": (
+                    "def handle():\n    try:\n        do_thing()\n    except:\n        pass\n"
+                ),  # test-quality: ignore — fixture intentionally tests bare except
                 "tests/test_h.py": "def test_handle():\n    assert True\n",
             }
         )

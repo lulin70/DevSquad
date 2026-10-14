@@ -35,12 +35,12 @@ from collaboration.test_quality_guard import (  # noqa: E402
 def scan_test_file(detector: AntiPatternDetector, test_file: Path) -> list[QualityIssue]:
     """Scan a single test file and return anti-pattern issues.
 
-    Lines containing ``# noqa: test-quality`` are skipped (false positive
+    Lines containing ``# test-quality: ignore`` are skipped (false positive
     suppression, e.g., string literals that contain anti-pattern text as
     test fixtures for the detector itself). The detection logic checks both
-    the matched line AND the next 5 lines for noqa — because ``detect_in_source``
-    flags the matched line by its own index, but for fixture strings the actual
-    ``noqa`` directive may live on an inner line of the multi-line literal.
+    the matched line AND the next 5 lines for the marker — because
+    ``detect_in_source`` flags the matched line by its own index, but for fixture
+    strings the marker may live on an inner line of the multi-line literal.
 
     Args:
         detector: AntiPatternDetector instance.
@@ -61,27 +61,26 @@ def scan_test_file(detector: AntiPatternDetector, test_file: Path) -> list[Quali
 
 
 def _is_noqa_suppressed(source: str, line_no: int) -> bool:
-    """Check if a line or any of the next 5 lines has ``# noqa: test-quality``.
+    """Check if a line or any of the next 5 lines has the custom marker.
 
     For multi-line fixture strings (e.g., ``code = "@lru_cache\ndef ...``), the
-    detector flags line 1 of the literal but the ``noqa`` directive may be on
-    the same or following line within the literal. We allow suppression on
-    line_no OR line_no+1..line_no+5 to handle these cases.
+    detector flags line 1 of the literal but the marker may be on the same or
+    following line within the literal. We allow suppression on line_no OR
+    line_no+1..line_no+5 to handle these cases.
 
     Args:
         source: Full source code text.
         line_no: 1-based line index of the matched anti-pattern.
 
     Returns:
-        True if ``# noqa: test-quality`` appears on any of the 6 lines.
+        True if ``# test-quality: ignore`` appears on any of the 8 lines.
     """
     lines = source.split("\n")
-    # V4.5.6 W2: extend noqa detection to 8 lines so multi-line fixture strings
-    # with noqa on a non-immediate line are suppressed (test_07 has @lru_cache
-    # on line 1 of fixture but noqa on line 2 of literal).
+    # V4.5.6 W2: extend marker detection to 8 lines so multi-line fixture
+    # strings with the marker on a non-immediate line are suppressed.
     for offset in range(0, 8):
         idx = line_no - 1 + offset
-        if 0 <= idx < len(lines) and "# noqa: test-quality" in lines[idx]:
+        if 0 <= idx < len(lines) and "# test-quality: ignore" in lines[idx]:
             return True
     return False
 
@@ -161,7 +160,9 @@ def main() -> int:
         print(f"ERROR: source directory not found: {source_dir}")
         return 2
 
-    test_files = sorted(source_dir.glob("test_*.py"))
+    test_files = sorted(
+        path for path in source_dir.rglob("*.py") if path.name.startswith("test_") or path.name.endswith("_test.py")
+    )
     if not test_files:
         print(f"OK: no test files found in {source_dir}")
         return 0

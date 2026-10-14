@@ -104,7 +104,7 @@ DevSquad 基于 **Coordinator/Worker/Scratchpad** 三层架构：
          → [RoleMatcher 角色匹配]
          → [Coordinator 全局编排]
            ├─ [preload_rules 规则预加载]
-           ├─ [ThreadPoolExecutor 并行调度 Workers]
+           ├─ [同步/异步 Worker 执行（由模式和角色约束决定）]
            │   └─ Worker(角色指令 + 规则注入 + 相关发现 + QC注入)
            │       ├─ [PromptAssembler 动态组装]
            │       ├─ [EnhancedWorker 增强：缓存/重试/监控/规则]

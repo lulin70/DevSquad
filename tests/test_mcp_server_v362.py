@@ -223,7 +223,7 @@ class TestMultiagentDispatchTool:
 
         assert "Task completed successfully" in result or "#" in result
         mock_disp.dispatch.assert_called_once_with(
-            task="Design auth system",
+            task_description="Design auth system",
             roles=["architect"],
             mode="auto",
             dry_run=False,
@@ -379,8 +379,14 @@ class TestMultiagentStatusTool:
         result = fn()
         data = json.loads(result)
 
-        assert "modules" in data
-        assert data["modules"] == 149
+        assert "dispatcher" in data
+        assert data["dispatcher"] == {
+            "total_tasks": 10,
+            "success_rate": 95.5,
+            "active_workers": 3,
+        }
+        assert data["modes"] == ["auto", "parallel", "sequential", "consensus", "review"]
+        assert "mock" in data["backends"]
 
     def test_status_contains_features_list(self, mcp_server_with_mock):
         """Test status includes features capability list."""
@@ -520,7 +526,7 @@ class TestInputValidation:
             fn(task="original input")
 
             call_kwargs = mock_disp.dispatch.call_args[1]
-            assert call_kwargs["task"] == "cleaned task description"
+            assert call_kwargs["task_description"] == "cleaned task description"
 
 
 # ---------------------------------------------------------------------------

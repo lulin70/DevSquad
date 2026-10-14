@@ -45,7 +45,7 @@ class TestScanTestFile:
             "def test_foo():\n"
             "    try:\n"
             "        x = 1\n"
-            "    except:\n"  # noqa: test-quality — bare except fixture string, not real code
+            "    except:\n"  # test-quality: ignore — bare except fixture string, not real code
             "        pass\n"
         )
         detector = AntiPatternDetector()
@@ -70,17 +70,17 @@ class TestScanTestFile:
         assert len(minor_issues) >= 1, f"Expected at least 1 MINOR issue, got {len(minor_issues)}"
 
     def test_scan_noqa_suppression(self, tmp_path: Path) -> None:
-        """Verify: lines with # noqa: test-quality are skipped.
+        """Verify: lines with # test-quality: ignore are skipped.
 
         Scenario: A test file with bare except in a string literal
-        marked with # noqa: test-quality.
+        marked with # test-quality: ignore.
         Expected: No MAJOR issues returned (suppressed).
         """
         from scripts.check_test_quality import scan_test_file
         from scripts.collaboration.test_quality_guard import AntiPatternDetector
 
         test_file = tmp_path / "test_example.py"
-        test_file.write_text('def test_foo():\n    code = "except:"  # noqa: test-quality\n    pass\n')
+        test_file.write_text('def test_foo():\n    code = "except:"  # test-quality: ignore\n    pass\n')
         detector = AntiPatternDetector()
         issues = scan_test_file(detector, test_file)
         major_issues = [i for i in issues if i.severity.value == "major"]
@@ -124,14 +124,14 @@ class TestNoqaSuppression:
         """Verify: _is_noqa_suppressed returns True when comment present."""
         from scripts.check_test_quality import _is_noqa_suppressed
 
-        source = 'code = "except:"  # noqa: test-quality\n'
+        source = 'code = "except:"  # test-quality: ignore\n'
         assert _is_noqa_suppressed(source, 1) is True
 
     def test_noqa_absent(self) -> None:
         """Verify: _is_noqa_suppressed returns False when comment absent."""
         from scripts.check_test_quality import _is_noqa_suppressed
 
-        source = 'code = "except:"\n'  # noqa: test-quality — fixture string, not real code
+        source = 'code = "except:"\n'  # test-quality: ignore — fixture string, not real code
         assert _is_noqa_suppressed(source, 1) is False
 
     def test_noqa_wrong_line(self) -> None:
@@ -144,7 +144,7 @@ class TestNoqaSuppression:
         from scripts.check_test_quality import _is_noqa_suppressed
 
         # noqa on line 9 — beyond 8-line window from matched line 1
-        source = 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nother = "except:"  # noqa: test-quality\n'
+        source = 'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nother = "except:"  # test-quality: ignore\n'
         assert _is_noqa_suppressed(source, 1) is False
         assert _is_noqa_suppressed(source, 9) is True
 
@@ -169,6 +169,20 @@ class TestScriptCLI:
         exit_code, stdout, _ = _run_script("--source", str(REPO_ROOT / "tests"))
         assert exit_code == 0, f"Expected exit 0, got {exit_code}\nstdout: {stdout}"
         assert "Test Quality Report" in stdout
+
+    def test_script_scans_nested_test_directories(self, tmp_path: Path) -> None:
+        """Verify: the CLI scans test files below the source root."""
+        nested = tmp_path / "integration"
+        nested.mkdir()
+        (nested / "test_nested.py").write_text(
+            "def test_nested():\n    result = 42\n    assert result == 42\n",
+            encoding="utf-8",
+        )
+
+        exit_code, stdout, _ = _run_script("--source", str(tmp_path))
+
+        assert exit_code == 0
+        assert "Scanned: 1 test files" in stdout
 
     def test_script_empty_directory_exits_zero(self, tmp_path: Path) -> None:
         """Verify: script exits 0 when no test files found.
@@ -203,7 +217,7 @@ class TestScriptCLI:
             "def test_foo():\n"
             "    try:\n"
             "        x = 1\n"
-            "    except:\n"  # noqa: test-quality — test fixture, not real code
+            "    except:\n"  # test-quality: ignore — test fixture, not real code
             "        pass\n"
         )
         exit_code, stdout, _ = _run_script("--source", str(test_dir))
@@ -237,16 +251,16 @@ class TestScriptCLI:
         assert exit_code == 1
 
     def test_script_noqa_suppresses_major(self, tmp_path: Path) -> None:
-        """Verify: # noqa: test-quality suppresses MAJOR false positives.
+        """Verify: # test-quality: ignore suppresses MAJOR false positives.
 
         Scenario: A test file with bare except in a string literal
-        marked with # noqa: test-quality.
+        marked with # test-quality: ignore.
         Expected: Exit code 0 (MAJOR suppressed).
         """
         test_dir = tmp_path / "tests"
         test_dir.mkdir()
         (test_dir / "test_suppressed.py").write_text(
-            'def test_foo():\n    code = "except:"  # noqa: test-quality\n    pass\n'
+            'def test_foo():\n    code = "except:"  # test-quality: ignore\n    pass\n'
         )
         exit_code, stdout, _ = _run_script("--source", str(test_dir))
         assert exit_code == 0

@@ -52,7 +52,7 @@ class TestBaselineFileIntegrity:
         """A complete baseline must include mock + host + api + auto_fallback."""
         baseline_path = tmp_path / "baseline.json"
         baseline = PerfBaseline(
-            version="v4.5.2",
+            version="v4.7.0",
             snapshots={
                 path: PerfSnapshot(
                     path=path,

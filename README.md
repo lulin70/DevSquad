@@ -1,7 +1,7 @@
 # DevSquad — Multi-Role AI Task Orchestrator
 
 <p align="center">
-  <strong>🎯 把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
+  <strong>🎯 把「单个 AI 助手」升级成「多角色 AI 专业团队」</strong>
   <br>
   <em>One task → Multi-role AI collaboration → One conclusion | V4.7.0 (W1 delivered deterministic BREAK/VULN ten-category review taxonomy, C20, reverse gate, real review-gate subprocess E2E, and simulated real-user validation; MINOR; no tag created) | V4.6.0 (E2E-inspired testing infrastructure MINOR: LLM replay cache for PR CI — first real call records, later PRs replay near-zero cost; failure taxonomy product_failed/environment_blocked with exit 2; independent judge semantic assertions; e2e failure auto-comment on PRs) | V4.5.24 (CI-gate PATCH: dispatcher size baseline gate now also runs in PR CI) | V4.5.23 (Governance + root-cause PATCH: CI lint tools read from requirements-dev.lock at run time — fourth Dependabot-blind version copy eliminated; 8 GitHub Actions SHA-pinned + `.github/CODEOWNERS`; `:memory:` repo-root directory root-caused to `LLMCache(":memory:")` mkdir and fixed per SQLite convention in LLMCache/AsyncLLMCache) | V4.5.22 (Backend-config PATCH: gitignored `moka_ai.json` feeds the auto chain's Moka candidate as lowest-priority source — kwargs > env > file — restoring design order Moka → OpenAI(DeepSeek) → Anthropic; conftest autouse fixture isolates maintainer-local credentials from tests; `_build_api_backends` decomposed into per-provider builders after radon cc flagged D) | V4.5.21 (Security + toolchain PATCH: Dependabot vuln closure, branch-protection bypass tightening, CI least-privilege; ruff 0.16.10/mypy 2.4.0 aligned across lock + pre-commit + CI pins; flaky hardening — min-of-3 latency sampling, host-bridge fuse E2E warm-up; `enable_anchor_check=False` factory fix) | V4.5.20 (Version-SSOT truth + deterministic review bundling MINOR: `--mode review --changeset` wired to real bundling, sub-skill manifest gate closed, anti-ghost production probe) | V4.5.19 (Flaky-test cleanup: dashboard latency gate → 5-run median + pytest-rerunfailures) | V4.5.18 (Perf-extension: SQLite PRAGMA to ccr_store/history_manager + SkillRegistry thread-safety hotfix) | V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badge 9400+/211+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation) | V4.5.9 (Unified Gather Execution Core + Native Async Worker: 执行层统一 gather 化 + Worker 原生异步) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills)</em>
 </p>
@@ -9,7 +9,7 @@
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green" />
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-9400%2B%20passing-brightgreen" />
+  <img alt="Test quality" src="https://img.shields.io/badge/Test%20quality-0%20MAJOR-brightgreen" />
   <img alt="Version" src="https://img.shields.io/badge/V4.7.0-success" />
   <img alt="CI" src="https://img.shields.io/badge/CI-GitHub_Actions-blue?logo=githubactions" />
   <img alt="Quality" src="https://img.shields.io/badge/Code%20Quality-4.3%2F5%20%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%86-blue" />
@@ -22,7 +22,7 @@
 
 ### DevSquad 是什么？
 
-**DevSquad** 是一个多角色 AI 任务编排器。当你提交一个任务时，它不再是单个 AI 回答，而是让 **7 个专业角色**（架构师、安全专家、测试员、开发者等）**并行协作**，最后给出经过多方审核的结论。
+**DevSquad** 是一个多角色 AI 任务编排器。当你提交一个任务时，它不再是单个 AI 回答，而是按任务匹配多个专业角色协作，最后给出经过多方审核的结论。
 
 ```
 传统 AI:  你 ──→ ChatGPT ──→ 一个回答（可能不全面）
@@ -33,7 +33,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 
 | 痛点 | 传统单 AI | DevSquad |
 |------|----------|----------|
-| **视角单一** | 只有通用视角 | 7 个专业角色并行审视 ✅ |
+| **视角单一** | 只有通用视角 | 按任务匹配多个专业角色协作 ✅ |
 | **质量不可控** | 可能遗漏安全问题 | 多维度交叉验证 + 共识机制 ✅ |
 | **无审计追踪** | 不知道回答依据什么 | 完整审计链 + SHA256 完整性校验 ✅ |
 | **复杂任务崩溃** | 长任务容易丢失上下文 | Checkpoint 断点续传 + 工作流引擎 ✅ |
@@ -45,7 +45,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 pip install devsquad
 
 # 运行 - 让 AI 团队帮你设计认证系统
-devsquad run "设计一个安全的用户认证系统" --roles architect,security,tester,coder
+devsquad run "设计一个安全的用户认证系统" --roles architect security tester coder
 
 # 输出结构化报告：
 # ✅ 架构师建议：采用 JWT + Refresh Token 方案...
@@ -71,7 +71,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect,securit
 <details>
 <summary>🔍 点击展开：完整功能介绍与架构详解</summary>
 
-## 🚀 V4.5.2: Approval Gate + Connector Framework + Anti-Ghost E2E
+## Historical release details: V4.5.2 and earlier
 
 **DevSquad V4.5.2** (PATCH release, SemVer compliant) introduces 2 new modules and completes 3 ROADMAP items (V451-1, V451-2, V451-7/8/9). All new modules default to safe, backward-compatible behavior — no API breaking changes. See [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) for full release notes.
 
@@ -124,9 +124,10 @@ Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `
 
 ### Test Pyramid Achieved
 - **Contract tests**: 5.2% (target ≥5% ✅)
-- **Integration tests**: 15.1% (target ≥15% ✅)
-- **Total tests**: 9400+ (CI authoritative)
-- **E2E coverage**: 107 e2e + 1244 integration + 13 V4.4.0 anti-ghost + 12 V4.5.2 anti-ghost
+- **Discovered tests**: 9794 across 403 files in the current local scan
+- **Integration tests**: 14.9% (target ≥15%; warning remains)
+- **Unclassified tests**: 0
+- **E2E coverage**: present in `tests/e2e/`; final pass count requires the current CI run
 
 ### Historical Features (V4.0.0-V4.3.3)
 - **V4.3.3**: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0)
@@ -216,7 +217,7 @@ print(result.consensus)
 # One-click startup — 4 phases: env check → DB init → frontend build → service start
 ./scripts/start.sh
 
-# Launch Streamlit dashboard instead of API server
+# Launch the API and Streamlit dashboard together
 ./scripts/start.sh --dashboard
 
 # Override API port
@@ -252,7 +253,7 @@ DevSquad's 218+ modules are organized into **5 capability domains**, each solvin
 
 ### 🎯 Domain 1: Task Orchestration Engine (Core)
 
-> **让 7 个角色高效协作的「指挥中心」**
+> **让多个专业角色高效协作的「指挥中心」**
 
 | Module | Purpose | When to Use |
 |--------|---------|------------|
@@ -265,7 +266,7 @@ DevSquad's 218+ modules are organized into **5 capability domains**, each solvin
 **Core Workflow:**
 ```
 User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
-           → [ThreadPoolExecutor Parallel Workers] → [Scratchpad Real-time Sharing]
+           → [Sync/Async Worker Execution] → [Scratchpad Real-time Sharing]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 

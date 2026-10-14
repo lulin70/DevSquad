@@ -54,6 +54,7 @@ except ImportError:
     MCP_AVAILABLE = False
     logger.warning("MCP SDK not installed. Run: pip install mcp")
 
+from scripts.cli_utils import ALL_ROLE_IDS, BACKENDS, MODES  # noqa: E402
 from scripts.collaboration._version import __version__ as DEVSQUAD_VERSION  # noqa: E402
 from scripts.collaboration.dispatch_rbac import DispatchRBAC, PermissionResult  # noqa: E402
 from scripts.collaboration.dispatcher import MultiAgentDispatcher  # noqa: E402
@@ -481,13 +482,8 @@ def create_mcp_server(
                 return json.dumps({"error": f"Invalid task: {vresult.reason}", "success": False})
             task = vresult.sanitized_input or task
         try:
-            # MultiAgentDispatcher.dispatch's first parameter is ``task_description``,
-            # but the public MCP tool contract (and its tests) pass ``task``. We keep
-            # ``task=`` to honor that contract; the resulting mypy call-arg error is
-            # suppressed here. (tests/ and scripts/collaboration/ are out of scope,
-            # so the dispatcher signature cannot be reconciled here.)
-            result = disp.dispatch(  # type: ignore[call-arg]
-                task=task,
+            result = disp.dispatch(
+                task_description=task,
                 roles=roles,
                 mode=mode,
                 dry_run=dry_run,
@@ -593,17 +589,17 @@ def create_mcp_server(
             return denial
         disp = server._get_dispatcher()
         try:
-            disp.get_status() if hasattr(disp, "get_status") else {}
+            dispatcher_status = disp.get_status() if hasattr(disp, "get_status") else {}
             return json.dumps(
                 {
                     "name": "DevSquad",
                     "version": DEVSQUAD_VERSION,
                     "status": "ready",
-                    "modules": 149,
-                    "tests": 2861,
-                    "roles": 7,
-                    "modes": ["auto", "parallel", "sequential", "consensus"],
-                    "backends": ["mock", "openai", "anthropic"],
+                    "dispatcher": dispatcher_status,
+                    "roles": len(ROLE_REGISTRY),
+                    "role_ids": ALL_ROLE_IDS,
+                    "modes": MODES,
+                    "backends": BACKENDS,
                     "languages": ["zh", "en", "ja"],
                     "features": {
                         "memory_bridge": True,

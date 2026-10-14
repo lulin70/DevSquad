@@ -61,7 +61,7 @@
 | 功能 | DevSquad | AutoGen | CrewAI | LangGraph |
 |------|:--------:|:-------:|:------:|:---------:|
 | **多 Agent 协作** | ✅ | ✅ | ✅ | ✅ |
-| **并行执行** | ✅ ThreadPoolExecutor | ⚠️ 有限 | ❌ 顺序 | ✅ 异步 |
+| **并发执行** | ✅ 同步/异步 worker | ⚠️ 有限 | ❌ 顺序 | ✅ 异步 |
 | **角色系统** | ✅ 7 个预定义角色 | ⚠️ 自定义 | ✅ 角色模板 | ❌ 无角色概念 |
 | **共识机制** | ✅ 加权投票+否决权 | ❌ 无 | ❌ 无 | ❌ 无 |
 | **冲突解决** | ✅ 自动升级机制 | ❌ 无 | ❌ 无 | ✅ 条件分支 |
@@ -107,7 +107,7 @@ DevSquad Architecture:
 └────────────────┬─────────────────────┘
                  ▼
 ┌──────────────────────────────────────┐
-│ ThreadPoolExecutor                   │ ← 并行执行
+│ Sync/Async Worker Execution           │ ← 按模式执行
 │ ┌─────┬─────┬─────┬─────┐           │
 │ │Arch │Sec │Test│Coder│           │
 │ └──┬──┴──┬──┴──┬──┴──┘           │
@@ -237,8 +237,8 @@ graph.invoke({"messages": []})
 | 指标 | DevSquad | AutoGen | CrewAI | LangGraph |
 |------|----------|---------|--------|-----------|
 | **启动时间** | < 2s | < 3s | < 2s | < 2s |
-| **单任务延迟** | 5-15s (7 roles) | 10-30s (multi-turn) | 8-20s (sequential) | 3-10s (simple graph) |
-| **并发能力** | ✅ 高 (ThreadPoolExecutor) | ⚠️ 中 (asyncio) | ❌ 低 (同步) | ✅ 高 (async) |
+| **单任务延迟** | 5-15s (matched roles) | 10-30s (multi-turn) | 8-20s (sequential) | 3-10s (simple graph) |
+| **并发能力** | ✅ 按模式支持同步/异步 | ⚠️ 中 (asyncio) | ❌ 低 (同步) | ✅ 高 (async) |
 | **内存占用** | ~50MB (base) | ~80MB | ~40MB | ~60MB |
 | **LLM 调用次数** | N (roles count) | N×M (turns × agents) | N (agents) | N (nodes) |
 | **缓存命中率** | 95%+ (L1→L2→L3) | 无 | 无 | 无 |
@@ -250,7 +250,7 @@ graph.invoke({"messages": []})
 
 | 场景 | 为什么选 DevSquad | 示例 |
 |------|------------------|------|
-| **代码审查** | 7 个专业角色并行审查，多维度覆盖 | 安全+架构+测试同时 review PR |
+| **代码审查** | 按任务匹配专业角色，多维度覆盖 | 安全+架构+测试同时 review PR |
 | **技术方案评审** | 共识机制确保质量门禁 | 微服务 vs 单体架构评估 |
 | **安全审计** | Security Expert 专职角色 | OWASP Top 10 检查 |
 | **生产环境部署** | RBAC + Audit Log 合规要求 | 金融/医疗行业 |
@@ -302,7 +302,7 @@ graph.invoke({"messages": []})
 
 | 能力 | DevSquad | AutoGen | CrewAI | LangGraph |
 |------|:--------:|:-------:|:------:|:---------:|
-| **并行执行** | ✅ ThreadPoolExecutor | ⚠️ 有限 | ❌ 顺序 | ✅ 异步 Fan-out |
+| **并发执行** | ✅ 同步/异步 worker | ⚠️ 有限 | ❌ 顺序 | ✅ 异步 Fan-out |
 | **顺序管道** | ✅ BatchScheduler | ✅ 对话链 | ✅ 核心 | ✅ 边连接 |
 | **条件分支** | ✅ IntentWorkflowMapper | ⚠️ 手动 | ❌ 无 | ✅ Conditional Edge |
 | **循环迭代** | ✅ FeedbackControlLoop | ✅ 多轮对话 | ❌ 无 | ✅ 循环边 |

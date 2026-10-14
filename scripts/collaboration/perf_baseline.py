@@ -117,7 +117,7 @@ class PerfBaseline:
     """
 
     snapshots: dict[str, PerfSnapshot] = field(default_factory=dict)
-    version: str = "v4.5.2"
+    version: str = "v4.7.0"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -128,7 +128,7 @@ class PerfBaseline:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> PerfBaseline:
         return cls(
-            version=data.get("version", "v4.5.2"),
+            version=data.get("version", "v4.7.0"),
             snapshots={p: PerfSnapshot.from_dict(s) for p, s in data.get("snapshots", {}).items()},
         )
 

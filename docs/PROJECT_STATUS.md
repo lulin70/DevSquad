@@ -1,26 +1,26 @@
 # DevSquad 项目状态
 
-> **当前版本**: V4.5.16（2026-09-03，Digital Truth PATCH，已发布 + tag v4.5.16）
-> **下一版本**: V4.6.1-cleanup（2026-09-09，发布验证中）
-> **最后更新**: 2026-09-09
-> **最新评估**: V4.6.1-cleanup — 幽灵依赖、类型注释、异常可观测性与历史文档归档清理已完成；本地门禁与依赖审计通过，commit/push 及权威 GitHub Actions 验证待完成。详见 [V4.6.1_cleanup_PRD.md](prd/V4.6.1_cleanup_PRD.md)、[CHANGELOG.md](../CHANGELOG.md) 与 [VERSION_HISTORY.md](reference/VERSION_HISTORY.md)。
-> **硬约束通过率**: 13/13（100%）
-> **PyPI**: https://pypi.org/project/devsquad/4.1.6/（V4.1.6，V4.5.x 待发布）
-> **GitHub Release**: https://github.com/lulin70/DevSquad/releases/tag/v4.0.0（V4.0.0）
+> **代码版本**: V4.7.0（仓库元数据已统一；当前分支为 `chore/v470-version-bump`）
+> **发布状态**: 仓库代码已完成 V4.7.0 生命周期与修复流程，但尚未创建 `v4.7.0` tag 或 GitHub Release。
+> **最后更新**: 2026-10-14
+> **最新评估**: 七维度项目整理已完成运行时契约修复、用户文档校正、测试质量门修复、CI 阻塞语义收紧和质量门标记迁移（`# noqa: test-quality` → `# test-quality: ignore`，25 处）。静态检查链全部通过；主测试全量回归已完成（8312 passed，覆盖率 79.48%）；E2E + integration 全量与性能基线刷新仍在进行。
+> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（80/80）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM/100 LOW）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）均已通过。性能基线仍是历史 V4.5.2 数据，权威 CI 确认和正式发布决策未完成。
+> **PyPI**: 当前已观察到的最新发布版本为 [4.6.0](https://pypi.org/project/devsquad/4.6.0/)；V4.7.0 尚未发布。
+> **GitHub Release**: 当前没有 V4.7.0 release；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
 
 ---
 
 ## 1. 项目概述
 
-DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 人 AI 专业团队。当任务提交时，系统自动分解任务、匹配角色、并行执行、共识决策、生成结构化报告。
+DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任务匹配专业角色，使用当前同步/异步 Worker 路径执行，经过共享上下文和共识处理后生成结构化报告。
 
-**核心定位**: User Task → [InputValidator] → [RoleMatcher] → [Coordinator] → [Workers 并行] → [Scratchpad 共享] → [ConsensusEngine] → [Report]
+**核心定位**: User Task → [InputValidator] → [RoleMatcher] → [Coordinator] → [Sync/Async Workers] → [Scratchpad 共享] → [ConsensusEngine] → [Report]
 
 ---
 
 ## 2. 模块清单
 
-**模块数**: 204+ 核心模块（`scripts/collaboration/` + `scripts/qa/` + `scripts/dashboard/` 下 .py 文件，详见 [SKILL.md](../SKILL.md) Architecture Overview）
+**模块数**: 219 个公开核心模块（`scripts/collaboration/` 下的当前统计；文档 headline 允许小幅漂移，详见 [SKILL.md](../SKILL.md) Architecture Overview）
 
 **V4.5.16 PATCH（Housekeeping + Digital Truth，无新用户功能）**:
 - `_version_info` 元组对齐 `(4,5,16)` + `__version__` 字符串；helm chart `image.tag` 与 `Chart.yaml` 同步；`scripts/publish_now.sh` 归档 `docs/_archive/scripts/`；`scripts/check_module_activation.py` 显式覆盖 8 个新 counter；`tests/unit/test_v4515_prometheus_e2e.py` 迁 `tests/e2e/` 并加 `@pytest.mark.e2e/slow`；`docs/release_notes/` 命名空间统一（11 份 git mv）；`scripts/api/routes/{dispatch,lifecycle,metrics_gates}.py` 14 处 `logger.error(..., exc_info=True)` 收紧为 `logger.exception`；`scripts/sync_skill_pack.py` 上线 + 7 测试；18 个 SSOT 文件版本统一到 4.5.16；`DevSQuad → DevSquad` 8 活文件 16 行；`docs/prd/V4.5.14_PRD.md` 与 `V4.5.16_PRD.md` 补全；e2e_evidence V4.5.14/V4.5.15 占位。详见 [V4.5.16_RELEASE_NOTES.md](release_notes/V4.5.16_RELEASE_NOTES.md) 与 `docs/release_notes/V4.5.16_RELEASE_NOTES.md`。
@@ -82,28 +82,32 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 ## 3. 测试统计
 
-| 测试类型 | 数量 | 状态 |
+以下是本轮本地可复现结果。它们不替代 GitHub Actions 的权威结果。
+
+| 检查 | 结果 | 状态 |
 |----------|------|------|
-| V4.6.1-cleanup 本地完整回归 | 9321 passed, 6 skipped, 1 warning | ✅ 全绿 |
-| V4.6.1-cleanup 本地 E2E | 160 passed, 2 skipped, 122 deselected, 1 warning | ✅ 全绿 |
-| 单元/集成回归 | 8392+ passed, 25 skipped（本地 Python 3.12，含 V4.4.0/V4.4.2/V4.5.0/V4.5.1 全部新模块） | ✅ 全绿 |
-| V4.4.0 E2E | 13 passed, 0 xfail, 0 fail（xfail→xpass 全部转换完成，0.88s） | ✅ 全绿 |
-| V4.4.1 模拟用户 E2E | 17 passed, 0 fail（5 RU 场景 + 3 AC 验收，0.49s） | ✅ 全绿 |
-| V4.4.2 多语言 + 6-Tab 测试 | 22 passed（12 unit + 5 integration + 5 e2e，含副作用验证 call_counter + localized prompt 实际下发） | ✅ 全绿 |
-| V4.5.0 跨会话 + Skill 协议测试 | 83+ passed（ScratchpadHistoryStore + AgentIdentity + WorkflowTrace + GitContext + SkillProvider + OutputStyle + SessionResume + FileBundler + SKILL 拆分 + VISION，含 `_call_counter` 防幽灵） | ✅ 全绿 |
-| Contract 测试 | 384 passed（8 Protocol 契约合规，V4.2.1 测试金字塔提升至 5.2%） | ✅ 全绿 |
-| Integration 测试 | 1122 passed（V4.2.1 测试金字塔提升至 15.1% + V4.4.2 +5） | ✅ 全绿 |
-| 版本一致性 | 32 passed（VERSION/pyproject.toml/_version.py/Dockerfile/skill-manifest/SKILL/README/CLAUDE/deployment.yaml/COMPARISON.md/Chart.yaml + L1/L2/L3 TRAE 缓存 + V4.4.0 PRD） | ✅ 全绿 |
-| 覆盖率 | 80.03%+（本地 3.12，P1-D 门禁提升至 75%） | ✅ 超过 75% 门禁 |
-| 新增安全测试 | 10 passed（TestMaskRedisUrl: redis_url 凭据脱敏） | ✅ 全绿 |
-| 防幽灵验证 | 5 模块 `_call_counter > 0` after dispatch（risk_register / viewpoint_registry / error_budget_tracker / gap_analyzer / dora_metrics_collector + V4.4.2 models_dispatch `get_localized_prompt` 调用计数器） | ✅ 全绿 |
+| 测试质量门 | 扫描 403 个测试文件；0 MAJOR；785 MINOR | ✅ 通过（MINOR 仅告警） |
+| 测试质量门回归 | 280 passed（含 4 个标记迁移文件 + MCP/REST/金字塔/基线门） | ✅ 通过 |
+| 测试金字塔回归 | 53 passed | ✅ 通过 |
+| 性能基线门回归 | 34 passed（含默认版本 v4.7.0 断言修复） | ✅ 通过 |
+| 测试金字塔结构 | 9794 tests / 403 files；unclassified 0 | ✅ 结构通过 |
+| 测试金字塔比例 | unit 73.7%，integration 14.9%，e2e 5.0%，contract 5.3%，security 0.6% | ⚠️ integration 低于 15% 目标 |
+| 主测试全量回归 | 8312 passed, 17 skipped；覆盖率 79.48%（≥70% 门） | ✅ 通过（2 failed 已处置：1 个断言修复 + 1 个外部波动重试通过） |
+| Ruff lint + format | All checks passed；1088 files formatted | ✅ 通过 |
+| mypy（scripts/ + skills/） | 0 errors | ✅ 通过 |
+| 版本一致性 | 80/80（4 层 TRAE cache 已重新同步） | ✅ 通过 |
+| 配置一致性 | 7/7 | ✅ 通过 |
+| Bandit | 0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json） | ✅ 通过 |
+| pip-audit | requirements.lock + requirements-dev.lock 无已知漏洞 | ✅ 通过 |
+| dispatcher size gate / skill contract / module activation / hidden content / dependency lock+sync | 全部 PASS | ✅ 通过 |
+| 性能基准（CI performance job 同款命令） | 23 passed | ✅ 通过 |
+| 性能基线文件 | 已刷新为 V4.7.0：mock 路径真实测量（50 样本 + 5 warmup 丢弃，p95≈0.0015ms）；host/api/auto_fallback 仍为 stub（snapshot_id 带 `_stub` 标记，发布 tag 时需真实环境替换） | ✅ mock 已测量；⚠️ host/api 为 stub |
+| E2E + integration 全量 | 1670 passed, 4 skipped（1 failed 为 `test_llm_replay_subprocess` 偶发超时，单独重跑 211s 通过，非产品回归） | ✅ 通过 |
+| 权威 CI | 尚未触发本轮最终确认 | ⏳ 待执行 |
 
-**测试铁律**: 0 违规（TestQualityGuard 审计通过）
+**测试质量说明**: 质量门不再把嵌套测试目录遗漏。测试中的 `assertTrue` 等 MINOR 项仍需持续治理，但当前不构成 MAJOR 阻断。
 
-**测试金字塔达标**:
-- Contract: 3.06% → 5.2%（目标 ≥5% ✅）
-- Integration: 8.84% → 15.1%（目标 ≥15% ✅）
-- 总测试数: 5250+ → 8996+（+3746 测试）
+**测试金字塔说明**: `tests/security/` 已纳入独立 security 层。未分类测试为 0。集成测试比例为 14.9%，没有通过降低目标或隐藏警告来制造绿灯。
 
 ---
 
@@ -157,10 +161,15 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 编号 | 描述 | 目标版本 | 状态 |
 |------|------|----------|------|
-| TD-067 | mypy 112 errors（scripts/ 全量） | V3.10.0 (<50) | ✅ 已清零（112→0，超额达成，CI 升级为阻断门禁） |
-| TD-068 | 24 个 Mixin 类爆炸风险 | — | ✅ 降级关闭（评估结论：非类爆炸，是合理关注点分离；真正问题是 PromptAssembler+WorkflowEngine 测试缺口） |
-| TD-069 | bandit 11 个 Low 级告警（实际非 49，已 skips B101/B311/B404/B603） | — | ✅ 已清零（全误报/合法使用，加 nosec 注释） |
-| TD-070 | PromptAssembler + WorkflowEngine 缺专用单元测试 | V3.10.0 | 新增（TD-068 评估发现） |
+| TD-067 | mypy 112 errors（scripts/ 全量） | V3.10.0 (<50) | ✅ 历史债务已清零 |
+| TD-068 | 24 个 Mixin 类爆炸风险 | — | ✅ 评估后关闭；当前属于职责拆分，不是已证实缺陷 |
+| TD-069 | bandit 中低危告警 | — | ✅ 本轮已重新执行：0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json）；权威 CI 仍需复验 |
+| TD-070 | PromptAssembler + WorkflowEngine 测试缺口 | — | ⚠️ 历史记录；需由当前测试报告重新确认，不作为已验证事实 |
+| TD-071 | 性能基线曾为 V4.5.2 历史 stub 数据 | V4.7.0 | ✅ 本轮已刷新：mock 路径真实测量（collect_baseline.py 改用真实 MockBackend.generate 调用）；host/api/auto_fallback 仍为 stub，发布 tag 时需真实环境替换 |
+| TD-072 | 集成测试比例 14.9%，低于 15% 目标 | 后续迭代 | ⚠️ 已暴露，未通过放宽目标关闭 |
+| TD-073 | CI 性能检查和金字塔命令曾使用非阻塞写法 | V4.7.0 | ✅ 本轮已移除相关 `|| true`；本地验证通过；权威 CI 仍需复验 |
+| TD-074 | 文档仍有历史版本和旧能力数字 | V4.7.0 | ⚠️ 已修复主要用户文档；需继续清理历史文档中的非历史表述 |
+| TD-075 | 质量门豁免标记曾使用非法 Ruff 指令 `# noqa: test-quality` | V4.7.0 | ✅ 本轮已迁移为 `# test-quality: ignore`（25 处，5 文件）；Ruff invalid-noqa 清零 |
 
 ---
 
@@ -168,33 +177,36 @@ DevSquad 是一个多角色 AI 任务编排器，将单个 AI 助手升级为 7 
 
 | 指标 | 当前值 | 目标 |
 |------|--------|------|
-| ruff | All checks passed | 0 |
+| ruff | All checks passed（lint + format，1088 files） | 0 |
 | mypy (scripts/collaboration/) | 0 errors | 0 |
-| mypy (scripts/ 全量) | 0 errors (阻断门禁，原 112) | 0 ✅ |
-| bandit | 0 issues (原 11 Low) | 0 ✅ |
+| mypy (scripts/ + skills/ 全量) | 0 errors (阻断门禁，原 112) | 0 ✅ |
+| bandit | 0 HIGH / 0 MEDIUM / 100 LOW（本轮重扫） | 0 HIGH/MEDIUM ✅ |
+| pip-audit | requirements.lock + requirements-dev.lock 无已知漏洞 | 0 ✅ |
 | flake8 (新测试文件) | 0 | 0 |
-| 版本一致性 | 15/15 | 15/15 |
+| 版本一致性 | 80/80（含 4 层 TRAE cache 内容一致） | 80/80 |
 | pre-commit hooks | 已配置 (ruff + mypy + 版本一致性) | 已配置 |
 
 ---
 
 ## 9. 下一步计划
 
-1. **V4.0.0 发布**（✅ 已完成 — 2026-07-08 发布到 PyPI + GitHub Release）
-   - ✅ 6 特性全部实现并接入 dispatch pipeline（无幽灵功能）
-   - ✅ 版本号同步到 15 个核心文件（check_version_consistency.py 15/15 PASS）
-   - ✅ CHANGELOG 错误修正（P2-1/P2-2 路径与 API 名称）
-   - ✅ SKILL.md 模块表补全（18 个 V4.0.0 新模块，#96-#113）
-   - ✅ SKILL.md Version History 添加 v4.0.0 条目
-   - ✅ V4.0.0 E2E 测试已补充（tests/e2e/test_v4_user_journey.py，21 tests）
-   - ✅ 推送到远程仓库 + PyPI 发布 + GitHub Release 创建
-2. **V4.0.0 后续改进**（来自上游对比审计，平均充分性 84.3%，部分已在 v4.0.0 收尾完成）
-   - ✅ P3-1 Autonomous: SleepGuard 防休眠 + LLM 投票替换模拟投票（已落地）
-   - ✅ P2-1 Adversarial: dispatcher 直通入口（consensus_engine.adversarial_verify）
-   - ⏳ P1-2 UI/UX: 补齐 HSV 红色检测 + Toast/dialog 检测（当前 72%，最弱）
-   - ⏳ P1-1 Loop Engineering: 补 token 预算生效 + backoff 退避 + run_id 追踪（当前 85%）
-3. **V3.10.0 历史规划**（详见 [docs/spec/v3.10.0_spec.md](./spec/v3.10.0_spec.md)，已完成）
-   - ✅ Phase 1-4 全部完成
+1. **完成 V4.7.0 发布前验证**
+   - ✅ 执行全量 unit/contract/security 回归（8312 passed，覆盖率 79.48%）。
+   - ✅ 执行 E2E + integration 全量（1670 passed；1 个偶发超时单独重跑通过）。
+   - ✅ 执行 Mypy、Bandit、pip-audit、版本一致性和配置一致性检查（全部通过）。
+   - ✅ 执行性能基准（23 passed）。
+   - ✅ Dashboard 真实用户旅程 UI 级验证：96 passed, 1 skipped（12 个浏览器级旅程含登录/导航/RBAC/Task Dispatch/确定性渲染；skip 为 auth disabled 模式下登录表单测试的设计内跳过）。注意：这批测试带 `slow` 标记，被 CI e2e job 的 `-m "not slow"` 排除，发布前必须本地补跑。
+   - 在可用环境执行 Docker、Helm、Prometheus 工具检查；不可用时记录为 environment_blocked。
+2. **刷新性能基线**
+   - ✅ mock 路径已用真实 MockBackend.generate 调用重新采集（50 样本 + 5 warmup 丢弃）。
+   - ⚠️ host/api/auto_fallback 仍为 stub；在具备真实环境的发布 tag 前替换为真实测量。
+3. **处理质量结构债务**
+   - 增加有真实价值的集成测试，使比例达到 15% 目标。
+   - 持续减少 785 个 MINOR 测试质量告警，不用批量豁免隐藏问题。
+4. **发布治理**
+   - 提交本轮变更到功能分支，创建或更新 Pull Request。
+   - 等待权威 CI 全绿后，由仓库所有者按单维护者流程合并。
+   - 在所有阻塞项关闭前，不创建 `v4.7.0` tag，不创建 GitHub Release。
 
 ---
 

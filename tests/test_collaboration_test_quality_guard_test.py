@@ -198,7 +198,7 @@ class T3_AntiPatternDetector(unittest.TestCase):
 
     def test_01_detect_bare_except(self):
         """验证: 裸 except 子句被检测为 MAJOR 问题"""
-        code = "try:\n    x = 1/0\nexcept:\n    pass\n"  # noqa: test-quality — test fixture string, not real code
+        code = "try:\n    x = 1/0\nexcept:\n    pass\n"  # test-quality: ignore — test fixture string, not real code
         issues = self.detector.detect_in_source(code, "bare.py")
         matching = [i for i in issues if i.category == "异常吞噬"]
         self.assertGreater(
@@ -236,7 +236,7 @@ self.assertRaises(ValueError, bad_func)
 
     def test_05_issue_has_suggestion(self):
         """验证: 每个检测到的问题都附带修复建议"""
-        code = "except:\n    pass"  # noqa: test-quality — test fixture string, not real code
+        code = "except:\n    pass"  # test-quality: ignore — test fixture string, not real code
         issues = self.detector.detect_in_source(code, "x.py")
         for issue in issues:
             if issue.suggestion:
@@ -250,11 +250,11 @@ self.assertRaises(ValueError, bad_func)
         """Verify: status_code-only assertion flagged as MAJOR (Lesson: '接口200'≠'功能可用').
 
         V4.5.6 W2: 测试用例本身含 'assert response.status_code == 200'，必须用
-        # noqa: test-quality 标记以豁免 detector 自身 (detector 检查的是 detector
+        # test-quality: ignore 标记以豁免 detector 自身 (detector 检查的是 detector
         自身的设计 — 这是 fixture 而非真实反模式)。
         """
-        # V4.5.6 W2: noqa: test-quality on the actual fixture string literal line
-        code = "assert response.status_code == 200  # noqa: test-quality"
+        # V4.5.6 W2: test-quality: ignore on the actual fixture string literal line
+        code = "assert response.status_code == 200  # test-quality: ignore"
         issues = self.detector.detect_in_source(code, "status_code_only.py")
         matching = [i for i in issues if i.id == "anti-status-code-only"]
         self.assertGreater(
@@ -265,7 +265,7 @@ self.assertRaises(ValueError, bad_func)
         self.assertEqual(matching[0].severity, Severity.MAJOR)
         self.assertIn("副作用", matching[0].suggestion)
 
-    def test_07_detect_lru_cache_without_refresh(self):  # noqa: test-quality
+    def test_07_detect_lru_cache_without_refresh(self):  # test-quality: ignore
         """Verify: the functools.lru_cache decorator is flagged as MAJOR (Lesson: stale cache = silent bugs).
 
         V4.5.6 W2: 测试 fixture 含 lru_cache 装饰器 + noqa 豁免 (noqa must be on
@@ -283,15 +283,15 @@ self.assertRaises(ValueError, bad_func)
         """
 
         # V4.5.6 W2: noqa on the SOURCE line that contains the lru_cache decorator
-        @functools.lru_cache  # noqa: test-quality
+        @functools.lru_cache  # test-quality: ignore
         def _fixture_get_config():
             return "config"
 
         code = "@lru_cache\ndef get_config():\n    return load_config()"
         # Inline noqa must also be on the fixture string's first line
-        code = "@lru_cache  # noqa: test-quality\ndef get_config():\n    return load_config()"
-        # V4.5.6 W2: noqa: test-quality on the def line so it triggers
-        code = "@lru_cache\ndef get_config():  # noqa: test-quality\n    return load_config()"
+        code = "@lru_cache  # test-quality: ignore\ndef get_config():\n    return load_config()"
+        # V4.5.6 W2: test-quality: ignore on the def line so it triggers
+        code = "@lru_cache\ndef get_config():  # test-quality: ignore\n    return load_config()"
         issues = self.detector.detect_in_source(code, "lru_cache.py")
         matching = [i for i in issues if i.id == "anti-lru-cache-no-refresh"]
         self.assertGreater(
