@@ -83,12 +83,22 @@ ruff format --check .
 # 确认工作树状态
 git status
 
-# 确认目标分支上的未推送 commit
-git log origin/v4.5.20-patch..HEAD --oneline
+# 确认当前分支和未推送 commit
+git branch --show-current
+git log origin/<current-branch>..HEAD --oneline
+
+# 检查 PR 状态和所有 CI 检查
+gh pr checks <number> --repo <owner>/<repo>
+gh pr view <number> --repo <owner>/<repo> --json state,mergeStateStatus,statusCheckRollup
 ```
 
 - [ ] 工作树干净（无未提交的修改）
-- [ ] 本批 commit 已推送到 `origin/v4.5.20-patch`
+- [ ] 变更已推送到功能分支
+- [ ] 已创建 Pull Request；不直接推送 `main`
+- [ ] 所有必需 CI 和安全检查通过
+- [ ] 自审已完成，PR 对话已解决
+- [ ] 单维护者模式：不要求第二位维护者批准；由仓库所有者在 CI 通过后合并
+- [ ] 多维护者模式：恢复至少 1 个其他维护者批准后再合并
 - [ ] 本批**不创建 Git tag**；按用户决议在 W1 后统一处理
 - [ ] GitHub Release / tag 按独立发布决策执行，不作为本批验收条件
 

@@ -26,3 +26,6 @@
 - [ ] I have updated the documentation accordingly
 - [ ] My changes generate no new warnings
 - [ ] I have added tests that prove my fix is effective or my feature works
+- [ ] All required CI and security checks pass
+- [ ] All Pull Request conversations are resolved
+- [ ] Single-maintainer workflow: no second approval is required; the repository owner merges after the checks pass
