@@ -54,3 +54,50 @@ def test_blocked_backend_exits_2_with_disclosure():
     # C19: blocked runs exit 2 (non-zero — C9/C10 untouched) and say so.
     assert result.returncode == 2, f"expected exit 2 (environment_blocked), got {result.returncode}:\n{output[-800:]}"
     assert "environment_blocked" in output, f"exit 2 must carry the environment_blocked disclosure:\n{output[-800:]}"
+
+
+def test_blocked_host_adapter_exits_2_with_disclosure():
+    """V4.7.0 (TD-002): the ``--host`` adapter path must not bypass C19.
+
+    The host-adapter branch (``_print_host_result``) used to return a flat
+    1 on failure, so a host dispatch blocked by the environment exited 1
+    — indistinguishable from a product failure. This journey pins the fix:
+    same blocked provider as the main path, but dispatched through the
+    ``--host trae`` adapter, must exit 2 and carry the disclosure.
+    """
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(_PROJECT_ROOT)
+    env["PYTHONUNBUFFERED"] = "1"
+    env["DEVSQUAD_LLM_BACKEND"] = "openai"
+    env["DEVSQUAD_OPENAI_API_KEY"] = "sk-invalid-for-td002-host-journey"
+    env["DEVSQUAD_OPENAI_BASE_URL"] = "http://127.0.0.1:9"  # discard port: nothing listens
+    env["DEVSQUAD_OPENAI_MODEL"] = "td002-host-probe-model"
+    env["TERM"] = "dumb"
+    env["NO_COLOR"] = "1"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(_CLI_PATH),
+            "dispatch",
+            "-t",
+            "TD-002 host blocked journey probe",
+            "-r",
+            "arch",
+            "--host",
+            "trae",
+        ],
+        cwd=str(_PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+        timeout=300,
+        env=env,
+    )
+
+    output = result.stdout + result.stderr
+    assert result.returncode == 2, (
+        f"host adapter path must exit 2 (environment_blocked), got {result.returncode}:\n{output[-800:]}"
+    )
+    assert "environment_blocked" in output, (
+        f"host adapter exit 2 must carry the environment_blocked disclosure:\n{output[-800:]}"
+    )

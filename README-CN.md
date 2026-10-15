@@ -143,7 +143,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
 - **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
 
-9400+ tests passing（CI 权威）。
+9800+ tests collected（当前本地扫描；通过数以 CI 为权威）。
 
 ---
 
@@ -542,11 +542,11 @@ devsquad dispatch -t "设计用户认证系统"
 ```bash
 # 检查版本
 devsquad --version
-# 预期: devsquad 4.5.24
+# 预期: devsquad 4.7.0
 
 # 运行测试
 pytest tests/ -v --tb=short
-# 预期: 9400+ passed
+# 预期: 9800+ collected（通过数以 CI 为权威）
 ```
 
 ---
@@ -604,7 +604,7 @@ python3 scripts/cli.py roles           # 预期: 列出 7 个核心角色
 
 ### 完整测试套件
 ```bash
-# 运行所有测试（9400+ tests passing）
+# 运行所有测试（9800+ collected）
 python3 -m pytest tests/ -q --tb=line
 
 # 含覆盖率报告
@@ -621,7 +621,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | 集成 & E2E | 完整 lifecycle dispatch、跨模块集成 | ~200 |
 | **P3** | 模块单元 | 核心 dispatcher、RoleMapping、MCEAdapter、LLM backends | ~400+ |
 
-**总计: 9400+ CI 测试 / 266 e2e（收集 9400+）**
+**总计: 9800+ collected 测试 / 492 e2e（当前本地扫描）**
 
 按优先级运行：
 ```bash

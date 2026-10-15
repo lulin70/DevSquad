@@ -275,14 +275,40 @@ def _print_dispatch_result(args: argparse.Namespace, result: DispatchResult) -> 
 
 
 def _print_host_result(args: argparse.Namespace, host_result: dict[str, Any]) -> int:
-    """Print a host-adapter dispatch result and return the exit code."""
+    """Print a host-adapter dispatch result and return the exit code.
+
+    V4.7.0 (TD-002): a failed host dispatch is attributed through the
+    failure taxonomy (C19) instead of a flat 1 — ``environment_blocked``
+    failures (e.g. the host bridge being unavailable) exit 2, product
+    failures exit 1. The adapter's ``raw_result`` DispatchResult carries
+    the pipeline's own ``failure_class``; an adapter-level failure
+    without one classifies its error text fail-closed (unknown stays
+    product_failed). Exit 2 always carries the stderr disclosure so the
+    code is never silent.
+    """
     # MultiHostAdapter returns a dict; print the host-formatted report
     if args.format == "json":
         print(json.dumps(host_result, ensure_ascii=False, indent=2, default=str))
     else:
         print(f"[Host: {host_result['host']}]")
         print(host_result["report"])
-    return 0 if host_result["success"] else 1
+    from scripts.collaboration.failure_taxonomy import (
+        FailureClass,
+        classify_error_text,
+        dispatch_exit_code,
+    )
+
+    raw_result = host_result.get("raw_result")
+    if raw_result is not None:
+        exit_code = dispatch_exit_code(raw_result)
+    elif host_result.get("success"):
+        return 0
+    else:
+        failure_class = classify_error_text(host_result.get("error") or None)
+        exit_code = 2 if failure_class is FailureClass.ENVIRONMENT_BLOCKED else 1
+    if exit_code == 2:
+        print("failure_class: environment_blocked", file=sys.stderr)
+    return exit_code
 
 
 def _resolve_use_async(args: argparse.Namespace, environ: dict[str, str] | None = None) -> bool:

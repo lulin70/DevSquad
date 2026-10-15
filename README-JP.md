@@ -142,7 +142,7 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
 - **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
 
-9400+ tests passing（CI 権威）。
+9800+ tests collected（現在のローカルスキャン；合格数は CI が権威）。
 
 ---
 
@@ -541,11 +541,11 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # バージョンを確認
 devsquad --version
-# Expected: devsquad 4.5.24
+# Expected: devsquad 4.7.0
 
 # テストを実行
 pytest tests/ -v --tb=short
-# Expected: 9400+ passed
+# Expected: 9800+ collected（合格数は CI が権威）
 ```
 
 ---
@@ -603,7 +603,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### フルテストスイート
 ```bash
-# 全テストを実行（9400+ tests passing）
+# 全テストを実行（9800+ collected）
 python3 -m pytest tests/ -q --tb=line
 
 # カバレッジレポート付き
@@ -620,7 +620,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | 完全ライフサイクルディスパッチ、クロスモジュール統合 | ~200 |
 | **P3** | モジュール別ユニット | コアディスパッチャー、RoleMapping、MCEAdapter、LLMバックエンド | ~400+ |
 
-**合計: 9400+ CI tests / 266 e2e（9400+ collected）**
+**合計: 9800+ collected tests / 492 e2e（現在のローカルスキャン）**
 
 優先度別に実行:
 ```bash
