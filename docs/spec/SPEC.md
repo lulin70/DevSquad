@@ -1,10 +1,10 @@
-# DevSquad V4.7.0 完整技术规范
+# DevSquad V4.7.1 完整技术规范
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **规范名称**: DevSquad V4.7.0
+> **规范名称**: DevSquad V4.7.1
 
 > **文档类型**: 项目技术规范 (Technical Specification)
-> **版本**: V4.7.0 (Enterprise Edition)
+> **版本**: V4.7.1 (Enterprise Edition)
 > **成熟度**: 9.2/10 (诚实评估)
 > **最后更新**: 2026-08-30
 > **文档位置**: `docs/spec/SPEC.md`
@@ -39,7 +39,7 @@
 | 属性 | 值 |
 |------|-----|
 | **项目名称** | DevSquad |
-| **版本号** | V4.7.0 |
+| **版本号** | V4.7.1 |
 | **成熟度等级** | 8.9/10 (honest assessment) |
 | **项目描述** | Production-Ready Multi-Role AI Task Orchestrator |
 | **开发语言** | Python 3.10+ |
@@ -320,13 +320,16 @@ Control Loop Architecture (Feedback Systems)
 | `api/routes/__init__.py` | 路由包初始化 | N/A |
 | `auth.py` | 认证管理 | 40% |
 
-### 3.3 CLI 模块 (Command Line Interface) - 3 个文件
+### 3.3 CLI 模块 (Command Line Interface) - 2 个文件
 
 | 模块文件 | 功能描述 | 覆盖率 |
 |----------|----------|--------|
 | `cli.py` | CLI 入口，argparse 命令解析 | 27% |
-| `cli/cli_visual.py` | CLI 可视化输出 | 35% |
-| `cli/__init__.py` | CLI 包初始化 | N/A |
+| `cli_visual.py` | CLI 可视化输出 | 35% |
+
+> V4.7.1: `cli_visual.py` moved from `scripts/cli/` to `scripts/` and the empty
+> `scripts/cli/` package was removed — it shadowed `scripts/cli.py` in the
+> import system and broke the PyPI `devsquad` entry point.
 
 ### 3.4 辅助服务模块 (Auxiliary Services) - 4 个文件
 
@@ -1268,7 +1271,7 @@ pip install -e .
 ```bash
 # 验证安装
 devsquad --version
-# 输出: DevSQuad V4.7.0
+# 输出: DevSQuad V4.7.1
 
 # Mock 模式演示（无需 API Key）
 devsquad demo --scenario all

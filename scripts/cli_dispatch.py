@@ -47,7 +47,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
     scenario = getattr(args, "scenario", "all")
 
     print("\n" + "=" * 60)
-    print("  🚀 DevSquad V3.7.0 Quick Demo")
+    print(f"  🚀 DevSquad V{VERSION} Quick Demo")
     print("=" * 60)
     print("  Mode: Mock (no API key required)\n")
 

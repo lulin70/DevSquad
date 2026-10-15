@@ -5,6 +5,7 @@
 
 # Core Dependencies (Required)
 pyyaml>=6.0
+defusedxml>=0.7               # XML parsing hardening for lifecycle JUnit evidence
 
 # Production Server Stack
 fastapi>=0.100.0              # REST API server framework

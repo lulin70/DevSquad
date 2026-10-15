@@ -13,6 +13,7 @@ Usage:
 import argparse
 import os
 import sys
+from collections.abc import Callable
 from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -43,7 +44,7 @@ from scripts.cli_utils import (
 from scripts.collaboration.models import ROLE_REGISTRY
 
 
-def _print_init_welcome():
+def _print_init_welcome() -> None:
     """Print the setup wizard welcome banner."""
     print("\n" + "=" * 60)
     print("🚀 Welcome to DevSquad Setup Wizard!")
@@ -52,7 +53,7 @@ def _print_init_welcome():
     print("It should take about 1-2 minutes.\n")
 
 
-def _init_step1_project_type(config):
+def _init_step1_project_type(config: dict[str, Any]) -> dict[str, Any]:
     """Step 1: Project Type selection. Returns the selected project type dict."""
     print("📋 Step 1/5: Project Type")
     print("-" * 40)
@@ -99,7 +100,7 @@ def _init_step1_project_type(config):
         print(f"   {key}) {ptype['name']}")
         print(f"      {ptype['desc']}")
 
-    project_choice = _prompt_choice("Select your project type [1-6]", list(project_types.keys()), default="6")
+    project_choice = _prompt_choice("Select your project type [1-6]", list(project_types.keys()), default="6") or "6"
     selected_type = project_types[project_choice]
     config["project_type"] = selected_type["id"]
     config["default_roles"] = selected_type["roles"]
@@ -109,7 +110,7 @@ def _init_step1_project_type(config):
     return selected_type
 
 
-def _init_step2_backend(config):
+def _init_step2_backend(config: dict[str, Any]) -> None:
     """Step 2: LLM Backend configuration."""
     print("\n\n🤖 Step 2/5: AI Backend Configuration")
     print("-" * 40)
@@ -132,7 +133,7 @@ def _init_step2_backend(config):
     print()
 
     backend_options = {"1": "mock", "2": "openai", "3": "anthropic"}
-    backend_choice = _prompt_choice("Select AI backend [1-3]", list(backend_options.keys()), default="1")
+    backend_choice = _prompt_choice("Select AI backend [1-3]", list(backend_options.keys()), default="1") or "1"
     config["llm_backend"] = backend_options[backend_choice]
 
     if config["llm_backend"] != "mock":
@@ -146,7 +147,7 @@ def _init_step2_backend(config):
     print(f"\n   ✅ Backend: {config['llm_backend'].upper()}")
 
 
-def _init_step3_roles(config):
+def _init_step3_roles(config: dict[str, Any]) -> None:
     """Step 3: Default Roles preferences."""
     print("\n\n👥 Step 3/5: Role Preferences")
     print("-" * 40)
@@ -181,7 +182,7 @@ def _init_step3_roles(config):
     print("\n   ✅ Roles configured")
 
 
-def _init_step4_language_features(config):
+def _init_step4_language_features(config: dict[str, Any]) -> list[str]:
     """Step 4: Language & Features. Returns the list of enabled feature names."""
     print("\n\n🌐 Step 4/5: Language & Features")
     print("-" * 40)
@@ -196,7 +197,7 @@ def _init_step4_language_features(config):
     for key, (_code, desc) in lang_options.items():
         print(f"   {key}) {desc}")
 
-    lang_choice = _prompt_choice("Select language [1-4]", list(lang_options.keys()), default="1")
+    lang_choice = _prompt_choice("Select language [1-4]", list(lang_options.keys()), default="1") or "1"
     config["language"] = lang_options[lang_choice][0]
 
     print("\n   Optional features (can be enabled later):")
@@ -215,7 +216,11 @@ def _init_step4_language_features(config):
     return enabled_features
 
 
-def _init_step5_summary_and_save(config, selected_type, enabled_features):
+def _init_step5_summary_and_save(
+    config: dict[str, Any],
+    selected_type: dict[str, Any],
+    enabled_features: list[str],
+) -> bool:
     """Step 5: Configuration Summary & Save. Returns True if saved, False if cancelled."""
     print("\n\n💾 Step 5/5: Configuration Summary")
     print("-" * 60)
@@ -244,7 +249,7 @@ def _init_step5_summary_and_save(config, selected_type, enabled_features):
     return True
 
 
-def _print_init_complete(config):
+def _print_init_complete(config: dict[str, Any]) -> None:
     """Print the final setup-complete banner and quick-start guide."""
     # Final success message
     print("\n" + "=" * 60)
@@ -279,7 +284,7 @@ def _print_init_complete(config):
     print("Happy coding! 🎯\n")
 
 
-def cmd_init(args):
+def cmd_init(args: argparse.Namespace) -> int:
     """
     Interactive initialization wizard for DevSquad.
 
@@ -297,7 +302,7 @@ def cmd_init(args):
 
     _print_init_welcome()
 
-    config = {
+    config: dict[str, Any] = {
         "project_type": None,
         "llm_backend": "mock",
         "default_roles": ["auto"],
@@ -322,7 +327,7 @@ def cmd_init(args):
     return 0
 
 
-def main():
+def main() -> int:
     """Entry point for the ``devsquad`` CLI.
 
     Builds the top-level argparse parser with all subcommands (init,
@@ -752,16 +757,18 @@ Environment Variables (API keys are read from env vars only, never command line)
     # Special-cased commands first (func-attach pattern / setup / aliasing),
     # then a flat alias→handler table for the simple commands.
     if args.command in ("risks", "risk"):
-        return args.func(args) if callable(getattr(args, "func", None)) else 1
+        risk_func: Callable[[argparse.Namespace], int] | None = getattr(args, "func", None)
+        return risk_func(args) if callable(risk_func) else 1
     if args.command == "rules":
-        return args.func(args) if callable(getattr(args, "func", None)) else 1
+        rules_func: Callable[[argparse.Namespace], int] | None = getattr(args, "func", None)
+        return rules_func(args) if callable(rules_func) else 1
     if args.command == "modules":
         return _run_modules_command(args)
     if args.command in LIFECYCLE_COMMANDS:
         args.lifecycle_command = args.command
         return cmd_lifecycle(args)
 
-    handlers: dict[str, Any] = {}
+    handlers: dict[str, Callable[[argparse.Namespace], int]] = {}
     for aliases, handler in (
         (("init", "setup", "i"), cmd_init),
         (("demo", "play", "try"), cmd_demo),
@@ -777,9 +784,9 @@ Environment Variables (API keys are read from env vars only, never command line)
         for alias in aliases:
             handlers[alias] = handler
 
-    handler = handlers.get(args.command)
-    if handler is not None:
-        return handler(args)
+    cmd_handler = handlers.get(args.command or "")
+    if cmd_handler is not None:
+        return cmd_handler(args)
 
     parser.print_help()
     return 0
@@ -798,8 +805,9 @@ def _run_modules_command(args: argparse.Namespace) -> int:
         args.registry = ModuleFiberRegistry()
     if not hasattr(args, "resolver"):
         args.resolver = CoeffectResolver()
-    if callable(getattr(args, "func", None)):
-        return args.func(args)
+    modules_func: Callable[[argparse.Namespace], int] | None = getattr(args, "func", None)
+    if callable(modules_func):
+        return modules_func(args)
     return 1
 
 

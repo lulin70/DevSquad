@@ -10,7 +10,7 @@ Provides rich visual output for lifecycle commands including:
   - Beautiful formatted tables
 
 Usage:
-    from scripts.cli.cli_visual import VisualFormatter
+    from scripts.cli_visual import VisualFormatter
 
     vf = VisualFormatter()
     vf.print_lifecycle_header(command, mapping, preset)
@@ -18,16 +18,14 @@ Usage:
     vf.print_gate_status(gate_result)
 """
 
-# V4.5.16 housekeeping (P2.16): this module is still referenced at runtime
-# by ``scripts.cli_lifecycle._render_lifecycle_visual`` via a dynamic
-# ``sys.path`` insertion followed by ``from cli_visual import ...``.
-# The strict grep ``from scripts.cli.cli_visual`` therefore yields only the
-# docstring example above (no external code-path reference), but the
-# functional dependency via ``from cli_visual import ...`` is real.
-# Per the V4.5.16 P2.16 decision matrix: when an external functional
-# dependency exists via any import path, retain the file and register
-# it for explicit housekeeping confirmation. Status:
-# 已登记 V4.5.16 housekeeping 待确认 (see V4.5.16 P2.16 PRD §P2.16).
+# V4.7.0 release fix: this module previously lived in ``scripts/cli/`` —
+# a package that shadowed ``scripts/cli.py`` in the import system (packages
+# take precedence over same-named modules), which broke the PyPI
+# ``devsquad`` entry point (``scripts.cli:main`` resolved to the empty
+# package instead of cli.py) in every released version. Moved here and
+# ``scripts/cli/`` removed; ``scripts.cli_lifecycle`` now imports it
+# directly without the legacy sys.path insertion. This closes the
+# V4.5.16 P2.16 "housekeeping 待确认" registration.
 
 from typing import Any
 
@@ -197,7 +195,7 @@ class VisualFormatter:
         self,
         command: str,
         mapping: Any | None = None,
-        preset: dict | None = None,
+        preset: Any | None = None,
     ) -> None:
         """Print enhanced lifecycle command header."""
         self.print_title(f"🔄 DevSquad Lifecycle [{command.upper()}]", "View Layer Mode (Plan C Architecture)")
