@@ -4,6 +4,10 @@ import json
 import subprocess
 import sys
 
+import pytest
+
+pytestmark = pytest.mark.e2e
+
 
 def test_real_python_subprocess_scans_and_renders_proposal(tmp_path):
     document = tmp_path / "requirements.md"

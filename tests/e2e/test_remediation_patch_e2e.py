@@ -1,5 +1,7 @@
 """E2E test for approval-gated patch preview and verification."""
 
+import pytest
+
 from scripts.collaboration.models_lifecycle import LifecycleFinding
 from scripts.collaboration.remediation import (
     apply_approved_patch,
@@ -7,6 +9,8 @@ from scripts.collaboration.remediation import (
     create_patch_preview,
     proposal_from_finding,
 )
+
+pytestmark = pytest.mark.e2e
 
 
 def test_patch_is_rolled_back_when_rescan_fails(tmp_path):
