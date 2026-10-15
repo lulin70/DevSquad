@@ -7,8 +7,10 @@ docs/reference/PERFORMANCE_BASELINE.json.
 
 - mock:          measured — real MockBackend.generate() calls via
                  collect_snapshot_for_path (warmup discarded, failures excluded)
-- host:          stub — real measurement requires the host bridge environment
-- api:           stub — real measurement requires a live provider API key
+- host:          measured when the host bridge environment is present;
+                 stub otherwise (environment_blocked, printed honestly)
+- api:           measured when provider credentials are configured
+                 (openai → anthropic → moka priority); stub otherwise
 - auto_fallback: stub — depends on which sub-path triggers
 
 Run locally once to seed the baseline file:
@@ -64,6 +66,77 @@ def _collect_mock() -> PerfSnapshot:
     return snap
 
 
+def _collect_api() -> tuple[PerfSnapshot, str]:
+    """Collect measured samples for the A path (real provider API calls).
+
+    Tries each provider backend in priority order (openai → anthropic →
+    moka); the first available one is measured for real. A short pause
+    between samples avoids provider burst rate limits, and the whole
+    attempt is bounded by ``_API_MEASURE_BUDGET_S``: when a provider's
+    minute-level rate limit makes the collection exceed the budget (two
+    local attempts — 20 samples, then 10 samples + 1s spacing — each ran
+    past 25 minutes in retry backoff), the caller gets a stub snapshot
+    (environment_blocked — printed honestly) instead of hanging.
+    """
+    import time as _time
+
+    budget_s = 180.0
+    started = _time.perf_counter()
+    reason = "no provider credentials configured"
+    for name in ("openai", "anthropic", "moka"):
+        try:
+            backend = create_backend(name)
+        except Exception:
+            continue
+        try:
+            if not backend.is_available():
+                continue
+        except Exception:
+            continue
+        collector = PerfSampleCollector(path="api")
+        total = SAMPLE_COUNTS["api"] + WARMUP_DISCARD
+        for _ in range(total):
+            if _time.perf_counter() - started > budget_s:
+                reason = f"{name} measurement exceeded {budget_s:.0f}s budget (provider rate limit)"
+                print(f"  api: {reason} — stub retained")
+                break
+            collector.time_call(lambda b=backend: b.generate("Reply with exactly: pong", role_name="perf"))
+            _time.sleep(1.0)  # avoid provider burst rate limits
+        else:
+            snap = collector.snapshot(snapshot_id="v470_baseline_api")
+            snap.timestamp = _now_iso()
+            return snap, name
+    return (
+        _collect_stub("api", SAMPLE_COUNTS["api"], avg_ms=1500.0, jitter_ms=400.0),
+        reason,
+    )
+
+
+def _collect_host() -> tuple[PerfSnapshot, bool]:
+    """Collect the B path: real host-bridge calls when the host environment
+    is present; otherwise a stub snapshot (environment_blocked)."""
+    backend = None
+    try:
+        backend = create_backend("host")
+        available = backend.is_available()
+    except Exception:
+        available = False
+    if available and backend is not None:
+        snap = collect_snapshot_for_path(
+            "host",
+            backend,
+            prompt="Reply with exactly: pong",
+            role_name="perf",
+            snapshot_id="v470_baseline_host",
+        )
+        snap.timestamp = _now_iso()
+        return snap, True
+    return (
+        _collect_stub("host", SAMPLE_COUNTS["host"], avg_ms=200.0, jitter_ms=80.0),
+        False,
+    )
+
+
 def _collect_stub(path: str, n: int, avg_ms: float, jitter_ms: float) -> PerfSnapshot:
     """Emit a stub snapshot for paths not measured locally (host/api).
 
@@ -97,25 +170,27 @@ def main() -> int:
     mock_snap = _collect_mock()
     print(f"  mock: p50={mock_snap.p50_ms:.2f}ms p95={mock_snap.p95_ms:.2f}ms p99={mock_snap.p99_ms:.2f}ms [measured]")
 
-    # B path: stub (B path requires real host environment)
-    print("[host] Emitting stub snapshot (real measurement requires host)...")
-    host_snap = _collect_stub(
-        "host",
-        SAMPLE_COUNTS["host"],
-        avg_ms=200.0,  # typical file-protocol roundtrip
-        jitter_ms=80.0,
-    )
-    print(f"  host: p50={host_snap.p50_ms:.2f}ms p95={host_snap.p95_ms:.2f}ms p99={host_snap.p99_ms:.2f}ms [stub]")
+    # B path: real host-bridge calls when the host environment is present
+    print("[host] Probing host bridge availability...")
+    host_snap, host_measured = _collect_host()
+    if host_measured:
+        print(
+            f"  host: p50={host_snap.p50_ms:.2f}ms p95={host_snap.p95_ms:.2f}ms p99={host_snap.p99_ms:.2f}ms [measured]"
+        )
+    else:
+        print("  host: host bridge unavailable in this environment (environment_blocked) — stub retained")
+        print(f"  host: p50={host_snap.p50_ms:.2f}ms p95={host_snap.p95_ms:.2f}ms p99={host_snap.p99_ms:.2f}ms [stub]")
 
-    # A path: stub (real provider latency varies)
-    print("[api] Emitting stub snapshot (real measurement requires API key)...")
-    api_snap = _collect_stub(
-        "api",
-        SAMPLE_COUNTS["api"],
-        avg_ms=1500.0,  # typical LLM API call
-        jitter_ms=400.0,
-    )
-    print(f"  api: p50={api_snap.p50_ms:.2f}ms p95={api_snap.p95_ms:.2f}ms p99={api_snap.p99_ms:.2f}ms [stub]")
+    # A path: real provider API calls when credentials are configured
+    print("[api] Probing provider backends (openai → anthropic → moka)...")
+    api_snap, api_outcome = _collect_api()
+    if api_outcome in ("openai", "anthropic", "moka"):
+        print(
+            f"  api: measured via {api_outcome} backend — p50={api_snap.p50_ms:.2f}ms p95={api_snap.p95_ms:.2f}ms p99={api_snap.p99_ms:.2f}ms [measured]"
+        )
+    else:
+        print(f"  api: {api_outcome} (environment_blocked) — stub retained")
+        print(f"  api: p50={api_snap.p50_ms:.2f}ms p95={api_snap.p95_ms:.2f}ms p99={api_snap.p99_ms:.2f}ms [stub]")
 
     # auto_fallback: stub (depends on which sub-path triggered)
     print("[auto_fallback] Emitting stub snapshot...")
@@ -152,8 +227,9 @@ def main() -> int:
     for path, threshold in GATE_THRESHOLDS.items():
         print(f"  {path:15s}  +{threshold * 100:.0f}% p95 blocks")
     print()
-    print("Note: host/api/auto_fallback snapshots are stubs; replace with real")
-    print("      measurements on first release tag for accurate CI gating.")
+    print("Note: host/api snapshots are measured when their environment is")
+    print("      available; unavailable paths keep clearly-marked stubs.")
+    print("      auto_fallback stays a stub (depends on which sub-path triggers).")
 
     return 0
 

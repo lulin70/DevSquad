@@ -45,7 +45,10 @@ def _inc_call_counter_er() -> None:
 SAMPLE_COUNTS: dict[str, int] = {
     "mock": 50,
     "host": 50,
-    "api": 20,
+    # V4.7.0 (TD-071): 20 → 10 — real-provider burst rate limits made the
+    # 20-sample collection exceed 25 minutes with retry backoff; 10 samples
+    # (+5 warmup discarded) still give a usable p50/p95 for the A path.
+    "api": 10,
     "auto_fallback": 10,
 }
 
