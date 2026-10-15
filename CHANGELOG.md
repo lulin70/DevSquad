@@ -12,14 +12,15 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.7.0] - 2026-10-13
+## [4.7.0] - 2026-10-15
 
 ### Delivered
 
 - **W1 BREAK/VULN deterministic review taxonomy** — delivered ten deterministic review categories, contract C20, the reverse gate, real review-gate subprocess E2E, and simulated real-user validation through PR #34 and PR #35.
 - **Version and release metadata** — upgraded the 4.7.0 version SSOT, build/deployment metadata, current public documentation, and existing TRAE skill caches.
+- **Pre-release debt batch closeout (PR #39)** — TD-002: the host-delegation path now attributes failures through the failure taxonomy (C19) — `environment_blocked` exits 2 with a stderr disclosure instead of a flat 1; covered by a subprocess E2E host journey plus 13 integration tests, which also closed TD-072 (integration ratio back to healthy 15.0%). TD-070 closed as ghost debt (PromptAssembler/WorkflowEngine exist neither in source nor tests). TD-071: `collect_baseline.py` gained real host/api measurement logic (provider priority probe, 180s budget against provider rate limits); the current environment keeps host/api stubs honestly marked as environment_blocked. TD-074: corrected 19 stale present-tense test-count claims across README (EN/CN/JP)/INSTALL/CLAUDE; historical records preserved. MINOR test-quality items (785) stay a continuous-governance backlog — AST analysis found 0 of 741 loose-asserts mechanically safe to convert, and no rule was relaxed to fake a green light.
 
-This is a **MINOR** version upgrade. No tag was created.
+This is a **MINOR** version upgrade. Released as tag `v4.7.0` (maintainer ruling, 2026-10-15).
 
 ## [Unreleased]
 
