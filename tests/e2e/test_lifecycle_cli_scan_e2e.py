@@ -8,7 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+pytestmark = pytest.mark.e2e
 
 
 def test_lifecycle_cli_scans_document_and_junit_without_writing(tmp_path):
