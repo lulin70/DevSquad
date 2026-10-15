@@ -416,7 +416,7 @@ python3 scripts/cli.py dispatch -t "test" -r architect --dry-run
 
 # 4. Core tests (V4.5.16)
 python3 -m pytest tests/test_production_features.py tests/test_full_lifecycle_adapter.py -v
-# Expected: 9400+ tests all passing
+# Expected: all passing (full-suite counts are CI-authoritative)
 
 # 5. API Server test (if installed)
 curl http://localhost:8000/api/v1/health | jq '.status'
@@ -502,7 +502,7 @@ DevSquad/
 │       ├── anchor_checker.py     # Goal drift detection + auto-recovery (V3.6.0)
 │       ├── retrospective.py      # Independent post-dispatch retrospective (V3.6.0)
 │       ├── feature_usage_tracker.py # Feature invocation counter + reports (V3.6.0)
-│       └── *_test.py             # Test suites (9400+ tests)
+│       └── *_test.py             # Test suites (9800+ collected)
 ├── .github/workflows/test.yml    # CI: Python 3.10-3.11 matrix
 ├── Dockerfile                    # Docker support
 ├── pyproject.toml                # pip-installable package
@@ -665,6 +665,6 @@ python scripts\cli.py dispatch -t "test" -r architect --dry-run
 # Expected: [DRY RUN] message
 
 # 4. Core tests
-python -m pytest tests/ -q
-# Expected: 9400+ tests all passing
+python3 -m pytest tests/ -q
+# Expected: all passing (full-suite counts are CI-authoritative)
 ```

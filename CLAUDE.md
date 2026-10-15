@@ -124,7 +124,7 @@ DevSquad/
 │   │   ├── models.py           # Shared data models and type definitions
 │   │   ├── usage_tracker.py    # Token/cost tracking
 │   │   ├── config_manager.py   # Project-level YAML config
-│   │   └── *_test.py           # Test files (9400+ tests)
+│   │   └── *_test.py           # Test files (9800+ collected)
 ├── skills/                     # ★ Layered Sub-Skill Architecture (V3.6.1)
 │   ├── __init__.py             # Package init, exports get_skill/list_skills/discover_all
 │   ├── registry.py              # BaseSkill class + lazy-loading registry

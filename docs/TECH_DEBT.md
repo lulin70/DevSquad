@@ -2,8 +2,18 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-10-12（V4.6.0 W2 技术债登记：TD-002）
+> **最后更新**: 2026-10-15（V4.7.0 发布前债务批次：TD-002/070/072/074 关闭，TD-071 部分关闭）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
+
+## V4.7.0 发布前债务批次状态（2026-10-15）
+
+- **TD-002（P2）host 委托路径不返回 exit 2**: RESOLVED。`_print_host_result` 失败时经 failure_taxonomy 归因（`raw_result` → `dispatch_exit_code`；adapter 级失败 → `classify_error_text` fail-closed），`environment_blocked` 退出 2 并输出 stderr 披露。覆盖：subprocess E2E（`tests/e2e/test_failure_taxonomy_e2e.py` host journey）+ 13 个 integration 测试（`tests/integration/test_host_exit_code_integration.py`）。
+- **TD-069 / TD-073 权威 CI 复验**: 完成。PR #37/#38 权威 CI 全绿（CI 主矩阵含 bandit gate 与金字塔检查），两条债务的"权威 CI 仍需复验"条件已满足。
+- **TD-070 PromptAssembler + WorkflowEngine 测试缺口**: RESOLVED（幽灵债务关闭）。AST 与文本检索证实这两个类在 `scripts/` 源码与 `tests/` 中以任何命名形式均不存在——债务指向已不存在的模块，非真实缺口。
+- **TD-071 性能基线**: 部分关闭。mock 路径真实测量（50 样本 + 5 warmup）；`collect_baseline.py` 已实现 host/api 真实测量逻辑（provider 优先级探测 + 180s budget 防挂起）。当前环境 host bridge 不可用、provider 连续调用触发分钟级限流（两次真实测量尝试分别超 25/30 分钟）→ host/api 诚实保留 stub（environment_blocked）。发布 tag 前需在可用环境重测。
+- **TD-072 integration 比例 14.9% < 15%**: RESOLVED。新增 13 个围绕 TD-002 修复的 integration 测试（taxonomy 归因三分支、adapter 边界契约、stderr 披露全链路），金字塔 assessment healthy（integration 15.0%，1472/9808）。
+- **TD-074 历史文档旧数字**: RESOLVED。修正 19 处现在时态的未验证断言（README×3 / INSTALL / CLAUDE 的 `9400+ tests passing` → `9800+ collected`；过期版本号 `4.5.24` → `4.7.0`）。历史记录（CHANGELOG、VERSION_HISTORY、版本徽章条目）按原则保留。
+- **MINOR 测试质量项（785 项）**: 评估完成，保留为持续治理项。AST 精确分析证实 741 个 loose-assert 中 **0 个**可机械安全转换（全部为嵌套比较/裸 bool/方法谓词，需逐个语义判断；正则批量转换的 42 个"转换"全部为嵌套误判并已回滚）。32 magic-number + 12 relaxed-float 同样需逐个判断。不通过放宽规则制造绿灯。
 
 ## V4.6.0 W2 技术债状态
 

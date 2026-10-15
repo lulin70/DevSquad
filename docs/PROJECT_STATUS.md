@@ -2,8 +2,8 @@
 
 > **代码版本**: V4.7.0（仓库元数据已统一；PR #37 已合并到 main，merge commit `e3a0bcf`）
 > **发布状态**: 仓库代码已完成 V4.7.0 生命周期与修复流程，权威 CI 已全绿；尚未创建 `v4.7.0` tag 或 GitHub Release（发布决策待定）。
-> **最后更新**: 2026-10-14
-> **最新评估**: 七维度项目整理已完成运行时契约修复、用户文档校正、测试质量门修复、CI 阻塞语义收紧和质量门标记迁移（`# noqa: test-quality` → `# test-quality: ignore`，25 处）。本地全量验证完成（主测试 8312 passed / 覆盖率 79.48%；E2E+integration 1670 passed；Dashboard 用户旅程 96 passed；性能基准 23 passed；性能基线已刷新至 v4.7.0）。PR #37 权威 CI 全绿（CI 主矩阵 + Perf Baseline + No Secrets 均 success）并已按单维护者流程合并。
+> **最后更新**: 2026-10-15
+> **最新评估**: 发布前债务批次完成：TD-002（host exit 2）/TD-070（幽灵债务）/TD-072（integration 15.0% healthy）/TD-074（19 处文档断言修正）已关闭，TD-071 部分关闭（mock 真实测量 + host/api 测量逻辑已实现，当前环境 blocked 诚实保留 stub），TD-069/073 权威 CI 复验完成。MINOR 785 项评估完成：0 个可机械安全转换（AST 证实），保留为持续治理项。
 > **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（80/80）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM/100 LOW）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）本地与权威 CI 均已通过。性能基线 mock 路径已真实测量；host/api 路径仍为 stub（发布 tag 前需真实环境替换）。
 > **PyPI**: 当前已观察到的最新发布版本为 [4.6.0](https://pypi.org/project/devsquad/4.6.0/)；V4.7.0 尚未发布。
 > **GitHub Release**: 当前没有 V4.7.0 release；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
@@ -164,13 +164,14 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 |------|------|----------|------|
 | TD-067 | mypy 112 errors（scripts/ 全量） | V3.10.0 (<50) | ✅ 历史债务已清零 |
 | TD-068 | 24 个 Mixin 类爆炸风险 | — | ✅ 评估后关闭；当前属于职责拆分，不是已证实缺陷 |
-| TD-069 | bandit 中低危告警 | — | ✅ 本轮已重新执行：0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json）；权威 CI 仍需复验 |
-| TD-070 | PromptAssembler + WorkflowEngine 测试缺口 | — | ⚠️ 历史记录；需由当前测试报告重新确认，不作为已验证事实 |
-| TD-071 | 性能基线曾为 V4.5.2 历史 stub 数据 | V4.7.0 | ✅ 本轮已刷新：mock 路径真实测量（collect_baseline.py 改用真实 MockBackend.generate 调用）；host/api/auto_fallback 仍为 stub，发布 tag 时需真实环境替换 |
-| TD-072 | 集成测试比例 14.9%，低于 15% 目标 | 后续迭代 | ⚠️ 已暴露，未通过放宽目标关闭 |
-| TD-073 | CI 性能检查和金字塔命令曾使用非阻塞写法 | V4.7.0 | ✅ 本轮已移除相关 `|| true`；本地验证通过；权威 CI 仍需复验 |
-| TD-074 | 文档仍有历史版本和旧能力数字 | V4.7.0 | ⚠️ 已修复主要用户文档；需继续清理历史文档中的非历史表述 |
+| TD-069 | bandit 中低危告警 | — | ✅ 本轮已重新执行：0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json）；权威 CI 复验完成（PR #37/#38 全绿） |
+| TD-070 | PromptAssembler + WorkflowEngine 测试缺口 | — | ✅ 幽灵债务关闭：AST 与文本检索证实两个类在源码与测试中均不存在，债务对象已消失 |
+| TD-071 | 性能基线曾为 V4.5.2 历史 stub 数据 | V4.7.0 | ✅ 部分关闭：mock 真实测量；collect_baseline.py 已实现 host/api 真实测量逻辑（provider 探测 + 180s budget）；当前环境 host bridge 不可用 + provider 分钟级限流 → host/api 诚实保留 stub（environment_blocked），tag 前需可用环境重测 |
+| TD-072 | 集成测试比例 14.9%，低于 15% 目标 | V4.7.0 | ✅ 本轮已关闭：新增 13 个围绕 TD-002 的 integration 测试，金字塔 healthy（15.0%，1472/9808） |
+| TD-073 | CI 性能检查和金字塔命令曾使用非阻塞写法 | V4.7.0 | ✅ 本轮已移除相关 `|| true`；本地验证通过；权威 CI 复验完成（PR #37/#38 全绿） |
+| TD-074 | 文档仍有历史版本和旧能力数字 | V4.7.0 | ✅ 本轮已关闭：修正 19 处现在时态未验证断言（README×3/INSTALL/CLAUDE）；历史记录按原则保留 |
 | TD-075 | 质量门豁免标记曾使用非法 Ruff 指令 `# noqa: test-quality` | V4.7.0 | ✅ 本轮已迁移为 `# test-quality: ignore`（25 处，5 文件）；Ruff invalid-noqa 清零 |
+| TD-076 | host 委托路径不返回 exit 2（原 TD-002，V4.6.0 W2 登记） | V4.7.0 | ✅ 本轮已修复：`_print_host_result` 经 failure_taxonomy 归因，exit 2 + stderr 披露；E2E host journey + 13 个 integration 测试 |
 
 ---
 

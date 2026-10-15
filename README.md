@@ -143,7 +143,7 @@ Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `
 - **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4-stage autonomous iteration
 - **V4.0.0 P3-2 Plugin Hot-Loading**: 3 loading paths + path traversal 3-layer protection + reload rollback
 
-9400+ tests passing (CI authoritative).
+9800+ tests collected (current local scan; pass counts are CI-authoritative).
 
 ---
 
@@ -542,11 +542,11 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: devsquad 4.5.24
+# Expected: devsquad 4.7.0
 
 # Run tests
 pytest tests/ -v --tb=short
-# Expected: 9400+ passed
+# Expected: 9800+ collected (pass counts are CI-authoritative)
 ```
 
 ---
@@ -604,7 +604,7 @@ python3 scripts/cli.py roles           # Expected: 7 core roles listed
 
 ### Full Test Suite
 ```bash
-# Run all tests (9400+ tests passing)
+# Run all tests (9800+ collected)
 python3 -m pytest tests/ -q --tb=line
 
 # With coverage report
@@ -621,7 +621,7 @@ python3 -m pytest tests/ --cov=scripts --cov-report=term-missing
 | **P2** | Integration & E2E | Full lifecycle dispatch, cross-module integration | ~200 |
 | **P3** | Unit per Module | Core dispatcher, RoleMapping, MCEAdapter, LLM backends | ~400+ |
 
-**Total: 9400+ CI tests / 266 e2e (9400+ collected)**
+**Total: 9800+ collected tests / 492 e2e (current local scan)**
 
 Run by priority:
 ```bash
