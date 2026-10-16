@@ -12,6 +12,19 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.1] - 2026-10-15
+
+### Fixed
+
+- **PyPI `devsquad` entry point broken in every released version** — the empty `scripts/cli/` package (a V4.1.1-era sys.path anchor for `cli_visual.py`, registered as V4.5.16 P2.16 "housekeeping 待确认") shadowed `scripts/cli.py` in the import system: packages take precedence over same-named modules, so `scripts.cli:main` resolved to a package without `main` and `devsquad --version` failed with ImportError on a clean `pip install`. `cli_visual.py` moved to `scripts/cli_visual.py`, `scripts/cli/` removed, and `cli_lifecycle.py` imports it directly without the legacy sys.path insertion. Verified against a freshly built wheel in a clean venv: `devsquad --version`, all subcommand `--help`, and `devsquad demo` all pass.
+- **Missing runtime dependency `defusedxml`** — `scripts/collaboration/lifecycle_evidence.py` (on the entry-point import chain) requires `defusedxml`, but it was only in `requirements-dev.lock`; PyPI installs crashed with ModuleNotFoundError. Added to `pyproject.toml` core dependencies, `requirements.txt`, and `requirements.lock`.
+- **Release gate marker drift** — `release-e2e.yml`'s "lifecycle scan and remediation E2E" step selects its three test files with `-m "e2e"`, but those tests no longer carried the marker; the first v4.7.0 tag push failed the gate with pytest exit 5 (collected 3, deselected 3). Restored the module-level `pytestmark = pytest.mark.e2e` (the same pattern as the other files in that step). Also root-caused a local packaging trap this exposed: a stale `build/lib/scripts/cli/` from an old build silently re-entered the wheel because `bdist_wheel` packages whatever is in `build/lib` — clean-tree rebuilds are required after moving package files.
+- **Removing `scripts/cli/` unmasked 15 latent mypy errors in `scripts/cli.py`** — mypy resolves modules like Python does (packages shadow same-named modules), so the empty package also meant the real `cli.py` was never type-checked; deleting it surfaced 15 pre-existing annotation/indexing errors that would have failed the mypy release gate. All fixed (typed signatures, `str | None` narrowing for `_prompt_choice` results, typed handler table).
+- **TRAE L1 (`~/.trae-cn`) cache missing from `sync_trae_skill.sh`** — the sync tool covered only 3 of the 4 cache layers that `check_version_consistency.py` enforces ("present ⇒ must match"), so L1 drifted to 4.7.0 and blocked the 80/80 gate. Added `~/.trae-cn/skills/devsquad` as a fourth sync target (8/8 files).
+- **`devsquad demo` banner showed a hardcoded `V3.7.0`** — first-run users saw the wrong version; now rendered from the `VERSION` constant (V4.7.1).
+
+This is a **PATCH** release (SemVer): no new features, no breaking changes — release-integrity fixes only.
+
 ## [4.7.0] - 2026-10-15
 
 ### Delivered

@@ -3,10 +3,15 @@ set -uo pipefail
 
 # DevSquad TRAE Skill Cache Sync Tool (V4.0.0)
 #
-# 同步主仓库的 SKILL.md 和 skill-manifest.yaml 到 3 层 TRAE 技能缓存：
-#   1. Global:    ~/.trae/skills/devsquad/
-#   2. Workspace: <projects>/.trae/skills/devsquad/
-#   3. Project:   <DevSquad>/.trae/skills/devsquad/
+# 同步主仓库的 SKILL.md 和 skill-manifest.yaml 到 4 层 TRAE 技能缓存：
+#   1. TRAE-CN:   ~/.trae-cn/skills/devsquad/   (TRAE-CN edition, check_version_consistency L1)
+#   2. Global:    ~/.trae/skills/devsquad/
+#   3. Workspace: <projects>/.trae/skills/devsquad/
+#   4. Project:   <DevSquad>/.trae/skills/devsquad/
+#
+# V4.7.1 release fix: ~/.trae-cn (L1) was missing from the sync list while
+# check_version_consistency.py enforces "present ⇒ must match" on all four
+# layers — this gap caused the 4.7.1 pre-release drift (4 FAILs).
 #
 # 用法:
 #   bash scripts/sync_trae_skill.sh            # 同步并备份旧文件
@@ -19,14 +24,15 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 SOURCE_SKILL="$PROJECT_ROOT/SKILL.md"
 SOURCE_MANIFEST="$PROJECT_ROOT/skill-manifest.yaml"
 
-# 3 层缓存路径
+# 4 层缓存路径
 CACHE_PATHS=(
+    "$HOME/.trae-cn/skills/devsquad"                       # TRAE-CN (L1)
     "$HOME/.trae/skills/devsquad"                          # Global
     "$PROJECT_ROOT/.trae/skills/devsquad"                  # Project
     "$(dirname "$PROJECT_ROOT")/.trae/skills/devsquad"     # Workspace (parent of project)
 )
 
-CACHE_LABELS=("Global" "Project" "Workspace")
+CACHE_LABELS=("TRAE-CN" "Global" "Project" "Workspace")
 
 # 要同步的文件（用普通变量，避免关联数组键含 "." 的 bash 语法问题）
 SYNC_FILENAMES=("SKILL.md" "skill-manifest.yaml")

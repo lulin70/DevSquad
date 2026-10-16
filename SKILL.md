@@ -1,9 +1,9 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.7.0
+version: 4.7.1
 description: |
-  DevSquad V4.7.0 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.7.1 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 available roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → task-matched multi-role collaboration → consensus conclusion.
@@ -40,7 +40,7 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.7.0 — Multi-Role AI Task Orchestrator
+# DevSquad V4.7.1 — Multi-Role AI Task Orchestrator
 
 ## 🎯 一句话理解（3 秒）
 
@@ -99,7 +99,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 218+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v4.7.0) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v4.7.1) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 

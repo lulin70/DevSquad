@@ -36,13 +36,8 @@ def _render_lifecycle_visual(
 ) -> None:
     """Render lifecycle command output using the enhanced visual formatter."""
     # Use enhanced visual output
-    import os as _os
-    import sys as _sys
-
-    _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "cli"))
-
     try:
-        from cli_visual import Colors, Icons, get_visual_formatter
+        from scripts.cli_visual import Colors, Icons, get_visual_formatter
 
         vf = get_visual_formatter(use_color=True)
 
