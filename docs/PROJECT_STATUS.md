@@ -3,8 +3,8 @@
 > **代码版本**: V4.7.1（已发布；merge commit `9ab6eab` = PR #42，`v4.7.1` tag 指向该提交）
 > **发布状态**: V4.7.1 已完成发布：tag `v4.7.1` 已推送，GitHub Release 与 PyPI 均已就位（见下）。
 > **最后更新**: 2026-10-20
-> **最新评估**: P0 卫生批进行中（执行依据：[2026-10-20_value_proposal_execution_plan.md](planning/2026-10-20_value_proposal_execution_plan.md)）：P0-W4 四份文档入库（`cc526a7`）；P0-W1 六处过时版本串清除 + 版本一致性门禁新增负向扫描（`00806ca`，植入假串变红演示已留痕，门禁 73→81 项全绿）；本更新即 P0-W2 状态文档治理；后续：版本升 4.7.2 → 全量回归 → 发布（默认独立小发布裁定）。
-> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（81/81，2026-10-20 本地实测，含新增 stale-string 负向门禁）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）本地已通过；权威结果以 GitHub Actions 为准。性能基线 mock 路径已真实测量；host/api 路径仍为诚实 stub（TD-071，待可用环境真实测量）。
+> **最新评估**: P0 卫生批进行中（执行依据：[2026-10-20_value_proposal_execution_plan.md](planning/2026-10-20_value_proposal_execution_plan.md)）：P0-W4 四份文档入库（`cc526a7`）；P0-W1 六处过时版本串清除 + 门禁负向扫描上线（`00806ca`，植入假串变红演示已留痕，门禁 73→81 项全绿）；P0-W2 状态文档治理（本文件 + RELEASE_CHECKLIST）；P0-W3 性能基线 api 路径真实测量、host 保留 environment_blocked（TD-071 大部分关闭）；后续：版本升 4.7.2 → 全量回归 → 发布（默认独立小发布裁定）。
+> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（81/81，2026-10-20 本地实测，含新增 stale-string 负向门禁）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）本地已通过；权威结果以 GitHub Actions 为准。性能基线 mock + api 路径已真实测量（2026-10-20，P0-W3）；host 路径仍为诚实 stub（TD-071，需 TRAE IDE 会话环境重测）。
 > **PyPI**: 最新发布版本为 [4.7.1](https://pypi.org/project/devsquad/4.7.1/)（2026-10-20 实测；采集命令：`curl -s https://pypi.org/pypi/devsquad/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"`）。
 > **GitHub Release**: 最新为 [DevSquad v4.7.1](https://github.com/lulin70/DevSquad/releases/tag/v4.7.1)（发布于 2026-10-16T00:30:17Z）；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
 
@@ -166,7 +166,7 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | TD-068 | 24 个 Mixin 类爆炸风险 | — | ✅ 评估后关闭；当前属于职责拆分，不是已证实缺陷 |
 | TD-069 | bandit 中低危告警 | — | ✅ 本轮已重新执行：0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json）；权威 CI 复验完成（PR #37/#38 全绿） |
 | TD-070 | PromptAssembler + WorkflowEngine 测试缺口 | — | ✅ 幽灵债务关闭：AST 与文本检索证实两个类在源码与测试中均不存在，债务对象已消失 |
-| TD-071 | 性能基线曾为 V4.5.2 历史 stub 数据 | V4.7.0 | ✅ 部分关闭：mock 真实测量；collect_baseline.py 已实现 host/api 真实测量逻辑（provider 探测 + 180s budget）；当前环境 host bridge 不可用 + provider 分钟级限流 → host/api 诚实保留 stub（environment_blocked），tag 前需可用环境重测 |
+| TD-071 | 性能基线曾为 V4.5.2 历史 stub 数据 | V4.7.0 | ✅ 大部分关闭（2026-10-20 P0-W3）：mock + **api 真实测量**（openai backend，180s budget 内，snapshot_id 无 `_stub`，门禁 34 测试绿）；host 诚实保留 stub（environment_blocked：需 TRAE IDE 会话环境）；auto_fallback 按设计 stub |
 | TD-072 | 集成测试比例 14.9%，低于 15% 目标 | V4.7.0 | ✅ 本轮已关闭：新增 13 个围绕 TD-002 的 integration 测试，金字塔 healthy（15.0%，1472/9808） |
 | TD-073 | CI 性能检查和金字塔命令曾使用非阻塞写法 | V4.7.0 | ✅ 本轮已移除相关 `|| true`；本地验证通过；权威 CI 复验完成（PR #37/#38 全绿） |
 | TD-074 | 文档仍有历史版本和旧能力数字 | V4.7.0 | ✅ 本轮已关闭：修正 19 处现在时态未验证断言（README×3/INSTALL/CLAUDE）；历史记录按原则保留 |
