@@ -1,12 +1,12 @@
 # DevSquad 项目状态
 
-> **代码版本**: V4.7.0（仓库元数据已统一；PR #37 已合并到 main，merge commit `e3a0bcf`）
-> **发布状态**: 仓库代码已完成 V4.7.0 生命周期与修复流程，权威 CI 已全绿；尚未创建 `v4.7.0` tag 或 GitHub Release（发布决策待定）。
-> **最后更新**: 2026-10-15
-> **最新评估**: 发布前债务批次完成：TD-002（host exit 2）/TD-070（幽灵债务）/TD-072（integration 15.0% healthy）/TD-074（19 处文档断言修正）已关闭，TD-071 部分关闭（mock 真实测量 + host/api 测量逻辑已实现，当前环境 blocked 诚实保留 stub），TD-069/073 权威 CI 复验完成。MINOR 785 项评估完成：0 个可机械安全转换（AST 证实），保留为持续治理项。
-> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（80/80）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM/100 LOW）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）本地与权威 CI 均已通过。性能基线 mock 路径已真实测量；host/api 路径仍为 stub（发布 tag 前需真实环境替换）。
-> **PyPI**: 当前已观察到的最新发布版本为 [4.6.0](https://pypi.org/project/devsquad/4.6.0/)；V4.7.0 尚未发布。
-> **GitHub Release**: 当前没有 V4.7.0 release；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
+> **代码版本**: V4.7.1（已发布；merge commit `9ab6eab` = PR #42，`v4.7.1` tag 指向该提交）
+> **发布状态**: V4.7.1 已完成发布：tag `v4.7.1` 已推送，GitHub Release 与 PyPI 均已就位（见下）。
+> **最后更新**: 2026-10-20
+> **最新评估**: P0 卫生批进行中（执行依据：[2026-10-20_value_proposal_execution_plan.md](planning/2026-10-20_value_proposal_execution_plan.md)）：P0-W4 四份文档入库（`cc526a7`）；P0-W1 六处过时版本串清除 + 版本一致性门禁新增负向扫描（`00806ca`，植入假串变红演示已留痕，门禁 73→81 项全绿）；本更新即 P0-W2 状态文档治理；后续：版本升 4.7.2 → 全量回归 → 发布（默认独立小发布裁定）。
+> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（81/81，2026-10-20 本地实测，含新增 stale-string 负向门禁）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）本地已通过；权威结果以 GitHub Actions 为准。性能基线 mock 路径已真实测量；host/api 路径仍为诚实 stub（TD-071，待可用环境真实测量）。
+> **PyPI**: 最新发布版本为 [4.7.1](https://pypi.org/project/devsquad/4.7.1/)（2026-10-20 实测；采集命令：`curl -s https://pypi.org/pypi/devsquad/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"`）。
+> **GitHub Release**: 最新为 [DevSquad v4.7.1](https://github.com/lulin70/DevSquad/releases/tag/v4.7.1)（发布于 2026-10-16T00:30:17Z）；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
 
 ---
 
@@ -95,7 +95,7 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | 主测试全量回归 | 8312 passed, 17 skipped；覆盖率 79.48%（≥70% 门） | ✅ 通过（2 failed 已处置：1 个断言修复 + 1 个外部波动重试通过） |
 | Ruff lint + format | All checks passed；1088 files formatted | ✅ 通过 |
 | mypy（scripts/ + skills/） | 0 errors | ✅ 通过 |
-| 版本一致性 | 80/80（4 层 TRAE cache 已重新同步） | ✅ 通过 |
+| 版本一致性 | 81/81（2026-10-20 本地实测；新增 stale-string 负向门禁后由 80 增至 81；4 层 TRAE cache 已同步） | ✅ 通过 |
 | 配置一致性 | 7/7 | ✅ 通过 |
 | Bandit | 0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json） | ✅ 通过 |
 | pip-audit | requirements.lock + requirements-dev.lock 无已知漏洞 | ✅ 通过 |

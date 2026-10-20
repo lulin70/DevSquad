@@ -9,7 +9,7 @@
 python scripts/check_version_consistency.py --strict
 ```
 
-- [ ] 15/15 检查通过
+- [ ] 全部检查通过（以脚本实际输出为准；可选 TRAE 缓存层在缺失环境中显示 SKIP，不计失败）
 - [ ] `SKILL.md` frontmatter 含 `version: X.Y.Z` 字段
 - [ ] `skill-manifest.yaml` 的 `version:` 与 `_version.py` 一致
 - [ ] `CLAUDE.md` 版本引用已更新
@@ -67,6 +67,7 @@ ruff format --check .
 
 - [ ] README.md / README-CN.md 版本号已更新
 - [ ] CHANGELOG.md 已添加本次版本条目
+- [ ] docs/PROJECT_STATUS.md 已刷新至本次发布现实（代码版本 / 发布状态 / PyPI 实测链接 / GitHub Release 链接；PyPI 版本须附采集命令并实测，禁止沿用上次数字）
 - [ ] docs/spec/ 下的 spec 文档与代码一致
 - [ ] .env.example 与实际使用的环境变量一致
 
@@ -99,8 +100,8 @@ gh pr view <number> --repo <owner>/<repo> --json state,mergeStateStatus,statusCh
 - [ ] 自审已完成，PR 对话已解决
 - [ ] 单维护者模式：不要求第二位维护者批准；由仓库所有者在 CI 通过后合并
 - [ ] 多维护者模式：恢复至少 1 个其他维护者批准后再合并
-- [ ] 本批**不创建 Git tag**；按用户决议在 W1 后统一处理
-- [ ] GitHub Release / tag 按独立发布决策执行，不作为本批验收条件
+- [ ] 本批 Git tag / GitHub Release 按当批发布裁定执行（如 P0 执行计划 §4.2 默认裁定：独立小发布含 tag）；裁定记录于执行计划 §10
+- [ ] GitHub Release / tag 与当批裁定不一致时，先重裁定再行动，禁止事后改单
 
 ## 8. 发布后验证
 
@@ -108,6 +109,7 @@ gh pr view <number> --repo <owner>/<repo> --json state,mergeStateStatus,statusCh
 - [ ] `devsquad --version` 显示正确版本
 - [ ] `devsquad demo` 可正常运行
 - [ ] TRAE 技能列表显示正确版本号
+- [ ] docs/PROJECT_STATUS.md 发布后已更新（PyPI 链接 / GitHub Release 链接 / 最后更新日期；实测采集，不沿用旧数字）
 - [ ] E2E：模拟真实用户使用流程（CLI + TRAE skill 调用）
 - [ ] 生命周期扫描 E2E：CLI/REST 显式文档扫描和 JUnit 证据适配通过
 - [ ] 修复建议 E2E：未批准不写文件；批准后测试/重扫通过；失败回滚
@@ -119,3 +121,4 @@ gh pr view <number> --repo <owner>/<repo> --json state,mergeStateStatus,statusCh
 - **V4.0.0**: TRAE 有 3 层技能缓存（global/workspace/project），只更新主仓库不会刷新技能列表。必须运行 `sync_trae_skill.sh`。
 - **V3.9.x**: `dispatch_autonomous()` 漏传 `llm_backend` 导致生产路径幽灵功能（pytest 通过但 TRAE 实际调用回退 mock）。发布前必须验证生产路径装配。
 - **V3.6.x-V3.8.x**: 版本号在多个文件间漂移。`check_version_consistency.py` 由此引入。
+- **V4.7.1（2026-10-20 复盘）**: docs/PROJECT_STATUS.md 落后两个发布版本（仍写"V4.7.0 未打 tag、PyPI 最新 4.6.0"，实测 v4.7.1 已 tag + Release + PyPI）。状态文档刷新由此入清单（§5/§8）；用户可见面另有 6 处过时版本串，由 V4.7.2 门禁负向扫描根治。
