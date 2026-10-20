@@ -915,9 +915,7 @@ class T18_StaleVersionStringScan(unittest.TestCase):
         import scripts.check_version_consistency as mod
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            scripts_dir = self._plant(
-                tmpdir, "cli_fake.py", 'BANNER = "DevSquad V0.0 — Fake Engine"\n'
-            )
+            scripts_dir = self._plant(tmpdir, "cli_fake.py", 'BANNER = "DevSquad V0.0 — Fake Engine"\n')
             with mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", scripts_dir):
                 results = _check_stale_version_strings()
         self.assertEqual(len(results), 1)
@@ -930,10 +928,7 @@ class T18_StaleVersionStringScan(unittest.TestCase):
         """Verify: f-string VERSION references cannot drift, so they pass."""
         import scripts.check_version_consistency as mod
 
-        content = (
-            'BANNER = f"DevSquad V{VERSION} — Engine"\n'
-            'HEADER = f"DevSquad {VERSION} Metrics"\n'
-        )
+        content = 'BANNER = f"DevSquad V{VERSION} — Engine"\nHEADER = f"DevSquad {VERSION} Metrics"\n'
         with tempfile.TemporaryDirectory() as tmpdir:
             scripts_dir = self._plant(tmpdir, "cli_dynamic.py", content)
             with mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", scripts_dir):
@@ -976,9 +971,7 @@ class T18_StaleVersionStringScan(unittest.TestCase):
         import scripts.check_version_consistency as mod
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            scripts_dir = self._plant(
-                tmpdir, "cli_fake.py", 'BANNER = "DevSquad V0.0 — Fake Engine"\n'
-            )
+            scripts_dir = self._plant(tmpdir, "cli_fake.py", 'BANNER = "DevSquad V0.0 — Fake Engine"\n')
             captured = io.StringIO()
             with (
                 mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", scripts_dir),
