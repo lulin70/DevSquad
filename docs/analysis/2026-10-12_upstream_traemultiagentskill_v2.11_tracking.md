@@ -69,3 +69,4 @@
 ## 6. 裁定记录
 
 - 2026-10-12：用户指示"沉淀为分析文档"，本文档即产出。BREAK/VULN 借鉴立项与否待用户裁定（建议：backlog P3）。
+- 2026-10-20：BREAK/VULN 借鉴已落地（V4.7.0 W1 `review_taxonomy.py`，PR #34/#35）。v2.12–v2.14 跟踪扫描完成，产出 [2026-10-20_upstream_traemultiagentskill_v2.12-v2.14_tracking.md](2026-10-20_upstream_traemultiagentskill_v2.12-v2.14_tracking.md)。
