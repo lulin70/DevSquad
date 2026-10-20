@@ -12,6 +12,17 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.2] - 2026-10-20
+
+### Fixed
+
+- **Six stale hardcoded version strings removed from user-visible surfaces** — `cli.py --help` still described itself as "DevSquad V3.6", `cli_metrics.py` printed a "DevSquad V4.5.2 Metrics" header, `cli_visual.py`'s docstring claimed V4.1.1, the dashboard footer said V4.1.0, `workflow_engine_mixins.py` lifecycle banners announced V3.8, and the smart benchmark report header read "DevSquad V3.10.0 Benchmark Report". The version consistency gate now also scans `scripts/**/*.py` for hardcoded `DevSquad V<digits>` self-descriptions and fails on any that differ from the SSOT version (80 → 81 checks); negative tests plant a fake `DevSquad V0.0` and prove the scan turns red.
+- **`docs/PROJECT_STATUS.md` had drifted two releases behind reality** — it still described 4.7.0 as "bumped, not yet tagged" while v4.7.1 was already tagged, released on GitHub, and installable from PyPI. Refreshed to release reality (code V4.7.1, merge 9ab6eab / PR #42, gate 81/81 measured 2026-10-20), and `RELEASE_CHECKLIST.md` now requires a PROJECT_STATUS refresh with measured numbers before release (§5) and a post-release status update (§8).
+- **TD-071: first real api performance baseline measurement** — `collect_baseline.py`'s built-in 180s budget defeated the provider rate limits that had blocked both earlier attempts: the openai backend measured p50 869.54 ms / p95 1234.56 ms, recorded as `v470_baseline_api` (no `_stub` suffix) in `PERFORMANCE_BASELINE.json`. The host path stays honestly `environment_blocked` (needs a live TRAE IDE session) and keeps its stub marking instead of fabricating data.
+- **Version metadata synchronized to 4.7.2** — VERSION, pyproject, `_version.py`, root + 8 sub-skill manifests, Dockerfile, Chart, deployment config, README×3, CLAUDE.md, SKILL.md, SPEC.md, COMPARISON.md, ARCHITECTURE_V4.md; `--version` expected-output comments in README×3/CLAUDE.md/SPEC.md corrected to the measured format `DevSquad 4.7.2` (no `V` prefix); `VERSION_HISTORY.md` back-filled its missing v4.7.1 entry; the four TRAE cache layers re-synced via `sync_trae_skill.sh`.
+
+This is a **PATCH** release (SemVer): no new features, no breaking changes — hygiene and documentation-truth fixes only (P0 batch of `docs/planning/2026-10-20_value_proposal_execution_plan.md`).
+
 ## [4.7.1] - 2026-10-15
 
 ### Fixed
