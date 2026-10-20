@@ -210,7 +210,7 @@ class WorkflowEngineLifecycleMixin(WorkflowEngineBase):
 
         definition = WorkflowDefinition(
             name=f"lifecycle-{template_name}",
-            description=f"DevSquad V3.8 {template_name} lifecycle ({len(steps)} phases)",
+            description=f"DevSquad {template_name} lifecycle ({len(steps)} phases)",
             steps=steps,
             metadata={"template": template_name, "lifecycle_version": "3.8.0"},
         )

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CLI Visual Enhancement Module for DevSquad V4.1.1
+CLI Visual Enhancement Module for DevSquad
 
 Provides rich visual output for lifecycle commands including:
   - Colored progress bars

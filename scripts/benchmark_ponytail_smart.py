@@ -381,7 +381,7 @@ def compute_smart_summary(metrics: list[SmartCompressionMetric]) -> dict[str, An
 def print_report(report: BenchmarkReport) -> None:
     """Print a human-readable benchmark report to stdout."""
     print("=" * 70)
-    print(f"DevSquad V3.10.0 Benchmark Report — {report.run_timestamp}")
+    print(f"DevSquad Benchmark Report — {report.run_timestamp}")
     print(f"Total tasks: {report.total_tasks}")
     print("=" * 70)
 

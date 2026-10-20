@@ -214,7 +214,7 @@ def format_text(metrics: list[dict[str, Any]]) -> str:
     """Format metrics as a human-readable text table."""
     lines: list[str] = []
     lines.append("=" * 78)
-    lines.append("DevSquad V4.5.2 Metrics")
+    lines.append("DevSquad Metrics")
     lines.append("=" * 78)
     for m in metrics:
         lines.append("")

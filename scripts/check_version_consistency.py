@@ -85,6 +85,22 @@ SUB_SKILL_VERSION_RE = re.compile(r'^version:\s*["\']?(\d+\.\d+\.\d+)', re.MULTI
 # ``version_source: "..._version (X.Y.Z)"`` — the version inside the parens.
 SUB_SKILL_VERSION_SOURCE_RE = re.compile(r"^\s*version_source:.*?\((\d+\.\d+\.\d+)\)", re.MULTILINE)
 
+# P0-W1 (V4.7.2): stale version self-description scan (negative check).
+# The positive checks above verify that canonical locations carry the
+# CURRENT version; they never verified that user-visible code carries NO
+# hardcoded product version at all. Result: six "DevSquad V<n>" strings
+# drifted across V3.6–V4.5.2 (2026-10-20 architecture review, finding F1)
+# while this gate stayed green. Policy: the version reaches the user only
+# via --version or dynamic references. The regex requires a literal digit
+# after "V", so dynamic f-string references (f"DevSquad V{VERSION}") cannot
+# match and stay allowed.
+STALE_VERSION_SCAN_DIR = REPO_ROOT / "scripts"
+STALE_VERSION_STRING_RE = re.compile(r"DevSquad (V\d+(?:\.\d+)*)")
+# The gate's own source legitimately contains pattern-shaped text (regex
+# definitions, docstring notation like "DevSquad V<n>") that is not a real
+# product self-description; exempt it from the scan.
+STALE_VERSION_SCAN_SELF_EXEMPT = Path(__file__).resolve()
+
 
 @dataclass
 class FileSpec:
@@ -742,6 +758,94 @@ def _check_sub_skill_manifests(expected: str) -> list[VersionCheck]:
     return results
 
 
+def _check_stale_version_strings() -> list[VersionCheck]:
+    """P0-W1 (V4.7.2): scan ``scripts/**/*.py`` for hardcoded version strings.
+
+    Negative gate: user-visible code surfaces (CLI help text, dashboard
+    footers, benchmark/report headers, workflow descriptions) must not
+    hardcode a product version next to the product name. Such strings
+    drift silently because every positive check only compares the
+    CURRENT version — a leftover banner from an old release matches none
+    of them.
+
+    Fix policy (execution plan P0-W1): delete the hardcoded version from
+    the self-description, or reference the dynamic ``VERSION`` constant
+    (``scripts.cli_utils.VERSION``); the version ships to users only via
+    ``--version``.
+
+    Dynamic references (``f"DevSquad V{VERSION}"``) cannot drift and are
+    allowed — the pattern requires a literal digit after the ``V``.
+
+    Returns:
+        One FAIL :class:`VersionCheck` per violating file, or a single
+        PASS aggregate when the tree is clean. A missing scan directory
+        is a FAIL: the scan must never silently skip.
+    """
+    if not STALE_VERSION_SCAN_DIR.is_dir():
+        return [
+            VersionCheck(
+                file="scripts/** (stale version strings)",
+                expected="scannable scripts/ directory",
+                found=None,
+                passed=False,
+                detail=f"FAIL: scan directory not found: {STALE_VERSION_SCAN_DIR}",
+            )
+        ]
+
+    def _rel(path: Path) -> str:
+        try:
+            return path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            return path.as_posix()
+
+    violations: list[VersionCheck] = []
+    scanned = 0
+    for py in sorted(STALE_VERSION_SCAN_DIR.rglob("*.py")):
+        if py == STALE_VERSION_SCAN_SELF_EXEMPT:
+            continue  # this gate's own regex/docstring text is not a product string
+        scanned += 1
+        try:
+            content = py.read_text(encoding="utf-8")
+        except OSError as exc:
+            violations.append(
+                VersionCheck(
+                    file=_rel(py),
+                    expected="no hardcoded 'DevSquad V<n>'",
+                    found=None,
+                    passed=False,
+                    detail=f"FAIL (unreadable): {exc}",
+                )
+            )
+            continue
+        hits = STALE_VERSION_STRING_RE.findall(content)
+        if hits:
+            violations.append(
+                VersionCheck(
+                    file=_rel(py),
+                    expected="no hardcoded 'DevSquad V<n>'",
+                    found=hits[0],
+                    passed=False,
+                    detail=(
+                        f"stale version self-description 'DevSquad {hits[0]}' "
+                        f"({len(hits)} occurrence(s)) — remove it or reference the "
+                        f"dynamic VERSION constant; the version ships only via --version"
+                    ),
+                )
+            )
+
+    if violations:
+        return violations
+    return [
+        VersionCheck(
+            file="scripts/** (stale version strings)",
+            expected="no hardcoded 'DevSquad V<n>'",
+            found="0 hits",
+            passed=True,
+            detail=f"scanned {scanned} .py files, 0 hardcoded 'DevSquad V<n>' self-descriptions",
+        )
+    ]
+
+
 def _status_label(result: VersionCheck) -> str:
     """Derive display status label from a VersionCheck result."""
     if result.detail.startswith("SKIP"):
@@ -809,6 +913,12 @@ def main() -> int:
     # V4.5.20 (F2): sub-skill manifests (skills/*/skill-manifest.yaml). Blocking
     # — this was the blind spot that let F1 drift for 18 releases.
     results.extend(_check_sub_skill_manifests(expected))
+
+    # P0-W1 (V4.7.2): stale version self-description scan (negative check,
+    # blocking). Closes the F1 blind spot: hardcoded product-version strings
+    # in user-visible code drifted for 11 releases while every positive
+    # version check stayed green.
+    results.extend(_check_stale_version_strings())
 
     # V4.5.16 P3.21: public module count SSOT soft-compare (non-blocking).
     # Compares the on-disk count under scripts/collaboration/ against

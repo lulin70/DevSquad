@@ -38,7 +38,7 @@ class TestE2EUserJourneyDeveloperOnboarding:
 
         验证点:
         ✅ CLI 命令可用（无 command not found 错误）
-        ✅ 版本号显示正确 (V3.6.x)
+        ✅ 版本号显示正确（与当前发布版本一致，经 --version 动态输出）
         ✅ 无依赖缺失警告
         """
         result = e2e_runner.run_cli_command(["--version"])

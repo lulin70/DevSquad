@@ -73,7 +73,7 @@ class TestFormatText:
 
     def test_format_includes_header(self):
         out = format_text([])
-        assert "DevSquad V4.5.2 Metrics" in out
+        assert "DevSquad Metrics" in out
 
     def test_format_includes_metric_name(self):
         result = collect_v452_metrics()
@@ -127,7 +127,7 @@ class TestCmdMetrics:
         rc = cmd_metrics(_ns("text"))
         captured = capsys.readouterr()
         assert rc == 0
-        assert "DevSquad V4.5.2 Metrics" in captured.out
+        assert "DevSquad Metrics" in captured.out
 
     def test_json_format_runs(self, capsys):
         rc = cmd_metrics(_ns("json"))

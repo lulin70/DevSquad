@@ -338,7 +338,7 @@ def main() -> int:
         The exit code from the selected subcommand, or 0 for ``--version``.
     """
     parser = argparse.ArgumentParser(
-        description="DevSquad V3.6 — Multi-Agent Orchestration Engine for Software Development",
+        description="DevSquad — Multi-Agent Orchestration Engine for Software Development",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

@@ -34,6 +34,7 @@ from scripts.check_version_consistency import (
     _check_canonical_version_info,
     _check_prd_files,
     _check_skill_frontmatter,
+    _check_stale_version_strings,
     check_content_diff,
     main,
 )
@@ -883,6 +884,110 @@ class T16_SubSkillManifestChecks(unittest.TestCase):
                 exit_code = main()
         self.assertEqual(exit_code, 1, captured.getvalue())
         self.assertIn("staletool", captured.getvalue())
+
+
+class T18_StaleVersionStringScan(unittest.TestCase):
+    """T18: P0-W1 (V4.7.2) — hardcoded "DevSquad V<n>" self-descriptions are banned.
+
+    Root cause (architecture review F1): six user-visible strings drifted
+    across V3.6–V4.5.2 while every positive version-consistency check
+    stayed green. The negative gate must turn red on planted fake version
+    strings, stay green on the real tree, and allow dynamic VERSION
+    references that cannot drift.
+    """
+
+    def _plant(self, tmpdir: str, filename: str, content: str) -> Path:
+        scripts_dir = Path(tmpdir) / "scripts"
+        scripts_dir.mkdir(exist_ok=True)
+        planted = scripts_dir / filename
+        planted.write_text(content, encoding="utf-8")
+        return scripts_dir
+
+    def test_real_repo_scripts_tree_is_clean(self) -> None:
+        """Verify: the real scripts/ tree produces no stale-string FAILs."""
+        results = _check_stale_version_strings()
+        self.assertTrue(results, "expected at least one aggregate result")
+        for r in results:
+            self.assertTrue(r.passed, f"stale version string gate red: {r.file}: {r.detail}")
+
+    def test_planted_fake_version_string_fails(self) -> None:
+        """Verify: planted 'DevSquad V0.0' (e.g.) turns the gate red."""
+        import scripts.check_version_consistency as mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scripts_dir = self._plant(
+                tmpdir, "cli_fake.py", 'BANNER = "DevSquad V0.0 — Fake Engine"\n'
+            )
+            with mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", scripts_dir):
+                results = _check_stale_version_strings()
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0].passed)
+        self.assertEqual(results[0].found, "V0.0")
+        self.assertIn("cli_fake.py", results[0].file)
+        self.assertIn("stale version self-description", results[0].detail)
+
+    def test_dynamic_version_reference_is_allowed(self) -> None:
+        """Verify: f-string VERSION references cannot drift, so they pass."""
+        import scripts.check_version_consistency as mod
+
+        content = (
+            'BANNER = f"DevSquad V{VERSION} — Engine"\n'
+            'HEADER = f"DevSquad {VERSION} Metrics"\n'
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scripts_dir = self._plant(tmpdir, "cli_dynamic.py", content)
+            with mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", scripts_dir):
+                results = _check_stale_version_strings()
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0].passed, results[0].detail)
+        self.assertIn("0 hardcoded", results[0].detail)
+
+    def test_multiple_violations_each_reported(self) -> None:
+        """Verify: every violating file gets its own FAIL (none is swallowed)."""
+        import scripts.check_version_consistency as mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scripts_dir = self._plant(tmpdir, "a_fake.py", 'x = "DevSquad V1.2"\n')
+            self._plant(tmpdir, "b_fake.py", 'y = "DevSquad V3.4 banner"\n')
+            with mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", scripts_dir):
+                results = _check_stale_version_strings()
+        self.assertEqual(len(results), 2)
+        self.assertTrue(all(not r.passed for r in results))
+        reported = {r.file for r in results}
+        self.assertTrue(any("a_fake.py" in f for f in reported))
+        self.assertTrue(any("b_fake.py" in f for f in reported))
+
+    def test_missing_scan_directory_fails(self) -> None:
+        """Verify: a missing scripts/ dir is a FAIL, never a silent skip."""
+        import scripts.check_version_consistency as mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            missing = Path(tmpdir) / "no_such_scripts"
+            with mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", missing):
+                results = _check_stale_version_strings()
+        self.assertEqual(len(results), 1)
+        self.assertFalse(results[0].passed)
+        self.assertIn("not found", results[0].detail)
+
+    def test_main_exits_nonzero_on_planted_string(self) -> None:
+        """Negative gate test: a planted fake version string must turn main() red."""
+        import io
+
+        import scripts.check_version_consistency as mod
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scripts_dir = self._plant(
+                tmpdir, "cli_fake.py", 'BANNER = "DevSquad V0.0 — Fake Engine"\n'
+            )
+            captured = io.StringIO()
+            with (
+                mock.patch.object(mod, "STALE_VERSION_SCAN_DIR", scripts_dir),
+                mock.patch("sys.stdout", new_callable=lambda: captured),
+                mock.patch("sys.argv", ["prog", "--no-content-diff"]),
+            ):
+                exit_code = main()
+        self.assertEqual(exit_code, 1, captured.getvalue())
+        self.assertIn("cli_fake.py", captured.getvalue())
 
 
 if __name__ == "__main__":
