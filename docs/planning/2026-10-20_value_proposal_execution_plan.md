@@ -128,3 +128,5 @@ P1 发布且发布后验证完成；P2 PRD 经用户确认。
 |---|---|
 | 2026-10-20 | 用户批准 D1–D4；本文档形成，作为 P0/P1/P2 唯一执行依据 |
 | 2026-10-20 | P0 发布时机默认建议"独立 v4.7.2 小发布"；待执行到 §4.2 收尾时按默认执行，用户可随时否决改记"入库不发布" |
+| 2026-10-20 | P0 关批：6 工作项完成，v4.7.2 发布（tag/Release/PyPI 实测就位）；复盘入 docs/assessments/2026-10-20_P0_hygiene_batch_retrospective.md；P1 池新增 acceptance 面一致性候选 |
+| 2026-10-21 | P1 阶段 0 出口门通过：V4.8.0 PRD 用户确认（docs/prd/V4.8.0_workflow-entry_PRD.md）；R1 外部试装仓裁定为 lulin70 现有小型仓（候选 zeroclaw / PromiseLink-miniapp，于设计文档锁定）；发布就绪清单版本一致性基线修正为 81/81 |
