@@ -2,8 +2,12 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-10-15（V4.7.0 发布前债务批次：TD-002/070/072/074 关闭，TD-071 部分关闭）
+> **最后更新**: 2026-10-21（P1 工作流进场批：登记 TD-075——dev 面 Pillow 12.3.0 八项 CVE 时限性豁免；V4.7.0 批次 TD-002/070/072/074 已关闭，TD-071 部分关闭）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
+
+## V4.8.0 P1 工作流进场批技术债状态（2026-10-21）
+
+- **新登记**: TD-075（P1）—— dev 依赖面 Pillow 12.3.0 八项 CVE 生态阻塞，CI security job 时限性豁免（有清单、有披露、有复查条件）。来源：2026-10-21 CI security job 首次报告（pip-audit `--strict` 红）。处置与复查条件见明细条目。
 
 ## V4.7.0 发布前债务批次状态（2026-10-15）
 
@@ -53,10 +57,12 @@
 | 优先级 | 数量 | 状态 |
 |--------|------|------|
 | P0 (阻断) | 0 | — |
-| P1 (重要) | 0 | — |
-| P2 (一般) | 1 | OPEN (TD-002) |
+| P1 (重要) | 1 | OPEN (TD-075) |
+| P2 (一般) | 0 | — |
 | P3 (低)   | 0 | — |
 | **总计** | **1** | |
+
+> **2026-10-21 注**: TD-002 已在 V4.7.0 发布前批次 RESOLVED（见上），从活跃计数移除；当前唯一活跃项为 TD-075（P1/OPEN）。
 
 > **扫描说明**: 运行 `grep -rn "TODO\|FIXME\|HACK" scripts/ --include="*.py" | grep -v "test\|__pycache__"`
 > 共返回 18 行匹配。经逐行分析，其中 17 行为**技术债检测工具自身的实现代码**
@@ -94,7 +100,28 @@
 - **建议方案**: 让 host 分支经 `failure_taxonomy` 归因后再决定退出码（例如对
   `HostBridgeUnavailable` 类错误走 `exit_code_for_exception`），并补一条 subprocess 级 E2E
   断言 host 桥缺失时 exit 为 2。
-- **状态**: OPEN（V4.6.0 W2 期间发现；不与 W2 混合，见设计文档 §9 与 §10 Q5）
+- **状态**: RESOLVED（2026-10-15 V4.7.0 发布前批次关闭：host 分支失败经 failure_taxonomy 归因，`environment_blocked` 退出 2 并输出 stderr 披露；覆盖 subprocess E2E + 13 个 integration 测试，见上方 V4.7.0 批次状态。登记于 V4.6.0 W2 期间，当时"不与 W2 混合"的登记决策见设计文档 §9 与 §10 Q5）
+
+### TD-075: Pillow 12.3.0 八项 CVE 生态阻塞（dev 依赖审计时限性豁免）
+
+- **优先级**: P1
+- **位置**: CI security job pip-audit step（`.github/workflows/test.yml`）；依赖链：`[dev] extras → streamlit（≤1.66.0）→ Pillow 12.3.0`（dev-only 传递依赖）
+- **类型**: 依赖安全豁免（时间性 ignore + 披露，非永久接受）
+- **描述**: 2026-10-21 CI security job 首次报告 Pillow 12.3.0 存在 8 项已发布 CVE：
+  CVE-2026-112895、CVE-2026-112400、CVE-2026-112397、CVE-2026-112896、
+  CVE-2026-112897、CVE-2026-112395、CVE-2026-112404、CVE-2026-112899。
+  唯一修复版本 Pillow 13.0.0 不可安装：PyPI 上全部 streamlit 版本（最高 1.66.0）
+  均要求 `Pillow<13`，解析冲突（ResolutionImpossible，2026-10-21 本地实测：
+  requirements-dev.lock bump 与独立依赖解析两条路径均失败）。
+- **影响面**: 仅 CI/dev 依赖面（streamlit dashboard 经 `[dev]` extras 引入的传递依赖）。
+  Pillow 不在 runtime `requirements.lock` 中，runtime 审计保持严格、零豁免；
+  无产品运行时暴露。
+- **处置**: 两处 dev 面审计（site-packages、requirements-dev.lock）按 CVE 清单逐项
+  `--ignore-vuln`（8 项逐一列出，非宽泛跳过）；`docs/PROJECT_STATUS.md` 三处
+  pip-audit 声明同步披露豁免事实。
+- **复查条件**: streamlit 发布允许 `Pillow>=13` 的版本后，立即撤销全部
+  `--ignore-vuln`、同步 bump `requirements-dev.lock`，并将本条目标记 RESOLVED。
+- **状态**: OPEN（2026-10-21 登记；豁免有时限、有清单、有披露、有复查条件）
 
 ## 扫描方法与排除项
 
@@ -151,3 +178,4 @@ cd /Users/lin/trae_projects/DevSquad && grep -rn "TODO\|FIXME\|HACK" scripts/ --
 | 2026-07-24 | v1.0 | 初始创建；完成 `scripts/` 目录全量扫描，登记 1 项 P3 (INFORMATIONAL) | DevSquad |
 | 2026-07-24 | v1.1 | V4.3.0 P0-2: todo_drift_monitor 注释感知正则上线，TD-001 自动消解标记为 RESOLVED；总计 0→0 | DevSquad |
 | 2026-10-12 | v1.2 | V4.6.0 W2: 登记 TD-002（host 委托路径不返回 exit 2，P2/OPEN）；总计 0→1 | DevSquad |
+| 2026-10-21 | v1.3 | V4.8.0 P1: 登记 TD-075（Pillow 12.3.0 八项 CVE 生态阻塞，dev 面时限性豁免，P1/OPEN）；TD-002 明细与统计表修正为 RESOLVED（V4.7.0 批次已关闭）；活跃总计 1→1 | DevSquad |
