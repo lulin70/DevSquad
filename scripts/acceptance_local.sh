@@ -35,6 +35,10 @@
 # `real-llm-e2e` job additionally injects `MOKA_*`. Both are keyful on CI, so
 # mirroring them here would be misleading.
 #
+# Since V4.8.0 (P1-W0) the script additionally mirrors the CI lint job's
+# dispatcher-size gate before the pytest face — see the comment at the gate
+# call site.
+#
 # The one intentional deviation is `-p no:randomly`: pytest-randomly is installed
 # locally but not on CI, and CI therefore always runs in collection order. The
 # flag pins local order to it.
@@ -69,6 +73,15 @@ for name in "${CREDENTIALS[@]}"; do
     echo "  ${name}: ${#value} chars${value:+  <NON-EMPTY — isolation failed!>}"
 done
 echo
+
+# V4.8.0 P1-W0: the dispatcher-size gate runs BEFORE the pytest face, with the
+# exact `test.yml::lint` command. P0-W1 grew `check_version_consistency.py`
+# (735 → 872 LOC) past the 800-line baseline; CI's lint job caught it at PR
+# time while this script stayed green (2026-10-20 P0 retrospective §3) —
+# the local acceptance face and the CI lint face must not diverge. The gate
+# fails fast, before the minutes-long suite.
+echo "=== dispatcher-size gate (mirrors test.yml::lint) ==="
+"$PYTHON" scripts/check_dispatcher_size.py --max-lines 800 --baseline docs/audits/dispatcher_size_baseline.json
 
 echo "=== keyless-equivalent suite (mirrors release-e2e.yml final-gate) ==="
 "$PYTHON" -m pytest tests/unit/ tests/integration/ tests/contract/ \
