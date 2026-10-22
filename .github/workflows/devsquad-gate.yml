@@ -24,7 +24,7 @@ on:
     inputs:
       devsquad-version:
         type: string
-        default: "4.8.0"
+        default: "4.8.1"
         description: "PyPI version of devsquad to install (bump consciously at release)"
       task:
         type: string

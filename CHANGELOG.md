@@ -12,6 +12,14 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.1] - 2026-10-22
+
+### Fixed
+
+- **F-D1: diff pattern findings bypass the deterministic path gates (PR #62, dogfood-discovered)** — `devsquad review --diff-file` pattern findings now honor the same deterministic gates as every other review surface. Under 4.8.0 the diff-channel pattern scan ran over the raw diff unfiltered: `--include`/`--exclude` only bound the changeset face, the scan was extension-blind (`.md` files scanned line-by-line for code smells), and directory excludes like `tests/**` never matched nested paths (`PurePosixPath.match` right-anchoring quirk — a 2-segment pattern does not match a 3-segment path, so `tests/unit/x.py` escaped). The fix: `rule_engine.matches()` extends directory excludes with a trailing `/**` (gitignore semantics; also closes the nested-exclusion hole in `DEFAULT_EXCLUDE_PATTERNS`, W1-3), and `diff_pattern_scanner.filter_diff_pattern_findings()` applies the same gate sequence as `filter_review_paths` with a family split — secret findings stay checked in every review-retained path (a real key in a document is a leak), while code-smell findings are limited to source-kind files. Found by the dogfood gate running on its own repository (design §7.4 rev2); the probe evidence overturned both assumptions of the original fix proposal (`.md` files resolve to kind=document and are not dropped by the unsupported-extension gate; `matches()` was not gitignore-correct before this fix). 14 new unit tests; full regression 10171 passed / 24 skipped / 0 failed.
+
+This is a **PATCH** release (SemVer): a bug fix to the 4.8.0 diff-review path gates, no new features, no breaking changes. Released as tag `v4.8.1`.
+
 ## [4.8.0] - 2026-10-22
 
 ### Added
