@@ -1,0 +1,115 @@
+
+============================================================
+🚀 Welcome to DevSquad Setup Wizard!
+============================================================
+
+This wizard will help you configure DevSquad for your project.
+It should take about 1-2 minutes.
+
+📋 Step 1/5: Project Type
+----------------------------------------
+   1) Web API / Backend Service
+      REST API, GraphQL, microservices
+   2) Full-Stack Web App
+      Frontend + Backend + Database
+   3) CLI Tool / Utility
+      Command-line application, DevOps tool
+   4) AI/ML Service
+      Machine learning pipeline, data service
+   5) Library / SDK
+      Reusable package, API wrapper
+   6) Generic / Other
+      Custom project or exploring DevSquad
+   Select your project type [1-6]: 
+   ✅ Selected: Generic / Other
+   💡 Recommended roles: auto
+
+
+🤖 Step 2/5: AI Backend Configuration
+----------------------------------------
+DevSquad can work with different AI backends:
+
+   1) Mock Mode (Recommended for beginners)
+      • No API key needed
+      • Fast response (< 1 second)
+      • Great for testing and learning
+
+   2) OpenAI (GPT-4, GPT-3.5)
+      • Requires OPENAI_API_KEY
+      • Real AI analysis and suggestions
+      • Best for production use
+
+   3) Anthropic (Claude)
+      • Requires ANTHROPIC_API_KEY
+      • Excellent at complex reasoning
+      • Good for architecture decisions
+
+   Select AI backend [1-3]: 
+   ✅ Zero-key mode: you can use DevSquad right now.
+      First output — run the demo (no API key needed):
+      devsquad demo
+
+   ✅ Backend: MOCK
+
+
+👥 Step 3/5: Role Preferences
+----------------------------------------
+   With 'Generic' project type, roles will be auto-matched based on task content.
+   This is recommended for beginners!
+
+   ✅ Roles configured
+
+
+🌐 Step 4/5: Language & Features
+----------------------------------------
+   Output language:
+   1) Auto-detect from system locale
+   2) 中文 (Chinese)
+   3) English
+   4) 日本語 (Japanese)
+   Select language [1-4]: 
+   Optional features (can be enabled later):
+   Enable startup warmup? (faster subsequent runs) [Y/n]:    Enable context compression? (for long tasks) [Y/n]:    Enable memory bridge? (learn from history) [y/N]:    Enable permission guard? (security checks) [Y/n]: 
+   ✅ Language: auto
+   ✅ Features: warmup, compression, permission
+
+
+💾 Step 5/5: Configuration Summary
+------------------------------------------------------------
+
+   📁 Project Type: Generic / Other
+   🤖 AI Backend:   MOCK
+   👥 Default Roles: auto
+   🌐 Language:     auto
+   ⚙️  Features:     warmup, compression, permission
+
+   Save this configuration? [Y/n]: 
+   ✅ Configuration saved to: /tmp/r2_e2e_b_home/.devsquad.yaml
+
+============================================================
+🎉 Setup Complete! DevSquad is ready to use.
+============================================================
+
+🚀 Quick Start Commands:
+
+   # First output — the demo (mock backend, zero key):
+   devsquad demo
+
+   # Then dispatch your own task (auto-match roles):
+   devsquad dispatch -t "your task description"
+
+   # To switch to real AI later, set the key and re-select:
+   devsquad backend set openai
+
+   # Use lifecycle commands
+   devsquad spec -t "user authentication"
+   devsquad build -t "implement login API"
+
+📚 Learn more:
+   • docs: https://github.com/lulin70/DevSquad#readme
+   • examples: python examples/quick_start.py
+   • help: devsquad --help
+   • roles: devsquad roles
+
+Happy coding! 🎯
+

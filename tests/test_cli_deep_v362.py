@@ -280,6 +280,86 @@ class TestInitWizard:
             with patch("builtins.input", return_value=val):
                 assert _prompt_yes_no("Continue?") is False, f"Failed for: {val}"
 
+    # ── V4.8.0 R2: init 分流（backend × key 有无矩阵）──
+
+    def _run_step2(self, choice: str, config: dict) -> str:
+        """Run _init_step2_backend with mocked prompt, return captured stdout."""
+        import io
+        from contextlib import redirect_stdout
+
+        buf = io.StringIO()
+        with patch.object(cli_module, "_prompt_choice", return_value=choice), redirect_stdout(buf):
+            cli_module._init_step2_backend(config)
+        return buf.getvalue()
+
+    def test_init_step2_mock_backend_zero_key_guidance(self):
+        """Verify: mock backend → zero-key mode + `devsquad demo` guidance."""
+        config: dict = {}
+        out = self._run_step2("1", config)
+        assert config["llm_backend"] == "mock"
+        assert "Zero-key mode" in out
+        assert "devsquad demo" in out
+
+    def test_init_step2_openai_key_set(self, monkeypatch):
+        """Verify: openai + OPENAI_API_KEY set → detected + dispatch guidance."""
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test-dummy")
+        config: dict = {}
+        out = self._run_step2("2", config)
+        assert config["llm_backend"] == "openai"
+        assert "Detected OPENAI_API_KEY" in out
+        assert "devsquad dispatch -t" in out
+        assert "Warning" not in out
+
+    def test_init_step2_openai_key_missing(self, monkeypatch):
+        """Verify: openai + key missing → warning + transitional demo path."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        config: dict = {}
+        out = self._run_step2("2", config)
+        assert "Warning: OPENAI_API_KEY is not set" in out
+        assert "devsquad demo" in out
+        assert "no need to re-run init" in out
+
+    def test_init_step2_anthropic_key_set(self, monkeypatch):
+        """Verify: anthropic + ANTHROPIC_API_KEY set → detected + dispatch guidance."""
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-dummy")
+        config: dict = {}
+        out = self._run_step2("3", config)
+        assert config["llm_backend"] == "anthropic"
+        assert "Detected ANTHROPIC_API_KEY" in out
+        assert "devsquad dispatch -t" in out
+
+    def test_init_step2_anthropic_key_missing(self, monkeypatch):
+        """Verify: anthropic + key missing → warning + transitional demo path."""
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        config: dict = {}
+        out = self._run_step2("3", config)
+        assert "Warning: ANTHROPIC_API_KEY is not set" in out
+        assert "devsquad demo" in out
+
+    def test_init_complete_mock_backend_next_steps(self):
+        """Verify: mock backend complete banner → demo + backend switch hint."""
+        import io
+        from contextlib import redirect_stdout
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            cli_module._print_init_complete({"llm_backend": "mock"})
+        out = buf.getvalue()
+        assert "devsquad demo" in out
+        assert "devsquad backend set openai" in out
+
+    def test_init_complete_openai_backend_next_steps(self):
+        """Verify: openai backend complete banner → key export + dispatch example."""
+        import io
+        from contextlib import redirect_stdout
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            cli_module._print_init_complete({"llm_backend": "openai"})
+        out = buf.getvalue()
+        assert "export OPENAI_API_KEY" in out
+        assert "devsquad dispatch -t" in out
+
 
 class TestSaveConfig:
     """Test configuration saving functionality."""

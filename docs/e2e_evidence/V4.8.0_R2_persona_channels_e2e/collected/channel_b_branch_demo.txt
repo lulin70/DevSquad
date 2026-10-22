@@ -1,0 +1,45 @@
+prometheus-client not installed. Install with: pip install prometheus-client
+DEV_SQUAD_AUDIT_HMAC_KEY not set — generated a random HMAC key for this process. Audit chain verification will FAIL across process restarts. Set the env var in production for persistent tamper-proofing.
+
+============================================================
+  🚀 DevSquad V4.7.2 Quick Demo
+============================================================
+  Mode: Mock (no API key required)
+
+▶️ Scenario 1: Intent Detection
+----------------------------------------
+  Task: 修复用户登录模块中的认证失败问题，报错信息显示token验证异常
+  Intent: bug_fix
+  Confidence: 100.0%
+  Required roles: solo-coder, tester
+  Optional roles: security
+  ✅ Completed in 0.00s
+
+▶️ Scenario 2: Security Scan
+----------------------------------------
+  [✅ OK] SQL Injection: DROP TABLE users;
+  [🚫 BLOCKED] XSS: <script>alert('xss')</script>
+  [✅ OK] Command Injection: rm -rf / && format C:
+  [🚫 BLOCKED] OS Command Injection: $(cat /etc/passwd)
+  ✅ Completed in 0.00s
+
+▶️ Scenario 3: Dispatch Dry-Run
+----------------------------------------
+  Task: 设计一个微服务架构的用户认证系统
+  Mode: Dry-run (simulation)
+  Matched roles: architect, ui-designer, security
+  Summary: [DRY RUN] 将调度角色: architect, ui-designer, security...
+  ✅ Completed in 0.03s
+
+============================================================
+  📊 Demo Summary
+============================================================
+  Scenarios run: 3
+  Successful: 3/3
+  Total time: 0.04s
+
+💡 Next steps:
+  devsquad init          # Interactive setup
+  devsquad dispatch -t "your task"
+  devsquad --help        # All commands
+

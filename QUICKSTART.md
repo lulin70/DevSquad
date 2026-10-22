@@ -34,49 +34,102 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 
 ## ⚡ 最快怎么用？（5 分钟上手）
 
-### 方式 1：命令行（推荐）
+按你的使用方式选一条最短路径 — 每条通道只有一个起点命令。
+
+### 通道 A：IDE 用户（TRAE / Cursor 等，零 key 可用）
+
+**你是谁**：希望在 IDE 里让 AI 助手直接调度 DevSquad 的用户。读侧工具（角色清单、状态、分析）不需要任何 API key。
 
 ```bash
-# 安装
+# 1. 安装（pin mcp SDK 1.x，见 docs/integrations/MCP.md 的 TD-076 说明）
+pip install "devsquad[mcp]" "mcp<2"
+```
+
+```json
+// 2. IDE 的 MCP 配置（stdio）— 以 Cursor / Claude Desktop 为例
+{
+  "mcpServers": {
+    "devsquad": {
+      "command": "python3",
+      "args": ["-m", "scripts.mcp_server"],
+      "env": { "DEV_SQUAD_MCP_USER_ROLE": "operator" }
+    }
+  }
+}
+```
+
+3. 重启 IDE — MCP 工具列表出现 `multiagent_*` 系列工具即接入成功。
+
+**第一份产出**（在 IDE 内调用 `multiagent_roles` 工具）：
+
+```
+architect — 系统设计、技术选型
+security  — 安全审计、威胁建模
+tester    — 测试策略、质量保障
+...（共 7 个角色）
+```
+
+完整接入步骤（9 工具权限表、RBAC 角色、SSE 模式、连接验证方法）：[docs/integrations/MCP.md](docs/integrations/MCP.md)
+
+### 通道 B：CLI 用户
+
+**你是谁**：习惯在终端里直接工作的开发者。
+
+```bash
+# 1. 安装
 pip install devsquad
 
-# 运行 - 让 AI 团队帮你设计认证系统
-devsquad run "设计一个安全的用户认证系统" --roles architect security tester coder
+# 2. 唯一起点：交互式向导（按 key 有无自动分流）
+devsquad init
 
-# 输出结构化报告：
-# ✅ 架构师建议：采用 JWT + Refresh Token 双 token 方案...
-# ✅ 安全专家审查：需防范 CSRF、XSS、SQL 注入...
-# ✅ 测试策略：单元测试覆盖率达 90%+，包含边界场景...
-# ✅ 开发实现：提供完整代码框架...
-# 📊 共识结论：方案可行，风险可控，建议优先实现 P0 功能...
+# 3a. 没有 API key（向导选 mock 后端）→ 零 key 产出第一份报告：
+devsquad demo
+
+# 3b. 已导出 API key（向导选 openai / anthropic）→ 真实多角色协作：
+devsquad dispatch -t "设计一个安全的用户认证系统" --roles architect security tester coder
 ```
 
-### 方式 2：Python API
+**第一份产出**（多角色结构化报告）：
 
-```python
-from scripts.collaboration.dispatcher import MultiAgentDispatcher
-
-dispatcher = MultiAgentDispatcher()
-result = dispatcher.dispatch(
-    task="优化数据库查询性能",
-    roles=["architect", "security", "tester"],  # 选择需要的角色
-)
-
-print(result.report)  # 结构化报告
-print(result.consensus)  # 共识结论
+```
+✅ 架构师建议：采用 JWT + Refresh Token 双 token 方案...
+✅ 安全专家审查：需防范 CSRF、XSS、SQL 注入...
+✅ 测试策略：单元测试覆盖率达 90%+，包含边界场景...
+📊 共识结论：方案可行，风险可控，建议优先实现 P0 功能...
 ```
 
-### 方式 3：REST API
+key 后配好了？无需重跑 init — `devsquad dispatch` 直接可用；或用 `devsquad backend set openai` 切换后端。
 
-```bash
-# 启动服务
-uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000
+### 通道 C：仓库维护者（GitHub PR 质量门禁）
 
-# 调用 API
-curl -X POST http://localhost:8000/api/v1/dispatch \
-  -H "Content-Type: application/json" \
-  -d '{"task": "设计 API 网关", "roles": ["architect", "devops"]}'
+**你是谁**：想给自己的仓库加 AI PR 审查门禁的维护者。零 LLM、零 key、零 secrets。
+
+在自仓新建 `.github/workflows/devsquad-gate-wrapper.yml`（最小示例）：
+
+```yaml
+name: devsquad-gate
+on: [pull_request]
+jobs:
+  devsquad-gate:
+    # 首个包含该 workflow 的 tag 是 v4.8.0；发布前可暂用 @main
+    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.0
+    with:
+      task: "Review this PR"
 ```
+
+推送后每个 PR 自动触发审查。
+
+**第一份产出**（PR 评论，协议 v1）：
+
+```
+🤖 DevSquad Gate
+verdict: PASS
+findings: BREAK 0 / VULN 0 / total 0
+failure_class: — | coverage: 12/12
+run: https://github.com/your-org/your-repo/actions/runs/...
+```
+
+可选 inputs：`devsquad-version`（PyPI 安装版本，默认 4.7.2，随发布 bump）、`task`（审查任务描述）、`include` / `exclude`（路径过滤）、`fail-on`（默认 break）、`preview-only`（只预览不评论）。
 
 ---
 
@@ -180,6 +233,31 @@ devsquad ship -t "部署和发布检查"
 - **REST API**: FastAPI（系统集成）
 - **Dashboard**: Streamlit Web UI（可视化）
 - **MCP Protocol**: 接入 TRAE/Claude Code（AI Agent 生态）
+
+### 💻 进阶：Python API / REST API 调用
+
+```python
+from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
+dispatcher = MultiAgentDispatcher()
+result = dispatcher.dispatch(
+    task="优化数据库查询性能",
+    roles=["architect", "security", "tester"],  # 选择需要的角色
+)
+
+print(result.report)  # 结构化报告
+print(result.consensus)  # 共识结论
+```
+
+```bash
+# 启动服务
+uvicorn scripts.api_server:app --host 0.0.0.0 --port 8000
+
+# 调用 API
+curl -X POST http://localhost:8000/api/v1/dispatch \
+  -H "Content-Type: application/json" \
+  -d '{"task": "设计 API 网关", "roles": ["architect", "devops"]}'
+```
 
 ---
 

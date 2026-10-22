@@ -136,13 +136,23 @@ def _init_step2_backend(config: dict[str, Any]) -> None:
     backend_choice = _prompt_choice("Select AI backend [1-3]", list(backend_options.keys()), default="1") or "1"
     config["llm_backend"] = backend_options[backend_choice]
 
-    if config["llm_backend"] != "mock":
+    if config["llm_backend"] == "mock":
+        print("\n   ✅ Zero-key mode: you can use DevSquad right now.")
+        print("      First output — run the demo (no API key needed):")
+        print("      devsquad demo")
+    else:
         env_var = "OPENAI_API_KEY" if config["llm_backend"] == "openai" else "ANTHROPIC_API_KEY"
-        if not os.environ.get(env_var):
+        if os.environ.get(env_var):
+            print(f"\n   ✅ Detected {env_var} — real AI is ready.")
+            print("      First output — dispatch a real task:")
+            print('      devsquad dispatch -t "your task description"')
+        else:
             print(f"\n   ⚠️  Warning: {env_var} is not set!")
             print("   You'll need to set it before using real AI:")
             print(f'   export {env_var}="your-api-key-here"')
-            print("\n   For now, we'll save the preference. You can configure the key later.")
+            print("\n   Meanwhile, try the mock demo path (no key needed):")
+            print("   devsquad demo")
+            print("   Once the key is set, dispatch works — no need to re-run init.")
 
     print(f"\n   ✅ Backend: {config['llm_backend'].upper()}")
 
@@ -257,22 +267,32 @@ def _print_init_complete(config: dict[str, Any]) -> None:
     print("=" * 60)
 
     print("\n🚀 Quick Start Commands:\n")
-    print("   # Basic usage (auto-match roles)")
-    print('   devsquad dispatch -t "your task description"')
-    print()
-    print("   # With specific roles")
-    print('   devsquad dispatch -t "design auth system" -r arch sec')
-    print()
+
+    if config["llm_backend"] == "mock":
+        print("   # First output — the demo (mock backend, zero key):")
+        print("   devsquad demo")
+        print()
+        print("   # Then dispatch your own task (auto-match roles):")
+        print('   devsquad dispatch -t "your task description"')
+        print()
+        print("   # To switch to real AI later, set the key and re-select:")
+        print("   devsquad backend set openai")
+        print()
+    else:
+        env_var = "OPENAI_API_KEY" if config["llm_backend"] == "openai" else "ANTHROPIC_API_KEY"
+        print("   # If you have not exported your key yet:")
+        print(f'   export {env_var}="your-key-here"')
+        print()
+        print("   # First output — dispatch a real task:")
+        print('   devsquad dispatch -t "your task description"')
+        print()
+        print("   # With specific roles")
+        print('   devsquad dispatch -t "design auth system" -r arch sec')
+        print()
     print("   # Use lifecycle commands")
     print('   devsquad spec -t "user authentication"')
     print('   devsquad build -t "implement login API"')
     print()
-
-    if config["llm_backend"] != "mock":
-        print("⚡ To use real AI, set your API key:")
-        env_var = "OPENAI_API_KEY" if config["llm_backend"] == "openai" else "ANTHROPIC_API_KEY"
-        print(f'   export {env_var}="your-key-here"')
-        print()
 
     print("📚 Learn more:")
     print("   • docs: https://github.com/lulin70/DevSquad#readme")
@@ -330,12 +350,23 @@ def cmd_init(args: argparse.Namespace) -> int:
 def main() -> int:
     """Entry point for the ``devsquad`` CLI.
 
-    Builds the top-level argparse parser with all subcommands (init,
-    dispatch, spec, plan, build, test, review, ship, roles, status, demo)
-    and dispatches to the corresponding ``cmd_*`` handler.
+    Builds the top-level argparse parser via :func:`build_parser` and
+    dispatches to the corresponding ``cmd_*`` handler.
 
     Returns:
         The exit code from the selected subcommand, or 0 for ``--version``.
+    """
+    parser = build_parser()
+    args = parser.parse_args()
+    return _dispatch_args(parser, args)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the top-level argparse parser (pure construction, no side effects).
+
+    Extracted from ``main()`` so tools (e.g. the doc_command consistency
+    gate in ``check_config_consistency.py``) can introspect the registered
+    subcommands without running the CLI.
     """
     parser = argparse.ArgumentParser(
         description="DevSquad — Multi-Agent Orchestration Engine for Software Development",
@@ -751,8 +782,11 @@ Environment Variables (API keys are read from env vars only, never command line)
             help="Explicit JUnit XML evidence to adapt, for example P9=/path/junit.xml (repeatable)",
         )
 
-    args = parser.parse_args()
+    return parser
 
+
+def _dispatch_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    """Dispatch parsed CLI args to the matching ``cmd_*`` handler."""
     # ── Subcommand dispatch (table-driven; radon cc D+ refactor, V4.6.1) ──
     # Special-cased commands first (func-attach pattern / setup / aliasing),
     # then a flat alias→handler table for the simple commands.
