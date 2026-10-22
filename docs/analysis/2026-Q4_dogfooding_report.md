@@ -1,7 +1,7 @@
 # DevSquad Dogfooding 季度报告
 
 > 本报告由 `scripts/generate_dogfooding_report.py` 生成，勿手改。
-> 生成时间：2026-10-22T02:20:27Z | git SHA：ad092ddbae6e
+> 生成时间：2026-10-22T02:58:57Z | git SHA：7be4842d7bfa
 > 生成命令：`scripts/generate_dogfooding_report.py --output docs/analysis/2026-Q4_dogfooding_report.md`
 
 ## 指标总表
@@ -9,11 +9,11 @@
 | 指标 | 值 | 状态 |
 |---|---|---|
 | 版本一致性 | 82/passed | ok |
-| 配置一致性 | 6 passed / 0 failed | ok |
-| 测试金字塔 | 9858 tests / 407 files | ok |
+| 配置一致性 | 7 passed / 0 failed | ok |
+| 测试金字塔 | 9873 tests / 407 files | ok |
 | Bandit 静态安全 | HIGH=0 MEDIUM=0 LOW=106 | ok |
 | PR 评论协议覆盖 | 2 workflow file(s) | ok |
-| TD 债务进出 | total=4 open=2 resolved=2 | ok |
+| TD 债务进出 | total=4 open=1 resolved=3 | ok |
 | pip-audit | collected in CI | unavailable |
 
 ## 指标详情（每项附复现命令与本次输出摘录）
@@ -35,15 +35,15 @@ All 82 required version checks passed (0 optional skipped). Version 4.7.2 is con
 
 ### 配置一致性
 
-- 值：`6 passed / 0 failed`（exit_code=0）
+- 值：`7 passed / 0 failed`（exit_code=0）
 - 复现命令：`/Users/lin/trae_projects/DevSquad/.venv/bin/python scripts/check_config_consistency.py`
   
   备注：1 warnings (non-blocking)
 
 ```
-  [PASS] dockerfile_version_match            Dockerfile ARG VERSION = 4.7.2 (matches VERSION file)
   [PASS] chart_appversion_match              Chart.yaml appVersion = 4.7.2 (matches VERSION file)
   [WARN] values_yaml_tag_match               values.yaml image.tag = 4.7.1 but VERSION file = 4.7.2 (may be intentional for deployment pinning)
+  [PASS] doc_command_consistency             All 36 documented CLI command(s) match registered subcommands (scanned: QUICKSTART.md, README.md, README-CN.md, README-JP.md)
 
 
 1 warning(s) (non-blocking). All critical checks passed.
@@ -51,10 +51,10 @@ All 82 required version checks passed (0 optional skipped). Version 4.7.2 is con
 
 ### 测试金字塔
 
-- 值：`9858 tests / 407 files`（exit_code=0）
+- 值：`9873 tests / 407 files`（exit_code=0）
 - 复现命令：`/Users/lin/trae_projects/DevSquad/.venv/bin/python scripts/check_test_pyramid.py tests/`
   
-  备注：assessment=warning; - integration ratio 14.9% below 15% target (1472/9858 tests) — consider adding integration tests.
+  备注：assessment=warning; - integration ratio 14.9% below 15% target (1472/9873 tests) — consider adding integration tests.
 
 ```
   external            1      29    0.3%   OK
@@ -62,7 +62,7 @@ All 82 required version checks passed (0 optional skipped). Version 4.7.2 is con
   --------------------------------------------------
 
   Assessment: warning
-    - integration ratio 14.9% below 15% target (1472/9858 tests) — consider adding integration tests.
+    - integration ratio 14.9% below 15% target (1472/9873 tests) — consider adding integration tests.
 ```
 
 ### Bandit 静态安全
@@ -76,7 +76,7 @@ All 82 required version checks passed (0 optional skipped). Version 4.7.2 is con
   total LOW        : 106
   scan clean       : True
   report           : docs/audits/bandit_latest.json
-  scanned_at       : 2026-10-22T02:20:27.223659+00:00
+  scanned_at       : 2026-10-22T02:58:57.146398+00:00
 PASS: bandit gate (HIGH=0; MEDIUM within tolerance).
 ```
 
@@ -89,7 +89,7 @@ PASS: bandit gate (HIGH=0; MEDIUM within tolerance).
 
 ### TD 债务进出
 
-- 值：`total=4 open=2 resolved=2`（exit_code=0）
+- 值：`total=4 open=1 resolved=3`（exit_code=0）
 - 复现命令：`parse docs/TECH_DEBT.md`
 
 
