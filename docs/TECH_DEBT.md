@@ -133,6 +133,22 @@
   `requirements-dev.lock`，并将本条目标记 RESOLVED。
 - **状态**: OPEN（2026-10-21 登记，2026-10-22 处置升级为运行时自动豁免收集；豁免有时限、有披露、有复查条件）
 
+### TD-076: MCP server 与 mcp SDK 2.x 不兼容（依赖约束过宽）
+
+- **优先级**: P1（阻塞 QUICKSTART 通道 A 的开箱体验）
+- **位置**: `pyproject.toml` extras `mcp = ["mcp>0.9"]`；`scripts/mcp_server.py:49-55`（`from mcp.server.fastmcp import FastMCP`）
+- **类型**: 依赖版本约束缺口（声明面与实际 API 兼容面不符）
+- **描述**: 2026-10-22 R4 e2e 实测（干净 venv，PyPI 安装）：`pip install devsquad[mcp]` 当前解析到
+  mcp 2.3.0；mcp 2.x 将 `FastMCP` 改名为 `MCPServer` 并移除 `mcp.server.fastmcp` 模块，
+  server 启动即退出（"MCP SDK required"，e2e 证据
+  [V4.8.0_R4_mcp_stdio_e2e](../e2e_evidence/V4.8.0_R4_mcp_stdio_e2e/README.md) 场景 1）。
+  mcp 1.30.0 实测全链路可用（initialize + tools/list 9 工具 + multiagent_roles 成功）。
+- **影响面**: 全部 PyPI 形态 MCP 用户（`pip install devsquad[mcp]` 装到 2.x 即无法启动）。
+  仓库形态用户若安装 `mcp<2` 不受影响。R4 文档已带 `"mcp<2"` pin 过渡（MCP.md §2 已知问题声明）。
+- **建议方案**: pyproject extras 约束收紧为 `mcp = ["mcp>=1,<2"]`（一行改动 + 版本一致性
+  检查通过即可）；如后续适配 2.x（`MCPServer` 迁移），以独立工作项处理，不与本条混同。
+- **状态**: OPEN（2026-10-22 随 R4 e2e 发现登记；修复排 P1 窗口独立小 PR，不夹带进 R4 纯文档 PR——设计文档 §3.4 裁定）
+
 ## 扫描方法与排除项
 
 ### 扫描命令

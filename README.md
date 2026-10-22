@@ -167,11 +167,13 @@ devsquad dispatch -t "your task description"
 
 ```bash
 # Start MCP server with stdio transport (for IDE integration)
-python3 scripts/mcp_server.py
+python3 -m scripts.mcp_server
 
 # Or SSE transport (for remote access)
-python3 scripts/mcp_server.py --port 8080
+python3 -m scripts.mcp_server --port 8080
 ```
+
+Full integration guide — install (`pip install "devsquad[mcp]" "mcp<2"`), client config JSON (Cursor / Claude Desktop), the 9-tool catalog, and RBAC / fail-closed behavior: [docs/integrations/MCP.md](docs/integrations/MCP.md).
 
 ### Method 4: Web Dashboard (Recommended for Teams)
 

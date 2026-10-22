@@ -283,17 +283,24 @@ python3 scripts/cli.py dispatch -t "Test task" --dry-run
 
 ```bash
 # Start MCP server with stdio transport (default, for IDE integration)
-python3 scripts/mcp_server.py
+python3 -m scripts.mcp_server
 
 # Start MCP server with SSE transport (for remote access)
-python3 scripts/mcp_server.py --port 8080
+python3 -m scripts.mcp_server --port 8080
 ```
 
-**MCP Tools exposed**:
-- `dispatch` — trigger multi-role collaboration
-- `get_lifecycle_status` — query current lifecycle phase
-- `get_metrics` — retrieve performance metrics
-- `list_skills` — list available sub-skills
+**MCP Tools exposed (9)**:
+- `multiagent_dispatch` — full multi-agent collaboration on a task (WRITE)
+- `multiagent_quick` — quick dispatch with compact output (WRITE)
+- `multiagent_roles` — list all agent roles (READ_ONLY)
+- `multiagent_status` — version, backends, capabilities (READ_ONLY)
+- `multiagent_analyze` — dry-run task intent analysis (READ_ONLY)
+- `multiagent_shutdown` — free dispatcher resources (ADMIN)
+- `codegraph_explore` — query the code knowledge graph (READ_ONLY)
+- `codegraph_status` — graph build status and stats (READ_ONLY)
+- `codegraph_refresh` — incremental/full graph rebuild (WRITE)
+
+Full integration guide — install, client config JSON (Cursor / Claude Desktop), RBAC / fail-closed behavior: [docs/integrations/MCP.md](docs/integrations/MCP.md)
 
 **When to use Method 3**:
 - IDE integration (TRAE, Claude Desktop, Cursor) via MCP protocol
