@@ -115,6 +115,11 @@ jobs:
     uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.0
     with:
       task: "Review this PR"
+    # 必须授予被调 workflow 声明的权限（PR 评论需要 write）；
+    # 缺失时 GitHub 在启动期即失败（T-3 试装实测 2026-10-22）
+    permissions:
+      contents: read
+      pull-requests: write
 ```
 
 推送后每个 PR 自动触发审查。
