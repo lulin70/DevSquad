@@ -1,0 +1,17 @@
+2026-10-22 10:11:32,180 [WARNING] MCP permission DENIED: tool=multiagent_roles user=None reason=No user context (fail-closed): caller identity unknown
+[0] mode: role=<unset — expect fail-closed denial>
+[1] initialize OK
+    server name=DevSquad version=1.30.0
+[2] tools/list -> 9 tools
+    - codegraph_explore
+    - codegraph_refresh
+    - codegraph_status
+    - multiagent_analyze
+    - multiagent_dispatch
+    - multiagent_quick
+    - multiagent_roles
+    - multiagent_shutdown
+    - multiagent_status
+[3] multiagent_roles -> isError=False
+    text[:400]='{"error": "No user context (fail-closed): caller identity unknown", "success": false, "denied": true}'
+PASS: initialize + tools/list>=9 + multiagent_roles behaved as expected

@@ -166,11 +166,13 @@ devsquad dispatch -t "your task description"
 
 ```bash
 # MCPサーバーを起動（stdioトランスポート、IDE統合用）
-python3 scripts/mcp_server.py
+python3 -m scripts.mcp_server
 
 # またはSSEトランスポート（リモートアクセス用）
-python3 scripts/mcp_server.py --port 8080
+python3 -m scripts.mcp_server --port 8080
 ```
+
+完全な統合ガイド — インストール（`pip install "devsquad[mcp]" "mcp<2"`）、クライアント設定 JSON（Cursor / Claude Desktop）、9 ツールカタログ、RBAC / fail-closed 動作：[docs/integrations/MCP.md](docs/integrations/MCP.md)。
 
 ### Method 4: Web Dashboard（チーム推奨）
 
