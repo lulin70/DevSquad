@@ -1,0 +1,14 @@
+Configuration Consistency Report (V4.2.1 P2-15)
+  Checks: 7 passed, 0 failed, 1 warnings, 0 skipped
+
+  [PASS] pyproject_to_requirements_sync      All 2 pyproject.toml dependencies present in requirements.txt
+  [PASS] devsquad_yaml_quality_control       .devsquad.yaml has quality_control section
+  [PASS] values_yaml_image_keys              values.yaml has image.repository and image.tag
+  [PASS] deployment_yaml_auth                deployment.yaml has authentication section
+  [PASS] dockerfile_version_match            Dockerfile ARG VERSION = 4.7.2 (matches VERSION file)
+  [PASS] chart_appversion_match              Chart.yaml appVersion = 4.7.2 (matches VERSION file)
+  [WARN] values_yaml_tag_match               values.yaml image.tag = 4.7.1 but VERSION file = 4.7.2 (may be intentional for deployment pinning)
+  [PASS] doc_command_consistency             All 36 documented CLI command(s) match registered subcommands (scanned: QUICKSTART.md, README.md, README-CN.md, README-JP.md)
+
+
+1 warning(s) (non-blocking). All critical checks passed.

@@ -289,6 +289,7 @@ class T5_CheckAll(unittest.TestCase):
             self.assertIn("dependency", categories)
             self.assertIn("key_presence", categories)
             self.assertIn("cross_file", categories)
+            self.assertIn("doc_command", categories)
 
 
 class T6_FormatReport(unittest.TestCase):
@@ -367,6 +368,114 @@ class T8_RealRepoIntegration(unittest.TestCase):
         valid_statuses = {"pass", "fail", "warn", "skip"}
         for c in results:
             self.assertIn(c.status, valid_statuses, f"Invalid status: {c.status}")
+
+
+class T9_DocCommandConsistency(unittest.TestCase):
+    """T9: _check_doc_commands() — doc commands vs real parser (V4.8.0 R2)."""
+
+    def _doc_check(self, root: Path):
+        """Run doc_command check against given repo root, return results."""
+        checker = ConfigConsistencyChecker(repo_root=root)
+        return checker._check_doc_commands()
+
+    def test_01_valid_commands_pass(self) -> None:
+        """Verify: All valid documented commands (incl. second-level) → PASS."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            _write(
+                root / "QUICKSTART.md",
+                "# Quick Start\n"
+                "```bash\n"
+                "devsquad init\n"
+                "devsquad demo\n"
+                'devsquad run "design auth" --roles architect tester\n'
+                'devsquad dispatch -t "task"\n'
+                "devsquad sessions list\n"
+                "devsquad sessions show abc123\n"
+                "python scripts/cli.py init\n"
+                "python3 scripts/cli.py status\n"
+                'devsquad lifecycle spec -t "requirement"\n'
+                "```\n",
+            )
+            results = self._doc_check(root)
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].status, "pass")
+
+    def test_02_unknown_top_level_fails_with_location(self) -> None:
+        """Verify: `devsquad nosuchcmd` → FAIL with file:line:command."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            _write(
+                root / "README.md",
+                "```bash\ndevsquad init\ndevsquad nosuchcmd --flag\n```\n",
+            )
+            results = self._doc_check(root)
+            self.assertEqual(results[0].status, "fail")
+            self.assertIn("README.md:3:", results[0].message)
+            self.assertIn("devsquad nosuchcmd", results[0].message)
+
+    def test_03_unknown_second_level_fails(self) -> None:
+        """Verify: `devsquad sessions badsub` → FAIL (second-level unknown)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            _write(
+                root / "README-CN.md",
+                "```bash\ndevsquad sessions list\ndevsquad sessions badsub\n```\n",
+            )
+            results = self._doc_check(root)
+            self.assertEqual(results[0].status, "fail")
+            self.assertIn("README-CN.md:3:", results[0].message)
+
+    def test_04_no_doc_files_skips(self) -> None:
+        """Verify: No doc files present → SKIP."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            results = self._doc_check(root)
+            self.assertEqual(results[0].status, "skip")
+
+    def test_05_commands_outside_code_blocks_ignored(self) -> None:
+        """Verify: `devsquad nosuchcmd` outside a fenced block → not flagged."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            _write(
+                root / "QUICKSTART.md",
+                "Run `devsquad nosuchcmd` inline — outside code blocks, not scanned.\n```bash\ndevsquad demo\n```\n",
+            )
+            results = self._doc_check(root)
+            self.assertEqual(results[0].status, "pass")
+
+    def test_06_flag_only_lines_skipped(self) -> None:
+        """Verify: `devsquad --version` (no subcommand) and comment tails → not flagged."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            _write(
+                root / "QUICKSTART.md",
+                "```bash\n"
+                "devsquad --version\n"
+                "python3 scripts/cli.py --version       # Expected: DevSquad 4.7.2\n"
+                "python3 scripts/cli.py status          # Expected: System ready\n"
+                "```\n",
+            )
+            results = self._doc_check(root)
+            self.assertEqual(results[0].status, "pass")
+
+    def test_07_registry_matches_parser_includes_aliases(self) -> None:
+        """Verify: Registry from build_parser() contains aliases (e.g., run, i, lc)."""
+        from scripts.check_config_consistency import _cli_command_registry
+
+        top, groups = _cli_command_registry()
+        for alias in ("run", "i", "lc", "ls", "m", "s", "try", "setup", "sess", "risk", "d", "play"):
+            self.assertIn(alias, top, f"Alias '{alias}' missing from registry")
+        self.assertIn("sessions", groups)
+        self.assertIn("list", groups["sessions"])
+        self.assertIn("spec", groups["lifecycle"])
+
+    def test_08_real_repo_docs_all_green(self) -> None:
+        """Verify: Current repo docs (QUICKSTART + README x3) pass doc_command gate."""
+        checker = ConfigConsistencyChecker()
+        results = checker._check_doc_commands()
+        doc_results = [c for c in results if c.category == "doc_command"]
+        self.assertTrue(any(c.status == "pass" for c in doc_results), f"doc_command not green: {doc_results}")
 
 
 if __name__ == "__main__":

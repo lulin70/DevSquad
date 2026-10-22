@@ -18,6 +18,7 @@ Check categories:
     1. dependency  — pyproject.toml ↔ requirements.txt sync
     2. key_presence — required keys in .devsquad.yaml, values.yaml, etc.
     3. cross_file  — VERSION ↔ Dockerfile/Chart.yaml/values.yaml alignment
+    4. doc_command — QUICKSTART/README×3 CLI commands ↔ real parser registrations (V4.8.0 R2)
 """
 
 from __future__ import annotations
@@ -65,6 +66,7 @@ class ConfigConsistencyChecker:
         results.extend(self._check_dependency_sync())
         results.extend(self._check_key_presence())
         results.extend(self._check_cross_file())
+        results.extend(self._check_doc_commands())
         return results
 
     # === Category 1: Dependency sync ===
@@ -407,6 +409,163 @@ class ConfigConsistencyChecker:
                 )
 
         return results
+
+    # === Category 4: Doc command consistency (V4.8.0 R2) ===
+
+    def _check_doc_commands(self) -> list[ConfigCheck]:
+        """Verify documented CLI commands match real parser registrations.
+
+        Scans fenced code blocks in QUICKSTART.md and README x3 for lines
+        starting with ``devsquad`` / ``python scripts/cli.py`` / ``python3
+        scripts/cli.py``, extracts the first (and where applicable second)
+        subcommand token, and compares against the CLI parser's registered
+        subcommand set (aliases included). Unknown subcommands → FAIL with
+        file:line:command detail.
+        """
+        results: list[ConfigCheck] = []
+
+        try:
+            top_commands, group_subcommands = _cli_command_registry()
+        except Exception as exc:  # defensive: parser build must never break CI
+            results.append(
+                ConfigCheck(
+                    name="doc_command_registry",
+                    category="doc_command",
+                    status="skip",
+                    message=f"Could not build CLI parser for doc_command check: {exc}",
+                )
+            )
+            return results
+
+        existing = [name for name in _DOC_SCAN_FILES if (self.repo_root / name).exists()]
+        if not existing:
+            results.append(
+                ConfigCheck(
+                    name="doc_files_present",
+                    category="doc_command",
+                    status="skip",
+                    message=f"None of the doc files found ({', '.join(_DOC_SCAN_FILES)})",
+                )
+            )
+            return results
+
+        violations: list[str] = []
+        scanned = 0
+        for doc_name in _DOC_SCAN_FILES:
+            doc_path = self.repo_root / doc_name
+            if not doc_path.exists():
+                continue
+            in_block = False
+            for lineno, line in enumerate(doc_path.read_text(encoding="utf-8").splitlines(), start=1):
+                if line.lstrip().startswith("```"):
+                    in_block = not in_block
+                    continue
+                if not in_block:
+                    continue
+                match = _DOC_COMMAND_LINE_RE.match(line)
+                if not match:
+                    continue
+                scanned += 1
+                tokens = _tokens_without_comment(match.group(1))
+                if not tokens or tokens[0].startswith(("-", "\\")):
+                    continue  # flags only (e.g., `devsquad --version`) or continuation marker
+                first = tokens[0]
+                if first not in top_commands:
+                    violations.append(f"{doc_name}:{lineno}: {line.strip()}")
+                    continue
+                sub_set = group_subcommands.get(first)
+                if sub_set and len(tokens) > 1 and not tokens[1].startswith(("-", "\\")) and tokens[1] not in sub_set:
+                    violations.append(f"{doc_name}:{lineno}: {line.strip()}")
+
+        if violations:
+            detail = "; ".join(violations[:3])
+            more = f" (+{len(violations) - 3} more)" if len(violations) > 3 else ""
+            results.append(
+                ConfigCheck(
+                    name="doc_command_consistency",
+                    category="doc_command",
+                    status="fail",
+                    message=f"{len(violations)} documented command(s) reference unknown CLI subcommand(s): "
+                    f"{detail}{more}",
+                )
+            )
+        else:
+            results.append(
+                ConfigCheck(
+                    name="doc_command_consistency",
+                    category="doc_command",
+                    status="pass",
+                    message=f"All {scanned} documented CLI command(s) match registered subcommands "
+                    f"(scanned: {', '.join(existing)})",
+                )
+            )
+        return results
+
+
+_DOC_SCAN_FILES = ("QUICKSTART.md", "README.md", "README-CN.md", "README-JP.md")
+_DOC_COMMAND_LINE_RE = re.compile(r"^\s*[$%]?\s*(?:devsquad|python3?\s+scripts/cli\.py)\s+(.+?)\s*$")
+
+
+def _tokens_without_comment(text: str) -> list[str]:
+    """Split into whitespace tokens, dropping an inline comment tail.
+
+    Args:
+        text: Command tail after the ``devsquad``/``python scripts/cli.py`` prefix.
+
+    Returns:
+        Tokens up to (excluding) the first ``#``-prefixed token.
+    """
+    tokens: list[str] = []
+    for tok in text.split():
+        if tok.startswith("#"):
+            break
+        tokens.append(tok)
+    return tokens
+
+
+def _collect_subparser_commands(parser: argparse.ArgumentParser) -> set[str]:
+    """Collect registered subcommand names (aliases included) from a parser.
+
+    Args:
+        parser: The argparse parser to introspect.
+
+    Returns:
+        Names registered via ``add_subparsers().add_parser()`` (incl. aliases),
+        plus positional-with-choices values (e.g., ``lifecycle spec|plan|...``).
+    """
+    names: set[str] = set()
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            names.update(action.choices.keys())
+        elif action.choices and not action.option_strings:
+            names.update(action.choices)
+    return names
+
+
+def _cli_command_registry() -> tuple[set[str], dict[str, set[str]]]:
+    """Build the real CLI parser and extract registered command names.
+
+    Returns:
+        Tuple of (top-level command names incl. aliases, second-level command
+        names keyed by group command, e.g., {"sessions": {"list", "show"}}).
+    """
+    repo_root = str(Path(__file__).resolve().parent.parent)
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
+    from scripts.cli import build_parser  # lazy: heavy import chain
+
+    parser = build_parser()
+    top: set[str] = set()
+    groups: dict[str, set[str]] = {}
+    for action in parser._actions:
+        if not isinstance(action, argparse._SubParsersAction):
+            continue
+        for name, sub_parser in action.choices.items():
+            top.add(name)
+            subs = _collect_subparser_commands(sub_parser)
+            if subs:
+                groups[name] = subs
+    return top, groups
 
 
 def format_report(checks: list[ConfigCheck]) -> str:

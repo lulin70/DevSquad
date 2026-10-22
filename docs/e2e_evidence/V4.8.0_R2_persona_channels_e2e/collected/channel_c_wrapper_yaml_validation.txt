@@ -1,0 +1,15 @@
+--- wrapper YAML extracted from QUICKSTART channel C ---
+name: devsquad-gate
+on: [pull_request]
+jobs:
+  devsquad-gate:
+    # 首个包含该 workflow 的 tag 是 v4.8.0；发布前可暂用 @main
+    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.0
+    with:
+      task: "Review this PR"
+
+[1] YAML syntax: OK (parsed 3 top keys)
+[2] uses ref: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.0
+[3] workflow path exists in repo: .github/workflows/devsquad-gate.yml (first tag containing it: v4.8.0; @main usable pre-release)
+[4] doc_command: PASS — All 36 documented CLI command(s) match registered subcommands (scanned: QUICKSTART.md, README.md, README-CN.md, README-JP.md)
+CHANNEL C E2E: PASS
