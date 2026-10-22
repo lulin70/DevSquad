@@ -102,6 +102,8 @@ gh pr view <number> --repo <owner>/<repo> --json state,mergeStateStatus,statusCh
 - [ ] 多维护者模式：恢复至少 1 个其他维护者批准后再合并
 - [ ] 本批 Git tag / GitHub Release 按当批发布裁定执行（如 P0 执行计划 §4.2 默认裁定：独立小发布含 tag）；裁定记录于执行计划 §10
 - [ ] GitHub Release / tag 与当批裁定不一致时，先重裁定再行动，禁止事后改单
+- [ ] `.github/workflows/devsquad-gate.yml` 的 `devsquad-version` 默认值已随本次发布 bump（V4.8.0 起；`tests/unit/test_devsquad_gate_workflow.py::TestReusability::test_declared_inputs_match_the_design` 锚定该默认值，必须同 PR 同步更新，否则结构防腐测试红）
+- [ ] QUICKSTART 通道 C 的 `uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@vX.Y.Z` 示例 ref 已指向本次 tag
 
 ## 8. 发布后验证
 
