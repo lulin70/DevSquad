@@ -47,13 +47,13 @@
 ## V4.3+ Roadmap（UI/UX Skills 学习项）
 
 > 来源：V4.1.0 PRD §3.4 UI/UX P2 学习项（4 项中 P2-UI-4 4pt 网格间距检测可作为 P1 扩展先行落地，其余 3 项登记于此）。
-> **状态: 全部落地 ✅** — P2-UI-1/P2-UI-2/P2-UI-3 于 V4.2.1 实现（commit 1fc94aa），版本保持 4.2.x。
+> **状态: P2-UI-1 已接线 / P2-UI-3 保留 / P2-UI-2 已移除** — P2-UI-1/P2-UI-2/P2-UI-3 于 V4.2.1 实现（commit 1fc94aa）；V4.8.0 E1 消费者审计后 P2-UI-2 移除（零消费方），P2-UI-1 接线 doctor（详见各条目）。
 
 | ID | 名称 | 状态 | 落地版本 |
 |----|------|------|----------|
-| P2-UI-1 | CLI 命令词表 | ✅ 已落地 | V4.2.1 |
-| P2-UI-2 | Live Browser 模式 | ✅ 已落地 | V4.2.1 |
-| P2-UI-3 | 6 Meta-skills 分层 | ✅ 已落地 | V4.2.1 |
+| P2-UI-1 | CLI 命令词表 | ✅ 已落地（V4.8.0 接线 doctor） | V4.2.1 |
+| P2-UI-2 | Live Browser 模式 | 🗑️ V4.8.0 已移除（E1 裁定） | V4.2.1 |
+| P2-UI-3 | 6 Meta-skills 分层 | ✅ 已落地（FREEZE） | V4.2.1 |
 
 详见 [已落地条目](#已落地条目)。
 
@@ -171,7 +171,7 @@
 - **API**: `classify(command)`, `audit_cli()`, `suggest_command(intent)`
 - **测试**: `tests/test_cli_command_classifier.py`（61 测试）
 
-### P2-UI-2: Live Browser 模式 (impeccable Live Browser) — ✅ V4.2.1 已落地
+### P2-UI-2: Live Browser 模式 (impeccable Live Browser) — 🗑️ V4.8.0 已移除（E1 裁定）
 
 - **ID**: P2-UI-2
 - **来源**: [pbakaus/impeccable](https://github.com/pbakaus/impeccable) — Live Browser 模式
@@ -180,6 +180,7 @@
 - **落地方式**: 新建 `scripts/collaboration/dashboard_live_mode.py`。提供实时 UI 审查迭代闭环：`start_session(url, target_views, review_axes)` → `review(session)` → `suggest_fixes(session, issues)` → `re_review(session)` → `end_session(session)`。借鉴 impeccable "实时反馈" 理念，与 V4.1.0 `UIUXAnalyzer` + `TasteDials` 协同
 - **API**: `start_session`, `review`, `suggest_fixes`, `re_review`, `end_session`
 - **测试**: `tests/test_dashboard_live_mode.py`（28 测试）
+- **移除记录（2026-10-22，P1-E1 裁定）**: 模块与测试自 V4.8.0 起删除。E1 消费者审计证实零生产消费方、零触达路径（无 CLI/REST/skill 注册）、零用户文档面；前瞻性判定"将来也不会有消费"（ui-designer 走静态审计链，浏览器自动化场景应使用 MCP browser 工具生态）。裁定记录见 [执行计划 §10](planning/2026-10-20_value_proposal_execution_plan.md) | [审计文档](analysis/2026-10-22_consumer_audit_E1.md)
 
 ### P2-UI-3: 6 Meta-skills 分层 (taste-skill) — ✅ V4.2.1 已落地
 
