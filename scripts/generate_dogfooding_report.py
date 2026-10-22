@@ -20,6 +20,7 @@ import argparse
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -156,7 +157,9 @@ def count_pr_comment_protocol(workflows_dir: Path | None = None) -> tuple[str, s
 # ------------------------------------------------------------------
 
 
-def _collect(name: str, cmd: list[str], command_str: str, parser) -> MetricRecord:
+def _collect(
+    name: str, cmd: list[str], command_str: str, parser: Callable[[str], tuple[str, str] | None]
+) -> MetricRecord:
     exit_code, output = run_command(cmd)
     parsed = parser(output)
     if parsed is None:
