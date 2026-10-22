@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from argparse import Namespace
 from unittest.mock import patch
@@ -11,9 +12,11 @@ from scripts.cli_doctor import (
     ProviderReport,
     _check_connectivity,
     _is_configured,
+    check_command_vocabulary,
     cmd_doctor,
     diagnose_all,
     diagnose_provider,
+    format_command_section,
     format_json,
     format_text,
 )
@@ -219,3 +222,100 @@ class TestCmdDoctor:
         mock_diag.return_value = ProviderReport("moka", False, False, fix_hint="Set MOKA_API_KEY")
         rc = cmd_doctor(_ns("moka", "text"))
         assert rc == 0
+
+
+class TestCommandVocabulary:
+    """Test check_command_vocabulary (V4.8.0 P1-E1 wiring)."""
+
+    def test_registered_top_level(self):
+        check = check_command_vocabulary("status")
+        assert check["registered"] is True
+        assert check["registered_where"] == "top-level"
+        assert check["aligned"] is False
+        assert check["suggested_alias"] == "show"
+
+    def test_registered_normalizes_case_and_space(self):
+        check = check_command_vocabulary("  STATUS ")
+        assert check["registered"] is True
+        assert check["normalized"] == "status"
+
+    def test_typo_close_match(self):
+        check = check_command_vocabulary("sesions")
+        assert check["registered"] is False
+        assert check["close_matches"][0]["command"] == "sessions"
+        assert check["close_matches"][0]["where"] == "top-level"
+
+    def test_subcommand_typo_located(self):
+        check = check_command_vocabulary("lst")
+        assert check["registered"] is False
+        best = check["close_matches"][0]
+        assert best["command"] == "list"
+        assert "sessions" in best["where"]
+
+    def test_garbage_no_matches(self):
+        check = check_command_vocabulary("zzqqxy")
+        assert check["registered"] is False
+        assert check["close_matches"] == []
+        assert "no similar command" in check["hint"]
+
+    def test_aligned_command(self):
+        check = check_command_vocabulary("review")
+        assert check["registered"] is True
+        assert check["aligned"] is True
+        assert check["suggested_alias"] is None
+
+    def test_hint_registered(self):
+        check = check_command_vocabulary("status")
+        assert "devsquad status --help" in check["hint"]
+
+    def test_hint_typo(self):
+        check = check_command_vocabulary("sesions")
+        assert "sessions" in check["hint"]
+
+
+class TestFormatCommandSection:
+    """Test format_command_section display rules."""
+
+    def test_registered_unknown_category_omitted(self):
+        check = check_command_vocabulary("status")
+        text = format_command_section(check)
+        assert "Category:" not in text
+        assert "Alias hint:" in text
+
+    def test_unregistered_shows_closest(self):
+        check = check_command_vocabulary("sesions")
+        text = format_command_section(check)
+        assert "✗ not a DevSquad command" in text
+        assert "sessions" in text
+        assert "unknown category" not in text
+
+
+class TestCmdDoctorCommandFlag:
+    """Test cmd_doctor with the --command (command_word) flag."""
+
+    @patch("scripts.cli_doctor.diagnose_provider")
+    def test_text_output_contains_section(self, mock_diag, capsys):
+        mock_diag.return_value = ProviderReport("moka", False, False, fix_hint="Set MOKA_API_KEY")
+        ns = Namespace(provider="moka", format="text", timeout=5.0, command_word="sesions")
+        rc = cmd_doctor(ns)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "[COMMAND VOCABULARY]" in out
+        assert "sessions" in out
+
+    @patch("scripts.cli_doctor.diagnose_provider")
+    def test_json_output_has_key(self, mock_diag, capsys):
+        mock_diag.return_value = ProviderReport("moka", False, False, fix_hint="Set MOKA_API_KEY")
+        ns = Namespace(provider="moka", format="json", timeout=5.0, command_word="status")
+        rc = cmd_doctor(ns)
+        assert rc == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["command_vocabulary"]["registered"] is True
+
+    @patch("scripts.cli_doctor.diagnose_provider")
+    def test_without_command_word_no_section(self, mock_diag, capsys):
+        mock_diag.return_value = ProviderReport("moka", False, False, fix_hint="Set MOKA_API_KEY")
+        ns = Namespace(provider="moka", format="text", timeout=5.0, command_word=None)
+        rc = cmd_doctor(ns)
+        assert rc == 0
+        assert "[COMMAND VOCABULARY]" not in capsys.readouterr().out
