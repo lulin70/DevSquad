@@ -4,12 +4,18 @@ Design doc: docs/planning/V4.8.0_R1_devsquad_gate_DESIGN.md §7.1. The V-1
 probe proved `review --diff-file` produced no structured findings; these
 tests pin the wiring that scans ADDED lines with the three existing
 ReviewCheckers regex families (zero new check logic).
+
+V4.8.1 F-D1 tests (§7.4): the findings face is filtered with the same
+deterministic path gates as the changeset face — user include/exclude
+globs, unsupported extensions, and built-in default excludes all apply
+via review_filter's gate sequence.
 """
 
 from __future__ import annotations
 
 from scripts.collaboration.diff_pattern_scanner import (
     diff_pattern_scan_to_dicts,
+    filter_diff_pattern_findings,
     scan_diff_patterns,
 )
 
@@ -126,3 +132,77 @@ class TestScanDiffPatterns:
             "line_range",
             "suggestion",
         }
+
+
+class TestFilterDiffPatternFindings:
+    """V4.8.1 F-D1: pattern findings respect the deterministic path gates."""
+
+    def test_user_exclude_drops_findings_for_excluded_path_keeps_others(self):
+        # "tests/**" covers nested paths (trailing-/** matcher extension),
+        # so the dogfood wrapper's exclude form works on the findings face.
+        diff = _diff("tests/unit/test_fixture.py", ["x = 1  # TODO fix"]) + _diff("src/app.py", ["y = 2  # TODO fix"])
+        dicts = diff_pattern_scan_to_dicts(diff, exclude=["tests/**"])
+        assert {d["file_path"] for d in dicts} == {"src/app.py"}
+
+    def test_markdown_code_smell_findings_dropped(self):
+        # .md resolves to kind=document (NOT unsupported); code-smell
+        # families require kind=source, so doc text quoting an anti-pattern
+        # is prose, not a finding (F-D1 impact (b)).
+        dicts = diff_pattern_scan_to_dicts(_diff("docs/evidence.md", ["seen: # TODO mention"]))
+        assert dicts == []
+
+    def test_markdown_secret_findings_are_kept(self):
+        # Secrets are content leaks: a real key in a document is still a
+        # leak, so the secret family survives on review-retained docs.
+        dicts = diff_pattern_scan_to_dicts(_diff("docs/evidence.md", ['api_key = "abcdefghij1234567890"']))
+        assert [d["rule_id"] for d in dicts] == ["diff-hardcoded_api_key"]
+
+    def test_python_findings_survive_without_filters(self):
+        dicts = diff_pattern_scan_to_dicts(_diff("src/app.py", ["z = 3  # TODO fix"]))
+        assert [d["file_path"] for d in dicts] == ["src/app.py"]
+
+    def test_unclaimed_extension_findings_dropped(self):
+        # .js resolves to the system catch-all (kind=unclaimed): dropped by
+        # the unsupported_ext gate, same as the changeset face.
+        dicts = diff_pattern_scan_to_dicts(_diff("web/app.js", ["q = 5  # TODO fix"]))
+        assert dicts == []
+
+    def test_default_exclude_applies_to_findings(self):
+        dicts = diff_pattern_scan_to_dicts(_diff("dist/bundle.py", ["w = 4  # TODO fix"]))
+        assert dicts == []
+
+    def test_default_exclude_covers_nested_paths(self):
+        # Regression-pins the trailing-/** matcher fix: the built-in
+        # "dist/**" exclude now covers dist/sub/x.py too.
+        dicts = diff_pattern_scan_to_dicts(_diff("dist/sub/bundle.py", ["w = 4  # TODO fix"]))
+        assert dicts == []
+
+    def test_user_include_rescues_secrets_but_not_code_smells(self):
+        # Same rescue semantics as the changeset face: --include
+        # force-retains an otherwise-unsupported path (.yml). The secret
+        # family survives the rescue; code smells still require source kind.
+        secret = _diff("ci/config.yml", ['api_key = "abcdefghij1234567890"'])
+        smell = _diff("ci/config.yml", ["k = 6  # TODO fix"])
+        kept_secret = diff_pattern_scan_to_dicts(secret, include=["ci/**"])
+        kept_smell = diff_pattern_scan_to_dicts(smell, include=["ci/**"])
+        assert [d["rule_id"] for d in kept_secret] == ["diff-hardcoded_api_key"]
+        assert kept_smell == []
+
+    def test_filter_function_operates_on_scanner_output(self):
+        findings = scan_diff_patterns(
+            _diff("tests/unit/test_fixture.py", ["x = 1  # TODO fix"]) + _diff("src/app.py", ["y = 2  # TODO fix"])
+        )
+        kept = filter_diff_pattern_findings(findings, exclude=["tests/**"])
+        assert {f.file_path for f in kept} == {"src/app.py"}
+
+    def test_empty_findings_short_circuits(self):
+        assert filter_diff_pattern_findings([], exclude=["tests/**"]) == []
+
+    def test_secrets_in_excluded_paths_are_also_filtered(self):
+        # The path gates apply to every family: a critical secret finding in
+        # an excluded path is dropped with the same user_exclude gate.
+        dicts = diff_pattern_scan_to_dicts(
+            _diff("tests/unit/test_fixture.py", ['api_key = "abcdefghij1234567890"']),
+            exclude=["tests/**"],
+        )
+        assert dicts == []

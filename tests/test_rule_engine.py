@@ -318,6 +318,20 @@ class T5_GlobDialect(unittest.TestCase):
         self.assertEqual(rules[-1].pattern, "**")
         self.assertEqual(resolve("anything.xyz", RuleSources(system=packaged)).layer, LAYER_SYSTEM)
 
+    def test_25_trailing_double_star_matches_any_depth(self) -> None:
+        """Verify: `tests/**` covers nested paths, not only direct children (V4.8.1 F-D1)."""
+        self.assertIs(matches("tests/x.py", "tests/**"), True)
+        self.assertIs(matches("tests/unit/test_x.py", "tests/**"), True)
+        self.assertIs(matches("src/app.py", "tests/**"), False)
+        self.assertIs(matches("testsuits/x.py", "tests/**"), False)
+
+    def test_26_any_depth_directory_pattern_covers_nested(self) -> None:
+        """Verify: `**/dist/**` matches dist at any depth — the built-in default-exclude nested hole is closed (V4.8.1 F-D1)."""
+        self.assertIs(matches("dist/b.py", "**/dist/**"), True)
+        self.assertIs(matches("a/dist/b.py", "**/dist/**"), True)
+        self.assertIs(matches("x/dist/deep/b.py", "**/dist/**"), True)
+        self.assertIs(matches("distribution/b.py", "**/dist/**"), False)
+
 
 class T6_DefaultSources(unittest.TestCase):
     """T6: C4 — the layer locations callers get without passing anything."""

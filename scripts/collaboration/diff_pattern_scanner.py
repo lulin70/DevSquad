@@ -22,12 +22,16 @@ match count, file, and line range are disclosed (secret-safe by design).
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 from .lifecycle_break_vuln import phases_for_category
 from .models_lifecycle import LifecycleFinding
 from .review_checkers import ReviewCheckers
+from .review_filter import ReviewFilterConfig, filter_review_paths
 from .review_input import _header_path, _strip_diff_prefix
+from .rule_engine import RuleConfigError, default_sources, resolve
 
 # Pattern-family wiring table: (family source, BV category, severity, suggestion).
 # Severity follows ReviewCheckers' own classification:
@@ -57,6 +61,12 @@ _PATTERN_FAMILY_WIRING: tuple[tuple[tuple[tuple[str, re.Pattern[str]], ...], str
 )
 
 _HUNK_HEADER = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+
+# V4.8.1 F-D1 (design §7.4): secret-leak findings are meaningful in ANY
+# review-retained file (a document can leak a real key); the other families
+# (anti-patterns, SQL injection) are code smells — product judgments only
+# for source-kind files, so doc text quoting an anti-pattern is not a finding.
+_SECRET_RULE_IDS = frozenset(f"diff-{name}" for name, _ in ReviewCheckers._SECRET_PATTERNS)
 
 
 def _iter_added_lines(diff: str) -> list[tuple[str, int, str]]:
@@ -152,9 +162,84 @@ def scan_diff_patterns(diff: str) -> list[LifecycleFinding]:
     return findings
 
 
-def diff_pattern_scan_to_dicts(diff: str) -> list[dict[str, Any]]:
-    """JSON-compatible wrapper for the CLI wiring site."""
-    return [finding.to_dict() for finding in scan_diff_patterns(diff)]
+def filter_diff_pattern_findings(
+    findings: Sequence[LifecycleFinding],
+    *,
+    include: Sequence[str] = (),
+    exclude: Sequence[str] = (),
+    repo_root: str | Path | None = None,
+    rule: str | Path | None = None,
+) -> list[LifecycleFinding]:
+    """Apply the deterministic review path gates to diff pattern findings.
+
+    V4.8.1 F-D1 fix (design doc §7.4): findings are product-meaningful only
+    for paths the deterministic review filter would retain — user
+    ``--include/--exclude`` globs, built-in default excludes, and the
+    unsupported-extension gate apply with the exact semantics of the
+    changeset face, reusing
+    :func:`~scripts.collaboration.review_filter.filter_review_paths` (same
+    gate sequence, same ``rule_engine.matches`` globs). Content-driven gates
+    (binary / too_large) are inert by construction on the diff face: no file
+    contents are passed and ``max_size_bytes`` is disabled, so the decision
+    is purely path/extension-deterministic.
+
+    Family split on top of the path gates: secret findings survive for any
+    review-retained path (a document can leak a real key); code-smell
+    families (anti-patterns, SQL injection) additionally require
+    ``kind == "source"`` — doc text quoting an anti-pattern is prose, not
+    a product defect. ``resolve`` failures fail closed to non-source.
+    """
+    if not findings:
+        return []
+    paths = sorted({finding.file_path for finding in findings if finding.file_path})
+    rule_sources = default_sources(repo_root, rule)
+    config = ReviewFilterConfig(
+        max_size_bytes=None,
+        user_include=tuple(include or ()),
+        user_exclude=tuple(exclude or ()),
+        rule_sources=rule_sources,
+    )
+    result = filter_review_paths(paths, config=config)
+    retained = set(result.retained_paths)
+
+    source_paths: set[str] = set()
+    for path in retained:
+        try:
+            resolution = resolve(path, rule_sources)
+        except RuleConfigError:
+            continue
+        if resolution.body.get("kind") == "source":
+            source_paths.add(path)
+
+    return [
+        finding
+        for finding in findings
+        if finding.file_path in retained and (finding.rule_id in _SECRET_RULE_IDS or finding.file_path in source_paths)
+    ]
 
 
-__all__ = ["scan_diff_patterns", "diff_pattern_scan_to_dicts"]
+def diff_pattern_scan_to_dicts(
+    diff: str,
+    *,
+    include: Sequence[str] = (),
+    exclude: Sequence[str] = (),
+    repo_root: str | Path | None = None,
+    rule: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """JSON-compatible wrapper for the CLI wiring site.
+
+    V4.8.1 F-D1: the deterministic path gates (user include/exclude,
+    unsupported extensions, built-in default excludes) filter the findings
+    face with review_filter semantics before disclosure.
+    """
+    findings = filter_diff_pattern_findings(
+        scan_diff_patterns(diff),
+        include=include,
+        exclude=exclude,
+        repo_root=repo_root,
+        rule=rule,
+    )
+    return [finding.to_dict() for finding in findings]
+
+
+__all__ = ["filter_diff_pattern_findings", "scan_diff_patterns", "diff_pattern_scan_to_dicts"]

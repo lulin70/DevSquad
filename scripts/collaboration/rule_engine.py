@@ -124,13 +124,26 @@ def default_sources(repo_root: Path | str | None = None, cli_rule: Path | str | 
 def matches(path: str, pattern: str) -> bool:
     """Match ``path`` against one glob.
 
-    ``pathlib`` semantics (right-anchored), plus one extension: a leading ``**/``
-    may also match zero directories, so ``**/*.py`` covers a top-level file too.
+    ``pathlib`` semantics (right-anchored), plus two extensions:
+    a leading ``**/`` may also match zero directories (so ``**/*.py`` covers
+    a top-level file too), and a trailing ``/**`` matches the directory
+    prefix at ANY depth below it (so ``tests/**`` covers ``tests/unit/x.py``
+    as well as ``tests/x.py`` — gitignore-style directory exclusion,
+    V4.8.1 F-D1). Both extensions are additive: they only match more
+    paths, never fewer.
     """
     candidate = PurePosixPath(path)
     if candidate.match(pattern):
         return True
-    return pattern.startswith("**/") and candidate.match(pattern[3:])
+    if pattern.startswith("**/") and candidate.match(pattern[3:]):
+        return True
+    if pattern.endswith("/**"):
+        stem = pattern[:-3]
+        if stem.startswith("**/"):
+            stem = stem[3:]
+            return path.startswith(stem + "/") or f"/{stem}/" in path
+        return path.startswith(stem + "/")
+    return False
 
 
 def load_rules(origin: Path | None) -> tuple[Rule, ...]:
