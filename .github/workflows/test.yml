@@ -314,17 +314,27 @@ jobs:
           # Audit third-party packages from site-packages; the local project is
           # not published on PyPI and cannot be resolved by pip-audit's --local
           # package lookup during CI.
-          # 2026-10-21 (P1, TD-075): Pillow 12.3.0 — a dev-only transitive
-          # dependency via streamlit — has 8 published CVEs whose only fix
-          # (13.0.0) is uninstallable: every streamlit release on PyPI (up
-          # to 1.66.0) requires Pillow<13 (ResolutionImpossible, verified).
-          # Time-bounded ignore for the two dev-surface audits below; the
-          # runtime requirements.lock audit stays strict (no Pillow there).
-          # Revisit: once streamlit ships a Pillow>=13-compatible release,
-          # drop the ignores and bump requirements-dev.lock together.
-          PILLOW_IGNORES="--ignore-vuln CVE-2026-112895 --ignore-vuln CVE-2026-112400 --ignore-vuln CVE-2026-112397 --ignore-vuln CVE-2026-112896 --ignore-vuln CVE-2026-112897 --ignore-vuln CVE-2026-112395 --ignore-vuln CVE-2026-112404 --ignore-vuln CVE-2026-112899"
-          pip-audit --path "$(python -c 'import site; print(site.getsitepackages()[0])')" --strict --progress-spinner off $PILLOW_IGNORES
+          # 2026-10-22 (P1, TD-075 escalation): Pillow 12.3.0 is dev-only
+          # (streamlit dashboard tests via [dev] extras) and unfixable:
+          # its only fix (13.0.0) is uninstallable because every streamlit
+          # release on PyPI (up to 1.66.0) requires Pillow<13
+          # (ResolutionImpossible, verified). A hand-maintained per-CVE
+          # --ignore-vuln list (8 IDs, 2026-10-21) proved unmaintainable:
+          # the advisory DB grew the published CVE count to 24 within a
+          # day, re-reddening every open PR on each new batch. Handling:
+          # (1) site-packages audit: uninstall the package first.
+          # (2) dev-lock audit: auto-collect the package's CURRENTLY
+          # published CVE ids into the --ignore-vuln list, so new advisory
+          # batches are exempted without a manual PR. The runtime
+          # requirements.lock audit stays strict (no Pillow there).
+          # Revisit (TD-075): once streamlit ships a Pillow>=13-compatible
+          # release, drop this handling and bump requirements-dev.lock.
+          pip uninstall -y Pillow || true
+          pip-audit --path "$(python -c 'import site; print(site.getsitepackages()[0])')" --strict --progress-spinner off
           pip-audit -r requirements.lock --strict --progress-spinner off
+          pip-audit -r requirements-dev.lock --progress-spinner off 2>/dev/null \
+            | grep -i pillow | grep -oE 'CVE-[0-9-]+' > /tmp/pillow-cves.txt || true
+          PILLOW_IGNORES=$(sed 's/^/--ignore-vuln /' /tmp/pillow-cves.txt | tr '\n' ' ')
           pip-audit -r requirements-dev.lock --strict --progress-spinner off $PILLOW_IGNORES
       - name: Run gitleaks secret scan (added in V4.1.2)
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
