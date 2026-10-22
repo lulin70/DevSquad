@@ -3,7 +3,7 @@
 <p align="center">
   <strong>把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>V4.7.0 | V4.5.16 Multi-role AI Team + P12 enhancement stack | One task → Multi-role AI → One conclusion</em>
+  <em>V4.8.0 | V4.5.16 Multi-role AI Team + P12 enhancement stack | One task → Multi-role AI → One conclusion</em>
 </p>
 
 ---
@@ -129,7 +129,7 @@ failure_class: — | coverage: 12/12
 run: https://github.com/your-org/your-repo/actions/runs/...
 ```
 
-可选 inputs：`devsquad-version`（PyPI 安装版本，默认 4.7.2，随发布 bump）、`task`（审查任务描述）、`include` / `exclude`（路径过滤）、`fail-on`（默认 break）、`preview-only`（只预览不评论）。
+可选 inputs：`devsquad-version`（PyPI 安装版本，默认 4.8.0，随发布 bump）、`task`（审查任务描述）、`include` / `exclude`（路径过滤）、`fail-on`（默认 break）、`preview-only`（只预览不评论）。
 
 ---
 
@@ -328,4 +328,4 @@ curl -X POST http://localhost:8000/api/v1/dispatch \
 
 ---
 
-*最后更新: 2026-10-13 | 版本: V4.7.0*
+*最后更新: 2026-10-22 | 版本: V4.8.0*
