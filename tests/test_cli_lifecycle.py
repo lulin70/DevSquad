@@ -276,6 +276,71 @@ class TestCmdLifecycle:
         assert mock_disp.dispatch.call_args.kwargs["diff"].startswith("diff --git")
 
     @patch("scripts.cli_lifecycle.MultiAgentDispatcher")
+    def test_review_diff_findings_respect_exclude(self, MockDispatcher, tmp_path):
+        # V4.8.1 F-D1 (design §7.4): --exclude filters the diff-channel
+        # pattern findings with review_filter semantics, not only the
+        # changeset face — an excluded fixture path yields no finding while
+        # a retained source path still does.
+        diff_file = tmp_path / "changes.diff"
+        diff_text = (
+            "diff --git a/tests/unit/test_fixture.py b/tests/unit/test_fixture.py\n"
+            "--- a/tests/unit/test_fixture.py\n"
+            "+++ b/tests/unit/test_fixture.py\n"
+            "@@ -1 +1 @@\n"
+            "+x = 1  # TODO fixture\n"
+            "diff --git a/src/app.py b/src/app.py\n"
+            "--- a/src/app.py\n"
+            "+++ b/src/app.py\n"
+            "@@ -1 +1 @@\n"
+            "+y = 2  # TODO fix\n"
+        )
+        diff_file.write_text(diff_text, encoding="utf-8")
+        mock_disp = MagicMock()
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.summary = "Review completed"
+        mock_result.to_markdown.return_value = "# Review Report"
+        mock_result.details = {}
+        MockDispatcher.return_value = mock_disp
+        mock_disp.dispatch.return_value = mock_result
+
+        args = MagicMock()
+        args.lifecycle_command = "review"
+        args.task = "Review the diff"
+        args.task_positional = None
+        args.format = "markdown"
+        args.backend = "mock"
+        args.base_url = None
+        args.model = None
+        args.dry_run = False
+        args.persist_dir = None
+        args.no_warmup = False
+        args.no_compression = False
+        args.stream = False
+        args.lang = "auto"
+        args.skip_permission = False
+        args.no_memory = False
+        args.no_skillify = False
+        args.changeset = None
+        args.diff_file = str(diff_file)
+        args.include = ()
+        args.exclude = ("tests/**",)
+        args.max_file_size = 10 * 1024 * 1024
+        args.repo_root = str(tmp_path)
+        args.rule = None
+        args.deleted = ()
+        args.preview = False
+        args.verbose = False
+        args.visual = False
+
+        with patch("sys.stdout", new=StringIO()):
+            result = cmd_lifecycle(args)
+
+        assert result == 0
+        findings = mock_result.details["lifecycle_findings"]
+        assert {f["file_path"] for f in findings} == {"src/app.py"}
+
+    @patch("scripts.cli_lifecycle.MultiAgentDispatcher")
     def test_ship_command_uses_sequential_mode(self, MockDispatcher):
         mock_disp = MagicMock()
         mock_result = MagicMock()

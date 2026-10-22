@@ -10,8 +10,10 @@ name: devsquad-gate (dogfood)
 # the anti-pattern words and debug calls as data — they exercise the very
 # regexes the gate itself runs. Scanning them would produce pattern matches
 # that are technically correct but wrong as product judgments.
-# Markdown docs need no exclusion: the review filter already drops
-# unreviewable file types (unsupported_ext gate).
+# Markdown docs need no exclusion for code-smell findings with devsquad
+# >= 4.8.1: those findings come from source-kind files only (F-D1, fixed
+# in 4.8.1 — under 4.8.0 the diff pattern scan filtered nothing); secret
+# findings are still checked in documents (a real key in a doc is a leak).
 
 on:
   pull_request:

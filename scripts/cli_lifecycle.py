@@ -349,8 +349,19 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
     # V4.8.0 P1-R1 (design §7.1): wire the existing ReviewCheckers pattern
     # families into the diff channel — added-line hits become structured
     # lifecycle findings so the gate verdict can be findings-driven.
+    # V4.8.1 F-D1 (design §7.4): the scan output is filtered with the same
+    # deterministic path gates as the changeset face — user include/exclude,
+    # unsupported extensions — so findings track what review would review.
     if command == "review" and diff_text is not None:
-        lifecycle_findings.extend(diff_pattern_scan_to_dicts(diff_text))
+        lifecycle_findings.extend(
+            diff_pattern_scan_to_dicts(
+                diff_text,
+                include=getattr(args, "include", ()),
+                exclude=getattr(args, "exclude", ()),
+                repo_root=getattr(args, "repo_root", None),
+                rule=getattr(args, "rule", None),
+            )
+        )
 
     # Check for visual mode
     use_visual = getattr(args, "visual", False)
