@@ -149,8 +149,16 @@ class TestRenderReport:
     def test_report_contains_reproduce_commands(self, tmp_path):
         records = [
             MetricRecord("指标A", "82/passed", "", "python scripts/check_x.py", 0, "ok", "", "tail line"),
-            MetricRecord("指标B", "unavailable", "", "python scripts/check_y.py", 1,
-                         "unavailable", "command ran but output unparseable", "err line"),
+            MetricRecord(
+                "指标B",
+                "unavailable",
+                "",
+                "python scripts/check_y.py",
+                1,
+                "unavailable",
+                "command ran but output unparseable",
+                "err line",
+            ),
         ]
         out = tmp_path / "report.md"
         render_report(records, out, ["prog", "--output", str(out)])

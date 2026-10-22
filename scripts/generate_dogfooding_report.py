@@ -28,7 +28,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # CI mapping appendix: local command -> where CI runs the same gate.
 CI_MAPPING: list[tuple[str, str]] = [
-    (".venv/bin/python scripts/check_version_consistency.py", "test.yml::test (per-Python test job, final consistency gate)"),
+    (
+        ".venv/bin/python scripts/check_version_consistency.py",
+        "test.yml::test (per-Python test job, final consistency gate)",
+    ),
     (".venv/bin/python scripts/check_config_consistency.py", "test.yml::test (consistency step)"),
     (".venv/bin/python scripts/check_test_pyramid.py tests/", "test.yml::test (pyramid gate)"),
     (".venv/bin/python scripts/check_bandit.py", "test.yml::security (bandit gate)"),
@@ -62,8 +65,16 @@ def run_command(cmd: list[str]) -> tuple[int, str]:
     return proc.returncode, (proc.stdout + proc.stderr)
 
 
-def _record(name: str, command: str, exit_code: int, value: str, unit: str,
-            status: str = "ok", note: str = "", excerpt: str = "") -> MetricRecord:
+def _record(
+    name: str,
+    command: str,
+    exit_code: int,
+    value: str,
+    unit: str,
+    status: str = "ok",
+    note: str = "",
+    excerpt: str = "",
+) -> MetricRecord:
     tail = "\n".join(excerpt.strip().splitlines()[-6:]) if excerpt else ""
     return MetricRecord(name, value, unit, command, exit_code, status, note, tail)
 
@@ -71,6 +82,7 @@ def _record(name: str, command: str, exit_code: int, value: str, unit: str,
 # ------------------------------------------------------------------
 # Parsers (pure functions over captured text — unit-tested)
 # ------------------------------------------------------------------
+
 
 def parse_version_consistency(text: str) -> tuple[str, str] | None:
     """Return (value, note) or None if unparseable."""
@@ -143,12 +155,14 @@ def count_pr_comment_protocol(workflows_dir: Path | None = None) -> tuple[str, s
 # Collectors (run real commands)
 # ------------------------------------------------------------------
 
+
 def _collect(name: str, cmd: list[str], command_str: str, parser) -> MetricRecord:
     exit_code, output = run_command(cmd)
     parsed = parser(output)
     if parsed is None:
-        return _record(name, command_str, exit_code, "unavailable", "",
-                       "unavailable", "command ran but output unparseable", output)
+        return _record(
+            name, command_str, exit_code, "unavailable", "", "unavailable", "command ran but output unparseable", output
+        )
     value, note = parsed
     status = "ok" if exit_code == 0 else "failed"
     return _record(name, command_str, exit_code, value, "", status, note, output)
@@ -157,21 +171,32 @@ def _collect(name: str, cmd: list[str], command_str: str, parser) -> MetricRecor
 def collect_all(skip_slow: bool) -> list[MetricRecord]:
     py = str(Path(sys.executable))
     records: list[MetricRecord] = [
-        _collect("版本一致性", [py, "scripts/check_version_consistency.py"],
-                 f"{py} scripts/check_version_consistency.py", parse_version_consistency),
-        _collect("配置一致性", [py, "scripts/check_config_consistency.py"],
-                 f"{py} scripts/check_config_consistency.py", parse_config_consistency),
-        _collect("测试金字塔", [py, "scripts/check_test_pyramid.py", "tests/"],
-                 f"{py} scripts/check_test_pyramid.py tests/", parse_test_pyramid),
+        _collect(
+            "版本一致性",
+            [py, "scripts/check_version_consistency.py"],
+            f"{py} scripts/check_version_consistency.py",
+            parse_version_consistency,
+        ),
+        _collect(
+            "配置一致性",
+            [py, "scripts/check_config_consistency.py"],
+            f"{py} scripts/check_config_consistency.py",
+            parse_config_consistency,
+        ),
+        _collect(
+            "测试金字塔",
+            [py, "scripts/check_test_pyramid.py", "tests/"],
+            f"{py} scripts/check_test_pyramid.py tests/",
+            parse_test_pyramid,
+        ),
     ]
     if not skip_slow:
         records.append(
-            _collect("Bandit 静态安全", [py, "scripts/check_bandit.py"],
-                     f"{py} scripts/check_bandit.py", parse_bandit))
+            _collect("Bandit 静态安全", [py, "scripts/check_bandit.py"], f"{py} scripts/check_bandit.py", parse_bandit)
+        )
     # PR 评论协议（静态扫描，无子进程）
     value, note = count_pr_comment_protocol()
-    records.append(_record("PR 评论协议覆盖", "static scan .github/workflows/*.yml", 0,
-                           value, "files", "ok", note))
+    records.append(_record("PR 评论协议覆盖", "static scan .github/workflows/*.yml", 0, value, "files", "ok", note))
     # TD 债务进出（文件解析，无子进程）
     td_text = Path(PROJECT_ROOT, "docs", "TECH_DEBT.md").read_text(encoding="utf-8")
     value, note = parse_tech_debt(td_text)
@@ -182,25 +207,37 @@ def collect_all(skip_slow: bool) -> list[MetricRecord]:
 def pip_audit_record(run_locally: bool) -> MetricRecord:
     if not run_locally:
         return MetricRecord(
-            "pip-audit", "collected in CI", "advisories",
+            "pip-audit",
+            "collected in CI",
+            "advisories",
             "CI security job (test.yml) — 本地默认不执行；复现：见 CI 同款命令于报告附录",
-            -1, "unavailable", "本地未执行（--with-pip-audit 未开启）")
-    exit_code, output = run_command(
-        [str(Path(sys.executable)), "-m", "pip", "audit", "--skip-editable"])
+            -1,
+            "unavailable",
+            "本地未执行（--with-pip-audit 未开启）",
+        )
+    exit_code, output = run_command([str(Path(sys.executable)), "-m", "pip", "audit", "--skip-editable"])
     finding = re.search(r"No known vulnerabilities", output)
     value = "0 known vulnerabilities" if finding and exit_code == 0 else "see excerpt"
-    return _record("pip-audit", f"{Path(sys.executable)} -m pip audit --skip-editable",
-                   exit_code, value, "", "ok" if exit_code == 0 else "failed", "", output)
+    return _record(
+        "pip-audit",
+        f"{Path(sys.executable)} -m pip audit --skip-editable",
+        exit_code,
+        value,
+        "",
+        "ok" if exit_code == 0 else "failed",
+        "",
+        output,
+    )
 
 
 # ------------------------------------------------------------------
 # Rendering
 # ------------------------------------------------------------------
 
+
 def _git_sha() -> str:
     try:
-        proc = subprocess.run(["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT,
-                              capture_output=True, text=True)
+        proc = subprocess.run(["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, capture_output=True, text=True)
         return proc.stdout.strip()[:12] if proc.returncode == 0 else "unavailable"
     except OSError:
         return "unavailable"
@@ -234,8 +271,7 @@ def render_report(records: list[MetricRecord], out_path: Path, argv: list[str]) 
         if r.excerpt:
             lines += ["", "```", r.excerpt, "```"]
         lines.append("")
-    lines += ["## 附录：CI 门禁对照（本地命令 ↔ CI 调用点）", "",
-              "| 本地采集 | CI 调用点 |", "|---|---|"]
+    lines += ["## 附录：CI 门禁对照（本地命令 ↔ CI 调用点）", "", "| 本地采集 | CI 调用点 |", "|---|---|"]
     for local, ci in CI_MAPPING:
         lines.append(f"| `{local}` | {ci} |")
     lines.append("")
@@ -247,11 +283,13 @@ def render_report(records: list[MetricRecord], out_path: Path, argv: list[str]) 
 def main() -> int:
     quarter = f"{datetime.now().year}-Q{(datetime.now().month - 1) // 3 + 1}"
     parser = argparse.ArgumentParser(description="Generate the dogfooding quarterly report")
-    parser.add_argument("--output", type=Path,
-                        default=Path(PROJECT_ROOT, "docs", "analysis", f"dogfooding_report_{quarter}.md"))
+    parser.add_argument(
+        "--output", type=Path, default=Path(PROJECT_ROOT, "docs", "analysis", f"dogfooding_report_{quarter}.md")
+    )
     parser.add_argument("--skip-slow", action="store_true", help="skip the bandit scan")
-    parser.add_argument("--with-pip-audit", action="store_true",
-                        help="run pip-audit locally too (slow, network; CI runs it anyway)")
+    parser.add_argument(
+        "--with-pip-audit", action="store_true", help="run pip-audit locally too (slow, network; CI runs it anyway)"
+    )
     args = parser.parse_args()
 
     records = collect_all(skip_slow=args.skip_slow)
