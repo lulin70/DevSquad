@@ -161,7 +161,7 @@
 - **关键教训**: 必须使用 `requirements-dev.lock` 锁定 hook 工具版本，避免不同环境间行为漂移（project_memory: "pre-commit hooks 版本陈旧是 CI 漂移的根本原因"）
 - **测试**: `tests/test_check_dependency_lock.py`（34 测试）
 
-### P2-UI-1: CLI 命令词表 (impeccable 23 Commands) — ✅ V4.2.1 已落地
+### P2-UI-1: CLI 命令词表 (impeccable 23 Commands) — ✅ V4.2.1 已落地（V4.8.0 接线 doctor）
 
 - **ID**: P2-UI-1
 - **来源**: [pbakaus/impeccable](https://github.com/pbakaus/impeccable) — 23 Commands 词表
@@ -170,6 +170,7 @@
 - **落地方式**: 新建 `scripts/collaboration/cli_command_classifier.py`。`CLICommandClassifier` 将 DevSquad CLI 命令映射到 impeccable 23 命令词表（7 类: create/review/navigate/configure/execute/maintain/stop）。AST-based 命令发现（无 import 副作用）。审计发现 12 个 CLI 命令，25% 对齐；建议使用 argparse aliases（非 rename）添加同义词
 - **API**: `classify(command)`, `audit_cli()`, `suggest_command(intent)`
 - **测试**: `tests/test_cli_command_classifier.py`（61 测试）
+- **接线记录（2026-10-22，P1-E1 裁定升级）**: V4.8.0 前该分类器已实现已测试但无生产消费方（"已实现未接线"）。E1 审计裁定升级为 P1 立即接线——`devsquad doctor --command WORD` 成为首个生产消费面：对输入词做注册表归属检查 + difflib 拼写近似 + impeccable 分类感知建议（如 `devsquad doctor --command sesions` → "did you mean 'sessions'? (top-level)"）。与 R2 doc_command 门禁互补（文档侧 vs 运行时侧）。接线实现于 `scripts/cli_doctor.py` 的 `check_command_vocabulary()`；测试 `tests/test_cli_doctor.py` TestCommandVocabulary 等 3 类 13 测试
 
 ### P2-UI-2: Live Browser 模式 (impeccable Live Browser) — 🗑️ V4.8.0 已移除（E1 裁定）
 
