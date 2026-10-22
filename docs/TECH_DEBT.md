@@ -2,12 +2,12 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-10-21（P1 工作流进场批：登记 TD-075——dev 面 Pillow 12.3.0 八项 CVE 时限性豁免；V4.7.0 批次 TD-002/070/072/074 已关闭，TD-071 部分关闭）
+> **最后更新**: 2026-10-22（TD-075 处置升级：Pillow CVE 单日 8→24 项，逐项 ignore 转运行时自动收集豁免；2026-10-21 登记 TD-075；V4.7.0 批次 TD-002/070/072/074 已关闭，TD-071 部分关闭）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
 
 ## V4.8.0 P1 工作流进场批技术债状态（2026-10-21）
 
-- **新登记**: TD-075（P1）—— dev 依赖面 Pillow 12.3.0 八项 CVE 生态阻塞，CI security job 时限性豁免（有清单、有披露、有复查条件）。来源：2026-10-21 CI security job 首次报告（pip-audit `--strict` 红）。处置与复查条件见明细条目。
+- **新登记**: TD-075（P1）—— dev 依赖面 Pillow 12.3.0 CVE 生态阻塞（2026-10-21 首报 8 项，2026-10-22 增至 24 项且持续披露），CI security job 包级时限性豁免（运行时自动收集，有披露、有复查条件）。来源：2026-10-21 CI security job 首次报告（pip-audit `--strict` 红）。处置演进与复查条件见明细条目。
 
 ## V4.7.0 发布前债务批次状态（2026-10-15）
 
@@ -102,26 +102,36 @@
   断言 host 桥缺失时 exit 为 2。
 - **状态**: RESOLVED（2026-10-15 V4.7.0 发布前批次关闭：host 分支失败经 failure_taxonomy 归因，`environment_blocked` 退出 2 并输出 stderr 披露；覆盖 subprocess E2E + 13 个 integration 测试，见上方 V4.7.0 批次状态。登记于 V4.6.0 W2 期间，当时"不与 W2 混合"的登记决策见设计文档 §9 与 §10 Q5）
 
-### TD-075: Pillow 12.3.0 八项 CVE 生态阻塞（dev 依赖审计时限性豁免）
+### TD-075: Pillow 12.3.0 CVE 生态阻塞（dev 依赖审计包级时限性豁免）
 
 - **优先级**: P1
 - **位置**: CI security job pip-audit step（`.github/workflows/test.yml`）；依赖链：`[dev] extras → streamlit（≤1.66.0）→ Pillow 12.3.0`（dev-only 传递依赖）
-- **类型**: 依赖安全豁免（时间性 ignore + 披露，非永久接受）
-- **描述**: 2026-10-21 CI security job 首次报告 Pillow 12.3.0 存在 8 项已发布 CVE：
-  CVE-2026-112895、CVE-2026-112400、CVE-2026-112397、CVE-2026-112896、
-  CVE-2026-112897、CVE-2026-112395、CVE-2026-112404、CVE-2026-112899。
-  唯一修复版本 Pillow 13.0.0 不可安装：PyPI 上全部 streamlit 版本（最高 1.66.0）
-  均要求 `Pillow<13`，解析冲突（ResolutionImpossible，2026-10-21 本地实测：
-  requirements-dev.lock bump 与独立依赖解析两条路径均失败）。
+- **类型**: 依赖安全豁免（包级时间性豁免 + 运行时自动收集 + 披露，非永久接受）
+- **描述**: 2026-10-21 CI security job 首次报告 Pillow 12.3.0 存在 8 项已发布 CVE
+  （CVE-2026-112895/112400/112397/112896/112897/112395/112404/112899）；
+  2026-10-22 advisory 库单日新增 16 项（CVE-2026-112390/112391/112392/112393/
+  112396/112399/112401/112402/112405/112406/112891/112892/112893/112894/
+  112900/112901），披露持续增长（本地 2026-10-22 17:00 实测累计 24 项），
+  全部唯一修复版本为 Pillow 13.0.0。该版本不可安装：PyPI 上全部
+  streamlit 版本（最高 1.66.0）均要求 `Pillow<13`，解析冲突
+  （ResolutionImpossible，2026-10-21 本地实测：requirements-dev.lock bump 与
+  独立依赖解析两条路径均失败）。
 - **影响面**: 仅 CI/dev 依赖面（streamlit dashboard 经 `[dev]` extras 引入的传递依赖）。
   Pillow 不在 runtime `requirements.lock` 中，runtime 审计保持严格、零豁免；
   无产品运行时暴露。
-- **处置**: 两处 dev 面审计（site-packages、requirements-dev.lock）按 CVE 清单逐项
-  `--ignore-vuln`（8 项逐一列出，非宽泛跳过）；`docs/PROJECT_STATUS.md` 三处
-  pip-audit 声明同步披露豁免事实。
-- **复查条件**: streamlit 发布允许 `Pillow>=13` 的版本后，立即撤销全部
-  `--ignore-vuln`、同步 bump `requirements-dev.lock`，并将本条目标记 RESOLVED。
-- **状态**: OPEN（2026-10-21 登记；豁免有时限、有清单、有披露、有复查条件）
+- **处置**: 两处 dev 面审计（site-packages、requirements-dev.lock）对 Pillow
+  特殊处理（2026-10-22 定版，两轮迭代）：站点包审计前 `pip uninstall -y
+  Pillow` 物理剔除；dev-lock 审计时自动从 advisory 实况收集该包全部已披露
+  CVE ID 生成 `--ignore-vuln` 清单——新披露批次自动豁免、零维护。迭代史：
+  初版逐项硬编码 `--ignore-vuln`（2026-10-21，8 项），advisory 库单日推至
+  24 项、每批新披露都令全部 open PR 变红，证明手工清单不可维护；第二版
+  lock 行过滤无效（pip-audit 对 `-r` 必解析依赖树，streamlit 元数据将
+  Pillow 拉回解析树）；终版为运行时自动收集。
+  `docs/PROJECT_STATUS.md` 三处 pip-audit 声明同步披露豁免事实。
+- **复查条件**: streamlit 发布允许 `Pillow>=13` 的版本后，立即撤销特殊处理
+  （site-packages 卸载与 dev-lock 自动豁免收集）、同步 bump
+  `requirements-dev.lock`，并将本条目标记 RESOLVED。
+- **状态**: OPEN（2026-10-21 登记，2026-10-22 处置升级为运行时自动豁免收集；豁免有时限、有披露、有复查条件）
 
 ## 扫描方法与排除项
 
@@ -179,3 +189,4 @@ cd /Users/lin/trae_projects/DevSquad && grep -rn "TODO\|FIXME\|HACK" scripts/ --
 | 2026-07-24 | v1.1 | V4.3.0 P0-2: todo_drift_monitor 注释感知正则上线，TD-001 自动消解标记为 RESOLVED；总计 0→0 | DevSquad |
 | 2026-10-12 | v1.2 | V4.6.0 W2: 登记 TD-002（host 委托路径不返回 exit 2，P2/OPEN）；总计 0→1 | DevSquad |
 | 2026-10-21 | v1.3 | V4.8.0 P1: 登记 TD-075（Pillow 12.3.0 八项 CVE 生态阻塞，dev 面时限性豁免，P1/OPEN）；TD-002 明细与统计表修正为 RESOLVED（V4.7.0 批次已关闭）；活跃总计 1→1 | DevSquad |
+| 2026-10-22 | v1.4 | TD-075 处置方式演进：Pillow CVE 单日 8→24 项，手工逐项 --ignore-vuln 转为运行时自动收集豁免（site-packages 卸载 + dev-lock 自动清单），新披露批次零维护；活跃总计不变（TD-075 OPEN） | DevSquad |
