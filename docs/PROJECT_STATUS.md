@@ -1,11 +1,11 @@
 # DevSquad 项目状态
 
-> **代码版本**: V4.7.2（P0 卫生批版本升级，commit `1a54de9`；版本一致性门禁 81/81 全绿，TRAE 四层缓存已同步 8/8）
-> **发布状态**: V4.7.2 已发布（tag `v4.7.2`、GitHub Release、PyPI 均已就位，见下）。发布流水线 6 job 全绿（Build → E2E 门禁 → Final Gate → PyPI → GitHub Release，7m04s）。
+> **代码版本**: V4.8.0（P1 工作流进场批版本升级，PR #59；版本一致性门禁 82/82 全绿 2026-10-22 本地实测，TRAE 四层缓存已同步 8/8）
+> **发布状态**: V4.8.0 待发布（bump PR #59 待权威 CI 全绿后合并；tag / GitHub Release / PyPI 于发布后更新本节并附实测采集）。
 > **最后更新**: 2026-10-22
-> **最新评估**: P0 卫生批完成（执行依据：[2026-10-20_value_proposal_execution_plan.md](planning/2026-10-20_value_proposal_execution_plan.md)）：P0-W4 文档入库（`cc526a7`）、P0-W1 六处过时版本串清除 + 门禁负向扫描（`00806ca`，门禁 73→81 项）、P0-W2 状态文档治理（`a16b1cd`）、P0-W3 TD-071 api 路径真实测量（`da765bb`）、版本升 4.7.2 + TRAE 四层缓存同步（`66ec86a`）、T18 ruff 格式修复（`13dbf4c`）、dispatcher-size 基线刷新（`1a54de9`）全部完成。发布前验证：本地全量验收通过（keyless 等价 9774 passed, 6 skipped——全部环境条件性）；CI lint 门禁曾在 PR 期拦截 `check_version_consistency.py` 735→872 LOC 超基线，按文档化 `--write-baseline` 工作流刷新后三工作流全绿。发布后验证（PyPI 真实安装面）：`pip install devsquad==4.7.2` + `--version` + `--help` + `demo` 全部通过。
-> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（81/81，2026-10-20 本地实测，含新增 stale-string 负向门禁）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM）、pip-audit（runtime requirements.lock 严格审计无已知漏洞；dev 面对 Pillow 包级时限性豁免——12.3.0 累计 24 项 CVE 且持续披露、唯一修复版 13.0.0 与 streamlit≤1.66.0 不可共存，2026-10-22 起豁免清单运行时自动收集，详见 [TECH_DEBT.md](TECH_DEBT.md) TD-075）、测试质量门（0 MAJOR）本地已通过；权威结果以 GitHub Actions 为准。性能基线 mock + api 路径已真实测量（2026-10-20，P0-W3）；host 路径仍为诚实 stub（TD-071，需 TRAE IDE 会话环境重测）。
-> **PyPI**: 最新发布版本为 [4.7.2](https://pypi.org/project/devsquad/4.7.2/)（2026-10-20 实测；采集命令：`curl -s https://pypi.org/pypi/devsquad/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"`，输出 4.7.2）。
+> **最新评估**: P1 工作流进场批完成（执行依据：[2026-10-20_value_proposal_execution_plan.md](planning/2026-10-20_value_proposal_execution_plan.md) §5，PRD：[V4.8.0_workflow-entry_PRD.md](prd/V4.8.0_workflow-entry_PRD.md)）：P1-R1 devsquad-gate 可复用 workflow + diff 通道模式接线（PR #50）；P1-R2 三画像通道 QUICKSTART 重写 + init 后端分流 + doc_command 门禁 36 条（PR #54）；P1-R3 dogfooding 季度报告生成器 + 首期 2026-Q4 报告（PR #53，配置一致性 7/7、9873 测试）；P1-R4 MCP 集成指南单一事实源 + stdio e2e 证据（PR #52）；TD-076 mcp 约束收紧 `>=1,<2`（PR #55）；P1-E1 消费者审计六项裁定——teach/taste-dials=KEEP、prototype/meta-skill-layering=FREEZE、impeccable 词表接线 `doctor --command`（PR #58）、live-browser 移除（PR #56）；版本升 4.8.0 全量 bump（PR #59）。R1 验收①外部试装（T-3 zeroclaw）依赖 4.8.0 上 PyPI，按发布后验证批次执行（T-2/T-4/T-5 同批）。
+> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（82/82，2026-10-22 本地实测，含 stale-string 负向门禁）、配置一致性（7/7，含 doc_command 36 条）、Bandit（0 HIGH/0 MEDIUM）、pip-audit（runtime requirements.lock 严格审计无已知漏洞；dev 面对 Pillow 包级时限性豁免——12.3.0 累计 24 项 CVE 且持续披露、唯一修复版 13.0.0 与 streamlit≤1.66.0 不可共存，2026-10-22 起豁免清单运行时自动收集，详见 [TECH_DEBT.md](TECH_DEBT.md) TD-075）、测试质量门（0 MAJOR）本地已通过；权威结果以 GitHub Actions 为准。性能基线 mock + api 路径已真实测量（2026-10-20，P0-W3）；host 路径仍为诚实 stub（TD-071，需 TRAE IDE 会话环境重测）。
+> **PyPI**: 最新发布版本为 [4.7.2](https://pypi.org/project/devsquad/4.7.2/)（2026-10-22 实测；采集命令：`curl -s https://pypi.org/pypi/devsquad/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"`，输出 4.7.2）。v4.8.0 发布后本节须实测更新。
 > **GitHub Release**: 最新为 [DevSquad v4.7.2](https://github.com/lulin70/DevSquad/releases/tag/v4.7.2)（发布于 2026-10-20T13:22:18Z，`gh release view v4.7.2` 实测）；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
 
 ---
@@ -90,12 +90,12 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | 测试质量门回归 | 280 passed（含 4 个标记迁移文件 + MCP/REST/金字塔/基线门） | ✅ 通过 |
 | 测试金字塔回归 | 53 passed | ✅ 通过 |
 | 性能基线门回归 | 34 passed（含默认版本 v4.7.0 断言修复） | ✅ 通过 |
-| 测试金字塔结构 | 9794 tests / 403 files；unclassified 0 | ✅ 结构通过 |
+| 测试金字塔结构 | 9873 tests / 403 files；unclassified 0 | ✅ 结构通过（2026-10-22 dogfooding 报告采集） |
 | 测试金字塔比例 | unit 73.7%，integration 14.9%，e2e 5.0%，contract 5.3%，security 0.6% | ⚠️ integration 低于 15% 目标 |
 | 主测试全量回归 | 8312 passed, 17 skipped；覆盖率 79.48%（≥70% 门） | ✅ 通过（2 failed 已处置：1 个断言修复 + 1 个外部波动重试通过） |
-| Ruff lint + format | All checks passed；1088 files formatted | ✅ 通过 |
+| Ruff lint + format | All checks passed；1104 files formatted（2026-10-22 本地实测） | ✅ 通过 |
 | mypy（scripts/ + skills/） | 0 errors | ✅ 通过 |
-| 版本一致性 | 81/81（2026-10-20 本地实测；新增 stale-string 负向门禁后由 80 增至 81；4 层 TRAE cache 已同步） | ✅ 通过 |
+| 版本一致性 | 82/82（2026-10-22 本地实测；V4.8.0 bump 后全绿；4 层 TRAE cache 已同步） | ✅ 通过 |
 | 配置一致性 | 7/7 | ✅ 通过 |
 | Bandit | 0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json） | ✅ 通过 |
 | pip-audit | runtime requirements.lock 严格审计无已知漏洞；dev 面（site-packages + requirements-dev.lock）对 Pillow 包级时限性豁免（TD-075：12.3.0 累计 24 项 CVE 且持续披露，唯一修复版 13.0.0 与 streamlit≤1.66.0 不可共存；2026-10-22 起豁免清单运行时自动收集） | ✅ 通过（豁免已披露） |
@@ -104,7 +104,7 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | 性能基线文件 | 已刷新为 V4.7.0：mock 路径真实测量（50 样本 + 5 warmup 丢弃，p95≈0.0015ms）；host/api/auto_fallback 仍为 stub（snapshot_id 带 `_stub` 标记，发布 tag 时需真实环境替换） | ✅ mock 已测量；⚠️ host/api 为 stub |
 | E2E + integration 全量 | 1670 passed, 4 skipped（1 failed 为 `test_llm_replay_subprocess` 偶发超时，单独重跑 211s 通过，非产品回归） | ✅ 通过 |
 | Dashboard 用户旅程（含 slow 标记，CI `-m "not slow"` 不覆盖） | 96 passed, 1 skipped（12 个浏览器级旅程：登录/导航/RBAC/Task Dispatch/确定性渲染） | ✅ 通过 |
-| 权威 CI（PR #37） | CI 主矩阵 + Perf Baseline + No Secrets 三个 workflow 全部 success；PR 已按单维护者流程合并（`e3a0bcf`） | ✅ 全绿 |
+| 权威 CI（PR #59，V4.8.0 bump） | CI 主矩阵 + Perf Baseline + No Secrets + e2e + lint + security + deployment 运行中/全绿后合并（首跑 3.12 腿 1 failed：gate 结构测试锚定 devsquad-version 默认值，随发布有意识 bump 同步更新锚点后重跑） | ⏳ 合并后以 CI 实测更新本行 |
 
 **测试质量说明**: 质量门不再把嵌套测试目录遗漏。测试中的 `assertTrue` 等 MINOR 项仍需持续治理，但当前不构成 MAJOR 阻断。
 
@@ -170,8 +170,10 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | TD-072 | 集成测试比例 14.9%，低于 15% 目标 | V4.7.0 | ✅ 本轮已关闭：新增 13 个围绕 TD-002 的 integration 测试，金字塔 healthy（15.0%，1472/9808） |
 | TD-073 | CI 性能检查和金字塔命令曾使用非阻塞写法 | V4.7.0 | ✅ 本轮已移除相关 `|| true`；本地验证通过；权威 CI 复验完成（PR #37/#38 全绿） |
 | TD-074 | 文档仍有历史版本和旧能力数字 | V4.7.0 | ✅ 本轮已关闭：修正 19 处现在时态未验证断言（README×3/INSTALL/CLAUDE）；历史记录按原则保留 |
-| TD-075 | 质量门豁免标记曾使用非法 Ruff 指令 `# noqa: test-quality` | V4.7.0 | ✅ 本轮已迁移为 `# test-quality: ignore`（25 处，5 文件）；Ruff invalid-noqa 清零 |
-| TD-076 | host 委托路径不返回 exit 2（原 TD-002，V4.6.0 W2 登记） | V4.7.0 | ✅ 本轮已修复：`_print_host_result` 经 failure_taxonomy 归因，exit 2 + stderr 披露；E2E host journey + 13 个 integration 测试 |
+| TD-075 | Pillow 12.3.0 CVE 生态阻塞（dev 依赖审计面） | — | ⚠️ OPEN（2026-10-21 登记）：唯一修复版 13.0.0 与 streamlit≤1.66.0 不可共存；时限性豁免 2026-10-22 起运行时自动收集（site-packages 先卸载 + dev-lock 两遍审计自动生成清单），有披露有复查条件，详见 [TECH_DEBT.md](TECH_DEBT.md) |
+| TD-076 | MCP server 与 mcp SDK 2.x 不兼容（依赖约束过宽） | V4.8.0 | ✅ RESOLVED（2026-10-22，PR #55）：pyproject extras `mcp`/`all` 收紧为 `mcp>=1,<2`；干净 venv 实测 mcp 1.30.0 MCP stdio 全链路可用（R4 e2e 证据）。PyPI 4.7.x 用户过渡期按 MCP.md `"mcp<2"` pin |
+
+> 注：本表曾将"Ruff noqa 迁移（25 处，V4.7.0 批次）"与"host exit 2 修复（V4.7.0 批次）"误标为 TD-075/076；2026-10-22 按 [TECH_DEBT.md](TECH_DEBT.md) 权威台账对齐（TD-002=host exit 2 已 RESOLVED；TD-075=Pillow、TD-076=mcp 如上）。Ruff noqa 迁移为真实修复记录，保留于本注。
 
 ---
 
