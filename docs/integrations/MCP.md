@@ -23,7 +23,7 @@ Requirements:
 pip install "devsquad[mcp]" "mcp<2"
 ```
 
-> **Known issue (TD-076)**: DevSquad's MCP server currently requires `mcp` SDK 1.x. The 2.x SDK renamed `FastMCP` to `MCPServer` and removed `mcp.server.fastmcp`, so a plain `pip install devsquad[mcp]` today resolves to `mcp` 2.x and the server exits with `MCP SDK required`. Pin `mcp<2` until the pyproject constraint is fixed (tracked as [TD-076](../TECH_DEBT.md)). Verified working: `mcp` 1.30.0.
+> **Known issue (TD-076, fixed in 4.8.0)**: DevSquad's MCP server requires `mcp` SDK 1.x. The 2.x SDK renamed `FastMCP` to `MCPServer` and removed `mcp.server.fastmcp`, so with devsquad 4.7.x a plain `pip install devsquad[mcp]` resolves to `mcp` 2.x and the server exits with `MCP SDK required`. The pyproject constraint is `mcp>=1,<2` from 4.8.0 onward ([TD-076](../TECH_DEBT.md) RESOLVED); the explicit `"mcp<2"` pin above stays in the command as it is harmless on 4.8.0 and required on 4.7.x. Verified working: `mcp` 1.30.0.
 
 ### Form B: repo checkout (for DevSquad contributors)
 

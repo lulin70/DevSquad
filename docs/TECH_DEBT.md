@@ -147,7 +147,9 @@
   仓库形态用户若安装 `mcp<2` 不受影响。R4 文档已带 `"mcp<2"` pin 过渡（MCP.md §2 已知问题声明）。
 - **建议方案**: pyproject extras 约束收紧为 `mcp = ["mcp>=1,<2"]`（一行改动 + 版本一致性
   检查通过即可）；如后续适配 2.x（`MCPServer` 迁移），以独立工作项处理，不与本条混同。
-- **状态**: OPEN（2026-10-22 随 R4 e2e 发现登记；修复排 P1 窗口独立小 PR，不夹带进 R4 纯文档 PR——设计文档 §3.4 裁定）
+- **状态**: RESOLVED（2026-10-22 修复：pyproject extras `mcp` 与 `all` 两处约束均收紧为 `mcp>=1,<2`；
+  干净 venv 实测 `pip install "devsquad[mcp]"`（本地分支构建）解析到 mcp 1.30.0，MCP server stdio
+  全链路可用。PyPI 4.7.x 用户在 4.8.0 发布前仍需 MCP.md 的 `"mcp<2"` pin 过渡）
 
 ## 扫描方法与排除项
 
