@@ -2,9 +2,9 @@
 
 > **代码版本**: V4.7.2（P0 卫生批版本升级，commit `1a54de9`；版本一致性门禁 81/81 全绿，TRAE 四层缓存已同步 8/8）
 > **发布状态**: V4.7.2 已发布（tag `v4.7.2`、GitHub Release、PyPI 均已就位，见下）。发布流水线 6 job 全绿（Build → E2E 门禁 → Final Gate → PyPI → GitHub Release，7m04s）。
-> **最后更新**: 2026-10-20
+> **最后更新**: 2026-10-21
 > **最新评估**: P0 卫生批完成（执行依据：[2026-10-20_value_proposal_execution_plan.md](planning/2026-10-20_value_proposal_execution_plan.md)）：P0-W4 文档入库（`cc526a7`）、P0-W1 六处过时版本串清除 + 门禁负向扫描（`00806ca`，门禁 73→81 项）、P0-W2 状态文档治理（`a16b1cd`）、P0-W3 TD-071 api 路径真实测量（`da765bb`）、版本升 4.7.2 + TRAE 四层缓存同步（`66ec86a`）、T18 ruff 格式修复（`13dbf4c`）、dispatcher-size 基线刷新（`1a54de9`）全部完成。发布前验证：本地全量验收通过（keyless 等价 9774 passed, 6 skipped——全部环境条件性）；CI lint 门禁曾在 PR 期拦截 `check_version_consistency.py` 735→872 LOC 超基线，按文档化 `--write-baseline` 工作流刷新后三工作流全绿。发布后验证（PyPI 真实安装面）：`pip install devsquad==4.7.2` + `--version` + `--help` + `demo` 全部通过。
-> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（81/81，2026-10-20 本地实测，含新增 stale-string 负向门禁）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM）、pip-audit（无已知漏洞）、测试质量门（0 MAJOR）本地已通过；权威结果以 GitHub Actions 为准。性能基线 mock + api 路径已真实测量（2026-10-20，P0-W3）；host 路径仍为诚实 stub（TD-071，需 TRAE IDE 会话环境重测）。
+> **硬约束状态**: Ruff lint/format、mypy（scripts/+skills/ 0 errors）、版本一致性（81/81，2026-10-20 本地实测，含新增 stale-string 负向门禁）、配置一致性（7/7）、Bandit（0 HIGH/0 MEDIUM）、pip-audit（runtime requirements.lock 严格审计无已知漏洞；dev 面对 Pillow 12.3.0 八项 CVE 实施时限性 --ignore-vuln 豁免——唯一修复版 13.0.0 与 streamlit≤1.66.0 不可共存，详见 [TECH_DEBT.md](TECH_DEBT.md) TD-075）、测试质量门（0 MAJOR）本地已通过；权威结果以 GitHub Actions 为准。性能基线 mock + api 路径已真实测量（2026-10-20，P0-W3）；host 路径仍为诚实 stub（TD-071，需 TRAE IDE 会话环境重测）。
 > **PyPI**: 最新发布版本为 [4.7.2](https://pypi.org/project/devsquad/4.7.2/)（2026-10-20 实测；采集命令：`curl -s https://pypi.org/pypi/devsquad/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"`，输出 4.7.2）。
 > **GitHub Release**: 最新为 [DevSquad v4.7.2](https://github.com/lulin70/DevSquad/releases/tag/v4.7.2)（发布于 2026-10-20T13:22:18Z，`gh release view v4.7.2` 实测）；历史 release 状态请查看 [GitHub Releases](https://github.com/lulin70/DevSquad/releases)。
 
@@ -98,7 +98,7 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | 版本一致性 | 81/81（2026-10-20 本地实测；新增 stale-string 负向门禁后由 80 增至 81；4 层 TRAE cache 已同步） | ✅ 通过 |
 | 配置一致性 | 7/7 | ✅ 通过 |
 | Bandit | 0 HIGH / 0 MEDIUM / 100 LOW（docs/audits/bandit_v4.7.0.json） | ✅ 通过 |
-| pip-audit | requirements.lock + requirements-dev.lock 无已知漏洞 | ✅ 通过 |
+| pip-audit | runtime requirements.lock 严格审计无已知漏洞；dev 面（site-packages + requirements-dev.lock）对 Pillow 12.3.0 八项 CVE 时限性豁免（TD-075：唯一修复版 13.0.0 与 streamlit≤1.66.0 不可共存，2026-10-21 起） | ✅ 通过（豁免已披露） |
 | dispatcher size gate / skill contract / module activation / hidden content / dependency lock+sync | 全部 PASS | ✅ 通过 |
 | 性能基准（CI performance job 同款命令） | 23 passed | ✅ 通过 |
 | 性能基线文件 | 已刷新为 V4.7.0：mock 路径真实测量（50 样本 + 5 warmup 丢弃，p95≈0.0015ms）；host/api/auto_fallback 仍为 stub（snapshot_id 带 `_stub` 标记，发布 tag 时需真实环境替换） | ✅ mock 已测量；⚠️ host/api 为 stub |
@@ -183,7 +183,7 @@ DevSquad 是一个多角色 AI 任务编排器。任务提交后，系统按任�
 | mypy (scripts/collaboration/) | 0 errors | 0 |
 | mypy (scripts/ + skills/ 全量) | 0 errors (阻断门禁，原 112) | 0 ✅ |
 | bandit | 0 HIGH / 0 MEDIUM / 100 LOW（本轮重扫） | 0 HIGH/MEDIUM ✅ |
-| pip-audit | requirements.lock + requirements-dev.lock 无已知漏洞 | 0 ✅ |
+| pip-audit | runtime lock 严格审计无已知漏洞；dev 面 Pillow 八项 CVE 时限性豁免（TD-075） | 0 ✅ |
 | flake8 (新测试文件) | 0 | 0 |
 | 版本一致性 | 80/80（含 4 层 TRAE cache 内容一致） | 80/80 |
 | pre-commit hooks | 已配置 (ruff + mypy + 版本一致性) | 已配置 |
