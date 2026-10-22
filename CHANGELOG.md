@@ -26,6 +26,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - **TD-076: mcp SDK constrained to `>=1,<2` (PR #55, PR #52)** — `devsquad[mcp]` now pins the MCP SDK below 2.0: the mcp 2.x line carries breaking changes that would reach users through an unconstrained extra. The pin and its rationale are documented in the MCP integration guide, and the QUICKSTART channel-A install line carries `"mcp<2"` explicitly.
+- **devsquad-gate consumer contract completed from the T-3 stage-1 external trial (zeroclaw, two-stage adjudication)** — the pre-release mechanical trial caught two real defects that no structural test could: (F-1) the QUICKSTART channel-C wrapper example dropped the `permissions: pull-requests: write` grant the design template specifies, so consumers copying it verbatim got `startup_failure` with no jobs created; the example now carries the grant plus a failure-note comment. (F-2) the gate fetched the PR diff anonymously, which 404s on private consumer repos into an honest `blocked` with no pass path reachable; the fetch now uses the authenticated REST pulls endpoint (`Accept: application/vnd.github.v3.diff`, token via env — no cross-host redirect to strip the auth header). Trial evidence: `docs/e2e_evidence/V4.8.0_devsquad_gate_trial/STAGE1_mechanical_trial.md` — workflow_call trigger, protocol-v1 comment with four fields, comment idempotency across three runs, fail-closed blocked semantics, and the pass path all verified; stage 2 (post-release) exercises the findings face with the v4.8.0 default.
 
 ### Removed
 
