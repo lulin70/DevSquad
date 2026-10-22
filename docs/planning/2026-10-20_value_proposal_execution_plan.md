@@ -132,3 +132,4 @@ P1 发布且发布后验证完成；P2 PRD 经用户确认。
 | 2026-10-21 | P1 阶段 0 出口门通过：V4.8.0 PRD 用户确认（docs/prd/V4.8.0_workflow-entry_PRD.md）；R1 外部试装仓裁定为 lulin70 现有小型仓（候选 zeroclaw / PromiseLink-miniapp，于设计文档锁定）；发布就绪清单版本一致性基线修正为 81/81 |
 | 2026-10-21 | R1 findings 处置裁定：V-1 探针证实 review diff 通道不产出结构化 findings（`lifecycle_findings=[]`、退出码恒 0）；按推荐项处置=接线既有 review_checkers 三类正则到 diff 通道（零新检查逻辑，PRD §4.1"打包 review_checkers"原义）。用户跳过处置提问，按"跳过时按推荐项执行"约定留痕（设计文档 §7.1 rev2） |
 | 2026-10-22 | Pillow 处置演进（TD-075）：逐 CVE 手工 `--ignore-vuln`（PR #48，8 项）单日内被 advisory 库推至 24 项证伪可维护性，升级为运行时自动收集豁免（PR #49：site-packages 先卸载 + dev-lock 两遍审计自动生成清单）；迭代史与教训全量登记于 TECH_DEBT.md TD-075 |
+| 2026-10-22 | P1-E1 消费者审计裁定（D4 出口门）：六项三态清单（docs/analysis/2026-10-22_consumer_audit_E1.md）经用户前瞻性追问（"暂时无消费 vs 将来也不会有消费 + 是否符合整体方向"）后裁定——teach=KEEP（有激活路径贴主线）、taste-dials=KEEP（现有生产消费链）、prototype=FREEZE、meta-skill-layering=FREEZE（条件不成立非永不激活）、impeccable 词表=FREEZE 升级为 P1 立即接线 doctor（用户裁定）、live-browser=REMOVE（将来也不会有消费，走独立删除 PR）；扩张冻结解除 |
