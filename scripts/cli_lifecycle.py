@@ -12,6 +12,7 @@ import sys
 from collections.abc import Callable
 from typing import Any
 
+from scripts.collaboration.diff_pattern_scanner import diff_pattern_scan_to_dicts
 from scripts.collaboration.dispatch_models import DispatchResult
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.document_scanner import scan_document
@@ -344,6 +345,12 @@ def cmd_lifecycle(args: argparse.Namespace) -> int:
     preview_result = _run_lifecycle_preview(args, task, changeset, diff_text)
     if preview_result is not None:
         return preview_result
+
+    # V4.8.0 P1-R1 (design §7.1): wire the existing ReviewCheckers pattern
+    # families into the diff channel — added-line hits become structured
+    # lifecycle findings so the gate verdict can be findings-driven.
+    if command == "review" and diff_text is not None:
+        lifecycle_findings.extend(diff_pattern_scan_to_dicts(diff_text))
 
     # Check for visual mode
     use_visual = getattr(args, "visual", False)
