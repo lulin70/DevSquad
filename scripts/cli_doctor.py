@@ -24,6 +24,8 @@ dispatch pipeline. It is a read-only diagnostic tool.
 
 from __future__ import annotations
 
+import argparse
+import difflib
 import json
 import os
 import time
@@ -32,6 +34,8 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any
+
+from scripts.collaboration.cli_command_classifier import CLICommandClassifier
 
 # Provider registry — central place to add new providers
 PROVIDERS = {
@@ -204,6 +208,135 @@ def diagnose_all(timeout: float = 5.0) -> list[ProviderReport]:
     return [diagnose_provider(p, timeout) for p in PROVIDERS]
 
 
+# ---------------------------------------------------------------------------
+# Command vocabulary check (P1-E1 wiring: CLICommandClassifier -> doctor)
+# ---------------------------------------------------------------------------
+
+
+def _registered_cli_commands() -> tuple[set[str], dict[str, set[str]]]:
+    """Introspect the real CLI registry (same source of truth as the doc_command gate).
+
+    Lazy import because scripts.cli imports this module at load time.
+
+    Returns:
+        Tuple of (top-level command names incl. aliases, second-level command
+        names keyed by group command, e.g., {"sessions": {"list", "show"}}).
+    """
+    from scripts.cli import build_parser  # lazy: avoids circular import
+
+    parser = build_parser()
+    top: set[str] = set()
+    groups: dict[str, set[str]] = {}
+    for action in parser._actions:
+        if not isinstance(action, argparse._SubParsersAction):
+            continue
+        for name, sub_parser in action.choices.items():
+            top.add(name)
+            subs: set[str] = set()
+            for sub_action in sub_parser._actions:
+                if isinstance(sub_action, argparse._SubParsersAction):
+                    subs.update(sub_action.choices.keys())
+                elif sub_action.choices and not sub_action.option_strings:
+                    subs.update(sub_action.choices)
+            if subs:
+                groups[name] = subs
+    return top, groups
+
+
+def _locate(command: str, top: set[str], groups: dict[str, set[str]]) -> str:
+    """Describe where a command is registered (top-level or group subcommands)."""
+    if command in top:
+        return "top-level"
+    owners = [g for g, subs in groups.items() if command in subs]
+    return f"subcommand of {'/'.join(owners)}" if owners else "unknown"
+
+
+def check_command_vocabulary(word: str) -> dict[str, Any]:
+    """Check a command word against the DevSquad registry and the impeccable vocabulary.
+
+    E1 wiring (V4.8.0 P1): ``CLICommandClassifier`` was implemented and tested
+    but had no production consumer; this function is its wired consumer. It
+    answers "did I mistype a command?" with registry facts and category-aware
+    suggestions.
+
+    Args:
+        word: The command word the user wants to check (e.g., a typo).
+
+    Returns:
+        Dict with keys: input, normalized, registered, registered_where,
+        category, aligned, suggested_alias, close_matches (list of dicts with
+        command/where/category), hint.
+    """
+    classifier = CLICommandClassifier()
+    normalized = word.strip().lower()
+    top, groups = _registered_cli_commands()
+    all_known: set[str] = set(top)
+    for subs in groups.values():
+        all_known.update(subs)
+
+    classification = classifier.classify(normalized)
+    registered = normalized in all_known
+
+    located_matches: list[dict[str, Any]] = []
+    if not registered:
+        for match in difflib.get_close_matches(normalized, sorted(all_known), n=3, cutoff=0.6):
+            category = str(classifier.classify(match)["category"])
+            located_matches.append(
+                {
+                    "command": match,
+                    "where": _locate(match, top, groups),
+                    "category": category if category != "unknown" else None,
+                }
+            )
+
+    where = _locate(normalized, top, groups) if registered else None
+
+    if registered:
+        hint = f"'{normalized}' is a registered command ({where}); run `devsquad {normalized} --help`"
+    elif located_matches:
+        best = located_matches[0]
+        category_note = f", {best['category']} category" if best["category"] else ""
+        hint = f"did you mean '{best['command']}'? ({best['where']}{category_note})"
+    else:
+        hint = "no similar command found; run `devsquad --help` to list commands"
+
+    return {
+        "input": word,
+        "normalized": normalized,
+        "registered": registered,
+        "registered_where": where,
+        "category": classification["category"],
+        "aligned": classification["aligned"],
+        "suggested_alias": classification["suggested_alias"],
+        "close_matches": located_matches,
+        "hint": hint,
+    }
+
+
+def format_command_section(check: dict[str, Any]) -> str:
+    """Format a command vocabulary check as a human-readable text block."""
+    lines: list[str] = ["[COMMAND VOCABULARY]"]
+    lines.append(f"  Input:      '{check['input']}'")
+    if check["registered"]:
+        lines.append(f"  Registered: ✓ {check['registered_where']} command")
+        if check["category"] != "unknown":
+            lines.append(f"  Category:   {check['category']}")
+        aligned = "✓ in impeccable vocabulary" if check["aligned"] else "✗ not in impeccable vocabulary"
+        lines.append(f"  Aligned:    {aligned}")
+        if check["suggested_alias"]:
+            lines.append(f"  Alias hint: suggested impeccable alias: '{check['suggested_alias']}'")
+    else:
+        lines.append("  Registered: ✗ not a DevSquad command")
+        if check["close_matches"]:
+            for m in check["close_matches"]:
+                category_note = f", {m['category']} category" if m["category"] else ""
+                lines.append(f"  Closest:    {m['command']} ({m['where']}{category_note})")
+        else:
+            lines.append("  Closest:    (none)")
+    lines.append(f"  Hint:       {check['hint']}")
+    return "\n".join(lines)
+
+
 def format_text(reports: list[ProviderReport]) -> str:
     """Format reports as a human-readable text table."""
     lines: list[str] = []
@@ -233,10 +366,13 @@ def format_text(reports: list[ProviderReport]) -> str:
     return "\n".join(lines)
 
 
-def format_json(reports: list[ProviderReport]) -> str:
-    """Format reports as JSON."""
+def format_json(reports: list[ProviderReport], command_check: dict[str, Any] | None = None) -> str:
+    """Format reports (and optional command vocabulary check) as JSON."""
+    payload: dict[str, Any] = {"version": "V4.5.2", "reports": [r.to_dict() for r in reports]}
+    if command_check is not None:
+        payload["command_vocabulary"] = command_check
     return json.dumps(
-        {"version": "V4.5.2", "reports": [r.to_dict() for r in reports]},
+        payload,
         indent=2,
         ensure_ascii=False,
     )
@@ -246,7 +382,8 @@ def cmd_doctor(args: Any) -> int:
     """CLI entry point for `devsquad doctor`.
 
     Args:
-        args: argparse Namespace with `provider` and `format` attributes.
+        args: argparse Namespace with `provider`, `format`, `timeout`, and
+            optional `command` attributes.
 
     Returns:
         Exit code (0 on success).
@@ -254,13 +391,18 @@ def cmd_doctor(args: Any) -> int:
     fmt = getattr(args, "format", "text")
     provider = getattr(args, "provider", "all")
     timeout = getattr(args, "timeout", 5.0)
+    command_word = getattr(args, "command_word", None)
 
     reports = diagnose_all(timeout) if provider == "all" else [diagnose_provider(provider, timeout)]
+    command_check = check_command_vocabulary(command_word) if command_word is not None else None
 
     if fmt == "json":
-        print(format_json(reports))
+        print(format_json(reports, command_check))
     else:
         print(format_text(reports))
+        if command_check is not None:
+            print()
+            print(format_command_section(command_check))
 
     # Non-zero exit if any provider is configured but unreachable
     if any(r.configured and not r.reachable for r in reports):

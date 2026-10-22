@@ -81,6 +81,8 @@
 
 **判断**：已实现、已测试、未接线。与本次 R2 doc_command 门禁同属"命令治理"主题，存在低成本激活路径（如接入 doctor 子命令做拼写建议）；删除则丢弃一个已测试资产。建议 freeze 并在 P2 评估接线；或裁定后立即接线（≤ 半天工作量）。
 
+**裁定后实施（2026-10-22）**：用户裁定升级为 P1 立即接线。已实施：`devsquad doctor --command WORD` 接入 `check_command_vocabulary()`（scripts/cli_doctor.py）——注册表归属检查（argparse 内省，与 R2 门禁同源）+ difflib 拼写近似 + impeccable 分类感知建议。测试 13 项新增于 tests/test_cli_doctor.py。本项由 FREEZE 转为**已接线激活**（首个生产消费方就位）。
+
 ### 2.6 taste-dials —— 建议 KEEP
 
 | 维度 | 证据 |

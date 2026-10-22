@@ -605,6 +605,13 @@ Environment Variables (API keys are read from env vars only, never command line)
         default=5.0,
         help="HTTP timeout in seconds (default: 5.0)",
     )
+    p_doctor.add_argument(
+        "--command",
+        dest="command_word",
+        metavar="WORD",
+        default=None,
+        help="Check a command word against the registry: spelling suggestions + impeccable category (P1-E1)",
+    )
 
     # V4.5.3 P12.2.6: devsquad audit CLI
     p_audit = subparsers.add_parser("audit", help="Inspect dispatch audit log (V4.5.3 P12.2.6)")
