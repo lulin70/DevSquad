@@ -1,3 +1,4 @@
+[0] mode: role=operator
 [1] initialize OK
     server name=DevSquad version=1.30.0
 [2] tools/list -> 9 tools
@@ -12,4 +13,4 @@
     - multiagent_status
 [3] multiagent_roles -> isError=False
     text[:400]='**arch** — System design, tech stack, API design, performance/security/data architecture\n**pm** — Requirements analysis, user stories, acceptance criteria\n**test** — Test strategy, quality assurance, edge cases\n**coder** — Implementation, code review, performance optimization, refactoring\n**ui** — UX design, interaction logic, accessibility\n**infra** — CI/CD pipeline, containerization, monitoring,'
-PASS: initialize + tools/list>=9 + multiagent_roles all OK
+PASS: initialize + tools/list>=9 + multiagent_roles behaved as expected

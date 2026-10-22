@@ -18,12 +18,15 @@
 ```bash
 python3 -m venv /tmp/r4_e2e_venv
 /tmp/r4_e2e_venv/bin/pip install -i https://pypi.org/simple "devsquad[mcp]"          # 场景 1（装到 mcp 2.3.0）
-/tmp/r4_e2e_venv/bin/pip install "mcp<2"                                              # 场景 2/3（降级到 1.30.0）
-/tmp/r4_e2e_venv/bin/python collected/check_script.py                                # 默认 operator；unset 角色变量后重跑得场景 2
+/tmp/r4_e2e_venv/bin/python collected/check_script.py                                # 场景 1（退出码 1，启动失败）
+/tmp/r4_e2e_venv/bin/pip install "mcp<2"                                              # 降级到 mcp 1.30.0
+/tmp/r4_e2e_venv/bin/python collected/check_script.py                                # 场景 2（无角色 → fail-closed 拒绝，PASS）
+CHECK_ROLE=operator /tmp/r4_e2e_venv/bin/python collected/check_script.py           # 场景 3（operator → 全链成功，PASS）
 ```
 
 - 安装版本实测：devsquad 4.7.2（PyPI）+ mcp 2.3.0 / 1.30.0
-- 验证脚本：[collected/check_script.py](collected/check_script.py)（mcp SDK `ClientSession` + `stdio_client`；断言 tools ≥ 9、期望工具集齐全、multiagent_roles 未被拒绝）
+- 验证脚本：[collected/check_script.py](collected/check_script.py)（mcp SDK `ClientSession` + `stdio_client`；断言 tools ≥ 9、期望工具集齐全；`CHECK_ROLE` 未设 → 断言 fail-closed 拒绝，设为 operator → 断言成功）
+- 2026-10-22 修订：脚本首版触发了仓库 ruff lint（SIM117 合并 `async with`），修复样式后三个场景全部重跑、输出重新采集——入库输出与脚本一一对应（如实留痕）
 
 ## 边界（如实声明）
 
