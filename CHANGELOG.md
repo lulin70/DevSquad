@@ -12,6 +12,14 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.2] - 2026-10-25
+
+### Fixed
+
+- **print_debug false positives on the CLI command family (PR #72, dogfood-discovered on PR #71)** — the dogfood gate running on this repository's own W1 PR flagged 8 `print_debug` BREAK-2 findings in `scripts/cli_defect.py`, but a print statement to stdout is the product interface of the CLI command family (`scripts/cli*.py` — the same output convention as `cli_risks`/`cli_audit`), not debug residue. The fix is deliberately narrow: `diff_pattern_scanner` exempts the `scripts/cli` path prefix for the `print_debug` pattern only; every other pattern family (secrets, SQL injection, eval/exec) still applies to those files in full, and `print_debug` stays flagged everywhere else. 4 new unit tests pin the boundary (CLI exemption, non-CLI still flagged, secrets/eval inside CLI modules still critical). Found by dogfooding the gate at the pinned 4.8.1 PyPI version — which is also why this ships as a PATCH release: the fix must reach the published gate for PR #71 to pass.
+
+This is a **PATCH** release (SemVer): a bug fix to the 4.8.1 diff-review pattern scanner, no new features, no breaking changes. Released as tag `v4.8.2`.
+
 ## [4.8.1] - 2026-10-22
 
 ### Fixed
