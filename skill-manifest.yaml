@@ -1,7 +1,7 @@
 name: devsquad
-version: 4.8.1
+version: 4.8.2
 description: |
-  DevSquad V4.8.1 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.8.2 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → multi-role collaboration → consensus conclusion.
@@ -459,7 +459,7 @@ reference_docs:
   - path: docs/reference/SUB_SKILLS.md
     description: 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules
   - path: docs/reference/VERSION_HISTORY.md
-    description: Version history + per-version changelog (v1.0 → v4.8.1)
+    description: Version history + per-version changelog (v1.0 → v4.8.2)
 
 created_at: "2026-03-16T00:00:00"
 updated_at: "2026-10-22"
