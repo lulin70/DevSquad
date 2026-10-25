@@ -50,6 +50,22 @@ class TestScanDiffPatterns:
         findings = scan_diff_patterns(_diff("a.py", ['print("debug")']))
         assert _by_rule(findings, "diff-print_debug").category == "BREAK-2"
 
+    def test_print_debug_exempt_in_cli_output_layer(self):
+        # V4.9.0 dogfood finding (PR #71): print() is the product interface
+        # of scripts/cli*.py command modules, not debug residue.
+        findings = scan_diff_patterns(_diff("scripts/cli_defect.py", ['print("result")']))
+        assert not [f for f in findings if f.rule_id == "diff-print_debug"]
+
+    def test_print_debug_still_flagged_in_collaboration_modules(self):
+        findings = scan_diff_patterns(_diff("scripts/collaboration/foo.py", ['print("debug")']))
+        assert _by_rule(findings, "diff-print_debug").category == "BREAK-2"
+
+    def test_cli_output_layer_exempt_is_print_debug_only(self):
+        # The exemption is narrow: other anti-patterns still fire inside
+        # CLI modules (secrets/eval remain fully covered).
+        findings = scan_diff_patterns(_diff("scripts/cli_defect.py", ["y = eval(x)"]))
+        assert _by_rule(findings, "diff-eval_usage").severity == "critical"
+
     def test_hardcoded_secret_becomes_vuln4_critical(self):
         findings = scan_diff_patterns(_diff("a.py", ['api_key = "abcdefghij1234567890"']))
         f = _by_rule(findings, "diff-hardcoded_api_key")
