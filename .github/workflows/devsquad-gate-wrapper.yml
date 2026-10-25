@@ -1,13 +1,19 @@
 name: devsquad-gate (dogfood)
 
 # V4.8.0 P1-R1 T-2 (dogfood): this repository consumes its own published
-# gate exactly as an external consumer would — the same @v4.8.1 tag ref,
+# gate exactly as an external consumer would — the same @v4.8.2 tag ref,
 # the same pinned PyPI install, and the same reusable-workflow call shape
 # documented in QUICKSTART channel C. Every PR here now gets the same
 # deterministic review an external repository gets.
 #
-# v4.8.1 bump (F-D1 verification): the wrapper moves to the @v4.8.1 tag so
-# the dogfood gate exercises the fixed diff-pattern path gates in
+# v4.8.2 bump (print_debug CLI-layer verification): the wrapper moves to
+# the @v4.8.2 tag so the dogfood gate exercises the fixed scanner in
+# production — the print_debug false positives the 4.8.1 gate raised on
+# PR #71's CLI command modules are gone in 4.8.2 (PR #72), and every PR of
+# this repository is re-checked with that fix in the loop.
+#
+# v4.8.1 bump (F-D1 verification): the wrapper moved to the @v4.8.1 tag so
+# the dogfood gate exercised the fixed diff-pattern path gates in
 # production — the same F-D1 defect class the 4.8.0 gate surfaced on PR #62
 # is now re-checked against every PR of this repository.
 #
@@ -25,7 +31,7 @@ on:
 
 jobs:
   devsquad-gate:
-    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.1
+    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.2
     with:
       exclude: "tests/**"
     permissions:
