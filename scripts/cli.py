@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from scripts.cli_audit import cmd_audit
 from scripts.cli_backend import cmd_backend
+from scripts.cli_defect import register_defect_subparser
 from scripts.cli_dispatch import cmd_demo, cmd_dispatch, cmd_roles, cmd_status
 from scripts.cli_doctor import cmd_doctor
 from scripts.cli_lifecycle import cmd_lifecycle
@@ -647,6 +648,9 @@ Environment Variables (API keys are read from env vars only, never command line)
 
     register_risks_subparser(subparsers)
 
+    # V4.9.0 P2-W1: devsquad defect CLI (cross-run defect ledger)
+    register_defect_subparser(subparsers)
+
     # V4.5.0 SessionResume CLI (PRD §10.1.2): `sessions` subcommand group
     p_sessions = subparsers.add_parser(
         "sessions", aliases=["sess"], help="List/show dispatch sessions (SessionResume V4.5.0)"
@@ -803,6 +807,9 @@ def _dispatch_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
     if args.command == "rules":
         rules_func: Callable[[argparse.Namespace], int] | None = getattr(args, "func", None)
         return rules_func(args) if callable(rules_func) else 1
+    if args.command == "defect":
+        defect_func: Callable[[argparse.Namespace], int] | None = getattr(args, "func", None)
+        return defect_func(args) if callable(defect_func) else 1
     if args.command == "modules":
         return _run_modules_command(args)
     if args.command in LIFECYCLE_COMMANDS:
