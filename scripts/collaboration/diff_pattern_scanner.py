@@ -62,6 +62,19 @@ _PATTERN_FAMILY_WIRING: tuple[tuple[tuple[tuple[str, re.Pattern[str]], ...], str
 
 _HUNK_HEADER = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 
+# V4.9.0 dogfood finding (PR #71, 2026-10-25): a print statement to stdout
+# is the product interface of the CLI command family (``scripts/cli*.py`` —
+# same output convention as cli_risks/cli_audit), not debug residue. The
+# print_debug anti-pattern skips those files; every other pattern family
+# (secrets, SQL injection, eval/exec) still applies to them in full.
+_CLI_PATH_PREFIX = "scripts/cli"
+
+
+def _is_cli_output_layer(file_path: str) -> bool:
+    """True for the CLI command-family modules where a print statement is the interface."""
+    return file_path.replace("\\", "/").startswith(_CLI_PATH_PREFIX)
+
+
 # V4.8.1 F-D1 (design §7.4): secret-leak findings are meaningful in ANY
 # review-retained file (a document can leak a real key); the other families
 # (anti-patterns, SQL injection) are code smells — product judgments only
@@ -120,6 +133,8 @@ def scan_diff_patterns(diff: str) -> list[LifecycleFinding]:
         hits: dict[tuple[str, str], list[int]] = {}
         for name, pattern in patterns:
             for file_path, line_no, text in added:
+                if name == "print_debug" and _is_cli_output_layer(file_path):
+                    continue
                 if pattern.search(text):
                     hits.setdefault((name, file_path), []).append(line_no)
         for (name, file_path), line_numbers in sorted(hits.items()):
