@@ -35,6 +35,7 @@ from .dispatch_steps_quality_mixin import PostDispatchQualityMixin
 from .dispatch_steps_services_mixin import PostDispatchServicesMixin
 from .dispatcher_base import ReportFormatterProtocol
 from .event_bus import EventBus
+from .failure_taxonomy import failure_class_for_dispatch
 from .output_validator import (
     OutputFinding,
     OutputValidationPipelineResult,
@@ -661,6 +662,15 @@ class PostDispatchPipeline(
         if judge_result is not None:
             result.details["judge_result"] = judge_result.to_dict()
             result.judge_result = judge_result.to_dict()
+
+        # Step 24 (V4.9.0 P2-W2): C19 — recompute the failure class at the
+        # terminal state. The assembler writes details["failure_class"] at
+        # Step-17 assembly time, but the Step-21 review gate can append
+        # errors and flip success=False afterwards — leaving a review-gate
+        # failed run disclosing "none" while being failed. Recomputing here
+        # (all errors collected) keeps the disclosure honest; worker-failure
+        # runs recompute to the same value the assembler already wrote.
+        result.details["failure_class"] = failure_class_for_dispatch(worker_results, errors).value
 
         # Prometheus: record dispatch end (duration + tasks_in_progress)
         self.metrics_service.safe_record(

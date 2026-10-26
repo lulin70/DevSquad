@@ -404,6 +404,9 @@ class DispatchAuditLogger:
         user_id: str,
         success: bool,
         duration: float,
+        *,
+        findings: list[dict] | None = None,
+        failure_class: str | None = None,
     ) -> str:
         """Log dispatch end. Returns entry hash.
 
@@ -415,13 +418,25 @@ class DispatchAuditLogger:
             Whether the dispatch succeeded.
         duration:
             Duration in seconds.
+        findings:
+            V4.9.0 P2-W2: review findings (``ReviewFinding.to_dict()`` items)
+            to persist for cross-run defect filing. None (default) keeps the
+            event details byte-identical to pre-V4.9.0 shape.
+        failure_class:
+            V4.9.0 P2-W2: C19 failure class of the run
+            ("none" / "product_failed" / "environment_blocked"). None keeps
+            the legacy details shape.
 
         Returns
         -------
         str
             The SHA-256 entry hash.
         """
-        details = {"success": success, "duration": duration}
+        details: dict = {"success": success, "duration": duration}
+        if findings is not None:
+            details["findings"] = list(findings)
+        if failure_class is not None:
+            details["failure_class"] = failure_class
         return self._append_entry("dispatch_end", user_id, details)
 
     def log_permission_denied(

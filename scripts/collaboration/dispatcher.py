@@ -575,7 +575,16 @@ class MultiAgentDispatcher(
 
             if permission_result_dict is not None:
                 result.permission_result = permission_result_dict
-            self._log_dispatch_end_audit(user_id, result.success, time.time() - start_time)
+            # V4.9.0 P2-W2: persist terminal signals (findings / failure_class)
+            # into the audit event so defect filing can resolve them.
+            review_meta = result.details.get("two_stage_review") or {}
+            self._log_dispatch_end_audit(
+                user_id,
+                result.success,
+                time.time() - start_time,
+                findings=review_meta.get("findings"),
+                failure_class=result.details.get("failure_class"),
+            )
             self._attach_audit_entries(result)
 
             # V4.4.0: Activate 5 enhancement modules (anti-ghost + risk report).

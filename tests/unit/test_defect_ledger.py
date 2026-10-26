@@ -28,7 +28,10 @@ from scripts.collaboration.defect_ledger import (
     Defect,
     DefectLedger,
     DefectLedgerError,
+    mandatory_signal_types,
 )
+from scripts.collaboration.dispatch_audit import DispatchAuditLogger
+from scripts.collaboration.two_stage_review_gate import ReviewFinding, ReviewStage
 
 pytestmark = pytest.mark.unit
 
@@ -46,6 +49,32 @@ CREATE TABLE dispatch_audit (
 """
 
 
+def _bv_finding(code: str, severity: str, description: str = "review hit") -> dict:
+    """A real ReviewFinding.to_dict() shape (BV checks put the BV ID in category)."""
+    return ReviewFinding(
+        stage=ReviewStage.CODE_QUALITY,
+        severity=severity,
+        category=code,
+        description=description,
+        file_path="api/routes/dispatch.py",
+        line_range="42",
+        suggestion=f"Review and fix {code}.",
+    ).to_dict()
+
+
+def _spec_finding(category: str, severity: str = "warning") -> dict:
+    """A real Stage-1 spec finding shape (category is a spec class, not a BV ID)."""
+    return ReviewFinding(
+        stage=ReviewStage.SPEC_COMPLIANCE,
+        severity=severity,
+        category=category,
+        description="spec deviation",
+        file_path="api/routes/dispatch.py",
+        line_range="10",
+        suggestion="Align the implementation with the plan.",
+    ).to_dict()
+
+
 @pytest.fixture
 def audit_db(tmp_path: Path) -> Path:
     """A real SQLite audit DB seeded with the events every test needs."""
@@ -54,15 +83,17 @@ def audit_db(tmp_path: Path) -> Path:
     conn = sqlite3.connect(db_path)
     conn.execute(_AUDIT_DDL)
     events = [
-        # (event_type, details)
-        (
-            "review_findings",
-            {"findings": [{"severity": "critical", "rule": "BREAK-2"}, {"severity": "warning", "rule": "BREAK-1"}]},
-        ),
+        # (event_type, details) — findings carry the real ReviewFinding.to_dict()
+        # shape; severity matches review_taxonomy BV_CATEGORIES.
+        ("review_findings", {"findings": [_bv_finding("BREAK-2", "warning"), _bv_finding("BREAK-1", "critical")]}),
         ("dispatch_end", {"failure_class": "product_failed", "success": False}),
         ("dispatch_end", {"failure_class": "environment_blocked", "success": False}),
         ("dispatch_end", {"success": True, "duration": 1.5}),
-        ("review_findings", {"findings": [{"severity": "critical", "rule": "VULN-1"}]}),
+        ("review_findings", {"findings": [_bv_finding("VULN-1", "critical")]}),
+        ("review_findings", {"findings": [_spec_finding("missing_file")]}),
+        # Negative shapes: no category / not an object.
+        ("review_findings", {"findings": [{"severity": "warning", "description": "shapeless"}]}),
+        ("review_findings", {"findings": ["raw string"]}),
     ]
     for i, (event_type, details) in enumerate(events, start=1):
         conn.execute(
@@ -92,12 +123,90 @@ def _fixed_defect(ledger: DefectLedger) -> Defect:
     return ledger.update(entry.id, commit_sha="abc123", summary="add missing return")
 
 
+class TestSignalMapping:
+    """V4.9.0 P2-W2: PRD §4.2 mapping — BV / spec / failure-class signals."""
+
+    def test_bv_warning_finding_files_as_break_vuln_type(self, ledger: DefectLedger) -> None:
+        entry = _file_defect(ledger)  # event 1, finding 0 = BREAK-2 (warning)
+        assert entry.signal["type"] == "review:break-vuln:BREAK-2"
+
+    def test_bv_critical_finding_is_in_mandatory_scope(self, ledger: DefectLedger) -> None:
+        entry = ledger.add("audit:event=5&finding=0", "ORM object returned")
+        assert entry.signal["type"] == "review:break-vuln:VULN-1"
+        assert "review:break-vuln:VULN-1" in mandatory_signal_types()
+
+    def test_spec_finding_files_as_spec_type(self, ledger: DefectLedger) -> None:
+        entry = ledger.add("audit:event=6&finding=0", "planned file missing")
+        assert entry.signal["type"] == "review:spec:missing_file"
+        assert "review:spec:missing_file" not in mandatory_signal_types()
+
+    def test_mandatory_scope_is_prd_exact(self) -> None:
+        assert mandatory_signal_types() == frozenset(
+            {
+                "failure:product_failed",
+                "review:break-vuln:BREAK-1",
+                "review:break-vuln:BREAK-5",
+                "review:break-vuln:VULN-1",
+                "review:break-vuln:VULN-4",
+            }
+        )
+
+    def test_environment_blocked_excluded_from_filing(self, ledger: DefectLedger) -> None:
+        with pytest.raises(DefectLedgerError, match="environment blocks are not defects"):
+            ledger.add("audit:event=3&failure=environment_blocked", "provider outage")
+
+    def test_finding_without_category_rejected(self, ledger: DefectLedger) -> None:
+        with pytest.raises(DefectLedgerError, match="cannot be classified"):
+            ledger.add("audit:event=7&finding=0", "shapeless finding")
+
+    def test_finding_not_an_object_rejected(self, ledger: DefectLedger) -> None:
+        with pytest.raises(DefectLedgerError, match="not an object"):
+            ledger.add("audit:event=8&finding=0", "corrupt finding")
+
+
+class TestWriterConsumerRoundtrip:
+    """Real DispatchAuditLogger writes → DefectLedger consumes. No mocks:
+    one fixture proves both the writer fields and the W1 parsing contract."""
+
+    @staticmethod
+    def _write_end_event(tmp_path: Path, findings: list[dict], failure_class: str) -> DefectLedger:
+        db = tmp_path / "audit" / "dispatch_audit.db"
+        db.parent.mkdir(parents=True, exist_ok=True)
+        writer = DispatchAuditLogger(db_path=db)
+        writer.log_dispatch_start("u1", "fix handler return", ["coder"])
+        writer.log_dispatch_end(
+            "u1",
+            success=(failure_class == "none"),
+            duration=0.5,
+            findings=findings,
+            failure_class=failure_class,
+        )
+        writer.close()
+        return DefectLedger(ledger_path=tmp_path / ".devsquad" / "defects.json", audit_db_path=db)
+
+    def test_finding_event_roundtrip_and_close_on_same_event(self, tmp_path: Path) -> None:
+        ledger = self._write_end_event(tmp_path, findings=[_bv_finding("BREAK-2", "warning")], failure_class="none")
+        entry = ledger.add("audit:event=2&finding=0", "handler without return")
+        assert entry.signal["type"] == "review:break-vuln:BREAK-2"
+        ledger.update(entry.id, commit_sha="abc123", summary="add return")
+        closed = ledger.close(entry.id, run_ref="audit:event=2")
+        assert closed.state.value == "closed"
+
+    def test_product_failed_run_roundtrip_blocks_close(self, tmp_path: Path) -> None:
+        ledger = self._write_end_event(tmp_path, findings=[], failure_class="product_failed")
+        entry = ledger.add("audit:event=2&failure=product_failed", "product failure")
+        assert entry.signal["type"] == "failure:product_failed"
+        ledger.update(entry.id, commit_sha="abc", summary="hotfix")
+        with pytest.raises(DefectLedgerError, match="product_failed signal"):
+            ledger.close(entry.id, run_ref="audit:event=2")
+
+
 class TestLegalTransitions:
     def test_add_creates_open_entry_with_resolved_signal(self, ledger: DefectLedger) -> None:
         entry = _file_defect(ledger)
         assert entry.id == "DEF-001"
         assert entry.state.value == "open"
-        assert entry.signal["type"] == "review:finding"
+        assert entry.signal["type"] == "review:break-vuln:BREAK-2"
         assert entry.signal["ref"] == "audit:event=1&finding=0"
         assert entry.signal["captured_at"]
         assert entry.history[0]["transition"] == "create"
