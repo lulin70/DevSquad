@@ -91,3 +91,83 @@ def test_successful_dispatch_has_none_class_and_no_section():
     assert result.success
     assert result.details.get("failure_class") == "none"
     assert "Failure class" not in result.to_markdown()
+
+
+def test_review_gate_failure_recomputes_failure_class(monkeypatch: pytest.MonkeyPatch):
+    """V4.9.0 P2-W2 Step 24: terminal recompute of failure_class.
+
+    The assembler writes details["failure_class"] at Step-17 assembly time
+    ("none" for an all-success worker run); the Step-21 review gate then
+    appends errors and flips success=False. Before W2 the disclosure stayed
+    "none" on a failed run — the terminal recompute must disclose
+    product_failed (review blocking text carries no environment markers).
+    """
+    from scripts.collaboration.two_stage_review_gate import (
+        ReviewFinding,
+        ReviewStage,
+        StageResult,
+        TwoStageReviewResult,
+    )
+
+    blocking = ReviewFinding(
+        stage=ReviewStage.CODE_QUALITY,
+        severity="critical",
+        category="BREAK-1",
+        description="route without handler",
+        file_path="api/routes.py",
+        line_range="7",
+        suggestion="Add a handler.",
+    )
+    gate_result = TwoStageReviewResult(
+        stage1_result=StageResult.FAIL,
+        overall_passed=False,
+        findings=[blocking],
+        blocking_findings=[blocking],
+        summary="blocked",
+    )
+
+    class _OkBackend:
+        model = "taxonomy-fake-model"
+
+        def is_available(self) -> bool:
+            return True
+
+        def generate(self, prompt: str, **kwargs: Any) -> str:
+            return "Structured answer: 4"
+
+        def generate_stream(self, prompt: str, **kwargs: Any):
+            yield "Structured answer: 4"
+
+    disp = MultiAgentDispatcher(llm_backend=_OkBackend(), enable_memory=False)
+    monkeypatch.setattr(disp.post_dispatch, "_run_two_stage_review", lambda *_args, **_kwargs: gate_result)
+    try:
+        result = disp.dispatch("What is 2+2?", roles=["architect"])
+    finally:
+        disp.shutdown()
+
+    assert not result.success
+    assert result.details.get("failure_class") == "product_failed"
+    assert dispatch_exit_code(result) == EXIT_PRODUCT_FAILED
+    assert "product_failed" in result.to_markdown()
+
+
+def test_audit_end_event_carries_terminal_signals():
+    """V4.9.0 P2-W2: dispatcher.py:578 wiring — the audit dispatch_end
+    event carries the run's terminal signals (findings + failure_class)
+    so cross-run defect filing resolves against real runs."""
+    from scripts.collaboration.dispatch_audit import DispatchAuditLogger
+
+    audit = DispatchAuditLogger()
+    disp = MultiAgentDispatcher(audit_logger=audit, enable_memory=False)
+    try:
+        result = disp.dispatch("What is 2+2?", roles=["architect"])
+    finally:
+        disp.shutdown()
+
+    assert result.details["failure_class"] == "none"
+    ends = audit.query(event_type="dispatch_end")
+    assert len(ends) == 1
+    details = ends[0].details
+    assert details["failure_class"] == "none"
+    assert isinstance(details.get("findings"), list)
+    assert audit.verify_chain()

@@ -231,8 +231,21 @@ class DispatcherAuditMixin(DispatcherBase):
 
     _audit_logger: Any
 
-    def _log_dispatch_end_audit(self, user_id: str, success: bool, duration: float) -> None:
-        """Log dispatch_end event to the audit logger (if configured)."""
+    def _log_dispatch_end_audit(
+        self,
+        user_id: str,
+        success: bool,
+        duration: float,
+        *,
+        findings: list[dict] | None = None,
+        failure_class: str | None = None,
+    ) -> None:
+        """Log dispatch_end event to the audit logger (if configured).
+
+        V4.9.0 P2-W2: ``findings`` / ``failure_class`` persist the run's
+        terminal signals into the audit event so cross-run defect filing
+        can resolve them (design: V4.9.0_W2_signal-write_DESIGN.md §3.3).
+        """
         if self._audit_logger is None:
             return
         try:
@@ -240,6 +253,8 @@ class DispatcherAuditMixin(DispatcherBase):
                 user_id=user_id,
                 success=success,
                 duration=duration,
+                findings=findings,
+                failure_class=failure_class,
             )
         except (ValueError, RuntimeError, OSError) as audit_err:
             logger.warning("Audit log_dispatch_end failed: %s", audit_err)

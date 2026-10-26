@@ -20,6 +20,11 @@ into the event's ``findings``) and ``audit:event=<N>&failure=<class>`` (the
 event's ``failure_class`` must match) — both resolved against the SQLite
 dispatch audit DB. The ``audit:`` prefix is the W2 extension point. Pure
 stdlib; no LLM; deterministic.
+
+Signal-type mapping (V4.9.0 P2-W2, PRD §4.2): a finding whose ``category``
+is a BREAK/VULN code files as ``review:break-vuln:<ID>``; any other finding
+files as ``review:spec:<category>``. ``environment_blocked`` failures are
+excluded from filing (environment blocks are not defects).
 """
 
 from __future__ import annotations
@@ -36,7 +41,18 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-__all__ = ["DefectLedger", "Defect", "DefectState", "DefectLedgerError"]
+from .review_taxonomy import BV_CATEGORIES, BV_CRITICAL
+
+__all__ = [
+    "DefectLedger",
+    "Defect",
+    "DefectState",
+    "DefectLedgerError",
+    "BV_SIGNAL_PREFIX",
+    "SPEC_SIGNAL_PREFIX",
+    "MANDATORY_FAILURE_TYPES",
+    "mandatory_signal_types",
+]
 
 SCHEMA_VERSION = 1
 DEFAULT_LEDGER_PATH = ".devsquad/defects.json"
@@ -44,6 +60,19 @@ DEFAULT_AUDIT_DB_PATH = "audit/dispatch_audit.db"
 
 _ID_PATTERN = re.compile(r"^DEF-(\d+)$")
 _EVENT_REF_PATTERN = re.compile(r"^audit:event=(\d+)$")
+
+# V4.9.0 P2-W2 signal mapping (PRD §4.2). Single source of truth for both
+# the filing path here and the W3 registration gate.
+_BV_CODES: frozenset[str] = frozenset(c.code for c in BV_CATEGORIES)
+BV_SIGNAL_PREFIX = "review:break-vuln"
+SPEC_SIGNAL_PREFIX = "review:spec"
+MANDATORY_FAILURE_TYPES = frozenset({"failure:product_failed"})
+
+
+def mandatory_signal_types() -> frozenset[str]:
+    """Mandatory filing scope (PRD §4.2): product_failed + BV critical."""
+    return MANDATORY_FAILURE_TYPES | {f"{BV_SIGNAL_PREFIX}:{code}" for code in BV_CRITICAL}
+
 
 # Closed state machine (design §4.1): (from_state, transition) -> to_state.
 _LEGAL_TRANSITIONS: dict[tuple[str, str], str] = {
@@ -283,13 +312,31 @@ class DefectLedger:
                     f"audit event {parsed['event']}: finding index {index} not in "
                     "details['findings'] — signal must be real"
                 )
-            signal_type = "review:finding"
+            item = findings[index]
+            if not isinstance(item, dict):
+                raise DefectLedgerError(
+                    f"audit event {parsed['event']}: finding {index} is not an object — signal must be real"
+                )
+            category = str(item.get("category", ""))
+            if not category:
+                raise DefectLedgerError(
+                    f"audit event {parsed['event']}: finding {index} has no category — signal cannot be classified"
+                )
+            if category in _BV_CODES:
+                signal_type = f"{BV_SIGNAL_PREFIX}:{category}"
+            else:
+                signal_type = f"{SPEC_SIGNAL_PREFIX}:{category}"
         else:
             recorded = details.get("failure_class")
             if recorded != parsed["failure"]:
                 raise DefectLedgerError(
                     f"audit event {parsed['event']}: failure_class {recorded!r} != "
                     f"{parsed['failure']!r} — signal must be real"
+                )
+            if parsed["failure"] == "environment_blocked":
+                raise DefectLedgerError(
+                    "environment_blocked signals are excluded from filing "
+                    "(PRD §4.2: environment blocks are not defects)"
                 )
             signal_type = f"failure:{parsed['failure']}"
         captured_at = datetime.fromtimestamp(timestamp).astimezone().isoformat(timespec="seconds")

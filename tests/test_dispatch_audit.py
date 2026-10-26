@@ -275,6 +275,81 @@ class TestDispatchAuditLoggerPersistence(unittest.TestCase):
             logger2.close()
 
 
+class TestDispatchAuditLoggerTerminalSignals(unittest.TestCase):
+    """V4.9.0 P2-W2 — dispatch_end carries the run's terminal signals
+    (findings / failure_class) for cross-run defect filing (design:
+    V4.9.0_W2_signal-write_DESIGN.md §3.2)."""
+
+    def test_log_dispatch_end_without_new_fields_keeps_legacy_details(self) -> None:
+        """Verify: absent kwargs → details is exactly {success, duration}.
+
+        Negative back-compat assertion (PRD §7.6): the pre-V4.9.0 event
+        shape must be preserved key-for-key when callers do not opt in.
+        """
+        # Arrange
+        logger = DispatchAuditLogger()
+        # Act
+        logger.log_dispatch_end("u1", success=True, duration=1.0)
+        # Assert
+        entry = logger.query(event_type="dispatch_end")[0]
+        self.assertEqual(entry.details, {"success": True, "duration": 1.0})
+
+    def test_log_dispatch_end_persists_findings_and_failure_class(self) -> None:
+        """Verify: opt-in kwargs land in details and the chain still verifies."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        findings = [
+            {
+                "stage": "code_quality",
+                "severity": "warning",
+                "category": "BREAK-2",
+                "description": "handler without return",
+                "file_path": "api/routes.py",
+                "line_range": "42",
+                "suggestion": "add return",
+            }
+        ]
+        # Act
+        logger.log_dispatch_end(
+            "u1",
+            success=False,
+            duration=2.0,
+            findings=findings,
+            failure_class="product_failed",
+        )
+        # Assert
+        entry = logger.query(event_type="dispatch_end")[0]
+        self.assertEqual(entry.details["findings"], findings)
+        self.assertEqual(entry.details["failure_class"], "product_failed")
+        self.assertEqual(entry.details["success"], False)
+        self.assertEqual(entry.details["duration"], 2.0)
+        self.assertTrue(logger.verify_chain())
+
+    def test_log_dispatch_end_terminal_signals_persist_to_sqlite(self) -> None:
+        """Verify: the new fields survive the SQLite round-trip."""
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "audit.db"
+            logger1 = DispatchAuditLogger(db_path=db_path)
+            logger1.log_dispatch_start("u1", "task", ["architect"])
+            logger1.log_dispatch_end(
+                "u1",
+                success=True,
+                duration=0.5,
+                findings=[],
+                failure_class="none",
+            )
+            logger1.close()
+            # Act
+            logger2 = DispatchAuditLogger(db_path=db_path)
+            # Assert
+            end = logger2.query(event_type="dispatch_end")[0]
+            self.assertEqual(end.details["failure_class"], "none")
+            self.assertEqual(end.details["findings"], [])
+            self.assertTrue(logger2.verify_chain())
+            logger2.close()
+
+
 class TestDispatchAuditLoggerEdgeCases(unittest.TestCase):
     """Edge cases — empty logger, large number of entries."""
 
