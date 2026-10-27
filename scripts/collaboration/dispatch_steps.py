@@ -100,6 +100,11 @@ class PostDispatchPipeline(
         event_bus: EventBus | None = None,
         # Result assembler for direct assembly calls
         result_assembler: ResultAssembler | None = None,
+        # V4.9.0 P2-W4: feature gate — live acceptance-coverage matrix
+        # (design: V4.9.0_W4_feature-gate_DESIGN.md, D5/D7). Default off.
+        enable_feature_gate: bool = False,
+        feature_gate_checklist: str = ".devsquad/acceptance_checklist.json",
+        feature_gate_command_timeout_seconds: int = 120,
     ) -> None:
         self.coordinator = coordinator
         self.report_formatter = report_formatter
@@ -121,6 +126,10 @@ class PostDispatchPipeline(
         self.dispatcher = dispatcher
         self.event_bus = event_bus or EventBus()
         self.result_assembler = result_assembler
+        # V4.9.0 P2-W4 (feature gate)
+        self.enable_feature_gate = enable_feature_gate
+        self.feature_gate_checklist = feature_gate_checklist
+        self.feature_gate_command_timeout_seconds = feature_gate_command_timeout_seconds
 
         # Lazy-initialized frameworks
         self._ue_framework: UETestFramework | None = None
@@ -634,7 +643,7 @@ class PostDispatchPipeline(
         # Step 21: V3.8 #2 — Two-stage review gate
         # Runs after consensus + tech debt scan, before final completion.
         # Critical issues block progression (recorded in errors).
-        two_stage_review_result = self._run_two_stage_review(plan, worker_results, structured_goal)
+        two_stage_review_result = self._run_two_stage_review(plan, worker_results, structured_goal, pre_result)
         if two_stage_review_result is not None:
             result.details["two_stage_review"] = two_stage_review_result.to_dict()
             result.two_stage_review = two_stage_review_result.to_dict()
@@ -662,6 +671,26 @@ class PostDispatchPipeline(
         if judge_result is not None:
             result.details["judge_result"] = judge_result.to_dict()
             result.judge_result = judge_result.to_dict()
+
+        # Step 23.5 (V4.9.0 P2-W4): feature gate — live acceptance-coverage
+        # matrix computed from the gate's own command executions (never from
+        # worker/LLM coverage claims, D2). Runs after judge consolidation and
+        # BEFORE the Step-24 C19 terminal recompute so gate errors join the
+        # failure-class verdict (D5/D6 — W2 lesson ①: no timing break).
+        # Disabled → the mixin returns None and leaves zero trace (①).
+        feature_gate_result = self._run_feature_gate(pre_result)
+        if feature_gate_result is not None:
+            feature_gate_dict = feature_gate_result.to_dict()
+            result.details["feature_gate"] = feature_gate_dict
+            result.feature_gate = feature_gate_dict
+            if not feature_gate_result.passed:
+                gate_errors = [f"Feature gate blocked: {v}" for v in feature_gate_dict["violations"]]
+                gate_errors.extend(
+                    f"Feature gate gap: {gap['id']} — {gap['description']}" for gap in feature_gate_dict["gaps"]
+                )
+                errors.extend(gate_errors)
+                result.errors = list(errors)
+                result.success = False
 
         # Step 24 (V4.9.0 P2-W2): C19 — recompute the failure class at the
         # terminal state. The assembler writes details["failure_class"] at

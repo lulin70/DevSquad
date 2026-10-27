@@ -578,10 +578,10 @@ class TestAuditMixin:
         logger = MagicMock()
         mixin = self._make_mixin(_audit_logger=logger)
         mixin._log_dispatch_end_audit("user1", True, 1.5)
-        # V4.9.0 P2-W2 contract evolution: the mixin now always forwards the
+        # V4.9.0 P2-W2/W4 contract evolution: the mixin now always forwards the
         # terminal-signal kwargs (None = omit from details, 4.8.x-compatible).
         logger.log_dispatch_end.assert_called_once_with(
-            user_id="user1", success=True, duration=1.5, findings=None, failure_class=None
+            user_id="user1", success=True, duration=1.5, findings=None, failure_class=None, feature_gate=None
         )
 
     def test_log_end_handles_logger_error(self) -> None:
@@ -791,3 +791,116 @@ class TestV454FiberMixin:
         d.dispatch("simple test", dry_run=True)
         order = d._coeffect_resolver.resolve_activation_order()
         assert len(order) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Feature gate mixin tests (V4.9.0 P2-W4, design §6 + §4.2)
+# ---------------------------------------------------------------------------
+
+
+class TestFeatureGateMixin:
+    """⑧ D8 two-sided cross-check injection + _run_feature_gate fail-closed."""
+
+    def _make_quality_mixin(self, **overrides: Any):
+        from scripts.collaboration.dispatch_steps_mixins import PostDispatchQualityMixin
+
+        m = PostDispatchQualityMixin.__new__(PostDispatchQualityMixin)
+        m.enable_two_stage_review = overrides.get("enable_two_stage_review", True)
+        m.enable_feature_gate = overrides.get("enable_feature_gate", False)
+        m.feature_gate_command_timeout_seconds = overrides.get("feature_gate_command_timeout_seconds", 30)
+        m.two_stage_review_gate = overrides.get("two_stage_review_gate", MagicMock())
+        m.usage_tracker = overrides.get("usage_tracker")
+        m.enable_redesign_audit = overrides.get("enable_redesign_audit", False)
+        m.enable_severity_router = overrides.get("enable_severity_router", False)
+        return m
+
+    def _capture_review_gate(self) -> tuple[MagicMock, dict[str, Any]]:
+        """Return (mock_gate, captured) recording the spec_requirements it saw."""
+        captured: dict[str, Any] = {}
+        gate = MagicMock()
+
+        def _review(**kwargs: Any):
+            captured.update(kwargs)
+            return None  # graceful None, review gate never blocks here
+
+        gate.review.side_effect = _review
+        return gate, captured
+
+    def test_two_stage_review_injects_checklist_descriptions(self) -> None:
+        """D8: enabled + clean anchor → spec_requirements carries the SAME
+        descriptions the feature gate executes."""
+        from types import SimpleNamespace
+
+        gate, captured = self._capture_review_gate()
+        m = self._make_quality_mixin(two_stage_review_gate=gate)
+        pre = SimpleNamespace(
+            feature_gate_anchor={
+                "path": "/proj/.devsquad/acceptance_checklist.json",
+                "sha256": "a" * 64,
+                "status": "ok",
+                "descriptions": ["login returns 200", "logout clears session"],
+                "violations": [],
+            }
+        )
+        m._run_two_stage_review(plan=None, worker_results=[], structured_goal=None, pre_result=pre)
+        assert captured["spec_requirements"]["acceptance_criteria"] == [
+            "login returns 200",
+            "logout clears session",
+        ]
+
+    def test_two_stage_review_no_anchor_zero_injection(self) -> None:
+        """Gate off / anchor None → the acceptance_criteria key stays absent
+        (current getattr-None behavior untouched)."""
+        from types import SimpleNamespace
+
+        gate, captured = self._capture_review_gate()
+        m = self._make_quality_mixin(two_stage_review_gate=gate)
+        m._run_two_stage_review(plan=None, worker_results=[], structured_goal=None, pre_result=SimpleNamespace())
+        assert "acceptance_criteria" not in captured["spec_requirements"]
+
+    def test_two_stage_review_invalid_anchor_zero_injection(self) -> None:
+        """Anchor present but not clean (missing/invalid) → no injection:
+        only a checklist that actually anchored injects."""
+        from types import SimpleNamespace
+
+        gate, captured = self._capture_review_gate()
+        m = self._make_quality_mixin(two_stage_review_gate=gate)
+        pre = SimpleNamespace(
+            feature_gate_anchor={"status": "missing", "violations": ["checklist_missing: x"], "descriptions": []}
+        )
+        m._run_two_stage_review(plan=None, worker_results=[], structured_goal=None, pre_result=pre)
+        assert "acceptance_criteria" not in captured["spec_requirements"]
+
+    def test_run_feature_gate_disabled_returns_none(self) -> None:
+        """Disabled → None (zero trace, negative test ① mixin face)."""
+        from types import SimpleNamespace
+
+        m = self._make_quality_mixin(enable_feature_gate=False)
+        assert m._run_feature_gate(SimpleNamespace(feature_gate_anchor={"status": "ok"})) is None
+
+    def test_run_feature_gate_missing_anchor_fails_closed(self) -> None:
+        """Enabled but anchor absent → internal-error FAIL, never None
+        (fail-closed: inability to prove is a failure)."""
+        from types import SimpleNamespace
+
+        m = self._make_quality_mixin(enable_feature_gate=True)
+        result = m._run_feature_gate(SimpleNamespace(feature_gate_anchor=None))
+        assert result is not None
+        assert result.verdict == "fail"
+        assert any("gate_error" in v for v in result.violations)
+
+    def test_run_feature_gate_internal_exception_fails_closed(self) -> None:
+        """Gate.evaluate raising → FAIL with the error recorded (design §4.2:
+        gate crash = FAIL, unlike the review gate's graceful None)."""
+        from types import SimpleNamespace
+
+        m = self._make_quality_mixin(enable_feature_gate=True)
+        anchor = {"path": "/tmp/nowhere.json", "sha256": "a" * 64, "status": "ok"}
+        with patch(
+            "scripts.collaboration.dispatch_steps_mixins.FeatureGate.evaluate",
+            side_effect=RuntimeError("gate exploded"),
+        ):
+            result = m._run_feature_gate(SimpleNamespace(feature_gate_anchor=anchor))
+        assert result is not None
+        assert result.verdict == "fail"
+        assert result.error == "gate exploded"

@@ -218,6 +218,18 @@ def _build_dispatch_kwargs(args: argparse.Namespace) -> tuple[dict[str, Any] | N
     if backend is not None:
         kwargs["llm_backend"] = backend
 
+    # V4.9.0 P2-W4: feature gate — read the project config (.devsquad.yaml).
+    # Absent/disabled section → no kwargs injected → 4.8.x behavior.
+    # A broken yaml with an enabled gate fails loudly here (fail-closed),
+    # never silently disables the gate.
+    from scripts.collaboration.config_manager import ConfigManager
+
+    fg_config = ConfigManager().config.feature_gate
+    if fg_config.enabled:
+        kwargs["enable_feature_gate"] = True
+        kwargs["feature_gate_checklist"] = fg_config.checklist
+        kwargs["feature_gate_command_timeout_seconds"] = fg_config.command_timeout_seconds
+
     return kwargs, None
 
 

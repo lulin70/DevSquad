@@ -43,6 +43,10 @@ class PostDispatchBase:
     development_mode: bool
     max_fix_iterations: int
 
+    # V4.9.0 P2-W4: feature gate (live acceptance-coverage matrix)
+    enable_feature_gate: bool
+    feature_gate_command_timeout_seconds: int
+
     # Routers / frameworks
     severity_router: SeverityRouter
     two_stage_review_gate: TwoStageReviewGate

@@ -350,6 +350,71 @@ class TestDispatchAuditLoggerTerminalSignals(unittest.TestCase):
             logger2.close()
 
 
+class TestDispatchAuditLoggerFeatureGate(unittest.TestCase):
+    """V4.9.0 P2-W4 — dispatch_end carries the feature-gate matrix verdict
+    + dual SHA256 checklist hashes as tamper evidence (design:
+    V4.9.0_W4_feature-gate_DESIGN.md §4.3)."""
+
+    def test_log_dispatch_end_without_feature_gate_keeps_w2_details(self) -> None:
+        """Verify: absent kwarg → details stays key-for-key at the W2 shape."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        # Act
+        logger.log_dispatch_end("u1", success=True, duration=1.0, findings=[], failure_class="none")
+        # Assert
+        entry = logger.query(event_type="dispatch_end")[0]
+        self.assertEqual(entry.details, {"success": True, "duration": 1.0, "findings": [], "failure_class": "none"})
+        self.assertNotIn("feature_gate", entry.details)
+
+    def test_log_dispatch_end_persists_feature_gate_matrix(self) -> None:
+        """Verify: opt-in kwarg lands in details; chain still verifies."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        feature_gate = {
+            "verdict": "fail",
+            "anchored_sha256": "a" * 64,
+            "computed_sha256": "b" * 64,
+            "summary": {"total": 1, "pass": 0, "fail": 1, "waived": 0},
+            "violations": ["checklist_tampered: rewritten mid-run"],
+        }
+        # Act
+        logger.log_dispatch_end(
+            "u1",
+            success=False,
+            duration=3.0,
+            failure_class="product_failed",
+            feature_gate=feature_gate,
+        )
+        # Assert
+        entry = logger.query(event_type="dispatch_end")[0]
+        self.assertEqual(entry.details["feature_gate"], feature_gate)
+        self.assertEqual(entry.details["failure_class"], "product_failed")
+        self.assertTrue(logger.verify_chain())
+
+    def test_feature_gate_matrix_persists_to_sqlite(self) -> None:
+        """Verify: the matrix survives the SQLite round-trip (tamper
+        evidence must outlive the process that produced it)."""
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "audit.db"
+            logger1 = DispatchAuditLogger(db_path=db_path)
+            logger1.log_dispatch_start("u1", "task", ["architect"])
+            logger1.log_dispatch_end(
+                "u1",
+                success=True,
+                duration=0.5,
+                feature_gate={"verdict": "pass", "anchored_sha256": "c" * 64, "computed_sha256": "c" * 64},
+            )
+            logger1.close()
+            # Act
+            logger2 = DispatchAuditLogger(db_path=db_path)
+            # Assert
+            end = logger2.query(event_type="dispatch_end")[0]
+            self.assertEqual(end.details["feature_gate"]["verdict"], "pass")
+            self.assertTrue(logger2.verify_chain())
+            logger2.close()
+
+
 class TestDispatchAuditLoggerEdgeCases(unittest.TestCase):
     """Edge cases — empty logger, large number of entries."""
 

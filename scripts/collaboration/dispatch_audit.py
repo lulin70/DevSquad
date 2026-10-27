@@ -407,6 +407,7 @@ class DispatchAuditLogger:
         *,
         findings: list[dict] | None = None,
         failure_class: str | None = None,
+        feature_gate: dict | None = None,
     ) -> str:
         """Log dispatch end. Returns entry hash.
 
@@ -426,6 +427,10 @@ class DispatchAuditLogger:
             V4.9.0 P2-W2: C19 failure class of the run
             ("none" / "product_failed" / "environment_blocked"). None keeps
             the legacy details shape.
+        feature_gate:
+            V4.9.0 P2-W4: feature-gate result dict (verdict, dual SHA256
+            checklist hashes, coverage matrix) to persist as tamper
+            evidence. None keeps the W2 details shape.
 
         Returns
         -------
@@ -437,6 +442,8 @@ class DispatchAuditLogger:
             details["findings"] = list(findings)
         if failure_class is not None:
             details["failure_class"] = failure_class
+        if feature_gate is not None:
+            details["feature_gate"] = feature_gate
         return self._append_entry("dispatch_end", user_id, details)
 
     def log_permission_denied(
