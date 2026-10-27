@@ -47,6 +47,9 @@ class PostDispatchBase:
     enable_feature_gate: bool
     feature_gate_command_timeout_seconds: int
 
+    # V4.9.0 P2-W3: registration gate (mandatory signals need live ledger tickets)
+    enable_registration_gate: bool
+
     # Routers / frameworks
     severity_router: SeverityRouter
     two_stage_review_gate: TwoStageReviewGate

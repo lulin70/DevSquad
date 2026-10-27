@@ -18,6 +18,7 @@ from typing import Any, cast
 from .consensus_gate import ConsensusGateResult
 from .dispatch_steps_base import PostDispatchBase
 from .feature_gate import FeatureGate, FeatureGateResult
+from .registration_gate import RegistrationGate, RegistrationGateResult
 from .severity_router import AutoFixResult
 from .tech_debt_manager import TechDebtManager
 from .two_stage_review_gate import ReviewFinding, ReviewStage, TwoStageReviewResult
@@ -589,6 +590,60 @@ class PostDispatchQualityMixin(PostDispatchBase):
         if self.usage_tracker:
             self.usage_tracker.tick("feature_gate")
         return result
+
+    def _run_registration_gate(
+        self,
+        worker_results: list[dict[str, Any]],
+        errors: list[str],
+        review_result: TwoStageReviewResult | None,
+    ) -> RegistrationGateResult | None:
+        """Run the registration gate — mandatory signals need live tickets (Step 23.6).
+
+        Returns ``None`` when the gate is disabled (zero trace — 4.8.x
+        behavior, negative test ①). Fail-closed semantics (design D7): a
+        corrupt/unreadable ledger or a gate-internal error still FAILs the
+        run — inability to prove registration is a failure, never a silent
+        pass (same discipline as the feature gate, W4 §4.2).
+        """
+        if not self.enable_registration_gate:
+            return None
+        findings = list(review_result.findings) if review_result is not None else []
+        try:
+            gate = RegistrationGate()
+            result = gate.evaluate(worker_results=worker_results, errors=errors, findings=findings)
+        except Exception as gate_err:  # noqa: BLE001 — fail-closed: gate crash = FAIL
+            logger.warning("Registration gate failed: %s", gate_err)
+            return RegistrationGateResult.internal_error(str(gate_err))
+        if self.usage_tracker:
+            self.usage_tracker.tick("registration_gate")
+        return result
+
+    def _apply_registration_gate(
+        self,
+        result: Any,
+        worker_results: list[dict[str, Any]],
+        errors: list[str],
+        review_result: TwoStageReviewResult | None,
+    ) -> None:
+        """Attach + enforce the registration-gate result (Step 23.6 wiring).
+
+        Kept as a dedicated method (not inline in ``execute``) so the
+        gate-application pattern costs zero cyclomatic complexity in the
+        pipeline's ``execute`` — radon keeps it at its pre-W3 grade
+        (V4.1.1 zero-D+ discipline; each later gate wave should follow
+        this same extraction pattern).
+        """
+        gate_result = self._run_registration_gate(worker_results, errors, review_result)
+        if gate_result is None:
+            return
+        gate_dict = gate_result.to_dict()
+        result.details["registration_gate"] = gate_dict
+        result.registration_gate = gate_dict
+        if not gate_result.passed:
+            gate_errors = [f"Registration gate blocked: {v}" for v in gate_dict["violations"]]
+            errors.extend(gate_errors)
+            result.errors = list(errors)
+            result.success = False
 
     def _run_severity_router(
         self,

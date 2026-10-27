@@ -44,11 +44,12 @@ class TestFieldCoverage:
     """Every ``__init__`` parameter must have a corresponding dataclass field."""
 
     def test_init_param_count_is_48(self) -> None:
-        """Sanity check: __init__ has 51 explicit parameters
-        (43 in V4.5.2 + 5 V4.5.4 P12.3 + 3 V4.9.0 P2-W4 feature gate)."""
+        """Sanity check: __init__ has 52 explicit parameters
+        (43 in V4.5.2 + 5 V4.5.4 P12.3 + 3 V4.9.0 P2-W4 feature gate
+        + 1 V4.9.0 P2-W3 registration gate)."""
         params = _init_params()
-        assert len(params) == 51, (
-            f"Expected 51 explicit params, got {len(params)}; if __init__ signature changed, update DispatcherConfig."
+        assert len(params) == 52, (
+            f"Expected 52 explicit params, got {len(params)}; if __init__ signature changed, update DispatcherConfig."
         )
 
     def test_every_init_param_is_a_dataclass_field(self) -> None:
@@ -366,8 +367,8 @@ class TestReprAndHelpers:
         assert "extra" not in repr_str
 
     def test_field_names_count_is_48(self) -> None:
-        """Sanity: ``field_names()`` returns exactly 51 names (matches __init__)."""
-        assert len(DispatcherConfig.field_names()) == 51
+        """Sanity: ``field_names()`` returns exactly 52 names (matches __init__)."""
+        assert len(DispatcherConfig.field_names()) == 52
 
     def test_field_names_excludes_extra(self) -> None:
         assert "extra" not in DispatcherConfig.field_names()

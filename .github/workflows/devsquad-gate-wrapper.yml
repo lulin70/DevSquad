@@ -21,6 +21,13 @@ name: devsquad-gate (dogfood)
 # the anti-pattern words and debug calls as data — they exercise the very
 # regexes the gate itself runs. Scanning them would produce pattern matches
 # that are technically correct but wrong as product judgments.
+# docs/e2e_evidence/** is excluded (2026-10-27, W3 dogfood finding, PR #84):
+# e2e runner scripts print their assertion results to stdout — that stdout
+# IS the runner's product interface (same judgment class as the V4.8.2
+# print_debug CLI-layer exemption, PR #72; the R4 check_script.py precedent
+# already carries prints in main). Real secret leaks in those paths stay
+# covered by the dedicated "No secrets in repo" CI job, which scans the
+# whole tree independently of this gate.
 # Markdown docs need no exclusion for code-smell findings with devsquad
 # >= 4.8.1: those findings come from source-kind files only (F-D1, fixed
 # in 4.8.1 — under 4.8.0 the diff pattern scan filtered nothing); secret
@@ -33,7 +40,7 @@ jobs:
   devsquad-gate:
     uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.2
     with:
-      exclude: "tests/**"
+      exclude: "tests/**,docs/e2e_evidence/**"
     permissions:
       contents: read
       pull-requests: write

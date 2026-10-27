@@ -292,6 +292,24 @@ class FeatureGateConfig(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Defect ledger / registration gate config (V4.9.0 P2-W3)
+# ---------------------------------------------------------------------------
+
+
+class DefectLedgerConfig(BaseModel):
+    """V4.9.0 P2-W3: registration gate (defect ledger enforcement).
+
+    Mirrors the ``defect_ledger`` section of ``.devsquad.yaml``. An absent
+    section resolves to defaults → gate disabled → dispatch behavior
+    byte-identical to 4.8.x (design: V4.9.0_W3_registration-gate_DESIGN.md §5).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = False
+
+
+# ---------------------------------------------------------------------------
 # Top-level DevSquad config
 # ---------------------------------------------------------------------------
 
@@ -314,6 +332,9 @@ class DevSquadConfig(BaseModel):
 
     # V4.9.0 P2-W4: feature gate (absent section → disabled → 4.8.x behavior)
     feature_gate: FeatureGateConfig = Field(default_factory=FeatureGateConfig)
+
+    # V4.9.0 P2-W3: registration gate (absent section → disabled → 4.8.x behavior)
+    defect_ledger: DefectLedgerConfig = Field(default_factory=DefectLedgerConfig)
 
     # LLM Backend (flat keys)
     backend: str = "mock"

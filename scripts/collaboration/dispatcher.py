@@ -162,6 +162,10 @@ class MultiAgentDispatcher(
         enable_feature_gate: bool = False,
         feature_gate_checklist: str = ".devsquad/acceptance_checklist.json",
         feature_gate_command_timeout_seconds: int = 120,
+        # V4.9.0 P2-W3: registration gate — mandatory signals need live
+        # ledger tickets (design: V4.9.0_W3_registration-gate_DESIGN.md,
+        # D5/D7). Default off.
+        enable_registration_gate: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize the Multi-Agent Dispatcher with feature flags and components."""
@@ -185,6 +189,8 @@ class MultiAgentDispatcher(
         self.enable_feature_gate = enable_feature_gate
         self.feature_gate_checklist = feature_gate_checklist
         self.feature_gate_command_timeout_seconds = feature_gate_command_timeout_seconds
+        # V4.9.0 P2-W3 (registration gate)
+        self.enable_registration_gate = enable_registration_gate
         # Pre-init: avoid AttributeError before _init_module_fibers() runs.
         self._module_fiber_registry: Any = None
         self._coeffect_resolver: Any = None
@@ -347,6 +353,9 @@ class MultiAgentDispatcher(
             enable_feature_gate=self.enable_feature_gate,
             feature_gate_checklist=self.feature_gate_checklist,
             feature_gate_command_timeout_seconds=self.feature_gate_command_timeout_seconds,
+            # V4.9.0 P2-W3 (registration gate): evaluate at Step 23.6 when
+            # enabled; no pre-steps wiring (D8: no anchoring, D10).
+            enable_registration_gate=self.enable_registration_gate,
             development_mode=self.development_mode,
             max_fix_iterations=self.max_fix_iterations,
             severity_router=self._injected_severity_router,
@@ -601,6 +610,7 @@ class MultiAgentDispatcher(
                 findings=review_meta.get("findings"),
                 failure_class=result.details.get("failure_class"),
                 feature_gate=result.details.get("feature_gate"),
+                registration_gate=result.details.get("registration_gate"),
             )
             self._attach_audit_entries(result)
 

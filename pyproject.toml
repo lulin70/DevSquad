@@ -162,7 +162,11 @@ known-third-party = ["fastapi", "uvicorn", "pydantic", "yaml", "streamlit"]
 # pytest fixtures are injected via function args but often not referenced
 # directly in the test body (they trigger setup/teardown). ARG002 (unused
 # method argument) is therefore a false positive in test files.
+# docs/e2e_evidence/** e2e runners define fake LLM backends whose method
+# signatures are dictated by the backend protocol — same ARG002 false
+# positive as test doubles.
 "tests/**" = ["ARG002"]
+"docs/e2e_evidence/**" = ["ARG002"]
 
 [tool.ruff.format]
 quote-style = "double"
