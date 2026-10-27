@@ -311,6 +311,9 @@ class FeatureGate:
             try:
                 proc = subprocess.run(
                     command,
+                    # nosec B602 — D11: command text comes only from the human-authored
+                    # acceptance checklist file (same trust level as CI config); design
+                    # §9 security review (V4.9.0 W4) adjudicated shell=True acceptable.
                     shell=True,
                     capture_output=True,
                     timeout=timeout_seconds,
