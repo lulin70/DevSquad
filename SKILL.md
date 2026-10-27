@@ -99,6 +99,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 218+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
+| [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md) | Defect ledger contract (V4.9.0): JSON schema + closed state machine (open/fixed/closed) + two hazard guards + `signal_ref` resolution + mandatory-signal mapping + registration-gate three-state tracking + `devsquad defect add/update/close/reopen/list/audit` CLI | Run operators / defect filers |
 | [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v4.9.0) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)

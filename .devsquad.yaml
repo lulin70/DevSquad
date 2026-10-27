@@ -104,6 +104,17 @@ quality_control:
       require_file_ownership_declaration: true
       forbid_same_file_writes: true
 
+# ===== Defect Ledger / Registration Gate (V4.9.0 P2-W3) =====
+# Dogfood: enabled 2026-10-27 after the v4.9.0 release (P2 retrospective
+# batch, PR #89). With this on, dispatch Step 23.6 runs the fail-closed
+# registration gate: mandatory signals (BV critical four classes +
+# product_failed) must carry a ledger ticket — no ticket = unregistered
+# FAIL, closed-only = regressed FAIL with reopen guidance. The advisory
+# unfiled_signal_report lists warning/spec signals without touching the
+# exit code. Ledger CLI: `devsquad defect add|update|close|reopen|list|audit`.
+defect_ledger:
+  enabled: true
+
 # ===== LLM Backend (ConfigManager reads these flat keys) =====
 backend: "mock"
 base_url: ""

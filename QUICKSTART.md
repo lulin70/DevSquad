@@ -220,6 +220,8 @@ devsquad ship -t "部署和发布检查"
 - **VerificationGate**: 强制要求提供证据（防止 AI 敷衍）
 - **AntiRationalizationEngine**: 防止 AI 找借口
 - **TestQualityGuard**: 自动审查测试代码质量
+- **DefectLedger**（V4.9.0）: 跨 run 缺陷台账——audit 信号 → 立案 → 修复 → 回归关闭 → 复发重开。CLI：`devsquad defect add|update|close|reopen|list|audit`；在 `.devsquad.yaml` 设 `defect_ledger.enabled: true` 开启登记闸（dispatch 的强制信号无工单即 FAIL，三态 tracked/unregistered/regressed）。契约细节见 [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md)
+- **FeatureGate**（V4.9.0）: 验收清单门——`.devsquad.yaml` 设 `feature_gate.enabled: true` 后，dispatch 按清单逐条真实执行命令现算 pass/fail/waived 矩阵（SHA256 锚定防篡改）。默认关闭时与 4.8.x 行为一致
 
 #### ⚡ 3. 性能与可靠性
 - **LLMCache**: 缓存相似查询（降低 60-80% 成本）
