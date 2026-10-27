@@ -3,7 +3,7 @@
 <p align="center">
   <strong>把「单个 AI 助手」升级成「7 人 AI 专业团队」</strong>
   <br>
-  <em>V4.8.2 | V4.5.16 Multi-role AI Team + P12 enhancement stack | One task → Multi-role AI → One conclusion</em>
+  <em>V4.9.0 | V4.5.16 Multi-role AI Team + P12 enhancement stack | One task → Multi-role AI → One conclusion</em>
 </p>
 
 ---
@@ -112,7 +112,7 @@ on: [pull_request]
 jobs:
   devsquad-gate:
     # 首个包含该 workflow 的 tag 是 v4.8.0；发布前可暂用 @main
-    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.2
+    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.9.0
     with:
       task: "Review this PR"
     # 必须授予被调 workflow 声明的权限（PR 评论需要 write）；
@@ -134,7 +134,7 @@ failure_class: — | coverage: 12/12
 run: https://github.com/your-org/your-repo/actions/runs/...
 ```
 
-可选 inputs：`devsquad-version`（PyPI 安装版本，默认 4.8.2，随发布 bump）、`task`（审查任务描述）、`include` / `exclude`（路径过滤）、`fail-on`（默认 break）、`preview-only`（只预览不评论）。
+可选 inputs：`devsquad-version`（PyPI 安装版本，默认 4.9.0，随发布 bump）、`task`（审查任务描述）、`include` / `exclude`（路径过滤）、`fail-on`（默认 break）、`preview-only`（只预览不评论）。
 
 ---
 
@@ -333,4 +333,4 @@ curl -X POST http://localhost:8000/api/v1/dispatch \
 
 ---
 
-*最后更新: 2026-10-25 | 版本: V4.8.2*
+*最后更新: 2026-10-27 | 版本: V4.9.0*

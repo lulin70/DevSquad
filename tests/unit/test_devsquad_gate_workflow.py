@@ -47,7 +47,7 @@ class TestReusability:
     def test_declared_inputs_match_the_design(self):
         inputs = _trigger()["workflow_call"]["inputs"]
         expected = {
-            "devsquad-version": "4.8.2",
+            "devsquad-version": "4.9.0",
             "task": "devsquad-gate: deterministic PR review",
             "include": "",
             "exclude": "",
