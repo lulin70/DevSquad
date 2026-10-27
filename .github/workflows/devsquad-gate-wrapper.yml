@@ -1,13 +1,20 @@
 name: devsquad-gate (dogfood)
 
 # V4.8.0 P1-R1 T-2 (dogfood): this repository consumes its own published
-# gate exactly as an external consumer would — the same @v4.8.2 tag ref,
+# gate exactly as an external consumer would — the same @v4.9.0 tag ref,
 # the same pinned PyPI install, and the same reusable-workflow call shape
 # documented in QUICKSTART channel C. Every PR here now gets the same
 # deterministic review an external repository gets.
 #
-# v4.8.2 bump (print_debug CLI-layer verification): the wrapper moves to
-# the @v4.8.2 tag so the dogfood gate exercises the fixed scanner in
+# v4.9.0 bump (defect-ledger MINOR): the wrapper moves to the @v4.9.0 tag
+# so the dogfood gate runs the published 4.9.0 scanner — the release that
+# ships the W1-W4 defect-ledger batch (ledger core, signal write-side,
+# registration gate, feature gate). The reusable gate workflow itself
+# also gained its 4.9.0 default version in PR #86; every PR of this
+# repository is now reviewed with the published 4.9.0 gate in the loop.
+#
+# v4.8.2 bump (print_debug CLI-layer verification): the wrapper moved to
+# the @v4.8.2 tag so the dogfood gate exercised the fixed scanner in
 # production — the print_debug false positives the 4.8.1 gate raised on
 # PR #71's CLI command modules are gone in 4.8.2 (PR #72), and every PR of
 # this repository is re-checked with that fix in the loop.
@@ -38,7 +45,7 @@ on:
 
 jobs:
   devsquad-gate:
-    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.8.2
+    uses: lulin70/DevSquad/.github/workflows/devsquad-gate.yml@v4.9.0
     with:
       exclude: "tests/**,docs/e2e_evidence/**"
     permissions:
