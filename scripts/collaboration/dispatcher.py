@@ -157,6 +157,11 @@ class MultiAgentDispatcher(
         enable_modules_cli: bool = True,
         coeffect_failure_strategy: str = "degrade",
         coeffect_max_retries: int = 1,
+        # V4.9.0 P2-W4: feature gate — live acceptance-coverage matrix
+        # (design: V4.9.0_W4_feature-gate_DESIGN.md, D7). Default off.
+        enable_feature_gate: bool = False,
+        feature_gate_checklist: str = ".devsquad/acceptance_checklist.json",
+        feature_gate_command_timeout_seconds: int = 120,
         **kwargs: Any,
     ) -> None:
         """Initialize the Multi-Agent Dispatcher with feature flags and components."""
@@ -176,6 +181,10 @@ class MultiAgentDispatcher(
         self.enable_modules_cli = enable_modules_cli
         self.coeffect_failure_strategy = coeffect_failure_strategy
         self.coeffect_max_retries = coeffect_max_retries
+        # V4.9.0 P2-W4 (feature gate)
+        self.enable_feature_gate = enable_feature_gate
+        self.feature_gate_checklist = feature_gate_checklist
+        self.feature_gate_command_timeout_seconds = feature_gate_command_timeout_seconds
         # Pre-init: avoid AttributeError before _init_module_fibers() runs.
         self._module_fiber_registry: Any = None
         self._coeffect_resolver: Any = None
@@ -293,6 +302,9 @@ class MultiAgentDispatcher(
             resolve_language_fn=self._resolve_language,
             analyze_task_fn=self.analyze_task,
             lang=self.lang,
+            # V4.9.0 P2-W4 (feature gate): anchor at pre-steps when enabled.
+            enable_feature_gate=self.enable_feature_gate,
+            feature_gate_checklist=self.feature_gate_checklist,
         )
 
         # Composition-based service instances for post-dispatch
@@ -331,6 +343,10 @@ class MultiAgentDispatcher(
             enable_two_stage_review=self.enable_two_stage_review,
             enable_redesign_audit=self.enable_redesign_audit,
             enable_severity_router=self.enable_severity_router,
+            # V4.9.0 P2-W4 (feature gate): evaluate at Step 23.5 when enabled.
+            enable_feature_gate=self.enable_feature_gate,
+            feature_gate_checklist=self.feature_gate_checklist,
+            feature_gate_command_timeout_seconds=self.feature_gate_command_timeout_seconds,
             development_mode=self.development_mode,
             max_fix_iterations=self.max_fix_iterations,
             severity_router=self._injected_severity_router,
@@ -584,6 +600,7 @@ class MultiAgentDispatcher(
                 time.time() - start_time,
                 findings=review_meta.get("findings"),
                 failure_class=result.details.get("failure_class"),
+                feature_gate=result.details.get("feature_gate"),
             )
             self._attach_audit_entries(result)
 

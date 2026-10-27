@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from .dispatch_models import ROLE_TEMPLATES, DispatchResult
+from .feature_gate import DEFAULT_CHECKLIST_PATH, FeatureGate
 from .models import ROLE_REGISTRY, EntryType
 from .order_chain_detector import OrderChainDetector
 from .review_filter import ReviewFilterConfig, filter_review_paths
@@ -54,6 +55,9 @@ class _PreDispatchResult:
     step2_time: float
     tenant_ctx: Any = None
     early_return: DispatchResult | None = None
+    # V4.9.0 P2-W4 (feature gate): checklist SHA256 anchored at load time
+    # (D4). None when the gate is disabled — zero trace (4.8.x behavior).
+    feature_gate_anchor: dict[str, Any] | None = None
 
 
 class PreDispatchPipeline:
@@ -85,6 +89,9 @@ class PreDispatchPipeline:
         resolve_language_fn: Any,
         analyze_task_fn: Any,
         lang: str = "auto",
+        # V4.9.0 P2-W4 (feature gate): anchor the checklist when enabled.
+        enable_feature_gate: bool = False,
+        feature_gate_checklist: str = DEFAULT_CHECKLIST_PATH,
     ) -> None:
         self.validator = validator
         self.ci_feedback = ci_feedback
@@ -106,6 +113,8 @@ class PreDispatchPipeline:
         self.resolve_language_fn = resolve_language_fn
         self.analyze_task_fn = analyze_task_fn
         self.lang = lang
+        self.enable_feature_gate = enable_feature_gate
+        self.feature_gate_checklist = feature_gate_checklist
 
         # Lazy-initialized caches
         self._rule_collector: Any | None = None
@@ -184,6 +193,16 @@ class PreDispatchPipeline:
                 single_role=True,
                 matched_role_id=task_scale.matched_role_id,
             )
+
+        # V4.9.0 P2-W4 (feature gate, D4): anchor the acceptance checklist
+        # at the earliest stable point of the dispatch so the anchor→evaluate
+        # window (Step 23.5) covers the full worker execution phase. A missing
+        # or invalid file still anchors (status records why) — the failure is
+        # terminalized by the gate, never silently skipped. Disabled → no
+        # load, no trace (4.8.x behavior).
+        feature_gate_anchor: dict[str, Any] | None = None
+        if self.enable_feature_gate:
+            feature_gate_anchor = FeatureGate().anchor(self.feature_gate_checklist)
 
         # Step 1: Resolve language
         lang = self.resolve_language_fn(self.lang)
@@ -288,6 +307,7 @@ class PreDispatchPipeline:
             step2_time=step2_time,
             tenant_ctx=tenant_ctx,
             early_return=None,
+            feature_gate_anchor=feature_gate_anchor,
         )
 
     def make_early_pre_result(

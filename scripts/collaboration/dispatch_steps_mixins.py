@@ -17,6 +17,7 @@ from typing import Any, cast
 
 from .consensus_gate import ConsensusGateResult
 from .dispatch_steps_base import PostDispatchBase
+from .feature_gate import FeatureGate, FeatureGateResult
 from .severity_router import AutoFixResult
 from .tech_debt_manager import TechDebtManager
 from .two_stage_review_gate import ReviewFinding, ReviewStage, TwoStageReviewResult
@@ -511,12 +512,19 @@ class PostDispatchQualityMixin(PostDispatchBase):
         plan: Any,
         worker_results: list[dict[str, Any]],
         structured_goal: Any,
+        pre_result: Any = None,
     ) -> TwoStageReviewResult | None:
         """Run the two-stage code review gate.
 
         Stage 1 verifies spec/plan compliance; Stage 2 checks code
         quality. Returns None when the gate is disabled or fails to
         initialize (graceful degradation — never blocks dispatch).
+
+        V4.9.0 P2-W4 (D8): when the feature gate is enabled and its
+        checklist anchored cleanly, the checklist descriptions are
+        injected as ``spec_requirements["acceptance_criteria"]`` so the
+        review's self-reported side checks the SAME list the feature
+        gate executes (two-sided cross-check). Disabled → zero injection.
         """
         if not self.enable_two_stage_review:
             return None
@@ -531,6 +539,16 @@ class PostDispatchQualityMixin(PostDispatchBase):
                 if acceptance_criteria:
                     spec_requirements["acceptance_criteria"] = list(acceptance_criteria)
 
+            # V4.9.0 P2-W4 (D8): cross-check injection — same checklist as
+            # the feature gate's execution side. Only a clean anchor
+            # (status "ok") injects; anchor None (gate off) keeps the
+            # current behavior untouched (getattr-None path above).
+            gate_anchor = getattr(pre_result, "feature_gate_anchor", None) if pre_result is not None else None
+            if isinstance(gate_anchor, dict) and gate_anchor.get("status") == "ok":
+                descriptions = gate_anchor.get("descriptions") or []
+                if descriptions:
+                    spec_requirements["acceptance_criteria"] = list(descriptions)
+
             result = self.two_stage_review_gate.review(
                 plan=plan,
                 worker_results=worker_results,
@@ -542,6 +560,35 @@ class PostDispatchQualityMixin(PostDispatchBase):
         except (ValueError, AttributeError, TypeError, RuntimeError) as exc:
             logger.warning("Two-stage review gate failed: %s", exc)
             return None
+
+    def _run_feature_gate(self, pre_result: Any) -> FeatureGateResult | None:
+        """Run the feature gate — live acceptance-coverage matrix (Step 23.5).
+
+        Returns ``None`` when the gate is disabled (zero trace — 4.8.x
+        behavior, negative test ①). Fail-closed semantics (design §4.2):
+        a missing anchor or a gate-internal error still FAILs the run —
+        inability to prove acceptance is a failure, never a silent pass.
+        This differs from the review gate's graceful ``None`` on purpose.
+        """
+        if not self.enable_feature_gate:
+            return None
+        anchor: Any = getattr(pre_result, "feature_gate_anchor", None) if pre_result is not None else None
+        if not isinstance(anchor, dict):
+            return FeatureGateResult.internal_error(
+                "feature gate enabled but no checklist anchor was recorded (pre-steps did not run the anchoring step)"
+            )
+        try:
+            gate = FeatureGate()
+            result = gate.evaluate(
+                anchor,
+                timeout_seconds=self.feature_gate_command_timeout_seconds,
+            )
+        except Exception as gate_err:  # noqa: BLE001 — fail-closed: gate crash = FAIL
+            logger.warning("Feature gate failed: %s", gate_err)
+            return FeatureGateResult.internal_error(str(gate_err), checklist_path=str(anchor.get("path", "unknown")))
+        if self.usage_tracker:
+            self.usage_tracker.tick("feature_gate")
+        return result
 
     def _run_severity_router(
         self,

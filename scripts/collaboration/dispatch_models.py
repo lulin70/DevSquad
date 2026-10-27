@@ -233,6 +233,9 @@ class DispatchResult:
     auto_fix_result: dict[str, Any] | None = None
     # V3.8 #4: Judge agent consolidation result
     judge_result: dict[str, Any] | None = None
+    # V4.9.0 P2-W4: Feature gate result (live acceptance-coverage matrix;
+    # None when the gate is disabled — 4.8.x behavior preserved).
+    feature_gate: dict[str, Any] | None = None
     # V3.8 #7: Micro-task plan (when use_micro_tasks=True)
     micro_task_plan: dict[str, Any] | None = None
     # V3.9-02: RBAC permission check result (when DispatchRBAC is configured)
@@ -288,6 +291,7 @@ class DispatchResult:
             "two_stage_review": self.two_stage_review,
             "auto_fix_result": self.auto_fix_result,
             "judge_result": self.judge_result,
+            "feature_gate": self.feature_gate,
             "micro_task_plan": self.micro_task_plan,
             "permission_result": self.permission_result,
             "audit_entries": self.audit_entries,
@@ -356,6 +360,7 @@ class DispatchResult:
             self._format_approval_gate(),
             self._format_connector_operations(),
             self._format_replay_cache(),
+            self._format_feature_gate(),
             self._format_failure_class(),
         ]
         lines: list[str] = []
@@ -391,6 +396,42 @@ class DispatchResult:
             f" · {replay.get('writes', 0)} recorded (mode={replay.get('mode', 'off')})",
             "",
         ]
+
+    def _format_feature_gate(self) -> list[str]:
+        """V4.9.0 P2-W4: render the feature-gate coverage matrix.
+
+        Omitted when the gate never ran (disabled — reports stay
+        byte-identical to 4.8.x). Waived entries carry their waiver
+        reason (D9: waivers must leave a trace); gaps list the
+        uncovered acceptance items.
+        """
+        gate = self.details.get("feature_gate")
+        if not isinstance(gate, dict):
+            return []
+        verdict = gate.get("verdict")
+        icon = "✅" if verdict == "pass" else "❌"
+        summary = gate.get("summary") or {}
+        lines = [
+            "",
+            f"> {icon} **Feature gate**: `{verdict}` — acceptance checklist × live command matrix",
+            f"> items: {summary.get('total', 0)} · pass: {summary.get('pass', 0)}"
+            f" · fail: {summary.get('fail', 0)} · waived: {summary.get('waived', 0)}",
+        ]
+        for violation in gate.get("violations") or []:
+            lines.append(f"> - violation: {violation}")
+        entries = gate.get("entries") or []
+        if entries:
+            lines.append("")
+            lines.append("**Acceptance matrix**:")
+            marks = {"pass": "✅", "fail": "❌", "waived": "⚠️"}
+            for entry in entries:
+                status = str(entry.get("status"))
+                mark = marks.get(status, "❔")
+                line = f"- {mark} `{entry.get('id')}` [{status}] {entry.get('description')}"
+                if status == "waived" and entry.get("waive_reason"):
+                    line += f" — waived: {entry['waive_reason']}"
+                lines.append(line)
+        return lines + [""]
 
     def _format_failure_class(self) -> list[str]:
         """V4.6.0 P1-b (C19): show WHY a dispatch failed.

@@ -239,12 +239,17 @@ class DispatcherAuditMixin(DispatcherBase):
         *,
         findings: list[dict] | None = None,
         failure_class: str | None = None,
+        feature_gate: dict | None = None,
     ) -> None:
         """Log dispatch_end event to the audit logger (if configured).
 
         V4.9.0 P2-W2: ``findings`` / ``failure_class`` persist the run's
         terminal signals into the audit event so cross-run defect filing
         can resolve them (design: V4.9.0_W2_signal-write_DESIGN.md §3.3).
+        V4.9.0 P2-W4: ``feature_gate`` persists the coverage-matrix
+        verdict + dual hashes into the audit event (tamper evidence,
+        design: V4.9.0_W4_feature-gate_DESIGN.md §4.3). Omitted → the
+        event details stay byte-identical to the W2 shape.
         """
         if self._audit_logger is None:
             return
@@ -255,6 +260,7 @@ class DispatcherAuditMixin(DispatcherBase):
                 duration=duration,
                 findings=findings,
                 failure_class=failure_class,
+                feature_gate=feature_gate,
             )
         except (ValueError, RuntimeError, OSError) as audit_err:
             logger.warning("Audit log_dispatch_end failed: %s", audit_err)

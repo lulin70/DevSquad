@@ -24,6 +24,7 @@ Groups (43 fields + extra kwargs):
     - QA (1): qa_enabled (V4.0.0 P1-2)
     - Autonomous (1): autonomous_enabled (V4.0.0 P3-1)
     - Plugins (2): plugins_enabled / plugins_no_hot_reload (V4.0.0 P3-2)
+    - Feature gate (3): enable_feature_gate / checklist / timeout (V4.9.0 P2-W4)
     - Extra: kwargs forwarded to EnterpriseFeature (backward compat)
 """
 
@@ -124,6 +125,13 @@ class DispatcherConfig:
     enable_modules_cli: bool = True
     coeffect_failure_strategy: str = "degrade"
     coeffect_max_retries: int = 1
+
+    # ── Group 12: Feature gate (V4.9.0 P2-W4) ────────────────────────────
+    # Live acceptance-coverage matrix gate, default off (4.8.x behavior).
+    # Design: docs/planning/V4.9.0_W4_feature-gate_DESIGN.md (D7).
+    enable_feature_gate: bool = False
+    feature_gate_checklist: str = ".devsquad/acceptance_checklist.json"
+    feature_gate_command_timeout_seconds: int = 120
 
     # ── Conversion helpers ───────────────────────────────────────────────
 

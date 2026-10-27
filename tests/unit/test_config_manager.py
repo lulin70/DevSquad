@@ -475,3 +475,62 @@ class TestRealDevsquadYaml:
 
         config = DevSquadConfig.from_yaml(yaml_path)
         assert config.quality_control.ai_team_collaboration.consensus.weights == ROLE_WEIGHTS
+
+
+# ---------------------------------------------------------------------------
+# Feature gate config (V4.9.0 P2-W4, design §5 / negative test ⑨)
+# ---------------------------------------------------------------------------
+
+
+class TestFeatureGateConfig:
+    """⑨ FeatureGateConfig defaults, parsing, range rejection, old-yaml compat."""
+
+    def test_defaults_are_off_with_standard_checklist(self) -> None:
+        from scripts.collaboration.config_manager import FeatureGateConfig
+
+        fg = FeatureGateConfig()
+        assert fg.enabled is False
+        assert fg.checklist == ".devsquad/acceptance_checklist.json"
+        assert fg.command_timeout_seconds == 120
+
+    def test_from_dict_parses_feature_gate_section(self) -> None:
+        cfg = DevSquadConfig.from_dict(
+            {
+                "feature_gate": {
+                    "enabled": True,
+                    "checklist": ".devsquad/my_checklist.json",
+                    "command_timeout_seconds": 45,
+                }
+            }
+        )
+        assert cfg.feature_gate.enabled is True
+        assert cfg.feature_gate.checklist == ".devsquad/my_checklist.json"
+        assert cfg.feature_gate.command_timeout_seconds == 45
+
+    def test_old_yaml_without_key_defaults_to_disabled(self) -> None:
+        """Backward compat: legacy .devsquad.yaml (no feature_gate section)
+        → gate off → 4.8.x behavior (negative test ① root)."""
+        cfg = DevSquadConfig.from_dict({"backend": "mock", "timeout": 60})
+        assert cfg.feature_gate.enabled is False
+
+    def test_zero_command_timeout_rejected(self) -> None:
+        from scripts.collaboration.config_manager import FeatureGateConfig
+
+        with pytest.raises(ValidationError):
+            FeatureGateConfig(command_timeout_seconds=0)
+
+    def test_negative_command_timeout_rejected(self) -> None:
+        from scripts.collaboration.config_manager import FeatureGateConfig
+
+        with pytest.raises(ValidationError):
+            FeatureGateConfig(command_timeout_seconds=-5)
+
+    def test_partial_section_uses_field_defaults(self) -> None:
+        cfg = DevSquadConfig.from_dict({"feature_gate": {"enabled": True}})
+        assert cfg.feature_gate.enabled is True
+        assert cfg.feature_gate.checklist == ".devsquad/acceptance_checklist.json"
+        assert cfg.feature_gate.command_timeout_seconds == 120
+
+    def test_unknown_keys_in_section_are_ignored(self) -> None:
+        cfg = DevSquadConfig.from_dict({"feature_gate": {"enabled": False, "future_key": "whatever"}})
+        assert cfg.feature_gate.enabled is False

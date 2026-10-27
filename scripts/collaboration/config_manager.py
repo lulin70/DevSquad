@@ -272,6 +272,26 @@ class QualityControlConfig(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Feature gate config (V4.9.0 P2-W4)
+# ---------------------------------------------------------------------------
+
+
+class FeatureGateConfig(BaseModel):
+    """V4.9.0 P2-W4: feature gate (live acceptance-coverage matrix).
+
+    Mirrors the ``feature_gate`` section of ``.devsquad.yaml``. An absent
+    section resolves to defaults → gate disabled → dispatch behavior
+    byte-identical to 4.8.x (design: V4.9.0_W4_feature-gate_DESIGN.md §5).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = False
+    checklist: str = ".devsquad/acceptance_checklist.json"
+    command_timeout_seconds: int = Field(default=120, ge=1)
+
+
+# ---------------------------------------------------------------------------
 # Top-level DevSquad config
 # ---------------------------------------------------------------------------
 
@@ -291,6 +311,9 @@ class DevSquadConfig(BaseModel):
 
     # Nested quality control section
     quality_control: QualityControlConfig = Field(default_factory=QualityControlConfig)
+
+    # V4.9.0 P2-W4: feature gate (absent section → disabled → 4.8.x behavior)
+    feature_gate: FeatureGateConfig = Field(default_factory=FeatureGateConfig)
 
     # LLM Backend (flat keys)
     backend: str = "mock"
