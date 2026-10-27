@@ -705,17 +705,10 @@ class PostDispatchPipeline(
         # that signal type has no live DEF in .devsquad/defects.json. Runs
         # BEFORE the Step-24 C19 recompute so gate errors join the
         # failure-class verdict (D1, W2 lesson ①). Disabled → the mixin
-        # returns None and leaves zero trace (①).
-        registration_gate_result = self._run_registration_gate(worker_results, errors, two_stage_review_result)
-        if registration_gate_result is not None:
-            registration_gate_dict = registration_gate_result.to_dict()
-            result.details["registration_gate"] = registration_gate_dict
-            result.registration_gate = registration_gate_dict
-            if not registration_gate_result.passed:
-                gate_errors = [f"Registration gate blocked: {v}" for v in registration_gate_dict["violations"]]
-                errors.extend(gate_errors)
-                result.errors = list(errors)
-                result.success = False
+        # returns None and leaves zero trace (①). Applied via
+        # _apply_registration_gate (extraction keeps execute's radon grade
+        # at its pre-W3 C — V4.1.1 zero-D+ discipline).
+        self._apply_registration_gate(result, worker_results, errors, two_stage_review_result)
 
         # Step 24 (V4.9.0 P2-W2): C19 — recompute the failure class at the
         # terminal state. The assembler writes details["failure_class"] at

@@ -618,6 +618,33 @@ class PostDispatchQualityMixin(PostDispatchBase):
             self.usage_tracker.tick("registration_gate")
         return result
 
+    def _apply_registration_gate(
+        self,
+        result: Any,
+        worker_results: list[dict[str, Any]],
+        errors: list[str],
+        review_result: TwoStageReviewResult | None,
+    ) -> None:
+        """Attach + enforce the registration-gate result (Step 23.6 wiring).
+
+        Kept as a dedicated method (not inline in ``execute``) so the
+        gate-application pattern costs zero cyclomatic complexity in the
+        pipeline's ``execute`` — radon keeps it at its pre-W3 grade
+        (V4.1.1 zero-D+ discipline; each later gate wave should follow
+        this same extraction pattern).
+        """
+        gate_result = self._run_registration_gate(worker_results, errors, review_result)
+        if gate_result is None:
+            return
+        gate_dict = gate_result.to_dict()
+        result.details["registration_gate"] = gate_dict
+        result.registration_gate = gate_dict
+        if not gate_result.passed:
+            gate_errors = [f"Registration gate blocked: {v}" for v in gate_dict["violations"]]
+            errors.extend(gate_errors)
+            result.errors = list(errors)
+            result.success = False
+
     def _run_severity_router(
         self,
         worker_results: list[dict[str, Any]],
