@@ -2,12 +2,18 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-10-24（TD-075 RESOLVED：streamlit 1.66.1 解除 Pillow<13 上限，PR #65 升锁后双面审计全净，豁免机制撤销；V4.7.0 批次 TD-002/070/072/074 已关闭，TD-071 部分关闭）
+> **最后更新**: 2026-10-27（4.9.0 收尾批：登记 TD-077，活跃 0→1；TD-075 RESOLVED 2026-10-24：streamlit 1.66.1 解除 Pillow<13 上限，PR #65 升锁后双面审计全净，豁免机制撤销；V4.7.0 批次 TD-002/070/072/074 已关闭，TD-071 部分关闭）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
 
 ## V4.8.0 P1 工作流进场批技术债状态（2026-10-21）
 
 - **TD-075（P1）已解决（2026-10-24）**: dev 依赖面 Pillow 12.3.0 CVE 生态阻塞（2026-10-21 首报 8 项，2026-10-22 增至 24 项且持续披露，曾以运行时自动收集豁免过渡）。streamlit 1.66.1 解除 `Pillow<13` 上限后，PR #65 升锁（pillow 13.0.0 + black 26.10.1 + filelock 4.2.4 + streamlit 1.66.1）双面 pip-audit 全净，豁免机制撤销，条目 RESOLVED。处置演进见明细条目。
+
+## V4.9.0 收尾复盘批技术债状态（2026-10-27）
+
+- **TD-077（P2）新登记**: CLI 全管线 mock dispatch 本机挂起根因未明（详见下方明细条目）。来源：4.9.0 收尾 dogfood 实测，复盘 [2026-10-27_P2_defect-ledger_batch_retrospective.md](assessments/2026-10-27_P2_defect-ledger_batch_retrospective.md) §5 移交。
+- **观察项（不占 TD 编号）**: ① feature_gate dogfood 留待首个需验收清单的真实特性启用；② `unfiled_signal_report` advisory 价值待首个真实信号 run 检验。
+- **不留债声明**: 4.9.0 W1-W4 四波、发布链与收尾复盘批本身无遗留项；dogfood 已启用 `defect_ledger.enabled: true`（PR #89）。
 
 ## V4.7.0 发布前债务批次状态（2026-10-15）
 
@@ -58,11 +64,12 @@
 |--------|------|------|
 | P0 (阻断) | 0 | — |
 | P1 (重要) | 0 | — |
-| P2 (一般) | 0 | — |
+| P2 (一般) | 1 | TD-077 OPEN |
 | P3 (低)   | 0 | — |
-| **总计** | **0** | |
+| **总计** | **1** | |
 
 > **2026-10-24 注**: TD-075 已 RESOLVED（PR #65 升锁后双面审计全净），活跃计数清零。此前 TD-002 已在 V4.7.0 发布前批次 RESOLVED。
+> **2026-10-27 注**: TD-077 登记（4.9.0 收尾批 CLI dispatch 挂起，P2/OPEN），活跃计数 0→1。
 
 > **扫描说明**: 运行 `grep -rn "TODO\|FIXME\|HACK" scripts/ --include="*.py" | grep -v "test\|__pycache__"`
 > 共返回 18 行匹配。经逐行分析，其中 17 行为**技术债检测工具自身的实现代码**
@@ -155,6 +162,16 @@
 - **状态**: RESOLVED（2026-10-22 修复：pyproject extras `mcp` 与 `all` 两处约束均收紧为 `mcp>=1,<2`；
   干净 venv 实测 `pip install "devsquad[mcp]"`（本地分支构建）解析到 mcp 1.30.0，MCP server stdio
   全链路可用。PyPI 4.7.x 用户在 4.8.0 发布前仍需 MCP.md 的 `"mcp<2"` pin 过渡）
+
+### TD-077: CLI 全管线 mock dispatch 本机挂起（根因未明）
+
+- **优先级**: P2
+- **位置**: `scripts/cli.py` dispatch 入口（asyncio loop 全管线）；对照路径 `scripts/collaboration/dispatcher.py`（直连 `MultiAgentDispatcher.dispatch`）
+- **类型**: 环境特定行为缺陷（无 TODO/FIXME 代码标记，行为异常类债务）
+- **描述**: 2026-10-27 4.9.0 收尾 dogfood 实测：CLI 入口 mock dispatch 180s 超时转后台后 8 分钟仅 0.96s CPU，`sample` 栈采样显示主线程在 `kevent` 空等、asyncio loop 无就绪事件；同一任务改走直连路径（构造 dispatcher + 单角色 + 注入 logger，W3 e2e 先例）0.1s 完成。附带小坑：`DispatchAuditLogger` 的 `db_path` 传 `str` 报 `AttributeError`（须 `Path`），已绕过。
+- **影响面**: 本机 CLI 全管线验证路径；CI e2e（subprocess 全管线）持续全绿，直连路径不受影响，PyPI 用户无已知复现。
+- **建议方案**: 独立工作项排查 CLI 入口 asyncio 事件循环与 mock 后端/host 桥交互；复现优先（本机 + 干净 venv + CI 环境三方对照），不得在未复现前改代码。
+- **状态**: OPEN（2026-10-27 登记；如实留痕不混修）
 
 ## 扫描方法与排除项
 
