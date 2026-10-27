@@ -105,6 +105,10 @@ class PostDispatchPipeline(
         enable_feature_gate: bool = False,
         feature_gate_checklist: str = ".devsquad/acceptance_checklist.json",
         feature_gate_command_timeout_seconds: int = 120,
+        # V4.9.0 P2-W3: registration gate — mandatory signals need live
+        # ledger tickets (design: V4.9.0_W3_registration-gate_DESIGN.md,
+        # D5/D7). Default off.
+        enable_registration_gate: bool = False,
     ) -> None:
         self.coordinator = coordinator
         self.report_formatter = report_formatter
@@ -130,6 +134,8 @@ class PostDispatchPipeline(
         self.enable_feature_gate = enable_feature_gate
         self.feature_gate_checklist = feature_gate_checklist
         self.feature_gate_command_timeout_seconds = feature_gate_command_timeout_seconds
+        # V4.9.0 P2-W3 (registration gate)
+        self.enable_registration_gate = enable_registration_gate
 
         # Lazy-initialized frameworks
         self._ue_framework: UETestFramework | None = None
@@ -688,6 +694,25 @@ class PostDispatchPipeline(
                 gate_errors.extend(
                     f"Feature gate gap: {gap['id']} — {gap['description']}" for gap in feature_gate_dict["gaps"]
                 )
+                errors.extend(gate_errors)
+                result.errors = list(errors)
+                result.success = False
+
+        # Step 23.6 (V4.9.0 P2-W3): registration gate — mandatory signals
+        # must have a live ledger ticket (open|fixed). Signal-no-evaporation:
+        # a run whose failure_class is product_failed or whose review
+        # findings contain a BV-critical category cannot finish green while
+        # that signal type has no live DEF in .devsquad/defects.json. Runs
+        # BEFORE the Step-24 C19 recompute so gate errors join the
+        # failure-class verdict (D1, W2 lesson ①). Disabled → the mixin
+        # returns None and leaves zero trace (①).
+        registration_gate_result = self._run_registration_gate(worker_results, errors, two_stage_review_result)
+        if registration_gate_result is not None:
+            registration_gate_dict = registration_gate_result.to_dict()
+            result.details["registration_gate"] = registration_gate_dict
+            result.registration_gate = registration_gate_dict
+            if not registration_gate_result.passed:
+                gate_errors = [f"Registration gate blocked: {v}" for v in registration_gate_dict["violations"]]
                 errors.extend(gate_errors)
                 result.errors = list(errors)
                 result.success = False

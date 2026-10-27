@@ -35,6 +35,7 @@ from scripts.collaboration.defect_ledger import (
     DefectLedger,
     DefectLedgerError,
 )
+from scripts.collaboration.registration_gate import unfiled_signal_report
 
 _call_counter_dl = 0
 
@@ -147,13 +148,32 @@ def cmd_defect_audit(args: argparse.Namespace) -> int:
     _inc_call_counter_dl()
     ledger = _get_ledger(args)
     issues = ledger.audit_report()
+    # V4.9.0 P2-W3: advisory unfiled-signal report (non-mandatory scope,
+    # design D11) — best-effort disclosure, never affects the exit code.
+    advisory, advisory_warnings = unfiled_signal_report(
+        ledger_path=args.ledger_path or DEFAULT_LEDGER_PATH,
+        audit_db_path=args.audit_db_path or DEFAULT_AUDIT_DB_PATH,
+    )
     if getattr(args, "json", False):
-        print(json.dumps({"ok": not issues, "issues": issues}, ensure_ascii=False))
-    elif issues:
-        for issue in issues:
-            print(f"FAIL: {issue}", file=sys.stderr)
+        print(
+            json.dumps(
+                {"ok": not issues, "issues": issues, "unfiled_advisory": advisory},
+                ensure_ascii=False,
+            )
+        )
     else:
-        print("ledger audit: OK")
+        if issues:
+            for issue in issues:
+                print(f"FAIL: {issue}", file=sys.stderr)
+        else:
+            print("ledger audit: OK")
+        for item in advisory:
+            print(
+                f"ADVISORY: unfiled {item['type']} (seen {item['seen_count']} time(s), "
+                f"last event {item['last_event_id']})"
+            )
+    for warning in advisory_warnings:
+        print(f"ADVISORY: {warning}", file=sys.stderr)
     return 1 if issues else 0
 
 

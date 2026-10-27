@@ -25,6 +25,7 @@ Groups (43 fields + extra kwargs):
     - Autonomous (1): autonomous_enabled (V4.0.0 P3-1)
     - Plugins (2): plugins_enabled / plugins_no_hot_reload (V4.0.0 P3-2)
     - Feature gate (3): enable_feature_gate / checklist / timeout (V4.9.0 P2-W4)
+    - Registration gate (1): enable_registration_gate (V4.9.0 P2-W3)
     - Extra: kwargs forwarded to EnterpriseFeature (backward compat)
 """
 
@@ -132,6 +133,11 @@ class DispatcherConfig:
     enable_feature_gate: bool = False
     feature_gate_checklist: str = ".devsquad/acceptance_checklist.json"
     feature_gate_command_timeout_seconds: int = 120
+
+    # ── Group 13: Registration gate (V4.9.0 P2-W3) ───────────────────────
+    # Mandatory-signal registration gate (defect ledger), default off
+    # (4.8.x behavior). Design: V4.9.0_W3_registration-gate_DESIGN.md (D5).
+    enable_registration_gate: bool = False
 
     # ── Conversion helpers ───────────────────────────────────────────────
 

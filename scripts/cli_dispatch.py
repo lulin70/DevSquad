@@ -230,6 +230,13 @@ def _build_dispatch_kwargs(args: argparse.Namespace) -> tuple[dict[str, Any] | N
         kwargs["feature_gate_checklist"] = fg_config.checklist
         kwargs["feature_gate_command_timeout_seconds"] = fg_config.command_timeout_seconds
 
+    # V4.9.0 P2-W3: registration gate — same config source, same discipline
+    # (absent/disabled → no kwargs → 4.8.x behavior; broken yaml with an
+    # enabled gate fails loudly, never silently disables the gate).
+    dl_config = ConfigManager().config.defect_ledger
+    if dl_config.enabled:
+        kwargs["enable_registration_gate"] = True
+
     return kwargs, None
 
 

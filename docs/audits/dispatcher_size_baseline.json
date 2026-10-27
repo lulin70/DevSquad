@@ -121,7 +121,7 @@
     "collaboration/dispatch_steps_mixins.py": 676,
     "collaboration/dispatch_steps_quality_mixin.py": 6,
     "collaboration/dispatch_steps_services_mixin.py": 6,
-    "collaboration/dispatcher.py": 1155,
+    "collaboration/dispatcher.py": 1165,
     "collaboration/dispatcher_async_mixin.py": 6,
     "collaboration/dispatcher_audit_mixin.py": 6,
     "collaboration/dispatcher_base.py": 152,

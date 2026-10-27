@@ -415,6 +415,82 @@ class TestDispatchAuditLoggerFeatureGate(unittest.TestCase):
             logger2.close()
 
 
+class TestDispatchAuditLoggerRegistrationGate(unittest.TestCase):
+    """V4.9.0 P2-W3 — dispatch_end carries the registration-gate verdict +
+    signal registration matrix (design: V4.9.0_W3_registration-gate_DESIGN.md §5)."""
+
+    def test_log_dispatch_end_without_registration_gate_keeps_legacy_details(self) -> None:
+        """Verify: absent kwarg → details stays key-for-key at the pre-W3 shape."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        # Act
+        logger.log_dispatch_end("u1", success=True, duration=1.0, findings=[], failure_class="none")
+        # Assert
+        entry = logger.query(event_type="dispatch_end")[0]
+        self.assertEqual(entry.details, {"success": True, "duration": 1.0, "findings": [], "failure_class": "none"})
+        self.assertNotIn("registration_gate", entry.details)
+
+    def test_log_dispatch_end_persists_registration_gate_matrix(self) -> None:
+        """Verify: opt-in kwarg lands in details; chain still verifies."""
+        # Arrange
+        logger = DispatchAuditLogger()
+        registration_gate = {
+            "verdict": "fail",
+            "ledger_path": ".devsquad/defects.json",
+            "summary": {"mandatory": 1, "tracked": 0, "unregistered": 1, "regressed": 0},
+            "signals": [
+                {
+                    "type": "failure:product_failed",
+                    "status": "unregistered",
+                    "tracked_by": [],
+                    "closed_ids": [],
+                }
+            ],
+            "violations": ["mandatory signal 'failure:product_failed' has no live DEF ticket"],
+            "error": None,
+        }
+        # Act
+        logger.log_dispatch_end(
+            "u1",
+            success=False,
+            duration=3.0,
+            failure_class="product_failed",
+            registration_gate=registration_gate,
+        )
+        # Assert
+        entry = logger.query(event_type="dispatch_end")[0]
+        self.assertEqual(entry.details["registration_gate"], registration_gate)
+        self.assertEqual(entry.details["failure_class"], "product_failed")
+        self.assertTrue(logger.verify_chain())
+
+    def test_registration_gate_matrix_persists_to_sqlite(self) -> None:
+        """Verify: the matrix survives the SQLite round-trip (the filing
+        signal-ref for 'defect add' must outlive the producing process)."""
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "audit.db"
+            logger1 = DispatchAuditLogger(db_path=db_path)
+            logger1.log_dispatch_start("u1", "task", ["architect"])
+            logger1.log_dispatch_end(
+                "u1",
+                success=True,
+                duration=0.5,
+                registration_gate={
+                    "verdict": "pass",
+                    "ledger_path": ".devsquad/defects.json",
+                    "summary": {"mandatory": 1, "tracked": 1, "unregistered": 0, "regressed": 0},
+                },
+            )
+            logger1.close()
+            # Act
+            logger2 = DispatchAuditLogger(db_path=db_path)
+            # Assert
+            end = logger2.query(event_type="dispatch_end")[0]
+            self.assertEqual(end.details["registration_gate"]["verdict"], "pass")
+            self.assertTrue(logger2.verify_chain())
+            logger2.close()
+
+
 class TestDispatchAuditLoggerEdgeCases(unittest.TestCase):
     """Edge cases — empty logger, large number of entries."""
 

@@ -578,10 +578,16 @@ class TestAuditMixin:
         logger = MagicMock()
         mixin = self._make_mixin(_audit_logger=logger)
         mixin._log_dispatch_end_audit("user1", True, 1.5)
-        # V4.9.0 P2-W2/W4 contract evolution: the mixin now always forwards the
+        # V4.9.0 P2-W2/W4/W3 contract evolution: the mixin now always forwards the
         # terminal-signal kwargs (None = omit from details, 4.8.x-compatible).
         logger.log_dispatch_end.assert_called_once_with(
-            user_id="user1", success=True, duration=1.5, findings=None, failure_class=None, feature_gate=None
+            user_id="user1",
+            success=True,
+            duration=1.5,
+            findings=None,
+            failure_class=None,
+            feature_gate=None,
+            registration_gate=None,
         )
 
     def test_log_end_handles_logger_error(self) -> None:

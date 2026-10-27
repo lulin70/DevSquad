@@ -236,6 +236,9 @@ class DispatchResult:
     # V4.9.0 P2-W4: Feature gate result (live acceptance-coverage matrix;
     # None when the gate is disabled — 4.8.x behavior preserved).
     feature_gate: dict[str, Any] | None = None
+    # V4.9.0 P2-W3: Registration gate result (mandatory-signal tri-state
+    # matrix; None when the gate is disabled — 4.8.x behavior preserved).
+    registration_gate: dict[str, Any] | None = None
     # V3.8 #7: Micro-task plan (when use_micro_tasks=True)
     micro_task_plan: dict[str, Any] | None = None
     # V3.9-02: RBAC permission check result (when DispatchRBAC is configured)
@@ -292,6 +295,7 @@ class DispatchResult:
             "auto_fix_result": self.auto_fix_result,
             "judge_result": self.judge_result,
             "feature_gate": self.feature_gate,
+            "registration_gate": self.registration_gate,
             "micro_task_plan": self.micro_task_plan,
             "permission_result": self.permission_result,
             "audit_entries": self.audit_entries,
@@ -361,6 +365,7 @@ class DispatchResult:
             self._format_connector_operations(),
             self._format_replay_cache(),
             self._format_feature_gate(),
+            self._format_registration_gate(),
             self._format_failure_class(),
         ]
         lines: list[str] = []
@@ -430,6 +435,42 @@ class DispatchResult:
                 line = f"- {mark} `{entry.get('id')}` [{status}] {entry.get('description')}"
                 if status == "waived" and entry.get("waive_reason"):
                     line += f" — waived: {entry['waive_reason']}"
+                lines.append(line)
+        return lines + [""]
+
+    def _format_registration_gate(self) -> list[str]:
+        """V4.9.0 P2-W3: render the registration-gate signal matrix.
+
+        Omitted when the gate never ran (disabled — reports stay
+        byte-identical to 4.8.x). Unregistered/regressed signals carry
+        their filing or reopen guidance (violations text, design §3.3).
+        """
+        gate = self.details.get("registration_gate")
+        if not isinstance(gate, dict):
+            return []
+        verdict = gate.get("verdict")
+        icon = "✅" if verdict == "pass" else "❌"
+        summary = gate.get("summary") or {}
+        lines = [
+            "",
+            f"> {icon} **Registration gate**: `{verdict}` — mandatory signals × live DEF tickets",
+            f"> mandatory: {summary.get('mandatory', 0)} · tracked: {summary.get('tracked', 0)}"
+            f" · unregistered: {summary.get('unregistered', 0)} · regressed: {summary.get('regressed', 0)}",
+        ]
+        for violation in gate.get("violations") or []:
+            lines.append(f"> - violation: {violation}")
+        signals = gate.get("signals") or []
+        if signals:
+            lines.append("")
+            lines.append("**Signal registration matrix**:")
+            marks = {"tracked": "✅", "unregistered": "❌", "regressed": "🔁"}
+            for signal in signals:
+                status = str(signal.get("status"))
+                mark = marks.get(status, "❔")
+                tracked_by = signal.get("tracked_by") or []
+                line = f"- {mark} `{signal.get('type')}` [{status}]"
+                if tracked_by:
+                    line += f" — tracked by {', '.join(tracked_by)}"
                 lines.append(line)
         return lines + [""]
 
