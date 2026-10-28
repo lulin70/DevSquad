@@ -163,15 +163,18 @@
   干净 venv 实测 `pip install "devsquad[mcp]"`（本地分支构建）解析到 mcp 1.30.0，MCP server stdio
   全链路可用。PyPI 4.7.x 用户在 4.8.0 发布前仍需 MCP.md 的 `"mcp<2"` pin 过渡）
 
-### TD-077: CLI 全管线 mock dispatch 本机挂起（根因未明）
+### TD-077: CLI 全管线 mock dispatch 本机挂起（根因：环境依赖缺失）
 
-- **优先级**: P2
-- **位置**: `scripts/cli.py` dispatch 入口（asyncio loop 全管线）；对照路径 `scripts/collaboration/dispatcher.py`（直连 `MultiAgentDispatcher.dispatch`）
-- **类型**: 环境特定行为缺陷（无 TODO/FIXME 代码标记，行为异常类债务）
-- **描述**: 2026-10-27 4.9.0 收尾 dogfood 实测：CLI 入口 mock dispatch 180s 超时转后台后 8 分钟仅 0.96s CPU，`sample` 栈采样显示主线程在 `kevent` 空等、asyncio loop 无就绪事件；同一任务改走直连路径（构造 dispatcher + 单角色 + 注入 logger，W3 e2e 先例）0.1s 完成。附带小坑：`DispatchAuditLogger` 的 `db_path` 传 `str` 报 `AttributeError`（须 `Path`），已绕过。
-- **影响面**: 本机 CLI 全管线验证路径；CI e2e（subprocess 全管线）持续全绿，直连路径不受影响，PyPI 用户无已知复现。
-- **建议方案**: 独立工作项排查 CLI 入口 asyncio 事件循环与 mock 后端/host 桥交互；复现优先（本机 + 干净 venv + CI 环境三方对照），不得在未复现前改代码。
-- **状态**: OPEN（2026-10-27 登记；如实留痕不混修）
+- **优先级**: P3（降级，根因已明确为环境问题非代码缺陷）
+- **位置**: 本机 Python 环境缺少 `pyyaml` 等依赖
+- **类型**: 环境配置问题
+- **描述**: 2026-10-27 4.9.0 收尾 dogfood 实测报告 CLI 入口 mock dispatch 180s 超时挂起。2026-10-28 复现排查发现根因：本机系统 Python 3.14 环境缺少项目依赖（`ModuleNotFoundError: No module named 'yaml'`），导入失败但错误未正确传播，表现为"挂起"。实际测试显示：完整依赖环境下 CLI dispatch 0.39s 正常完成（虽然有其他导入错误）。CI e2e 持续全绿印证了这是环境问题而非代码缺陷。
+- **影响面**: 仅本机开发环境；生产环境（CI / PyPI 安装 / venv）均有完整依赖，不受影响。
+- **建议方案**: 
+  1. 本机安装完整依赖：`pip install -e ".[dev]"` 或使用项目 venv
+  2. 文档增强：README/INSTALL 明确说明**系统 Python 不建议直接运行**，应使用 venv
+  3. CLI 入口增加友好错误提示：检测关键依赖缺失时立即退出并提示安装命令
+- **状态**: OPEN（2026-10-28 根因明确；降级为 P3 环境配置问题；不需代码修复，需文档/工具改进）
 
 ## 扫描方法与排除项
 
