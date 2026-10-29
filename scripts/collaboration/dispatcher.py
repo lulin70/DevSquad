@@ -530,33 +530,15 @@ class MultiAgentDispatcher(
             self.metrics_service.safe_record(lambda m: m.tasks_in_progress_gauge.labels(phase=phase).dec())
             self._log_dispatch_end_audit(user_id, False, time.time() - start_time)
             early_result = cast(DispatchResult, pre_result.early_return)
-            # V4.4.4: Restore original task_description (without git context).
-            early_result.task_description = task_description
-            if permission_result_dict is not None:
-                early_result.permission_result = permission_result_dict
-            self._attach_audit_entries(early_result)
-            # V4.4.4: Populate WorkflowTrace even on early_return / dry_run
-            # (anti-ghost: trace is present but empty for dry_run).
-            self._populate_workflow_trace(early_result, dry_run=True)
-            # V4.4.4: Store git_context in result (anti-ghost).
-            if git_context is not None:
-                early_result.git_context = git_context
-            # V4.5.0: Apply OutputStyle + activate SkillProvider (anti-ghost).
-            if output_style is not None:
-                self.report_formatter.format_report(early_result, output_style=output_style)
-            with contextlib.suppress(Exception):
-                self.skill_registry.discover()
-            # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter_er > 0).
-            self._activate_approval_gate(early_result, approval_callback)
-            # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter_er > 0).
-            self._activate_connector(early_result)
-            # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
-            # Best-effort — never let activation errors break the early-return path.
-            try:
-                self._activate_v454_modules(early_result, task_description)
-            except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
-                logger.debug("early_return _activate_v454_modules best-effort: %s", v454_err)
-            return early_result
+            # V4.9.0: Extracted enrichment to _enrich_early_return_result()
+            return self._enrich_early_return_result(
+                early_result,
+                task_description,
+                permission_result_dict,
+                git_context,
+                output_style,
+                approval_callback,
+            )
 
         tenant_ctx = pre_result.tenant_ctx
 
@@ -598,8 +580,6 @@ class MultiAgentDispatcher(
             # V4.5.20 (F4): expose deterministic review metadata.
             self._attach_review_metadata(result, pre_result.plan)
 
-            if permission_result_dict is not None:
-                result.permission_result = permission_result_dict
             # V4.9.0 P2-W2: persist terminal signals (findings / failure_class)
             # into the audit event so defect filing can resolve them.
             review_meta = result.details.get("two_stage_review") or {}
@@ -614,40 +594,16 @@ class MultiAgentDispatcher(
             )
             self._attach_audit_entries(result)
 
-            # V4.4.0: Activate 5 enhancement modules (anti-ghost + risk report).
-            self._activate_v440_modules(result, task_description)
-
-            # V4.4.4: Populate WorkflowTrace (anti-ghost: always set, even if empty).
-            self._populate_workflow_trace(result, dry_run)
-
-            # V4.4.4: Store git_context in result (anti-ghost: always set when provided).
-            if git_context is not None:
-                result.git_context = git_context
-
-            # V4.4.4: Restore original task_description (without git context section).
-            if git_context is not None:
-                result.task_description = task_description
-
-            # V4.5.0: Apply OutputStyle via ReportFormatter (anti-ghost: format_report called).
-            if output_style is not None:
-                self.report_formatter.format_report(result, output_style=output_style)
-
-            # V4.5.0: Invoke SkillProvider discover (anti-ghost: skill provider activated).
-            with contextlib.suppress(Exception):
-                self.skill_registry.discover()
-
-            # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter_er > 0).
-            self._activate_approval_gate(result, approval_callback)
-            # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter_er > 0).
-            self._activate_connector(result)
-            # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
-            # Best-effort — never let activation errors break the sync success path.
-            try:
-                self._activate_v454_modules(result, task_description)
-            except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
-                logger.debug("sync _activate_v454_modules best-effort: %s", v454_err)
-
-            return result
+            # V4.9.0: Extracted enrichment to _enrich_success_result()
+            return self._enrich_success_result(
+                result,
+                task_description,
+                permission_result_dict,
+                git_context,
+                output_style,
+                approval_callback,
+                dry_run,
+            )
 
         except (ValueError, TypeError, AttributeError) as dispatch_err:
             self._log_dispatch_error_audit(user_id, dispatch_err)
@@ -662,6 +618,99 @@ class MultiAgentDispatcher(
         except (RuntimeError, OSError, ConnectionError, TimeoutError) as e:
             self._log_dispatch_error_audit(user_id, e)
             return self._handle_dispatch_error(e, task_description, tenant_ctx, phase, start_time, pre_result.lang)
+
+    def _enrich_early_return_result(
+        self,
+        early_result: DispatchResult,
+        task_description: str,
+        permission_result_dict: dict[str, Any] | None,
+        git_context: GitContext | None,
+        output_style: str | None,
+        approval_callback: Any | None,
+    ) -> DispatchResult:
+        """Enrich early-return result with metadata and activate anti-ghost modules.
+
+        V4.9.0: Extracted from dispatch() to reduce complexity.
+        """
+        # V4.4.4: Restore original task_description (without git context).
+        early_result.task_description = task_description
+        if permission_result_dict is not None:
+            early_result.permission_result = permission_result_dict
+        self._attach_audit_entries(early_result)
+        # V4.4.4: Populate WorkflowTrace even on early_return / dry_run
+        # (anti-ghost: trace is present but empty for dry_run).
+        self._populate_workflow_trace(early_result, dry_run=True)
+        # V4.4.4: Store git_context in result (anti-ghost).
+        if git_context is not None:
+            early_result.git_context = git_context
+        # V4.5.0: Apply OutputStyle + activate SkillProvider (anti-ghost).
+        if output_style is not None:
+            self.report_formatter.format_report(early_result, output_style=output_style)
+        with contextlib.suppress(Exception):
+            self.skill_registry.discover()
+        # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter_er > 0).
+        self._activate_approval_gate(early_result, approval_callback)
+        # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter_er > 0).
+        self._activate_connector(early_result)
+        # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
+        # Best-effort — never let activation errors break the early-return path.
+        try:
+            self._activate_v454_modules(early_result, task_description)
+        except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
+            logger.debug("early_return _activate_v454_modules best-effort: %s", v454_err)
+        return early_result
+
+    def _enrich_success_result(
+        self,
+        result: DispatchResult,
+        task_description: str,
+        permission_result_dict: dict[str, Any] | None,
+        git_context: GitContext | None,
+        output_style: str | None,
+        approval_callback: Any | None,
+        dry_run: bool,
+    ) -> DispatchResult:
+        """Enrich successful result with metadata and activate anti-ghost modules.
+
+        V4.9.0: Extracted from dispatch() to reduce complexity.
+        """
+        if permission_result_dict is not None:
+            result.permission_result = permission_result_dict
+
+        # V4.4.0: Activate 5 enhancement modules (anti-ghost + risk report).
+        self._activate_v440_modules(result, task_description)
+
+        # V4.4.4: Populate WorkflowTrace (anti-ghost: always set, even if empty).
+        self._populate_workflow_trace(result, dry_run)
+
+        # V4.4.4: Store git_context in result (anti-ghost: always set when provided).
+        if git_context is not None:
+            result.git_context = git_context
+
+        # V4.4.4: Restore original task_description (without git context section).
+        if git_context is not None:
+            result.task_description = task_description
+
+        # V4.5.0: Apply OutputStyle via ReportFormatter (anti-ghost: format_report called).
+        if output_style is not None:
+            self.report_formatter.format_report(result, output_style=output_style)
+
+        # V4.5.0: Invoke SkillProvider discover (anti-ghost: skill provider activated).
+        with contextlib.suppress(Exception):
+            self.skill_registry.discover()
+
+        # V4.5.1: Activate Approval Gate (anti-ghost: _call_counter_er > 0).
+        self._activate_approval_gate(result, approval_callback)
+        # V4.5.1: Activate Connector Framework (anti-ghost: _call_counter_er > 0).
+        self._activate_connector(result)
+        # V4.5.4 P12.3: Activate ModuleFiber + Coeffect (anti-ghost).
+        # Best-effort — never let activation errors break the sync success path.
+        try:
+            self._activate_v454_modules(result, task_description)
+        except (ImportError, RuntimeError, ValueError, TypeError, AttributeError) as v454_err:
+            logger.debug("sync _activate_v454_modules best-effort: %s", v454_err)
+
+        return result
 
     def _inject_git_context(
         self,
@@ -950,8 +999,26 @@ class MultiAgentDispatcher(
                 # Register provider with resolver (topological order)
                 if self.enable_coeffect:
                     self._coeffect_resolver.register(_StaticProvider(module_id, deps))
-            except Exception:
-                # V4.5.3 lesson #7: best-effort try/except
+            except (ImportError, AttributeError, KeyError, ValueError, TypeError) as known_err:
+                # V4.5.3 lesson #7: best-effort registration failures are non-blocking
+                # Known failure modes: missing module, wrong state class, invalid deps
+                logger.warning(
+                    "Module fiber registration failed for %s (non-blocking): %s",
+                    module_id,
+                    known_err,
+                    extra={"module_id": module_id, "deps": deps},
+                )
+                continue
+            except Exception as unexpected_err:
+                # Unexpected errors are logged at ERROR level with full traceback
+                # but still non-blocking to preserve dispatcher initialization
+                logger.error(
+                    "Unexpected error during module fiber registration for %s: %s",
+                    module_id,
+                    unexpected_err,
+                    exc_info=True,
+                    extra={"module_id": module_id, "deps": deps},
+                )
                 continue
 
     def _activate_v454_modules(
