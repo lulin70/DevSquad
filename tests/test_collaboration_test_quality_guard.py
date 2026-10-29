@@ -661,7 +661,17 @@ class _TestQualityGuardImpl:
         return reports
 
     def generate_test_template(self, api_sig: APISignature, dimensions: list[TestDimension] = None) -> str:
-        """根据 API 签名生成高质量测试模板"""
+        """根据 API 签名生成高质量测试模板
+        
+        Args:
+            api_sig: API 签名信息 (name, params, return_type)
+            dimensions: 测试维度列表 [HAPPY_PATH, ERROR_CASE, PERFORMANCE, ...] 
+                       默认覆盖 HAPPY_PATH + ERROR_CASE
+        
+        Returns:
+            生成的测试模板代码 (str)，包含 AAA 模式 (Arrange-Act-Assert) 
+            和针对每个维度的测试方法
+        """
         dims = dimensions or [TestDimension.HAPPY_PATH, TestDimension.ERROR_CASE]
         params_str = ", ".join(p["name"] for p in api_sig.params if p["name"] != "self")
         param_docs = "\n".join(
@@ -672,7 +682,7 @@ class _TestQualityGuardImpl:
     def test_{api_sig.name}_happy_path(self):
         """验证: {api_sig.name} 正常输入应返回预期结果"""
         # Arrange
-{param_docs if param_docs else "        # TODO: 设置正常输入参数"}
+{param_docs if param_docs else "        # 根据 API 签名设置参数: " + ", ".join(p["name"] + "=<value>" for p in api_sig.params if p["name"] != "self")}
 
         # Act
         result = self.target.{api_sig.name}({params_str})
@@ -682,10 +692,18 @@ class _TestQualityGuardImpl:
 '''
 
         if TestDimension.ERROR_CASE in dims:
+            error_cases_hint = []
+            for p in api_sig.params:
+                if p["name"] != "self":
+                    error_cases_hint.append(f"{p['name']}=None (空值)")
+                    if "int" in (p.get("type") or "").lower():
+                        error_cases_hint.append(f"{p['name']}=-1 (越界)")
+            error_hint = " / ".join(error_cases_hint[:3]) if error_cases_hint else "invalid_param='bad_value'"
+            
             template += f'''
     def test_{api_sig.name}_invalid_input(self):
         """验证: {api_sig.name} 非法输入应抛出异常或返回错误"""
-        # TODO: 测试非法参数、空值、越界等情况
+        # 测试场景示例: {error_hint}
         with self.assertRaises((ValueError, TypeError)):
             self.target.{api_sig.name}(invalid_param="bad_value")
 '''
