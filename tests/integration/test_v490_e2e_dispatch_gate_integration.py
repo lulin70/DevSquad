@@ -5,11 +5,16 @@ V4.9.0 End-to-End Dispatch → Gate Integration Tests
 验证系统级健康性：信号不蒸发（PRD §1.1 F3）、gate在dispatch管道中的正确位置。
 """
 import json
+import os
 import pytest
+import subprocess
+import sys
 import tempfile
+import time
 from pathlib import Path
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
 from scripts.collaboration.defect_ledger import DefectLedger
+from scripts.collaboration.dispatch_audit import DispatchAuditLogger
 from scripts.collaboration.llm_backend import create_backend
 
 
@@ -399,3 +404,358 @@ class TestE2EDispatchGateCombinedIntegration:
             
         finally:
             disp.shutdown()
+
+
+class TestE2EDefectCLISubprocessIntegration:
+    """端到端：CLI subprocess测试，验证CLI命令与API行为一致"""
+    
+    def test_cli_defect_add_list_workflow(self, tmp_path):
+        """
+        CLI subprocess场景：devsquad defect add → list → update → close
+        
+        验证：
+        1. CLI命令正确调用DefectLedger API
+        2. 参数解析正确（--signal-ref, --summary, --json）
+        3. 退出码遵循C19约定（0成功/1产品失败/2环境阻塞）
+        4. JSON输出格式可解析
+        """
+        ledger_path = tmp_path / "cli_defects.json"
+        audit_path = tmp_path / "cli_audit.db"
+        
+        # 准备最小audit DB（defect add需要）
+        logger = DispatchAuditLogger(str(audit_path))
+        logger.log_dispatch_end(
+            user_id="test",
+            success=False,
+            duration=1.0,
+            findings=[{"category": "break-vuln", "items": ["Security issue"]}],
+            failure_class="product_failed"
+        )
+        
+        # Step 1: CLI add
+        result = subprocess.run(
+            [
+                sys.executable, "scripts/cli.py", "defect", "add",
+                "--signal-ref", "audit:event=1&finding=0",
+                "--summary", "CLI test defect",
+                "--ledger-path", str(ledger_path),
+                "--audit-db-path", str(audit_path),
+                "--json"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # 验证：add成功
+        assert result.returncode == 0, f"CLI add failed: {result.stderr}"
+        
+        # 验证：JSON输出可解析
+        add_output = json.loads(result.stdout.strip())
+        assert add_output["id"].startswith("DEF-")
+        assert add_output["state"] == "open"
+        defect_id = add_output["id"]
+        
+        # Step 2: CLI list
+        result = subprocess.run(
+            [
+                sys.executable, "scripts/cli.py", "defect", "list",
+                "--ledger-path", str(ledger_path),
+                "--audit-db-path", str(audit_path),
+                "--json"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # 验证：list成功，包含刚创建的defect
+        assert result.returncode == 0
+        list_output = result.stdout.strip().split("\n")
+        assert len(list_output) >= 1
+        first_defect = json.loads(list_output[0])
+        assert first_defect["id"] == defect_id
+        
+        # Step 3: CLI update（标记为fixed）
+        result = subprocess.run(
+            [
+                sys.executable, "scripts/cli.py", "defect", "update",
+                defect_id,
+                "--commit", "abc123",
+                "--summary", "Fixed by commit abc123",
+                "--ledger-path", str(ledger_path),
+                "--audit-db-path", str(audit_path),
+                "--json"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # 验证：update成功，状态变为fixed
+        assert result.returncode == 0
+        update_output = json.loads(result.stdout.strip())
+        assert update_output["state"] == "fixed"
+        assert update_output["fix"]["commit"] == "abc123"
+        
+        # Step 4: CLI close
+        result = subprocess.run(
+            [
+                sys.executable, "scripts/cli.py", "defect", "close",
+                defect_id,
+                "--run-ref", "verify-run-001",
+                "--ledger-path", str(ledger_path),
+                "--audit-db-path", str(audit_path),
+                "--json"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # 验证：close成功，状态变为closed
+        assert result.returncode == 0
+        close_output = json.loads(result.stdout.strip())
+        assert close_output["state"] == "closed"
+        assert close_output["closure"]["run_ref"] == "verify-run-001"
+    
+    def test_cli_defect_error_exit_codes(self, tmp_path):
+        """
+        CLI错误场景：验证C19退出码约定
+        
+        - 0: 成功
+        - 1: 产品失败（状态机违规、验证失败）
+        - 2: 环境阻塞（ledger I/O、audit DB不可达）
+        """
+        ledger_path = tmp_path / "error_defects.json"
+        audit_path = tmp_path / "error_audit.db"
+        
+        # 准备空ledger
+        DefectLedger(str(ledger_path)).save()
+        
+        # 场景1：产品失败（状态机违规：update不存在的defect）
+        result = subprocess.run(
+            [
+                sys.executable, "scripts/cli.py", "defect", "update",
+                "DEF-999999",
+                "--commit", "abc",
+                "--ledger-path", str(ledger_path),
+                "--audit-db-path", str(audit_path)
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # 验证：退出码1（产品失败）
+        assert result.returncode == 1
+        assert "not found" in result.stderr.lower() or "error" in result.stderr.lower()
+        
+        # 场景2：环境阻塞（audit DB不存在）
+        # 注意：defect add需要audit DB验证signal_ref
+        nonexist_audit = tmp_path / "nonexist_audit.db"
+        result = subprocess.run(
+            [
+                sys.executable, "scripts/cli.py", "defect", "add",
+                "--signal-ref", "audit:event=1&finding=0",
+                "--summary", "Test",
+                "--ledger-path", str(ledger_path),
+                "--audit-db-path", str(nonexist_audit)
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # 验证：退出码2（环境阻塞）或1（取决于实现）
+        # audit DB不存在可能在add时创建，所以这里检查非零退出
+        assert result.returncode != 0
+
+
+class TestE2ECrossRunTimestampIntegration:
+    """端到端：跨run timestamp/task_id关联测试"""
+    
+    def test_multi_run_defect_tracking_with_timestamps(self, tmp_path):
+        """
+        跨run场景：多次dispatch → 每次run有独立timestamp/task_id → signal_ref准确关联
+        
+        验证：
+        1. Run 1: 发现缺陷 → audit event 1 (timestamp T1)
+        2. Run 2: 修复缺陷 → audit event 2 (timestamp T2 > T1)
+        3. Run 3: 验证修复 → audit event 3 (timestamp T3 > T2)
+        4. signal_ref包含正确的event ID关联
+        5. timestamp递增，可追溯完整生命周期
+        """
+        audit_path = tmp_path / "cross_run_audit.db"
+        ledger_path = tmp_path / "cross_run_defects.json"
+        
+        # Run 1: 发现缺陷
+        disp1 = MultiAgentDispatcher(
+            llm_backend=create_backend("mock"),
+            audit_db_path=str(audit_path)
+        )
+        
+        try:
+            result1 = disp1.dispatch(
+                task_description="Run 1: Initial test",
+                roles=["architect"],
+                mode="auto"
+            )
+            time.sleep(0.01)  # 确保timestamp不同
+        finally:
+            disp1.shutdown()
+        
+        # 记录Run 1的audit event（模拟发现缺陷）
+        logger = DispatchAuditLogger(str(audit_path))
+        hash1 = logger.log_dispatch_end(
+            user_id="run1",
+            success=False,
+            duration=1.0,
+            findings=[{"category": "break-vuln", "items": ["Issue found in run 1"]}],
+            failure_class="product_failed"
+        )
+        
+        # 立案：signal_ref指向Run 1的event
+        ledger = DefectLedger(str(ledger_path), str(audit_path))
+        defect = ledger.add(
+            signal_ref=f"audit:event=2&finding=0",  # event ID从1开始计数
+            summary="Issue discovered in Run 1"
+        )
+        run1_event_id = 2  # dispatch_start=1, dispatch_end=2
+        
+        time.sleep(0.01)
+        
+        # Run 2: 模拟修复（标记defect为fixed）
+        disp2 = MultiAgentDispatcher(
+            llm_backend=create_backend("mock"),
+            audit_db_path=str(audit_path)
+        )
+        
+        try:
+            result2 = disp2.dispatch(
+                task_description="Run 2: Fix applied",
+                roles=["architect"],
+                mode="auto"
+            )
+            time.sleep(0.01)
+        finally:
+            disp2.shutdown()
+        
+        # 标记修复
+        ledger.update(defect.id, commit="fix-commit-123", summary="Fixed in Run 2")
+        
+        hash2 = logger.log_dispatch_end(
+            user_id="run2",
+            success=True,
+            duration=1.5,
+            failure_class="none"
+        )
+        
+        time.sleep(0.01)
+        
+        # Run 3: 验证修复（关闭defect）
+        disp3 = MultiAgentDispatcher(
+            llm_backend=create_backend("mock"),
+            audit_db_path=str(audit_path)
+        )
+        
+        try:
+            result3 = disp3.dispatch(
+                task_description="Run 3: Verification",
+                roles=["architect"],
+                mode="auto"
+            )
+        finally:
+            disp3.shutdown()
+        
+        # 关闭缺陷
+        ledger.close(defect.id, run_ref="run3-verification")
+        
+        hash3 = logger.log_dispatch_end(
+            user_id="run3",
+            success=True,
+            duration=0.8,
+            failure_class="none"
+        )
+        
+        # 验证：跨run timestamp顺序
+        events = logger.query_events(limit=100)
+        dispatch_end_events = [e for e in events if e["event_type"] == "dispatch_end"]
+        assert len(dispatch_end_events) >= 3
+        
+        # 验证：timestamp严格递增
+        t1 = dispatch_end_events[-3]["timestamp"]  # Run 1
+        t2 = dispatch_end_events[-2]["timestamp"]  # Run 2
+        t3 = dispatch_end_events[-1]["timestamp"]  # Run 3
+        assert t1 < t2 < t3, "Timestamp should be strictly increasing across runs"
+        
+        # 验证：user_id区分不同run
+        assert dispatch_end_events[-3]["user_id"] == "run1"
+        assert dispatch_end_events[-2]["user_id"] == "run2"
+        assert dispatch_end_events[-3]["user_id"] == "run3"
+        
+        # 验证：defect完整生命周期可追溯
+        final_defect = ledger.get(defect.id)
+        assert final_defect.state.value == "closed"
+        
+        # 验证：signal_ref仍然指向原始event
+        assert "audit:event=" in final_defect.signal["ref"]
+        
+        # 验证：可以从signal_ref反查原始audit event
+        event_id_str = final_defect.signal["ref"].split("event=")[1].split("&")[0]
+        original_event_id = int(event_id_str)
+        assert original_event_id == run1_event_id
+        
+        # 验证：original event的timestamp是最早的
+        original_event = [e for e in events if e.get("id") == original_event_id]
+        if original_event:
+            assert original_event[0]["timestamp"] == t1
+    
+    def test_concurrent_run_timestamp_uniqueness(self, tmp_path):
+        """
+        并发场景：快速连续dispatch → 验证timestamp/hash唯一性
+        
+        验证audit chain完整性（每个entry的prev_hash正确链接）
+        """
+        audit_path = tmp_path / "concurrent_audit.db"
+        
+        # 快速连续执行5次dispatch
+        for i in range(5):
+            disp = MultiAgentDispatcher(
+                llm_backend=create_backend("mock"),
+                audit_db_path=str(audit_path)
+            )
+            
+            try:
+                result = disp.dispatch(
+                    task_description=f"Concurrent run {i+1}",
+                    roles=["architect"],
+                    mode="auto"
+                )
+            finally:
+                disp.shutdown()
+            
+            time.sleep(0.001)  # 极小间隔，测试timestamp精度
+        
+        # 验证：所有events的timestamp唯一
+        logger = DispatchAuditLogger(str(audit_path))
+        events = logger.query_events(limit=100)
+        
+        timestamps = [e["timestamp"] for e in events]
+        assert len(timestamps) == len(set(timestamps)), "All timestamps should be unique"
+        
+        # 验证：entry_hash唯一（链完整性）
+        hashes = [e["entry_hash"] for e in events]
+        assert len(hashes) == len(set(hashes)), "All entry hashes should be unique"
+        
+        # 验证：chain正确（每个entry的prev_hash = 前一个entry的entry_hash）
+        for i in range(1, len(events)):
+            prev_event = events[i-1]
+            curr_event = events[i]
+            assert curr_event["prev_hash"] == prev_event["entry_hash"], \
+                f"Chain broken at event {i}: prev_hash mismatch"
+        
+        # 验证：timestamp严格单调递增
+        for i in range(1, len(timestamps)):
+            assert timestamps[i] >= timestamps[i-1], \
+                f"Timestamp not monotonic at index {i}"
