@@ -69,6 +69,7 @@ class BenchmarkReportGenerator:
 
         try:
             # Run pytest with JSON output
+            project_root = Path(__file__).resolve().parent.parent
             result = subprocess.run(
                 [
                     sys.executable,
@@ -82,7 +83,7 @@ class BenchmarkReportGenerator:
                 ],
                 capture_output=True,
                 text=True,
-                cwd="/Users/lin/trae_projects/DevSquad",
+                cwd=str(project_root),
                 timeout=120,
             )
 
