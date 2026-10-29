@@ -662,14 +662,14 @@ class _TestQualityGuardImpl:
 
     def generate_test_template(self, api_sig: APISignature, dimensions: list[TestDimension] = None) -> str:
         """根据 API 签名生成高质量测试模板
-        
+
         Args:
             api_sig: API 签名信息 (name, params, return_type)
-            dimensions: 测试维度列表 [HAPPY_PATH, ERROR_CASE, PERFORMANCE, ...] 
+            dimensions: 测试维度列表 [HAPPY_PATH, ERROR_CASE, PERFORMANCE, ...]
                        默认覆盖 HAPPY_PATH + ERROR_CASE
-        
+
         Returns:
-            生成的测试模板代码 (str)，包含 AAA 模式 (Arrange-Act-Assert) 
+            生成的测试模板代码 (str)，包含 AAA 模式 (Arrange-Act-Assert)
             和针对每个维度的测试方法
         """
         dims = dimensions or [TestDimension.HAPPY_PATH, TestDimension.ERROR_CASE]
@@ -699,7 +699,7 @@ class _TestQualityGuardImpl:
                     if "int" in (p.get("type") or "").lower():
                         error_cases_hint.append(f"{p['name']}=-1 (越界)")
             error_hint = " / ".join(error_cases_hint[:3]) if error_cases_hint else "invalid_param='bad_value'"
-            
+
             template += f'''
     def test_{api_sig.name}_invalid_input(self):
         """验证: {api_sig.name} 非法输入应抛出异常或返回错误"""
