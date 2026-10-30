@@ -70,8 +70,8 @@ class TestRegistrationGateDefectLedgerIntegration:
         logger.close()
 
         # Step 2: 空台账（未登记）
-        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # 不添加任何缺陷，台账为空
+        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # 不添加任何缺陷，台账为空（实例化确保文件存在）
 
         # Step 3: 运行 registration gate（应判定为 unregistered → FAIL）
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -229,8 +229,8 @@ class TestRegistrationGateAdvisoryReportIntegration:
         logger.close()
 
         # 空台账
-        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # 不添加任何缺陷
+        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # 不添加任何缺陷（实例化确保文件存在）
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -264,8 +264,8 @@ class TestRegistrationGateEnvironmentBlockedIntegration:
         logger.close()
 
         # 台账（不应该有 environment_blocked 的缺陷）
-        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # 环境阻断不需要登记缺陷
+        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # 环境阻断不需要登记缺陷（实例化确保文件存在）
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -303,8 +303,8 @@ class TestRegistrationGateFeatureGateErrorAttributionIntegration:
         logger.close()
 
         # 未登记缺陷
-        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # feature_gate 失败未登记
+        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # feature_gate 失败未登记（实例化确保文件存在）
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
