@@ -35,14 +35,11 @@ class TestRegistrationGateDefectLedgerIntegration:
         logger.close()
 
         # Step 2: 已登记缺陷（open 状态）
-        ledger = DefectLedger(str(ledger_path))
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
         ledger.add(
-            title="Fix SQL injection",
-            description="Critical security issue",
-            severity="critical",
             signal_ref="audit:event=1&finding=0",
+            summary="Fix SQL injection - Critical security issue",
         )
-        ledger.save()
 
         # Step 3: 运行 registration gate（应判定为 tracked → PASS）
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -73,8 +70,8 @@ class TestRegistrationGateDefectLedgerIntegration:
         logger.close()
 
         # Step 2: 空台账（未登记）
-        ledger = DefectLedger(str(ledger_path))
-        ledger.save()
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # 不添加任何缺陷，台账为空
 
         # Step 3: 运行 registration gate（应判定为 unregistered → FAIL）
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -108,17 +105,15 @@ class TestRegistrationGateDefectLedgerIntegration:
         logger.close()
 
         # Step 2: 缺陷已关闭（closed 状态 = 回归）
-        ledger = DefectLedger(str(ledger_path))
-        defect_id = ledger.add(
-            title="Add documentation",
-            description="Documentation is missing",
-            severity="medium",
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        defect = ledger.add(
             signal_ref="audit:event=1&finding=0",
+            summary="Add documentation - Documentation is missing",
         )
+        defect_id = defect.id
         # 标记为 fixed 并关闭
-        ledger.update(defect_id, state="fixed")
-        ledger.close_defect(defect_id, verified_by="reviewer")
-        ledger.save()
+        ledger.update(defect_id, commit_sha="abc123", summary="Added documentation")
+        ledger.close(defect_id, run_ref="audit:event=2")
 
         # Step 3: 运行 registration gate（应判定为 regressed → FAIL）
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -156,15 +151,12 @@ class TestRegistrationGateD4DeadlockAvoidanceIntegration:
         logger.close()
 
         # 缺陷已修复（fixed）但未关闭
-        ledger = DefectLedger(str(ledger_path))
-        ledger.add(
-            title="Optimize performance",
-            description="Performance regression",
-            severity="high",
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        defect = ledger.add(
             signal_ref="audit:event=1&finding=0",
+            summary="Optimize performance - Performance regression",
         )
-        ledger.update(ledger.list_all()[0]["id"], state="fixed")
-        ledger.save()
+        ledger.update(defect.id, commit_sha="def456", summary="Optimized performance")
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -197,16 +189,11 @@ class TestRegistrationGateD4DeadlockAvoidanceIntegration:
         logger.close()
 
         # 台账状态：A=open, C=closed
-        ledger = DefectLedger(str(ledger_path))
-        ledger.add(
-            title="Fix Issue A", description="Tracked issue", severity="high", signal_ref="audit:event=1&finding=0"
-        )
-        defect_c = ledger.add(
-            title="Fix Issue C", description="Regressed issue", severity="medium", signal_ref="audit:event=1&finding=2"
-        )
-        ledger.update(defect_c, state="fixed")
-        ledger.close_defect(defect_c, verified_by="qa")
-        ledger.save()
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        ledger.add(signal_ref="audit:event=1&finding=0", summary="Fix Issue A - Tracked issue")
+        defect_c = ledger.add(signal_ref="audit:event=1&finding=2", summary="Fix Issue C - Regressed issue")
+        ledger.update(defect_c.id, commit_sha="ghi789", summary="Fixed Issue C")
+        ledger.close(defect_c.id, run_ref="audit:event=2")
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -242,8 +229,8 @@ class TestRegistrationGateAdvisoryReportIntegration:
         logger.close()
 
         # 空台账
-        ledger = DefectLedger(str(ledger_path))
-        ledger.save()
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # 不添加任何缺陷
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -277,8 +264,8 @@ class TestRegistrationGateEnvironmentBlockedIntegration:
         logger.close()
 
         # 台账（不应该有 environment_blocked 的缺陷）
-        ledger = DefectLedger(str(ledger_path))
-        ledger.save()
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # 环境阻断不需要登记缺陷
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
@@ -316,8 +303,8 @@ class TestRegistrationGateFeatureGateErrorAttributionIntegration:
         logger.close()
 
         # 未登记缺陷
-        ledger = DefectLedger(str(ledger_path))
-        ledger.save()
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        # feature_gate 失败未登记
 
         # 运行 registration gate
         config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
