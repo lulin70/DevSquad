@@ -379,13 +379,14 @@ Day 4:
 def test_cli_defect_full_lifecycle():
     """端到端：add → list → update → close"""
     result = subprocess.run(
-        ["python3", "scripts/cli.py", "defect", "add",
-         "--signal-ref", "audit:event=1", "--summary", "Test"],
-        capture_output=True, text=True, timeout=10
+        ["python3", "scripts/cli.py", "defect", "add", "--signal-ref", "audit:event=1", "--summary", "Test"],
+        capture_output=True,
+        text=True,
+        timeout=10,
     )
     assert result.returncode == 0
     defect_id = json.loads(result.stdout)["id"]
-    
+
     # list → update → close 依次验证
     ...
 ```
@@ -415,10 +416,7 @@ async def test_dashboard_login_and_dispatch(page):
 async def test_mcp_full_workflow():
     """MCP客户端 → server → dispatch → 结果"""
     async with MCPClient("stdio", ["python3", "-m", "scripts.mcp_server"]) as client:
-        result = await client.call_tool(
-            "multiagent_dispatch",
-            {"task": "Design auth system", "roles": ["architect"]}
-        )
+        result = await client.call_tool("multiagent_dispatch", {"task": "Design auth system", "roles": ["architect"]})
         assert result["success"] is True
 ```
 

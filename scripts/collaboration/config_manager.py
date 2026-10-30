@@ -278,12 +278,12 @@ class QualityControlConfig(BaseModel):
 
 class RegistrationGateConfig(BaseModel):
     """V4.9.0 W3: registration gate configuration.
-    
+
     Controls defect signal registration tracking.
     """
-    
+
     model_config = ConfigDict(extra="ignore")
-    
+
     enabled: bool = False
     audit_db_path: str = "dispatch_audit.db"
     ledger_path: str = ".devsquad/defects.json"
