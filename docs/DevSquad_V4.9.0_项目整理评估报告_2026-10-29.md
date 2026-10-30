@@ -379,7 +379,7 @@ Day 4:
 def test_cli_defect_full_lifecycle():
     """端到端：add → list → update → close"""
     result = subprocess.run(
-        ["python3", "scripts/cli.py", "defect", "add", 
+        ["python3", "scripts/cli.py", "defect", "add",
          "--signal-ref", "audit:event=1", "--summary", "Test"],
         capture_output=True, text=True, timeout=10
     )
