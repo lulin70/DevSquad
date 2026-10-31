@@ -25,6 +25,8 @@ class RoleMatcherProtocol(Protocol):
 class ReportFormatterProtocol(Protocol):
     """Protocol for the report_formatter field used by dispatcher mixins."""
 
+    def format_report(self, result: Any, output_style: str = "detailed") -> str: ...
+
     def format_structured_report(
         self, result: Any, include_action_items: bool = True, include_timing: bool = False
     ) -> str: ...
@@ -176,6 +178,19 @@ class DispatcherBase:
         raise NotImplementedError
 
     def _attach_audit_entries(self, result: DispatchResult) -> None:
+        raise NotImplementedError
+
+    # Result-enrichment helpers used by DispatcherResultMixin (V4.9.0).
+    def _populate_workflow_trace(self, result: DispatchResult, dry_run: bool) -> None:
+        raise NotImplementedError
+
+    def _activate_approval_gate(self, result: DispatchResult, approval_callback: Any | None) -> None:
+        raise NotImplementedError
+
+    def _activate_connector(self, result: DispatchResult) -> None:
+        raise NotImplementedError
+
+    def _activate_v440_modules(self, result: DispatchResult, task_description: str) -> None:
         raise NotImplementedError
 
     # V4.5.4 P12.3 — Module Fiber + Coeffect activation
