@@ -7,12 +7,54 @@ V4.9.0 W3 Registration Gate Integration Tests
 
 import pytest
 
-from scripts.collaboration.config_manager import RegistrationGateConfig
-from scripts.collaboration.defect_ledger import DefectLedger
+from scripts.collaboration.defect_ledger import DefectLedger, DefectLedgerError
 from scripts.collaboration.dispatch_audit import DispatchAuditLogger
-from scripts.collaboration.registration_gate import RegistrationGate
+from scripts.collaboration.registration_gate import (
+    RegistrationGate,
+    RegistrationGateResult,
+    unfiled_signal_report,
+)
+from scripts.collaboration.two_stage_review_gate import ReviewFinding, ReviewStage
 
 pytestmark = pytest.mark.integration
+
+# 一条确定性产品失败错误文本（不含环境阻断标记 → product_failed）
+_PRODUCT_FAILURE = {"success": False, "error": "worker failed: empty content"}
+
+
+def _finding(category: str, severity: str, stage: ReviewStage = ReviewStage.CODE_QUALITY) -> ReviewFinding:
+    """真实 ReviewFinding（BV 类别码放在 category）。"""
+    return ReviewFinding(
+        stage=stage,
+        severity=severity,
+        category=category,
+        description=f"review hit {category}",
+        file_path="api/routes/dispatch.py",
+        line_range="42",
+        suggestion=f"Review and fix {category}.",
+    )
+
+
+def _finding_dict(category: str, severity: str, stage: ReviewStage = ReviewStage.CODE_QUALITY) -> dict:
+    return _finding(category, severity, stage).to_dict()
+
+
+def _log_end(
+    logger: DispatchAuditLogger,
+    user_id: str,
+    *,
+    findings: list[dict] | None = None,
+    failure_class: str | None = None,
+    success: bool = False,
+) -> None:
+    """写一个真实的 dispatch_end 审计事件。"""
+    logger.log_dispatch_end(
+        user_id=user_id,
+        success=success,
+        duration=1.0,
+        findings=findings,
+        failure_class=failure_class,
+    )
 
 
 class TestRegistrationGateDefectLedgerIntegration:
@@ -23,112 +65,113 @@ class TestRegistrationGateDefectLedgerIntegration:
         audit_path = tmp_path / "tracked_audit.db"
         ledger_path = tmp_path / "tracked_defects.json"
 
-        # Step 1: 审计发现 critical break-vuln
-        logger = DispatchAuditLogger(str(audit_path))
+        # Step 1: 审计发现 critical BV 问题
+        logger = DispatchAuditLogger(audit_path)
         logger.log_dispatch_start("task-001", "mock", ["security"])
-        logger.log_dispatch_end(
-            task_id="task-001",
-            success=False,
-            findings={"break-vuln": ["SQL injection"]},
+        _log_end(
+            logger,
+            "task-001",
+            findings=[_finding_dict("VULN-1", "critical")],
             failure_class="product_failed",
         )
         logger.close()
 
-        # Step 2: 已登记缺陷（open 状态）
+        # Step 2: 已登记缺陷（open 状态），signal_ref 指向事件 2 的第 0 个 finding
         ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        ledger.add(
-            signal_ref="audit:event=1&finding=0",
-            summary="Fix SQL injection - Critical security issue",
-        )
+        ledger.add("audit:event=2&finding=0", "Fix SQL injection - Critical security issue")
 
         # Step 3: 运行 registration gate（应判定为 tracked → PASS）
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
+        gate = RegistrationGate()
+        result = gate.evaluate(
+            worker_results=None,
+            errors=None,
+            findings=[_finding("VULN-1", "critical")],
+            ledger_path=ledger_path,
+        )
 
-        result = gate.evaluate()
-
-        # 验证：三态判定为 tracked
-        assert result["verdict"] == "pass"
-        assert result["status"] == "tracked"
-        assert len(result["tracked_signals"]) == 1
-        assert "SQL injection" in result["tracked_signals"][0]
+        # 验证：三态判定为 tracked，且记录覆盖它的 DEF 号
+        assert result.verdict == "pass"
+        assert result.signals == [
+            {
+                "type": "review:break-vuln:VULN-1",
+                "status": "tracked",
+                "tracked_by": ["DEF-001"],
+                "closed_ids": [],
+            }
+        ]
+        assert result.violations == []
 
     def test_unregistered_signal_fail(self, tmp_path):
         """测试未登记信号失败（unregistered → FAIL）"""
         audit_path = tmp_path / "unreg_audit.db"
         ledger_path = tmp_path / "empty_defects.json"
 
-        # Step 1: 审计发现问题
-        logger = DispatchAuditLogger(str(audit_path))
+        # Step 1: 审计发现产品失败
+        logger = DispatchAuditLogger(audit_path)
         logger.log_dispatch_start("task-002", "mock", ["tester"])
-        logger.log_dispatch_end(
-            task_id="task-002",
-            success=False,
-            findings={"break-vuln": ["Unhandled exception"]},
+        _log_end(
+            logger,
+            "task-002",
+            findings=[_finding_dict("missing_test", "warning", ReviewStage.SPEC_COMPLIANCE)],
             failure_class="product_failed",
         )
         logger.close()
 
-        # Step 2: 空台账（未登记）
-        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # 不添加任何缺陷，台账为空（实例化确保文件存在）
-
-        # Step 3: 运行 registration gate（应判定为 unregistered → FAIL）
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
-
-        result = gate.evaluate()
+        # Step 2: 空台账（未登记；台账文件不存在即合法空台账）
+        gate = RegistrationGate()
+        result = gate.evaluate(
+            worker_results=[_PRODUCT_FAILURE],
+            errors=None,
+            findings=None,
+            ledger_path=ledger_path,
+        )
 
         # 验证：三态判定为 unregistered
-        assert result["verdict"] == "fail"
-        assert result["status"] == "unregistered"
-        assert len(result["unregistered_signals"]) == 1
-        assert "Unhandled exception" in result["unregistered_signals"][0]
+        assert result.verdict == "fail"
+        assert len(result.signals) == 1
+        assert result.signals[0]["type"] == "failure:product_failed"
+        assert result.signals[0]["status"] == "unregistered"
 
-        # 验证：提供 reopen 指引
-        assert "file a defect" in result["fail_reason"].lower()
+        # 验证：提供真实立案指引（design D6）
+        assert "no live DEF ticket" in result.violations[0]
+        assert "devsquad defect add" in result.violations[0]
 
     def test_regressed_signal_fail_with_reopen_guidance(self, tmp_path):
         """测试回归信号失败（regressed → FAIL）+ reopen 指引"""
         audit_path = tmp_path / "regressed_audit.db"
         ledger_path = tmp_path / "regressed_defects.json"
 
-        # Step 1: 审计发现问题
-        logger = DispatchAuditLogger(str(audit_path))
+        # Step 1: 事件 1 = 发现，事件 2 = 干净回归跑
+        logger = DispatchAuditLogger(audit_path)
         logger.log_dispatch_start("task-003", "mock", ["architect"])
-        logger.log_dispatch_end(
-            task_id="task-003",
-            success=False,
-            findings={"spec": ["Missing documentation"]},
-            failure_class="product_failed",
-        )
+        _log_end(logger, "task-003", findings=[], failure_class="product_failed")
+        _log_end(logger, "task-verify", success=True, failure_class="none")
         logger.close()
 
         # Step 2: 缺陷已关闭（closed 状态 = 回归）
         ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        defect = ledger.add(
-            signal_ref="audit:event=1&finding=0",
-            summary="Add documentation - Documentation is missing",
-        )
-        defect_id = defect.id
-        # 标记为 fixed 并关闭
-        ledger.update(defect_id, commit_sha="abc123", summary="Added documentation")
-        ledger.close(defect_id, run_ref="audit:event=2")
+        defect = ledger.add("audit:event=2&failure=product_failed", "Fix product failure")
+        ledger.update(defect.id, "abc123", "Fixed the product failure")
+        ledger.close(defect.id, "audit:event=3")
 
         # Step 3: 运行 registration gate（应判定为 regressed → FAIL）
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
-
-        result = gate.evaluate()
+        gate = RegistrationGate()
+        result = gate.evaluate(
+            worker_results=[_PRODUCT_FAILURE],
+            errors=None,
+            findings=None,
+            ledger_path=ledger_path,
+        )
 
         # 验证：三态判定为 regressed
-        assert result["verdict"] == "fail"
-        assert result["status"] == "regressed"
-        assert len(result["regressed_signals"]) == 1
+        assert result.verdict == "fail"
+        assert result.signals[0]["status"] == "regressed"
+        assert result.signals[0]["tracked_by"] == []
+        assert result.signals[0]["closed_ids"] == ["DEF-001"]
 
-        # 验证：提供 reopen 指引（D4 死锁规避）
-        assert "reopen" in result["fail_reason"].lower()
-        assert defect_id in result["regressed_signals"][0]
+        # 验证：提供 reopen 指引（D4 死锁规避），并点名已关闭的 DEF
+        assert "reopen" in result.violations[0]
+        assert "DEF-001" in result.violations[0]
 
 
 class TestRegistrationGateD4DeadlockAvoidanceIntegration:
@@ -139,74 +182,80 @@ class TestRegistrationGateD4DeadlockAvoidanceIntegration:
         audit_path = tmp_path / "fixed_audit.db"
         ledger_path = tmp_path / "fixed_defects.json"
 
-        # 审计发现问题
-        logger = DispatchAuditLogger(str(audit_path))
-        logger.log_dispatch_start("task-fixed", "mock", ["coder"])
-        logger.log_dispatch_end(
-            task_id="task-fixed",
-            success=False,
-            findings={"spec": ["Performance issue"]},
-            failure_class="product_failed",
-        )
+        logger = DispatchAuditLogger(audit_path)
+        _log_end(logger, "task-fixed", findings=[], failure_class="product_failed")
         logger.close()
 
         # 缺陷已修复（fixed）但未关闭
         ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        defect = ledger.add(
-            signal_ref="audit:event=1&finding=0",
-            summary="Optimize performance - Performance regression",
-        )
-        ledger.update(defect.id, commit_sha="def456", summary="Optimized performance")
+        defect = ledger.add("audit:event=1&failure=product_failed", "Optimize performance - Performance regression")
+        ledger.update(defect.id, "def456", "Optimized performance")
 
         # 运行 registration gate
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
-
-        result = gate.evaluate()
+        result = RegistrationGate().evaluate(
+            worker_results=[_PRODUCT_FAILURE],
+            errors=None,
+            findings=None,
+            ledger_path=ledger_path,
+        )
 
         # 验证：fixed 状态算 tracked → PASS（避免死锁）
-        assert result["verdict"] == "pass"
-        assert result["status"] == "tracked"
-        # run 仍然失败（success=False），但 gate 不阻止
+        assert result.verdict == "pass"
+        assert result.signals[0]["status"] == "tracked"
+        assert result.signals[0]["tracked_by"] == ["DEF-001"]
+        # run 仍然失败（worker 自身失败），但 gate 不阻止
 
     def test_multiple_states_classification(self, tmp_path):
         """测试多信号分类：tracked + unregistered + regressed 混合"""
         audit_path = tmp_path / "multi_audit.db"
         ledger_path = tmp_path / "multi_defects.json"
 
-        # 审计发现三个问题
-        logger = DispatchAuditLogger(str(audit_path))
+        # 事件 1 = 发现（两个 BV critical + product_failed），事件 2 = 干净回归跑
+        logger = DispatchAuditLogger(audit_path)
         logger.log_dispatch_start("task-multi", "mock", ["tester"])
-        logger.log_dispatch_end(
-            task_id="task-multi",
-            success=False,
-            findings={
-                "break-vuln": ["Issue A"],  # 已登记（open）
-                "spec": ["Issue B", "Issue C"],  # B未登记，C已关闭
-            },
+        _log_end(
+            logger,
+            "task-multi",
+            findings=[
+                _finding_dict("VULN-1", "critical"),
+                _finding_dict("BREAK-1", "critical"),
+            ],
             failure_class="product_failed",
         )
+        _log_end(logger, "task-verify", success=True, failure_class="none")
         logger.close()
 
-        # 台账状态：A=open, C=closed
+        # 台账状态：VULN-1=open（tracked），BREAK-1=closed（regressed），
+        # failure:product_failed 未登记（unregistered）
         ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        ledger.add(signal_ref="audit:event=1&finding=0", summary="Fix Issue A - Tracked issue")
-        defect_c = ledger.add(signal_ref="audit:event=1&finding=2", summary="Fix Issue C - Regressed issue")
-        ledger.update(defect_c.id, commit_sha="ghi789", summary="Fixed Issue C")
-        ledger.close(defect_c.id, run_ref="audit:event=2")
+        ledger.add("audit:event=2&finding=0", "Fix Issue A - Tracked issue")
+        defect_b = ledger.add("audit:event=2&finding=1", "Fix Issue B - Regressed issue")
+        ledger.update(defect_b.id, "ghi789", "Fixed Issue B")
+        ledger.close(defect_b.id, "audit:event=3")
 
         # 运行 registration gate
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
-
-        result = gate.evaluate()
+        result = RegistrationGate().evaluate(
+            worker_results=[_PRODUCT_FAILURE],
+            errors=None,
+            findings=[_finding("VULN-1", "critical"), _finding("BREAK-1", "critical")],
+            ledger_path=ledger_path,
+        )
 
         # 验证：有 unregistered 和 regressed → FAIL
-        assert result["verdict"] == "fail"
+        assert result.verdict == "fail"
+        assert result.to_dict()["summary"] == {
+            "mandatory": 3,
+            "tracked": 1,
+            "unregistered": 1,
+            "regressed": 1,
+        }
+
         # 验证：分类正确
-        assert len(result["tracked_signals"]) == 1  # Issue A
-        assert len(result["unregistered_signals"]) == 1  # Issue B
-        assert len(result["regressed_signals"]) == 1  # Issue C
+        by_type = {signal["type"]: signal for signal in result.signals}
+        assert by_type["review:break-vuln:VULN-1"]["status"] == "tracked"
+        assert by_type["failure:product_failed"]["status"] == "unregistered"
+        assert by_type["review:break-vuln:BREAK-1"]["status"] == "regressed"
+        assert by_type["review:break-vuln:BREAK-1"]["closed_ids"] == ["DEF-002"]
 
 
 class TestRegistrationGateAdvisoryReportIntegration:
@@ -217,36 +266,40 @@ class TestRegistrationGateAdvisoryReportIntegration:
         audit_path = tmp_path / "advisory_audit.db"
         ledger_path = tmp_path / "advisory_defects.json"
 
-        # 审计发现 warning 和 spec（非强制）
-        logger = DispatchAuditLogger(str(audit_path))
-        logger.log_dispatch_start("task-advisory", "mock", ["coder"])
-        logger.log_dispatch_end(
-            task_id="task-advisory",
-            success=True,  # 成功，但有建议
-            findings={"warning": ["Code smell in utils.py"], "spec": ["Missing edge case test"]},
-            failure_class=None,
+        # 审计发现 warning 和 spec（非强制：非 BV-critical）
+        logger = DispatchAuditLogger(audit_path)
+        _log_end(
+            logger,
+            "task-advisory",
+            findings=[
+                _finding_dict("BREAK-2", "warning"),
+                _finding_dict("missing_edge_case", "warning", ReviewStage.SPEC_COMPLIANCE),
+            ],
+            success=True,
         )
         logger.close()
 
-        # 空台账
-        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # 不添加任何缺陷（实例化确保文件存在）
+        # 空台账，运行 registration gate
+        result = RegistrationGate().evaluate(
+            worker_results=None,
+            errors=None,
+            findings=None,
+            ledger_path=ledger_path,
+        )
 
-        # 运行 registration gate
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
+        # 验证：advisory 不改 verdict（仍为 pass，且无强制信号）
+        assert result.verdict == "pass"
+        assert result.signals == []
 
-        result = gate.evaluate()
-
-        # 验证：advisory 不改 verdict（仍为 pass）
-        assert result["verdict"] == "pass"
-
-        # 验证：unfiled_signal_report 中列出建议
-        assert "unfiled_signal_report" in result
-        advisory = result["unfiled_signal_report"]
+        # 验证：unfiled_signal_report 列出建议（独立 advisory API，不进 gate 结果）
+        advisory, warnings = unfiled_signal_report(ledger_path=ledger_path, audit_db_path=audit_path)
+        assert warnings == []
         assert len(advisory) == 2
-        assert any("Code smell" in sig for sig in advisory)
-        assert any("Missing edge case" in sig for sig in advisory)
+        assert {item["type"] for item in advisory} == {
+            "review:break-vuln:BREAK-2",
+            "review:spec:missing_edge_case",
+        }
+        assert all(item["seen_count"] == 1 for item in advisory)
 
 
 class TestRegistrationGateEnvironmentBlockedIntegration:
@@ -258,26 +311,26 @@ class TestRegistrationGateEnvironmentBlockedIntegration:
         ledger_path = tmp_path / "blocked_defects.json"
 
         # 审计记录环境阻断
-        logger = DispatchAuditLogger(str(audit_path))
-        logger.log_dispatch_start("task-blocked", "mock", ["devops"])
-        logger.log_dispatch_end(task_id="task-blocked", success=False, findings={}, failure_class="environment_blocked")
+        logger = DispatchAuditLogger(audit_path)
+        _log_end(logger, "task-blocked", findings=[], failure_class="environment_blocked")
         logger.close()
 
-        # 台账（不应该有 environment_blocked 的缺陷）
-        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # 环境阻断不需要登记缺陷（实例化确保文件存在）
-
-        # 运行 registration gate
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
-
-        result = gate.evaluate()
+        # 运行 registration gate：环境阻断不产生强制信号
+        result = RegistrationGate().evaluate(
+            worker_results=[{"success": False, "error": "APIConnectionError: connection refused"}],
+            errors=None,
+            findings=None,
+            ledger_path=ledger_path,
+        )
 
         # 验证：environment_blocked 不要求登记 → PASS
-        # （或根据设计返回 blocked 状态）
-        # 根据 PRD §4.2，environment_blocked 拒绝立案
-        assert result["verdict"] in ["pass", "blocked"]
-        # 不应有 unregistered_signals（因为环境问题不算产品缺陷）
+        assert result.verdict == "pass"
+        assert result.signals == []
+
+        # 验证：台账层面拒绝 environment_blocked 立案（PRD §4.2）
+        ledger = DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
+        with pytest.raises(DefectLedgerError, match="environment_blocked"):
+            ledger.add("audit:event=1&failure=environment_blocked", "Environment issue")
 
 
 class TestRegistrationGateFeatureGateErrorAttributionIntegration:
@@ -288,35 +341,36 @@ class TestRegistrationGateFeatureGateErrorAttributionIntegration:
         audit_path = tmp_path / "fgate_audit.db"
         ledger_path = tmp_path / "fgate_defects.json"
 
-        # 模拟 dispatch 失败：feature_gate 验证失败
-        logger = DispatchAuditLogger(str(audit_path))
-        logger.log_dispatch_start("task-fgate", "mock", ["architect"])
-        logger.log_dispatch_end(
-            task_id="task-fgate",
-            success=False,
-            findings={
-                # feature_gate 错误文本被归因为产品缺陷
-                "spec": ["Feature gate verification failed: T1 did not pass"]
-            },
+        # 模拟 dispatch 失败：feature_gate 验证失败被归因为产品缺陷
+        logger = DispatchAuditLogger(audit_path)
+        _log_end(
+            logger,
+            "task-fgate",
+            findings=[_finding_dict("feature_gate_failure", "critical", ReviewStage.SPEC_COMPLIANCE)],
             failure_class="product_failed",
         )
         logger.close()
 
         # 未登记缺陷
-        DefectLedger(ledger_path=ledger_path, audit_db_path=audit_path)
-        # feature_gate 失败未登记（实例化确保文件存在）
+        result = RegistrationGate().evaluate(
+            worker_results=[{"success": False, "error": "Feature gate gap: T1 did not pass"}],
+            errors=None,
+            findings=None,
+            ledger_path=ledger_path,
+        )
 
-        # 运行 registration gate
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
+        # 验证：feature_gate 失败被识别为 product_failed 且未登记 → FAIL
+        assert result.verdict == "fail"
+        assert result.signals[0]["type"] == "failure:product_failed"
+        assert result.signals[0]["status"] == "unregistered"
+        assert "devsquad defect add" in result.violations[0]
 
-        result = gate.evaluate()
-
-        # 验证：feature_gate 失败应被识别为 unregistered → FAIL
-        assert result["verdict"] == "fail"
-        assert result["status"] == "unregistered"
-        assert len(result["unregistered_signals"]) == 1
-        assert "Feature gate" in result["unregistered_signals"][0]
+        # 验证：立案依据（findings/failure_class）已落在真实审计事件里
+        verifier = DispatchAuditLogger(audit_path)
+        ends = verifier.query(event_type="dispatch_end")
+        assert ends[0].details["failure_class"] == "product_failed"
+        assert ends[0].details["findings"][0]["category"] == "feature_gate_failure"
+        verifier.close()
 
 
 class TestRegistrationGatePersistenceIntegration:
@@ -328,28 +382,29 @@ class TestRegistrationGatePersistenceIntegration:
         ledger_path = tmp_path / "corrupt_defects.json"
 
         # 创建有效审计
-        logger = DispatchAuditLogger(str(audit_path))
-        logger.log_dispatch_start("task-corrupt", "mock", ["tester"])
-        logger.log_dispatch_end(
-            task_id="task-corrupt",
-            success=False,
-            findings={"break-vuln": ["Critical issue"]},
+        logger = DispatchAuditLogger(audit_path)
+        _log_end(
+            logger,
+            "task-corrupt",
+            findings=[_finding_dict("VULN-1", "critical")],
             failure_class="product_failed",
         )
         logger.close()
 
         # 创建损坏的台账文件
-        ledger_path.write_text("{ invalid json }")
+        ledger_path.write_text("{ invalid json }", encoding="utf-8")
 
-        # 运行 registration gate（应 fail-closed）
-        config = RegistrationGateConfig(enabled=True, audit_db_path=str(audit_path), ledger_path=str(ledger_path))
-        gate = RegistrationGate(config)
+        # 运行 registration gate（应 fail-closed：抛错而不是静默放行）
+        gate = RegistrationGate()
+        with pytest.raises(DefectLedgerError, match="not valid JSON"):
+            gate.evaluate(
+                worker_results=[_PRODUCT_FAILURE],
+                errors=None,
+                findings=[_finding("VULN-1", "critical")],
+                ledger_path=ledger_path,
+            )
 
-        result = gate.evaluate()
-
-        # 验证：损坏台账 = 不能证明登记 = FAIL
-        assert result["verdict"] == "fail"
-        assert (
-            "ledger" in result.get("fail_reason", "").lower()
-            or "cannot verify" in result.get("fail_reason", "").lower()
-        )
+        # 验证：mixin 的转换结果仍是 FAIL（不能证明登记 = FAIL）
+        converted = RegistrationGateResult.internal_error("ledger is not valid JSON")
+        assert converted.verdict == "fail"
+        assert converted.error is not None
