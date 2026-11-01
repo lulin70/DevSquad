@@ -1,5 +1,5 @@
 # ============ Stage 1: Builder ============
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 
 WORKDIR /build
 
@@ -8,7 +8,7 @@ COPY pyproject.toml scripts/ skills/ ./
 RUN pip install --no-cache-dir --prefix=/install .[all]
 
 # ============ Stage 2: Production Runtime ============
-FROM python:3.12-slim AS runtime
+FROM python:3.15-slim AS runtime
 
 ARG VERSION=4.9.0
 
