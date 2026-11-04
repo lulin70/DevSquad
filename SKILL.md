@@ -53,20 +53,23 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | **UI Designer** | Interface design, interaction prototypes, design systems, accessibility | UX design, frontend UI, accessibility |
 | **PM** | Requirements analysis, PRD writing, user stories, competitive analysis, acceptance criteria | Feature planning, roadmap, requirements |
 
-**V5.1.0 Quality Gates**: SimplicityRole (S1 Gate) validates implementation completeness — detects mocks in production, missing design elements, incomplete tests, unprotected I/O, and missing security features. Not a collaboration role but a quality gate integrated before S2 gates (CRAP/Duplication).
+**V5.1.0 Quality Gates**:
+- **S1 Gate (ImplementationCompletenessGate)**: Executes first in SimplicityRole's `activate()` method, validates implementation completeness (detects mocks in production, missing design elements, incomplete tests, unprotected I/O, missing security features)
+- **S2 Gates (CRAP/Duplication)**: Execute after S1 Gate, check code complexity and duplication
+- SimplicityRole is not a collaboration role but a quality gate executor
 
 ### 11-Phase Project Lifecycle
 
 DevSquad supports complete project lifecycle management:
 
 ```
-P0: Research → P1: Requirements → P2: PRD → P3: Technical Design
-→ P4: API Spec → P5: Database Schema → P6: Test Data
-→ P7: Test Plan → P8: Implementation → P9: Enhancement
-→ P10: Maintenance → P11: Retrospective
+P1: Requirements → P2: Architecture → P3: Implementation
+→ P4: Review → P5: Integration → P6: Security
+→ P7: Test Planning → P8: Optimization → P9: Retrospective  
+→ P10: Delivery → P11: Monitoring
 ```
 
-Each phase triggers appropriate role combinations and validation gates.
+Each phase triggers appropriate role combinations and validation gates. S1 Gate (ImplementationCompletenessGate) primarily activates during P8 (Implementation) phase.
 
 ### Comparison: Single AI vs DevSquad
 

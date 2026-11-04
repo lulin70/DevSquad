@@ -18,7 +18,7 @@ description: |
   📚 完整版本历史 → docs/reference/VERSION_HISTORY.md
 ---
 
-# DevSquad V5.1.0 — Multi-Role AI Task Orchestrator
+# DevSquad V5.1.0 — 多角色 AI 任务编排器
 
 ## 🎯 一句话理解（3 秒）
 
@@ -53,20 +53,23 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 | **UI Designer（UI设计师）** | 界面设计、交互原型、设计系统、可访问性 | UX 设计、前端 UI、可访问性 |
 | **PM（产品经理）** | 需求分析、PRD 编写、用户故事、竞品分析、验收标准 | 功能规划、路线图、需求 |
 
-**V5.1.0 质量门控**：SimplicityRole（S1 Gate）验证实现完整性——检测生产代码中的 mock、缺失设计元素、不完整测试、未保护 I/O 和缺失安全功能。不是协作角色,而是集成在 S2 门控（CRAP/重复度）之前的质量门控。
+**V5.1.0 质量门控**：
+- **S1 Gate (ImplementationCompletenessGate)**：在 SimplicityRole 的 `activate()` 方法中首先执行，验证实现完整性（检测生产代码中的 mock、缺失设计元素、不完整测试、未保护 I/O、缺失安全功能）
+- **S2 Gates (CRAP/Duplication)**：在 S1 Gate 之后执行，检查代码复杂度和重复度
+- SimplicityRole 不是协作角色，而是质量门控执行器
 
 ### 11 阶段项目生命周期
 
 DevSquad 支持完整的项目生命周期管理：
 
 ```
-P0: 调研 → P1: 需求 → P2: PRD → P3: 技术设计
-→ P4: API 规范 → P5: 数据库架构 → P6: 测试数据
-→ P7: 测试计划 → P8: 实现 → P9: 增强
-→ P10: 维护 → P11: 回顾
+P1: 需求 → P2: 架构 → P3: 实现
+→ P4: 评审 → P5: 集成 → P6: 安全
+→ P7: 测试规划 → P8: 优化 → P9: 回顾  
+→ P10: 交付 → P11: 监控
 ```
 
-每个阶段触发适当的角色组合和验证门控。
+每个阶段触发适当的角色组合和验证门控。S1 Gate（ImplementationCompletenessGate）主要在 P8（实现）阶段激活。
 
 ### 对比：单 AI vs DevSquad
 
