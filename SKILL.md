@@ -42,18 +42,18 @@ description: |
   V4.3.2: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe + role-specific mock backend).
 ---
 
-# DevSquad V4.9.0 — Multi-Role AI Task Orchestrator
+# DevSquad V5.1.0 — Multi-Role AI Task Orchestrator
 
-## 🎯 一句话理解（3 秒）
+## 🎯 Quick Understanding (3 Seconds)
 
-**DevSquad = 把「单个 AI 助手」升级成「7 人 AI 专业团队」**
+**DevSquad = Upgrade "Single AI Assistant" to "7-Person AI Professional Team"**
 
 ```
-传统 AI:  你 ──→ ChatGPT ──→ 一个回答（可能不全面）
-DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] ──→ 多维度共识结论
+Traditional AI:  You ──→ ChatGPT ──→ One answer (may be incomplete)
+DevSquad:        You ──→ DevSquad ──→ [Architect+Security+Test+Dev...] ──→ Multi-dimensional consensus
 ```
 
-## ⚡ 核心工作流（30 秒）
+## ⚡ Core Workflow (30 Seconds)
 
 ### Core Positioning
 
@@ -65,33 +65,33 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
-### 对比：单 AI vs DevSquad
+### Comparison: Single AI vs DevSquad
 
-| 维度 | 单个 AI (ChatGPT/Claude) | DevSquad |
+| Dimension | Single AI (ChatGPT/Claude) | DevSquad |
 |------|---------------------------|----------|
-| 视角 | 一个角色回答 | **按任务匹配多个专业角色** |
-| 质量 | 可能遗漏安全/测试 | **多维度交叉验证** |
-| 可追溯 | 无 | **完整审计链 (SHA256)** |
-| 适用场景 | 简单问答 | **复杂工程任务** |
+| Perspective | Single role answer | **Task-matched multiple professional roles** |
+| Quality | May miss security/testing | **Multi-dimensional cross-validation** |
+| Traceability | None | **Complete audit chain (SHA256)** |
+| Use Case | Simple Q&A | **Complex engineering tasks** |
 
-### 最快上手（5 分钟）
+### Quickest Start (5 Minutes)
 
 ```bash
-# 安装
+# Install
 pip install devsquad
 
-# 运行 - 让 AI 团队帮你设计认证系统
-devsquad run "设计一个安全的用户认证系统" --roles architect security tester coder
+# Run - Let AI team design authentication system for you
+devsquad run "Design a secure user authentication system" --roles architect security tester coder
 
-# 输出结构化报告：
-# ✅ 架构师建议：采用 JWT + Refresh Token 方案...
-# ✅ 安全专家审查：需防范 CSRF、XSS、SQL 注入...
-# ✅ 测试策略：单元测试覆盖率达 90%+...
-# ✅ 开发实现：提供完整代码框架...
-# 📊 共识结论：方案可行，风险可控...
+# Output structured report:
+# ✅ Architect recommendation: Adopt JWT + Refresh Token approach...
+# ✅ Security expert review: Guard against CSRF, XSS, SQL injection...
+# ✅ Test strategy: Unit test coverage 90%+...
+# ✅ Development implementation: Complete code framework provided...
+# ✅ Consensus conclusion: Approach viable, risks controlled...
 ```
 
-📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
+📚 **Complete Quick Start Guide** → [QUICKSTART.md](QUICKSTART.md)
 
 ## Reference Documentation
 
