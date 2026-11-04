@@ -4,7 +4,7 @@ slug: devsquad
 version: 5.1.0
 description: |
   DevSquad V5.1.0 — Multi-Role AI Orchestration Skill.
-  Not a single-capability tool: coordinates 8 available roles + 8 atomic sub-skills
+  Not a single-capability tool: coordinates 7 available roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → task-matched multi-role collaboration → consensus conclusion.
   
@@ -22,7 +22,7 @@ description: |
 
 ## 🎯 Quick Understanding (3 Seconds)
 
-**DevSquad = Upgrade "Single AI Assistant" to "8-Person AI Professional Team"**
+**DevSquad = Upgrade "Single AI Assistant" to "7-Role AI Professional Team"**
 
 ```
 Traditional AI:  You ──→ ChatGPT ──→ One answer (may be incomplete)
@@ -41,20 +41,19 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
-### 8 Available Roles
+### 7 Available Roles
 
 | Role | Responsibility | When to Activate |
 |------|----------------|------------------|
-| **Architect** | System design, architecture patterns, scalability | System design, architecture review |
-| **Security** | Security audit, vulnerability detection, compliance | Security-sensitive features, code review |
-| **Tester** | Test strategy, coverage analysis, quality assurance | Test planning, QA validation |
-| **Coder** | Implementation, code generation, refactoring | Coding tasks, bug fixes |
-| **Reviewer** | Code review, best practices, maintainability | PR review, code quality checks |
-| **Documenter** | Documentation, API specs, user guides | Documentation tasks |
-| **PM** | Requirements analysis, prioritization, stakeholder alignment | Feature planning, roadmap |
-| **Simplicity** ⭐ | Implementation completeness validation, anti-shortcut detection | Before S2 gates (CRAP/Duplication), P8 implementation phase |
+| **Architect** | System design, tech stack, API design, performance/security/data architecture | System design, architecture review |
+| **Security** | Threat modeling, vulnerability audit, OWASP Top 10, auth/data security, compliance | Security-sensitive features, code review |
+| **Tester** | Test strategy, automated testing, quality assurance, defect tracking | Test planning, QA validation |
+| **Coder** | Implementation, code review, performance optimization, refactoring, bug fixes | Coding tasks, bug fixes, optimization |
+| **DevOps** | CI/CD pipeline, containerization (Docker/K8s), IaC, monitoring, deployment strategies | Infrastructure, deployment, monitoring |
+| **UI Designer** | Interface design, interaction prototypes, design systems, accessibility | UX design, frontend UI, accessibility |
+| **PM** | Requirements analysis, PRD writing, user stories, competitive analysis, acceptance criteria | Feature planning, roadmap, requirements |
 
-**⭐ V5.1.0 New Role**: Simplicity detects AI implementation shortcuts (mocks in production, missing design elements, incomplete tests, unprotected I/O, missing security features) with weighted scoring and progressive rollout.
+**V5.1.0 Quality Gates**: SimplicityRole (S1 Gate) validates implementation completeness — detects mocks in production, missing design elements, incomplete tests, unprotected I/O, and missing security features. Not a collaboration role but a quality gate integrated before S2 gates (CRAP/Duplication).
 
 ### 11-Phase Project Lifecycle
 
