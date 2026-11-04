@@ -57,7 +57,7 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 
 ### いつDevSquadを使うべきか？
 
-| あなたのニーズ | 推奨方案 |
+| あなたのニーズ | 推奨ソリューション |
 |---------|---------|
 | 簡単なQ&A（"Python で for ループをどう書く？"） | ChatGPT/Claudeを直接使用 ✅ |
 | コードスニペットレビュー | DevSquad 単一ロールモード ✅ |
@@ -652,10 +652,10 @@ python3 -m pytest tests/ -q --tb=line
 | [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
 | [docs/prd/V4.6.1_cleanup_PRD.md](docs/prd/V4.6.1_cleanup_PRD.md) | 製品要件ドキュメント | 中文 |
 | [docs/architecture/ARCHITECTURE_V4.md](docs/architecture/ARCHITECTURE_V4.md) | 技術アーキテクチャドキュメント | 中文 |
-| [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 統一推進方案 v1.2（7-Role コンセンサス達成） | 中文 |
+| [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 統一推進計画 v1.2（7-Role コンセンサス達成） | 中文 |
 | [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（要件/ユーザーストーリー/受け入れ基準） | 中文 |
 | [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 アーキテクチャ設計（モジュール境界/インターフェース契約/依存グラフ） | 中文 |
-| [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 テスト方案（テストピラミッド/E2E/実ユーザーシミュレーション） | 中文 |
+| [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 テスト計画（テストピラミッド/E2E/実ユーザーシミュレーション） | 中文 |
 
 ---
 

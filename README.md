@@ -1,7 +1,7 @@
 # DevSquad — Multi-Role AI Task Orchestrator
 
 <p align="center">
-  <strong>🎯 把「单个 AI 助手」升级成「多角色 AI 专业团队」</strong>
+  <strong>🎯 Upgrade "Single AI Assistant" to "Multi-Role AI Professional Team"</strong>
   <br>
   <em>One task → Multi-role AI collaboration → One conclusion | V5.1.0 (ImplementationCompletenessGate (S1 Gate) MINOR: Prevents AI implementation shortcuts by detecting mocks in production code (20% weight), missing classes/functions from P3 design docs (25%), missing test cases from P7 test plans (25%), unprotected I/O operations (15%), and missing security features (15%). Integrated into SimplicityRole before S2 gates (CRAP/Duplication). Weighted scoring with thresholds: ≥0.95 PASS, 0.90-0.95 WARNING, <0.90 REJECT. Progressive rollout: Shadow mode (Day 0-6), Soft mode (Day 7-13), Full mode (Day 14+). 91 tests (100% pass), test pyramid: 74% unit, 20% integration, 6% E2E. Anti-ghost verification via activation counters, production integration in SimplicityRole, user-visible Markdown output. P9 enhancements: concurrent file access (AC-007), large-scale PR performance 1000+ files <30s (AC-009), internationalization Unicode/CJK/emoji paths (AC-008). PRD: docs/prd/DevSquad-V5.1-ImplementationCompletenessGate-P2-PRD.md, Technical Design: P3, Test Plan: P7, Implementation Summary: P8. SemVer MINOR (new feature, backward compatible)) | V4.9.0 (defect-ledger MINOR: W1 defect ledger core — SQLite closed state machine open|fixed|closed with atomic writes and fail-closed load, signal_ref resolution contract, `defect` CLI six subcommands; W2 signal write-side — log_dispatch_end findings/failure_class extension, terminal-state wiring, Step 24 C19 recompute, PRD §4.2 mapping table; W3 registration gate — fail-closed mandatory-signal three-state tracking (tracked/unregistered/regressed), advisory unfiled-signal report, `.devsquad.yaml` switch; W4 feature gate — SHA256-anchored acceptance checklist, live pass/fail/waived coverage matrix, tamper detection, default off with zero trace; PRs #71/#76/#77/#80/#81/#83/#84) | V4.8.2 (gate-fix PATCH: print_debug false positives on the CLI command family found by dogfooding the gate on PR #71 — a print statement to stdout is the product interface of scripts/cli*.py, not debug residue; the diff scanner now exempts the CLI output layer for print_debug only, while secrets/eval/SQL-injection families stay fully covered in those files; PR #72) | V4.8.1 (gate-fix PATCH: F-D1 found by dogfooding the gate on this repo — diff pattern findings now honor the deterministic path gates: include/exclude and default excludes bind the diff scan, trailing /** restores gitignore directory semantics, secrets stay checked in all retained paths while code smells are limited to source-kind files; PR #62) | V4.8.0 (workflow-entry MINOR: QUICKSTART rewritten as three persona channels — IDE/MCP zero-key, CLI init branching with backend detection, maintainer wrapper workflow; doc_command gate keeps all 36 documented CLI commands true to the argparse registry; MCP integration guide as single source of truth; dogfooding quarterly report generator; TD-076 mcp>=1,<2 constraint; E1 consumer audit adjudicated — live-browser removed, impeccable vocabulary wired into `doctor --command`) | V4.7.2 (hygiene PATCH: six stale version strings removed from user-visible surfaces, negative stale-string gate scan, PROJECT_STATUS refreshed to release reality, api perf baseline measured) | V4.7.1 (release-integrity PATCH: PyPI devsquad entry point fixed — the scripts/cli/ package that shadowed cli.py removed, defusedxml dependency declared, release-gate e2e marker restored) | V4.7.0 (W1 delivered deterministic BREAK/VULN ten-category review taxonomy, C20, reverse gate, real review-gate subprocess E2E, and simulated real-user validation; MINOR; released as tag v4.7.0) | V4.6.0 (E2E-inspired testing infrastructure MINOR: LLM replay cache for PR CI — first real call records, later PRs replay near-zero cost; failure taxonomy product_failed/environment_blocked with exit 2; independent judge semantic assertions; e2e failure auto-comment on PRs) | V4.5.24 (CI-gate PATCH: dispatcher size baseline gate now also runs in PR CI) | V4.5.23 (Governance + root-cause PATCH: CI lint tools read from requirements-dev.lock at run time — fourth Dependabot-blind version copy eliminated; 8 GitHub Actions SHA-pinned + `.github/CODEOWNERS`; `:memory:` repo-root directory root-caused to `LLMCache(":memory:")` mkdir and fixed per SQLite convention in LLMCache/AsyncLLMCache) | V4.5.22 (Backend-config PATCH: gitignored `moka_ai.json` feeds the auto chain's Moka candidate as lowest-priority source — kwargs > env > file — restoring design order Moka → OpenAI(DeepSeek) → Anthropic; conftest autouse fixture isolates maintainer-local credentials from tests; `_build_api_backends` decomposed into per-provider builders after radon cc flagged D) | V4.5.21 (Security + toolchain PATCH: Dependabot vuln closure, branch-protection bypass tightening, CI least-privilege; ruff 0.16.10/mypy 2.4.0 aligned across lock + pre-commit + CI pins; flaky hardening — min-of-3 latency sampling, host-bridge fuse E2E warm-up; `enable_anchor_check=False` factory fix) | V4.5.20 (Version-SSOT truth + deterministic review bundling MINOR: `--mode review --changeset` wired to real bundling, sub-skill manifest gate closed, anti-ghost production probe) | V4.5.19 (Flaky-test cleanup: dashboard latency gate → 5-run median + pytest-rerunfailures) | V4.5.18 (Perf-extension: SQLite PRAGMA to ccr_store/history_manager + SkillRegistry thread-safety hotfix) | V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badge 9400+/211+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation) | V4.5.9 (Unified Gather Execution Core + Native Async Worker: 执行层统一 gather 化 + Worker 原生异步) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills)</em>
 </p>
@@ -18,58 +18,58 @@
 
 ---
 
-## 📖 太长不看？先看这个（30 秒）
+## 📖 TL;DR? Start Here (30 Seconds)
 
-### DevSquad 是什么？
+### What is DevSquad?
 
-**DevSquad** 是一个多角色 AI 任务编排器。当你提交一个任务时，它不再是单个 AI 回答，而是按任务匹配多个专业角色协作，最后给出经过多方审核的结论。
+**DevSquad** is a multi-role AI task orchestrator. When you submit a task, instead of getting a single AI response, it matches multiple specialized roles to collaborate and delivers a conclusion reviewed by multiple perspectives.
 
 ```
-传统 AI:  你 ──→ ChatGPT ──→ 一个回答（可能不全面）
-DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] ──→ 多维度共识结论
+Traditional AI:  You ──→ ChatGPT ──→ One answer (may be incomplete)
+DevSquad:        You ──→ DevSquad ──→ [Architect+Security+Test+Dev...] ──→ Multi-dimensional consensus
 ```
 
-### 核心优势（对比单 AI）
+### Core Advantages (vs. Single AI)
 
-| 痛点 | 传统单 AI | DevSquad |
+| Pain Point | Traditional Single AI | DevSquad |
 |------|----------|----------|
-| **视角单一** | 只有通用视角 | 按任务匹配多个专业角色协作 ✅ |
-| **质量不可控** | 可能遗漏安全问题 | 多维度交叉验证 + 共识机制 ✅ |
-| **无审计追踪** | 不知道回答依据什么 | 完整审计链 + SHA256 完整性校验 ✅ |
-| **复杂任务崩溃** | 长任务容易丢失上下文 | Checkpoint 断点续传 + 工作流引擎 ✅ |
+| **Single Perspective** | Generic viewpoint only | Task-matched multi-role collaboration ✅ |
+| **Uncontrolled Quality** | May miss security issues | Multi-dimensional cross-validation + consensus ✅ |
+| **No Audit Trail** | Unknown answer basis | Complete audit chain + SHA256 integrity ✅ |
+| **Complex Task Failure** | Long tasks lose context | Checkpoint resume + workflow engine ✅ |
 
-### 最快上手（5 分钟）
+### Quickest Start (5 Minutes)
 
 ```bash
-# 安装
+# Install
 pip install devsquad
 
-# 运行 - 让 AI 团队帮你设计认证系统
-devsquad run "设计一个安全的用户认证系统" --roles architect security tester coder
+# Run - Let AI team design authentication system
+devsquad run "Design a secure user authentication system" --roles architect security tester coder
 
-# 输出结构化报告：
-# ✅ 架构师建议：采用 JWT + Refresh Token 方案...
-# ✅ 安全专家审查：需防范 CSRF、XSS、SQL 注入...
-# ✅ 测试策略：单元测试覆盖率达 90%+...
-# ✅ 开发实现：提供完整代码框架...
-# 📊 共识结论：方案可行，风险可控...
+# Output structured report:
+# ✅ Architect recommendation: Adopt JWT + Refresh Token approach...
+# ✅ Security expert review: Guard against CSRF, XSS, SQL injection...
+# ✅ Test strategy: Unit test coverage 90%+...
+# ✅ Development implementation: Complete code framework provided...
+# ✅ Consensus conclusion: Approach viable, risks controlled...
 ```
 
-### 什么时候用 DevSquad？
+### When to Use DevSquad?
 
-| 你的需求 | 推荐方案 |
+| Your Need | Recommended Solution |
 |---------|---------|
-| 简单问答（"Python 怎么写 for 循环？"） | 直接用 ChatGPT/Claude ✅ |
-| 代码片段审查 | DevSquad 单角色模式 ✅ |
-| 复杂系统设计（需要多视角） | **DevSquad 多角色协作** 🎯 |
-| 生产环境自动化流程 | **DevSquad + REST API + Dashboard** 🎯 |
+| Simple Q&A ("How to write for loop in Python?") | Use ChatGPT/Claude directly ✅ |
+| Code snippet review | DevSquad single-role mode ✅ |
+| Complex system design (needs multiple perspectives) | **DevSquad multi-role collaboration** 🎯 |
+| Production automation workflow | **DevSquad + REST API + Dashboard** 🎯 |
 
-📚 **想深入了解？** → [完整快速入门指南](QUICKSTART.md) | [218+ 模块详细参考](SKILL.md)
+📚 **Want to dive deeper?** → [Complete Quick Start Guide](QUICKSTART.md) | [218+ Module Reference](SKILL.md)
 
 ---
 
 <details>
-<summary>🔍 点击展开：完整功能介绍与架构详解</summary>
+<summary>🔍 Click to expand: Complete feature introduction and architecture details</summary>
 
 ## Historical release details: V4.5.2 and earlier
 
@@ -229,7 +229,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 ./scripts/start.sh --help
 ```
 
-`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`). V4.1.0 adds Loop Engineering, UI/UX 巡检, Adversarial 验证, DAG 可视化, Autonomous, and 插件热加载.
+`start.sh` is the unified entry point introduced in V3.9.2 (P0-2). It validates the environment, initializes the database, builds the frontend, and starts the service in one command. Use `requirements.lock` alongside it for reproducible builds (`pip install -r requirements.lock`). V4.1.0 adds Loop Engineering, UI/UX inspection, Adversarial validation, DAG visualization, Autonomous mode, and plugin hot-reloading.
 
 ---
 
@@ -255,7 +255,7 @@ DevSquad's 218+ modules are organized into **5 capability domains**, each solvin
 
 ### 🎯 Domain 1: Task Orchestration Engine (Core)
 
-> **让多个专业角色高效协作的「指挥中心」**
+> **Command center for efficient multi-role collaboration**
 
 | Module | Purpose | When to Use |
 |--------|---------|------------|
@@ -274,7 +274,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 
 ### 🛡️ Domain 2: Quality Assurance System
 
-> **防止 AI 「偷懒」或「幻觉」**
+> **Prevents AI from "cutting corners" or "hallucinating"**
 
 | Module | Purpose | When to Use |
 |--------|---------|------------|
@@ -286,7 +286,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 
 ### ⚡ Domain 3: Performance & Reliability
 
-> **让系统更快、更稳定、更省钱**
+> **Makes the system faster, more stable, and more cost-efficient**
 
 | Module | Purpose | When to Use |
 |--------|---------|------------|
@@ -298,7 +298,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 
 ### 📊 Domain 4: Observability & Governance
 
-> **知道系统在做什么、做得怎么样**
+> **Know what the system is doing and how well it's performing**
 
 | Module | Purpose | When to Use |
 |--------|---------|------------|
@@ -312,7 +312,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 
 ### 🔌 Domain 5: Integration & Extension
 
-> **融入你的现有工具链**
+> **Integrates with your existing toolchain**
 
 | Module | Purpose | When to Use |
 |--------|---------|------------|
@@ -327,7 +327,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 
 ## 🔬 Cybernetics Enhancement Modules (V3.6.1)
 
-> **非侵入式包装设计 — 可选开关，零修改现有核心逻辑**
+> **Non-invasive wrapper design — Optional switches, zero modifications to existing core logic**
 
 The 5 cybernetic modules work independently or together without modifying existing core logic:
 
@@ -347,27 +347,27 @@ User Task
 [PerformanceFingerprint]  ← Record after dispatch completes
 ```
 
-### 1️⃣ FeedbackControlLoop (反馈闭环控制器)
+### 1️⃣ FeedbackControlLoop (Feedback Control Loop)
 - Closed-loop feedback control with automatic iteration until quality threshold met
 - Configurable quality gate (`quality_gate`) and maximum iterations
 - Lightweight quality assessment (no LLM calls), supports dry-run mode
 
-### 2️⃣ ExecutionGuard (执行守护者)
+### 2️⃣ ExecutionGuard (Execution Guardian)
 - Real-time execution monitoring with 4 abort conditions: timeout, output size, token count, critical keywords
 - Lightweight checks (<1ms), zero external dependencies
 - Dynamically configurable thresholds
 
-### 3️⃣ PerformanceFingerprint (性能指纹系统)
+### 3️⃣ PerformanceFingerprint (Performance Fingerprint System)
 - Unified execution fingerprint recording (fuses 4 data sources)
 - Pure Python TF-IDF implementation (no sklearn/numpy), supports English/Chinese mixed content
 - JSON persistence to `.devsquad_data/fingerprints/`, graceful cold-start degradation
 
-### 4️⃣ SimilarTaskRecommender (相似任务推荐器)
+### 4️⃣ SimilarTaskRecommender (Similar Task Recommender)
 - TF-IDF-based task similarity search with historical success configuration recommendations
 - Intelligent role combination recommendation, intent prediction, execution time estimation
 - Confidence scoring (high/medium/low), graceful cold-start degradation
 
-### 5️⃣ AdaptiveRoleSelector (自适应角色选择器)
+### 5️⃣ AdaptiveRoleSelector (Adaptive Role Selector)
 - Three-tier selection strategy based on historical success rates
 - Configurable minimum success rate and maximum role count
 - Supports manual statistics updates and comprehensive role effectiveness reporting
@@ -643,53 +643,53 @@ python3 -m pytest tests/ -q --tb=line
 
 | Document | Description | Language |
 |----------|-------------|----------|
-| [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30 秒快速入门指南（推荐新用户）** | 中文 |
-| [SKILL.md](SKILL.md) | 完整技能手册 + 218+ 模块参考 | EN/CN/JP |
-| [GUIDE.md](GUIDE.md) | 完全用户指南 | 中文 |
-| [INSTALL.md](INSTALL.md) | 安装指南 (Unix + Windows) | EN/CN |
-| [EXAMPLES.md](EXAMPLES.md) | 实际使用示例 | EN |
-| [CHANGELOG.md](CHANGELOG.md) | 版本历史记录 | EN |
-| [README-CN.md](README-CN.md) | 中文说明 | 中文 |
-| [README-JP.md](README-JP.md) | 日本語説明 | 日本語 |
-| [docs/prd/V4.6.1_cleanup_PRD.md](docs/prd/V4.6.1_cleanup_PRD.md) | 产品需求文档 | 中文 |
-| [docs/architecture/ARCHITECTURE_V4.md](docs/architecture/ARCHITECTURE_V4.md) | 技术架构文档 | 中文 |
-| [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 统一推进方案 v1.2（7-Role 共识达成） | 中文 |
-| [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（需求/用户故事/验收标准） | 中文 |
-| [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 架构设计（模块边界/接口契约/依赖图） | 中文 |
-| [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 测试方案（测试金字塔/E2E/真实用户模拟） | 中文 |
+| [**QUICKSTART.md**](QUICKSTART.md) | **⭐ 30-second quick start guide (recommended for new users)** | Chinese |
+| [SKILL.md](SKILL.md) | Complete skill manual + 218+ module reference | EN/CN/JP |
+| [GUIDE.md](GUIDE.md) | Complete user guide | Chinese |
+| [INSTALL.md](INSTALL.md) | Installation guide (Unix + Windows) | EN/CN |
+| [EXAMPLES.md](EXAMPLES.md) | Real-world usage examples | EN |
+| [CHANGELOG.md](CHANGELOG.md) | Version history | EN |
+| [README-CN.md](README-CN.md) | Chinese documentation | Chinese |
+| [README-JP.md](README-JP.md) | Japanese documentation | Japanese |
+| [docs/prd/V4.6.1_cleanup_PRD.md](docs/prd/V4.6.1_cleanup_PRD.md) | Product requirements document | Chinese |
+| [docs/architecture/ARCHITECTURE_V4.md](docs/architecture/ARCHITECTURE_V4.md) | Technical architecture document | Chinese |
+| [docs/planning/V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) | V4.3 unified roadmap v1.2 (7-Role consensus) | Chinese |
+| [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD (requirements/user stories/acceptance criteria) | Chinese |
+| [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 architecture design (module boundaries/interface contracts/dependency graph) | Chinese |
+| [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 test plan (test pyramid/E2E/real user simulation) | Chinese |
 
 ---
 
 ## 🗺️ Roadmap
 
-### V4.3.0（进行中 — 7-Role 共识达成，文档先行）
+### V4.3.0 (In Progress — 7-Role Consensus Reached, Documentation First)
 
-**版本策略**: V4.3.0 预发布（全部代码+文档+E2E 验证）→ 用户确认 → V4.3.0 正式版
+**Release Strategy**: V4.3.0 pre-release (complete code + documentation + E2E validation) → user confirmation → V4.3.0 official release
 
-**整合三方面输入**:
-1. 技术债持续治理（`todo_drift_monitor` + CI 阻塞）
-2. pickle→JSON 迁移（dead code 删除 + fallback 安全收紧 + 移除）
-3. 上游 TraeMultiAgentSkill v2.6-v2.8 精细化启发（Ponytail 双模式 / LoopKernel 回退 / UIUX 审计 / Dashboard 可视化）
+**Integrating three aspects**:
+1. Technical debt continuous governance (`todo_drift_monitor` + CI blocking)
+2. pickle→JSON migration (dead code removal + fallback security tightening + removal)
+3. Upstream TraeMultiAgentSkill v2.6-v2.8 refinement inspiration (Ponytail dual-mode / LoopKernel rollback / UIUX audit / Dashboard visualization)
 
-**V4.3.0 范围（9 项）**:
+**V4.3.0 Scope (9 items)**:
 
-| ID | 名称 | 优先级 |
+| ID | Name | Priority |
 |----|------|--------|
-| P0-1 | pickle dead code 删除 + fallback 安全收紧 | P0 |
-| P0-2 | `todo_drift_monitor.py` + CI 阻塞 + PR template | P0 |
-| P1-1 | Ponytail lite/full 双模式 + DebtCollector + RequirementTracer | P1 |
-| P1-4 | LoopKernel RollbackStrategy + 独立硬上限 | P1 |
-| P1-5 | UIUXAnalyzer 子项审计 + 按需补全 | P1 |
-| P1-6 | Dashboard 状态可视化 | P1 |
-| P2-1 | pickle fallback 移除 | P2 |
-| P2-2 | Autonomous SmartConfirmation 文档补全 | P2 |
-| P2-4 | V4.3.0 发布文档同步 | P2 |
+| P0-1 | pickle dead code removal + fallback security tightening | P0 |
+| P0-2 | `todo_drift_monitor.py` + CI blocking + PR template | P0 |
+| P1-1 | Ponytail lite/full dual-mode + DebtCollector + RequirementTracer | P1 |
+| P1-4 | LoopKernel RollbackStrategy + independent hard limit | P1 |
+| P1-5 | UIUXAnalyzer sub-item audit + on-demand completion | P1 |
+| P1-6 | Dashboard state visualization | P1 |
+| P2-1 | pickle fallback removal | P2 |
+| P2-2 | Autonomous SmartConfirmation documentation completion | P2 |
+| P2-4 | V4.3.0 release documentation sync | P2 |
 
-**7-Role 共识**: 7/7 APPROVE_WITH_CONCERNS，按 10 项调整修订后达成共识。详见 [V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) v1.2。
+**7-Role Consensus**: 7/7 APPROVE_WITH_CONCERNS, consensus achieved after 10 adjustments. See [V43_ROADMAP_PROPOSAL.md](docs/planning/V43_ROADMAP_PROPOSAL.md) v1.2 for details.
 
-**项目生命周期**: 按 11-Phase 模型推进（P1 需求 → P2 架构 → P3 技术设计 → P7 测试计划 → P8 实施 → P9 测试执行 → P10 部署发布）
+**Project Lifecycle**: Follow 11-Phase model (P1 Requirements → P2 Architecture → P3 Technical Design → P7 Test Plan → P8 Implementation → P9 Test Execution → P10 Deployment Release)
 
-**测试金字塔保障**: unit ≥60% / integration 15-25% / e2e ≤10% / contract 5-10% / smoke ≤5%
+**Test Pyramid Guarantee**: unit ≥60% / integration 15-25% / e2e ≤10% / contract 5-10% / smoke ≤5%
 
 ---
 
@@ -710,9 +710,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  <strong>⭐ 如果 DevSquad 对你有帮助，请给个 Star！⭐</strong>
+  <strong>⭐ If DevSquad helps you, please give it a Star! ⭐</strong>
   <br>
-  <em>让更多开发者享受到「AI 团队协作」的力量</em>
+  <em>Let more developers enjoy the power of "AI Team Collaboration"</em>
   <br>
   <br>
   <strong>🙏 Acknowledgments</strong>
