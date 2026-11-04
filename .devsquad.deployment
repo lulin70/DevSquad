@@ -1,0 +1,15 @@
+# DevSquad V5.1 S1 Gate Deployment Configuration
+# Auto-generated on 2026-11-04
+# This file tracks the deployment date for progressive mode switching
+
+DEPLOYMENT_DATE=2026-11-04
+S1_GATE_VERSION=5.1.0
+INITIAL_MODE=shadow
+
+# Progressive Mode Schedule:
+# Day 0-6:  Shadow mode (observe only, non-blocking)
+# Day 7-13: Soft mode (REJECT → WARNING)  
+# Day 14+:  Full mode (complete enforcement)
+
+# To manually override mode, set environment variable:
+# export DEVSQUAD_S1_MODE=shadow|soft|full
