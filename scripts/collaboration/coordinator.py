@@ -96,6 +96,8 @@ class Coordinator(CoordinatorCompressionMixin):
         "token_budget",
         "ccr_store",
         "_used_input_tokens",
+        "_unified_gate_engine",  # V5.0: UnifiedGateEngine instance
+        "_simplicity_role",  # V5.0: SimplicityRole instance
     )
 
     def __init__(
@@ -184,6 +186,16 @@ class Coordinator(CoordinatorCompressionMixin):
         self.token_budget = token_budget
         self.ccr_store = ccr_store
         self._used_input_tokens: int = 0
+        
+        # V5.0: Simplicity Role integration
+        from scripts.collaboration.unified_gate_engine import UnifiedGateEngine
+        from scripts.collaboration.simplicity_role import SimplicityRole
+        from scripts.collaboration.workflow_trace import WorkflowTrace
+        
+        self._unified_gate_engine = UnifiedGateEngine()
+        workflow_trace = WorkflowTrace()  # Shared trace for audit logging
+        self._simplicity_role = SimplicityRole(workflow_trace, self._unified_gate_engine)
+        self._unified_gate_engine.register_simplicity_role(self._simplicity_role)
 
     def apply_file_bundling(self, mode: str, files: list[str]) -> list[list[str]]:
         """Apply deterministic FileBundling for review mode (V4.5.0 PRD §10.1.3).
@@ -412,6 +424,24 @@ class Coordinator(CoordinatorCompressionMixin):
         start_time = time.time()
         results, errors = self._execute_plan_batches(plan)
         failed_results = self._collect_failed_results(results, errors)
+        
+        # V5.0: Execute Simplicity S2 gate check if plan is in P8 phase
+        if hasattr(plan, 'phase') and plan.phase == "P8":
+            from scripts.collaboration.unified_gate_engine import GateType
+            
+            gate_result = self._unified_gate_engine.check(
+                GateType.SIMPLICITY_CHECK,
+                context={"plan": plan, "results": results}
+            )
+            
+            if not gate_result.passed:
+                if gate_result.verdict == "REJECT":
+                    # Hard gate: add error to block the plan
+                    errors.append(f"Simplicity gate REJECT: {gate_result.critical_issues}")
+                elif gate_result.verdict == "CONDITIONAL":
+                    # Soft gate: add warning
+                    errors.append(f"Simplicity gate WARNING: requires approval - {gate_result.warnings}")
+        
         result = self._build_schedule_result(plan, results, errors, failed_results, start_time)
         self._finish_execution(result)
         return result
