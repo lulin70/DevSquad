@@ -4,7 +4,7 @@ slug: devsquad
 version: 5.1.0
 description: |
   DevSquad V5.1.0 — Multi-Role AI Orchestration Skill.
-  Not a single-capability tool: coordinates 7 available roles + 8 atomic sub-skills
+  Not a single-capability tool: coordinates 8 available roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → task-matched multi-role collaboration → consensus conclusion.
   
@@ -22,7 +22,7 @@ description: |
 
 ## 🎯 Quick Understanding (3 Seconds)
 
-**DevSquad = Upgrade "Single AI Assistant" to "7-Person AI Professional Team"**
+**DevSquad = Upgrade "Single AI Assistant" to "8-Person AI Professional Team"**
 
 ```
 Traditional AI:  You ──→ ChatGPT ──→ One answer (may be incomplete)
@@ -41,7 +41,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
-### 7 Available Roles
+### 8 Available Roles
 
 | Role | Responsibility | When to Activate |
 |------|----------------|------------------|
@@ -52,6 +52,9 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | **Reviewer** | Code review, best practices, maintainability | PR review, code quality checks |
 | **Documenter** | Documentation, API specs, user guides | Documentation tasks |
 | **PM** | Requirements analysis, prioritization, stakeholder alignment | Feature planning, roadmap |
+| **Simplicity** ⭐ | Implementation completeness validation, anti-shortcut detection | Before S2 gates (CRAP/Duplication), P8 implementation phase |
+
+**⭐ V5.1.0 New Role**: Simplicity detects AI implementation shortcuts (mocks in production, missing design elements, incomplete tests, unprotected I/O, missing security features) with weighted scoring and progressive rollout.
 
 ### 11-Phase Project Lifecycle
 
