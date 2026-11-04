@@ -1,12 +1,13 @@
 ---
 name: devsquad
 slug: devsquad
-version: 4.9.0
+version: 5.1.0
 description: |
-  DevSquad V4.9.0 — Multi-Role AI Orchestration Skill.
+  DevSquad V5.1.0 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 available roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → task-matched multi-role collaboration → consensus conclusion.
+  V5.1.0 adds ImplementationCompletenessGate (S1 Gate) preventing AI implementation shortcuts.
   219 public core modules; current test counts are reported by the local and CI runs.
   7 ways to invoke: TRAE Skill + MCP + CLI + Python API + REST API + Web Dashboard + start.sh.
   Mock mode by default (no API key needed); real LLM via OpenAI/Anthropic/MOKA AI.
