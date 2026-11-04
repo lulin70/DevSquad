@@ -41,6 +41,31 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
            → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
 ```
 
+### 7 Available Roles
+
+| Role | Responsibility | When to Activate |
+|------|----------------|------------------|
+| **Architect** | System design, architecture patterns, scalability | System design, architecture review |
+| **Security** | Security audit, vulnerability detection, compliance | Security-sensitive features, code review |
+| **Tester** | Test strategy, coverage analysis, quality assurance | Test planning, QA validation |
+| **Coder** | Implementation, code generation, refactoring | Coding tasks, bug fixes |
+| **Reviewer** | Code review, best practices, maintainability | PR review, code quality checks |
+| **Documenter** | Documentation, API specs, user guides | Documentation tasks |
+| **PM** | Requirements analysis, prioritization, stakeholder alignment | Feature planning, roadmap |
+
+### 11-Phase Project Lifecycle
+
+DevSquad supports complete project lifecycle management:
+
+```
+P0: Research → P1: Requirements → P2: PRD → P3: Technical Design
+→ P4: API Spec → P5: Database Schema → P6: Test Data
+→ P7: Test Plan → P8: Implementation → P9: Enhancement
+→ P10: Maintenance → P11: Retrospective
+```
+
+Each phase triggers appropriate role combinations and validation gates.
+
 ### Comparison: Single AI vs DevSquad
 
 | Dimension | Single AI (ChatGPT/Claude) | DevSquad |

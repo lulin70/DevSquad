@@ -31,15 +31,40 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 
 ## ⚡ 核心工作流（30 秒）
 
-### Core Positioning
+### 核心定位
 
-This Skill upgrades Trae from a "single AI assistant" to a "multi-AI team". When a task is submitted, it is no longer handled by a single role:
+本技能将 Trae 从「单一 AI 助手」升级为「多 AI 团队」。当任务提交时，不再由单一角色处理：
 
 ```
-User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
-           → [Sync/Async Worker Execution] → [Scratchpad Real-time Sharing]
-           → [ConsensusEngine] → [ReportFormatter] → [Structured Report]
+用户任务 → [输入验证] → [角色匹配] → [协调器编排]
+         → [同步/异步 Worker 执行] → [Scratchpad 实时共享]
+         → [共识引擎] → [报告格式化] → [结构化报告]
 ```
+
+### 7 个可用角色
+
+| 角色 | 职责 | 激活时机 |
+|------|------|---------|
+| **Architect（架构师）** | 系统设计、架构模式、可扩展性 | 系统设计、架构评审 |
+| **Security（安全专家）** | 安全审计、漏洞检测、合规性 | 安全敏感功能、代码审查 |
+| **Tester（测试工程师）** | 测试策略、覆盖率分析、质量保证 | 测试规划、QA 验证 |
+| **Coder（开发工程师）** | 实现、代码生成、重构 | 编码任务、Bug 修复 |
+| **Reviewer（代码审查员）** | 代码审查、最佳实践、可维护性 | PR 审查、代码质量检查 |
+| **Documenter（文档工程师）** | 文档、API 规范、用户指南 | 文档任务 |
+| **PM（产品经理）** | 需求分析、优先级、干系人对齐 | 功能规划、路线图 |
+
+### 11 阶段项目生命周期
+
+DevSquad 支持完整的项目生命周期管理：
+
+```
+P0: 调研 → P1: 需求 → P2: PRD → P3: 技术设计
+→ P4: API 规范 → P5: 数据库架构 → P6: 测试数据
+→ P7: 测试计划 → P8: 实现 → P9: 增强
+→ P10: 维护 → P11: 回顾
+```
+
+每个阶段触发适当的角色组合和验证门控。
 
 ### 对比：单 AI vs DevSquad
 
