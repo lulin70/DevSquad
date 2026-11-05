@@ -190,10 +190,9 @@ class Coordinator(CoordinatorCompressionMixin):
         # V5.0: Simplicity Role integration
         from scripts.collaboration.unified_gate_engine import UnifiedGateEngine
         from scripts.collaboration.simplicity_role import SimplicityRole
-        from scripts.collaboration.workflow_trace import WorkflowTrace
         
         self._unified_gate_engine = UnifiedGateEngine()
-        workflow_trace = WorkflowTrace()  # Shared trace for audit logging
+        workflow_trace = None  # Will be set by dispatcher with task_description
         self._simplicity_role = SimplicityRole(workflow_trace, self._unified_gate_engine)
         self._unified_gate_engine.register_simplicity_role(self._simplicity_role)
 
