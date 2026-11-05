@@ -4,11 +4,11 @@ Lifecycle Adapters - ShortcutLifecycleAdapter + FullLifecycleAdapter 实现
 
 ShortcutLifecycleAdapter:
   - 实现 LifecycleProtocol，使用 CLI 6-command 快捷方式
-  - 将 CLI 命令映射到 11-phase 片段
+  - 将 CLI 命令映射到 12-phase (P0-P11) 片段
   - 集成 UnifiedGateEngine 和 CheckpointManager
 
 FullLifecycleAdapter:
-  - 完整 11-phase 生命周期适配器
+  - 完整 12-phase (P0-P11) 生命周期适配器
   - 自动依赖解析和阶段排序
   - 支持可选阶段跳过
 
@@ -48,7 +48,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
     Adapter that implements LifecycleProtocol using CLI 6-command shortcuts.
 
     This is the default implementation for SHORTCUT mode.
-    Maps CLI commands to 11-phase segments via VIEW_MAPPINGS.
+    Maps CLI commands to 12-phase (P0-P11) segments via VIEW_MAPPINGS.
 
     Integration (Plan C):
       - Uses UnifiedGateEngine for real gate checks
@@ -440,13 +440,13 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
 
 class FullLifecycleAdapter(LifecycleProtocol):
     """
-    Full 11-phase lifecycle adapter for complete project lifecycles.
+    Full 12-phase (P0-P11) lifecycle adapter for complete project lifecycles.
 
-    Implements LifecycleProtocol with FULL mode, supporting all P1-P11 phases
+    Implements LifecycleProtocol with FULL mode, supporting all P0-P11 phases
     with automatic dependency resolution and phase ordering.
 
     Features:
-      - Complete P1-P11 phase support
+      - Complete P0-P11 phase support
       - Automatic dependency resolution
       - Phase ordering based on dependency graph
       - Optional phase skipping (for non-required phases)
@@ -631,7 +631,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
                 gate_result=GateResult(
                     passed=False,
                     verdict="REJECT",
-                    gap_report=f"Phase {phase_id} not found in 11-phase model",
+                    gap_report=f"Phase {phase_id} not found in 12-phase model",
                 ),
                 error=f"Unknown phase: {phase_id}",
             )

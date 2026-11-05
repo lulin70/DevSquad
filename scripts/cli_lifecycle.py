@@ -3,7 +3,7 @@
 DevSquad CLI lifecycle 子命令模块。
 
 本模块包含生命周期子命令（spec / plan / build / test / review / ship）的
-处理函数 cmd_lifecycle，作为 11-phase 生命周期协议的 View Layer。
+处理函数 cmd_lifecycle，作为 12-phase (P0-P11) 生命周期协议的 View Layer。
 """
 
 import argparse
@@ -106,7 +106,7 @@ def _render_lifecycle_verbose(
     print(f"📌 Command: {command.upper()}")
     if mapping:
         print(f"📋 Maps to Phases: {', '.join(mapping.phases)}")
-        print("🎯 Mode: SHORTCUT (simplified view of 11-phase lifecycle)")
+        print("🎯 Mode: SHORTCUT (simplified view of 12-phase lifecycle)")
 
         # Show phase details
         protocol = get_shared_protocol()
@@ -139,7 +139,7 @@ def _render_lifecycle_simple(
     print(f"📌 Command: {command.upper()}")
     if mapping:
         print(f"📋 Maps to Phases: {', '.join(mapping.phases)}")
-        print("🎯 Mode: SHORTCUT (simplified view of 11-phase lifecycle)")
+        print("🎯 Mode: SHORTCUT (simplified view of 12-phase lifecycle)")
     print(f"📝 Description: {preset['description']}")
     print(f"👥 Roles: {', '.join(preset['required_roles'])}")
     print(f"🚧 Gate: {preset['gate']}")
@@ -310,7 +310,7 @@ def _run_lifecycle_preview(
 
 
 def cmd_lifecycle(args: argparse.Namespace) -> int:
-    """Handle lifecycle commands (spec/plan/build/test/review/ship) as View Layer over 11-phase lifecycle."""
+    """Handle lifecycle commands (spec/plan/build/test/review/ship) as View Layer over 12-phase lifecycle."""
     command = args.lifecycle_command
     preset = LIFECYCLE_PRESETS.get(command)
 

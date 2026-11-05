@@ -486,16 +486,16 @@ result = skill.scan_input("DROP TABLE users; --")
 
 ## 📋 Plan C Architecture（コアエンジン）
 
-**Unified Lifecycle Architecture** - CLI 6コマンド vs 11フェーズライフサイクルを解決:
+**Unified Lifecycle Architecture** - CLI 6コマンド vs 12フェーズ（P0-P11）ライフサイクルを解決:
 
 ```
-CLI View Layer (6 commands)          Core Engine (11 phases)
+CLI View Layer (6 commands)          Core Engine (12 phases)
 ┌─────────────────────┐            ┌──────────────────────────┐
-│ spec → P1, P2       │───View ──→│ P1: Requirements         │
-│ plan → P7           │   Mapping │ P2: Architecture         │
-│ build → P8          │            │ P3: Technical Design     │
-│ test → P9           │            │ ...                      │
-│ review → P8,P6      │            │ P10: Deployment          │
+│ spec → P1, P2       │───View ──→│ P0: Discovery (optional) │
+│ plan → P7           │   Mapping │ P1: Requirements         │
+│ build → P8          │            │ P2: Architecture         │
+│ test → P9           │            │ P3: Technical Design     │
+│ review → P8,P6      │            │ ...                      │
 │ ship → P10          │            │ P11: Operations          │
 └─────────────────────┘            └──────────────────────────┘
         ↓                                    ↓
@@ -506,7 +506,7 @@ CLI View Layer (6 commands)          Core Engine (11 phases)
 **コアコンポーネント:**
 - ✅ **LifecycleProtocol** - 統一ライフサイクル管理の抽象インターフェース
 - ✅ **UnifiedGateEngine** - VerificationGate + フェーズ遷移ゲートを統合
-- ✅ **FullLifecycleAdapter** - 依存関係解決付き完全11フェーズライフサイクル
+- ✅ **FullLifecycleAdapter** - 依存関係解決付き完全12フェーズ（P0-P11）ライフサイクル
 - ✅ **Enhanced CheckpointManager** - セッション間でライフサイクル状態を自動保存/復元
 
 ---

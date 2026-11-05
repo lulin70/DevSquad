@@ -1,7 +1,7 @@
 """V4.0.0 P2-2: DAG 依赖图可视化。
 
 借鉴 TraeMultiAgentSkill 的 dag_visualizer.py 理念：
-- 将生命周期 11 阶段 + 依赖关系渲染为 DAG 图
+- 将生命周期 12 阶段（P0–P11） + 依赖关系渲染为 DAG 图
 - 三种格式输出: Mermaid / JSON / DOT
 - 节点状态实时更新 (pending/running/completed/failed/skipped/blocked)
 
@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from typing import Any
+
+from scripts.collaboration.workflow_engine_base import PHASE_TEMPLATES
 
 logger = logging.getLogger(__name__)
 
@@ -293,7 +295,7 @@ def render_dag_view(protocol_data: dict[str, Any] | None) -> None:
 
     viz = DAGVisualizer()
 
-    # 优先从 protocol_data 加载阶段，否则使用默认 11 阶段
+    # 优先从 protocol_data 加载阶段，否则使用默认 12 阶段（P0-P11，源自 PHASE_TEMPLATES）
     phases = protocol_data["phases"] if protocol_data and "phases" in protocol_data else DEFAULT_LIFECYCLE_PHASES
 
     graph = viz.build_from_lifecycle(phases)
@@ -525,19 +527,16 @@ def _render_node_dependencies(graph: DAGGraph, node_id: str) -> None:
         st.caption("_None (terminal phase)_")
 
 
-# 默认 11 阶段生命周期 DAG（与 dispatch_lifecycle.py 一致）
+# 默认 12 阶段（P0-P11）生命周期 DAG，由 PHASE_TEMPLATES 单一来源派生
 DEFAULT_LIFECYCLE_PHASES: list[dict[str, Any]] = [
-    {"phase_id": "P1", "name": "Requirements", "role_id": "product-manager", "dependencies": [], "order": 1},
-    {"phase_id": "P2", "name": "Architecture", "role_id": "architect", "dependencies": ["P1"], "order": 2},
-    {"phase_id": "P3", "name": "Implementation", "role_id": "solo-coder", "dependencies": ["P2"], "order": 3},
-    {"phase_id": "P4", "name": "Review", "role_id": "solo-coder", "dependencies": ["P3"], "order": 4},
-    {"phase_id": "P5", "name": "Integration", "role_id": "devops", "dependencies": ["P4"], "order": 5},
-    {"phase_id": "P6", "name": "Security", "role_id": "security", "dependencies": ["P2"], "order": 6},
-    {"phase_id": "P7", "name": "TestPlanning", "role_id": "tester", "dependencies": ["P2"], "order": 7},
-    {"phase_id": "P8", "name": "Optimization", "role_id": "solo-coder", "dependencies": ["P5"], "order": 8},
-    {"phase_id": "P9", "name": "TestExecution", "role_id": "tester", "dependencies": ["P7", "P8"], "order": 9},
-    {"phase_id": "P10", "name": "Delivery", "role_id": "devops", "dependencies": ["P9"], "order": 10},
-    {"phase_id": "P11", "name": "Monitoring", "role_id": "devops", "dependencies": ["P10"], "order": 11},
+    {
+        "phase_id": phase_id,
+        "name": definition["name"],
+        "role_id": definition["role_id"],
+        "dependencies": list(definition["dependencies"]),
+        "order": order,
+    }
+    for order, (phase_id, definition) in enumerate(PHASE_TEMPLATES.items(), start=1)
 ]
 
 

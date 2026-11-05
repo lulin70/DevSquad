@@ -82,7 +82,7 @@ app = FastAPI(
     ### 核心功能 / Core Features
 
     * **Task Dispatch**: Multi-agent task orchestration (任务调度)
-    * **Lifecycle Management**: Query and control 11-phase lifecycle (生命周期管理)
+    * **Lifecycle Management**: Query and control 12-phase (P0-P11) lifecycle (生命周期管理)
     * **Metrics & Monitoring**: Real-time performance metrics (实时监控)
     * **Gate Status**: Check and monitor quality gates (质量门禁)
     * **Health Checks**: Service health monitoring (健康检查)
@@ -263,7 +263,7 @@ async def root() -> dict[str, Any]:
         },
         "features": {
             "task_dispatch": "Multi-Agent task orchestration with 7 roles",
-            "lifecycle_management": "11-phase lifecycle control",
+            "lifecycle_management": "12-phase (P0-P11) lifecycle control",
             "real_time_metrics": "CPU/Memory/Response time monitoring",
             "quality_gates": "Gate status checking for CI/CD",
             "auth_integration": "Optional AuthManager integration",

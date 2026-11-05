@@ -342,21 +342,21 @@ class TestBuildLifecycleTrace:
         assert trace["mapping_version"] == "1.0"
 
     def test_analyze_maps_to_p1(self) -> None:
-        """analyze step maps to P1_Requirements."""
+        """analyze step maps to P1."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace({"analyze": 1.5})
-        assert "P1_Requirements" in trace["lifecycle_phases"]
-        assert trace["lifecycle_phases"]["P1_Requirements"] == 1.5
-        assert "analyze" in trace["phase_steps"]["P1_Requirements"]
+        assert "P1" in trace["lifecycle_phases"]
+        assert trace["lifecycle_phases"]["P1"] == 1.5
+        assert "analyze" in trace["phase_steps"]["P1"]
 
     def test_warmup_maps_to_p2(self) -> None:
-        """warmup step maps to P2_Architecture."""
+        """warmup step maps to P2."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace({"warmup": 2.0})
-        assert "P2_Architecture" in trace["lifecycle_phases"]
+        assert "P2" in trace["lifecycle_phases"]
 
-    def test_plan_spawn_execute_map_to_p3(self) -> None:
-        """plan, spawn, execute all map to P3_Implementation."""
+    def test_plan_spawn_execute_map_to_p8(self) -> None:
+        """plan, spawn, execute all map to P8."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace(
             {
@@ -365,38 +365,38 @@ class TestBuildLifecycleTrace:
                 "execute": 3.0,
             }
         )
-        assert trace["lifecycle_phases"]["P3_Implementation"] == 6.0
-        assert set(trace["phase_steps"]["P3_Implementation"]) == {"plan", "spawn", "execute"}
+        assert trace["lifecycle_phases"]["P8"] == 6.0
+        assert set(trace["phase_steps"]["P8"]) == {"plan", "spawn", "execute"}
 
-    def test_collect_consensus_map_to_p4(self) -> None:
-        """collect and consensus map to P4_Review."""
+    def test_collect_consensus_map_to_p8(self) -> None:
+        """collect and consensus map to P8."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace({"collect": 1.0, "consensus": 2.0})
-        assert trace["lifecycle_phases"]["P4_Review"] == 3.0
+        assert trace["lifecycle_phases"]["P8"] == 3.0
 
-    def test_compress_memory_map_to_p5(self) -> None:
-        """compress and memory map to P5_Integration."""
+    def test_compress_memory_map_to_p11(self) -> None:
+        """compress and memory map to P11."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace({"compress": 1.0, "memory": 2.0})
-        assert trace["lifecycle_phases"]["P5_Integration"] == 3.0
+        assert trace["lifecycle_phases"]["P11"] == 3.0
 
     def test_permission_maps_to_p6(self) -> None:
-        """permission maps to P6_Security."""
+        """permission maps to P6."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace({"permission": 1.0})
-        assert "P6_Security" in trace["lifecycle_phases"]
+        assert "P6" in trace["lifecycle_phases"]
 
-    def test_skillify_maps_to_p8(self) -> None:
-        """skillify maps to P8_Optimization."""
+    def test_skillify_maps_to_p11(self) -> None:
+        """skillify maps to P11."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace({"skillify": 1.0})
-        assert "P8_Optimization" in trace["lifecycle_phases"]
+        assert "P11" in trace["lifecycle_phases"]
 
     def test_unknown_step_maps_to_p10(self) -> None:
-        """Unknown step name maps to P10_Delivery."""
+        """Unknown step name maps to P10."""
         pipeline = _make_pipeline()
         trace = pipeline._build_lifecycle_trace({"unknown_step": 1.0})
-        assert "P10_Delivery" in trace["lifecycle_phases"]
+        assert "P10" in trace["lifecycle_phases"]
 
     def test_empty_timings(self) -> None:
         """Empty timings produce empty phases."""
@@ -415,8 +415,8 @@ class TestBuildLifecycleTrace:
                 "execute": 3.0,
             }
         )
-        # All three map to P3_Implementation
-        assert trace["lifecycle_phases"]["P3_Implementation"] == 6.0
+        # All three map to P8
+        assert trace["lifecycle_phases"]["P8"] == 6.0
 
 
 # ---------------------------------------------------------------------------

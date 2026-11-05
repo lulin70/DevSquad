@@ -5,7 +5,7 @@ DevSquad API Routes Package
 
 Provides REST API endpoints for:
 - Task Dispatch: Multi-agent task orchestration
-- Lifecycle Management: 11-phase lifecycle control
+- Lifecycle Management: 12-phase (P0-P11) lifecycle control
 - Metrics & Gates: Performance monitoring and quality gates
 """
 

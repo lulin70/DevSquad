@@ -1,10 +1,10 @@
 # Sub-Skills & Methodology Reference
 
-> This document holds the detailed reference for DevSquad's 6 atomic sub-skills, the complete dispatch workflow, the 11-phase project lifecycle model, and the testing/delivery Iron Rules that govern AI-assisted development. It was extracted from `SKILL.md` during the V4.5.0 modular split (PRD §10.2).
+> This document holds the detailed reference for DevSquad's 8 atomic sub-skills, the complete dispatch workflow, the 12-phase (P0-P11) project lifecycle model, and the testing/delivery Iron Rules that govern AI-assisted development. It was extracted from `SKILL.md` during the V4.5.0 modular split (PRD §10.2). The lifecycle table is derived from `PHASE_TEMPLATES` in `scripts/collaboration/workflow_engine_base.py` — do not restate phase definitions here.
 
 ## Layered Sub-Skill Architecture (V3.6.0)
 
-> DevSquad provides **6 atomic sub-skills** that can be used independently or together.
+> DevSquad provides **8 atomic sub-skills** that can be used independently or together.
 > Each sub-skill is a thin wrapper (~50 lines) importing existing core modules — no duplicated logic.
 
 ```
@@ -14,7 +14,9 @@ skills/
 ├── review/         → ReviewSkill   — FiveAxisConsensusEngine (5-axis code review)
 ├── security/       → SecuritySkill — InputValidator + OperationClassifier + PermissionGuard
 ├── test/           → TestSkill     — TestQualityGuard + test strategy generation
-└── retrospective/  → RetroSkill    — RetrospectiveEngine + pattern extraction
+├── retrospective/  → RetroSkill    — RetrospectiveEngine + pattern extraction
+├── prototype/      → PrototypeSkill — rapid prototype scaffolding
+└── teach/          → TeachSkill    — knowledge transfer & onboarding
 ```
 
 ### Sub-Skill Quick Reference
@@ -27,10 +29,12 @@ skills/
 | `security` | `SecuritySkill` | `scan_input(text)` | InputValidator + OpClassifier |
 | `test` | `TestSkill` | `generate_strategy(module)` | TestQualityGuard |
 | `retrospective` | `RetrospectiveSkill` | `run_retrospective(results)` | RetrospectiveEngine |
+| `prototype` | `PrototypeSkill` | `scaffold(spec)` | PrototypeEngine |
+| `teach` | `TeachSkill` | `teach(topic, lang)` | Built-in lesson content |
 
 #### Mock Mode Behavior
 
-All 6 sub-skills work **without any API key** in Mock mode:
+All 8 sub-skills work **without any API key** in Mock mode:
 
 | Skill | Mock Return Value | Fidelity | Notes |
 |-------|-------------------|----------|-------|
@@ -162,40 +166,48 @@ disp.shutdown()
 
 ---
 
-## Project Lifecycle: 11-Phase Model (V3.6.0)
+## Project Lifecycle: 12-Phase Model (P0-P11)
 
-> **Definition document**: `docs/prd/lifecycle_phases_definition.md` (authoritative)
+> **Authoritative definition**: `PHASE_TEMPLATES` in `scripts/collaboration/workflow_engine_base.py`.
+> **Definition document**: `docs/prd/lifecycle_phases_definition.md`
 > **Review report**: `docs/prd/lifecycle_phases_review.md` (7-role review, 9 suggestions adopted)
+>
+> The table below is rendered from the canonical definition. Do not edit it independently — change `PHASE_TEMPLATES`
+> and let teaching content, the dashboard DAG, and dispatch mapping follow. A contract test fails when this table drifts.
 
 ### Phase Overview
 
 | # | Phase | Lead | Reviewers | Optional | Gate |
 |---|-------|------|-----------|----------|------|
+| P0 | Discovery & Feasibility | pm | arch+sec+infra | ✅ | Business case and feasibility confirmed, go decision recorded |
 | P1 | Requirements Analysis | pm | arch+test+sec+ui | ❌ | Acceptance criteria quantifiable |
 | P2 | Architecture Design | arch | pm+sec+infra | ❌ | Weighted consensus ≥70% |
-| P3 | Technical Design | arch+coder | coder+test | ❌ | API specs unambiguous |
-| P4 | Data Design | arch+coder | arch+sec | ✅ | 3NF or denormalization justified |
+| P3 | Technical Design | arch | coder+test | ❌ | API specs unambiguous |
+| P4 | Data Design | arch | arch+sec | ✅ | 3NF or denormalization justified |
 | P5 | Interaction Design | ui | pm+test+sec | ✅ | Core flow usability verified |
-| P6 | Security Review | sec | arch+infra | ✅ | No P0/P1 vulns, compliance green |
+| P6 | Security Review | sec | arch+infra | ✅ | No P0/P1 vulns, compliance green, dependency and supply-chain scan clean |
 | P7 | Test Planning | test | arch+sec+infra+pm | ❌ | Test plan review passed |
 | P8 | Implementation | coder | arch+sec+test+coder | ❌ | Code review passed, no P0 defects |
-| P9 | Test Execution | test | arch+pm+sec+infra | ❌ | Coverage≥80% + P7 plan 100% executed |
-| P10 | Deployment & Release | infra | arch+sec+test | ❌ | Deployment drill passed |
-| P11 | Operations & Assurance | infra+sec | arch+infra | ✅ | P99<target, alerts 100% |
+| P9 | Test Execution | test | arch+pm+sec+infra | ❌ | Coverage≥80% + P7 plan 100% executed + NFR targets met + UAT signed off |
+| P10 | Deployment & Release | infra | arch+sec+test | ❌ | Deployment drill passed, rollback verified, data migration executed and reconciled |
+| P11 | Operations & Assurance | infra | arch+sec | ✅ | P99<target, alert coverage 100% |
+
+Role IDs use CLI short names here: `pm` = `product-manager`, `arch` = `architect`, `sec` = `security`,
+`test` = `tester`, `coder` = `solo-coder`, `infra` = `devops`, `ui` = `ui-designer`.
 
 ### Dependency Graph
 
 ```
-P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
-           ├──→ P4(∥P3) ──↗
-           └──→ P5(dep P1+P3) ──↗
+P0(optional) ──→ P1 → P2 ──┬──→ P3 ──→ P6 ──→ P7 ──→ P8 ──→ P9 ──→ P10 ──→ P11
+                            ├──→ P4(∥P3) ──↗
+                            └──→ P5(dep P1+P3) ──↗
 ```
 
 ### Lifecycle Templates
 
 | Template | Phases | Use Case |
 |----------|--------|----------|
-| `full` | P1-P11 | Complete project |
+| `full` | P0-P11 | Complete project |
 | `backend` | No P5 | Backend services |
 | `frontend` | No P4,P6 | Frontend applications |
 | `internal_tool` | No P4,P5,P6,P11 | Internal tools |

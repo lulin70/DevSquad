@@ -94,7 +94,7 @@ streamlit run scripts/dashboard.py
 
 **Dashboard Features**:
 - Real-time lifecycle phase monitoring
-- CLI command to 11-phase mapping visualization
+- CLI command to 12-phase (P0-P11) mapping visualization
 - Gate status tracking and alerts
 - Performance metrics display
 - Multi-user login with role-based access control

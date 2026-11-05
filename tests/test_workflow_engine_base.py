@@ -353,11 +353,11 @@ class TestPhaseTemplates(unittest.TestCase):
             self.assertEqual(missing, set(), f"Phase {phase_id} missing keys: {missing}")
 
     def test_phase_ids_sequential(self) -> None:
-        for i in range(1, 12):
+        for i in range(0, 12):
             self.assertIn(f"P{i}", PHASE_TEMPLATES, f"Phase P{i} missing")
 
     def test_phase_count(self) -> None:
-        self.assertEqual(len(PHASE_TEMPLATES), 11)
+        self.assertEqual(len(PHASE_TEMPLATES), 12)
 
     def test_dependencies_reference_valid_phases(self) -> None:
         valid_phases = set(PHASE_TEMPLATES.keys())
@@ -416,8 +416,8 @@ class TestLifecycleTemplates(unittest.TestCase):
         expected = {"full", "backend", "frontend", "internal_tool", "minimal"}
         self.assertEqual(set(LIFECYCLE_TEMPLATES.keys()), expected)
 
-    def test_full_template_has_all_11_phases(self) -> None:
-        self.assertEqual(len(LIFECYCLE_TEMPLATES["full"]), 11)
+    def test_full_template_has_all_12_phases(self) -> None:
+        self.assertEqual(len(LIFECYCLE_TEMPLATES["full"]), 12)
 
     def test_minimal_template_has_5_phases(self) -> None:
         self.assertEqual(len(LIFECYCLE_TEMPLATES["minimal"]), 5)

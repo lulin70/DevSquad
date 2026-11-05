@@ -487,16 +487,16 @@ All sub-skills work **without any API key** in Mock mode.
 
 ## 📋 Plan C Architecture (Core Engine)
 
-**Unified Lifecycle Architecture** - Resolves CLI 6 commands vs 11-phase lifecycle:
+**Unified Lifecycle Architecture** - Resolves CLI 6 commands vs 12-phase lifecycle (P0-P11):
 
 ```
-CLI View Layer (6 commands)          Core Engine (11 phases)
+CLI View Layer (6 commands)          Core Engine (12 phases)
 ┌─────────────────────┐            ┌──────────────────────────┐
-│ spec → P1, P2       │───View ──→│ P1: Requirements         │
-│ plan → P7           │   Mapping │ P2: Architecture         │
-│ build → P8          │            │ P3: Technical Design     │
-│ test → P9           │            │ ...                      │
-│ review → P8,P6      │            │ P10: Deployment          │
+│ spec → P1, P2       │───View ──→│ P0: Discovery (optional) │
+│ plan → P7           │   Mapping │ P1: Requirements         │
+│ build → P8          │            │ P2: Architecture         │
+│ test → P9           │            │ P3: Technical Design     │
+│ review → P8,P6      │            │ ...                      │
 │ ship → P10          │            │ P11: Operations          │
 └─────────────────────┘            └──────────────────────────┘
         ↓                                    ↓
@@ -507,7 +507,7 @@ CLI View Layer (6 commands)          Core Engine (11 phases)
 **Core Components:**
 - ✅ **LifecycleProtocol** - Abstract interface for unified lifecycle management
 - ✅ **UnifiedGateEngine** - Integrates VerificationGate + Phase transition gates
-- ✅ **FullLifecycleAdapter** - Complete 11-phase lifecycle with dependency resolution
+- ✅ **FullLifecycleAdapter** - Complete 12-phase lifecycle with dependency resolution
 - ✅ **Enhanced CheckpointManager** - Auto save/restore lifecycle state across sessions
 
 ---

@@ -811,27 +811,27 @@ class PostDispatchPipeline(
     def _build_lifecycle_trace(self, step_timings: dict[str, float]) -> dict[str, Any]:
         """Build lifecycle phase trace from step timings.
 
-        Maps dispatch pipeline steps to lifecycle phases (P1-P11),
+        Maps dispatch pipeline steps to lifecycle phases (P0-P11),
         aggregating timing per phase for observability.
         """
         step_to_lifecycle = {
-            "analyze": "P1_Requirements",
-            "warmup": "P2_Architecture",
-            "plan": "P3_Implementation",
-            "spawn": "P3_Implementation",
-            "execute": "P3_Implementation",
-            "collect": "P4_Review",
-            "consensus": "P4_Review",
-            "compress": "P5_Integration",
-            "permission": "P6_Security",
-            "memory": "P5_Integration",
-            "skillify": "P8_Optimization",
+            "analyze": "P1",
+            "warmup": "P2",
+            "plan": "P8",
+            "spawn": "P8",
+            "execute": "P8",
+            "collect": "P8",
+            "consensus": "P8",
+            "compress": "P11",
+            "permission": "P6",
+            "memory": "P11",
+            "skillify": "P11",
         }
 
         phase_durations: dict[str, float] = {}
         phase_steps: dict[str, list[str]] = {}
         for step_name, duration in step_timings.items():
-            phase = step_to_lifecycle.get(step_name, "P10_Delivery")
+            phase = step_to_lifecycle.get(step_name, "P10")
             phase_durations[phase] = phase_durations.get(phase, 0.0) + duration
             phase_steps.setdefault(phase, []).append(step_name)
 

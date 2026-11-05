@@ -457,7 +457,7 @@ reference_docs:
   - path: docs/reference/MODULE_REFERENCE.md
     description: Full 204+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling
   - path: docs/reference/SUB_SKILLS.md
-    description: 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules
+    description: 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 12-phase project lifecycle (P0-P11), testing iron rules, meta iron rule, delivery workflow iron rules
   - path: docs/reference/VERSION_HISTORY.md
     description: Version history + per-version changelog (v1.0 → v4.9.0)
 

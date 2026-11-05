@@ -58,18 +58,28 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 - **S2 Gates (CRAP/Duplication)**: Execute after S1 Gate, check code complexity and duplication
 - SimplicityRole is not a collaboration role but a quality gate executor
 
-### 11-Phase Project Lifecycle
+### 12-Phase Project Lifecycle (P0-P11)
 
-DevSquad supports complete project lifecycle management:
+The table below is the single source of truth (`PHASE_TEMPLATES` in `scripts/collaboration/workflow_engine_base.py`). Teaching content, the dashboard DAG, and dispatch mapping all derive from it.
 
-```
-P1: Requirements → P2: Architecture → P3: Implementation
-→ P4: Review → P5: Integration → P6: Security
-→ P7: Test Planning → P8: Optimization → P9: Retrospective  
-→ P10: Delivery → P11: Monitoring
-```
+| Phase | Name | Lead | Reviewers | Optional | Exit Gate |
+|---|---|---|---|---|---|
+| P0 | Discovery & Feasibility | product-manager | architect, security, devops | Yes | Business case and feasibility confirmed, go decision recorded |
+| P1 | Requirements Analysis | product-manager | architect, tester, security, ui-designer | No | Acceptance criteria quantifiable |
+| P2 | Architecture Design | architect | product-manager, security, devops | No | Weighted consensus >=70% |
+| P3 | Technical Design | architect | solo-coder, tester | No | API specs unambiguous |
+| P4 | Data Design | architect | architect, security | Yes | 3NF or denormalization justified |
+| P5 | Interaction Design | ui-designer | product-manager, tester, security | Yes | Core flow usability verified |
+| P6 | Security Review | security | architect, devops | Yes | No P0/P1 vulnerabilities, compliance green, dependency and supply-chain scan clean |
+| P7 | Test Planning | tester | architect, security, devops, product-manager | No | Test plan review passed |
+| P8 | Implementation | solo-coder | architect, security, tester, solo-coder | No | Code review passed, no P0 defects |
+| P9 | Test Execution | tester | architect, product-manager, security, devops | No | Coverage >=80%, P7 plan 100% executed, no P0 defects, NFR targets met, UAT signed off |
+| P10 | Deployment & Release | devops | architect, security, tester | No | Deployment drill passed, rollback verified, data migration executed and reconciled |
+| P11 | Operations & Assurance | devops | architect, security | Yes | P99 within target, alert coverage 100% |
 
-Each phase triggers appropriate role combinations and validation gates. S1 Gate (ImplementationCompletenessGate) primarily activates during P8 (Implementation) phase.
+Role enforcement: `check_role_participation` rejects a phase gate when a required lead or reviewer is missing. It activates when the lifecycle runner supplies `participating_roles`.
+
+S1 Gate (ImplementationCompletenessGate) runs inside SimplicityRole before S2 gates (CRAP/Duplication), primarily during P8.
 
 ### Comparison: Single AI vs DevSquad
 
@@ -106,7 +116,7 @@ devsquad run "Design a secure user authentication system" --roles architect secu
 | Reference Doc | Content | Target Audience |
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 218+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
-| [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
+| [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 12-phase project lifecycle (P0-P11), testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
 | [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md) | Defect ledger contract (V4.9.0): JSON schema + closed state machine (open/fixed/closed) + two hazard guards + `signal_ref` resolution + mandatory-signal mapping + registration-gate three-state tracking + `devsquad defect add/update/close/reopen/list/audit` CLI | Run operators / defect filers |
 | [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v4.9.0) | Release tracking / auditors |
 

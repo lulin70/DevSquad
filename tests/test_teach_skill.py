@@ -87,14 +87,14 @@ class TestTeachTopics:
             assert role["name_zh"] in content, f"Role name_zh '{role['name_zh']}' missing"
 
     def test_t4_teach_lifecycle_contains_all_phases(self):
-        """T4: Verify lifecycle content includes P1-P11."""
+        """T4: Verify lifecycle content includes P0-P11."""
         skill = TeachSkill()
         result = skill.teach("lifecycle")
         content = result["content"]
         for phase in LIFECYCLE_PHASES:
             assert phase["phase"] in content, f"Phase '{phase['phase']}' missing from content"
-        # Verify all 11 phases present
-        assert len(LIFECYCLE_PHASES) == 11
+        # Verify all 12 phases present (P0 optional)
+        assert len(LIFECYCLE_PHASES) == 12
 
     def test_t5_teach_iron_rules_contains_three_rules(self):
         """T5: Verify iron_rules content includes all 3 Iron Rules."""
@@ -105,15 +105,15 @@ class TestTeachTopics:
             assert rule["name_zh"] in content, f"Iron Rule '{rule['name_zh']}' missing"
         assert len(IRON_RULES) == 3
 
-    def test_t6_teach_sub_skills_contains_six_skills(self):
-        """T6: Verify sub_skills content includes all 6 sub-skill names."""
+    def test_t6_teach_sub_skills_contains_eight_skills(self):
+        """T6: Verify sub_skills content includes all 8 sub-skill names."""
         skill = TeachSkill()
         result = skill.teach("sub_skills")
         content = result["content"]
         for s in SUB_SKILLS:
             assert s["name"] in content, f"Sub-skill '{s['name']}' missing from content"
             assert s["class"] in content, f"Class '{s['class']}' missing from content"
-        assert len(SUB_SKILLS) == 6
+        assert len(SUB_SKILLS) == 8
 
     def test_t7_teach_glossary_returns_non_empty_terms(self):
         """T7: Verify glossary topic returns non-empty glossary_terms."""
@@ -570,10 +570,10 @@ class TestTeachContentCorrectness:
         assert role_ids == expected_ids
 
     def test_lifecycle_phases_data_matches_skill_md(self):
-        """Verify: LIFECYCLE_PHASES matches SKILL.md (11 phases P1-P11)."""
-        assert len(LIFECYCLE_PHASES) == 11
+        """Verify: LIFECYCLE_PHASES matches SKILL.md (12 phases P0-P11)."""
+        assert len(LIFECYCLE_PHASES) == 12
         phase_ids = [p["phase"] for p in LIFECYCLE_PHASES]
-        expected = [f"P{i}" for i in range(1, 12)]
+        expected = [f"P{i}" for i in range(0, 12)]
         assert phase_ids == expected
 
     def test_iron_rules_data_matches_skill_md(self):
@@ -585,10 +585,19 @@ class TestTeachContentCorrectness:
         assert "delivery_workflow" in rule_ids
 
     def test_sub_skills_data_matches_skill_md(self):
-        """Verify: SUB_SKILLS matches SKILL.md (6 atomic sub-skills)."""
-        assert len(SUB_SKILLS) == 6
+        """Verify: SUB_SKILLS matches SKILL.md (8 atomic sub-skills)."""
+        assert len(SUB_SKILLS) == 8
         skill_names = [s["name"] for s in SUB_SKILLS]
-        expected = ["dispatch", "intent", "review", "security", "test", "retrospective"]
+        expected = [
+            "dispatch",
+            "intent",
+            "review",
+            "security",
+            "test",
+            "retrospective",
+            "prototype",
+            "teach",
+        ]
         assert skill_names == expected
 
     def test_teach_seven_roles_contains_triggers(self):

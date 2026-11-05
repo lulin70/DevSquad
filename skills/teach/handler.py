@@ -1,15 +1,15 @@
 """TeachSkill — DevSquad onboarding educational skill.
 
 Guides new users through the DevSquad 7-role collaboration model,
-11-phase lifecycle, and Iron Rules. Provides structured lessons with
-examples, exercises, and assessment.
+12-phase lifecycle (P0-P11), and Iron Rules. Provides structured lessons
+with examples, exercises, and assessment.
 
 Topics:
     - overview: One-sentence DevSquad understanding
     - seven_roles: 7-role collaboration model
-    - lifecycle: 11-phase lifecycle
+    - lifecycle: 12-phase lifecycle (P0 optional)
     - iron_rules: 3 Iron Rules (Documentation First / Test Iron Rules / Delivery Workflow)
-    - sub_skills: 6 atomic sub-skills
+    - sub_skills: 8 atomic sub-skills
     - glossary: Glossary terms
     - quickstart: 5-minute quickstart
     - full_curriculum: Full ordered curriculum
@@ -36,6 +36,10 @@ from typing import Any
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from skills.registry import BaseSkill  # noqa: I001
+from scripts.collaboration.workflow_engine_base import PHASE_TEMPLATES
+from scripts.collaboration.workflow_engine_base import (
+    LIFECYCLE_TEMPLATES as CANONICAL_LIFECYCLE_TEMPLATES,
+)
 
 
 # ===== Canonical content sourced from SKILL.md (read, not memorized) =====
@@ -100,104 +104,44 @@ SEVEN_ROLES = [
 ]
 
 
+_ROLE_ALIASES = {
+    "product-manager": "pm",
+    "architect": "arch",
+    "security": "sec",
+    "tester": "test",
+    "solo-coder": "coder",
+    "devops": "infra",
+    "ui-designer": "ui",
+}
+
+# Derived from the canonical phase table so teaching content cannot drift.
 LIFECYCLE_PHASES = [
     {
-        "phase": "P1",
-        "name": "Requirements Analysis",
-        "lead": "pm",
-        "reviewers": "arch+test+sec+ui",
-        "optional": False,
-        "gate": "Acceptance criteria quantifiable",
-    },
-    {
-        "phase": "P2",
-        "name": "Architecture Design",
-        "lead": "arch",
-        "reviewers": "pm+sec+infra",
-        "optional": False,
-        "gate": "Weighted consensus >=70%",
-    },
-    {
-        "phase": "P3",
-        "name": "Technical Design",
-        "lead": "arch+coder",
-        "reviewers": "coder+test",
-        "optional": False,
-        "gate": "API specs unambiguous",
-    },
-    {
-        "phase": "P4",
-        "name": "Data Design",
-        "lead": "arch+coder",
-        "reviewers": "arch+sec",
-        "optional": True,
-        "gate": "3NF or denormalization justified",
-    },
-    {
-        "phase": "P5",
-        "name": "Interaction Design",
-        "lead": "ui",
-        "reviewers": "pm+test+sec",
-        "optional": True,
-        "gate": "Core flow usability verified",
-    },
-    {
-        "phase": "P6",
-        "name": "Security Review",
-        "lead": "sec",
-        "reviewers": "arch+infra",
-        "optional": True,
-        "gate": "No P0/P1 vulns, compliance green",
-    },
-    {
-        "phase": "P7",
-        "name": "Test Planning",
-        "lead": "test",
-        "reviewers": "arch+sec+infra+pm",
-        "optional": False,
-        "gate": "Test plan review passed",
-    },
-    {
-        "phase": "P8",
-        "name": "Implementation",
-        "lead": "coder",
-        "reviewers": "arch+sec+test+coder",
-        "optional": False,
-        "gate": "Code review passed, no P0 defects",
-    },
-    {
-        "phase": "P9",
-        "name": "Test Execution",
-        "lead": "test",
-        "reviewers": "arch+pm+sec+infra",
-        "optional": False,
-        "gate": "Coverage>=80% + P7 plan 100% executed",
-    },
-    {
-        "phase": "P10",
-        "name": "Deployment & Release",
-        "lead": "infra",
-        "reviewers": "arch+sec+test",
-        "optional": False,
-        "gate": "Deployment drill passed",
-    },
-    {
-        "phase": "P11",
-        "name": "Operations & Assurance",
-        "lead": "infra+sec",
-        "reviewers": "arch+infra",
-        "optional": True,
-        "gate": "P99<target, alerts 100%",
-    },
+        "phase": phase_id,
+        "name": definition["name"],
+        "lead": _ROLE_ALIASES[definition["role_id"]],
+        "reviewers": "+".join(_ROLE_ALIASES[role] for role in definition["reviewers"]),
+        "optional": definition["optional"],
+        "gate": definition["gate_condition"],
+    }
+    for phase_id, definition in PHASE_TEMPLATES.items()
 ]
 
+_TEMPLATE_USE_CASES = {
+    "full": "Complete project",
+    "backend": "Backend services",
+    "frontend": "Frontend applications",
+    "internal_tool": "Internal tools",
+    "minimal": "Minimum set",
+}
 
 LIFECYCLE_TEMPLATES = [
-    {"template": "full", "phases": "P1-P11", "use_case": "Complete project"},
-    {"template": "backend", "phases": "No P5", "use_case": "Backend services"},
-    {"template": "frontend", "phases": "No P4,P6", "use_case": "Frontend applications"},
-    {"template": "internal_tool", "phases": "No P4,P5,P6,P11", "use_case": "Internal tools"},
-    {"template": "minimal", "phases": "P1,P3,P7,P8,P9", "use_case": "Minimum set"},
+    {
+        "template": template_name,
+        "phases": ", ".join(phase_ids),
+        "use_case": _TEMPLATE_USE_CASES[template_name],
+    }
+    for template_name, phase_ids in CANONICAL_LIFECYCLE_TEMPLATES.items()
 ]
 
 
@@ -274,6 +218,20 @@ SUB_SKILLS = [
         "core_method": "run_retrospective(results)",
         "wraps": "RetrospectiveEngine",
         "description": "Post-dispatch pattern extraction",
+    },
+    {
+        "name": "prototype",
+        "class": "PrototypeSkill",
+        "core_method": "run(hypothesis, framework)",
+        "wraps": "PrototypeGenerator",
+        "description": "Hypothesis-to-prototype generation",
+    },
+    {
+        "name": "teach",
+        "class": "TeachSkill",
+        "core_method": "teach(topic, user_level, lang)",
+        "wraps": "CurriculumRenderer",
+        "description": "Onboarding curriculum and glossary",
     },
 ]
 
@@ -372,12 +330,12 @@ TOPIC_TITLES = {
     },
     "seven_roles": {"zh": "7 角色协作模型", "en": "7-Role Collaboration Model", "ja": "7役割協力モデル"},
     "lifecycle": {
-        "zh": "11 阶段项目生命周期",
-        "en": "11-Phase Project Lifecycle",
-        "ja": "11フェーズプロジェクトライフサイクル",
+        "zh": "12 阶段项目生命周期（P0 可选）",
+        "en": "12-Phase Project Lifecycle (P0 optional)",
+        "ja": "12フェーズプロジェクトライフサイクル（P0 任意）",
     },
     "iron_rules": {"zh": "三大 Iron Rules 铁律", "en": "Three Iron Rules", "ja": "三大鉄則"},
-    "sub_skills": {"zh": "6 个原子 Sub-Skill", "en": "6 Atomic Sub-Skills", "ja": "6個の原子サブスキル"},
+    "sub_skills": {"zh": "8 个原子 Sub-Skill", "en": "8 Atomic Sub-Skills", "ja": "8個の原子サブスキル"},
     "glossary": {"zh": "术语表 Glossary", "en": "Glossary", "ja": "用語集"},
     "quickstart": {"zh": "5 分钟快速上手", "en": "5-Minute Quickstart", "ja": "5分クイックスタート"},
     "full_curriculum": {"zh": "完整课程", "en": "Full Curriculum", "ja": "完全カリキュラム"},
@@ -412,7 +370,7 @@ class TeachSkill(BaseSkill):
     """DevSquad onboarding educational skill.
 
     Guides new users through the DevSquad 7-role collaboration model,
-    11-phase lifecycle, and Iron Rules. Provides structured lessons with
+    12-phase lifecycle (P0-P11), and Iron Rules. Provides structured lessons with
     examples, exercises, and assessment. Distinct from grilling (P0-7):
     TeachSkill transfers knowledge rather than collecting requirements.
 
@@ -431,7 +389,7 @@ class TeachSkill(BaseSkill):
 
     name = "teach"
     description = (
-        "DevSquad onboarding - guide new users through 7-role collaboration model, 11-phase lifecycle, and Iron Rules"
+        "DevSquad onboarding - guide new users through 7-role collaboration model, 12-phase lifecycle (P0-P11), and Iron Rules"
     )
 
     TOPICS = [
@@ -733,13 +691,13 @@ class TeachSkill(BaseSkill):
 
     def _content_lifecycle(self, user_level: str, lang: str) -> str:
         if lang == "en":
-            header = "# 11-Phase Project Lifecycle\n\nDevSquad projects follow an 11-phase lifecycle with mandatory gates.\n\n"
+            header = "# 12-Phase Project Lifecycle\n\nDevSquad projects follow a 12-phase lifecycle (P0 optional). Required phases have mandatory gates.\n\n"
             table_header = "| # | Phase | Lead | Reviewers | Optional | Gate |\n|---|-------|------|-----------|----------|------|\n"
             dep_header = "\n## Dependency Graph\n\n```\n"
             template_header = "\n## Lifecycle Templates\n\n"
             template_table_header = "| Template | Phases | Use Case |\n|----------|--------|----------|\n"
         elif lang == "ja":
-            header = "# 11フェーズプロジェクトライフサイクル\n\nDevSquadプロジェクトは必須ゲートを持つ11フェーズライフサイクルに従います。\n\n"
+            header = "# 12フェーズプロジェクトライフサイクル\n\nDevSquadプロジェクトは12フェーズ（P0は任意）のライフサイクルに従います。必須フェーズには強制ゲートがあります。\n\n"
             table_header = "| # | フェーズ | リード | レビューアー | オプション | ゲート |\n|---|---------|--------|-------------|-----------|--------|\n"
             dep_header = "\n## 依存グラフ\n\n```\n"
             template_header = "\n## ライフサイクルテンプレート\n\n"
@@ -747,7 +705,7 @@ class TeachSkill(BaseSkill):
                 "| テンプレート | フェーズ | ユースケース |\n|-------------|---------|-------------|\n"
             )
         else:
-            header = "# 11 阶段项目生命周期\n\nDevSquad 项目遵循 11 阶段生命周期，每阶段有强制门禁。\n\n"
+            header = "# 12 阶段项目生命周期\n\nDevSquad 项目遵循 12 阶段生命周期（P0 可选）。必选阶段有强制门禁。\n\n"
             table_header = "| # | 阶段 | 主导 | 评审人 | 可选 | 门禁 |\n|---|------|------|--------|------|------|\n"
             dep_header = "\n## 依赖图\n\n```\n"
             template_header = "\n## 生命周期模板\n\n"

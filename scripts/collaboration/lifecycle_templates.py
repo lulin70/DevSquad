@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-Lifecycle Templates - 11-phase 模板定义
+Lifecycle Templates - 12-phase (P0-P11) 模板定义
 
 包含:
   - SpecTemplate: 规范文档模板数据类
   - SPEC_TEMPLATES: 预定义规范模板 (requirements/architecture/technical)
-  - ViewMapping: CLI 命令 → 11-phase 映射数据类
+  - ViewMapping: CLI 命令 → 12-phase (P0-P11) 映射数据类
   - VIEW_MAPPINGS: 预定义 CLI 命令到阶段的映射 (spec/plan/build/test/review/ship)
 
 从 lifecycle_protocol.py 拆分而来，lifecycle_protocol.py 会 re-export 以保持向后兼容。
+
+Phase IDs follow the canonical `PHASE_TEMPLATES` in workflow_engine_base.py.
 
 Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 """
@@ -21,7 +23,7 @@ from .lifecycle_protocol import LifecycleMode
 
 @dataclass
 class ViewMapping:
-    """Maps a CLI command to underlying 11-phase segments."""
+    """Maps a CLI command to underlying 12-phase (P0-P11) segments."""
 
     command: str
     phases: list[str]  # Phase IDs this command covers
@@ -106,7 +108,7 @@ SPEC_TEMPLATES: dict[str, SpecTemplate] = {
 }
 
 
-# Predefined view mappings (CLI → 11 phases)
+# Predefined view mappings (CLI → 12 phases, P0-P11)
 VIEW_MAPPINGS: dict[str, ViewMapping] = {
     "spec": ViewMapping(
         command="spec",
@@ -153,8 +155,8 @@ VIEW_MAPPINGS: dict[str, ViewMapping] = {
     ),
     "review": ViewMapping(
         command="review",
-        phases=["P8_review_embedded", "P6_partial"],
-        description="Five-axis code review and security checks",
+        phases=["P8", "P6"],
+        description="Five-axis code review (embedded in P8) and security checks (P6)",
         required_roles=["solo-coder", "security", "tester", "architect"],
         gate="change_size_limit",
         pre_dispatch_message=(

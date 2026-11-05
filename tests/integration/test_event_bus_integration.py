@@ -768,17 +768,17 @@ class T3_ResultAssemblerIntegration(unittest.TestCase):
             }
         )
         self.assertEqual(trace["mapping_version"], "1.0")
-        # analyze → P1, execute → P3, collect → P4, permission → P6.
-        self.assertIn("P1_Requirements", trace["lifecycle_phases"])
-        self.assertIn("P3_Implementation", trace["lifecycle_phases"])
-        self.assertEqual(trace["lifecycle_phases"]["P3_Implementation"], 2.0)
-        self.assertIn("analyze", trace["phase_steps"]["P1_Requirements"])
+        # analyze → P1, execute → P8, collect → P8, permission → P6.
+        self.assertIn("P1", trace["lifecycle_phases"])
+        self.assertIn("P8", trace["lifecycle_phases"])
+        self.assertEqual(trace["lifecycle_phases"]["P8"], 2.5)
+        self.assertIn("analyze", trace["phase_steps"]["P1"])
 
     def test_09_build_lifecycle_trace_unknown_step_falls_to_delivery(self) -> None:
-        """Verify: an unrecognized step name maps to P10_Delivery."""
+        """Verify: an unrecognized step name maps to P10."""
         trace = ResultAssembler.build_lifecycle_trace({"mystery_step": 3.0})
-        self.assertIn("P10_Delivery", trace["lifecycle_phases"])
-        self.assertEqual(trace["lifecycle_phases"]["P10_Delivery"], 3.0)
+        self.assertIn("P10", trace["lifecycle_phases"])
+        self.assertEqual(trace["lifecycle_phases"]["P10"], 3.0)
 
     def test_10_dispatch_lifecycle_mapping_covers_all_dispatch_steps(self) -> None:
         """Verify: DISPATCH_LIFECYCLE_MAPPING has step0..step20 keys."""

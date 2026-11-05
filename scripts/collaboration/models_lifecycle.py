@@ -28,7 +28,7 @@ _LIFECYCLE_FINDING_CATEGORIES = frozenset(
         "VULN-5",
     }
 )
-_LIFECYCLE_PHASES = frozenset(f"P{index}" for index in range(1, 12))
+_LIFECYCLE_PHASES = frozenset(f"P{index}" for index in range(0, 12))
 _LIFECYCLE_FINDING_STATUSES = frozenset({"planned", "detected", "resolved", "accepted"})
 
 

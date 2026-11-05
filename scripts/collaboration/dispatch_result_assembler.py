@@ -10,36 +10,14 @@ import re
 from typing import Any
 
 from .concern_pack_loader import ConcernPackLoader
+from .dispatch_lifecycle import DISPATCH_LIFECYCLE_MAPPING, DISPATCH_STAGE_LABELS
 from .dispatch_models import DispatchResult
 from .dispatcher_base import ReportFormatterProtocol
 from .models import ROLE_REGISTRY
 
 logger = logging.getLogger(__name__)
 
-# Dispatch step → Lifecycle phase mapping
-DISPATCH_LIFECYCLE_MAPPING = {
-    "step0_tenant_setup": "P1_Requirements",
-    "step1_language": "P1_Requirements",
-    "step2_validation": "P1_Requirements",
-    "step3_rules": "P2_Architecture",
-    "step4_intent": "P2_Architecture",
-    "step5_role_match": "P3_Implementation",
-    "step6_security": "P6_Security",
-    "step7_preparation": "P3_Implementation",
-    "step8_execute": "P3_Implementation",
-    "step9_post_exec": "P4_Review",
-    "step10_consensus": "P4_Review",
-    "step11_permission": "P6_Security",
-    "step12_memory": "P5_Integration",
-    "step13_skillify": "P8_Optimization",
-    "step14_five_axis": "P4_Review",
-    "step15_retrospective": "P9_Retrospective",
-    "step16_assemble": "P10_Delivery",
-    "step17_hooks": "P10_Delivery",
-    "step18_feedback": "P11_Monitoring",
-    "step19_ue_testing": "P7_TestPlanning",
-    "step20_tech_debt": "P9_TestExecution",
-}
+__all__ = ["DISPATCH_LIFECYCLE_MAPPING", "DISPATCH_STAGE_LABELS", "ResultAssembler"]
 
 
 class ResultAssembler:
@@ -269,27 +247,27 @@ class ResultAssembler:
     def build_lifecycle_trace(step_timings: dict[str, float]) -> dict[str, Any]:
         """Build lifecycle phase trace from step timings.
 
-        Maps dispatch pipeline steps to lifecycle phases (P1-P11),
+        Maps dispatch pipeline steps to lifecycle phases (P0-P11),
         aggregating timing per phase for observability.
         """
         step_to_lifecycle = {
-            "analyze": "P1_Requirements",
-            "warmup": "P2_Architecture",
-            "plan": "P3_Implementation",
-            "spawn": "P3_Implementation",
-            "execute": "P3_Implementation",
-            "collect": "P4_Review",
-            "consensus": "P4_Review",
-            "compress": "P5_Integration",
-            "permission": "P6_Security",
-            "memory": "P5_Integration",
-            "skillify": "P8_Optimization",
+            "analyze": "P1",
+            "warmup": "P2",
+            "plan": "P8",
+            "spawn": "P8",
+            "execute": "P8",
+            "collect": "P8",
+            "consensus": "P8",
+            "compress": "P11",
+            "permission": "P6",
+            "memory": "P11",
+            "skillify": "P11",
         }
 
         phase_durations: dict[str, float] = {}
         phase_steps: dict[str, list[str]] = {}
         for step_name, duration in step_timings.items():
-            phase = step_to_lifecycle.get(step_name, "P10_Delivery")
+            phase = step_to_lifecycle.get(step_name, "P10")
             phase_durations[phase] = phase_durations.get(phase, 0.0) + duration
             phase_steps.setdefault(phase, []).append(step_name)
 

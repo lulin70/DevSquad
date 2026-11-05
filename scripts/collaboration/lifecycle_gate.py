@@ -15,10 +15,10 @@ Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
 
-from .lifecycle_finding_producers import produce_phase_findings
+from .lifecycle_finding_producers import PHASE_PRODUCERS, produce_phase_findings
 
 if TYPE_CHECKING:
     from .lifecycle_protocol import GateResult, PhaseDefinition, PhaseState
@@ -28,8 +28,57 @@ logger = logging.getLogger(__name__)
 
 def _merge_findings(result: GateResult, target: str, artifacts: Mapping[str, Any] | None) -> GateResult:
     """Attach deterministic lifecycle findings to a gate result."""
-    result.lifecycle_findings.extend(produce_phase_findings(target, artifacts))
+    if target in PHASE_PRODUCERS:
+        result.lifecycle_findings.extend(produce_phase_findings(target, artifacts))
     return result
+
+
+def _role_participation_gate(phase_def: Any, artifacts: Mapping[str, Any] | None) -> GateResult | None:
+    """Run the role participation gate when participating roles are supplied.
+
+    Returns ``None`` when the artifacts carry no participating roles so that
+    callers keep their existing behaviour (backward compatible).
+    """
+    if not isinstance(artifacts, Mapping):
+        return None
+    participating_roles = artifacts.get("participating_roles")
+    if not participating_roles:
+        return None
+    phase = {
+        "role_id": phase_def.role_id,
+        "reviewers": list(phase_def.reviewers),
+    }
+    return check_role_participation(phase, participating_roles)
+
+
+def check_role_participation(
+    phase: Mapping[str, Any],
+    participating_roles: Iterable[str],
+) -> GateResult:
+    """Check that every role required by a phase has participated.
+
+    Args:
+        phase: Phase definition mapping with ``role_id`` and ``reviewers``.
+        participating_roles: Role IDs that took part in the phase.
+
+    Returns:
+        Passing GateResult when all required roles participated, otherwise a
+        failing GateResult that names each missing role.
+    """
+    from .lifecycle_protocol import GateResult
+    from .workflow_engine_base import required_roles_for_phase
+
+    required = required_roles_for_phase(phase)
+    participated = {role for role in participating_roles if role}
+    missing = [role for role in required if role not in participated]
+    if not missing:
+        return GateResult(passed=True, verdict="APPROVE")
+    return GateResult(
+        passed=False,
+        verdict="CONDITIONAL",
+        missing_evidence=[{"role": role, "reason": "required participant missing"} for role in missing],
+        gap_report=f"Missing required roles: {', '.join(missing)}",
+    )
 
 
 def check_gate_basic(
@@ -58,6 +107,10 @@ def check_gate_basic(
         GateResult indicating whether the gate passed.
     """
     from .lifecycle_protocol import GateResult, PhaseState
+
+    role_gate = _role_participation_gate(phase_def, artifacts)
+    if role_gate is not None:
+        return _merge_findings(role_gate, target, artifacts)
 
     if strict_optional and not phase_def.optional:
         for dep in phase_def.dependencies:
@@ -121,6 +174,10 @@ def check_gate_with_unified_engine(
         GateResult converted from the unified gate result.
     """
     from .lifecycle_protocol import GateResult, PhaseState
+
+    role_gate = _role_participation_gate(phase_def, artifacts)
+    if role_gate is not None:
+        return _merge_findings(role_gate, target, artifacts)
 
     unmet_deps = [d for d in phase_def.dependencies if d not in completed_phases]
 

@@ -40,7 +40,7 @@ class TestFullLifecycleAdapterInit:
 
     def test_execution_order_has_all_phases(self):
         """Test execution order contains all 11 phases."""
-        assert len(self.adapter._execution_order) == 11
+        assert len(self.adapter._execution_order) == 12
         assert "P1" in self.adapter._execution_order
         assert "P11" in self.adapter._execution_order
         print(f"✅ Execution order has {len(self.adapter._execution_order)} phases: {self.adapter._execution_order}")
@@ -69,9 +69,9 @@ class TestFullLifecycleAdapterInit:
     def test_get_all_phases_returns_11(self):
         """Test get_all_phases returns all 11 phases."""
         phases = self.adapter.get_all_phases()
-        assert len(phases) == 11
+        assert len(phases) == 12
         phase_ids = [p.phase_id for p in phases]
-        assert all(f"P{i}" in phase_ids for i in range(1, 12))
+        assert all(f"P{i}" in phase_ids for i in range(0, 12))
         print(f"✅ get_all_phases() returns {len(phases)} phases")
 
 
@@ -138,9 +138,9 @@ class TestFullLifecycleAdapterPhases:
     def test_get_next_phase_returns_correct_order(self):
         """Test get_next_phase returns phases in correct order."""
         next_phase = self.adapter.get_next_phase()
-        # Should return P1 as first phase (not yet started)
+        # Should return P0 as first phase (optional discovery, not yet started)
         assert next_phase is not None
-        assert next_phase == "P1", f"Expected P1 as first phase, got {next_phase}"
+        assert next_phase == "P0", f"Expected P0 as first phase, got {next_phase}"
 
         # Advance and complete P1, then check next
         result = self.adapter.advance_to_phase("P1")
@@ -151,7 +151,7 @@ class TestFullLifecycleAdapterPhases:
         # After completing P1, next should be P2 (or later if P2 optional and skipped)
         assert next_phase is not None, "Should have a next phase after P1"
         assert next_phase != "P1", f"Should not return P1 again after completion, got {next_phase}"
-        print(f"✅ get_next_phase returns correct order (first: P1, after P1: {next_phase})")
+        print(f"✅ get_next_phase returns correct order (first: P0, after P1: {next_phase})")
 
 
 class TestOptionalPhaseSkipping:
@@ -166,7 +166,7 @@ class TestOptionalPhaseSkipping:
         """Test that optional phases are NOT skipped by default."""
         assert self.adapter._skip_optional is False
         active_phases = self.adapter.get_active_phases()
-        assert len(active_phases) == 11
+        assert len(active_phases) == 12
         print("✅ Optional phases included by default")
 
     def test_skip_optional_enabled_reduces_phases(self):
@@ -218,11 +218,11 @@ class TestAutoAdvance:
         self.adapter = FullLifecycleAdapter(use_unified_gate=False)
 
     def test_auto_advance_to_first_phase(self):
-        """Test auto_advance moves to first phase (P1)."""
+        """Test auto_advance moves to first phase (P0)."""
         result = self.adapter.auto_advance()
         assert result.success is True
-        assert result.phase_id == "P1"
-        print("✅ Auto-advanced to P1")
+        assert result.phase_id == "P0"
+        print("✅ Auto-advanced to P0")
 
     def test_auto_advance_sequence(self):
         """Test multiple auto_advances follow correct sequence."""
@@ -237,7 +237,7 @@ class TestAutoAdvance:
                 break
 
         assert len(phases_visited) >= 4, f"Should visit at least 4 phases, visited: {phases_visited}"
-        assert phases_visited[0] == "P1"
+        assert phases_visited[0] == "P0"
         print(f"✅ Auto-advance sequence: {' → '.join(phases_visited)}")
 
     def test_auto_advance_exhausted(self):
@@ -279,7 +279,7 @@ class TestExecutionProgress:
         """Test initial progress shows 0% complete."""
         progress = self.adapter.get_execution_progress()
 
-        assert progress["total_phases"] == 11
+        assert progress["total_phases"] == 12
         assert progress["completed_phases"] == 0
         assert progress["progress_percent"] == 0.0
         assert progress["current_phase"] is None
@@ -306,7 +306,7 @@ class TestExecutionProgress:
         progress = self.adapter.get_execution_progress()
 
         assert "phases" in progress
-        assert len(progress["phases"]) == 11
+        assert len(progress["phases"]) == 12
 
         p1_info = next(p for p in progress["phases"] if p["phase_id"] == "P1")
         assert "name" in p1_info
@@ -365,7 +365,7 @@ class TestFullAdapterWithCheckpoint:
         assert restored is True
         assert adapter2._mode.value == "full"
         assert "P1" in adapter2._completed_phases
-        assert len(adapter2._execution_order) == 11
+        assert len(adapter2._execution_order) == 12
         print("✅ Full lifecycle state persisted and restored")
 
     def test_checkpoint_includes_metadata(self):

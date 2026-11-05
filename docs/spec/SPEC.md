@@ -54,9 +54,9 @@ DevSquad 是一个**生产级多角色 AI 任务编排框架**，采用**控制�
 - **7 个专业角色**协作（架构师、产品经理、安全专家、测试专家、独立开发者、DevOps工程师、UI设计师）
 - **5 种执行模式**（auto/parallel/sequential/consensus/review）
 - **5 轴共识机制**（正确性/可读性/架构/安全性/性能）
-- **11 阶段生命周期管理**（P1:需求分析 → P2:架构设计 → P3:技术设计 → P4:数据设计(opt) → P5:交互设计(opt) → P6:安全审查(opt) → P7:测试规划 → P8:实现 → P9:测试执行 → P10:部署发布 → P11:运维保障(opt)）
+- **12 阶段生命周期管理**（P0:调研与可行性(opt) → P1:需求分析 → P2:架构设计 → P3:技术设计 → P4:数据设计(opt) → P5:交互设计(opt) → P6:安全审查(opt) → P7:测试规划 → P8:实现 → P9:测试执行 → P10:部署发布 → P11:运维保障(opt)）
 - **5 种生命周期模板**（full/backend/frontend/internal_tool/minimal）
-- **6 个原子技能**（dispatch/intent/retrospective/review/security/test）
+- **8 个原子技能**（dispatch/intent/review/security/test/retrospective/prototype/teach）
 - **V4.0.0 六大特性**（Loop Engineering/UI-UX 巡检/对抗验证/DAG 可视化/自主迭代/插件热加载）
 
 ### 1.3 技术栈概览
@@ -80,7 +80,7 @@ DevSquad 是一个**生产级多角色 AI 任务编排框架**，采用**控制�
 |----------|----------|--------|------|
 | **协作引擎** | Multi-Agent Dispatcher | ✅ 生产级 | 支持 7 角色 + 4 模式 |
 | **共识机制** | Five-Axis Consensus | ✅ 生产级 | 权重投票 + 否决权 |
-| **生命周期** | Lifecycle Protocol | ✅ 生产级 | 11 阶段门禁控制 |
+| **生命周期** | Lifecycle Protocol | ✅ 生产级 | 12 阶段（P0-P11）门禁控制 |
 | **质量控制** | Verification Gate | ✅ 生产级 | 证据驱动验收 |
 | **目标锚定** | Anchor Checker | ✅ 生产级 | V3.6.0 新增 |
 | **回顾引擎** | Retrospective Engine | ✅ 生产级 | V3.6.0 新增 |

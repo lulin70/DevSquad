@@ -15,7 +15,7 @@ for backward compatibility.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -229,6 +229,19 @@ class WorkflowInstance:
 # ============================================================
 
 PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
+    "P0": {
+        "name": "Discovery & Feasibility",
+        "description": "Assess the request for feasibility, cost, and risk, and decide whether to continue",
+        "role_id": "product-manager",
+        "action": "assess_feasibility",
+        "dependencies": [],
+        "artifacts_in": "Raw idea or request",
+        "artifacts_out": "Feasibility conclusion, scope boundary, cost and risk estimate, go/no-go decision",
+        "gate_condition": "Business case and feasibility confirmed, go decision recorded",
+        "reviewers": ["architect", "security", "devops"],
+        "optional": True,
+        "node_type": "llm",
+    },
     "P1": {
         "name": "Requirements Analysis",
         "description": "Analyze task requirements and create detailed specification",
@@ -302,7 +315,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "dependencies": ["P2", "P3"],
         "artifacts_in": "P2 + P3 deliverables (+ P4, P5 if exist)",
         "artifacts_out": "Threat model, vulnerability list, compliance report, security fixes",
-        "gate_condition": "No P0/P1 vulnerabilities, compliance green",
+        "gate_condition": "No P0/P1 vulnerabilities, compliance green, dependency and supply-chain scan clean",
         "reviewers": ["architect", "devops"],
         "optional": True,
         "node_type": "hybrid",
@@ -341,7 +354,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "dependencies": ["P7", "P8"],
         "artifacts_in": "P7 + P8 deliverables",
         "artifacts_out": "Full test report, defect list",
-        "gate_condition": "Coverage>=80% + P7 plan 100% executed + no P0 defects",
+        "gate_condition": "Coverage>=80% + P7 plan 100% executed + no P0 defects + NFR targets met + UAT signed off",
         "reviewers": ["architect", "product-manager", "security", "devops"],
         "optional": False,
         "node_type": "deterministic",
@@ -354,7 +367,7 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "dependencies": ["P9"],
         "artifacts_in": "P9 deliverables",
         "artifacts_out": "Deployment plan, release strategy, rollback plan, release checklist, IaC",
-        "gate_condition": "Deployment drill passed, rollback verified",
+        "gate_condition": "Deployment drill passed, rollback verified, data migration executed and reconciled",
         "reviewers": ["architect", "security", "tester"],
         "optional": False,
         "node_type": "deterministic",
@@ -368,14 +381,34 @@ PHASE_TEMPLATES: dict[str, dict[str, Any]] = {
         "artifacts_in": "P10 deliverables",
         "artifacts_out": "Monitoring dashboards, alert rules, incident response plans, performance baselines",
         "gate_condition": "P99<target, alert coverage 100%",
-        "reviewers": ["architect", "devops"],
+        "reviewers": ["architect", "security"],
         "optional": True,
         "node_type": "deterministic",
     },
 }
 
+
+def required_roles_for_phase(phase: Mapping[str, Any]) -> list[str]:
+    """Return the ordered, de-duplicated roles required for a phase.
+
+    The phase lead role comes first, followed by its reviewers. Falsy role
+    entries are skipped and duplicates are removed.
+
+    Args:
+        phase: Phase template mapping with ``role_id`` and ``reviewers``.
+
+    Returns:
+        Role IDs in participation order.
+    """
+    roles: list[str] = []
+    for role in [phase.get("role_id", ""), *phase.get("reviewers", [])]:
+        if role and role not in roles:
+            roles.append(role)
+    return roles
+
+
 LIFECYCLE_TEMPLATES: dict[str, list[str]] = {
-    "full": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11"],
+    "full": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11"],
     "backend": ["P1", "P2", "P3", "P4", "P6", "P7", "P8", "P9", "P10", "P11"],
     "frontend": ["P1", "P2", "P3", "P5", "P7", "P8", "P9", "P10", "P11"],
     "internal_tool": ["P1", "P2", "P3", "P7", "P8", "P9", "P10"],
@@ -434,4 +467,5 @@ __all__ = [
     "WorkflowInstance",
     "WorkflowStatus",
     "WorkflowStep",
+    "required_roles_for_phase",
 ]

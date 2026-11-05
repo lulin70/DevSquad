@@ -2,7 +2,7 @@ name: teach
 version: 4.9.0
 description: |
   TeachSkill - DevSquad onboarding educational skill.
-  Guides new users through the 7-role collaboration model, 11-phase lifecycle,
+  Guides new users through the 7-role collaboration model, 12-phase lifecycle (P0-P11),
   and Iron Rules. Provides structured lessons with examples, exercises, and
   assessment. Distinct from grilling (P0-7): TeachSkill transfers knowledge
   rather than collecting requirements.
@@ -51,9 +51,9 @@ actions:
 topics:
   - overview: DevSquad one-sentence understanding + comparison table
   - seven_roles: 7-role collaboration model with triggers and responsibilities
-  - lifecycle: 11-phase project lifecycle with gates and templates
+  - lifecycle: 12-phase project lifecycle (P0-P11) with gates and templates
   - iron_rules: 3 Iron Rules (Documentation First / Test Iron Rules / Delivery Workflow)
-  - sub_skills: 6 atomic sub-skills (dispatch/intent/review/security/test/retrospective)
+  - sub_skills: 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach)
   - glossary: DevSquad terminology from GLOSSARY.md
   - quickstart: 5-minute quickstart guide
   - full_curriculum: All topics taught in order

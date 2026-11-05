@@ -198,9 +198,11 @@ class TestCreateLifecycle(unittest.TestCase):
 
     def test_full_template(self) -> None:
         defn = self.engine.create_lifecycle("full")
-        self.assertEqual(len(defn.steps), 11)
+        self.assertEqual(len(defn.steps), 12)
         step_ids = [s.step_id for s in defn.steps]
-        self.assertEqual(step_ids, ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11"])
+        self.assertEqual(
+            step_ids, ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11"]
+        )
 
     def test_backend_template(self) -> None:
         defn = self.engine.create_lifecycle("backend")
@@ -232,7 +234,7 @@ class TestCreateLifecycle(unittest.TestCase):
 
     def test_default_template_is_full(self) -> None:
         defn = self.engine.create_lifecycle()
-        self.assertEqual(len(defn.steps), 11)
+        self.assertEqual(len(defn.steps), 12)
 
     def test_node_type_propagation(self) -> None:
         defn = self.engine.create_lifecycle("full")

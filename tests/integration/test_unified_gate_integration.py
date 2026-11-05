@@ -343,11 +343,11 @@ class T2_LifecycleProtocolTemplates(unittest.TestCase):
         self.full = FullLifecycleAdapter(use_unified_gate=False)
 
     def test_01_eleven_phases_available(self) -> None:
-        """Verify: all 11 phases (P1-P11) are defined in the protocol."""
+        """Verify: all 12 phases (P0-P11) are defined in the protocol."""
         phases = self.shortcut.get_all_phases()
         phase_ids = [p.phase_id for p in phases]
-        self.assertEqual(len(phases), 11)
-        for i in range(1, 12):
+        self.assertEqual(len(phases), 12)
+        for i in range(0, 12):
             self.assertIn(f"P{i}", phase_ids)
 
     def test_02_phase_dependencies_correct(self) -> None:
@@ -395,11 +395,12 @@ class T2_LifecycleProtocolTemplates(unittest.TestCase):
         active_ids = {p.phase_id for p in active}
         self.assertNotIn("P4", active_ids)
         self.assertNotIn("P11", active_ids)
+        self.assertNotIn("P0", active_ids)
         self.assertIn("P1", active_ids)
         # Restore
         self.full.set_skip_optional(False)
         all_active = self.full.get_active_phases()
-        self.assertEqual(len(all_active), 11)
+        self.assertEqual(len(all_active), 12)
 
     def test_07_create_lifecycle_protocol_factory(self) -> None:
         """Verify: create_lifecycle_protocol returns correct adapter per mode."""

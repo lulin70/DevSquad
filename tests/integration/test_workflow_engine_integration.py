@@ -320,10 +320,10 @@ class T3_WorkflowEngine(unittest.TestCase):
         self.assertEqual(len(wf.steps), 1)
         self.assertEqual(wf.steps[0].role_id, "solo-coder")
 
-    def test_03_create_lifecycle_full_has_eleven_phases(self) -> None:
-        """Verify: create_lifecycle('full') produces all 11 phases P1-P11."""
+    def test_03_create_lifecycle_full_has_twelve_phases(self) -> None:
+        """Verify: create_lifecycle('full') produces all 12 phases P0-P11."""
         wf = self.engine.create_lifecycle("full")
-        self.assertEqual(len(wf.steps), 11)
+        self.assertEqual(len(wf.steps), 12)
         phase_ids = [s.step_id for s in wf.steps]
         self.assertEqual(phase_ids, LIFECYCLE_TEMPLATES["full"])
 
@@ -373,12 +373,12 @@ class T3_WorkflowEngine(unittest.TestCase):
         """Verify: classify_steps reports deterministic/llm/hybrid counts."""
         wf = self.engine.create_lifecycle("full")
         stats = self.engine.classify_steps(wf.workflow_id)
-        self.assertEqual(stats["total"], 11)
+        self.assertEqual(stats["total"], 12)
         # P9, P10, P11 are deterministic; P1,P2,P3,P5,P7 are llm; P4,P6,P8 are hybrid.
         self.assertGreater(stats["deterministic"], 0)
         self.assertGreater(stats["llm"], 0)
         self.assertGreater(stats["hybrid"], 0)
-        self.assertEqual(stats["deterministic"] + stats["llm"] + stats["hybrid"], 11)
+        self.assertEqual(stats["deterministic"] + stats["llm"] + stats["hybrid"], 12)
 
 
 # ---------------------------------------------------------------------------

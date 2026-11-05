@@ -191,8 +191,8 @@ class TestLifecycleTemplatesNodeType(unittest.TestCase):
         engine = WorkflowEngine(storage_path=tempfile.mkdtemp())
         engine.create_lifecycle("full")
         stats = engine.classify_steps()
-        # Full lifecycle has 11 phases with mixed node_types
-        self.assertEqual(stats["total"], 11)
+        # Full lifecycle has 12 phases with mixed node_types
+        self.assertEqual(stats["total"], 12)
         self.assertGreater(stats["llm"], 0)
         self.assertGreater(stats["deterministic"], 0)
         self.assertGreater(stats["hybrid"], 0)

@@ -58,18 +58,28 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 - **S2 Gates (CRAP/Duplication)**：在 S1 Gate 之后执行，检查代码复杂度和重复度
 - SimplicityRole 不是协作角色，而是质量门控执行器
 
-### 11 阶段项目生命周期
+### 12 阶段项目生命周期（P0-P11）
 
-DevSquad 支持完整的项目生命周期管理：
+下表是唯一权威定义（`scripts/collaboration/workflow_engine_base.py` 的 `PHASE_TEMPLATES`）。教学内容、仪表盘 DAG、派发映射全部由它派生。
 
-```
-P1: 需求 → P2: 架构 → P3: 实现
-→ P4: 评审 → P5: 集成 → P6: 安全
-→ P7: 测试规划 → P8: 优化 → P9: 回顾  
-→ P10: 交付 → P11: 监控
-```
+| 阶段 | 名称 | 主导角色 | 评审角色 | 可选 | 出口门控 |
+|---|---|---|---|---|---|
+| P0 | 调研与可行性 | product-manager | architect, security, devops | 是 | 商业论证与可行性已确认，已记录继续决策 |
+| P1 | 需求分析 | product-manager | architect, tester, security, ui-designer | 否 | 验收标准可量化 |
+| P2 | 架构设计 | architect | product-manager, security, devops | 否 | 加权共识 ≥70% |
+| P3 | 技术设计 | architect | solo-coder, tester | 否 | API 规范无歧义 |
+| P4 | 数据设计 | architect | architect, security | 是 | 满足 3NF，或非规范化有充分理由 |
+| P5 | 交互设计 | ui-designer | product-manager, tester, security | 是 | 核心流程可用性已验证 |
+| P6 | 安全审查 | security | architect, devops | 是 | 无 P0/P1 漏洞，合规通过，依赖与供应链扫描干净 |
+| P7 | 测试规划 | tester | architect, security, devops, product-manager | 否 | 测试计划评审通过 |
+| P8 | 实现 | solo-coder | architect, security, tester, solo-coder | 否 | 代码评审通过，无 P0 缺陷 |
+| P9 | 测试执行 | tester | architect, product-manager, security, devops | 否 | 覆盖率 ≥80%，P7 计划 100% 执行，无 P0 缺陷，非功能指标达标，UAT 已签字 |
+| P10 | 部署与发布 | devops | architect, security, tester | 否 | 部署演练通过，回滚已验证，数据迁移已执行并核对 |
+| P11 | 运维与保障 | devops | architect, security | 是 | P99 达标，告警覆盖 100% |
 
-每个阶段触发适当的角色组合和验证门控。S1 Gate（ImplementationCompletenessGate）主要在 P8（实现）阶段激活。
+角色强制校验：`check_role_participation` 在缺少必需的主导或评审角色时拒绝该阶段门控。生命周期执行器提供 `participating_roles` 时生效。
+
+S1 Gate（ImplementationCompletenessGate）在 SimplicityRole 内、S2 门控（CRAP/重复度）之前执行，主要发生在 P8。
 
 ### 对比：单 AI vs DevSquad
 
@@ -106,7 +116,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 | Reference Doc | Content | Target Audience |
 |---------------|---------|-----------------|
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 218+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
-| [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 11-phase project lifecycle, testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
+| [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 个原子子技能（dispatch/intent/review/security/test/retrospective/prototype/teach），完整派发流程，12 阶段项目生命周期（P0-P11），测试铁律、元铁律、交付流程铁律 | Skill users / test engineers |
 | [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md) | Defect ledger contract (V4.9.0): JSON schema + closed state machine (open/fixed/closed) + two hazard guards + `signal_ref` resolution + mandatory-signal mapping + registration-gate three-state tracking + `devsquad defect add/update/close/reopen/list/audit` CLI | Run operators / defect filers |
 | [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v4.9.0) | Release tracking / auditors |
 

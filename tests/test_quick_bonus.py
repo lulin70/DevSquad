@@ -22,11 +22,11 @@ class TestQuickBonusLifecycle:
         self.shortcut_adapter = ShortcutLifecycleAdapter(use_unified_gate=False)
         self.LifecycleMode = LifecycleMode
 
-    def test_full_adapter_has_11_phases(self):
-        assert len(self.full_adapter.get_all_phases()) == 11
+    def test_full_adapter_has_12_phases(self):
+        assert len(self.full_adapter.get_all_phases()) == 12
 
-    def test_shortcut_adapter_has_11_phases(self):
-        assert len(self.shortcut_adapter.get_all_phases()) == 11
+    def test_shortcut_adapter_has_12_phases(self):
+        assert len(self.shortcut_adapter.get_all_phases()) == 12
 
     def test_both_adapters_have_same_phase_count(self):
         full_count = len(self.full_adapter.get_all_phases())

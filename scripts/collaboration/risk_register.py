@@ -1,4 +1,4 @@
-"""V4.4.0 P0-1 Risk Register — PMP Risk Management for DevSquad 11-phase lifecycle.
+"""V4.4.0 P0-1 Risk Register — PMP Risk Management for DevSquad 12-phase (P0-P11) lifecycle.
 
 Records risks with probability × impact assessment, supports 7-role voting,
 applies one of 4 PMP response strategies (avoid/transfer/mitigate/accept),

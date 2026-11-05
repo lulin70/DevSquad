@@ -108,7 +108,7 @@ DevSquad/
 │   │   ├── input_validator.py  # Security + prompt injection detection
 │   │   ├── ai_semantic_matcher.py # LLM-powered semantic matching
 │   │   ├── checkpoint_manager.py  # State persistence + handoff
-│   │   ├── workflow_engine.py     # Task-to-workflow auto-split + 11-phase lifecycle templates
+│   │   ├── workflow_engine.py     # Task-to-workflow auto-split + 12-phase (P0-P11) lifecycle templates
 │   │   ├── task_completion_checker.py # Completion tracking
 │   │   ├── code_map_generator.py  # AST-based code analysis
 │   │   ├── dual_layer_context.py  # Project + task context with TTL

@@ -75,7 +75,7 @@ class TestLifecycleProtocolIntegration:
         shortcut_phases = self.shortcut_adapter.get_all_phases()
         full_phases = self.full_adapter.get_all_phases()
 
-        assert len(shortcut_phases) == len(full_phases) == 11
+        assert len(shortcut_phases) == len(full_phases) == 12
 
         for sp, fp in zip(shortcut_phases, full_phases):
             assert sp.phase_id == fp.phase_id
@@ -546,12 +546,12 @@ class TestWorkflowEngineBridge:
     """Tests for WorkflowEngine + Lifecycle integration."""
 
     def test_workflow_engine_has_lifecycle_templates(self):
-        """Test WorkflowEngine has 11-phase templates defined."""
+        """Test WorkflowEngine has 12-phase templates defined."""
         from scripts.collaboration.workflow_engine import LIFECYCLE_TEMPLATES, PHASE_TEMPLATES
 
-        assert len(PHASE_TEMPLATES) == 11
+        assert len(PHASE_TEMPLATES) == 12
         assert "full" in LIFECYCLE_TEMPLATES
-        assert len(LIFECYCLE_TEMPLATES["full"]) == 11
+        assert len(LIFECYCLE_TEMPLATES["full"]) == 12
         print(f"✅ WorkflowEngine has {len(PHASE_TEMPLATES)} phase templates")
 
     def test_workflow_creation_from_template(self):
@@ -562,7 +562,7 @@ class TestWorkflowEngineBridge:
         workflow = engine.create_lifecycle(template_name="full")
 
         assert workflow is not None
-        assert len(workflow.steps) == 11
+        assert len(workflow.steps) == 12
         step_ids = [s.step_id for s in workflow.steps]
         assert "P1" in step_ids
         assert "P11" in step_ids

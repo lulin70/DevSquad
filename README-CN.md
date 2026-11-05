@@ -487,16 +487,16 @@ result = skill.scan_input("DROP TABLE users; --")
 
 ## 📋 Plan C 架构（核心引擎）
 
-**统一 Lifecycle 架构** - 解决 CLI 6 命令 vs 11 阶段 lifecycle 的映射：
+**统一 Lifecycle 架构** - 解决 CLI 6 命令 vs 12 阶段 lifecycle（P0-P11）的映射：
 
 ```
-CLI 视图层 (6 命令)             核心引擎 (11 阶段)
+CLI 视图层 (6 命令)             核心引擎 (12 阶段)
 ┌─────────────────────┐            ┌──────────────────────────┐
-│ spec → P1, P2       │───视图 ──→│ P1: Requirements         │
-│ plan → P7           │   映射    │ P2: Architecture         │
-│ build → P8          │            │ P3: Technical Design     │
-│ test → P9           │            │ ...                      │
-│ review → P8,P6      │            │ P10: Deployment          │
+│ spec → P1, P2       │───视图 ──→│ P0: Discovery（可选）     │
+│ plan → P7           │   映射    │ P1: Requirements         │
+│ build → P8          │            │ P2: Architecture         │
+│ test → P9           │            │ P3: Technical Design     │
+│ review → P8,P6      │            │ ...                      │
 │ ship → P10          │            │ P11: Operations          │
 └─────────────────────┘            └──────────────────────────┘
         ↓                                    ↓
@@ -507,7 +507,7 @@ CLI 视图层 (6 命令)             核心引擎 (11 阶段)
 **核心组件:**
 - ✅ **LifecycleProtocol** - 统一 lifecycle 管理的抽象接口
 - ✅ **UnifiedGateEngine** - 集成 VerificationGate + Phase 转换门
-- ✅ **FullLifecycleAdapter** - 完整 11 阶段 lifecycle，含依赖解析
+- ✅ **FullLifecycleAdapter** - 完整 12 阶段 lifecycle，含依赖解析
 - ✅ **Enhanced CheckpointManager** - 跨会话自动保存/恢复 lifecycle 状态
 
 ---

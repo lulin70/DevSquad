@@ -27,7 +27,7 @@
 | 18 | **RuleCollector** | `rule_collector.py` | Natural language rule collection (intent detection / rule extraction / sanitization / CarryMem+JSON storage / prompt injection protection) |
 | 19 | **AISemanticMatcher** | `ai_semantic_matcher.py` | LLM-powered semantic role matching with bilingual keyword fallback |
 | 20 | **CheckpointManager** | `checkpoint_manager.py` | SHA256 integrity, handoff documents, auto-cleanup, dispatch integration |
-| 21 | **WorkflowEngine** | `workflow_engine.py` | Task-to-workflow auto-split, step execution, checkpointing, agent handoff, 11-phase lifecycle templates |
+| 21 | **WorkflowEngine** | `workflow_engine.py` | Task-to-workflow auto-split, step execution, checkpointing, agent handoff, 12-phase (P0-P11) lifecycle templates |
 | 22 | **TaskCompletionChecker** | `task_completion_checker.py` | DispatchResult/ScheduleResult completion tracking + progress persistence |
 | 23 | **CodeMapGenerator** | `code_map_generator.py` | Python AST-based code structure analysis + dependency graph |
 | 24 | **DualLayerContextManager** | `dual_layer_context.py` | Project-level + task-level context management with TTL |
@@ -52,7 +52,7 @@
 | 43 | **OutputSlicer** | `output_slicer.py` | Incremental output slicing for large responses: configurable slice size, headers, scratchpad integration |
 | 44 | **FiveAxisConsensusEngine** | `five_axis_consensus.py` | Five-axis review consensus (correctness/readability/architecture/security/performance) with weighted voting and strict mode. **V4.3.0 Phase 3 P3-4**: 新增 `evaluate(artifacts, reviewer_id="heuristic")` 实例方法 + `FiveAxisEvaluationResult` dataclass + `evaluate_artifacts()` 模块函数 + 5 个 heuristic 评估器（`_evaluate_correctness` / `_evaluate_readability` / `_evaluate_architecture` / `_evaluate_security` / `_evaluate_performance`），支持非 LLM heuristic 5 轴评估 + Markdown 报告章节（`to_markdown()`）。E2E-07 脱 xfail |
 | 45 | **CIFeedbackAdapter** | `ci_feedback_adapter.py` | CI results parser (pytest/coverage/lint/build) + context generator + prompt injection for dispatch pipeline |
-| 46 | **LifecycleProtocol** | `lifecycle_protocol.py` | Abstract interface for unified lifecycle management (SHORTCUT/FULL/CUSTOM modes) with 11-phase support |
+| 46 | **LifecycleProtocol** | `lifecycle_protocol.py` | Abstract interface for unified lifecycle management (SHORTCUT/FULL/CUSTOM modes) with 12-phase (P0-P11) support |
 | 47 | **UnifiedGateEngine** | `unified_gate_engine.py` | Unified gate engine integrating VerificationGate + LifecycleProtocol gates with pluggable checkers |
 | 48 | **CheckpointManager (Enhanced)** | `checkpoint_manager.py` | Extended with lifecycle state persistence: save/restore/list/delete lifecycle states across sessions |
 | 49 | **ShortcutLifecycleAdapter** | `lifecycle_protocol.py` (class) | Plan C adapter implementing LifecycleProtocol using CLI 6-command shortcuts with auto state persistence |
