@@ -45,49 +45,49 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 
 | 角色 | 职责 | 激活时机 |
 |------|------|---------|
-| **Architect（架构师）** | 系统设计、技术选型、API设计、性能/安全/数据架构 | 系统设计、架构评审 |
-| **Security（安全专家）** | 威胁建模、漏洞审计、OWASP Top 10、认证/数据安全、合规性 | 安全敏感功能、代码审查 |
-| **Tester（测试工程师）** | 测试策略、自动化测试、质量保证、缺陷追踪 | 测试规划、QA 验证 |
-| **Coder（开发工程师）** | 实现、代码审查、性能优化、重构、Bug 修复 | 编码任务、Bug 修复、优化 |
-| **DevOps（运维工程师）** | CI/CD 流水线、容器化(Docker/K8s)、基础设施即代码、监控、部署策略 | 基础设施、部署、监控 |
-| **UI Designer（UI设计师）** | 界面设计、交互原型、设计系统、可访问性 | UX 设计、前端 UI、可访问性 |
-| **PM（产品经理）** | 需求分析、PRD 编写、用户故事、竞品分析、验收标准 | 功能规划、路线图、需求 |
+| **架构师** | 系统设计、技术选型、API设计、性能/安全/数据架构 | 系统设计、架构评审 |
+| **安全专家** | 威胁建模、漏洞审计、OWASP Top 10、认证/数据安全、合规性 | 安全敏感功能、代码审查 |
+| **测试工程师** | 测试策略、自动化测试、质量保证、缺陷追踪 | 测试规划、质量验证 |
+| **开发工程师** | 实现、代码审查、性能优化、重构、缺陷修复 | 编码任务、缺陷修复、优化 |
+| **运维工程师** | CI/CD 流水线、容器化、基础设施即代码、监控、部署策略 | 基础设施、部署、监控 |
+| **界面设计师** | 界面设计、交互原型、设计系统、可访问性 | 用户体验设计、前端界面、可访问性 |
+| **产品经理** | 需求分析、产品需求文档编写、用户故事、竞品分析、验收标准 | 功能规划、路线图、需求 |
 
 **V5.1.0 质量门控**：
-- **S1 Gate (ImplementationCompletenessGate)**：在 SimplicityRole 的 `activate()` 方法中首先执行，验证实现完整性（检测生产代码中的 mock、缺失设计元素、不完整测试、未保护 I/O、缺失安全功能）
-- **S2 Gates (CRAP/Duplication)**：在 S1 Gate 之后执行，检查代码复杂度和重复度
-- SimplicityRole 不是协作角色，而是质量门控执行器
+- **S1 门控（实现完整性门控）**：在简洁性角色的 `activate()` 方法中首先执行，验证实现完整性（检测生产代码中的模拟对象、缺失设计元素、不完整测试、未保护输入输出、缺失安全功能）
+- **S2 门控（复杂度/重复度）**：在 S1 门控之后执行，检查代码复杂度和重复度
+- 简洁性角色不是协作角色，而是质量门控执行器
 
 ### 12 阶段项目生命周期（P0-P11）
 
-下表是唯一权威定义（`scripts/collaboration/workflow_engine_base.py` 的 `PHASE_TEMPLATES`）。教学内容、仪表盘 DAG、派发映射全部由它派生。
+下表是唯一权威定义（`scripts/collaboration/workflow_engine_base.py` 的 `PHASE_TEMPLATES`）。教学内容、仪表盘有向无环图、派发映射全部由它派生。
 
 | 阶段 | 名称 | 主导角色 | 评审角色 | 可选 | 出口门控 |
 |---|---|---|---|---|---|
 | P0 | 调研与可行性 | product-manager | architect, security, devops | 是 | 商业论证与可行性已确认，已记录继续决策 |
 | P1 | 需求分析 | product-manager | architect, tester, security, ui-designer | 否 | 验收标准可量化 |
 | P2 | 架构设计 | architect | product-manager, security, devops | 否 | 加权共识 ≥70% |
-| P3 | 技术设计 | architect | solo-coder, tester | 否 | API 规范无歧义 |
-| P4 | 数据设计 | architect | architect, security | 是 | 满足 3NF，或非规范化有充分理由 |
+| P3 | 技术设计 | architect | solo-coder, tester | 否 | 应用程序接口规范无歧义 |
+| P4 | 数据设计 | architect | architect, security | 是 | 满足第三范式，或非规范化有充分理由 |
 | P5 | 交互设计 | ui-designer | product-manager, tester, security | 是 | 核心流程可用性已验证 |
-| P6 | 安全审查 | security | architect, devops | 是 | 无 P0/P1 漏洞，合规通过，依赖与供应链扫描干净 |
+| P6 | 安全审查 | security | architect, devops | 是 | 无最高/高危漏洞，合规通过，依赖与供应链扫描干净 |
 | P7 | 测试规划 | tester | architect, security, devops, product-manager | 否 | 测试计划评审通过 |
-| P8 | 实现 | solo-coder | architect, security, tester, solo-coder | 否 | 代码评审通过，无 P0 缺陷 |
-| P9 | 测试执行 | tester | architect, product-manager, security, devops | 否 | 覆盖率 ≥80%，P7 计划 100% 执行，无 P0 缺陷，非功能指标达标，UAT 已签字 |
+| P8 | 实现 | solo-coder | architect, security, tester, solo-coder | 否 | 代码评审通过，无最高优先级缺陷 |
+| P9 | 测试执行 | tester | architect, product-manager, security, devops | 否 | 覆盖率 ≥80%，P7 计划 100% 执行，无最高优先级缺陷，非功能指标达标，用户验收测试已签字 |
 | P10 | 部署与发布 | devops | architect, security, tester | 否 | 部署演练通过，回滚已验证，数据迁移已执行并核对 |
-| P11 | 运维与保障 | devops | architect, security | 是 | P99 达标，告警覆盖 100% |
+| P11 | 运维与保障 | devops | architect, security | 是 | 第99百分位延迟达标，告警覆盖 100% |
 
 角色强制校验：`check_role_participation` 在缺少必需的主导或评审角色时拒绝该阶段门控。生命周期执行器提供 `participating_roles` 时生效。
 
-S1 Gate（ImplementationCompletenessGate）在 SimplicityRole 内、S2 门控（CRAP/重复度）之前执行，主要发生在 P8。
+S1 门控（实现完整性门控）在简洁性角色内、S2 门控（复杂度/重复度）之前执行，主要发生在 P8。
 
 ### 对比：单 AI vs DevSquad
 
-| 维度 | 单个 AI (ChatGPT/Claude) | DevSquad |
-|------|---------------------------|----------|
+| 维度 | 单个 AI | DevSquad |
+|------|---------|----------|
 | 视角 | 一个角色回答 | **按任务匹配多个专业角色** |
 | 质量 | 可能遗漏安全/测试 | **多维度交叉验证** |
-| 可追溯 | 无 | **完整审计链 (SHA256)** |
+| 可追溯 | 无 | **完整审计链（SHA256 哈希）** |
 | 适用场景 | 简单问答 | **复杂工程任务** |
 
 ### 最快上手（5 分钟）
@@ -100,8 +100,8 @@ pip install devsquad
 devsquad run "设计一个安全的用户认证系统" --roles architect security tester coder
 
 # 输出结构化报告：
-# ✅ 架构师建议：采用 JWT + Refresh Token 方案...
-# ✅ 安全专家审查：需防范 CSRF、XSS、SQL 注入...
+# ✅ 架构师建议：采用 JWT + 刷新令牌方案...
+# ✅ 安全专家审查：需防范跨站请求伪造、跨站脚本、SQL 注入...
 # ✅ 测试策略：单元测试覆盖率达 90%+...
 # ✅ 开发实现：提供完整代码框架...
 # 📊 共识结论：方案可行，风险可控...
@@ -109,15 +109,15 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 
 📚 **完整快速入门指南** → [QUICKSTART.md](QUICKSTART.md)
 
-## Reference Documentation
+## 参考文档
 
-> SKILL.md is the concise entry-point overview. Detailed reference material has been split into modular docs (PRD §10.2). All information is preserved — nothing was deleted, only moved.
+> SKILL.md 是简洁入口概览。详细参考资料已拆分为模块化文档（产品需求文档 §10.2）。所有信息均已保留——没有删除，仅作移动。
 
-| Reference Doc | Content | Target Audience |
-|---------------|---------|-----------------|
-| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 218+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
-| [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 个原子子技能（dispatch/intent/review/security/test/retrospective/prototype/teach），完整派发流程，12 阶段项目生命周期（P0-P11），测试铁律、元铁律、交付流程铁律 | Skill users / test engineers |
-| [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md) | Defect ledger contract (V4.9.0): JSON schema + closed state machine (open/fixed/closed) + two hazard guards + `signal_ref` resolution + mandatory-signal mapping + registration-gate three-state tracking + `devsquad defect add/update/close/reopen/list/audit` CLI | Run operators / defect filers |
+| 参考文档 | 内容 | 目标读者 |
+|----------|------|----------|
+| [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | 完整 218+ 模块表、测试覆盖矩阵、高级功能指南、控制论增强、派发模式、系统状态、错误处理 | 贡献者 / 模块开发者 |
+| [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 个原子子技能（派发/意图/审查/安全/测试/回顾/原型/教学），完整派发流程，12 阶段项目生命周期（P0-P11），测试铁律、元铁律、交付流程铁律 | 技能使用者 / 测试工程师 |
+| [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md) | 缺陷台账契约（V4.9.0）：JSON 模式 + 封闭状态机（开启/已修复/已关闭）+ 两个危险防护 + 信号引用解析 + 强制信号映射 + 注册门三状态跟踪 + 缺陷命令行界面 | 运维人员 / 缺陷归档者 |
 | [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | 版本历史 + 逐版本变更记录（v1.0 → v5.1.0） | 发布跟踪 / 审计 |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)

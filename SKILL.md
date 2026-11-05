@@ -450,13 +450,13 @@ Roles are automatically matched using keyword analysis. The `RoleMatcher` (`role
 - **Multi-source candidates**: keyword → adaptive → similar → semantic → explicit → fallback
 
 **Complete keyword lists** (from `models_dispatch.py` ROLE_REGISTRY):
-- **Architect** (18 keywords): 架构, 设计, 选型, 性能, 模块, 接口, 微服务, 数据架构, architecture, design, microservice, module, interface, performance, scalability, system
-- **Security** (8 keywords): 安全, 漏洞, 审计, 威胁, 加密, 认证, 授权, security, vulnerability, audit, threat, encrypt, auth, compliance, OWASP
-- **PM** (13 keywords): 需求, PRD, 用户故事, 竞品, 验收, 体验, 功能, requirement, prd, user story, acceptance, feature, product, specification
-- **Tester** (11 keywords): 测试, 质量, 验收, 自动化, 性能测试, 缺陷, 门禁, test, quality, qa, automated, coverage, bug, validation
-- **Coder** (12 keywords): 实现, 开发, 代码, 修复, 优化, 重构, 审查, 最佳实践, implement, develop, code, fix, optimize, refactor, review, debug
-- **DevOps** (12 keywords): CI/CD, 部署, 监控, 运维, Docker, Kubernetes, 基础设施, 容器, deploy, monitor, infrastructure, container, pipeline, devops, ci/cd, cloud
-- **UI Designer** (11 keywords): UI, 界面, 前端, 视觉, 交互, 原型, 设计, ui, interface, frontend, visual, interaction, prototype, ux, accessibility
+- **Architect** (18 keywords): architecture, design, microservice, module, interface, performance, scalability, system, tech stack, API design, data architecture, evaluation, selection, architecture review, system architecture, architectural, design pattern, modular design
+- **Security** (8 keywords): security, vulnerability, audit, threat, encrypt, auth, compliance, OWASP, threat modeling, security review, authorization, authentication, vulnerability scan
+- **PM** (13 keywords): requirement, prd, user story, acceptance, feature, product, specification, requirements analysis, competitive analysis, acceptance criteria, user stories, roadmap, feature planning
+- **Tester** (11 keywords): test, quality, qa, automated, coverage, bug, validation, test strategy, quality assurance, defect tracking, test planning, automated testing
+- **Coder** (12 keywords): implement, develop, code, fix, optimize, refactor, review, debug, implementation, code review, performance optimization, best practices
+- **DevOps** (12 keywords): CI/CD, deploy, monitor, infrastructure, container, pipeline, devops, ci/cd, cloud, Docker, Kubernetes, infrastructure as code, deployment, monitoring, containerization
+- **UI Designer** (11 keywords): ui, interface, frontend, visual, interaction, prototype, ux, accessibility, interface design, interaction prototype, design system, user experience
 
 **Voting weight**: In consensus scenarios (architecture review, quality calibration), role votes are weighted. Architect carries the highest weight (1.5), followed by PM (1.2) and Security (1.1). Other roles have unit weight (1.0), and UI Designer has slightly lower weight (0.9).
 
@@ -464,7 +464,7 @@ Roles are automatically matched using keyword analysis. The `RoleMatcher` (`role
 
 ---
 
-## Anti-Ghost Principle (防幽灵功能保证)
+## Anti-Ghost Principle
 
 > **Ghost feature** = a module that exists in docs/tests but is never actually activated in the dispatch pipeline. DevSquad treats ghost features as a critical quality defect.
 
@@ -475,7 +475,7 @@ Every module shipped in DevSquad **must** prove it is wired into the real execut
 3. **Three-layer test coverage**: Unit tests + integration tests (asserting pipeline integration) + E2E tests (asserting end-to-end activation) + red-team tests. A module with only unit tests but no integration/E2E evidence is suspect.
 4. **User-visible output**: Every activated module must render a section in the Markdown dispatch report (`to_markdown()` / `export_markdown()`). If the user cannot see the module's contribution in the report, it is treated as a ghost.
 
-**Lesson**: "文档有 ≠ 代码有 ≠ 功能可用" — documented ≠ implemented ≠ activated. The anti-ghost principle closes this gap with counters, integration, E2E, and user-visible output.
+**Lesson**: "Documented ≠ Implemented ≠ Activated." The anti-ghost principle closes this gap with counters, integration, end-to-end tests, and user-visible output.
 
 ---
 
@@ -483,4 +483,4 @@ Every module shipped in DevSquad **must** prove it is wired into the real execut
 
 - Auto-detect user language (Chinese/English/Japanese)
 - All output uses same language as user
-- Role name mapping: 架构师→Architect, PM→Product Manager, etc.
+- Role name mapping: architect, pm, security, tester, coder, devops, ui-designer
