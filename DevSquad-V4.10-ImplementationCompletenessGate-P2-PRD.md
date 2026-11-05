@@ -1,4 +1,4 @@
-# DevSquad V5.1 - ImplementationCompletenessGate (S1 Gate) - P2 PRD
+# DevSquad V4.10 - ImplementationCompletenessGate (S1 Gate) - P2 PRD
 
 ## Document Metadata
 
@@ -9,7 +9,7 @@
 | Author | DevSquad Multi-Role Team |
 | Status | Draft - Pending Approval |
 | Phase | P2 (Product Requirements) |
-| Target Release | DevSquad V5.1 |
+| Target Release | DevSquad V4.10 |
 
 ---
 
@@ -494,9 +494,9 @@ Send alerts for:
 
 ---
 
-## 5. Out of Scope (V5.1)
+## 5. Out of Scope (V4.10)
 
-The following are **explicitly excluded** from V5.1:
+The following are **explicitly excluded** from V4.10:
 
 1. ❌ **Cross-language support**: Only Python AST (no JavaScript/TypeScript/Go)
 2. ❌ **Semantic code analysis**: Only structural alignment (no AI-based code understanding)
@@ -566,7 +566,7 @@ The following are **explicitly excluded** from V5.1:
 
 ## 9. Success Criteria
 
-### 9.1 Launch Criteria (V5.1 Release)
+### 9.1 Launch Criteria (V4.10 Release)
 
 - All AC-001 to AC-013 pass
 - Shadow mode data collected (≥50 audits)

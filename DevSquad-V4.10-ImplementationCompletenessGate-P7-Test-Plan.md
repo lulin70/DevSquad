@@ -1,4 +1,4 @@
-# DevSquad V5.1 - ImplementationCompletenessGate (S1 Gate) - P7 Test Plan
+# DevSquad V4.10 - ImplementationCompletenessGate (S1 Gate) - P7 Test Plan
 
 ## Document Metadata
 
@@ -859,7 +859,7 @@ jobs:
 
 ## 11. Test Priorities
 
-### P0 (Must Have for V5.1 Release)
+### P0 (Must Have for V4.10 Release)
 
 - test_completeness_001-011 (5 detector baselines)
 - test_completeness_012-017 (threshold + mode)
