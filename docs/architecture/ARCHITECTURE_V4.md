@@ -1,6 +1,6 @@
 # DevSquad V4.x Architecture
 
-> **Version**: V4.9.0
+> **Version**: V5.1.0
 > **Last Updated**: 2026-10-27
 > **Status**: Active (supersedes V3.8/V3.9 architecture docs)
 

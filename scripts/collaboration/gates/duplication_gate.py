@@ -1,4 +1,4 @@
-# DevSquad V5.0 - Simplicity Role - DuplicationGate Implementation
+# DevSquad - Simplicity Role - DuplicationGate Implementation
 # Token-based duplication detection (Python native, no jscpd dependency)
 
 """

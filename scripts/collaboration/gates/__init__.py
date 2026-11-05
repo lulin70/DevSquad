@@ -1,4 +1,4 @@
-# DevSquad V5.0 - Simplicity Role - Gates Module
+# DevSquad - Simplicity Role - Gates Module
 
 from .crap_gate import CRAPGate, CRAPScore
 from .duplication_gate import DuplicationGate, DuplicationClone

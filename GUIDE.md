@@ -295,34 +295,38 @@ result = engine.execute(workflow, checkpoint_dir="./checkpoints")
 
 > **适用场景**：当项目跨越多个阶段（需求→设计→开发→测试→部署→运维），需要中途保存进度、恢复断点、跟踪完成度时使用。特别适合长时间运行的项目和需要交接的场景。
 
-### 11阶段模型
+### 12 阶段模型（P0–P11）
 
-DevSquad V3.6.0 定义了 **11阶段（4可选）** 的项目全生命周期，每个阶段有明确的主导角色、评审人、依赖物/产出物和门禁条件：
+唯一权威定义是 `PHASE_TEMPLATES`（`scripts/collaboration/workflow_engine_base.py`）。下表由它派生。教学内容、仪表盘和派发映射都跟随该定义。测试会检查本表是否漂移。
 
 ```
-P1 需求分析 ──→ P2 架构设计 ──┬──→ P3 技术设计 ──→ P6 安全评审 ──→ P7 测试计划 ──→ P8 开发实现 ──→ P9 测试执行 ──→ P10 部署发布 ──→ P11 运维保障
-     [pm]           [arch]     │      [arch+coder]      [sec]          [test]          [coder]          [test]          [infra]          [infra+sec]
-                               ├──→ P4 数据设计(可选) ──↗
-                               │    [arch+coder]
-                               └──→ P5 交互设计(可选) ──↗
-                                    [ui]
+P0 调研与可行性(可选) ──→ P1 需求分析 ──→ P2 架构设计 ──┬──→ P3 技术设计 ──→ P6 安全评审 ──→ P7 测试计划 ──→ P8 开发实现 ──→ P9 测试执行 ──→ P10 部署发布 ──→ P11 运维保障
+     [pm]                    [pm]           [arch]      │      [arch]          [sec]          [test]          [coder]          [test]          [infra]          [infra]
+                                                       ├──→ P4 数据设计(可选) ──↗
+                                                       │    [arch]
+                                                       └──→ P5 交互设计(可选) ──↗
+                                                            [ui]
 ```
 
 | # | 阶段 | 主导 | 评审人 | 可选 | 门禁 |
 |---|------|------|--------|------|------|
-| P1 | 需求分析 | pm | arch+test+sec+ui | ❌ | 验收标准可量化、无歧义 |
-| P2 | 架构设计 | arch | pm+sec+infra | ❌ | 架构方案通过加权共识 |
-| P3 | 技术设计 | arch+coder | coder+test | ❌ | API规范无歧义 |
-| P4 | 数据设计 | arch+coder | arch+sec | ✅ | 数据模型3NF或反范式有据 |
-| P5 | 交互设计 | ui | pm+test+sec | ✅ | 核心流程可用性验证通过 |
-| P6 | 安全评审 | sec | arch+infra | ✅ | 无P0/P1漏洞、合规全绿 |
+| P0 | 调研与可行性 | pm | arch+sec+infra | ✅ | 商业论证与可行性已确认，已记录继续决策 |
+| P1 | 需求分析 | pm | arch+test+sec+ui | ❌ | 验收标准可量化 |
+| P2 | 架构设计 | arch | pm+sec+infra | ❌ | 加权共识 ≥70% |
+| P3 | 技术设计 | arch | coder+test | ❌ | API 规范无歧义 |
+| P4 | 数据设计 | arch | arch+sec | ✅ | 满足 3NF，或反规范化有充分理由 |
+| P5 | 交互设计 | ui | pm+test+sec | ✅ | 核心流程可用性已验证 |
+| P6 | 安全评审 | sec | arch+infra | ✅ | 无 P0/P1 漏洞，合规通过，依赖与供应链扫描干净 |
 | P7 | 测试计划 | test | arch+sec+infra+pm | ❌ | 测试计划评审通过 |
-| P8 | 开发实现 | coder | arch+sec+test+coder | ❌ | 代码审查通过、无P0缺陷 |
-| P9 | 测试执行 | test | arch+pm+sec+infra | ❌ | 覆盖率≥80%+P7计划100%执行 |
-| P10 | 部署发布 | infra | arch+sec+test | ❌ | 部署演练通过、回滚验证 |
-| P11 | 运维保障 | infra+sec | arch+infra | ✅ | P99<目标值、告警100%覆盖 |
+| P8 | 开发实现 | coder | arch+sec+test+coder | ❌ | 代码评审通过，无 P0 缺陷 |
+| P9 | 测试执行 | test | arch+pm+sec+infra | ❌ | 覆盖率≥80%，P7 计划 100% 执行，无 P0 缺陷，非功能指标达标，UAT 已签字 |
+| P10 | 部署发布 | infra | arch+sec+test | ❌ | 部署演练通过，回滚已验证，数据迁移已执行并核对 |
+| P11 | 运维保障 | infra | arch+sec | ✅ | P99 达标，告警覆盖 100% |
+
+> 角色短名：`pm`=product-manager，`arch`=architect，`sec`=security，`test`=tester，`coder`=solo-coder，`infra`=devops，`ui`=ui-designer。
 
 > **可选阶段跳过条件**：
+> - P0 调研与可行性：需求明确且已有立项决策的小型任务
 > - P4 数据设计：纯前端/工具类项目，无持久化存储
 > - P5 交互设计：纯后端/内部工具，无终端用户
 > - P6 安全评审：无任何敏感数据、无对外暴露、无合规要求

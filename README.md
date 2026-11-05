@@ -544,7 +544,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # Check version
 devsquad --version
-# Expected: DevSquad 4.9.0
+# Expected: DevSquad 5.1.0
 
 # Run tests
 pytest tests/ -v --tb=short
@@ -599,7 +599,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### Quick Smoke Test (< 30 seconds)
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 4.9.0
+python3 scripts/cli.py --version       # Expected: DevSquad 5.1.0
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```

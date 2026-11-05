@@ -75,7 +75,7 @@ def check_role_participation(
         return GateResult(passed=True, verdict="APPROVE")
     return GateResult(
         passed=False,
-        verdict="CONDITIONAL",
+        verdict="REJECT",
         missing_evidence=[{"role": role, "reason": "required participant missing"} for role in missing],
         gap_report=f"Missing required roles: {', '.join(missing)}",
     )
@@ -109,7 +109,7 @@ def check_gate_basic(
     from .lifecycle_protocol import GateResult, PhaseState
 
     role_gate = _role_participation_gate(phase_def, artifacts)
-    if role_gate is not None:
+    if role_gate is not None and not role_gate.passed:
         return _merge_findings(role_gate, target, artifacts)
 
     if strict_optional and not phase_def.optional:
@@ -176,7 +176,7 @@ def check_gate_with_unified_engine(
     from .lifecycle_protocol import GateResult, PhaseState
 
     role_gate = _role_participation_gate(phase_def, artifacts)
-    if role_gate is not None:
+    if role_gate is not None and not role_gate.passed:
         return _merge_findings(role_gate, target, artifacts)
 
     unmet_deps = [d for d in phase_def.dependencies if d not in completed_phases]

@@ -1,8 +1,8 @@
-# DevSquad V5.0 - Simplicity Role - Core Implementation
+# DevSquad - Simplicity Role - Core Implementation
 # Prevents AI over-engineering by enforcing CRAP and duplication thresholds
 
 """
-Simplicity Role - The 8th Role in DevSquad V5.0
+Simplicity Role - The 8th Role in DevSquad
 
 Responsibilities:
 - S2 Hard Gate: CRAP < 10, Duplication < 0.8
@@ -108,7 +108,7 @@ class SimplicityRole:
             1. Check emergency bypass (DEVSQUAD_SKIP_SIMPLICITY=1)
             2. Check trigger conditions (_should_trigger())
             3. Execute S1 Gate (ImplementationCompletenessGate) - NEW V5.1
-            4. Execute S2 audit (CRAP/Duplication) - Existing V5.0
+            4. Execute S2 audit (CRAP/Duplication) - Existing V5.1.0
             5. Merge S1+S2 results
             6. Apply progressive release mode (_apply_enforcement_mode())
             7. Record to WorkflowTrace
@@ -143,7 +143,7 @@ class SimplicityRole:
         # **NEW V5.1**: Run S1 Gate first (Implementation Completeness)
         s1_result = self._run_s1_gate(plan, results)
         
-        # Existing V5.0: Run S2 audit (CRAP/Duplication)
+        # Existing V5.1.0: Run S2 audit (CRAP/Duplication)
         s2_result = self._audit(plan, results)
         
         # Merge S1 and S2 results

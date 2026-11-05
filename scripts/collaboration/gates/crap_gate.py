@@ -1,4 +1,4 @@
-# DevSquad V5.0 - Simplicity Role - CRAPGate Implementation
+# DevSquad - Simplicity Role - CRAPGate Implementation
 # Change Risk Anti-Patterns (CRAP) Gate
 # Integrates radon cc to calculate CRAP scores for functions
 

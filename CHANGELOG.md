@@ -12,6 +12,18 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-11-05
+
+### Fixed
+
+- **Lifecycle definition is now single-source** — `PHASE_TEMPLATES` in `scripts/collaboration/workflow_engine_base.py` is the only definition. Teaching content (`skills/teach/handler.py`), the dashboard DAG (`scripts/dashboard/dag_views.py`), dispatch mapping, and the SKILL/README/GUIDE tables derive from it or are contract-tested against it. The four conflicting copies that described different phases under the same P1-P11 IDs are removed.
+- **P0 added as an optional phase** — Discovery & Feasibility leads with product-manager and reviews with architect, security, and devops.
+- **Four gate conditions added** — P6 requires a clean dependency and supply-chain scan; P9 requires NFR targets met and UAT sign-off; P10 requires data migration executed and reconciled.
+- **P11 roles corrected** — devops leads; architect and security review. Security now takes part in Operations & Assurance.
+- **Role participation is enforced after recording** — lifecycle adapters record participants per phase (`record_participation`), persist them in checkpoint metadata, inject them into gate artifacts, and reject a phase transition when the lead or a reviewer is missing. A passing role gate no longer skips dependency checks.
+
+This is a **MINOR** release: the lifecycle gains P0 and stronger gates, and all public IDs stay backward compatible.
+
 ## [4.9.0] - 2026-10-27
 
 ### Added

@@ -24,7 +24,7 @@ Spec reference: docs/spec/SPEC_Lifecycle_Unified_Architecture_C.md
 """
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any, cast
 
 from . import lifecycle_shortcut_helpers as helpers
@@ -61,6 +61,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         self._current_phase: str | None = None
         self._completed_phases: list[str] = []
         self._phase_states: dict[str, PhaseState] = {}
+        self._phase_participants: dict[str, list[str]] = {}
         self._use_unified_gate = use_unified_gate
         self._gate_engine = None
         self._checkpoint_manager = None
@@ -110,6 +111,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
             self._phase_states,
             self._completed_phases,
             self._mode,
+            metadata={"participants": {pid: list(roles) for pid, roles in self._phase_participants.items()}},
         )
 
     def restore_state(self) -> bool:
@@ -128,8 +130,30 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         self._current_phase = restored["current_phase"]
         self._completed_phases = restored["completed_phases"]
         self._phase_states = restored["phase_states"]
+        self._phase_participants = helpers.restore_participants(restored.get("metadata"))
         self._mode = restored["mode"]
         return True
+
+    def record_participation(self, phase_id: str, roles: Iterable[str]) -> list[str]:
+        """Record which roles took part in a phase.
+
+        Args:
+            phase_id: Phase that the roles worked on.
+            roles: Role IDs that actually participated.
+
+        Returns:
+            The normalized role list stored for the phase.
+        """
+        recorded = helpers.normalize_participants(roles)
+        if recorded:
+            self._phase_participants[phase_id] = recorded
+        else:
+            self._phase_participants.pop(phase_id, None)
+        return recorded
+
+    def get_participating_roles(self, phase_id: str) -> list[str]:
+        """Return the recorded participants of a phase."""
+        return list(self._phase_participants.get(phase_id, []))
 
     def get_mode(self) -> LifecycleMode:
         """Return the current lifecycle mode.
@@ -191,17 +215,22 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
             return self.get_phase(self._current_phase)
         return None
 
-    def advance_to_phase(self, phase_id: str) -> PhaseResult:
+    def advance_to_phase(self, phase_id: str, participating_roles: Iterable[str] | None = None) -> PhaseResult:
         """Advance the lifecycle to the specified phase after gate checks.
 
         Args:
             phase_id: Identifier of the phase to advance to.
+            participating_roles: Roles that worked on this phase. Recorded
+                before the gate runs so the role participation gate can verify
+                the lead and reviewer roles.
 
         Returns:
             PhaseResult describing the transition. Already-completed phases
             return success idempotently; failed gates or unmet dependencies
             return a blocked result.
         """
+        if participating_roles is not None:
+            self.record_participation(phase_id, participating_roles)
         prev_state = self._phase_states.get(phase_id, PhaseState.PENDING)
 
         # First check if already completed (idempotent)
@@ -297,6 +326,7 @@ class ShortcutLifecycleAdapter(LifecycleProtocol):
         """
         target = phase_id or self._current_phase
         phase_def = self.get_phase(target) if target else None
+        artifacts = helpers.merge_participants_into_artifacts(self._phase_participants, target, artifacts)
         return helpers.check_phase_gate(
             cast(str, target),
             phase_def,
@@ -463,6 +493,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
         self._current_phase: str | None = None
         self._completed_phases: list[str] = []
         self._phase_states: dict[str, PhaseState] = {}
+        self._phase_participants: dict[str, list[str]] = {}
         self._use_unified_gate = use_unified_gate
         self._gate_engine = None
         self._checkpoint_manager = None
@@ -517,6 +548,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
                 "adapter_type": "full",
                 "skip_optional": self._skip_optional,
                 "execution_order": self._execution_order,
+                "participants": {pid: list(roles) for pid, roles in self._phase_participants.items()},
             },
         )
 
@@ -531,6 +563,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
         self._current_phase = restored["current_phase"]
         self._completed_phases = restored["completed_phases"]
         self._phase_states = restored["phase_states"]
+        self._phase_participants = helpers.restore_participants(restored.get("metadata"))
         self._mode = restored["mode"]
 
         # Restore metadata
@@ -538,6 +571,19 @@ class FullLifecycleAdapter(LifecycleProtocol):
         self._skip_optional = metadata.get("skip_optional", False)
         self._execution_order = metadata.get("execution_order", self._execution_order)
         return True
+
+    def record_participation(self, phase_id: str, roles: Iterable[str]) -> list[str]:
+        """Record which roles took part in a phase."""
+        recorded = helpers.normalize_participants(roles)
+        if recorded:
+            self._phase_participants[phase_id] = recorded
+        else:
+            self._phase_participants.pop(phase_id, None)
+        return recorded
+
+    def get_participating_roles(self, phase_id: str) -> list[str]:
+        """Return the recorded participants of a phase."""
+        return list(self._phase_participants.get(phase_id, []))
 
     def get_mode(self) -> LifecycleMode:
         """Return the current lifecycle mode.
@@ -597,17 +643,22 @@ class FullLifecycleAdapter(LifecycleProtocol):
             return self.get_phase(self._current_phase)
         return None
 
-    def advance_to_phase(self, phase_id: str) -> PhaseResult:
+    def advance_to_phase(self, phase_id: str, participating_roles: Iterable[str] | None = None) -> PhaseResult:
         """Advance the lifecycle to the specified phase after gate checks.
 
         Args:
             phase_id: Identifier of the phase to advance to.
+            participating_roles: Roles that worked on this phase. Recorded
+                before the gate runs so the role participation gate can verify
+                the lead and reviewer roles.
 
         Returns:
             PhaseResult describing the transition. Already-completed phases
             return success idempotently; optional phases may be skipped;
             failed gates or unmet dependencies return a blocked result.
         """
+        if participating_roles is not None:
+            self.record_participation(phase_id, participating_roles)
         prev_state = self._phase_states.get(phase_id, PhaseState.PENDING)
 
         # Check if already completed (idempotent)
@@ -722,6 +773,7 @@ class FullLifecycleAdapter(LifecycleProtocol):
         """
         target = phase_id or self._current_phase
         phase_def = self.get_phase(target) if target else None
+        artifacts = helpers.merge_participants_into_artifacts(self._phase_participants, target, artifacts)
         return helpers.check_phase_gate(
             cast(str, target),
             phase_def,

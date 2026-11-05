@@ -543,7 +543,7 @@ devsquad dispatch -t "Design user authentication system"
 ```bash
 # バージョンを確認
 devsquad --version
-# Expected: DevSquad 4.9.0
+# Expected: DevSquad 5.1.0
 
 # テストを実行
 pytest tests/ -v --tb=short
@@ -598,7 +598,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### クイックスモークテスト（< 30秒）
 ```bash
-python3 scripts/cli.py --version       # Expected: DevSquad 4.9.0
+python3 scripts/cli.py --version       # Expected: DevSquad 5.1.0
 python3 scripts/cli.py status          # Expected: System ready
 python3 scripts/cli.py roles           # Expected: 7 core roles listed
 ```

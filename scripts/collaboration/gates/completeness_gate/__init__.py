@@ -1,5 +1,5 @@
 """
-ImplementationCompletenessGate (S1 Gate) - DevSquad V5.1
+ImplementationCompletenessGate (S1 Gate) - DevSquad
 
 Detects implementation shortcuts:
 - Mock/Stub in production code

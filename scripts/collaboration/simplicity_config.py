@@ -1,4 +1,4 @@
-# DevSquad V5.0 - Simplicity Role - Configuration Management
+# DevSquad - Simplicity Role - Configuration Management
 # DeploymentDateStore: Anti-tampering mechanism (A-002)
 # SimplicityConfig: Progressive release mode management
 

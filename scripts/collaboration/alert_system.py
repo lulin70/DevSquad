@@ -1,4 +1,4 @@
-# DevSquad V5.0 - Simplicity Role - AlertSystem Implementation
+# DevSquad - Simplicity Role - AlertSystem Implementation
 # PagerDuty + Slack integration for real-time alerts
 
 """

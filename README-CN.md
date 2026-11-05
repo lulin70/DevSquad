@@ -544,7 +544,7 @@ devsquad dispatch -t "设计用户认证系统"
 ```bash
 # 检查版本
 devsquad --version
-# 预期: DevSquad 4.9.0
+# 预期: DevSquad 5.1.0
 
 # 运行测试
 pytest tests/ -v --tb=short
@@ -599,7 +599,7 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 
 ### 快速冒烟测试（< 30 秒）
 ```bash
-python3 scripts/cli.py --version       # 预期: DevSquad 4.9.0
+python3 scripts/cli.py --version       # 预期: DevSquad 5.1.0
 python3 scripts/cli.py status          # 预期: System ready
 python3 scripts/cli.py roles           # 预期: 列出 7 个核心角色
 ```

@@ -28,7 +28,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -132,6 +132,49 @@ def create_checkpoint_manager(storage_path: str = ".") -> Any:
 # ---------------------------------------------------------------------------
 # State persistence (save/restore)
 # ---------------------------------------------------------------------------
+
+
+def merge_participants_into_artifacts(
+    phase_participants: Mapping[str, list[str]],
+    phase_id: str | None,
+    artifacts: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    """Add recorded phase participants to gate artifacts when absent.
+
+    The role participation gate only runs when ``participating_roles`` is
+    present. This injects the roles that the lifecycle state recorded earlier,
+    so enforcement works on the default path without every caller repeating
+    the role list.
+
+    Args:
+        phase_participants: Recorded roles per phase ID.
+        phase_id: Phase whose gate is being checked.
+        artifacts: Caller-supplied gate artifacts.
+
+    Returns:
+        Artifacts that include ``participating_roles`` when a record exists.
+        Otherwise the original artifacts are returned unchanged.
+    """
+    if not phase_id or not phase_participants.get(phase_id):
+        return artifacts
+    if isinstance(artifacts, Mapping) and artifacts.get("participating_roles"):
+        return artifacts
+    merged = dict(artifacts or {})
+    merged["participating_roles"] = list(phase_participants[phase_id])
+    return merged
+
+
+def restore_participants(metadata: Mapping[str, Any] | None) -> dict[str, list[str]]:
+    """Read recorded phase participants from checkpoint metadata."""
+    raw = (metadata or {}).get("participants", {})
+    if not isinstance(raw, Mapping):
+        return {}
+    return {str(phase_id): [str(role) for role in roles] for phase_id, roles in raw.items() if roles}
+
+
+def normalize_participants(roles: Iterable[str]) -> list[str]:
+    """Return unique non-empty role IDs, preserving order."""
+    return list(dict.fromkeys(str(role) for role in roles if role))
 
 
 def save_lifecycle_state_to_checkpoint(
