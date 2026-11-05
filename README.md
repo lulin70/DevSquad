@@ -591,7 +591,10 @@ export DEVSQUAD_OPENAI_API_KEY=sk-...
 | `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
 | `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic-compatible base URL | None |
 | `DEVSQUAD_ANTHROPIC_MODEL` | Anthropic model name | `claude-sonnet-4-20250514` |
+| `MOKA_TIMEOUT` | Moka LLM request timeout (seconds, V4.10.0+) | `90.0` |
 | `DEVSQUAD_LOG_LEVEL` | Logging level | `WARNING` |
+
+**Moka LLM Configuration**: For local Moka service tuning (timeout, retries), see [Moka Tuning Guide](docs/MOKA_TUNING_GUIDE.md).
 
 ---
 

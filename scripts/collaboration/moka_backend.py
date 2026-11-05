@@ -26,10 +26,12 @@ MOKA_DEFAULT_BASE_URL = "https://api.moka-ai.com/v1"
 MOKA_DEFAULT_MODEL = "moka-gpt-5.5"
 
 # V4.5.2: Standard MOKA request timeout (matches OpenAI/Anthropic)
-MOKA_DEFAULT_TIMEOUT = 30.0
+# V4.10.0: Increased from 30.0 to 90.0 for complex reasoning tasks (local Moka)
+MOKA_DEFAULT_TIMEOUT = 90.0
 
 # V4.5.2: Retry configuration (reuse OpenAI semantics)
-MOKA_MAX_RETRIES = 3
+# V4.10.0: Reduced from 3 to 2 to avoid excessive wait time (90s × 2 = 180s max)
+MOKA_MAX_RETRIES = 2
 
 
 # Anti-Ghost call counter (P12.1.1)
@@ -83,7 +85,9 @@ class MokaAIBackend(LLMBackend):
         self.base_url = base_url or os.environ.get("MOKA_BASE_URL", MOKA_DEFAULT_BASE_URL)
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.timeout = timeout or self.DEFAULT_TIMEOUT
+        # V4.10.0: Support MOKA_TIMEOUT env var for dynamic tuning
+        env_timeout = os.environ.get("MOKA_TIMEOUT")
+        self.timeout = timeout or (float(env_timeout) if env_timeout else self.DEFAULT_TIMEOUT)
         self._client: Any | None = None
         self._client_lock = __import__("threading").Lock()
 
