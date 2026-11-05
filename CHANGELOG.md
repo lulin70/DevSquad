@@ -29,6 +29,12 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Coordinator parallel execution**: V4.5.9 removed ThreadPoolExecutor in favor of asyncio.gather-based execution through `gather_core.execute_batch_gather()`. Parallel batches now execute via the shared async core, with sync bridges at worker boundaries. This change unified the execution paths and eliminated the separate thread pool.
 
+### Documentation
+
+- **P2-1**: Added Python naming convention guide in `docs/NAMING_CONVENTION.md`. Standardizes private attribute naming (single underscore prefix), public API conventions, and provides non-breaking migration strategy for V4.11.0 (gradual refactor) and V5.0.0 (cleanup).
+- **P2-2**: Created test file naming convention guide in `docs/TEST_NAMING_CONVENTION.md`. Identified 29 files with double `test_` prefix and provided automated renaming script. Implementation scheduled for V4.11.0 with git history preservation via `git mv`.
+- **P2-3**: Published comprehensive entry points decision tree in `docs/ENTRY_POINTS_DECISION_TREE.md`. Documents all 7 invocation methods (TRAE Skill/Python API/MCP/CLI/REST API/Dashboard/start.sh) with decision flowchart, comparison matrix, scenario guides, and migration paths.
+
 ## [4.10.0] - 2026-11-05
 
 ### Fixed
