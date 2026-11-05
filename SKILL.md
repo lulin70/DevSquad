@@ -428,19 +428,39 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ## Role System (7 Core Roles)
 
-| Role ID | Name | Trigger Keywords | Core Responsibility |
-|---------|------|------------------|---------------------|
-| `architect` | Architect | architecture, design, selection, performance, module, interface, data architecture | System architecture, tech selection, performance/security/data architecture |
-| `product-manager` | Product Manager | requirements, PRD, user story, competitor, acceptance | Requirements analysis, PRD writing, product planning |
-| `security` | Security Expert | security, vulnerability, audit, threat, encryption, OWASP | Threat modeling, vulnerability audit, compliance, security review |
-| `tester` | Test Expert | test, quality, acceptance, automation, defect | Test strategy, case design, quality assurance |
-| `solo-coder` | Coder | implementation, development, code, fix, optimize, refactor | Feature dev, code review, performance optimization, refactoring |
-| `devops` | DevOps Engineer | CI/CD, deploy, monitor, Docker, Kubernetes, infrastructure | CI/CD pipeline, containerization, monitoring, infrastructure |
-| `ui-designer` | UI Designer | UI, interface, frontend, visual, prototype, accessibility | UI design, interaction design, prototyping, accessibility |
+| Role ID | Name | Responsibility | Trigger Keywords (Partial) | Weight | Notes |
+|---------|------|----------------|---------------------------|--------|-------|
+| `architect` | Architect | System design, tech stack, API design, performance/security/data architecture | architecture, design, microservice, module, interface, performance, scalability, system | 1.5 | Highest voting weight in consensus |
+| `product-manager` | Product Manager | Requirements analysis, PRD writing, user stories, competitive analysis, acceptance criteria | requirements, PRD, user story, acceptance, feature, product, specification | 1.2 | |
+| `security` | Security Expert | Threat modeling, vulnerability audit, OWASP Top 10, auth/data security, compliance | security, vulnerability, audit, threat, encryption, auth, compliance, OWASP | 1.1 | |
+| `tester` | Test Expert | Test strategy, automated testing, quality assurance, defect tracking | test, quality, automated, coverage, bug, validation | 1.0 | |
+| `solo-coder` | Coder | Implementation, code review, performance optimization, refactoring, bug fixes | implement, develop, code, fix, optimize, refactor, review, debug | 1.0 | **Sequential only** — no parallel collaboration |
+| `devops` | DevOps Engineer | CI/CD pipeline, containerization (Docker/K8s), IaC, monitoring, deployment strategies | CI/CD, deploy, monitor, Docker, Kubernetes, infrastructure, container, pipeline | 1.0 | |
+| `ui-designer` | UI Designer | Interface design, interaction prototypes, design systems, accessibility | UI, interface, frontend, visual, interaction, prototype, UX, accessibility | 0.9 | |
 
 **CLI short IDs**: `arch`, `pm`, `sec`, `test`, `coder`, `infra`, `ui`
 
-**Auto-match rule**: When roles are not specified, the system automatically matches the best role combination based on task keywords.
+### Role Activation Mechanism
+
+Roles are automatically matched using keyword analysis. The `RoleMatcher` (`role_matcher.py`) scans task descriptions against each role's keyword list and calculates matching scores:
+
+- **Score calculation**: `min(matched_keywords_count / total_keywords_count, 1.0)`
+- **Selection threshold**: Roles with scores above threshold are activated
+- **Fallback**: If no keywords match, `solo-coder` is selected by default
+- **Multi-source candidates**: keyword → adaptive → similar → semantic → explicit → fallback
+
+**Complete keyword lists** (from `models_dispatch.py` ROLE_REGISTRY):
+- **Architect** (18 keywords): 架构, 设计, 选型, 性能, 模块, 接口, 微服务, 数据架构, architecture, design, microservice, module, interface, performance, scalability, system
+- **Security** (8 keywords): 安全, 漏洞, 审计, 威胁, 加密, 认证, 授权, security, vulnerability, audit, threat, encrypt, auth, compliance, OWASP
+- **PM** (13 keywords): 需求, PRD, 用户故事, 竞品, 验收, 体验, 功能, requirement, prd, user story, acceptance, feature, product, specification
+- **Tester** (11 keywords): 测试, 质量, 验收, 自动化, 性能测试, 缺陷, 门禁, test, quality, qa, automated, coverage, bug, validation
+- **Coder** (12 keywords): 实现, 开发, 代码, 修复, 优化, 重构, 审查, 最佳实践, implement, develop, code, fix, optimize, refactor, review, debug
+- **DevOps** (12 keywords): CI/CD, 部署, 监控, 运维, Docker, Kubernetes, 基础设施, 容器, deploy, monitor, infrastructure, container, pipeline, devops, ci/cd, cloud
+- **UI Designer** (11 keywords): UI, 界面, 前端, 视觉, 交互, 原型, 设计, ui, interface, frontend, visual, interaction, prototype, ux, accessibility
+
+**Voting weight**: In consensus scenarios (architecture review, quality calibration), role votes are weighted. Architect carries the highest weight (1.5), followed by PM (1.2) and Security (1.1). Other roles have unit weight (1.0), and UI Designer has slightly lower weight (0.9).
+
+**Sequential-only constraint**: `solo-coder` is marked `sequential_only=True` (V4.5.2 P-3). This role executes in isolation without parallel collaboration. Debugging, mathematical derivations, and incremental refactoring benefit from single-role chain execution without multi-agent noise.
 
 ---
 

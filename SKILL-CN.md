@@ -426,21 +426,41 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## Role System (7 Core Roles)
+## 角色系统（7 个核心角色）
 
-| Role ID | Name | Trigger Keywords | Core Responsibility |
-|---------|------|------------------|---------------------|
-| `architect` | Architect | architecture, design, selection, performance, module, interface, data architecture | System architecture, tech selection, performance/security/data architecture |
-| `product-manager` | Product Manager | requirements, PRD, user story, competitor, acceptance | Requirements analysis, PRD writing, product planning |
-| `security` | Security Expert | security, vulnerability, audit, threat, encryption, OWASP | Threat modeling, vulnerability audit, compliance, security review |
-| `tester` | Test Expert | test, quality, acceptance, automation, defect | Test strategy, case design, quality assurance |
-| `solo-coder` | Coder | implementation, development, code, fix, optimize, refactor | Feature dev, code review, performance optimization, refactoring |
-| `devops` | DevOps Engineer | CI/CD, deploy, monitor, Docker, Kubernetes, infrastructure | CI/CD pipeline, containerization, monitoring, infrastructure |
-| `ui-designer` | UI Designer | UI, interface, frontend, visual, prototype, accessibility | UI design, interaction design, prototyping, accessibility |
+| 角色 ID | 名称 | 职责 | 触发关键词（部分） | 权重 | 备注 |
+|---------|------|------|------------------|------|------|
+| `architect` | 架构师 | 系统设计、技术选型、API 设计、性能/安全/数据架构 | architecture, design, microservice, module, interface, performance, scalability, system | 1.5 | 共识场景中投票权重最高 |
+| `product-manager` | 产品经理 | 需求分析、PRD 编写、用户故事、竞品分析、验收标准 | requirements, PRD, user story, acceptance, feature, product, specification | 1.2 | |
+| `security` | 安全专家 | 威胁建模、漏洞审计、OWASP Top 10、认证/数据安全、合规性 | security, vulnerability, audit, threat, encryption, auth, compliance, OWASP | 1.1 | |
+| `tester` | 测试专家 | 测试策略、自动化测试、质量保证、缺陷追踪 | test, quality, automated, coverage, bug, validation | 1.0 | |
+| `solo-coder` | 独立开发者 | 实现、代码审查、性能优化、重构、Bug 修复 | implement, develop, code, fix, optimize, refactor, review, debug | 1.0 | **仅串行执行** — 不与其他角色并行协作 |
+| `devops` | DevOps 工程师 | CI/CD 流水线、容器化（Docker/K8s）、IaC、监控、部署策略 | CI/CD, deploy, monitor, Docker, Kubernetes, infrastructure, container, pipeline | 1.0 | |
+| `ui-designer` | UI 设计师 | 界面设计、交互原型、设计系统、可访问性 | UI, interface, frontend, visual, interaction, prototype, UX, accessibility | 0.9 | |
 
-**CLI short IDs**: `arch`, `pm`, `sec`, `test`, `coder`, `infra`, `ui`
+**CLI 短名**：`arch`, `pm`, `sec`, `test`, `coder`, `infra`, `ui`
 
-**Auto-match rule**: When roles are not specified, the system automatically matches the best role combination based on task keywords.
+### 角色激活机制
+
+角色通过关键词分析自动匹配。`RoleMatcher`（`role_matcher.py`）扫描任务描述，与每个角色的关键词列表进行匹配并计算分数：
+
+- **分数计算**：`min(匹配关键词数 / 总关键词数, 1.0)`
+- **选择阈值**：分数超过阈值的角色被激活
+- **回退机制**：如果没有关键词匹配，默认选择 `solo-coder`
+- **多源候选**：keyword → adaptive → similar → semantic → explicit → fallback
+
+**完整关键词列表**（来自 `models_dispatch.py` ROLE_REGISTRY）：
+- **架构师**（18 个关键词）：架构, 设计, 选型, 性能, 模块, 接口, 微服务, 数据架构, architecture, design, microservice, module, interface, performance, scalability, system
+- **安全专家**（8 个关键词）：安全, 漏洞, 审计, 威胁, 加密, 认证, 授权, security, vulnerability, audit, threat, encrypt, auth, compliance, OWASP
+- **产品经理**（13 个关键词）：需求, PRD, 用户故事, 竞品, 验收, 体验, 功能, requirement, prd, user story, acceptance, feature, product, specification
+- **测试专家**（11 个关键词）：测试, 质量, 验收, 自动化, 性能测试, 缺陷, 门禁, test, quality, qa, automated, coverage, bug, validation
+- **独立开发者**（12 个关键词）：实现, 开发, 代码, 修复, 优化, 重构, 审查, 最佳实践, implement, develop, code, fix, optimize, refactor, review, debug
+- **DevOps 工程师**（12 个关键词）：CI/CD, 部署, 监控, 运维, Docker, Kubernetes, 基础设施, 容器, deploy, monitor, infrastructure, container, pipeline, devops, ci/cd, cloud
+- **UI 设计师**（11 个关键词）：UI, 界面, 前端, 视觉, 交互, 原型, 设计, ui, interface, frontend, visual, interaction, prototype, ux, accessibility
+
+**投票权重**：在共识场景（架构评审、质量校准）中，角色投票有加权。架构师权重最高（1.5），其次是产品经理（1.2）和安全专家（1.1）。其他角色单位权重（1.0），UI 设计师略低（0.9）。
+
+**串行执行约束**：`solo-coder` 标记为 `sequential_only=True`（V4.5.2 P-3）。此角色独立执行，不与其他角色并行协作。调试、数学推导和增量重构受益于单角色链式执行，避免多智能体并行噪声。
 
 ---
 
