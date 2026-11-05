@@ -1,14 +1,14 @@
 ---
 name: devsquad
 slug: devsquad
-version: 5.1.0
+version: 4.10.0
 description: |
-  DevSquad V5.1.0 — 多角色 AI 任务编排技能
+  DevSquad V4.10.0 — 多角色 AI 任务编排技能
   不是单一功能工具：编排 7 个可用角色 + 8 个原子子技能
   (dispatch/intent/review/security/test/retrospective/prototype/teach)。
   一个任务 → 任务匹配的多角色协作 → 共识结论。
   
-  V5.1.0 核心特性：ImplementationCompletenessGate (S1 Gate) 防止 AI 实现捷径
+  V4.10.0 核心特性：ImplementationCompletenessGate (S1 Gate) 防止 AI 实现捷径
   通过检测生产代码中的 mock、缺失设计元素、不完整测试、未保护 I/O 和缺失安全功能。
   渐进式发布：Shadow 模式（0-6 天）→ Soft 模式（7-13 天）→ Full 模式（14 天起）。
   
@@ -18,7 +18,7 @@ description: |
   📚 完整版本历史 → docs/reference/VERSION_HISTORY.md
 ---
 
-# DevSquad V5.1.0 — 多角色 AI 任务编排器
+# DevSquad V4.10.0 — 多角色 AI 任务编排器
 
 ## 🎯 一句话理解（3 秒）
 
@@ -33,7 +33,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 
 ### 核心定位
 
-本技能将 Trae 从「单一 AI 助手」升级为「多 AI 团队」。当任务提交时，不再由单一角色处理：
+本技能将 Agent 从「单一 AI 助手」升级为「多 AI 团队」。当任务提交时，不再由单一角色处理：
 
 ```
 用户任务 → [输入验证] → [角色匹配] → [协调器编排]
@@ -53,7 +53,7 @@ DevSquad:  你 ──→ DevSquad ──→ [架构师+安全+测试+开发...] 
 | **界面设计师** | 界面设计、交互原型、设计系统、可访问性 | 用户体验设计、前端界面、可访问性 |
 | **产品经理** | 需求分析、产品需求文档编写、用户故事、竞品分析、验收标准 | 功能规划、路线图、需求 |
 
-**V5.1.0 质量门控**：
+**V4.10.0 质量门控**：
 - **S1 门控（实现完整性门控）**：在简洁性角色的 `activate()` 方法中首先执行，验证实现完整性（检测生产代码中的模拟对象、缺失设计元素、不完整测试、未保护输入输出、缺失安全功能）
 - **S2 门控（复杂度/重复度）**：在 S1 门控之后执行，检查代码复杂度和重复度
 - 简洁性角色不是协作角色，而是质量门控执行器
@@ -118,7 +118,7 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | 完整 218+ 模块表、测试覆盖矩阵、高级功能指南、控制论增强、派发模式、系统状态、错误处理 | 贡献者 / 模块开发者 |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 个原子子技能（派发/意图/审查/安全/测试/回顾/原型/教学），完整派发流程，12 阶段项目生命周期（P0-P11），测试铁律、元铁律、交付流程铁律 | 技能使用者 / 测试工程师 |
 | [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md) | 缺陷台账契约（V4.9.0）：JSON 模式 + 封闭状态机（开启/已修复/已关闭）+ 两个危险防护 + 信号引用解析 + 强制信号映射 + 注册门三状态跟踪 + 缺陷命令行界面 | 运维人员 / 缺陷归档者 |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | 版本历史 + 逐版本变更记录（v1.0 → v5.1.0） | 发布跟踪 / 审计 |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | 版本历史 + 逐版本变更记录（v1.0 → v4.10.0） | 发布跟踪 / 审计 |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 

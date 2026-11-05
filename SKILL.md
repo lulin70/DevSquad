@@ -1,14 +1,14 @@
 ---
 name: devsquad
 slug: devsquad
-version: 5.1.0
+version: 4.10.0
 description: |
-  DevSquad V5.1.0 — Multi-Role AI Orchestration Skill.
+  DevSquad V4.10.0 — Multi-Role AI Orchestration Skill.
   Not a single-capability tool: coordinates 7 available roles + 8 atomic sub-skills
   (dispatch/intent/review/security/test/retrospective/prototype/teach).
   One task → task-matched multi-role collaboration → consensus conclusion.
   
-  V5.1.0 Key Feature: ImplementationCompletenessGate (S1 Gate) prevents AI implementation shortcuts
+  V4.10.0 Key Feature: ImplementationCompletenessGate (S1 Gate) prevents AI implementation shortcuts
   by detecting mocks in production code, missing design elements, incomplete tests, unprotected I/O,
   and missing security features. Progressive rollout: Shadow (Day 0-6) → Soft (Day 7-13) → Full (Day 14+).
   
@@ -18,7 +18,7 @@ description: |
   📚 Full version history → docs/reference/VERSION_HISTORY.md
 ---
 
-# DevSquad V5.1.0 — Multi-Role AI Task Orchestrator
+# DevSquad V4.10.0 — Multi-Role AI Task Orchestrator
 
 ## 🎯 Quick Understanding (3 Seconds)
 
@@ -33,7 +33,7 @@ DevSquad:        You ──→ DevSquad ──→ [Architect+Security+Test+Dev..
 
 ### Core Positioning
 
-This Skill upgrades Trae from a "single AI assistant" to a "multi-AI team". When a task is submitted, it is no longer handled by a single role:
+This Skill upgrades Agent from a "single AI assistant" to a "multi-AI team". When a task is submitted, it is no longer handled by a single role:
 
 ```
 User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
@@ -53,7 +53,7 @@ User Task → [InputValidator] → [RoleMatcher] → [Coordinator Orchestration]
 | **UI Designer** | Interface design, interaction prototypes, design systems, accessibility | UX design, frontend UI, accessibility |
 | **PM** | Requirements analysis, PRD writing, user stories, competitive analysis, acceptance criteria | Feature planning, roadmap, requirements |
 
-**V5.1.0 Quality Gates**:
+**V4.10.0 Quality Gates**:
 - **S1 Gate (ImplementationCompletenessGate)**: Executes first in SimplicityRole's `activate()` method, validates implementation completeness (detects mocks in production, missing design elements, incomplete tests, unprotected I/O, missing security features)
 - **S2 Gates (CRAP/Duplication)**: Execute after S1 Gate, check code complexity and duplication
 - SimplicityRole is not a collaboration role but a quality gate executor
@@ -118,7 +118,7 @@ devsquad run "Design a secure user authentication system" --roles architect secu
 | [docs/reference/MODULE_REFERENCE.md](docs/reference/MODULE_REFERENCE.md) | Full 218+ module table, test coverage matrix, advanced features guide, cybernetics enhancement, dispatch modes, system status, error handling | Contributors / module developers |
 | [docs/reference/SUB_SKILLS.md](docs/reference/SUB_SKILLS.md) | 8 atomic sub-skills (dispatch/intent/review/security/test/retrospective/prototype/teach), complete dispatch workflow, 12-phase project lifecycle (P0-P11), testing iron rules, meta iron rule, delivery workflow iron rules | Skill users / test engineers |
 | [docs/reference/DEFECT_LEDGER.md](docs/reference/DEFECT_LEDGER.md) | Defect ledger contract (V4.9.0): JSON schema + closed state machine (open/fixed/closed) + two hazard guards + `signal_ref` resolution + mandatory-signal mapping + registration-gate three-state tracking + `devsquad defect add/update/close/reopen/list/audit` CLI | Run operators / defect filers |
-| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v5.1.0) | Release tracking / auditors |
+| [docs/reference/VERSION_HISTORY.md](docs/reference/VERSION_HISTORY.md) | Version History + per-version changelog (v1.0 → v4.10.0) | Release tracking / auditors |
 
 ## ⚠️ Honest Disclosure (V4.5.6 G6 Complete)
 

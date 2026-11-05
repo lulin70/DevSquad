@@ -12,7 +12,7 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.1.0] - 2026-11-05
+## [4.10.0] - 2026-11-05
 
 ### Fixed
 
