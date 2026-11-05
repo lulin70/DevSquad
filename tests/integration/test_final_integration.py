@@ -550,12 +550,12 @@ class TestPhaseMetadataValidation:
         print("✅ No duplicates in execution order")
 
     def test_phase_ids_sequential(self):
-        """Test phase IDs are sequential (P1-P11)."""
-        expected_ids = {f"P{i}" for i in range(1, 12)}
+        """Test phase IDs are sequential (P0-P11)."""
+        expected_ids = {f"P{i}" for i in range(0, 12)}  # P0-P11 (P0 is optional Discovery phase)
         actual_ids = {p.phase_id for p in self.adapter.get_all_phases()}
 
-        assert actual_ids == expected_ids, f"Expected P1-P11, got: {actual_ids}"
-        print("✅ Phase IDs are sequential P1-P11")
+        assert actual_ids == expected_ids, f"Expected P0-P11, got: {actual_ids}"
+        print("✅ Phase IDs are sequential P0-P11")
 
 
 class TestEdgeCasesAndBoundaryConditions:
