@@ -12,6 +12,23 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **P0-1**: Fixed SimplicityRole initialization with delayed workflow_trace binding. SimplicityRole is now created lazily when workflow_trace becomes available in `Coordinator.execute_plan()`, preventing AttributeError when SimplicitRole tries to use a None trace.
+- **P1-1**: Eliminated ROLE_TEMPLATES duplication. All role data now sourced from ROLE_REGISTRY via `_get_role_template()` helper, reducing maintenance burden and preventing data drift between the two structures.
+- **P1-2**: Cleaned up archaeology comments from `coordinator.py` and moved to CHANGELOG. V4.5.9 ThreadPoolExecutor removal note archived here.
+
+### Added
+
+- **P0-2**: Comprehensive P0-P11 phase transition boundary tests added in `tests/unit/test_phase_transition_boundaries.py`. Tests verify: optional/required phase flags, phase sequence ordering, exit gate criteria, role participation requirements, and workflow trace recording.
+- **P0-3**: Documented P0 feasibility gate resolution strategy (Option A: Conditional with Fallback) in `docs/P0_FEASIBILITY_GATE_RESOLUTION.md`. When P0 is skipped, P1 entry requires a feasibility waiver to close the proof gap.
+
+### Changed
+
+- **Coordinator parallel execution**: V4.5.9 removed ThreadPoolExecutor in favor of asyncio.gather-based execution through `gather_core.execute_batch_gather()`. Parallel batches now execute via the shared async core, with sync bridges at worker boundaries. This change unified the execution paths and eliminated the separate thread pool.
+
 ## [4.10.0] - 2026-11-05
 
 ### Fixed

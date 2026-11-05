@@ -7,11 +7,33 @@ from .models import ROLE_REGISTRY, resolve_role_id
 
 logger = logging.getLogger(__name__)
 
-ROLE_TEMPLATES = {
-    rid: {"name": rdef.name, "prompt": rdef.prompt, "keywords": rdef.keywords} for rid, rdef in ROLE_REGISTRY.items()
-}
+# P1-1 fix: Remove ROLE_TEMPLATES duplication. All role data comes from ROLE_REGISTRY.
+# Access via _get_role_template() helper which dynamically extracts from ROLE_REGISTRY.
 
 CANDIDATE_SOURCES = ("keyword", "adaptive", "similar", "semantic", "explicit", "fallback")
+
+
+def _get_role_template(role_id: str) -> dict[str, Any]:
+    """Get role template data from ROLE_REGISTRY.
+    
+    P1-1: This replaces the ROLE_TEMPLATES dictionary to eliminate data duplication.
+    Returns a dict with name, prompt, keywords for backward compatibility.
+    
+    Args:
+        role_id: Role identifier (e.g., "architect", "tester")
+    
+    Returns:
+        Dict with keys: name, prompt, keywords
+        If role not found, returns empty dict with role_id as name.
+    """
+    rdef = ROLE_REGISTRY.get(role_id)
+    if rdef is None:
+        return {"name": role_id, "prompt": "", "keywords": []}
+    return {
+        "name": rdef.name,
+        "prompt": rdef.prompt,
+        "keywords": rdef.keywords,
+    }
 
 
 class RoleMatcher:
@@ -79,10 +101,11 @@ class RoleMatcher:
         if source not in CANDIDATE_SOURCES:
             raise ValueError(f"unsupported candidate source: {source}")
         normalized_score = float(score)
+        template = _get_role_template(role_id)
         return {
             "candidate": role_id,
             "role_id": role_id,
-            "name": name or ROLE_TEMPLATES.get(role_id, {}).get("name", role_id),
+            "name": name or template.get("name", role_id),
             "score": normalized_score,
             "confidence": normalized_score,
             "reason": reason or "候选角色匹配",
@@ -104,13 +127,14 @@ class RoleMatcher:
             if not role_id:
                 continue
             score = float(candidate.get("score", candidate.get("confidence", 0.0)))
+            template = _get_role_template(role_id)
             normalized = {
                 **candidate,
                 "candidate": role_id,
                 "role_id": role_id,
                 "score": score,
                 "confidence": score,
-                "name": candidate.get("name") or ROLE_TEMPLATES.get(role_id, {}).get("name", role_id),
+                "name": candidate.get("name") or template.get("name", role_id),
                 "reason": str(candidate.get("reason") or "候选角色匹配"),
                 "source": candidate.get("source", "fallback"),
                 "matched_keywords": list(candidate.get("matched_keywords", [])),
@@ -125,7 +149,8 @@ class RoleMatcher:
         task_lower = task_description.lower()
         matched: list[dict[str, Any]] = []
 
-        for role_id, role_info in ROLE_TEMPLATES.items():
+        for role_id, rdef in ROLE_REGISTRY.items():
+            role_info = _get_role_template(role_id)
             matched_keywords = [kw for kw in role_info["keywords"] if kw in task_lower]
             if matched_keywords:
                 score = min(len(matched_keywords) / len(role_info["keywords"]), 1.0)
@@ -204,7 +229,7 @@ class RoleMatcher:
         # Add adaptive-only roles
         for role_name in adaptive_roles:
             if role_name not in existing_ids:
-                template = ROLE_TEMPLATES.get(role_name, {"name": role_name})
+                template = _get_role_template(role_name)
                 matched.append(
                     self._candidate(
                         role_name,
@@ -220,7 +245,7 @@ class RoleMatcher:
         # Add similar-only roles
         for role_name in similar_roles:
             if role_name not in existing_ids:
-                template = ROLE_TEMPLATES.get(role_name, {"name": role_name})
+                template = _get_role_template(role_name)
                 conf = confidence_map.get(similar_confidence, 0.3)
                 matched.append(
                     self._candidate(
@@ -253,7 +278,7 @@ class RoleMatcher:
         resolved_roles = [resolve_role_id(r) for r in roles]
         final: list[dict[str, Any]] = []
         for rid in resolved_roles:
-            template = ROLE_TEMPLATES.get(rid, {"name": rid, "prompt": ""})
+            template = _get_role_template(rid)
             rdef = _RR.get(rid)
             if rdef and rdef.status == "planned":
                 reason = f"用户指定（{rdef.name} - 规划中角色，暂无完整模板）"

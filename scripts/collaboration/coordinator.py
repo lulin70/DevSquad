@@ -148,10 +148,7 @@ class Coordinator(CoordinatorCompressionMixin):
         self.consensus = ConsensusEngine()
         self.workers: dict[str, Worker] = {}
         self._worker_index: dict[str, Worker] = {}
-        # V4.5.9: ThreadPoolExecutor removed — parallel batches execute through
-        # the shared asyncio.gather core (gather_core.execute_batch_gather)
-        # via the sync bridge in _execute_parallel. The thread bridge now only
-        # exists at the sync-Worker boundary (AC-C6).
+        # Parallel execution unified through asyncio.gather (see CHANGELOG V4.5.9)
         self._execution_history: list[dict[str, Any]] = []
         self.coordinator_id = f"coord-{uuid.uuid4().hex[:8]}"
         self.enable_compression = enable_compression
@@ -187,14 +184,12 @@ class Coordinator(CoordinatorCompressionMixin):
         self.ccr_store = ccr_store
         self._used_input_tokens: int = 0
         
-        # V5.0: Simplicity Role integration
+        # V5.0: Simplicity Role integration (P0-1 fix: delayed initialization)
         from scripts.collaboration.unified_gate_engine import UnifiedGateEngine
-        from scripts.collaboration.simplicity_role import SimplicityRole
         
         self._unified_gate_engine = UnifiedGateEngine()
-        workflow_trace = None  # Will be set by dispatcher with task_description
-        self._simplicity_role = SimplicityRole(workflow_trace, self._unified_gate_engine)
-        self._unified_gate_engine.register_simplicity_role(self._simplicity_role)
+        # SimplicityRole will be created lazily when workflow_trace is available
+        self._simplicity_role: Any = None
 
     def apply_file_bundling(self, mode: str, files: list[str]) -> list[list[str]]:
         """Apply deterministic FileBundling for review mode (V4.5.0 PRD §10.1.3).
@@ -418,14 +413,26 @@ class Coordinator(CoordinatorCompressionMixin):
             self._worker_index[worker.role_id] = worker
         return list(self.workers.values())
 
-    def execute_plan(self, plan: ExecutionPlan) -> ScheduleResult:
-        """执行完整的协作计划。"""
+    def execute_plan(self, plan: ExecutionPlan, workflow_trace: Any = None) -> ScheduleResult:
+        """执行完整的协作计划。
+        
+        Args:
+            plan: ExecutionPlan 执行计划
+            workflow_trace: WorkflowTrace 工作流跟踪对象 (P0-1 fix: 用于延迟初始化 SimplicityRole)
+        """
         start_time = time.time()
+        
+        # P0-1 fix: 延迟创建 SimplicityRole,确保 workflow_trace 可用
+        if self._simplicity_role is None and workflow_trace is not None:
+            from scripts.collaboration.simplicity_role import SimplicityRole
+            self._simplicity_role = SimplicityRole(workflow_trace, self._unified_gate_engine)
+            self._unified_gate_engine.register_simplicity_role(self._simplicity_role)
+        
         results, errors = self._execute_plan_batches(plan)
         failed_results = self._collect_failed_results(results, errors)
         
         # V5.0: Execute Simplicity S2 gate check if plan is in P8 phase
-        if hasattr(plan, 'phase') and plan.phase == "P8":
+        if hasattr(plan, 'phase') and plan.phase == "P8" and self._simplicity_role is not None:
             from scripts.collaboration.unified_gate_engine import GateType
             
             gate_result = self._unified_gate_engine.check(
