@@ -136,19 +136,22 @@ class TestSimplicityRoleActivation:
         mock_s1_result = {
             "verdict": "PASS",
             "completeness_score": 0.98,
+            "mode": "full",
+            "timestamp": "2026-11-06T12:00:00",
             "details": {
+                "mock_score": 1.0,
+                "alignment_score": 0.95,
+                "test_coverage": 1.0,
+                "error_handling_score": 1.0,
+                "security_score": 0.95,
                 "mock_violations": [],
-                "design_violations": [],
-                "test_violations": [],
-                "error_violations": [],
-                "security_violations": [],
-                "missing_elements": []  # Add missing_elements
-            },
-            "mock_score": 1.0,
-            "design_score": 0.95,
-            "test_score": 1.0,
-            "error_score": 1.0,
-            "security_score": 0.95
+                "missing_elements": [],
+                "extra_elements": [],
+                "missing_tests": [],
+                "extra_tests": [],
+                "unprotected_operations": [],
+                "missing_security_features": []
+            }
         }
         
         # Mock CRAP Gate result
