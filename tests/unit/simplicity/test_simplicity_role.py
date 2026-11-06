@@ -189,6 +189,29 @@ class TestSimplicityRoleActivation:
         from scripts.collaboration.simplicity_role import SimplicityRole
         from scripts.collaboration.gates.crap_gate import CRAPGate
         from scripts.collaboration.simplicity_config import SimplicityConfig
+        from scripts.collaboration.gates.completeness_gate.gate import ImplementationCompletenessGate
+        
+        # Mock S1 Gate PASS
+        mock_s1_result = {
+            "verdict": "PASS",
+            "completeness_score": 0.98,
+            "mode": "full",
+            "timestamp": "2026-11-06T12:00:00",
+            "details": {
+                "mock_score": 1.0,
+                "alignment_score": 0.95,
+                "test_coverage": 1.0,
+                "error_handling_score": 1.0,
+                "security_score": 0.95,
+                "mock_violations": [],
+                "missing_elements": [],
+                "extra_elements": [],
+                "missing_tests": [],
+                "extra_tests": [],
+                "unprotected_operations": [],
+                "missing_security_features": []
+            }
+        }
         
         mock_crap_result = {
             "status": "REJECT",
@@ -197,7 +220,8 @@ class TestSimplicityRoleActivation:
             "summary": "1 violation"
         }
         
-        with patch.object(CRAPGate, 'check', return_value=mock_crap_result), \
+        with patch.object(ImplementationCompletenessGate, 'check', return_value=mock_s1_result), \
+             patch.object(CRAPGate, 'check', return_value=mock_crap_result), \
              patch.object(SimplicityConfig, 'get_current_mode', return_value="shadow"):
             
             role = SimplicityRole(mock_workflow_trace, mock_unified_gate_engine)
@@ -223,10 +247,34 @@ class TestSimplicityRoleActivation:
         """
         from scripts.collaboration.simplicity_role import SimplicityRole
         from scripts.collaboration.gates.crap_gate import CRAPGate
+        from scripts.collaboration.gates.completeness_gate.gate import ImplementationCompletenessGate
+        
+        # Mock S1 Gate PASS
+        mock_s1_result = {
+            "verdict": "PASS",
+            "completeness_score": 0.98,
+            "mode": "full",
+            "timestamp": "2026-11-06T12:00:00",
+            "details": {
+                "mock_score": 1.0,
+                "alignment_score": 0.95,
+                "test_coverage": 1.0,
+                "error_handling_score": 1.0,
+                "security_score": 0.95,
+                "mock_violations": [],
+                "missing_elements": [],
+                "extra_elements": [],
+                "missing_tests": [],
+                "extra_tests": [],
+                "unprotected_operations": [],
+                "missing_security_features": []
+            }
+        }
         
         mock_crap_result = {"status": "PASS", "max_crap": 5.0, "violations": [], "summary": "OK"}
         
-        with patch.object(CRAPGate, 'check', return_value=mock_crap_result):
+        with patch.object(ImplementationCompletenessGate, 'check', return_value=mock_s1_result), \
+             patch.object(CRAPGate, 'check', return_value=mock_crap_result):
             role = SimplicityRole(mock_workflow_trace, mock_unified_gate_engine)
             
             # First call: P8 phase (trigger)
