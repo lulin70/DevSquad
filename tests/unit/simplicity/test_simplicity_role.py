@@ -25,11 +25,26 @@ def mock_unified_gate_engine():
 
 
 @pytest.fixture
-def mock_execution_plan():
-    """Mock ExecutionPlan"""
+def mock_execution_plan(tmp_path):
+    """Mock ExecutionPlan with complete fields for ImplementationCompletenessGate"""
     plan = Mock()
     plan.phase = "P8"
-    plan.target_files = [Path("test_file.py")]
+    
+    # Create test files
+    test_file = tmp_path / "test_file.py"
+    test_file.write_text("def foo(): pass")
+    plan.target_files = [test_file]
+    
+    # Add p3_doc and p7_doc paths
+    p3_doc = tmp_path / "p3_design.md"
+    p3_doc.write_text("# P3 Design\nclass TestClass:\n    pass")
+    p7_doc = tmp_path / "p7_test_plan.md"
+    p7_doc.write_text("# P7 Test Plan\n- test_foo()")
+    
+    plan.p3_doc = str(p3_doc)
+    plan.p7_doc = str(p7_doc)
+    plan.test_paths = []  # Empty test paths for this test
+    
     return plan
 
 
@@ -115,7 +130,28 @@ class TestSimplicityRoleActivation:
         """
         from scripts.collaboration.simplicity_role import SimplicityRole
         from scripts.collaboration.gates.crap_gate import CRAPGate
+        from scripts.collaboration.gates.completeness_gate.gate import ImplementationCompletenessGate
         
+        # Mock S1 Gate to return PASS with complete structure matching ImplementationCompletenessGate
+        mock_s1_result = {
+            "verdict": "PASS",
+            "completeness_score": 0.98,
+            "details": {
+                "mock_violations": [],
+                "design_violations": [],
+                "test_violations": [],
+                "error_violations": [],
+                "security_violations": [],
+                "missing_elements": []  # Add missing_elements
+            },
+            "mock_score": 1.0,
+            "design_score": 0.95,
+            "test_score": 1.0,
+            "error_score": 1.0,
+            "security_score": 0.95
+        }
+        
+        # Mock CRAP Gate result
         mock_crap_result = {
             "status": "PASS",
             "max_crap": 8.5,
@@ -123,7 +159,8 @@ class TestSimplicityRoleActivation:
             "summary": "All functions pass"
         }
         
-        with patch.object(CRAPGate, 'check', return_value=mock_crap_result):
+        with patch.object(ImplementationCompletenessGate, 'check', return_value=mock_s1_result), \
+             patch.object(CRAPGate, 'check', return_value=mock_crap_result):
             role = SimplicityRole(mock_workflow_trace, mock_unified_gate_engine)
             result = role.activate(mock_execution_plan, mock_worker_results)
             
