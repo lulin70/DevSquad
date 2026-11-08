@@ -30,6 +30,7 @@ import shutil
 import sys
 import threading
 import time
+import uuid
 from pathlib import Path
 
 import pytest
@@ -192,10 +193,15 @@ def test_task_scale_gate_dual_counter_increases_on_each_dispatch() -> None:
 
 def test_worker_execute_persists_artifact_and_registers_effect() -> None:
     """The coordinator's worker API must reach ArtifactStore and EffectRegistry."""
-    task_id = "selfcall-realpath-worker"
+    # Unique per run: effect ids derive from the artifact, so a fixed task_id
+    # would collide with an effect left on the stack by an earlier test.
+    task_id = f"selfcall-realpath-worker-{uuid.uuid4().hex[:8]}"
     artifact_dir = PROJECT_ROOT / "artifacts" / task_id
     before_artifacts = artifact_store.get_call_counter_er()
-    before_effects = effect_registry.get_call_count()
+    # The registry is a process-global singleton: its constructor counter does
+    # not move once created, so assert on the effect stack instead.
+    registry = artifact_store._get_global_registry()
+    before_pending = registry.pending_count()
 
     try:
         worker = WorkerFactory.create(
@@ -218,7 +224,8 @@ def test_worker_execute_persists_artifact_and_registers_effect() -> None:
     assert result.success
     assert result.output["finding_summary"], "worker must produce a finding to persist"
     assert artifact_store.get_call_counter_er() > before_artifacts
-    assert effect_registry.get_call_count() > before_effects
+    assert registry.pending_count() > before_pending
+    assert effect_registry.get_call_count() > 0, "registry must have been constructed"
 
 
 # ---------------------------------------------------------------------------
