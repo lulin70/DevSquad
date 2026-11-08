@@ -607,81 +607,21 @@ python3 -m pytest tests/ -q --tb=line
 
 ## 📜 リリース履歴
 
-> **現在のバージョン: V4.10.0** —— 変更は [CHANGELOG.md](CHANGELOG.md) を参照。以下は V4.5.2 までのアーカイブ履歴です。
+### V4.10.0 — 2026-11-05
+- ライフサイクル定義を単一の真実源に統合：`PHASE_TEMPLATES` が唯一の定義。
+- P0（発見と実現可能性）を任意フェーズとして追加。
+- ゲート条件を追加：依存関係とサプライチェーンのスキャン、NFR 目標と UAT 承認、データ移行と照合。
+- P11 のロールを修正：DevOps が主導し、アーキテクトとセキュリティがレビュー。
+- 記録後にロール参加を強制検証。
 
-**DevSquad V4.5.2**（PATCH リリース、SemVer 準拠）は2つの新規モジュールを導入し、3つの ROADMAP 項目（V451-1、V451-2、V451-7/8/9）を完了します。全新規モジュールはデフォルトで安全・後方互換の動作——API 破壊的変更なし。詳細は [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) を参照。
+### V4.9.0 — 2026-10-27
+- W1 欠陥台帳：アトミック書き込みの JSON 状態機械、読み込み失敗時は拒否、`devsquad defect` CLI。
+- W2 シグナル書き込み側：`log_dispatch_end` が `findings` と `failure_class` を受け取る。
+- W3 登録ゲート：必須シグナルの追跡、失敗時はクローズ。
+- W4 フィーチャーゲート：SHA256 で固定したチェックリスト、改ざん検出。
 
-### V4.5.2 — 2つの新規モジュール + 3つの ROADMAP 項目
-- **ApprovalGate**: 外部操作のユーザーレベル承認メカニズム。コールバック例外時 fail-closed。コールバック未設定時は自動承認（後方互換）。
-- **ConnectorFramework**: 外部システム統合のプロトコルインターフェース（GitHub 優先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 3モード）。dispatch pipeline はデフォルトで `simulation=True` を強制。
-- **V451-7 Dashboard ブラウザレベル E2E**: 11 AppTest ケース（Streamlit AppTest が Playwright を代替——重いブラウザ依存を回避しつつブラウザレベル DOM シミュレーションを維持）
-- **V451-8 REST API エンドツーエンドユーザージャーニー E2E**: 190 E2E テストが dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry をカバー
-- **V451-9 Connector Framework アンチゴースト E2E**: 12 E2E テスト（AG-1 〜 AG-8）が pipeline 活性化を証明
+それ以前のバージョン（V4.8.2 以前）は [CHANGELOG.md](CHANGELOG.md) を参照。
 
-### V4.5.0: クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート
-
-**DevSquad V4.5.0**（V4.4.3 + V4.4.4 + V4.5.0 変更を一括リリース）は、クロスセッション連続性、プロトコルネイティブSkillアーキテクチャ、アクションファーストレポート向けけ10の新機能を提供します。7ロール AI チームが複雑なエンジニアリングタスクを編成し、完全な監査チェーンとコンセンサスメカニズムを提供します。プロジェクトビジョンは [docs/VISION.md](docs/VISION.md) を参照。
-
-### V4.5.0 — 10の新機能
-- **ScratchpadHistoryStore**: SQLite-backed クロスセッション Scratchpad 検索
-- **AgentIdentity**: クロスセッショントラッキング用の決定論的 agent ID
-- **WorkflowTrace**: dispatch レポートの透過的ワークフロートレース
-- **GitContext**: Git ブランチ/commit コンテキストの dispatch への注入
-- **SkillProvider Protocol**: プロトコルネイティブ Skill アーキテクチャ（Builtin + MCP providers）
-- **OutputStyle**: アクションファーストレポート形式（i-have-adhd インサイトより）
-- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
-- **FileBundler**: review モードの決定論的ファイルバンドリング（open-code-review より）。`dispatch --mode review --changeset <files...>` で呼び出し、5 ファイル超でバンドリングを有効化（同一ディレクトリ + import 関係でグループ化。バンドル数はグループ分けで決まり、ファイル数では決まらない）
-- **SKILL.md モジュラー分割**: 1216→282 行 + 3 リファレンスドキュメント（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
-- **VISION ドキュメント**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
-
-### V4.4.0 — P0-P3 強化モジュール（5新規モジュール）
-- **P0-1 RiskRegister**: PMP リスク管理；7ロール加重評価（probability × impact）+ 4対応戦略（回避/移転/軽減/受容）+ `GateType.RISK_CHECK` ゲート（exposure ≥ 0.36 でブロック）
-- **P0-2 ViewpointRegistry**: TOGAF アーキテクチャ視点；7ロール紐付け正式視点 + `is_orthogonal()` 直交性判定 + `check_consistency()` 矛盾検出
-- **P1-1 ErrorBudgetTracker**: SRE エラー予算；SLO 99.9% デフォルト + `GateType.ERROR_BUDGET` P10 ゲート（予算枯渇でデプロイブロック）+ `burn_rate()` 消費レート
-- **P1-2 GapAnalyzer**: TOGAF ギャップ分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` で LoopScheduler を駆動
-- **P2-1 DoraMetricsCollector**: DORA メトリクス（デプロイ頻度 / Lead Time / 変更失敗率 / MTTR）+ `GateType.DORA_CHECK` P11 ゲート（CFR > 15% でアーキテクチャレビュートリガー）+ Elite/High/Medium/Low 評価
-
-### V4.4.1 — 外部ドキュメント再構築
-- 孤立 i18n ドキュメントをアーカイブ（docs/i18n/ → docs/_archive/i18n/）
-- CHANGELOG-CN.md をリタイア（CHANGELOG.md が全言語の SSOT に）
-- 管理者資格情報を INSTALL.md に統合（単一情報源）
-- INSTALL.md メソッドを連続 1-7 に再番号付け
-- 全外部ドキュメントのバージョン番号を同期（README/SKILL/INSTALL/CLAUDE）
-
-### V4.4.2 — 多言語 + Dashboard 強化
-- 多言語ロールプロンプト（EN/CN/JP）が全7ロールをカバー
-- Dashboard 6-Tab 可視性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
-- P2 Kanban 評価（WIP制限 + サイクルタイム追跡）
-- P3 ITSM 評価（インシデント管理 + 変更諮問委員会シミュレーション）
-- 13 E2E テスト xpass + アンチゴーストカウンター
-
-### アンチゴースト機能保証
-各新規モジュールは `_call_counter` メカニズム + E2E anti_ghost テスト + CI `check_module_activation.py` 検証を含みます。モジュールは dispatch pipeline に真に統合され（単なるインスタンス化ではなく）、Markdown レポートセクションがユーザーに可視である必要があります。V4.5.2 はこのパターンを V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）から V4.5.2（ApprovalGate / ConnectorFramework）に拡張します。
-
-### テストピラミッド達成
-- **Contract テスト**: 5.2%（目標 ≥5% ✅）
-- **現在検出されたテスト**: ローカルスキャンで 403 ファイル中 9794 テスト
-- **Integration テスト**: 14.9%（目標 ≥15%、警告が残る）
-- **未分類テスト**: 0
-- **E2E カバレッジ**: `tests/e2e/` に存在；最終的な成功数は今回の CI を基準とする
-
-### 履歴機能（V4.0.0-V4.3.3）
-- **V4.3.3**: P0-P3 強化 E2E スケルトン（xfail TDD for V4.4.0）
-- **V4.3.2**: LLM vs Mock 品質ギャップ測定（キャリブレーションゲート + シンスライスプローブ）
-- **V4.3.0 Phase 3**: 品質強化 + ユーザーシミュレーション E2E（NPS 9/10）
-- **V4.3.0 Phase 2**: OutputValidator 完全統合（LLM 出力セキュリティ検出）
-- **V4.3.0 Phase 1**: DependencyHallucinationChecker（Slopsquatting サプライチェーン攻撃対策）
-- **V4.3.0 Phase 0**: DeploymentComplianceChecker（違反デプロイ防波堤）
-- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling の5ステップクローズドループ
-- **V4.0.0 P1-2 UI/UX 巡検**: 4次元監査 + PIL ピクセル diff ビジュアルリグレッション
-- **V4.0.0 P2-1 Adversarial 検証**: レッドチーム攻撃 + ブルーチーム防御 + 審判仲裁
-- **V4.0.0 P2-2 DAG 可視化**: Mermaid / JSON / DOT の3形式
-- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
-- **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
-
-9800+ tests collected（現在のローカルスキャン；合格数は CI が権威）。
-
----
 
 ## 🗺️ Roadmap
 

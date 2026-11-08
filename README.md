@@ -607,81 +607,21 @@ python3 -m pytest tests/ -q --tb=line
 
 ## 📜 Release History
 
-> **Current release: V4.10.0** — see [CHANGELOG.md](CHANGELOG.md). The entries below are the archived history up to V4.5.2.
+### V4.10.0 — 2026-11-05
+- Lifecycle definition is single-source: `PHASE_TEMPLATES` is the only definition.
+- P0 (Discovery & Feasibility) added as an optional phase.
+- Gate conditions added: dependency/supply-chain scan, NFR targets with UAT sign-off, data migration with reconciliation.
+- P11 roles corrected: DevOps leads; architect and security review.
+- Role participation is enforced after recording.
 
-**DevSquad V4.5.2** (PATCH release, SemVer compliant) introduces 2 new modules and completes 3 ROADMAP items (V451-1, V451-2, V451-7/8/9). All new modules default to safe, backward-compatible behavior — no API breaking changes. See [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) for full release notes.
+### V4.9.0 — 2026-10-27
+- W1 defect ledger: atomic JSON state machine, fail-closed load, `devsquad defect` CLI.
+- W2 signal write-side: `findings` and `failure_class` on `log_dispatch_end`.
+- W3 registration gate: fail-closed mandatory-signal tracking.
+- W4 feature gate: SHA256-anchored checklist with tamper detection.
 
-### V4.5.2 — 2 New Modules + 3 ROADMAP Items
-- **ApprovalGate**: User-level approval mechanism for external operations. Fail-closed on callback exceptions. Auto-approve fallback when no callback configured (backward compatible).
-- **ConnectorFramework**: Protocol-based interface for external system integration (GitHub first). `Connector` Protocol + `GitHubConnector` (api/cli/simulation modes). `simulation=True` enforced by default in dispatch pipeline.
-- **V451-7 Dashboard browser-level E2E**: 11 AppTest cases (Streamlit AppTest replaces Playwright — avoids heavy browser deps while still being browser-level DOM simulation)
-- **V451-8 REST API end-to-end user journey E2E**: 190 E2E tests covering dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry
-- **V451-9 Connector Framework anti-ghost E2E**: 12 E2E tests (AG-1 through AG-8) proving pipeline activation
+Older releases (V4.8.2 and earlier) are in [CHANGELOG.md](CHANGELOG.md).
 
-### V4.5.0 — Cross-Session Continuity + Protocol-Native Skills + Action-First Reports
-
-**DevSquad V4.5.0** (merging V4.4.3 + V4.4.4 + V4.5.0 changes) delivers 10 new features for cross-session continuity, protocol-native skill architecture, and action-first reporting. The 7-role AI team orchestrates complex engineering tasks with full audit trails and consensus mechanisms. See [docs/VISION.md](docs/VISION.md) for the project vision.
-
-### V4.5.0 — 10 New Features
-- **ScratchpadHistoryStore**: SQLite-backed cross-session Scratchpad search
-- **AgentIdentity**: Deterministic agent ID for cross-session tracking
-- **WorkflowTrace**: Transparent workflow trace in dispatch reports
-- **GitContext**: Git branch/commit context injection into dispatch
-- **SkillProvider Protocol**: Protocol-native skill architecture (Builtin + MCP providers)
-- **OutputStyle**: Action-first report format (from i-have-adhd insights)
-- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
-- **FileBundler**: Deterministic file bundling for review mode (from open-code-review). Invoked via `dispatch --mode review --changeset <files...>`; more than 5 files engage bundling, grouped by directory + imports (bundle count follows the grouping, not the file count)
-- **SKILL.md Modular Split**: 1216→282 lines + 3 reference docs (MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY)
-- **VISION Documents**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
-
-### V4.4.0 — P0-P3 Enhancement Modules (5 new modules)
-- **P0-1 RiskRegister**: PMP risk management with 7-role weighted assessment (probability × impact) + 4 response strategies (avoid/transfer/mitigate/accept) + `GateType.RISK_CHECK` gate (exposure ≥ 0.36 blocks)
-- **P0-2 ViewpointRegistry**: TOGAF architecture viewpoints with 7-role bound formal viewpoints + `is_orthogonal()` orthogonality check + `check_consistency()` conflict detection
-- **P1-1 ErrorBudgetTracker**: SRE error budget with SLO 99.9% default + `GateType.ERROR_BUDGET` P10 gate (budget exhaustion blocks deployment) + `burn_rate()` consumption rate
-- **P1-2 GapAnalyzer**: TOGAF gap analysis with `analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` driving LoopScheduler
-- **P2-1 DoraMetricsCollector**: DORA metrics (Deployment Frequency / Lead Time / Change Failure Rate / MTTR) + `GateType.DORA_CHECK` P11 gate (CFR > 15% triggers architecture review) + Elite/High/Medium/Low rating
-
-### V4.4.1 — External Docs Restructure
-- Archived orphan i18n docs (docs/i18n/ → docs/_archive/i18n/)
-- Retired CHANGELOG-CN.md (CHANGELOG.md is now SSOT for all languages)
-- Consolidated admin credentials to INSTALL.md only (single source of truth)
-- Renumbered INSTALL.md methods to continuous 1-7
-- Synced version numbers across all external docs (README/SKILL/INSTALL/CLAUDE)
-
-### V4.4.2 — Multilingual + Dashboard Enhancement
-- Multilingual role prompts (EN/CN/JP) for all 7 roles
-- Dashboard 6-tab visibility (Overview/Dispatch/Lifecycle/Metrics/Audit/Settings)
-- P2 Kanban evaluation (work-in-progress limits + cycle time tracking)
-- P3 ITSM evaluation (incident management + change advisory board simulation)
-- 13 E2E tests xpass + anti-ghost counters
-
-### Anti-Ghost Feature Guarantee
-Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `check_module_activation.py` verification. Modules must be truly integrated into dispatch pipeline (not just instantiated), with Markdown report sections user-visible. V4.5.2 extends this pattern from V4.4.0 (RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector) to V4.5.2 (ApprovalGate / ConnectorFramework).
-
-### Test Pyramid Achieved
-- **Contract tests**: 5.2% (target ≥5% ✅)
-- **Discovered tests**: 9794 across 403 files in the current local scan
-- **Integration tests**: 14.9% (target ≥15%; warning remains)
-- **Unclassified tests**: 0
-- **E2E coverage**: present in `tests/e2e/`; final pass count requires the current CI run
-
-### Historical Features (V4.0.0-V4.3.3)
-- **V4.3.3**: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0)
-- **V4.3.2**: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe)
-- **V4.3.0 Phase 3**: Quality hardening + user simulation E2E (NPS 9/10)
-- **V4.3.0 Phase 2**: OutputValidator full integration (LLM output safety detection)
-- **V4.3.0 Phase 1**: DependencyHallucinationChecker (anti-slopsquatting supply chain attack)
-- **V4.3.0 Phase 0**: DeploymentComplianceChecker (anti-violation deployment backstop)
-- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling
-- **V4.0.0 P1-2 UI/UX Patrol**: 4-dimension audit + PIL pixel diff visual regression
-- **V4.0.0 P2-1 Adversarial Verification**: red team attack + blue team defense + judge arbitration
-- **V4.0.0 P2-2 DAG Visualization**: Mermaid / JSON / DOT three formats
-- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4-stage autonomous iteration
-- **V4.0.0 P3-2 Plugin Hot-Loading**: 3 loading paths + path traversal 3-layer protection + reload rollback
-
-9800+ tests collected (current local scan; pass counts are CI-authoritative).
-
----
 
 ## 🗺️ Roadmap
 

@@ -607,81 +607,21 @@ python3 -m pytest tests/ -q --tb=line
 
 ## 📜 版本历史
 
-> **当前版本：V4.10.0** —— 变更见 [CHANGELOG.md](CHANGELOG.md)。以下为截至 V4.5.2 的存档历史。
+### V4.10.0 — 2026-11-05
+- 生命周期定义单一真源：`PHASE_TEMPLATES` 是唯一定义。
+- P0（发现与可行性）作为可选阶段加入。
+- 新增门禁条件：依赖与供应链扫描、NFR 指标与 UAT 签署、数据迁移与核对。
+- 修正 P11 角色：DevOps 主导，架构师与安全专家评审。
+- 记录后强制校验角色参与。
 
-**DevSquad V4.5.2**（PATCH 发布，符合 SemVer）引入 2 个新模块并完成 3 个 ROADMAP 项（V451-1、V451-2、V451-7/8/9）。所有新模块默认采用安全、向后兼容的行为——无 API 破坏性变更。详见 [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) 完整发布说明。
+### V4.9.0 — 2026-10-27
+- W1 缺陷台账：原子写入的 JSON 状态机、加载失败即拒绝、`devsquad defect` 命令。
+- W2 信号写入侧：`log_dispatch_end` 支持 `findings` 与 `failure_class`。
+- W3 登记门禁：强制信号跟踪，失败关闭。
+- W4 特性门禁：SHA256 锚定清单，可检测篡改。
 
-### V4.5.2 — 2 个新模块 + 3 个 ROADMAP 项
-- **ApprovalGate**：外部操作的用户级审批机制。回调异常时 fail-closed。未配置回调时自动批准（向后兼容）。
-- **ConnectorFramework**：外部系统集成的协议接口（GitHub 优先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 三种模式）。调度管线默认强制 `simulation=True`。
-- **V451-7 Dashboard 浏览器级 E2E**：11 个 AppTest 用例（Streamlit AppTest 替代 Playwright——避免重浏览器依赖，仍是浏览器级 DOM 仿真）
-- **V451-8 REST API 端到端用户旅程 E2E**：190 个 E2E 测试覆盖 dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry
-- **V451-9 Connector Framework 反幽灵 E2E**：12 个 E2E 测试（AG-1 到 AG-8）证明管线激活
+更早版本（V4.8.2 及以前）见 [CHANGELOG.md](CHANGELOG.md)。
 
-### V4.5.0: 跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告
-
-**DevSquad V4.5.0**（合并 V4.4.3 + V4.4.4 + V4.5.0 变更一次性发布）交付 10 项新特性，覆盖跨会话连续性、协议原生 Skill 架构和行动优先报告。7 角色 AI 团队编排复杂工程任务，提供完整审计链和共识机制。详见 [docs/VISION.md](docs/VISION.md) 项目愿景。
-
-### V4.5.0 — 10 项新特性
-- **ScratchpadHistoryStore**: SQLite 跨会话 Scratchpad 搜索
-- **AgentIdentity**: 确定性 agent ID，用于跨会话追踪
-- **WorkflowTrace**: dispatch 报告中透明工作流追踪
-- **GitContext**: Git 分支/commit 上下文注入 dispatch
-- **SkillProvider Protocol**: 协议原生 Skill 架构（Builtin + MCP providers）
-- **OutputStyle**: 行动优先报告格式（源自 i-have-adhd 洞察）
-- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
-- **FileBundler**: review 模式确定性文件打包（源自 open-code-review）。经 `dispatch --mode review --changeset <files...>` 调用；超过 5 个文件时启用打包，按"同目录 + import 关系"分组（bundle 数由此决定，不由文件数决定）
-- **SKILL.md 模块化拆分**: 1216→282 行 + 3 参考文档（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
-- **VISION 文档**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
-
-### V4.4.0 — P0-P3 增强模块（5 个新模块）
-- **P0-1 RiskRegister**: PMP 风险管理；7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）+ `GateType.RISK_CHECK` 门禁（exposure ≥ 0.36 阻断）
-- **P0-2 ViewpointRegistry**: TOGAF 架构视点；7 角色绑定正式视点 + `is_orthogonal()` 正交性判断 + `check_consistency()` 矛盾检测
-- **P1-1 ErrorBudgetTracker**: SRE 错误预算；SLO 99.9% 默认 + `GateType.ERROR_BUDGET` P10 门禁（预算耗尽阻断功能部署）+ `burn_rate()` 消耗速率
-- **P1-2 GapAnalyzer**: TOGAF 差距分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` 驱动 LoopScheduler
-- **P2-1 DoraMetricsCollector**: DORA 指标（部署频率 / Lead Time / 变更失败率 / MTTR）+ `GateType.DORA_CHECK` P11 门禁（CFR > 15% 触发架构评审）+ Elite/High/Medium/Low 评级
-
-### V4.4.1 — 外部文档重构
-- 归档孤儿 i18n 文档（docs/i18n/ → docs/_archive/i18n/）
-- 退休 CHANGELOG-CN.md（CHANGELOG.md 成为所有语言的 SSOT）
-- 合并管理员凭证到 INSTALL.md（单一信息源）
-- 重新编号 INSTALL.md 方法为连续 1-7
-- 同步所有外部文档版本号（README/SKILL/INSTALL/CLAUDE）
-
-### V4.4.2 — 多语言 + Dashboard 增强
-- 多语言角色 prompt（EN/CN/JP）覆盖全部 7 角色
-- Dashboard 6-Tab 可见性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
-- P2 Kanban 评估（在制品限制 + 周期时间追踪）
-- P3 ITSM 评估（事件管理 + 变更顾问委员会模拟）
-- 13 个 E2E 测试 xpass + 防幽灵计数器
-
-### 防幽灵功能保证
-每个新模块包含 `_call_counter` 机制 + E2E anti_ghost 测试 + CI `check_module_activation.py` 验证。模块必须真正接入 dispatch pipeline（不仅实例化），且 Markdown 报告章节用户可见。V4.5.2 将此模式从 V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）扩展到 V4.5.2（ApprovalGate / ConnectorFramework）。
-
-### 测试金字塔达标
-- **Contract 测试**: 5.2%（目标 ≥5% ✅）
-- **当前发现的测试**：本地扫描发现 9794 个测试，分布在 403 个文件中
-- **Integration 测试**：14.9%（目标 ≥15%，仍有警告）
-- **未分类测试**：0
-- **E2E 覆盖**：已存在于 `tests/e2e/`；最终通过数以本轮 CI 为准
-
-### 历史特性（V4.0.0-V4.3.3）
-- **V4.3.3**: P0-P3 增强 E2E 骨架（xfail TDD for V4.4.0）
-- **V4.3.2**: LLM vs Mock 质量差距衡量（校准门 + 薄切片探针）
-- **V4.3.0 Phase 3**: 质量补强 + 用户模拟 E2E（NPS 9/10）
-- **V4.3.0 Phase 2**: OutputValidator 完整集成（LLM 输出安全检测）
-- **V4.3.0 Phase 1**: DependencyHallucinationChecker（防 Slopsquatting 供应链攻击）
-- **V4.3.0 Phase 0**: DeploymentComplianceChecker（防违规部署兜底）
-- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
-- **V4.0.0 P1-2 UI/UX 巡检**: 4 维度审计 + PIL 像素 diff 视觉回归
-- **V4.0.0 P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁
-- **V4.0.0 P2-2 DAG 可视化**: Mermaid / JSON / DOT 三格式
-- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
-- **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
-
-9800+ tests collected（当前本地扫描；通过数以 CI 为权威）。
-
----
 
 ## 🗺️ Roadmap
 
