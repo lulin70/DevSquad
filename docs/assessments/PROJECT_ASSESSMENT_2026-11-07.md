@@ -39,7 +39,7 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 发现：
 - `PHASE_TEMPLATES` 在 [workflow_engine_base.py](file:///Users/lin/trae_projects/DevSquad/scripts/collaboration/workflow_engine_base.py) 中是 12 阶段（P0–P11）的唯一真源。该设计正确。
 - 访问层分为 Streamlit、FastAPI、CLI。三层职责清楚。
-- `scripts/` 共 119,202 行。最大文件 [deterministic_rule_engine.py](file:///Users/lin/trae_projects/DevSquad/scripts/qa/deterministic_rule_engine.py) 有 1,684 行。[dispatcher.py](file:///Users/lin/trae_projects/DevSquad/scripts/collaboration/dispatcher.py) 有 1,272 行。这两个文件难以评审。
+- `scripts/` 共 119,202 行。原最大文件 `qa/deterministic_rule_engine.py`（1,684 行）和 `collaboration/dispatcher.py`（1,272 行）已于 2026-11-08 拆分：前者降为 567 行，规则检查进入 `scripts/qa/rule_checks/`；后者降为 815 行，激活与 RBAC 方法进入两个 mixin。两者均低于 800 行基线。
 
 建议：只对两个最大文件做拆分。不要全局重构。
 
@@ -99,10 +99,10 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 | 项目 | 结论 | 证据 |
 |------|------|------|
 | 模块激活门禁 | 通过 | `check_module_activation.py`：8/8 生产验证，27 自调用验证 |
-| 自调用验证强度 | 弱 | 只能证明模块被自身调用，不证明被用户链路调用 |
+| 自调用验证强度 | 已加强 | 新增 14 条真实链路用例，覆盖 22 个模块；5 个无引用模块 xfail 留证 |
 | 认证配置链路 | 曾是幽灵功能 | 文档声明可用，实际不可登录；已修复并加测试 |
 | 文档一致性门禁 | 通过 | `check_doc_consistency.py` PASS |
-| Streamlit API 弃用 | 潜在破坏 | `use_container_width` 计划 2025-12-31 后移除，当前代码仍使用 |
+| Streamlit API 弃用 | 已关闭 | 21 处 `use_container_width` 已迁移到 `width="stretch"`，下限提升到 1.50.0 |
 
 ---
 
@@ -162,26 +162,24 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 | 级别 | 风险 | 处置 |
 |------|------|------|
 | P1 | Moka API Key 在 git 历史中 | 密钥数日内失效，用户决定不轮换；到期后确认作废 |
-| P1 | 门禁包装器版本落后 | 升级到 `v4.10.0` |
-| P2 | 27 个模块只有自调用证据 | 补一条真实用户链路断言 |
-| P2 | Streamlit 弃用 API | 迁移到 `width='stretch'` |
-| P2 | 浏览器回归未进入 CI | 增加 Playwright 安装步骤，或保持手动执行 |
-| P2 | `prometheus-client` 未列入 `.[dev]` | 补入 dev 依赖 |
+| P2 | 5 个模块无任何生产引用 | `GitLabConnector`、`DispatcherTransaction`、`IntentWorkflowMapper`、`DispatchLoopController`、`AsyncCoeffectResolver`；已在测试中 xfail 记录证据 |
 
 已关闭：
 - 真实浏览器登录旅程未验证（2026-11-08 通过 Playwright 验证）。
 - venv 解释器混用（2026-11-08 重建为 3.12）。
+- 门禁包装器版本落后（2026-11-08 升级到 `v4.10.0`）。
+- 27 个模块只有自调用证据（2026-11-08 新增 14 条真实链路用例，覆盖 22 个）。
+- Streamlit 弃用 API（2026-11-08 迁移到 `width="stretch"`）。
+- 浏览器回归未进入 CI（2026-11-08 新增 `browser-e2e` 任务）。
+- `prometheus-client` 未列入 `.[dev]`（2026-11-08 补入）。
+- `devsquad audit` 未进入分发分支（2026-11-08 修复并加回归用例）。
 
 ---
 
 ## 8. 下一步建议（按顺序）
 
 1. API Key 到期后确认作废。随后按需清理 git 历史。
-2. 把 `devsquad-gate-wrapper.yml` 升级到 `v4.10.0`。
-3. 为 27 个自调用模块各补 1 条真实链路断言。
-4. 迁移 `use_container_width` 到 `width` 参数。
-5. 拆分 `deterministic_rule_engine.py` 与 `dispatcher.py`。
-6. 可选：在 CI 中增加浏览器回归任务。
+2. 决定 5 个无引用模块的处置：接线或删除。
 
 ---
 
@@ -191,3 +189,4 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 |------|------|
 | 2026-11-07 | 首次发布权威评估。包含认证缺陷修复、性能门禁去抖、测试基线 |
 | 2026-11-08 | 重建 `.venv` 为 Python 3.12；新增 Playwright 真实浏览器 E2E；评级升至预发布可用 |
+| 2026-11-08 | 关闭工程遗留：gate wrapper v4.10.0、浏览器回归入 CI、`width` 迁移、`prometheus-client` 入 dev、`devsquad audit` 修复、22 个模块真实链路断言、两个超大文件拆分（1684→567、1272→815） |
