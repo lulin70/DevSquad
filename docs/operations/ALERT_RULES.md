@@ -7,6 +7,8 @@
 
 This document defines Prometheus alert rules for the **5 V4.5.2 modules + 5 V4.5.3 modules** plus the existing core metrics. Each rule follows SRE best practices: severity, threshold rationale, runbook link, and noise budget.
 
+> **Retired 2026-11-08**: the alerts for `gitlab_connector`, `DispatcherTransaction` and `DispatchLoopController` are void. These modules were deleted because no production path reached them. Read the rule text as history only. See `docs/assessments/PROJECT_ASSESSMENT_2026-11-07.md` §7.1.
+
 ## V4.5.12 Additions — SQLite re-project trigger observability
 
 Trigger conditions per `docs/prd/V4.5.10_PRD.md` §6 (SQLite stays JSON-only long-term; alerts surface the re-project triggers only):

@@ -7,6 +7,8 @@
 
 This document defines the rollback strategy when critical issues block production use. Rollback is the last resort after [RUNBOOK.md](RUNBOOK.md) mitigation steps fail.
 
+> **Retired 2026-11-08**: the P12.1.3 GitLabConnector, P12.4.2 DispatcherTransaction, P12.4.3 DispatcherIntentMapper and P12.4.4 DispatchLoopController rollback paths are void. These modules were deleted because no production path reached them. Keep the text as history only. See `docs/assessments/PROJECT_ASSESSMENT_2026-11-07.md` §7.1.
+
 ## V4.6.0-doc-governance Gate Rollback Paths
 
 > These are CI/release-gate controls, not runtime service switches. Do not disable them through Prometheus or by inventing exporter metrics.

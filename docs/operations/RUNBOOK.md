@@ -977,7 +977,13 @@ devsquad modules retry --module <MODULE_NAME> --disable
 
 ---
 
-## 7. P12.4 Module Incidents (V4.5.6 addendum)
+## 7. P12.4 Module Incidents (V4.5.6 addendum) — RETIRED
+
+> **Retired 2026-11-08.** The modules behind SC-14, SC-15 and SC-16 were never
+> wired into the dispatcher. They were deleted: `dispatcher_transaction.py`,
+> `dispatcher_intent_mapper.py`, `dispatcher_loop_controller.py`.
+> The alerts and commands below will fail. Read them as history only.
+> Decision record: `docs/assessments/PROJECT_ASSESSMENT_2026-11-07.md` §7.1.
 
 ### SC-14: Transaction 卡在 ACTIVE 状态
 

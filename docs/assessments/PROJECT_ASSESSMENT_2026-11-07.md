@@ -162,20 +162,20 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 | 级别 | 风险 | 处置 |
 |------|------|------|
 | P1 | Moka API Key 已进入 git 历史 | 不轮换，等密钥自然失效。本地 `pre-commit` 已加 `no-secrets` 钩子。CI 已有三层防护。 |
-| P2 | 5 个模块无生产引用 | 建议全部删除。详见 7.1。当前用 xfail 记录证据。 |
 
 已关闭：
 - 明文密钥再次进入提交（2026-11-08 新增 `no-secrets` pre-commit 钩子和 3 条同形态回归用例）。
+- 5 个模块无生产引用（2026-11-08 已删除，详见 7.1）。
 - 真实浏览器登录旅程未验证（2026-11-08 通过 Playwright 验证）。
 - venv 解释器混用（2026-11-08 重建为 3.12）。
 - 门禁包装器版本落后（2026-11-08 升级到 `v4.10.0`）。
-- 27 个模块只有自调用证据（2026-11-08 新增 14 条真实链路用例，覆盖 22 个）。
+- 27 个模块只有自调用证据（2026-11-08 新增 14 条真实链路用例，覆盖 22 个；其余 5 个无引用模块已删除）。
 - Streamlit 弃用 API（2026-11-08 迁移到 `width="stretch"`）。
 - 浏览器回归未进入 CI（2026-11-08 新增 `browser-e2e` 任务）。
 - `prometheus-client` 未列入 `.[dev]`（2026-11-08 补入）。
 - `devsquad audit` 未进入分发分支（2026-11-08 修复并加回归用例）。
 
-### 7.1 5 个无引用模块的处置建议
+### 7.1 5 个无引用模块的处置（已执行）
 
 判定方法：在 `scripts/` 和 `skills/` 中搜索 import 语句。排除 `scripts/check_module_activation*.py` 探针后，5 个模块均无生产引用。
 
@@ -194,6 +194,12 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 - 模块清单数字：self-call 已验证模块从 27 降到 22。
 
 结论：5 个全部删除。唯一例外：如近期出现 GitLab 用户，只接线 `GitLabConnector`，并在 `ConnectorFramework` 内注册。
+
+执行结果（2026-11-08）：
+- 生产代码和测试文件已删除，共 13 个文件。
+- 探针已清理。`check_module_activation.py` 输出 8/8 production-verified、22 self-call verified，退出码 0。
+- `tests/integration/test_selfcall_modules_real_path.py` 移除 xfail 列表后 14 条用例全部通过。
+- `docs/operations/RUNBOOK.md` 第 7 节标记为 RETIRED。`CHANGELOG.md` 的 `[Unreleased]` 增加 Removed 条目。
 
 ### 7.2 已接受的延后项：4 个超基线文件
 

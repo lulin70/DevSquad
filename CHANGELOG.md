@@ -19,6 +19,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **P0-1**: Fixed SimplicityRole initialization with delayed workflow_trace binding. SimplicityRole is now created lazily when workflow_trace becomes available in `Coordinator.execute_plan()`, preventing AttributeError when SimplicitRole tries to use a None trace.
 - **P1-1**: Eliminated ROLE_TEMPLATES duplication. All role data now sourced from ROLE_REGISTRY via `_get_role_template()` helper, reducing maintenance burden and preventing data drift between the two structures.
 - **P1-2**: Cleaned up archaeology comments from `coordinator.py` and moved to CHANGELOG. V4.5.9 ThreadPoolExecutor removal note archived here.
+- Dashboard E2E tests (`tests/test_dashboard_ui_e2e.py`, `tests/e2e/test_dashboard_user_journeys.py`) wrote `DEVSQUAD_LLM_BACKEND=mock` with a plain `os.environ` assignment in `setUpClass`. The value leaked into later files and made `tests/smoke/test_real_llm_auto_mode.py` fail on file order alone. They now use `@patch.dict`, which restores the environment after each test.
 
 ### Added
 
@@ -34,6 +35,10 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **P2-1**: Added Python naming convention guide in `docs/NAMING_CONVENTION.md`. Standardizes private attribute naming (single underscore prefix), public API conventions, and provides non-breaking migration strategy for V4.11.0 (gradual refactor) and V5.0.0 (cleanup).
 - **P2-2**: Created test file naming convention guide in `docs/TEST_NAMING_CONVENTION.md`. Identified 29 files with double `test_` prefix and provided automated renaming script. Implementation scheduled for V4.11.0 with git history preservation via `git mv`.
 - **P2-3**: Published comprehensive entry points decision tree in `docs/ENTRY_POINTS_DECISION_TREE.md`. Documents all 7 invocation methods (TRAE Skill/Python API/MCP/CLI/REST API/Dashboard/start.sh) with decision flowchart, comparison matrix, scenario guides, and migration paths.
+
+### Removed
+
+- Deleted five modules that no production path could reach: `gitlab_connector.py`, `dispatcher_transaction.py`, `dispatcher_intent_mapper.py`, `dispatcher_loop_controller.py`, `async_coeffect_resolver.py`. Their eight dedicated test files and their anti-ghost probes are removed too. Self-call verified modules: 27 → 22. Decision record: `docs/assessments/PROJECT_ASSESSMENT_2026-11-07.md` §7.1.
 
 ## [4.10.0] - 2026-11-05
 
