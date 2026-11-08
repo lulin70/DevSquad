@@ -440,23 +440,10 @@ def _activate_v455_modules() -> None:
 
     Touches:
         - HostLLMBridgeV2_P12.4.1 — create_request (writes marker)
-        - DispatcherTransaction_P12.4.2 — begin + commit
-        - IntentWorkflowMapper_P12.4.3 — resolve one workflow
-        - DispatchLoopController_P12.4.4 — should_stop call
     """
     # P12.4.1: HostLLMBridgeV2 — create_request
     import tempfile as _tf
 
-    from scripts.collaboration.dispatcher_intent_mapper import IntentWorkflowMapper
-    from scripts.collaboration.dispatcher_loop_controller import (
-        DispatchLoopController,
-        IterationKind,
-        IterationResult,
-    )
-    from scripts.collaboration.dispatcher_transaction import (
-        DispatchTransaction,
-        TransactionRegistry,
-    )
     from scripts.collaboration.host_llm_bridge_v2 import HostLLMBridgeV2
 
     with _tf.TemporaryDirectory() as tmpdir:
@@ -468,48 +455,14 @@ def _activate_v455_modules() -> None:
             prompt="v2 test prompt",
         )
 
-    # P12.4.2: DispatcherTransaction — full lifecycle
-    tx = DispatchTransaction(tx_id="anti-ghost-tx")
-    tx.register_module("m1", lambda: None, lambda: None)
-    tx.begin()
-    tx.commit()
-
-    # P12.4.3: IntentWorkflowMapper — resolve one workflow
-    mapper = IntentWorkflowMapper()
-    mapper.resolve("design", "zh")
-
-    # P12.4.4: DispatchLoopController — should_stop call
-    ctrl = DispatchLoopController()
-    ctrl.should_stop(IterationResult(IterationKind.SUCCESS))
-    # Also verify the registry helper is importable
-    _ = TransactionRegistry()
-
 
 def _activate_v457_modules() -> None:
     """Exercise V4.5.7 P12.5 modules to bump their anti-ghost counters.
 
     Touches:
-        - AsyncCoeffectResolver_P12.5.1 — sync bridge resolve() with executor
         - CliRisks_P12.5.2 — add_risk + cmd_risks_list
     """
     from argparse import Namespace
-
-    # P12.5.1: AsyncCoeffectResolver — sync bridge round-trip
-    from scripts.collaboration.async_coeffect_resolver import (
-        AsyncCoeffectResolver,
-        CoeffectRequest,
-        CoeffectState,
-    )
-
-    resolver = AsyncCoeffectResolver()
-    result = resolver.resolve(
-        CoeffectRequest(
-            name="anti-ghost",
-            payload={"executor": lambda: 42},
-        )
-    )
-    assert result.state == CoeffectState.COMPLETED
-    assert result.value == 42
 
     # P12.5.2: CliRisks — add + list round-trip (in-process store)
     from scripts.cli_risks import add_risk, cmd_risks_list

@@ -7,7 +7,6 @@ dispatch. Used by CI to block releases of ghost modules.
 
 V4.5.2 P12.1: Extended to include:
     - MokaAIBackend (P12.1.1)
-    - GitLabConnector (P12.1.3)
     - BackendConfig (P12.1.5)
 
 V4.5.3 P12.2: Extended to include:
@@ -309,8 +308,6 @@ def main() -> int:
     from scripts.collaboration.connector_framework import (
         get_call_count as cfc,
     )
-    from scripts.collaboration.gitlab_connector import GitLabConnector
-    from scripts.collaboration.gitlab_connector import get_call_count as glc
 
     # Activate each module (representative call)
     from scripts.collaboration.host_llm_bridge import get_call_counter_er as hbb
@@ -337,11 +334,6 @@ def main() -> int:
     # P12.1.1: MokaAIBackend — exercise is_available() to bump counter
     moka_backend = MokaAIBackend(api_key="anti-ghost-test-key")
     moka_backend.is_available()
-
-    # P12.1.3: GitLabConnector — exercise create_mr_comment in simulation mode
-    # (simulation=True guarantees no real GitLab API calls)
-    gitlab = GitLabConnector(simulation=True)
-    gitlab.create_mr_comment(project="anti-ghost/test", mr_iid=1, body="ghost check")
 
     # P12.1.5: BackendConfig — exercise resolve_backend + load_backend_config
     resolve_backend()
@@ -410,20 +402,8 @@ def main() -> int:
     from scripts.collaboration.artifact_store import (
         get_call_counter_er as as_call_counter_er,
     )
-    from scripts.collaboration.async_coeffect_resolver import (
-        get_call_counter_er as _get_async_coeffect_counter_er,
-    )
 
     # V4.5.6 P12.4 modules — touch counters in main scope
-    from scripts.collaboration.dispatcher_intent_mapper import (
-        get_call_counter_er as _get_intent_counter_er,
-    )
-    from scripts.collaboration.dispatcher_loop_controller import (
-        get_call_counter_er as _get_loop_counter_er,
-    )
-    from scripts.collaboration.dispatcher_transaction import (
-        get_call_counter_er as _get_tx_counter_er,
-    )
     from scripts.collaboration.effect_registry import (
         get_call_count as er_call_count,
     )
@@ -508,7 +488,6 @@ def main() -> int:
         "TaskScaleGate_dual": tsg(),
         "OrderChainDetector": ocd(),
         "MokaAIBackend_P12.1.1": mok(),
-        "GitLabConnector_P12.1.3": glc(),
         "BackendConfig_P12.1.5": bcc(),
         # V4.5.3 P12.2 modules
         "ArtifactStore_P12.2.1": as_call_counter_er(),
@@ -520,11 +499,7 @@ def main() -> int:
         "ModulesCLI_P12.3.3": get_call_counter_er(),  # shared counter
         # V4.5.6 P12.4 modules
         "HostLLMBridgeV2_P12.4.1": _get_call_counter_er_v2(),
-        "DispatcherTransaction_P12.4.2": _get_tx_counter_er(),
-        "IntentWorkflowMapper_P12.4.3": _get_intent_counter_er(),
-        "DispatchLoopController_P12.4.4": _get_loop_counter_er(),
         # V4.5.7 P12.5 modules
-        "AsyncCoeffectResolver_P12.5.1": _get_async_coeffect_counter_er(),
         "CliRisks_P12.5.2": _get_cli_risks_counter_er(),
         # V4.5.8 modules
         "FileRiskStore_V458.1": _get_file_risk_store_counter_er(),

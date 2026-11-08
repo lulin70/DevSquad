@@ -1,4 +1,4 @@
-"""Real user-path assertions for the 27 "self-call verified" modules.
+"""Real user-path assertions for the "self-call verified" modules.
 
 Background: ``scripts/check_module_activation.py`` splits the module inventory
 into "production-verified" and "self-call verified".  A self-call probe only
@@ -16,11 +16,9 @@ Entry points exercised here (all offline, ``DEVSQUAD_LLM_BACKEND=mock``):
   auto-fallback degradation)
 * ``scripts/collect_baseline.py`` — maintainer performance-baseline command
 
-Modules with NO user-reachable entry point are marked ``xfail`` below.  They
-have zero production importers outside ``scripts/check_module_activation*.py``
-(verified by a repo-wide search); covering them would require either calling
-their internal methods directly (forbidden) or changing production code to
-invent reachability (forbidden).
+Every self-call module in the inventory now has a reachable entry point here.
+The five modules that had none were deleted on 2026-11-08; see
+``docs/assessments/PROJECT_ASSESSMENT_2026-11-07.md`` section 7.1.
 """
 
 from __future__ import annotations
@@ -74,36 +72,6 @@ from tests.fakes.fake_host_runner_v2 import FakeHostRunnerV2
 pytestmark = pytest.mark.integration
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-# -- Modules that cannot be reached from any user entry point (xfail) --------
-# Each entry is (module name from check_module_activation.py, evidence).
-UNREACHABLE_MODULES = [
-    (
-        "GitLabConnector_P12.1.3",
-        "No production importer: only check_module_activation*.py references it. "
-        "ConnectorFramework (the dispatch-wired connector) has no GitLab backend.",
-    ),
-    (
-        "DispatcherTransaction_P12.4.2",
-        "No production importer: the dispatcher never opens a DispatchTransaction; "
-        "only check_module_activation*.py constructs it.",
-    ),
-    (
-        "IntentWorkflowMapper_P12.4.3",
-        "dispatcher_intent_mapper.py has no production importer. The CLI uses the "
-        "separate scripts.collaboration.intent_workflow_mapper module instead.",
-    ),
-    (
-        "DispatchLoopController_P12.4.4",
-        "No production importer: nothing creates a DispatchLoopController, so "
-        "should_stop() is never consulted by a dispatch.",
-    ),
-    (
-        "AsyncCoeffectResolver_P12.5.1",
-        "No production importer: the async resolver is not wired into the "
-        "dispatcher or any async pipeline; coverable only via its own API.",
-    ),
-]
 
 
 def _dispatch_task(description: str) -> MultiAgentDispatcher:
@@ -490,14 +458,3 @@ def test_cli_audit_reaches_audit_cli(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert rc == 0
     assert audit_cli_counter() == before + 1
     assert out.strip(), "audit must print a result, not the generic help"
-
-
-# ---------------------------------------------------------------------------
-# Documented gaps
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("module_name,evidence", UNREACHABLE_MODULES)
-def test_unreachable_modules_are_documented(module_name: str, evidence: str) -> None:
-    """No user path reaches these modules today; see the reason string."""
-    pytest.xfail(f"{module_name}: {evidence}")
