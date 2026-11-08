@@ -12,10 +12,10 @@ provides a seamless experience from login to task completion.
 
 from __future__ import annotations
 
-import os
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -61,12 +61,9 @@ def _run_dashboard(role: str = "viewer") -> AppTest:
     return app
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestUserJourneyNewUser(unittest.TestCase):
     """Journey 1: New user first visit - explores Dashboard and logs out."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_new_viewer_explores_all_tabs(self) -> None:
         """Journey: New viewer logs in, explores all tabs, reads content."""
@@ -103,16 +100,15 @@ class TestUserJourneyNewUser(unittest.TestCase):
 
         # Viewer should NOT see dispatch/action buttons
         button_labels = [b.label for b in app.button if hasattr(b, "label")]
-        dispatch_buttons = [l for l in button_labels if "dispatch" in l.lower() or "submit" in l.lower()]
+        dispatch_buttons = [
+            label for label in button_labels if "dispatch" in label.lower() or "submit" in label.lower()
+        ]
         self.assertEqual(len(dispatch_buttons), 0, f"Viewer should not see dispatch buttons, found: {dispatch_buttons}")
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestUserJourneyOperatorDispatch(unittest.TestCase):
     """Journey 2: Operator dispatches a task and views result."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_operator_dispatch_full_journey(self) -> None:
         """Journey: Operator fills form, submits task, views result."""
@@ -159,12 +155,9 @@ class TestUserJourneyOperatorDispatch(unittest.TestCase):
                 self.assertIsNotNone(history_text)
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestUserJourneyAdminManagement(unittest.TestCase):
     """Journey 3: Admin manages users and views audit logs."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_admin_views_user_list(self) -> None:
         """Journey: Admin navigates to Settings, views user list."""
@@ -204,12 +197,9 @@ class TestUserJourneyAdminManagement(unittest.TestCase):
                 self.assertIsNotNone(audit_text)
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestCrossPageStateConsistency(unittest.TestCase):
     """Test session state consistency across page navigation."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_user_role_persists_across_pages(self) -> None:
         """Verify user role remains consistent across all pages."""

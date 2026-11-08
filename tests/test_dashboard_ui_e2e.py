@@ -17,11 +17,11 @@ Coverage dimensions:
 
 from __future__ import annotations
 
-import os
 import unittest
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
@@ -64,12 +64,9 @@ def _run_dashboard(role: str = "viewer") -> AppTest:
     return at
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardPageLoad(unittest.TestCase):
     """Dashboard main page loads and renders core elements."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_app_loads_without_crash(self) -> None:
         at = _run_dashboard("viewer")
@@ -91,12 +88,9 @@ class TestDashboardPageLoad(unittest.TestCase):
         self.assertFalse(at.exception, f"Footer render failed: {at.exception}")
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardNavigation(unittest.TestCase):
     """User can navigate between pages via sidebar."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_default_page_is_overview(self) -> None:
         at = _run_dashboard("viewer")
@@ -117,12 +111,9 @@ class TestDashboardNavigation(unittest.TestCase):
         self.assertFalse(at.exception, f"Performance page crashed: {at.exception}")
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardRBAC(unittest.TestCase):
     """VIEWER role sees read-only content; OPERATOR sees action panel."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_viewer_sees_readonly_message(self) -> None:
         at = _run_dashboard("viewer")
@@ -164,13 +155,9 @@ class TestDashboardRBAC(unittest.TestCase):
                 )
 
 
+@patch.dict("os.environ", {"DEVSQUAD_API_AUTH_DISABLED": "1", "DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardLifecycleViews(unittest.TestCase):
     """Lifecycle views render protocol data correctly."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_API_AUTH_DISABLED"] = "1"
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_protocol_loads(self) -> None:
         from scripts.dashboard.lifecycle_views import load_lifecycle_protocol
@@ -220,13 +207,9 @@ class TestDashboardLifecycleViews(unittest.TestCase):
                 self.fail(f"render_cli_mapping_table crashed: {e}")
 
 
+@patch.dict("os.environ", {"DEVSQUAD_API_AUTH_DISABLED": "1", "DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardMetricsViews(unittest.TestCase):
     """Metrics views render without errors."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_API_AUTH_DISABLED"] = "1"
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_metrics_overview_renders(self) -> None:
         from scripts.dashboard.metrics_views import render_metrics_overview
@@ -245,13 +228,9 @@ class TestDashboardMetricsViews(unittest.TestCase):
             self.fail(f"render_performance_panel crashed: {e}")
 
 
+@patch.dict("os.environ", {"DEVSQUAD_API_AUTH_DISABLED": "1", "DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardComponents(unittest.TestCase):
     """Dashboard components (CSS, page config, header, footer) render correctly."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_API_AUTH_DISABLED"] = "1"
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_apply_custom_css(self) -> None:
         from scripts.dashboard.components import apply_custom_css
@@ -321,17 +300,13 @@ class TestDashboardState(unittest.TestCase):
         self.assertIn("architect", DashboardConfig.CORE_ROLES)
 
 
+@patch.dict("os.environ", {"DEVSQUAD_API_AUTH_DISABLED": "1", "DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardFullUserJourney(unittest.TestCase):
     """Full user journey: load → navigate → verify content on each page.
 
     Simulates a real user opening the dashboard and clicking through
     every navigation option.
     """
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_API_AUTH_DISABLED"] = "1"
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def test_full_navigation_journey(self) -> None:
         at = _run_dashboard("viewer")
@@ -362,6 +337,7 @@ class TestDashboardFullUserJourney(unittest.TestCase):
             )
 
 
+@patch.dict("os.environ", {"DEVSQUAD_LLM_BACKEND": "mock"})
 class TestDashboardRealLoginFlow(unittest.TestCase):
     """Verify the real AuthManager → session_state → dashboard rendering chain.
 
@@ -370,10 +346,6 @@ class TestDashboardRealLoginFlow(unittest.TestCase):
     the authentication pipeline end-to-end (minus the Streamlit form submit,
     which AppTest cannot simulate).
     """
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        os.environ["DEVSQUAD_LLM_BACKEND"] = "mock"
 
     def _create_auth_manager_with_test_credentials(self) -> AuthManager:
         """Create an AuthManager with test credentials (bypass config env var placeholders)."""
