@@ -15,7 +15,7 @@ from typing import Any
 
 from .dispatch_models import DispatchResult
 from .dispatcher_base import DispatcherBase
-from .models import GitContext
+from .models import GitContext, WorkflowStep, WorkflowTrace
 
 logger = logging.getLogger(__name__)
 
@@ -115,3 +115,106 @@ class DispatcherResultMixin(DispatcherBase):
             logger.debug("sync _activate_v454_modules best-effort: %s", v454_err)
 
         return result
+
+    def _inject_git_context(
+        self,
+        git_context: GitContext,
+        task_description: str,
+    ) -> str:
+        """V4.4.4: Inject GitContext into Coordinator prompt + Scratchpad.
+
+        Appends the Git context prompt section to the task description so
+        the Coordinator (and downstream Workers) see the current branch /
+        recent commits / open issues. Also writes a DECISION entry to the
+        Scratchpad so the git context is searchable in the dispatch history.
+
+        Args:
+            git_context: Populated GitContext to inject.
+            task_description: Original task description.
+
+        Returns:
+            Augmented task description with the Git context section appended.
+        """
+        from .models import EntryType, ScratchpadEntry
+
+        section = git_context.to_prompt_section()
+        # Write a DECISION entry to the Scratchpad (Branch-as-Context).
+        entry = ScratchpadEntry(
+            worker_id="coordinator",
+            role_id="coordinator",
+            entry_type=EntryType.DECISION,
+            content=(
+                f"Git Context: branch={git_context.branch}, "
+                f"recent_commits={git_context.recent_commits[:3]}, "
+                f"open_issues={git_context.open_issues[:3]}"
+            ),
+            confidence=1.0,
+            tags=["git-context", "v4.4.4"],
+        )
+        self.scratchpad.write(entry)
+        # Augment the task description with the git context section so the
+        # Coordinator prompt includes "## Git Context".
+        return f"{task_description}\n\n{section}"
+
+    def _populate_workflow_trace(
+        self,
+        result: DispatchResult,
+        dry_run: bool,
+    ) -> None:
+        """V4.4.4: Populate WorkflowTrace on the dispatch result (anti-ghost).
+
+        Builds a ``WorkflowTrace`` from the dispatch execution and attaches
+        it to ``result.workflow_trace``. Always sets a trace (even if empty
+        for dry_run) so the report formatter renders the section and the
+        module-level ``_call_counter_er`` is incremented (anti-ghost).
+
+        Args:
+            result: The DispatchResult to attach the trace to.
+            dry_run: Whether this was a dry_run (no worker steps).
+        """
+        # Decomposition tree: one node per matched role.
+        decomposition_tree: list[dict] = []
+        for role_id in result.matched_roles:
+            decomposition_tree.append(
+                {
+                    "task": f"{role_id} analysis",
+                    "roles": [role_id],
+                    "subtasks": [],
+                }
+            )
+
+        # Steps: one per worker result (skipped on dry_run).
+        steps: list[WorkflowStep] = []
+        if not dry_run:
+            for wr in result.worker_results:
+                role_id = wr.get("role_id", wr.get("role", "unknown"))
+                agent_id = wr.get("agent_id", f"agent-{role_id}-unknown")
+                status = "success" if wr.get("success") else "failed"
+                duration_ms = float(wr.get("duration_ms", 0.0))
+                steps.append(
+                    WorkflowStep(
+                        step_name=f"execute-{role_id}",
+                        role_id=role_id,
+                        agent_id=agent_id,
+                        status=status,
+                        duration_ms=duration_ms,
+                        details=(wr.get("output", "") or "")[:120],
+                    )
+                )
+
+        # Decision points: from consensus records.
+        decision_points: list[dict] = []
+        for cr in result.consensus_records:
+            decision_points.append(
+                {
+                    "topic": cr.get("topic", ""),
+                    "outcome": cr.get("outcome", ""),
+                }
+            )
+
+        result.workflow_trace = WorkflowTrace(
+            task_description=result.task_description,
+            decomposition_tree=decomposition_tree,
+            steps=steps,
+            decision_points=decision_points,
+        )
