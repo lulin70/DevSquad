@@ -142,7 +142,7 @@ def render_cli_mapping_table(protocol_data: dict[str, Any] | None) -> None:
     if mapping_data:
         st.dataframe(
             mapping_data,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Command": st.column_config.TextColumn("Command", width="medium"),

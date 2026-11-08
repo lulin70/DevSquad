@@ -81,7 +81,7 @@ def render_admin_system_config_page(auth: AuthManager) -> None:
     }
 
     env_data = [{"Variable": k, "Value": v} for k, v in env_vars.items()]
-    st.dataframe(env_data, use_container_width=True, hide_index=True)
+    st.dataframe(env_data, width="stretch", hide_index=True)
 
     st.markdown("---")
 
@@ -97,7 +97,7 @@ def render_admin_system_config_page(auth: AuthManager) -> None:
         {"Item": "DevSquad Version", "Value": "V4.2.1"},
         {"Item": "Dashboard Mode", "Value": "Production-Grade"},
     ]
-    st.dataframe(sys_info, use_container_width=True, hide_index=True)
+    st.dataframe(sys_info, width="stretch", hide_index=True)
 
     st.markdown("---")
 
@@ -112,7 +112,7 @@ def render_admin_system_config_page(auth: AuthManager) -> None:
             "Status": f"{'✅ Active' if st.session_state.get('auto_refresh', False) else '⚪ Inactive'}",
         },
     ]
-    st.dataframe(config_items, use_container_width=True, hide_index=True)
+    st.dataframe(config_items, width="stretch", hide_index=True)
 
     st.markdown("---")
     st.caption("ℹ️ This page is read-only. Configuration changes require editing source files.")

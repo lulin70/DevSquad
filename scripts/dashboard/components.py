@@ -397,19 +397,19 @@ def render_action_panel(protocol_data: Any | None) -> None:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("▶️ Run All Phases", type="primary", use_container_width=True):
+        if st.button("▶️ Run All Phases", type="primary", width="stretch"):
             st.session_state["action"] = "run_all"
             st.success("Initiated full lifecycle run...")
             st.rerun()
 
     with col2:
-        if st.button("🔄 Reset State", use_container_width=True):
+        if st.button("🔄 Reset State", width="stretch"):
             st.session_state["action"] = "reset"
             st.info("Resetting lifecycle state...")
             st.rerun()
 
     with col3:
-        if st.button("📊 Generate Report", use_container_width=True):
+        if st.button("📊 Generate Report", width="stretch"):
             st.session_state["action"] = "report"
             st.success("Generating benchmark report...")
 
@@ -475,20 +475,20 @@ def render_sidebar(auth: AuthManager, current_user: User | None = None) -> str:
 
         st.header("Quick Actions")
 
-        if st.button("🔄 Refresh Data", use_container_width=True):
+        if st.button("🔄 Refresh Data", width="stretch"):
             st.rerun()
 
-        if st.button("📥 Export Status", use_container_width=True):
+        if st.button("📥 Export Status", width="stretch"):
             st.success("Status exported!")
 
         if current_user and current_user.role.value == "admin":
             st.divider()
             st.header("⚙️ Admin")
 
-            if st.button("👥 Manage Users", use_container_width=True):
+            if st.button("👥 Manage Users", width="stretch"):
                 st.session_state.page = "admin_users"
 
-            if st.button("⚙️ System Config", use_container_width=True):
+            if st.button("⚙️ System Config", width="stretch"):
                 st.session_state.page = "system_config"
 
         return str(page)

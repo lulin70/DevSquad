@@ -459,7 +459,7 @@ def _render_graphviz_chart(dot_text: str) -> bool:
     import streamlit as st  # noqa: E402
 
     try:
-        st.graphviz_chart(dot_text, use_container_width=True)
+        st.graphviz_chart(dot_text, width="stretch")
     except (AttributeError, RuntimeError, ImportError) as e:
         st.warning(f"Graphviz rendering unavailable ({e}); falling back to DOT source.")
         st.code(dot_text, language="dot")

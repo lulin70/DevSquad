@@ -120,7 +120,7 @@ def render_performance_panel() -> None:
                     {"Metric": "Success Rate", "Value": f"{metrics_data.get('success_rate', 'N/A')}%"},
                     {"Metric": "Throughput", "Value": f"{metrics_data.get('throughput', 'N/A')} req/s"},
                 ]
-                st.dataframe(real_metrics, use_container_width=True, hide_index=True)
+                st.dataframe(real_metrics, width="stretch", hide_index=True)
 
             with col2:
                 st.markdown("**Resource Utilization**")
@@ -171,7 +171,7 @@ def render_performance_panel() -> None:
                     {"Metric": "Success Rate", "Value": "~98.5% (expected)"},
                     {"Metric": "Throughput", "Value": "~120 req/s (expected)"},
                 ]
-                st.dataframe(sample_data, use_container_width=True, hide_index=True)
+                st.dataframe(sample_data, width="stretch", hide_index=True)
 
 
 # ── W1-T2: Interactive performance charts ──
@@ -215,7 +215,7 @@ def _render_performance_charts(metrics_data: dict[str, Any]) -> None:
             x="Metric",
             y="Milliseconds",
             color="Color",
-            use_container_width=True,
+            width="stretch",
         )
         st.caption(f"Avg: **{avg_ms:.0f}ms** | P95: **{p95_ms:.0f}ms**")
 
@@ -234,7 +234,7 @@ def _render_performance_charts(metrics_data: dict[str, Any]) -> None:
             health_data,
             x="Resource",
             y="Percent",
-            use_container_width=True,
+            width="stretch",
         )
         st.caption(f"CPU: **{cpu:.1f}%** | Mem: **{mem:.1f}%** | Success: **{success:.1f}%**")
 

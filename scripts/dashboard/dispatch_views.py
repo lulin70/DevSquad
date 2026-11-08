@@ -112,7 +112,7 @@ def render_task_dispatch_page(dispatcher: Any | None) -> None:
             "🚀 Submit Task",
             type="primary",
             disabled=submit_disabled,
-            use_container_width=True,
+            width="stretch",
             help="Dispatch task to multi-agent system",
         ):
             if not dispatcher:
@@ -184,7 +184,7 @@ def render_task_dispatch_page(dispatcher: Any | None) -> None:
                     st.exception(e)
 
     with col_clear:
-        if st.button("🗑️ Clear Results", use_container_width=True):
+        if st.button("🗑️ Clear Results", width="stretch"):
             if "last_dispatch_result" in st.session_state:
                 del st.session_state["last_dispatch_result"]
             if "dispatch_duration" in st.session_state:
@@ -236,7 +236,7 @@ def render_dispatch_result(result: Any, duration: float) -> None:
             timing_data = [
                 {"Step": k, "Time (s)": f"{v:.3f}"} for k, v in sorted(timing.items(), key=lambda x: x[1], reverse=True)
             ]
-            st.dataframe(timing_data, use_container_width=True, hide_index=True)
+            st.dataframe(timing_data, width="stretch", hide_index=True)
 
     st.markdown("---")
 
@@ -309,7 +309,7 @@ def _render_consensus_tab(tab: Any, result: Any) -> None:
             st.info("No consensus records available.")
             return
         rows = [{"Topic": r.get("topic", ""), "Outcome": r.get("outcome", "")} for r in records]
-        st.dataframe(rows, use_container_width=True, hide_index=True)
+        st.dataframe(rows, width="stretch", hide_index=True)
 
 
 def _render_risk_management_tab(tab: Any, result: Any) -> None:

@@ -106,7 +106,7 @@ def render_plugin_events_panel(events: list[dict[str, Any]], container: Any = No
         }
         for e in recent
     ]
-    target.dataframe(rows, use_container_width=True, hide_index=True)
+    target.dataframe(rows, width="stretch", hide_index=True)
 
 
 def render_todo_drift_panel(
