@@ -183,7 +183,6 @@ def test_short_role_doc_phase_table_matches_canonical(filename: str) -> None:
         _assert_optional_flag(filename, phase_id, cells[4], phase["optional"])
 
 
-
 @pytest.mark.parametrize("adapter_cls", [ShortcutLifecycleAdapter, FullLifecycleAdapter])
 def test_adapter_records_and_enforces_participants(adapter_cls) -> None:
     """A recorded participant list drives the gate without caller artifacts."""
@@ -221,5 +220,3 @@ def test_passing_role_gate_does_not_skip_dependency_check() -> None:
     assert result.passed is False
     assert result.verdict == "CONDITIONAL"
     assert result.missing_evidence
-
-

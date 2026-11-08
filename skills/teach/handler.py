@@ -388,9 +388,7 @@ class TeachSkill(BaseSkill):
     """
 
     name = "teach"
-    description = (
-        "DevSquad onboarding - guide new users through 7-role collaboration model, 12-phase lifecycle (P0-P11), and Iron Rules"
-    )
+    description = "DevSquad onboarding - guide new users through 7-role collaboration model, 12-phase lifecycle (P0-P11), and Iron Rules"
 
     TOPICS = [
         "overview",

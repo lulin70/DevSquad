@@ -133,17 +133,15 @@ def _check_p1_entry_gate(self, workflow_instance):
 # scripts/collaboration/models.py (WorkflowInstance or WorkflowTrace)
 def record_feasibility_waiver(self, reason: str, approver: str = "system"):
     """Record feasibility waiver when skipping P0.
-    
+
     Args:
-        reason: Why P0 is being skipped (e.g., "trivial enhancement", 
+        reason: Why P0 is being skipped (e.g., "trivial enhancement",
                 "emergency hotfix", "previously assessed")
         approver: Who approved the waiver (defaults to "system" for self-service)
     """
-    self.set_attribute("feasibility_waiver", {
-        "reason": reason,
-        "approver": approver,
-        "timestamp": datetime.now().isoformat()
-    })
+    self.set_attribute(
+        "feasibility_waiver", {"reason": reason, "approver": approver, "timestamp": datetime.now().isoformat()}
+    )
     logging.info(f"Feasibility waiver recorded: {reason}")
 ```
 
@@ -178,8 +176,7 @@ workflow.start_phase("P1")  # Should raise PhaseGateError
    for workflow in get_all_workflows():
        if not workflow.has_phase("P0"):
            workflow.record_feasibility_waiver(
-               reason="Legacy workflow - feasibility pre-confirmed",
-               approver="migration-bot"
+               reason="Legacy workflow - feasibility pre-confirmed", approver="migration-bot"
            )
    ```
 

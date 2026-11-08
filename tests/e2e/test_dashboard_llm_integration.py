@@ -95,7 +95,9 @@ class TestDashboardMokaLLMTimeout(unittest.TestCase):
 
                 # Verify error message displayed
                 error_messages = [str(e.value) for e in app.error if hasattr(e, "value")]
-                timeout_mentioned = any("timeout" in msg.lower() or "timed out" in msg.lower() for msg in error_messages)
+                timeout_mentioned = any(
+                    "timeout" in msg.lower() or "timed out" in msg.lower() for msg in error_messages
+                )
 
                 # Dashboard should show timeout error
                 self.assertTrue(timeout_mentioned or app.exception, "Timeout error not communicated to user")
@@ -204,7 +206,9 @@ class TestDashboardAPIRateLimit(unittest.TestCase):
                 submit_button[0].click().run()
 
                 # Should suggest retry or show wait time
-                all_text = " ".join(m.value for m in app.markdown) + " ".join(str(e.value) for e in app.error if hasattr(e, "value"))
+                all_text = " ".join(m.value for m in app.markdown) + " ".join(
+                    str(e.value) for e in app.error if hasattr(e, "value")
+                )
                 retry_mentioned = "retry" in all_text.lower() or "wait" in all_text.lower()
 
                 # Friendly UX should mention retry

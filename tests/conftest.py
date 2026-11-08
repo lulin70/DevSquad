@@ -250,17 +250,11 @@ def _module_available(module_name: str) -> bool:
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Skip tests whose optional dependencies are not installed."""
-    available = {
-        name: _module_available(name)
-        for deps in _OPTIONAL_MARKERS.values()
-        for name in deps
-    }
+    available = {name: _module_available(name) for deps in _OPTIONAL_MARKERS.values() for name in deps}
     for item in items:
         for marker_name, deps in _OPTIONAL_MARKERS.items():
             if marker_name not in item.keywords:
                 continue
             missing = [dep for dep in deps if not available.get(dep, False)]
             if missing:
-                item.add_marker(
-                    pytest.mark.skip(reason=f"missing optional dependencies: {', '.join(missing)}")
-                )
+                item.add_marker(pytest.mark.skip(reason=f"missing optional dependencies: {', '.join(missing)}"))

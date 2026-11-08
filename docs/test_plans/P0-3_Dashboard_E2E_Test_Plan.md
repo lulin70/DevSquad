@@ -164,26 +164,27 @@ Dashboard 是 DevSquad 的关键用户界面，需要确保完整的 E2E 测试�
 ```python
 # tests/e2e/test_dashboard_user_journey.py
 
+
 def test_new_user_first_visit():
     """Journey: New user visits, logs in, explores, logs out."""
     app = AppTest.from_file(str(DASHBOARD_APP))
-    
+
     # Step 1: Not authenticated, see login page
     app.run()
     assert "Login" in str(app.title)
-    
+
     # Step 2: Enter credentials and login
     app.text_input[0].set_value("test_viewer").run()
     app.text_input[1].set_value("password123").run()
     app.button[0].click().run()
-    
+
     # Step 3: Authenticated, see Overview page
     assert "Overview" in str(app.markdown)
-    
+
     # Step 4: Navigate to Phases tab
     app.radio[0].set_value("Phases").run()
     assert "P0-P11" in str(app.markdown)
-    
+
     # Step 5: Logout
     app.button["Logout"].click().run()
     assert "Login" in str(app.title)

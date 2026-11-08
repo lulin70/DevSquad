@@ -747,17 +747,17 @@ class TestT9_UncoveredPaths:
             enable_memory=False,
             enable_skillify=False,
         )
-        
+
         git_ctx = GitContext(
             branch="feature/test",
             recent_commits=["abc123", "def456", "ghi789"],
             open_issues=["#123", "#456"],
         )
-        
+
         result = disp._inject_git_context(git_ctx, "原始任务描述")
         assert "原始任务描述" in result
         assert "## Git Context" in result or "feature/test" in result
-        
+
         disp.shutdown()
 
     def test_loop_engineering_execution(self, tmp_dir):
@@ -767,17 +767,17 @@ class TestT9_UncoveredPaths:
             enable_warmup=False,
             enable_memory=False,
         )
-        
+
         # dispatch_with_loop 调用 loop engineering
         try:
             # 使用有效的 loop_type (根据错误信息)
             result = disp.dispatch_with_loop("测试循环任务", loop_type="manual", max_iterations=3)
             # 应该成功执行或抛出 ImportError
-            assert result is not None or True
+            assert result is not None
         except (ImportError, AttributeError, ModuleNotFoundError, ValueError):
             # 预期异常 - loop_engineering 模块可能不存在或参数无效
             pass
-        
+
         disp.shutdown()
 
     def test_qa_audit_disabled_error(self, tmp_dir):
@@ -787,10 +787,10 @@ class TestT9_UncoveredPaths:
             enable_warmup=False,
             qa_enabled=False,
         )
-        
+
         with pytest.raises(RuntimeError, match="UIUXAnalyzer not enabled"):
             disp.qa_audit_url("https://example.com")
-        
+
         disp.shutdown()
 
     def test_autonomous_mode_execution(self, tmp_dir):
@@ -811,27 +811,27 @@ class TestT9_UncoveredPaths:
     def test_moka_backend_resolver_no_env(self, tmp_dir, monkeypatch):
         """测试 MOKA backend resolver - 无环境变量"""
         monkeypatch.delenv("MOKA_API_KEY", raising=False)
-        
+
         disp = MultiAgentDispatcher(
             persist_dir=tmp_dir,
             enable_warmup=False,
         )
-        
+
         backend = disp._resolve_moka_backend_from_env()
         assert backend is None
-        
+
         disp.shutdown()
 
     def test_moka_backend_resolver_with_env(self, tmp_dir, monkeypatch):
         """测试 MOKA backend resolver - 有环境变量"""
         monkeypatch.setenv("MOKA_API_KEY", "test-key-123")
         monkeypatch.setenv("MOKA_API_BASE", "https://test.api.com/v1")
-        
+
         disp = MultiAgentDispatcher(
             persist_dir=tmp_dir,
             enable_warmup=False,
         )
-        
+
         try:
             backend = disp._resolve_moka_backend_from_env()
             # 可能成功创建或因 ImportError 返回 None
@@ -839,7 +839,7 @@ class TestT9_UncoveredPaths:
         except ImportError:
             # 预期异常 - OpenAIBackend 模块可能不存在
             pass
-        
+
         disp.shutdown()
 
     def test_dispatch_exception_coverage(self, tmp_dir):
@@ -849,42 +849,25 @@ class TestT9_UncoveredPaths:
             enable_warmup=False,
             enable_memory=False,
         )
-        
+
         # 直接测试错误处理方法
-        result1 = disp._handle_dispatch_error(
-            ImportError("test import error"),
-            "任务描述",
-            None,
-            "dispatch",
-            0.0,
-            "zh"
-        )
+        result1 = disp._handle_dispatch_error(ImportError("test import error"), "任务描述", None, "dispatch", 0.0, "zh")
         assert result1.success is False
         # errors 可能包含 Exception 对象或字符串
         assert len(result1.errors) > 0
-        
+
         result2 = disp._handle_dispatch_error(
-            RuntimeError("test runtime error"),
-            "任务描述",
-            None,
-            "dispatch",
-            0.0,
-            "zh"
+            RuntimeError("test runtime error"), "任务描述", None, "dispatch", 0.0, "zh"
         )
         assert result2.success is False
         assert len(result2.errors) > 0
-        
+
         result3 = disp._handle_dispatch_error(
-            ConnectionError("test connection error"),
-            "任务描述",
-            None,
-            "dispatch",
-            0.0,
-            "zh"
+            ConnectionError("test connection error"), "任务描述", None, "dispatch", 0.0, "zh"
         )
         assert result3.success is False
         assert len(result3.errors) > 0
-        
+
         disp.shutdown()
 
 

@@ -20,6 +20,9 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **P1-1**: Eliminated ROLE_TEMPLATES duplication. All role data now sourced from ROLE_REGISTRY via `_get_role_template()` helper, reducing maintenance burden and preventing data drift between the two structures.
 - **P1-2**: Cleaned up archaeology comments from `coordinator.py` and moved to CHANGELOG. V4.5.9 ThreadPoolExecutor removal note archived here.
 - Dashboard E2E tests (`tests/test_dashboard_ui_e2e.py`, `tests/e2e/test_dashboard_user_journeys.py`) wrote `DEVSQUAD_LLM_BACKEND=mock` with a plain `os.environ` assignment in `setUpClass`. The value leaked into later files and made `tests/smoke/test_real_llm_auto_mode.py` fail on file order alone. They now use `@patch.dict`, which restores the environment after each test.
+- Repo-wide lint baseline aligned with ruff 0.16.10: 1388 errors → 0. 1,171 errors were auto-fixed; the rest were fixed by hand. `ruff format .` also reformatted 71 files. The CI `lint` job was red from 2026-11-03 to this change.
+- MyPy errors in `scripts/` + `skills/` reduced from 46 to 0. The fixes add missing annotations, narrow optional parameters, and declare the RBAC mixin attributes.
+- Registered TD-078 in `docs/TECH_DEBT.md` for the four Simplicity TODOs. Registered the new locations without backticks so `todo_drift_monitor` matches them exactly.
 
 ### Added
 

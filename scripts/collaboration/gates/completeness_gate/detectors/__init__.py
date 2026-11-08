@@ -1,10 +1,10 @@
 """Detectors for implementation completeness checks."""
 
-from .mock_detector import MockDetector
 from .design_alignment_checker import DesignAlignmentChecker
-from .test_coverage_checker import TestCoverageChecker
 from .error_handling_checker import ErrorHandlingChecker
+from .mock_detector import MockDetector
 from .security_feature_checker import SecurityFeatureChecker
+from .test_coverage_checker import TestCoverageChecker
 
 __all__ = [
     "MockDetector",

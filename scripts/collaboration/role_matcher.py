@@ -15,13 +15,13 @@ CANDIDATE_SOURCES = ("keyword", "adaptive", "similar", "semantic", "explicit", "
 
 def _get_role_template(role_id: str) -> dict[str, Any]:
     """Get role template data from ROLE_REGISTRY.
-    
+
     P1-1: This replaces the ROLE_TEMPLATES dictionary to eliminate data duplication.
     Returns a dict with name, prompt, keywords for backward compatibility.
-    
+
     Args:
         role_id: Role identifier (e.g., "architect", "tester")
-    
+
     Returns:
         Dict with keys: name, prompt, keywords
         If role not found, returns empty dict with role_id as name.
@@ -149,7 +149,7 @@ class RoleMatcher:
         task_lower = task_description.lower()
         matched: list[dict[str, Any]] = []
 
-        for role_id, rdef in ROLE_REGISTRY.items():
+        for role_id in ROLE_REGISTRY:
             role_info = _get_role_template(role_id)
             matched_keywords = [kw for kw in role_info["keywords"] if kw in task_lower]
             if matched_keywords:

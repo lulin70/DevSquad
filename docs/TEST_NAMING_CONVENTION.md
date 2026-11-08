@@ -105,63 +105,60 @@ RENAMES = {
     "test_collaboration_test_quality_guard_test.py": "test_collaboration_test_quality_guard.py",  # Resolves ambiguity
     "test_deletion_test.py": "test_deletion.py",
     "test_no_op_test.py": "test_no_op.py",
-    
     # contract/
     "contract/test_ue_test_provider_contract.py": "contract/test_ue_provider_contract.py",
-    
     # test_completeness_gate/
     "test_completeness_gate/test_completeness_002_mock_exemption_test_files.py": "test_completeness_gate/test_completeness_002_mock_exemption.py",
     "test_completeness_gate/test_completeness_006_test_coverage_baseline.py": "test_completeness_gate/test_completeness_006_coverage_baseline.py",
     "test_completeness_gate/test_completeness_007_test_coverage_edge_cases.py": "test_completeness_gate/test_completeness_007_coverage_edge_cases.py",
 }
 
+
 def main(dry_run=True):
     repo_root = Path(__file__).parent.parent
     tests_dir = repo_root / "tests"
-    
+
     if not tests_dir.exists():
         print(f"Error: {tests_dir} not found")
         return 1
-    
+
     renamed_count = 0
     for old_name, new_name in RENAMES.items():
         old_path = tests_dir / old_name
         new_path = tests_dir / new_name
-        
+
         if not old_path.exists():
             print(f"⚠️  SKIP: {old_name} (file not found)")
             continue
-        
+
         if new_path.exists():
             print(f"❌ CONFLICT: {new_name} (target already exists)")
             continue
-        
+
         if dry_run:
             print(f"📝 WOULD RENAME: {old_name} → {new_name}")
         else:
             # Use git mv to preserve history
             try:
-                subprocess.run(
-                    ["git", "mv", str(old_path), str(new_path)],
-                    check=True,
-                    cwd=repo_root
-                )
+                subprocess.run(["git", "mv", str(old_path), str(new_path)], check=True, cwd=repo_root)
                 print(f"✅ RENAMED: {old_name} → {new_name}")
                 renamed_count += 1
             except subprocess.CalledProcessError as e:
                 print(f"❌ FAILED: {old_name} (git mv error: {e})")
-    
+
     if dry_run:
         print(f"\n📊 Would rename {len(RENAMES)} files")
         print("Run with --execute to apply changes")
     else:
         print(f"\n✅ Renamed {renamed_count}/{len(RENAMES)} files")
         print("Run 'git status' to review changes")
-    
+
     return 0
+
 
 if __name__ == "__main__":
     import sys
+
     dry_run = "--execute" not in sys.argv
     sys.exit(main(dry_run=dry_run))
 ```
@@ -220,9 +217,11 @@ pytest tests/test_collaboration_dispatcher.py -v
 ```python
 #!/usr/bin/env python3
 """Pre-commit hook to enforce test naming convention."""
+
 import sys
 import re
 from pathlib import Path
+
 
 def check_test_naming(files):
     """Check for double test_ prefix in test files."""
@@ -232,9 +231,9 @@ def check_test_naming(files):
             continue
         if not file.endswith(".py"):
             continue
-        
+
         filename = Path(file).name
-        
+
         # Allow test_<word>_test.py only if <word> itself is "test" (e.g., test_test_framework.py)
         # Reject test_<word>_test.py otherwise (e.g., test_dispatcher_test.py)
         if re.match(r"test_\w+_test\.py$", filename):
@@ -242,29 +241,26 @@ def check_test_naming(files):
             middle = filename[5:-8]  # Strip "test_" and "_test.py"
             if middle != "test":
                 errors.append(f"{file}: Double test_ prefix detected")
-    
+
     return errors
+
 
 if __name__ == "__main__":
     import subprocess
-    
+
     # Get staged files
-    result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only"],
-        capture_output=True,
-        text=True
-    )
+    result = subprocess.run(["git", "diff", "--cached", "--name-only"], capture_output=True, text=True)
     staged_files = result.stdout.strip().split("\n")
-    
+
     errors = check_test_naming(staged_files)
-    
+
     if errors:
         print("❌ Test naming convention violations:")
         for error in errors:
             print(f"  {error}")
         print("\nSee docs/TEST_NAMING_CONVENTION.md for guidelines")
         sys.exit(1)
-    
+
     sys.exit(0)
 ```
 

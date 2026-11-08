@@ -48,14 +48,10 @@ Requires explicit approval from maintainers.
 ```python
 def old_function() -> None:
     """Deprecated in V4.10, removed in V5.0.
-    
+
     Use new_function() instead.
     """
-    warnings.warn(
-        "old_function() is deprecated, use new_function()",
-        DeprecationWarning,
-        stacklevel=2
-    )
+    warnings.warn("old_function() is deprecated, use new_function()", DeprecationWarning, stacklevel=2)
     return new_function()
 ```
 

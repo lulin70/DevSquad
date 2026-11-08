@@ -126,7 +126,7 @@ class AuthManager:
             if os.path.exists(self.config_path):
                 with open(self.config_path, encoding="utf-8") as f:
                     config = yaml.safe_load(f) or {}
-                    return self._expand_env_placeholders(config)
+                    return cast(dict[str, Any], self._expand_env_placeholders(config))
             else:
                 logger.warning("Config file not found: %s", self.config_path)
                 return {}

@@ -130,6 +130,7 @@ from typing import Any, Optional
 @dataclass
 class CompletenessAuditResult:
     """S1 Completeness audit result"""
+
     status: str  # "PASS" | "WARNING" | "REJECT"
     verdict: str  # "PASS" | "ADVISORY" | "CONDITIONAL" | "REJECT"
     completeness_score: float  # 0.0-1.0
@@ -139,7 +140,7 @@ class CompletenessAuditResult:
     recommendations: list[str]
     enforcement_mode: str  # "shadow" | "soft" | "full"
     timestamp: datetime
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status,
@@ -150,37 +151,37 @@ class CompletenessAuditResult:
             "metrics": self.metrics,
             "recommendations": self.recommendations,
             "enforcement_mode": self.enforcement_mode,
-            "timestamp": self.timestamp.isoformat()
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
 class ImplementationCompletenessGate:
     """
     S1 Gate: Prevents AI from taking shortcuts in implementation
-    
+
     Responsibilities:
     - Detect Mock/Stub in production code
     - Verify design document alignment
     - Check test plan coverage
     - Verify error handling
     - Detect security feature implementation
-    
+
     Anti-Ghost Verification:
     - _activation_counter: Number of times check() called
     - _trigger_counter: Number of actual audits executed
     - _skip_counter: Number of times skipped
     """
-    
+
     def __init__(
         self,
         workflow_trace: Any,
         alert_system: Any,
         p3_doc_path: Optional[Path] = None,
-        p7_doc_path: Optional[Path] = None
+        p7_doc_path: Optional[Path] = None,
     ) -> None:
         """
         Initialize S1 gate
-        
+
         Args:
             workflow_trace: WorkflowTrace instance
             alert_system: AlertSystem instance
@@ -191,34 +192,30 @@ class ImplementationCompletenessGate:
         self.alert_system = alert_system
         self.p3_doc_path = p3_doc_path
         self.p7_doc_path = p7_doc_path
-        
+
         # Anti-ghost counters
         self._activation_counter = 0
         self._trigger_counter = 0
         self._skip_counter = 0
-        
+
         # Initialize sub-detectors (lazy loading)
         self._mock_detector: Optional[Any] = None
         self._design_checker: Optional[Any] = None
         self._test_checker: Optional[Any] = None
         self._error_checker: Optional[Any] = None
         self._security_checker: Optional[Any] = None
-    
-    def check(
-        self,
-        target_paths: list[Path],
-        plan: Any
-    ) -> CompletenessAuditResult:
+
+    def check(self, target_paths: list[Path], plan: Any) -> CompletenessAuditResult:
         """
         Execute S1 completeness check
-        
+
         Args:
             target_paths: List of Python files to audit
             plan: ExecutionPlan (contains phase, context)
-        
+
         Returns:
             CompletenessAuditResult
-        
+
         Flow:
             1. Check bypass flag (DEVSQUAD_SKIP_S1)
             2. Initialize detectors (lazy)
@@ -229,52 +226,56 @@ class ImplementationCompletenessGate:
             7. Send alerts if needed
         """
         self._activation_counter += 1
-        
+
         # Check bypass
         import os
+
         if os.getenv("DEVSQUAD_SKIP_S1") == "1":
             self._skip_counter += 1
             self._record_bypass("ENV_BYPASS", "Emergency bypass via DEVSQUAD_SKIP_S1")
             return self._create_bypass_result()
-        
+
         self._trigger_counter += 1
-        
+
         # Initialize detectors (lazy)
         self._init_detectors()
-        
+
         # Run detector passes
         mock_result = self._mock_detector.check(target_paths)
         design_result = self._design_checker.check(target_paths, self.p3_doc_path)
         test_result = self._test_checker.check(target_paths, self.p7_doc_path)
         error_result = self._error_checker.check(target_paths)
         security_result = self._security_checker.check(target_paths, self.p3_doc_path)
-        
+
         # Calculate overall score
-        completeness_score = self._calculate_completeness_score({
-            "mock_score": mock_result["score"],
-            "design_alignment": design_result["score"],
-            "test_coverage": test_result["score"],
-            "error_handling": error_result["score"],
-            "security_score": security_result["score"]
-        })
-        
+        completeness_score = self._calculate_completeness_score(
+            {
+                "mock_score": mock_result["score"],
+                "design_alignment": design_result["score"],
+                "test_coverage": test_result["score"],
+                "error_handling": error_result["score"],
+                "security_score": security_result["score"],
+            }
+        )
+
         # Collect violations
         violations = (
-            mock_result["violations"] +
-            design_result["violations"] +
-            test_result["violations"] +
-            error_result["violations"] +
-            security_result["violations"]
+            mock_result["violations"]
+            + design_result["violations"]
+            + test_result["violations"]
+            + error_result["violations"]
+            + security_result["violations"]
         )
-        
+
         # Determine status
         status = self._determine_status(completeness_score)
-        
+
         # Apply enforcement mode
         from scripts.collaboration.simplicity_config import SimplicityConfig
+
         enforcement_mode = SimplicityConfig.get_current_mode()
         verdict = self._apply_enforcement_mode(status, enforcement_mode)
-        
+
         # Build result
         result = CompletenessAuditResult(
             status=status,
@@ -287,26 +288,26 @@ class ImplementationCompletenessGate:
                 "design_alignment": design_result["score"],
                 "test_coverage": test_result["score"],
                 "error_handling": error_result["score"],
-                "security_score": security_result["score"]
+                "security_score": security_result["score"],
             },
             recommendations=self._generate_recommendations(violations),
             enforcement_mode=enforcement_mode,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
-        
+
         # Record to WorkflowTrace
         self._record_audit(result)
-        
+
         # Send alerts if needed
         if result.verdict == "REJECT" and enforcement_mode == "full":
             self._send_alert(result)
-        
+
         return result
-    
+
     def _calculate_completeness_score(self, scores: dict[str, float]) -> float:
         """
         Calculate weighted completeness score
-        
+
         Weights:
         - mock_score: 20%
         - design_alignment: 25%
@@ -315,13 +316,13 @@ class ImplementationCompletenessGate:
         - security_score: 15%
         """
         return (
-            0.20 * scores["mock_score"] +
-            0.25 * scores["design_alignment"] +
-            0.25 * scores["test_coverage"] +
-            0.15 * scores["error_handling"] +
-            0.15 * scores["security_score"]
+            0.20 * scores["mock_score"]
+            + 0.25 * scores["design_alignment"]
+            + 0.25 * scores["test_coverage"]
+            + 0.15 * scores["error_handling"]
+            + 0.15 * scores["security_score"]
         )
-    
+
     def _determine_status(self, score: float) -> str:
         """Determine status based on threshold"""
         if score >= 0.95:
@@ -330,31 +331,31 @@ class ImplementationCompletenessGate:
             return "WARNING"
         else:
             return "REJECT"
-    
+
     def _apply_enforcement_mode(self, status: str, mode: str) -> str:
         """
         Apply progressive release mode
-        
+
         shadow: REJECT → ADVISORY
         soft: REJECT → CONDITIONAL
         full: Keep original
         """
         if status != "REJECT":
             return status
-        
+
         if mode == "shadow":
             return "ADVISORY"
         elif mode == "soft":
             return "CONDITIONAL"
         else:
             return "REJECT"
-    
+
     def get_activation_stats(self) -> dict[str, int]:
         """Anti-ghost verification stats"""
         return {
             "activation_counter": self._activation_counter,
             "trigger_counter": self._trigger_counter,
-            "skip_counter": self._skip_counter
+            "skip_counter": self._skip_counter,
         }
 ```
 
@@ -372,38 +373,29 @@ from typing import Any
 
 class MockDetector:
     """Detects unittest.mock usage in production code"""
-    
+
     # Patterns to detect
     MOCK_IMPORTS = {
         "unittest.mock",
         "unittest.mock.Mock",
         "unittest.mock.MagicMock",
         "unittest.mock.patch",
-        "mock"  # Legacy standalone mock
+        "mock",  # Legacy standalone mock
     }
-    
-    MOCK_NAMES = {
-        "Mock",
-        "MagicMock",
-        "AsyncMock"
-    }
-    
+
+    MOCK_NAMES = {"Mock", "MagicMock", "AsyncMock"}
+
     # Exemption patterns
-    TEST_FILE_PATTERNS = [
-        "test_*.py",
-        "*_test.py",
-        "tests/**/*.py",
-        "**/test/**/*.py"
-    ]
-    
+    TEST_FILE_PATTERNS = ["test_*.py", "*_test.py", "tests/**/*.py", "**/test/**/*.py"]
+
     def __init__(self) -> None:
         """Initialize Mock detector"""
         pass
-    
+
     def check(self, target_paths: list[Path]) -> dict[str, Any]:
         """
         Check for Mock usage in production code
-        
+
         Returns:
             {
                 "score": 1.0 or 0.0 (binary: any mock = 0.0),
@@ -413,89 +405,92 @@ class MockDetector:
         """
         violations = []
         exempted_count = 0
-        
+
         for path in target_paths:
             # Skip test files
             if self._is_test_file(path):
                 exempted_count += 1
                 continue
-            
+
             # Parse AST
             try:
-                with open(path, 'r') as f:
+                with open(path, "r") as f:
                     tree = ast.parse(f.read(), filename=str(path))
             except SyntaxError:
                 continue  # Skip unparseable files
-            
+
             # Check imports
             mock_violations = self._find_mock_imports(tree, path)
             violations.extend(mock_violations)
-            
+
             # Check function calls (e.g., return Mock())
             call_violations = self._find_mock_calls(tree, path)
             violations.extend(call_violations)
-        
+
         score = 0.0 if violations else 1.0
-        
-        return {
-            "score": score,
-            "violations": violations,
-            "exempted_files": exempted_count
-        }
-    
+
+        return {"score": score, "violations": violations, "exempted_files": exempted_count}
+
     def _is_test_file(self, path: Path) -> bool:
         """Check if file matches test patterns"""
         from fnmatch import fnmatch
+
         path_str = str(path)
         return any(fnmatch(path_str, pattern) for pattern in self.TEST_FILE_PATTERNS)
-    
+
     def _find_mock_imports(self, tree: ast.AST, file_path: Path) -> list[dict]:
         """Find mock imports in AST"""
         violations = []
-        
+
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
                 if node.module in self.MOCK_IMPORTS:
-                    violations.append({
-                        "file": str(file_path),
-                        "line": node.lineno,
-                        "pattern": "mock_import",
-                        "code": f"from {node.module} import ...",
-                        "severity": "CRITICAL"
-                    })
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    if any(mock in alias.name for mock in self.MOCK_IMPORTS):
-                        violations.append({
+                    violations.append(
+                        {
                             "file": str(file_path),
                             "line": node.lineno,
                             "pattern": "mock_import",
-                            "code": f"import {alias.name}",
-                            "severity": "CRITICAL"
-                        })
-        
+                            "code": f"from {node.module} import ...",
+                            "severity": "CRITICAL",
+                        }
+                    )
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if any(mock in alias.name for mock in self.MOCK_IMPORTS):
+                        violations.append(
+                            {
+                                "file": str(file_path),
+                                "line": node.lineno,
+                                "pattern": "mock_import",
+                                "code": f"import {alias.name}",
+                                "severity": "CRITICAL",
+                            }
+                        )
+
         return violations
-    
+
     def _find_mock_calls(self, tree: ast.AST, file_path: Path) -> list[dict]:
         """Find Mock() calls in AST"""
         violations = []
-        
+
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
                     if node.func.id in self.MOCK_NAMES:
                         # Check if inside __main__ block (allowed)
                         if not self._is_in_main_block(node):
-                            violations.append({
-                                "file": str(file_path),
-                                "line": node.lineno,
-                                "pattern": "mock_call",
-                                "code": f"{node.func.id}()",
-                                "severity": "CRITICAL"
-                            })
-        
+                            violations.append(
+                                {
+                                    "file": str(file_path),
+                                    "line": node.lineno,
+                                    "pattern": "mock_call",
+                                    "code": f"{node.func.id}()",
+                                    "severity": "CRITICAL",
+                                }
+                            )
+
         return violations
-    
+
     def _is_in_main_block(self, node: ast.AST) -> bool:
         """Check if node is inside if __name__ == '__main__' block"""
         # Simplified: Would need parent tracking for full implementation
@@ -516,23 +511,19 @@ from typing import Any, Optional
 
 class DesignAlignmentChecker:
     """Verifies implementation aligns with P3 design document"""
-    
+
     def __init__(self) -> None:
         """Initialize design alignment checker"""
         from ..parsers.markdown_parser import MarkdownParser
         from ..parsers.ast_analyzer import ASTAnalyzer
-        
+
         self.md_parser = MarkdownParser()
         self.ast_analyzer = ASTAnalyzer()
-    
-    def check(
-        self,
-        target_paths: list[Path],
-        p3_doc_path: Optional[Path]
-    ) -> dict[str, Any]:
+
+    def check(self, target_paths: list[Path], p3_doc_path: Optional[Path]) -> dict[str, Any]:
         """
         Check alignment between design and implementation
-        
+
         Returns:
             {
                 "score": 0.0-1.0 (alignment ratio),
@@ -548,44 +539,46 @@ class DesignAlignmentChecker:
                 "violations": [],
                 "missing_elements": [],
                 "extra_elements": [],
-                "reason": "No P3 document provided"
+                "reason": "No P3 document provided",
             }
-        
+
         # Parse P3 document
         designed_elements = self.md_parser.extract_design_elements(p3_doc_path)
-        
+
         # Parse implementation
         implemented_elements = set()
         for path in target_paths:
             elements = self.ast_analyzer.extract_code_elements(path)
             implemented_elements.update(elements)
-        
+
         # Compare
         designed_set = set(designed_elements)
         missing = designed_set - implemented_elements
         extra = implemented_elements - designed_set
-        
+
         if not designed_set:
             # Empty design doc → score = 1.0
             alignment_score = 1.0
         else:
             alignment_score = len(implemented_elements & designed_set) / len(designed_set)
-        
+
         violations = []
         if alignment_score < 0.90:
-            violations.append({
-                "type": "design_misalignment",
-                "severity": "HIGH",
-                "score": alignment_score,
-                "missing_count": len(missing),
-                "extra_count": len(extra)
-            })
-        
+            violations.append(
+                {
+                    "type": "design_misalignment",
+                    "severity": "HIGH",
+                    "score": alignment_score,
+                    "missing_count": len(missing),
+                    "extra_count": len(extra),
+                }
+            )
+
         return {
             "score": alignment_score,
             "violations": violations,
             "missing_elements": [{"name": e, "type": "class_or_function"} for e in missing],
-            "extra_elements": [{"name": e, "type": "class_or_function"} for e in extra]
+            "extra_elements": [{"name": e, "type": "class_or_function"} for e in extra],
         }
 ```
 
@@ -602,23 +595,19 @@ from typing import Any, Optional
 
 class TestCoverageChecker:
     """Verifies test plan coverage"""
-    
+
     def __init__(self) -> None:
         """Initialize test coverage checker"""
         from ..parsers.markdown_parser import MarkdownParser
         from ..parsers.test_discovery import TestDiscovery
-        
+
         self.md_parser = MarkdownParser()
         self.test_discovery = TestDiscovery()
-    
-    def check(
-        self,
-        target_paths: list[Path],
-        p7_doc_path: Optional[Path]
-    ) -> dict[str, Any]:
+
+    def check(self, target_paths: list[Path], p7_doc_path: Optional[Path]) -> dict[str, Any]:
         """
         Check test coverage against P7 test plan
-        
+
         Returns:
             {
                 "score": 0.0-1.0 (coverage ratio),
@@ -633,41 +622,43 @@ class TestCoverageChecker:
                 "violations": [],
                 "missing_tests": [],
                 "extra_tests": [],
-                "reason": "No P7 document provided"
+                "reason": "No P7 document provided",
             }
-        
+
         # Parse P7 test plan
         planned_tests = self.md_parser.extract_test_cases(p7_doc_path)
-        
+
         # Discover implemented tests
         implemented_tests = self.test_discovery.discover_tests(target_paths)
-        
+
         # Compare
         planned_set = set(planned_tests)
         implemented_set = set(implemented_tests)
-        
+
         missing = planned_set - implemented_set
         extra = implemented_set - planned_set
-        
+
         if not planned_set:
             coverage_score = 1.0
         else:
             coverage_score = len(implemented_set & planned_set) / len(planned_set)
-        
+
         violations = []
         if coverage_score < 0.90:
-            violations.append({
-                "type": "incomplete_test_coverage",
-                "severity": "HIGH",
-                "score": coverage_score,
-                "missing_count": len(missing)
-            })
-        
+            violations.append(
+                {
+                    "type": "incomplete_test_coverage",
+                    "severity": "HIGH",
+                    "score": coverage_score,
+                    "missing_count": len(missing),
+                }
+            )
+
         return {
             "score": coverage_score,
             "violations": violations,
             "missing_tests": [{"test_id": t} for t in missing],
-            "extra_tests": [{"test_id": t} for t in extra]
+            "extra_tests": [{"test_id": t} for t in extra],
         }
 ```
 
@@ -685,31 +676,20 @@ from typing import Any
 
 class ErrorHandlingChecker:
     """Verifies error handling for I/O operations"""
-    
+
     # Risky operations that need error handling
-    RISKY_MODULES = {
-        "requests",
-        "urllib",
-        "httpx",
-        "aiohttp"
-    }
-    
-    RISKY_FUNCTIONS = {
-        "open",
-        "json.load",
-        "json.loads",
-        "subprocess.run",
-        "os.system"
-    }
-    
+    RISKY_MODULES = {"requests", "urllib", "httpx", "aiohttp"}
+
+    RISKY_FUNCTIONS = {"open", "json.load", "json.loads", "subprocess.run", "os.system"}
+
     def __init__(self) -> None:
         """Initialize error handling checker"""
         pass
-    
+
     def check(self, target_paths: list[Path]) -> dict[str, Any]:
         """
         Check error handling coverage
-        
+
         Returns:
             {
                 "score": 0.0-1.0 (protected_ops / total_ops),
@@ -720,49 +700,44 @@ class ErrorHandlingChecker:
         total_ops = 0
         protected_ops = 0
         unprotected = []
-        
+
         for path in target_paths:
             try:
-                with open(path, 'r') as f:
+                with open(path, "r") as f:
                     tree = ast.parse(f.read(), filename=str(path))
             except SyntaxError:
                 continue
-            
+
             # Find all risky operations
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call):
                     op_name = self._get_call_name(node)
                     if self._is_risky_operation(op_name):
                         total_ops += 1
-                        
+
                         # Check if protected by try-except
                         if self._is_protected(node, tree):
                             protected_ops += 1
                         else:
-                            unprotected.append({
-                                "file": str(path),
-                                "line": node.lineno,
-                                "operation": op_name,
-                                "severity": "HIGH"
-                            })
-        
+                            unprotected.append(
+                                {"file": str(path), "line": node.lineno, "operation": op_name, "severity": "HIGH"}
+                            )
+
         score = protected_ops / total_ops if total_ops > 0 else 1.0
-        
+
         violations = []
         if score < 0.90:
-            violations.append({
-                "type": "insufficient_error_handling",
-                "severity": "HIGH",
-                "score": score,
-                "unprotected_count": len(unprotected)
-            })
-        
-        return {
-            "score": score,
-            "violations": violations,
-            "unprotected_operations": unprotected
-        }
-    
+            violations.append(
+                {
+                    "type": "insufficient_error_handling",
+                    "severity": "HIGH",
+                    "score": score,
+                    "unprotected_count": len(unprotected),
+                }
+            )
+
+        return {"score": score, "violations": violations, "unprotected_operations": unprotected}
+
     def _get_call_name(self, node: ast.Call) -> str:
         """Extract function call name"""
         if isinstance(node.func, ast.Name):
@@ -771,7 +746,7 @@ class ErrorHandlingChecker:
             # e.g., requests.get → "requests.get"
             return self._get_attribute_path(node.func)
         return ""
-    
+
     def _get_attribute_path(self, node: ast.Attribute) -> str:
         """Get full attribute path (e.g., requests.get)"""
         parts = []
@@ -782,7 +757,7 @@ class ErrorHandlingChecker:
         if isinstance(current, ast.Name):
             parts.append(current.id)
         return ".".join(reversed(parts))
-    
+
     def _is_risky_operation(self, op_name: str) -> bool:
         """Check if operation is risky"""
         if op_name in self.RISKY_FUNCTIONS:
@@ -791,7 +766,7 @@ class ErrorHandlingChecker:
             if op_name.startswith(module + "."):
                 return True
         return False
-    
+
     def _is_protected(self, node: ast.AST, tree: ast.AST) -> bool:
         """Check if node is inside try-except block"""
         # Simplified: would need parent tracking
@@ -813,32 +788,20 @@ from typing import Any, Optional
 
 class SecurityFeatureChecker:
     """Verifies security feature implementation"""
-    
+
     # Security patterns to detect
-    HMAC_PATTERNS = {
-        "hmac.new",
-        "hmac.compare_digest"
-    }
-    
-    VALIDATION_PATTERNS = {
-        "isinstance",
-        "len",
-        "re.match",
-        "re.fullmatch"
-    }
-    
+    HMAC_PATTERNS = {"hmac.new", "hmac.compare_digest"}
+
+    VALIDATION_PATTERNS = {"isinstance", "len", "re.match", "re.fullmatch"}
+
     def __init__(self) -> None:
         """Initialize security feature checker"""
         pass
-    
-    def check(
-        self,
-        target_paths: list[Path],
-        p3_doc_path: Optional[Path]
-    ) -> dict[str, Any]:
+
+    def check(self, target_paths: list[Path], p3_doc_path: Optional[Path]) -> dict[str, Any]:
         """
         Check security feature implementation
-        
+
         Returns:
             {
                 "score": 0.0-1.0 (implemented / required),
@@ -848,54 +811,47 @@ class SecurityFeatureChecker:
         """
         if not p3_doc_path or not p3_doc_path.exists():
             # No P3 → skip security check
-            return {
-                "score": 1.0,
-                "violations": [],
-                "missing_features": [],
-                "reason": "No P3 document provided"
-            }
-        
+            return {"score": 1.0, "violations": [], "missing_features": [], "reason": "No P3 document provided"}
+
         # Parse P3 for security requirements
         required_features = self._extract_security_requirements(p3_doc_path)
-        
+
         # Scan code for implemented features
         implemented_features = set()
         for path in target_paths:
             features = self._scan_security_features(path)
             implemented_features.update(features)
-        
+
         # Compare
         required_set = set(required_features)
         missing = required_set - implemented_features
-        
+
         if not required_set:
             score = 1.0
         else:
             score = len(implemented_features & required_set) / len(required_set)
-        
+
         violations = []
         if score < 1.0:
-            violations.append({
-                "type": "missing_security_features",
-                "severity": "CRITICAL",
-                "score": score,
-                "missing_count": len(missing)
-            })
-        
-        return {
-            "score": score,
-            "violations": violations,
-            "missing_features": [{"feature": f} for f in missing]
-        }
-    
+            violations.append(
+                {
+                    "type": "missing_security_features",
+                    "severity": "CRITICAL",
+                    "score": score,
+                    "missing_count": len(missing),
+                }
+            )
+
+        return {"score": score, "violations": violations, "missing_features": [{"feature": f} for f in missing]}
+
     def _extract_security_requirements(self, p3_path: Path) -> list[str]:
         """Extract security requirements from P3 document"""
         requirements = []
-        
+
         try:
-            with open(p3_path, 'r') as f:
+            with open(p3_path, "r") as f:
                 content = f.read()
-            
+
             # Simple keyword search
             if "HMAC" in content or "hmac" in content:
                 requirements.append("HMAC")
@@ -903,35 +859,35 @@ class SecurityFeatureChecker:
                 requirements.append("input_validation")
             if "SQL injection" in content:
                 requirements.append("sql_injection_prevention")
-        
+
         except Exception:
             pass
-        
+
         return requirements
-    
+
     def _scan_security_features(self, path: Path) -> set[str]:
         """Scan code for security features"""
         features = set()
-        
+
         try:
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 tree = ast.parse(f.read(), filename=str(path))
         except SyntaxError:
             return features
-        
+
         # Check for HMAC usage
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 call_name = self._get_call_name(node)
-                
+
                 if "hmac.new" in call_name:
                     features.add("HMAC")
-                
+
                 if call_name in ["isinstance", "len"]:
                     features.add("input_validation")
-        
+
         return features
-    
+
     def _get_call_name(self, node: ast.Call) -> str:
         """Extract call name from AST node"""
         if isinstance(node.func, ast.Name):
@@ -960,32 +916,32 @@ class SecurityFeatureChecker:
 def activate(self, plan: Any, results: list[Any]) -> Optional[SimplicityAuditResult]:
     """Main entry point (Modified for V4.10)"""
     self._activation_counter += 1
-    
+
     # Check emergency bypass
     if os.getenv("DEVSQUAD_SKIP_SIMPLICITY") == "1":
         self._skip_counter += 1
         return None
-    
+
     # Check trigger conditions
     if not self._should_trigger(plan):
         self._skip_counter += 1
         return None
-    
+
     self._trigger_counter += 1
-    
+
     # ===== NEW: S1 Gate (ImplementationCompletenessGate) =====
     from scripts.collaboration.gates.completeness_gate.gate import ImplementationCompletenessGate
-    
+
     s1_gate = ImplementationCompletenessGate(
         workflow_trace=self.workflow_trace,
         alert_system=self.alert_system,
-        p3_doc_path=getattr(plan, 'p3_doc_path', None),
-        p7_doc_path=getattr(plan, 'p7_doc_path', None)
+        p3_doc_path=getattr(plan, "p3_doc_path", None),
+        p7_doc_path=getattr(plan, "p7_doc_path", None),
     )
-    
-    target_paths = getattr(plan, 'target_files', [])
+
+    target_paths = getattr(plan, "target_files", [])
     s1_result = s1_gate.check(target_paths, plan)
-    
+
     # If S1 rejects, stop here (don't run S2)
     if s1_result.verdict == "REJECT":
         logger.error("❌ S1 gate REJECT: Implementation incomplete")
@@ -993,12 +949,13 @@ def activate(self, plan: Any, results: list[Any]) -> Optional[SimplicityAuditRes
     elif s1_result.verdict == "WARNING":
         logger.warning("⚠️ S1 gate WARNING: Completeness issues detected")
     # ===== END S1 Gate =====
-    
+
     # Continue with S2 (existing logic)
     from scripts.collaboration.gates.crap_gate import CRAPGate
+
     crap_gate = CRAPGate(threshold=10.0)
     crap_result = crap_gate.check(target_paths)
-    
+
     # ... (rest of existing S2 logic)
 ```
 
@@ -1017,52 +974,47 @@ from typing import Any, Optional
 
 class FileCache:
     """Cache parsed file results (P3/P7 documents, AST)"""
-    
+
     CACHE_DIR = Path.home() / ".devsquad" / ".s1_cache"
-    
+
     def __init__(self) -> None:
         """Initialize cache"""
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     def get(self, file_path: Path, parser_version: str) -> Optional[dict[str, Any]]:
         """
         Get cached parse result
-        
+
         Args:
             file_path: Path to source file
             parser_version: Parser version (for cache invalidation)
-        
+
         Returns:
             Cached result or None
         """
         cache_key = self._compute_cache_key(file_path, parser_version)
         cache_file = self.CACHE_DIR / f"{cache_key}.json"
-        
+
         if not cache_file.exists():
             return None
-        
+
         try:
-            with open(cache_file, 'r') as f:
+            with open(cache_file, "r") as f:
                 cached = json.load(f)
-            
+
             # Verify file hasn't changed
             if cached["file_hash"] != self._compute_file_hash(file_path):
                 return None
-            
+
             return cached["result"]
-        
+
         except Exception:
             return None
-    
-    def set(
-        self,
-        file_path: Path,
-        parser_version: str,
-        result: dict[str, Any]
-    ) -> None:
+
+    def set(self, file_path: Path, parser_version: str, result: dict[str, Any]) -> None:
         """
         Store parse result in cache
-        
+
         Args:
             file_path: Path to source file
             parser_version: Parser version
@@ -1070,30 +1022,30 @@ class FileCache:
         """
         cache_key = self._compute_cache_key(file_path, parser_version)
         cache_file = self.CACHE_DIR / f"{cache_key}.json"
-        
+
         try:
             cached = {
                 "file_path": str(file_path),
                 "file_hash": self._compute_file_hash(file_path),
                 "parser_version": parser_version,
-                "result": result
+                "result": result,
             }
-            
-            with open(cache_file, 'w') as f:
+
+            with open(cache_file, "w") as f:
                 json.dump(cached, f, indent=2)
-        
+
         except Exception:
             pass  # Cache failure is not critical
-    
+
     def _compute_cache_key(self, file_path: Path, parser_version: str) -> str:
         """Compute cache key"""
         key_str = f"{file_path}:{parser_version}"
         return hashlib.sha256(key_str.encode()).hexdigest()[:16]
-    
+
     def _compute_file_hash(self, file_path: Path) -> str:
         """Compute file content hash"""
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 return hashlib.sha256(f.read()).hexdigest()
         except Exception:
             return ""
@@ -1198,19 +1150,19 @@ Detailed test plan in P7 document. Key test categories:
 
 ```python
 # Mock import pattern
-ast.ImportFrom(module='unittest.mock', names=[...])
+ast.ImportFrom(module="unittest.mock", names=[...])
 
 # Function definition pattern
-ast.FunctionDef(name='function_name', args=ast.arguments(...))
+ast.FunctionDef(name="function_name", args=ast.arguments(...))
 
 # Class definition pattern
-ast.ClassDef(name='ClassName', bases=[...], body=[...])
+ast.ClassDef(name="ClassName", bases=[...], body=[...])
 
 # Try-except pattern
 ast.Try(body=[...], handlers=[ast.ExceptHandler(...)])
 
 # Function call pattern
-ast.Call(func=ast.Name(id='func_name'), args=[...])
+ast.Call(func=ast.Name(id="func_name"), args=[...])
 ```
 
 ### 10.2 Markdown Parsing Examples

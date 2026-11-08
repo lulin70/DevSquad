@@ -10,7 +10,7 @@ Detects implementation shortcuts:
 
 Usage:
     from scripts.collaboration.gates.completeness_gate import ImplementationCompletenessGate
-    
+
     gate = ImplementationCompletenessGate()
     result = gate.check(target_paths=["src/module.py"], plan={"p3_doc": "P3.md", "p7_doc": "P7.md"})
 """

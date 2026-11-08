@@ -372,7 +372,6 @@ class TestPhaseTemplates(unittest.TestCase):
         roles = required_roles_for_phase(phase)
         self.assertEqual(roles, ["pm"])
 
-
     def test_all_phases_have_required_keys(self) -> None:
         for phase_id, template in PHASE_TEMPLATES.items():
             missing = self.REQUIRED_KEYS - set(template.keys())

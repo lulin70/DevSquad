@@ -65,11 +65,12 @@
 | P0 (阻断) | 0 | — |
 | P1 (重要) | 0 | — |
 | P2 (一般) | 1 | TD-077 OPEN |
-| P3 (低)   | 0 | — |
-| **总计** | **1** | |
+| P3 (低)   | 1 | TD-078 OPEN |
+| **总计** | **2** | |
 
 > **2026-10-24 注**: TD-075 已 RESOLVED（PR #65 升锁后双面审计全净），活跃计数清零。此前 TD-002 已在 V4.7.0 发布前批次 RESOLVED。
 > **2026-10-27 注**: TD-077 登记（4.9.0 收尾批 CLI dispatch 挂起，P2/OPEN），活跃计数 0→1。
+> **2026-11-08 注**: TD-078 登记（Simplicity 角色 P8 集成 4 处 TODO，P3/OPEN），活跃计数 1→2。
 
 > **扫描说明**: 运行 `grep -rn "TODO\|FIXME\|HACK" scripts/ --include="*.py" | grep -v "test\|__pycache__"`
 > 共返回 18 行匹配。经逐行分析，其中 17 行为**技术债检测工具自身的实现代码**
@@ -175,6 +176,22 @@
   2. 文档增强：README/INSTALL 明确说明**系统 Python 不建议直接运行**，应使用 venv
   3. CLI 入口增加友好错误提示：检测关键依赖缺失时立即退出并提示安装命令
 - **状态**: OPEN（2026-10-28 根因明确；降级为 P3 环境配置问题；不需代码修复，需文档/工具改进）
+
+### TD-078: Simplicity 角色 P8 集成待办（4 处 TODO 标记）
+
+- **优先级**: P3
+- **位置**（登记格式：路径前不加反引号，供 todo_drift_monitor 精确匹配）:
+  - scripts/collaboration/simplicity_config.py:152（查询 WorkflowTrace 的 simplicity_reject 事件）
+  - scripts/collaboration/simplicity_role.py:124（接入 AlertSystem）
+  - scripts/collaboration/simplicity_role.py:200（运行 DuplicationGate）
+  - scripts/collaboration/simplicity_role.py:222（duplication 指标输出）
+- **类型**: 功能集成待办（P8-005 / P8-006 / P8-007 分期交付）
+- **描述**: Simplicity 角色按 P8 分期计划落地。当前版本先接入 CrapGate。告警、重复度门禁、
+  误报率查询三项为占位实现，代码中以 TODO 注释标明后续阶段。
+- **影响面**: 仅影响 Simplicity 角色的告警与重复度指标。评分与判定主路径可用。
+- **建议方案**: 在 P8-005 / P8-006 / P8-007 阶段分别接入 DuplicationGate、AlertSystem 与
+  WorkflowTrace 查询，并在同一批次删除对应 TODO 注释。
+- **状态**: OPEN（2026-11-08 登记；todo_drift_monitor 要求登记后放行）
 
 ## 扫描方法与排除项
 

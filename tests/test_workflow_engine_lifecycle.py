@@ -200,9 +200,7 @@ class TestCreateLifecycle(unittest.TestCase):
         defn = self.engine.create_lifecycle("full")
         self.assertEqual(len(defn.steps), 12)
         step_ids = [s.step_id for s in defn.steps]
-        self.assertEqual(
-            step_ids, ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11"]
-        )
+        self.assertEqual(step_ids, ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11"])
 
     def test_backend_template(self) -> None:
         defn = self.engine.create_lifecycle("backend")

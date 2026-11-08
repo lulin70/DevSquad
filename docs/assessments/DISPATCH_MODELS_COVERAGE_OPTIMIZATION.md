@@ -277,10 +277,15 @@ Required test coverage of 70.0% reached. Total coverage: 78.22%
            task_description="Test",
            details={
                "role_candidates": [
-                   {"candidate": "architect", "score": 0.95, "source": "keyword_match", 
-                    "reason": "Found 'design' keyword", "matched_keywords": ["design", "architecture"]}
+                   {
+                       "candidate": "architect",
+                       "score": 0.95,
+                       "source": "keyword_match",
+                       "reason": "Found 'design' keyword",
+                       "matched_keywords": ["design", "architecture"],
+                   }
                ]
-           }
+           },
        )
        lines = result._format_role_candidates()
        assert "architect" in "\n".join(lines)
@@ -296,12 +301,10 @@ Required test coverage of 70.0% reached. Total coverage: 78.22%
                "review_filter": {
                    "candidate_count": 5,
                    "retained_paths": ["path1", "path2"],
-                   "excluded_paths": [
-                       {"path": "path3", "gate": "security", "reason": "No review required"}
-                   ],
-                   "gate_counts": {"security": 1}
+                   "excluded_paths": [{"path": "path3", "gate": "security", "reason": "No review required"}],
+                   "gate_counts": {"security": 1},
                }
-           }
+           },
        )
        lines = result._format_review_filter()
        assert "Candidates: 5" in "\n".join(lines)
@@ -315,13 +318,9 @@ Required test coverage of 70.0% reached. Total coverage: 78.22%
            task_description="Test",
            details={
                "coverage": {"completed": 2, "requested": 3, "ratio": 0.67},
-               "failed_roles": [
-                   {"role_id": "tester", "role_name": "Tester", "reason": "Timeout"}
-               ],
-               "missing_roles": [
-                   {"role_id": "security", "role_name": "Security", "reason": "No worker"}
-               ]
-           }
+               "failed_roles": [{"role_id": "tester", "role_name": "Tester", "reason": "Timeout"}],
+               "missing_roles": [{"role_id": "security", "role_name": "Security", "reason": "No worker"}],
+           },
        )
        lines = result._format_coverage()
        assert "67%" in "\n".join(lines)
@@ -333,9 +332,7 @@ Required test coverage of 70.0% reached. Total coverage: 78.22%
        result = DispatchResult(
            success=False,
            task_description="Test",
-           worker_results=[
-               {"role": "tester", "success": False, "output": "", "error": "Test failed: assertion error"}
-           ]
+           worker_results=[{"role": "tester", "success": False, "output": "", "error": "Test failed: assertion error"}],
        )
        lines = result._format_worker_results(I18N["zh"])
        assert "Test failed" in "\n".join(lines)

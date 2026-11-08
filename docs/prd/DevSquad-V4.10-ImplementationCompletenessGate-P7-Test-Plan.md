@@ -67,6 +67,7 @@
 # fixtures/sample_code_with_mocks.py
 from unittest.mock import Mock
 
+
 def get_user_data():
     return Mock(id=1, name="test")  # ❌ Should be detected
 ```
@@ -81,17 +82,17 @@ def get_user_data():
 **Expected Result**:
 ```python
 {
-  "score": 0.0,
-  "violations": [
-    {
-      "file": "fixtures/sample_code_with_mocks.py",
-      "line": 1,
-      "pattern": "mock_import",
-      "code": "from unittest.mock import Mock",
-      "severity": "CRITICAL"
-    }
-  ],
-  "exempted_files": 0
+    "score": 0.0,
+    "violations": [
+        {
+            "file": "fixtures/sample_code_with_mocks.py",
+            "line": 1,
+            "pattern": "mock_import",
+            "code": "from unittest.mock import Mock",
+            "severity": "CRITICAL",
+        }
+    ],
+    "exempted_files": 0,
 }
 ```
 
@@ -105,6 +106,7 @@ def get_user_data():
 ```python
 # fixtures/test_sample.py
 from unittest.mock import Mock
+
 
 def test_user_service():
     mock_db = Mock()  # ✅ Should be exempted (test file)
@@ -131,8 +133,10 @@ def test_user_service():
 def run_demo(config):
     pass
 
+
 if __name__ == "__main__":
     from unittest.mock import Mock
+
     mock_config = Mock()  # ✅ Should be exempted (__main__ block)
     run_demo(mock_config)
 ```
@@ -170,14 +174,15 @@ if __name__ == "__main__":
 class UserService:
     def get_user(self, user_id):
         pass
-    
+
     def create_user(self, name):
         pass
+
 
 class Database:
     def connect(self):
         pass
-    
+
     def query(self, sql):
         pass
 ```
@@ -205,7 +210,9 @@ class Database:
 class UserService:
     def get_user(self, user_id):
         pass
+
     # Missing: create_user()
+
 
 # Missing: Database class
 ```
@@ -243,9 +250,11 @@ class UserService:
 def test_user_service_001():
     assert service.get_user(1) is not None
 
+
 def test_user_service_002():
     user = service.create_user("Alice")
     assert user.name == "Alice"
+
 
 def test_database_001():
     db = Database()
@@ -271,6 +280,7 @@ def test_database_001():
 def test_user_service_001():
     assert service.get_user(1) is not None
 
+
 # Missing: test_user_service_002, test_database_001
 ```
 
@@ -293,6 +303,7 @@ def test_user_service_001():
 ```python
 # fixtures/sample_with_error_handling.py
 import requests
+
 
 def fetch_data():
     try:
@@ -320,6 +331,7 @@ def fetch_data():
 ```python
 # fixtures/sample_without_error_handling.py
 import requests
+
 
 def fetch_data():
     response = requests.get("https://api.example.com")  # ❌ No try-except
@@ -355,6 +367,7 @@ def fetch_data():
 import hmac
 import hashlib
 
+
 def verify_signature(message, signature, secret_key):
     expected = hmac.new(secret_key, message, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
@@ -377,6 +390,7 @@ def verify_signature(message, signature, secret_key):
 ```python
 # fixtures/sample_without_hmac.py
 import hashlib
+
 
 def verify_signature(message, signature):
     # ❌ Using MD5 instead of HMAC-SHA256
@@ -657,7 +671,7 @@ assert elapsed < 30.0, f"Audit took {elapsed}s (expected < 30s)"
 **Test Code**:
 ```python
 # Attempt to bypass MockDetector
-get_mock = lambda: __import__('unittest.mock').Mock()
+get_mock = lambda: __import__("unittest.mock").Mock()
 user = get_mock()(id=1)
 ```
 

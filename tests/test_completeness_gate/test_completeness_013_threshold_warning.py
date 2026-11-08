@@ -3,26 +3,28 @@
 Tests that scores between 90-95% return WARNING verdict.
 """
 
-import pytest
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
+
+import pytest
+
 from scripts.collaboration.gates.completeness_gate import ImplementationCompletenessGate
 
 
 class TestGateThresholdWarning:
     """Test gate WARNING threshold (90-95%)."""
-    
+
     @pytest.fixture
     def temp_dir(self):
         tmpdir = tempfile.mkdtemp()
         yield Path(tmpdir)
         shutil.rmtree(tmpdir)
-    
+
     @pytest.fixture
     def gate(self):
         return ImplementationCompletenessGate()
-    
+
     def test_warning_with_unprotected_operations(self, gate, temp_dir):
         """Test WARNING verdict when some I/O operations lack error handling."""
         code_file = temp_dir / "partial_module.py"
@@ -41,9 +43,9 @@ def protected_op():
     except FileNotFoundError:
         return "{}"
 """)
-        
+
         result = gate.check(target_paths=[code_file])
-        
+
         # Mock score=1.0, alignment=1.0 (no P3), test=1.0 (no P7)
         # Error handling might be <100% → could push overall score to 90-95%
         assert result["verdict"] in ["WARNING", "PASS"]  # Depends on exact weighting

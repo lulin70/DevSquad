@@ -55,18 +55,23 @@ Introduce **S1 Gate (ImplementationCompletenessGate)** as the first gate in Simp
 ```python
 # ❌ REJECT: Mock in production code
 from unittest.mock import Mock, MagicMock
+
+
 def get_user_data():
     return Mock(id=1, name="test")
 
+
 # ❌ REJECT: @patch in non-test file
-@patch('requests.get')
+@patch("requests.get")
 def fetch_api_data(mock_get):
     pass
+
 
 # ✅ PASS: Mock in test file (test_*.py)
 def test_user_service():
     mock_db = Mock()
     assert service.get_user(mock_db) is not None
+
 
 # ✅ PASS: Mock in __main__ block (CLI testing)
 if __name__ == "__main__":
@@ -82,15 +87,15 @@ if __name__ == "__main__":
 **Output**:
 ```python
 {
-  "mock_violations": [
-    {
-      "file": "src/user_service.py",
-      "line": 15,
-      "pattern": "unittest.mock.Mock",
-      "context": "return Mock(id=1)",
-      "severity": "CRITICAL"
-    }
-  ]
+    "mock_violations": [
+        {
+            "file": "src/user_service.py",
+            "line": 15,
+            "pattern": "unittest.mock.Mock",
+            "context": "return Mock(id=1)",
+            "severity": "CRITICAL",
+        }
+    ]
 }
 ```
 
@@ -140,13 +145,9 @@ alignment_score = len(implemented_elements & designed_elements) / len(designed_e
 **Output**:
 ```python
 {
-  "alignment_score": 0.75,
-  "missing_elements": [
-    {"type": "class", "name": "ClassB", "designed_in": "P3-Design.md:L42"}
-  ],
-  "extra_elements": [
-    {"type": "function", "name": "helper_func", "reason": "not_in_design"}
-  ]
+    "alignment_score": 0.75,
+    "missing_elements": [{"type": "class", "name": "ClassB", "designed_in": "P3-Design.md:L42"}],
+    "extra_elements": [{"type": "function", "name": "helper_func", "reason": "not_in_design"}],
 }
 ```
 
@@ -185,13 +186,9 @@ alignment_score = len(implemented_elements & designed_elements) / len(designed_e
 **Output**:
 ```python
 {
-  "test_coverage": 0.857,  # 6/7 tests implemented
-  "missing_tests": [
-    {"id": "test_completeness_007", "planned_in": "P7-TestPlan.md:L89"}
-  ],
-  "extra_tests": [
-    {"id": "test_completeness_008", "reason": "not_in_plan"}
-  ]
+    "test_coverage": 0.857,  # 6/7 tests implemented
+    "missing_tests": [{"id": "test_completeness_007", "planned_in": "P7-TestPlan.md:L89"}],
+    "extra_tests": [{"id": "test_completeness_008", "reason": "not_in_plan"}],
 }
 ```
 
@@ -209,6 +206,7 @@ def fetch_data():
     response = requests.get("https://api.example.com")
     return response.json()
 
+
 # ✅ PASS: With try-except
 def fetch_data():
     try:
@@ -218,10 +216,12 @@ def fetch_data():
         logger.error(f"API error: {e}")
         return None
 
+
 # ❌ REJECT: File operation without error handling
 def load_config():
     with open("config.json") as f:
         return json.load(f)
+
 
 # ✅ PASS: With error handling
 def load_config():
@@ -246,15 +246,10 @@ def load_config():
 **Output**:
 ```python
 {
-  "error_handling_score": 0.80,  # 4/5 operations protected
-  "unprotected_operations": [
-    {
-      "file": "src/api_client.py",
-      "line": 23,
-      "operation": "requests.get",
-      "severity": "HIGH"
-    }
-  ]
+    "error_handling_score": 0.80,  # 4/5 operations protected
+    "unprotected_operations": [
+        {"file": "src/api_client.py", "line": 23, "operation": "requests.get", "severity": "HIGH"}
+    ],
 }
 ```
 
@@ -276,15 +271,17 @@ signature = hmac.new(secret_key, message, hashlib.sha256).hexdigest()
 # ❌ WARNING: Using weak hash (no HMAC)
 signature = hashlib.md5(message).hexdigest()
 
+
 # ✅ PASS: Input validation present
 def process_user_input(data: str):
     if not isinstance(data, str):
         raise TypeError("Expected string")
     if len(data) > 1000:
         raise ValueError("Input too long")
-    if not re.fullmatch(r'[a-zA-Z0-9_]+', data):
+    if not re.fullmatch(r"[a-zA-Z0-9_]+", data):
         raise ValueError("Invalid characters")
     return sanitize(data)
+
 
 # ❌ WARNING: No input validation
 def process_user_input(data):
@@ -307,14 +304,10 @@ def process_user_input(data):
 **Output**:
 ```python
 {
-  "security_score": 0.833,  # 5/6 features implemented
-  "missing_security_features": [
-    {
-      "feature": "HMAC signature validation",
-      "required_in": "P3-Design.md:L156",
-      "severity": "CRITICAL"
-    }
-  ]
+    "security_score": 0.833,  # 5/6 features implemented
+    "missing_security_features": [
+        {"feature": "HMAC signature validation", "required_in": "P3-Design.md:L156", "severity": "CRITICAL"}
+    ],
 }
 ```
 
@@ -326,13 +319,15 @@ def process_user_input(data):
 
 **Overall Completeness Score**:
 ```python
-completeness_score = weighted_average([
-    (mock_score, 0.20),           # 20%: No mocks in production
-    (alignment_score, 0.25),      # 25%: Design alignment
-    (test_coverage, 0.25),        # 25%: Test coverage
-    (error_handling_score, 0.15), # 15%: Error handling
-    (security_score, 0.15)        # 15%: Security features
-])
+completeness_score = weighted_average(
+    [
+        (mock_score, 0.20),  # 20%: No mocks in production
+        (alignment_score, 0.25),  # 25%: Design alignment
+        (test_coverage, 0.25),  # 25%: Test coverage
+        (error_handling_score, 0.15),  # 15%: Error handling
+        (security_score, 0.15),  # 15%: Security features
+    ]
+)
 
 # mock_score: 1.0 if no violations, 0.0 if any violations (binary)
 ```
@@ -406,18 +401,13 @@ Record all S1 audit events to WorkflowTrace for:
 **Event Schema**:
 ```python
 {
-  "event": "s1_completeness_audit",
-  "timestamp": "2026-11-03T14:23:45Z",
-  "phase": "P8",
-  "result": {
-    "completeness_score": 0.927,
-    "verdict": "WARNING",
-    "enforcement_mode": "shadow",
-    "violations": [...]
-  },
-  "target_files": ["src/gate.py", "src/checker.py"],
-  "bypass": False,
-  "approver": None
+    "event": "s1_completeness_audit",
+    "timestamp": "2026-11-03T14:23:45Z",
+    "phase": "P8",
+    "result": {"completeness_score": 0.927, "verdict": "WARNING", "enforcement_mode": "shadow", "violations": [...]},
+    "target_files": ["src/gate.py", "src/checker.py"],
+    "bypass": False,
+    "approver": None,
 }
 ```
 

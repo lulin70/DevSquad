@@ -115,6 +115,7 @@ class BaseDispatcher:
     def __init__(self):
         self.__internal_state = {}  # Name-mangled to _BaseDispatcher__internal_state
 
+
 # ⚠️ Use sparingly: Only when inheritance conflicts are expected
 # ✅ Prefer single underscore (_internal_state) for most private attributes
 ```
@@ -220,6 +221,7 @@ class DispatcherConfig:
 def dispatcher():  # ✅ No underscore (pytest convention)
     return MultiAgentDispatcher()
 
+
 @pytest.fixture
 def mock_llm_backend():  # ✅ No underscore
     return MockBackend()
@@ -289,6 +291,7 @@ class Worker:
 self._execution_history = []  # Private (correct)
 # But accessed directly in tests: coordinator._execution_history
 
+
 # Should provide public accessor:
 @property
 def execution_history(self) -> list:
@@ -341,8 +344,10 @@ class MultiAgentDispatcher:
 ```python
 #!/usr/bin/env python3
 """Check for naming convention violations."""
+
 import ast
 import sys
+
 
 def check_class_attributes(node):
     """Check for public-looking names that should be private."""
@@ -352,10 +357,9 @@ def check_class_attributes(node):
             for target in item.targets:
                 if isinstance(target, ast.Attribute):
                     if target.attr in ["coordinator", "scratchpad", "batch_scheduler"]:
-                        violations.append(
-                            f"Line {target.lineno}: '{target.attr}' should be private (_{target.attr})"
-                        )
+                        violations.append(f"Line {target.lineno}: '{target.attr}' should be private (_{target.attr})")
     return violations
+
 
 # ... implementation ...
 ```
@@ -408,6 +412,7 @@ def test_dispatch():
     disp = MultiAgentDispatcher()
     result = disp.dispatch("task")
     assert result.status == "success"
+
 
 # ⚠️ Acceptable: White-box testing
 def test_internal_state():

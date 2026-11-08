@@ -183,10 +183,10 @@ class Coordinator(CoordinatorCompressionMixin):
         self.token_budget = token_budget
         self.ccr_store = ccr_store
         self._used_input_tokens: int = 0
-        
+
         # V5.0: Simplicity Role integration (P0-1 fix: delayed initialization)
         from scripts.collaboration.unified_gate_engine import UnifiedGateEngine
-        
+
         self._unified_gate_engine = UnifiedGateEngine()
         # SimplicityRole will be created lazily when workflow_trace is available
         self._simplicity_role: Any = None
@@ -415,31 +415,31 @@ class Coordinator(CoordinatorCompressionMixin):
 
     def execute_plan(self, plan: ExecutionPlan, workflow_trace: Any = None) -> ScheduleResult:
         """执行完整的协作计划。
-        
+
         Args:
             plan: ExecutionPlan 执行计划
             workflow_trace: WorkflowTrace 工作流跟踪对象 (P0-1 fix: 用于延迟初始化 SimplicityRole)
         """
         start_time = time.time()
-        
+
         # P0-1 fix: 延迟创建 SimplicityRole,确保 workflow_trace 可用
         if self._simplicity_role is None and workflow_trace is not None:
             from scripts.collaboration.simplicity_role import SimplicityRole
+
             self._simplicity_role = SimplicityRole(workflow_trace, self._unified_gate_engine)
             self._unified_gate_engine.register_simplicity_role(self._simplicity_role)
-        
+
         results, errors = self._execute_plan_batches(plan)
         failed_results = self._collect_failed_results(results, errors)
-        
+
         # V5.0: Execute Simplicity S2 gate check if plan is in P8 phase
-        if hasattr(plan, 'phase') and plan.phase == "P8" and self._simplicity_role is not None:
+        if hasattr(plan, "phase") and plan.phase == "P8" and self._simplicity_role is not None:
             from scripts.collaboration.unified_gate_engine import GateType
-            
+
             gate_result = self._unified_gate_engine.check(
-                GateType.SIMPLICITY_CHECK,
-                context={"plan": plan, "results": results}
+                GateType.SIMPLICITY_CHECK, context={"plan": plan, "results": results}
             )
-            
+
             if not gate_result.passed:
                 if gate_result.verdict == "REJECT":
                     # Hard gate: add error to block the plan
@@ -447,7 +447,7 @@ class Coordinator(CoordinatorCompressionMixin):
                 elif gate_result.verdict == "CONDITIONAL":
                     # Soft gate: add warning
                     errors.append(f"Simplicity gate WARNING: requires approval - {gate_result.warnings}")
-        
+
         result = self._build_schedule_result(plan, results, errors, failed_results, start_time)
         self._finish_execution(result)
         return result

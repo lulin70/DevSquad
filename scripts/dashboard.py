@@ -6,9 +6,9 @@ Backward-compatible dashboard entry point (DEPRECATED).
 This file is deprecated and will be removed in V5.0.0 (scheduled for 2027-Q1).
 
 **Migration Path:**
-- Direct execution: Use ``python -m scripts.dashboard.app`` or 
+- Direct execution: Use ``python -m scripts.dashboard.app`` or
   ``streamlit run scripts/dashboard/app.py``
-- Import usage: Replace ``from scripts.dashboard import X`` with 
+- Import usage: Replace ``from scripts.dashboard import X`` with
   ``from scripts.dashboard.app import X``
 
 **Rationale:**
@@ -30,10 +30,10 @@ warnings.warn(
     "scripts/dashboard.py is deprecated and will be removed in V5.0.0. "
     "Use 'python -m scripts.dashboard.app' or import from scripts.dashboard.app directly.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
-from scripts.dashboard.app import main
+from scripts.dashboard.app import main  # noqa: E402 - the deprecation warning must fire before the import
 
 if __name__ == "__main__":
     main()

@@ -53,9 +53,7 @@ def anthropic_key():
     key = os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
     if not key:
         pytest.skip("DEVSQUAD_ANTHROPIC_API_KEY not set")
-    pytest.importorskip(
-        "anthropic", reason="anthropic SDK not installed (pip install -e .[anthropic])"
-    )
+    pytest.importorskip("anthropic", reason="anthropic SDK not installed (pip install -e .[anthropic])")
     return key
 
 

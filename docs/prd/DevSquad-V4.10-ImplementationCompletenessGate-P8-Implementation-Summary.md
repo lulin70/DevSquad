@@ -176,11 +176,11 @@ tests/test_completeness_gate/test_anti_ghost_counters.py .... [4 items]
 
 ```python
 completeness_score = (
-    mock_score * 0.20 +          # Mock detection (binary: 0 or 1)
-    alignment_score * 0.25 +     # Design alignment (0-1)
-    test_coverage * 0.25 +       # Test coverage (0-1)
-    error_handling_score * 0.15 + # Error handling (0-1)
-    security_score * 0.15        # Security features (0-1)
+    mock_score * 0.20  # Mock detection (binary: 0 or 1)
+    + alignment_score * 0.25  # Design alignment (0-1)
+    + test_coverage * 0.25  # Test coverage (0-1)
+    + error_handling_score * 0.15  # Error handling (0-1)
+    + security_score * 0.15  # Security features (0-1)
 )
 ```
 
@@ -200,9 +200,12 @@ completeness_score = (
 **Auto Mode Selection**:
 ```python
 days_since_deployment = (now - deployment_date).days
-if days_since_deployment < 7:   mode = "shadow"
-elif days_since_deployment < 14: mode = "soft"
-else:                             mode = "full"
+if days_since_deployment < 7:
+    mode = "shadow"
+elif days_since_deployment < 14:
+    mode = "soft"
+else:
+    mode = "full"
 ```
 
 ### 3. AST-Based Detection Techniques
@@ -317,8 +320,8 @@ for i in range(5):
 
 stats = gate.get_activation_stats()
 assert stats["activation_counter"] == 5  # ✅ PASS
-assert stats["trigger_counter"] == 5     # ✅ PASS
-assert stats["skip_counter"] == 0        # ✅ PASS
+assert stats["trigger_counter"] == 5  # ✅ PASS
+assert stats["skip_counter"] == 0  # ✅ PASS
 ```
 
 **Conclusion**: Anti-ghost counters working correctly. S1 Gate is **activated** (not just present).

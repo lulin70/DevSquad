@@ -229,26 +229,26 @@ class UnifiedGateEngine:
     def register_simplicity_role(self, role: Any) -> None:
         """
         Register SimplicityRole for SIMPLICITY_CHECK gate (V5.0)
-        
+
         Args:
             role: SimplicityRole instance
         """
         self._simplicity_role = role
         logger.info("SimplicityRole registered with UnifiedGateEngine")
-    
+
     def get_gate(self, gate_type: GateType) -> Any | None:
         """
         Get gate instance by type (V5.0 A-001)
-        
+
         Args:
             gate_type: Gate type to retrieve
-        
+
         Returns:
             Gate instance or None if not found
         """
         if gate_type == GateType.SIMPLICITY_CHECK:
             return self._simplicity_role
-        
+
         # Future extension: add other gate types here
         logger.warning(f"Gate type {gate_type} not found")
         return None
@@ -1055,7 +1055,7 @@ class UnifiedGateEngine:
         **kwargs: Any,
     ) -> UnifiedGateResult:
         """Internal checker for simplicity gate (V5.0).
-        
+
         Delegates to SimplicityRole.activate() and converts the result
         to UnifiedGateResult format.
         """
@@ -1069,10 +1069,10 @@ class UnifiedGateEngine:
                 checks_run=0,
                 checks_passed=0,
             )
-        
+
         plan = kwargs.get("plan") or (context.get("plan") if isinstance(context, dict) else None)
         results = kwargs.get("results") or (context.get("results") if isinstance(context, dict) else None)
-        
+
         if plan is None or results is None:
             logger.warning("SimplicityRole check skipped: missing plan or results")
             return UnifiedGateResult(
@@ -1083,10 +1083,10 @@ class UnifiedGateEngine:
                 checks_run=0,
                 checks_passed=0,
             )
-        
+
         # Call SimplicityRole.activate()
         audit_result = self._simplicity_role.activate(plan, results)
-        
+
         if audit_result is None:
             # Trigger conditions not met or bypass enabled
             return UnifiedGateResult(
@@ -1097,24 +1097,18 @@ class UnifiedGateEngine:
                 checks_run=0,
                 checks_passed=0,
             )
-        
+
         # Convert SimplicityAuditResult to UnifiedGateResult
-        verdict = audit_result.verdict.value if hasattr(audit_result.verdict, 'value') else audit_result.verdict
+        verdict = audit_result.verdict.value if hasattr(audit_result.verdict, "value") else audit_result.verdict
         passed = verdict == "PASS"
         severity = GateSeverity.CRITICAL if verdict == "REJECT" else GateSeverity.WARNING
-        
+
         critical_issues = []
         if audit_result.crap_violations:
-            critical_issues.extend([
-                {"type": "CRAP", "detail": v}
-                for v in audit_result.crap_violations
-            ])
+            critical_issues.extend([{"type": "CRAP", "detail": v} for v in audit_result.crap_violations])
         if audit_result.duplication_violations:
-            critical_issues.extend([
-                {"type": "Duplication", "detail": v}
-                for v in audit_result.duplication_violations
-            ])
-        
+            critical_issues.extend([{"type": "Duplication", "detail": v} for v in audit_result.duplication_violations])
+
         return UnifiedGateResult(
             passed=passed,
             gate_type=GateType.SIMPLICITY_CHECK,

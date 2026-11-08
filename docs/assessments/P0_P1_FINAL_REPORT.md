@@ -56,8 +56,8 @@ mock_s1_result = {
         "missing_tests": [],
         "extra_tests": [],
         "unprotected_operations": [],
-        "missing_security_features": []
-    }
+        "missing_security_features": [],
+    },
 }
 ```
 

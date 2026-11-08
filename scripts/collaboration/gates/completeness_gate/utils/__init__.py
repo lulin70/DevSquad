@@ -6,7 +6,7 @@ from .score_calculator import (
     calculate_coverage_score,
     calculate_error_handling_score,
     calculate_security_score,
-    weighted_average
+    weighted_average,
 )
 
 __all__ = [
@@ -15,5 +15,5 @@ __all__ = [
     "calculate_coverage_score",
     "calculate_error_handling_score",
     "calculate_security_score",
-    "weighted_average"
+    "weighted_average",
 ]

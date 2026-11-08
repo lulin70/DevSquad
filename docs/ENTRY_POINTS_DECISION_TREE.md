@@ -413,6 +413,7 @@ The startup script handles all initialization steps in correct order. Use with `
 
 # After (Python API)
 from scripts.collaboration.dispatcher import MultiAgentDispatcher
+
 disp = MultiAgentDispatcher()
 result = disp.dispatch("Task", roles=["architect"])
 print(result.to_markdown())
@@ -427,15 +428,9 @@ result = disp.dispatch("Task", roles=["architect"])
 # After (MCP - via JSON-RPC)
 # Client sends MCP tool call:
 {
-  "jsonrpc": "2.0",
-  "method": "tools/call",
-  "params": {
-    "name": "multiagent_dispatch",
-    "arguments": {
-      "task_description": "Task",
-      "roles": ["architect"]
-    }
-  }
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {"name": "multiagent_dispatch", "arguments": {"task_description": "Task", "roles": ["architect"]}},
 }
 ```
 

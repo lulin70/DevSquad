@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 class DispatcherRBACMixin(DispatcherBase):
     """RBAC permission checks and their denial-result builders."""
 
+    _rbac: Any
+    _rbac_fail_closed: bool
+
     def _check_rbac_permission(
         self,
         user_id: str,
