@@ -210,6 +210,45 @@ jobs:
           gh pr comment "${{ github.event.pull_request.number }}" \
             --body-file /tmp/e2e-comment.md --edit-last --create-if-none
 
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Real-browser regression: drives the dashboard with Playwright/Chromium.
+    # Kept out of the `e2e` job so that job does not pay the browser install
+    # cost on every matrix entry; this job runs once per PR, push and nightly.
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    env:
+      DEVSQUAD_LLM_BACKEND: mock
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+          # V4.6.1: pin mcp<2 to keep the FastMCP 1.x API (see test job above).
+          pip install pytest pytest-asyncio pytest-timeout httpx2 "mcp<2" streamlit Pillow fakeredis redis playwright
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Run real-browser regression
+        # The test skips itself when Chromium is absent, so a failed browser
+        # install must fail here instead of producing a silent green.
+        run: |
+          python -c "from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()"
+          python -m pytest tests/e2e/test_dashboard_browser_real.py -v --tb=short --timeout=300
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: browser-e2e-screenshots
+          path: artifacts/e2e_screenshots/
+          retention-days: 14
+          if-no-files-found: ignore
+
   performance:
     runs-on: ubuntu-latest
     timeout-minutes: 30
