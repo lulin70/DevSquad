@@ -23,6 +23,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Repo-wide lint baseline aligned with ruff 0.16.10: 1388 errors → 0. 1,171 errors were auto-fixed; the rest were fixed by hand. `ruff format .` also reformatted 71 files. The CI `lint` job was red from 2026-11-03 to this change.
 - MyPy errors in `scripts/` + `skills/` reduced from 46 to 0. The fixes add missing annotations, narrow optional parameters, and declare the RBAC mixin attributes.
 - Registered TD-078 in `docs/TECH_DEBT.md` for the four Simplicity TODOs. Registered the new locations without backticks so `todo_drift_monitor` matches them exactly.
+- Local TRAE deployment re-checked after the lint change: `scripts/sync_trae_skill.sh` reported all four cache layers at V4.10.0. All eight `SKILL.md` / `skill-manifest.yaml` copies are byte-identical to the source. `check_version_consistency.py --strict` passed 83/83 checks.
 
 ### Added
 
