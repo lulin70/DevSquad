@@ -810,6 +810,11 @@ def _dispatch_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
     if args.command == "defect":
         defect_func: Callable[[argparse.Namespace], int] | None = getattr(args, "func", None)
         return defect_func(args) if callable(defect_func) else 1
+    if args.command == "audit":
+        # V4.10.0: the audit subparser sets func=cmd_audit but had no dispatch
+        # branch, so `devsquad audit` printed help and never ran the handler.
+        audit_func: Callable[[argparse.Namespace], int] | None = getattr(args, "func", None)
+        return audit_func(args) if callable(audit_func) else 1
     if args.command == "modules":
         return _run_modules_command(args)
     if args.command in LIFECYCLE_COMMANDS:
