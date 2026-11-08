@@ -78,3 +78,14 @@ repos:
         files: ^scripts/.*\.py$
         pass_filenames: false
         always_run: true
+
+      # Secret leak guard (Moka incident, 2026-11-08): a real API key reached
+      # docs/MOKA_TUNING_GUIDE.md because the scanner existed but no local gate
+      # ran it. This hook blocks the commit before the key reaches Git.
+      # The same scanner also runs in .github/workflows/no-secrets.yml.
+      - id: no-secrets
+        name: no secrets in repo
+        entry: python -m pytest tests/security/test_no_secrets_in_repo.py -q -m security
+        language: system
+        pass_filenames: false
+        always_run: true

@@ -13,6 +13,7 @@ Scan scope:
   - scripts/ (production code)
   - docs/ (documentation, release notes)
   - tests/ (test fixtures; tests/fakes/ is excluded)
+  - repo root (README/GUIDE/CHANGELOG/pyproject and other top-level files)
   - Extensions: .py .md .yaml .yml .json .toml .sh .bash .txt .cfg .ini .env .example
 
 Patterns detected (real-world key prefixes):
@@ -99,6 +100,10 @@ PLACEHOLDER_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"sk-a{10,}", re.IGNORECASE),
     re.compile(r"sk-s{10,}", re.IGNORECASE),
     re.compile(r"AKIAIOSFODNN7EXAMPLE", re.IGNORECASE),  # AWS docs example
+    # Documentation examples: "your-anthropic-key-here",
+    # "sk-abcdefghijklmnopqrstuvwxyz123456"
+    re.compile(r"your[-_ ][a-z0-9]*[-_ ]?key", re.IGNORECASE),
+    re.compile(r"sk-abcdefghijklmnopqrstuvwxyz", re.IGNORECASE),
 ]
 
 
@@ -154,6 +159,8 @@ EXCLUDE_PATH_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"tests/e2e/test_user_stories_skeleton\.py$"),
     # Analysis docs (historical) intentionally include sk-... example strings
     re.compile(r"docs/analysis/.*\.md$"),
+    # Local credential store: gitignored, untracked, holds the live key on purpose
+    re.compile(r"^moka_ai\.json$"),
 ]
 
 
@@ -206,8 +213,19 @@ def scan_file(path: Path) -> list[SecretHit]:
 
 
 def scan_repo(root: Path = PROJECT_ROOT) -> list[SecretHit]:
-    """Scan the project tree. Return all SecretHits found."""
+    """Scan the project tree. Return all SecretHits found.
+
+    Root-level docs and configs (README, GUIDE, CHANGELOG, pyproject) are
+    scanned too: a key pasted into a README example is as harmful as one in
+    ``docs/``. Sub-directories are covered by ``SCAN_DIRS``.
+    """
     all_hits: list[SecretHit] = []
+    for path in root.iterdir():
+        if not path.is_file() or not _should_scan_file(path):
+            continue
+        if _is_excluded_path(path.name):
+            continue
+        all_hits.extend(scan_file(path))
     for scan_dir in SCAN_DIRS:
         dir_path = root / scan_dir
         if not dir_path.exists():
@@ -374,6 +392,23 @@ class TestT3DocsNoKeyPrefix:
         hits = scan_file(bad)
         assert any(h[0] == "openai" for h in hits)
 
+    def test_root_level_docs_scanned(self, tmp_path):
+        """Root-level README/GUIDE files are in scope (2026-11-08 hardening)."""
+        (tmp_path / "README.md").write_text(
+            "Set OPENAI_API_KEY=sk-xyzwqrstuvwxabcd12345\n",
+            encoding="utf-8",
+        )
+        hits = scan_repo(root=tmp_path)
+        assert any(h[0] == "openai" for h in hits)
+
+    def test_local_credential_store_excluded(self, tmp_path):
+        """moka_ai.json is gitignored local state, not a committed secret."""
+        (tmp_path / "moka_ai.json").write_text(
+            '{"key": "sk-xyzwqrstuvwxabcd12345"}\n',
+            encoding="utf-8",
+        )
+        assert scan_repo(root=tmp_path) == []
+
     def test_env_example_allowed(self, tmp_path):
         """.env.example with placeholders is allowed."""
         f = tmp_path / ".env.example"
@@ -385,6 +420,49 @@ class TestT3DocsNoKeyPrefix:
         )
         hits = scan_file(f)
         assert hits == []
+
+
+# ---------------------------------------------------------------------------
+# T4 - Regression: the 2026-11-08 Moka leak form
+# ---------------------------------------------------------------------------
+
+
+class TestT4RealLeakForms:
+    """T4: forms that actually leaked or nearly leaked in this repository.
+
+    The 2026-11-08 incident put a real Moka key into
+    ``docs/MOKA_TUNING_GUIDE.md`` as a curl header:
+    ``-H "Authorization: Bearer sk-..."``. The scanner detected this form,
+    but no local gate ran the scanner before the commit. These cases pin the
+    detection so a future refactor cannot silently lose it.
+    """
+
+    def test_bearer_header_in_markdown_detected(self, tmp_path):
+        """A curl Bearer header inside a .md file is detected."""
+        bad = tmp_path / "MOKA_TUNING_GUIDE.md"
+        bad.write_text(
+            "## Smoke test\n\n"
+            'curl -X POST "https://moka.example/v1/chat/completions" \\\n'
+            '  -H "Authorization: Bearer sk-proj9Qw8Er7Ty6Ui5Op4As3Df2" \\\n'
+            '  -H "Content-Type: application/json"\n',
+            encoding="utf-8",
+        )
+        hits = scan_file(bad)
+        assert any(h[0] == "openai" for h in hits), "Bearer header key must be detected"
+
+    def test_bearer_header_line_is_not_a_placeholder(self):
+        """The Bearer line must not be excused by the placeholder allow-list."""
+        line = '  -H "Authorization: Bearer sk-proj9Qw8Er7Ty6Ui5Op4As3Df2" \\'
+        assert _is_placeholder(line) is False
+
+    def test_bearer_placeholder_still_allowed(self, tmp_path):
+        """A documented placeholder in the same shape stays allowed."""
+        ok = tmp_path / "guide.md"
+        ok.write_text(
+            '  -H "Authorization: Bearer ${MOKA_API_KEY}" \\\n',
+            encoding="utf-8",
+        )
+        assert scan_file(ok) == []
 
 
 # ---------------------------------------------------------------------------
