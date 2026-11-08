@@ -1,8 +1,8 @@
 """Integration tests for the read-only lifecycle scan API."""
 
+import pytest
 from fastapi.testclient import TestClient
 
-import pytest
 from scripts.api_server import app
 
 

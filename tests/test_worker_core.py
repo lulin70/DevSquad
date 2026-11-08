@@ -8,6 +8,7 @@ NOT targeting coverage numbers - targeting functional correctness.
 from __future__ import annotations
 
 import asyncio
+
 import pytest
 
 from scripts.collaboration.models import (
@@ -24,6 +25,7 @@ class TestRunCoroOnThread:
 
     def test_run_coro_returns_result(self) -> None:
         """Verify coroutine result is correctly returned to sync caller."""
+
         async def get_value() -> str:
             await asyncio.sleep(0.01)
             return "test_value"
@@ -33,6 +35,7 @@ class TestRunCoroOnThread:
 
     def test_run_coro_propagates_exception(self) -> None:
         """Verify exceptions in coroutine are propagated, not silenced."""
+
         async def failing_task() -> None:
             raise ValueError("Expected failure")
 
@@ -52,7 +55,7 @@ class TestWorkerReset:
             role_prompt="Test role",
             scratchpad=scratchpad,
         )
-        
+
         # Write an entry to increment counter
         entry = ScratchpadEntry(
             worker_id="test-001",
@@ -62,7 +65,7 @@ class TestWorkerReset:
         )
         worker.write_finding(entry)
         assert worker._entries_written_count > 0
-        
+
         # Reset should clear counter
         worker.reset()
         assert worker._entries_written_count == 0
@@ -80,9 +83,9 @@ class TestWorkerReset:
         original_id = worker.worker_id
         original_role = worker.role_id
         original_prompt = worker.role_prompt
-        
+
         worker.reset()
-        
+
         # Identity must be preserved for worker pool
         assert worker.worker_id == original_id
         assert worker.role_id == original_role
@@ -105,9 +108,9 @@ class TestWorkerExecute:
             task_id="task-001",
             description="Test task",
         )
-        
+
         result = worker.execute(task)
-        
+
         # Verify result structure
         assert result.worker_id == "test-001"
         assert result.task_id == "task-001"
@@ -123,13 +126,13 @@ class TestWorkerExecute:
             role_prompt="Test role",
             scratchpad=scratchpad,
         )
-        
+
         # Task with None description should be handled
         task = TaskDefinition(
             task_id="task-001",
             description=None,  # type: ignore
         )
-        
+
         # Should not raise, should return failure result
         result = worker.execute(task)
         assert result.task_id == "task-001"
@@ -148,7 +151,7 @@ class TestWorkerWriteMethods:
             role_prompt="Test role",
             scratchpad=scratchpad,
         )
-        
+
         entry = ScratchpadEntry(
             worker_id="test-001",
             role_id="tester",
@@ -156,7 +159,7 @@ class TestWorkerWriteMethods:
             content="Critical bug found",
         )
         worker.write_finding(entry)
-        
+
         # Verify it's actually in scratchpad
         entries = scratchpad.read(entry_type=EntryType.FINDING)
         assert len(entries) > 0
@@ -169,13 +172,13 @@ class TestWorkerScratchpadIntegration:
     def test_worker_can_read_from_shared_scratchpad(self) -> None:
         """Verify worker can read entries written by others."""
         scratchpad = Scratchpad()
-        worker = Worker(
+        Worker(
             worker_id="test-001",
             role_id="tester",
             role_prompt="Test role",
             scratchpad=scratchpad,
         )
-        
+
         # Another worker writes a finding
         finding = ScratchpadEntry(
             worker_id="arch-001",
@@ -184,7 +187,7 @@ class TestWorkerScratchpadIntegration:
             content="System design completed",
         )
         scratchpad.write(finding)
-        
+
         # Tester should be able to read it
         entries = scratchpad.read(entry_type=EntryType.FINDING)
         assert len(entries) > 0
@@ -201,14 +204,14 @@ async def test_aexecute_async_execution_path() -> None:
         role_prompt="Test role",
         scratchpad=scratchpad,
     )
-    
+
     task = TaskDefinition(
         task_id="task-async-001",
         description="Async test task",
     )
-    
+
     result = await worker.aexecute(task)
-    
+
     # Verify async execution completed
     assert result.worker_id == "test-001"
     assert result.task_id == "task-async-001"
@@ -227,7 +230,7 @@ class TestWorkerAgentId:
             role_prompt="Test role",
             scratchpad=scratchpad,
         )
-        
+
         agent_id = worker.agent_id
         # Agent ID should reflect role
         assert "tester" in agent_id.lower()
@@ -241,8 +244,8 @@ class TestWorkerAgentId:
             role_prompt="Test role",
             scratchpad=scratchpad,
         )
-        
+
         id1 = worker.agent_id
         id2 = worker.agent_id
-        
+
         assert id1 == id2  # Must be stable

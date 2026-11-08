@@ -8,9 +8,10 @@ Tests for:
 
 from __future__ import annotations
 
-import pytest
 import re
 from unittest.mock import patch
+
+import pytest
 
 from scripts.dashboard.components import (
     _TOAST_COUNTER_KEY,

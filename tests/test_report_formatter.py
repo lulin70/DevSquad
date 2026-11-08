@@ -56,7 +56,7 @@ def sample_result(sample_worker_results: list[dict]) -> DispatchResult:
 
 class _ExecResultAdapter:
     """Adapter to hold real WorkerResult instances.
-    
+
     This mimics the interface expected by build_summary() but uses real WorkerResult objects.
     """
 
@@ -205,13 +205,13 @@ class TestExtractFindings:
     def test_extract_findings_multiline(self, formatter: ReportFormatter) -> None:
         """Test extracting findings from multiline text with bullets."""
         text = """## Analysis Report
-        
+
         Key Findings:
         - Implemented JWT authentication module
         - Added refresh token support
         - Configured OAuth2.0 authorization flow
         - Passed security audit checklist
-        
+
         Next Steps:
         - Deploy to staging
         """
@@ -273,9 +273,7 @@ class TestFormatStructuredReport:
         assert "##" in report  # Should have markdown headers
         assert "architect" in report.lower() or "架构师" in report
 
-    def test_format_structured_no_action_items(
-        self, formatter: ReportFormatter, sample_result: DispatchResult
-    ) -> None:
+    def test_format_structured_no_action_items(self, formatter: ReportFormatter, sample_result: DispatchResult) -> None:
         """Test structured report without action items."""
         report = formatter.format_structured_report(sample_result, include_action_items=False)
         assert "##" in report
@@ -356,8 +354,7 @@ class TestLanguageSupport:
         """Test English language support."""
         formatter_en = ReportFormatter(lang="en")
         worker_result = WorkerResult(
-            worker_id="architect-0", task_id="task-001",
-            success=True, output={}, duration_seconds=10.0
+            worker_id="architect-0", task_id="task-001", success=True, output={}, duration_seconds=10.0
         )
         exec_result = _ExecResultAdapter(results=[worker_result], duration_seconds=10.0)
         summary = formatter_en.build_summary(
@@ -372,10 +369,7 @@ class TestLanguageSupport:
     def test_japanese_formatter(self) -> None:
         """Test Japanese language support."""
         formatter_ja = ReportFormatter(lang="ja")
-        worker_result = WorkerResult(
-            worker_id="w-0", task_id="t-0",
-            success=True, output={}, duration_seconds=10.0
-        )
+        worker_result = WorkerResult(worker_id="w-0", task_id="t-0", success=True, output={}, duration_seconds=10.0)
         exec_result = _ExecResultAdapter(results=[worker_result], duration_seconds=10.0)
         summary = formatter_ja.build_summary(
             task="認証システム設計",
@@ -421,10 +415,7 @@ class TestEdgeCases:
 
     def test_empty_sp_summary(self, formatter: ReportFormatter) -> None:
         """Test handling empty scratchpad summary."""
-        worker_result = WorkerResult(
-            worker_id="w-0", task_id="t-0",
-            success=True, output={}, duration_seconds=1.0
-        )
+        worker_result = WorkerResult(worker_id="w-0", task_id="t-0", success=True, output={}, duration_seconds=1.0)
         exec_result = _ExecResultAdapter(results=[worker_result], duration_seconds=1.0)
         summary = formatter.build_summary(
             task="任务",

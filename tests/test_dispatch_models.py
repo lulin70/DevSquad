@@ -10,12 +10,12 @@ from __future__ import annotations
 import pytest
 
 from scripts.collaboration.dispatch_models import (
-    DispatchResult,
     I18N,
-    PerformanceMetric,
-    PerformanceThresholds,
     PLANNED_ROLES,
     ROLE_TEMPLATES,
+    DispatchResult,
+    PerformanceMetric,
+    PerformanceThresholds,
 )
 from scripts.collaboration.models import WorkflowTrace
 
@@ -100,9 +100,17 @@ class TestPerformanceThresholds:
         """Test all 11 steps have warning and critical thresholds."""
         thresholds = PerformanceThresholds()
         expected_steps = [
-            "analyze", "warmup", "plan", "spawn", "execute",
-            "collect", "consensus", "compress", "permission",
-            "memory", "skillify"
+            "analyze",
+            "warmup",
+            "plan",
+            "spawn",
+            "execute",
+            "collect",
+            "consensus",
+            "compress",
+            "permission",
+            "memory",
+            "skillify",
         ]
         for step in expected_steps:
             assert step in thresholds.step_warnings
@@ -288,9 +296,16 @@ class TestI18NConstants:
         """Test Chinese I18N has all required keys."""
         zh = I18N["zh"]
         required_keys = [
-            "title", "task", "status_ok", "status_fail",
-            "duration", "roles", "summary", "output",
-            "errors", "next_steps"
+            "title",
+            "task",
+            "status_ok",
+            "status_fail",
+            "duration",
+            "roles",
+            "summary",
+            "output",
+            "errors",
+            "next_steps",
         ]
         for key in required_keys:
             assert key in zh
@@ -331,7 +346,7 @@ class TestRoleTemplatesAndPlannedRoles:
 
     def test_planned_role_structure(self) -> None:
         """Test each planned role has required fields."""
-        for role_id, role_def in PLANNED_ROLES.items():
+        for _role_id, role_def in PLANNED_ROLES.items():
             assert "name" in role_def
             assert "status" in role_def
             assert "description" in role_def
@@ -457,7 +472,12 @@ class TestDispatchResultMoreFormatting:
                     "entries": [
                         {"id": "AC-001", "status": "pass", "description": "Basic functionality"},
                         {"id": "AC-002", "status": "fail", "description": "Edge cases"},
-                        {"id": "AC-003", "status": "waived", "description": "Deprecated feature", "waive_reason": "Legacy code"},
+                        {
+                            "id": "AC-003",
+                            "status": "waived",
+                            "description": "Deprecated feature",
+                            "waive_reason": "Legacy code",
+                        },
                     ],
                 }
             },
@@ -945,4 +965,3 @@ class TestDispatchResultComplexScenarios:
         assert "Multi-Agent" in markdown
         assert "Success" in markdown
         assert "Complete task" in markdown
-

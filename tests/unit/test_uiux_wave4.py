@@ -9,8 +9,9 @@ per 7-Role consensus (low ROI for desktop tool / over-engineering).
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from scripts.dashboard.components import (
     KEYBOARD_SHORTCUTS,
