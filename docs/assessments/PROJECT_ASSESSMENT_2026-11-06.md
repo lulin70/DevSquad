@@ -1,3 +1,5 @@
+> **已过期（SUPERSEDED）**：本报告早于 2026-11-07 的修复批次，结论已变更。权威版本见 [PROJECT_ASSESSMENT_2026-11-07.md](PROJECT_ASSESSMENT_2026-11-07.md)。
+
 # DevSquad 项目整理评估报告
 
 **评估日期**: 2026-11-06  
