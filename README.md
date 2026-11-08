@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 Upgrade "Single AI Assistant" to "Multi-Role AI Professional Team"</strong>
   <br>
-  <em>One task → Multi-role AI collaboration → One conclusion | V4.10.0 (ImplementationCompletenessGate (S1 Gate) MINOR: Prevents AI implementation shortcuts by detecting mocks in production code (20% weight), missing classes/functions from P3 design docs (25%), missing test cases from P7 test plans (25%), unprotected I/O operations (15%), and missing security features (15%). Integrated into SimplicityRole before S2 gates (CRAP/Duplication). Weighted scoring with thresholds: ≥0.95 PASS, 0.90-0.95 WARNING, <0.90 REJECT. Progressive rollout: Shadow mode (Day 0-6), Soft mode (Day 7-13), Full mode (Day 14+). 91 tests (100% pass), test pyramid: 74% unit, 20% integration, 6% E2E. Anti-ghost verification via activation counters, production integration in SimplicityRole, user-visible Markdown output. P9 enhancements: concurrent file access (AC-007), large-scale PR performance 1000+ files <30s (AC-009), internationalization Unicode/CJK/emoji paths (AC-008). PRD: docs/prd/DevSquad-V4.10-ImplementationCompletenessGate-P2-PRD.md, Technical Design: P3, Test Plan: P7, Implementation Summary: P8. SemVer MINOR (new feature, backward compatible)) | V4.9.0 (defect-ledger MINOR: W1 defect ledger core — SQLite closed state machine open|fixed|closed with atomic writes and fail-closed load, signal_ref resolution contract, `defect` CLI six subcommands; W2 signal write-side — log_dispatch_end findings/failure_class extension, terminal-state wiring, Step 24 C19 recompute, PRD §4.2 mapping table; W3 registration gate — fail-closed mandatory-signal three-state tracking (tracked/unregistered/regressed), advisory unfiled-signal report, `.devsquad.yaml` switch; W4 feature gate — SHA256-anchored acceptance checklist, live pass/fail/waived coverage matrix, tamper detection, default off with zero trace; PRs #71/#76/#77/#80/#81/#83/#84) | V4.8.2 (gate-fix PATCH: print_debug false positives on the CLI command family found by dogfooding the gate on PR #71 — a print statement to stdout is the product interface of scripts/cli*.py, not debug residue; the diff scanner now exempts the CLI output layer for print_debug only, while secrets/eval/SQL-injection families stay fully covered in those files; PR #72) | V4.8.1 (gate-fix PATCH: F-D1 found by dogfooding the gate on this repo — diff pattern findings now honor the deterministic path gates: include/exclude and default excludes bind the diff scan, trailing /** restores gitignore directory semantics, secrets stay checked in all retained paths while code smells are limited to source-kind files; PR #62) | V4.8.0 (workflow-entry MINOR: QUICKSTART rewritten as three persona channels — IDE/MCP zero-key, CLI init branching with backend detection, maintainer wrapper workflow; doc_command gate keeps all 36 documented CLI commands true to the argparse registry; MCP integration guide as single source of truth; dogfooding quarterly report generator; TD-076 mcp>=1,<2 constraint; E1 consumer audit adjudicated — live-browser removed, impeccable vocabulary wired into `doctor --command`) | V4.7.2 (hygiene PATCH: six stale version strings removed from user-visible surfaces, negative stale-string gate scan, PROJECT_STATUS refreshed to release reality, api perf baseline measured) | V4.7.1 (release-integrity PATCH: PyPI devsquad entry point fixed — the scripts/cli/ package that shadowed cli.py removed, defusedxml dependency declared, release-gate e2e marker restored) | V4.7.0 (W1 delivered deterministic BREAK/VULN ten-category review taxonomy, C20, reverse gate, real review-gate subprocess E2E, and simulated real-user validation; MINOR; released as tag v4.7.0) | V4.6.0 (E2E-inspired testing infrastructure MINOR: LLM replay cache for PR CI — first real call records, later PRs replay near-zero cost; failure taxonomy product_failed/environment_blocked with exit 2; independent judge semantic assertions; e2e failure auto-comment on PRs) | V4.5.24 (CI-gate PATCH: dispatcher size baseline gate now also runs in PR CI) | V4.5.23 (Governance + root-cause PATCH: CI lint tools read from requirements-dev.lock at run time — fourth Dependabot-blind version copy eliminated; 8 GitHub Actions SHA-pinned + `.github/CODEOWNERS`; `:memory:` repo-root directory root-caused to `LLMCache(":memory:")` mkdir and fixed per SQLite convention in LLMCache/AsyncLLMCache) | V4.5.22 (Backend-config PATCH: gitignored `moka_ai.json` feeds the auto chain's Moka candidate as lowest-priority source — kwargs > env > file — restoring design order Moka → OpenAI(DeepSeek) → Anthropic; conftest autouse fixture isolates maintainer-local credentials from tests; `_build_api_backends` decomposed into per-provider builders after radon cc flagged D) | V4.5.21 (Security + toolchain PATCH: Dependabot vuln closure, branch-protection bypass tightening, CI least-privilege; ruff 0.16.10/mypy 2.4.0 aligned across lock + pre-commit + CI pins; flaky hardening — min-of-3 latency sampling, host-bridge fuse E2E warm-up; `enable_anchor_check=False` factory fix) | V4.5.20 (Version-SSOT truth + deterministic review bundling MINOR: `--mode review --changeset` wired to real bundling, sub-skill manifest gate closed, anti-ghost production probe) | V4.5.19 (Flaky-test cleanup: dashboard latency gate → 5-run median + pytest-rerunfailures) | V4.5.18 (Perf-extension: SQLite PRAGMA to ccr_store/history_manager + SkillRegistry thread-safety hotfix) | V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badge 9400+/211+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation) | V4.5.9 (Unified Gather Execution Core + Native Async Worker: 执行层统一 gather 化 + Worker 原生异步) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills)</em>
+  <em>7 roles · 12 phases · 10,656 tests<br>V4.10.0 — see <a href="#-release-history">Release History</a></em>
 </p>
 
 <p align="center">
@@ -17,6 +17,25 @@
 </p>
 
 ---
+
+## 📑 Contents
+
+- [📖 TL;DR? Start Here (30 Seconds)](#-tldr-start-here-30-seconds)
+- [🚀 Install](#-install)
+- [▶️ Quick Start: Run Your First Task](#️-quick-start-run-your-first-task)
+- [⚙️ Configuration](#️-configuration)
+- [👥 Features: 7 Core Roles](#-features-7-core-roles)
+- [🏗️ Features: Five Capability Domains](#️-features-five-capability-domains)
+- [🔬 Cybernetics Enhancement Modules (V3.6.1)](#-cybernetics-enhancement-modules-v361)
+- [🏗️ Architecture Overview (Layered Design)](#️-architecture-overview-layered-design)
+- [🧩 Layered Sub-Skill Architecture (V3.6.0)](#-layered-sub-skill-architecture-v360)
+- [📋 Plan C Architecture (Core Engine)](#-plan-c-architecture-core-engine)
+- [🧪 Testing](#-testing)
+- [📚 Documentation](#-documentation)
+- [📜 Release History](#-release-history)
+- [🗺️ Roadmap](#️-roadmap)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ## 📖 TL;DR? Start Here (30 Seconds)
 
@@ -55,6 +74,8 @@ devsquad run "Design a secure user authentication system" --roles architect secu
 # ✅ Consensus conclusion: Approach viable, risks controlled...
 ```
 
+> **Next step** → [Install](#-install) · [7 ways to run your first task](#️-quick-start-run-your-first-task) · [Configuration](#️-configuration)
+
 ### When to Use DevSquad?
 
 | Your Need | Recommended Solution |
@@ -68,86 +89,48 @@ devsquad run "Design a secure user authentication system" --roles architect secu
 
 ---
 
-<details>
-<summary>🔍 Click to expand: Complete feature introduction and architecture details</summary>
+## 🚀 Install
 
-## Historical release details: V4.5.2 and earlier
+### Prerequisites
+- **Python 3.10+** (3.10, 3.11 supported, tested in CI)
+- **pip** or **pipenv** for package management
 
-**DevSquad V4.5.2** (PATCH release, SemVer compliant) introduces 2 new modules and completes 3 ROADMAP items (V451-1, V451-2, V451-7/8/9). All new modules default to safe, backward-compatible behavior — no API breaking changes. See [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) for full release notes.
+### Option A: PyPI Install (Recommended)
+```bash
+# Install from PyPI — zero setup, ready to use
+pip install devsquad
 
-### V4.5.2 — 2 New Modules + 3 ROADMAP Items
-- **ApprovalGate**: User-level approval mechanism for external operations. Fail-closed on callback exceptions. Auto-approve fallback when no callback configured (backward compatible).
-- **ConnectorFramework**: Protocol-based interface for external system integration (GitHub first). `Connector` Protocol + `GitHubConnector` (api/cli/simulation modes). `simulation=True` enforced by default in dispatch pipeline.
-- **V451-7 Dashboard browser-level E2E**: 11 AppTest cases (Streamlit AppTest replaces Playwright — avoids heavy browser deps while still being browser-level DOM simulation)
-- **V451-8 REST API end-to-end user journey E2E**: 190 E2E tests covering dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry
-- **V451-9 Connector Framework anti-ghost E2E**: 12 E2E tests (AG-1 through AG-8) proving pipeline activation
+# With optional dependencies
+pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
+pip install "devsquad[all]"    # All optional features
+```
 
-### V4.5.0 — Cross-Session Continuity + Protocol-Native Skills + Action-First Reports
+### Option B: Git Clone + Local Install
+```bash
+git clone https://github.com/lulin70/DevSquad.git
+cd DevSquad
 
-**DevSquad V4.5.0** (merging V4.4.3 + V4.4.4 + V4.5.0 changes) delivers 10 new features for cross-session continuity, protocol-native skill architecture, and action-first reporting. The 7-role AI team orchestrates complex engineering tasks with full audit trails and consensus mechanisms. See [docs/VISION.md](docs/VISION.md) for the project vision.
+# Install core package (minimal dependencies)
+pip install -e .
 
-### V4.5.0 — 10 New Features
-- **ScratchpadHistoryStore**: SQLite-backed cross-session Scratchpad search
-- **AgentIdentity**: Deterministic agent ID for cross-session tracking
-- **WorkflowTrace**: Transparent workflow trace in dispatch reports
-- **GitContext**: Git branch/commit context injection into dispatch
-- **SkillProvider Protocol**: Protocol-native skill architecture (Builtin + MCP providers)
-- **OutputStyle**: Action-first report format (from i-have-adhd insights)
-- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
-- **FileBundler**: Deterministic file bundling for review mode (from open-code-review). Invoked via `dispatch --mode review --changeset <files...>`; more than 5 files engage bundling, grouped by directory + imports (bundle count follows the grouping, not the file count)
-- **SKILL.md Modular Split**: 1216→282 lines + 3 reference docs (MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY)
-- **VISION Documents**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
+# Ready to use!
+devsquad dispatch -t "Design user authentication system"
+```
 
-### V4.4.0 — P0-P3 Enhancement Modules (5 new modules)
-- **P0-1 RiskRegister**: PMP risk management with 7-role weighted assessment (probability × impact) + 4 response strategies (avoid/transfer/mitigate/accept) + `GateType.RISK_CHECK` gate (exposure ≥ 0.36 blocks)
-- **P0-2 ViewpointRegistry**: TOGAF architecture viewpoints with 7-role bound formal viewpoints + `is_orthogonal()` orthogonality check + `check_consistency()` conflict detection
-- **P1-1 ErrorBudgetTracker**: SRE error budget with SLO 99.9% default + `GateType.ERROR_BUDGET` P10 gate (budget exhaustion blocks deployment) + `burn_rate()` consumption rate
-- **P1-2 GapAnalyzer**: TOGAF gap analysis with `analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` driving LoopScheduler
-- **P2-1 DoraMetricsCollector**: DORA metrics (Deployment Frequency / Lead Time / Change Failure Rate / MTTR) + `GateType.DORA_CHECK` P11 gate (CFR > 15% triggers architecture review) + Elite/High/Medium/Low rating
+### Verify Installation
+```bash
+# Check version
+devsquad --version
+# Expected: DevSquad 4.10.0
 
-### V4.4.1 — External Docs Restructure
-- Archived orphan i18n docs (docs/i18n/ → docs/_archive/i18n/)
-- Retired CHANGELOG-CN.md (CHANGELOG.md is now SSOT for all languages)
-- Consolidated admin credentials to INSTALL.md only (single source of truth)
-- Renumbered INSTALL.md methods to continuous 1-7
-- Synced version numbers across all external docs (README/SKILL/INSTALL/CLAUDE)
-
-### V4.4.2 — Multilingual + Dashboard Enhancement
-- Multilingual role prompts (EN/CN/JP) for all 7 roles
-- Dashboard 6-tab visibility (Overview/Dispatch/Lifecycle/Metrics/Audit/Settings)
-- P2 Kanban evaluation (work-in-progress limits + cycle time tracking)
-- P3 ITSM evaluation (incident management + change advisory board simulation)
-- 13 E2E tests xpass + anti-ghost counters
-
-### Anti-Ghost Feature Guarantee
-Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `check_module_activation.py` verification. Modules must be truly integrated into dispatch pipeline (not just instantiated), with Markdown report sections user-visible. V4.5.2 extends this pattern from V4.4.0 (RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector) to V4.5.2 (ApprovalGate / ConnectorFramework).
-
-### Test Pyramid Achieved
-- **Contract tests**: 5.2% (target ≥5% ✅)
-- **Discovered tests**: 9794 across 403 files in the current local scan
-- **Integration tests**: 14.9% (target ≥15%; warning remains)
-- **Unclassified tests**: 0
-- **E2E coverage**: present in `tests/e2e/`; final pass count requires the current CI run
-
-### Historical Features (V4.0.0-V4.3.3)
-- **V4.3.3**: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0)
-- **V4.3.2**: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe)
-- **V4.3.0 Phase 3**: Quality hardening + user simulation E2E (NPS 9/10)
-- **V4.3.0 Phase 2**: OutputValidator full integration (LLM output safety detection)
-- **V4.3.0 Phase 1**: DependencyHallucinationChecker (anti-slopsquatting supply chain attack)
-- **V4.3.0 Phase 0**: DeploymentComplianceChecker (anti-violation deployment backstop)
-- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling
-- **V4.0.0 P1-2 UI/UX Patrol**: 4-dimension audit + PIL pixel diff visual regression
-- **V4.0.0 P2-1 Adversarial Verification**: red team attack + blue team defense + judge arbitration
-- **V4.0.0 P2-2 DAG Visualization**: Mermaid / JSON / DOT three formats
-- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4-stage autonomous iteration
-- **V4.0.0 P3-2 Plugin Hot-Loading**: 3 loading paths + path traversal 3-layer protection + reload rollback
-
-9800+ tests collected (current local scan; pass counts are CI-authoritative).
+# Run tests
+pytest tests/ -v --tb=short
+# Expected: 9800+ collected (pass counts are CI-authoritative)
+```
 
 ---
 
-## ⚡ Quick Start (7 Ways to Invoke DevSquad)
+## ▶️ Quick Start: Run Your First Task
 
 ### Method 1: TRAE Skill (Recommended — you're already here)
 
@@ -233,7 +216,52 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## 👥 7 Core Roles
+## ⚙️ Configuration
+
+Create `.devsquad.yaml` in your project root:
+
+```yaml
+quality_control:
+  enabled: true
+  strict_mode: true
+  min_quality_score: 85
+
+llm:
+  backend: auto
+  base_url: ""  # Set via DEVSQUAD_OPENAI_BASE_URL env var
+  model: ""     # Set via DEVSQUAD_OPENAI_MODEL env var
+  timeout: 120
+```
+
+Or use environment variables (higher priority):
+
+```bash
+# Default: auto tries real backends first, then falls back to mock
+export DEVSQUAD_LLM_BACKEND=auto
+export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
+export DEVSQUAD_OPENAI_MODEL=gpt-4
+export DEVSQUAD_OPENAI_API_KEY=sk-...
+```
+
+**Environment Variables Reference:**
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `DEVSQUAD_LLM_BACKEND` | Default backend type (auto\|mock\|trae\|openai\|anthropic\|fallback) | `auto` |
+| `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
+| `DEVSQUAD_OPENAI_BASE_URL` | OpenAI-compatible base URL | None |
+| `DEVSQUAD_OPENAI_MODEL` | OpenAI model name | `gpt-4` |
+| `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
+| `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic-compatible base URL | None |
+| `DEVSQUAD_ANTHROPIC_MODEL` | Anthropic model name | `claude-sonnet-4-20250514` |
+| `MOKA_TIMEOUT` | Moka LLM request timeout (seconds, V4.10.0+) | `90.0` |
+| `DEVSQUAD_LOG_LEVEL` | Logging level | `WARNING` |
+
+**Moka LLM Configuration**: For local Moka service tuning (timeout, retries), see [Moka Tuning Guide](docs/MOKA_TUNING_GUIDE.md).
+
+---
+
+## 👥 Features: 7 Core Roles
 
 | Role | CLI ID | Aliases | Weight | Best For |
 |------|--------|---------|--------|----------|
@@ -249,7 +277,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## 🏗️ Five Capability Domains (Architecture Overview)
+## 🏗️ Features: Five Capability Domains
 
 DevSquad's 218+ modules are organized into **5 capability domains**, each solving a specific problem:
 
@@ -512,92 +540,6 @@ CLI View Layer (6 commands)          Core Engine (12 phases)
 
 ---
 
-## 📦 Installation
-
-### Prerequisites
-- **Python 3.10+** (3.10, 3.11 supported, tested in CI)
-- **pip** or **pipenv** for package management
-
-### Option A: PyPI Install (Recommended)
-```bash
-# Install from PyPI — zero setup, ready to use
-pip install devsquad
-
-# With optional dependencies
-pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
-pip install "devsquad[all]"    # All optional features
-```
-
-### Option B: Git Clone + Local Install
-```bash
-git clone https://github.com/lulin70/DevSquad.git
-cd DevSquad
-
-# Install core package (minimal dependencies)
-pip install -e .
-
-# Ready to use!
-devsquad dispatch -t "Design user authentication system"
-```
-
-### Verify Installation
-```bash
-# Check version
-devsquad --version
-# Expected: DevSquad 4.10.0
-
-# Run tests
-pytest tests/ -v --tb=short
-# Expected: 9800+ collected (pass counts are CI-authoritative)
-```
-
----
-
-## ⚙️ Configuration
-
-Create `.devsquad.yaml` in your project root:
-
-```yaml
-quality_control:
-  enabled: true
-  strict_mode: true
-  min_quality_score: 85
-
-llm:
-  backend: auto
-  base_url: ""  # Set via DEVSQUAD_OPENAI_BASE_URL env var
-  model: ""     # Set via DEVSQUAD_OPENAI_MODEL env var
-  timeout: 120
-```
-
-Or use environment variables (higher priority):
-
-```bash
-# Default: auto tries real backends first, then falls back to mock
-export DEVSQUAD_LLM_BACKEND=auto
-export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
-export DEVSQUAD_OPENAI_MODEL=gpt-4
-export DEVSQUAD_OPENAI_API_KEY=sk-...
-```
-
-**Environment Variables Reference:**
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `DEVSQUAD_LLM_BACKEND` | Default backend type (auto\|mock\|trae\|openai\|anthropic\|fallback) | `auto` |
-| `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
-| `DEVSQUAD_OPENAI_BASE_URL` | OpenAI-compatible base URL | None |
-| `DEVSQUAD_OPENAI_MODEL` | OpenAI model name | `gpt-4` |
-| `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
-| `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic-compatible base URL | None |
-| `DEVSQUAD_ANTHROPIC_MODEL` | Anthropic model name | `claude-sonnet-4-20250514` |
-| `MOKA_TIMEOUT` | Moka LLM request timeout (seconds, V4.10.0+) | `90.0` |
-| `DEVSQUAD_LOG_LEVEL` | Logging level | `WARNING` |
-
-**Moka LLM Configuration**: For local Moka service tuning (timeout, retries), see [Moka Tuning Guide](docs/MOKA_TUNING_GUIDE.md).
-
----
-
 ## 🧪 Testing
 
 ### Quick Smoke Test (< 30 seconds)
@@ -660,6 +602,84 @@ python3 -m pytest tests/ -q --tb=line
 | [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD (requirements/user stories/acceptance criteria) | Chinese |
 | [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 architecture design (module boundaries/interface contracts/dependency graph) | Chinese |
 | [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 test plan (test pyramid/E2E/real user simulation) | Chinese |
+
+---
+
+## 📜 Release History
+
+> **Current release: V4.10.0** — see [CHANGELOG.md](CHANGELOG.md). The entries below are the archived history up to V4.5.2.
+
+**DevSquad V4.5.2** (PATCH release, SemVer compliant) introduces 2 new modules and completes 3 ROADMAP items (V451-1, V451-2, V451-7/8/9). All new modules default to safe, backward-compatible behavior — no API breaking changes. See [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) for full release notes.
+
+### V4.5.2 — 2 New Modules + 3 ROADMAP Items
+- **ApprovalGate**: User-level approval mechanism for external operations. Fail-closed on callback exceptions. Auto-approve fallback when no callback configured (backward compatible).
+- **ConnectorFramework**: Protocol-based interface for external system integration (GitHub first). `Connector` Protocol + `GitHubConnector` (api/cli/simulation modes). `simulation=True` enforced by default in dispatch pipeline.
+- **V451-7 Dashboard browser-level E2E**: 11 AppTest cases (Streamlit AppTest replaces Playwright — avoids heavy browser deps while still being browser-level DOM simulation)
+- **V451-8 REST API end-to-end user journey E2E**: 190 E2E tests covering dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry
+- **V451-9 Connector Framework anti-ghost E2E**: 12 E2E tests (AG-1 through AG-8) proving pipeline activation
+
+### V4.5.0 — Cross-Session Continuity + Protocol-Native Skills + Action-First Reports
+
+**DevSquad V4.5.0** (merging V4.4.3 + V4.4.4 + V4.5.0 changes) delivers 10 new features for cross-session continuity, protocol-native skill architecture, and action-first reporting. The 7-role AI team orchestrates complex engineering tasks with full audit trails and consensus mechanisms. See [docs/VISION.md](docs/VISION.md) for the project vision.
+
+### V4.5.0 — 10 New Features
+- **ScratchpadHistoryStore**: SQLite-backed cross-session Scratchpad search
+- **AgentIdentity**: Deterministic agent ID for cross-session tracking
+- **WorkflowTrace**: Transparent workflow trace in dispatch reports
+- **GitContext**: Git branch/commit context injection into dispatch
+- **SkillProvider Protocol**: Protocol-native skill architecture (Builtin + MCP providers)
+- **OutputStyle**: Action-first report format (from i-have-adhd insights)
+- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
+- **FileBundler**: Deterministic file bundling for review mode (from open-code-review). Invoked via `dispatch --mode review --changeset <files...>`; more than 5 files engage bundling, grouped by directory + imports (bundle count follows the grouping, not the file count)
+- **SKILL.md Modular Split**: 1216→282 lines + 3 reference docs (MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY)
+- **VISION Documents**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
+
+### V4.4.0 — P0-P3 Enhancement Modules (5 new modules)
+- **P0-1 RiskRegister**: PMP risk management with 7-role weighted assessment (probability × impact) + 4 response strategies (avoid/transfer/mitigate/accept) + `GateType.RISK_CHECK` gate (exposure ≥ 0.36 blocks)
+- **P0-2 ViewpointRegistry**: TOGAF architecture viewpoints with 7-role bound formal viewpoints + `is_orthogonal()` orthogonality check + `check_consistency()` conflict detection
+- **P1-1 ErrorBudgetTracker**: SRE error budget with SLO 99.9% default + `GateType.ERROR_BUDGET` P10 gate (budget exhaustion blocks deployment) + `burn_rate()` consumption rate
+- **P1-2 GapAnalyzer**: TOGAF gap analysis with `analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` driving LoopScheduler
+- **P2-1 DoraMetricsCollector**: DORA metrics (Deployment Frequency / Lead Time / Change Failure Rate / MTTR) + `GateType.DORA_CHECK` P11 gate (CFR > 15% triggers architecture review) + Elite/High/Medium/Low rating
+
+### V4.4.1 — External Docs Restructure
+- Archived orphan i18n docs (docs/i18n/ → docs/_archive/i18n/)
+- Retired CHANGELOG-CN.md (CHANGELOG.md is now SSOT for all languages)
+- Consolidated admin credentials to INSTALL.md only (single source of truth)
+- Renumbered INSTALL.md methods to continuous 1-7
+- Synced version numbers across all external docs (README/SKILL/INSTALL/CLAUDE)
+
+### V4.4.2 — Multilingual + Dashboard Enhancement
+- Multilingual role prompts (EN/CN/JP) for all 7 roles
+- Dashboard 6-tab visibility (Overview/Dispatch/Lifecycle/Metrics/Audit/Settings)
+- P2 Kanban evaluation (work-in-progress limits + cycle time tracking)
+- P3 ITSM evaluation (incident management + change advisory board simulation)
+- 13 E2E tests xpass + anti-ghost counters
+
+### Anti-Ghost Feature Guarantee
+Every new module includes `_call_counter` mechanism + E2E anti_ghost test + CI `check_module_activation.py` verification. Modules must be truly integrated into dispatch pipeline (not just instantiated), with Markdown report sections user-visible. V4.5.2 extends this pattern from V4.4.0 (RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector) to V4.5.2 (ApprovalGate / ConnectorFramework).
+
+### Test Pyramid Achieved
+- **Contract tests**: 5.2% (target ≥5% ✅)
+- **Discovered tests**: 9794 across 403 files in the current local scan
+- **Integration tests**: 14.9% (target ≥15%; warning remains)
+- **Unclassified tests**: 0
+- **E2E coverage**: present in `tests/e2e/`; final pass count requires the current CI run
+
+### Historical Features (V4.0.0-V4.3.3)
+- **V4.3.3**: P0-P3 enhancement E2E skeletons (xfail TDD for V4.4.0)
+- **V4.3.2**: LLM vs Mock quality gap measurement (calibration gate + thin-slice probe)
+- **V4.3.0 Phase 3**: Quality hardening + user simulation E2E (NPS 9/10)
+- **V4.3.0 Phase 2**: OutputValidator full integration (LLM output safety detection)
+- **V4.3.0 Phase 1**: DependencyHallucinationChecker (anti-slopsquatting supply chain attack)
+- **V4.3.0 Phase 0**: DeploymentComplianceChecker (anti-violation deployment backstop)
+- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling
+- **V4.0.0 P1-2 UI/UX Patrol**: 4-dimension audit + PIL pixel diff visual regression
+- **V4.0.0 P2-1 Adversarial Verification**: red team attack + blue team defense + judge arbitration
+- **V4.0.0 P2-2 DAG Visualization**: Mermaid / JSON / DOT three formats
+- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4-stage autonomous iteration
+- **V4.0.0 P3-2 Plugin Hot-Loading**: 3 loading paths + path traversal 3-layer protection + reload rollback
+
+9800+ tests collected (current local scan; pass counts are CI-authoritative).
 
 ---
 
@@ -727,6 +747,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-*Last updated: 2026-10-27 | Version: V4.9.0 (defect-ledger MINOR: W1 defect ledger core — SQLite closed state machine open|fixed|closed with atomic writes and fail-closed load, signal_ref resolution contract, `defect` CLI six subcommands; W2 signal write-side — log_dispatch_end findings/failure_class extension, terminal-state wiring, Step 24 C19 recompute, PRD §4.2 mapping table; W3 registration gate — fail-closed mandatory-signal three-state tracking (tracked/unregistered/regressed), advisory unfiled-signal report, `.devsquad.yaml` switch; W4 feature gate — SHA256-anchored acceptance checklist, live pass/fail/waived coverage matrix, tamper detection, default off with zero trace; PRs #71/#76/#77/#80/#81/#83/#84) | V4.8.2 (gate-fix PATCH: print_debug false positives on the CLI command family found by dogfooding the gate on PR #71 — a print statement to stdout is the product interface of scripts/cli*.py, not debug residue; the diff scanner now exempts the CLI output layer for print_debug only, while secrets/eval/SQL-injection families stay fully covered in those files; PR #72) | V4.8.1 (gate-fix PATCH: F-D1 found by dogfooding the gate on this repo — diff pattern findings now honor the deterministic path gates: include/exclude and default excludes bind the diff scan, trailing /** restores gitignore directory semantics, secrets stay checked in all retained paths while code smells are limited to source-kind files; PR #62) | V4.8.0 (workflow-entry MINOR: QUICKSTART three persona channels — IDE/MCP zero-key, CLI init branching, maintainer wrapper; doc_command gate keeps all 36 documented CLI commands true to the argparse registry; MCP integration guide as single source of truth; dogfooding quarterly report generator; TD-076 mcp>=1,<2 constraint; E1 consumer audit adjudicated — live-browser removed, impeccable vocabulary wired into `doctor --command`) | V4.7.2 (hygiene PATCH: six stale version strings removed from user-visible surfaces, negative stale-string gate scan, PROJECT_STATUS refreshed to release reality, api perf baseline measured) | V4.7.1 (release-integrity PATCH: PyPI devsquad entry point fixed — the scripts/cli/ package that shadowed cli.py removed, defusedxml dependency declared, release-gate e2e marker restored) | V4.7.0 (W1 delivered deterministic BREAK/VULN ten-category review taxonomy, C20, reverse gate, real review-gate subprocess E2E, and simulated real-user validation; MINOR; released as tag v4.7.0) | V4.6.0 (E2E-inspired testing infrastructure MINOR: LLM replay cache for PR CI — first real call records, later PRs replay near-zero cost; failure taxonomy product_failed/environment_blocked with exit 2; independent judge semantic assertions; e2e failure auto-comment on PRs) | V4.5.24 (CI-gate PATCH: dispatcher size baseline gate now also runs in PR CI) | V4.5.23 (Governance + root-cause PATCH: CI lint tools read from requirements-dev.lock at run time — fourth Dependabot-blind version copy eliminated; 8 GitHub Actions SHA-pinned + `.github/CODEOWNERS`; `:memory:` repo-root directory root-caused to `LLMCache(":memory:")` mkdir and fixed per SQLite convention in LLMCache/AsyncLLMCache) | V4.5.22 (Backend-config PATCH: gitignored `moka_ai.json` feeds the auto chain's Moka candidate as lowest-priority source — kwargs > env > file — restoring design order Moka → OpenAI(DeepSeek) → Anthropic; conftest autouse fixture isolates maintainer-local credentials from tests; `_build_api_backends` decomposed into per-provider builders after radon cc flagged D) | V4.5.21 (Security + toolchain PATCH: Dependabot vuln closure, branch-protection bypass tightening, CI least-privilege; ruff 0.16.10/mypy 2.4.0 aligned across lock + pre-commit + CI pins; flaky hardening — min-of-3 latency sampling, host-bridge fuse E2E warm-up; `enable_anchor_check=False` factory fix) | V4.5.20 (Version-SSOT truth + deterministic review bundling: `--mode review --changeset` wired to real bundling, sub-skill manifest version gate, anti-ghost production probe — MINOR) | V4.5.19 (Flaky-test cleanup: dashboard latency gate → 5-run median + pytest-rerunfailures) | V4.5.18 (Perf-extension: SQLite PRAGMA to ccr_store/history_manager + SkillRegistry thread-safety hotfix) | V4.5.17 (V4.6.1-cleanup: PR #9 CI repair + e2e portability + release-readiness) | V4.5.16 (Housekeeping + Digital Truth PATCH: 18-file SSOT sync, badges 9400+/204+, date 2026-09-03) | V4.5.15 (Skill registration gate + Prometheus E2E + 3-level TRAE cache sync) | V4.5.10 (HostLLMBridge v2 production wiring + --async CLI) | V4.5.9 (Unified Gather Execution Core + Native Async Worker) | V4.5.8 (FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters) | V4.5.7 (Coeffect Async + Risk Register UX CLI) | V4.5.6 (Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI) | V4.5.3 (Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI) | V4.5.2 (Experience polish: MOKA + Metrics + GitLab + Doctor + BackendConfig) | V4.5.0 (cross-session continuity + protocol-native skills) | V4.4.0 (5 new enhancement modules: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — see [CHANGELOG.md](CHANGELOG.md))*
-
-</details>
+*Last updated: 2026-11-08 | Version: V4.10.0 — full changelog in [Release History](#-release-history).*

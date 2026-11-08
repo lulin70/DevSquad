@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 「単一のAIアシスタント」を「マルチロールAI専門チーム」にアップグレード</strong>
   <br>
-  <em>1つのタスク → マルチロールAIコラボレーション → 1つの結論 | V4.10.0（ImplementationCompletenessGate（S1 Gate）MINOR：AI実装ショートカット防止——本番コードのモック検出（20%重み）、P3設計ドキュメントの欠落クラス/関数（25%）、P7テスト計画の欠落テストケース（25%）、保護されていないI/O操作（15%）、欠落セキュリティ機能（15%）。SimplicityRoleに統合、S2ゲート（CRAP/Duplication）より前に実行。加重スコアリング閾値：≥0.95 PASS、0.90-0.95 WARNING、<0.90 REJECT。段階的ロールアウト：Shadowモード（0-6日目）、Softモード（7-13日目）、Fullモード（14日目以降）。77テスト（100%合格）、テストピラミッド：74%単体、20%統合、6% E2E。アンチゴースト検証：アクティベーションカウンタ、SimplicityRoleへの本番統合、ユーザー可視Markdown出力。P9拡張：並行ファイルアクセス（AC-007）、大規模PR性能1000+ファイル<30s（AC-009）、国際化Unicode/CJK/絵文字パス（AC-008）。PRD: docs/prd/DevSquad-V4.10-ImplementationCompletenessGate-P2-PRD.md、技術設計: P3、テスト計画: P7、実装サマリー: P8。SemVer MINOR（新機能、後方互換）） | V4.9.0（欠陥台帳 MINOR：W1 欠陥台帳コア——SQLite 封閉状態機械 open|fixed|closed 原子書き込み+フェイルクローズロード、signal_ref 解決契約、`defect` CLI 6 サブコマンド；W2 信号書き込み側——log_dispatch_end findings/failure_class 拡張、終端状態配線、Step 24 C19 再計算、PRD §4.2 マッピングテーブル；W3 登録ゲート——フェイルクローズ必須信号 3 状態追跡（tracked/unregistered/regressed）+ advisory 未登録レポート + `.devsquad.yaml` スイッチ；W4 フィーチャーゲート——SHA256 アンカー検収チェックリスト、リアルタイム pass/fail/waived カバレッジ行列、改ざん検出、デフォルトオフ完全無痕；PR #71/#76/#77/#80/#81/#83/#84） | V4.8.2（ゲート修正 PATCH：本リポジトリの dogfood が PR #71 で発見した print_debug 誤検知——CLI コマンド族（scripts/cli*.py）の stdout 出力は製品インターフェースでありデバッグ残滓ではない；diff スキャナーは print_debug のみ CLI 出力層を免除し、secrets/eval/SQL インジェクション族はこれらのファイルで完全検査を維持；PR #72） | V4.8.1（ゲート修正 PATCH：本リポジトリの dogfood で発見された F-D1——diff パターンスキャンの findings が決定論的パスゲートに従う：include/exclude とデフォルト除外が diff スキャン面を拘束、末尾 /** が gitignore ディレクトリ意味論を復元、secrets は保持パスすべてで検査しコードスメルは source 種ファイルに限定；PR #62） | V4.8.0（workflow-entry MINOR：QUICKSTART を 3 persona チャネルへ再構成——IDE/MCP ゼロキー、CLI init 分岐（バックエンド検出付き）、メンテナー wrapper ワークフロー；doc_command ゲートが 36 件の文書化 CLI コマンドと argparse レジストリの一致を保証；MCP 統合ガイドの単一ソース化；dogfooding 四半期レポート生成器；TD-076 mcp>=1,<2 制約；E1 コンシューマー監査裁定——live-browser 削除、impeccable 語彙の `doctor --command` 接線） | V4.7.2（Hygiene PATCH：ユーザー可視箇所の古いバージョン文字列 6 件を除去、バージョンゲートにネガティブスキャンを追加、PROJECT_STATUS をリリース実態へ更新、api 性能ベースラインを実測） | V4.7.1（リリース完全性 PATCH：PyPI devsquad エントリポイント修正——cli.py をシャドウする scripts/cli/ パッケージ削除、defusedxml 依存関係宣言、リリースゲート e2e marker 復元） | V4.7.0（W1 で BREAK/VULN 10 分類の決定論的 review 分類、C20、逆方向ゲート、実 review-gate subprocess E2E、実ユーザーを模擬した検証を提供；MINOR；tag v4.7.0 としてリリース） | V4.6.0（E2E フレームワーク着想のテストインフラ MINOR：LLM リプレイキャッシュを PR CI へ——初回の実呼び出しで記録、以降の PR はほぼゼロコストでリプレイ；失敗分類学 product_failed/environment_blocked + exit 2；独立 judge 意味論アサーション；e2e 失敗の PR 自動コメント） | V4.5.24（CI ゲート PATCH：dispatcher size ベースラインゲートを PR CI でも実行） | V4.5.23（ガバナンス + 根因 PATCH：CI lint ツールを実行時に requirements-dev.lock から読込——Dependabot 盲点の第4バージョンコピーを解消；8 個の GitHub Actions を SHA pin + `.github/CODEOWNERS`；repo ルートの `:memory:` ディレクトリを `LLMCache(":memory:")` の無守頼 mkdir と根因特定し、SQLite 慣例に従い LLMCache/AsyncLLMCache を修正） | V4.5.22（バックエンド設定 PATCH：gitignored `moka_ai.json` が auto チェーンの Moka 候選に最低優先度ソースとして供給——kwargs > env > file——設計順序 Moka → OpenAI(DeepSeek) → Anthropic を復元；conftest autouse fixture がメンテナーのローカル認証情報をテストから分離；radon cc 検出後 `_build_api_backends` をプロバイダ別ビルダーへ分解） | V4.5.21（セキュリティ + ツールチェーン PATCH：Dependabot 脆弱性闭环、ブランチ保護強化、CI 最小権限；ruff 0.16.10/mypy 2.4.0 全リンク整合（lock + pre-commit + CI pin）；flaky 対策——遅延アサーション min-of-3 サンプリング、host-bridge ヒューズ E2E ウォームアップ；`enable_anchor_check=False` ファクトリ修正） | V4.5.20（バージョン SSOT の真実化 + 決定論的 review バンドリング MINOR：`--mode review --changeset` を実バンドリングへ接続、サブスキル manifest ゲート収束、アンチゴースト生産プローブ） | V4.5.19（Flaky テスト整理：ダッシュボード遅延ゲートを 5 回中央値 + pytest-rerunfailures に変更） | V4.5.18（パフォーマンス拡張：SQLite PRAGMA を ccr_store/history_manager へ展開 + SkillRegistry スレッドセーフティ修正） | V4.5.17（V4.6.1-cleanup: PR #9 CI 修復 + e2e 移植性 + リリース準備） | V4.5.16（Housekeeping + Digital Truth PATCH：18ファイル SSOT 同期、バッジ 9400+/211+、日付 2026-09-03） | V4.5.15（Skill 登録ゲート + Prometheus E2E ツール + 3層 TRAE キャッシュ同期） | V4.5.10（HostLLMBridge v2 production wiring + --async CLI: v2 protocol hardening + factory v2 default + v1/v2 isolation） | V4.5.9（Unified Gather Execution Core + Native Async Worker: 実行レイヤー統一 gather 化 + Worker ネイティブ非同期） | V4.5.8（FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters） | V4.5.7（Coeffect Async + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（クロスセッション連続性 + プロトコルネイティブSkill）</em>
+  <em>7ロール · 12フェーズ · 10,656テスト<br>V4.10.0 — <a href="#-リリース履歴">リリース履歴</a> を参照</em>
 </p>
 
 <p align="center">
@@ -17,6 +17,25 @@
 </p>
 
 ---
+
+## 📑 目次
+
+- [📖 長すぎる？まずこれを見て（30秒）](#-長すぎるまずこれを見て30秒)
+- [🚀 インストール](#-インストール)
+- [▶️ クイックスタート：最初のタスクを実行](#️-クイックスタート最初のタスクを実行)
+- [⚙️ 設定](#️-設定)
+- [👥 機能：7つのコアロール](#-機能7つのコアロール)
+- [🏗️ 機能：5大能力ドメイン](#️-機能5大能力ドメイン)
+- [🔬 Cybernetics Enhancement Modules（サイバネティクス拡張モジュール - V3.6.1）](#-cybernetics-enhancement-modulesサイバネティクス拡張モジュール---v361)
+- [🏗️ アーキテクチャ概要（階層化設計）](#️-アーキテクチャ概要階層化設計)
+- [🧩 Layered Sub-Skill Architecture（階層化サブスキルアーキテクチャ - V3.6.0）](#-layered-sub-skill-architecture階層化サブスキルアーキテクチャ---v360)
+- [📋 Plan C Architecture（コアエンジン）](#-plan-c-architectureコアエンジン)
+- [🧪 テスト](#-テスト)
+- [📚 ドキュメント](#-ドキュメント)
+- [📜 リリース履歴](#-リリース履歴)
+- [🗺️ Roadmap](#️-roadmap)
+- [🤝 コントリビューション](#-コントリビューション)
+- [📄 ライセンス](#-ライセンス)
 
 ## 📖 長すぎる？まずこれを見て（30秒）
 
@@ -55,6 +74,8 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 # 📊 コンセンサス結論：方式は実行可能、リスクは制御可能...
 ```
 
+> **次のステップ** → [インストール](#-インストール) · [7つの実行方法](#️-クイックスタート最初のタスクを実行) · [設定](#️-設定)
+
 ### いつDevSquadを使うべきか？
 
 | あなたのニーズ | 推奨ソリューション |
@@ -68,85 +89,48 @@ devsquad run "安全なユーザー認証システムを設計" --roles architec
 
 ---
 
-<details>
-<summary>🔍 クリックして展開：完全な機能紹介とアーキテクチャ詳細</summary>
+## 🚀 インストール
 
-## 履歴バージョンの詳細：V4.5.2 以前
+### 前提条件
+- **Python 3.10+**（3.10、3.11サポート、CIでテスト済み）
+- パッケージ管理用 **pip** または **pipenv**
 
-**DevSquad V4.5.2**（PATCH リリース、SemVer 準拠）は2つの新規モジュールを導入し、3つの ROADMAP 項目（V451-1、V451-2、V451-7/8/9）を完了します。全新規モジュールはデフォルトで安全・後方互換の動作——API 破壊的変更なし。詳細は [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) を参照。
+### Option A: PyPI インストール（推奨）
+```bash
+# PyPIからインストール — セットアップ不要、すぐ使用可能
+pip install devsquad
 
-### V4.5.2 — 2つの新規モジュール + 3つの ROADMAP 項目
-- **ApprovalGate**: 外部操作のユーザーレベル承認メカニズム。コールバック例外時 fail-closed。コールバック未設定時は自動承認（後方互換）。
-- **ConnectorFramework**: 外部システム統合のプロトコルインターフェース（GitHub 優先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 3モード）。dispatch pipeline はデフォルトで `simulation=True` を強制。
-- **V451-7 Dashboard ブラウザレベル E2E**: 11 AppTest ケース（Streamlit AppTest が Playwright を代替——重いブラウザ依存を回避しつつブラウザレベル DOM シミュレーションを維持）
-- **V451-8 REST API エンドツーエンドユーザージャーニー E2E**: 190 E2E テストが dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry をカバー
-- **V451-9 Connector Framework アンチゴースト E2E**: 12 E2E テスト（AG-1 〜 AG-8）が pipeline 活性化を証明
+# オプション依存関係付き
+pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
+pip install "devsquad[all]"    # All optional features
+```
 
-### V4.5.0: クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート
+### Option B: Git Clone + ローカルインストール
+```bash
+git clone https://github.com/lulin70/DevSquad.git
+cd DevSquad
 
-**DevSquad V4.5.0**（V4.4.3 + V4.4.4 + V4.5.0 変更を一括リリース）は、クロスセッション連続性、プロトコルネイティブSkillアーキテクチャ、アクションファーストレポート向けけ10の新機能を提供します。7ロール AI チームが複雑なエンジニアリングタスクを編成し、完全な監査チェーンとコンセンサスメカニズムを提供します。プロジェクトビジョンは [docs/VISION.md](docs/VISION.md) を参照。
+# コアパッケージをインストール（最小依存）
+pip install -e .
 
-### V4.5.0 — 10の新機能
-- **ScratchpadHistoryStore**: SQLite-backed クロスセッション Scratchpad 検索
-- **AgentIdentity**: クロスセッショントラッキング用の決定論的 agent ID
-- **WorkflowTrace**: dispatch レポートの透過的ワークフロートレース
-- **GitContext**: Git ブランチ/commit コンテキストの dispatch への注入
-- **SkillProvider Protocol**: プロトコルネイティブ Skill アーキテクチャ（Builtin + MCP providers）
-- **OutputStyle**: アクションファーストレポート形式（i-have-adhd インサイトより）
-- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
-- **FileBundler**: review モードの決定論的ファイルバンドリング（open-code-review より）。`dispatch --mode review --changeset <files...>` で呼び出し、5 ファイル超でバンドリングを有効化（同一ディレクトリ + import 関係でグループ化。バンドル数はグループ分けで決まり、ファイル数では決まらない）
-- **SKILL.md モジュラー分割**: 1216→282 行 + 3 リファレンスドキュメント（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
-- **VISION ドキュメント**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
+# 使用準備完了！
+devsquad dispatch -t "Design user authentication system"
+```
 
-### V4.4.0 — P0-P3 強化モジュール（5新規モジュール）
-- **P0-1 RiskRegister**: PMP リスク管理；7ロール加重評価（probability × impact）+ 4対応戦略（回避/移転/軽減/受容）+ `GateType.RISK_CHECK` ゲート（exposure ≥ 0.36 でブロック）
-- **P0-2 ViewpointRegistry**: TOGAF アーキテクチャ視点；7ロール紐付け正式視点 + `is_orthogonal()` 直交性判定 + `check_consistency()` 矛盾検出
-- **P1-1 ErrorBudgetTracker**: SRE エラー予算；SLO 99.9% デフォルト + `GateType.ERROR_BUDGET` P10 ゲート（予算枯渇でデプロイブロック）+ `burn_rate()` 消費レート
-- **P1-2 GapAnalyzer**: TOGAF ギャップ分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` で LoopScheduler を駆動
-- **P2-1 DoraMetricsCollector**: DORA メトリクス（デプロイ頻度 / Lead Time / 変更失敗率 / MTTR）+ `GateType.DORA_CHECK` P11 ゲート（CFR > 15% でアーキテクチャレビュートリガー）+ Elite/High/Medium/Low 評価
+### インストール検証
+```bash
+# バージョンを確認
+devsquad --version
+# Expected: DevSquad 4.10.0
 
-### V4.4.1 — 外部ドキュメント再構築
-- 孤立 i18n ドキュメントをアーカイブ（docs/i18n/ → docs/_archive/i18n/）
-- CHANGELOG-CN.md をリタイア（CHANGELOG.md が全言語の SSOT に）
-- 管理者資格情報を INSTALL.md に統合（単一情報源）
-- INSTALL.md メソッドを連続 1-7 に再番号付け
-- 全外部ドキュメントのバージョン番号を同期（README/SKILL/INSTALL/CLAUDE）
-
-### V4.4.2 — 多言語 + Dashboard 強化
-- 多言語ロールプロンプト（EN/CN/JP）が全7ロールをカバー
-- Dashboard 6-Tab 可視性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
-- P2 Kanban 評価（WIP制限 + サイクルタイム追跡）
-- P3 ITSM 評価（インシデント管理 + 変更諮問委員会シミュレーション）
-- 13 E2E テスト xpass + アンチゴーストカウンター
-
-### アンチゴースト機能保証
-各新規モジュールは `_call_counter` メカニズム + E2E anti_ghost テスト + CI `check_module_activation.py` 検証を含みます。モジュールは dispatch pipeline に真に統合され（単なるインスタンス化ではなく）、Markdown レポートセクションがユーザーに可視である必要があります。V4.5.2 はこのパターンを V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）から V4.5.2（ApprovalGate / ConnectorFramework）に拡張します。
-
-### テストピラミッド達成
-- **現在検出されたテスト**: ローカルスキャンで 403 ファイル中 9794 テスト
-- **Integration テスト**: 14.9%（目標 ≥15%、警告が残る）
-- **未分類テスト**: 0
-- **E2E カバレッジ**: `tests/e2e/` に存在；最終的な成功数は今回の CI を基準とする
-
-### 履歴機能（V4.0.0-V4.3.3）
-- **V4.3.3**: P0-P3 強化 E2E スケルトン（xfail TDD for V4.4.0）
-- **V4.3.2**: LLM vs Mock 品質ギャップ測定（キャリブレーションゲート + シンスライスプローブ）
-- **V4.3.0 Phase 3**: 品質強化 + ユーザーシミュレーション E2E（NPS 9/10）
-- **V4.3.0 Phase 2**: OutputValidator 完全統合（LLM 出力セキュリティ検出）
-- **V4.3.0 Phase 1**: DependencyHallucinationChecker（Slopsquatting サプライチェーン攻撃対策）
-- **V4.3.0 Phase 0**: DeploymentComplianceChecker（違反デプロイ防波堤）
-- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling の5ステップクローズドループ
-- **V4.0.0 P1-2 UI/UX 巡検**: 4次元監査 + PIL ピクセル diff ビジュアルリグレッション
-- **V4.0.0 P2-1 Adversarial 検証**: レッドチーム攻撃 + ブルーチーム防御 + 審判仲裁
-- **V4.0.0 P2-2 DAG 可視化**: Mermaid / JSON / DOT の3形式
-- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
-- **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
-
-9800+ tests collected（現在のローカルスキャン；合格数は CI が権威）。
+# テストを実行
+pytest tests/ -v --tb=short
+# Expected: 9800+ collected（合格数は CI が権威）
+```
 
 ---
 
-## ⚡ クイックスタート（DevSquadの7つの呼び出し方法）
+## ▶️ クイックスタート：最初のタスクを実行
 
 ### Method 1: TRAE Skill（推奨 — すでに使用中）
 
@@ -232,7 +216,52 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## 👥 7 Core Roles（7つのコアロール）
+## ⚙️ 設定
+
+プロジェクトルートに`.devsquad.yaml`を作成:
+
+```yaml
+quality_control:
+  enabled: true
+  strict_mode: true
+  min_quality_score: 85
+
+llm:
+  backend: auto
+  base_url: ""  # DEVSQUAD_OPENAI_BASE_URL 環境変数で設定
+  model: ""     # DEVSQUAD_OPENAI_MODEL 環境変数で設定
+  timeout: 120
+```
+
+または環境変数を使用（優先度が高い）:
+
+```bash
+# デフォルト: auto は最初にリアルバックエンドを試し、次に mock にフォールバック
+export DEVSQUAD_LLM_BACKEND=auto
+export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
+export DEVSQUAD_OPENAI_MODEL=gpt-4
+export DEVSQUAD_OPENAI_API_KEY=sk-...
+```
+
+**環境変数リファレンス:**
+
+| 変数 | 目的 | デフォルト |
+|----------|---------|---------|
+| `DEVSQUAD_LLM_BACKEND` | デフォルトバックエンドタイプ（auto\|mock\|trae\|openai\|anthropic\|fallback） | `auto` |
+| `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
+| `DEVSQUAD_OPENAI_BASE_URL` | OpenAI互換ベースURL | None |
+| `DEVSQUAD_OPENAI_MODEL` | OpenAIモデル名 | `gpt-4` |
+| `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
+| `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic互換ベースURL | None |
+| `DEVSQUAD_ANTHROPIC_MODEL` | Anthropicモデル名 | `claude-sonnet-4-20250514` |
+| `MOKA_TIMEOUT` | Moka LLM リクエストタイムアウト（秒、V4.10.0+） | `90.0` |
+| `DEVSQUAD_LOG_LEVEL` | ログレベル | `WARNING` |
+
+**Moka LLM 設定**：ローカル Moka サービスのチューニング（タイムアウト、リトライ）は [Moka チューニングガイド](docs/MOKA_TUNING_GUIDE.md) を参照。
+
+---
+
+## 👥 機能：7つのコアロール
 
 | ロール | CLI ID | エイリアス | 重み | 最適用途 |
 |------|--------|---------|--------|----------|
@@ -248,7 +277,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## 🏗️ 5大能力ドメイン（アーキテクチャ概要）
+## 🏗️ 機能：5大能力ドメイン
 
 DevSquadの218+ モジュールは**5大能力ドメイン**に編成され、各ドメインが特定の問題を解決します：
 
@@ -511,89 +540,6 @@ CLI View Layer (6 commands)          Core Engine (12 phases)
 
 ---
 
-## 📦 インストール
-
-### 前提条件
-- **Python 3.10+**（3.10、3.11サポート、CIでテスト済み）
-- パッケージ管理用 **pip** または **pipenv**
-
-### Option A: PyPI インストール（推奨）
-```bash
-# PyPIからインストール — セットアップ不要、すぐ使用可能
-pip install devsquad
-
-# オプション依存関係付き
-pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
-pip install "devsquad[all]"    # All optional features
-```
-
-### Option B: Git Clone + ローカルインストール
-```bash
-git clone https://github.com/lulin70/DevSquad.git
-cd DevSquad
-
-# コアパッケージをインストール（最小依存）
-pip install -e .
-
-# 使用準備完了！
-devsquad dispatch -t "Design user authentication system"
-```
-
-### インストール検証
-```bash
-# バージョンを確認
-devsquad --version
-# Expected: DevSquad 4.10.0
-
-# テストを実行
-pytest tests/ -v --tb=short
-# Expected: 9800+ collected（合格数は CI が権威）
-```
-
----
-
-## ⚙️ 設定
-
-プロジェクトルートに`.devsquad.yaml`を作成:
-
-```yaml
-quality_control:
-  enabled: true
-  strict_mode: true
-  min_quality_score: 85
-
-llm:
-  backend: auto
-  base_url: ""  # DEVSQUAD_OPENAI_BASE_URL 環境変数で設定
-  model: ""     # DEVSQUAD_OPENAI_MODEL 環境変数で設定
-  timeout: 120
-```
-
-または環境変数を使用（優先度が高い）:
-
-```bash
-# デフォルト: auto は最初にリアルバックエンドを試し、次に mock にフォールバック
-export DEVSQUAD_LLM_BACKEND=auto
-export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
-export DEVSQUAD_OPENAI_MODEL=gpt-4
-export DEVSQUAD_OPENAI_API_KEY=sk-...
-```
-
-**環境変数リファレンス:**
-
-| 変数 | 目的 | デフォルト |
-|----------|---------|---------|
-| `DEVSQUAD_LLM_BACKEND` | デフォルトバックエンドタイプ（auto\|mock\|trae\|openai\|anthropic\|fallback） | `auto` |
-| `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
-| `DEVSQUAD_OPENAI_BASE_URL` | OpenAI互換ベースURL | None |
-| `DEVSQUAD_OPENAI_MODEL` | OpenAIモデル名 | `gpt-4` |
-| `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
-| `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic互換ベースURL | None |
-| `DEVSQUAD_ANTHROPIC_MODEL` | Anthropicモデル名 | `claude-sonnet-4-20250514` |
-| `DEVSQUAD_LOG_LEVEL` | ログレベル | `WARNING` |
-
----
-
 ## 🧪 テスト
 
 ### クイックスモークテスト（< 30秒）
@@ -656,6 +602,84 @@ python3 -m pytest tests/ -q --tb=line
 | [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（要件/ユーザーストーリー/受け入れ基準） | 中文 |
 | [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 アーキテクチャ設計（モジュール境界/インターフェース契約/依存グラフ） | 中文 |
 | [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 テスト計画（テストピラミッド/E2E/実ユーザーシミュレーション） | 中文 |
+
+---
+
+## 📜 リリース履歴
+
+> **現在のバージョン: V4.10.0** —— 変更は [CHANGELOG.md](CHANGELOG.md) を参照。以下は V4.5.2 までのアーカイブ履歴です。
+
+**DevSquad V4.5.2**（PATCH リリース、SemVer 準拠）は2つの新規モジュールを導入し、3つの ROADMAP 項目（V451-1、V451-2、V451-7/8/9）を完了します。全新規モジュールはデフォルトで安全・後方互換の動作——API 破壊的変更なし。詳細は [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) を参照。
+
+### V4.5.2 — 2つの新規モジュール + 3つの ROADMAP 項目
+- **ApprovalGate**: 外部操作のユーザーレベル承認メカニズム。コールバック例外時 fail-closed。コールバック未設定時は自動承認（後方互換）。
+- **ConnectorFramework**: 外部システム統合のプロトコルインターフェース（GitHub 優先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 3モード）。dispatch pipeline はデフォルトで `simulation=True` を強制。
+- **V451-7 Dashboard ブラウザレベル E2E**: 11 AppTest ケース（Streamlit AppTest が Playwright を代替——重いブラウザ依存を回避しつつブラウザレベル DOM シミュレーションを維持）
+- **V451-8 REST API エンドツーエンドユーザージャーニー E2E**: 190 E2E テストが dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry をカバー
+- **V451-9 Connector Framework アンチゴースト E2E**: 12 E2E テスト（AG-1 〜 AG-8）が pipeline 活性化を証明
+
+### V4.5.0: クロスセッション連続性 + プロトコルネイティブSkill + アクションファーストレポート
+
+**DevSquad V4.5.0**（V4.4.3 + V4.4.4 + V4.5.0 変更を一括リリース）は、クロスセッション連続性、プロトコルネイティブSkillアーキテクチャ、アクションファーストレポート向けけ10の新機能を提供します。7ロール AI チームが複雑なエンジニアリングタスクを編成し、完全な監査チェーンとコンセンサスメカニズムを提供します。プロジェクトビジョンは [docs/VISION.md](docs/VISION.md) を参照。
+
+### V4.5.0 — 10の新機能
+- **ScratchpadHistoryStore**: SQLite-backed クロスセッション Scratchpad 検索
+- **AgentIdentity**: クロスセッショントラッキング用の決定論的 agent ID
+- **WorkflowTrace**: dispatch レポートの透過的ワークフロートレース
+- **GitContext**: Git ブランチ/commit コンテキストの dispatch への注入
+- **SkillProvider Protocol**: プロトコルネイティブ Skill アーキテクチャ（Builtin + MCP providers）
+- **OutputStyle**: アクションファーストレポート形式（i-have-adhd インサイトより）
+- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
+- **FileBundler**: review モードの決定論的ファイルバンドリング（open-code-review より）。`dispatch --mode review --changeset <files...>` で呼び出し、5 ファイル超でバンドリングを有効化（同一ディレクトリ + import 関係でグループ化。バンドル数はグループ分けで決まり、ファイル数では決まらない）
+- **SKILL.md モジュラー分割**: 1216→282 行 + 3 リファレンスドキュメント（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
+- **VISION ドキュメント**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
+
+### V4.4.0 — P0-P3 強化モジュール（5新規モジュール）
+- **P0-1 RiskRegister**: PMP リスク管理；7ロール加重評価（probability × impact）+ 4対応戦略（回避/移転/軽減/受容）+ `GateType.RISK_CHECK` ゲート（exposure ≥ 0.36 でブロック）
+- **P0-2 ViewpointRegistry**: TOGAF アーキテクチャ視点；7ロール紐付け正式視点 + `is_orthogonal()` 直交性判定 + `check_consistency()` 矛盾検出
+- **P1-1 ErrorBudgetTracker**: SRE エラー予算；SLO 99.9% デフォルト + `GateType.ERROR_BUDGET` P10 ゲート（予算枯渇でデプロイブロック）+ `burn_rate()` 消費レート
+- **P1-2 GapAnalyzer**: TOGAF ギャップ分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` で LoopScheduler を駆動
+- **P2-1 DoraMetricsCollector**: DORA メトリクス（デプロイ頻度 / Lead Time / 変更失敗率 / MTTR）+ `GateType.DORA_CHECK` P11 ゲート（CFR > 15% でアーキテクチャレビュートリガー）+ Elite/High/Medium/Low 評価
+
+### V4.4.1 — 外部ドキュメント再構築
+- 孤立 i18n ドキュメントをアーカイブ（docs/i18n/ → docs/_archive/i18n/）
+- CHANGELOG-CN.md をリタイア（CHANGELOG.md が全言語の SSOT に）
+- 管理者資格情報を INSTALL.md に統合（単一情報源）
+- INSTALL.md メソッドを連続 1-7 に再番号付け
+- 全外部ドキュメントのバージョン番号を同期（README/SKILL/INSTALL/CLAUDE）
+
+### V4.4.2 — 多言語 + Dashboard 強化
+- 多言語ロールプロンプト（EN/CN/JP）が全7ロールをカバー
+- Dashboard 6-Tab 可視性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
+- P2 Kanban 評価（WIP制限 + サイクルタイム追跡）
+- P3 ITSM 評価（インシデント管理 + 変更諮問委員会シミュレーション）
+- 13 E2E テスト xpass + アンチゴーストカウンター
+
+### アンチゴースト機能保証
+各新規モジュールは `_call_counter` メカニズム + E2E anti_ghost テスト + CI `check_module_activation.py` 検証を含みます。モジュールは dispatch pipeline に真に統合され（単なるインスタンス化ではなく）、Markdown レポートセクションがユーザーに可視である必要があります。V4.5.2 はこのパターンを V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）から V4.5.2（ApprovalGate / ConnectorFramework）に拡張します。
+
+### テストピラミッド達成
+- **Contract テスト**: 5.2%（目標 ≥5% ✅）
+- **現在検出されたテスト**: ローカルスキャンで 403 ファイル中 9794 テスト
+- **Integration テスト**: 14.9%（目標 ≥15%、警告が残る）
+- **未分類テスト**: 0
+- **E2E カバレッジ**: `tests/e2e/` に存在；最終的な成功数は今回の CI を基準とする
+
+### 履歴機能（V4.0.0-V4.3.3）
+- **V4.3.3**: P0-P3 強化 E2E スケルトン（xfail TDD for V4.4.0）
+- **V4.3.2**: LLM vs Mock 品質ギャップ測定（キャリブレーションゲート + シンスライスプローブ）
+- **V4.3.0 Phase 3**: 品質強化 + ユーザーシミュレーション E2E（NPS 9/10）
+- **V4.3.0 Phase 2**: OutputValidator 完全統合（LLM 出力セキュリティ検出）
+- **V4.3.0 Phase 1**: DependencyHallucinationChecker（Slopsquatting サプライチェーン攻撃対策）
+- **V4.3.0 Phase 0**: DeploymentComplianceChecker（違反デプロイ防波堤）
+- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling の5ステップクローズドループ
+- **V4.0.0 P1-2 UI/UX 巡検**: 4次元監査 + PIL ピクセル diff ビジュアルリグレッション
+- **V4.0.0 P2-1 Adversarial 検証**: レッドチーム攻撃 + ブルーチーム防御 + 審判仲裁
+- **V4.0.0 P2-2 DAG 可視化**: Mermaid / JSON / DOT の3形式
+- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix の4段階自律反復
+- **V4.0.0 P3-2 プラグインホットロード**: 3つのロードパス + パストラバーサル3層プロテクション + reload ロールバック
+
+9800+ tests collected（現在のローカルスキャン；合格数は CI が権威）。
 
 ---
 
@@ -723,6 +747,4 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最終更新: 2026-10-27 | バージョン: V4.9.0（欠陥台帳 MINOR：W1 欠陥台帳コア——SQLite 封閉状態機械 open|fixed|closed 原子書き込み+フェイルクローズロード、signal_ref 解決契約、`defect` CLI 6 サブコマンド；W2 信号書き込み側——log_dispatch_end findings/failure_class 拡張、終端状態配線、Step 24 C19 再計算、PRD §4.2 マッピングテーブル；W3 登録ゲート——フェイルクローズ必須信号 3 状態追跡（tracked/unregistered/regressed）+ advisory 未登録レポート + `.devsquad.yaml` スイッチ；W4 フィーチャーゲート——SHA256 アンカー検収チェックリスト、リアルタイム pass/fail/waived カバレッジ行列、改ざん検出、デフォルトオフ完全無痕；PR #71/#76/#77/#80/#81/#83/#84） | V4.8.2（ゲート修正 PATCH：本リポジトリの dogfood が PR #71 で発見した print_debug 誤検知——CLI コマンド族（scripts/cli*.py）の stdout 出力は製品インターフェースでありデバッグ残滓ではない；diff スキャナーは print_debug のみ CLI 出力層を免除し、secrets/eval/SQL インジェクション族はこれらのファイルで完全検査を維持；PR #72） | V4.8.1（ゲート修正 PATCH：本リポジトリの dogfood で発見された F-D1——diff パターンスキャンの findings が決定論的パスゲートに従う：include/exclude とデフォルト除外が diff スキャン面を拘束、末尾 /** が gitignore ディレクトリ意味論を復元、secrets は保持パスすべてで検査しコードスメルは source 種ファイルに限定；PR #62） | V4.8.0（workflow-entry MINOR：QUICKSTART 3 persona チャネル——IDE/MCP ゼロキー、CLI init 分岐（バックエンド検出付き）、メンテナー wrapper ワークフロー；doc_command ゲートが 36 件の文書化 CLI コマンドと argparse レジストリの一致を保証；MCP 統合ガイドの単一ソース化；dogfooding 四半期レポート生成器；TD-076 mcp>=1,<2 制約；E1 コンシューマー監査裁定——live-browser 削除、impeccable 語彙の `doctor --command` 接線） | V4.7.2（Hygiene PATCH：ユーザー可視箇所の古いバージョン文字列 6 件を除去、バージョンゲートにネガティブスキャンを追加、PROJECT_STATUS をリリース実態へ更新、api 性能ベースラインを実測） | V4.7.1（リリース完全性 PATCH：PyPI devsquad エントリポイント修正） | V4.7.0（W1 で BREAK/VULN 10 分類の決定論的 review 分類、C20、逆方向ゲート、実 review-gate subprocess E2E、実ユーザーを模擬した検証を提供；MINOR；tag v4.7.0 としてリリース） | V4.6.0（E2E フレームワーク着想のテストインフラ MINOR：LLM リプレイキャッシュを PR CI へ——初回の実呼び出しで記録、以降の PR はほぼゼロコストでリプレイ；失敗分類学 product_failed/environment_blocked + exit 2；独立 judge 意味論アサーション；e2e 失敗の PR 自動コメント） | V4.5.24（CI ゲート PATCH：dispatcher size ベースラインゲートを PR CI でも実行） | V4.5.23（ガバナンス + 根因 PATCH：CI lint ツールを実行時に requirements-dev.lock から読込——Dependabot 盲点の第4バージョンコピーを解消；8 個の GitHub Actions を SHA pin + `.github/CODEOWNERS`；repo ルートの `:memory:` ディレクトリを `LLMCache(":memory:")` の無守頼 mkdir と根因特定し、SQLite 慣例に従い LLMCache/AsyncLLMCache を修正） | V4.5.22（バックエンド設定 PATCH：gitignored `moka_ai.json` が auto チェーンの Moka 候選に最低優先度ソースとして供給——kwargs > env > file——設計順序 Moka → OpenAI(DeepSeek) → Anthropic を復元；conftest autouse fixture がメンテナーのローカル認証情報をテストから分離；radon cc 検出後 `_build_api_backends` をプロバイダ別ビルダーへ分解） | V4.5.21（セキュリティ + ツールチェーン PATCH：Dependabot 脆弱性闭环、ブランチ保護強化、CI 最小権限；ruff 0.16.10/mypy 2.4.0 全リンク整合；flaky 対策——min-of-3 サンプリング、ヒューズ E2E ウォームアップ；`enable_anchor_check=False` ファクトリ修正） | V4.5.20（バージョン SSOT の真実化 + 決定論的 review バンドリング：`--mode review --changeset` を実バンドリングへ接続、サブスキル manifest バージョンゲート、アンチゴースト生産プローブ — MINOR） | V4.5.19（Flaky テスト整理：ダッシュボード遅延ゲートを 5 回中央値 + pytest-rerunfailures に変更） | V4.5.18（パフォーマンス拡張：SQLite PRAGMA を ccr_store/history_manager へ展開 + SkillRegistry スレッドセーフティ修正） | V4.5.17（V4.6.1-cleanup: PR #9 CI 修復 + e2e 移植性 + リリース準備） | V4.5.16（Housekeeping + Digital Truth PATCH：18ファイル SSOT 同期、バッジ 9400+/204+、日付 2026-09-03） | V4.5.15（Skill 登録ゲート + Prometheus E2E ツール + 3層 TRAE キャッシュ同期） | V4.5.10（HostLLMBridge v2 production wiring + --async CLI） | V4.5.9（Unified Gather Execution Core + Native Async Worker） | V4.5.8（FileRiskStore persistence + risks add/assess/mitigate/close + exposure filters） | V4.5.7（Coeffect Async + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect: 6-state FSM + topological activation + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体験研磨: MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（クロスセッション連続性 + プロトコルネイティブSkill） | V4.4.0（5つの新規拡張モジュール: RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — [CHANGELOG.md](CHANGELOG.md) を参照）*
-
-</details>
+*最終更新: 2026-11-08 | バージョン: V4.10.0 — 変更履歴は [リリース履歴](#-リリース履歴) を参照。*

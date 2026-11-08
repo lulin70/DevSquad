@@ -3,7 +3,7 @@
 <p align="center">
   <strong>🎯 把「单个 AI 助手」升级成「多角色 AI 专业团队」</strong>
   <br>
-  <em>一个任务 → 多角色 AI 协作 → 一个结论 | V4.10.0（ImplementationCompletenessGate（S1 Gate）MINOR：防止 AI 实现捷径——检测生产代码中的 mock（20% 权重）、P3 设计文档缺失的类/函数（25%）、P7 测试计划缺失的测试用例（25%）、无保护的 I/O 操作（15%）、缺失的安全特性（15%）。集成到 SimplicityRole，在 S2 门（CRAP/Duplication）之前执行。加权评分阈值：≥0.95 PASS，0.90-0.95 WARNING，<0.90 REJECT。渐进式发布：Shadow 模式（第 0-6 天）、Soft 模式（第 7-13 天）、Full 模式（第 14+ 天）。77 个测试（100% 通过），测试金字塔：74% 单元、20% 集成、6% E2E。反幽灵验证：激活计数器、生产集成到 SimplicityRole、用户可见的 Markdown 输出。P9 增强：并发文件访问（AC-007）、大规模 PR 性能 1000+ 文件 <30s（AC-009）、国际化 Unicode/CJK/emoji 路径（AC-008）。PRD: docs/prd/DevSquad-V4.10-ImplementationCompletenessGate-P2-PRD.md，技术设计: P3，测试计划: P7，实现总结: P8。SemVer MINOR（新功能，向后兼容）） | V4.9.0（缺陷台账 MINOR：W1 缺陷台账核心——SQLite 封闭状态机 open|fixed|closed 原子写+fail-closed 加载、signal_ref 解析契约、`defect` CLI 六子命令；W2 信号写入端——log_dispatch_end findings/failure_class 扩展、终态接线、Step 24 C19 终态重算、PRD §4.2 映射表；W3 登记闸——fail-closed 必查信号三态追踪（tracked/unregistered/regressed）+ advisory 未立案报告 + `.devsquad.yaml` 开关；W4 特性门——SHA256 锚定验收清单、实时 pass/fail/waived 覆盖矩阵、篡改检测、默认关闭零痕迹；PR #71/#76/#77/#80/#81/#83/#84） | V4.8.2（gate 修复 PATCH：本仓 dogfood 在 PR #71 上发现的 print_debug 误报——CLI 命令族（scripts/cli*.py）以 stdout 输出为产品接口而非调试残留；diff 扫描器现仅对 print_debug 豁免 CLI 输出层，secrets/eval/SQL 注入族在这些文件中仍全覆盖；PR #72） | V4.8.1（gate 修复 PATCH：本仓 dogfood 发现的 F-D1——diff 模式扫描的 findings 现遵循确定性路径门：include/exclude 与默认排除约束 diff 扫描面、尾部 /** 恢复 gitignore 目录语义、secrets 保留于一切审查保留路径而代码气味限 source 类文件；PR #62） | V4.8.0（workflow-entry MINOR：QUICKSTART 重写为三 persona 通道——IDE/MCP 零 key、CLI init 分流含后端探测、维护者 wrapper 工作流；doc_command 门禁保证 36 条文档 CLI 命令与 argparse 注册表一致；MCP 集成指南单源化；dogfooding 季报生成器；TD-076 mcp>=1,<2 约束；E1 消费者审计裁定——live-browser 移除、impeccable 词表接线 `doctor --command`） | V4.7.2（卫生 PATCH：清除用户可见面 6 处过时版本串、版本门禁新增负向过时串扫描、PROJECT_STATUS 刷新至发布现实、api 性能基线真实测量） | V4.7.1（发布完整性 PATCH：修复 PyPI devsquad 入口点——移除遮蔽 cli.py 的 scripts/cli/ 包、声明 defusedxml 依赖、恢复发布门禁 e2e marker） | V4.7.0（W1 已交付 BREAK/VULN 十类确定性 review 分类、C20、反向门禁、真实 review-gate subprocess E2E 和模拟真实用户验证；MINOR；已发布 tag v4.7.0） | V4.6.0（E2E 框架启发的测试基建 MINOR：LLM 回放缓存进 PR CI——首次真实调用录制、后续 PR 近零成本回放；失败分类学 product_failed/environment_blocked + exit 2；独立 judge 语义断言；e2e 失败自动贴 PR 评论） | V4.5.24（CI 门禁 PATCH：dispatcher size 基线门禁同时进入 PR CI） | V4.5.23（治理 + 根因 PATCH：CI lint 工具运行时从 requirements-dev.lock 读取——消除 Dependabot 盲区的第四份版本副本；8 个 GitHub Actions SHA pin + `.github/CODEOWNERS`；repo 根 `:memory:` 目录根因归因为 `LLMCache(":memory:")` 无守卫 mkdir，LLMCache/AsyncLLMCache 按 SQLite 约定修复） | V4.5.22（Backend 配置 PATCH：gitignored `moka_ai.json` 进入 auto 链 Moka 候选为最低优先级来源——kwargs > env > file——恢复设计顺序 Moka → OpenAI(DeepSeek) → Anthropic；conftest autouse fixture 隔离维护者本地凭据对测试的影响；radon cc 打红后 `_build_api_backends` 分解为 per-provider 构建函数） | V4.5.21（安全 + 工具链 PATCH：Dependabot 漏洞闭环、分支保护收紧、CI 最小权限；ruff 0.16.10/mypy 2.4.0 全链对齐（lock + pre-commit + CI pin）；flaky 加固——延迟断言 min-of-3 采样、host-bridge 熔断 E2E warm-up；`enable_anchor_check=False` 工厂修复） | V4.5.20（版本 SSOT 真实化 + 确定性 review 打包 MINOR：`--mode review --changeset` 接通真实打包、子技能 manifest 门禁收口、反幽灵门禁生产探针） | V4.5.19（Flaky 测试清理：仪表盘延迟门禁改为 5 次中位数 + pytest-rerunfailures） | V4.5.18（性能扩展：SQLite PRAGMA 扩展至 ccr_store/history_manager + SkillRegistry 线程安全热修） | V4.5.17（V4.6.1-cleanup：PR #9 CI 修复 + e2e 可移植性 + 发布就绪） | V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/211+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI：v2 协议硬化 + factory 默认 v2 + v1/v2 隔离） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill）</em>
+  <em>7 个角色 · 12 个阶段 · 10,656 项测试<br>V4.10.0 — 详见 <a href="#-版本历史">版本历史</a></em>
 </p>
 
 <p align="center">
@@ -17,6 +17,25 @@
 </p>
 
 ---
+
+## 📑 目录
+
+- [📖 太长不看？先看这个（30 秒）](#-太长不看先看这个30-秒)
+- [🚀 安装](#-安装)
+- [▶️ 快速开始：运行第一个任务](#️-快速开始运行第一个任务)
+- [⚙️ 配置](#️-配置)
+- [👥 功能：7 个核心角色](#-功能7-个核心角色)
+- [🏗️ 功能：五大能力域](#️-功能五大能力域)
+- [🔬 控制论增强模块（V3.6.1）](#-控制论增强模块v361)
+- [🏗️ 架构概览（分层设计）](#️-架构概览分层设计)
+- [🧩 分层子 Skill 架构（V3.6.0）](#-分层子-skill-架构v360)
+- [📋 Plan C 架构（核心引擎）](#-plan-c-架构核心引擎)
+- [🧪 测试](#-测试)
+- [📚 文档](#-文档)
+- [📜 版本历史](#-版本历史)
+- [🗺️ Roadmap](#️-roadmap)
+- [🤝 贡献指南](#-贡献指南)
+- [📄 许可证](#-许可证)
 
 ## 📖 太长不看？先看这个（30 秒）
 
@@ -55,6 +74,8 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 # 📊 共识结论：方案可行，风险可控...
 ```
 
+> **下一步** → [安装](#-安装) · [7 种运行方式](#️-快速开始运行第一个任务) · [配置](#️-配置)
+
 ### 什么时候用 DevSquad？
 
 | 你的需求 | 推荐方案 |
@@ -68,86 +89,48 @@ devsquad run "设计一个安全的用户认证系统" --roles architect securit
 
 ---
 
-<details>
-<summary>🔍 点击展开：完整功能介绍与架构详解</summary>
+## 🚀 安装
 
-## 历史版本详情：V4.5.2 及更早版本
+### 前置条件
+- **Python 3.10+**（支持 3.10、3.11，CI 已测试）
+- **pip** 或 **pipenv** 包管理
 
-**DevSquad V4.5.2**（PATCH 发布，符合 SemVer）引入 2 个新模块并完成 3 个 ROADMAP 项（V451-1、V451-2、V451-7/8/9）。所有新模块默认采用安全、向后兼容的行为——无 API 破坏性变更。详见 [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) 完整发布说明。
+### 选项 A: PyPI 安装（推荐）
+```bash
+# 从 PyPI 安装 — 零配置，开箱即用
+pip install devsquad
 
-### V4.5.2 — 2 个新模块 + 3 个 ROADMAP 项
-- **ApprovalGate**：外部操作的用户级审批机制。回调异常时 fail-closed。未配置回调时自动批准（向后兼容）。
-- **ConnectorFramework**：外部系统集成的协议接口（GitHub 优先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 三种模式）。调度管线默认强制 `simulation=True`。
-- **V451-7 Dashboard 浏览器级 E2E**：11 个 AppTest 用例（Streamlit AppTest 替代 Playwright——避免重浏览器依赖，仍是浏览器级 DOM 仿真）
-- **V451-8 REST API 端到端用户旅程 E2E**：190 个 E2E 测试覆盖 dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry
-- **V451-9 Connector Framework 反幽灵 E2E**：12 个 E2E 测试（AG-1 到 AG-8）证明管线激活
+# 含可选依赖
+pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
+pip install "devsquad[all]"    # 所有可选功能
+```
 
-### V4.5.0: 跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告
+### 选项 B: Git Clone + 本地安装
+```bash
+git clone https://github.com/lulin70/DevSquad.git
+cd DevSquad
 
-**DevSquad V4.5.0**（合并 V4.4.3 + V4.4.4 + V4.5.0 变更一次性发布）交付 10 项新特性，覆盖跨会话连续性、协议原生 Skill 架构和行动优先报告。7 角色 AI 团队编排复杂工程任务，提供完整审计链和共识机制。详见 [docs/VISION.md](docs/VISION.md) 项目愿景。
+# 安装核心包（最小依赖）
+pip install -e .
 
-### V4.5.0 — 10 项新特性
-- **ScratchpadHistoryStore**: SQLite 跨会话 Scratchpad 搜索
-- **AgentIdentity**: 确定性 agent ID，用于跨会话追踪
-- **WorkflowTrace**: dispatch 报告中透明工作流追踪
-- **GitContext**: Git 分支/commit 上下文注入 dispatch
-- **SkillProvider Protocol**: 协议原生 Skill 架构（Builtin + MCP providers）
-- **OutputStyle**: 行动优先报告格式（源自 i-have-adhd 洞察）
-- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
-- **FileBundler**: review 模式确定性文件打包（源自 open-code-review）。经 `dispatch --mode review --changeset <files...>` 调用；超过 5 个文件时启用打包，按"同目录 + import 关系"分组（bundle 数由此决定，不由文件数决定）
-- **SKILL.md 模块化拆分**: 1216→282 行 + 3 参考文档（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
-- **VISION 文档**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
+# 即可使用！
+devsquad dispatch -t "设计用户认证系统"
+```
 
-### V4.4.0 — P0-P3 增强模块（5 个新模块）
-- **P0-1 RiskRegister**: PMP 风险管理；7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）+ `GateType.RISK_CHECK` 门禁（exposure ≥ 0.36 阻断）
-- **P0-2 ViewpointRegistry**: TOGAF 架构视点；7 角色绑定正式视点 + `is_orthogonal()` 正交性判断 + `check_consistency()` 矛盾检测
-- **P1-1 ErrorBudgetTracker**: SRE 错误预算；SLO 99.9% 默认 + `GateType.ERROR_BUDGET` P10 门禁（预算耗尽阻断功能部署）+ `burn_rate()` 消耗速率
-- **P1-2 GapAnalyzer**: TOGAF 差距分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` 驱动 LoopScheduler
-- **P2-1 DoraMetricsCollector**: DORA 指标（部署频率 / Lead Time / 变更失败率 / MTTR）+ `GateType.DORA_CHECK` P11 门禁（CFR > 15% 触发架构评审）+ Elite/High/Medium/Low 评级
+### 验证安装
+```bash
+# 检查版本
+devsquad --version
+# 预期: DevSquad 4.10.0
 
-### V4.4.1 — 外部文档重构
-- 归档孤儿 i18n 文档（docs/i18n/ → docs/_archive/i18n/）
-- 退休 CHANGELOG-CN.md（CHANGELOG.md 成为所有语言的 SSOT）
-- 合并管理员凭证到 INSTALL.md（单一信息源）
-- 重新编号 INSTALL.md 方法为连续 1-7
-- 同步所有外部文档版本号（README/SKILL/INSTALL/CLAUDE）
-
-### V4.4.2 — 多语言 + Dashboard 增强
-- 多语言角色 prompt（EN/CN/JP）覆盖全部 7 角色
-- Dashboard 6-Tab 可见性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
-- P2 Kanban 评估（在制品限制 + 周期时间追踪）
-- P3 ITSM 评估（事件管理 + 变更顾问委员会模拟）
-- 13 个 E2E 测试 xpass + 防幽灵计数器
-
-### 防幽灵功能保证
-每个新模块包含 `_call_counter` 机制 + E2E anti_ghost 测试 + CI `check_module_activation.py` 验证。模块必须真正接入 dispatch pipeline（不仅实例化），且 Markdown 报告章节用户可见。V4.5.2 将此模式从 V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）扩展到 V4.5.2（ApprovalGate / ConnectorFramework）。
-
-### 测试金字塔达标
-- **Contract 测试**: 5.2%（目标 ≥5% ✅）
-- **当前发现的测试**：本地扫描发现 9794 个测试，分布在 403 个文件中
-- **Integration 测试**：14.9%（目标 ≥15%，仍有警告）
-- **未分类测试**：0
-- **E2E 覆盖**：已存在于 `tests/e2e/`；最终通过数以本轮 CI 为准
-
-### 历史特性（V4.0.0-V4.3.3）
-- **V4.3.3**: P0-P3 增强 E2E 骨架（xfail TDD for V4.4.0）
-- **V4.3.2**: LLM vs Mock 质量差距衡量（校准门 + 薄切片探针）
-- **V4.3.0 Phase 3**: 质量补强 + 用户模拟 E2E（NPS 9/10）
-- **V4.3.0 Phase 2**: OutputValidator 完整集成（LLM 输出安全检测）
-- **V4.3.0 Phase 1**: DependencyHallucinationChecker（防 Slopsquatting 供应链攻击）
-- **V4.3.0 Phase 0**: DeploymentComplianceChecker（防违规部署兜底）
-- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
-- **V4.0.0 P1-2 UI/UX 巡检**: 4 维度审计 + PIL 像素 diff 视觉回归
-- **V4.0.0 P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁
-- **V4.0.0 P2-2 DAG 可视化**: Mermaid / JSON / DOT 三格式
-- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
-- **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
-
-9800+ tests collected（当前本地扫描；通过数以 CI 为权威）。
+# 运行测试
+pytest tests/ -v --tb=short
+# 预期: 9800+ collected（通过数以 CI 为权威）
+```
 
 ---
 
-## ⚡ 快速开始（7 种调用方式）
+## ▶️ 快速开始：运行第一个任务
 
 ### 方式 1: TRAE Skill（推荐 — 您已经在使用）
 
@@ -233,7 +216,52 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## 👥 7 个核心角色
+## ⚙️ 配置
+
+在项目根目录创建 `.devsquad.yaml`：
+
+```yaml
+quality_control:
+  enabled: true
+  strict_mode: true
+  min_quality_score: 85
+
+llm:
+  backend: auto
+  base_url: ""  # 通过 DEVSQUAD_OPENAI_BASE_URL 环境变量设置
+  model: ""     # 通过 DEVSQUAD_OPENAI_MODEL 环境变量设置
+  timeout: 120
+```
+
+或使用环境变量（优先级更高）：
+
+```bash
+# 默认: auto 优先尝试真实后端，失败后回退到 mock
+export DEVSQUAD_LLM_BACKEND=auto
+export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
+export DEVSQUAD_OPENAI_MODEL=gpt-4
+export DEVSQUAD_OPENAI_API_KEY=sk-...
+```
+
+**环境变量参考：**
+
+| 变量 | 用途 | 默认值 |
+|------|------|--------|
+| `DEVSQUAD_LLM_BACKEND` | 默认后端类型（auto\|mock\|trae\|openai\|anthropic\|fallback） | `auto` |
+| `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
+| `DEVSQUAD_OPENAI_BASE_URL` | OpenAI 兼容 base URL | None |
+| `DEVSQUAD_OPENAI_MODEL` | OpenAI 模型名 | `gpt-4` |
+| `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
+| `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic 兼容 base URL | None |
+| `DEVSQUAD_ANTHROPIC_MODEL` | Anthropic 模型名 | `claude-sonnet-4-20250514` |
+| `MOKA_TIMEOUT` | Moka LLM 请求超时（秒，V4.10.0+） | `90.0` |
+| `DEVSQUAD_LOG_LEVEL` | 日志级别 | `WARNING` |
+
+**Moka LLM 配置**：本地 Moka 服务调优（超时、重试）见 [Moka 调优指南](docs/MOKA_TUNING_GUIDE.md)。
+
+---
+
+## 👥 功能：7 个核心角色
 
 | 角色 | CLI ID | 别名 | 权重 | 最适用于 |
 |------|--------|------|------|----------|
@@ -249,7 +277,7 @@ DEVSQUAD_API_PORT=9000 ./scripts/start.sh
 
 ---
 
-## 🏗️ 五大能力域（架构概览）
+## 🏗️ 功能：五大能力域
 
 DevSquad 的 218+ 个模块组织为 **5 大能力域**，各域解决特定问题：
 
@@ -512,89 +540,6 @@ CLI 视图层 (6 命令)             核心引擎 (12 阶段)
 
 ---
 
-## 📦 安装
-
-### 前置条件
-- **Python 3.10+**（支持 3.10、3.11，CI 已测试）
-- **pip** 或 **pipenv** 包管理
-
-### 选项 A: PyPI 安装（推荐）
-```bash
-# 从 PyPI 安装 — 零配置，开箱即用
-pip install devsquad
-
-# 含可选依赖
-pip install "devsquad[api]"    # FastAPI + Streamlit dashboard
-pip install "devsquad[all]"    # 所有可选功能
-```
-
-### 选项 B: Git Clone + 本地安装
-```bash
-git clone https://github.com/lulin70/DevSquad.git
-cd DevSquad
-
-# 安装核心包（最小依赖）
-pip install -e .
-
-# 即可使用！
-devsquad dispatch -t "设计用户认证系统"
-```
-
-### 验证安装
-```bash
-# 检查版本
-devsquad --version
-# 预期: DevSquad 4.10.0
-
-# 运行测试
-pytest tests/ -v --tb=short
-# 预期: 9800+ collected（通过数以 CI 为权威）
-```
-
----
-
-## ⚙️ 配置
-
-在项目根目录创建 `.devsquad.yaml`：
-
-```yaml
-quality_control:
-  enabled: true
-  strict_mode: true
-  min_quality_score: 85
-
-llm:
-  backend: auto
-  base_url: ""  # 通过 DEVSQUAD_OPENAI_BASE_URL 环境变量设置
-  model: ""     # 通过 DEVSQUAD_OPENAI_MODEL 环境变量设置
-  timeout: 120
-```
-
-或使用环境变量（优先级更高）：
-
-```bash
-# 默认: auto 优先尝试真实后端，失败后回退到 mock
-export DEVSQUAD_LLM_BACKEND=auto
-export DEVSQUAD_OPENAI_BASE_URL=https://api.openai.com/v1
-export DEVSQUAD_OPENAI_MODEL=gpt-4
-export DEVSQUAD_OPENAI_API_KEY=sk-...
-```
-
-**环境变量参考：**
-
-| 变量 | 用途 | 默认值 |
-|------|------|--------|
-| `DEVSQUAD_LLM_BACKEND` | 默认后端类型（auto\|mock\|trae\|openai\|anthropic\|fallback） | `auto` |
-| `DEVSQUAD_OPENAI_API_KEY` | OpenAI/MOKA AI API key | None |
-| `DEVSQUAD_OPENAI_BASE_URL` | OpenAI 兼容 base URL | None |
-| `DEVSQUAD_OPENAI_MODEL` | OpenAI 模型名 | `gpt-4` |
-| `DEVSQUAD_ANTHROPIC_API_KEY` | Anthropic API key | None |
-| `DEVSQUAD_ANTHROPIC_BASE_URL` | Anthropic 兼容 base URL | None |
-| `DEVSQUAD_ANTHROPIC_MODEL` | Anthropic 模型名 | `claude-sonnet-4-20250514` |
-| `DEVSQUAD_LOG_LEVEL` | 日志级别 | `WARNING` |
-
----
-
 ## 🧪 测试
 
 ### 快速冒烟测试（< 30 秒）
@@ -657,6 +602,84 @@ python3 -m pytest tests/ -q --tb=line
 | [docs/prd/V4.3.0_PRD.md](docs/prd/V4.3.0_PRD.md) | V4.3.0 PRD（需求/用户故事/验收标准） | 中文 |
 | [docs/architecture/V4.3.0_ARCHITECTURE.md](docs/architecture/V4.3.0_ARCHITECTURE.md) | V4.3.0 架构设计（模块边界/接口契约/依赖图） | 中文 |
 | [docs/testing/V4.3.0_TEST_PLAN.md](docs/testing/V4.3.0_TEST_PLAN.md) | V4.3.0 测试方案（测试金字塔/E2E/真实用户模拟） | 中文 |
+
+---
+
+## 📜 版本历史
+
+> **当前版本：V4.10.0** —— 变更见 [CHANGELOG.md](CHANGELOG.md)。以下为截至 V4.5.2 的存档历史。
+
+**DevSquad V4.5.2**（PATCH 发布，符合 SemVer）引入 2 个新模块并完成 3 个 ROADMAP 项（V451-1、V451-2、V451-7/8/9）。所有新模块默认采用安全、向后兼容的行为——无 API 破坏性变更。详见 [docs/release_notes/V4.5.2_RELEASE_NOTES.md](docs/release_notes/V4.5.2_RELEASE_NOTES.md) 完整发布说明。
+
+### V4.5.2 — 2 个新模块 + 3 个 ROADMAP 项
+- **ApprovalGate**：外部操作的用户级审批机制。回调异常时 fail-closed。未配置回调时自动批准（向后兼容）。
+- **ConnectorFramework**：外部系统集成的协议接口（GitHub 优先）。`Connector` Protocol + `GitHubConnector`（api/cli/simulation 三种模式）。调度管线默认强制 `simulation=True`。
+- **V451-7 Dashboard 浏览器级 E2E**：11 个 AppTest 用例（Streamlit AppTest 替代 Playwright——避免重浏览器依赖，仍是浏览器级 DOM 仿真）
+- **V451-8 REST API 端到端用户旅程 E2E**：190 个 E2E 测试覆盖 dispatch→history→roles→quick dispatch→error handling→lifecycle→cross-entry
+- **V451-9 Connector Framework 反幽灵 E2E**：12 个 E2E 测试（AG-1 到 AG-8）证明管线激活
+
+### V4.5.0: 跨会话连续性 + 协议原生 Skill 架构 + 行动优先报告
+
+**DevSquad V4.5.0**（合并 V4.4.3 + V4.4.4 + V4.5.0 变更一次性发布）交付 10 项新特性，覆盖跨会话连续性、协议原生 Skill 架构和行动优先报告。7 角色 AI 团队编排复杂工程任务，提供完整审计链和共识机制。详见 [docs/VISION.md](docs/VISION.md) 项目愿景。
+
+### V4.5.0 — 10 项新特性
+- **ScratchpadHistoryStore**: SQLite 跨会话 Scratchpad 搜索
+- **AgentIdentity**: 确定性 agent ID，用于跨会话追踪
+- **WorkflowTrace**: dispatch 报告中透明工作流追踪
+- **GitContext**: Git 分支/commit 上下文注入 dispatch
+- **SkillProvider Protocol**: 协议原生 Skill 架构（Builtin + MCP providers）
+- **OutputStyle**: 行动优先报告格式（源自 i-have-adhd 洞察）
+- **SessionResume CLI**: `devsquad sessions list` + `dispatch --resume`
+- **FileBundler**: review 模式确定性文件打包（源自 open-code-review）。经 `dispatch --mode review --changeset <files...>` 调用；超过 5 个文件时启用打包，按"同目录 + import 关系"分组（bundle 数由此决定，不由文件数决定）
+- **SKILL.md 模块化拆分**: 1216→282 行 + 3 参考文档（MODULE_REFERENCE / SUB_SKILLS / VERSION_HISTORY）
+- **VISION 文档**: docs/VISION.md + VISION_ORCHESTRATION.md + VISION_AGENT_COLLABORATION.md
+
+### V4.4.0 — P0-P3 增强模块（5 个新模块）
+- **P0-1 RiskRegister**: PMP 风险管理；7 角色加权评估（probability × impact）+ 4 种响应策略（规避/转移/减轻/接受）+ `GateType.RISK_CHECK` 门禁（exposure ≥ 0.36 阻断）
+- **P0-2 ViewpointRegistry**: TOGAF 架构视点；7 角色绑定正式视点 + `is_orthogonal()` 正交性判断 + `check_consistency()` 矛盾检测
+- **P1-1 ErrorBudgetTracker**: SRE 错误预算；SLO 99.9% 默认 + `GateType.ERROR_BUDGET` P10 门禁（预算耗尽阻断功能部署）+ `burn_rate()` 消耗速率
+- **P1-2 GapAnalyzer**: TOGAF 差距分析；`analyze(current, target)` + `prioritize()` + `generate_roadmap()` + `suggest_scheduler_decision()` 驱动 LoopScheduler
+- **P2-1 DoraMetricsCollector**: DORA 指标（部署频率 / Lead Time / 变更失败率 / MTTR）+ `GateType.DORA_CHECK` P11 门禁（CFR > 15% 触发架构评审）+ Elite/High/Medium/Low 评级
+
+### V4.4.1 — 外部文档重构
+- 归档孤儿 i18n 文档（docs/i18n/ → docs/_archive/i18n/）
+- 退休 CHANGELOG-CN.md（CHANGELOG.md 成为所有语言的 SSOT）
+- 合并管理员凭证到 INSTALL.md（单一信息源）
+- 重新编号 INSTALL.md 方法为连续 1-7
+- 同步所有外部文档版本号（README/SKILL/INSTALL/CLAUDE）
+
+### V4.4.2 — 多语言 + Dashboard 增强
+- 多语言角色 prompt（EN/CN/JP）覆盖全部 7 角色
+- Dashboard 6-Tab 可见性（Overview/Dispatch/Lifecycle/Metrics/Audit/Settings）
+- P2 Kanban 评估（在制品限制 + 周期时间追踪）
+- P3 ITSM 评估（事件管理 + 变更顾问委员会模拟）
+- 13 个 E2E 测试 xpass + 防幽灵计数器
+
+### 防幽灵功能保证
+每个新模块包含 `_call_counter` 机制 + E2E anti_ghost 测试 + CI `check_module_activation.py` 验证。模块必须真正接入 dispatch pipeline（不仅实例化），且 Markdown 报告章节用户可见。V4.5.2 将此模式从 V4.4.0（RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector）扩展到 V4.5.2（ApprovalGate / ConnectorFramework）。
+
+### 测试金字塔达标
+- **Contract 测试**: 5.2%（目标 ≥5% ✅）
+- **当前发现的测试**：本地扫描发现 9794 个测试，分布在 403 个文件中
+- **Integration 测试**：14.9%（目标 ≥15%，仍有警告）
+- **未分类测试**：0
+- **E2E 覆盖**：已存在于 `tests/e2e/`；最终通过数以本轮 CI 为准
+
+### 历史特性（V4.0.0-V4.3.3）
+- **V4.3.3**: P0-P3 增强 E2E 骨架（xfail TDD for V4.4.0）
+- **V4.3.2**: LLM vs Mock 质量差距衡量（校准门 + 薄切片探针）
+- **V4.3.0 Phase 3**: 质量补强 + 用户模拟 E2E（NPS 9/10）
+- **V4.3.0 Phase 2**: OutputValidator 完整集成（LLM 输出安全检测）
+- **V4.3.0 Phase 1**: DependencyHallucinationChecker（防 Slopsquatting 供应链攻击）
+- **V4.3.0 Phase 0**: DeploymentComplianceChecker（防违规部署兜底）
+- **V4.0.0 P1-1 Loop Engineering**: Discovery → Handoff → Verification → Persistence → Scheduling 五步闭环
+- **V4.0.0 P1-2 UI/UX 巡检**: 4 维度审计 + PIL 像素 diff 视觉回归
+- **V4.0.0 P2-1 Adversarial 验证**: 红队攻击 + 蓝队防御 + 裁判仲裁
+- **V4.0.0 P2-2 DAG 可视化**: Mermaid / JSON / DOT 三格式
+- **V4.0.0 P3-1 Autonomous**: plan → dev → verify → fix 4 阶段自主迭代
+- **V4.0.0 P3-2 插件热加载**: 3 加载路径 + 路径穿越三层防护 + reload 回滚
+
+9800+ tests collected（当前本地扫描；通过数以 CI 为权威）。
 
 ---
 
@@ -724,6 +747,4 @@ python3 -m pytest tests/ -q --tb=line
 
 ---
 
-*最后更新：2026-10-27 | 版本：V4.9.0（缺陷台账 MINOR：W1 缺陷台账核心——SQLite 封闭状态机 open|fixed|closed 原子写+fail-closed 加载、signal_ref 解析契约、`defect` CLI 六子命令；W2 信号写入端——log_dispatch_end findings/failure_class 扩展、终态接线、Step 24 C19 终态重算、PRD §4.2 映射表；W3 登记闸——fail-closed 必查信号三态追踪（tracked/unregistered/regressed）+ advisory 未立案报告 + `.devsquad.yaml` 开关；W4 特性门——SHA256 锚定验收清单、实时 pass/fail/waived 覆盖矩阵、篡改检测、默认关闭零痕迹；PR #71/#76/#77/#80/#81/#83/#84） | V4.8.2（gate 修复 PATCH：本仓 dogfood 在 PR #71 上发现的 print_debug 误报——CLI 命令族（scripts/cli*.py）以 stdout 输出为产品接口而非调试残留；diff 扫描器现仅对 print_debug 豁免 CLI 输出层，secrets/eval/SQL 注入族在这些文件中仍全覆盖；PR #72） | V4.8.1（gate 修复 PATCH：本仓 dogfood 发现的 F-D1——diff 模式扫描的 findings 现遵循确定性路径门：include/exclude 与默认排除约束 diff 扫描面、尾部 /** 恢复 gitignore 目录语义、secrets 保留于一切审查保留路径而代码气味限 source 类文件；PR #62） | V4.8.0（workflow-entry MINOR：QUICKSTART 三 persona 通道——IDE/MCP 零 key、CLI init 分流含后端探测、维护者 wrapper 工作流；doc_command 门禁保证 36 条文档 CLI 命令与 argparse 注册表一致；MCP 集成指南单源化；dogfooding 季报生成器；TD-076 mcp>=1,<2 约束；E1 消费者审计裁定——live-browser 移除、impeccable 词表接线 `doctor --command`） | V4.7.2（卫生 PATCH：清除用户可见面 6 处过时版本串、版本门禁新增负向过时串扫描、PROJECT_STATUS 刷新至发布现实、api 性能基线真实测量） | V4.7.1（发布完整性 PATCH：修复 PyPI devsquad 入口点——移除遮蔽 cli.py 的 scripts/cli/ 包、声明 defusedxml 依赖、恢复发布门禁 e2e marker） | V4.7.0（W1 已交付 BREAK/VULN 十类确定性 review 分类、C20、反向门禁、真实 review-gate subprocess E2E 和模拟真实用户验证；MINOR；已发布 tag v4.7.0） | V4.6.0（E2E 框架启发的测试基建 MINOR：LLM 回放缓存进 PR CI——首次真实调用录制、后续 PR 近零成本回放；失败分类学 product_failed/environment_blocked + exit 2；独立 judge 语义断言；e2e 失败自动贴 PR 评论） | V4.5.24（CI 门禁 PATCH：dispatcher size 基线门禁同时进入 PR CI） | V4.5.23（治理 + 根因 PATCH：CI lint 工具运行时从 requirements-dev.lock 读取——消除 Dependabot 盲区的第四份版本副本；8 个 GitHub Actions SHA pin + `.github/CODEOWNERS`；repo 根 `:memory:` 目录根因归因为 `LLMCache(":memory:")` 无守卫 mkdir，LLMCache/AsyncLLMCache 按 SQLite 约定修复） | V4.5.22（Backend 配置 PATCH：gitignored `moka_ai.json` 进入 auto 链 Moka 候选为最低优先级来源——kwargs > env > file——恢复设计顺序 Moka → OpenAI(DeepSeek) → Anthropic；conftest autouse fixture 隔离维护者本地凭据对测试的影响；radon cc 打红后 `_build_api_backends` 分解为 per-provider 构建函数） | V4.5.21（安全 + 工具链 PATCH：Dependabot 漏洞闭环、分支保护收紧、CI 最小权限；ruff 0.16.10/mypy 2.4.0 全链对齐；flaky 加固——min-of-3 采样、熔断 E2E warm-up；`enable_anchor_check=False` 工厂修复） | V4.5.20（版本 SSOT 真实化 + 确定性 review 打包：`--mode review --changeset` 接通真实打包、子技能 manifest 版本门禁、反幽灵生产探针 —— MINOR） | V4.5.19（Flaky 测试清理：仪表盘延迟门禁改为 5 次中位数 + pytest-rerunfailures） | V4.5.18（性能扩展：SQLite PRAGMA 扩展至 ccr_store/history_manager + SkillRegistry 线程安全热修） | V4.5.17（V4.6.1-cleanup：PR #9 CI 修复 + e2e 可移植性 + 发布就绪） | V4.5.16（Housekeeping + 数字真实 PATCH：18 文件 SSOT 同步、徽标 9400+/204+、日期 2026-09-03） | V4.5.15（Skill 注册门禁 + Prometheus E2E 工具 + 三层 TRAE 缓存同步） | V4.5.10（HostLLMBridge v2 生产接线 + --async CLI） | V4.5.9（执行层统一 gather 化 + Worker 原生异步） | V4.5.8（FileRiskStore 持久化 + risks add/assess/mitigate/close + exposure 过滤） | V4.5.7（Coeffect 异步化 + Risk Register UX CLI） | V4.5.6（Module Fiber + Coeffect：6 状态 FSM + 拓扑激活 + modules CLI） | V4.5.3（Artifacts + Effect — ArtifactStore + DispatchEffect + EffectRegistry + Audit CLI） | V4.5.2（体验打磨：MOKA + Metrics + GitLab + Doctor + BackendConfig） | V4.5.0（跨会话连续性 + 协议原生 Skill） | V4.4.0（5 个新增增强模块：RiskRegister / ViewpointRegistry / ErrorBudgetTracker / GapAnalyzer / DoraMetricsCollector — 详见 [CHANGELOG.md](CHANGELOG.md)）*
-
-</details>
+*最后更新：2026-11-08 | 版本：V4.10.0 — 完整变更见 [版本历史](#-版本历史)。*
