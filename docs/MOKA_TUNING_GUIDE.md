@@ -113,7 +113,7 @@ export MOKA_TIMEOUT=600
 # 测试基础连接(应该在5秒内返回)
 curl -X POST http://127.0.0.1:8787/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-T6tGOhPri3oXIwduVb4aFm19xxirzxhJ45UHT06G1w7Kl9nG" \
+  -H "Authorization: Bearer $MOKA_API_KEY" \
   -d '{
     "model": "moka/claude-sonnet-4-5",
     "messages": [{"role": "user", "content": "hi"}],

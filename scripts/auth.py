@@ -113,17 +113,37 @@ class AuthManager:
         logger.info("AuthManager initialized (enabled=%s)", self.auth_enabled)
 
     def _load_config(self) -> dict[str, Any]:
-        """Load deployment configuration from YAML file."""
+        """Load deployment configuration from YAML file.
+
+        ``${VAR}`` placeholders are expanded from the environment. The shipped
+        ``config/deployment.yaml`` declares every credential hash and the
+        session key this way, so without expansion the literal placeholder
+        string becomes the stored password and no login can ever succeed.
+        Unset variables keep their literal placeholder, so the security
+        validation can still flag them.
+        """
         try:
             if os.path.exists(self.config_path):
                 with open(self.config_path, encoding="utf-8") as f:
-                    return yaml.safe_load(f) or {}
+                    config = yaml.safe_load(f) or {}
+                    return self._expand_env_placeholders(config)
             else:
                 logger.warning("Config file not found: %s", self.config_path)
                 return {}
         except (OSError, yaml.YAMLError, ValueError) as e:
             logger.error("Failed to load config: %s", e)
             return {}
+
+    @classmethod
+    def _expand_env_placeholders(cls, value: Any) -> Any:
+        """Recursively expand ``${VAR}`` placeholders in parsed YAML."""
+        if isinstance(value, dict):
+            return {key: cls._expand_env_placeholders(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [cls._expand_env_placeholders(item) for item in value]
+        if isinstance(value, str):
+            return os.path.expandvars(value)
+        return value
 
     def _get_credentials(self) -> dict[str, dict]:
         """Get credentials from configuration."""

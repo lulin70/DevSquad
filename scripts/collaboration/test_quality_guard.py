@@ -29,9 +29,11 @@
 """
 
 import ast
+import io
 import logging
 import re
 import time
+import tokenize
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -444,8 +446,13 @@ class AntiPatternDetector:
         """
         issues = []
         lines = source.split("\n")
+        literal_lines = self._string_literal_lines(source)
         for idx, line in enumerate(lines, 1):
             stripped = line.strip()
+            # Anti-patterns inside string literals are fixture samples or
+            # documentation, not real violations.
+            if idx in literal_lines:
+                continue
             for pat in self.SUSPICIOUS_PATTERNS:
                 if pat["pattern"] and pat["pattern"].search(stripped):
                     # V4.5.6 W2: anti-status-code-only 上下文豁免
@@ -466,6 +473,33 @@ class AntiPatternDetector:
                         )
                     )
         return issues
+
+    @staticmethod
+    def _string_literal_lines(source: str) -> set[int]:
+        """Return the 1-based line numbers covered by Python string literals.
+
+        Test files often embed sample code inside triple-quoted strings. A
+        pattern such as ``except:`` in that sample is test data, not a real
+        anti-pattern. Tokenizing keeps the detector honest instead of forcing
+        authors to hide fixtures.
+
+        Args:
+            source: Source text to tokenize.
+
+        Returns:
+            Set of line numbers inside string literals. Empty when the source
+            cannot be tokenized.
+        """
+        covered: set[int] = set()
+        try:
+            tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+            for token in tokens:
+                if token.type != tokenize.STRING:
+                    continue
+                covered.update(range(token.start[0], token.end[0] + 1))
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            return set()
+        return covered
 
     @staticmethod
     def _has_side_effect_check(lines: list[str], idx: int) -> bool:

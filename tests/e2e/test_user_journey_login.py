@@ -212,6 +212,45 @@ class TestRealUserLoginFlow:
         assert u1.session_id != u2.session_id, "两次登录的 session_id 必须不同"
         assert len(u1.session_id) >= 32, "session_id 应为足够长的随机 hex"
 
+    def test_env_placeholder_password_login_success(self, temp_config, monkeypatch):
+        """场景 7：配置使用 ${VAR} 占位符时，应从环境变量展开并可登录。
+
+        真实 config/deployment.yaml 的全部凭证均以占位符声明。若加载时
+        不展开，存库密码会变成字面量 "${...}"，任何用户都无法登录。
+        """
+        pbkdf2_hash = _hash_password("EnvPass123!")
+        monkeypatch.setenv("DEVSQUAD_TEST_PASSWORD_HASH", pbkdf2_hash)
+        _write_config(
+            temp_config,
+            {
+                "erin": {
+                    "password": "${DEVSQUAD_TEST_PASSWORD_HASH}",
+                    "role": "operator",
+                    "email": "erin@example.com",
+                    "name": "Erin",
+                }
+            },
+        )
+
+        am = AuthManager(config_path=str(temp_config))
+        assert am.credentials["erin"]["password"] == pbkdf2_hash, "占位符应展开为环境变量值"
+
+        user = am.verify_credentials("erin", "EnvPass123!")
+        assert user is not None, "占位符展开后登录应成功"
+        assert user.role == UserRole.OPERATOR
+
+    def test_unset_env_placeholder_keeps_literal(self, temp_config, monkeypatch):
+        """场景 8：未设置的环境变量保留字面占位符，登录失败而不是误放行。"""
+        monkeypatch.delenv("DEVSQUAD_TEST_MISSING_HASH", raising=False)
+        _write_config(
+            temp_config,
+            {"frank": {"password": "${DEVSQUAD_TEST_MISSING_HASH}", "role": "viewer"}},
+        )
+
+        am = AuthManager(config_path=str(temp_config))
+        assert am.credentials["frank"]["password"] == "${DEVSQUAD_TEST_MISSING_HASH}"
+        assert am.verify_credentials("frank", "anything") is None, "未展开的占位符不得放行登录"
+
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v", "--tb=short"]))

@@ -123,6 +123,28 @@ def format_worker_error(exc: BaseException) -> str:
     return f"{type(exc).__name__}: {exc}"
 
 
+def _is_missing_optional_dependency(error: str) -> bool:
+    """Return True when the error reports a missing *third-party* dependency.
+
+    A missing optional SDK (``pip install openai``) is a prerequisite outside
+    the product, so it is ``environment_blocked``. A missing module inside our
+    own package is a packaging bug and must stay ``product_failed``.
+    """
+    lowered = error.lower()
+    if "package required" in lowered:
+        return True
+    marker = "no module named "
+    index = lowered.find(marker)
+    if index == -1:
+        return False
+    tail = error[index + len(marker) :].strip()
+    if not tail:
+        return False
+    module = tail.split()[0].strip("'\"")
+    root = module.split(".")[0].lower()
+    return root not in {"scripts", "tests", "conftest"}
+
+
 def classify_error_text(error: str | None) -> FailureClass:
     """Classify one error string into the taxonomy.
 
@@ -137,6 +159,8 @@ def classify_error_text(error: str | None) -> FailureClass:
     for marker in ENVIRONMENT_ERROR_MARKERS:
         if marker in lowered:
             return FailureClass.ENVIRONMENT_BLOCKED
+    if _is_missing_optional_dependency(error):
+        return FailureClass.ENVIRONMENT_BLOCKED
     return FailureClass.PRODUCT_FAILED
 
 
