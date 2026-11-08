@@ -161,10 +161,11 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 
 | 级别 | 风险 | 处置 |
 |------|------|------|
-| P1 | Moka API Key 在 git 历史中 | 密钥数日内失效，用户决定不轮换；到期后确认作废 |
-| P2 | 5 个模块无任何生产引用 | `GitLabConnector`、`DispatcherTransaction`、`IntentWorkflowMapper`、`DispatchLoopController`、`AsyncCoeffectResolver`；已在测试中 xfail 记录证据 |
+| P1 | Moka API Key 已进入 git 历史 | 不轮换，等密钥自然失效。本地 `pre-commit` 已加 `no-secrets` 钩子。CI 已有三层防护。 |
+| P2 | 5 个模块无生产引用 | 建议全部删除。详见 7.1。当前用 xfail 记录证据。 |
 
 已关闭：
+- 明文密钥再次进入提交（2026-11-08 新增 `no-secrets` pre-commit 钩子和 3 条同形态回归用例）。
 - 真实浏览器登录旅程未验证（2026-11-08 通过 Playwright 验证）。
 - venv 解释器混用（2026-11-08 重建为 3.12）。
 - 门禁包装器版本落后（2026-11-08 升级到 `v4.10.0`）。
@@ -174,12 +175,50 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 - `prometheus-client` 未列入 `.[dev]`（2026-11-08 补入）。
 - `devsquad audit` 未进入分发分支（2026-11-08 修复并加回归用例）。
 
+### 7.1 5 个无引用模块的处置建议
+
+判定方法：在 `scripts/` 和 `skills/` 中搜索 import 语句。排除 `scripts/check_module_activation*.py` 探针后，5 个模块均无生产引用。
+
+| 模块（注册名） | 行数 | 设计初衷 | 建议 | 理由 |
+|------|------|------|------|------|
+| `gitlab_connector.py`（GitLabConnector_P12.1.3） | 393 | V4.5.2 第二个外部连接器。支持 MR 评论、Issue 状态、MR 审批。 | 删除 | `ConnectorFramework` 只接线 GitHub。GitLab 没有用户路径。将来需要时，在 `ConnectorFramework` 内增加后端，不保留独立模块。 |
+| `dispatcher_transaction.py`（DispatcherTransaction_P12.4.2） | 412 | V4.5.6 模块依赖图的事务边界。5 状态 FSM。 | 删除 | `EffectRegistry.revert_all()` 已覆盖副作用回滚。调度器没有模块级依赖图。 |
+| `dispatcher_intent_mapper.py`（IntentWorkflowMapper_P12.4.3） | 236 | V4.5.6 用 YAML 解析 6 intent × 3 语言的工作流。 | 删除 | 与已接线的 `intent_workflow_mapper.py`（513 行）职责重复。CLI 和组件工厂只调用后者。 |
+| `dispatcher_loop_controller.py`（DispatchLoopController_P12.4.4） | 256 | V4.5.6 循环熔断。连续 2 次同因 retriable 转为 fatal。 | 删除 | 调度器没有循环重试。接线等于新增一套重试机制，超出当前需求。 |
+| `async_coeffect_resolver.py`（AsyncCoeffectResolver_P12.5.1） | 259 | V4.5.7 异步版 CoeffectResolver。6 状态 FSM。 | 删除 | 同步版已在 `dispatcher_activation_mixin` 接线。coeffect 解析是拓扑排序，异步化没有收益。 |
+
+删除成本：
+- 生产代码 5 个文件，共 1,556 行。
+- 测试 8 个文件：`tests/test_gitlab_connector.py`、`tests/test_dispatcher_transaction.py`、`tests/test_dispatcher_intent_mapper.py`、`tests/test_dispatcher_loop_controller.py`、`tests/unit/test_async_coeffect_resolver.py`、`tests/contract/test_coeffect_api_contract.py`、`tests/integration/test_async_coeffect_pipeline.py`、`tests/e2e/test_coeffect_async_pipeline.py`。
+- 探针 3 处：`scripts/check_module_activation.py`、`scripts/check_module_activation_probes.py`、`tests/integration/test_selfcall_modules_real_path.py` 的 `UNREACHABLE_MODULES`。
+- 模块清单数字：self-call 已验证模块从 27 降到 22。
+
+结论：5 个全部删除。唯一例外：如近期出现 GitLab 用户，只接线 `GitLabConnector`，并在 `ConnectorFramework` 内注册。
+
+### 7.2 已接受的延后项：4 个超基线文件
+
+用户决定：本轮不拆分。文件再增长时，一并修复。
+
+| 文件 | 当前 LOC | 基线 LOC | 增量 | 决定 |
+|------|------|------|------|------|
+| `collaboration/unified_gate_engine.py` | 999 | 902 | +97 | 延后 |
+| `collaboration/lifecycle_shortcut_adapter.py` | 822 | 776 | +46 | 延后 |
+| `collaboration/test_quality_guard.py` | 1,070 | 1,040 | +30 | 延后 |
+| `collaboration/coordinator.py` | 833 | 806 | +27 | 延后 |
+
+处理方式：`docs/audits/dispatcher_size_baseline.json` 已按当前尺寸刷新。尺寸门禁恢复绿色。门禁规则不变：任一再增长都会阻塞 PR。
+
+触发条件：任一文件再次超过基线，或进入下一次拆分窗口，就一并拆分。
+
+注意：这不是免责。这是有记录的延后项。
+
 ---
 
 ## 8. 下一步建议（按顺序）
 
 1. API Key 到期后确认作废。随后按需清理 git 历史。
-2. 决定 5 个无引用模块的处置：接线或删除。
+2. 执行 7.1 的删除建议。等用户授权。
+3. 7.2 的 4 个文件在下次扩张时拆分。
 
 ---
 
@@ -190,3 +229,4 @@ DevSquad 的核心引擎可运行，测试规模大。但本轮发现 1 个阻�
 | 2026-11-07 | 首次发布权威评估。包含认证缺陷修复、性能门禁去抖、测试基线 |
 | 2026-11-08 | 重建 `.venv` 为 Python 3.12；新增 Playwright 真实浏览器 E2E；评级升至预发布可用 |
 | 2026-11-08 | 关闭工程遗留：gate wrapper v4.10.0、浏览器回归入 CI、`width` 迁移、`prometheus-client` 入 dev、`devsquad audit` 修复、22 个模块真实链路断言、两个超大文件拆分（1684→567、1272→815） |
+| 2026-11-08 | 密钥防护前移：新增 `no-secrets` pre-commit 钩子和 3 条同形态回归用例。评估 5 个无引用模块，建议全部删除。刷新尺寸基线，记录 4 个延后文件 |
