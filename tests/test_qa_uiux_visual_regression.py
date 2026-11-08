@@ -18,6 +18,7 @@ from scripts.qa import (
 # ============================================================
 
 
+@pytest.mark.requires_pillow
 class TestUIUXIssueModel:
     def test_issue_creation(self):
         issue = UIUXIssue(

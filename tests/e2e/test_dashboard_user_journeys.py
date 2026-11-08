@@ -118,11 +118,13 @@ class TestUserJourneyOperatorDispatch(unittest.TestCase):
         """Journey: Operator fills form, submits task, views result."""
         app = _run_dashboard(role="operator")
 
-        # Step 1: Navigate to Dispatch page (if tab exists)
+        # Step 1: Navigate to the dispatch page. The real navigation label is
+        # "Task Dispatch"; match on the option list instead of guessing.
         if app.radio:
-            tabs = [r.value for r in app.radio]
-            if "Dispatch" in str(tabs):
-                app.radio[0].set_value("Dispatch").run()
+            options = list(app.radio[0].options)
+            dispatch_page = next((opt for opt in options if "dispatch" in opt.lower()), None)
+            if dispatch_page:
+                app.radio[0].set_value(dispatch_page).run()
 
         # Step 2: Check for task input elements
         # Streamlit Dashboard may use text_area for task description

@@ -2,9 +2,11 @@
 
 from fastapi.testclient import TestClient
 
+import pytest
 from scripts.api_server import app
 
 
+@pytest.mark.requires_api
 def test_lifecycle_scan_api_returns_findings_and_proposals(tmp_path, monkeypatch):
     document = tmp_path / "requirements.md"
     document.write_text("# Objectives\n", encoding="utf-8")

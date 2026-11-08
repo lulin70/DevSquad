@@ -114,6 +114,7 @@ def mcp_server():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.requires_mcp
 def test_mcp_server_starts_and_responds(mcp_server):
     """Journey-1: MCP SSE server starts, binds, and /sse returns 200."""
     base_url, port = mcp_server

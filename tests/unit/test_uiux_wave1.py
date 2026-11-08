@@ -28,6 +28,7 @@ from scripts.dashboard.metrics_views import (
 # ── W1-T1: Dispatch real-time visualization ──
 
 
+@pytest.mark.requires_ui
 class TestPredictAutoRoles:
     """Verify: _predict_auto_roles returns 2-4 role IDs based on task keywords."""
 

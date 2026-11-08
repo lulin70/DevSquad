@@ -16,6 +16,8 @@ import sys
 import tempfile
 from datetime import datetime
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -293,6 +295,7 @@ class TestHistoryManager:
             history.close()
 
 
+@pytest.mark.requires_api
 class TestAPIDataModels:
     """Test suite for Pydantic data models."""
 

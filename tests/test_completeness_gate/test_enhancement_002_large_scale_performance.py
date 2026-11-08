@@ -139,11 +139,15 @@ def test_performance_timing_breakdown():
             files.append(f)
         
         gate = ImplementationCompletenessGate()
-        start = time.time()
-        result = gate.check(files)
-        elapsed = time.time() - start
-        
-        timings[count] = elapsed
+        # Minimum of 3 runs: scheduling noise and CPU contention can only add
+        # time, so the minimum is the best estimator of the gate's own cost.
+        # A single sample made this ratio flaky under full-suite load.
+        best = float("inf")
+        for _ in range(3):
+            start = time.time()
+            result = gate.check(files)
+            best = min(best, time.time() - start)
+        timings[count] = best
     
     # Verify all completed
     assert all(t > 0 for t in timings.values())

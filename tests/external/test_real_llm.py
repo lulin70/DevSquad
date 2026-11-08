@@ -42,6 +42,9 @@ def openai_key():
     key = os.environ.get("DEVSQUAD_OPENAI_API_KEY")
     if not key:
         pytest.skip("DEVSQUAD_OPENAI_API_KEY not set")
+    # The SDK is an optional extra. Without it the backend cannot be built, so
+    # skip instead of failing on an ImportError deep inside the backend.
+    pytest.importorskip("openai", reason="openai SDK not installed (pip install -e .[openai])")
     return key
 
 
@@ -50,6 +53,9 @@ def anthropic_key():
     key = os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
     if not key:
         pytest.skip("DEVSQUAD_ANTHROPIC_API_KEY not set")
+    pytest.importorskip(
+        "anthropic", reason="anthropic SDK not installed (pip install -e .[anthropic])"
+    )
     return key
 
 

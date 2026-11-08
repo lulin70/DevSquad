@@ -144,6 +144,7 @@ def api_server():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.requires_api
 def test_e2e_api_dispatch_task(api_server):
     """Journey-1: POST /api/v1/tasks/dispatch returns a successful dispatch result.
 

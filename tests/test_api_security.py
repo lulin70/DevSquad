@@ -230,6 +230,7 @@ def viewer_client(monkeypatch, tmp_path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.requires_api
 class TestDevModeBypass:
     """Tests that DEVSQUAD_API_AUTH_DISABLED=1 bypasses all auth."""
 

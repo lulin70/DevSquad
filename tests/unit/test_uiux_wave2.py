@@ -8,6 +8,7 @@ Tests for:
 
 from __future__ import annotations
 
+import pytest
 import re
 from unittest.mock import patch
 
@@ -21,6 +22,7 @@ from scripts.dashboard.components import (
 # ── W2-T1: Dark mode colors ──
 
 
+@pytest.mark.requires_ui
 class TestDarkModeColors:
     """Verify: LIGHT_MODE_COLORS and DARK_MODE_COLORS are valid Morandi-tuned palettes."""
 

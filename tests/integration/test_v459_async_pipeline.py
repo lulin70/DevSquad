@@ -56,6 +56,8 @@ class CountingAsyncBackend(AsyncLLMBackendInterface):
 
 async def _openai_backend_with_mock_transport() -> AsyncOpenAIBackend:
     """Create an AsyncOpenAIBackend with a loop-bound mock HTTP client."""
+    # The OpenAI SDK is an optional extra; skip rather than fail when absent.
+    pytest.importorskip("openai", reason="openai SDK not installed (pip install -e .[openai])")
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

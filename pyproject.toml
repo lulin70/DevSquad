@@ -254,6 +254,14 @@ markers = [
     "contract: cross-module API contract tests",
     "openai: real OpenAI API tests (release-only)",
     "moka: real MOKA AI API tests (release-only)",
+    "requires_api: requires FastAPI/uvicorn/pydantic (optional dependencies)",
+    "requires_ui: requires Streamlit (optional dependency)",
+    "requires_mcp: requires MCP SDK (optional dependency)",
+    "requires_pillow: requires Pillow for image processing (optional dependency)",
+    "requires_requests: requires requests library (optional dependency)",
+    "requires_redis: requires fakeredis for Redis-backed tests (optional dependency)",
+    "requires_hypothesis: requires hypothesis for property-based tests (optional dependency)",
+    "requires_browser: requires Playwright with Chromium for real-browser E2E (optional dependency)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

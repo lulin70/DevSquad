@@ -22,6 +22,7 @@ from scripts.collaboration.workflow_engine_base import (
     WorkflowInstance,
     WorkflowStatus,
     WorkflowStep,
+    required_roles_for_phase,
 )
 
 pytestmark = pytest.mark.unit
@@ -346,6 +347,31 @@ class TestPhaseTemplates(unittest.TestCase):
         "optional",
         "node_type",
     }
+
+    def test_required_roles_for_phase_basic(self) -> None:
+        """Test required_roles_for_phase extracts role_id and reviewers."""
+        phase = {"role_id": "architect", "reviewers": ["security", "devops"]}
+        roles = required_roles_for_phase(phase)
+        self.assertEqual(roles, ["architect", "security", "devops"])
+
+    def test_required_roles_for_phase_deduplication(self) -> None:
+        """Test required_roles_for_phase deduplicates roles."""
+        phase = {"role_id": "architect", "reviewers": ["architect", "security", "architect"]}
+        roles = required_roles_for_phase(phase)
+        self.assertEqual(roles, ["architect", "security"])
+
+    def test_required_roles_for_phase_empty_role_id(self) -> None:
+        """Test required_roles_for_phase handles empty role_id."""
+        phase = {"role_id": "", "reviewers": ["security"]}
+        roles = required_roles_for_phase(phase)
+        self.assertEqual(roles, ["security"])
+
+    def test_required_roles_for_phase_no_reviewers(self) -> None:
+        """Test required_roles_for_phase handles missing reviewers."""
+        phase = {"role_id": "pm"}
+        roles = required_roles_for_phase(phase)
+        self.assertEqual(roles, ["pm"])
+
 
     def test_all_phases_have_required_keys(self) -> None:
         for phase_id, template in PHASE_TEMPLATES.items():

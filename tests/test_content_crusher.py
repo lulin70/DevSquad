@@ -336,6 +336,22 @@ class TestPerformance(unittest.TestCase):
     gate could no longer fail.
     """
 
+    @staticmethod
+    def _min_elapsed_ms(operation, runs: int = 3) -> float:
+        """Return the minimum elapsed time over ``runs`` executions.
+
+        Scheduling noise, GC pauses and CPU contention can only *add* time, so
+        the minimum is the best estimator of the operation's own cost. Single
+        shot sampling made these gates fail under full-suite load while the
+        operation itself was unchanged (V4.5.19 lesson).
+        """
+        best = float("inf")
+        for _ in range(runs):
+            start = time.perf_counter()
+            operation()
+            best = min(best, (time.perf_counter() - start) * 1000)
+        return best
+
     def test_crush_large_json_under_100ms(self):
         """Verify: crushing 10000-item JSON array completes <100ms.
 
@@ -351,9 +367,7 @@ class TestPerformance(unittest.TestCase):
 
         ceiling_ms = perf_ceiling_ms(100.0)
 
-        start = time.perf_counter()
-        crusher.crush(text)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+        elapsed_ms = self._min_elapsed_ms(lambda: crusher.crush(text))
         self.assertLess(
             elapsed_ms,
             ceiling_ms,
@@ -376,9 +390,7 @@ class TestPerformance(unittest.TestCase):
 
         ceiling_ms = perf_ceiling_ms(100.0)
 
-        start = time.perf_counter()
-        crusher.crush(text)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+        elapsed_ms = self._min_elapsed_ms(lambda: crusher.crush(text))
         self.assertLess(
             elapsed_ms,
             ceiling_ms,
@@ -399,9 +411,7 @@ class TestPerformance(unittest.TestCase):
 
         ceiling_ms = perf_ceiling_ms(50.0)
 
-        start = time.perf_counter()
-        router.detect(text)
-        elapsed_ms = (time.perf_counter() - start) * 1000
+        elapsed_ms = self._min_elapsed_ms(lambda: router.detect(text))
         self.assertLess(
             elapsed_ms,
             ceiling_ms,

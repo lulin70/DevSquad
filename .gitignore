@@ -31,6 +31,7 @@ venv/
 coverage.json
 coverage.xml
 htmlcov/
+htmlcov_*/
 
 # --- Secrets & Credentials ---
 .env

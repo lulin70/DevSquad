@@ -211,3 +211,56 @@ def isolated_provider_env() -> Iterator[None]:
 def _isolate_moka_file_config(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep the local ``moka_ai.json`` out of every test's backend chain."""
     monkeypatch.setattr("scripts.collaboration.llm_backend._MOKA_FILE_CONFIG_CACHE", {})
+
+
+# ---------------------------------------------------------------------------
+# Optional-dependency test skipping
+# ---------------------------------------------------------------------------
+#
+# Several test modules need optional extras (``.[api]`` / ``.[all]``). Without
+# them the modules fail at *collection* time, which aborts the whole run and
+# hides the results of every dependency-free test. The markers below let the
+# suite stay green on a minimal install while still running those tests where
+# the extras are present.
+#
+# Markers are declared in ``pyproject.toml``. Tests are skipped, not deselected,
+# so the reason is visible in the report.
+
+_OPTIONAL_MARKERS: dict[str, tuple[str, ...]] = {
+    "requires_api": ("pydantic", "fastapi", "uvicorn"),
+    "requires_ui": ("streamlit",),
+    "requires_mcp": ("mcp",),
+    "requires_pillow": ("PIL",),
+    "requires_requests": ("requests",),
+    "requires_hypothesis": ("hypothesis",),
+    "requires_redis": ("fakeredis",),
+    "requires_browser": ("playwright",),
+}
+
+
+def _module_available(module_name: str) -> bool:
+    """Return True when ``module_name`` can be imported."""
+    from importlib.util import find_spec
+
+    try:
+        return find_spec(module_name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Skip tests whose optional dependencies are not installed."""
+    available = {
+        name: _module_available(name)
+        for deps in _OPTIONAL_MARKERS.values()
+        for name in deps
+    }
+    for item in items:
+        for marker_name, deps in _OPTIONAL_MARKERS.items():
+            if marker_name not in item.keywords:
+                continue
+            missing = [dep for dep in deps if not available.get(dep, False)]
+            if missing:
+                item.add_marker(
+                    pytest.mark.skip(reason=f"missing optional dependencies: {', '.join(missing)}")
+                )

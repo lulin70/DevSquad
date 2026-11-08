@@ -151,6 +151,7 @@ def dashboard(dashboard_port: int):
             proc.wait()
 
 
+@pytest.mark.requires_ui
 class TestDashboardSubprocessStartup:
     """Dashboard subprocess startup and HTTP responsiveness."""
 

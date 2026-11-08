@@ -88,6 +88,7 @@ def sample_yaml_file(tmp_path: Path, sample_yaml_dict: dict[str, Any]) -> Path:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.requires_api
 class TestDevSquadConfigLoading:
     """Tests for DevSquadConfig.from_dict() and from_yaml()."""
 

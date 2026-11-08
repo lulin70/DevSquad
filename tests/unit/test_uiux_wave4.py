@@ -9,6 +9,7 @@ per 7-Role consensus (low ROI for desktop tool / over-engineering).
 
 from __future__ import annotations
 
+import pytest
 from unittest.mock import patch
 
 from scripts.dashboard.components import (
@@ -18,6 +19,7 @@ from scripts.dashboard.components import (
 # ── W4-T2: Keyboard shortcuts ──
 
 
+@pytest.mark.requires_ui
 class TestKeyboardShortcuts:
     """Verify: KEYBOARD_SHORTCUTS defines 9 shortcuts with required fields."""
 

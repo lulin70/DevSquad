@@ -50,6 +50,7 @@ def client(monkeypatch):
     return TestClient(app)
 
 
+@pytest.mark.requires_api
 class TestRootEndpoint:
     """Test suite for root endpoint (/)."""
 

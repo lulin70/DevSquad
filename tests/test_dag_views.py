@@ -17,6 +17,7 @@ from scripts.dashboard.dag_views import (
 # ============================================================
 
 
+@pytest.mark.requires_ui
 class TestDAGModels:
     def test_node_creation(self):
         node = DAGNode(node_id="P1", label="Requirements", status="pending")
@@ -113,7 +114,7 @@ class TestDAGBuilder:
     def test_build_default_lifecycle(self):
         viz = DAGVisualizer()
         graph = viz.build_from_lifecycle(DEFAULT_LIFECYCLE_PHASES)
-        assert len(graph.nodes) == 11
+        assert len(graph.nodes) == 12
         # P9 depends on P7 and P8
         p9_deps = [e for e in graph.edges if e.target == "P9"]
         assert len(p9_deps) == 2
@@ -135,8 +136,8 @@ class TestMermaidOutput:
         viz = DAGVisualizer()
         graph = viz.build_from_lifecycle(DEFAULT_LIFECYCLE_PHASES)
         mermaid = viz.to_mermaid(graph)
-        assert 'P1["Requirements"]' in mermaid
-        assert 'P11["Monitoring"]' in mermaid
+        assert 'P1["Requirements Analysis"]' in mermaid
+        assert 'P11["Operations & Assurance"]' in mermaid
 
     def test_mermaid_has_edges(self):
         viz = DAGVisualizer()
@@ -182,8 +183,8 @@ class TestJSONOutput:
         viz = DAGVisualizer()
         graph = viz.build_from_lifecycle(DEFAULT_LIFECYCLE_PHASES)
         data = viz.to_json(graph)
-        assert data["metadata"]["node_count"] == 11
-        assert len(data["nodes"]) == 11
+        assert data["metadata"]["node_count"] == 12
+        assert len(data["nodes"]) == 12
 
     def test_json_edge_count(self):
         viz = DAGVisualizer()
@@ -200,7 +201,7 @@ class TestJSONOutput:
         summary = data["metadata"]["status_summary"]
         assert summary.get("completed") == 1
         assert summary.get("running") == 1
-        assert summary.get("pending") == 9
+        assert summary.get("pending") == 10
 
     def test_json_node_fields(self):
         viz = DAGVisualizer()
@@ -229,7 +230,7 @@ class TestDOTOutput:
         viz = DAGVisualizer()
         graph = viz.build_from_lifecycle(DEFAULT_LIFECYCLE_PHASES)
         dot = viz.to_dot(graph)
-        assert 'P1 [label="Requirements"' in dot
+        assert 'P1 [label="Requirements Analysis"' in dot
 
     def test_dot_has_edges(self):
         viz = DAGVisualizer()
@@ -288,12 +289,12 @@ class TestNodeStatusUpdate:
 
 
 class TestDefaultLifecycle:
-    def test_default_has_11_phases(self):
-        assert len(DEFAULT_LIFECYCLE_PHASES) == 11
+    def test_default_has_12_phases(self):
+        assert len(DEFAULT_LIFECYCLE_PHASES) == 12
 
     def test_default_phase_ids_sequential(self):
         ids = [p["phase_id"] for p in DEFAULT_LIFECYCLE_PHASES]
-        assert ids == [f"P{i}" for i in range(1, 12)]
+        assert ids == [f"P{i}" for i in range(0, 12)]
 
     def test_default_p9_has_two_dependencies(self):
         p9 = next(p for p in DEFAULT_LIFECYCLE_PHASES if p["phase_id"] == "P9")

@@ -30,6 +30,7 @@ from scripts.dashboard.i18n import (
 # ── W3-T1: Command palette ──
 
 
+@pytest.mark.requires_ui
 class TestCommandPaletteItems:
     """Verify: COMMAND_PALETTE_ITEMS defines 8 commands with required fields."""
 

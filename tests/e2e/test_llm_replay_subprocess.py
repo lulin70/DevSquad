@@ -35,13 +35,21 @@ pytestmark = [
 
 
 def _has_real_backend() -> bool:
-    """True when a real backend credential is available in this environment."""
-    return bool(
-        os.environ.get("DEVSQUAD_OPENAI_API_KEY")
-        or os.environ.get("OPENAI_API_KEY")
-        or os.environ.get("MOKA_API_KEY")
-        or os.environ.get("DEVSQUAD_ANTHROPIC_API_KEY")
-        or os.environ.get("ANTHROPIC_API_KEY")
+    """True when a real backend credential *and* its SDK are available.
+
+    A credential on its own is not enough: the backend raises ImportError when
+    the provider SDK is not installed, which would turn a skip into a hard
+    failure of the whole replay journey.
+    """
+    from importlib.util import find_spec
+
+    def ready(sdk: str, *env_names: str) -> bool:
+        if find_spec(sdk) is None:
+            return False
+        return any(os.environ.get(name) for name in env_names)
+
+    return ready("openai", "DEVSQUAD_OPENAI_API_KEY", "OPENAI_API_KEY", "MOKA_API_KEY") or ready(
+        "anthropic", "DEVSQUAD_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"
     )
 
 

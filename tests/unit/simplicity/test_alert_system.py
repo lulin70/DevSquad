@@ -37,6 +37,7 @@ def alert_system_no_creds(tmp_path):
         yield system
 
 
+@pytest.mark.requires_requests
 class TestAlertSystem:
     """AlertSystem unit tests"""
     
