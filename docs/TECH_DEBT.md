@@ -192,6 +192,27 @@
 - **建议方案**: 在 P8-005 / P8-006 / P8-007 阶段分别接入 DuplicationGate、AlertSystem 与
   WorkflowTrace 查询，并在同一批次删除对应 TODO 注释。
 - **状态**: OPEN（2026-11-08 登记；todo_drift_monitor 要求登记后放行）
+- **决策记录**: 见下方 DR-2026-11-16（Simplicity 集成边界裁决）
+
+### DR-2026-11-16: Simplicity 集成边界裁决（关联 TD-078）
+
+- **裁决**: SimplicityRole 不作为第 8 个 dispatch 角色；仅作为 P8 阶段内部质量门。
+- **证据**:
+  - SKILL.md:59 明文 "SimplicityRole is not a collaboration role but a quality gate executor"
+  - role_matcher.py 与 skill-manifest.yaml 均无 simplicity 注册
+  - coordinator.py:425-449 延迟初始化，仅 plan.phase == "P8" 触发
+- **绕过路径**: DEVSQUAD_SKIP_SIMPLICITY=1。绕过事件写入 WorkflowTrace（simplicity_bypass），
+  测试覆盖 tests/unit/simplicity/test_simplicity_role.py::test_activate_001_bypass_enabled。
+  告警接入在 P8-006（TD-078）。
+- **团队审核结论**: architect / security / coder / tester 四角色一致通过（2026-11-16）。
+  - architect: 角色层与门禁层分离清晰。不扩角色注册表与共识权重。
+  - security: 绕过无告警为已知缺口，由 P8-006 关闭。P6 安全评审不依赖此门，无阻塞风险。
+  - tester: 新发现一处隐患 — check_false_positive_rate 占位返回 0.0
+    （simplicity_config.py:152-154），auto_downgrade_if_needed 的 10% 降级阈值
+    永不触发（死代码）。随 P8-007 一并修复。
+  - coder: DuplicationGate 与 CrapGate 模块及测试已存在，P8-005 接线量小。
+- **不变项**: 7 角色体系、ROLE_REGISTRY、共识权重均不受此门影响。
+- **状态**: 裁决生效。TD-078 保持 OPEN，按 P8-005 / P8-006 / P8-007 分期关闭。
 
 ## 扫描方法与排除项
 
