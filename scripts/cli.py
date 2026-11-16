@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import importlib
 import os
 import sys
 from collections.abc import Callable
@@ -18,17 +19,56 @@ from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from scripts.cli_audit import cmd_audit
-from scripts.cli_backend import cmd_backend
-from scripts.cli_defect import register_defect_subparser
-from scripts.cli_dispatch import cmd_demo, cmd_dispatch, cmd_roles, cmd_status
-from scripts.cli_doctor import cmd_doctor
-from scripts.cli_lifecycle import cmd_lifecycle
-from scripts.cli_metrics import cmd_metrics
-from scripts.cli_modules import register_modules_subparser
-from scripts.cli_rules import register_rules_subparser
-from scripts.cli_sessions import cmd_sessions
-from scripts.cli_utils import (
+# TD-077: dependency self-check BEFORE the heavy import chain below.
+# Without it, a bare system Python without `yaml`/`pydantic` fails inside the
+# imports and the failure surfaces as an opaque hang / raw traceback instead of
+# an actionable message. Exit code 2 matches the failure-taxonomy
+# `environment_blocked` contract (same code path family as TD-002).
+_CRITICAL_DEPS: list[tuple[str, str]] = [
+    ("yaml", "pyyaml"),
+    ("pydantic", "pydantic"),
+]
+
+
+def check_critical_dependencies(modules: list[tuple[str, str]] | None = None) -> None:
+    """Fail fast with an actionable message when critical deps are missing.
+
+    Runs before the ``scripts.*`` import chain so the CLI never reaches an
+    opaque ``ModuleNotFoundError`` deep inside the collaboration modules.
+
+    Raises:
+        SystemExit: code 2 (environment_blocked) when any dependency is missing.
+    """
+    checked = modules if modules is not None else _CRITICAL_DEPS
+    missing = []
+    for module_name, package_name in checked:
+        try:
+            importlib.import_module(module_name)
+        except ImportError:
+            missing.append(package_name)
+    if missing:
+        print("❌ DevSquad CLI: missing critical dependencies: " + ", ".join(missing), file=sys.stderr)
+        print('   Fix: pip install -e ".[dev]"   (or: pip install ' + " ".join(missing) + ")", file=sys.stderr)
+        print("   Note: running with the bare system Python is not recommended;", file=sys.stderr)
+        print("   use the project virtual environment (venv/.venv).", file=sys.stderr)
+        raise SystemExit(2)
+
+
+check_critical_dependencies()
+
+# TD-077: these imports are intentionally below check_critical_dependencies()
+# — the gate must run first. E402 is waived per the lint baseline convention.
+from scripts.cli_audit import cmd_audit  # noqa: E402
+from scripts.cli_backend import cmd_backend  # noqa: E402
+from scripts.cli_defect import register_defect_subparser  # noqa: E402
+from scripts.cli_dispatch import cmd_demo, cmd_dispatch, cmd_roles, cmd_status  # noqa: E402
+from scripts.cli_doctor import cmd_doctor  # noqa: E402
+from scripts.cli_lifecycle import cmd_lifecycle  # noqa: E402
+from scripts.cli_metrics import cmd_metrics  # noqa: E402
+from scripts.cli_modules import register_modules_subparser  # noqa: E402
+from scripts.cli_rules import register_rules_subparser  # noqa: E402
+from scripts.cli_sessions import cmd_sessions  # noqa: E402
+from scripts.cli_utils import (  # noqa: E402
     ALL_ROLE_IDS,
     BACKENDS,
     FORMATS,
@@ -42,7 +82,7 @@ from scripts.cli_utils import (
     _quick_init,
     _save_config,
 )
-from scripts.collaboration.models import ROLE_REGISTRY
+from scripts.collaboration.models import ROLE_REGISTRY  # noqa: E402
 
 
 def _print_init_welcome() -> None:
