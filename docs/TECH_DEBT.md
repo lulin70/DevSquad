@@ -2,7 +2,7 @@
 
 > **文档类型**: 活跃跟踪器 — 每次 commit 后同步更新
 > **维护原则**: 活文档 — 新增 TODO/FIXME 时即时登记；解决时标记 RESOLVED
-> **最后更新**: 2026-10-27（4.9.0 收尾批：登记 TD-077，活跃 0→1；TD-075 RESOLVED 2026-10-24：streamlit 1.66.1 解除 Pillow<13 上限，PR #65 升锁后双面审计全净，豁免机制撤销；V4.7.0 批次 TD-002/070/072/074 已关闭，TD-071 部分关闭）
+> **最后更新**: 2026-11-16（TD-077 RESOLVED：CLI 依赖自检实施；TD-078 RESOLVED：P8-005/006/007 接线、4 处 TODO 删除；活跃 2→0）
 > **关联文档**: [TECH_DEBT_ASSESSMENT_V4.0.md](_archive/TECH_DEBT_ASSESSMENT_V4.0.md) — 完整技术债评估 (V4.0.11 基线；V4.6.1 归档)
 
 ## V4.8.0 P1 工作流进场批技术债状态（2026-10-21）
@@ -11,7 +11,7 @@
 
 ## V4.9.0 收尾复盘批技术债状态（2026-10-27）
 
-- **TD-077（P2）新登记**: CLI 全管线 mock dispatch 本机挂起根因未明（详见下方明细条目）。来源：4.9.0 收尾 dogfood 实测，复盘 [2026-10-27_P2_defect-ledger_batch_retrospective.md](assessments/2026-10-27_P2_defect-ledger_batch_retrospective.md) §5 移交。
+- **TD-077（P2）新登记**: CLI 全管线 mock dispatch 本机挂起根因未明（详见下方明细条目）。来源：4.9.0 收尾 dogfood 实测，复盘 [2026-10-27_P2_defect-ledger_batch_retrospective.md](assessments/2026-10-27_P2_defect-ledger_batch_retrospective.md) §5 移交。**2026-11-16 RESOLVED**（详见下方明细条目）。
 - **观察项（不占 TD 编号）**: ① feature_gate dogfood 留待首个需验收清单的真实特性启用；② `unfiled_signal_report` advisory 价值待首个真实信号 run 检验。
 - **不留债声明**: 4.9.0 W1-W4 四波、发布链与收尾复盘批本身无遗留项；dogfood 已启用 `defect_ledger.enabled: true`（PR #89）。
 
@@ -64,13 +64,14 @@
 |--------|------|------|
 | P0 (阻断) | 0 | — |
 | P1 (重要) | 0 | — |
-| P2 (一般) | 1 | TD-077 OPEN |
-| P3 (低)   | 1 | TD-078 OPEN |
-| **总计** | **2** | |
+| P2 (一般) | 0 | — |
+| P3 (低)   | 0 | — |
+| **总计** | **0** | |
 
 > **2026-10-24 注**: TD-075 已 RESOLVED（PR #65 升锁后双面审计全净），活跃计数清零。此前 TD-002 已在 V4.7.0 发布前批次 RESOLVED。
 > **2026-10-27 注**: TD-077 登记（4.9.0 收尾批 CLI dispatch 挂起，P2/OPEN），活跃计数 0→1。
 > **2026-11-08 注**: TD-078 登记（Simplicity 角色 P8 集成 4 处 TODO，P3/OPEN），活跃计数 1→2。
+> **2026-11-16 注**: TD-077 RESOLVED（CLI 依赖自检实施）、TD-078 RESOLVED（P8-005/006/007 全部接线，4 处 TODO 删除），活跃计数 2→0。
 
 > **扫描说明**: 运行 `grep -rn "TODO\|FIXME\|HACK" scripts/ --include="*.py" | grep -v "test\|__pycache__"`
 > 共返回 18 行匹配。经逐行分析，其中 17 行为**技术债检测工具自身的实现代码**
@@ -175,7 +176,10 @@
   1. 本机安装完整依赖：`pip install -e ".[dev]"` 或使用项目 venv
   2. 文档增强：README/INSTALL 明确说明**系统 Python 不建议直接运行**，应使用 venv
   3. CLI 入口增加友好错误提示：检测关键依赖缺失时立即退出并提示安装命令
-- **状态**: OPEN（2026-10-28 根因明确；降级为 P3 环境配置问题；不需代码修复，需文档/工具改进）
+- **状态**: RESOLVED（2026-11-16：建议方案 3 已实施 — CLI 启动自检 yaml/pydantic，
+  缺失时 SystemExit(2) + 友好报错（含 `pip install -e ".[dev]"` 修复指引），退出码对齐
+  TD-002 的 environment_blocked 语义。测试：tests/unit/test_cli_dependency_gate.py（3 项）
+  + tests/e2e/test_cli_missing_dependency_e2e.py（3 项 subprocess 裸环境模拟）。）
 
 ### TD-078: Simplicity 角色 P8 集成待办（4 处 TODO 标记）
 
@@ -191,7 +195,12 @@
 - **影响面**: 仅影响 Simplicity 角色的告警与重复度指标。评分与判定主路径可用。
 - **建议方案**: 在 P8-005 / P8-006 / P8-007 阶段分别接入 DuplicationGate、AlertSystem 与
   WorkflowTrace 查询，并在同一批次删除对应 TODO 注释。
-- **状态**: OPEN（2026-11-08 登记；todo_drift_monitor 要求登记后放行）
+- **状态**: RESOLVED（2026-11-16：P8-005 / P8-006 / P8-007 三期全部接线完成，
+  4 处 TODO 注释已删除 — DuplicationGate 接入 _audit（worse-status-wins）+ duplication
+  指标；AlertSystem 绕过告警接入（P1 级）；check_false_positive_rate 查询
+  WorkflowTrace 的 simplicity_reject 事件，auto_downgrade 10% 降级阈值复活。
+  测试：tests/unit/simplicity/test_duplication_wiring_p8_005.py /
+  test_alert_wiring_p8_006.py / test_false_positive_p8_007.py。）
 - **决策记录**: 见下方 DR-2026-11-16（Simplicity 集成边界裁决）
 
 ### DR-2026-11-16: Simplicity 集成边界裁决（关联 TD-078）
