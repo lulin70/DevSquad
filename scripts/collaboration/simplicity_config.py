@@ -22,8 +22,10 @@ import hmac
 import json
 import logging
 import os
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -137,32 +139,73 @@ class SimplicityConfig:
         else:
             return "full"
 
+    # Duck-typed WorkflowTrace read side: trace objects store recorded
+    # events in one of these list attributes (first match wins).
+    _TRACE_EVENT_ATTRS: tuple[str, ...] = ("records", "events")
+
     @classmethod
-    def check_false_positive_rate(cls) -> float:
+    def _iter_trace_events(cls, workflow_trace: Any) -> Iterator[dict]:
+        """Yield recorded events from a duck-typed WorkflowTrace.
+
+        Accepted inputs:
+        - ``None`` (no trace available) -> no events
+        - a plain list/tuple of event dicts
+        - an object exposing a ``records`` or ``events`` list attribute
         """
-        Check false positive rate from WorkflowTrace
+        if workflow_trace is None:
+            return
+        if isinstance(workflow_trace, (list, tuple)):
+            yield from workflow_trace
+            return
+        for attr in cls._TRACE_EVENT_ATTRS:
+            items = getattr(workflow_trace, attr, None)
+            if isinstance(items, (list, tuple)):
+                yield from items
+                return
+
+    @classmethod
+    def check_false_positive_rate(cls, workflow_trace: Any = None) -> float:
+        """
+        Check false positive rate from WorkflowTrace events
+
+        Args:
+            workflow_trace: Duck-typed WorkflowTrace (or a list of event
+                dicts). ``None`` means no trace data is available.
 
         Returns:
             False positive rate (0.0 - 1.0)
 
         Formula: human_overrides / total_simplicity_rejects
 
-        Note: Placeholder implementation - will integrate with WorkflowTrace in P8-007
+        Returns 0.0 when no trace is available or no ``simplicity_reject``
+        events exist (division-by-zero guard).
         """
-        # TODO: Query WorkflowTrace for simplicity_reject events
-        # For now, return 0.0 (no false positives)
-        return 0.0
+        rejects = [
+            event
+            for event in cls._iter_trace_events(workflow_trace)
+            if isinstance(event, dict) and event.get("event") == "simplicity_reject"
+        ]
+        total = len(rejects)
+        if total == 0:
+            return 0.0
+        overrides = sum(1 for event in rejects if event.get("human_override"))
+        rate = overrides / total
+        logger.info(f"False positive rate: {overrides}/{total} simplicity_reject events = {rate:.1%}")
+        return rate
 
     @classmethod
-    def auto_downgrade_if_needed(cls) -> str:
+    def auto_downgrade_if_needed(cls, workflow_trace: Any = None) -> str:
         """
         Auto-downgrade if false positive rate > 10%
+
+        Args:
+            workflow_trace: Duck-typed WorkflowTrace for event queries
 
         Returns:
             Adjusted mode ("shadow", "soft", or "full")
         """
         current_mode = cls.get_current_mode()
-        false_positive_rate = cls.check_false_positive_rate()
+        false_positive_rate = cls.check_false_positive_rate(workflow_trace)
 
         if false_positive_rate > 0.1:
             logger.warning(

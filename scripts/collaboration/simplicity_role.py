@@ -121,7 +121,22 @@ class SimplicityRole:
                 }
             )
 
-            # TODO: Send alert (will integrate AlertSystem in P8-006)
+            # Send bypass alert (P8-006 wiring). AlertSystem degrades
+            # gracefully without PagerDuty/Slack credentials: the alert is
+            # still persisted to the local JSONL history, so the bypass is
+            # never silent. Alerting must never break the bypass path itself.
+            try:
+                from scripts.collaboration.alert_system import AlertSystem
+
+                approver = os.getenv("DEVSQUAD_SKIP_SIMPLICITY_APPROVER", "unspecified")
+                phase = str(getattr(plan, "phase", "P8"))
+                AlertSystem().send_bypass_alert(
+                    reason="Emergency bypass enabled",
+                    approver=approver,
+                    phase=phase,
+                )
+            except Exception as exc:  # pragma: no cover - defensive, non-blocking
+                logger.warning(f"Bypass alert delivery failed (non-blocking): {exc}")
             return None
 
         # Check trigger conditions
@@ -175,7 +190,7 @@ class SimplicityRole:
         Flow:
             1. Extract target file paths
             2. Call CRAPGate.check()
-            3. Call DuplicationGate.check() (TODO: P8-005)
+            3. Call DuplicationGate.check() (P8-005 wiring) and merge the worse status
             4. Determine verdict based on thresholds
 
         Args:
@@ -185,7 +200,10 @@ class SimplicityRole:
         Returns:
             SimplicityAuditResult
         """
+        from pathlib import Path
+
         from scripts.collaboration.gates.crap_gate import CRAPGate
+        from scripts.collaboration.gates.duplication_gate import DuplicationGate
 
         # Extract target paths
         target_paths = getattr(plan, "target_files", [])
@@ -197,12 +215,17 @@ class SimplicityRole:
         crap_gate = CRAPGate(threshold=10.0)
         crap_result = crap_gate.check(target_paths)
 
-        # TODO: Run DuplicationGate (P8-005)
-        # duplication_gate = DuplicationGate(threshold=0.08)
-        # dup_result = duplication_gate.check(target_paths)
+        # Run duplication gate (P8-005 wiring)
+        dup_gate = DuplicationGate(threshold=0.08)
+        dup_paths = [Path(p) for p in target_paths if str(p)]
+        dup_result = dup_gate.check(dup_paths)
 
-        # Determine overall status
+        # Merge gate statuses — keep the worse of the two (P8-005)
+        severity = {"PASS": 0, "WARNING": 1, "REJECT": 2}
         status = crap_result["status"]
+        if severity[dup_result["status"]] > severity[status]:
+            status = dup_result["status"]
+
         violations = []
         warnings = []
         recommendations = []
@@ -215,11 +238,25 @@ class SimplicityRole:
         elif crap_result["status"] == "WARNING":
             warnings.append(f"Max CRAP score {crap_result['max_crap']:.1f} approaching threshold")
 
-        # Build metrics
+        if dup_result["status"] == "REJECT":
+            violations.append(
+                f"Duplication rate {dup_result['duplication_rate']:.1%} across {dup_result['total_clones']} clone(s)"
+            )
+            for clone in dup_result["clones"][:10]:
+                violations.append(
+                    f"Duplicated block: {clone['file1']}:{clone['line1']} <-> {clone['file2']}:{clone['line2']} "
+                    f"({clone['tokens']} tokens)"
+                )
+            recommendations.append("Extract duplicated token sequences into shared helpers")
+        elif dup_result["status"] == "WARNING":
+            warnings.append(f"Duplication rate {dup_result['duplication_rate']:.1%} exceeds the 8% threshold")
+
+        # Build metrics (P8-005: duplication metrics now real)
         metrics = {
             "max_crap": crap_result["max_crap"],
             "crap_violations": len(crap_result["violations"]),
-            # TODO: Add duplication metrics in P8-005
+            "duplication_rate": dup_result["duplication_rate"],
+            "duplication_clones": dup_result["total_clones"],
         }
 
         return SimplicityAuditResult(
@@ -262,6 +299,19 @@ class SimplicityRole:
             else:  # full mode
                 result.verdict = "REJECT"
                 logger.error("❌ Full mode: REJECT enforced")
+
+            # Record reject event for false-positive-rate queries (P8-007).
+            # human_override=False is the seed; a human override flow can
+            # flag the event later. SimplicityConfig.check_false_positive_rate()
+            # reads these events via the trace's ``records``/``events`` list.
+            self.workflow_trace.record(
+                {
+                    "event": "simplicity_reject",
+                    "human_override": False,
+                    "mode": current_mode,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
         return result
 
