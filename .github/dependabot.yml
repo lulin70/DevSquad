@@ -32,6 +32,13 @@ updates:
       python-dependencies:
         patterns:
           - "*"
+    ignore:
+      # mcp 2.x removed `mcp.server.fastmcp` (scripts/mcp_server.py:50) and the
+      # code has not migrated yet. Keep the `mcp>=1,<2` pin until the FastMCP
+      # migration lands (adjudicated in PR #93; DR-2026-11-16 lesson: verify
+      # API compatibility before letting dependabot widen upper bounds).
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
     reviewers:
       - "lulin70"
     commit-message:
