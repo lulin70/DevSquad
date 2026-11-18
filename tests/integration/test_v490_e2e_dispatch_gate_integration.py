@@ -143,9 +143,7 @@ class TestE2EDispatchRegistrationGateIntegration:
         )
 
         try:
-            result = disp.dispatch(
-                task_description="Implement secure authentication system", roles=["architect", "security"]
-            )
+            result = disp.dispatch(task_description="Implement secure authentication system", roles=["architect", "security"])
         finally:
             disp.shutdown()
 
