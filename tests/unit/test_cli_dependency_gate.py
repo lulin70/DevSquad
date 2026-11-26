@@ -1,6 +1,7 @@
 """TD-077: CLI dependency self-check gate (unit tests).
 
-Covers ``scripts.cli.check_critical_dependencies``:
+Covers ``scripts.cli_dependency_gate.check_critical_dependencies``
+(re-exported by ``scripts.cli`` for entry-point wiring):
 
 - missing dependency list -> ``SystemExit(2)`` with an actionable message
 - all dependencies present -> no exception
@@ -11,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.cli import check_critical_dependencies
+from scripts.cli_dependency_gate import check_critical_dependencies
 
 
 class TestCheckCriticalDependencies:

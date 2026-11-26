@@ -11,7 +11,6 @@ Usage:
 """
 
 import argparse
-import importlib
 import os
 import sys
 from collections.abc import Callable
@@ -24,35 +23,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 # imports and the failure surfaces as an opaque hang / raw traceback instead of
 # an actionable message. Exit code 2 matches the failure-taxonomy
 # `environment_blocked` contract (same code path family as TD-002).
-_CRITICAL_DEPS: list[tuple[str, str]] = [
-    ("yaml", "pyyaml"),
-    ("pydantic", "pydantic"),
-]
-
-
-def check_critical_dependencies(modules: list[tuple[str, str]] | None = None) -> None:
-    """Fail fast with an actionable message when critical deps are missing.
-
-    Runs before the ``scripts.*`` import chain so the CLI never reaches an
-    opaque ``ModuleNotFoundError`` deep inside the collaboration modules.
-
-    Raises:
-        SystemExit: code 2 (environment_blocked) when any dependency is missing.
-    """
-    checked = modules if modules is not None else _CRITICAL_DEPS
-    missing = []
-    for module_name, package_name in checked:
-        try:
-            importlib.import_module(module_name)
-        except ImportError:
-            missing.append(package_name)
-    if missing:
-        print("❌ DevSquad CLI: missing critical dependencies: " + ", ".join(missing), file=sys.stderr)
-        print('   Fix: pip install -e ".[dev]"   (or: pip install ' + " ".join(missing) + ")", file=sys.stderr)
-        print("   Note: running with the bare system Python is not recommended;", file=sys.stderr)
-        print("   use the project virtual environment (venv/.venv).", file=sys.stderr)
-        raise SystemExit(2)
-
+# Implementation lives in scripts/cli_dependency_gate.py to keep this entry
+# point under the module size baseline (dispatcher size gate, V4.6.0).
+from scripts.cli_dependency_gate import check_critical_dependencies
 
 check_critical_dependencies()
 
