@@ -12,11 +12,18 @@ This document records all significant changes to DevSquad.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.10.0] - 2026-11-27
 
 ### Fixed
 
+- **CI incident post-mortem (2026-11-26)**: main CI was red for 9 consecutive days (13 runs, 2026-11-17 → 2026-11-26) due to two stacked failures. Layer 1: commit `2e08f97` landed a hand-made single-line reformat that ran against the ruff formatter (the call exceeded line width); fixed in `d94dcef` by running the actual formatter. Layer 2 (masked by layer 1): the W1 dependency-gate code grew `scripts/cli.py` to 809 LOC against its 776-LOC baseline, tripping the V4.6.0 dispatcher size gate; fixed in `6f97ad0` by extracting the gate into `scripts/cli_dependency_gate.py` (stdlib-only, imported first by the entry point). Lesson recorded: style commits must be verified with `ruff format --check` before landing — never commit hand-made "formatting".
+- **PR #99 handling (2026-11-27)**: third `mcp>=1,<3` widening PR rejected (#96 grouped → #97 standalone → #99 standalone, created 2 minutes after PR #98 merged). The semver-major `ignore` rule does not catch constraint-widening updates; `.github/dependabot.yml` now ignores ALL update types for `mcp` until the FastMCP migration lands (1.x minor/patch bumps ride along with the migration).
 - **PR #96 handling (2026-11-17)**: ruff 0.17.4 → 0.17.5 applied manually across all five surfaces (pyproject, requirements-dev.txt, requirements-dev.lock, pre-commit rev, CI dynamic lock read); lint green. The `mcp>=1,<3` widening in the same Dependabot PR was rejected — `scripts/mcp_server.py:50` still imports `mcp.server.fastmcp`, which mcp 2.x removed (CI stays green only because it installs from the lock, but fresh `pip install devsquad[mcp]` would break). `.github/dependabot.yml` now ignores `mcp` semver-major updates until the FastMCP migration lands (PR #93 adjudication).
+- **Lifecycle definition is now single-source** — `PHASE_TEMPLATES` in `scripts/collaboration/workflow_engine_base.py` is the only definition. Teaching content (`skills/teach/handler.py`), the dashboard DAG (`scripts/dashboard/dag_views.py`), dispatch mapping, and the SKILL/README/GUIDE tables derive from it or are contract-tested against it. The four conflicting copies that described different phases under the same P1-P11 IDs are removed.
+- **P0 added as an optional phase** — Discovery & Feasibility leads with product-manager and reviews with architect, security, and devops.
+- **Four gate conditions added** — P6 requires a clean dependency and supply-chain scan; P9 requires NFR targets met and UAT sign-off; P10 requires data migration executed and reconciled.
+- **P11 roles corrected** — devops leads; architect and security review. Security now takes part in Operations & Assurance.
+- **Role participation is enforced after recording** — lifecycle adapters record participants per phase (`record_participation`), persist them in checkpoint metadata, inject them into gate artifacts, and reject a phase transition when the lead or a reviewer is missing. A passing role gate no longer skips dependency checks.
 - **TD-077 (2026-11-16)**: The CLI entry point now self-checks critical dependencies (`yaml`, `pydantic`) before importing the rest of the package. In a bare environment (system Python without project deps), `scripts/cli.py` exits with code 2 (aligned with the TD-002 `environment_blocked` contract) and prints an actionable fix message (`pip install -e ".[dev]"`) instead of hanging on an unpropagated `ModuleNotFoundError`. Covered by 3 unit tests (`tests/unit/test_cli_dependency_gate.py`) and 3 subprocess E2E tests simulating the bare environment (`tests/e2e/test_cli_missing_dependency_e2e.py`).
 - **P8-007 / TD-078 (2026-11-16)**: `SimplicityConfig.check_false_positive_rate()` no longer returns a hardcoded 0.0 placeholder. It now queries duck-typed WorkflowTrace events (`records` / `events` list attributes or a raw list) for `simplicity_reject` entries and computes `human_overrides / total_simplicity_rejects` with a divide-by-zero guard. `SimplicityRole._apply_enforcement_mode()` records a `simplicity_reject` event (with `human_override: False` seed) whenever the audit status is REJECT. The `auto_downgrade_if_needed()` >10% downgrade threshold — previously dead code — is now reachable and covered by unit + integration tests (`tests/unit/simplicity/test_false_positive_p8_007.py`).
 - **P8-005 / TD-078 (2026-11-16)**: SimplicityRole's S2 audit now runs the real DuplicationGate alongside CRAPGate (worse-status-wins merge), surfaces duplication rate/clone metrics in `SimplicityAuditResult.metrics`, and appends clone-level violations with "extract shared helpers" recommendations. DuplicationGate stays real in tests (pure stdlib tokenize); only CRAPGate is mocked (radon not in test deps). Covered by `tests/unit/simplicity/test_duplication_wiring_p8_005.py`.
@@ -30,14 +37,16 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Registered TD-078 in `docs/TECH_DEBT.md` for the four Simplicity TODOs. Registered the new locations without backticks so `todo_drift_monitor` matches them exactly.
 - Local TRAE deployment re-checked after the lint change: `scripts/sync_trae_skill.sh` reported all four cache layers at V4.10.0. All eight `SKILL.md` / `skill-manifest.yaml` copies are byte-identical to the source. `check_version_consistency.py --strict` passed 83/83 checks.
 
+### Changed
+
+- **Toolchain (2026-11-17/26)**: ruff aligned to 0.17.5 → 0.17.6 across lock/pre-commit/CI via PRs #95/#98; azure/setup-helm 5.0.1 → 5.1.0 (PR #95). Dependabot grouping hardened: `mcp` excluded from the python-dependencies group and (as of 2026-11-27) fully ignored pending the FastMCP migration.
+- **Module size**: `scripts/cli.py` split — the TD-077 dependency gate extracted into `scripts/cli_dependency_gate.py` to restore the dispatcher size baseline (809 → under 800 LOC).
+- **Coordinator parallel execution**: V4.5.9 removed ThreadPoolExecutor in favor of asyncio.gather-based execution through `gather_core.execute_batch_gather()`. Parallel batches now execute via the shared async core, with sync bridges at worker boundaries. This change unified the execution paths and eliminated the separate thread pool.
+
 ### Added
 
 - **P0-2**: Comprehensive P0-P11 phase transition boundary tests added in `tests/unit/test_phase_transition_boundaries.py`. Tests verify: optional/required phase flags, phase sequence ordering, exit gate criteria, role participation requirements, and workflow trace recording.
 - **P0-3**: Documented P0 feasibility gate resolution strategy (Option A: Conditional with Fallback) in `docs/P0_FEASIBILITY_GATE_RESOLUTION.md`. When P0 is skipped, P1 entry requires a feasibility waiver to close the proof gap.
-
-### Changed
-
-- **Coordinator parallel execution**: V4.5.9 removed ThreadPoolExecutor in favor of asyncio.gather-based execution through `gather_core.execute_batch_gather()`. Parallel batches now execute via the shared async core, with sync bridges at worker boundaries. This change unified the execution paths and eliminated the separate thread pool.
 
 ### Documentation
 
@@ -49,17 +58,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Deleted five modules that no production path could reach: `gitlab_connector.py`, `dispatcher_transaction.py`, `dispatcher_intent_mapper.py`, `dispatcher_loop_controller.py`, `async_coeffect_resolver.py`. Their eight dedicated test files and their anti-ghost probes are removed too. Self-call verified modules: 27 → 22. Decision record: `docs/assessments/PROJECT_ASSESSMENT_2026-11-07.md` §7.1.
 
-## [4.10.0] - 2026-11-05
-
-### Fixed
-
-- **Lifecycle definition is now single-source** — `PHASE_TEMPLATES` in `scripts/collaboration/workflow_engine_base.py` is the only definition. Teaching content (`skills/teach/handler.py`), the dashboard DAG (`scripts/dashboard/dag_views.py`), dispatch mapping, and the SKILL/README/GUIDE tables derive from it or are contract-tested against it. The four conflicting copies that described different phases under the same P1-P11 IDs are removed.
-- **P0 added as an optional phase** — Discovery & Feasibility leads with product-manager and reviews with architect, security, and devops.
-- **Four gate conditions added** — P6 requires a clean dependency and supply-chain scan; P9 requires NFR targets met and UAT sign-off; P10 requires data migration executed and reconciled.
-- **P11 roles corrected** — devops leads; architect and security review. Security now takes part in Operations & Assurance.
-- **Role participation is enforced after recording** — lifecycle adapters record participants per phase (`record_participation`), persist them in checkpoint metadata, inject them into gate artifacts, and reject a phase transition when the lead or a reviewer is missing. A passing role gate no longer skips dependency checks.
-
-This is a **MINOR** release: the lifecycle gains P0 and stronger gates, and all public IDs stay backward compatible.
+This is a **MINOR** release (SemVer): the lifecycle gains P0 and stronger gates with all public IDs backward compatible; Simplicity ships as an internal P8 quality gate (not an 8th dispatch role — DR-2026-11-16); the CLI gains a fail-fast dependency gate; test count grew to 10,558. Released as tag `v4.10.0`.
 
 ## [4.9.0] - 2026-10-27
 

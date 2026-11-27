@@ -36,18 +36,18 @@ updates:
           # mcp must stay OUT of the group: Dependabot does not honor
           # update-level `ignore` rules for grouped updates (known upstream
           # defect — PR #97 was rejected 2026-11-17, yet the identical
-          # `mcp>=1,<3` widening came back inside grouped PR #98). Ungrouped,
-          # the `ignore` entry below applies reliably and mcp majors are
-          # suppressed; 1.x minors can still arrive as standalone PRs.
+          # `mcp>=1,<3` widening came back inside grouped PR #98).
           - "mcp"
     ignore:
       # mcp 2.x removed `mcp.server.fastmcp` (scripts/mcp_server.py:50) and the
       # code has not migrated yet. Keep the `mcp>=1,<2` pin until the FastMCP
-      # migration lands (adjudicated in PR #93 and PR #97; DR-2026-11-16
-      # lesson: verify API compatibility before letting dependabot widen
-      # upper bounds).
+      # migration lands (adjudicated in PR #93; DR-2026-11-16 lesson: verify
+      # API compatibility before letting dependabot widen upper bounds).
+      # ALL update types are ignored: the semver-major filter proved
+      # unreliable for constraint-widening PRs — #97 (grouped) and #99
+      # (standalone, created 2 minutes after PR #98 merged) both slipped
+      # through. 1.x minor/patch bumps ride along with the FastMCP migration.
       - dependency-name: "mcp"
-        update-types: ["version-update:semver-major"]
     reviewers:
       - "lulin70"
     commit-message:
